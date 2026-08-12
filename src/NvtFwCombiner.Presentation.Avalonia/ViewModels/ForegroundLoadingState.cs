@@ -1,3 +1,4 @@
+using System.Globalization;
 using CommunityToolkit.Mvvm.ComponentModel;
 
 namespace NvtFwCombiner.Presentation.Avalonia.ViewModels;
@@ -37,6 +38,14 @@ public sealed class ForegroundLoadingState : ObservableObject
     /// <summary>Reported determinate progress in the inclusive range 0..1, or null when no progress contract exists.</summary>
     public double? Progress => _progress;
 
+    /// <summary>True when the operation owner supplied determinate progress.</summary>
+    public bool HasDeterminateProgress => Progress.HasValue;
+
+    /// <summary>Current determinate progress as a concise percentage, or empty when progress is unknown.</summary>
+    public string ProgressPercentLabel => Progress is { } progress
+        ? string.Create(CultureInfo.CurrentCulture, $"{progress * 100:0}%")
+        : string.Empty;
+
     /// <summary>True while a running operation has not reported determinate progress.</summary>
     public bool IsIndeterminate => IsRunning && !Progress.HasValue;
 
@@ -50,9 +59,18 @@ public sealed class ForegroundLoadingState : ObservableObject
     public bool CanRetry => HasFailed && !string.IsNullOrWhiteSpace(RetryLabel);
 
     /// <summary>Localized live-region text that remains available without motion or color.</summary>
-    public string AccessibleStatus => string.IsNullOrWhiteSpace(Detail)
-        ? Title
-        : $"{Title} — {Detail}";
+    public string AccessibleStatus
+    {
+        get
+        {
+            string heading = HasDeterminateProgress
+                ? $"{Title} {ProgressPercentLabel}"
+                : Title;
+            return string.IsNullOrWhiteSpace(Detail)
+                ? heading
+                : $"{heading} — {Detail}";
+        }
+    }
 
     /// <summary>Shows a new foreground operation using determinate progress only when supplied by its owner.</summary>
     public void Begin(string title, string detail, double? progress = null)
@@ -158,8 +176,11 @@ public sealed class ForegroundLoadingState : ObservableObject
     {
         if (SetProperty(ref _progress, value, nameof(Progress)))
         {
+            OnPropertyChanged(nameof(HasDeterminateProgress));
+            OnPropertyChanged(nameof(ProgressPercentLabel));
             OnPropertyChanged(nameof(IsIndeterminate));
             OnPropertyChanged(nameof(ShouldAnimate));
+            OnPropertyChanged(nameof(AccessibleStatus));
         }
     }
 

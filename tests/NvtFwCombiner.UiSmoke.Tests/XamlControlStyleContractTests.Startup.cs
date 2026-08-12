@@ -83,23 +83,45 @@ public sealed partial class XamlControlStyleContractTests
             lifecycle.IndexOf("main-window.opened", StringComparison.Ordinal) <
             lifecycle.IndexOf("WarmCanonicalCapabilities", StringComparison.Ordinal));
         Assert.Contains("Task.Run(", lifecycle, StringComparison.Ordinal);
-        Assert.Contains("WarmCanonicalCapabilities(startupCancellation)", lifecycle, StringComparison.Ordinal);
+        Assert.Contains(
+            "WarmCanonicalCapabilities(startupCancellation)",
+            lifecycle,
+            StringComparison.Ordinal);
         Assert.Contains("viewModel.PublishCanonicalCatalogState()", lifecycle, StringComparison.Ordinal);
-        int warm = lifecycle.IndexOf("await Task.Run(", StringComparison.Ordinal);
+        int catalogStart = lifecycle.IndexOf(
+            "ReportCatalogProgressAsync(0.1",
+            StringComparison.Ordinal);
+        int warm = lifecycle.IndexOf("await Task.Run(", catalogStart, StringComparison.Ordinal);
+        int catalogWarm = lifecycle.IndexOf(
+            "ReportCatalogProgressAsync(0.8",
+            warm,
+            StringComparison.Ordinal);
+        int publicationStart = lifecycle.IndexOf(
+            "ReportCatalogProgressAsync(0.9",
+            catalogWarm,
+            StringComparison.Ordinal);
         int publish = lifecycle.IndexOf(
             "viewModel.PublishCanonicalCatalogState()",
-            warm,
+            publicationStart,
+            StringComparison.Ordinal);
+        int catalogPublished = lifecycle.IndexOf(
+            "ReportCatalogProgressAsync(1",
+            publish,
             StringComparison.Ordinal);
         int loadingComplete = lifecycle.IndexOf(
             "_catalogLoading.Complete();",
             publish,
             StringComparison.Ordinal);
         int successfulWarmup = lifecycle.IndexOf("return true;", loadingComplete, StringComparison.Ordinal);
-        Assert.True(warm >= 0 && warm < publish);
-        Assert.True(publish < loadingComplete);
+        Assert.True(catalogStart >= 0 && catalogStart < warm);
+        Assert.True(warm < catalogWarm);
+        Assert.True(catalogWarm < publicationStart);
+        Assert.True(publicationStart < publish);
+        Assert.True(publish < catalogPublished);
+        Assert.True(catalogPublished < loadingComplete);
         Assert.True(loadingComplete < successfulWarmup);
         Assert.True(
-            lifecycle.IndexOf("TryWarmCanonicalCatalogAsync(viewModel, startupCancellation)", StringComparison.Ordinal) <
+            lifecycle.IndexOf("TryWarmCanonicalCatalogAsync(", StringComparison.Ordinal) <
             lifecycle.IndexOf("ApplyLaunchPage(viewModel, _launchOptions.Page)", StringComparison.Ordinal));
         Assert.True(
             lifecycle.IndexOf("ApplyLaunchPage(viewModel, _launchOptions.Page)", StringComparison.Ordinal) <
@@ -140,7 +162,7 @@ public sealed partial class XamlControlStyleContractTests
         Assert.DoesNotContain("Process.", warmup, StringComparison.Ordinal);
     }
 
-    /// <summary>Catalog warm-up uses the reusable foreground surface without fabricating percentage progress.</summary>
+    /// <summary>Catalog warm-up shows startup-coordinator-owned milestone progress on the reusable foreground surface.</summary>
     [Fact]
     public void CatalogWarmupUsesAccessibleRetryableForegroundLoadingSurface()
     {
@@ -148,6 +170,32 @@ public sealed partial class XamlControlStyleContractTests
         string surfaceCode = ReadPresentationFile("Views/ForegroundLoadingSurface.axaml.cs");
         string shell = ReadPresentationFile("MainWindow.axaml");
         string lifecycle = ReadPresentationFile("MainWindow.axaml.cs");
+        int openedStart = lifecycle.IndexOf(
+            "protected override async void OnOpened",
+            StringComparison.Ordinal);
+        int coordinatorStart = lifecycle.IndexOf(
+            "private async Task ContinueStartupAsync",
+            openedStart,
+            StringComparison.Ordinal);
+        int retryStart = lifecycle.IndexOf(
+            "private async void CatalogLoadingSurface_OnRetryRequested",
+            coordinatorStart,
+            StringComparison.Ordinal);
+        int reloadBranchStart = lifecycle.IndexOf(
+            "if (reloadCatalog)",
+            coordinatorStart,
+            StringComparison.Ordinal);
+        int initialWarmBranchStart = lifecycle.IndexOf(
+            "else",
+            reloadBranchStart,
+            StringComparison.Ordinal);
+        int propertyChangedStart = lifecycle.IndexOf(
+            "private void ViewModel_OnPropertyChanged",
+            retryStart,
+            StringComparison.Ordinal);
+        string opened = lifecycle[openedStart..coordinatorStart];
+        string reloadBranch = lifecycle[reloadBranchStart..initialWarmBranchStart];
+        string retry = lifecycle[retryStart..propertyChangedStart];
         var surfaceDocument = XDocument.Parse(surface);
         XElement[] detailText =
         [
@@ -165,6 +213,8 @@ public sealed partial class XamlControlStyleContractTests
         Assert.Contains("Maximum=\"1\"", surface, StringComparison.Ordinal);
         Assert.Contains("IsIndeterminate=\"{Binding ShouldAnimate}\"", surface, StringComparison.Ordinal);
         Assert.Contains("Value=\"{Binding Progress}\"", surface, StringComparison.Ordinal);
+        Assert.Contains("Text=\"{Binding ProgressPercentLabel}\"", surface, StringComparison.Ordinal);
+        Assert.Contains("IsVisible=\"{Binding HasDeterminateProgress}\"", surface, StringComparison.Ordinal);
         Assert.Contains("IsVisible=\"{Binding IsRunning}\"", surface, StringComparison.Ordinal);
         Assert.Contains("IsVisible=\"{Binding CanRetry}\"", surface, StringComparison.Ordinal);
         Assert.Contains("behaviors:FocusOnRevealBehavior.IsEnabled=\"True\"", surface, StringComparison.Ordinal);
@@ -182,7 +232,21 @@ public sealed partial class XamlControlStyleContractTests
         Assert.Contains("_catalogLoading.Fail(", lifecycle, StringComparison.Ordinal);
         Assert.Contains("CatalogLoadingSurfaceHost.DataContext = _catalogLoading;", lifecycle, StringComparison.Ordinal);
         Assert.Contains("CatalogLoadingSurfaceHost.Content = _catalogLoading;", lifecycle, StringComparison.Ordinal);
-        Assert.DoesNotContain("ReportProgress(", lifecycle, StringComparison.Ordinal);
+        Assert.Contains("ReportCatalogProgressAsync(0.1", lifecycle, StringComparison.Ordinal);
+        Assert.Contains("ReportCatalogProgressAsync(0.8", lifecycle, StringComparison.Ordinal);
+        Assert.Contains("ReportCatalogProgressAsync(0.9", lifecycle, StringComparison.Ordinal);
+        Assert.Contains("ReportCatalogProgressAsync(1", lifecycle, StringComparison.Ordinal);
+        Assert.Contains("DispatcherPriority.Render", lifecycle, StringComparison.Ordinal);
+        Assert.Contains("SystemInformation.Refresh(", lifecycle, StringComparison.Ordinal);
+        Assert.Contains("reloadCatalog: false", opened, StringComparison.Ordinal);
+        Assert.DoesNotContain("reloadCatalog: true", opened, StringComparison.Ordinal);
+        Assert.Contains("reloadCatalog: true", retry, StringComparison.Ordinal);
+        Assert.DoesNotContain("reloadCatalog: false", retry, StringComparison.Ordinal);
+        Assert.Contains("SystemInformation.Refresh(", reloadBranch, StringComparison.Ordinal);
+        Assert.Contains("reloadCatalog: true", reloadBranch, StringComparison.Ordinal);
+        Assert.DoesNotContain("reloadCatalog: false", reloadBranch, StringComparison.Ordinal);
+        Assert.DoesNotContain("Task.Delay", lifecycle, StringComparison.Ordinal);
+        Assert.DoesNotContain("Stopwatch", lifecycle, StringComparison.Ordinal);
     }
 
     /// <summary>The clear confirmation identifies the pending route visually and to assistive technology.</summary>

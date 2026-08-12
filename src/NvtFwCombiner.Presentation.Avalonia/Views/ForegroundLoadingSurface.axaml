@@ -47,12 +47,22 @@
           </Border>
 
           <StackPanel Grid.Column="1" VerticalAlignment="Center" Spacing="{DynamicResource NfcSpace4}">
-            <TextBlock
-                FontSize="18"
-                FontWeight="SemiBold"
-                Foreground="{DynamicResource NfcTextStrongBrush}"
-                Text="{Binding Title}"
-                TextWrapping="Wrap" />
+            <Grid ColumnDefinitions="*,Auto" ColumnSpacing="{DynamicResource NfcSpace12}">
+              <TextBlock
+                  FontSize="18"
+                  FontWeight="SemiBold"
+                  Foreground="{DynamicResource NfcTextStrongBrush}"
+                  Text="{Binding Title}"
+                  TextWrapping="Wrap" />
+              <TextBlock
+                  Grid.Column="1"
+                  VerticalAlignment="Center"
+                  FontSize="{DynamicResource NfcFontSize13}"
+                  FontWeight="SemiBold"
+                  Foreground="{DynamicResource NfcAccentStrongBrush}"
+                  IsVisible="{Binding HasDeterminateProgress}"
+                  Text="{Binding ProgressPercentLabel}" />
+            </Grid>
             <TextBlock
                  FontSize="{DynamicResource NfcFontSize13}"
                  Foreground="{DynamicResource NfcTextMutedBrush}"

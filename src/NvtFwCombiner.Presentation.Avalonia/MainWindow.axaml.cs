@@ -73,7 +73,10 @@ public sealed partial class MainWindow : Window, IDisposable
         _startupTrace.Mark("shell-view-model.created");
         viewModel.LoadShellPreferences(preferences);
         _catalogLoading.SetReducedMotion(viewModel.IsReducedMotionEnabled);
-        _catalogLoading.Begin(viewModel.Text.CatalogLoadingTitle, viewModel.Text.CatalogLoadingDetail);
+        _catalogLoading.Begin(
+            viewModel.Text.CatalogLoadingTitle,
+            viewModel.Text.CatalogLoadingDetail,
+            progress: 0);
         CatalogLoadingSurfaceHost.DataContext = _catalogLoading;
         _startupTrace.Mark("shell-preferences.applied");
         DataContext = viewModel;
@@ -202,14 +205,21 @@ public sealed partial class MainWindow : Window, IDisposable
         CancellationToken startupCancellation = _startupLoadCancellation.Token;
         CatalogLoadingSurfaceHost.Content = _catalogLoading;
         await Task.Yield();
-        await ContinueStartupAsync(viewModel, startupCancellation);
+        await ContinueStartupAsync(
+            viewModel,
+            reloadCatalog: false,
+            startupCancellation);
     }
 
     private async Task ContinueStartupAsync(
         MainWindowViewModel viewModel,
+        bool reloadCatalog,
         CancellationToken startupCancellation)
     {
-        if (!await TryWarmCanonicalCatalogAsync(viewModel, startupCancellation) ||
+        if (!await TryWarmCanonicalCatalogAsync(
+                viewModel,
+                reloadCatalog,
+                startupCancellation) ||
             _isDeferredStartupComplete)
         {
             return;
@@ -245,6 +255,7 @@ public sealed partial class MainWindow : Window, IDisposable
 
     private async Task<bool> TryWarmCanonicalCatalogAsync(
         MainWindowViewModel viewModel,
+        bool reloadCatalog,
         CancellationToken startupCancellation)
     {
         if (viewModel.WorkflowSession.IsCanonicalCatalogReady)
@@ -259,13 +270,32 @@ public sealed partial class MainWindow : Window, IDisposable
         }
 
         _isCanonicalCatalogWarmupInProgress = true;
-        _catalogLoading.Begin(viewModel.Text.CatalogLoadingTitle, viewModel.Text.CatalogLoadingDetail);
+        _catalogLoading.Begin(
+            viewModel.Text.CatalogLoadingTitle,
+            viewModel.Text.CatalogLoadingDetail,
+            progress: 0);
         try
         {
+            await ReportCatalogProgressAsync(0.1, startupCancellation);
             await Task.Run(
-                () => _hostServices.WarmCanonicalCapabilities(startupCancellation),
+                () =>
+                {
+                    if (reloadCatalog)
+                    {
+                        _ = _hostServices.SystemInformation.Refresh(
+                            reloadCatalog: true,
+                            startupCancellation);
+                    }
+                    else
+                    {
+                        _hostServices.WarmCanonicalCapabilities(startupCancellation);
+                    }
+                },
                 startupCancellation);
+            await ReportCatalogProgressAsync(0.8, startupCancellation);
+            await ReportCatalogProgressAsync(0.9, startupCancellation);
             viewModel.PublishCanonicalCatalogState();
+            await ReportCatalogProgressAsync(1, startupCancellation);
             _catalogLoading.Complete();
             _startupTrace.Mark("startup-warmup.catalog-state.published");
             return true;
@@ -292,6 +322,17 @@ public sealed partial class MainWindow : Window, IDisposable
         }
     }
 
+    private async Task ReportCatalogProgressAsync(
+        double progress,
+        CancellationToken startupCancellation)
+    {
+        _catalogLoading.ReportProgress(progress);
+        await Dispatcher.UIThread.InvokeAsync(
+            static () => { },
+            DispatcherPriority.Render,
+            startupCancellation);
+    }
+
     private async void CatalogLoadingSurface_OnRetryRequested(object? sender, EventArgs e)
     {
         if (_isDisposed || DataContext is not MainWindowViewModel viewModel)
@@ -299,7 +340,10 @@ public sealed partial class MainWindow : Window, IDisposable
             return;
         }
 
-        await ContinueStartupAsync(viewModel, _startupLoadCancellation.Token);
+        await ContinueStartupAsync(
+            viewModel,
+            reloadCatalog: true,
+            _startupLoadCancellation.Token);
     }
 
     private void ViewModel_OnPropertyChanged(object? sender, PropertyChangedEventArgs e)

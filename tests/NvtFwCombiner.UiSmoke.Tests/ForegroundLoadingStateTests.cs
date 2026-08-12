@@ -17,6 +17,8 @@ public sealed class ForegroundLoadingStateTests
         Assert.True(state.IsRunning);
         Assert.True(state.IsIndeterminate);
         Assert.True(state.ShouldAnimate);
+        Assert.False(state.HasDeterminateProgress);
+        Assert.Empty(state.ProgressPercentLabel);
         Assert.Equal("Loading capabilities — Preparing the canonical catalog.", state.AccessibleStatus);
 
         state.SetReducedMotion(true);
@@ -36,10 +38,17 @@ public sealed class ForegroundLoadingStateTests
         state.ReportProgress(0.42, "Writing output.");
 
         Assert.False(state.IsIndeterminate);
+        Assert.True(state.HasDeterminateProgress);
         Assert.Equal(0.42, state.Progress);
+        Assert.Equal("42%", state.ProgressPercentLabel);
         Assert.Equal("Writing output.", state.Detail);
+        Assert.Equal("Exporting 42% — Writing output.", state.AccessibleStatus);
         _ = Assert.Throws<ArgumentOutOfRangeException>(() => state.ReportProgress(-0.01));
         _ = Assert.Throws<ArgumentOutOfRangeException>(() => state.ReportProgress(1.01));
+
+        state.ReportProgress(1);
+
+        Assert.Equal("100%", state.ProgressPercentLabel);
     }
 
     /// <summary>Failure and completion expose explicit retry and visibility transitions.</summary>
