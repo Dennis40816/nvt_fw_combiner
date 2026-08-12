@@ -263,13 +263,16 @@ public sealed record CtrlRamAuthoringSessionPreparation(
 /// <summary>Immutable firmware inspection operations.</summary>
 public interface IFirmwareInspection
 {
-    /// <summary>Reads FWConfig metadata when the selected image declares it.</summary>
-    FirmwareConfigMetadataSnapshot? TryReadFirmwareConfigMetadata(string icId, string path);
+    /// <summary>Reads FWConfig metadata and the adapter-owned file identity from one stable observation.</summary>
+    FirmwareConfigMetadataReadResult ReadFirmwareConfigMetadata(string icId, string path);
 
-    /// <summary>Inspects a distinct-path batch once.</summary>
-    IReadOnlyList<FirmwareInspectionSnapshotResult> InspectFirmwareBatch(
+    /// <summary>Inspects a distinct-path batch once and reports adapter-owned path stability.</summary>
+    FirmwareInspectionBatchResult InspectFirmwareBatch(
         string icId,
         IReadOnlyList<FirmwareInspectionSnapshotInput> inputs);
+
+    /// <summary>Checks whether a path still has the identity retained by an accepted UI lease.</summary>
+    bool IsFirmwareFileIdentityCurrent(string path, FirmwareFileIdentity identity);
 
     /// <summary>Projects CtrlRAM display from an already-inspected base.</summary>
     CtrlRamInspectionDisplay ProjectCtrlRamInspectionDisplay(

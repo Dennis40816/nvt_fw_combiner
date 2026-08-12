@@ -6,7 +6,7 @@ using NvtFwCombiner.TestSupport;
 
 namespace NvtFwCombiner.UiSmoke.Tests;
 
-public sealed partial class ShellViewModelTests
+public sealed partial class FirmwareInspectionSlotTests
 {
     /// <summary>Only the latest worker inspection may publish facts for a rapidly replaced slot path.</summary>
     [Fact]
@@ -647,7 +647,7 @@ public sealed partial class ShellViewModelTests
             slot => slot.SlotId == replacement.SlotId && slot.FilePath == replacementPath);
     }
 
-    private static MainWindowViewModel CreateInspectionViewModel(
+    private MainWindowViewModel CreateInspectionViewModel(
         Func<string, string, string?, CtrlRamInspectionRequest?, FirmwareInspectionSnapshot> reader)
     {
         PresentationHostServices services = PresentationTestHost.CreateServices("test-app");
@@ -656,30 +656,14 @@ public sealed partial class ShellViewModelTests
             "test-app",
             ShellLanguage.English,
             services,
-            static (_, _) => null,
-            (icId, inputs) =>
-            [
-                .. inputs.Select(input => new FirmwareInspectionSnapshotResult(
-                    input.InspectionId,
-                    reader(icId, input.Path, input.TpPath, input.CtrlRamRequest))),
-            ]);
-        return PresentationTestHost.PublishCanonicalCatalog(services, viewModel);
-    }
-
-    private static MainWindowViewModel CreateBatchInspectionViewModel(
-        Func<
-            string,
-            IReadOnlyList<FirmwareInspectionSnapshotInput>,
-            IReadOnlyList<FirmwareInspectionSnapshotResult>> reader)
-    {
-        PresentationHostServices services = PresentationTestHost.CreateServices("test-app");
-        var viewModel = new MainWindowViewModel(
-            "test-shell",
-            "test-app",
-            ShellLanguage.English,
-            services,
-            static (_, _) => null,
-            reader);
+            new DelegatingFirmwareInspection(
+                TestHost.FirmwareInspectionExperience,
+                batchReader: (icId, inputs) =>
+                [
+                    .. inputs.Select(input => new FirmwareInspectionSnapshotResult(
+                        input.InspectionId,
+                        reader(icId, input.Path, input.TpPath, input.CtrlRamRequest))),
+                ]));
         return PresentationTestHost.PublishCanonicalCatalog(services, viewModel);
     }
 

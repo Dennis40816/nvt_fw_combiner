@@ -3,7 +3,7 @@ using NvtFwCombiner.Presentation.Avalonia.ViewModels;
 
 namespace NvtFwCombiner.UiSmoke.Tests;
 
-public sealed partial class ShellViewModelTests
+public sealed partial class ShellNavigationSystemTests
 {
     /// <summary>Verifies a numeric IC selection never leaves the displayed number selector blank after an IC switch.</summary>
     [Fact]

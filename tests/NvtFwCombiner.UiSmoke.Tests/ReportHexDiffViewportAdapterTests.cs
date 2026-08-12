@@ -7,6 +7,7 @@ using NvtFwCombiner.Presentation.Avalonia.Views;
 namespace NvtFwCombiner.UiSmoke.Tests;
 
 /// <summary>Source-specific projection into the shared read-only Hex viewport.</summary>
+[Collection(UiAvaloniaRuntimeCollection.Name)]
 public sealed class ReportHexDiffViewportAdapterTests
 {
     /// <summary>Only changed bytes inside the selected semantic range receive diff decoration.</summary>

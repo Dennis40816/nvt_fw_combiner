@@ -233,6 +233,48 @@ public sealed partial class ReportPresentationViewModel : ObservableObject
         return report;
     }
 
+    internal async Task<ReportReviewViewModel> ProjectReportAsync(
+        CompositionRunReport report,
+        bool suppressOutput,
+        string sourceName,
+        string? outputArtifactPath,
+        CancellationToken cancellationToken,
+        bool materializationErrorsAsReport = true,
+        CompositionRunInspectionSnapshot? inspectionSnapshot = null)
+    {
+        ArgumentNullException.ThrowIfNull(report);
+        ShellLanguage language;
+        ReportReviewViewModel projected;
+        do
+        {
+            language = Text.Language;
+            try
+            {
+                projected = await Task.Run(
+                    () => ReportReviewViewModel.FromReportCancellable(
+                        report,
+                        suppressOutput,
+                        sourceName,
+                        outputArtifactPath,
+                        inspectionSnapshot,
+                        language,
+                        cancellationToken),
+                    cancellationToken);
+                cancellationToken.ThrowIfCancellationRequested();
+            }
+            catch (Exception exception) when (
+                materializationErrorsAsReport && IsReportMaterializationException(exception))
+            {
+                projected = ReportReviewViewModel.Error(sourceName, exception.Message, language: language);
+            }
+
+            cancellationToken.ThrowIfCancellationRequested();
+        }
+        while (language != Text.Language);
+
+        return projected;
+    }
+
     internal long BeginReportProjection(bool preserveHistoryReopen = false)
     {
         if (!preserveHistoryReopen && OpenReportHistoryEntryAsyncCommand is { IsRunning: true } historyReopen)

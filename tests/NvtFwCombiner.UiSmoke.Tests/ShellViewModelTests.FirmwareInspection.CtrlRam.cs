@@ -4,7 +4,7 @@ using NvtFwCombiner.TestSupport;
 
 namespace NvtFwCombiner.UiSmoke.Tests;
 
-public sealed partial class ShellViewModelTests
+public sealed partial class CtrlRamWorkflowTests
 {
     /// <summary>A CtrlRAM batch read rejects a replacement whose file identity changes in flight.</summary>
     [Fact]

@@ -6,14 +6,14 @@ using NvtFwCombiner.TestSupport;
 
 namespace NvtFwCombiner.UiSmoke.Tests;
 
-public sealed partial class ShellViewModelTests
+public sealed partial class BuildOutcomeTests
 {
     /// <summary>The normal run-result projection opens the confirmation for its committed output.</summary>
     [Fact]
     public async Task CompletedBuildProjectionOpensOutputConfirmation()
     {
         string outputPath = Path.Combine(Path.GetTempPath(), "output", "firmware.bin");
-        CompositionRunResult result = await CreateDpReplaceInspectionResultAsync();
+        CompositionRunResult result = await CreateDpReplaceInspectionResultAsync(TestHost);
         MainWindowViewModel viewModel = PresentationTestHost.CreateViewModel();
 
         await viewModel.RunSession.ProjectAndApplyRunResultAsync(
@@ -433,7 +433,7 @@ public sealed partial class ShellViewModelTests
         Assert.Equal(viewModel.Text.BuildCompletedOpenFolderError, viewModel.BuildResult.OpenFolderError);
     }
 
-    private static MainWindowViewModel CreateFileRevealViewModel(IFileRevealService fileRevealService)
+    private MainWindowViewModel CreateFileRevealViewModel(IFileRevealService fileRevealService)
     {
         PresentationHostServices services = PresentationTestHost.CreateServices("test-app");
         var viewModel = new MainWindowViewModel(
@@ -441,8 +441,7 @@ public sealed partial class ShellViewModelTests
             "test-app",
             ShellLanguage.English,
             services,
-            static (_, _) => null,
-            TestHost.FirmwareInspectionExperience.InspectFirmwareBatch,
+            new DelegatingFirmwareInspection(TestHost.FirmwareInspectionExperience),
             fileRevealService);
         return PresentationTestHost.PublishCanonicalCatalog(services, viewModel);
     }
@@ -507,43 +506,6 @@ public sealed partial class ShellViewModelTests
         clone.DeliveryArtifacts = [.. deliveryArtifacts];
         clone.IsDeliveryComplete = isDeliveryComplete;
         clone.DeliveryFailureMessage = deliveryFailureMessage;
-        return clone;
-    }
-
-    private static CompositionRunResult WithReport(
-        CompositionRunResult source,
-        CompositionRunReport report)
-    {
-        return CloneRunResult(source, source.CommittedOutputId, report);
-    }
-
-    private static CompositionRunResult CloneRunResult(
-        CompositionRunResult source,
-        string? committedOutputId,
-        CompositionRunReport report)
-    {
-        CompositionRunInspectionSnapshot? inspection = source.InspectionSnapshot;
-        var clone = new CompositionRunResult(
-            source.Status,
-            source.OutputBytes,
-            report,
-            committedOutputId,
-            source.PreviewToken,
-            inspection?.OutputSpaceId,
-            inspection?.ReferenceSpaceId,
-            inspection?.ReferenceBytes.ToArray(),
-            inspection?.OutputBytes,
-            source.OutcomeStatus,
-            source.SuppressOutputInExternalReport,
-            source.HasRunReport)
-        {
-            AcceptedGeneralMappingDraft = source.AcceptedGeneralMappingDraft,
-            ResolvedCapability = source.ResolvedCapability,
-            ActionReadiness = source.ActionReadiness,
-            DeliveryArtifacts = [.. source.DeliveryArtifacts],
-            IsDeliveryComplete = source.IsDeliveryComplete,
-            DeliveryFailureMessage = source.DeliveryFailureMessage,
-        };
         return clone;
     }
 

@@ -21,7 +21,6 @@ public sealed partial class RepositoryBoundaryTests
                 "src/NvtFwCombiner.Infrastructure/Composition/BuiltInGeneralAuthoringPlanner.cs",
                 "src/NvtFwCombiner.Infrastructure/Composition/BuiltInCtrlRamAuthoringAdapter.Context.cs",
                 "src/NvtFwCombiner.Infrastructure/Composition/BuiltInCtrlRamAuthoringAdapter.FirmwareVersion.cs",
-                "src/NvtFwCombiner.Infrastructure/Composition/BuiltInCtrlRamAuthoringAdapter.Planning.cs",
             ]);
         AssertNoProductionText("IcMetadataFacade");
         AssertNoProductionText("LegacyCombinerPostbuildCatalog");
@@ -38,6 +37,42 @@ public sealed partial class RepositoryBoundaryTests
                 "src/NvtFwCombiner.Infrastructure/Composition/BuiltInFirmwareInspection.cs",
             ]);
         AssertNoProductionText("CurrentSupportMatrixCatalog");
+    }
+
+    /// <summary>Prevents zero-caller Workbench planning and selector helpers from returning.</summary>
+    [Fact]
+    public void RetiredInfrastructurePlanningHelpersStayAbsent()
+    {
+        string registrationRegistry = ReadText(
+            "src/NvtFwCombiner.Infrastructure/Composition/BuiltInV2RegistrationRegistry.cs");
+        Assert.False(File.Exists(Path.Combine(
+            Root.FullName,
+            "src",
+            "NvtFwCombiner.Infrastructure",
+            "Composition",
+            "BuiltInCtrlRamAuthoringAdapter.Planning.cs")));
+        AssertNoProductionText("CreateCtrlRamReplaceBindings");
+        AssertNoProductionText("CreateCtrlRamPlanningOperations");
+        Assert.DoesNotContain("MatchesSelector", registrationRegistry, StringComparison.Ordinal);
+        AssertNoProductionText("IsBuiltInV2StandardMergeMapCapacityPending");
+        AssertNoProductionText("FormatStandardMergeSupportedDpLengths");
+    }
+
+    /// <summary>Prevents zero-caller compatibility and test shortcuts from returning around canonical owners.</summary>
+    [Fact]
+    public void RetiredZeroCallerCompatibilityHelpersStayAbsent()
+    {
+        string reportHexDiffRanges = ReadText(
+            "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/ReportHexDiffRangeViewModels.cs");
+        AssertNoProductionText("GetOrCreateOrNull");
+        AssertNoProductionText("CliRunReportWriter");
+        AssertNoProductionText("WriteReportFileIfRequestedAsync");
+        AssertNoProductionText("SetStartupOptions");
+        AssertNoProductionText("ResolveMergeOutputFileNameForSaveAsync");
+        AssertNoProductionText("TryCreateAbAFlashCodeDeliveryPlanAsync");
+        Assert.DoesNotContain("FindContaining", reportHexDiffRanges, StringComparison.Ordinal);
+        AssertNoProductionText("TryGetBuiltInV2StandardMergeContainerPolicy");
+        AssertNoProductionText("TryGetDefaultProfile");
     }
 
     /// <summary>Prevents the unbound TP root/category projection from returning after report semantics moved to the header catalog.</summary>

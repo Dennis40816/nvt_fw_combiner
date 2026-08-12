@@ -346,7 +346,7 @@ public sealed class FocusedCompositionAdaptersTests
         };
 
         ArgumentException exception = await Assert.ThrowsAsync<ArgumentException>(() =>
-            DpReplaceTestSupport.RunAsync(BootstrapTestHost.Services,
+            DpReplaceTestSupport.RunAsync(
                     "NT51950",
                     ExperienceIds.DpReplace,
                     slotPaths,

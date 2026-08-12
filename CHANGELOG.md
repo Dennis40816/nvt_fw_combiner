@@ -29,6 +29,40 @@ All notable changes to NVT FW Combiner are documented here. The project follows 
 - A post-refactor architecture audit records the next evidence-backed
   performance and ownership opportunities without treating large canonical
   firmware owners as automatic deletion candidates.
+- Live run reports now reach the desktop as the typed Application report while
+  durable/imported/history reports retain the compatible JSON path. This
+  removes the in-process JSON serialize/parse round trip without changing the
+  report wire format or persisted replay evidence.
+- Firmware file identity, immutable bytes, and current-file stability checks
+  now come from the Application inspection port backed by Infrastructure; the
+  desktop no longer owns a second SHA-256/file-stability implementation.
+- Removed zero-production-caller CtrlRAM planning, Standard Merge selector,
+  CLI report writer, startup, AB save/delivery, Hex Diff lookup, processor
+  shortcut, and default-postbuild-profile compatibility paths. Existing
+  workflow execution, naming, report, processor, and golden behavior remain on
+  their canonical owners.
+- The `v0.10.4` audit measures 96,212 full production lines and 67,238 counted
+  runtime lines. Relative to `v0.10.3`, full source is +168 for the typed
+  report/replay UI path while counted runtime is -195; exact slice ratchets are
+  20,619 / 29,383 / 3,307 / 13,929.
+- Recorded a read-only next-stage TEST parallelization plan. It first isolates
+  Bootstrap/UI/Architecture shared state and mega-classes, then considers a
+  bounded project scheduler only when same-SHA timing proves a material gain.
+- The required .NET check keeps one canonical verifier path while moving
+  style/analyzer enforcement to its existing warnings-as-errors Release build
+  and batching 15 package-trust counterfactuals through one bounded MSBuild
+  host. Test identities, diagnostics, coverage, and golden gates remain exact.
+- Stopped the ineffective test-first build experiment after the fresh Windows
+  required check remained above five minutes, and rejected a same-tree custom
+  project scheduler whose measured improvement was only 1.962 seconds.
+- External-process cancellation and timeout tests now publish their parent and
+  child identities through a server-first Named Pipe handshake instead of a
+  fixed five-second PID-file poll. Production process behavior is unchanged.
+- The stable `dotnet / build-test` verdict now validates one complete Release
+  build and three closed test shards in parallel. Exact SHA/SDK manifests,
+  eight TRX and paired coverage reports, 3,321 tests with two declared skips,
+  GoldenRegression 17/17, coverage policy, fixture evidence, and cleanup remain
+  mandatory; no production, firmware, profile, schema, or golden file changes.
 
 ## [0.10.3] - 2026-08-11
 

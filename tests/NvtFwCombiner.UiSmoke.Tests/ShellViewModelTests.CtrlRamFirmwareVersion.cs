@@ -1,13 +1,12 @@
 using System.Text.Json;
 using NvtFwCombiner.Application.Authoring;
 using NvtFwCombiner.Domain.Composition;
-using NvtFwCombiner.Presentation.Avalonia;
 using NvtFwCombiner.Presentation.Avalonia.ViewModels;
 using NvtFwCombiner.TestSupport;
 
 namespace NvtFwCombiner.UiSmoke.Tests;
 
-public sealed partial class ShellViewModelTests
+public sealed partial class CtrlRamWorkflowTests
 {
     /// <summary>Verifies CtrlRAM Build exposes a Backup-derived Preserve/Edit choice and validates staged bytes.</summary>
     [Fact]
@@ -364,42 +363,4 @@ public sealed partial class ShellViewModelTests
         Assert.Equal(!closeModal, viewModel.Replace.IsCtrlRamFirmwareVersionPreserveSelected);
     }
 
-    private static MainWindowViewModel CreateCtrlRamVersionReadyViewModel(
-        byte[] baseBytes,
-        TempWorkspace workspace,
-        Func<string, string, FirmwareConfigMetadataSnapshot?>? firmwareConfigMetadataReader = null)
-    {
-        MainWindowViewModel viewModel;
-        if (firmwareConfigMetadataReader is null)
-        {
-            viewModel = PresentationTestHost.CreateViewModel();
-        }
-        else
-        {
-            PresentationHostServices services = PresentationTestHost.CreateServices("test-app");
-            viewModel = new MainWindowViewModel(
-                "test-shell",
-                "test-app",
-                ShellLanguage.English,
-                services,
-                firmwareConfigMetadataReader);
-            _ = PresentationTestHost.PublishCanonicalCatalog(services, viewModel);
-        }
-        viewModel.WorkflowSession.SelectedIc = "NT51926";
-        viewModel.WorkflowSession.SelectedNumber = "cascade";
-        OpenReplace(viewModel, ExperienceIds.CtrlRamReplace);
-
-        string basePath = workspace.Write("base-from-golden.bin", baseBytes);
-        viewModel.SetSlotFile("replace-base", basePath);
-        FirmwareSlotViewModel replacementSlot = viewModel.Replace.ReplaceSlots.Single(slot =>
-            slot.Title.Contains("VN CtrlRAM", StringComparison.Ordinal));
-        CtrlRamRegionViewModel region = viewModel.Replace.CtrlRamRegions.Single(candidate => candidate.Name == replacementSlot.Title);
-        (int start, int length) = ParseCtrlRamRegion(region);
-        viewModel.SetSlotFile(
-            replacementSlot.SlotId,
-            workspace.Write("self-vn-ctrlram.bin", baseBytes[start..(start + length)]));
-
-        Assert.True(viewModel.Replace.CanBuildReplace, viewModel.Replace.ReplaceReadinessStatus);
-        return viewModel;
-    }
 }

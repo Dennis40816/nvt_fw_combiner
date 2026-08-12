@@ -33,48 +33,25 @@ public sealed partial class MainWindowViewModel
             appVersion,
             language,
             hostServices,
-            hostServices.Composition.FirmwareInspection.TryReadFirmwareConfigMetadata,
-            hostServices.Composition.FirmwareInspection.InspectFirmwareBatch)
+            hostServices.Composition.FirmwareInspection)
     {
     }
 
-    /// <summary>Initializes the main desktop view model with a deterministic firmware metadata reader.</summary>
+    /// <summary>Initializes the shell with a deterministic firmware-inspection adapter.</summary>
     internal MainWindowViewModel(
         string shellVersion,
         string appVersion,
         ShellLanguage language,
         PresentationHostServices hostServices,
-        Func<string, string, FirmwareConfigMetadataSnapshot?> firmwareConfigMetadataReader)
-        : this(
-            shellVersion,
-            appVersion,
-            language,
-            hostServices,
-            firmwareConfigMetadataReader,
-            hostServices.Composition.FirmwareInspection.InspectFirmwareBatch)
-    {
-    }
-
-    /// <summary>Initializes the shell with deterministic metadata and consolidated inspection readers.</summary>
-    internal MainWindowViewModel(
-        string shellVersion,
-        string appVersion,
-        ShellLanguage language,
-        PresentationHostServices hostServices,
-        Func<string, string, FirmwareConfigMetadataSnapshot?> firmwareConfigMetadataReader,
-        Func<
-            string,
-            IReadOnlyList<FirmwareInspectionSnapshotInput>,
-            IReadOnlyList<FirmwareInspectionSnapshotResult>> firmwareInspectionReader,
+        IFirmwareInspection firmwareInspection,
         IFileRevealService? fileRevealService = null,
         ICanonicalSupportMatrixQuery? supportMatrixQuery = null,
         ISystemInformationService? systemInformationService = null,
         ISystemDiagnosticsExporter? systemDiagnosticsExporter = null)
     {
         ArgumentNullException.ThrowIfNull(hostServices);
-        ArgumentNullException.ThrowIfNull(firmwareConfigMetadataReader);
-        ArgumentNullException.ThrowIfNull(firmwareInspectionReader);
-        _compositionServices = hostServices.Composition;
+        ArgumentNullException.ThrowIfNull(firmwareInspection);
+        _compositionServices = hostServices.Composition.WithFirmwareInspection(firmwareInspection);
         _fileRevealService = fileRevealService ?? hostServices.FileReveal;
         _rawBinaryEditorFileSessions = hostServices.RawBinaryEditorFileSessions;
         _systemInformationService = systemInformationService ?? hostServices.SystemInformation;
@@ -124,8 +101,7 @@ public sealed partial class MainWindowViewModel
                  WorkflowReplaceModeChanged,
                 ResetRunResultForContextChange,
                 RefreshSelectedReplaceFirmwareInspectionsAsync,
-                RefreshCommandState),
-            firmwareConfigMetadataReader);
+                RefreshCommandState));
         Replace.PropertyChanged += Replace_OnPropertyChanged;
         SelectedLanguage = language == ShellLanguage.ChineseTraditional ? "Traditional Chinese" : "English";
         Reports = new ReportPresentationViewModel(() => Text, Replace.CloseSelectionForRun);
@@ -137,7 +113,6 @@ public sealed partial class MainWindowViewModel
             Replace,
             ApplyWorkflowContext,
             Reports.SetShellToast,
-            firmwareInspectionReader,
             new WorkflowSessionStateBindings(
                 () => SelectedPage,
                 IsCompositionRunInProgress,

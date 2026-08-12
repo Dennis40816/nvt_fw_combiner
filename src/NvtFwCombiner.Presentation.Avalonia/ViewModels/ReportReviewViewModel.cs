@@ -6,7 +6,7 @@ public sealed partial class ReportReviewViewModel
     private readonly bool? outputCommitted;
     private readonly OutputDifferenceProjection _outputDifferenceProjection;
 
-    private ReportReviewViewModel(
+    internal ReportReviewViewModel(
         bool isEmpty,
         string sourceName,
         long? reportJsonUtf8ByteCount,

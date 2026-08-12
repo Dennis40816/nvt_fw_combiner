@@ -45,32 +45,6 @@ internal static class CliCompositionRunSupport
             "--report");
     }
 
-    internal static async Task WriteReportFileIfRequestedAsync(
-        CompositionRunResult result,
-        string? reportPath,
-        IReadOnlyList<InputArtifactBinding> bindings,
-        CliOutputTarget outputTarget,
-        bool protectOutput,
-        TextWriter output,
-        CancellationToken cancellationToken)
-    {
-        if (string.IsNullOrWhiteSpace(reportPath))
-        {
-            return;
-        }
-
-        string fullPath = await CliRunReportWriter
-            .WriteAsync(
-                result.Report,
-                reportPath,
-                ProtectedPathGuard.CreateProtectedPaths(
-                    bindings,
-                    protectOutput ? outputTarget.FullPath : null),
-                cancellationToken)
-            .ConfigureAwait(false);
-        await output.WriteLineAsync($"Report: {fullPath}").ConfigureAwait(false);
-    }
-
     internal static async Task WriteReportJsonAsync(
         string reportPath,
         string reportJson,

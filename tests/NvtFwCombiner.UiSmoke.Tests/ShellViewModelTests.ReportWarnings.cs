@@ -2,7 +2,7 @@ using NvtFwCombiner.Presentation.Avalonia.ViewModels;
 
 namespace NvtFwCombiner.UiSmoke.Tests;
 
-public sealed partial class ShellViewModelTests
+public sealed partial class ReportReviewHistoryTests
 {
     /// <summary>Verifies successful runs with warning diagnostics do not render as blocking issues.</summary>
     [Fact]

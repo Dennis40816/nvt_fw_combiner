@@ -5,7 +5,7 @@ namespace NvtFwCombiner.Presentation.Avalonia.ViewModels;
 
 public sealed partial class ReplacePresentationViewModel
 {
-    private readonly Func<string, string, FirmwareConfigMetadataSnapshot?> _ctrlRamFirmwareVersionMetadataReader;
+    private readonly IFirmwareInspection _firmwareInspection;
     private FirmwareConfigMetadataSnapshot? _ctrlRamFirmwareVersionMetadata;
     private CtrlRamFirmwareVersionModalLease? _ctrlRamFirmwareVersionModalLease;
     private long _ctrlRamFirmwareVersionContextGeneration;
@@ -262,13 +262,12 @@ public sealed partial class ReplacePresentationViewModel
         string icId,
         string basePath)
     {
-        var before = FirmwareFileIdentity.Capture(basePath);
-        FirmwareConfigMetadataSnapshot? metadata = _ctrlRamFirmwareVersionMetadataReader(icId, basePath);
-        var after = FirmwareFileIdentity.Capture(basePath);
+        FirmwareConfigMetadataReadResult read =
+            _firmwareInspection.ReadFirmwareConfigMetadata(icId, basePath);
         return new CtrlRamFirmwareVersionMetadataWorkerResult(
-            before.Equals(after),
-            metadata,
-            new CtrlRamFirmwareVersionMetadataRequest(icId, basePath, before));
+            read.IsFileIdentityStable,
+            read.Metadata,
+            new CtrlRamFirmwareVersionMetadataRequest(icId, basePath, read.FileIdentity));
     }
 
     private void InvalidateCtrlRamFirmwareVersionMetadataRead()
@@ -324,14 +323,16 @@ public sealed partial class ReplacePresentationViewModel
         {
             await Task.Yield();
             cancellationToken.ThrowIfCancellationRequested();
-            FirmwareFileIdentity identity = await Task.Run(
-                () => FirmwareFileIdentity.Capture(lease.Request.BasePath),
+            bool isFileIdentityCurrent = await Task.Run(
+                () => _firmwareInspection.IsFirmwareFileIdentityCurrent(
+                    lease.Request.BasePath,
+                    lease.Request.FileIdentity),
                 cancellationToken);
             cancellationToken.ThrowIfCancellationRequested();
             return generation == Volatile.Read(ref _ctrlRamFirmwareVersionMetadataGeneration) &&
                 IsCtrlRamFirmwareVersionModalLeaseContextCurrent() &&
                 _ctrlRamFirmwareVersionModalLease == lease &&
-                lease.Request.FileIdentity.Equals(identity);
+                isFileIdentityCurrent;
         }
         finally
         {

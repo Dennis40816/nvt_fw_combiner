@@ -11,8 +11,6 @@ public sealed partial class RepositoryBoundaryTests
             ReadText("src/NvtFwCombiner.Application/Authoring/CompiledAuthoringWorkflow.Selection.cs"));
         string acceptedBinding = ReadText(
             "src/NvtFwCombiner.Application/Composition/AcceptedSessionCompositionExecution.cs");
-        string ctrlRamBindings = ReadText(
-            "src/NvtFwCombiner.Infrastructure/Composition/BuiltInCtrlRamAuthoringAdapter.Context.cs");
         string slotViewModel = ReadText(
             "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/FirmwareSlotViewModel.cs");
         string replaceAuthoring = ReadText(
@@ -30,10 +28,6 @@ public sealed partial class RepositoryBoundaryTests
         Assert.Contains(
             "compiledComposition.V2Details.InputContract.SpaceBindings",
             acceptedBinding,
-            StringComparison.Ordinal);
-        Assert.Contains(
-            "acceptedSession,\n                        sourceSpaceId)",
-            ctrlRamBindings.ReplaceLineEndings("\n"),
             StringComparison.Ordinal);
         Assert.Contains("public string? CompiledSlotId { get; }", slotViewModel, StringComparison.Ordinal);
         Assert.Contains("ReplaceDefinitionId(slot, dpProjection)", replaceAuthoring, StringComparison.Ordinal);

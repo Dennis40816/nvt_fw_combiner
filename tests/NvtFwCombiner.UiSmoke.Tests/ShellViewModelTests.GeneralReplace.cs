@@ -5,7 +5,7 @@ using NvtFwCombiner.TestSupport;
 
 namespace NvtFwCombiner.UiSmoke.Tests;
 
-public sealed partial class ShellViewModelTests
+public sealed partial class GeneralWorkflowTests
 {
     /// <summary>Verifies immutable language bundles are reused instead of rebuilt by each shell projection.</summary>
     [Theory]

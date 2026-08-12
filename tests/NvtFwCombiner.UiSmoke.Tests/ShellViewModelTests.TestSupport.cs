@@ -1,62 +1,102 @@
 using System.Globalization;
 using System.Text.Json;
-using NvtFwCombiner.Contracts.Reports;
+using NvtFwCombiner.Domain.Composition;
+using NvtFwCombiner.Presentation.Avalonia;
 using NvtFwCombiner.Presentation.Avalonia.ViewModels;
+using NvtFwCombiner.TestSupport;
 
 namespace NvtFwCombiner.UiSmoke.Tests;
 
-public sealed partial class ShellViewModelTests
+public abstract partial class ShellViewModelTestBase
 {
-    private static void OpenReplace(MainWindowViewModel viewModel, string mode)
+    private protected MainWindowViewModel CreateCtrlRamVersionReadyViewModel(
+        byte[] baseBytes,
+        TempWorkspace workspace,
+        Func<string, string, FirmwareConfigMetadataSnapshot?>? firmwareConfigMetadataReader = null)
     {
-        viewModel.Replace.SelectedReplaceMode = mode;
-        viewModel.ShowReplaceCommand.Execute(null);
-    }
-
-    private static IEnumerable<ReportLineViewModel> GetCommandOperations(ReportReviewViewModel report)
-    {
-        return report.Operations.Where(operation => operation.HasCodeBlock || operation.HasRuntimeCommands);
-    }
-
-    private static void AssertAcceptedPostbuildOnlyOutputDifferences(
-        JsonElement root,
-        string expectedOperationId)
-    {
-        AssertNoUnexpectedOutputDifferenceIssue(root);
-        JsonElement[] differences = [.. root.GetProperty("OutputDifferences").EnumerateArray()];
-        Assert.NotEmpty(differences);
-        Assert.All(differences, difference =>
+        MainWindowViewModel viewModel;
+        if (firmwareConfigMetadataReader is null)
         {
-            Assert.Equal(OutputDifferenceClassifications.PostbuildCrcHeader, difference.GetProperty("Classification").GetString());
-            Assert.True(difference.GetProperty("IsAccepted").GetBoolean());
-            Assert.Contains(
-                expectedOperationId,
-                difference.GetProperty("Evidence").GetString(),
-                StringComparison.Ordinal);
-            Assert.True(difference.GetProperty("ChangedByteCount").GetInt64() > 0);
-            Assert.True(difference.GetProperty("Range").GetProperty("Length").GetInt64() > 0);
-        });
-    }
-
-    private static void AssertNoUnexpectedOutputDifferenceIssue(JsonElement root)
-    {
-        Assert.DoesNotContain(root.GetProperty("Issues").EnumerateArray(), issue =>
-            issue.GetProperty("Code").GetString() == ReportIssueCodes.UnexpectedOutputDifference);
-    }
-
-    private static byte[] CreatePattern(int length, byte seed)
-    {
-        byte[] bytes = new byte[length];
-        for (int index = 0; index < bytes.Length; index++)
+            viewModel = PresentationTestHost.CreateViewModel();
+        }
+        else
         {
-            bytes[index] = unchecked((byte)(seed + (index % 251)));
+            PresentationHostServices services = PresentationTestHost.CreateServices("test-app");
+            viewModel = new MainWindowViewModel(
+                "test-shell",
+                "test-app",
+                ShellLanguage.English,
+                services,
+                new DelegatingFirmwareInspection(
+                    TestHost.FirmwareInspectionExperience,
+                    metadataReader: firmwareConfigMetadataReader));
+            _ = PresentationTestHost.PublishCanonicalCatalog(services, viewModel);
+        }
+        viewModel.WorkflowSession.SelectedIc = "NT51926";
+        viewModel.WorkflowSession.SelectedNumber = "cascade";
+        OpenReplace(viewModel, ExperienceIds.CtrlRamReplace);
+
+        string basePath = workspace.Write("base-from-golden.bin", baseBytes);
+        viewModel.SetSlotFile("replace-base", basePath);
+        FirmwareSlotViewModel replacementSlot = viewModel.Replace.ReplaceSlots.Single(slot =>
+            slot.Title.Contains("VN CtrlRAM", StringComparison.Ordinal));
+        CtrlRamRegionViewModel region = viewModel.Replace.CtrlRamRegions.Single(candidate => candidate.Name == replacementSlot.Title);
+        (int start, int length) = ParseCtrlRamRegion(region);
+        viewModel.SetSlotFile(
+            replacementSlot.SlotId,
+            workspace.Write("self-vn-ctrlram.bin", baseBytes[start..(start + length)]));
+
+        Assert.True(viewModel.Replace.CanBuildReplace, viewModel.Replace.ReplaceReadinessStatus);
+        return viewModel;
+    }
+
+    private protected MainWindowViewModel CreateBatchInspectionViewModel(
+        Func<
+            string,
+            IReadOnlyList<FirmwareInspectionSnapshotInput>,
+            IReadOnlyList<FirmwareInspectionSnapshotResult>> reader)
+    {
+        PresentationHostServices services = PresentationTestHost.CreateServices("test-app");
+        var viewModel = new MainWindowViewModel(
+            "test-shell",
+            "test-app",
+            ShellLanguage.English,
+            services,
+            new DelegatingFirmwareInspection(
+                TestHost.FirmwareInspectionExperience,
+                batchReader: reader));
+        return PresentationTestHost.PublishCanonicalCatalog(services, viewModel);
+    }
+
+    private protected static void AssertStandardMergeInputsReady(
+        MainWindowViewModel viewModel,
+        JsonElement goldenCase,
+        string ic)
+    {
+        ArgumentNullException.ThrowIfNull(viewModel);
+        ArgumentException.ThrowIfNullOrWhiteSpace(ic);
+        foreach (JsonProperty input in goldenCase.GetProperty("inputs").EnumerateObject())
+        {
+            Assert.True(
+                viewModel.Merge.MergeSlots.Single(slot =>
+                    slot.SlotId == StandardMergeGoldenManifest.SlotIdForAddressSpace(input.Name)).HasFile,
+                $"{ic} {input.Name} was not retained by the canonical slot transition.");
         }
 
-        return bytes;
+        Assert.True(
+            viewModel.Merge.PreviewMergeCommand.CanExecute(null),
+            string.Join(
+                " | ",
+                viewModel.Merge.MergeSlots.Select(slot =>
+                    $"{slot.SlotId}:file={slot.HasFile},state={slot.SemanticState}," +
+                    $"severity={slot.InputInspectionSeverity},pending={slot.IsInputInspectionPending}," +
+                    $"blocks={slot.BlocksBuild},canSelect={slot.CanSelectFile}," +
+                    $"status={slot.InputInspectionStatus}")));
     }
 
-    private static (int Start, int Length) ParseCtrlRamRegion(CtrlRamRegionViewModel region)
+    private protected static (int Start, int Length) ParseCtrlRamRegion(CtrlRamRegionViewModel region)
     {
+        ArgumentNullException.ThrowIfNull(region);
         string startHex = region.StartAddress.Split('-', StringSplitOptions.TrimEntries)[0][2..];
         string lengthHex = region.SizeHex["len 0x".Length..];
         return (
@@ -64,13 +104,14 @@ public sealed partial class ShellViewModelTests
             int.Parse(lengthHex, NumberStyles.HexNumber, CultureInfo.InvariantCulture));
     }
 
-    private static void AssertIconGeometry(FirmwareSlotViewModel slot)
+    private protected static void AssertIconGeometry(FirmwareSlotViewModel slot)
     {
         Assert.True(HasDrawableIcon(slot));
     }
 
-    private static bool HasDrawableIcon(FirmwareSlotViewModel slot)
+    private protected static bool HasDrawableIcon(FirmwareSlotViewModel slot)
     {
+        ArgumentNullException.ThrowIfNull(slot);
         return slot.SlotIconPathData.StartsWith('M') &&
             slot.SlotIconPathData.Contains('L');
     }
