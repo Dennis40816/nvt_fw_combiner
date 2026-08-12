@@ -10,6 +10,21 @@ internal static class BootstrapTestHost
     internal static CanonicalTestContext Canonical { get; } = new(Services);
 }
 
+internal sealed class IsolatedBootstrapTestHost
+{
+    internal IsolatedBootstrapTestHost()
+    {
+        Services = CompositionHostServices.Create();
+        Canonical = new CanonicalTestContext(Services);
+    }
+
+    internal CompositionHostServices Services { get; }
+
+    internal CanonicalTestContext Canonical { get; }
+
+    internal CanonicalCapabilityCatalog Catalog => Services.Catalog;
+}
+
 internal sealed class CanonicalTestContext
 {
     internal CanonicalTestContext(CompositionHostServices services)
@@ -17,13 +32,13 @@ internal sealed class CanonicalTestContext
         ArgumentNullException.ThrowIfNull(services);
         Catalog = services.Catalog;
         Compiler = services.Compiler;
-        Projection = services.Projection;
+        Projection = (CanonicalCapabilityExperience)services.CompositionCapabilityExperience;
         GeneralAuthoring = services.GeneralAuthoring;
         CtrlRamAuthoring = services.CtrlRamAuthoring;
         FirmwareInspection = (BuiltInFirmwareInspection)services.FirmwareInspectionExperience;
     }
 
-    internal CanonicalCapabilityCatalog Catalog { get; }
+    internal ICanonicalCapabilityQuery Catalog { get; }
 
     internal CanonicalCapabilityCompilerAdapter Compiler { get; }
 

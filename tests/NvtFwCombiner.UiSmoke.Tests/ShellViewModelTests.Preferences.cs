@@ -6,7 +6,7 @@ using NvtFwCombiner.TestSupport;
 
 namespace NvtFwCombiner.UiSmoke.Tests;
 
-public sealed partial class ShellViewModelTests
+public sealed partial class ShellNavigationSystemTests
 {
     /// <summary>The factory language initializes the matching persisted selector without a second relocalization pass.</summary>
     [Fact]
@@ -22,9 +22,58 @@ public sealed partial class ShellViewModelTests
         Assert.Equal("Settings", viewModel.SettingsPreview.Title);
     }
 
+    /// <summary>Startup overlaps one preference read with host construction and applies that exact first-frame snapshot.</summary>
+    [Fact]
+    public async Task DesktopStartupUsesOneOverlappedPreferenceSnapshot()
+    {
+        PresentationHostServices services = PresentationTestHost.CreateServices("startup-test");
+        var preferenceCompletion = new TaskCompletionSource<ShellPreferenceSnapshot>(
+            TaskCreationOptions.RunContinuationsAsynchronously);
+        bool preferenceReadStarted = false;
+        int preferenceLoads = 0;
+        int hostConstructions = 0;
+
+        (PresentationHostServices preparedHost, Task<ShellPreferenceSnapshot> preparedPreferences) =
+            DesktopApplication.PrepareStartup(
+                () =>
+                {
+                    hostConstructions++;
+                    Assert.True(preferenceReadStarted);
+                    Assert.False(preferenceCompletion.Task.IsCompleted);
+                    return services;
+                },
+                () =>
+                {
+                    preferenceLoads++;
+                    preferenceReadStarted = true;
+                    return preferenceCompletion.Task;
+                },
+                StartupTraceSession.Disabled);
+
+        Assert.Same(services, preparedHost);
+        Assert.Same(preferenceCompletion.Task, preparedPreferences);
+        Assert.Equal(1, preferenceLoads);
+        Assert.Equal(1, hostConstructions);
+
+        var preferences = new ShellPreferenceSnapshot(
+            "Dark",
+            "Traditional Chinese",
+            IsReducedMotionEnabled: true);
+        _ = preferenceCompletion.TrySetResult(preferences);
+        Assert.Same(preferences, await preparedPreferences);
+
+        MainWindowViewModel viewModel = MainWindow.CreateStartupViewModel(
+            preparedHost,
+            await preparedPreferences);
+        Assert.Equal("Dark", viewModel.SelectedTheme);
+        Assert.Equal("Traditional Chinese", viewModel.SelectedLanguage);
+        Assert.True(viewModel.IsReducedMotionEnabled);
+        Assert.Equal("設定", viewModel.SettingsPreview.Title);
+    }
+
     /// <summary>Verifies local shell preferences round-trip and invalid values keep fail-closed defaults.</summary>
     [Fact]
-    public void ShellPreferenceFileStoreRoundTripsAndInvalidValuesFallBack()
+    public async Task ShellPreferenceFileStoreRoundTripsAndInvalidValuesFallBack()
     {
         using var workspace = TempWorkspace.Create("nvt-fw-combiner-shell-preferences");
         string preferencesPath = workspace.PathFor(Path.Combine("state", "preferences.v1.json"));
@@ -49,6 +98,7 @@ public sealed partial class ShellViewModelTests
 
         ShellPreferenceSnapshot loaded = ShellPreferenceFileStore.Load(preferencesPath);
         Assert.Equal(preferences, loaded);
+        Assert.Equal(preferences, await ShellPreferenceFileStore.LoadAsync(preferencesPath));
 
         var updatedPreferences = new ShellPreferenceSnapshot("Light", "English");
         ShellPreferenceFileStore.Save(preferencesPath, updatedPreferences);
@@ -91,7 +141,7 @@ public sealed partial class ShellViewModelTests
         Assert.False(defaultViewModel.IsReducedMotionEnabled);
     }
 
-    /// <summary>Bounds the synchronous startup preference read before constructing the localized shell.</summary>
+    /// <summary>Bounds the startup preference read before constructing the localized shell.</summary>
     [Fact]
     public void ShellPreferenceFileStoreRejectsValidJsonAboveStartupLimit()
     {

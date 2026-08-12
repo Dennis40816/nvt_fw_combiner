@@ -41,7 +41,9 @@ public static class PostbuildTestCatalog
     /// <summary>Gets the first profile for an IC.</summary>
     public static bool TryGetDefaultProfile(string icId, out LegacyCombinerPostbuildProfile? profile)
     {
-        return BuiltInPostbuildProfileCatalog.TryGetDefaultProfile(icId, out profile);
+        IReadOnlyList<LegacyCombinerPostbuildProfile> profiles = BuiltInPostbuildProfileCatalog.GetProfiles(icId);
+        profile = profiles.Count == 0 ? null : profiles[0];
+        return profile is not null;
     }
 
     /// <summary>Selects a versioned profile.</summary>

@@ -33,48 +33,25 @@ public sealed partial class MainWindowViewModel
             appVersion,
             language,
             hostServices,
-            hostServices.Composition.FirmwareInspection.TryReadFirmwareConfigMetadata,
-            hostServices.Composition.FirmwareInspection.InspectFirmwareBatch)
+            hostServices.Composition.FirmwareInspection)
     {
     }
 
-    /// <summary>Initializes the main desktop view model with a deterministic firmware metadata reader.</summary>
+    /// <summary>Initializes the shell with a deterministic firmware-inspection adapter.</summary>
     internal MainWindowViewModel(
         string shellVersion,
         string appVersion,
         ShellLanguage language,
         PresentationHostServices hostServices,
-        Func<string, string, FirmwareConfigMetadataSnapshot?> firmwareConfigMetadataReader)
-        : this(
-            shellVersion,
-            appVersion,
-            language,
-            hostServices,
-            firmwareConfigMetadataReader,
-            hostServices.Composition.FirmwareInspection.InspectFirmwareBatch)
-    {
-    }
-
-    /// <summary>Initializes the shell with deterministic metadata and consolidated inspection readers.</summary>
-    internal MainWindowViewModel(
-        string shellVersion,
-        string appVersion,
-        ShellLanguage language,
-        PresentationHostServices hostServices,
-        Func<string, string, FirmwareConfigMetadataSnapshot?> firmwareConfigMetadataReader,
-        Func<
-            string,
-            IReadOnlyList<FirmwareInspectionSnapshotInput>,
-            IReadOnlyList<FirmwareInspectionSnapshotResult>> firmwareInspectionReader,
+        IFirmwareInspection firmwareInspection,
         IFileRevealService? fileRevealService = null,
         ICanonicalSupportMatrixQuery? supportMatrixQuery = null,
         ISystemInformationService? systemInformationService = null,
         ISystemDiagnosticsExporter? systemDiagnosticsExporter = null)
     {
         ArgumentNullException.ThrowIfNull(hostServices);
-        ArgumentNullException.ThrowIfNull(firmwareConfigMetadataReader);
-        ArgumentNullException.ThrowIfNull(firmwareInspectionReader);
-        _compositionServices = hostServices.Composition;
+        ArgumentNullException.ThrowIfNull(firmwareInspection);
+        _compositionServices = hostServices.Composition.WithFirmwareInspection(firmwareInspection);
         _fileRevealService = fileRevealService ?? hostServices.FileReveal;
         _rawBinaryEditorFileSessions = hostServices.RawBinaryEditorFileSessions;
         _systemInformationService = systemInformationService ?? hostServices.SystemInformation;
@@ -124,8 +101,7 @@ public sealed partial class MainWindowViewModel
                  WorkflowReplaceModeChanged,
                 ResetRunResultForContextChange,
                 RefreshSelectedReplaceFirmwareInspectionsAsync,
-                RefreshCommandState),
-            firmwareConfigMetadataReader);
+                RefreshCommandState));
         Replace.PropertyChanged += Replace_OnPropertyChanged;
         SelectedLanguage = language == ShellLanguage.ChineseTraditional ? "Traditional Chinese" : "English";
         Reports = new ReportPresentationViewModel(() => Text, Replace.CloseSelectionForRun);
@@ -137,7 +113,6 @@ public sealed partial class MainWindowViewModel
             Replace,
             ApplyWorkflowContext,
             Reports.SetShellToast,
-            firmwareInspectionReader,
             new WorkflowSessionStateBindings(
                 () => SelectedPage,
                 IsCompositionRunInProgress,
@@ -174,26 +149,36 @@ public sealed partial class MainWindowViewModel
             MessageCenterDiagnosticsChanged);
         MessageCenter.PropertyChanged += MessageCenter_OnPropertyChanged;
         ApplyTextResources(language, notify: false);
+        RelayCommand CreateCatalogCommand(Action execute)
+        {
+            return new RelayCommand(execute, () => WorkflowSession.IsCanonicalCatalogReady);
+        }
         ShowHomeCommand = new RelayCommand(() => NavigateToPage(ShellPage.Home));
         ShowSettingsCommand = new RelayCommand(() => NavigateToPage(ShellPage.Settings));
-        ShowMergeCommand = new RelayCommand(() => NavigateToPage(ShellPage.Merge));
-        ShowReplaceCommand = new RelayCommand(() => NavigateToPage(ShellPage.Replace));
+        ShowMergeCommand = CreateCatalogCommand(() => NavigateToPage(ShellPage.Merge));
+        ShowReplaceCommand = CreateCatalogCommand(() => NavigateToPage(ShellPage.Replace));
         GoBackCommand = new RelayCommand(GoBack, () => CanGoBack);
         ConfirmNavigationAndClearCommand = new RelayCommand(ConfirmNavigationAndClear);
         CancelNavigationClearCommand = new RelayCommand(CancelNavigationClear);
-        BeginDpReplaceFromHomeCommand = new RelayCommand(() => WorkflowSession.BeginWorkflowContext(ShellPage.Replace, DpReplaceMode, showNumber: true));
-        BeginCtrlRamReplaceFromHomeCommand = new RelayCommand(() => WorkflowSession.BeginWorkflowContext(ShellPage.Replace, CtrlRamReplaceMode, showNumber: true));
-        BeginGeneralReplaceFromHomeCommand = new RelayCommand(() => WorkflowSession.BeginWorkflowContext(ShellPage.Replace, GeneralReplaceMode, showNumber: true));
+        BeginDpReplaceFromHomeCommand = CreateCatalogCommand(
+            () => WorkflowSession.BeginWorkflowContext(ShellPage.Replace, DpReplaceMode, showNumber: true));
+        BeginCtrlRamReplaceFromHomeCommand = CreateCatalogCommand(
+            () => WorkflowSession.BeginWorkflowContext(ShellPage.Replace, CtrlRamReplaceMode, showNumber: true));
+        BeginGeneralReplaceFromHomeCommand = CreateCatalogCommand(
+            () => WorkflowSession.BeginWorkflowContext(ShellPage.Replace, GeneralReplaceMode, showNumber: true));
         ShowHexEditorCommand = new RelayCommand(ShowHexEditor);
         RequestHexEditorSaveCommand = new RelayCommand(RequestHexEditorSave, CanRequestHexEditorSave);
         RequestHexEditorUndoCommand = new RelayCommand(RequestHexEditorUndo, CanRequestHexEditorUndo);
         RequestHexEditorRedoCommand = new RelayCommand(RequestHexEditorRedo, CanRequestHexEditorRedo);
-        BeginNormalMergeFromHomeCommand = new RelayCommand(() => WorkflowSession.BeginWorkflowContext(ShellPage.Merge, NormalMergeMode, showNumber: false));
-        BeginAbMergeFromHomeCommand = new RelayCommand(() => WorkflowSession.BeginWorkflowContext(
-            ShellPage.Merge,
-            AbCodeMergeMode,
-            showNumber: false));
-        BeginGeneralMergeFromHomeCommand = new RelayCommand(() => WorkflowSession.BeginWorkflowContext(ShellPage.Merge, GeneralMergeMode, showNumber: false));
+        BeginNormalMergeFromHomeCommand = CreateCatalogCommand(
+            () => WorkflowSession.BeginWorkflowContext(ShellPage.Merge, NormalMergeMode, showNumber: false));
+        BeginAbMergeFromHomeCommand = CreateCatalogCommand(
+            () => WorkflowSession.BeginWorkflowContext(
+                ShellPage.Merge,
+                AbCodeMergeMode,
+                showNumber: false));
+        BeginGeneralMergeFromHomeCommand = CreateCatalogCommand(
+            () => WorkflowSession.BeginWorkflowContext(ShellPage.Merge, GeneralMergeMode, showNumber: false));
         RevealFileCommand = new RelayCommand<string>(RevealFile);
         NavigationTrail.Add(CreateNavigationEntry(ShellPage.Home, isCurrent: true));
         PropertyChanged += MainWindowViewModel_OnPropertyChanged;

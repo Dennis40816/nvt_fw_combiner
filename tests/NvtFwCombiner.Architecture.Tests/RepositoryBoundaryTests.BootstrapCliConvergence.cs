@@ -35,6 +35,9 @@ public sealed partial class RepositoryBoundaryTests
             SearchOption.TopDirectoryOnly));
         Assert.Contains("namespace NvtFwCombiner.Cli;", cliSources, StringComparison.Ordinal);
         Assert.DoesNotContain("namespace NvtFwCombiner.Bootstrap;", cliSources, StringComparison.Ordinal);
+        Assert.DoesNotContain("ReplaceRunAttempt", cliSources, StringComparison.Ordinal);
+        Assert.DoesNotContain("WarmCanonicalCapabilities", bootstrap, StringComparison.Ordinal);
+        Assert.DoesNotContain("StartCanonicalCatalogLoad", bootstrap, StringComparison.Ordinal);
 
         Assert.DoesNotContain(
             "public static OutputFileNameSuggestion CreateFlashCodeOutputFileName(",

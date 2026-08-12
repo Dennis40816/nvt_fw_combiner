@@ -59,7 +59,7 @@ public static partial class UiCompositionRunner
                 "Pending",
                 "Pending input",
                 detail,
-                ResolveCoverageFill("Pending input"),
+                MemoryCoverageFillRole.Neutral,
                 300d)]);
     }
 
@@ -100,7 +100,7 @@ public static partial class UiCompositionRunner
             FormatMemoryRange(segment.Range),
             sourceLabel,
             MemoryDetail(layout, segment),
-            ResolveCoverageFill(sourceLabel),
+            ResolveCoverageFillRole(segment),
             300d * segment.Range.Length / layout.Capacity,
             changed,
             segment.Disposition == MemoryWorkflowDisposition.Kept ||
@@ -120,7 +120,7 @@ public static partial class UiCompositionRunner
             FormatMemoryRange(conflict.Range),
             "Overlap error",
             MemoryConflictDetail(conflict),
-            ResolveCoverageFill("Overlap error"),
+            MemoryCoverageFillRole.Conflict,
             300d * conflict.Range.Length / layout.Capacity,
             isChanged: true,
             text: text);
@@ -228,27 +228,25 @@ public static partial class UiCompositionRunner
             $"0x{range.Start:X5}-0x{range.EndExclusive - 1:X5} (len 0x{range.Length:X})");
     }
 
-    private static string ResolveCoverageFill(string sourceLabel)
+    private static MemoryCoverageFillRole ResolveCoverageFillRole(MemoryLayoutSegment segment)
     {
-        return sourceLabel switch
-        {
-            "DP BIN" or "Changed DP BIN" or "DP_AB BIN" or "DP AB" => "#2563EB",
-            "TP BIN" or "TPA BIN" or "TPA" or "A bank work" or
-                "CtrlRAM BIN" or "Changed CtrlRAM BIN" => "#16A34A",
-            "TPB work buffer" or "TPB" or "B bank work" or "Postbuild AB work" => "#7C3AED",
-            "LDC BIN" or "Changed LDC BIN" => "#F97316",
-            "Source BIN" => "#0D9488",
-            "Restored TP" or "Preserved customer info" or "Preserve" => "#64748B",
-            "Overlap error" => "#DC2626",
-            string label when label.Contains("NF CtrlRAM", StringComparison.OrdinalIgnoreCase) => "#DC2626",
-            string label when label.Contains("Normal CtrlRAM", StringComparison.OrdinalIgnoreCase) => "#0891B2",
-            string label when label.Contains("MP CtrlRAM", StringComparison.OrdinalIgnoreCase) => "#7C3AED",
-            string label when label.Contains("VN CtrlRAM", StringComparison.OrdinalIgnoreCase) => "#DB2777",
-            string label when label.Contains("DIFF", StringComparison.OrdinalIgnoreCase) ||
-                              label.Contains("DLM", StringComparison.OrdinalIgnoreCase) => "#D97706",
-            string label when label.Contains("Vector", StringComparison.OrdinalIgnoreCase) => "#0D9488",
-            _ => "#CBD5E1",
-        };
+        return segment.Disposition == MemoryWorkflowDisposition.Kept ||
+            segment.SourceSpaceId == CompositionAddressSpaceIds.ReferenceBase
+                ? MemoryCoverageFillRole.Kept
+                : segment.ContentRole switch
+                {
+                    MemoryContentRole.Dp => MemoryCoverageFillRole.Dp,
+                    MemoryContentRole.Tp => MemoryCoverageFillRole.Tp,
+                    MemoryContentRole.TpBackup => MemoryCoverageFillRole.TpBackup,
+                    MemoryContentRole.Ldc => MemoryCoverageFillRole.Ldc,
+                    MemoryContentRole.CtrlRam when
+                        segment.RegionGroup == ReplaceRegionGroup.Cascade =>
+                            MemoryCoverageFillRole.DiffDlm,
+                    MemoryContentRole.CtrlRam => MemoryCoverageFillRole.CtrlRam,
+                    MemoryContentRole.General => MemoryCoverageFillRole.Source,
+                    MemoryContentRole.Reserved => MemoryCoverageFillRole.Neutral,
+                    _ => MemoryCoverageFillRole.Neutral,
+                };
     }
 
     private static string ToRange(long start, long length)

@@ -1,69 +1,168 @@
 <ResourceDictionary
     xmlns="https://github.com/avaloniaui"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
-  <SolidColorBrush x:Key="NfcAppBackgroundBrush" Color="#F4F6FA" />
-  <SolidColorBrush x:Key="NfcSurfaceBrush" Color="#FFFFFF" />
-  <SolidColorBrush x:Key="NfcSurfaceSubtleBrush" Color="#F8FAFC" />
-  <SolidColorBrush x:Key="NfcSelectionSurfaceBrush" Color="#F1F5F9" />
-  <SolidColorBrush x:Key="NfcBorderBrush" Color="#CBD5E1" />
-  <SolidColorBrush x:Key="NfcBorderMutedBrush" Color="#E2E8F0" />
-  <SolidColorBrush x:Key="NfcBorderSoftBrush" Color="#D7E1ED" />
-  <SolidColorBrush x:Key="NfcDividerBrush" Color="#EEF2F7" />
-  <SolidColorBrush x:Key="NfcTextStrongBrush" Color="#0F172A" />
-  <SolidColorBrush x:Key="NfcTextBrush" Color="#334155" />
-  <SolidColorBrush x:Key="NfcTextSecondaryBrush" Color="#475569" />
-  <SolidColorBrush x:Key="NfcTextMutedBrush" Color="#64748B" />
-  <SolidColorBrush x:Key="NfcTextDisabledBrush" Color="#94A3B8" />
-  <SolidColorBrush x:Key="NfcKeptStripeBrush" Color="#450F172A" />
-  <SolidColorBrush x:Key="NfcAccentBrush" Color="#2563EB" />
-  <SolidColorBrush x:Key="NfcAccentStrongBrush" Color="#1D4ED8" />
-  <SolidColorBrush x:Key="NfcAccentSurfaceBrush" Color="#EAF3FF" />
-  <SolidColorBrush x:Key="NfcAccentSurfaceSubtleBrush" Color="#EFF6FF" />
-  <SolidColorBrush x:Key="NfcAccentBorderBrush" Color="#93C5FD" />
-  <SolidColorBrush x:Key="NfcAccentBorderStrongBrush" Color="#60A5FA" />
-  <SolidColorBrush x:Key="NfcAccentBorderLightBrush" Color="#BFDBFE" />
-  <SolidColorBrush x:Key="NfcSuccessSurfaceBrush" Color="#F0FDF4" />
-  <SolidColorBrush x:Key="NfcSuccessBorderBrush" Color="#BBF7D0" />
-  <SolidColorBrush x:Key="NfcSuccessAccentBrush" Color="#16A34A" />
-  <SolidColorBrush x:Key="NfcSuccessTextStrongBrush" Color="#14532D" />
-  <SolidColorBrush x:Key="NfcSuccessTextBrush" Color="#166534" />
-  <SolidColorBrush x:Key="NfcSuccessEmphasisBrush" Color="#15803D" />
-  <SolidColorBrush x:Key="NfcInfoSurfaceBrush" Color="#EEF4FA" />
-  <SolidColorBrush x:Key="NfcSlotFactSurfaceBrush" Color="#EEF6FF" />
-  <SolidColorBrush x:Key="NfcInfoSurfaceStrongBrush" Color="#DBEAFE" />
-  <SolidColorBrush x:Key="NfcInfoTextBrush" Color="#0F766E" />
-  <SolidColorBrush x:Key="NfcReferenceInputSurfaceBrush" Color="#EEF2FF" />
-  <SolidColorBrush x:Key="NfcReferenceInputBorderBrush" Color="#C7D2FE" />
-  <SolidColorBrush x:Key="NfcReferenceInputTextBrush" Color="#4338CA" />
-  <SolidColorBrush x:Key="NfcControllerInputSurfaceBrush" Color="#F5F3FF" />
-  <SolidColorBrush x:Key="NfcControllerInputBorderBrush" Color="#DDD6FE" />
-  <SolidColorBrush x:Key="NfcControllerInputTextBrush" Color="#6D28D9" />
-  <SolidColorBrush x:Key="NfcWarningSurfaceBrush" Color="#FFF7ED" />
-  <SolidColorBrush x:Key="NfcWarningBorderBrush" Color="#FED7AA" />
-  <SolidColorBrush x:Key="NfcWarningAccentBrush" Color="#F59E0B" />
-  <SolidColorBrush x:Key="NfcWarningAccentStrongBrush" Color="#D97706" />
-  <SolidColorBrush x:Key="NfcWarningAccentCriticalBrush" Color="#EA580C" />
-  <SolidColorBrush x:Key="NfcWarningTextSubtleBrush" Color="#7C2D12" />
-  <SolidColorBrush x:Key="NfcWarningTextMutedBrush" Color="#B45309" />
-  <SolidColorBrush x:Key="NfcWarningTextBrush" Color="#9A3412" />
-  <SolidColorBrush x:Key="NfcWarningBorderStrongBrush" Color="#FDBA74" />
-  <SolidColorBrush x:Key="NfcWarningTextStrongBrush" Color="#C2410C" />
-  <SolidColorBrush x:Key="NfcCautionSurfaceBrush" Color="#FFFBEB" />
-  <SolidColorBrush x:Key="NfcCautionBorderBrush" Color="#FCD34D" />
-  <SolidColorBrush x:Key="NfcCautionBorderSoftBrush" Color="#FDE68A" />
-  <SolidColorBrush x:Key="NfcCautionTextBrush" Color="#92400E" />
-  <SolidColorBrush x:Key="NfcDangerSurfaceBrush" Color="#FFF7F7" />
-  <SolidColorBrush x:Key="NfcDangerBorderBrush" Color="#FECACA" />
-  <SolidColorBrush x:Key="NfcDangerTextBrush" Color="#B91C1C" />
-  <SolidColorBrush x:Key="NfcDangerSurfaceMutedBrush" Color="#FFF1F2" />
-  <SolidColorBrush x:Key="NfcDangerBorderStrongBrush" Color="#FDA4AF" />
-  <SolidColorBrush x:Key="NfcDangerTextStrongBrush" Color="#BE123C" />
-  <SolidColorBrush x:Key="NfcCriticalSurfaceBrush" Color="#FEF2F2" />
-  <SolidColorBrush x:Key="NfcCriticalBorderBrush" Color="#DC2626" />
-  <SolidColorBrush x:Key="NfcRequiredMissingBorderBrush" Color="#FCA5A5" />
-  <SolidColorBrush x:Key="NfcRequiredMissingBadgeSurfaceBrush" Color="#FEE2E2" />
-  <SolidColorBrush x:Key="NfcRequiredSelectedBorderBrush" Color="#86EFAC" />
-  <SolidColorBrush x:Key="NfcRequiredSelectedBadgeSurfaceBrush" Color="#DCFCE7" />
+  <ResourceDictionary.ThemeDictionaries>
+    <ResourceDictionary x:Key="Light">
+      <SolidColorBrush x:Key="NfcAppBackgroundBrush" Color="#F4F6FA" />
+      <SolidColorBrush x:Key="NfcSurfaceBrush" Color="#FFFFFF" />
+      <SolidColorBrush x:Key="NfcSurfaceSubtleBrush" Color="#F8FAFC" />
+      <SolidColorBrush x:Key="NfcSelectionSurfaceBrush" Color="#F1F5F9" />
+      <SolidColorBrush x:Key="NfcBorderBrush" Color="#CBD5E1" />
+      <SolidColorBrush x:Key="NfcBorderMutedBrush" Color="#E2E8F0" />
+      <SolidColorBrush x:Key="NfcBorderSoftBrush" Color="#D7E1ED" />
+      <SolidColorBrush x:Key="NfcDividerBrush" Color="#EEF2F7" />
+      <SolidColorBrush x:Key="NfcTextStrongBrush" Color="#0F172A" />
+      <SolidColorBrush x:Key="NfcTextBrush" Color="#334155" />
+      <SolidColorBrush x:Key="NfcTextSecondaryBrush" Color="#475569" />
+      <SolidColorBrush x:Key="NfcTextMutedBrush" Color="#64748B" />
+      <SolidColorBrush x:Key="NfcTextDisabledBrush" Color="#94A3B8" />
+      <SolidColorBrush x:Key="NfcKeptStripeBrush" Color="#450F172A" />
+      <SolidColorBrush x:Key="NfcAccentBrush" Color="#2563EB" />
+      <SolidColorBrush x:Key="NfcAccentStrongBrush" Color="#1D4ED8" />
+      <SolidColorBrush x:Key="NfcAccentSurfaceBrush" Color="#EAF3FF" />
+      <SolidColorBrush x:Key="NfcAccentSurfaceSubtleBrush" Color="#EFF6FF" />
+      <SolidColorBrush x:Key="NfcAccentBorderBrush" Color="#93C5FD" />
+      <SolidColorBrush x:Key="NfcAccentBorderStrongBrush" Color="#60A5FA" />
+      <SolidColorBrush x:Key="NfcAccentBorderLightBrush" Color="#BFDBFE" />
+      <SolidColorBrush x:Key="NfcSuccessSurfaceBrush" Color="#F0FDF4" />
+      <SolidColorBrush x:Key="NfcSuccessBorderBrush" Color="#BBF7D0" />
+      <SolidColorBrush x:Key="NfcSuccessAccentBrush" Color="#16A34A" />
+      <SolidColorBrush x:Key="NfcSuccessTextStrongBrush" Color="#14532D" />
+      <SolidColorBrush x:Key="NfcSuccessTextBrush" Color="#166534" />
+      <SolidColorBrush x:Key="NfcSuccessEmphasisBrush" Color="#15803D" />
+      <SolidColorBrush x:Key="NfcInfoSurfaceBrush" Color="#EEF4FA" />
+      <SolidColorBrush x:Key="NfcSlotFactSurfaceBrush" Color="#EEF6FF" />
+      <SolidColorBrush x:Key="NfcInfoSurfaceStrongBrush" Color="#DBEAFE" />
+      <SolidColorBrush x:Key="NfcInfoTextBrush" Color="#0F766E" />
+      <SolidColorBrush x:Key="NfcReferenceInputSurfaceBrush" Color="#EEF2FF" />
+      <SolidColorBrush x:Key="NfcReferenceInputBorderBrush" Color="#C7D2FE" />
+      <SolidColorBrush x:Key="NfcReferenceInputTextBrush" Color="#4338CA" />
+      <SolidColorBrush x:Key="NfcControllerInputSurfaceBrush" Color="#F5F3FF" />
+      <SolidColorBrush x:Key="NfcControllerInputBorderBrush" Color="#DDD6FE" />
+      <SolidColorBrush x:Key="NfcControllerInputTextBrush" Color="#6D28D9" />
+      <SolidColorBrush x:Key="NfcWarningSurfaceBrush" Color="#FFF7ED" />
+      <SolidColorBrush x:Key="NfcWarningBorderBrush" Color="#FED7AA" />
+      <SolidColorBrush x:Key="NfcWarningAccentBrush" Color="#F59E0B" />
+      <SolidColorBrush x:Key="NfcWarningAccentStrongBrush" Color="#D97706" />
+      <SolidColorBrush x:Key="NfcWarningAccentCriticalBrush" Color="#EA580C" />
+      <SolidColorBrush x:Key="NfcWarningTextSubtleBrush" Color="#7C2D12" />
+      <SolidColorBrush x:Key="NfcWarningTextMutedBrush" Color="#B45309" />
+      <SolidColorBrush x:Key="NfcWarningTextBrush" Color="#9A3412" />
+      <SolidColorBrush x:Key="NfcWarningBorderStrongBrush" Color="#FDBA74" />
+      <SolidColorBrush x:Key="NfcWarningTextStrongBrush" Color="#C2410C" />
+      <SolidColorBrush x:Key="NfcCautionSurfaceBrush" Color="#FFFBEB" />
+      <SolidColorBrush x:Key="NfcCautionBorderBrush" Color="#FCD34D" />
+      <SolidColorBrush x:Key="NfcCautionBorderSoftBrush" Color="#FDE68A" />
+      <SolidColorBrush x:Key="NfcCautionTextBrush" Color="#92400E" />
+      <SolidColorBrush x:Key="NfcDangerSurfaceBrush" Color="#FFF7F7" />
+      <SolidColorBrush x:Key="NfcDangerBorderBrush" Color="#FECACA" />
+      <SolidColorBrush x:Key="NfcDangerTextBrush" Color="#B91C1C" />
+      <SolidColorBrush x:Key="NfcDangerSurfaceMutedBrush" Color="#FFF1F2" />
+      <SolidColorBrush x:Key="NfcDangerBorderStrongBrush" Color="#FDA4AF" />
+      <SolidColorBrush x:Key="NfcDangerTextStrongBrush" Color="#BE123C" />
+      <SolidColorBrush x:Key="NfcCriticalSurfaceBrush" Color="#FEF2F2" />
+      <SolidColorBrush x:Key="NfcCriticalBorderBrush" Color="#DC2626" />
+      <SolidColorBrush x:Key="NfcRequiredMissingBorderBrush" Color="#FCA5A5" />
+      <SolidColorBrush x:Key="NfcRequiredMissingBadgeSurfaceBrush" Color="#FEE2E2" />
+      <SolidColorBrush x:Key="NfcRequiredSelectedBorderBrush" Color="#86EFAC" />
+      <SolidColorBrush x:Key="NfcRequiredSelectedBadgeSurfaceBrush" Color="#DCFCE7" />
+      <SolidColorBrush x:Key="NfcMemoryNeutralFillBrush" Color="#CBD5E1" />
+      <SolidColorBrush x:Key="NfcMemoryDpFillBrush" Color="#2563EB" />
+      <SolidColorBrush x:Key="NfcMemoryTpFillBrush" Color="#16A34A" />
+      <SolidColorBrush x:Key="NfcMemoryTpBackupFillBrush" Color="#7C3AED" />
+      <SolidColorBrush x:Key="NfcMemoryLdcFillBrush" Color="#F97316" />
+      <SolidColorBrush x:Key="NfcMemorySourceFillBrush" Color="#0D9488" />
+      <SolidColorBrush x:Key="NfcMemoryKeptFillBrush" Color="#64748B" />
+      <SolidColorBrush x:Key="NfcMemoryConflictFillBrush" Color="#DC2626" />
+      <SolidColorBrush x:Key="NfcMemoryCtrlRamFillBrush" Color="#16A34A" />
+      <SolidColorBrush x:Key="NfcMemoryDiffDlmFillBrush" Color="#D97706" />
+      <BoxShadows x:Key="NfcWorkflowCardHoverShadow">0 6 14 0 #143B821A</BoxShadows>
+      <BoxShadows x:Key="NfcWorkflowCardPressedShadow">0 1 4 0 #143B8214</BoxShadows>
+      <SolidColorBrush x:Key="NfcModalScrimBrush" Color="#660F172A" />
+      <SolidColorBrush x:Key="NfcReportModalScrimBrush" Color="#990F172A" />
+      <SolidColorBrush x:Key="NfcHexEditorAccentBrush" Color="#6366F1" />
+    </ResourceDictionary>
+    <ResourceDictionary x:Key="Dark">
+      <SolidColorBrush x:Key="NfcAppBackgroundBrush" Color="#0B1220" />
+      <SolidColorBrush x:Key="NfcSurfaceBrush" Color="#111827" />
+      <SolidColorBrush x:Key="NfcSurfaceSubtleBrush" Color="#162033" />
+      <SolidColorBrush x:Key="NfcSelectionSurfaceBrush" Color="#1E293B" />
+      <SolidColorBrush x:Key="NfcBorderBrush" Color="#334155" />
+      <SolidColorBrush x:Key="NfcBorderMutedBrush" Color="#273449" />
+      <SolidColorBrush x:Key="NfcBorderSoftBrush" Color="#3A4A60" />
+      <SolidColorBrush x:Key="NfcDividerBrush" Color="#1F2937" />
+      <SolidColorBrush x:Key="NfcTextStrongBrush" Color="#F8FAFC" />
+      <SolidColorBrush x:Key="NfcTextBrush" Color="#E2E8F0" />
+      <SolidColorBrush x:Key="NfcTextSecondaryBrush" Color="#CBD5E1" />
+      <SolidColorBrush x:Key="NfcTextMutedBrush" Color="#94A3B8" />
+      <SolidColorBrush x:Key="NfcTextDisabledBrush" Color="#64748B" />
+      <SolidColorBrush x:Key="NfcKeptStripeBrush" Color="#66E2E8F0" />
+      <SolidColorBrush x:Key="NfcAccentBrush" Color="#60A5FA" />
+      <SolidColorBrush x:Key="NfcAccentStrongBrush" Color="#93C5FD" />
+      <SolidColorBrush x:Key="NfcAccentSurfaceBrush" Color="#172554" />
+      <SolidColorBrush x:Key="NfcAccentSurfaceSubtleBrush" Color="#13213A" />
+      <SolidColorBrush x:Key="NfcAccentBorderBrush" Color="#2563EB" />
+      <SolidColorBrush x:Key="NfcAccentBorderStrongBrush" Color="#60A5FA" />
+      <SolidColorBrush x:Key="NfcAccentBorderLightBrush" Color="#1D4ED8" />
+      <SolidColorBrush x:Key="NfcSuccessSurfaceBrush" Color="#052E16" />
+      <SolidColorBrush x:Key="NfcSuccessBorderBrush" Color="#166534" />
+      <SolidColorBrush x:Key="NfcSuccessAccentBrush" Color="#4ADE80" />
+      <SolidColorBrush x:Key="NfcSuccessTextStrongBrush" Color="#BBF7D0" />
+      <SolidColorBrush x:Key="NfcSuccessTextBrush" Color="#86EFAC" />
+      <SolidColorBrush x:Key="NfcSuccessEmphasisBrush" Color="#22C55E" />
+      <SolidColorBrush x:Key="NfcInfoSurfaceBrush" Color="#0C2438" />
+      <SolidColorBrush x:Key="NfcSlotFactSurfaceBrush" Color="#0D2847" />
+      <SolidColorBrush x:Key="NfcInfoSurfaceStrongBrush" Color="#12345A" />
+      <SolidColorBrush x:Key="NfcInfoTextBrush" Color="#5EEAD4" />
+      <SolidColorBrush x:Key="NfcReferenceInputSurfaceBrush" Color="#1E1B4B" />
+      <SolidColorBrush x:Key="NfcReferenceInputBorderBrush" Color="#4338CA" />
+      <SolidColorBrush x:Key="NfcReferenceInputTextBrush" Color="#C4B5FD" />
+      <SolidColorBrush x:Key="NfcControllerInputSurfaceBrush" Color="#2E1065" />
+      <SolidColorBrush x:Key="NfcControllerInputBorderBrush" Color="#6D28D9" />
+      <SolidColorBrush x:Key="NfcControllerInputTextBrush" Color="#DDD6FE" />
+      <SolidColorBrush x:Key="NfcWarningSurfaceBrush" Color="#422006" />
+      <SolidColorBrush x:Key="NfcWarningBorderBrush" Color="#92400E" />
+      <SolidColorBrush x:Key="NfcWarningAccentBrush" Color="#FBBF24" />
+      <SolidColorBrush x:Key="NfcWarningAccentStrongBrush" Color="#F59E0B" />
+      <SolidColorBrush x:Key="NfcWarningAccentCriticalBrush" Color="#FB923C" />
+      <SolidColorBrush x:Key="NfcWarningTextSubtleBrush" Color="#FED7AA" />
+      <SolidColorBrush x:Key="NfcWarningTextMutedBrush" Color="#FDBA74" />
+      <SolidColorBrush x:Key="NfcWarningTextBrush" Color="#FFEDD5" />
+      <SolidColorBrush x:Key="NfcWarningBorderStrongBrush" Color="#C2410C" />
+      <SolidColorBrush x:Key="NfcWarningTextStrongBrush" Color="#FFF7ED" />
+      <SolidColorBrush x:Key="NfcCautionSurfaceBrush" Color="#3A2A05" />
+      <SolidColorBrush x:Key="NfcCautionBorderBrush" Color="#A16207" />
+      <SolidColorBrush x:Key="NfcCautionBorderSoftBrush" Color="#713F12" />
+      <SolidColorBrush x:Key="NfcCautionTextBrush" Color="#FDE68A" />
+      <SolidColorBrush x:Key="NfcDangerSurfaceBrush" Color="#3F1013" />
+      <SolidColorBrush x:Key="NfcDangerBorderBrush" Color="#991B1B" />
+      <SolidColorBrush x:Key="NfcDangerTextBrush" Color="#FCA5A5" />
+      <SolidColorBrush x:Key="NfcDangerSurfaceMutedBrush" Color="#4C101A" />
+      <SolidColorBrush x:Key="NfcDangerBorderStrongBrush" Color="#BE123C" />
+      <SolidColorBrush x:Key="NfcDangerTextStrongBrush" Color="#FECDD3" />
+      <SolidColorBrush x:Key="NfcCriticalSurfaceBrush" Color="#450A0A" />
+      <SolidColorBrush x:Key="NfcCriticalBorderBrush" Color="#EF4444" />
+      <SolidColorBrush x:Key="NfcRequiredMissingBorderBrush" Color="#F87171" />
+      <SolidColorBrush x:Key="NfcRequiredMissingBadgeSurfaceBrush" Color="#451A1A" />
+      <SolidColorBrush x:Key="NfcRequiredSelectedBorderBrush" Color="#4ADE80" />
+      <SolidColorBrush x:Key="NfcRequiredSelectedBadgeSurfaceBrush" Color="#052E16" />
+      <SolidColorBrush x:Key="NfcMemoryNeutralFillBrush" Color="#475569" />
+      <SolidColorBrush x:Key="NfcMemoryDpFillBrush" Color="#3B82F6" />
+      <SolidColorBrush x:Key="NfcMemoryTpFillBrush" Color="#22C55E" />
+      <SolidColorBrush x:Key="NfcMemoryTpBackupFillBrush" Color="#A78BFA" />
+      <SolidColorBrush x:Key="NfcMemoryLdcFillBrush" Color="#FB923C" />
+      <SolidColorBrush x:Key="NfcMemorySourceFillBrush" Color="#2DD4BF" />
+      <SolidColorBrush x:Key="NfcMemoryKeptFillBrush" Color="#64748B" />
+      <SolidColorBrush x:Key="NfcMemoryConflictFillBrush" Color="#F87171" />
+      <SolidColorBrush x:Key="NfcMemoryCtrlRamFillBrush" Color="#4ADE80" />
+      <SolidColorBrush x:Key="NfcMemoryDiffDlmFillBrush" Color="#FBBF24" />
+      <BoxShadows x:Key="NfcWorkflowCardHoverShadow">0 10 24 0 #66000000</BoxShadows>
+      <BoxShadows x:Key="NfcWorkflowCardPressedShadow">0 2 6 0 #52000000</BoxShadows>
+      <SolidColorBrush x:Key="NfcModalScrimBrush" Color="#B3000000" />
+      <SolidColorBrush x:Key="NfcReportModalScrimBrush" Color="#D9000000" />
+      <SolidColorBrush x:Key="NfcHexEditorAccentBrush" Color="#818CF8" />
+    </ResourceDictionary>
+  </ResourceDictionary.ThemeDictionaries>
   <CornerRadius x:Key="NfcCompactCornerRadius">6</CornerRadius>
   <CornerRadius x:Key="NfcSurfaceCornerRadius">8</CornerRadius>
   <CornerRadius x:Key="NfcPillCornerRadius">999</CornerRadius>
@@ -79,9 +178,4 @@
   <x:Double x:Key="NfcFontSize14">14</x:Double>
   <FontFamily x:Key="NfcUiFontFamily">fonts:Inter#Inter, Microsoft JhengHei UI, Noto Sans CJK TC, Noto Sans TC, Segoe UI</FontFamily>
   <FontFamily x:Key="NfcTechnicalFontFamily">Cascadia Mono, Consolas</FontFamily>
-  <BoxShadows x:Key="NfcWorkflowCardHoverShadow">0 6 14 0 #143B821A</BoxShadows>
-  <BoxShadows x:Key="NfcWorkflowCardPressedShadow">0 1 4 0 #143B8214</BoxShadows>
-  <SolidColorBrush x:Key="NfcModalScrimBrush" Color="#660F172A" />
-  <SolidColorBrush x:Key="NfcReportModalScrimBrush" Color="#990F172A" />
-  <SolidColorBrush x:Key="NfcHexEditorAccentBrush" Color="#6366F1" />
 </ResourceDictionary>

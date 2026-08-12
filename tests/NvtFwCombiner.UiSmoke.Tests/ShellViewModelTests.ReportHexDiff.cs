@@ -2,21 +2,19 @@ using System.Security.Cryptography;
 using System.Text.Json;
 using System.Text.Json.Nodes;
 using Avalonia.Controls;
-using NvtFwCombiner.Application.Authoring;
 using NvtFwCombiner.Domain.Composition;
 using NvtFwCombiner.Presentation.Avalonia.HexViewport;
 using NvtFwCombiner.Presentation.Avalonia.ViewModels;
-using NvtFwCombiner.TestSupport;
 
 namespace NvtFwCombiner.UiSmoke.Tests;
 
-public sealed partial class ShellViewModelTests
+public sealed partial class ReportReviewHistoryTests
 {
     /// <summary>Current and reopened reports project identical bytes through the shared viewport.</summary>
     [Fact]
     public async Task ReportHexDiffUsesVerifiedAndPersistedReplayBytes()
     {
-        CompositionRunResult result = await CreateDpReplaceInspectionResultAsync();
+        CompositionRunResult result = await CreateDpReplaceInspectionResultAsync(TestHost);
         var report = ReportReviewViewModel.FromJsonCancellable(
             CompositionRunReportJson.Serialize(result),
             "preview report",
@@ -109,7 +107,7 @@ public sealed partial class ShellViewModelTests
     [Fact]
     public async Task ReportHexDiffRejectsUnverifiedSnapshotAndRangeIdentity()
     {
-        CompositionRunResult result = await CreateDpReplaceInspectionResultAsync();
+        CompositionRunResult result = await CreateDpReplaceInspectionResultAsync(TestHost);
         using var source = JsonDocument.Parse(CompositionRunReportJson.Serialize(result));
         string runId = source.RootElement.GetProperty("RunId").GetString()!;
         (string Name, string Json)[] invalidReports =
@@ -187,7 +185,7 @@ public sealed partial class ShellViewModelTests
     [Fact]
     public async Task ReportHexDiffRejectsTamperedPersistedReplayBytes()
     {
-        CompositionRunResult result = await CreateDpReplaceInspectionResultAsync();
+        CompositionRunResult result = await CreateDpReplaceInspectionResultAsync(TestHost);
 
         foreach (bool tamperChangedByte in new[] { false, true })
         {
@@ -214,7 +212,7 @@ public sealed partial class ShellViewModelTests
     [Fact]
     public async Task ReportHexDiffRejectsNonCanonicalReplayEvidence()
     {
-        CompositionRunResult result = await CreateDpReplaceInspectionResultAsync();
+        CompositionRunResult result = await CreateDpReplaceInspectionResultAsync(TestHost);
         JsonNode shortenedRoot = JsonNode.Parse(CompositionRunReportJson.Serialize(result))!;
         JsonNode shortenedDifference = shortenedRoot["OutputDifferences"]!.AsArray()[0]!;
         JsonNode shortenedReplay = shortenedDifference["Replay"]!;
@@ -243,7 +241,7 @@ public sealed partial class ShellViewModelTests
     [Fact]
     public async Task ReportHexDiffKeepsLongRangeScrollingLocalAndBounded()
     {
-        CompositionRunResult result = await CreateDpReplaceInspectionResultAsync(changeLength: 0x200);
+        CompositionRunResult result = await CreateDpReplaceInspectionResultAsync(TestHost, changeLength: 0x200);
         var report = ReportReviewViewModel.FromJson(CompositionRunReportJson.Serialize(result), "persisted long range");
 
         Assert.True(report.HexDiff.IsReportedRangeMode);
@@ -292,7 +290,7 @@ public sealed partial class ShellViewModelTests
     [Fact]
     public async Task ReportHexDiffKeepsLargeRangeNavigationBounded()
     {
-        CompositionRunResult result = await CreateDpReplaceInspectionResultAsync();
+        CompositionRunResult result = await CreateDpReplaceInspectionResultAsync(TestHost);
         using var source = JsonDocument.Parse(CompositionRunReportJson.Serialize(result));
         string runId = source.RootElement.GetProperty("RunId").GetString()!;
         string json = ReportJsonSamples.ReplaceWithManyOutputDifferences(
@@ -357,65 +355,4 @@ public sealed partial class ShellViewModelTests
         Assert.True(mismatch.HexDiff.HasNoViewportBytes);
     }
 
-    private static async Task<CompositionRunResult> CreateDpReplaceInspectionResultAsync(int changeLength = 2)
-    {
-        using var workspace = TempWorkspace.Create("nvt-fw-combiner-ui-report-hex-diff");
-        byte[] baseBytes = CreatePattern(0x40000, 0x51);
-        byte[] replacementBytes = (byte[])baseBytes.Clone();
-        for (int index = 0; index < changeLength; index++)
-        {
-            replacementBytes[0x100 + index] ^= 0xFF;
-        }
-
-        replacementBytes[0x100] = 0xA5;
-        replacementBytes[0x101] = 0x5A;
-        string basePath = workspace.Write("base.bin", baseBytes);
-        string replacementPath = workspace.Write("replacement.bin", replacementBytes);
-        var paths = new Dictionary<string, string>(StringComparer.Ordinal)
-        {
-            ["replace-base"] = basePath,
-            ["replace-dp"] = replacementPath,
-        };
-
-        CompiledAuthoringSelectionSnapshot discovery =
-            TestHost.DpReplaceAuthoring.GetAuthoringSnapshot(
-                "NT51950",
-                [],
-                new Dictionary<string, FileStamp>(StringComparer.Ordinal),
-                new AuthoringRevision(1));
-        CompiledAuthoringInputBinding replacement = discovery.InputBindings.Single(static binding =>
-            !StringComparer.Ordinal.Equals(
-                binding.AddressSpaceId,
-                CompositionAddressSpaceIds.ReferenceBase) &&
-            !StringComparer.Ordinal.Equals(
-                binding.AddressSpaceId,
-                CompositionAddressSpaceIds.LdcReplacement));
-        var session = new AuthoringSessionState(ExperienceIds.DpReplace);
-        CompiledAuthoringSessionPreparation prepared =
-            TestHost.DpReplaceAuthoring.PrepareSession(
-                session,
-                "NT51950",
-                [
-                    new CompiledAuthoringSelectedInput(
-                        CompositionAddressSpaceIds.ReferenceBase,
-                        basePath,
-                        baseBytes),
-                    new CompiledAuthoringSelectedInput(
-                        replacement.AddressSpaceId,
-                        replacementPath,
-                        replacementBytes),
-                ]);
-        Assert.True(prepared.Succeeded);
-        CompositionRunResult result = await TestHost.CompositionExecution
-            .ExecuteAsync(
-                new AcceptedCompositionExecutionRequest(
-                    prepared.Snapshot!,
-                    paths,
-                    build: false),
-                new CompositionRunProgressFeed(),
-                TestContext.Current.CancellationToken);
-        Assert.True(result.Succeeded, CompositionRunReportJson.Serialize(result));
-        _ = Assert.IsType<CompositionRunInspectionSnapshot>(result.InspectionSnapshot);
-        return result;
-    }
 }

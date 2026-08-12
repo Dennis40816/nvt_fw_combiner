@@ -3,24 +3,36 @@ using NvtFwCombiner.Application.Capabilities;
 namespace NvtFwCombiner.Bootstrap.Tests;
 
 /// <summary>Protects focused Support Matrix wiring over the Application-owned catalog.</summary>
-[Collection(CanonicalCapabilityCatalogPublicationGroup.Name)]
 public sealed class CanonicalSupportMatrixHostTests
 {
-    /// <summary>Shared publication reload coverage cannot run beside capability-bound executions.</summary>
+    /// <summary>Explicit hosts publish independently without process-wide serialization.</summary>
     [Fact]
-    public void CatalogTestsUseCanonicalPublicationSerializationCollection()
+    public void ExplicitHostsOwnIndependentCatalogPublications()
     {
-        object attribute = Assert.Single(
-            typeof(CanonicalSupportMatrixHostTests).GetCustomAttributes(
-                typeof(CollectionAttribute),
-                inherit: false));
-        CollectionAttribute collection = Assert.IsType<CollectionAttribute>(attribute);
+        var first = new IsolatedBootstrapTestHost();
+        var second = new IsolatedBootstrapTestHost();
 
-        Assert.Equal(CanonicalCapabilityCatalogPublicationGroup.Name, collection.Name);
+        Assert.Equal(
+            CanonicalSupportMatrixCatalogState.Loading,
+            first.Services.CanonicalSupportMatrixQuery.Query().State);
+        Assert.Equal(
+            CanonicalSupportMatrixCatalogState.Loading,
+            second.Services.CanonicalSupportMatrixQuery.Query().State);
+
+        CapabilityCatalogReloadResult reload = first.Catalog.Reload(
+            TestContext.Current.CancellationToken);
+
+        Assert.True(reload.Succeeded);
+        Assert.Equal(
+            CanonicalSupportMatrixCatalogState.Current,
+            first.Services.CanonicalSupportMatrixQuery.Query().State);
+        Assert.Equal(
+            CanonicalSupportMatrixCatalogState.Loading,
+            second.Services.CanonicalSupportMatrixQuery.Query().State);
     }
 
     /// <summary>An in-flight worker load cannot block the UI reporting query.</summary>
-    [Fact]
+    [Fact(Timeout = 30_000)]
     public async Task QueryReturnsLoadingWhileBackgroundWarmIsInFlight()
     {
         CapabilityCatalogLoadResult seed =
@@ -28,15 +40,13 @@ public sealed class CanonicalSupportMatrixHostTests
                 TestContext.Current.CancellationToken);
         using var source = new BlockingProbeSource(seed.Candidate!);
         var catalog = new CanonicalCapabilityCatalog(source);
-        var warm = Task.Run(
-            () => catalog.Warm(TestContext.Current.CancellationToken),
+        Task<CanonicalCapabilityCatalogSnapshot?> load = Task.Run(
+            catalog.TryGetCurrentSnapshot,
             TestContext.Current.CancellationToken);
 
-        Assert.True(source.LoadStarted.Wait(
-            TimeSpan.FromSeconds(5),
-            TestContext.Current.CancellationToken));
         try
         {
+            await source.LoadStarted.Task.WaitAsync(TestContext.Current.CancellationToken);
             Task<CanonicalSupportMatrixQueryResult> queryTask = Task.Run(
                 catalog.Query,
                 TestContext.Current.CancellationToken);
@@ -51,9 +61,11 @@ public sealed class CanonicalSupportMatrixHostTests
         finally
         {
             source.AllowLoad.Set();
+#pragma warning disable xUnit1051 // Cleanup must observe the worker after test cancellation.
+            _ = await load.WaitAsync(TimeSpan.FromSeconds(5));
+#pragma warning restore xUnit1051
         }
 
-        await warm;
         Assert.Equal(CanonicalSupportMatrixCatalogState.Current, catalog.Query().State);
     }
 
@@ -80,13 +92,10 @@ public sealed class CanonicalSupportMatrixHostTests
             int.Parse(
                 reload.Snapshot!.CatalogVersion.Split('.')[^1],
                 System.Globalization.CultureInfo.InvariantCulture));
-        CapabilityCatalogReloadResult latest = catalog.LatestReload!;
+        CanonicalCapabilityCatalogSnapshot latest = catalog.GetCurrentSnapshot();
         Assert.Equal(
             $"1.0.{latestGeneration}",
-            latest.Snapshot!.CatalogVersion);
-        Assert.Same(
-            latest.Snapshot,
-            catalog.TryGetCurrentSnapshot());
+            latest.CatalogVersion);
     }
 
     /// <summary>One explicitly constructed host query observes its own catalog publication.</summary>
@@ -169,20 +178,20 @@ public sealed class CanonicalSupportMatrixHostTests
         ICanonicalCapabilityCatalogSource,
         IDisposable
     {
-        internal ManualResetEventSlim LoadStarted { get; } = new(false);
+        internal TaskCompletionSource LoadStarted { get; } = new(
+            TaskCreationOptions.RunContinuationsAsynchronously);
 
         internal ManualResetEventSlim AllowLoad { get; } = new(false);
 
         public CapabilityCatalogLoadResult Load(CancellationToken cancellationToken)
         {
-            LoadStarted.Set();
+            _ = LoadStarted.TrySetResult();
             AllowLoad.Wait(cancellationToken);
             return CapabilityCatalogLoadResult.Success(candidate);
         }
 
         public void Dispose()
         {
-            LoadStarted.Dispose();
             AllowLoad.Dispose();
         }
     }

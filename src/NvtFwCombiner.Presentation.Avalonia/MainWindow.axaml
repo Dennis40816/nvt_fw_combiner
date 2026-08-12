@@ -17,25 +17,10 @@
     FontFamily="{DynamicResource NfcUiFontFamily}"
     Icon="/Assets/AppIcon.ico"
     Title="NVT FW Combiner">
-  <Window.KeyBindings>
-    <KeyBinding Gesture="Ctrl+H" Command="{Binding Reports.ShowReportHistoryCommand}" />
-    <KeyBinding Gesture="Ctrl+Shift+Delete" Command="{Binding Reports.ClearReportHistoryCommand}" />
-    <KeyBinding Gesture="Ctrl+S" Command="{Binding RequestHexEditorSaveCommand}" />
-    <KeyBinding Gesture="Ctrl+Z" Command="{Binding RequestHexEditorUndoCommand}" />
-    <KeyBinding Gesture="Ctrl+Y" Command="{Binding RequestHexEditorRedoCommand}" />
-    <KeyBinding Gesture="Ctrl+Shift+Z" Command="{Binding RequestHexEditorRedoCommand}" />
-  </Window.KeyBindings>
   <Window.Resources>
     <ResourceDictionary>
       <ResourceDictionary.MergedDictionaries>
         <ResourceInclude Source="avares://NvtFwCombiner.Presentation.Avalonia/Resources/MainWindowSharedTemplates.axaml" />
-        <ResourceInclude Source="avares://NvtFwCombiner.Presentation.Avalonia/Resources/MainWindowReportTemplates.axaml" />
-        <ResourceInclude Source="avares://NvtFwCombiner.Presentation.Avalonia/Resources/MainWindowReportChangeTemplates.axaml" />
-        <ResourceInclude Source="avares://NvtFwCombiner.Presentation.Avalonia/Resources/MainWindowReportInputTemplates.axaml" />
-        <ResourceInclude Source="avares://NvtFwCombiner.Presentation.Avalonia/Resources/MainWindowReportOperationTemplates.axaml" />
-        <ResourceInclude Source="avares://NvtFwCombiner.Presentation.Avalonia/Resources/MainWindowReportHistoryTemplates.axaml" />
-        <ResourceInclude Source="avares://NvtFwCombiner.Presentation.Avalonia/Resources/MainWindowReportAuditTemplates.axaml" />
-        <ResourceInclude Source="avares://NvtFwCombiner.Presentation.Avalonia/Resources/MainWindowReportPanels.axaml" />
         <ResourceInclude Source="avares://NvtFwCombiner.Presentation.Avalonia/Resources/MainWindowPageTemplates.axaml" />
         <ResourceInclude Source="avares://NvtFwCombiner.Presentation.Avalonia/Resources/MainWindowWorkflowTemplates.axaml" />
         <ResourceInclude Source="avares://NvtFwCombiner.Presentation.Avalonia/Resources/MainWindowShellPanels.axaml" />
@@ -49,7 +34,16 @@
     <StyleInclude Source="avares://NvtFwCombiner.Presentation.Avalonia/Styles/MainWindowVisualStyles.axaml" />
   </Window.Styles>
 
-  <Grid RowDefinitions="Auto,Auto,Auto,*,Auto">
+  <Grid>
+    <Grid x:Name="ShellInteractionHost" RowDefinitions="Auto,Auto,Auto,*,Auto">
+      <Grid.KeyBindings>
+        <KeyBinding Gesture="Ctrl+H" Command="{Binding Reports.ShowReportHistoryCommand}" />
+        <KeyBinding Gesture="Ctrl+Shift+Delete" Command="{Binding Reports.ClearReportHistoryCommand}" />
+        <KeyBinding Gesture="Ctrl+S" Command="{Binding RequestHexEditorSaveCommand}" />
+        <KeyBinding Gesture="Ctrl+Z" Command="{Binding RequestHexEditorUndoCommand}" />
+        <KeyBinding Gesture="Ctrl+Y" Command="{Binding RequestHexEditorRedoCommand}" />
+        <KeyBinding Gesture="Ctrl+Shift+Z" Command="{Binding RequestHexEditorRedoCommand}" />
+      </Grid.KeyBindings>
     <Border Classes="shellBar" Padding="28,12">
       <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="28">
         <StackPanel Spacing="{DynamicResource NfcSpace2}">
@@ -70,6 +64,7 @@
             Orientation="Horizontal"
             Spacing="{DynamicResource NfcSpace4}">
           <ToggleButton
+              x:Name="HomeNavigationButton"
               Classes="nav"
               Command="{Binding ShowHomeCommand}"
               IsChecked="{Binding IsHomeVisible, Mode=OneWay}">
@@ -542,6 +537,18 @@
       <ContentControl.ContentTemplate>
         <DataTemplate DataType="vm:MainWindowViewModel">
           <views:BuildCompletedModal />
+        </DataTemplate>
+      </ContentControl.ContentTemplate>
+    </ContentControl>
+    </Grid>
+
+    <ContentControl
+        x:Name="CatalogLoadingSurfaceHost"
+        IsHitTestVisible="{ReflectionBinding IsVisible}"
+        IsVisible="{ReflectionBinding IsVisible}">
+      <ContentControl.ContentTemplate>
+        <DataTemplate DataType="vm:ForegroundLoadingState">
+          <views:ForegroundLoadingSurface RetryRequested="CatalogLoadingSurface_OnRetryRequested" />
         </DataTemplate>
       </ContentControl.ContentTemplate>
     </ContentControl>

@@ -11,7 +11,7 @@ public sealed partial class RepositoryBoundaryTests
 
         Assert.Contains("ICanonicalCapabilityCatalogReloader", catalog, StringComparison.Ordinal);
         Assert.Contains("ICanonicalCapabilityQuery", catalog, StringComparison.Ordinal);
-        Assert.Contains("LatestReload", catalog, StringComparison.Ordinal);
+        Assert.Contains("Volatile.Read(ref _latestReload)", catalog, StringComparison.Ordinal);
         Assert.False(File.Exists(Path.Combine(
             Root.FullName,
             "src",
@@ -25,14 +25,57 @@ public sealed partial class RepositoryBoundaryTests
     {
         string wiring = ReadText(
             "src/NvtFwCombiner.Bootstrap/CompositionHostServices.cs");
+        string source = ReadText(
+            "src/NvtFwCombiner.Application/Capabilities/CanonicalCapabilityCatalogSource.cs");
+        string catalog = ReadText(
+            "src/NvtFwCombiner.Application/Capabilities/CanonicalCapabilityCatalog.cs");
+        string reloadPort = ReadText(
+            "src/NvtFwCombiner.Application/Capabilities/ICanonicalCapabilityCatalogReloader.cs");
         string bootstrap = ReadProductionSources();
 
         Assert.Contains("public sealed class CompositionHostServices", wiring, StringComparison.Ordinal);
         Assert.Contains("public static CompositionHostServices Create()", wiring, StringComparison.Ordinal);
+        Assert.Contains("ICanonicalCapabilityCatalogReloader", catalog, StringComparison.Ordinal);
+        Assert.Contains("ICanonicalCapabilityCatalogLoader", catalog, StringComparison.Ordinal);
+        Assert.Contains("void Reload(", reloadPort, StringComparison.Ordinal);
+        Assert.Contains("void ICanonicalCapabilityCatalogReloader.Reload", catalog, StringComparison.Ordinal);
+        Assert.Contains("LoadAsync(", catalog, StringComparison.Ordinal);
+        Assert.Contains(
+            "Channel.CreateUnbounded<CanonicalCapabilityCatalogLoadUpdate>",
+            catalog,
+            StringComparison.Ordinal);
+        Assert.Contains(
+            "updates.Reader.ReadAllAsync(CancellationToken.None)",
+            catalog,
+            StringComparison.Ordinal);
+        Assert.Contains("ICanonicalCapabilityCatalogSource.Load(", source, StringComparison.Ordinal);
+        Assert.Contains(
+            "ChannelWriter<CanonicalCapabilityCatalogLoadUpdate>? progress",
+            source,
+            StringComparison.Ordinal);
+        Assert.Contains("completedRoutes / (totalRoutes + 1)", source, StringComparison.Ordinal);
+        Assert.Contains("progress?.TryWrite", source, StringComparison.Ordinal);
+        Assert.Contains("result.Succeeded ? 1 : null", catalog, StringComparison.Ordinal);
+        Assert.Contains("updates.TryComplete(failure)", catalog, StringComparison.Ordinal);
+        Assert.Contains(
+            "public ICanonicalCapabilityCatalogLoader CanonicalCatalogLoader => Catalog;",
+            wiring,
+            StringComparison.Ordinal);
+        Assert.DoesNotContain("IAsyncEnumerable<double>", catalog, StringComparison.Ordinal);
+        Assert.DoesNotContain(" Start(", catalog, StringComparison.Ordinal);
+        Assert.DoesNotContain("Channel", wiring, StringComparison.Ordinal);
+        Assert.DoesNotContain("AsyncLocal", source, StringComparison.Ordinal);
+        Assert.DoesNotContain("Action<double>", source, StringComparison.Ordinal);
+        Assert.DoesNotContain("IProgress<double>", source, StringComparison.Ordinal);
+        Assert.DoesNotContain("WarmCanonicalCapabilities", wiring, StringComparison.Ordinal);
+        Assert.DoesNotContain("StartCanonicalCatalogLoad", wiring, StringComparison.Ordinal);
         Assert.DoesNotContain("static CanonicalCapabilityCatalog", wiring, StringComparison.Ordinal);
         Assert.DoesNotContain("static CanonicalCapabilityCompilerAdapter", wiring, StringComparison.Ordinal);
         Assert.DoesNotContain("static CanonicalCapabilityProjection", wiring, StringComparison.Ordinal);
+        Assert.DoesNotContain("CanonicalCapabilityQuery", wiring, StringComparison.Ordinal);
+        Assert.DoesNotContain("Projection", wiring, StringComparison.Ordinal);
         Assert.DoesNotContain("CompositionHostServices.Canonical", bootstrap, StringComparison.Ordinal);
+        AssertBootstrapTestsDoNotMutateTheSharedCatalogPublication();
     }
 
     /// <summary>The injected execution port is the execution owner, not a second forwarding shell.</summary>
@@ -119,7 +162,8 @@ public sealed partial class RepositoryBoundaryTests
         Assert.DoesNotContain("0x", source, StringComparison.OrdinalIgnoreCase);
         Assert.DoesNotContain("NvtFwCombiner.Bootstrap", source, StringComparison.Ordinal);
         Assert.DoesNotContain("NvtFwCombiner.Infrastructure", source, StringComparison.Ordinal);
-        Assert.DoesNotContain("CanonicalCapabilityCatalog", presentation, StringComparison.Ordinal);
+        Assert.DoesNotContain("new CanonicalCapabilityCatalog(", presentation, StringComparison.Ordinal);
+        Assert.DoesNotContain("CanonicalCapabilityCatalog catalog", presentation, StringComparison.Ordinal);
     }
 
     /// <summary>DP Replace has one accepted session path and no path-backed planning reconstruction.</summary>

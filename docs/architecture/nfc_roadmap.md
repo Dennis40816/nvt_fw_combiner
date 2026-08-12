@@ -1,6 +1,6 @@
 # NFC Roadmap
 
-Status: active owner roadmap, implementation checkpoint 2026-08-10.
+Status: active owner roadmap, implementation checkpoint 2026-08-11.
 
 2026-08-09 planning amendment: the owner approved complete removal of the
 remaining legacy architecture, one production path per module, the
@@ -37,6 +37,15 @@ Canonical detail lives in:
 - the [`0.10.x ticket dependency plan`](../governance/0.10.x-ticket-dependency-plan.md)
   plus GitHub issue bodies for implementation order and acceptance criteria.
 
+2026-08-11 milestone amendment: after the official `v0.10.3` complete-refactor
+tag, the owner added a `v0.10.4` package acceptance target: the controlled
+compressed single-file, self-contained `win-x64` Home launch must reach a
+nonzero main-window handle at or below a 700 ms median after one unscored
+warm-up and across five measured launches. The cold launch remains recorded.
+This bounded first-window correction belongs beside the simplification audit;
+the broader observable, cancellable, bounded, and user-controllable preload
+lifecycle remains `v0.10.5` scope.
+
 ## `0.10.0`: planning and governance baseline
 
 `0.10.0` reconciles its original `v0.9.15` planning baseline with the complete
@@ -70,8 +79,11 @@ available reviewers. The owner release allocation recorded on 2026-08-04 is:
    and LAR-00, including LAR-01 through LAR-12, zero Workbench/renamed parallel
    owners, one production path per module, all four Core Convergence ledgers,
    reviewed line-addressed residuals, and exact descending ratchets.
-4. `v0.10.4` re-measures that result and audits whether any ownership or code
-   can be removed or expressed more simply without weakening evidence.
+4. `v0.10.4` re-measures that result, audits whether any ownership or code can
+   be removed or expressed more simply without weakening evidence, and gates
+   the exact packaged Home-window median at 700 ms on the controlled owner
+   machine. Shell construction must not synchronously publish the canonical
+   capability catalog merely to show Home.
 5. `v0.10.5` unifies every preload under one observable, cancellable, bounded,
    and user-controllable performance lifecycle.
 6. `v0.10.6` reserves a configured-path update screen so routine delivery does

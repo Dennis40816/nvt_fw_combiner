@@ -53,13 +53,13 @@ public sealed class ExternalProcessorLifetimeTests
         Assert.Null(lifetime.AcquireCurrent().Processor);
         Assert.Null(lifetime.AcquireCurrent().Processor);
         Assert.Equal(1, factoryCallCount);
-        Assert.Equal(1, lifetime.Generation);
+        Assert.Equal(1, lifetime.AcquireCurrent().Generation);
 
         lifetime.Refresh();
 
         Assert.Same(expected, lifetime.AcquireCurrent().Processor);
         Assert.Equal(2, factoryCallCount);
-        Assert.Equal(2, lifetime.Generation);
+        Assert.Equal(2, lifetime.AcquireCurrent().Generation);
     }
 
     /// <summary>An explicit refresh recovers from a cached invalid environment without restarting.</summary>

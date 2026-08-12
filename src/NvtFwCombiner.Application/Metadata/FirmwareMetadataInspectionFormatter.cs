@@ -8,18 +8,15 @@ namespace NvtFwCombiner.Application.Metadata;
 /// <summary>Invariant, source-neutral presentation of one resolved metadata inspection.</summary>
 public sealed class FormattedMetadataInspectionSnapshot
 {
-    private readonly FormattedMetadataStructure[] _structures;
-
     internal FormattedMetadataInspectionSnapshot(
         ResolutionToken resolutionToken,
         long authoringRevision,
         IEnumerable<FormattedMetadataStructure> structures)
     {
         ArgumentNullException.ThrowIfNull(structures);
-        _structures = [.. structures];
         ResolutionToken = resolutionToken;
         AuthoringRevision = authoringRevision;
-        Structures = Array.AsReadOnly(_structures);
+        Structures = Array.AsReadOnly([.. structures]);
     }
 
     /// <summary>Capability publication token used by the source inspection.</summary>
@@ -35,8 +32,6 @@ public sealed class FormattedMetadataInspectionSnapshot
 /// <summary>One formatted metadata-plan entry with optional resolved geometry.</summary>
 public sealed class FormattedMetadataStructure
 {
-    private readonly FormattedMetadataField[] _fields;
-
     internal FormattedMetadataStructure(
         string bindingId,
         string mapId,
@@ -54,7 +49,6 @@ public sealed class FormattedMetadataStructure
         ArgumentException.ThrowIfNullOrWhiteSpace(artifactBindingId);
         ArgumentException.ThrowIfNullOrWhiteSpace(structureId);
         ArgumentNullException.ThrowIfNull(fields);
-        _fields = [.. fields];
         BindingId = bindingId;
         MapId = mapId;
         ArtifactBindingId = artifactBindingId;
@@ -64,7 +58,7 @@ public sealed class FormattedMetadataStructure
         Failure = failure;
         ArtifactIdentity = artifactIdentity;
         AddressedRange = addressedRange;
-        Fields = Array.AsReadOnly(_fields);
+        Fields = Array.AsReadOnly([.. fields]);
     }
 
     /// <summary>Stable metadata-plan binding id.</summary>

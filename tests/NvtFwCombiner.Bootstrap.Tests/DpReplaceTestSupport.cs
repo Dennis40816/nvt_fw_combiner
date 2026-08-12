@@ -7,7 +7,6 @@ namespace NvtFwCombiner.Bootstrap.Tests;
 internal static class DpReplaceTestSupport
 {
     internal static async ValueTask<CompositionRunResult> RunAsync(
-        CompositionHostServices host,
         string icId,
         string replaceMode,
         IReadOnlyDictionary<string, string> slotPaths,
@@ -16,12 +15,20 @@ internal static class DpReplaceTestSupport
         string? outputPath = null,
         CompositionRunProgressFeed? progress = null)
     {
+        var host = CompositionHostServices.Create();
         if (!StringComparer.OrdinalIgnoreCase.Equals(replaceMode, ExperienceIds.DpReplace))
         {
             throw new ArgumentException("DP test support accepts only DP Replace.", nameof(replaceMode));
         }
 
-        if (!BootstrapTestHost.Services.CompositionCapabilityExperience
+        CapabilityCatalogReloadResult reload = await LoadCanonicalCatalogAsync(
+            host.CanonicalCatalogLoader,
+            cancellationToken);
+        if (!reload.Succeeded)
+        {
+            throw new InvalidOperationException("Canonical capability catalog is unavailable.");
+        }
+        if (!host.CompositionCapabilityExperience
                 .IsReplaceWorkflowAvailable(icId, ExperienceIds.DpReplace) ||
             !slotPaths.ContainsKey(CompositionSlotIds.ReplaceBase))
         {
@@ -103,5 +110,20 @@ internal static class DpReplaceTestSupport
                         InputSelectionReadinessIssueCodes.SelectionNotApplicable,
                     prepared.SessionIssue?.Message ??
                         "DP Replace preparation did not produce one accepted session.")];
+    }
+
+    private static async Task<CapabilityCatalogReloadResult> LoadCanonicalCatalogAsync(
+        ICanonicalCapabilityCatalogLoader loader,
+        CancellationToken cancellationToken)
+    {
+        CapabilityCatalogReloadResult? result = null;
+        await foreach (CanonicalCapabilityCatalogLoadUpdate update in
+                       loader.LoadAsync(cancellationToken).WithCancellation(cancellationToken))
+        {
+            result = update.Result ?? result;
+        }
+
+        return result ?? throw new InvalidOperationException(
+            "Canonical catalog loading completed without a terminal result.");
     }
 }

@@ -182,16 +182,6 @@ internal sealed class BuiltInV2Registration
         }
     }
 
-    internal bool MatchesSelector(string selector)
-    {
-        return string.Equals(ProfileId, selector, StringComparison.OrdinalIgnoreCase) ||
-            string.Equals(IcId, selector, StringComparison.OrdinalIgnoreCase) ||
-            string.Equals(
-                IcId.StartsWith("NT", StringComparison.OrdinalIgnoreCase) ? IcId[2..] : IcId,
-                selector,
-                StringComparison.OrdinalIgnoreCase);
-    }
-
     internal IReadOnlyList<long> GetMapCapacities(out IReadOnlyList<CompositionIssue> issues)
     {
         return _bundle.GetMapCapacities(ProfileId, ProfileVersion, IcId, WorkflowId, out issues);

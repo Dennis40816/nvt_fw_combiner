@@ -271,13 +271,30 @@ def _relative_source_path(
         ("src/", "tests/", "tools/", "profiles/", "docs/", "scripts/")
     ):
         return _path_under_root(root / normalized, root, filename)
+    candidates: set[str] = set()
     for source_root in source_roots:
         source_root_candidate = Path(source_root)
         if not source_root_candidate.is_absolute():
             source_root_candidate = root / source_root_candidate
         _path_under_root(source_root_candidate, root, source_root)
-        return _path_under_root(source_root_candidate / normalized, root, filename)
+        candidates.add(
+            _path_under_root(source_root_candidate / normalized, root, filename)
+        )
+    if len(candidates) == 1:
+        return candidates.pop()
+    if candidates:
+        raise ValueError(f"coverage report source is ambiguous: {filename}")
     raise ValueError(f"coverage report source is not repository-relative: {filename}")
+
+
+def repository_relative_coverage_source(
+    filename: str,
+    root: Path,
+    source_roots: Iterable[str] = (),
+) -> str:
+    """Expose the canonical coverage source identity for trusted producers."""
+
+    return _relative_source_path(filename, root, source_roots)
 
 
 def _module_name(relative_path: str, language: str) -> str | None:

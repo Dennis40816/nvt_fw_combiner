@@ -453,8 +453,9 @@ public sealed class Nt51926CtrlRamReplaceCandidateProfileTests
         Dictionary<string, byte[]> candidateInputs,
         string runId)
     {
+        ExternalProcessorGenerationLease processorLease = ExternalProcessorFactory.AcquireCurrent();
         IExternalProcessor processor = Assert.IsType<IExternalProcessor>(
-            ExternalProcessorFactory.GetOrCreateOrNull(),
+            processorLease.Processor,
             exactMatch: false);
         var selection = new IcNumberSelection(IcNumberInputMode.CascadeSelector, ["cascade"]);
         ExternalProcessorProtocolPlan protocolPlan =

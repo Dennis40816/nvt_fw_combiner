@@ -6,7 +6,7 @@ using NvtFwCombiner.TestSupport;
 
 namespace NvtFwCombiner.UiSmoke.Tests;
 
-public sealed partial class ShellViewModelTests
+public sealed partial class CtrlRamWorkflowTests
 {
     /// <summary>Verifies CtrlRAM Build exposes a Backup-derived Preserve/Edit choice and validates staged bytes.</summary>
     [Fact]
@@ -79,7 +79,7 @@ public sealed partial class ShellViewModelTests
         Assert.True(viewModel.RunSession.LastRunResult.Succeeded, viewModel.RunSession.LastRunResult.Detail);
         Assert.True(File.Exists(outputPath));
         FirmwareConfigMetadataSnapshot? outputMetadata =
-            BuiltInFirmwareInspection.TryReadFirmwareConfigMetadata(TestHost.Projection, "NT51926", outputPath);
+            BuiltInFirmwareInspection.TryReadFirmwareConfigMetadata(TestProjection, "NT51926", outputPath);
         Assert.NotNull(outputMetadata);
         Assert.Equal(0x2A, outputMetadata.FirmwareVersion);
         Assert.Equal(0xD5, outputMetadata.FirmwareVersionBar);
@@ -142,7 +142,7 @@ public sealed partial class ShellViewModelTests
                 readerThread = Environment.CurrentManagedThreadId;
                 readerEntered.Set();
                 Assert.True(releaseReader.Wait(TimeSpan.FromSeconds(10), cancellationToken));
-                return metadata ??= BuiltInFirmwareInspection.TryReadFirmwareConfigMetadata(TestHost.Projection, icId, path);
+                return metadata ??= BuiltInFirmwareInspection.TryReadFirmwareConfigMetadata(TestProjection, icId, path);
             });
 
         Task<bool> firstOpen = viewModel.Replace.TryOpenCtrlRamFirmwareVersionModalAsync(cancellationToken);
@@ -178,7 +178,7 @@ public sealed partial class ShellViewModelTests
             {
                 readerEntered.Set();
                 Assert.True(releaseReader.Wait(TimeSpan.FromSeconds(10), cancellationToken));
-                return metadata ??= BuiltInFirmwareInspection.TryReadFirmwareConfigMetadata(TestHost.Projection, icId, path);
+                return metadata ??= BuiltInFirmwareInspection.TryReadFirmwareConfigMetadata(TestProjection, icId, path);
             });
         string basePath = Assert.IsType<string>(viewModel.Replace.ReplaceBaseSlot.FilePath);
 
@@ -210,7 +210,7 @@ public sealed partial class ShellViewModelTests
             {
                 readerEntered.Set();
                 Assert.True(releaseReader.Wait(TimeSpan.FromSeconds(10), cancellationToken));
-                return metadata ??= BuiltInFirmwareInspection.TryReadFirmwareConfigMetadata(TestHost.Projection, icId, path);
+                return metadata ??= BuiltInFirmwareInspection.TryReadFirmwareConfigMetadata(TestProjection, icId, path);
             });
 
         Task<bool> open = viewModel.Replace.TryOpenCtrlRamFirmwareVersionModalAsync(cancellationToken);
@@ -241,7 +241,7 @@ public sealed partial class ShellViewModelTests
             {
                 readerEntered.Set();
                 Assert.True(releaseReader.Wait(TimeSpan.FromSeconds(10), testCancellationToken));
-                return BuiltInFirmwareInspection.TryReadFirmwareConfigMetadata(TestHost.Projection, icId, path);
+                return BuiltInFirmwareInspection.TryReadFirmwareConfigMetadata(TestProjection, icId, path);
             });
 
         Task<bool> open = viewModel.Replace.TryOpenCtrlRamFirmwareVersionModalAsync(cancellationSource.Token);
@@ -335,7 +335,7 @@ public sealed partial class ShellViewModelTests
                     Assert.True(releaseReader.Wait(TimeSpan.FromSeconds(10), cancellationToken));
                 }
 
-                return BuiltInFirmwareInspection.TryReadFirmwareConfigMetadata(TestHost.Projection, icId, path);
+                return BuiltInFirmwareInspection.TryReadFirmwareConfigMetadata(TestProjection, icId, path);
             });
 
         Assert.True(await viewModel.Replace.TryOpenCtrlRamFirmwareVersionModalAsync(cancellationToken));
@@ -363,34 +363,4 @@ public sealed partial class ShellViewModelTests
         Assert.Equal(!closeModal, viewModel.Replace.IsCtrlRamFirmwareVersionPreserveSelected);
     }
 
-    private static MainWindowViewModel CreateCtrlRamVersionReadyViewModel(
-        byte[] baseBytes,
-        TempWorkspace workspace,
-        Func<string, string, FirmwareConfigMetadataSnapshot?>? firmwareConfigMetadataReader = null)
-    {
-        MainWindowViewModel viewModel = firmwareConfigMetadataReader is null
-            ? PresentationTestHost.CreateViewModel()
-            : new MainWindowViewModel(
-                "test-shell",
-                "test-app",
-                ShellLanguage.English,
-                PresentationTestHost.CreateServices("test-app"),
-                firmwareConfigMetadataReader);
-        viewModel.WorkflowSession.SelectedIc = "NT51926";
-        viewModel.WorkflowSession.SelectedNumber = "cascade";
-        OpenReplace(viewModel, ExperienceIds.CtrlRamReplace);
-
-        string basePath = workspace.Write("base-from-golden.bin", baseBytes);
-        viewModel.SetSlotFile("replace-base", basePath);
-        FirmwareSlotViewModel replacementSlot = viewModel.Replace.ReplaceSlots.Single(slot =>
-            slot.Title.Contains("VN CtrlRAM", StringComparison.Ordinal));
-        CtrlRamRegionViewModel region = viewModel.Replace.CtrlRamRegions.Single(candidate => candidate.Name == replacementSlot.Title);
-        (int start, int length) = ParseCtrlRamRegion(region);
-        viewModel.SetSlotFile(
-            replacementSlot.SlotId,
-            workspace.Write("self-vn-ctrlram.bin", baseBytes[start..(start + length)]));
-
-        Assert.True(viewModel.Replace.CanBuildReplace, viewModel.Replace.ReplaceReadinessStatus);
-        return viewModel;
-    }
 }

@@ -11,6 +11,22 @@ public sealed partial class ShellTextResources
 
     public string HomeLabel { get; private init; } = string.Empty;
 
+    public string CatalogLoadingTitle { get; private init; } = string.Empty;
+
+    public string CatalogLoadingDetail { get; private init; } = string.Empty;
+
+    public string CatalogMaterializingDetail { get; private init; } = string.Empty;
+
+    public string CatalogApplyingDetail { get; private init; } = string.Empty;
+
+    public string CatalogReadyDetail { get; private init; } = string.Empty;
+
+    public string CatalogLoadingFailedTitle { get; private init; } = string.Empty;
+
+    public string CatalogLoadingFailedDetail { get; private init; } = string.Empty;
+
+    public string RetryLabel { get; private init; } = string.Empty;
+
     public string WorkspaceTitle { get; private init; } = string.Empty;
 
     public string WorkspaceSummary { get; private init; } = string.Empty;

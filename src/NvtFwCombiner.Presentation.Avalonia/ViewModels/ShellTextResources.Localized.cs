@@ -16,6 +16,24 @@ public sealed partial class ShellTextResources
         {
             Language = language,
             HomeLabel = Pick("Home", "首頁"),
+            CatalogLoadingTitle = Pick("Preparing capabilities", "正在準備功能"),
+            CatalogLoadingDetail = Pick(
+                "Loading the canonical catalog used by Merge and Replace.",
+                "正在載入 Merge 與 Replace 共用的 canonical catalog。"),
+            CatalogMaterializingDetail = Pick(
+                "Preparing the canonical capability routes.",
+                "正在準備 canonical capability routes。"),
+            CatalogApplyingDetail = Pick(
+                "Applying the validated capability state.",
+                "正在套用已驗證的功能狀態。"),
+            CatalogReadyDetail = Pick(
+                "Capability state is ready.",
+                "功能狀態已準備完成。"),
+            CatalogLoadingFailedTitle = Pick("Capabilities unavailable", "功能目前無法使用"),
+            CatalogLoadingFailedDetail = Pick(
+                "The canonical catalog could not be loaded. Retry to restore Merge and Replace.",
+                "無法載入 canonical catalog；請重試以恢復 Merge 與 Replace。"),
+            RetryLabel = Pick("Retry", "重試"),
             MessageCenterTitle = Pick("Message Center", "訊息中心"),
             MessageCenterTooltip = Pick("Open reports and current system diagnostics", "開啟報告與目前系統診斷"),
             RunReportsLabel = Pick("Run reports", "執行報告"),

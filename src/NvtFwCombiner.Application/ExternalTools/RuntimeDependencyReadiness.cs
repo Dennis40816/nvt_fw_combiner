@@ -26,8 +26,6 @@ public sealed record ExternalProcessorDependencyReference
 /// <summary>Refresh request bound to one exact capability publication.</summary>
 public sealed class RuntimeDependencyReadinessRequest
 {
-    private readonly ExternalProcessorDependencyReference[] _dependencies;
-
     /// <summary>Creates one immutable request over compiled dependency references.</summary>
     public RuntimeDependencyReadinessRequest(
         string routeId,
@@ -70,21 +68,20 @@ public sealed class RuntimeDependencyReadinessRequest
                 nameof(dependencies));
         }
 
-        _dependencies =
+        Dependencies = Array.AsReadOnly(
         [
             .. dependencySnapshot
                 .DistinctBy(
                     static dependency => (dependency.ProcessorId, dependency.ToolBindingId))
                 .OrderBy(static dependency => dependency.ProcessorId, StringComparer.Ordinal)
                 .ThenBy(static dependency => dependency.ToolBindingId, StringComparer.Ordinal),
-        ];
+        ]);
 
         RouteId = routeId;
         CapabilityFingerprint = capabilityFingerprint;
         CompilationFingerprint = compilationFingerprint;
         ResolutionToken = resolutionToken;
         AuthoringRevision = authoringRevision;
-        Dependencies = Array.AsReadOnly(_dependencies);
     }
 
     /// <summary>Stable exact-route identity.</summary>

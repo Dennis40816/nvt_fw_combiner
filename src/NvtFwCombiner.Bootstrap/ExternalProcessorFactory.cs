@@ -10,11 +10,6 @@ internal static class ExternalProcessorFactory
 {
     private static readonly ExternalProcessorLifetime ProcessLifetime = new(CreateUncached);
 
-    internal static IExternalProcessor? GetOrCreateOrNull()
-    {
-        return AcquireCurrent().Processor;
-    }
-
     internal static ExternalProcessorGenerationLease AcquireCurrent()
     {
         return ProcessLifetime.AcquireCurrent();
@@ -167,20 +162,9 @@ internal sealed class ExternalProcessorLifetime
     internal ExternalProcessorLifetime(
         Func<ExternalProcessorRuntimeEnvironment> environmentFactory)
     {
-        ArgumentNullException.ThrowIfNull(environmentFactory);
-        _environmentFactory = environmentFactory;
+        _environmentFactory = environmentFactory ??
+            throw new ArgumentNullException(nameof(environmentFactory));
         _environment = CreateGeneration();
-    }
-
-    internal long Generation
-    {
-        get
-        {
-            lock (_gate)
-            {
-                return _generation;
-            }
-        }
     }
 
     internal ExternalProcessorGenerationLease AcquireCurrent()

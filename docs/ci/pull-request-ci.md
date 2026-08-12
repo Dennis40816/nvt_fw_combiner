@@ -10,7 +10,11 @@ The executable workflow is [`.github/workflows/ci.yml`](../../.github/workflows/
    action pins, version/license consistency, dependency direction, and
    canonical architecture fields.
 2. **`python-worker / verify`** runs Ruff format/check, Pyright strict, Pylint, pytest, branch coverage, protocol/process tests, plus the structure gate.
-3. **`dotnet / build-test`** installs the SDK pinned by `global.json` through the repository installer, restores, checks formatting, builds Release with warnings as errors, and runs the public .NET tests.
+3. **`dotnet / build-test`** is the stable final verdict over one complete
+   Release-build producer and three closed Windows test shards. The canonical
+   verifier validates the exact eight-project/TRX/coverage manifest, 3,349 test
+   cases with the two declared skips, GoldenRegression 17/17, coverage policy,
+   and CtrlRAM fixture evidence before the check passes.
 
 Private firmware golden regression remains an approved-runner gate once private vectors exist. It must publish reports/hashes only, never firmware payloads.
 
@@ -22,3 +26,12 @@ Private firmware golden regression remains an approved-runner gate once private 
 - Pull-request jobs receive no release/signing secrets.
 - Action references use full 40-character SHAs; mutable tags are rejected by repository validation.
 - The Polytail semantic review remains required in the PR record in addition to deterministic CI checks.
+- Producer artifacts are short-lived logs/TRX/coverage only. The finalizer
+  rejects missing, failed, duplicate, unknown, wrong-SHA, wrong-SDK,
+  path-escaping, symlinked, hash-mismatched, counter-drifted, or extra evidence.
+  Producers publish from a clean allowlisted staging root, and the finalizer
+  preserves each artifact name/root until ownership and collision checks pass.
+  Windows coverage paths are normalized to verified repository-relative
+  identities before hashing so the Ubuntu finalizer never trusts runner roots;
+  missing, outside, ambiguous, or normalization-colliding identities fail at
+  the producer.

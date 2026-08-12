@@ -247,11 +247,12 @@ public sealed partial class XamlControlStyleContractTests
         Assert.DoesNotContain("Brush.Parse", viewModel, StringComparison.Ordinal);
     }
 
-    /// <summary>Keeps Replace coverage chrome in shared styles while preserving data-bound fill and plain Merge rendering.</summary>
+    /// <summary>Keeps coverage colors and Replace state chrome in shared styles while preserving plain Merge rendering.</summary>
     [Fact]
     public void MemoryCoverageUsesSharedChangedAndKeptVisualStates()
     {
-        string styles = ReadPresentationFile("Styles/MainWindowControlStyles.axaml");
+        string styles = ReadPresentationFile("Styles/MainWindowControlStyles.axaml") +
+            ReadPresentationFile("Styles/MemoryCoverageStyles.axaml");
         string templates = ReadPresentationFile("Resources/MainWindowSharedTemplates.axaml");
         string tooltip = ExtractDataTemplate(templates, "MemoryCoverageTooltipTemplate");
         string replaceBar = ExtractDataTemplate(templates, "MemoryCoverageSegmentBarTemplate");
@@ -283,8 +284,8 @@ public sealed partial class XamlControlStyleContractTests
         Assert.Contains("Content=\"{Binding ChangeLabel}\"", tooltip, StringComparison.Ordinal);
         Assert.DoesNotContain("memoryCoverageMarker", mergeBar, StringComparison.Ordinal);
         Assert.DoesNotContain("memoryCoverageMarker", mergeList, StringComparison.Ordinal);
-        Assert.Contains("Background=\"{Binding FillBrush}\"", replaceBar, StringComparison.Ordinal);
-        Assert.Contains("Background=\"{Binding FillBrush}\"", mergeBar, StringComparison.Ordinal);
+        Assert.Contains("Classes=\"memoryCoverageFill memoryCoverageMarker\"", replaceBar, StringComparison.Ordinal);
+        Assert.Contains("Classes=\"memoryCoverageFill\"", mergeBar, StringComparison.Ordinal);
         Assert.Contains("Focusable=\"True\"", replaceBar, StringComparison.Ordinal);
         Assert.Contains("FocusToolTipBehavior.IsEnabled=\"True\"", replaceBar, StringComparison.Ordinal);
         Assert.Contains("Focusable=\"True\"", mergeBar, StringComparison.Ordinal);
@@ -314,7 +315,14 @@ public sealed partial class XamlControlStyleContractTests
         Assert.Contains("Text=\"{Binding Text.OutputLayoutChangedStateLabel}\"", replacePanel, StringComparison.Ordinal);
         Assert.Contains("Text=\"{Binding Text.OutputLayoutKeptStateLabel}\"", replacePanel, StringComparison.Ordinal);
 
-        Assert.Contains("public IBrush FillBrush", viewModel, StringComparison.Ordinal);
+        Assert.Contains("public MemoryCoverageFillRole FillRole", viewModel, StringComparison.Ordinal);
+        Assert.DoesNotContain("public IBrush FillBrush", viewModel, StringComparison.Ordinal);
+        Assert.DoesNotContain("Brush.Parse", viewModel, StringComparison.Ordinal);
+        Assert.DoesNotContain("Background=\"{Binding FillBrush}\"", templates, StringComparison.Ordinal);
+        Assert.Contains("Classes.dp=\"{Binding FillRole", templates, StringComparison.Ordinal);
+        Assert.Contains("Selector=\"Border.memoryCoverageFill.dp\"", styles, StringComparison.Ordinal);
+        Assert.DoesNotContain("segment.RegionId.Split", ReadPresentationFile("UiCompositionRunner.Common.cs"), StringComparison.Ordinal);
+        Assert.Contains("segment.RegionGroup == ReplaceRegionGroup.Cascade", ReadPresentationFile("UiCompositionRunner.Common.cs"), StringComparison.Ordinal);
         Assert.Contains("public bool IsChanged", viewModel, StringComparison.Ordinal);
         Assert.Contains("public bool UsesBaseFirmwarePattern", viewModel, StringComparison.Ordinal);
         Assert.Contains("public bool UsesKeptPattern", viewModel, StringComparison.Ordinal);
@@ -326,25 +334,35 @@ public sealed partial class XamlControlStyleContractTests
         Assert.DoesNotContain("OutlineThickness", viewModel, StringComparison.Ordinal);
     }
 
-    /// <summary>Keeps changed/kept meaning and data-bound fill available after presentation brushes move to XAML.</summary>
+    /// <summary>Keeps changed/kept meaning while XAML resolves theme-specific segment colors.</summary>
     [Fact]
-    public void MemoryCoverageRetainsStateAndFillData()
+    public void MemoryCoverageRetainsStateAndThemeNeutralFillRole()
     {
-        MemoryCoverageSegmentViewModel kept = new("0x0000-0x0010", "Base flash", "Kept bytes", "#334155", 20, usesBaseFirmwarePattern: true);
-        MemoryCoverageSegmentViewModel changed = new("0x0010-0x0020", "TP input", "Written bytes", "#2563EB", 20, isChanged: true);
+        MemoryCoverageSegmentViewModel kept = new(
+            "0x0000-0x0010",
+            "Base flash",
+            "Kept bytes",
+            MemoryCoverageFillRole.Kept,
+            20,
+            usesBaseFirmwarePattern: true);
+        MemoryCoverageSegmentViewModel changed = new(
+            "0x0010-0x0020",
+            "TP input",
+            "Written bytes",
+            MemoryCoverageFillRole.Tp,
+            20,
+            isChanged: true);
 
         Assert.False(kept.IsChanged);
         Assert.True(kept.UsesBaseFirmwarePattern);
         Assert.True(kept.UsesKeptPattern);
         Assert.Equal("Kept", kept.ChangeLabel);
-        Assert.Equal("#334155", kept.Fill);
-        Assert.NotNull(kept.FillBrush);
+        Assert.Equal(MemoryCoverageFillRole.Kept, kept.FillRole);
         Assert.True(changed.IsChanged);
         Assert.False(changed.UsesBaseFirmwarePattern);
         Assert.False(changed.UsesKeptPattern);
         Assert.Equal("Changed", changed.ChangeLabel);
-        Assert.Equal("#2563EB", changed.Fill);
-        Assert.NotNull(changed.FillBrush);
+        Assert.Equal(MemoryCoverageFillRole.Tp, changed.FillRole);
     }
 
     /// <summary>Masked and full DiffDLM routes expose localized equivalent disclosure semantics.</summary>
@@ -362,7 +380,7 @@ public sealed partial class XamlControlStyleContractTests
             "0x2D100-0x2E4FF",
             "DiffDLM",
             "Canonical DiffDLM",
-            "#D97706",
+            MemoryCoverageFillRole.DiffDlm,
             20,
             isDiffDlm: true,
             preservationDetails: [detail],
@@ -371,7 +389,7 @@ public sealed partial class XamlControlStyleContractTests
             "0x2D100-0x2E4FF",
             "DiffDLM",
             "Canonical DiffDLM",
-            "#D97706",
+            MemoryCoverageFillRole.DiffDlm,
             20,
             isDiffDlm: true,
             preservationDetails: [detail],
@@ -380,7 +398,7 @@ public sealed partial class XamlControlStyleContractTests
             "0x27800-0x29FFF",
             "DiffDLM",
             "Canonical DiffDLM",
-            "#D97706",
+            MemoryCoverageFillRole.DiffDlm,
             20,
             isDiffDlm: true);
 
@@ -449,7 +467,7 @@ public sealed partial class XamlControlStyleContractTests
 
     private static void AssertCoverageClasses(string template)
     {
-        Assert.Contains("Classes=\"memoryCoverageMarker\"", template, StringComparison.Ordinal);
+        Assert.Contains("Classes=\"memoryCoverageFill memoryCoverageMarker\"", template, StringComparison.Ordinal);
         Assert.Contains("Classes.changed=\"{Binding IsChanged}\"", template, StringComparison.Ordinal);
         Assert.DoesNotContain("OutlineBrush", template, StringComparison.Ordinal);
         Assert.DoesNotContain("OutlineThickness", template, StringComparison.Ordinal);

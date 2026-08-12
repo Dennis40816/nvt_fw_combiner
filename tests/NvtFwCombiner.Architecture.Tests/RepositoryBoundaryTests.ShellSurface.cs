@@ -106,13 +106,22 @@ public sealed partial class RepositoryBoundaryTests
         Assert.Contains("MainWindowButtonStyles.axaml", shell, StringComparison.Ordinal);
         Assert.Contains("MainWindowVisualStyles.axaml", shell, StringComparison.Ordinal);
         Assert.Contains("MainWindowSharedTemplates.axaml", shell, StringComparison.Ordinal);
-        Assert.Contains("MainWindowReportTemplates.axaml", shell, StringComparison.Ordinal);
-        Assert.Contains("MainWindowReportChangeTemplates.axaml", shell, StringComparison.Ordinal);
-        Assert.Contains("MainWindowReportInputTemplates.axaml", shell, StringComparison.Ordinal);
-        Assert.Contains("MainWindowReportOperationTemplates.axaml", shell, StringComparison.Ordinal);
-        Assert.Contains("MainWindowReportHistoryTemplates.axaml", shell, StringComparison.Ordinal);
-        Assert.Contains("MainWindowReportAuditTemplates.axaml", shell, StringComparison.Ordinal);
-        Assert.Contains("MainWindowReportPanels.axaml", shell, StringComparison.Ordinal);
+        string[] deferredReportResources =
+        [
+            "MainWindowReportTemplates.axaml",
+            "MainWindowReportChangeTemplates.axaml",
+            "MainWindowReportInputTemplates.axaml",
+            "MainWindowReportOperationTemplates.axaml",
+            "MainWindowReportHistoryTemplates.axaml",
+            "MainWindowReportAuditTemplates.axaml",
+            "MainWindowReportPanels.axaml",
+        ];
+        foreach (string resourceName in deferredReportResources)
+        {
+            Assert.DoesNotContain(resourceName, shell, StringComparison.Ordinal);
+            Assert.Contains(resourceName, reportModal, StringComparison.Ordinal);
+        }
+
         Assert.Contains("MainWindowPageTemplates.axaml", shell, StringComparison.Ordinal);
         Assert.Contains("MainWindowWorkflowTemplates.axaml", shell, StringComparison.Ordinal);
         Assert.Contains("MainWindowShellPanels.axaml", shell, StringComparison.Ordinal);
@@ -218,7 +227,8 @@ public sealed partial class RepositoryBoundaryTests
         Assert.Contains("IsEnabled=\"{Binding Reports.CanOpenReport}\"", messageCenterModal, StringComparison.Ordinal);
         Assert.Contains("ReportActionLabel", messageCenterModal, StringComparison.Ordinal);
         Assert.Contains("ReportActionStatus", messageCenterModal, StringComparison.Ordinal);
-        Assert.Contains("<Window.KeyBindings>", shell, StringComparison.Ordinal);
+        Assert.Contains("<Grid.KeyBindings>", shell, StringComparison.Ordinal);
+        Assert.DoesNotContain("<Window.KeyBindings>", shell, StringComparison.Ordinal);
         Assert.Contains("Gesture=\"Ctrl+H\" Command=\"{Binding Reports.ShowReportHistoryCommand}\"", shell, StringComparison.Ordinal);
         Assert.Contains("Gesture=\"Ctrl+Shift+Delete\" Command=\"{Binding Reports.ClearReportHistoryCommand}\"", shell, StringComparison.Ordinal);
         Assert.Contains("AutomationProperties.Name=\"{Binding Text.OpenReportHistoryAutomationName}\"", reportPanels, StringComparison.Ordinal);

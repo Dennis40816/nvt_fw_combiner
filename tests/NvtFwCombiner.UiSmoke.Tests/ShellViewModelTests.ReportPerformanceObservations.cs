@@ -5,13 +5,80 @@ using NvtFwCombiner.Presentation.Avalonia.ViewModels;
 
 namespace NvtFwCombiner.UiSmoke.Tests;
 
-public sealed partial class ShellViewModelTests
+public sealed partial class UiPerformanceObservationTests
 {
+    /// <summary>Compares the live typed projection with the retained persisted-JSON reopen path.</summary>
+    [Fact]
+    public async Task LiveTypedReportProjectionEmitsJsonRoundTripSavings()
+    {
+        CompositionRunResult source = await CreateDpReplaceInspectionResultAsync(TestHost);
+        CompositionRunReport report = CreateLargeDifferenceReport(
+            source.Report,
+            count: 10_000,
+            sectionCount: 40,
+            source.Report.RunId);
+        CompositionRunResult result = WithReport(source, report);
+        string json = CompositionRunReportJson.Serialize(result);
+
+        _ = ReportReviewViewModel.FromJsonCancellable(
+            json,
+            "warm persisted report",
+            result.CommittedOutputId,
+            result.InspectionSnapshot,
+            ShellLanguage.English,
+            CancellationToken.None);
+        _ = ReportReviewViewModel.FromReportCancellable(
+            report,
+            suppressOutput: false,
+            "warm live report",
+            result.CommittedOutputId,
+            result.InspectionSnapshot,
+            ShellLanguage.English,
+            CancellationToken.None);
+
+        long jsonAllocatedBefore = GC.GetAllocatedBytesForCurrentThread();
+        long jsonTimestamp = Stopwatch.GetTimestamp();
+        var persisted = ReportReviewViewModel.FromJsonCancellable(
+            json,
+            "measured persisted report",
+            result.CommittedOutputId,
+            result.InspectionSnapshot,
+            ShellLanguage.English,
+            CancellationToken.None);
+        TimeSpan jsonElapsed = Stopwatch.GetElapsedTime(jsonTimestamp);
+        long jsonAllocated = GC.GetAllocatedBytesForCurrentThread() - jsonAllocatedBefore;
+
+        long typedAllocatedBefore = GC.GetAllocatedBytesForCurrentThread();
+        long typedTimestamp = Stopwatch.GetTimestamp();
+        var live = ReportReviewViewModel.FromReportCancellable(
+            report,
+            suppressOutput: false,
+            "measured live report",
+            result.CommittedOutputId,
+            result.InspectionSnapshot,
+            ShellLanguage.English,
+            CancellationToken.None);
+        TimeSpan typedElapsed = Stopwatch.GetElapsedTime(typedTimestamp);
+        long typedAllocated = GC.GetAllocatedBytesForCurrentThread() - typedAllocatedBefore;
+
+        Assert.Equal(10_000, persisted.OutputDifferenceCount);
+        Assert.Equal(10_000, live.OutputDifferenceCount);
+        Assert.Equal(0, persisted.MaterializedOutputDifferenceCount);
+        Assert.Equal(0, live.MaterializedOutputDifferenceCount);
+        Assert.True(typedAllocated < jsonAllocated);
+        TestContext.Current.TestOutputHelper?.WriteLine(
+            $"TYPED_REPORT_BASELINE ranges=10000 jsonChars={json.Length} " +
+            $"jsonProjectionMs={jsonElapsed.TotalMilliseconds.ToString("F3", CultureInfo.InvariantCulture)} " +
+            $"jsonAllocated={jsonAllocated} " +
+            $"typedProjectionMs={typedElapsed.TotalMilliseconds.ToString("F3", CultureInfo.InvariantCulture)} " +
+            $"typedAllocated={typedAllocated}");
+    }
+
     /// <summary>Emits non-gating Node B/C observations for the bounded 10,000-range Hex Diff path.</summary>
     [Fact]
     public async Task ReportHexDiffEmitsColdWarmProjectionAndRangeSelectionObservations()
     {
-        CompositionRunResult result = await CreateDpReplaceInspectionResultAsync();
+        CompositionRunResult result = await CreateDpReplaceInspectionResultAsync(TestHost);
         using var source = JsonDocument.Parse(CompositionRunReportJson.Serialize(result));
         string runId = source.RootElement.GetProperty("RunId").GetString()!;
         string json = ReportJsonSamples.ReplaceWithManyOutputDifferences(

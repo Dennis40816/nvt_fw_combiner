@@ -182,6 +182,34 @@ public sealed partial class CanonicalCapabilityCatalogTests
         Assert.Equal(CapabilityCatalogIssueCodes.CatalogUnavailable, resolution.Issue!.Code);
     }
 
+    /// <summary>An explicit retry bypasses the cached cold-start failure and can publish a repaired source.</summary>
+    [Fact]
+    public void ExplicitReloadRecoversFromCachedColdStartFailure()
+    {
+        var sourceIssue = new CapabilityCatalogIssue(
+            CapabilityCatalogIssueCodes.SourceUnavailable,
+            "The trusted catalog is temporarily unavailable.");
+        var catalog = new CanonicalCapabilityCatalog(new QueueCapabilitySource(
+            CapabilityCatalogLoadResult.Failure(sourceIssue),
+            CapabilityCatalogLoadResult.Success(CreateCandidate())));
+
+        _ = catalog.TryGetCurrentSnapshot();
+        _ = catalog.TryGetCurrentSnapshot();
+        CanonicalSupportMatrixQueryResult blocked = catalog.Query();
+        CapabilityCatalogReloadResult recovered = catalog.Reload(
+            TestContext.Current.CancellationToken);
+
+        Assert.Equal(CanonicalSupportMatrixCatalogState.ColdStartBlocked, blocked.State);
+        Assert.Equal(sourceIssue, Assert.Single(blocked.ReloadIssues));
+        Assert.True(recovered.Succeeded);
+        Assert.False(recovered.RetainedLastKnownGood);
+        Assert.NotNull(recovered.Snapshot);
+        Assert.Equal(
+            CanonicalSupportMatrixCatalogState.Current,
+            catalog.Query().State);
+        Assert.True(catalog.Resolve(Route.RouteId).Succeeded);
+    }
+
     /// <summary>Duplicate exact routes reject the complete candidate instead of selecting a winner.</summary>
     [Fact]
     public void DuplicateRouteRejectsCompleteCandidate()

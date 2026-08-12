@@ -22,27 +22,17 @@ public sealed partial class WorkflowSessionPresentationViewModel : ObservableObj
         ReplacePresentationViewModel replace,
         Action<WorkflowContextSelection> applyWorkflowContext,
         Action<string, string> showToast,
-        Func<
-            string,
-            IReadOnlyList<FirmwareInspectionSnapshotInput>,
-            IReadOnlyList<FirmwareInspectionSnapshotResult>> firmwareInspectionReader,
         WorkflowSessionStateBindings stateBindings)
     {
         _compositionServices = compositionServices ??
             throw new ArgumentNullException(nameof(compositionServices));
-        AbMergeIcChoices = Array.AsReadOnly(
-        [
-            .. _compositionServices.Capabilities.GetAbMergeProfileSummaries()
-                .Select(static profile => profile.IcId),
-        ]);
         _textProvider = textProvider ?? throw new ArgumentNullException(nameof(textProvider));
         _merge = merge ?? throw new ArgumentNullException(nameof(merge));
         _replace = replace ?? throw new ArgumentNullException(nameof(replace));
         _applyWorkflowContext = applyWorkflowContext ?? throw new ArgumentNullException(nameof(applyWorkflowContext));
         _showToast = showToast ?? throw new ArgumentNullException(nameof(showToast));
-        ArgumentNullException.ThrowIfNull(firmwareInspectionReader);
         _stateBindings = stateBindings ?? throw new ArgumentNullException(nameof(stateBindings));
-        InspectionSession = new FirmwareInspectionSession(firmwareInspectionReader);
+        InspectionSession = new FirmwareInspectionSession(_compositionServices.FirmwareInspection);
         WorkflowContextSetup = new WorkflowContextSetupViewModel(_compositionServices);
         ConfirmWorkflowContextCommand = new RelayCommand(ConfirmWorkflowContext);
         CancelWorkflowContextCommand = new RelayCommand(CancelWorkflowContext);
@@ -50,8 +40,6 @@ public sealed partial class WorkflowSessionPresentationViewModel : ObservableObj
         DismissFirmwareIcMismatchCommand = new RelayCommand(DismissFirmwareIcMismatch);
         AcceptFirmwareNumberMismatchCommand = new RelayCommand(AcceptFirmwareNumberMismatch);
         DismissFirmwareNumberMismatchCommand = new RelayCommand(DismissFirmwareNumberMismatch);
-        _selectedIc = _compositionServices.Capabilities.DefaultIcId;
-        _replaceWorkflowContextIc = SelectedIc;
     }
 
     /// <summary>Gets current localized shell text used by workflow-session prompts.</summary>

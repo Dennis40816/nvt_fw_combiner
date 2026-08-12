@@ -8,6 +8,45 @@ namespace NvtFwCombiner.UiSmoke.Tests;
 
 public sealed partial class XamlControlStyleContractTests
 {
+    /// <summary>Hex feedback follows the shell motion preference and resolves its font from the shared theme token.</summary>
+    [Fact]
+    public void HexViewportUsesShellReducedMotionAndThemeFont()
+    {
+        string editor = ReadPresentationFile("Views/HexEditorPanel.axaml");
+        string inspector = ReadPresentationFile("Views/BinInspectorPanel.axaml");
+        string report = ReadPresentationFile("Resources/MainWindowReportAuditTemplates.axaml");
+        string viewport = ReadPresentationFile("Views/HexViewportControl.cs");
+        string viewportTheme = ReadPresentationFile("Views/HexViewportControl.Theme.cs");
+        string historyFeedback = ReadPresentationFile("Views/HexViewportControl.HistoryFeedback.cs");
+        const string reducedMotionBinding =
+            "IsReducedMotionEnabled=\"{ReflectionBinding $parent[Window].DataContext.IsReducedMotionEnabled}\"";
+
+        Assert.Contains(reducedMotionBinding, editor, StringComparison.Ordinal);
+        Assert.Contains(reducedMotionBinding, inspector, StringComparison.Ordinal);
+        Assert.Contains(reducedMotionBinding, report, StringComparison.Ordinal);
+        Assert.Contains("IsReducedMotionEnabledProperty", viewport, StringComparison.Ordinal);
+        Assert.Contains("NfcTechnicalFontFamily", viewportTheme, StringComparison.Ordinal);
+        Assert.Contains("ShouldAnimateHistoryFeedback", historyFeedback, StringComparison.Ordinal);
+        Assert.DoesNotContain("Cascadia Mono, Consolas", viewport, StringComparison.Ordinal);
+        Assert.DoesNotContain("Cascadia Mono, Consolas", viewportTheme, StringComparison.Ordinal);
+        Assert.DoesNotContain("Cascadia Mono, Consolas", historyFeedback, StringComparison.Ordinal);
+    }
+
+    /// <summary>Reduced motion keeps the Undo/Redo cue visible without running its decorative timer.</summary>
+    [Theory]
+    [InlineData(false, false, false)]
+    [InlineData(false, true, true)]
+    [InlineData(true, true, false)]
+    public void HexHistoryFeedbackAnimationRespectsReducedMotion(
+        bool isReducedMotionEnabled,
+        bool hasHistoryFeedback,
+        bool expected)
+    {
+        Assert.Equal(
+            expected,
+            HexViewportControl.ShouldAnimateHistoryFeedback(isReducedMotionEnabled, hasHistoryFeedback));
+    }
+
     /// <summary>Ensures Hex Editor uses the shared safe-save and immutable-reference interaction contracts.</summary>
     [Fact]
     public void HexEditorUsesConfirmedSaveAndReadOnlyReferenceRows()
@@ -15,6 +54,7 @@ public sealed partial class XamlControlStyleContractTests
         string shell = ReadPresentationFile("MainWindow.axaml");
         string hexEditor = ReadPresentationFile("Views/HexEditorPanel.axaml");
         string viewport = ReadPresentationFile("Views/HexViewportControl.cs");
+        string viewportTheme = ReadPresentationFile("Views/HexViewportControl.Theme.cs");
         string historyFeedback = ReadPresentationFile("Views/HexViewportControl.HistoryFeedback.cs");
         string renderingSupport = ReadPresentationFile("Views/HexViewportControl.RenderingSupport.cs");
         string sharedStyles = ReadPresentationFile("Styles/MainWindowStyles.axaml");
@@ -26,6 +66,15 @@ public sealed partial class XamlControlStyleContractTests
         Assert.Contains("IsComparisonRowVisible", viewport, StringComparison.Ordinal);
         Assert.Contains("DrawReferenceRow", viewport, StringComparison.Ordinal);
         Assert.Contains("ReferenceChangedBrush", viewport, StringComparison.Ordinal);
+        Assert.Contains("ActualThemeVariant", viewportTheme, StringComparison.Ordinal);
+        Assert.Contains("ActualThemeVariantChanged", viewportTheme, StringComparison.Ordinal);
+        Assert.Contains("InvalidateVisual();", viewportTheme, StringComparison.Ordinal);
+        Assert.Contains("TryFindResource", viewportTheme, StringComparison.Ordinal);
+        Assert.Contains("EnsureThemePalette();", viewport, StringComparison.Ordinal);
+        Assert.DoesNotContain("Brush.Parse", viewport, StringComparison.Ordinal);
+        Assert.DoesNotContain("Brush.Parse", viewportTheme, StringComparison.Ordinal);
+        Assert.DoesNotMatch("#[0-9A-Fa-f]{6,8}", viewport);
+        Assert.DoesNotMatch("#[0-9A-Fa-f]{6,8}", viewportTheme);
         Assert.Contains("DrawAsciiStructuralBlocks", viewport, StringComparison.Ordinal);
         Assert.DoesNotContain("IBrush StructuralBrush =", viewport, StringComparison.Ordinal);
         Assert.Contains("$\"0x{address:X6}  {ComparisonRowLabel}\"", renderingSupport, StringComparison.Ordinal);

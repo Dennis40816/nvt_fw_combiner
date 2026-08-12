@@ -6,7 +6,7 @@ using NvtFwCombiner.TestSupport;
 
 namespace NvtFwCombiner.UiSmoke.Tests;
 
-public sealed partial class ShellViewModelTests
+public sealed partial class UiPerformanceObservationTests
 {
     /// <summary>
     /// Proves the source-neutral viewport remains bounded and improves the released

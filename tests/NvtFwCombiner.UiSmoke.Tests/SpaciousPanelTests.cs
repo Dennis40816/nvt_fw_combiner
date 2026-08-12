@@ -6,6 +6,7 @@ using NvtFwCombiner.TestSupport;
 namespace NvtFwCombiner.UiSmoke.Tests;
 
 /// <summary>Regression coverage for the owner-required spatial layout contract.</summary>
+[Collection(UiAvaloniaRuntimeCollection.Name)]
 public sealed class SpaciousPanelTests
 {
     /// <summary>Locks output and report blocks to one padded, spaced control contract.</summary>

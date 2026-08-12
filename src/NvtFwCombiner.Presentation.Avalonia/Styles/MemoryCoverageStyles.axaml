@@ -1,0 +1,39 @@
+<Styles xmlns="https://github.com/avaloniaui">
+  <Style Selector="Border.memoryCoverageFill">
+    <Setter Property="Background" Value="{DynamicResource NfcMemoryNeutralFillBrush}" />
+  </Style>
+  <Style Selector="Border.memoryCoverageMarker">
+    <Setter Property="BorderThickness" Value="0" />
+  </Style>
+  <Style Selector="Border.memoryCoverageFill.dp">
+    <Setter Property="Background" Value="{DynamicResource NfcMemoryDpFillBrush}" />
+  </Style>
+  <Style Selector="Border.memoryCoverageFill.tp">
+    <Setter Property="Background" Value="{DynamicResource NfcMemoryTpFillBrush}" />
+  </Style>
+  <Style Selector="Border.memoryCoverageFill.tpBackup">
+    <Setter Property="Background" Value="{DynamicResource NfcMemoryTpBackupFillBrush}" />
+  </Style>
+  <Style Selector="Border.memoryCoverageFill.ldc">
+    <Setter Property="Background" Value="{DynamicResource NfcMemoryLdcFillBrush}" />
+  </Style>
+  <Style Selector="Border.memoryCoverageFill.source">
+    <Setter Property="Background" Value="{DynamicResource NfcMemorySourceFillBrush}" />
+  </Style>
+  <Style Selector="Border.memoryCoverageFill.kept">
+    <Setter Property="Background" Value="{DynamicResource NfcMemoryKeptFillBrush}" />
+  </Style>
+  <Style Selector="Border.memoryCoverageFill.conflict">
+    <Setter Property="Background" Value="{DynamicResource NfcMemoryConflictFillBrush}" />
+  </Style>
+  <Style Selector="Border.memoryCoverageFill.ctrlRam">
+    <Setter Property="Background" Value="{DynamicResource NfcMemoryCtrlRamFillBrush}" />
+  </Style>
+  <Style Selector="Border.memoryCoverageFill.diffDlm">
+    <Setter Property="Background" Value="{DynamicResource NfcMemoryDiffDlmFillBrush}" />
+  </Style>
+  <Style Selector="Border.memoryCoverageMarker.changed">
+    <Setter Property="BorderBrush" Value="{DynamicResource NfcAccentStrongBrush}" />
+    <Setter Property="BorderThickness" Value="1" />
+  </Style>
+</Styles>

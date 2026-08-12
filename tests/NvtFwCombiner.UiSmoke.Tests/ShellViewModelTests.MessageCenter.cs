@@ -3,12 +3,13 @@ using NvtFwCombiner.Application.Capabilities;
 using NvtFwCombiner.Application.Diagnostics;
 using NvtFwCombiner.Application.Ports;
 using NvtFwCombiner.Domain.Composition;
+using NvtFwCombiner.Presentation.Avalonia;
 using NvtFwCombiner.Presentation.Avalonia.ViewModels;
 using NvtFwCombiner.TestSupport;
 
 namespace NvtFwCombiner.UiSmoke.Tests;
 
-public sealed partial class ShellViewModelTests
+public sealed partial class ShellNavigationSystemTests
 {
     /// <summary>Cold catalog state owns the badge/global Build blocker and refresh clears it without a report.</summary>
     [Fact]
@@ -22,15 +23,19 @@ public sealed partial class ShellViewModelTests
             new StubRuntimeProbe(),
             new StubClock());
         var exporter = new CapturingDiagnosticsExporter();
+        PresentationHostServices services = PresentationTestHost.CreateServices("0.10.3-test");
         MainWindowViewModel viewModel = new(
             "test",
             "0.10.3-test",
             ShellLanguage.English,
-            PresentationTestHost.CreateServices("0.10.3-test"),
-            static (_, _) => null,
-            static (_, _) => [],
+            services,
+            new DelegatingFirmwareInspection(
+                TestHost.FirmwareInspectionExperience,
+                metadataReader: static (_, _) => null,
+                batchReader: static (_, _) => []),
             systemInformationService: diagnostics,
             systemDiagnosticsExporter: exporter);
+        _ = PresentationTestHost.PublishCanonicalCatalog(services, viewModel);
 
         Assert.Equal(1, viewModel.MessageCenter.ActiveBadgeCount);
         Assert.NotNull(viewModel.MessageCenter.GlobalBuildBlocker);
@@ -71,15 +76,19 @@ public sealed partial class ShellViewModelTests
             catalog,
             new StubRuntimeProbe(),
             new StubClock());
+        PresentationHostServices services = PresentationTestHost.CreateServices("0.10.3-test");
         MainWindowViewModel viewModel = new(
             "test",
             "0.10.3-test",
             ShellLanguage.ChineseTraditional,
-            PresentationTestHost.CreateServices("0.10.3-test"),
-            static (_, _) => null,
-            static (_, _) => [],
+            services,
+            new DelegatingFirmwareInspection(
+                TestHost.FirmwareInspectionExperience,
+                metadataReader: static (_, _) => null,
+                batchReader: static (_, _) => []),
             systemInformationService: diagnostics,
             systemDiagnosticsExporter: new CapturingDiagnosticsExporter());
+        _ = PresentationTestHost.PublishCanonicalCatalog(services, viewModel);
         viewModel.MessageCenter.OpenCommand.Execute(null);
 
         Assert.True(viewModel.MessageCenter.IsOpen);
@@ -140,7 +149,7 @@ public sealed partial class ShellViewModelTests
                 new CapabilityCatalogIssue("catalog.reload.failed", "private", null)));
         MainWindowViewModel viewModel = CreateDiagnosticsViewModel(
             catalog,
-            TestHost.FirmwareInspectionExperience.InspectFirmwareBatch);
+            ReadBuiltInFirmwareInspectionBatch);
         viewModel.ShowMergeCommand.Execute(null);
         viewModel.WorkflowSession.SelectedIc = "NT51926";
         await viewModel.WorkflowSession.SetSlotFileAsync(
@@ -170,7 +179,8 @@ public sealed partial class ShellViewModelTests
     public async Task FreshTokenReloadReinspectsVerifiedDpReplaceBeforeBuildReturns()
     {
         using var workspace = TempWorkspace.Create("nvt-fw-combiner-ui-message-center-rebind");
-        using var reader = new BlockingInspectionReader();
+        using var reader = new BlockingInspectionReader(
+            (BuiltInFirmwareInspection)TestHost.FirmwareInspectionExperience);
         var catalog = new SequencedCatalog(
             Result(CanonicalSupportMatrixCatalogState.Current, Matrix("catalog:before")),
             Result(CanonicalSupportMatrixCatalogState.Current, Matrix("catalog:after")));
@@ -213,7 +223,7 @@ public sealed partial class ShellViewModelTests
         using var catalog = new BlockingReloadCatalog();
         MainWindowViewModel viewModel = CreateDiagnosticsViewModel(
             catalog,
-            TestHost.FirmwareInspectionExperience.InspectFirmwareBatch);
+            ReadBuiltInFirmwareInspectionBatch);
         Task refresh = viewModel.MessageCenter.RefreshCommand.ExecuteAsync(null);
         try
         {
@@ -256,8 +266,10 @@ public sealed partial class ShellViewModelTests
             "0.10.3-test",
             ShellLanguage.English,
             PresentationTestHost.CreateServices("0.10.3-test"),
-            static (_, _) => null,
-            static (_, _) => [],
+            new DelegatingFirmwareInspection(
+                TestHost.FirmwareInspectionExperience,
+                metadataReader: static (_, _) => null,
+                batchReader: static (_, _) => []),
             systemInformationService: diagnostics,
             systemDiagnosticsExporter: exporter);
 
@@ -294,7 +306,7 @@ public sealed partial class ShellViewModelTests
         return [.. callbacks];
     }
 
-    private static MainWindowViewModel CreateDiagnosticsViewModel(
+    private MainWindowViewModel CreateDiagnosticsViewModel(
         ICanonicalSupportMatrixQuery catalog,
         Func<
             string,
@@ -309,15 +321,28 @@ public sealed partial class ShellViewModelTests
             reloader,
             new StubRuntimeProbe(),
             new StubClock());
-        return new MainWindowViewModel(
+        PresentationHostServices services = PresentationTestHost.CreateServices("0.10.3-test");
+        var viewModel = new MainWindowViewModel(
             "test",
             "0.10.3-test",
             ShellLanguage.English,
-            PresentationTestHost.CreateServices("0.10.3-test"),
-            static (_, _) => null,
-            firmwareInspectionReader,
+            services,
+            new DelegatingFirmwareInspection(
+                TestHost.FirmwareInspectionExperience,
+                batchReader: firmwareInspectionReader),
             systemInformationService: diagnostics,
             systemDiagnosticsExporter: new CapturingDiagnosticsExporter());
+        return PresentationTestHost.PublishCanonicalCatalog(services, viewModel);
+    }
+
+    private IReadOnlyList<FirmwareInspectionSnapshotResult> ReadBuiltInFirmwareInspectionBatch(
+        string icId,
+        IReadOnlyList<FirmwareInspectionSnapshotInput> inputs)
+    {
+        return BuiltInFirmwareInspection.InspectFirmwareBatch(
+            (BuiltInFirmwareInspection)TestHost.FirmwareInspectionExperience,
+            icId,
+            inputs);
     }
 
     private static CanonicalSupportMatrixQueryResult Result(
@@ -383,7 +408,7 @@ public sealed partial class ShellViewModelTests
         }
     }
 
-    private sealed class BlockingInspectionReader : IDisposable
+    private sealed class BlockingInspectionReader(BuiltInFirmwareInspection firmwareInspection) : IDisposable
     {
         private int _blockNextBatch;
 
@@ -406,10 +431,7 @@ public sealed partial class ShellViewModelTests
                 ReleaseInspection.Wait(TestContext.Current.CancellationToken);
             }
 
-            return BuiltInFirmwareInspection.InspectFirmwareBatch(
-                (BuiltInFirmwareInspection)TestHost.FirmwareInspectionExperience,
-                selectedIc,
-                inputs);
+            return BuiltInFirmwareInspection.InspectFirmwareBatch(firmwareInspection, selectedIc, inputs);
         }
 
         public void Dispose()

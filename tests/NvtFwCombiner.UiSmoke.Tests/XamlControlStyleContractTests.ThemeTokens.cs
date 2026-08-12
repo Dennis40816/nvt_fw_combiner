@@ -1,10 +1,11 @@
 using System.Text.RegularExpressions;
+using System.Xml.Linq;
 
 namespace NvtFwCombiner.UiSmoke.Tests;
 
 public sealed partial class XamlControlStyleContractTests
 {
-    /// <summary>Keeps shared shell visual tokens defined once and resolves every migrated resource reference.</summary>
+    /// <summary>Keeps shared shell visual tokens complete per theme and resolves every migrated resource reference.</summary>
     [Fact]
     public void SharedThemeTokensHaveUniqueDefinitionsAndOwnMigratedViews()
     {
@@ -16,6 +17,10 @@ public sealed partial class XamlControlStyleContractTests
         Match[] spacingDefinitions = ReadThemeSpacingTokenDefinitions();
         Match[] fontSizeDefinitions = ReadThemeFontSizeTokenDefinitions();
         Match[] fontFamilyDefinitions = ReadThemeFontFamilyTokenDefinitions();
+        var visualKeys = colorDefinitions
+            .Concat(shadowDefinitions)
+            .Select(static definition => definition.Groups["key"].Value)
+            .ToHashSet(StringComparer.Ordinal);
         var definedKeys = colorDefinitions
             .Concat(shadowDefinitions)
             .Concat(cornerRadiusDefinitions)
@@ -24,9 +29,19 @@ public sealed partial class XamlControlStyleContractTests
             .Concat(fontFamilyDefinitions)
             .Select(static definition => definition.Groups["key"].Value)
             .ToHashSet(StringComparer.Ordinal);
-        var definedColors = colorDefinitions
-            .Select(static definition => definition.Groups["color"].Value)
-            .ToHashSet(StringComparer.OrdinalIgnoreCase);
+        var themeDocument = XDocument.Parse(tokens);
+        var presentation = (XNamespace)"https://github.com/avaloniaui";
+        var x = (XNamespace)"http://schemas.microsoft.com/winfx/2006/xaml";
+        var themeKeys = themeDocument
+            .Root!
+            .Element(presentation + "ResourceDictionary.ThemeDictionaries")!
+            .Elements(presentation + "ResourceDictionary")
+            .ToDictionary(
+                dictionary => dictionary.Attribute(x + "Key")!.Value,
+                dictionary => dictionary.Elements()
+                    .Select(resource => resource.Attribute(x + "Key")!.Value)
+                    .ToHashSet(StringComparer.Ordinal),
+                StringComparer.Ordinal);
 
         Assert.Contains("<Application.Resources>", application, StringComparison.Ordinal);
         Assert.Contains(
@@ -36,6 +51,15 @@ public sealed partial class XamlControlStyleContractTests
         Assert.NotEmpty(colorDefinitions);
         Assert.NotEmpty(shadowDefinitions);
         Assert.NotEmpty(cornerRadiusDefinitions);
+        Assert.Equal(["Dark", "Light"], themeKeys.Keys.Order(StringComparer.Ordinal));
+        Assert.Equal(themeKeys["Light"].Order(StringComparer.Ordinal), themeKeys["Dark"].Order(StringComparer.Ordinal));
+        Assert.Equal(visualKeys.Order(StringComparer.Ordinal), themeKeys["Light"].Order(StringComparer.Ordinal));
+        Assert.All(
+            colorDefinitions.GroupBy(static definition => definition.Groups["key"].Value, StringComparer.Ordinal),
+            static definitions => Assert.Equal(2, definitions.Count()));
+        Assert.All(
+            shadowDefinitions.GroupBy(static definition => definition.Groups["key"].Value, StringComparer.Ordinal),
+            static definitions => Assert.Equal(2, definitions.Count()));
         Assert.Equal(5, spacingDefinitions.Length);
         Assert.Equal(5, fontSizeDefinitions.Length);
         Assert.Equal(2, fontFamilyDefinitions.Length);
@@ -45,9 +69,8 @@ public sealed partial class XamlControlStyleContractTests
         Assert.Equal(spacingDefinitions.Length + fontSizeDefinitions.Length, tokens.Split("<x:Double", StringSplitOptions.None).Length - 1);
         Assert.Equal(fontFamilyDefinitions.Length, tokens.Split("<FontFamily", StringSplitOptions.None).Length - 1);
         Assert.Equal(
-            colorDefinitions.Length + shadowDefinitions.Length + cornerRadiusDefinitions.Length + spacingDefinitions.Length + fontSizeDefinitions.Length + fontFamilyDefinitions.Length,
+            visualKeys.Count + cornerRadiusDefinitions.Length + spacingDefinitions.Length + fontSizeDefinitions.Length + fontFamilyDefinitions.Length,
             definedKeys.Count);
-        Assert.Equal(colorDefinitions.Length, definedColors.Count);
         Assert.Contains(
             fontFamilyDefinitions,
             static definition => StringComparer.Ordinal.Equals("NfcUiFontFamily", definition.Groups["key"].Value) &&
@@ -91,11 +114,13 @@ public sealed partial class XamlControlStyleContractTests
         [
             "MainWindow.axaml",
             "Styles/MainWindowControlStyles.axaml",
+            "Styles/MemoryCoverageStyles.axaml",
             "Styles/MainWindowStyles.axaml",
             "Styles/MainWindowButtonStyles.axaml",
             "Styles/MainWindowVisualStyles.axaml",
             "Views/CtrlRamFirmwareVersionModal.axaml",
             "Views/FirmwareIcMismatchModal.axaml",
+            "Views/ForegroundLoadingSurface.axaml",
             "Views/HexEditorInsertBytesModal.axaml",
             "Views/HexEditorSaveModal.axaml",
             "Views/ReplaceSelectionModal.axaml",

@@ -106,6 +106,7 @@
                   <Grid Grid.Row="1" MinHeight="0" Margin="10" ColumnDefinitions="*,Auto" ColumnSpacing="{DynamicResource NfcSpace8}">
                     <views:HexViewportControl
                         MinHeight="0"
+                        IsReducedMotionEnabled="{ReflectionBinding $parent[Window].DataContext.IsReducedMotionEnabled}"
                         AutomationProperties.AccessibilityView="Content"
                         AutomationProperties.HelpText="{Binding LoadedReport.HexDiff.SelectedByteAccessibleLabel}"
                         AutomationProperties.Name="{Binding Text.HexDiffViewportTitle}"

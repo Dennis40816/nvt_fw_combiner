@@ -65,7 +65,7 @@ internal static partial class ReplaceCliCommandHandler
         ParsedCliOptions options,
         IReadOnlyDictionary<string, string> protectedInputPaths,
         string defaultOutputFileName,
-        Func<string?, bool, CancellationToken, ValueTask<ReplaceRunAttempt>> run,
+        Func<string?, bool, CancellationToken, ValueTask<CompositionRunResult>> run,
         TextWriter output,
         TextWriter error,
         CancellationToken cancellationToken)
@@ -87,17 +87,11 @@ internal static partial class ReplaceCliCommandHandler
             build);
 
         string? outputPath = build ? outputTarget.FullPath : null;
-        ReplaceRunAttempt attempt = await run(
+        CompositionRunResult result = await run(
                 outputPath,
                 build,
                 cancellationToken)
             .ConfigureAwait(false);
-        if (attempt.Result is not { } result)
-        {
-            await CliCompositionRunSupport.PrintIssuesAsync(error, attempt.Issues)
-                .ConfigureAwait(false);
-            return attempt.UsageError ? UsageError : CompositionFailed;
-        }
 
         if (result.HasRunReport &&
             options.Values.TryGetValue("--report", out string? reportPath))
@@ -120,29 +114,4 @@ internal static partial class ReplaceCliCommandHandler
         return result.Succeeded ? Success : CompositionFailed;
     }
 
-    private static async ValueTask<ReplaceRunAttempt> ExecuteAcceptedAsync(
-        ValueTask<CompositionRunResult> run)
-    {
-        return ReplaceRunAttempt.Executed(await run.ConfigureAwait(false));
-    }
-
-    private sealed record ReplaceRunAttempt(
-        CompositionRunResult? Result,
-        IReadOnlyList<CompositionIssue> Issues,
-        bool UsageError)
-    {
-        internal static ReplaceRunAttempt Executed(CompositionRunResult result)
-        {
-            ArgumentNullException.ThrowIfNull(result);
-            return new(result, [], UsageError: false);
-        }
-
-        internal static ReplaceRunAttempt Rejected(
-            IReadOnlyList<CompositionIssue> issues,
-            bool usageError = false)
-        {
-            ArgumentNullException.ThrowIfNull(issues);
-            return new(null, issues, usageError);
-        }
-    }
 }

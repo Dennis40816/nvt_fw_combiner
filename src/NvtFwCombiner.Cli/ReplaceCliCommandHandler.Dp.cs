@@ -116,21 +116,19 @@ internal static partial class ReplaceCliCommandHandler
         string defaultOutputFileName = host.CompositionOutputNaming
             .ResolveAcceptedOutput(acceptedSession)
             .OutputName.FileName;
-        async ValueTask<ReplaceRunAttempt> RunAcceptedAsync(
+        ValueTask<CompositionRunResult> RunAcceptedAsync(
             string? outputPath,
             bool build,
             CancellationToken token)
         {
-            return ReplaceRunAttempt.Executed(
-                await host.CompositionExecution.ExecuteAsync(
-                        new AcceptedCompositionExecutionRequest(
-                            acceptedSession,
-                            slotPaths,
-                            build,
-                            outputPath: outputPath),
-                        new CompositionRunProgressFeed(),
-                        token)
-                    .ConfigureAwait(false));
+            return host.CompositionExecution.ExecuteAsync(
+                new AcceptedCompositionExecutionRequest(
+                    acceptedSession,
+                    slotPaths,
+                    build,
+                    outputPath: outputPath),
+                new CompositionRunProgressFeed(),
+                token);
         }
 
         int exitCode = await CompleteReplaceRunAsync(

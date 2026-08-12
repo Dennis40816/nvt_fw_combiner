@@ -2,7 +2,7 @@ using NvtFwCombiner.Presentation.Avalonia.ViewModels;
 
 namespace NvtFwCombiner.UiSmoke.Tests;
 
-public sealed partial class ShellViewModelTests
+public sealed partial class ReportReviewHistoryTests
 {
     /// <summary>Keeps actual runtime argv visible even without a profile-declared command block.</summary>
     [Fact]

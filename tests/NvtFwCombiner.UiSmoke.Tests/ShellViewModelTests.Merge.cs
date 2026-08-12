@@ -8,7 +8,7 @@ using NvtFwCombiner.TestSupport;
 
 namespace NvtFwCombiner.UiSmoke.Tests;
 
-public sealed partial class ShellViewModelTests
+public sealed partial class MergeWorkflowTests
 {
     /// <summary>The unavailable AB readiness hint directs the user to declared routes without duplicating catalog facts.</summary>
     [Fact]
@@ -59,7 +59,7 @@ public sealed partial class ShellViewModelTests
         viewModel.ShowMergeCommand.Execute(null);
 
         foreach (CapabilityProfileSummary profile in
-            TestHost.Projection.GetStandardMergeProfileSummaries())
+            TestProjection.GetStandardMergeProfileSummaries())
         {
             viewModel.WorkflowSession.SelectedIc = profile.IcId;
 
@@ -147,7 +147,7 @@ public sealed partial class ShellViewModelTests
 
         viewModel.Merge.SelectedMergeMode = ExperienceIds.StandardMerge;
 
-        Assert.Equal(TestHost.Projection.GetIcIds(), viewModel.WorkflowSession.IcChoices);
+        Assert.Equal(TestProjection.GetIcIds(), viewModel.WorkflowSession.IcChoices);
     }
 
     /// <summary>A rejected DP_AB size cannot override compiled coverage while processor effects remain on TPB.</summary>
@@ -249,14 +249,13 @@ public sealed partial class ShellViewModelTests
         Assert.True(viewModel.Merge.CanBuildMerge);
         Assert.True(viewModel.Merge.PreviewMergeCommand.CanExecute(null));
 
-        string suggestedOutputName = await viewModel.Merge.ResolveMergeOutputFileNameForSaveAsync(
-            TestContext.Current.CancellationToken);
+        MergeBuildSavePreparation initialPreparation = Assert.IsType<MergeBuildSavePreparation>(
+            await viewModel.Merge.TryPrepareMergeBuildSaveAsync(TestContext.Current.CancellationToken));
+        string suggestedOutputName = initialPreparation.SuggestedFileName;
         Assert.Matches(
             "^NT51929_FlashCode_A_D0605T8100_B_D0708T8203_[0-9]{8}\\.bin$",
             suggestedOutputName);
         Assert.DoesNotContain("D06-05", suggestedOutputName, StringComparison.Ordinal);
-        MergeBuildSavePreparation initialPreparation = Assert.IsType<MergeBuildSavePreparation>(
-            await viewModel.Merge.TryPrepareMergeBuildSaveAsync(TestContext.Current.CancellationToken));
         CompositionAdditionalDeliveryPlan initialAFlashCodePlan = Assert.IsType<CompositionAdditionalDeliveryPlan>(
             initialPreparation.AFlashCodePlan);
 
@@ -644,20 +643,6 @@ public sealed partial class ShellViewModelTests
         cases.Add("51928");
         cases.Add("51950");
         return cases;
-    }
-
-    private static void WriteUiAbCmi(
-        byte[] image,
-        int bankStart,
-        byte major,
-        byte minor,
-        ushort jira)
-    {
-        const int register16Offset = 0x401A;
-        int start = checked(bankStart + register16Offset);
-        image[start] = checked((byte)(jira & 0xFF));
-        image[start + 1] = major;
-        image[start + 2] = checked((byte)((minor << 4) | ((jira >> 8) & 0x0F)));
     }
 
     private static byte[] CreateUiAbTpImage(

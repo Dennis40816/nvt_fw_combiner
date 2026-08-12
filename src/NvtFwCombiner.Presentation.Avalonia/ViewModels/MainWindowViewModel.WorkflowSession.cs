@@ -32,6 +32,20 @@ public sealed partial class MainWindowViewModel
         WorkflowSession.RefreshNumberChoicesForSelectedIc();
     }
 
+    internal void PublishCanonicalCatalogState()
+    {
+        WorkflowSession.PublishCanonicalCatalogState();
+        ApplyCatalogBackedTextResources();
+        ShowMergeCommand.NotifyCanExecuteChanged();
+        ShowReplaceCommand.NotifyCanExecuteChanged();
+        BeginDpReplaceFromHomeCommand.NotifyCanExecuteChanged();
+        BeginCtrlRamReplaceFromHomeCommand.NotifyCanExecuteChanged();
+        BeginGeneralReplaceFromHomeCommand.NotifyCanExecuteChanged();
+        BeginNormalMergeFromHomeCommand.NotifyCanExecuteChanged();
+        BeginAbMergeFromHomeCommand.NotifyCanExecuteChanged();
+        BeginGeneralMergeFromHomeCommand.NotifyCanExecuteChanged();
+    }
+
     private void WorkflowReplaceModeChanged()
     {
         WorkflowSession.ReplaceModeChanged();

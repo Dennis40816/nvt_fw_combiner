@@ -4,6 +4,157 @@ All notable changes to NVT FW Combiner are documented here. The project follows 
 
 ## [Unreleased]
 
+No unreleased changes.
+
+## [0.10.4] - 2026-08-12
+
+### Summary
+
+This support-neutral release makes the Home window visible within the reviewed
+700 ms startup target, adds truthful foreground catalog progress and recovery,
+repairs Dark-theme and reduced-motion presentation, removes more duplicate
+runtime paths, and keeps the complete Windows verification path within the
+owner-accepted five-minute CI budget. Firmware bytes, support status, profiles,
+schemas, naming, reports, and saved-data formats remain compatible.
+
+### Product changes
+
+#### Faster Home startup and truthful catalog loading
+
+- Before → After: Desktop startup previously performed more first-frame work
+  before exposing the shell and represented catalog preparation as a coarse
+  state. Home now becomes visible before canonical publication, shows continuous
+  activity plus the actual route-derived percentage from 10% through 80%,
+  applies the accepted catalog at 90%, and enables workflow entry at 100%.
+- Affected: desktop startup, Home workflow availability, canonical IC/default/
+  profile publication, foreground loading, retry, cancellation, accessibility,
+  and reduced-motion behavior for every existing route and persona.
+- Support status: unchanged and support-neutral. Loading does not infer or
+  promote any IC, topology, IC Count, profile, firmware family, or evidence
+  class.
+- Compatibility: canonical queries, publication tokens, last-known-good
+  behavior, retry semantics, CLI behavior, output naming, report wire data, and
+  firmware bytes remain unchanged. Workflow commands stay unavailable until
+  the accepted catalog is published on the UI thread.
+- Verification: the exact compressed self-contained `win-x64` release-identity
+  candidate passed closed-package smoke and, after one unscored warm-up,
+  completed five scored launches in 639.263–664.913 ms with a 656.444 ms median;
+  all five were within the 700 ms acceptance target. The separately recorded
+  unscored cold launch was 1516.926 ms.
+- Limitations: the 700 ms result is the controlled owner-machine package gate,
+  not a universal hardware guarantee. Unifying later optional preloads under
+  one bounded user-controlled lifecycle remains `v0.10.5` scope.
+
+#### Dark-theme, accessibility, and reduced-motion repair
+
+- Before → After: several memory, report-diff, warning, selection, and Hex
+  surfaces retained hard-coded light colors or independent font/motion choices.
+  Light and Dark now provide complete semantic brush dictionaries, the three
+  Hex views share the theme's monospace token, and Undo/Redo feedback retains a
+  static visible cue when reduced motion is enabled.
+- Affected: Home foreground loading, memory coverage, Raw Hex Editor, BIN
+  Inspector, Report Hex Diff, warnings, selection states, typography, keyboard
+  blocking/focus, accessible status, and reduced-motion presentation.
+- Support status: unchanged and support-neutral; presentation changes do not
+  alter firmware support, validation, ranges, mappings, or execution.
+- Compatibility: existing saved preferences and Light/Dark selection remain
+  valid. Non-color state cues and command behavior are preserved.
+- Verification: UI smoke retains 464 passing cases, including theme resources,
+  loading/focus, progress, reduced-motion, Hex viewport, report, and workflow
+  coverage; the complete repository verifier and exact-head CI both pass.
+- Limitations: this release repairs the identified broken and inconsistent
+  surfaces; broader visual tuning remains evidence-driven future work rather
+  than a firmware or support change.
+
+#### Canonical runtime simplification
+
+- Before → After: desktop report and inspection paths still repeated typed data
+  through JSON or local file-identity logic, and several zero-production-caller
+  compatibility paths survived the canonical migration. Live reports now stay
+  typed in-process, file identity comes from the Application inspection port,
+  and the redundant CtrlRAM, Standard Merge, CLI, startup, AB delivery, Hex
+  lookup, processor, and default-postbuild shortcuts are removed.
+- Affected: all six Merge/Replace workflows, live and durable report review,
+  firmware inspection, automatic naming, delivery, processors, desktop, and
+  CLI composition wiring.
+- Support status: unchanged/support-neutral; no route is promoted or removed
+  and no firmware fact is inferred from a filename, version, or hash.
+- Compatibility: durable/imported/history report JSON, Saved Rules, settings,
+  CLI options and exits, profile/schema versions, processor protocols, output
+  names, and packaged firmware behavior remain compatible.
+- Verification: GoldenRegression remains 17/17 with complete expected bytes and
+  SHA-256 results. Full production is 97,310 nonblank lines and counted runtime
+  production is 67,186, a runtime reduction of 247 lines from `v0.10.3`; exact
+  slice ratchets are 20,619 / 29,383 / 3,255 / 13,929.
+- Limitations: only evidence-backed behavior-compatible reductions were
+  accepted. Unique trust, firmware, reporting, and processor responsibilities
+  remain with their canonical owners.
+
+#### Stable verification within the five-minute budget
+
+- Before → After: the canonical Windows verifier serialized more Release-build
+  and test work and retained scheduler-sensitive start-signal tests. It now
+  validates one complete Release build and three closed test shards in parallel,
+  batches the 15 package-trust counterfactuals through one bounded MSBuild host,
+  and uses deterministic process-handoff synchronization.
+- Affected: pull-request and release admission, .NET/Python verification,
+  coverage evidence, package-trust counterfactuals, external-process cleanup,
+  and CI diagnostics; production execution is unchanged.
+- Support status: unchanged/support-neutral; test scheduling and evidence
+  transport do not change capability or firmware support.
+- Compatibility: the canonical verifier, stable check names, exact test
+  inventory, coverage policy, package fixture, and release workflow remain the
+  only admission path; no test, golden, or evidence requirement is skipped.
+- Verification: two fresh same-source Windows CI attempts completed in about
+  4 minutes 15 seconds. The final inventory is 3,349 .NET tests with two
+  declared platform skips, GoldenRegression 17/17, Python 378 with four declared
+  skips, CRC Worker 30/30, and 85.17% line / 77.90% branch coverage.
+- Limitations: CI wall time remains runner-dependent. The accepted requirement
+  is two stable runs within five minutes without weakening inventories,
+  coverage, golden evidence, cleanup, or failure diagnostics.
+
+### Security
+
+Firmware inputs remain immutable, all writes stay inside compiled half-open
+ranges, and external processors remain confined to host-created staging copies
+with before/after range enforcement. The portable package remains a closed
+allowlist with pinned tools, hashes, SPDX SBOM, provenance, and no private
+firmware, credential, source tree, or unrestricted per-run executable path.
+
+### Known issues
+
+- The unscored cold release-identity launch measured 1516.926 ms; the declared
+  700 ms gate covers the five scored launches after one unscored warm-up on the
+  controlled owner machine.
+- Catalog loading is observable and recoverable, but optional report, system,
+  inspection, and external-tool preloads do not yet share one bounded,
+  user-controllable lifecycle; that convergence remains `v0.10.5` scope.
+- Routes that still lack direct firmware-owner or golden certification retain
+  their existing evidence state. This release does not promote support based on
+  UI availability, synthetic tests, or profile presence.
+
+### Upgrade and rollback
+
+- Upgrade from `v0.10.3` by replacing the complete portable folder with
+  `NvtFwCombiner-v0.10.4-win-x64`; do not mix files across versions.
+- Saved Rules, reports, settings, firmware inputs, CLI invocations, and approved
+  external-tool locations retain their declared compatibility. Keep the old
+  portable folder untouched until the new package is verified.
+- Roll back by restoring the complete `v0.10.3` portable folder. Never
+  overwrite source firmware while upgrading or rolling back.
+
+### Downloads and integrity
+
+- The stable GitHub Release publishes
+  `NvtFwCombiner-v0.10.4-win-x64.zip`,
+  `NvtFwCombiner-v0.10.4-win-x64.spdx.json`,
+  `NvtFwCombiner-v0.10.4-win-x64.provenance.json`,
+  `NvtFwCombiner-v0.10.4-candidate.json`, and
+  `NvtFwCombiner-v0.10.4-assets.sha256`. Verify the outer hash list, candidate
+  manifest, package `SHA256SUMS.txt`, SPDX SBOM, and provenance before use.
+- GitHub also provides tag-derived source `.zip` and `.tar.gz` downloads; they
+  are source archives, not the Windows portable package.
+
 ## [0.10.3] - 2026-08-11
 
 ### Summary

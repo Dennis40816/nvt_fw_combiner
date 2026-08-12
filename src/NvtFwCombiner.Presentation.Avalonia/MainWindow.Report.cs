@@ -35,11 +35,6 @@ public sealed partial class MainWindow
         await viewModel.Reports.LoadReportJsonAsync(json, files[0].Name);
     }
 
-    private static void ApplyInitialLaunchOptions(MainWindowViewModel viewModel, UiLaunchOptions launchOptions)
-    {
-        ApplyLaunchPage(viewModel, launchOptions.Page);
-    }
-
     private static async Task ApplyDeferredLaunchOptionsAsync(
         MainWindowViewModel viewModel,
         UiLaunchOptions launchOptions,

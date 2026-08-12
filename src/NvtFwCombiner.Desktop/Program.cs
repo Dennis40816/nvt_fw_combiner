@@ -8,16 +8,21 @@ internal static class Program
     [STAThread]
     public static int Main(string[] args)
     {
+        return DesktopApplication.Run(CreatePresentationHostServices, args);
+    }
+
+    private static PresentationHostServices CreatePresentationHostServices()
+    {
         var host = CompositionHostServices.Create();
-        var presentation = new PresentationHostServices(
+        return new PresentationHostServices(
             new PresentationCompositionServices(
                 host.CompositionCapabilityExperience,
-                  host.StandardMergeAuthoring,
-                  host.AbMergeAuthoring,
-                  host.DpReplaceAuthoring,
-                  host.GeneralAuthoring,
-                  host.CtrlRamAuthoring,
-                  host.FirmwareInspectionExperience,
+                host.StandardMergeAuthoring,
+                host.AbMergeAuthoring,
+                host.DpReplaceAuthoring,
+                host.GeneralAuthoring,
+                host.CtrlRamAuthoring,
+                host.FirmwareInspectionExperience,
                 host.CompositionOutputNaming,
                 host.CompositionExecution),
             CompositionHostServices.CreateFileRevealService(),
@@ -25,7 +30,6 @@ internal static class Program
             host.CreateSystemInformationService(DesktopApplication.InformationalVersion),
             CompositionHostServices.CreateSystemDiagnosticsExporter(),
             host.RawBinaryEditorFileSessions,
-            host.WarmCanonicalCapabilities);
-        return DesktopApplication.Run(presentation, args);
+            host.CanonicalCatalogLoader);
     }
 }
