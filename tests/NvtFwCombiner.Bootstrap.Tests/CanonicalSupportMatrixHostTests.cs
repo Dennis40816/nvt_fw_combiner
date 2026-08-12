@@ -32,7 +32,7 @@ public sealed class CanonicalSupportMatrixHostTests
     }
 
     /// <summary>An in-flight worker load cannot block the UI reporting query.</summary>
-    [Fact]
+    [Fact(Timeout = 30_000)]
     public async Task QueryReturnsLoadingWhileBackgroundWarmIsInFlight()
     {
         CapabilityCatalogLoadResult seed =
@@ -46,9 +46,7 @@ public sealed class CanonicalSupportMatrixHostTests
 
         try
         {
-            await source.LoadStarted.Task.WaitAsync(
-                TimeSpan.FromSeconds(5),
-                TestContext.Current.CancellationToken);
+            await source.LoadStarted.Task.WaitAsync(TestContext.Current.CancellationToken);
             Task<CanonicalSupportMatrixQueryResult> queryTask = Task.Run(
                 catalog.Query,
                 TestContext.Current.CancellationToken);

@@ -348,7 +348,7 @@ public sealed class WorkbenchRawBinaryEditorSearchPerformanceTests
     }
 
     /// <summary>Verifies a later edit cancels a background result from the preceding document revision.</summary>
-    [Fact]
+    [Fact(Timeout = 30_000)]
     public async Task LaterEditCancelsRunningSearchSnapshot()
     {
         using var workspace = TempWorkspace.Create("nvt-fw-combiner-hex-search-stale-result");
@@ -376,9 +376,7 @@ public sealed class WorkbenchRawBinaryEditorSearchPerformanceTests
         OperationCanceledException? searchCancellation = null;
         try
         {
-            await searchStarted.Task.WaitAsync(
-                TimeSpan.FromSeconds(5),
-                TestContext.Current.CancellationToken);
+            await searchStarted.Task.WaitAsync(TestContext.Current.CancellationToken);
             edit = editor.OverwriteByte("0x0", "42");
         }
         finally

@@ -4,8 +4,10 @@ from __future__ import annotations
 
 import argparse
 import contextlib
+import hashlib
 import importlib.util
 import io
+import json
 import os
 import signal
 import subprocess
@@ -42,6 +44,150 @@ class VerifyOrchestrationTests(unittest.TestCase):
             )
 
         return wait_for_file
+
+    @staticmethod
+    def write_ci_trx(
+        path: Path,
+        *,
+        total: int,
+        skipped: int,
+    ) -> None:
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(
+            '<?xml version="1.0" encoding="utf-8"?>\n'
+            '<TestRun xmlns="http://microsoft.com/schemas/VisualStudio/TeamTest/2010">'
+            "<ResultSummary><Counters "
+            f'total="{total}" executed="{total - skipped}" '
+            f'passed="{total - skipped}" failed="0" '
+            'notExecuted="0" /></ResultSummary></TestRun>\n',
+            encoding="utf-8",
+        )
+
+    @staticmethod
+    def write_ci_manifest(path: Path, document: dict[str, object]) -> None:
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(
+            json.dumps(document, indent=2, sort_keys=True) + "\n",
+            encoding="utf-8",
+        )
+
+    @staticmethod
+    def write_ci_coverage_pair(
+        report_root: Path,
+        json_document: dict[str, object],
+        *,
+        source_roots: tuple[str, ...] = (),
+        class_filenames: tuple[str | None, ...] = (),
+    ) -> tuple[Path, Path]:
+        report_root.mkdir(parents=True, exist_ok=True)
+        json_report = report_root / "coverage.json"
+        json_report.write_text(json.dumps(json_document), encoding="utf-8")
+        coverage = MODULE.ET.Element("coverage")
+        sources = MODULE.ET.SubElement(coverage, "sources")
+        for source_root in source_roots:
+            MODULE.ET.SubElement(sources, "source").text = source_root
+        packages = MODULE.ET.SubElement(coverage, "packages")
+        classes = MODULE.ET.SubElement(
+            MODULE.ET.SubElement(packages, "package"),
+            "classes",
+        )
+        for index, filename in enumerate(class_filenames):
+            attributes = {"name": f"Probe{index}"}
+            if filename is not None:
+                attributes["filename"] = filename
+            MODULE.ET.SubElement(classes, "class", attributes)
+        cobertura_report = report_root / "coverage.cobertura.xml"
+        MODULE.ET.ElementTree(coverage).write(
+            cobertura_report,
+            encoding="utf-8",
+            xml_declaration=True,
+        )
+        return json_report, cobertura_report
+
+    def stage_complete_ci_dotnet_evidence(
+        self,
+        download_root: Path,
+        source_sha: str,
+    ) -> None:
+        sdk_version = "10.0.301"
+        build_root = download_root / "dotnet-build-evidence"
+        build_log = build_root / "build/build.log"
+        build_log.parent.mkdir(parents=True)
+        build_log.write_text("build passed\n", encoding="utf-8")
+        self.write_ci_manifest(
+            build_root / "build/manifest.json",
+            {
+                "schemaVersion": 1,
+                "kind": "dotnet-build",
+                "sourceSha": source_sha,
+                "sdkVersion": sdk_version,
+                "success": True,
+                "files": {
+                    "build/build.log": hashlib.sha256(
+                        build_log.read_bytes()
+                    ).hexdigest()
+                },
+            },
+        )
+        for shard, projects in MODULE.CI_DOTNET_SHARDS.items():
+            artifact_root = download_root / f"dotnet-test-{shard}-evidence"
+            shard_root = artifact_root / "shards" / shard
+            shard_log = shard_root / "shard.log"
+            shard_log.parent.mkdir(parents=True)
+            shard_log.write_text(f"{shard} passed\n", encoding="utf-8")
+            files = {
+                shard_log.relative_to(artifact_root).as_posix(): hashlib.sha256(
+                    shard_log.read_bytes()
+                ).hexdigest()
+            }
+            rows: list[dict[str, object]] = []
+            for project in projects:
+                result_root = shard_root / "results" / project.name
+                trx = result_root / "test-results.trx"
+                coverage_root = result_root / "coverage"
+                coverage_json = coverage_root / "coverage.json"
+                cobertura = coverage_root / "coverage.cobertura.xml"
+                self.write_ci_trx(
+                    trx,
+                    total=project.expected_total,
+                    skipped=project.expected_skipped,
+                )
+                coverage_root.mkdir()
+                coverage_json.write_text("{}\n", encoding="utf-8")
+                cobertura.write_text("<coverage />\n", encoding="utf-8")
+                evidence_paths = (trx, coverage_json, cobertura)
+                for evidence in evidence_paths:
+                    relative = evidence.relative_to(artifact_root).as_posix()
+                    files[relative] = hashlib.sha256(evidence.read_bytes()).hexdigest()
+                rows.append(
+                    {
+                        "relativePath": project.relative_path,
+                        "total": project.expected_total,
+                        "passed": project.expected_total - project.expected_skipped,
+                        "failed": 0,
+                        "skipped": project.expected_skipped,
+                        "trx": trx.relative_to(artifact_root).as_posix(),
+                        "coverageJson": coverage_json.relative_to(
+                            artifact_root
+                        ).as_posix(),
+                        "coverageCobertura": cobertura.relative_to(
+                            artifact_root
+                        ).as_posix(),
+                    }
+                )
+            self.write_ci_manifest(
+                shard_root / "manifest.json",
+                {
+                    "schemaVersion": 1,
+                    "kind": "dotnet-test-shard",
+                    "sourceSha": source_sha,
+                    "sdkVersion": sdk_version,
+                    "success": True,
+                    "shard": shard,
+                    "projects": rows,
+                    "files": files,
+                },
+            )
 
     def test_full_plan_assigns_each_verification_owner_once(self) -> None:
         lanes = MODULE.selected_lanes(MODULE.parse_args(["--all"]))
@@ -1738,6 +1884,841 @@ class VerifyOrchestrationTests(unittest.TestCase):
             ),
         ):
             MODULE.require_python_distribution_versions(expected)
+
+    def test_ci_dotnet_shards_form_one_closed_exact_project_partition(self) -> None:
+        expected = {
+            "bootstrap": (
+                (
+                    "tests/NvtFwCombiner.Bootstrap.Tests/"
+                    "NvtFwCombiner.Bootstrap.Tests.csproj",
+                    925,
+                    0,
+                ),
+            ),
+            "ui": (
+                (
+                    "tests/NvtFwCombiner.UiSmoke.Tests/"
+                    "NvtFwCombiner.UiSmoke.Tests.csproj",
+                    444,
+                    0,
+                ),
+            ),
+            "core": (
+                (
+                    "tests/NvtFwCombiner.Domain.Tests/"
+                    "NvtFwCombiner.Domain.Tests.csproj",
+                    404,
+                    0,
+                ),
+                (
+                    "tests/NvtFwCombiner.Application.Tests/"
+                    "NvtFwCombiner.Application.Tests.csproj",
+                    526,
+                    0,
+                ),
+                (
+                    "tests/NvtFwCombiner.Infrastructure.Tests/"
+                    "NvtFwCombiner.Infrastructure.Tests.csproj",
+                    405,
+                    2,
+                ),
+                (
+                    "tests/NvtFwCombiner.ProfileContract.Tests/"
+                    "NvtFwCombiner.ProfileContract.Tests.csproj",
+                    387,
+                    0,
+                ),
+                (
+                    "tests/NvtFwCombiner.GoldenRegression.Tests/"
+                    "NvtFwCombiner.GoldenRegression.Tests.csproj",
+                    17,
+                    0,
+                ),
+                (
+                    "tests/NvtFwCombiner.Architecture.Tests/"
+                    "NvtFwCombiner.Architecture.Tests.csproj",
+                    213,
+                    0,
+                ),
+            ),
+        }
+
+        actual = {
+            shard: tuple(
+                (
+                    project.relative_path,
+                    project.expected_total,
+                    project.expected_skipped,
+                )
+                for project in projects
+            )
+            for shard, projects in MODULE.CI_DOTNET_SHARDS.items()
+        }
+
+        self.assertEqual(expected, actual)
+        flattened = [path for projects in actual.values() for path, _, _ in projects]
+        solution_test_projects = {
+            project.attrib["Path"].replace("\\", "/")
+            for project in MODULE.ET.parse(MODULE.SOLUTION).findall(".//Project")
+            if (
+                MODULE.PurePosixPath(project.attrib["Path"]).parts[0] == "tests"
+                and MODULE.PurePosixPath(project.attrib["Path"]).stem.endswith(".Tests")
+            )
+        }
+        self.assertEqual(8, len(flattened))
+        self.assertEqual(8, len(set(flattened)))
+        self.assertEqual(solution_test_projects, set(flattened))
+        self.assertEqual(
+            3321, sum(total for projects in actual.values() for _, total, _ in projects)
+        )
+        self.assertEqual(
+            2,
+            sum(skipped for projects in actual.values() for _, _, skipped in projects),
+        )
+
+    def test_ci_dotnet_test_command_keeps_full_project_coverage_and_trx(self) -> None:
+        project = MODULE.CI_DOTNET_SHARDS["bootstrap"][0]
+        results = Path("artifacts/ci-dotnet-work/shards/bootstrap/results/bootstrap")
+
+        command = MODULE.ci_dotnet_test_command("dotnet", project, results)
+
+        self.assertEqual("test", command[1])
+        self.assertEqual(str(MODULE.ROOT / project.relative_path), command[2])
+        self.assertIn("--no-restore", command)
+        self.assertNotIn("--no-build", command)
+        self.assertNotIn("--filter", command)
+        self.assertIn("--collect:XPlat Code Coverage", command)
+        self.assertEqual(
+            str(results), command[command.index("--results-directory") + 1]
+        )
+        self.assertIn("trx;LogFileName=test-results.trx", command)
+        self.assertEqual(
+            "DataCollectionRunSettings.DataCollectors.DataCollector.Configuration.Format=json,cobertura",
+            command[-1],
+        )
+
+    def test_ci_coverage_normalization_removes_the_windows_producer_root(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            repository_root = Path(temporary) / "repository"
+            report_root = repository_root / "artifacts/coverage"
+            report_root.mkdir(parents=True)
+            source = repository_root / "src/Probe/Probe.cs"
+            json_report = report_root / "coverage.json"
+            json_report.write_text(
+                json.dumps({"Probe.dll": {str(source): {"Probe": {}}}}),
+                encoding="utf-8",
+            )
+            cobertura_report = report_root / "coverage.cobertura.xml"
+            cobertura_report.write_text(
+                "<coverage><sources><source>"
+                + str(repository_root)
+                + "</source></sources><packages><package><classes>"
+                '<class name="Probe" filename="src\\Probe\\Probe.cs" />'
+                "</classes></package></packages></coverage>",
+                encoding="utf-8",
+            )
+
+            MODULE.normalize_ci_dotnet_coverage_reports(
+                json_report,
+                cobertura_report,
+                repository_root,
+            )
+
+            normalized_json = json.loads(json_report.read_text(encoding="utf-8"))
+            self.assertEqual(
+                ["src/Probe/Probe.cs"],
+                list(normalized_json["Probe.dll"]),
+            )
+            normalized_xml = MODULE.ET.parse(cobertura_report).getroot()
+            self.assertEqual(".", normalized_xml.findtext("./sources/source"))
+            self.assertEqual(
+                "src/Probe/Probe.cs",
+                normalized_xml.find(".//class").get("filename"),
+            )
+            normalized_bytes = (json_report.read_bytes(), cobertura_report.read_bytes())
+
+            MODULE.normalize_ci_dotnet_coverage_reports(
+                json_report,
+                cobertura_report,
+                repository_root,
+            )
+
+            self.assertEqual(
+                normalized_bytes,
+                (json_report.read_bytes(), cobertura_report.read_bytes()),
+            )
+
+    def test_ci_coverage_normalization_rejects_sources_outside_the_repository(
+        self,
+    ) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            repository_root = root / "repository"
+            report_root = repository_root / "artifacts/coverage"
+            report_root.mkdir(parents=True)
+            json_report = report_root / "coverage.json"
+            json_report.write_text(
+                json.dumps(
+                    {"Probe.dll": {str(root / "outside/Probe.cs"): {"Probe": {}}}}
+                ),
+                encoding="utf-8",
+            )
+            cobertura_report = report_root / "coverage.cobertura.xml"
+            cobertura_report.write_text("<coverage />", encoding="utf-8")
+
+            with self.assertRaisesRegex(
+                RuntimeError, "outside the producer repository"
+            ):
+                MODULE.normalize_ci_dotnet_coverage_reports(
+                    json_report,
+                    cobertura_report,
+                    repository_root,
+                )
+
+    def test_ci_coverage_normalization_rejects_json_source_aliases(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            repository_root = Path(temporary) / "repository"
+            source = repository_root / "src/Probe/Probe.cs"
+            json_report, cobertura_report = self.write_ci_coverage_pair(
+                repository_root / "artifacts/coverage",
+                {
+                    "Probe.dll": {
+                        str(source): {"Absolute": {}},
+                        "src/Probe/Probe.cs": {"Relative": {}},
+                    }
+                },
+            )
+
+            with self.assertRaisesRegex(RuntimeError, "identity collides"):
+                MODULE.normalize_ci_dotnet_coverage_reports(
+                    json_report,
+                    cobertura_report,
+                    repository_root,
+                )
+
+    def test_ci_coverage_normalization_rejects_duplicate_json_keys(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            repository_root = Path(temporary) / "repository"
+            json_report, cobertura_report = self.write_ci_coverage_pair(
+                repository_root / "artifacts/coverage",
+                {},
+            )
+            json_report.write_text(
+                '{"Probe.dll": {}, "Probe.dll": {}}',
+                encoding="utf-8",
+            )
+
+            with self.assertRaisesRegex(RuntimeError, "duplicate JSON key"):
+                MODULE.normalize_ci_dotnet_coverage_reports(
+                    json_report,
+                    cobertura_report,
+                    repository_root,
+                )
+
+    def test_ci_coverage_normalization_rejects_cobertura_root_outside_repository(
+        self,
+    ) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            repository_root = root / "repository"
+            json_report, cobertura_report = self.write_ci_coverage_pair(
+                repository_root / "artifacts/coverage",
+                {},
+                source_roots=(str(root / "outside"),),
+                class_filenames=("Probe.cs",),
+            )
+
+            with self.assertRaisesRegex(RuntimeError, "not a unique"):
+                MODULE.normalize_ci_dotnet_coverage_reports(
+                    json_report,
+                    cobertura_report,
+                    repository_root,
+                )
+
+    def test_ci_coverage_normalization_accepts_deterministic_virtual_root(
+        self,
+    ) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            repository_root = Path(temporary) / "repository"
+            json_report, cobertura_report = self.write_ci_coverage_pair(
+                repository_root / "artifacts/coverage",
+                {
+                    "Probe.dll": {
+                        "/_/src/Probe/Probe.cs": {"Probe": {}},
+                    }
+                },
+                source_roots=("\\",),
+                class_filenames=("/_/src/Probe/Probe.cs",),
+            )
+
+            MODULE.normalize_ci_dotnet_coverage_reports(
+                json_report,
+                cobertura_report,
+                repository_root,
+            )
+
+            normalized_json = json.loads(json_report.read_text(encoding="utf-8"))
+            self.assertEqual(
+                ["src/Probe/Probe.cs"],
+                list(normalized_json["Probe.dll"]),
+            )
+            self.assertEqual(
+                "src/Probe/Probe.cs",
+                MODULE.ET.parse(cobertura_report)
+                .getroot()
+                .find(".//class")
+                .get("filename"),
+            )
+
+    def test_ci_coverage_normalization_rejects_ambiguous_cobertura_roots(
+        self,
+    ) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            repository_root = Path(temporary) / "repository"
+            json_report, cobertura_report = self.write_ci_coverage_pair(
+                repository_root / "artifacts/coverage",
+                {},
+                source_roots=(
+                    str(repository_root / "src/First"),
+                    str(repository_root / "src/Second"),
+                ),
+                class_filenames=("Probe.cs",),
+            )
+
+            with self.assertRaisesRegex(RuntimeError, "not a unique"):
+                MODULE.normalize_ci_dotnet_coverage_reports(
+                    json_report,
+                    cobertura_report,
+                    repository_root,
+                )
+
+    def test_ci_coverage_normalization_rejects_cobertura_source_aliases(
+        self,
+    ) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            repository_root = Path(temporary) / "repository"
+            source = repository_root / "src/Probe/Probe.cs"
+            json_report, cobertura_report = self.write_ci_coverage_pair(
+                repository_root / "artifacts/coverage",
+                {},
+                source_roots=(str(repository_root),),
+                class_filenames=(str(source), "src/Probe/Probe.cs"),
+            )
+
+            with self.assertRaisesRegex(RuntimeError, "identity collides"):
+                MODULE.normalize_ci_dotnet_coverage_reports(
+                    json_report,
+                    cobertura_report,
+                    repository_root,
+                )
+
+    def test_ci_coverage_normalization_rejects_missing_cobertura_filename(
+        self,
+    ) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            repository_root = Path(temporary) / "repository"
+            json_report, cobertura_report = self.write_ci_coverage_pair(
+                repository_root / "artifacts/coverage",
+                {},
+                class_filenames=(None,),
+            )
+
+            with self.assertRaisesRegex(RuntimeError, "missing its source filename"):
+                MODULE.normalize_ci_dotnet_coverage_reports(
+                    json_report,
+                    cobertura_report,
+                    repository_root,
+                )
+
+    def test_ci_coverage_normalization_rejects_multiple_source_containers(
+        self,
+    ) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            repository_root = Path(temporary) / "repository"
+            json_report, cobertura_report = self.write_ci_coverage_pair(
+                repository_root / "artifacts/coverage",
+                {},
+                source_roots=(str(repository_root),),
+                class_filenames=("src/Probe/Probe.cs",),
+            )
+            coverage = MODULE.ET.parse(cobertura_report)
+            extra_sources = MODULE.ET.SubElement(coverage.getroot(), "sources")
+            MODULE.ET.SubElement(extra_sources, "source").text = str(
+                repository_root / "second-runner-root"
+            )
+            coverage.write(cobertura_report, encoding="utf-8", xml_declaration=True)
+
+            with self.assertRaisesRegex(
+                RuntimeError, "multiple source-root containers"
+            ):
+                MODULE.normalize_ci_dotnet_coverage_reports(
+                    json_report,
+                    cobertura_report,
+                    repository_root,
+                )
+
+    def test_ci_project_evidence_hashes_normalized_coverage_bytes(self) -> None:
+        project = MODULE.CiDotnetProject("tests/Probe/Probe.csproj", 1)
+        with tempfile.TemporaryDirectory() as temporary:
+            repository_root = Path(temporary) / "repository"
+            results = repository_root / "artifacts/ci-dotnet-work/results"
+            self.write_ci_trx(results / "test-results.trx", total=1, skipped=0)
+            source = repository_root / "src/Probe/Probe.cs"
+            self.write_ci_coverage_pair(
+                results / "collector",
+                {"Probe.dll": {str(source): {"Probe": {}}}},
+                source_roots=(str(repository_root),),
+                class_filenames=("src/Probe/Probe.cs",),
+            )
+
+            with patch.object(MODULE, "ROOT", repository_root):
+                row, paths = MODULE.collect_ci_project_evidence(
+                    project,
+                    results,
+                    repository_root,
+                )
+            hashes = MODULE.ci_file_hashes(paths, repository_root)
+            json_path = repository_root / str(row["coverageJson"])
+            cobertura_path = repository_root / str(row["coverageCobertura"])
+
+            self.assertNotIn(
+                str(repository_root), json_path.read_text(encoding="utf-8")
+            )
+            self.assertNotIn(
+                str(repository_root),
+                cobertura_path.read_text(encoding="utf-8"),
+            )
+            self.assertEqual(MODULE.sha256_file(json_path), hashes[row["coverageJson"]])
+            self.assertEqual(
+                MODULE.sha256_file(cobertura_path),
+                hashes[row["coverageCobertura"]],
+            )
+
+    def test_ci_project_evidence_collapses_only_identical_trx_attachment_copies(
+        self,
+    ) -> None:
+        project = MODULE.CiDotnetProject("tests/Probe/Probe.csproj", 1)
+        with tempfile.TemporaryDirectory() as temporary:
+            evidence_root = Path(temporary)
+            results = evidence_root / "results"
+            self.write_ci_trx(results / "test-results.trx", total=1, skipped=0)
+            for relative in ("collector", "trx/In/machine"):
+                parent = results / relative
+                parent.mkdir(parents=True)
+                (parent / "coverage.json").write_text("{}\n", encoding="utf-8")
+                (parent / "coverage.cobertura.xml").write_text(
+                    "<coverage />\n", encoding="utf-8"
+                )
+
+            row, paths = MODULE.collect_ci_project_evidence(
+                project, results, evidence_root
+            )
+
+            self.assertEqual(3, len(paths))
+            self.assertEqual(1, len(tuple(results.rglob("coverage.json"))))
+            self.assertEqual(1, len(tuple(results.rglob("coverage.cobertura.xml"))))
+            self.assertIn("collector/coverage.json", row["coverageJson"])
+
+            duplicate = results / "trx/In/machine/coverage.json"
+            duplicate.write_text('{"different": true}\n', encoding="utf-8")
+            (duplicate.parent / "coverage.cobertura.xml").write_text(
+                "<coverage />\n", encoding="utf-8"
+            )
+            with self.assertRaisesRegex(RuntimeError, "divergent coverage"):
+                MODULE.collect_ci_project_evidence(project, results, evidence_root)
+
+    def test_ci_project_evidence_rejects_reparse_points_before_reading(self) -> None:
+        project = MODULE.CiDotnetProject("tests/Probe/Probe.csproj", 1)
+        with tempfile.TemporaryDirectory() as temporary:
+            evidence_root = Path(temporary)
+            results = evidence_root / "results"
+            coverage = results / "collector/coverage.json"
+            coverage.parent.mkdir(parents=True)
+            coverage.write_text("{}\n", encoding="utf-8")
+
+            with (
+                patch.object(
+                    MODULE,
+                    "is_ci_evidence_reparse_point",
+                    side_effect=lambda path: path.name == "coverage.json",
+                ),
+                self.assertRaisesRegex(RuntimeError, "reparse-point"),
+            ):
+                MODULE.collect_ci_project_evidence(project, results, evidence_root)
+
+    def test_ci_artifact_publication_copies_only_declared_regular_files(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            source = root / "work"
+            upload = root / "upload"
+            declared = source / "build/build.log"
+            declared.parent.mkdir(parents=True)
+            declared.write_text("build passed\n", encoding="utf-8")
+            manifest = source / "build/manifest.json"
+            manifest.write_text("{}\n", encoding="utf-8")
+            (source / "private.bin").write_bytes(b"not upload evidence")
+            hashes = {
+                "build/build.log": hashlib.sha256(declared.read_bytes()).hexdigest()
+            }
+
+            with patch.object(MODULE, "ROOT", root):
+                MODULE.publish_ci_dotnet_artifact(
+                    source,
+                    upload,
+                    "build/manifest.json",
+                    hashes,
+                )
+
+            self.assertEqual(
+                {"build/build.log", "build/manifest.json"},
+                {
+                    path.relative_to(upload).as_posix()
+                    for path in upload.rglob("*")
+                    if path.is_file()
+                },
+            )
+            self.assertFalse((upload / "private.bin").exists())
+
+    def test_ci_dotnet_modes_are_explicit_and_mutually_exclusive(self) -> None:
+        build = MODULE.parse_args(["--ci-dotnet-build"])
+        shard = MODULE.parse_args(["--ci-dotnet-test-shard", "core"])
+        finalize = MODULE.parse_args(
+            ["--ci-dotnet-finalize", "artifacts/ci-dotnet-downloads"]
+        )
+
+        self.assertTrue(build.ci_dotnet_build)
+        self.assertEqual("core", shard.ci_dotnet_test_shard)
+        self.assertEqual(
+            Path("artifacts/ci-dotnet-downloads"),
+            finalize.ci_dotnet_finalize,
+        )
+        with self.assertRaisesRegex(SystemExit, "CI .NET modes cannot be combined"):
+            MODULE.execute_verification(
+                MODULE.parse_args(["--ci-dotnet-build", "--ci-dotnet-test-shard", "ui"])
+            )
+
+    def test_ci_dotnet_finalizer_fails_closed_when_evidence_is_missing(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            with self.assertRaisesRegex(RuntimeError, r"missing.*\.NET CI evidence"):
+                MODULE.finalize_ci_dotnet_evidence(Path(temporary))
+
+    def test_ci_dotnet_finalizer_rejects_manifest_reparse_before_reading(self) -> None:
+        source_sha = "7" * 40
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            download_root = root / "ci-dotnet-downloads"
+            self.stage_complete_ci_dotnet_evidence(download_root, source_sha)
+            load_manifest = MagicMock()
+
+            with (
+                patch.dict(
+                    os.environ,
+                    {
+                        "GITHUB_SHA": source_sha,
+                        "NFC_CI_DOTNET_BUILD_RESULT": "success",
+                        "NFC_CI_DOTNET_TEST_RESULT": "success",
+                    },
+                    clear=False,
+                ),
+                patch.object(
+                    MODULE,
+                    "is_ci_evidence_reparse_point",
+                    side_effect=lambda path: (
+                        path.name == "manifest.json"
+                        and "dotnet-build-evidence" in path.parts
+                    ),
+                ),
+                patch.object(MODULE, "load_ci_manifest", load_manifest),
+                self.assertRaisesRegex(RuntimeError, "reparse-point"),
+            ):
+                MODULE.finalize_ci_dotnet_evidence(download_root)
+
+            load_manifest.assert_not_called()
+
+    def test_ci_dotnet_finalizer_validates_exact_evidence_before_coverage(self) -> None:
+        source_sha = "1" * 40
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            download_root = root / "ci-dotnet-downloads"
+            self.stage_complete_ci_dotnet_evidence(download_root, source_sha)
+            events: list[str] = []
+            with (
+                patch.dict(
+                    os.environ,
+                    {
+                        "GITHUB_SHA": source_sha,
+                        "NFC_CI_DOTNET_BUILD_RESULT": "success",
+                        "NFC_CI_DOTNET_TEST_RESULT": "success",
+                    },
+                    clear=False,
+                ),
+                patch.object(MODULE, "ROOT", root),
+                patch.object(MODULE, "COVERAGE_ROOT", root / "coverage"),
+                patch.object(MODULE, "repository_sdk_version", return_value="10.0.301"),
+                patch.object(
+                    MODULE,
+                    "verify_coverage",
+                    side_effect=lambda *_args: events.append("coverage"),
+                ) as verify_coverage,
+                patch.object(
+                    MODULE,
+                    "run",
+                    side_effect=lambda *_args: events.append("fixture"),
+                ) as run_command,
+            ):
+                MODULE.finalize_ci_dotnet_evidence(download_root)
+
+            coverage_root = root / "coverage/dotnet"
+            self.assertEqual(8, len(tuple(coverage_root.rglob("coverage.json"))))
+            self.assertEqual(
+                8, len(tuple(coverage_root.rglob("coverage.cobertura.xml")))
+            )
+            verify_coverage.assert_called_once_with("dotnet", coverage_root)
+            run_command.assert_called_once_with(
+                [
+                    sys.executable,
+                    str(MODULE.CTRL_RAM_REPLACE_FIXTURE_VERIFIER),
+                    "--skip-public-smoke",
+                ]
+            )
+            self.assertEqual(["fixture", "coverage"], events)
+
+    def test_ci_dotnet_finalizer_rejects_hash_extra_and_job_result_drift(self) -> None:
+        source_sha = "2" * 40
+        mutations = ("hash", "extra", "job")
+        for mutation in mutations:
+            with (
+                self.subTest(mutation=mutation),
+                tempfile.TemporaryDirectory() as temporary,
+            ):
+                root = Path(temporary)
+                download_root = root / "ci-dotnet-downloads"
+                self.stage_complete_ci_dotnet_evidence(download_root, source_sha)
+                build_result = "success"
+                if mutation == "hash":
+                    (
+                        download_root / "dotnet-build-evidence/build/build.log"
+                    ).write_text("mutated\n", encoding="utf-8")
+                elif mutation == "extra":
+                    (download_root / "dotnet-build-evidence/unexpected.txt").write_text(
+                        "unexpected\n", encoding="utf-8"
+                    )
+                else:
+                    build_result = "failure"
+                with (
+                    patch.dict(
+                        os.environ,
+                        {
+                            "GITHUB_SHA": source_sha,
+                            "NFC_CI_DOTNET_BUILD_RESULT": build_result,
+                            "NFC_CI_DOTNET_TEST_RESULT": "success",
+                        },
+                        clear=False,
+                    ),
+                    patch.object(MODULE, "ROOT", root),
+                    patch.object(MODULE, "COVERAGE_ROOT", root / "coverage"),
+                    patch.object(
+                        MODULE, "repository_sdk_version", return_value="10.0.301"
+                    ),
+                    patch.object(MODULE, "verify_coverage") as verify_coverage,
+                    patch.object(MODULE, "run") as run_command,
+                    self.assertRaises(RuntimeError),
+                ):
+                    MODULE.finalize_ci_dotnet_evidence(download_root)
+                verify_coverage.assert_not_called()
+                run_command.assert_not_called()
+
+    def test_ci_dotnet_finalizer_rejects_cross_artifact_and_report_reuse(self) -> None:
+        source_sha = "5" * 40
+        mutations = ("cross-artifact", "reuse", "cross-parent")
+        for mutation in mutations:
+            with (
+                self.subTest(mutation=mutation),
+                tempfile.TemporaryDirectory() as temporary,
+            ):
+                root = Path(temporary)
+                download_root = root / "ci-dotnet-downloads"
+                self.stage_complete_ci_dotnet_evidence(download_root, source_sha)
+                core_manifest_path = (
+                    download_root
+                    / "dotnet-test-core-evidence/shards/core/manifest.json"
+                )
+                if mutation == "cross-artifact":
+                    collision = (
+                        download_root / "dotnet-test-ui-evidence/build/build.log"
+                    )
+                    collision.parent.mkdir(parents=True)
+                    collision.write_text("collision\n", encoding="utf-8")
+                else:
+                    core_manifest = json.loads(
+                        core_manifest_path.read_text(encoding="utf-8")
+                    )
+                    first, second = core_manifest["projects"][:2]
+                    if mutation == "reuse":
+                        second["coverageJson"] = first["coverageJson"]
+                        second["coverageCobertura"] = first["coverageCobertura"]
+                    else:
+                        first["coverageCobertura"] = second["coverageCobertura"]
+                    self.write_ci_manifest(core_manifest_path, core_manifest)
+                with (
+                    patch.dict(
+                        os.environ,
+                        {
+                            "GITHUB_SHA": source_sha,
+                            "NFC_CI_DOTNET_BUILD_RESULT": "success",
+                            "NFC_CI_DOTNET_TEST_RESULT": "success",
+                        },
+                        clear=False,
+                    ),
+                    patch.object(MODULE, "ROOT", root),
+                    patch.object(
+                        MODULE, "repository_sdk_version", return_value="10.0.301"
+                    ),
+                    patch.object(MODULE, "verify_coverage") as verify_coverage,
+                    patch.object(MODULE, "run") as run_command,
+                    self.assertRaises(RuntimeError),
+                ):
+                    MODULE.finalize_ci_dotnet_evidence(download_root)
+                verify_coverage.assert_not_called()
+                run_command.assert_not_called()
+
+    def test_ci_dotnet_finalizer_runs_fixture_before_failing_coverage(self) -> None:
+        source_sha = "6" * 40
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            download_root = root / "ci-dotnet-downloads"
+            self.stage_complete_ci_dotnet_evidence(download_root, source_sha)
+            events: list[str] = []
+
+            def fail_coverage(*_args: object) -> None:
+                events.append("coverage")
+                raise RuntimeError("coverage probe")
+
+            with (
+                patch.dict(
+                    os.environ,
+                    {
+                        "GITHUB_SHA": source_sha,
+                        "NFC_CI_DOTNET_BUILD_RESULT": "success",
+                        "NFC_CI_DOTNET_TEST_RESULT": "success",
+                    },
+                    clear=False,
+                ),
+                patch.object(MODULE, "ROOT", root),
+                patch.object(MODULE, "COVERAGE_ROOT", root / "coverage"),
+                patch.object(MODULE, "repository_sdk_version", return_value="10.0.301"),
+                patch.object(
+                    MODULE, "run", side_effect=lambda *_args: events.append("fixture")
+                ),
+                patch.object(MODULE, "verify_coverage", side_effect=fail_coverage),
+                self.assertRaisesRegex(RuntimeError, "coverage probe"),
+            ):
+                MODULE.finalize_ci_dotnet_evidence(download_root)
+
+            self.assertEqual(["fixture", "coverage"], events)
+
+    def test_ci_dotnet_shard_continues_after_ordinary_project_failure(self) -> None:
+        first = MODULE.CiDotnetProject("tests/First/First.csproj", 1)
+        second = MODULE.CiDotnetProject("tests/Second/Second.csproj", 1)
+        commands: list[list[str]] = []
+
+        def fake_run(command: list[str], **_kwargs: object) -> None:
+            commands.append(command)
+            if (
+                len(command) > 2
+                and command[1] == "test"
+                and "First.csproj" in command[2]
+            ):
+                raise subprocess.CalledProcessError(1, command)
+
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            evidence_root = root / "artifacts/ci-dotnet-work"
+            with (
+                patch.dict(os.environ, {"GITHUB_SHA": "3" * 40}, clear=False),
+                patch.object(MODULE, "ROOT", root),
+                patch.object(MODULE, "SOLUTION", root / "NvtFwCombiner.slnx"),
+                patch.object(MODULE, "CI_DOTNET_EVIDENCE_ROOT", evidence_root),
+                patch.object(
+                    MODULE,
+                    "CI_DOTNET_UPLOAD_ROOT",
+                    root / "artifacts/ci-dotnet-upload",
+                ),
+                patch.dict(MODULE.CI_DOTNET_SHARDS, {"probe": (first, second)}),
+                patch.object(MODULE, "resolve_dotnet", return_value="dotnet"),
+                patch.object(MODULE, "repository_sdk_version", return_value="10.0.301"),
+                patch.object(MODULE, "require_logged_sdk_version"),
+                patch.object(MODULE, "run", side_effect=fake_run),
+                patch.object(
+                    MODULE,
+                    "cleanup_dotnet_batch",
+                    side_effect=RuntimeError("cleanup probe"),
+                ),
+                patch.object(
+                    MODULE,
+                    "collect_ci_project_evidence",
+                    return_value=(
+                        {
+                            "relativePath": second.relative_path,
+                            "total": 1,
+                            "passed": 1,
+                            "failed": 0,
+                            "skipped": 0,
+                            "trx": "trx",
+                            "coverageJson": "json",
+                            "coverageCobertura": "xml",
+                        },
+                        (),
+                    ),
+                ),
+                self.assertRaisesRegex(
+                    RuntimeError,
+                    "First.*cleanup also failed.*cleanup probe",
+                ),
+            ):
+                MODULE.verify_ci_dotnet_test_shard("probe")
+
+        test_commands = [command for command in commands if "test" in command]
+        self.assertEqual(2, len(test_commands))
+        self.assertIn("First.csproj", test_commands[0][2])
+        self.assertIn("Second.csproj", test_commands[1][2])
+
+    def test_ci_dotnet_shard_timeout_stops_before_the_next_project(self) -> None:
+        first = MODULE.CiDotnetProject("tests/First/First.csproj", 1)
+        second = MODULE.CiDotnetProject("tests/Second/Second.csproj", 1)
+        commands: list[list[str]] = []
+
+        def fake_run(command: list[str], **_kwargs: object) -> None:
+            commands.append(command)
+            if len(command) > 1 and command[1] == "test":
+                raise subprocess.TimeoutExpired(command, 30)
+
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            with (
+                patch.dict(os.environ, {"GITHUB_SHA": "4" * 40}, clear=False),
+                patch.object(MODULE, "ROOT", root),
+                patch.object(MODULE, "SOLUTION", root / "NvtFwCombiner.slnx"),
+                patch.object(
+                    MODULE,
+                    "CI_DOTNET_EVIDENCE_ROOT",
+                    root / "artifacts/ci-dotnet-work",
+                ),
+                patch.object(
+                    MODULE,
+                    "CI_DOTNET_UPLOAD_ROOT",
+                    root / "artifacts/ci-dotnet-upload",
+                ),
+                patch.dict(MODULE.CI_DOTNET_SHARDS, {"probe": (first, second)}),
+                patch.object(MODULE, "resolve_dotnet", return_value="dotnet"),
+                patch.object(MODULE, "repository_sdk_version", return_value="10.0.301"),
+                patch.object(MODULE, "run", side_effect=fake_run),
+                patch.object(MODULE, "cleanup_dotnet_batch"),
+                self.assertRaises(subprocess.TimeoutExpired),
+            ):
+                MODULE.verify_ci_dotnet_test_shard("probe")
+
+        self.assertEqual(1, sum(command[1] == "test" for command in commands))
 
     def test_parser_defaults_to_bounded_parallelism_and_rejects_excessive_jobs(
         self,

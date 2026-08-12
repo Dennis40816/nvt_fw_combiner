@@ -431,7 +431,9 @@ def validate_canonical_capability_policy_contract(errors: list[str]) -> None:
         return
     for finding in Draft202012Validator(schema).iter_errors(policy):
         location = "/".join(str(part) for part in finding.absolute_path) or "<root>"
-        errors.append(f"canonical capability policy schema error at {location}: {finding.message}")
+        errors.append(
+            f"canonical capability policy schema error at {location}: {finding.message}"
+        )
 
 
 def validate_python_syntax(files: Iterable[Path], errors: list[str]) -> None:
@@ -1288,20 +1290,49 @@ def validate_workflows(errors: list[str]) -> None:
             errors.append(f"CI is missing required check name: {name}")
     if "scripts/install-dotnet.ps1" not in ci:
         errors.append("CI must exercise the repository .NET installer")
-    if "python scripts/verify.py --skip-python --skip-structure" not in ci:
-        errors.append("CI dotnet job must run the canonical .NET verifier")
+    required_ci_dotnet_modes = (
+        "python scripts/verify.py --ci-dotnet-build",
+        "python scripts/verify.py --ci-dotnet-test-shard ${{ matrix.shard }}",
+        ("python scripts/verify.py --ci-dotnet-finalize artifacts/ci-dotnet-downloads"),
+    )
+    if any(mode not in ci for mode in required_ci_dotnet_modes):
+        errors.append("CI .NET producers and finalizer must use the canonical verifier")
+    required_ci_dotnet_topology = (
+        "  dotnet-build:",
+        "  dotnet-test:",
+        "fail-fast: false",
+        "shard: [bootstrap, ui, core]",
+        "  dotnet:\n    name: dotnet / build-test\n    needs: [dotnet-build, dotnet-test]",
+        "if: >-\n      always() &&",
+        "pattern: dotnet-*-evidence",
+        "path: artifacts/ci-dotnet-upload/",
+        "path: artifacts/ci-dotnet-downloads/",
+    )
+    if any(marker not in ci for marker in required_ci_dotnet_topology):
+        errors.append(
+            "CI .NET topology must retain one build producer, three closed test "
+            "shards, and the always-run stable finalizer"
+        )
+    if "merge-multiple: true" in ci:
+        errors.append(
+            "CI must preserve separate producer artifact roots until finalization"
+        )
+    if ".csproj" in ci:
+        errors.append("CI workflow must not duplicate the canonical .NET project map")
     verifier = (ROOT / "scripts/verify.py").read_text(encoding="utf-8")
     required_dotnet_coverage_markers = (
-        '            "test",',
-        "            str(SOLUTION),",
-        '            "--no-build",',
+        "CI_DOTNET_SHARDS",
+        "def ci_dotnet_test_command(",
+        '        "--no-restore",',
         '"--collect:XPlat Code Coverage",',
         '"--results-directory",',
+        '"trx;LogFileName=test-results.trx",',
+        "def finalize_ci_dotnet_evidence(",
     )
     if any(marker not in verifier for marker in required_dotnet_coverage_markers):
         errors.append(
-            "canonical verifier must run the full .NET solution test suite "
-            "with coverage collection"
+            "canonical verifier must own the closed .NET shard map, unfiltered "
+            "coverage/TRX collection, and evidence finalization"
         )
     if verifier.count('"--evaluated-source-ownership-only"') != 1:
         errors.append(
@@ -1421,6 +1452,7 @@ def validate_packaging_policy(files: Iterable[Path], errors: list[str]) -> None:
                 f"{script_name} external tool allowlist differs from the approved package paths: "
                 f"{', '.join(str(path) for path in sorted(declared_paths))}"
             )
+
 
 def validate_agent_files(errors: list[str]) -> None:
     if (ROOT / "AGENTS.md").stat().st_size > 16 * 1024:
