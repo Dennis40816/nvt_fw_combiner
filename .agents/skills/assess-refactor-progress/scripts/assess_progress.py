@@ -191,6 +191,10 @@ def parse_plan(plan_path: Path) -> list[PlannedTicket]:
             raise ValueError(f"Duplicate dependency-plan issue #{number}.")
         seen.add(number)
         wave = match.group("wave").strip()
+        if wave != "Preload lifecycle":
+            raise ValueError(
+                f"Preload ticket row at line {line_number} uses invalid wave {wave!r}."
+            )
         tickets.append(
             PlannedTicket(
                 number=number,

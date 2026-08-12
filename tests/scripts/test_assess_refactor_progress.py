@@ -216,6 +216,22 @@ class AssessRefactorProgressTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "exactly one preload table"):
             self._parse_temporary_plan(plan)
 
+    def test_preload_table_rejects_legacy_wave(self) -> None:
+        plan = """\
+| Depth | Wave | Issue | Approved outcome | Blocked by |
+| ---: | --- | ---: | --- | --- |
+| 0 | Baseline | #1 | baseline | — |
+
+## Stable execution ordering
+
+| Depth | Preload wave | Issue | Approved outcome | Blocked by |
+| ---: | --- | ---: | --- | --- |
+| 1 | Integration | #2 | misclassified preload | #1 |
+"""
+
+        with self.assertRaisesRegex(ValueError, "invalid wave 'Integration'"):
+            self._parse_temporary_plan(plan)
+
     def test_blank_line_cannot_silently_truncate_ticket_table(self) -> None:
         plan = """\
 | Depth | Wave | Issue | Approved outcome | Blocked by |
