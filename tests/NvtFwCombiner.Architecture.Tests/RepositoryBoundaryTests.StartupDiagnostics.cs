@@ -78,6 +78,187 @@ public sealed partial class RepositoryBoundaryTests
         Assert.DoesNotContain("Invoke-WebRequest", runner, StringComparison.OrdinalIgnoreCase);
     }
 
+    /// <summary>Keeps the approved v0.10.5 preload intake evidence and migration ledger exact.</summary>
+    [Fact]
+    public void V0105PreloadBaselineAndLifecycleLedgerStayFrozen()
+    {
+        AssertV0105PreloadBaselineIsFrozen();
+    }
+
+    private static void AssertV0105PreloadBaselineIsFrozen()
+    {
+        string baseline = ReadText(
+            "docs/governance/v0.10.5-preload-baseline-and-ticket-ledger.md");
+        string specification = ReadText("docs/specs/v0.10.5-unified-preload-lifecycle.md");
+        string decision = ReadText("docs/adr/0049-unified-preload-lifecycle.md");
+        string mainWindow = ReadText(
+            "src/NvtFwCombiner.Presentation.Avalonia/MainWindow.axaml.cs");
+        string report = ReadText(
+            "src/NvtFwCombiner.Presentation.Avalonia/MainWindow.Report.cs");
+        string history = ReadText(
+            "src/NvtFwCombiner.Presentation.Avalonia/ReportHistoryFileStore.cs");
+        string external = ReadText("src/NvtFwCombiner.Bootstrap/ExternalProcessorFactory.cs");
+        string inspection = ReadText(
+            "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/FirmwareInspectionSession.cs");
+        string runProgress = ReadText(
+            "src/NvtFwCombiner.Application/Composition/CompositionRunProgress.cs");
+        string generalMerge = ReadText(
+            "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/MergePresentationViewModel.General.cs");
+        string generalReplace = ReadText(
+            "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/ReplacePresentationViewModel.General.cs");
+        string ctrlRamRunMetadata = ReadText(
+            "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/ReplacePresentationViewModel.CtrlRamFirmwareVersion.cs");
+        string build = ReadText(
+            "src/NvtFwCombiner.Presentation.Avalonia/MainWindow.Build.cs");
+        string replaceModal = ReadText(
+            "src/NvtFwCombiner.Presentation.Avalonia/Views/ReplaceSelectionModal.axaml.cs");
+        string ctrlRamVersionModal = ReadText(
+            "src/NvtFwCombiner.Presentation.Avalonia/Views/CtrlRamFirmwareVersionModal.axaml.cs");
+
+        foreach (string row in new[]
+                 {
+                     "| annotated tag | `v0.10.4` |",
+                     "| source commit | `8c3cc51dc95cea2fbae8ec5ac0287db730d1b37b` |",
+                     "| source tree | `48ee0fd87d942674acf83c910de78681db748458` |",
+                     "| successful release workflow | run `31623880051`, attempt 2 |",
+                     "| package | `NvtFwCombiner-v0.10.4-win-x64.zip`, 77,025,377 bytes |",
+                 })
+        {
+            Assert.Equal(1, CountOccurrences(baseline, row));
+        }
+
+        foreach (string identity in new[]
+                 {
+                     "8c3cc51dc95cea2fbae8ec5ac0287db730d1b37b",
+                     "48ee0fd87d942674acf83c910de78681db748458",
+                     "run `31623880051`, attempt 2",
+                     "77,025,377 bytes",
+                     "06f9c63ef0d7384dfe7c6b850e80fec94b7a7c29368e4499dfb781f1187dcf3f",
+                     "3ad2051d75730a5e1409e6398a83c11bfbab6ead05c497846e8a750d243299d4",
+                     "cc63b5fa49bc6c27466bc1320e928c6d34ed169e2ef96f32157ed82762104f6c",
+                     "c51a69f0e1783919532eef85336e249c8f8f9e920bc456777534602bd56ca0ac",
+                     "88782b1a77f41002eede3779e4fc438bc876166ca4cb0a73db56a5407e344620",
+                     "9da227e2acf585e389d630f8741c19309f333e9ca708cd725b5724968237d19c",
+                     "f5c2062c3cec80299641be9cae2113f0cc199dd6c88e4503ed71e53374fa79a5",
+                     "c921b58beea244504aa06e32556b22ab4fe20057bc485005d88ebc6ecaaab41d",
+                     "ddd27f07311fd599b258c9e41e26c424b3bb8bae02b33e89a304b6f9b1f5b142",
+                 })
+        {
+            Assert.Equal(1, CountOccurrences(baseline, identity));
+        }
+        (string Metric, int Lines)[] codeSizeRows =
+        [
+            ("predecessor full production", 97_306),
+            ("runtime production", 67_186),
+            ("Domain plus Profiles", 20_619),
+            ("Application", 29_383),
+            ("Bootstrap plus CLI", 3_255),
+            ("Infrastructure plus Contracts plus CRC worker", 13_929),
+        ];
+        foreach ((string metric, int lines) in codeSizeRows)
+        {
+            string row = $"| {metric} | {lines.ToString("N0", System.Globalization.CultureInfo.InvariantCulture)} |";
+            Assert.Equal(1, CountOccurrences(baseline, row));
+        }
+        Assert.Equal(67_186, codeSizeRows.Skip(2).Sum(static row => row.Lines));
+        Assert.Contains("777.090 ms", baseline, StringComparison.Ordinal);
+        Assert.Contains("806.930 ms", baseline, StringComparison.Ordinal);
+        Assert.Contains("782.368 ms", baseline, StringComparison.Ordinal);
+        Assert.Contains("Neither stable-package median satisfies", baseline, StringComparison.Ordinal);
+        Assert.Contains(
+            "78 static/dynamic routes plus one disclosure unit",
+            baseline,
+            StringComparison.Ordinal);
+
+        (string Ticket, string Anchors, int Gross, int Added, int Net)[] ticketRows =
+                 [
+                     ("PL-01 #373", "this document; `RepositoryBoundaryTests.StartupDiagnostics.cs`", 0, 0, 0),
+                     ("PL-02 #374", "`MainWindow.Report.cs:11-45,108-120`; `ReportHistoryFileStore.cs:10-51`; `ReportPresentationViewModel.History.cs:94-175`", 110, 90, -20),
+                     ("PL-03 #375", "`CanonicalCatalogStartupCoordinator.cs:1-139`; `MainWindow.axaml.cs:22-33,219-318,337-412`", 260, 230, -30),
+                     ("PL-04 #376", "`MainWindow.axaml.cs:227-265`; `MainWindow.Report.cs:38-120`; `MainWindow.StartupWarmup.cs:9-92`; `MessageCenterViewModel.cs:147-241`", 220, 190, -30),
+                     ("PL-05 #377", "`ExternalProcessorFactory.cs:23-143,155-219` (exactly 170 nonblank owner lines); callers/wiring retained or migrated at `RuntimeDependencyReadinessLeaseProvider.cs:6-16` and `CompositionHostServices.cs:36-64`", 170, 145, -25),
+                     ("PL-06 #378", "`FirmwareInspectionSession.cs:8-163`; `BuiltInFirmwareInspection.cs:19,470-537`; `BuiltInFirmwareInspection.FileIdentity.cs:19-74`", 220, 190, -30),
+                     ("PL-07 #379", "`WorkflowSessionPresentationViewModel.FirmwareInspection.cs:8-11,126-211,341-539`; `MergePresentationViewModel.General.cs:14,66-115`; `ReplacePresentationViewModel.General.cs:16,93-157` (375 nonblank candidate lines before retained result application is separated)", 250, 220, -30),
+                     ("PL-00 #380", "integration/release evidence only", 0, 0, 0),
+                 ];
+        foreach ((string ticket, string anchors, int gross, int added, int net) in ticketRows)
+        {
+            string row = Assert.Single(
+                baseline.Split('\n', StringSplitOptions.TrimEntries),
+                line => line.StartsWith($"| {ticket} |", StringComparison.Ordinal));
+            string[] cells = row.Split('|', StringSplitOptions.TrimEntries);
+            Assert.Equal(ticket, cells[1]);
+            Assert.Equal(anchors, cells[2]);
+            Assert.Equal(gross.ToString(System.Globalization.CultureInfo.InvariantCulture), cells[3]);
+            Assert.Equal(added.ToString(System.Globalization.CultureInfo.InvariantCulture), cells[4]);
+            Assert.Equal(net.ToString(System.Globalization.CultureInfo.InvariantCulture), cells[5]);
+            Assert.Equal(added - gross, net);
+        }
+
+        Assert.Contains("at most **two workers**", baseline, StringComparison.Ordinal);
+        Assert.Contains(
+            "Every queued progress, terminal, dispatcher, and accessibility callback",
+            baseline,
+            StringComparison.Ordinal);
+        Assert.Contains(
+            "stage-state updates still carry the shell-session generation and stable",
+            baseline,
+            StringComparison.Ordinal);
+        Assert.Contains(
+            "stage id, but expose no current attempt identity until work is admitted",
+            baseline,
+            StringComparison.Ordinal);
+        Assert.Contains("fake aggregate percentage", baseline, StringComparison.Ordinal);
+        Assert.Contains("exactly one terminal outcome", baseline, StringComparison.Ordinal);
+        Assert.Contains("third attempt deterministically evicts", baseline, StringComparison.Ordinal);
+        Assert.Contains("Preview/Build progress remains excluded", baseline, StringComparison.Ordinal);
+        Assert.Contains(
+            "snapshots: the current attempt and the immediately preceding terminal summary.",
+            specification,
+            StringComparison.Ordinal);
+        Assert.Contains("two concurrent workers.", decision, StringComparison.Ordinal);
+        Assert.Contains("never summed into a false overall percent", decision, StringComparison.Ordinal);
+
+        Assert.Contains("_startupLoadCancellation", mainWindow, StringComparison.Ordinal);
+        Assert.Contains("TryWarmCanonicalCatalogAsync", mainWindow, StringComparison.Ordinal);
+        Assert.Contains("RefreshAfterStartupAsync", mainWindow, StringComparison.Ordinal);
+        Assert.Contains("ReadToEndAsync", report, StringComparison.Ordinal);
+        Assert.Contains("File.ReadAllText", report, StringComparison.Ordinal);
+        Assert.Contains("MaximumHistoryFileBytes", history, StringComparison.Ordinal);
+        Assert.Contains("Task.Run(() => Load", history, StringComparison.Ordinal);
+        Assert.Contains("ProcessLifetime", external, StringComparison.Ordinal);
+        Assert.Contains("CreateUncached", external, StringComparison.Ordinal);
+        Assert.Contains("FindExternalToolsRoot", external, StringComparison.Ordinal);
+        Assert.Contains("LoadManifest", external, StringComparison.Ordinal);
+        Assert.Contains("internal void Refresh()", external, StringComparison.Ordinal);
+        Assert.Contains("_fileProjections", inspection, StringComparison.Ordinal);
+        Assert.Contains("_baseCache", inspection, StringComparison.Ordinal);
+        Assert.Contains("Channel.CreateBounded", runProgress, StringComparison.Ordinal);
+        Assert.Contains("_generalMergePreparationQueue", generalMerge, StringComparison.Ordinal);
+        Assert.Contains("GeneralMergeReadinessRefreshTask", generalMerge, StringComparison.Ordinal);
+        Assert.Contains("CancellationToken.None", generalMerge, StringComparison.Ordinal);
+        Assert.Contains("_generalReplacePreparationQueue", generalReplace, StringComparison.Ordinal);
+        Assert.Contains("GeneralReplaceReadinessRefreshTask", generalReplace, StringComparison.Ordinal);
+        Assert.Contains("CancellationToken.None", generalReplace, StringComparison.Ordinal);
+        Assert.Contains("_ctrlRamFirmwareVersionMetadataGeneration", ctrlRamRunMetadata, StringComparison.Ordinal);
+        Assert.Contains("TryOpenCtrlRamFirmwareVersionModalAsync", ctrlRamRunMetadata, StringComparison.Ordinal);
+        Assert.Contains("TryCreateCtrlRamFirmwareVersionEditAsync", ctrlRamRunMetadata, StringComparison.Ordinal);
+        Assert.Contains(
+            "IsCtrlRamFirmwareVersionBuildConfirmationCurrentAsync",
+            ctrlRamRunMetadata,
+            StringComparison.Ordinal);
+        Assert.Contains("ReadCtrlRamFirmwareVersionMetadataAsync", ctrlRamRunMetadata, StringComparison.Ordinal);
+        Assert.Contains("TryOpenCtrlRamFirmwareVersionModalAsync", build, StringComparison.Ordinal);
+        Assert.Contains("TryOpenCtrlRamFirmwareVersionModalAsync", replaceModal, StringComparison.Ordinal);
+        Assert.Contains("TryCreateCtrlRamFirmwareVersionEditAsync", ctrlRamVersionModal, StringComparison.Ordinal);
+        Assert.Contains(
+            "IsCtrlRamFirmwareVersionBuildConfirmationCurrentAsync",
+            ctrlRamVersionModal,
+            StringComparison.Ordinal);
+        Assert.Contains("CtrlRAM run metadata", baseline, StringComparison.Ordinal);
+        Assert.Contains("Explicitly excluded by the specification", baseline, StringComparison.Ordinal);
+    }
+
     private static void AssertStartupStageOrder(string source, params string[] stages)
     {
         int previous = -1;
