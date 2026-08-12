@@ -20,6 +20,9 @@ PLAN_PATH = Path("docs/governance/0.10.x-ticket-dependency-plan.md")
 PLAN_TABLE_HEADER = "| Depth | Wave | Issue | Approved outcome | Blocked by |"
 PLAN_TABLE_SEPARATOR = "| ---: | --- | ---: | --- | --- |"
 PLAN_TABLE_END_HEADING = "## Stable execution ordering"
+PRELOAD_TABLE_HEADER = (
+    "| Depth | Preload wave | Issue | Approved outcome | Blocked by |"
+)
 ISSUE_ROW = re.compile(
     r"^\|\s*(?P<depth>\d+)\s*\|\s*(?P<wave>[^|]+?)\s*\|\s*"
     r"#(?P<number>\d+)\s*\|\s*(?P<outcome>[^|]+?)\s*\|\s*"
@@ -81,6 +84,8 @@ def _group_for_wave(wave: str) -> str:
         return "coreConvergence"
     if wave == "Integration":
         return "integration"
+    if wave == "Preload lifecycle":
+        return "preloadLifecycle"
     raise ValueError(f"Unknown dependency-plan wave: {wave!r}")
 
 
@@ -153,13 +158,69 @@ def parse_plan(plan_path: Path) -> list[PlannedTicket]:
     if not tickets:
         raise ValueError(f"No dependency-plan tickets found in {plan_path}.")
 
-    for line_number, line in enumerate(lines[end_index + 1 :], end_index + 2):
+    preload_header_indexes = [
+        index
+        for index, line in enumerate(lines)
+        if line.strip() == PRELOAD_TABLE_HEADER
+    ]
+    if len(preload_header_indexes) > 1:
+        raise ValueError("Dependency plan must not contain duplicate preload tables.")
+    preload_table_end_index = -1
+    if preload_header_indexes:
+        preload_header_index = preload_header_indexes[0]
+        preload_separator_index = preload_header_index + 1
+        if (
+            preload_separator_index >= len(lines)
+            or lines[preload_separator_index].strip() != PLAN_TABLE_SEPARATOR
+        ):
+            raise ValueError(
+                "Preload ticket table must use the canonical separator row."
+            )
+        for line_index, line in enumerate(
+            lines[preload_separator_index + 1 :], preload_separator_index + 1
+        ):
+            if not line.strip():
+                preload_table_end_index = line_index
+                break
+            line_number = line_index + 1
+            match = ISSUE_ROW.match(line)
+            if match is None:
+                raise ValueError(
+                    f"Malformed preload ticket row at line {line_number}: {line!r}"
+                )
+            number = int(match.group("number"))
+            if number in seen:
+                raise ValueError(f"Duplicate dependency-plan issue #{number}.")
+            seen.add(number)
+            wave = match.group("wave").strip()
+            tickets.append(
+                PlannedTicket(
+                    number=number,
+                    depth=int(match.group("depth")),
+                    wave=wave,
+                    outcome=match.group("outcome").strip(),
+                    blockers=tuple(
+                        int(value)
+                        for value in ISSUE_REFERENCE.findall(match.group("blocked_by"))
+                    ),
+                    group=_group_for_wave(wave),
+                )
+            )
+        else:
+            preload_table_end_index = len(lines)
+
+    for line_index, line in enumerate(lines[end_index + 1 :], end_index + 1):
+        if (
+            preload_header_indexes
+            and preload_header_indexes[0] <= line_index < preload_table_end_index
+        ):
+            continue
         if ISSUE_ROW.match(line) or (
             line.lstrip().startswith("|") and ISSUE_REFERENCE.search(line)
         ):
             raise ValueError(
                 "Dependency-plan ticket row appears after the canonical table "
-                f"terminator at line {line_number}: {line!r}"
+                f"terminator at line {line_index + 1}: {line!r}"
             )
 
     planned_numbers = {ticket.number for ticket in tickets}
@@ -314,6 +375,12 @@ def build_snapshot(
     foundation = next(
         row for row in group_rows if row["group"] == "headlessCanonicalFoundation"
     )
+    preload_tickets = [
+        ticket for ticket in tickets if ticket.group == "preloadLifecycle"
+    ]
+    preload_completed = sum(
+        _is_completed(issue_by_number.get(ticket.number)) for ticket in preload_tickets
+    )
     return {
         "schemaVersion": 1,
         "repository": repository,
@@ -343,6 +410,11 @@ def build_snapshot(
                 "total": foundation["total"],
                 "percent": foundation["percent"],
             },
+            "unifiedPreloadLifecycle": {
+                "completed": preload_completed,
+                "total": len(preload_tickets),
+                "percent": _percentage(preload_completed, len(preload_tickets)),
+            },
             "weightedTotal": {"percent": round(weighted_total, 1)},
         },
         "groups": group_rows,
@@ -357,6 +429,7 @@ def render_markdown(snapshot: dict[str, Any]) -> str:
     metrics = snapshot["metrics"]
     tickets = metrics["ticketCompletion"]
     foundation = metrics["headlessCanonicalFoundation"]
+    preload = metrics["unifiedPreloadLifecycle"]
     weighted = metrics["weightedTotal"]
     confidence = str(snapshot["confidence"]).capitalize()
     lines = [
@@ -365,6 +438,9 @@ def render_markdown(snapshot: dict[str, Any]) -> str:
         "Headless canonical foundation: "
         f"{foundation['completed']}/{foundation['total']} "
         f"({foundation['percent']:.1f}%)",
+        "Unified preload lifecycle: "
+        f"{preload['completed']}/{preload['total']} "
+        f"({preload['percent']:.1f}%)",
         f"Weighted total: {weighted['percent']:.1f}%",
         f"Confidence: {confidence}",
         "",

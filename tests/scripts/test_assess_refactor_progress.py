@@ -30,7 +30,7 @@ class AssessRefactorProgressTests(unittest.TestCase):
             REPOSITORY_ROOT / "docs" / "governance" / "0.10.x-ticket-dependency-plan.md"
         )
 
-        self.assertEqual(49, len(tickets))
+        self.assertEqual(57, len(tickets))
         self.assertEqual(
             {
                 "baseline": 3,
@@ -45,7 +45,43 @@ class AssessRefactorProgressTests(unittest.TestCase):
                 for group in MODULE.GROUP_WEIGHTS
             },
         )
+        self.assertEqual(
+            8, sum(ticket.group == "preloadLifecycle" for ticket in tickets)
+        )
         self.assertEqual(100.0, sum(MODULE.GROUP_WEIGHTS.values()))
+
+    def test_preload_inventory_contributes_to_completion_and_frontier(self) -> None:
+        plan_path = (
+            REPOSITORY_ROOT / "docs" / "governance" / "0.10.x-ticket-dependency-plan.md"
+        )
+        tickets = MODULE.parse_plan(plan_path)
+        issues = [
+            self._issue(
+                ticket.number,
+                completed=ticket.group != "preloadLifecycle",
+                ready=ticket.group == "preloadLifecycle",
+            )
+            for ticket in tickets
+        ]
+        snapshot = MODULE.build_snapshot(
+            root=REPOSITORY_ROOT,
+            plan_path=plan_path,
+            repository="owner/repo",
+            tickets=tickets,
+            issues=issues,
+            state_source="github-live",
+            queried_at=datetime(2026, 8, 13, tzinfo=timezone.utc),
+        )
+
+        self.assertEqual(
+            {"completed": 49, "total": 57, "percent": 86.0},
+            snapshot["metrics"]["ticketCompletion"],
+        )
+        self.assertEqual(
+            {"completed": 0, "total": 8, "percent": 0.0},
+            snapshot["metrics"]["unifiedPreloadLifecycle"],
+        )
+        self.assertEqual([373], [row["number"] for row in snapshot["frontier"]])
 
     def test_snapshot_separates_ticket_foundation_and_weighted_metrics(self) -> None:
         plan = """\
