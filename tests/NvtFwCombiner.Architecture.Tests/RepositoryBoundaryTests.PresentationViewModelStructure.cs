@@ -276,7 +276,7 @@ public sealed partial class RepositoryBoundaryTests
             projectionMethodIndex,
             StringComparison.Ordinal);
         int reportProjectionIndex = lifecycle.IndexOf(
-            "ReportReviewViewModel report = await reports.ProjectReportAsync(",
+            "Task<ReportReviewViewModel> projectionTask = reports.ProjectReportAsync(",
             generationIndex,
             StringComparison.Ordinal);
         int cancellationIndex = lifecycle.IndexOf(
@@ -295,10 +295,17 @@ public sealed partial class RepositoryBoundaryTests
         Assert.Contains("result.CommittedOutputId", lifecycle, StringComparison.Ordinal);
         Assert.Contains("materializationErrorsAsReport: false", lifecycle, StringComparison.Ordinal);
         Assert.Contains("inspectionSnapshot: result.InspectionSnapshot", lifecycle, StringComparison.Ordinal);
+        Assert.Contains("result.Report,", lifecycle, StringComparison.Ordinal);
+        Assert.DoesNotContain(
+            "reports.ProjectReportAsync(\n            reportJson,",
+            lifecycle,
+            StringComparison.Ordinal);
         Assert.Contains("publishReport: reports.IsCurrentReportProjection(reportProjectionGeneration)", lifecycle, StringComparison.Ordinal);
         Assert.DoesNotContain("ProjectRunReport(", ReadViewModelPartials(), StringComparison.Ordinal);
-        Assert.Contains("ReportReviewViewModel.FromJsonCancellable(", ReadText(
-            "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/ReportPresentationViewModel.cs"), StringComparison.Ordinal);
+        string reportPresentation = ReadText(
+            "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/ReportPresentationViewModel.cs");
+        Assert.Contains("ReportReviewViewModel.FromJsonCancellable(", reportPresentation, StringComparison.Ordinal);
+        Assert.Contains("ReportReviewViewModel.FromReportCancellable(", reportPresentation, StringComparison.Ordinal);
         Assert.Contains("loadErrorReport(action, exception.Message);", lifecycle, StringComparison.Ordinal);
         Assert.Contains("CompleteRun(cancellationSource);", lifecycle, StringComparison.Ordinal);
         Assert.Equal(
@@ -354,6 +361,7 @@ public sealed partial class RepositoryBoundaryTests
         Assert.Contains("MutationPage", bindings, StringComparison.Ordinal);
         Assert.Contains("IssuePage", bindings, StringComparison.Ordinal);
         Assert.Contains("MemoizedIndexedReadOnlyList<ReportLineViewModel>", parser, StringComparison.Ordinal);
+        Assert.DoesNotContain("internal OutputDifferenceProjection(", parser, StringComparison.Ordinal);
         Assert.Contains("LazyThreadSafetyMode.ExecutionAndPublication", indexedRows, StringComparison.Ordinal);
         Assert.Contains("Utf8JsonReader", differenceJson, StringComparison.Ordinal);
         Assert.Contains("JsonValueSlice", differenceJson, StringComparison.Ordinal);
@@ -394,8 +402,13 @@ public sealed partial class RepositoryBoundaryTests
         Assert.Contains("CreateLinkedTokenSource(cancellationToken)", reportHistory, StringComparison.Ordinal);
         Assert.Contains("requestVersion == Volatile.Read(ref _reportRelocalizationRequestVersion)", reportHistory, StringComparison.Ordinal);
         Assert.DoesNotContain("ReportReviewViewModel.FromJson(\n                LoadedReportJson", reportHistory, StringComparison.Ordinal);
-        Assert.Contains("await reports.ProjectReportAsync(", ReadText(
-            "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/CompositionRunPresentationViewModel.cs"), StringComparison.Ordinal);
+        string runPresentation = ReadText(
+            "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/CompositionRunPresentationViewModel.cs");
+        Assert.Contains(
+            "Task<ReportReviewViewModel> projectionTask = reports.ProjectReportAsync(",
+            runPresentation,
+            StringComparison.Ordinal);
+        Assert.Contains("await Task.WhenAll(reportJsonTask, projectionTask);", runPresentation, StringComparison.Ordinal);
     }
 
     /// <summary>Locks #191/#192 to one read-only viewport with separate source adapters.</summary>

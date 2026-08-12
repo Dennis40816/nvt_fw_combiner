@@ -6,6 +6,7 @@ using NvtFwCombiner.TestSupport;
 namespace NvtFwCombiner.UiSmoke.Tests;
 
 /// <inheritdoc/>
+[Collection(UiProcessWideObservationCollection.Name)]
 public sealed class ReportHistoryPersistenceTests
 {
     /// <summary>Async persistence atomically promotes complete snapshots and never publishes cancelled work.</summary>

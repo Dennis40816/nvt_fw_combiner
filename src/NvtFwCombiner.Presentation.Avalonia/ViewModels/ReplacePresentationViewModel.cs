@@ -11,14 +11,12 @@ public sealed partial class ReplacePresentationViewModel : ObservableObject
 
     internal ReplacePresentationViewModel(
         PresentationCompositionServices compositionServices,
-        ReplaceStateBindings stateBindings,
-        Func<string, string, FirmwareConfigMetadataSnapshot?> firmwareConfigMetadataReader)
+        ReplaceStateBindings stateBindings)
     {
         _compositionServices = compositionServices ??
             throw new ArgumentNullException(nameof(compositionServices));
         _stateBindings = stateBindings ?? throw new ArgumentNullException(nameof(stateBindings));
-        _ctrlRamFirmwareVersionMetadataReader = firmwareConfigMetadataReader ??
-            throw new ArgumentNullException(nameof(firmwareConfigMetadataReader));
+        _firmwareInspection = _compositionServices.FirmwareInspection;
         ShowReplaceSelectionCommand = new RelayCommand(ShowReplaceSelection);
         CloseReplaceSelectionCommand = new RelayCommand(CloseReplaceSelection);
         AddGeneralReplaceMappingCommand = new RelayCommand(AddGeneralReplaceMapping);

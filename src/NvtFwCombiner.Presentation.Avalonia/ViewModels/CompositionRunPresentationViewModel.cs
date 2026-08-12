@@ -224,16 +224,22 @@ public sealed class CompositionRunPresentationViewModel : ObservableObject
         try
         {
             await Task.Yield();
-            string reportJson = CompositionRunReportJson.SerializeDiagnosticPreview(report);
             ReportPresentationViewModel reports = _stateBindings.Reports();
             long projectionGeneration = reports.BeginReportProjection();
-            ReportReviewViewModel projected = await reports.ProjectReportAsync(
-                reportJson,
+            Task<string> reportJsonTask = Task.Run(
+                () => CompositionRunReportJson.SerializeDiagnosticPreview(report),
+                cancellationSource.Token);
+            Task<ReportReviewViewModel> projectionTask = reports.ProjectReportAsync(
+                report,
+                suppressOutput: true,
                 "preview report",
                 null,
                 cancellationSource.Token,
                 materializationErrorsAsReport: false,
                 inspectionSnapshot: null);
+            await Task.WhenAll(reportJsonTask, projectionTask);
+            string reportJson = await reportJsonTask;
+            ReportReviewViewModel projected = await projectionTask;
             cancellationSource.Token.ThrowIfCancellationRequested();
             LastRunResult = new UiRunResultViewModel(
                 "Preview blocked",
@@ -289,14 +295,20 @@ public sealed class CompositionRunPresentationViewModel : ObservableObject
 
         long reportProjectionGeneration = reports.BeginReportProjection();
         string action = build ? "Build" : "Preview";
-        string reportJson = CompositionRunReportJson.Serialize(result);
-        ReportReviewViewModel report = await reports.ProjectReportAsync(
-            reportJson,
+        Task<string> reportJsonTask = Task.Run(
+            () => CompositionRunReportJson.Serialize(result),
+            cancellationToken);
+        Task<ReportReviewViewModel> projectionTask = reports.ProjectReportAsync(
+            result.Report,
+            suppressOutput: false,
             $"{action.ToLowerInvariant()} report",
             result.CommittedOutputId,
             cancellationToken,
             materializationErrorsAsReport: false,
             inspectionSnapshot: result.InspectionSnapshot);
+        await Task.WhenAll(reportJsonTask, projectionTask);
+        string reportJson = await reportJsonTask;
+        ReportReviewViewModel report = await projectionTask;
         cancellationToken.ThrowIfCancellationRequested();
 
         ApplyRunResult(

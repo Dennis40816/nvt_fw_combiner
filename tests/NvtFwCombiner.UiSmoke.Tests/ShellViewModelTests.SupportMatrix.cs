@@ -3,7 +3,7 @@ using NvtFwCombiner.Presentation.Avalonia.ViewModels;
 
 namespace NvtFwCombiner.UiSmoke.Tests;
 
-public sealed partial class ShellViewModelTests
+public sealed partial class ShellNavigationSystemTests
 {
     /// <summary>The Settings header opens the complete current canonical route disclosure.</summary>
     [Fact]

@@ -1,3 +1,4 @@
+using System.Collections.ObjectModel;
 using NvtFwCombiner.Application.Authoring;
 using NvtFwCombiner.Application.Capabilities;
 using NvtFwCombiner.Application.FlashMaps;
@@ -169,6 +170,86 @@ internal sealed record AbMergeInspectionBatch(
 public sealed record FirmwareInspectionSnapshotResult(
     string InspectionId,
     FirmwareInspectionSnapshot Inspection);
+
+/// <summary>Filesystem identity captured by the Infrastructure firmware-inspection adapter.</summary>
+public readonly record struct FirmwareFileIdentity
+{
+    internal FirmwareFileIdentity(bool exists, long length, DateTime lastWriteTimeUtc)
+    {
+        ArgumentOutOfRangeException.ThrowIfNegative(length);
+        Exists = exists;
+        Length = length;
+        LastWriteTimeUtc = lastWriteTimeUtc;
+    }
+
+    /// <summary>True when the path named an existing file at capture time.</summary>
+    public bool Exists { get; }
+
+    /// <summary>Observed file length, or zero when the file did not exist.</summary>
+    public long Length { get; }
+
+    /// <summary>Observed UTC write timestamp, or the default value when the file did not exist.</summary>
+    public DateTime LastWriteTimeUtc { get; }
+}
+
+/// <summary>One stable distinct-path inspection batch with adapter-owned path identities.</summary>
+public sealed class FirmwareInspectionBatchResult
+{
+    internal FirmwareInspectionBatchResult(
+        IReadOnlyDictionary<string, FirmwareInspectionSnapshot> inspectionsById,
+        IReadOnlyDictionary<string, FirmwareFileIdentity> fileIdentities,
+        IEnumerable<string> unstableFilePaths)
+    {
+        ArgumentNullException.ThrowIfNull(inspectionsById);
+        ArgumentNullException.ThrowIfNull(fileIdentities);
+        ArgumentNullException.ThrowIfNull(unstableFilePaths);
+        InspectionsById = new ReadOnlyDictionary<string, FirmwareInspectionSnapshot>(
+            new Dictionary<string, FirmwareInspectionSnapshot>(inspectionsById, StringComparer.Ordinal));
+        FileIdentities = new ReadOnlyDictionary<string, FirmwareFileIdentity>(
+            new Dictionary<string, FirmwareFileIdentity>(fileIdentities, StringComparer.Ordinal));
+        UnstableFilePaths = Array.AsReadOnly(
+        [
+            .. unstableFilePaths
+                .Distinct(StringComparer.Ordinal)
+                .OrderBy(static path => path, StringComparer.Ordinal),
+        ]);
+    }
+
+    /// <summary>Inspection projections keyed by the caller-supplied inspection id.</summary>
+    public IReadOnlyDictionary<string, FirmwareInspectionSnapshot> InspectionsById { get; }
+
+    /// <summary>Post-read file identities keyed by every distinct requested path.</summary>
+    public IReadOnlyDictionary<string, FirmwareFileIdentity> FileIdentities { get; }
+
+    /// <summary>Paths whose adapter identity changed while the batch was being inspected.</summary>
+    public IReadOnlyList<string> UnstableFilePaths { get; }
+
+    /// <summary>True only when every distinct path retained one identity for the whole read.</summary>
+    public bool IsFileIdentityStable => UnstableFilePaths.Count == 0;
+}
+
+/// <summary>FWConfig metadata and file identity observed by one adapter-owned read.</summary>
+public sealed class FirmwareConfigMetadataReadResult
+{
+    internal FirmwareConfigMetadataReadResult(
+        FirmwareConfigMetadataSnapshot? metadata,
+        FirmwareFileIdentity fileIdentity,
+        bool isFileIdentityStable)
+    {
+        Metadata = metadata;
+        FileIdentity = fileIdentity;
+        IsFileIdentityStable = isFileIdentityStable;
+    }
+
+    /// <summary>Decoded FWConfig metadata when the selected image declares it.</summary>
+    public FirmwareConfigMetadataSnapshot? Metadata { get; }
+
+    /// <summary>Identity captured before the metadata read and retained when the read was stable.</summary>
+    public FirmwareFileIdentity FileIdentity { get; }
+
+    /// <summary>True when the path identity did not change during the metadata read.</summary>
+    public bool IsFileIdentityStable { get; }
+}
 
 /// <summary>Typed Replace presentation group derived before the UI boundary.</summary>
 public enum ReplaceRegionGroup

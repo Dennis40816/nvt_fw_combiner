@@ -1,5 +1,6 @@
 using System.Globalization;
 using System.Text.Json;
+using NvtFwCombiner.Domain.Composition;
 
 namespace NvtFwCombiner.Presentation.Avalonia.ViewModels;
 
@@ -25,6 +26,13 @@ public sealed partial class ReportReviewViewModel
         long end = GetLong(range, "EndExclusive");
         long length = GetLong(range, "Length");
         return string.Create(CultureInfo.InvariantCulture, $"0x{start:X}-0x{end - 1:X} (len 0x{length:X})");
+    }
+
+    private static string FormatRange(ByteRange range)
+    {
+        return string.Create(
+            CultureInfo.InvariantCulture,
+            $"0x{range.Start:X}-0x{range.EndExclusive - 1:X} (len 0x{range.Length:X})");
     }
 
     private static string? GetStringOrNull(JsonElement element, string propertyName)

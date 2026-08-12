@@ -8,7 +8,7 @@ using NvtFwCombiner.TestSupport;
 namespace NvtFwCombiner.UiSmoke.Tests;
 
 /// <summary>UI-state coverage for the standalone profile-independent raw BIN utility.</summary>
-public sealed partial class ShellViewModelTests
+public sealed partial class RunAndHexEditorTests
 {
     /// <summary>Rejects a source that would exceed the bounded in-memory document contract.</summary>
     [Fact]
@@ -531,11 +531,6 @@ public sealed partial class ShellViewModelTests
         Assert.False(shell.RequestHexEditorRedoCommand.CanExecute(null));
         shell.RequestHexEditorSaveCommand.Execute(null);
         Assert.False(shell.HexEditorWorkspace.IsSaveConfirmationOpen);
-    }
-
-    private static byte[] CreateHexPattern(int length)
-    {
-        return [.. Enumerable.Range(0, length).Select(index => (byte)(index % 251))];
     }
 
     private static string FormatTestAddress(long address)

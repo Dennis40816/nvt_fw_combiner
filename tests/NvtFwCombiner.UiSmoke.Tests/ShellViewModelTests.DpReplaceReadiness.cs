@@ -5,7 +5,7 @@ using NvtFwCombiner.TestSupport;
 
 namespace NvtFwCombiner.UiSmoke.Tests;
 
-public sealed partial class ShellViewModelTests
+public sealed partial class DpReplaceWorkflowTests
 {
     /// <summary>
     /// Keeps NT51928 DP Replace Build and LDC applicability on the Application-owned

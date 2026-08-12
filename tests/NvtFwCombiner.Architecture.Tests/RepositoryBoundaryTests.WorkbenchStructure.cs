@@ -17,6 +17,10 @@ public sealed partial class RepositoryBoundaryTests
             "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/ReplacePresentationViewModel.Memory.cs");
         string firmwareInspectionSession = ReadText(
             "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/FirmwareInspectionSession.cs");
+        string ctrlRamVersion = ReadText(
+            "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/ReplacePresentationViewModel.CtrlRamFirmwareVersion.cs");
+        string inspectionPort = ReadText(
+            "src/NvtFwCombiner.Application/Composition/CompositionExperiencePorts.cs");
         string workflowInspection = ReadText(
             "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/WorkflowSessionPresentationViewModel.FirmwareInspection.cs");
 
@@ -34,10 +38,18 @@ public sealed partial class RepositoryBoundaryTests
         Assert.Contains("IReadOnlyList<CtrlRamRegion> regions", replaceRunner, StringComparison.Ordinal);
         Assert.DoesNotContain("File.Exists", replaceRefresh, StringComparison.Ordinal);
         Assert.DoesNotContain("new FileInfo", replaceRefresh, StringComparison.Ordinal);
-        Assert.DoesNotContain(
-            "FileIdentity.Equals(FirmwareFileIdentity.Capture",
-            viewModels,
-            StringComparison.Ordinal);
+        Assert.DoesNotContain("FileInfo", firmwareInspectionSession, StringComparison.Ordinal);
+        Assert.DoesNotContain("FirmwareFileIdentity.Capture", firmwareInspectionSession, StringComparison.Ordinal);
+        Assert.DoesNotContain("FirmwareFileIdentity.Capture", ctrlRamVersion, StringComparison.Ordinal);
+        Assert.Contains("FirmwareInspectionBatchResult InspectFirmwareBatch", inspectionPort, StringComparison.Ordinal);
+        Assert.Contains("FirmwareConfigMetadataReadResult ReadFirmwareConfigMetadata", inspectionPort, StringComparison.Ordinal);
+        Assert.Contains("bool IsFirmwareFileIdentityCurrent", inspectionPort, StringComparison.Ordinal);
+        Assert.False(File.Exists(Path.Combine(
+            Root.FullName,
+            "src",
+            "NvtFwCombiner.Presentation.Avalonia",
+            "ViewModels",
+            "FirmwareFileIdentity.cs")));
         Assert.DoesNotContain("RefreshMergeMemoryMapState", replaceRefresh, StringComparison.Ordinal);
         Assert.Contains("RefreshReplaceMemoryMapState", replaceRefresh, StringComparison.Ordinal);
         Assert.DoesNotContain("ValidateCachedCtrlRamDisplayAsync", viewModels, StringComparison.Ordinal);

@@ -305,39 +305,6 @@ internal sealed partial class BuiltInCtrlRamAuthoringAdapter
             advisoryIssues);
     }
 
-    internal static InputArtifactBinding[] CreateCtrlRamReplaceBindings(
-        CompiledComposition compiledComposition,
-        CtrlRamReplaceRunContext context,
-        IReadOnlyDictionary<string, string> slotPaths,
-        ActiveSessionSnapshot? acceptedSession = null)
-    {
-        return [
-            acceptedSession is null
-                ? AcceptedSessionExecutionInputs.CreateCompiledBinding(
-                    compiledComposition,
-                    CompositionAddressSpaceIds.ReferenceBase,
-                    context.BasePath!)
-                : AcceptedSessionExecutionInputs.CreateBinding(
-                    compiledComposition,
-                    CompositionAddressSpaceIds.ReferenceBase,
-                    context.BasePath!,
-                    acceptedSession),
-            .. context.SelectedSources
-                .Select(source => DynamicCtrlRamReplacementIds.Create(source.SourceId))
-                .Select(sourceSpaceId => acceptedSession is null
-                    ? AcceptedSessionExecutionInputs.CreateCompiledBinding(
-                        compiledComposition,
-                        sourceSpaceId,
-                        Path.GetFullPath(slotPaths[sourceSpaceId]))
-                    : AcceptedSessionExecutionInputs.CreateBinding(
-                        compiledComposition,
-                        sourceSpaceId,
-                        slotPaths[sourceSpaceId],
-                        acceptedSession,
-                        sourceSpaceId)),
-        ];
-    }
-
     internal sealed record CtrlRamReplaceRunContext(
         IcNumberSelection Selection,
         CtrlRamFirmwareVersionDraftState? FirmwareVersionDraft,

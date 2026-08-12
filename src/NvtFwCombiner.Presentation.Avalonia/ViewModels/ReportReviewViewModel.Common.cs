@@ -27,7 +27,7 @@ public sealed partial class ReportReviewViewModel
                 string.Equals(issue.Title, CompositionIssueCodes.InputAddressSpaceTruncated, StringComparison.Ordinal));
     }
 
-    private static string Shorten(string text, int keep)
+    internal static string Shorten(string text, int keep)
     {
         return text.Length <= keep ? text : $"{text[..keep]}...";
     }

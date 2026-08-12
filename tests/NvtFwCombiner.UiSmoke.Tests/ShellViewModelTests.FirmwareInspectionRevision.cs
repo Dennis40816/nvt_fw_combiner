@@ -4,7 +4,7 @@ using NvtFwCombiner.TestSupport;
 
 namespace NvtFwCombiner.UiSmoke.Tests;
 
-public sealed partial class ShellViewModelTests
+public sealed partial class FirmwareInspectionSlotTests
 {
     /// <summary>Each explicit DP reinspection advances one coherent canonical authoring revision.</summary>
     [Fact]

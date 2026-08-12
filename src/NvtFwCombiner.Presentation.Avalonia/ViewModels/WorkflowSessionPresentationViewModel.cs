@@ -22,10 +22,6 @@ public sealed partial class WorkflowSessionPresentationViewModel : ObservableObj
         ReplacePresentationViewModel replace,
         Action<WorkflowContextSelection> applyWorkflowContext,
         Action<string, string> showToast,
-        Func<
-            string,
-            IReadOnlyList<FirmwareInspectionSnapshotInput>,
-            IReadOnlyList<FirmwareInspectionSnapshotResult>> firmwareInspectionReader,
         WorkflowSessionStateBindings stateBindings)
     {
         _compositionServices = compositionServices ??
@@ -40,9 +36,8 @@ public sealed partial class WorkflowSessionPresentationViewModel : ObservableObj
         _replace = replace ?? throw new ArgumentNullException(nameof(replace));
         _applyWorkflowContext = applyWorkflowContext ?? throw new ArgumentNullException(nameof(applyWorkflowContext));
         _showToast = showToast ?? throw new ArgumentNullException(nameof(showToast));
-        ArgumentNullException.ThrowIfNull(firmwareInspectionReader);
         _stateBindings = stateBindings ?? throw new ArgumentNullException(nameof(stateBindings));
-        InspectionSession = new FirmwareInspectionSession(firmwareInspectionReader);
+        InspectionSession = new FirmwareInspectionSession(_compositionServices.FirmwareInspection);
         WorkflowContextSetup = new WorkflowContextSetupViewModel(_compositionServices);
         ConfirmWorkflowContextCommand = new RelayCommand(ConfirmWorkflowContext);
         CancelWorkflowContextCommand = new RelayCommand(CancelWorkflowContext);

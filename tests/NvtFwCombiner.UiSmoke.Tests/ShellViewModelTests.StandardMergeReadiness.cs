@@ -4,32 +4,8 @@ using NvtFwCombiner.TestSupport;
 
 namespace NvtFwCombiner.UiSmoke.Tests;
 
-public sealed partial class ShellViewModelTests
+public sealed partial class FirmwareInspectionSlotTests
 {
-    private static void AssertStandardMergeInputsReady(
-        MainWindowViewModel viewModel,
-        JsonElement goldenCase,
-        string ic)
-    {
-        foreach (JsonProperty input in goldenCase.GetProperty("inputs").EnumerateObject())
-        {
-            Assert.True(
-                viewModel.Merge.MergeSlots.Single(slot =>
-                    slot.SlotId == StandardMergeGoldenManifest.SlotIdForAddressSpace(input.Name)).HasFile,
-                $"{ic} {input.Name} was not retained by the canonical slot transition.");
-        }
-
-        Assert.True(
-            viewModel.Merge.PreviewMergeCommand.CanExecute(null),
-            string.Join(
-                " | ",
-                viewModel.Merge.MergeSlots.Select(slot =>
-                    $"{slot.SlotId}:file={slot.HasFile},state={slot.SemanticState}," +
-                    $"severity={slot.InputInspectionSeverity},pending={slot.IsInputInspectionPending}," +
-                    $"blocks={slot.BlocksBuild},canSelect={slot.CanSelectFile}," +
-                    $"status={slot.InputInspectionStatus}")));
-    }
-
     /// <summary>Selected Standard Merge sources reach terminal shared health before Build is admitted.</summary>
     [Fact]
     public async Task StandardMergeBuildRequiresCurrentTerminalSlotHealth()
@@ -118,16 +94,17 @@ public sealed partial class ShellViewModelTests
             "test",
             ShellLanguage.English,
             PresentationTestHost.CreateServices("test"),
-            static (_, _) => null,
-            (icId, inputs) =>
-            {
-                _ = readerEntered.TrySetResult();
-                releaseReader.Task.GetAwaiter().GetResult();
-                return BuiltInFirmwareInspection.InspectFirmwareBatch(
-                    (BuiltInFirmwareInspection)TestHost.FirmwareInspectionExperience,
-                    icId,
-                    inputs);
-            });
+            new DelegatingFirmwareInspection(
+                TestHost.FirmwareInspectionExperience,
+                batchReader: (icId, inputs) =>
+                {
+                    _ = readerEntered.TrySetResult();
+                    releaseReader.Task.GetAwaiter().GetResult();
+                    return BuiltInFirmwareInspection.InspectFirmwareBatch(
+                        (BuiltInFirmwareInspection)TestHost.FirmwareInspectionExperience,
+                        icId,
+                        inputs);
+                }));
         viewModel.ShowMergeCommand.Execute(null);
         viewModel.WorkflowSession.SelectedIc = "NT51950";
         FirmwareSlotViewModel dp = viewModel.Merge.MergeSlots.Single(static slot =>

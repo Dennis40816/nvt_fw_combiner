@@ -6,7 +6,7 @@ using NvtFwCombiner.TestSupport;
 
 namespace NvtFwCombiner.UiSmoke.Tests;
 
-public sealed partial class ShellViewModelTests
+public sealed partial class ShellNavigationSystemTests
 {
     /// <summary>The factory language initializes the matching persisted selector without a second relocalization pass.</summary>
     [Fact]

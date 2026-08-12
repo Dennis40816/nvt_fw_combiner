@@ -7,7 +7,6 @@ namespace NvtFwCombiner.Bootstrap.Tests;
 internal static class DpReplaceTestSupport
 {
     internal static async ValueTask<CompositionRunResult> RunAsync(
-        CompositionHostServices host,
         string icId,
         string replaceMode,
         IReadOnlyDictionary<string, string> slotPaths,
@@ -16,12 +15,14 @@ internal static class DpReplaceTestSupport
         string? outputPath = null,
         CompositionRunProgressFeed? progress = null)
     {
+        var host = CompositionHostServices.Create();
         if (!StringComparer.OrdinalIgnoreCase.Equals(replaceMode, ExperienceIds.DpReplace))
         {
             throw new ArgumentException("DP test support accepts only DP Replace.", nameof(replaceMode));
         }
 
-        if (!BootstrapTestHost.Services.CompositionCapabilityExperience
+        host.WarmCanonicalCapabilities(cancellationToken);
+        if (!host.CompositionCapabilityExperience
                 .IsReplaceWorkflowAvailable(icId, ExperienceIds.DpReplace) ||
             !slotPaths.ContainsKey(CompositionSlotIds.ReplaceBase))
         {

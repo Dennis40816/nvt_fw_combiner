@@ -7,22 +7,16 @@ namespace NvtFwCombiner.Presentation.Avalonia.ViewModels;
 
 internal sealed class FirmwareInspectionSession
 {
-    private readonly Func<
-        string,
-        IReadOnlyList<FirmwareInspectionSnapshotInput>,
-        IReadOnlyList<FirmwareInspectionSnapshotResult>> _reader;
+    private readonly IFirmwareInspection _firmwareInspection;
     private readonly Dictionary<string, FirmwareFileProjection> _fileProjections =
         new(StringComparer.Ordinal);
     private BaseFirmwareInspectionCache? _baseCache;
     private long _generation;
 
-    internal FirmwareInspectionSession(Func<
-        string,
-        IReadOnlyList<FirmwareInspectionSnapshotInput>,
-        IReadOnlyList<FirmwareInspectionSnapshotResult>> reader)
+    internal FirmwareInspectionSession(IFirmwareInspection firmwareInspection)
     {
-        ArgumentNullException.ThrowIfNull(reader);
-        _reader = reader;
+        _firmwareInspection = firmwareInspection ??
+            throw new ArgumentNullException(nameof(firmwareInspection));
     }
 
     internal long CurrentGeneration => Volatile.Read(ref _generation);
@@ -34,18 +28,6 @@ internal sealed class FirmwareInspectionSession
 
     internal FirmwareInspectionBatchResult ReadBatch(FirmwareInspectionBatchRequest request)
     {
-        string[] distinctPaths =
-        [
-            .. request.Items
-                .SelectMany(static item => new[] { item.Path, item.TpPath })
-                .Where(static path => !string.IsNullOrWhiteSpace(path))
-                .Select(static path => path!)
-                .Distinct(StringComparer.Ordinal),
-        ];
-        Dictionary<string, FirmwareFileIdentity> before = distinctPaths.ToDictionary(
-            static path => path,
-            FirmwareFileIdentity.Capture,
-            StringComparer.Ordinal);
         FirmwareInspectionSnapshotInput[] inputs =
         [
             .. request.Items.Select(item => new FirmwareInspectionSnapshotInput(
@@ -63,25 +45,13 @@ internal sealed class FirmwareInspectionSession
                     item.StandardMergeInspectionLease?.ExactCapability ??
                     item.AbMergeInspectionLease?.ExactCapability)),
         ];
-        IReadOnlyList<FirmwareInspectionSnapshotResult> inspections = _reader(request.IcId, inputs);
-        var inspectionsById = inspections.ToDictionary(
-            static result => result.InspectionId,
-            static result => result.Inspection,
-            StringComparer.Ordinal);
-        if (inspectionsById.Count != request.Items.Count ||
-            request.Items.Any(item => !inspectionsById.ContainsKey(item.SlotId)))
-        {
-            throw new InvalidOperationException("Firmware inspection batch did not return every requested slot.");
-        }
-
-        Dictionary<string, FirmwareFileIdentity> after = distinctPaths.ToDictionary(
-            static path => path,
-            FirmwareFileIdentity.Capture,
-            StringComparer.Ordinal);
-        var unstableFilePaths = new HashSet<string>(
-            distinctPaths.Where(path => !before[path].Equals(after[path])),
-            StringComparer.Ordinal);
-        return new FirmwareInspectionBatchResult(inspectionsById, after, unstableFilePaths);
+        FirmwareInspectionBatchResult result =
+            _firmwareInspection.InspectFirmwareBatch(request.IcId, inputs);
+        return result.InspectionsById.Count == request.Items.Count &&
+            request.Items.All(item => result.InspectionsById.ContainsKey(item.SlotId))
+                ? result
+                : throw new InvalidOperationException(
+                    "Firmware inspection batch did not return every requested slot.");
     }
 
     internal void StoreProjection(
@@ -478,11 +448,3 @@ internal readonly record struct FirmwareInspectionItemRequest(
     AuthoringSlotInspectionLease? ReplaceInspectionLease = null,
     AuthoringSlotInspectionLease? StandardMergeInspectionLease = null,
     AuthoringSlotInspectionLease? AbMergeInspectionLease = null);
-
-internal readonly record struct FirmwareInspectionBatchResult(
-    IReadOnlyDictionary<string, FirmwareInspectionSnapshot> InspectionsById,
-    IReadOnlyDictionary<string, FirmwareFileIdentity> FileIdentities,
-    IReadOnlySet<string> UnstableFilePaths)
-{
-    internal bool IsFileIdentityStable => UnstableFilePaths.Count == 0;
-}

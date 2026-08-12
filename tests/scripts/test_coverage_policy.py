@@ -576,6 +576,14 @@ class CoveragePolicyTests(unittest.TestCase):
             actual,
         )
 
+    def test_rejects_ambiguous_coverage_source_roots(self) -> None:
+        with self.assertRaisesRegex(ValueError, "coverage report source is ambiguous"):
+            _relative_source_path(
+                "Probe.cs",
+                self.root,
+                (str(self.root / "src/First"), str(self.root / "src/Second")),
+            )
+
     def test_counts_zero_context_substitution_once(self) -> None:
         diff = """@@ -10,3 +10,4 @@
 @@ -20 +21,0 @@

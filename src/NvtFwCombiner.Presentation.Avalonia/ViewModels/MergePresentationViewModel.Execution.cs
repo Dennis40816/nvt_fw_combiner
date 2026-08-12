@@ -46,42 +46,6 @@ public sealed partial class MergePresentationViewModel
         };
     }
 
-    /// <summary>Resolves the active Merge filename for the native Save dialog without duplicating firmware naming rules in UI.</summary>
-    internal async ValueTask<string> ResolveMergeOutputFileNameForSaveAsync(CancellationToken cancellationToken)
-    {
-        if (!IsAbCodeMergeModeSelected)
-        {
-            return MergeOutputFileName;
-        }
-
-        CompositionOutputPreparation preparation = await _compositionServices.OutputNaming.PrepareAutomaticOutputAsync(
-                _abMergeSession.CurrentSnapshot ?? throw new InvalidOperationException(
-                    "AB Merge output naming requires one accepted authoring session."),
-                cancellationToken)
-            .ConfigureAwait(false);
-        return preparation.OutputName.FileName;
-    }
-
-    /// <summary>Returns the optional A FlashCode plan only for the currently compiled AB profile.</summary>
-    internal async ValueTask<CompositionAdditionalDeliveryPlan?> TryCreateAbAFlashCodeDeliveryPlanAsync(
-        CancellationToken cancellationToken)
-    {
-        if (!IsAbCodeMergeModeSelected)
-        {
-            return null;
-        }
-
-        CompositionOutputPreparation preparation = await _compositionServices.OutputNaming.PrepareAutomaticOutputAsync(
-                _abMergeSession.CurrentSnapshot ?? throw new InvalidOperationException(
-                    "AB Merge delivery planning requires one accepted authoring session."),
-                cancellationToken)
-            .ConfigureAwait(false);
-        return preparation.AdditionalDeliveries.SingleOrDefault(delivery =>
-            StringComparer.Ordinal.Equals(
-                delivery.DeliveryKind,
-                CompiledAdditionalDelivery.AbAFlashCodeKind));
-    }
-
     /// <summary>Prepares all Build save-dialog data and converts admission failures into the standard run report.</summary>
     internal async ValueTask<MergeBuildSavePreparation?> TryPrepareMergeBuildSaveAsync(
         CancellationToken cancellationToken)

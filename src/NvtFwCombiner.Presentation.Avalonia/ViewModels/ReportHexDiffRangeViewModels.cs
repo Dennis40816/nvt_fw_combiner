@@ -193,41 +193,6 @@ internal sealed class ReportHexDiffSource
         return true;
     }
 
-    internal ReportHexDiffRangeViewModel? FindContaining(long offset)
-    {
-        if (_addressOrder.Length == 0)
-        {
-            return null;
-        }
-
-        int low = 0;
-        int high = _addressOrder.Length;
-        while (low < high)
-        {
-            int middle = low + ((high - low) / 2);
-            if (_descriptors[_addressOrder[middle]].Start <= offset)
-            {
-                low = middle + 1;
-            }
-            else
-            {
-                high = middle;
-            }
-        }
-
-        int prior = low - 1;
-        if (prior >= 0)
-        {
-            ReportHexDiffRangeDescriptor candidate = _descriptors[_addressOrder[prior]];
-            if (offset < candidate.EndExclusive)
-            {
-                return _rows[candidate.SourceIndex];
-            }
-        }
-
-        return null;
-    }
-
     private int CompareReviewOrder(int leftIndex, int rightIndex)
     {
         ReportHexDiffRangeDescriptor left = _descriptors[leftIndex];
