@@ -179,7 +179,7 @@ public sealed partial class ShellNavigationSystemTests
     public async Task FreshTokenReloadReinspectsVerifiedDpReplaceBeforeBuildReturns()
     {
         using var workspace = TempWorkspace.Create("nvt-fw-combiner-ui-message-center-rebind");
-        using var reader = new BlockingInspectionReader(
+        var reader = new BlockingInspectionReader(
             (BuiltInFirmwareInspection)TestHost.FirmwareInspectionExperience);
         var catalog = new SequencedCatalog(
             Result(CanonicalSupportMatrixCatalogState.Current, Matrix("catalog:before")),
@@ -199,17 +199,15 @@ public sealed partial class ShellNavigationSystemTests
         await viewModel.MessageCenter.RefreshCommand.ExecuteAsync(null);
         try
         {
-            Assert.True(await Task.Run(
-                () => reader.InspectionEntered.Wait(
-                    TimeSpan.FromSeconds(2),
-                    TestContext.Current.CancellationToken),
-                TestContext.Current.CancellationToken));
+            await reader.InspectionEntered.Task.WaitAsync(
+                TimeSpan.FromSeconds(5),
+                TestContext.Current.CancellationToken);
             Assert.False(viewModel.Replace.CanBuildReplace);
             Assert.True(viewModel.WorkflowSession.IsFirmwareInspectionLoading);
         }
         finally
         {
-            reader.ReleaseInspection.Set();
+            reader.ReleaseInspection.SetResult();
         }
 
         await viewModel.WorkflowSession.FirmwareInspectionRefreshTask;
@@ -220,18 +218,16 @@ public sealed partial class ShellNavigationSystemTests
     [Fact]
     public async Task RefreshCommandPublishesVisibleProgressUntilReloadCompletes()
     {
-        using var catalog = new BlockingReloadCatalog();
+        var catalog = new BlockingReloadCatalog();
         MainWindowViewModel viewModel = CreateDiagnosticsViewModel(
             catalog,
             ReadBuiltInFirmwareInspectionBatch);
         Task refresh = viewModel.MessageCenter.RefreshCommand.ExecuteAsync(null);
         try
         {
-            Assert.True(await Task.Run(
-                () => catalog.ReloadEntered.Wait(
-                    TimeSpan.FromSeconds(2),
-                    TestContext.Current.CancellationToken),
-                TestContext.Current.CancellationToken));
+            await catalog.ReloadEntered.Task.WaitAsync(
+                TimeSpan.FromSeconds(5),
+                TestContext.Current.CancellationToken);
             Assert.True(viewModel.MessageCenter.IsRefreshInProgress);
             Assert.Equal(
                 viewModel.Text.RefreshingDiagnosticsLabel,
@@ -239,7 +235,7 @@ public sealed partial class ShellNavigationSystemTests
         }
         finally
         {
-            catalog.ReleaseReload.Set();
+            catalog.ReleaseReload.SetResult();
         }
 
         await refresh;
@@ -383,12 +379,13 @@ public sealed partial class ShellNavigationSystemTests
 
     private sealed class BlockingReloadCatalog :
         ICanonicalSupportMatrixQuery,
-        ICanonicalCapabilityCatalogReloader,
-        IDisposable
+        ICanonicalCapabilityCatalogReloader
     {
-        internal ManualResetEventSlim ReloadEntered { get; } = new(false);
+        internal TaskCompletionSource ReloadEntered { get; } = new(
+            TaskCreationOptions.RunContinuationsAsynchronously);
 
-        internal ManualResetEventSlim ReleaseReload { get; } = new(false);
+        internal TaskCompletionSource ReleaseReload { get; } = new(
+            TaskCreationOptions.RunContinuationsAsynchronously);
 
         public CanonicalSupportMatrixQueryResult Query()
         {
@@ -397,24 +394,20 @@ public sealed partial class ShellNavigationSystemTests
 
         public void Reload(CancellationToken cancellationToken)
         {
-            ReloadEntered.Set();
-            ReleaseReload.Wait(cancellationToken);
-        }
-
-        public void Dispose()
-        {
-            ReloadEntered.Dispose();
-            ReleaseReload.Dispose();
+            ReloadEntered.SetResult();
+            ReleaseReload.Task.Wait(cancellationToken);
         }
     }
 
-    private sealed class BlockingInspectionReader(BuiltInFirmwareInspection firmwareInspection) : IDisposable
+    private sealed class BlockingInspectionReader(BuiltInFirmwareInspection firmwareInspection)
     {
         private int _blockNextBatch;
 
-        internal ManualResetEventSlim InspectionEntered { get; } = new(false);
+        internal TaskCompletionSource InspectionEntered { get; } = new(
+            TaskCreationOptions.RunContinuationsAsynchronously);
 
-        internal ManualResetEventSlim ReleaseInspection { get; } = new(false);
+        internal TaskCompletionSource ReleaseInspection { get; } = new(
+            TaskCreationOptions.RunContinuationsAsynchronously);
 
         internal void BlockNextBatch()
         {
@@ -427,17 +420,11 @@ public sealed partial class ShellNavigationSystemTests
         {
             if (Interlocked.Exchange(ref _blockNextBatch, 0) == 1)
             {
-                InspectionEntered.Set();
-                ReleaseInspection.Wait(TestContext.Current.CancellationToken);
+                InspectionEntered.SetResult();
+                ReleaseInspection.Task.Wait(TestContext.Current.CancellationToken);
             }
 
             return BuiltInFirmwareInspection.InspectFirmwareBatch(firmwareInspection, selectedIc, inputs);
-        }
-
-        public void Dispose()
-        {
-            InspectionEntered.Dispose();
-            ReleaseInspection.Dispose();
         }
     }
 
