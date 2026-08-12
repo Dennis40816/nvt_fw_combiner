@@ -84,8 +84,12 @@ available reviewers. The owner release allocation recorded on 2026-08-04 is:
    the exact packaged Home-window median at 700 ms on the controlled owner
    machine. Shell construction must not synchronously publish the canonical
    capability catalog merely to show Home.
-5. `v0.10.5` unifies every preload under one observable, cancellable, bounded,
-   and user-controllable performance lifecycle.
+5. `v0.10.5` gives mandatory startup prerequisites, optional shell background
+   preload, and user-context preparation one observable, cancellable, bounded,
+   and user-controllable lifecycle grammar and scheduling contract. Existing
+   semantic owners and scope-specific sessions remain distinct; the release
+   does not create a global coordinator/cache or absorb Preview/Build, external
+   execution, or Hex load/search/edit.
 6. `v0.10.6` reserves a configured-path update screen so routine delivery does
    not require repackaging and email. Its trust, rollback, version,
    network/share, and release-policy contract remains deferred to a later owner

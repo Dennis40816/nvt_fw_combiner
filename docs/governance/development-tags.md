@@ -80,8 +80,11 @@ commit.
   abstractions, safety removal, or a line-count-only rewrite.
 - `v0.10.5` — unified preload performance-control release: consolidate startup
   and background preload scheduling behind one observable, cancellable,
-  bounded, and user-controllable lifecycle. Performance work must retain
-  deterministic results, current cache identity, and the canonical verifier.
+  bounded, and user-controllable lifecycle grammar. Mandatory startup
+  prerequisites, optional shell background preload, and contextual preparation
+  retain separate sessions and their existing semantic owners; no global
+  coordinator/cache is introduced. Performance work must retain deterministic
+  results, current cache identity, and the canonical verifier.
 - `v0.10.6` — reserved path-based update experience: add a screen that can
   obtain reviewed update artifacts from a configured path so routine delivery
   no longer depends on repackaging and email. Trust source, rollback, version
@@ -221,7 +224,7 @@ and cannot re-admit a retired IC.
 | `v0.10.2` | Canonical desktop adoption and first compatibility deletion | Adopt the canonical headless readiness/inspection and exact-compilation contracts in all six desktop workflows, extract the shallow shell and shared read-only Hex viewport, and delete the General/Saved Rule v1 owners through #254 without support promotion. |
 | `v0.10.3` | Complete canonical refactoring | Complete LAR-01 through LAR-12, close LAR-00, remove Workbench/renamed parallel owners, retain one production path per module, complete all four evidence-backed Canonical Core Convergence ledgers, lower exact ratchets, and pass #197 integration/evidence/release gates before tagging. |
 | `v0.10.4` | Post-refactor simplification audit | Re-measure the completed canonical architecture, identify any remaining removable or simplifiable ownership, and accept further changes only with preserved behavior, evidence, and descending size gates. |
-| `v0.10.5` | Unified preload performance control | Optimize startup and background work by making every preload use one observable, cancellable, bounded, and user-controllable lifecycle without changing firmware results or support truth. |
+| `v0.10.5` | Unified preload performance control | Give mandatory startup prerequisites, optional shell background preload, and contextual preparation one observable, cancellable, bounded, and user-controllable lifecycle grammar while retaining separate semantic owners, deterministic results, cache identity, and support truth. |
 | `v0.10.6` | Path-based update experience | Reserve a user-facing update flow that obtains reviewed artifacts from a configured path so routine delivery does not require repackaging and email. Exact trust, rollback, version, network/share, and release-policy behavior remains owner-deferred and unimplemented until a later specification review. |
 | `v1.0.0` | stable | Signed-off support matrix. |
 

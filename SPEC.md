@@ -2392,13 +2392,69 @@ refactor, reviewed residual ledgers, and exact ratchet gates are complete.
 fresh simplification/ownership audit of that result and restores the exact
 packaged Home startup median to at most 700 ms without synchronously publishing
 the canonical catalog before the first window. `v0.10.5` owns the broader
-performance work that unifies every preload behind one observable, cancellable,
-bounded, and user-controllable lifecycle; and `v0.10.6` reserves a configured-path
-update experience. The `v0.10.6` trust, rollback, version-selection,
+performance work that gives the three preparation classes below one observable,
+cancellable, bounded, and user-controllable lifecycle grammar; and `v0.10.6`
+reserves a configured-path update experience. The `v0.10.6` trust, rollback, version-selection,
 network/share, and release-policy contract remains owner-deferred and requires
 a later specification review before implementation tickets exist. These
 allocations do not change current ticket dependencies or authorize guessed
 scope.
+
+#### `v0.10.5` preparation-lifecycle taxonomy
+
+Owner decision on 2026-08-12 fixes three preparation classes without creating
+a global semantic owner:
+
+1. **Mandatory startup prerequisites** are the bounded preference snapshot
+   required for the first visible frame and canonical capability-catalog
+   publication required before capability-dependent interaction. They retain
+   their existing owners and cannot be reclassified as optional warm-up work.
+2. **Optional shell background preload** covers report/history restoration,
+   system-information refresh, and deferred page or resource warm-up. It may
+   improve responsiveness but cannot become a second source of firmware,
+   support, cache, or publication truth.
+3. **Contextual preparation** covers firmware and metadata inspection, CtrlRAM
+   metadata reads, and external-runtime readiness for the current selection or
+   compiled capability. It is initiated only by the user context that needs it;
+   it is not eagerly promoted into application startup.
+
+The three classes share one lifecycle grammar and one bounded scheduling
+contract, but each request remains a scope-specific session whose result is
+interpreted by its existing semantic owner. The shared contract may describe
+observation, cancellation, bounds, user control, generation, and terminal
+state; it does not own firmware facts, catalog publication, inspection results,
+runtime-readiness meaning, report data, or a shared cache. A single application-
+wide coordinator, service locator, step plug-in registry, or aggregate mutable
+cache is not an acceptable implementation.
+
+Composition Preview/Build progress, actual external-processor execution, and
+Hex file load/search/edit retain their existing execution lifecycles and are
+not preload work.
+
+Owner decision on 2026-08-12 fixes the user-control contract:
+
+- A mandatory startup prerequisite cannot be skipped. The bounded preference
+  read retains its safe-default fallback. Cancelling an in-flight catalog load
+  leaves capability-dependent interaction disabled; the user may Retry or close
+  the application. A completed atomic publication is not rolled back.
+- Optional shell background preload permits Skip of the current item, Cancel
+  of the remaining queue, and Retry of an individually failed item. One failure
+  is visible and isolated: it neither disables the usable shell nor prevents
+  unrelated optional items from running.
+- Contextual preparation automatically cancels work superseded by selection or
+  context changes and also exposes Cancel and Retry. A preparation that is a
+  prerequisite for the requested action cannot be skipped; that action remains
+  disabled until a current successful result exists.
+- Cancellation is cooperative. Every session must reject a late or stale
+  result by its full request identity/generation. `v0.10.5` does not add Pause
+  or Resume because the owned operations do not provide a truthful resumable
+  checkpoint contract.
+
+Exact failure-continuation ordering, concurrency budget, progress aggregation,
+and shutdown/drain semantics remain owner decisions to be closed before tickets
+or implementation begin. This taxonomy and control contract change no firmware
+bytes, support truth, profile/schema contract, cache identity, golden result,
+or canonical verifier.
 
 Historical NT51920/NT51931 DPCMI locator evidence (`0x3E014` and `0x3E018`)
 remains traceability-only. #177 does not migrate either IC, and #221 removes
