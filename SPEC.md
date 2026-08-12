@@ -1,7 +1,7 @@
 # NVT FW Combiner（NFC）實作規格
 
 > 文件狀態：`0.10.5 owner-approved implementation intake; v0.10.4 is the stable predecessor with an explicit 700 ms performance residual`
-> 文件版本：`0.10.4`
+> 文件版本：`0.10.5`
 > 基準日期：`2026-08-13`
 > 產品名稱：`NVT FW Combiner`
 > 短名：`NFC`

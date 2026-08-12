@@ -90,9 +90,13 @@ attempt number immediately before each initial or retry execution. The composite
 `(session generation, stage id, attempt number)` is never reused after success,
 failure, replacement, skip, or cancellation. Exactly one terminal belongs to
 each composite identity. A retry replaces only the stage's current immutable
-attempt snapshot; it cannot reopen or overwrite the prior terminal, and every
-queued callback must match both the current session generation and stage attempt
-number before mutating Presentation state. Report projection and selection-
+attempt snapshot; it cannot reopen or overwrite the prior terminal. Presentation
+retains at most the current attempt plus one immediately preceding terminal
+summary per stage. Starting another retry moves the current terminal into that
+single previous slot and deterministically discards the older summary. Those
+summaries contain lifecycle identity/state/diagnostic only, never copied feature
+result data. Every queued callback must match both the current session generation
+and stage attempt number before mutating Presentation state. Report projection and selection-
 triggered inspection generations are likewise request identities: they are
 consumed when their request starts so late work cannot match a newer request.
 External-environment loads have their own monotonically increasing request
@@ -320,7 +324,9 @@ support, evidence, or processor authority.
   retry/skip/cancel, shell-session and per-stage attempt identity, delayed old-
   attempt callbacks, required catalog retry, optional single-stage retry,
   dependency release without rerunning completed work, exact per-attempt terminal
-  cardinality, bounded concurrency, shutdown drain, and progress monotonicity.
+  cardinality, retries beyond the two-snapshot retention bound, deterministic
+  oldest-summary replacement, bounded concurrency, shutdown drain, and progress
+  monotonicity.
 - UI tests cover keyboard/focus, blocking versus non-blocking state, localized
   status/actions, reduced motion, percent text, and bounded live announcements.
 - Architecture tests reject a second coordinator, feature-result interpretation

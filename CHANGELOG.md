@@ -4,7 +4,66 @@ All notable changes to NVT FW Combiner are documented here. The project follows 
 
 ## [Unreleased]
 
-No unreleased changes.
+The owner-approved `v0.10.5` implementation intake is tracked below. No
+`v0.10.5` package or stable tag exists yet.
+
+## [0.10.5] - Unreleased
+
+### Summary
+
+This support-neutral release intake defines one observable, cancellable,
+bounded, and user-controllable preload lifecycle while retaining typed catalog,
+report, diagnostics, inspection, and external-runtime semantic owners. This
+section records approved scope; implementation and release evidence remain
+dependency-gated.
+
+### Product changes
+
+#### Unified bounded preload lifecycle
+
+- Before → After: startup and related preparation currently use separate
+  cancellation, generation, progress, cache, and failure paths; the approved
+  implementation converges scheduling and operator control into one Presentation
+  lifecycle while each feature keeps its existing typed semantic owner.
+- Affected: catalog startup, report/history input, diagnostics, deferred views,
+  external-environment discovery, and selection-triggered inspection across all
+  six workflows.
+- Support status: unchanged/support-neutral; no route, IC, profile, family,
+  processor, or Golden observation is promoted into support truth.
+- Compatibility: firmware bytes/hashes/names, report wire and history schema,
+  profiles/schemas, CLI behavior, Saved Rules, settings, and processor protocols
+  remain compatible.
+- Verification: PL-01 through PL-07 and PL-00 require exact behavioral,
+  architecture, accessibility, performance, code-size, verifier, Golden 17/17,
+  package, CI, and release evidence before completion.
+- Limitations: this intake establishes the contract and version identity only;
+  no lifecycle implementation or `v0.10.5` release artifact exists yet.
+
+### Security
+
+The planned lifecycle does not broaden filesystem, executable, firmware, or
+network authority. Report input and external discovery remain bounded and
+fail-closed; external processors retain reviewed-root, trust, staging-copy, and
+write-range enforcement.
+
+### Known issues
+
+- The stable `v0.10.4` package did not reproduce the 700 ms absolute startup
+  target; `v0.10.5` must record new same-machine package evidence truthfully.
+- Every implementation slice remains blocked by its dependency, R2/R3 review,
+  exact verifier, Golden, CI, and any named human evidence gate.
+
+### Upgrade and rollback
+
+There is no `v0.10.5` package to install or roll back at specification intake.
+Future release notes must name the exact stable predecessor, package replacement,
+compatibility, and rollback procedure before publication.
+
+### Downloads and integrity
+
+No `v0.10.5` downloads exist at intake. A stable release requires the reviewed
+portable ZIP, SPDX SBOM, provenance, candidate manifest, hashes, source archives,
+closed-package smoke, and immutable tag evidence.
 
 ## [0.10.4] - 2026-08-13
 
