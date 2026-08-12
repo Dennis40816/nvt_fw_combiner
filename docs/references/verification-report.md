@@ -1,13 +1,43 @@
 # Repository Verification Report
 
 Status: historical seed-preparation report for the 2026-06-25 bootstrap
-baseline, updated for the 0.10.3 canonical architecture and legacy-retirement
-release candidate. Current
+baseline, updated for the 0.10.4 post-refactor simplification and startup-
+performance release candidate. Current
 verification evidence is produced by the canonical
 `python scripts/verify.py --structure-only` and `python scripts/verify.py --all`
 commands.
 
-Specification package version: `0.10.3`
+Specification package version: `0.10.4`
+
+## 0.10.4 post-refactor simplification and startup-performance release candidate
+
+The candidate retains the complete `v0.10.3` canonical execution architecture
+while making the meaningful Home window visible before catalog publication,
+streaming request-scoped route progress into an input-blocking accessible
+loading surface, repairing Dark-theme and reduced-motion presentation, and
+removing further evidence-backed duplicate runtime paths. It remains support-
+neutral and changes no profile/schema version, firmware authority, expected BIN
+byte or SHA-256 result, report wire, output naming, CRC success payload, or
+external-processor protocol.
+
+The exact production package passed closed-package smoke and measured five
+scored Home launches between 665.410 and 695.633 ms with a 687.180 ms median
+after one unscored warm-up; the separately recorded first cold launch was
+1040.087 ms. The complete verifier passes with 3,349 .NET tests and two declared
+platform skips, Python 378 with four declared skips, CRC Worker 30/30, and all
+17 existing BIN golden regressions. Full production is 97,310 nonblank lines
+and counted runtime production is 67,186; the exact four runtime slices remain
+20,619 / 29,383 / 3,255 / 13,929.
+
+PR #356 reviewed head `c808e9eb958b433665b62c8bcd3f2e29818059de`
+passed two fresh complete CI attempts within five minutes and merged into
+`0.10.x` as `8921fa6c0a21af2a1766a491d47118072f711026`.
+The reviewed and merged trees both equal
+`f60ddfadef87736b2bb1fbc7d99e0230be5f52d9`. Final protected-`main`
+integration, exact-main CI, release-review evidence, protected release
+workflow approval, deterministic package regeneration, published-asset
+verification, and downloaded-package smoke remain required before the
+immutable `v0.10.4` tag may be created.
 
 ## 0.10.3 canonical architecture and legacy-retirement release candidate
 

@@ -1,8 +1,8 @@
 # NVT FW Combiner（NFC）實作規格
 
-> 文件狀態：`0.10.3 canonical architecture and legacy-retirement release candidate; v0.10.2 is the stable predecessor`
-> 文件版本：`0.10.3`
-> 基準日期：`2026-08-11`
+> 文件狀態：`0.10.4 post-refactor simplification and startup-performance release candidate; v0.10.3 is the stable predecessor`
+> 文件版本：`0.10.4`
+> 基準日期：`2026-08-12`
 > 產品名稱：`NVT FW Combiner`
 > 短名：`NFC`
 > Repository：`Dennis40816/nvt_fw_combiner`
@@ -30,20 +30,21 @@
 
 ## 0.1 Current owner priority
 
-`0.10.3` completes the approved canonical refactoring and legacy-architecture
-retirement program. The six Merge/Replace workflows now share one
-Application-owned accepted-session route for authoring, naming, execution,
-reporting, delivery, and processor planning; Profiles remains the compilation
-authority, Infrastructure owns adapters, Presentation and CLI consume the same
-typed use cases, and Bootstrap contains composition-root/lifetime wiring only.
-The Workbench graph and renamed parallel production owners are removed. This
-release is support-neutral: it does not convert function availability or
-golden observations into support certification, and it does not change profile,
-schema, firmware-family, processor-protocol, or golden byte authority.
-`v0.10.2` is the stable predecessor on this canonical line; independent
-`0.9.17`/`0.9.18` maintenance releases remain historical upgrade sources rather
-than alternate `0.10.x` architecture authority. The remaining sequence is
-maintained in
+`0.10.4` is the support-neutral post-refactor simplification and startup-
+performance release built on the complete `v0.10.3` canonical architecture.
+It preserves the one Application-owned accepted-session route for all six
+Merge/Replace workflows while making Home visible within the controlled 700 ms
+package gate, publishing truthful foreground catalog progress, repairing Dark-
+theme and reduced-motion presentation, and removing additional duplicate
+runtime paths. Profiles remains the compilation authority, Infrastructure owns
+adapters, Presentation and CLI consume the same typed use cases, and Bootstrap
+contains composition-root/lifetime wiring only. This release does not convert
+function availability or golden observations into support certification and
+does not change profile, schema, firmware-family, processor-protocol, report-
+wire, naming, or golden byte authority. `v0.10.3` is the stable predecessor on
+this canonical line; independent `0.9.17`/`0.9.18` maintenance releases remain
+historical upgrade sources rather than alternate `0.10.x` architecture
+authority. The remaining sequence is maintained in
 [NFC Roadmap](docs/architecture/nfc_roadmap.md).
 Publication is permitted only after independent review, firmware-owner
 approval, protected CI, package verification, and release-owner approval; an
