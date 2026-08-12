@@ -1,10 +1,19 @@
 # Active workflow policy
 
-`ci.yml` is active for pull requests and pushes to `main`. It exposes three stable checks:
+`ci.yml` is active for pull requests and pushes to `main`. Branch protection
+retains three stable required checks:
 
 - `policy / polytail`
 - `python-worker / verify`
 - `dotnet / build-test`
+
+The stable .NET verdict is an always-run finalizer over one full Release-build
+producer and the three `bootstrap`, `ui`, and `core` Windows test shards. The
+closed project map, expected counters, commands, manifest validation, coverage
+aggregation, Golden 17/17 gate, and fixture gate remain owned only by
+`scripts/verify.py`; the workflow contains no project list or test filter.
+Missing or failed producers and missing, extra, duplicate, wrong-SHA,
+wrong-SDK, or hash-mismatched evidence fail the finalizer.
 
 `release.yml` is always dispatched from the exact current protected `main`
 workflow definition for one explicit reviewed release-branch head and its final

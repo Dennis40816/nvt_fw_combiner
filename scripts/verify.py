@@ -5,14 +5,19 @@ from __future__ import annotations
 import argparse
 import codecs
 import ctypes
+import hashlib
 import importlib.util
+import json
 import os
+import re
 import shutil
 import signal
+import stat
 import subprocess
 import sys
 import tempfile
 import threading
+import xml.etree.ElementTree as ET
 from collections.abc import Callable, Sequence
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from contextlib import ExitStack, contextmanager
@@ -20,7 +25,7 @@ from contextvars import ContextVar
 from ctypes import wintypes
 from dataclasses import dataclass
 from importlib import metadata as importlib_metadata
-from pathlib import Path
+from pathlib import Path, PurePosixPath
 from time import monotonic
 
 if __package__:
@@ -38,6 +43,8 @@ CTRL_RAM_SENTINEL_CREATOR = ROOT / "scripts" / "create_ctrlram_universal_sentine
 IDLE_BUILD_WORKER_STOPPER = ROOT / "scripts" / "stop-idle-build-workers.ps1"
 REPOSITORY_SCRIPT_TESTS = ROOT / "tests" / "scripts"
 COVERAGE_ROOT = ROOT / "artifacts" / "coverage"
+CI_DOTNET_EVIDENCE_ROOT = ROOT / "artifacts" / "ci-dotnet-work"
+CI_DOTNET_UPLOAD_ROOT = ROOT / "artifacts" / "ci-dotnet-upload"
 WINDOWS_PROCESS_ORCHESTRATION_TEST = (
     "tests.scripts.test_verify_orchestration."
     "VerifyOrchestrationTests.test_windows_owned_job_kills_descendants_after_root_exit"
@@ -65,6 +72,8 @@ PYTHON_COVERAGE_OVERRIDE_ENVIRONMENT_VARIABLES = (
     "COVERAGE_RCFILE",
     "COVERAGE_PROCESS_START",
 )
+CI_DOTNET_EVIDENCE_SCHEMA_VERSION = 1
+CI_SOURCE_SHA_PATTERN = re.compile(r"[0-9a-f]{40}")
 
 
 class _JobObjectBasicLimitInformation(ctypes.Structure):
@@ -234,6 +243,67 @@ class LaneResult:
     duration_seconds: float
     log_path: Path
     error: str | None = None
+
+
+@dataclass(frozen=True)
+class CiDotnetProject:
+    """One exact test-project owner in the closed CI shard map."""
+
+    relative_path: str
+    expected_total: int
+    expected_skipped: int = 0
+
+    @property
+    def name(self) -> str:
+        return Path(self.relative_path).stem
+
+
+CI_DOTNET_SHARDS: dict[str, tuple[CiDotnetProject, ...]] = {
+    "bootstrap": (
+        CiDotnetProject(
+            "tests/NvtFwCombiner.Bootstrap.Tests/NvtFwCombiner.Bootstrap.Tests.csproj",
+            925,
+        ),
+    ),
+    "ui": (
+        CiDotnetProject(
+            "tests/NvtFwCombiner.UiSmoke.Tests/NvtFwCombiner.UiSmoke.Tests.csproj",
+            444,
+        ),
+    ),
+    "core": (
+        CiDotnetProject(
+            "tests/NvtFwCombiner.Domain.Tests/NvtFwCombiner.Domain.Tests.csproj",
+            404,
+        ),
+        CiDotnetProject(
+            "tests/NvtFwCombiner.Application.Tests/"
+            "NvtFwCombiner.Application.Tests.csproj",
+            526,
+        ),
+        CiDotnetProject(
+            "tests/NvtFwCombiner.Infrastructure.Tests/"
+            "NvtFwCombiner.Infrastructure.Tests.csproj",
+            405,
+            2,
+        ),
+        CiDotnetProject(
+            "tests/NvtFwCombiner.ProfileContract.Tests/"
+            "NvtFwCombiner.ProfileContract.Tests.csproj",
+            387,
+        ),
+        CiDotnetProject(
+            "tests/NvtFwCombiner.GoldenRegression.Tests/"
+            "NvtFwCombiner.GoldenRegression.Tests.csproj",
+            17,
+        ),
+        CiDotnetProject(
+            "tests/NvtFwCombiner.Architecture.Tests/"
+            "NvtFwCombiner.Architecture.Tests.csproj",
+            213,
+        ),
+    ),
+}
 
 
 def remaining_timeout(timeout_seconds: float | None = None) -> float | None:
@@ -961,14 +1031,19 @@ def write_cleanup_warning(message: str, log_path: Path | None) -> None:
         print(message, file=log)
 
 
-def verify_dotnet(log_path: Path | None = None) -> None:
-    dotnet = resolve_dotnet()
-    coverage_directory = reset_coverage_directory("dotnet")
+def dotnet_batch_environment() -> dict[str, str]:
+    """Return the shared non-interactive MSBuild environment for every .NET owner."""
+
     environment = os.environ.copy()
-    # Verification is a batch task, not an interactive build session. Avoid retaining MSBuild nodes after it ends.
     environment["MSBUILDDISABLENODEREUSE"] = "1"
     environment["DOTNET_CLI_DO_NOT_USE_MSBUILD_SERVER"] = "1"
-    commands = (
+    return environment
+
+
+def dotnet_build_commands(dotnet: str) -> tuple[list[str], ...]:
+    """Return the one canonical restore, ownership, format, and Release build plan."""
+
+    return (
         [dotnet, "--version"],
         [dotnet, "restore", str(SOLUTION)],
         [
@@ -985,6 +1060,66 @@ def verify_dotnet(log_path: Path | None = None) -> None:
             "--no-restore",
         ],
         [dotnet, "build", str(SOLUTION), "-c", "Release", "--no-restore"],
+    )
+
+
+def run_dotnet_commands(
+    commands: Sequence[list[str]],
+    *,
+    environment: dict[str, str],
+    log_path: Path | None,
+) -> None:
+    """Run one .NET plan while retaining the optional CI build-log mirror."""
+
+    build_log = os.environ.get("NFC_DOTNET_BUILD_LOG")
+    for command in commands:
+        if build_log and len(command) > 1 and command[1] == "build":
+            build_log_path = Path(build_log)
+            build_log_path.unlink(missing_ok=True)
+            if log_path is None:
+                run_with_log(command, build_log_path, environment=environment)
+            else:
+                run(
+                    command,
+                    environment=environment,
+                    log_path=log_path,
+                    mirror_log_path=build_log_path,
+                )
+        else:
+            run(command, environment=environment, log_path=log_path)
+
+
+def cleanup_dotnet_batch(
+    dotnet: str,
+    environment: dict[str, str],
+    log_path: Path | None,
+) -> None:
+    """Stop repository-owned build servers within the shared cleanup ceiling."""
+
+    if PROCESS_CANCELLATION_REQUESTED.is_set():
+        return
+    cleanup_timeout = remaining_timeout(CLEANUP_TIMEOUT_SECONDS)
+    if cleanup_timeout is None:
+        cleanup_timeout = CLEANUP_TIMEOUT_SECONDS
+    cleanup_deadline_token = CLEANUP_DEADLINE.set(monotonic() + cleanup_timeout)
+    try:
+        run(
+            [dotnet, "build-server", "shutdown"],
+            environment=environment,
+            log_path=log_path,
+            timeout_seconds=CLEANUP_TIMEOUT_SECONDS,
+        )
+        stop_idle_build_workers(log_path, timeout_seconds=CLEANUP_TIMEOUT_SECONDS)
+    finally:
+        CLEANUP_DEADLINE.reset(cleanup_deadline_token)
+
+
+def verify_dotnet(log_path: Path | None = None) -> None:
+    dotnet = resolve_dotnet()
+    coverage_directory = reset_coverage_directory("dotnet")
+    environment = dotnet_batch_environment()
+    commands = (
+        *dotnet_build_commands(dotnet),
         [
             dotnet,
             "test",
@@ -1002,44 +1137,746 @@ def verify_dotnet(log_path: Path | None = None) -> None:
         # fixture gate here for manifest and payload-hash validation only.
         [sys.executable, str(CTRL_RAM_REPLACE_FIXTURE_VERIFIER), "--skip-public-smoke"],
     )
-    build_log = os.environ.get("NFC_DOTNET_BUILD_LOG")
     try:
-        for command in commands:
-            if build_log and len(command) > 1 and command[1] == "build":
-                build_log_path = Path(build_log)
-                build_log_path.unlink(missing_ok=True)
-                if log_path is None:
-                    run_with_log(command, build_log_path, environment=environment)
-                else:
-                    run(
-                        command,
-                        environment=environment,
-                        log_path=log_path,
-                        mirror_log_path=build_log_path,
-                    )
-            else:
-                run(command, environment=environment, log_path=log_path)
+        run_dotnet_commands(commands, environment=environment, log_path=log_path)
         verify_coverage("dotnet", coverage_directory)
     finally:
         # Avalonia/Roslyn may start compiler servers even with node reuse disabled.
         # Stop only servers from the repository-selected SDK after every verification run.
-        if not PROCESS_CANCELLATION_REQUESTED.is_set():
-            cleanup_timeout = remaining_timeout(CLEANUP_TIMEOUT_SECONDS)
-            if cleanup_timeout is None:
-                cleanup_timeout = CLEANUP_TIMEOUT_SECONDS
-            cleanup_deadline_token = CLEANUP_DEADLINE.set(monotonic() + cleanup_timeout)
+        cleanup_dotnet_batch(dotnet, environment, log_path)
+
+
+def ci_dotnet_test_command(
+    dotnet: str,
+    project: CiDotnetProject,
+    results_directory: Path,
+) -> list[str]:
+    """Build one unfiltered project test command with paired coverage and TRX evidence."""
+
+    return [
+        dotnet,
+        "test",
+        str(ROOT / project.relative_path),
+        "-c",
+        "Release",
+        "--no-restore",
+        "--collect:XPlat Code Coverage",
+        "--results-directory",
+        str(results_directory),
+        "--logger",
+        "trx;LogFileName=test-results.trx",
+        "--",
+        "DataCollectionRunSettings.DataCollectors.DataCollector.Configuration.Format=json,cobertura",
+    ]
+
+
+def require_ci_source_sha() -> str:
+    source_sha = os.environ.get("GITHUB_SHA", "").strip().casefold()
+    if CI_SOURCE_SHA_PATTERN.fullmatch(source_sha) is None:
+        raise RuntimeError(
+            "GITHUB_SHA must contain the exact 40-character CI source SHA"
+        )
+    return source_sha
+
+
+def repository_sdk_version() -> str:
+    document = json.loads((ROOT / "global.json").read_text(encoding="utf-8"))
+    version = document.get("sdk", {}).get("version")
+    if not isinstance(version, str) or not version:
+        raise RuntimeError("global.json is missing the pinned SDK version")
+    return version
+
+
+def require_logged_sdk_version(log_path: Path, expected: str) -> None:
+    lines = {line.strip() for line in log_path.read_text(encoding="utf-8").splitlines()}
+    if expected not in lines:
+        raise RuntimeError(
+            f"resolved .NET SDK does not match global.json: expected {expected}"
+        )
+
+
+def reset_ci_dotnet_evidence_directory(directory: Path) -> Path:
+    target = validated_disposable_directory(directory, ROOT)
+    if target.exists():
+        shutil.rmtree(target)
+    target.mkdir(parents=True)
+    return target
+
+
+def sha256_file(path: Path) -> str:
+    digest = hashlib.sha256()
+    with path.open("rb") as source:
+        while chunk := source.read(1024 * 1024):
+            digest.update(chunk)
+    return digest.hexdigest()
+
+
+def is_ci_evidence_reparse_point(path: Path) -> bool:
+    is_junction = getattr(path, "is_junction", None)
+    return path.is_symlink() or (is_junction is not None and is_junction())
+
+
+def require_ci_regular_file(path: Path, evidence_root: Path) -> Path:
+    lexical_root = evidence_root.absolute()
+    lexical_path = path.absolute()
+    try:
+        relative = lexical_path.relative_to(lexical_root)
+    except ValueError as error:
+        raise RuntimeError(f".NET CI evidence path escapes its root: {path}") from error
+    current = lexical_root
+    if is_ci_evidence_reparse_point(current):
+        raise RuntimeError(f"reparse-point .NET CI evidence is forbidden: {current}")
+    for part in relative.parts:
+        current /= part
+        if is_ci_evidence_reparse_point(current):
+            raise RuntimeError(
+                f"reparse-point .NET CI evidence is forbidden: {current}"
+            )
+    try:
+        mode = current.stat(follow_symlinks=False).st_mode
+    except OSError as error:
+        raise RuntimeError(
+            f"missing .NET CI evidence file: {relative.as_posix()}"
+        ) from error
+    if not stat.S_ISREG(mode):
+        raise RuntimeError(f"non-regular .NET CI evidence is forbidden: {current}")
+    return current
+
+
+def enumerate_ci_regular_files(directory: Path) -> tuple[Path, ...]:
+    root = directory.absolute()
+    if not root.is_dir() or is_ci_evidence_reparse_point(root):
+        raise RuntimeError(f"invalid .NET CI evidence directory: {directory}")
+    files: list[Path] = []
+    for current_text, directory_names, file_names in os.walk(
+        root,
+        topdown=True,
+        followlinks=False,
+    ):
+        current = Path(current_text)
+        for name in directory_names:
+            child = current / name
+            if is_ci_evidence_reparse_point(child) or not child.is_dir():
+                raise RuntimeError(
+                    f"reparse-point .NET CI evidence is forbidden: {child}"
+                )
+        for name in file_names:
+            files.append(require_ci_regular_file(current / name, root))
+    return tuple(sorted(files))
+
+
+def ci_relative_path(path: Path, evidence_root: Path) -> str:
+    return path.absolute().relative_to(evidence_root.absolute()).as_posix()
+
+
+def write_ci_manifest(path: Path, document: dict[str, object]) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(
+        json.dumps(document, indent=2, sort_keys=True) + "\n",
+        encoding="utf-8",
+        newline="\n",
+    )
+
+
+def ci_file_hashes(paths: Sequence[Path], evidence_root: Path) -> dict[str, str]:
+    hashes: dict[str, str] = {}
+    for path in sorted(paths):
+        if not path.exists() and not is_ci_evidence_reparse_point(path):
+            continue
+        regular = require_ci_regular_file(path, evidence_root)
+        hashes[ci_relative_path(regular, evidence_root)] = sha256_file(regular)
+    return hashes
+
+
+def publish_ci_dotnet_artifact(
+    source_root: Path,
+    upload_root: Path,
+    manifest_relative_path: str,
+    file_hashes: dict[str, str],
+) -> None:
+    """Copy only declared regular evidence into a clean upload tree."""
+
+    expected_paths = {manifest_relative_path, *file_hashes}
+    target = reset_ci_dotnet_evidence_directory(upload_root)
+    source_files: dict[str, Path] = {}
+    for relative_path in sorted(expected_paths):
+        source = resolve_ci_evidence_file(source_root, relative_path)
+        if (
+            relative_path in file_hashes
+            and sha256_file(source) != file_hashes[relative_path]
+        ):
+            raise RuntimeError(
+                f".NET CI evidence hash changed before upload: {relative_path}"
+            )
+        source_files[relative_path] = source
+
+    for relative_path, source in source_files.items():
+        destination = target.joinpath(*PurePosixPath(relative_path).parts)
+        destination.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copyfile(source, destination, follow_symlinks=False)
+
+    actual_paths = {
+        ci_relative_path(path, target) for path in enumerate_ci_regular_files(target)
+    }
+    if actual_paths != expected_paths:
+        raise RuntimeError(".NET CI upload staging contains missing or extra files")
+    for relative_path, expected_hash in file_hashes.items():
+        staged = resolve_ci_evidence_file(target, relative_path)
+        if sha256_file(staged) != expected_hash:
+            raise RuntimeError(
+                f"staged .NET CI evidence hash mismatch: {relative_path}"
+            )
+
+
+def parse_trx_counters(path: Path) -> dict[str, int]:
+    try:
+        counters = ET.parse(path).find(".//{*}Counters")
+    except ET.ParseError as error:
+        raise RuntimeError(f"TRX result is invalid XML: {path}") from error
+    if counters is None:
+        raise RuntimeError(f"TRX result has no counters: {path}")
+    names = ("total", "executed", "passed", "failed")
+    try:
+        values = {name: int(counters.attrib[name]) for name in names}
+    except (KeyError, ValueError) as error:
+        raise RuntimeError(f"TRX result has invalid counters: {path}") from error
+    skipped = values["total"] - values["executed"]
+    if skipped < 0 or values["passed"] + values["failed"] != values["executed"]:
+        raise RuntimeError(f"TRX result has inconsistent counters: {path}")
+    return {
+        "total": values["total"],
+        "passed": values["passed"],
+        "failed": values["failed"],
+        "skipped": skipped,
+    }
+
+
+def collect_ci_project_evidence(
+    project: CiDotnetProject,
+    results_directory: Path,
+    evidence_root: Path,
+) -> tuple[dict[str, object], tuple[Path, ...]]:
+    regular_files = enumerate_ci_regular_files(results_directory)
+    trx_reports = tuple(
+        path for path in regular_files if path.name == "test-results.trx"
+    )
+    json_reports = tuple(path for path in regular_files if path.name == "coverage.json")
+    cobertura_reports = tuple(
+        path for path in regular_files if path.name == "coverage.cobertura.xml"
+    )
+    if (
+        len(trx_reports) != 1
+        or not json_reports
+        or {report.parent for report in json_reports}
+        != {report.parent for report in cobertura_reports}
+    ):
+        raise RuntimeError(
+            f"{project.name} must emit exactly one TRX and one paired coverage report"
+        )
+    json_hashes = {sha256_file(report) for report in json_reports}
+    cobertura_hashes = {sha256_file(report) for report in cobertura_reports}
+    if len(json_hashes) != 1 or len(cobertura_hashes) != 1:
+        raise RuntimeError(f"{project.name} emitted divergent coverage attachments")
+    canonical_parent = min(
+        (report.parent for report in json_reports),
+        key=lambda parent: len(parent.relative_to(results_directory).parts),
+    )
+    for report in (*json_reports, *cobertura_reports):
+        if report.parent != canonical_parent:
+            report.unlink()
+    json_report = canonical_parent / "coverage.json"
+    cobertura_report = canonical_parent / "coverage.cobertura.xml"
+
+    counters = parse_trx_counters(trx_reports[0])
+    expected_passed = project.expected_total - project.expected_skipped
+    expected = {
+        "total": project.expected_total,
+        "passed": expected_passed,
+        "failed": 0,
+        "skipped": project.expected_skipped,
+    }
+    if counters != expected:
+        raise RuntimeError(
+            f"{project.name} test counters changed: expected {expected}, observed {counters}"
+        )
+
+    evidence_paths = (trx_reports[0], json_report, cobertura_report)
+    return (
+        {
+            "relativePath": project.relative_path,
+            "total": counters["total"],
+            "passed": counters["passed"],
+            "failed": counters["failed"],
+            "skipped": counters["skipped"],
+            "trx": ci_relative_path(trx_reports[0], evidence_root),
+            "coverageJson": ci_relative_path(json_report, evidence_root),
+            "coverageCobertura": ci_relative_path(cobertura_report, evidence_root),
+        },
+        evidence_paths,
+    )
+
+
+def combine_failures(
+    primary: BaseException | None,
+    secondary: BaseException,
+    *,
+    secondary_label: str = "cleanup",
+) -> BaseException:
+    if primary is None:
+        return secondary
+    return RuntimeError(f"{primary}; {secondary_label} also failed: {secondary}")
+
+
+def verify_ci_dotnet_build() -> None:
+    """Produce the full Release-build evidence independently of test shards."""
+
+    evidence_root = reset_ci_dotnet_evidence_directory(CI_DOTNET_EVIDENCE_ROOT)
+    reset_ci_dotnet_evidence_directory(CI_DOTNET_UPLOAD_ROOT)
+    output = evidence_root / "build"
+    output.mkdir(parents=True)
+    log_path = output / "build.log"
+    dotnet = resolve_dotnet()
+    environment = dotnet_batch_environment()
+    failure: BaseException | None = None
+    try:
+        verify_windows_process_orchestration(log_path)
+        run_dotnet_commands(
+            dotnet_build_commands(dotnet),
+            environment=environment,
+            log_path=log_path,
+        )
+        require_logged_sdk_version(log_path, repository_sdk_version())
+    except BaseException as error:
+        failure = error
+    try:
+        cleanup_dotnet_batch(dotnet, environment, log_path)
+    except BaseException as error:
+        failure = combine_failures(failure, error)
+
+    file_hashes = ci_file_hashes((log_path,), evidence_root)
+    document = {
+        "schemaVersion": CI_DOTNET_EVIDENCE_SCHEMA_VERSION,
+        "kind": "dotnet-build",
+        "sourceSha": require_ci_source_sha(),
+        "sdkVersion": repository_sdk_version(),
+        "success": failure is None,
+        "files": file_hashes,
+    }
+    write_ci_manifest(output / "manifest.json", document)
+    try:
+        publish_ci_dotnet_artifact(
+            evidence_root,
+            CI_DOTNET_UPLOAD_ROOT,
+            "build/manifest.json",
+            file_hashes,
+        )
+    except BaseException as error:
+        failure = combine_failures(
+            failure,
+            error,
+            secondary_label="evidence staging",
+        )
+    if failure is not None:
+        raise failure
+
+
+def verify_ci_dotnet_test_shard(shard: str) -> None:
+    """Run every project in one closed shard and retain all ordinary failures."""
+
+    projects = CI_DOTNET_SHARDS[shard]
+    evidence_root = reset_ci_dotnet_evidence_directory(CI_DOTNET_EVIDENCE_ROOT)
+    reset_ci_dotnet_evidence_directory(CI_DOTNET_UPLOAD_ROOT)
+    output = evidence_root / "shards" / shard
+    output.mkdir(parents=True)
+    results_root = output / "results"
+    log_path = output / "shard.log"
+    dotnet = resolve_dotnet()
+    environment = dotnet_batch_environment()
+    project_rows: list[dict[str, object]] = []
+    evidence_paths: list[Path] = [log_path]
+    failures: list[str] = []
+    fatal_failure: BaseException | None = None
+    try:
+        run(
+            [dotnet, "--version"],
+            environment=environment,
+            log_path=log_path,
+        )
+        run(
+            [dotnet, "restore", str(SOLUTION)],
+            environment=environment,
+            log_path=log_path,
+        )
+        for project in projects:
+            results_directory = results_root / project.name
+            results_directory.mkdir(parents=True)
             try:
                 run(
-                    [dotnet, "build-server", "shutdown"],
+                    ci_dotnet_test_command(dotnet, project, results_directory),
                     environment=environment,
                     log_path=log_path,
-                    timeout_seconds=CLEANUP_TIMEOUT_SECONDS,
                 )
-                stop_idle_build_workers(
-                    log_path, timeout_seconds=CLEANUP_TIMEOUT_SECONDS
+            except subprocess.CalledProcessError as error:
+                failures.append(f"{project.name}: {error}")
+            else:
+                try:
+                    row, paths = collect_ci_project_evidence(
+                        project,
+                        results_directory,
+                        evidence_root,
+                    )
+                except (RuntimeError, ValueError) as error:
+                    failures.append(f"{project.name}: {error}")
+                    continue
+                project_rows.append(row)
+                evidence_paths.extend(paths)
+        require_logged_sdk_version(log_path, repository_sdk_version())
+    except BaseException as error:
+        fatal_failure = error
+    if fatal_failure is None and failures:
+        fatal_failure = RuntimeError("; ".join(failures))
+    try:
+        cleanup_dotnet_batch(dotnet, environment, log_path)
+    except BaseException as error:
+        fatal_failure = combine_failures(fatal_failure, error)
+
+    file_hashes = ci_file_hashes(evidence_paths, evidence_root)
+    document = {
+        "schemaVersion": CI_DOTNET_EVIDENCE_SCHEMA_VERSION,
+        "kind": "dotnet-test-shard",
+        "sourceSha": require_ci_source_sha(),
+        "sdkVersion": repository_sdk_version(),
+        "success": fatal_failure is None,
+        "shard": shard,
+        "projects": project_rows,
+        "files": file_hashes,
+    }
+    write_ci_manifest(output / "manifest.json", document)
+    try:
+        publish_ci_dotnet_artifact(
+            evidence_root,
+            CI_DOTNET_UPLOAD_ROOT,
+            f"shards/{shard}/manifest.json",
+            file_hashes,
+        )
+    except BaseException as error:
+        fatal_failure = combine_failures(
+            fatal_failure,
+            error,
+            secondary_label="evidence staging",
+        )
+    if fatal_failure is not None:
+        raise fatal_failure
+
+
+def reject_duplicate_json_keys(pairs: list[tuple[str, object]]) -> dict[str, object]:
+    document: dict[str, object] = {}
+    for key, value in pairs:
+        if key in document:
+            raise RuntimeError(f"duplicate JSON key in .NET CI evidence: {key}")
+        document[key] = value
+    return document
+
+
+def load_ci_manifest(path: Path) -> dict[str, object]:
+    try:
+        document = json.loads(
+            path.read_text(encoding="utf-8"),
+            object_pairs_hook=reject_duplicate_json_keys,
+        )
+    except (OSError, UnicodeError, json.JSONDecodeError) as error:
+        raise RuntimeError(f"invalid .NET CI evidence manifest: {path}") from error
+    if not isinstance(document, dict):
+        raise RuntimeError(f".NET CI evidence manifest must be an object: {path}")
+    return document
+
+
+def resolve_ci_evidence_file(evidence_root: Path, relative_path: object) -> Path:
+    if not isinstance(relative_path, str) or "\\" in relative_path:
+        raise RuntimeError(".NET CI evidence paths must be canonical relative paths")
+    pure = PurePosixPath(relative_path)
+    if (
+        pure.is_absolute()
+        or not pure.parts
+        or pure.as_posix() != relative_path
+        or any(part in {"", ".", ".."} for part in pure.parts)
+    ):
+        raise RuntimeError(f"unsafe .NET CI evidence path: {relative_path}")
+    return require_ci_regular_file(
+        evidence_root.joinpath(*pure.parts),
+        evidence_root,
+    )
+
+
+def require_ci_dotnet_artifact_roots(download_root: Path) -> dict[str, Path]:
+    expected_names = {
+        "build": "dotnet-build-evidence",
+        **{shard: f"dotnet-test-{shard}-evidence" for shard in CI_DOTNET_SHARDS},
+    }
+    root = download_root.absolute()
+    if not root.is_dir() or is_ci_evidence_reparse_point(root):
+        raise RuntimeError(f"missing or invalid .NET CI evidence root: {download_root}")
+    entries = {path.name: path for path in root.iterdir()}
+    if set(entries) != set(expected_names.values()):
+        raise RuntimeError("missing or extra .NET CI evidence producer artifacts")
+    artifact_roots: dict[str, Path] = {}
+    for owner, name in expected_names.items():
+        artifact_root = entries[name]
+        if is_ci_evidence_reparse_point(artifact_root) or not artifact_root.is_dir():
+            raise RuntimeError(f"invalid .NET CI producer artifact root: {name}")
+        artifact_roots[owner] = artifact_root
+    return artifact_roots
+
+
+def require_manifest_keys(
+    document: dict[str, object],
+    expected: set[str],
+    label: str,
+) -> None:
+    if set(document) != expected:
+        raise RuntimeError(f"{label} manifest fields changed")
+
+
+def validate_manifest_files(
+    document: dict[str, object],
+    evidence_root: Path,
+    expected_paths: set[str],
+) -> set[str]:
+    files = document.get("files")
+    if not isinstance(files, dict) or set(files) != expected_paths:
+        raise RuntimeError(".NET CI evidence file inventory changed")
+    for relative_path, expected_hash in files.items():
+        if (
+            not isinstance(expected_hash, str)
+            or re.fullmatch(r"[0-9a-f]{64}", expected_hash) is None
+        ):
+            raise RuntimeError(f"invalid .NET CI evidence hash: {relative_path}")
+        path = resolve_ci_evidence_file(evidence_root, relative_path)
+        if sha256_file(path) != expected_hash:
+            raise RuntimeError(f".NET CI evidence hash mismatch: {relative_path}")
+    return set(files)
+
+
+def require_ci_project_evidence_paths(
+    row: dict[str, object],
+    shard: str,
+    project: CiDotnetProject,
+    artifact_root: Path,
+    seen_paths: set[str],
+) -> tuple[Path, Path, Path]:
+    raw_trx = row["trx"]
+    raw_json = row["coverageJson"]
+    raw_cobertura = row["coverageCobertura"]
+    if (
+        not isinstance(raw_trx, str)
+        or not isinstance(raw_json, str)
+        or not isinstance(raw_cobertura, str)
+    ):
+        raise RuntimeError(f"{project.name} .NET CI evidence paths are invalid")
+    trx_path = PurePosixPath(raw_trx)
+    json_path = PurePosixPath(raw_json)
+    cobertura_path = PurePosixPath(raw_cobertura)
+    project_root = PurePosixPath("shards", shard, "results", project.name)
+    if trx_path != project_root / "test-results.trx":
+        raise RuntimeError(f"{project.name} TRX path changed")
+    if any(
+        (
+            json_path.name != "coverage.json",
+            cobertura_path.name != "coverage.cobertura.xml",
+            json_path.parent != cobertura_path.parent,
+            not json_path.parent.is_relative_to(project_root),
+        )
+    ):
+        raise RuntimeError(f"{project.name} coverage report pairing changed")
+    row_paths = {raw_trx, raw_json, raw_cobertura}
+    if len(row_paths) != 3 or seen_paths.intersection(row_paths):
+        raise RuntimeError(f"{project.name} reuses .NET CI evidence")
+    seen_paths.update(row_paths)
+    return (
+        resolve_ci_evidence_file(artifact_root, raw_trx),
+        resolve_ci_evidence_file(artifact_root, raw_json),
+        resolve_ci_evidence_file(artifact_root, raw_cobertura),
+    )
+
+
+def finalize_ci_dotnet_evidence(download_root: Path) -> None:
+    """Validate the complete build/test evidence set and publish canonical coverage."""
+
+    job_results = {
+        "build": os.environ.get("NFC_CI_DOTNET_BUILD_RESULT"),
+        "test": os.environ.get("NFC_CI_DOTNET_TEST_RESULT"),
+    }
+    if job_results["build"] not in {None, "success"}:
+        raise RuntimeError(f".NET CI build producer failed: {job_results['build']}")
+    if job_results["test"] not in {None, "success"}:
+        raise RuntimeError(f".NET CI test producer failed: {job_results['test']}")
+    artifact_roots = require_ci_dotnet_artifact_roots(download_root)
+    manifests = {
+        "build": resolve_ci_evidence_file(
+            artifact_roots["build"],
+            "build/manifest.json",
+        ),
+        **{
+            shard: resolve_ci_evidence_file(
+                artifact_roots[shard],
+                f"shards/{shard}/manifest.json",
+            )
+            for shard in CI_DOTNET_SHARDS
+        },
+    }
+
+    source_sha = require_ci_source_sha()
+    sdk_version = repository_sdk_version()
+    build = load_ci_manifest(manifests["build"])
+    require_manifest_keys(
+        build,
+        {"schemaVersion", "kind", "sourceSha", "sdkVersion", "success", "files"},
+        "build",
+    )
+    if build != {
+        **build,
+        "schemaVersion": CI_DOTNET_EVIDENCE_SCHEMA_VERSION,
+        "kind": "dotnet-build",
+        "sourceSha": source_sha,
+        "sdkVersion": sdk_version,
+        "success": True,
+    }:
+        raise RuntimeError("build .NET CI evidence identity or result changed")
+    declared_files = validate_manifest_files(
+        build,
+        artifact_roots["build"],
+        {"build/build.log"},
+    )
+    build_files = {"build/manifest.json", *declared_files}
+    actual_build_files = {
+        ci_relative_path(path, artifact_roots["build"])
+        for path in enumerate_ci_regular_files(artifact_roots["build"])
+    }
+    if actual_build_files != build_files:
+        raise RuntimeError("build .NET CI artifact contains missing or extra files")
+    coverage_sources: list[tuple[CiDotnetProject, Path, Path]] = []
+
+    for shard, projects in CI_DOTNET_SHARDS.items():
+        artifact_root = artifact_roots[shard]
+        manifest = load_ci_manifest(manifests[shard])
+        require_manifest_keys(
+            manifest,
+            {
+                "schemaVersion",
+                "kind",
+                "sourceSha",
+                "sdkVersion",
+                "success",
+                "shard",
+                "projects",
+                "files",
+            },
+            shard,
+        )
+        if any(
+            (
+                manifest.get("schemaVersion") != CI_DOTNET_EVIDENCE_SCHEMA_VERSION,
+                manifest.get("kind") != "dotnet-test-shard",
+                manifest.get("sourceSha") != source_sha,
+                manifest.get("sdkVersion") != sdk_version,
+                manifest.get("success") is not True,
+                manifest.get("shard") != shard,
+            )
+        ):
+            raise RuntimeError(f"{shard} .NET CI evidence identity or result changed")
+        rows = manifest.get("projects")
+        if not isinstance(rows, list) or len(rows) != len(projects):
+            raise RuntimeError(f"{shard} .NET CI project inventory changed")
+        expected_paths = {f"shards/{shard}/shard.log"}
+        seen_row_paths: set[str] = set()
+        for project, row in zip(projects, rows, strict=True):
+            if not isinstance(row, dict):
+                raise RuntimeError(f"{shard} .NET CI project row is invalid")
+            require_manifest_keys(
+                row,
+                {
+                    "relativePath",
+                    "total",
+                    "passed",
+                    "failed",
+                    "skipped",
+                    "trx",
+                    "coverageJson",
+                    "coverageCobertura",
+                },
+                project.name,
+            )
+            expected_row = {
+                **row,
+                "relativePath": project.relative_path,
+                "total": project.expected_total,
+                "passed": project.expected_total - project.expected_skipped,
+                "failed": 0,
+                "skipped": project.expected_skipped,
+            }
+            if row != expected_row:
+                raise RuntimeError(f"{project.name} .NET CI test counters changed")
+            trx, json_report, cobertura_report = require_ci_project_evidence_paths(
+                row,
+                shard,
+                project,
+                artifact_root,
+                seen_row_paths,
+            )
+            evidence_paths = {
+                row["trx"],
+                row["coverageJson"],
+                row["coverageCobertura"],
+            }
+            expected_paths.update(evidence_paths)
+            counters = parse_trx_counters(trx)
+            if counters != {
+                "total": project.expected_total,
+                "passed": project.expected_total - project.expected_skipped,
+                "failed": 0,
+                "skipped": project.expected_skipped,
+            }:
+                raise RuntimeError(f"{project.name} TRX counters changed")
+            coverage_sources.append(
+                (
+                    project,
+                    json_report,
+                    cobertura_report,
                 )
-            finally:
-                CLEANUP_DEADLINE.reset(cleanup_deadline_token)
+            )
+        shard_files = validate_manifest_files(
+            manifest,
+            artifact_root,
+            expected_paths,
+        )
+        if declared_files.intersection(shard_files):
+            raise RuntimeError("duplicate .NET CI evidence ownership")
+        declared_files.update(shard_files)
+        expected_artifact_files = {
+            f"shards/{shard}/manifest.json",
+            *shard_files,
+        }
+        actual_artifact_files = {
+            ci_relative_path(path, artifact_root)
+            for path in enumerate_ci_regular_files(artifact_root)
+        }
+        if actual_artifact_files != expected_artifact_files:
+            raise RuntimeError(
+                f"{shard} .NET CI artifact contains missing or extra files"
+            )
+
+    if any(result != "success" for result in job_results.values()):
+        raise RuntimeError(f".NET CI producer jobs did not all succeed: {job_results}")
+
+    coverage_root = reset_coverage_directory("dotnet")
+    for project, json_report, cobertura_report in coverage_sources:
+        destination = coverage_root / project.name
+        destination.mkdir()
+        shutil.copyfile(json_report, destination / "coverage.json")
+        shutil.copyfile(cobertura_report, destination / "coverage.cobertura.xml")
+    run([sys.executable, str(CTRL_RAM_REPLACE_FIXTURE_VERIFIER), "--skip-public-smoke"])
+    verify_coverage("dotnet", coverage_root)
+    print(".NET CI evidence: 8 projects, 3321 tests, 2 skips, Golden 17/17.")
 
 
 def verify_windows_process_orchestration(log_path: Path | None = None) -> None:
@@ -1101,6 +1938,21 @@ def parse_args(arguments: Sequence[str] | None = None) -> argparse.Namespace:
     parser.add_argument(
         "--internal-lane",
         choices=("structure", "python", "dotnet", "dotnet-windows"),
+        help=argparse.SUPPRESS,
+    )
+    parser.add_argument(
+        "--ci-dotnet-build",
+        action="store_true",
+        help=argparse.SUPPRESS,
+    )
+    parser.add_argument(
+        "--ci-dotnet-test-shard",
+        choices=tuple(CI_DOTNET_SHARDS),
+        help=argparse.SUPPRESS,
+    )
+    parser.add_argument(
+        "--ci-dotnet-finalize",
+        type=Path,
         help=argparse.SUPPRESS,
     )
     parser.add_argument(
@@ -1344,6 +2196,9 @@ def validate_internal_lane_arguments(args: argparse.Namespace) -> None:
         or args.skip_structure
         or args.skip_python
         or args.skip_dotnet
+        or args.ci_dotnet_build
+        or args.ci_dotnet_test_shard is not None
+        or args.ci_dotnet_finalize is not None
         or args.jobs_was_supplied
         or args.lane_timeout_was_supplied
         or args.jobs != DEFAULT_VERIFY_JOBS
@@ -1358,6 +2213,50 @@ def validate_internal_lane_arguments(args: argparse.Namespace) -> None:
 
 def execute_verification(args: argparse.Namespace) -> int:
     """Validate one parsed invocation inside an installed signal boundary."""
+
+    ci_modes = tuple(
+        selected
+        for selected in (
+            args.ci_dotnet_build,
+            args.ci_dotnet_test_shard is not None,
+            args.ci_dotnet_finalize is not None,
+        )
+        if selected
+    )
+    if len(ci_modes) > 1:
+        raise SystemExit("CI .NET modes cannot be combined")
+    if ci_modes:
+        if (
+            args.all
+            or args.structure_only
+            or args.skip_structure
+            or args.skip_python
+            or args.skip_dotnet
+            or args.internal_lane is not None
+            or args.jobs_was_supplied
+            or args.lane_timeout_was_supplied
+        ):
+            raise SystemExit(
+                "CI .NET modes cannot be combined with public verification flags"
+            )
+        try:
+            if args.ci_dotnet_build:
+                verify_ci_dotnet_build()
+            elif args.ci_dotnet_test_shard is not None:
+                verify_ci_dotnet_test_shard(args.ci_dotnet_test_shard)
+            else:
+                assert args.ci_dotnet_finalize is not None
+                finalize_ci_dotnet_evidence(args.ci_dotnet_finalize)
+        except (
+            RuntimeError,
+            ValueError,
+            OSError,
+            subprocess.CalledProcessError,
+        ) as exc:
+            print(f"\nVERIFICATION FAILED: {exc}", file=sys.stderr)
+            return 1
+        print("\nVerification passed.")
+        return 0
 
     if args.internal_lane:
         validate_internal_lane_arguments(args)

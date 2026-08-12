@@ -4,7 +4,7 @@
 - Date: 2026-07-18
 - Owners: Product owner + architecture owner + firmware/process reviewer + UI reviewer
 - Amends: ADR 0009's General Replace Build-orchestration clause; validation remains mandatory inside one authoritative Build execution
-- Amended by: 2026-08-09 complete legacy-architecture retirement
+- Amended by: 2026-08-09 complete legacy-architecture retirement; 2026-08-12 evidence-sharded .NET CI
 - Supersedes: The former `v0.9.10` candidate-intake assignment
 - Superseded by: None
 
@@ -259,6 +259,46 @@ allocation, and unique test ownership over flaky universal timing limits.
 Local/CI evidence still records cold/warm p50/p95, allocation, and peak memory;
 a timing ratchet is introduced only after a stable reproducible baseline.
 Canonical verifier lanes must not execute the same test owner twice.
+
+### 2026-08-12 evidence-sharded .NET CI amendment
+
+The public `python scripts/verify.py --all` command remains the complete local
+and release verifier. The pull-request workflow may execute its .NET evidence
+owners on separate runners only through the following closed DAG, which
+supersedes the earlier single-runner planning restriction:
+
+- one Windows producer owns the pinned SDK, Windows process-orchestration
+  probe, restore, evaluated source-ownership check, whitespace formatter, and
+  complete Release solution build;
+- three Windows test producers own the exact `bootstrap`, `ui`, and `core`
+  project partitions declared only in `scripts/verify.py`; each project is run
+  unfiltered with one TRX and one paired JSON/Cobertura report;
+- one always-run finalizer retains the stable required-check name
+  `dotnet / build-test`, validates all producer results and manifests, and is
+  the only CI owner that aggregates .NET coverage and validates the CtrlRAM
+  fixture manifest.
+
+The partition is a disjoint and complete set of eight test projects. Ordinary
+test failure does not skip later projects in the same shard; timeout,
+cancellation, or workflow termination stops that runner and its owned process
+tree. A build failure is primary. Missing, failed, duplicate, unknown,
+wrong-SHA, wrong-SDK, path-escaping, symlinked, hash-mismatched, counter-drifted,
+or extra evidence fails the finalizer before coverage or fixture acceptance.
+Artifacts contain logs, TRX, and coverage only; they never contain firmware
+payloads, private fixtures, build outputs, `bin`, or `obj`.
+Each producer copies only its declared regular files into a clean upload root.
+The finalizer downloads the four exact artifact names into separate roots,
+validates each root before forming the logical union, and rejects cross-owner
+path reuse rather than flattening producer provenance.
+
+This is scheduling of existing evidence owners, not a second verifier. The
+workflow contains no project paths, filters, coverage merge logic, expected
+test counts, or firmware rules. Release/package workflows continue to run
+`python scripts/verify.py --all`. Acceptance requires two fresh same-SHA runs
+whose workflow-to-finalizer duration is at most 300 seconds, with all eight
+projects, the two declared Infrastructure skips, GoldenRegression 17/17,
+coverage policy, fixture validation, and cleanup unchanged. One miss stops the
+experiment rather than adding shards or weakening a gate.
 
 ## Consequences
 
