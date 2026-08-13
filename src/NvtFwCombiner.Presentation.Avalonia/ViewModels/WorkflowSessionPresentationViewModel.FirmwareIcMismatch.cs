@@ -3,23 +3,20 @@ using CommunityToolkit.Mvvm.Input;
 
 namespace NvtFwCombiner.Presentation.Avalonia.ViewModels;
 
-public sealed partial class WorkflowSessionPresentationViewModel
+internal sealed partial class WorkflowSessionPresentationViewModel
 {
     private string? _firmwareIcMismatchSlotId;
     private string? _firmwareIcMismatchPath;
     private AcceptedFirmwareMismatchSelection? _acceptedFirmwareMismatchSelection;
 
-    /// <summary>True while a loaded BIN suggests a different IC context.</summary>
     [ObservableProperty]
     public partial bool IsFirmwareIcMismatchModalOpen { get; set; }
 
-    /// <summary>Gets the loaded file name used in the mismatch prompt.</summary>
     public string FirmwareIcMismatchFileName { get; private set; } = string.Empty;
 
     /// <summary>Gets the non-authoritative IC marker detected from the selected BIN.</summary>
     public string FirmwareIcMismatchDetectedIc { get; private set; } = string.Empty;
 
-    /// <summary>Gets the currently selected workflow IC.</summary>
     public string FirmwareIcMismatchCurrentIc => SelectedIc;
 
     /// <summary>Command that adopts the prompted IC context and retains the selected BIN.</summary>

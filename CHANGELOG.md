@@ -93,6 +93,49 @@ dependency-gated.
 - Limitations: catalog is the only stage in this PR; report, diagnostics, deferred
   views, external discovery, and selected-file inspection migrate in later tickets.
 
+#### Optional shell preload lifecycle
+
+- Purpose: move report-history restore, an explicit startup report, System
+  information refresh, and deferred view materialization into the existing shell
+  preload session so optional work remains visible and controllable after catalog
+  publication.
+- Affected: desktop launch-page application, startup report precedence, Message
+  Center refresh, five deferred views, Retry/Skip/Cancel actions, startup trace,
+  localization, accessibility, and Presentation implementation visibility.
+- Before → After: one serial `ContinueStartupAsync` block with shared failure and
+  cancellation state becomes a closed stage plan. History precedes the explicit
+  report; diagnostics run beside that chain; views remain serial on the dispatcher
+  and wait while Preview/Build owns the UI.
+- Failure policy: optional failures retain one typed diagnostic and current plus
+  one prior attempt, do not disable the shell or suppress independent work, and
+  may retry only their failed stage or be skipped. Cancel stops and drains only
+  remaining preload work.
+- Progress and accessibility: the compact background disclosure shows the stage
+  position and stage-local percent when truthful, otherwise indeterminate; the
+  expanded immutable list exposes every admitted stage, bounded live status,
+  localized actions, and reduced-motion-compatible progress.
+- Architecture convergence: repository-internal ViewModel and UI projection types
+  no longer form an accidental public CLR surface. Boilerplate XML summaries that
+  only repeated those internal member names are removed; ownership, identity,
+  firmware, range, bound, cancellation, concurrency, and other non-obvious
+  invariants remain documented.
+- Support status: unchanged/support-neutral; no route, IC, workflow, processor,
+  profile, family, or Golden observation changes.
+- Compatibility: firmware bytes/hashes/names, report wire/history schema, CLI
+  behavior, settings, profiles/schemas, Saved Rules, and processor protocols are
+  unchanged.
+- Verification: shell-session ordering, retry/skip/cancel, operator priority,
+  localization, accessibility, architecture, full verifier, coverage, and Golden
+  17/17 gates apply.
+- Code size: preserving the complete lifecycle and non-obvious contract
+  documentation changes full production from 97,297 to 97,426 nonblank lines.
+  Truthful report-byte progress adds a one-time 33 counted runtime lines, so
+  runtime becomes 67,404. The named +129 full-production/+33 runtime exception
+  is non-transferable and creates no later growth allowance.
+- Limitations: external discovery and selection-triggered inspection remain owned
+  by PL-05 and PL-07; no Report UI redesign or aggregate cross-stage percentage is
+  introduced here.
+
 #### Message Center and report readability
 
 - Purpose: make System information and run-report evidence easier to scan in

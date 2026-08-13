@@ -17,11 +17,24 @@ public sealed partial class RepositoryBoundaryTests
     public void UiDocumentsForbidFirmwareSemanticsInViewModels()
     {
         string boundaries = ReadText("docs/ui/viewmodel-boundaries.md");
+        string directory = Path.Combine(
+            Root.FullName,
+            "src",
+            "NvtFwCombiner.Presentation.Avalonia",
+            "ViewModels");
+        string viewModels = string.Join(
+            Environment.NewLine,
+            Directory.GetFiles(directory, "*.cs").Select(File.ReadAllText));
 
         Assert.Contains("byte range arithmetic", boundaries, StringComparison.Ordinal);
         Assert.Contains("CRC/Header calculation or `combiner.exe` invocation", boundaries, StringComparison.Ordinal);
         Assert.Contains("No `File.ReadAllBytes` or `Process.Start` in ViewModels", boundaries, StringComparison.Ordinal);
+        Assert.DoesNotMatch(PublicViewModelTypeRegex(), viewModels);
     }
+
+    [System.Text.RegularExpressions.GeneratedRegex(
+        @"(?m)^public\s+(?:(?:sealed|abstract|static|partial|readonly)\s+)*(?:(?:class|record|interface|struct|delegate|enum)\s+)")]
+    private static partial System.Text.RegularExpressions.Regex PublicViewModelTypeRegex();
 
     /// <summary>Verifies Presentation consumes focused Application contracts, never concrete firmware adapters.</summary>
     [Fact]

@@ -2,12 +2,9 @@ using NvtFwCombiner.Application.MemoryLayout;
 
 namespace NvtFwCombiner.Presentation.Avalonia.ViewModels;
 
-/// <summary>Theme-neutral visual role for one memory coverage segment.</summary>
-public enum MemoryCoverageFillRole
+internal enum MemoryCoverageFillRole
 {
-    /// <summary>Pending, reserved, or otherwise neutral structure.</summary>
     Neutral,
-    /// <summary>Display or Initial Code.</summary>
     Dp,
     /// <summary>Normal touch firmware.</summary>
     Tp,
@@ -19,18 +16,14 @@ public enum MemoryCoverageFillRole
     Source,
     /// <summary>Reference-owned bytes that remain preserved.</summary>
     Kept,
-    /// <summary>Overlapping or otherwise conflicting output.</summary>
     Conflict,
     /// <summary>CtrlRAM without a more specific reviewed subtype.</summary>
     CtrlRam,
-    /// <summary>DiffDLM or DLM content.</summary>
     DiffDlm,
 }
 
-/// <summary>One visual segment in a memory coverage strip.</summary>
-public sealed class MemoryCoverageSegmentViewModel
+internal sealed class MemoryCoverageSegmentViewModel
 {
-    /// <summary>Creates a memory coverage segment.</summary>
     public MemoryCoverageSegmentViewModel(
         string rangeLabel,
         string sourceLabel,
@@ -96,53 +89,40 @@ public sealed class MemoryCoverageSegmentViewModel
     /// <summary>Final source occupying this range.</summary>
     public string SourceLabel { get; }
 
-    /// <summary>Short display note for this segment.</summary>
     public string Detail { get; }
 
-    /// <summary>Compact display note for dense memory legends.</summary>
     public string CompactDetail { get; }
 
-    /// <summary>Theme-neutral role resolved to one shared XAML brush.</summary>
     public MemoryCoverageFillRole FillRole { get; }
 
-    /// <summary>Proportional display width in device-independent pixels.</summary>
     public double BarWidth { get; }
 
-    /// <summary>True when the segment is written by the active replace operation.</summary>
     public bool IsChanged { get; }
 
     /// <summary>True when retained base-firmware bytes need a non-color visual pattern.</summary>
     public bool UsesBaseFirmwarePattern { get; }
 
-    /// <summary>True when Replace keeps the current bytes instead of writing this segment.</summary>
     public bool UsesKeptPattern =>
         UsesBaseFirmwarePattern || (RegionId is not null && !IsChanged);
 
     /// <summary>Profile-owned selection identity for a replaceable physical region, when present.</summary>
     public string? RegionId { get; }
 
-    /// <summary>Compact changed/kept label for the legend.</summary>
     public string ChangeLabel { get; }
 
-    /// <summary>True when this primary segment is the canonical DiffDLM artifact.</summary>
     public bool IsDiffDlm { get; }
 
     /// <summary>Typed Replace grouping supplied before localized display text.</summary>
     public ReplaceRegionGroup RegionGroup { get; }
 
-    /// <summary>Reference-owned active Diff NF details, empty for full-artifact replacement.</summary>
     public IReadOnlyList<DiffDlmPreservationDetailViewModel> PreservationDetails { get; }
 
-    /// <summary>True when the quiet side-detail affordance is applicable.</summary>
     public bool HasPreservationDetails => PreservationDetails.Count > 0;
 
-    /// <summary>Compact localized primary-result summary.</summary>
     public string PreservationSummary { get; }
 
-    /// <summary>Localized label for the quiet detail affordance.</summary>
     public string DetailsLabel { get; }
 
-    /// <summary>Equivalent screen-reader description of the visible and disclosed facts.</summary>
     public string AccessibleDetail { get; }
 
     private static string CreateCompactDetail(string sourceLabel, bool isChanged)
@@ -180,7 +160,7 @@ public sealed class MemoryCoverageSegmentViewModel
 }
 
 /// <summary>Localized display-only projection of one canonical kept Diff NF range.</summary>
-public sealed class DiffDlmPreservationDetailViewModel
+internal sealed class DiffDlmPreservationDetailViewModel
 {
     internal DiffDlmPreservationDetailViewModel(
         MemoryLayoutPreservationDetail detail,
@@ -201,13 +181,11 @@ public sealed class DiffDlmPreservationDetailViewModel
 
     /// <summary>One-based physical IC label.</summary>
     public string IcLabel { get; }
-    /// <summary>Zero-based DiffDLM block label.</summary>
     public string BlockLabel { get; }
     /// <summary>Source-artifact identity and half-open relative range.</summary>
     public string ArtifactRangeLabel { get; }
     /// <summary>Half-open resolved Flash range.</summary>
     public string FlashRangeLabel { get; }
-    /// <summary>Reference-owned disposition.</summary>
     public string DispositionLabel { get; }
 
     private static string FormatRange(long start, long endExclusive)

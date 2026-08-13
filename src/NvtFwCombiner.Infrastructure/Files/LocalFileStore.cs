@@ -49,9 +49,11 @@ public sealed class LocalFileStore : ILocalFileStore
     public ValueTask<string> ReadTextAsync(
         string path,
         long maximumBytes,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken,
+        Action<LocalFileReadProgress>? progress = null)
     {
-        return ReadAsync(path, maximumBytes, ReadTextAsync, cancellationToken);
+        return ReadAsync(path, maximumBytes,
+            (stream, token) => ReadTextAsync(stream, progress, token), cancellationToken);
     }
 
     /// <inheritdoc />
@@ -90,7 +92,7 @@ public sealed class LocalFileStore : ILocalFileStore
             }
 
             snapshot.Position = 0;
-            return await ReadTextAsync(snapshot, cancellationToken).ConfigureAwait(false);
+            return await ReadTextAsync(snapshot, null, cancellationToken).ConfigureAwait(false);
         }
         catch (Exception exception) when (Wrap(exception) is { } wrapped)
         {
@@ -112,8 +114,12 @@ public sealed class LocalFileStore : ILocalFileStore
 
     private static async ValueTask<string> ReadTextAsync(
         Stream stream,
+        Action<LocalFileReadProgress>? observer,
         CancellationToken cancellationToken)
     {
+        long total = stream.Length;
+        ReportProgress(observer, new(0, total));
+        long reported = 0;
         using var reader = new StreamReader(stream, StrictUtf8, true, BufferBytes, leaveOpen: true);
         var text = new StringBuilder();
         char[] buffer = new char[BufferBytes];
@@ -121,9 +127,30 @@ public sealed class LocalFileStore : ILocalFileStore
         while ((read = await reader.ReadAsync(buffer, cancellationToken).ConfigureAwait(false)) > 0)
         {
             _ = text.Append(buffer, 0, read);
+            long completed = Math.Min(stream.Position, total);
+            if (completed != reported)
+            {
+                ReportProgress(observer, new(completed, total));
+                reported = completed;
+            }
         }
-
         return text.ToString();
+    }
+
+    private static void ReportProgress(Action<LocalFileReadProgress>? observer, LocalFileReadProgress update)
+    {
+        if (observer is null)
+        {
+            return;
+        }
+        try
+        {
+            observer(update);
+        }
+        catch (Exception exception) when (exception is not OperationCanceledException)
+        {
+            throw new InvalidOperationException("The local-file progress observer failed.", exception);
+        }
     }
 
     private static void EnsureAccepted(long length, long maximumBytes)

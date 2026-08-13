@@ -167,11 +167,14 @@ public sealed partial class RepositoryBoundaryTests
         Assert.Contains("284 gross removed, 281", baseline, StringComparison.Ordinal);
         Assert.Contains("net **-3**", baseline, StringComparison.Ordinal);
         Assert.Contains("97,306 to 97,303", baseline, StringComparison.Ordinal);
-        Assert.Contains("full_production_ratchet=97_297", codeSizePolicy, StringComparison.Ordinal);
-        Assert.Contains("runtime_production_ratchet=67_371", codeSizePolicy, StringComparison.Ordinal);
-        Assert.Contains("application_ratchet=29_404", codeSizePolicy, StringComparison.Ordinal);
+        Assert.Contains("1,154 gross removed and 1,283", baseline, StringComparison.Ordinal);
+        Assert.Contains("97,297 to 97,426", baseline, StringComparison.Ordinal);
+        Assert.Contains("67,371 to 67,404", baseline, StringComparison.Ordinal);
+        Assert.Contains("full_production_ratchet=97_426", codeSizePolicy, StringComparison.Ordinal);
+        Assert.Contains("runtime_production_ratchet=67_404", codeSizePolicy, StringComparison.Ordinal);
+        Assert.Contains("application_ratchet=29_410", codeSizePolicy, StringComparison.Ordinal);
         Assert.Contains("bootstrap_cli_ratchet=3_267", codeSizePolicy, StringComparison.Ordinal);
-        Assert.Contains("infrastructure_contracts_worker_ratchet=14_081", codeSizePolicy, StringComparison.Ordinal);
+        Assert.Contains("infrastructure_contracts_worker_ratchet=14_108", codeSizePolicy, StringComparison.Ordinal);
         Assert.Contains("777.090 ms", baseline, StringComparison.Ordinal);
         Assert.Contains("806.930 ms", baseline, StringComparison.Ordinal);
         Assert.Contains("782.368 ms", baseline, StringComparison.Ordinal);

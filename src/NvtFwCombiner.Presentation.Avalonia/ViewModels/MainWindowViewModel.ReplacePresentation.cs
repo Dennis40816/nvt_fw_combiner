@@ -1,8 +1,7 @@
 namespace NvtFwCombiner.Presentation.Avalonia.ViewModels;
 
-public sealed partial class MainWindowViewModel
+internal sealed partial class MainWindowViewModel
 {
-    /// <summary>Focused Replace-page presentation child.</summary>
     public ReplacePresentationViewModel Replace { get; }
 
     private void Replace_OnPropertyChanged(object? sender, System.ComponentModel.PropertyChangedEventArgs e)

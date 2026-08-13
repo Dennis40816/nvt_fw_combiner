@@ -5,19 +5,16 @@ using NvtFwCombiner.Domain.Composition;
 
 namespace NvtFwCombiner.Presentation.Avalonia.ViewModels;
 
-public sealed partial class ReplacePresentationViewModel
+internal sealed partial class ReplacePresentationViewModel
 {
-    /// <summary>Gets short Replace memory-map summary text.</summary>
     public string ReplaceMemorySummary => Text.GetReplaceMemorySummary(SelectedReplaceMode);
 
-    /// <summary>Status shown in the replace inspector.</summary>
     public string ReplaceReadinessStatus => _stateBindings.IsFirmwareInspectionLoading()
         ? Text.FirmwareInspectionLoadingStatus
         : IsSelectedReplaceModeSupported
             ? Text.GetReplaceReadinessStatus(SelectedReplaceMode, CanRunReplace())
             : Text.GetReplaceNotSupportedStatus(SelectedIc);
 
-    /// <summary>Builds Replace output to a user-selected path.</summary>
     public Task BuildReplaceAsync(
         string outputPath,
         CtrlRamFirmwareVersionDraftState? ctrlRamFirmwareVersionEdit = null)

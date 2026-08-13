@@ -244,9 +244,9 @@ public sealed class ReportHistoryPersistenceTests
         Assert.Equal(ReportHistoryMetadataSnapshot.Empty, Assert.Single(persisted).Metadata);
         MainWindowViewModel restoredViewModel = PresentationTestHost.CreateViewModel(
             ShellLanguage.ChineseTraditional);
-        Assert.True(await restoredViewModel.Reports.LoadReportHistoryAsync(
+        Assert.Equal(ReportPublicationOutcome.Published, (await restoredViewModel.Reports.LoadReportHistoryAsync(
             _ => Task.FromResult(persisted),
-            TestContext.Current.CancellationToken));
+            TestContext.Current.CancellationToken)).Outcome);
         ReportHistoryEntryViewModel restored = Assert.Single(restoredViewModel.Reports.ReportHistoryEntries);
         Assert.Equal(reportJson, restored.ReportJson);
         Assert.Equal(

@@ -3,7 +3,7 @@ using NvtFwCombiner.Domain.Composition;
 
 namespace NvtFwCombiner.Presentation.Avalonia.ViewModels;
 
-public sealed partial class WorkflowSessionPresentationViewModel
+internal sealed partial class WorkflowSessionPresentationViewModel
 {
     /// <summary>True while the latest selected-file inspection is executing outside the dispatcher.</summary>
     public bool IsFirmwareInspectionLoading { get; private set; }

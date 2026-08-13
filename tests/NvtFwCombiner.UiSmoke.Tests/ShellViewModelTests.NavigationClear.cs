@@ -237,13 +237,14 @@ public sealed partial class ShellNavigationSystemTests
 
     /// <summary>Navigation warning text remains complete in both supported languages.</summary>
     [Theory]
-    [InlineData(ShellLanguage.English, "Clear selected files", "Clear and continue")]
-    [InlineData(ShellLanguage.ChineseTraditional, "清除已選檔案", "清除並繼續")]
+    [InlineData("English", "Clear selected files", "Clear and continue")]
+    [InlineData("ChineseTraditional", "清除已選檔案", "清除並繼續")]
     public void NavigationClearWarningIsLocalized(
-        ShellLanguage language,
+        string languageName,
         string expectedTitle,
         string expectedAction)
     {
+        ShellLanguage language = Enum.Parse<ShellLanguage>(languageName);
         var text = ShellTextResources.For(language);
 
         Assert.Contains(expectedTitle, text.NavigationClearTitle, StringComparison.Ordinal);

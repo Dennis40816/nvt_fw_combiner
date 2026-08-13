@@ -2,7 +2,7 @@ using NvtFwCombiner.Application.Capabilities;
 
 namespace NvtFwCombiner.Presentation.Avalonia.ViewModels;
 
-public sealed partial class MainWindowViewModel
+internal sealed partial class MainWindowViewModel
 {
     /// <summary>Focused Preview/Build lifetime and progress presentation.</summary>
     public CompositionRunPresentationViewModel RunSession { get; }

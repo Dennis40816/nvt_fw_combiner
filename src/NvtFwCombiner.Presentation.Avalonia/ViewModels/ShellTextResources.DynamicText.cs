@@ -9,7 +9,7 @@ using NvtFwCombiner.Domain.Composition;
 
 namespace NvtFwCombiner.Presentation.Avalonia.ViewModels;
 
-public sealed partial class ShellTextResources
+internal sealed partial class ShellTextResources
 {
     private string SelectLanguage(string english, string traditionalChinese)
     {

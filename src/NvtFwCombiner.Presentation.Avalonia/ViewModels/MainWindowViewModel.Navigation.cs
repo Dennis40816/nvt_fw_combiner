@@ -5,39 +5,31 @@ using CommunityToolkit.Mvvm.Input;
 
 namespace NvtFwCombiner.Presentation.Avalonia.ViewModels;
 
-public sealed partial class MainWindowViewModel
+internal sealed partial class MainWindowViewModel
 {
     private readonly List<ShellPage> _pageHistory = [ShellPage.Home];
     private PendingNavigation? _pendingNavigation;
 
-    /// <summary>True while leaving a composition page awaits confirmation to clear selected files.</summary>
     [ObservableProperty]
     public partial bool IsNavigationClearConfirmationOpen { get; set; }
 
-    /// <summary>Gets the clickable shell navigation hierarchy.</summary>
     public ObservableCollection<ShellNavigationEntryViewModel> NavigationTrail { get; } = [];
 
-    /// <summary>Gets a compact text version of the current navigation path.</summary>
     public string NavigationPath => string.Join(
         " > ",
         NavigationTrail.Select(entry => entry.Label));
 
-    /// <summary>Gets the current and requested pages shown by the navigation clear confirmation.</summary>
     public string NavigationClearRoute => _pendingNavigation is { } pending
         ? $"{PageLabel(SelectedPage)} → {PageLabel(pending.Target)}" : NavigationPath;
 
-    /// <summary>True when the shell can return to the previous visited page.</summary>
     public bool CanGoBack => _pageHistory.Count > 1;
 
-    /// <summary>True when the selected page or active run needs the captured device context.</summary>
     public bool IsDeviceContextVisible => RunSession.IsRunInProgress ||
         SelectedPage is ShellPage.Merge or ShellPage.Replace;
 
-    /// <summary>True when the fixed composition action rail belongs to the active page.</summary>
     public bool IsCompositionActionRailVisible =>
         (SelectedPage is ShellPage.Merge or ShellPage.Replace) && !IsBlockingSurfaceOpen;
 
-    /// <summary>True when the current composition page can reopen the latest committed output.</summary>
     public bool IsLatestOutputActionVisible => IsCompositionActionRailVisible && BuildResult.HasLatestCommittedOutput;
 
     private bool IsBlockingSurfaceOpen =>
@@ -68,13 +60,10 @@ public sealed partial class MainWindowViewModel
         OnPropertyChanged(nameof(IsLatestOutputActionVisible));
     }
 
-    /// <summary>Command that returns to the previous navigation entry.</summary>
     public IRelayCommand GoBackCommand { get; }
 
-    /// <summary>Command that clears the current page file selections and completes navigation.</summary>
     public IRelayCommand ConfirmNavigationAndClearCommand { get; }
 
-    /// <summary>Command that keeps the current page and all of its selections.</summary>
     public IRelayCommand CancelNavigationClearCommand { get; }
 
     private void NavigateToPage(ShellPage page)

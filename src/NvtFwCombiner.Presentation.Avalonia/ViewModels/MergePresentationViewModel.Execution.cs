@@ -7,9 +7,8 @@ internal sealed record MergeBuildSavePreparation(
     string SuggestedFileName,
     CompositionAdditionalDeliveryPlan? AFlashCodePlan);
 
-public sealed partial class MergePresentationViewModel
+internal sealed partial class MergePresentationViewModel
 {
-    /// <summary>Builds the active Merge output to a user-selected path.</summary>
     public Task BuildMergeAsync(
         string outputPath,
         string? aFlashCodeOutputPath = null,
@@ -46,7 +45,6 @@ public sealed partial class MergePresentationViewModel
         };
     }
 
-    /// <summary>Prepares all Build save-dialog data and converts admission failures into the standard run report.</summary>
     internal async ValueTask<MergeBuildSavePreparation?> TryPrepareMergeBuildSaveAsync(
         CancellationToken cancellationToken)
     {

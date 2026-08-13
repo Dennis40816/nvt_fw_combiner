@@ -3,29 +3,23 @@ using CommunityToolkit.Mvvm.Input;
 
 namespace NvtFwCombiner.Presentation.Avalonia.ViewModels;
 
-public sealed partial class WorkflowSessionPresentationViewModel
+internal sealed partial class WorkflowSessionPresentationViewModel
 {
     private string? _firmwareNumberMismatchToken;
     private string? _firmwareNumberMismatchSlotId;
     private string? _firmwareNumberMismatchPath;
 
-    /// <summary>True while readable FWConfig chip count suggests another Number selection.</summary>
     [ObservableProperty]
     public partial bool IsFirmwareNumberMismatchModalOpen { get; set; }
 
-    /// <summary>Gets the loaded file name used in the Number mismatch prompt.</summary>
     public string FirmwareNumberMismatchFileName { get; private set; } = string.Empty;
 
-    /// <summary>Gets the currently selected Number label.</summary>
     public string FirmwareNumberMismatchCurrentNumber { get; private set; } = string.Empty;
 
-    /// <summary>Gets the Number label derived by Bootstrap from readable FWConfig chip count.</summary>
     public string FirmwareNumberMismatchDetectedNumber { get; private set; } = string.Empty;
 
-    /// <summary>Gets the readable FWConfig chip count shown to the user.</summary>
     public byte FirmwareNumberMismatchDetectedChipCount { get; private set; }
 
-    /// <summary>Command that switches to the FWConfig-compatible Number selection.</summary>
     public IRelayCommand AcceptFirmwareNumberMismatchCommand { get; }
 
     /// <summary>Command that keeps the current Number without authorizing a mismatched Build.</summary>

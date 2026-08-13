@@ -326,7 +326,10 @@ public sealed partial class XamlControlStyleContractTests
             contextDocument.Descendants(),
             static element => element.Name.LocalName == "ProgressBar");
 
-        Assert.DoesNotContain("<ProgressBar", shell, StringComparison.Ordinal);
+        XElement shellProgress = Assert.Single(
+            XDocument.Parse(shell).Descendants(),
+            static element => element.Name.LocalName == "ProgressBar");
+        Assert.Equal("{ReflectionBinding Progress}", shellProgress.Attribute("Value")?.Value);
         Assert.Contains("IsVisible=\"{Binding RunSession.IsRunInProgress}\"", contextPanel, StringComparison.Ordinal);
         Assert.Contains("ItemsSource=\"{Binding RunSession.CompositionProgress.Steps}\"", contextPanel, StringComparison.Ordinal);
         Assert.Contains("AutomationProperties.Name=\"{Binding AccessibleLabel}\"", contextPanel, StringComparison.Ordinal);
@@ -386,9 +389,9 @@ public sealed partial class XamlControlStyleContractTests
         Assert.DoesNotContain("#if DEBUG", startup, StringComparison.Ordinal);
         Assert.DoesNotContain("ReportHistoryFileStore.LoadInto(viewModel);", window, StringComparison.Ordinal);
         Assert.Contains("protected override async void OnOpened", window, StringComparison.Ordinal);
-        Assert.Contains("await ApplyDeferredLaunchOptionsAsync(", window, StringComparison.Ordinal);
-        Assert.Contains("ReportHistoryFileStore.LoadAsync", startup, StringComparison.Ordinal);
-        Assert.Contains("_ = await viewModel.Reports.LoadReportFileAsync(", startup, StringComparison.Ordinal);
+        Assert.Contains("_preloadSession.RunOptionalStagesAsync(", window, StringComparison.Ordinal);
+        Assert.Contains("ReportHistoryFileStore.LoadAsync", window, StringComparison.Ordinal);
+        Assert.Contains("ApplyStartupReportAsync(", startup, StringComparison.Ordinal);
     }
 
     /// <summary>Prevents repeated shell, panel, row, and text property bundles from drifting back into templates.</summary>

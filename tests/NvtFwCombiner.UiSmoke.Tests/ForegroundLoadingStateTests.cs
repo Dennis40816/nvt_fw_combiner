@@ -75,7 +75,9 @@ public sealed class ForegroundLoadingStateTests
             RetainedLastKnownGood: false,
             Snapshot: null,
             [new CapabilityCatalogIssue(CapabilityCatalogIssueCodes.SourceInvalid, "Invalid catalog.")]);
-        using var session = new ShellPreloadSession(static _ => { });
+        using var session = new ShellPreloadSession(
+            static _ => { },
+            ShellTextResources.For(ShellLanguage.English));
         _ = await session.RunCatalogAsync(
             new OneUpdateLoader(new CanonicalCapabilityCatalogLoadUpdate(Progress: null, failure)),
             static _ => ValueTask.CompletedTask,
@@ -96,7 +98,7 @@ public sealed class ForegroundLoadingStateTests
         var text = ShellTextResources.For(ShellLanguage.English);
         MainWindow.ApplyPreloadStage(session, state, text, session.CatalogStage);
         Assert.Equal(0, state.Progress);
-        Assert.StartsWith("1 / 1", state.Detail, StringComparison.Ordinal);
+        Assert.StartsWith("1 / 4", state.Detail, StringComparison.Ordinal);
 
         MainWindow.ApplyPreloadStage(session, state, text, staleStage);
 

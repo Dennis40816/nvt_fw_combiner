@@ -5,7 +5,7 @@ using NvtFwCombiner.Domain.Composition;
 namespace NvtFwCombiner.Presentation.Avalonia.ViewModels;
 
 /// <summary>Owns shared workflow-context and selected-firmware prompt presentation.</summary>
-public sealed partial class WorkflowSessionPresentationViewModel : ObservableObject
+internal sealed partial class WorkflowSessionPresentationViewModel : ObservableObject
 {
     private readonly PresentationCompositionServices _compositionServices;
     private readonly Action<WorkflowContextSelection> _applyWorkflowContext;
@@ -42,7 +42,6 @@ public sealed partial class WorkflowSessionPresentationViewModel : ObservableObj
         DismissFirmwareNumberMismatchCommand = new RelayCommand(DismissFirmwareNumberMismatch);
     }
 
-    /// <summary>Gets current localized shell text used by workflow-session prompts.</summary>
     public ShellTextResources Text => _textProvider();
 
     internal FirmwareInspectionSession InspectionSession { get; }
@@ -110,8 +109,8 @@ public sealed partial class WorkflowSessionPresentationViewModel : ObservableObj
         DeviceContextRefreshSummary = Text.DeviceContextStatus;
         RelocalizeFirmwareFacts();
         RelocalizeInputInspection();
-        OnPropertyChanged(nameof(Text));
-        NotifyContextTextChanged();
+        PresentationObserver.Invoke(() => OnPropertyChanged(nameof(Text)));
+        PresentationObserver.Invoke(NotifyContextTextChanged);
     }
 
     private void RelocalizeFirmwareFacts()

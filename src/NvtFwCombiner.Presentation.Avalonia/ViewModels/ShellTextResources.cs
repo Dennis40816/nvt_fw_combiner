@@ -4,7 +4,7 @@
 namespace NvtFwCombiner.Presentation.Avalonia.ViewModels;
 
 /// <summary>Supported shell text languages.</summary>
-public enum ShellLanguage
+internal enum ShellLanguage
 {
     /// <summary>English UI text.</summary>
     English,
@@ -14,7 +14,7 @@ public enum ShellLanguage
 }
 
 /// <summary>Localized text bundle for the production-backed UI shell.</summary>
-public sealed partial class ShellTextResources
+internal sealed partial class ShellTextResources
 {
     private static readonly PlanningCardText EmptyPlanningCard = new(string.Empty, string.Empty, [], string.Empty);
     private static readonly Lazy<ShellTextResources> English = new(

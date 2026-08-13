@@ -2,6 +2,7 @@ using System.ComponentModel;
 using System.Diagnostics;
 using Avalonia.Controls;
 using Avalonia.Input;
+using Avalonia.Interactivity;
 using Avalonia.Styling;
 using Avalonia.Threading;
 using NvtFwCombiner.Application.Capabilities;
@@ -29,7 +30,6 @@ public sealed partial class MainWindow : Window, IDisposable
     private bool _isReportHistoryPersistenceComplete;
     private bool _isDisposed;
     private bool _isStartupLoadStarted;
-    private bool _isDeferredStartupComplete;
 
     /// <summary>Initializes the XAML loader constructor; production supplies explicit startup state.</summary>
     public MainWindow()
@@ -75,16 +75,21 @@ public sealed partial class MainWindow : Window, IDisposable
         _reportToastHoldTimer.Tick += ReportToastHoldTimer_OnTick;
         _reportToastFadeTimer.Tick += ReportToastFadeTimer_OnTick;
         MainWindowViewModel viewModel = CreateStartupViewModel(_hostServices, startupPreferences);
-        _preloadSession = new(stage => PresentPreloadStage(viewModel, stage));
+        _preloadSession = new(
+            stage => PresentPreloadStage(viewModel, stage),
+            viewModel.Text,
+            HasStartupReportStage(_launchOptions));
+        _preloadSession.SetReducedMotion(viewModel.IsReducedMotionEnabled);
         _startupTrace.Mark("shell-view-model.created");
         _preloadLoading.SetReducedMotion(viewModel.IsReducedMotionEnabled);
         ShellInteractionHost.IsEnabled = false;
         _preloadLoading.Begin(
             viewModel.Text.CatalogLoadingTitle,
-            $"1 / 1 · {viewModel.Text.CatalogLoadingDetail}",
+            $"{_preloadSession.CatalogStage.PositionLabel} · {viewModel.Text.CatalogLoadingDetail}",
             progress: 0);
         _preloadLoading.SetCancellationAction(viewModel.Text.CancelStartupLabel);
         CatalogLoadingSurfaceHost.DataContext = _preloadLoading;
+        OptionalPreloadStatusHost.DataContext = _preloadSession;
         _startupTrace.Mark("shell-preferences.applied");
         DataContext = viewModel;
         _startupTrace.Mark("shell-data-context.assigned");
@@ -227,43 +232,82 @@ public sealed partial class MainWindow : Window, IDisposable
         CancellationToken startupCancellation = _startupLoadCancellation.Token;
         CatalogLoadingSurfaceHost.Content = _preloadLoading;
         await Task.Yield();
-        await ContinueStartupAsync(
-            viewModel,
-            startupCancellation);
+        await RunStartupPreloadAsync(viewModel, startupCancellation);
     }
 
-    private async Task ContinueStartupAsync(
+    private async Task RunStartupPreloadAsync(
         MainWindowViewModel viewModel,
         CancellationToken startupCancellation)
     {
-        if (!await RunRequiredPreloadAsync(
-                viewModel,
-                startupCancellation) ||
-            _isDeferredStartupComplete)
+        if (!await RunRequiredPreloadAsync(viewModel, startupCancellation))
         {
             return;
         }
 
         try
         {
-            ApplyLaunchPage(viewModel, _launchOptions.Page);
-            _startupTrace.Mark("startup-launch-page.ready");
-            await ApplyDeferredLaunchOptionsAsync(
-                viewModel,
-                _hostServices.LocalFiles,
-                _launchOptions,
+            await _preloadSession.RunOptionalStagesAsync(
+                new(
+                    () =>
+                    {
+                        ApplyLaunchPage(viewModel, _launchOptions.Page);
+                        _startupTrace.Mark("startup-launch-page.ready");
+                    },
+                    async cancellationToken => RequireStartupPublication(await
+                        viewModel.Reports.LoadReportHistoryAsync(
+                            token => ReportHistoryFileStore.LoadAsync(
+                                _hostServices.LocalFiles,
+                                ReportHistoryFileStore.DefaultHistoryPath,
+                                token),
+                            cancellationToken)),
+                    HasStartupReportStage(_launchOptions)
+                        ? (progress, cancellationToken) => ApplyStartupReportAsync(
+                            viewModel,
+                            _hostServices.LocalFiles,
+                            _launchOptions,
+                            progress,
+                            cancellationToken)
+                        : null,
+                    async cancellationToken =>
+                    {
+                        await viewModel.MessageCenter.RefreshAfterStartupAsync(cancellationToken);
+                        if (viewModel.IsSettingsVisible)
+                        {
+                            viewModel.Settings.Refresh(viewModel.Text);
+                        }
+                    },
+                    (progress, isCurrent, cancellationToken) => WarmDeferredShellAsync(
+                        viewModel,
+                        progress,
+                        isCurrent,
+                        cancellationToken)),
                 startupCancellation);
-            _startupTrace.Mark("startup-launch-options.ready");
-            await viewModel.MessageCenter.RefreshAfterStartupAsync(startupCancellation);
-            if (viewModel.IsSettingsVisible)
+            ShellPreloadStageState history = _preloadSession.Stage(ShellPreloadSession.HistoryStageId).State;
+            bool hasStartupReport = HasStartupReportStage(_launchOptions);
+            ShellPreloadStageState report = hasStartupReport
+                ? _preloadSession.Stage(ShellPreloadSession.ReportStageId).State
+                : ShellPreloadStageState.Succeeded;
+            ShellPreloadStageState diagnostics = _preloadSession.Stage(ShellPreloadSession.DiagnosticsStageId).State;
+            if (history == ShellPreloadStageState.Succeeded &&
+                (!hasStartupReport || report == ShellPreloadStageState.Succeeded))
             {
-                viewModel.Settings.Refresh(viewModel.Text);
+                _startupTrace.Mark("startup-launch-options.ready");
+            }
+            if (diagnostics == ShellPreloadStageState.Succeeded)
+            {
+                _startupTrace.Mark("startup-warmup.catalogs.ready");
             }
 
-            _startupTrace.Mark("startup-warmup.catalogs.ready");
-            await WarmDeferredShellAsync(viewModel, startupCancellation);
-            _isDeferredStartupComplete = true;
-            _ = _startupTrace.Complete("startup-warmup.completed");
+            ShellPreloadStageState[] optionals = [history, report, diagnostics,
+                _preloadSession.Stage(ShellPreloadSession.ViewsStageId).State];
+            string terminal = optionals.Any(static state => state is
+                ShellPreloadStageState.Failed or ShellPreloadStageState.DependencyBlocked or
+                ShellPreloadStageState.Pending or ShellPreloadStageState.Running)
+                ? "startup-warmup.failed"
+                : optionals.Contains(ShellPreloadStageState.Cancelled)
+                    ? "startup-warmup.cancelled"
+                    : "startup-warmup.completed";
+            _ = _startupTrace.Complete(terminal);
         }
         catch (OperationCanceledException) when (startupCancellation.IsCancellationRequested)
         {
@@ -282,11 +326,7 @@ public sealed partial class MainWindow : Window, IDisposable
     {
         if (viewModel.WorkflowSession.IsCanonicalCatalogReady)
         {
-            _preloadLoading.Complete();
-            ShellInteractionHost.IsEnabled = true;
-            Dispatcher.UIThread.Post(
-                () => _ = HomeNavigationButton.Focus(NavigationMethod.Tab),
-                DispatcherPriority.Input);
+            _preloadSession.AdoptReadyCatalog();
             return true;
         }
 
@@ -334,9 +374,7 @@ public sealed partial class MainWindow : Window, IDisposable
             return;
         }
 
-        await ContinueStartupAsync(
-            viewModel,
-            _startupLoadCancellation.Token);
+        await RunStartupPreloadAsync(viewModel, _startupLoadCancellation.Token);
     }
 
     private void CatalogLoadingSurface_OnCancelRequested(object? sender, EventArgs e)
@@ -349,15 +387,35 @@ public sealed partial class MainWindow : Window, IDisposable
         MainWindowViewModel viewModel,
         ShellPreloadStageSnapshot stage)
     {
-        ApplyPreloadStage(_preloadSession, _preloadLoading, viewModel.Text, stage);
-        bool succeeded = stage.CurrentAttempt?.State == ShellPreloadAttemptState.Succeeded;
-        ShellInteractionHost.IsEnabled = succeeded;
-        if (succeeded)
+        if (!stage.IsRequired)
         {
-            Dispatcher.UIThread.Post(
-                () => _ = HomeNavigationButton.Focus(NavigationMethod.Tab),
-                DispatcherPriority.Input);
+            return;
         }
+
+        bool succeeded = stage.CurrentAttempt?.State == ShellPreloadStageState.Succeeded;
+        CommitRequiredStagePresentation(
+            succeeded,
+            ShellInteractionHost.IsEnabled,
+            enabled => ShellInteractionHost.IsEnabled = enabled,
+            () => Dispatcher.UIThread.Post(
+                () => _ = HomeNavigationButton.Focus(NavigationMethod.Tab),
+                DispatcherPriority.Input),
+            () => ApplyPreloadStage(_preloadSession, _preloadLoading, viewModel.Text, stage));
+    }
+
+    internal static void CommitRequiredStagePresentation(
+        bool succeeded,
+        bool shellWasEnabled,
+        Action<bool> setShellEnabled,
+        Action restoreFocus,
+        Action presentLoadingState)
+    {
+        setShellEnabled(succeeded);
+        if (succeeded && !shellWasEnabled)
+        {
+            restoreFocus();
+        }
+        presentLoadingState();
     }
 
     internal static void ApplyPreloadStage(
@@ -376,7 +434,7 @@ public sealed partial class MainWindow : Window, IDisposable
         }
 
         string prefix = $"{stage.Index} / {stage.Count} · ";
-        if (attempt.State == ShellPreloadAttemptState.Failed)
+        if (attempt.State == ShellPreloadStageState.Failed)
         {
             loading.Fail(
                 text.CatalogLoadingFailedTitle,
@@ -385,7 +443,7 @@ public sealed partial class MainWindow : Window, IDisposable
             loading.SetCancellationAction(text.CancelStartupLabel);
             return;
         }
-        if (attempt.State is ShellPreloadAttemptState.Succeeded or ShellPreloadAttemptState.Cancelled)
+        if (attempt.State is ShellPreloadStageState.Succeeded or ShellPreloadStageState.Cancelled)
         {
             loading.Complete();
             return;
@@ -406,6 +464,32 @@ public sealed partial class MainWindow : Window, IDisposable
         bool announce = detail != loading.Detail ||
             (int)(progress * 10) != (int)((loading.Progress ?? 0) * 10);
         loading.ReportProgress(progress, detail, announce);
+    }
+
+    private async void OptionalPreloadRetryButton_OnClick(object? sender, RoutedEventArgs e)
+    {
+        if (sender is Button { Tag: string stageId })
+        {
+            Task<bool> retry = _preloadSession.TryRetryOptionalAsync(stageId, _startupLoadCancellation.Token);
+            _ = OptionalPreloadStatusHost.Focus(NavigationMethod.Tab);
+            _ = await retry;
+        }
+    }
+
+    private void OptionalPreloadSkipButton_OnClick(object? sender, RoutedEventArgs e)
+    {
+        if (sender is Button { Tag: string stageId })
+        {
+            _ = _preloadSession.TrySkipOptional(stageId);
+            _ = OptionalPreloadStatusHost.Focus(NavigationMethod.Tab);
+        }
+    }
+
+    private async void OptionalPreloadCancelButton_OnClick(object? sender, RoutedEventArgs e)
+    {
+        Task cancellation = _preloadSession.CancelOptionalsAndDrainAsync();
+        _ = OptionalPreloadStatusHost.Focus(NavigationMethod.Tab);
+        await cancellation;
     }
 
     private void ViewModel_OnPropertyChanged(object? sender, PropertyChangedEventArgs e)
@@ -520,6 +604,8 @@ public sealed partial class MainWindow : Window, IDisposable
     private void RefreshPreloadPresentation(MainWindowViewModel viewModel)
     {
         _preloadLoading.SetReducedMotion(viewModel.IsReducedMotionEnabled);
+        _preloadSession.SetReducedMotion(viewModel.IsReducedMotionEnabled);
+        _preloadSession.Relocalize(viewModel.Text);
         ApplyPreloadStage(
             _preloadSession,
             _preloadLoading,

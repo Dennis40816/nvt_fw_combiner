@@ -3,7 +3,7 @@
 
 namespace NvtFwCombiner.Presentation.Avalonia.ViewModels;
 
-public sealed partial class ShellTextResources
+internal sealed partial class ShellTextResources
 {
     private static ShellTextResources CreateLocalized(ShellLanguage language)
     {
@@ -35,6 +35,19 @@ public sealed partial class ShellTextResources
                 "無法載入 canonical catalog；請重試以恢復 Merge 與 Replace。"),
             RetryLabel = Pick("Retry", "重試"),
             CancelStartupLabel = Pick("Cancel startup", "取消啟動"),
+            PreloadStatusTitle = Pick("Startup preparation", "啟動準備"),
+            PreloadHistoryTitle = Pick("Report history", "報告記錄"),
+            PreloadReportTitle = Pick("Startup report", "啟動報告"),
+            PreloadViewsTitle = Pick("Preparing views", "正在準備畫面"),
+            PreloadPendingDetail = Pick("Waiting to start", "等待開始"),
+            PreloadBlockedDetail = Pick("Waiting for a required predecessor", "等待必要的前置工作"),
+            PreloadRunningDetail = Pick("In progress", "進行中"),
+            PreloadSucceededDetail = Pick("Complete", "已完成"),
+            PreloadFailedDetail = Pick("Needs attention", "需要處理"),
+            PreloadSkippedDetail = Pick("Skipped", "已略過"),
+            PreloadCancelledDetail = Pick("Cancelled", "已取消"),
+            SkipPreloadLabel = Pick("Skip", "略過"),
+            CancelPreloadLabel = Pick("Cancel remaining", "取消剩餘工作"),
             MessageCenterTitle = Pick("Message Center", "訊息中心"),
             MessageCenterTooltip = Pick("Open reports and current system diagnostics", "開啟報告與目前系統診斷"),
             RunReportsLabel = Pick("Run reports", "執行報告"),

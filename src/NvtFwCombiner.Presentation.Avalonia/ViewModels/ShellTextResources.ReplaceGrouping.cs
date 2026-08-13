@@ -4,7 +4,7 @@ using NvtFwCombiner.Application.Authoring;
 
 namespace NvtFwCombiner.Presentation.Avalonia.ViewModels;
 
-public sealed partial class ShellTextResources
+internal sealed partial class ShellTextResources
 {
     public string GetReplaceRegionGroupTitle(ReplaceRegionGroup group)
     {

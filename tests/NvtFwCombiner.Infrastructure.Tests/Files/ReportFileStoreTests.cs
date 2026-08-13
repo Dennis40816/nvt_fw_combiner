@@ -19,13 +19,36 @@ public sealed class LocalFileStoreTests
         byte[] bytes = Encoding.UTF8.GetBytes(text);
         await File.WriteAllBytesAsync(path, bytes, TestContext.Current.CancellationToken);
         var store = new LocalFileStore();
+        var progress = new List<LocalFileReadProgress>();
 
         string result = await store.ReadTextAsync(
             path,
             Math.Max(1, bytes.Length),
-            TestContext.Current.CancellationToken);
+            TestContext.Current.CancellationToken,
+            progress.Add);
 
         Assert.Equal(text, result);
+        Assert.NotEmpty(progress);
+        Assert.Equal(new LocalFileReadProgress(0, bytes.Length), progress[0]);
+        Assert.Equal(new LocalFileReadProgress(bytes.Length, bytes.Length), progress[^1]);
+        Assert.Equal(progress.Count, progress.Distinct().Count());
+        Assert.All(progress, update => Assert.InRange(update.BytesRead, 0, update.TotalBytes));
+        Assert.All(progress.Zip(progress.Skip(1)), pair => Assert.True(pair.First.BytesRead < pair.Second.BytesRead));
+        var observerFailure = new IOException("observer failed");
+        InvalidOperationException thrown = await Assert.ThrowsAsync<InvalidOperationException>(() => store.ReadTextAsync(
+            path,
+            Math.Max(1, bytes.Length),
+            TestContext.Current.CancellationToken,
+            _ => throw observerFailure).AsTask());
+        Assert.Same(observerFailure, thrown.InnerException);
+        Assert.IsNotType<LocalFileReadException>(thrown);
+        using var cancelled = new CancellationTokenSource();
+        cancelled.Cancel();
+        _ = await Assert.ThrowsAnyAsync<OperationCanceledException>(() => store.ReadTextAsync(
+            path,
+            Math.Max(1, bytes.Length),
+            cancelled.Token,
+            _ => throw new OperationCanceledException(cancelled.Token)).AsTask());
     }
 
     /// <summary>The standalone report ceiling accepts exactly ten MiB.</summary>

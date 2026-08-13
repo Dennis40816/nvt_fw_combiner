@@ -222,7 +222,12 @@ public sealed partial class ShellNavigationSystemTests
         MainWindowViewModel viewModel = CreateDiagnosticsViewModel(
             catalog,
             ReadBuiltInFirmwareInspectionBatch);
+        viewModel.PropertyChanged +=
+            static (_, _) => throw new InvalidOperationException("Shell observer failed.");
+        viewModel.MessageCenter.PropertyChanged +=
+            static (_, _) => throw new InvalidOperationException("Diagnostics observer failed.");
         Task refresh = viewModel.MessageCenter.RefreshCommand.ExecuteAsync(null);
+        Task startupRefresh = Task.CompletedTask;
         try
         {
             await catalog.ReloadEntered.Task.WaitAsync(
@@ -232,13 +237,16 @@ public sealed partial class ShellNavigationSystemTests
             Assert.Equal(
                 viewModel.Text.RefreshingDiagnosticsLabel,
                 viewModel.MessageCenter.RefreshActionLabel);
+            startupRefresh = viewModel.MessageCenter.RefreshAfterStartupAsync(
+                TestContext.Current.CancellationToken);
+            Assert.False(startupRefresh.IsCompleted);
         }
         finally
         {
             catalog.ReleaseReload.SetResult();
         }
 
-        await refresh;
+        await Task.WhenAll(refresh, startupRefresh);
         Assert.False(viewModel.MessageCenter.IsRefreshInProgress);
         Assert.Equal(
             viewModel.Text.RefreshDiagnosticsLabel,

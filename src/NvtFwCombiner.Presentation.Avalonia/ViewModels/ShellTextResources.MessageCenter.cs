@@ -6,7 +6,7 @@ using NvtFwCombiner.Application.Diagnostics;
 
 namespace NvtFwCombiner.Presentation.Avalonia.ViewModels;
 
-public sealed partial class ShellTextResources
+internal sealed partial class ShellTextResources
 {
     public string MessageCenterTitle { get; private init; } = string.Empty;
 

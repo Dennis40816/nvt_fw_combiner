@@ -6,7 +6,7 @@ namespace NvtFwCombiner.Presentation.Avalonia.ViewModels;
 /// <summary>
 /// Presentation-owned state for one foreground operation without inventing progress that its owner did not report.
 /// </summary>
-public sealed class ForegroundLoadingState : ObservableObject
+internal sealed class ForegroundLoadingState : ObservableObject
 {
     private string _title = string.Empty;
     private string _detail = string.Empty;
@@ -18,22 +18,16 @@ public sealed class ForegroundLoadingState : ObservableObject
     private bool _hasFailed;
     private bool _isReducedMotionEnabled;
 
-    /// <summary>Whether the foreground surface currently blocks the underlying interaction.</summary>
     public bool IsVisible => _isVisible;
 
-    /// <summary>Whether the represented operation is still running.</summary>
     public bool IsRunning => _isRunning;
 
-    /// <summary>Whether the latest operation attempt failed.</summary>
     public bool HasFailed => _hasFailed;
 
-    /// <summary>Localized concise operation title.</summary>
     public string Title => _title;
 
-    /// <summary>Localized current status or recovery guidance.</summary>
     public string Detail => _detail;
 
-    /// <summary>Localized retry action label, or empty when retry is unavailable.</summary>
     public string RetryLabel => _retryLabel;
 
     /// <summary>Localized cancellation action label, or empty when cancellation is unavailable.</summary>
@@ -45,18 +39,14 @@ public sealed class ForegroundLoadingState : ObservableObject
     /// <summary>True when the operation owner supplied determinate progress.</summary>
     public bool HasDeterminateProgress => Progress.HasValue;
 
-    /// <summary>Current determinate progress as a concise percentage, or empty when progress is unknown.</summary>
     public string ProgressPercentLabel => Progress is { } progress
         ? string.Create(CultureInfo.CurrentCulture, $"{progress * 100:0}%")
         : string.Empty;
 
-    /// <summary>True while the foreground operation is active, independently of its numeric status.</summary>
     public bool IsIndeterminate => IsRunning;
 
-    /// <summary>True when continuous activity animation is both truthful and permitted.</summary>
     public bool ShouldAnimate => IsIndeterminate && !IsReducedMotionEnabled;
 
-    /// <summary>True when user or platform preference requests a static progress presentation.</summary>
     public bool IsReducedMotionEnabled => _isReducedMotionEnabled;
 
     /// <summary>True only for a failed operation with an explicit retry action.</summary>
@@ -98,7 +88,6 @@ public sealed class ForegroundLoadingState : ObservableObject
         NotifyAccessibleStatus(accessibleStatusChanged);
     }
 
-    /// <summary>Updates determinate progress for the active operation.</summary>
     public void ReportProgress(double progress, string? detail = null, bool announce = true)
     {
         if (!IsRunning)
@@ -118,7 +107,6 @@ public sealed class ForegroundLoadingState : ObservableObject
         NotifyAccessibleStatus(announce && accessibleStatusChanged);
     }
 
-    /// <summary>Keeps the foreground surface visible with explicit recovery guidance.</summary>
     public void Fail(string title, string detail, string retryLabel = "")
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(title);

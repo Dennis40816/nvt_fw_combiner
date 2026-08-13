@@ -2,7 +2,7 @@ using System.Globalization;
 
 namespace NvtFwCombiner.Presentation.Avalonia.ViewModels;
 
-public sealed partial class ShellTextResources
+internal sealed partial class ShellTextResources
 {
     /// <summary>Returns the localized label for an Application-owned composition phase.</summary>
     public string GetCompositionRunPhaseLabel(CompositionRunPhase phase)

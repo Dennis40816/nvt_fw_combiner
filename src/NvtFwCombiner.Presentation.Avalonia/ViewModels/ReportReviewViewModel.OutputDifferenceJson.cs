@@ -3,7 +3,7 @@ using System.Text.Json;
 
 namespace NvtFwCombiner.Presentation.Avalonia.ViewModels;
 
-public sealed partial class ReportReviewViewModel
+internal sealed partial class ReportReviewViewModel
 {
     internal static JsonValueSlice[] IndexOutputDifferences(
         ReadOnlySpan<byte> reportUtf8,

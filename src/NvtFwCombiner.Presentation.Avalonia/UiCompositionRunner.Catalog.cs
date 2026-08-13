@@ -5,10 +5,10 @@ using NvtFwCombiner.Presentation.Avalonia.ViewModels;
 namespace NvtFwCombiner.Presentation.Avalonia;
 
 /// <inheritdoc/>
-public static partial class UiCompositionRunner
+internal static partial class UiCompositionRunner
 {
     /// <summary>Gets grouped IC-number display choices while preserving planner tokens.</summary>
-    public static IReadOnlyList<IcNumberChoiceViewModel> GetNumberSelectionChoices(
+    internal static IReadOnlyList<IcNumberChoiceViewModel> GetNumberSelectionChoices(
         PresentationCompositionServices services,
         string icId)
     {

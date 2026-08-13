@@ -4,7 +4,7 @@ using NvtFwCombiner.Domain.Composition;
 
 namespace NvtFwCombiner.Presentation.Avalonia.ViewModels;
 
-public sealed partial class ReportReviewViewModel
+internal sealed partial class ReportReviewViewModel
 {
     private static string? GetRangeOrNull(JsonElement element, string propertyName)
     {

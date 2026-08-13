@@ -2,10 +2,10 @@ using NvtFwCombiner.Presentation.Avalonia.ViewModels;
 
 namespace NvtFwCombiner.Presentation.Avalonia;
 
-public static partial class UiCompositionRunner
+internal static partial class UiCompositionRunner
 {
     /// <summary>Gets compact firmware facts from one already-read inspection snapshot.</summary>
-    public static IReadOnlyList<FirmwareSlotFactViewModel> GetFirmwareSlotFacts(
+    internal static IReadOnlyList<FirmwareSlotFactViewModel> GetFirmwareSlotFacts(
         FirmwareInspectionSnapshot inspection,
         bool includeBaseFacts = false,
         ShellTextResources? text = null)
@@ -37,7 +37,7 @@ public static partial class UiCompositionRunner
     }
 
     /// <summary>Gets compact DP facts from one already-read inspection snapshot.</summary>
-    public static IReadOnlyList<FirmwareSlotFactViewModel> GetDpFirmwareSlotFacts(
+    internal static IReadOnlyList<FirmwareSlotFactViewModel> GetDpFirmwareSlotFacts(
         FirmwareInspectionSnapshot inspection,
         ShellTextResources? text = null)
     {

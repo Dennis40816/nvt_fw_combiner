@@ -4,7 +4,7 @@ using CommunityToolkit.Mvvm.Input;
 namespace NvtFwCombiner.Presentation.Avalonia.ViewModels;
 
 /// <summary>Owns Merge-page presentation state, commands, and workflow-specific lifetime.</summary>
-public sealed partial class MergePresentationViewModel : ObservableObject
+internal sealed partial class MergePresentationViewModel : ObservableObject
 {
     private readonly PresentationCompositionServices _compositionServices;
     private readonly Func<ShellTextResources> _textProvider;

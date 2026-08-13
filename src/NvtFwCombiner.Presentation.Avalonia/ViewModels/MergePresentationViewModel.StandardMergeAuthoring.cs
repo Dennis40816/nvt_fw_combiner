@@ -3,7 +3,7 @@ using NvtFwCombiner.Application.Capabilities;
 
 namespace NvtFwCombiner.Presentation.Avalonia.ViewModels;
 
-public sealed partial class MergePresentationViewModel
+internal sealed partial class MergePresentationViewModel
 {
     internal AuthoringRevision StandardMergeAuthoringRevision =>
         _standardMergeSession.CurrentSnapshot?.AuthoringRevision ?? new AuthoringRevision(1);

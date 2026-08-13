@@ -408,6 +408,116 @@
     </StackPanel>
 
     <ContentControl
+        x:Name="OptionalPreloadStatusHost"
+        Grid.Row="4"
+        AutomationProperties.LiveSetting="Polite"
+        AutomationProperties.Name="{ReflectionBinding AccessibleStatus}"
+        Focusable="True"
+        Content="{ReflectionBinding}">
+      <ContentControl.ContentTemplate>
+        <DataTemplate>
+          <Border
+              Margin="28,0,28,12"
+              Padding="14,10"
+              Background="{DynamicResource NfcSurfaceBrush}"
+              BorderBrush="{DynamicResource NfcBorderSoftBrush}"
+              BorderThickness="1"
+              CornerRadius="{DynamicResource NfcCompactCornerRadius}"
+              IsVisible="{ReflectionBinding HasOptionalStatus}">
+            <Expander>
+              <Expander.Header>
+                <Grid
+                    ColumnDefinitions="Auto,Auto,*,Auto,Auto"
+                    ColumnSpacing="{DynamicResource NfcSpace8}">
+                  <TextBlock
+                      FontWeight="SemiBold"
+                      Foreground="{DynamicResource NfcTextStrongBrush}"
+                      Text="{ReflectionBinding $parent[Window].DataContext.Text.PreloadStatusTitle}" />
+                  <TextBlock
+                      Grid.Column="1"
+                      Foreground="{DynamicResource NfcTextMutedBrush}"
+                      Text="{ReflectionBinding SummaryStage.PositionLabel}" />
+                  <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="{DynamicResource NfcSpace4}">
+                    <TextBlock Foreground="{DynamicResource NfcTextBrush}" Text="{ReflectionBinding SummaryStage.Title}" />
+                    <TextBlock Foreground="{DynamicResource NfcTextMutedBrush}" Text="·" />
+                    <TextBlock Foreground="{DynamicResource NfcTextMutedBrush}" Text="{ReflectionBinding SummaryStage.Detail}" />
+                  </StackPanel>
+                  <TextBlock
+                      Grid.Column="3"
+                      FontWeight="SemiBold"
+                      Foreground="{DynamicResource NfcAccentStrongBrush}"
+                      IsVisible="{ReflectionBinding SummaryStage.HasProgress}"
+                      Text="{ReflectionBinding SummaryStage.ProgressLabel}" />
+                  <Button
+                      Grid.Column="4"
+                      Classes="secondary"
+                      Click="OptionalPreloadCancelButton_OnClick"
+                      Content="{ReflectionBinding $parent[Window].DataContext.Text.CancelPreloadLabel}"
+                      IsVisible="{ReflectionBinding CanCancelOptionals}" />
+                </Grid>
+              </Expander.Header>
+              <ItemsControl Margin="0,10,0,0" ItemsSource="{ReflectionBinding Stages}">
+                <ItemsControl.ItemTemplate>
+                  <DataTemplate>
+                    <Grid Margin="0,3" ColumnDefinitions="44,180,*,90,Auto,Auto" ColumnSpacing="{DynamicResource NfcSpace8}">
+                      <TextBlock
+                          VerticalAlignment="Center"
+                          Foreground="{DynamicResource NfcTextMutedBrush}"
+                          Text="{ReflectionBinding PositionLabel}" />
+                      <TextBlock
+                          Grid.Column="1"
+                          VerticalAlignment="Center"
+                          FontWeight="SemiBold"
+                          Foreground="{DynamicResource NfcTextBrush}"
+                          Text="{ReflectionBinding Title}" />
+                      <StackPanel Grid.Column="2">
+                        <TextBlock Foreground="{DynamicResource NfcTextMutedBrush}" Text="{ReflectionBinding Detail}" />
+                        <TextBlock
+                            FontSize="{DynamicResource NfcFontSize11}"
+                            Foreground="{DynamicResource NfcDangerTextBrush}"
+                            IsVisible="{ReflectionBinding HasDiagnostic}"
+                            Text="{ReflectionBinding CurrentAttempt.Diagnostic}"
+                            TextTrimming="CharacterEllipsis" />
+                      </StackPanel>
+                      <StackPanel Grid.Column="3" Spacing="{DynamicResource NfcSpace2}">
+                        <ProgressBar
+                            Height="4"
+                            Maximum="1"
+                            IsIndeterminate="{ReflectionBinding IsIndeterminate}"
+                            IsVisible="{ReflectionBinding IsRunning}"
+                            Value="{ReflectionBinding Progress}" />
+                        <TextBlock
+                            FontSize="{DynamicResource NfcFontSize11}"
+                            Foreground="{DynamicResource NfcTextMutedBrush}"
+                            IsVisible="{ReflectionBinding HasWork}"
+                            Text="{ReflectionBinding WorkLabel}" />
+                      </StackPanel>
+                      <Button
+                          Grid.Column="4"
+                          Classes="secondary"
+                          AutomationProperties.Name="{ReflectionBinding RetryAccessibleLabel}"
+                          Click="OptionalPreloadRetryButton_OnClick"
+                          Content="{ReflectionBinding $parent[Window].DataContext.Text.RetryLabel}"
+                          IsVisible="{ReflectionBinding CanRetry}"
+                          Tag="{ReflectionBinding Id}" />
+                      <Button
+                          Grid.Column="5"
+                          AutomationProperties.Name="{ReflectionBinding SkipAccessibleLabel}"
+                          Click="OptionalPreloadSkipButton_OnClick"
+                          Content="{ReflectionBinding $parent[Window].DataContext.Text.SkipPreloadLabel}"
+                          IsVisible="{ReflectionBinding CanSkip}"
+                          Tag="{ReflectionBinding Id}" />
+                    </Grid>
+                  </DataTemplate>
+                </ItemsControl.ItemTemplate>
+              </ItemsControl>
+            </Expander>
+          </Border>
+        </DataTemplate>
+      </ContentControl.ContentTemplate>
+    </ContentControl>
+
+    <ContentControl
         x:Name="ReportToastHost"
         Grid.Row="1"
         Grid.RowSpan="4"

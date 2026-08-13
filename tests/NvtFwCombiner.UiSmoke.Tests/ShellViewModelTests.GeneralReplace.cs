@@ -9,10 +9,11 @@ public sealed partial class GeneralWorkflowTests
 {
     /// <summary>Verifies immutable language bundles are reused instead of rebuilt by each shell projection.</summary>
     [Theory]
-    [InlineData(ShellLanguage.English)]
-    [InlineData(ShellLanguage.ChineseTraditional)]
-    public void LocalizedShellBundlesAreCached(ShellLanguage language)
+    [InlineData("English")]
+    [InlineData("ChineseTraditional")]
+    public void LocalizedShellBundlesAreCached(string languageName)
     {
+        ShellLanguage language = Enum.Parse<ShellLanguage>(languageName);
         Assert.Same(ShellTextResources.For(language), ShellTextResources.For(language));
     }
 
@@ -31,10 +32,11 @@ public sealed partial class GeneralWorkflowTests
 
     /// <summary>Verifies every bindable string is populated in both supported language bundles.</summary>
     [Theory]
-    [InlineData(ShellLanguage.English)]
-    [InlineData(ShellLanguage.ChineseTraditional)]
-    public void LocalizedShellBundlesPopulateEveryString(ShellLanguage language)
+    [InlineData("English")]
+    [InlineData("ChineseTraditional")]
+    public void LocalizedShellBundlesPopulateEveryString(string languageName)
     {
+        ShellLanguage language = Enum.Parse<ShellLanguage>(languageName);
         var resources = ShellTextResources.For(language);
         IEnumerable<string> emptyProperties = typeof(ShellTextResources)
             .GetProperties()

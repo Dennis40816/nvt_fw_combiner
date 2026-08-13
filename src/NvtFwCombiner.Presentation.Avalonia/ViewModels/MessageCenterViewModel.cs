@@ -5,13 +5,14 @@ using NvtFwCombiner.Application.Ports;
 
 namespace NvtFwCombiner.Presentation.Avalonia.ViewModels;
 
-/// <summary>Compact shell entry that keeps reports and current system state separate.</summary>
-public sealed partial class MessageCenterViewModel : ObservableObject
+internal sealed partial class MessageCenterViewModel : ObservableObject
 {
     private readonly Func<ShellTextResources> _textProvider;
     private readonly ISystemInformationService _systemInformation;
     private readonly ISystemDiagnosticsExporter _exporter;
     private readonly Action<bool> _diagnosticsChanged;
+    private Task? _activeRefresh;
+    private bool _activeRefreshReloadsCatalog;
 
     internal MessageCenterViewModel(
         Func<ShellTextResources> textProvider,
@@ -35,7 +36,6 @@ public sealed partial class MessageCenterViewModel : ObservableObject
         OpenReportHistoryCommand = new RelayCommand(OpenReportHistory, () => Reports.CanOpenReportHistory);
     }
 
-    /// <summary>Localized shell text.</summary>
     public ShellTextResources Text => _textProvider();
 
     /// <summary>Latest immutable System Information observation.</summary>
@@ -44,11 +44,9 @@ public sealed partial class MessageCenterViewModel : ObservableObject
     /// <summary>Existing persisted run-report owner, referenced without merging its lifecycle.</summary>
     public ReportPresentationViewModel Reports { get; }
 
-    /// <summary>True when the Message Center modal is open.</summary>
     [ObservableProperty]
     public partial bool IsOpen { get; private set; }
 
-    /// <summary>True when current system state is selected.</summary>
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(IsRunReportsSelected))]
     public partial bool IsSystemInformationSelected { get; private set; } = true;
@@ -56,13 +54,10 @@ public sealed partial class MessageCenterViewModel : ObservableObject
     /// <summary>True when immutable run history is selected.</summary>
     public bool IsRunReportsSelected => !IsSystemInformationSelected;
 
-    /// <summary>Number of active system diagnostics shown by the shell badge.</summary>
     public int ActiveBadgeCount => Current.ActiveDiagnostics.Count;
 
-    /// <summary>True when the shell badge should be visible.</summary>
     public bool HasActiveDiagnostics => ActiveBadgeCount > 0;
 
-    /// <summary>True when the resolved/empty state should be announced.</summary>
     public bool HasNoActiveDiagnostics => !HasActiveDiagnostics;
 
     /// <summary>Localized diagnostic projections; stable codes remain Application-owned.</summary>
@@ -76,15 +71,12 @@ public sealed partial class MessageCenterViewModel : ObservableObject
             Text.GetSystemDiagnosticAction(diagnostic))),
     ];
 
-    /// <summary>Current global blocker, ahead of workflow-local blockers.</summary>
     public ActionableSystemDiagnostic? GlobalBuildBlocker => Current.ActiveDiagnostics
         .FirstOrDefault(static diagnostic =>
             diagnostic.Severity == SystemDiagnosticSeverity.Blocking);
 
-    /// <summary>True while catalog refresh or an active global diagnostic blocks Build.</summary>
     public bool IsGlobalBuildBlocked => IsRefreshInProgress || GlobalBuildBlocker is not null;
 
-    /// <summary>Localized global blocker text used by the focusable Build affordance.</summary>
     public string GlobalBuildBlockerText => IsRefreshInProgress
         ? Text.RefreshingDiagnosticsLabel
         : GlobalBuildBlocker is { } blocker
@@ -96,7 +88,6 @@ public sealed partial class MessageCenterViewModel : ObservableObject
         ? Text.GetCatalogStateLabel(Current.CatalogState)
         : $"{Text.GetCatalogStateLabel(Current.CatalogState)} · {Current.CatalogVersion}";
 
-    /// <summary>Badge-aware accessible shell name.</summary>
     public string MessageCenterAccessibleName =>
         Text.FormatMessageCenterAccessibleName(ActiveBadgeCount);
 
@@ -122,19 +113,15 @@ public sealed partial class MessageCenterViewModel : ObservableObject
     [ObservableProperty]
     public partial string ExportStatus { get; private set; } = string.Empty;
 
-    /// <summary>Opens the compact Message Center.</summary>
     public IRelayCommand OpenCommand { get; }
 
-    /// <summary>Closes the compact Message Center.</summary>
     public IRelayCommand CloseCommand { get; }
 
     /// <summary>Selects immutable run reports/history.</summary>
     public IRelayCommand ShowRunReportsCommand { get; }
 
-    /// <summary>Selects refreshable System Information.</summary>
     public IRelayCommand ShowSystemInformationCommand { get; }
 
-    /// <summary>Explicitly reloads and reprobes current system state.</summary>
     public IAsyncRelayCommand RefreshCommand { get; }
 
     /// <summary>Opens the existing current immutable run report.</summary>
@@ -149,7 +136,6 @@ public sealed partial class MessageCenterViewModel : ObservableObject
         return RefreshAsync(reloadCatalog: false, cancellationToken);
     }
 
-    /// <summary>Exports one privacy-filtered JSON bundle to a caller-selected path.</summary>
     public async Task ExportAsync(string destinationPath, CancellationToken cancellationToken)
     {
         try
@@ -212,19 +198,29 @@ public sealed partial class MessageCenterViewModel : ObservableObject
         IsSystemInformationSelected = selected;
     }
 
-    private async Task RefreshAsync(
+    private Task RefreshAsync(
         bool reloadCatalog,
         CancellationToken cancellationToken)
     {
-        if (IsRefreshInProgress)
+        if (_activeRefresh is { IsCompleted: false } active)
         {
-            return;
+            return reloadCatalog && !_activeRefreshReloadsCatalog
+                ? RefreshAfterActiveAsync(active, cancellationToken)
+                : active.WaitAsync(cancellationToken);
         }
 
+        Task refresh = RefreshCoreAsync(reloadCatalog, cancellationToken);
+        _activeRefreshReloadsCatalog = reloadCatalog;
+        _activeRefresh = refresh;
+        return ObserveRefreshCompletionAsync(refresh);
+    }
+
+    private async Task RefreshCoreAsync(bool reloadCatalog, CancellationToken cancellationToken)
+    {
         string? previousPublicationToken = Current.PublicationToken;
         bool publicationChanged = false;
-        IsRefreshInProgress = true;
-        _diagnosticsChanged(false);
+        PresentationObserver.Invoke(() => IsRefreshInProgress = true);
+        PresentationObserver.Invoke(() => _diagnosticsChanged(false));
         try
         {
             SystemInformationSnapshot refreshed = await Task.Run(
@@ -233,29 +229,68 @@ public sealed partial class MessageCenterViewModel : ObservableObject
             publicationChanged = reloadCatalog && !StringComparer.Ordinal.Equals(
                 previousPublicationToken,
                 refreshed.PublicationToken);
-            ExportStatus = string.Empty;
+            PresentationObserver.Invoke(() => ExportStatus = string.Empty);
             NotifySystemStateChanged();
         }
         finally
         {
-            IsRefreshInProgress = false;
-            _diagnosticsChanged(publicationChanged);
+            PresentationObserver.Invoke(() => IsRefreshInProgress = false);
+            if (publicationChanged)
+            {
+                _diagnosticsChanged(true);
+            }
+            else
+            {
+                PresentationObserver.Invoke(() => _diagnosticsChanged(false));
+            }
+        }
+    }
+
+    private async Task RefreshAfterActiveAsync(Task active, CancellationToken cancellationToken)
+    {
+        try
+        {
+            await active.WaitAsync(cancellationToken);
+        }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
+            throw;
+        }
+        catch (Exception)
+        {
+            // The explicit operator refresh still owns a fresh full attempt.
+        }
+        await RefreshAsync(reloadCatalog: true, cancellationToken);
+    }
+
+    private async Task ObserveRefreshCompletionAsync(Task refresh)
+    {
+        try
+        {
+            await refresh;
+        }
+        finally
+        {
+            if (ReferenceEquals(_activeRefresh, refresh))
+            {
+                _activeRefresh = null;
+            }
         }
     }
 
     private void NotifySystemStateChanged()
     {
-        OnPropertyChanged(nameof(Current));
-        OnPropertyChanged(nameof(ActiveBadgeCount));
-        OnPropertyChanged(nameof(HasActiveDiagnostics));
-        OnPropertyChanged(nameof(HasNoActiveDiagnostics));
-        OnPropertyChanged(nameof(ActiveDiagnostics));
-        OnPropertyChanged(nameof(GlobalBuildBlocker));
-        OnPropertyChanged(nameof(IsGlobalBuildBlocked));
-        OnPropertyChanged(nameof(GlobalBuildBlockerText));
-        OnPropertyChanged(nameof(CatalogSummary));
-        OnPropertyChanged(nameof(MessageCenterAccessibleName));
-        OnPropertyChanged(nameof(SystemStatusAnnouncement));
+        PresentationObserver.Invoke(() => OnPropertyChanged(nameof(Current)));
+        PresentationObserver.Invoke(() => OnPropertyChanged(nameof(ActiveBadgeCount)));
+        PresentationObserver.Invoke(() => OnPropertyChanged(nameof(HasActiveDiagnostics)));
+        PresentationObserver.Invoke(() => OnPropertyChanged(nameof(HasNoActiveDiagnostics)));
+        PresentationObserver.Invoke(() => OnPropertyChanged(nameof(ActiveDiagnostics)));
+        PresentationObserver.Invoke(() => OnPropertyChanged(nameof(GlobalBuildBlocker)));
+        PresentationObserver.Invoke(() => OnPropertyChanged(nameof(IsGlobalBuildBlocked)));
+        PresentationObserver.Invoke(() => OnPropertyChanged(nameof(GlobalBuildBlockerText)));
+        PresentationObserver.Invoke(() => OnPropertyChanged(nameof(CatalogSummary)));
+        PresentationObserver.Invoke(() => OnPropertyChanged(nameof(MessageCenterAccessibleName)));
+        PresentationObserver.Invoke(() => OnPropertyChanged(nameof(SystemStatusAnnouncement)));
     }
 
     private void OpenReportHistory()
@@ -281,14 +316,12 @@ public sealed partial class MessageCenterViewModel : ObservableObject
     }
 }
 
-/// <summary>Localized, focusable UI projection of one typed system diagnostic.</summary>
-public sealed record MessageCenterDiagnosticItem(
+internal sealed record MessageCenterDiagnosticItem(
     string Code,
     string Category,
     SystemDiagnosticSeverity Severity,
     string Message,
     string Action)
 {
-    /// <summary>Complete screen-reader text for the focusable diagnostic card.</summary>
     public string AccessibleText => $"{Category}. {Message} {Action} {Code}";
 }

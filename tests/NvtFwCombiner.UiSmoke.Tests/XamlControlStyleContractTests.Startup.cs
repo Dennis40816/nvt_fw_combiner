@@ -90,66 +90,36 @@ public sealed partial class XamlControlStyleContractTests
             preloadSession,
             StringComparison.Ordinal);
         Assert.Contains("viewModel.PublishCanonicalCatalogState", lifecycle, StringComparison.Ordinal);
-        int warm = lifecycle.IndexOf(
-            "_preloadSession.RunCatalogAsync(",
+        Assert.Contains("_preloadSession.RunOptionalStagesAsync(", lifecycle, StringComparison.Ordinal);
+        int launch = preloadSession.IndexOf(
+            "PresentationObserver.Invoke(work.ApplyLaunchPage);",
             StringComparison.Ordinal);
-        int reloadAccepted = lifecycle.IndexOf(
-            "if (!reload.Succeeded)",
-            warm,
-            StringComparison.Ordinal);
-        int successfulWarmup = lifecycle.IndexOf("return true;", reloadAccepted, StringComparison.Ordinal);
-        int successfulTerminal = preloadSession.IndexOf(
-            "if (!result.Succeeded)",
-            StringComparison.Ordinal);
-        int publicationStart = preloadSession.IndexOf(
-            "Set(identity, ShellPreloadAttemptState.Running, 1)",
-            successfulTerminal,
-            StringComparison.Ordinal);
-        int publish = preloadSession.IndexOf(
-            "await apply(token)",
-            publicationStart,
-            StringComparison.Ordinal);
-        int catalogPublished = preloadSession.IndexOf(
-            "ShellPreloadAttemptState.Succeeded",
-            publish,
-            StringComparison.Ordinal);
-        Assert.True(warm >= 0);
-        Assert.True(warm < reloadAccepted);
-        Assert.True(publicationStart < publish);
-        Assert.True(publish < catalogPublished);
-        Assert.True(reloadAccepted < successfulWarmup);
-        Assert.True(
-            lifecycle.IndexOf("RunRequiredPreloadAsync(", StringComparison.Ordinal) <
-            lifecycle.IndexOf("ApplyLaunchPage(viewModel, _launchOptions.Page)", StringComparison.Ordinal));
-        Assert.True(
-            lifecycle.IndexOf("ApplyLaunchPage(viewModel, _launchOptions.Page)", StringComparison.Ordinal) <
-            lifecycle.IndexOf("await ApplyDeferredLaunchOptionsAsync", StringComparison.Ordinal));
-        Assert.True(
-            lifecycle.IndexOf("await ApplyDeferredLaunchOptionsAsync", StringComparison.Ordinal) <
-            lifecycle.IndexOf("await viewModel.MessageCenter.RefreshAfterStartupAsync", StringComparison.Ordinal));
-        Assert.True(
-            lifecycle.IndexOf("await viewModel.MessageCenter.RefreshAfterStartupAsync", StringComparison.Ordinal) <
-            lifecycle.IndexOf("viewModel.Settings.Refresh(viewModel.Text)", StringComparison.Ordinal));
+        Assert.True(launch >= 0);
+        int concurrent = preloadSession.IndexOf("await Task.WhenAll(", launch, StringComparison.Ordinal);
+        int history = preloadSession.IndexOf("StartOptionalAsync(HistoryStageId", StringComparison.Ordinal);
+        int report = preloadSession.IndexOf("StartOptionalAsync(ReportStageId", history, StringComparison.Ordinal);
+        Assert.True(launch < concurrent);
+        Assert.True(history >= 0 && history < report);
+        Assert.Contains("StartOptionalAsync(DiagnosticsStageId", preloadSession, StringComparison.Ordinal);
+        Assert.Contains("StartOptionalAsync(ViewsStageId", preloadSession, StringComparison.Ordinal);
+        Assert.Contains("viewModel.MessageCenter.RefreshAfterStartupAsync", lifecycle, StringComparison.Ordinal);
+        Assert.Contains("viewModel.Settings.Refresh(viewModel.Text)", lifecycle, StringComparison.Ordinal);
         Assert.Contains("Deferred shell warm-up did not complete", lifecycle, StringComparison.Ordinal);
         Assert.Contains("DispatcherPriority.Background", warmup, StringComparison.Ordinal);
         Assert.Contains("$\"{traceStage}.started\"", warmup, StringComparison.Ordinal);
         Assert.Contains("$\"{traceStage}.ready\"", warmup, StringComparison.Ordinal);
         Assert.Contains("host.ContentTemplate?.Build(dataContext)", warmup, StringComparison.Ordinal);
         Assert.Contains("host.Content = content", warmup, StringComparison.Ordinal);
-        Assert.Contains("IsRunInProgress: true", warmup, StringComparison.Ordinal);
+        Assert.Contains("WaitForRunIdleAsync(viewModel.RunSession", warmup, StringComparison.Ordinal);
+        Assert.Contains("if (runSession.IsRunInProgress)", warmup, StringComparison.Ordinal);
+        Assert.Contains("runSession.PropertyChanged += handler", warmup, StringComparison.Ordinal);
         foreach (string hostName in warmedHosts)
         {
             Assert.Contains($"{hostName},", warmup, StringComparison.Ordinal);
         }
 
-        Assert.Contains(
-            "ReplacePageHost,\n            viewModel.Replace,",
-            warmup,
-            StringComparison.Ordinal);
-        Assert.Contains(
-            "MergePageHost,\n            viewModel.Merge,",
-            warmup,
-            StringComparison.Ordinal);
+        Assert.Contains("(ReplacePageHost, viewModel.Replace,", warmup, StringComparison.Ordinal);
+        Assert.Contains("(MergePageHost, viewModel.Merge,", warmup, StringComparison.Ordinal);
 
         Assert.DoesNotContain("ReportModalHost,", warmup, StringComparison.Ordinal);
         Assert.DoesNotContain("ReportToastHost,", warmup, StringComparison.Ordinal);
@@ -174,7 +144,7 @@ public sealed partial class XamlControlStyleContractTests
             "protected override async void OnOpened",
             StringComparison.Ordinal);
         int sessionStart = lifecycle.IndexOf(
-            "private async Task ContinueStartupAsync",
+            "private async Task RunStartupPreloadAsync",
             openedStart,
             StringComparison.Ordinal);
         int retryStart = lifecycle.IndexOf(
@@ -226,6 +196,21 @@ public sealed partial class XamlControlStyleContractTests
         Assert.Contains("CancelRequested", surfaceCode, StringComparison.Ordinal);
         Assert.Contains("x:Name=\"CatalogLoadingSurfaceHost\"", shell, StringComparison.Ordinal);
         Assert.Contains("x:Name=\"ShellInteractionHost\"", shell, StringComparison.Ordinal);
+        Assert.Contains("x:Name=\"OptionalPreloadStatusHost\"", shell, StringComparison.Ordinal);
+        Assert.Contains("SummaryStage.PositionLabel", shell, StringComparison.Ordinal);
+        Assert.Contains("SummaryStage.ProgressLabel", shell, StringComparison.Ordinal);
+        Assert.Contains("AutomationProperties.Name=\"{ReflectionBinding AccessibleStatus}\"", shell, StringComparison.Ordinal);
+        string optionalStatus = shell[
+            shell.IndexOf("x:Name=\"OptionalPreloadStatusHost\"", StringComparison.Ordinal)..shell.IndexOf("x:Name=\"ReportToastHost\"", StringComparison.Ordinal)];
+        Assert.Equal(1, CountOccurrences(optionalStatus, "AutomationProperties.LiveSetting=\"Polite\""));
+        Assert.Contains("ItemsSource=\"{ReflectionBinding Stages}\"", shell, StringComparison.Ordinal);
+        Assert.Contains("IsIndeterminate=\"{ReflectionBinding IsIndeterminate}\"", shell, StringComparison.Ordinal);
+        Assert.Contains("Text=\"{ReflectionBinding WorkLabel}\"", shell, StringComparison.Ordinal);
+        Assert.Contains("AutomationProperties.Name=\"{ReflectionBinding RetryAccessibleLabel}\"", shell, StringComparison.Ordinal);
+        Assert.Contains("AutomationProperties.Name=\"{ReflectionBinding SkipAccessibleLabel}\"", shell, StringComparison.Ordinal);
+        Assert.Contains("Click=\"OptionalPreloadRetryButton_OnClick\"", shell, StringComparison.Ordinal);
+        Assert.Contains("Click=\"OptionalPreloadSkipButton_OnClick\"", shell, StringComparison.Ordinal);
+        Assert.Contains("Click=\"OptionalPreloadCancelButton_OnClick\"", shell, StringComparison.Ordinal);
         Assert.Contains("<Grid.KeyBindings>", shell, StringComparison.Ordinal);
         Assert.DoesNotContain("<Window.KeyBindings>", shell, StringComparison.Ordinal);
         Assert.Contains("RetryRequested=\"CatalogLoadingSurface_OnRetryRequested\"", shell, StringComparison.Ordinal);
@@ -247,17 +232,20 @@ public sealed partial class XamlControlStyleContractTests
             lifecycle,
             StringComparison.Ordinal);
         Assert.Contains("WithCancellation(token)", preloadSession, StringComparison.Ordinal);
-        Assert.Contains("update.Result is { } terminalResult", preloadSession, StringComparison.Ordinal);
-        Assert.Contains("double next = update.Progress ??", preloadSession, StringComparison.Ordinal);
+        Assert.Contains("update.Result is { }", preloadSession, StringComparison.Ordinal);
+        Assert.Contains("ValidateProgress(update.Progress", preloadSession, StringComparison.Ordinal);
         Assert.Contains("completed without a terminal result", preloadSession, StringComparison.Ordinal);
         Assert.Contains("if (!reload.Succeeded)", lifecycle, StringComparison.Ordinal);
         Assert.Contains("DispatcherPriority.Render", lifecycle, StringComparison.Ordinal);
         Assert.Contains("ShellInteractionHost.IsEnabled = false", lifecycle, StringComparison.Ordinal);
-        Assert.Contains("ShellInteractionHost.IsEnabled = true", lifecycle, StringComparison.Ordinal);
+        Assert.Contains("CommitRequiredStagePresentation(", lifecycle, StringComparison.Ordinal);
+        Assert.Contains("enabled => ShellInteractionHost.IsEnabled = enabled", lifecycle, StringComparison.Ordinal);
+        Assert.Contains("setShellEnabled(succeeded);", lifecycle, StringComparison.Ordinal);
+        Assert.Contains("presentLoadingState();", lifecycle, StringComparison.Ordinal);
         Assert.Contains("HomeNavigationButton.Focus(NavigationMethod.Tab)", lifecycle, StringComparison.Ordinal);
         Assert.Contains("_preloadSession.CancelAndDrainAsync()", lifecycle, StringComparison.Ordinal);
         Assert.DoesNotContain("reloadCatalog", opened, StringComparison.Ordinal);
-        Assert.Contains("ContinueStartupAsync(", retry, StringComparison.Ordinal);
+        Assert.Contains("RunStartupPreloadAsync(", retry, StringComparison.Ordinal);
         Assert.DoesNotContain("SystemInformation.Refresh(", lifecycle, StringComparison.Ordinal);
         Assert.DoesNotContain("WarmCanonicalCapabilities", lifecycle, StringComparison.Ordinal);
         Assert.DoesNotContain("Task.Delay", lifecycle, StringComparison.Ordinal);

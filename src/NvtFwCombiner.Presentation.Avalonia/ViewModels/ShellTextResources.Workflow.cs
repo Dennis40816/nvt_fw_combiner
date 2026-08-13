@@ -3,7 +3,7 @@
 
 namespace NvtFwCombiner.Presentation.Avalonia.ViewModels;
 
-public sealed partial class ShellTextResources
+internal sealed partial class ShellTextResources
 {
     public string InitialCodeAndLdcSlotHint { get; private init; } = string.Empty;
 
@@ -135,16 +135,12 @@ public sealed partial class ShellTextResources
 
     public string GeneralInlineHexGuidance { get; private init; } = string.Empty;
 
-    /// <summary>Label for choosing a new output path in the raw-BIN Hex Editor.</summary>
     public string HexEditorSaveAsLabel { get; private init; } = string.Empty;
 
-    /// <summary>Title for the safe Hex Editor export confirmation.</summary>
     public string HexEditorSaveConfirmationTitle { get; private init; } = string.Empty;
 
-    /// <summary>Explanation for the safe Hex Editor export confirmation.</summary>
     public string HexEditorSaveConfirmationDetail { get; private init; } = string.Empty;
 
-    /// <summary>Confirmation action label for the safe Hex Editor export dialog.</summary>
     public string HexEditorSaveConfirmationActionLabel { get; private init; } = string.Empty;
 
     public string GeneralMergeMappingDetail { get; private init; } = string.Empty;

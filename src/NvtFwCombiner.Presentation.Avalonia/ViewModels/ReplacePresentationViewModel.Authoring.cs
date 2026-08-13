@@ -4,7 +4,7 @@ using NvtFwCombiner.Domain.Composition;
 
 namespace NvtFwCombiner.Presentation.Avalonia.ViewModels;
 
-public sealed partial class ReplacePresentationViewModel
+internal sealed partial class ReplacePresentationViewModel
 {
     private CapabilityActionReadinessSnapshot? _ctrlRamActionReadiness;
     private ActiveSessionSnapshot? _ctrlRamReadinessSession;

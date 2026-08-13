@@ -9,7 +9,7 @@ internal delegate Task CompositionRunInvoker(
     CompositionRunWork run,
     Action<string, string> loadErrorReport);
 
-/// <summary>Explicit context and publication callbacks consumed by the focused run child.</summary>
+/// <summary>Explicit context and publication callbacks consumed at the UI delivery boundary.</summary>
 internal sealed record CompositionRunStateBindings(
     Func<ShellTextResources> Text,
     Func<string> SelectedIc,

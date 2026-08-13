@@ -2,7 +2,7 @@ using System.ComponentModel;
 
 namespace NvtFwCombiner.Presentation.Avalonia.ViewModels;
 
-public sealed partial class MainWindowViewModel
+internal sealed partial class MainWindowViewModel
 {
     /// <summary>Focused shared workflow-context and selected-firmware prompt presentation.</summary>
     public WorkflowSessionPresentationViewModel WorkflowSession { get; }
@@ -35,15 +35,19 @@ public sealed partial class MainWindowViewModel
     internal void PublishCanonicalCatalogState()
     {
         WorkflowSession.PublishCanonicalCatalogState();
+        if (!WorkflowSession.IsCanonicalCatalogReady)
+        {
+            throw new InvalidOperationException("Canonical catalog presentation state was not published.");
+        }
         ApplyCatalogBackedTextResources();
-        ShowMergeCommand.NotifyCanExecuteChanged();
-        ShowReplaceCommand.NotifyCanExecuteChanged();
-        BeginDpReplaceFromHomeCommand.NotifyCanExecuteChanged();
-        BeginCtrlRamReplaceFromHomeCommand.NotifyCanExecuteChanged();
-        BeginGeneralReplaceFromHomeCommand.NotifyCanExecuteChanged();
-        BeginNormalMergeFromHomeCommand.NotifyCanExecuteChanged();
-        BeginAbMergeFromHomeCommand.NotifyCanExecuteChanged();
-        BeginGeneralMergeFromHomeCommand.NotifyCanExecuteChanged();
+        PresentationObserver.Invoke(ShowMergeCommand.NotifyCanExecuteChanged);
+        PresentationObserver.Invoke(ShowReplaceCommand.NotifyCanExecuteChanged);
+        PresentationObserver.Invoke(BeginDpReplaceFromHomeCommand.NotifyCanExecuteChanged);
+        PresentationObserver.Invoke(BeginCtrlRamReplaceFromHomeCommand.NotifyCanExecuteChanged);
+        PresentationObserver.Invoke(BeginGeneralReplaceFromHomeCommand.NotifyCanExecuteChanged);
+        PresentationObserver.Invoke(BeginNormalMergeFromHomeCommand.NotifyCanExecuteChanged);
+        PresentationObserver.Invoke(BeginAbMergeFromHomeCommand.NotifyCanExecuteChanged);
+        PresentationObserver.Invoke(BeginGeneralMergeFromHomeCommand.NotifyCanExecuteChanged);
     }
 
     private void WorkflowReplaceModeChanged()
