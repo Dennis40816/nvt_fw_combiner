@@ -455,6 +455,21 @@ immediately. This exception is PL-05-only, cannot offset PL-06/07/00, and does
 not authorize minification, cross-slice relocation, process/protocol changes,
 or weaker firmware, Golden, report-wire, coverage, or release evidence.
 
+### 2026-08-13 Message Center readability amendment
+
+The owner separately requested a visual-only readability pass for Message
+Center. Presentation XAML now renders System Information as four aligned
+two-column fact cards and separates Current Report from Report History into two
+equal action cards. The exact physical nonblank production delta is 67 added
+and 38 removed, net +29. Full production changes from 98,160 to 98,189;
+runtime remains 68,018 and every counted runtime slice remains unchanged.
+
+This named exception is non-transferable and cannot fund PL-06, PL-07, PL-00,
+or later work. It changes no report or diagnostics data, firmware behavior,
+profile/schema/processor contract, Golden evidence, persistence, or release
+gate. The new 98,189 value immediately becomes the descending full-production
+ratchet.
+
 Documentation consolidation is legitimate only when it removes boilerplate or
 moves repeated information to its canonical owner. XML summaries that merely
 repeat a member/type name, forwarding properties/constructors, migration DTO
