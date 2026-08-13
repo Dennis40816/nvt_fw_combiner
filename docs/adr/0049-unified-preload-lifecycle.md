@@ -267,6 +267,13 @@ retains that owner's existing contract.
   Bootstrap wires its generation lease but does not parse manifests or own a
   second refresh implementation.
 
+PL-06 implements the inspection boundary by deleting the path-stamp file,
+Presentation path/base dictionaries, and IC-only static classification cache.
+The one Infrastructure read now returns accepted bytes plus exact length/SHA,
+rejects short/trailing/change observations, and is re-read at CtrlRAM Build
+confirmation. Current canonical publication plus typed input roles are the only
+classification and strategy authorities.
+
 ADR 0027's restart-only external-environment boundary is superseded for
 `v0.10.5`. Explicit refresh materializes a candidate behind that one
 Infrastructure owner. A successful candidate atomically publishes the next

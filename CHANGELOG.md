@@ -57,9 +57,9 @@ dependency-gated.
 - Verification: PL-01 through PL-07 and PL-00 require exact behavioral,
   architecture, accessibility, performance, code-size, verifier, Golden 17/17,
   package, CI, and release evidence before completion.
-- Limitations: PL-02 and PL-03 implement bounded file input and the required
-  catalog stage; optional stages and the `v0.10.5` release artifact do not exist
-  yet.
+- Limitations: PL-02 through PL-06 implement the bounded shell, report,
+  diagnostics, external-environment, and coherent inspection prerequisites.
+  PL-07 workflow-lifecycle adoption and the `v0.10.5` release artifact remain.
 
 #### Bounded local report and history input
 
@@ -183,6 +183,36 @@ dependency-gated.
   97,426 to 98,160 and runtime from 67,404 to 68,018; the exact four slices are
   20,619 / 29,585 / 3,074 / 14,740. These become descending ratchets and create
   no budget for later tickets.
+
+#### Coherent selected-file inspection identity
+
+- Purpose: make selection inspection and CtrlRAM Build confirmation consume one
+  coherent complete-file identity while deleting stale path/IC cache ownership.
+- Affected: selected-file inspection ports/adapters, current slot projections,
+  CtrlRAM Build confirmation, catalog-backed artifact classification, and tests.
+- Before → After: separate before/after `FileInfo` stamps, Presentation path/base
+  caches, and an unbounded IC-only compiled-classification cache are replaced by
+  one cancellable complete read with exact length/SHA, request-scoped bytes, and
+  current-catalog recomputation.
+- Dispatch: only typed Standard Merge, AB Merge, DP Replace, or CtrlRAM roles
+  invoke their inspection strategy; filename, bytes, and IC identity cannot
+  select a strategy. Differential evidence retains result/diagnostic order and
+  one read per distinct path against the characterized all-strategy path.
+- Failure/staleness: short, trailing, changing, unreadable, cancelled, and
+  same-path/same-length replacement cases cannot publish a stale content stamp;
+  CtrlRAM confirms the exact SHA again before Build.
+- Support status: unchanged/support-neutral; no IC, workflow, topology,
+  processor, profile, family, or evidence fact changes.
+- Compatibility: accepted firmware bytes, ranges, metadata semantics, output
+  naming, profiles/schemas, report wire, processors, and Golden data are unchanged.
+- Verification: Bootstrap 934, Infrastructure 439 (2 declared skips), and UI 482
+  contribute to the exact eight-project 3,406 inventory, with Architecture,
+  coverage, full verifier, Golden 17/17, and scoped R2/Polytail gates retained.
+- Code size: 403 production nonblank lines are removed and 289 added, net -114.
+  Full production descends from 98,189 to 98,075; runtime descends from 68,018 to
+  68,016 = 20,619 / 29,584 / 3,074 / 14,739.
+- Limitations: PL-06 converges identity/cache/strategy ownership only. PL-07 owns
+  the reusable observable per-workflow inspection lifecycle and cancellation UI.
 
 #### Message Center and report readability
 

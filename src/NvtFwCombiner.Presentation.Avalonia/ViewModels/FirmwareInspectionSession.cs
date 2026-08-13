@@ -8,9 +8,6 @@ namespace NvtFwCombiner.Presentation.Avalonia.ViewModels;
 internal sealed class FirmwareInspectionSession
 {
     private readonly IFirmwareInspection _firmwareInspection;
-    private readonly Dictionary<string, FirmwareFileProjection> _fileProjections =
-        new(StringComparer.Ordinal);
-    private BaseFirmwareInspectionCache? _baseCache;
     private long _generation;
 
     internal FirmwareInspectionSession(IFirmwareInspection firmwareInspection)
@@ -26,7 +23,9 @@ internal sealed class FirmwareInspectionSession
         return Interlocked.Increment(ref _generation);
     }
 
-    internal FirmwareInspectionBatchResult ReadBatch(FirmwareInspectionBatchRequest request)
+    internal async ValueTask<FirmwareInspectionBatchResult> ReadBatchAsync(
+        FirmwareInspectionBatchRequest request,
+        CancellationToken cancellationToken)
     {
         FirmwareInspectionSnapshotInput[] inputs =
         [
@@ -45,8 +44,9 @@ internal sealed class FirmwareInspectionSession
                     item.StandardMergeInspectionLease?.ExactCapability ??
                     item.AbMergeInspectionLease?.ExactCapability)),
         ];
-        FirmwareInspectionBatchResult result =
-            _firmwareInspection.InspectFirmwareBatch(request.IcId, inputs);
+        FirmwareInspectionBatchResult result = await _firmwareInspection
+            .InspectFirmwareBatchAsync(request.IcId, inputs, cancellationToken)
+            .ConfigureAwait(false);
         return result.InspectionsById.Count == request.Items.Count &&
             request.Items.All(item => result.InspectionsById.ContainsKey(item.SlotId))
                 ? result
@@ -54,112 +54,9 @@ internal sealed class FirmwareInspectionSession
                     "Firmware inspection batch did not return every requested slot.");
     }
 
-    internal void StoreProjection(
-        string slotId,
-        string path,
-        FirmwareFileIdentity identity,
-        FirmwareInspectionSnapshot inspection)
-    {
-        _fileProjections[slotId] = new FirmwareFileProjection(path, identity, inspection);
-    }
-
-    internal void StoreBase(string icId, string path, FirmwareInspectionSnapshot inspection)
-    {
-        _baseCache = new BaseFirmwareInspectionCache(icId, path, inspection);
-    }
-
-    internal bool TryGetFileLength(FirmwareSlotViewModel slot, out long length)
-    {
-        if (slot.FilePath is { } path &&
-            _fileProjections.TryGetValue(slot.SlotId, out FirmwareFileProjection projection) &&
-            projection.Matches(path) &&
-            projection.FileIdentity.Exists)
-        {
-            length = projection.FileIdentity.Length;
-            return true;
-        }
-
-        length = 0;
-        return false;
-    }
-
-    internal bool TryGetInspection(
-        string slotId,
-        string? path,
-        out FirmwareInspectionSnapshot inspection)
-    {
-        if (path is not null &&
-            _fileProjections.TryGetValue(slotId, out FirmwareFileProjection projection) &&
-            projection.Matches(path))
-        {
-            inspection = projection.Inspection;
-            return true;
-        }
-
-        inspection = default!;
-        return false;
-    }
-
-    internal bool TryGetBase(
-        string icId,
-        string? path,
-        out FirmwareInspectionSnapshot inspection)
-    {
-        if (_baseCache is { } cache && cache.MatchesContext(icId, path))
-        {
-            inspection = cache.Inspection;
-            return true;
-        }
-
-        inspection = default!;
-        return false;
-    }
-
-    internal void RemoveProjection(string slotId)
-    {
-        _ = _fileProjections.Remove(slotId);
-    }
-
-    internal void ClearBase()
-    {
-        _baseCache = null;
-    }
-
-    internal void Invalidate(bool clearBaseCache, bool clearFileProjections)
+    internal void Invalidate()
     {
         _ = NextGeneration();
-        if (clearBaseCache)
-        {
-            ClearBase();
-        }
-
-        if (clearFileProjections)
-        {
-            _fileProjections.Clear();
-        }
-    }
-
-    private readonly record struct FirmwareFileProjection(
-        string Path,
-        FirmwareFileIdentity FileIdentity,
-        FirmwareInspectionSnapshot Inspection)
-    {
-        internal bool Matches(string path)
-        {
-            return string.Equals(Path, path, StringComparison.Ordinal);
-        }
-    }
-
-    private readonly record struct BaseFirmwareInspectionCache(
-        string IcId,
-        string Path,
-        FirmwareInspectionSnapshot Inspection)
-    {
-        internal bool MatchesContext(string icId, string? path)
-        {
-            return string.Equals(IcId, icId, StringComparison.Ordinal) &&
-                string.Equals(Path, path, StringComparison.Ordinal);
-        }
     }
 }
 
@@ -265,7 +162,7 @@ internal static class FirmwareInspectionProjection
         string? currentTpPath)
     {
         return request.Generation == currentGeneration &&
-            result.IsFileIdentityStable &&
+            result.IsContentStable &&
             string.Equals(request.IcId, selectedIc, StringComparison.Ordinal) &&
             string.Equals(request.Number, selectedNumber, StringComparison.Ordinal) &&
             string.Equals(request.MergeMode, selectedMergeMode, StringComparison.Ordinal) &&

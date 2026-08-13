@@ -16,12 +16,7 @@ internal sealed partial class MainWindowViewModel
 
     private FirmwareInspectionSnapshot? GetSelectedReplaceBaseInspection()
     {
-        return WorkflowSession.InspectionSession.TryGetBase(
-            WorkflowSession.SelectedIc,
-            Replace.ReplaceBaseSlot.FilePath,
-            out FirmwareInspectionSnapshot inspection)
-                ? inspection
-                : null;
+        return Replace.ReplaceBaseSlot.CurrentInspectionProjection;
     }
 
     private Task RefreshSelectedReplaceFirmwareInspectionsAsync()

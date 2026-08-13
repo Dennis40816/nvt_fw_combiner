@@ -20,9 +20,7 @@ internal sealed partial class MainWindowViewModel
 
     private long? GetInspectedFileLength(FirmwareSlotViewModel slot)
     {
-        return WorkflowSession.InspectionSession.TryGetFileLength(slot, out long length)
-            ? length
-            : null;
+        return slot.InspectedFileLength;
     }
 
     private ReportPresentationViewModel GetReportPresentation()

@@ -40,7 +40,7 @@ public sealed class CompositionHostServices
             throw new ArgumentNullException(nameof(externalEnvironment));
         GeneralAuthoring = new GeneralAuthoringExperience(
             new BuiltInGeneralAuthoringPlanner(catalog, compiler, projection),
-            new BuiltInGeneralSelectedFileContentInspector(),
+            new FileContentSnapshotInspector(),
             externalEnvironment,
             new SystemClock());
         var ctrlRamAuthoring = new CtrlRamAuthoringExperience(

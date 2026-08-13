@@ -470,6 +470,21 @@ profile/schema/processor contract, Golden evidence, persistence, or release
 gate. The new 98,189 value immediately becomes the descending full-production
 ratchet.
 
+### 2026-08-13 PL-06 coherent-inspection convergence
+
+PL-06 (#378) resumes ordinary descending enforcement. It deletes the separate
+before/after file-stamp probe, Presentation path/base caches, and the unbounded
+IC-only compiled-classification cache, while adding one coherent cancellable
+content identity and typed selective-dispatch path. The exact physical nonblank
+ledger is 403 removed and 289 added, net -114.
+
+Full production changes from 98,189 to 98,075 and runtime changes from 68,018
+to 68,016. Runtime is exactly 20,619 Domain plus Profiles + 29,584 Application +
+3,074 Bootstrap plus CLI plus Desktop + 14,739 Infrastructure plus Contracts
+plus CRC worker. These values become descending ratchets immediately; no
+accounting exception, excluded-path relocation, minification, firmware semantic
+change, or evidence reduction is accepted.
+
 Documentation consolidation is legitimate only when it removes boilerplate or
 moves repeated information to its canonical owner. XML summaries that merely
 repeat a member/type name, forwarding properties/constructors, migration DTO

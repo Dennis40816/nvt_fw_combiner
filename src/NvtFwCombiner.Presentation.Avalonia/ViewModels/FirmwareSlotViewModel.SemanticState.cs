@@ -139,6 +139,7 @@ internal sealed partial class FirmwareSlotViewModel
 
     partial void OnFilePathChanged(string? value)
     {
+        ClearCurrentInspectionProjection();
         IsSemanticStateDetailExpanded = false;
         NotifySemanticStateChanged();
     }
