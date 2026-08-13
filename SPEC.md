@@ -2207,6 +2207,14 @@ after the grill closes so issues do not become a competing draft specification.
     and +614 runtime deltas are usable by PL-05 only; they authorize no later
     growth, no cross-slice relocation, and no firmware, processor-protocol,
     Golden, report-wire, coverage, or release-gate weakening.
+    A separate owner-requested Message Center readability amendment on
+    2026-08-13 changes only Presentation XAML. Four aligned two-column fact
+    cards replace the mixed three-column System Information grid, and Current
+    Report and Report History become two equal action cards. The exact 67 added
+    and 38 removed physical nonblank lines change full production from 98,160
+    to 98,189 while runtime and every counted slice remain unchanged. This
+    visual-only +29 is not reusable and changes no report, diagnostics,
+    firmware, profile, schema, processor, Golden, or persistence contract.
     Owner amendment on 2026-08-08 supersedes the earlier 44,000 total and
     18,000/12,000/7,500/5,500 slice completion caps. The dated numbers remain
     planning history after the merged #230 checkpoint at `ad672900` showed that
@@ -2358,10 +2366,11 @@ after the grill closes so issues do not become a competing draft specification.
     legacy runtime deletion, freezes the measured baseline for all four slices
     and enables exact descending slice ratchets through `scripts/verify.py`.
     Every Core PR lowers each affected slice ratchet and the total, except for
-    the dated, non-transferable PL-02 and PL-04 owner amendments recorded in
-    Decision 21 and ADR 0021; moving equivalent logic between slices cannot
-    pass. Each named amendment immediately freezes its exact replacement
-    ratchets and cannot fund later work. Final integration enforces the
+    the dated, non-transferable PL-02, PL-04, PL-05, and Message Center
+    readability owner amendments recorded in Decision 21 and ADR 0021; moving
+    equivalent logic between slices cannot pass. Each named amendment
+    immediately freezes its exact replacement ratchets and cannot fund later
+    work. Final integration enforces the
     latest exact ratchets, slice-sum integrity, completed candidate ledgers,
     and existing release gates through that same verifier, with no second
     command or CI entry point.

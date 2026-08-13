@@ -35,12 +35,14 @@
       <Grid Grid.Row="1" Margin="22,14,22,0" ColumnDefinitions="*,*" ColumnSpacing="{DynamicResource NfcSpace8}">
         <ToggleButton
             Classes="summaryChip"
+            HorizontalAlignment="Stretch"
             Command="{Binding ShowRunReportsCommand}"
             Content="{Binding Text.RunReportsLabel}"
             IsChecked="{Binding IsRunReportsSelected, Mode=OneWay}" />
         <ToggleButton
             Grid.Column="1"
             Classes="summaryChip"
+            HorizontalAlignment="Stretch"
             Command="{Binding ShowSystemInformationCommand}"
             Content="{Binding Text.SystemInformationLabel}"
             IsChecked="{Binding IsSystemInformationSelected, Mode=OneWay}" />
@@ -49,47 +51,74 @@
       <ScrollViewer Grid.Row="2" Margin="22,16,22,0" MaxHeight="440">
         <Grid>
           <StackPanel IsVisible="{Binding IsRunReportsSelected}" Spacing="{DynamicResource NfcSpace12}">
-            <Border Classes="subtlePanel" Padding="16">
-              <StackPanel Spacing="5">
-                <TextBlock Classes="sectionLabel" Text="{Binding Reports.ReportActionLabel}" />
-                <TextBlock Classes="cardTitle" Text="{Binding Reports.ReportActionStatus}" TextWrapping="Wrap" />
-                <TextBlock Margin="0,6,0,0" Classes="cardTitle" Text="{Binding Reports.ReportHistorySummary}" />
-                <TextBlock Classes="mutedText" Text="{Binding Reports.ReportHistoryStorageSummary}" TextWrapping="Wrap" />
-                <TextBlock
-                    Classes="mutedText"
-                    IsVisible="{Binding Reports.IsReportHistoryEmpty}"
-                    Text="{Binding Text.NoReportHistoryLabel}" />
-              </StackPanel>
-            </Border>
-            <StackPanel HorizontalAlignment="Right" Orientation="Horizontal" Spacing="{DynamicResource NfcSpace8}">
-              <Button
-                  Classes="secondary"
-                  AutomationProperties.Name="{Binding Reports.ReportActionLabel}"
-                  Command="{Binding OpenCurrentReportCommand}"
-                  Content="{Binding Reports.ReportActionLabel}"
-                  IsEnabled="{Binding Reports.CanOpenReport}" />
-              <Button
-                  Classes="secondary"
-                  AutomationProperties.Name="{Binding Text.OpenReportHistoryLabel}"
-                  Command="{Binding OpenReportHistoryCommand}"
-                  Content="{Binding Text.OpenReportHistoryLabel}"
-                  IsEnabled="{Binding Reports.CanOpenReportHistory}" />
-            </StackPanel>
+            <Grid ColumnDefinitions="*,*" ColumnSpacing="{DynamicResource NfcSpace12}">
+              <Border Classes="insetSurface messageCenterReportCard" Padding="16">
+                <Grid RowDefinitions="Auto,*,Auto" RowSpacing="{DynamicResource NfcSpace8}">
+                  <TextBlock Classes="sectionLabel" Text="{Binding Reports.ReportActionLabel}" />
+                  <TextBlock Grid.Row="1" Classes="cardTitle" Text="{Binding Reports.ReportActionStatus}" TextWrapping="Wrap" />
+                  <Button
+                      Grid.Row="2"
+                      HorizontalAlignment="Left"
+                      Classes="secondary"
+                      AutomationProperties.Name="{Binding Reports.ReportActionLabel}"
+                      Command="{Binding OpenCurrentReportCommand}"
+                      Content="{Binding Reports.ReportActionLabel}"
+                      IsEnabled="{Binding Reports.CanOpenReport}" />
+                </Grid>
+              </Border>
+              <Border Grid.Column="1" Classes="insetSurface messageCenterReportCard" Padding="16">
+                <Grid RowDefinitions="Auto,*,Auto" RowSpacing="{DynamicResource NfcSpace8}">
+                  <TextBlock Classes="sectionLabel" Text="{Binding Text.OpenReportHistoryLabel}" />
+                  <StackPanel Grid.Row="1" Spacing="{DynamicResource NfcSpace4}">
+                    <TextBlock Classes="cardTitle" Text="{Binding Reports.ReportHistorySummary}" TextWrapping="Wrap" />
+                    <TextBlock Classes="mutedText" Text="{Binding Reports.ReportHistoryStorageSummary}" TextWrapping="Wrap" />
+                    <TextBlock Classes="mutedText" IsVisible="{Binding Reports.IsReportHistoryEmpty}" Text="{Binding Text.NoReportHistoryLabel}" />
+                  </StackPanel>
+                  <Button
+                      Grid.Row="2"
+                      HorizontalAlignment="Left"
+                      Classes="secondary"
+                      AutomationProperties.Name="{Binding Text.OpenReportHistoryLabel}"
+                      Command="{Binding OpenReportHistoryCommand}"
+                      Content="{Binding Text.OpenReportHistoryLabel}"
+                      IsEnabled="{Binding Reports.CanOpenReportHistory}" />
+                </Grid>
+              </Border>
+            </Grid>
           </StackPanel>
 
           <StackPanel IsVisible="{Binding IsSystemInformationSelected}" Spacing="{DynamicResource NfcSpace12}">
-            <Border Classes="subtlePanel" Padding="14">
-              <Grid ColumnDefinitions="*,*,*" RowDefinitions="Auto,Auto,Auto,Auto" ColumnSpacing="{DynamicResource NfcSpace16}" RowSpacing="5">
-                <TextBlock Classes="fieldLabel" Text="{Binding Text.ApplicationVersionLabel}" />
-                <TextBlock Grid.Row="1" Classes="bodyStrongText" Text="{Binding Current.ApplicationVersion}" TextWrapping="Wrap" />
-                <TextBlock Grid.Column="1" Classes="fieldLabel" Text="{Binding Text.RuntimeLabel}" />
-                <TextBlock Grid.Row="1" Grid.Column="1" Classes="bodyStrongText" Text="{Binding Current.Runtime.FrameworkDescription}" TextWrapping="Wrap" />
-                <TextBlock Grid.Column="2" Classes="fieldLabel" Text="{Binding Text.CatalogLabel}" />
-                <TextBlock Grid.Row="1" Grid.Column="2" Classes="bodyStrongText" Text="{Binding CatalogSummary}" TextWrapping="Wrap" />
-                <TextBlock Grid.Row="2" Grid.ColumnSpan="3" Margin="0,8,0,0" Classes="fieldLabel" Text="{Binding Text.ExternalToolsLabel}" />
-                <TextBlock Grid.Row="3" Grid.ColumnSpan="3" Classes="bodyStrongText" Text="{Binding ExternalEnvironmentSummary}" TextWrapping="Wrap" />
-              </Grid>
-            </Border>
+            <Grid
+                Classes="systemFactsGrid"
+                ColumnDefinitions="*,*"
+                RowDefinitions="Auto,Auto"
+                ColumnSpacing="{DynamicResource NfcSpace12}"
+                RowSpacing="{DynamicResource NfcSpace12}">
+              <Border Classes="insetSurface systemFactCard" Padding="14">
+                <StackPanel Spacing="{DynamicResource NfcSpace4}">
+                  <TextBlock Classes="fieldLabel" Text="{Binding Text.ApplicationVersionLabel}" />
+                  <TextBlock Classes="bodyStrongText" Text="{Binding Current.ApplicationVersion}" TextWrapping="Wrap" />
+                </StackPanel>
+              </Border>
+              <Border Grid.Column="1" Classes="insetSurface systemFactCard" Padding="14">
+                <StackPanel Spacing="{DynamicResource NfcSpace4}">
+                  <TextBlock Classes="fieldLabel" Text="{Binding Text.RuntimeLabel}" />
+                  <TextBlock Classes="bodyStrongText" Text="{Binding Current.Runtime.FrameworkDescription}" TextWrapping="Wrap" />
+                </StackPanel>
+              </Border>
+              <Border Grid.Row="1" Classes="insetSurface systemFactCard" Padding="14">
+                <StackPanel Spacing="{DynamicResource NfcSpace4}">
+                  <TextBlock Classes="fieldLabel" Text="{Binding Text.CatalogLabel}" />
+                  <TextBlock Classes="bodyStrongText" Text="{Binding CatalogSummary}" TextWrapping="Wrap" />
+                </StackPanel>
+              </Border>
+              <Border Grid.Row="1" Grid.Column="1" Classes="insetSurface systemFactCard" Padding="14">
+                <StackPanel Spacing="{DynamicResource NfcSpace4}">
+                  <TextBlock Classes="fieldLabel" Text="{Binding Text.ExternalToolsLabel}" />
+                  <TextBlock Classes="bodyStrongText" Text="{Binding ExternalEnvironmentSummary}" TextWrapping="Wrap" />
+                </StackPanel>
+              </Border>
+            </Grid>
 
             <TextBlock Margin="0,4,0,0" Classes="sectionLabel" Text="{Binding Text.ActiveDiagnosticsLabel}" />
             <Border

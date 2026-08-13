@@ -19,6 +19,27 @@ dependency-gated.
 
 ### Product changes
 
+#### Message Center report and System Information readability
+
+- Purpose: make the existing Report and System Information content faster to
+  scan without changing what the application computes or stores.
+- Before → After: the mixed three-column System Information layout becomes
+  four aligned two-column fact cards; Current Report and Report History become
+  two equal cards with their related actions kept together.
+- Affected: Message Center → Run Reports and System Information presentation.
+- Support status: unchanged/support-neutral; no route, IC, profile, family,
+  processor, or Golden observation changes.
+- Accessibility: selector targets span the available width, each fact keeps an
+  explicit label/value relationship, and existing keyboard actions, focus,
+  localization, reduced-motion behavior, and automation text are preserved.
+- Compatibility: report data/history, diagnostics, firmware bytes and names,
+  profiles, schemas, processor protocols, Golden evidence, and persistence are
+  unchanged.
+- Verification: XAML contract coverage, full UI smoke, Architecture ratchet,
+  canonical verifier, and interactive dark-theme inspection.
+- Limitations: this is a visual hierarchy change only; it adds no new Report or
+  System Information data and changes no existing action.
+
 #### Unified bounded preload lifecycle
 
 - Before → After: startup and related preparation currently use separate

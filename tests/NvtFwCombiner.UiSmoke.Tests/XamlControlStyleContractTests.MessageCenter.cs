@@ -36,8 +36,33 @@ public sealed partial class XamlControlStyleContractTests
         Assert.Contains("KeyboardNavigation.TabNavigation=\"Cycle\"", modal, StringComparison.Ordinal);
         Assert.Contains("KeyDown=\"MessageCenterModal_OnKeyDown\"", modal, StringComparison.Ordinal);
         Assert.Contains("Width=\"760\"", modal, StringComparison.Ordinal);
-        Assert.Contains("ColumnDefinitions=\"*,*,*\"", modal, StringComparison.Ordinal);
-        Assert.Contains("Grid.Column=\"1\"", modal, StringComparison.Ordinal);
+        Assert.Equal(2, CountOccurrences(modal, "HorizontalAlignment=\"Stretch\""));
+        var modalDocument = XDocument.Parse(modal);
+        XElement systemFacts = Assert.Single(
+            modalDocument.Descendants(),
+            element => HasClass(element, "systemFactsGrid"));
+        Assert.Equal("*,*", systemFacts.Attribute("ColumnDefinitions")?.Value);
+        Assert.Equal("Auto,Auto", systemFacts.Attribute("RowDefinitions")?.Value);
+        XElement[] systemFactCards =
+        [
+            .. modalDocument.Descendants()
+                .Where(element => HasClass(element, "systemFactCard")),
+        ];
+        Assert.Equal(4, systemFactCards.Length);
+        Assert.All(systemFactCards, card =>
+        {
+            Assert.Contains(card.Descendants(), element => HasClass(element, "fieldLabel"));
+            Assert.Contains(card.Descendants(), element => HasClass(element, "bodyStrongText"));
+        });
+
+        XElement[] reportCards =
+        [
+            .. modalDocument.Descendants()
+                .Where(element => HasClass(element, "messageCenterReportCard")),
+        ];
+        Assert.Equal(2, reportCards.Length);
+        Assert.All(reportCards, card =>
+            _ = Assert.Single(card.Descendants(), element => element.Name.LocalName == "Button"));
         Assert.Contains("Classes=\"successInset\"", modal, StringComparison.Ordinal);
         Assert.Contains("IsVisible=\"{Binding IsRunReportsSelected}\"", modal, StringComparison.Ordinal);
         Assert.Contains("IsVisible=\"{Binding IsSystemInformationSelected}\"", modal, StringComparison.Ordinal);
@@ -65,5 +90,12 @@ public sealed partial class XamlControlStyleContractTests
     private static int CountOccurrences(string source, string value)
     {
         return source.Split(value, StringSplitOptions.None).Length - 1;
+    }
+
+    private static bool HasClass(XElement element, string className)
+    {
+        return element.Attribute("Classes")?.Value
+            .Split(' ', StringSplitOptions.RemoveEmptyEntries)
+            .Contains(className, StringComparer.Ordinal) == true;
     }
 }
