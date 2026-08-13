@@ -82,7 +82,7 @@ public sealed partial class ReplacePresentationViewModel
                 : currentSelection && session!.InputSelectionReadiness.Count != 0
                     ? session.InputSelectionReadiness
                     : ResolveDpReplaceAuthoringSnapshot(selected).Slots;
-        foreach (FirmwareSlotViewModel slot in ReplaceSlots.Where(slot =>
+        foreach (FirmwareSlotViewModel slot in ReplaceSlots.ToArray().Where(slot =>
                      !ReferenceEquals(slot, ReplaceBaseSlot)))
         {
             InputSelectionMemberReadiness? member = readiness?.FirstOrDefault(candidate =>

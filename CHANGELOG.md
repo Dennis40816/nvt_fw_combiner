@@ -88,6 +88,23 @@ dependency-gated.
 - Limitations: this is a presentation-only readability change; it does not add
   new report fields, diagnostics, filtering, or preload lifecycle behavior.
 
+#### DP Replace readiness projection stability
+
+- Purpose: prevent a reentrant DP Replace slot notification from invalidating
+  the collection currently being projected into readiness state.
+- Affected: DP Replace input-slot readiness refresh in the Presentation layer.
+- Before → After: readiness updates enumerated the live observable slot
+  collection; they now project one stable slot snapshot for each refresh.
+- Support status: unchanged/support-neutral; no IC, route, workflow, processor,
+  profile, or family availability fact changes.
+- Compatibility: readiness rules, slot order, firmware bytes, report wire,
+  profiles, schemas, CLI behavior, and Golden outputs are unchanged.
+- Verification: a deterministic reentrant-mutation regression, the originally
+  failing composition-run scenario, full UI smoke, architecture, verifier,
+  Golden 17/17, scoped review, and exact-head CI gates apply.
+- Limitations: this fixes the observed DP Replace collection race only; it does
+  not serialize the UI, change notification timing, or redesign readiness.
+
 ### Security
 
 The planned lifecycle does not broaden filesystem, executable, firmware, or
