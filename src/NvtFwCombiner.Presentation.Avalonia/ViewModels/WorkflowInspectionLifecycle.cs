@@ -96,7 +96,8 @@ internal sealed class WorkflowInspectionLifecycle
     {
         CancelActive();
         _ = Interlocked.Increment(ref _generation);
-        if (IsRunning)
+        _request = null;
+        if (State is WorkflowInspectionAttemptState.Running or WorkflowInspectionAttemptState.Failed)
         {
             SetState(WorkflowInspectionAttemptState.Cancelled);
         }
@@ -151,10 +152,8 @@ internal sealed class WorkflowInspectionLifecycle
             }
 
             _request = request;
-            _failureType = null;
             Progress = null;
             SetState(WorkflowInspectionAttemptState.Running);
-            requestCancellation.ThrowIfCancellationRequested();
             Present();
             SynchronizationContext? presentationContext = SynchronizationContext.Current;
             var progress = new WorkflowInspectionProgressObserver(value =>
@@ -283,7 +282,7 @@ internal sealed class WorkflowInspectionLifecycle
         Loading.Begin(
             text.FirmwareInspectionLoadingTitle,
             detail,
-            Loading.Progress,
+            Progress is { } reported ? (double)reported.CompletedWork / reported.TotalWork : null,
             text.FirmwareInspectionCancelLabel);
     }
 

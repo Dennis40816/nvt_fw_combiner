@@ -1,6 +1,7 @@
 using System.Text.Json;
 using NvtFwCombiner.Domain.Composition;
 using NvtFwCombiner.Presentation.Avalonia.ViewModels;
+using NvtFwCombiner.TestSupport;
 
 namespace NvtFwCombiner.UiSmoke.Tests;
 
@@ -71,5 +72,29 @@ public sealed partial class FirmwareInspectionSlotTests
         Assert.True(incomplete.Merge.Inspection.Loading.CanRetry);
         Assert.Contains(incompleteDp.FirmwareFacts, fact => fact.Value == "D01-02");
         Assert.DoesNotContain(incompleteDp.FirmwareFacts, fact => fact.Value == "D02-02");
+
+        using var workspace = TempWorkspace.Create("nvt-fw-combiner-ui-failed-paired-inspection");
+        MainWindowViewModel failed = CreateBatchInspectionViewModel((_, inputs) =>
+        [
+            .. inputs.Select(input => new FirmwareInspectionSnapshotResult(
+                input.InspectionId,
+                DpInspection(inputs.Count == 1 ? "0102" : "0202"))),
+        ]);
+        failed.WorkflowSession.SelectedIc = "NT51926";
+        await failed.WorkflowSession.SetSlotFileAsync(
+            "merge-dp",
+            dpPath,
+            TestContext.Current.CancellationToken);
+        FirmwareSlotViewModel failedDp = failed.Merge.MergeSlots.Single(slot => slot.SlotId == "merge-dp");
+        Assert.Contains(failedDp.FirmwareFacts, fact => fact.Value == "D01-02");
+
+        await failed.WorkflowSession.SetSlotFileAsync(
+            "merge-tp",
+            workspace.PathFor("missing-tp.bin"),
+            TestContext.Current.CancellationToken);
+
+        Assert.Equal(WorkflowInspectionAttemptState.Failed, failed.Merge.Inspection.State);
+        Assert.Contains(failedDp.FirmwareFacts, fact => fact.Value == "D01-02");
+        Assert.DoesNotContain(failedDp.FirmwareFacts, fact => fact.Value == "D02-02");
     }
 }

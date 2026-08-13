@@ -14,7 +14,8 @@ public sealed class WorkflowInspectionLifecycleTests
         var lifecycle = new WorkflowInspectionLifecycle();
         var firstStarted = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
         var releaseFirst = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
-        var secondStarted = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var secondEntered = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var secondCleaned = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
         IProgress<AuthoringInspectionProgress>? firstProgress = null;
         CancellationToken firstCancellation = default;
 
@@ -34,18 +35,25 @@ public sealed class WorkflowInspectionLifecycleTests
 
         Task<WorkflowInspectionAttemptState> second = lifecycle.StartAsync(
             Text,
-            (progress, _, _) =>
+            async (_, _, cancellationToken) =>
             {
-                secondStarted.SetResult();
-                progress.Report(new(0, 1));
-                progress.Report(new(1, 1));
-                return Task.FromResult(new WorkflowInspectionOperationResult(true));
+                secondEntered.SetResult();
+                try
+                {
+                    await Task.Yield();
+                    cancellationToken.ThrowIfCancellationRequested();
+                    return new(true);
+                }
+                finally
+                {
+                    secondCleaned.SetResult();
+                }
             },
             TestContext.Current.CancellationToken);
         Assert.True(SpinWait.SpinUntil(
             () => firstCancellation.IsCancellationRequested,
             TimeSpan.FromSeconds(5)));
-        Assert.False(secondStarted.Task.IsCompleted);
+        Assert.False(secondEntered.Task.IsCompleted);
         Task cancel = lifecycle.CancelAsync(TestContext.Current.CancellationToken);
         Assert.False(cancel.IsCompleted);
         _ = releaseFirst.TrySetResult();
@@ -54,7 +62,8 @@ public sealed class WorkflowInspectionLifecycleTests
         IProgress<AuthoringInspectionProgress> retained =
             Assert.IsType<IProgress<AuthoringInspectionProgress>>(firstProgress, exactMatch: false);
         _ = Assert.ThrowsAny<OperationCanceledException>(() => retained.Report(new(1, 2)));
-        Assert.False(secondStarted.Task.IsCompleted);
+        Assert.True(secondEntered.Task.IsCompletedSuccessfully);
+        Assert.True(secondCleaned.Task.IsCompletedSuccessfully);
         Assert.Equal(WorkflowInspectionAttemptState.Cancelled, await first);
         Assert.Equal(WorkflowInspectionAttemptState.Cancelled, await second);
         Assert.Equal(WorkflowInspectionAttemptState.Cancelled, lifecycle.State);
@@ -98,7 +107,7 @@ public sealed class WorkflowInspectionLifecycleTests
             CancellationToken cancellationToken)
         {
             invocation++;
-            if (invocation == 1)
+            if (invocation is 1 or 3)
             {
                 return Task.FromResult(new WorkflowInspectionOperationResult(
                     false,
@@ -120,6 +129,21 @@ public sealed class WorkflowInspectionLifecycleTests
         await lifecycle.Loading.RetryCommand!.ExecuteAsync(null);
         Assert.Equal(WorkflowInspectionAttemptState.Succeeded, lifecycle.State);
         Assert.Equal(2, invocation);
+
+        Assert.Equal(
+            WorkflowInspectionAttemptState.Failed,
+            await lifecycle.StartAsync(
+                Text,
+                Execute,
+                TestContext.Current.CancellationToken));
+        lifecycle.Invalidate();
+        lifecycle.ApplyText(ShellTextResources.For(ShellLanguage.ChineseTraditional));
+
+        Assert.Equal(WorkflowInspectionAttemptState.Cancelled, lifecycle.State);
+        Assert.False(lifecycle.Loading.IsVisible);
+        Assert.False(lifecycle.Loading.CanRetry);
+        await lifecycle.Loading.RetryCommand!.ExecuteAsync(null);
+        Assert.Equal(3, invocation);
     }
 
     /// <summary>Progress keeps exact monotonic work units through the terminal.</summary>
@@ -156,14 +180,14 @@ public sealed class WorkflowInspectionLifecycleTests
         Assert.Equal(new AuthoringInspectionProgress(3, 3), lifecycle.Progress);
     }
 
-    /// <summary>Active progress relocalizes and reduced motion keeps the exact static value.</summary>
+    /// <summary>Active progress relocalizes and a successor starts without the predecessor's percentage.</summary>
     [Fact]
     public async Task ActivePresentationRelocalizesWithoutLosingExactProgress()
     {
         var lifecycle = new WorkflowInspectionLifecycle();
         var reported = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
         var release = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
-        Task active = lifecycle.StartAsync(
+        Task<WorkflowInspectionAttemptState> active = lifecycle.StartAsync(
             Text,
             async (progress, _, cancellationToken) =>
             {
@@ -182,11 +206,28 @@ public sealed class WorkflowInspectionLifecycleTests
         Assert.Equal("已檢查 1 / 2 個檔案", lifecycle.Loading.Detail);
         Assert.Equal("50%", lifecycle.Loading.ProgressPercentLabel);
         Assert.False(lifecycle.Loading.ShouldAnimate);
+        var successorStarted = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var releaseSuccessor = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        Task<WorkflowInspectionAttemptState> successor = lifecycle.StartAsync(
+            Text,
+            async (_, _, cancellationToken) =>
+            {
+                successorStarted.SetResult();
+                await releaseSuccessor.Task.WaitAsync(cancellationToken);
+                return new(true);
+            },
+            TestContext.Current.CancellationToken);
+        await successorStarted.Task.WaitAsync(TestContext.Current.CancellationToken);
+
+        Assert.Null(lifecycle.Loading.Progress);
+        Assert.Empty(lifecycle.Loading.ProgressPercentLabel);
+        Assert.False(lifecycle.Loading.ShouldAnimate);
         await lifecycle.Loading.CancelCommand!.ExecuteAsync(null);
 
         Assert.Equal(WorkflowInspectionAttemptState.Cancelled, lifecycle.State);
         Assert.False(lifecycle.Loading.IsVisible);
-        Assert.True(active.IsCompletedSuccessfully);
+        Assert.Equal(WorkflowInspectionAttemptState.Cancelled, await active);
+        Assert.Equal(WorkflowInspectionAttemptState.Cancelled, await successor);
     }
 
     /// <summary>Malformed progress cannot be presented as a successful inspection.</summary>

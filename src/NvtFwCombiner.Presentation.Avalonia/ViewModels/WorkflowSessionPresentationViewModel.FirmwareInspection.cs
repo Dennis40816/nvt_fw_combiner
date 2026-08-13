@@ -216,6 +216,10 @@ internal sealed partial class WorkflowSessionPresentationViewModel
                             SelectedIc, SelectedNumber, SelectedMergeMode, SelectedReplaceMode,
                             FindSlot, MergeTpSlot.FilePath))
                     {
+                        if (sourceFailed)
+                        {
+                            return new(false, "input.artifact.read-failed");
+                        }
                         ApplyFirmwareInspectionBatch(request, result);
                         if (request.Items.Any(static item =>
                                 item.CtrlRamReplaceAddressSpaceId is not null))
@@ -223,7 +227,7 @@ internal sealed partial class WorkflowSessionPresentationViewModel
                             await _replace.RefreshCtrlRamActionReadinessAsync(
                                 cancellationToken);
                         }
-                        return new(!sourceFailed, sourceFailed ? "input.artifact.read-failed" : null);
+                        return new(true);
                     }
                     else if (isCurrent() && !result.IsContentStable &&
                         FirmwareInspectionProjection.ApplyStaleInputInspection(
