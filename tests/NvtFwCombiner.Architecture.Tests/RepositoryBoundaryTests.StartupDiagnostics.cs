@@ -94,6 +94,8 @@ public sealed partial class RepositoryBoundaryTests
         string codeSizePolicy = ReadText("scripts/code_size_policy.py");
         string mainWindow = ReadText(
             "src/NvtFwCombiner.Presentation.Avalonia/MainWindow.axaml.cs");
+        string preloadSession = ReadText(
+            "src/NvtFwCombiner.Presentation.Avalonia/ShellPreloadSession.cs");
         string report = ReadText(
             "src/NvtFwCombiner.Presentation.Avalonia/MainWindow.Report.cs");
         string history = ReadText(
@@ -165,7 +167,7 @@ public sealed partial class RepositoryBoundaryTests
         Assert.Contains("284 gross removed, 281", baseline, StringComparison.Ordinal);
         Assert.Contains("net **-3**", baseline, StringComparison.Ordinal);
         Assert.Contains("97,306 to 97,303", baseline, StringComparison.Ordinal);
-        Assert.Contains("full_production_ratchet=97_302", codeSizePolicy, StringComparison.Ordinal);
+        Assert.Contains("full_production_ratchet=97_297", codeSizePolicy, StringComparison.Ordinal);
         Assert.Contains("runtime_production_ratchet=67_371", codeSizePolicy, StringComparison.Ordinal);
         Assert.Contains("application_ratchet=29_404", codeSizePolicy, StringComparison.Ordinal);
         Assert.Contains("bootstrap_cli_ratchet=3_267", codeSizePolicy, StringComparison.Ordinal);
@@ -229,7 +231,15 @@ public sealed partial class RepositoryBoundaryTests
         Assert.Contains("never summed into a false overall percent", decision, StringComparison.Ordinal);
 
         Assert.Contains("_startupLoadCancellation", mainWindow, StringComparison.Ordinal);
-        Assert.Contains("TryWarmCanonicalCatalogAsync", mainWindow, StringComparison.Ordinal);
+        Assert.Contains("RunRequiredPreloadAsync", mainWindow, StringComparison.Ordinal);
+        Assert.Contains("RunCatalogAsync", preloadSession, StringComparison.Ordinal);
+        Assert.Contains("ReadOnlyObservableCollection<ShellPreloadStageSnapshot>", preloadSession, StringComparison.Ordinal);
+        Assert.Contains("OptionalWorkerBudget = 2", preloadSession, StringComparison.Ordinal);
+        Assert.Contains("DrainTimeout = TimeSpan.FromSeconds(5)", preloadSession, StringComparison.Ordinal);
+        Assert.DoesNotContain("CanonicalCatalogStartupCoordinator", mainWindow, StringComparison.Ordinal);
+        Assert.False(File.Exists(Path.Combine(
+            Root.FullName,
+            "src/NvtFwCombiner.Presentation.Avalonia/CanonicalCatalogStartupCoordinator.cs")));
         Assert.Contains("RefreshAfterStartupAsync", mainWindow, StringComparison.Ordinal);
         Assert.DoesNotContain("ReadToEndAsync", report, StringComparison.Ordinal);
         Assert.DoesNotContain("File.ReadAllText", report, StringComparison.Ordinal);

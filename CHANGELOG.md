@@ -36,9 +36,9 @@ dependency-gated.
 - Verification: PL-01 through PL-07 and PL-00 require exact behavioral,
   architecture, accessibility, performance, code-size, verifier, Golden 17/17,
   package, CI, and release evidence before completion.
-- Limitations: PL-02 implements the bounded file-input prerequisite; the visible
-  shell session, remaining lifecycle tickets, and `v0.10.5` release artifact do
-  not exist yet.
+- Limitations: PL-02 and PL-03 implement bounded file input and the required
+  catalog stage; optional stages and the `v0.10.5` release artifact do not exist
+  yet.
 
 #### Bounded local report and history input
 
@@ -63,8 +63,35 @@ dependency-gated.
   Golden outputs, profiles, CLI options, and support truth are unchanged.
 - Verification: exact file-boundary, history-envelope, startup/manual parity,
   architecture, full verifier, and Golden 17/17 evidence is required.
-- Limitations: this is the PL-02 prerequisite only; the shared visible preload
-  session and remaining `v0.10.5` lifecycle tickets are not implemented here.
+- Limitations: this is the PL-02 prerequisite only; PL-03 separately introduces
+  the shared visible preload session, while later lifecycle tickets remain open.
+
+#### Shell preload session and required catalog stage
+
+- Purpose: replace catalog-specific startup flags and callbacks with one reusable
+  Presentation shell lifecycle before optional startup work is migrated.
+- Affected: desktop startup, required catalog loading, foreground progress,
+  Retry, Cancel startup, close-time drain, focus restoration, and accessibility.
+- Before → After: `CanonicalCatalogStartupCoordinator` plus MainWindow-specific
+  attempt/in-progress fields become one immutable observable stage collection
+  with session/stage/attempt identity and current-plus-one-prior terminal history.
+- Progress: the UI keeps continuous activity motion and now shows exact catalog
+  route progress plus `stage index / admitted count`; live announcements remain
+  bounded to phase or percentage-decile changes.
+- Failure policy: typed cold or retained-last-known-good failure remains blocking
+  and offers Retry or Cancel; retry preserves the session plan, uses a fresh
+  attempt number, and stale callbacks cannot update the active surface.
+- Support status: unchanged/support-neutral; Application remains the sole catalog
+  validation, publication, token, cache, and last-known-good owner.
+- Compatibility: firmware bytes, Golden outputs, catalog routes, profiles,
+  schemas, report wire/history, CLI behavior, and processor protocols are unchanged.
+- Verification: catalog Application/Bootstrap parity, shell-session grammar,
+  startup UI, focus, localization, accessibility, architecture, full verifier,
+  coverage, and Golden 17/17 gates apply.
+- Code size: full production descends from 97,302 to 97,297 nonblank lines;
+  runtime production remains 67,371.
+- Limitations: catalog is the only stage in this PR; report, diagnostics, deferred
+  views, external discovery, and selected-file inspection migrate in later tickets.
 
 #### Message Center and report readability
 

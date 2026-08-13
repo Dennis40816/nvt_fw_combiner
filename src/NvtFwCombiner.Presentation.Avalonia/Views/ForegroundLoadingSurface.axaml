@@ -108,15 +108,22 @@
           </Grid>
         </Border>
 
-        <Button
-            x:Name="RetryButton"
-            Classes="primary"
-            HorizontalAlignment="Right"
-             AutomationProperties.Name="{Binding RetryLabel}"
-             behaviors:FocusOnRevealBehavior.IsEnabled="True"
-             Click="RetryButton_OnClick"
-            Content="{Binding RetryLabel}"
-            IsVisible="{Binding CanRetry}" />
+        <StackPanel HorizontalAlignment="Right" Orientation="Horizontal" Spacing="{DynamicResource NfcSpace8}">
+          <Button
+              x:Name="CancelButton"
+              AutomationProperties.Name="{Binding CancelLabel}"
+              Click="CancelButton_OnClick"
+              Content="{Binding CancelLabel}"
+              IsVisible="{Binding CanCancel}" />
+          <Button
+              x:Name="RetryButton"
+              Classes="primary"
+              AutomationProperties.Name="{Binding RetryLabel}"
+              behaviors:FocusOnRevealBehavior.IsEnabled="True"
+              Click="RetryButton_OnClick"
+              Content="{Binding RetryLabel}"
+              IsVisible="{Binding CanRetry}" />
+        </StackPanel>
       </StackPanel>
     </Border>
   </Grid>

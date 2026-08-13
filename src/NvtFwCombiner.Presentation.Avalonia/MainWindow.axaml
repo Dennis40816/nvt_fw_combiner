@@ -548,7 +548,9 @@
         IsVisible="{ReflectionBinding IsVisible}">
       <ContentControl.ContentTemplate>
         <DataTemplate DataType="vm:ForegroundLoadingState">
-          <views:ForegroundLoadingSurface RetryRequested="CatalogLoadingSurface_OnRetryRequested" />
+          <views:ForegroundLoadingSurface
+              CancelRequested="CatalogLoadingSurface_OnCancelRequested"
+              RetryRequested="CatalogLoadingSurface_OnRetryRequested" />
         </DataTemplate>
       </ContentControl.ContentTemplate>
     </ContentControl>

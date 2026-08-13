@@ -15,8 +15,16 @@ public sealed partial class ForegroundLoadingSurface : UserControl
     /// <summary>Raised when the visible failure recovery action is invoked.</summary>
     public event EventHandler? RetryRequested;
 
+    /// <summary>Raised when the blocking operation cancellation action is invoked.</summary>
+    public event EventHandler? CancelRequested;
+
     private void RetryButton_OnClick(object? sender, RoutedEventArgs e)
     {
         RetryRequested?.Invoke(this, EventArgs.Empty);
+    }
+
+    private void CancelButton_OnClick(object? sender, RoutedEventArgs e)
+    {
+        CancelRequested?.Invoke(this, EventArgs.Empty);
     }
 }

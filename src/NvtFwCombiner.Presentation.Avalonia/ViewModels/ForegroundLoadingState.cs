@@ -11,6 +11,7 @@ public sealed class ForegroundLoadingState : ObservableObject
     private string _title = string.Empty;
     private string _detail = string.Empty;
     private string _retryLabel = string.Empty;
+    private string _cancelLabel = string.Empty;
     private double? _progress;
     private bool _isVisible;
     private bool _isRunning;
@@ -35,6 +36,9 @@ public sealed class ForegroundLoadingState : ObservableObject
     /// <summary>Localized retry action label, or empty when retry is unavailable.</summary>
     public string RetryLabel => _retryLabel;
 
+    /// <summary>Localized cancellation action label, or empty when cancellation is unavailable.</summary>
+    public string CancelLabel => _cancelLabel;
+
     /// <summary>Reported determinate progress in the inclusive range 0..1, or null when no progress contract exists.</summary>
     public double? Progress => _progress;
 
@@ -57,6 +61,9 @@ public sealed class ForegroundLoadingState : ObservableObject
 
     /// <summary>True only for a failed operation with an explicit retry action.</summary>
     public bool CanRetry => HasFailed && !string.IsNullOrWhiteSpace(RetryLabel);
+
+    /// <summary>True while the visible operation offers an explicit cancellation action.</summary>
+    public bool CanCancel => IsVisible && !string.IsNullOrWhiteSpace(CancelLabel);
 
     /// <summary>Localized live-region text that remains available without motion or color.</summary>
     public string AccessibleStatus
@@ -83,14 +90,16 @@ public sealed class ForegroundLoadingState : ObservableObject
             SetDetail(detail) |
             SetProgress(progress);
         SetRetryLabel(string.Empty);
+        _ = SetProperty(ref _cancelLabel, string.Empty, nameof(CancelLabel));
         SetFailed(false);
         SetRunning(true);
         SetVisible(true);
+        OnPropertyChanged(nameof(CanCancel));
         NotifyAccessibleStatus(accessibleStatusChanged);
     }
 
     /// <summary>Updates determinate progress for the active operation.</summary>
-    public void ReportProgress(double progress, string? detail = null)
+    public void ReportProgress(double progress, string? detail = null, bool announce = true)
     {
         if (!IsRunning)
         {
@@ -106,7 +115,7 @@ public sealed class ForegroundLoadingState : ObservableObject
         }
 
         accessibleStatusChanged |= SetProgress(progress);
-        NotifyAccessibleStatus(accessibleStatusChanged);
+        NotifyAccessibleStatus(announce && accessibleStatusChanged);
     }
 
     /// <summary>Keeps the foreground surface visible with explicit recovery guidance.</summary>
@@ -119,9 +128,11 @@ public sealed class ForegroundLoadingState : ObservableObject
             SetDetail(detail) |
             SetProgress(null);
         SetRetryLabel(retryLabel ?? string.Empty);
+        _ = SetProperty(ref _cancelLabel, string.Empty, nameof(CancelLabel));
         SetRunning(false);
         SetFailed(true);
         SetVisible(true);
+        OnPropertyChanged(nameof(CanCancel));
         NotifyAccessibleStatus(accessibleStatusChanged);
     }
 
@@ -131,8 +142,17 @@ public sealed class ForegroundLoadingState : ObservableObject
         SetRunning(false);
         SetFailed(false);
         SetRetryLabel(string.Empty);
+        _ = SetProperty(ref _cancelLabel, string.Empty, nameof(CancelLabel));
         _ = SetProgress(null);
         SetVisible(false);
+        OnPropertyChanged(nameof(CanCancel));
+    }
+
+    /// <summary>Exposes a localized cancellation action for the current visible operation.</summary>
+    public void SetCancellationAction(string label)
+    {
+        _ = SetProperty(ref _cancelLabel, label ?? string.Empty, nameof(CancelLabel));
+        OnPropertyChanged(nameof(CanCancel));
     }
 
     /// <summary>Updates whether non-essential activity motion is allowed.</summary>
