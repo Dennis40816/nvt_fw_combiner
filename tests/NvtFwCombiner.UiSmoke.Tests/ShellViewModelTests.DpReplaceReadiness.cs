@@ -7,6 +7,31 @@ namespace NvtFwCombiner.UiSmoke.Tests;
 
 public sealed partial class DpReplaceWorkflowTests
 {
+    /// <summary>Readiness refresh tolerates a slot collection change raised by a slot projection update.</summary>
+    [Fact]
+    public void DpReplaceReadinessUsesOneSlotSnapshotDuringProjection()
+    {
+        MainWindowViewModel viewModel = PresentationTestHost.CreateViewModel();
+        viewModel.WorkflowSession.SelectedIc = "NT51928";
+        OpenReplace(viewModel, ExperienceIds.DpReplace);
+        FirmwareSlotViewModel firstInput = viewModel.Replace.ReplaceSlots.First(slot =>
+            !ReferenceEquals(slot, viewModel.Replace.ReplaceBaseSlot));
+        firstInput.ClearSelectionReadiness();
+        bool collectionChanged = false;
+        firstInput.PropertyChanged += (_, _) =>
+        {
+            if (!collectionChanged)
+            {
+                collectionChanged = true;
+                viewModel.Replace.ReplaceSlots.RemoveAt(viewModel.Replace.ReplaceSlots.Count - 1);
+            }
+        };
+
+        viewModel.Replace.NotifyCommandStateChanged();
+
+        Assert.True(collectionChanged);
+    }
+
     /// <summary>
     /// Keeps NT51928 DP Replace Build and LDC applicability on the Application-owned
     /// reference-capacity truth table.
