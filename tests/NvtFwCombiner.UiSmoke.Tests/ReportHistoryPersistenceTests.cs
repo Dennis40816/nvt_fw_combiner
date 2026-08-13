@@ -18,20 +18,21 @@ public sealed class ReportHistoryPersistenceTests
         ReportHistorySnapshot original = CreateSnapshot("original.json");
         ReportHistorySnapshot cancelled = CreateSnapshot("cancelled.json");
         ReportHistorySnapshot latest = CreateSnapshot("latest.json");
-        ReportHistoryFileStore.Save(historyPath, [original]);
+        ReportHistoryTestStore.Save(historyPath, [original]);
         using var cancellation = new CancellationTokenSource();
         cancellation.Cancel();
 
-        await ReportHistoryFileStore.SaveAsync(historyPath, [cancelled], cancellation.Token);
+        _ = await Assert.ThrowsAnyAsync<OperationCanceledException>(() =>
+            ReportHistoryTestStore.SaveAsync(historyPath, [cancelled], cancellation.Token));
 
-        Assert.Equal("original.json", Assert.Single(ReportHistoryFileStore.Load(historyPath)).SourceName);
+        Assert.Equal("original.json", Assert.Single(ReportHistoryTestStore.Load(historyPath)).SourceName);
 
-        await ReportHistoryFileStore.SaveAsync(
+        await ReportHistoryTestStore.SaveAsync(
             historyPath,
             [latest],
             TestContext.Current.CancellationToken);
 
-        ReportHistorySnapshot loaded = Assert.Single(ReportHistoryFileStore.Load(historyPath));
+        ReportHistorySnapshot loaded = Assert.Single(ReportHistoryTestStore.Load(historyPath));
         Assert.Equal("latest.json", loaded.SourceName);
         Assert.Equal(latest.ReportJson, loaded.ReportJson);
         Assert.Empty(Directory.GetFiles(Path.GetDirectoryName(historyPath)!, "*.tmp"));
@@ -84,7 +85,7 @@ public sealed class ReportHistoryPersistenceTests
         {
             saveStarted.SetResult();
             await releaseSave.Task;
-            await ReportHistoryFileStore.SaveAsync(historyPath, snapshots, cancellationToken);
+            await ReportHistoryTestStore.SaveAsync(historyPath, snapshots, cancellationToken);
         });
         coordinator.Queue([CreateSnapshot("latest-before-close.json")]);
         await saveStarted.Task.WaitAsync(TestContext.Current.CancellationToken);
@@ -96,7 +97,7 @@ public sealed class ReportHistoryPersistenceTests
         await completion.WaitAsync(TestContext.Current.CancellationToken);
         Assert.Equal(
             "latest-before-close.json",
-            Assert.Single(ReportHistoryFileStore.Load(historyPath)).SourceName);
+            Assert.Single(ReportHistoryTestStore.Load(historyPath)).SourceName);
         _ = Assert.Throws<InvalidOperationException>(
             () => coordinator.Queue([CreateSnapshot("after-close.json")]));
     }
@@ -138,7 +139,7 @@ public sealed class ReportHistoryPersistenceTests
             stream.SetLength(ReportHistoryFileStore.MaximumHistoryFileBytes + 1);
         }
 
-        Assert.Empty(ReportHistoryFileStore.Load(historyPath));
+        Assert.Empty(ReportHistoryTestStore.Load(historyPath));
     }
 
     /// <summary>Restoring a large history does not allocate a second whole-file text value.</summary>
@@ -151,7 +152,7 @@ public sealed class ReportHistoryPersistenceTests
         string historyPath = workspace.PathFor(Path.Combine("state", "report-history.v1.json"));
         const int reportCharacterCount = 4 * 1024 * 1024;
         string reportJson = $"\"{new string('A', reportCharacterCount - 2)}\"";
-        ReportHistoryFileStore.Save(
+        ReportHistoryTestStore.Save(
             historyPath,
             [new ReportHistorySnapshot("large.json", reportJson, string.Empty)]);
         if (useLegacyUtf16Encoding)
@@ -160,10 +161,10 @@ public sealed class ReportHistoryPersistenceTests
             File.WriteAllText(historyPath, persistedJson, Encoding.Unicode);
         }
 
-        _ = ReportHistoryFileStore.Load(historyPath);
+        _ = ReportHistoryTestStore.Load(historyPath);
 
         long before = GC.GetAllocatedBytesForCurrentThread();
-        ReportHistorySnapshot loaded = Assert.Single(ReportHistoryFileStore.Load(historyPath));
+        ReportHistorySnapshot loaded = Assert.Single(ReportHistoryTestStore.Load(historyPath));
         long allocatedBytes = GC.GetAllocatedBytesForCurrentThread() - before;
 
         Assert.Equal(reportJson, loaded.ReportJson);
@@ -178,10 +179,14 @@ public sealed class ReportHistoryPersistenceTests
         string historyPath = workspace.PathFor(Path.Combine("state", "report-history.v1.json"));
         ReportHistorySnapshot original = CreateSnapshot("original.json");
         ReportHistorySnapshot latest = CreateSnapshot("latest.json");
-        ReportHistoryFileStore.Save(historyPath, [original]);
-        using FileStream originalReader = BestEffortLocalJsonFileStore.OpenSnapshotForRead(historyPath);
+        ReportHistoryTestStore.Save(historyPath, [original]);
+        using var originalReader = new FileStream(
+            historyPath,
+            FileMode.Open,
+            FileAccess.Read,
+            FileShare.Read | FileShare.Delete);
 
-        await ReportHistoryFileStore.SaveAsync(
+        await ReportHistoryTestStore.SaveAsync(
             historyPath,
             [latest],
             TestContext.Current.CancellationToken);
@@ -195,7 +200,7 @@ public sealed class ReportHistoryPersistenceTests
         string originalJson = textReader.ReadToEnd();
         Assert.Contains("original.json", originalJson, StringComparison.Ordinal);
         Assert.DoesNotContain("latest.json", originalJson, StringComparison.Ordinal);
-        Assert.Equal("latest.json", Assert.Single(ReportHistoryFileStore.Load(historyPath)).SourceName);
+        Assert.Equal("latest.json", Assert.Single(ReportHistoryTestStore.Load(historyPath)).SourceName);
         Assert.Empty(Directory.GetFiles(Path.GetDirectoryName(historyPath)!, "*.tmp"));
     }
 
@@ -205,15 +210,97 @@ public sealed class ReportHistoryPersistenceTests
     {
         using var workspace = TempWorkspace.Create("nvt-fw-combiner-report-history-schema");
         string historyPath = workspace.PathFor(Path.Combine("state", "report-history.v1.json"));
-        Assert.Empty(ReportHistoryFileStore.Load(historyPath));
-        ReportHistoryFileStore.Save(historyPath, [CreateSnapshot("unsupported.json")]);
+        Assert.Empty(ReportHistoryTestStore.Load(historyPath));
+        ReportHistoryTestStore.Save(historyPath, [CreateSnapshot("unsupported.json")]);
         string unsupportedJson = File.ReadAllText(historyPath).Replace(
             "\"SchemaVersion\": 1",
             "\"SchemaVersion\": 2",
             StringComparison.Ordinal);
         File.WriteAllText(historyPath, unsupportedJson);
 
-        Assert.Empty(ReportHistoryFileStore.Load(historyPath));
+        Assert.Empty(ReportHistoryTestStore.Load(historyPath));
+    }
+
+    /// <summary>A maximum raw report survives the encoder's sixfold literal-less-than expansion.</summary>
+    [Fact]
+    public async Task MaximumRawReportRoundTripsInsideHardEnvelope()
+    {
+        using var workspace = TempWorkspace.Create("nvt-fw-combiner-report-history-maximum-import");
+        string historyPath = workspace.PathFor("report-history.v1.json");
+        const int maximumRawBytes = 10 * 1024 * 1024;
+        string reportJson = CreateRematerializableLiteralLessThanReport(maximumRawBytes);
+        MainWindowViewModel expectedViewModel = PresentationTestHost.CreateViewModel(
+            ShellLanguage.ChineseTraditional);
+        expectedViewModel.Reports.LoadReportJson(reportJson, "maximum.json");
+        ReportHistoryEntryViewModel expected = Assert.Single(expectedViewModel.Reports.ReportHistoryEntries);
+
+        await ReportHistoryTestStore.SaveAsync(
+            historyPath,
+            expectedViewModel.Reports.ExportReportHistory(),
+            TestContext.Current.CancellationToken);
+
+        Assert.InRange(new FileInfo(historyPath).Length, 1, ReportHistoryFileStore.MaximumHistoryFileBytes);
+        IReadOnlyList<ReportHistorySnapshot> persisted = ReportHistoryTestStore.Load(historyPath);
+        Assert.Equal(ReportHistoryMetadataSnapshot.Empty, Assert.Single(persisted).Metadata);
+        MainWindowViewModel restoredViewModel = PresentationTestHost.CreateViewModel(
+            ShellLanguage.ChineseTraditional);
+        Assert.True(await restoredViewModel.Reports.LoadReportHistoryAsync(
+            _ => Task.FromResult(persisted),
+            TestContext.Current.CancellationToken));
+        ReportHistoryEntryViewModel restored = Assert.Single(restoredViewModel.Reports.ReportHistoryEntries);
+        Assert.Equal(reportJson, restored.ReportJson);
+        Assert.Equal(
+            Assert.Single(expectedViewModel.Reports.ExportReportHistory()).Metadata,
+            Assert.Single(restoredViewModel.Reports.ExportReportHistory()).Metadata);
+    }
+
+    /// <summary>The hard encoded-envelope bound prunes the oldest entry even below the soft payload budget.</summary>
+    [Fact]
+    public async Task EncodedEnvelopePrunesOldestEntryDeterministically()
+    {
+        using var workspace = TempWorkspace.Create("nvt-fw-combiner-report-history-envelope-prune");
+        string historyPath = workspace.PathFor("report-history.v1.json");
+        const int halfSoftBudget = 8 * 1024 * 1024;
+        var newest = new ReportHistorySnapshot(
+            "newest.json",
+            CreateLiteralLessThanJson(halfSoftBudget),
+            string.Empty);
+        var oldest = new ReportHistorySnapshot(
+            "oldest.json",
+            CreateLiteralLessThanJson(halfSoftBudget),
+            string.Empty);
+
+        await ReportHistoryTestStore.SaveAsync(
+            historyPath,
+            [newest, oldest],
+            TestContext.Current.CancellationToken);
+
+        ReportHistorySnapshot loaded = Assert.Single(ReportHistoryTestStore.Load(historyPath));
+        Assert.Equal("newest.json", loaded.SourceName);
+    }
+
+    /// <summary>An in-process newest entry that cannot fit never replaces the previous persisted history.</summary>
+    [Fact]
+    public async Task EntryTooLargeToPersistPreservesPreviousFile()
+    {
+        using var workspace = TempWorkspace.Create("nvt-fw-combiner-report-history-entry-too-large");
+        string historyPath = workspace.PathFor("report-history.v1.json");
+        ReportHistoryTestStore.Save(historyPath, [CreateSnapshot("previous.json")]);
+        var oversized = new ReportHistorySnapshot(
+            "oversized.json",
+            CreateRematerializableLiteralLessThanReport(10 * 1024 * 1024),
+            string.Empty,
+            CreateMetadata(new string('A', 5 * 1024 * 1024)));
+
+        ReportHistoryPersistenceException exception =
+            await Assert.ThrowsAsync<ReportHistoryPersistenceException>(() =>
+                ReportHistoryTestStore.SaveAsync(
+                    historyPath,
+                    [oversized],
+                    TestContext.Current.CancellationToken));
+
+        Assert.Equal(ReportHistoryPersistenceFailure.EntryTooLargeToPersist, exception.Failure);
+        Assert.Equal("previous.json", Assert.Single(ReportHistoryTestStore.Load(historyPath)).SourceName);
     }
 
     private static ReportHistorySnapshot CreateSnapshot(string sourceName)
@@ -222,6 +309,46 @@ public sealed class ReportHistoryPersistenceTests
             sourceName,
             ReportJsonSamples.Succeeded(runId: Path.GetFileNameWithoutExtension(sourceName)),
             string.Empty);
+    }
+
+    private static string CreateLiteralLessThanJson(int rawUtf8Bytes)
+    {
+        ArgumentOutOfRangeException.ThrowIfLessThan(rawUtf8Bytes, 2);
+        return $"\"{new string('<', rawUtf8Bytes - 2)}\"";
+    }
+
+    private static string CreateRematerializableLiteralLessThanReport(int rawUtf8Bytes)
+    {
+        const string OriginalProfileId = "literal-less-than-profile";
+        string report = ReportJsonSamples.Succeeded(profileId: OriginalProfileId, runId: "literal-less-than-report");
+        int profileOffset = report.IndexOf(OriginalProfileId, StringComparison.Ordinal);
+        Assert.True(profileOffset >= 0);
+        const int DerivedBytes = 768 * 1024;
+        string prefix = $"{report[..profileOffset]}{new string('<', DerivedBytes)}" +
+            $"{report[(profileOffset + OriginalProfileId.Length)..^1]},\"Padding\":\"";
+        const string Suffix = "\"}";
+        int paddingBytes = rawUtf8Bytes - Encoding.UTF8.GetByteCount(prefix) - Suffix.Length;
+        ArgumentOutOfRangeException.ThrowIfNegative(paddingBytes);
+        return $"{prefix}{new string('<', paddingBytes)}{Suffix}";
+    }
+
+    private static ReportHistoryMetadataSnapshot CreateMetadata(string title)
+    {
+        return new(
+            title,
+            "Succeeded",
+            "context",
+            "output",
+            "hash",
+            "commands",
+            "issues",
+            "evidence",
+            "run",
+            "2026-08-13T00:00:00Z",
+            "NT51926",
+            "mode",
+            "experience",
+            "Merge");
     }
 
     private static LatestSnapshotPersistenceCoordinator<IReadOnlyList<ReportHistorySnapshot>> CreateCoordinator(

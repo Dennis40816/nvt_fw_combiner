@@ -1,11 +1,13 @@
 using Avalonia.Interactivity;
 using Avalonia.Platform.Storage;
+using NvtFwCombiner.Application.Ports;
 using NvtFwCombiner.Presentation.Avalonia.ViewModels;
 
 namespace NvtFwCombiner.Presentation.Avalonia;
 
 public sealed partial class MainWindow
 {
+    private const long MaximumStandaloneReportBytes = 10L * 1024 * 1024;
     private const double ReportToastFadeStep = 0.12;
 
     private async void LoadReportJsonButton_OnClick(object? sender, RoutedEventArgs e)
@@ -29,19 +31,27 @@ public sealed partial class MainWindow
             return;
         }
 
-        await using Stream stream = await files[0].OpenReadAsync();
-        using var reader = new StreamReader(stream);
-        string json = await reader.ReadToEndAsync();
-        await viewModel.Reports.LoadReportJsonAsync(json, files[0].Name);
+        IStorageFile file = files[0];
+        _ = await viewModel.Reports.LoadReportFileAsync(
+            token => _hostServices.LocalFiles.ReadTextAsync(
+                _ => new ValueTask<Stream>(file.OpenReadAsync()),
+                MaximumStandaloneReportBytes,
+                token),
+            file.Name,
+            _startupLoadCancellation.Token);
     }
 
     private static async Task ApplyDeferredLaunchOptionsAsync(
         MainWindowViewModel viewModel,
+        ILocalFileStore reportFiles,
         UiLaunchOptions launchOptions,
         CancellationToken cancellationToken)
     {
         bool historyPublished = await viewModel.Reports.LoadReportHistoryAsync(
-            ReportHistoryFileStore.LoadAsync,
+            token => ReportHistoryFileStore.LoadAsync(
+                reportFiles,
+                ReportHistoryFileStore.DefaultHistoryPath,
+                token),
             cancellationToken);
         if (!historyPublished)
         {
@@ -55,9 +65,12 @@ public sealed partial class MainWindow
 
         if (!string.IsNullOrWhiteSpace(launchOptions.ReportPath))
         {
-            bool reportPublished = await LoadStartupReportAsync(
-                viewModel,
-                launchOptions.ReportPath,
+            bool reportPublished = await viewModel.Reports.LoadReportFileAsync(
+                token => reportFiles.ReadTextAsync(
+                    launchOptions.ReportPath,
+                    MaximumStandaloneReportBytes,
+                    token),
+                Path.GetFileName(launchOptions.ReportPath),
                 cancellationToken);
             if (!reportPublished)
             {
@@ -70,16 +83,15 @@ public sealed partial class MainWindow
             return;
         }
 
-        if (!viewModel.Reports.ShowReportCommand.CanExecute(null))
+        if (viewModel.Reports.ShowReportCommand.CanExecute(null))
+        {
+            viewModel.Reports.ShowReportCommand.Execute(null);
+        }
+        else
         {
             viewModel.Reports.LoadReportError(
                 "Startup report",
                 "--open-report requires a loaded report. Pass --load-report <path> or --report <path>.");
-        }
-
-        if (viewModel.Reports.ShowReportCommand.CanExecute(null))
-        {
-            viewModel.Reports.ShowReportCommand.Execute(null);
         }
     }
 
@@ -105,19 +117,6 @@ public sealed partial class MainWindow
             default:
                 break;
         }
-    }
-
-    private static Task<bool> LoadStartupReportAsync(
-        MainWindowViewModel viewModel,
-        string reportPath,
-        CancellationToken cancellationToken)
-    {
-        return viewModel.Reports.LoadReportJsonAsync(
-            token => Task.Run(
-                () => File.ReadAllText(Path.GetFullPath(reportPath)),
-                token),
-            Path.GetFileName(reportPath),
-            cancellationToken);
     }
 
     private void ReportToastHoldTimer_OnTick(object? sender, EventArgs e)

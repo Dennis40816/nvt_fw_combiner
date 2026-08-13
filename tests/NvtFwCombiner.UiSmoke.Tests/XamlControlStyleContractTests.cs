@@ -388,7 +388,7 @@ public sealed partial class XamlControlStyleContractTests
         Assert.Contains("protected override async void OnOpened", window, StringComparison.Ordinal);
         Assert.Contains("await ApplyDeferredLaunchOptionsAsync(", window, StringComparison.Ordinal);
         Assert.Contains("ReportHistoryFileStore.LoadAsync", startup, StringComparison.Ordinal);
-        Assert.Contains("return viewModel.Reports.LoadReportJsonAsync(", startup, StringComparison.Ordinal);
+        Assert.Contains("_ = await viewModel.Reports.LoadReportFileAsync(", startup, StringComparison.Ordinal);
     }
 
     /// <summary>Prevents repeated shell, panel, row, and text property bundles from drifting back into templates.</summary>

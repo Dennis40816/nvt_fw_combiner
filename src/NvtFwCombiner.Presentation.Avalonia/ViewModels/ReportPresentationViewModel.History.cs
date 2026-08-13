@@ -7,7 +7,7 @@ namespace NvtFwCombiner.Presentation.Avalonia.ViewModels;
 
 public sealed partial class ReportPresentationViewModel
 {
-    private const int MaxReportHistoryEntries = 12;
+    internal const int MaxReportHistoryEntries = 12;
     private const int ReportHistoryStorageWarningBytes = 1024 * 1024;
     internal const long MaximumReportHistoryStorageBytes = 16L * 1024 * 1024;
     private int _reportHistorySequence;
@@ -80,15 +80,6 @@ public sealed partial class ReportPresentationViewModel
                 .Where(entry => !string.IsNullOrWhiteSpace(entry.ReportJson))
                 .Select(entry => entry.ToSnapshot()),
         ];
-    }
-
-    /// <summary>Restores report history snapshots without showing a toast or re-running firmware workflows.</summary>
-    public void LoadReportHistory(IEnumerable<ReportHistorySnapshot> snapshots)
-    {
-        ArgumentNullException.ThrowIfNull(snapshots);
-        _ = BeginReportProjection();
-
-        ApplyPreparedReportHistory(PrepareReportHistory(snapshots, Text.Language, CancellationToken.None));
     }
 
     /// <summary>Loads and prepares persisted history away from the dispatcher, unless a newer report wins.</summary>
@@ -548,6 +539,24 @@ public sealed partial class ReportPresentationViewModel
                 report.ModeId,
                 report.ExperienceId,
                 report.CompositionKind));
+    }
+
+    internal static ReportHistorySnapshot OmitDerivableReportHistoryMetadata(
+        ReportHistorySnapshot snapshot)
+    {
+        var withoutMetadata = new ReportHistorySnapshot(
+            snapshot.SourceName, snapshot.ReportJson, snapshot.OutputArtifactPath);
+        return Enum.GetValues<ShellLanguage>().Any(language =>
+                TryPrepareReportHistoryEntry(
+                    withoutMetadata,
+                    language,
+                    materializeAsCurrent: true,
+                    CancellationToken.None,
+                    out ReportHistorySnapshot? normalized,
+                    out _) &&
+                normalized!.Metadata == snapshot.Metadata)
+            ? withoutMetadata
+            : snapshot;
     }
 
     private static string CreateReportHistoryContext(ReportReviewViewModel report)

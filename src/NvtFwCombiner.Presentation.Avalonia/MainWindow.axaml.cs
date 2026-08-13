@@ -16,9 +16,9 @@ public sealed partial class MainWindow : Window, IDisposable
     private readonly DispatcherTimer _reportToastHoldTimer = new() { Interval = TimeSpan.FromSeconds(3) };
     private readonly DispatcherTimer _reportToastFadeTimer = new() { Interval = TimeSpan.FromMilliseconds(40) };
     private readonly LatestSnapshotPersistenceCoordinator<IReadOnlyList<ReportHistorySnapshot>>
-        _reportHistoryPersistence = new(ReportHistoryFileStore.SaveAsync, snapshots => [.. snapshots]);
+        _reportHistoryPersistence;
     private readonly LatestSnapshotPersistenceCoordinator<ShellPreferenceSnapshot>
-        _shellPreferencePersistence = new(ShellPreferenceFileStore.SaveAsync, static snapshot => snapshot);
+        _shellPreferencePersistence;
     private readonly CancellationTokenSource _startupLoadCancellation = new();
     private readonly ForegroundLoadingState _catalogLoading = new();
     private readonly PresentationHostServices _hostServices;
@@ -32,23 +32,13 @@ public sealed partial class MainWindow : Window, IDisposable
     private bool _isDeferredStartupComplete;
     private int _catalogLoadingAttempt;
 
-    /// <summary>Initializes the main window controls.</summary>
+    /// <summary>Initializes the XAML loader constructor; production supplies explicit startup state.</summary>
     public MainWindow()
         : this(
             UiLaunchOptions.Empty,
             StartupTraceSession.Disabled,
             App.HostServices ?? throw new InvalidOperationException("Presentation host services are not configured."),
-            ShellPreferenceFileStore.Load(ShellPreferenceFileStore.DefaultPreferencesPath))
-    {
-    }
-
-    /// <summary>Initializes the main window controls with command-line startup state.</summary>
-    public MainWindow(UiLaunchOptions launchOptions)
-        : this(
-            launchOptions,
-            StartupTraceSession.Disabled,
-            App.HostServices ?? throw new InvalidOperationException("Presentation host services are not configured."),
-            ShellPreferenceFileStore.Load(ShellPreferenceFileStore.DefaultPreferencesPath))
+            ShellPreferenceSnapshot.Default)
     {
     }
 
@@ -65,6 +55,20 @@ public sealed partial class MainWindow : Window, IDisposable
         _launchOptions = launchOptions;
         _startupTrace = startupTrace;
         _hostServices = hostServices;
+        _reportHistoryPersistence = new(
+            (snapshots, cancellationToken) => ReportHistoryFileStore.SaveAsync(
+                hostServices.LocalFiles,
+                ReportHistoryFileStore.DefaultHistoryPath,
+                snapshots,
+                cancellationToken),
+            snapshots => [.. snapshots]);
+        _shellPreferencePersistence = new(
+            (snapshot, cancellationToken) => ShellPreferenceFileStore.SaveAsync(
+                hostServices.LocalFiles,
+                ShellPreferenceFileStore.DefaultPreferencesPath,
+                snapshot,
+                cancellationToken),
+            static snapshot => snapshot);
         _startupTrace.Mark("main-window-constructor.started");
 
         InitializeComponent();
@@ -240,7 +244,11 @@ public sealed partial class MainWindow : Window, IDisposable
         {
             ApplyLaunchPage(viewModel, _launchOptions.Page);
             _startupTrace.Mark("startup-launch-page.ready");
-            await ApplyDeferredLaunchOptionsAsync(viewModel, _launchOptions, startupCancellation);
+            await ApplyDeferredLaunchOptionsAsync(
+                viewModel,
+                _hostServices.LocalFiles,
+                _launchOptions,
+                startupCancellation);
             _startupTrace.Mark("startup-launch-options.ready");
             await viewModel.MessageCenter.RefreshAfterStartupAsync(startupCancellation);
             if (viewModel.IsSettingsVisible)

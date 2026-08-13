@@ -84,7 +84,8 @@ internal static class PresentationTestHost
             host.CreateSystemInformationService(applicationVersion),
             CompositionHostServices.CreateSystemDiagnosticsExporter(),
             host.RawBinaryEditorFileSessions,
-            host.CanonicalCatalogLoader);
+            host.CanonicalCatalogLoader,
+            host.LocalFiles);
     }
 
     internal static Application.HexEditor.IRawBinaryEditorFileSessionFactory

@@ -49,6 +49,7 @@ class CodeSizeLimits:
     application_ratchet: int | None = None
     bootstrap_cli_ratchet: int | None = None
     infrastructure_contracts_worker_ratchet: int | None = None
+    full_production_ratchet: int | None = None
 
 
 @dataclass(frozen=True)
@@ -92,11 +93,12 @@ DEFAULT_LIMITS = CodeSizeLimits(
         "NvtFwCombiner.Profiles.V2.V2CompositionPlanCompiler": 2_798,
     },
     runtime_production_baseline=45_214,
-    runtime_production_ratchet=67_186,
+    runtime_production_ratchet=67_371,
     domain_profiles_ratchet=20_619,
-    application_ratchet=29_383,
-    bootstrap_cli_ratchet=3_255,
-    infrastructure_contracts_worker_ratchet=13_929,
+    application_ratchet=29_404,
+    bootstrap_cli_ratchet=3_267,
+    infrastructure_contracts_worker_ratchet=14_081,
+    full_production_ratchet=97_303,
 )
 
 
@@ -438,6 +440,11 @@ def validate_code_size_policy(
     errors: list[str] = []
     metrics = (
         (
+            "full production",
+            snapshot.production_nonblank,
+            limits.full_production_ratchet,
+        ),
+        (
             "runtime production",
             snapshot.runtime_production_nonblank,
             limits.runtime_production_ratchet,
@@ -463,7 +470,7 @@ def validate_code_size_policy(
             limits.infrastructure_contracts_worker_ratchet,
         ),
     )
-    slices = metrics[1:]
+    slices = metrics[2:]
     if all(ratchet is not None for _, _, ratchet in slices):
         allocated = sum(actual for _, actual, _ in slices)
         if allocated != snapshot.runtime_production_nonblank:

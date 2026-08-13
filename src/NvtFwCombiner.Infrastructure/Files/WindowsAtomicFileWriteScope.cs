@@ -9,6 +9,7 @@ namespace NvtFwCombiner.Infrastructure.Files;
 /// </summary>
 internal sealed partial class WindowsAtomicFileWriteScope : IAtomicFileWriteScope
 {
+    private const int SharingViolation = 32;
     private const uint DirectoryAccess = 0x000000A3;
     private const uint DeleteAccess = 0x00010000;
     private const uint SynchronizeAccess = 0x00100000;
@@ -99,7 +100,21 @@ internal sealed partial class WindowsAtomicFileWriteScope : IAtomicFileWriteScop
             }
 
             RequireExactDirectory(_directoryHandle, directory);
-            File.Move(tempPath, _destinationPath, overwrite: true);
+            if (File.Exists(_destinationPath))
+            {
+                try
+                {
+                    File.Replace(tempPath, _destinationPath, destinationBackupFileName: null);
+                }
+                catch (IOException exception) when ((exception.HResult & 0xFFFF) == SharingViolation)
+                {
+                    throw new UnauthorizedAccessException(exception.Message, exception);
+                }
+            }
+            else
+            {
+                File.Move(tempPath, _destinationPath);
+            }
         }
         catch
         {

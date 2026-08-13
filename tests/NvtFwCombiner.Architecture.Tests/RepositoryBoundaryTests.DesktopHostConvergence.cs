@@ -23,6 +23,7 @@ public sealed partial class RepositoryBoundaryTests
         Assert.Contains("<OutputType>WinExe</OutputType>", desktopProject, StringComparison.Ordinal);
         Assert.Contains("<AssemblyName>NvtFwCombiner.Desktop</AssemblyName>", desktopProject, StringComparison.Ordinal);
         Assert.Equal(1, CountOccurrences(desktopProgram, "CompositionHostServices.Create()"));
+        Assert.Equal(1, CountOccurrences(desktopProgram, "CompositionHostServices.CreateLocalFileStore()"));
         Assert.Contains(
             "host.CanonicalCatalogLoader",
             desktopProgram,
@@ -30,7 +31,7 @@ public sealed partial class RepositoryBoundaryTests
         Assert.Equal(1, CountOccurrences(desktopProgram, "new PresentationHostServices("));
         Assert.Equal(2, CountOccurrences(desktopProgram, "CreatePresentationHostServices"));
         Assert.Contains(
-            "DesktopApplication.Run(CreatePresentationHostServices, args)",
+            "DesktopApplication.Run(",
             desktopProgram,
             StringComparison.Ordinal);
         Assert.Contains("src/NvtFwCombiner.Desktop/NvtFwCombiner.Desktop.csproj", solution, StringComparison.Ordinal);
