@@ -95,7 +95,7 @@ internal sealed partial class ReplacePresentationViewModel
         }
     }
 
-    private Task PrepareGeneralReplaceSessionAsync(
+    private Task<WorkflowInspectionAttemptState> PrepareGeneralReplaceSessionAsync(
         GeneralMappingDraftState draft,
         string referencePath)
     {
@@ -108,7 +108,7 @@ internal sealed partial class ReplacePresentationViewModel
                 if (!ReferenceEquals(_generalReplaceDraft, draft) ||
                     !StringComparer.Ordinal.Equals(ReplaceBaseSlot.FilePath, referencePath))
                 {
-                    return;
+                    throw new OperationCanceledException(cancellationToken);
                 }
                 GeneralAuthoringSessionPreparation prepared =
                     await _compositionServices.GeneralAuthoring.PrepareReplaceSessionAsync(
@@ -122,7 +122,7 @@ internal sealed partial class ReplacePresentationViewModel
                 if (!isCurrent() || !ReferenceEquals(_generalReplaceDraft, draft) ||
                     !StringComparer.Ordinal.Equals(ReplaceBaseSlot.FilePath, referencePath))
                 {
-                    return;
+                    throw new OperationCanceledException(cancellationToken);
                 }
                 _isApplyingGeneralReplacePreparation = true;
                 try
@@ -149,6 +149,7 @@ internal sealed partial class ReplacePresentationViewModel
                 }
                 RefreshReplaceMemoryMapState(refreshAuthoring: false);
                 RefreshCommandState();
+                return new(prepared.Succeeded, prepared.Issues is [var issue, ..] ? issue.Code : null);
             },
             CancellationToken.None);
     }

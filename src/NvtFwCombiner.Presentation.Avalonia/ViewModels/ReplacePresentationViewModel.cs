@@ -42,7 +42,7 @@ internal sealed partial class ReplacePresentationViewModel : ObservableObject
     internal void ApplyLanguageChanged()
     {
         ApplyFirmwareSlotText();
-        InspectionLifecycles.ApplyText(Text);
+        InspectionLifecycles.ForEach(lifecycle => lifecycle.ApplyText(Text));
         OnPropertyChanged(nameof(Text));
         NotifyContextChanged();
         RefreshSelectionState();

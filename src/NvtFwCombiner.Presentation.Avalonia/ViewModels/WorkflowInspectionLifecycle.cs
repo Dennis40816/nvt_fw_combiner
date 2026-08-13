@@ -2,7 +2,9 @@ namespace NvtFwCombiner.Presentation.Avalonia.ViewModels;
 
 internal enum WorkflowInspectionAttemptState { Idle, Running, Succeeded, Failed, Cancelled }
 
-internal delegate Task WorkflowInspectionOperation(
+internal readonly record struct WorkflowInspectionOperationResult(bool Succeeded, string? FailureType = null);
+
+internal delegate Task<WorkflowInspectionOperationResult> WorkflowInspectionOperation(
     IProgress<AuthoringInspectionProgress> progress,
     Func<bool> isCurrent,
     CancellationToken cancellationToken);
@@ -35,19 +37,9 @@ internal sealed class WorkflowInspectionSet(
         _ => _lifecycles[0],
     };
 
-    internal void ApplyText(ShellTextResources text)
+    internal void ForEach(Action<WorkflowInspectionLifecycle> action)
     {
-        Array.ForEach(_lifecycles, lifecycle => lifecycle.ApplyText(text));
-    }
-
-    internal void Invalidate()
-    {
-        Array.ForEach(_lifecycles, static lifecycle => lifecycle.Invalidate());
-    }
-
-    internal void SetReducedMotion(bool enabled)
-    {
-        Array.ForEach(_lifecycles, lifecycle => lifecycle.Loading.SetReducedMotion(enabled));
+        Array.ForEach(_lifecycles, action);
     }
 }
 
@@ -64,7 +56,6 @@ internal sealed class WorkflowInspectionLifecycle
     private WorkflowInspectionRequest? _request;
     private string? _failureType;
     private long _generation;
-    private AuthoringInspectionProgress? _progress;
 
     internal WorkflowInspectionLifecycle(Action? statusChanged = null)
     {
@@ -75,28 +66,24 @@ internal sealed class WorkflowInspectionLifecycle
     }
 
     public ForegroundLoadingState Loading { get; }
-    internal long Generation => Volatile.Read(ref _generation);
     internal WorkflowInspectionAttemptState State { get; private set; }
-    internal int? CompletedWork => _progress?.CompletedWork;
-    internal int? TotalWork => _progress?.TotalWork;
+    internal AuthoringInspectionProgress? Progress { get; private set; }
     internal bool IsRunning => State == WorkflowInspectionAttemptState.Running;
     internal Task ActiveTask => Volatile.Read(ref _activeTask);
 
-    internal Task StartAsync(
+    internal Task<WorkflowInspectionAttemptState> StartAsync(
         ShellTextResources text,
         WorkflowInspectionOperation execute,
         CancellationToken cancellationToken)
     {
-        ArgumentNullException.ThrowIfNull(text);
-        ArgumentNullException.ThrowIfNull(execute);
         return Schedule(new(text, execute), cancellationToken);
     }
 
-    internal Task<bool> TryRetryAsync(CancellationToken cancellationToken)
+    internal Task TryRetryAsync(CancellationToken cancellationToken)
     {
         return State == WorkflowInspectionAttemptState.Failed && _request is { } request
             ? Schedule(request, cancellationToken)
-            : Task.FromResult(false);
+            : Task.CompletedTask;
     }
 
     internal Task CancelAsync(CancellationToken cancellationToken)
@@ -118,7 +105,6 @@ internal sealed class WorkflowInspectionLifecycle
 
     internal void ApplyText(ShellTextResources text)
     {
-        ArgumentNullException.ThrowIfNull(text);
         if (_request is null || State is not (
                 WorkflowInspectionAttemptState.Running or WorkflowInspectionAttemptState.Failed))
         {
@@ -129,70 +115,82 @@ internal sealed class WorkflowInspectionLifecycle
         Present();
     }
 
-    private Task<bool> Schedule(
+    private Task<WorkflowInspectionAttemptState> Schedule(
         WorkflowInspectionRequest request,
         CancellationToken cancellationToken)
     {
         lock (_admissionLock)
         {
             long generation = Interlocked.Increment(ref _generation);
+            Task predecessor = ActiveTask;
             CancelActive();
-            Task<bool> active = RunAfterAsync(
-                _activeTask,
-                generation,
-                request,
-                cancellationToken);
+            var cancellation = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+            Volatile.Write(ref _cancellation, cancellation);
+            Task<WorkflowInspectionAttemptState> active =
+                RunAfterAsync(predecessor, generation, request, cancellation);
             Volatile.Write(ref _activeTask, active);
             return active;
         }
     }
 
-    private async Task<bool> RunAfterAsync(
+    private async Task<WorkflowInspectionAttemptState> RunAfterAsync(
         Task predecessor,
         long generation,
         WorkflowInspectionRequest request,
-        CancellationToken cancellationToken)
+        CancellationTokenSource cancellation)
     {
-        await predecessor;
-        if (!IsCurrent(generation))
-        {
-            return false;
-        }
-
-        using var cancellation = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+        using CancellationTokenSource ownedCancellation = cancellation;
         CancellationToken requestCancellation = cancellation.Token;
-        _cancellation = cancellation;
-        _request = request;
-        _failureType = null;
-        _progress = null;
-        SetState(WorkflowInspectionAttemptState.Running);
-        Present();
+        WorkflowInspectionAttemptState terminal = WorkflowInspectionAttemptState.Cancelled;
         try
         {
+            await predecessor;
+            if (!IsCurrent(generation))
+            {
+                return terminal;
+            }
+
+            _request = request;
+            _failureType = null;
+            Progress = null;
+            SetState(WorkflowInspectionAttemptState.Running);
             requestCancellation.ThrowIfCancellationRequested();
+            Present();
             SynchronizationContext? presentationContext = SynchronizationContext.Current;
             var progress = new WorkflowInspectionProgressObserver(value =>
                 Report(generation, presentationContext, value, requestCancellation));
-            await request.Execute(progress, () => IsCurrent(generation), requestCancellation);
-            Finish(generation, WorkflowInspectionAttemptState.Succeeded);
+            WorkflowInspectionOperationResult result = await request.Execute(
+                progress, () => IsCurrent(generation), requestCancellation);
+            requestCancellation.ThrowIfCancellationRequested();
+            _failureType = result.FailureType ?? nameof(WorkflowInspectionOperationResult);
+            terminal = result.Succeeded
+                ? WorkflowInspectionAttemptState.Succeeded
+                : WorkflowInspectionAttemptState.Failed;
         }
-        catch (OperationCanceledException) when (cancellation.IsCancellationRequested)
+        catch (OperationCanceledException)
         {
-            Finish(generation, WorkflowInspectionAttemptState.Cancelled);
+            terminal = WorkflowInspectionAttemptState.Cancelled;
         }
         catch (Exception exception)
         {
-            _failureType = exception.GetType().Name;
-            Finish(generation, WorkflowInspectionAttemptState.Failed);
+            if (!cancellation.IsCancellationRequested && IsCurrent(generation))
+            {
+                _failureType = exception.GetType().Name;
+                terminal = WorkflowInspectionAttemptState.Failed;
+            }
         }
         finally
         {
-            if (ReferenceEquals(_cancellation, cancellation))
+            lock (_admissionLock)
             {
-                _cancellation = null;
+                if (ReferenceEquals(_cancellation, cancellation))
+                {
+                    _cancellation = null;
+                }
             }
         }
-        return true;
+        Finish(generation, terminal);
+        return terminal;
     }
 
     internal void Report(
@@ -201,18 +199,17 @@ internal sealed class WorkflowInspectionLifecycle
         AuthoringInspectionProgress progress,
         CancellationToken requestCancellation)
     {
-        if (!IsCurrent(generation) || requestCancellation.IsCancellationRequested)
-        {
-            throw new OperationCanceledException(requestCancellation);
-        }
-
         void Deliver()
         {
             if (!IsCurrent(generation) || requestCancellation.IsCancellationRequested)
             {
                 throw new OperationCanceledException(requestCancellation);
             }
-            AuthoringInspectionProgress? previous = _progress;
+            if (!IsRunning)
+            {
+                throw new InvalidOperationException("Inspection progress cannot update a terminal attempt.");
+            }
+            AuthoringInspectionProgress? previous = Progress;
             if (progress.TotalWork <= 0 || progress.CompletedWork < 0 ||
                 progress.CompletedWork > progress.TotalWork ||
                 (previous is { } prior && (progress.TotalWork != prior.TotalWork ||
@@ -228,7 +225,7 @@ internal sealed class WorkflowInspectionLifecycle
                 (previous is { } reported
                     ? (long)reported.CompletedWork * 10 / reported.TotalWork
                     : 0);
-            _progress = progress;
+            Progress = progress;
             ShellTextResources text = _request!.Text;
             Loading.ReportProgress(
                 (double)progress.CompletedWork / progress.TotalWork,
@@ -280,7 +277,7 @@ internal sealed class WorkflowInspectionLifecycle
             return;
         }
 
-        string detail = _progress is { } progress
+        string detail = Progress is { } progress
             ? text.GetFirmwareInspectionProgressDetail(progress.CompletedWork, progress.TotalWork)
             : text.FirmwareInspectionLoadingStatus;
         Loading.Begin(
@@ -298,17 +295,11 @@ internal sealed class WorkflowInspectionLifecycle
 
     private void CancelActive()
     {
-        try
+        lock (_admissionLock)
         {
-            Volatile.Read(ref _cancellation)?.Cancel();
-        }
-        catch (ObjectDisposedException)
-        {
-            // The request completed between observing and cancelling its source.
+            _cancellation?.Cancel();
         }
     }
 
-    private sealed record WorkflowInspectionRequest(
-        ShellTextResources Text,
-        WorkflowInspectionOperation Execute);
+    private sealed record WorkflowInspectionRequest(ShellTextResources Text, WorkflowInspectionOperation Execute);
 }

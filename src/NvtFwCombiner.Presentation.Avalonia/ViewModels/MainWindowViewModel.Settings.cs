@@ -55,8 +55,8 @@ internal sealed partial class MainWindowViewModel
     partial void OnIsReducedMotionEnabledChanged(bool value)
     {
         RunSession.CompositionProgress.SetReducedMotion(value);
-        Merge.InspectionLifecycles.SetReducedMotion(value);
-        Replace.InspectionLifecycles.SetReducedMotion(value);
+        Merge.InspectionLifecycles.ForEach(lifecycle => lifecycle.Loading.SetReducedMotion(value));
+        Replace.InspectionLifecycles.ForEach(lifecycle => lifecycle.Loading.SetReducedMotion(value));
         RunSession.NotifyReducedMotionChanged();
     }
 }

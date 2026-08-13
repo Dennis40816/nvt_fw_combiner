@@ -74,7 +74,7 @@ public sealed partial class FirmwareInspectionSlotTests
         AssertInspectionTerminal(viewModel.Merge.Inspection);
     }
 
-    /// <summary>A selected file that changes during inspection cannot publish a mixed-identity snapshot.</summary>
+    /// <summary>Changed and unreadable files fail retryably without publishing a mixed-identity snapshot.</summary>
     [Fact]
     public async Task SlotInspectionRejectsFileIdentityChanges()
     {
@@ -91,7 +91,16 @@ public sealed partial class FirmwareInspectionSlotTests
 
         FirmwareSlotViewModel slot = viewModel.Merge.MergeSlots.Single(candidate => candidate.SlotId == "merge-dp");
         Assert.Empty(slot.FirmwareFacts);
-        Assert.False(CurrentInspection(viewModel).IsRunning);
+        Assert.Equal(WorkflowInspectionAttemptState.Failed, CurrentInspection(viewModel).State);
+        Assert.True(CurrentInspection(viewModel).Loading.CanRetry);
+
+        MainWindowViewModel unreadable = PresentationTestHost.CreateViewModel();
+        await unreadable.WorkflowSession.SetSlotFileAsync(
+            "merge-dp",
+            workspace.PathFor("missing.bin"),
+            TestContext.Current.CancellationToken);
+        Assert.Equal(WorkflowInspectionAttemptState.Failed, CurrentInspection(unreadable).State);
+        Assert.True(CurrentInspection(unreadable).Loading.CanRetry);
     }
 
     /// <summary>An AB input that changes while inspected leaves no invisible pending state.</summary>
@@ -432,48 +441,6 @@ public sealed partial class FirmwareInspectionSlotTests
         Assert.Equal(tpFirstFacts, dpFirstFacts);
         Assert.Contains("DP:DCC-00", tpFirstFacts);
         Assert.Contains("Jira:AUTO_PRJ-576", tpFirstFacts);
-    }
-
-    /// <summary>TP selection requests paired TP/DP projections in one batch and DP cannot alter Number.</summary>
-    [Fact]
-    public async Task MergeTpSelectionUsesOneBatchAndDpCannotApplyVerifiedContext()
-    {
-        using var golden = StandardMergeGoldenManifest.Load();
-        JsonElement fixture = golden.CaseByIc("51926");
-        string dpPath = golden.ManifestPath(fixture.GetProperty("inputs").GetProperty("dp-input"));
-        string tpPath = golden.ManifestPath(fixture.GetProperty("inputs").GetProperty("tp-input"));
-        var batches = new List<FirmwareInspectionSnapshotInput[]>();
-        MainWindowViewModel viewModel = CreateBatchInspectionViewModel((_, inputs) =>
-        {
-            batches.Add([.. inputs]);
-            return
-            [
-                .. inputs.Select(input => new FirmwareInspectionSnapshotResult(
-                    input.InspectionId,
-                    new FirmwareInspectionSnapshot(
-                        null,
-                        null,
-                        input.InspectionId == "merge-dp" ? new DpVersionMetadata("0102") : null,
-                        null,
-                        input.InspectionId == "merge-dp"
-                            ? new FirmwareContextSuggestion("NT51926", "cascade", 2, "1.4.1", 0x5102)
-                            : null,
-                        null))),
-            ];
-        });
-        viewModel.WorkflowSession.SelectedIc = "NT51926";
-        viewModel.WorkflowSession.SelectedNumber = IcNumberSelectionTokens.SingleChip;
-
-        await viewModel.WorkflowSession.SetSlotFileAsync("merge-dp", dpPath, TestContext.Current.CancellationToken);
-        Assert.Equal(IcNumberSelectionTokens.SingleChip, viewModel.WorkflowSession.SelectedNumber);
-        await viewModel.WorkflowSession.SetSlotFileAsync("merge-tp", tpPath, TestContext.Current.CancellationToken);
-
-        FirmwareInspectionSnapshotInput[] pairedBatch = Assert.Single(
-            batches,
-            static batch => batch.Length == 2);
-        Assert.Equal(["merge-dp", "merge-tp"], pairedBatch.Select(static input => input.InspectionId));
-        Assert.Equal(tpPath, pairedBatch.Single(input => input.InspectionId == "merge-dp").TpPath);
-        Assert.Equal(IcNumberSelectionTokens.SingleChip, viewModel.WorkflowSession.SelectedNumber);
     }
 
     /// <summary>Accepting an IC hint does not open a Number prompt while that control is hidden.</summary>

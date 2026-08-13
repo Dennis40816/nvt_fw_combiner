@@ -176,21 +176,4 @@ internal readonly record struct FirmwareInspectionItemRequest(
     string? DpReplaceAddressSpaceId,
     string? StandardMergeAddressSpaceId,
     string? CtrlRamReplaceAddressSpaceId = null,
-    AuthoringSlotInspectionLease? InspectionLease = null)
-{
-    internal FirmwareInspectionSnapshotInput ToSnapshotInput(long authoringRevision)
-    {
-        return new(
-            SlotId,
-            Path,
-            TpPath,
-            CtrlRamRequest,
-            AbMergeAddressSpaceId,
-            AbMergeTopologyToken,
-            DpReplaceAddressSpaceId,
-            authoringRevision,
-            StandardMergeAddressSpaceId,
-            CtrlRamReplaceAddressSpaceId,
-            InspectionLease?.ExactCapability);
-    }
-}
+    AuthoringSlotInspectionLease? InspectionLease = null);

@@ -167,9 +167,12 @@ public sealed partial class RepositoryBoundaryTests
         Assert.Contains("await predecessor;", inspectionLifecycle, StringComparison.Ordinal);
         Assert.Contains("CancelActive();", inspectionLifecycle, StringComparison.Ordinal);
         Assert.Contains(
-            "request.Execute(progress, () => IsCurrent(generation), requestCancellation)",
+            "WorkflowInspectionOperationResult result = await request.Execute(",
             inspectionLifecycle,
             StringComparison.Ordinal);
+        Assert.Contains("() => IsCurrent(generation),", inspectionLifecycle, StringComparison.Ordinal);
+        Assert.Contains("requestCancellation.ThrowIfCancellationRequested();", inspectionLifecycle, StringComparison.Ordinal);
+        Assert.Contains("Finish(generation, terminal);", inspectionLifecycle, StringComparison.Ordinal);
         Assert.Contains("ForegroundLoadingStatusTemplate", sharedTemplates, StringComparison.Ordinal);
         Assert.Contains("ProgressPercentLabel", sharedTemplates, StringComparison.Ordinal);
         Assert.Contains("ShouldAnimate", sharedTemplates, StringComparison.Ordinal);

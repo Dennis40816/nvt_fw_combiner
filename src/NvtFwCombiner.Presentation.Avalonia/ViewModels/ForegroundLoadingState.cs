@@ -9,6 +9,14 @@ namespace NvtFwCombiner.Presentation.Avalonia.ViewModels;
 /// </summary>
 internal sealed class ForegroundLoadingState : ObservableObject
 {
+    private static readonly string[] PublishedPropertyNames =
+    [
+        nameof(Title), nameof(Detail), nameof(RetryLabel), nameof(CancelLabel),
+        nameof(Progress), nameof(IsVisible), nameof(IsRunning), nameof(IsReducedMotionEnabled),
+        nameof(HasDeterminateProgress), nameof(ProgressPercentLabel), nameof(ShouldAnimate),
+        nameof(CanRetry), nameof(CanCancel),
+    ];
+    private ForegroundLoadingPhase _phase;
     internal ForegroundLoadingState(Func<Task>? retry = null, Func<Task>? cancel = null)
     {
         RetryCommand = retry is null ? null : new AsyncRelayCommand(retry);
@@ -22,26 +30,17 @@ internal sealed class ForegroundLoadingState : ObservableObject
     public string RetryLabel { get; private set; } = string.Empty;
     public string CancelLabel { get; private set; } = string.Empty;
     public double? Progress { get; private set; }
-    public bool IsVisible { get; private set; }
-    public bool IsRunning { get; private set; }
-    public bool HasFailed { get; private set; }
+    public bool IsVisible => _phase != ForegroundLoadingPhase.Hidden;
+    public bool IsRunning => _phase == ForegroundLoadingPhase.Running;
     public bool IsReducedMotionEnabled { get; private set; }
     public bool HasDeterminateProgress => Progress.HasValue;
     public string ProgressPercentLabel => Progress is { } progress
         ? string.Create(CultureInfo.CurrentCulture, $"{progress * 100:0}%")
         : string.Empty;
-    public bool IsIndeterminate => IsRunning;
-    public bool ShouldAnimate => IsIndeterminate && !IsReducedMotionEnabled;
-    public bool CanRetry => HasFailed && !string.IsNullOrWhiteSpace(RetryLabel);
+    public bool ShouldAnimate => IsRunning && !IsReducedMotionEnabled;
+    public bool CanRetry => _phase == ForegroundLoadingPhase.Failed && !string.IsNullOrWhiteSpace(RetryLabel);
     public bool CanCancel => IsVisible && !string.IsNullOrWhiteSpace(CancelLabel);
-    public string AccessibleStatus
-    {
-        get
-        {
-            string heading = HasDeterminateProgress ? $"{Title} {ProgressPercentLabel}" : Title;
-            return string.IsNullOrWhiteSpace(Detail) ? heading : $"{heading} — {Detail}";
-        }
-    }
+    public string AccessibleStatus { get; private set; } = string.Empty;
 
     public void Begin(
         string title,
@@ -50,15 +49,13 @@ internal sealed class ForegroundLoadingState : ObservableObject
         string cancelLabel = "")
     {
         Validate(title, detail, progress);
-        bool announce = Title != title || Detail != detail || Progress != progress;
+        bool announce = !IsRunning || Title != title || Detail != detail || Progress != progress;
         Title = title;
         Detail = detail;
         Progress = progress;
         RetryLabel = string.Empty;
         CancelLabel = cancelLabel ?? string.Empty;
-        HasFailed = false;
-        IsRunning = true;
-        IsVisible = true;
+        _phase = ForegroundLoadingPhase.Running;
         Publish(announce);
     }
 
@@ -83,26 +80,23 @@ internal sealed class ForegroundLoadingState : ObservableObject
         string cancelLabel = "")
     {
         Validate(title, detail, progress: null);
-        bool announce = Title != title || Detail != detail || Progress is not null;
+        bool announce = _phase != ForegroundLoadingPhase.Failed ||
+            Title != title || Detail != detail || Progress is not null;
         Title = title;
         Detail = detail;
         Progress = null;
         RetryLabel = retryLabel ?? string.Empty;
         CancelLabel = cancelLabel ?? string.Empty;
-        IsRunning = false;
-        HasFailed = true;
-        IsVisible = true;
+        _phase = ForegroundLoadingPhase.Failed;
         Publish(announce);
     }
 
     public void Complete()
     {
-        IsRunning = false;
-        HasFailed = false;
+        _phase = ForegroundLoadingPhase.Hidden;
         RetryLabel = string.Empty;
         CancelLabel = string.Empty;
         Progress = null;
-        IsVisible = false;
         Publish(announce: false);
     }
 
@@ -132,10 +126,20 @@ internal sealed class ForegroundLoadingState : ObservableObject
 
     private void Publish(bool announce)
     {
-        PresentationObserver.Invoke(() => OnPropertyChanged(string.Empty));
+        if (announce)
+        {
+            string heading = HasDeterminateProgress ? $"{Title} {ProgressPercentLabel}" : Title;
+            AccessibleStatus = string.IsNullOrWhiteSpace(Detail) ? heading : $"{heading} — {Detail}";
+        }
+        foreach (string propertyName in PublishedPropertyNames)
+        {
+            PresentationObserver.Invoke(() => OnPropertyChanged(propertyName));
+        }
         if (announce)
         {
             PresentationObserver.Invoke(() => OnPropertyChanged(nameof(AccessibleStatus)));
         }
     }
+
+    private enum ForegroundLoadingPhase { Hidden, Running, Failed }
 }

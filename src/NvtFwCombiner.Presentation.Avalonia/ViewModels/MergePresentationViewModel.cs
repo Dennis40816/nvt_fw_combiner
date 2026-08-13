@@ -36,7 +36,7 @@ internal sealed partial class MergePresentationViewModel : ObservableObject
     internal void ApplyLanguageChanged()
     {
         ApplyFirmwareSlotText();
-        InspectionLifecycles.ApplyText(Text);
+        InspectionLifecycles.ForEach(lifecycle => lifecycle.ApplyText(Text));
         OnPropertyChanged(nameof(Text));
         NotifyContextChanged();
     }

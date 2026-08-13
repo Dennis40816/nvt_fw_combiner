@@ -224,6 +224,8 @@ public sealed partial class GeneralWorkflowTests
         await viewModel.Replace.Inspection.ActiveTask;
 
         Assert.Equal(!expectedAdmitted, mapping.HasAuthoringIssue);
+        Assert.Equal(WorkflowInspectionAttemptState.Failed, viewModel.Replace.Inspection.State);
+        Assert.True(viewModel.Replace.Inspection.Loading.CanRetry);
         Assert.Equal("Memory layout pending", viewModel.Replace.ReplaceMemoryRangeLabel);
         Assert.Equal(sourceKind == GeneralMappingSourceKind.HexFill ? "FILL" : "HEX", mapping.SourceKindIcon);
     }

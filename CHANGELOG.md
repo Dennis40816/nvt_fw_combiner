@@ -241,8 +241,8 @@ dependency-gated.
 - Verification: Bootstrap 934, UI 490, and Architecture 214 pass locally and
   contribute to the exact eight-project 3,414 inventory with 2 declared skips and
   Golden 17/17 retained.
-- Code size: 943 physical nonblank production lines are removed and 938 added,
-  net -5. Full production descends from 98,075 to 98,070; runtime descends from
+- Code size: 950 physical nonblank production lines are removed and 946 added,
+  net -4. Full production descends from 98,075 to 98,071; runtime descends from
   68,016 to 67,997 = 20,619 / 29,571 / 3,074 / 14,733.
 - Limitations: startup preload, Build/Preview run progress, CtrlRAM run-bound metadata,
   firmware semantics, and Report/System Information layout remain separate owners.

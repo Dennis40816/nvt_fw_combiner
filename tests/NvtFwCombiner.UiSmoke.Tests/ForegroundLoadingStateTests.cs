@@ -21,7 +21,6 @@ public sealed class ForegroundLoadingStateTests
 
         Assert.True(state.IsVisible);
         Assert.True(state.IsRunning);
-        Assert.True(state.IsIndeterminate);
         Assert.True(state.ShouldAnimate);
         Assert.True(state.CanCancel);
         Assert.Equal("Cancel startup", state.CancelLabel);
@@ -32,7 +31,6 @@ public sealed class ForegroundLoadingStateTests
         state.SetReducedMotion(true);
 
         Assert.True(state.IsVisible);
-        Assert.True(state.IsIndeterminate);
         Assert.False(state.ShouldAnimate);
     }
 
@@ -45,7 +43,6 @@ public sealed class ForegroundLoadingStateTests
 
         state.ReportProgress(0.42, "Writing output.");
 
-        Assert.True(state.IsIndeterminate);
         Assert.True(state.ShouldAnimate);
         Assert.True(state.HasDeterminateProgress);
         Assert.Equal(0.42, state.Progress);
@@ -126,7 +123,6 @@ public sealed class ForegroundLoadingStateTests
 
         Assert.True(state.IsVisible);
         Assert.False(state.IsRunning);
-        Assert.True(state.HasFailed);
         Assert.True(state.CanRetry);
         Assert.Equal("Retry", state.RetryLabel);
         Assert.True(state.CanCancel);
@@ -136,7 +132,6 @@ public sealed class ForegroundLoadingStateTests
 
         Assert.False(state.IsVisible);
         Assert.False(state.IsRunning);
-        Assert.False(state.HasFailed);
         Assert.False(state.CanRetry);
         Assert.False(state.CanCancel);
     }
@@ -151,25 +146,31 @@ public sealed class ForegroundLoadingStateTests
         state.PropertyChanged += (_, args) =>
         {
             properties.Add(args.PropertyName);
-            if (args.PropertyName == nameof(ForegroundLoadingState.AccessibleStatus))
+            if (string.IsNullOrEmpty(args.PropertyName) ||
+                args.PropertyName == nameof(ForegroundLoadingState.AccessibleStatus))
             {
                 statuses.Add(state.AccessibleStatus);
             }
         };
 
         state.Begin("Preparing capabilities", "Loading the canonical catalog.", 0.1);
+        state.ReportProgress(0.11, "Preparing the canonical capability routes.", announce: false);
         state.ReportProgress(0.2, "Preparing the canonical capability routes.");
         state.SetReducedMotion(true);
+        state.Complete();
+        state.Begin("Preparing capabilities", "Preparing the canonical capability routes.", 0.2);
         state.Fail("Capabilities unavailable", "Retry to restore Merge and Replace.", "Retry");
 
         Assert.Equal(
             [
                 "Preparing capabilities 10% — Loading the canonical catalog.",
                 "Preparing capabilities 20% — Preparing the canonical capability routes.",
+                "Preparing capabilities 20% — Preparing the canonical capability routes.",
                 "Capabilities unavailable — Retry to restore Merge and Replace.",
             ],
             statuses);
-        Assert.Contains(string.Empty, properties);
+        Assert.DoesNotContain(properties, string.IsNullOrEmpty);
+        Assert.Contains(nameof(ForegroundLoadingState.IsReducedMotionEnabled), properties);
 
         int accessibleBeforeCompletion = statuses.Count;
         state.Complete();

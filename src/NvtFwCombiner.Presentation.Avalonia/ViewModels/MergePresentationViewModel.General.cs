@@ -63,7 +63,8 @@ internal sealed partial class MergePresentationViewModel
         }
     }
 
-    private Task PrepareGeneralMergeSessionAsync(GeneralMergeDraftState draft)
+    private Task<WorkflowInspectionAttemptState> PrepareGeneralMergeSessionAsync(
+        GeneralMergeDraftState draft)
     {
         string icId = SelectedIc;
         return InspectionLifecycles[GeneralMergeMode].StartAsync(
@@ -72,7 +73,7 @@ internal sealed partial class MergePresentationViewModel
             {
                 if (!ReferenceEquals(_generalMergeDraft, draft))
                 {
-                    return;
+                    throw new OperationCanceledException(cancellationToken);
                 }
                 GeneralAuthoringSessionPreparation prepared =
                     await _compositionServices.GeneralAuthoring.PrepareMergeSessionAsync(
@@ -83,7 +84,7 @@ internal sealed partial class MergePresentationViewModel
                         progress);
                 if (!isCurrent() || !ReferenceEquals(_generalMergeDraft, draft))
                 {
-                    return;
+                    throw new OperationCanceledException(cancellationToken);
                 }
                 _isApplyingGeneralMergePreparation = true;
                 try
@@ -105,6 +106,7 @@ internal sealed partial class MergePresentationViewModel
                 }
                 RefreshMergeMemoryMapState(refreshAuthoring: false);
                 RefreshCommandState();
+                return new(prepared.Succeeded, prepared.Issues is [var issue, ..] ? issue.Code : null);
             },
             CancellationToken.None);
     }

@@ -501,8 +501,8 @@ all six Merge/Replace workflows. Application and Infrastructure continue to own
 typed inspection facts and report exact work through `IProgress<T>`; Presentation
 owns only generation, cancellation/drain, stale rejection, and loading projection.
 
-The exact physical nonblank ledger is 943 removed and 938 added, net -5. Full
-production changes from 98,075 to 98,070 and runtime changes from 68,016 to
+The exact physical nonblank ledger is 950 removed and 946 added, net -4. Full
+production changes from 98,075 to 98,071 and runtime changes from 68,016 to
 67,997. Runtime is exactly 20,619 Domain plus Profiles + 29,571 Application +
 3,074 Bootstrap plus CLI plus Desktop + 14,733 Infrastructure plus Contracts
 plus CRC worker. These values become descending ratchets immediately. No

@@ -188,13 +188,29 @@ internal sealed partial class WorkflowSessionPresentationViewModel
                     cancellationToken.ThrowIfCancellationRequested();
                     FirmwareInspectionSnapshotInput[] inputs =
                     [
-                        .. request.Items.Select(item =>
-                            item.ToSnapshotInput(request.AuthoringRevision.Value)),
+                        .. request.Items.Select(item => new FirmwareInspectionSnapshotInput(
+                            item.SlotId,
+                            item.Path,
+                            item.TpPath,
+                            item.CtrlRamRequest,
+                            item.AbMergeAddressSpaceId,
+                            item.AbMergeTopologyToken,
+                            item.DpReplaceAddressSpaceId,
+                            request.AuthoringRevision.Value,
+                            item.StandardMergeAddressSpaceId,
+                            item.CtrlRamReplaceAddressSpaceId,
+                            item.InspectionLease?.ExactCapability)),
                     ];
                     FirmwareInspectionBatchResult result = await _compositionServices.FirmwareInspection
                         .InspectFirmwareBatchAsync(
                             request.IcId, inputs, cancellationToken, progress);
                     cancellationToken.ThrowIfCancellationRequested();
+                    if (result.InspectionsById.Count != request.Items.Count ||
+                        request.Items.Any(item => !result.InspectionsById.ContainsKey(item.SlotId)))
+                    {
+                        throw new InvalidDataException("Firmware inspection returned an incomplete or unexpected result set.");
+                    }
+                    bool sourceFailed = result.FileStamps.Values.Any(static stamp => stamp is null);
                     if (isCurrent() && FirmwareInspectionProjection.IsCurrent(
                             request, result,
                             SelectedIc, SelectedNumber, SelectedMergeMode, SelectedReplaceMode,
@@ -207,6 +223,7 @@ internal sealed partial class WorkflowSessionPresentationViewModel
                             await _replace.RefreshCtrlRamActionReadinessAsync(
                                 cancellationToken);
                         }
+                        return new(!sourceFailed, sourceFailed ? "input.artifact.read-failed" : null);
                     }
                     else if (isCurrent() && !result.IsContentStable &&
                         FirmwareInspectionProjection.ApplyStaleInputInspection(
@@ -216,7 +233,9 @@ internal sealed partial class WorkflowSessionPresentationViewModel
                             Text))
                     {
                         _stateBindings.RefreshCommandState();
+                        return new(false, "input.artifact.changed-during-inspection");
                     }
+                    throw new OperationCanceledException(cancellationToken);
                 }
                 finally
                 {
@@ -516,8 +535,8 @@ internal sealed partial class WorkflowSessionPresentationViewModel
         bool clearBaseProjection = false,
         bool clearSlotProjections = false)
     {
-        _merge.InspectionLifecycles.Invalidate();
-        _replace.InspectionLifecycles.Invalidate();
+        _merge.InspectionLifecycles.ForEach(static lifecycle => lifecycle.Invalidate());
+        _replace.InspectionLifecycles.ForEach(static lifecycle => lifecycle.Invalidate());
         if (clearBaseProjection)
         {
             ReplaceBaseSlot.ClearCurrentInspectionProjection();

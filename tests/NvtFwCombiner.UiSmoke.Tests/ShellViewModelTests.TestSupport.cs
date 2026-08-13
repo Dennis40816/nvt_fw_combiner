@@ -124,8 +124,10 @@ public abstract partial class ShellViewModelTestBase
     private protected static void AssertInspectionTerminal(WorkflowInspectionLifecycle lifecycle)
     {
         Assert.Equal(WorkflowInspectionAttemptState.Succeeded, lifecycle.State);
-        Assert.True(lifecycle.Generation > 0);
-        Assert.Equal(lifecycle.TotalWork, lifecycle.CompletedWork);
+        AuthoringInspectionProgress progress = Assert.IsType<AuthoringInspectionProgress>(
+            lifecycle.Progress,
+            exactMatch: false);
+        Assert.Equal(progress.TotalWork, progress.CompletedWork);
     }
 
 }
