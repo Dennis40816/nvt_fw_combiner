@@ -224,7 +224,7 @@ internal sealed partial class WorkflowSessionPresentationViewModel
 
         _merge.InvalidateCanonicalCatalogSessions();
         _replace.InvalidateCanonicalCatalogSessions();
-        InvalidateFirmwareInspection(clearBaseCache: true, clearFileProjections: true);
+        InvalidateFirmwareInspection(clearBaseProjection: true, clearSlotProjections: true);
         _replace.InvalidateCtrlRamFirmwareVersionContextState();
         RefreshContextState(preserveReplaceSlotFiles: true);
 
@@ -287,7 +287,7 @@ internal sealed partial class WorkflowSessionPresentationViewModel
     {
         InvalidateFirmwareNumberMismatch();
         AcceptedFirmwareMismatchSelection? acceptedMismatch = ConsumeAcceptedFirmwareMismatchSelection();
-        InvalidateFirmwareInspection(clearBaseCache: true, clearFileProjections: true);
+        InvalidateFirmwareInspection(clearBaseProjection: true, clearSlotProjections: true);
         _replace.InvalidateCtrlRamFirmwareVersionContextState();
         if (_merge.IsAbCodeMergeModeSelected &&
             !_compositionServices.AbMergeAuthoring.IsAvailable(value))
@@ -339,8 +339,8 @@ internal sealed partial class WorkflowSessionPresentationViewModel
             return;
         }
 
-        bool clearFileProjections = _merge.IsAbCodeMergeModeSelected && _merge.HasAbMergeTopologyChoices;
-        InvalidateFirmwareInspection(clearFileProjections: clearFileProjections);
+        bool clearSlotProjections = _merge.IsAbCodeMergeModeSelected && _merge.HasAbMergeTopologyChoices;
+        InvalidateFirmwareInspection(clearSlotProjections: clearSlotProjections);
         _replace.InvalidateCtrlRamFirmwareVersionContextState();
         OnPropertyChanged(nameof(SelectedNumberChoice));
         RefreshContextState(resetRunResult: true, preserveReplaceSlotFiles: true);

@@ -124,7 +124,7 @@ public sealed partial class RepositoryBoundaryTests
         Assert.Contains("WorkflowContextSetupViewModel", context, StringComparison.Ordinal);
         Assert.Contains("ReconcileFirmwareIcMismatch", mismatch, StringComparison.Ordinal);
         Assert.Contains("FirmwareInspectionSession", session, StringComparison.Ordinal);
-        Assert.Contains("InspectionSession.ReadBatch", inspection, StringComparison.Ordinal);
+        Assert.Contains(".ReadBatchAsync(request, cancellationToken)", inspection, StringComparison.Ordinal);
         Assert.Contains("SetSlotFileAsync", inspection, StringComparison.Ordinal);
         Assert.Contains("public string SelectedIc", deviceContext, StringComparison.Ordinal);
         Assert.Contains("if (SetProperty(ref _selectedIc, value))", deviceContext, StringComparison.Ordinal);

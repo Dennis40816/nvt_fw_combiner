@@ -38,6 +38,16 @@ public sealed class SelectedFileSizeLimitExceededException : Exception
     public long MaximumBytes { get; }
 }
 
+/// <summary>The selected file changed while its admitted bytes were being inspected.</summary>
+public sealed class SelectedFileChangedDuringInspectionException : IOException
+{
+    /// <summary>Creates one typed whole-file stability rejection.</summary>
+    public SelectedFileChangedDuringInspectionException()
+        : base("Selected file length changed during complete-content inspection.")
+    {
+    }
+}
+
 /// <summary>
 /// Immutable host inspection result. <see cref="FileStamp"/> identifies the
 /// retained accepted bytes; display name and timestamp are hints only.

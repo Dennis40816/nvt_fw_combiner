@@ -104,6 +104,8 @@ public sealed partial class RepositoryBoundaryTests
             "src/NvtFwCombiner.Infrastructure/ExternalTools/ExternalProcessorEnvironmentLoader.cs");
         string inspection = ReadText(
             "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/FirmwareInspectionSession.cs");
+        string firmwareSlot = ReadText(
+            "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/FirmwareSlotViewModel.cs");
         string runProgress = ReadText(
             "src/NvtFwCombiner.Application/Composition/CompositionRunProgress.cs");
         string generalMerge = ReadText(
@@ -176,11 +178,15 @@ public sealed partial class RepositoryBoundaryTests
         Assert.Contains("67,404 to 68,018", baseline, StringComparison.Ordinal);
         Assert.Contains("67 added and 38 removed", baseline, StringComparison.Ordinal);
         Assert.Contains("98,160 to 98,189", baseline, StringComparison.Ordinal);
-        Assert.Contains("full_production_ratchet=98_189", codeSizePolicy, StringComparison.Ordinal);
-        Assert.Contains("runtime_production_ratchet=68_018", codeSizePolicy, StringComparison.Ordinal);
-        Assert.Contains("application_ratchet=29_585", codeSizePolicy, StringComparison.Ordinal);
+        Assert.Contains("403 gross removed and 289", baseline, StringComparison.Ordinal);
+        Assert.Contains("net **-114**", baseline, StringComparison.Ordinal);
+        Assert.Contains("98,189 to 98,075", baseline, StringComparison.Ordinal);
+        Assert.Contains("68,018 to 68,016", baseline, StringComparison.Ordinal);
+        Assert.Contains("full_production_ratchet=98_075", codeSizePolicy, StringComparison.Ordinal);
+        Assert.Contains("runtime_production_ratchet=68_016", codeSizePolicy, StringComparison.Ordinal);
+        Assert.Contains("application_ratchet=29_584", codeSizePolicy, StringComparison.Ordinal);
         Assert.Contains("bootstrap_cli_ratchet=3_074", codeSizePolicy, StringComparison.Ordinal);
-        Assert.Contains("infrastructure_contracts_worker_ratchet=14_740", codeSizePolicy, StringComparison.Ordinal);
+        Assert.Contains("infrastructure_contracts_worker_ratchet=14_739", codeSizePolicy, StringComparison.Ordinal);
         Assert.Contains("777.090 ms", baseline, StringComparison.Ordinal);
         Assert.Contains("806.930 ms", baseline, StringComparison.Ordinal);
         Assert.Contains("782.368 ms", baseline, StringComparison.Ordinal);
@@ -265,8 +271,10 @@ public sealed partial class RepositoryBoundaryTests
         Assert.Contains("MaximumVisitedEntries = 4_096", external, StringComparison.Ordinal);
         Assert.Contains("MaximumManifestCount = 256", external, StringComparison.Ordinal);
         Assert.DoesNotContain("Process.Start", external, StringComparison.Ordinal);
-        Assert.Contains("_fileProjections", inspection, StringComparison.Ordinal);
-        Assert.Contains("_baseCache", inspection, StringComparison.Ordinal);
+        Assert.DoesNotContain("_fileProjections", inspection, StringComparison.Ordinal);
+        Assert.DoesNotContain("_baseCache", inspection, StringComparison.Ordinal);
+        Assert.Contains("ReadBatchAsync", inspection, StringComparison.Ordinal);
+        Assert.Contains("CurrentInspectionProjection", firmwareSlot, StringComparison.Ordinal);
         Assert.Contains("Channel.CreateBounded", runProgress, StringComparison.Ordinal);
         Assert.Contains("_generalMergePreparationQueue", generalMerge, StringComparison.Ordinal);
         Assert.Contains("GeneralMergeReadinessRefreshTask", generalMerge, StringComparison.Ordinal);

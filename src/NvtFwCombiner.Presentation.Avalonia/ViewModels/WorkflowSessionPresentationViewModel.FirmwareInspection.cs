@@ -164,9 +164,8 @@ internal sealed partial class WorkflowSessionPresentationViewModel
         {
             await Task.Yield();
             cancellationToken.ThrowIfCancellationRequested();
-            FirmwareInspectionBatchResult result = await Task.Run(
-                () => InspectionSession.ReadBatch(request),
-                cancellationToken);
+            FirmwareInspectionBatchResult result = await InspectionSession
+                .ReadBatchAsync(request, cancellationToken);
             cancellationToken.ThrowIfCancellationRequested();
             if (FirmwareInspectionProjection.IsCurrent(
                     request, result, InspectionSession.CurrentGeneration,
@@ -182,7 +181,7 @@ internal sealed partial class WorkflowSessionPresentationViewModel
                 }
             }
             else if (generation == InspectionSession.CurrentGeneration &&
-                !result.IsFileIdentityStable &&
+                !result.IsContentStable &&
                 FirmwareInspectionProjection.ApplyStaleInputInspection(
                     MergeSlots.Concat(ReplaceSlots).Append(ReplaceBaseSlot),
                     request,
@@ -235,24 +234,12 @@ internal sealed partial class WorkflowSessionPresentationViewModel
         foreach (FirmwareInspectionItemRequest item in request.Items)
         {
             FirmwareInspectionSnapshot inspection = result.InspectionsById[item.SlotId];
-            FirmwareFileIdentity identity = result.FileIdentities[item.Path];
-            InspectionSession.StoreProjection(
-                item.SlotId,
-                item.Path,
-                identity,
-                inspection);
-            if (item.SlotId == CompositionSlotIds.ReplaceBase)
-            {
-                InspectionSession.StoreBase(
-                    request.IcId,
-                    item.Path,
-                    inspection);
-            }
-
             if (FindSlot(item.SlotId) is not { } slot)
             {
                 continue;
             }
+
+            slot.SetCurrentInspectionProjection(inspection);
 
             if (inspection.AbMergeFacts is not null)
             {
@@ -421,12 +408,7 @@ internal sealed partial class WorkflowSessionPresentationViewModel
         items = _replace.AttachReplaceInspectionLeases(items, slots.Values);
         foreach (FirmwareSlotViewModel slot in slots.Values)
         {
-            InspectionSession.RemoveProjection(slot.SlotId);
-        }
-
-        if (slots.ContainsKey(CompositionSlotIds.ReplaceBase))
-        {
-            InspectionSession.ClearBase();
+            slot.ClearCurrentInspectionProjection();
         }
 
         NotifySlotFileOutputNames();
@@ -483,10 +465,7 @@ internal sealed partial class WorkflowSessionPresentationViewModel
             return;
         }
 
-        if (InspectionSession.TryGetBase(
-                SelectedIc,
-                ReplaceBaseSlot.FilePath,
-                out FirmwareInspectionSnapshot inspection))
+        if (ReplaceBaseSlot.CurrentInspectionProjection is { } inspection)
         {
             ApplyCtrlRamDisplayFromInspection(inspection);
             RefreshCommandState();
@@ -505,11 +484,16 @@ internal sealed partial class WorkflowSessionPresentationViewModel
     }
 
     internal void InvalidateFirmwareInspection(
-        bool clearBaseCache = false,
-        bool clearFileProjections = false)
+        bool clearBaseProjection = false,
+        bool clearSlotProjections = false)
     {
-        InspectionSession.Invalidate(clearBaseCache, clearFileProjections);
-        if (clearFileProjections)
+        InspectionSession.Invalidate();
+        if (clearBaseProjection)
+        {
+            ReplaceBaseSlot.ClearCurrentInspectionProjection();
+        }
+
+        if (clearSlotProjections)
         {
             foreach (FirmwareSlotViewModel slot in MergeSlots
                          .Concat(ReplaceSlots)
@@ -517,6 +501,7 @@ internal sealed partial class WorkflowSessionPresentationViewModel
                          .Concat(AbMergeSlots)
                          .Distinct())
             {
+                slot.ClearCurrentInspectionProjection();
                 slot.ClearInputInspection();
             }
         }

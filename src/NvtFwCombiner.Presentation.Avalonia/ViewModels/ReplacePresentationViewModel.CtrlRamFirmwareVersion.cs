@@ -236,34 +236,25 @@ internal sealed partial class ReplacePresentationViewModel
         {
             await Task.Yield();
             cancellationToken.ThrowIfCancellationRequested();
-            CtrlRamFirmwareVersionMetadataWorkerResult workerResult = await Task.Run(
-                () => ReadCtrlRamFirmwareVersionMetadata(icId, basePath),
-                cancellationToken);
+            FirmwareConfigMetadataReadResult read = await _firmwareInspection
+                .ReadFirmwareConfigMetadataAsync(icId, basePath, cancellationToken);
             cancellationToken.ThrowIfCancellationRequested();
-            bool isCurrent = workerResult.IsFileIdentityStable &&
+            FileStamp? contentIdentity = read.FileStamp;
+            CtrlRamFirmwareVersionMetadataRequest request = contentIdentity is { } identity
+                ? new CtrlRamFirmwareVersionMetadataRequest(icId, basePath, identity)
+                : default;
+            bool isCurrent = contentIdentity.HasValue && read.IsContentStable &&
                 generation == Volatile.Read(ref _ctrlRamFirmwareVersionMetadataGeneration) &&
-                workerResult.Request.MatchesContext(SelectedIc, ReplaceBaseSlot.FilePath);
+                request.MatchesContext(SelectedIc, ReplaceBaseSlot.FilePath);
             return new CtrlRamFirmwareVersionMetadataReadResult(
                 isCurrent,
-                workerResult.Metadata,
-                workerResult.Request);
+                read.Metadata,
+                request);
         }
         finally
         {
             SetCtrlRamFirmwareVersionMetadataLoading(false);
         }
-    }
-
-    private CtrlRamFirmwareVersionMetadataWorkerResult ReadCtrlRamFirmwareVersionMetadata(
-        string icId,
-        string basePath)
-    {
-        FirmwareConfigMetadataReadResult read =
-            _firmwareInspection.ReadFirmwareConfigMetadata(icId, basePath);
-        return new CtrlRamFirmwareVersionMetadataWorkerResult(
-            read.IsFileIdentityStable,
-            read.Metadata,
-            new CtrlRamFirmwareVersionMetadataRequest(icId, basePath, read.FileIdentity));
     }
 
     private void InvalidateCtrlRamFirmwareVersionMetadataRead()
@@ -319,16 +310,15 @@ internal sealed partial class ReplacePresentationViewModel
         {
             await Task.Yield();
             cancellationToken.ThrowIfCancellationRequested();
-            bool isFileIdentityCurrent = await Task.Run(
-                () => _firmwareInspection.IsFirmwareFileIdentityCurrent(
-                    lease.Request.BasePath,
-                    lease.Request.FileIdentity),
+            bool isContentCurrent = await _firmwareInspection.IsFirmwareContentCurrentAsync(
+                lease.Request.BasePath,
+                lease.Request.ContentIdentity,
                 cancellationToken);
             cancellationToken.ThrowIfCancellationRequested();
             return generation == Volatile.Read(ref _ctrlRamFirmwareVersionMetadataGeneration) &&
                 IsCtrlRamFirmwareVersionModalLeaseContextCurrent() &&
                 _ctrlRamFirmwareVersionModalLease == lease &&
-                isFileIdentityCurrent;
+                isContentCurrent;
         }
         finally
         {
@@ -392,11 +382,6 @@ internal sealed partial class ReplacePresentationViewModel
         FirmwareConfigMetadataSnapshot? Metadata,
         CtrlRamFirmwareVersionMetadataRequest Request);
 
-    private readonly record struct CtrlRamFirmwareVersionMetadataWorkerResult(
-        bool IsFileIdentityStable,
-        FirmwareConfigMetadataSnapshot? Metadata,
-        CtrlRamFirmwareVersionMetadataRequest Request);
-
     private readonly record struct CtrlRamFirmwareVersionModalLease(
         long ContextGeneration,
         CtrlRamFirmwareVersionMetadataRequest Request);
@@ -404,7 +389,7 @@ internal sealed partial class ReplacePresentationViewModel
     private readonly record struct CtrlRamFirmwareVersionMetadataRequest(
         string IcId,
         string BasePath,
-        FirmwareFileIdentity FileIdentity)
+        FileStamp ContentIdentity)
     {
         internal bool MatchesContext(string icId, string? basePath)
         {

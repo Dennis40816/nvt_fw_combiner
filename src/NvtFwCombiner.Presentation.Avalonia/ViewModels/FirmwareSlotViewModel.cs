@@ -75,6 +75,12 @@ internal sealed partial class FirmwareSlotViewModel : ObservableObject
 
     public string DisplayDetail => HasFile ? FirmwarePathDisplay.Normalize(FilePath!) : string.Empty;
 
+    /// <summary>Current immutable Application inspection used only by this selected slot projection.</summary>
+    internal FirmwareInspectionSnapshot? CurrentInspectionProjection { get; private set; }
+
+    internal long? InspectedFileLength =>
+        CurrentInspectionProjection?.FileStamp?.AcceptedLength;
+
     /// <summary>Firmware facts decoded from the selected file, when the active IC has a FWConfig map.</summary>
     public ObservableCollection<FirmwareSlotFactViewModel> FirmwareFacts { get; } = [];
 
@@ -183,6 +189,23 @@ internal sealed partial class FirmwareSlotViewModel : ObservableObject
         OnPropertyChanged(nameof(AdditionalFirmwareFacts));
         OnPropertyChanged(nameof(HasAdditionalFirmwareFacts));
         OnPropertyChanged(nameof(AdditionalFirmwareFactsLabel));
+    }
+
+    internal void SetCurrentInspectionProjection(FirmwareInspectionSnapshot inspection)
+    {
+        ArgumentNullException.ThrowIfNull(inspection);
+        if (!HasFile)
+        {
+            throw new InvalidOperationException(
+                "A firmware inspection projection requires one current selected file.");
+        }
+
+        CurrentInspectionProjection = inspection;
+    }
+
+    internal void ClearCurrentInspectionProjection()
+    {
+        CurrentInspectionProjection = null;
     }
 
     /// <summary>Reprojects cached facts after a language change without collapsing disclosure state.</summary>

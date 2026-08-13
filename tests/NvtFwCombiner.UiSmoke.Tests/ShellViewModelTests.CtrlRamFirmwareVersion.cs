@@ -184,7 +184,9 @@ public sealed partial class CtrlRamWorkflowTests
 
         Task<bool> open = viewModel.Replace.TryOpenCtrlRamFirmwareVersionModalAsync(cancellationToken);
         Assert.True(readerEntered.Wait(TimeSpan.FromSeconds(10), cancellationToken));
-        File.SetLastWriteTimeUtc(basePath, File.GetLastWriteTimeUtc(basePath).AddMinutes(1));
+        byte[] changed = File.ReadAllBytes(basePath);
+        changed[^1] ^= 0x01;
+        File.WriteAllBytes(basePath, changed);
         releaseReader.Set();
 
         Assert.False(await open);
@@ -308,6 +310,29 @@ public sealed partial class CtrlRamWorkflowTests
         Assert.False(viewModel.Replace.CanConfirmCtrlRamFirmwareVersion);
         Assert.False(await viewModel.Replace.IsCtrlRamFirmwareVersionBuildConfirmationCurrentAsync(cancellationToken));
         (bool succeeded, _) = await viewModel.Replace.TryCreateCtrlRamFirmwareVersionEditAsync(cancellationToken);
+        Assert.False(succeeded);
+    }
+
+    /// <summary>Build confirmation re-reads content and rejects same-path same-length replacement.</summary>
+    [Fact]
+    public async Task CtrlRamFirmwareVersionBuildConfirmationReinspectsContentIdentity()
+    {
+        CancellationToken cancellationToken = TestContext.Current.CancellationToken;
+        using var golden = StandardMergeGoldenManifest.Load();
+        using var workspace = TempWorkspace.Create("nvt-fw-combiner-ui-ctrlram-content-lease");
+        byte[] baseBytes = golden.ReadExpectedOutput(golden.CaseByIc("51926"));
+        MainWindowViewModel viewModel = CreateCtrlRamVersionReadyViewModel(baseBytes, workspace);
+
+        Assert.True(await viewModel.Replace.TryOpenCtrlRamFirmwareVersionModalAsync(cancellationToken));
+        string basePath = Assert.IsType<string>(viewModel.Replace.ReplaceBaseSlot.FilePath);
+        byte[] changed = File.ReadAllBytes(basePath);
+        changed[^1] ^= 0x01;
+        File.WriteAllBytes(basePath, changed);
+
+        Assert.False(await viewModel.Replace.IsCtrlRamFirmwareVersionBuildConfirmationCurrentAsync(
+            cancellationToken));
+        (bool succeeded, _) = await viewModel.Replace.TryCreateCtrlRamFirmwareVersionEditAsync(
+            cancellationToken);
         Assert.False(succeeded);
     }
 

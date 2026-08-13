@@ -121,10 +121,7 @@ internal sealed partial class WorkflowSessionPresentationViewModel : ObservableO
                      .Distinct())
         {
             if (!FirmwareInspectionRequestFactory.SupportsFacts(slot) ||
-                !InspectionSession.TryGetInspection(
-                    slot.SlotId,
-                    slot.FilePath,
-                    out FirmwareInspectionSnapshot inspection))
+                slot.CurrentInspectionProjection is not { } inspection)
             {
                 continue;
             }
@@ -153,10 +150,7 @@ internal sealed partial class WorkflowSessionPresentationViewModel : ObservableO
                      .Concat([_replace.ReplaceBaseSlot])
                      .Distinct())
         {
-            if (!InspectionSession.TryGetInspection(
-                    slot.SlotId,
-                    slot.FilePath,
-                    out FirmwareInspectionSnapshot projected))
+            if (slot.CurrentInspectionProjection is not { } projected)
             {
                 continue;
             }

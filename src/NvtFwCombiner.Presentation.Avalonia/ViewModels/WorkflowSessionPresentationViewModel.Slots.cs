@@ -41,7 +41,7 @@ internal sealed partial class WorkflowSessionPresentationViewModel
 
     internal void ClearSelectedInputs(ShellPage page)
     {
-        InvalidateFirmwareInspection(clearBaseCache: true, clearFileProjections: true);
+        InvalidateFirmwareInspection(clearBaseProjection: true, clearSlotProjections: true);
         _replace.InvalidateCtrlRamFirmwareVersionContextState();
         InvalidateFirmwareIcMismatch();
         InvalidateFirmwareNumberMismatch();
@@ -106,8 +106,8 @@ internal sealed partial class WorkflowSessionPresentationViewModel
         }
 
         _replace.InvalidateCtrlRamFirmwareVersionContextState();
-        InvalidateFirmwareInspection(clearBaseCache: slot.SlotId == _replace.ReplaceBaseSlot.SlotId);
-        InspectionSession.RemoveProjection(slot.SlotId);
+        InvalidateFirmwareInspection(clearBaseProjection: slot.SlotId == _replace.ReplaceBaseSlot.SlotId);
+        slot.ClearCurrentInspectionProjection();
         InvalidateFirmwareIcMismatch();
         InvalidateFirmwareNumberMismatch();
         slot.FilePath = path;
