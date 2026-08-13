@@ -26,9 +26,9 @@ public sealed partial class FirmwareInspectionSlotTests
         viewModel.WorkflowSession.SelectedIc = "NT51950";
         OpenReplace(viewModel, ExperienceIds.DpReplace);
         viewModel.SetSlotFile(CompositionSlotIds.ReplaceBase, referencePath);
-        await viewModel.WorkflowSession.FirmwareInspectionRefreshTask;
+        await CurrentInspection(viewModel).ActiveTask;
         viewModel.SetSlotFile(CompositionSlotIds.ReplaceDp, firstDpPath);
-        await viewModel.WorkflowSession.FirmwareInspectionRefreshTask;
+        await CurrentInspection(viewModel).ActiveTask;
 
         revisions.Clear();
         await viewModel.WorkflowSession.RefreshSelectedReplaceFirmwareInspectionsAsync();
@@ -40,7 +40,7 @@ public sealed partial class FirmwareInspectionSlotTests
 
         revisions.Clear();
         viewModel.SetSlotFile(CompositionSlotIds.ReplaceDp, secondDpPath);
-        await viewModel.WorkflowSession.FirmwareInspectionRefreshTask;
+        await CurrentInspection(viewModel).ActiveTask;
         Assert.True(Assert.Single(revisions.Distinct()) > repeatedRevision);
     }
 }

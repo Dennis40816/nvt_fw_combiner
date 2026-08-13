@@ -223,7 +223,27 @@ internal sealed partial class ShellTextResources
 
     public string FirmwareInspectionLoadingStatus { get; private init; } = string.Empty;
 
+    public string FirmwareInspectionLoadingTitle { get; private init; } = string.Empty;
+
+    public string FirmwareInspectionFailedTitle { get; private init; } = string.Empty;
+
+    public string FirmwareInspectionCancelLabel { get; private init; } = string.Empty;
+
     public string FirmwareInspectionStaleFileStatus { get; private init; } = string.Empty;
+
+    public string GetFirmwareInspectionProgressDetail(int completed, int total)
+    {
+        return Language == ShellLanguage.ChineseTraditional
+            ? $"已檢查 {completed} / {total} 個檔案"
+            : $"Inspected {completed} / {total} files";
+    }
+
+    public string GetFirmwareInspectionFailureDetail(string failureType)
+    {
+        return Language == ShellLanguage.ChineseTraditional
+            ? $"檢查未完成（{failureType}）。可安全重試目前選取內容。"
+            : $"Inspection did not complete ({failureType}). The current selection can be retried safely.";
+    }
 
     public string UtilToolsLabel { get; private init; } = string.Empty;
 

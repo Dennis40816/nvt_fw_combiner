@@ -9,7 +9,7 @@ internal sealed partial class ReplacePresentationViewModel
 {
     public string ReplaceMemorySummary => Text.GetReplaceMemorySummary(SelectedReplaceMode);
 
-    public string ReplaceReadinessStatus => _stateBindings.IsFirmwareInspectionLoading()
+    public string ReplaceReadinessStatus => Inspection.IsRunning
         ? Text.FirmwareInspectionLoadingStatus
         : IsSelectedReplaceModeSupported
             ? Text.GetReplaceReadinessStatus(SelectedReplaceMode, CanRunReplace())
@@ -44,7 +44,7 @@ internal sealed partial class ReplacePresentationViewModel
     private bool CanRunReplace()
     {
         return !_stateBindings.IsGlobalBuildBlocked() &&
-            !_stateBindings.IsRunInProgress() && !_stateBindings.IsFirmwareInspectionLoading() &&
+            !_stateBindings.IsRunInProgress() && !Inspection.IsRunning &&
             IsSelectedReplaceModeSupported &&
             (SelectedReplaceMode switch
             {

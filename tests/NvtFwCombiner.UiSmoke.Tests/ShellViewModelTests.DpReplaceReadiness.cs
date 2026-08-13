@@ -192,6 +192,7 @@ public sealed partial class DpReplaceWorkflowTests
         Assert.Equal("Verified", initialCode.SemanticStateLabel);
         Assert.False(initialCode.BlocksBuild);
         Assert.True(viewModel.Replace.CanBuildReplace);
+        AssertInspectionTerminal(viewModel.Replace.Inspection);
     }
 
     /// <summary>A selected source shorter than the compiled view is a terminal blocking error.</summary>

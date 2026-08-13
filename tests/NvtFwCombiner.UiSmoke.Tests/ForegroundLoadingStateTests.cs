@@ -14,8 +14,10 @@ public sealed class ForegroundLoadingStateTests
     {
         var state = new ForegroundLoadingState();
 
-        state.Begin("Loading capabilities", "Preparing the canonical catalog.");
-        state.SetCancellationAction("Cancel startup");
+        state.Begin(
+            "Loading capabilities",
+            "Preparing the canonical catalog.",
+            cancelLabel: "Cancel startup");
 
         Assert.True(state.IsVisible);
         Assert.True(state.IsRunning);
@@ -51,17 +53,17 @@ public sealed class ForegroundLoadingStateTests
         Assert.Equal("Writing output.", state.Detail);
         Assert.Equal("Exporting 42% — Writing output.", state.AccessibleStatus);
 
-        state.ReportProgress(0.43);
+        state.ReportProgress(0.43, state.Detail);
 
         Assert.Equal("43%", state.ProgressPercentLabel);
 
-        state.ReportProgress(0.51);
+        state.ReportProgress(0.51, state.Detail);
 
         Assert.Equal("51%", state.ProgressPercentLabel);
-        _ = Assert.Throws<ArgumentOutOfRangeException>(() => state.ReportProgress(-0.01));
-        _ = Assert.Throws<ArgumentOutOfRangeException>(() => state.ReportProgress(1.01));
+        _ = Assert.Throws<ArgumentOutOfRangeException>(() => state.ReportProgress(-0.01, state.Detail));
+        _ = Assert.Throws<ArgumentOutOfRangeException>(() => state.ReportProgress(1.01, state.Detail));
 
-        state.ReportProgress(1);
+        state.ReportProgress(1, state.Detail);
 
         Assert.Equal("100%", state.ProgressPercentLabel);
     }
@@ -116,8 +118,11 @@ public sealed class ForegroundLoadingStateTests
         var state = new ForegroundLoadingState();
         state.Begin("Loading capabilities", "Preparing the canonical catalog.");
 
-        state.Fail("Capabilities unavailable", "The catalog could not be loaded.", "Retry");
-        state.SetCancellationAction("Cancel startup");
+        state.Fail(
+            "Capabilities unavailable",
+            "The catalog could not be loaded.",
+            "Retry",
+            "Cancel startup");
 
         Assert.True(state.IsVisible);
         Assert.False(state.IsRunning);
@@ -164,9 +169,7 @@ public sealed class ForegroundLoadingStateTests
                 "Capabilities unavailable — Retry to restore Merge and Replace.",
             ],
             statuses);
-        Assert.Contains(nameof(ForegroundLoadingState.Progress), properties);
-        Assert.Contains(nameof(ForegroundLoadingState.ProgressPercentLabel), properties);
-        Assert.Contains(nameof(ForegroundLoadingState.ShouldAnimate), properties);
+        Assert.Contains(string.Empty, properties);
 
         int accessibleBeforeCompletion = statuses.Count;
         state.Complete();
@@ -188,11 +191,9 @@ public sealed class ForegroundLoadingStateTests
             }
         };
 
-        state.Begin("正在準備功能", "正在載入 canonical catalog。", 0.1);
-        state.SetCancellationAction("取消啟動");
+        state.Begin("正在準備功能", "正在載入 canonical catalog。", 0.1, "取消啟動");
         state.ReportProgress(0.8, "正在準備 canonical capability routes。");
-        state.Fail("功能目前無法使用", "請重試以恢復 Merge 與 Replace。", "重試");
-        state.SetCancellationAction("取消啟動");
+        state.Fail("功能目前無法使用", "請重試以恢復 Merge 與 Replace。", "重試", "取消啟動");
 
         Assert.Equal(
             [

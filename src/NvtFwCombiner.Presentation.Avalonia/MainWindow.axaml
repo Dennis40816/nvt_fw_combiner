@@ -302,6 +302,18 @@
         IsVisible="{Binding IsCompositionActionRailVisible}"
         Orientation="Vertical"
         Spacing="{DynamicResource NfcSpace8}">
+        <ContentControl
+            Width="310"
+            Padding="12,10"
+            Content="{Binding Merge.Inspection.Loading}"
+            ContentTemplate="{StaticResource ForegroundLoadingStatusTemplate}"
+            IsVisible="{Binding Merge.Inspection.Loading.IsVisible}" />
+        <ContentControl
+            Width="310"
+            Padding="12,10"
+            Content="{Binding Replace.Inspection.Loading}"
+            ContentTemplate="{StaticResource ForegroundLoadingStatusTemplate}"
+            IsVisible="{Binding Replace.Inspection.Loading.IsVisible}" />
         <Button
             Classes="railAction outputRailAction"
             Classes.reducedMotion="{Binding IsReducedMotionEnabled}"
@@ -658,9 +670,7 @@
         IsVisible="{ReflectionBinding IsVisible}">
       <ContentControl.ContentTemplate>
         <DataTemplate DataType="vm:ForegroundLoadingState">
-          <views:ForegroundLoadingSurface
-              CancelRequested="CatalogLoadingSurface_OnCancelRequested"
-              RetryRequested="CatalogLoadingSurface_OnRetryRequested" />
+          <views:ForegroundLoadingSurface />
         </DataTemplate>
       </ContentControl.ContentTemplate>
     </ContentControl>

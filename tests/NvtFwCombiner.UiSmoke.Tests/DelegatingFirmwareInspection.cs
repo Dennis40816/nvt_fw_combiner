@@ -50,10 +50,11 @@ internal sealed class DelegatingFirmwareInspection : IFirmwareInspection
     public async ValueTask<FirmwareInspectionBatchResult> InspectFirmwareBatchAsync(
         string icId,
         IReadOnlyList<FirmwareInspectionSnapshotInput> inputs,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken,
+        IProgress<AuthoringInspectionProgress>? progress = null)
     {
         FirmwareInspectionBatchResult before = await _inner
-            .InspectFirmwareBatchAsync(icId, inputs, cancellationToken);
+            .InspectFirmwareBatchAsync(icId, inputs, cancellationToken, progress);
         if (_batchReader is null)
         {
             return before;

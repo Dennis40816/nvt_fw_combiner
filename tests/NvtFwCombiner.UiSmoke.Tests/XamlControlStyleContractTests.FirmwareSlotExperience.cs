@@ -14,7 +14,7 @@ public sealed partial class XamlControlStyleContractTests
         string inspection = ReadPresentationFile(
             "ViewModels/WorkflowSessionPresentationViewModel.FirmwareInspection.cs");
 
-        Assert.Contains("!FirmwareInspectionRequestFactory.SupportsFacts(slot)", localization, StringComparison.Ordinal);
+        Assert.Contains("!FirmwareInspectionProjection.SupportsFacts(slot)", localization, StringComparison.Ordinal);
         Assert.Contains("else if (item.PublishFacts)", inspection, StringComparison.Ordinal);
     }
 

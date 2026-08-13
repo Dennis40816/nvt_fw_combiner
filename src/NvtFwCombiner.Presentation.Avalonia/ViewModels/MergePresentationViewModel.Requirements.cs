@@ -164,7 +164,7 @@ internal sealed partial class MergePresentationViewModel
     {
         return !_stateBindings.IsGlobalBuildBlocked() &&
             !_stateBindings.IsRunInProgress() &&
-            !_stateBindings.IsFirmwareInspectionLoading() &&
+            !Inspection.IsRunning &&
             SelectedMergeMode switch
             {
                 NormalMergeMode => CanRunStandardMerge(),

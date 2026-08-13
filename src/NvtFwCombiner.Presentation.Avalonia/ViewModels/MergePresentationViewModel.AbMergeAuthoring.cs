@@ -42,7 +42,7 @@ internal sealed partial class MergePresentationViewModel
             _abMergeSession,
             selected,
             inspections,
-            static item => item.AbMergeInspectionLease,
+            static item => item.InspectionLease,
             out ActiveSessionSnapshot? snapshot);
         if (completed && selected.Length > 0)
         {

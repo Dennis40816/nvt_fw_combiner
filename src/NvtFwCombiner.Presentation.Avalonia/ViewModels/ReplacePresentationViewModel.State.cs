@@ -138,6 +138,9 @@ internal sealed partial class ReplacePresentationViewModel
     public bool IsSelectedReplaceModeUnavailable =>
         !SelectedReplaceWorkflowReadiness.IsAvailable;
 
+    public WorkflowInspectionLifecycle Inspection => InspectionLifecycles[SelectedReplaceMode];
+    internal WorkflowInspectionSet InspectionLifecycles { get; }
+
     public bool CanBuildReplace => CanRunReplace() &&
         !IsCtrlRamFirmwareVersionMetadataLoading &&
         (!IsCtrlRamReplaceModeSelected || HasCurrentCtrlRamActionReadiness(build: true)) &&
@@ -199,6 +202,7 @@ internal sealed partial class ReplacePresentationViewModel
 
         _selectedReplaceMode = value;
         OnPropertyChanged(nameof(SelectedReplaceMode));
+        OnPropertyChanged(nameof(Inspection));
         NotifyModeChanged();
         _stateBindings.ReplaceModeChanged();
     }

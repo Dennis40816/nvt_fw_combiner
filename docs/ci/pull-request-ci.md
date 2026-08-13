@@ -12,7 +12,7 @@ The executable workflow is [`.github/workflows/ci.yml`](../../.github/workflows/
 2. **`python-worker / verify`** runs Ruff format/check, Pyright strict, Pylint, pytest, branch coverage, protocol/process tests, plus the structure gate.
 3. **`dotnet / build-test`** is the stable final verdict over one complete
    Release-build producer and three closed Windows test shards. The canonical
-    verifier validates the exact eight-project/TRX/coverage manifest, 3,406 test
+    verifier validates the exact eight-project/TRX/coverage manifest, 3,414 test
    cases with the two declared skips, GoldenRegression 17/17, coverage policy,
    and CtrlRAM fixture evidence before the check passes.
 

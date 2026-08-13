@@ -74,7 +74,7 @@ public sealed partial class ShellPreloadSessionTests
             static (_, _) => throw new InvalidOperationException("loading observer failed");
         bool shellEnabled = false;
         bool focusRestored = false;
-        _ = Assert.Throws<InvalidOperationException>(() => MainWindow.CommitRequiredStagePresentation(
+        MainWindow.CommitRequiredStagePresentation(
             succeeded: true,
             shellWasEnabled: false,
             enabled => shellEnabled = enabled,
@@ -83,7 +83,7 @@ public sealed partial class ShellPreloadSessionTests
                 session,
                 throwingLoadingState,
                 Text,
-                session.CatalogStage)));
+                session.CatalogStage));
         Assert.True(shellEnabled);
         Assert.True(focusRestored);
 

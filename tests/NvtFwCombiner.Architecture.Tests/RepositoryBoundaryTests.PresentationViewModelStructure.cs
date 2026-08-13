@@ -115,6 +115,14 @@ public sealed partial class RepositoryBoundaryTests
             "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/MergePresentationViewModel.State.cs");
         string replaceState = ReadText(
             "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/ReplacePresentationViewModel.State.cs");
+        string mergeOwner = ReadText(
+            "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/MergePresentationViewModel.cs");
+        string replaceOwner = ReadText(
+            "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/ReplacePresentationViewModel.cs");
+        string inspectionLifecycle = ReadText(
+            "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/WorkflowInspectionLifecycle.cs");
+        string sharedTemplates = ReadText(
+            "src/NvtFwCombiner.Presentation.Avalonia/Resources/MainWindowSharedTemplates.axaml");
         string shellPartials = ReadViewModelPartials();
 
         Assert.Contains("WorkflowSession = new WorkflowSessionPresentationViewModel", construction, StringComparison.Ordinal);
@@ -123,8 +131,12 @@ public sealed partial class RepositoryBoundaryTests
         Assert.DoesNotContain("PresentationObserver.Invoke(ApplyCatalogBackedTextResources)", shellSession, StringComparison.Ordinal);
         Assert.Contains("WorkflowContextSetupViewModel", context, StringComparison.Ordinal);
         Assert.Contains("ReconcileFirmwareIcMismatch", mismatch, StringComparison.Ordinal);
-        Assert.Contains("FirmwareInspectionSession", session, StringComparison.Ordinal);
-        Assert.Contains(".ReadBatchAsync(request, cancellationToken)", inspection, StringComparison.Ordinal);
+        Assert.DoesNotContain("FirmwareInspectionReader", session, StringComparison.Ordinal);
+        Assert.Contains(
+            ".InspectFirmwareBatchAsync(",
+            inspection,
+            StringComparison.Ordinal);
+        Assert.Contains("request.IcId, inputs, cancellationToken, progress", inspection, StringComparison.Ordinal);
         Assert.Contains("SetSlotFileAsync", inspection, StringComparison.Ordinal);
         Assert.Contains("public string SelectedIc", deviceContext, StringComparison.Ordinal);
         Assert.Contains("if (SetProperty(ref _selectedIc, value))", deviceContext, StringComparison.Ordinal);
@@ -140,6 +152,27 @@ public sealed partial class RepositoryBoundaryTests
         Assert.Contains("public void RemoveGeneralMappingRow", slots, StringComparison.Ordinal);
         Assert.Contains("_compositionServices.OutputNaming.ResolveAcceptedOutput", mergeState, StringComparison.Ordinal);
         Assert.Contains("_compositionServices.OutputNaming.ResolveAcceptedOutput", replaceState, StringComparison.Ordinal);
+        Assert.Equal(1, CountOccurrences(mergeState, "WorkflowInspectionSet InspectionLifecycles"));
+        Assert.Equal(1, CountOccurrences(replaceState, "WorkflowInspectionSet InspectionLifecycles"));
+        Assert.Contains(
+            "InspectionLifecycles = new(NotifyCommandStateChanged, AbCodeMergeMode, GeneralMergeMode)",
+            mergeOwner,
+            StringComparison.Ordinal);
+        Assert.Contains(
+            "InspectionLifecycles = new(NotifyCommandStateChanged, CtrlRamReplaceMode, GeneralReplaceMode)",
+            replaceOwner,
+            StringComparison.Ordinal);
+        Assert.Equal(1, CountOccurrences(inspectionLifecycle, "WorkflowInspectionLifecycle[] _lifecycles"));
+        Assert.Equal(3, CountOccurrences(inspectionLifecycle, "new(statusChanged)"));
+        Assert.Contains("await predecessor;", inspectionLifecycle, StringComparison.Ordinal);
+        Assert.Contains("CancelActive();", inspectionLifecycle, StringComparison.Ordinal);
+        Assert.Contains(
+            "request.Execute(progress, () => IsCurrent(generation), requestCancellation)",
+            inspectionLifecycle,
+            StringComparison.Ordinal);
+        Assert.Contains("ForegroundLoadingStatusTemplate", sharedTemplates, StringComparison.Ordinal);
+        Assert.Contains("ProgressPercentLabel", sharedTemplates, StringComparison.Ordinal);
+        Assert.Contains("ShouldAnimate", sharedTemplates, StringComparison.Ordinal);
         Assert.False(File.Exists(Path.Combine(
             Root.FullName,
             "src",
@@ -226,8 +259,9 @@ public sealed partial class RepositoryBoundaryTests
         Assert.DoesNotContain("InspectGeneralSelectedFilesAsync", replace, StringComparison.Ordinal);
         Assert.DoesNotContain("RunGeneralReplaceEphemeralDraftWithProgressAsync", replace, StringComparison.Ordinal);
         Assert.DoesNotContain("InspectGeneralSelectedFileAsync", selection, StringComparison.Ordinal);
-        Assert.Contains("GeneralMergeReadinessRefreshTask", selection, StringComparison.Ordinal);
-        Assert.Contains("GeneralReplaceReadinessRefreshTask", selection, StringComparison.Ordinal);
+        Assert.DoesNotContain("GeneralMergeReadinessRefreshTask", selection, StringComparison.Ordinal);
+        Assert.DoesNotContain("GeneralReplaceReadinessRefreshTask", selection, StringComparison.Ordinal);
+        Assert.DoesNotContain("IsFirmwareInspectionLoading", selection, StringComparison.Ordinal);
         Assert.Contains("await Task.Yield();", lifecycle, StringComparison.Ordinal);
         Assert.Contains("await Task.Run(", lifecycle, StringComparison.Ordinal);
         Assert.Contains(

@@ -214,6 +214,39 @@ dependency-gated.
 - Limitations: PL-06 converges identity/cache/strategy ownership only. PL-07 owns
   the reusable observable per-workflow inspection lifecycle and cancellation UI.
 
+#### Unified selected-file inspection lifecycle
+
+- Purpose: make all six Merge/Replace workflow sessions use one observable,
+  cancellable, retryable selected-file inspection lifecycle.
+- Affected: Standard Merge, AB Merge, General Merge, DP Replace, CtrlRAM Replace,
+  General Replace, their selected-file inspection progress, and shared loading UI.
+- Before → After: separate firmware generation/loading state, General preparation
+  queues, cached projection glue, and workflow-specific task wrappers become one
+  request-scoped lifecycle with a never-reused generation and one active task per
+  workflow. Application and Infrastructure keep sole ownership of inspection facts.
+- Progress and control: exact distinct-file/item work reports through the standard
+  typed `IProgress<AuthoringInspectionProgress>` contract. Reselection cancels and
+  drains obsolete work; failure exposes localized Retry, active work exposes Cancel,
+  and reduced motion retains the exact static percentage without animation.
+- Failure/staleness: old-generation callbacks cannot clear pending state, publish
+  facts, enable Build, or overwrite a successor. Retry allocates a fresh generation
+  only after the prior terminal has drained; malformed progress fails closed.
+- Accessibility: the foreground catalog surface and workflow action rail reuse one
+  localized loading template with bounded decile announcements and truthful percent.
+- Compatibility: firmware bytes, ranges, CRC/header behavior, output naming,
+  profiles, schemas, report wire, processors, CLI behavior, and Golden data are
+  unchanged.
+- Support status: unchanged/support-neutral; no IC, family, topology, workflow,
+  processor, profile, or evidence fact is promoted or removed.
+- Verification: Bootstrap 934, UI 490, and Architecture 214 pass locally and
+  contribute to the exact eight-project 3,414 inventory with 2 declared skips and
+  Golden 17/17 retained.
+- Code size: 943 physical nonblank production lines are removed and 938 added,
+  net -5. Full production descends from 98,075 to 98,070; runtime descends from
+  68,016 to 67,997 = 20,619 / 29,571 / 3,074 / 14,733.
+- Limitations: startup preload, Build/Preview run progress, CtrlRAM run-bound metadata,
+  firmware semantics, and Report/System Information layout remain separate owners.
+
 #### Message Center and report readability
 
 - Purpose: make System information and run-report evidence easier to scan in

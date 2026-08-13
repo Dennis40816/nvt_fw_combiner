@@ -32,7 +32,6 @@ internal sealed partial class WorkflowSessionPresentationViewModel : ObservableO
         _applyWorkflowContext = applyWorkflowContext ?? throw new ArgumentNullException(nameof(applyWorkflowContext));
         _showToast = showToast ?? throw new ArgumentNullException(nameof(showToast));
         _stateBindings = stateBindings ?? throw new ArgumentNullException(nameof(stateBindings));
-        InspectionSession = new FirmwareInspectionSession(_compositionServices.FirmwareInspection);
         WorkflowContextSetup = new WorkflowContextSetupViewModel(_compositionServices);
         ConfirmWorkflowContextCommand = new RelayCommand(ConfirmWorkflowContext);
         CancelWorkflowContextCommand = new RelayCommand(CancelWorkflowContext);
@@ -43,8 +42,6 @@ internal sealed partial class WorkflowSessionPresentationViewModel : ObservableO
     }
 
     public ShellTextResources Text => _textProvider();
-
-    internal FirmwareInspectionSession InspectionSession { get; }
 
     internal bool IsApplyingFirmwareInspectionContext { get; set; }
 
@@ -79,31 +76,6 @@ internal sealed partial class WorkflowSessionPresentationViewModel : ObservableO
     private IReadOnlyDictionary<string, string> AbMergeAddressSpaceBySlotId =>
         _merge.AbMergeAddressSpaceBySlotId;
 
-    private string? GetSelectedAbMergeTopologyToken()
-    {
-        return _merge.GetSelectedAbMergeTopologyToken();
-    }
-
-    private void ApplyCtrlRamInspectionDisplay(CtrlRamInspectionDisplay display)
-    {
-        _replace.ApplyCtrlRamInspectionDisplay(display);
-    }
-
-    private void RefreshMergeMemoryMapState()
-    {
-        _merge.RefreshMergeMemoryMapState();
-    }
-
-    private void RefreshReplaceMemoryMapState()
-    {
-        _replace.RefreshReplaceMemoryMapState();
-    }
-
-    private void RefreshCommandState()
-    {
-        _stateBindings.RefreshCommandState();
-    }
-
     internal void ApplyLanguageChanged()
     {
         DeviceContextRefreshSummary = Text.DeviceContextStatus;
@@ -120,7 +92,7 @@ internal sealed partial class WorkflowSessionPresentationViewModel : ObservableO
                      .Append(_replace.ReplaceBaseSlot)
                      .Distinct())
         {
-            if (!FirmwareInspectionRequestFactory.SupportsFacts(slot) ||
+            if (!FirmwareInspectionProjection.SupportsFacts(slot) ||
                 slot.CurrentInspectionProjection is not { } inspection)
             {
                 continue;

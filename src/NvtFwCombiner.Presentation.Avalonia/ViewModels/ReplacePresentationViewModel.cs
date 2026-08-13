@@ -17,6 +17,7 @@ internal sealed partial class ReplacePresentationViewModel : ObservableObject
             throw new ArgumentNullException(nameof(compositionServices));
         _stateBindings = stateBindings ?? throw new ArgumentNullException(nameof(stateBindings));
         _firmwareInspection = _compositionServices.FirmwareInspection;
+        InspectionLifecycles = new(NotifyCommandStateChanged, CtrlRamReplaceMode, GeneralReplaceMode);
         ShowReplaceSelectionCommand = new RelayCommand(ShowReplaceSelection);
         CloseReplaceSelectionCommand = new RelayCommand(CloseReplaceSelection);
         AddGeneralReplaceMappingCommand = new RelayCommand(AddGeneralReplaceMapping);
@@ -41,6 +42,7 @@ internal sealed partial class ReplacePresentationViewModel : ObservableObject
     internal void ApplyLanguageChanged()
     {
         ApplyFirmwareSlotText();
+        InspectionLifecycles.ApplyText(Text);
         OnPropertyChanged(nameof(Text));
         NotifyContextChanged();
         RefreshSelectionState();

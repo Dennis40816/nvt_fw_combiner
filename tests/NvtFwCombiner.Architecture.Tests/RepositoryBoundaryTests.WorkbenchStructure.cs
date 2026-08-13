@@ -15,7 +15,7 @@ public sealed partial class RepositoryBoundaryTests
             "src/NvtFwCombiner.Presentation.Avalonia/UiCompositionRunner.Replace.cs");
         string replaceRefresh = ReadText(
             "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/ReplacePresentationViewModel.Memory.cs");
-        string firmwareInspectionSession = ReadText(
+        string firmwareInspectionReader = ReadText(
             "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/FirmwareInspectionSession.cs");
         string ctrlRamVersion = ReadText(
             "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/ReplacePresentationViewModel.CtrlRamFirmwareVersion.cs");
@@ -43,8 +43,8 @@ public sealed partial class RepositoryBoundaryTests
         Assert.DoesNotContain("SetSlotFileAsync", viewModels, StringComparison.Ordinal);
         Assert.Contains("SetSlotFileAsync", workflowInspection, StringComparison.Ordinal);
         Assert.DoesNotContain("Task.Run", workflowInspection, StringComparison.Ordinal);
-        Assert.Contains("InspectionSession", workflowInspection, StringComparison.Ordinal);
-        Assert.Contains("ReadBatchAsync", workflowInspection, StringComparison.Ordinal);
+        Assert.DoesNotContain("InspectionReader", workflowInspection, StringComparison.Ordinal);
+        Assert.Contains("InspectFirmwareBatchAsync", workflowInspection, StringComparison.Ordinal);
         Assert.DoesNotContain("public void SetSlotFile(", viewModels, StringComparison.Ordinal);
         Assert.DoesNotContain("RefreshAllSelectedSlotFirmwareFacts", viewModels, StringComparison.Ordinal);
         Assert.DoesNotContain("GetSelectedCtrlRamBasePath", viewModels, StringComparison.Ordinal);
@@ -55,12 +55,18 @@ public sealed partial class RepositoryBoundaryTests
         Assert.Contains("IReadOnlyList<CtrlRamRegion> regions", replaceRunner, StringComparison.Ordinal);
         Assert.DoesNotContain("File.Exists", replaceRefresh, StringComparison.Ordinal);
         Assert.DoesNotContain("new FileInfo", replaceRefresh, StringComparison.Ordinal);
-        Assert.DoesNotContain("FileInfo", firmwareInspectionSession, StringComparison.Ordinal);
-        Assert.DoesNotContain("FirmwareFileIdentity.Capture", firmwareInspectionSession, StringComparison.Ordinal);
+        Assert.Contains("internal static class FirmwareInspectionProjection", firmwareInspectionReader, StringComparison.Ordinal);
+        Assert.DoesNotContain("FirmwareInspectionReader", firmwareInspectionReader, StringComparison.Ordinal);
+        Assert.DoesNotContain("class FirmwareInspectionSession", firmwareInspectionReader, StringComparison.Ordinal);
+        Assert.DoesNotContain("FileInfo", firmwareInspectionReader, StringComparison.Ordinal);
+        Assert.DoesNotContain("FirmwareFileIdentity.Capture", firmwareInspectionReader, StringComparison.Ordinal);
         Assert.DoesNotContain("FirmwareFileIdentity.Capture", ctrlRamVersion, StringComparison.Ordinal);
         Assert.Contains("ValueTask<FirmwareInspectionBatchResult> InspectFirmwareBatchAsync", inspectionPort, StringComparison.Ordinal);
         Assert.Contains("ValueTask<FirmwareConfigMetadataReadResult> ReadFirmwareConfigMetadataAsync", inspectionPort, StringComparison.Ordinal);
         Assert.Contains("ValueTask<bool> IsFirmwareContentCurrentAsync", inspectionPort, StringComparison.Ordinal);
+        Assert.Contains("record struct AuthoringInspectionProgress", inspectionPort, StringComparison.Ordinal);
+        Assert.Contains("IProgress<AuthoringInspectionProgress>? progress = null", inspectionPort, StringComparison.Ordinal);
+        Assert.DoesNotContain("IAuthoringInspectionProgressObserver", inspectionPort, StringComparison.Ordinal);
         Assert.False(File.Exists(Path.Combine(
             Root.FullName,
             "src",
@@ -73,8 +79,8 @@ public sealed partial class RepositoryBoundaryTests
             "NvtFwCombiner.Infrastructure",
             "Composition",
             "BuiltInFirmwareInspection.FileIdentity.cs")));
-        Assert.DoesNotContain("_fileProjections", firmwareInspectionSession, StringComparison.Ordinal);
-        Assert.DoesNotContain("_baseCache", firmwareInspectionSession, StringComparison.Ordinal);
+        Assert.DoesNotContain("_fileProjections", firmwareInspectionReader, StringComparison.Ordinal);
+        Assert.DoesNotContain("_baseCache", firmwareInspectionReader, StringComparison.Ordinal);
         Assert.DoesNotContain("ConcurrentDictionary", firmwareInspectionSources, StringComparison.Ordinal);
         Assert.DoesNotContain("BuiltInV2RegistrationRegistry", firmwareInspectionSources, StringComparison.Ordinal);
         Assert.Contains("_contentInspector", firmwareContentRead, StringComparison.Ordinal);
@@ -104,7 +110,7 @@ public sealed partial class RepositoryBoundaryTests
         Assert.DoesNotContain("RefreshMergeMemoryMapState", replaceRefresh, StringComparison.Ordinal);
         Assert.Contains("RefreshReplaceMemoryMapState", replaceRefresh, StringComparison.Ordinal);
         Assert.DoesNotContain("ValidateCachedCtrlRamDisplayAsync", viewModels, StringComparison.Ordinal);
-        Assert.DoesNotContain("OutputNaming", firmwareInspectionSession, StringComparison.Ordinal);
+        Assert.DoesNotContain("OutputNaming", firmwareInspectionReader, StringComparison.Ordinal);
         Assert.False(File.Exists(Path.Combine(
             Root.FullName,
             "src",

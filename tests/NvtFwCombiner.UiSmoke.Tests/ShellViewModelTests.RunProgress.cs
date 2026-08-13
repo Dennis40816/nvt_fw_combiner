@@ -448,7 +448,7 @@ public sealed partial class RunAndHexEditorTests
                 sourcePath,
                 TestContext.Current.CancellationToken);
             await previewTask;
-            await viewModel.Merge.GeneralMergeReadinessRefreshTask;
+            await viewModel.Merge.Inspection.ActiveTask;
 
             Assert.Equal("NT51926", viewModel.Reports.LoadedReport.IcId);
             using var report = JsonDocument.Parse(viewModel.Reports.LoadedReportJson);

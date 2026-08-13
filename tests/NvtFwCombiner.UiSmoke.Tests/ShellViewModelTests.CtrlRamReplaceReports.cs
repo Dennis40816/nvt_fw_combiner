@@ -27,8 +27,12 @@ public sealed partial class CtrlRamExternalGoldenTests
         Assert.Contains("CtrlRAM", regionSlot.Title, StringComparison.Ordinal);
 
         fixtures.SetBaseSlot(viewModel, fixtureCase);
-        await viewModel.WorkflowSession.FirmwareInspectionRefreshTask;
+        await CurrentInspection(viewModel).ActiveTask;
+        Assert.Equal(
+            WorkflowInspectionAttemptState.Succeeded,
+            viewModel.Replace.Inspection.State);
         viewModel.SetSlotFile(regionSlot.SlotId, fixtures.ReplacementPathFor(fixtureCase, regionSlot.SlotId));
+        AssertInspectionTerminal(viewModel.Replace.Inspection);
 
         Assert.True(viewModel.Replace.PreviewReplaceCommand.CanExecute(null));
 
@@ -66,7 +70,7 @@ public sealed partial class CtrlRamExternalGoldenTests
         // The verified FWConfig may choose the base image's branch. This fixture deliberately
         // exercises the owner-selected three-chip branch afterwards.
         viewModel.WorkflowSession.SelectedNumber = "3";
-        await viewModel.WorkflowSession.FirmwareInspectionRefreshTask;
+        await CurrentInspection(viewModel).ActiveTask;
         FirmwareSlotViewModel normalRight = viewModel.Replace.ReplaceSlots.Single(slot => slot.Title == "Normal CtrlRAM (Slave R)");
         FirmwareSlotViewModel vn = viewModel.Replace.ReplaceSlots.Single(slot => slot.Title == "VN CtrlRAM (Shared)");
         viewModel.SetSlotFile(normalRight.SlotId, fixtures.ReplacementPathFor(fixtureCase, normalRight.SlotId));
@@ -110,7 +114,7 @@ public sealed partial class CtrlRamExternalGoldenTests
 
         fixtures.SetBaseSlot(viewModel, fixtureCase);
         viewModel.WorkflowSession.SelectedNumber = "3";
-        await viewModel.WorkflowSession.FirmwareInspectionRefreshTask;
+        await CurrentInspection(viewModel).ActiveTask;
         FirmwareSlotViewModel vn = viewModel.Replace.ReplaceSlots.Single(slot => slot.Title == "VN CtrlRAM (Shared)");
         Assert.Contains("VN_Ctrlram.bin", vn.Description, StringComparison.Ordinal);
         Assert.Contains("VN CtrlRAM (Master): max 5728 B", vn.Description, StringComparison.Ordinal);
@@ -149,7 +153,7 @@ public sealed partial class CtrlRamExternalGoldenTests
 
         fixtures.SetBaseSlot(viewModel, fixtureCase);
         viewModel.WorkflowSession.SelectedNumber = "3";
-        await viewModel.WorkflowSession.FirmwareInspectionRefreshTask;
+        await CurrentInspection(viewModel).ActiveTask;
         FirmwareSlotViewModel vnSlot = viewModel.Replace.ReplaceSlots.Single(slot => slot.Title == "VN CtrlRAM (Shared)");
         viewModel.SetSlotFile(vnSlot.SlotId, fixtures.ReplacementPathFor(fixtureCase, vnSlot.SlotId));
 

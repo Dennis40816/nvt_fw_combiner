@@ -492,6 +492,23 @@ mirrors, and accidental-public implementation surfaces need no duplicated
 comment. Canonical persisted contracts and reusable public boundaries retain
 their useful documentation.
 
+### 2026-08-14 PL-07 six-workflow inspection lifecycle
+
+PL-07 (#379) removes the Presentation firmware-reader wrapper, global loading
+flag, separate General preparation queues/tasks, and duplicated workflow
+lifecycle traversal while adding one request-scoped observable lifecycle used by
+all six Merge/Replace workflows. Application and Infrastructure continue to own
+typed inspection facts and report exact work through `IProgress<T>`; Presentation
+owns only generation, cancellation/drain, stale rejection, and loading projection.
+
+The exact physical nonblank ledger is 943 removed and 938 added, net -5. Full
+production changes from 98,075 to 98,070 and runtime changes from 68,016 to
+67,997. Runtime is exactly 20,619 Domain plus Profiles + 29,571 Application +
+3,074 Bootstrap plus CLI plus Desktop + 14,733 Infrastructure plus Contracts
+plus CRC worker. These values become descending ratchets immediately. No
+firmware semantic change, excluded-path relocation, physical-line compression,
+or weakened behavioral evidence is accepted.
+
 Firmware ranges/coordinates, CRC/Header and mutation authority, owner evidence,
 known limitations, fail-closed rationale, non-obvious algorithms, security,
 processor, lifetime, and concurrency invariants remain documented. Removing

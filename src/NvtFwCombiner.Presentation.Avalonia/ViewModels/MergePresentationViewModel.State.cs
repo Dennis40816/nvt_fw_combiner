@@ -158,7 +158,10 @@ internal sealed partial class MergePresentationViewModel
     public bool IsStandardMergeSupported =>
         _compositionServices.StandardMergeAuthoring.IsSupported(SelectedIc);
 
-    public string MergeReadinessStatus => _stateBindings.IsFirmwareInspectionLoading()
+    public WorkflowInspectionLifecycle Inspection => InspectionLifecycles[SelectedMergeMode];
+    internal WorkflowInspectionSet InspectionLifecycles { get; }
+
+    public string MergeReadinessStatus => Inspection.IsRunning
         ? Text.FirmwareInspectionLoadingStatus
         : IsAbCodeMergeModeSelected
             ? Text.GetAbMergeReadinessStatus(
@@ -228,8 +231,10 @@ internal sealed partial class MergePresentationViewModel
             return;
         }
 
+        InspectionLifecycles[_selectedMergeMode].Invalidate();
         _selectedMergeMode = nextMode;
         OnPropertyChanged(nameof(SelectedMergeMode));
+        OnPropertyChanged(nameof(Inspection));
         OnPropertyChanged(nameof(IsNormalMergeModeSelected));
         OnPropertyChanged(nameof(IsGeneralMergeModeSelected));
         OnPropertyChanged(nameof(IsAbCodeMergeModeSelected));

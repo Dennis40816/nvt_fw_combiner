@@ -205,7 +205,10 @@ internal sealed partial class BuiltInFirmwareInspection : IFirmwareInspection
         ArgumentException.ThrowIfNullOrWhiteSpace(path);
         ArgumentNullException.ThrowIfNull(readFirmwareImage);
 
-        string? detectedIcId = DetectFirmwareIcHintFromFileName(path);
+        Match fileNameMatch = FirmwareIcHintMarker().Match(Path.GetFileNameWithoutExtension(path));
+        string? detectedIcId = fileNameMatch.Success
+            ? $"NT{fileNameMatch.Groups["ic"].Value}"
+            : null;
         byte[]? image = readFirmwareImage(path);
         if (image is null)
         {
@@ -218,7 +221,13 @@ internal sealed partial class BuiltInFirmwareInspection : IFirmwareInspection
                 ? image
                 : readFirmwareImage(tpPath);
         FirmwareConfigMetadata? firmwareConfig =
-            ReadFirmwareConfigMetadataValue(inspection._projection, icId, image);
+            TryReadFirmwareConfigMetadataFromImage(
+                inspection._projection,
+                icId,
+                image,
+                out FirmwareConfigMetadata metadata)
+                    ? metadata
+                    : null;
         CompiledFirmwareArtifactClassification? artifactClassification =
             ClassifyBaseFirmwareArtifact(inspection, icId, exactCapability, image);
         BaseFirmwareArtifactKind artifactKind = artifactClassification?.Kind switch
@@ -237,7 +246,11 @@ internal sealed partial class BuiltInFirmwareInspection : IFirmwareInspection
                 ? resolvedProfile
                 : null;
         CtrlRamInspectionDisplay? ctrlRamDisplay = ctrlRamRequest is { } request
-            ? CreateCtrlRamInspectionDisplay(icId, request.NumberToken, postbuildProfile)
+            ? BuiltInCtrlRamAuthoringAdapter.CreateDisplay(
+                icId,
+                request.NumberToken,
+                postbuildProfile,
+                hasReadableBase: true)
             : null;
         (DpVersionMetadata? Version, CmiDpCodeMetadata? Cmi)
             dpMetadata = shouldProjectDpMetadata
@@ -278,7 +291,11 @@ internal sealed partial class BuiltInFirmwareInspection : IFirmwareInspection
             out LegacyCombinerPostbuildProfile? resolvedProfile)
                 ? resolvedProfile
                 : null;
-        return CreateCtrlRamInspectionDisplay(icId, number, postbuildProfile);
+        return BuiltInCtrlRamAuthoringAdapter.CreateDisplay(
+            icId,
+            number,
+            postbuildProfile,
+            hasReadableBase: true);
     }
 
     private static (
@@ -523,20 +540,6 @@ internal sealed partial class BuiltInFirmwareInspection : IFirmwareInspection
         return best;
     }
 
-    private static FirmwareConfigMetadata? ReadFirmwareConfigMetadataValue(
-        CanonicalCapabilityExperience projection,
-        string icId,
-        byte[]? image)
-    {
-        return image is not null && TryReadFirmwareConfigMetadataFromImage(
-                projection,
-                icId,
-                image,
-                out FirmwareConfigMetadata metadata)
-                ? metadata
-                : null;
-    }
-
     private static bool TryReadFirmwareConfigMetadataFromImage(
         CanonicalCapabilityExperience projection,
         string icId,
@@ -594,24 +597,6 @@ internal sealed partial class BuiltInFirmwareInspection : IFirmwareInspection
                 commonFwVersion,
                 out postbuildProfile,
                 out _);
-    }
-
-    private static CtrlRamInspectionDisplay CreateCtrlRamInspectionDisplay(
-        string icId,
-        string number,
-        LegacyCombinerPostbuildProfile? postbuildProfile)
-    {
-        return BuiltInCtrlRamAuthoringAdapter.CreateDisplay(
-            icId,
-            number,
-            postbuildProfile,
-            hasReadableBase: true);
-    }
-
-    private static string? DetectFirmwareIcHintFromFileName(string path)
-    {
-        Match fileNameMatch = FirmwareIcHintMarker().Match(Path.GetFileNameWithoutExtension(path));
-        return fileNameMatch.Success ? $"NT{fileNameMatch.Groups["ic"].Value}" : null;
     }
 
     private static string? DetectFirmwareIcHintFromHeader(ReadOnlySpan<byte> image)

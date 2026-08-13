@@ -50,7 +50,7 @@ internal sealed partial class MergePresentationViewModel
             _standardMergeSession,
             selected,
             inspections,
-            static item => item.StandardMergeInspectionLease,
+            static item => item.InspectionLease,
             out ActiveSessionSnapshot? snapshot);
         if (completed && selected.Length > 0)
         {

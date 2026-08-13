@@ -306,14 +306,14 @@ public sealed partial class ShellNavigationSystemTests
                 TimeSpan.FromSeconds(5),
                 TestContext.Current.CancellationToken);
             Assert.False(viewModel.Replace.CanBuildReplace);
-            Assert.True(viewModel.WorkflowSession.IsFirmwareInspectionLoading);
+            Assert.True(CurrentInspection(viewModel).IsRunning);
         }
         finally
         {
             reader.ReleaseInspection.SetResult();
         }
 
-        await viewModel.WorkflowSession.FirmwareInspectionRefreshTask;
+        await CurrentInspection(viewModel).ActiveTask;
         Assert.True(viewModel.Replace.CanBuildReplace, viewModel.Replace.ReplaceReadinessStatus);
     }
 

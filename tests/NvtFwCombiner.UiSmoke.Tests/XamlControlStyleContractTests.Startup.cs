@@ -136,7 +136,7 @@ public sealed partial class XamlControlStyleContractTests
     public void CatalogWarmupUsesAccessibleRetryableForegroundLoadingSurface()
     {
         string surface = ReadPresentationFile("Views/ForegroundLoadingSurface.axaml");
-        string surfaceCode = ReadPresentationFile("Views/ForegroundLoadingSurface.axaml.cs");
+        string status = ReadPresentationFile("Resources/MainWindowSharedTemplates.axaml");
         string shell = ReadPresentationFile("MainWindow.axaml");
         string lifecycle = ReadPresentationFile("MainWindow.axaml.cs");
         string preloadSession = ReadPresentationFile("ShellPreloadSession.cs");
@@ -149,7 +149,7 @@ public sealed partial class XamlControlStyleContractTests
             openedStart,
             StringComparison.Ordinal);
         int retryStart = lifecycle.IndexOf(
-            "private async void CatalogLoadingSurface_OnRetryRequested",
+            "private Task RetryStartupPreloadAsync",
             sessionStart,
             StringComparison.Ordinal);
         int propertyChangedStart = lifecycle.IndexOf(
@@ -158,43 +158,45 @@ public sealed partial class XamlControlStyleContractTests
             StringComparison.Ordinal);
         string opened = lifecycle[openedStart..sessionStart];
         string retry = lifecycle[retryStart..propertyChangedStart];
-        var surfaceDocument = XDocument.Parse(surface);
+        var surfaceDocument = XDocument.Parse(status);
+        XElement statusTemplate = Assert.Single(surfaceDocument.Descendants(), element =>
+            element.Name.LocalName == "DataTemplate" &&
+            element.Attributes().Any(attribute => attribute.Name.LocalName == "Key" &&
+                attribute.Value == "ForegroundLoadingStatusTemplate"));
         XElement[] detailText =
         [
-            .. surfaceDocument.Descendants()
+            .. statusTemplate.Descendants()
                 .Where(element =>
                     element.Name.LocalName == "TextBlock" &&
                     (string?)element.Attribute("Text") == "{Binding Detail}"),
         ];
 
         Assert.Contains("x:DataType=\"vm:ForegroundLoadingState\"", surface, StringComparison.Ordinal);
-        Assert.Contains("AutomationProperties.LiveSetting=\"Polite\"", surface, StringComparison.Ordinal);
+        Assert.Contains("AutomationProperties.LiveSetting=\"Polite\"", status, StringComparison.Ordinal);
         Assert.Contains("AutomationProperties.Name=\"{Binding AccessibleStatus}\"", surface, StringComparison.Ordinal);
         Assert.Equal(
             1,
             CountOccurrences(surface, "AutomationProperties.Name=\"{Binding AccessibleStatus}\""));
         Assert.Contains("Background=\"{DynamicResource NfcModalScrimBrush}\"", surface, StringComparison.Ordinal);
-        Assert.Contains("<ProgressBar", surface, StringComparison.Ordinal);
-        Assert.Contains("Maximum=\"1\"", surface, StringComparison.Ordinal);
-        Assert.Contains("IsIndeterminate=\"{Binding ShouldAnimate}\"", surface, StringComparison.Ordinal);
-        Assert.Contains("Value=\"{Binding Progress}\"", surface, StringComparison.Ordinal);
-        Assert.Contains("Text=\"{Binding ProgressPercentLabel}\"", surface, StringComparison.Ordinal);
-        Assert.Contains("IsVisible=\"{Binding HasDeterminateProgress}\"", surface, StringComparison.Ordinal);
-        Assert.Contains("IsVisible=\"{Binding IsRunning}\"", surface, StringComparison.Ordinal);
-        Assert.Contains("IsVisible=\"{Binding CanRetry}\"", surface, StringComparison.Ordinal);
-        Assert.Contains("IsVisible=\"{Binding CanCancel}\"", surface, StringComparison.Ordinal);
+        Assert.Contains("ContentTemplate=\"{DynamicResource ForegroundLoadingStatusTemplate}\"", surface, StringComparison.Ordinal);
+        Assert.Contains("<ProgressBar", status, StringComparison.Ordinal);
+        Assert.Contains("Maximum=\"1\"", status, StringComparison.Ordinal);
+        Assert.Contains("IsIndeterminate=\"{Binding ShouldAnimate}\"", status, StringComparison.Ordinal);
+        Assert.Contains("Value=\"{Binding Progress}\"", status, StringComparison.Ordinal);
+        Assert.Contains("Text=\"{Binding ProgressPercentLabel}\"", status, StringComparison.Ordinal);
+        Assert.Contains("IsVisible=\"{Binding HasDeterminateProgress}\"", status, StringComparison.Ordinal);
+        Assert.Contains("IsVisible=\"{Binding IsRunning}\"", status, StringComparison.Ordinal);
+        Assert.Contains("IsVisible=\"{Binding CanRetry}\"", status, StringComparison.Ordinal);
+        Assert.Contains("IsVisible=\"{Binding CanCancel}\"", status, StringComparison.Ordinal);
+        Assert.Contains("Command=\"{Binding RetryCommand}\"", status, StringComparison.Ordinal);
+        Assert.Contains("Command=\"{Binding CancelCommand}\"", status, StringComparison.Ordinal);
         Assert.Contains("behaviors:FocusOnRevealBehavior.IsEnabled=\"True\"", surface, StringComparison.Ordinal);
         Assert.Contains("Focusable=\"True\"", surface, StringComparison.Ordinal);
         Assert.Contains("AttachedToVisualTree += Control_OnAttachedToVisualTree", focusBehavior, StringComparison.Ordinal);
         Assert.Contains("QueueFocus(control);", focusBehavior, StringComparison.Ordinal);
-        Assert.Equal(2, detailText.Length);
-        Assert.Contains(detailText, element => (string?)element.Attribute("IsVisible") == "{Binding IsRunning}");
-        Assert.Contains(
-            detailText,
-            element => element.Ancestors().Any(ancestor =>
-                (string?)ancestor.Attribute("IsVisible") == "{Binding HasFailed}"));
-        Assert.Contains("RetryRequested", surfaceCode, StringComparison.Ordinal);
-        Assert.Contains("CancelRequested", surfaceCode, StringComparison.Ordinal);
+        _ = Assert.Single(detailText);
+        Assert.DoesNotContain("RetryRequested", surface, StringComparison.Ordinal);
+        Assert.DoesNotContain("CancelRequested", surface, StringComparison.Ordinal);
         Assert.Contains("x:Name=\"CatalogLoadingSurfaceHost\"", shell, StringComparison.Ordinal);
         Assert.Contains("x:Name=\"ShellInteractionHost\"", shell, StringComparison.Ordinal);
         Assert.Contains("x:Name=\"OptionalPreloadStatusHost\"", shell, StringComparison.Ordinal);
@@ -214,8 +216,7 @@ public sealed partial class XamlControlStyleContractTests
         Assert.Contains("Click=\"OptionalPreloadCancelButton_OnClick\"", shell, StringComparison.Ordinal);
         Assert.Contains("<Grid.KeyBindings>", shell, StringComparison.Ordinal);
         Assert.DoesNotContain("<Window.KeyBindings>", shell, StringComparison.Ordinal);
-        Assert.Contains("RetryRequested=\"CatalogLoadingSurface_OnRetryRequested\"", shell, StringComparison.Ordinal);
-        Assert.Contains("CancelRequested=\"CatalogLoadingSurface_OnCancelRequested\"", shell, StringComparison.Ordinal);
+        Assert.Contains("_preloadLoading = new(RetryStartupPreloadAsync, CancelStartupAsync);", lifecycle, StringComparison.Ordinal);
         Assert.Contains("_preloadLoading.Begin(", lifecycle, StringComparison.Ordinal);
         Assert.Contains("loading.Complete();", lifecycle, StringComparison.Ordinal);
         Assert.Contains("loading.Fail(", lifecycle, StringComparison.Ordinal);
@@ -255,7 +256,7 @@ public sealed partial class XamlControlStyleContractTests
             typeof(PresentationHostServices).GetConstructors(),
                 constructor => constructor.GetParameters().Length == 9 &&
                 constructor.GetParameters()[^2].ParameterType ==
-                    typeof(global::NvtFwCombiner.Application.ExternalTools.IExternalProcessorEnvironmentLoader) &&
+                    typeof(Application.ExternalTools.IExternalProcessorEnvironmentLoader) &&
                 constructor.GetParameters()[^1].ParameterType ==
                     typeof(ILocalFileStore));
     }

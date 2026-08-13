@@ -126,7 +126,7 @@ public sealed partial class FirmwareInspectionSlotTests
         string basePath = golden.ExpectedOutputPath(golden.CaseByIc("51926"));
 
         viewModel.SetSlotFile("replace-base", basePath);
-        await viewModel.WorkflowSession.FirmwareInspectionRefreshTask;
+        await CurrentInspection(viewModel).ActiveTask;
 
         Assert.True(viewModel.Replace.ReplaceBaseSlot.HasFirmwareFacts);
         Assert.Contains(viewModel.Replace.ReplaceBaseSlot.FirmwareFacts, fact =>
@@ -160,7 +160,7 @@ public sealed partial class FirmwareInspectionSlotTests
         viewModel.Replace.SelectedReplaceMode = ExperienceIds.CtrlRamReplace;
 
         viewModel.SetSlotFile("replace-base", basePath);
-        await viewModel.WorkflowSession.FirmwareInspectionRefreshTask;
+        await CurrentInspection(viewModel).ActiveTask;
 
         Assert.Contains(viewModel.Replace.ReplaceBaseSlot.FirmwareFacts, fact =>
             fact.Label == "DP" &&
@@ -195,7 +195,7 @@ public sealed partial class FirmwareInspectionSlotTests
 
         viewModel.SetSlotFile("merge-dp", dpPath);
         viewModel.SetSlotFile("merge-tp", tpPath);
-        await viewModel.WorkflowSession.FirmwareInspectionRefreshTask;
+        await CurrentInspection(viewModel).ActiveTask;
 
         FirmwareSlotViewModel dpSlot = viewModel.Merge.MergeSlots.Single(slot => slot.SlotId == "merge-dp");
         Assert.Contains(dpSlot.FirmwareFacts, fact =>
@@ -214,7 +214,7 @@ public sealed partial class FirmwareInspectionSlotTests
         string nt51950TpPath = golden.ManifestPath(nt51950.GetProperty("inputs").GetProperty("tp-input"));
         viewModel.SetSlotFile("merge-dp", nt51950DpPath);
         viewModel.SetSlotFile("merge-tp", nt51950TpPath);
-        await viewModel.WorkflowSession.FirmwareInspectionRefreshTask;
+        await CurrentInspection(viewModel).ActiveTask;
 
         dpSlot = viewModel.Merge.MergeSlots.Single(slot => slot.SlotId == "merge-dp");
         Assert.Contains(dpSlot.FirmwareFacts, fact =>
@@ -310,17 +310,25 @@ public sealed partial class FirmwareInspectionSlotTests
             stalePath,
             TestContext.Current.CancellationToken);
         Assert.True(staleStarted.Wait(TimeSpan.FromSeconds(5), TestContext.Current.CancellationToken));
-        await viewModel.WorkflowSession.SetSlotFileAsync(
+        Task current = viewModel.WorkflowSession.SetSlotFileAsync(
             "merge-dp",
             currentPath,
             TestContext.Current.CancellationToken);
         Assert.Equal("nt51926-standard-merge-gen-flash.bin", viewModel.Merge.StandardMergeOutputFileName);
-        int notificationsAfterCurrent = notifications.Count;
+        try
+        {
+            Assert.False(current.IsCompleted);
+        }
+        finally
+        {
+            releaseStale.Set();
+        }
+        await Task.WhenAll(stale, current);
 
-        releaseStale.Set();
-        await stale;
-        Assert.Equal(notificationsAfterCurrent, notifications.Count);
         Assert.Equal("nt51926-standard-merge-gen-flash.bin", viewModel.Merge.StandardMergeOutputFileName);
+        FirmwareSlotViewModel currentSlot = viewModel.Merge.MergeSlots.Single(slot => slot.SlotId == "merge-dp");
+        Assert.Contains(currentSlot.FirmwareFacts, fact => fact.Value == "D04-04");
+        Assert.DoesNotContain(currentSlot.FirmwareFacts, fact => fact.Value == "D03-03");
     }
 
     /// <summary>An in-place BIN replacement is re-inspected before its output name is consumed.</summary>

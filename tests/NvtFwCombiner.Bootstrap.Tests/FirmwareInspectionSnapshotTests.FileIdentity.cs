@@ -15,11 +15,13 @@ public sealed partial class FirmwareInspectionSnapshotTests
         original[0] = 1;
         string path = workspace.Write("firmware.bin", original);
         IFirmwareInspection inspection = BootstrapTestHost.Services.FirmwareInspectionExperience;
+        var progress = new RecordingAuthoringInspectionProgress();
 
         FirmwareInspectionBatchResult batch = await inspection.InspectFirmwareBatchAsync(
             "NT51926",
             [new FirmwareInspectionSnapshotInput("base", path)],
-            TestContext.Current.CancellationToken);
+            TestContext.Current.CancellationToken,
+            progress);
         FirmwareConfigMetadataReadResult metadata =
             await inspection.ReadFirmwareConfigMetadataAsync(
                 "NT51926",
@@ -27,6 +29,9 @@ public sealed partial class FirmwareInspectionSnapshotTests
                 TestContext.Current.CancellationToken);
 
         Assert.True(batch.IsContentStable);
+        Assert.Equal(
+            [new AuthoringInspectionProgress(0, 1), new AuthoringInspectionProgress(1, 1)],
+            progress.Updates);
         Assert.True(metadata.IsContentStable);
         FileStamp stamp = Assert.IsType<FileStamp>(metadata.FileStamp);
         Assert.Equal(stamp, batch.FileStamps[path]);
