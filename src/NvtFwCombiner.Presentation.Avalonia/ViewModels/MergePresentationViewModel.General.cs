@@ -4,7 +4,7 @@ using NvtFwCombiner.Application.Capabilities;
 
 namespace NvtFwCombiner.Presentation.Avalonia.ViewModels;
 
-public sealed partial class MergePresentationViewModel
+internal sealed partial class MergePresentationViewModel
 {
     private IReadOnlyList<AuthoringMappingState> _generalMergeAuthoringStates = [];
     private GeneralMergeDraftState? _generalMergeDraft;

@@ -4,7 +4,7 @@ using NvtFwCombiner.Domain.Composition;
 
 namespace NvtFwCombiner.Presentation.Avalonia.ViewModels;
 
-public sealed partial class MergePresentationViewModel
+internal sealed partial class MergePresentationViewModel
 {
     internal void RefreshMergeSlotRequirements()
     {

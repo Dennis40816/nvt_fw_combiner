@@ -5,7 +5,7 @@ using NvtFwCombiner.Presentation.Avalonia.HexViewport;
 namespace NvtFwCombiner.Presentation.Avalonia.ViewModels;
 
 /// <summary>Range-bound, read-only replay of Report before/output bytes.</summary>
-public sealed partial class ReportHexDiffViewModel : ObservableObject
+internal sealed partial class ReportHexDiffViewModel : ObservableObject
 {
     private readonly CompositionRunInspectionSnapshot? _verifiedSnapshot;
     private readonly ReportHexDiffSource _source;
@@ -55,10 +55,8 @@ public sealed partial class ReportHexDiffViewModel : ObservableObject
         }
     }
 
-    /// <summary>True when the current report selection has complete, trusted replay bytes.</summary>
     public bool IsAvailable { get; private set; }
 
-    /// <summary>Short complete/replay/unavailable state.</summary>
     public string AvailabilityTitle { get; private set; } = string.Empty;
 
     /// <summary>Why the currently selected range can or cannot be replayed.</summary>
@@ -67,13 +65,11 @@ public sealed partial class ReportHexDiffViewModel : ObservableObject
     /// <summary>True when the selected viewport uses exact bytes persisted in the report.</summary>
     public bool IsReportedRangeMode { get; private set; }
 
-    /// <summary>True when the selected viewport contains at least one byte row.</summary>
     public bool HasViewportBytes => ViewportSnapshot.Rows.Count > 0;
 
     /// <summary>True when the selected report range cannot expose replay bytes.</summary>
     public bool HasNoViewportBytes => !HasViewportBytes;
 
-    /// <summary>True when at least one reported difference belongs in the sole Hex Diff workspace.</summary>
     public bool HasDifferenceWorkspace { get; }
 
     /// <summary>Application-owned compiled output address space.</summary>
@@ -85,7 +81,6 @@ public sealed partial class ReportHexDiffViewModel : ObservableObject
     /// <summary>Declared output byte count used only for checked replay bounds.</summary>
     public int TotalByteCount { get; }
 
-    /// <summary>Total logical output row count; whole-document navigation is not exposed.</summary>
     public int TotalRowCount { get; }
 
     /// <summary>Immutable input consumed by the shared #191 renderer.</summary>
@@ -154,7 +149,6 @@ public sealed partial class ReportHexDiffViewModel : ObservableObject
         }
     }
 
-    /// <summary>Last admitted start row inside the selected replay segment.</summary>
     public int RangeScrollMaximum { get; private set; }
 
     /// <summary>Controls the optional immutable comparison plane; defaults off.</summary>

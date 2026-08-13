@@ -1,7 +1,7 @@
 namespace NvtFwCombiner.Presentation.Avalonia.ViewModels;
 
 /// <summary>Readable UI projection of a CLI/application run report JSON file.</summary>
-public sealed partial class ReportReviewViewModel
+internal sealed partial class ReportReviewViewModel
 {
     private readonly bool? outputCommitted;
     private readonly OutputDifferenceProjection _outputDifferenceProjection;
@@ -113,7 +113,6 @@ public sealed partial class ReportReviewViewModel
         IssuePage = ReportPagedListViewModel.Create(Issues, 40, language);
     }
 
-    /// <summary>Empty report sentinel.</summary>
     public static ReportReviewViewModel Empty { get; } = new(
         true,
         string.Empty,
@@ -141,6 +140,5 @@ public sealed partial class ReportReviewViewModel
         OutputDifferenceProjection.Empty,
         []);
 
-    /// <summary>UTF-8 report size already observed by the background JSON projection.</summary>
     internal long? ReportJsonUtf8ByteCount { get; }
 }

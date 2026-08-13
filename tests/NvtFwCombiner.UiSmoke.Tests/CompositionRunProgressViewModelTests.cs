@@ -264,10 +264,11 @@ public sealed class CompositionRunProgressViewModelTests
 
     /// <summary>Every stable Application phase has localized sighted and assistive labels.</summary>
     [Theory]
-    [InlineData(ShellLanguage.English)]
-    [InlineData(ShellLanguage.ChineseTraditional)]
-    public void EveryApplicationPhaseHasLocalizedAccessibleText(ShellLanguage language)
+    [InlineData("English")]
+    [InlineData("ChineseTraditional")]
+    public void EveryApplicationPhaseHasLocalizedAccessibleText(string languageName)
     {
+        ShellLanguage language = Enum.Parse<ShellLanguage>(languageName);
         foreach (CompositionRunPhase phase in Enum.GetValues<CompositionRunPhase>())
         {
             var progress = new CompositionRunProgressViewModel(language);

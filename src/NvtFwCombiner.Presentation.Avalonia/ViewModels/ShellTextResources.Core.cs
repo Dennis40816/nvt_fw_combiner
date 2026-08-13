@@ -3,7 +3,7 @@
 
 namespace NvtFwCombiner.Presentation.Avalonia.ViewModels;
 
-public sealed partial class ShellTextResources
+internal sealed partial class ShellTextResources
 {
     public ShellLanguage Language { get; private init; }
 
@@ -28,6 +28,32 @@ public sealed partial class ShellTextResources
     public string RetryLabel { get; private init; } = string.Empty;
 
     public string CancelStartupLabel { get; private init; } = string.Empty;
+
+    public string PreloadStatusTitle { get; private init; } = string.Empty;
+
+    public string PreloadHistoryTitle { get; private init; } = string.Empty;
+
+    public string PreloadReportTitle { get; private init; } = string.Empty;
+
+    public string PreloadViewsTitle { get; private init; } = string.Empty;
+
+    public string PreloadPendingDetail { get; private init; } = string.Empty;
+
+    public string PreloadBlockedDetail { get; private init; } = string.Empty;
+
+    public string PreloadRunningDetail { get; private init; } = string.Empty;
+
+    public string PreloadSucceededDetail { get; private init; } = string.Empty;
+
+    public string PreloadFailedDetail { get; private init; } = string.Empty;
+
+    public string PreloadSkippedDetail { get; private init; } = string.Empty;
+
+    public string PreloadCancelledDetail { get; private init; } = string.Empty;
+
+    public string SkipPreloadLabel { get; private init; } = string.Empty;
+
+    public string CancelPreloadLabel { get; private init; } = string.Empty;
 
     public string WorkspaceTitle { get; private init; } = string.Empty;
 

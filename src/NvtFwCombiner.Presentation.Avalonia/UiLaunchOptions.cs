@@ -3,7 +3,7 @@ using NvtFwCombiner.Presentation.Avalonia.ViewModels;
 namespace NvtFwCombiner.Presentation.Avalonia;
 
 /// <summary>Command-line options that put the UI shell into a reviewable startup state.</summary>
-public sealed class UiLaunchOptions
+internal sealed class UiLaunchOptions
 {
     private UiLaunchOptions(
         ShellPage? page,

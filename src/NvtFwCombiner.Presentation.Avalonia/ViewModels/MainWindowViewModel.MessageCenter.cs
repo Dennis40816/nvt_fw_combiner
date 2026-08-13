@@ -3,23 +3,18 @@ using System.ComponentModel;
 
 namespace NvtFwCombiner.Presentation.Avalonia.ViewModels;
 
-public sealed partial class MainWindowViewModel
+internal sealed partial class MainWindowViewModel
 {
-    /// <summary>Compact reports and refreshable System Information entry.</summary>
     public MessageCenterViewModel MessageCenter { get; }
 
-    /// <summary>True when a typed Merge blocker should own the focusable warning affordance.</summary>
     public bool HasMergeBuildBlocker => !Merge.CanBuildMerge &&
         (MessageCenter.IsGlobalBuildBlocked || Merge.PrimaryBuildBlocker is not null);
 
-    /// <summary>Highest-priority global or Merge-local actionable blocker text.</summary>
     public string MergeBuildBlockerText => FormatBuildBlocker(Merge.PrimaryBuildBlocker);
 
-    /// <summary>True when a typed Replace blocker should own the focusable warning affordance.</summary>
     public bool HasReplaceBuildBlocker => !Replace.CanBuildReplace &&
         (MessageCenter.IsGlobalBuildBlocked || Replace.PrimaryBuildBlocker is not null);
 
-    /// <summary>Highest-priority global or Replace-local actionable blocker text.</summary>
     public string ReplaceBuildBlockerText => FormatBuildBlocker(Replace.PrimaryBuildBlocker);
 
     private string FormatBuildBlocker(CapabilityActionBlocker? local)
@@ -43,11 +38,11 @@ public sealed partial class MainWindowViewModel
             WorkflowSession.RefreshCanonicalCatalogState();
         }
 
-        RefreshCommandState();
-        OnPropertyChanged(nameof(HasMergeBuildBlocker));
-        OnPropertyChanged(nameof(MergeBuildBlockerText));
-        OnPropertyChanged(nameof(HasReplaceBuildBlocker));
-        OnPropertyChanged(nameof(ReplaceBuildBlockerText));
+        PresentationObserver.Invoke(RefreshCommandState);
+        PresentationObserver.Invoke(() => OnPropertyChanged(nameof(HasMergeBuildBlocker)));
+        PresentationObserver.Invoke(() => OnPropertyChanged(nameof(MergeBuildBlockerText)));
+        PresentationObserver.Invoke(() => OnPropertyChanged(nameof(HasReplaceBuildBlocker)));
+        PresentationObserver.Invoke(() => OnPropertyChanged(nameof(ReplaceBuildBlockerText)));
     }
 
     private void MessageCenter_OnPropertyChanged(

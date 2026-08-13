@@ -5,7 +5,7 @@ using NvtFwCombiner.Application.HexEditor;
 namespace NvtFwCombiner.Presentation.Avalonia.ViewModels;
 
 /// <summary>Available raw-memory writes for the selected inclusive Hex Editor range.</summary>
-public enum HexEditorRangeWriteMode
+internal enum HexEditorRangeWriteMode
 {
     /// <summary>Write the supplied byte sequence from Start without crossing End.</summary>
     Overwrite,
@@ -14,7 +14,7 @@ public enum HexEditorRangeWriteMode
     Fill,
 }
 
-public sealed partial class HexEditorWorkspaceViewModel
+internal sealed partial class HexEditorWorkspaceViewModel
 {
     /// <summary>Selected range-write behavior in the inspector.</summary>
     [ObservableProperty]
@@ -31,7 +31,6 @@ public sealed partial class HexEditorWorkspaceViewModel
     [NotifyPropertyChangedFor(nameof(EditNotice))]
     public partial string EditFeedback { get; set; } = string.Empty;
 
-    /// <summary>True when Edit Region has a validation message that needs direct attention.</summary>
     public bool HasEditFeedback => !string.IsNullOrWhiteSpace(EditFeedback);
 
     /// <summary>Gets or sets whether the inspector repeats one byte across the range.</summary>
@@ -43,12 +42,10 @@ public sealed partial class HexEditorWorkspaceViewModel
             : HexEditorRangeWriteMode.Overwrite;
     }
 
-    /// <summary>Localized compact label displayed beside the binary write-mode switch.</summary>
     public string CurrentWriteModeLabel => IsFillModeSelected
         ? Text.HexEditorFillModeLabel
         : Text.HexEditorOverwriteModeLabel;
 
-    /// <summary>Localized explanation shown when hovering the write-mode switch.</summary>
     public string CurrentWriteModeTooltip => IsFillModeSelected
         ? Text.HexEditorFillModeTooltip
         : Text.HexEditorOverwriteModeTooltip;
@@ -58,7 +55,6 @@ public sealed partial class HexEditorWorkspaceViewModel
         ? Text.HexEditorFillGuidance
         : Text.HexEditorOverwriteGuidance;
 
-    /// <summary>One stable inspector notice: active-mode guidance normally, or the latest edit error.</summary>
     public string EditNotice => HasEditFeedback ? EditFeedback : EditGuidance;
 
     partial void OnRangeWriteModeChanged(HexEditorRangeWriteMode value)

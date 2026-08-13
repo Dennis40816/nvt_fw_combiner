@@ -1,9 +1,8 @@
 namespace NvtFwCombiner.Presentation.Avalonia.ViewModels;
 
 /// <summary>One readable before/after memory-map row shown on Merge and Replace pages.</summary>
-public sealed class MemoryMapRowViewModel
+internal sealed class MemoryMapRowViewModel
 {
-    /// <summary>Creates a memory-map display row.</summary>
     public MemoryMapRowViewModel(
         string rangeLabel,
         string beforeSource,
@@ -37,7 +36,6 @@ public sealed class MemoryMapRowViewModel
     /// <summary>Source or state after the workflow operation.</summary>
     public string AfterSource { get; }
 
-    /// <summary>Readable primary label for dense plan rows.</summary>
     public string PrimaryLabel { get; }
 
     /// <summary>Compact before/after source summary.</summary>

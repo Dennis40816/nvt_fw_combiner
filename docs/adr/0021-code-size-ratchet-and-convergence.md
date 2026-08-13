@@ -255,8 +255,11 @@ history and every anti-gaming invariant.
 The same amendment freezes exact descending ratchets at the five measured
 values above: total 74,325, Domain + Profiles 24,953, Application 23,671,
 Bootstrap + CLI 18,670, and Infrastructure + Contracts + CRC worker 7,031.
-Every Core PR must lower each affected ratchet in the same commit; therefore an
-equivalent cross-slice relocation fails on the receiving slice. The four slice
+Every Core PR must lower each affected ratchet in the same commit except for a
+dated, named, non-transferable owner amendment such as PL-02 or PL-04; therefore
+an equivalent cross-slice relocation fails on the receiving slice. Each named
+exception freezes its exact replacement ratchets immediately and cannot fund a
+later PR. The four slice
 measurements must also sum exactly to the runtime total, so a new unallocated
 runtime project fails rather than becoming a fifth ownership bucket.
 
@@ -276,7 +279,8 @@ acceptance or release gates.
 The completion contract is now:
 
 - exact total and four-slice descending ratchets remain mandatory, and every
-  Core PR lowers each affected slice and the total in the same commit;
+  Core PR lowers each affected slice and the total in the same commit except
+  for an explicitly named, dated, non-transferable owner amendment;
 - each slice maintains a line-addressed, non-overlapping candidate ledger;
 - every mutually compatible, evidence-backed, in-scope candidate with a
   proportionate implementation, verification, and evidence cost and a
@@ -409,6 +413,27 @@ excluded-to-counted relocation without a new owner decision, or satisfy the
 full-production reduction through minification, test/evidence deletion, or
 hidden code. All architecture, report-wire, coverage, firmware, Golden, and
 release gates remain intact.
+
+### 2026-08-13 PL-04 truthful-progress amendment
+
+PL-04 (#376) must show startup-report bytes over the bounded local-file read's
+stable admitted total. The PL-02 port and adapter owned the read but exposed no
+progress contract, so satisfying ADR 0049 requires a focused typed observer in
+the counted Application and Infrastructure slices rather than a duplicate
+Presentation reader.
+
+The owner accepts this one non-transferable rebaseline: preserving the complete
+lifecycle implementation and the non-obvious contract documentation required
+by Decision 31 changes full production from 97,297 to 97,426, while runtime
+changes from 67,371 to 67,404.
+Application becomes 29,410 and Infrastructure plus Contracts plus CRC worker
+becomes 14,108; Domain plus Profiles remains 20,619 and Bootstrap plus CLI plus
+Desktop remains 3,267. The added contract also keeps observer exceptions
+distinct from source failures. These values are exact descending ratchets after
+PL-04. The +129 full-production and +33 runtime deltas create no reusable
+allowance, authorize no cross-slice relocation, and do not weaken firmware,
+report-wire, Golden, coverage, or release gates. Every later PR resumes from
+these exact descending ratchets.
 
 Documentation consolidation is legitimate only when it removes boilerplate or
 moves repeated information to its canonical owner. XML summaries that merely

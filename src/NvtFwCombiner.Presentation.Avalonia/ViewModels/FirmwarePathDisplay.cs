@@ -3,7 +3,6 @@ namespace NvtFwCombiner.Presentation.Avalonia.ViewModels;
 /// <summary>Formats local firmware paths consistently for display without changing the selected artifact path.</summary>
 internal static class FirmwarePathDisplay
 {
-    /// <summary>Returns an absolute local path using the platform display separator.</summary>
     internal static string Normalize(string path)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(path);

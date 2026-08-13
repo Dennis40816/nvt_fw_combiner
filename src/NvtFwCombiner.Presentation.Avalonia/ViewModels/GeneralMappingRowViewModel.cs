@@ -3,12 +3,10 @@ using NvtFwCombiner.Application.Authoring;
 
 namespace NvtFwCombiner.Presentation.Avalonia.ViewModels;
 
-/// <summary>Shared file and list state for one General mapping row.</summary>
-public abstract partial class GeneralMappingRowViewModel : ObservableObject
+internal abstract partial class GeneralMappingRowViewModel : ObservableObject
 {
     private readonly ShellTextResources _text;
 
-    /// <summary>Creates shared mapping-row state.</summary>
     protected GeneralMappingRowViewModel(
         string mappingId,
         int index,
@@ -24,52 +22,37 @@ public abstract partial class GeneralMappingRowViewModel : ObservableObject
         _text = text ?? ShellTextResources.For(ShellLanguage.English);
     }
 
-    /// <summary>Stable row id used by browse/drop handlers.</summary>
     public string MappingId { get; }
 
-    /// <summary>One-based row number displayed to the user.</summary>
     public int Index { get; private set; }
 
-    /// <summary>Displayed file name or empty-slot state.</summary>
     public virtual string DisplayName => HasFile ? Path.GetFileName(FilePath!) : field;
 
-    /// <summary>Displayed selected file path.</summary>
     public virtual string DisplayDetail => HasFile ? FirmwarePathDisplay.Normalize(FilePath!) : string.Empty;
 
-    /// <summary>True when a local input file is selected.</summary>
     public bool HasFile => !string.IsNullOrWhiteSpace(FilePath);
 
-    /// <summary>True when this row has a file or inline source ready for validation.</summary>
     public virtual bool HasSource => HasFile;
 
-    /// <summary>True when this row currently uses the shared BIN picker.</summary>
     public virtual bool UsesFileSource => true;
 
-    /// <summary>True when this row currently uses an inline hexadecimal source.</summary>
     public virtual bool UsesInlineSource => false;
 
-    /// <summary>Compact non-color source-kind marker.</summary>
     public virtual string SourceKindIcon => "BIN";
 
     /// <summary>Accepted identity of the currently selected file bytes.</summary>
     public FileStamp? AcceptedFileStamp { get; private set; }
 
-    /// <summary>Current typed selected-file issue projected from Application.</summary>
     public GeneralSelectedFileInspectionIssue? InspectionIssue { get; private set; }
 
-    /// <summary>True when the canonical workflow prerequisites permit selecting a BIN.</summary>
     public bool CanSelectFile { get; private set; } = true;
 
-    /// <summary>Explains why BIN selection is currently unavailable.</summary>
     public string FileSelectionAvailabilityMessage { get; private set; } = string.Empty;
 
-    /// <summary>True when a prerequisite keeps the BIN input pending.</summary>
     public bool IsFileSelectionPending => UsesFileSource && !CanSelectFile;
 
-    /// <summary>True when Application rejected the selected file with a typed issue.</summary>
     public bool HasInspectionIssue => InspectionIssue is not null;
 
-    /// <summary>Human-readable typed inspection failure projected from Application.</summary>
     public string InspectionIssueMessage => InspectionIssue is { } issue
         ? _text.GetGeneralSelectedFileInspectionIssue(issue)
         : string.Empty;
@@ -77,29 +60,22 @@ public abstract partial class GeneralMappingRowViewModel : ObservableObject
     /// <summary>Application-owned draft or admission blocker for this mapping row.</summary>
     public string AuthoringIssueMessage { get; private set; } = string.Empty;
 
-    /// <summary>True when canonical draft or admission validation rejected this mapping.</summary>
     public bool HasAuthoringIssue => !string.IsNullOrEmpty(AuthoringIssueMessage);
 
-    /// <summary>True when either input inspection or authoring admission blocks this row.</summary>
     public bool HasIssue => HasInspectionIssue || HasAuthoringIssue;
 
-    /// <summary>Current canonical row issue, preferring authoring admission over file inspection.</summary>
     public string IssueMessage => HasAuthoringIssue
         ? AuthoringIssueMessage
         : InspectionIssueMessage;
 
-    /// <summary>True while the row displays its empty-slot guidance.</summary>
     public bool IsGuidanceVisible => !HasSource;
 
-    /// <summary>Editable source start; From File Start rows keep this at zero.</summary>
     [ObservableProperty]
     public partial string SourceStartAddress { get; set; } = "0x00000";
 
-    /// <summary>Editable target start inside the output image.</summary>
     [ObservableProperty]
     public partial string TargetStartAddress { get; set; } = "0x00000";
 
-    /// <summary>Editable positive byte length shared by Merge and Replace.</summary>
     [ObservableProperty]
     public partial string Length { get; set; } = "0x00000";
 
@@ -192,7 +168,6 @@ public abstract partial class GeneralMappingRowViewModel : ObservableObject
         OnPropertyChanged(nameof(IssueMessage));
     }
 
-    /// <summary>Selected local input file path.</summary>
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(HasFile))]
     [NotifyPropertyChangedFor(nameof(HasSource))]

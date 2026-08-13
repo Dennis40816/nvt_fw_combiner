@@ -2,9 +2,8 @@ using System.ComponentModel;
 
 namespace NvtFwCombiner.Presentation.Avalonia.ViewModels;
 
-public sealed partial class MainWindowViewModel
+internal sealed partial class MainWindowViewModel
 {
-    /// <summary>Focused successful Build-result and latest-output presentation.</summary>
     public BuildResultViewModel BuildResult { get; }
 
     internal bool TryShowBuildCompleted(CompositionRunResult result, bool build)

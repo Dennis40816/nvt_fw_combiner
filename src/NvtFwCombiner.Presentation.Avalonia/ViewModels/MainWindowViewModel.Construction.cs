@@ -7,7 +7,7 @@ using NvtFwCombiner.Domain.Composition;
 
 namespace NvtFwCombiner.Presentation.Avalonia.ViewModels;
 
-public sealed partial class MainWindowViewModel
+internal sealed partial class MainWindowViewModel
 {
     private const string DpReplaceMode = ExperienceIds.DpReplace;
     private const string CtrlRamReplaceMode = ExperienceIds.CtrlRamReplace;
@@ -22,7 +22,6 @@ public sealed partial class MainWindowViewModel
     private readonly ISystemInformationService _systemInformationService;
     private readonly bool _isInitializing = true;
 
-    /// <summary>Initializes the main desktop view model.</summary>
     internal MainWindowViewModel(
         string shellVersion,
         string appVersion,

@@ -5,7 +5,7 @@ using CommunityToolkit.Mvvm.Input;
 namespace NvtFwCombiner.Presentation.Avalonia.ViewModels;
 
 /// <summary>Bounded report-detail window that materializes more UI rows only when requested.</summary>
-public sealed class ReportPagedListViewModel : ObservableObject
+internal sealed class ReportPagedListViewModel : ObservableObject
 {
     private readonly IReadOnlyList<object> _allItems;
     private readonly ObservableCollection<object> _items = [];
@@ -32,16 +32,12 @@ public sealed class ReportPagedListViewModel : ObservableObject
         }
     }
 
-    /// <summary>Rows currently materialized for Avalonia controls.</summary>
     public ReadOnlyObservableCollection<object> Items { get; }
 
-    /// <summary>Total rows retained by the complete report projection.</summary>
     public int TotalCount => _allItems.Count;
 
-    /// <summary>Rows currently visible to controls.</summary>
     public int VisibleCount => Items.Count;
 
-    /// <summary>Rows still hidden behind the explicit paging action.</summary>
     public int RemainingCount => TotalCount - VisibleCount;
 
     /// <summary>True when another bounded row page is available.</summary>

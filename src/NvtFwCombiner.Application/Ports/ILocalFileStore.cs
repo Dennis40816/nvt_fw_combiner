@@ -10,8 +10,12 @@ public interface ILocalFileStore
         Func<Stream, CancellationToken, ValueTask<T>> project,
         CancellationToken cancellationToken);
 
-    /// <summary>Reads one stable bounded path as UTF text.</summary>
-    ValueTask<string> ReadTextAsync(string path, long maximumBytes, CancellationToken cancellationToken);
+    /// <summary>Reads one stable bounded path as UTF text; progress is monotonic with a stable admitted total.</summary>
+    ValueTask<string> ReadTextAsync(
+        string path,
+        long maximumBytes,
+        CancellationToken cancellationToken,
+        Action<LocalFileReadProgress>? progress = null);
 
     /// <summary>Reads one storage-provider stream as bounded UTF text.</summary>
     ValueTask<string> ReadTextAsync(
@@ -22,6 +26,9 @@ public interface ILocalFileStore
     /// <summary>Atomically replaces one local file.</summary>
     ValueTask WriteAsync(string path, ReadOnlyMemory<byte> bytes, CancellationToken cancellationToken);
 }
+
+/// <summary>Admitted text bytes consumed so far; total remains stable and progress is monotonic.</summary>
+public readonly record struct LocalFileReadProgress(long BytesRead, long TotalBytes);
 
 /// <summary>A local file could not be admitted or read safely.</summary>
 public class LocalFileReadException(string message, Exception? innerException = null)

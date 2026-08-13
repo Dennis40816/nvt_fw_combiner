@@ -5,7 +5,7 @@ using NvtFwCombiner.Application.HexEditor;
 
 namespace NvtFwCombiner.Presentation.Avalonia.ViewModels;
 
-public sealed partial class HexEditorWorkspaceViewModel
+internal sealed partial class HexEditorWorkspaceViewModel
 {
     private const int ChangedBlockPageSize = 64;
     private const double HexViewportRowHeight = 25;
@@ -17,32 +17,26 @@ public sealed partial class HexEditorWorkspaceViewModel
     /// <summary>Bounded display window over every contiguous edited block in current address order.</summary>
     public ReportWindowedListViewModel ChangedBlockPage { get; private set; }
 
-    /// <summary>Logical raw-document rows projected per viewport; original rows share the same fixed height.</summary>
     private int ViewportRowCount => CalculateViewportRowCount();
 
     /// <summary>Current physical height reserved for the bounded document and compact change inspector.</summary>
     [ObservableProperty]
     public partial double HexViewportHeight { get; private set; } = 300;
 
-    /// <summary>Number of contiguous current-buffer regions that differ from the loaded document.</summary>
     public int ChangedBlockCount => _changedRanges.Count;
 
-    /// <summary>True when a changed region can be selected from the compact inspector control.</summary>
     public bool HasChangedBlocks => ChangedBlockCount > 0;
 
     /// <summary>True before the first retained in-memory difference exists.</summary>
     public bool HasNoChangedBlocks => !HasChangedBlocks;
 
-    /// <summary>Localized assistive label that exposes both the Next action and the complete block count.</summary>
     public string ChangedBlockNavigationAccessibleLabel => string.Format(
         CultureInfo.InvariantCulture,
         Text.HexEditorChangedBlockNavigationAccessibleTemplate,
         ChangedBlockCount);
 
-    /// <summary>Cycles through edited regions and frames the next region in the document viewport.</summary>
     public IRelayCommand SelectNextChangedBlockCommand { get; }
 
-    /// <summary>Frames one selected edited block from the inspector list.</summary>
     public IRelayCommand<HexEditorChangedBlockViewModel> SelectChangedBlockCommand { get; }
 
     /// <summary>Moves the document viewport to the first current address in one edited block.</summary>
@@ -421,8 +415,7 @@ public sealed partial class HexEditorWorkspaceViewModel
     }
 }
 
-/// <summary>One human-readable navigation row for a contiguous raw-memory change.</summary>
-public sealed record HexEditorChangedBlockViewModel(
+internal sealed record HexEditorChangedBlockViewModel(
     int Index,
     string StartAddress,
     string EndAddress,
@@ -430,7 +423,6 @@ public sealed record HexEditorChangedBlockViewModel(
     RawBinaryEditorChangeKind ChangeKind,
     string ReasonTooltip)
 {
-    /// <summary>One-based compact row identifier.</summary>
     public string IndexLabel => FormattableString.Invariant($"{Index + 1:00}");
 
     /// <summary>Inclusive hexadecimal address span shown in the inspector.</summary>

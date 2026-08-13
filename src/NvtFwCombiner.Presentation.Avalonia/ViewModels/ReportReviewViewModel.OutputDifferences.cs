@@ -4,7 +4,7 @@ using NvtFwCombiner.Contracts.Reports;
 
 namespace NvtFwCombiner.Presentation.Avalonia.ViewModels;
 
-public sealed partial class ReportReviewViewModel
+internal sealed partial class ReportReviewViewModel
 {
     private const int MaximumRenderedHexPreviewBytes = 64;
 

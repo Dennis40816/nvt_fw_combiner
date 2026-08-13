@@ -1,6 +1,7 @@
 using System.Text.Json;
 using NvtFwCombiner.Application.Authoring;
 using NvtFwCombiner.Domain.Composition;
+using NvtFwCombiner.Presentation.Avalonia;
 using NvtFwCombiner.Presentation.Avalonia.ViewModels;
 using NvtFwCombiner.TestSupport;
 
@@ -166,8 +167,35 @@ public sealed partial class RunAndHexEditorTests
                 TimeSpan.FromSeconds(5),
                 TestContext.Current.CancellationToken);
             usedStaticProgress = viewModel.RunSession.IsRunInProgress && !viewModel.RunSession.ShouldAnimateRunProgress;
+            bool materialized = false;
+            Assert.False(MainWindow.TryApplyWarmupStep(
+                () => materialized = true,
+                viewModel.RunSession,
+                static () => true));
+            Assert.False(materialized);
+            using var preloadCancellation = new CancellationTokenSource();
+            Task cancelledPreload = MainWindow.WaitForRunIdleAsync(
+                viewModel.RunSession,
+                preloadCancellation.Token);
+            preloadCancellation.Cancel();
+            _ = await Assert.ThrowsAnyAsync<OperationCanceledException>(async () => await cancelledPreload);
+            Assert.True(viewModel.RunSession.IsRunInProgress);
+            Task operatorPriorityWait = MainWindow.WaitForRunIdleAsync(
+                viewModel.RunSession,
+                TestContext.Current.CancellationToken);
             viewModel.RunSession.CancelActiveRun();
             await runTask;
+            await operatorPriorityWait;
+            Assert.False(MainWindow.TryApplyWarmupStep(
+                () => materialized = true,
+                viewModel.RunSession,
+                static () => false));
+            Assert.False(materialized);
+            Assert.True(MainWindow.TryApplyWarmupStep(
+                () => materialized = true,
+                viewModel.RunSession,
+                static () => true));
+            Assert.True(materialized);
         });
 
         Assert.False(viewModel.RunSession.IsRunInProgress);
@@ -444,13 +472,14 @@ public sealed partial class RunAndHexEditorTests
 
     /// <summary>The global progress surface names the active Preview or Build in the selected language.</summary>
     [Theory]
-    [InlineData(ShellLanguage.English, "Preview in progress", "Build in progress")]
-    [InlineData(ShellLanguage.ChineseTraditional, "正在預覽", "正在建立")]
+    [InlineData("English", "Preview in progress", "Build in progress")]
+    [InlineData("ChineseTraditional", "正在預覽", "正在建立")]
     public async Task CompositionProgressNamesTheActiveAction(
-        ShellLanguage language,
+        string languageName,
         string previewLabel,
         string buildLabel)
     {
+        ShellLanguage language = Enum.Parse<ShellLanguage>(languageName);
         using var golden = StandardMergeGoldenManifest.Load();
         JsonElement goldenCase = golden.CaseByIc("51926");
         using var workspace = TempWorkspace.Create("nvt-fw-combiner-ui-run-progress");

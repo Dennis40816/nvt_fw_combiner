@@ -6,8 +6,7 @@ using NvtFwCombiner.Domain.Composition;
 
 namespace NvtFwCombiner.Presentation.Avalonia.ViewModels;
 
-/// <summary>Focused Settings catalog/status presentation.</summary>
-public sealed partial class SettingsViewModel : ObservableObject
+internal sealed partial class SettingsViewModel : ObservableObject
 {
     private readonly string _appVersion;
     private readonly Func<ShellTextResources> _textProvider;
@@ -25,33 +24,25 @@ public sealed partial class SettingsViewModel : ObservableObject
         CloseSupportMatrixCommand = new RelayCommand(CloseSupportMatrix);
     }
 
-    /// <summary>Version and supported-workflow facts shown on Settings.</summary>
     public ObservableCollection<SettingSummaryViewModel> OverviewRows { get; } = [];
 
-    /// <summary>Catalog capability and external-tool facts shown on Settings.</summary>
     public ObservableCollection<SettingSummaryViewModel> CapabilityRows { get; } = [];
 
-    /// <summary>Theme choices rendered by the global shell preference selector.</summary>
     public IReadOnlyList<string> ThemeChoices { get; } = ["System", "Light", "Dark"];
 
-    /// <summary>Language choices rendered by the global shell preference selector.</summary>
     public IReadOnlyList<string> LanguageChoices { get; } = ["English", "Traditional Chinese"];
 
     /// <summary>Focused immutable Support Matrix disclosure.</summary>
     public SupportMatrixPresentationViewModel SupportMatrix { get; }
 
-    /// <summary>Opens the focused Support Matrix child.</summary>
     public IRelayCommand OpenSupportMatrixCommand { get; }
 
-    /// <summary>Returns to the Settings overview.</summary>
     public IRelayCommand CloseSupportMatrixCommand { get; }
 
-    /// <summary>Whether the focused Support Matrix child is visible.</summary>
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(IsOverviewVisible))]
     public partial bool IsSupportMatrixOpen { get; private set; }
 
-    /// <summary>Whether the Settings overview is visible.</summary>
     public bool IsOverviewVisible => !IsSupportMatrixOpen;
 
     internal void Refresh(ShellTextResources text)

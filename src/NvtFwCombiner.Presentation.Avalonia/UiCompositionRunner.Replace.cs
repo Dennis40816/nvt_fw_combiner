@@ -5,10 +5,10 @@ using NvtFwCombiner.Presentation.Avalonia.ViewModels;
 
 namespace NvtFwCombiner.Presentation.Avalonia;
 
-public static partial class UiCompositionRunner
+internal static partial class UiCompositionRunner
 {
     /// <summary>Projects visible CtrlRAM rows from an already-read inspection snapshot.</summary>
-    public static IReadOnlyList<CtrlRamRegionViewModel> GetCtrlRamRegions(
+    internal static IReadOnlyList<CtrlRamRegionViewModel> GetCtrlRamRegions(
         IReadOnlyList<CtrlRamRegion> regions)
     {
         ArgumentNullException.ThrowIfNull(regions);
@@ -23,7 +23,7 @@ public static partial class UiCompositionRunner
     }
 
     /// <summary>Projects DP Replace input slots from compiler-owned discovery.</summary>
-    public static IReadOnlyList<FirmwareSlotViewModel> GetDpReplaceInputSlots(
+    internal static IReadOnlyList<FirmwareSlotViewModel> GetDpReplaceInputSlots(
         CompiledAuthoringSelectionSnapshot selection)
     {
         ArgumentNullException.ThrowIfNull(selection);
@@ -67,7 +67,7 @@ public static partial class UiCompositionRunner
     }
 
     /// <summary>Projects CtrlRAM input slots from an already-read inspection snapshot.</summary>
-    public static IReadOnlyList<FirmwareSlotViewModel> GetCtrlRamReplaceInputSlots(
+    internal static IReadOnlyList<FirmwareSlotViewModel> GetCtrlRamReplaceInputSlots(
         IReadOnlyList<ReplaceInputSlot> slots)
     {
         ArgumentNullException.ThrowIfNull(slots);

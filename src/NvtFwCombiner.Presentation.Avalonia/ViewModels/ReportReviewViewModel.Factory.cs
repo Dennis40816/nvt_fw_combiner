@@ -3,13 +3,12 @@ using System.Text.Json;
 
 namespace NvtFwCombiner.Presentation.Avalonia.ViewModels;
 
-public sealed partial class ReportReviewViewModel
+internal sealed partial class ReportReviewViewModel
 {
     private static readonly Encoding StrictUtf8 = new UTF8Encoding(
         encoderShouldEmitUTF8Identifier: false,
         throwOnInvalidBytes: true);
 
-    /// <summary>Loads a readable report model from run report JSON.</summary>
     public static ReportReviewViewModel FromJson(
         string json,
         string sourceName,

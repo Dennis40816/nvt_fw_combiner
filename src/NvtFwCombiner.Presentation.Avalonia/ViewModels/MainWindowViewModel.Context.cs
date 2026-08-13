@@ -2,7 +2,7 @@ using System.ComponentModel;
 
 namespace NvtFwCombiner.Presentation.Avalonia.ViewModels;
 
-public sealed partial class MainWindowViewModel
+internal sealed partial class MainWindowViewModel
 {
     private void SelectReplaceMode(string mode)
     {

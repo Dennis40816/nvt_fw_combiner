@@ -3,14 +3,13 @@ using NvtFwCombiner.Application.HexEditor;
 
 namespace NvtFwCombiner.Presentation.Avalonia.ViewModels;
 
-public sealed partial class HexEditorWorkspaceViewModel
+internal sealed partial class HexEditorWorkspaceViewModel
 {
     private IReadOnlyList<long> _asciiMatches = [];
     private int _asciiMatchIndex = -1;
     private int _asciiMatchCount;
     private int _asciiSearchLength;
 
-    /// <summary>Compact current-result indicator for a repeated ASCII search.</summary>
     public string AsciiSearchResultLabel => _asciiMatchIndex >= 0
         ? string.Format(CultureInfo.InvariantCulture, Text.HexEditorAsciiSearchIndexTemplate, _asciiMatchIndex + 1, _asciiMatchCount)
         : string.Empty;

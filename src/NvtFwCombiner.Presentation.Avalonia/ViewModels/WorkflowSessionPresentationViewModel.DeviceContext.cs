@@ -4,7 +4,7 @@ using NvtFwCombiner.Domain.Composition;
 
 namespace NvtFwCombiner.Presentation.Avalonia.ViewModels;
 
-public sealed partial class WorkflowSessionPresentationViewModel
+internal sealed partial class WorkflowSessionPresentationViewModel
 {
     private string _selectedIc = string.Empty;
 
@@ -12,7 +12,6 @@ public sealed partial class WorkflowSessionPresentationViewModel
 
     internal string DeviceContextRefreshSummary { get; private set; } = string.Empty;
 
-    /// <summary>Gets IC choices admitted by the active authoring context.</summary>
     public IReadOnlyList<string> IcChoices => !IsCanonicalCatalogReady
         ? []
         : IsAbMergeContextActive
@@ -22,7 +21,6 @@ public sealed partial class WorkflowSessionPresentationViewModel
     /// <summary>True after the canonical capability publication is ready for workflow authoring.</summary>
     public bool IsCanonicalCatalogReady { get; private set; }
 
-    /// <summary>Gets grouped display choices for the IC-count control.</summary>
     [ObservableProperty]
     public partial IReadOnlyList<IcNumberChoiceViewModel> NumberSelectionChoices { get; set; } = [];
 
@@ -40,7 +38,6 @@ public sealed partial class WorkflowSessionPresentationViewModel
         }
     }
 
-    /// <summary>Gets or sets the selected IC id in the shared workflow context.</summary>
     public string SelectedIc
     {
         get => _selectedIc;
@@ -54,34 +51,27 @@ public sealed partial class WorkflowSessionPresentationViewModel
         }
     }
 
-    /// <summary>Gets or sets the selected IC count/variant in the shared workflow context.</summary>
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(DeviceContextStatus))]
     public partial string SelectedNumber { get; set; } = IcNumberSelectionTokens.SingleChip;
 
-    /// <summary>Gets the shared device-context status.</summary>
     public string DeviceContextStatus => IsNumberSelectorVisible
         ? $"{_stateBindings.DisplayedDeviceIc()} / {_stateBindings.DisplayedDeviceNumber()}: {_stateBindings.DisplayedDeviceContextRefreshSummary()}"
         : $"{_stateBindings.DisplayedDeviceIc()}: {_stateBindings.DisplayedDeviceContextRefreshSummary()}";
 
-    /// <summary>True when the shared context row should expose the IC Number selector.</summary>
     public bool IsNumberSelectorVisible => _stateBindings.IsRunInProgress()
         ? _stateBindings.ActiveRunShowsNumberSelector()
         : ShouldShowNumberSelectorForSelectedPage();
 
-    /// <summary>True when the hidden IC Number selector should keep its layout space.</summary>
     public bool IsNumberSelectorPlaceholderVisible =>
         (_stateBindings.IsRunInProgress() || _stateBindings.SelectedPage() is ShellPage.Merge or ShellPage.Replace) &&
         !IsNumberSelectorVisible;
 
-    /// <summary>True when the mutable shell selection controls may be shown.</summary>
     public bool IsDeviceContextSelectionVisible => !_stateBindings.IsRunInProgress();
 
-    /// <summary>True when the mutable IC Number selection control may be shown.</summary>
     public bool IsDeviceContextNumberSelectionVisible =>
         IsNumberSelectorVisible && !_stateBindings.IsRunInProgress();
 
-    /// <summary>True when the selected-family badge describes the visible mutable context.</summary>
     public bool IsDeviceContextFamilyBadgeVisible =>
         !_stateBindings.IsRunInProgress() && HasSelectedIcFamily;
 
@@ -92,19 +82,16 @@ public sealed partial class WorkflowSessionPresentationViewModel
     /// <summary>Localized label for an owner-defined IC family.</summary>
     public string SelectedIcFamilyLabel => Text.GetIcFamilyLabel(SelectedIcFamilySummary.Relationship);
 
-    /// <summary>Localized boundary of reusable family facts.</summary>
     public string SelectedIcFamilyTooltip => Text.GetIcFamilyTooltip(SelectedIcFamilySummary);
 
     /// <summary>True when the selected IC has an owner-defined family relation.</summary>
     public bool HasSelectedIcFamily => SelectedIcFamilySummary.FamilyId is not null;
 
-    /// <summary>Concise family value shown inside the IC selector detail card.</summary>
     public string SelectedIcDetailFamily => Text.GetIcDetailFamilyValue(SelectedIcFamilySummary);
 
     /// <summary>Owner-declared fact reuse scope shown inside the IC selector detail card.</summary>
     public string SelectedIcDetailReuse => Text.GetIcDetailReuseValue(SelectedIcFamilySummary);
 
-    /// <summary>Typed executable workflow inventory shown inside the IC selector detail card.</summary>
     public string SelectedIcDetailRuntime => Text.GetIcDetailRuntimeValue(
         _merge.IsStandardMergeSupported,
         _merge.IsAbMergeSupported,
@@ -118,10 +105,8 @@ public sealed partial class WorkflowSessionPresentationViewModel
         _compositionServices.Capabilities.GetReplaceWorkflowReadiness(SelectedIc, ExperienceIds.CtrlRamReplace),
         _compositionServices.Capabilities.GetReplaceWorkflowReadiness(SelectedIc, ExperienceIds.GeneralReplace));
 
-    /// <summary>Support boundary shown inside the IC selector detail card.</summary>
     public string SelectedIcDetailSupport => Text.GetIcDetailSupportValue(_merge.IsAbMergeSupported);
 
-    /// <summary>Screen-reader equivalent of the visible IC detail card.</summary>
     public string SelectedIcDetailAutomationText => string.Join(
         Environment.NewLine,
         SelectedIc,
@@ -152,9 +137,9 @@ public sealed partial class WorkflowSessionPresentationViewModel
         _selectedIc = defaultIcId;
         _replaceWorkflowContextIc = defaultIcId;
         IsCanonicalCatalogReady = true;
-        OnPropertyChanged(nameof(IcChoices));
-        OnPropertyChanged(nameof(SelectedIc));
-        OnPropertyChanged(nameof(IsCanonicalCatalogReady));
+        PresentationObserver.Invoke(() => OnPropertyChanged(nameof(IcChoices)));
+        PresentationObserver.Invoke(() => OnPropertyChanged(nameof(SelectedIc)));
+        PresentationObserver.Invoke(() => OnPropertyChanged(nameof(IsCanonicalCatalogReady)));
     }
 
     internal bool ShouldShowNumberSelectorForSelectedPage()

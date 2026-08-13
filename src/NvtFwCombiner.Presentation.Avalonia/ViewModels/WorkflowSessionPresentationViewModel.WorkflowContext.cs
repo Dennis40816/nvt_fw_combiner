@@ -4,7 +4,7 @@ using NvtFwCombiner.Domain.Composition;
 
 namespace NvtFwCombiner.Presentation.Avalonia.ViewModels;
 
-public sealed partial class WorkflowSessionPresentationViewModel
+internal sealed partial class WorkflowSessionPresentationViewModel
 {
     private WorkflowContextTarget? _workflowContextTarget;
     private string _replaceWorkflowContextIc = string.Empty;
@@ -13,14 +13,11 @@ public sealed partial class WorkflowSessionPresentationViewModel
     /// <summary>Gets the cancelable IC context draft shown for Home workflow shortcuts.</summary>
     public WorkflowContextSetupViewModel WorkflowContextSetup { get; }
 
-    /// <summary>True while the Home workflow context dialog is open.</summary>
     [ObservableProperty]
     public partial bool IsWorkflowContextModalOpen { get; set; }
 
-    /// <summary>Explains what the selected context will configure when confirmed.</summary>
     public string WorkflowContextDetail { get; private set; } = string.Empty;
 
-    /// <summary>Command that confirms the pending Home workflow context selection.</summary>
     public IRelayCommand ConfirmWorkflowContextCommand { get; }
 
     /// <summary>Command that dismisses the pending Home workflow context selection without changes.</summary>

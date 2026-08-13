@@ -3,7 +3,7 @@ using NvtFwCombiner.Application.Capabilities;
 namespace NvtFwCombiner.Presentation.Avalonia.ViewModels;
 
 /// <summary>Display-only localization of one canonical Support Matrix row.</summary>
-public sealed class SupportMatrixRowViewModel
+internal sealed class SupportMatrixRowViewModel
 {
     private SupportMatrixRowViewModel(
         CanonicalSupportMatrixRow row,
@@ -57,28 +57,21 @@ public sealed class SupportMatrixRowViewModel
             $"{text.SupportMatrixBlockerLabel} {blockerEvidence}.";
     }
 
-    /// <summary>Canonical IC id.</summary>
     public string IcId { get; }
 
     /// <summary>Stable workflow token used only for display grouping.</summary>
     public string WorkflowId { get; }
 
-    /// <summary>Localized workflow label.</summary>
     public string WorkflowLabel { get; }
 
-    /// <summary>Localized IC Count value.</summary>
     public string IcCountLabel { get; }
 
-    /// <summary>Canonical map-variant token.</summary>
     public string MapVariant { get; }
 
-    /// <summary>Localized authoring availability.</summary>
     public string AuthoringLabel { get; }
 
-    /// <summary>Localized compiler-admission state.</summary>
     public string ExecutionLabel { get; }
 
-    /// <summary>Localized publication classification.</summary>
     public string PublicationLabel { get; }
 
     /// <summary>Localized evidence classification.</summary>
@@ -90,25 +83,18 @@ public sealed class SupportMatrixRowViewModel
     /// <summary>Compact localized authoring, publication, evidence, and blocker values.</summary>
     public string DecisionSummary { get; }
 
-    /// <summary>Full reviewed capability fingerprint.</summary>
     public string Fingerprint { get; }
 
-    /// <summary>Compact fingerprint prefix.</summary>
     public string FingerprintDisplay { get; }
 
-    /// <summary>Compact localized typed blocker summary.</summary>
     public string BlockerLabel { get; }
 
-    /// <summary>Full decision and fingerprint provenance.</summary>
     public string ProvenanceDetail { get; }
 
-    /// <summary>Full row description for assistive technology.</summary>
     public string AccessibleLabel { get; }
 
-    /// <summary>Whether the exact route may appear in ordinary authoring selectors.</summary>
     public bool IsAuthoringAvailable { get; }
 
-    /// <summary>Whether the row carries any typed blocker.</summary>
     public bool HasBlocker { get; }
 
     internal static SupportMatrixRowViewModel Create(

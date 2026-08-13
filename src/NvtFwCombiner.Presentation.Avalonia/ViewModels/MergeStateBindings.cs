@@ -1,6 +1,5 @@
 namespace NvtFwCombiner.Presentation.Avalonia.ViewModels;
 
-/// <summary>Explicit shared-session callbacks consumed by the focused Merge child.</summary>
 internal sealed record MergeStateBindings(
     Func<string> SelectedIc,
     Func<string> SelectedNumber,

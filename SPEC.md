@@ -2177,6 +2177,21 @@ after the grill closes so issues do not become a competing draft specification.
     no reusable growth budget and do not authorize another excluded-to-counted
     relocation. Golden, coverage, firmware, report-wire, architecture, and
     full-production-net-negative gates remain unchanged.
+    Owner amendment on 2026-08-13 grants PL-04 (#376) one further
+    non-transferable accounting exception for truthful startup-report byte
+    progress. The prior bounded local-file port exposed no progress contract;
+    PL-04 adds a typed observer with stable admitted totals and distinct observer
+    failure handling. Preserving the complete lifecycle implementation and the
+    non-obvious Decision 31 contract documentation changes full production from
+    97,297 to 97,426,
+    while runtime changes from 67,371 to 67,404: Application 29,404 to 29,410
+    and Infrastructure plus Contracts plus CRC worker 14,081 to 14,108;
+    Domain plus Profiles remains 20,619 and Bootstrap plus CLI plus Desktop
+    remains 3,267. These exact values immediately become descending ratchets.
+    The +129 full-production and +33 runtime deltas are the complete, named
+    PL-04 exception. They create no reusable allowance, authorize no cross-slice
+    relocation, and preserve firmware, report-wire, Golden, coverage, and all
+    later descending-ratchet gates.
     Owner amendment on 2026-08-08 supersedes the earlier 44,000 total and
     18,000/12,000/7,500/5,500 slice completion caps. The dated numbers remain
     planning history after the merged #230 checkpoint at `ad672900` showed that
@@ -2327,8 +2342,11 @@ after the grill closes so issues do not become a competing draft specification.
 30. The Core Convergence entry change, after Workbench/parallel-catalog and
     legacy runtime deletion, freezes the measured baseline for all four slices
     and enables exact descending slice ratchets through `scripts/verify.py`.
-    Every Core PR lowers each affected slice ratchet and the total; moving
-    equivalent logic between slices cannot pass. Final integration enforces the
+    Every Core PR lowers each affected slice ratchet and the total, except for
+    the dated, non-transferable PL-02 and PL-04 owner amendments recorded in
+    Decision 21 and ADR 0021; moving equivalent logic between slices cannot
+    pass. Each named amendment immediately freezes its exact replacement
+    ratchets and cannot fund later work. Final integration enforces the
     latest exact ratchets, slice-sum integrity, completed candidate ledgers,
     and existing release gates through that same verifier, with no second
     command or CI entry point.

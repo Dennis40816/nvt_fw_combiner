@@ -1,6 +1,6 @@
 namespace NvtFwCombiner.Presentation.Avalonia.ViewModels;
 
-public sealed partial class ReplacePresentationViewModel
+internal sealed partial class ReplacePresentationViewModel
 {
     internal void ApplyFirmwareSlotText()
     {

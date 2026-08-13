@@ -6,10 +6,10 @@ using NvtFwCombiner.Presentation.Avalonia.ViewModels;
 
 namespace NvtFwCombiner.Presentation.Avalonia;
 
-public static partial class UiCompositionRunner
+internal static partial class UiCompositionRunner
 {
     /// <summary>Projects one accepted canonical memory layout into display-only rows.</summary>
-    public static (
+    internal static (
         string RangeLabel,
         IReadOnlyList<MemoryMapRowViewModel> Rows,
         IReadOnlyList<MemoryCoverageSegmentViewModel> CoverageSegments) GetMemoryDisplay(
@@ -45,7 +45,7 @@ public static partial class UiCompositionRunner
     }
 
     /// <summary>Projects a typed pending state when no exact authoring publication exists.</summary>
-    public static (
+    internal static (
         string RangeLabel,
         IReadOnlyList<MemoryMapRowViewModel> Rows,
         IReadOnlyList<MemoryCoverageSegmentViewModel> CoverageSegments) GetPendingMemoryDisplay(

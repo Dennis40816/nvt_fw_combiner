@@ -1,5 +1,6 @@
 using Avalonia.Interactivity;
 using Avalonia.Platform.Storage;
+using Avalonia.Threading;
 using NvtFwCombiner.Application.Ports;
 using NvtFwCombiner.Presentation.Avalonia.ViewModels;
 
@@ -41,58 +42,92 @@ public sealed partial class MainWindow
             _startupLoadCancellation.Token);
     }
 
-    private static async Task ApplyDeferredLaunchOptionsAsync(
+    private static bool HasStartupReportStage(UiLaunchOptions launchOptions)
+    {
+        return launchOptions.Issues.Count > 0 ||
+            !string.IsNullOrWhiteSpace(launchOptions.ReportPath) ||
+            launchOptions.OpenReport;
+    }
+
+    internal static async Task ApplyStartupReportAsync(
         MainWindowViewModel viewModel,
         ILocalFileStore reportFiles,
         UiLaunchOptions launchOptions,
+        Action<long, long> progress,
         CancellationToken cancellationToken)
     {
-        bool historyPublished = await viewModel.Reports.LoadReportHistoryAsync(
-            token => ReportHistoryFileStore.LoadAsync(
-                reportFiles,
-                ReportHistoryFileStore.DefaultHistoryPath,
-                token),
-            cancellationToken);
-        if (!historyPublished)
-        {
-            return;
-        }
-
+        string? terminalDiagnostic = null;
         if (launchOptions.Issues.Count > 0)
         {
-            viewModel.Reports.LoadReportError("Startup arguments", string.Join(Environment.NewLine, launchOptions.Issues));
+            terminalDiagnostic = string.Join(Environment.NewLine, launchOptions.Issues);
+            viewModel.Reports.LoadReportError("Startup arguments", terminalDiagnostic);
         }
 
         if (!string.IsNullOrWhiteSpace(launchOptions.ReportPath))
         {
-            bool reportPublished = await viewModel.Reports.LoadReportFileAsync(
+            ReportPublicationResult result = await viewModel.Reports.LoadReportFileAsync(
                 token => reportFiles.ReadTextAsync(
                     launchOptions.ReportPath,
                     MaximumStandaloneReportBytes,
-                    token),
+                    token,
+                    update => ReportStartupFileProgress(progress, update, token)),
                 Path.GetFileName(launchOptions.ReportPath),
                 cancellationToken);
-            if (!reportPublished)
+            if (result.Outcome != ReportPublicationOutcome.Published)
             {
-                return;
+                RequireStartupPublication(result);
             }
         }
 
-        if (!launchOptions.OpenReport)
-        {
-            return;
-        }
-
-        if (viewModel.Reports.ShowReportCommand.CanExecute(null))
+        if (launchOptions.OpenReport && viewModel.Reports.ShowReportCommand.CanExecute(null))
         {
             viewModel.Reports.ShowReportCommand.Execute(null);
         }
-        else
+        else if (launchOptions.OpenReport)
         {
-            viewModel.Reports.LoadReportError(
-                "Startup report",
-                "--open-report requires a loaded report. Pass --load-report <path> or --report <path>.");
+            terminalDiagnostic =
+                "--open-report requires a loaded report. Pass --load-report <path> or --report <path>.";
+            viewModel.Reports.LoadReportError("Startup report", terminalDiagnostic);
         }
+
+        if (terminalDiagnostic is not null)
+        {
+            throw new InvalidOperationException(terminalDiagnostic);
+        }
+    }
+
+    internal static void RequireStartupPublication(ReportPublicationResult result)
+    {
+        switch (result.Outcome)
+        {
+            case ReportPublicationOutcome.Published:
+                return;
+            case ReportPublicationOutcome.Superseded:
+                throw new ShellPreloadSupersededException();
+            case ReportPublicationOutcome.Failed:
+                throw new InvalidOperationException(string.IsNullOrWhiteSpace(result.Diagnostic)
+                    ? "Report publication returned an empty failure diagnostic."
+                    : result.Diagnostic);
+            case ReportPublicationOutcome.Unknown:
+            default:
+                throw new InvalidOperationException("Report publication returned an invalid terminal result.");
+        }
+    }
+
+    private static void ReportStartupFileProgress(
+        Action<long, long> progress,
+        LocalFileReadProgress update,
+        CancellationToken cancellationToken)
+    {
+        if (Dispatcher.UIThread.CheckAccess())
+        {
+            progress(update.BytesRead, update.TotalBytes);
+            return;
+        }
+        Dispatcher.UIThread.InvokeAsync(
+            () => progress(update.BytesRead, update.TotalBytes),
+            DispatcherPriority.Background,
+            cancellationToken).GetAwaiter().GetResult();
     }
 
     private static void ApplyLaunchPage(MainWindowViewModel viewModel, ShellPage? page)

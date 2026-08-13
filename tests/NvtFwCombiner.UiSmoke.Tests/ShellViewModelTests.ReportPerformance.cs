@@ -616,15 +616,16 @@ public sealed partial class ReportProjectionConcurrencyTests
         Assert.Equal("new-large-report.json", viewModel.Reports.ReportHistoryEntries[0].SourceName);
     }
 
-    private static Task<bool> LoadReportAsync(
+    private static async Task<bool> LoadReportAsync(
         MainWindowViewModel viewModel,
         string json,
         string sourceName,
         CancellationToken cancellationToken)
     {
-        return viewModel.Reports.LoadReportFileAsync(
+        ReportPublicationResult result = await viewModel.Reports.LoadReportFileAsync(
             _ => ValueTask.FromResult(json),
             sourceName,
             cancellationToken);
+        return result.Outcome == ReportPublicationOutcome.Published;
     }
 }

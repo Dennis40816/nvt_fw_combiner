@@ -3,7 +3,7 @@ using NvtFwCombiner.Application.Authoring;
 
 namespace NvtFwCombiner.Presentation.Avalonia.ViewModels;
 
-public sealed partial class ReplacePresentationViewModel
+internal sealed partial class ReplacePresentationViewModel
 {
     private readonly IFirmwareInspection _firmwareInspection;
     private FirmwareConfigMetadataSnapshot? _ctrlRamFirmwareVersionMetadata;
@@ -70,13 +70,10 @@ public sealed partial class ReplacePresentationViewModel
         ? Text.CtrlRamFirmwareVersionSourceDetail
         : Text.CtrlRamFirmwareVersionEditUnavailableDetail;
 
-    /// <summary>Gets the input-validation detail for the modal.</summary>
     public string CtrlRamFirmwareVersionValidationDetail { get; private set; } = string.Empty;
 
-    /// <summary>True when the modal has an input-validation detail to show.</summary>
     public bool HasCtrlRamFirmwareVersionValidation => !string.IsNullOrWhiteSpace(CtrlRamFirmwareVersionValidationDetail);
 
-    /// <summary>True when the modal can move from version confirmation to the output file picker.</summary>
     public bool CanConfirmCtrlRamFirmwareVersion =>
         !IsCtrlRamFirmwareVersionMetadataLoading &&
         IsCtrlRamFirmwareVersionModalLeaseContextCurrent() &&
@@ -180,7 +177,6 @@ public sealed partial class ReplacePresentationViewModel
         return (true, edit);
     }
 
-    /// <summary>True when the modal confirmation still belongs to the current CtrlRAM inputs.</summary>
     public Task<bool> IsCtrlRamFirmwareVersionBuildConfirmationCurrentAsync(
         CancellationToken cancellationToken = default)
     {

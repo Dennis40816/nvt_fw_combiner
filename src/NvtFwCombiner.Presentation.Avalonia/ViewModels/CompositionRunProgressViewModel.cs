@@ -3,20 +3,17 @@ using CommunityToolkit.Mvvm.ComponentModel;
 namespace NvtFwCombiner.Presentation.Avalonia.ViewModels;
 
 /// <summary>Visual state of one Application-owned composition lifecycle phase.</summary>
-public enum CompositionRunProgressStepState
+internal enum CompositionRunProgressStepState
 {
-    /// <summary>The applicable phase has not started.</summary>
     Pending,
 
-    /// <summary>The applicable phase currently owns the run.</summary>
     Active,
 
-    /// <summary>The applicable phase was entered and completed.</summary>
     Completed,
 }
 
 /// <summary>UI delivery boundary between composition, committed output, and complete report projection.</summary>
-public enum CompositionRunDeliveryState
+internal enum CompositionRunDeliveryState
 {
     /// <summary>No active or retained delivery state exists.</summary>
     Idle,
@@ -31,8 +28,7 @@ public enum CompositionRunDeliveryState
     ReportReady,
 }
 
-/// <summary>Localized, accessible projection of one applicable composition lifecycle phase.</summary>
-public sealed class CompositionRunProgressStepViewModel
+internal sealed class CompositionRunProgressStepViewModel
 {
     internal CompositionRunProgressStepViewModel(
         CompositionRunPhase phase,
@@ -56,16 +52,13 @@ public sealed class CompositionRunProgressStepViewModel
     /// <summary>Application-owned lifecycle phase represented by this step.</summary>
     public CompositionRunPhase Phase { get; }
 
-    /// <summary>Localized phase label.</summary>
     public string Label { get; }
 
     /// <summary>Truthful lifecycle state derived only from the Application snapshot.</summary>
     public CompositionRunProgressStepState State { get; }
 
-    /// <summary>Non-color visual marker that remains distinct when motion or theme color is unavailable.</summary>
     public string StateMarker { get; }
 
-    /// <summary>Localized phase and state description for assistive technology.</summary>
     public string AccessibleLabel { get; }
 
     /// <summary>True only for the phase that currently owns the run.</summary>
@@ -78,7 +71,7 @@ public sealed class CompositionRunProgressStepViewModel
 /// <summary>
 /// Projects bounded Application progress snapshots into localized step state without inferring firmware semantics.
 /// </summary>
-public sealed class CompositionRunProgressViewModel : ObservableObject
+internal sealed class CompositionRunProgressViewModel : ObservableObject
 {
     private static readonly IReadOnlyList<CompositionRunProgressStepViewModel> EmptySteps =
         [];
@@ -87,7 +80,6 @@ public sealed class CompositionRunProgressViewModel : ObservableObject
     private CompositionRunPhase[] _applicablePhases = [];
     private bool _isReducedMotionEnabled;
 
-    /// <summary>Initializes an empty progress projection for the selected language and motion preference.</summary>
     public CompositionRunProgressViewModel(
         ShellLanguage language = ShellLanguage.English,
         bool isReducedMotionEnabled = false)
@@ -99,7 +91,6 @@ public sealed class CompositionRunProgressViewModel : ObservableObject
     /// <summary>Run id currently owning this projection, or null before the first accepted snapshot.</summary>
     public string? RunId { get; private set; }
 
-    /// <summary>Applicable steps in the exact order supplied by Application.</summary>
     public IReadOnlyList<CompositionRunProgressStepViewModel> Steps { get; private set; } = EmptySteps;
 
     /// <summary>True after the first typed snapshot for the owning run is accepted.</summary>
@@ -114,15 +105,12 @@ public sealed class CompositionRunProgressViewModel : ObservableObject
     /// <summary>Gets the committed output identity while its report finishes in the background.</summary>
     public string? CommittedOutputId { get; private set; }
 
-    /// <summary>One-based lifecycle ordinal within the applicable phase sequence.</summary>
     public int CurrentStep => CurrentPhase is { } phase
         ? Array.IndexOf(_applicablePhases, phase) + 1
         : 0;
 
-    /// <summary>Number of lifecycle phases applicable to the current run shape.</summary>
     public int StepCount => _applicablePhases.Length;
 
-    /// <summary>Localized label for the current Application phase.</summary>
     public string CurrentStepLabel => CurrentPhase is { } phase
         ? DeliveryState switch
         {
@@ -139,12 +127,10 @@ public sealed class CompositionRunProgressViewModel : ObservableObject
         ? _text.FormatCompositionRunStepOrdinal(CurrentStep, StepCount)
         : string.Empty;
 
-    /// <summary>Localized live status announced once per accepted Application phase transition.</summary>
     public string AccessibleStatus => HasTypedProgress
         ? _text.FormatCompositionRunProgressStatus(CurrentStep, StepCount, CurrentStepLabel)
         : string.Empty;
 
-    /// <summary>True when platform or user preference requests static progress emphasis.</summary>
     public bool IsReducedMotionEnabled => _isReducedMotionEnabled;
 
     /// <summary>True only when the active step may use a restrained indeterminate animation.</summary>

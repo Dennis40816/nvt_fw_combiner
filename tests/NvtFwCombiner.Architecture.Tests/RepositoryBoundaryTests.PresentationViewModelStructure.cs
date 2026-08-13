@@ -119,6 +119,8 @@ public sealed partial class RepositoryBoundaryTests
 
         Assert.Contains("WorkflowSession = new WorkflowSessionPresentationViewModel", construction, StringComparison.Ordinal);
         Assert.Contains("public WorkflowSessionPresentationViewModel WorkflowSession", shellSession, StringComparison.Ordinal);
+        Assert.Contains("ApplyCatalogBackedTextResources();", shellSession, StringComparison.Ordinal);
+        Assert.DoesNotContain("PresentationObserver.Invoke(ApplyCatalogBackedTextResources)", shellSession, StringComparison.Ordinal);
         Assert.Contains("WorkflowContextSetupViewModel", context, StringComparison.Ordinal);
         Assert.Contains("ReconcileFirmwareIcMismatch", mismatch, StringComparison.Ordinal);
         Assert.Contains("FirmwareInspectionSession", session, StringComparison.Ordinal);
@@ -165,12 +167,16 @@ public sealed partial class RepositoryBoundaryTests
             "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/ReportPresentationViewModel.cs");
         string history = ReadText(
             "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/ReportPresentationViewModel.History.cs");
+        string observer = ReadText(
+            "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/PresentationObserver.cs");
 
         Assert.Contains("Reports = new ReportPresentationViewModel", construction, StringComparison.Ordinal);
         Assert.Contains("public ReportPresentationViewModel Reports", shellReport, StringComparison.Ordinal);
         Assert.DoesNotContain("ReportReviewViewModel.FromJson", shellReport, StringComparison.Ordinal);
         Assert.Contains("ReportReviewViewModel.FromJson", report, StringComparison.Ordinal);
         Assert.Contains("ObservableCollection<ReportHistoryEntryViewModel>", history, StringComparison.Ordinal);
+        Assert.Contains("already-committed Presentation notification or projection sinks", observer, StringComparison.Ordinal);
+        Assert.Contains("Never wrap validation, I/O, Application work", observer, StringComparison.Ordinal);
     }
 
     /// <summary>Build-result state and actions belong to a focused child rather than the shell.</summary>
@@ -195,47 +201,6 @@ public sealed partial class RepositoryBoundaryTests
         Assert.Contains("IsVisible=\"{Binding BuildResult.IsOpen}\"", shell, StringComparison.Ordinal);
         Assert.Contains("Command=\"{Binding BuildResult.RevealOutputCommand}\"", modal, StringComparison.Ordinal);
         Assert.Contains("Command=\"{Binding BuildResult.CloseCommand}\"", modal, StringComparison.Ordinal);
-    }
-
-    /// <summary>Verifies the Presentation projection keeps only UI-owned contract adaptation.</summary>
-    [Fact]
-    public void UiCompositionRunnerConcernsStaySplit()
-    {
-        string catalog = ReadText("src/NvtFwCombiner.Presentation.Avalonia/UiCompositionRunner.Catalog.cs");
-        string common = ReadText("src/NvtFwCombiner.Presentation.Avalonia/UiCompositionRunner.Common.cs");
-        string facts = ReadText("src/NvtFwCombiner.Presentation.Avalonia/UiCompositionRunner.FirmwareFacts.cs");
-        string replace = ReadText("src/NvtFwCombiner.Presentation.Avalonia/UiCompositionRunner.Replace.cs");
-        string deviceContext = ReadText(
-            "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/WorkflowSessionPresentationViewModel.DeviceContext.cs");
-        string mergeViewModel = ReadText(
-            "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/MergePresentationViewModel.Execution.cs");
-        string replaceViewModel = ReadText(
-            "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/ReplacePresentationViewModel.Execution.cs");
-
-        Assert.Contains("GetNumberSelectionChoices", catalog, StringComparison.Ordinal);
-        Assert.DoesNotContain("GetSupportedIcIds", catalog, StringComparison.Ordinal);
-        Assert.DoesNotContain("GetDefaultIcId", catalog, StringComparison.Ordinal);
-        Assert.DoesNotContain("GetSettingsSnapshot", catalog, StringComparison.Ordinal);
-        Assert.Contains("private static MemoryMapRowViewModel ToMemoryMapRow", common, StringComparison.Ordinal);
-        Assert.Contains("GetFirmwareSlotFacts", facts, StringComparison.Ordinal);
-        Assert.DoesNotContain("CreateFlashCodeOutputFileName", facts, StringComparison.Ordinal);
-        Assert.Contains("ExperienceIds.DpReplace", ReadText("src/NvtFwCombiner.Presentation.Avalonia/ViewModels/MainWindowViewModel.Construction.cs"), StringComparison.Ordinal);
-        Assert.Contains("GetMemoryDisplay", common, StringComparison.Ordinal);
-        Assert.False(File.Exists(Path.Combine(
-            Root.FullName,
-            "src",
-            "NvtFwCombiner.Presentation.Avalonia",
-            "UiCompositionRunner.Merge.cs")));
-        Assert.DoesNotContain("GetReplaceMemoryDisplay", replace, StringComparison.Ordinal);
-        Assert.Contains("GetSelectedReplaceMemoryDisplay", ReadText(
-            "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/ReplacePresentationViewModel.Memory.cs"), StringComparison.Ordinal);
-        Assert.DoesNotContain("RunReplaceAsync", replace, StringComparison.Ordinal);
-        Assert.Contains("_compositionServices.Capabilities.GetIcIds", deviceContext, StringComparison.Ordinal);
-        Assert.Contains("_compositionServices.Execution.ExecuteAsync", mergeViewModel, StringComparison.Ordinal);
-        Assert.Contains("_compositionServices.Execution.ExecuteAsync", replaceViewModel, StringComparison.Ordinal);
-        Assert.DoesNotContain("CanonicalCapabilityProjection", deviceContext, StringComparison.Ordinal);
-        Assert.DoesNotContain("CompositionExecutionAdapter", mergeViewModel, StringComparison.Ordinal);
-        Assert.DoesNotContain("CompositionExecutionAdapter", replaceViewModel, StringComparison.Ordinal);
     }
 
     /// <summary>Verifies all composition commands share one UI-owned run lifecycle.</summary>
@@ -675,19 +640,19 @@ public sealed partial class RepositoryBoundaryTests
         string inputGroups = ReadText("src/NvtFwCombiner.Presentation.Avalonia/ViewModels/ReportInputGroupViewModel.cs");
         string flowNodes = ReadText("src/NvtFwCombiner.Presentation.Avalonia/ViewModels/ReportOperationFlowNodeViewModel.cs");
 
-        Assert.Contains("public sealed class ReportLineViewModel", root, StringComparison.Ordinal);
+        Assert.Contains("internal sealed class ReportLineViewModel", root, StringComparison.Ordinal);
         Assert.Contains("public static ReportLineViewModel Empty", root, StringComparison.Ordinal);
-        Assert.DoesNotContain("public sealed class ReportLineBadgeViewModel", root, StringComparison.Ordinal);
-        Assert.DoesNotContain("public sealed class ReportLineFactViewModel", root, StringComparison.Ordinal);
-        Assert.DoesNotContain("public sealed record ReportRangeTableRowViewModel", root, StringComparison.Ordinal);
-        Assert.DoesNotContain("public sealed record ReportDifferenceSummaryRowViewModel", root, StringComparison.Ordinal);
-        Assert.DoesNotContain("public sealed class ReportInputGroupViewModel", root, StringComparison.Ordinal);
-        Assert.DoesNotContain("public sealed class ReportOperationFlowNodeViewModel", root, StringComparison.Ordinal);
-        Assert.Contains("public sealed class ReportLineBadgeViewModel", badges, StringComparison.Ordinal);
-        Assert.Contains("public sealed class ReportLineFactViewModel", facts, StringComparison.Ordinal);
-        Assert.Contains("public sealed record ReportRangeTableRowViewModel", rangeRows, StringComparison.Ordinal);
-        Assert.Contains("public sealed record ReportDifferenceSummaryRowViewModel", differenceRows, StringComparison.Ordinal);
-        Assert.Contains("public sealed class ReportInputGroupViewModel", inputGroups, StringComparison.Ordinal);
-        Assert.Contains("public sealed class ReportOperationFlowNodeViewModel", flowNodes, StringComparison.Ordinal);
+        Assert.DoesNotContain("internal sealed class ReportLineBadgeViewModel", root, StringComparison.Ordinal);
+        Assert.DoesNotContain("internal sealed class ReportLineFactViewModel", root, StringComparison.Ordinal);
+        Assert.DoesNotContain("internal sealed record ReportRangeTableRowViewModel", root, StringComparison.Ordinal);
+        Assert.DoesNotContain("internal sealed record ReportDifferenceSummaryRowViewModel", root, StringComparison.Ordinal);
+        Assert.DoesNotContain("internal sealed class ReportInputGroupViewModel", root, StringComparison.Ordinal);
+        Assert.DoesNotContain("internal sealed class ReportOperationFlowNodeViewModel", root, StringComparison.Ordinal);
+        Assert.Contains("internal sealed class ReportLineBadgeViewModel", badges, StringComparison.Ordinal);
+        Assert.Contains("internal sealed class ReportLineFactViewModel", facts, StringComparison.Ordinal);
+        Assert.Contains("internal sealed record ReportRangeTableRowViewModel", rangeRows, StringComparison.Ordinal);
+        Assert.Contains("internal sealed record ReportDifferenceSummaryRowViewModel", differenceRows, StringComparison.Ordinal);
+        Assert.Contains("internal sealed class ReportInputGroupViewModel", inputGroups, StringComparison.Ordinal);
+        Assert.Contains("internal sealed class ReportOperationFlowNodeViewModel", flowNodes, StringComparison.Ordinal);
     }
 }

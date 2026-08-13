@@ -1,8 +1,7 @@
 namespace NvtFwCombiner.Presentation.Avalonia.ViewModels;
 
-public sealed partial class WorkflowSessionPresentationViewModel
+internal sealed partial class WorkflowSessionPresentationViewModel
 {
-    /// <summary>Removes a General mapping row through its owning workflow child.</summary>
     public void RemoveGeneralMappingRow(GeneralMappingRowViewModel mapping)
     {
         ArgumentNullException.ThrowIfNull(mapping);

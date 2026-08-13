@@ -1,11 +1,10 @@
 namespace NvtFwCombiner.Presentation.Avalonia.ViewModels;
 
-public sealed partial class HexEditorWorkspaceViewModel
+internal sealed partial class HexEditorWorkspaceViewModel
 {
     /// <summary>Visible current-data addresses changed by the latest Undo or Redo operation.</summary>
     public IReadOnlyList<long> HistoryFeedbackAddresses { get; private set; } = [];
 
-    /// <summary>Monotonic trigger used by the low-cost renderer to restart its feedback animation.</summary>
     public int HistoryFeedbackVersion { get; private set; }
 
     private Dictionary<long, VisibleByteFingerprint> CaptureVisibleByteFingerprints()

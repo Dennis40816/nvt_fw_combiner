@@ -5,7 +5,7 @@ using NvtFwCombiner.Domain.Composition;
 
 namespace NvtFwCombiner.Presentation.Avalonia.ViewModels;
 
-public sealed partial class ReplacePresentationViewModel
+internal sealed partial class ReplacePresentationViewModel
 {
     private IReadOnlyList<AuthoringMappingState> _generalReplaceAuthoringStates = [];
     private GeneralMappingDraftState? _generalReplaceDraft;
