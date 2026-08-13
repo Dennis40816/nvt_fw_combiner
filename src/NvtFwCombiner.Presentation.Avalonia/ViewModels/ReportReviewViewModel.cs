@@ -104,7 +104,6 @@ public sealed partial class ReportReviewViewModel
         ByteDifferenceDetail = CreateByteDifferenceDetail(compositionKind, outputDifferences, language);
         ByteDifferenceMeta = CreateByteDifferenceMeta(outputDifferences, language);
         OutputDifferenceSummaryRows = outputDifferences.SummaryRows;
-        AuditSummary = CreateAuditSummary(inputs, operations, mutations, outputDifferences.Count, issues, language);
         OutputDifferenceSummaryPage = ReportPagedListViewModel.Create(OutputDifferenceSummaryRows, 8, language);
         OutputDifferenceGroupPage = ReportPagedListViewModel.Create(OutputDifferenceGroups, 8, language);
         MutationPage = ReportPagedListViewModel.Create(Mutations, 40, language);

@@ -35,6 +35,10 @@ public sealed partial class XamlControlStyleContractTests
         string modal = ReadPresentationFile("Views/MessageCenterModal.axaml");
         Assert.Contains("KeyboardNavigation.TabNavigation=\"Cycle\"", modal, StringComparison.Ordinal);
         Assert.Contains("KeyDown=\"MessageCenterModal_OnKeyDown\"", modal, StringComparison.Ordinal);
+        Assert.Contains("Width=\"760\"", modal, StringComparison.Ordinal);
+        Assert.Contains("ColumnDefinitions=\"*,*,*\"", modal, StringComparison.Ordinal);
+        Assert.Contains("Grid.Column=\"1\"", modal, StringComparison.Ordinal);
+        Assert.Contains("Classes=\"successInset\"", modal, StringComparison.Ordinal);
         Assert.Contains("IsVisible=\"{Binding IsRunReportsSelected}\"", modal, StringComparison.Ordinal);
         Assert.Contains("IsVisible=\"{Binding IsSystemInformationSelected}\"", modal, StringComparison.Ordinal);
         Assert.Contains("Click=\"ExportDiagnosticsButton_OnClick\"", modal, StringComparison.Ordinal);

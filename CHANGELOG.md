@@ -66,6 +66,28 @@ dependency-gated.
 - Limitations: this is the PL-02 prerequisite only; the shared visible preload
   session and remaining `v0.10.5` lifecycle tickets are not implemented here.
 
+#### Message Center and report readability
+
+- Purpose: make System information and run-report evidence easier to scan in
+  both light and dark themes without changing diagnostics or report semantics.
+- Affected: the Message Center run-report and System information tabs, plus the
+  report modal summary and Audit details panels.
+- Before → After: dense label/value rows and one long audit sentence become a
+  compact system overview, a distinct healthy-state panel, and six explicit
+  audit counters above the existing evidence tabs.
+- Accessibility: existing tab order and live diagnostics remain intact; every
+  counter retains its localized label and value in the accessibility tree.
+- Support status: unchanged/support-neutral; no IC, route, workflow, processor,
+  profile, or family availability fact changes.
+- Compatibility: no report wire, history schema, firmware output, profile,
+  diagnostic, CLI, or support fact changes.
+- Verification: light/dark interactive inspection, UI smoke, architecture,
+  structure, full verifier, coverage, and Golden 17/17 gates apply.
+- Code size: full production descends from 97,303 to 97,302 nonblank lines;
+  runtime production remains 67,371.
+- Limitations: this is a presentation-only readability change; it does not add
+  new report fields, diagnostics, filtering, or preload lifecycle behavior.
+
 ### Security
 
 The planned lifecycle does not broaden filesystem, executable, firmware, or
