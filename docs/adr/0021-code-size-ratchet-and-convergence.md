@@ -435,6 +435,26 @@ allowance, authorize no cross-slice relocation, and do not weaken firmware,
 report-wire, Golden, coverage, or release gates. Every later PR resumes from
 these exact descending ratchets.
 
+### 2026-08-13 PL-05 external-environment lifecycle amendment
+
+PL-05 (#377) deletes Bootstrap's synchronous lazy external-processor factory
+and moves discovery behind one bounded Infrastructure loader and one typed
+Application lifecycle. The original 170/145 planning envelope did not include
+the required filesystem depth/entry/count/byte bounds, stable regular-file
+identity and cancellable SHA validation, separate request/publication
+generations, last-known-good publication, generation-zero blocked readiness,
+or the shared shell, Message Center, and CLI adoption.
+
+The owner accepts one named, non-transferable rebaseline. The fixed
+implementation removes 250 and adds 984 physical nonblank production lines,
+net +734. Full production changes from 97,426 to 98,160 and runtime from
+67,404 to 68,018. Runtime is exactly 20,619 Domain plus Profiles + 29,585
+Application + 3,074 Bootstrap plus CLI plus Desktop + 14,740 Infrastructure
+plus Contracts plus CRC worker. These values become descending ratchets
+immediately. This exception is PL-05-only, cannot offset PL-06/07/00, and does
+not authorize minification, cross-slice relocation, process/protocol changes,
+or weaker firmware, Golden, report-wire, coverage, or release evidence.
+
 Documentation consolidation is legitimate only when it removes boilerplate or
 moves repeated information to its canonical owner. XML summaries that merely
 repeat a member/type name, forwarding properties/constructors, migration DTO

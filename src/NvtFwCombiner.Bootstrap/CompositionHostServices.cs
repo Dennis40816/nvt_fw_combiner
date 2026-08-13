@@ -1,11 +1,13 @@
 using NvtFwCombiner.Application.Authoring;
 using NvtFwCombiner.Application.Capabilities;
 using NvtFwCombiner.Application.Diagnostics;
+using NvtFwCombiner.Application.ExternalTools;
 using NvtFwCombiner.Application.HexEditor;
 using NvtFwCombiner.Application.Ports;
 using NvtFwCombiner.Infrastructure.Capabilities;
 using NvtFwCombiner.Infrastructure.Composition;
 using NvtFwCombiner.Infrastructure.Diagnostics;
+using NvtFwCombiner.Infrastructure.ExternalTools;
 using NvtFwCombiner.Infrastructure.Files;
 using NvtFwCombiner.Infrastructure.Shell;
 using NvtFwCombiner.Infrastructure.Time;
@@ -18,7 +20,8 @@ public sealed class CompositionHostServices
     private CompositionHostServices(
         CanonicalCapabilityCatalog catalog,
         CanonicalCapabilityCompilerAdapter compiler,
-        CanonicalCapabilityExperience projection)
+        CanonicalCapabilityExperience projection,
+        ExternalProcessorEnvironmentLoader externalEnvironment)
     {
         Catalog = catalog ?? throw new ArgumentNullException(nameof(catalog));
         Compiler = compiler;
@@ -33,15 +36,16 @@ public sealed class CompositionHostServices
         AbMergeAuthoring = abMergeAuthoring;
         var dpReplaceAuthoring = new DpReplaceAuthoringExperience(compiler, catalog);
         DpReplaceAuthoring = dpReplaceAuthoring;
-        var runtimeLeases = new RuntimeDependencyReadinessLeaseProvider();
+        ExternalEnvironment = externalEnvironment ??
+            throw new ArgumentNullException(nameof(externalEnvironment));
         GeneralAuthoring = new GeneralAuthoringExperience(
             new BuiltInGeneralAuthoringPlanner(catalog, compiler, projection),
             new BuiltInGeneralSelectedFileContentInspector(),
-            runtimeLeases,
+            externalEnvironment,
             new SystemClock());
         var ctrlRamAuthoring = new CtrlRamAuthoringExperience(
             new BuiltInCtrlRamAuthoringAdapter(catalog, projection),
-            runtimeLeases);
+            externalEnvironment);
         CtrlRamAuthoring = ctrlRamAuthoring;
         FirmwareInspectionExperience = new BuiltInFirmwareInspection(
             catalog,
@@ -56,12 +60,12 @@ public sealed class CompositionHostServices
         CompositionExecution = new CompositionExecutionExperience(
             catalog,
             new ProtectedCompositionDestinationProvider(),
-            static () =>
+            () =>
             {
-                ExternalProcessorGenerationLease lease = ExternalProcessorFactory.AcquireCurrent();
+                ExternalProcessorEnvironmentLease lease = externalEnvironment.AcquireCurrent();
                 return new(lease.Generation, lease.Processor);
             },
-            ExternalProcessorFactory.IsCurrent,
+            externalEnvironment.IsCurrent,
             new SystemClock());
         RawBinaryEditorFileSessions = new RawBinaryEditorFileSessionFactory();
         LocalFiles = new LocalFileStore();
@@ -86,6 +90,12 @@ public sealed class CompositionHostServices
     /// <summary>Creates one isolated host graph at an executable composition root.</summary>
     public static CompositionHostServices Create()
     {
+        return Create(new ExternalProcessorEnvironmentLoader());
+    }
+
+    internal static CompositionHostServices Create(
+        ExternalProcessorEnvironmentLoader externalEnvironment)
+    {
         var catalog = new CanonicalCapabilityCatalog(
             CreateCanonicalCapabilityCatalogSource());
         var compiler = new CanonicalCapabilityCompilerAdapter(
@@ -94,7 +104,8 @@ public sealed class CompositionHostServices
         return new CompositionHostServices(
             catalog,
             compiler,
-            new CanonicalCapabilityExperience(catalog, catalog));
+            new CanonicalCapabilityExperience(catalog, catalog),
+            externalEnvironment);
     }
 
     /// <summary>Gets the focused query over the host's single canonical catalog publication.</summary>
@@ -102,6 +113,11 @@ public sealed class CompositionHostServices
 
     /// <summary>Gets the focused Application-owned catalog loading port.</summary>
     public ICanonicalCapabilityCatalogLoader CanonicalCatalogLoader => Catalog;
+
+    /// <summary>Gets the one bounded external environment discovery and refresh owner.</summary>
+    public IExternalProcessorEnvironmentLoader ExternalEnvironmentLoader => ExternalEnvironment;
+
+    internal ExternalProcessorEnvironmentLoader ExternalEnvironment { get; }
 
     /// <summary>Gets the focused capability experience port.</summary>
     public ICompositionCapabilityExperience CompositionCapabilityExperience { get; }
@@ -153,6 +169,7 @@ public sealed class CompositionHostServices
             applicationVersion,
             CanonicalSupportMatrixQuery,
             Catalog,
+            ExternalEnvironment,
             new SystemRuntimeProbe(),
             new SystemClock());
     }

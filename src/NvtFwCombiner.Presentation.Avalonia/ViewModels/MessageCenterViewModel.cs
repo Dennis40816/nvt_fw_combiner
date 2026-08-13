@@ -1,6 +1,7 @@
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using NvtFwCombiner.Application.Diagnostics;
+using NvtFwCombiner.Application.ExternalTools;
 using NvtFwCombiner.Application.Ports;
 
 namespace NvtFwCombiner.Presentation.Avalonia.ViewModels;
@@ -9,6 +10,7 @@ internal sealed partial class MessageCenterViewModel : ObservableObject
 {
     private readonly Func<ShellTextResources> _textProvider;
     private readonly ISystemInformationService _systemInformation;
+    private readonly IExternalProcessorEnvironmentLoader _externalEnvironment;
     private readonly ISystemDiagnosticsExporter _exporter;
     private readonly Action<bool> _diagnosticsChanged;
     private Task? _activeRefresh;
@@ -17,12 +19,14 @@ internal sealed partial class MessageCenterViewModel : ObservableObject
     internal MessageCenterViewModel(
         Func<ShellTextResources> textProvider,
         ISystemInformationService systemInformation,
+        IExternalProcessorEnvironmentLoader externalEnvironment,
         ISystemDiagnosticsExporter exporter,
         ReportPresentationViewModel reports,
         Action<bool> diagnosticsChanged)
     {
         _textProvider = textProvider ?? throw new ArgumentNullException(nameof(textProvider));
         _systemInformation = systemInformation ?? throw new ArgumentNullException(nameof(systemInformation));
+        _externalEnvironment = externalEnvironment ?? throw new ArgumentNullException(nameof(externalEnvironment));
         _exporter = exporter ?? throw new ArgumentNullException(nameof(exporter));
         Reports = reports ?? throw new ArgumentNullException(nameof(reports));
         _diagnosticsChanged = diagnosticsChanged ?? throw new ArgumentNullException(nameof(diagnosticsChanged));
@@ -31,7 +35,7 @@ internal sealed partial class MessageCenterViewModel : ObservableObject
         ShowRunReportsCommand = new RelayCommand(() => SelectSystemInformation(false));
         ShowSystemInformationCommand = new RelayCommand(() => SelectSystemInformation(true));
         RefreshCommand = new AsyncRelayCommand(
-            cancellationToken => RefreshAsync(reloadCatalog: true, cancellationToken));
+            RefreshExplicitAsync);
         OpenCurrentReportCommand = new RelayCommand(OpenCurrentReport, () => Reports.CanOpenReport);
         OpenReportHistoryCommand = new RelayCommand(OpenReportHistory, () => Reports.CanOpenReportHistory);
     }
@@ -88,6 +92,10 @@ internal sealed partial class MessageCenterViewModel : ObservableObject
         ? Text.GetCatalogStateLabel(Current.CatalogState)
         : $"{Text.GetCatalogStateLabel(Current.CatalogState)} · {Current.CatalogVersion}";
 
+    /// <summary>Compact external-tool publication state, work inventory, and generation.</summary>
+    public string ExternalEnvironmentSummary =>
+        Text.FormatExternalEnvironmentSummary(_externalEnvironment.Current);
+
     public string MessageCenterAccessibleName =>
         Text.FormatMessageCenterAccessibleName(ActiveBadgeCount);
 
@@ -136,6 +144,32 @@ internal sealed partial class MessageCenterViewModel : ObservableObject
         return RefreshAsync(reloadCatalog: false, cancellationToken);
     }
 
+    internal async Task RefreshExternalEnvironmentAfterStartupAsync(
+            Action<long, long> progress,
+            CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(progress);
+        ExternalProcessorEnvironmentLoadResult result = await _externalEnvironment.LoadToCompletionAsync(
+            progress,
+            cancellationToken);
+        await RefreshAsync(reloadCatalog: false, cancellationToken);
+        switch (result.Outcome)
+        {
+            case ExternalProcessorEnvironmentLoadOutcome.Succeeded:
+                return;
+            case ExternalProcessorEnvironmentLoadOutcome.Superseded:
+                throw new ShellPreloadSupersededException();
+            case ExternalProcessorEnvironmentLoadOutcome.Failed:
+                throw new InvalidOperationException(string.Join(
+                    " ",
+                    result.Issues.Select(static issue => issue.Message)));
+            case ExternalProcessorEnvironmentLoadOutcome.Unknown:
+            default:
+                throw new InvalidOperationException(
+                    "External environment loading returned an invalid terminal result.");
+        }
+    }
+
     public async Task ExportAsync(string destinationPath, CancellationToken cancellationToken)
     {
         try
@@ -160,6 +194,7 @@ internal sealed partial class MessageCenterViewModel : ObservableObject
         OnPropertyChanged(nameof(Text));
         OnPropertyChanged(nameof(ActiveDiagnostics));
         OnPropertyChanged(nameof(CatalogSummary));
+        OnPropertyChanged(nameof(ExternalEnvironmentSummary));
         OnPropertyChanged(nameof(MessageCenterAccessibleName));
         OnPropertyChanged(nameof(SystemStatusAnnouncement));
         OnPropertyChanged(nameof(GlobalBuildBlockerText));
@@ -213,6 +248,23 @@ internal sealed partial class MessageCenterViewModel : ObservableObject
         _activeRefreshReloadsCatalog = reloadCatalog;
         _activeRefresh = refresh;
         return ObserveRefreshCompletionAsync(refresh);
+    }
+
+    private async Task RefreshExplicitAsync(CancellationToken cancellationToken)
+    {
+        PresentationObserver.Invoke(() => IsRefreshInProgress = true);
+        PresentationObserver.Invoke(() => OnPropertyChanged(nameof(ExternalEnvironmentSummary)));
+        try
+        {
+            _ = await _externalEnvironment.LoadToCompletionAsync(progress: null, cancellationToken);
+            PresentationObserver.Invoke(() => OnPropertyChanged(nameof(ExternalEnvironmentSummary)));
+            await RefreshAsync(reloadCatalog: true, cancellationToken);
+        }
+        finally
+        {
+            PresentationObserver.Invoke(() => IsRefreshInProgress = false);
+            PresentationObserver.Invoke(() => OnPropertyChanged(nameof(ExternalEnvironmentSummary)));
+        }
     }
 
     private async Task RefreshCoreAsync(bool reloadCatalog, CancellationToken cancellationToken)
@@ -289,6 +341,7 @@ internal sealed partial class MessageCenterViewModel : ObservableObject
         PresentationObserver.Invoke(() => OnPropertyChanged(nameof(IsGlobalBuildBlocked)));
         PresentationObserver.Invoke(() => OnPropertyChanged(nameof(GlobalBuildBlockerText)));
         PresentationObserver.Invoke(() => OnPropertyChanged(nameof(CatalogSummary)));
+        PresentationObserver.Invoke(() => OnPropertyChanged(nameof(ExternalEnvironmentSummary)));
         PresentationObserver.Invoke(() => OnPropertyChanged(nameof(MessageCenterAccessibleName)));
         PresentationObserver.Invoke(() => OnPropertyChanged(nameof(SystemStatusAnnouncement)));
     }

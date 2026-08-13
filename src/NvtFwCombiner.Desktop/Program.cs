@@ -34,6 +34,7 @@ internal static class Program
             CompositionHostServices.CreateSystemDiagnosticsExporter(),
             host.RawBinaryEditorFileSessions,
             host.CanonicalCatalogLoader,
+            host.ExternalEnvironmentLoader,
             host.LocalFiles);
     }
 }

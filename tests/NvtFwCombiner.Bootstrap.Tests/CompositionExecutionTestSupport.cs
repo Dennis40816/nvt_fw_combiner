@@ -1,5 +1,6 @@
 using NvtFwCombiner.Domain.Composition;
 using NvtFwCombiner.Infrastructure.Files;
+using NvtFwCombiner.Infrastructure.ExternalTools;
 using NvtFwCombiner.Infrastructure.Time;
 
 namespace NvtFwCombiner.Bootstrap.Tests;
@@ -13,13 +14,13 @@ internal static class CompositionExecutionTestSupport
             canonical,
             () =>
             {
-                ExternalProcessorGenerationLease lease =
-                    ExternalProcessorFactory.AcquireCurrent();
+                ExternalProcessorEnvironmentLease lease =
+                    ExternalProcessorEnvironmentTestSupport.AcquireCurrent();
                 return new CompositionExternalProcessorLease(
                     lease.Generation,
                     lease.Processor);
             },
-            ExternalProcessorFactory.IsCurrent);
+            ExternalProcessorEnvironmentTestSupport.IsCurrent);
     }
 
     internal static ICompositionExecution Create(

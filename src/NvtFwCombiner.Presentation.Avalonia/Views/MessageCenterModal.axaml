@@ -79,13 +79,15 @@
 
           <StackPanel IsVisible="{Binding IsSystemInformationSelected}" Spacing="{DynamicResource NfcSpace12}">
             <Border Classes="subtlePanel" Padding="14">
-              <Grid ColumnDefinitions="*,*,*" RowDefinitions="Auto,Auto" ColumnSpacing="{DynamicResource NfcSpace16}" RowSpacing="5">
+              <Grid ColumnDefinitions="*,*,*" RowDefinitions="Auto,Auto,Auto,Auto" ColumnSpacing="{DynamicResource NfcSpace16}" RowSpacing="5">
                 <TextBlock Classes="fieldLabel" Text="{Binding Text.ApplicationVersionLabel}" />
                 <TextBlock Grid.Row="1" Classes="bodyStrongText" Text="{Binding Current.ApplicationVersion}" TextWrapping="Wrap" />
                 <TextBlock Grid.Column="1" Classes="fieldLabel" Text="{Binding Text.RuntimeLabel}" />
                 <TextBlock Grid.Row="1" Grid.Column="1" Classes="bodyStrongText" Text="{Binding Current.Runtime.FrameworkDescription}" TextWrapping="Wrap" />
                 <TextBlock Grid.Column="2" Classes="fieldLabel" Text="{Binding Text.CatalogLabel}" />
                 <TextBlock Grid.Row="1" Grid.Column="2" Classes="bodyStrongText" Text="{Binding CatalogSummary}" TextWrapping="Wrap" />
+                <TextBlock Grid.Row="2" Grid.ColumnSpan="3" Margin="0,8,0,0" Classes="fieldLabel" Text="{Binding Text.ExternalToolsLabel}" />
+                <TextBlock Grid.Row="3" Grid.ColumnSpan="3" Classes="bodyStrongText" Text="{Binding ExternalEnvironmentSummary}" TextWrapping="Wrap" />
               </Grid>
             </Border>
 

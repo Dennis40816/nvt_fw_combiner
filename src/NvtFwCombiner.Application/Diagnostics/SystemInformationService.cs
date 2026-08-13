@@ -1,4 +1,5 @@
 using NvtFwCombiner.Application.Capabilities;
+using NvtFwCombiner.Application.ExternalTools;
 using NvtFwCombiner.Application.Ports;
 
 namespace NvtFwCombiner.Application.Diagnostics;
@@ -26,6 +27,7 @@ public sealed class SystemInformationService : ISystemInformationService
     private readonly ICanonicalSupportMatrixQuery _catalogQuery;
     private readonly ICanonicalCapabilityCatalogReloader _catalogReloader;
     private readonly ISystemRuntimeProbe _runtimeProbe;
+    private readonly IExternalProcessorEnvironmentLoader _externalEnvironment;
     private readonly ISystemClock _clock;
     private readonly int _transitionLimit;
     private readonly List<SystemDiagnosticTransition> _transitions = [];
@@ -36,6 +38,7 @@ public sealed class SystemInformationService : ISystemInformationService
         string applicationVersion,
         ICanonicalSupportMatrixQuery catalogQuery,
         ICanonicalCapabilityCatalogReloader catalogReloader,
+        IExternalProcessorEnvironmentLoader externalEnvironment,
         ISystemRuntimeProbe runtimeProbe,
         ISystemClock clock,
         int transitionLimit = DefaultTransitionLimit)
@@ -45,6 +48,8 @@ public sealed class SystemInformationService : ISystemInformationService
         _applicationVersion = applicationVersion;
         _catalogQuery = catalogQuery ?? throw new ArgumentNullException(nameof(catalogQuery));
         _catalogReloader = catalogReloader ?? throw new ArgumentNullException(nameof(catalogReloader));
+        _externalEnvironment = externalEnvironment ??
+            throw new ArgumentNullException(nameof(externalEnvironment));
         _runtimeProbe = runtimeProbe ?? throw new ArgumentNullException(nameof(runtimeProbe));
         _clock = clock ?? throw new ArgumentNullException(nameof(clock));
         _transitionLimit = transitionLimit;
@@ -101,6 +106,7 @@ public sealed class SystemInformationService : ISystemInformationService
     {
         CanonicalSupportMatrixQueryResult catalog = _catalogQuery.Query();
         CanonicalSupportMatrixSnapshot? matrix = catalog.Matrix;
+        ExternalProcessorEnvironmentStatus externalEnvironment = _externalEnvironment.Current;
         return new SystemInformationSnapshot(
             generation,
             _clock.UtcNow,
@@ -112,13 +118,15 @@ public sealed class SystemInformationService : ISystemInformationService
             matrix?.SourceSha256,
             matrix?.ResolutionToken.Value,
             catalog.ReloadIssues.Select(static issue => issue.Code),
-            DiagnosticsFor(catalog.State));
+            externalEnvironment,
+            DiagnosticsFor(catalog.State, externalEnvironment.State));
     }
 
-    private static IReadOnlyList<ActionableSystemDiagnostic> DiagnosticsFor(
-        CanonicalSupportMatrixCatalogState state)
+    private static List<ActionableSystemDiagnostic> DiagnosticsFor(
+        CanonicalSupportMatrixCatalogState state,
+        ExternalProcessorEnvironmentState externalState)
     {
-        return state switch
+        List<ActionableSystemDiagnostic> diagnostics = state switch
         {
             CanonicalSupportMatrixCatalogState.LastKnownGood =>
             [
@@ -142,6 +150,25 @@ public sealed class SystemInformationService : ISystemInformationService
             CanonicalSupportMatrixCatalogState.Current => [],
             _ => throw new ArgumentOutOfRangeException(nameof(state), state, null),
         };
+        if (externalState == ExternalProcessorEnvironmentState.LastKnownGood)
+        {
+            diagnostics.Add(new(
+                SystemDiagnosticCodes.ExternalProcessorEnvironmentLastKnownGood,
+                SystemDiagnosticCategory.ExternalProcessorEnvironment,
+                SystemDiagnosticSeverity.Warning,
+                "External tool refresh failed; the last-known-good environment remains active.",
+                "Review external tool manifests and refresh."));
+        }
+        else if (externalState == ExternalProcessorEnvironmentState.Unavailable)
+        {
+            diagnostics.Add(new(
+                SystemDiagnosticCodes.ExternalProcessorEnvironmentUnavailable,
+                SystemDiagnosticCategory.ExternalProcessorEnvironment,
+                SystemDiagnosticSeverity.Warning,
+                "The external tool environment is unavailable.",
+                "Review external tool manifests and refresh."));
+        }
+        return diagnostics;
     }
 
     private void RecordTransition(

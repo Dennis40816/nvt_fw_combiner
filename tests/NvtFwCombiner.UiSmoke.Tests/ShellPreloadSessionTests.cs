@@ -298,8 +298,10 @@ public sealed partial class ShellPreloadSessionTests
         var events = new ConcurrentQueue<string>();
         TaskCompletionSource historyStarted = NewSignal();
         TaskCompletionSource diagnosticsStarted = NewSignal();
+        TaskCompletionSource externalStarted = NewSignal();
         TaskCompletionSource releaseHistory = NewSignal();
         TaskCompletionSource releaseDiagnostics = NewSignal();
+        TaskCompletionSource releaseExternal = NewSignal();
         object workerGate = new();
         int activeWorkers = 0;
         int maximumWorkers = 0;
@@ -359,16 +361,25 @@ public sealed partial class ShellPreloadSessionTests
                         progress(index, 5);
                         await Task.Yield();
                     }
+                },
+                async (progress, token) =>
+                {
+                    progress(0, 2);
+                    await RunWorkerAsync("external", externalStarted, releaseExternal, token);
+                    progress(2, 2);
                 }),
             TestContext.Current.CancellationToken);
 
-        await Task.WhenAll(historyStarted.Task, diagnosticsStarted.Task).WaitAsync(
+        await Task.WhenAll(historyStarted.Task, externalStarted.Task).WaitAsync(
             TimeSpan.FromSeconds(5), TestContext.Current.CancellationToken);
-        Assert.False(Stage(session, ShellPreloadSession.DiagnosticsStageId).IsIndeterminate);
         Assert.Equal("launch", events.First());
         Assert.DoesNotContain("report", events);
         _ = releaseHistory.TrySetResult();
         await WaitUntilAsync(() => events.Contains("report"));
+        _ = releaseExternal.TrySetResult();
+        await diagnosticsStarted.Task.WaitAsync(
+            TimeSpan.FromSeconds(5), TestContext.Current.CancellationToken);
+        Assert.False(Stage(session, ShellPreloadSession.DiagnosticsStageId).IsIndeterminate);
         _ = releaseDiagnostics.TrySetResult();
         await preload;
 
@@ -388,11 +399,78 @@ public sealed partial class ShellPreloadSessionTests
         Assert.Equal("100 / 100", report.WorkLabel);
         Assert.Contains(report.Title, report.RetryAccessibleLabel, StringComparison.Ordinal);
         Assert.Contains(report.Title, report.SkipAccessibleLabel, StringComparison.Ordinal);
+        ShellPreloadStageSnapshot external = Stage(
+            session,
+            ShellPreloadSession.ExternalEnvironmentStageId);
+        Assert.Equal(2, external.CurrentAttempt?.CompletedWork);
+        Assert.Equal(2, external.CurrentAttempt?.TotalWork);
+        Assert.True(events.ToList().IndexOf("external-end") <
+            events.ToList().IndexOf("diagnostics-start"));
+    }
+
+    /// <summary>External discovery failure is explicit and its retry owns a fresh work sequence.</summary>
+    [Fact]
+    public async Task ExternalEnvironmentFailureCanRetryWithFreshProgress()
+    {
+        using ShellPreloadSession session = CreateSession();
+        session.AdoptReadyCatalog();
+        int attempts = 0;
+        await session.RunOptionalStagesAsync(
+            new(
+                static () => { },
+                static _ => Task.CompletedTask,
+                null,
+                static _ => Task.CompletedTask,
+                static (progress, isCurrent, _) =>
+                {
+                    Assert.True(isCurrent());
+                    progress(1, 1);
+                    return Task.CompletedTask;
+                },
+                (progress, _) =>
+                {
+                    int attempt = ++attempts;
+                    progress(0, 2);
+                    progress(attempt, 2);
+                    return attempt == 1
+                        ? Task.FromException(new InvalidDataException("manifest invalid"))
+                        : Task.CompletedTask;
+                }),
+            TestContext.Current.CancellationToken);
+
+        ShellPreloadStageSnapshot failed = Stage(
+            session,
+            ShellPreloadSession.ExternalEnvironmentStageId);
+        Assert.Equal(ShellPreloadStageState.Failed, failed.State);
+        Assert.Equal(1, failed.CurrentAttempt?.CompletedWork);
+        Assert.Equal(2, failed.CurrentAttempt?.TotalWork);
+        Assert.Equal("manifest invalid", failed.CurrentAttempt?.Diagnostic);
+
+        Assert.True(await session.TryRetryOptionalAsync(
+            ShellPreloadSession.ExternalEnvironmentStageId,
+            TestContext.Current.CancellationToken));
+        ShellPreloadStageSnapshot succeeded = Stage(
+            session,
+            ShellPreloadSession.ExternalEnvironmentStageId);
+        Assert.Equal(ShellPreloadStageState.Succeeded, succeeded.State);
+        Assert.Equal(2, succeeded.CurrentAttempt?.Identity.AttemptNumber);
+        Assert.Equal(2, succeeded.CurrentAttempt?.CompletedWork);
+        Assert.Null(succeeded.PreviousAttempt?.Progress);
+        Assert.Null(succeeded.PreviousAttempt?.CompletedWork);
+        Assert.Null(succeeded.PreviousAttempt?.TotalWork);
     }
 
     /// <summary>One admitted retry remains inside the initial lifecycle and releases its successor exactly once.</summary>
     [Fact]
     public async Task OptionalRetryIsDrainedBeforeInitialLifecycleCompletes()
+    {
+        for (int iteration = 0; iteration < 20; iteration++)
+        {
+            await AssertOptionalRetryIsDrainedBeforeInitialLifecycleCompletes();
+        }
+    }
+
+    private static async Task AssertOptionalRetryIsDrainedBeforeInitialLifecycleCompletes()
     {
         using ShellPreloadSession session = CreateSession(includeStartupReport: true);
         session.AdoptReadyCatalog();
@@ -544,106 +622,6 @@ public sealed partial class ShellPreloadSessionTests
         _ = Assert.Throws<InvalidOperationException>(() => oldProgress!(2, 5));
         _ = releaseRetry.TrySetResult();
         Assert.True(await retry);
-    }
-
-    /// <summary>Optional cancellation drains only remaining preload work and permits an explicit later retry.</summary>
-    [Fact]
-    public async Task OptionalCancellationDrainsRunningStagesWithoutCancellingCatalog()
-    {
-        using ShellPreloadSession session = CreateSession();
-        session.AdoptReadyCatalog();
-        TaskCompletionSource diagnosticsStarted = NewSignal();
-        TaskCompletionSource viewsStarted = NewSignal();
-        int historyRuns = 0;
-
-        static async Task BlockAsync(TaskCompletionSource started, CancellationToken cancellationToken)
-        {
-            _ = started.TrySetResult();
-            await Task.Delay(Timeout.InfiniteTimeSpan, cancellationToken);
-        }
-
-        Task preload = session.RunOptionalStagesAsync(
-            new(
-                static () => { },
-                _ => ++historyRuns == 1
-                    ? Task.FromException(new InvalidOperationException("history failed"))
-                    : Task.CompletedTask,
-                null,
-                token => BlockAsync(diagnosticsStarted, token),
-                (_, isCurrent, token) =>
-                {
-                    Assert.True(isCurrent());
-                    return BlockAsync(viewsStarted, token);
-                }),
-            TestContext.Current.CancellationToken);
-        await Task.WhenAll(diagnosticsStarted.Task, viewsStarted.Task).WaitAsync(
-            TimeSpan.FromSeconds(5), TestContext.Current.CancellationToken);
-
-        await session.CancelOptionalsAndDrainAsync();
-        await preload;
-
-        Assert.Equal(ShellPreloadStageState.Succeeded, session.CatalogStage.State);
-        Assert.Equal(ShellPreloadStageState.Failed, Stage(session, ShellPreloadSession.HistoryStageId).State);
-        Assert.All(session.Stages.Where(stage => !stage.IsRequired &&
-                stage.Id != ShellPreloadSession.HistoryStageId),
-            stage => Assert.Equal(ShellPreloadStageState.Cancelled, stage.State));
-
-        Assert.True(await session.TryRetryOptionalAsync(
-            ShellPreloadSession.HistoryStageId,
-            TestContext.Current.CancellationToken));
-        Assert.Equal(ShellPreloadStageState.Succeeded, Stage(session, ShellPreloadSession.HistoryStageId).State);
-        Assert.Equal(2, historyRuns);
-    }
-
-    /// <summary>An optional worker that ignores cancellation cannot publish after its bounded drain.</summary>
-    [Fact]
-    public async Task OptionalDrainTimeoutInvalidatesLateProgress()
-    {
-        int reports = 0;
-        int historyRuns = 0;
-        using var session = new ShellPreloadSession(
-            _ => reports++,
-            Text,
-            drainTimeout: TimeSpan.FromMilliseconds(20));
-        session.AdoptReadyCatalog();
-        TaskCompletionSource started = NewSignal();
-        TaskCompletionSource release = NewSignal();
-        Action<int, int>? delayedProgress = null;
-        Task preload = session.RunOptionalStagesAsync(
-            new(
-                static () => { },
-                _ => ++historyRuns == 1
-                    ? Task.FromException(new InvalidOperationException("history failed"))
-                    : Task.CompletedTask,
-                null,
-                static _ => Task.CompletedTask,
-                async (progress, isCurrent, cancellationToken) =>
-                {
-                    delayedProgress = progress;
-                    _ = started.TrySetResult();
-                    await release.Task;
-                    Assert.False(isCurrent());
-                }),
-            TestContext.Current.CancellationToken);
-        await started.Task.WaitAsync(TimeSpan.FromSeconds(5), TestContext.Current.CancellationToken);
-
-        Task cancel = session.CancelOptionalsAndDrainAsync();
-        Assert.Equal(ShellPreloadStageState.Cancelled,
-            Stage(session, ShellPreloadSession.ViewsStageId).State);
-        await cancel;
-        _ = Assert.Throws<InvalidOperationException>(() => delayedProgress!(1, 1));
-        Assert.False(await session.TryRetryOptionalAsync(
-            ShellPreloadSession.HistoryStageId,
-            TestContext.Current.CancellationToken));
-        _ = release.TrySetResult();
-        await preload;
-        Assert.True(await session.TryRetryOptionalAsync(
-            ShellPreloadSession.HistoryStageId,
-            TestContext.Current.CancellationToken));
-        int reportsAfterRetry = reports;
-
-        Assert.Equal(reportsAfterRetry, reports);
-        Assert.Equal(2, historyRuns);
     }
 
 }

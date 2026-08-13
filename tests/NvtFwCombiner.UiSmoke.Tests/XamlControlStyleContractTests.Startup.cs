@@ -101,6 +101,7 @@ public sealed partial class XamlControlStyleContractTests
         Assert.True(launch < concurrent);
         Assert.True(history >= 0 && history < report);
         Assert.Contains("StartOptionalAsync(DiagnosticsStageId", preloadSession, StringComparison.Ordinal);
+        Assert.Contains("StartOptionalAsync(ExternalEnvironmentStageId", preloadSession, StringComparison.Ordinal);
         Assert.Contains("StartOptionalAsync(ViewsStageId", preloadSession, StringComparison.Ordinal);
         Assert.Contains("viewModel.MessageCenter.RefreshAfterStartupAsync", lifecycle, StringComparison.Ordinal);
         Assert.Contains("viewModel.Settings.Refresh(viewModel.Text)", lifecycle, StringComparison.Ordinal);
@@ -252,7 +253,9 @@ public sealed partial class XamlControlStyleContractTests
         Assert.DoesNotContain("Stopwatch", lifecycle, StringComparison.Ordinal);
         Assert.Contains(
             typeof(PresentationHostServices).GetConstructors(),
-                constructor => constructor.GetParameters().Length == 8 &&
+                constructor => constructor.GetParameters().Length == 9 &&
+                constructor.GetParameters()[^2].ParameterType ==
+                    typeof(global::NvtFwCombiner.Application.ExternalTools.IExternalProcessorEnvironmentLoader) &&
                 constructor.GetParameters()[^1].ParameterType ==
                     typeof(ILocalFileStore));
     }

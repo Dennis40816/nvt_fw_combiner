@@ -143,6 +143,7 @@ internal sealed partial class MainWindowViewModel
         MessageCenter = new MessageCenterViewModel(
             () => Text,
             _systemInformationService,
+            hostServices.ExternalEnvironmentLoader,
             systemDiagnosticsExporter ?? hostServices.SystemDiagnosticsExporter,
             Reports,
             MessageCenterDiagnosticsChanged);

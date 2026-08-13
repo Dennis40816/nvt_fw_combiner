@@ -1,4 +1,5 @@
 using NvtFwCombiner.Application.Capabilities;
+using NvtFwCombiner.Application.ExternalTools;
 
 namespace NvtFwCombiner.Application.Diagnostics;
 
@@ -7,6 +8,9 @@ public enum SystemDiagnosticCategory
 {
     /// <summary>Canonical capability catalog load or publication state.</summary>
     CapabilityCatalog,
+
+    /// <summary>Bounded external processor environment discovery.</summary>
+    ExternalProcessorEnvironment,
 }
 
 /// <summary>Severity of one active current-session system diagnostic.</summary>
@@ -27,6 +31,14 @@ public static class SystemDiagnosticCodes
 
     /// <summary>A failed reload retained the prior immutable publication.</summary>
     public const string CapabilityCatalogLastKnownGood = "system.catalog.last-known-good";
+
+    /// <summary>No valid external processor environment is available.</summary>
+    public const string ExternalProcessorEnvironmentUnavailable =
+        "system.external-environment.unavailable";
+
+    /// <summary>An external environment refresh retained its prior publication.</summary>
+    public const string ExternalProcessorEnvironmentLastKnownGood =
+        "system.external-environment.last-known-good";
 }
 
 /// <summary>One path-free diagnostic with operator-safe text shared by every adapter.</summary>
@@ -57,6 +69,7 @@ public sealed class SystemInformationSnapshot
         string? catalogSourceSha256,
         string? publicationToken,
         IEnumerable<string> catalogIssueCodes,
+        ExternalProcessorEnvironmentStatus externalEnvironment,
         IEnumerable<ActionableSystemDiagnostic> activeDiagnostics)
     {
         Generation = generation;
@@ -71,6 +84,8 @@ public sealed class SystemInformationSnapshot
         CatalogIssueCodes = Array.AsReadOnly([
             .. catalogIssueCodes.Distinct(StringComparer.Ordinal).Order(StringComparer.Ordinal),
         ]);
+        ExternalEnvironment = externalEnvironment ??
+            throw new ArgumentNullException(nameof(externalEnvironment));
         ActiveDiagnostics = Array.AsReadOnly([.. activeDiagnostics]);
     }
 
@@ -103,6 +118,9 @@ public sealed class SystemInformationSnapshot
 
     /// <summary>Stable source issue codes only; raw messages and paths are intentionally excluded.</summary>
     public IReadOnlyList<string> CatalogIssueCodes { get; }
+
+    /// <summary>Latest bounded external environment lifecycle observation.</summary>
+    public ExternalProcessorEnvironmentStatus ExternalEnvironment { get; }
 
     /// <summary>Currently active diagnostics. Resolved diagnostics never remain here.</summary>
     public IReadOnlyList<ActionableSystemDiagnostic> ActiveDiagnostics { get; }

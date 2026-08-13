@@ -38,6 +38,9 @@ public static partial class CliApplication
 
         try
         {
+            _ = await host.ExternalEnvironmentLoader.LoadToCompletionAsync(
+                progress: null,
+                cancellationToken).ConfigureAwait(false);
             if (args is ["doctor"])
             {
                 ISystemInformationService diagnostics =

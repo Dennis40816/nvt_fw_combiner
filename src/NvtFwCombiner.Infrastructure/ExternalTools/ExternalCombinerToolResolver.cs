@@ -2,6 +2,7 @@ using System.Security.Cryptography;
 using NvtFwCombiner.Application.ExternalTools;
 using NvtFwCombiner.Contracts.ExternalTools;
 using NvtFwCombiner.Domain.Composition;
+using NvtFwCombiner.Infrastructure.Files;
 
 namespace NvtFwCombiner.Infrastructure.ExternalTools;
 
@@ -20,7 +21,8 @@ internal sealed class ExternalCombinerToolResolver
         string toolBindingId,
         out ExternalCombinerToolManifest? manifest,
         out string? executablePath,
-        out CompositionIssue? issue)
+        out CompositionIssue? issue,
+        CancellationToken cancellationToken = default)
     {
         executablePath = null;
         try
@@ -66,7 +68,28 @@ internal sealed class ExternalCombinerToolResolver
             return false;
         }
 
-        string actualSha256 = GetLowerSha256(resolvedPath);
+        try
+        {
+            resolvedPath = FileSystemPathGuard.ResolveExistingFileUnderRoots(
+                resolvedPath,
+                [_toolRoot]);
+        }
+        catch (IOException)
+        {
+            issue = new CompositionIssue(
+                "external-tool.executable.invalid",
+                "External combiner executable is not a stable regular file.");
+            return false;
+        }
+        catch (UnauthorizedAccessException)
+        {
+            issue = new CompositionIssue(
+                "external-tool.executable.invalid",
+                "External combiner executable is not a stable regular file.");
+            return false;
+        }
+
+        string actualSha256 = GetLowerSha256(resolvedPath, cancellationToken);
         if (!string.Equals(actualSha256, manifest.Sha256, StringComparison.Ordinal))
         {
             issue = new CompositionIssue(
@@ -96,9 +119,27 @@ internal sealed class ExternalCombinerToolResolver
                value.IndexOfAny([Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar]) < 0;
     }
 
-    private static string GetLowerSha256(string path)
+    private static string GetLowerSha256(string path, CancellationToken cancellationToken)
     {
-        using FileStream stream = File.OpenRead(path);
-        return Convert.ToHexString(SHA256.HashData(stream)).ToLowerInvariant();
+        using var stream = new FileStream(path, new FileStreamOptions
+        {
+            Mode = FileMode.Open,
+            Access = FileAccess.Read,
+            Share = FileShare.Read,
+            Options = FileOptions.SequentialScan,
+        });
+        RegularFileGuard.RequireOpenHandle(stream.SafeFileHandle, path);
+        long length = stream.Length;
+        using var hash = IncrementalHash.CreateHash(HashAlgorithmName.SHA256);
+        byte[] buffer = new byte[64 * 1024];
+        int read;
+        while ((read = stream.Read(buffer)) > 0)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            hash.AppendData(buffer, 0, read);
+        }
+        return stream.ReadByte() == -1 && stream.Length == length
+            ? Convert.ToHexString(hash.GetHashAndReset()).ToLowerInvariant()
+            : throw new IOException("External combiner executable changed while it was being read.");
     }
 }

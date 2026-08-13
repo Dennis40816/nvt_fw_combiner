@@ -2192,6 +2192,21 @@ after the grill closes so issues do not become a competing draft specification.
     PL-04 exception. They create no reusable allowance, authorize no cross-slice
     relocation, and preserve firmware, report-wire, Golden, coverage, and all
     later descending-ratchet gates.
+    Owner amendment on 2026-08-13 grants PL-05 (#377) one named,
+    non-transferable accounting exception. The original 170/145 planning
+    envelope omitted the bounded filesystem traversal, stable-handle and hash
+    validation, typed request/publication generations, last-known-good state,
+    generation-zero blocked readiness, and the shared startup/refresh/CLI
+    adoption required to replace the synchronous Bootstrap factory safely.
+    The exact implementation removes 250 and adds 984 physical nonblank
+    production lines: full production changes from 97,426 to 98,160 and
+    runtime from 67,404 to 68,018. The runtime slices become Domain plus
+    Profiles 20,619, Application 29,585, Bootstrap plus CLI plus Desktop 3,074,
+    and Infrastructure plus Contracts plus CRC worker 14,740. These exact
+    values immediately become descending ratchets. The +734 full-production
+    and +614 runtime deltas are usable by PL-05 only; they authorize no later
+    growth, no cross-slice relocation, and no firmware, processor-protocol,
+    Golden, report-wire, coverage, or release-gate weakening.
     Owner amendment on 2026-08-08 supersedes the earlier 44,000 total and
     18,000/12,000/7,500/5,500 slice completion caps. The dated numbers remain
     planning history after the merged #230 checkpoint at `ad672900` showed that

@@ -313,6 +313,16 @@ production by 3 lines but rebaselines the runtime slices that previously
 excluded the displaced owner. The replacement values immediately become
 descending ratchets and create no budget for later preload tickets.
 
+The 2026-08-13 PL-05 implementation deletes the prior Bootstrap factory and
+lease wrapper. One Infrastructure loader now owns bounded discovery, typed
+request/publication generations, supersession/drain, and last-known-good
+publication; Application owns the additive lifecycle/result vocabulary;
+Bootstrap only constructs and shares that owner. Shell startup admits the
+external stage before diagnostics, Message Center explicit refresh creates the
+newer request, and CLI help/version remain earlier than environment loading.
+The exact PL-05-only accounting replacement is owned by ADR 0021 and creates no
+later growth allowance.
+
 - Operators can see what is running, how much exact work completed, and can
   retry, skip, or cancel within the stage's safety class.
 - Optional startup failures no longer suppress unrelated later work or leave no

@@ -1,5 +1,6 @@
 using NvtFwCombiner.Application.Capabilities;
 using NvtFwCombiner.Application.Diagnostics;
+using NvtFwCombiner.Application.ExternalTools;
 using NvtFwCombiner.Application.HexEditor;
 using NvtFwCombiner.Application.Ports;
 
@@ -17,6 +18,7 @@ public sealed class PresentationHostServices
         ISystemDiagnosticsExporter systemDiagnosticsExporter,
         IRawBinaryEditorFileSessionFactory rawBinaryEditorFileSessions,
         ICanonicalCapabilityCatalogLoader canonicalCatalogLoader,
+        IExternalProcessorEnvironmentLoader externalEnvironmentLoader,
         ILocalFileStore localFiles)
     {
         Composition = composition ?? throw new ArgumentNullException(nameof(composition));
@@ -29,6 +31,8 @@ public sealed class PresentationHostServices
             throw new ArgumentNullException(nameof(rawBinaryEditorFileSessions));
         CanonicalCatalogLoader = canonicalCatalogLoader ??
             throw new ArgumentNullException(nameof(canonicalCatalogLoader));
+        ExternalEnvironmentLoader = externalEnvironmentLoader ??
+            throw new ArgumentNullException(nameof(externalEnvironmentLoader));
         LocalFiles = localFiles ?? throw new ArgumentNullException(nameof(localFiles));
     }
 
@@ -45,6 +49,8 @@ public sealed class PresentationHostServices
     internal IRawBinaryEditorFileSessionFactory RawBinaryEditorFileSessions { get; }
 
     internal ICanonicalCapabilityCatalogLoader CanonicalCatalogLoader { get; }
+
+    internal IExternalProcessorEnvironmentLoader ExternalEnvironmentLoader { get; }
 
     internal ILocalFileStore LocalFiles { get; }
 }

@@ -63,7 +63,8 @@ internal sealed record ShellOptionalPreloadWork(
     Func<CancellationToken, Task> RestoreHistory,
     Func<Action<long, long>, CancellationToken, Task>? LoadStartupReport,
     Func<CancellationToken, Task> RefreshDiagnostics,
-    Func<Action<int, int>, Func<bool>, CancellationToken, Task> WarmDeferredViews);
+    Func<Action<int, int>, Func<bool>, CancellationToken, Task> WarmDeferredViews,
+    Func<Action<long, long>, CancellationToken, Task>? RefreshExternalEnvironment = null);
 
 internal sealed class ShellPreloadSession : ObservableObject, IDisposable
 {
@@ -71,6 +72,7 @@ internal sealed class ShellPreloadSession : ObservableObject, IDisposable
     internal const string HistoryStageId = "report-history";
     internal const string ReportStageId = "startup-report";
     internal const string DiagnosticsStageId = "system-diagnostics";
+    internal const string ExternalEnvironmentStageId = "external-environment";
     internal const string ViewsStageId = "deferred-views";
     internal const int OptionalWorkerBudget = 2;
     internal static readonly TimeSpan DrainTimeout = TimeSpan.FromSeconds(5);
@@ -98,8 +100,10 @@ internal sealed class ShellPreloadSession : ObservableObject, IDisposable
         _text = text ?? throw new ArgumentNullException(nameof(text));
         _drainTimeout = drainTimeout ?? DrainTimeout;
         string[] ids = includeStartupReport
-            ? [CatalogStageId, HistoryStageId, ReportStageId, DiagnosticsStageId, ViewsStageId]
-            : [CatalogStageId, HistoryStageId, DiagnosticsStageId, ViewsStageId];
+            ? [CatalogStageId, HistoryStageId, ReportStageId, DiagnosticsStageId,
+                ExternalEnvironmentStageId, ViewsStageId]
+            : [CatalogStageId, HistoryStageId, DiagnosticsStageId,
+                ExternalEnvironmentStageId, ViewsStageId];
         _stages = new(ids.Select((id, index) => NewStage(id, index + 1, ids.Length)));
         _stageIndices = ids.Select((id, index) => (id, index)).ToDictionary(
             static item => item.id,
@@ -111,12 +115,12 @@ internal sealed class ShellPreloadSession : ObservableObject, IDisposable
     internal ReadOnlyObservableCollection<ShellPreloadStageSnapshot> Stages { get; }
     internal ShellPreloadStageSnapshot CatalogStage => Stage(CatalogStageId);
     internal ShellPreloadStageSnapshot? SummaryStage => _optionalWork is null ? null :
-        _stages.FirstOrDefault(static stage => !stage.IsRequired && stage.State is
+        SnapshotStages().FirstOrDefault(static stage => !stage.IsRequired && stage.State is
             ShellPreloadStageState.Pending or ShellPreloadStageState.DependencyBlocked or
             ShellPreloadStageState.Running or ShellPreloadStageState.Failed) ?? _stages[^1];
     internal bool HasOptionalStatus => SummaryStage is not null;
     internal string AccessibleStatus => _accessibleStatus;
-    internal bool CanCancelOptionals => _optionalWork is not null && _stages.Any(static stage =>
+    internal bool CanCancelOptionals => _optionalWork is not null && SnapshotStages().Any(static stage =>
         !stage.IsRequired && stage.State is ShellPreloadStageState.Pending or
             ShellPreloadStageState.DependencyBlocked or ShellPreloadStageState.Running);
     internal long Generation { get; } = Interlocked.Increment(ref s_generation);
@@ -170,7 +174,7 @@ internal sealed class ShellPreloadSession : ObservableObject, IDisposable
         using CancellationTokenSource linked = LinkOptionals(cancellationToken);
         await Task.WhenAll(
             RunReportChainAsync(linked.Token),
-            StartOptionalAsync(DiagnosticsStageId, linked.Token),
+            RunExternalEnvironmentAndDiagnosticsAsync(linked.Token),
             StartOptionalAsync(ViewsStageId, linked.Token));
         await AwaitActiveOptionalsAsync();
     }
@@ -257,7 +261,7 @@ internal sealed class ShellPreloadSession : ObservableObject, IDisposable
 
     internal void SetReducedMotion(bool enabled)
     {
-        foreach (ShellPreloadStageSnapshot stage in _stages.ToArray())
+        foreach (ShellPreloadStageSnapshot stage in SnapshotStages())
         {
             if (stage.IsReducedMotionEnabled != enabled)
             {
@@ -353,6 +357,15 @@ internal sealed class ShellPreloadSession : ObservableObject, IDisposable
         _ = await StartOptionalAsync(ReportStageId, cancellationToken);
     }
 
+    private async Task RunExternalEnvironmentAndDiagnosticsAsync(CancellationToken cancellationToken)
+    {
+        _ = await StartOptionalAsync(ExternalEnvironmentStageId, cancellationToken);
+        if (Stage(DiagnosticsStageId).State == ShellPreloadStageState.Pending)
+        {
+            _ = await StartOptionalAsync(DiagnosticsStageId, cancellationToken);
+        }
+    }
+
     private Task<bool> StartOptionalAsync(string stageId, CancellationToken cancellationToken)
     {
         Task<bool> task = RunOptionalCoreAsync(stageId, cancellationToken);
@@ -407,6 +420,11 @@ internal sealed class ShellPreloadSession : ObservableObject, IDisposable
                     (completed, total) => SetWork(identity, completed, total),
                     cancellationToken),
             DiagnosticsStageId => work.RefreshDiagnostics(cancellationToken),
+            ExternalEnvironmentStageId => work.RefreshExternalEnvironment is { } refreshExternal
+                ? refreshExternal(
+                    (completed, total) => SetWork(identity, completed, total),
+                    cancellationToken)
+                : Task.CompletedTask,
             ViewsStageId => work.WarmDeferredViews(
                 (completed, total) => SetWork(identity, completed, total),
                 () => IsCurrent(identity),
@@ -539,6 +557,11 @@ internal sealed class ShellPreloadSession : ObservableObject, IDisposable
         return _stageIndices.TryGetValue(id, out int index) ? _stages[index] : null;
     }
 
+    private IEnumerable<ShellPreloadStageSnapshot> SnapshotStages()
+    {
+        return Enumerable.Range(0, _stages.Count).Select(index => _stages[index]);
+    }
+
     private bool IsActive(string id)
     {
         return _active.TryGetValue(id, out Task? task) && !task.IsCompleted;
@@ -574,6 +597,7 @@ internal sealed class ShellPreloadSession : ObservableObject, IDisposable
             HistoryStageId => _text.PreloadHistoryTitle,
             ReportStageId => _text.PreloadReportTitle,
             DiagnosticsStageId => _text.SystemInformationLabel,
+            ExternalEnvironmentStageId => _text.PreloadExternalEnvironmentTitle,
             ViewsStageId => _text.PreloadViewsTitle,
             _ => throw new ArgumentOutOfRangeException(nameof(id), id, "Unknown preload stage."),
         };
@@ -620,7 +644,7 @@ internal sealed class ShellPreloadSession : ObservableObject, IDisposable
                 await Task.WhenAll(active);
                 continue;
             }
-            if (!_stages.Any(static stage => !stage.IsRequired && stage.IsRunning))
+            if (!SnapshotStages().Any(static stage => !stage.IsRequired && stage.IsRunning))
             {
                 return;
             }
