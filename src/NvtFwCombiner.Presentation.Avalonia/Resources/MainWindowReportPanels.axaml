@@ -70,7 +70,7 @@
 </DataTemplate>
 
 <DataTemplate x:Key="ReportSummaryPanelTemplate" DataType="vm:ReportPresentationViewModel">
-  <Border Classes="surface" Margin="16,14,16,0" Padding="0">
+  <Border Classes="subtlePanel" Margin="16,14,16,0" Padding="0">
     <Expander IsExpanded="{Binding LoadedReport.HasPrimaryIssue}">
       <Expander.Header>
         <Grid Margin="16,12" ColumnDefinitions="Auto,*,Auto,Auto" ColumnSpacing="{DynamicResource NfcSpace12}">
@@ -147,8 +147,8 @@
           <TextBlock Classes="captionText" Text="{Binding LoadedReport.NextStepDetail}" TextWrapping="Wrap" />
         </StackPanel>
 
-        <Grid Grid.Row="1" ColumnDefinitions="*,*">
-        <Border Padding="16" BorderBrush="{DynamicResource NfcBorderMutedBrush}" BorderThickness="0,0,1,0">
+        <Grid Grid.Row="1" ColumnDefinitions="*,*" ColumnSpacing="{DynamicResource NfcSpace12}">
+        <Border Classes="insetSurface" Padding="14">
           <StackPanel Spacing="{DynamicResource NfcSpace8}">
             <TextBlock Classes="fieldLabel" Text="{Binding Text.OutputLabel}" />
             <Grid ColumnDefinitions="54,*" RowDefinitions="Auto,Auto,Auto" ColumnSpacing="10" RowSpacing="7">
@@ -166,7 +166,7 @@
           </StackPanel>
         </Border>
 
-        <Border Grid.Column="1" Padding="16">
+        <Border Grid.Column="1" Classes="insetSurface" Padding="14">
           <Grid RowDefinitions="Auto,*" RowSpacing="{DynamicResource NfcSpace8}">
             <Grid ColumnDefinitions="*,Auto" ColumnSpacing="10">
               <StackPanel Spacing="3">

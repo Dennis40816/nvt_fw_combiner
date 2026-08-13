@@ -197,9 +197,6 @@ public sealed partial class ReportReviewViewModel
     /// <summary>Small byte-difference verdict metadata.</summary>
     public string ByteDifferenceMeta { get; }
 
-    /// <summary>Compact audit-detail summary for the collapsed traceability section.</summary>
-    public string AuditSummary { get; }
-
     /// <summary>Issue rows.</summary>
     public IReadOnlyList<ReportLineViewModel> Issues { get; }
 

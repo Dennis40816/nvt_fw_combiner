@@ -47,7 +47,7 @@ public sealed partial class XamlControlStyleContractTests
         Assert.Contains("<ItemsControl Classes=\"spaciousList\" ItemsSource=\"{Binding Rows}\">", inputs, StringComparison.Ordinal);
         Assert.Contains("<views:SpaciousPanel Classes=\"compactSurface\" IsVisible=\"{Binding LoadedReport.HasInputGroups}\">", audit, StringComparison.Ordinal);
         Assert.DoesNotContain("Classes=\"compactSurface contentPanel\" IsVisible=\"{Binding LoadedReport.HasInputGroups}\"", audit, StringComparison.Ordinal);
-        Assert.Contains("<TabControl Grid.Row=\"1\" MinHeight=\"0\"", audit, StringComparison.Ordinal);
+        Assert.Contains("<TabControl Grid.Row=\"2\" MinHeight=\"0\"", audit, StringComparison.Ordinal);
         Assert.Contains("HorizontalScrollBarVisibility=\"Disabled\"", audit, StringComparison.Ordinal);
         Assert.Contains("VerticalAlignment=\"Stretch\"", audit, StringComparison.Ordinal);
         Assert.Contains("VerticalScrollBarVisibility=\"Auto\"", audit, StringComparison.Ordinal);

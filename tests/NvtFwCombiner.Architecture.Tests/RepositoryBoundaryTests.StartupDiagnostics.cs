@@ -165,7 +165,7 @@ public sealed partial class RepositoryBoundaryTests
         Assert.Contains("284 gross removed, 281", baseline, StringComparison.Ordinal);
         Assert.Contains("net **-3**", baseline, StringComparison.Ordinal);
         Assert.Contains("97,306 to 97,303", baseline, StringComparison.Ordinal);
-        Assert.Contains("full_production_ratchet=97_303", codeSizePolicy, StringComparison.Ordinal);
+        Assert.Contains("full_production_ratchet=97_302", codeSizePolicy, StringComparison.Ordinal);
         Assert.Contains("runtime_production_ratchet=67_371", codeSizePolicy, StringComparison.Ordinal);
         Assert.Contains("application_ratchet=29_404", codeSizePolicy, StringComparison.Ordinal);
         Assert.Contains("bootstrap_cli_ratchet=3_267", codeSizePolicy, StringComparison.Ordinal);

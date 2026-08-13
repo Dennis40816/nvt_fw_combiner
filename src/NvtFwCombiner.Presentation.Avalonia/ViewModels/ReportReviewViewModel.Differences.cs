@@ -44,25 +44,6 @@ public sealed partial class ReportReviewViewModel
                 string.Create(CultureInfo.InvariantCulture, $"{outputDifferences.AcceptedCount}/{outputDifferences.Count} 預期"));
     }
 
-    private static string CreateAuditSummary(
-        IReadOnlyList<ReportLineViewModel> inputs,
-        IReadOnlyList<ReportLineViewModel> operations,
-        IReadOnlyList<ReportLineViewModel> mutations,
-        int outputDifferenceCount,
-        IReadOnlyList<ReportLineViewModel> issues,
-        ShellLanguage language)
-    {
-        int commandCount = CountRuntimeInvocations(operations);
-        return T(
-            language,
-            string.Create(
-                CultureInfo.InvariantCulture,
-                $"{inputs.Count} input(s), {operations.Count} step(s), {commandCount} refresh command(s), {mutations.Count} changed range(s), {outputDifferenceCount} diff row(s), {issues.Count} issue row(s)"),
-            string.Create(
-                CultureInfo.InvariantCulture,
-                $"{inputs.Count} 個輸入、{operations.Count} 個步驟、{commandCount} 個 refresh command、{mutations.Count} 個 changed range、{outputDifferenceCount} 筆 diff、{issues.Count} 筆問題"));
-    }
-
     private static bool IsReplaceComposition(string compositionKind)
     {
         return string.Equals(compositionKind, "Replace", StringComparison.OrdinalIgnoreCase);

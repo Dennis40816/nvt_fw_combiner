@@ -250,6 +250,20 @@ public sealed partial class RepositoryBoundaryTests
         Assert.Contains("Text=\"{Binding Text.ChangeReviewTitle}\"", reportPanels, StringComparison.Ordinal);
         Assert.Contains("ContentTemplate=\"{StaticResource ReportAuditDetailsPanelTemplate}\"", reportModal, StringComparison.Ordinal);
         Assert.Contains("Text=\"{Binding Text.EvidenceTitle}\"", reportAuditTemplates, StringComparison.Ordinal);
+        foreach (string countBinding in new[]
+        {
+            "LoadedReport.InputCount",
+            "LoadedReport.OperationCount",
+            "LoadedReport.MutationCount",
+            "LoadedReport.OutputDifferenceCount",
+            "LoadedReport.IssueCount",
+            "LoadedReport.PostbuildInvocationCount",
+        })
+        {
+            Assert.Contains(countBinding, reportAuditTemplates, StringComparison.Ordinal);
+        }
+        Assert.Contains("Classes=\"subtlePanel\" Margin=\"16,14,16,0\"", reportPanels, StringComparison.Ordinal);
+        Assert.Contains("ColumnSpacing=\"{DynamicResource NfcSpace12}\"", reportPanels, StringComparison.Ordinal);
         Assert.Contains("ReportLineBadgeTemplate", reportTemplates, StringComparison.Ordinal);
         Assert.Contains("ReportDifferenceSummaryRowTemplate", reportPanels, StringComparison.Ordinal);
         Assert.DoesNotContain("ReportDifferenceSummaryChipTemplate", reportChangeTemplates, StringComparison.Ordinal);
