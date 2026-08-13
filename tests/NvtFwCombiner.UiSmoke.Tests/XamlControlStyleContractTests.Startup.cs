@@ -1,5 +1,5 @@
 using System.Xml.Linq;
-using NvtFwCombiner.Application.Capabilities;
+using NvtFwCombiner.Application.Ports;
 using NvtFwCombiner.Presentation.Avalonia;
 
 namespace NvtFwCombiner.UiSmoke.Tests;
@@ -268,9 +268,9 @@ public sealed partial class XamlControlStyleContractTests
         Assert.DoesNotContain("Stopwatch", lifecycle, StringComparison.Ordinal);
         Assert.Contains(
             typeof(PresentationHostServices).GetConstructors(),
-                constructor => constructor.GetParameters().Length == 7 &&
+                constructor => constructor.GetParameters().Length == 8 &&
                 constructor.GetParameters()[^1].ParameterType ==
-                    typeof(ICanonicalCapabilityCatalogLoader));
+                    typeof(ILocalFileStore));
     }
 
     /// <summary>The clear confirmation identifies the pending route visually and to assistive technology.</summary>

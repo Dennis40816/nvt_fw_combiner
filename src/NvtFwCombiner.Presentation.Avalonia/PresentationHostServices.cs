@@ -16,7 +16,8 @@ public sealed class PresentationHostServices
         ISystemInformationService systemInformation,
         ISystemDiagnosticsExporter systemDiagnosticsExporter,
         IRawBinaryEditorFileSessionFactory rawBinaryEditorFileSessions,
-        ICanonicalCapabilityCatalogLoader canonicalCatalogLoader)
+        ICanonicalCapabilityCatalogLoader canonicalCatalogLoader,
+        ILocalFileStore localFiles)
     {
         Composition = composition ?? throw new ArgumentNullException(nameof(composition));
         FileReveal = fileReveal ?? throw new ArgumentNullException(nameof(fileReveal));
@@ -28,6 +29,7 @@ public sealed class PresentationHostServices
             throw new ArgumentNullException(nameof(rawBinaryEditorFileSessions));
         CanonicalCatalogLoader = canonicalCatalogLoader ??
             throw new ArgumentNullException(nameof(canonicalCatalogLoader));
+        LocalFiles = localFiles ?? throw new ArgumentNullException(nameof(localFiles));
     }
 
     internal PresentationCompositionServices Composition { get; }
@@ -43,4 +45,6 @@ public sealed class PresentationHostServices
     internal IRawBinaryEditorFileSessionFactory RawBinaryEditorFileSessions { get; }
 
     internal ICanonicalCapabilityCatalogLoader CanonicalCatalogLoader { get; }
+
+    internal ILocalFileStore LocalFiles { get; }
 }

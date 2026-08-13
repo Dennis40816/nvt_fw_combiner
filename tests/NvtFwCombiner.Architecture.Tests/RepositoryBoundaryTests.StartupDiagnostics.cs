@@ -91,6 +91,7 @@ public sealed partial class RepositoryBoundaryTests
             "docs/governance/v0.10.5-preload-baseline-and-ticket-ledger.md");
         string specification = ReadText("docs/specs/v0.10.5-unified-preload-lifecycle.md");
         string decision = ReadText("docs/adr/0049-unified-preload-lifecycle.md");
+        string codeSizePolicy = ReadText("scripts/code_size_policy.py");
         string mainWindow = ReadText(
             "src/NvtFwCombiner.Presentation.Avalonia/MainWindow.axaml.cs");
         string report = ReadText(
@@ -161,6 +162,14 @@ public sealed partial class RepositoryBoundaryTests
             Assert.Equal(1, CountOccurrences(baseline, row));
         }
         Assert.Equal(67_186, codeSizeRows.Skip(2).Sum(static row => row.Lines));
+        Assert.Contains("284 gross removed, 281", baseline, StringComparison.Ordinal);
+        Assert.Contains("net **-3**", baseline, StringComparison.Ordinal);
+        Assert.Contains("97,306 to 97,303", baseline, StringComparison.Ordinal);
+        Assert.Contains("full_production_ratchet=97_303", codeSizePolicy, StringComparison.Ordinal);
+        Assert.Contains("runtime_production_ratchet=67_371", codeSizePolicy, StringComparison.Ordinal);
+        Assert.Contains("application_ratchet=29_404", codeSizePolicy, StringComparison.Ordinal);
+        Assert.Contains("bootstrap_cli_ratchet=3_267", codeSizePolicy, StringComparison.Ordinal);
+        Assert.Contains("infrastructure_contracts_worker_ratchet=14_081", codeSizePolicy, StringComparison.Ordinal);
         Assert.Contains("777.090 ms", baseline, StringComparison.Ordinal);
         Assert.Contains("806.930 ms", baseline, StringComparison.Ordinal);
         Assert.Contains("782.368 ms", baseline, StringComparison.Ordinal);
@@ -222,10 +231,13 @@ public sealed partial class RepositoryBoundaryTests
         Assert.Contains("_startupLoadCancellation", mainWindow, StringComparison.Ordinal);
         Assert.Contains("TryWarmCanonicalCatalogAsync", mainWindow, StringComparison.Ordinal);
         Assert.Contains("RefreshAfterStartupAsync", mainWindow, StringComparison.Ordinal);
-        Assert.Contains("ReadToEndAsync", report, StringComparison.Ordinal);
-        Assert.Contains("File.ReadAllText", report, StringComparison.Ordinal);
+        Assert.DoesNotContain("ReadToEndAsync", report, StringComparison.Ordinal);
+        Assert.DoesNotContain("File.ReadAllText", report, StringComparison.Ordinal);
+        Assert.Contains("MaximumStandaloneReportBytes", report, StringComparison.Ordinal);
+        Assert.Contains("ReadTextAsync", report, StringComparison.Ordinal);
         Assert.Contains("MaximumHistoryFileBytes", history, StringComparison.Ordinal);
-        Assert.Contains("Task.Run(() => Load", history, StringComparison.Ordinal);
+        Assert.DoesNotContain("Task.Run(() => Load", history, StringComparison.Ordinal);
+        Assert.Contains("files.ReadAsync", history, StringComparison.Ordinal);
         Assert.Contains("ProcessLifetime", external, StringComparison.Ordinal);
         Assert.Contains("CreateUncached", external, StringComparison.Ordinal);
         Assert.Contains("FindExternalToolsRoot", external, StringComparison.Ordinal);

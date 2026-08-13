@@ -109,7 +109,8 @@ public sealed partial class ReportProjectionConcurrencyTests
         string json = ReportJsonSamples.ReplaceWithManyOutputDifferences(differenceCount, sectionCount);
         MainWindowViewModel viewModel = PresentationTestHost.CreateViewModel();
 
-        await viewModel.Reports.LoadReportJsonAsync(
+        _ = await LoadReportAsync(
+            viewModel,
             json,
             "large-report.json",
             TestContext.Current.CancellationToken);
@@ -277,7 +278,7 @@ public sealed partial class ReportProjectionConcurrencyTests
         cancellationSource.Cancel();
 
         _ = await Assert.ThrowsAnyAsync<OperationCanceledException>(() =>
-            viewModel.Reports.LoadReportJsonAsync(json, "cancelled-report.json", cancellationSource.Token));
+            LoadReportAsync(viewModel, json, "cancelled-report.json", cancellationSource.Token));
 
         Assert.False(viewModel.Reports.HasLoadedReport);
         Assert.False(viewModel.Reports.HasReportHistory);
@@ -308,7 +309,8 @@ public sealed partial class ReportProjectionConcurrencyTests
         string json = ReportJsonSamples.ReplaceWithManyOutputDifferences(count: 2_000, sectionCount: 40);
         MainWindowViewModel viewModel = PresentationTestHost.CreateViewModel();
 
-        Task loading = viewModel.Reports.LoadReportJsonAsync(
+        Task loading = LoadReportAsync(
+            viewModel,
             json,
             "language-race-report.json",
             TestContext.Current.CancellationToken);
@@ -338,7 +340,8 @@ public sealed partial class ReportProjectionConcurrencyTests
         string newerJson = ReportJsonSamples.ReplaceWithAcceptedOutputDifferences(runId: "newer-report");
         MainWindowViewModel viewModel = PresentationTestHost.CreateViewModel();
 
-        Task olderLoad = viewModel.Reports.LoadReportJsonAsync(
+        Task olderLoad = LoadReportAsync(
+            viewModel,
             olderJson,
             "older-large-report.json",
             TestContext.Current.CancellationToken);
@@ -599,7 +602,8 @@ public sealed partial class ReportProjectionConcurrencyTests
         MainWindowViewModel viewModel = PresentationTestHost.CreateViewModel();
         viewModel.Reports.LoadReportJson(oldJson, "old-report.json");
 
-        Task newLoad = viewModel.Reports.LoadReportJsonAsync(
+        Task newLoad = LoadReportAsync(
+            viewModel,
             newJson,
             "new-large-report.json",
             TestContext.Current.CancellationToken);
@@ -612,4 +616,15 @@ public sealed partial class ReportProjectionConcurrencyTests
         Assert.Equal("new-large-report.json", viewModel.Reports.ReportHistoryEntries[0].SourceName);
     }
 
+    private static Task<bool> LoadReportAsync(
+        MainWindowViewModel viewModel,
+        string json,
+        string sourceName,
+        CancellationToken cancellationToken)
+    {
+        return viewModel.Reports.LoadReportFileAsync(
+            _ => ValueTask.FromResult(json),
+            sourceName,
+            cancellationToken);
+    }
 }

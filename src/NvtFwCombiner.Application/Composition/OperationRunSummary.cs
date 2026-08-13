@@ -5,10 +5,6 @@ namespace NvtFwCombiner.Application.Composition;
 /// <summary>Report status for one planned operation.</summary>
 public sealed class OperationRunSummary
 {
-    private readonly ByteRange[] _processorAllowedReadRanges;
-    private readonly ByteRange[] _processorAllowedWriteRanges;
-    private readonly ExternalProcessInvocation[] _executedCommands;
-
     /// <summary>Creates an operation run summary.</summary>
     public OperationRunSummary(
         string operationId,
@@ -89,9 +85,9 @@ public sealed class OperationRunSummary
         OverlapPolicy = overlapPolicy;
         ProcessorId = string.IsNullOrWhiteSpace(processorId) ? null : processorId;
         ToolBindingId = string.IsNullOrWhiteSpace(toolBindingId) ? null : toolBindingId;
-        _processorAllowedReadRanges = [.. processorAllowedReadRanges];
-        _processorAllowedWriteRanges = [.. processorAllowedWriteRanges];
-        _executedCommands = [.. executedCommands];
+        ProcessorAllowedReadRanges = (ByteRange[])[.. processorAllowedReadRanges];
+        ProcessorAllowedWriteRanges = (ByteRange[])[.. processorAllowedWriteRanges];
+        ExecutedCommands = (ExternalProcessInvocation[])[.. executedCommands];
         Reason = reason;
         Provenance = provenance ?? OperationProvenance.BuiltInProfile;
     }
@@ -130,13 +126,13 @@ public sealed class OperationRunSummary
     public string? ToolBindingId { get; }
 
     /// <summary>Profile-declared processor read ranges.</summary>
-    public IReadOnlyList<ByteRange> ProcessorAllowedReadRanges => _processorAllowedReadRanges;
+    public IReadOnlyList<ByteRange> ProcessorAllowedReadRanges { get; }
 
     /// <summary>Profile-declared processor write ranges.</summary>
-    public IReadOnlyList<ByteRange> ProcessorAllowedWriteRanges => _processorAllowedWriteRanges;
+    public IReadOnlyList<ByteRange> ProcessorAllowedWriteRanges { get; }
 
     /// <summary>Completed process invocations with the exact expanded argv used at runtime.</summary>
-    public IReadOnlyList<ExternalProcessInvocation> ExecutedCommands => _executedCommands;
+    public IReadOnlyList<ExternalProcessInvocation> ExecutedCommands { get; }
 
     /// <summary>Profile-declared reason shown in reports.</summary>
     public string Reason { get; }

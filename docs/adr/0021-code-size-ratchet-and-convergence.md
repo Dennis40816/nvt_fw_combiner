@@ -386,6 +386,30 @@ slice-sum integrity, completed candidate dispositions, and existing behavioral
 and release gates. These checks remain modules invoked by `scripts/verify.py`;
 no second code-size command, validator, or CI entry point is introduced.
 
+### 2026-08-13 PL-02 ownership-accounting amendment
+
+PL-02 (#374) deletes the 216-line Presentation-local filesystem/JSON I/O owner
+and moves bounded stable reading plus atomic writing to an Application port and
+Infrastructure adapter. Presentation is included in full-production
+measurement but excluded from the four-slice runtime metric, so requiring both
+measurements to descend would forbid the approved dependency correction by
+construction.
+
+The owner therefore accepts one non-transferable rebaseline: full production
+falls from 97,306 to 97,303 nonblank lines, while runtime changes from 67,186 to
+67,371. The affected slice values become Application 29,404, Bootstrap plus CLI
+plus Desktop 3,267, and Infrastructure plus Contracts plus CRC worker 14,081;
+Domain plus Profiles remains 20,619. The deleted Presentation owner and all
+three report/history input callers migrate in the same PR.
+
+This is not temporary deletion debt or a reusable allowance. The new runtime
+and slice values are exact descending ratchets immediately after PL-02. Later
+work cannot reclaim the 190-line classification increase, repeat an
+excluded-to-counted relocation without a new owner decision, or satisfy the
+full-production reduction through minification, test/evidence deletion, or
+hidden code. All architecture, report-wire, coverage, firmware, Golden, and
+release gates remain intact.
+
 Documentation consolidation is legitimate only when it removes boilerplate or
 moves repeated information to its canonical owner. XML summaries that merely
 repeat a member/type name, forwarding properties/constructors, migration DTO

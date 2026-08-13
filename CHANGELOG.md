@@ -36,8 +36,35 @@ dependency-gated.
 - Verification: PL-01 through PL-07 and PL-00 require exact behavioral,
   architecture, accessibility, performance, code-size, verifier, Golden 17/17,
   package, CI, and release evidence before completion.
-- Limitations: this intake establishes the contract and version identity only;
-  no lifecycle implementation or `v0.10.5` release artifact exists yet.
+- Limitations: PL-02 implements the bounded file-input prerequisite; the visible
+  shell session, remaining lifecycle tickets, and `v0.10.5` release artifact do
+  not exist yet.
+
+#### Bounded local report and history input
+
+- Purpose: make startup history, `--load-report`, manual report selection, and
+  existing local preference persistence share one bounded, cancellable platform
+  file adapter while keeping report/history JSON semantics in Presentation.
+- Affected: desktop startup report/history restore, manual report selection,
+  shell preferences, and their Application/Infrastructure file boundary.
+- Before → After: unbounded `ReadAllText`/`ReadToEndAsync`, scheduling-only
+  history cancellation, and a 216-line Presentation filesystem owner are
+  replaced by one typed Application port and Infrastructure adapter with stable
+  read handles and atomic promotion.
+- Bounds: standalone reports accept exactly 10 MiB; history retains the existing
+  16 MiB soft payload and 64 MiB encoded-envelope rules, including metadata
+  fallback, oldest-first eviction, and previous-file preservation.
+- Code size: full production falls from 97,306 to 97,303 nonblank lines. ADR
+  0021 records the one-time runtime ownership rebaseline caused by moving code
+  from excluded Presentation into counted Application/Infrastructure.
+- Support status: unchanged/support-neutral; no IC, profile, workflow, or
+  processor support fact changes.
+- Compatibility: report wire/schema, history v1, settings, firmware bytes,
+  Golden outputs, profiles, CLI options, and support truth are unchanged.
+- Verification: exact file-boundary, history-envelope, startup/manual parity,
+  architecture, full verifier, and Golden 17/17 evidence is required.
+- Limitations: this is the PL-02 prerequisite only; the shared visible preload
+  session and remaining `v0.10.5` lifecycle tickets are not implemented here.
 
 ### Security
 

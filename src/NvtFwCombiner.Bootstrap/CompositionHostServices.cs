@@ -64,6 +64,7 @@ public sealed class CompositionHostServices
             ExternalProcessorFactory.IsCurrent,
             new SystemClock());
         RawBinaryEditorFileSessions = new RawBinaryEditorFileSessionFactory();
+        LocalFiles = new LocalFileStore();
     }
 
     internal CanonicalCapabilityCatalog Catalog { get; }
@@ -134,6 +135,15 @@ public sealed class CompositionHostServices
 
     /// <summary>Gets the platform-backed raw-BIN file-session factory.</summary>
     public IRawBinaryEditorFileSessionFactory RawBinaryEditorFileSessions { get; }
+
+    /// <summary>Gets the bounded local-file adapter.</summary>
+    public ILocalFileStore LocalFiles { get; }
+
+    /// <summary>Creates a stateless adapter for startup work that precedes host composition.</summary>
+    public static ILocalFileStore CreateLocalFileStore()
+    {
+        return new LocalFileStore();
+    }
 
     /// <summary>Creates a focused current-session System Information lifecycle.</summary>
     public ISystemInformationService CreateSystemInformationService(

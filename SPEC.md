@@ -2165,6 +2165,18 @@ after the grill closes so issues do not become a competing draft specification.
     cannot pass. The four slices must sum exactly to runtime total; an
     unallocated runtime source root fails rather than creating a fifth
     ownership bucket.
+    Owner amendment on 2026-08-13 grants PL-02 (#374) one non-transferable
+    accounting rebaseline because it deletes Presentation-owned filesystem I/O,
+    which the four-slice runtime metric excludes, and moves that responsibility
+    to the counted Application port and Infrastructure adapter. The exact
+    candidate lowers full production from 97,306 to 97,303 lines while runtime
+    changes from 67,186 to 67,371: Application 29,383 to 29,404, Bootstrap plus
+    CLI plus Desktop 3,255 to 3,267, and Infrastructure plus Contracts plus CRC
+    worker 13,929 to 14,081. The displaced Presentation owner is deleted in the
+    same PR. These exact values become the new descending ratchets; they create
+    no reusable growth budget and do not authorize another excluded-to-counted
+    relocation. Golden, coverage, firmware, report-wire, architecture, and
+    full-production-net-negative gates remain unchanged.
     Owner amendment on 2026-08-08 supersedes the earlier 44,000 total and
     18,000/12,000/7,500/5,500 slice completion caps. The dated numbers remain
     planning history after the merged #230 checkpoint at `ad672900` showed that

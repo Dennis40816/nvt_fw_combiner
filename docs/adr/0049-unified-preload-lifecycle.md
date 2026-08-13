@@ -201,7 +201,10 @@ streaming/cooperative cancellation and reject growth, truncation, or identity
 change according to the owning feature contract. A standalone report selected
 through the storage provider or supplied by `--load-report` may remain outside
 application-managed roots, but its raw input is limited to 10 MiB
-(`10,485,760` bytes) and keeps its user-selected identity. The default
+(`10,485,760` bytes) and keeps its user-selected identity. A seekable provider
+stream is admitted by remaining length and rejects growth or truncation before
+publication; for a non-seekable provider, identity is the one bounded byte
+sequence copied from that single opened stream. The default
 `System.Text.Json` encoder can expand a raw ASCII character such as `<` to the
 six-byte `\u003C` escape. The 10 MiB ceiling therefore reserves 60 MiB for the
 worst-case encoded imported report and the remaining 4 MiB for the v1 envelope,
@@ -302,6 +305,13 @@ support, evidence, or processor authority.
   require one current canonical publication.
 
 ## Consequences
+
+The 2026-08-13 PL-02 accounting amendment in ADR 0021 is a one-time
+classification correction: deleting Presentation-local filesystem I/O and
+placing it behind an Application port plus Infrastructure adapter lowers full
+production by 3 lines but rebaselines the runtime slices that previously
+excluded the displaced owner. The replacement values immediately become
+descending ratchets and create no budget for later preload tickets.
 
 - Operators can see what is running, how much exact work completed, and can
   retry, skip, or cancel within the stage's safety class.

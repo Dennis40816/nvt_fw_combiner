@@ -3,8 +3,6 @@ namespace NvtFwCombiner.Infrastructure.ExternalTools;
 /// <summary>Process launch request prepared by infrastructure from an approved manifest.</summary>
 public sealed class ExternalProcessStartInfo
 {
-    private readonly string[] _arguments;
-
     /// <summary>Creates a process launch request with an argument list, not a shell command line.</summary>
     public ExternalProcessStartInfo(
         string executablePath,
@@ -22,7 +20,7 @@ public sealed class ExternalProcessStartInfo
 
         ExecutablePath = executablePath;
         WorkingDirectory = workingDirectory;
-        _arguments = [.. arguments];
+        Arguments = (string[])[.. arguments];
         Timeout = timeout;
     }
 
@@ -33,7 +31,7 @@ public sealed class ExternalProcessStartInfo
     public string WorkingDirectory { get; }
 
     /// <summary>Expanded arguments passed through ProcessStartInfo.ArgumentList.</summary>
-    public IReadOnlyList<string> Arguments => _arguments;
+    public IReadOnlyList<string> Arguments { get; }
 
     /// <summary>Creates immutable audit evidence for this exact executable, working directory, and argument list.</summary>
     public ExternalProcessInvocation ToExecutedCommand()

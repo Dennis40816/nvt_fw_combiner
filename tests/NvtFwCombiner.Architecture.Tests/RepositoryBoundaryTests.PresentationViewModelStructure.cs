@@ -572,13 +572,18 @@ public sealed partial class RepositoryBoundaryTests
             StringComparison.Ordinal);
     }
 
-    /// <summary>Verifies non-critical local UI stores share one JSON and atomic-promotion mechanism.</summary>
+    /// <summary>Verifies local UI state and report inputs share one bounded platform file adapter.</summary>
     [Fact]
-    public void LocalUiFileStoresShareBestEffortJsonPersistence()
+    public void LocalUiFileStoresShareOneBoundedPlatformAdapter()
     {
-        string helper = ReadText(
-            "src/NvtFwCombiner.Presentation.Avalonia/BestEffortLocalJsonFileStore.cs");
+        string adapter = ReadText("src/NvtFwCombiner.Infrastructure/Files/LocalFileStore.cs");
+        string codec = ReadText("src/NvtFwCombiner.Presentation.Avalonia/LocalJsonDocument.cs");
         string mainWindow = ReadText("src/NvtFwCombiner.Presentation.Avalonia/MainWindow.axaml.cs");
+        string reportInput = ReadText("src/NvtFwCombiner.Presentation.Avalonia/MainWindow.Report.cs");
+        string history = ReadText("src/NvtFwCombiner.Presentation.Avalonia/ReportHistoryFileStore.cs");
+        string historyProjection = ReadText(
+            "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/ReportPresentationViewModel.History.cs");
+        string bootstrap = ReadText("src/NvtFwCombiner.Bootstrap/CompositionHostServices.cs");
         string construction = ReadText(
             "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/MainWindowViewModel.Construction.cs");
         string settings = ReadText(
@@ -590,17 +595,26 @@ public sealed partial class RepositoryBoundaryTests
         string stores = ReadText("src/NvtFwCombiner.Presentation.Avalonia/ReportHistoryFileStore.cs") +
             ReadText("src/NvtFwCombiner.Presentation.Avalonia/ShellPreferenceFileStore.cs");
 
-        Assert.Equal(8, CountOccurrences(stores, "BestEffortLocalJsonFileStore."));
+        Assert.Contains("LocalFiles = new LocalFileStore();", bootstrap, StringComparison.Ordinal);
+        Assert.Contains("public static ILocalFileStore CreateLocalFileStore()", bootstrap, StringComparison.Ordinal);
+        Assert.Contains("FileShare.Read | FileShare.Delete", adapter, StringComparison.Ordinal);
+        Assert.Contains("AtomicFileWriteScope.Open(fullPath)", adapter, StringComparison.Ordinal);
+        Assert.DoesNotContain("File.ReadAllText", reportInput, StringComparison.Ordinal);
+        Assert.DoesNotContain("ReadToEndAsync", reportInput, StringComparison.Ordinal);
+        Assert.DoesNotContain("Task.Run", reportInput, StringComparison.Ordinal);
+        Assert.Contains("MaximumStandaloneReportBytes = 10L * 1024 * 1024", reportInput, StringComparison.Ordinal);
+        Assert.Contains("MaximumHistoryFileBytes = 64L * 1024 * 1024", history, StringComparison.Ordinal);
+        Assert.Contains("ReportPresentationViewModel.MaximumReportHistoryStorageBytes", history, StringComparison.Ordinal);
+        Assert.Contains("EntryTooLargeToPersist", history, StringComparison.Ordinal);
+        Assert.Contains("OmitDerivableReportHistoryMetadata", history, StringComparison.Ordinal);
+        Assert.Contains("normalized!.Metadata == snapshot.Metadata", historyProjection, StringComparison.Ordinal);
+        Assert.Contains("RemoveAt(retained.Count - 1)", history, StringComparison.Ordinal);
+        Assert.DoesNotContain("File.", stores, StringComparison.Ordinal);
         Assert.DoesNotContain("JsonSerializerOptions", stores, StringComparison.Ordinal);
-        Assert.DoesNotContain("File.Replace", stores, StringComparison.Ordinal);
-        Assert.Contains("JsonSerializerOptions", helper, StringComparison.Ordinal);
-        Assert.Contains("JsonSerializer.SerializeAsync", helper, StringComparison.Ordinal);
-        Assert.Contains("FileShare.Read | FileShare.Delete", helper, StringComparison.Ordinal);
-        Assert.DoesNotContain("FileShare.Write", helper, StringComparison.Ordinal);
-        Assert.Contains("File.Replace", helper, StringComparison.Ordinal);
-        Assert.Contains("UnauthorizedAccessException", helper, StringComparison.Ordinal);
+        Assert.Contains("JsonSerializerOptions", codec, StringComparison.Ordinal);
+        Assert.Contains("JsonSerializer.DeserializeAsync", codec, StringComparison.Ordinal);
         Assert.Contains("internal const long MaximumPreferencesFileBytes = 64L * 1024;", stores, StringComparison.Ordinal);
-        Assert.Contains("MaximumPreferencesFileBytes);", stores, StringComparison.Ordinal);
+        Assert.Contains("MaximumPreferencesFileBytes,", stores, StringComparison.Ordinal);
         Assert.Contains("_reportHistoryPersistence.Queue", mainWindow, StringComparison.Ordinal);
         Assert.Contains("_shellPreferencePersistence.Queue", mainWindow, StringComparison.Ordinal);
         Assert.DoesNotContain("ShellPreferenceFileStore.LoadInto(viewModel)", mainWindow, StringComparison.Ordinal);
