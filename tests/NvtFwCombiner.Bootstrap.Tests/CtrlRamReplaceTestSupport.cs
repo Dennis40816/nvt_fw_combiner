@@ -4,6 +4,7 @@ using NvtFwCombiner.Application.ExternalTools;
 using NvtFwCombiner.Application.Metadata;
 using NvtFwCombiner.Application.Ports;
 using NvtFwCombiner.Domain.Composition;
+using NvtFwCombiner.Infrastructure.ExternalTools;
 
 namespace NvtFwCombiner.Bootstrap.Tests;
 
@@ -36,12 +37,13 @@ internal static class CtrlRamReplaceTestSupport
         (ActiveSessionSnapshot? snapshot, IReadOnlyList<CompositionIssue> issues) =
             Prepare(canonical, icId, number, slotPaths, ctrlRamFirmwareVersionEdit);
         ActiveSessionSnapshot accepted = RequireSnapshot(snapshot, issues);
-        ExternalProcessorGenerationLease runtime = ExternalProcessorFactory.AcquireCurrent();
+        ExternalProcessorEnvironmentLease runtime =
+            ExternalProcessorEnvironmentTestSupport.AcquireCurrent();
         CapabilityActionReadinessSnapshot readiness = await ResolveReadinessAsync(
             accepted,
             runtime.ReadinessProvider,
             runtime.Generation,
-            ExternalProcessorFactory.IsCurrent,
+            ExternalProcessorEnvironmentTestSupport.IsCurrent,
             cancellationToken);
         ICompositionExecution adapter = CompositionExecutionTestSupport.Create(canonical);
         return await adapter.ExecuteAsync(

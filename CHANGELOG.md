@@ -136,6 +136,33 @@ dependency-gated.
   by PL-05 and PL-07; no Report UI redesign or aggregate cross-stage percentage is
   introduced here.
 
+### PL-05 external environment lifecycle
+
+- Purpose: replace synchronous Bootstrap external-tool discovery with one
+  bounded, cancellable Infrastructure lifecycle shared by shell preload,
+  Message Center refresh, CLI dispatch, readiness, and execution leases.
+- Discovery is deterministic and fail-closed at depth 16, 4,096 visited entries,
+  256 manifests, 1 MiB per manifest, and 16 MiB cumulative manifest bytes;
+  reparse/escape, unstable handles, invalid manifests, and hash drift publish no
+  candidate. Preload never creates staging or launches a process.
+- Request and publication generations are separate. Newer refresh cancels and
+  drains older work; failure/cancellation retains the last known good candidate,
+  while cold generation zero exposes typed blocked readiness rather than a fake
+  usable environment. Startup progress is stage-local and Message Center shows
+  current state, manifest count, and publication generation.
+- Compatibility: external processor protocol, firmware bytes/ranges/names,
+  profiles/schemas, report wire, CLI help/version precedence, and Golden data are
+  unchanged.
+- Verification: Application 529, Infrastructure 437 (2 declared skips),
+  Bootstrap 927, and UI 481 cases contribute to the exact eight-project 3,396
+  inventory; bounded discovery, malformed/oversize/reparse/cancel/LKG/
+  supersession/acquisition paths, CLI order, and UI retry/refresh are covered.
+- Code size: the exact implementation removes 250 and adds 984 production
+  nonblank lines. The named PL-05-only amendment changes full production from
+  97,426 to 98,160 and runtime from 67,404 to 68,018; the exact four slices are
+  20,619 / 29,585 / 3,074 / 14,740. These become descending ratchets and create
+  no budget for later tickets.
+
 #### Message Center and report readability
 
 - Purpose: make System information and run-report evidence easier to scan in

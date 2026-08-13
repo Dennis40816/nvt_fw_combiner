@@ -1,5 +1,7 @@
+using System.Runtime.CompilerServices;
 using NvtFwCombiner.Application.Capabilities;
 using NvtFwCombiner.Application.Diagnostics;
+using NvtFwCombiner.Application.ExternalTools;
 using NvtFwCombiner.Application.Ports;
 
 namespace NvtFwCombiner.Application.Tests.Diagnostics;
@@ -77,6 +79,31 @@ public sealed class SystemInformationServiceTests
         Assert.False(result.IsBuildBlocked);
     }
 
+    /// <summary>External unavailable/LKG state is actionable but only route-specific readiness blocks execution.</summary>
+    [Fact]
+    public void ExternalEnvironmentFailuresRemainNonGlobalWarnings()
+    {
+        foreach ((ExternalProcessorEnvironmentState state, string code) in new[]
+                 {
+                     (ExternalProcessorEnvironmentState.Unavailable,
+                         SystemDiagnosticCodes.ExternalProcessorEnvironmentUnavailable),
+                     (ExternalProcessorEnvironmentState.LastKnownGood,
+                         SystemDiagnosticCodes.ExternalProcessorEnvironmentLastKnownGood),
+                 })
+        {
+            var catalog = new StubCatalog(Result(
+                CanonicalSupportMatrixCatalogState.Current,
+                Matrix()));
+            SystemInformationService service = CreateService(catalog, externalState: state);
+
+            ActionableSystemDiagnostic warning = Assert.Single(service.Current.ActiveDiagnostics);
+            Assert.Equal(code, warning.Code);
+            Assert.Equal(SystemDiagnosticCategory.ExternalProcessorEnvironment, warning.Category);
+            Assert.Equal(SystemDiagnosticSeverity.Warning, warning.Severity);
+            Assert.False(service.Current.IsBuildBlocked);
+        }
+    }
+
     /// <summary>A slow source reload never holds the current-snapshot reader lock.</summary>
     [Fact]
     public async Task CurrentRemainsReadableWhileCatalogReloadIsBlocked()
@@ -86,6 +113,7 @@ public sealed class SystemInformationServiceTests
             "0.10.3-test",
             catalog,
             catalog,
+            new StubExternalEnvironmentLoader(),
             new StubRuntimeProbe(),
             new StubClock());
         Task<SystemInformationSnapshot> refresh = Task.Run(() => service.Refresh(
@@ -139,12 +167,14 @@ public sealed class SystemInformationServiceTests
 
     private static SystemInformationService CreateService(
         StubCatalog catalog,
-        int transitionLimit = 16)
+        int transitionLimit = 16,
+        ExternalProcessorEnvironmentState externalState = ExternalProcessorEnvironmentState.Current)
     {
         return new SystemInformationService(
             "0.10.3-test",
             catalog,
             catalog,
+            new StubExternalEnvironmentLoader(externalState),
             new StubRuntimeProbe(),
             new StubClock(),
             transitionLimit);
@@ -194,6 +224,26 @@ public sealed class SystemInformationServiceTests
         public SystemRuntimeFacts Probe()
         {
             return new SystemRuntimeFacts(".NET test", "Windows test", "x64");
+        }
+    }
+
+    private sealed class StubExternalEnvironmentLoader(
+        ExternalProcessorEnvironmentState state = ExternalProcessorEnvironmentState.Current) :
+        IExternalProcessorEnvironmentLoader
+    {
+        public ExternalProcessorEnvironmentStatus Current { get; } = new(
+            state,
+            RequestGeneration: 1,
+            PublicationGeneration: state == ExternalProcessorEnvironmentState.Unavailable ? 0 : 1,
+            ManifestCount: 0,
+            Issues: []);
+
+        public async IAsyncEnumerable<ExternalProcessorEnvironmentLoadUpdate> LoadAsync(
+            [EnumeratorCancellation] CancellationToken cancellationToken)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            await Task.CompletedTask;
+            yield break;
         }
     }
 

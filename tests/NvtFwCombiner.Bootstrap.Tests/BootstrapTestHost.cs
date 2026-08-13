@@ -5,16 +5,26 @@ namespace NvtFwCombiner.Bootstrap.Tests;
 internal static class BootstrapTestHost
 {
     internal static CompositionHostServices Services { get; } =
-        CompositionHostServices.Create();
+        CreateServices();
 
     internal static CanonicalTestContext Canonical { get; } = new(Services);
+
+    internal static CompositionHostServices CreateServices()
+    {
+        CompositionHostServices services = CompositionHostServices.Create();
+        return services.ExternalEnvironmentLoader
+            .LoadToCompletionAsync(null, CancellationToken.None)
+            .GetAwaiter().GetResult().Succeeded
+            ? services
+            : throw new InvalidOperationException("The test external environment did not load.");
+    }
 }
 
 internal sealed class IsolatedBootstrapTestHost
 {
     internal IsolatedBootstrapTestHost()
     {
-        Services = CompositionHostServices.Create();
+        Services = BootstrapTestHost.CreateServices();
         Canonical = new CanonicalTestContext(Services);
     }
 

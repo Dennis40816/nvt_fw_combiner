@@ -43,6 +43,8 @@ public sealed partial class XamlControlStyleContractTests
         Assert.Contains("IsVisible=\"{Binding IsSystemInformationSelected}\"", modal, StringComparison.Ordinal);
         Assert.Contains("Click=\"ExportDiagnosticsButton_OnClick\"", modal, StringComparison.Ordinal);
         Assert.Contains("ItemsSource=\"{Binding ActiveDiagnostics}\"", modal, StringComparison.Ordinal);
+        Assert.Contains("Text=\"{Binding ExternalEnvironmentSummary}\"", modal,
+            StringComparison.Ordinal);
         Assert.Contains("x:DataType=\"vm:MessageCenterDiagnosticItem\"", modal, StringComparison.Ordinal);
         Assert.Contains("AutomationProperties.Name=\"{Binding AccessibleText}\"", modal, StringComparison.Ordinal);
         Assert.Contains("Classes=\"warningSurface contentPanel diagnosticCard\"", modal, StringComparison.Ordinal);

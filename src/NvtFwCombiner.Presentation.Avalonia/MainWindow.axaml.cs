@@ -280,7 +280,11 @@ public sealed partial class MainWindow : Window, IDisposable
                         viewModel,
                         progress,
                         isCurrent,
-                        cancellationToken)),
+                        cancellationToken),
+                    async (progress, cancellationToken) =>
+                        await viewModel.MessageCenter.RefreshExternalEnvironmentAfterStartupAsync(
+                            progress,
+                            cancellationToken)),
                 startupCancellation);
             ShellPreloadStageState history = _preloadSession.Stage(ShellPreloadSession.HistoryStageId).State;
             bool hasStartupReport = HasStartupReportStage(_launchOptions);
@@ -288,6 +292,8 @@ public sealed partial class MainWindow : Window, IDisposable
                 ? _preloadSession.Stage(ShellPreloadSession.ReportStageId).State
                 : ShellPreloadStageState.Succeeded;
             ShellPreloadStageState diagnostics = _preloadSession.Stage(ShellPreloadSession.DiagnosticsStageId).State;
+            ShellPreloadStageState externalEnvironment = _preloadSession.Stage(
+                ShellPreloadSession.ExternalEnvironmentStageId).State;
             if (history == ShellPreloadStageState.Succeeded &&
                 (!hasStartupReport || report == ShellPreloadStageState.Succeeded))
             {
@@ -298,7 +304,7 @@ public sealed partial class MainWindow : Window, IDisposable
                 _startupTrace.Mark("startup-warmup.catalogs.ready");
             }
 
-            ShellPreloadStageState[] optionals = [history, report, diagnostics,
+            ShellPreloadStageState[] optionals = [history, report, diagnostics, externalEnvironment,
                 _preloadSession.Stage(ShellPreloadSession.ViewsStageId).State];
             string terminal = optionals.Any(static state => state is
                 ShellPreloadStageState.Failed or ShellPreloadStageState.DependencyBlocked or

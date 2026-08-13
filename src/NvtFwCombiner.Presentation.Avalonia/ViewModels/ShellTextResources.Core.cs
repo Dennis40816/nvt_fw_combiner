@@ -35,6 +35,8 @@ internal sealed partial class ShellTextResources
 
     public string PreloadReportTitle { get; private init; } = string.Empty;
 
+    public string PreloadExternalEnvironmentTitle { get; private init; } = string.Empty;
+
     public string PreloadViewsTitle { get; private init; } = string.Empty;
 
     public string PreloadPendingDetail { get; private init; } = string.Empty;

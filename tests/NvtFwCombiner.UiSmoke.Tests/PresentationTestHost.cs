@@ -1,5 +1,7 @@
 using NvtFwCombiner.Bootstrap;
 using NvtFwCombiner.Application.Capabilities;
+using NvtFwCombiner.Application.ExternalTools;
+using NvtFwCombiner.Infrastructure.ExternalTools;
 using NvtFwCombiner.Presentation.Avalonia;
 using NvtFwCombiner.Presentation.Avalonia.ViewModels;
 
@@ -7,6 +9,9 @@ namespace NvtFwCombiner.UiSmoke.Tests;
 
 internal static class PresentationTestHost
 {
+    private static readonly Lazy<ExternalProcessorRuntimeEnvironment> ExternalEnvironment =
+        new(LoadExternalEnvironment);
+
     internal static MainWindowViewModel CreateViewModel(
         ShellLanguage language = ShellLanguage.English)
     {
@@ -67,7 +72,8 @@ internal static class PresentationTestHost
         string applicationVersion,
         Func<IGeneralAuthoring, IGeneralAuthoring> generalAuthoringDecorator)
     {
-        var host = CompositionHostServices.Create();
+        var externalEnvironment = new ExternalProcessorEnvironmentLoader(ExternalEnvironment.Value);
+        var host = CompositionHostServices.Create(externalEnvironment);
         return new PresentationHostServices(
             new PresentationCompositionServices(
                 host.CompositionCapabilityExperience,
@@ -85,7 +91,18 @@ internal static class PresentationTestHost
             CompositionHostServices.CreateSystemDiagnosticsExporter(),
             host.RawBinaryEditorFileSessions,
             host.CanonicalCatalogLoader,
+            host.ExternalEnvironmentLoader,
             host.LocalFiles);
+    }
+
+    private static ExternalProcessorRuntimeEnvironment LoadExternalEnvironment()
+    {
+        var loader = new ExternalProcessorEnvironmentLoader();
+        Assert.True(((IExternalProcessorEnvironmentLoader)loader)
+            .LoadToCompletionAsync(null, CancellationToken.None)
+            .GetAwaiter().GetResult().Succeeded);
+        ExternalProcessorEnvironmentLease lease = loader.AcquireCurrent();
+        return new(lease.Processor, lease.ReadinessProvider, loader.Current.ManifestCount);
     }
 
     internal static Application.HexEditor.IRawBinaryEditorFileSessionFactory

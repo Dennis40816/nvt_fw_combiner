@@ -329,9 +329,7 @@ public static class CapabilityActionReadinessResolver
         ArgumentNullException.ThrowIfNull(inputChildren);
         ArgumentNullException.ThrowIfNull(runtimeDependencyRequest);
         ArgumentNullException.ThrowIfNull(runtimeDependencyReadinessProvider);
-        ArgumentOutOfRangeException.ThrowIfLessThan(
-            runtimeDependencyGeneration,
-            1);
+        ArgumentOutOfRangeException.ThrowIfNegative(runtimeDependencyGeneration);
         ArgumentNullException.ThrowIfNull(runtimeGenerationIsCurrent);
         RuntimeDependencyReadinessSnapshot runtimeDependencies =
             await runtimeDependencyReadinessProvider.RefreshAsync(
@@ -362,7 +360,7 @@ public static class CapabilityActionReadinessResolver
         ArgumentNullException.ThrowIfNull(admission);
         ArgumentNullException.ThrowIfNull(inputChildren);
         ArgumentNullException.ThrowIfNull(runtimeDependencies);
-        ArgumentOutOfRangeException.ThrowIfLessThan(currentRuntimeDependencyGeneration, 1);
+        ArgumentOutOfRangeException.ThrowIfNegative(currentRuntimeDependencyGeneration);
         CapabilityChildReadiness[] inputs = NormalizeInputs(inputChildren);
 
         List<RankedBlocker> preview = [];

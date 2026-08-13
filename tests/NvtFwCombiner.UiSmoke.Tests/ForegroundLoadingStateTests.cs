@@ -98,7 +98,7 @@ public sealed class ForegroundLoadingStateTests
         var text = ShellTextResources.For(ShellLanguage.English);
         MainWindow.ApplyPreloadStage(session, state, text, session.CatalogStage);
         Assert.Equal(0, state.Progress);
-        Assert.StartsWith("1 / 4", state.Detail, StringComparison.Ordinal);
+        Assert.StartsWith("1 / 5", state.Detail, StringComparison.Ordinal);
 
         MainWindow.ApplyPreloadStage(session, state, text, staleStage);
 

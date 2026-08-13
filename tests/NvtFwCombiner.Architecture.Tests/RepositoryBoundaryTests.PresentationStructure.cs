@@ -76,7 +76,15 @@ public sealed partial class RepositoryBoundaryTests
             ReadText("src/NvtFwCombiner.Presentation.Avalonia/ViewModels/ReportReviewViewModel.Bindings.cs"),
             ReadText("src/NvtFwCombiner.Presentation.Avalonia/ViewModels/ReportReviewViewModel.Factory.cs"),
             ReadText("src/NvtFwCombiner.Presentation.Avalonia/ViewModels/ReportReviewViewModel.OutputDifferences.cs"));
+        string externalLifecycleConsumers = string.Join(
+            Environment.NewLine,
+            ReadText("src/NvtFwCombiner.Presentation.Avalonia/PresentationHostServices.cs"),
+            ReadText("src/NvtFwCombiner.Presentation.Avalonia/ViewModels/MessageCenterViewModel.cs"),
+            ReadText("src/NvtFwCombiner.Presentation.Avalonia/ViewModels/ShellTextResources.MessageCenter.cs"));
         string presentationSource = ReadPresentationSources(
+            "PresentationHostServices.cs",
+            "MessageCenterViewModel.cs",
+            "ShellTextResources.MessageCenter.cs",
             "CompositionRunProgressViewModel.cs",
             "ShellTextResources.RunProgress.cs",
             "CompositionRunPresentationViewModel.cs",
@@ -157,6 +165,9 @@ public sealed partial class RepositoryBoundaryTests
         Assert.Contains("CompositionRunPhase", progressResources, StringComparison.Ordinal);
         Assert.Contains("CompositionRunProgressFeed", progressConsumer, StringComparison.Ordinal);
         Assert.Contains("CompositionRunInspectionSnapshot", inspectionProjection, StringComparison.Ordinal);
+        Assert.Contains("IExternalProcessorEnvironmentLoader", externalLifecycleConsumers, StringComparison.Ordinal);
+        Assert.DoesNotContain("NvtFwCombiner.Infrastructure", externalLifecycleConsumers, StringComparison.Ordinal);
+        Assert.DoesNotContain("new ExternalProcessorEnvironmentLoader", externalLifecycleConsumers, StringComparison.Ordinal);
         foreach (string token in forbiddenTokens)
         {
             if (!StringComparer.Ordinal.Equals(token, "NvtFwCombiner.Domain."))
