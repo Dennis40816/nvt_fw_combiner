@@ -27,6 +27,8 @@ public sealed partial class ShellTextResources
 
     public string RetryLabel { get; private init; } = string.Empty;
 
+    public string CancelStartupLabel { get; private init; } = string.Empty;
+
     public string WorkspaceTitle { get; private init; } = string.Empty;
 
     public string WorkspaceSummary { get; private init; } = string.Empty;

@@ -34,6 +34,7 @@ public sealed partial class ShellTextResources
                 "The canonical catalog could not be loaded. Retry to restore Merge and Replace.",
                 "無法載入 canonical catalog；請重試以恢復 Merge 與 Replace。"),
             RetryLabel = Pick("Retry", "重試"),
+            CancelStartupLabel = Pick("Cancel startup", "取消啟動"),
             MessageCenterTitle = Pick("Message Center", "訊息中心"),
             MessageCenterTooltip = Pick("Open reports and current system diagnostics", "開啟報告與目前系統診斷"),
             RunReportsLabel = Pick("Run reports", "執行報告"),

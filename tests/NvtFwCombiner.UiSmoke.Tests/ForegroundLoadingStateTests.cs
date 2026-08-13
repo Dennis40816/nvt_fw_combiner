@@ -1,3 +1,5 @@
+using System.Runtime.CompilerServices;
+using NvtFwCombiner.Application.Capabilities;
 using NvtFwCombiner.Presentation.Avalonia;
 using NvtFwCombiner.Presentation.Avalonia.ViewModels;
 
@@ -13,11 +15,14 @@ public sealed class ForegroundLoadingStateTests
         var state = new ForegroundLoadingState();
 
         state.Begin("Loading capabilities", "Preparing the canonical catalog.");
+        state.SetCancellationAction("Cancel startup");
 
         Assert.True(state.IsVisible);
         Assert.True(state.IsRunning);
         Assert.True(state.IsIndeterminate);
         Assert.True(state.ShouldAnimate);
+        Assert.True(state.CanCancel);
+        Assert.Equal("Cancel startup", state.CancelLabel);
         Assert.False(state.HasDeterminateProgress);
         Assert.Empty(state.ProgressPercentLabel);
         Assert.Equal("Loading capabilities — Preparing the canonical catalog.", state.AccessibleStatus);
@@ -61,86 +66,45 @@ public sealed class ForegroundLoadingStateTests
         Assert.Equal("100%", state.ProgressPercentLabel);
     }
 
-    /// <summary>Late, invalid, decreasing, and completed-attempt catalog reports cannot corrupt the active surface.</summary>
+    /// <summary>A delayed callback from the prior attempt cannot overwrite the active retry surface.</summary>
     [Fact]
-    public void CatalogProgressAcceptsOnlyCurrentMonotonicAttemptReports()
+    public async Task PreloadProjectionAcceptsOnlyTheCurrentAttempt()
     {
+        var failure = new CapabilityCatalogReloadResult(
+            Succeeded: false,
+            RetainedLastKnownGood: false,
+            Snapshot: null,
+            [new CapabilityCatalogIssue(CapabilityCatalogIssueCodes.SourceInvalid, "Invalid catalog.")]);
+        using var session = new ShellPreloadSession(static _ => { });
+        _ = await session.RunCatalogAsync(
+            new OneUpdateLoader(new CanonicalCapabilityCatalogLoadUpdate(Progress: null, failure)),
+            static _ => ValueTask.CompletedTask,
+            retry: false,
+            TestContext.Current.CancellationToken);
+        ShellPreloadStageSnapshot staleStage = session.CatalogStage;
+        var entered = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        Task retry = session.RunCatalogAsync(
+            new BlockingLoader(entered),
+            static _ => ValueTask.CompletedTask,
+            retry: true,
+            TestContext.Current.CancellationToken);
+        await entered.Task.WaitAsync(
+            TimeSpan.FromSeconds(5),
+            TestContext.Current.CancellationToken);
+
         var state = new ForegroundLoadingState();
-        ShellTextResources text = ShellTextResources.For(ShellLanguage.English);
-        state.Begin("Loading capabilities", "First attempt.", progress: 0.4);
-        state.Fail("Capabilities unavailable", "Try again.", "Retry");
-        state.Begin("Loading capabilities", "Retrying.", progress: 0.1);
+        var text = ShellTextResources.For(ShellLanguage.English);
+        MainWindow.ApplyPreloadStage(session, state, text, session.CatalogStage);
+        Assert.Equal(0, state.Progress);
+        Assert.StartsWith("1 / 1", state.Detail, StringComparison.Ordinal);
 
-        MainWindow.ApplyCatalogProgress(
-            state,
-            text,
-            2,
-            1,
-            new CanonicalCatalogStartupProgress(0.7, CanonicalCatalogStartupPhase.MaterializingRoutes));
-        MainWindow.ApplyCatalogProgress(
-            state,
-            text,
-            2,
-            2,
-            new CanonicalCatalogStartupProgress(double.NaN, CanonicalCatalogStartupPhase.MaterializingRoutes));
-        MainWindow.ApplyCatalogProgress(
-            state,
-            text,
-            2,
-            2,
-            new CanonicalCatalogStartupProgress(
-                double.PositiveInfinity,
-                CanonicalCatalogStartupPhase.MaterializingRoutes));
+        MainWindow.ApplyPreloadStage(session, state, text, staleStage);
 
-        Assert.Equal(0.1, state.Progress);
-        Assert.Equal("Retrying.", state.Detail);
-
-        MainWindow.ApplyCatalogProgress(
-            state,
-            text,
-            2,
-            2,
-            new CanonicalCatalogStartupProgress(0.2, CanonicalCatalogStartupPhase.MaterializingRoutes));
-
-        Assert.Equal(0.2, state.Progress);
-        Assert.Equal("20%", state.ProgressPercentLabel);
-
-        MainWindow.ApplyCatalogProgress(
-            state,
-            text,
-            2,
-            2,
-            new CanonicalCatalogStartupProgress(0.5, CanonicalCatalogStartupPhase.MaterializingRoutes));
-        Assert.Equal(0.5, state.Progress);
-        Assert.Equal("50%", state.ProgressPercentLabel);
-
-        MainWindow.ApplyCatalogProgress(
-            state,
-            text,
-            2,
-            2,
-            new CanonicalCatalogStartupProgress(0.8, CanonicalCatalogStartupPhase.MaterializingRoutes));
-        MainWindow.ApplyCatalogProgress(
-            state,
-            text,
-            2,
-            2,
-            new CanonicalCatalogStartupProgress(0.2, CanonicalCatalogStartupPhase.MaterializingRoutes));
-
-        Assert.Equal(0.8, state.Progress);
-        Assert.Equal("80%", state.ProgressPercentLabel);
-        Assert.Equal(text.CatalogMaterializingDetail, state.Detail);
-
-        state.Complete();
-        MainWindow.ApplyCatalogProgress(
-            state,
-            text,
-            2,
-            2,
-            new CanonicalCatalogStartupProgress(1, CanonicalCatalogStartupPhase.Ready));
-
-        Assert.False(state.IsVisible);
-        Assert.Null(state.Progress);
+        Assert.True(state.IsRunning);
+        Assert.Equal(0, state.Progress);
+        Assert.EndsWith(text.CatalogLoadingDetail, state.Detail, StringComparison.Ordinal);
+        await session.CancelAndDrainAsync();
+        _ = await Assert.ThrowsAnyAsync<OperationCanceledException>(async () => await retry);
     }
 
     /// <summary>Failure and completion expose explicit retry and visibility transitions.</summary>
@@ -151,12 +115,14 @@ public sealed class ForegroundLoadingStateTests
         state.Begin("Loading capabilities", "Preparing the canonical catalog.");
 
         state.Fail("Capabilities unavailable", "The catalog could not be loaded.", "Retry");
+        state.SetCancellationAction("Cancel startup");
 
         Assert.True(state.IsVisible);
         Assert.False(state.IsRunning);
         Assert.True(state.HasFailed);
         Assert.True(state.CanRetry);
         Assert.Equal("Retry", state.RetryLabel);
+        Assert.True(state.CanCancel);
 
         state.Begin("Loading capabilities", "Trying again.");
         state.Complete();
@@ -165,6 +131,7 @@ public sealed class ForegroundLoadingStateTests
         Assert.False(state.IsRunning);
         Assert.False(state.HasFailed);
         Assert.False(state.CanRetry);
+        Assert.False(state.CanCancel);
     }
 
     /// <summary>Each public transition publishes one coherent live-region status after all bound fields agree.</summary>
@@ -220,8 +187,10 @@ public sealed class ForegroundLoadingStateTests
         };
 
         state.Begin("正在準備功能", "正在載入 canonical catalog。", 0.1);
+        state.SetCancellationAction("取消啟動");
         state.ReportProgress(0.8, "正在準備 canonical capability routes。");
         state.Fail("功能目前無法使用", "請重試以恢復 Merge 與 Replace。", "重試");
+        state.SetCancellationAction("取消啟動");
 
         Assert.Equal(
             [
@@ -230,5 +199,30 @@ public sealed class ForegroundLoadingStateTests
                 "功能目前無法使用 — 請重試以恢復 Merge 與 Replace。",
             ],
             statuses);
+        Assert.Equal("取消啟動", state.CancelLabel);
+    }
+
+    private sealed class OneUpdateLoader(CanonicalCapabilityCatalogLoadUpdate update) :
+        ICanonicalCapabilityCatalogLoader
+    {
+        public async IAsyncEnumerable<CanonicalCapabilityCatalogLoadUpdate> LoadAsync(
+            [EnumeratorCancellation] CancellationToken cancellationToken)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            await Task.Yield();
+            yield return update;
+        }
+    }
+
+    private sealed class BlockingLoader(TaskCompletionSource entered) :
+        ICanonicalCapabilityCatalogLoader
+    {
+        public async IAsyncEnumerable<CanonicalCapabilityCatalogLoadUpdate> LoadAsync(
+            [EnumeratorCancellation] CancellationToken cancellationToken)
+        {
+            yield return new CanonicalCapabilityCatalogLoadUpdate(0, Result: null);
+            _ = entered.TrySetResult();
+            await Task.Delay(Timeout.InfiniteTimeSpan, cancellationToken);
+        }
     }
 }
