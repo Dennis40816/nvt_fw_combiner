@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import re
 import shutil
 import subprocess
 import tempfile
@@ -14,18 +15,27 @@ ROOT = Path(__file__).resolve().parents[2]
 MEASUREMENT_SCRIPT = ROOT / "scripts" / "measure-startup.ps1"
 FIXTURES = ROOT / "testdata" / "startup-measurement"
 POWERSHELL = shutil.which("pwsh") or shutil.which("powershell")
+ANSI_ESCAPE = re.compile(r"\x1b\[[0-?]*[ -/]*[@-~]")
+
+
+def normalize_console_output(value: str) -> str:
+    return " ".join(ANSI_ESCAPE.sub("", value).split())
 
 
 @unittest.skipUnless(POWERSHELL, "PowerShell is required")
 class StartupMeasurementContractTests(unittest.TestCase):
     def run_contract(self, body: str) -> subprocess.CompletedProcess[str]:
         script_path = str(MEASUREMENT_SCRIPT).replace("'", "''")
-        command = (
-            f". '{script_path}' -ApplicationPath 'fixture.exe'\n"
-            f"{body}"
-        )
+        command = f". '{script_path}' -ApplicationPath 'fixture.exe'\n{body}"
         return subprocess.run(
-            [str(POWERSHELL), "-NoLogo", "-NoProfile", "-NonInteractive", "-Command", command],
+            [
+                str(POWERSHELL),
+                "-NoLogo",
+                "-NoProfile",
+                "-NonInteractive",
+                "-Command",
+                command,
+            ],
             cwd=ROOT,
             check=False,
             capture_output=True,
@@ -62,8 +72,12 @@ $result | ConvertTo-Json -Depth 12 -Compress
                 self.assertNotEqual(0, invalid.returncode)
                 self.assertIn(
                     "at least one warm-up and five scored launches",
-                    invalid.stdout + invalid.stderr,
+                    normalize_console_output(invalid.stdout + invalid.stderr),
                 )
+
+    def test_powershell_error_rendering_is_normalized(self) -> None:
+        rendered = "\x1b[31;1mfive scored\x1b[0m\n\x1b[31;1mlaunches\x1b[0m"
+        self.assertEqual("five scored launches", normalize_console_output(rendered))
 
     def test_v2_and_complete_v3_fixtures_use_the_same_sample_projection(self) -> None:
         predecessor = self.run_contract(
@@ -73,7 +87,9 @@ $result | ConvertTo-Json -Depth 12 -Compress
             self.sample_command(FIXTURES / "trace-v3.json", required=True)
         )
 
-        self.assertEqual(0, predecessor.returncode, predecessor.stdout + predecessor.stderr)
+        self.assertEqual(
+            0, predecessor.returncode, predecessor.stdout + predecessor.stderr
+        )
         self.assertEqual(0, candidate.returncode, candidate.stdout + candidate.stderr)
         predecessor_sample = json.loads(predecessor.stdout)
         candidate_sample = json.loads(candidate.stdout)
@@ -82,16 +98,28 @@ $result | ConvertTo-Json -Depth 12 -Compress
         self.assertEqual(11.125, candidate_sample["processToWindowMilliseconds"])
         self.assertEqual(303, candidate_sample["peakWorkingSetBytes"])
         self.assertEqual(606, candidate_sample["peakPrivateBytes"])
-        self.assertEqual(5, candidate_sample["uiThreadWork"]["firstFrame"]["totalMilliseconds"])
-        self.assertEqual(3, candidate_sample["uiThreadWork"]["background"]["totalMilliseconds"])
+        self.assertEqual(
+            5, candidate_sample["uiThreadWork"]["firstFrame"]["totalMilliseconds"]
+        )
+        self.assertEqual(
+            3, candidate_sample["uiThreadWork"]["background"]["totalMilliseconds"]
+        )
 
-    def test_release_lifecycle_rejects_missing_nonterminal_and_invalid_work(self) -> None:
+    def test_release_lifecycle_rejects_missing_nonterminal_and_invalid_work(
+        self,
+    ) -> None:
         source = json.loads((FIXTURES / "trace-v3.json").read_text(encoding="utf-8"))
         variants = {
             "missing-stage": lambda trace: trace["preloadStages"].pop(3),
-            "nonterminal-stage": lambda trace: trace["preloadStages"][2].update(state="Running"),
-            "incomplete-success": lambda trace: trace["preloadStages"][4].update(completedWork=4),
-            "duplicate-stage": lambda trace: trace["preloadStages"].insert(1, trace["preloadStages"][0].copy()),
+            "nonterminal-stage": lambda trace: trace["preloadStages"][2].update(
+                state="Running"
+            ),
+            "incomplete-success": lambda trace: trace["preloadStages"][4].update(
+                completedWork=4
+            ),
+            "duplicate-stage": lambda trace: trace["preloadStages"].insert(
+                1, trace["preloadStages"][0].copy()
+            ),
         }
         with tempfile.TemporaryDirectory(prefix="nfc-startup-fixture-") as temporary:
             temporary_path = Path(temporary)
@@ -101,7 +129,9 @@ $result | ConvertTo-Json -Depth 12 -Compress
                     mutate(trace)
                     fixture = temporary_path / f"{name}.json"
                     fixture.write_text(json.dumps(trace), encoding="utf-8")
-                    result = self.run_contract(self.sample_command(fixture, required=True))
+                    result = self.run_contract(
+                        self.sample_command(fixture, required=True)
+                    )
                     self.assertNotEqual(0, result.returncode)
 
     def test_predecessor_trace_cannot_satisfy_required_lifecycle_mode(self) -> None:
@@ -110,7 +140,9 @@ $result | ConvertTo-Json -Depth 12 -Compress
         )
 
         self.assertNotEqual(0, result.returncode)
-        self.assertIn("required preload lifecycle evidence", result.stdout + result.stderr)
+        self.assertIn(
+            "required preload lifecycle evidence", result.stdout + result.stderr
+        )
 
 
 if __name__ == "__main__":
