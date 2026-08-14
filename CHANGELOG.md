@@ -14,8 +14,9 @@ tracked below. No stable `v0.10.5` package or tag has been published yet.
 This support-neutral release implements one observable, cancellable,
 bounded, and user-controllable preload lifecycle while retaining typed catalog,
 report, diagnostics, inspection, and external-runtime semantic owners. This
-section records the completed implementation; final reviewed-head package and
-release evidence remain open under PL-00.
+section records the completed implementation and exact PL-00 candidate; the
+controlled startup remeasurement, screen-reader review, and release approval
+remain open.
 
 ### Product changes
 
@@ -338,8 +339,13 @@ write-range enforcement.
 ### Known issues
 
 - The stable `v0.10.4` package did not reproduce the 700 ms absolute startup
-  target. The measured PL-00 candidate `2dd31d6` also missed it at 796.958 ms;
-  that result remains explicit and does not waive or redefine the target.
+  target. On the current PL-00 evidence session, the same official package
+  measured 709.271 ms and exact candidate `6b1c874` measured 768.097 ms and
+  803.214 ms. A same-session old/new-head differential measured 770.645 ms and
+  787.509 ms while the new head's synchronous first-frame UI work was 1.653 ms
+  lower. The project-owned navigation states therefore do not explain the
+  ambient absolute miss; the miss remains explicit and does not waive or
+  redefine the target.
 - The implementation dependency chain is complete. Any revised reviewed head
   must refresh its exact verifier, Golden, CI, package, measurement, SBOM,
   provenance, and hash evidence. Clean-machine accessibility checks and release
