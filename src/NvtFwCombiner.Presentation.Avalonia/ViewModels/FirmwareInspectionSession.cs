@@ -77,7 +77,7 @@ internal static class FirmwareInspectionProjection
         AuthoringInputSlotStatus status,
         ShellTextResources text)
     {
-        string readinessLabel = text.GetDpInputSelectionReadinessLabel(status.Readiness);
+        string readinessLabel = text.GetDpInputSelectionReadinessLabel(status.SelectionReadiness);
         string readinessDetail = text.GetDpInputSelectionReadinessDetail(status.SelectionReadiness);
         slot.SetSelectionReadiness(
             status.Readiness,

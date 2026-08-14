@@ -48,7 +48,7 @@ public sealed partial class DpReplaceWorkflowTests
         MemoryCoverageSegmentViewModel segment = Assert.Single(viewModel.Replace.ReplaceCoverageSegments);
         Assert.Equal("Memory layout pending", viewModel.Replace.ReplaceMemoryRangeLabel);
         Assert.Equal("Pending", segment.RangeLabel);
-        Assert.Equal("Pending input", segment.SourceLabel);
+        Assert.Equal("Waiting for required inputs", segment.SourceLabel);
         Assert.Contains("required inputs", segment.Detail, StringComparison.Ordinal);
     }
 
@@ -66,11 +66,11 @@ public sealed partial class DpReplaceWorkflowTests
         MemoryMapRowViewModel initialRow = Assert.Single(viewModel.Merge.MergeMemoryRows);
         Assert.Equal("Pending", initialRow.RangeLabel);
         Assert.Equal("Select", initialRow.ActionLabel);
-        Assert.Equal("No output -> Pending input", initialRow.FlowLabel);
+        Assert.Equal("No output -> Waiting for required inputs", initialRow.FlowLabel);
         Assert.Equal("Memory layout pending", viewModel.Merge.MergeMemoryRangeLabel);
         MemoryCoverageSegmentViewModel pendingSegment = Assert.Single(viewModel.Merge.MergeCoverageSegments);
         Assert.Equal("Pending", pendingSegment.RangeLabel);
-        Assert.Equal("Pending input", pendingSegment.SourceLabel);
+        Assert.Equal("Waiting for required inputs", pendingSegment.SourceLabel);
         Assert.Contains("required inputs", pendingSegment.Detail, StringComparison.Ordinal);
         Assert.All(viewModel.Merge.MergeCoverageSegments, segment =>
         {
@@ -297,7 +297,7 @@ public sealed partial class DpReplaceWorkflowTests
         Assert.Equal("Memory layout pending", viewModel.Replace.ReplaceMemoryRangeLabel);
         MemoryCoverageSegmentViewModel segment = Assert.Single(viewModel.Replace.ReplaceCoverageSegments);
         Assert.Equal("Pending", segment.RangeLabel);
-        Assert.Equal("Pending input", segment.SourceLabel);
+        Assert.Equal("Waiting for required inputs", segment.SourceLabel);
         Assert.False(segment.IsChanged);
     }
 }

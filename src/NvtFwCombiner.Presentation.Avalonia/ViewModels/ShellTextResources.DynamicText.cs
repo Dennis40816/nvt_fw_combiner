@@ -407,19 +407,24 @@ internal sealed partial class ShellTextResources
     }
 
     public string GetDpInputSelectionReadinessLabel(
-        ResolvedChildReadiness state)
+        InputSelectionMemberReadiness member)
     {
-        return state switch
+        return member.Readiness switch
         {
             ResolvedChildReadiness.Ready =>
                 SelectLanguage("Applicable", "適用"),
+            ResolvedChildReadiness.PendingInput when member.NextAction is
+            { Kind: InputSelectionNextActionKind.LoadArtifactFirst } nextAction =>
+                SelectLanguage(
+                    $"Waiting for {GetInputArtifactRoleLabel(nextAction.SubjectId)}",
+                    $"等待 {GetInputArtifactRoleLabel(nextAction.SubjectId)}"),
             ResolvedChildReadiness.PendingInput =>
-                SelectLanguage("Pending input", "等待輸入"),
+                SelectLanguage("Waiting for required input", "等待必要輸入"),
             ResolvedChildReadiness.NotApplicable =>
                 SelectLanguage("Not applicable", "不適用"),
             ResolvedChildReadiness.Blocked =>
                 SelectLanguage("Blocked", "已封鎖"),
-            _ => throw new ArgumentOutOfRangeException(nameof(state), state, null),
+            _ => throw new ArgumentOutOfRangeException(nameof(member), member.Readiness, null),
         };
     }
 
@@ -473,9 +478,9 @@ internal sealed partial class ShellTextResources
         ArgumentException.ThrowIfNullOrWhiteSpace(artifactId);
         return artifactId switch
         {
-            CompositionAddressSpaceIds.ReferenceBase => "Reference",
-            CompositionAddressSpaceIds.DpInput => "DP",
-            CompositionAddressSpaceIds.TpInput => "TP",
+            CompositionAddressSpaceIds.ReferenceBase => "Reference FlashCode",
+            CompositionAddressSpaceIds.DpInput => "DP BIN",
+            CompositionAddressSpaceIds.TpInput => "TP BIN",
             _ => artifactId,
         };
     }

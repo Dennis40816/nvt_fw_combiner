@@ -54,10 +54,10 @@ internal static partial class UiCompositionRunner
         ArgumentException.ThrowIfNullOrWhiteSpace(detail);
         return (
             "Memory layout pending",
-            [new MemoryMapRowViewModel("Pending", "No output", "Select", "Pending input", detail)],
+            [new MemoryMapRowViewModel("Pending", "No output", "Select", "Waiting for required inputs", detail)],
             [new MemoryCoverageSegmentViewModel(
                 "Pending",
-                "Pending input",
+                "Waiting for required inputs",
                 detail,
                 MemoryCoverageFillRole.Neutral,
                 300d)]);

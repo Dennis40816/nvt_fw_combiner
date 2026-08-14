@@ -234,6 +234,10 @@ open under PL-00.
   only after the prior terminal has drained; malformed progress fails closed.
 - Accessibility: the foreground catalog surface and workflow action rail reuse one
   localized loading template with bounded decile announcements and truthful percent.
+- Input clarity: the typed `PendingInput` state is presented as the concrete
+  prerequisite, such as `Waiting for DP BIN` or `Waiting for Reference FlashCode`;
+  multi-input memory placeholders say `Waiting for required inputs` rather than
+  exposing an ambiguous implementation-state label.
 - Compatibility: firmware bytes, ranges, CRC/header behavior, output naming,
   profiles, schemas, report wire, processors, CLI behavior, and Golden data are
   unchanged.
@@ -267,8 +271,8 @@ open under PL-00.
 - Privacy and failure behavior: lifecycle evidence excludes titles, diagnostics,
   paths, report content, and firmware facts; duplicate, non-terminal, inconsistent,
   or incomplete successful work records fail the measurement.
-- Code size: 62 physical nonblank production lines are removed and 56 added,
-  net -6. Full production descends from 98,074 to 98,068; runtime remains 67,997
+- Code size: 74 physical nonblank production lines are removed and 73 added,
+  net -1. Full production descends from 98,074 to 98,073; runtime remains 67,997
   = 20,619 / 29,571 / 3,074 / 14,733.
 - Verification: focused trace serialization and Architecture contract tests,
   structure validation, scoped R2/Polytail review, canonical verifier, package

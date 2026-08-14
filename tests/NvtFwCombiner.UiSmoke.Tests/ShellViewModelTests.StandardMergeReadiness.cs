@@ -64,6 +64,7 @@ public sealed partial class FirmwareInspectionSlotTests
         Assert.True(dp.CanSelectFile);
         Assert.False(tp.CanSelectFile);
         Assert.True(tp.IsSemanticStatePendingInput);
+        Assert.Equal("Waiting for DP BIN", tp.SelectionReadinessLabel);
         Assert.Contains("DP", tp.SelectionReadinessDetail, StringComparison.Ordinal);
 
         string dpPath = golden.ManifestPath(goldenCase.GetProperty("inputs").GetProperty("dp-input"));
@@ -218,10 +219,12 @@ public sealed partial class FirmwareInspectionSlotTests
         string englishLabel = tp.SelectionReadinessLabel;
         string englishDetail = tp.SelectionReadinessDetail;
         string englishAutomation = tp.SelectionReadinessAutomationText;
+        Assert.Equal("Waiting for DP BIN", englishLabel);
 
         viewModel.SelectedLanguage = "Traditional Chinese";
 
         Assert.True(tp.IsSemanticStatePendingInput);
+        Assert.Equal("等待 DP BIN", tp.SelectionReadinessLabel);
         Assert.NotEqual(englishLabel, tp.SelectionReadinessLabel);
         Assert.NotEqual(englishDetail, tp.SelectionReadinessDetail);
         Assert.NotEqual(englishAutomation, tp.SelectionReadinessAutomationText);

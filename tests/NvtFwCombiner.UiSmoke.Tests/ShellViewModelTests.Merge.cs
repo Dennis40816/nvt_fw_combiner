@@ -399,7 +399,7 @@ public sealed partial class MergeWorkflowTests
         Assert.Equal("0x100000", viewModel.Merge.GeneralMergeOutputLength);
         Assert.Equal("0x00", viewModel.Merge.GeneralMergeOutputFillByte);
         Assert.Equal("Memory layout pending", viewModel.Merge.MergeMemoryRangeLabel);
-        Assert.Equal("Pending input", Assert.Single(viewModel.Merge.MergeMemoryRows).AfterSource);
+        Assert.Equal("Waiting for required inputs", Assert.Single(viewModel.Merge.MergeMemoryRows).AfterSource);
         Assert.Equal("nt51950-general-merge.bin", viewModel.Merge.MergeOutputFileName);
         _ = Assert.Single(viewModel.Merge.GeneralMergeMappings);
 

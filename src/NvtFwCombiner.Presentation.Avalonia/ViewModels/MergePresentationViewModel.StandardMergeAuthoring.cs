@@ -208,7 +208,7 @@ internal sealed partial class MergePresentationViewModel
                 continue;
             }
 
-            string label = Text.GetDpInputSelectionReadinessLabel(member.Readiness);
+            string label = Text.GetDpInputSelectionReadinessLabel(member);
             string detail = Text.GetStandardMergeInputSelectionReadinessDetail(member);
             slot.SetSelectionReadiness(member.Readiness, label, detail,
                 Text.GetInputSelectionReadinessAutomationText(label, detail), member.CanSelect);

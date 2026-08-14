@@ -257,9 +257,9 @@ public sealed partial class XamlControlStyleContractTests
 
         slot.SetSelectionReadiness(
             ResolvedChildReadiness.PendingInput,
-            "Pending input",
-            "Load Reference first.",
-            "Pending input. Load Reference first.",
+            "Waiting for Reference FlashCode",
+            "Load Reference FlashCode first.",
+            "Waiting for Reference FlashCode. Load Reference FlashCode first.",
             canSelect: false);
 
         Assert.False(slot.CanSelectFile);
@@ -282,9 +282,9 @@ public sealed partial class XamlControlStyleContractTests
         };
         slot.SetSelectionReadiness(
             ResolvedChildReadiness.PendingInput,
-            "Pending input",
-            "Load Reference first.",
-            "Pending input. Load Reference first.");
+            "Waiting for Reference FlashCode",
+            "Load Reference FlashCode first.",
+            "Waiting for Reference FlashCode. Load Reference FlashCode first.");
         slot.SetInputInspection(
             FirmwareInputInspectionSeverity.Blocking,
             "The selected BIN failed structural admission.");
@@ -381,7 +381,7 @@ public sealed partial class XamlControlStyleContractTests
             "DP",
             "Pending",
             FirmwareSlotFactState.PendingInput,
-            "Pending input",
+            "Waiting for DP BIN",
             "Load the prerequisite input, then inspect again.");
         var omitted = new FirmwareSlotFactViewModel("LDC", "Not applicable", FirmwareSlotFactState.NotApplicable);
 
