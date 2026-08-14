@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using System.Globalization;
 using System.Runtime.InteropServices;
 using System.Text.Json;
 
@@ -47,14 +48,20 @@ internal static class StartupTraceFileSink
             }
 
             writer.WriteEndArray();
-            writer.WritePropertyName("preloadStages");
-            JsonSerializer.Serialize(writer, preloadStages.Select(static stage => new
+            writer.WriteStartArray("preloadStages");
+            foreach (ShellPreloadStageSnapshot stage in preloadStages)
             {
-                stage.Id,
-                State = stage.State.ToString(),
-                stage.CurrentAttempt?.CompletedWork,
-                stage.CurrentAttempt?.TotalWork,
-            }), JsonSerializerOptions.Web);
+                writer.WriteStartObject();
+                writer.WriteString("id", stage.Id);
+                writer.WriteString("state", stage.State.ToString());
+                writer.WritePropertyName("completedWork");
+                writer.WriteRawValue(stage.CurrentAttempt?.CompletedWork?.ToString(CultureInfo.InvariantCulture) ?? "null");
+                writer.WritePropertyName("totalWork");
+                writer.WriteRawValue(stage.CurrentAttempt?.TotalWork?.ToString(CultureInfo.InvariantCulture) ?? "null");
+                writer.WriteEndObject();
+            }
+
+            writer.WriteEndArray();
             writer.WriteEndObject();
             writer.Flush();
             return true;
@@ -66,4 +73,5 @@ internal static class StartupTraceFileSink
             return false;
         }
     }
+
 }

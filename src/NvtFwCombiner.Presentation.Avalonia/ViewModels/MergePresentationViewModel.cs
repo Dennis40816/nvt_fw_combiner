@@ -37,6 +37,7 @@ internal sealed partial class MergePresentationViewModel : ObservableObject
     {
         ApplyFirmwareSlotText();
         InspectionLifecycles.ForEach(lifecycle => lifecycle.ApplyText(Text));
+        RefreshMergeMemoryMapState(refreshAuthoring: false);
         OnPropertyChanged(nameof(Text));
         NotifyContextChanged();
     }

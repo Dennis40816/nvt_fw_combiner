@@ -70,6 +70,8 @@ public sealed partial class RepositoryBoundaryTests
         Assert.Contains("privateBytesAtTrace", runner, StringComparison.Ordinal);
         Assert.Contains("peakPrivateBytes", runner, StringComparison.Ordinal);
         Assert.Contains("RequirePreloadLifecycle", runner, StringComparison.Ordinal);
+        Assert.Contains("Assert-ReleaseSampleCounts", runner, StringComparison.Ordinal);
+        Assert.Contains("complete ordered preload stage set", runner, StringComparison.Ordinal);
         Assert.Contains("preloadLifecycle", runner, StringComparison.Ordinal);
         Assert.Contains("$stages = @(", runner, StringComparison.Ordinal);
         Assert.Contains("if ($null -ne $parsedTrace)", runner, StringComparison.Ordinal);
@@ -79,6 +81,7 @@ public sealed partial class RepositoryBoundaryTests
         Assert.Contains("allocationDeltaBytes", sink, StringComparison.Ordinal);
         Assert.Contains("preloadStages", sink, StringComparison.Ordinal);
         Assert.Contains("stage.CurrentAttempt?.CompletedWork", sink, StringComparison.Ordinal);
+        Assert.DoesNotContain("JsonSerializer.Serialize", sink, StringComparison.Ordinal);
         Assert.Contains("uiThreadWork", runner, StringComparison.Ordinal);
         Assert.Contains("firstFrameUiSynchronousWorkMilliseconds", runner, StringComparison.Ordinal);
         Assert.Contains("backgroundUiMaterializationMilliseconds", runner, StringComparison.Ordinal);
@@ -197,11 +200,11 @@ public sealed partial class RepositoryBoundaryTests
         Assert.Contains("950 gross removed and 949", baseline, StringComparison.Ordinal);
         Assert.Contains("98,075 to 98,074", baseline, StringComparison.Ordinal);
         Assert.Contains("68,016 to 67,997", baseline, StringComparison.Ordinal);
-        Assert.Contains("74 gross removed and 73", baseline, StringComparison.Ordinal);
+        Assert.Contains("144 gross removed and 143", baseline, StringComparison.Ordinal);
         Assert.Contains("98,074 to 98,073", baseline, StringComparison.Ordinal);
         Assert.Contains("full_production_ratchet=98_073", codeSizePolicy, StringComparison.Ordinal);
-        Assert.Contains("runtime_production_ratchet=67_997", codeSizePolicy, StringComparison.Ordinal);
-        Assert.Contains("application_ratchet=29_571", codeSizePolicy, StringComparison.Ordinal);
+        Assert.Contains("runtime_production_ratchet=67_981", codeSizePolicy, StringComparison.Ordinal);
+        Assert.Contains("application_ratchet=29_555", codeSizePolicy, StringComparison.Ordinal);
         Assert.Contains("bootstrap_cli_ratchet=3_074", codeSizePolicy, StringComparison.Ordinal);
         Assert.Contains("infrastructure_contracts_worker_ratchet=14_733", codeSizePolicy, StringComparison.Ordinal);
         Assert.Contains("777.090 ms", baseline, StringComparison.Ordinal);
@@ -222,7 +225,7 @@ public sealed partial class RepositoryBoundaryTests
                      ("PL-05 #377", "`ExternalProcessorFactory.cs:23-143,155-219` (exactly 170 nonblank owner lines); callers/wiring retained or migrated at `RuntimeDependencyReadinessLeaseProvider.cs:6-16` and `CompositionHostServices.cs:36-64`", 170, 145, -25),
                      ("PL-06 #378", "`FirmwareInspectionSession.cs:8-163`; `BuiltInFirmwareInspection.cs:19,470-537`; `BuiltInFirmwareInspection.FileIdentity.cs:19-74`", 220, 190, -30),
                      ("PL-07 #379", "`WorkflowSessionPresentationViewModel.FirmwareInspection.cs:8-11,126-211,341-539`; `MergePresentationViewModel.General.cs:14,66-115`; `ReplacePresentationViewModel.General.cs:16,93-157` (375 nonblank candidate lines before retained result application is separated)", 250, 220, -30),
-                     ("PL-00 #380", "`StartupTraceFileSink.cs`; `StartupTraceSession.cs`; `MainWindow.axaml.cs`; `ShellTextResources.DynamicText.cs`; `scripts/measure-startup.ps1`", 74, 73, -1),
+                     ("PL-00 #380", "`StartupTraceFileSink.cs`; `StartupTraceSession.cs`; `MainWindow.axaml.cs`; `ShellTextResources`; immutable Application DTO backing-field aliases; `scripts/measure-startup.ps1`", 144, 143, -1),
                  ];
         foreach ((string ticket, string anchors, int gross, int added, int net) in ticketRows)
         {

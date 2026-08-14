@@ -302,6 +302,16 @@ public sealed partial class DpReplaceWorkflowTests
         Assert.Equal("Waiting for Reference FlashCode", ldc.SelectionReadinessLabel);
         Assert.Contains("Load Reference FlashCode first", ldc.SelectionReadinessDetail, StringComparison.Ordinal);
 
+        viewModel.SelectedLanguage = "Traditional Chinese";
+
+        Assert.Equal("等待 Reference FlashCode", ldc.SelectionReadinessLabel);
+        Assert.Contains("請先載入 Reference FlashCode", ldc.SelectionReadinessDetail, StringComparison.Ordinal);
+
+        viewModel.SelectedLanguage = "English";
+        ldc = Assert.Single(
+            viewModel.Replace.ReplaceSlots,
+            static slot => slot.SlotId == CompositionSlotIds.ReplaceLdc);
+
         viewModel.SetSlotFile(
             CompositionSlotIds.ReplaceBase,
             workspace.Write("reference-40000.bin", new byte[0x40000]));
@@ -309,6 +319,9 @@ public sealed partial class DpReplaceWorkflowTests
         Assert.Equal("Not applicable", ldc.SelectionReadinessLabel);
 
         viewModel.SelectedLanguage = "Traditional Chinese";
+        ldc = Assert.Single(
+            viewModel.Replace.ReplaceSlots,
+            static slot => slot.SlotId == CompositionSlotIds.ReplaceLdc);
 
         Assert.Equal("不適用", ldc.SelectionReadinessLabel);
         Assert.Equal(

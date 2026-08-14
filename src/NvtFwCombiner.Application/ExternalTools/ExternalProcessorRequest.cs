@@ -6,11 +6,6 @@ namespace NvtFwCombiner.Application.ExternalTools;
 /// <summary>Application-level request for an approved staged external processor transform.</summary>
 public sealed class ExternalProcessorRequest
 {
-    private readonly byte[] _inputBytes;
-    private readonly ByteRange[] _allowedWriteRanges;
-    private readonly ExternalProcessorStagedSource[] _stagedSources;
-    private readonly ExternalProcessorStagedArtifact[] _stagedArtifacts;
-
     /// <summary>Creates a transform request over a host-controlled staging copy.</summary>
     public ExternalProcessorRequest(
         string runId,
@@ -53,15 +48,15 @@ public sealed class ExternalProcessorRequest
         IcNumberSelection = icNumberSelection;
         ResolvedIcCount = resolvedIcCount;
         ProtocolPlan = protocolPlan;
-        _inputBytes = inputBytes.ToArray();
-        _allowedWriteRanges = [.. allowedWriteRanges.OrderBy(range => range.Start).ThenBy(range => range.Length)];
-        _stagedSources = [
+        InputBytes = inputBytes.ToArray();
+        AllowedWriteRanges = [.. allowedWriteRanges.OrderBy(range => range.Start).ThenBy(range => range.Length)];
+        StagedSources = [
             .. (stagedSources ?? [])
                 .OrderBy(source => source.FirmwareRange.Start)
                 .ThenBy(source => source.FirmwareRange.Length),
         ];
         ExternalProcessorStagedArtifact[] artifacts = [.. stagedArtifacts ?? []];
-        foreach (ExternalProcessorStagedSource source in _stagedSources)
+        foreach (ExternalProcessorStagedSource source in StagedSources)
         {
             if (source.FirmwareRange.EndExclusive > inputBytes.Length)
             {
@@ -78,7 +73,7 @@ public sealed class ExternalProcessorRequest
                 nameof(stagedArtifacts));
         }
 
-        _stagedArtifacts = [.. artifacts.OrderBy(artifact => artifact.ArtifactId, StringComparer.Ordinal)];
+        StagedArtifacts = [.. artifacts.OrderBy(artifact => artifact.ArtifactId, StringComparer.Ordinal)];
     }
 
     /// <summary>Stable execution id used to name the private staging directory.</summary>
@@ -91,16 +86,16 @@ public sealed class ExternalProcessorRequest
     public string ToolBindingId { get; }
 
     /// <summary>Bytes materialized as the staging work file.</summary>
-    public ReadOnlyMemory<byte> InputBytes => _inputBytes;
+    public ReadOnlyMemory<byte> InputBytes { get; }
 
     /// <summary>Declared byte ranges the external processor may change.</summary>
-    public IReadOnlyList<ByteRange> AllowedWriteRanges => _allowedWriteRanges;
+    public IReadOnlyList<ByteRange> AllowedWriteRanges { get; }
 
     /// <summary>Optional source bytes staged for the processor without pre-writing them into <see cref="InputBytes"/>.</summary>
-    public IReadOnlyList<ExternalProcessorStagedSource> StagedSources => _stagedSources;
+    public IReadOnlyList<ExternalProcessorStagedSource> StagedSources { get; }
 
     /// <summary>Named immutable artifact bytes staged separately from the target image.</summary>
-    public IReadOnlyList<ExternalProcessorStagedArtifact> StagedArtifacts => _stagedArtifacts;
+    public IReadOnlyList<ExternalProcessorStagedArtifact> StagedArtifacts { get; }
 
     /// <summary>Optional IC number context used by IC-specific postbuild processors.</summary>
     public IcNumberSelection? IcNumberSelection { get; }

@@ -72,6 +72,7 @@ internal sealed partial class ReplacePresentationViewModel
             IReadOnlyList<MemoryCoverageSegmentViewModel> coverageSegments) =
             acceptedSession?.ExactCapability is null
                 ? UiCompositionRunner.GetPendingMemoryDisplay(
+                    Text,
                     "Select and inspect the required inputs to resolve the compiled memory layout.")
                 : UiCompositionRunner.GetMemoryDisplay(
                     _compositionServices,
@@ -145,6 +146,7 @@ internal sealed partial class ReplacePresentationViewModel
         };
         return acceptedSession?.ExactCapability is null
             ? UiCompositionRunner.GetPendingMemoryDisplay(
+                Text,
                 "Select and inspect the required inputs to resolve the compiled memory layout.")
             : UiCompositionRunner.GetMemoryDisplay(_compositionServices, acceptedSession, Text);
     }

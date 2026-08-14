@@ -43,6 +43,8 @@ internal sealed partial class ReplacePresentationViewModel : ObservableObject
     {
         ApplyFirmwareSlotText();
         InspectionLifecycles.ForEach(lifecycle => lifecycle.ApplyText(Text));
+        RefreshDpReplaceInputSelectionReadiness();
+        RefreshReplaceMemoryMapState(refreshAuthoring: false);
         OnPropertyChanged(nameof(Text));
         NotifyContextChanged();
         RefreshSelectionState();

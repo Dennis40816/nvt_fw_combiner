@@ -25,6 +25,18 @@ Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
 $TracePathEnvironmentVariable = 'NFC_STARTUP_TRACE_PATH'
 
+function Assert-ReleaseSampleCounts {
+    param(
+        [Parameter(Mandatory = $true)][bool]$Required,
+        [Parameter(Mandatory = $true)][int]$Warmups,
+        [Parameter(Mandatory = $true)][int]$ScoredRuns
+    )
+
+    if ($Required -and ($Warmups -lt 1 -or $ScoredRuns -lt 5)) {
+        throw 'Release preload evidence requires at least one warm-up and five scored launches.'
+    }
+}
+
 function Get-MetricSummary {
     param([Parameter(Mandatory = $true)][double[]]$Values)
 
@@ -158,6 +170,20 @@ function Get-PreloadLifecycleEvidence {
         return $null
     }
 
+    if ($Required) {
+        $expectedIds = @(
+            'canonical-catalog'
+            'report-history'
+            if (@($stages.id) -contains 'startup-report') { 'startup-report' }
+            'system-diagnostics'
+            'external-environment'
+            'deferred-views'
+        )
+        if ((@($stages.id) -join '|') -ne ($expectedIds -join '|')) {
+            throw 'Startup trace does not contain the complete ordered preload stage set.'
+        }
+    }
+
     $ids = [Collections.Generic.HashSet[string]]::new([StringComparer]::Ordinal)
     $terminalStates = @('Succeeded', 'Failed', 'Skipped', 'Cancelled', 'DependencyBlocked')
     $normalized = @(
@@ -185,6 +211,41 @@ function Get-PreloadLifecycleEvidence {
     return [pscustomobject][ordered]@{
         stageCount = $stages.Count
         stages = $normalized
+    }
+}
+
+function New-StartupSampleEvidence {
+    param(
+        [Parameter(Mandatory = $true)]$Trace,
+        [Parameter(Mandatory = $true)][bool]$RequireLifecycle,
+        [Parameter(Mandatory = $true)][int]$ProcessId,
+        [Parameter(Mandatory = $true)][double]$WindowMilliseconds,
+        [Parameter(Mandatory = $true)][double]$TraceReadyMilliseconds,
+        [Parameter(Mandatory = $true)][long]$WorkingSetBytesAtWindow,
+        [Parameter(Mandatory = $true)][long]$WorkingSetBytesAtTrace,
+        [Parameter(Mandatory = $true)][long]$PeakWorkingSetBytes,
+        [Parameter(Mandatory = $true)][long]$PrivateBytesAtWindow,
+        [Parameter(Mandatory = $true)][long]$PrivateBytesAtTrace,
+        [Parameter(Mandatory = $true)][long]$PeakPrivateBytes
+    )
+
+    if ($Trace.schemaVersion -notin @('nfc-startup-trace-v2', 'nfc-startup-trace-v3') -or
+        @($Trace.stages).Count -eq 0) {
+        throw 'The application wrote an unsupported or empty startup trace.'
+    }
+    return [ordered]@{
+        processId = $ProcessId
+        processToWindowMilliseconds = [Math]::Round($WindowMilliseconds, 3)
+        processToTraceMilliseconds = [Math]::Round($TraceReadyMilliseconds, 3)
+        workingSetBytesAtWindow = $WorkingSetBytesAtWindow
+        workingSetBytesAtTrace = $WorkingSetBytesAtTrace
+        peakWorkingSetBytes = $PeakWorkingSetBytes
+        privateBytesAtWindow = $PrivateBytesAtWindow
+        privateBytesAtTrace = $PrivateBytesAtTrace
+        peakPrivateBytes = $PeakPrivateBytes
+        uiThreadWork = Get-UiThreadWorkSummary -Trace $Trace
+        preloadLifecycle = Get-PreloadLifecycleEvidence -Trace $Trace -Required $RequireLifecycle
+        trace = $Trace
     }
 }
 
@@ -260,26 +321,18 @@ function Invoke-StartupSample {
             throw "The application did not write its startup trace within $Timeout seconds."
         }
 
-        if ($trace.schemaVersion -notin @('nfc-startup-trace-v2', 'nfc-startup-trace-v3') -or
-            @($trace.stages).Count -eq 0) {
-            throw "The application wrote an unsupported or empty startup trace at '$TracePath'."
-        }
-        $preloadLifecycle = Get-PreloadLifecycleEvidence -Trace $trace -Required $RequireLifecycle
-
-        return [ordered]@{
-            processId = $process.Id
-            processToWindowMilliseconds = [Math]::Round($windowMilliseconds, 3)
-            processToTraceMilliseconds = [Math]::Round($traceReadyMilliseconds, 3)
-            workingSetBytesAtWindow = $workingSetBytesAtWindow
-            workingSetBytesAtTrace = $workingSetBytesAtTrace
-            peakWorkingSetBytes = $peakWorkingSetBytes
-            privateBytesAtWindow = $privateBytesAtWindow
-            privateBytesAtTrace = $privateBytesAtTrace
-            peakPrivateBytes = $peakPrivateBytes
-            uiThreadWork = Get-UiThreadWorkSummary -Trace $trace
-            preloadLifecycle = $preloadLifecycle
-            trace = $trace
-        }
+        return New-StartupSampleEvidence `
+            -Trace $trace `
+            -RequireLifecycle $RequireLifecycle `
+            -ProcessId $process.Id `
+            -WindowMilliseconds $windowMilliseconds `
+            -TraceReadyMilliseconds $traceReadyMilliseconds `
+            -WorkingSetBytesAtWindow $workingSetBytesAtWindow `
+            -WorkingSetBytesAtTrace $workingSetBytesAtTrace `
+            -PeakWorkingSetBytes $peakWorkingSetBytes `
+            -PrivateBytesAtWindow $privateBytesAtWindow `
+            -PrivateBytesAtTrace $privateBytesAtTrace `
+            -PeakPrivateBytes $peakPrivateBytes
     }
     finally {
         if (-not $process.HasExited) {
@@ -292,6 +345,15 @@ function Invoke-StartupSample {
         $process.Dispose()
     }
 }
+
+if ($MyInvocation.InvocationName -eq '.') {
+    return
+}
+
+Assert-ReleaseSampleCounts `
+    -Required $RequirePreloadLifecycle.IsPresent `
+    -Warmups $WarmupRuns `
+    -ScoredRuns $Runs
 
 $application = (Resolve-Path -LiteralPath $ApplicationPath -ErrorAction Stop).Path
 if (-not (Test-Path -LiteralPath $application -PathType Leaf)) {

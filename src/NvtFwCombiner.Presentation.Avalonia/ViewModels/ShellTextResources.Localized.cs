@@ -138,6 +138,7 @@ internal sealed partial class ShellTextResources
             InitialRunTitle = Pick("No run yet", "尚未執行"),
             InitialRunDetail = Pick("Drop required BIN files, then run Build.", "放入必要 BIN 檔後即可建立。"),
             NoOutputLabel = Pick("No output", "無輸出"),
+            WaitingForRequiredInputsLabel = Pick("Waiting for required inputs", "等待必要輸入"),
             WorkflowKicker = Pick("WORKFLOW", "流程"),
             NavigationClearTitle = Pick("Clear selected files and leave this page?", "清除已選檔案並離開此頁？"),
             NavigationClearDetail = Pick(
