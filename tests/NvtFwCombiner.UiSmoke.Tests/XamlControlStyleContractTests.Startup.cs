@@ -144,9 +144,6 @@ public sealed partial class XamlControlStyleContractTests
         string buttonStyles = ReadPresentationFile("Styles/MainWindowButtonStyles.axaml");
         string windowStyles = ReadPresentationFile("Styles/MainWindowStyles.axaml");
         string semanticAction = ExtractStyle(buttonStyles, "Button.semanticAction");
-        string semanticActionPresenter = ExtractStyle(
-            buttonStyles,
-            "Button.semanticAction /template/ ContentPresenter#PART_ContentPresenter");
         string semanticActionFocus = ExtractStyle(
             buttonStyles,
             "Button.semanticAction:focus-visible /template/ ContentPresenter#PART_ContentPresenter");
@@ -217,6 +214,15 @@ public sealed partial class XamlControlStyleContractTests
         XElement retryButton = Assert.Single(statusTemplate.Descendants(), element =>
             element.Name.LocalName == "Button" &&
             (string?)element.Attribute("Command") == "{Binding RetryCommand}");
+        var buttonStylesDocument = XDocument.Parse(buttonStyles);
+        XElement semanticButtonTheme = Assert.Single(buttonStylesDocument.Descendants(), element =>
+            element.Name.LocalName == "ControlTheme" &&
+            element.Attributes().Any(attribute => attribute.Name.LocalName == "Key" &&
+                attribute.Value == "NfcSemanticButtonTheme"));
+        XElement semanticButtonPresenter = Assert.Single(semanticButtonTheme.Descendants(), element =>
+            element.Name.LocalName == "ContentPresenter" &&
+            element.Attributes().Any(attribute => attribute.Name.LocalName == "Name" &&
+                attribute.Value == "PART_ContentPresenter"));
         var shellDocument = XDocument.Parse(shell);
         XElement[] navigationButtons =
         [
@@ -255,12 +261,25 @@ public sealed partial class XamlControlStyleContractTests
         Assert.Contains("Command=\"{Binding CancelCommand}\"", status, StringComparison.Ordinal);
         Assert.Equal("semanticAction secondary", (string?)cancelButton.Attribute("Classes"));
         Assert.Equal("semanticAction primary", (string?)retryButton.Attribute("Classes"));
+        Assert.Equal("Button", (string?)semanticButtonTheme.Attribute("TargetType"));
+        Assert.Null(semanticButtonTheme.Attribute("BasedOn"));
+        Assert.Equal("{TemplateBinding Background}", (string?)semanticButtonPresenter.Attribute("Background"));
+        Assert.Equal("{TemplateBinding BorderBrush}", (string?)semanticButtonPresenter.Attribute("BorderBrush"));
+        Assert.Equal("{TemplateBinding BorderThickness}", (string?)semanticButtonPresenter.Attribute("BorderThickness"));
+        Assert.Equal("{TemplateBinding Padding}", (string?)semanticButtonPresenter.Attribute("Padding"));
+        Assert.Equal("{TemplateBinding Foreground}", (string?)semanticButtonPresenter.Attributes()
+            .Single(attribute => attribute.Name.LocalName == "TextElement.Foreground"));
+        Assert.Contains(
+            "Theme\" Value=\"{StaticResource NfcSemanticButtonTheme}",
+            semanticAction,
+            StringComparison.Ordinal);
         Assert.Contains("MinHeight\" Value=\"34\"", semanticAction, StringComparison.Ordinal);
         Assert.Contains("HorizontalContentAlignment\" Value=\"Center\"", semanticAction, StringComparison.Ordinal);
         Assert.Contains("VerticalContentAlignment\" Value=\"Center\"", semanticAction, StringComparison.Ordinal);
+        Assert.Contains("BorderThickness\" Value=\"1\"", semanticAction, StringComparison.Ordinal);
         Assert.Contains("NfcFontSize13", semanticAction, StringComparison.Ordinal);
         Assert.Contains("FocusAdorner\" Value=\"{x:Null}\"", semanticAction, StringComparison.Ordinal);
-        Assert.Contains("NfcPillCornerRadius", semanticActionPresenter, StringComparison.Ordinal);
+        Assert.Equal("{DynamicResource NfcPillCornerRadius}", (string?)semanticButtonPresenter.Attribute("CornerRadius"));
         Assert.Contains("BorderThickness\" Value=\"2\"", semanticActionFocus, StringComparison.Ordinal);
         Assert.Contains("NfcAccentBorderStrongBrush", semanticActionFocus, StringComparison.Ordinal);
         Assert.Contains("NfcSurfaceBrush", secondary, StringComparison.Ordinal);
