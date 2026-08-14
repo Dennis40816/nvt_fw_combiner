@@ -210,6 +210,30 @@ $result | ConvertTo-Json -Depth 12 -Compress
             "duplicate-completed": lambda trace: trace["stages"].append(
                 trace["stages"][-1].copy()
             ),
+            "duplicate-ordinary-stage": lambda trace: trace["stages"].insert(
+                2, trace["stages"][1].copy()
+            ),
+            "null-ordinary-elapsed": lambda trace: trace["stages"][1].update(
+                elapsedMilliseconds=None
+            ),
+            "string-ordinary-delta": lambda trace: trace["stages"][1].update(
+                deltaMilliseconds="2"
+            ),
+            "inconsistent-ordinary-delta": lambda trace: trace["stages"][1].update(
+                deltaMilliseconds=1
+            ),
+            "fractional-allocation": lambda trace: trace["stages"][1].update(
+                allocatedBytesSinceManagedEntry=20.5
+            ),
+            "negative-allocation-delta": lambda trace: trace["stages"][1].update(
+                allocationDeltaBytes=-1
+            ),
+            "inconsistent-allocation-delta": lambda trace: trace["stages"][1].update(
+                allocationDeltaBytes=9
+            ),
+            "decreasing-allocation": lambda trace: trace["stages"][1].update(
+                allocatedBytesSinceManagedEntry=5, allocationDeltaBytes=0
+            ),
             "missing-process-id": lambda trace: trace.pop("processId"),
             "wrong-process-id": lambda trace: trace.update(processId=8),
             "string-process-id": lambda trace: trace.update(processId="7"),

@@ -173,6 +173,37 @@ function ConvertTo-ValidatedElapsedMilliseconds {
     return $number
 }
 
+function Assert-ReleaseTraceStages {
+    param([Parameter(Mandatory = $true)]$Trace)
+
+    $names = [Collections.Generic.HashSet[string]]::new([StringComparer]::Ordinal)
+    [double]$previousElapsed = 0
+    [long]$previousAllocated = 0
+    foreach ($stage in @($Trace.stages)) {
+        if ($stage.name -isnot [string] -or [string]::IsNullOrWhiteSpace($stage.name) -or
+            -not $names.Add($stage.name)) {
+            throw 'Release startup trace contains a missing or duplicate stage name.'
+        }
+
+        $elapsed = ConvertTo-ValidatedElapsedMilliseconds `
+            -Value $stage.elapsedMilliseconds -StageName $stage.name
+        $delta = ConvertTo-ValidatedElapsedMilliseconds `
+            -Value $stage.deltaMilliseconds -StageName "$($stage.name) delta"
+        $allocated = ConvertTo-ValidatedWorkCount `
+            -Value $stage.allocatedBytesSinceManagedEntry -StageId $stage.name
+        $allocationDelta = ConvertTo-ValidatedWorkCount `
+            -Value $stage.allocationDeltaBytes -StageId $stage.name
+        if ([Math]::Abs(($elapsed - $previousElapsed) - $delta) -gt 0.001 -or
+            $null -eq $allocated -or $null -eq $allocationDelta -or
+            $allocated -lt $previousAllocated -or $allocationDelta -lt 0 -or
+            $allocated - $previousAllocated -ne $allocationDelta) {
+            throw "Release startup trace contains inconsistent metrics for '$($stage.name)'."
+        }
+        $previousElapsed = $elapsed
+        $previousAllocated = $allocated
+    }
+}
+
 function Assert-ReleaseTraceProcessId {
     param(
         [Parameter(Mandatory = $true)]$Trace,
@@ -459,6 +490,7 @@ function New-StartupSampleEvidence {
     $preloadLifecycle = Get-PreloadLifecycleEvidence -Trace $Trace -Required $RequireLifecycle
     $catalogReadyAfterWindow = $null
     if ($RequireLifecycle) {
+        Assert-ReleaseTraceStages -Trace $Trace
         Assert-ReleaseTraceProcessId -Trace $Trace -ExpectedProcessId $ProcessId
         Assert-ReleaseTraceTerminal -Trace $Trace
         $opened = Get-TraceStage -Trace $Trace -Name 'main-window.opened'
