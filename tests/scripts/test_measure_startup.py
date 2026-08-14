@@ -19,7 +19,7 @@ ANSI_ESCAPE = re.compile(r"\x1b\[[0-?]*[ -/]*[@-~]")
 
 
 def normalize_console_output(value: str) -> str:
-    return " ".join(ANSI_ESCAPE.sub("", value).split())
+    return " ".join(ANSI_ESCAPE.sub("", value).replace("|", " ").split())
 
 
 @unittest.skipUnless(POWERSHELL, "PowerShell is required")
@@ -76,7 +76,10 @@ $result | ConvertTo-Json -Depth 12 -Compress
                 )
 
     def test_powershell_error_rendering_is_normalized(self) -> None:
-        rendered = "\x1b[31;1mfive scored\x1b[0m\n\x1b[31;1mlaunches\x1b[0m"
+        rendered = (
+            "\x1b[31;1mfive scored\x1b[0m\n"
+            "\x1b[31;1m | launches\x1b[0m"
+        )
         self.assertEqual("five scored launches", normalize_console_output(rendered))
 
     def test_v2_and_complete_v3_fixtures_use_the_same_sample_projection(self) -> None:

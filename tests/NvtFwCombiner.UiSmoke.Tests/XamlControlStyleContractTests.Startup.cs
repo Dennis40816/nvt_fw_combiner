@@ -170,6 +170,22 @@ public sealed partial class XamlControlStyleContractTests
                     element.Name.LocalName == "TextBlock" &&
                     (string?)element.Attribute("Text") == "{Binding Detail}"),
         ];
+        XElement cancelButton = Assert.Single(statusTemplate.Descendants(), element =>
+            element.Name.LocalName == "Button" &&
+            (string?)element.Attribute("Command") == "{Binding CancelCommand}");
+        XElement retryButton = Assert.Single(statusTemplate.Descendants(), element =>
+            element.Name.LocalName == "Button" &&
+            (string?)element.Attribute("Command") == "{Binding RetryCommand}");
+        var shellDocument = XDocument.Parse(shell);
+        XElement optionalCancelButton = Assert.Single(shellDocument.Descendants(), element =>
+            element.Name.LocalName == "Button" &&
+            (string?)element.Attribute("Click") == "OptionalPreloadCancelButton_OnClick");
+        XElement optionalRetryButton = Assert.Single(shellDocument.Descendants(), element =>
+            element.Name.LocalName == "Button" &&
+            (string?)element.Attribute("Click") == "OptionalPreloadRetryButton_OnClick");
+        XElement optionalSkipButton = Assert.Single(shellDocument.Descendants(), element =>
+            element.Name.LocalName == "Button" &&
+            (string?)element.Attribute("Click") == "OptionalPreloadSkipButton_OnClick");
 
         Assert.Contains("x:DataType=\"vm:ForegroundLoadingState\"", surface, StringComparison.Ordinal);
         Assert.Contains("AutomationProperties.LiveSetting=\"Polite\"", status, StringComparison.Ordinal);
@@ -190,6 +206,8 @@ public sealed partial class XamlControlStyleContractTests
         Assert.Contains("IsVisible=\"{Binding CanCancel}\"", status, StringComparison.Ordinal);
         Assert.Contains("Command=\"{Binding RetryCommand}\"", status, StringComparison.Ordinal);
         Assert.Contains("Command=\"{Binding CancelCommand}\"", status, StringComparison.Ordinal);
+        Assert.Equal("secondary", (string?)cancelButton.Attribute("Classes"));
+        Assert.Equal("primary", (string?)retryButton.Attribute("Classes"));
         Assert.Contains("behaviors:FocusOnRevealBehavior.IsEnabled=\"True\"", surface, StringComparison.Ordinal);
         Assert.Contains("Focusable=\"True\"", surface, StringComparison.Ordinal);
         Assert.Contains("AttachedToVisualTree += Control_OnAttachedToVisualTree", focusBehavior, StringComparison.Ordinal);
@@ -214,6 +232,9 @@ public sealed partial class XamlControlStyleContractTests
         Assert.Contains("Click=\"OptionalPreloadRetryButton_OnClick\"", shell, StringComparison.Ordinal);
         Assert.Contains("Click=\"OptionalPreloadSkipButton_OnClick\"", shell, StringComparison.Ordinal);
         Assert.Contains("Click=\"OptionalPreloadCancelButton_OnClick\"", shell, StringComparison.Ordinal);
+        Assert.Equal("secondary", (string?)optionalCancelButton.Attribute("Classes"));
+        Assert.Equal("secondary", (string?)optionalRetryButton.Attribute("Classes"));
+        Assert.Equal("secondary", (string?)optionalSkipButton.Attribute("Classes"));
         Assert.Contains("<Grid.KeyBindings>", shell, StringComparison.Ordinal);
         Assert.DoesNotContain("<Window.KeyBindings>", shell, StringComparison.Ordinal);
         Assert.Contains("_preloadLoading = new(RetryStartupPreloadAsync, CancelStartupAsync);", lifecycle, StringComparison.Ordinal);

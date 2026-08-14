@@ -52,13 +52,12 @@
           Value="{Binding Progress}" />
       <StackPanel HorizontalAlignment="Right" Orientation="Horizontal" Spacing="{DynamicResource NfcSpace8}">
         <Button
-            AutomationProperties.Name="{Binding CancelLabel}"
+            Classes="secondary"
             Command="{Binding CancelCommand}"
             Content="{Binding CancelLabel}"
             IsVisible="{Binding CanCancel}" />
         <Button
             Classes="primary"
-            AutomationProperties.Name="{Binding RetryLabel}"
             behaviors:FocusOnRevealBehavior.IsEnabled="True"
             Command="{Binding RetryCommand}"
             Content="{Binding RetryLabel}"

@@ -514,6 +514,7 @@
                           Tag="{ReflectionBinding Id}" />
                       <Button
                           Grid.Column="5"
+                          Classes="secondary"
                           AutomationProperties.Name="{ReflectionBinding SkipAccessibleLabel}"
                           Click="OptionalPreloadSkipButton_OnClick"
                           Content="{ReflectionBinding $parent[Window].DataContext.Text.SkipPreloadLabel}"
