@@ -29,6 +29,7 @@ public sealed partial class RepositoryBoundaryTests
             StringComparison.Ordinal);
         Assert.True(preparationStart >= 0);
         string preparation = program[preparationStart..];
+        Assert.Contains("Task.Run(", preparation, StringComparison.Ordinal);
         AssertStartupStageOrder(
             preparation,
             "shell-preferences.started",

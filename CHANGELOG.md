@@ -345,7 +345,10 @@ write-range enforcement.
   787.509 ms while the new head's synchronous first-frame UI work was 1.653 ms
   lower. The project-owned navigation states therefore do not explain the
   ambient absolute miss; the miss remains explicit and does not waive or
-  redefine the target.
+  redefine the target. Follow-up tracing found the bounded preference adapter's
+  synchronous pre-await admission on the startup thread; the same canonical
+  read is now scheduled before host construction and still awaited before the
+  window. Exact final-package remeasurement remains required.
 - The implementation dependency chain is complete. Any revised reviewed head
   must refresh its exact verifier, Golden, CI, package, measurement, SBOM,
   provenance, and hash evidence. Clean-machine accessibility checks and release

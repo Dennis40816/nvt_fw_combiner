@@ -70,6 +70,14 @@ Code does not acquire preload status merely because it uses `Task.Run`, a cache,
 or lazy initialization. Ordinary demand-driven computation remains demand
 driven.
 
+The shell-preference prerequisite schedules its one bounded `ILocalFileStore`
+read on a background worker before constructing host services. Framework
+initialization awaits that exact task before creating the main window; there is
+no second read, UI fallback, or optional preload stage. The scheduling boundary
+keeps synchronous pre-await file-open and stable-handle admission work off the
+startup thread without changing the filesystem adapter's bounds or identity
+checks.
+
 ### One lifecycle owner, typed semantic owners
 
 Presentation owns one shell-level preload session. It owns only:

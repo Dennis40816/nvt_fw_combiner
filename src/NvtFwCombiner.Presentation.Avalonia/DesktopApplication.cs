@@ -45,8 +45,8 @@ public static class DesktopApplication
         ArgumentNullException.ThrowIfNull(startupTrace);
 
         startupTrace.Mark("shell-preferences.started");
-        Task<ShellPreferenceSnapshot> shellPreferences = shellPreferenceLoader() ??
-            throw new InvalidOperationException("The shell-preference loader returned null.");
+        Task<ShellPreferenceSnapshot> shellPreferences = Task.Run(
+            () => shellPreferenceLoader() ?? throw new InvalidOperationException("The shell-preference loader returned null."));
         startupTrace.Mark("host-services.started");
         PresentationHostServices hostServices = hostServicesFactory() ??
             throw new InvalidOperationException("The host-services factory returned null.");
