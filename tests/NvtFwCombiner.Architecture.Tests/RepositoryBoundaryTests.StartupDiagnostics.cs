@@ -104,6 +104,8 @@ public sealed partial class RepositoryBoundaryTests
             "src/NvtFwCombiner.Infrastructure/ExternalTools/ExternalProcessorEnvironmentLoader.cs");
         string inspection = ReadText(
             "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/FirmwareInspectionSession.cs");
+        string inspectionLifecycle = ReadText(
+            "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/WorkflowSessionPresentationViewModel.FirmwareInspection.cs");
         string firmwareSlot = ReadText(
             "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/FirmwareSlotViewModel.cs");
         string runProgress = ReadText(
@@ -182,11 +184,14 @@ public sealed partial class RepositoryBoundaryTests
         Assert.Contains("net **-114**", baseline, StringComparison.Ordinal);
         Assert.Contains("98,189 to 98,075", baseline, StringComparison.Ordinal);
         Assert.Contains("68,018 to 68,016", baseline, StringComparison.Ordinal);
-        Assert.Contains("full_production_ratchet=98_075", codeSizePolicy, StringComparison.Ordinal);
-        Assert.Contains("runtime_production_ratchet=68_016", codeSizePolicy, StringComparison.Ordinal);
-        Assert.Contains("application_ratchet=29_584", codeSizePolicy, StringComparison.Ordinal);
+        Assert.Contains("950 gross removed and 949", baseline, StringComparison.Ordinal);
+        Assert.Contains("98,075 to 98,074", baseline, StringComparison.Ordinal);
+        Assert.Contains("68,016 to 67,997", baseline, StringComparison.Ordinal);
+        Assert.Contains("full_production_ratchet=98_074", codeSizePolicy, StringComparison.Ordinal);
+        Assert.Contains("runtime_production_ratchet=67_997", codeSizePolicy, StringComparison.Ordinal);
+        Assert.Contains("application_ratchet=29_571", codeSizePolicy, StringComparison.Ordinal);
         Assert.Contains("bootstrap_cli_ratchet=3_074", codeSizePolicy, StringComparison.Ordinal);
-        Assert.Contains("infrastructure_contracts_worker_ratchet=14_739", codeSizePolicy, StringComparison.Ordinal);
+        Assert.Contains("infrastructure_contracts_worker_ratchet=14_733", codeSizePolicy, StringComparison.Ordinal);
         Assert.Contains("777.090 ms", baseline, StringComparison.Ordinal);
         Assert.Contains("806.930 ms", baseline, StringComparison.Ordinal);
         Assert.Contains("782.368 ms", baseline, StringComparison.Ordinal);
@@ -273,15 +278,24 @@ public sealed partial class RepositoryBoundaryTests
         Assert.DoesNotContain("Process.Start", external, StringComparison.Ordinal);
         Assert.DoesNotContain("_fileProjections", inspection, StringComparison.Ordinal);
         Assert.DoesNotContain("_baseCache", inspection, StringComparison.Ordinal);
-        Assert.Contains("ReadBatchAsync", inspection, StringComparison.Ordinal);
+        Assert.Contains("InspectFirmwareBatchAsync", inspectionLifecycle, StringComparison.Ordinal);
         Assert.Contains("CurrentInspectionProjection", firmwareSlot, StringComparison.Ordinal);
         Assert.Contains("Channel.CreateBounded", runProgress, StringComparison.Ordinal);
-        Assert.Contains("_generalMergePreparationQueue", generalMerge, StringComparison.Ordinal);
-        Assert.Contains("GeneralMergeReadinessRefreshTask", generalMerge, StringComparison.Ordinal);
-        Assert.Contains("CancellationToken.None", generalMerge, StringComparison.Ordinal);
-        Assert.Contains("_generalReplacePreparationQueue", generalReplace, StringComparison.Ordinal);
-        Assert.Contains("GeneralReplaceReadinessRefreshTask", generalReplace, StringComparison.Ordinal);
-        Assert.Contains("CancellationToken.None", generalReplace, StringComparison.Ordinal);
+        Assert.DoesNotContain("_generalMergePreparationQueue", generalMerge, StringComparison.Ordinal);
+        Assert.DoesNotContain("GeneralMergeReadinessRefreshTask", generalMerge, StringComparison.Ordinal);
+        Assert.Contains("InspectionLifecycles[GeneralMergeMode].StartAsync", generalMerge, StringComparison.Ordinal);
+        Assert.Contains("PrepareMergeSessionAsync(", generalMerge, StringComparison.Ordinal);
+        Assert.Contains("cancellationToken,", generalMerge, StringComparison.Ordinal);
+        Assert.Contains("progress);", generalMerge, StringComparison.Ordinal);
+        Assert.DoesNotContain("_generalReplacePreparationQueue", generalReplace, StringComparison.Ordinal);
+        Assert.DoesNotContain("GeneralReplaceReadinessRefreshTask", generalReplace, StringComparison.Ordinal);
+        Assert.Contains("InspectionLifecycles[GeneralReplaceMode].StartAsync", generalReplace, StringComparison.Ordinal);
+        Assert.Contains("PrepareReplaceSessionAsync(", generalReplace, StringComparison.Ordinal);
+        Assert.Contains("cancellationToken,", generalReplace, StringComparison.Ordinal);
+        Assert.Contains("progress);", generalReplace, StringComparison.Ordinal);
+        Assert.False(File.Exists(Path.Combine(
+            Root.FullName,
+            "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/SerialTaskQueue.cs")));
         Assert.Contains("_ctrlRamFirmwareVersionMetadataGeneration", ctrlRamRunMetadata, StringComparison.Ordinal);
         Assert.Contains("TryOpenCtrlRamFirmwareVersionModalAsync", ctrlRamRunMetadata, StringComparison.Ordinal);
         Assert.Contains("TryCreateCtrlRamFirmwareVersionEditAsync", ctrlRamRunMetadata, StringComparison.Ordinal);

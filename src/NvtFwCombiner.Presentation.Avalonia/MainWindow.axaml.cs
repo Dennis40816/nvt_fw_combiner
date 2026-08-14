@@ -21,7 +21,7 @@ public sealed partial class MainWindow : Window, IDisposable
     private readonly LatestSnapshotPersistenceCoordinator<ShellPreferenceSnapshot>
         _shellPreferencePersistence;
     private readonly CancellationTokenSource _startupLoadCancellation = new();
-    private readonly ForegroundLoadingState _preloadLoading = new();
+    private readonly ForegroundLoadingState _preloadLoading;
     private readonly ShellPreloadSession _preloadSession;
     private readonly PresentationHostServices _hostServices;
     private readonly UiLaunchOptions _launchOptions;
@@ -79,6 +79,7 @@ public sealed partial class MainWindow : Window, IDisposable
             stage => PresentPreloadStage(viewModel, stage),
             viewModel.Text,
             HasStartupReportStage(_launchOptions));
+        _preloadLoading = new(RetryStartupPreloadAsync, CancelStartupAsync);
         _preloadSession.SetReducedMotion(viewModel.IsReducedMotionEnabled);
         _startupTrace.Mark("shell-view-model.created");
         _preloadLoading.SetReducedMotion(viewModel.IsReducedMotionEnabled);
@@ -86,8 +87,8 @@ public sealed partial class MainWindow : Window, IDisposable
         _preloadLoading.Begin(
             viewModel.Text.CatalogLoadingTitle,
             $"{_preloadSession.CatalogStage.PositionLabel} · {viewModel.Text.CatalogLoadingDetail}",
-            progress: 0);
-        _preloadLoading.SetCancellationAction(viewModel.Text.CancelStartupLabel);
+            progress: 0,
+            viewModel.Text.CancelStartupLabel);
         CatalogLoadingSurfaceHost.DataContext = _preloadLoading;
         OptionalPreloadStatusHost.DataContext = _preloadSession;
         _startupTrace.Mark("shell-preferences.applied");
@@ -373,20 +374,18 @@ public sealed partial class MainWindow : Window, IDisposable
         }
     }
 
-    private async void CatalogLoadingSurface_OnRetryRequested(object? sender, EventArgs e)
+    private Task RetryStartupPreloadAsync()
     {
-        if (_isDisposed || DataContext is not MainWindowViewModel viewModel)
-        {
-            return;
-        }
-
-        await RunStartupPreloadAsync(viewModel, _startupLoadCancellation.Token);
+        return !_isDisposed && DataContext is MainWindowViewModel viewModel
+            ? RunStartupPreloadAsync(viewModel, _startupLoadCancellation.Token)
+            : Task.CompletedTask;
     }
 
-    private void CatalogLoadingSurface_OnCancelRequested(object? sender, EventArgs e)
+    private Task CancelStartupAsync()
     {
-        _ = _preloadSession.CancelAndDrainAsync();
+        Task drain = _preloadSession.CancelAndDrainAsync();
         Close();
+        return drain;
     }
 
     private void PresentPreloadStage(
@@ -445,8 +444,8 @@ public sealed partial class MainWindow : Window, IDisposable
             loading.Fail(
                 text.CatalogLoadingFailedTitle,
                 prefix + text.CatalogLoadingFailedDetail,
-                text.RetryLabel);
-            loading.SetCancellationAction(text.CancelStartupLabel);
+                text.RetryLabel,
+                text.CancelStartupLabel);
             return;
         }
         if (attempt.State is ShellPreloadStageState.Succeeded or ShellPreloadStageState.Cancelled)
@@ -462,8 +461,7 @@ public sealed partial class MainWindow : Window, IDisposable
         double progress = attempt.Progress ?? 0;
         if (!loading.IsRunning)
         {
-            loading.Begin(text.CatalogLoadingTitle, detail, progress);
-            loading.SetCancellationAction(text.CancelStartupLabel);
+            loading.Begin(text.CatalogLoadingTitle, detail, progress, text.CancelStartupLabel);
             return;
         }
 

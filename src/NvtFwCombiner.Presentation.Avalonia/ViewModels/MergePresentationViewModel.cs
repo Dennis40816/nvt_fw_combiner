@@ -18,6 +18,7 @@ internal sealed partial class MergePresentationViewModel : ObservableObject
             throw new ArgumentNullException(nameof(compositionServices));
         _textProvider = textProvider ?? throw new ArgumentNullException(nameof(textProvider));
         _stateBindings = stateBindings ?? throw new ArgumentNullException(nameof(stateBindings));
+        InspectionLifecycles = new(NotifyCommandStateChanged, AbCodeMergeMode, GeneralMergeMode);
         AcceptAbAFlashCodeDeliveryPromptCommand = new RelayCommand(AcceptAbAFlashCodeDeliveryPrompt);
         DeclineAbAFlashCodeDeliveryPromptCommand = new RelayCommand(DeclineAbAFlashCodeDeliveryPrompt);
         AddGeneralMergeMappingCommand = new RelayCommand(AddGeneralMergeMapping);
@@ -35,6 +36,7 @@ internal sealed partial class MergePresentationViewModel : ObservableObject
     internal void ApplyLanguageChanged()
     {
         ApplyFirmwareSlotText();
+        InspectionLifecycles.ForEach(lifecycle => lifecycle.ApplyText(Text));
         OnPropertyChanged(nameof(Text));
         NotifyContextChanged();
     }

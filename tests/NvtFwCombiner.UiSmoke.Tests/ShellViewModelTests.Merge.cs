@@ -540,7 +540,7 @@ public sealed partial class MergeWorkflowTests
         Assert.False(viewModel.Merge.PreviewMergeCommand.CanExecute(null));
         Assert.False(viewModel.Merge.CanBuildMerge);
         viewModel.Merge.GeneralMergeOutputFillByte = "0xA5";
-        await viewModel.Merge.GeneralMergeReadinessRefreshTask;
+        await viewModel.Merge.Inspection.ActiveTask;
         Assert.Contains(
             viewModel.Merge.MergeMemoryRows,
             row => row.Detail.Contains("0xA5", StringComparison.Ordinal));
@@ -548,7 +548,7 @@ public sealed partial class MergeWorkflowTests
         mapping.TargetStartAddress = "0x5";
         Assert.Equal(acceptedStamp, mapping.AcceptedFileStamp);
         mapping.TargetStartAddress = "0x4";
-        await viewModel.Merge.GeneralMergeReadinessRefreshTask;
+        await viewModel.Merge.Inspection.ActiveTask;
         Assert.True(viewModel.Merge.PreviewMergeCommand.CanExecute(null));
         Assert.True(viewModel.Merge.CanBuildMerge);
         Assert.True(viewModel.Merge.IsGeneralMergeModeSelected);
@@ -616,7 +616,7 @@ public sealed partial class MergeWorkflowTests
         Assert.True(viewModel.Merge.CanBuildMerge);
 
         viewModel.WorkflowSession.SelectedIc = "NT51927";
-        await viewModel.WorkflowSession.FirmwareInspectionRefreshTask;
+        await CurrentInspection(viewModel).ActiveTask;
 
         Assert.True(viewModel.Merge.PreviewMergeCommand.CanExecute(null));
         Assert.True(viewModel.Merge.CanBuildMerge);

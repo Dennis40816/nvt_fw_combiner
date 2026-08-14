@@ -93,7 +93,7 @@ public sealed partial class FirmwareInspectionSlotTests
         Assert.Equal(FirmwareInputInspectionSeverity.Valid, slot.InputInspectionSeverity);
 
         viewModel.WorkflowSession.SelectedNumber = "cascade";
-        await viewModel.WorkflowSession.FirmwareInspectionRefreshTask;
+        await CurrentInspection(viewModel).ActiveTask;
 
         Assert.Equal(path, slot.FilePath);
         Assert.Equal(FirmwareInputInspectionSeverity.Blocking, slot.InputInspectionSeverity);

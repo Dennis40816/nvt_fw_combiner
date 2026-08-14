@@ -149,7 +149,8 @@ public interface IGeneralAuthoring
         AuthoringSessionState session,
         string icId,
         GeneralMergeDraftState draft,
-        CancellationToken cancellationToken);
+        CancellationToken cancellationToken,
+        IProgress<AuthoringInspectionProgress>? progress = null);
 
     /// <summary>Prepares one exact General Replace accepted session.</summary>
     ValueTask<GeneralAuthoringSessionPreparation> PrepareReplaceSessionAsync(
@@ -158,7 +159,8 @@ public interface IGeneralAuthoring
         string number,
         string referencePath,
         GeneralMappingDraftState draft,
-        CancellationToken cancellationToken);
+        CancellationToken cancellationToken,
+        IProgress<AuthoringInspectionProgress>? progress = null);
 }
 
 /// <summary>Focused trusted Saved Rule v2 authoring operations.</summary>
@@ -260,6 +262,9 @@ public sealed record CtrlRamAuthoringSessionPreparation(
     public bool Succeeded => AcceptedSession is not null && Issues.Count == 0;
 }
 
+/// <summary>Truthful completed and total work reported by selected-file inspection.</summary>
+public readonly record struct AuthoringInspectionProgress(int CompletedWork, int TotalWork);
+
 /// <summary>Immutable firmware inspection operations.</summary>
 public interface IFirmwareInspection
 {
@@ -273,7 +278,8 @@ public interface IFirmwareInspection
     ValueTask<FirmwareInspectionBatchResult> InspectFirmwareBatchAsync(
         string icId,
         IReadOnlyList<FirmwareInspectionSnapshotInput> inputs,
-        CancellationToken cancellationToken);
+        CancellationToken cancellationToken,
+        IProgress<AuthoringInspectionProgress>? progress = null);
 
     /// <summary>Checks whether a fresh complete read still has an accepted content identity.</summary>
     ValueTask<bool> IsFirmwareContentCurrentAsync(

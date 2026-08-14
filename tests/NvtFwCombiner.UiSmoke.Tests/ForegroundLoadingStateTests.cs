@@ -14,12 +14,13 @@ public sealed class ForegroundLoadingStateTests
     {
         var state = new ForegroundLoadingState();
 
-        state.Begin("Loading capabilities", "Preparing the canonical catalog.");
-        state.SetCancellationAction("Cancel startup");
+        state.Begin(
+            "Loading capabilities",
+            "Preparing the canonical catalog.",
+            cancelLabel: "Cancel startup");
 
         Assert.True(state.IsVisible);
         Assert.True(state.IsRunning);
-        Assert.True(state.IsIndeterminate);
         Assert.True(state.ShouldAnimate);
         Assert.True(state.CanCancel);
         Assert.Equal("Cancel startup", state.CancelLabel);
@@ -30,7 +31,6 @@ public sealed class ForegroundLoadingStateTests
         state.SetReducedMotion(true);
 
         Assert.True(state.IsVisible);
-        Assert.True(state.IsIndeterminate);
         Assert.False(state.ShouldAnimate);
     }
 
@@ -43,7 +43,6 @@ public sealed class ForegroundLoadingStateTests
 
         state.ReportProgress(0.42, "Writing output.");
 
-        Assert.True(state.IsIndeterminate);
         Assert.True(state.ShouldAnimate);
         Assert.True(state.HasDeterminateProgress);
         Assert.Equal(0.42, state.Progress);
@@ -51,17 +50,17 @@ public sealed class ForegroundLoadingStateTests
         Assert.Equal("Writing output.", state.Detail);
         Assert.Equal("Exporting 42% — Writing output.", state.AccessibleStatus);
 
-        state.ReportProgress(0.43);
+        state.ReportProgress(0.43, state.Detail);
 
         Assert.Equal("43%", state.ProgressPercentLabel);
 
-        state.ReportProgress(0.51);
+        state.ReportProgress(0.51, state.Detail);
 
         Assert.Equal("51%", state.ProgressPercentLabel);
-        _ = Assert.Throws<ArgumentOutOfRangeException>(() => state.ReportProgress(-0.01));
-        _ = Assert.Throws<ArgumentOutOfRangeException>(() => state.ReportProgress(1.01));
+        _ = Assert.Throws<ArgumentOutOfRangeException>(() => state.ReportProgress(-0.01, state.Detail));
+        _ = Assert.Throws<ArgumentOutOfRangeException>(() => state.ReportProgress(1.01, state.Detail));
 
-        state.ReportProgress(1);
+        state.ReportProgress(1, state.Detail);
 
         Assert.Equal("100%", state.ProgressPercentLabel);
     }
@@ -116,12 +115,14 @@ public sealed class ForegroundLoadingStateTests
         var state = new ForegroundLoadingState();
         state.Begin("Loading capabilities", "Preparing the canonical catalog.");
 
-        state.Fail("Capabilities unavailable", "The catalog could not be loaded.", "Retry");
-        state.SetCancellationAction("Cancel startup");
+        state.Fail(
+            "Capabilities unavailable",
+            "The catalog could not be loaded.",
+            "Retry",
+            "Cancel startup");
 
         Assert.True(state.IsVisible);
         Assert.False(state.IsRunning);
-        Assert.True(state.HasFailed);
         Assert.True(state.CanRetry);
         Assert.Equal("Retry", state.RetryLabel);
         Assert.True(state.CanCancel);
@@ -131,7 +132,6 @@ public sealed class ForegroundLoadingStateTests
 
         Assert.False(state.IsVisible);
         Assert.False(state.IsRunning);
-        Assert.False(state.HasFailed);
         Assert.False(state.CanRetry);
         Assert.False(state.CanCancel);
     }
@@ -146,27 +146,31 @@ public sealed class ForegroundLoadingStateTests
         state.PropertyChanged += (_, args) =>
         {
             properties.Add(args.PropertyName);
-            if (args.PropertyName == nameof(ForegroundLoadingState.AccessibleStatus))
+            if (string.IsNullOrEmpty(args.PropertyName) ||
+                args.PropertyName == nameof(ForegroundLoadingState.AccessibleStatus))
             {
                 statuses.Add(state.AccessibleStatus);
             }
         };
 
         state.Begin("Preparing capabilities", "Loading the canonical catalog.", 0.1);
+        state.ReportProgress(0.11, "Preparing the canonical capability routes.", announce: false);
         state.ReportProgress(0.2, "Preparing the canonical capability routes.");
         state.SetReducedMotion(true);
+        state.Complete();
+        state.Begin("Preparing capabilities", "Preparing the canonical capability routes.", 0.2);
         state.Fail("Capabilities unavailable", "Retry to restore Merge and Replace.", "Retry");
 
         Assert.Equal(
             [
                 "Preparing capabilities 10% — Loading the canonical catalog.",
                 "Preparing capabilities 20% — Preparing the canonical capability routes.",
+                "Preparing capabilities 20% — Preparing the canonical capability routes.",
                 "Capabilities unavailable — Retry to restore Merge and Replace.",
             ],
             statuses);
-        Assert.Contains(nameof(ForegroundLoadingState.Progress), properties);
-        Assert.Contains(nameof(ForegroundLoadingState.ProgressPercentLabel), properties);
-        Assert.Contains(nameof(ForegroundLoadingState.ShouldAnimate), properties);
+        Assert.DoesNotContain(properties, string.IsNullOrEmpty);
+        Assert.Contains(nameof(ForegroundLoadingState.IsReducedMotionEnabled), properties);
 
         int accessibleBeforeCompletion = statuses.Count;
         state.Complete();
@@ -188,11 +192,9 @@ public sealed class ForegroundLoadingStateTests
             }
         };
 
-        state.Begin("正在準備功能", "正在載入 canonical catalog。", 0.1);
-        state.SetCancellationAction("取消啟動");
+        state.Begin("正在準備功能", "正在載入 canonical catalog。", 0.1, "取消啟動");
         state.ReportProgress(0.8, "正在準備 canonical capability routes。");
-        state.Fail("功能目前無法使用", "請重試以恢復 Merge 與 Replace。", "重試");
-        state.SetCancellationAction("取消啟動");
+        state.Fail("功能目前無法使用", "請重試以恢復 Merge 與 Replace。", "重試", "取消啟動");
 
         Assert.Equal(
             [

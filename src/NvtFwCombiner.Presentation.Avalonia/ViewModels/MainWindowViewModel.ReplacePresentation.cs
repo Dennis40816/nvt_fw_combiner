@@ -19,8 +19,4 @@ internal sealed partial class MainWindowViewModel
         return Replace.ReplaceBaseSlot.CurrentInspectionProjection;
     }
 
-    private Task RefreshSelectedReplaceFirmwareInspectionsAsync()
-    {
-        return WorkflowSession.RefreshSelectedReplaceFirmwareInspectionsAsync();
-    }
 }

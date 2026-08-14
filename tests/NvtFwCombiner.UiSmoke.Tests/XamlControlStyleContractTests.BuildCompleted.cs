@@ -46,6 +46,8 @@ public sealed partial class XamlControlStyleContractTests
     public void CompositionBuildUsesFixedBottomActionRail()
     {
         string shell = ReadPresentationFile("MainWindow.axaml");
+        string shared = ReadPresentationFile("Resources/MainWindowSharedTemplates.axaml");
+        string loading = ReadPresentationFile("Resources/MainWindowSharedTemplates.axaml");
         string buttonStyles = ReadPresentationFile("Styles/MainWindowButtonStyles.axaml");
         string shellStyles = ReadPresentationFile("Styles/MainWindowStyles.axaml");
         int latestOutputAction = shell.IndexOf("Command=\"{Binding RevealFileCommand}\"", StringComparison.Ordinal);
@@ -66,6 +68,17 @@ public sealed partial class XamlControlStyleContractTests
         Assert.True(mergeBuildAction > latestOutputAction);
         Assert.True(replaceBuildAction > mergeBuildAction);
         Assert.Contains("Orientation=\"Vertical\"", shell, StringComparison.Ordinal);
+        Assert.Contains("ForegroundLoadingStatusTemplate", shell, StringComparison.Ordinal);
+        Assert.Contains("Content=\"{Binding Merge.Inspection.Loading}\"", shell, StringComparison.Ordinal);
+        Assert.Contains("Content=\"{Binding Replace.Inspection.Loading}\"", shell, StringComparison.Ordinal);
+        Assert.Contains("IsVisible=\"{Binding Merge.Inspection.Loading.IsVisible}\"", shell, StringComparison.Ordinal);
+        Assert.Contains("IsVisible=\"{Binding Replace.Inspection.Loading.IsVisible}\"", shell, StringComparison.Ordinal);
+        Assert.Contains("x:Key=\"ForegroundLoadingStatusTemplate\"", shared, StringComparison.Ordinal);
+        Assert.Contains("Text=\"{Binding ProgressPercentLabel}\"", loading, StringComparison.Ordinal);
+        Assert.Contains("IsIndeterminate=\"{Binding ShouldAnimate}\"", loading, StringComparison.Ordinal);
+        Assert.Contains("Command=\"{Binding CancelCommand}\"", loading, StringComparison.Ordinal);
+        Assert.Contains("Command=\"{Binding RetryCommand}\"", loading, StringComparison.Ordinal);
+        Assert.Contains("AutomationProperties.LiveSetting=\"Polite\"", loading, StringComparison.Ordinal);
         Assert.Contains("Selector=\"Button.railAction\"", buttonStyles, StringComparison.Ordinal);
         Assert.DoesNotContain("Selector=\"Button.floatingAction.build\"", buttonStyles, StringComparison.Ordinal);
         Assert.DoesNotContain("Selector=\"Border.compositionActionRail\"", shellStyles, StringComparison.Ordinal);

@@ -23,19 +23,25 @@ internal sealed partial class BuiltInFirmwareInspection
     public async ValueTask<FirmwareInspectionBatchResult> InspectFirmwareBatchAsync(
         string icId,
         IReadOnlyList<FirmwareInspectionSnapshotInput> inputs,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken,
+        IProgress<AuthoringInspectionProgress>? progress = null)
     {
         ValidateInspectionInputs(icId, inputs);
         var files = new Dictionary<string, FirmwareContentRead>(StringComparer.Ordinal);
-        foreach (string path in inputs
-                     .SelectMany(static input => new[] { input.Path, input.TpPath })
-                     .Where(static path => !string.IsNullOrWhiteSpace(path))
-                     .Select(static path => path!)
-                     .Distinct(StringComparer.Ordinal))
+        string[] paths =
+        [
+            .. inputs.SelectMany(static input => new[] { input.Path, input.TpPath })
+                .Where(static path => !string.IsNullOrWhiteSpace(path))
+                .Select(static path => path!)
+                .Distinct(StringComparer.Ordinal),
+        ];
+        progress?.Report(new(0, paths.Length));
+        foreach (string path in paths)
         {
             files.Add(
                 path,
                 await ReadFirmwareFileAsync(path, cancellationToken).ConfigureAwait(false));
+            progress?.Report(new(files.Count, paths.Length));
         }
 
         IReadOnlyList<FirmwareInspectionSnapshotResult> inspections =

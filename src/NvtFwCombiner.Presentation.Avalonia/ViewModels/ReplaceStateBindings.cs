@@ -7,7 +7,6 @@ internal sealed record ReplaceStateBindings(
     Func<string> SelectedIc,
     Func<string> SelectedNumber,
     Func<bool> IsRunInProgress,
-    Func<bool> IsFirmwareInspectionLoading,
     Func<bool> IsGlobalBuildBlocked,
     Func<bool> IsWorkflowLoaded,
     Func<FirmwareSlotViewModel, long?> GetInspectedFileLength,

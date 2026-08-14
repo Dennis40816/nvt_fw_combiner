@@ -7,75 +7,6 @@ using NvtFwCombiner.Domain.Composition;
 
 namespace NvtFwCombiner.Application.Authoring;
 
-internal interface IGeneralAuthoringPlanner
-{
-    bool CanPlanGeneralReplace(string icId);
-
-    GeneralAuthoringAdmissionResult GetGeneralMergeAdmission(
-        string icId,
-        GeneralMergeDraftState draft);
-
-    GeneralAuthoringAdmissionResult? GetGeneralReplaceAdmission(
-        string icId,
-        long referenceCapacity,
-        GeneralMappingDraftState mappingDraft);
-
-    GeneralMergeOutputInitializer GetGeneralMergeDefaultOutputInitializer(string icId);
-
-    GeneralMergeAuthoringPlanResult PlanGeneralMerge(
-        string icId,
-        GeneralMergeDraftState draft,
-        IReadOnlyDictionary<string, long> observedFileLengths,
-        ResolvedCapability? retainedCapability);
-
-    GeneralReplaceAuthoringPlanResult PlanGeneralReplace(
-        string icId,
-        string number,
-        GeneralMappingDraftState draft,
-        ReadOnlyMemory<byte> referenceBytes,
-        IReadOnlyDictionary<string, long> observedFileLengths,
-        ResolvedCapability? retainedCapability);
-}
-
-internal interface IRuntimeDependencyReadinessLeaseProvider
-{
-    RuntimeDependencyReadinessLease AcquireCurrent();
-}
-
-internal sealed record RuntimeDependencyReadinessLease(
-    IRuntimeDependencyReadinessProvider ReadinessProvider,
-    long Generation,
-    Func<long, bool> GenerationIsCurrent);
-
-internal sealed record GeneralReplaceRuntimeAuthority(
-    SavedRuleParentIdentity ParentBinding,
-    IReadOnlyList<string> ProcessorStageIds,
-    IReadOnlyList<ExternalProcessorDependencyReference> RuntimeDependencies);
-
-internal sealed record GeneralMergeAuthoringPlan(
-    GeneralMappingDraftState MappingDraft,
-    ResolvedCapability Capability,
-    IReadOnlyList<GeneralInputResource> InputResources);
-
-internal sealed record GeneralMergeAuthoringPlanResult(
-    GeneralMergeAuthoringPlan? Plan,
-    GeneralAuthoringAdmissionResult? Admission,
-    IReadOnlyList<CompositionIssue> Issues);
-
-internal sealed record GeneralReplaceAuthoringPlan(
-    GeneralMappingDraftState MappingDraft,
-    ResolvedCapability Capability,
-    GeneralAuthoringAdmissionResult Admission,
-    GeneralReplaceRuntimeAuthority RuntimeAuthority,
-    bool RequiresPostbuild,
-    CompositionIssue? PlanningIssue,
-    long ReferenceCapacity);
-
-internal sealed record GeneralReplaceAuthoringPlanResult(
-    GeneralReplaceAuthoringPlan? Plan,
-    GeneralAuthoringAdmissionResult? Admission,
-    IReadOnlyList<CompositionIssue> Issues);
-
 internal sealed partial class GeneralAuthoringExperience : IGeneralAuthoring
 {
     private const string GeneralReplaceReferenceAddressSpaceId = "reference-image";
@@ -132,14 +63,17 @@ internal sealed partial class GeneralAuthoringExperience : IGeneralAuthoring
             AuthoringSessionState session,
             string icId,
             GeneralMergeDraftState draft,
-            CancellationToken cancellationToken)
+            CancellationToken cancellationToken,
+            IProgress<AuthoringInspectionProgress>? progress = null)
     {
         ArgumentNullException.ThrowIfNull(draft);
         ArgumentNullException.ThrowIfNull(session);
         GeneralMappingDraftRow[] fileRows = FileRows(draft.Mappings);
+        IProgress<AuthoringInspectionProgress>? itemProgress = fileRows.Length == 0 ? null : progress;
+        itemProgress?.Report(new(0, fileRows.Length));
         Dictionary<string, GeneralSelectedFileInspection> inspections = [];
         GeneralAuthoringSessionPreparation? captureFailure =
-            await CaptureSelectedFilesAsync(fileRows, inspections, cancellationToken)
+            await CaptureSelectedFilesAsync(fileRows, inspections, itemProgress, 0, fileRows.Length, cancellationToken)
                 .ConfigureAwait(false);
         if (captureFailure is not null)
         {
@@ -150,11 +84,16 @@ internal sealed partial class GeneralAuthoringExperience : IGeneralAuthoring
             static row => row.MappingId,
             row => inspections[row.MappingId].FileStamp.AcceptedLength,
             StringComparer.Ordinal);
-        ResolvedCapability? retainedCapability = TryRetainGeneralMergeCompilation(
+        ResolvedCapability? retained = TryRetainGeneralMappingCompilation(
             session,
-            draft,
+            draft.Mappings,
             fileRows,
             inspections);
+        ResolvedCapability? retainedCapability = retained is not null &&
+            session.CurrentSnapshot?.DraftState is GeneralMergeDraftState current &&
+            current.OutputInitializer == draft.OutputInitializer
+                ? retained
+                : null;
         GeneralMergeAuthoringPlanResult candidate = _planner.PlanGeneralMerge(
             icId,
             draft,
@@ -173,8 +112,10 @@ internal sealed partial class GeneralAuthoringExperience : IGeneralAuthoring
             return Failed("The selected General Merge route is unavailable.");
         }
 
-        GeneralAuthoringSessionPreparation? transitionFailure =
-            AcceptDraftAndSelectedFiles(session, draft, fileRows, inspections, "Merge");
+        AuthoringSessionTransitionResult drafted = session.SetDraft(draft);
+        GeneralAuthoringSessionPreparation? transitionFailure = drafted.Succeeded
+            ? AcceptSelectedFiles(session, fileRows, inspections, "Merge")
+            : Failed(drafted.Issue!);
         if (transitionFailure is not null)
         {
             return transitionFailure;
@@ -205,7 +146,8 @@ internal sealed partial class GeneralAuthoringExperience : IGeneralAuthoring
             string number,
             string referencePath,
             GeneralMappingDraftState draft,
-            CancellationToken cancellationToken)
+            CancellationToken cancellationToken,
+            IProgress<AuthoringInspectionProgress>? progress = null)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(referencePath);
         ArgumentNullException.ThrowIfNull(draft);
@@ -218,6 +160,9 @@ internal sealed partial class GeneralAuthoringExperience : IGeneralAuthoring
                 CompositionPlanningIssueCodes.ReplaceWorkflowNotSupported);
         }
 
+        GeneralMappingDraftRow[] fileRows = FileRows(draft);
+        int totalWork = fileRows.Length + 1;
+        progress?.Report(new(0, totalWork));
         SelectedFileContentInspection reference;
         try
         {
@@ -246,11 +191,11 @@ internal sealed partial class GeneralAuthoringExperience : IGeneralAuthoring
         {
             return Failed("Base flash BIN must not be empty.", CompositionSlotIds.ReplaceBase);
         }
+        progress?.Report(new(1, totalWork));
 
-        GeneralMappingDraftRow[] fileRows = FileRows(draft);
         Dictionary<string, GeneralSelectedFileInspection> inspections = [];
         GeneralAuthoringSessionPreparation? captureFailure =
-            await CaptureSelectedFilesAsync(fileRows, inspections, cancellationToken)
+            await CaptureSelectedFilesAsync(fileRows, inspections, progress, 1, totalWork, cancellationToken)
                 .ConfigureAwait(false);
         if (captureFailure is not null)
         {
@@ -323,19 +268,30 @@ internal sealed partial class GeneralAuthoringExperience : IGeneralAuthoring
             return inspectionFailure;
         }
 
-        (CapabilityActionReadinessSnapshot Readiness, string? RequiredStageId)? publication =
-            await PublishGeneralReplaceReadinessAsync(session, plan, cancellationToken)
+        AuthoringPublicationLease publication = session.CapturePublicationLease(
+            AuthoringDerivedResultKind.Validation,
+            plan.Capability.CompiledComposition.CompilationFingerprint);
+        (CapabilityActionReadinessSnapshot readiness, string? requiredStageId) =
+            await ResolveGeneralReplaceReadinessAsync(
+                    plan,
+                    publication.AuthoringRevision,
+                    cancellationToken)
                 .ConfigureAwait(false);
-        CapabilityActionReadinessSnapshot? readiness = publication?.Readiness;
+        bool readinessPublished = session.TryPublish(
+            publication,
+            new AuthoringDerivedPublication(
+                AuthoringDerivedResultKind.Validation,
+                $"general-replace-readiness:{publication.AuthoringRevision.Value}",
+                plan.Capability.CompiledComposition.CompilationFingerprint)).Succeeded;
         GeneralReplaceDiagnosticPreviewSummary? diagnostic =
-            readiness?.Preview.IsAvailable == true && !readiness.Build.IsAvailable
+            readinessPublished && readiness.Preview.IsAvailable && !readiness.Build.IsAvailable
                 ? GeneralReplaceDiagnosticPreviewProjector.Project(
                     plan.ReferenceCapacity,
                     plan.Admission,
                     readiness,
-                    publication?.RequiredStageId)
+                    requiredStageId)
                 : null;
-        if (readiness is null ||
+        if (!readinessPublished ||
             session.CurrentSnapshot is not { ExactCapability: not null } acceptedSession)
         {
             return Failed(
@@ -362,6 +318,9 @@ internal sealed partial class GeneralAuthoringExperience : IGeneralAuthoring
     private async ValueTask<GeneralAuthoringSessionPreparation?> CaptureSelectedFilesAsync(
         IEnumerable<GeneralMappingDraftRow> rows,
         Dictionary<string, GeneralSelectedFileInspection> inspections,
+        IProgress<AuthoringInspectionProgress>? progress,
+        int completedWork,
+        int totalWork,
         CancellationToken cancellationToken)
     {
         foreach (GeneralMappingDraftRow row in rows)
@@ -373,6 +332,8 @@ internal sealed partial class GeneralAuthoringExperience : IGeneralAuthoring
                         new AuthoringRevision(1),
                         cancellationToken)
                     .ConfigureAwait(false);
+            completedWork++;
+            progress?.Report(new(completedWork, totalWork));
             if (!inspected.Succeeded)
             {
                 return Failed(inspected.Issue!);
@@ -382,31 +343,6 @@ internal sealed partial class GeneralAuthoringExperience : IGeneralAuthoring
         }
 
         return null;
-    }
-
-    private async ValueTask<(
-        CapabilityActionReadinessSnapshot Readiness,
-        string? RequiredStageId)?> PublishGeneralReplaceReadinessAsync(
-            AuthoringSessionState session,
-            GeneralReplaceAuthoringPlan plan,
-            CancellationToken cancellationToken)
-    {
-        AuthoringPublicationLease publication = session.CapturePublicationLease(
-            AuthoringDerivedResultKind.Validation,
-            plan.Capability.CompiledComposition.CompilationFingerprint);
-        (CapabilityActionReadinessSnapshot readiness, string? requiredStageId) =
-            await ResolveGeneralReplaceReadinessAsync(
-                    plan,
-                    publication.AuthoringRevision,
-                    cancellationToken)
-                .ConfigureAwait(false);
-        AuthoringPublicationResult published = session.TryPublish(
-            publication,
-            new AuthoringDerivedPublication(
-                AuthoringDerivedResultKind.Validation,
-                $"general-replace-readiness:{publication.AuthoringRevision.Value}",
-                plan.Capability.CompiledComposition.CompilationFingerprint));
-        return published.Succeeded ? (readiness, requiredStageId) : null;
     }
 
     private async ValueTask<(
@@ -537,23 +473,10 @@ internal sealed partial class GeneralAuthoringExperience : IGeneralAuthoring
                     : null;
     }
 
-    private static GeneralAuthoringSessionPreparation? AcceptDraftAndSelectedFiles(
-        AuthoringSessionState session,
-        GeneralMergeDraftState draft,
-        IReadOnlyList<GeneralMappingDraftRow> rows,
-        IReadOnlyDictionary<string, GeneralSelectedFileInspection> inspections,
-        string workflowLabel)
-    {
-        AuthoringSessionTransitionResult drafted = session.SetDraft(draft);
-        return drafted.Succeeded
-            ? AcceptSelectedFiles(session, rows, inspections, workflowLabel)
-            : Failed(drafted.Issue!);
-    }
-
     private static GeneralAuthoringSessionPreparation? AcceptSelectedFiles(
         AuthoringSessionState session,
         IReadOnlyList<GeneralMappingDraftRow> rows,
-        IReadOnlyDictionary<string, GeneralSelectedFileInspection> inspections,
+        Dictionary<string, GeneralSelectedFileInspection> inspections,
         string workflowLabel)
     {
         foreach (GeneralMappingDraftRow row in rows)
@@ -626,24 +549,6 @@ internal sealed partial class GeneralAuthoringExperience : IGeneralAuthoring
             retained[0] is { } first &&
             retained.All(candidate => ReferenceEquals(candidate, first))
                 ? first
-                : null;
-    }
-
-    private static ResolvedCapability? TryRetainGeneralMergeCompilation(
-        AuthoringSessionState session,
-        GeneralMergeDraftState draft,
-        IReadOnlyList<GeneralMappingDraftRow> fileRows,
-        Dictionary<string, GeneralSelectedFileInspection> inspections)
-    {
-        ResolvedCapability? retained = TryRetainGeneralMappingCompilation(
-            session,
-            draft.Mappings,
-            fileRows,
-            inspections);
-        return retained is not null &&
-            session.CurrentSnapshot?.DraftState is GeneralMergeDraftState current &&
-            current.OutputInitializer == draft.OutputInitializer
-                ? retained
                 : null;
     }
 

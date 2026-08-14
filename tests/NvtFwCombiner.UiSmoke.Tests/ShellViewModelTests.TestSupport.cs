@@ -116,4 +116,18 @@ public abstract partial class ShellViewModelTestBase
             slot.SlotIconPathData.Contains('L');
     }
 
+    private protected static WorkflowInspectionLifecycle CurrentInspection(MainWindowViewModel viewModel)
+    {
+        return viewModel.IsReplaceVisible ? viewModel.Replace.Inspection : viewModel.Merge.Inspection;
+    }
+
+    private protected static void AssertInspectionTerminal(WorkflowInspectionLifecycle lifecycle)
+    {
+        Assert.Equal(WorkflowInspectionAttemptState.Succeeded, lifecycle.State);
+        AuthoringInspectionProgress progress = Assert.IsType<AuthoringInspectionProgress>(
+            lifecycle.Progress,
+            exactMatch: false);
+        Assert.Equal(progress.TotalWork, progress.CompletedWork);
+    }
+
 }

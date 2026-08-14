@@ -156,6 +156,7 @@ public sealed partial class GeneralWorkflowTests
         await viewModel.Replace.PreviewReplaceCommand.ExecuteAsync(null);
         Assert.True(viewModel.RunSession.LastRunResult.Succeeded, viewModel.RunSession.LastRunResult.Detail);
         Assert.Equal("nt51926-general-replace-dp-single-candidate", viewModel.Reports.LoadedReport.ProfileId);
+        AssertInspectionTerminal(viewModel.Replace.Inspection);
 
         await File.WriteAllBytesAsync(
             replacementPath,
@@ -233,7 +234,7 @@ public sealed partial class GeneralWorkflowTests
         Task previewTask = viewModel.Replace.PreviewReplaceCommand.ExecuteAsync(null);
         mapping.TargetStartAddress = "0x3E030";
         await previewTask;
-        await viewModel.Replace.GeneralReplaceReadinessRefreshTask;
+        await viewModel.Replace.Inspection.ActiveTask;
 
         using var report = JsonDocument.Parse(viewModel.Reports.LoadedReportJson);
         JsonElement operation = Assert.Single(report.RootElement.GetProperty("Operations").EnumerateArray());

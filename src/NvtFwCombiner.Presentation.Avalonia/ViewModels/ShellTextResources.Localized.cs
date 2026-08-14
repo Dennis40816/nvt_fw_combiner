@@ -440,6 +440,9 @@ internal sealed partial class ShellTextResources
             FirmwareNumberMismatchCancelLabel = Pick("Cancel", "取消"),
             FirmwareNumberMismatchSwitchLabel = Pick("Switch Number", "切換 Number"),
             ContextUpdatedToastTitle = Pick("Context updated", "條件已更新"),
+            FirmwareInspectionLoadingTitle = Pick("Inspecting selected files", "正在檢查所選檔案"),
+            FirmwareInspectionFailedTitle = Pick("Inspection unavailable", "檢查目前無法完成"),
+            FirmwareInspectionCancelLabel = Pick("Cancel inspection", "取消檢查"),
             FirmwareInspectionLoadingStatus = Pick(
                 "Inspecting the selected BIN… Build will be ready when the latest file snapshot is verified.",
                 "正在檢查所選 BIN… 最新檔案快照確認完成後即可 Build。"),

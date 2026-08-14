@@ -11,9 +11,6 @@ internal sealed partial class MergePresentationViewModel
     private GeneralAuthoringAdmissionResult? _generalMergeAdmission;
     private CapabilityActionReadinessSnapshot? _generalMergeActionReadiness;
     private bool _isApplyingGeneralMergePreparation;
-    private readonly SerialTaskQueue _generalMergePreparationQueue = new();
-
-    internal Task GeneralMergeReadinessRefreshTask { get; private set; } = Task.CompletedTask;
 
     internal void AddGeneralMergeMapping()
     {
@@ -28,9 +25,9 @@ internal sealed partial class MergePresentationViewModel
         RefreshCommandState();
     }
 
-    private IReadOnlyList<AuthoringMappingState> CreateGeneralMergeAuthoringStates()
+    private void RefreshGeneralMergeAuthoringState()
     {
-        return
+        _generalMergeAuthoringStates =
         [
             .. GeneralMergeMappings
                 .Where(mapping => mapping.HasFile)
@@ -42,11 +39,6 @@ internal sealed partial class MergePresentationViewModel
                     mapping.Length,
                     acceptedFileStamp: mapping.AcceptedFileStamp)),
         ];
-    }
-
-    private void RefreshGeneralMergeAuthoringState()
-    {
-        _generalMergeAuthoringStates = CreateGeneralMergeAuthoringStates();
         _generalMergeAdmission = null;
         _generalMergeActionReadiness = null;
         _generalMergeDraft =
@@ -63,55 +55,60 @@ internal sealed partial class MergePresentationViewModel
             _generalMergeAdmission = _compositionServices.GeneralAuthoring.GetMergeAdmission(
                 SelectedIc,
                 _generalMergeDraft);
-            GeneralMergeReadinessRefreshTask = PrepareGeneralMergeSessionAsync(
-                _generalMergeDraft);
+            _ = PrepareGeneralMergeSessionAsync(_generalMergeDraft);
+        }
+        else
+        {
+            InspectionLifecycles[GeneralMergeMode].Invalidate();
         }
     }
 
-    private Task PrepareGeneralMergeSessionAsync(GeneralMergeDraftState draft)
+    private Task<WorkflowInspectionAttemptState> PrepareGeneralMergeSessionAsync(
+        GeneralMergeDraftState draft)
     {
-        return _generalMergePreparationQueue.Enqueue(
-            () => PrepareGeneralMergeSessionCoreAsync(draft));
-    }
-
-    private async Task PrepareGeneralMergeSessionCoreAsync(GeneralMergeDraftState draft)
-    {
-        if (!ReferenceEquals(_generalMergeDraft, draft))
-        {
-            return;
-        }
-
-        GeneralAuthoringSessionPreparation prepared =
-            await _compositionServices.GeneralAuthoring.PrepareMergeSessionAsync(
-                _generalMergeSession,
-                SelectedIc,
-                draft,
-                CancellationToken.None);
-        if (!ReferenceEquals(_generalMergeDraft, draft))
-        {
-            return;
-        }
-
-        _isApplyingGeneralMergePreparation = true;
-        try
-        {
-            _generalMergeAdmission = prepared.Admission ?? _generalMergeAdmission;
-            _generalMergeActionReadiness = prepared.Readiness;
-            if (prepared.AcceptedSession?.DraftState is GeneralMergeDraftState accepted)
+        string icId = SelectedIc;
+        return InspectionLifecycles[GeneralMergeMode].StartAsync(
+            Text,
+            async (progress, isCurrent, cancellationToken) =>
             {
-                _generalMergeDraft = accepted;
-            }
-            foreach (GeneralMergeMappingViewModel mapping in GeneralMergeMappings)
-            {
-                mapping.ApplyPreparation(prepared);
-            }
-        }
-        finally
-        {
-            _isApplyingGeneralMergePreparation = false;
-        }
-        RefreshMergeMemoryMapState(refreshAuthoring: false);
-        RefreshCommandState();
+                if (!ReferenceEquals(_generalMergeDraft, draft))
+                {
+                    throw new OperationCanceledException(cancellationToken);
+                }
+                GeneralAuthoringSessionPreparation prepared =
+                    await _compositionServices.GeneralAuthoring.PrepareMergeSessionAsync(
+                        _generalMergeSession,
+                        icId,
+                        draft,
+                        cancellationToken,
+                        progress);
+                if (!isCurrent() || !ReferenceEquals(_generalMergeDraft, draft))
+                {
+                    throw new OperationCanceledException(cancellationToken);
+                }
+                _isApplyingGeneralMergePreparation = true;
+                try
+                {
+                    _generalMergeAdmission = prepared.Admission ?? _generalMergeAdmission;
+                    _generalMergeActionReadiness = prepared.Readiness;
+                    if (prepared.AcceptedSession?.DraftState is GeneralMergeDraftState accepted)
+                    {
+                        _generalMergeDraft = accepted;
+                    }
+                    foreach (GeneralMergeMappingViewModel mapping in GeneralMergeMappings)
+                    {
+                        mapping.ApplyPreparation(prepared);
+                    }
+                }
+                finally
+                {
+                    _isApplyingGeneralMergePreparation = false;
+                }
+                RefreshMergeMemoryMapState(refreshAuthoring: false);
+                RefreshCommandState();
+                return new(prepared.Succeeded, prepared.Issues is [var issue, ..] ? issue.Code : null);
+            },
+            CancellationToken.None);
     }
 
     internal bool RemoveGeneralMapping(GeneralMergeMappingViewModel mapping)

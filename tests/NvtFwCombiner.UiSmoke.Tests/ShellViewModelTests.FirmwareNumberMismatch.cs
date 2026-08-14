@@ -46,7 +46,7 @@ public sealed partial class CtrlRamWorkflowTests
         Assert.Equal("Cascade", viewModel.WorkflowSession.FirmwareNumberMismatchDetectedNumber);
 
         viewModel.WorkflowSession.AcceptFirmwareNumberMismatchCommand.Execute(null);
-        await viewModel.WorkflowSession.FirmwareInspectionRefreshTask;
+        await CurrentInspection(viewModel).ActiveTask;
 
         Assert.Equal(IcNumberSelectionTokens.Cascade, viewModel.WorkflowSession.SelectedNumber);
         Assert.False(viewModel.WorkflowSession.IsFirmwareNumberMismatchModalOpen);
@@ -228,14 +228,18 @@ public sealed partial class CtrlRamWorkflowTests
         try
         {
             Assert.True(firstInspectionStarted.Wait(TimeSpan.FromSeconds(5), TestContext.Current.CancellationToken));
-            await viewModel.WorkflowSession.SetSlotFileAsync("replace-base", secondPath, TestContext.Current.CancellationToken);
+            Task secondSelection = viewModel.WorkflowSession.SetSlotFileAsync(
+                "replace-base",
+                secondPath,
+                TestContext.Current.CancellationToken);
+            Assert.Equal(1, batchCount);
+            releaseFirstInspection.Set();
+            await Task.WhenAll(firstSelection, secondSelection);
         }
         finally
         {
             releaseFirstInspection.Set();
         }
-
-        await firstSelection;
 
         Assert.True(viewModel.WorkflowSession.IsFirmwareNumberMismatchModalOpen);
         Assert.Equal("second.bin", viewModel.WorkflowSession.FirmwareNumberMismatchFileName);
@@ -307,7 +311,7 @@ public sealed partial class CtrlRamWorkflowTests
         OpenReplace(viewModel, ExperienceIds.CtrlRamReplace);
 
         fixtures.SetBaseSlot(viewModel, fixtureCase);
-        await viewModel.WorkflowSession.FirmwareInspectionRefreshTask;
+        await CurrentInspection(viewModel).ActiveTask;
         Assert.True(viewModel.WorkflowSession.IsFirmwareNumberMismatchModalOpen);
         Assert.Equal("3 IC", viewModel.WorkflowSession.FirmwareNumberMismatchDetectedNumber);
         string basePath = Assert.IsType<string>(viewModel.Replace.ReplaceBaseSlot.FilePath);
