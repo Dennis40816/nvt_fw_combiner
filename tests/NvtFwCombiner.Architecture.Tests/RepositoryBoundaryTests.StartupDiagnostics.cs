@@ -105,6 +105,7 @@ public sealed partial class RepositoryBoundaryTests
             "docs/governance/v0.10.5-preload-baseline-and-ticket-ledger.md");
         string specification = ReadText("docs/specs/v0.10.5-unified-preload-lifecycle.md");
         string decision = ReadText("docs/adr/0049-unified-preload-lifecycle.md");
+        string changelog = ReadText("CHANGELOG.md");
         string codeSizePolicy = ReadText("scripts/code_size_policy.py");
         string mainWindow = ReadText(
             "src/NvtFwCombiner.Presentation.Avalonia/MainWindow.axaml.cs");
@@ -208,6 +209,14 @@ public sealed partial class RepositoryBoundaryTests
         Assert.Contains("application_ratchet=29_555", codeSizePolicy, StringComparison.Ordinal);
         Assert.Contains("bootstrap_cli_ratchet=3_074", codeSizePolicy, StringComparison.Ordinal);
         Assert.Contains("infrastructure_contracts_worker_ratchet=14_733", codeSizePolicy, StringComparison.Ordinal);
+        Assert.Equal(
+            1,
+            CountOccurrences(changelog, "#### Message Center, report, and System Information readability"));
+        Assert.DoesNotContain("#### Message Center report and System Information readability", changelog, StringComparison.Ordinal);
+        Assert.DoesNotContain("#### Message Center and report readability", changelog, StringComparison.Ordinal);
+        Assert.Contains("controlled startup remeasurement and five-minute CI gate are complete", changelog, StringComparison.Ordinal);
+        Assert.Contains("631.132 ms and 634.589 ms", changelog, StringComparison.Ordinal);
+        Assert.Contains("screen-reader review and release approval", changelog, StringComparison.Ordinal);
         Assert.Contains("777.090 ms", baseline, StringComparison.Ordinal);
         Assert.Contains("806.930 ms", baseline, StringComparison.Ordinal);
         Assert.Contains("782.368 ms", baseline, StringComparison.Ordinal);

@@ -14,39 +14,43 @@ tracked below. No stable `v0.10.5` package or tag has been published yet.
 This support-neutral release implements one observable, cancellable,
 bounded, and user-controllable preload lifecycle while retaining typed catalog,
 report, diagnostics, inspection, and external-runtime semantic owners. This
-section records the completed implementation and exact PL-00 candidate; the
-controlled startup remeasurement, screen-reader review, and release approval
-remain open.
+section records the completed implementation and exact PL-00 candidate. The
+controlled startup remeasurement and five-minute CI gate are complete;
+screen-reader review and release approval remain open.
 
 ### Product changes
 
-#### Message Center report and System Information readability
+#### Message Center, report, and System Information readability
 
-- Purpose: make the existing Report and System Information content faster to
+- Purpose: make the existing Message Center and report-modal evidence faster to
   scan without changing what the application computes or stores.
 - Before → After: the mixed three-column System Information layout becomes
   four aligned two-column fact cards; Current Report and Report History become
-  two equal cards with their related actions kept together.
-- Affected: Message Center → Run Reports and System Information presentation.
+  two equal cards with their related actions kept together; the report modal's
+  long audit sentence becomes six explicit counters above the existing evidence
+  tabs.
+- Affected: Message Center → Run Reports and System Information, plus the report
+  modal Summary and Audit details presentation.
 - Support status: unchanged/support-neutral; no route, IC, profile, family,
   processor, or Golden observation changes.
-- Accessibility: selector targets span the available width, each fact keeps an
-  explicit label/value relationship, and existing keyboard actions, focus,
-  localization, reduced-motion behavior, and automation text are preserved.
+- Accessibility: selector targets span the available width, each fact and audit
+  counter keeps its localized label/value relationship, and existing keyboard
+  actions, focus, live diagnostics, reduced-motion behavior, and automation text
+  are preserved.
 - Compatibility: report data/history, diagnostics, firmware bytes and names,
   profiles, schemas, processor protocols, Golden evidence, and persistence are
   unchanged.
 - Verification: XAML contract coverage, full UI smoke, Architecture ratchet,
-  canonical verifier, and interactive dark-theme inspection.
+  canonical verifier, and interactive light/dark inspection.
 - Limitations: this is a visual hierarchy change only; it adds no new Report or
   System Information data and changes no existing action.
 
 #### Unified bounded preload lifecycle
 
-- Before → After: startup and related preparation currently use separate
-  cancellation, generation, progress, cache, and failure paths; the approved
-  implementation converges scheduling and operator control into one Presentation
-  lifecycle while each feature keeps its existing typed semantic owner.
+- Before → After: startup and related preparation formerly used separate
+  cancellation, generation, progress, cache, and failure paths; scheduling and
+  operator control now converge into one Presentation lifecycle while each
+  feature keeps its existing typed semantic owner.
 - Affected: catalog startup, report/history input, diagnostics, deferred views,
   external-environment discovery, and selection-triggered inspection across all
   six workflows.
@@ -55,13 +59,12 @@ remain open.
 - Compatibility: firmware bytes/hashes/names, report wire and history schema,
   profiles/schemas, CLI behavior, Saved Rules, settings, and processor protocols
   remain compatible.
-- Verification: PL-01 through PL-07 and PL-00 require exact behavioral,
-  architecture, accessibility, performance, code-size, verifier, Golden 17/17,
-  package, CI, and release evidence before completion.
-- Limitations: PL-02 through PL-07 implement the bounded shell, report,
-  diagnostics, external-environment, coherent inspection, and six-workflow
-  lifecycle. The `v0.10.5` package comparison and release artifact remain under
-  PL-00.
+- Verification: PL-01 through PL-07 and the PL-00 candidate passed exact
+  behavioral, architecture, accessibility automation, performance, code-size,
+  verifier, Golden 17/17, package, and CI gates.
+- Limitations: stable publication remains under PL-00 until the recorded
+  screen-reader and release-owner gates complete; no aggregate cross-stage
+  percentage or Build/Preview run-progress replacement is introduced.
 
 #### Bounded local report and history input
 
@@ -85,9 +88,9 @@ remain open.
 - Compatibility: report wire/schema, history v1, settings, firmware bytes,
   Golden outputs, profiles, CLI options, and support truth are unchanged.
 - Verification: exact file-boundary, history-envelope, startup/manual parity,
-  architecture, full verifier, and Golden 17/17 evidence is required.
-- Limitations: this is the PL-02 prerequisite only; PL-03 separately introduces
-  the shared visible preload session, while later lifecycle tickets remain open.
+  architecture, full verifier, and Golden 17/17 evidence passed.
+- Limitations: this boundary remains local-file-only; it adds no remote report
+  source, report schema, or second Presentation filesystem owner.
 
 #### Shell preload session and required catalog stage
 
@@ -113,8 +116,9 @@ remain open.
   coverage, and Golden 17/17 gates apply.
 - Code size: full production descends from 97,302 to 97,297 nonblank lines;
   runtime production remains 67,371.
-- Limitations: catalog is the only stage in this PR; report, diagnostics, deferred
-  views, external discovery, and selected-file inspection migrate in later tickets.
+- Limitations: required catalog failure remains blocking; optional report,
+  diagnostics, external-environment, and deferred-view failures remain isolated
+  in their admitted lifecycle stages.
 
 #### Optional shell preload lifecycle
 
@@ -285,32 +289,9 @@ remain open.
 - Verification: focused trace serialization and Architecture contract tests,
   structure validation, scoped R2/Polytail review, canonical verifier, package
   measurement, exact-head CI, and clean-package accessibility gates apply.
-- Limitations: the focused uncompressed developer run proves the instrumentation
-  contract only. Same-machine packaged `v0.10.4`/candidate measurements, two
-  exact-head CI runs, clean-package accessibility checks, provenance, SBOM,
-  hashes, and release approval remain PL-00 gates.
-
-#### Message Center and report readability
-
-- Purpose: make System information and run-report evidence easier to scan in
-  both light and dark themes without changing diagnostics or report semantics.
-- Affected: the Message Center run-report and System information tabs, plus the
-  report modal summary and Audit details panels.
-- Before → After: dense label/value rows and one long audit sentence become a
-  compact system overview, a distinct healthy-state panel, and six explicit
-  audit counters above the existing evidence tabs.
-- Accessibility: existing tab order and live diagnostics remain intact; every
-  counter retains its localized label and value in the accessibility tree.
-- Support status: unchanged/support-neutral; no IC, route, workflow, processor,
-  profile, or family availability fact changes.
-- Compatibility: no report wire, history schema, firmware output, profile,
-  diagnostic, CLI, or support fact changes.
-- Verification: light/dark interactive inspection, UI smoke, architecture,
-  structure, full verifier, coverage, and Golden 17/17 gates apply.
-- Code size: full production descends from 97,303 to 97,302 nonblank lines;
-  runtime production remains 67,371.
-- Limitations: this is a presentation-only readability change; it does not add
-  new report fields, diagnostics, filtering, or preload lifecycle behavior.
+- Limitations: measurements cover the exact local candidate package; official
+  stable publication still requires the recorded screen-reader review,
+  release-owner approval, immutable tag workflow, and downloaded-asset audit.
 
 #### DP Replace readiness projection stability
 
