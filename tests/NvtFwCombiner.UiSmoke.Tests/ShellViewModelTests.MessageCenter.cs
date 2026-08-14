@@ -98,13 +98,13 @@ public sealed partial class ShellNavigationSystemTests
         Task refresh = viewModel.RefreshCommand.ExecuteAsync(null);
         await secondStarted.Task.WaitAsync(
             TimeSpan.FromSeconds(5), TestContext.Current.CancellationToken);
+        _ = await Assert.ThrowsAsync<ShellPreloadSupersededException>(() => startup);
         Assert.True(viewModel.IsRefreshInProgress);
         Assert.Equal(text.RefreshingDiagnosticsLabel, viewModel.RefreshActionLabel);
         Assert.Contains("Loading", viewModel.ExternalEnvironmentSummary, StringComparison.Ordinal);
         releaseSecond.SetResult();
         await refresh;
 
-        _ = await Assert.ThrowsAsync<ShellPreloadSupersededException>(() => startup);
         Assert.Equal([(0L, 1L)], startupProgress);
         Assert.Equal(2, attempts);
         Assert.Equal(ExternalProcessorEnvironmentState.Current, loader.Current.State);

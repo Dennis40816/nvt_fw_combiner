@@ -152,14 +152,15 @@ internal sealed partial class MessageCenterViewModel : ObservableObject
         ExternalProcessorEnvironmentLoadResult result = await _externalEnvironment.LoadToCompletionAsync(
             progress,
             cancellationToken);
-        await RefreshAsync(reloadCatalog: false, cancellationToken);
         switch (result.Outcome)
         {
             case ExternalProcessorEnvironmentLoadOutcome.Succeeded:
+                await RefreshAsync(reloadCatalog: false, cancellationToken);
                 return;
             case ExternalProcessorEnvironmentLoadOutcome.Superseded:
                 throw new ShellPreloadSupersededException();
             case ExternalProcessorEnvironmentLoadOutcome.Failed:
+                await RefreshAsync(reloadCatalog: false, cancellationToken);
                 throw new InvalidOperationException(string.Join(
                     " ",
                     result.Issues.Select(static issue => issue.Message)));

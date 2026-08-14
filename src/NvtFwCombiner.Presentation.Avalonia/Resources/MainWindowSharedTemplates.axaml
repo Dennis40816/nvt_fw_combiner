@@ -20,8 +20,7 @@
       BorderBrush="{DynamicResource NfcBorderSoftBrush}"
       BorderThickness="1"
       BoxShadow="{DynamicResource NfcWorkflowCardHoverShadow}"
-      CornerRadius="{DynamicResource NfcSurfaceCornerRadius}"
-      IsVisible="{Binding IsVisible}">
+      CornerRadius="{DynamicResource NfcSurfaceCornerRadius}">
     <StackPanel Spacing="{DynamicResource NfcSpace12}">
       <Grid ColumnDefinitions="*,Auto" ColumnSpacing="{DynamicResource NfcSpace12}">
         <TextBlock
