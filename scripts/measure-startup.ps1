@@ -16,7 +16,9 @@ param(
     [int]$TimeoutSeconds = 15,
 
     [ValidateSet('home', 'settings', 'merge', 'replace', 'hex-editor')]
-    [string]$Page = 'home'
+    [string]$Page = 'home',
+
+    [switch]$RequirePreloadLifecycle
 )
 
 Set-StrictMode -Version Latest
@@ -138,12 +140,62 @@ function Get-UiThreadWorkSummary {
     }
 }
 
+function Get-PreloadLifecycleEvidence {
+    param(
+        [Parameter(Mandatory = $true)]$Trace,
+        [Parameter(Mandatory = $true)][bool]$Required
+    )
+
+    $stages = if ($Trace.schemaVersion -eq 'nfc-startup-trace-v3') {
+        @($Trace.preloadStages)
+    }
+    else {
+        @()
+    }
+    if ($Required -and $stages.Count -eq 0) {
+        throw 'Startup trace does not contain the required preload lifecycle evidence.'
+    }
+    if ($stages.Count -eq 0) {
+        return $null
+    }
+
+    $ids = [Collections.Generic.HashSet[string]]::new([StringComparer]::Ordinal)
+    $terminalStates = @('Succeeded', 'Failed', 'Skipped', 'Cancelled', 'DependencyBlocked')
+    $normalized = @(
+        for ($index = 0; $index -lt $stages.Count; $index++) {
+            $stage = $stages[$index]
+            $id = [string]$stage.id
+            $state = [string]$stage.state
+            $completed = if ($null -eq $stage.completedWork) { $null } else { [long]$stage.completedWork }
+            $total = if ($null -eq $stage.totalWork) { $null } else { [long]$stage.totalWork }
+            if ([string]::IsNullOrWhiteSpace($id) -or -not $ids.Add($id) -or
+                $state -notin $terminalStates -or
+                (($null -eq $completed) -ne ($null -eq $total)) -or
+                ($null -ne $completed -and ($completed -lt 0 -or $total -lt 0 -or
+                    $completed -gt $total -or ($state -eq 'Succeeded' -and $completed -ne $total)))) {
+                throw "Startup trace contains invalid preload lifecycle evidence for '$id'."
+            }
+            [pscustomobject][ordered]@{
+                id = $id
+                state = $state
+                completedWork = $completed
+                totalWork = $total
+            }
+        }
+    )
+    return [pscustomobject][ordered]@{
+        stageCount = $stages.Count
+        stages = $normalized
+    }
+}
+
 function Invoke-StartupSample {
     param(
         [Parameter(Mandatory = $true)][string]$Executable,
         [Parameter(Mandatory = $true)][string]$TracePath,
         [Parameter(Mandatory = $true)][string]$StartupPage,
-        [Parameter(Mandatory = $true)][int]$Timeout
+        [Parameter(Mandatory = $true)][int]$Timeout,
+        [Parameter(Mandatory = $true)][bool]$RequireLifecycle
     )
 
     $startInfo = [Diagnostics.ProcessStartInfo]::new()
@@ -166,17 +218,30 @@ function Invoke-StartupSample {
         [long]$workingSetBytesAtWindow = 0
         [long]$workingSetBytesAtTrace = 0
         [long]$peakWorkingSetBytes = 0
+        [long]$privateBytesAtWindow = 0
+        [long]$privateBytesAtTrace = 0
+        [long]$peakPrivateBytes = 0
+        $trace = $null
         while (-not $process.HasExited -and $stopwatch.Elapsed.TotalSeconds -lt $Timeout) {
             Start-Sleep -Milliseconds 10
             $process.Refresh()
             $peakWorkingSetBytes = [Math]::Max($peakWorkingSetBytes, $process.WorkingSet64)
+            $peakPrivateBytes = [Math]::Max($peakPrivateBytes, $process.PrivateMemorySize64)
             if ($windowMilliseconds -eq 0 -and $process.MainWindowHandle -ne 0) {
                 $windowMilliseconds = $stopwatch.Elapsed.TotalMilliseconds
                 $workingSetBytesAtWindow = $process.WorkingSet64
+                $privateBytesAtWindow = $process.PrivateMemorySize64
             }
             if ($traceReadyMilliseconds -eq 0 -and (Test-Path -LiteralPath $TracePath -PathType Leaf)) {
-                $traceReadyMilliseconds = $stopwatch.Elapsed.TotalMilliseconds
-                $workingSetBytesAtTrace = $process.WorkingSet64
+                try {
+                    $trace = Get-Content -LiteralPath $TracePath -Raw | ConvertFrom-Json -ErrorAction Stop
+                    $traceReadyMilliseconds = $stopwatch.Elapsed.TotalMilliseconds
+                    $workingSetBytesAtTrace = $process.WorkingSet64
+                    $privateBytesAtTrace = $process.PrivateMemorySize64
+                }
+                catch {
+                    $trace = $null
+                }
             }
             if ($windowMilliseconds -ne 0 -and $traceReadyMilliseconds -ne 0) {
                 break
@@ -193,10 +258,11 @@ function Invoke-StartupSample {
             throw "The application did not write its startup trace within $Timeout seconds."
         }
 
-        $trace = Get-Content -LiteralPath $TracePath -Raw | ConvertFrom-Json
-        if ($trace.schemaVersion -ne 'nfc-startup-trace-v2' -or @($trace.stages).Count -eq 0) {
+        if ($trace.schemaVersion -notin @('nfc-startup-trace-v2', 'nfc-startup-trace-v3') -or
+            @($trace.stages).Count -eq 0) {
             throw "The application wrote an unsupported or empty startup trace at '$TracePath'."
         }
+        $preloadLifecycle = Get-PreloadLifecycleEvidence -Trace $trace -Required $RequireLifecycle
 
         return [ordered]@{
             processId = $process.Id
@@ -205,7 +271,11 @@ function Invoke-StartupSample {
             workingSetBytesAtWindow = $workingSetBytesAtWindow
             workingSetBytesAtTrace = $workingSetBytesAtTrace
             peakWorkingSetBytes = $peakWorkingSetBytes
+            privateBytesAtWindow = $privateBytesAtWindow
+            privateBytesAtTrace = $privateBytesAtTrace
+            peakPrivateBytes = $peakPrivateBytes
             uiThreadWork = Get-UiThreadWorkSummary -Trace $trace
+            preloadLifecycle = $preloadLifecycle
             trace = $trace
         }
     }
@@ -242,13 +312,13 @@ try {
     $warmups = @()
     for ($index = 0; $index -lt $WarmupRuns; $index++) {
         $tracePath = Join-Path $traceRoot "warmup-$index.json"
-        $warmups += Invoke-StartupSample $application $tracePath $Page $TimeoutSeconds
+        $warmups += Invoke-StartupSample $application $tracePath $Page $TimeoutSeconds $RequirePreloadLifecycle.IsPresent
     }
 
     $samples = @()
     for ($index = 0; $index -lt $Runs; $index++) {
         $tracePath = Join-Path $traceRoot "run-$index.json"
-        $samples += Invoke-StartupSample $application $tracePath $Page $TimeoutSeconds
+        $samples += Invoke-StartupSample $application $tracePath $Page $TimeoutSeconds $RequirePreloadLifecycle.IsPresent
     }
 
     $expectedStageNames = @($samples[0].trace.stages | ForEach-Object { $_.name })
@@ -257,6 +327,13 @@ try {
         $actualStageSequence = @($sample.trace.stages | ForEach-Object { $_.name }) -join '|'
         if ($actualStageSequence -ne $expectedStageSequence) {
             throw 'Measured startup traces do not contain the same ordered stage sequence.'
+        }
+    }
+    $expectedPreloadLifecycle = $samples[0].preloadLifecycle | ConvertTo-Json -Compress -Depth 8
+    foreach ($sample in $samples) {
+        $actualPreloadLifecycle = $sample.preloadLifecycle | ConvertTo-Json -Compress -Depth 8
+        if ($actualPreloadLifecycle -ne $expectedPreloadLifecycle) {
+            throw 'Measured startup traces do not contain the same preload lifecycle evidence.'
         }
     }
 
@@ -284,7 +361,7 @@ try {
     }
 
     $result = [ordered]@{
-        schemaVersion = 'nfc-startup-measurement-v2'
+        schemaVersion = 'nfc-startup-measurement-v3'
         capturedUtc = [DateTimeOffset]::UtcNow.ToString('O')
         applicationPath = $application
         page = $Page
@@ -299,6 +376,10 @@ try {
             workingSetBytesAtWindow = Get-MetricSummary @($samples.workingSetBytesAtWindow)
             workingSetBytesAtTrace = Get-MetricSummary @($samples.workingSetBytesAtTrace)
             peakWorkingSetBytes = Get-MetricSummary @($samples.peakWorkingSetBytes)
+            privateBytesAtWindow = Get-MetricSummary @($samples.privateBytesAtWindow)
+            privateBytesAtTrace = Get-MetricSummary @($samples.privateBytesAtTrace)
+            peakPrivateBytes = Get-MetricSummary @($samples.peakPrivateBytes)
+            preloadLifecycle = $samples[0].preloadLifecycle
             allocatedBytesAtWindow = $openedStage.allocatedBytesSinceManagedEntry
             allocatedBytesAfterWarmup = $warmupStage.allocatedBytesSinceManagedEntry
             firstFrameUiSynchronousWorkMilliseconds = Get-MetricSummary @(
@@ -329,6 +410,9 @@ try {
     Write-Host "Working set at window median: $($result.summary.workingSetBytesAtWindow.median) bytes"
     Write-Host "Working set after background warm-up median: $($result.summary.workingSetBytesAtTrace.median) bytes"
     Write-Host "Peak working set during startup median: $($result.summary.peakWorkingSetBytes.median) bytes"
+    Write-Host "Private bytes at window median: $($result.summary.privateBytesAtWindow.median) bytes"
+    Write-Host "Private bytes after background warm-up median: $($result.summary.privateBytesAtTrace.median) bytes"
+    Write-Host "Peak private bytes during startup median: $($result.summary.peakPrivateBytes.median) bytes"
     $stageSummaries | ForEach-Object {
         [pscustomobject]@{
             Stage = $_.name

@@ -11,11 +11,11 @@ The owner-approved `v0.10.5` implementation intake is tracked below. No
 
 ### Summary
 
-This support-neutral release intake defines one observable, cancellable,
+This support-neutral release implements one observable, cancellable,
 bounded, and user-controllable preload lifecycle while retaining typed catalog,
 report, diagnostics, inspection, and external-runtime semantic owners. This
-section records approved scope; implementation and release evidence remain
-dependency-gated.
+section records the completed implementation; package and release evidence remain
+open under PL-00.
 
 ### Product changes
 
@@ -57,9 +57,10 @@ dependency-gated.
 - Verification: PL-01 through PL-07 and PL-00 require exact behavioral,
   architecture, accessibility, performance, code-size, verifier, Golden 17/17,
   package, CI, and release evidence before completion.
-- Limitations: PL-02 through PL-06 implement the bounded shell, report,
-  diagnostics, external-environment, and coherent inspection prerequisites.
-  PL-07 workflow-lifecycle adoption and the `v0.10.5` release artifact remain.
+- Limitations: PL-02 through PL-07 implement the bounded shell, report,
+  diagnostics, external-environment, coherent inspection, and six-workflow
+  lifecycle. The `v0.10.5` package comparison and release artifact remain under
+  PL-00.
 
 #### Bounded local report and history input
 
@@ -247,6 +248,36 @@ dependency-gated.
 - Limitations: startup preload, Build/Preview run progress, CtrlRAM run-bound metadata,
   firmware semantics, and Report/System Information layout remain separate owners.
 
+#### Reproducible startup and preload evidence
+
+- Purpose: make the release comparison show not only launch time but also private
+  memory and the exact terminal/work evidence for every preload stage.
+- Before → After: the opt-in startup trace reported timing/allocation points only;
+  schema v3 additionally records bounded stage identity, terminal state, and
+  nullable completed/total work, while the measurement result records working set
+  and private bytes at first window, lifecycle completion, and observed peak.
+- Affected: the opt-in Desktop startup trace and the repository-owned packaged
+  startup measurement runner.
+- Support status: unchanged/support-neutral; no route, IC, family, topology,
+  workflow, processor, profile, or evidence fact changes.
+- Compatibility: the runner still accepts the stable `v0.10.4` schema-v2 trace;
+  candidate evidence must explicitly require schema v3. Normal application launch,
+  firmware semantics, report wire, settings, CLI behavior, and Golden data do not
+  change.
+- Privacy and failure behavior: lifecycle evidence excludes titles, diagnostics,
+  paths, report content, and firmware facts; duplicate, non-terminal, inconsistent,
+  or incomplete successful work records fail the measurement.
+- Code size: 62 physical nonblank production lines are removed and 56 added,
+  net -6. Full production descends from 98,074 to 98,068; runtime remains 67,997
+  = 20,619 / 29,571 / 3,074 / 14,733.
+- Verification: focused trace serialization and Architecture contract tests,
+  structure validation, scoped R2/Polytail review, canonical verifier, package
+  measurement, exact-head CI, and clean-package accessibility gates apply.
+- Limitations: the focused uncompressed developer run proves the instrumentation
+  contract only. Same-machine packaged `v0.10.4`/candidate measurements, two
+  exact-head CI runs, clean-package accessibility checks, provenance, SBOM,
+  hashes, and release approval remain PL-00 gates.
+
 #### Message Center and report readability
 
 - Purpose: make System information and run-report evidence easier to scan in
@@ -297,8 +328,10 @@ write-range enforcement.
 
 - The stable `v0.10.4` package did not reproduce the 700 ms absolute startup
   target; `v0.10.5` must record new same-machine package evidence truthfully.
-- Every implementation slice remains blocked by its dependency, R2/R3 review,
-  exact verifier, Golden, CI, and any named human evidence gate.
+- The implementation dependency chain is complete. PL-00 still requires the
+  exact verifier and Golden evidence, two exact-head CI runs, same-machine package
+  measurements, clean-package accessibility checks, provenance, and release
+  approval.
 
 ### Upgrade and rollback
 

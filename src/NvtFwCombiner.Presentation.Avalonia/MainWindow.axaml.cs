@@ -314,16 +314,16 @@ public sealed partial class MainWindow : Window, IDisposable
                 : optionals.Contains(ShellPreloadStageState.Cancelled)
                     ? "startup-warmup.cancelled"
                     : "startup-warmup.completed";
-            _ = _startupTrace.Complete(terminal);
+            CompleteStartupTrace(terminal);
         }
         catch (OperationCanceledException) when (startupCancellation.IsCancellationRequested)
         {
-            _ = _startupTrace.Complete("startup-warmup.cancelled");
+            CompleteStartupTrace("startup-warmup.cancelled");
         }
         catch (Exception exception)
         {
             Trace.TraceWarning("Deferred shell warm-up did not complete: {0}", exception.Message);
-            _ = _startupTrace.Complete("startup-warmup.failed");
+            CompleteStartupTrace("startup-warmup.failed");
         }
     }
 
@@ -363,7 +363,7 @@ public sealed partial class MainWindow : Window, IDisposable
         }
         catch (OperationCanceledException) when (startupCancellation.IsCancellationRequested)
         {
-            _ = _startupTrace.Complete("startup-warmup.cancelled");
+            CompleteStartupTrace("startup-warmup.cancelled");
             return false;
         }
         catch (Exception exception)
@@ -379,6 +379,11 @@ public sealed partial class MainWindow : Window, IDisposable
         return !_isDisposed && DataContext is MainWindowViewModel viewModel
             ? RunStartupPreloadAsync(viewModel, _startupLoadCancellation.Token)
             : Task.CompletedTask;
+    }
+
+    private void CompleteStartupTrace(string terminal)
+    {
+        _ = _startupTrace.Complete(terminal, _preloadSession.Stages);
     }
 
     private Task CancelStartupAsync()

@@ -362,6 +362,11 @@ later growth allowance.
 - Performance evidence compares the exact packaged predecessor and candidate on
   the same controlled machine: first-window handle, usable-after-catalog time,
   optional-preload completion, peak working set/private bytes, and work counts.
+- The candidate's opt-in startup trace uses schema v3 and records only stage
+  identity, terminal state, and nullable completed/total work. The measurement
+  runner accepts the predecessor's schema v2 but must require schema v3 for the
+  candidate, fail closed on duplicate/non-terminal/invalid lifecycle evidence,
+  and compare one warm-up plus at least five scored launches.
 - The canonical verifier, all 17 Golden cases, report wire, CLI behavior, BIN
   bytes/hashes/naming, profiles, schemas, external protocols, and support truth
   remain unchanged.
