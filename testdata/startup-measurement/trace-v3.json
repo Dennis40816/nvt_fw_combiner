@@ -1,5 +1,6 @@
 {
   "schemaVersion": "nfc-startup-trace-v3",
+  "processId": 7,
   "stages": [
     { "name": "application-xaml.started", "elapsedMilliseconds": 1, "deltaMilliseconds": 1, "allocatedBytesSinceManagedEntry": 10, "allocationDeltaBytes": 10 },
     { "name": "application-xaml.ready", "elapsedMilliseconds": 3, "deltaMilliseconds": 2, "allocatedBytesSinceManagedEntry": 20, "allocationDeltaBytes": 10 },

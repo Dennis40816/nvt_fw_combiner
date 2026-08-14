@@ -157,6 +157,10 @@ function ConvertTo-ValidatedElapsedMilliseconds {
         [Parameter(Mandatory = $true)][string]$StageName
     )
 
+    if ($null -eq $Value -or $Value -is [string] -or $Value -is [bool] -or
+        $Value -is [char] -or $Value -isnot [IConvertible]) {
+        throw "Startup trace contains invalid elapsed time for '$StageName'."
+    }
     try {
         $number = [Convert]::ToDouble($Value, [Globalization.CultureInfo]::InvariantCulture)
     }
@@ -167,6 +171,52 @@ function ConvertTo-ValidatedElapsedMilliseconds {
         throw "Startup trace contains invalid elapsed time for '$StageName'."
     }
     return $number
+}
+
+function Assert-ReleaseTraceProcessId {
+    param(
+        [Parameter(Mandatory = $true)]$Trace,
+        [Parameter(Mandatory = $true)][int]$ExpectedProcessId
+    )
+
+    $property = $Trace.PSObject.Properties['processId']
+    try {
+        $actualProcessId = if ($null -eq $property) {
+            $null
+        }
+        else {
+            ConvertTo-ValidatedWorkCount -Value $property.Value -StageId 'process-id'
+        }
+    }
+    catch {
+        throw 'Release startup trace contains an invalid process ID.'
+    }
+    if ($null -eq $actualProcessId -or $actualProcessId -ne $ExpectedProcessId) {
+        throw 'Release startup trace does not belong to the measured process.'
+    }
+}
+
+function Assert-ReleaseTraceTerminal {
+    param([Parameter(Mandatory = $true)]$Trace)
+
+    $terminalNames = @(
+        'startup-warmup.completed'
+        'startup-warmup.failed'
+        'startup-warmup.cancelled'
+    )
+    $terminals = @($Trace.stages | Where-Object {
+            Test-OrdinalValue -Value ([string]$_.name) -Allowed $terminalNames
+        })
+    $stages = @($Trace.stages)
+    if ($terminals.Count -ne 1 -or
+        -not [StringComparer]::Ordinal.Equals(
+            [string]$terminals[0].name,
+            'startup-warmup.completed') -or
+        -not [StringComparer]::Ordinal.Equals(
+            [string]$stages[-1].name,
+            'startup-warmup.completed')) {
+        throw "Release startup trace must end with exactly one 'startup-warmup.completed' terminal."
+    }
 }
 
 function New-UiThreadWorkInterval {
@@ -237,6 +287,34 @@ function Get-UiThreadWorkSummary {
         $actualStarts = @($backgroundStartStages | ForEach-Object { [string]$_.name })
         if (-not (Test-OrdinalSequence -Actual $actualStarts -Expected $expectedStarts)) {
             throw 'Release startup trace does not contain all five ordered deferred-view intervals.'
+        }
+
+        $expectedMarkers = @(
+            foreach ($startName in $expectedStarts) {
+                $startName
+                "$($startName.Substring(0, $startName.Length - '.started'.Length)).ready"
+            }
+        )
+        $actualMarkers = @($Trace.stages | Where-Object {
+                Test-OrdinalValue -Value ([string]$_.name) -Allowed $expectedMarkers
+            } | ForEach-Object { [string]$_.name })
+        if (-not (Test-OrdinalSequence -Actual $actualMarkers -Expected $expectedMarkers)) {
+            throw 'Release startup trace does not contain serial deferred-view markers.'
+        }
+
+        $previousReadyElapsed = $null
+        foreach ($startName in $expectedStarts) {
+            $readyName = "$($startName.Substring(0, $startName.Length - '.started'.Length)).ready"
+            $startElapsed = ConvertTo-ValidatedElapsedMilliseconds `
+                -Value (Get-TraceStage -Trace $Trace -Name $startName).elapsedMilliseconds `
+                -StageName $startName
+            $readyElapsed = ConvertTo-ValidatedElapsedMilliseconds `
+                -Value (Get-TraceStage -Trace $Trace -Name $readyName).elapsedMilliseconds `
+                -StageName $readyName
+            if ($null -ne $previousReadyElapsed -and $startElapsed -lt $previousReadyElapsed) {
+                throw 'Release startup trace contains overlapping deferred-view intervals.'
+            }
+            $previousReadyElapsed = $readyElapsed
         }
     }
 
@@ -365,6 +443,8 @@ function New-StartupSampleEvidence {
     $preloadLifecycle = Get-PreloadLifecycleEvidence -Trace $Trace -Required $RequireLifecycle
     $catalogReadyAfterWindow = $null
     if ($RequireLifecycle) {
+        Assert-ReleaseTraceProcessId -Trace $Trace -ExpectedProcessId $ProcessId
+        Assert-ReleaseTraceTerminal -Trace $Trace
         $opened = Get-TraceStage -Trace $Trace -Name 'main-window.opened'
         $catalogReady = Get-TraceStage -Trace $Trace -Name 'startup-warmup.catalog-state.applied'
         $completed = Get-TraceStage -Trace $Trace -Name 'startup-warmup.completed'

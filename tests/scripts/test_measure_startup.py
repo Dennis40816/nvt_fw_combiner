@@ -112,6 +112,7 @@ $result | ConvertTo-Json -Depth 12 -Compress
         candidate_sample = json.loads(candidate.stdout)
         self.assertIsNone(predecessor_sample["preloadLifecycle"])
         self.assertEqual(5, candidate_sample["preloadLifecycle"]["stageCount"])
+        self.assertEqual(7, candidate_sample["processId"])
         self.assertEqual(11.125, candidate_sample["processToWindowMilliseconds"])
         self.assertEqual(303, candidate_sample["peakWorkingSetBytes"])
         self.assertEqual(606, candidate_sample["peakPrivateBytes"])
@@ -208,6 +209,45 @@ $result | ConvertTo-Json -Depth 12 -Compress
             ),
             "duplicate-completed": lambda trace: trace["stages"].append(
                 trace["stages"][-1].copy()
+            ),
+            "missing-process-id": lambda trace: trace.pop("processId"),
+            "wrong-process-id": lambda trace: trace.update(processId=8),
+            "string-process-id": lambda trace: trace.update(processId="7"),
+            "conflicting-failed-terminal": lambda trace: trace["stages"].append(
+                {
+                    **trace["stages"][-1],
+                    "name": "startup-warmup.failed",
+                    "elapsedMilliseconds": 21,
+                }
+            ),
+            "conflicting-cancelled-terminal": lambda trace: trace["stages"].append(
+                {
+                    **trace["stages"][-1],
+                    "name": "startup-warmup.cancelled",
+                    "elapsedMilliseconds": 21,
+                }
+            ),
+            "completed-is-not-final": lambda trace: trace["stages"].append(
+                {
+                    **trace["stages"][-1],
+                    "name": "startup-warmup.late",
+                    "elapsedMilliseconds": 21,
+                }
+            ),
+            "null-opened": lambda trace: trace["stages"][4].update(
+                elapsedMilliseconds=None
+            ),
+            "boolean-catalog-ready": lambda trace: trace["stages"][5].update(
+                elapsedMilliseconds=True
+            ),
+            "string-completed": lambda trace: trace["stages"][-1].update(
+                elapsedMilliseconds="20"
+            ),
+            "overlapping-deferred-intervals": lambda trace: trace["stages"][8].update(
+                elapsedMilliseconds=10.5
+            ),
+            "out-of-order-deferred-ready": lambda trace: trace["stages"].insert(
+                9, trace["stages"].pop(7)
             ),
             "nonfinite-catalog-ready": lambda trace: trace["stages"][5].update(
                 elapsedMilliseconds="NaN"
