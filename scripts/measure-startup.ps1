@@ -234,10 +234,13 @@ function Invoke-StartupSample {
             }
             if ($traceReadyMilliseconds -eq 0 -and (Test-Path -LiteralPath $TracePath -PathType Leaf)) {
                 try {
-                    $trace = Get-Content -LiteralPath $TracePath -Raw | ConvertFrom-Json -ErrorAction Stop
-                    $traceReadyMilliseconds = $stopwatch.Elapsed.TotalMilliseconds
-                    $workingSetBytesAtTrace = $process.WorkingSet64
-                    $privateBytesAtTrace = $process.PrivateMemorySize64
+                    $parsedTrace = Get-Content -LiteralPath $TracePath -Raw | ConvertFrom-Json -ErrorAction Stop
+                    if ($null -ne $parsedTrace) {
+                        $trace = $parsedTrace
+                        $traceReadyMilliseconds = $stopwatch.Elapsed.TotalMilliseconds
+                        $workingSetBytesAtTrace = $process.WorkingSet64
+                        $privateBytesAtTrace = $process.PrivateMemorySize64
+                    }
                 }
                 catch {
                     $trace = $null

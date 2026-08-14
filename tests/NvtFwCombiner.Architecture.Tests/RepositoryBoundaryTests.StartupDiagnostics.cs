@@ -71,6 +71,7 @@ public sealed partial class RepositoryBoundaryTests
         Assert.Contains("peakPrivateBytes", runner, StringComparison.Ordinal);
         Assert.Contains("RequirePreloadLifecycle", runner, StringComparison.Ordinal);
         Assert.Contains("preloadLifecycle", runner, StringComparison.Ordinal);
+        Assert.Contains("if ($null -ne $parsedTrace)", runner, StringComparison.Ordinal);
         Assert.Contains("AllocatedBytesSinceManagedEntry", session, StringComparison.Ordinal);
         Assert.Contains("IReadOnlyList<ShellPreloadStageSnapshot>", session, StringComparison.Ordinal);
         Assert.Contains("allocatedBytesSinceManagedEntry", sink, StringComparison.Ordinal);
