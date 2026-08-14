@@ -522,16 +522,17 @@ invoked by the existing repository structure validator.
 
 ### 2026-08-14 PL-00 semantic-control amendment
 
-The owner explicitly requires the startup Cancel control and adjacent semantic
-buttons to use only project-owned normal, hover, pressed, keyboard-focus, and
-disabled visuals. The shared semantic style had disabled Avalonia's default
-focus adorner while only the secondary role supplied a replacement, and several
-other roles still relied on framework pointer-state rendering. Closing that
-accessibility and visual-consistency gap is required release work, not a reusable
-size allowance.
+The owner explicitly requires the startup Cancel control, adjacent semantic
+buttons, and shell navigation to use only project-owned normal, hover, pressed,
+keyboard-focus, and disabled visuals. The shared semantic style had disabled
+Avalonia's default focus adorner while only the secondary role supplied a
+replacement, several other roles still relied on framework pointer-state
+rendering, and the startup-completion Home focus exposed Avalonia's default
+navigation focus rectangle. Closing those accessibility and visual-consistency
+gaps is required release work, not a reusable size allowance.
 
-PL-00 therefore removes 256 and adds 289 physical nonblank production lines,
-net +33. Full production changes from 98,074 to 98,107; runtime still descends
+PL-00 therefore removes 260 and adds 330 physical nonblank production lines,
+net +70. Full production changes from 98,074 to 98,144; runtime still descends
 from 67,997 to 67,981 = 20,619 Domain plus Profiles + 29,555 Application + 3,074
 Bootstrap plus CLI plus Desktop + 14,733 Infrastructure plus Contracts plus CRC
 worker. The same fixed diff preserves the current CtrlRAM inspection projection
@@ -539,7 +540,7 @@ while relocalizing its memory state instead of reconstructing input slots.
 
 This named Presentation exception is non-transferable, changes no firmware,
 profile, schema, report wire, persistence, processor, CLI, Golden, or support
-semantics, and cannot fund later work. Full 98,107 and the unchanged runtime
+semantics, and cannot fund later work. Full 98,144 and the unchanged runtime
 slice values become descending ratchets immediately.
 
 ## Consequences

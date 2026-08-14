@@ -142,6 +142,7 @@ public sealed partial class XamlControlStyleContractTests
         string preloadSession = ReadPresentationFile("ShellPreloadSession.cs");
         string focusBehavior = ReadPresentationFile("Behaviors/FocusOnRevealBehavior.cs");
         string buttonStyles = ReadPresentationFile("Styles/MainWindowButtonStyles.axaml");
+        string windowStyles = ReadPresentationFile("Styles/MainWindowStyles.axaml");
         string semanticAction = ExtractStyle(buttonStyles, "Button.semanticAction");
         string semanticActionPresenter = ExtractStyle(
             buttonStyles,
@@ -159,6 +160,28 @@ public sealed partial class XamlControlStyleContractTests
         string secondaryDisabled = ExtractStyle(
             buttonStyles,
             "Button.secondary:disabled /template/ ContentPresenter#PART_ContentPresenter");
+        string navigation = ExtractStyle(windowStyles, "ToggleButton.nav");
+        string navigationPresenter = ExtractStyle(
+            windowStyles,
+            "ToggleButton.nav /template/ ContentPresenter#PART_ContentPresenter");
+        string navigationHover = ExtractStyle(
+            windowStyles,
+            "ToggleButton.nav:pointerover /template/ ContentPresenter#PART_ContentPresenter");
+        string navigationPressed = ExtractStyle(
+            windowStyles,
+            "ToggleButton.nav:pressed /template/ ContentPresenter#PART_ContentPresenter");
+        string navigationCheckedHover = ExtractStyle(
+            windowStyles,
+            "ToggleButton.nav:checked:pointerover /template/ ContentPresenter#PART_ContentPresenter");
+        string navigationCheckedPressed = ExtractStyle(
+            windowStyles,
+            "ToggleButton.nav:checked:pressed /template/ ContentPresenter#PART_ContentPresenter");
+        string navigationDisabled = ExtractStyle(
+            windowStyles,
+            "ToggleButton.nav:disabled /template/ ContentPresenter#PART_ContentPresenter");
+        string navigationFocus = ExtractStyle(
+            windowStyles,
+            "ToggleButton.nav:focus-visible /template/ ContentPresenter#PART_ContentPresenter");
         int openedStart = lifecycle.IndexOf(
             "protected override async void OnOpened",
             StringComparison.Ordinal);
@@ -195,6 +218,12 @@ public sealed partial class XamlControlStyleContractTests
             element.Name.LocalName == "Button" &&
             (string?)element.Attribute("Command") == "{Binding RetryCommand}");
         var shellDocument = XDocument.Parse(shell);
+        XElement[] navigationButtons =
+        [
+            .. shellDocument.Descendants().Where(element =>
+                element.Name.LocalName == "ToggleButton" &&
+                (string?)element.Attribute("Classes") == "nav"),
+        ];
         XElement optionalCancelButton = Assert.Single(shellDocument.Descendants(), element =>
             element.Name.LocalName == "Button" &&
             (string?)element.Attribute("Click") == "OptionalPreloadCancelButton_OnClick");
@@ -242,6 +271,22 @@ public sealed partial class XamlControlStyleContractTests
         Assert.Contains("NfcSurfaceSubtleBrush", secondaryDisabled, StringComparison.Ordinal);
         Assert.Contains("NfcBorderMutedBrush", secondaryDisabled, StringComparison.Ordinal);
         Assert.Contains("BorderThickness\" Value=\"1\"", secondaryDisabled, StringComparison.Ordinal);
+        Assert.Contains("FocusAdorner\" Value=\"{x:Null}\"", navigation, StringComparison.Ordinal);
+        Assert.Contains("NfcPillCornerRadius", navigationPresenter, StringComparison.Ordinal);
+        Assert.Contains("NfcTextSecondaryBrush", navigationPresenter, StringComparison.Ordinal);
+        Assert.Contains("NfcAccentSurfaceSubtleBrush", navigationHover, StringComparison.Ordinal);
+        Assert.Contains("NfcAccentBorderLightBrush", navigationHover, StringComparison.Ordinal);
+        Assert.Contains("NfcAccentSurfaceBrush", navigationPressed, StringComparison.Ordinal);
+        Assert.Contains("NfcAccentBorderStrongBrush", navigationPressed, StringComparison.Ordinal);
+        Assert.Contains("NfcAccentBorderBrush", navigationCheckedHover, StringComparison.Ordinal);
+        Assert.Contains("NfcAccentBorderStrongBrush", navigationCheckedPressed, StringComparison.Ordinal);
+        Assert.Contains("NfcTextDisabledBrush", navigationDisabled, StringComparison.Ordinal);
+        Assert.Contains("BorderThickness\" Value=\"2\"", navigationFocus, StringComparison.Ordinal);
+        Assert.Contains("NfcAccentBorderStrongBrush", navigationFocus, StringComparison.Ordinal);
+        Assert.Equal(4, navigationButtons.Length);
+        Assert.All(
+            navigationButtons.SelectMany(button => button.Descendants().Where(element => element.Name.LocalName == "TextBlock")),
+            text => Assert.Null(text.Attribute("Foreground")));
         Assert.Contains("behaviors:FocusOnRevealBehavior.IsEnabled=\"True\"", surface, StringComparison.Ordinal);
         Assert.Contains("Focusable=\"True\"", surface, StringComparison.Ordinal);
         Assert.Contains("AttachedToVisualTree += Control_OnAttachedToVisualTree", focusBehavior, StringComparison.Ordinal);

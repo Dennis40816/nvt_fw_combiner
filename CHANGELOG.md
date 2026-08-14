@@ -271,15 +271,16 @@ release evidence remain open under PL-00.
 - Privacy and failure behavior: lifecycle evidence excludes titles, diagnostics,
   paths, report content, and firmware facts; duplicate, non-terminal, inconsistent,
   or incomplete successful work records fail the measurement.
-- Code size: 256 physical nonblank production lines are removed and 289 added,
-  net +33. Full production changes from 98,074 to 98,107 under the named
+- Code size: 260 physical nonblank production lines are removed and 330 added,
+  net +70. Full production changes from 98,074 to 98,144 under the named
   2026-08-14 semantic-control owner amendment; runtime still descends from
   67,997 to 67,981 = 20,619 / 29,555 / 3,074 / 14,733. The runtime reduction
   removes redundant private array aliases from immutable Application classes
   without changing their copies, validation, ordering, or read-only properties.
   The non-transferable Presentation increase closes framework-default leakage
   across normal, hover, pressed, keyboard-focus, and disabled semantic-button
-  states and preserves CtrlRAM inspection projection during relocalization.
+  and shell-navigation states, including the startup-completion Home focus, and
+  preserves CtrlRAM inspection projection during relocalization.
 - Verification: focused trace serialization and Architecture contract tests,
   structure validation, scoped R2/Polytail review, canonical verifier, package
   measurement, exact-head CI, and clean-package accessibility gates apply.

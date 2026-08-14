@@ -68,25 +68,25 @@
               Classes="nav"
               Command="{Binding ShowHomeCommand}"
               IsChecked="{Binding IsHomeVisible, Mode=OneWay}">
-            <TextBlock Foreground="{DynamicResource NfcTextBrush}" Text="{Binding Text.HomeLabel}" />
+            <TextBlock Text="{Binding Text.HomeLabel}" />
           </ToggleButton>
           <ToggleButton
               Classes="nav"
               Command="{Binding ShowSettingsCommand}"
               IsChecked="{Binding IsSettingsVisible, Mode=OneWay}">
-            <TextBlock Foreground="{DynamicResource NfcTextBrush}" Text="{Binding SettingsPreview.Title}" />
+            <TextBlock Text="{Binding SettingsPreview.Title}" />
           </ToggleButton>
           <ToggleButton
               Classes="nav"
               Command="{Binding ShowReplaceCommand}"
               IsChecked="{Binding IsReplaceVisible, Mode=OneWay}">
-            <TextBlock Foreground="{DynamicResource NfcTextBrush}" Text="{Binding Replace.ReplacePreview.Title}" />
+            <TextBlock Text="{Binding Replace.ReplacePreview.Title}" />
           </ToggleButton>
           <ToggleButton
               Classes="nav"
               Command="{Binding ShowMergeCommand}"
               IsChecked="{Binding IsMergeVisible, Mode=OneWay}">
-            <TextBlock Foreground="{DynamicResource NfcTextBrush}" Text="{Binding Merge.MergePreview.Title}" />
+            <TextBlock Text="{Binding Merge.MergePreview.Title}" />
           </ToggleButton>
         </StackPanel>
 

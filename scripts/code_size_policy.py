@@ -98,7 +98,7 @@ DEFAULT_LIMITS = CodeSizeLimits(
     application_ratchet=29_555,
     bootstrap_cli_ratchet=3_074,
     infrastructure_contracts_worker_ratchet=14_733,
-    full_production_ratchet=98_107,
+    full_production_ratchet=98_144,
 )
 
 
