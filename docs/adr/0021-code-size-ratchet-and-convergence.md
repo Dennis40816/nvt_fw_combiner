@@ -531,8 +531,8 @@ rendering, and the startup-completion Home focus exposed Avalonia's default
 navigation focus rectangle. Closing those accessibility and visual-consistency
 gaps is required release work, not a reusable size allowance.
 
-PL-00 therefore removes 260 and adds 330 physical nonblank production lines,
-net +70. Full production changes from 98,074 to 98,144; runtime still descends
+PL-00 therefore removes 295 and adds 358 physical nonblank production lines,
+net +63. Full production changes from 98,074 to 98,137; runtime still descends
 from 67,997 to 67,981 = 20,619 Domain plus Profiles + 29,555 Application + 3,074
 Bootstrap plus CLI plus Desktop + 14,733 Infrastructure plus Contracts plus CRC
 worker. The same fixed diff preserves the current CtrlRAM inspection projection
@@ -540,7 +540,7 @@ while relocalizing its memory state instead of reconstructing input slots.
 
 This named Presentation exception is non-transferable, changes no firmware,
 profile, schema, report wire, persistence, processor, CLI, Golden, or support
-semantics, and cannot fund later work. Full 98,144 and the unchanged runtime
+semantics, and cannot fund later work. Full 98,137 and the unchanged runtime
 slice values become descending ratchets immediately.
 
 ## Consequences

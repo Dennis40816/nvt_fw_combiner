@@ -26,7 +26,7 @@
     </Button>
     <Button
         Grid.Column="1"
-        Classes="semanticAction iconButton dangerIcon"
+        Classes="semanticAction iconButton danger"
         HorizontalAlignment="Center"
         VerticalAlignment="Top"
         Command="{ReflectionBinding $parent[Window].DataContext.RemoveReportHistoryEntryCommand}"

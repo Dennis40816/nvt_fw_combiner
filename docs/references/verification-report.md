@@ -2,27 +2,25 @@
 
 Status: historical seed-preparation report for the 2026-06-25 bootstrap
 baseline, updated through the stable 0.10.4 post-refactor simplification and
-startup-performance release and the active 0.10.5 implementation intake. Current
+startup-performance release and the active 0.10.5 release validation. Current
 verification evidence is produced by the canonical
 `python scripts/verify.py --structure-only` and `python scripts/verify.py --all`
 commands.
 
 Specification package version: `0.10.5`
 
-## 0.10.5 unified preload lifecycle implementation intake
+## 0.10.5 unified preload lifecycle release candidate
 
-The `0.10.5` integration identity starts from stable `v0.10.4` and admits the
-owner-approved bounded lifecycle specification in ADR 0049. This intake does
-not itself implement or publish the release: PL-01 through PL-07 and PL-00
-retain their dependency, verifier, Golden, package, performance, accessibility,
-CI, and release-owner gates. The stable predecessor's 700 ms miss remains an
-explicit performance residual and is not converted into a pass by the version
-transition.
+The `0.10.5` integration identity starts from stable `v0.10.4` and implements
+the owner-approved bounded lifecycle specification in ADR 0049. PL-01 through
+PL-07 are complete. PL-00 retains the frozen-tree verifier, Golden, package,
+performance, accessibility, CI, provenance, protected-workflow, and release-
+owner gates; no tag or stable asset is admitted before those gates close.
 
-The specification intake is support-neutral and changes no production source,
-profile, schema, report wire, processor protocol, Golden fixture, expected BIN
-byte/hash/name, or stable `v0.10.4` asset. Exact implementation and release
-evidence is appended only after the corresponding ticket and release gates pass.
+The implementation is support-neutral and changes no profile, schema, report
+wire, processor protocol, Golden fixture, expected BIN byte/hash/name, or stable
+`v0.10.4` asset. Exact release evidence is appended only after the corresponding
+frozen-tree and external human gates pass.
 
 ## 0.10.4 post-refactor simplification and startup-performance stable release
 

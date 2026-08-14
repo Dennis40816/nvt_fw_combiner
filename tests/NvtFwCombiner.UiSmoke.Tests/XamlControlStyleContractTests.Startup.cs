@@ -144,6 +144,9 @@ public sealed partial class XamlControlStyleContractTests
         string buttonStyles = ReadPresentationFile("Styles/MainWindowButtonStyles.axaml");
         string windowStyles = ReadPresentationFile("Styles/MainWindowStyles.axaml");
         string semanticAction = ExtractStyle(buttonStyles, "Button.semanticAction");
+        string semanticActionDisabled = ExtractStyle(
+            buttonStyles,
+            "Button.semanticAction:disabled");
         string semanticActionFocus = ExtractStyle(
             buttonStyles,
             "Button.semanticAction:focus-visible /template/ ContentPresenter#PART_ContentPresenter");
@@ -157,6 +160,12 @@ public sealed partial class XamlControlStyleContractTests
         string secondaryDisabled = ExtractStyle(
             buttonStyles,
             "Button.secondary:disabled /template/ ContentPresenter#PART_ContentPresenter");
+        string dangerHover = ExtractStyle(
+            buttonStyles,
+            "Button.danger:pointerover /template/ ContentPresenter#PART_ContentPresenter");
+        string dangerPressed = ExtractStyle(
+            buttonStyles,
+            "Button.danger:pressed /template/ ContentPresenter#PART_ContentPresenter");
         string navigation = ExtractStyle(windowStyles, "ToggleButton.nav");
         string navigationPresenter = ExtractStyle(
             windowStyles,
@@ -279,6 +288,7 @@ public sealed partial class XamlControlStyleContractTests
         Assert.Contains("BorderThickness\" Value=\"1\"", semanticAction, StringComparison.Ordinal);
         Assert.Contains("NfcFontSize13", semanticAction, StringComparison.Ordinal);
         Assert.Contains("FocusAdorner\" Value=\"{x:Null}\"", semanticAction, StringComparison.Ordinal);
+        Assert.Contains("Opacity\" Value=\"1\"", semanticActionDisabled, StringComparison.Ordinal);
         Assert.Equal("{DynamicResource NfcPillCornerRadius}", (string?)semanticButtonPresenter.Attribute("CornerRadius"));
         Assert.Contains("BorderThickness\" Value=\"2\"", semanticActionFocus, StringComparison.Ordinal);
         Assert.Contains("NfcAccentBorderStrongBrush", semanticActionFocus, StringComparison.Ordinal);
@@ -290,6 +300,20 @@ public sealed partial class XamlControlStyleContractTests
         Assert.Contains("NfcSurfaceSubtleBrush", secondaryDisabled, StringComparison.Ordinal);
         Assert.Contains("NfcBorderMutedBrush", secondaryDisabled, StringComparison.Ordinal);
         Assert.Contains("BorderThickness\" Value=\"1\"", secondaryDisabled, StringComparison.Ordinal);
+        Assert.Contains("NfcDangerSurfaceMutedBrush", dangerHover, StringComparison.Ordinal);
+        Assert.Contains("NfcDangerBorderStrongBrush", dangerHover, StringComparison.Ordinal);
+        Assert.Contains("NfcCriticalSurfaceBrush", dangerPressed, StringComparison.Ordinal);
+        Assert.Contains("NfcCriticalBorderBrush", dangerPressed, StringComparison.Ordinal);
+        Assert.True(
+            buttonStyles.IndexOf("Button.danger:pointerover", StringComparison.Ordinal) >
+            buttonStyles.IndexOf("Button.iconButton:pointerover", StringComparison.Ordinal));
+        Assert.All(
+            ReadPresentationXamlFiles()
+                .Select(XDocument.Parse)
+                .SelectMany(document => document.Descendants())
+                .Where(element => ((string?)element.Attribute("Classes") ?? string.Empty)
+                    .Contains("danger", StringComparison.Ordinal)),
+            button => Assert.Contains("semanticAction", (string?)button.Attribute("Classes")));
         Assert.Contains("FocusAdorner\" Value=\"{x:Null}\"", navigation, StringComparison.Ordinal);
         Assert.Contains("NfcPillCornerRadius", navigationPresenter, StringComparison.Ordinal);
         Assert.Contains("NfcTextSecondaryBrush", navigationPresenter, StringComparison.Ordinal);

@@ -6,9 +6,18 @@
     { "name": "framework-initialization.started", "elapsedMilliseconds": 4, "deltaMilliseconds": 1, "allocatedBytesSinceManagedEntry": 30, "allocationDeltaBytes": 10 },
     { "name": "main-window.assigned", "elapsedMilliseconds": 7, "deltaMilliseconds": 3, "allocatedBytesSinceManagedEntry": 40, "allocationDeltaBytes": 10 },
     { "name": "main-window.opened", "elapsedMilliseconds": 8, "deltaMilliseconds": 1, "allocatedBytesSinceManagedEntry": 50, "allocationDeltaBytes": 10 },
-    { "name": "startup-warmup.merge.started", "elapsedMilliseconds": 9, "deltaMilliseconds": 1, "allocatedBytesSinceManagedEntry": 60, "allocationDeltaBytes": 10 },
-    { "name": "startup-warmup.merge.ready", "elapsedMilliseconds": 12, "deltaMilliseconds": 3, "allocatedBytesSinceManagedEntry": 70, "allocationDeltaBytes": 10 },
-    { "name": "startup-warmup.completed", "elapsedMilliseconds": 13, "deltaMilliseconds": 1, "allocatedBytesSinceManagedEntry": 80, "allocationDeltaBytes": 10 }
+    { "name": "startup-warmup.catalog-state.applied", "elapsedMilliseconds": 9, "deltaMilliseconds": 1, "allocatedBytesSinceManagedEntry": 60, "allocationDeltaBytes": 10 },
+    { "name": "startup-warmup.device-context.started", "elapsedMilliseconds": 10, "deltaMilliseconds": 1, "allocatedBytesSinceManagedEntry": 70, "allocationDeltaBytes": 10 },
+    { "name": "startup-warmup.device-context.ready", "elapsedMilliseconds": 11, "deltaMilliseconds": 1, "allocatedBytesSinceManagedEntry": 80, "allocationDeltaBytes": 10 },
+    { "name": "startup-warmup.replace-view.started", "elapsedMilliseconds": 12, "deltaMilliseconds": 1, "allocatedBytesSinceManagedEntry": 90, "allocationDeltaBytes": 10 },
+    { "name": "startup-warmup.replace-view.ready", "elapsedMilliseconds": 13, "deltaMilliseconds": 1, "allocatedBytesSinceManagedEntry": 100, "allocationDeltaBytes": 10 },
+    { "name": "startup-warmup.merge-view.started", "elapsedMilliseconds": 14, "deltaMilliseconds": 1, "allocatedBytesSinceManagedEntry": 110, "allocationDeltaBytes": 10 },
+    { "name": "startup-warmup.merge-view.ready", "elapsedMilliseconds": 15, "deltaMilliseconds": 1, "allocatedBytesSinceManagedEntry": 120, "allocationDeltaBytes": 10 },
+    { "name": "startup-warmup.settings-view.started", "elapsedMilliseconds": 16, "deltaMilliseconds": 1, "allocatedBytesSinceManagedEntry": 130, "allocationDeltaBytes": 10 },
+    { "name": "startup-warmup.settings-view.ready", "elapsedMilliseconds": 17, "deltaMilliseconds": 1, "allocatedBytesSinceManagedEntry": 140, "allocationDeltaBytes": 10 },
+    { "name": "startup-warmup.hex-editor-view.started", "elapsedMilliseconds": 18, "deltaMilliseconds": 1, "allocatedBytesSinceManagedEntry": 150, "allocationDeltaBytes": 10 },
+    { "name": "startup-warmup.hex-editor-view.ready", "elapsedMilliseconds": 19, "deltaMilliseconds": 1, "allocatedBytesSinceManagedEntry": 160, "allocationDeltaBytes": 10 },
+    { "name": "startup-warmup.completed", "elapsedMilliseconds": 20, "deltaMilliseconds": 1, "allocatedBytesSinceManagedEntry": 170, "allocationDeltaBytes": 10 }
   ],
   "preloadStages": [
     { "id": "canonical-catalog", "state": "Succeeded", "completedWork": null, "totalWork": null },

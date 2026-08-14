@@ -129,7 +129,7 @@
       <Button
           Grid.Column="4"
           AutomationProperties.Name="{Binding RemoveMappingTooltip, ElementName=Root}"
-          Classes="semanticAction iconButton dangerIcon"
+          Classes="semanticAction iconButton danger"
           Click="RemoveButton_OnClick"
           ToolTip.Tip="{Binding RemoveMappingTooltip, ElementName=Root}">
         <TextBlock FontSize="{DynamicResource NfcFontSize13}" Text="X" />

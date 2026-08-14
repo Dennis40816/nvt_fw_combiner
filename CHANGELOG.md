@@ -13,10 +13,12 @@ tracked below. No stable `v0.10.5` package or tag has been published yet.
 
 This support-neutral release implements one observable, cancellable,
 bounded, and user-controllable preload lifecycle while retaining typed catalog,
-report, diagnostics, inspection, and external-runtime semantic owners. This
-section records the completed implementation and exact PL-00 candidate. The
-controlled startup remeasurement and five-minute CI gate are complete;
-screen-reader review and release approval remain open.
+report, diagnostics, inspection, and external-runtime semantic owners. The
+implementation is complete and PL-00 release-candidate validation is in
+progress. Ancestor-package observations remain supporting performance evidence,
+but the frozen reviewed tree must refresh its package, measurement, provenance,
+and two exact-head CI attempts. Screen-reader review and release approval also
+remain open.
 
 ### Product changes
 
@@ -59,12 +61,13 @@ screen-reader review and release approval remain open.
 - Compatibility: firmware bytes/hashes/names, report wire and history schema,
   profiles/schemas, CLI behavior, Saved Rules, settings, and processor protocols
   remain compatible.
-- Verification: PL-01 through PL-07 and the PL-00 candidate passed exact
-  behavioral, architecture, accessibility automation, performance, code-size,
-  verifier, Golden 17/17, package, and CI gates.
-- Limitations: stable publication remains under PL-00 until the recorded
-  screen-reader and release-owner gates complete; no aggregate cross-stage
-  percentage or Build/Preview run-progress replacement is introduced.
+- Verification: PL-01 through PL-07 passed their behavioral, architecture,
+  accessibility automation, code-size, verifier, and Golden 17/17 gates.
+  Supporting ancestor packages met the performance target, but PL-00 must repeat
+  package, performance, provenance, and two same-SHA CI gates on the frozen tree.
+- Limitations: stable publication remains under PL-00 until those repeat gates,
+  screen-reader review, and release-owner approval complete; no aggregate cross-
+  stage percentage or Build/Preview run-progress replacement is introduced.
 
 #### Bounded local report and history input
 
@@ -276,8 +279,8 @@ screen-reader review and release approval remain open.
 - Privacy and failure behavior: lifecycle evidence excludes titles, diagnostics,
   paths, report content, and firmware facts; duplicate, non-terminal, inconsistent,
   or incomplete successful work records fail the measurement.
-- Code size: 260 physical nonblank production lines are removed and 330 added,
-  net +70. Full production changes from 98,074 to 98,144 under the named
+- Code size: 295 physical nonblank production lines are removed and 358 added,
+  net +63. Full production changes from 98,074 to 98,137 under the named
   2026-08-14 semantic-control owner amendment; runtime still descends from
   67,997 to 67,981 = 20,619 / 29,555 / 3,074 / 14,733. The runtime reduction
   removes redundant private array aliases from immutable Application classes
@@ -285,7 +288,8 @@ screen-reader review and release approval remain open.
   The non-transferable Presentation increase closes framework-default leakage
   across normal, hover, pressed, keyboard-focus, and disabled semantic-button
   and shell-navigation states, including the startup-completion Home focus, and
-  preserves CtrlRAM inspection projection during relocalization.
+  preserves CtrlRAM inspection projection during relocalization. One shared
+  semantic disabled-state owner replaces four identical role-local opacity rules.
 - Verification: focused trace serialization and Architecture contract tests,
   structure validation, scoped R2/Polytail review, canonical verifier, package
   measurement, exact-head CI, and clean-package accessibility gates apply.
@@ -325,9 +329,10 @@ write-range enforcement.
   adapter's synchronous pre-await admission on the startup thread. Exact
   replacement candidate `7e7a31b` schedules that same canonical read before host
   construction and still awaits it before the window; two independent one-warmup
-  plus five-run observations measured 631.132 ms and 634.589 ms, so the absolute
-  700 ms gate is now accepted for the exact package. All five preload stages were
-  unique, terminal, and `Succeeded` in both observations.
+  plus five-run observations measured 631.132 ms and 634.589 ms. Those results
+  met the 700 ms target for that ancestor package, but they do not close the gate
+  for a later reviewed tree. All five preload stages were unique, terminal, and
+  `Succeeded` in both supporting observations.
 
 ### Known issues
 

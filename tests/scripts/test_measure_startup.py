@@ -75,6 +75,23 @@ $result | ConvertTo-Json -Depth 12 -Compress
                     normalize_console_output(invalid.stdout + invalid.stderr),
                 )
 
+    def test_release_mode_accepts_only_the_exact_home_workload(self) -> None:
+        valid = self.run_contract(
+            "Assert-ReleaseStartupPage -Required $true -StartupPage 'home'"
+        )
+        self.assertEqual(0, valid.returncode, valid.stdout + valid.stderr)
+
+        for page in ("settings", "merge", "replace", "hex-editor", "HOME"):
+            with self.subTest(page=page):
+                invalid = self.run_contract(
+                    f"Assert-ReleaseStartupPage -Required $true -StartupPage '{page}'"
+                )
+                self.assertNotEqual(0, invalid.returncode)
+                self.assertIn(
+                    "exact lowercase 'home' startup page",
+                    normalize_console_output(invalid.stdout + invalid.stderr),
+                )
+
     def test_powershell_error_rendering_is_normalized(self) -> None:
         rendered = "\x1b[31;1mfive scored\x1b[0m\n\x1b[31;1m | launches\x1b[0m"
         self.assertEqual("five scored launches", normalize_console_output(rendered))
@@ -102,8 +119,9 @@ $result | ConvertTo-Json -Depth 12 -Compress
             5, candidate_sample["uiThreadWork"]["firstFrame"]["totalMilliseconds"]
         )
         self.assertEqual(
-            3, candidate_sample["uiThreadWork"]["background"]["totalMilliseconds"]
+            5, candidate_sample["uiThreadWork"]["background"]["totalMilliseconds"]
         )
+        self.assertEqual(1, candidate_sample["catalogReadyAfterWindowMilliseconds"])
 
     def test_release_lifecycle_rejects_missing_nonterminal_and_invalid_work(
         self,
@@ -139,6 +157,70 @@ $result | ConvertTo-Json -Depth 12 -Compress
             "duplicate-stage": lambda trace: trace["preloadStages"].insert(
                 1, trace["preloadStages"][0].copy()
             ),
+            "extra-startup-report": lambda trace: trace["preloadStages"].insert(
+                2,
+                {
+                    "id": "startup-report",
+                    "state": "Succeeded",
+                    "completedWork": None,
+                    "totalWork": None,
+                },
+            ),
+            "failed-stage": lambda trace: trace["preloadStages"][1].update(
+                state="Failed"
+            ),
+            "skipped-stage": lambda trace: trace["preloadStages"][1].update(
+                state="Skipped"
+            ),
+            "cancelled-stage": lambda trace: trace["preloadStages"][1].update(
+                state="Cancelled"
+            ),
+            "dependency-blocked-stage": lambda trace: trace["preloadStages"][1].update(
+                state="DependencyBlocked"
+            ),
+            "missing-deferred-work": lambda trace: trace["preloadStages"][4].update(
+                completedWork=None, totalWork=None
+            ),
+            "zero-deferred-work": lambda trace: trace["preloadStages"][4].update(
+                completedWork=0, totalWork=0
+            ),
+            "incorrect-deferred-work": lambda trace: trace["preloadStages"][4].update(
+                completedWork=4, totalWork=4
+            ),
+            "missing-catalog-ready": lambda trace: trace["stages"].__setitem__(
+                slice(None),
+                [
+                    stage
+                    for stage in trace["stages"]
+                    if stage["name"] != "startup-warmup.catalog-state.applied"
+                ],
+            ),
+            "missing-deferred-pair": lambda trace: trace["stages"].__setitem__(
+                slice(None),
+                [
+                    stage
+                    for stage in trace["stages"]
+                    if not stage["name"].startswith("startup-warmup.settings-view.")
+                ],
+            ),
+            "duplicate-opened": lambda trace: trace["stages"].insert(
+                5, trace["stages"][4].copy()
+            ),
+            "duplicate-completed": lambda trace: trace["stages"].append(
+                trace["stages"][-1].copy()
+            ),
+            "nonfinite-catalog-ready": lambda trace: trace["stages"][5].update(
+                elapsedMilliseconds="NaN"
+            ),
+            "negative-opened": lambda trace: trace["stages"][4].update(
+                elapsedMilliseconds=-1
+            ),
+            "reversed-catalog-ready": lambda trace: trace["stages"][5].update(
+                elapsedMilliseconds=7
+            ),
+            "nonfinite-deferred-ready": lambda trace: trace["stages"][7].update(
+                elapsedMilliseconds="Infinity"
+            ),
         }
         with tempfile.TemporaryDirectory(prefix="nfc-startup-fixture-") as temporary:
             temporary_path = Path(temporary)
@@ -161,6 +243,29 @@ $result | ConvertTo-Json -Depth 12 -Compress
         self.assertNotEqual(0, result.returncode)
         self.assertIn(
             "required preload lifecycle evidence", result.stdout + result.stderr
+        )
+
+    def test_measurement_output_records_whether_release_admission_ran(self) -> None:
+        standard = self.run_contract(
+            "New-StartupMeasurementValidation -Required $false | ConvertTo-Json -Compress"
+        )
+        release = self.run_contract(
+            "New-StartupMeasurementValidation -Required $true | ConvertTo-Json -Compress"
+        )
+
+        self.assertEqual(0, standard.returncode, standard.stdout + standard.stderr)
+        self.assertEqual(0, release.returncode, release.stdout + release.stderr)
+        self.assertEqual(
+            {"mode": "standard", "releaseAdmissionPassed": False},
+            json.loads(standard.stdout),
+        )
+        self.assertEqual(
+            {"mode": "preload-release", "releaseAdmissionPassed": True},
+            json.loads(release.stdout),
+        )
+        self.assertIn(
+            "validation = New-StartupMeasurementValidation",
+            MEASUREMENT_SCRIPT.read_text(encoding="utf-8"),
         )
 
 

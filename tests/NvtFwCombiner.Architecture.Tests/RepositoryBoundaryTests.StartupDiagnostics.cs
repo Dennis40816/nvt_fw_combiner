@@ -72,7 +72,18 @@ public sealed partial class RepositoryBoundaryTests
         Assert.Contains("peakPrivateBytes", runner, StringComparison.Ordinal);
         Assert.Contains("RequirePreloadLifecycle", runner, StringComparison.Ordinal);
         Assert.Contains("Assert-ReleaseSampleCounts", runner, StringComparison.Ordinal);
+        Assert.Contains("Assert-ReleaseStartupPage", runner, StringComparison.Ordinal);
+        Assert.Contains("New-StartupMeasurementValidation", runner, StringComparison.Ordinal);
+        Assert.Contains("ConvertTo-ValidatedElapsedMilliseconds", runner, StringComparison.Ordinal);
+        Assert.Contains("releaseAdmissionPassed", runner, StringComparison.Ordinal);
+        Assert.Contains("exact lowercase 'home' startup page", runner, StringComparison.Ordinal);
         Assert.Contains("complete ordered preload stage set", runner, StringComparison.Ordinal);
+        Assert.Contains("startup-warmup.catalog-state.applied", runner, StringComparison.Ordinal);
+        Assert.Contains("startup-warmup.device-context.started", runner, StringComparison.Ordinal);
+        Assert.Contains("startup-warmup.replace-view.started", runner, StringComparison.Ordinal);
+        Assert.Contains("startup-warmup.merge-view.started", runner, StringComparison.Ordinal);
+        Assert.Contains("startup-warmup.settings-view.started", runner, StringComparison.Ordinal);
+        Assert.Contains("startup-warmup.hex-editor-view.started", runner, StringComparison.Ordinal);
         Assert.Contains("preloadLifecycle", runner, StringComparison.Ordinal);
         Assert.Contains("$stages = @(", runner, StringComparison.Ordinal);
         Assert.Contains("if ($null -ne $parsedTrace)", runner, StringComparison.Ordinal);
@@ -202,9 +213,9 @@ public sealed partial class RepositoryBoundaryTests
         Assert.Contains("950 gross removed and 949", baseline, StringComparison.Ordinal);
         Assert.Contains("98,075 to 98,074", baseline, StringComparison.Ordinal);
         Assert.Contains("68,016 to 67,997", baseline, StringComparison.Ordinal);
-        Assert.Contains("260 gross removed and 330", baseline, StringComparison.Ordinal);
-        Assert.Contains("98,074 to 98,144", baseline, StringComparison.Ordinal);
-        Assert.Contains("full_production_ratchet=98_144", codeSizePolicy, StringComparison.Ordinal);
+        Assert.Contains("295 gross removed and 358", baseline, StringComparison.Ordinal);
+        Assert.Contains("98,074 to 98,137", baseline, StringComparison.Ordinal);
+        Assert.Contains("full_production_ratchet=98_137", codeSizePolicy, StringComparison.Ordinal);
         Assert.Contains("runtime_production_ratchet=67_981", codeSizePolicy, StringComparison.Ordinal);
         Assert.Contains("application_ratchet=29_555", codeSizePolicy, StringComparison.Ordinal);
         Assert.Contains("bootstrap_cli_ratchet=3_074", codeSizePolicy, StringComparison.Ordinal);
@@ -214,9 +225,14 @@ public sealed partial class RepositoryBoundaryTests
             CountOccurrences(changelog, "#### Message Center, report, and System Information readability"));
         Assert.DoesNotContain("#### Message Center report and System Information readability", changelog, StringComparison.Ordinal);
         Assert.DoesNotContain("#### Message Center and report readability", changelog, StringComparison.Ordinal);
-        Assert.Contains("controlled startup remeasurement and five-minute CI gate are complete", changelog, StringComparison.Ordinal);
+        Assert.Contains("PL-00 release-candidate validation is in", changelog, StringComparison.Ordinal);
+        Assert.Contains("Historical PL-00 candidate evidence (superseded for release admission)", baseline, StringComparison.Ordinal);
+        Assert.Contains("validation.releaseAdmissionPassed=true", baseline, StringComparison.Ordinal);
+        Assert.Contains("Windows 11 Enterprise", baseline, StringComparison.Ordinal);
+        Assert.Contains("Implementation complete; PL-00 release-candidate validation in progress", specification, StringComparison.Ordinal);
         Assert.Contains("631.132 ms and 634.589 ms", changelog, StringComparison.Ordinal);
-        Assert.Contains("screen-reader review and release approval", changelog, StringComparison.Ordinal);
+        Assert.Contains("Screen-reader review", changelog, StringComparison.Ordinal);
+        Assert.Contains("release approval", changelog, StringComparison.Ordinal);
         Assert.Contains("777.090 ms", baseline, StringComparison.Ordinal);
         Assert.Contains("806.930 ms", baseline, StringComparison.Ordinal);
         Assert.Contains("782.368 ms", baseline, StringComparison.Ordinal);
@@ -235,7 +251,7 @@ public sealed partial class RepositoryBoundaryTests
                      ("PL-05 #377", "`ExternalProcessorFactory.cs:23-143,155-219` (exactly 170 nonblank owner lines); callers/wiring retained or migrated at `RuntimeDependencyReadinessLeaseProvider.cs:6-16` and `CompositionHostServices.cs:36-64`", 170, 145, -25),
                      ("PL-06 #378", "`FirmwareInspectionSession.cs:8-163`; `BuiltInFirmwareInspection.cs:19,470-537`; `BuiltInFirmwareInspection.FileIdentity.cs:19-74`", 220, 190, -30),
                      ("PL-07 #379", "`WorkflowSessionPresentationViewModel.FirmwareInspection.cs:8-11,126-211,341-539`; `MergePresentationViewModel.General.cs:14,66-115`; `ReplacePresentationViewModel.General.cs:16,93-157` (375 nonblank candidate lines before retained result application is separated)", 250, 220, -30),
-                      ("PL-00 #380", "`StartupTraceFileSink.cs`; `StartupTraceSession.cs`; `MainWindow.axaml.cs`; `ShellTextResources`; shared button/navigation roles; CtrlRAM relocalization; immutable Application DTO backing-field aliases; `scripts/measure-startup.ps1`", 260, 330, 70),
+                      ("PL-00 #380", "`StartupTraceFileSink.cs`; `StartupTraceSession.cs`; `MainWindow.axaml.cs`; `ShellTextResources`; shared button/navigation roles; CtrlRAM relocalization; immutable Application DTO backing-field aliases; `scripts/measure-startup.ps1`", 295, 358, 63),
                  ];
         foreach ((string ticket, string anchors, int gross, int added, int net) in ticketRows)
         {

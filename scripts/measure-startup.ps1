@@ -37,6 +37,26 @@ function Assert-ReleaseSampleCounts {
     }
 }
 
+function Assert-ReleaseStartupPage {
+    param(
+        [Parameter(Mandatory = $true)][bool]$Required,
+        [Parameter(Mandatory = $true)][string]$StartupPage
+    )
+
+    if ($Required -and -not [StringComparer]::Ordinal.Equals($StartupPage, 'home')) {
+        throw "Release preload evidence requires the exact lowercase 'home' startup page."
+    }
+}
+
+function New-StartupMeasurementValidation {
+    param([Parameter(Mandatory = $true)][bool]$Required)
+
+    return [pscustomobject][ordered]@{
+        mode = if ($Required) { 'preload-release' } else { 'standard' }
+        releaseAdmissionPassed = $Required
+    }
+}
+
 function Test-OrdinalValue {
     param(
         [AllowNull()][string]$Value,
@@ -131,6 +151,24 @@ function Get-TraceStage {
     return $matches[0]
 }
 
+function ConvertTo-ValidatedElapsedMilliseconds {
+    param(
+        [AllowNull()]$Value,
+        [Parameter(Mandatory = $true)][string]$StageName
+    )
+
+    try {
+        $number = [Convert]::ToDouble($Value, [Globalization.CultureInfo]::InvariantCulture)
+    }
+    catch {
+        throw "Startup trace contains invalid elapsed time for '$StageName'."
+    }
+    if (-not [double]::IsFinite($number) -or $number -lt 0) {
+        throw "Startup trace contains invalid elapsed time for '$StageName'."
+    }
+    return $number
+}
+
 function New-UiThreadWorkInterval {
     param(
         [Parameter(Mandatory = $true)]$Trace,
@@ -141,7 +179,11 @@ function New-UiThreadWorkInterval {
 
     $start = Get-TraceStage -Trace $Trace -Name $StartStage
     $end = Get-TraceStage -Trace $Trace -Name $EndStage
-    $milliseconds = [double]$end.elapsedMilliseconds - [double]$start.elapsedMilliseconds
+    $startElapsed = ConvertTo-ValidatedElapsedMilliseconds `
+        -Value $start.elapsedMilliseconds -StageName $StartStage
+    $endElapsed = ConvertTo-ValidatedElapsedMilliseconds `
+        -Value $end.elapsedMilliseconds -StageName $EndStage
+    $milliseconds = $endElapsed - $startElapsed
     if ($milliseconds -lt 0) {
         throw "Startup trace UI-thread interval '$Name' has reversed stages."
     }
@@ -155,7 +197,10 @@ function New-UiThreadWorkInterval {
 }
 
 function Get-UiThreadWorkSummary {
-    param([Parameter(Mandatory = $true)]$Trace)
+    param(
+        [Parameter(Mandatory = $true)]$Trace,
+        [Parameter(Mandatory = $true)][bool]$RequireLifecycle
+    )
 
     $firstFrameIntervals = @(
         New-UiThreadWorkInterval `
@@ -179,6 +224,20 @@ function Get-UiThreadWorkSummary {
     )
     if ($backgroundStartStages.Count -eq 0) {
         throw 'Startup trace has no background UI materialization intervals.'
+    }
+
+    if ($RequireLifecycle) {
+        $expectedStarts = @(
+            'startup-warmup.device-context.started'
+            'startup-warmup.replace-view.started'
+            'startup-warmup.merge-view.started'
+            'startup-warmup.settings-view.started'
+            'startup-warmup.hex-editor-view.started'
+        )
+        $actualStarts = @($backgroundStartStages | ForEach-Object { [string]$_.name })
+        if (-not (Test-OrdinalSequence -Actual $actualStarts -Expected $expectedStarts)) {
+            throw 'Release startup trace does not contain all five ordered deferred-view intervals.'
+        }
     }
 
     $backgroundIntervals = @(
@@ -235,13 +294,9 @@ function Get-PreloadLifecycleEvidence {
 
     if ($Required) {
         $actualIds = @($stages | ForEach-Object { [string]$_.id })
-        $hasStartupReport = $actualIds | Where-Object {
-            [StringComparer]::Ordinal.Equals($_, 'startup-report')
-        }
         $expectedIds = @(
             'canonical-catalog'
             'report-history'
-            if ($hasStartupReport) { 'startup-report' }
             'system-diagnostics'
             'external-environment'
             'deferred-views'
@@ -262,11 +317,14 @@ function Get-PreloadLifecycleEvidence {
             $total = ConvertTo-ValidatedWorkCount -Value $stage.totalWork -StageId $id
             if ([string]::IsNullOrWhiteSpace($id) -or -not $ids.Add($id) -or
                 -not (Test-OrdinalValue -Value $state -Allowed $terminalStates) -or
+                ($Required -and -not [StringComparer]::Ordinal.Equals($state, 'Succeeded')) -or
                 (($null -eq $completed) -ne ($null -eq $total)) -or
                 ($null -ne $completed -and ($completed -lt 0 -or $total -lt 0 -or
                     $completed -gt $total -or
                     ([StringComparer]::Ordinal.Equals($state, 'Succeeded') -and
-                        $completed -ne $total)))) {
+                        $completed -ne $total))) -or
+                ($Required -and [StringComparer]::Ordinal.Equals($id, 'deferred-views') -and
+                    ($completed -ne 5 -or $total -ne 5))) {
                 throw "Startup trace contains invalid preload lifecycle evidence for '$id'."
             }
             [pscustomobject][ordered]@{
@@ -304,18 +362,38 @@ function New-StartupSampleEvidence {
         @($Trace.stages).Count -eq 0) {
         throw 'The application wrote an unsupported or empty startup trace.'
     }
+    $preloadLifecycle = Get-PreloadLifecycleEvidence -Trace $Trace -Required $RequireLifecycle
+    $catalogReadyAfterWindow = $null
+    if ($RequireLifecycle) {
+        $opened = Get-TraceStage -Trace $Trace -Name 'main-window.opened'
+        $catalogReady = Get-TraceStage -Trace $Trace -Name 'startup-warmup.catalog-state.applied'
+        $completed = Get-TraceStage -Trace $Trace -Name 'startup-warmup.completed'
+        $openedElapsed = ConvertTo-ValidatedElapsedMilliseconds `
+            -Value $opened.elapsedMilliseconds -StageName 'main-window.opened'
+        $catalogElapsed = ConvertTo-ValidatedElapsedMilliseconds `
+            -Value $catalogReady.elapsedMilliseconds `
+            -StageName 'startup-warmup.catalog-state.applied'
+        $completedElapsed = ConvertTo-ValidatedElapsedMilliseconds `
+            -Value $completed.elapsedMilliseconds -StageName 'startup-warmup.completed'
+        if ($catalogElapsed -lt $openedElapsed -or $completedElapsed -lt $catalogElapsed) {
+            throw 'Release startup trace contains reversed catalog-ready lifecycle milestones.'
+        }
+        $catalogReadyAfterWindow = [Math]::Round($catalogElapsed - $openedElapsed, 3)
+    }
+
     return [ordered]@{
         processId = $ProcessId
         processToWindowMilliseconds = [Math]::Round($WindowMilliseconds, 3)
         processToTraceMilliseconds = [Math]::Round($TraceReadyMilliseconds, 3)
+        catalogReadyAfterWindowMilliseconds = $catalogReadyAfterWindow
         workingSetBytesAtWindow = $WorkingSetBytesAtWindow
         workingSetBytesAtTrace = $WorkingSetBytesAtTrace
         peakWorkingSetBytes = $PeakWorkingSetBytes
         privateBytesAtWindow = $PrivateBytesAtWindow
         privateBytesAtTrace = $PrivateBytesAtTrace
         peakPrivateBytes = $PeakPrivateBytes
-        uiThreadWork = Get-UiThreadWorkSummary -Trace $Trace
-        preloadLifecycle = Get-PreloadLifecycleEvidence -Trace $Trace -Required $RequireLifecycle
+        uiThreadWork = Get-UiThreadWorkSummary -Trace $Trace -RequireLifecycle $RequireLifecycle
+        preloadLifecycle = $preloadLifecycle
         trace = $Trace
     }
 }
@@ -425,6 +503,9 @@ Assert-ReleaseSampleCounts `
     -Required $RequirePreloadLifecycle.IsPresent `
     -Warmups $WarmupRuns `
     -ScoredRuns $Runs
+Assert-ReleaseStartupPage `
+    -Required $RequirePreloadLifecycle.IsPresent `
+    -StartupPage $Page
 
 $application = (Resolve-Path -LiteralPath $ApplicationPath -ErrorAction Stop).Path
 if (-not (Test-Path -LiteralPath $application -PathType Leaf)) {
@@ -504,6 +585,7 @@ try {
 
     $result = [ordered]@{
         schemaVersion = 'nfc-startup-measurement-v3'
+        validation = New-StartupMeasurementValidation -Required $RequirePreloadLifecycle.IsPresent
         capturedUtc = [DateTimeOffset]::UtcNow.ToString('O')
         applicationPath = $application
         page = $Page
@@ -515,6 +597,12 @@ try {
         summary = [ordered]@{
             processToWindowMilliseconds = Get-MetricSummary @($samples.processToWindowMilliseconds)
             processToTraceMilliseconds = Get-MetricSummary @($samples.processToTraceMilliseconds)
+            firstWindowToCatalogReadyMilliseconds = if ($RequirePreloadLifecycle.IsPresent) {
+                Get-MetricSummary @($samples.catalogReadyAfterWindowMilliseconds)
+            }
+            else {
+                $null
+            }
             workingSetBytesAtWindow = Get-MetricSummary @($samples.workingSetBytesAtWindow)
             workingSetBytesAtTrace = Get-MetricSummary @($samples.workingSetBytesAtTrace)
             peakWorkingSetBytes = Get-MetricSummary @($samples.peakWorkingSetBytes)
