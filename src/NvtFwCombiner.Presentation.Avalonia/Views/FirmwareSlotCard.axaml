@@ -144,7 +144,7 @@
         </StackPanel>
         <Button
             Grid.Column="1"
-            Classes="action browseAction"
+            Classes="semanticAction action browseAction"
             Click="BrowseButton_OnClick"
             Content="{Binding BrowseLabel, ElementName=Root}"
             IsEnabled="{Binding CanSelectFile}"

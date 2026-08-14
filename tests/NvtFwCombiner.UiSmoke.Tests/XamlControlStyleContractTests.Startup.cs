@@ -141,6 +141,24 @@ public sealed partial class XamlControlStyleContractTests
         string lifecycle = ReadPresentationFile("MainWindow.axaml.cs");
         string preloadSession = ReadPresentationFile("ShellPreloadSession.cs");
         string focusBehavior = ReadPresentationFile("Behaviors/FocusOnRevealBehavior.cs");
+        string buttonStyles = ReadPresentationFile("Styles/MainWindowButtonStyles.axaml");
+        string semanticAction = ExtractStyle(buttonStyles, "Button.semanticAction");
+        string semanticActionPresenter = ExtractStyle(
+            buttonStyles,
+            "Button.semanticAction /template/ ContentPresenter#PART_ContentPresenter");
+        string secondary = ExtractStyle(buttonStyles, "Button.secondary");
+        string secondaryHover = ExtractStyle(
+            buttonStyles,
+            "Button.secondary:pointerover /template/ ContentPresenter#PART_ContentPresenter");
+        string secondaryPressed = ExtractStyle(
+            buttonStyles,
+            "Button.secondary:pressed /template/ ContentPresenter#PART_ContentPresenter");
+        string secondaryFocus = ExtractStyle(
+            buttonStyles,
+            "Button.secondary:focus-visible /template/ ContentPresenter#PART_ContentPresenter");
+        string secondaryDisabled = ExtractStyle(
+            buttonStyles,
+            "Button.secondary:disabled /template/ ContentPresenter#PART_ContentPresenter");
         int openedStart = lifecycle.IndexOf(
             "protected override async void OnOpened",
             StringComparison.Ordinal);
@@ -206,8 +224,23 @@ public sealed partial class XamlControlStyleContractTests
         Assert.Contains("IsVisible=\"{Binding CanCancel}\"", status, StringComparison.Ordinal);
         Assert.Contains("Command=\"{Binding RetryCommand}\"", status, StringComparison.Ordinal);
         Assert.Contains("Command=\"{Binding CancelCommand}\"", status, StringComparison.Ordinal);
-        Assert.Equal("secondary", (string?)cancelButton.Attribute("Classes"));
-        Assert.Equal("primary", (string?)retryButton.Attribute("Classes"));
+        Assert.Equal("semanticAction secondary", (string?)cancelButton.Attribute("Classes"));
+        Assert.Equal("semanticAction primary", (string?)retryButton.Attribute("Classes"));
+        Assert.Contains("MinHeight\" Value=\"34\"", semanticAction, StringComparison.Ordinal);
+        Assert.Contains("HorizontalContentAlignment\" Value=\"Center\"", semanticAction, StringComparison.Ordinal);
+        Assert.Contains("VerticalContentAlignment\" Value=\"Center\"", semanticAction, StringComparison.Ordinal);
+        Assert.Contains("NfcFontSize13", semanticAction, StringComparison.Ordinal);
+        Assert.Contains("NfcPillCornerRadius", semanticActionPresenter, StringComparison.Ordinal);
+        Assert.Contains("NfcSurfaceBrush", secondary, StringComparison.Ordinal);
+        Assert.Contains("NfcAccentSurfaceSubtleBrush", secondaryHover, StringComparison.Ordinal);
+        Assert.Contains("NfcAccentBorderBrush", secondaryHover, StringComparison.Ordinal);
+        Assert.Contains("NfcAccentSurfaceBrush", secondaryPressed, StringComparison.Ordinal);
+        Assert.Contains("NfcAccentBorderStrongBrush", secondaryPressed, StringComparison.Ordinal);
+        Assert.Contains("BorderThickness\" Value=\"2\"", secondaryFocus, StringComparison.Ordinal);
+        Assert.Contains("NfcAccentBorderStrongBrush", secondaryFocus, StringComparison.Ordinal);
+        Assert.Contains("NfcSurfaceSubtleBrush", secondaryDisabled, StringComparison.Ordinal);
+        Assert.Contains("NfcBorderMutedBrush", secondaryDisabled, StringComparison.Ordinal);
+        Assert.Contains("BorderThickness\" Value=\"1\"", secondaryDisabled, StringComparison.Ordinal);
         Assert.Contains("behaviors:FocusOnRevealBehavior.IsEnabled=\"True\"", surface, StringComparison.Ordinal);
         Assert.Contains("Focusable=\"True\"", surface, StringComparison.Ordinal);
         Assert.Contains("AttachedToVisualTree += Control_OnAttachedToVisualTree", focusBehavior, StringComparison.Ordinal);
@@ -232,9 +265,22 @@ public sealed partial class XamlControlStyleContractTests
         Assert.Contains("Click=\"OptionalPreloadRetryButton_OnClick\"", shell, StringComparison.Ordinal);
         Assert.Contains("Click=\"OptionalPreloadSkipButton_OnClick\"", shell, StringComparison.Ordinal);
         Assert.Contains("Click=\"OptionalPreloadCancelButton_OnClick\"", shell, StringComparison.Ordinal);
-        Assert.Equal("secondary", (string?)optionalCancelButton.Attribute("Classes"));
-        Assert.Equal("secondary", (string?)optionalRetryButton.Attribute("Classes"));
-        Assert.Equal("secondary", (string?)optionalSkipButton.Attribute("Classes"));
+        Assert.Equal("semanticAction secondary", (string?)optionalCancelButton.Attribute("Classes"));
+        Assert.Equal("semanticAction secondary", (string?)optionalRetryButton.Attribute("Classes"));
+        Assert.Equal("semanticAction secondary", (string?)optionalSkipButton.Attribute("Classes"));
+        string[] semanticRoles = ["secondary", "danger", "action", "primary", "iconButton"];
+        foreach (XElement button in ReadPresentationXamlFiles()
+                     .Select(XDocument.Parse)
+                     .SelectMany(document => document.Descendants())
+                     .Where(element => element.Name.LocalName == "Button"))
+        {
+            string[] classes = ((string?)button.Attribute("Classes") ?? string.Empty)
+                .Split(' ', StringSplitOptions.RemoveEmptyEntries);
+            if (classes.Any(semanticRoles.Contains))
+            {
+                Assert.Contains("semanticAction", classes);
+            }
+        }
         Assert.Contains("<Grid.KeyBindings>", shell, StringComparison.Ordinal);
         Assert.DoesNotContain("<Window.KeyBindings>", shell, StringComparison.Ordinal);
         Assert.Contains("_preloadLoading = new(RetryStartupPreloadAsync, CancelStartupAsync);", lifecycle, StringComparison.Ordinal);

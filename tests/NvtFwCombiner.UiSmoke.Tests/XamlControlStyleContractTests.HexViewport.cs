@@ -209,7 +209,7 @@ public sealed partial class XamlControlStyleContractTests
         Assert.Contains("ValueChanged=\"HexDocumentScrollBar_OnValueChanged\"", hexEditor, StringComparison.Ordinal);
         Assert.Contains("AutomationProperties.Name=\"{Binding Text.HexEditorDocumentScrollBarAutomationName}\"", hexEditor, StringComparison.Ordinal);
         Assert.Contains("AutomationProperties.AccessibilityView=\"Content\"", hexEditor, StringComparison.Ordinal);
-        Assert.Contains("Classes=\"iconButton hexGoToAddress\"", hexEditor, StringComparison.Ordinal);
+        Assert.Contains("Classes=\"semanticAction iconButton hexGoToAddress\"", hexEditor, StringComparison.Ordinal);
         Assert.Contains("ToolTip.Tip=\"{Binding Text.HexEditorGoToAddressLabel}\"", hexEditor, StringComparison.Ordinal);
         Assert.Contains("Command=\"{Binding FindAsciiCommand}\"", hexEditor, StringComparison.Ordinal);
         Assert.Contains("AutomationProperties.HelpText=\"{Binding SelectedByteAccessibleLabel}\"", hexEditor, StringComparison.Ordinal);
@@ -228,8 +228,8 @@ public sealed partial class XamlControlStyleContractTests
         Assert.Contains("Command=\"{Binding ApplyRangeEditCommand}\"", hexEditor, StringComparison.Ordinal);
         Assert.Contains("Classes=\"hexWriteModeToggle\"", hexEditor, StringComparison.Ordinal);
         Assert.Contains("Text=\"{Binding CurrentWriteModeLabel}\"", hexEditor, StringComparison.Ordinal);
-        Assert.Contains("Classes=\"iconButton hexInspectorAction\"", hexEditor, StringComparison.Ordinal);
-        Assert.Contains("Classes=\"primary hexApplyChange\"", hexEditor, StringComparison.Ordinal);
+        Assert.Contains("Classes=\"semanticAction iconButton hexInspectorAction\"", hexEditor, StringComparison.Ordinal);
+        Assert.Contains("Classes=\"semanticAction primary hexApplyChange\"", hexEditor, StringComparison.Ordinal);
         Assert.Contains("Content=\"{Binding ChangedBlockPage}\"", hexEditor, StringComparison.Ordinal);
         Assert.Contains("ContentTemplate=\"{StaticResource HexEditorChangedBlockPagerTemplate}\"", hexEditor, StringComparison.Ordinal);
         Assert.Contains("IsVisible=\"{Binding ChangedBlockPage.HasMultiplePages}\"", hexEditor, StringComparison.Ordinal);

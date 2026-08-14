@@ -17,7 +17,7 @@
         AutomationProperties.LiveSetting="Polite" />
     <Button
         Grid.Column="1"
-        Classes="secondary"
+        Classes="semanticAction secondary"
         Command="{Binding LoadMoreCommand}"
         Content="{Binding LoadMoreLabel}"
         AutomationProperties.Name="{Binding LoadMoreLabel}" />
@@ -27,7 +27,7 @@
 <DataTemplate x:Key="ReportWindowedPagerTemplate" DataType="vm:ReportWindowedListViewModel">
   <Grid Margin="0,8,0,0" ColumnDefinitions="Auto,*,Auto" ColumnSpacing="{DynamicResource NfcSpace8}">
     <Button
-        Classes="secondary"
+        Classes="semanticAction secondary"
         Command="{Binding PreviousPageCommand}"
         Content="{Binding PreviousPageLabel}"
         AutomationProperties.Name="{Binding PreviousPageLabel}" />
@@ -41,7 +41,7 @@
         AutomationProperties.LiveSetting="Polite" />
     <Button
         Grid.Column="2"
-        Classes="secondary"
+        Classes="semanticAction secondary"
         Command="{Binding NextPageCommand}"
         Content="{Binding NextPageLabel}"
         AutomationProperties.Name="{Binding NextPageLabel}" />

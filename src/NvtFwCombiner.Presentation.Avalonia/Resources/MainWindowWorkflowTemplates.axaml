@@ -115,7 +115,7 @@
               </StackPanel>
               <Button
                   Grid.Column="1"
-                  Classes="action"
+                  Classes="semanticAction action"
                   VerticalAlignment="Bottom"
                   Command="{Binding AddGeneralReplaceMappingCommand}"
                   Content="{Binding Text.AddRangeLabel}" />
@@ -205,7 +205,7 @@
             </StackPanel>
             <Button
                 Grid.Column="1"
-                Classes="action"
+                Classes="semanticAction action"
                 VerticalAlignment="Bottom"
                 Command="{Binding AddGeneralMergeMappingCommand}"
                 Content="{Binding Text.AddMappingLabel}" />

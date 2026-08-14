@@ -30,7 +30,7 @@ public sealed partial class XamlControlStyleContractTests
         Assert.Contains("IsVisible=\"{Binding Merge.IsAbAFlashCodeDeliveryPromptOpen}\"", shell, StringComparison.Ordinal);
         Assert.Contains("Command=\"{Binding AcceptAbAFlashCodeDeliveryPromptCommand}\"", prompt, StringComparison.Ordinal);
         Assert.Contains("Command=\"{Binding DeclineAbAFlashCodeDeliveryPromptCommand}\"", prompt, StringComparison.Ordinal);
-        Assert.Contains("Classes=\"danger\"", prompt, StringComparison.Ordinal);
+        Assert.Contains("Classes=\"semanticAction danger\"", prompt, StringComparison.Ordinal);
         Assert.Contains("PromptForAbAFlashCodeDeliveryAsync", buildCodeBehind, StringComparison.Ordinal);
         Assert.Contains("PickMergedFirmwareOutputPathAsync", buildCodeBehind, StringComparison.Ordinal);
         Assert.Contains("PickAbAFlashCodeOutputPathAsync", buildCodeBehind, StringComparison.Ordinal);

@@ -96,7 +96,7 @@
             Orientation="Horizontal"
             Spacing="{DynamicResource NfcSpace8}">
           <Button
-              Classes="secondary"
+              Classes="semanticAction secondary"
               Click="LoadReportJsonButton_OnClick"
               ToolTip.Tip="{Binding Text.LoadJsonTooltip}">
             <StackPanel Orientation="Horizontal" Spacing="7">
@@ -105,7 +105,7 @@
             </StackPanel>
           </Button>
           <Button
-              Classes="iconButton"
+              Classes="semanticAction iconButton"
               AutomationProperties.LiveSetting="Polite"
               AutomationProperties.Name="{Binding MessageCenter.MessageCenterAccessibleName}"
               Command="{Binding MessageCenter.OpenCommand}"
@@ -462,7 +462,7 @@
                       Text="{ReflectionBinding SummaryStage.ProgressLabel}" />
                   <Button
                       Grid.Column="4"
-                      Classes="secondary"
+                      Classes="semanticAction secondary"
                       Click="OptionalPreloadCancelButton_OnClick"
                       Content="{ReflectionBinding $parent[Window].DataContext.Text.CancelPreloadLabel}"
                       IsVisible="{ReflectionBinding CanCancelOptionals}" />
@@ -506,7 +506,7 @@
                       </StackPanel>
                       <Button
                           Grid.Column="4"
-                          Classes="secondary"
+                          Classes="semanticAction secondary"
                           AutomationProperties.Name="{ReflectionBinding RetryAccessibleLabel}"
                           Click="OptionalPreloadRetryButton_OnClick"
                           Content="{ReflectionBinding $parent[Window].DataContext.Text.RetryLabel}"
@@ -514,7 +514,7 @@
                           Tag="{ReflectionBinding Id}" />
                       <Button
                           Grid.Column="5"
-                          Classes="secondary"
+                          Classes="semanticAction secondary"
                           AutomationProperties.Name="{ReflectionBinding SkipAccessibleLabel}"
                           Click="OptionalPreloadSkipButton_OnClick"
                           Content="{ReflectionBinding $parent[Window].DataContext.Text.SkipPreloadLabel}"

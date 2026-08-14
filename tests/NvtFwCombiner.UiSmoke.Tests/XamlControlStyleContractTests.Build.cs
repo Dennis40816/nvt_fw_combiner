@@ -39,8 +39,8 @@ public sealed partial class XamlControlStyleContractTests
                 (string?)element.Attribute("Command"),
                 "{Binding AcceptFirmwareNumberMismatchCommand}",
                 StringComparison.Ordinal));
-        Assert.Equal("secondary", (string?)cancel.Attribute("Classes"));
-        Assert.Equal("primary", (string?)accept.Attribute("Classes"));
+        Assert.Equal("semanticAction secondary", (string?)cancel.Attribute("Classes"));
+        Assert.Equal("semanticAction primary", (string?)accept.Attribute("Classes"));
         Assert.NotNull(cancel.Attribute("AutomationProperties.Name"));
         Assert.NotNull(accept.Attribute("AutomationProperties.Name"));
         Assert.Null(cancel.Attribute("ToolTip.Tip"));

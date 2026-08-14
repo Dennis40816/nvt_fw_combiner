@@ -51,8 +51,8 @@
       </Border>
 
       <StackPanel Grid.Row="3" HorizontalAlignment="Right" Orientation="Horizontal" Spacing="{DynamicResource NfcSpace8}">
-        <Button Classes="secondary" Command="{Binding CancelWorkflowContextCommand}" Content="{Binding Text.CloseLabel}" />
-        <Button Classes="primary" Command="{Binding ConfirmWorkflowContextCommand}" Content="{Binding Text.OpenLabel}" />
+        <Button Classes="semanticAction secondary" Command="{Binding CancelWorkflowContextCommand}" Content="{Binding Text.CloseLabel}" />
+        <Button Classes="semanticAction primary" Command="{Binding ConfirmWorkflowContextCommand}" Content="{Binding Text.OpenLabel}" />
       </StackPanel>
     </Grid>
   </Border>

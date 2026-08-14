@@ -76,10 +76,7 @@ $result | ConvertTo-Json -Depth 12 -Compress
                 )
 
     def test_powershell_error_rendering_is_normalized(self) -> None:
-        rendered = (
-            "\x1b[31;1mfive scored\x1b[0m\n"
-            "\x1b[31;1m | launches\x1b[0m"
-        )
+        rendered = "\x1b[31;1mfive scored\x1b[0m\n\x1b[31;1m | launches\x1b[0m"
         self.assertEqual("five scored launches", normalize_console_output(rendered))
 
     def test_v2_and_complete_v3_fixtures_use_the_same_sample_projection(self) -> None:
@@ -114,11 +111,30 @@ $result | ConvertTo-Json -Depth 12 -Compress
         source = json.loads((FIXTURES / "trace-v3.json").read_text(encoding="utf-8"))
         variants = {
             "missing-stage": lambda trace: trace["preloadStages"].pop(3),
+            "mis-cased-schema": lambda trace: trace.update(
+                schemaVersion="NFC-STARTUP-TRACE-V3"
+            ),
+            "mis-cased-stage": lambda trace: trace["preloadStages"][0].update(
+                id="CANONICAL-CATALOG"
+            ),
+            "joined-stage-impersonation": lambda trace: (
+                trace["preloadStages"][0].update(id="canonical-catalog|report-history"),
+                trace["preloadStages"].pop(1),
+            ),
             "nonterminal-stage": lambda trace: trace["preloadStages"][2].update(
                 state="Running"
             ),
+            "mis-cased-state": lambda trace: trace["preloadStages"][2].update(
+                state="succeeded"
+            ),
             "incomplete-success": lambda trace: trace["preloadStages"][4].update(
                 completedWork=4
+            ),
+            "fractional-work": lambda trace: trace["preloadStages"][4].update(
+                completedWork=4.6
+            ),
+            "string-work": lambda trace: trace["preloadStages"][4].update(
+                completedWork="5"
             ),
             "duplicate-stage": lambda trace: trace["preloadStages"].insert(
                 1, trace["preloadStages"][0].copy()

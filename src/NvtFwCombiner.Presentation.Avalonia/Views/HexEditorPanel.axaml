@@ -20,13 +20,13 @@
             AutomationProperties.LiveSetting="Polite" />
         <Grid Grid.Row="1" ColumnDefinitions="*,*" ColumnSpacing="{DynamicResource NfcSpace8}">
           <Button
-              Classes="secondary"
+              Classes="semanticAction secondary"
               Command="{Binding PreviousPageCommand}"
               Content="{Binding PreviousPageLabel}"
               AutomationProperties.Name="{Binding PreviousPageLabel}" />
           <Button
               Grid.Column="1"
-              Classes="secondary"
+              Classes="semanticAction secondary"
               Command="{Binding NextPageCommand}"
               Content="{Binding NextPageLabel}"
               AutomationProperties.Name="{Binding NextPageLabel}" />
@@ -85,7 +85,7 @@
                   Classes="technicalValue"
                   IsVisible="{Binding HasDocument}"
                   Text="{Binding WorkingLengthLabel}" />
-              <Button Classes="primary" Click="OpenHexEditorSourceButton_OnClick" Content="{Binding Text.BrowseLabel}" />
+              <Button Classes="semanticAction primary" Click="OpenHexEditorSourceButton_OnClick" Content="{Binding Text.BrowseLabel}" />
             </StackPanel>
           </Grid>
         </Grid>
@@ -108,7 +108,7 @@
                 KeyDown="GoToAddressTextBox_OnKeyDown"
                 LostFocus="HexTextInput_OnLostFocus" />
             <Button
-                Classes="iconButton hexGoToAddress"
+                Classes="semanticAction iconButton hexGoToAddress"
                 Width="34"
                 Height="34"
                 Padding="0"
@@ -163,7 +163,7 @@
                 Padding="0"
                 HorizontalContentAlignment="Center"
                 VerticalContentAlignment="Center"
-                Classes="iconButton hexAsciiSearch"
+                Classes="semanticAction iconButton hexAsciiSearch"
                 AutomationProperties.Name="{Binding Text.HexEditorAsciiSearchLabel}"
                 Command="{Binding FindAsciiCommand}"
                 ToolTip.Tip="{Binding Text.HexEditorAsciiSearchLabel}">
@@ -266,7 +266,7 @@
                     Grid.Column="1"
                     Width="32"
                     Height="32"
-                    Classes="iconButton hexInspectorAction"
+                    Classes="semanticAction iconButton hexInspectorAction"
                     AutomationProperties.Name="{Binding Text.HexEditorUndoLabel}"
                     Command="{Binding UndoCommand}"
                     ToolTip.Tip="{Binding Text.HexEditorUndoTooltip}">
@@ -280,7 +280,7 @@
                     Grid.Column="2"
                     Width="32"
                     Height="32"
-                    Classes="iconButton hexInspectorAction"
+                    Classes="semanticAction iconButton hexInspectorAction"
                     AutomationProperties.Name="{Binding Text.HexEditorRedoLabel}"
                     Command="{Binding RedoCommand}"
                     ToolTip.Tip="{Binding Text.HexEditorRedoTooltip}">
@@ -294,7 +294,7 @@
                     Grid.Column="3"
                     Width="32"
                     Height="32"
-                    Classes="iconButton hexInspectorAction"
+                    Classes="semanticAction iconButton hexInspectorAction"
                     AutomationProperties.Name="{Binding Text.HexEditorSaveAsLabel}"
                     Command="{Binding RequestSaveCommand}"
                     ToolTip.Tip="{Binding Text.HexEditorSaveAsTooltip}">
@@ -370,7 +370,7 @@
               <Grid>
                 <Button
                     HorizontalAlignment="Right"
-                    Classes="primary hexApplyChange"
+                    Classes="semanticAction primary hexApplyChange"
                     Command="{Binding ApplyRangeEditCommand}"
                     Content="{Binding Text.HexEditorApplyChangeLabel}" />
               </Grid>

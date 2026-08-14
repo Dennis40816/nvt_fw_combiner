@@ -7,7 +7,7 @@
     <Grid RowDefinitions="Auto,*" RowSpacing="{DynamicResource NfcSpace4}">
       <Button
           Grid.Row="0"
-          Classes="iconButton codeBlockCopy"
+          Classes="semanticAction iconButton codeBlockCopy"
           HorizontalAlignment="Right"
           VerticalAlignment="Top"
           AutomationProperties.Name="{ReflectionBinding $parent[Window].DataContext.Text.CopyCommandTooltip}"

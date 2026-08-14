@@ -20,7 +20,7 @@
         </StackPanel>
         <Button
             Grid.Column="1"
-            Classes="iconButton"
+            Classes="semanticAction iconButton"
             Command="{Binding CloseReplaceSelectionCommand}"
             ToolTip.Tip="{Binding Text.CloseSelectionTooltip}">
           <TextBlock Text="×" />
@@ -66,11 +66,11 @@
 
       <StackPanel Grid.Row="3" HorizontalAlignment="Right" Orientation="Horizontal" Spacing="{DynamicResource NfcSpace8}">
         <Button
-            Classes="secondary"
+            Classes="semanticAction secondary"
             Command="{Binding CloseReplaceSelectionCommand}"
             Content="{Binding Text.CloseLabel}" />
         <Button
-            Classes="primary"
+            Classes="semanticAction primary"
             Click="BuildReplaceButton_OnClick"
             Content="{Binding Text.BuildActionLabel}"
             IsEnabled="{Binding CanBuildReplace}" />

@@ -120,7 +120,7 @@
       <Button
           Grid.Column="3"
           AutomationProperties.Name="{Binding SelectBinTooltip, ElementName=Root}"
-          Classes="action browseAction"
+          Classes="semanticAction action browseAction"
           Click="BrowseButton_OnClick"
           Content="{Binding BrowseLabel, ElementName=Root}"
           IsEnabled="{Binding CanSelectFile}"
@@ -129,7 +129,7 @@
       <Button
           Grid.Column="4"
           AutomationProperties.Name="{Binding RemoveMappingTooltip, ElementName=Root}"
-          Classes="iconButton dangerIcon"
+          Classes="semanticAction iconButton dangerIcon"
           Click="RemoveButton_OnClick"
           ToolTip.Tip="{Binding RemoveMappingTooltip, ElementName=Root}">
         <TextBlock FontSize="{DynamicResource NfcFontSize13}" Text="X" />

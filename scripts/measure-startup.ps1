@@ -37,6 +37,65 @@ function Assert-ReleaseSampleCounts {
     }
 }
 
+function Test-OrdinalValue {
+    param(
+        [AllowNull()][string]$Value,
+        [Parameter(Mandatory = $true)][string[]]$Allowed
+    )
+
+    foreach ($candidate in $Allowed) {
+        if ([StringComparer]::Ordinal.Equals($Value, $candidate)) {
+            return $true
+        }
+    }
+    return $false
+}
+
+function Test-OrdinalSequence {
+    param(
+        [Parameter(Mandatory = $true)][object[]]$Actual,
+        [Parameter(Mandatory = $true)][object[]]$Expected
+    )
+
+    if ($Actual.Count -ne $Expected.Count) {
+        return $false
+    }
+    for ($index = 0; $index -lt $Actual.Count; $index++) {
+        if (-not [StringComparer]::Ordinal.Equals(
+                [string]$Actual[$index],
+                [string]$Expected[$index])) {
+            return $false
+        }
+    }
+    return $true
+}
+
+function ConvertTo-ValidatedWorkCount {
+    param(
+        [AllowNull()]$Value,
+        [Parameter(Mandatory = $true)][string]$StageId
+    )
+
+    if ($null -eq $Value) {
+        return $null
+    }
+    if ($Value -is [string] -or $Value -is [bool] -or $Value -is [char] -or
+        $Value -isnot [IConvertible]) {
+        throw "Startup trace contains non-integral preload work for '$StageId'."
+    }
+    try {
+        $number = [Convert]::ToDecimal($Value, [Globalization.CultureInfo]::InvariantCulture)
+    }
+    catch {
+        throw "Startup trace contains non-integral preload work for '$StageId'."
+    }
+    if ($number -ne [Math]::Truncate($number) -or
+        $number -lt [long]::MinValue -or $number -gt [long]::MaxValue) {
+        throw "Startup trace contains non-integral preload work for '$StageId'."
+    }
+    return [long]$number
+}
+
 function Get-MetricSummary {
     param([Parameter(Mandatory = $true)][double[]]$Values)
 
@@ -62,7 +121,9 @@ function Get-TraceStage {
         [Parameter(Mandatory = $true)][string]$Name
     )
 
-    $matches = @($Trace.stages | Where-Object { $_.name -eq $Name })
+    $matches = @($Trace.stages | Where-Object {
+            [StringComparer]::Ordinal.Equals([string]$_.name, $Name)
+        })
     if ($matches.Count -ne 1) {
         throw "Startup trace must contain exactly one '$Name' stage."
     }
@@ -159,7 +220,9 @@ function Get-PreloadLifecycleEvidence {
     )
 
     $stages = @(
-        if ($Trace.schemaVersion -eq 'nfc-startup-trace-v3') {
+        if ([StringComparer]::Ordinal.Equals(
+                [string]$Trace.schemaVersion,
+                'nfc-startup-trace-v3')) {
             $Trace.preloadStages
         }
     )
@@ -171,15 +234,19 @@ function Get-PreloadLifecycleEvidence {
     }
 
     if ($Required) {
+        $actualIds = @($stages | ForEach-Object { [string]$_.id })
+        $hasStartupReport = $actualIds | Where-Object {
+            [StringComparer]::Ordinal.Equals($_, 'startup-report')
+        }
         $expectedIds = @(
             'canonical-catalog'
             'report-history'
-            if (@($stages.id) -contains 'startup-report') { 'startup-report' }
+            if ($hasStartupReport) { 'startup-report' }
             'system-diagnostics'
             'external-environment'
             'deferred-views'
         )
-        if ((@($stages.id) -join '|') -ne ($expectedIds -join '|')) {
+        if (-not (Test-OrdinalSequence -Actual $actualIds -Expected $expectedIds)) {
             throw 'Startup trace does not contain the complete ordered preload stage set.'
         }
     }
@@ -191,13 +258,15 @@ function Get-PreloadLifecycleEvidence {
             $stage = $stages[$index]
             $id = [string]$stage.id
             $state = [string]$stage.state
-            $completed = if ($null -eq $stage.completedWork) { $null } else { [long]$stage.completedWork }
-            $total = if ($null -eq $stage.totalWork) { $null } else { [long]$stage.totalWork }
+            $completed = ConvertTo-ValidatedWorkCount -Value $stage.completedWork -StageId $id
+            $total = ConvertTo-ValidatedWorkCount -Value $stage.totalWork -StageId $id
             if ([string]::IsNullOrWhiteSpace($id) -or -not $ids.Add($id) -or
-                $state -notin $terminalStates -or
+                -not (Test-OrdinalValue -Value $state -Allowed $terminalStates) -or
                 (($null -eq $completed) -ne ($null -eq $total)) -or
                 ($null -ne $completed -and ($completed -lt 0 -or $total -lt 0 -or
-                    $completed -gt $total -or ($state -eq 'Succeeded' -and $completed -ne $total)))) {
+                    $completed -gt $total -or
+                    ([StringComparer]::Ordinal.Equals($state, 'Succeeded') -and
+                        $completed -ne $total)))) {
                 throw "Startup trace contains invalid preload lifecycle evidence for '$id'."
             }
             [pscustomobject][ordered]@{
@@ -229,7 +298,9 @@ function New-StartupSampleEvidence {
         [Parameter(Mandatory = $true)][long]$PeakPrivateBytes
     )
 
-    if ($Trace.schemaVersion -notin @('nfc-startup-trace-v2', 'nfc-startup-trace-v3') -or
+    if (-not (Test-OrdinalValue `
+            -Value ([string]$Trace.schemaVersion) `
+            -Allowed @('nfc-startup-trace-v2', 'nfc-startup-trace-v3')) -or
         @($Trace.stages).Count -eq 0) {
         throw 'The application wrote an unsupported or empty startup trace.'
     }
@@ -386,17 +457,18 @@ try {
     }
 
     $expectedStageNames = @($samples[0].trace.stages | ForEach-Object { $_.name })
-    $expectedStageSequence = $expectedStageNames -join '|'
     foreach ($sample in $samples) {
-        $actualStageSequence = @($sample.trace.stages | ForEach-Object { $_.name }) -join '|'
-        if ($actualStageSequence -ne $expectedStageSequence) {
+        $actualStageNames = @($sample.trace.stages | ForEach-Object { $_.name })
+        if (-not (Test-OrdinalSequence -Actual $actualStageNames -Expected $expectedStageNames)) {
             throw 'Measured startup traces do not contain the same ordered stage sequence.'
         }
     }
     $expectedPreloadLifecycle = $samples[0].preloadLifecycle | ConvertTo-Json -Compress -Depth 8
     foreach ($sample in $samples) {
         $actualPreloadLifecycle = $sample.preloadLifecycle | ConvertTo-Json -Compress -Depth 8
-        if ($actualPreloadLifecycle -ne $expectedPreloadLifecycle) {
+        if (-not [StringComparer]::Ordinal.Equals(
+                $actualPreloadLifecycle,
+                $expectedPreloadLifecycle)) {
             throw 'Measured startup traces do not contain the same preload lifecycle evidence.'
         }
     }
@@ -405,7 +477,9 @@ try {
         foreach ($stageName in $expectedStageNames) {
             $stagePoints = @(
                 foreach ($sample in $samples) {
-                    @($sample.trace.stages | Where-Object { $_.name -eq $stageName })[0]
+                    @($sample.trace.stages | Where-Object {
+                            [StringComparer]::Ordinal.Equals([string]$_.name, $stageName)
+                        })[0]
                 }
             )
             [ordered]@{
@@ -418,8 +492,12 @@ try {
         }
     )
 
-    $openedStage = @($stageSummaries | Where-Object { $_.name -eq 'main-window.opened' })[0]
-    $warmupStage = @($stageSummaries | Where-Object { $_.name -eq 'startup-warmup.completed' })[0]
+    $openedStage = @($stageSummaries | Where-Object {
+            [StringComparer]::Ordinal.Equals([string]$_.name, 'main-window.opened')
+        })[0]
+    $warmupStage = @($stageSummaries | Where-Object {
+            [StringComparer]::Ordinal.Equals([string]$_.name, 'startup-warmup.completed')
+        })[0]
     if ($null -eq $openedStage -or $null -eq $warmupStage) {
         throw 'Startup measurement did not observe both first-frame and completed background warm-up stages.'
     }
