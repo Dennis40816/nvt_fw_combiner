@@ -146,6 +146,9 @@ public sealed partial class XamlControlStyleContractTests
         string semanticActionPresenter = ExtractStyle(
             buttonStyles,
             "Button.semanticAction /template/ ContentPresenter#PART_ContentPresenter");
+        string semanticActionFocus = ExtractStyle(
+            buttonStyles,
+            "Button.semanticAction:focus-visible /template/ ContentPresenter#PART_ContentPresenter");
         string secondary = ExtractStyle(buttonStyles, "Button.secondary");
         string secondaryHover = ExtractStyle(
             buttonStyles,
@@ -153,9 +156,6 @@ public sealed partial class XamlControlStyleContractTests
         string secondaryPressed = ExtractStyle(
             buttonStyles,
             "Button.secondary:pressed /template/ ContentPresenter#PART_ContentPresenter");
-        string secondaryFocus = ExtractStyle(
-            buttonStyles,
-            "Button.secondary:focus-visible /template/ ContentPresenter#PART_ContentPresenter");
         string secondaryDisabled = ExtractStyle(
             buttonStyles,
             "Button.secondary:disabled /template/ ContentPresenter#PART_ContentPresenter");
@@ -232,13 +232,13 @@ public sealed partial class XamlControlStyleContractTests
         Assert.Contains("NfcFontSize13", semanticAction, StringComparison.Ordinal);
         Assert.Contains("FocusAdorner\" Value=\"{x:Null}\"", semanticAction, StringComparison.Ordinal);
         Assert.Contains("NfcPillCornerRadius", semanticActionPresenter, StringComparison.Ordinal);
+        Assert.Contains("BorderThickness\" Value=\"2\"", semanticActionFocus, StringComparison.Ordinal);
+        Assert.Contains("NfcAccentBorderStrongBrush", semanticActionFocus, StringComparison.Ordinal);
         Assert.Contains("NfcSurfaceBrush", secondary, StringComparison.Ordinal);
         Assert.Contains("NfcAccentSurfaceSubtleBrush", secondaryHover, StringComparison.Ordinal);
         Assert.Contains("NfcAccentBorderBrush", secondaryHover, StringComparison.Ordinal);
         Assert.Contains("NfcAccentSurfaceBrush", secondaryPressed, StringComparison.Ordinal);
         Assert.Contains("NfcAccentBorderStrongBrush", secondaryPressed, StringComparison.Ordinal);
-        Assert.Contains("BorderThickness\" Value=\"2\"", secondaryFocus, StringComparison.Ordinal);
-        Assert.Contains("NfcAccentBorderStrongBrush", secondaryFocus, StringComparison.Ordinal);
         Assert.Contains("NfcSurfaceSubtleBrush", secondaryDisabled, StringComparison.Ordinal);
         Assert.Contains("NfcBorderMutedBrush", secondaryDisabled, StringComparison.Ordinal);
         Assert.Contains("BorderThickness\" Value=\"1\"", secondaryDisabled, StringComparison.Ordinal);
@@ -270,6 +270,21 @@ public sealed partial class XamlControlStyleContractTests
         Assert.Equal("semanticAction secondary", (string?)optionalRetryButton.Attribute("Classes"));
         Assert.Equal("semanticAction secondary", (string?)optionalSkipButton.Attribute("Classes"));
         string[] semanticRoles = ["secondary", "danger", "action", "primary", "iconButton"];
+        foreach (string role in semanticRoles)
+        {
+            Assert.Contains(
+                $"Button.{role}:pointerover /template/ ContentPresenter#PART_ContentPresenter",
+                buttonStyles,
+                StringComparison.Ordinal);
+            Assert.Contains(
+                $"Button.{role}:pressed /template/ ContentPresenter#PART_ContentPresenter",
+                buttonStyles,
+                StringComparison.Ordinal);
+            Assert.Contains(
+                $"Button.{role}:disabled /template/ ContentPresenter#PART_ContentPresenter",
+                buttonStyles,
+                StringComparison.Ordinal);
+        }
         foreach (XElement button in ReadPresentationXamlFiles()
                      .Select(XDocument.Parse)
                      .SelectMany(document => document.Descendants())

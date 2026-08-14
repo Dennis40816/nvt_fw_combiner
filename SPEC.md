@@ -2366,7 +2366,8 @@ after the grill closes so issues do not become a competing draft specification.
     legacy runtime deletion, freezes the measured baseline for all four slices
     and enables exact descending slice ratchets through `scripts/verify.py`.
     Every Core PR lowers each affected slice ratchet and the total, except for
-    the dated, non-transferable PL-02, PL-04, PL-05, and Message Center
+    the dated, non-transferable PL-02, PL-04, PL-05, PL-00 semantic-control,
+    and Message Center
     readability owner amendments recorded in Decision 21 and ADR 0021; moving
     equivalent logic between slices cannot pass. Each named amendment
     immediately freezes its exact replacement ratchets and cannot fund later

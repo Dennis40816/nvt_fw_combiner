@@ -39,12 +39,6 @@ internal sealed partial class MainWindowViewModel
             RefreshSettingsState();
         }
 
-        if (WorkflowSession.IsWorkflowLoaded)
-        {
-            Replace.RefreshContextState(preserveSlotFiles: true);
-            WorkflowSession.RefreshCtrlRamDisplayFromInspection();
-            Replace.RefreshSelectionState();
-        }
     }
 
     private void ApplyCatalogBackedTextResources()

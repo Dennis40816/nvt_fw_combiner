@@ -64,6 +64,11 @@ internal sealed partial class ReplacePresentationViewModel
         RefreshReplaceModeState(
             preserveSlotFiles: true,
             ctrlRamInputSlots: UiCompositionRunner.GetCtrlRamReplaceInputSlots(display.InputSlots));
+        ApplyCtrlRamMemoryDisplay(display);
+    }
+
+    private void ApplyCtrlRamMemoryDisplay(CtrlRamInspectionDisplay display)
+    {
         ActiveSessionSnapshot? acceptedSession =
             _ctrlRamReplaceSession.CurrentSnapshot;
         (
@@ -80,6 +85,22 @@ internal sealed partial class ReplacePresentationViewModel
                     Text,
                     ctrlRamRegions: display.Regions);
         ApplyReplaceMemoryDisplay(rangeLabel, rows, coverageSegments);
+    }
+
+    private void RelocalizeReplaceMemoryMapState()
+    {
+        if (IsCtrlRamReplaceModeSelected &&
+            ReplaceBaseSlot.CurrentInspectionProjection is { } inspection)
+        {
+            ApplyCtrlRamMemoryDisplay(FirmwareInspectionProjection.ResolveCtrlRamDisplay(
+                _firmwareInspection,
+                inspection,
+                SelectedIc,
+                SelectedNumber));
+            return;
+        }
+
+        RefreshReplaceMemoryMapState(refreshAuthoring: false);
     }
 
     internal void RefreshReplaceMemoryMapState(bool refreshAuthoring = true)

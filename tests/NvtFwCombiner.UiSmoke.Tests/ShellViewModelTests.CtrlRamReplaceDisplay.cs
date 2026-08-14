@@ -36,6 +36,22 @@ public sealed partial class CtrlRamWorkflowTests
         Assert.Equal("Memory layout pending", viewModel.Replace.ReplaceMemoryRangeLabel);
         Assert.Empty(viewModel.Replace.ReplaceCoverageGroups);
         Assert.Equal("Waiting for required inputs", Assert.Single(viewModel.Replace.ReplaceCoverageSegments).SourceLabel);
+
+        FirmwareSlotViewModel inputSlot = viewModel.Replace.ReplaceSlots.Single(slot =>
+            slot.SlotId == "replace-ctrlram-vn");
+        FirmwareInspectionSnapshot inspection = Assert.IsType<FirmwareInspectionSnapshot>(
+            viewModel.Replace.ReplaceBaseSlot.CurrentInspectionProjection);
+        inputSlot.FilePath = basePath;
+        inputSlot.SetCurrentInspectionProjection(inspection);
+        inputSlot.SetInputInspection(FirmwareInputInspectionSeverity.Valid, "Verified");
+
+        viewModel.SelectedLanguage = "Traditional Chinese";
+
+        Assert.Same(inputSlot, viewModel.Replace.ReplaceSlots.Single(slot =>
+            slot.SlotId == "replace-ctrlram-vn"));
+        Assert.Same(inspection, inputSlot.CurrentInspectionProjection);
+        Assert.Equal(FirmwareInputInspectionSeverity.Valid, inputSlot.InputInspectionSeverity);
+        Assert.Equal("等待必要輸入", Assert.Single(viewModel.Replace.ReplaceCoverageSegments).SourceLabel);
     }
 
     /// <summary>Verifies CtrlRAM guidance names accepted base forms once and retains source-size safety.</summary>

@@ -4,8 +4,8 @@ All notable changes to NVT FW Combiner are documented here. The project follows 
 
 ## [Unreleased]
 
-The owner-approved `v0.10.5` implementation intake is tracked below. No
-`v0.10.5` package or stable tag exists yet.
+The owner-approved `v0.10.5` implementation and PL-00 candidate evidence are
+tracked below. No stable `v0.10.5` package or tag has been published yet.
 
 ## [0.10.5] - Unreleased
 
@@ -14,8 +14,8 @@ The owner-approved `v0.10.5` implementation intake is tracked below. No
 This support-neutral release implements one observable, cancellable,
 bounded, and user-controllable preload lifecycle while retaining typed catalog,
 report, diagnostics, inspection, and external-runtime semantic owners. This
-section records the completed implementation; package and release evidence remain
-open under PL-00.
+section records the completed implementation; final reviewed-head package and
+release evidence remain open under PL-00.
 
 ### Product changes
 
@@ -271,11 +271,15 @@ open under PL-00.
 - Privacy and failure behavior: lifecycle evidence excludes titles, diagnostics,
   paths, report content, and firmware facts; duplicate, non-terminal, inconsistent,
   or incomplete successful work records fail the measurement.
-- Code size: 249 physical nonblank production lines are removed and 238 added,
-  net -11. Full production descends from 98,074 to 98,063; runtime descends from
+- Code size: 256 physical nonblank production lines are removed and 289 added,
+  net +33. Full production changes from 98,074 to 98,107 under the named
+  2026-08-14 semantic-control owner amendment; runtime still descends from
   67,997 to 67,981 = 20,619 / 29,555 / 3,074 / 14,733. The runtime reduction
   removes redundant private array aliases from immutable Application classes
   without changing their copies, validation, ordering, or read-only properties.
+  The non-transferable Presentation increase closes framework-default leakage
+  across normal, hover, pressed, keyboard-focus, and disabled semantic-button
+  states and preserves CtrlRAM inspection projection during relocalization.
 - Verification: focused trace serialization and Architecture contract tests,
   structure validation, scoped R2/Polytail review, canonical verifier, package
   measurement, exact-head CI, and clean-package accessibility gates apply.
@@ -325,7 +329,7 @@ open under PL-00.
 
 ### Security
 
-The planned lifecycle does not broaden filesystem, executable, firmware, or
+The implemented lifecycle does not broaden filesystem, executable, firmware, or
 network authority. Report input and external discovery remain bounded and
 fail-closed; external processors retain reviewed-root, trust, staging-copy, and
 write-range enforcement.
@@ -333,23 +337,29 @@ write-range enforcement.
 ### Known issues
 
 - The stable `v0.10.4` package did not reproduce the 700 ms absolute startup
-  target; `v0.10.5` must record new same-machine package evidence truthfully.
-- The implementation dependency chain is complete. PL-00 still requires the
-  exact verifier and Golden evidence, two exact-head CI runs, same-machine package
-  measurements, clean-package accessibility checks, provenance, and release
-  approval.
+  target. The measured PL-00 candidate `2dd31d6` also missed it at 796.958 ms;
+  that result remains explicit and does not waive or redefine the target.
+- The implementation dependency chain is complete. Any revised reviewed head
+  must refresh its exact verifier, Golden, CI, package, measurement, SBOM,
+  provenance, and hash evidence. Clean-machine accessibility checks and release
+  approval remain external gates.
 
 ### Upgrade and rollback
 
-There is no `v0.10.5` package to install or roll back at specification intake.
-Future release notes must name the exact stable predecessor, package replacement,
-compatibility, and rollback procedure before publication.
+When published, upgrade by replacing the complete portable `v0.10.4` folder
+with the complete `v0.10.5` folder; do not overlay individual files or merge it
+into a synchronized profile tree. Roll back by restoring the untouched complete
+`v0.10.4` package. No report, history, settings, profile, schema, or Saved Rule
+migration is required. A local PL-00 candidate is evidence, not distribution
+authority.
 
 ### Downloads and integrity
 
-No `v0.10.5` downloads exist at intake. A stable release requires the reviewed
-portable ZIP, SPDX SBOM, provenance, candidate manifest, hashes, source archives,
-closed-package smoke, and immutable tag evidence.
+The stable release will publish the reviewed portable ZIP, SPDX SBOM,
+provenance, candidate manifest, outer hashes, and tag-derived source archives.
+Verify the checksum list and provenance source identity before distribution.
+Local PL-00 candidate artifacts are not stable downloads or immutable tag
+authority.
 
 ## [0.10.4] - 2026-08-13
 
