@@ -336,19 +336,20 @@ network authority. Report input and external discovery remain bounded and
 fail-closed; external processors retain reviewed-root, trust, staging-copy, and
 write-range enforcement.
 
+### Release evidence and remaining gates
+
+- The first PL-00 package did not reproduce the 700 ms absolute startup target:
+  official `v0.10.4` measured 709.271 ms and candidate `6b1c874` measured
+  768.097 ms and 803.214 ms. Follow-up tracing isolated the bounded preference
+  adapter's synchronous pre-await admission on the startup thread. Exact
+  replacement candidate `7e7a31b` schedules that same canonical read before host
+  construction and still awaits it before the window; two independent one-warmup
+  plus five-run observations measured 631.132 ms and 634.589 ms, so the absolute
+  700 ms gate is now accepted for the exact package. All five preload stages were
+  unique, terminal, and `Succeeded` in both observations.
+
 ### Known issues
 
-- The stable `v0.10.4` package did not reproduce the 700 ms absolute startup
-  target. On the current PL-00 evidence session, the same official package
-  measured 709.271 ms and exact candidate `6b1c874` measured 768.097 ms and
-  803.214 ms. A same-session old/new-head differential measured 770.645 ms and
-  787.509 ms while the new head's synchronous first-frame UI work was 1.653 ms
-  lower. The project-owned navigation states therefore do not explain the
-  ambient absolute miss; the miss remains explicit and does not waive or
-  redefine the target. Follow-up tracing found the bounded preference adapter's
-  synchronous pre-await admission on the startup thread; the same canonical
-  read is now scheduled before host construction and still awaited before the
-  window. Exact final-package remeasurement remains required.
 - The implementation dependency chain is complete. Any revised reviewed head
   must refresh its exact verifier, Golden, CI, package, measurement, SBOM,
   provenance, and hash evidence. Clean-machine accessibility checks and release
