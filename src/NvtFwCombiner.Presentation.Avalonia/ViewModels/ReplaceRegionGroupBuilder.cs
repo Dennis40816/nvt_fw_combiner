@@ -13,8 +13,6 @@ internal static class ReplaceRegionGroupBuilder
             {
                 FirmwareSlotViewModel[] groupSlots = [.. group.OrderBy(slot => slot.Title, StringComparer.Ordinal)];
                 return new FirmwareSlotGroupViewModel(
-                    text.GetReplaceRegionGroupTitle(group.Key),
-                    text.FormatReplaceSlotGroupSummary(group.Key, groupSlots.Length),
                     groupSlots,
                     RegionGroupDefaultExpanded(group.Key),
                     text);

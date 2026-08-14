@@ -45,6 +45,9 @@ public sealed partial class CtrlRamWorkflowTests
         inputSlot.SetCurrentInspectionProjection(inspection);
         inputSlot.SetInputInspection(FirmwareInputInspectionSeverity.Valid, "Verified");
         Assert.Contains(viewModel.Replace.ReplaceSlotGroups, group => group.Title == "Cascade");
+        FirmwareSlotGroupViewModel cascadeGroup = viewModel.Replace.ReplaceSlotGroups.Single(
+            group => group.Title == "Cascade");
+        cascadeGroup.IsExpanded = false;
 
         viewModel.SelectedLanguage = "Traditional Chinese";
 
@@ -53,7 +56,9 @@ public sealed partial class CtrlRamWorkflowTests
         Assert.Same(inspection, inputSlot.CurrentInspectionProjection);
         Assert.Equal(FirmwareInputInspectionSeverity.Valid, inputSlot.InputInspectionSeverity);
         Assert.Equal("等待必要輸入", Assert.Single(viewModel.Replace.ReplaceCoverageSegments).SourceLabel);
-        Assert.Contains(viewModel.Replace.ReplaceSlotGroups, group => group.Title == "串接");
+        Assert.Same(cascadeGroup, viewModel.Replace.ReplaceSlotGroups.Single(group => group.Title == "串接"));
+        Assert.False(cascadeGroup.IsExpanded);
+        Assert.Equal("1 個區域，尚未選擇。", cascadeGroup.SelectionSummary);
     }
 
     /// <summary>Verifies CtrlRAM guidance names accepted base forms once and retains source-size safety.</summary>

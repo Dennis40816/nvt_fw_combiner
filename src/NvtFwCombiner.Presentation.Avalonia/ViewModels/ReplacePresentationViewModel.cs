@@ -42,7 +42,10 @@ internal sealed partial class ReplacePresentationViewModel : ObservableObject
     internal void ApplyLanguageChanged()
     {
         ApplyFirmwareSlotText();
-        RefreshReplaceSlotGroups();
+        foreach (FirmwareSlotGroupViewModel group in ReplaceSlotGroups)
+        {
+            group.ApplyText(Text);
+        }
         InspectionLifecycles.ForEach(lifecycle => lifecycle.ApplyText(Text));
         RefreshDpReplaceInputSelectionReadiness();
         foreach (GeneralReplaceMappingViewModel mapping in GeneralReplaceMappings)
