@@ -249,6 +249,12 @@ $result | ConvertTo-Json -Depth 12 -Compress
             "out-of-order-deferred-ready": lambda trace: trace["stages"].insert(
                 9, trace["stages"].pop(7)
             ),
+            "deferred-before-catalog-ready": lambda trace: trace["stages"][6].update(
+                elapsedMilliseconds=8.5
+            ),
+            "deferred-after-completion": lambda trace: trace["stages"][15].update(
+                elapsedMilliseconds=20.5
+            ),
             "nonfinite-catalog-ready": lambda trace: trace["stages"][5].update(
                 elapsedMilliseconds="NaN"
             ),

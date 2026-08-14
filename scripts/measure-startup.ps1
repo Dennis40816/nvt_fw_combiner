@@ -316,6 +316,22 @@ function Get-UiThreadWorkSummary {
             }
             $previousReadyElapsed = $readyElapsed
         }
+
+        $catalogReadyElapsed = ConvertTo-ValidatedElapsedMilliseconds `
+            -Value (Get-TraceStage `
+                -Trace $Trace `
+                -Name 'startup-warmup.catalog-state.applied').elapsedMilliseconds `
+            -StageName 'startup-warmup.catalog-state.applied'
+        $firstStartElapsed = ConvertTo-ValidatedElapsedMilliseconds `
+            -Value (Get-TraceStage -Trace $Trace -Name $expectedStarts[0]).elapsedMilliseconds `
+            -StageName $expectedStarts[0]
+        $completedElapsed = ConvertTo-ValidatedElapsedMilliseconds `
+            -Value (Get-TraceStage -Trace $Trace -Name 'startup-warmup.completed').elapsedMilliseconds `
+            -StageName 'startup-warmup.completed'
+        if ($firstStartElapsed -lt $catalogReadyElapsed -or
+            $previousReadyElapsed -gt $completedElapsed) {
+            throw 'Release startup trace contains deferred-view work outside the lifecycle boundary.'
+        }
     }
 
     $backgroundIntervals = @(
