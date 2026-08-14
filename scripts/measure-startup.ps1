@@ -146,12 +146,11 @@ function Get-PreloadLifecycleEvidence {
         [Parameter(Mandatory = $true)][bool]$Required
     )
 
-    $stages = if ($Trace.schemaVersion -eq 'nfc-startup-trace-v3') {
-        @($Trace.preloadStages)
-    }
-    else {
-        @()
-    }
+    $stages = @(
+        if ($Trace.schemaVersion -eq 'nfc-startup-trace-v3') {
+            $Trace.preloadStages
+        }
+    )
     if ($Required -and $stages.Count -eq 0) {
         throw 'Startup trace does not contain the required preload lifecycle evidence.'
     }
