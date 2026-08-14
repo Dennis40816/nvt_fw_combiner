@@ -271,7 +271,7 @@ open under PL-00.
 - Privacy and failure behavior: lifecycle evidence excludes titles, diagnostics,
   paths, report content, and firmware facts; duplicate, non-terminal, inconsistent,
   or incomplete successful work records fail the measurement.
-- Code size: 248 physical nonblank production lines are removed and 237 added,
+- Code size: 249 physical nonblank production lines are removed and 238 added,
   net -11. Full production descends from 98,074 to 98,063; runtime descends from
   67,997 to 67,981 = 20,619 / 29,555 / 3,074 / 14,733. The runtime reduction
   removes redundant private array aliases from immutable Application classes

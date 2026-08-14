@@ -230,6 +230,7 @@ public sealed partial class XamlControlStyleContractTests
         Assert.Contains("HorizontalContentAlignment\" Value=\"Center\"", semanticAction, StringComparison.Ordinal);
         Assert.Contains("VerticalContentAlignment\" Value=\"Center\"", semanticAction, StringComparison.Ordinal);
         Assert.Contains("NfcFontSize13", semanticAction, StringComparison.Ordinal);
+        Assert.Contains("FocusAdorner\" Value=\"{x:Null}\"", semanticAction, StringComparison.Ordinal);
         Assert.Contains("NfcPillCornerRadius", semanticActionPresenter, StringComparison.Ordinal);
         Assert.Contains("NfcSurfaceBrush", secondary, StringComparison.Ordinal);
         Assert.Contains("NfcAccentSurfaceSubtleBrush", secondaryHover, StringComparison.Ordinal);
