@@ -35,12 +35,12 @@
 
       <StackPanel Grid.Row="2" HorizontalAlignment="Right" Orientation="Horizontal" Spacing="{DynamicResource NfcSpace8}">
         <Button
-            Classes="secondary"
+            Classes="semanticAction secondary"
             Command="{Binding DismissFirmwareNumberMismatchCommand}"
             Content="{Binding Text.FirmwareNumberMismatchCancelLabel}"
             AutomationProperties.Name="{Binding Text.FirmwareNumberMismatchCancelLabel}" />
         <Button
-            Classes="primary"
+            Classes="semanticAction primary"
             Command="{Binding AcceptFirmwareNumberMismatchCommand}"
             Content="{Binding Text.FirmwareNumberMismatchSwitchLabel}"
             AutomationProperties.Name="{Binding Text.FirmwareNumberMismatchSwitchLabel}" />

@@ -27,48 +27,67 @@ public sealed partial class ShellNavigationSystemTests
     public async Task DesktopStartupUsesOneOverlappedPreferenceSnapshot()
     {
         PresentationHostServices services = PresentationTestHost.CreateServices("startup-test");
+        var preferenceLoaderStarted = new TaskCompletionSource(
+            TaskCreationOptions.RunContinuationsAsynchronously);
+        var allowPreferenceLoader = new TaskCompletionSource(
+            TaskCreationOptions.RunContinuationsAsynchronously);
         var preferenceCompletion = new TaskCompletionSource<ShellPreferenceSnapshot>(
             TaskCreationOptions.RunContinuationsAsynchronously);
-        bool preferenceReadStarted = false;
         int preferenceLoads = 0;
         int hostConstructions = 0;
 
-        (PresentationHostServices preparedHost, Task<ShellPreferenceSnapshot> preparedPreferences) =
-            DesktopApplication.PrepareStartup(
-                () =>
-                {
-                    hostConstructions++;
-                    Assert.True(preferenceReadStarted);
-                    Assert.False(preferenceCompletion.Task.IsCompleted);
-                    return services;
-                },
-                () =>
-                {
-                    preferenceLoads++;
-                    preferenceReadStarted = true;
-                    return preferenceCompletion.Task;
-                },
-                StartupTraceSession.Disabled);
+        Task<(PresentationHostServices HostServices, Task<ShellPreferenceSnapshot> ShellPreferences)> preparation =
+            Task.Run(() =>
+                DesktopApplication.PrepareStartup(
+                    () =>
+                    {
+                        hostConstructions++;
+                        return services;
+                    },
+                    () =>
+                    {
+                        preferenceLoads++;
+                        _ = preferenceLoaderStarted.TrySetResult();
+                        allowPreferenceLoader.Task.GetAwaiter().GetResult();
+                        return preferenceCompletion.Task;
+                    },
+                    StartupTraceSession.Disabled));
 
-        Assert.Same(services, preparedHost);
-        Assert.Same(preferenceCompletion.Task, preparedPreferences);
-        Assert.Equal(1, preferenceLoads);
-        Assert.Equal(1, hostConstructions);
+        try
+        {
+            await preferenceLoaderStarted.Task.WaitAsync(
+                TimeSpan.FromSeconds(5),
+                TestContext.Current.CancellationToken);
+            (PresentationHostServices preparedHost, Task<ShellPreferenceSnapshot> preparedPreferences) =
+                await preparation.WaitAsync(
+                    TimeSpan.FromSeconds(5),
+                    TestContext.Current.CancellationToken);
 
-        var preferences = new ShellPreferenceSnapshot(
-            "Dark",
-            "Traditional Chinese",
-            IsReducedMotionEnabled: true);
-        _ = preferenceCompletion.TrySetResult(preferences);
-        Assert.Same(preferences, await preparedPreferences);
+            Assert.Same(services, preparedHost);
+            Assert.False(preparedPreferences.IsCompleted);
+            Assert.Equal(1, preferenceLoads);
+            Assert.Equal(1, hostConstructions);
 
-        MainWindowViewModel viewModel = MainWindow.CreateStartupViewModel(
-            preparedHost,
-            await preparedPreferences);
-        Assert.Equal("Dark", viewModel.SelectedTheme);
-        Assert.Equal("Traditional Chinese", viewModel.SelectedLanguage);
-        Assert.True(viewModel.IsReducedMotionEnabled);
-        Assert.Equal("設定", viewModel.SettingsPreview.Title);
+            _ = allowPreferenceLoader.TrySetResult();
+            var preferences = new ShellPreferenceSnapshot(
+                "Dark",
+                "Traditional Chinese",
+                IsReducedMotionEnabled: true);
+            _ = preferenceCompletion.TrySetResult(preferences);
+            Assert.Same(preferences, await preparedPreferences);
+
+            MainWindowViewModel viewModel = MainWindow.CreateStartupViewModel(
+                preparedHost,
+                await preparedPreferences);
+            Assert.Equal("Dark", viewModel.SelectedTheme);
+            Assert.Equal("Traditional Chinese", viewModel.SelectedLanguage);
+            Assert.True(viewModel.IsReducedMotionEnabled);
+            Assert.Equal("設定", viewModel.SettingsPreview.Title);
+        }
+        finally
+        {
+            _ = allowPreferenceLoader.TrySetResult();
+        }
     }
 
     /// <summary>Verifies local shell preferences round-trip and invalid values keep fail-closed defaults.</summary>

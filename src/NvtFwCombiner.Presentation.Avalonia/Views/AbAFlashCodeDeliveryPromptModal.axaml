@@ -20,12 +20,12 @@
 
       <StackPanel Grid.Row="1" HorizontalAlignment="Right" Orientation="Horizontal" Spacing="{DynamicResource NfcSpace8}">
         <Button
-            Classes="danger"
+            Classes="semanticAction danger"
             AutomationProperties.Name="{Binding Text.AbAFlashCodePromptNoLabel}"
             Command="{Binding DeclineAbAFlashCodeDeliveryPromptCommand}"
             Content="{Binding Text.AbAFlashCodePromptNoLabel}" />
         <Button
-            Classes="primary"
+            Classes="semanticAction primary"
             AutomationProperties.Name="{Binding Text.AbAFlashCodePromptYesLabel}"
             Command="{Binding AcceptAbAFlashCodeDeliveryPromptCommand}"
             Content="{Binding Text.AbAFlashCodePromptYesLabel}" />

@@ -49,15 +49,17 @@ internal static partial class UiCompositionRunner
         string RangeLabel,
         IReadOnlyList<MemoryMapRowViewModel> Rows,
         IReadOnlyList<MemoryCoverageSegmentViewModel> CoverageSegments) GetPendingMemoryDisplay(
+        ShellTextResources text,
         string detail)
     {
+        ArgumentNullException.ThrowIfNull(text);
         ArgumentException.ThrowIfNullOrWhiteSpace(detail);
         return (
             "Memory layout pending",
-            [new MemoryMapRowViewModel("Pending", "No output", "Select", "Pending input", detail)],
+            [new MemoryMapRowViewModel("Pending", "No output", "Select", text.WaitingForRequiredInputsLabel, detail)],
             [new MemoryCoverageSegmentViewModel(
                 "Pending",
-                "Pending input",
+                text.WaitingForRequiredInputsLabel,
                 detail,
                 MemoryCoverageFillRole.Neutral,
                 300d)]);

@@ -70,6 +70,11 @@ public sealed partial class GeneralWorkflowTests
         GeneralReplaceMappingViewModel initial = Assert.Single(viewModel.Replace.GeneralReplaceMappings);
         Assert.False(initial.CanSelectFile);
         Assert.True(initial.IsFileSelectionPending);
+        Assert.Equal("Load the prerequisite input, then inspect again.", initial.FileSelectionAvailabilityMessage);
+
+        viewModel.SelectedLanguage = "Traditional Chinese";
+
+        Assert.Equal("請載入必要的前置輸入後重新檢查。", initial.FileSelectionAvailabilityMessage);
 
         viewModel.Replace.AddGeneralReplaceMappingCommand.Execute(null);
         Assert.Equal(2, viewModel.Replace.GeneralReplaceMappings.Count);

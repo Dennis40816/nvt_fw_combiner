@@ -93,7 +93,9 @@ internal sealed class StartupTraceSession
             Math.Max(0, allocatedBytes - previousAllocatedBytes)));
     }
 
-    internal bool Complete(string finalStage)
+    internal bool Complete(
+        string finalStage,
+        IReadOnlyList<ShellPreloadStageSnapshot>? preloadStages = null)
     {
         if (_points is null || _outputPath is null || _isComplete)
         {
@@ -106,7 +108,8 @@ internal sealed class StartupTraceSession
             _outputPath,
             _startedUtc,
             _utcNowProvider(),
-            _points);
+            _points,
+            preloadStages ?? []);
     }
 
     private static DateTimeOffset GetUtcNow()

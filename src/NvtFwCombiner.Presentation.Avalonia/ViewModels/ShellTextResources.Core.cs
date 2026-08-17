@@ -91,6 +91,8 @@ internal sealed partial class ShellTextResources
 
     public string NoOutputLabel { get; private init; } = string.Empty;
 
+    public string WaitingForRequiredInputsLabel { get; private init; } = string.Empty;
+
     public string WorkflowKicker { get; private init; } = string.Empty;
 
     public string NavigationClearTitle { get; private init; } = string.Empty;

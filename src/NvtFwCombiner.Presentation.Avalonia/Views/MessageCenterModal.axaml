@@ -24,7 +24,7 @@
         <Button
             x:Name="CloseButton"
             Grid.Column="1"
-            Classes="iconButton"
+            Classes="semanticAction iconButton"
             AutomationProperties.Name="{Binding Text.CloseLabel}"
             Command="{Binding CloseCommand}"
             ToolTip.Tip="{Binding Text.CloseLabel}">
@@ -59,7 +59,7 @@
                   <Button
                       Grid.Row="2"
                       HorizontalAlignment="Left"
-                      Classes="secondary"
+                      Classes="semanticAction secondary"
                       AutomationProperties.Name="{Binding Reports.ReportActionLabel}"
                       Command="{Binding OpenCurrentReportCommand}"
                       Content="{Binding Reports.ReportActionLabel}"
@@ -77,7 +77,7 @@
                   <Button
                       Grid.Row="2"
                       HorizontalAlignment="Left"
-                      Classes="secondary"
+                      Classes="semanticAction secondary"
                       AutomationProperties.Name="{Binding Text.OpenReportHistoryLabel}"
                       Command="{Binding OpenReportHistoryCommand}"
                       Content="{Binding Text.OpenReportHistoryLabel}"
@@ -168,19 +168,19 @@
             Orientation="Horizontal"
             Spacing="{DynamicResource NfcSpace8}">
           <Button
-              Classes="secondary"
+              Classes="semanticAction secondary"
               AutomationProperties.Name="{Binding Text.RefreshDiagnosticsLabel}"
               Command="{Binding RefreshCommand}"
               Content="{Binding RefreshActionLabel}" />
           <Button
-              Classes="secondary"
+              Classes="semanticAction secondary"
               AutomationProperties.Name="{Binding Text.ExportDiagnosticsLabel}"
               Click="ExportDiagnosticsButton_OnClick"
               Content="{Binding Text.ExportDiagnosticsLabel}" />
         </StackPanel>
         <Button
             Grid.Column="1"
-            Classes="primary"
+            Classes="semanticAction primary"
             Command="{Binding CloseCommand}"
             Content="{Binding Text.CloseLabel}" />
       </Grid>

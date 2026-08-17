@@ -95,7 +95,7 @@ internal sealed partial class ReplacePresentationViewModel
                 ? !member.IsRequired
                 : slot.DeclaredIsOptional;
 
-            string label = Text.GetDpInputSelectionReadinessLabel(member.Readiness);
+            string label = Text.GetDpInputSelectionReadinessLabel(member);
             string detail = Text.GetDpInputSelectionReadinessDetail(member);
             slot.SetSelectionReadiness(
                 member.Readiness,

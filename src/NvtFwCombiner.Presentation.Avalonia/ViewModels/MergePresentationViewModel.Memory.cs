@@ -28,6 +28,7 @@ internal sealed partial class MergePresentationViewModel
                 IReadOnlyList<MemoryCoverageSegmentViewModel> coverageSegments) =
                     acceptedSession?.ExactCapability is null
                     ? UiCompositionRunner.GetPendingMemoryDisplay(
+                        Text,
                         "Select and inspect the required inputs to resolve the compiled memory layout.")
                     : UiCompositionRunner.GetMemoryDisplay(
                         _compositionServices,

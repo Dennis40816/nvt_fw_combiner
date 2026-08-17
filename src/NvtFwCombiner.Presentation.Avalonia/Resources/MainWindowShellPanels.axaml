@@ -11,7 +11,7 @@
         Orientation="Horizontal"
         Spacing="{DynamicResource NfcSpace8}">
       <Button
-          Classes="iconButton"
+          Classes="semanticAction iconButton"
           Command="{Binding GoBackCommand}"
           ToolTip.Tip="{Binding Text.BackTooltip}">
         <TextBlock Text="←" />

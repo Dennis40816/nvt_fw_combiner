@@ -43,22 +43,20 @@ public sealed class FirmwareBinInspectionArtifact
 /// <summary>One Application-formatted resolved structure with its exact immutable byte slice.</summary>
 public sealed class FirmwareBinInspectionStructure
 {
-    private readonly byte[] _bytes;
-
     internal FirmwareBinInspectionStructure(
         FormattedMetadataStructure metadata,
         ReadOnlySpan<byte> bytes)
     {
         ArgumentNullException.ThrowIfNull(metadata);
         Metadata = metadata;
-        _bytes = bytes.ToArray();
+        Bytes = bytes.ToArray();
     }
 
     /// <summary>Application-owned names, values, identity, and exact resolved geometry.</summary>
     public FormattedMetadataStructure Metadata { get; }
 
     /// <summary>Exact private copy of the resolved structure bytes.</summary>
-    public ReadOnlyMemory<byte> Bytes => _bytes;
+    public ReadOnlyMemory<byte> Bytes { get; }
 }
 
 /// <summary>

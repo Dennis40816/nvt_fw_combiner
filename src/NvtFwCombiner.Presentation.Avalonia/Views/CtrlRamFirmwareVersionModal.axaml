@@ -83,11 +83,11 @@
 
       <StackPanel Grid.Row="3" HorizontalAlignment="Right" Orientation="Horizontal" Spacing="{DynamicResource NfcSpace8}">
         <Button
-            Classes="secondary"
+            Classes="semanticAction secondary"
             Command="{Binding CloseCtrlRamFirmwareVersionCommand}"
             Content="{Binding Text.CloseLabel}" />
         <Button
-            Classes="primary"
+            Classes="semanticAction primary"
             Click="ConfirmCtrlRamFirmwareVersionBuildButton_OnClick"
             Content="{Binding Text.CtrlRamFirmwareVersionChooseOutputLabel}"
             IsEnabled="{Binding CanConfirmCtrlRamFirmwareVersion}" />

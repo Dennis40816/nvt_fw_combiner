@@ -8,7 +8,6 @@
     AutomationProperties.Name="{Binding AccessibleStatus}"
     behaviors:FocusOnRevealBehavior.IsEnabled="True"
     Focusable="True"
-    IsHitTestVisible="{Binding IsVisible}"
     IsVisible="{Binding IsVisible}">
   <Grid Background="{DynamicResource NfcModalScrimBrush}">
     <ContentControl

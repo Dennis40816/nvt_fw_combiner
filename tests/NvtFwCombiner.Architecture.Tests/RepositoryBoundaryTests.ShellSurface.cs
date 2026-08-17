@@ -98,10 +98,10 @@ public sealed partial class RepositoryBoundaryTests
         Assert.Contains("ToggleButton", shell, StringComparison.Ordinal);
         Assert.Contains("Classes=\"nav\"", shell, StringComparison.Ordinal);
         Assert.Contains("Classes=\"command\"", shellSurface, StringComparison.Ordinal);
-        Assert.Contains("Classes=\"iconButton\"", shellSurface, StringComparison.Ordinal);
+        Assert.Contains("Classes=\"semanticAction iconButton\"", shellSurface, StringComparison.Ordinal);
         Assert.Contains("Classes=\"breadcrumb\"", shellPanels, StringComparison.Ordinal);
-        Assert.Contains("Classes=\"primary\"", shellSurface, StringComparison.Ordinal);
-        Assert.Contains("Classes=\"action\"", shellSurface, StringComparison.Ordinal);
+        Assert.Contains("Classes=\"semanticAction primary\"", shellSurface, StringComparison.Ordinal);
+        Assert.Contains("Classes=\"semanticAction action\"", shellSurface, StringComparison.Ordinal);
         Assert.Contains("MainWindowStyles.axaml", shell, StringComparison.Ordinal);
         Assert.Contains("MainWindowButtonStyles.axaml", shell, StringComparison.Ordinal);
         Assert.Contains("MainWindowVisualStyles.axaml", shell, StringComparison.Ordinal);

@@ -123,8 +123,8 @@ public sealed partial class DpReplaceWorkflowTests
 
         if (referenceLength == 0)
         {
-            Assert.Equal("Pending input", ldc.SelectionReadinessLabel);
-            Assert.Contains("Load Reference first", ldc.SelectionReadinessDetail, StringComparison.Ordinal);
+            Assert.Equal("Waiting for Reference FlashCode", ldc.SelectionReadinessLabel);
+            Assert.Contains("Load Reference FlashCode first", ldc.SelectionReadinessDetail, StringComparison.Ordinal);
             Assert.Equal(FirmwareSlotSemanticState.Checking, ldc.SemanticState);
             Assert.True(ldc.IsSemanticStatePendingInput);
             Assert.Equal(ldc.SelectionReadinessDetail, ldc.SemanticStateDetail);
@@ -299,8 +299,18 @@ public sealed partial class DpReplaceWorkflowTests
         FirmwareSlotViewModel ldc = Assert.Single(
             viewModel.Replace.ReplaceSlots,
             static slot => slot.SlotId == CompositionSlotIds.ReplaceLdc);
-        Assert.Equal("Pending input", ldc.SelectionReadinessLabel);
-        Assert.Contains("Load Reference first", ldc.SelectionReadinessDetail, StringComparison.Ordinal);
+        Assert.Equal("Waiting for Reference FlashCode", ldc.SelectionReadinessLabel);
+        Assert.Contains("Load Reference FlashCode first", ldc.SelectionReadinessDetail, StringComparison.Ordinal);
+
+        viewModel.SelectedLanguage = "Traditional Chinese";
+
+        Assert.Equal("等待 Reference FlashCode", ldc.SelectionReadinessLabel);
+        Assert.Contains("請先載入 Reference FlashCode", ldc.SelectionReadinessDetail, StringComparison.Ordinal);
+
+        viewModel.SelectedLanguage = "English";
+        ldc = Assert.Single(
+            viewModel.Replace.ReplaceSlots,
+            static slot => slot.SlotId == CompositionSlotIds.ReplaceLdc);
 
         viewModel.SetSlotFile(
             CompositionSlotIds.ReplaceBase,
@@ -309,6 +319,9 @@ public sealed partial class DpReplaceWorkflowTests
         Assert.Equal("Not applicable", ldc.SelectionReadinessLabel);
 
         viewModel.SelectedLanguage = "Traditional Chinese";
+        ldc = Assert.Single(
+            viewModel.Replace.ReplaceSlots,
+            static slot => slot.SlotId == CompositionSlotIds.ReplaceLdc);
 
         Assert.Equal("不適用", ldc.SelectionReadinessLabel);
         Assert.Equal(

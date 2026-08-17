@@ -20,8 +20,7 @@
       BorderBrush="{DynamicResource NfcBorderSoftBrush}"
       BorderThickness="1"
       BoxShadow="{DynamicResource NfcWorkflowCardHoverShadow}"
-      CornerRadius="{DynamicResource NfcSurfaceCornerRadius}"
-      IsVisible="{Binding IsVisible}">
+      CornerRadius="{DynamicResource NfcSurfaceCornerRadius}">
     <StackPanel Spacing="{DynamicResource NfcSpace12}">
       <Grid ColumnDefinitions="*,Auto" ColumnSpacing="{DynamicResource NfcSpace12}">
         <TextBlock
@@ -52,13 +51,12 @@
           Value="{Binding Progress}" />
       <StackPanel HorizontalAlignment="Right" Orientation="Horizontal" Spacing="{DynamicResource NfcSpace8}">
         <Button
-            AutomationProperties.Name="{Binding CancelLabel}"
+            Classes="semanticAction secondary"
             Command="{Binding CancelCommand}"
             Content="{Binding CancelLabel}"
             IsVisible="{Binding CanCancel}" />
         <Button
-            Classes="primary"
-            AutomationProperties.Name="{Binding RetryLabel}"
+            Classes="semanticAction primary"
             behaviors:FocusOnRevealBehavior.IsEnabled="True"
             Command="{Binding RetryCommand}"
             Content="{Binding RetryLabel}"

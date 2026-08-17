@@ -1,6 +1,6 @@
 # NVT FW Combiner（NFC）實作規格
 
-> 文件狀態：`0.10.5 owner-approved implementation intake; v0.10.4 is the stable predecessor with an explicit 700 ms performance residual`
+> 文件狀態：`0.10.5 implementation complete; release-candidate validation in progress; v0.10.4 remains the stable predecessor`
 > 文件版本：`0.10.5`
 > 基準日期：`2026-08-13`
 > 產品名稱：`NVT FW Combiner`
@@ -30,7 +30,10 @@
 
 ## 0.1 Current owner priority
 
-`0.10.5` is the current owner-approved implementation intake. It builds on the
+`0.10.5` release-candidate validation is the current owner priority. The
+owner-approved PL-01 through PL-07 implementation graph is complete, and PL-00
+now owns only the frozen-tree verifier, package, performance, accessibility,
+provenance, protected-workflow, and release-owner gates. It builds on the
 stable support-neutral `v0.10.4` release and unifies catalog, report/history,
 diagnostics, deferred-view, external-environment, and selection-triggered
 inspection preparation behind the bounded lifecycle contract in ADR 0049. The
@@ -2366,7 +2369,8 @@ after the grill closes so issues do not become a competing draft specification.
     legacy runtime deletion, freezes the measured baseline for all four slices
     and enables exact descending slice ratchets through `scripts/verify.py`.
     Every Core PR lowers each affected slice ratchet and the total, except for
-    the dated, non-transferable PL-02, PL-04, PL-05, and Message Center
+    the dated, non-transferable PL-02, PL-04, PL-05, PL-00 semantic-control,
+    and Message Center
     readability owner amendments recorded in Decision 21 and ADR 0021; moving
     equivalent logic between slices cannot pass. Each named amendment
     immediately freezes its exact replacement ratchets and cannot fund later

@@ -308,7 +308,7 @@
           Grid.Column="1"
           AutomationProperties.Name="{Binding Text.SupportMatrixOpenLabel}"
           behaviors:FocusOnRevealBehavior.IsEnabled="True"
-          Classes="iconButton"
+          Classes="semanticAction iconButton"
           Command="{Binding Settings.OpenSupportMatrixCommand}"
           IsVisible="{Binding Settings.IsOverviewVisible}"
           ToolTip.Tip="{Binding Text.SupportMatrixOpenLabel}">
@@ -389,7 +389,7 @@
         <Button
             AutomationProperties.Name="{Binding Text.SupportMatrixBackLabel}"
             behaviors:FocusOnRevealBehavior.IsEnabled="True"
-            Classes="iconButton"
+            Classes="semanticAction iconButton"
             Command="{Binding Settings.CloseSupportMatrixCommand}"
             IsVisible="{Binding Settings.IsSupportMatrixOpen}"
             ToolTip.Tip="{Binding Text.SupportMatrixBackLabel}">

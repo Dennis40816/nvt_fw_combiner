@@ -108,10 +108,6 @@ public sealed record ResolvedPrerequisiteAction(
 /// </summary>
 public sealed class MetadataPlanEntry
 {
-    private readonly FirmwareMetadataReferenceTarget[] _targetReferences;
-    private readonly MetadataReferencePurpose[] _purposes;
-    private readonly string[] _evidenceRefs;
-
     /// <summary>Creates one legacy field-only metadata plan entry.</summary>
     public MetadataPlanEntry(
         string bindingId,
@@ -199,17 +195,17 @@ public sealed class MetadataPlanEntry
                 nameof(spaceId));
         }
 
-        _targetReferences = [.. targetReferences];
-        if (_targetReferences.Length == 0 ||
-            _targetReferences.Any(static target => target is null) ||
-            _targetReferences.Distinct().Count() != _targetReferences.Length)
+        FirmwareMetadataReferenceTarget[] targetReferenceSnapshot = [.. targetReferences];
+        if (targetReferenceSnapshot.Length == 0 ||
+            targetReferenceSnapshot.Any(static target => target is null) ||
+            targetReferenceSnapshot.Distinct().Count() != targetReferenceSnapshot.Length)
         {
             throw new ArgumentException(
                 "Metadata plan target references must be nonempty and unique.",
                 nameof(targetReferences));
         }
 
-        if (_targetReferences.Any(target =>
+        if (targetReferenceSnapshot.Any(target =>
                 !structureDefinition.Definition.ContainsReferenceTarget(target)))
         {
             throw new ArgumentException(
@@ -217,36 +213,36 @@ public sealed class MetadataPlanEntry
                 nameof(targetReferences));
         }
 
-        Array.Sort(_targetReferences, CompareTargets);
+        Array.Sort(targetReferenceSnapshot, CompareTargets);
         FieldIds = Array.AsReadOnly(
         [
-            .. _targetReferences
+            .. targetReferenceSnapshot
                 .Where(static target =>
                     target.Kind == FirmwareMetadataReferenceTargetKind.Field)
                 .Select(static target => target.TargetId),
         ]);
-        _purposes = [.. purposes];
-        if (_purposes.Length == 0 ||
-            _purposes.Any(static purpose => !Enum.IsDefined(purpose)) ||
-            _purposes.Distinct().Count() != _purposes.Length)
+        MetadataReferencePurpose[] purposeSnapshot = [.. purposes];
+        if (purposeSnapshot.Length == 0 ||
+            purposeSnapshot.Any(static purpose => !Enum.IsDefined(purpose)) ||
+            purposeSnapshot.Distinct().Count() != purposeSnapshot.Length)
         {
             throw new ArgumentException(
                 "Metadata plan purposes must be defined and unique.",
                 nameof(purposes));
         }
 
-        Array.Sort(_purposes);
-        _evidenceRefs = [.. evidenceRefs];
-        if (_evidenceRefs.Any(string.IsNullOrWhiteSpace) ||
-            _evidenceRefs.Distinct(StringComparer.Ordinal).Count() !=
-                _evidenceRefs.Length)
+        Array.Sort(purposeSnapshot);
+        string[] evidenceReferenceSnapshot = [.. evidenceRefs];
+        if (evidenceReferenceSnapshot.Any(string.IsNullOrWhiteSpace) ||
+            evidenceReferenceSnapshot.Distinct(StringComparer.Ordinal).Count() !=
+                evidenceReferenceSnapshot.Length)
         {
             throw new ArgumentException(
                 "Metadata plan evidence references must be nonblank and unique.",
                 nameof(evidenceRefs));
         }
 
-        Array.Sort(_evidenceRefs, StringComparer.Ordinal);
+        Array.Sort(evidenceReferenceSnapshot, StringComparer.Ordinal);
         BindingId = bindingId;
         SpaceId = spaceId;
         SlotId = slotId;
@@ -254,9 +250,9 @@ public sealed class MetadataPlanEntry
         ResolvedMap = resolvedMap;
         MetadataSetBinding = metadataSetBinding;
         StructureDefinition = structureDefinition;
-        TargetReferences = Array.AsReadOnly(_targetReferences);
-        Purposes = Array.AsReadOnly(_purposes);
-        EvidenceRefs = Array.AsReadOnly(_evidenceRefs);
+        TargetReferences = Array.AsReadOnly(targetReferenceSnapshot);
+        Purposes = Array.AsReadOnly(purposeSnapshot);
+        EvidenceRefs = Array.AsReadOnly(evidenceReferenceSnapshot);
     }
 
     /// <summary>Stable profile binding identity.</summary>
@@ -362,8 +358,6 @@ public sealed record MetadataInspectionResult(
 /// <summary>One immutable metadata inspection request and authoring revision.</summary>
 public sealed class MetadataInspectionRequest
 {
-    private readonly FirmwareArtifactPayload[] _artifacts;
-
     /// <summary>Creates one checked request over immutable artifact snapshots.</summary>
     public MetadataInspectionRequest(
         ResolvedMetadataPlan plan,
@@ -374,10 +368,10 @@ public sealed class MetadataInspectionRequest
         ArgumentNullException.ThrowIfNull(plan);
         ArgumentOutOfRangeException.ThrowIfNegative(authoringRevision);
         ArgumentNullException.ThrowIfNull(artifacts);
-        _artifacts = [.. artifacts];
-        if (_artifacts.Any(static artifact => artifact is null) ||
-            _artifacts.Select(static artifact => artifact.ArtifactId)
-                .Distinct(StringComparer.Ordinal).Count() != _artifacts.Length)
+        FirmwareArtifactPayload[] artifactSnapshot = [.. artifacts];
+        if (artifactSnapshot.Any(static artifact => artifact is null) ||
+            artifactSnapshot.Select(static artifact => artifact.ArtifactId)
+                .Distinct(StringComparer.Ordinal).Count() != artifactSnapshot.Length)
         {
             throw new ArgumentException(
                 "Metadata inspection artifacts must be non-null and uniquely bound.",
@@ -386,7 +380,7 @@ public sealed class MetadataInspectionRequest
 
         Plan = plan;
         AuthoringRevision = authoringRevision;
-        Artifacts = Array.AsReadOnly(_artifacts);
+        Artifacts = Array.AsReadOnly(artifactSnapshot);
         TopologySelection = topologySelection;
     }
 
@@ -408,8 +402,6 @@ public sealed class MetadataInspectionRequest
 /// <summary>Immutable result of inspecting one resolved plan against artifact snapshots.</summary>
 public sealed class MetadataInspectionSnapshot
 {
-    private readonly FirmwareArtifactIdentity[] _artifactIdentities;
-
     internal MetadataInspectionSnapshot(
         ResolutionToken resolutionToken,
         IEnumerable<MetadataInspectionResult> results)
@@ -430,22 +422,22 @@ public sealed class MetadataInspectionSnapshot
         ArgumentOutOfRangeException.ThrowIfNegative(authoringRevision);
         ArgumentNullException.ThrowIfNull(artifactIdentities);
         ArgumentNullException.ThrowIfNull(results);
-        _artifactIdentities = [.. artifactIdentities];
-        if (_artifactIdentities.Any(static identity => identity is null) ||
-            _artifactIdentities.Select(static identity => identity.ArtifactId)
+        FirmwareArtifactIdentity[] artifactIdentitySnapshot = [.. artifactIdentities];
+        if (artifactIdentitySnapshot.Any(static identity => identity is null) ||
+            artifactIdentitySnapshot.Select(static identity => identity.ArtifactId)
                 .Distinct(StringComparer.Ordinal).Count() !=
-            _artifactIdentities.Length)
+            artifactIdentitySnapshot.Length)
         {
             throw new ArgumentException(
                 "Inspection artifact identities must be non-null and unique.",
                 nameof(artifactIdentities));
         }
 
-        Array.Sort(_artifactIdentities, static (left, right) =>
+        Array.Sort(artifactIdentitySnapshot, static (left, right) =>
             StringComparer.Ordinal.Compare(left.ArtifactId, right.ArtifactId));
         ResolutionToken = resolutionToken;
         AuthoringRevision = authoringRevision;
-        ArtifactIdentities = Array.AsReadOnly(_artifactIdentities);
+        ArtifactIdentities = Array.AsReadOnly(artifactIdentitySnapshot);
         Results = Array.AsReadOnly([.. results]);
     }
 

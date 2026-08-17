@@ -68,25 +68,25 @@
               Classes="nav"
               Command="{Binding ShowHomeCommand}"
               IsChecked="{Binding IsHomeVisible, Mode=OneWay}">
-            <TextBlock Foreground="{DynamicResource NfcTextBrush}" Text="{Binding Text.HomeLabel}" />
+            <TextBlock Text="{Binding Text.HomeLabel}" />
           </ToggleButton>
           <ToggleButton
               Classes="nav"
               Command="{Binding ShowSettingsCommand}"
               IsChecked="{Binding IsSettingsVisible, Mode=OneWay}">
-            <TextBlock Foreground="{DynamicResource NfcTextBrush}" Text="{Binding SettingsPreview.Title}" />
+            <TextBlock Text="{Binding SettingsPreview.Title}" />
           </ToggleButton>
           <ToggleButton
               Classes="nav"
               Command="{Binding ShowReplaceCommand}"
               IsChecked="{Binding IsReplaceVisible, Mode=OneWay}">
-            <TextBlock Foreground="{DynamicResource NfcTextBrush}" Text="{Binding Replace.ReplacePreview.Title}" />
+            <TextBlock Text="{Binding Replace.ReplacePreview.Title}" />
           </ToggleButton>
           <ToggleButton
               Classes="nav"
               Command="{Binding ShowMergeCommand}"
               IsChecked="{Binding IsMergeVisible, Mode=OneWay}">
-            <TextBlock Foreground="{DynamicResource NfcTextBrush}" Text="{Binding Merge.MergePreview.Title}" />
+            <TextBlock Text="{Binding Merge.MergePreview.Title}" />
           </ToggleButton>
         </StackPanel>
 
@@ -96,7 +96,7 @@
             Orientation="Horizontal"
             Spacing="{DynamicResource NfcSpace8}">
           <Button
-              Classes="secondary"
+              Classes="semanticAction secondary"
               Click="LoadReportJsonButton_OnClick"
               ToolTip.Tip="{Binding Text.LoadJsonTooltip}">
             <StackPanel Orientation="Horizontal" Spacing="7">
@@ -105,7 +105,7 @@
             </StackPanel>
           </Button>
           <Button
-              Classes="iconButton"
+              Classes="semanticAction iconButton"
               AutomationProperties.LiveSetting="Polite"
               AutomationProperties.Name="{Binding MessageCenter.MessageCenterAccessibleName}"
               Command="{Binding MessageCenter.OpenCommand}"
@@ -419,24 +419,22 @@
         </Grid>
     </StackPanel>
 
-    <ContentControl
+    <Border
         x:Name="OptionalPreloadStatusHost"
         Grid.Row="4"
-        AutomationProperties.LiveSetting="Polite"
-        AutomationProperties.Name="{ReflectionBinding AccessibleStatus}"
-        Focusable="True"
-        Content="{ReflectionBinding}">
-      <ContentControl.ContentTemplate>
-        <DataTemplate>
-          <Border
-              Margin="28,0,28,12"
-              Padding="14,10"
-              Background="{DynamicResource NfcSurfaceBrush}"
-              BorderBrush="{DynamicResource NfcBorderSoftBrush}"
-              BorderThickness="1"
-              CornerRadius="{DynamicResource NfcCompactCornerRadius}"
-              IsVisible="{ReflectionBinding HasOptionalStatus}">
-            <Expander>
+        Margin="28,0,28,12"
+        Padding="14,10"
+        Background="{DynamicResource NfcSurfaceBrush}"
+        BorderBrush="{DynamicResource NfcBorderSoftBrush}"
+        BorderThickness="1"
+        CornerRadius="{DynamicResource NfcCompactCornerRadius}"
+        IsVisible="{ReflectionBinding HasOptionalStatus}">
+            <Expander
+                x:Name="OptionalPreloadFocusTarget"
+                AutomationProperties.LiveSetting="Polite"
+                AutomationProperties.Name="{ReflectionBinding AccessibleStatus}"
+                Focusable="True"
+                KeyboardNavigation.IsTabStop="False">
               <Expander.Header>
                 <Grid
                     ColumnDefinitions="Auto,Auto,*,Auto,Auto"
@@ -462,7 +460,7 @@
                       Text="{ReflectionBinding SummaryStage.ProgressLabel}" />
                   <Button
                       Grid.Column="4"
-                      Classes="secondary"
+                      Classes="semanticAction secondary"
                       Click="OptionalPreloadCancelButton_OnClick"
                       Content="{ReflectionBinding $parent[Window].DataContext.Text.CancelPreloadLabel}"
                       IsVisible="{ReflectionBinding CanCancelOptionals}" />
@@ -506,7 +504,7 @@
                       </StackPanel>
                       <Button
                           Grid.Column="4"
-                          Classes="secondary"
+                          Classes="semanticAction secondary"
                           AutomationProperties.Name="{ReflectionBinding RetryAccessibleLabel}"
                           Click="OptionalPreloadRetryButton_OnClick"
                           Content="{ReflectionBinding $parent[Window].DataContext.Text.RetryLabel}"
@@ -514,6 +512,7 @@
                           Tag="{ReflectionBinding Id}" />
                       <Button
                           Grid.Column="5"
+                          Classes="semanticAction secondary"
                           AutomationProperties.Name="{ReflectionBinding SkipAccessibleLabel}"
                           Click="OptionalPreloadSkipButton_OnClick"
                           Content="{ReflectionBinding $parent[Window].DataContext.Text.SkipPreloadLabel}"
@@ -524,10 +523,7 @@
                 </ItemsControl.ItemTemplate>
               </ItemsControl>
             </Expander>
-          </Border>
-        </DataTemplate>
-      </ContentControl.ContentTemplate>
-    </ContentControl>
+    </Border>
 
     <ContentControl
         x:Name="ReportToastHost"

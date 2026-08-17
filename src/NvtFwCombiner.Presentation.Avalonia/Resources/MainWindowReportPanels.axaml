@@ -13,7 +13,7 @@
       </StackPanel>
       <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="{DynamicResource NfcSpace8}">
         <Button
-            Classes="iconButton"
+            Classes="semanticAction iconButton"
             Command="{Binding CloseReportCommand}"
             ToolTip.Tip="{Binding Text.CloseReportTooltip}">
           <TextBlock Text="×" />
@@ -36,9 +36,9 @@
           <TextBlock Classes="captionText" Text="{Binding ReportHistoryStorageSummary}" />
         </StackPanel>
         <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="{DynamicResource NfcSpace8}">
-          <Button Classes="secondary" Command="{Binding CloseReportHistoryCommand}" Content="{Binding Text.BackToReportLabel}" />
+          <Button Classes="semanticAction secondary" Command="{Binding CloseReportHistoryCommand}" Content="{Binding Text.BackToReportLabel}" />
           <Button
-              Classes="danger"
+              Classes="semanticAction danger"
               Command="{Binding ClearReportHistoryCommand}"
               Content="{Binding Text.ClearAllLabel}"
               ToolTip.Tip="{Binding Text.ClearHistoryTooltip}" />
@@ -48,7 +48,7 @@
       <Border Grid.Row="1" Classes="warningSurface" Padding="10" IsVisible="{Binding HasReportHistoryStorageWarning}">
         <Grid ColumnDefinitions="*,Auto" ColumnSpacing="10">
           <TextBlock FontSize="{DynamicResource NfcFontSize12}" Foreground="{DynamicResource NfcWarningTextBrush}" Text="{Binding ReportHistoryStorageWarning}" TextWrapping="Wrap" />
-          <Button Grid.Column="1" Classes="danger" Command="{Binding ClearReportHistoryCommand}" Content="{Binding Text.ClearHistoryLabel}" />
+          <Button Grid.Column="1" Classes="semanticAction danger" Command="{Binding ClearReportHistoryCommand}" Content="{Binding Text.ClearHistoryLabel}" />
         </Grid>
       </Border>
 
@@ -98,7 +98,7 @@
           <Label Grid.Column="2" Classes="compactBadge neutralBadge reportBadge" Content="{Binding LoadedReport.OutcomeMeta}" />
           <Button
               Grid.Column="3"
-              Classes="iconButton"
+              Classes="semanticAction iconButton"
               VerticalAlignment="Center"
               AutomationProperties.Name="{Binding Text.OpenReportHistoryAutomationName}"
               Command="{Binding ShowReportHistoryCommand}"

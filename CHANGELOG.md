@@ -4,48 +4,55 @@ All notable changes to NVT FW Combiner are documented here. The project follows 
 
 ## [Unreleased]
 
-The owner-approved `v0.10.5` implementation intake is tracked below. No
-`v0.10.5` package or stable tag exists yet.
+The owner-approved `v0.10.5` implementation and PL-00 candidate evidence are
+tracked below. No stable `v0.10.5` package or tag has been published yet.
 
 ## [0.10.5] - Unreleased
 
 ### Summary
 
-This support-neutral release intake defines one observable, cancellable,
+This support-neutral release implements one observable, cancellable,
 bounded, and user-controllable preload lifecycle while retaining typed catalog,
-report, diagnostics, inspection, and external-runtime semantic owners. This
-section records approved scope; implementation and release evidence remain
-dependency-gated.
+report, diagnostics, inspection, and external-runtime semantic owners. The
+implementation is complete and PL-00 release-candidate validation is in
+progress. Ancestor-package observations remain supporting performance evidence,
+but the frozen reviewed tree must refresh its package, measurement, provenance,
+and two exact-head CI attempts. Screen-reader review and release approval also
+remain open.
 
 ### Product changes
 
-#### Message Center report and System Information readability
+#### Message Center, report, and System Information readability
 
-- Purpose: make the existing Report and System Information content faster to
+- Purpose: make the existing Message Center and report-modal evidence faster to
   scan without changing what the application computes or stores.
 - Before → After: the mixed three-column System Information layout becomes
   four aligned two-column fact cards; Current Report and Report History become
-  two equal cards with their related actions kept together.
-- Affected: Message Center → Run Reports and System Information presentation.
+  two equal cards with their related actions kept together; the report modal's
+  long audit sentence becomes six explicit counters above the existing evidence
+  tabs.
+- Affected: Message Center → Run Reports and System Information, plus the report
+  modal Summary and Audit details presentation.
 - Support status: unchanged/support-neutral; no route, IC, profile, family,
   processor, or Golden observation changes.
-- Accessibility: selector targets span the available width, each fact keeps an
-  explicit label/value relationship, and existing keyboard actions, focus,
-  localization, reduced-motion behavior, and automation text are preserved.
+- Accessibility: selector targets span the available width, each fact and audit
+  counter keeps its localized label/value relationship, and existing keyboard
+  actions, focus, live diagnostics, reduced-motion behavior, and automation text
+  are preserved.
 - Compatibility: report data/history, diagnostics, firmware bytes and names,
   profiles, schemas, processor protocols, Golden evidence, and persistence are
   unchanged.
 - Verification: XAML contract coverage, full UI smoke, Architecture ratchet,
-  canonical verifier, and interactive dark-theme inspection.
+  canonical verifier, and interactive light/dark inspection.
 - Limitations: this is a visual hierarchy change only; it adds no new Report or
   System Information data and changes no existing action.
 
 #### Unified bounded preload lifecycle
 
-- Before → After: startup and related preparation currently use separate
-  cancellation, generation, progress, cache, and failure paths; the approved
-  implementation converges scheduling and operator control into one Presentation
-  lifecycle while each feature keeps its existing typed semantic owner.
+- Before → After: startup and related preparation formerly used separate
+  cancellation, generation, progress, cache, and failure paths; scheduling and
+  operator control now converge into one Presentation lifecycle while each
+  feature keeps its existing typed semantic owner.
 - Affected: catalog startup, report/history input, diagnostics, deferred views,
   external-environment discovery, and selection-triggered inspection across all
   six workflows.
@@ -54,12 +61,13 @@ dependency-gated.
 - Compatibility: firmware bytes/hashes/names, report wire and history schema,
   profiles/schemas, CLI behavior, Saved Rules, settings, and processor protocols
   remain compatible.
-- Verification: PL-01 through PL-07 and PL-00 require exact behavioral,
-  architecture, accessibility, performance, code-size, verifier, Golden 17/17,
-  package, CI, and release evidence before completion.
-- Limitations: PL-02 through PL-06 implement the bounded shell, report,
-  diagnostics, external-environment, and coherent inspection prerequisites.
-  PL-07 workflow-lifecycle adoption and the `v0.10.5` release artifact remain.
+- Verification: PL-01 through PL-07 passed their behavioral, architecture,
+  accessibility automation, code-size, verifier, and Golden 17/17 gates.
+  Supporting ancestor packages met the performance target, but PL-00 must repeat
+  package, performance, provenance, and two same-SHA CI gates on the frozen tree.
+- Limitations: stable publication remains under PL-00 until those repeat gates,
+  screen-reader review, and release-owner approval complete; no aggregate cross-
+  stage percentage or Build/Preview run-progress replacement is introduced.
 
 #### Bounded local report and history input
 
@@ -83,9 +91,9 @@ dependency-gated.
 - Compatibility: report wire/schema, history v1, settings, firmware bytes,
   Golden outputs, profiles, CLI options, and support truth are unchanged.
 - Verification: exact file-boundary, history-envelope, startup/manual parity,
-  architecture, full verifier, and Golden 17/17 evidence is required.
-- Limitations: this is the PL-02 prerequisite only; PL-03 separately introduces
-  the shared visible preload session, while later lifecycle tickets remain open.
+  architecture, full verifier, and Golden 17/17 evidence passed.
+- Limitations: this boundary remains local-file-only; it adds no remote report
+  source, report schema, or second Presentation filesystem owner.
 
 #### Shell preload session and required catalog stage
 
@@ -111,8 +119,9 @@ dependency-gated.
   coverage, and Golden 17/17 gates apply.
 - Code size: full production descends from 97,302 to 97,297 nonblank lines;
   runtime production remains 67,371.
-- Limitations: catalog is the only stage in this PR; report, diagnostics, deferred
-  views, external discovery, and selected-file inspection migrate in later tickets.
+- Limitations: required catalog failure remains blocking; optional report,
+  diagnostics, external-environment, and deferred-view failures remain isolated
+  in their admitted lifecycle stages.
 
 #### Optional shell preload lifecycle
 
@@ -233,6 +242,10 @@ dependency-gated.
   only after the prior terminal has drained; malformed progress fails closed.
 - Accessibility: the foreground catalog surface and workflow action rail reuse one
   localized loading template with bounded decile announcements and truthful percent.
+- Input clarity: the typed `PendingInput` state is presented as the concrete
+  prerequisite, such as `Waiting for DP BIN` or `Waiting for Reference FlashCode`;
+  multi-input memory placeholders say `Waiting for required inputs` rather than
+  exposing an ambiguous implementation-state label.
 - Compatibility: firmware bytes, ranges, CRC/header behavior, output naming,
   profiles, schemas, report wire, processors, CLI behavior, and Golden data are
   unchanged.
@@ -247,27 +260,47 @@ dependency-gated.
 - Limitations: startup preload, Build/Preview run progress, CtrlRAM run-bound metadata,
   firmware semantics, and Report/System Information layout remain separate owners.
 
-#### Message Center and report readability
+#### Reproducible startup and preload evidence
 
-- Purpose: make System information and run-report evidence easier to scan in
-  both light and dark themes without changing diagnostics or report semantics.
-- Affected: the Message Center run-report and System information tabs, plus the
-  report modal summary and Audit details panels.
-- Before → After: dense label/value rows and one long audit sentence become a
-  compact system overview, a distinct healthy-state panel, and six explicit
-  audit counters above the existing evidence tabs.
-- Accessibility: existing tab order and live diagnostics remain intact; every
-  counter retains its localized label and value in the accessibility tree.
-- Support status: unchanged/support-neutral; no IC, route, workflow, processor,
-  profile, or family availability fact changes.
-- Compatibility: no report wire, history schema, firmware output, profile,
-  diagnostic, CLI, or support fact changes.
-- Verification: light/dark interactive inspection, UI smoke, architecture,
-  structure, full verifier, coverage, and Golden 17/17 gates apply.
-- Code size: full production descends from 97,303 to 97,302 nonblank lines;
-  runtime production remains 67,371.
-- Limitations: this is a presentation-only readability change; it does not add
-  new report fields, diagnostics, filtering, or preload lifecycle behavior.
+- Purpose: make the release comparison show not only launch time but also private
+  memory and the exact terminal/work evidence for every preload stage.
+- Before → After: the opt-in startup trace reported timing/allocation points only;
+  schema v3 additionally records bounded stage identity, terminal state, and
+  nullable completed/total work, while the measurement result records working set
+  and private bytes at first window, lifecycle completion, and observed peak.
+- Affected: the opt-in Desktop startup trace and the repository-owned packaged
+  startup measurement runner.
+- Support status: unchanged/support-neutral; no route, IC, family, topology,
+  workflow, processor, profile, or evidence fact changes.
+- Compatibility: the runner still accepts the stable `v0.10.4` schema-v2 trace;
+  candidate evidence must explicitly require schema v3. Normal application launch,
+  firmware semantics, report wire, settings, CLI behavior, and Golden data do not
+  change.
+- Privacy and failure behavior: lifecycle evidence excludes titles, diagnostics,
+  paths, report content, and firmware facts; duplicate, non-terminal, inconsistent,
+  or incomplete successful work records fail the measurement.
+- Code size: 295 physical nonblank production lines are removed and 358 added,
+  net +63. Full production changes from 98,074 to 98,137 under the named
+  2026-08-14 semantic-control owner amendment; runtime still descends from
+  67,997 to 67,981 = 20,619 / 29,555 / 3,074 / 14,733. The runtime reduction
+  removes redundant private array aliases from immutable Application classes
+  without changing their copies, validation, ordering, or read-only properties.
+  The non-transferable Presentation increase closes framework-default leakage
+  across normal, hover, pressed, keyboard-focus, and disabled semantic-button
+  and shell-navigation states, including the startup-completion Home focus, and
+  preserves CtrlRAM inspection projection during relocalization. One shared
+  semantic disabled-state owner replaces four identical role-local opacity rules.
+- Accessibility closure: the optional preload disclosure now gives both its
+  Expander peer and keyboard-operable header the same bounded accessible status.
+  Reusing the existing Expander template style and removing the peerless host
+  lowers the current full-production ratchet from 98,137 to 98,135; runtime and
+  all four runtime slices are unchanged.
+- Verification: focused trace serialization and Architecture contract tests,
+  structure validation, scoped R2/Polytail review, canonical verifier, package
+  measurement, exact-head CI, and clean-package accessibility gates apply.
+- Limitations: measurements cover the exact local candidate package; official
+  stable publication still requires the recorded screen-reader review,
+  release-owner approval, immutable tag workflow, and downloaded-asset audit.
 
 #### DP Replace readiness projection stability
 
@@ -288,29 +321,47 @@ dependency-gated.
 
 ### Security
 
-The planned lifecycle does not broaden filesystem, executable, firmware, or
+The implemented lifecycle does not broaden filesystem, executable, firmware, or
 network authority. Report input and external discovery remain bounded and
 fail-closed; external processors retain reviewed-root, trust, staging-copy, and
 write-range enforcement.
 
+### Release evidence and remaining gates
+
+- The first PL-00 package did not reproduce the 700 ms absolute startup target:
+  official `v0.10.4` measured 709.271 ms and candidate `6b1c874` measured
+  768.097 ms and 803.214 ms. Follow-up tracing isolated the bounded preference
+  adapter's synchronous pre-await admission on the startup thread. Exact
+  replacement candidate `7e7a31b` schedules that same canonical read before host
+  construction and still awaits it before the window; two independent one-warmup
+  plus five-run observations measured 631.132 ms and 634.589 ms. Those results
+  met the 700 ms target for that ancestor package, but they do not close the gate
+  for a later reviewed tree. All five preload stages were unique, terminal, and
+  `Succeeded` in both supporting observations.
+
 ### Known issues
 
-- The stable `v0.10.4` package did not reproduce the 700 ms absolute startup
-  target; `v0.10.5` must record new same-machine package evidence truthfully.
-- Every implementation slice remains blocked by its dependency, R2/R3 review,
-  exact verifier, Golden, CI, and any named human evidence gate.
+- The implementation dependency chain is complete. Any revised reviewed head
+  must refresh its exact verifier, Golden, CI, package, measurement, SBOM,
+  provenance, and hash evidence. Clean-machine accessibility checks and release
+  approval remain external gates.
 
 ### Upgrade and rollback
 
-There is no `v0.10.5` package to install or roll back at specification intake.
-Future release notes must name the exact stable predecessor, package replacement,
-compatibility, and rollback procedure before publication.
+When published, upgrade by replacing the complete portable `v0.10.4` folder
+with the complete `v0.10.5` folder; do not overlay individual files or merge it
+into a synchronized profile tree. Roll back by restoring the untouched complete
+`v0.10.4` package. No report, history, settings, profile, schema, or Saved Rule
+migration is required. A local PL-00 candidate is evidence, not distribution
+authority.
 
 ### Downloads and integrity
 
-No `v0.10.5` downloads exist at intake. A stable release requires the reviewed
-portable ZIP, SPDX SBOM, provenance, candidate manifest, hashes, source archives,
-closed-package smoke, and immutable tag evidence.
+The stable release will publish the reviewed portable ZIP, SPDX SBOM,
+provenance, candidate manifest, outer hashes, and tag-derived source archives.
+Verify the checksum list and provenance source identity before distribution.
+Local PL-00 candidate artifacts are not stable downloads or immutable tag
+authority.
 
 ## [0.10.4] - 2026-08-13
 

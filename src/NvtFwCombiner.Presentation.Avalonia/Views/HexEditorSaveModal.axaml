@@ -18,8 +18,8 @@
         <TextBlock Classes="mutedText" Text="{Binding Text.HexEditorSaveConfirmationDetail}" TextWrapping="Wrap" />
       </StackPanel>
       <StackPanel Grid.Row="1" HorizontalAlignment="Right" Orientation="Horizontal" Spacing="{DynamicResource NfcSpace8}">
-        <Button Classes="secondary" Command="{Binding CancelSaveCommand}" Content="{Binding Text.CloseLabel}" />
-        <Button Classes="primary" Click="ConfirmHexEditorSaveButton_OnClick" Content="{Binding Text.HexEditorSaveConfirmationActionLabel}" />
+        <Button Classes="semanticAction secondary" Command="{Binding CancelSaveCommand}" Content="{Binding Text.CloseLabel}" />
+        <Button Classes="semanticAction primary" Click="ConfirmHexEditorSaveButton_OnClick" Content="{Binding Text.HexEditorSaveConfirmationActionLabel}" />
       </StackPanel>
     </Grid>
   </Border>
