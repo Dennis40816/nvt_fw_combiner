@@ -22,6 +22,31 @@ remain open.
 
 ### Product changes
 
+#### Settings, Support Matrix, and pending-input readability
+
+- Purpose: make Settings, support status, and incomplete workflow inputs faster
+  to understand without changing firmware or support semantics.
+- Before → After: Settings uses a compact section rail; Support Matrix cells name
+  their verification state; pending layouts identify the exact required DP, TP,
+  Base, or CtrlRAM input; Browse remains a fixed rounded button; top navigation
+  uses text and an underline instead of persistent-looking selection frames.
+- Affected: Settings navigation and preferences, the read-only Support Matrix,
+  pending Merge/Replace layout presentation, Browse actions, and top navigation.
+- Support status: unchanged/support-neutral; no route, IC, profile, family,
+  processor, or Golden observation changes.
+- Localization and accessibility: English and Traditional Chinese labels update
+  together, selected navigation remains distinct, and keyboard-only focus keeps a
+  visible underline without leaving a mouse-click outline.
+- Compatibility: profiles, schemas, firmware bytes/hashes/names, Golden evidence,
+  report wire/history, CLI behavior, and execution paths are unchanged.
+- Code size: exact same-file style ownership and resource/helper reuse lower the
+  full-production ratchet from 98,135 to 98,133; runtime and all four runtime
+  slices remain unchanged.
+- Verification: Desktop Release build, UI smoke, Architecture, structure/full
+  verifier, scoped Polytail, and interactive dark/light layout review apply.
+- Limitations: this is a presentation/readability change; it adds no updater,
+  version-selection, workflow, report, or firmware capability.
+
 #### Message Center, report, and System Information readability
 
 - Purpose: make the existing Message Center and report-modal evidence faster to

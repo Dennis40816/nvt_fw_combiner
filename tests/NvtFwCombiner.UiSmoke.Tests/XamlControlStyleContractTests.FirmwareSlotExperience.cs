@@ -46,6 +46,13 @@ public sealed partial class XamlControlStyleContractTests
         Assert.Contains("Classes.pendingInput=\"{Binding IsSemanticStatePendingInput}\"", slotCard, StringComparison.Ordinal);
         Assert.Contains("IsEnabled=\"{Binding CanSelectFile}\"", slotCard, StringComparison.Ordinal);
         Assert.Contains("DragDrop.AllowDrop=\"{Binding CanSelectFile}\"", slotCard, StringComparison.Ordinal);
+        string buttonStyles = ReadPresentationFile("Styles/MainWindowButtonStyles.axaml");
+        string browse = ExtractStyle(buttonStyles, "Button.browseAction");
+        Assert.Contains("Property=\"MinWidth\" Value=\"88\"", browse, StringComparison.Ordinal);
+        Assert.Contains("Property=\"MaxHeight\" Value=\"36\"", browse, StringComparison.Ordinal);
+        Assert.Contains("Property=\"VerticalAlignment\" Value=\"Center\"", browse, StringComparison.Ordinal);
+        Assert.Contains("Classes=\"semanticAction action browseAction\"", slotCard, StringComparison.Ordinal);
+        Assert.Contains("CornerRadius=\"{DynamicResource NfcPillCornerRadius}\"", buttonStyles, StringComparison.Ordinal);
         Assert.DoesNotContain("UsesSharedSlotPresentation", slotCard, StringComparison.Ordinal);
         Assert.DoesNotContain("UsesLegacySlotPresentation", slotCard, StringComparison.Ordinal);
     }

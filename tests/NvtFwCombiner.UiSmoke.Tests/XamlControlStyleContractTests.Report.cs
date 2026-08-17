@@ -168,7 +168,7 @@ public sealed partial class XamlControlStyleContractTests
         Assert.DoesNotContain("SelectedRange.Detail.BeforeLabel", audit, StringComparison.Ordinal);
         Assert.DoesNotContain("SelectedRange.Detail.AfterLabel", audit, StringComparison.Ordinal);
         Assert.DoesNotContain("Border.reportHexDiffRow.changed", styles, StringComparison.Ordinal);
-        Assert.Contains("Selector=\"ToggleSwitch.reportHexDiffOriginalToggle\"", styles, StringComparison.Ordinal);
+        _ = ExtractStyle(styles, "ToggleSwitch.reportHexDiffOriginalToggle");
         Assert.Contains("x:Key=\"ReportHexDiffRangeCardTheme\"", changes, StringComparison.Ordinal);
         Assert.Contains("ResourceKey=\"ReportHexDiffRangeCardTheme\"", audit, StringComparison.Ordinal);
         Assert.Contains("Property=\"CornerRadius\" Value=\"{DynamicResource NfcSurfaceCornerRadius}\"", changes, StringComparison.Ordinal);

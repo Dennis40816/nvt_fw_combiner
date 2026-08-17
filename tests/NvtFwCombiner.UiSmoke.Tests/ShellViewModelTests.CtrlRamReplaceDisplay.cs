@@ -33,9 +33,9 @@ public sealed partial class CtrlRamWorkflowTests
             slot.SlotId == "replace-ctrlram-vn" &&
             slot.Description.Contains("VN_Ctrlram.bin", StringComparison.Ordinal) &&
             slot.Description.Contains("max 5728 B", StringComparison.Ordinal));
-        Assert.Equal("Memory layout pending", viewModel.Replace.ReplaceMemoryRangeLabel);
+        Assert.Equal("Waiting for Normal CtrlRAM", viewModel.Replace.ReplaceMemoryRangeLabel);
         Assert.Empty(viewModel.Replace.ReplaceCoverageGroups);
-        Assert.Equal("Waiting for required inputs", Assert.Single(viewModel.Replace.ReplaceCoverageSegments).SourceLabel);
+        Assert.Equal("Waiting for Normal CtrlRAM", Assert.Single(viewModel.Replace.ReplaceCoverageSegments).SourceLabel);
 
         FirmwareSlotViewModel inputSlot = viewModel.Replace.ReplaceSlots.Single(slot =>
             slot.SlotId == "replace-ctrlram-vn");
@@ -55,7 +55,7 @@ public sealed partial class CtrlRamWorkflowTests
             slot.SlotId == "replace-ctrlram-vn"));
         Assert.Same(inspection, inputSlot.CurrentInspectionProjection);
         Assert.Equal(FirmwareInputInspectionSeverity.Valid, inputSlot.InputInspectionSeverity);
-        Assert.Equal("等待必要輸入", Assert.Single(viewModel.Replace.ReplaceCoverageSegments).SourceLabel);
+        Assert.Equal("等待 Normal CtrlRAM", Assert.Single(viewModel.Replace.ReplaceCoverageSegments).SourceLabel);
         Assert.Same(cascadeGroup, viewModel.Replace.ReplaceSlotGroups.Single(group => group.Title == "串接"));
         Assert.False(cascadeGroup.IsExpanded);
         Assert.Equal("1 個區域，尚未選擇。", cascadeGroup.SelectionSummary);
@@ -102,8 +102,8 @@ public sealed partial class CtrlRamWorkflowTests
         viewModel.WorkflowSession.SelectedIc = "NT51950";
         OpenReplace(viewModel, ExperienceIds.CtrlRamReplace);
 
-        Assert.Equal("Memory layout pending", viewModel.Replace.ReplaceMemoryRangeLabel);
-        Assert.Equal("Waiting for required inputs", Assert.Single(viewModel.Replace.ReplaceMemoryRows).AfterSource);
+        Assert.Equal("Waiting for Base BIN", viewModel.Replace.ReplaceMemoryRangeLabel);
+        Assert.Equal("Waiting for Base BIN", Assert.Single(viewModel.Replace.ReplaceMemoryRows).AfterSource);
         Assert.Contains(viewModel.Replace.ReplaceSlots, slot => slot.Title.StartsWith("NF CtrlRAM", StringComparison.Ordinal));
         Assert.Contains(viewModel.Replace.ReplaceSlots, slot => slot.Title.StartsWith("Normal CtrlRAM", StringComparison.Ordinal));
         Assert.Contains(viewModel.Replace.ReplaceSlots, slot => slot.Title.StartsWith("VN CtrlRAM", StringComparison.Ordinal));
@@ -130,9 +130,9 @@ public sealed partial class CtrlRamWorkflowTests
         FirmwareSlotGroupViewModel common = viewModel.Replace.ReplaceSlotGroups[1];
         Assert.Contains(cascade.Slots, slot => slot.Title == "DiffDLM");
         Assert.DoesNotContain(common.Slots, slot => slot.Title == "DiffDLM");
-        Assert.Equal("Memory layout pending", viewModel.Replace.ReplaceMemoryRangeLabel);
+        Assert.Equal("Waiting for Base BIN", viewModel.Replace.ReplaceMemoryRangeLabel);
         Assert.Empty(viewModel.Replace.ReplaceCoverageGroups);
-        Assert.Equal("Waiting for required inputs", Assert.Single(viewModel.Replace.ReplaceCoverageSegments).SourceLabel);
+        Assert.Equal("Waiting for Base BIN", Assert.Single(viewModel.Replace.ReplaceCoverageSegments).SourceLabel);
         Assert.DoesNotContain(viewModel.Replace.ReplaceSlotGroups, group => group.Title == "Single IC");
 
         viewModel.WorkflowSession.SelectedNumber = "single";
@@ -153,9 +153,9 @@ public sealed partial class CtrlRamWorkflowTests
         Assert.Equal(["Cascade", "Common"], viewModel.Replace.ReplaceSlotGroups.Select(group => group.Title));
         Assert.Contains(viewModel.Replace.ReplaceSlotGroups[0].Slots, slot => slot.SlotId == "replace-ctrlram-diff");
         Assert.DoesNotContain(viewModel.Replace.ReplaceSlotGroups[1].Slots, slot => slot.SlotId == "replace-ctrlram-diff");
-        Assert.Equal("Memory layout pending", viewModel.Replace.ReplaceMemoryRangeLabel);
+        Assert.Equal("Waiting for Base BIN", viewModel.Replace.ReplaceMemoryRangeLabel);
         Assert.Empty(viewModel.Replace.ReplaceCoverageGroups);
-        Assert.Equal("Waiting for required inputs", Assert.Single(viewModel.Replace.ReplaceCoverageSegments).SourceLabel);
+        Assert.Equal("Waiting for Base BIN", Assert.Single(viewModel.Replace.ReplaceCoverageSegments).SourceLabel);
     }
 
     /// <summary>Verifies NT51927 three-chip CtrlRAM Replace exposes physical shared and per-chip inputs.</summary>
@@ -187,7 +187,7 @@ public sealed partial class CtrlRamWorkflowTests
             viewModel.Replace.ReplaceSlotGroups.Select(group => group.Title));
         Assert.False(viewModel.Replace.IsReplaceCoverageGrouped);
         Assert.Empty(viewModel.Replace.ReplaceCoverageGroups);
-        Assert.Equal("Waiting for required inputs", Assert.Single(viewModel.Replace.ReplaceCoverageSegments).SourceLabel);
+        Assert.Equal("Waiting for Base BIN", Assert.Single(viewModel.Replace.ReplaceCoverageSegments).SourceLabel);
     }
 
     /// <summary>Verifies coverage summaries describe unchanged areas without presenting a Preserve region.</summary>
@@ -199,13 +199,13 @@ public sealed partial class CtrlRamWorkflowTests
         viewModel.WorkflowSession.SelectedNumber = "3";
         OpenReplace(viewModel, ExperienceIds.CtrlRamReplace);
 
-        Assert.Equal("Memory layout pending", viewModel.Replace.ReplaceMemoryRangeLabel);
+        Assert.Equal("Waiting for Base BIN", viewModel.Replace.ReplaceMemoryRangeLabel);
         Assert.Empty(viewModel.Replace.ReplaceCoverageGroups);
         Assert.DoesNotContain(viewModel.Replace.ReplaceCoverageSegments, segment =>
             segment.SourceLabel.Contains("Base flash", StringComparison.OrdinalIgnoreCase));
         Assert.DoesNotContain(viewModel.Replace.ReplaceMemoryRows, row =>
             row.BeforeSource.Contains("Base flash", StringComparison.OrdinalIgnoreCase));
-        Assert.Equal("Waiting for required inputs", Assert.Single(viewModel.Replace.ReplaceCoverageSegments).SourceLabel);
+        Assert.Equal("Waiting for Base BIN", Assert.Single(viewModel.Replace.ReplaceCoverageSegments).SourceLabel);
     }
 
     /// <summary>Verifies the Replace selection overview keeps collapsed CtrlRAM choices discoverable.</summary>
@@ -220,7 +220,7 @@ public sealed partial class CtrlRamWorkflowTests
 
         Assert.Equal("0 / 8 targets selected", viewModel.Replace.ReplaceSelectionCountLabel);
         Assert.DoesNotContain(viewModel.Replace.ReplaceCoverageSegments, static segment => segment.IsChanged);
-        Assert.Equal("Waiting for required inputs", Assert.Single(viewModel.Replace.ReplaceCoverageSegments).SourceLabel);
+        Assert.Equal("Waiting for Base BIN", Assert.Single(viewModel.Replace.ReplaceCoverageSegments).SourceLabel);
         Assert.Contains("Build blocked", viewModel.Replace.ReplaceSelectionStatusLabel, StringComparison.Ordinal);
         Assert.Contains(viewModel.Replace.ReplaceSelectionMissingRows, row => row.Title == "Base firmware (FlashCode / TP FW)");
         Assert.Contains(viewModel.Replace.ReplaceSelectionMissingRows, row => row.Title == "CtrlRAM replacement");
@@ -233,7 +233,7 @@ public sealed partial class CtrlRamWorkflowTests
         FirmwareSlotViewModel vn = viewModel.Replace.ReplaceSlots.Single(slot => slot.Title == "VN CtrlRAM (Shared)");
         viewModel.SetSlotFile(vn.SlotId, workspace.Write("vn.bin", [0x00]));
 
-        Assert.Equal("Waiting for required inputs", Assert.Single(viewModel.Replace.ReplaceCoverageSegments).SourceLabel);
+        Assert.Equal("Waiting for Base BIN", Assert.Single(viewModel.Replace.ReplaceCoverageSegments).SourceLabel);
 
         viewModel.SetSlotFile("replace-base", workspace.PathFor("base.bin"));
 

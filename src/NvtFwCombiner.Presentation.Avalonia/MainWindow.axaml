@@ -177,7 +177,7 @@
             <Grid ColumnDefinitions="*,Auto" ColumnSpacing="{DynamicResource NfcSpace16}">
               <StackPanel Spacing="{DynamicResource NfcSpace4}">
                 <TextBlock Classes="pageTitle" Text="{Binding ReplacePreview.Title}" />
-                <TextBlock Classes="pageSubtitle" Text="{Binding ReplacePreview.Subtitle}" />
+                <TextBlock Classes="pageSubtitle" Text="{Binding ReplacePreview.Subtitle}" TextWrapping="Wrap" />
               </StackPanel>
               <Grid
                   Grid.Column="1"
@@ -257,7 +257,7 @@
             <Grid ColumnDefinitions="*,Auto" ColumnSpacing="{DynamicResource NfcSpace16}">
               <StackPanel Spacing="{DynamicResource NfcSpace4}">
                 <TextBlock Classes="pageTitle" Text="{Binding MergePreview.Title}" />
-                <TextBlock Classes="pageSubtitle" Text="{Binding MergePreview.Subtitle}" />
+                <TextBlock Classes="pageSubtitle" Text="{Binding MergePreview.Subtitle}" TextWrapping="Wrap" />
               </StackPanel>
               <Grid Grid.Column="1" ColumnDefinitions="170" ColumnSpacing="{DynamicResource NfcSpace12}" VerticalAlignment="Center">
                 <StackPanel Spacing="3" ToolTip.Tip="{Binding Text.MergeModeTooltip}">

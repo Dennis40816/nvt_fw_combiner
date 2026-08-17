@@ -61,7 +61,7 @@ public sealed partial class GeneralWorkflowTests
         Assert.Empty(viewModel.Replace.ReplaceSlots);
         Assert.Equal("replace-base", viewModel.Replace.ReplaceBaseSlot.SlotId);
         Assert.NotEmpty(viewModel.Replace.ReplaceCoverageSegments);
-        Assert.Equal("Memory layout pending", viewModel.Replace.ReplaceMemoryRangeLabel);
+        Assert.Equal("Waiting for Base BIN", viewModel.Replace.ReplaceMemoryRangeLabel);
         Assert.Contains("explicit profile-approved", viewModel.Replace.SelectedReplaceModeDescription, StringComparison.Ordinal);
         Assert.False(viewModel.Replace.PreviewReplaceCommand.CanExecute(null));
         Assert.Equal(

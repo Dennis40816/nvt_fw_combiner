@@ -314,6 +314,9 @@ public sealed partial class XamlControlStyleContractTests
         Assert.Contains("x:Name=\"ReplaceCoverageStateLegend\"", replacePanel, StringComparison.Ordinal);
         Assert.Contains("Text=\"{Binding Text.OutputLayoutChangedStateLabel}\"", replacePanel, StringComparison.Ordinal);
         Assert.Contains("Text=\"{Binding Text.OutputLayoutKeptStateLabel}\"", replacePanel, StringComparison.Ordinal);
+        Assert.Contains("MaxHeight=\"320\"", replacePanel, StringComparison.Ordinal);
+        Assert.Contains("VerticalScrollBarVisibility=\"Auto\"", replacePanel, StringComparison.Ordinal);
+        Assert.Contains("MaxHeight=\"320\"", mergePanel, StringComparison.Ordinal);
 
         Assert.Contains("public MemoryCoverageFillRole FillRole", viewModel, StringComparison.Ordinal);
         Assert.DoesNotContain("public IBrush FillBrush", viewModel, StringComparison.Ordinal);
@@ -439,7 +442,23 @@ public sealed partial class XamlControlStyleContractTests
 
     private static string ExtractStyle(string xaml, string selector)
     {
-        return ExtractXamlBlock(xaml, $"<Style Selector=\"{selector}\">", "</Style>");
+        const string marker = "<Style Selector=\"";
+        int searchStart = 0;
+        while ((searchStart = xaml.IndexOf(marker, searchStart, StringComparison.Ordinal)) >= 0)
+        {
+            int valueStart = searchStart + marker.Length;
+            int valueEnd = xaml.IndexOf('"', valueStart);
+            string value = xaml[valueStart..valueEnd];
+            if (value.Split(',', StringSplitOptions.TrimEntries).Contains(selector, StringComparer.Ordinal))
+            {
+                int end = xaml.IndexOf("</Style>", valueEnd, StringComparison.Ordinal);
+                return xaml[searchStart..(end + "</Style>".Length)];
+            }
+
+            searchStart = valueEnd + 1;
+        }
+
+        throw new Xunit.Sdk.XunitException($"Missing XAML style selector: {selector}");
     }
 
     private static string ExtractXamlBlock(string xaml, string opening, string closing)

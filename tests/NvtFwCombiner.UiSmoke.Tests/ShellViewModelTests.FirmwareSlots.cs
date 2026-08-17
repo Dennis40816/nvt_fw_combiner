@@ -414,13 +414,13 @@ public sealed partial class FirmwareInspectionSlotTests
         viewModel.WorkflowSession.SelectedIc = "NT51950";
         await viewModel.WorkflowSession.SetSlotFileAsync("merge-dp", path, TestContext.Current.CancellationToken);
         Assert.Equal("nvt-fw-combiner-standard-merge.bin", viewModel.Merge.StandardMergeOutputFileName);
-        Assert.Equal("Memory layout pending", viewModel.Merge.MergeMemoryRangeLabel);
+        Assert.Equal("Waiting for TP BIN", viewModel.Merge.MergeMemoryRangeLabel);
 
         mutateDuringRefresh = true;
         await viewModel.WorkflowSession.RefreshSelectedMergeFirmwareInspectionsAsync();
 
         Assert.Equal("nvt-fw-combiner-standard-merge.bin", viewModel.Merge.StandardMergeOutputFileName);
-        Assert.Equal("Memory layout pending", viewModel.Merge.MergeMemoryRangeLabel);
+        Assert.Equal("Waiting for TP BIN", viewModel.Merge.MergeMemoryRangeLabel);
     }
 
     /// <summary>Verifies an unobserved DP size keeps the concise DP/Jira slot badge set.</summary>

@@ -50,16 +50,31 @@ internal static partial class UiCompositionRunner
         IReadOnlyList<MemoryMapRowViewModel> Rows,
         IReadOnlyList<MemoryCoverageSegmentViewModel> CoverageSegments) GetPendingMemoryDisplay(
         ShellTextResources text,
-        string detail)
+        IEnumerable<FirmwareSlotViewModel> slots,
+        string fallbackLabel,
+        bool includeOptionalFallback = false)
     {
         ArgumentNullException.ThrowIfNull(text);
-        ArgumentException.ThrowIfNullOrWhiteSpace(detail);
+        ArgumentNullException.ThrowIfNull(slots);
+        FirmwareSlotViewModel? pending = slots.FirstOrDefault(static slot =>
+                slot.AddressSpaceId == CompositionAddressSpaceIds.ReferenceBase && !slot.HasFile) ??
+            slots.FirstOrDefault(static slot => slot.IsInputInspectionBlocking) ??
+            slots.FirstOrDefault(static slot => !slot.IsOptional && !slot.HasFile) ??
+            (includeOptionalFallback ? slots.FirstOrDefault(static slot => !slot.HasFile) : null);
+        (string waitingLabel, string detail) = text.GetPendingInputText(
+            pending?.AddressSpaceId,
+            pending?.Title ?? fallbackLabel);
         return (
-            "Memory layout pending",
-            [new MemoryMapRowViewModel("Pending", "No output", "Select", text.WaitingForRequiredInputsLabel, detail)],
+            waitingLabel,
+            [new MemoryMapRowViewModel(
+                "Pending",
+                text.NoOutputLabel,
+                text.BrowseLabel,
+                waitingLabel,
+                detail)],
             [new MemoryCoverageSegmentViewModel(
                 "Pending",
-                text.WaitingForRequiredInputsLabel,
+                waitingLabel,
                 detail,
                 MemoryCoverageFillRole.Neutral,
                 300d)]);

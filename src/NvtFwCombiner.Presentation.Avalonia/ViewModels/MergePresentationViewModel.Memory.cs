@@ -29,7 +29,8 @@ internal sealed partial class MergePresentationViewModel
                     acceptedSession?.ExactCapability is null
                     ? UiCompositionRunner.GetPendingMemoryDisplay(
                         Text,
-                        "Select and inspect the required inputs to resolve the compiled memory layout.")
+                        MergeSlots,
+                        "DP BIN")
                     : UiCompositionRunner.GetMemoryDisplay(
                         _compositionServices,
                         acceptedSession,

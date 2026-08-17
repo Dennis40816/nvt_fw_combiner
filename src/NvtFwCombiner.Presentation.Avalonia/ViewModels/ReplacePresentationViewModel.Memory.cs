@@ -78,7 +78,9 @@ internal sealed partial class ReplacePresentationViewModel
             acceptedSession?.ExactCapability is null
                 ? UiCompositionRunner.GetPendingMemoryDisplay(
                     Text,
-                    "Select and inspect the required inputs to resolve the compiled memory layout.")
+                    ReplaceSlots,
+                    SelectedReplaceMode == DpReplaceMode ? "DP BIN" : "Base BIN",
+                    IsCtrlRamReplaceModeSelected)
                 : UiCompositionRunner.GetMemoryDisplay(
                     _compositionServices,
                     acceptedSession,
@@ -168,7 +170,9 @@ internal sealed partial class ReplacePresentationViewModel
         return acceptedSession?.ExactCapability is null
             ? UiCompositionRunner.GetPendingMemoryDisplay(
                 Text,
-                "Select and inspect the required inputs to resolve the compiled memory layout.")
+                ReplaceSlots,
+                SelectedReplaceMode == DpReplaceMode ? "DP BIN" : "Base BIN",
+                IsCtrlRamReplaceModeSelected)
             : UiCompositionRunner.GetMemoryDisplay(_compositionServices, acceptedSession, Text);
     }
 

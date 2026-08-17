@@ -428,6 +428,24 @@ internal sealed partial class ShellTextResources
         };
     }
 
+    public (string Label, string Detail) GetPendingInputText(string? addressSpaceId, string fallbackLabel)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(fallbackLabel);
+        string inputLabel = addressSpaceId switch
+        {
+            CompositionAddressSpaceIds.ReferenceBase => "Base BIN",
+            CompositionAddressSpaceIds.DpInput or CompositionAddressSpaceIds.DpAbInput => "DP BIN",
+            CompositionAddressSpaceIds.TpInput or CompositionAddressSpaceIds.TpAInput or
+                CompositionAddressSpaceIds.TpBInput => "TP BIN",
+            _ => fallbackLabel,
+        };
+        return (
+            SelectLanguage($"Waiting for {inputLabel}", $"等待 {inputLabel}"),
+            SelectLanguage(
+                $"Load and inspect {inputLabel} to resolve the output layout.",
+                $"載入並檢查 {inputLabel} 後即可顯示輸出配置。"));
+    }
+
     public string GetDpInputSelectionReadinessDetail(
         InputSelectionMemberReadiness member)
     {

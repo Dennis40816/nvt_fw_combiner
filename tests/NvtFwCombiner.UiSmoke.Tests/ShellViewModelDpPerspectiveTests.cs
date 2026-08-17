@@ -46,10 +46,10 @@ public sealed partial class DpReplaceWorkflowTests
         OpenReplace(viewModel, Domain.Composition.ExperienceIds.DpReplace);
 
         MemoryCoverageSegmentViewModel segment = Assert.Single(viewModel.Replace.ReplaceCoverageSegments);
-        Assert.Equal("Memory layout pending", viewModel.Replace.ReplaceMemoryRangeLabel);
+        Assert.Equal("Waiting for Base BIN", viewModel.Replace.ReplaceMemoryRangeLabel);
         Assert.Equal("Pending", segment.RangeLabel);
-        Assert.Equal("Waiting for required inputs", segment.SourceLabel);
-        Assert.Contains("required inputs", segment.Detail, StringComparison.Ordinal);
+        Assert.Equal("Waiting for Base BIN", segment.SourceLabel);
+        Assert.Contains("Base BIN", segment.Detail, StringComparison.Ordinal);
     }
 
     /// <summary>Verifies Merge coverage rows expose final ownership without report-level operation text.</summary>
@@ -65,13 +65,13 @@ public sealed partial class DpReplaceWorkflowTests
 
         MemoryMapRowViewModel initialRow = Assert.Single(viewModel.Merge.MergeMemoryRows);
         Assert.Equal("Pending", initialRow.RangeLabel);
-        Assert.Equal("Select", initialRow.ActionLabel);
-        Assert.Equal("No output -> Waiting for required inputs", initialRow.FlowLabel);
-        Assert.Equal("Memory layout pending", viewModel.Merge.MergeMemoryRangeLabel);
+        Assert.Equal("Browse", initialRow.ActionLabel);
+        Assert.Equal("No output -> Waiting for DP BIN", initialRow.FlowLabel);
+        Assert.Equal("Waiting for DP BIN", viewModel.Merge.MergeMemoryRangeLabel);
         MemoryCoverageSegmentViewModel pendingSegment = Assert.Single(viewModel.Merge.MergeCoverageSegments);
         Assert.Equal("Pending", pendingSegment.RangeLabel);
-        Assert.Equal("Waiting for required inputs", pendingSegment.SourceLabel);
-        Assert.Contains("required inputs", pendingSegment.Detail, StringComparison.Ordinal);
+        Assert.Equal("Waiting for DP BIN", pendingSegment.SourceLabel);
+        Assert.Contains("DP BIN", pendingSegment.Detail, StringComparison.Ordinal);
         Assert.All(viewModel.Merge.MergeCoverageSegments, segment =>
         {
             Assert.NotEqual("Preserved", segment.ChangeLabel);
@@ -120,7 +120,7 @@ public sealed partial class DpReplaceWorkflowTests
         Assert.Equal(
             ["replace-base", "replace-dp", "replace-ldc"],
             viewModel.Replace.ReplaceSlots.Select(static slot => slot.SlotId));
-        Assert.Equal("Memory layout pending", viewModel.Replace.ReplaceMemoryRangeLabel);
+        Assert.Equal("Waiting for Base BIN", viewModel.Replace.ReplaceMemoryRangeLabel);
     }
 
     /// <summary>DP inputs do not display an undeclared IC-specific container hint.</summary>
@@ -294,10 +294,10 @@ public sealed partial class DpReplaceWorkflowTests
 
         Assert.False(viewModel.RunSession.LastRunResult.Succeeded);
         Assert.Contains("0x40000 / 0x80000 / 0x100000", viewModel.RunSession.LastRunResult.Detail, StringComparison.Ordinal);
-        Assert.Equal("Memory layout pending", viewModel.Replace.ReplaceMemoryRangeLabel);
+        Assert.Equal("Waiting for Base BIN", viewModel.Replace.ReplaceMemoryRangeLabel);
         MemoryCoverageSegmentViewModel segment = Assert.Single(viewModel.Replace.ReplaceCoverageSegments);
         Assert.Equal("Pending", segment.RangeLabel);
-        Assert.Equal("Waiting for required inputs", segment.SourceLabel);
+        Assert.Equal("Waiting for Base BIN", segment.SourceLabel);
         Assert.False(segment.IsChanged);
     }
 }

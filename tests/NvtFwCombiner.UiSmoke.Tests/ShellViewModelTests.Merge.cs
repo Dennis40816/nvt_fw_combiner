@@ -398,11 +398,11 @@ public sealed partial class MergeWorkflowTests
         Assert.Equal("NT51950: refresh profile, slots, validation", viewModel.WorkflowSession.DeviceContextStatus);
         Assert.Equal("0x100000", viewModel.Merge.GeneralMergeOutputLength);
         Assert.Equal("0x00", viewModel.Merge.GeneralMergeOutputFillByte);
-        Assert.Equal("Memory layout pending", viewModel.Merge.MergeMemoryRangeLabel);
-        Assert.Equal("Waiting for required inputs", Assert.Single(viewModel.Merge.MergeMemoryRows).AfterSource);
+        Assert.Equal("Waiting for DP BIN", viewModel.Merge.MergeMemoryRangeLabel);
+        Assert.Equal("Waiting for DP BIN", Assert.Single(viewModel.Merge.MergeMemoryRows).AfterSource);
         viewModel.SelectedLanguage = "Traditional Chinese";
-        Assert.Equal("等待必要輸入", Assert.Single(viewModel.Merge.MergeMemoryRows).AfterSource);
-        Assert.Equal("等待必要輸入", Assert.Single(viewModel.Merge.MergeCoverageSegments).SourceLabel);
+        Assert.Equal("等待 DP BIN", Assert.Single(viewModel.Merge.MergeMemoryRows).AfterSource);
+        Assert.Equal("等待 DP BIN", Assert.Single(viewModel.Merge.MergeCoverageSegments).SourceLabel);
         Assert.Equal("nt51950-general-merge.bin", viewModel.Merge.MergeOutputFileName);
         _ = Assert.Single(viewModel.Merge.GeneralMergeMappings);
 

@@ -94,7 +94,7 @@ public sealed partial class XamlControlStyleContractTests
         string sharedTemplates = ReadPresentationFile("Resources/MainWindowSharedTemplates.axaml");
         string reportHistoryTemplates = ReadPresentationFile("Resources/MainWindowReportHistoryTemplates.axaml");
 
-        Assert.Contains("Selector=\"Border.fileDropZone\"", styles, StringComparison.Ordinal);
+        _ = ExtractStyle(styles, "Border.fileDropZone");
         Assert.Contains("Classes=\"subtleSurface\"", mappingRow, StringComparison.Ordinal);
         Assert.Contains("Classes=\"fileDropZone\"", mappingRow, StringComparison.Ordinal);
         Assert.Contains("Classes=\"fileRevealAction\"", mappingRow, StringComparison.Ordinal);
@@ -407,6 +407,8 @@ public sealed partial class XamlControlStyleContractTests
             "Border.contentPanel",
             "Border.listRow",
             "Border.settingRow",
+            "Border.settingsNavigationSurface",
+            "Border.settingsOptionRow",
             "TextBlock.panelTitle",
             "TextBlock.compactTitle",
             "TextBlock.supportingText",
@@ -414,7 +416,19 @@ public sealed partial class XamlControlStyleContractTests
             "TextBlock.technicalValue",
         })
         {
-            Assert.Contains($"Selector=\"{selector}\"", styles, StringComparison.Ordinal);
+            _ = ExtractStyle(styles, selector);
+        }
+
+        string buttonStyles = ReadPresentationFile("Styles/MainWindowButtonStyles.axaml");
+        foreach (string selector in new[]
+        {
+            "Button.settingsNavItem",
+            "Button.settingsNavItem:pointerover /template/ ContentPresenter#PART_ContentPresenter",
+            "Button.settingsNavItem.selected /template/ ContentPresenter#PART_ContentPresenter",
+            "Button.settingsNavItem:focus-visible /template/ ContentPresenter#PART_ContentPresenter",
+        })
+        {
+            _ = ExtractStyle(buttonStyles, selector);
         }
 
         string[] legacyPropertyBundles =

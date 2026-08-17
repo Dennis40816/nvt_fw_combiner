@@ -8,6 +8,10 @@ namespace NvtFwCombiner.Presentation.Avalonia.ViewModels;
 
 internal sealed partial class ShellTextResources
 {
+    public string SettingsOverviewNavigationLabel { get; private init; } = string.Empty;
+
+    public string SettingsPreferencesNavigationLabel { get; private init; } = string.Empty;
+
     public string SettingsOverviewTitle { get; private init; } = string.Empty;
 
     public string SettingsOverviewSubtitle { get; private init; } = string.Empty;
@@ -24,21 +28,25 @@ internal sealed partial class ShellTextResources
 
     public string LanguageLabel { get; private init; } = string.Empty;
 
+    public string SystemThemeChoiceLabel { get; private init; } = string.Empty;
+
+    public string LightThemeChoiceLabel { get; private init; } = string.Empty;
+
+    public string DarkThemeChoiceLabel { get; private init; } = string.Empty;
+
+    public string EnglishLanguageChoiceLabel { get; private init; } = string.Empty;
+
+    public string ChineseTraditionalLanguageChoiceLabel { get; private init; } = string.Empty;
+
     public string ReducedMotionLabel { get; private init; } = string.Empty;
 
     public string ReducedMotionDescription { get; private init; } = string.Empty;
-
-    public string SupportMatrixOpenLabel { get; private init; } = string.Empty;
 
     public string SupportMatrixTitle { get; private init; } = string.Empty;
 
     public string SupportMatrixSubtitle { get; private init; } = string.Empty;
 
-    public string SupportMatrixBackLabel { get; private init; } = string.Empty;
-
     public string SupportMatrixIcLabel { get; private init; } = string.Empty;
-
-    public string SupportMatrixWorkflowLabel { get; private init; } = string.Empty;
 
     public string SupportMatrixIcCountLabel { get; private init; } = string.Empty;
 
@@ -157,7 +165,7 @@ internal sealed partial class ShellTextResources
                 Language == ShellLanguage.ChineseTraditional ? "已准入" : "Admitted",
             CanonicalSupportMatrixExecutionState.RequiresAuthoringCompilation =>
                 Language == ShellLanguage.ChineseTraditional
-                    ? "需依 authoring 編譯"
+                    ? "需先完成編輯設定編譯"
                     : "Requires authoring compilation",
             CanonicalSupportMatrixExecutionState.Unavailable =>
                 Language == ShellLanguage.ChineseTraditional ? "不可用" : "Unavailable",
@@ -169,13 +177,14 @@ internal sealed partial class ShellTextResources
     {
         return value switch
         {
-            CapabilityEvidenceStatus.DirectGolden => "Direct golden",
+            CapabilityEvidenceStatus.DirectGolden =>
+                Language == ShellLanguage.ChineseTraditional ? "Golden 直接驗證" : "Direct golden",
             CapabilityEvidenceStatus.ApprovedAlias =>
                 Language == ShellLanguage.ChineseTraditional ? "已核准別名" : "Approved alias",
             CapabilityEvidenceStatus.SyntheticOracle =>
-                Language == ShellLanguage.ChineseTraditional ? "合成 oracle" : "Synthetic oracle",
+                Language == ShellLanguage.ChineseTraditional ? "合成判定基準" : "Synthetic oracle",
             CapabilityEvidenceStatus.ContractOnly =>
-                Language == ShellLanguage.ChineseTraditional ? "僅契約" : "Contract only",
+                Language == ShellLanguage.ChineseTraditional ? "僅有定義" : "Contract only",
             CapabilityEvidenceStatus.Missing =>
                 Language == ShellLanguage.ChineseTraditional ? "缺少" : "Missing",
             _ => throw new ArgumentOutOfRangeException(nameof(value), value, null),
@@ -189,15 +198,15 @@ internal sealed partial class ShellTextResources
         {
             CanonicalSupportMatrixBlockerKind.AuthoringUnavailable =>
                 Language == ShellLanguage.ChineseTraditional
-                    ? "Authoring 不可用"
+                    ? "編輯不可用"
                     : "Authoring unavailable",
             CanonicalSupportMatrixBlockerKind.ExecutionUnavailable =>
                 Language == ShellLanguage.ChineseTraditional
-                    ? "Execution 不可用"
+                    ? "執行不可用"
                     : "Execution unavailable",
             CanonicalSupportMatrixBlockerKind.CertificationInconsistency =>
                 Language == ShellLanguage.ChineseTraditional
-                    ? "Certification 不一致"
+                    ? "認證資訊不一致"
                     : "Certification inconsistency",
             _ => throw new ArgumentOutOfRangeException(nameof(value), value, null),
         };

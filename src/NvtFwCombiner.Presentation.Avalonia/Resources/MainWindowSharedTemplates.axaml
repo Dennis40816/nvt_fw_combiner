@@ -452,12 +452,19 @@
         </Viewbox>
       </Border>
 
-      <ItemsControl Classes="spaciousList" ItemTemplate="{StaticResource MemoryCoverageSegmentListTemplate}" ItemsSource="{Binding ReplaceCoverageSegments}"
-          IsVisible="{Binding IsReplaceCoverageFlat}" />
+      <ScrollViewer
+          MaxHeight="320"
+          HorizontalScrollBarVisibility="Disabled"
+          VerticalScrollBarVisibility="Auto">
+        <Grid>
+          <ItemsControl Classes="spaciousList" ItemTemplate="{StaticResource MemoryCoverageSegmentListTemplate}" ItemsSource="{Binding ReplaceCoverageSegments}"
+              IsVisible="{Binding IsReplaceCoverageFlat}" />
 
-      <ItemsControl Classes="spaciousList" HorizontalAlignment="Stretch" ItemContainerTheme="{StaticResource StretchContentPresenterTheme}"
-          ItemTemplate="{StaticResource MemoryCoverageGroupTemplate}" ItemsSource="{Binding ReplaceCoverageGroups}"
-          IsVisible="{Binding IsReplaceCoverageGrouped}" />
+          <ItemsControl Classes="spaciousList" HorizontalAlignment="Stretch" ItemContainerTheme="{StaticResource StretchContentPresenterTheme}"
+              ItemTemplate="{StaticResource MemoryCoverageGroupTemplate}" ItemsSource="{Binding ReplaceCoverageGroups}"
+              IsVisible="{Binding IsReplaceCoverageGrouped}" />
+        </Grid>
+      </ScrollViewer>
 
       <TextBlock Classes="sectionLabel" Text="{Binding Text.PlanTitle}" />
       <ItemsControl ItemTemplate="{StaticResource ReplaceMemoryMapRowTemplate}" ItemsSource="{Binding ReplaceMemoryRows}" />
@@ -498,7 +505,12 @@
         </Viewbox>
       </Border>
 
-      <ItemsControl ItemTemplate="{StaticResource MemoryCoveragePlainSegmentListTemplate}" ItemsSource="{Binding MergeCoverageSegments}" />
+      <ScrollViewer
+          MaxHeight="320"
+          HorizontalScrollBarVisibility="Disabled"
+          VerticalScrollBarVisibility="Auto">
+        <ItemsControl ItemTemplate="{StaticResource MemoryCoveragePlainSegmentListTemplate}" ItemsSource="{Binding MergeCoverageSegments}" />
+      </ScrollViewer>
 
       <TextBlock Classes="sectionLabel" Text="{Binding Text.PlanTitle}" />
       <ItemsControl ItemTemplate="{StaticResource MergeMemoryMapRowTemplate}" ItemsSource="{Binding MergeMemoryRows}" />
