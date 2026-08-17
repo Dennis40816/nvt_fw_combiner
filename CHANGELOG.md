@@ -290,6 +290,11 @@ remain open.
   and shell-navigation states, including the startup-completion Home focus, and
   preserves CtrlRAM inspection projection during relocalization. One shared
   semantic disabled-state owner replaces four identical role-local opacity rules.
+- Accessibility closure: the optional preload disclosure now gives both its
+  Expander peer and keyboard-operable header the same bounded accessible status.
+  Reusing the existing Expander template style and removing the peerless host
+  lowers the current full-production ratchet from 98,137 to 98,135; runtime and
+  all four runtime slices are unchanged.
 - Verification: focused trace serialization and Architecture contract tests,
   structure validation, scoped R2/Polytail review, canonical verifier, package
   measurement, exact-head CI, and clean-package accessibility gates apply.

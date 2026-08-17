@@ -419,24 +419,22 @@
         </Grid>
     </StackPanel>
 
-    <ContentControl
+    <Border
         x:Name="OptionalPreloadStatusHost"
         Grid.Row="4"
-        AutomationProperties.LiveSetting="Polite"
-        AutomationProperties.Name="{ReflectionBinding AccessibleStatus}"
-        Focusable="True"
-        Content="{ReflectionBinding}">
-      <ContentControl.ContentTemplate>
-        <DataTemplate>
-          <Border
-              Margin="28,0,28,12"
-              Padding="14,10"
-              Background="{DynamicResource NfcSurfaceBrush}"
-              BorderBrush="{DynamicResource NfcBorderSoftBrush}"
-              BorderThickness="1"
-              CornerRadius="{DynamicResource NfcCompactCornerRadius}"
-              IsVisible="{ReflectionBinding HasOptionalStatus}">
-            <Expander>
+        Margin="28,0,28,12"
+        Padding="14,10"
+        Background="{DynamicResource NfcSurfaceBrush}"
+        BorderBrush="{DynamicResource NfcBorderSoftBrush}"
+        BorderThickness="1"
+        CornerRadius="{DynamicResource NfcCompactCornerRadius}"
+        IsVisible="{ReflectionBinding HasOptionalStatus}">
+            <Expander
+                x:Name="OptionalPreloadFocusTarget"
+                AutomationProperties.LiveSetting="Polite"
+                AutomationProperties.Name="{ReflectionBinding AccessibleStatus}"
+                Focusable="True"
+                KeyboardNavigation.IsTabStop="False">
               <Expander.Header>
                 <Grid
                     ColumnDefinitions="Auto,Auto,*,Auto,Auto"
@@ -525,10 +523,7 @@
                 </ItemsControl.ItemTemplate>
               </ItemsControl>
             </Expander>
-          </Border>
-        </DataTemplate>
-      </ContentControl.ContentTemplate>
-    </ContentControl>
+    </Border>
 
     <ContentControl
         x:Name="ReportToastHost"

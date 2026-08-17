@@ -480,7 +480,7 @@ public sealed partial class MainWindow : Window, IDisposable
         if (sender is Button { Tag: string stageId })
         {
             Task<bool> retry = _preloadSession.TryRetryOptionalAsync(stageId, _startupLoadCancellation.Token);
-            _ = OptionalPreloadStatusHost.Focus(NavigationMethod.Tab);
+            _ = OptionalPreloadFocusTarget.Focus(NavigationMethod.Tab);
             _ = await retry;
         }
     }
@@ -490,14 +490,14 @@ public sealed partial class MainWindow : Window, IDisposable
         if (sender is Button { Tag: string stageId })
         {
             _ = _preloadSession.TrySkipOptional(stageId);
-            _ = OptionalPreloadStatusHost.Focus(NavigationMethod.Tab);
+            _ = OptionalPreloadFocusTarget.Focus(NavigationMethod.Tab);
         }
     }
 
     private async void OptionalPreloadCancelButton_OnClick(object? sender, RoutedEventArgs e)
     {
         Task cancellation = _preloadSession.CancelOptionalsAndDrainAsync();
-        _ = OptionalPreloadStatusHost.Focus(NavigationMethod.Tab);
+        _ = OptionalPreloadFocusTarget.Focus(NavigationMethod.Tab);
         await cancellation;
     }
 

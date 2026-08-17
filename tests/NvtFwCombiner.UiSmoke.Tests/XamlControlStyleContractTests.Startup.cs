@@ -248,6 +248,14 @@ public sealed partial class XamlControlStyleContractTests
         XElement optionalSkipButton = Assert.Single(shellDocument.Descendants(), element =>
             element.Name.LocalName == "Button" &&
             (string?)element.Attribute("Click") == "OptionalPreloadSkipButton_OnClick");
+        XElement optionalPreloadStatusHost = Assert.Single(shellDocument.Descendants(), element =>
+            element.Name.LocalName == "Border" &&
+            element.Attributes().Any(attribute =>
+                attribute.Name.LocalName == "Name" &&
+                attribute.Value == "OptionalPreloadStatusHost"));
+        XElement optionalPreloadExpander = Assert.Single(
+            optionalPreloadStatusHost.Descendants(),
+            element => element.Name.LocalName == "Expander");
 
         Assert.Contains("x:DataType=\"vm:ForegroundLoadingState\"", surface, StringComparison.Ordinal);
         Assert.Contains("AutomationProperties.LiveSetting=\"Polite\"", status, StringComparison.Ordinal);
@@ -340,6 +348,22 @@ public sealed partial class XamlControlStyleContractTests
         Assert.Contains("x:Name=\"CatalogLoadingSurfaceHost\"", shell, StringComparison.Ordinal);
         Assert.Contains("x:Name=\"ShellInteractionHost\"", shell, StringComparison.Ordinal);
         Assert.Contains("x:Name=\"OptionalPreloadStatusHost\"", shell, StringComparison.Ordinal);
+        Assert.Equal(
+            "{ReflectionBinding AccessibleStatus}",
+            (string?)optionalPreloadExpander.Attribute("AutomationProperties.Name"));
+        Assert.Equal("Polite", (string?)optionalPreloadExpander.Attribute("AutomationProperties.LiveSetting"));
+        Assert.Equal("OptionalPreloadFocusTarget", optionalPreloadExpander.Attributes()
+            .Single(attribute => attribute.Name.LocalName == "Name").Value);
+        Assert.Equal("True", (string?)optionalPreloadExpander.Attribute("Focusable"));
+        Assert.Equal("False", (string?)optionalPreloadExpander.Attribute("KeyboardNavigation.IsTabStop"));
+        Assert.Contains(
+            "Selector=\"Expander#OptionalPreloadFocusTarget /template/ ToggleButton\"",
+            windowStyles,
+            StringComparison.Ordinal);
+        Assert.Contains(
+            "Property=\"AutomationProperties.Name\" Value=\"{ReflectionBinding $parent[Expander].(AutomationProperties.Name)}\"",
+            windowStyles,
+            StringComparison.Ordinal);
         Assert.Contains("SummaryStage.PositionLabel", shell, StringComparison.Ordinal);
         Assert.Contains("SummaryStage.ProgressLabel", shell, StringComparison.Ordinal);
         Assert.Contains("AutomationProperties.Name=\"{ReflectionBinding AccessibleStatus}\"", shell, StringComparison.Ordinal);

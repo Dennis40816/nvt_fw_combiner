@@ -57,6 +57,9 @@
     <Setter Property="HorizontalAlignment" Value="Stretch" />
     <Setter Property="HorizontalContentAlignment" Value="Stretch" />
   </Style>
+  <Style Selector="Expander#OptionalPreloadFocusTarget /template/ ToggleButton">
+    <Setter Property="AutomationProperties.Name" Value="{ReflectionBinding $parent[Expander].(AutomationProperties.Name)}" />
+  </Style>
   <Style Selector="Expander /template/ ContentPresenter">
     <Setter Property="HorizontalAlignment" Value="Stretch" />
     <Setter Property="HorizontalContentAlignment" Value="Stretch" />
