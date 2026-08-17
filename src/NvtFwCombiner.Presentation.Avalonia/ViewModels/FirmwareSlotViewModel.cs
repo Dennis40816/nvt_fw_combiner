@@ -182,7 +182,7 @@ internal sealed partial class FirmwareSlotViewModel : ObservableObject
             }
         }
 
-        IsFirmwareFactsExpanded = false;
+        IsFirmwareFactsExpanded = FirmwareFacts.Count > 0;
         IsAdditionalFirmwareFactsExpanded = false;
         OnPropertyChanged(nameof(HasFirmwareFacts));
         OnPropertyChanged(nameof(PrimaryFirmwareFacts));

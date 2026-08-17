@@ -330,7 +330,7 @@ public sealed partial class XamlControlStyleContractTests
         Assert.Equal("The selected BIN failed structural admission.", slot.SemanticStateDetail);
     }
 
-    /// <summary>Facts beyond the shared four-card limit remain available through a localized disclosure.</summary>
+    /// <summary>Firmware facts are visible by default while retaining localized collapse and overflow controls.</summary>
     [Fact]
     public void FirmwareSlotFactsLimitPrimaryCardsAndPreserveAdditionalFacts()
     {
@@ -354,14 +354,19 @@ public sealed partial class XamlControlStyleContractTests
         _ = Assert.Single(slot.AdditionalFirmwareFacts);
         Assert.Equal("PID", slot.AdditionalFirmwareFacts[0].Label);
         Assert.True(slot.HasAdditionalFirmwareFacts);
-        Assert.False(slot.IsFirmwareFactsExpanded);
+        Assert.True(slot.IsFirmwareFactsExpanded);
+        Assert.Equal("Hide details", slot.FirmwareFactsDisclosureLabel);
+        Assert.Equal("Show 1 more details", slot.AdditionalFirmwareFactsLabel);
+
+        slot.IsFirmwareFactsExpanded = false;
+
         Assert.Equal("Show details", slot.FirmwareFactsDisclosureLabel);
         Assert.Equal("Show 1 more details", slot.AdditionalFirmwareFactsLabel);
 
-        slot.IsFirmwareFactsExpanded = true;
+        slot.RelocalizeFirmwareFacts(facts);
 
-        Assert.Equal("Hide details", slot.FirmwareFactsDisclosureLabel);
-        Assert.Equal("Show 1 more details", slot.AdditionalFirmwareFactsLabel);
+        Assert.False(slot.IsFirmwareFactsExpanded);
+        Assert.Equal("Show details", slot.FirmwareFactsDisclosureLabel);
 
         slot.IsAdditionalFirmwareFactsExpanded = true;
 
