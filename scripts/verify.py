@@ -276,18 +276,18 @@ CI_DOTNET_SHARDS: dict[str, tuple[CiDotnetProject, ...]] = {
     "ui": (
         CiDotnetProject(
             "tests/NvtFwCombiner.UiSmoke.Tests/NvtFwCombiner.UiSmoke.Tests.csproj",
-            490,
+            513,
         ),
     ),
     "core": (
         CiDotnetProject(
             "tests/NvtFwCombiner.Domain.Tests/NvtFwCombiner.Domain.Tests.csproj",
-            404,
+            411,
         ),
         CiDotnetProject(
             "tests/NvtFwCombiner.Application.Tests/"
             "NvtFwCombiner.Application.Tests.csproj",
-            529,
+            531,
         ),
         CiDotnetProject(
             "tests/NvtFwCombiner.Infrastructure.Tests/"
@@ -1992,7 +1992,7 @@ def finalize_ci_dotnet_evidence(download_root: Path) -> None:
         shutil.copyfile(cobertura_report, destination / "coverage.cobertura.xml")
     run([sys.executable, str(CTRL_RAM_REPLACE_FIXTURE_VERIFIER), "--skip-public-smoke"])
     verify_coverage("dotnet", coverage_root)
-    print(".NET CI evidence: 8 projects, 3414 tests, 2 skips, Golden 17/17.")
+    print(".NET CI evidence: 8 projects, 3446 tests, 2 skips, Golden 17/17.")
 
 
 def verify_windows_process_orchestration(log_path: Path | None = None) -> None:

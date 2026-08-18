@@ -27,7 +27,15 @@ public sealed class SpaciousPanelTests
         Assert.Contains("Selector=\"ItemsControl.spaciousList\"", styles, StringComparison.Ordinal);
         Assert.Contains("Spacing=\"{DynamicResource NfcSpace8}\"", styles, StringComparison.Ordinal);
         Assert.Equal(2, sharedTemplates.Split("<views:SpaciousPanel>", StringSplitOptions.None).Length - 1);
-        Assert.Equal(2, sharedTemplates.Split("Classes=\"spaciousList\"", StringSplitOptions.None).Length - 1);
+        Assert.Equal(1, sharedTemplates.Split("Classes=\"spaciousList\"", StringSplitOptions.None).Length - 1);
+        Assert.DoesNotContain(
+            "<ItemsControl Classes=\"spaciousList\" ItemTemplate=\"{StaticResource MemoryCoverageSegmentListTemplate}\"",
+            sharedTemplates,
+            StringComparison.Ordinal);
+        Assert.Contains(
+            "<ItemsControl Classes=\"spaciousList\" HorizontalAlignment=\"Stretch\" ItemContainerTheme=\"{StaticResource StretchContentPresenterTheme}\"\n              ItemTemplate=\"{StaticResource MemoryCoverageGroupTemplate}\"",
+            sharedTemplates,
+            StringComparison.Ordinal);
         Assert.Contains("Spacing=\"{DynamicResource NfcSpace16}\"", sharedTemplates, StringComparison.Ordinal);
         Assert.Contains("<views:SpaciousPanel Classes=\"compact\"", reportPanels, StringComparison.Ordinal);
         Assert.Contains(

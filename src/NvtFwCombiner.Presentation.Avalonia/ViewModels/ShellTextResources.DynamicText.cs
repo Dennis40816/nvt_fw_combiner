@@ -110,6 +110,45 @@ internal sealed partial class ShellTextResources
         };
     }
 
+    public (string Title, string Description) GetReplaceInputText(
+        string? addressSpaceId,
+        ReplaceInputRole inputRole,
+        ReplaceRegionGroup regionGroup,
+        string declaredTitle,
+        string declaredDescription,
+        CtrlRamInputDescriptionFacts? ctrlRamDescriptionFacts)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(declaredTitle);
+        ArgumentException.ThrowIfNullOrWhiteSpace(declaredDescription);
+        return inputRole switch
+        {
+            ReplaceInputRole.Dp => addressSpaceId switch
+            {
+                CompositionAddressSpaceIds.InitialCodeReplacement => (
+                    SelectLanguage("Initial Code replacement BIN", "Initial Code 取代 BIN 檔案"),
+                    SelectLanguage(
+                        "Initial Code payload declared by the compiled DP Replace profile.",
+                        "由編譯後的 DP Replace 設定檔宣告之 Initial Code 資料。")),
+                CompositionAddressSpaceIds.LdcReplacement => (
+                    SelectLanguage("LDC replacement BIN", "LDC 取代 BIN 檔案"),
+                    SelectLanguage(
+                        "LDC payload declared by the compiled DP Replace profile.",
+                        "由編譯後的 DP Replace 設定檔宣告之 LDC 資料。")),
+                CompositionAddressSpaceIds.DpReplacement => (
+                    DpReplacementBinTitle,
+                    SelectLanguage(
+                        "Replacement DP payload declared by the compiled DP Replace profile.",
+                        "由編譯後的 DP Replace 設定檔宣告之 DP 取代資料。")),
+                _ => (declaredTitle, declaredDescription),
+            },
+            ReplaceInputRole.CtrlRam => (
+                GetCtrlRamInputTitle(declaredTitle, regionGroup, ctrlRamDescriptionFacts),
+                GetCtrlRamInputDescription(declaredDescription, ctrlRamDescriptionFacts)),
+            ReplaceInputRole.None => (declaredTitle, declaredDescription),
+            _ => throw new ArgumentOutOfRangeException(nameof(inputRole), inputRole, null),
+        };
+    }
+
     public string GetWorkflowEvidenceLabel(CapabilityWorkflowReadiness readiness)
     {
         ArgumentNullException.ThrowIfNull(readiness);
@@ -367,13 +406,13 @@ internal sealed partial class ShellTextResources
         {
             ExperienceIds.DpReplace => SelectLanguage(
                 "Blue shows new DP bytes; gray shows sections preserved or restored from the Reference FlashCode.",
-                "藍色代表新的 DP bytes；灰色代表從 Reference FlashCode 保留或還原的區段。"),
+                "藍色代表新的 DP 資料；灰色代表從 Reference FlashCode 保留或還原的區段。"),
             ExperienceIds.CtrlRamReplace => SelectLanguage(
                 "Solid blocks are changed; diagonal blocks keep bytes from the base firmware.",
-                "實色區塊表示已變更；斜線區塊保留 base firmware 的 bytes。"),
+                "實色區塊表示已變更；斜線區塊保留基礎韌體的資料。"),
             ExperienceIds.GeneralReplace => SelectLanguage(
                 "Base flash stays unchanged except approved explicit replacement ranges.",
-                "Base flash 只會在核准的明確取代範圍內改變。"),
+                "除核准的明確取代範圍外，基礎 Flash 內容保持不變。"),
             _ => SelectLanguage(
                 "Select a replace mode to inspect its target ranges.",
                 "選擇 Replace 模式後查看目標範圍。"),
@@ -386,23 +425,23 @@ internal sealed partial class ShellTextResources
         {
             ExperienceIds.DpReplace when canRun => SelectLanguage(
                 "Ready: Build will validate DP Replace inputs, then write output and report.",
-                "Ready：Build 會先驗證 DP Replace input，再寫出 output 與 report。"),
+                "已就緒：Build 會先驗證 DP Replace 輸入，再產生輸出與報告。"),
             ExperienceIds.DpReplace => SelectLanguage(
                 "Build blocked: Reference FlashCode and required DP replacement inputs are required.",
-                "Build blocked：需要 Reference FlashCode 與必要的 DP replacement input。"),
+                "無法 Build：需要 Reference FlashCode 與必要的 DP 取代 BIN 檔案。"),
             ExperienceIds.CtrlRamReplace when canRun => SelectLanguage(
                 "Ready: Build will replace selected CtrlRAM regions and run postbuild.",
-                "Ready：Build 會取代選定的 CtrlRAM region 並執行 postbuild。"),
+                "已就緒：Build 會取代選定的 CtrlRAM 區域並執行 postbuild。"),
             ExperienceIds.CtrlRamReplace => SelectLanguage(
                 "Build blocked: base BIN and at least one CtrlRAM region BIN are required.",
-                "Build blocked：需要 base BIN 與至少一個 CtrlRAM region BIN。"),
+                "無法 Build：需要 Base BIN 檔案與至少一個 CtrlRAM 區域 BIN 檔案。"),
             ExperienceIds.GeneralReplace when canRun => SelectLanguage(
                 "Ready: Build will compile explicit mappings and run postbuild when TP ranges are touched.",
-                "Ready：Build 會編譯明確 mapping；碰到 TP range 時會執行 postbuild。"),
+                "已就緒：Build 會編譯明確對應；寫入 TP 範圍時會執行 postbuild。"),
             ExperienceIds.GeneralReplace => SelectLanguage(
                 "Build blocked: base BIN and at least one explicit replacement mapping are required.",
-                "Build blocked：需要 base BIN 與至少一筆 replacement mapping。"),
-            _ => SelectLanguage("Build blocked: select a Replace mode.", "Build blocked：請選擇 Replace 模式。"),
+                "無法 Build：需要 Base BIN 檔案與至少一筆明確取代對應。"),
+            _ => SelectLanguage("Build blocked: select a Replace mode.", "無法 Build：請選擇 Replace 模式。"),
         };
     }
 
@@ -469,7 +508,7 @@ internal sealed partial class ShellTextResources
         return member.Readiness == ResolvedChildReadiness.Ready
             ? SelectLanguage(
                 "Available for the resolved Standard Merge map.",
-                "可用於已解析的 Standard Merge map。")
+                "可用於已解析的 Standard Merge 配置。")
             : GetDpInputSelectionReadinessDetail(member);
     }
 
@@ -510,19 +549,19 @@ internal sealed partial class ShellTextResources
         {
             ExperienceIds.StandardMerge when isStandardMergeSupported => SelectLanguage(
                 "The bar shows which input file occupies each final flash position.",
-                "此圖顯示每個最終 flash 位置由哪個 input file 寫入。"),
+                "此圖顯示每個最終 Flash 位置由哪個輸入檔案寫入。"),
             ExperienceIds.StandardMerge => SelectLanguage(
                 "No merge profile is available for the selected IC.",
                 "所選 IC 尚未有 Merge profile。"),
             ExperienceIds.GeneralMerge when hasGeneralMapping => SelectLanguage(
                 "The bar starts reserved and marks each explicit source mapping written into the output.",
-                "輸出先以 reserved byte 初始化，再標出每筆明確 source mapping 寫入的位置。"),
+                "輸出映像先以保留值初始化，再標出每筆明確來源對應寫入的位置。"),
             ExperienceIds.GeneralMerge => SelectLanguage(
                 "The bar starts reserved and marks each explicit source mapping written into the output.",
-                "輸出先以 reserved byte 初始化；新增 mapping 後會標出寫入位置。"),
+                "輸出映像先以保留值初始化；新增對應後會標出寫入位置。"),
             ExperienceIds.AbMerge => SelectLanguage(
                 "The bar shows final DP_AB ownership after the compiled TPA and relocated TPB overlays.",
-                "此圖顯示 compiled TPA 與 relocated TPB overlay 後的最終 DP_AB ownership。"),
+                "此圖顯示編譯後的 TPA 與重新定位的 TPB 覆寫完成後，最終 DP_AB 的資料歸屬。"),
             _ => SelectLanguage("This merge mode is reserved.", "此 Merge 模式保留中。"),
         };
     }
@@ -532,7 +571,7 @@ internal sealed partial class ShellTextResources
         return supported
             ? SelectLanguage(
                 $"{ic}: Standard Merge profile found. Required slots: {requiredSlots}.",
-                $"{ic}：找到 Standard Merge profile。必要 slots：{requiredSlots}。")
+                $"{ic}：找到 Standard Merge profile。必要輸入：{requiredSlots}。")
             : SelectLanguage($"{ic}: no Standard Merge profile yet.", $"{ic}：尚未提供 Standard Merge profile。");
     }
 
@@ -542,16 +581,16 @@ internal sealed partial class ShellTextResources
         {
             ExperienceIds.StandardMerge when isStandardMergeSupported => SelectLanguage(
                 $"{ic}: drop {requiredSlots} BIN files.",
-                $"{ic}：放入 {requiredSlots} BIN files。"),
+                $"{ic}：放入 {requiredSlots} BIN 檔案。"),
             ExperienceIds.StandardMerge => SelectLanguage(
                 $"{ic}: Standard Merge is not available yet.",
                 $"{ic}：Standard Merge 尚未可用。"),
             ExperienceIds.GeneralMerge when generalMappingFileCount > 0 => SelectLanguage(
                 $"{ic}: Customized Merge maps {generalMappingFileCount} source BIN file(s) into a blank output.",
-                $"{ic}：Customized Merge 會將 {generalMappingFileCount} 個 source BIN mapping 寫入 blank output。"),
+                $"{ic}：Customized Merge 會將 {generalMappingFileCount} 筆來源 BIN 檔案對應寫入空白輸出映像。"),
             ExperienceIds.GeneralMerge => SelectLanguage(
                 $"{ic}: add at least one source BIN mapping.",
-                $"{ic}：至少新增一筆 source BIN mapping。"),
+                $"{ic}：至少新增一筆來源 BIN 檔案對應。"),
             _ => SelectLanguage(
                 "AB Code Merge is reserved for a later workflow.",
                 "AB Code Merge 保留給後續流程。"),

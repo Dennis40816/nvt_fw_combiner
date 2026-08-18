@@ -19,6 +19,27 @@ public sealed class DynamicCtrlRamReplacementIdsTests
         Assert.Equal(expectedLabel, label);
     }
 
+    /// <summary>Topology decoration remains separate from the stable localized title stem.</summary>
+    [Theory]
+    [InlineData("nf", "NF CtrlRAM")]
+    [InlineData("normal-master", "Normal CtrlRAM")]
+    [InlineData("vn-slave-l", "VN CtrlRAM")]
+    public void FormatRegionBaseDisplayLabelOmitsTopology(string regionId, string expectedLabel)
+    {
+        Assert.Equal(expectedLabel, DynamicCtrlRamReplacementIds.FormatRegionBaseDisplayLabel(regionId));
+    }
+
+    /// <summary>Canonical region ids expose a stable family token without display-label parsing.</summary>
+    [Theory]
+    [InlineData("nf", "NF")]
+    [InlineData("normal-master", "NORMAL")]
+    [InlineData("vn-slave-l", "VN")]
+    [InlineData("vector-slave-r", "VECTOR")]
+    public void GetRegionFamilyTokenIgnoresTopology(string regionId, string expectedToken)
+    {
+        Assert.Equal(expectedToken, DynamicCtrlRamReplacementIds.GetRegionFamilyToken(regionId));
+    }
+
     /// <summary>Verifies non-CtrlRAM ids are left to the caller's fallback label.</summary>
     [Theory]
     [InlineData("")]

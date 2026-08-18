@@ -256,7 +256,7 @@ public sealed partial class FirmwareInspectionSlotTests
         MainWindowViewModel viewModel = CreateInspectionViewModel((_, _, _, _) => DpInspection("0101"));
         viewModel.WorkflowSession.SelectedIc = "NT51950";
         await viewModel.WorkflowSession.SetSlotFileAsync("merge-dp", dpPath, TestContext.Current.CancellationToken);
-        Assert.Equal("Memory layout pending", viewModel.Merge.MergeMemoryRangeLabel);
+        Assert.Equal("Waiting for TP BIN", viewModel.Merge.MergeMemoryRangeLabel);
 
         using (var stream = new FileStream(dpPath, FileMode.Open, FileAccess.Write, FileShare.Read))
         {
@@ -265,11 +265,11 @@ public sealed partial class FirmwareInspectionSlotTests
         viewModel.Merge.SelectedMergeMode = ExperienceIds.GeneralMerge;
         viewModel.Merge.SelectedMergeMode = ExperienceIds.StandardMerge;
 
-        Assert.Equal("Memory layout pending", viewModel.Merge.MergeMemoryRangeLabel);
+        Assert.Equal("Waiting for TP BIN", viewModel.Merge.MergeMemoryRangeLabel);
 
         await viewModel.WorkflowSession.SetSlotFileAsync("merge-dp", dpPath, TestContext.Current.CancellationToken);
 
-        Assert.Equal("Memory layout pending", viewModel.Merge.MergeMemoryRangeLabel);
+        Assert.Equal("Waiting for TP BIN", viewModel.Merge.MergeMemoryRangeLabel);
     }
 
     /// <summary>Switching Merge modes cancels the hidden mode's inspection before it can publish late work.</summary>

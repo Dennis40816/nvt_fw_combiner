@@ -46,6 +46,13 @@ public sealed partial class ShellNavigationSystemTests
 
         Assert.True(viewModel.IsSettingsVisible);
         Assert.False(viewModel.IsDeviceContextVisible);
+        Assert.True(viewModel.Settings.IsOverviewSelected);
+        Assert.Equal(
+            "Installed version and authoring availability from the current catalog.",
+            viewModel.Text.SettingsOverviewSubtitle);
+        Assert.Equal(
+            "Status summarizes verification evidence and any route blockers; focus a cell for details.",
+            viewModel.Text.SupportMatrixHoverHint);
         string expectedVersion = File.ReadAllText(RepositoryPaths.FromRepositoryRoot("VERSION")).Trim();
         Assert.Equal(expectedVersion, viewModel.AppVersion);
         Assert.Contains(viewModel.Settings.OverviewRows, row => row.Title == "App version" && row.Value == expectedVersion);
@@ -59,23 +66,50 @@ public sealed partial class ShellNavigationSystemTests
         Assert.DoesNotContain(
             viewModel.Settings.OverviewRows.Concat(viewModel.Settings.CapabilityRows),
             static row => row.Description.Contains("executable", StringComparison.OrdinalIgnoreCase));
-        Assert.Equal(["System", "Light", "Dark"], viewModel.Settings.ThemeChoices);
+        Assert.Equal(
+            ["System", "Light", "Dark"],
+            viewModel.Settings.ThemeChoices.Select(static choice => choice.Label));
+        Assert.Equal(
+            ["System", "Light", "Dark"],
+            viewModel.Settings.ThemeChoices.Select(static choice => choice.Value));
+
+        viewModel.Settings.SelectSectionCommand.Execute(SettingsSection.Preferences);
+
+        Assert.True(viewModel.Settings.IsPreferencesSelected);
+        Assert.False(viewModel.Settings.IsOverviewSelected);
 
         viewModel.SelectedTheme = "Dark";
         viewModel.SelectedLanguage = "Traditional Chinese";
 
         Assert.Equal("設定", viewModel.SettingsPreview.Title);
+        Assert.Equal(
+            ["跟隨系統", "淺色", "深色"],
+            viewModel.Settings.ThemeChoices.Select(static choice => choice.Label));
+        Assert.Equal(
+            ["英文", "繁體中文"],
+            viewModel.Settings.LanguageChoices.Select(static choice => choice.Label));
         Assert.Equal("建立", viewModel.Text.BuildActionLabel);
         Assert.Equal("首頁 > 設定", viewModel.NavigationPath);
+        Assert.Equal("已安裝版本，以及目前目錄中的編輯可用性。", viewModel.Text.SettingsOverviewSubtitle);
         Assert.Empty(viewModel.Merge.MergeSlots);
         Assert.Equal("必填", viewModel.Replace.ReplaceBaseSlot.RequirementLabel);
         Assert.Equal("尚未選擇 BIN", viewModel.Replace.ReplaceBaseSlot.DisplayName);
-        Assert.Contains(viewModel.Settings.OverviewRows, row => row.Title == "IC 目錄" && row.Status == "Catalog");
+        Assert.Contains(viewModel.Settings.OverviewRows, row => row.Title == "IC 目錄" && row.Status == "目錄");
         Assert.Contains(viewModel.Settings.CapabilityRows, row =>
-            row.Title == "CtrlRAM Replace 可用 IC" &&
-            row.Value == "10 ICs" &&
+            row.Title == "CtrlRAM Replace 可用的 IC" &&
+            row.Value == "10 個 IC" &&
             row.Status == "可用" &&
             row.Description.Contains("支援矩陣", StringComparison.Ordinal));
+
+        viewModel.Settings.SelectSectionCommand.Execute(SettingsSection.SupportMatrix);
+
+        Assert.True(viewModel.Settings.IsSupportMatrixOpen);
+        Assert.False(viewModel.Settings.IsPreferencesSelected);
+
+        viewModel.Settings.SelectSectionCommand.Execute(SettingsSection.Overview);
+
+        Assert.True(viewModel.Settings.IsOverviewSelected);
+        Assert.False(viewModel.Settings.IsSupportMatrixOpen);
 
         viewModel.ShowMergeCommand.Execute(null);
 

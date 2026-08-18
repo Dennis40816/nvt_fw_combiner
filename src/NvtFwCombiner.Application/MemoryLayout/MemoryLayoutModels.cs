@@ -108,7 +108,8 @@ public sealed class MemoryLayoutSegment
         string? sourceSlotId,
         IEnumerable<CompositionOperation> contributingOperations,
         IEnumerable<MemoryLayoutPreservationDetail> preservationDetails,
-        ReplaceRegionGroup regionGroup)
+        ReplaceRegionGroup regionGroup,
+        CtrlRamRegionRole ctrlRamRegionRole)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(segmentId);
         ArgumentException.ThrowIfNullOrWhiteSpace(addressSpaceId);
@@ -132,6 +133,7 @@ public sealed class MemoryLayoutSegment
         MemoryLayoutGuard.Defined(selection, nameof(selection));
         MemoryLayoutGuard.Defined(focus, nameof(focus));
         MemoryLayoutGuard.Defined(regionGroup, nameof(regionGroup));
+        MemoryLayoutGuard.Defined(ctrlRamRegionRole, nameof(ctrlRamRegionRole));
         if (sourceSlotId is not null && sourceSpaceId is null)
         {
             throw new ArgumentException(
@@ -169,6 +171,7 @@ public sealed class MemoryLayoutSegment
         ContributingOperations = Array.AsReadOnly(operations);
         PreservationDetails = Array.AsReadOnly(details);
         RegionGroup = regionGroup;
+        CtrlRamRegionRole = ctrlRamRegionRole;
     }
 
     /// <summary>Stable projection-local identity.</summary>
@@ -209,6 +212,8 @@ public sealed class MemoryLayoutSegment
     public IReadOnlyList<MemoryLayoutPreservationDetail> PreservationDetails { get; }
     /// <summary>Application-owned CtrlRAM grouping, or Common for ungrouped geometry.</summary>
     public ReplaceRegionGroup RegionGroup { get; }
+    /// <summary>Closed detailed CtrlRAM family role; Other outside detailed CtrlRAM geometry.</summary>
+    public CtrlRamRegionRole CtrlRamRegionRole { get; }
 
     internal static MemoryLayoutSegment Create(
         string segmentId,
@@ -228,7 +233,8 @@ public sealed class MemoryLayoutSegment
         string? sourceSlotId,
         IEnumerable<CompositionOperation> contributingOperations,
         IEnumerable<MemoryLayoutPreservationDetail> preservationDetails,
-        ReplaceRegionGroup regionGroup = ReplaceRegionGroup.Common)
+        ReplaceRegionGroup regionGroup = ReplaceRegionGroup.Common,
+        CtrlRamRegionRole ctrlRamRegionRole = CtrlRamRegionRole.Other)
     {
         return new(
             segmentId,
@@ -249,7 +255,8 @@ public sealed class MemoryLayoutSegment
             sourceSlotId,
             contributingOperations,
             preservationDetails,
-            regionGroup);
+            regionGroup,
+            ctrlRamRegionRole);
     }
 
     internal static MemoryLayoutSegment CreateLogical(
@@ -270,7 +277,8 @@ public sealed class MemoryLayoutSegment
         string? sourceSlotId,
         IEnumerable<CompositionOperation> contributingOperations,
         IEnumerable<MemoryLayoutPreservationDetail> preservationDetails,
-        ReplaceRegionGroup regionGroup = ReplaceRegionGroup.Common)
+        ReplaceRegionGroup regionGroup = ReplaceRegionGroup.Common,
+        CtrlRamRegionRole ctrlRamRegionRole = CtrlRamRegionRole.Other)
     {
         return new(
             segmentId,
@@ -291,7 +299,8 @@ public sealed class MemoryLayoutSegment
             sourceSlotId,
             contributingOperations,
             preservationDetails,
-            regionGroup);
+            regionGroup,
+            ctrlRamRegionRole);
     }
 }
 

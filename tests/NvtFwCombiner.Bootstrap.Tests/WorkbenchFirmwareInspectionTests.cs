@@ -161,7 +161,32 @@ public sealed partial class FirmwareInspectionSnapshotTests
                 basePath);
         Assert.Equal(ctrlRamRequest.NumberToken, display.NumberToken);
         Assert.Equal(expectedDisplay.Regions, display.Regions);
-        Assert.Equal(expectedDisplay.InputSlots, display.InputSlots);
+        AssertCtrlRamInputSlotsEqual(expectedDisplay.InputSlots, display.InputSlots);
+    }
+
+    private static void AssertCtrlRamInputSlotsEqual(
+        IReadOnlyList<ReplaceInputSlot> expected,
+        IReadOnlyList<ReplaceInputSlot> actual)
+    {
+        Assert.Equal(expected.Count, actual.Count);
+        for (int index = 0; index < expected.Count; index++)
+        {
+            ReplaceInputSlot expectedSlot = expected[index];
+            ReplaceInputSlot actualSlot = actual[index];
+            Assert.Equal(
+                expectedSlot with { CtrlRamDescription = null },
+                actualSlot with { CtrlRamDescription = null });
+
+            CtrlRamInputDescriptionFacts expectedFacts = Assert.IsType<CtrlRamInputDescriptionFacts>(
+                expectedSlot.CtrlRamDescription);
+            CtrlRamInputDescriptionFacts actualFacts = Assert.IsType<CtrlRamInputDescriptionFacts>(
+                actualSlot.CtrlRamDescription);
+            Assert.Equal(expectedFacts.SourceFileName, actualFacts.SourceFileName);
+            Assert.Equal(expectedFacts.RequiresDiffNfMerge, actualFacts.RequiresDiffNfMerge);
+            Assert.Equal(expectedFacts.TitleStem, actualFacts.TitleStem);
+            Assert.Equal(expectedFacts.IsShared, actualFacts.IsShared);
+            Assert.Equal(expectedFacts.Sections, actualFacts.Sections);
+        }
     }
 
     /// <summary>Each distinct path is read once; a missing primary prevents any secondary read.</summary>

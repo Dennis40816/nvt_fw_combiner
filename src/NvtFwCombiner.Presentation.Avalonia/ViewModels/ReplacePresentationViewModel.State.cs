@@ -34,7 +34,8 @@ internal sealed partial class ReplacePresentationViewModel
         CompositionSlotIds.ReplaceBase,
         "Reference firmware",
         "Complete source image cloned before replacement",
-        FirmwareSlotKind.Base);
+        FirmwareSlotKind.Base,
+        addressSpaceId: CompositionAddressSpaceIds.ReferenceBase);
 
     public ObservableCollection<FirmwareSlotViewModel> ReplaceSlots { get; } = [];
 

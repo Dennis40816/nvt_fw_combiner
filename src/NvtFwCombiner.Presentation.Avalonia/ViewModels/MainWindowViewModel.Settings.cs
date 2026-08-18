@@ -24,8 +24,14 @@ internal sealed partial class MainWindowViewModel
     {
         ArgumentNullException.ThrowIfNull(preferences);
 
-        SelectedTheme = NormalizePreference(preferences.Theme, Settings.ThemeChoices, SelectedTheme);
-        SelectedLanguage = NormalizePreference(preferences.Language, Settings.LanguageChoices, SelectedLanguage);
+        SelectedTheme = NormalizePreference(
+            preferences.Theme,
+            Settings.ThemeChoices.Select(static choice => choice.Value),
+            SelectedTheme);
+        SelectedLanguage = NormalizePreference(
+            preferences.Language,
+            Settings.LanguageChoices.Select(static choice => choice.Value),
+            SelectedLanguage);
         IsReducedMotionEnabled = preferences.IsReducedMotionEnabled;
     }
 
@@ -36,7 +42,7 @@ internal sealed partial class MainWindowViewModel
 
     private static string NormalizePreference(
         string? value,
-        IReadOnlyList<string> choices,
+        IEnumerable<string> choices,
         string fallback)
     {
         return !string.IsNullOrWhiteSpace(value) && choices.Contains(value, StringComparer.Ordinal)

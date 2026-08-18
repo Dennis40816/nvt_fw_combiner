@@ -12,10 +12,10 @@ public sealed partial class ShellNavigationSystemTests
         MainWindowViewModel viewModel = PresentationTestHost.CreateViewModel();
         viewModel.ShowSettingsCommand.Execute(null);
 
-        viewModel.Settings.OpenSupportMatrixCommand.Execute(null);
+        viewModel.Settings.SelectSectionCommand.Execute(SettingsSection.SupportMatrix);
 
         Assert.True(viewModel.Settings.IsSupportMatrixOpen);
-        Assert.False(viewModel.Settings.IsOverviewVisible);
+        Assert.False(viewModel.Settings.IsOverviewSelected);
         Assert.Equal(78, viewModel.Settings.SupportMatrix.Rows.Count);
         Assert.Equal("78 routes", viewModel.Settings.SupportMatrix.RouteCountLabel);
         Assert.Equal("Current", viewModel.Settings.SupportMatrix.CatalogStateLabel);
@@ -29,16 +29,22 @@ public sealed partial class ShellNavigationSystemTests
             SupportMatrixCellStatus.ReviewedEvidence,
             nt51929.Cells.Single(static cell => cell.WorkflowLabel == "Standard Merge").Status);
         Assert.Equal(
+            "Verified",
+            nt51929.Cells.Single(static cell => cell.WorkflowLabel == "Standard Merge").StatusLabel);
+        Assert.Equal(
             SupportMatrixCellStatus.ContractOnly,
             nt51929.Cells.Single(static cell => cell.WorkflowLabel == "CtrlRAM Replace").Status);
+        Assert.Equal(
+            "Defined only",
+            nt51929.Cells.Single(static cell => cell.WorkflowLabel == "CtrlRAM Replace").StatusLabel);
         Assert.All(
             viewModel.Settings.SupportMatrix.Rows,
             static row => Assert.False(string.IsNullOrWhiteSpace(row.AccessibleLabel)));
 
-        viewModel.Settings.CloseSupportMatrixCommand.Execute(null);
+        viewModel.Settings.SelectSectionCommand.Execute(SettingsSection.Overview);
 
         Assert.False(viewModel.Settings.IsSupportMatrixOpen);
-        Assert.True(viewModel.Settings.IsOverviewVisible);
+        Assert.True(viewModel.Settings.IsOverviewSelected);
     }
 
     /// <summary>Cell icons conservatively aggregate routes without turning partial evidence into a green claim.</summary>
@@ -95,6 +101,10 @@ public sealed partial class ShellNavigationSystemTests
         Assert.All(
             nt51929.Cells,
             static cell => Assert.False(string.IsNullOrWhiteSpace(cell.AccessibleLabel)));
+
+        settings.Refresh(ShellTextResources.For(ShellLanguage.ChineseTraditional));
+
+        Assert.Equal("僅有定義", settings.SupportMatrix.IcRows[0].Cells[1].StatusLabel);
     }
 
     /// <summary>The matrix displays Available and Unavailable as independent typed policy facts.</summary>
@@ -110,7 +120,7 @@ public sealed partial class ShellNavigationSystemTests
             static () => ShellTextResources.For(ShellLanguage.English));
 
         settings.Refresh(ShellTextResources.For(ShellLanguage.English));
-        settings.OpenSupportMatrixCommand.Execute(null);
+        settings.SelectSectionCommand.Execute(SettingsSection.SupportMatrix);
 
         Assert.Equal(["Available", "Unavailable"],
             settings.SupportMatrix.Rows.Select(static row => row.AuthoringLabel));
@@ -206,7 +216,7 @@ public sealed partial class ShellNavigationSystemTests
             static () => ShellTextResources.For(ShellLanguage.English));
 
         settings.Refresh(ShellTextResources.For(ShellLanguage.English));
-        settings.OpenSupportMatrixCommand.Execute(null);
+        settings.SelectSectionCommand.Execute(SettingsSection.SupportMatrix);
 
         Assert.True(settings.SupportMatrix.HasStatusNotice);
         Assert.Equal(expectedTitle, settings.SupportMatrix.StatusNotice!.Title);
@@ -246,13 +256,21 @@ public sealed partial class ShellNavigationSystemTests
             static () => ShellTextResources.For(ShellLanguage.ChineseTraditional));
 
         settings.Refresh(ShellTextResources.For(ShellLanguage.ChineseTraditional));
-        settings.OpenSupportMatrixCommand.Execute(null);
+        settings.SelectSectionCommand.Execute(SettingsSection.SupportMatrix);
 
         SupportMatrixRowViewModel row = Assert.Single(settings.SupportMatrix.Rows);
         Assert.Equal("不可用", row.AuthoringLabel);
-        Assert.Equal("Authoring 不可用", row.BlockerLabel);
+        Assert.Equal("編輯不可用", row.BlockerLabel);
+        Assert.Equal("僅有定義", row.EvidenceLabel);
         Assert.Equal("1 條路徑", settings.SupportMatrix.RouteCountLabel);
         Assert.Equal("目前版本", settings.SupportMatrix.CatalogStateLabel);
+        Assert.Equal("已阻擋", settings.SupportMatrix.IcRows[0].Cells[0].StatusLabel);
+        Assert.Equal("執行", ShellTextResources.For(ShellLanguage.ChineseTraditional).SupportMatrixExecutionLabel);
+        Assert.Equal("證據", ShellTextResources.For(ShellLanguage.ChineseTraditional).SupportMatrixEvidenceLabel);
+        Assert.Equal("待審查", ShellTextResources.For(ShellLanguage.ChineseTraditional).SupportMatrixReviewRequiredLabel);
+        Assert.Equal(
+            "狀態彙整驗證證據與路徑阻擋原因；聚焦任一格可查看明細。",
+            ShellTextResources.For(ShellLanguage.ChineseTraditional).SupportMatrixHoverHint);
     }
 
     private static CanonicalSupportMatrixQueryResult CurrentMatrix(

@@ -45,12 +45,12 @@
     <Setter Property="BorderBrush" Value="{DynamicResource NfcAccentBorderLightBrush}" />
     <Setter Property="TextElement.Foreground" Value="{DynamicResource NfcAccentStrongBrush}" />
   </Style>
-  <Style Selector="ToggleButton.slotStateAction.pendingInput">
+  <Style Selector="ToggleButton.slotStateAction.pendingInput, ToggleButton.slotStateAction.warning">
     <Setter Property="Background" Value="{DynamicResource NfcWarningSurfaceBrush}" />
     <Setter Property="BorderBrush" Value="{DynamicResource NfcWarningBorderStrongBrush}" />
     <Setter Property="Foreground" Value="{DynamicResource NfcWarningTextBrush}" />
   </Style>
-  <Style Selector="ToggleButton.slotStateAction.pendingInput /template/ ContentPresenter#PART_ContentPresenter">
+  <Style Selector="ToggleButton.slotStateAction.pendingInput /template/ ContentPresenter#PART_ContentPresenter, ToggleButton.slotStateAction.warning /template/ ContentPresenter#PART_ContentPresenter">
     <Setter Property="Background" Value="{DynamicResource NfcWarningSurfaceBrush}" />
     <Setter Property="BorderBrush" Value="{DynamicResource NfcWarningBorderStrongBrush}" />
     <Setter Property="TextElement.Foreground" Value="{DynamicResource NfcWarningTextBrush}" />
@@ -64,16 +64,6 @@
     <Setter Property="Background" Value="{DynamicResource NfcSuccessSurfaceBrush}" />
     <Setter Property="BorderBrush" Value="{DynamicResource NfcSuccessBorderBrush}" />
     <Setter Property="TextElement.Foreground" Value="{DynamicResource NfcSuccessEmphasisBrush}" />
-  </Style>
-  <Style Selector="ToggleButton.slotStateAction.warning">
-    <Setter Property="Background" Value="{DynamicResource NfcWarningSurfaceBrush}" />
-    <Setter Property="BorderBrush" Value="{DynamicResource NfcWarningBorderStrongBrush}" />
-    <Setter Property="Foreground" Value="{DynamicResource NfcWarningTextBrush}" />
-  </Style>
-  <Style Selector="ToggleButton.slotStateAction.warning /template/ ContentPresenter#PART_ContentPresenter">
-    <Setter Property="Background" Value="{DynamicResource NfcWarningSurfaceBrush}" />
-    <Setter Property="BorderBrush" Value="{DynamicResource NfcWarningBorderStrongBrush}" />
-    <Setter Property="TextElement.Foreground" Value="{DynamicResource NfcWarningTextBrush}" />
   </Style>
   <Style Selector="ToggleButton.slotStateAction.error">
     <Setter Property="Background" Value="{DynamicResource NfcCriticalSurfaceBrush}" />
@@ -104,7 +94,7 @@
   <Style Selector="ToggleButton.slotStateAction:pointerover">
     <Setter Property="Opacity" Value="0.86" />
   </Style>
-  <Style Selector="ToggleButton.slotStateAction:pressed">
+  <Style Selector="ToggleButton.slotStateAction:pressed, ToggleButton.quietDisclosure:pressed">
     <Setter Property="Opacity" Value="0.72" />
   </Style>
   <Style Selector="ToggleButton.slotStateAction:focus-visible">
@@ -115,30 +105,27 @@
     <Setter Property="BorderBrush" Value="{DynamicResource NfcAccentStrongBrush}" />
     <Setter Property="BorderThickness" Value="2" />
   </Style>
-  <Style Selector="ToggleButton.slotStateAction:disabled">
+  <Style Selector="ToggleButton.slotStateAction:disabled, ToggleButton.quietDisclosure:disabled">
     <Setter Property="Opacity" Value="0.45" />
   </Style>
-  <Style Selector="Path.slotStateIcon">
+  <Style Selector="Path.slotStateIcon, Path.firmwareSlotFactStateIcon">
     <Setter Property="Fill" Value="Transparent" />
     <Setter Property="Stroke" Value="{DynamicResource NfcTextSecondaryBrush}" />
     <Setter Property="StrokeLineCap" Value="Round" />
     <Setter Property="StrokeJoin" Value="Round" />
     <Setter Property="StrokeThickness" Value="1.8" />
   </Style>
-  <Style Selector="ToggleButton.slotStateAction.checking Path.slotStateIcon">
+  <Style Selector="ToggleButton.slotStateAction.checking Path.slotStateIcon, Border.firmwareSlotFact.pendingInput Path.firmwareSlotFactStateIcon">
     <Setter Property="Stroke" Value="{DynamicResource NfcAccentStrongBrush}" />
   </Style>
-  <Style Selector="ToggleButton.slotStateAction.pendingInput Path.slotStateIcon">
+  <Style Selector="ToggleButton.slotStateAction.pendingInput Path.slotStateIcon, ToggleButton.slotStateAction.warning Path.slotStateIcon, Border.firmwareSlotFact.warning Path.firmwareSlotFactStateIcon">
     <Setter Property="Stroke" Value="{DynamicResource NfcWarningTextBrush}" />
   </Style>
   <Style Selector="ToggleButton.slotStateAction.verified Path.slotStateIcon">
     <Setter Property="Stroke" Value="{DynamicResource NfcSuccessEmphasisBrush}" />
   </Style>
-  <Style Selector="ToggleButton.slotStateAction.error Path.slotStateIcon">
+  <Style Selector="ToggleButton.slotStateAction.error Path.slotStateIcon, Border.firmwareSlotFact.error Path.firmwareSlotFactStateIcon">
     <Setter Property="Stroke" Value="{DynamicResource NfcDangerTextBrush}" />
-  </Style>
-  <Style Selector="ToggleButton.slotStateAction.warning Path.slotStateIcon">
-    <Setter Property="Stroke" Value="{DynamicResource NfcWarningTextBrush}" />
   </Style>
   <Style Selector="TextBlock.slotStateDetail">
     <Setter Property="FontSize" Value="{DynamicResource NfcFontSize12}" />
@@ -155,13 +142,7 @@
     <Setter Property="Background" Value="Transparent" />
     <Setter Property="BorderBrush" Value="Transparent" />
   </Style>
-  <Style Selector="ToggleButton.quietDisclosure:pointerover /template/ ContentPresenter#PART_ContentPresenter">
-    <Setter Property="Background" Value="{DynamicResource NfcAccentSurfaceSubtleBrush}" />
-  </Style>
-  <Style Selector="ToggleButton.quietDisclosure:pressed">
-    <Setter Property="Opacity" Value="0.72" />
-  </Style>
-  <Style Selector="ToggleButton.quietDisclosure:checked /template/ ContentPresenter#PART_ContentPresenter">
+  <Style Selector="ToggleButton.quietDisclosure:pointerover /template/ ContentPresenter#PART_ContentPresenter, ToggleButton.quietDisclosure:checked /template/ ContentPresenter#PART_ContentPresenter">
     <Setter Property="Background" Value="{DynamicResource NfcAccentSurfaceSubtleBrush}" />
   </Style>
   <Style Selector="ToggleButton.quietDisclosure:focus-visible">
@@ -170,9 +151,6 @@
   <Style Selector="ToggleButton.quietDisclosure:focus-visible /template/ ContentPresenter#PART_ContentPresenter">
     <Setter Property="BorderBrush" Value="{DynamicResource NfcAccentStrongBrush}" />
     <Setter Property="BorderThickness" Value="1" />
-  </Style>
-  <Style Selector="ToggleButton.quietDisclosure:disabled">
-    <Setter Property="Opacity" Value="0.45" />
   </Style>
   <Style Selector="Border.firmwareSlotFact.pendingInput">
     <Setter Property="Background" Value="{DynamicResource NfcAccentSurfaceBrush}" />
@@ -189,24 +167,8 @@
   <Style Selector="Border.firmwareSlotFact.error TextBlock">
     <Setter Property="Foreground" Value="{DynamicResource NfcDangerTextBrush}" />
   </Style>
-  <Style Selector="Path.firmwareSlotFactStateIcon">
-    <Setter Property="Fill" Value="Transparent" />
-    <Setter Property="Stroke" Value="{DynamicResource NfcTextSecondaryBrush}" />
-    <Setter Property="StrokeLineCap" Value="Round" />
-    <Setter Property="StrokeJoin" Value="Round" />
-    <Setter Property="StrokeThickness" Value="1.8" />
-  </Style>
   <Style Selector="Path.firmwareSlotFactStateIcon:focus-visible">
     <Setter Property="Stroke" Value="{DynamicResource NfcAccentStrongBrush}" />
     <Setter Property="StrokeThickness" Value="2.8" />
-  </Style>
-  <Style Selector="Border.firmwareSlotFact.pendingInput Path.firmwareSlotFactStateIcon">
-    <Setter Property="Stroke" Value="{DynamicResource NfcAccentStrongBrush}" />
-  </Style>
-  <Style Selector="Border.firmwareSlotFact.warning Path.firmwareSlotFactStateIcon">
-    <Setter Property="Stroke" Value="{DynamicResource NfcWarningTextBrush}" />
-  </Style>
-  <Style Selector="Border.firmwareSlotFact.error Path.firmwareSlotFactStateIcon">
-    <Setter Property="Stroke" Value="{DynamicResource NfcDangerTextBrush}" />
   </Style>
 </Styles>

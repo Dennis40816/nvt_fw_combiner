@@ -23,13 +23,18 @@ public sealed partial class RepositoryBoundaryTests
         Assert.DoesNotContain("WorkbenchCompositionService", settings, StringComparison.Ordinal);
         Assert.Contains("ItemsSource=\"{Binding Settings.OverviewRows}\"", pageTemplates, StringComparison.Ordinal);
         Assert.Contains("ItemsSource=\"{Binding Settings.CapabilityRows}\"", pageTemplates, StringComparison.Ordinal);
-        Assert.Contains("Command=\"{Binding Settings.OpenSupportMatrixCommand}\"", pageTemplates, StringComparison.Ordinal);
+        Assert.Contains("Command=\"{Binding Settings.SelectSectionCommand}\"", pageTemplates, StringComparison.Ordinal);
+        Assert.Contains("CommandParameter=\"{x:Static vm:SettingsSection.SupportMatrix}\"", pageTemplates, StringComparison.Ordinal);
+        Assert.Contains("Classes=\"semanticAction command settingsNavItem\"", pageTemplates, StringComparison.Ordinal);
         Assert.Contains("ItemsSource=\"{Binding Settings.SupportMatrix.IcRows}\"", pageTemplates, StringComparison.Ordinal);
         Assert.Contains("ItemsSource=\"{Binding Settings.SupportMatrix.WorkflowColumns}\"", pageTemplates, StringComparison.Ordinal);
         Assert.Contains("AutomationProperties.HelpText=\"{Binding AccessibleDetail}\"", pageTemplates, StringComparison.Ordinal);
         Assert.Contains("behaviors:FocusToolTipBehavior.IsEnabled=\"True\"", pageTemplates, StringComparison.Ordinal);
-        Assert.Contains("behaviors:FocusOnRevealBehavior.IsEnabled=\"True\"", pageTemplates, StringComparison.Ordinal);
         Assert.Contains("Text=\"{Binding ProvenanceDetail}\"", pageTemplates, StringComparison.Ordinal);
         Assert.Contains("ToolTip.ShowDelay=\"220\"", pageTemplates, StringComparison.Ordinal);
+        Assert.Contains("Width=\"176\"", pageTemplates, StringComparison.Ordinal);
+        Assert.Contains("Height=\"38\"", pageTemplates, StringComparison.Ordinal);
+        Assert.Contains("Text=\"{Binding StatusLabel}\"", pageTemplates, StringComparison.Ordinal);
+        Assert.DoesNotContain("Width=\"288\"", pageTemplates, StringComparison.Ordinal);
     }
 }

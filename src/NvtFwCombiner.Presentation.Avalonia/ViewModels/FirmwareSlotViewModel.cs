@@ -22,13 +22,16 @@ internal sealed partial class FirmwareSlotViewModel : ObservableObject
         string? addressSpaceId = null,
         ReplaceRegionGroup regionGroup = ReplaceRegionGroup.Common,
         ReplaceInputRole replaceInputRole = ReplaceInputRole.None,
-        string? compiledSlotId = null)
+        string? compiledSlotId = null,
+        CtrlRamInputDescriptionFacts? ctrlRamDescriptionFacts = null)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(slotId);
         ArgumentException.ThrowIfNullOrWhiteSpace(title);
         ArgumentException.ThrowIfNullOrWhiteSpace(description);
 
         SlotId = slotId;
+        DeclaredTitle = title;
+        DeclaredDescription = description;
         Title = title;
         Description = description;
         SlotKind = kind;
@@ -39,13 +42,22 @@ internal sealed partial class FirmwareSlotViewModel : ObservableObject
         CompiledSlotId = string.IsNullOrWhiteSpace(compiledSlotId) ? null : compiledSlotId;
         RegionGroup = regionGroup;
         ReplaceInputRole = replaceInputRole;
+        CtrlRamDescriptionFacts = ctrlRamDescriptionFacts;
     }
 
     public string SlotId { get; }
 
+    /// <summary>Invariant producer text retained so language changes never translate a prior projection.</summary>
+    internal string DeclaredTitle { get; }
+
+    /// <summary>Invariant producer detail retained for deterministic relocalization.</summary>
+    internal string DeclaredDescription { get; }
+
     public ReplaceInputRole ReplaceInputRole { get; }
 
     public ReplaceRegionGroup RegionGroup { get; }
+
+    internal CtrlRamInputDescriptionFacts? CtrlRamDescriptionFacts { get; }
 
     public string Title { get; private set; }
 
@@ -182,7 +194,7 @@ internal sealed partial class FirmwareSlotViewModel : ObservableObject
             }
         }
 
-        IsFirmwareFactsExpanded = false;
+        IsFirmwareFactsExpanded = FirmwareFacts.Count > 0;
         IsAdditionalFirmwareFactsExpanded = false;
         OnPropertyChanged(nameof(HasFirmwareFacts));
         OnPropertyChanged(nameof(PrimaryFirmwareFacts));

@@ -22,8 +22,12 @@ public enum MemoryContentRole
     Ldc,
     /// <summary>General or otherwise neutral data.</summary>
     General,
-    /// <summary>Reserved or unmapped structure.</summary>
+    /// <summary>Customer-owned information protected from unrelated overlays.</summary>
+    CustomerInformation,
+    /// <summary>Reserved structure with established reservation.</summary>
     Reserved,
+    /// <summary>Explicit structure whose physical semantics remain unknown.</summary>
+    Unmapped,
     /// <summary>CtrlRAM; subtype remains a separate future fact.</summary>
     CtrlRam,
 }

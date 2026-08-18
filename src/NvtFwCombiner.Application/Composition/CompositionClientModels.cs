@@ -260,6 +260,41 @@ public enum ReplaceInputRole
     CtrlRam,
 }
 
+/// <summary>One typed CtrlRAM section retained with an input discovery projection.</summary>
+public sealed record CtrlRamInputDescriptionSection(
+    string DisplayName,
+    ReplaceRegionGroup RegionGroup,
+    long MaximumLength,
+    long TargetStart,
+    string TitleStem);
+
+/// <summary>Structured CtrlRAM input facts retained independently from display text.</summary>
+public sealed record CtrlRamInputDescriptionFacts(
+    string SourceFileName,
+    IReadOnlyList<CtrlRamInputDescriptionSection> Sections,
+    bool RequiresDiffNfMerge,
+    string TitleStem,
+    bool IsShared);
+
+/// <summary>Closed CtrlRAM family role used by detailed memory presentation.</summary>
+public enum CtrlRamRegionRole
+{
+    /// <summary>NF CtrlRAM.</summary>
+    Nf,
+    /// <summary>Normal CtrlRAM.</summary>
+    Normal,
+    /// <summary>MP CtrlRAM.</summary>
+    Mp,
+    /// <summary>VN CtrlRAM.</summary>
+    Vn,
+    /// <summary>Vector CtrlRAM.</summary>
+    Vector,
+    /// <summary>DiffDLM or DIFF CtrlRAM.</summary>
+    DiffDlm,
+    /// <summary>CtrlRAM outside the approved detailed family vocabulary.</summary>
+    Other,
+}
+
 /// <summary>One file slot declared by the selected Replace workflow.</summary>
 public sealed record ReplaceInputSlot(
     string SlotId,
@@ -271,7 +306,8 @@ public sealed record ReplaceInputSlot(
     string CompiledSlotId,
     string? SelectionGroupId = null,
     ReplaceRegionGroup RegionGroup = ReplaceRegionGroup.Common,
-    ReplaceInputRole InputRole = ReplaceInputRole.None);
+    ReplaceInputRole InputRole = ReplaceInputRole.None,
+    CtrlRamInputDescriptionFacts? CtrlRamDescription = null);
 
 /// <summary>One CtrlRAM region row for shell display.</summary>
 public sealed record CtrlRamRegion(
@@ -280,7 +316,8 @@ public sealed record CtrlRamRegion(
     long Start,
     long Length,
     bool IsMultiChipOnly,
-    ReplaceRegionGroup RegionGroup);
+    ReplaceRegionGroup RegionGroup,
+    CtrlRamRegionRole Role);
 
 /// <summary>Typed General Merge initializer resolved before Presentation creates a draft.</summary>
 public sealed class GeneralMergeInitializer

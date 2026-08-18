@@ -2218,6 +2218,22 @@ after the grill closes so issues do not become a competing draft specification.
     to 98,189 while runtime and every counted slice remain unchanged. This
     visual-only +29 is not reusable and changes no report, diagnostics,
     firmware, profile, schema, processor, Golden, or persistence contract.
+    Owner-approved implementation decision on 2026-08-18 grants the Settings,
+    input-card, button, and memory-visualization readability closure one named,
+    non-transferable accounting amendment. The exact implementation removes
+    479 and adds 1,396 physical nonblank production lines, net +917: full
+    production changes from 98,133 to 99,050, while runtime changes from 67,981
+    to 68,106 through typed canonical CtrlRAM family roles and Application memory
+    projection facts. Application becomes 29,665;
+    Domain plus Profiles becomes 20,634,
+    Bootstrap plus CLI plus Desktop remains 3,074, and Infrastructure plus
+    Contracts plus CRC worker remains 14,733. The Presentation growth owns
+    aligned memory columns, truthful protected-region/source projection,
+    complete English/Traditional Chinese plan and slot text, responsive input
+    cards, and project-owned button/focus visuals. These exact values become
+    descending ratchets immediately. The amendment creates no reusable budget,
+    changes no profile, range, firmware byte, operation, support, Golden,
+    report-wire, processor, or release contract, and cannot fund later work.
     Owner amendment on 2026-08-08 supersedes the earlier 44,000 total and
     18,000/12,000/7,500/5,500 slice completion caps. The dated numbers remain
     planning history after the merged #230 checkpoint at `ad672900` showed that

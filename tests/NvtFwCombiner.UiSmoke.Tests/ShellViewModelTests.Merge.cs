@@ -398,11 +398,15 @@ public sealed partial class MergeWorkflowTests
         Assert.Equal("NT51950: refresh profile, slots, validation", viewModel.WorkflowSession.DeviceContextStatus);
         Assert.Equal("0x100000", viewModel.Merge.GeneralMergeOutputLength);
         Assert.Equal("0x00", viewModel.Merge.GeneralMergeOutputFillByte);
-        Assert.Equal("Memory layout pending", viewModel.Merge.MergeMemoryRangeLabel);
-        Assert.Equal("Waiting for required inputs", Assert.Single(viewModel.Merge.MergeMemoryRows).AfterSource);
+        Assert.Equal("Waiting for source mapping", viewModel.Merge.MergeMemoryRangeLabel);
+        MemoryMapRowViewModel pendingMapping = Assert.Single(viewModel.Merge.MergeMemoryRows);
+        Assert.Equal("Waiting for source mapping", pendingMapping.AfterSource);
+        Assert.Contains("source BIN", pendingMapping.Detail, StringComparison.Ordinal);
         viewModel.SelectedLanguage = "Traditional Chinese";
-        Assert.Equal("等待必要輸入", Assert.Single(viewModel.Merge.MergeMemoryRows).AfterSource);
-        Assert.Equal("等待必要輸入", Assert.Single(viewModel.Merge.MergeCoverageSegments).SourceLabel);
+        pendingMapping = Assert.Single(viewModel.Merge.MergeMemoryRows);
+        Assert.Equal("等待來源對應", pendingMapping.AfterSource);
+        Assert.Contains("來源 BIN", pendingMapping.Detail, StringComparison.Ordinal);
+        Assert.Equal("等待來源對應", Assert.Single(viewModel.Merge.MergeCoverageSegments).SourceLabel);
         Assert.Equal("nt51950-general-merge.bin", viewModel.Merge.MergeOutputFileName);
         _ = Assert.Single(viewModel.Merge.GeneralMergeMappings);
 
@@ -413,7 +417,7 @@ public sealed partial class MergeWorkflowTests
         GeneralMergeMappingViewModel mapping = Assert.Single(viewModel.Merge.GeneralMergeMappings);
         Assert.Equal(1, mapping.Index);
         Assert.Equal("No source BIN selected", mapping.DisplayName);
-        Assert.Contains("reserved", viewModel.Merge.MergeMemorySummary, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("保留值", viewModel.Merge.MergeMemorySummary, StringComparison.Ordinal);
     }
 
     /// <summary>Verifies the Home General Merge shortcut opens Merge in General mode.</summary>
@@ -449,7 +453,7 @@ public sealed partial class MergeWorkflowTests
         Assert.Equal(["DP BIN", "TP BIN", "LDC BIN"], viewModel.Merge.MergeSlots.Select(slot => slot.Title));
     }
 
-    /// <summary>Verifies memory-map rows expose readable operation details without relying on tooltips.</summary>
+    /// <summary>Verifies memory-map rows expose localized operation identity without raw compiler reason prose.</summary>
     [Fact]
     public void MergeMemoryRowsExposeReadableOperationDetails()
     {
@@ -462,7 +466,7 @@ public sealed partial class MergeWorkflowTests
             row => row.RangeLabel == "0x00000-0x3BFFF (len 0x3C000)" && row.ActionLabel == "Copy");
         Assert.Equal("Reserved -> TP BIN", copyRow.FlowLabel);
         Assert.Contains("Sequence 100", copyRow.Detail, StringComparison.Ordinal);
-        Assert.Contains("Reason:", copyRow.Detail, StringComparison.Ordinal);
+        Assert.DoesNotContain("Reason:", copyRow.Detail, StringComparison.Ordinal);
     }
 
     /// <summary>Verifies representative Standard Merge workflow shapes through the Merge ViewModel command path.</summary>

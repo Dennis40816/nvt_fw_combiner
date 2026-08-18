@@ -1,7 +1,9 @@
 using System.Text.RegularExpressions;
 using System.Xml.Linq;
 using Avalonia;
+using Avalonia.Automation.Provider;
 using Avalonia.Controls;
+using Avalonia.Controls.Automation.Peers;
 using Avalonia.Input;
 using Avalonia.Interactivity;
 using Avalonia.LogicalTree;
@@ -94,7 +96,7 @@ public sealed partial class XamlControlStyleContractTests
         string sharedTemplates = ReadPresentationFile("Resources/MainWindowSharedTemplates.axaml");
         string reportHistoryTemplates = ReadPresentationFile("Resources/MainWindowReportHistoryTemplates.axaml");
 
-        Assert.Contains("Selector=\"Border.fileDropZone\"", styles, StringComparison.Ordinal);
+        _ = ExtractStyle(styles, "Border.fileDropZone");
         Assert.Contains("Classes=\"subtleSurface\"", mappingRow, StringComparison.Ordinal);
         Assert.Contains("Classes=\"fileDropZone\"", mappingRow, StringComparison.Ordinal);
         Assert.Contains("Classes=\"fileRevealAction\"", mappingRow, StringComparison.Ordinal);
@@ -398,6 +400,26 @@ public sealed partial class XamlControlStyleContractTests
     [Fact]
     public void SharedControlStylesOwnTheCommonXamlRoles()
     {
+        var pages = XDocument.Parse(ReadPresentationFile("Resources/MainWindowPageTemplates.axaml"));
+        XElement[] settingsNavigationItems =
+        [
+            .. pages.Descendants().Where(element =>
+                element.Name.LocalName == "RadioButton" &&
+                ((string?)element.Attribute("Classes"))?.Split(' ').Contains("settingsNavItem") == true),
+        ];
+        Assert.Equal(3, settingsNavigationItems.Length);
+        Assert.All(
+            settingsNavigationItems,
+            static item => Assert.Equal("SettingsSections", (string?)item.Attribute("GroupName")));
+        Assert.Equal(
+            [
+                "{Binding Settings.IsOverviewSelected, Mode=OneWay}",
+                "{Binding Settings.IsPreferencesSelected, Mode=OneWay}",
+                "{Binding Settings.IsSupportMatrixOpen, Mode=OneWay}",
+            ],
+            settingsNavigationItems.Select(static item => (string?)item.Attribute("IsChecked")));
+        Assert.True(typeof(ISelectionItemProvider).IsAssignableFrom(typeof(RadioButtonAutomationPeer)));
+
         string styles = ReadPresentationFile("Styles/MainWindowControlStyles.axaml");
         foreach (string selector in new[]
         {
@@ -407,6 +429,8 @@ public sealed partial class XamlControlStyleContractTests
             "Border.contentPanel",
             "Border.listRow",
             "Border.settingRow",
+            "Border.settingsNavigationSurface",
+            "Border.settingsOptionRow",
             "TextBlock.panelTitle",
             "TextBlock.compactTitle",
             "TextBlock.supportingText",
@@ -414,7 +438,19 @@ public sealed partial class XamlControlStyleContractTests
             "TextBlock.technicalValue",
         })
         {
-            Assert.Contains($"Selector=\"{selector}\"", styles, StringComparison.Ordinal);
+            _ = ExtractStyle(styles, selector);
+        }
+
+        string buttonStyles = ReadPresentationFile("Styles/MainWindowButtonStyles.axaml");
+        foreach (string selector in new[]
+        {
+            "Button.settingsNavItem",
+            "Button.settingsNavItem:pointerover /template/ ContentPresenter#PART_ContentPresenter",
+            "Button.settingsNavItem.selected /template/ ContentPresenter#PART_ContentPresenter",
+            "Button.settingsNavItem:focus-visible /template/ ContentPresenter#PART_ContentPresenter",
+        })
+        {
+            _ = ExtractStyle(buttonStyles, selector);
         }
 
         string[] legacyPropertyBundles =

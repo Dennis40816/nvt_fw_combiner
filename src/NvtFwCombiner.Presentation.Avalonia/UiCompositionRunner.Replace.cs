@@ -83,7 +83,8 @@ internal static partial class UiCompositionRunner
                 slot.AddressSpaceId,
                 slot.RegionGroup,
                 slot.InputRole,
-                compiledSlotId: slot.CompiledSlotId)),
+                compiledSlotId: slot.CompiledSlotId,
+                ctrlRamDescriptionFacts: slot.CtrlRamDescription)),
         ];
     }
 

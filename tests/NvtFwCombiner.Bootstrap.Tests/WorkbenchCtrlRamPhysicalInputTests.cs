@@ -47,14 +47,19 @@ public sealed class WorkbenchCtrlRamPhysicalInputTests
         string number,
         int expectedCount)
     {
-        IReadOnlyList<ReplaceInputSlot> slots = BootstrapTestHost.Services.CtrlRamAuthoring
-            .GetDiscoveryDisplay(icId, number, basePath: null).InputSlots;
+        CtrlRamInspectionDisplay display = BootstrapTestHost.Services.CtrlRamAuthoring
+            .GetDiscoveryDisplay(icId, number, basePath: null);
+        IReadOnlyList<ReplaceInputSlot> slots = display.InputSlots;
 
         Assert.Equal(expectedCount, slots.Count);
         Assert.Contains(slots, slot => slot.SlotId == "replace-ctrlram-nf");
         Assert.Contains(slots, slot => slot.SlotId == "replace-ctrlram-vn");
         Assert.DoesNotContain(slots, slot => slot.SlotId.StartsWith("replace-ctrlram-nf-", StringComparison.Ordinal));
         Assert.DoesNotContain(slots, slot => slot.SlotId.StartsWith("replace-ctrlram-vn-", StringComparison.Ordinal));
+        Assert.Contains(display.Regions, region => region.Role == CtrlRamRegionRole.Nf);
+        Assert.Contains(display.Regions, region => region.Role == CtrlRamRegionRole.Normal);
+        Assert.Contains(display.Regions, region => region.Role == CtrlRamRegionRole.Mp);
+        Assert.Contains(display.Regions, region => region.Role == CtrlRamRegionRole.Vn);
     }
 
     /// <summary>Masked NT51929-family Cascade authoring exposes DiffDLM but never an independent NF selector.</summary>
@@ -64,11 +69,12 @@ public sealed class WorkbenchCtrlRamPhysicalInputTests
     [InlineData("NT51932")]
     public void DynamicDiffDlmCascadeHidesIndependentNfSelector(string icId)
     {
-        IReadOnlyList<ReplaceInputSlot> slots =
+        CtrlRamInspectionDisplay display =
             BootstrapTestHost.Services.CtrlRamAuthoring.GetDiscoveryDisplay(
                 icId,
                 IcNumberSelectionTokens.CascadeTwoToEight,
-                basePath: null).InputSlots;
+                basePath: null);
+        IReadOnlyList<ReplaceInputSlot> slots = display.InputSlots;
 
         Assert.Contains(
             slots,
@@ -77,6 +83,7 @@ public sealed class WorkbenchCtrlRamPhysicalInputTests
         Assert.DoesNotContain(
             slots,
             slot => slot.SlotId == "replace-ctrlram-nf");
+        Assert.Contains(display.Regions, region => region.Role == CtrlRamRegionRole.DiffDlm);
     }
 
     /// <summary>950-family cascade exposes DiffDLM while its preserved DiffNF never becomes an independent input.</summary>
