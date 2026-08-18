@@ -1,4 +1,5 @@
 using NvtFwCombiner.Application.Metadata;
+using NvtFwCombiner.Domain.Composition;
 using NvtFwCombiner.Presentation.Avalonia;
 using NvtFwCombiner.Presentation.Avalonia.ViewModels;
 
@@ -50,9 +51,9 @@ public sealed partial class XamlControlStyleContractTests
         string browse = ExtractStyle(buttonStyles, "Button.browseAction");
         Assert.Contains("Property=\"MinWidth\" Value=\"88\"", browse, StringComparison.Ordinal);
         Assert.Contains("Property=\"MaxHeight\" Value=\"36\"", browse, StringComparison.Ordinal);
-        Assert.Contains("Property=\"VerticalAlignment\" Value=\"Center\"", browse, StringComparison.Ordinal);
+        Assert.Contains("VerticalAlignment=\"Top\"", slotCard, StringComparison.Ordinal);
         Assert.Contains("Classes=\"semanticAction action browseAction\"", slotCard, StringComparison.Ordinal);
-        Assert.Contains("CornerRadius=\"{DynamicResource NfcPillCornerRadius}\"", buttonStyles, StringComparison.Ordinal);
+        Assert.Contains("CornerRadius=\"{DynamicResource NfcCompactCornerRadius}\"", buttonStyles, StringComparison.Ordinal);
         Assert.DoesNotContain("UsesSharedSlotPresentation", slotCard, StringComparison.Ordinal);
         Assert.DoesNotContain("UsesLegacySlotPresentation", slotCard, StringComparison.Ordinal);
     }
@@ -78,7 +79,7 @@ public sealed partial class XamlControlStyleContractTests
         Assert.Contains("AutomationProperties.Name=\"{Binding StateAutomationText}\"", factTemplate, StringComparison.Ordinal);
         Assert.Contains("ToolTip.Tip=\"{Binding StateAutomationText}\"", factTemplate, StringComparison.Ordinal);
         Assert.Contains("Focusable=\"True\"", factTemplate, StringComparison.Ordinal);
-        Assert.Contains("MaxWidth=\"430\"", slotCard, StringComparison.Ordinal);
+        Assert.DoesNotContain("MaxWidth=\"430\"", slotCard, StringComparison.Ordinal);
 
         string styles = ReadPresentationFile("Styles/FirmwareSlotExperienceStyles.axaml");
         Assert.Contains("ToggleButton.quietDisclosure:pointerover", styles, StringComparison.Ordinal);
@@ -161,9 +162,86 @@ public sealed partial class XamlControlStyleContractTests
         Assert.DoesNotContain("DP 與 LD payload", localized, StringComparison.Ordinal);
         Assert.Contains("optional LDC", localized, StringComparison.Ordinal);
         Assert.Contains("選用 LDC", localized, StringComparison.Ordinal);
-        Assert.DoesNotContain("CompositionAddressSpaceIds.LdcReplacement", dynamicText, StringComparison.Ordinal);
+        Assert.Contains("CompositionAddressSpaceIds.LdcReplacement => (", dynamicText, StringComparison.Ordinal);
+        Assert.Contains("\"LDC 取代 BIN 檔案\"", dynamicText, StringComparison.Ordinal);
         Assert.DoesNotContain("InputSelectionNextActionKind.LoadPrerequisite", dynamicText, StringComparison.Ordinal);
         Assert.Contains("InputSelectionNextActionKind.LoadArtifactFirst", dynamicText, StringComparison.Ordinal);
+    }
+
+    /// <summary>Traditional Chinese readiness and layout guidance uses Chinese UI prose around stable product terms.</summary>
+    [Fact]
+    public void FirmwareReadinessGuidanceIsFullyLocalizedInTraditionalChinese()
+    {
+        ShellTextResources text = ShellTextResources.For(ShellLanguage.ChineseTraditional);
+        string standardReadiness = text.GetMergeReadinessStatus(
+            ExperienceIds.StandardMerge,
+            "NT51950",
+            "DP、TP",
+            isStandardMergeSupported: true,
+            generalMappingFileCount: 0);
+        string mappedReadiness = text.GetMergeReadinessStatus(
+            ExperienceIds.GeneralMerge,
+            "NT51950",
+            "DP、TP",
+            isStandardMergeSupported: true,
+            generalMappingFileCount: 2);
+        string emptyMappingReadiness = text.GetMergeReadinessStatus(
+            ExperienceIds.GeneralMerge,
+            "NT51950",
+            "DP、TP",
+            isStandardMergeSupported: true,
+            generalMappingFileCount: 0);
+        string[] localizedGuidance =
+        [
+            text.GetReplaceMemorySummary(ExperienceIds.DpReplace),
+            text.GetReplaceMemorySummary(ExperienceIds.CtrlRamReplace),
+            text.GetReplaceMemorySummary(ExperienceIds.GeneralReplace),
+            text.GetReplaceReadinessStatus(ExperienceIds.DpReplace, canRun: true),
+            text.GetReplaceReadinessStatus(ExperienceIds.DpReplace, canRun: false),
+            text.GetReplaceReadinessStatus(ExperienceIds.CtrlRamReplace, canRun: true),
+            text.GetReplaceReadinessStatus(ExperienceIds.CtrlRamReplace, canRun: false),
+            text.GetReplaceReadinessStatus(ExperienceIds.GeneralReplace, canRun: true),
+            text.GetReplaceReadinessStatus(ExperienceIds.GeneralReplace, canRun: false),
+            text.GetMergeMemorySummary(
+                ExperienceIds.StandardMerge,
+                isStandardMergeSupported: true,
+                hasGeneralMapping: false),
+            text.GetMergeMemorySummary(
+                ExperienceIds.GeneralMerge,
+                isStandardMergeSupported: true,
+                hasGeneralMapping: true),
+            text.GetStandardMergeSupportSummary("NT51950", supported: true, "DP、TP"),
+            standardReadiness,
+            mappedReadiness,
+            emptyMappingReadiness,
+        ];
+        string[] untranslatedUiPhrases =
+        [
+            " bytes",
+            "base firmware",
+            "Base flash",
+            "input file",
+            "input",
+            "output",
+            "report",
+            "region",
+            "mapping",
+            "range",
+            "source",
+            "blank",
+            "BIN files",
+            "slots",
+            "Ready：",
+            "Build blocked",
+        ];
+
+        Assert.Contains("BIN 檔案", standardReadiness, StringComparison.Ordinal);
+        Assert.Contains("來源 BIN 檔案對應", mappedReadiness, StringComparison.Ordinal);
+        Assert.Contains("空白輸出映像", mappedReadiness, StringComparison.Ordinal);
+        Assert.Contains("來源 BIN 檔案對應", emptyMappingReadiness, StringComparison.Ordinal);
+        Assert.All(localizedGuidance, guidance =>
+            Assert.All(untranslatedUiPhrases, phrase =>
+                Assert.DoesNotContain(phrase, guidance, StringComparison.OrdinalIgnoreCase)));
     }
 
     /// <summary>The shared semantic state gives blocking selection readiness precedence over file inspection.</summary>

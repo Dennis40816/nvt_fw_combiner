@@ -253,6 +253,8 @@ public sealed partial class XamlControlStyleContractTests
     {
         string styles = ReadPresentationFile("Styles/MainWindowControlStyles.axaml") +
             ReadPresentationFile("Styles/MemoryCoverageStyles.axaml");
+        string tokens = ReadPresentationFile("Styles/ThemeTokens.axaml");
+        var shell = System.Xml.Linq.XDocument.Parse(ReadPresentationFile("MainWindow.axaml"));
         string templates = ReadPresentationFile("Resources/MainWindowSharedTemplates.axaml");
         string tooltip = ExtractDataTemplate(templates, "MemoryCoverageTooltipTemplate");
         string replaceBar = ExtractDataTemplate(templates, "MemoryCoverageSegmentBarTemplate");
@@ -266,6 +268,14 @@ public sealed partial class XamlControlStyleContractTests
         string changedBadge = ExtractStyle(styles, "Label.countBadge.coverageChangeBadge.changed");
         string keptMarker = ExtractStyle(styles, "Border.memoryCoverageMarker");
         string changedMarker = ExtractStyle(styles, "Border.memoryCoverageMarker.changed");
+        System.Xml.Linq.XElement[] memoryPanelHosts =
+        [
+            .. shell.Descendants().Where(element =>
+                element.Name.LocalName == "ContentControl" &&
+                ((string?)element.Attribute("ContentTemplate"))?.Contains(
+                    "OutputLayoutPanelTemplate",
+                    StringComparison.Ordinal) == true),
+        ];
 
         Assert.Contains("NfcSurfaceSubtleBrush", keptBadge, StringComparison.Ordinal);
         Assert.Contains("NfcBorderBrush", keptBadge, StringComparison.Ordinal);
@@ -273,27 +283,102 @@ public sealed partial class XamlControlStyleContractTests
         Assert.Contains("NfcInfoSurfaceStrongBrush", changedBadge, StringComparison.Ordinal);
         Assert.Contains("NfcAccentBorderLightBrush", changedBadge, StringComparison.Ordinal);
         Assert.Contains("NfcAccentStrongBrush", changedBadge, StringComparison.Ordinal);
+        Assert.Equal(2, memoryPanelHosts.Length);
+        Assert.All(memoryPanelHosts, host =>
+        {
+            Assert.Equal("1", (string?)host.Attribute("Grid.Column"));
+            Assert.Equal("Top", (string?)host.Attribute("VerticalAlignment"));
+        });
         Assert.Contains("Value=\"0\"", keptMarker, StringComparison.Ordinal);
-        Assert.Contains("NfcAccentStrongBrush", changedMarker, StringComparison.Ordinal);
-        Assert.Contains("Value=\"1\"", changedMarker, StringComparison.Ordinal);
+        Assert.DoesNotContain("NfcAccentStrongBrush", changedMarker, StringComparison.Ordinal);
+        Assert.Contains("Value=\"0\"", changedMarker, StringComparison.Ordinal);
 
         AssertCoverageClasses(tooltip);
         AssertCoverageClasses(replaceBar);
         AssertCoverageClasses(replaceList);
         Assert.Contains("Classes=\"compactBadge neutralBadge countBadge coverageChangeBadge\"", tooltip, StringComparison.Ordinal);
         Assert.Contains("Content=\"{Binding ChangeLabel}\"", tooltip, StringComparison.Ordinal);
+        Assert.Contains("IsVisible=\"{Binding HasChangeState}\"", tooltip, StringComparison.Ordinal);
         Assert.DoesNotContain("memoryCoverageMarker", mergeBar, StringComparison.Ordinal);
         Assert.DoesNotContain("memoryCoverageMarker", mergeList, StringComparison.Ordinal);
-        Assert.Contains("Classes=\"memoryCoverageFill memoryCoverageMarker\"", replaceBar, StringComparison.Ordinal);
-        Assert.Contains("Classes=\"memoryCoverageFill\"", mergeBar, StringComparison.Ordinal);
+        Assert.Contains("Classes=\"memoryCoverageFill memoryCoverageMarker memoryCoverageBarSegment\"", replaceBar, StringComparison.Ordinal);
+        Assert.Contains("Classes=\"memoryCoverageFill memoryCoverageBarSegment\"", mergeBar, StringComparison.Ordinal);
+        Assert.Contains("Selector=\"Border.memoryCoverageBarSegment\"", styles, StringComparison.Ordinal);
+        Assert.Contains("NfcMemorySegmentDividerBrush", styles, StringComparison.Ordinal);
+        Assert.Contains("x:Key=\"NfcMemoryTrackBrush\" Color=\"#E7EDF5\"", tokens, StringComparison.Ordinal);
+        Assert.Contains("x:Key=\"NfcMemoryTrackBrush\" Color=\"#263449\"", tokens, StringComparison.Ordinal);
+        foreach ((string token, string light, string dark) in new[]
+        {
+            ("NfcMemoryPanelSurfaceBrush", "#FFFFFF", "#101827"),
+            ("NfcMemoryPanelBorderBrush", "#D8E0EC", "#2B3A50"),
+            ("NfcMemoryTextSecondaryBrush", "#58708F", "#A8BDD8"),
+            ("NfcMemoryAddressSurfaceBrush", "#F6F8FB", "#152035"),
+            ("NfcMemoryAddressBorderBrush", "#CCD7E5", "#34465F"),
+            ("NfcMemoryAddressTextBrush", "#243654", "#E1EBFA"),
+            ("NfcMemoryDividerBrush", "#E4E9F1", "#27364A"),
+        })
+        {
+            Assert.Contains($"x:Key=\"{token}\" Color=\"{light}\"", tokens, StringComparison.Ordinal);
+            Assert.Contains($"x:Key=\"{token}\" Color=\"{dark}\"", tokens, StringComparison.Ordinal);
+        }
         Assert.Contains("Focusable=\"True\"", replaceBar, StringComparison.Ordinal);
         Assert.Contains("FocusToolTipBehavior.IsEnabled=\"True\"", replaceBar, StringComparison.Ordinal);
         Assert.Contains("Focusable=\"True\"", mergeBar, StringComparison.Ordinal);
         Assert.Contains("FocusToolTipBehavior.IsEnabled=\"True\"", mergeBar, StringComparison.Ordinal);
-        Assert.Contains("<Viewbox Height=\"22\" HorizontalAlignment=\"Stretch\" Stretch=\"Fill\">", replacePanel, StringComparison.Ordinal);
-        Assert.Contains("<ItemsControl Width=\"300\" Height=\"22\"", replacePanel, StringComparison.Ordinal);
-        Assert.Contains("<Viewbox Height=\"22\" HorizontalAlignment=\"Stretch\" Stretch=\"Fill\">", mergePanel, StringComparison.Ordinal);
-        Assert.Contains("<ItemsControl Width=\"300\" Height=\"22\"", mergePanel, StringComparison.Ordinal);
+        Assert.Contains("ColumnDefinitions=\"12,*\"", mergeList, StringComparison.Ordinal);
+        Assert.Contains("ColumnDefinitions=\"12,*\"", replaceList, StringComparison.Ordinal);
+        Assert.Contains("Padding=\"0,10\"", mergeList, StringComparison.Ordinal);
+        Assert.Contains("Padding=\"0,10\"", replaceList, StringComparison.Ordinal);
+        Assert.Contains("Margin=\"0,4,0,0\"", mergeList, StringComparison.Ordinal);
+        Assert.Contains("Margin=\"0,4,0,0\"", replaceList, StringComparison.Ordinal);
+        Assert.DoesNotContain("ColumnDefinitions=\"*,Auto\"", mergeList, StringComparison.Ordinal);
+        Assert.Equal(1, CountOccurrences(replaceList, "ColumnDefinitions=\"*,Auto\""));
+        Assert.Contains("RowDefinitions=\"Auto,Auto,Auto\"", mergeList, StringComparison.Ordinal);
+        Assert.Contains("RowDefinitions=\"Auto,Auto,Auto,Auto\"", replaceList, StringComparison.Ordinal);
+        Assert.Contains("Text=\"{Binding AddressRangeLabel}\"", mergeList, StringComparison.Ordinal);
+        Assert.Contains("Text=\"{Binding LengthLabel}\"", mergeList, StringComparison.Ordinal);
+        Assert.Contains("Text=\"{Binding AddressRangeLabel}\"", replaceList, StringComparison.Ordinal);
+        Assert.Contains("Text=\"{Binding LengthLabel}\"", replaceList, StringComparison.Ordinal);
+        Assert.Equal(2, CountOccurrences(templates, "Classes=\"technicalValue\" Text=\"·\""));
+        Assert.Contains("Grid.Row=\"1\"", mergeList, StringComparison.Ordinal);
+        Assert.Contains("Grid.Row=\"1\"", replaceList, StringComparison.Ordinal);
+        Assert.Contains("HorizontalAlignment=\"Left\"", mergeList, StringComparison.Ordinal);
+        Assert.Contains("HorizontalAlignment=\"Left\"", replaceList, StringComparison.Ordinal);
+        Assert.Contains("Grid.Row=\"2\"", mergeList, StringComparison.Ordinal);
+        Assert.Contains("Grid.Row=\"2\"", replaceList, StringComparison.Ordinal);
+        Assert.Contains("Grid.Row=\"3\"", replaceList, StringComparison.Ordinal);
+        Assert.Contains("Classes=\"captionText memoryInfoDescription\"", mergeList, StringComparison.Ordinal);
+        Assert.Contains("Classes=\"captionText memoryInfoDescription\"", replaceList, StringComparison.Ordinal);
+        Assert.Contains("AutomationProperties.Name=\"{Binding AccessibleDetail}\"", mergeList, StringComparison.Ordinal);
+        Assert.Contains("AutomationProperties.HelpText=\"{Binding AccessibleDetail}\"", mergeList, StringComparison.Ordinal);
+        Assert.Contains("AutomationProperties.Name=\"{Binding AccessibleDetail}\"", replaceList, StringComparison.Ordinal);
+        Assert.Contains("AutomationProperties.HelpText=\"{Binding AccessibleDetail}\"", replaceList, StringComparison.Ordinal);
+        Assert.DoesNotContain("<StackPanel Grid.Column=\"1\"", mergeList, StringComparison.Ordinal);
+        Assert.Contains("Background=\"{DynamicResource NfcMemoryTrackBrush}\"", replacePanel, StringComparison.Ordinal);
+        Assert.Contains("<Viewbox Height=\"34\" HorizontalAlignment=\"Stretch\" Stretch=\"Fill\">", replacePanel, StringComparison.Ordinal);
+        Assert.Contains("<ItemsControl Width=\"300\" Height=\"34\"", replacePanel, StringComparison.Ordinal);
+        Assert.Contains("Background=\"{DynamicResource NfcMemoryTrackBrush}\"", mergePanel, StringComparison.Ordinal);
+        Assert.Contains("<Viewbox Height=\"34\" HorizontalAlignment=\"Stretch\" Stretch=\"Fill\">", mergePanel, StringComparison.Ordinal);
+        Assert.Contains("<ItemsControl Width=\"300\" Height=\"34\"", mergePanel, StringComparison.Ordinal);
+        Assert.Contains("Classes=\"panelSurface memoryInfoPanel\"", replacePanel, StringComparison.Ordinal);
+        Assert.Contains("Classes=\"panelSurface memoryInfoPanel\"", mergePanel, StringComparison.Ordinal);
+        Assert.Contains("Classes=\"mutedText memoryInfoDescription\"", replacePanel, StringComparison.Ordinal);
+        Assert.Contains("Classes=\"mutedText memoryInfoDescription\"", mergePanel, StringComparison.Ordinal);
+        Assert.Contains("Classes=\"compactSubtleSurface memoryInfoAddress\"", replacePanel, StringComparison.Ordinal);
+        Assert.Contains("Classes=\"compactSubtleSurface memoryInfoAddress\"", mergePanel, StringComparison.Ordinal);
+        Assert.Contains("Classes=\"monoText detailText memoryInfoAddressText\"", replacePanel, StringComparison.Ordinal);
+        Assert.Contains("Classes=\"monoText detailText memoryInfoAddressText\"", mergePanel, StringComparison.Ordinal);
+        Assert.Contains("Classes=\"listRow memoryInfoRow\"", replaceList, StringComparison.Ordinal);
+        Assert.Contains("Classes=\"listRow memoryInfoRow\"", mergeList, StringComparison.Ordinal);
+        Assert.DoesNotContain(
+            "Classes=\"spaciousList\" ItemTemplate=\"{StaticResource MemoryCoverageSegmentListTemplate}\"",
+            replacePanel,
+            StringComparison.Ordinal);
+        Assert.Contains("Selector=\"Border.memoryInfoPanel\"", styles, StringComparison.Ordinal);
+        Assert.Contains("Selector=\"TextBlock.memoryInfoDescription\"", styles, StringComparison.Ordinal);
+        Assert.Contains("Selector=\"Border.memoryInfoAddress\"", styles, StringComparison.Ordinal);
+        Assert.Contains("Selector=\"TextBlock.memoryInfoAddressText\"", styles, StringComparison.Ordinal);
+        Assert.Contains("Selector=\"Border.memoryInfoRow\"", styles, StringComparison.Ordinal);
         Assert.Contains("x:Key=\"KeptDiagonalStripeBrush\"", templates, StringComparison.Ordinal);
         Assert.Contains("DestinationRect=\"0,0,10,10\"", templates, StringComparison.Ordinal);
         Assert.Contains("Geometry=\"M -2,10 L 10,-2\"", templates, StringComparison.Ordinal);
@@ -312,6 +397,8 @@ public sealed partial class XamlControlStyleContractTests
         Assert.DoesNotContain("UsesKeptPattern", mergeBar, StringComparison.Ordinal);
         Assert.DoesNotContain("UsesKeptPattern", mergeList, StringComparison.Ordinal);
         Assert.Contains("x:Name=\"ReplaceCoverageStateLegend\"", replacePanel, StringComparison.Ordinal);
+        Assert.Contains("IsVisible=\"{Binding ShowsGenericCoverageStateLegend}\"", replacePanel, StringComparison.Ordinal);
+        Assert.Contains("IsVisible=\"{Binding HasObservedMemoryChanges}\"", replacePanel, StringComparison.Ordinal);
         Assert.Contains("Text=\"{Binding Text.OutputLayoutChangedStateLabel}\"", replacePanel, StringComparison.Ordinal);
         Assert.Contains("Text=\"{Binding Text.OutputLayoutKeptStateLabel}\"", replacePanel, StringComparison.Ordinal);
         Assert.Contains("MaxHeight=\"320\"", replacePanel, StringComparison.Ordinal);
@@ -324,11 +411,32 @@ public sealed partial class XamlControlStyleContractTests
         Assert.DoesNotContain("Background=\"{Binding FillBrush}\"", templates, StringComparison.Ordinal);
         Assert.Contains("Classes.dp=\"{Binding FillRole", templates, StringComparison.Ordinal);
         Assert.Contains("Selector=\"Border.memoryCoverageFill.dp\"", styles, StringComparison.Ordinal);
+        foreach ((string role, string token, string light, string dark) in new[]
+        {
+            ("ctrlRamNf", "NfcMemoryCtrlRamNfFillBrush", "#4F46E5", "#818CF8"),
+            ("ctrlRamNormal", "NfcMemoryCtrlRamNormalFillBrush", "#0891B2", "#22D3EE"),
+            ("ctrlRamMp", "NfcMemoryCtrlRamMpFillBrush", "#7C3AED", "#A78BFA"),
+            ("ctrlRamVn", "NfcMemoryCtrlRamVnFillBrush", "#DB2777", "#F472B6"),
+            ("ctrlRamVector", "NfcMemoryCtrlRamVectorFillBrush", "#0F766E", "#2DD4BF"),
+        })
+        {
+            Assert.Equal(5, CountOccurrences(templates, $"Classes.{role}=\"{{Binding FillRole"));
+            string roleStyle = ExtractStyle(styles, $"Border.memoryCoverageFill.{role}");
+            Assert.Contains(token, roleStyle, StringComparison.Ordinal);
+            Assert.Contains($"x:Key=\"{token}\" Color=\"{light}\"", tokens, StringComparison.Ordinal);
+            Assert.Contains($"x:Key=\"{token}\" Color=\"{dark}\"", tokens, StringComparison.Ordinal);
+        }
+        Assert.Contains("x:Key=\"NfcMemoryCtrlRamFillBrush\" Color=\"#64748B\"", tokens, StringComparison.Ordinal);
+        Assert.Contains("x:Key=\"NfcMemoryCtrlRamFillBrush\" Color=\"#94A3B8\"", tokens, StringComparison.Ordinal);
+        Assert.Contains("x:Key=\"NfcMemoryDiffDlmFillBrush\" Color=\"#4D7C0F\"", tokens, StringComparison.Ordinal);
+        Assert.Contains("x:Key=\"NfcMemoryDiffDlmFillBrush\" Color=\"#A3E635\"", tokens, StringComparison.Ordinal);
         Assert.DoesNotContain("segment.RegionId.Split", ReadPresentationFile("UiCompositionRunner.Common.cs"), StringComparison.Ordinal);
-        Assert.Contains("segment.RegionGroup == ReplaceRegionGroup.Cascade", ReadPresentationFile("UiCompositionRunner.Common.cs"), StringComparison.Ordinal);
+        Assert.Contains("ResolveCtrlRamCoverageFillRole(", ReadPresentationFile("UiCompositionRunner.Common.cs"), StringComparison.Ordinal);
+        Assert.Contains("CtrlRamRegionRole.Vector => MemoryCoverageFillRole.CtrlRamVector", ReadPresentationFile("UiCompositionRunner.Common.cs"), StringComparison.Ordinal);
         Assert.Contains("public bool IsChanged", viewModel, StringComparison.Ordinal);
-        Assert.Contains("public bool UsesBaseFirmwarePattern", viewModel, StringComparison.Ordinal);
         Assert.Contains("public bool UsesKeptPattern", viewModel, StringComparison.Ordinal);
+        Assert.DoesNotContain("UsesBaseFirmwarePattern", viewModel, StringComparison.Ordinal);
+        Assert.DoesNotContain("IsDiffDlm", viewModel, StringComparison.Ordinal);
         Assert.Contains("public string ChangeLabel", viewModel, StringComparison.Ordinal);
         Assert.DoesNotContain("ChangeBadgeBackgroundBrush", viewModel, StringComparison.Ordinal);
         Assert.DoesNotContain("ChangeBadgeBorderBrush", viewModel, StringComparison.Ordinal);
@@ -347,25 +455,99 @@ public sealed partial class XamlControlStyleContractTests
             "Kept bytes",
             MemoryCoverageFillRole.Kept,
             20,
-            usesBaseFirmwarePattern: true);
+            disposition: Application.MemoryLayout.MemoryWorkflowDisposition.Kept,
+            usesBaseFirmwarePattern: true,
+            regionGroup: ReplaceRegionGroup.Common);
         MemoryCoverageSegmentViewModel changed = new(
             "0x0010-0x0020",
             "TP input",
             "Written bytes",
             MemoryCoverageFillRole.Tp,
             20,
-            isChanged: true);
+            disposition: Application.MemoryLayout.MemoryWorkflowDisposition.WillWrite,
+            observedChange: Application.MemoryLayout.MemoryObservedChange.Changed);
+        MemoryCoverageSegmentViewModel planned = new(
+            "0x0010-0x0020",
+            "TP input",
+            "Planned bytes",
+            MemoryCoverageFillRole.Tp,
+            20,
+            disposition: Application.MemoryLayout.MemoryWorkflowDisposition.WillReplace,
+            text: ShellTextResources.For(ShellLanguage.ChineseTraditional),
+            regionGroup: ReplaceRegionGroup.SlaveLeft);
+        MemoryCoverageSegmentViewModel unchanged = new(
+            "0x0010-0x0020",
+            "TP input",
+            "Compared bytes",
+            MemoryCoverageFillRole.Tp,
+            20,
+            disposition: Application.MemoryLayout.MemoryWorkflowDisposition.WillReplace,
+            observedChange: Application.MemoryLayout.MemoryObservedChange.Unchanged,
+            text: ShellTextResources.For(ShellLanguage.ChineseTraditional));
+        MemoryCoverageSegmentViewModel warning = new(
+            "0x0030-0x0040",
+            "CtrlRAM",
+            "Warning",
+            MemoryCoverageFillRole.CtrlRam,
+            20,
+            diagnosticSeverity: Application.MemoryLayout.MemoryDiagnosticSeverity.Warning,
+            regionGroup: ReplaceRegionGroup.SlaveRight);
+        MemoryCoverageSegmentViewModel reserved = new(
+            "0x0020-0x0030",
+            "Reserved",
+            "Protected bytes",
+            MemoryCoverageFillRole.Neutral,
+            20,
+            regionId: "customer-info");
+        MemoryCoverageSegmentViewModel pendingConflict = new(
+            "Pending",
+            "Base BIN needs attention",
+            "Fix the selected base BIN.",
+            MemoryCoverageFillRole.Conflict,
+            20);
+        MemoryCoverageGroupViewModel group = new(
+            "Common",
+            "Two planned areas",
+            [planned, reserved],
+            isExpanded: false,
+            regionGroup: ReplaceRegionGroup.Common,
+            text: ShellTextResources.For(ShellLanguage.English));
+        MemoryCoverageGroupViewModel[] projectedGroups =
+        [
+            .. ReplaceRegionGroupBuilder.CreateCoverageGroups(
+                [kept, planned, warning],
+                ShellTextResources.For(ShellLanguage.English)),
+        ];
 
         Assert.False(kept.IsChanged);
-        Assert.True(kept.UsesBaseFirmwarePattern);
         Assert.True(kept.UsesKeptPattern);
         Assert.Equal("Kept", kept.ChangeLabel);
+        Assert.True(kept.HasChangeState);
         Assert.Equal(MemoryCoverageFillRole.Kept, kept.FillRole);
         Assert.True(changed.IsChanged);
-        Assert.False(changed.UsesBaseFirmwarePattern);
         Assert.False(changed.UsesKeptPattern);
         Assert.Equal("Changed", changed.ChangeLabel);
+        Assert.True(changed.HasChangeState);
+        Assert.Contains("Changed", changed.AccessibleDetail, StringComparison.Ordinal);
         Assert.Equal(MemoryCoverageFillRole.Tp, changed.FillRole);
+        Assert.False(planned.IsChanged);
+        Assert.Equal("將替換", planned.ChangeLabel);
+        Assert.True(planned.HasChangeState);
+        Assert.False(unchanged.IsChanged);
+        Assert.Equal("未變更", unchanged.ChangeLabel);
+        Assert.True(unchanged.HasChangeState);
+        Assert.False(reserved.UsesKeptPattern);
+        Assert.False(reserved.HasChangeState);
+        Assert.False(pendingConflict.HasChangeState);
+        Assert.Equal(1, group.SelectedCount);
+        Assert.Equal("1/2", group.CountLabel);
+        Assert.Equal("1 selected / 2 areas.", group.SelectionSummary);
+        Assert.False(projectedGroups.Single(candidate =>
+            candidate.RegionGroup == ReplaceRegionGroup.Common).IsExpanded);
+        Assert.True(projectedGroups.Single(candidate =>
+            candidate.RegionGroup == ReplaceRegionGroup.SlaveLeft).IsExpanded);
+        Assert.True(projectedGroups.Single(candidate =>
+            candidate.RegionGroup == ReplaceRegionGroup.SlaveRight).IsExpanded);
     }
 
     /// <summary>Masked and full DiffDLM routes expose localized equivalent disclosure semantics.</summary>
@@ -385,7 +567,6 @@ public sealed partial class XamlControlStyleContractTests
             "Canonical DiffDLM",
             MemoryCoverageFillRole.DiffDlm,
             20,
-            isDiffDlm: true,
             preservationDetails: [detail],
             text: ShellTextResources.For(ShellLanguage.English));
         var localized = new MemoryCoverageSegmentViewModel(
@@ -394,7 +575,6 @@ public sealed partial class XamlControlStyleContractTests
             "Canonical DiffDLM",
             MemoryCoverageFillRole.DiffDlm,
             20,
-            isDiffDlm: true,
             preservationDetails: [detail],
             text: ShellTextResources.For(ShellLanguage.ChineseTraditional));
         var full = new MemoryCoverageSegmentViewModel(
@@ -402,8 +582,7 @@ public sealed partial class XamlControlStyleContractTests
             "DiffDLM",
             "Canonical DiffDLM",
             MemoryCoverageFillRole.DiffDlm,
-            20,
-            isDiffDlm: true);
+            20);
 
         Assert.Equal("Kept 1 active Diff NF segments", masked.PreservationSummary);
         Assert.Contains("Block 0", masked.AccessibleDetail, StringComparison.Ordinal);
@@ -413,7 +592,7 @@ public sealed partial class XamlControlStyleContractTests
         Assert.False(full.HasPreservationDetails);
     }
 
-    /// <summary>Canonical DP Replace dispositions reach kept and changed coverage patterns.</summary>
+    /// <summary>Canonical DP Replace keeps planned intent distinct from observed byte changes.</summary>
     [Fact]
     public void MemoryCoveragePatternUsesTypedWorkbenchRole()
     {
@@ -430,9 +609,13 @@ public sealed partial class XamlControlStyleContractTests
             workspace.Write("replacement.bin", new byte[0x80000]));
 
         Assert.Contains(viewModel.Replace.ReplaceCoverageSegments, segment =>
-            segment.UsesBaseFirmwarePattern && segment.UsesKeptPattern);
+            segment.FillRole == MemoryCoverageFillRole.Kept && segment.UsesKeptPattern);
+        Assert.DoesNotContain(viewModel.Replace.ReplaceCoverageSegments, segment => segment.IsChanged);
+        Assert.False(viewModel.Replace.HasObservedMemoryChanges);
         Assert.Contains(viewModel.Replace.ReplaceCoverageSegments, segment =>
-            !segment.UsesBaseFirmwarePattern && !segment.UsesKeptPattern && segment.IsChanged);
+            !segment.UsesKeptPattern && segment.ChangeLabel == "Will replace");
+        Assert.DoesNotContain(viewModel.Replace.ReplaceCoverageSegments, segment =>
+            segment.SourceLabel.StartsWith("Changed ", StringComparison.Ordinal));
     }
 
     private static string ExtractDataTemplate(string xaml, string key)
@@ -486,7 +669,7 @@ public sealed partial class XamlControlStyleContractTests
 
     private static void AssertCoverageClasses(string template)
     {
-        Assert.Contains("Classes=\"memoryCoverageFill memoryCoverageMarker\"", template, StringComparison.Ordinal);
+        Assert.Contains("Classes=\"memoryCoverageFill memoryCoverageMarker", template, StringComparison.Ordinal);
         Assert.Contains("Classes.changed=\"{Binding IsChanged}\"", template, StringComparison.Ordinal);
         Assert.DoesNotContain("OutlineBrush", template, StringComparison.Ordinal);
         Assert.DoesNotContain("OutlineThickness", template, StringComparison.Ordinal);

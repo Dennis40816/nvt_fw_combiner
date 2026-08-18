@@ -47,6 +47,12 @@ public sealed partial class ShellNavigationSystemTests
         Assert.True(viewModel.IsSettingsVisible);
         Assert.False(viewModel.IsDeviceContextVisible);
         Assert.True(viewModel.Settings.IsOverviewSelected);
+        Assert.Equal(
+            "Installed version and authoring availability from the current catalog.",
+            viewModel.Text.SettingsOverviewSubtitle);
+        Assert.Equal(
+            "Status summarizes verification evidence and any route blockers; focus a cell for details.",
+            viewModel.Text.SupportMatrixHoverHint);
         string expectedVersion = File.ReadAllText(RepositoryPaths.FromRepositoryRoot("VERSION")).Trim();
         Assert.Equal(expectedVersion, viewModel.AppVersion);
         Assert.Contains(viewModel.Settings.OverviewRows, row => row.Title == "App version" && row.Value == expectedVersion);
@@ -84,6 +90,7 @@ public sealed partial class ShellNavigationSystemTests
             viewModel.Settings.LanguageChoices.Select(static choice => choice.Label));
         Assert.Equal("建立", viewModel.Text.BuildActionLabel);
         Assert.Equal("首頁 > 設定", viewModel.NavigationPath);
+        Assert.Equal("已安裝版本，以及目前目錄中的編輯可用性。", viewModel.Text.SettingsOverviewSubtitle);
         Assert.Empty(viewModel.Merge.MergeSlots);
         Assert.Equal("必填", viewModel.Replace.ReplaceBaseSlot.RequirementLabel);
         Assert.Equal("尚未選擇 BIN", viewModel.Replace.ReplaceBaseSlot.DisplayName);

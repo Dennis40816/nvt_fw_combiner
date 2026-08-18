@@ -34,7 +34,8 @@ public static partial class MemoryLayoutProjector
                     StringComparer.OrdinalIgnoreCase.Equals(tag, "diff") ||
                     StringComparer.OrdinalIgnoreCase.Equals(tag, "dlm") ||
                     StringComparer.OrdinalIgnoreCase.Equals(tag, "slave")),
-                ResolveCtrlRamRegionGroup(region, branch, selection))),
+                ResolveCtrlRamRegionGroup(region, branch, selection),
+                ResolveCtrlRamRegionRole(region))),
         ];
         ReplaceInputSlot[] inputSlots = commandPlan is null && hasReadableBase
             ? []
@@ -59,20 +60,34 @@ public static partial class MemoryLayoutProjector
                 source.SourceFileName,
                 diffDlmPolicy.IndependentNfSourceFileName);
         bool isDiffDlm = source.ArtifactRole == TpCtrlRamPostbuildArtifactRole.DiffDlm;
-        string title = isDiffDlm
+        bool isShared = !isDiffDlm && source.Regions.Count > 1;
+        string titleStem = isDiffDlm
             ? "DiffDLM"
+            : DynamicCtrlRamReplacementIds.FormatRegionBaseDisplayLabel(source.SourceId);
+        string title = isDiffDlm
+            ? titleStem
             : source.Regions.Count == 1
                 ? source.Regions[0].DisplayName
-                : $"{DynamicCtrlRamReplacementIds.FormatRegionDisplayLabel(source.SourceId)} (Shared)";
-        string sections = string.Join("; ", source.Blocks
-            .DistinctBy(block => (block.SourceOffset, block.FirmwareRange))
-            .OrderBy(static block => block.FirmwareRange.Start)
-            .Select(block =>
-            {
-                TpFlashMapRegion region = source.Regions.Single(region =>
-                    region.Range.Overlaps(block.FirmwareRange));
-                return $"{region.DisplayName}: max {block.FirmwareRange.Length} B → 0x{block.FirmwareRange.Start:X}";
-            }));
+                : $"{titleStem} (Shared)";
+        CtrlRamInputDescriptionSection[] descriptionSections =
+        [
+            .. source.Blocks
+                .DistinctBy(block => (block.SourceOffset, block.FirmwareRange))
+                .OrderBy(static block => block.FirmwareRange.Start)
+                .Select(block =>
+                {
+                    TpFlashMapRegion region = source.Regions.Single(region =>
+                        region.Range.Overlaps(block.FirmwareRange));
+                    return new CtrlRamInputDescriptionSection(
+                        region.DisplayName,
+                        ResolveCtrlRamRegionGroup(region, commandPlan?.Branch, selection),
+                        block.FirmwareRange.Length,
+                        block.FirmwareRange.Start,
+                        DynamicCtrlRamReplacementIds.FormatRegionBaseDisplayLabel(region.RegionId));
+                }),
+        ];
+        string sections = string.Join("; ", descriptionSections.Select(section =>
+            $"{section.DisplayName}: max {section.MaximumLength} B → 0x{section.TargetStart:X}"));
         string description = $"{source.SourceFileName} · {sections}";
         string slotId = DynamicCtrlRamReplacementIds.Create(source.SourceId);
         return new ReplaceInputSlot(
@@ -87,7 +102,13 @@ public static partial class MemoryLayoutProjector
             slotId,
             SelectionGroupId: null,
             RegionGroup: ResolveCtrlRamSourceGroup(source, commandPlan?.Branch, selection),
-            InputRole: ReplaceInputRole.CtrlRam);
+            InputRole: ReplaceInputRole.CtrlRam,
+            CtrlRamDescription: new CtrlRamInputDescriptionFacts(
+                source.SourceFileName,
+                Array.AsReadOnly(descriptionSections),
+                requiresDiffNfMerge,
+                titleStem,
+                isShared));
     }
 
     private static ReplaceRegionGroup ResolveCtrlRamSourceGroup(
@@ -122,6 +143,20 @@ public static partial class MemoryLayoutProjector
             (_, _, >= 2, TpFlashMapRegionVisibility.TwoChipAndAbove) => ReplaceRegionGroup.SlaveRight,
             (_, _, >= 3, TpFlashMapRegionVisibility.ThreeChipAndAbove) => ReplaceRegionGroup.SlaveLeft,
             _ => ReplaceRegionGroup.Common,
+        };
+    }
+
+    private static CtrlRamRegionRole ResolveCtrlRamRegionRole(TpFlashMapRegion region)
+    {
+        return DynamicCtrlRamReplacementIds.GetRegionFamilyToken(region.RegionId) switch
+        {
+            "NF" => CtrlRamRegionRole.Nf,
+            "NORMAL" => CtrlRamRegionRole.Normal,
+            "MP" => CtrlRamRegionRole.Mp,
+            "VN" => CtrlRamRegionRole.Vn,
+            "VECTOR" => CtrlRamRegionRole.Vector,
+            "DIFF" or "DLM" or "DIFFDLM" => CtrlRamRegionRole.DiffDlm,
+            _ => CtrlRamRegionRole.Other,
         };
     }
 }

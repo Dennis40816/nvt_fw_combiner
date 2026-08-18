@@ -6,6 +6,7 @@
 <DataTemplate x:Key="ReportHistoryEntryTemplate" DataType="vm:ReportHistoryEntryViewModel">
   <Grid Margin="0,0,0,6" ColumnDefinitions="*,34" ColumnSpacing="{DynamicResource NfcSpace8}">
     <Button
+        Classes="semanticAction command"
         HorizontalAlignment="Stretch"
         Padding="0"
         Background="Transparent"

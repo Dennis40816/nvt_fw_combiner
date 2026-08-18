@@ -19,6 +19,16 @@ internal enum MemoryCoverageFillRole
     Conflict,
     /// <summary>CtrlRAM without a more specific reviewed subtype.</summary>
     CtrlRam,
+    /// <summary>NF CtrlRAM.</summary>
+    CtrlRamNf,
+    /// <summary>Normal CtrlRAM.</summary>
+    CtrlRamNormal,
+    /// <summary>MP CtrlRAM.</summary>
+    CtrlRamMp,
+    /// <summary>VN CtrlRAM.</summary>
+    CtrlRamVn,
+    /// <summary>Vector CtrlRAM.</summary>
+    CtrlRamVector,
     DiffDlm,
 }
 
@@ -30,13 +40,17 @@ internal sealed class MemoryCoverageSegmentViewModel
         string detail,
         MemoryCoverageFillRole fillRole,
         double barWidth,
-        bool isChanged = false,
+        MemoryWorkflowDisposition disposition = MemoryWorkflowDisposition.Resolved,
+        MemoryObservedChange observedChange = MemoryObservedChange.NotObserved,
+        MemoryDiagnosticSeverity diagnosticSeverity = MemoryDiagnosticSeverity.None,
         bool usesBaseFirmwarePattern = false,
         string? regionId = null,
-        bool isDiffDlm = false,
         IReadOnlyList<MemoryLayoutPreservationDetail>? preservationDetails = null,
         ShellTextResources? text = null,
-        ReplaceRegionGroup regionGroup = ReplaceRegionGroup.Common)
+        ReplaceRegionGroup regionGroup = ReplaceRegionGroup.Common,
+        string? addressRangeLabel = null,
+        string? lengthLabel = null,
+        string? compactDetail = null)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(rangeLabel);
         ArgumentException.ThrowIfNullOrWhiteSpace(sourceLabel);
@@ -45,23 +59,37 @@ internal sealed class MemoryCoverageSegmentViewModel
         {
             throw new ArgumentOutOfRangeException(nameof(fillRole));
         }
+        if (!Enum.IsDefined(diagnosticSeverity))
+        {
+            throw new ArgumentOutOfRangeException(nameof(diagnosticSeverity));
+        }
 
-        string displaySourceLabel = NormalizeSourceLabel(sourceLabel);
+        if (addressRangeLabel is not null)
+        {
+            ArgumentException.ThrowIfNullOrWhiteSpace(addressRangeLabel);
+        }
+        if (compactDetail is not null)
+        {
+            ArgumentException.ThrowIfNullOrWhiteSpace(compactDetail);
+        }
 
         RangeLabel = rangeLabel;
-        SourceLabel = displaySourceLabel;
+        AddressRangeLabel = addressRangeLabel ?? rangeLabel;
+        LengthLabel = lengthLabel ?? string.Empty;
+        SourceLabel = sourceLabel;
         Detail = detail;
-        CompactDetail = CreateCompactDetail(displaySourceLabel, isChanged);
+        CompactDetail = compactDetail ?? detail;
         FillRole = fillRole;
         BarWidth = barWidth;
-        IsChanged = isChanged;
-        UsesBaseFirmwarePattern = usesBaseFirmwarePattern;
+        Disposition = disposition;
+        ObservedChange = observedChange;
+        DiagnosticSeverity = diagnosticSeverity;
+        IsChanged = observedChange == MemoryObservedChange.Changed;
         RegionId = string.IsNullOrWhiteSpace(regionId) ? null : regionId;
+        UsesKeptPattern = usesBaseFirmwarePattern;
         text ??= ShellTextResources.For(ShellLanguage.English);
-        ChangeLabel = isChanged
-            ? text.OutputLayoutChangedStateLabel
-            : text.OutputLayoutKeptStateLabel;
-        IsDiffDlm = isDiffDlm;
+        ChangeLabel = text.GetOutputLayoutStateLabel(disposition, observedChange);
+        HasChangeState = ChangeLabel.Length > 0;
         RegionGroup = regionGroup;
         PreservationDetails =
         [
@@ -70,7 +98,7 @@ internal sealed class MemoryCoverageSegmentViewModel
         ];
         PreservationSummary = PreservationDetails.Count > 0
             ? text.FormatDiffDlmPreservationSummary(PreservationDetails.Count)
-            : isDiffDlm
+            : fillRole == MemoryCoverageFillRole.DiffDlm
                 ? text.FormatEntireDiffDlmSummary()
                 : CompactDetail;
         DetailsLabel = text.FormatDiffDlmDetailsLabel();
@@ -78,13 +106,20 @@ internal sealed class MemoryCoverageSegmentViewModel
             ". ",
             PreservationDetails.Select(item =>
                 $"{item.IcLabel}, {item.BlockLabel}, {item.ArtifactRangeLabel}, {item.FlashRangeLabel}, {item.DispositionLabel}"));
+        string stateAccessibility = HasChangeState ? $"{ChangeLabel}. " : string.Empty;
         AccessibleDetail = string.IsNullOrEmpty(preservationAccessibility)
-            ? $"{SourceLabel}. {RangeLabel}. {PreservationSummary}. {Detail}"
-            : $"{SourceLabel}. {RangeLabel}. {PreservationSummary}. {preservationAccessibility}. {Detail}";
+            ? $"{SourceLabel}. {RangeLabel}. {stateAccessibility}{PreservationSummary}. {Detail}"
+            : $"{SourceLabel}. {RangeLabel}. {stateAccessibility}{PreservationSummary}. {preservationAccessibility}. {Detail}";
     }
 
     /// <summary>Address range in half-open hex notation.</summary>
     public string RangeLabel { get; }
+
+    /// <summary>Inclusive display range without the length suffix.</summary>
+    public string AddressRangeLabel { get; }
+
+    /// <summary>Display length kept in a separately aligned column.</summary>
+    public string LengthLabel { get; }
 
     /// <summary>Final source occupying this range.</summary>
     public string SourceLabel { get; }
@@ -97,20 +132,34 @@ internal sealed class MemoryCoverageSegmentViewModel
 
     public double BarWidth { get; }
 
+    public MemoryWorkflowDisposition Disposition { get; }
+
+    public MemoryObservedChange ObservedChange { get; }
+
+    public MemoryDiagnosticSeverity DiagnosticSeverity { get; }
+
     public bool IsChanged { get; }
 
-    /// <summary>True when retained base-firmware bytes need a non-color visual pattern.</summary>
-    public bool UsesBaseFirmwarePattern { get; }
+    public bool IsSelectedForWrite => Disposition is
+        MemoryWorkflowDisposition.WillWrite or
+        MemoryWorkflowDisposition.WillReplace or
+        MemoryWorkflowDisposition.DpAbBase or
+        MemoryWorkflowDisposition.TpaOverlay or
+        MemoryWorkflowDisposition.TpbOverlay;
 
-    public bool UsesKeptPattern =>
-        UsesBaseFirmwarePattern || (RegionId is not null && !IsChanged);
+    public bool HasAttentionDiagnostic => DiagnosticSeverity is
+        MemoryDiagnosticSeverity.Warning or MemoryDiagnosticSeverity.Error;
+
+    /// <summary>True when retained base-firmware bytes need a non-color visual pattern.</summary>
+    public bool UsesKeptPattern { get; }
 
     /// <summary>Profile-owned selection identity for a replaceable physical region, when present.</summary>
     public string? RegionId { get; }
 
     public string ChangeLabel { get; }
 
-    public bool IsDiffDlm { get; }
+    /// <summary>Whether changed/kept state applies to this written or retained range.</summary>
+    public bool HasChangeState { get; }
 
     /// <summary>Typed Replace grouping supplied before localized display text.</summary>
     public ReplaceRegionGroup RegionGroup { get; }
@@ -125,38 +174,6 @@ internal sealed class MemoryCoverageSegmentViewModel
 
     public string AccessibleDetail { get; }
 
-    private static string CreateCompactDetail(string sourceLabel, bool isChanged)
-    {
-        return sourceLabel switch
-        {
-            "Reserved" => "Output range remains reserved; no input writes it.",
-            "DP length pending" => "Output range will follow the selected DP BIN length.",
-            "Reference FlashCode required" => "Output range will follow the selected Reference FlashCode length.",
-            "Unsupported reference" => "This Reference FlashCode length is blocked by profile policy.",
-            string label when label.Equals("Preserve", StringComparison.OrdinalIgnoreCase) ||
-                label.Equals("Base flash", StringComparison.OrdinalIgnoreCase) =>
-                "Output range keeps bytes from the base firmware.",
-            string label when label.Contains("Restored", StringComparison.OrdinalIgnoreCase) =>
-                "Output range restores bytes from the base firmware.",
-            _ => isChanged
-                ? $"Output range is written from {FormatSourcePhrase(sourceLabel)}."
-                : $"Output range uses bytes from {FormatSourcePhrase(sourceLabel)}.",
-        };
-    }
-
-    private static string FormatSourcePhrase(string sourceLabel)
-    {
-        return sourceLabel.StartsWith("Changed ", StringComparison.OrdinalIgnoreCase)
-            ? sourceLabel["Changed ".Length..]
-            : sourceLabel;
-    }
-
-    private static string NormalizeSourceLabel(string sourceLabel)
-    {
-        return sourceLabel.StartsWith("Blank", StringComparison.OrdinalIgnoreCase)
-            ? "Reserved"
-            : sourceLabel;
-    }
 }
 
 /// <summary>Localized display-only projection of one canonical kept Diff NF range.</summary>

@@ -6,6 +6,70 @@ namespace NvtFwCombiner.Presentation.Avalonia.ViewModels;
 
 internal sealed partial class ShellTextResources
 {
+    private string GetCtrlRamInputTitle(
+        string declaredTitle,
+        ReplaceRegionGroup regionGroup,
+        CtrlRamInputDescriptionFacts? facts)
+    {
+        return facts is null
+            ? declaredTitle
+            : FormatCtrlRamInputTitle(
+                facts.TitleStem,
+                regionGroup,
+                facts.IsShared,
+                facts.RequiresDiffNfMerge);
+    }
+
+    private string FormatCtrlRamInputTitle(
+        string titleStem,
+        ReplaceRegionGroup regionGroup,
+        bool isShared,
+        bool isDiffNfMergeOutput)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(titleStem);
+        string groupSuffix = (regionGroup, isShared) switch
+        {
+            (ReplaceRegionGroup.Common, true) => SelectLanguage(" (Shared)", "（共用）"),
+            (ReplaceRegionGroup.Master, _) => SelectLanguage(" (Master)", "（主控）"),
+            (ReplaceRegionGroup.SlaveRight, _) => SelectLanguage(" (Slave R)", "（右側從屬）"),
+            (ReplaceRegionGroup.SlaveLeft, _) => SelectLanguage(" (Slave L)", "（左側從屬）"),
+            (ReplaceRegionGroup.Cascade or
+                ReplaceRegionGroup.Common or
+                ReplaceRegionGroup.Base or
+                ReplaceRegionGroup.Other, _) => string.Empty,
+            _ => throw new ArgumentOutOfRangeException(nameof(regionGroup), regionGroup, null),
+        };
+        string title = $"{titleStem}{groupSuffix}";
+        string diffNfMergeSuffix = SelectLanguage(
+            " (DiffNFMerge output)",
+            "（DiffNFMerge 輸出）");
+        return isDiffNfMergeOutput
+            ? $"{title}{diffNfMergeSuffix}"
+            : title;
+    }
+
+    private string GetCtrlRamInputDescription(
+        string declaredDescription,
+        CtrlRamInputDescriptionFacts? facts)
+    {
+        if (Language != ShellLanguage.ChineseTraditional || facts is null)
+        {
+            return declaredDescription;
+        }
+
+        string sections = string.Join("；", facts.Sections.Select(section =>
+            $"{FormatCtrlRamInputTitle(
+                section.TitleStem,
+                section.RegionGroup,
+                isShared: false,
+                isDiffNfMergeOutput: false)}" +
+            $"：上限 {section.MaximumLength} B → 0x{section.TargetStart:X}"));
+        string description = $"{facts.SourceFileName} · {sections}";
+        return facts.RequiresDiffNfMerge
+            ? $"{description} · 串接模式需要預先由 DiffNFMerge 產生的 NF_Ctrlram.bin；目前未整合產生流程。"
+            : description;
+    }
+
     public string GetReplaceRegionGroupTitle(ReplaceRegionGroup group)
     {
         return group switch
@@ -66,12 +130,12 @@ internal sealed partial class ShellTextResources
                 $"已選 {selected} / 共 {total} 個區域。");
     }
 
-    public string FormatCoverageChangeSummary(bool isBase, int changed, int total)
+    public string FormatCoverageSelectionSummary(bool isBase, int selected, int total)
     {
         return isBase
             ? SelectLanguage("Kept from base firmware.", "從基底韌體保留。")
-            : SelectLanguage($"{changed} selected / {total} areas.",
-                $"已選 {changed} / 共 {total} 個區域。");
+            : SelectLanguage($"{selected} selected / {total} areas.",
+                $"已選 {selected} / 共 {total} 個區域。");
     }
 
     public string GetGeneralSelectedFileInspectionIssue(GeneralSelectedFileInspectionIssue issue)

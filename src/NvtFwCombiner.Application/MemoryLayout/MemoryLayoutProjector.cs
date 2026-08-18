@@ -99,7 +99,8 @@ public static partial class MemoryLayoutProjector
                         new ByteRange(0, capacity),
                         MemoryContentRole.General,
                         CanonicalRegion: null,
-                        ReplaceRegionGroup.Common),
+                        ReplaceRegionGroup.Common,
+                        CtrlRamRegionRole.Other),
                 ];
                 break;
             default:
@@ -275,7 +276,8 @@ public static partial class MemoryLayoutProjector
                     ? ctrlRam.RegionGroup
                     : ctrlRamRegions is null
                         ? ReplaceRegionGroup.Common
-                        : ReplaceRegionGroup.Base));
+                        : ReplaceRegionGroup.Base,
+                ctrlRam?.Role ?? CtrlRamRegionRole.Other));
         }
 
         return [.. primary];
@@ -438,8 +440,19 @@ public static partial class MemoryLayoutProjector
 
         foreach (CompositionOperation operation in planned)
         {
-            _ = boundaries.Add(operation.TargetRange.Start);
-            _ = boundaries.Add(operation.TargetRange.EndExclusive);
+            if (operation.ExternalProcessorInvocation is { } processor)
+            {
+                foreach (ByteRange range in processor.AllowedWriteRanges)
+                {
+                    _ = boundaries.Add(range.Start);
+                    _ = boundaries.Add(range.EndExclusive);
+                }
+            }
+            else
+            {
+                _ = boundaries.Add(operation.TargetRange.Start);
+                _ = boundaries.Add(operation.TargetRange.EndExclusive);
+            }
         }
 
         long[] points = [.. boundaries];
@@ -451,7 +464,7 @@ public static partial class MemoryLayoutProjector
                 region => region.Range.Contains(range));
             CompositionOperation[] contributors =
             [
-                .. planned.Where(operation => operation.TargetRange.Contains(range)),
+                .. planned.Where(operation => OperationWritesRange(operation, range)),
             ];
             if (contributors.Length == 0)
             {
@@ -512,6 +525,15 @@ public static partial class MemoryLayoutProjector
         return [.. segments];
     }
 
+    private static bool OperationWritesRange(
+        CompositionOperation operation,
+        ByteRange range)
+    {
+        return operation.ExternalProcessorInvocation is { } processor
+            ? processor.AllowedWriteRanges.Any(candidate => candidate.Contains(range))
+            : operation.TargetRange.Contains(range);
+    }
+
     private static bool IsReferenceAdmitted(
         ImageInitialization initialization,
         Dictionary<string, string> slotsBySpace,
@@ -538,7 +560,10 @@ public static partial class MemoryLayoutProjector
             ? referenceAdmitted
                 ? MemoryWorkflowDisposition.Kept
                 : MemoryWorkflowDisposition.Resolved
-            : region.ContentRole == MemoryContentRole.Reserved
+            : region.ContentRole is
+                MemoryContentRole.CustomerInformation or
+                MemoryContentRole.Reserved or
+                MemoryContentRole.Unmapped
                 ? MemoryWorkflowDisposition.Resolved
                 : MemoryWorkflowDisposition.Blank;
     }
@@ -576,7 +601,8 @@ public static partial class MemoryLayoutProjector
                 sourceSlotId,
                 contributingOperations,
                 [],
-                canonicalRegion.RegionGroup)
+                canonicalRegion.RegionGroup,
+                canonicalRegion.CtrlRamRegionRole)
             : MemoryLayoutSegment.CreateLogical(
                 segmentId,
                 addressSpaceId,
@@ -595,7 +621,8 @@ public static partial class MemoryLayoutProjector
                 sourceSlotId,
                 contributingOperations,
                 [],
-                canonicalRegion.RegionGroup);
+                canonicalRegion.RegionGroup,
+                canonicalRegion.CtrlRamRegionRole);
     }
 
     private static MemoryContentRole ClassifyContent(FirmwareRegion region)
@@ -607,12 +634,14 @@ public static partial class MemoryLayoutProjector
                 FirmwareRegionOwner.Dp => MemoryContentRole.Dp,
                 FirmwareRegionOwner.Tp => MemoryContentRole.Tp,
                 FirmwareRegionOwner.Ldc => MemoryContentRole.Ldc,
+                FirmwareRegionOwner.Customer => MemoryContentRole.CustomerInformation,
                 FirmwareRegionOwner.Reserved => MemoryContentRole.Reserved,
-                _ when region.Kind is FirmwareRegionKind.Reserved or FirmwareRegionKind.Unmapped =>
+                _ when region.Kind == FirmwareRegionKind.Reserved =>
                     MemoryContentRole.Reserved,
+                _ when region.Kind == FirmwareRegionKind.Unmapped =>
+                    MemoryContentRole.Unmapped,
                 FirmwareRegionOwner.System or
                 FirmwareRegionOwner.Register or
-                FirmwareRegionOwner.Customer or
                 FirmwareRegionOwner.Shared or
                 FirmwareRegionOwner.Unknown => MemoryContentRole.General,
                 _ => throw new InvalidOperationException("Unknown canonical firmware-region owner."),
@@ -624,5 +653,6 @@ public static partial class MemoryLayoutProjector
         ByteRange Range,
         MemoryContentRole ContentRole,
         FirmwareRegion? CanonicalRegion,
-        ReplaceRegionGroup RegionGroup);
+        ReplaceRegionGroup RegionGroup,
+        CtrlRamRegionRole CtrlRamRegionRole);
 }

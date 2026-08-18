@@ -43,9 +43,9 @@ internal sealed partial class MainWindowViewModel
 
     private void ApplyCatalogBackedTextResources()
     {
+        WorkflowSession.ApplyLanguageChanged();
         Merge.ApplyLanguageChanged();
         Replace.ApplyLanguageChanged();
-        WorkflowSession.ApplyLanguageChanged();
         Replace.NotifyCommandStateChanged();
     }
 }

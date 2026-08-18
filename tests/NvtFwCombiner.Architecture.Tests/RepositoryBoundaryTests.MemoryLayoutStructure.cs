@@ -11,6 +11,8 @@ public sealed partial class RepositoryBoundaryTests
             "src/NvtFwCombiner.Application/MemoryLayout");
         string models = ReadText(
             "src/NvtFwCombiner.Application/MemoryLayout/MemoryLayoutModels.cs");
+        string classifications = ReadText(
+            "src/NvtFwCombiner.Application/MemoryLayout/MemoryLayoutClassifications.cs");
         string projector = string.Join(
             "\n",
             Directory.EnumerateFiles(
@@ -28,6 +30,10 @@ public sealed partial class RepositoryBoundaryTests
             "src/NvtFwCombiner.Application/Composition/CompositionExperiencePorts.cs");
         string ctrlRamRunner = ReadText(
             "src/NvtFwCombiner.Presentation.Avalonia/UiCompositionRunner.Replace.cs");
+        string memoryRunner = ReadText(
+            "src/NvtFwCombiner.Presentation.Avalonia/UiCompositionRunner.Common.cs");
+        string memorySegmentViewModel = ReadText(
+            "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/MemoryCoverageSegmentViewModel.cs");
 
         Assert.Contains(
             "public FirmwareRegion? CanonicalRegion { get; }",
@@ -51,6 +57,16 @@ public sealed partial class RepositoryBoundaryTests
             "MemoryLayoutPendingItem",
             models,
             StringComparison.Ordinal);
+        Assert.Contains(
+            "MemoryContentRole.CustomerInformation",
+            projector,
+            StringComparison.Ordinal);
+        Assert.Contains(
+            "MemoryContentRole.Unmapped",
+            projector,
+            StringComparison.Ordinal);
+        Assert.Contains("CustomerInformation", classifications, StringComparison.Ordinal);
+        Assert.Contains("Unmapped", classifications, StringComparison.Ordinal);
         Assert.False(File.Exists(Path.Combine(
             memoryLayoutRoot,
             "CtrlRamInputSlotProjector.cs")));
@@ -77,5 +93,12 @@ public sealed partial class RepositoryBoundaryTests
         Assert.DoesNotContain("Pixel", combined, StringComparison.Ordinal);
         Assert.DoesNotContain(".RegionId.Contains(", projector, StringComparison.Ordinal);
         Assert.DoesNotContain(".Role.Contains(", projector, StringComparison.Ordinal);
+        Assert.DoesNotContain("NT51950", memoryRunner, StringComparison.Ordinal);
+        Assert.DoesNotContain("NT51951", memoryRunner, StringComparison.Ordinal);
+        Assert.DoesNotContain("0x37000", memoryRunner, StringComparison.Ordinal);
+        Assert.DoesNotContain("0x37FFF", memoryRunner, StringComparison.Ordinal);
+        Assert.DoesNotContain("customer-info", memoryRunner, StringComparison.OrdinalIgnoreCase);
+        Assert.DoesNotContain("NormalizeSourceLabel", memorySegmentViewModel, StringComparison.Ordinal);
+        Assert.DoesNotContain("CreateCompactDetail", memorySegmentViewModel, StringComparison.Ordinal);
     }
 }

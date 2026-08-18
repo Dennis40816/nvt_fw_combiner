@@ -305,40 +305,46 @@
       <Border Classes="panelSurface settingsNavigationSurface" VerticalAlignment="Top">
         <StackPanel Spacing="{DynamicResource NfcSpace4}">
           <TextBlock Margin="12,4,12,8" Classes="fieldLabel" Text="{Binding SettingsPreview.Title}" />
-          <Button
+          <RadioButton
               AutomationProperties.Name="{Binding Text.SettingsOverviewNavigationLabel}"
               Classes="semanticAction command settingsNavItem"
               Classes.selected="{Binding Settings.IsOverviewSelected}"
               Command="{Binding Settings.SelectSectionCommand}"
-              CommandParameter="{x:Static vm:SettingsSection.Overview}">
+              CommandParameter="{x:Static vm:SettingsSection.Overview}"
+              GroupName="SettingsSections"
+              IsChecked="{Binding Settings.IsOverviewSelected, Mode=OneWay}">
             <Grid ColumnDefinitions="20,*" ColumnSpacing="{DynamicResource NfcSpace8}">
               <Path Width="16" Height="16" Data="M2 3H7V8H2Z M9 3H14V8H9Z M2 10H7V15H2Z M9 10H14V15H9Z" Stretch="Uniform" />
               <TextBlock Grid.Column="1" Text="{Binding Text.SettingsOverviewNavigationLabel}" />
             </Grid>
-          </Button>
-          <Button
+          </RadioButton>
+          <RadioButton
               AutomationProperties.Name="{Binding Text.SettingsPreferencesNavigationLabel}"
               Classes="semanticAction command settingsNavItem"
               Classes.selected="{Binding Settings.IsPreferencesSelected}"
               Command="{Binding Settings.SelectSectionCommand}"
-              CommandParameter="{x:Static vm:SettingsSection.Preferences}">
+              CommandParameter="{x:Static vm:SettingsSection.Preferences}"
+              GroupName="SettingsSections"
+              IsChecked="{Binding Settings.IsPreferencesSelected, Mode=OneWay}">
             <Grid ColumnDefinitions="20,*" ColumnSpacing="{DynamicResource NfcSpace8}">
               <Path Width="16" Height="16" Data="M8 1A7 7 0 1 0 15 8A5.5 5.5 0 0 1 8 1Z" Stretch="Uniform" />
               <TextBlock Grid.Column="1" Text="{Binding Text.SettingsPreferencesNavigationLabel}" />
             </Grid>
-          </Button>
+          </RadioButton>
           <Border Margin="12,8" BorderBrush="{DynamicResource NfcDividerBrush}" BorderThickness="0,1,0,0" />
-          <Button
+          <RadioButton
               AutomationProperties.Name="{Binding Text.SupportMatrixTitle}"
               Classes="semanticAction command settingsNavItem"
               Classes.selected="{Binding Settings.IsSupportMatrixOpen}"
               Command="{Binding Settings.SelectSectionCommand}"
-              CommandParameter="{x:Static vm:SettingsSection.SupportMatrix}">
+              CommandParameter="{x:Static vm:SettingsSection.SupportMatrix}"
+              GroupName="SettingsSections"
+              IsChecked="{Binding Settings.IsSupportMatrixOpen, Mode=OneWay}">
             <Grid ColumnDefinitions="20,*" ColumnSpacing="{DynamicResource NfcSpace8}">
               <Path Width="16" Height="16" Data="M2 2H7V7H2Z M9 2H14V7H9Z M2 9H7V14H2Z M9 9H14V14H9Z" Stretch="Uniform" />
               <TextBlock Grid.Column="1" Text="{Binding Text.SupportMatrixTitle}" />
             </Grid>
-          </Button>
+          </RadioButton>
         </StackPanel>
       </Border>
 

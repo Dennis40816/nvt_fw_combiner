@@ -48,7 +48,9 @@ public sealed partial class CtrlRamExternalGoldenTests
             fact.Value.Contains("nfc.nt51927.ctrlram-postbuild-v1", StringComparison.Ordinal));
         Assert.All(postbuild.RuntimeCommands, command =>
             Assert.Contains("Combiner.exe", command.ArgumentListEvidence, StringComparison.OrdinalIgnoreCase));
-        Assert.Contains(viewModel.Replace.ReplaceCoverageSegments, segment => segment.IsChanged);
+        Assert.DoesNotContain(viewModel.Replace.ReplaceCoverageSegments, segment => segment.IsChanged);
+        Assert.Contains(viewModel.Replace.ReplaceCoverageSegments, segment =>
+            segment.ChangeLabel == "Will replace");
     }
 
     /// <summary>Verifies one CtrlRAM Replace run can select and report multiple region replacements.</summary>

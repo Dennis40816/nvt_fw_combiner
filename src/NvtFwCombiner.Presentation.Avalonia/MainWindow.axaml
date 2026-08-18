@@ -239,6 +239,7 @@
 
           <ContentControl
               Grid.Column="1"
+              VerticalAlignment="Top"
               Content="{Binding}"
               ContentTemplate="{StaticResource ReplaceOutputLayoutPanelTemplate}" />
               </Grid>
@@ -283,6 +284,7 @@
 
           <ContentControl
               Grid.Column="1"
+              VerticalAlignment="Top"
               Content="{Binding}"
               ContentTemplate="{StaticResource MergeOutputLayoutPanelTemplate}" />
               </Grid>
@@ -440,24 +442,33 @@
                     ColumnDefinitions="Auto,Auto,*,Auto,Auto"
                     ColumnSpacing="{DynamicResource NfcSpace8}">
                   <TextBlock
+                      VerticalAlignment="Center"
                       FontWeight="SemiBold"
                       Foreground="{DynamicResource NfcTextStrongBrush}"
                       Text="{ReflectionBinding $parent[Window].DataContext.Text.PreloadStatusTitle}" />
                   <TextBlock
                       Grid.Column="1"
+                      VerticalAlignment="Center"
                       Foreground="{DynamicResource NfcTextMutedBrush}"
                       Text="{ReflectionBinding SummaryStage.PositionLabel}" />
-                  <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="{DynamicResource NfcSpace4}">
+                  <StackPanel
+                      Grid.Column="2"
+                      VerticalAlignment="Center"
+                      Orientation="Horizontal"
+                      Spacing="{DynamicResource NfcSpace4}">
                     <TextBlock Foreground="{DynamicResource NfcTextBrush}" Text="{ReflectionBinding SummaryStage.Title}" />
                     <TextBlock Foreground="{DynamicResource NfcTextMutedBrush}" Text="·" />
                     <TextBlock Foreground="{DynamicResource NfcTextMutedBrush}" Text="{ReflectionBinding SummaryStage.Detail}" />
                   </StackPanel>
                   <TextBlock
                       Grid.Column="3"
+                      MinWidth="44"
+                      VerticalAlignment="Center"
                       FontWeight="SemiBold"
                       Foreground="{DynamicResource NfcAccentStrongBrush}"
                       IsVisible="{ReflectionBinding SummaryStage.HasProgress}"
-                      Text="{ReflectionBinding SummaryStage.ProgressLabel}" />
+                      Text="{ReflectionBinding SummaryStage.ProgressLabel}"
+                      TextAlignment="Right" />
                   <Button
                       Grid.Column="4"
                       Classes="semanticAction secondary"

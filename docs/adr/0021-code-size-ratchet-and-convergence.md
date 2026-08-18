@@ -543,6 +543,30 @@ profile, schema, report wire, persistence, processor, CLI, Golden, or support
 semantics, and cannot fund later work. Full 98,137 and the unchanged runtime
 slice values become descending ratchets immediately.
 
+### 2026-08-18 Settings, input, button, and memory-readability amendment
+
+The owner approved completing the current Settings and workflow-readability
+surface without deleting localization, accessibility, truthful memory facts, or
+responsive-layout evidence to preserve the preceding numeric ratchet. The
+change makes every Button use the project theme with pointer/keyboard focus
+semantics, keeps input facts visible at narrow widths, localizes real typed slot
+titles and actions, and renders memory source, range, length, pending, conflict,
+and protected-region facts in aligned English and Traditional Chinese views.
+
+The exact physical nonblank ledger is 479 removed and 1,396 added, net +917.
+Full production changes from 98,133 to 99,050. Runtime changes from 67,981 to
+68,106 through typed canonical CtrlRAM family roles and Application memory
+projection facts. Domain plus Profiles changes from 20,619 to 20,634, and
+Application changes from 29,555 to 29,665. Bootstrap plus CLI
+plus Desktop remains 3,074, and Infrastructure plus Contracts plus CRC worker
+remains 14,733.
+
+These exact values become descending ratchets immediately. This named R2
+presentation/readability amendment is non-transferable and cannot fund later
+work. It changes no profile, range, firmware byte, operation order, support
+truth, Golden evidence, report wire/history, processor protocol, CLI, or release
+gate. Later work resumes ordinary descending enforcement from these values.
+
 ## Consequences
 
 - `v0.9.8` must remove duplicate ownership and unused compatibility code before

@@ -1,4 +1,5 @@
 using NvtFwCombiner.Domain.Composition;
+using NvtFwCombiner.Presentation.Avalonia;
 using NvtFwCombiner.Presentation.Avalonia.ViewModels;
 using NvtFwCombiner.TestSupport;
 
@@ -6,6 +7,108 @@ namespace NvtFwCombiner.UiSmoke.Tests;
 
 public sealed partial class CtrlRamWorkflowTests
 {
+    /// <summary>Detailed Vector CtrlRAM uses its distinct typed presentation role.</summary>
+    [Fact]
+    public void VectorCtrlRamUsesDedicatedCoverageFillRole()
+    {
+        Assert.Equal(
+            MemoryCoverageFillRole.CtrlRamVector,
+            UiCompositionRunner.ResolveCtrlRamCoverageFillRole(CtrlRamRegionRole.Vector));
+    }
+
+    /// <summary>Partial NT51923 replacement keeps subtype hue and base-owned customer information.</summary>
+    [Fact]
+    public async Task Nt51923CtrlRamCustomerInformationUsesBaseFirmwarePresentation()
+    {
+        using var golden = StandardMergeGoldenManifest.Load();
+        using var workspace = TempWorkspace.Create("nt51923-customer-info-memory");
+        MainWindowViewModel viewModel = PresentationTestHost.CreateViewModel();
+        viewModel.WorkflowSession.SelectedIc = "NT51923";
+        viewModel.WorkflowSession.SelectedNumber = "single";
+        OpenReplace(viewModel, ExperienceIds.CtrlRamReplace);
+
+        await viewModel.WorkflowSession.SetSlotFileAsync(
+            "replace-base",
+            golden.ExpectedOutputPath(golden.CaseByIc("51923")),
+            TestContext.Current.CancellationToken);
+        FirmwareSlotViewModel normalSlot = Assert.Single(
+            viewModel.Replace.ReplaceSlots,
+            slot => slot.ReplaceInputRole == ReplaceInputRole.CtrlRam &&
+                slot.CtrlRamDescriptionFacts?.TitleStem == "Normal CtrlRAM");
+        long normalLength = Assert.Single(normalSlot.CtrlRamDescriptionFacts!.Sections).MaximumLength;
+        await viewModel.WorkflowSession.SetSlotFileAsync(
+            normalSlot.SlotId,
+            workspace.Write($"{normalSlot.SlotId}.bin", new byte[checked((int)normalLength)]),
+            TestContext.Current.CancellationToken);
+        MemoryCoverageSegmentViewModel keptNf = Assert.Single(
+            viewModel.Replace.ReplaceCoverageSegments,
+            segment => segment.RegionId is { } regionId &&
+                DynamicCtrlRamReplacementIds.GetRegionFamilyToken(regionId) == "NF");
+        Assert.Equal(MemoryCoverageFillRole.CtrlRamNf, keptNf.FillRole);
+        Assert.True(keptNf.UsesKeptPattern);
+        Assert.False(keptNf.IsChanged);
+        Assert.Equal("Kept", keptNf.ChangeLabel);
+        Assert.Equal("NF CtrlRAM", keptNf.SourceLabel);
+        Assert.Equal(
+            "Output range keeps bytes from the base firmware.",
+            keptNf.CompactDetail);
+        Assert.Contains("NF CtrlRAM", keptNf.AccessibleDetail, StringComparison.Ordinal);
+        Assert.False(viewModel.Replace.ShowsGenericCoverageStateLegend);
+        Assert.Contains(viewModel.Replace.ReplaceCoverageGroups, group =>
+            group.Segments.Any(segment => segment.IsSelectedForWrite) && group.IsExpanded);
+        (string SlotId, long MaximumLength)[] replacements =
+        [
+            .. viewModel.Replace.ReplaceSlots
+                .Where(slot => slot.ReplaceInputRole == ReplaceInputRole.CtrlRam &&
+                    slot.CtrlRamDescriptionFacts?.TitleStem is
+                        "NF CtrlRAM" or "Normal CtrlRAM" or "MP CtrlRAM" or "VN CtrlRAM")
+                .Select(slot => (
+                    slot.SlotId,
+                    Assert.Single(slot.CtrlRamDescriptionFacts!.Sections).MaximumLength)),
+        ];
+        Assert.Equal(4, replacements.Length);
+        foreach ((string slotId, long maximumLength) in replacements)
+        {
+            await viewModel.WorkflowSession.SetSlotFileAsync(
+                slotId,
+                workspace.Write($"{slotId}.bin", new byte[checked((int)maximumLength)]),
+                TestContext.Current.CancellationToken);
+        }
+
+        MemoryCoverageSegmentViewModel customerInformation = Assert.Single(
+            viewModel.Replace.ReplaceCoverageSegments,
+            segment => segment.RegionId == "customer-info");
+        Assert.Equal("0x3D000-0x3DFFF", customerInformation.AddressRangeLabel);
+        Assert.Equal("Base flash", customerInformation.SourceLabel);
+        Assert.Equal(MemoryCoverageFillRole.Kept, customerInformation.FillRole);
+        Assert.True(customerInformation.UsesKeptPattern);
+        Assert.Equal(
+            "Output range keeps bytes from the base firmware.",
+            customerInformation.CompactDetail);
+        MemoryMapRowViewModel customerInformationRow = Assert.Single(
+            viewModel.Replace.ReplaceMemoryRows,
+            row => row.RangeLabel.StartsWith("0x3D000-0x3DFFF", StringComparison.Ordinal));
+        Assert.Equal("Preserve", customerInformationRow.ActionLabel);
+        Assert.Equal("Base flash", customerInformationRow.AfterSource);
+        Assert.Contains(viewModel.Replace.ReplaceCoverageSegments, segment =>
+            segment.FillRole == MemoryCoverageFillRole.CtrlRamNf);
+        Assert.Contains(viewModel.Replace.ReplaceCoverageSegments, segment =>
+            segment.FillRole == MemoryCoverageFillRole.CtrlRamNormal);
+        Assert.Contains(viewModel.Replace.ReplaceCoverageSegments, segment =>
+            segment.FillRole == MemoryCoverageFillRole.CtrlRamMp);
+        Assert.Contains(viewModel.Replace.ReplaceCoverageSegments, segment =>
+            segment.FillRole == MemoryCoverageFillRole.CtrlRamVn);
+        MemoryCoverageSegmentViewModel plannedNf = Assert.Single(
+            viewModel.Replace.ReplaceCoverageSegments,
+            segment => segment.RegionId is { } regionId &&
+                DynamicCtrlRamReplacementIds.GetRegionFamilyToken(regionId) == "NF");
+        Assert.False(plannedNf.IsChanged);
+        Assert.Equal("Will replace", plannedNf.ChangeLabel);
+        Assert.Equal(
+            "Output range will be written from NF CtrlRAM.",
+            plannedNf.CompactDetail);
+    }
+
     /// <summary>Verifies CtrlRAM slots refresh to the FWConfig-selected postbuild category after base load.</summary>
     [Fact]
     public async Task CtrlRamBaseFirmwareRefreshesVersionedNt51926Slots()
@@ -33,9 +136,12 @@ public sealed partial class CtrlRamWorkflowTests
             slot.SlotId == "replace-ctrlram-vn" &&
             slot.Description.Contains("VN_Ctrlram.bin", StringComparison.Ordinal) &&
             slot.Description.Contains("max 5728 B", StringComparison.Ordinal));
-        Assert.Equal("Waiting for Normal CtrlRAM", viewModel.Replace.ReplaceMemoryRangeLabel);
+        Assert.Equal("Waiting for CtrlRAM replacement", viewModel.Replace.ReplaceMemoryRangeLabel);
         Assert.Empty(viewModel.Replace.ReplaceCoverageGroups);
-        Assert.Equal("Waiting for Normal CtrlRAM", Assert.Single(viewModel.Replace.ReplaceCoverageSegments).SourceLabel);
+        MemoryCoverageSegmentViewModel pendingCoverage = Assert.Single(
+            viewModel.Replace.ReplaceCoverageSegments);
+        Assert.Equal("Waiting for CtrlRAM replacement", pendingCoverage.SourceLabel);
+        Assert.Contains("at least one CtrlRAM region BIN", pendingCoverage.Detail, StringComparison.Ordinal);
 
         FirmwareSlotViewModel inputSlot = viewModel.Replace.ReplaceSlots.Single(slot =>
             slot.SlotId == "replace-ctrlram-vn");
@@ -55,7 +161,9 @@ public sealed partial class CtrlRamWorkflowTests
             slot.SlotId == "replace-ctrlram-vn"));
         Assert.Same(inspection, inputSlot.CurrentInspectionProjection);
         Assert.Equal(FirmwareInputInspectionSeverity.Valid, inputSlot.InputInspectionSeverity);
-        Assert.Equal("等待 Normal CtrlRAM", Assert.Single(viewModel.Replace.ReplaceCoverageSegments).SourceLabel);
+        pendingCoverage = Assert.Single(viewModel.Replace.ReplaceCoverageSegments);
+        Assert.Equal("等待 CtrlRAM 替換輸入", pendingCoverage.SourceLabel);
+        Assert.Contains("至少一個 CtrlRAM 區域 BIN", pendingCoverage.Detail, StringComparison.Ordinal);
         Assert.Same(cascadeGroup, viewModel.Replace.ReplaceSlotGroups.Single(group => group.Title == "串接"));
         Assert.False(cascadeGroup.IsExpanded);
         Assert.Equal("1 個區域，尚未選擇。", cascadeGroup.SelectionSummary);
@@ -91,6 +199,41 @@ public sealed partial class CtrlRamWorkflowTests
         OpenReplace(viewModel, ExperienceIds.GeneralReplace);
         Assert.Equal("Base firmware (FlashCode)", viewModel.Replace.ReplaceBaseSlot.Title);
         Assert.DoesNotContain("TP FW", viewModel.Replace.ReplaceBaseSlot.Title, StringComparison.Ordinal);
+    }
+
+    /// <summary>CtrlRAM input titles consume typed group and DiffNF facts instead of English suffixes.</summary>
+    [Fact]
+    public void CtrlRamInputTitleUsesTypedGroupingFactsWithoutDeclaredSuffixes()
+    {
+        var facts = new CtrlRamInputDescriptionFacts(
+            "NF_Ctrlram.bin",
+            [new CtrlRamInputDescriptionSection(
+                "NF CtrlRAM",
+                ReplaceRegionGroup.Master,
+                0x100,
+                0x200,
+                TitleStem: "NF CtrlRAM")],
+            RequiresDiffNfMerge: true,
+            TitleStem: "NF CtrlRAM",
+            IsShared: false);
+
+        (string englishTitle, _) = ShellTextResources.For(ShellLanguage.English).GetReplaceInputText(
+            addressSpaceId: "replace-ctrlram-nf",
+            ReplaceInputRole.CtrlRam,
+            ReplaceRegionGroup.Master,
+            declaredTitle: "NF CtrlRAM",
+            declaredDescription: "Declared detail",
+            facts);
+        (string chineseTitle, _) = ShellTextResources.For(ShellLanguage.ChineseTraditional).GetReplaceInputText(
+            addressSpaceId: "replace-ctrlram-nf",
+            ReplaceInputRole.CtrlRam,
+            ReplaceRegionGroup.Master,
+            declaredTitle: "NF CtrlRAM",
+            declaredDescription: "Declared detail",
+            facts);
+
+        Assert.Equal("NF CtrlRAM (Master) (DiffNFMerge output)", englishTitle);
+        Assert.Equal("NF CtrlRAM（主控）（DiffNFMerge 輸出）", chineseTitle);
     }
 
     /// <summary>Verifies CtrlRAM plan rows promote readable region labels over raw postbuild filenames.</summary>

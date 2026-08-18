@@ -37,14 +37,14 @@ internal sealed partial class MemoryCoverageGroupViewModel : ObservableObject
 
     public ReplaceRegionGroup RegionGroup { get; }
 
-    public int ChangedCount => Segments.Count(segment => segment.IsChanged);
+    public int SelectedCount => Segments.Count(segment => segment.IsSelectedForWrite);
 
-    /// <summary>Compact changed/total count shown in collapsed headers.</summary>
-    public string CountLabel => IsBaseFirmwareGroup ? $"{SegmentCount}" : $"{ChangedCount}/{SegmentCount}";
+    /// <summary>Compact selected/total count shown in collapsed headers.</summary>
+    public string CountLabel => IsBaseFirmwareGroup ? $"{SegmentCount}" : $"{SelectedCount}/{SegmentCount}";
 
-    public string ChangeSummary => _text.FormatCoverageChangeSummary(
+    public string SelectionSummary => _text.FormatCoverageSelectionSummary(
         IsBaseFirmwareGroup,
-        ChangedCount,
+        SelectedCount,
         SegmentCount);
 
     [ObservableProperty]

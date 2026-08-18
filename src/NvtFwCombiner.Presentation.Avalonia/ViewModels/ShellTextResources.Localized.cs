@@ -205,7 +205,7 @@ internal sealed partial class ShellTextResources
             MergeDpSlotDescription = Pick("Display payload for Standard Merge", "Standard Merge 的 Display payload"),
             MergeTpSlotDescription = Pick("Touch payload for Standard Merge", "Standard Merge 的 Touch payload"),
             MergeLdcSlotDescription = Pick("Optional LDC input when the selected profile exposes an LDC region", "選定 profile 包含 LDC 區域時可選擇 LDC 輸入"),
-            DpReplacementBinTitle = "DP replacement source",
+            DpReplacementBinTitle = Pick("DP replacement BIN", "DP 取代 BIN 檔案"),
             SelectReplacementBinTooltip = Pick("Select replacement BIN", "選擇 replacement BIN"),
             SelectSourceBinTooltip = Pick("Select source BIN", "選擇 source BIN"),
             RemoveRangeTooltip = Pick("Remove range", "移除範圍"),
@@ -257,7 +257,9 @@ internal sealed partial class ShellTextResources
             SettingsOverviewNavigationLabel = Pick("General", "一般"),
             SettingsPreferencesNavigationLabel = Pick("Appearance", "外觀"),
             SettingsOverviewTitle = Pick("Product information", "產品資訊"),
-            SettingsOverviewSubtitle = Pick("Installed version and supported authoring coverage.", "已安裝版本與支援的編輯範圍。"),
+            SettingsOverviewSubtitle = Pick(
+                "Installed version and authoring availability from the current catalog.",
+                "已安裝版本，以及目前目錄中的編輯可用性。"),
             SettingsCapabilitiesTitle = Pick("Implemented capabilities", "已實作功能"),
             SettingsCapabilitiesSubtitle = Pick("Authoring availability with separate execution and verification details.", "編輯可用性，以及分開呈現的執行與驗證資訊。"),
             SettingsPreferencesTitle = Pick("Preferences", "偏好設定"),
@@ -297,8 +299,8 @@ internal sealed partial class ShellTextResources
             SupportMatrixBlockedLabel = Pick("Blocked", "已阻擋"),
             SupportMatrixNotDeclaredLabel = Pick("Not declared", "未宣告"),
             SupportMatrixHoverHint = Pick(
-                "Status describes verification, not whether Build is enabled.",
-                "此狀態代表驗證程度，不等同於 Build 是否可用。"),
+                "Status summarizes verification evidence and any route blockers; focus a cell for details.",
+                "狀態彙整驗證證據與路徑阻擋原因；聚焦任一格可查看明細。"),
             SupportMatrixLoadingTitle = Pick("Loading Support Matrix", "正在載入支援矩陣"),
             SupportMatrixLoadingDetail = Pick(
                 "The first complete canonical catalog publication is still being prepared.",

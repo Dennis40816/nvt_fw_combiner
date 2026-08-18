@@ -268,6 +268,9 @@ public sealed partial class ShellNavigationSystemTests
         Assert.Equal("執行", ShellTextResources.For(ShellLanguage.ChineseTraditional).SupportMatrixExecutionLabel);
         Assert.Equal("證據", ShellTextResources.For(ShellLanguage.ChineseTraditional).SupportMatrixEvidenceLabel);
         Assert.Equal("待審查", ShellTextResources.For(ShellLanguage.ChineseTraditional).SupportMatrixReviewRequiredLabel);
+        Assert.Equal(
+            "狀態彙整驗證證據與路徑阻擋原因；聚焦任一格可查看明細。",
+            ShellTextResources.For(ShellLanguage.ChineseTraditional).SupportMatrixHoverHint);
     }
 
     private static CanonicalSupportMatrixQueryResult CurrentMatrix(

@@ -143,13 +143,14 @@ public sealed partial class XamlControlStyleContractTests
         string focusBehavior = ReadPresentationFile("Behaviors/FocusOnRevealBehavior.cs");
         string buttonStyles = ReadPresentationFile("Styles/MainWindowButtonStyles.axaml");
         string windowStyles = ReadPresentationFile("Styles/MainWindowStyles.axaml");
+        string globalButton = ExtractStyle(buttonStyles, "Button");
         string semanticAction = ExtractStyle(buttonStyles, "Button.semanticAction");
         string semanticActionDisabled = ExtractStyle(
             buttonStyles,
             "Button.semanticAction:disabled");
         string semanticActionFocus = ExtractStyle(
             buttonStyles,
-            "Button.semanticAction:focus-visible /template/ ContentPresenter#PART_ContentPresenter");
+            "Button:focus-visible /template/ ContentPresenter#PART_ContentPresenter");
         string secondary = ExtractStyle(buttonStyles, "Button.secondary");
         string secondaryHover = ExtractStyle(
             buttonStyles,
@@ -288,16 +289,16 @@ public sealed partial class XamlControlStyleContractTests
             .Single(attribute => attribute.Name.LocalName == "TextElement.Foreground"));
         Assert.Contains(
             "Theme\" Value=\"{StaticResource NfcSemanticButtonTheme}",
-            semanticAction,
+            globalButton,
             StringComparison.Ordinal);
         Assert.Contains("MinHeight\" Value=\"34\"", semanticAction, StringComparison.Ordinal);
         Assert.Contains("HorizontalContentAlignment\" Value=\"Center\"", semanticAction, StringComparison.Ordinal);
         Assert.Contains("VerticalContentAlignment\" Value=\"Center\"", semanticAction, StringComparison.Ordinal);
         Assert.Contains("BorderThickness\" Value=\"1\"", semanticAction, StringComparison.Ordinal);
         Assert.Contains("NfcFontSize13", semanticAction, StringComparison.Ordinal);
-        Assert.Contains("FocusAdorner\" Value=\"{x:Null}\"", semanticAction, StringComparison.Ordinal);
+        Assert.Contains("FocusAdorner\" Value=\"{x:Null}\"", globalButton, StringComparison.Ordinal);
         Assert.Contains("Opacity\" Value=\"1\"", semanticActionDisabled, StringComparison.Ordinal);
-        Assert.Equal("{DynamicResource NfcPillCornerRadius}", (string?)semanticButtonPresenter.Attribute("CornerRadius"));
+        Assert.Equal("{DynamicResource NfcCompactCornerRadius}", (string?)semanticButtonPresenter.Attribute("CornerRadius"));
         Assert.Contains("BorderThickness\" Value=\"2\"", semanticActionFocus, StringComparison.Ordinal);
         Assert.Contains("NfcAccentBorderStrongBrush", semanticActionFocus, StringComparison.Ordinal);
         Assert.Contains("NfcSurfaceBrush", secondary, StringComparison.Ordinal);

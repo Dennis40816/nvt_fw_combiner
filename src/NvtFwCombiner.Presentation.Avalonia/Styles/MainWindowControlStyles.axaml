@@ -540,10 +540,12 @@
     <Setter Property="Background" Value="{DynamicResource NfcCautionSurfaceBrush}" />
     <Setter Property="BorderBrush" Value="{DynamicResource NfcCautionBorderBrush}" />
     <Setter Property="BorderThickness" Value="1" />
-    <Setter Property="CornerRadius" Value="{DynamicResource NfcPillCornerRadius}" />
     <Setter Property="Foreground" Value="{DynamicResource NfcCautionTextBrush}" />
     <Setter Property="FontSize" Value="{DynamicResource NfcFontSize11}" />
     <Setter Property="FontWeight" Value="SemiBold" />
+  </Style>
+  <Style Selector="Button.hexChangedBlockNavigator /template/ ContentPresenter#PART_ContentPresenter">
+    <Setter Property="CornerRadius" Value="{DynamicResource NfcPillCornerRadius}" />
   </Style>
   <Style Selector="Button.hexChangedBlockNavigator:disabled">
     <Setter Property="Background" Value="{DynamicResource NfcSurfaceSubtleBrush}" />
@@ -559,6 +561,8 @@
     <Setter Property="Background" Value="Transparent" />
     <Setter Property="BorderBrush" Value="{DynamicResource NfcBorderMutedBrush}" />
     <Setter Property="BorderThickness" Value="0,0,0,1" />
+  </Style>
+  <Style Selector="Button.hexChangedBlockRow /template/ ContentPresenter#PART_ContentPresenter">
     <Setter Property="CornerRadius" Value="0" />
   </Style>
   <Style Selector="Button.hexChangedBlockRow:pointerover">

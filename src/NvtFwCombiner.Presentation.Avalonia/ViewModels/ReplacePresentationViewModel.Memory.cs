@@ -4,6 +4,11 @@ namespace NvtFwCombiner.Presentation.Avalonia.ViewModels;
 
 internal sealed partial class ReplacePresentationViewModel
 {
+    public bool HasObservedMemoryChanges =>
+        ReplaceCoverageSegments.Any(static segment => segment.IsChanged);
+
+    public bool ShowsGenericCoverageStateLegend => !IsCtrlRamReplaceModeSelected;
+
     internal void RefreshContextState(bool preserveSlotFiles = false)
     {
         RefreshReplaceModeState(preserveSlotFiles: preserveSlotFiles);
@@ -52,6 +57,7 @@ internal sealed partial class ReplacePresentationViewModel
         ReplaceCoverageSegments.Clear();
         ReplaceCoverageGroups.Clear();
         OnPropertyChanged(nameof(ReplaceMemoryRangeLabel));
+        OnPropertyChanged(nameof(HasObservedMemoryChanges));
         OnPropertyChanged(nameof(IsReplaceCoverageGrouped));
         OnPropertyChanged(nameof(IsReplaceCoverageFlat));
     }
@@ -79,8 +85,7 @@ internal sealed partial class ReplacePresentationViewModel
                 ? UiCompositionRunner.GetPendingMemoryDisplay(
                     Text,
                     ReplaceSlots,
-                    SelectedReplaceMode == DpReplaceMode ? "DP BIN" : "Base BIN",
-                    IsCtrlRamReplaceModeSelected)
+                    GetPendingReplaceMemoryPrerequisite())
                 : UiCompositionRunner.GetMemoryDisplay(
                     _compositionServices,
                     acceptedSession,
@@ -151,6 +156,7 @@ internal sealed partial class ReplacePresentationViewModel
         RefreshReplaceCoverageGroups();
         OnPropertyChanged(nameof(ReplaceMemoryRangeLabel));
         OnPropertyChanged(nameof(ReplaceMemorySummary));
+        OnPropertyChanged(nameof(HasObservedMemoryChanges));
         OnPropertyChanged(nameof(IsReplaceCoverageGrouped));
         OnPropertyChanged(nameof(IsReplaceCoverageFlat));
     }
@@ -171,9 +177,18 @@ internal sealed partial class ReplacePresentationViewModel
             ? UiCompositionRunner.GetPendingMemoryDisplay(
                 Text,
                 ReplaceSlots,
-                SelectedReplaceMode == DpReplaceMode ? "DP BIN" : "Base BIN",
-                IsCtrlRamReplaceModeSelected)
+                GetPendingReplaceMemoryPrerequisite())
             : UiCompositionRunner.GetMemoryDisplay(_compositionServices, acceptedSession, Text);
+    }
+
+    private MemoryPendingPrerequisite GetPendingReplaceMemoryPrerequisite()
+    {
+        return SelectedReplaceMode switch
+        {
+            DpReplaceMode => MemoryPendingPrerequisite.DpBin,
+            CtrlRamReplaceMode => MemoryPendingPrerequisite.CtrlRamReplacement,
+            _ => MemoryPendingPrerequisite.BaseBin,
+        };
     }
 
     private void RefreshReplaceModeState(
@@ -230,6 +245,7 @@ internal sealed partial class ReplacePresentationViewModel
         OnPropertyChanged(nameof(IsSelectedReplaceModeEvidenceGated));
         OnPropertyChanged(nameof(IsSelectedReplaceModeUnavailable));
         OnPropertyChanged(nameof(IsCtrlRamReplaceModeSelected));
+        OnPropertyChanged(nameof(ShowsGenericCoverageStateLegend));
         OnPropertyChanged(nameof(IsGeneralReplaceModeSelected));
         OnPropertyChanged(nameof(IsStructuredReplaceModeSelected));
         OnPropertyChanged(nameof(IsNonCtrlRamStructuredReplaceModeSelected));

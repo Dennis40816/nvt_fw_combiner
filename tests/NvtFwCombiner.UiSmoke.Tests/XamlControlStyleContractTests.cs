@@ -1,7 +1,9 @@
 using System.Text.RegularExpressions;
 using System.Xml.Linq;
 using Avalonia;
+using Avalonia.Automation.Provider;
 using Avalonia.Controls;
+using Avalonia.Controls.Automation.Peers;
 using Avalonia.Input;
 using Avalonia.Interactivity;
 using Avalonia.LogicalTree;
@@ -398,6 +400,26 @@ public sealed partial class XamlControlStyleContractTests
     [Fact]
     public void SharedControlStylesOwnTheCommonXamlRoles()
     {
+        var pages = XDocument.Parse(ReadPresentationFile("Resources/MainWindowPageTemplates.axaml"));
+        XElement[] settingsNavigationItems =
+        [
+            .. pages.Descendants().Where(element =>
+                element.Name.LocalName == "RadioButton" &&
+                ((string?)element.Attribute("Classes"))?.Split(' ').Contains("settingsNavItem") == true),
+        ];
+        Assert.Equal(3, settingsNavigationItems.Length);
+        Assert.All(
+            settingsNavigationItems,
+            static item => Assert.Equal("SettingsSections", (string?)item.Attribute("GroupName")));
+        Assert.Equal(
+            [
+                "{Binding Settings.IsOverviewSelected, Mode=OneWay}",
+                "{Binding Settings.IsPreferencesSelected, Mode=OneWay}",
+                "{Binding Settings.IsSupportMatrixOpen, Mode=OneWay}",
+            ],
+            settingsNavigationItems.Select(static item => (string?)item.Attribute("IsChecked")));
+        Assert.True(typeof(ISelectionItemProvider).IsAssignableFrom(typeof(RadioButtonAutomationPeer)));
+
         string styles = ReadPresentationFile("Styles/MainWindowControlStyles.axaml");
         foreach (string selector in new[]
         {

@@ -34,7 +34,8 @@ internal static class ReplaceRegionGroupBuilder
                     text.GetReplaceRegionGroupTitle(group.Key),
                     text.FormatReplaceCoverageGroupSummary(group.Key, groupSegments.Length),
                     groupSegments,
-                    RegionGroupDefaultExpanded(group.Key),
+                    groupSegments.Any(static segment =>
+                        segment.IsSelectedForWrite || segment.HasAttentionDiagnostic),
                     group.Key,
                     text);
             });
