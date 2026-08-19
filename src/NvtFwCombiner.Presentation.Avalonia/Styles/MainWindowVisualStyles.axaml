@@ -106,15 +106,18 @@
     <Setter Property="Foreground" Value="{DynamicResource NfcAccentStrongBrush}" />
   </Style>
   <Style Selector="Button.command:pointerover Border.workflowOpenPill">
-    <Setter Property="Background" Value="{DynamicResource NfcAccentBrush}" />
-    <Setter Property="BorderBrush" Value="{DynamicResource NfcAccentBrush}" />
+    <Setter Property="Background" Value="{DynamicResource NfcPrimaryActionHoverBrush}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource NfcPrimaryActionHoverBrush}" />
   </Style>
-  <Style Selector="Button.command:pointerover Border.workflowOpenPill TextBlock, Button.command:pressed Border.workflowOpenPill TextBlock">
-    <Setter Property="Foreground" Value="{DynamicResource NfcSurfaceBrush}" />
+  <Style Selector="Button.command:pointerover Border.workflowOpenPill TextBlock">
+    <Setter Property="Foreground" Value="{DynamicResource NfcPrimaryActionHoverTextBrush}" />
   </Style>
   <Style Selector="Button.command:pressed Border.workflowOpenPill">
-    <Setter Property="Background" Value="{DynamicResource NfcAccentStrongBrush}" />
-    <Setter Property="BorderBrush" Value="{DynamicResource NfcAccentStrongBrush}" />
+    <Setter Property="Background" Value="{DynamicResource NfcPrimaryActionPressedBrush}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource NfcPrimaryActionPressedBrush}" />
+  </Style>
+  <Style Selector="Button.command:pressed Border.workflowOpenPill TextBlock">
+    <Setter Property="Foreground" Value="{DynamicResource NfcPrimaryActionPressedTextBrush}" />
   </Style>
   <Style Selector="Border.dropZoneOverlay">
     <Setter Property="Opacity" Value="0" />

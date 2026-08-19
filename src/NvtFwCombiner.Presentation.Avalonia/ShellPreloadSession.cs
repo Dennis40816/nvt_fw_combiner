@@ -118,7 +118,12 @@ internal sealed class ShellPreloadSession : ObservableObject, IDisposable
         SnapshotStages().FirstOrDefault(static stage => !stage.IsRequired && stage.State is
             ShellPreloadStageState.Pending or ShellPreloadStageState.DependencyBlocked or
             ShellPreloadStageState.Running or ShellPreloadStageState.Failed) ?? _stages[^1];
-    internal bool HasOptionalStatus => SummaryStage is not null;
+    internal bool HasOptionalStatus => SummaryStage is
+    {
+        State:
+        ShellPreloadStageState.Pending or ShellPreloadStageState.DependencyBlocked or
+        ShellPreloadStageState.Running or ShellPreloadStageState.Failed
+    };
     internal string AccessibleStatus => _accessibleStatus;
     internal bool CanCancelOptionals => _optionalWork is not null && SnapshotStages().Any(static stage =>
         !stage.IsRequired && stage.State is ShellPreloadStageState.Pending or
@@ -536,7 +541,8 @@ internal sealed class ShellPreloadSession : ObservableObject, IDisposable
         OnPropertyChanged(nameof(SummaryStage));
         OnPropertyChanged(nameof(HasOptionalStatus));
         OnPropertyChanged(nameof(CanCancelOptionals));
-        _ = SetProperty(ref _accessibleStatus, SummaryStage?.AccessibleStatus ?? string.Empty,
+        _ = SetProperty(ref _accessibleStatus,
+            HasOptionalStatus ? SummaryStage?.AccessibleStatus ?? string.Empty : string.Empty,
             nameof(AccessibleStatus));
     }
 

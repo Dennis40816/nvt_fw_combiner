@@ -9,11 +9,6 @@
     <Setter Property="BorderBrush" Value="{DynamicResource NfcAccentBorderStrongBrush}" />
     <Setter Property="BorderThickness" Value="1.5" />
   </Style>
-  <Style Selector="Label.slotBadge.firmwareSlotRequirement.availableInput">
-    <Setter Property="Background" Value="{DynamicResource NfcAccentSurfaceSubtleBrush}" />
-    <Setter Property="BorderBrush" Value="{DynamicResource NfcAccentBorderLightBrush}" />
-    <Setter Property="Foreground" Value="{DynamicResource NfcAccentStrongBrush}" />
-  </Style>
   <Style Selector="Label.slotBadge.firmwareSlotRequirement.availableInput.optional">
     <Setter Property="Background" Value="{DynamicResource NfcSurfaceSubtleBrush}" />
     <Setter Property="BorderBrush" Value="{DynamicResource NfcBorderMutedBrush}" />

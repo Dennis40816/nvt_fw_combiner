@@ -15,9 +15,9 @@ namespace NvtFwCombiner.UiSmoke.Tests;
 
 public sealed partial class XamlControlStyleContractTests
 {
-    /// <summary>Ordinary semantic actions are rounded rectangles while intentional chips keep their pill geometry.</summary>
+    /// <summary>Visible actions share the Open-pill language while structural controls keep explicit geometry.</summary>
     [Fact]
-    public void SemanticButtonsUseCompactCornersAndKeepExplicitPillExceptions()
+    public void SemanticButtonsShareOpenPillsAndKeepExplicitStructuralGeometry()
     {
         string styles = ReadPresentationFile("Styles/MainWindowButtonStyles.axaml");
         var document = XDocument.Parse(styles);
@@ -35,6 +35,87 @@ public sealed partial class XamlControlStyleContractTests
         Assert.Equal(
             "{DynamicResource NfcCompactCornerRadius}",
             (string?)presenter.Attribute("CornerRadius"));
+        Assert.Contains(
+            "<Style Selector=\"Button.semanticAction /template/ ContentPresenter#PART_ContentPresenter, RadioButton.settingsNavItem /template/ ContentPresenter#PART_ContentPresenter\">",
+            styles,
+            StringComparison.Ordinal);
+        Assert.Contains(
+            "CornerRadius\" Value=\"{DynamicResource NfcPillCornerRadius}",
+            ExtractStyle(styles, "Button.browseAction /template/ ContentPresenter#PART_ContentPresenter"),
+            StringComparison.Ordinal);
+        string browseHover = ExtractStyle(
+            styles,
+            "Button.action:pointerover /template/ ContentPresenter#PART_ContentPresenter");
+        Assert.Contains(
+            "Background\" Value=\"{DynamicResource NfcPrimaryActionHoverBrush}",
+            browseHover,
+            StringComparison.Ordinal);
+        Assert.DoesNotContain(
+            "Button.browseAction:pointerover",
+            styles,
+            StringComparison.Ordinal);
+        Assert.Contains(
+            "TextElement.Foreground\" Value=\"{DynamicResource NfcPrimaryActionHoverTextBrush}",
+            browseHover,
+            StringComparison.Ordinal);
+        string primary = ExtractStyle(styles, "Button.primary");
+        string primaryHover = ExtractStyle(
+            styles,
+            "Button.primary:pointerover /template/ ContentPresenter#PART_ContentPresenter");
+        string primaryPressed = ExtractStyle(
+            styles,
+            "Button.primary:pressed /template/ ContentPresenter#PART_ContentPresenter");
+        Assert.Contains("NfcAccentSurfaceBrush", primary, StringComparison.Ordinal);
+        Assert.Contains("NfcAccentBorderLightBrush", primary, StringComparison.Ordinal);
+        Assert.Contains("NfcAccentStrongBrush", primary, StringComparison.Ordinal);
+        Assert.Contains("NfcPrimaryActionHoverBrush", primaryHover, StringComparison.Ordinal);
+        Assert.Contains("NfcPrimaryActionHoverTextBrush", primaryHover, StringComparison.Ordinal);
+        Assert.Contains("NfcPrimaryActionPressedBrush", primaryPressed, StringComparison.Ordinal);
+        Assert.Contains("NfcPrimaryActionPressedTextBrush", primaryPressed, StringComparison.Ordinal);
+
+        string secondary = ExtractStyle(styles, "Button.secondary");
+        string secondaryHover = ExtractStyle(
+            styles,
+            "Button.secondary:pointerover /template/ ContentPresenter#PART_ContentPresenter");
+        string secondaryPressed = ExtractStyle(
+            styles,
+            "Button.secondary:pressed /template/ ContentPresenter#PART_ContentPresenter");
+        Assert.Contains("NfcSurfaceBrush", secondary, StringComparison.Ordinal);
+        Assert.Contains("NfcBorderBrush", secondary, StringComparison.Ordinal);
+        Assert.Contains("NfcTextBrush", secondary, StringComparison.Ordinal);
+        Assert.Contains("NfcAccentSurfaceBrush", secondaryHover, StringComparison.Ordinal);
+        Assert.Contains("NfcSecondaryActionPressedBrush", secondaryPressed, StringComparison.Ordinal);
+
+        var messageCenter = XDocument.Parse(ReadPresentationFile("Views/MessageCenterModal.axaml"));
+        XElement closeButton = Assert.Single(messageCenter.Descendants(), element =>
+            element.Name.LocalName == "Button" &&
+            (string?)element.Attribute("Content") == "{Binding Text.CloseLabel}");
+        string[] closeClasses = ((string?)closeButton.Attribute("Classes") ?? string.Empty)
+            .Split(' ', StringSplitOptions.RemoveEmptyEntries);
+        Assert.Contains("secondary", closeClasses);
+        Assert.DoesNotContain("primary", closeClasses);
+
+        XElement[] textualDismissActions =
+        [
+            .. ReadPresentationXamlFiles()
+                .Select(XDocument.Parse)
+                .SelectMany(document => document.Descendants())
+                .Where(element => element.Name.LocalName == "Button")
+                .Where(element =>
+                {
+                    string content = (string?)element.Attribute("Content") ?? string.Empty;
+                    return content.Contains("CloseLabel", StringComparison.Ordinal) ||
+                           content.Contains("CancelLabel", StringComparison.Ordinal);
+                }),
+        ];
+        Assert.NotEmpty(textualDismissActions);
+        Assert.All(textualDismissActions, static action =>
+        {
+            string[] classes = ((string?)action.Attribute("Classes") ?? string.Empty)
+                .Split(' ', StringSplitOptions.RemoveEmptyEntries);
+            Assert.Contains("secondary", classes);
+            Assert.DoesNotContain("primary", classes);
+        });
         Assert.Contains(
             "CornerRadius\" Value=\"{DynamicResource NfcPillCornerRadius}",
             ExtractStyle(styles, "Button.railAction /template/ ContentPresenter#PART_ContentPresenter"),
@@ -172,7 +253,7 @@ public sealed partial class XamlControlStyleContractTests
         ContentPresenter presenter = Assert.Single(
             navigationItem.GetVisualDescendants().OfType<ContentPresenter>(),
             static candidate => candidate.Name == "PART_ContentPresenter");
-        Assert.Equal(new CornerRadius(6), presenter.CornerRadius);
+        Assert.Equal(new CornerRadius(999), presenter.CornerRadius);
         Assert.True(Avalonia.Application.Current!.TryGetResource(
             "NfcAccentSurfaceSubtleBrush",
             ThemeVariant.Light,
@@ -187,6 +268,39 @@ public sealed partial class XamlControlStyleContractTests
         Assert.Equal(
             Assert.IsType<SolidColorBrush>(selectedBorder).Color,
             Assert.IsType<ISolidColorBrush>(presenter.BorderBrush, exactMatch: false).Color);
+
+        var ordinaryAction = new Button { Content = "Browse" };
+        ordinaryAction.Classes.Add("semanticAction");
+        ordinaryAction.Classes.Add("secondary");
+        var ordinaryHost = new Window
+        {
+            RequestedThemeVariant = ThemeVariant.Light,
+            Content = ordinaryAction,
+        };
+        ordinaryHost.Styles.Add(new StyleInclude(ProductionButtonStylesUri)
+        {
+            Source = ProductionButtonStylesUri,
+        });
+        ordinaryHost.Measure(new Size(188, 100));
+        ordinaryHost.Arrange(new Rect(0, 0, 188, 100));
+        ContentPresenter ordinaryPresenter = Assert.Single(
+            ordinaryAction.GetVisualDescendants().OfType<ContentPresenter>(),
+            static candidate => candidate.Name == "PART_ContentPresenter");
+        Assert.Equal(new CornerRadius(999), ordinaryPresenter.CornerRadius);
+        Assert.True(Avalonia.Application.Current.TryGetResource(
+            "NfcSurfaceBrush",
+            ThemeVariant.Light,
+            out object? openSurface));
+        Assert.Equal(
+            Assert.IsType<SolidColorBrush>(openSurface).Color,
+            Assert.IsType<ISolidColorBrush>(ordinaryPresenter.Background, exactMatch: false).Color);
+        Assert.True(Avalonia.Application.Current.TryGetResource(
+            "NfcBorderBrush",
+            ThemeVariant.Light,
+            out object? openBorder));
+        Assert.Equal(
+            Assert.IsType<SolidColorBrush>(openBorder).Color,
+            Assert.IsType<ISolidColorBrush>(ordinaryPresenter.BorderBrush, exactMatch: false).Color);
     }
 
     /// <summary>Report-history rows use the shared command theme rather than the Fluent fallback template.</summary>

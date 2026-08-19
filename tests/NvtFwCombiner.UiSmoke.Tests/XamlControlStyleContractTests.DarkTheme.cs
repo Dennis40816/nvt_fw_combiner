@@ -36,6 +36,12 @@ public sealed partial class XamlControlStyleContractTests
             AssertContrast(app, theme, "NfcReferenceInputTextBrush", "NfcReferenceInputSurfaceBrush", 4.5);
             AssertContrast(app, theme, "NfcControllerInputTextBrush", "NfcControllerInputSurfaceBrush", 4.5);
             AssertContrast(app, theme, "NfcControllerInputTextBrush", "NfcReferenceInputSurfaceBrush", 4.5);
+            AssertContrast(app, theme, "NfcPrimaryActionHoverTextBrush", "NfcPrimaryActionHoverBrush", 4.5);
+            AssertContrast(app, theme, "NfcPrimaryActionPressedTextBrush", "NfcPrimaryActionPressedBrush", 4.5);
+            Assert.True(
+                RelativeLuminance(ResolveBrush(app, "NfcPrimaryActionPressedBrush", theme).Color) <
+                RelativeLuminance(ResolveBrush(app, "NfcPrimaryActionHoverBrush", theme).Color),
+                $"{theme} primary pressed state must settle below its deep-blue hover.");
         }
     }
 

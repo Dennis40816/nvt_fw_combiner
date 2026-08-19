@@ -49,11 +49,20 @@ public sealed partial class XamlControlStyleContractTests
         Assert.Contains("DragDrop.AllowDrop=\"{Binding CanSelectFile}\"", slotCard, StringComparison.Ordinal);
         string buttonStyles = ReadPresentationFile("Styles/MainWindowButtonStyles.axaml");
         string browse = ExtractStyle(buttonStyles, "Button.browseAction");
+        string browsePresenter = ExtractStyle(
+            buttonStyles,
+            "Button.browseAction /template/ ContentPresenter#PART_ContentPresenter");
         Assert.Contains("Property=\"MinWidth\" Value=\"88\"", browse, StringComparison.Ordinal);
         Assert.Contains("Property=\"MaxHeight\" Value=\"36\"", browse, StringComparison.Ordinal);
-        Assert.Contains("VerticalAlignment=\"Top\"", slotCard, StringComparison.Ordinal);
+        Assert.Contains("Property=\"HorizontalContentAlignment\" Value=\"Center\"", browse, StringComparison.Ordinal);
+        Assert.Contains("Property=\"VerticalContentAlignment\" Value=\"Center\"", browse, StringComparison.Ordinal);
+        Assert.Contains("VerticalAlignment=\"Center\"", slotCard, StringComparison.Ordinal);
         Assert.Contains("Classes=\"semanticAction action browseAction\"", slotCard, StringComparison.Ordinal);
         Assert.Contains("CornerRadius=\"{DynamicResource NfcCompactCornerRadius}\"", buttonStyles, StringComparison.Ordinal);
+        Assert.Contains(
+            "CornerRadius\" Value=\"{DynamicResource NfcPillCornerRadius}",
+            browsePresenter,
+            StringComparison.Ordinal);
         Assert.DoesNotContain("UsesSharedSlotPresentation", slotCard, StringComparison.Ordinal);
         Assert.DoesNotContain("UsesLegacySlotPresentation", slotCard, StringComparison.Ordinal);
     }
@@ -73,7 +82,12 @@ public sealed partial class XamlControlStyleContractTests
         Assert.Contains("IsChecked=\"{Binding IsAdditionalFirmwareFactsExpanded}\"", slotCard, StringComparison.Ordinal);
         Assert.Contains("Content=\"{Binding AdditionalFirmwareFactsLabel}\"", slotCard, StringComparison.Ordinal);
         Assert.Contains("Classes=\"firmwareSlotFact\"", factTemplate, StringComparison.Ordinal);
-        Assert.Contains("MinWidth=\"136\"", factTemplate, StringComparison.Ordinal);
+        Assert.Contains("MinWidth=\"112\"", factTemplate, StringComparison.Ordinal);
+        Assert.Contains("Padding=\"6,9\"", factTemplate, StringComparison.Ordinal);
+        Assert.Contains(
+            "CornerRadius=\"{DynamicResource NfcCompactCornerRadius}\"",
+            factTemplate,
+            StringComparison.Ordinal);
         Assert.Contains("Orientation=\"Vertical\"", factTemplate, StringComparison.Ordinal);
         Assert.Contains("Classes=\"firmwareSlotFactStateIcon\"", factTemplate, StringComparison.Ordinal);
         Assert.Contains("AutomationProperties.Name=\"{Binding StateAutomationText}\"", factTemplate, StringComparison.Ordinal);
@@ -96,19 +110,25 @@ public sealed partial class XamlControlStyleContractTests
     public void FirmwareSlotSemanticActionOwnsEveryInteractiveVisualState()
     {
         string styles = ReadPresentationFile("Styles/FirmwareSlotExperienceStyles.axaml");
+        string controlStyles = ReadPresentationFile("Styles/MainWindowControlStyles.axaml");
         string selected = ExtractStyle(
             styles,
             "Border.fileDropZone.firmwareSlot.compactExperience.hasFile");
         string required = ExtractStyle(
-            styles,
-            "Label.slotBadge.firmwareSlotRequirement.availableInput");
+            controlStyles,
+            "Label.slotBadge.firmwareSlotRequirement");
         string pending = ExtractStyle(
             styles,
             "ToggleButton.slotStateAction.pendingInput /template/ ContentPresenter#PART_ContentPresenter");
         Assert.Contains("NfcAccentSurfaceSubtleBrush", selected, StringComparison.Ordinal);
         Assert.Contains("NfcAccentBorderStrongBrush", selected, StringComparison.Ordinal);
-        Assert.Contains("NfcAccentSurfaceSubtleBrush", required, StringComparison.Ordinal);
-        Assert.DoesNotContain("NfcCritical", required, StringComparison.Ordinal);
+        Assert.Contains("NfcRequiredMissingBadgeSurfaceBrush", required, StringComparison.Ordinal);
+        Assert.Contains("NfcDangerBorderBrush", required, StringComparison.Ordinal);
+        Assert.Contains("NfcDangerTextBrush", required, StringComparison.Ordinal);
+        Assert.DoesNotContain(
+            "<Style Selector=\"Label.slotBadge.firmwareSlotRequirement.availableInput\">",
+            styles,
+            StringComparison.Ordinal);
         Assert.Contains("NfcWarningSurfaceBrush", pending, StringComparison.Ordinal);
         Assert.Contains("NfcWarningTextBrush", pending, StringComparison.Ordinal);
         string pinned = ExtractStyle(styles, "ToggleButton.slotStateAction:checked /template/ ContentPresenter#PART_ContentPresenter");
@@ -172,7 +192,8 @@ public sealed partial class XamlControlStyleContractTests
     [Fact]
     public void FirmwareReadinessGuidanceIsFullyLocalizedInTraditionalChinese()
     {
-        ShellTextResources text = ShellTextResources.For(ShellLanguage.ChineseTraditional);
+        var text = ShellTextResources.For(ShellLanguage.ChineseTraditional);
+        var english = ShellTextResources.For(ShellLanguage.English);
         string standardReadiness = text.GetMergeReadinessStatus(
             ExperienceIds.StandardMerge,
             "NT51950",
@@ -236,6 +257,12 @@ public sealed partial class XamlControlStyleContractTests
         ];
 
         Assert.Contains("BIN 檔案", standardReadiness, StringComparison.Ordinal);
+        Assert.Equal(
+            "Solid colors identify selected CtrlRAM regions; diagonal hatching means bytes remain from the base firmware.",
+            english.GetReplaceMemorySummary(ExperienceIds.CtrlRamReplace));
+        Assert.Equal(
+            "實色標示已選取的 CtrlRAM 區域；斜線表示資料仍保留自基礎韌體。",
+            text.GetReplaceMemorySummary(ExperienceIds.CtrlRamReplace));
         Assert.Contains("來源 BIN 檔案對應", mappedReadiness, StringComparison.Ordinal);
         Assert.Contains("空白輸出映像", mappedReadiness, StringComparison.Ordinal);
         Assert.Contains("來源 BIN 檔案對應", emptyMappingReadiness, StringComparison.Ordinal);

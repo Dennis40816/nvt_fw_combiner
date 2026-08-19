@@ -395,11 +395,11 @@ public static partial class MemoryLayoutProjector
         Dictionary<string, string> slotsBySpace,
         Dictionary<string, AuthoringSlotState> statesById)
     {
-        bool referenceAdmitted =
-            initialization.Kind == ImageInitializationKind.Reference &&
-            initialization.ReferenceSpaceId is not null &&
-            slotsBySpace.TryGetValue(initialization.ReferenceSpaceId, out string? slotId) &&
-            IsAdmitted(statesById[slotId]);
+        string? referenceSlotId = GetAdmittedReferenceSlot(
+            initialization,
+            slotsBySpace,
+            statesById);
+        bool referenceAdmitted = referenceSlotId is not null;
 
         return
         [
@@ -409,8 +409,8 @@ public static partial class MemoryLayoutProjector
                     region.Range,
                     addressSpaceId,
                     InitialDisposition(region, initialization.Kind, referenceAdmitted),
-                    sourceSpaceId: null,
-                    sourceSlotId: null,
+                    referenceAdmitted ? initialization.ReferenceSpaceId : null,
+                    referenceSlotId,
                     contributingOperations: [],
                     diagnosticSeverity: MemoryDiagnosticSeverity.None,
                     selection: MemorySelectionState.NotSelected,
@@ -431,6 +431,10 @@ public static partial class MemoryLayoutProjector
             .. plan.OrderedOperations.Where(operation =>
                 StringComparer.Ordinal.Equals(operation.TargetSpaceId, plan.OutputSpaceId)),
         ];
+        string? referenceSlotId = GetAdmittedReferenceSlot(
+            plan.OutputInitialization,
+            slotsBySpace,
+            statesById);
         SortedSet<long> boundaries = [0, plan.OutputInitialization.Capacity];
         foreach (ProjectionRegion region in primaryRegions)
         {
@@ -476,12 +480,11 @@ public static partial class MemoryLayoutProjector
                         InitialDisposition(
                             canonicalRegion,
                             plan.OutputInitialization.Kind,
-                            IsReferenceAdmitted(
-                                plan.OutputInitialization,
-                                slotsBySpace,
-                                statesById)),
-                        sourceSpaceId: null,
-                        sourceSlotId: null,
+                            referenceSlotId is not null),
+                        referenceSlotId is null
+                            ? null
+                            : plan.OutputInitialization.ReferenceSpaceId,
+                        referenceSlotId,
                         contributingOperations: [],
                         diagnosticSeverity: MemoryDiagnosticSeverity.None,
                         selection: MemorySelectionState.NotSelected,
@@ -534,7 +537,7 @@ public static partial class MemoryLayoutProjector
             : operation.TargetRange.Contains(range);
     }
 
-    private static bool IsReferenceAdmitted(
+    private static string? GetAdmittedReferenceSlot(
         ImageInitialization initialization,
         Dictionary<string, string> slotsBySpace,
         Dictionary<string, AuthoringSlotState> statesById)
@@ -542,7 +545,9 @@ public static partial class MemoryLayoutProjector
         return initialization.Kind == ImageInitializationKind.Reference &&
             initialization.ReferenceSpaceId is not null &&
             slotsBySpace.TryGetValue(initialization.ReferenceSpaceId, out string? slotId) &&
-            IsAdmitted(statesById[slotId]);
+            IsAdmitted(statesById[slotId])
+                ? slotId
+                : null;
     }
 
     private static bool IsAdmitted(AuthoringSlotState state)

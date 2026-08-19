@@ -553,16 +553,17 @@ semantics, keeps input facts visible at narrow widths, localizes real typed slot
 titles and actions, and renders memory source, range, length, pending, conflict,
 and protected-region facts in aligned English and Traditional Chinese views.
 
-The exact physical nonblank ledger is 479 removed and 1,396 added, net +917.
-Full production changes from 98,133 to 99,050. Runtime changes from 67,981 to
-68,106 through typed canonical CtrlRAM family roles and Application memory
+The exact physical nonblank ledger is 673 removed and 2,103 added, net +1,430.
+Full production changes from 98,133 to 99,563. Runtime changes from 67,981 to
+68,109 through typed canonical CtrlRAM family roles and Application memory
 projection facts. Domain plus Profiles changes from 20,619 to 20,634, and
-Application changes from 29,555 to 29,665. Bootstrap plus CLI
+Application changes from 29,555 to 29,668. Bootstrap plus CLI
 plus Desktop remains 3,074, and Infrastructure plus Contracts plus CRC worker
 remains 14,733.
 
 These exact values become descending ratchets immediately. This named R2
-presentation/readability amendment is non-transferable and cannot fund later
+presentation/readability amendment includes one-item-per-source range grouping,
+is non-transferable, and cannot fund later
 work. It changes no profile, range, firmware byte, operation order, support
 truth, Golden evidence, report wire/history, processor protocol, CLI, or release
 gate. Later work resumes ordinary descending enforcement from these values.

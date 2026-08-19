@@ -116,9 +116,12 @@ public sealed partial class MemoryLayoutProjectorTests
 
         Assert.All(
             snapshot.BeforeSegments,
-            static segment => Assert.Equal(
-                MemoryWorkflowDisposition.Kept,
-                segment.Disposition));
+            static segment =>
+            {
+                Assert.Equal(MemoryWorkflowDisposition.Kept, segment.Disposition);
+                Assert.Equal("reference-base", segment.SourceSpaceId);
+                Assert.Equal("reference-base", segment.SourceSlotId);
+            });
         Assert.Equal(
             [
                 MemoryWorkflowDisposition.WillReplace,
@@ -144,6 +147,14 @@ public sealed partial class MemoryLayoutProjectorTests
             snapshot.AfterSegments[0].ContributingOperations.Select(static operation => operation.OperationId));
         Assert.Empty(snapshot.AfterSegments[1].ContributingOperations);
         Assert.Empty(snapshot.AfterSegments[3].ContributingOperations);
+        Assert.All(
+            snapshot.AfterSegments.Where(static segment =>
+                segment.Disposition == MemoryWorkflowDisposition.Kept),
+            static segment =>
+            {
+                Assert.Equal("reference-base", segment.SourceSpaceId);
+                Assert.Equal("reference-base", segment.SourceSlotId);
+            });
     }
 
     /// <summary>Keeps unresolved inputs non-geometric until a compiled overlay is supplied.</summary>

@@ -71,7 +71,10 @@ public sealed partial class FirmwareInspectionSlotTests
         Assert.DoesNotContain(
             viewModel.Merge.MergeSlots.Single(slot => slot.SlotId == "merge-dp").FirmwareFacts,
             fact => fact.Value == "D01-01");
-        AssertInspectionTerminal(viewModel.Merge.Inspection);
+        Assert.Equal(WorkflowInspectionAttemptState.Failed, viewModel.Merge.Inspection.State);
+        Assert.Equal(
+            FirmwareSlotSemanticState.Error,
+            viewModel.Merge.MergeSlots.Single(slot => slot.SlotId == "merge-dp").SemanticState);
     }
 
     /// <summary>Changed and unreadable files fail retryably without publishing a mixed-identity snapshot.</summary>
@@ -265,7 +268,10 @@ public sealed partial class FirmwareInspectionSlotTests
         viewModel.Merge.SelectedMergeMode = ExperienceIds.GeneralMerge;
         viewModel.Merge.SelectedMergeMode = ExperienceIds.StandardMerge;
 
-        Assert.Equal("Waiting for TP BIN", viewModel.Merge.MergeMemoryRangeLabel);
+        Assert.Equal("DP BIN needs attention", viewModel.Merge.MergeMemoryRangeLabel);
+        Assert.Equal(
+            FirmwareSlotSemanticState.Error,
+            viewModel.Merge.MergeSlots.Single(slot => slot.SlotId == "merge-dp").SemanticState);
 
         await viewModel.WorkflowSession.SetSlotFileAsync("merge-dp", dpPath, TestContext.Current.CancellationToken);
 

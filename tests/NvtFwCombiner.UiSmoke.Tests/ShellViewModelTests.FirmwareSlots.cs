@@ -420,7 +420,10 @@ public sealed partial class FirmwareInspectionSlotTests
         await viewModel.WorkflowSession.RefreshSelectedMergeFirmwareInspectionsAsync();
 
         Assert.Equal("nvt-fw-combiner-standard-merge.bin", viewModel.Merge.StandardMergeOutputFileName);
-        Assert.Equal("Waiting for TP BIN", viewModel.Merge.MergeMemoryRangeLabel);
+        Assert.Equal("DP BIN needs attention", viewModel.Merge.MergeMemoryRangeLabel);
+        Assert.Equal(
+            FirmwareSlotSemanticState.Error,
+            viewModel.Merge.MergeSlots.Single(slot => slot.SlotId == "merge-dp").SemanticState);
     }
 
     /// <summary>Verifies an unobserved DP size keeps the concise DP/Jira slot badge set.</summary>

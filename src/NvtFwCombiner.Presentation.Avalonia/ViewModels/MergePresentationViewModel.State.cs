@@ -267,6 +267,7 @@ internal sealed partial class MergePresentationViewModel
         OnPropertyChanged(nameof(IsAbMergeSupported));
         OnPropertyChanged(nameof(MergeModeChoices));
         OnPropertyChanged(nameof(StandardMergeSupportSummary));
+        OnPropertyChanged(nameof(MergePreview));
         OnPropertyChanged(nameof(StandardMergeOutputFileName));
         OnPropertyChanged(nameof(GeneralMergeOutputFileName));
         OnPropertyChanged(nameof(MergeOutputFileName));

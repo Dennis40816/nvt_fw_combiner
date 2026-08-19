@@ -35,11 +35,9 @@
             x:Name="SlotHeaderContent"
             ColumnDefinitions="Auto,*"
             ColumnSpacing="{DynamicResource NfcSpace8}"
-            RowDefinitions="Auto,Auto"
-            RowSpacing="{DynamicResource NfcSpace4}">
+            RowDefinitions="Auto">
           <Border
-              Grid.RowSpan="2"
-              VerticalAlignment="Top"
+              VerticalAlignment="Center"
               Classes="slotTypeIcon"
               Classes.base="{Binding SlotKind, Converter={x:Static converters:ObjectConverters.Equal}, ConverterParameter={x:Static vm:FirmwareSlotKind.Base}}"
               Classes.bin="{Binding SlotKind, Converter={x:Static converters:ObjectConverters.Equal}, ConverterParameter={x:Static vm:FirmwareSlotKind.Unknown}}"
@@ -49,57 +47,58 @@
               ToolTip.Tip="{Binding SlotIconTooltip}">
             <Path Data="{Binding SlotIconPathData}" />
           </Border>
-          <TextBlock
-              x:Name="SlotTitle"
-              Grid.Column="1"
-              VerticalAlignment="Center"
-              FontSize="{DynamicResource NfcFontSize14}"
-              FontWeight="SemiBold"
-              Foreground="{DynamicResource NfcTextStrongBrush}"
-              Text="{Binding Title}"
-              TextWrapping="Wrap" />
-          <WrapPanel Grid.Row="1" Grid.Column="1" Margin="0,0,0,4">
-            <Label
-                Classes="compactBadge slotBadge firmwareSlotRequirement availableInput"
-                Classes.optional="{Binding IsOptional}"
-                Content="{Binding RequirementLabel}"
-                IsVisible="{Binding IsRequirementLabelVisible}" />
-            <ToggleButton
-                AutomationProperties.LiveSetting="Polite"
-                AutomationProperties.Name="{Binding SemanticStateAutomationText}"
-                behaviors:FocusToolTipBehavior.IsEnabled="True"
-                Classes="slotStateAction"
-                Classes.checking="{Binding IsSemanticStateChecking}"
-                Classes.error="{Binding IsSemanticStateError}"
-                Classes.notApplicable="{Binding IsSemanticStateNotApplicable}"
-                Classes.pendingInput="{Binding IsSemanticStatePendingInput}"
-                Classes.verified="{Binding IsSemanticStateVerified}"
-                Classes.warning="{Binding IsSemanticStateWarning}"
-                Focusable="True"
-                IsChecked="{Binding IsSemanticStateDetailExpanded}"
-                IsVisible="{Binding HasSemanticState}"
-                ToolTip.Tip="{Binding SemanticStateAutomationText}"
-                VerticalContentAlignment="Center">
-              <StackPanel Orientation="Horizontal" Spacing="6">
-                <Path
-                    Width="16"
-                    Height="16"
-                    Classes="slotStateIcon"
-                    Data="{Binding SemanticStateIconPathData}"
-                    Stretch="Uniform" />
-                <TextBlock
-                    VerticalAlignment="Center"
-                    FontSize="{DynamicResource NfcFontSize11}"
-                    FontWeight="SemiBold"
-                    Text="{Binding SemanticStateLabel}" />
-              </StackPanel>
-            </ToggleButton>
+          <WrapPanel Grid.Column="1" VerticalAlignment="Center">
+            <TextBlock
+                x:Name="SlotTitle"
+                Margin="0,0,8,0"
+                VerticalAlignment="Center"
+                FontSize="{DynamicResource NfcFontSize14}"
+                FontWeight="SemiBold"
+                Foreground="{DynamicResource NfcTextStrongBrush}"
+                Text="{Binding Title}"
+                TextWrapping="Wrap" />
+            <WrapPanel VerticalAlignment="Center">
+              <Label
+                  Classes="compactBadge slotBadge firmwareSlotRequirement availableInput"
+                  Classes.optional="{Binding IsOptional}"
+                  Content="{Binding RequirementLabel}"
+                  IsVisible="{Binding IsRequirementLabelVisible}" />
+              <ToggleButton
+                  AutomationProperties.LiveSetting="Polite"
+                  AutomationProperties.Name="{Binding SemanticStateAutomationText}"
+                  behaviors:FocusToolTipBehavior.IsEnabled="True"
+                  Classes="slotStateAction"
+                  Classes.checking="{Binding IsSemanticStateChecking}"
+                  Classes.error="{Binding IsSemanticStateError}"
+                  Classes.notApplicable="{Binding IsSemanticStateNotApplicable}"
+                  Classes.pendingInput="{Binding IsSemanticStatePendingInput}"
+                  Classes.verified="{Binding IsSemanticStateVerified}"
+                  Classes.warning="{Binding IsSemanticStateWarning}"
+                  Focusable="True"
+                  IsChecked="{Binding IsSemanticStateDetailExpanded}"
+                  IsVisible="{Binding HasSemanticState}"
+                  ToolTip.Tip="{Binding SemanticStateAutomationText}"
+                  VerticalContentAlignment="Center">
+                <StackPanel Orientation="Horizontal" Spacing="6">
+                  <Path
+                      Width="16"
+                      Height="16"
+                      Classes="slotStateIcon"
+                      Data="{Binding SemanticStateIconPathData}"
+                      Stretch="Uniform" />
+                  <TextBlock
+                      VerticalAlignment="Center"
+                      FontSize="{DynamicResource NfcFontSize11}"
+                      FontWeight="SemiBold"
+                      Text="{Binding SemanticStateLabel}" />
+                </StackPanel>
+              </ToggleButton>
+            </WrapPanel>
           </WrapPanel>
         </Grid>
         <StackPanel
             x:Name="SlotBody"
             Grid.Row="1"
-            Grid.ColumnSpan="2"
             Spacing="{DynamicResource NfcSpace4}">
           <TextBlock Classes="mutedText" IsVisible="{Binding IsGuidanceVisible}" Text="{Binding Description}" TextWrapping="Wrap" />
           <TextBlock
@@ -175,12 +174,13 @@
         <Button
             x:Name="BrowseButton"
             Grid.Column="1"
+            Grid.RowSpan="2"
             Classes="semanticAction action browseAction"
             Click="BrowseButton_OnClick"
             Content="{Binding BrowseLabel, ElementName=Root}"
             IsEnabled="{Binding CanSelectFile}"
             Tag="{Binding SlotId}"
-            VerticalAlignment="Top">
+            VerticalAlignment="Center">
           <AutomationProperties.Name>
             <MultiBinding StringFormat="{x:Static views:FirmwareSlotCard.BrowseActionFormat}">
               <Binding ElementName="Root" Path="BrowseLabel" />

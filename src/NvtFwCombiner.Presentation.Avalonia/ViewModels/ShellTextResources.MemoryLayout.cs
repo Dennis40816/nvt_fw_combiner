@@ -156,6 +156,32 @@ internal sealed partial class ShellTextResources
             };
     }
 
+    public string FormatMemoryCoverageRangeSummary(int count, long? totalLength)
+    {
+        ArgumentOutOfRangeException.ThrowIfLessThan(count, 1);
+        string rangeCount = SelectLanguage(
+            count == 1 ? "1 range" : $"{count} ranges",
+            $"{count} 個區間");
+        return totalLength is { } length
+            ? SelectLanguage(
+                $"{rangeCount} · total len 0x{length:X}",
+                $"{rangeCount} · 總長度 0x{length:X}")
+            : rangeCount;
+    }
+
+    public string GetMemoryCoveragePartialReplaceLabel()
+    {
+        return SelectLanguage("Partially replaced", "部分替換");
+    }
+
+    public string FormatMemoryCoveragePartialReplaceDetail(string sourceLabel)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(sourceLabel);
+        return SelectLanguage(
+            $"Part of this range is replaced from {sourceLabel}; the remaining bytes stay from base firmware.",
+            $"此範圍部分由 {sourceLabel} 替換，其餘保留基礎韌體資料。");
+    }
+
     public string GetMemoryPlanActionLabel(MemoryPlanActionKind action)
     {
         return action switch

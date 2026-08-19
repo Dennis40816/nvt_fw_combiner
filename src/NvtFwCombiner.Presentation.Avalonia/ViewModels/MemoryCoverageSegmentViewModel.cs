@@ -45,12 +45,17 @@ internal sealed class MemoryCoverageSegmentViewModel
         MemoryDiagnosticSeverity diagnosticSeverity = MemoryDiagnosticSeverity.None,
         bool usesBaseFirmwarePattern = false,
         string? regionId = null,
+        string? sourceSlotId = null,
+        string? logicalSourceLabel = null,
         IReadOnlyList<MemoryLayoutPreservationDetail>? preservationDetails = null,
         ShellTextResources? text = null,
         ReplaceRegionGroup regionGroup = ReplaceRegionGroup.Common,
+        long? rangeStart = null,
+        long? rangeEndExclusive = null,
         string? addressRangeLabel = null,
         string? lengthLabel = null,
-        string? compactDetail = null)
+        string? compactDetail = null,
+        string? changeLabel = null)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(rangeLabel);
         ArgumentException.ThrowIfNullOrWhiteSpace(sourceLabel);
@@ -72,11 +77,23 @@ internal sealed class MemoryCoverageSegmentViewModel
         {
             ArgumentException.ThrowIfNullOrWhiteSpace(compactDetail);
         }
+        if (logicalSourceLabel is not null)
+        {
+            ArgumentException.ThrowIfNullOrWhiteSpace(logicalSourceLabel);
+        }
+        if (rangeStart.HasValue != rangeEndExclusive.HasValue ||
+            (rangeStart is { } start && rangeEndExclusive <= start))
+        {
+            throw new ArgumentOutOfRangeException(
+                nameof(rangeEndExclusive),
+                "A typed display range requires start < endExclusive.");
+        }
 
         RangeLabel = rangeLabel;
         AddressRangeLabel = addressRangeLabel ?? rangeLabel;
         LengthLabel = lengthLabel ?? string.Empty;
         SourceLabel = sourceLabel;
+        LogicalSourceLabel = logicalSourceLabel ?? sourceLabel;
         Detail = detail;
         CompactDetail = compactDetail ?? detail;
         FillRole = fillRole;
@@ -84,13 +101,15 @@ internal sealed class MemoryCoverageSegmentViewModel
         Disposition = disposition;
         ObservedChange = observedChange;
         DiagnosticSeverity = diagnosticSeverity;
-        IsChanged = observedChange == MemoryObservedChange.Changed;
         RegionId = string.IsNullOrWhiteSpace(regionId) ? null : regionId;
+        SourceSlotId = string.IsNullOrWhiteSpace(sourceSlotId) ? null : sourceSlotId;
         UsesKeptPattern = usesBaseFirmwarePattern;
         text ??= ShellTextResources.For(ShellLanguage.English);
-        ChangeLabel = text.GetOutputLayoutStateLabel(disposition, observedChange);
-        HasChangeState = ChangeLabel.Length > 0;
+        ChangeLabel = changeLabel ?? text.GetOutputLayoutStateLabel(disposition, observedChange);
         RegionGroup = regionGroup;
+        RegionGroupLabel = text.GetReplaceRegionGroupTitle(regionGroup);
+        RangeStart = rangeStart;
+        RangeEndExclusive = rangeEndExclusive;
         PreservationDetails =
         [
             .. (preservationDetails ?? []).Select(detail =>
@@ -124,6 +143,9 @@ internal sealed class MemoryCoverageSegmentViewModel
     /// <summary>Final source occupying this range.</summary>
     public string SourceLabel { get; }
 
+    /// <summary>Topology-neutral source identity used by a cross-group logical item.</summary>
+    public string LogicalSourceLabel { get; }
+
     public string Detail { get; }
 
     public string CompactDetail { get; }
@@ -138,7 +160,7 @@ internal sealed class MemoryCoverageSegmentViewModel
 
     public MemoryDiagnosticSeverity DiagnosticSeverity { get; }
 
-    public bool IsChanged { get; }
+    public bool IsChanged => ObservedChange == MemoryObservedChange.Changed;
 
     public bool IsSelectedForWrite => Disposition is
         MemoryWorkflowDisposition.WillWrite or
@@ -156,13 +178,23 @@ internal sealed class MemoryCoverageSegmentViewModel
     /// <summary>Profile-owned selection identity for a replaceable physical region, when present.</summary>
     public string? RegionId { get; }
 
+    /// <summary>Typed canonical input slot supplying this range, when one exists.</summary>
+    public string? SourceSlotId { get; }
+
     public string ChangeLabel { get; }
 
     /// <summary>Whether changed/kept state applies to this written or retained range.</summary>
-    public bool HasChangeState { get; }
+    public bool HasChangeState => ChangeLabel.Length > 0;
 
     /// <summary>Typed Replace grouping supplied before localized display text.</summary>
     public ReplaceRegionGroup RegionGroup { get; }
+
+    /// <summary>Localized endpoint/group context shown beside a compact physical range.</summary>
+    public string RegionGroupLabel { get; }
+
+    public long? RangeStart { get; }
+
+    public long? RangeEndExclusive { get; }
 
     public IReadOnlyList<DiffDlmPreservationDetailViewModel> PreservationDetails { get; }
 

@@ -24,6 +24,11 @@
       <SolidColorBrush x:Key="NfcAccentBorderBrush" Color="#93C5FD" />
       <SolidColorBrush x:Key="NfcAccentBorderStrongBrush" Color="#60A5FA" />
       <SolidColorBrush x:Key="NfcAccentBorderLightBrush" Color="#BFDBFE" />
+      <SolidColorBrush x:Key="NfcPrimaryActionHoverBrush" Color="#1D4ED8" />
+      <SolidColorBrush x:Key="NfcPrimaryActionPressedBrush" Color="#1E3A8A" />
+      <SolidColorBrush x:Key="NfcPrimaryActionHoverTextBrush" Color="#FFFFFF" />
+      <SolidColorBrush x:Key="NfcPrimaryActionPressedTextBrush" Color="#FFFFFF" />
+      <SolidColorBrush x:Key="NfcSecondaryActionPressedBrush" Color="#DBEAFE" />
       <SolidColorBrush x:Key="NfcSuccessSurfaceBrush" Color="#F0FDF4" />
       <SolidColorBrush x:Key="NfcSuccessBorderBrush" Color="#BBF7D0" />
       <SolidColorBrush x:Key="NfcSuccessAccentBrush" Color="#16A34A" />
@@ -117,6 +122,11 @@
       <SolidColorBrush x:Key="NfcAccentBorderBrush" Color="#2563EB" />
       <SolidColorBrush x:Key="NfcAccentBorderStrongBrush" Color="#60A5FA" />
       <SolidColorBrush x:Key="NfcAccentBorderLightBrush" Color="#1D4ED8" />
+      <SolidColorBrush x:Key="NfcPrimaryActionHoverBrush" Color="#1D4ED8" />
+      <SolidColorBrush x:Key="NfcPrimaryActionPressedBrush" Color="#1E3A8A" />
+      <SolidColorBrush x:Key="NfcPrimaryActionHoverTextBrush" Color="#FFFFFF" />
+      <SolidColorBrush x:Key="NfcPrimaryActionPressedTextBrush" Color="#FFFFFF" />
+      <SolidColorBrush x:Key="NfcSecondaryActionPressedBrush" Color="#1E3A8A" />
       <SolidColorBrush x:Key="NfcSuccessSurfaceBrush" Color="#052E16" />
       <SolidColorBrush x:Key="NfcSuccessBorderBrush" Color="#166534" />
       <SolidColorBrush x:Key="NfcSuccessAccentBrush" Color="#4ADE80" />

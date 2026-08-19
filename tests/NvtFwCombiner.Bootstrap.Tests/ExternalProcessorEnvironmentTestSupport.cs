@@ -19,7 +19,7 @@ internal static class ExternalProcessorEnvironmentTestSupport
     private static ExternalProcessorEnvironmentLoader CreateLoaded()
     {
         var loader = new ExternalProcessorEnvironmentLoader();
-        return ((global::NvtFwCombiner.Application.ExternalTools.IExternalProcessorEnvironmentLoader)loader)
+        return ((Application.ExternalTools.IExternalProcessorEnvironmentLoader)loader)
             .LoadToCompletionAsync(null, CancellationToken.None)
             .GetAwaiter().GetResult().Succeeded
             ? loader

@@ -203,7 +203,7 @@ public sealed partial class DpReplaceWorkflowTests
         Assert.Contains(viewModel.Merge.MergeCoverageSegments, segment =>
             segment.ChangeLabel == "將寫入");
 
-        ShellTextResources chinese = ShellTextResources.For(ShellLanguage.ChineseTraditional);
+        var chinese = ShellTextResources.For(ShellLanguage.ChineseTraditional);
         var unmapped = new MemoryMapRowViewModel(
             "0x00004-0x00007 (len 0x4)",
             new MemoryPlanSource(MemoryPlanSourceKind.NoOutput),

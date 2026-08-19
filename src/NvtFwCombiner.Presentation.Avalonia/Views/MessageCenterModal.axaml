@@ -180,7 +180,7 @@
         </StackPanel>
         <Button
             Grid.Column="1"
-            Classes="semanticAction primary"
+            Classes="semanticAction secondary"
             Command="{Binding CloseCommand}"
             Content="{Binding Text.CloseLabel}" />
       </Grid>

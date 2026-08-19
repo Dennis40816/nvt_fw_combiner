@@ -106,7 +106,7 @@ internal sealed class ExternalProcessorEnvironmentLoader :
                 SingleWriter = true,
                 FullMode = BoundedChannelFullMode.Wait,
             });
-        CancellationTokenSource requestCancellation =
+        var requestCancellation =
             CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
         CancellationTokenSource? previousCancellation;
         Task previous;

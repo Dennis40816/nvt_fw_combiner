@@ -3,9 +3,11 @@ using Avalonia;
 using Avalonia.Automation;
 using Avalonia.Controls;
 using Avalonia.Controls.Presenters;
+using Avalonia.Controls.Primitives;
 using Avalonia.Headless.XUnit;
 using Avalonia.Markup.Xaml.Styling;
 using Avalonia.VisualTree;
+using NvtFwCombiner.Application.Metadata;
 using NvtFwCombiner.Domain.Composition;
 using NvtFwCombiner.Presentation.Avalonia.ViewModels;
 using NvtFwCombiner.Presentation.Avalonia.Views;
@@ -43,10 +45,12 @@ public sealed partial class XamlControlStyleContractTests
         Assert.Equal("*,Auto", (string?)layout.Attribute("ColumnDefinitions"));
         Assert.Equal("Auto,Auto", (string?)layout.Attribute("RowDefinitions"));
         Assert.Equal("Grid", header.Name.LocalName);
+        Assert.Equal("Auto,*", (string?)header.Attribute("ColumnDefinitions"));
         Assert.Equal("1", (string?)body.Attribute("Grid.Row"));
-        Assert.Equal("2", (string?)body.Attribute("Grid.ColumnSpan"));
+        Assert.Null(body.Attribute("Grid.ColumnSpan"));
         Assert.Equal("1", (string?)browse.Attribute("Grid.Column"));
-        Assert.Equal("Top", (string?)browse.Attribute("VerticalAlignment"));
+        Assert.Equal("2", (string?)browse.Attribute("Grid.RowSpan"));
+        Assert.Equal("Center", (string?)browse.Attribute("VerticalAlignment"));
         XElement[] browseLabels = [.. browse.Descendants().Where(element =>
             element.Name.LocalName == "MultiBinding")];
         Assert.Equal(2, browseLabels.Length);
@@ -124,18 +128,47 @@ public sealed partial class XamlControlStyleContractTests
         card.Arrange(new Rect(0, 0, width, card.DesiredSize.Height));
 
         Grid layout = Assert.IsType<Grid>(card.FindControl<Control>("SlotLayout"));
+        Grid header = Assert.IsType<Grid>(card.FindControl<Control>("SlotHeaderContent"));
+        TextBlock title = Assert.IsType<TextBlock>(card.FindControl<Control>("SlotTitle"));
         Button browse = Assert.IsType<Button>(card.FindControl<Control>("BrowseButton"));
         StackPanel body = Assert.IsType<StackPanel>(card.FindControl<Control>("SlotBody"));
+        Border selector = Assert.Single(
+            card.GetVisualDescendants().OfType<Border>(),
+            candidate => candidate.Classes.Contains("firmwareSlot"));
         ItemsControl primaryFacts = Assert.IsType<ItemsControl>(
             card.FindControl<Control>("PrimaryFirmwareFactsHost"));
+        Point browseOrigin = Assert.IsType<Point>(browse.TranslatePoint(default, selector));
+        ToggleButton state = Assert.Single(
+            card.GetVisualDescendants().OfType<ToggleButton>(),
+            candidate => candidate.Classes.Contains("slotStateAction"));
+        Point titleOrigin = Assert.IsType<Point>(title.TranslatePoint(default, header));
+        Point stateOrigin = Assert.IsType<Point>(state.TranslatePoint(default, header));
 
         Assert.True(layout.Bounds.Width <= width);
         Assert.True(browse.Bounds.Right <= layout.Bounds.Width);
-        Assert.Equal(layout.Bounds.Width, body.Bounds.Width, precision: 3);
+        Assert.True(body.Bounds.Width < layout.Bounds.Width);
         Assert.Equal(body.Bounds.Width, primaryFacts.Bounds.Width, precision: 3);
+        double selectorCenter = selector.Bounds.Height / 2;
+        double browseCenter = browseOrigin.Y + (browse.Bounds.Height / 2);
+        Assert.InRange(Math.Abs(selectorCenter - browseCenter), 0, 0.5);
+        if (width >= 480)
+        {
+            double titleCenter = titleOrigin.Y + (title.Bounds.Height / 2);
+            double stateCenter = stateOrigin.Y + (state.Bounds.Height / 2);
+            Assert.InRange(Math.Abs(titleCenter - stateCenter), 0, 0.5);
+            Assert.True(
+                title.Bounds.Width < 100,
+                $"Title width {title.Bounds.Width}, desired {title.DesiredSize.Width}, state X {stateOrigin.X}.");
+            Assert.Equal(
+                8,
+                stateOrigin.X - (titleOrigin.X + title.Bounds.Width),
+                precision: 3);
+        }
         Assert.Equal(88, browse.MinWidth);
         Assert.Equal(36, browse.MinHeight);
         Assert.Equal(36, browse.MaxHeight);
+        Assert.Equal(Avalonia.Layout.HorizontalAlignment.Center, browse.HorizontalContentAlignment);
+        Assert.Equal(Avalonia.Layout.VerticalAlignment.Center, browse.VerticalContentAlignment);
         Assert.True(browse.Bounds.Width >= 88);
         Assert.Equal(36, browse.Bounds.Height, precision: 3);
         Assert.Null(browse.FocusAdorner);
@@ -147,11 +180,28 @@ public sealed partial class XamlControlStyleContractTests
         Border slotIcon = Assert.Single(
             card.GetVisualDescendants().OfType<Border>(),
             candidate => candidate.Classes.Contains("slotTypeIcon"));
-        Assert.Equal(new CornerRadius(6), presenter.CornerRadius);
+        Assert.Equal(new CornerRadius(999), presenter.CornerRadius);
         Assert.Equal(30, slotIcon.Bounds.Width, precision: 3);
         Assert.Equal(30, slotIcon.Bounds.Height, precision: 3);
         Assert.Equal(ProductionButtonStylesUri, buttonStyles.Source);
         Assert.Equal(ProductionVisualStylesUri, visualStyles.Source);
+
+        slot.SetSelectionReadiness(
+            ResolvedChildReadiness.PendingInput,
+            "Waiting for DP BIN",
+            "Select and verify the DP BIN first.",
+            "Waiting for DP BIN: Select and verify the DP BIN first.",
+            canSelect: false);
+        Assert.False(browse.IsEnabled);
+        Assert.Equal("Waiting for DP BIN", slot.SemanticStateLabel);
+
+        slot.SetSelectionReadiness(
+            ResolvedChildReadiness.Ready,
+            "Ready",
+            "This input can now be selected.",
+            "Ready: This input can now be selected.");
+        Assert.True(browse.IsEnabled);
+        Assert.NotEqual("Checking", slot.SemanticStateLabel);
     }
 
     /// <summary>Real long English and Chinese slot titles wrap inside the 320 px header without entering Browse.</summary>
@@ -361,11 +411,18 @@ public sealed partial class XamlControlStyleContractTests
         AssertBrowseAction(cascadeSlot, cascadeViewModel.Text);
     }
 
-    /// <summary>Startup status labels remain vertically aligned when the running-state Cancel button increases row height.</summary>
+    /// <summary>Shell headers stay readable at compact width and vertically aligned while startup is running.</summary>
     [Fact]
     public void StartupPreparationHeaderCentersLabelsAndRightAlignsPercentage()
     {
         var shell = XDocument.Parse(ReadPresentationFile("MainWindow.axaml"));
+        XElement replaceHeader = Assert.Single(shell.Descendants(), element =>
+            HasXamlName(element, "ReplacePageHeader"));
+        XElement mergeHeader = Assert.Single(shell.Descendants(), element =>
+            HasXamlName(element, "MergePageHeader"));
+        Assert.Equal("Auto,Auto", (string?)replaceHeader.Attribute("RowDefinitions"));
+        Assert.Equal("Auto,Auto", (string?)mergeHeader.Attribute("RowDefinitions"));
+
         XElement host = Assert.Single(shell.Descendants(), element =>
             HasXamlName(element, "OptionalPreloadStatusHost"));
         XElement[] centeredElements =

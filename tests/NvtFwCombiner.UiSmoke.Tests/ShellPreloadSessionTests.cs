@@ -386,6 +386,8 @@ public sealed partial class ShellPreloadSessionTests
         Assert.True(maximumWorkers <= ShellPreloadSession.OptionalWorkerBudget);
         Assert.True(events.ToList().IndexOf("history-end") < events.ToList().IndexOf("report"));
         Assert.All(session.Stages, stage => Assert.Equal(ShellPreloadStageState.Succeeded, stage.State));
+        Assert.False(session.HasOptionalStatus);
+        Assert.Empty(session.AccessibleStatus);
         ShellPreloadStageSnapshot views = session.Stages.Single(stage => stage.Id == ShellPreloadSession.ViewsStageId);
         Assert.Equal(1, views.Progress);
         Assert.Equal(5, views.CurrentAttempt?.CompletedWork);

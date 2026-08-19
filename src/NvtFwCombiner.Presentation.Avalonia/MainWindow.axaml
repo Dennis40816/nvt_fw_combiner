@@ -174,15 +174,19 @@
             <DataTemplate DataType="vm:ReplacePresentationViewModel">
               <Grid ColumnDefinitions="1.15*,430" ColumnSpacing="18">
           <StackPanel Spacing="{DynamicResource NfcSpace16}">
-            <Grid ColumnDefinitions="*,Auto" ColumnSpacing="{DynamicResource NfcSpace16}">
+            <Grid
+                x:Name="ReplacePageHeader"
+                RowDefinitions="Auto,Auto"
+                RowSpacing="{DynamicResource NfcSpace12}">
               <StackPanel Spacing="{DynamicResource NfcSpace4}">
                 <TextBlock Classes="pageTitle" Text="{Binding ReplacePreview.Title}" />
                 <TextBlock Classes="pageSubtitle" Text="{Binding ReplacePreview.Subtitle}" TextWrapping="Wrap" />
               </StackPanel>
               <Grid
-                  Grid.Column="1"
+                  Grid.Row="1"
                   ColumnDefinitions="Auto,Auto"
                   ColumnSpacing="{DynamicResource NfcSpace12}"
+                  HorizontalAlignment="Left"
                   VerticalAlignment="Center">
                 <StackPanel Spacing="3">
                   <TextBlock Classes="fieldLabel" Text="{Binding Text.ModeLabel}" />
@@ -255,12 +259,19 @@
             <DataTemplate DataType="vm:MergePresentationViewModel">
               <Grid ColumnDefinitions="1.15*,430" ColumnSpacing="18">
           <StackPanel Spacing="{DynamicResource NfcSpace16}">
-            <Grid ColumnDefinitions="*,Auto" ColumnSpacing="{DynamicResource NfcSpace16}">
+            <Grid
+                x:Name="MergePageHeader"
+                RowDefinitions="Auto,Auto"
+                RowSpacing="{DynamicResource NfcSpace12}">
               <StackPanel Spacing="{DynamicResource NfcSpace4}">
                 <TextBlock Classes="pageTitle" Text="{Binding MergePreview.Title}" />
                 <TextBlock Classes="pageSubtitle" Text="{Binding MergePreview.Subtitle}" TextWrapping="Wrap" />
               </StackPanel>
-              <Grid Grid.Column="1" ColumnDefinitions="170" ColumnSpacing="{DynamicResource NfcSpace12}" VerticalAlignment="Center">
+              <Grid
+                  Grid.Row="1"
+                  ColumnDefinitions="170"
+                  HorizontalAlignment="Left"
+                  VerticalAlignment="Center">
                 <StackPanel Spacing="3" ToolTip.Tip="{Binding Text.MergeModeTooltip}">
                   <TextBlock Classes="fieldLabel" Text="{Binding Text.ModeLabel}" />
                   <ComboBox

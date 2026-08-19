@@ -1,4 +1,6 @@
 using System.Text.Json;
+using Avalonia.Headless.XUnit;
+using NvtFwCombiner.Domain.Composition;
 using NvtFwCombiner.Presentation.Avalonia;
 using NvtFwCombiner.Presentation.Avalonia.ViewModels;
 using NvtFwCombiner.TestSupport;
@@ -48,14 +50,22 @@ public sealed partial class FirmwareInspectionSlotTests
     }
 
     /// <summary>A multi-map Standard Merge route exposes the compiler-required DP prerequisite without IC rules in UI.</summary>
-    [Fact]
+    [AvaloniaFact]
     public async Task MultiMapStandardMergeDefersOtherInputsUntilDpResolves()
     {
-        using var golden = StandardMergeGoldenManifest.Load();
-        JsonElement goldenCase = golden.CaseByIc("51950");
-        MainWindowViewModel viewModel = PresentationTestHost.CreateViewModel();
-        viewModel.ShowMergeCommand.Execute(null);
-        viewModel.WorkflowSession.SelectedIc = "NT51950";
+        (MainWindowViewModel viewModel, string dpPath) = await Task.Run(
+            () =>
+            {
+                using var golden = StandardMergeGoldenManifest.Load();
+                JsonElement goldenCase = golden.CaseByIc("51950");
+                MainWindowViewModel created = PresentationTestHost.CreateViewModel();
+                created.ShowMergeCommand.Execute(null);
+                created.WorkflowSession.SelectedIc = "NT51950";
+                return (
+                    created,
+                    golden.ManifestPath(goldenCase.GetProperty("inputs").GetProperty("dp-input")));
+            },
+            TestContext.Current.CancellationToken);
 
         FirmwareSlotViewModel dp = viewModel.Merge.MergeSlots.Single(static slot =>
             slot.SlotId == CompositionSlotIds.MergeDp);
@@ -67,12 +77,26 @@ public sealed partial class FirmwareInspectionSlotTests
         Assert.Equal("Waiting for DP BIN", tp.SelectionReadinessLabel);
         Assert.Contains("DP", tp.SelectionReadinessDetail, StringComparison.Ordinal);
 
-        string dpPath = golden.ManifestPath(goldenCase.GetProperty("inputs").GetProperty("dp-input"));
-        await viewModel.WorkflowSession.SetSlotFileAsync(
+        Task selection = viewModel.WorkflowSession.SetSlotFileAsync(
             CompositionSlotIds.MergeDp,
             dpPath,
             TestContext.Current.CancellationToken);
+        WorkflowInspectionLifecycle lifecycle = viewModel.Merge.InspectionLifecycles[
+            ExperienceIds.StandardMerge];
+        Task completed = await Task.WhenAny(
+            selection,
+            Task.Delay(TimeSpan.FromSeconds(10), TestContext.Current.CancellationToken));
+        Assert.True(
+            ReferenceEquals(selection, completed),
+            $"Lifecycle={lifecycle.State}; Progress={lifecycle.Progress}; " +
+            $"DP={dp.SemanticState}/{dp.InputInspectionStatus}; " +
+            $"TP={tp.SemanticState}/{tp.SelectionReadinessDetail}");
+        await selection;
 
+        dp = viewModel.Merge.MergeSlots.Single(static slot =>
+            slot.SlotId == CompositionSlotIds.MergeDp);
+        tp = viewModel.Merge.MergeSlots.Single(static slot =>
+            slot.SlotId == CompositionSlotIds.MergeTp);
         Assert.True(
             tp.CanSelectFile,
             $"DP={dp.SemanticState}/{dp.InputInspectionStatus}; " +
@@ -81,6 +105,48 @@ public sealed partial class FirmwareInspectionSlotTests
         Assert.Contains(
             dp.SemanticState,
             new[] { FirmwareSlotSemanticState.Verified, FirmwareSlotSemanticState.Warning });
+    }
+
+    /// <summary>An accepted Standard Merge prerequisite cannot poison a later CtrlRAM context confirmation.</summary>
+    [AvaloniaFact]
+    public async Task AcceptedStandardMergeDpDoesNotPoisonCtrlRamHomeNavigation()
+    {
+        (MainWindowViewModel viewModel, string dpPath) = await Task.Run(
+            () =>
+            {
+                using var golden = StandardMergeGoldenManifest.Load();
+                JsonElement goldenCase = golden.CaseByIc("51950");
+                MainWindowViewModel created = PresentationTestHost.CreateViewModel();
+                created.ShowMergeCommand.Execute(null);
+                created.WorkflowSession.SelectedIc = "NT51950";
+                return (
+                    created,
+                    golden.ManifestPath(goldenCase.GetProperty("inputs").GetProperty("dp-input")));
+            },
+            TestContext.Current.CancellationToken);
+
+        await viewModel.WorkflowSession.SetSlotFileAsync(
+            CompositionSlotIds.MergeDp,
+            dpPath,
+            TestContext.Current.CancellationToken);
+
+        viewModel.ShowHomeCommand.Execute(null);
+        Assert.True(viewModel.IsNavigationClearConfirmationOpen);
+        viewModel.ConfirmNavigationAndClearCommand.Execute(null);
+        Assert.True(viewModel.IsHomeVisible);
+        viewModel.BeginCtrlRamReplaceFromHomeCommand.Execute(null);
+        Assert.True(viewModel.WorkflowSession.IsWorkflowContextModalOpen);
+        viewModel.WorkflowSession.WorkflowContextSetup.SelectedIc = "NT51950";
+        viewModel.WorkflowSession.WorkflowContextSetup.SelectedNumberChoice =
+            viewModel.WorkflowSession.WorkflowContextSetup.NumberChoices.Single(
+                static choice => choice.Token == IcNumberSelectionTokens.SingleChip);
+
+        Exception? error = Record.Exception(
+            () => viewModel.WorkflowSession.ConfirmWorkflowContextCommand.Execute(null));
+
+        Assert.Null(error);
+        Assert.True(viewModel.IsReplaceVisible);
+        Assert.True(viewModel.Replace.IsCtrlRamReplaceModeSelected);
     }
 
     /// <summary>Dependent inputs remain disabled throughout the DP Checking interval.</summary>
@@ -136,6 +202,10 @@ public sealed partial class FirmwareInspectionSlotTests
         }
 
         await selection;
+        dp = viewModel.Merge.MergeSlots.Single(static slot =>
+            slot.SlotId == CompositionSlotIds.MergeDp);
+        tp = viewModel.Merge.MergeSlots.Single(static slot =>
+            slot.SlotId == CompositionSlotIds.MergeTp);
         Assert.True(tp.CanSelectFile);
         Assert.Contains(
             dp.SemanticState,

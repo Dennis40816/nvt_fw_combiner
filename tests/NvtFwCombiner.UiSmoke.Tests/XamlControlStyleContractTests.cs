@@ -258,12 +258,35 @@ public sealed partial class XamlControlStyleContractTests
     public void HomeUtilityCardUsesOneLineSummaryAndHoverDetail()
     {
         string homeTemplates = ReadPresentationFile("Resources/MainWindowPageTemplates.axaml");
+        string visualStyles = ReadPresentationFile("Styles/MainWindowVisualStyles.axaml");
+        string openPill = ExtractStyle(visualStyles, "Border.workflowOpenPill");
+        string openText = ExtractStyle(visualStyles, "Border.workflowOpenPill TextBlock");
+        string hoverPill = ExtractStyle(
+            visualStyles,
+            "Button.command:pointerover Border.workflowOpenPill");
+        string hoverText = ExtractStyle(
+            visualStyles,
+            "Button.command:pointerover Border.workflowOpenPill TextBlock");
+        string pressedPill = ExtractStyle(
+            visualStyles,
+            "Button.command:pressed Border.workflowOpenPill");
+        string pressedText = ExtractStyle(
+            visualStyles,
+            "Button.command:pressed Border.workflowOpenPill TextBlock");
 
         Assert.Contains("Text=\"{Binding Text.UtilToolsLabel}\"", homeTemplates, StringComparison.Ordinal);
         Assert.Contains("Text=\"{Binding Text.UtilToolsHomeTitle}\"", homeTemplates, StringComparison.Ordinal);
         Assert.Contains("Text=\"{Binding Text.UtilToolsHomeDetail}\"", homeTemplates, StringComparison.Ordinal);
         Assert.Contains("TextTrimming=\"CharacterEllipsis\"", homeTemplates, StringComparison.Ordinal);
         Assert.Contains("ToolTip.Tip=\"{Binding Text.HexEditorDetail}\"", homeTemplates, StringComparison.Ordinal);
+        Assert.Contains("Background\" Value=\"{DynamicResource NfcAccentSurfaceBrush}", openPill, StringComparison.Ordinal);
+        Assert.Contains("BorderBrush\" Value=\"{DynamicResource NfcAccentBorderLightBrush}", openPill, StringComparison.Ordinal);
+        Assert.Contains("NfcAccentStrongBrush", openText, StringComparison.Ordinal);
+        Assert.Contains("Background\" Value=\"{DynamicResource NfcPrimaryActionHoverBrush}", hoverPill, StringComparison.Ordinal);
+        Assert.Contains("BorderBrush\" Value=\"{DynamicResource NfcPrimaryActionHoverBrush}", hoverPill, StringComparison.Ordinal);
+        Assert.Contains("NfcPrimaryActionHoverTextBrush", hoverText, StringComparison.Ordinal);
+        Assert.Contains("NfcPrimaryActionPressedBrush", pressedPill, StringComparison.Ordinal);
+        Assert.Contains("NfcPrimaryActionPressedTextBrush", pressedText, StringComparison.Ordinal);
     }
 
     /// <summary>Keeps bounded multi-byte insertion explicit, accessible, and separate from overwrite/fill mode.</summary>

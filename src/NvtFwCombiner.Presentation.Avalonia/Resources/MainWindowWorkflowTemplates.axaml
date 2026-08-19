@@ -264,4 +264,87 @@
   </StackPanel>
 </DataTemplate>
 
+<DataTemplate x:Key="ReplaceOutputLayoutPanelTemplate" DataType="vm:ReplacePresentationViewModel">
+  <Border Classes="panelSurface memoryInfoPanel">
+    <views:SpaciousPanel>
+      <StackPanel Spacing="{DynamicResource NfcSpace16}">
+      <StackPanel Spacing="{DynamicResource NfcSpace8}">
+        <StackPanel Spacing="3">
+          <TextBlock Classes="sectionTitle" Text="{Binding Text.OutputLayoutTitle}" />
+          <TextBlock Classes="mutedText memoryInfoDescription" Text="{Binding ReplaceMemorySummary}" TextWrapping="Wrap" />
+        </StackPanel>
+        <Border Classes="compactSubtleSurface memoryInfoAddress" Padding="8,4">
+          <TextBlock Classes="monoText detailText memoryInfoAddressText" Text="{Binding ReplaceMemoryRangeLabel}" TextWrapping="Wrap" />
+        </Border>
+      </StackPanel>
+
+      <StackPanel
+          x:Name="ReplaceCoverageStateLegend"
+          HorizontalAlignment="Right"
+          IsVisible="{Binding ShowsGenericCoverageStateLegend}"
+          Orientation="Horizontal"
+          Spacing="14">
+        <StackPanel
+            IsVisible="{Binding HasObservedMemoryChanges}"
+            Orientation="Horizontal"
+            Spacing="5">
+          <Border
+              Classes="memoryCoverageMarker changed"
+              Width="18"
+              Height="10"
+              VerticalAlignment="Center"
+              Background="{DynamicResource NfcAccentBrush}"
+              CornerRadius="2" />
+          <TextBlock Classes="microInfoText" Text="{Binding Text.OutputLayoutChangedStateLabel}" />
+        </StackPanel>
+        <StackPanel Orientation="Horizontal" Spacing="5">
+          <Border
+              Classes="memoryCoverageMarker"
+              Width="18"
+              Height="10"
+              VerticalAlignment="Center"
+              Background="{DynamicResource NfcBorderMutedBrush}"
+              CornerRadius="2">
+            <Border Background="{StaticResource KeptDiagonalStripeBrush}" CornerRadius="2" />
+          </Border>
+          <TextBlock Classes="microInfoText" Text="{Binding Text.OutputLayoutKeptStateLabel}" />
+        </StackPanel>
+      </StackPanel>
+
+      <Border Height="34" Background="{DynamicResource NfcMemoryTrackBrush}" ClipToBounds="True" CornerRadius="{DynamicResource NfcCompactCornerRadius}">
+        <Viewbox Height="34" HorizontalAlignment="Stretch" Stretch="Fill">
+          <ItemsControl Width="300" Height="34" ItemTemplate="{StaticResource MemoryCoverageSegmentBarTemplate}" ItemsSource="{Binding ReplaceCoverageSegments}">
+            <ItemsControl.ItemsPanel>
+              <ItemsPanelTemplate>
+                <StackPanel Orientation="Horizontal" />
+              </ItemsPanelTemplate>
+            </ItemsControl.ItemsPanel>
+          </ItemsControl>
+        </Viewbox>
+      </Border>
+
+      <Grid>
+          <ItemsControl ItemTemplate="{StaticResource MemoryCoverageSegmentListTemplate}" ItemsSource="{Binding ReplaceCoverageSegments}"
+              IsVisible="{Binding IsReplaceCoverageFlat}" />
+
+          <ItemsControl HorizontalAlignment="Stretch" ItemContainerTheme="{StaticResource StretchContentPresenterTheme}"
+              ItemTemplate="{StaticResource MemoryCoverageGroupTemplate}" ItemsSource="{Binding ReplaceCoverageGroups}"
+              IsVisible="{Binding IsReplaceCoverageGrouped}" />
+      </Grid>
+
+      <StackPanel IsVisible="{Binding IsReplaceCoverageFlat}" Spacing="{DynamicResource NfcSpace8}">
+        <TextBlock Classes="sectionLabel" Text="{Binding Text.PlanTitle}" />
+        <ItemsControl ItemTemplate="{StaticResource ReplaceMemoryMapRowTemplate}" ItemsSource="{Binding ReplaceMemoryRows}" />
+      </StackPanel>
+      <Border Classes="subtleSurface" Padding="10,8">
+        <TextBlock Classes="readinessText"
+                   AutomationProperties.LiveSetting="Polite"
+                   Text="{Binding ReplaceReadinessStatus}"
+                   TextWrapping="Wrap" />
+      </Border>
+      </StackPanel>
+    </views:SpaciousPanel>
+  </Border>
+</DataTemplate>
+
 </ResourceDictionary>

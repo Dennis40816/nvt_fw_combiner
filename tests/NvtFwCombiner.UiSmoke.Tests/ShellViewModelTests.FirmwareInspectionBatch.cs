@@ -39,6 +39,11 @@ public sealed partial class FirmwareInspectionSlotTests
 
         await viewModel.WorkflowSession.SetSlotFileAsync("merge-dp", dpPath, TestContext.Current.CancellationToken);
         Assert.Equal(IcNumberSelectionTokens.SingleChip, viewModel.WorkflowSession.SelectedNumber);
+        FirmwareSlotViewModel firstDp = viewModel.Merge.MergeSlots.Single(slot =>
+            slot.SlotId == CompositionSlotIds.MergeDp);
+        Assert.Equal(FirmwareSlotSemanticState.Error, firstDp.SemanticState);
+        Assert.Equal(FirmwareInputInspectionSeverity.Blocking, firstDp.InputInspectionSeverity);
+        Assert.Equal(WorkflowInspectionAttemptState.Failed, viewModel.Merge.Inspection.State);
         await viewModel.WorkflowSession.SetSlotFileAsync("merge-tp", tpPath, TestContext.Current.CancellationToken);
 
         FirmwareInspectionSnapshotInput[] pairedBatch = Assert.Single(

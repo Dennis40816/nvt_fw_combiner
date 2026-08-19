@@ -113,7 +113,7 @@ public sealed class LocalFileStoreTests
     [Fact]
     public async Task ReadTextAsyncAcceptsArbitraryStorageProviderStream()
     {
-        byte[] bytes = Encoding.UTF8.GetBytes("{\"source\":\"picker\"}");
+        byte[] bytes = Encoding.UTF8.GetBytes(/*lang=json,strict*/ "{\"source\":\"picker\"}");
         var store = new LocalFileStore();
 
         string result = await store.ReadTextAsync(
@@ -121,7 +121,7 @@ public sealed class LocalFileStoreTests
             bytes.Length,
             TestContext.Current.CancellationToken);
 
-        Assert.Equal("{\"source\":\"picker\"}", result);
+        Assert.Equal(/*lang=json,strict*/ "{\"source\":\"picker\"}", result);
     }
 
     /// <summary>A seekable storage-provider stream cannot grow or truncate during its bounded copy.</summary>

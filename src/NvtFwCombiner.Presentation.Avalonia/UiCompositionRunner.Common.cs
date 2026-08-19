@@ -15,13 +15,13 @@ internal static partial class UiCompositionRunner
         IReadOnlyList<MemoryCoverageSegmentViewModel> CoverageSegments) GetMemoryDisplay(
         PresentationCompositionServices services,
         ActiveSessionSnapshot acceptedSession,
-        ShellTextResources? text = null,
+        ShellTextResources text,
         GeneralAuthoringAdmissionResult? admission = null,
         IReadOnlyList<CtrlRamRegion>? ctrlRamRegions = null)
     {
         ArgumentNullException.ThrowIfNull(services);
         ArgumentNullException.ThrowIfNull(acceptedSession);
-        text ??= ShellTextResources.For(ShellLanguage.English);
+        ArgumentNullException.ThrowIfNull(text);
         ResolvedCapability capability = acceptedSession.ExactCapability ??
             throw new InvalidOperationException(
                 "Memory projection requires an exact compiled capability.");
@@ -129,6 +129,9 @@ internal static partial class UiCompositionRunner
         ShellTextResources text)
     {
         string sourceLabel = text.GetMemoryPlanSourceLabel(MemorySource(segment));
+        string logicalSourceLabel = segment.ContentRole == MemoryContentRole.CtrlRam
+            ? ShellTextResources.GetCtrlRamRegionTechnicalLabel(segment.CtrlRamRegionRole)
+            : sourceLabel;
         return new MemoryCoverageSegmentViewModel(
             FormatMemoryRange(segment.Range),
             sourceLabel,
@@ -141,9 +144,13 @@ internal static partial class UiCompositionRunner
             usesBaseFirmwarePattern: segment.Disposition == MemoryWorkflowDisposition.Kept ||
                 segment.SourceSpaceId == CompositionAddressSpaceIds.ReferenceBase,
             regionId: segment.RegionId,
+            sourceSlotId: segment.SourceSlotId,
+            logicalSourceLabel: logicalSourceLabel,
             preservationDetails: segment.PreservationDetails,
             text: text,
             regionGroup: segment.RegionGroup,
+            rangeStart: segment.Range.Start,
+            rangeEndExclusive: segment.Range.EndExclusive,
             addressRangeLabel: FormatMemoryAddressRange(segment.Range),
             lengthLabel: FormatMemoryLength(segment.Range),
             compactDetail: MemoryCompactDetail(segment, sourceLabel, text));

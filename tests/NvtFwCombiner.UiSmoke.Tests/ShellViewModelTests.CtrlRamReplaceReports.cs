@@ -133,10 +133,16 @@ public sealed partial class CtrlRamExternalGoldenTests
         Assert.Equal(13, postbuild.RuntimeCommands.Count);
         Assert.Contains(postbuild.RuntimeCommands, command =>
             command.ArgumentListEvidence.Contains("VN_Ctrlram.bin", StringComparison.Ordinal));
-        Assert.Contains(viewModel.Replace.ReplaceCoverageSegments, segment =>
-            segment.SourceLabel == "VN CtrlRAM (Slave L)" &&
-            segment.RangeLabel == "0x2EBD0-0x3022F (len 0x1660)");
-        Assert.Contains(viewModel.Replace.ReplaceCoverageGroups, group => group.Title == "Slave L");
+        MemoryCoverageGroupViewModel common = Assert.Single(
+            viewModel.Replace.ReplaceCoverageGroups,
+            group => group.RegionGroup == ReplaceRegionGroup.Common);
+        MemoryCoverageLogicalItemViewModel logicalVn = Assert.Single(
+            common.Items,
+            item => item.DisplayId == $"slot:{vn.SlotId}");
+        Assert.Equal("VN CtrlRAM", logicalVn.SourceLabel);
+        Assert.Contains(logicalVn.Ranges, range =>
+            range.RegionGroupLabel == "Slave L" &&
+            range.RangeLabel == "0x2EBD0-0x3022F (len 0x1660)");
     }
 
     /// <summary>Verifies an exact V2 CtrlRAM replacement runs through the real postbuild path.</summary>

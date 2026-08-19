@@ -43,10 +43,10 @@ remain open.
 - Compatibility: profiles, schemas, firmware bytes/hashes/names, Golden evidence,
   report wire/history, CLI behavior, and execution paths are unchanged.
 - Code size: the initial same-file cleanup lowered 98,135 to 98,133. The
-  owner-approved complete readability surface removes 479 and adds 1,396
-  physical nonblank production lines, net +917, setting exact ratchets to full
-  99,050 and runtime 68,106. Domain plus Profiles becomes 20,634 and Application
-  becomes 29,665; the other runtime slices remain unchanged.
+  owner-approved complete readability surface removes 673 and adds 2,103
+  physical nonblank production lines, net +1,430, setting exact ratchets to full
+  99,563 and runtime 68,109. Domain plus Profiles becomes 20,634 and Application
+  becomes 29,668; the other runtime slices remain unchanged.
 - Verification: Desktop Release build, UI smoke, Architecture, structure/full
   verifier, scoped Polytail, and interactive dark/light layout review apply.
 - Limitations: this is a presentation/readability change; it adds no updater,

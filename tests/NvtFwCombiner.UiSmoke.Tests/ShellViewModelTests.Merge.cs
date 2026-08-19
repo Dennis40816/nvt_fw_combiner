@@ -402,7 +402,12 @@ public sealed partial class MergeWorkflowTests
         MemoryMapRowViewModel pendingMapping = Assert.Single(viewModel.Merge.MergeMemoryRows);
         Assert.Equal("Waiting for source mapping", pendingMapping.AfterSource);
         Assert.Contains("source BIN", pendingMapping.Detail, StringComparison.Ordinal);
+        Assert.Equal("Merge", viewModel.Merge.MergePreview.Title);
+        var localizedProperties = new List<string?>();
+        viewModel.Merge.PropertyChanged += (_, args) => localizedProperties.Add(args.PropertyName);
         viewModel.SelectedLanguage = "Traditional Chinese";
+        Assert.Contains(nameof(viewModel.Merge.MergePreview), localizedProperties);
+        Assert.Equal("合併", viewModel.Merge.MergePreview.Title);
         pendingMapping = Assert.Single(viewModel.Merge.MergeMemoryRows);
         Assert.Equal("等待來源對應", pendingMapping.AfterSource);
         Assert.Contains("來源 BIN", pendingMapping.Detail, StringComparison.Ordinal);
@@ -418,6 +423,8 @@ public sealed partial class MergeWorkflowTests
         Assert.Equal(1, mapping.Index);
         Assert.Equal("No source BIN selected", mapping.DisplayName);
         Assert.Contains("保留值", viewModel.Merge.MergeMemorySummary, StringComparison.Ordinal);
+        viewModel.SelectedLanguage = "English";
+        Assert.Equal("Merge", viewModel.Merge.MergePreview.Title);
     }
 
     /// <summary>Verifies the Home General Merge shortcut opens Merge in General mode.</summary>

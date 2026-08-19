@@ -1,4 +1,6 @@
-<Styles xmlns="https://github.com/avaloniaui">
+<Styles
+    xmlns="https://github.com/avaloniaui"
+    xmlns:views="using:NvtFwCombiner.Presentation.Avalonia.Views">
   <Style Selector="Border.memoryInfoPanel">
     <Setter Property="Background" Value="{DynamicResource NfcMemoryPanelSurfaceBrush}" />
     <Setter Property="BorderBrush" Value="{DynamicResource NfcMemoryPanelBorderBrush}" />
@@ -16,8 +18,33 @@
   <Style Selector="TextBlock.memoryInfoAddressText">
     <Setter Property="Foreground" Value="{DynamicResource NfcMemoryAddressTextBrush}" />
   </Style>
+  <Style Selector="views|SpaciousPanel.memoryCoverageGroup">
+    <Setter Property="Padding" Value="0" />
+    <Setter Property="Background" Value="{DynamicResource NfcMemoryAddressSurfaceBrush}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource NfcMemoryAddressBorderBrush}" />
+    <Setter Property="BorderThickness" Value="1" />
+    <Setter Property="CornerRadius" Value="{DynamicResource NfcCompactCornerRadius}" />
+  </Style>
+  <Style Selector="TextBlock.memoryInfoRangeSummary">
+    <Setter Property="Foreground" Value="{DynamicResource NfcMemoryTextSecondaryBrush}" />
+  </Style>
+  <Style Selector="TextBlock.memoryInfoRangeGroup">
+    <Setter Property="Foreground" Value="{DynamicResource NfcMemoryAddressTextBrush}" />
+    <Setter Property="FontWeight" Value="SemiBold" />
+  </Style>
   <Style Selector="Border.memoryInfoRow">
     <Setter Property="BorderBrush" Value="{DynamicResource NfcMemoryDividerBrush}" />
+  </Style>
+  <Style Selector="Border.memoryInfoRangeList">
+    <Setter Property="Padding" Value="0" />
+    <Setter Property="BorderThickness" Value="0" />
+  </Style>
+  <Style Selector="Border.memoryInfoRangeList.multiple">
+    <Setter Property="Padding" Value="8,2" />
+    <Setter Property="Background" Value="{DynamicResource NfcMemoryAddressSurfaceBrush}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource NfcMemoryAddressBorderBrush}" />
+    <Setter Property="BorderThickness" Value="1" />
+    <Setter Property="CornerRadius" Value="{DynamicResource NfcCompactCornerRadius}" />
   </Style>
   <Style Selector="Border.memoryCoverageFill">
     <Setter Property="Background" Value="{DynamicResource NfcMemoryNeutralFillBrush}" />

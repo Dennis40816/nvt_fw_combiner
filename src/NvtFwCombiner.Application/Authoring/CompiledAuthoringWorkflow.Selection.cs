@@ -23,6 +23,21 @@ public sealed partial class CompiledAuthoringWorkflowService
             ProjectInputBindings(discovery);
         selectedSlotIds = NormalizeSlotIds(selectedSlotIds, inputBindings);
         acceptedFileStamps = NormalizeFileStamps(acceptedFileStamps, inputBindings);
+        FileStamp? prerequisiteStamp = null;
+        if (discovery.CompilationPrerequisiteSlotId is { } prerequisite)
+        {
+            if (!acceptedFileStamps.TryGetValue(prerequisite, out FileStamp acceptedPrerequisite))
+            {
+                return new CompiledAuthoringSelectionSnapshot(
+                    DiscoveryCatalog(discovery),
+                    ProjectPendingPrerequisite(discovery, selectedSlotIds, prerequisite),
+                    inputBindings,
+                    []);
+            }
+
+            prerequisiteStamp = acceptedPrerequisite;
+        }
+
         ResolvedCapability? retained = TryRetainExactCapability(
             retainedSession,
             icId,
@@ -31,23 +46,7 @@ public sealed partial class CompiledAuthoringWorkflowService
             discovery.CompilationPrerequisiteSlotId is null
                 ? discovery.DiscoveryCapability
                 : null);
-        if (retained is null &&
-            discovery.CompilationPrerequisiteSlotId is { } prerequisite &&
-            !acceptedFileStamps.ContainsKey(prerequisite))
-        {
-            return new CompiledAuthoringSelectionSnapshot(
-                DiscoveryCatalog(discovery),
-                ProjectPendingPrerequisite(
-                    discovery,
-                    selectedSlotIds,
-                    prerequisite),
-                inputBindings,
-                []);
-        }
-
-        long? prerequisiteLength = discovery.CompilationPrerequisiteSlotId is { } prerequisiteSlot
-            ? acceptedFileStamps[prerequisiteSlot].AcceptedLength
-            : null;
+        long? prerequisiteLength = prerequisiteStamp?.AcceptedLength;
         CompiledAuthoringWorkflowResolution exact = retained is null
             ? _resolver.ResolveExact(icId, authoringRevision, prerequisiteLength, selectedSlotIds)
             : new CompiledAuthoringWorkflowResolution(retained, []);

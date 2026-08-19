@@ -302,10 +302,11 @@ public sealed partial class XamlControlStyleContractTests
         Assert.Contains("BorderThickness\" Value=\"2\"", semanticActionFocus, StringComparison.Ordinal);
         Assert.Contains("NfcAccentBorderStrongBrush", semanticActionFocus, StringComparison.Ordinal);
         Assert.Contains("NfcSurfaceBrush", secondary, StringComparison.Ordinal);
-        Assert.Contains("NfcAccentSurfaceSubtleBrush", secondaryHover, StringComparison.Ordinal);
-        Assert.Contains("NfcAccentBorderBrush", secondaryHover, StringComparison.Ordinal);
-        Assert.Contains("NfcAccentSurfaceBrush", secondaryPressed, StringComparison.Ordinal);
-        Assert.Contains("NfcAccentBorderStrongBrush", secondaryPressed, StringComparison.Ordinal);
+        Assert.Contains("NfcBorderBrush", secondary, StringComparison.Ordinal);
+        Assert.Contains("NfcAccentSurfaceBrush", secondaryHover, StringComparison.Ordinal);
+        Assert.Contains("NfcAccentStrongBrush", secondaryHover, StringComparison.Ordinal);
+        Assert.Contains("NfcSecondaryActionPressedBrush", secondaryPressed, StringComparison.Ordinal);
+        Assert.Contains("NfcAccentStrongBrush", secondaryPressed, StringComparison.Ordinal);
         Assert.Contains("NfcSurfaceSubtleBrush", secondaryDisabled, StringComparison.Ordinal);
         Assert.Contains("NfcBorderMutedBrush", secondaryDisabled, StringComparison.Ordinal);
         Assert.Contains("BorderThickness\" Value=\"1\"", secondaryDisabled, StringComparison.Ordinal);

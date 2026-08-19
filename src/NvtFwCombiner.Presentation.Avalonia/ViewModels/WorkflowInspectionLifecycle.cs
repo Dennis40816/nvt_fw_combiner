@@ -54,6 +54,7 @@ internal sealed class WorkflowInspectionLifecycle
     private Task _activeTask = Task.CompletedTask;
     private CancellationTokenSource? _cancellation;
     private WorkflowInspectionRequest? _request;
+    private AuthoringInspectionProgress? _reportedProgress;
     private string? _failureType;
     private long _generation;
 
@@ -153,6 +154,7 @@ internal sealed class WorkflowInspectionLifecycle
 
             _request = request;
             Progress = null;
+            _reportedProgress = null;
             SetState(WorkflowInspectionAttemptState.Running);
             Present();
             SynchronizationContext? presentationContext = SynchronizationContext.Current;
@@ -198,7 +200,8 @@ internal sealed class WorkflowInspectionLifecycle
         AuthoringInspectionProgress progress,
         CancellationToken requestCancellation)
     {
-        void Deliver()
+        AuthoringInspectionProgress? previous;
+        lock (_admissionLock)
         {
             if (!IsCurrent(generation) || requestCancellation.IsCancellationRequested)
             {
@@ -208,7 +211,7 @@ internal sealed class WorkflowInspectionLifecycle
             {
                 throw new InvalidOperationException("Inspection progress cannot update a terminal attempt.");
             }
-            AuthoringInspectionProgress? previous = Progress;
+            previous = _reportedProgress;
             if (progress.TotalWork <= 0 || progress.CompletedWork < 0 ||
                 progress.CompletedWork > progress.TotalWork ||
                 (previous is { } prior && (progress.TotalWork != prior.TotalWork ||
@@ -219,17 +222,33 @@ internal sealed class WorkflowInspectionLifecycle
                     progress,
                     "Inspection progress must be monotonic with one stable positive total.");
             }
+            _reportedProgress = progress;
+        }
+
+        void Deliver()
+        {
+            if (!IsCurrent(generation) || requestCancellation.IsCancellationRequested)
+            {
+                return;
+            }
+            if (!IsRunning)
+            {
+                return;
+            }
 
             bool announce = (long)progress.CompletedWork * 10 / progress.TotalWork >
-                (previous is { } reported
+                (Progress is { } reported
                     ? (long)reported.CompletedWork * 10 / reported.TotalWork
                     : 0);
-            Progress = progress;
-            ShellTextResources text = _request!.Text;
-            Loading.ReportProgress(
-                (double)progress.CompletedWork / progress.TotalWork,
-                text.GetFirmwareInspectionProgressDetail(progress.CompletedWork, progress.TotalWork),
-                announce);
+            PresentationObserver.Invoke(() =>
+            {
+                Progress = progress;
+                ShellTextResources text = _request!.Text;
+                Loading.ReportProgress(
+                    (double)progress.CompletedWork / progress.TotalWork,
+                    text.GetFirmwareInspectionProgressDetail(progress.CompletedWork, progress.TotalWork),
+                    announce);
+            });
         }
 
         if (presentationContext is null || presentationContext == SynchronizationContext.Current)
@@ -238,7 +257,8 @@ internal sealed class WorkflowInspectionLifecycle
         }
         else
         {
-            presentationContext.Send(static state => ((Action)state!).Invoke(), (Action)Deliver);
+            PresentationObserver.Invoke(() =>
+                presentationContext.Post(static state => ((Action)state!).Invoke(), (Action)Deliver));
         }
     }
 

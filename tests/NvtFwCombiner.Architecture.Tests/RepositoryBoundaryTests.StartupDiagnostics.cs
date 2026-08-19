@@ -216,22 +216,22 @@ public sealed partial class RepositoryBoundaryTests
         Assert.Contains("68,016 to 67,997", baseline, StringComparison.Ordinal);
         Assert.Contains("295 gross removed and 358", baseline, StringComparison.Ordinal);
         Assert.Contains("98,074 to 98,137", baseline, StringComparison.Ordinal);
-        Assert.Contains("479 removed and 1,396 added", sizeAdr, StringComparison.Ordinal);
-        Assert.Contains("98,133 to **99,050**", baseline, StringComparison.Ordinal);
-        Assert.Contains("67,981 to **68,106**", baseline, StringComparison.Ordinal);
-        Assert.Contains("full_production_ratchet=99_050", codeSizePolicy, StringComparison.Ordinal);
+        Assert.Contains("673 removed and 2,103 added", sizeAdr, StringComparison.Ordinal);
+        Assert.Contains("98,133 to **99,563**", baseline, StringComparison.Ordinal);
+        Assert.Contains("67,981 to **68,109**", baseline, StringComparison.Ordinal);
+        Assert.Contains("full_production_ratchet=99_563", codeSizePolicy, StringComparison.Ordinal);
         Assert.Contains("98,135 to **98,133**", baseline, StringComparison.Ordinal);
-        Assert.Contains("runtime_production_ratchet=68_106", codeSizePolicy, StringComparison.Ordinal);
+        Assert.Contains("runtime_production_ratchet=68_109", codeSizePolicy, StringComparison.Ordinal);
         Assert.Contains("domain_profiles_ratchet=20_634", codeSizePolicy, StringComparison.Ordinal);
-        Assert.Contains("application_ratchet=29_665", codeSizePolicy, StringComparison.Ordinal);
+        Assert.Contains("application_ratchet=29_668", codeSizePolicy, StringComparison.Ordinal);
         Assert.Contains("bootstrap_cli_ratchet=3_074", codeSizePolicy, StringComparison.Ordinal);
         Assert.Contains("infrastructure_contracts_worker_ratchet=14_733", codeSizePolicy, StringComparison.Ordinal);
         Assert.Contains("Historical original PL-00 instrumentation/semantic-control envelope", baseline, StringComparison.Ordinal);
         Assert.Contains("except for the owner-approved 2026-08-18", specification, StringComparison.Ordinal);
         Assert.Contains("from 98,137 to 98,135", specification, StringComparison.Ordinal);
         Assert.Contains("production from 98,135 to 98,133", specification, StringComparison.Ordinal);
-        Assert.Contains("479 removed and 1,396 added", specification, StringComparison.Ordinal);
-        Assert.Contains("full production from 98,133 to 99,050", specification, StringComparison.Ordinal);
+        Assert.Contains("673 removed and 2,103 added", specification, StringComparison.Ordinal);
+        Assert.Contains("full production from 98,133 to 99,563", specification, StringComparison.Ordinal);
         Assert.Equal(
             1,
             CountOccurrences(changelog, "#### Message Center, report, and System Information readability"));

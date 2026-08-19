@@ -220,7 +220,11 @@ internal sealed partial class WorkflowSessionPresentationViewModel
                         {
                             return new(false, "input.artifact.read-failed");
                         }
-                        ApplyFirmwareInspectionBatch(request, result);
+                        bool inputBatchAccepted = ApplyFirmwareInspectionBatch(request, result);
+                        if (!inputBatchAccepted)
+                        {
+                            return new(false, "input.inspection.result-unavailable");
+                        }
                         if (request.Items.Any(static item =>
                                 item.CtrlRamReplaceAddressSpaceId is not null))
                         {
@@ -249,7 +253,9 @@ internal sealed partial class WorkflowSessionPresentationViewModel
                         {
                             if (FindSlot(item.SlotId) is { IsInputInspectionPending: true } pending)
                             {
-                                pending.ClearInputInspection();
+                                pending.SetInputInspection(
+                                    FirmwareInputInspectionSeverity.Blocking,
+                                    Text.FirmwareInspectionFailedTitle);
                             }
                         }
                         NotifySlotFileOutputNames();
@@ -260,7 +266,7 @@ internal sealed partial class WorkflowSessionPresentationViewModel
             cancellationToken);
     }
 
-    private void ApplyFirmwareInspectionBatch(
+    private bool ApplyFirmwareInspectionBatch(
         FirmwareInspectionBatchRequest request,
         FirmwareInspectionBatchResult result)
     {
@@ -274,7 +280,14 @@ internal sealed partial class WorkflowSessionPresentationViewModel
             _merge.TryCompleteAbMergeInputBatch(
                 request.Items,
                 result.InspectionsById);
-        bool replaceAccepted = _replace.TryCompleteReplaceInputBatch(
+        FirmwareInspectionItemRequest[] replaceItems =
+        [
+            .. request.Items.Where(static item => item.DpReplaceAddressSpaceId is not null ||
+                item.CtrlRamReplaceAddressSpaceId is not null),
+        ];
+        bool replaceFactsOnly = replaceItems.Length > 0 && replaceItems.All(item =>
+            IsCtrlRamBaseFactsOnly(item, result.InspectionsById[item.SlotId]));
+        bool replaceAccepted = replaceFactsOnly || _replace.TryCompleteReplaceInputBatch(
             request.Items,
             result.InspectionsById);
         FirmwareInspectionItemRequest ctrlRamBase = request.Items.FirstOrDefault(item =>
@@ -326,12 +339,18 @@ internal sealed partial class WorkflowSessionPresentationViewModel
                     FirmwareInspectionProjection.ApplyInputSlotInspection(slot, inputSlotStatus, Text);
                 }
             }
+            else if (IsCtrlRamBaseFactsOnly(item, inspection))
+            {
+                slot.SetInputInspection(
+                    FirmwareInputInspectionSeverity.Valid,
+                    Text.FirmwareSlotVerifiedLabel);
+            }
 
             if (item.PromptForMismatch)
             {
                 if (ReconcileFirmwareIcMismatch(slot, inspection.DetectedIcId))
                 {
-                    return;
+                    return standardMergeAccepted && abMergeAccepted && replaceAccepted;
                 }
             }
 
@@ -359,13 +378,27 @@ internal sealed partial class WorkflowSessionPresentationViewModel
             _merge.RefreshAbMergeAuthoringState();
         }
 
-        if (request.Items.Any(static item =>
+        if (ctrlRamBase.SlotId != CompositionSlotIds.ReplaceBase &&
+            request.Items.Any(static item =>
                 item.SlotId == CompositionSlotIds.ReplaceBase))
         {
             _replace.RefreshReplaceMemoryMapState();
         }
 
         _stateBindings.RefreshCommandState();
+        return standardMergeAccepted && abMergeAccepted && replaceAccepted;
+    }
+
+    private static bool IsCtrlRamBaseFactsOnly(
+        FirmwareInspectionItemRequest item,
+        FirmwareInspectionSnapshot inspection)
+    {
+        return item.SlotId == CompositionSlotIds.ReplaceBase &&
+            item.CtrlRamRequest is not null &&
+            item.CtrlRamReplaceAddressSpaceId == CompositionAddressSpaceIds.ReferenceBase &&
+            item.InspectionLease is null &&
+            inspection.InputSlotStatus is null &&
+            inspection.InputSlotCatalog is null;
     }
 
     internal void ApplyCtrlRamDisplayFromInspection(FirmwareInspectionSnapshot inspection)

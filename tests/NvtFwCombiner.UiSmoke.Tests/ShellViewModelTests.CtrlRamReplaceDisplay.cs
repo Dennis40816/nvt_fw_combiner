@@ -1,5 +1,5 @@
+using System.Text.Json;
 using NvtFwCombiner.Domain.Composition;
-using NvtFwCombiner.Presentation.Avalonia;
 using NvtFwCombiner.Presentation.Avalonia.ViewModels;
 using NvtFwCombiner.TestSupport;
 
@@ -7,13 +7,306 @@ namespace NvtFwCombiner.UiSmoke.Tests;
 
 public sealed partial class CtrlRamWorkflowTests
 {
-    /// <summary>Detailed Vector CtrlRAM uses its distinct typed presentation role.</summary>
+    /// <summary>One logical CtrlRAM region is one visible item even when write and kept ranges differ.</summary>
     [Fact]
-    public void VectorCtrlRamUsesDedicatedCoverageFillRole()
+    public async Task Nt51950GoldenCoverageDoesNotRepeatLogicalCtrlRamRegions()
     {
+        JsonElement fixtureCase = CanonicalGoldenTestData.LoadDirectCase(
+            "ctrlram-replace",
+            "nt51950-fw200-single-auto-prj-676-20260717");
+        MainWindowViewModel viewModel = PresentationTestHost.CreateViewModel();
+        viewModel.WorkflowSession.SelectedIc = "NT51950";
+        viewModel.WorkflowSession.SelectedNumber = "single";
+        OpenReplace(viewModel, ExperienceIds.CtrlRamReplace);
+
+        JsonElement baseArtifact = fixtureCase.GetProperty("artifacts").EnumerateArray().Single(
+            artifact => artifact.GetProperty("role").GetString() == "expected");
+        await viewModel.WorkflowSession.SetSlotFileAsync(
+            "replace-base",
+            CanonicalGoldenTestData.ArtifactPath(baseArtifact),
+            TestContext.Current.CancellationToken);
+        Dictionary<string, string> slotsByFileName = new(StringComparer.Ordinal)
+        {
+            ["NF_Ctrlram.bin"] = "replace-ctrlram-nf",
+            ["Normal_Ctrlram.bin"] = "replace-ctrlram-normal",
+            ["VN_Ctrlram.bin"] = "replace-ctrlram-vn",
+        };
+        foreach (JsonElement artifact in fixtureCase.GetProperty("artifacts").EnumerateArray())
+        {
+            if (artifact.GetProperty("role").GetString() == "input" &&
+                slotsByFileName.TryGetValue(
+                    artifact.GetProperty("originalFileName").GetString()!,
+                    out string? slotId))
+            {
+                await viewModel.WorkflowSession.SetSlotFileAsync(
+                    slotId,
+                    CanonicalGoldenTestData.ArtifactPath(artifact),
+                    TestContext.Current.CancellationToken);
+            }
+        }
+
+        MemoryCoverageGroupViewModel common = Assert.Single(
+            viewModel.Replace.ReplaceCoverageGroups,
+            group => group.RegionGroup == ReplaceRegionGroup.Common);
+        Assert.Equal(3, common.Items.Count);
+        Assert.Equal("3/3", common.CountLabel);
+        MemoryCoverageLogicalItemViewModel nf = Assert.Single(
+            common.Items,
+            item => item.DisplayId == "slot:replace-ctrlram-nf");
+        Assert.Equal("NF CtrlRAM", nf.SourceLabel);
+        Assert.False(nf.HasMultipleRanges);
+        MemoryCoverageSegmentViewModel nfRange = Assert.Single(nf.Ranges);
+        Assert.Equal("0x22C00-0x2560F", nfRange.AddressRangeLabel);
+        Assert.Equal("len 0x2A10", nfRange.LengthLabel);
+        Assert.Equal("Partially replaced", nfRange.ChangeLabel);
+        MemoryCoverageLogicalItemViewModel[] allItems =
+        [
+            .. viewModel.Replace.ReplaceCoverageGroups.SelectMany(static group => group.Items),
+        ];
+        MemoryCoverageLogicalItemViewModel baseFirmware = Assert.Single(
+            allItems,
+            item => item.DisplayId == "slot:reference-base");
+        Assert.Equal("Base flash", baseFirmware.SourceLabel);
+        Assert.True(baseFirmware.HasMultipleRanges);
+        Assert.All(
+            baseFirmware.Segments,
+            segment => Assert.Equal("reference-base", segment.SourceSlotId));
+        MemoryCoverageGroupViewModel baseGroup = Assert.Single(
+            viewModel.Replace.ReplaceCoverageGroups,
+            group => group.RegionGroup == ReplaceRegionGroup.Base);
+        Assert.Same(
+            baseFirmware,
+            Assert.Single(
+                baseGroup.Items,
+                item => item.DisplayId == "slot:reference-base"));
         Assert.Equal(
+            allItems.Length,
+            allItems.Select(static item => item.DisplayId).Distinct(StringComparer.Ordinal).Count());
+        foreach (MemoryCoverageGroupViewModel group in viewModel.Replace.ReplaceCoverageGroups)
+        {
+            Assert.Equal(group.Items.Count, group.Items.Select(item => item.DisplayId).Distinct().Count());
+            Assert.All(
+                group.Items
+                    .SelectMany(item => item.Segments.Select(
+                        segment => (item.DisplayId, segment.RegionId)))
+                    .Where(entry => entry.RegionId is not null)
+                    .GroupBy(entry => entry.RegionId, StringComparer.Ordinal),
+                logicalRegion => Assert.Single(logicalRegion.Select(entry => entry.DisplayId).Distinct()));
+        }
+
+        MemoryCoverageLogicalItemViewModel[] multiSourceRegionItems =
+        [
+            .. ReplaceRegionGroupBuilder.CreateCoverageGroups(
+                    [
+                        new MemoryCoverageSegmentViewModel(
+                            "0x600-0x60F",
+                            "Source A",
+                            "First source",
+                            MemoryCoverageFillRole.CtrlRamNf,
+                            10,
+                            disposition: Application.MemoryLayout.MemoryWorkflowDisposition.WillReplace,
+                            regionId: "shared-region",
+                            sourceSlotId: "slot-a",
+                            rangeStart: 0x600,
+                            rangeEndExclusive: 0x610),
+                        new MemoryCoverageSegmentViewModel(
+                            "0x610-0x61F",
+                            "Base flash",
+                            "Kept remainder",
+                            MemoryCoverageFillRole.CtrlRamNf,
+                            10,
+                            disposition: Application.MemoryLayout.MemoryWorkflowDisposition.Kept,
+                            usesBaseFirmwarePattern: true,
+                            regionId: "shared-region",
+                            sourceSlotId: "reference-base",
+                            rangeStart: 0x610,
+                            rangeEndExclusive: 0x620),
+                        new MemoryCoverageSegmentViewModel(
+                            "0x620-0x62F",
+                            "Source B",
+                            "Second source",
+                            MemoryCoverageFillRole.CtrlRamNf,
+                            10,
+                            disposition: Application.MemoryLayout.MemoryWorkflowDisposition.WillReplace,
+                            regionId: "shared-region",
+                            sourceSlotId: "slot-b",
+                            rangeStart: 0x620,
+                            rangeEndExclusive: 0x630),
+                    ],
+                    ShellTextResources.For(ShellLanguage.English))
+                .SelectMany(static group => group.Items),
+        ];
+        Assert.Equal(
+            ["slot:reference-base", "slot:slot-a", "slot:slot-b"],
+            multiSourceRegionItems
+                .Select(static item => item.DisplayId)
+                .Order(StringComparer.Ordinal));
+
+        MemoryCoverageLogicalItemViewModel[] sourceAndOutputItems =
+        [
+            .. ReplaceRegionGroupBuilder.CreateCoverageGroups(
+                    [
+                        new MemoryCoverageSegmentViewModel(
+                            "0x700-0x70F",
+                            "Source A",
+                            "Selected source",
+                            MemoryCoverageFillRole.CtrlRamNf,
+                            10,
+                            disposition: Application.MemoryLayout.MemoryWorkflowDisposition.WillReplace,
+                            regionId: "single-source-region",
+                            sourceSlotId: "slot-a",
+                            rangeStart: 0x700,
+                            rangeEndExclusive: 0x710),
+                        new MemoryCoverageSegmentViewModel(
+                            "0x710-0x71F",
+                            "Base flash",
+                            "Kept remainder",
+                            MemoryCoverageFillRole.CtrlRamNf,
+                            10,
+                            disposition: Application.MemoryLayout.MemoryWorkflowDisposition.Kept,
+                            usesBaseFirmwarePattern: true,
+                            regionId: "single-source-region",
+                            sourceSlotId: "reference-base",
+                            rangeStart: 0x710,
+                            rangeEndExclusive: 0x720),
+                        new MemoryCoverageSegmentViewModel(
+                            "0x720-0x72F",
+                            "Output",
+                            "Processor-owned output",
+                            MemoryCoverageFillRole.Source,
+                            10,
+                            disposition: Application.MemoryLayout.MemoryWorkflowDisposition.WillReplace,
+                            regionId: "single-source-region",
+                            rangeStart: 0x720,
+                            rangeEndExclusive: 0x730),
+                    ],
+                    ShellTextResources.For(ShellLanguage.English))
+                .SelectMany(static group => group.Items),
+        ];
+        Assert.Equal(
+            ["region:single-source-region", "slot:slot-a"],
+            sourceAndOutputItems
+                .Select(static item => item.DisplayId)
+                .Order(StringComparer.Ordinal));
+
+        MemoryCoverageFillRole[] sourceRoles =
+        [
+            MemoryCoverageFillRole.Dp,
+            MemoryCoverageFillRole.Tp,
+            MemoryCoverageFillRole.TpBackup,
+            MemoryCoverageFillRole.Ldc,
+            MemoryCoverageFillRole.Source,
+            MemoryCoverageFillRole.CtrlRam,
+            MemoryCoverageFillRole.CtrlRamNf,
+            MemoryCoverageFillRole.CtrlRamNormal,
+            MemoryCoverageFillRole.CtrlRamMp,
+            MemoryCoverageFillRole.CtrlRamVn,
             MemoryCoverageFillRole.CtrlRamVector,
-            UiCompositionRunner.ResolveCtrlRamCoverageFillRole(CtrlRamRegionRole.Vector));
+            MemoryCoverageFillRole.DiffDlm,
+        ];
+        foreach (MemoryCoverageFillRole role in sourceRoles)
+        {
+            string sourceSlotId = $"replace-ctrlram-{role}";
+            MemoryCoverageGroupViewModel noncontiguous = Assert.Single(
+                ReplaceRegionGroupBuilder.CreateCoverageGroups(
+                [
+                    new MemoryCoverageSegmentViewModel(
+                        "0x100-0x10F",
+                        role.ToString(),
+                        "First destination",
+                        role,
+                        10,
+                        disposition: Application.MemoryLayout.MemoryWorkflowDisposition.WillReplace,
+                        regionId: $"{role}-left",
+                        sourceSlotId: sourceSlotId,
+                        rangeStart: 0x100,
+                        rangeEndExclusive: 0x110),
+                    new MemoryCoverageSegmentViewModel(
+                        "0x200-0x20F",
+                        role.ToString(),
+                        "Second destination",
+                        role,
+                        10,
+                        disposition: Application.MemoryLayout.MemoryWorkflowDisposition.WillReplace,
+                        regionId: $"{role}-right",
+                        sourceSlotId: sourceSlotId,
+                        rangeStart: 0x200,
+                        rangeEndExclusive: 0x210),
+                ],
+                ShellTextResources.For(ShellLanguage.English)));
+            Assert.Equal(2, Assert.Single(noncontiguous.Items).Ranges.Count);
+
+            MemoryCoverageGroupViewModel contiguous = Assert.Single(
+                ReplaceRegionGroupBuilder.CreateCoverageGroups(
+                [
+                    new MemoryCoverageSegmentViewModel(
+                        "0x300-0x30F",
+                        role.ToString(),
+                        "First adjacent destination",
+                        role,
+                        10,
+                        disposition: Application.MemoryLayout.MemoryWorkflowDisposition.WillReplace,
+                        regionId: $"{role}-first",
+                        sourceSlotId: sourceSlotId,
+                        rangeStart: 0x300,
+                        rangeEndExclusive: 0x310),
+                    new MemoryCoverageSegmentViewModel(
+                        "0x310-0x31F",
+                        role.ToString(),
+                        "Second adjacent destination",
+                        role,
+                        10,
+                        disposition: Application.MemoryLayout.MemoryWorkflowDisposition.WillReplace,
+                        regionId: $"{role}-second",
+                        sourceSlotId: sourceSlotId,
+                        rangeStart: 0x310,
+                        rangeEndExclusive: 0x320),
+                ],
+                ShellTextResources.For(ShellLanguage.English)));
+            Assert.Equal("0x00300-0x0031F", Assert.Single(Assert.Single(contiguous.Items).Ranges).AddressRangeLabel);
+
+            MemoryCoverageGroupViewModel[] crossGroup =
+            [
+                .. ReplaceRegionGroupBuilder.CreateCoverageGroups(
+                [
+                    new MemoryCoverageSegmentViewModel(
+                        "0x400-0x40F",
+                        role.ToString(),
+                        "Common destination",
+                        role,
+                        10,
+                        disposition: Application.MemoryLayout.MemoryWorkflowDisposition.WillReplace,
+                        regionId: $"{role}-common",
+                        sourceSlotId: sourceSlotId,
+                        regionGroup: ReplaceRegionGroup.Common,
+                        rangeStart: 0x400,
+                        rangeEndExclusive: 0x410),
+                    new MemoryCoverageSegmentViewModel(
+                        "0x500-0x50F",
+                        role.ToString(),
+                        "Master destination",
+                        role,
+                        10,
+                        disposition: Application.MemoryLayout.MemoryWorkflowDisposition.WillReplace,
+                        regionId: $"{role}-master",
+                        sourceSlotId: sourceSlotId,
+                        regionGroup: ReplaceRegionGroup.Master,
+                        rangeStart: 0x500,
+                        rangeEndExclusive: 0x510),
+                ],
+                ShellTextResources.For(ShellLanguage.English)),
+            ];
+            MemoryCoverageLogicalItemViewModel crossGroupItem = Assert.Single(
+                crossGroup.SelectMany(static group => group.Items),
+                item => item.DisplayId == $"slot:{sourceSlotId}");
+            Assert.True(crossGroupItem.HasMultipleRanges);
+            Assert.Equal("2 ranges · total len 0x20", crossGroupItem.RangeSummaryLabel);
+            Assert.Equal(2, crossGroupItem.Ranges.Count);
+            Assert.Collection(
+                crossGroupItem.Ranges,
+                range => Assert.Equal("Common", range.RegionGroupLabel),
+                range => Assert.Equal("Master", range.RegionGroupLabel));
+        }
     }
 
     /// <summary>Partial NT51923 replacement keeps subtype hue and base-owned customer information.</summary>
@@ -55,7 +348,7 @@ public sealed partial class CtrlRamWorkflowTests
         Assert.Contains("NF CtrlRAM", keptNf.AccessibleDetail, StringComparison.Ordinal);
         Assert.False(viewModel.Replace.ShowsGenericCoverageStateLegend);
         Assert.Contains(viewModel.Replace.ReplaceCoverageGroups, group =>
-            group.Segments.Any(segment => segment.IsSelectedForWrite) && group.IsExpanded);
+            group.Items.Any(item => item.IsSelectedForWrite) && group.IsExpanded);
         (string SlotId, long MaximumLength)[] replacements =
         [
             .. viewModel.Replace.ReplaceSlots
@@ -73,6 +366,13 @@ public sealed partial class CtrlRamWorkflowTests
                 slotId,
                 workspace.Write($"{slotId}.bin", new byte[checked((int)maximumLength)]),
                 TestContext.Current.CancellationToken);
+            FirmwareSlotViewModel inspectedSlot = Assert.Single(
+                viewModel.Replace.ReplaceSlots,
+                slot => slot.SlotId == slotId);
+            Assert.Equal(
+                FirmwareInputInspectionSeverity.Valid,
+                inspectedSlot.InputInspectionSeverity);
+            Assert.Equal(FirmwareSlotSemanticState.Verified, inspectedSlot.SemanticState);
         }
 
         MemoryCoverageSegmentViewModel customerInformation = Assert.Single(
@@ -128,6 +428,16 @@ public sealed partial class CtrlRamWorkflowTests
             "replace-base",
             basePath,
             TestContext.Current.CancellationToken);
+
+        Assert.Equal(
+            FirmwareInputInspectionSeverity.Valid,
+            viewModel.Replace.ReplaceBaseSlot.InputInspectionSeverity);
+        Assert.Equal(
+            FirmwareSlotSemanticState.Verified,
+            viewModel.Replace.ReplaceBaseSlot.SemanticState);
+        Assert.Equal(
+            WorkflowInspectionAttemptState.Succeeded,
+            viewModel.Replace.Inspection.State);
 
         Assert.Contains(viewModel.Replace.CtrlRamRegions, region =>
             region.Name == "VN CtrlRAM" &&
@@ -282,23 +592,6 @@ public sealed partial class CtrlRamWorkflowTests
 
         Assert.DoesNotContain(viewModel.Replace.ReplaceSlots, slot => slot.Title == "DiffDLM");
         Assert.Equal("Common", Assert.Single(viewModel.Replace.ReplaceSlotGroups).Title);
-    }
-
-    /// <summary>Verifies NT51926 keeps DiffDLM in a dedicated cascade group.</summary>
-    [Fact]
-    public void Nt51926DiffDlmBelongsToCascade()
-    {
-        MainWindowViewModel viewModel = PresentationTestHost.CreateViewModel();
-        viewModel.WorkflowSession.SelectedIc = "NT51926";
-        viewModel.WorkflowSession.SelectedNumber = "cascade";
-        OpenReplace(viewModel, ExperienceIds.CtrlRamReplace);
-
-        Assert.Equal(["Cascade", "Common"], viewModel.Replace.ReplaceSlotGroups.Select(group => group.Title));
-        Assert.Contains(viewModel.Replace.ReplaceSlotGroups[0].Slots, slot => slot.SlotId == "replace-ctrlram-diff");
-        Assert.DoesNotContain(viewModel.Replace.ReplaceSlotGroups[1].Slots, slot => slot.SlotId == "replace-ctrlram-diff");
-        Assert.Equal("Waiting for Base BIN", viewModel.Replace.ReplaceMemoryRangeLabel);
-        Assert.Empty(viewModel.Replace.ReplaceCoverageGroups);
-        Assert.Equal("Waiting for Base BIN", Assert.Single(viewModel.Replace.ReplaceCoverageSegments).SourceLabel);
     }
 
     /// <summary>Verifies NT51927 three-chip CtrlRAM Replace exposes physical shared and per-chip inputs.</summary>

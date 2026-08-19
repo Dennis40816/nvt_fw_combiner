@@ -2221,14 +2221,14 @@ after the grill closes so issues do not become a competing draft specification.
     Owner-approved implementation decision on 2026-08-18 grants the Settings,
     input-card, button, and memory-visualization readability closure one named,
     non-transferable accounting amendment. The exact implementation removes
-    479 and adds 1,396 physical nonblank production lines, net +917: full
-    production changes from 98,133 to 99,050, while runtime changes from 67,981
-    to 68,106 through typed canonical CtrlRAM family roles and Application memory
-    projection facts. Application becomes 29,665;
+    673 and adds 2,103 physical nonblank production lines, net +1,430: full
+    production changes from 98,133 to 99,563, while runtime changes from 67,981
+    to 68,109 through typed canonical CtrlRAM family roles and Application memory
+    projection facts. Application becomes 29,668;
     Domain plus Profiles becomes 20,634,
     Bootstrap plus CLI plus Desktop remains 3,074, and Infrastructure plus
     Contracts plus CRC worker remains 14,733. The Presentation growth owns
-    aligned memory columns, truthful protected-region/source projection,
+    aligned memory columns, one-item-per-source range grouping, truthful protected-region/source projection,
     complete English/Traditional Chinese plan and slot text, responsive input
     cards, and project-owned button/focus visuals. These exact values become
     descending ratchets immediately. The amendment creates no reusable budget,

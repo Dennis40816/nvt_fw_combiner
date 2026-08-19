@@ -26,7 +26,6 @@ internal sealed partial class MainWindowViewModel
         OnPropertyChanged(nameof(WorkspaceTitle));
         OnPropertyChanged(nameof(WorkspaceSummary));
         OnPropertyChanged(nameof(SettingsPreview));
-        OnPropertyChanged(nameof(Merge.MergePreview));
         OnPropertyChanged(nameof(Merge.MergeMemorySummary));
         OnPropertyChanged(nameof(Merge.StandardMergeSupportSummary));
         OnPropertyChanged(nameof(Merge.MergeReadinessStatus));

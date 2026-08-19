@@ -11,7 +11,7 @@ internal static class BootstrapTestHost
 
     internal static CompositionHostServices CreateServices()
     {
-        CompositionHostServices services = CompositionHostServices.Create();
+        var services = CompositionHostServices.Create();
         return services.ExternalEnvironmentLoader
             .LoadToCompletionAsync(null, CancellationToken.None)
             .GetAwaiter().GetResult().Succeeded

@@ -98,6 +98,8 @@ public sealed partial class RepositoryBoundaryTests
         Assert.DoesNotContain("0x37000", memoryRunner, StringComparison.Ordinal);
         Assert.DoesNotContain("0x37FFF", memoryRunner, StringComparison.Ordinal);
         Assert.DoesNotContain("customer-info", memoryRunner, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("ShellTextResources text,", memoryRunner, StringComparison.Ordinal);
+        Assert.DoesNotContain("text ??=", memoryRunner, StringComparison.Ordinal);
         Assert.DoesNotContain("NormalizeSourceLabel", memorySegmentViewModel, StringComparison.Ordinal);
         Assert.DoesNotContain("CreateCompactDetail", memorySegmentViewModel, StringComparison.Ordinal);
     }

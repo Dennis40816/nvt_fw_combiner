@@ -103,25 +103,6 @@ internal sealed partial class ShellTextResources
         };
     }
 
-    public string FormatReplaceCoverageGroupSummary(ReplaceRegionGroup group, int count)
-    {
-        return group switch
-        {
-            ReplaceRegionGroup.Cascade => SelectLanguage(
-                $"{count} cascade-only areas that can be replaced.",
-                $"{count} 個可取代的串接專用區域。"),
-            ReplaceRegionGroup.Base => SelectLanguage(
-                $"{count} areas retained from the base firmware BIN.",
-                $"{count} 個從基底韌體 BIN 保留的區域。"),
-            ReplaceRegionGroup.Common or ReplaceRegionGroup.Master or
-            ReplaceRegionGroup.SlaveRight or ReplaceRegionGroup.SlaveLeft or
-            ReplaceRegionGroup.Other => SelectLanguage(
-                $"{count} areas that can be replaced for this IC group.",
-                $"此 IC 群組有 {count} 個可取代區域。"),
-            _ => throw new ArgumentOutOfRangeException(nameof(group), group, null),
-        };
-    }
-
     public string FormatAreaSelectionSummary(int selected, int total)
     {
         return selected == 0

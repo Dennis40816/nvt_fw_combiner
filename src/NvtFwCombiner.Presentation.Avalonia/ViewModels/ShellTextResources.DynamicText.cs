@@ -408,8 +408,8 @@ internal sealed partial class ShellTextResources
                 "Blue shows new DP bytes; gray shows sections preserved or restored from the Reference FlashCode.",
                 "藍色代表新的 DP 資料；灰色代表從 Reference FlashCode 保留或還原的區段。"),
             ExperienceIds.CtrlRamReplace => SelectLanguage(
-                "Solid blocks are changed; diagonal blocks keep bytes from the base firmware.",
-                "實色區塊表示已變更；斜線區塊保留基礎韌體的資料。"),
+                "Solid colors identify selected CtrlRAM regions; diagonal hatching means bytes remain from the base firmware.",
+                "實色標示已選取的 CtrlRAM 區域；斜線表示資料仍保留自基礎韌體。"),
             ExperienceIds.GeneralReplace => SelectLanguage(
                 "Base flash stays unchanged except approved explicit replacement ranges.",
                 "除核准的明確取代範圍外，基礎 Flash 內容保持不變。"),
