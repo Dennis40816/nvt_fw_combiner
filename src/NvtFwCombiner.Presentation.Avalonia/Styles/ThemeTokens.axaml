@@ -74,7 +74,7 @@
       <SolidColorBrush x:Key="NfcMemoryAddressBorderBrush" Color="#CCD7E5" />
       <SolidColorBrush x:Key="NfcMemoryAddressTextBrush" Color="#243654" />
       <SolidColorBrush x:Key="NfcMemoryDividerBrush" Color="#E4E9F1" />
-      <SolidColorBrush x:Key="NfcMemoryInteractionSurfaceBrush" Color="#FFFFFF" /><BoxShadows x:Key="NfcMemoryRowHoverShadow">0 5 16 0 #29204B7C</BoxShadows><BoxShadows x:Key="NfcMemorySegmentHoverShadow">0 4 12 0 #57005BB5</BoxShadows>
+      <SolidColorBrush x:Key="NfcMemoryInteractionSurfaceBrush" Color="#EEF5FF" /><BoxShadows x:Key="NfcMemoryRowHoverShadow">0 5 16 0 #29204B7C</BoxShadows><BoxShadows x:Key="NfcMemorySegmentHoverShadow">0 4 12 0 #57005BB5</BoxShadows>
       <SolidColorBrush x:Key="NfcMemoryNeutralFillBrush" Color="#94A3B8" />
       <SolidColorBrush x:Key="NfcMemoryDpFillBrush" Color="#2563EB" />
       <SolidColorBrush x:Key="NfcMemoryTpFillBrush" Color="#16A34A" />
@@ -168,7 +168,7 @@
       <SolidColorBrush x:Key="NfcMemoryAddressBorderBrush" Color="#34465F" />
       <SolidColorBrush x:Key="NfcMemoryAddressTextBrush" Color="#E1EBFA" />
       <SolidColorBrush x:Key="NfcMemoryDividerBrush" Color="#27364A" />
-      <SolidColorBrush x:Key="NfcMemoryInteractionSurfaceBrush" Color="#182538" /><BoxShadows x:Key="NfcMemoryRowHoverShadow">0 5 16 0 #59000000</BoxShadows><BoxShadows x:Key="NfcMemorySegmentHoverShadow">0 4 12 0 #52569EFF</BoxShadows>
+      <SolidColorBrush x:Key="NfcMemoryInteractionSurfaceBrush" Color="#1B3150" /><BoxShadows x:Key="NfcMemoryRowHoverShadow">0 5 16 0 #59000000</BoxShadows><BoxShadows x:Key="NfcMemorySegmentHoverShadow">0 4 12 0 #52569EFF</BoxShadows>
       <SolidColorBrush x:Key="NfcMemoryNeutralFillBrush" Color="#64748B" />
       <SolidColorBrush x:Key="NfcMemoryDpFillBrush" Color="#3B82F6" />
       <SolidColorBrush x:Key="NfcMemoryTpFillBrush" Color="#22C55E" />

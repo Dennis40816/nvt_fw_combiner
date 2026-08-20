@@ -170,8 +170,8 @@ public sealed partial class RepositoryBoundaryTests
             StringComparison.Ordinal);
         Assert.Contains("ReplaceMemoryMapRowTemplate", sharedTemplates, StringComparison.Ordinal);
         Assert.Contains("MergeMemoryMapRowTemplate", sharedTemplates, StringComparison.Ordinal);
-        Assert.DoesNotContain("MemoryCoverageTooltipTemplate", sharedTemplates, StringComparison.Ordinal);
-        Assert.DoesNotContain("ContentTemplate=\"{StaticResource MemoryCoverageTooltipTemplate}\"", sharedTemplates, StringComparison.Ordinal);
+        Assert.Contains("MemoryCoverageTooltipTemplate", sharedTemplates, StringComparison.Ordinal);
+        Assert.Contains("ContentTemplate=\"{StaticResource MemoryCoverageTooltipTemplate}\"", sharedTemplates, StringComparison.Ordinal);
         Assert.Contains("AutomationProperties.HelpText=\"{Binding AccessibleDetail}\"", sharedTemplates, StringComparison.Ordinal);
         Assert.Contains("Text=\"{Binding CompactDetail}\"", sharedTemplates, StringComparison.Ordinal);
         Assert.Contains("DataTemplate x:Key=\"FirmwareSlotInformationFactTemplate\"", sharedTemplates, StringComparison.Ordinal);

@@ -135,6 +135,10 @@
   </views:SpaciousPanel>
 </DataTemplate>
 
+<DataTemplate x:Key="MemoryCoverageTooltipTemplate" DataType="vm:MemoryCoverageSegmentViewModel"><Border Classes="surface" MaxWidth="360" Padding="10">
+    <StackPanel Spacing="{DynamicResource NfcSpace8}"><Grid ColumnDefinitions="*,Auto" ColumnSpacing="{DynamicResource NfcSpace8}"><TextBlock Classes="bodyEmphasisText" Text="{Binding SourceLabel}" TextWrapping="Wrap" /><Label Grid.Column="1" Classes="compactBadge neutralBadge countBadge coverageChangeBadge" Classes.changed="{Binding IsChanged}" Padding="7,2" Content="{Binding ChangeLabel}" IsVisible="{Binding HasChangeState}" /></Grid><Grid ColumnDefinitions="54,*" RowDefinitions="Auto,Auto,Auto" ColumnSpacing="10" RowSpacing="5"><TextBlock Classes="tableHeader" Text="{ReflectionBinding $parent[Window].DataContext.Text.RangeLabel}" /><TextBlock Grid.Column="1" Classes="technicalValue" Text="{Binding RangeLabel}" TextWrapping="Wrap" /><TextBlock Grid.Row="1" Classes="tableHeader" Text="{ReflectionBinding $parent[Window].DataContext.Text.ResultLabel}" /><TextBlock Grid.Row="1" Grid.Column="1" Classes="captionText" Text="{Binding PreservationSummary}" TextWrapping="Wrap" /><TextBlock Grid.Row="2" Classes="tableHeader" Text="{ReflectionBinding $parent[Window].DataContext.Text.DetailLabel}" /><TextBlock Grid.Row="2" Grid.Column="1" Classes="captionText" Text="{Binding Detail}" TextWrapping="Wrap" /></Grid></StackPanel>
+  </Border></DataTemplate>
+
 <DataTemplate x:Key="MemoryCoverageSegmentBarTemplate" DataType="vm:MemoryCoverageSegmentViewModel">
   <Border
       Classes="memoryCoverageFill memoryCoverageMarker memoryCoverageBarSegment"
@@ -156,13 +160,11 @@
       Classes.tpBackup="{Binding FillRole, Converter={x:Static converters:ObjectConverters.Equal}, ConverterParameter={x:Static vm:MemoryCoverageFillRole.TpBackup}}"
       AutomationProperties.HelpText="{Binding AccessibleDetail}"
       AutomationProperties.Name="{Binding AccessibleDetail}"
-      behaviors:MemoryCoverageInteractionBehavior.IsEnabled="True"
+      behaviors:FocusToolTipBehavior.IsEnabled="True" behaviors:MemoryCoverageInteractionBehavior.IsEnabled="True"
       Focusable="True"
       RenderTransformOrigin="50%,50%"
       Height="34">
-    <Border
-        Background="{StaticResource KeptDiagonalStripeBrush}"
-        IsVisible="{Binding UsesKeptPattern}" />
+    <Border Background="{StaticResource KeptDiagonalStripeBrush}" IsVisible="{Binding UsesKeptPattern}" /><ToolTip.Tip><ContentControl Content="{Binding}" ContentTemplate="{StaticResource MemoryCoverageTooltipTemplate}" /></ToolTip.Tip>
   </Border>
 </DataTemplate>
 
@@ -186,22 +188,21 @@
       Classes.tpBackup="{Binding FillRole, Converter={x:Static converters:ObjectConverters.Equal}, ConverterParameter={x:Static vm:MemoryCoverageFillRole.TpBackup}}"
       AutomationProperties.HelpText="{Binding AccessibleDetail}"
       AutomationProperties.Name="{Binding AccessibleDetail}"
-      behaviors:MemoryCoverageInteractionBehavior.IsEnabled="True"
+      behaviors:FocusToolTipBehavior.IsEnabled="True" behaviors:MemoryCoverageInteractionBehavior.IsEnabled="True"
       RenderTransformOrigin="50%,50%"
       Focusable="True"
       Height="34">
-  </Border>
+    <ToolTip.Tip><ContentControl Content="{Binding}" ContentTemplate="{StaticResource MemoryCoverageTooltipTemplate}" /></ToolTip.Tip></Border>
 </DataTemplate>
 
 <DataTemplate x:Key="MemoryCoverageSegmentListTemplate" DataType="vm:MemoryCoverageSegmentViewModel">
   <Border
-      Classes="listRow memoryInfoRow"
+      Classes="listRow memoryInfoRow memoryCoverageLinkedRow" Classes.linked="{Binding Interaction.IsActive}" Classes.reducedMotion="{ReflectionBinding $parent[Window].DataContext.IsReducedMotionEnabled}"
       Padding="0,10"
       AutomationProperties.HelpText="{Binding AccessibleDetail}"
-      AutomationProperties.Name="{Binding AccessibleDetail}">
-    <Grid
-        ColumnDefinitions="12,*"
-        ColumnSpacing="{DynamicResource NfcSpace8}">
+      AutomationProperties.Name="{Binding AccessibleDetail}" behaviors:FocusToolTipBehavior.IsEnabled="True" behaviors:MemoryCoverageInteractionBehavior.IsEnabled="True" Focusable="True">
+    <ToolTip.Tip><ContentControl Content="{Binding}" ContentTemplate="{StaticResource MemoryCoverageTooltipTemplate}" /></ToolTip.Tip>
+    <Grid ColumnDefinitions="12,*" ColumnSpacing="{DynamicResource NfcSpace8}">
       <Border
           Classes="memoryCoverageFill memoryCoverageMarker"
           Classes.changed="{Binding IsChanged}"
@@ -298,13 +299,12 @@
 
 <DataTemplate x:Key="MemoryCoveragePlainSegmentListTemplate" DataType="vm:MemoryCoverageSegmentViewModel">
   <Border
-      Classes="listRow memoryInfoRow"
+      Classes="listRow memoryInfoRow memoryCoverageLinkedRow" Classes.linked="{Binding Interaction.IsActive}" Classes.reducedMotion="{ReflectionBinding $parent[Window].DataContext.IsReducedMotionEnabled}"
       Padding="0,10"
       AutomationProperties.HelpText="{Binding AccessibleDetail}"
-      AutomationProperties.Name="{Binding AccessibleDetail}">
-    <Grid
-        ColumnDefinitions="12,*"
-        ColumnSpacing="{DynamicResource NfcSpace8}">
+      AutomationProperties.Name="{Binding AccessibleDetail}" behaviors:FocusToolTipBehavior.IsEnabled="True" behaviors:MemoryCoverageInteractionBehavior.IsEnabled="True" Focusable="True">
+    <ToolTip.Tip><ContentControl Content="{Binding}" ContentTemplate="{StaticResource MemoryCoverageTooltipTemplate}" /></ToolTip.Tip>
+    <Grid ColumnDefinitions="12,*" ColumnSpacing="{DynamicResource NfcSpace8}">
       <Border
           Classes="memoryCoverageFill"
           Classes.conflict="{Binding FillRole, Converter={x:Static converters:ObjectConverters.Equal}, ConverterParameter={x:Static vm:MemoryCoverageFillRole.Conflict}}"
@@ -465,8 +465,9 @@
       Padding="0,10"
       AutomationProperties.HelpText="{Binding AccessibleDetail}"
       AutomationProperties.Name="{Binding AccessibleDetail}"
-      behaviors:MemoryCoverageInteractionBehavior.IsEnabled="True"
+      behaviors:FocusToolTipBehavior.IsEnabled="True" behaviors:MemoryCoverageInteractionBehavior.IsEnabled="True"
       Focusable="True">
+    <ToolTip.Tip><ContentControl Content="{Binding PrimaryRange}" ContentTemplate="{StaticResource MemoryCoverageTooltipTemplate}" /></ToolTip.Tip>
     <StackPanel>
       <ContentControl
           Content="{Binding}"

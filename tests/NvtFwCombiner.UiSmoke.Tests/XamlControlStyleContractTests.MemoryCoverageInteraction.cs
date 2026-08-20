@@ -43,32 +43,45 @@ public sealed partial class XamlControlStyleContractTests
         AssertTrackAllowsSegmentLift(templates, "{Binding MergeCoverageSegments}");
         AssertTrackAllowsSegmentLift(workflowTemplates, "{Binding ReplaceCoverageSegments}");
         Assert.DoesNotContain("NfcMemoryAddressTextBrush", linkedSegment, StringComparison.Ordinal);
-        Assert.DoesNotContain("MemoryCoverageTooltipTemplate", templates, StringComparison.Ordinal);
-        Assert.DoesNotContain(
+        Assert.Contains("MemoryCoverageTooltipTemplate", templates, StringComparison.Ordinal);
+        Assert.Contains(
             "FocusToolTipBehavior.IsEnabled",
             ExtractDataTemplate(templates, "MemoryCoverageSegmentBarTemplate"),
             StringComparison.Ordinal);
-        Assert.DoesNotContain(
+        Assert.Contains(
             "FocusToolTipBehavior.IsEnabled",
             ExtractDataTemplate(templates, "MemoryCoveragePlainSegmentBarTemplate"),
             StringComparison.Ordinal);
-        Assert.DoesNotContain(
+        Assert.Contains(
             "FocusToolTipBehavior.IsEnabled",
             ExtractDataTemplate(templates, "MemoryCoverageLogicalItemTemplate"),
             StringComparison.Ordinal);
+        Assert.Contains(
+            "FocusToolTipBehavior.IsEnabled",
+            ExtractDataTemplate(templates, "MemoryCoverageSegmentListTemplate"),
+            StringComparison.Ordinal);
+        Assert.Contains(
+            "FocusToolTipBehavior.IsEnabled",
+            ExtractDataTemplate(templates, "MemoryCoveragePlainSegmentListTemplate"),
+            StringComparison.Ordinal);
+        Assert.Equal(
+            5,
+            templates.Split(
+                "ContentTemplate=\"{StaticResource MemoryCoverageTooltipTemplate}\"",
+                StringSplitOptions.None).Length - 1);
 
         Assert.Contains("Border.memoryCoverageLinkedRow:focus-visible", styles, StringComparison.Ordinal);
         Assert.Contains("Border.memoryCoverageBarSegment:focus-visible", styles, StringComparison.Ordinal);
         Assert.Contains("NfcAccentStrongBrush", styles, StringComparison.Ordinal);
         Assert.Contains("linked.reducedMotion", styles, StringComparison.Ordinal);
         Assert.Equal(
-            3,
+            5,
             templates.Split(
                 "Classes.reducedMotion=\"{ReflectionBinding $parent[Window].DataContext.IsReducedMotionEnabled}\"",
                 StringSplitOptions.None).Length - 1);
 
-        Assert.Contains("x:Key=\"NfcMemoryInteractionSurfaceBrush\" Color=\"#FFFFFF\"", themeTokens, StringComparison.Ordinal);
-        Assert.Contains("x:Key=\"NfcMemoryInteractionSurfaceBrush\" Color=\"#182538\"", themeTokens, StringComparison.Ordinal);
+        Assert.Contains("x:Key=\"NfcMemoryInteractionSurfaceBrush\" Color=\"#EEF5FF\"", themeTokens, StringComparison.Ordinal);
+        Assert.Contains("x:Key=\"NfcMemoryInteractionSurfaceBrush\" Color=\"#1B3150\"", themeTokens, StringComparison.Ordinal);
         Assert.Contains("x:Key=\"NfcMemoryTrackBrush\" Color=\"#E7EDF5\"", themeTokens, StringComparison.Ordinal);
         Assert.Contains("x:Key=\"NfcMemoryTrackBrush\" Color=\"#263449\"", themeTokens, StringComparison.Ordinal);
         Assert.DoesNotContain("NfcMemorySegmentDividerBrush", themeTokens, StringComparison.Ordinal);
@@ -271,6 +284,36 @@ public sealed partial class XamlControlStyleContractTests
             Assert.Equal(1.18, activeSegment.RenderTransform.Value.M22, precision: 2);
             Assert.False(track.ClipToBounds);
             Assert.False(items.ClipToBounds);
+            Assert.True(FocusToolTipBehavior.GetIsEnabled(activeSegment));
+            ContentControl segmentCard = Assert.IsType<ContentControl>(ToolTip.GetTip(activeSegment));
+            activeSegment.RaiseEvent(new FocusChangedEventArgs(InputElement.GotFocusEvent));
+            Dispatcher.UIThread.RunJobs();
+            Assert.True(ToolTip.GetIsOpen(activeSegment));
+            Assert.Same(active, segmentCard.Content);
+            Assert.NotNull(segmentCard.ContentTemplate);
+            activeSegment.RaiseEvent(new FocusChangedEventArgs(InputElement.LostFocusEvent));
+
+            Border activeRow = Assert.Single(
+                panel.GetVisualDescendants().OfType<Border>(),
+                candidate => ReferenceEquals(candidate.DataContext, active) &&
+                    candidate.Classes.Contains("memoryCoverageLinkedRow"));
+            Assert.Contains("linked", activeRow.Classes);
+            Assert.True(FocusToolTipBehavior.GetIsEnabled(activeRow));
+            Assert.True(Avalonia.Application.Current!.TryGetResource(
+                "NfcMemoryInteractionSurfaceBrush",
+                theme,
+                out object? expectedRowSurface));
+            Assert.Equal(
+                Assert.IsType<SolidColorBrush>(expectedRowSurface).Color,
+                Assert.IsType<ISolidColorBrush>(activeRow.Background, exactMatch: false).Color);
+            ContentControl rowCard = Assert.IsType<ContentControl>(ToolTip.GetTip(activeRow));
+            activeRow.RaiseEvent(new FocusChangedEventArgs(InputElement.GotFocusEvent));
+            Dispatcher.UIThread.RunJobs();
+            Assert.True(ToolTip.GetIsOpen(activeRow));
+            Assert.Same(active, rowCard.Content);
+            Assert.NotNull(rowCard.ContentTemplate);
+            activeRow.RaiseEvent(new FocusChangedEventArgs(InputElement.LostFocusEvent));
+            Assert.False(ToolTip.GetIsOpen(activeRow));
 
             for (Visual? ancestor = activeSegment; ancestor is not null && ancestor != track;
                  ancestor = ancestor.GetVisualParent())

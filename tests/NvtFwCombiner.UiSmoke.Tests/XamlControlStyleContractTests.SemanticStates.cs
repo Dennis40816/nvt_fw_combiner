@@ -322,12 +322,12 @@ public sealed partial class XamlControlStyleContractTests
             Assert.Contains($"x:Key=\"{token}\" Color=\"{dark}\"", tokens, StringComparison.Ordinal);
         }
         Assert.Contains("Focusable=\"True\"", replaceBar, StringComparison.Ordinal);
-        Assert.DoesNotContain("FocusToolTipBehavior.IsEnabled", replaceBar, StringComparison.Ordinal);
+        Assert.Contains("FocusToolTipBehavior.IsEnabled", replaceBar, StringComparison.Ordinal);
         Assert.Contains("AutomationProperties.HelpText=\"{Binding AccessibleDetail}\"", replaceBar, StringComparison.Ordinal);
         Assert.Contains("MemoryCoverageInteractionBehavior.IsEnabled=\"True\"", replaceBar, StringComparison.Ordinal);
         Assert.Contains("Classes.linked=\"{Binding Interaction.IsActive}\"", replaceBar, StringComparison.Ordinal);
         Assert.Contains("Focusable=\"True\"", mergeBar, StringComparison.Ordinal);
-        Assert.DoesNotContain("FocusToolTipBehavior.IsEnabled", mergeBar, StringComparison.Ordinal);
+        Assert.Contains("FocusToolTipBehavior.IsEnabled", mergeBar, StringComparison.Ordinal);
         Assert.Contains("AutomationProperties.HelpText=\"{Binding AccessibleDetail}\"", mergeBar, StringComparison.Ordinal);
         Assert.Contains("MemoryCoverageInteractionBehavior.IsEnabled=\"True\"", logicalItem, StringComparison.Ordinal);
         Assert.Contains("Classes.linked=\"{Binding Interaction.IsActive}\"", logicalItem, StringComparison.Ordinal);
@@ -376,8 +376,8 @@ public sealed partial class XamlControlStyleContractTests
         Assert.Contains("Classes=\"compactSubtleSurface memoryInfoAddress\"", mergePanel, StringComparison.Ordinal);
         Assert.Contains("Classes=\"monoText detailText memoryInfoAddressText\"", replacePanel, StringComparison.Ordinal);
         Assert.Contains("Classes=\"monoText detailText memoryInfoAddressText\"", mergePanel, StringComparison.Ordinal);
-        Assert.Contains("Classes=\"listRow memoryInfoRow\"", replaceList, StringComparison.Ordinal);
-        Assert.Contains("Classes=\"listRow memoryInfoRow\"", mergeList, StringComparison.Ordinal);
+        Assert.Contains("Classes=\"listRow memoryInfoRow memoryCoverageLinkedRow\"", replaceList, StringComparison.Ordinal);
+        Assert.Contains("Classes=\"listRow memoryInfoRow memoryCoverageLinkedRow\"", mergeList, StringComparison.Ordinal);
         Assert.DoesNotContain(
             "Classes=\"spaciousList\" ItemTemplate=\"{StaticResource MemoryCoverageSegmentListTemplate}\"",
             replacePanel,
