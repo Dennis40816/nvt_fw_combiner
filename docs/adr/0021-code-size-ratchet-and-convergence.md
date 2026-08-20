@@ -568,6 +568,33 @@ work. It changes no profile, range, firmware byte, operation order, support
 truth, Golden evidence, report wire/history, processor protocol, CLI, or release
 gate. Later work resumes ordinary descending enforcement from these values.
 
+### 2026-08-20 remaining-TODO reliability and Build Settings amendment
+
+The owner directed completion of the remaining authorized TODOs for review and
+then consolidated every mode-specific pre-Build choice into one shared Build
+Settings surface. The same fixed work adds an exact accepted-session output
+bundle admission, atomic primary/additional/source promotion, typed commit
+receipts and additive bundle provenance, the six-profile DP Replace naming-safe
+frontier, a route-independent Settings modal, and lifecycle-safe Memory Layout
+interaction. AB A-only output is selected from the compiled delivery plan and
+commits inside the same atomic bundle rather than through a second loose path.
+
+The exact frozen measurement changes full production from 100,157 to 102,977
+and runtime from 68,174 to 70,057 nonblank lines. Domain plus Profiles remains
+20,632; Application becomes 30,691; Bootstrap plus CLI plus Desktop becomes
+3,378; and Infrastructure plus Contracts plus CRC worker becomes 15,356. The
+remaining 937-line delta is Presentation. These values become descending
+ratchets immediately.
+
+This named amendment is non-transferable and cannot fund later work. It is
+limited to accepted-session identity, host delivery/receipt/report provenance,
+mode-aware pre-Build UI, localization/accessibility, and fail-closed regression
+evidence. It changes no firmware range, operation order, output byte,
+CRC/header behavior, processor protocol, support claim, or Golden expected
+bytes. DP Replace naming changes only the six recorded safe typed publications;
+all unresolved provider, NT51928, CtrlRAM, and General naming gates remain
+fail-closed under their recorded authority.
+
 ## Consequences
 
 - `v0.9.8` must remove duplicate ownership and unused compatibility code before

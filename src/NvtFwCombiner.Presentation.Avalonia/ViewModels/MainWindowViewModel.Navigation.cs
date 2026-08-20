@@ -13,6 +13,9 @@ internal sealed partial class MainWindowViewModel
     [ObservableProperty]
     public partial bool IsNavigationClearConfirmationOpen { get; set; }
 
+    [ObservableProperty]
+    public partial bool IsSettingsModalOpen { get; private set; }
+
     public ObservableCollection<ShellNavigationEntryViewModel> NavigationTrail { get; } = [];
 
     public string NavigationPath => string.Join(
@@ -32,7 +35,14 @@ internal sealed partial class MainWindowViewModel
 
     public bool IsLatestOutputActionVisible => IsCompositionActionRailVisible && BuildResult.HasLatestCommittedOutput;
 
+    /// <summary>Whether a normal Settings close may return focus to its launcher.</summary>
+    public bool CanRestoreSettingsFocus => !IsOtherBlockingSurfaceOpen;
+
     private bool IsBlockingSurfaceOpen =>
+        IsSettingsModalOpen || IsOtherBlockingSurfaceOpen;
+
+    private bool IsOtherBlockingSurfaceOpen =>
+        OutputDelivery.IsOpen ||
         Replace.IsReplaceSelectionModalOpen ||
         Replace.IsCtrlRamFirmwareVersionModalOpen ||
         WorkflowSession.IsWorkflowContextModalOpen ||
@@ -48,7 +58,7 @@ internal sealed partial class MainWindowViewModel
 
     private void MainWindowViewModel_OnPropertyChanged(object? sender, PropertyChangedEventArgs e)
     {
-        if (e.PropertyName == nameof(IsNavigationClearConfirmationOpen))
+        if (e.PropertyName is nameof(IsNavigationClearConfirmationOpen) or nameof(IsSettingsModalOpen))
         {
             NotifyCompositionActionRailVisibilityChanged();
         }
@@ -56,6 +66,11 @@ internal sealed partial class MainWindowViewModel
 
     private void NotifyCompositionActionRailVisibilityChanged()
     {
+        if (IsSettingsModalOpen && IsOtherBlockingSurfaceOpen)
+        {
+            IsSettingsModalOpen = false;
+        }
+
         OnPropertyChanged(nameof(IsCompositionActionRailVisible));
         OnPropertyChanged(nameof(IsLatestOutputActionVisible));
     }
@@ -65,6 +80,23 @@ internal sealed partial class MainWindowViewModel
     public IRelayCommand ConfirmNavigationAndClearCommand { get; }
 
     public IRelayCommand CancelNavigationClearCommand { get; }
+
+    private void OpenSettings()
+    {
+        if (IsBlockingSurfaceOpen)
+        {
+            return;
+        }
+
+        _deferredState.EnsureSettings(RefreshSettingsState);
+        Settings.SelectSectionCommand.Execute(SettingsSection.Preferences);
+        IsSettingsModalOpen = true;
+    }
+
+    private void CloseSettings()
+    {
+        IsSettingsModalOpen = false;
+    }
 
     private void NavigateToPage(ShellPage page)
     {
@@ -156,7 +188,6 @@ internal sealed partial class MainWindowViewModel
         return page switch
         {
             ShellPage.Home => Text.HomeLabel,
-            ShellPage.Settings => SettingsPreview.Title,
             ShellPage.Merge => Merge.MergePreview.Title,
             ShellPage.Replace => Replace.ReplacePreview.Title,
             ShellPage.HexEditor => Text.HexEditorTitle,

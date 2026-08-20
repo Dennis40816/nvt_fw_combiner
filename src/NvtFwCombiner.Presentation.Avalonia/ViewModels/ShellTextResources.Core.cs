@@ -116,6 +116,38 @@ internal sealed partial class ShellTextResources
     public string ModeLabel { get; private init; } = string.Empty;
 
     public string TargetsLabel { get; private init; } = string.Empty;
+
+    public string OutputDeliveryTitle { get; private init; } = string.Empty;
+
+    public string OutputDeliverySummary { get; private init; } = string.Empty;
+
+    public string OutputDeliveryBundleLabel { get; private init; } = string.Empty;
+
+    public string OutputDeliveryAdditionalLabel { get; private init; } = string.Empty;
+
+    public string OutputDeliveryAdditionalInBundleLabel { get; private init; } = string.Empty;
+
+    public string OutputDeliveryOutputLabel { get; private init; } = string.Empty;
+
+    public string OutputDeliveryEditOutputNameLabel { get; private init; } = string.Empty;
+
+    public string OutputDeliverySourcesLabel { get; private init; } = string.Empty;
+
+    public string OutputDeliveryFolderNameLabel { get; private init; } = string.Empty;
+
+    public string OutputDeliveryParentLabel { get; private init; } = string.Empty;
+
+    public string OutputDeliveryChooseParentLabel { get; private init; } = string.Empty;
+
+    public string OutputDeliveryResolvedLabel { get; private init; } = string.Empty;
+
+    public string OutputDeliveryConfirmLabel { get; private init; } = string.Empty;
+
+    public string OutputDeliveryCancelLabel { get; private init; } = string.Empty;
+
+    public string OutputDeliveryDestinationRequired { get; private init; } = string.Empty;
+
+    public string OutputDeliveryStaleAcceptedSession { get; private init; } = string.Empty;
 }
 
 #pragma warning restore CS1591

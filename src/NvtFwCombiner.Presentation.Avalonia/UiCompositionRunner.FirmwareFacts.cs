@@ -1,3 +1,4 @@
+using NvtFwCombiner.Domain.Composition;
 using NvtFwCombiner.Presentation.Avalonia.ViewModels;
 
 namespace NvtFwCombiner.Presentation.Avalonia;
@@ -24,9 +25,9 @@ internal static partial class UiCompositionRunner
 
         List<FirmwareSlotFactViewModel> facts =
         [
-            new("Common FW", metadata.CommonFwVersion),
+            new("Common FW Version", metadata.CommonFwVersion),
             new(
-                "TP",
+                "TP Version",
                 FormattableString.Invariant($"T{metadata.FirmwareVersion:X2}-{metadata.FirmwareSubVersion:X2}"),
                 metadata.IsFirmwareVersionBarValid ? FirmwareSlotFactState.Ordinary : FirmwareSlotFactState.Warning,
                 metadata.IsFirmwareVersionBarValid ? null : text.FirmwareSlotWarningLabel,
@@ -48,10 +49,28 @@ internal static partial class UiCompositionRunner
         CmiDpCodeMetadata? cmiMetadata = inspection.CmiDpCode;
         if (legacyMetadata is null && cmiMetadata is null)
         {
+            if (StringComparer.Ordinal.Equals(
+                    inspection.DpMetadataPrerequisite?.ArtifactBindingId,
+                    CompositionAddressSpaceIds.TpInput))
+            {
+                (string label, string detail) = text.GetPendingInputText(
+                    CompositionAddressSpaceIds.TpInput,
+                    "TP BIN");
+                return
+                [
+                    new FirmwareSlotFactViewModel(
+                        "DP Version",
+                        label,
+                        FirmwareSlotFactState.PendingInput,
+                        text.WaitingForRequiredInputsLabel,
+                        detail),
+                ];
+            }
+
             return
             [
                 new FirmwareSlotFactViewModel(
-                    "DP",
+                    "DP Version",
                     text.FirmwareSlotUnknownValueLabel,
                     FirmwareSlotFactState.Unknown,
                     text.FirmwareSlotUnknownValueLabel,
@@ -62,10 +81,10 @@ internal static partial class UiCompositionRunner
         string dpVersion = legacyMetadata is DpVersionMetadata legacy
             ? legacy.DisplayValue
             : DpVersionMetadata.FormatDisplayValue(cmiMetadata!.Value.VersionToken);
-        List<FirmwareSlotFactViewModel> facts = [new FirmwareSlotFactViewModel("DP", dpVersion)];
+        List<FirmwareSlotFactViewModel> facts = [new FirmwareSlotFactViewModel("DP Version", dpVersion)];
         if (cmiMetadata is CmiDpCodeMetadata cmi && !string.IsNullOrWhiteSpace(cmi.JiraBadge))
         {
-            facts.Add(new FirmwareSlotFactViewModel("Jira", cmi.JiraBadge));
+            facts.Add(new FirmwareSlotFactViewModel("Jira Index", cmi.JiraBadge));
         }
 
         return facts;

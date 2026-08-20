@@ -34,15 +34,28 @@ internal sealed partial class WorkflowSessionPresentationViewModel
                 _replace.ReplaceBaseSlot.HasFile ||
                 _replace.ReplaceSlots.Any(static slot => slot.HasFile) ||
                 _replace.GeneralReplaceMappings.Any(static mapping => mapping.HasFile),
-            ShellPage.Home or ShellPage.Settings or ShellPage.HexEditor => false,
+            ShellPage.Home or ShellPage.HexEditor => false,
             _ => false,
         };
     }
 
     internal void ClearSelectedInputs(ShellPage page)
     {
-        InvalidateFirmwareInspection(clearBaseProjection: true, clearSlotProjections: true);
-        _replace.InvalidateCtrlRamFirmwareVersionContextState();
+        if (page is not (ShellPage.Merge or ShellPage.Replace))
+        {
+            return;
+        }
+
+        InvalidateFirmwareInspection(
+            page == ShellPage.Merge
+                ? WorkflowInspectionOwner.Merge
+                : WorkflowInspectionOwner.Replace,
+            clearBaseProjection: page == ShellPage.Replace,
+            clearSlotProjections: true);
+        if (page == ShellPage.Replace)
+        {
+            _replace.InvalidateCtrlRamFirmwareVersionContextState();
+        }
         InvalidateFirmwareIcMismatch();
         InvalidateFirmwareNumberMismatch();
 
@@ -87,26 +100,34 @@ internal sealed partial class WorkflowSessionPresentationViewModel
         _stateBindings.RefreshCommandState();
     }
 
-    private FirmwareSlotViewModel? SelectSlotFile(string slotId, string path)
+    private FirmwareSlotViewModel? SelectSlotFile(
+        WorkflowInspectionContext context,
+        string slotId,
+        string path)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(slotId);
         ArgumentException.ThrowIfNullOrWhiteSpace(path);
 
-        FirmwareSlotViewModel? slot = FindSlot(slotId);
+        FirmwareSlotViewModel? slot = FindInspectionSlot(context, slotId);
         if (slot is null)
         {
             return null;
         }
 
-        if (_merge.IsNormalMergeModeSelected &&
+        if (context.IsStandardMerge &&
             _merge.IsStandardMergeSlot(slot) &&
             !slot.CanSelectFile)
         {
             return null;
         }
 
-        _replace.InvalidateCtrlRamFirmwareVersionContextState();
-        InvalidateFirmwareInspection(clearBaseProjection: slot.SlotId == _replace.ReplaceBaseSlot.SlotId);
+        if (context.IsReplace)
+        {
+            _replace.InvalidateCtrlRamFirmwareVersionContextState();
+        }
+        InvalidateFirmwareInspection(
+            context.Owner,
+            clearBaseProjection: slot.SlotId == _replace.ReplaceBaseSlot.SlotId);
         slot.ClearCurrentInspectionProjection();
         InvalidateFirmwareIcMismatch();
         InvalidateFirmwareNumberMismatch();
@@ -115,12 +136,12 @@ internal sealed partial class WorkflowSessionPresentationViewModel
         slot.ClearInputInspection();
         NotifySlotFileOutputNames();
 
-        if (slot.SlotId == _replace.ReplaceBaseSlot.SlotId && _replace.IsCtrlRamReplaceModeSelected)
+        if (slot.SlotId == _replace.ReplaceBaseSlot.SlotId && context.IsCtrlRamReplace)
         {
             _replace.ClearCtrlRamInspectionDisplay();
         }
-        else if ((_merge.IsNormalMergeModeSelected && _merge.IsStandardMergeSlot(slot)) ||
-            (_merge.IsAbCodeMergeModeSelected && _merge.AbMergeAddressSpaceBySlotId.ContainsKey(slot.SlotId)))
+        else if ((context.IsStandardMerge && _merge.IsStandardMergeSlot(slot)) ||
+            (context.IsAbMerge && _merge.AbMergeAddressSpaceBySlotId.ContainsKey(slot.SlotId)))
         {
             _merge.RefreshMergeMemoryMapState();
         }
@@ -141,14 +162,6 @@ internal sealed partial class WorkflowSessionPresentationViewModel
     {
         _merge.NotifyOutputFileNamesChanged();
         _replace.NotifyOutputFileNamesChanged();
-    }
-
-    private FirmwareSlotViewModel? FindSlot(string slotId)
-    {
-        return _merge.MergeSlots.Concat(_merge.StandardMergeSlots)
-            .Concat(_replace.ReplaceSlots)
-            .Concat([_replace.ReplaceBaseSlot])
-            .FirstOrDefault(slot => string.Equals(slot.SlotId, slotId, StringComparison.Ordinal));
     }
 
     private static void ClearFirmwareSlot(FirmwareSlotViewModel slot)

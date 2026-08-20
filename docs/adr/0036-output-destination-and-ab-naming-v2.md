@@ -4,6 +4,7 @@
 - Owners: Product owner, architecture owner, firmware owner
 - Supersedes: The automatic-name and collision portions of ADR 0034
 - Amends: ADR 0035
+- Amended by: ADR 0050 for optional atomic bundle-directory delivery only
 - Risk: R3 for AB profile admission; R2 for the all-mode output contract
 
 ## Context

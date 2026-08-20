@@ -5,8 +5,7 @@ namespace NvtFwCombiner.Presentation.Avalonia.ViewModels;
 
 internal sealed partial class WorkflowSessionPresentationViewModel
 {
-    private string? _firmwareIcMismatchSlotId;
-    private string? _firmwareIcMismatchPath;
+    private AcceptedFirmwareMismatchSelection? _firmwareIcMismatchSelection;
     private AcceptedFirmwareMismatchSelection? _acceptedFirmwareMismatchSelection;
 
     [ObservableProperty]
@@ -25,7 +24,10 @@ internal sealed partial class WorkflowSessionPresentationViewModel
     /// <summary>Command that retains the current IC context despite the prompt.</summary>
     public IRelayCommand DismissFirmwareIcMismatchCommand { get; }
 
-    internal bool ReconcileFirmwareIcMismatch(FirmwareSlotViewModel slot, string? detectedIc)
+    internal bool ReconcileFirmwareIcMismatch(
+        WorkflowInspectionContext context,
+        FirmwareSlotViewModel slot,
+        string? detectedIc)
     {
         if (IsFirmwareIcMismatchModalOpen ||
             !slot.HasFile ||
@@ -43,14 +45,15 @@ internal sealed partial class WorkflowSessionPresentationViewModel
 
         if (_compositionServices.Capabilities.ArePerfectFamilyMembers(SelectedIc, detectedIc))
         {
-            SelectDetectedFirmwareIc(detectedIc, slot.SlotId, slot.FilePath);
+            SelectDetectedFirmwareIc(
+                new(context, slot.SlotId, slot.FilePath),
+                detectedIc);
             return true;
         }
 
         FirmwareIcMismatchFileName = Path.GetFileName(slot.FilePath);
         FirmwareIcMismatchDetectedIc = detectedIc;
-        _firmwareIcMismatchSlotId = slot.SlotId;
-        _firmwareIcMismatchPath = slot.FilePath;
+        _firmwareIcMismatchSelection = new(context, slot.SlotId, slot.FilePath);
         OnPropertyChanged(nameof(FirmwareIcMismatchFileName));
         OnPropertyChanged(nameof(FirmwareIcMismatchDetectedIc));
         OnPropertyChanged(nameof(FirmwareIcMismatchCurrentIc));
@@ -61,31 +64,26 @@ internal sealed partial class WorkflowSessionPresentationViewModel
     private void AcceptFirmwareIcMismatch()
     {
         IsFirmwareIcMismatchModalOpen = false;
-        if (!string.IsNullOrWhiteSpace(FirmwareIcMismatchDetectedIc))
+        if (!string.IsNullOrWhiteSpace(FirmwareIcMismatchDetectedIc) &&
+            _firmwareIcMismatchSelection is { } selection)
         {
-            SelectDetectedFirmwareIc(
-                FirmwareIcMismatchDetectedIc,
-                _firmwareIcMismatchSlotId,
-                _firmwareIcMismatchPath);
+            SelectDetectedFirmwareIc(selection, FirmwareIcMismatchDetectedIc);
         }
-        _firmwareIcMismatchSlotId = null;
-        _firmwareIcMismatchPath = null;
+        _firmwareIcMismatchSelection = null;
     }
 
-    private void SelectDetectedFirmwareIc(string detectedIc, string? slotId, string? path)
+    private void SelectDetectedFirmwareIc(
+        AcceptedFirmwareMismatchSelection selection,
+        string detectedIc)
     {
-        _acceptedFirmwareMismatchSelection =
-            slotId is not null && path is not null
-                ? new AcceptedFirmwareMismatchSelection(slotId, path)
-                : null;
+        _acceptedFirmwareMismatchSelection = selection;
         SelectedIc = detectedIc;
     }
 
     private void DismissFirmwareIcMismatch()
     {
         IsFirmwareIcMismatchModalOpen = false;
-        _firmwareIcMismatchSlotId = null;
-        _firmwareIcMismatchPath = null;
+        _firmwareIcMismatchSelection = null;
     }
 
     internal void InvalidateFirmwareIcMismatch()
@@ -95,8 +93,7 @@ internal sealed partial class WorkflowSessionPresentationViewModel
             IsFirmwareIcMismatchModalOpen = false;
         }
 
-        _firmwareIcMismatchSlotId = null;
-        _firmwareIcMismatchPath = null;
+        _firmwareIcMismatchSelection = null;
         _acceptedFirmwareMismatchSelection = null;
     }
 

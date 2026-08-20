@@ -1,7 +1,6 @@
 using System.Text.Json;
 using NvtFwCombiner.Application.Authoring;
 using NvtFwCombiner.Application.Capabilities;
-using NvtFwCombiner.Application.FlashMaps;
 using NvtFwCombiner.Domain.Composition;
 using NvtFwCombiner.Presentation.Avalonia.ViewModels;
 using NvtFwCombiner.TestSupport;
@@ -203,6 +202,7 @@ public sealed partial class MergeWorkflowTests
         string tpBPath = workspace.Write("tp-b.bin", CreateUiAbTpImage(
             0x82, 0x03, commonFwMajor: 2, commonFwMinor: 0, commonFwAdditional: 0, projectId: 0x6A5C));
         MainWindowViewModel viewModel = PresentationTestHost.CreateViewModel();
+        viewModel.ShowMergeCommand.Execute(null);
         viewModel.WorkflowSession.SelectedIc = "NT51929";
         viewModel.Merge.SelectedMergeMode = ExperienceIds.AbMerge;
 
@@ -235,17 +235,17 @@ public sealed partial class MergeWorkflowTests
         Assert.Contains(
             tpASlot.FirmwareFacts,
             static fact => fact.Label == "TPA" && fact.Value == "T81-00");
-        Assert.Contains(tpASlot.FirmwareFacts, static fact => fact.Label == "Common FW" && fact.Value == "1.4.1");
+        Assert.Contains(tpASlot.FirmwareFacts, static fact => fact.Label == "Common FW Version" && fact.Value == "1.4.1");
         Assert.Contains(tpASlot.FirmwareFacts, static fact => fact.Label == "PID" && fact.Value == "0x5102");
-        Assert.DoesNotContain(tpASlot.FirmwareFacts, static fact => fact.Label == "TP");
+        Assert.Contains(tpASlot.FirmwareFacts, static fact => fact.Label == "TP Version" && fact.Value == "T81-00");
         FirmwareSlotViewModel tpBSlot = viewModel.Merge.MergeSlots.Single(
             static slot => slot.SlotId == CompositionAddressSpaceIds.TpBInput);
         Assert.Contains(
             tpBSlot.FirmwareFacts,
             static fact => fact.Label == "TPB" && fact.Value == "T82-03");
-        Assert.Contains(tpBSlot.FirmwareFacts, static fact => fact.Label == "Common FW" && fact.Value == "2.0.0");
+        Assert.Contains(tpBSlot.FirmwareFacts, static fact => fact.Label == "Common FW Version" && fact.Value == "2.0.0");
         Assert.Contains(tpBSlot.FirmwareFacts, static fact => fact.Label == "PID" && fact.Value == "0x6A5C");
-        Assert.DoesNotContain(tpBSlot.FirmwareFacts, static fact => fact.Label == "TP");
+        Assert.Contains(tpBSlot.FirmwareFacts, static fact => fact.Label == "TP Version" && fact.Value == "T82-03");
         Assert.True(viewModel.Merge.CanBuildMerge);
         Assert.True(viewModel.Merge.PreviewMergeCommand.CanExecute(null));
 
@@ -316,6 +316,7 @@ public sealed partial class MergeWorkflowTests
         WriteUiAbCmi(dp, dpLength / 2, major: 0x07, minor: 0x08, jira: 0x456);
         string dpPath = workspace.Write("dp-ab.bin", dp);
         MainWindowViewModel viewModel = PresentationTestHost.CreateViewModel();
+        viewModel.ShowMergeCommand.Execute(null);
         viewModel.WorkflowSession.SelectedIc = "NT51929";
         viewModel.Merge.SelectedMergeMode = ExperienceIds.AbMerge;
         await viewModel.WorkflowSession.SetSlotFileAsync(
@@ -356,6 +357,7 @@ public sealed partial class MergeWorkflowTests
         const int tpLength = 0x40000;
         using var workspace = TempWorkspace.Create("nvt-fw-combiner-ui-ab-health");
         MainWindowViewModel viewModel = PresentationTestHost.CreateViewModel();
+        viewModel.ShowMergeCommand.Execute(null);
         viewModel.WorkflowSession.SelectedIc = "NT51929";
         viewModel.Merge.SelectedMergeMode = ExperienceIds.AbMerge;
 
@@ -485,6 +487,7 @@ public sealed partial class MergeWorkflowTests
         JsonElement goldenCase = golden.CaseByIc(ic);
         using var workspace = TempWorkspace.Create($"nvt-fw-combiner-ui-{ic}");
         MainWindowViewModel viewModel = PresentationTestHost.CreateViewModel();
+        viewModel.ShowMergeCommand.Execute(null);
         viewModel.WorkflowSession.SelectedIc = $"NT{ic}";
         golden.CopyInputFilesToMergeSlots(viewModel, workspace, goldenCase);
 
@@ -615,6 +618,7 @@ public sealed partial class MergeWorkflowTests
         JsonElement goldenCase = golden.CaseByIc("51926");
         using var workspace = TempWorkspace.Create("nvt-fw-combiner-ui-merge-gate");
         MainWindowViewModel viewModel = PresentationTestHost.CreateViewModel();
+        viewModel.ShowMergeCommand.Execute(null);
         viewModel.WorkflowSession.SelectedIc = "NT51926";
         golden.CopyInputFilesToMergeSlots(viewModel, workspace, goldenCase);
 
@@ -659,30 +663,4 @@ public sealed partial class MergeWorkflowTests
         return cases;
     }
 
-    private static byte[] CreateUiAbTpImage(
-        byte version,
-        byte subVersion,
-        byte commonFwMajor,
-        byte commonFwMinor,
-        byte commonFwAdditional,
-        ushort projectId)
-    {
-        const int tpLength = 0x40000;
-        const int backupStart = 0x1000;
-        const int markerStart = backupStart + 0xFFC;
-        byte[] image = new byte[tpLength];
-        image[backupStart + FirmwareConfigLayout.FirmwareVersionOffset] = version;
-        image[backupStart + FirmwareConfigLayout.FirmwareVersionBarOffset] = unchecked((byte)~version);
-        image[backupStart + FirmwareConfigLayout.FirmwareSubVersionOffset] = subVersion;
-        image[backupStart + FirmwareConfigLayout.CommonFwMajorVersionOffset] = commonFwMajor;
-        image[backupStart + FirmwareConfigLayout.CommonFwMinorVersionOffset] = commonFwMinor;
-        image[backupStart + FirmwareConfigLayout.CommonFwAdditionalVersionOffset] = commonFwAdditional;
-        image[backupStart + FirmwareConfigLayout.ProjectIdOffset] = (byte)(projectId & 0xFF);
-        image[backupStart + FirmwareConfigLayout.ProjectIdOffset + 1] = checked((byte)(projectId >> 8));
-        image[markerStart] = 0x00;
-        image[markerStart + 1] = (byte)'N';
-        image[markerStart + 2] = (byte)'V';
-        image[markerStart + 3] = (byte)'T';
-        return image;
-    }
 }

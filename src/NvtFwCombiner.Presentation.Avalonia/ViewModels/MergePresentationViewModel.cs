@@ -26,7 +26,7 @@ internal sealed partial class MergePresentationViewModel : ObservableObject
             () => RunMergeAsync(build: false, outputPath: null),
             CanRunMerge);
         BuildMergeCommand = new AsyncRelayCommand(
-            () => RunMergeAsync(build: true, outputPath: null),
+            RequestBuildOutputDeliveryAsync,
             CanRunMerge);
     }
 

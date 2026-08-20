@@ -13,6 +13,7 @@ using Avalonia.VisualTree;
 using NvtFwCombiner.Application.MemoryLayout;
 using NvtFwCombiner.Domain.Composition;
 using NvtFwCombiner.Presentation.Avalonia.ViewModels;
+using NvtFwCombiner.Presentation.Avalonia.Views;
 using NvtFwCombiner.TestSupport;
 
 namespace NvtFwCombiner.UiSmoke.Tests;
@@ -28,13 +29,26 @@ public sealed partial class XamlControlStyleContractTests
 
     /// <summary>The real NT51950 golden route stays legible and bounded in the production rail.</summary>
     [AvaloniaTheory]
-    [InlineData(false)]
-    [InlineData(true)]
-    public async Task RealNt51950GoldenCtrlRamPanelFitsProductionRail(bool useDarkTheme)
+    [InlineData(430, false, false)]
+    [InlineData(430, false, true)]
+    [InlineData(430, true, false)]
+    [InlineData(430, true, true)]
+    [InlineData(360, false, false)]
+    [InlineData(360, false, true)]
+    [InlineData(360, true, false)]
+    [InlineData(360, true, true)]
+    public async Task RealNt51950GoldenCtrlRamPanelFitsProductionRail(
+        double railWidth,
+        bool useDarkTheme,
+        bool useTraditionalChinese)
     {
-        MainWindowViewModel viewModel = await Task.Run(
-            () => CreateNt51950GoldenCtrlRamViewModelAsync(TestContext.Current.CancellationToken),
+        MainWindowViewModel viewModel = await CreateNt51950GoldenCtrlRamViewModelAsync(
             TestContext.Current.CancellationToken);
+        if (useTraditionalChinese)
+        {
+            viewModel.SelectedLanguage = "Traditional Chinese";
+        }
+
         ThemeVariant theme = useDarkTheme ? ThemeVariant.Dark : ThemeVariant.Light;
         var workflowTemplates = new ResourceInclude(ProductionWorkflowTemplatesUri)
         {
@@ -52,7 +66,7 @@ public sealed partial class XamlControlStyleContractTests
         };
         var viewport = new ScrollViewer
         {
-            Width = 430,
+            Width = railWidth,
             Height = 760,
             HorizontalScrollBarVisibility = ScrollBarVisibility.Disabled,
             VerticalScrollBarVisibility = ScrollBarVisibility.Auto,
@@ -60,7 +74,7 @@ public sealed partial class XamlControlStyleContractTests
         };
         var host = new Window
         {
-            Width = 430,
+            Width = railWidth,
             Height = 760,
             RequestedThemeVariant = theme,
             Content = viewport,
@@ -86,8 +100,8 @@ public sealed partial class XamlControlStyleContractTests
         host.Show();
         try
         {
-            host.Measure(new Size(430, 760));
-            host.Arrange(new Rect(0, 0, 430, 760));
+            host.Measure(new Size(railWidth, 760));
+            host.Arrange(new Rect(0, 0, railWidth, 760));
             Dispatcher.UIThread.RunJobs();
             AvaloniaHeadlessPlatform.ForceRenderTimerTick();
 
@@ -99,10 +113,50 @@ public sealed partial class XamlControlStyleContractTests
                 1,
                 panel.GetVisualDescendants().OfType<TextBlock>()
                     .Count(candidate => candidate.Text == "NF CtrlRAM" && candidate.Bounds.Width > 0));
+            string expectedSelectedSummary = useTraditionalChinese
+                ? "已選取的 CtrlRAM 區域 · 3"
+                : "Selected CtrlRAM regions · 3";
+            string expectedBaseSummary = useTraditionalChinese
+                ? "基底韌體（FlashCode / TP FW）· 保留"
+                : "Base firmware (FlashCode / TP FW) · retained";
+            Assert.Contains(
+                panel.GetVisualDescendants().OfType<TextBlock>(),
+                candidate => candidate.Text == expectedSelectedSummary && candidate.Bounds.Width > 0);
+            Assert.Contains(
+                panel.GetVisualDescendants().OfType<TextBlock>(),
+                candidate => candidate.Text == expectedBaseSummary && candidate.Bounds.Width > 0);
+            Assert.DoesNotContain(
+                panel.GetVisualDescendants().OfType<TextBlock>(),
+                candidate => candidate.Text == "Common" && candidate.Bounds.Width > 0);
+            Assert.DoesNotContain(
+                panel.GetVisualDescendants().OfType<Label>(),
+                candidate => Equals(candidate.Content, "3/3") && candidate.Bounds.Width > 0);
             Assert.All(
                 panel.GetVisualDescendants().OfType<Control>()
                     .Where(candidate => candidate.Bounds is { Width: > 0, Height: > 0 }),
                 candidate => AssertControlFitsWidth(candidate, panel));
+            AssertVisibleTextDoesNotOverlap(panel);
+
+            ProportionalStackPanel proportionalBar = Assert.Single(
+                panel.GetVisualDescendants().OfType<ProportionalStackPanel>());
+            Control[] arrangedSegments =
+                [.. proportionalBar.Children.Where(child => child.Bounds.Width > 0)];
+            Assert.NotEmpty(arrangedSegments);
+            Assert.Equal(0d, arrangedSegments[0].Bounds.X, 1);
+            Assert.Equal(
+                proportionalBar.Bounds.Width,
+                arrangedSegments[^1].Bounds.Right,
+                1);
+            Assert.True(proportionalBar.Bounds.Width > 300d);
+            Assert.Equal(
+                3,
+                panel.GetVisualDescendants().OfType<Border>()
+                    .Count(candidate => candidate.Classes.Contains("memoryCoverageLinkedRow") &&
+                        candidate.Bounds.Width > 0));
+            Expander baseDisclosure = Assert.Single(
+                panel.GetVisualDescendants().OfType<Expander>(),
+                candidate => candidate.Classes.Contains("inlineDisclosure"));
+            Assert.False(baseDisclosure.IsExpanded);
 
             using Avalonia.Media.Imaging.Bitmap? frame = host.GetLastRenderedFrame();
             Assert.NotNull(frame);
@@ -111,9 +165,10 @@ public sealed partial class XamlControlStyleContractTests
             {
                 _ = Directory.CreateDirectory(outputDirectory);
                 string themeName = useDarkTheme ? "dark" : "light";
+                string languageName = useTraditionalChinese ? "zh-tw" : "en";
                 string outputPath = Path.Combine(
                     outputDirectory,
-                    $"nfc-memory-ctrlram-golden-{themeName}.png");
+                    $"nfc-memory-ctrlram-golden-{railWidth:F0}-{themeName}-{languageName}.png");
                 await using FileStream output = File.Create(outputPath);
                 frame.Save(output);
             }
@@ -333,43 +388,6 @@ public sealed partial class XamlControlStyleContractTests
             multiRangeRow.GetVisualDescendants().OfType<Border>()
                 .Count(candidate => candidate.Classes.Contains("memoryCoverageMarker")));
 
-        Assert.True(resources.TryGetResource(
-            "MemoryCoverageGroupTemplate",
-            theme,
-            out object? groupTemplateResource));
-        IDataTemplate groupTemplate = Assert.IsType<IDataTemplate>(groupTemplateResource, exactMatch: false);
-        var group = new MemoryCoverageGroupViewModel(
-            "Common",
-            [logicalItem],
-            isExpanded: true,
-            ReplaceRegionGroup.Common,
-            ShellTextResources.For(ShellLanguage.English));
-        var groupControl = new ContentControl
-        {
-            Content = group,
-            ContentTemplate = groupTemplate,
-        };
-        var groupHost = new Window
-        {
-            Width = 430,
-            RequestedThemeVariant = theme,
-            Content = groupControl,
-        };
-        groupHost.Styles.Add(new StyleInclude(ProductionMainWindowStylesUri)
-        {
-            Source = ProductionMainWindowStylesUri,
-        });
-
-        groupHost.Measure(new Size(430, 1_000));
-        groupHost.Arrange(new Rect(0, 0, 430, groupHost.DesiredSize.Height));
-
-        ToggleButton disclosure = Assert.Single(
-            groupControl.GetVisualDescendants().OfType<ToggleButton>());
-        ISolidColorBrush disclosureBackground = Assert.IsType<ISolidColorBrush>(
-            disclosure.Background,
-            exactMatch: false);
-        Assert.Equal(Colors.Transparent, disclosureBackground.Color);
-
         var inlineDisclosure = new Expander
         {
             Classes = { "inlineDisclosure" },
@@ -411,10 +429,14 @@ public sealed partial class XamlControlStyleContractTests
             "<Expander Classes=\"inlineDisclosure\"",
             ExtractDataTemplate(sharedTemplates, "FirmwareSlotGroupTemplate"),
             StringComparison.Ordinal);
+        string replacePanelTemplate =
+            ExtractDataTemplate(workflowTemplates, "ReplaceOutputLayoutPanelTemplate");
+        Assert.Contains("Classes=\"inlineDisclosure\"", replacePanelTemplate, StringComparison.Ordinal);
         Assert.Contains(
-            "<Expander Classes=\"inlineDisclosure\"",
-            ExtractDataTemplate(sharedTemplates, "MemoryCoverageGroupTemplate"),
+            "IsExpanded=\"{Binding ReplaceBaseCoverageGroup.IsExpanded, Mode=TwoWay}\"",
+            replacePanelTemplate,
             StringComparison.Ordinal);
+        Assert.DoesNotContain("MemoryCoverageGroupTemplate", sharedTemplates, StringComparison.Ordinal);
         string mainWindowStyles = ReadPresentationFile("Styles/MainWindowStyles.axaml");
         Assert.Contains(
             "Expander.inlineDisclosure /template/ ToggleButton",
@@ -428,7 +450,8 @@ public sealed partial class XamlControlStyleContractTests
         JsonElement fixtureCase = CanonicalGoldenTestData.LoadDirectCase(
             "ctrlram-replace",
             "nt51950-fw200-single-auto-prj-676-20260717");
-        MainWindowViewModel viewModel = PresentationTestHost.CreateViewModel();
+        MainWindowViewModel viewModel = await PresentationTestHost.CreateViewModelAsync(
+            cancellationToken);
         viewModel.WorkflowSession.SelectedIc = "NT51950";
         viewModel.WorkflowSession.SelectedNumber = "single";
         OpenReplace(viewModel, ExperienceIds.CtrlRamReplace);
@@ -473,5 +496,37 @@ public sealed partial class XamlControlStyleContractTests
             point.X >= -0.5 && point.X + candidate.Bounds.Width <= panel.Bounds.Width + 0.5,
             $"{candidate.GetType().Name} exceeded the 430 px Memory Layout rail: " +
             $"x={point.X:F1}, width={candidate.Bounds.Width:F1}, panel={panel.Bounds.Width:F1}.");
+    }
+
+    private static void AssertVisibleTextDoesNotOverlap(Control panel)
+    {
+        TextBlock[] textBlocks =
+            [.. panel.GetVisualDescendants().OfType<TextBlock>()
+                .Where(candidate => candidate.Bounds is { Width: > 0, Height: > 0 })];
+        for (int leftIndex = 0; leftIndex < textBlocks.Length; leftIndex++)
+        {
+            Point? leftOrigin = textBlocks[leftIndex].TranslatePoint(default, panel);
+            if (leftOrigin is not { } leftPoint)
+            {
+                continue;
+            }
+
+            var leftBounds = new Rect(leftPoint, textBlocks[leftIndex].Bounds.Size);
+            for (int rightIndex = leftIndex + 1; rightIndex < textBlocks.Length; rightIndex++)
+            {
+                Point? rightOrigin = textBlocks[rightIndex].TranslatePoint(default, panel);
+                if (rightOrigin is not { } rightPoint)
+                {
+                    continue;
+                }
+
+                var rightBounds = new Rect(rightPoint, textBlocks[rightIndex].Bounds.Size);
+                Rect intersection = leftBounds.Intersect(rightBounds);
+                Assert.True(
+                    intersection.Width <= 0.5 || intersection.Height <= 0.5,
+                    $"Memory Layout text overlapped: '{textBlocks[leftIndex].Text}' {leftBounds} and " +
+                    $"'{textBlocks[rightIndex].Text}' {rightBounds}.");
+            }
+        }
     }
 }

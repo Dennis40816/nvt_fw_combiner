@@ -35,7 +35,7 @@ public static partial class CliApplication
             return UsageError;
         }
 
-        string[] valueOptions = ["--profile", "--dp", "--tp", "--ldc", "--output", "--report"];
+        string[] valueOptions = ["--profile", "--dp", "--tp", "--ldc", "--output", "--report", CliBundleOptions.ParentOption, CliBundleOptions.NameOption];
         if (!CliOptionParser.TryParse(
                 args[1..],
                 valueOptions,
@@ -43,6 +43,11 @@ public static partial class CliApplication
                 [],
                 error,
                 out ParsedCliOptions options))
+        {
+            return UsageError;
+        }
+
+        if (!CliBundleOptions.TryValidateCombination(action, options.Values, error))
         {
             return UsageError;
         }
@@ -168,35 +173,79 @@ public static partial class CliApplication
                 pair.Value)),
         ];
 
+        bool build = action == "build";
+        bool bundleBuild = CliBundleOptions.IsEnabled(options.Values);
+        if (!CliBundleOptions.TryCreateIntent(
+                host.CompositionOutputNaming,
+                prepared.Snapshot!,
+                options.Values,
+                error,
+                out CompositionOutputBundleIntent? outputBundle))
+        {
+            return UsageError;
+        }
+
+        bool hasExplicitOutput = options.Values.ContainsKey("--output");
         CliOutputTarget outputTarget = CliCompositionRunSupport.ResolveOutputTarget(
             options.Values.GetValueOrDefault("--output"),
             compiledComposition.V2Details.OutputNamingRequirement.FileNameTemplate);
-        if (action == "build")
+        if (build && !hasExplicitOutput && !bundleBuild)
+        {
+            try
+            {
+                CompositionOutputPreparation preparation = await host.CompositionOutputNaming
+                    .PrepareAutomaticOutputAsync(
+                        prepared.Snapshot!,
+                        cancellationToken)
+                    .ConfigureAwait(false);
+                outputTarget = new CliOutputTarget(
+                    outputTarget.OutputDirectory,
+                    preparation.OutputName.FileName);
+            }
+            catch (InvalidOperationException)
+            {
+                // Execution repeats the same admission and returns the typed failure
+                // without committing the unresolved automatic output.
+            }
+        }
+
+        if (build && !bundleBuild)
         {
             CliCompositionRunSupport.EnsureOutputDoesNotAliasInputs(outputTarget, bindings);
         }
 
+        string? reportPath = options.Values.GetValueOrDefault("--report");
         CliCompositionRunSupport.EnsureReportDoesNotAliasProtectedPaths(
-            options.Values.GetValueOrDefault("--report"),
+            reportPath,
             bindings,
             outputTarget,
-            action == "build");
+            build && !bundleBuild);
 
-        bool build = action == "build";
         CompositionRunResult result = await host.CompositionExecution
             .ExecuteAsync(
                 new AcceptedCompositionExecutionRequest(
                     prepared.Snapshot!,
                     slotPaths,
                     build,
-                    outputPath: build ? outputTarget.FullPath : null,
-                    previewOutputFileName: !build && options.Values.ContainsKey("--output")
+                    outputPath: build && hasExplicitOutput && !bundleBuild
+                        ? outputTarget.FullPath
+                        : null,
+                    previewOutputFileName: !build && hasExplicitOutput
                         ? outputTarget.FileName
-                        : null),
+                        : null,
+                    automaticOutputDirectory: build && !hasExplicitOutput && !bundleBuild
+                        ? outputTarget.OutputDirectory
+                        : null,
+                    reportPath: build ? reportPath : null,
+                    outputBundle: outputBundle),
                 new CompositionRunProgressFeed(),
                 cancellationToken)
             .ConfigureAwait(false);
-        string? reportPath = options.Values.GetValueOrDefault("--report");
+        CliCompositionRunSupport.EnsureReportDoesNotAliasProtectedPaths(
+            reportPath,
+            bindings,
+            new CliOutputTarget(outputTarget.OutputDirectory, result.OutputFileName),
+            build && !bundleBuild);
         if (!string.IsNullOrWhiteSpace(reportPath))
         {
             await CliCompositionRunSupport.WriteReportJsonAsync(
@@ -208,6 +257,7 @@ public static partial class CliApplication
         }
         await PrintRunResultAsync(result, selectedProfile.IcId, output, error)
             .ConfigureAwait(false);
+        await CliBundleOptions.PrintReceiptAsync(result, output).ConfigureAwait(false);
         return result.Succeeded ? Success : CompositionFailed;
     }
 

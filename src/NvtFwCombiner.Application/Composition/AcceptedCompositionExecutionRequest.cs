@@ -16,7 +16,8 @@ public sealed class AcceptedCompositionExecutionRequest(
     bool additionalDeliveryOutputPathUsesAutomaticName = false,
     string? automaticOutputDirectory = null,
     string? reportPath = null,
-    CapabilityActionReadinessSnapshot? actionReadiness = null)
+    CapabilityActionReadinessSnapshot? actionReadiness = null,
+    CompositionOutputBundleIntent? outputBundle = null)
 {
     /// <summary>Exact immutable authoring session admitted for this run.</summary>
     public ActiveSessionSnapshot AcceptedSession { get; } = CompositionSummaryValue.NotNull(
@@ -56,6 +57,9 @@ public sealed class AcceptedCompositionExecutionRequest(
 
     /// <summary>Exact action readiness publication required by readiness-gated workflows.</summary>
     public CapabilityActionReadinessSnapshot? ActionReadiness { get; } = actionReadiness;
+
+    /// <summary>Optional atomic output-and-accepted-sources folder intent.</summary>
+    public CompositionOutputBundleIntent? OutputBundle { get; } = outputBundle;
 
     private static ReadOnlyDictionary<string, string> SnapshotSlotPaths(
         IReadOnlyDictionary<string, string> slotPaths)

@@ -65,7 +65,9 @@ public abstract partial class ShellViewModelTestBase
             new DelegatingFirmwareInspection(
                 TestHost.FirmwareInspectionExperience,
                 batchReader: reader));
-        return PresentationTestHost.PublishCanonicalCatalog(services, viewModel);
+        _ = PresentationTestHost.PublishCanonicalCatalog(services, viewModel);
+        viewModel.ShowMergeCommand.Execute(null);
+        return viewModel;
     }
 
     private protected static void AssertStandardMergeInputsReady(

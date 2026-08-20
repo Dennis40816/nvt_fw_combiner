@@ -1,4 +1,5 @@
 using NvtFwCombiner.Application.Ports;
+using System.Security.Cryptography;
 
 namespace NvtFwCombiner.Infrastructure.Files;
 
@@ -16,7 +17,7 @@ public sealed class AtomicFileCompositionOutputWriter : ICompositionOutputWriter
     }
 
     /// <inheritdoc />
-    public async ValueTask<string> CommitAsync(
+    public async ValueTask<CompositionOutputCommitReceipt> CommitAsync(
         string fileName,
         ReadOnlyMemory<byte> outputBytes,
         CancellationToken cancellationToken)
@@ -40,7 +41,11 @@ public sealed class AtomicFileCompositionOutputWriter : ICompositionOutputWriter
             }
 
             File.Move(tempPath, destinationPath, _overwrite);
-            return destinationPath;
+            return new CompositionOutputCommitReceipt(
+                destinationPath,
+                fileName,
+                outputBytes.Length,
+                Convert.ToHexStringLower(SHA256.HashData(outputBytes.Span)));
         }
         catch
         {

@@ -29,9 +29,9 @@ public sealed partial class FirmwareInspectionSlotTests
                 icId,
                 inputs);
         });
+        OpenReplace(viewModel, ExperienceIds.CtrlRamReplace);
         viewModel.WorkflowSession.SelectedIc = "NT51926";
         viewModel.WorkflowSession.SelectedNumber = IcNumberSelectionTokens.Cascade;
-        OpenReplace(viewModel, ExperienceIds.CtrlRamReplace);
         FirmwareSlotViewModel replacement = viewModel.Replace.ReplaceSlots.First(slot =>
             !ReferenceEquals(slot, viewModel.Replace.ReplaceBaseSlot) &&
             slot.Title.Contains("VN CtrlRAM", StringComparison.Ordinal));

@@ -121,7 +121,7 @@
             Padding="16"
             Background="{DynamicResource NfcWarningSurfaceBrush}"
             BorderBrush="{DynamicResource NfcWarningBorderBrush}"
-            BorderThickness="1"
+            BorderThickness="2"
             IsVisible="{Binding LoadedReport.HasPrimaryIssue}">
           <Grid ColumnDefinitions="112,*" RowDefinitions="Auto,Auto,Auto,Auto" ColumnSpacing="14" RowSpacing="10">
             <TextBlock Classes="tableHeader" Text="{Binding Text.PrimaryReasonLabel}" />

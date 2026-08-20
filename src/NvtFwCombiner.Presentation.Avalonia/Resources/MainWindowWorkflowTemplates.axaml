@@ -311,32 +311,52 @@
         </StackPanel>
       </StackPanel>
 
-      <Border Height="34" Background="{DynamicResource NfcMemoryTrackBrush}" ClipToBounds="True" CornerRadius="{DynamicResource NfcCompactCornerRadius}">
-        <Viewbox Height="34" HorizontalAlignment="Stretch" Stretch="Fill">
-          <ItemsControl Width="300" Height="34" ItemTemplate="{StaticResource MemoryCoverageSegmentBarTemplate}" ItemsSource="{Binding ReplaceCoverageSegments}">
-            <ItemsControl.ItemsPanel>
-              <ItemsPanelTemplate>
-                <StackPanel Orientation="Horizontal" />
-              </ItemsPanelTemplate>
-            </ItemsControl.ItemsPanel>
-          </ItemsControl>
-        </Viewbox>
+      <Border Height="34" Background="{DynamicResource NfcMemoryTrackBrush}" ClipToBounds="False" CornerRadius="{DynamicResource NfcCompactCornerRadius}">
+        <ItemsControl Height="34" HorizontalAlignment="Stretch" ClipToBounds="False" ItemContainerTheme="{StaticResource ProportionalContentPresenterTheme}" ItemTemplate="{StaticResource MemoryCoverageSegmentBarTemplate}" ItemsSource="{Binding ReplaceCoverageSegments}">
+          <ItemsControl.ItemsPanel>
+            <ItemsPanelTemplate>
+              <views:ProportionalStackPanel />
+            </ItemsPanelTemplate>
+          </ItemsControl.ItemsPanel>
+        </ItemsControl>
       </Border>
 
       <Grid>
           <ItemsControl ItemTemplate="{StaticResource MemoryCoverageSegmentListTemplate}" ItemsSource="{Binding ReplaceCoverageSegments}"
               IsVisible="{Binding IsReplaceCoverageFlat}" />
 
-          <ItemsControl HorizontalAlignment="Stretch" ItemContainerTheme="{StaticResource StretchContentPresenterTheme}"
-              ItemTemplate="{StaticResource MemoryCoverageGroupTemplate}" ItemsSource="{Binding ReplaceCoverageGroups}"
-              IsVisible="{Binding IsReplaceCoverageGrouped}" />
+          <StackPanel IsVisible="{Binding IsReplaceCoverageGrouped}">
+            <TextBlock Classes="sectionLabel" Text="{Binding ReplaceSelectedCoverageSummary}" />
+            <ItemsControl
+                HorizontalAlignment="Stretch"
+                ItemContainerTheme="{StaticResource StretchContentPresenterTheme}"
+                ItemTemplate="{StaticResource MemoryCoverageLogicalItemTemplate}"
+                ItemsSource="{Binding ReplaceSelectedCoverageItems}" />
+            <Border Classes="memorySupportingRow" IsVisible="{Binding HasReplaceBaseCoverage}">
+              <Expander
+                  Classes="inlineDisclosure"
+                  AutomationProperties.Name="{Binding ReplaceBaseCoverageSummary}"
+                  Background="Transparent"
+                  HorizontalAlignment="Stretch"
+                  IsExpanded="{Binding ReplaceBaseCoverageGroup.IsExpanded, Mode=TwoWay}">
+                <Expander.Header>
+                  <TextBlock Classes="bodyEmphasisText" Text="{Binding ReplaceBaseCoverageSummary}" TextWrapping="Wrap" />
+                </Expander.Header>
+                <ItemsControl
+                    HorizontalAlignment="Stretch"
+                    ItemContainerTheme="{StaticResource StretchContentPresenterTheme}"
+                    ItemTemplate="{StaticResource MemoryCoverageLogicalItemTemplate}"
+                    ItemsSource="{Binding ReplaceBaseCoverageItems}" />
+              </Expander>
+            </Border>
+          </StackPanel>
       </Grid>
 
       <StackPanel IsVisible="{Binding IsReplaceCoverageFlat}" Spacing="{DynamicResource NfcSpace8}">
         <TextBlock Classes="sectionLabel" Text="{Binding Text.PlanTitle}" />
         <ItemsControl ItemTemplate="{StaticResource ReplaceMemoryMapRowTemplate}" ItemsSource="{Binding ReplaceMemoryRows}" />
       </StackPanel>
-      <Border Classes="subtleSurface" Padding="10,8">
+      <Border Classes="memorySupportingRow" Padding="0,10,0,0">
         <TextBlock Classes="readinessText"
                    AutomationProperties.LiveSetting="Polite"
                    Text="{Binding ReplaceReadinessStatus}"

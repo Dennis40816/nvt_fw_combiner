@@ -1,3 +1,4 @@
+using NvtFwCombiner.Application.Authoring;
 using NvtFwCombiner.Application.Capabilities;
 using NvtFwCombiner.Application.Tests;
 using NvtFwCombiner.Application.ExternalTools;
@@ -192,8 +193,16 @@ public sealed class CompositionRunExecutionMetricsTests
     {
         CompositionRunResult preview = await service.PreviewAsync(request, CancellationToken.None);
         Assert.Equal(CompositionExecutionStatus.Succeeded, preview.Status);
+        string previewToken = Assert.IsType<string>(preview.PreviewToken);
+        CompositionRunRequest buildRequest = request.OutputNamingAdmission is { } namingAdmission
+            ? request.WithApprovedPreviewToken(
+                previewToken,
+                OutputNamingAdmissionIdentity.Capture(
+                    Assert.IsType<ResolvedCapability>(request.ResolvedCapability),
+                    namingAdmission.AuthoringRevision))
+            : request.WithApprovedPreviewToken(previewToken);
         return await service.BuildAsync(
-            request.WithApprovedPreviewToken(Assert.IsType<string>(preview.PreviewToken)),
+            buildRequest,
             CancellationToken.None);
     }
 
@@ -247,16 +256,31 @@ public sealed class CompositionRunExecutionMetricsTests
 
     private static CompositionRunRequest CreateDpReplaceRequest(int outputLength)
     {
-        bool registered = BootstrapTestHost.Canonical.Compiler.TryCompileDpReplace(
-            "NT51950",
-            outputLength,
-            selectedInputSlotIds: [],
-            out CompiledComposition? composition,
-            out ResolvedCapability? resolvedCapability,
-            out IReadOnlyList<CompositionIssue> issues);
-        Assert.True(registered);
-        Assert.Empty(issues);
-        CompiledComposition compiledComposition = Assert.IsType<CompiledComposition>(composition);
+        var session = new AuthoringSessionState(ExperienceIds.DpReplace);
+        CompiledAuthoringSessionPreparation prepared =
+            BootstrapTestHost.Services.DpReplaceAuthoring.PrepareSession(
+                session,
+                "NT51950",
+                [
+                    new CompiledAuthoringSelectedInput(
+                        CompositionAddressSpaceIds.ReferenceBase,
+                        "reference-artifact.bin",
+                        CreateFilledBytes(outputLength, 0x11)),
+                    new CompiledAuthoringSelectedInput(
+                        CompositionAddressSpaceIds.DpReplacement,
+                        "replacement-artifact.bin",
+                        CreateFilledBytes(outputLength, 0x22)),
+                ]);
+        Assert.True(prepared.Succeeded, string.Join(
+            Environment.NewLine,
+            prepared.Issues.Select(static issue => $"{issue.Code}: {issue.Message}")));
+        ActiveSessionSnapshot acceptedSession = Assert.IsType<ActiveSessionSnapshot>(prepared.Snapshot);
+        ResolvedCapability acceptedCapability = Assert.IsType<ResolvedCapability>(
+            acceptedSession.ExactCapability);
+        CompiledComposition compiledComposition = acceptedCapability.CompiledComposition;
+        AcceptedOutputNamingPublication namingPublication =
+            Assert.IsType<AcceptedOutputNamingPublication>(
+                AcceptedOutputNamingInspection.TryAcceptForCompiledRenderer(acceptedSession));
         return CreateRequest(
             compiledComposition,
             [
@@ -270,7 +294,8 @@ public sealed class CompositionRunExecutionMetricsTests
                     "replacement-artifact.bin"),
             ],
             new IcNumberSelection(IcNumberInputMode.SingleSelector, ["single"]),
-            Assert.IsType<ResolvedCapability>(resolvedCapability));
+            acceptedCapability,
+            namingPublication);
     }
 
     private static CompositionRunRequest CreateCtrlRamReplaceRequest(int outputLength, int ctrlRamLength)
@@ -352,7 +377,8 @@ public sealed class CompositionRunExecutionMetricsTests
         CompiledComposition composition,
         IReadOnlyList<InputArtifactBinding> bindings,
         IcNumberSelection selection,
-        ResolvedCapability? resolvedCapability = null)
+        ResolvedCapability? resolvedCapability = null,
+        AcceptedOutputNamingPublication? namingPublication = null)
     {
         return new CompositionRunRequest(
             "run-performance-baseline",
@@ -360,6 +386,8 @@ public sealed class CompositionRunExecutionMetricsTests
             bindings,
             composition.V2Details.OutputNamingRequirement.FileNameTemplate,
             icNumberSelection: selection,
+            outputNamingInspection: namingPublication?.Inspection,
+            outputNamingAdmission: namingPublication?.Admission,
             resolvedCapability: resolvedCapability);
     }
 
@@ -440,13 +468,14 @@ public sealed class CompositionRunExecutionMetricsTests
     {
         internal int CallCount { get; private set; }
 
-        public ValueTask<string> CommitAsync(
+        public ValueTask<CompositionOutputCommitReceipt> CommitAsync(
             string fileName,
             ReadOnlyMemory<byte> outputBytes,
             CancellationToken cancellationToken)
         {
             CallCount++;
-            return ValueTask.FromResult($"committed:{fileName}");
+            return ValueTask.FromResult(CompositionOutputCommitReceipt.CreateLoose(
+                $"committed:{fileName}", fileName, outputBytes.Span));
         }
     }
 

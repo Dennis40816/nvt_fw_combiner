@@ -13,9 +13,9 @@ namespace NvtFwCombiner.Bootstrap.Tests;
 public sealed class CanonicalSourceProjectionByteShapeTests
 {
     private const string Nt51929BundleDirectory = "nt51929-standard-merge";
-    private const string Nt51929BundleHash = "c67e8ee68cd06f4e1a169abab7c900dc457bbd03f29da770fb7feefb848be380";
+    private const string Nt51929BundleHash = "f28c1010e178720db508d9de8e95b01c4ee8030d66327a55fc2eb5180353e0ca";
     private const string Nt51928StandardBundleDirectory = "nt51928-standard-merge";
-    private const string Nt51928StandardBundleHash = "895ccc579907874af31e5a9f132e0ffb4c10e150f1ca8aad23a0f4f8bac317ca";
+    private const string Nt51928StandardBundleHash = "20ccd90376bee9a67832b3a808940017f3cab202ae5d9dfad7cb2dc4b9774c4e";
 
     /// <summary>
     /// Owner-approved NT51929 bytes prove both DP and TP slots produce the same full image
@@ -30,7 +30,7 @@ public sealed class CanonicalSourceProjectionByteShapeTests
                 Nt51929BundleDirectory,
                 Nt51929BundleHash),
             "nt51929-standard-merge-gen-flash",
-            "0.6.0",
+            "0.7.0",
             "NT51929");
 
         Assert.Equal(
@@ -83,7 +83,7 @@ public sealed class CanonicalSourceProjectionByteShapeTests
                 Nt51928StandardBundleDirectory,
                 Nt51928StandardBundleHash),
             "nt51928-standard-merge-gen-flash",
-            "0.8.0",
+            "0.9.0",
             "NT51928",
             requestedMapCapacity: golden.ExpectedOutput.LongLength,
             selectedInputSlotIds: [CompositionAddressSpaceIds.LdcInput]);
@@ -241,6 +241,13 @@ public sealed class CanonicalSourceProjectionByteShapeTests
         IReadOnlyDictionary<string, byte[]> inputs,
         ResolvedCapability? resolvedCapability)
     {
+        if (StringComparer.Ordinal.Equals(
+                composition.V2Details.ExperienceId,
+                ExperienceIds.StandardMerge))
+        {
+            return await V2StandardMergeGoldenTestSupport.PreviewAsync(composition, inputs);
+        }
+
         var reader = new FakeArtifactReader(inputs.ToDictionary(
             item => $"{composition.V2Details.ProfileId}:{item.Key}",
             static item => item.Value,

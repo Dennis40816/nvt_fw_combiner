@@ -147,8 +147,10 @@ public sealed partial class RepositoryBoundaryTests
             "src/NvtFwCombiner.Presentation.Avalonia/MainWindow.Build.cs");
         string replaceModal = ReadText(
             "src/NvtFwCombiner.Presentation.Avalonia/Views/ReplaceSelectionModal.axaml.cs");
-        string ctrlRamVersionModal = ReadText(
-            "src/NvtFwCombiner.Presentation.Avalonia/Views/CtrlRamFirmwareVersionModal.axaml.cs");
+        string outputDelivery = ReadText(
+            "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/OutputDeliveryConfirmationViewModel.cs");
+        string replaceExecution = ReadText(
+            "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/ReplacePresentationViewModel.Execution.cs");
 
         foreach (string row in new[]
                  {
@@ -219,13 +221,13 @@ public sealed partial class RepositoryBoundaryTests
         Assert.Contains("673 removed and 2,103 added", sizeAdr, StringComparison.Ordinal);
         Assert.Contains("98,133 to **99,563**", baseline, StringComparison.Ordinal);
         Assert.Contains("67,981 to **68,109**", baseline, StringComparison.Ordinal);
-        Assert.Contains("full_production_ratchet=99_563", codeSizePolicy, StringComparison.Ordinal);
+        Assert.Contains("full_production_ratchet=102_897", codeSizePolicy, StringComparison.Ordinal);
         Assert.Contains("98,135 to **98,133**", baseline, StringComparison.Ordinal);
-        Assert.Contains("runtime_production_ratchet=68_109", codeSizePolicy, StringComparison.Ordinal);
-        Assert.Contains("domain_profiles_ratchet=20_634", codeSizePolicy, StringComparison.Ordinal);
-        Assert.Contains("application_ratchet=29_668", codeSizePolicy, StringComparison.Ordinal);
-        Assert.Contains("bootstrap_cli_ratchet=3_074", codeSizePolicy, StringComparison.Ordinal);
-        Assert.Contains("infrastructure_contracts_worker_ratchet=14_733", codeSizePolicy, StringComparison.Ordinal);
+        Assert.Contains("runtime_production_ratchet=70_057", codeSizePolicy, StringComparison.Ordinal);
+        Assert.Contains("domain_profiles_ratchet=20_632", codeSizePolicy, StringComparison.Ordinal);
+        Assert.Contains("application_ratchet=30_691", codeSizePolicy, StringComparison.Ordinal);
+        Assert.Contains("bootstrap_cli_ratchet=3_378", codeSizePolicy, StringComparison.Ordinal);
+        Assert.Contains("infrastructure_contracts_worker_ratchet=15_356", codeSizePolicy, StringComparison.Ordinal);
         Assert.Contains("Historical original PL-00 instrumentation/semantic-control envelope", baseline, StringComparison.Ordinal);
         Assert.Contains("except for the owner-approved 2026-08-18", specification, StringComparison.Ordinal);
         Assert.Contains("from 98,137 to 98,135", specification, StringComparison.Ordinal);
@@ -360,13 +362,14 @@ public sealed partial class RepositoryBoundaryTests
             ctrlRamRunMetadata,
             StringComparison.Ordinal);
         Assert.Contains("ReadCtrlRamFirmwareVersionMetadataAsync", ctrlRamRunMetadata, StringComparison.Ordinal);
-        Assert.Contains("TryOpenCtrlRamFirmwareVersionModalAsync", build, StringComparison.Ordinal);
-        Assert.Contains("TryOpenCtrlRamFirmwareVersionModalAsync", replaceModal, StringComparison.Ordinal);
-        Assert.Contains("TryCreateCtrlRamFirmwareVersionEditAsync", ctrlRamVersionModal, StringComparison.Ordinal);
+        Assert.Contains("RequestCtrlRamBuildSettingsAsync", build, StringComparison.Ordinal);
+        Assert.Contains("RequestCtrlRamBuildSettingsAsync", replaceModal, StringComparison.Ordinal);
+        Assert.Contains("TryCreateCtrlRamFirmwareVersionEditAsync", replaceExecution, StringComparison.Ordinal);
         Assert.Contains(
             "IsCtrlRamFirmwareVersionBuildConfirmationCurrentAsync",
-            ctrlRamVersionModal,
+            replaceExecution,
             StringComparison.Ordinal);
+        Assert.Contains("PrepareModeSpecificAsync", outputDelivery, StringComparison.Ordinal);
         Assert.Contains("CtrlRAM run metadata", baseline, StringComparison.Ordinal);
         Assert.Contains("Explicitly excluded by the specification", baseline, StringComparison.Ordinal);
     }

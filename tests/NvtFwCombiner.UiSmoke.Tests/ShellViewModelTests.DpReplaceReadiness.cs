@@ -271,20 +271,20 @@ public sealed partial class DpReplaceWorkflowTests
 
     /// <summary>Standard Merge and CtrlRAM Replace use the same localized semantic card.</summary>
     [Fact]
-    public void StandardMergeAndCtrlRamReplaceUseSharedSlotPresentation()
+    public void StandardMergeAndCtrlRamReplaceStartWithTheSharedEmptyFactProjection()
     {
         MainWindowViewModel viewModel = PresentationTestHost.CreateViewModel();
 
         OpenReplace(viewModel, ExperienceIds.CtrlRamReplace);
 
         Assert.All(viewModel.Replace.ReplaceSlots, slot =>
-            Assert.Equal(viewModel.Text.FirmwareSlotShowDetailsLabel, slot.FirmwareFactsDisclosureLabel));
+            Assert.Empty(slot.PrimaryFirmwareFacts));
 
         viewModel.Merge.SelectedMergeMode = ExperienceIds.StandardMerge;
         viewModel.ShowMergeCommand.Execute(null);
 
         Assert.All(viewModel.Merge.MergeSlots, slot =>
-            Assert.Equal(viewModel.Text.FirmwareSlotShowDetailsLabel, slot.FirmwareFactsDisclosureLabel));
+            Assert.Empty(slot.PrimaryFirmwareFacts));
     }
 
     /// <summary>Localizes the typed LDC state and its next action without changing its meaning.</summary>
@@ -364,9 +364,9 @@ public sealed partial class DpReplaceWorkflowTests
             initialCode.InputInspectionStatus);
     }
 
-    /// <summary>Confirmed navigation clears terminal input health together with the selected DP files.</summary>
+    /// <summary>Settings preserves terminal input health together with the selected DP files.</summary>
     [Fact]
-    public void DpReplaceNavigationClearRemovesTerminalInspection()
+    public void SettingsModalPreservesDpReplaceTerminalInspection()
     {
         using var workspace = TempWorkspace.Create("nvt-fw-combiner-ui-dp-health-clear");
         MainWindowViewModel viewModel = PresentationTestHost.CreateViewModel();
@@ -380,14 +380,23 @@ public sealed partial class DpReplaceWorkflowTests
             workspace.Write("initial-code.bin", CreatePattern(0x40000, 0x41)));
         Assert.Contains(viewModel.Replace.ReplaceSlots, static slot => slot.InputInspectionSeverity is not null);
 
-        viewModel.ShowSettingsCommand.Execute(null);
-        viewModel.ConfirmNavigationAndClearCommand.Execute(null);
+        (string SlotId, FirmwareInputInspectionSeverity? InputInspectionSeverity, string InputInspectionStatus)[] health =
+        [
+            .. viewModel.Replace.ReplaceSlots.Select(slot => (
+                slot.SlotId,
+                slot.InputInspectionSeverity,
+                slot.InputInspectionStatus)),
+        ];
 
-        Assert.All(viewModel.Replace.ReplaceSlots, static slot =>
-        {
-            Assert.Null(slot.InputInspectionSeverity);
-            Assert.Equal(string.Empty, slot.InputInspectionStatus);
-        });
+        viewModel.OpenSettingsCommand.Execute(null);
+        viewModel.CloseSettingsCommand.Execute(null);
+
+        Assert.Equal(
+            health,
+            viewModel.Replace.ReplaceSlots.Select(slot => (
+                slot.SlotId,
+                slot.InputInspectionSeverity,
+                slot.InputInspectionStatus)));
     }
 
     /// <summary>An unresolved selection snapshot fails closed instead of falling back to optional-slot heuristics.</summary>

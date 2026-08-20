@@ -60,8 +60,8 @@ public sealed partial class XamlControlStyleContractTests
         Assert.All(
             shadowDefinitions.GroupBy(static definition => definition.Groups["key"].Value, StringComparer.Ordinal),
             static definitions => Assert.Equal(2, definitions.Count()));
-        Assert.Equal(5, spacingDefinitions.Length);
-        Assert.Equal(5, fontSizeDefinitions.Length);
+        Assert.Equal(6, spacingDefinitions.Length);
+        Assert.Equal(6, fontSizeDefinitions.Length);
         Assert.Equal(2, fontFamilyDefinitions.Length);
         Assert.Equal(colorDefinitions.Length, tokens.Split("<SolidColorBrush", StringSplitOptions.None).Length - 1);
         Assert.Equal(shadowDefinitions.Length, tokens.Split("<BoxShadows", StringSplitOptions.None).Length - 1);
@@ -88,6 +88,7 @@ public sealed partial class XamlControlStyleContractTests
                      ("NfcSpace8", "8"),
                      ("NfcSpace12", "12"),
                      ("NfcSpace16", "16"),
+                     ("NfcSpace24", "24"),
                  })
         {
             Assert.Contains(
@@ -102,6 +103,7 @@ public sealed partial class XamlControlStyleContractTests
                      ("NfcFontSize12", "12"),
                      ("NfcFontSize13", "13"),
                      ("NfcFontSize14", "14"),
+                     ("NfcFontSize16", "16"),
                  })
         {
             Assert.Contains(
@@ -118,7 +120,7 @@ public sealed partial class XamlControlStyleContractTests
             "Styles/MainWindowStyles.axaml",
             "Styles/MainWindowButtonStyles.axaml",
             "Styles/MainWindowVisualStyles.axaml",
-            "Views/CtrlRamFirmwareVersionModal.axaml",
+            "Views/OutputDeliveryConfirmationModal.axaml",
             "Views/FirmwareIcMismatchModal.axaml",
             "Views/ForegroundLoadingSurface.axaml",
             "Views/HexEditorInsertBytesModal.axaml",

@@ -11,7 +11,7 @@
   <Setter Property="Padding" Value="12,10" />
   <Setter Property="Background" Value="{DynamicResource NfcSurfaceBrush}" />
   <Setter Property="BorderBrush" Value="{DynamicResource NfcBorderBrush}" />
-  <Setter Property="BorderThickness" Value="1" />
+  <Setter Property="BorderThickness" Value="2" />
   <Setter Property="CornerRadius" Value="{DynamicResource NfcSurfaceCornerRadius}" />
   <Setter Property="Margin" Value="0,0,0,8" />
   <Setter Property="Template">

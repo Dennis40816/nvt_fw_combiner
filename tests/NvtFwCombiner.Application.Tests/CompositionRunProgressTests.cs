@@ -321,7 +321,7 @@ public sealed partial class CompositionRunServiceTests
 
     private sealed class ThrowingOutputWriter : ICompositionOutputWriter
     {
-        public ValueTask<string> CommitAsync(
+        public ValueTask<CompositionOutputCommitReceipt> CommitAsync(
             string fileName,
             ReadOnlyMemory<byte> outputBytes,
             CancellationToken cancellationToken)

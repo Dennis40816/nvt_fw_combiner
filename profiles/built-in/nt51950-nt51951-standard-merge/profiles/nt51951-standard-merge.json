@@ -1,8 +1,8 @@
 {
-  "schemaVersion": "2.13",
+  "schemaVersion": "2.15",
   "compilationContext": { "kind": "resolved-map" },
   "profileId": "nt51951-standard-merge-dp-perspective",
-  "profileVersion": "0.6.0",
+  "profileVersion": "0.7.0",
   "promotion": {
     "stage": "supported",
     "blockers": []
@@ -18,8 +18,8 @@
   },
   "mapBinding": {
     "familyId": "nt51950-nt51951-dp-perspective",
-    "familyVersion": "1.3.0",
-    "familyContentHash": "c9bc25ffe2137c58754f9aa425b63c34ad1f90b946f03a6ffe6e15f2077d5fec",
+    "familyVersion": "1.4.0",
+    "familyContentHash": "02597d709affd69adfbd92fac4a9a75f245385fb7c0954a5de1c86035e7babf6",
     "mapIds": [
       "nt51951-standard-merge-256k",
       "nt51951-standard-merge-512k",
@@ -32,7 +32,7 @@
       "unmapped-prefix"
     ],
     "requiredMetadataStructureIds": [
-      "firmware-config-standard-merge",
+      "firmware-config-general-parameters",
       "nt51951-dpcmi-standard-merge"
     ],
     "requiredCapabilityIds": []
@@ -114,9 +114,28 @@
     {
       "bindingId": "firmware-config-standard-merge-inspection",
       "spaceId": "tp-input",
-      "structureId": "firmware-config-standard-merge",
-      "fieldIds": ["observed-ic-count"],
-      "purposes": ["map-resolution", "validation"]
+      "structureId": "firmware-config-general-parameters",
+      "fieldIds": [
+        "tp-firmware-version",
+        "tp-firmware-version-complement",
+        "sensor-count-x",
+        "sensor-count-y",
+        "display-resolution-x",
+        "display-resolution-y",
+        "maximum-operable-fingers",
+        "report-irq-type",
+        "tp-firmware-subversion",
+        "tp-resolution-x",
+        "tp-resolution-y",
+        "observed-ic-count",
+        "outermost-ic-master-enable",
+        "common-firmware-major-version",
+        "common-firmware-minor-version",
+        "common-firmware-additional-version",
+        "cascade-enable",
+        "pid"
+      ],
+      "purposes": ["map-resolution", "validation", "output-naming", "display", "version"]
     },
     {
       "bindingId": "nt51951-dpcmi-standard-merge-inspection",
@@ -173,10 +192,28 @@
   ],
   "processorStages": [],
   "output": {
-    "fileNameTemplate": "nt51951-standard-merge-dp-perspective.bin",
+    "fileNameTemplate": "{ic}_FlashCode_D{dp-version}T{tp-version}_{date}.bin",
     "allowOverride": true,
     "invalidCharacterPolicy": "reject",
-    "requiredTokenIds": []
+    "requiredTokenIds": ["date", "dp-version", "ic", "tp-version"],
+    "ruleId": "normal-flashcode-v1",
+    "outputArtifactType": "flash-code",
+    "tokenRequirements": [
+      { "tokenId": "date", "source": { "kind": "run-date-utc" }, "missingPolicy": "block" },
+      {
+        "tokenId": "dp-version",
+        "source": { "kind": "dpcmi-version", "metadataBindingId": "nt51951-dpcmi-standard-merge-inspection" },
+        "missingPolicy": "use-placeholder",
+        "placeholder": "xxxx"
+      },
+      { "tokenId": "ic", "source": { "kind": "compiled-ic" }, "missingPolicy": "block" },
+      {
+        "tokenId": "tp-version",
+        "source": { "kind": "firmware-config-tp-version", "metadataBindingId": "firmware-config-standard-merge-inspection" },
+        "missingPolicy": "use-placeholder",
+        "placeholder": "xxxx"
+      }
+    ]
   },
   "evidenceRefs": [
     "dp-perspective-51950-51951-owner-map",

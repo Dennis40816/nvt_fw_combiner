@@ -27,7 +27,7 @@ public sealed class GeneralMergeV2CandidateProfileTests
         "nt51927-general-merge-logical-candidate")]
     [InlineData(
         "nt51923-nt51926-general-merge-logical-candidate",
-        "9a48caaf2d84b64f6479ad479f55c0d6202499493891a033140c4a9565ed7cc7",
+        "074708d3ab91eabbef4c1344f02dca36c4803fd09cfdda61752dbe02aad3b748",
         "nt51923-standard-merge",
         "nt51923-nt51926.json",
         "nt51923-nt51926",
@@ -35,7 +35,7 @@ public sealed class GeneralMergeV2CandidateProfileTests
         "nt51923-general-merge-logical-candidate")]
     [InlineData(
         "nt51923-nt51926-general-merge-logical-candidate",
-        "9a48caaf2d84b64f6479ad479f55c0d6202499493891a033140c4a9565ed7cc7",
+        "074708d3ab91eabbef4c1344f02dca36c4803fd09cfdda61752dbe02aad3b748",
         "nt51923-standard-merge",
         "nt51923-nt51926.json",
         "nt51923-nt51926",
@@ -51,7 +51,7 @@ public sealed class GeneralMergeV2CandidateProfileTests
         "nt51928-general-merge-logical-candidate")]
     [InlineData(
         "nt51950-nt51951-general-merge-logical-candidate",
-        "5ed0646fba9c0f01994222f6a7860c8d9c8fc97be415f0771042cf886977f6f0",
+        "2891a94e01bf07d68bc751599038ae88eeb95c9d1f705722912fbd55bf8806ec",
         "nt51950-nt51951-standard-merge",
         "nt51950-nt51951-dp-perspective.json",
         "nt51950-nt51951-dp-perspective",
@@ -59,7 +59,7 @@ public sealed class GeneralMergeV2CandidateProfileTests
         "nt51950-general-merge-logical-candidate")]
     [InlineData(
         "nt51950-nt51951-general-merge-logical-candidate",
-        "5ed0646fba9c0f01994222f6a7860c8d9c8fc97be415f0771042cf886977f6f0",
+        "2891a94e01bf07d68bc751599038ae88eeb95c9d1f705722912fbd55bf8806ec",
         "nt51950-nt51951-standard-merge",
         "nt51950-nt51951-dp-perspective.json",
         "nt51950-nt51951-dp-perspective",
@@ -67,7 +67,7 @@ public sealed class GeneralMergeV2CandidateProfileTests
         "nt51951-general-merge-logical-candidate")]
     [InlineData(
         "nt51919-nt51929-nt51932-general-merge-logical-candidate",
-        "5659a4095a6fce9ab3f46f9415759f7aeba321adfddb891e52871b2d6acff4f8",
+        "d6513b7026c6438f574c334476176bf3bd704aed9bd0279733706942aeb02910",
         "nt51929-standard-merge",
         "nt51929-nt51932.json",
         "nt51929-nt51932",
@@ -75,7 +75,7 @@ public sealed class GeneralMergeV2CandidateProfileTests
         "nt51919-general-merge-logical-candidate")]
     [InlineData(
         "nt51919-nt51929-nt51932-general-merge-logical-candidate",
-        "5659a4095a6fce9ab3f46f9415759f7aeba321adfddb891e52871b2d6acff4f8",
+        "d6513b7026c6438f574c334476176bf3bd704aed9bd0279733706942aeb02910",
         "nt51929-standard-merge",
         "nt51929-nt51932.json",
         "nt51929-nt51932",
@@ -83,7 +83,7 @@ public sealed class GeneralMergeV2CandidateProfileTests
         "nt51929-general-merge-logical-candidate")]
     [InlineData(
         "nt51919-nt51929-nt51932-general-merge-logical-candidate",
-        "5659a4095a6fce9ab3f46f9415759f7aeba321adfddb891e52871b2d6acff4f8",
+        "d6513b7026c6438f574c334476176bf3bd704aed9bd0279733706942aeb02910",
         "nt51929-standard-merge",
         "nt51929-nt51932.json",
         "nt51929-nt51932",
@@ -139,6 +139,10 @@ public sealed class GeneralMergeV2CandidateProfileTests
         Assert.Equal(familyId, context.FamilyId);
         Assert.Equal(memberId, context.MemberId);
         Assert.Equal(CompiledProfilePromotionStage.ExecutableCandidate, details.Provenance.Promotion.Stage);
+        Assert.Equal(CompiledOutputNameRendererKind.Static, details.OutputNamingRequirement.RendererKind);
+        Assert.Null(details.OutputNamingRequirement.RuleId);
+        Assert.Equal(CompiledOutputArtifactType.Unspecified, details.OutputNamingRequirement.OutputArtifactType);
+        Assert.Empty(details.OutputNamingRequirement.TokenRequirements);
         Assert.Empty(details.RegionAccessContract.Requirements);
         Assert.Empty(details.RegionAccessContract.ResolvedViews);
         byte[] sourceFamily = File.ReadAllBytes(

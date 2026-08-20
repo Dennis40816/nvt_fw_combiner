@@ -63,8 +63,8 @@ internal sealed partial class MainWindowViewModel
         }
         else
         {
-            Merge.SelectMergeMode(selection.Mode);
             NavigateToPage(ShellPage.Merge);
+            Merge.SelectMergeMode(selection.Mode);
         }
     }
 

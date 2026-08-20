@@ -174,7 +174,7 @@
       </Grid>
 
       <Grid MaxWidth="1720" ColumnDefinitions="*,336" ColumnSpacing="{DynamicResource NfcSpace12}">
-        <Border Grid.Column="0" Padding="8" Background="{DynamicResource NfcSurfaceSubtleBrush}" BorderBrush="{DynamicResource NfcTextDisabledBrush}" BorderThickness="1" CornerRadius="{DynamicResource NfcCompactCornerRadius}">
+        <Border Grid.Column="0" Padding="8" Background="{DynamicResource NfcSurfaceSubtleBrush}" BorderBrush="{DynamicResource NfcTextDisabledBrush}" BorderThickness="2" CornerRadius="{DynamicResource NfcCompactCornerRadius}">
           <Grid RowDefinitions="Auto,*" RowSpacing="{DynamicResource NfcSpace4}">
             <Grid Margin="0,0,20,0" ColumnDefinitions="112,*,144" ColumnSpacing="{DynamicResource NfcSpace4}">
               <TextBlock

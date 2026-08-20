@@ -1,6 +1,5 @@
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
-using NvtFwCombiner.Domain.Composition;
 
 namespace NvtFwCombiner.Presentation.Avalonia.ViewModels;
 
@@ -47,19 +46,21 @@ internal sealed partial class WorkflowSessionPresentationViewModel : ObservableO
 
     internal bool IsRefreshingFirmwareInspectionContext { get; set; }
 
-    private bool IsCtrlRamReplaceModeSelected => _replace.IsCtrlRamReplaceModeSelected;
+    private WorkflowInspectionContext? ActiveInspectionContext =>
+        _stateBindings.SelectedPage() switch
+        {
+            ShellPage.Merge => InspectionContext(WorkflowInspectionOwner.Merge),
+            ShellPage.Replace => InspectionContext(WorkflowInspectionOwner.Replace),
+            ShellPage.Home or ShellPage.HexEditor => null,
+            _ => throw new InvalidOperationException("Unknown shell page."),
+        };
 
-    private bool IsReplaceVisible =>
-        _stateBindings.SelectedPage() == ShellPage.Replace &&
-        string.Equals(_replace.SelectedReplaceMode, ExperienceIds.DpReplace, StringComparison.Ordinal);
-
-    private bool IsAbCodeMergeModeSelected => _merge.IsAbCodeMergeModeSelected;
-
-    private bool IsStandardMergeModeSelected => _merge.IsNormalMergeModeSelected;
-
-    private string SelectedMergeMode => _merge.SelectedMergeMode;
-
-    private string SelectedReplaceMode => _replace.SelectedReplaceMode;
+    private WorkflowInspectionContext InspectionContext(WorkflowInspectionOwner owner)
+    {
+        return new(owner, owner == WorkflowInspectionOwner.Merge
+            ? _merge.SelectedMergeMode
+            : _replace.SelectedReplaceMode);
+    }
 
     private FirmwareSlotViewModel MergeDpSlot => _merge.MergeDpSlot;
 
@@ -82,7 +83,7 @@ internal sealed partial class WorkflowSessionPresentationViewModel : ObservableO
         RelocalizeFirmwareFacts();
         RelocalizeInputInspection();
         PresentationObserver.Invoke(() => OnPropertyChanged(nameof(Text)));
-        PresentationObserver.Invoke(NotifyContextTextChanged);
+        PresentationObserver.Invoke(() => NotifyContextTextChanged());
     }
 
     private void RelocalizeFirmwareFacts()
@@ -141,5 +142,8 @@ internal sealed partial class WorkflowSessionPresentationViewModel : ObservableO
         string IcId,
         string Number);
 
-    internal sealed record AcceptedFirmwareMismatchSelection(string SlotId, string Path);
+    internal sealed record AcceptedFirmwareMismatchSelection(
+        WorkflowInspectionContext Context,
+        string SlotId,
+        string Path);
 }

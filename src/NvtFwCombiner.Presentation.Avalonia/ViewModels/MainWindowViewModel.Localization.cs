@@ -45,6 +45,7 @@ internal sealed partial class MainWindowViewModel
         WorkflowSession.ApplyLanguageChanged();
         Merge.ApplyLanguageChanged();
         Replace.ApplyLanguageChanged();
+        OutputDelivery.ApplyLanguageChanged();
         Replace.NotifyCommandStateChanged();
     }
 }

@@ -127,6 +127,19 @@ It uses the same lifecycle invariants—one generation, cooperative cancellation
 bounded work, observable progress, exactly one typed terminal result—but does
 not join the shell startup stage list or its percentage.
 
+The 2026-08-19 page-isolation refinement makes that per-workflow boundary
+explicit in Presentation. Every selected-file inspection request captures one
+immutable `(Merge | Replace, mode)` owner context at admission. Lifecycle
+selection, typed item construction, slot lookup, stale-result validation,
+mismatch acceptance, and refresh dispatch consume that same context; they do
+not read or carry the hidden page's mode. A page-mode change invalidates only
+that page's inspection set. Shared IC/catalog changes may invalidate both sets,
+but successor inspection is admitted only for the active page or the exact
+owner that accepted an IC-mismatch transition. There is no mixed Merge/Replace
+refresh batch. This refinement changes Presentation routing and lifecycle
+ownership only; Application inspection/readiness authority, profiles, ranges,
+firmware bytes, output naming, and evidence remain unchanged.
+
 ### Required and optional stages have different failure policy
 
 The canonical catalog is the only required startup stage. Until its typed

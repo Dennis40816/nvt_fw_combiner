@@ -24,23 +24,79 @@ internal sealed partial class MergePresentationViewModel
             aFlashCodeOutputPathUsesAutomaticName);
     }
 
+    internal Task RequestBuildOutputDeliveryAsync()
+    {
+        ActiveSessionSnapshot session = SelectedMergeMode switch
+        {
+            NormalMergeMode => _standardMergeSession.CurrentSnapshot,
+            AbCodeMergeMode => _abMergeSession.CurrentSnapshot,
+            GeneralMergeMode => _generalMergeSession.CurrentSnapshot,
+            _ => null,
+        } ?? throw new InvalidOperationException(
+            "Build output confirmation requires one accepted Merge session.");
+        CompositionOutputBundleProposal proposal =
+            _compositionServices.OutputNaming.ResolveAcceptedBundleProposal(session);
+        CompositionAdditionalDeliveryPlan? additional = proposal.OutputPreparation.AdditionalDeliveries
+            .SingleOrDefault(delivery => StringComparer.Ordinal.Equals(
+                delivery.DeliveryKind,
+                CompiledAdditionalDelivery.AbAFlashCodeKind));
+        _stateBindings.OutputDelivery.Open(new OutputDeliveryRequest(
+            proposal,
+            IsReplaceOutput: false,
+            AdditionalDelivery: additional,
+            () => IsAcceptedMergeSessionCurrent(session),
+            CtrlRamOptions: null,
+            PrepareModeSpecificAsync: null,
+            Cancel: null,
+            decision => RunMergeAsync(
+                build: true,
+                decision.OutputPath,
+                decision.AdditionalOutputPath,
+                decision.OutputPathUsesAutomaticName,
+                decision.AdditionalOutputPathUsesAutomaticName,
+                decision.BundleIntent)));
+        return Task.CompletedTask;
+    }
+
+    private bool IsAcceptedMergeSessionCurrent(ActiveSessionSnapshot acceptedSession)
+    {
+        ActiveSessionSnapshot? current = SelectedMergeMode switch
+        {
+            NormalMergeMode => _standardMergeSession.CurrentSnapshot,
+            AbCodeMergeMode => _abMergeSession.CurrentSnapshot,
+            GeneralMergeMode => _generalMergeSession.CurrentSnapshot,
+            _ => null,
+        };
+        return ReferenceEquals(current, acceptedSession);
+    }
+
     private Task RunMergeAsync(
         bool build,
         string? outputPath,
         string? aFlashCodeOutputPath = null,
         bool outputPathUsesAutomaticName = false,
-        bool aFlashCodeOutputPathUsesAutomaticName = false)
+        bool aFlashCodeOutputPathUsesAutomaticName = false,
+        CompositionOutputBundleIntent? outputBundle = null)
     {
         return SelectedMergeMode switch
         {
-            NormalMergeMode => RunStandardMergeAsync(build, outputPath),
+            NormalMergeMode => RunStandardMergeAsync(
+                build,
+                outputPath,
+                outputPathUsesAutomaticName,
+                outputBundle),
             AbCodeMergeMode => RunAbMergeAsync(
                 build,
                 outputPath,
                 aFlashCodeOutputPath,
                 outputPathUsesAutomaticName,
-                aFlashCodeOutputPathUsesAutomaticName),
-            GeneralMergeMode => RunGeneralMergeAsync(build, outputPath),
+                aFlashCodeOutputPathUsesAutomaticName,
+                outputBundle),
+            GeneralMergeMode => RunGeneralMergeAsync(
+                build,
+                outputPath,
+                outputPathUsesAutomaticName,
+                outputBundle),
             _ => Task.CompletedTask,
         };
     }
@@ -74,7 +130,11 @@ internal sealed partial class MergePresentationViewModel
         }
     }
 
-    private Task RunStandardMergeAsync(bool build, string? outputPath)
+    private Task RunStandardMergeAsync(
+        bool build,
+        string? outputPath,
+        bool outputPathUsesAutomaticName,
+        CompositionOutputBundleIntent? outputBundle = null)
     {
         string icId = SelectedIc;
         string number = SelectedNumber;
@@ -90,7 +150,9 @@ internal sealed partial class MergePresentationViewModel
                         "Standard Merge requires one accepted authoring session."),
                     slotPaths,
                     build,
-                    outputPath: outputPath),
+                    outputPath: outputPath,
+                    outputPathUsesAutomaticName: outputPathUsesAutomaticName,
+                    outputBundle: outputBundle),
                 progress,
                 cancellationToken),
             (action, errorMessage) => Reports.LoadRunErrorReport(
@@ -102,7 +164,11 @@ internal sealed partial class MergePresentationViewModel
                 slotPaths));
     }
 
-    private Task RunGeneralMergeAsync(bool build, string? outputPath)
+    private Task RunGeneralMergeAsync(
+        bool build,
+        string? outputPath,
+        bool outputPathUsesAutomaticName,
+        CompositionOutputBundleIntent? outputBundle = null)
     {
         string icId = SelectedIc;
         string number = SelectedNumber;
@@ -122,7 +188,9 @@ internal sealed partial class MergePresentationViewModel
                             acceptedSession,
                             slotPaths,
                             build,
-                            outputPath: outputPath),
+                            outputPath: outputPath,
+                            outputPathUsesAutomaticName: outputPathUsesAutomaticName,
+                            outputBundle: outputBundle),
                         progress,
                         cancellationToken)
                     .ConfigureAwait(false);
@@ -155,7 +223,8 @@ internal sealed partial class MergePresentationViewModel
         string? outputPath,
         string? aFlashCodeOutputPath,
         bool outputPathUsesAutomaticName,
-        bool aFlashCodeOutputPathUsesAutomaticName)
+        bool aFlashCodeOutputPathUsesAutomaticName,
+        CompositionOutputBundleIntent? outputBundle = null)
     {
         string icId = SelectedIc;
         IReadOnlyDictionary<string, string> slotPaths = CreateAbMergeSlotPaths();
@@ -174,7 +243,8 @@ internal sealed partial class MergePresentationViewModel
                     additionalDeliveryOutputPath: aFlashCodeOutputPath,
                     outputPathUsesAutomaticName: outputPathUsesAutomaticName,
                     additionalDeliveryOutputPathUsesAutomaticName:
-                        aFlashCodeOutputPathUsesAutomaticName),
+                        aFlashCodeOutputPathUsesAutomaticName,
+                    outputBundle: outputBundle),
                 progress,
                 cancellationToken),
             (action, errorMessage) => Reports.LoadRunErrorReport(

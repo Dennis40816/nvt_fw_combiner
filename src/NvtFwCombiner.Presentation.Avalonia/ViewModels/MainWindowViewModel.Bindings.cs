@@ -28,8 +28,6 @@ internal sealed partial class MainWindowViewModel
 
     public bool IsHomeVisible => SelectedPage == ShellPage.Home;
 
-    public bool IsSettingsVisible => SelectedPage == ShellPage.Settings;
-
     public bool IsMergeVisible => SelectedPage == ShellPage.Merge;
 
     public bool IsReplaceVisible => SelectedPage == ShellPage.Replace;
@@ -38,7 +36,9 @@ internal sealed partial class MainWindowViewModel
 
     public IRelayCommand ShowHomeCommand { get; }
 
-    public IRelayCommand ShowSettingsCommand { get; }
+    public IRelayCommand OpenSettingsCommand { get; }
+
+    public IRelayCommand CloseSettingsCommand { get; }
 
     public IRelayCommand ShowMergeCommand { get; }
 

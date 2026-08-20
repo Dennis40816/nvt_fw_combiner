@@ -1,4 +1,6 @@
 using NvtFwCombiner.Application.HexEditor;
+using NvtFwCombiner.Application.Ports;
+
 namespace NvtFwCombiner.Infrastructure.Files;
 
 /// <summary>
@@ -230,7 +232,12 @@ public sealed class RawBinaryEditorFileSession : IRawBinaryEditorFileSession
             }
 
             var writer = new AtomicFileCompositionOutputWriter(outputDirectory);
-            string savedPath = await writer.CommitAsync(outputFileName, bytes, cancellationToken).ConfigureAwait(false);
+            CompositionOutputCommitReceipt receipt = await writer.CommitAsync(
+                    outputFileName,
+                    bytes,
+                    cancellationToken)
+                .ConfigureAwait(false);
+            string savedPath = receipt.OutputId;
             return RawBinaryEditorFileResult.Success(savedPath, _editor.State);
         }
         catch (Exception exception) when (exception is ArgumentException or IOException or UnauthorizedAccessException or NotSupportedException)

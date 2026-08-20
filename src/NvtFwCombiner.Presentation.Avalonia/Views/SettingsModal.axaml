@@ -1,0 +1,53 @@
+<UserControl
+    x:Class="NvtFwCombiner.Presentation.Avalonia.Views.SettingsModal"
+    xmlns="https://github.com/avaloniaui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:vm="using:NvtFwCombiner.Presentation.Avalonia.ViewModels"
+    x:DataType="vm:MainWindowViewModel"
+    AutomationProperties.Name="{Binding SettingsPreview.Title}"
+    Focusable="True"
+    KeyboardNavigation.TabNavigation="Cycle"
+    KeyDown="SettingsModal_OnKeyDown"
+    Background="{DynamicResource NfcModalScrimBrush}">
+  <Border
+      Classes="modalSurface"
+      Margin="24"
+      MaxWidth="1100"
+      MaxHeight="720"
+      MinHeight="560"
+      Padding="0"
+      HorizontalAlignment="Stretch"
+      VerticalAlignment="Center">
+    <Grid RowDefinitions="Auto,*,Auto">
+      <Grid Margin="24,20,24,16" ColumnDefinitions="*,Auto" ColumnSpacing="{DynamicResource NfcSpace16}">
+        <StackPanel Spacing="{DynamicResource NfcSpace4}">
+          <TextBlock Classes="modalTitle" Text="{Binding SettingsPreview.Title}" />
+          <TextBlock Classes="mutedText" Text="{Binding SettingsPreview.Subtitle}" TextWrapping="Wrap" />
+        </StackPanel>
+        <Button
+            x:Name="CloseButton"
+            Grid.Column="1"
+            Classes="semanticAction iconButton"
+            AutomationProperties.Name="{Binding Text.CloseLabel}"
+            Command="{Binding CloseSettingsCommand}"
+            ToolTip.Tip="{Binding Text.CloseLabel}">
+          <TextBlock Text="×" />
+        </Button>
+      </Grid>
+
+      <Border Grid.Row="1" BorderBrush="{DynamicResource NfcDividerBrush}" BorderThickness="0,1,0,1">
+        <ScrollViewer Margin="24,18" HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto">
+          <ContentControl Content="{Binding}" ContentTemplate="{DynamicResource SettingsModalContentTemplate}" />
+        </ScrollViewer>
+      </Border>
+
+      <Button
+          Grid.Row="2"
+          Margin="24,16,24,18"
+          HorizontalAlignment="Right"
+          Classes="semanticAction secondary"
+          Command="{Binding CloseSettingsCommand}"
+          Content="{Binding Text.CloseLabel}" />
+    </Grid>
+  </Border>
+</UserControl>

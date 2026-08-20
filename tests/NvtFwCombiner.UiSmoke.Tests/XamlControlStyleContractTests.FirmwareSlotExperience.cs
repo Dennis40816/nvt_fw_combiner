@@ -67,9 +67,9 @@ public sealed partial class XamlControlStyleContractTests
         Assert.DoesNotContain("UsesLegacySlotPresentation", slotCard, StringComparison.Ordinal);
     }
 
-    /// <summary>Firmware facts use the shared stacked card anatomy and disclose only facts beyond four.</summary>
+    /// <summary>Firmware facts use the approved borderless four-column grid and disclose only overflow.</summary>
     [Fact]
-    public void FirmwareSlotFactsUseFourPrimaryCardsAndQuietDisclosure()
+    public void FirmwareSlotFactsUseApprovedBorderlessFourColumnGrid()
     {
         string slotCard = ReadPresentationFile("Views/FirmwareSlotCard.axaml");
         string templates = ReadPresentationFile("Resources/MainWindowSharedTemplates.axaml");
@@ -77,18 +77,18 @@ public sealed partial class XamlControlStyleContractTests
 
         Assert.Contains("ItemsSource=\"{Binding PrimaryFirmwareFacts}\"", slotCard, StringComparison.Ordinal);
         Assert.Contains("ItemsSource=\"{Binding AdditionalFirmwareFacts}\"", slotCard, StringComparison.Ordinal);
-        Assert.Contains("IsChecked=\"{Binding IsFirmwareFactsExpanded}\"", slotCard, StringComparison.Ordinal);
-        Assert.Contains("Content=\"{Binding FirmwareFactsDisclosureLabel}\"", slotCard, StringComparison.Ordinal);
+        Assert.DoesNotContain("IsChecked=\"{Binding IsFirmwareFactsExpanded}\"", slotCard, StringComparison.Ordinal);
+        Assert.DoesNotContain("Content=\"{Binding FirmwareFactsDisclosureLabel}\"", slotCard, StringComparison.Ordinal);
         Assert.Contains("IsChecked=\"{Binding IsAdditionalFirmwareFactsExpanded}\"", slotCard, StringComparison.Ordinal);
         Assert.Contains("Content=\"{Binding AdditionalFirmwareFactsLabel}\"", slotCard, StringComparison.Ordinal);
+        Assert.Equal(2, CountOccurrences(slotCard, "<UniformGrid Columns=\"4\" Rows=\"1\" />"));
         Assert.Contains("Classes=\"firmwareSlotFact\"", factTemplate, StringComparison.Ordinal);
-        Assert.Contains("MinWidth=\"112\"", factTemplate, StringComparison.Ordinal);
-        Assert.Contains("Padding=\"6,9\"", factTemplate, StringComparison.Ordinal);
-        Assert.Contains(
-            "CornerRadius=\"{DynamicResource NfcCompactCornerRadius}\"",
-            factTemplate,
-            StringComparison.Ordinal);
+        Assert.Contains("Padding=\"0,0,16,0\"", factTemplate, StringComparison.Ordinal);
+        Assert.DoesNotContain("BorderThickness=", factTemplate, StringComparison.Ordinal);
+        Assert.DoesNotContain("CornerRadius=", factTemplate, StringComparison.Ordinal);
         Assert.Contains("Orientation=\"Vertical\"", factTemplate, StringComparison.Ordinal);
+        Assert.Contains("FontWeight=\"SemiBold\"", factTemplate, StringComparison.Ordinal);
+        Assert.Contains("TextTrimming=\"CharacterEllipsis\"", factTemplate, StringComparison.Ordinal);
         Assert.Contains("Classes=\"firmwareSlotFactStateIcon\"", factTemplate, StringComparison.Ordinal);
         Assert.Contains("AutomationProperties.Name=\"{Binding StateAutomationText}\"", factTemplate, StringComparison.Ordinal);
         Assert.Contains("ToolTip.Tip=\"{Binding StateAutomationText}\"", factTemplate, StringComparison.Ordinal);
@@ -96,6 +96,13 @@ public sealed partial class XamlControlStyleContractTests
         Assert.DoesNotContain("MaxWidth=\"430\"", slotCard, StringComparison.Ordinal);
 
         string styles = ReadPresentationFile("Styles/FirmwareSlotExperienceStyles.axaml");
+        string quietDisclosure = ExtractStyle(styles, "ToggleButton.quietDisclosure");
+        string quietDisclosurePresenter = ExtractStyle(
+            styles,
+            "ToggleButton.quietDisclosure /template/ ContentPresenter#PART_ContentPresenter");
+        Assert.Contains("NfcAccentStrongBrush", quietDisclosure, StringComparison.Ordinal);
+        Assert.Contains("TextElement.Foreground", quietDisclosurePresenter, StringComparison.Ordinal);
+        Assert.Contains("NfcAccentStrongBrush", quietDisclosurePresenter, StringComparison.Ordinal);
         Assert.Contains("ToggleButton.quietDisclosure:pointerover", styles, StringComparison.Ordinal);
         Assert.Contains("ToggleButton.quietDisclosure:pressed", styles, StringComparison.Ordinal);
         Assert.Contains("ToggleButton.quietDisclosure:focus-visible /template/ ContentPresenter#PART_ContentPresenter", styles, StringComparison.Ordinal);
@@ -446,10 +453,10 @@ public sealed partial class XamlControlStyleContractTests
             FirmwareSlotKind.Base);
         FirmwareSlotFactViewModel[] facts =
         [
-            new("DP", "D01-01"),
-            new("Jira", "NVT-1"),
-            new("Common FW", "2.0.0"),
-            new("TP", "T01-01"),
+            new("DP Version", "D01-01"),
+            new("Jira Index", "NVT-1"),
+            new("Common FW Version", "2.0.0"),
+            new("TP Version", "T01-01"),
             new("PID", "0x5195"),
         ];
 
@@ -459,22 +466,13 @@ public sealed partial class XamlControlStyleContractTests
         _ = Assert.Single(slot.AdditionalFirmwareFacts);
         Assert.Equal("PID", slot.AdditionalFirmwareFacts[0].Label);
         Assert.True(slot.HasAdditionalFirmwareFacts);
-        Assert.True(slot.IsFirmwareFactsExpanded);
-        Assert.Equal("Hide details", slot.FirmwareFactsDisclosureLabel);
         Assert.Equal("Show 1 more details", slot.AdditionalFirmwareFactsLabel);
-
-        slot.IsFirmwareFactsExpanded = false;
-
-        Assert.Equal("Show details", slot.FirmwareFactsDisclosureLabel);
-        Assert.Equal("Show 1 more details", slot.AdditionalFirmwareFactsLabel);
-
-        slot.RelocalizeFirmwareFacts(facts);
-
-        Assert.False(slot.IsFirmwareFactsExpanded);
-        Assert.Equal("Show details", slot.FirmwareFactsDisclosureLabel);
 
         slot.IsAdditionalFirmwareFactsExpanded = true;
 
+        slot.RelocalizeFirmwareFacts(facts);
+
+        Assert.True(slot.IsAdditionalFirmwareFactsExpanded);
         Assert.Equal("Show fewer details", slot.AdditionalFirmwareFactsLabel);
         Assert.Equal(facts, slot.FirmwareFacts);
     }

@@ -1,6 +1,7 @@
 using System.Xml.Linq;
 using NvtFwCombiner.Application.Ports;
 using NvtFwCombiner.Presentation.Avalonia;
+using NvtFwCombiner.Presentation.Avalonia.ViewModels;
 
 namespace NvtFwCombiner.UiSmoke.Tests;
 
@@ -18,14 +19,13 @@ public sealed partial class XamlControlStyleContractTests
         [
             "DeviceContextHost",
             "HomePageHost",
-            "SettingsPageHost",
+            "SettingsModalHost",
             "HexEditorPageHost",
             "ReplacePageHost",
             "MergePageHost",
             "ReportToastHost",
+            "OutputDeliveryConfirmationModalHost",
             "ReplaceSelectionModalHost",
-            "CtrlRamFirmwareVersionModalHost",
-            "AbAFlashCodeDeliveryPromptModalHost",
             "WorkflowContextSetupModalHost",
             "FirmwareIcMismatchModalHost",
             "NavigationClearConfirmationModalHost",
@@ -78,7 +78,7 @@ public sealed partial class XamlControlStyleContractTests
             "DeviceContextHost",
             "ReplacePageHost",
             "MergePageHost",
-            "SettingsPageHost",
+            "SettingsModalHost",
             "HexEditorPageHost",
         ];
 
@@ -294,7 +294,7 @@ public sealed partial class XamlControlStyleContractTests
         Assert.Contains("MinHeight\" Value=\"34\"", semanticAction, StringComparison.Ordinal);
         Assert.Contains("HorizontalContentAlignment\" Value=\"Center\"", semanticAction, StringComparison.Ordinal);
         Assert.Contains("VerticalContentAlignment\" Value=\"Center\"", semanticAction, StringComparison.Ordinal);
-        Assert.Contains("BorderThickness\" Value=\"1\"", semanticAction, StringComparison.Ordinal);
+        Assert.Contains("BorderThickness\" Value=\"2\"", semanticAction, StringComparison.Ordinal);
         Assert.Contains("NfcFontSize13", semanticAction, StringComparison.Ordinal);
         Assert.Contains("FocusAdorner\" Value=\"{x:Null}\"", globalButton, StringComparison.Ordinal);
         Assert.Contains("Opacity\" Value=\"1\"", semanticActionDisabled, StringComparison.Ordinal);
@@ -309,7 +309,7 @@ public sealed partial class XamlControlStyleContractTests
         Assert.Contains("NfcAccentStrongBrush", secondaryPressed, StringComparison.Ordinal);
         Assert.Contains("NfcSurfaceSubtleBrush", secondaryDisabled, StringComparison.Ordinal);
         Assert.Contains("NfcBorderMutedBrush", secondaryDisabled, StringComparison.Ordinal);
-        Assert.Contains("BorderThickness\" Value=\"1\"", secondaryDisabled, StringComparison.Ordinal);
+        Assert.Contains("BorderThickness\" Value=\"2\"", secondaryDisabled, StringComparison.Ordinal);
         Assert.Contains("NfcDangerSurfaceMutedBrush", dangerHover, StringComparison.Ordinal);
         Assert.Contains("NfcDangerBorderStrongBrush", dangerHover, StringComparison.Ordinal);
         Assert.Contains("NfcCriticalSurfaceBrush", dangerPressed, StringComparison.Ordinal);
@@ -337,7 +337,7 @@ public sealed partial class XamlControlStyleContractTests
         Assert.Contains("NfcTextDisabledBrush", navigationDisabled, StringComparison.Ordinal);
         Assert.Contains("BorderThickness\" Value=\"0,0,0,2\"", navigationFocus, StringComparison.Ordinal);
         Assert.Contains("NfcAccentBorderStrongBrush", navigationFocus, StringComparison.Ordinal);
-        Assert.Equal(4, navigationButtons.Length);
+        Assert.Equal(3, navigationButtons.Length);
         Assert.All(
             navigationButtons.SelectMany(button => button.Descendants().Where(element => element.Name.LocalName == "TextBlock")),
             text => Assert.Null(text.Attribute("Foreground")));
@@ -437,7 +437,12 @@ public sealed partial class XamlControlStyleContractTests
         Assert.Contains("DispatcherPriority.Render", lifecycle, StringComparison.Ordinal);
         Assert.Contains("ShellInteractionHost.IsEnabled = false", lifecycle, StringComparison.Ordinal);
         Assert.Contains("CommitRequiredStagePresentation(", lifecycle, StringComparison.Ordinal);
-        Assert.Contains("enabled => ShellInteractionHost.IsEnabled = enabled", lifecycle, StringComparison.Ordinal);
+        Assert.Contains("_isStartupShellEnabled = enabled;", lifecycle, StringComparison.Ordinal);
+        Assert.Contains("ApplyShellInteractionState(viewModel);", lifecycle, StringComparison.Ordinal);
+        Assert.Contains("_isStartupShellEnabled,", lifecycle, StringComparison.Ordinal);
+        Assert.Contains("bool interactive = isStartupShellEnabled &&", lifecycle, StringComparison.Ordinal);
+        Assert.Contains("!viewModel.IsSettingsModalOpen &&", lifecycle, StringComparison.Ordinal);
+        Assert.Contains("!viewModel.OutputDelivery.IsOpen", lifecycle, StringComparison.Ordinal);
         Assert.Contains("setShellEnabled(succeeded);", lifecycle, StringComparison.Ordinal);
         Assert.Contains("presentLoadingState();", lifecycle, StringComparison.Ordinal);
         Assert.Contains("HomeNavigationButton.Focus(NavigationMethod.Tab)", lifecycle, StringComparison.Ordinal);
@@ -490,5 +495,21 @@ public sealed partial class XamlControlStyleContractTests
 
         Assert.Equal("560", (string?)toolTip.Attribute("Width"));
         Assert.Null(content.Attribute("Width"));
+    }
+
+    /// <summary>The shell names the report action by its purpose while preserving localized guidance.</summary>
+    [Fact]
+    public void ShellReportLoaderUsesLocalizedReportLabel()
+    {
+        var english = ShellTextResources.For(ShellLanguage.English);
+        var traditionalChinese = ShellTextResources.For(ShellLanguage.ChineseTraditional);
+        string shell = ReadPresentationFile("MainWindow.axaml");
+
+        Assert.Equal("Load Report", english.LoadJsonLabel);
+        Assert.Equal("Load a report", english.LoadJsonTooltip);
+        Assert.Equal("載入報告", traditionalChinese.LoadJsonLabel);
+        Assert.Equal("載入報告", traditionalChinese.LoadJsonTooltip);
+        Assert.Contains("Text=\"{Binding Text.LoadJsonLabel}\"", shell, StringComparison.Ordinal);
+        Assert.Contains("ToolTip.Tip=\"{Binding Text.LoadJsonTooltip}\"", shell, StringComparison.Ordinal);
     }
 }

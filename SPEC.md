@@ -2234,6 +2234,61 @@ after the grill closes so issues do not become a competing draft specification.
     descending ratchets immediately. The amendment creates no reusable budget,
     changes no profile, range, firmware byte, operation, support, Golden,
     report-wire, processor, or release contract, and cannot fund later work.
+    Owner-approved implementation on 2026-08-19 applies the accepted Memory
+    Layout redesign mockup to the shared Presentation renderer. After the
+    shared-spacing correction lowered the full-production ratchet to 99,562,
+    the direct available-width proportional panel, flat selected CtrlRAM rows,
+    quiet Base firmware/readiness rows, and correlated pointer/keyboard
+    emphasis change full production to 99,804 nonblank lines. Runtime remains
+    68,109, and all four counted runtime slices remain unchanged. This exact
+    visual-only +242 amendment is non-transferable and creates no reusable
+    allowance. It changes no Application memory projection, profile, range,
+    firmware byte, operation, processor, support, Golden, report-wire, or
+    release authority.
+    Owner-approved implementation on 2026-08-19 also isolates selected-file
+    inspection by one captured `(Merge | Replace, mode)` owner. Removing the
+    mixed-page refresh path and adding fail-closed admission, owner-specific
+    lifecycle invalidation, and stale-callback publication guards changes full
+    production from 99,804 to 99,892 nonblank lines. Runtime remains 68,109,
+    and all four counted runtime slices remain unchanged. This exact +88
+    Presentation-only architecture amendment is non-transferable and creates
+    no reusable allowance. It changes no Application inspection authority,
+    profile, range, firmware byte, operation, output naming, processor,
+    support, Golden, report-wire, or release contract.
+    Owner-approved continuation on 2026-08-20 closes the remaining strict
+    page-owned device/downstream binding slices, the typed `Waiting for TP BIN`
+    prerequisite projection, the approved shared four-column slot-facts grid,
+    and the v0.9.15-compatible typed Standard Merge output-name contract. From
+    the preceding 99,892 / 68,109 checkpoint, the exact result is 100,157 full
+    production and 68,174 runtime nonblank lines: Domain plus Profiles lowers
+    from 20,634 to 20,632; Application changes from 29,668 to 29,672;
+    Bootstrap plus CLI plus Desktop changes from 3,074 to 3,105; and
+    Infrastructure plus Contracts plus CRC worker changes from 14,733 to
+    14,765. The remaining +200 full-production lines are Presentation. This
+    exact, named amendment is non-transferable and creates no reusable budget.
+    It authorizes only the recorded page-isolation, pending-reason, slot-layout,
+    trusted profile/family reference, capability-publication, and output-naming
+    parity work. It changes no firmware range, operation order, output byte,
+    CRC/header behavior, processor, support claim, Golden expected bytes,
+    report-wire schema, or release contract. These exact values immediately
+    resume descending-only enforcement.
+    Owner-approved remaining-TODO closure on 2026-08-20 grants the Settings
+    modal, shared Build Settings, exact atomic output bundle, selected AB
+    additional delivery, DP Replace naming-safe frontier, and Memory Layout
+    interaction lifecycle one named, non-transferable accounting amendment.
+    From the preceding 100,157 / 68,174 checkpoint, the exact frozen source is
+    102,977 full-production and 70,057 runtime nonblank lines. Domain plus
+    Profiles remains 20,632; Application becomes 30,691; Bootstrap plus CLI
+    plus Desktop becomes 3,378; and Infrastructure plus Contracts plus CRC
+    worker becomes 15,356. The remaining 937-line delta is Presentation.
+    These values immediately become descending ratchets and create no reusable
+    allowance. The amendment is limited to typed accepted-session admission,
+    host delivery/receipt/report provenance, mode-aware pre-Build UI,
+    localization/accessibility, and their fail-closed regressions. It changes
+    no firmware range, operation order, output byte, CRC/header behavior,
+    processor protocol, support claim, or Golden expected bytes; the six safe
+    DP Replace profiles change only their already-approved typed output-name
+    publication, while the recorded R3-gated profiles remain static.
     Owner amendment on 2026-08-08 supersedes the earlier 44,000 total and
     18,000/12,000/7,500/5,500 slice completion caps. The dated numbers remain
     planning history after the merged #230 checkpoint at `ad672900` showed that

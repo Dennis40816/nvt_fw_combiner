@@ -18,7 +18,7 @@ public sealed partial class MainWindow
             (DeviceContextHost, viewModel, "startup-warmup.device-context"),
             (ReplacePageHost, viewModel.Replace, "startup-warmup.replace-view"),
             (MergePageHost, viewModel.Merge, "startup-warmup.merge-view"),
-            (SettingsPageHost, viewModel, "startup-warmup.settings-view"),
+            (SettingsModalHost, viewModel, "startup-warmup.settings-view"),
             (HexEditorPageHost, viewModel, "startup-warmup.hex-editor-view"),
         ];
         progress(0, views.Length);

@@ -24,9 +24,9 @@ public sealed partial class CtrlRamWorkflowTests
                 icId,
                 inputs);
         });
+        OpenReplace(viewModel, ExperienceIds.CtrlRamReplace);
         viewModel.WorkflowSession.SelectedIc = "NT51926";
         viewModel.WorkflowSession.SelectedNumber = IcNumberSelectionTokens.SingleChip;
-        OpenReplace(viewModel, ExperienceIds.CtrlRamReplace);
         FirmwareSlotViewModel replacement = viewModel.Replace.ReplaceSlots.First(slot =>
             !ReferenceEquals(slot, viewModel.Replace.ReplaceBaseSlot) &&
             slot.Title.Contains("VN CtrlRAM", StringComparison.Ordinal));
@@ -88,9 +88,9 @@ public sealed partial class CtrlRamWorkflowTests
                     new FirmwareContextSuggestion("NT51926", "cascade", 3, "2.1.0", 0x5192),
                     null))),
         ]);
+        OpenReplace(viewModel, ExperienceIds.CtrlRamReplace);
         viewModel.WorkflowSession.SelectedIc = "NT51926";
         viewModel.WorkflowSession.SelectedNumber = IcNumberSelectionTokens.SingleChip;
-        OpenReplace(viewModel, ExperienceIds.CtrlRamReplace);
 
         await viewModel.WorkflowSession.SetSlotFileAsync("replace-base", basePath, TestContext.Current.CancellationToken);
 
@@ -217,9 +217,9 @@ public sealed partial class CtrlRamWorkflowTests
                 }),
             ];
         });
+        OpenReplace(viewModel, ExperienceIds.CtrlRamReplace);
         viewModel.WorkflowSession.SelectedIc = "NT51927";
         viewModel.WorkflowSession.SelectedNumber = IcNumberSelectionTokens.SingleChip;
-        OpenReplace(viewModel, ExperienceIds.CtrlRamReplace);
 
         Task firstSelection = viewModel.WorkflowSession.SetSlotFileAsync(
             "replace-base",
@@ -267,9 +267,9 @@ public sealed partial class CtrlRamWorkflowTests
                     new FirmwareContextSuggestion("NT51927", "2", 2, "1.0.0", 0x5192),
                     null))),
         ]);
+        OpenReplace(viewModel, ExperienceIds.CtrlRamReplace);
         viewModel.WorkflowSession.SelectedIc = "NT51927";
         viewModel.WorkflowSession.SelectedNumber = IcNumberSelectionTokens.SingleChip;
-        OpenReplace(viewModel, ExperienceIds.CtrlRamReplace);
         await viewModel.WorkflowSession.SetSlotFileAsync("replace-base", basePath, TestContext.Current.CancellationToken);
         Assert.True(viewModel.WorkflowSession.IsFirmwareNumberMismatchModalOpen);
 
@@ -286,7 +286,7 @@ public sealed partial class CtrlRamWorkflowTests
             }
         };
 
-        await viewModel.WorkflowSession.RefreshAllSelectedFirmwareInspectionsAsync("replace-base");
+        await viewModel.WorkflowSession.RefreshSelectedReplaceFirmwareInspectionsAsync("replace-base");
 
         Assert.Empty(promptPublications);
         Assert.True(viewModel.WorkflowSession.IsFirmwareNumberMismatchModalOpen);

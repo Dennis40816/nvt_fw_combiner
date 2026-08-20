@@ -88,13 +88,6 @@ internal sealed partial class MergePresentationViewModel
         SyncStandardMergeMembership(activated.Snapshot);
     }
 
-    internal IEnumerable<FirmwareSlotViewModel> CurrentStandardMergeInspectionSlots()
-    {
-        return StandardMergeSlots.Where(slot =>
-            slot.HasFile &&
-            slot.AddressSpaceId is not null);
-    }
-
     private CompiledAuthoringSelectionSnapshot ResolveStandardMergeAuthoringSnapshot()
     {
         string[] selectedSlotIds =

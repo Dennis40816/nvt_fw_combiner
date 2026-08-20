@@ -5,49 +5,61 @@
   <Style Selector="Border.surface, Border.modalSurface, Border.fileDropZone">
     <Setter Property="Background" Value="{DynamicResource NfcSurfaceBrush}" />
     <Setter Property="BorderBrush" Value="{DynamicResource NfcBorderBrush}" />
-    <Setter Property="BorderThickness" Value="1" />
+    <Setter Property="BorderThickness" Value="2" />
     <Setter Property="CornerRadius" Value="{DynamicResource NfcSurfaceCornerRadius}" />
   </Style>
   <Style Selector="Border.panelSurface">
     <Setter Property="Background" Value="{DynamicResource NfcSurfaceBrush}" />
     <Setter Property="BorderBrush" Value="{DynamicResource NfcBorderMutedBrush}" />
-    <Setter Property="BorderThickness" Value="1" />
+    <Setter Property="BorderThickness" Value="2" />
     <Setter Property="CornerRadius" Value="{DynamicResource NfcSurfaceCornerRadius}" />
   </Style>
   <Style Selector="Border.subtleSurface">
     <Setter Property="Background" Value="{DynamicResource NfcSurfaceSubtleBrush}" />
     <Setter Property="BorderBrush" Value="{DynamicResource NfcBorderBrush}" />
-    <Setter Property="BorderThickness" Value="1" />
+    <Setter Property="BorderThickness" Value="2" />
     <Setter Property="CornerRadius" Value="{DynamicResource NfcSurfaceCornerRadius}" />
   </Style>
   <Style Selector="Border.insetSurface">
     <Setter Property="Background" Value="{DynamicResource NfcSurfaceSubtleBrush}" />
     <Setter Property="BorderBrush" Value="{DynamicResource NfcBorderMutedBrush}" />
-    <Setter Property="BorderThickness" Value="1" />
+    <Setter Property="BorderThickness" Value="2" />
     <Setter Property="CornerRadius" Value="{DynamicResource NfcCompactCornerRadius}" />
   </Style>
   <Style Selector="Border.compactSurface">
     <Setter Property="Background" Value="{DynamicResource NfcSurfaceBrush}" />
     <Setter Property="BorderBrush" Value="{DynamicResource NfcBorderBrush}" />
-    <Setter Property="BorderThickness" Value="1" />
+    <Setter Property="BorderThickness" Value="2" />
     <Setter Property="CornerRadius" Value="{DynamicResource NfcCompactCornerRadius}" />
   </Style>
   <Style Selector="Border.compactSubtleSurface, Border.statusNotice, Border.reportHexDiffViewport">
     <Setter Property="Background" Value="{DynamicResource NfcSurfaceSubtleBrush}" />
     <Setter Property="BorderBrush" Value="{DynamicResource NfcBorderBrush}" />
-    <Setter Property="BorderThickness" Value="1" />
+    <Setter Property="BorderThickness" Value="2" />
     <Setter Property="CornerRadius" Value="{DynamicResource NfcCompactCornerRadius}" />
+  </Style>
+  <Style Selector="TextBox.buildSettingInput">
+    <Setter Property="MinHeight" Value="34" /><Setter Property="Padding" Value="10,5" />
+    <Setter Property="Background" Value="{DynamicResource NfcSurfaceBrush}" /><Setter Property="BorderBrush" Value="{DynamicResource NfcBorderBrush}" />
+  </Style>
+  <Style Selector="TextBox.buildSettingInput.editable:pointerover"><Setter Property="Background" Value="{DynamicResource NfcAccentSurfaceSubtleBrush}" /><Setter Property="BorderBrush" Value="{DynamicResource NfcAccentBorderLightBrush}" /></Style>
+  <Style Selector="TextBox.buildSettingInput.editable:focus"><Setter Property="Background" Value="{DynamicResource NfcSurfaceBrush}" /><Setter Property="BorderBrush" Value="{DynamicResource NfcAccentStrongBrush}" /></Style>
+  <Style Selector="CheckBox.buildSettingChoice">
+    <Setter Property="Padding" Value="6,4" /><Setter Property="Foreground" Value="{DynamicResource NfcTextBrush}" />
+  </Style>
+  <Style Selector="CheckBox.buildSettingChoice:pointerover">
+    <Setter Property="Foreground" Value="{DynamicResource NfcAccentStrongBrush}" />
   </Style>
   <Style Selector="Border.subtlePanel">
     <Setter Property="Background" Value="{DynamicResource NfcSurfaceSubtleBrush}" />
     <Setter Property="BorderBrush" Value="{DynamicResource NfcBorderMutedBrush}" />
-    <Setter Property="BorderThickness" Value="1" />
+    <Setter Property="BorderThickness" Value="2" />
     <Setter Property="CornerRadius" Value="{DynamicResource NfcSurfaceCornerRadius}" />
   </Style>
   <Style Selector="Border.warningSurface">
     <Setter Property="Background" Value="{DynamicResource NfcWarningSurfaceBrush}" />
     <Setter Property="BorderBrush" Value="{DynamicResource NfcWarningBorderBrush}" />
-    <Setter Property="BorderThickness" Value="1" />
+    <Setter Property="BorderThickness" Value="2" />
     <Setter Property="CornerRadius" Value="{DynamicResource NfcSurfaceCornerRadius}" />
   </Style>
   <Style Selector="Border.diagnosticCard:focus-visible, Border.buildBlockerBadge:focus-visible, Border.supportMatrixCell:focus-visible">
@@ -103,7 +115,7 @@
   <Style Selector="Border.supportMatrixCell:pointerover">
     <Setter Property="Background" Value="{DynamicResource NfcSelectionSurfaceBrush}" />
     <Setter Property="BorderBrush" Value="{DynamicResource NfcAccentBorderLightBrush}" />
-    <Setter Property="BorderThickness" Value="1" />
+    <Setter Property="BorderThickness" Value="2" />
   </Style>
   <Style Selector="Border.supportMatrixHoverRoute">
     <Setter Property="BorderBrush" Value="{DynamicResource NfcBorderMutedBrush}" />
@@ -140,7 +152,7 @@
   <Style Selector="Border.successInset">
     <Setter Property="Background" Value="{DynamicResource NfcSuccessSurfaceBrush}" />
     <Setter Property="BorderBrush" Value="{DynamicResource NfcSuccessBorderBrush}" />
-    <Setter Property="BorderThickness" Value="1" />
+    <Setter Property="BorderThickness" Value="2" />
     <Setter Property="CornerRadius" Value="{DynamicResource NfcCompactCornerRadius}" />
   </Style>
   <Style Selector="Border.mappingIndex">
@@ -149,23 +161,23 @@
     <Setter Property="VerticalAlignment" Value="Center" />
     <Setter Property="Background" Value="{DynamicResource NfcSurfaceBrush}" />
     <Setter Property="BorderBrush" Value="{DynamicResource NfcBorderBrush}" />
-    <Setter Property="BorderThickness" Value="1" />
+    <Setter Property="BorderThickness" Value="2" />
     <Setter Property="CornerRadius" Value="{DynamicResource NfcPillCornerRadius}" />
   </Style>
   <Style Selector="Border.fileDropZone.firmwareSlot.optional">
     <Setter Property="Background" Value="{DynamicResource NfcSurfaceSubtleBrush}" />
     <Setter Property="BorderBrush" Value="{DynamicResource NfcBorderBrush}" />
-    <Setter Property="BorderThickness" Value="1" />
+    <Setter Property="BorderThickness" Value="2" />
   </Style>
   <Style Selector="Border.fileDropZone.firmwareSlot.hasFile">
     <Setter Property="Background" Value="{DynamicResource NfcSuccessSurfaceBrush}" />
     <Setter Property="BorderBrush" Value="{DynamicResource NfcRequiredSelectedBorderBrush}" />
-    <Setter Property="BorderThickness" Value="1" />
+    <Setter Property="BorderThickness" Value="2" />
   </Style>
   <Style Selector="Border.fileDropZone.firmwareSlot.hasFile.pending">
     <Setter Property="Background" Value="{DynamicResource NfcSurfaceBrush}" />
     <Setter Property="BorderBrush" Value="{DynamicResource NfcBorderBrush}" />
-    <Setter Property="BorderThickness" Value="1" />
+    <Setter Property="BorderThickness" Value="2" />
   </Style>
   <Style Selector="Border.fileDropZone.firmwareSlot.hasFile.valid">
     <Setter Property="Background" Value="{DynamicResource NfcSuccessSurfaceBrush}" />
@@ -184,7 +196,7 @@
     <Setter Property="Padding" Value="12" />
     <Setter Property="Background" Value="{DynamicResource NfcSurfaceBrush}" />
     <Setter Property="BorderBrush" Value="{DynamicResource NfcAccentBorderLightBrush}" />
-    <Setter Property="BorderThickness" Value="1" />
+    <Setter Property="BorderThickness" Value="2" />
     <Setter Property="CornerRadius" Value="{DynamicResource NfcCompactCornerRadius}" />
   </Style>
   <Style Selector="Border.icDetailHeroIcon">
@@ -215,7 +227,7 @@
   <Style Selector="Border.toastSurface">
     <Setter Property="Background" Value="{DynamicResource NfcSurfaceBrush}" />
     <Setter Property="BorderBrush" Value="{DynamicResource NfcAccentBorderLightBrush}" />
-    <Setter Property="BorderThickness" Value="1" />
+    <Setter Property="BorderThickness" Value="2" />
     <Setter Property="CornerRadius" Value="{DynamicResource NfcSurfaceCornerRadius}" />
   </Style>
   <Style Selector="Border.homePreviewSurface">
@@ -223,7 +235,7 @@
     <Setter Property="Padding" Value="22" />
     <Setter Property="Background" Value="{DynamicResource NfcSurfaceBrush}" />
     <Setter Property="BorderBrush" Value="{DynamicResource NfcBorderMutedBrush}" />
-    <Setter Property="BorderThickness" Value="1" />
+    <Setter Property="BorderThickness" Value="2" />
     <Setter Property="CornerRadius" Value="{DynamicResource NfcSurfaceCornerRadius}" />
   </Style>
   <Style Selector="Border.roomyPanel">
@@ -254,14 +266,14 @@
     <Setter Property="Padding" Value="12,10" />
     <Setter Property="Background" Value="{DynamicResource NfcAccentSurfaceSubtleBrush}" />
     <Setter Property="BorderBrush" Value="{DynamicResource NfcAccentBorderLightBrush}" />
-    <Setter Property="BorderThickness" Value="1" />
+    <Setter Property="BorderThickness" Value="2" />
     <Setter Property="CornerRadius" Value="{DynamicResource NfcCompactCornerRadius}" />
   </Style>
   <Style Selector="Border.reportInputRow">
     <Setter Property="Padding" Value="12,10" />
     <Setter Property="Background" Value="{DynamicResource NfcSurfaceSubtleBrush}" />
     <Setter Property="BorderBrush" Value="{DynamicResource NfcBorderMutedBrush}" />
-    <Setter Property="BorderThickness" Value="1" />
+    <Setter Property="BorderThickness" Value="2" />
     <Setter Property="CornerRadius" Value="{DynamicResource NfcCompactCornerRadius}" />
   </Style>
   <Style Selector="Border.settingRow">
@@ -421,7 +433,7 @@
     <Setter Property="HorizontalContentAlignment" Value="Center" />
     <Setter Property="VerticalContentAlignment" Value="Center" />
     <Setter Property="VerticalAlignment" Value="Center" />
-    <Setter Property="BorderThickness" Value="1" />
+    <Setter Property="BorderThickness" Value="2" />
     <Setter Property="CornerRadius" Value="{DynamicResource NfcPillCornerRadius}" />
     <Setter Property="FontWeight" Value="SemiBold" />
   </Style>
@@ -521,7 +533,7 @@
     <Setter Property="Padding" Value="8,6" />
     <Setter Property="Background" Value="{DynamicResource NfcSurfaceSubtleBrush}" />
     <Setter Property="BorderBrush" Value="{DynamicResource NfcBorderSoftBrush}" />
-    <Setter Property="BorderThickness" Value="1" />
+    <Setter Property="BorderThickness" Value="2" />
     <Setter Property="CornerRadius" Value="{DynamicResource NfcCompactCornerRadius}" />
   </Style>
   <Style Selector="Border.hexInspectorHint.error">
@@ -539,7 +551,7 @@
     <Setter Property="VerticalContentAlignment" Value="Center" />
     <Setter Property="Background" Value="{DynamicResource NfcCautionSurfaceBrush}" />
     <Setter Property="BorderBrush" Value="{DynamicResource NfcCautionBorderBrush}" />
-    <Setter Property="BorderThickness" Value="1" />
+    <Setter Property="BorderThickness" Value="2" />
     <Setter Property="Foreground" Value="{DynamicResource NfcCautionTextBrush}" />
     <Setter Property="FontSize" Value="{DynamicResource NfcFontSize11}" />
     <Setter Property="FontWeight" Value="SemiBold" />
@@ -611,7 +623,7 @@
     <Setter Property="Foreground" Value="{DynamicResource NfcTextStrongBrush}" />
     <Setter Property="Background" Value="{DynamicResource NfcSurfaceSubtleBrush}" />
     <Setter Property="BorderBrush" Value="{DynamicResource NfcBorderBrush}" />
-    <Setter Property="BorderThickness" Value="1" />
+    <Setter Property="BorderThickness" Value="2" />
     <Setter Property="CornerRadius" Value="{DynamicResource NfcCompactCornerRadius}" />
     <Setter Property="Padding" Value="10" />
     <Setter Property="ScrollViewer.HorizontalScrollBarVisibility" Value="Auto" />
@@ -627,7 +639,7 @@
     <Setter Property="FontSize" Value="{DynamicResource NfcFontSize12}" />
     <Setter Property="Background" Value="{DynamicResource NfcSurfaceBrush}" />
     <Setter Property="BorderBrush" Value="{DynamicResource NfcAccentBrush}" />
-    <Setter Property="BorderThickness" Value="1" />
+    <Setter Property="BorderThickness" Value="2" />
     <Setter Property="CornerRadius" Value="3" />
   </Style>
   <Style Selector="TextBox.hexCellEditor.invalid">

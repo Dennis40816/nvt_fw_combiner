@@ -25,7 +25,7 @@ internal sealed partial class ReplacePresentationViewModel : ObservableObject
             PreviewReplaceAsync,
             CanRunReplace);
         BuildReplaceCommand = new AsyncRelayCommand(
-            () => RunBuildReplaceAsync(outputPath: null, ctrlRamFirmwareVersionEdit: null),
+            RequestBuildFromCommandAsync,
             () => CanBuildReplace);
         SelectCtrlRamFirmwareVersionPreserveCommand = new RelayCommand(SelectCtrlRamFirmwareVersionPreserve);
         SelectCtrlRamFirmwareVersionEditCommand = new RelayCommand(SelectCtrlRamFirmwareVersionEdit);

@@ -60,12 +60,16 @@ internal sealed partial class MainWindowViewModel
             appVersion,
             supportMatrixQuery ?? hostServices.SupportMatrix,
             () => Text);
+        OutputDelivery = new OutputDeliveryConfirmationViewModel(
+            _compositionServices.OutputNaming,
+            () => Text);
+        OutputDelivery.PropertyChanged += OutputDelivery_OnPropertyChanged;
         Merge = new MergePresentationViewModel(
             _compositionServices,
             () => Text,
             new MergeStateBindings(
-                GetWorkflowSelectedIc,
-                GetWorkflowSelectedNumber,
+                () => WorkflowSession!.GetWorkflowPageIc(WorkflowInspectionOwner.Merge),
+                () => WorkflowSession!.GetWorkflowPageNumber(WorkflowInspectionOwner.Merge),
                 IsCompositionRunInProgress,
                 IsGlobalBuildBlocked,
                 IsWorkflowLoaded,
@@ -78,14 +82,15 @@ internal sealed partial class MainWindowViewModel
                 () => WorkflowSession!.NotifyContextTextChanged(),
                 () => WorkflowSession!.RefreshSelectedMergeFirmwareInspectionsAsync(),
                 ResetRunResultForContextChange,
-                RefreshCommandState));
+                RefreshCommandState,
+                OutputDelivery));
         Merge.PropertyChanged += Merge_OnPropertyChanged;
         Replace = new ReplacePresentationViewModel(
             _compositionServices,
             new ReplaceStateBindings(
                 () => Text,
-                GetWorkflowSelectedIc,
-                GetWorkflowSelectedNumber,
+                () => WorkflowSession!.GetWorkflowPageIc(WorkflowInspectionOwner.Replace),
+                () => WorkflowSession!.GetWorkflowPageNumber(WorkflowInspectionOwner.Replace),
                 IsCompositionRunInProgress,
                 IsGlobalBuildBlocked,
                 IsWorkflowLoaded,
@@ -98,7 +103,8 @@ internal sealed partial class MainWindowViewModel
                  WorkflowReplaceModeChanged,
                 ResetRunResultForContextChange,
                 () => WorkflowSession!.RefreshSelectedReplaceFirmwareInspectionsAsync(),
-                RefreshCommandState));
+                RefreshCommandState,
+                OutputDelivery));
         Replace.PropertyChanged += Replace_OnPropertyChanged;
         SelectedLanguage = language == ShellLanguage.ChineseTraditional ? "Traditional Chinese" : "English";
         Reports = new ReportPresentationViewModel(() => Text, Replace.CloseSelectionForRun);
@@ -152,7 +158,8 @@ internal sealed partial class MainWindowViewModel
             return new RelayCommand(execute, () => WorkflowSession.IsCanonicalCatalogReady);
         }
         ShowHomeCommand = new RelayCommand(() => NavigateToPage(ShellPage.Home));
-        ShowSettingsCommand = new RelayCommand(() => NavigateToPage(ShellPage.Settings));
+        OpenSettingsCommand = new RelayCommand(OpenSettings);
+        CloseSettingsCommand = new RelayCommand(CloseSettings);
         ShowMergeCommand = CreateCatalogCommand(() => NavigateToPage(ShellPage.Merge));
         ShowReplaceCommand = CreateCatalogCommand(() => NavigateToPage(ShellPage.Replace));
         GoBackCommand = new RelayCommand(GoBack, () => CanGoBack);

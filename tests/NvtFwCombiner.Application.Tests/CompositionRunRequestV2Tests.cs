@@ -617,14 +617,15 @@ public sealed partial class CompositionRunRequestV2Tests
 
         internal string? FileName { get; private set; }
 
-        public ValueTask<string> CommitAsync(
+        public ValueTask<CompositionOutputCommitReceipt> CommitAsync(
             string fileName,
             ReadOnlyMemory<byte> outputBytes,
             CancellationToken cancellationToken)
         {
             WasCalled = true;
             FileName = fileName;
-            return ValueTask.FromResult($"committed:{fileName}");
+            return ValueTask.FromResult(CompositionOutputCommitReceipt.CreateLoose(
+                $"committed:{fileName}", fileName, outputBytes.Span));
         }
     }
 }

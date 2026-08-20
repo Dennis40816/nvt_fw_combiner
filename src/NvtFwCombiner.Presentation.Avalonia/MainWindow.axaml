@@ -72,12 +72,6 @@
           </ToggleButton>
           <ToggleButton
               Classes="nav"
-              Command="{Binding ShowSettingsCommand}"
-              IsChecked="{Binding IsSettingsVisible, Mode=OneWay}">
-            <TextBlock Text="{Binding SettingsPreview.Title}" />
-          </ToggleButton>
-          <ToggleButton
-              Classes="nav"
               Command="{Binding ShowReplaceCommand}"
               IsChecked="{Binding IsReplaceVisible, Mode=OneWay}">
             <TextBlock Text="{Binding Replace.ReplacePreview.Title}" />
@@ -95,6 +89,15 @@
             VerticalAlignment="Center"
             Orientation="Horizontal"
             Spacing="{DynamicResource NfcSpace8}">
+          <Button
+              x:Name="SettingsUtilityButton"
+              Classes="semanticAction secondary"
+              AutomationProperties.Name="{Binding SettingsPreview.Title}" Command="{Binding OpenSettingsCommand}" ToolTip.Tip="{Binding SettingsPreview.Subtitle}">
+            <StackPanel Orientation="Horizontal" Spacing="7">
+              <TextBlock VerticalAlignment="Center" FontSize="16" Text="⚙" />
+              <TextBlock VerticalAlignment="Center" FontSize="{DynamicResource NfcFontSize12}" FontWeight="SemiBold" Text="{Binding SettingsPreview.Title}" />
+            </StackPanel>
+          </Button>
           <Button
               Classes="semanticAction secondary"
               Click="LoadReportJsonButton_OnClick"
@@ -155,12 +158,6 @@
             ContentTemplate="{StaticResource HomePageTemplate}" />
 
         <ContentControl
-            x:Name="SettingsPageHost"
-            Grid.Row="0"
-            IsVisible="{Binding IsSettingsVisible}"
-            ContentTemplate="{StaticResource SettingsPageTemplate}" />
-
-        <ContentControl
             x:Name="HexEditorPageHost"
             Grid.Row="0"
             IsVisible="{Binding IsHexEditorVisible}"
@@ -176,17 +173,16 @@
           <StackPanel Spacing="{DynamicResource NfcSpace16}">
             <Grid
                 x:Name="ReplacePageHeader"
-                RowDefinitions="Auto,Auto"
-                RowSpacing="{DynamicResource NfcSpace12}">
+                ColumnDefinitions="*,Auto"
+                ColumnSpacing="{DynamicResource NfcSpace16}">
               <StackPanel Spacing="{DynamicResource NfcSpace4}">
                 <TextBlock Classes="pageTitle" Text="{Binding ReplacePreview.Title}" />
                 <TextBlock Classes="pageSubtitle" Text="{Binding ReplacePreview.Subtitle}" TextWrapping="Wrap" />
               </StackPanel>
               <Grid
-                  Grid.Row="1"
+                  Grid.Column="1"
                   ColumnDefinitions="Auto,Auto"
                   ColumnSpacing="{DynamicResource NfcSpace12}"
-                  HorizontalAlignment="Left"
                   VerticalAlignment="Center">
                 <StackPanel Spacing="3">
                   <TextBlock Classes="fieldLabel" Text="{Binding Text.ModeLabel}" />
@@ -261,16 +257,15 @@
           <StackPanel Spacing="{DynamicResource NfcSpace16}">
             <Grid
                 x:Name="MergePageHeader"
-                RowDefinitions="Auto,Auto"
-                RowSpacing="{DynamicResource NfcSpace12}">
+                ColumnDefinitions="*,Auto"
+                ColumnSpacing="{DynamicResource NfcSpace16}">
               <StackPanel Spacing="{DynamicResource NfcSpace4}">
                 <TextBlock Classes="pageTitle" Text="{Binding MergePreview.Title}" />
                 <TextBlock Classes="pageSubtitle" Text="{Binding MergePreview.Subtitle}" TextWrapping="Wrap" />
               </StackPanel>
               <Grid
-                  Grid.Row="1"
+                  Grid.Column="1"
                   ColumnDefinitions="170"
-                  HorizontalAlignment="Left"
                   VerticalAlignment="Center">
                 <StackPanel Spacing="3" ToolTip.Tip="{Binding Text.MergeModeTooltip}">
                   <TextBlock Classes="fieldLabel" Text="{Binding Text.ModeLabel}" />
@@ -358,6 +353,7 @@
               Classes.reducedMotion="{Binding IsReducedMotionEnabled}"
               AutomationProperties.HelpText="{Binding Merge.MergeReadinessStatus}"
               AutomationProperties.Name="{Binding Text.BuildActionLabel}"
+              x:Name="MergeBuildButton"
               Click="BuildMergeButton_OnClick"
               IsEnabled="{Binding Merge.CanBuildMerge}">
             <Grid ColumnDefinitions="*,44">
@@ -397,6 +393,7 @@
               Classes.reducedMotion="{Binding IsReducedMotionEnabled}"
               AutomationProperties.HelpText="{Binding Replace.ReplaceReadinessStatus}"
               AutomationProperties.Name="{Binding Text.BuildActionLabel}"
+              x:Name="ReplaceBuildButton"
               Click="BuildReplaceButton_OnClick"
               IsEnabled="{Binding Replace.CanBuildReplace}">
             <Grid ColumnDefinitions="*,44">
@@ -439,7 +436,7 @@
         Padding="14,10"
         Background="{DynamicResource NfcSurfaceBrush}"
         BorderBrush="{DynamicResource NfcBorderSoftBrush}"
-        BorderThickness="1"
+        BorderThickness="2"
         CornerRadius="{DynamicResource NfcCompactCornerRadius}"
         IsVisible="{ReflectionBinding HasOptionalStatus}">
             <Expander
@@ -546,6 +543,7 @@
               </ItemsControl>
             </Expander>
     </Border>
+    </Grid>
 
     <ContentControl
         x:Name="ReportToastHost"
@@ -556,34 +554,23 @@
         Opacity="{Binding Reports.ReportToastOpacity}" />
 
     <ContentControl
+        x:Name="OutputDeliveryConfirmationModalHost"
+        Grid.RowSpan="5"
+        IsVisible="{Binding OutputDelivery.IsOpen}">
+      <ContentControl.ContentTemplate>
+        <DataTemplate DataType="vm:OutputDeliveryConfirmationViewModel">
+          <views:OutputDeliveryConfirmationModal IsOpen="{Binding IsOpen}" />
+        </DataTemplate>
+      </ContentControl.ContentTemplate>
+    </ContentControl>
+
+    <ContentControl
         x:Name="ReplaceSelectionModalHost"
         Grid.RowSpan="5"
         IsVisible="{Binding Replace.IsReplaceSelectionModalOpen}">
       <ContentControl.ContentTemplate>
         <DataTemplate DataType="vm:ReplacePresentationViewModel">
           <views:ReplaceSelectionModal />
-        </DataTemplate>
-      </ContentControl.ContentTemplate>
-    </ContentControl>
-
-    <ContentControl
-        x:Name="CtrlRamFirmwareVersionModalHost"
-        Grid.RowSpan="5"
-        IsVisible="{Binding Replace.IsCtrlRamFirmwareVersionModalOpen}">
-      <ContentControl.ContentTemplate>
-        <DataTemplate DataType="vm:ReplacePresentationViewModel">
-          <views:CtrlRamFirmwareVersionModal />
-        </DataTemplate>
-      </ContentControl.ContentTemplate>
-    </ContentControl>
-
-    <ContentControl
-        x:Name="AbAFlashCodeDeliveryPromptModalHost"
-        Grid.RowSpan="5"
-        IsVisible="{Binding Merge.IsAbAFlashCodeDeliveryPromptOpen}">
-      <ContentControl.ContentTemplate>
-        <DataTemplate DataType="vm:MergePresentationViewModel">
-          <views:AbAFlashCodeDeliveryPromptModal />
         </DataTemplate>
       </ContentControl.ContentTemplate>
     </ContentControl>
@@ -680,7 +667,14 @@
         </DataTemplate>
       </ContentControl.ContentTemplate>
     </ContentControl>
-    </Grid>
+
+    <ContentControl x:Name="SettingsModalHost" IsHitTestVisible="{Binding IsSettingsModalOpen}" IsVisible="{Binding IsSettingsModalOpen}">
+      <ContentControl.ContentTemplate>
+        <DataTemplate DataType="vm:MainWindowViewModel">
+          <views:SettingsModal IsOpen="{Binding IsSettingsModalOpen}" />
+        </DataTemplate>
+      </ContentControl.ContentTemplate>
+    </ContentControl>
 
     <ContentControl
         x:Name="CatalogLoadingSurfaceHost"

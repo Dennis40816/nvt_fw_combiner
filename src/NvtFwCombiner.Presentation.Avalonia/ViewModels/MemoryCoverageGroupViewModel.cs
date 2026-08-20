@@ -4,6 +4,35 @@ using NvtFwCombiner.Application.MemoryLayout;
 
 namespace NvtFwCombiner.Presentation.Avalonia.ViewModels;
 
+internal sealed partial class MemoryCoverageInteractionState : ObservableObject
+{
+    private readonly HashSet<object> _focusOwners = [];
+    private readonly HashSet<object> _pointerOwners = [];
+
+    [ObservableProperty]
+    public partial bool IsActive { get; private set; }
+
+    internal void SetPointerActive(object owner, bool active)
+    {
+        SetActivity(_pointerOwners, owner, active);
+    }
+
+    internal void SetFocusActive(object owner, bool active)
+    {
+        SetActivity(_focusOwners, owner, active);
+    }
+
+    private void SetActivity(HashSet<object> owners, object owner, bool active)
+    {
+        ArgumentNullException.ThrowIfNull(owner);
+        bool changed = active ? owners.Add(owner) : owners.Remove(owner);
+        if (changed)
+        {
+            IsActive = _pointerOwners.Count > 0 || _focusOwners.Count > 0;
+        }
+    }
+}
+
 internal sealed partial class MemoryCoverageGroupViewModel : ObservableObject
 {
     private readonly ShellTextResources _text;
@@ -46,7 +75,7 @@ internal sealed partial class MemoryCoverageGroupViewModel : ObservableObject
     [ObservableProperty]
     public partial bool IsExpanded { get; set; }
 
-    private bool IsBaseFirmwareGroup => RegionGroup == ReplaceRegionGroup.Base;
+    public bool IsBaseFirmwareGroup => RegionGroup == ReplaceRegionGroup.Base;
 }
 
 internal sealed class MemoryCoverageLogicalItemViewModel
@@ -68,6 +97,11 @@ internal sealed class MemoryCoverageLogicalItemViewModel
 
         MemoryCoverageSegmentViewModel primary =
             projectedSegments.FirstOrDefault(static range => range.IsSelectedForWrite) ?? projectedSegments[0];
+        Interaction = new MemoryCoverageInteractionState();
+        foreach (MemoryCoverageSegmentViewModel segment in projectedSegments)
+        {
+            segment.Interaction = Interaction;
+        }
         DisplayId = displayId;
         Ranges = ProjectRanges(projectedSegments, text);
         Segments = Array.AsReadOnly(projectedSegments);
@@ -86,6 +120,9 @@ internal sealed class MemoryCoverageLogicalItemViewModel
     public string DisplayId { get; }
 
     public string SourceLabel { get; }
+
+    /// <summary>Correlated pointer/focus state shared with every rendered segment.</summary>
+    public MemoryCoverageInteractionState Interaction { get; }
 
     public IReadOnlyList<MemoryCoverageSegmentViewModel> Ranges { get; }
 

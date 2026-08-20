@@ -2,13 +2,16 @@
   <Style Selector="Border.fileDropZone.firmwareSlot.compactExperience">
     <Setter Property="Background" Value="{DynamicResource NfcSurfaceBrush}" />
     <Setter Property="BorderBrush" Value="{DynamicResource NfcBorderBrush}" />
-    <Setter Property="BorderThickness" Value="1" />
+    <Setter Property="BorderThickness" Value="2" />
   </Style>
   <Style Selector="Border.fileDropZone.firmwareSlot.compactExperience.hasFile">
     <Setter Property="Background" Value="{DynamicResource NfcAccentSurfaceSubtleBrush}" />
     <Setter Property="BorderBrush" Value="{DynamicResource NfcAccentBorderStrongBrush}" />
     <Setter Property="BorderThickness" Value="1.5" />
   </Style>
+  <Style Selector="Border.fileDropZone.firmwareSlot.compactExperience Border.slotTypeIcon">
+    <Setter Property="Width" Value="36" /><Setter Property="Height" Value="36" /></Style>
+  <Style Selector="Border.fileDropZone.firmwareSlot.compactExperience Border.slotTypeIcon Path"><Setter Property="Width" Value="20" /><Setter Property="Height" Value="20" /></Style>
   <Style Selector="Label.slotBadge.firmwareSlotRequirement.availableInput.optional">
     <Setter Property="Background" Value="{DynamicResource NfcSurfaceSubtleBrush}" />
     <Setter Property="BorderBrush" Value="{DynamicResource NfcBorderMutedBrush}" />
@@ -19,14 +22,14 @@
     <Setter Property="Padding" Value="7,2" />
     <Setter Property="Background" Value="{DynamicResource NfcSurfaceSubtleBrush}" />
     <Setter Property="BorderBrush" Value="{DynamicResource NfcBorderBrush}" />
-    <Setter Property="BorderThickness" Value="1" />
+    <Setter Property="BorderThickness" Value="2" />
     <Setter Property="CornerRadius" Value="{DynamicResource NfcPillCornerRadius}" />
     <Setter Property="Foreground" Value="{DynamicResource NfcTextSecondaryBrush}" />
   </Style>
   <Style Selector="ToggleButton.slotStateAction /template/ ContentPresenter#PART_ContentPresenter">
     <Setter Property="Background" Value="{DynamicResource NfcSurfaceSubtleBrush}" />
     <Setter Property="BorderBrush" Value="{DynamicResource NfcBorderBrush}" />
-    <Setter Property="BorderThickness" Value="1" />
+    <Setter Property="BorderThickness" Value="2" />
     <Setter Property="CornerRadius" Value="{DynamicResource NfcPillCornerRadius}" />
     <Setter Property="TextElement.Foreground" Value="{DynamicResource NfcTextSecondaryBrush}" />
   </Style>
@@ -136,6 +139,7 @@
   <Style Selector="ToggleButton.quietDisclosure /template/ ContentPresenter#PART_ContentPresenter">
     <Setter Property="Background" Value="Transparent" />
     <Setter Property="BorderBrush" Value="Transparent" />
+    <Setter Property="TextElement.Foreground" Value="{DynamicResource NfcAccentStrongBrush}" />
   </Style>
   <Style Selector="ToggleButton.quietDisclosure:pointerover /template/ ContentPresenter#PART_ContentPresenter, ToggleButton.quietDisclosure:checked /template/ ContentPresenter#PART_ContentPresenter">
     <Setter Property="Background" Value="{DynamicResource NfcAccentSurfaceSubtleBrush}" />
@@ -145,7 +149,10 @@
   </Style>
   <Style Selector="ToggleButton.quietDisclosure:focus-visible /template/ ContentPresenter#PART_ContentPresenter">
     <Setter Property="BorderBrush" Value="{DynamicResource NfcAccentStrongBrush}" />
-    <Setter Property="BorderThickness" Value="1" />
+    <Setter Property="BorderThickness" Value="2" />
+  </Style>
+  <Style Selector="Border.firmwareSlotFact">
+    <Setter Property="Background" Value="Transparent" /><Setter Property="BorderBrush" Value="Transparent" />
   </Style>
   <Style Selector="Border.firmwareSlotFact.pendingInput">
     <Setter Property="Background" Value="{DynamicResource NfcAccentSurfaceBrush}" />

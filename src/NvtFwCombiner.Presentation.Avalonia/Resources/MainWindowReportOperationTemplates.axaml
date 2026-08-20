@@ -12,7 +12,7 @@
           HorizontalAlignment="Center"
           Background="{DynamicResource NfcAccentBorderLightBrush}"
           IsVisible="{Binding HasConnector}" />
-      <Border Width="32" Height="32" Margin="0,4,0,0" HorizontalAlignment="Center" VerticalAlignment="Top" Background="{DynamicResource NfcAccentSurfaceSubtleBrush}" BorderBrush="{DynamicResource NfcAccentBorderBrush}" BorderThickness="1" CornerRadius="{DynamicResource NfcPillCornerRadius}">
+      <Border Width="32" Height="32" Margin="0,4,0,0" HorizontalAlignment="Center" VerticalAlignment="Top" Background="{DynamicResource NfcAccentSurfaceSubtleBrush}" BorderBrush="{DynamicResource NfcAccentBorderBrush}" BorderThickness="2" CornerRadius="{DynamicResource NfcPillCornerRadius}">
         <TextBlock HorizontalAlignment="Center" VerticalAlignment="Center" FontSize="{DynamicResource NfcFontSize12}" FontWeight="SemiBold" Foreground="{DynamicResource NfcAccentStrongBrush}" Text="{Binding Number}" />
       </Border>
     </Grid>

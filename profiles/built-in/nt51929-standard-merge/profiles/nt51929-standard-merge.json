@@ -1,7 +1,7 @@
 {
-  "schemaVersion": "2.13",
+  "schemaVersion": "2.15",
   "profileId": "nt51929-standard-merge-gen-flash",
-  "profileVersion": "0.6.0",
+  "profileVersion": "0.7.0",
   "promotion": {
     "stage": "supported",
     "blockers": []
@@ -20,8 +20,8 @@
   },
   "mapBinding": {
     "familyId": "nt51929-nt51932",
-    "familyVersion": "1.1.0",
-    "familyContentHash": "06ab5b5ac35e143587420ecdc40aa17324cb63ec8a0c48e4c208092b1be22f39",
+    "familyVersion": "1.2.0",
+    "familyContentHash": "7d2f46011942190b9cfe611983f129e69f3cc2bcbbf8cd3329d984e2542671bf",
     "mapIds": [
       "nt51929-standard-merge-256k"
     ],
@@ -30,6 +30,8 @@
       "dp-code"
     ],
     "requiredMetadataStructureIds": [
+      "firmware-config-general-parameters",
+      "dpcmi",
       "type-ab-tp-flash-header"
     ],
     "requiredCapabilityIds": []
@@ -132,6 +134,26 @@
     }
   ],
   "metadataBindings": [
+    {
+      "bindingId": "firmware-config-general-parameters-inspection",
+      "spaceId": "tp-input",
+      "structureId": "firmware-config-general-parameters",
+      "fieldIds": [
+        "tp-firmware-version", "tp-firmware-version-complement", "sensor-count-x", "sensor-count-y",
+        "display-resolution-x", "display-resolution-y", "maximum-operable-fingers", "report-irq-type",
+        "tp-firmware-subversion", "tp-resolution-x", "tp-resolution-y", "observed-ic-count",
+        "outermost-ic-master-enable", "common-firmware-major-version", "common-firmware-minor-version",
+        "common-firmware-additional-version", "cascade-enable", "pid"
+      ],
+      "purposes": ["validation", "output-naming", "display", "version"]
+    },
+    {
+      "bindingId": "dpcmi-inspection",
+      "spaceId": "dp-input",
+      "structureId": "dpcmi",
+      "fieldIds": ["jira-low", "dp-major", "dp-minor", "jira-high"],
+      "purposes": ["validation", "output-naming", "display", "version"]
+    },
     {
       "bindingId": "type-ab-tp-flash-header-read-model",
       "spaceId": "tp-input",
@@ -236,10 +258,18 @@
   ],
   "processorStages": [],
   "output": {
-    "fileNameTemplate": "nt51929-standard-merge-gen-flash.bin",
+    "fileNameTemplate": "{ic}_FlashCode_D{dp-version}T{tp-version}_{date}.bin",
     "allowOverride": true,
     "invalidCharacterPolicy": "reject",
-    "requiredTokenIds": []
+    "requiredTokenIds": ["date", "dp-version", "ic", "tp-version"],
+    "ruleId": "normal-flashcode-v1",
+    "outputArtifactType": "flash-code",
+    "tokenRequirements": [
+      { "tokenId": "date", "source": { "kind": "run-date-utc" }, "missingPolicy": "block" },
+      { "tokenId": "dp-version", "source": { "kind": "dpcmi-version", "metadataBindingId": "dpcmi-inspection" }, "missingPolicy": "use-placeholder", "placeholder": "xxxx" },
+      { "tokenId": "ic", "source": { "kind": "compiled-ic" }, "missingPolicy": "block" },
+      { "tokenId": "tp-version", "source": { "kind": "firmware-config-tp-version", "metadataBindingId": "firmware-config-general-parameters-inspection" }, "missingPolicy": "use-placeholder", "placeholder": "xxxx" }
+    ]
   },
   "evidenceRefs": [
     "gen-flash-bin-v2-51929-golden"

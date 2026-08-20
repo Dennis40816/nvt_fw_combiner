@@ -9,8 +9,6 @@ internal enum ShellPage
 {
     Home,
 
-    Settings,
-
     Merge,
 
     Replace,

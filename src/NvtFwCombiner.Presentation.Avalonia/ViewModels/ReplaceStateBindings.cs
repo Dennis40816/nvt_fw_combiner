@@ -18,4 +18,5 @@ internal sealed record ReplaceStateBindings(
     Action ReplaceModeChanged,
     Action ResetRunResult,
     Func<Task> RefreshSelectedFirmwareInspections,
-    Action RefreshShellCommandState);
+    Action RefreshShellCommandState,
+    OutputDeliveryConfirmationViewModel OutputDelivery);

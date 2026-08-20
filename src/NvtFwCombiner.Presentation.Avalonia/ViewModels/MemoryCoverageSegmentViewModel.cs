@@ -131,6 +131,9 @@ internal sealed class MemoryCoverageSegmentViewModel
             : $"{SourceLabel}. {RangeLabel}. {stateAccessibility}{PreservationSummary}. {preservationAccessibility}. {Detail}";
     }
 
+    /// <summary>Shared display-only interaction state for a row and its proportional segments.</summary>
+    public MemoryCoverageInteractionState Interaction { get; internal set; } = new();
+
     /// <summary>Address range in half-open hex notation.</summary>
     public string RangeLabel { get; }
 

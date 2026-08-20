@@ -54,9 +54,14 @@ public sealed class CompositionHostServices
             abMergeAuthoring,
             dpReplaceAuthoring,
             ctrlRamAuthoring);
+        var artifactIdentityPolicy = new FileSystemCompositionArtifactIdentityPolicy();
+        var bundleDestinationValidator =
+            new FileSystemCompositionOutputBundleDestinationValidator();
         CompositionOutputNaming = new CompositionOutputNamingExperience(
             catalog,
-            new SystemClock());
+            new SystemClock(),
+            artifactIdentityPolicy,
+            bundleDestinationValidator);
         CompositionExecution = new CompositionExecutionExperience(
             catalog,
             new ProtectedCompositionDestinationProvider(),

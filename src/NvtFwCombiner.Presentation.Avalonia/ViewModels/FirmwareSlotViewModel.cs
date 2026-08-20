@@ -194,7 +194,6 @@ internal sealed partial class FirmwareSlotViewModel : ObservableObject
             }
         }
 
-        IsFirmwareFactsExpanded = FirmwareFacts.Count > 0;
         IsAdditionalFirmwareFactsExpanded = false;
         OnPropertyChanged(nameof(HasFirmwareFacts));
         OnPropertyChanged(nameof(PrimaryFirmwareFacts));
@@ -220,13 +219,11 @@ internal sealed partial class FirmwareSlotViewModel : ObservableObject
         CurrentInspectionProjection = null;
     }
 
-    /// <summary>Reprojects cached facts after a language change without collapsing disclosure state.</summary>
+    /// <summary>Reprojects cached facts after a language change without collapsing overflow disclosure state.</summary>
     internal void RelocalizeFirmwareFacts(IEnumerable<FirmwareSlotFactViewModel> facts)
     {
-        bool isExpanded = IsFirmwareFactsExpanded;
         bool areAdditionalFactsExpanded = IsAdditionalFirmwareFactsExpanded;
         SetFirmwareFacts(facts);
-        IsFirmwareFactsExpanded = isExpanded;
         IsAdditionalFirmwareFactsExpanded = areAdditionalFactsExpanded;
     }
 

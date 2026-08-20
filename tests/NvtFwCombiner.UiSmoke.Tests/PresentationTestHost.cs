@@ -21,6 +21,20 @@ internal static class PresentationTestHost
         return PublishCanonicalCatalog(services, viewModel);
     }
 
+    internal static async Task<MainWindowViewModel> CreateViewModelAsync(
+        CancellationToken cancellationToken,
+        ShellLanguage language = ShellLanguage.English)
+    {
+        PresentationHostServices services = CreateServices(
+            ApplicationVersionProvider.InformationalVersion);
+        MainWindowViewModel viewModel = ShellViewModelFactory.Create(services, language);
+        return await PublishCanonicalCatalogAsync(
+                services,
+                viewModel,
+                cancellationToken)
+            .ConfigureAwait(false);
+    }
+
     internal static MainWindowViewModel CreateViewModel(
         Func<IGeneralAuthoring, IGeneralAuthoring> generalAuthoringDecorator,
         ShellLanguage language = ShellLanguage.English)
@@ -41,6 +55,20 @@ internal static class PresentationTestHost
             LoadCanonicalCatalogAsync(
                 services.CanonicalCatalogLoader,
                 CancellationToken.None).GetAwaiter().GetResult();
+        Assert.True(reload.Succeeded);
+        viewModel.PublishCanonicalCatalogState();
+        return viewModel;
+    }
+
+    private static async Task<MainWindowViewModel> PublishCanonicalCatalogAsync(
+        PresentationHostServices services,
+        MainWindowViewModel viewModel,
+        CancellationToken cancellationToken)
+    {
+        CapabilityCatalogReloadResult reload = await LoadCanonicalCatalogAsync(
+                services.CanonicalCatalogLoader,
+                cancellationToken)
+            .ConfigureAwait(false);
         Assert.True(reload.Succeeded);
         viewModel.PublishCanonicalCatalogState();
         return viewModel;

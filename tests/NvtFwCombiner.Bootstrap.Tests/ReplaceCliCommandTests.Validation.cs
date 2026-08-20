@@ -32,7 +32,14 @@ public sealed partial class ReplaceCliCommandTests
         ]);
 
         Assert.Equal(0, result.ExitCode);
-        Assert.Empty(result.Error);
+        Assert.Contains(
+            "output-naming.metadata-unknown",
+            result.Error,
+            StringComparison.Ordinal);
+        Assert.DoesNotContain(
+            "output-naming.metadata-required",
+            result.Error,
+            StringComparison.Ordinal);
         byte[] outputBytes = await File.ReadAllBytesAsync(output, TestContext.Current.CancellationToken);
         Assert.Equal(0x40000, outputBytes.Length);
         Assert.Equal(0x3C, outputBytes[0]);

@@ -58,8 +58,7 @@ internal sealed partial class ReplacePresentationViewModel
         ReplaceCoverageGroups.Clear();
         OnPropertyChanged(nameof(ReplaceMemoryRangeLabel));
         OnPropertyChanged(nameof(HasObservedMemoryChanges));
-        OnPropertyChanged(nameof(IsReplaceCoverageGrouped));
-        OnPropertyChanged(nameof(IsReplaceCoverageFlat));
+        NotifyCoverageGroupingChanged();
     }
 
     internal void ApplyCtrlRamInspectionDisplay(CtrlRamInspectionDisplay display)
@@ -157,8 +156,19 @@ internal sealed partial class ReplacePresentationViewModel
         OnPropertyChanged(nameof(ReplaceMemoryRangeLabel));
         OnPropertyChanged(nameof(ReplaceMemorySummary));
         OnPropertyChanged(nameof(HasObservedMemoryChanges));
+        NotifyCoverageGroupingChanged();
+    }
+
+    private void NotifyCoverageGroupingChanged()
+    {
         OnPropertyChanged(nameof(IsReplaceCoverageGrouped));
         OnPropertyChanged(nameof(IsReplaceCoverageFlat));
+        OnPropertyChanged(nameof(ReplaceSelectedCoverageItems));
+        OnPropertyChanged(nameof(ReplaceBaseCoverageItems));
+        OnPropertyChanged(nameof(ReplaceBaseCoverageGroup));
+        OnPropertyChanged(nameof(HasReplaceBaseCoverage));
+        OnPropertyChanged(nameof(ReplaceSelectedCoverageSummary));
+        OnPropertyChanged(nameof(ReplaceBaseCoverageSummary));
     }
 
     private (

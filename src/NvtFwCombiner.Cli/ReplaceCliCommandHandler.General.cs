@@ -132,28 +132,39 @@ internal static partial class ReplaceCliCommandHandler
         string defaultOutputFileName = host.CompositionOutputNaming
             .ResolveAcceptedOutput(acceptedSession)
             .OutputName.FileName;
+        bool destinationAccepted = CliBundleOptions.TryCreateIntent(
+                host.CompositionOutputNaming,
+                acceptedSession,
+                options.Values,
+                error,
+                out CompositionOutputBundleIntent? outputBundle);
 
-        return await CompleteReplaceRunAsync(
+        return destinationAccepted
+            ? await CompleteReplaceRunAsync(
                 action,
                 icId,
                 ExperienceIds.GeneralReplace,
                 options,
                 protectedInputPaths,
                 defaultOutputFileName,
-                (outputPath, build, token) =>
+                outputBundle,
+                (outputPath, automaticOutputDirectory, bundle, build, token) =>
                     host.CompositionExecution.ExecuteAsync(
                         new AcceptedCompositionExecutionRequest(
                             acceptedSession,
                             slotPaths,
                             build,
                             outputPath: outputPath,
-                            actionReadiness: prepared.Readiness),
+                            automaticOutputDirectory: automaticOutputDirectory,
+                            actionReadiness: prepared.Readiness,
+                            outputBundle: bundle),
                         new CompositionRunProgressFeed(),
                         token),
                 output,
                 error,
                 cancellationToken)
-            .ConfigureAwait(false);
+            .ConfigureAwait(false)
+            : UsageError;
     }
 
     private static async Task CompleteGeneralReplaceDiagnosticPreviewAsync(

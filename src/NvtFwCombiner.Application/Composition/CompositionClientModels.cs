@@ -4,6 +4,7 @@ using NvtFwCombiner.Application.Capabilities;
 using NvtFwCombiner.Application.FlashMaps;
 using NvtFwCombiner.Application.InputInspection;
 using NvtFwCombiner.Domain.Composition;
+using NvtFwCombiner.Domain.Firmware;
 
 namespace NvtFwCombiner.Application.Composition;
 
@@ -116,6 +117,9 @@ public sealed record FirmwareInspectionSnapshot(
 
     /// <summary>Canonical catalog owning the attached coherent input-inspection batch.</summary>
     public AuthoringCapabilityCatalogSnapshot? InputSlotCatalog { get; init; }
+
+    /// <summary>Exact canonical prerequisite blocking DP metadata projection, when one is pending.</summary>
+    public FirmwareMetadataPrerequisite? DpMetadataPrerequisite { get; init; }
 }
 
 /// <summary>Optional CtrlRAM display context projected during firmware inspection.</summary>

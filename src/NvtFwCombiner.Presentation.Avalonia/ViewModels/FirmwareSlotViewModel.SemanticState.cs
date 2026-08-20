@@ -11,8 +11,6 @@ internal sealed partial class FirmwareSlotViewModel
     private string _warningLabel = "Warning";
     private string _errorLabel = "Error";
     private string _notApplicableLabel = "Not applicable";
-    private string _showDetailsLabel = "Show details";
-    private string _hideDetailsLabel = "Hide details";
     private string _showMoreFactsTemplate = "Show {0} more details";
     private string _showFewerFactsLabel = "Show fewer details";
 
@@ -99,18 +97,10 @@ internal sealed partial class FirmwareSlotViewModel
     [ObservableProperty]
     public partial bool IsSemanticStateDetailExpanded { get; set; }
 
-    [ObservableProperty]
-    [NotifyPropertyChangedFor(nameof(FirmwareFactsDisclosureLabel))]
-    public partial bool IsFirmwareFactsExpanded { get; set; }
-
     /// <summary>True when facts after the four primary values are disclosed.</summary>
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(AdditionalFirmwareFactsLabel))]
     public partial bool IsAdditionalFirmwareFactsExpanded { get; set; }
-
-    public string FirmwareFactsDisclosureLabel => IsFirmwareFactsExpanded
-        ? _hideDetailsLabel
-        : _showDetailsLabel;
 
     public string AdditionalFirmwareFactsLabel => IsAdditionalFirmwareFactsExpanded
         ? _showFewerFactsLabel
@@ -128,12 +118,9 @@ internal sealed partial class FirmwareSlotViewModel
         _warningLabel = text.FirmwareSlotWarningLabel;
         _errorLabel = text.FirmwareSlotErrorLabel;
         _notApplicableLabel = text.FirmwareSlotNotApplicableLabel;
-        _showDetailsLabel = text.FirmwareSlotShowDetailsLabel;
-        _hideDetailsLabel = text.FirmwareSlotHideDetailsLabel;
         _showMoreFactsTemplate = text.FirmwareSlotShowMoreFactsTemplate;
         _showFewerFactsLabel = text.FirmwareSlotShowFewerFactsLabel;
         NotifySemanticStateChanged();
-        OnPropertyChanged(nameof(FirmwareFactsDisclosureLabel));
         OnPropertyChanged(nameof(AdditionalFirmwareFactsLabel));
     }
 

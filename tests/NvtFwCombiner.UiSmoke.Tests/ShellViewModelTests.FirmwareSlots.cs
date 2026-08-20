@@ -30,7 +30,7 @@ public sealed partial class FirmwareInspectionSlotTests
         FirmwareSlotFactViewModel legacyFact = Assert.Single(UiCompositionRunner.GetDpFirmwareSlotFacts(legacy));
         FirmwareSlotFactViewModel cmiFact = Assert.Single(UiCompositionRunner.GetDpFirmwareSlotFacts(cmi));
 
-        Assert.Equal(new FirmwareSlotFactViewModel("DP", "D00-0D"), legacyFact);
+        Assert.Equal(new FirmwareSlotFactViewModel("DP Version", "D00-0D"), legacyFact);
         Assert.Equal(legacyFact, cmiFact);
     }
 
@@ -130,15 +130,15 @@ public sealed partial class FirmwareInspectionSlotTests
 
         Assert.True(viewModel.Replace.ReplaceBaseSlot.HasFirmwareFacts);
         Assert.Contains(viewModel.Replace.ReplaceBaseSlot.FirmwareFacts, fact =>
-            fact.Label == "DP" &&
+            fact.Label == "DP Version" &&
             fact.Value == "D01-00");
         Assert.Contains(viewModel.Replace.ReplaceBaseSlot.FirmwareFacts, fact =>
-            fact.Label == "Jira" &&
+            fact.Label == "Jira Index" &&
             fact.Value == "AUTO_PRJ-597");
         Assert.Contains(viewModel.Replace.ReplaceBaseSlot.FirmwareFacts, fact =>
-            fact.Label == "Common FW" && fact.Value == "1.4.1");
+            fact.Label == "Common FW Version" && fact.Value == "1.4.1");
         Assert.Contains(viewModel.Replace.ReplaceBaseSlot.FirmwareFacts, fact =>
-            fact.Label == "TP" &&
+            fact.Label == "TP Version" &&
             fact.Value == "T01-00");
         Assert.Contains(viewModel.Replace.ReplaceBaseSlot.FirmwareFacts, fact =>
             fact.Label == "PID" && fact.Value == "0x5102");
@@ -163,11 +163,11 @@ public sealed partial class FirmwareInspectionSlotTests
         await CurrentInspection(viewModel).ActiveTask;
 
         Assert.Contains(viewModel.Replace.ReplaceBaseSlot.FirmwareFacts, fact =>
-            fact.Label == "DP" &&
+            fact.Label == "DP Version" &&
             fact.Value == "Unknown" &&
             fact.IsUnknown);
-        Assert.DoesNotContain(viewModel.Replace.ReplaceBaseSlot.FirmwareFacts, fact => fact.Label == "Jira");
-        Assert.DoesNotContain(viewModel.Replace.ReplaceBaseSlot.FirmwareFacts, fact => fact.Label is "TP" or "Common FW" or "PID");
+        Assert.DoesNotContain(viewModel.Replace.ReplaceBaseSlot.FirmwareFacts, fact => fact.Label == "Jira Index");
+        Assert.DoesNotContain(viewModel.Replace.ReplaceBaseSlot.FirmwareFacts, fact => fact.Label is "TP Version" or "Common FW Version" or "PID");
         Assert.Equal("nt51951-ctrlram-replace.bin", viewModel.Replace.ReplaceOutputFileName);
 
         viewModel.SelectedLanguage = "Traditional Chinese";
@@ -187,6 +187,7 @@ public sealed partial class FirmwareInspectionSlotTests
     public async Task DpFirmwareSlotShowsGenFlashVersionOrTodo()
     {
         MainWindowViewModel viewModel = PresentationTestHost.CreateViewModel();
+        viewModel.ShowMergeCommand.Execute(null);
         viewModel.WorkflowSession.SelectedIc = "NT51926";
         using var golden = StandardMergeGoldenManifest.Load();
         JsonElement nt51926 = golden.CaseByIc("51926");
@@ -199,14 +200,16 @@ public sealed partial class FirmwareInspectionSlotTests
 
         FirmwareSlotViewModel dpSlot = viewModel.Merge.MergeSlots.Single(slot => slot.SlotId == "merge-dp");
         Assert.Contains(dpSlot.FirmwareFacts, fact =>
-            fact.Label == "DP" &&
+            fact.Label == "DP Version" &&
             fact.Value == "D01-00" &&
             !fact.IsWarning);
         Assert.Contains(dpSlot.FirmwareFacts, fact =>
-            fact.Label == "Jira" &&
+            fact.Label == "Jira Index" &&
             fact.Value == "AUTO_PRJ-597" &&
             !fact.IsWarning);
-        Assert.Equal("nt51926-standard-merge-gen-flash.bin", viewModel.Merge.MergeOutputFileName);
+        Assert.Matches(
+            "^NT51926_FlashCode_D0100T0100_[0-9]{8}\\.bin$",
+            viewModel.Merge.MergeOutputFileName);
 
         viewModel.WorkflowSession.SelectedIc = "NT51950";
         JsonElement nt51950 = golden.CaseByIc("51950");
@@ -218,14 +221,55 @@ public sealed partial class FirmwareInspectionSlotTests
 
         dpSlot = viewModel.Merge.MergeSlots.Single(slot => slot.SlotId == "merge-dp");
         Assert.Contains(dpSlot.FirmwareFacts, fact =>
-            fact.Label == "DP" &&
+            fact.Label == "DP Version" &&
             fact.Value == "DCC-00" &&
             !fact.IsWarning);
         Assert.Contains(dpSlot.FirmwareFacts, fact =>
-            fact.Label == "Jira" &&
+            fact.Label == "Jira Index" &&
             fact.Value == "AUTO_PRJ-576" &&
             !fact.IsWarning);
-        Assert.Equal("nt51950-standard-merge-dp-perspective.bin", viewModel.Merge.MergeOutputFileName);
+        Assert.Matches(
+            "^NT51950_FlashCode_DCC00T0400_[0-9]{8}\\.bin$",
+            viewModel.Merge.MergeOutputFileName);
+    }
+
+    /// <summary>DP-only Standard Merge explains that canonical DP metadata is waiting for TP.</summary>
+    [Fact]
+    public async Task StandardMergeDpFactExplainsTypedTpPrerequisite()
+    {
+        using var golden = StandardMergeGoldenManifest.Load();
+        JsonElement nt51950 = golden.CaseByIc("51950");
+        string dpPath = golden.ManifestPath(nt51950.GetProperty("inputs").GetProperty("dp-input"));
+        string tpPath = golden.ManifestPath(nt51950.GetProperty("inputs").GetProperty("tp-input"));
+        MainWindowViewModel viewModel = PresentationTestHost.CreateViewModel();
+        viewModel.ShowMergeCommand.Execute(null);
+        viewModel.WorkflowSession.SelectedIc = "NT51950";
+
+        viewModel.SetSlotFile("merge-dp", dpPath);
+        await CurrentInspection(viewModel).ActiveTask;
+
+        FirmwareSlotViewModel dpSlot = viewModel.Merge.MergeSlots.Single(slot => slot.SlotId == "merge-dp");
+        FirmwareSlotFactViewModel pending = Assert.Single(dpSlot.FirmwareFacts);
+        Assert.Equal("DP Version", pending.Label);
+        Assert.Equal("Waiting for TP BIN", pending.Value);
+        Assert.True(pending.IsPendingInput);
+        Assert.Contains("TP BIN", pending.StateDetail, StringComparison.Ordinal);
+        Assert.Contains("Waiting for TP BIN", pending.StateAutomationText, StringComparison.Ordinal);
+
+        viewModel.SelectedLanguage = "Traditional Chinese";
+
+        pending = Assert.Single(dpSlot.FirmwareFacts);
+        Assert.Equal("等待 TP BIN", pending.Value);
+        Assert.True(pending.IsPendingInput);
+        Assert.Contains("TP BIN", pending.StateDetail, StringComparison.Ordinal);
+        Assert.Contains("等待 TP BIN", pending.StateAutomationText, StringComparison.Ordinal);
+
+        viewModel.SetSlotFile("merge-tp", tpPath);
+        await CurrentInspection(viewModel).ActiveTask;
+
+        Assert.DoesNotContain(dpSlot.FirmwareFacts, static fact => fact.IsPendingInput || fact.IsUnknown);
+        Assert.Contains(dpSlot.FirmwareFacts, static fact => fact.Label == "DP Version" && fact.Value == "DCC-00");
+        Assert.Contains(dpSlot.FirmwareFacts, static fact => fact.Label == "Jira Index" && fact.Value == "AUTO_PRJ-576");
     }
 
     /// <summary>Output naming publishes unknown at selection start, latest completion, and no stale result.</summary>
@@ -274,9 +318,11 @@ public sealed partial class FirmwareInspectionSlotTests
                         null))),
             ];
         });
+        viewModel.ShowMergeCommand.Execute(null);
         viewModel.WorkflowSession.SelectedIc = "NT51926";
         await viewModel.WorkflowSession.SetSlotFileAsync("merge-dp", dpPath, TestContext.Current.CancellationToken);
-        Assert.Equal("nt51926-standard-merge-gen-flash.bin", viewModel.Merge.StandardMergeOutputFileName);
+        const string expectedTemplate = "{ic}_FlashCode_D{dp-version}T{tp-version}_{date}.bin";
+        Assert.Equal(expectedTemplate, viewModel.Merge.StandardMergeOutputFileName);
         var notifications = new List<string>();
         viewModel.Merge.PropertyChanged += (_, args) =>
         {
@@ -296,13 +342,13 @@ public sealed partial class FirmwareInspectionSlotTests
             dpPath,
             TestContext.Current.CancellationToken);
         Assert.True(reselectionStarted.Wait(TimeSpan.FromSeconds(5), TestContext.Current.CancellationToken));
-        Assert.Contains("nt51926-standard-merge-gen-flash.bin", notifications);
-        Assert.Equal("nt51926-standard-merge-gen-flash.bin", viewModel.Merge.StandardMergeOutputFileName);
+        Assert.Contains(expectedTemplate, notifications);
+        Assert.Equal(expectedTemplate, viewModel.Merge.StandardMergeOutputFileName);
 
         releaseReselection.Set();
         await reselection;
-        Assert.Contains("nt51926-standard-merge-gen-flash.bin", notifications);
-        Assert.Equal("nt51926-standard-merge-gen-flash.bin", viewModel.Merge.StandardMergeOutputFileName);
+        Assert.Contains(expectedTemplate, notifications);
+        Assert.Equal(expectedTemplate, viewModel.Merge.StandardMergeOutputFileName);
 
         notifications.Clear();
         Task stale = viewModel.WorkflowSession.SetSlotFileAsync(
@@ -314,7 +360,7 @@ public sealed partial class FirmwareInspectionSlotTests
             "merge-dp",
             currentPath,
             TestContext.Current.CancellationToken);
-        Assert.Equal("nt51926-standard-merge-gen-flash.bin", viewModel.Merge.StandardMergeOutputFileName);
+        Assert.Equal(expectedTemplate, viewModel.Merge.StandardMergeOutputFileName);
         try
         {
             Assert.False(current.IsCompleted);
@@ -325,7 +371,7 @@ public sealed partial class FirmwareInspectionSlotTests
         }
         await Task.WhenAll(stale, current);
 
-        Assert.Equal("nt51926-standard-merge-gen-flash.bin", viewModel.Merge.StandardMergeOutputFileName);
+        Assert.Equal(expectedTemplate, viewModel.Merge.StandardMergeOutputFileName);
         FirmwareSlotViewModel currentSlot = viewModel.Merge.MergeSlots.Single(slot => slot.SlotId == "merge-dp");
         Assert.Contains(currentSlot.FirmwareFacts, fact => fact.Value == "D04-04");
         Assert.DoesNotContain(currentSlot.FirmwareFacts, fact => fact.Value == "D03-03");
@@ -443,7 +489,7 @@ public sealed partial class FirmwareInspectionSlotTests
 
         FirmwareSlotViewModel dpSlot = viewModel.Merge.MergeSlots.Single(slot => slot.SlotId == "merge-dp");
         Assert.Contains(dpSlot.FirmwareFacts, fact =>
-            fact.Label == "Jira" &&
+            fact.Label == "Jira Index" &&
             fact.Value == "AUTO_PRJ-597" &&
             !fact.IsWarning);
         Assert.DoesNotContain(dpSlot.FirmwareFacts, fact => fact.Label == "DP size");
@@ -466,7 +512,7 @@ public sealed partial class FirmwareInspectionSlotTests
 
         FirmwareSlotViewModel dpSlot = viewModel.Merge.MergeSlots.Single(slot => slot.SlotId == "merge-dp");
         Assert.Contains(dpSlot.FirmwareFacts, fact =>
-            fact.Label == "DP" &&
+            fact.Label == "DP Version" &&
             fact.Value == "D81-00" &&
             !fact.IsWarning);
         Assert.DoesNotContain(dpSlot.FirmwareFacts, fact => fact.Label == "DP size");

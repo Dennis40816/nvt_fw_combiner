@@ -68,7 +68,7 @@ public sealed partial class CanonicalCapabilityCatalogMigrationTests
         Assert.Equal("NT51929", definition.Identity.IcId);
         Assert.Equal("nt51929-standard-merge-256k", definition.Identity.MapVariant);
         Assert.Equal(
-            "c8f1268a871cfd571ff41694a71c85e6364bbe1fca6f3a7264cce77103b214a9",
+            "7241e513c36122a60f2535836fd3b5625dc4cafe304d002e713a1525a949ac68",
             definition.CapabilityFingerprint);
         Assert.NotEqual(
             definition.CapabilityFingerprint,

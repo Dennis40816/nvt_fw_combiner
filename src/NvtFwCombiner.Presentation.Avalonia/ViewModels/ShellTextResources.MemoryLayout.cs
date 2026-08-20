@@ -174,6 +174,21 @@ internal sealed partial class ShellTextResources
         return SelectLanguage("Partially replaced", "部分替換");
     }
 
+    public string FormatSelectedCtrlRamCoverageSummary(int count)
+    {
+        ArgumentOutOfRangeException.ThrowIfNegative(count);
+        return SelectLanguage(
+            $"Selected CtrlRAM regions · {count}",
+            $"已選取的 CtrlRAM 區域 · {count}");
+    }
+
+    public string FormatBaseFirmwareCoverageSummary()
+    {
+        return SelectLanguage(
+            "Base firmware (FlashCode / TP FW) · retained",
+            "基底韌體（FlashCode / TP FW）· 保留");
+    }
+
     public string FormatMemoryCoveragePartialReplaceDetail(string sourceLabel)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(sourceLabel);

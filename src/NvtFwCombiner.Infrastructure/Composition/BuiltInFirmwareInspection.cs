@@ -121,7 +121,8 @@ internal sealed partial class BuiltInFirmwareInspection : IFirmwareInspection
                 input.TpPath,
                 input.CtrlRamRequest,
                 ReadOnce,
-                input.ExactCapability);
+                input.ExactCapability,
+                input.StandardMergeAddressSpaceId);
             if (!string.IsNullOrWhiteSpace(input.AbMergeAddressSpaceId))
             {
                 snapshot = snapshot with
@@ -199,7 +200,8 @@ internal sealed partial class BuiltInFirmwareInspection : IFirmwareInspection
         string? tpPath,
         CtrlRamInspectionRequest? ctrlRamRequest,
         Func<string, byte[]?> readFirmwareImage,
-        ResolvedCapability? exactCapability = null)
+        ResolvedCapability? exactCapability = null,
+        string? standardMergeAddressSpaceId = null)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(icId);
         ArgumentException.ThrowIfNullOrWhiteSpace(path);
@@ -252,14 +254,17 @@ internal sealed partial class BuiltInFirmwareInspection : IFirmwareInspection
                 postbuildProfile,
                 hasReadableBase: true)
             : null;
-        (DpVersionMetadata? Version, CmiDpCodeMetadata? Cmi)
+        (DpVersionMetadata? Version,
+            CmiDpCodeMetadata? Cmi,
+            FirmwareMetadataPrerequisite? Prerequisite)
             dpMetadata = shouldProjectDpMetadata
                 ? ReadDpMetadata(
                     inspection,
                     icId,
                     image,
-                    string.Equals(path, tpPath, StringComparison.Ordinal) ? null : tpImage)
-                : (null, null);
+                    string.Equals(path, tpPath, StringComparison.Ordinal) ? null : tpImage,
+                    standardMergeAddressSpaceId)
+                : (null, null, null);
         return new FirmwareInspectionSnapshot(
             detectedIcId ?? DetectFirmwareIcHintFromHeader(image),
             ReadFirmwareConfigMetadata(firmwareConfig, postbuildProfile),
@@ -271,6 +276,7 @@ internal sealed partial class BuiltInFirmwareInspection : IFirmwareInspection
         {
             ArtifactClassification = artifactClassification,
             FileStamp = FileStamp.FromBytes(image),
+            DpMetadataPrerequisite = dpMetadata.Prerequisite,
         };
     }
 
@@ -300,32 +306,37 @@ internal sealed partial class BuiltInFirmwareInspection : IFirmwareInspection
 
     private static (
         DpVersionMetadata? Version,
-        CmiDpCodeMetadata? Cmi)
+        CmiDpCodeMetadata? Cmi,
+        FirmwareMetadataPrerequisite? Prerequisite)
         ReadDpMetadata(
             BuiltInFirmwareInspection inspection,
             string icId,
             byte[] image,
-            byte[]? tpImage)
+            byte[]? tpImage,
+            string? standardMergeAddressSpaceId)
     {
         if (TryReadCanonicalDpcmi(
                 inspection,
                 icId,
                 image,
                 tpImage,
-                out DpcmiMetadataFacts? dpcmi))
+                standardMergeAddressSpaceId,
+                out DpcmiMetadataFacts? dpcmi,
+                out FirmwareMetadataPrerequisite? prerequisite))
         {
             return dpcmi is null
-                ? (null, null)
+                ? (null, null, prerequisite)
                 : (
                     new DpVersionMetadata(dpcmi.VersionToken),
                     new CmiDpCodeMetadata(
                         dpcmi.MajorVersion,
                         dpcmi.MinorVersion,
                         dpcmi.JiraNumber,
-                        checked((int)dpcmi.ResolvedRange.Start)));
+                        checked((int)dpcmi.ResolvedRange.Start)),
+                    null);
         }
 
-        return (null, null);
+        return (null, null, null);
     }
 
     private static bool TryReadCanonicalDpcmi(
@@ -333,12 +344,18 @@ internal sealed partial class BuiltInFirmwareInspection : IFirmwareInspection
         string icId,
         byte[] image,
         byte[]? tpImage,
-        out DpcmiMetadataFacts? facts)
+        string? standardMergeAddressSpaceId,
+        out DpcmiMetadataFacts? facts,
+        out FirmwareMetadataPrerequisite? prerequisite)
     {
         facts = null;
+        prerequisite = null;
         string normalizedIcId = IcIdentifier.Normalize(icId);
+        bool isStandardMergeDpInput = StringComparer.Ordinal.Equals(
+            standardMergeAddressSpaceId,
+            CompositionAddressSpaceIds.DpInput);
         CapabilityResolutionResult resolution;
-        if (tpImage is null)
+        if (tpImage is null && !isStandardMergeDpInput)
         {
             resolution = inspection._catalog.ResolveUniqueRoute(
                 normalizedIcId,
@@ -366,7 +383,7 @@ internal sealed partial class BuiltInFirmwareInspection : IFirmwareInspection
 
         ResolvedMetadataPlan? plan = resolution.Capability?.MetadataPlan;
         bool declaresDpcmi = DeclaresDpcmi(plan);
-        if (!declaresDpcmi && tpImage is not null)
+        if (!declaresDpcmi)
         {
             CapabilityResolutionResult dpResolution =
                 inspection._catalog.ResolveUniqueRoute(
@@ -403,6 +420,12 @@ internal sealed partial class BuiltInFirmwareInspection : IFirmwareInspection
             .. plan!.Entries
                 .Select(static entry => entry.Definition.SpaceId)
                 .Distinct(StringComparer.Ordinal)
+                .Where(spaceId =>
+                    !isStandardMergeDpInput ||
+                    tpImage is not null ||
+                    !StringComparer.Ordinal.Equals(
+                        spaceId,
+                        CompositionAddressSpaceIds.TpInput))
                 .Select(spaceId => new FirmwareArtifactPayload(
                     spaceId,
                     StringComparer.Ordinal.Equals(
@@ -418,6 +441,15 @@ internal sealed partial class BuiltInFirmwareInspection : IFirmwareInspection
         if (DpcmiMetadataProjector.TryProject(snapshot, out DpcmiMetadataFacts projected))
         {
             facts = projected;
+        }
+        else
+        {
+            prerequisite = snapshot.Results
+                .Single(result => StringComparer.Ordinal.Equals(
+                    result.PlanEntry.Definition.StructureDefinition.Definition.DefinitionId,
+                    DpcmiMetadataContract.StructureId))
+                .Resolution?
+                .Prerequisite;
         }
 
         // A declared canonical DPCMI route owns both success and failure. Never

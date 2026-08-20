@@ -113,11 +113,23 @@ internal static partial class ReplaceCliCommandHandler
         }
 
         ActiveSessionSnapshot acceptedSession = prepared.Snapshot!;
+        if (!CliBundleOptions.TryCreateIntent(
+                host.CompositionOutputNaming,
+                acceptedSession,
+                options.Values,
+                error,
+                out CompositionOutputBundleIntent? outputBundle))
+        {
+            return UsageError;
+        }
+
         string defaultOutputFileName = host.CompositionOutputNaming
             .ResolveAcceptedOutput(acceptedSession)
             .OutputName.FileName;
         ValueTask<CompositionRunResult> RunAcceptedAsync(
             string? outputPath,
+            string? automaticOutputDirectory,
+            CompositionOutputBundleIntent? bundle,
             bool build,
             CancellationToken token)
         {
@@ -126,7 +138,9 @@ internal static partial class ReplaceCliCommandHandler
                     acceptedSession,
                     slotPaths,
                     build,
-                    outputPath: outputPath),
+                    outputPath: outputPath,
+                    automaticOutputDirectory: automaticOutputDirectory,
+                    outputBundle: bundle),
                 new CompositionRunProgressFeed(),
                 token);
         }
@@ -138,6 +152,7 @@ internal static partial class ReplaceCliCommandHandler
                 options,
                 slotPaths,
                 defaultOutputFileName,
+                outputBundle,
                 RunAcceptedAsync,
                 output,
                 error,

@@ -484,6 +484,7 @@ public sealed partial class RunAndHexEditorTests
         JsonElement goldenCase = golden.CaseByIc("51926");
         using var workspace = TempWorkspace.Create("nvt-fw-combiner-ui-run-progress");
         MainWindowViewModel viewModel = PresentationTestHost.CreateViewModel(language);
+        viewModel.ShowMergeCommand.Execute(null);
         viewModel.WorkflowSession.SelectedIc = "NT51926";
         golden.CopyInputFilesToMergeSlots(viewModel, workspace, goldenCase);
         List<string> activeLabels = [];

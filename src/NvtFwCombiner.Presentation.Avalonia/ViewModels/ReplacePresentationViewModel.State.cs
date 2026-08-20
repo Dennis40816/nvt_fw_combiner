@@ -47,6 +47,30 @@ internal sealed partial class ReplacePresentationViewModel
 
     public ObservableCollection<MemoryCoverageGroupViewModel> ReplaceCoverageGroups { get; } = [];
 
+    public IReadOnlyList<MemoryCoverageLogicalItemViewModel> ReplaceSelectedCoverageItems =>
+    [
+        .. ReplaceCoverageGroups
+            .Where(static group => !group.IsBaseFirmwareGroup)
+            .SelectMany(static group => group.Items),
+    ];
+
+    public IReadOnlyList<MemoryCoverageLogicalItemViewModel> ReplaceBaseCoverageItems =>
+    [
+        .. ReplaceCoverageGroups
+            .Where(static group => group.IsBaseFirmwareGroup)
+            .SelectMany(static group => group.Items),
+    ];
+
+    public MemoryCoverageGroupViewModel? ReplaceBaseCoverageGroup =>
+        ReplaceCoverageGroups.FirstOrDefault(static group => group.IsBaseFirmwareGroup);
+
+    public bool HasReplaceBaseCoverage => ReplaceBaseCoverageItems.Count > 0;
+
+    public string ReplaceSelectedCoverageSummary =>
+        Text.FormatSelectedCtrlRamCoverageSummary(ReplaceSelectedCoverageItems.Count);
+
+    public string ReplaceBaseCoverageSummary => Text.FormatBaseFirmwareCoverageSummary();
+
     public ObservableCollection<MemoryMapRowViewModel> ReplaceMemoryRows { get; } = [];
 
     public ObservableCollection<GeneralReplaceMappingViewModel> GeneralReplaceMappings { get; } = [];

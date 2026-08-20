@@ -61,6 +61,7 @@ public sealed class StandardMergeCliCommandTests
         string dpPath = workspace.Write("dp.bin", dp);
         string tpPath = workspace.Write("tp.bin", tp);
         string outputPath = workspace.PathFor("caller-output.bin");
+        string reportPath = workspace.PathFor("caller-output-report.json");
 
         CliRunResult result = await RunCliAsync(
         [
@@ -74,6 +75,8 @@ public sealed class StandardMergeCliCommandTests
             tpPath,
             "--output",
             outputPath,
+            "--report",
+            reportPath,
         ]);
 
         Assert.Equal(0, result.ExitCode);
@@ -82,6 +85,79 @@ public sealed class StandardMergeCliCommandTests
         Assert.Equal(0x40000, output.Length);
         Assert.Equal(0x22, output[0]);
         Assert.Equal(0x11, output[0x3E000]);
+        using JsonDocument report = JsonDocument.Parse(
+            await File.ReadAllTextAsync(
+                reportPath,
+                TestContext.Current.CancellationToken));
+        JsonElement naming = report.RootElement.GetProperty("OutputNaming");
+        Assert.Equal("caller-output.bin", naming.GetProperty("ActualFileName").GetString());
+        Assert.True(naming.GetProperty("IsExplicitOverride").GetBoolean());
+    }
+
+    /// <summary>
+    /// Omitting --output commits the profile-rendered v0.9.15-compatible name
+    /// and records the same non-override name in the typed report.
+    /// </summary>
+    [Fact]
+    public async Task StandardMergeBuildWithoutOutputUsesCanonicalAutomaticNameAndReport()
+    {
+        using var workspace = TempWorkspace.Create();
+        byte[] dp = new byte[0x40000];
+        byte[] tp = new byte[0x3C000];
+        const int dpcmiStart = 0x3E000 + 20;
+        dp[dpcmiStart + 1] = 0xB6;
+        dp[dpcmiStart + 2] = 0xD4;
+        tp[0] = 0xA7;
+        tp[1] = 0x58;
+        tp[17] = 0xC9;
+        tp[4092] = 0x00;
+        tp[4093] = 0x4E;
+        tp[4094] = 0x56;
+        tp[4095] = 0x54;
+        string dpPath = workspace.Write("dp.bin", dp);
+        string tpPath = workspace.Write("tp.bin", tp);
+        string reportPath = workspace.PathFor("automatic-name-report.json");
+        string expectedFileName =
+            $"NT51923_FlashCode_DB60DTA7C9_{DateTime.UtcNow:yyyyMMdd}.bin";
+        string expectedPath = Path.GetFullPath(expectedFileName);
+        Assert.False(File.Exists(expectedPath));
+
+        try
+        {
+            CliRunResult result = await RunCliAsync(
+            [
+                "standard-merge",
+                "build",
+                "--profile",
+                "NT51923",
+                "--dp",
+                dpPath,
+                "--tp",
+                tpPath,
+                "--report",
+                reportPath,
+            ]);
+
+            Assert.Equal(0, result.ExitCode);
+            Assert.Contains($"Output: {expectedFileName}", result.Output, StringComparison.Ordinal);
+            Assert.True(File.Exists(expectedPath));
+            using JsonDocument report = JsonDocument.Parse(
+                await File.ReadAllTextAsync(
+                    reportPath,
+                    TestContext.Current.CancellationToken));
+            JsonElement root = report.RootElement;
+            JsonElement naming = root.GetProperty("OutputNaming");
+            Assert.Equal(expectedFileName, naming.GetProperty("AutomaticFileName").GetString());
+            Assert.Equal(expectedFileName, naming.GetProperty("ActualFileName").GetString());
+            Assert.False(naming.GetProperty("IsExplicitOverride").GetBoolean());
+        }
+        finally
+        {
+            if (File.Exists(expectedPath))
+            {
+                File.Delete(expectedPath);
+            }
+        }
     }
 
     /// <summary>Verifies the packaged NT51929 V2 profile accepts a caller-selected plain output path through the Standard Merge CLI.</summary>

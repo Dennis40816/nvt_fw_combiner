@@ -140,7 +140,7 @@ public sealed partial class RepositoryBoundaryTests
         Assert.Contains("SetSlotFileAsync", inspection, StringComparison.Ordinal);
         Assert.Contains("public string SelectedIc", deviceContext, StringComparison.Ordinal);
         Assert.Contains("if (SetProperty(ref _selectedIc, value))", deviceContext, StringComparison.Ordinal);
-        Assert.Contains("OnSelectedIcChanged(value);", deviceContext, StringComparison.Ordinal);
+        Assert.Contains("OnSelectedIcChanged(value, owner);", deviceContext, StringComparison.Ordinal);
         Assert.Contains("internal void PublishCanonicalCatalogState()", deviceContext, StringComparison.Ordinal);
         Assert.Contains(
             "_selectedIc = defaultIcId;",
@@ -592,6 +592,8 @@ public sealed partial class RepositoryBoundaryTests
             "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/MainWindowViewModel.Settings.cs");
         string context = ReadText(
             "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/MainWindowViewModel.Context.cs");
+        string navigation = ReadText(
+            "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/MainWindowViewModel.Navigation.cs");
         string persistenceCoordinator = ReadText(
             "src/NvtFwCombiner.Presentation.Avalonia/LatestSnapshotPersistenceCoordinator.cs");
         string stores = ReadText("src/NvtFwCombiner.Presentation.Avalonia/ReportHistoryFileStore.cs") +
@@ -625,7 +627,7 @@ public sealed partial class RepositoryBoundaryTests
         Assert.Contains("_isInitializing = false;", construction, StringComparison.Ordinal);
         Assert.DoesNotContain("RefreshContextState();", construction, StringComparison.Ordinal);
         Assert.DoesNotContain("RefreshSettingsState();", construction, StringComparison.Ordinal);
-        Assert.Contains("_deferredState.EnsureSettings(RefreshSettingsState)", context, StringComparison.Ordinal);
+        Assert.Contains("_deferredState.EnsureSettings(RefreshSettingsState)", navigation, StringComparison.Ordinal);
         Assert.Contains("WorkflowSession.EnsureWorkflowLoaded()", context, StringComparison.Ordinal);
         Assert.Contains("if (!_isInitializing)", settings, StringComparison.Ordinal);
         Assert.DoesNotContain("ReportHistoryFileStore.Save(viewModel)", mainWindow, StringComparison.Ordinal);

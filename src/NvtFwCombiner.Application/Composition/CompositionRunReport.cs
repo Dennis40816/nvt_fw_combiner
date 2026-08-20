@@ -28,7 +28,8 @@ public sealed class CompositionRunReport(
     IReadOnlyList<DeliveryArtifactSummary>? deliveryArtifacts = null,
     GeneralAuthoringAdmissionSummary? generalAdmission = null,
     ImageInitializationSummary? imageInitialization = null,
-    GeneralReplaceDiagnosticPreviewSummary? diagnosticPreview = null)
+    GeneralReplaceDiagnosticPreviewSummary? diagnosticPreview = null,
+    CompositionOutputBundleDeliverySummary? bundleDelivery = null)
 {
     /// <summary>Stable run id.</summary>
     public string RunId { get; } = CompositionSummaryValue.NotBlank(runId, nameof(runId));
@@ -116,6 +117,10 @@ public sealed class CompositionRunReport(
     /// <summary>Plan-only General Replace marker when POSTBUILD cannot execute.</summary>
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public GeneralReplaceDiagnosticPreviewSummary? DiagnosticPreview { get; } = diagnosticPreview;
+
+    /// <summary>Actual atomic output bundle delivery, omitted for Preview and loose output.</summary>
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public CompositionOutputBundleDeliverySummary? BundleDelivery { get; } = bundleDelivery;
 
     private static string? RequireCompilationFingerprint(string? compilationFingerprint)
     {

@@ -11,6 +11,12 @@
   <Setter Property="HorizontalContentAlignment" Value="Stretch" />
 </ControlTheme>
 
+<ControlTheme x:Key="ProportionalContentPresenterTheme" TargetType="ContentPresenter">
+  <Setter Property="HorizontalAlignment" Value="Stretch" />
+  <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+  <Setter Property="views:ProportionalStackPanel.Weight" Value="{ReflectionBinding BarWidth}" />
+</ControlTheme>
+
 <DataTemplate x:Key="ForegroundLoadingStatusTemplate" DataType="vm:ForegroundLoadingState">
   <Border
       AutomationProperties.LiveSetting="Polite"
@@ -18,7 +24,7 @@
       Padding="{Binding $parent[ContentControl].Padding}"
       Background="{DynamicResource NfcSurfaceBrush}"
       BorderBrush="{DynamicResource NfcBorderSoftBrush}"
-      BorderThickness="1"
+      BorderThickness="2"
       BoxShadow="{DynamicResource NfcWorkflowCardHoverShadow}"
       CornerRadius="{DynamicResource NfcSurfaceCornerRadius}">
     <StackPanel Spacing="{DynamicResource NfcSpace12}">
@@ -129,85 +135,10 @@
   </views:SpaciousPanel>
 </DataTemplate>
 
-<DataTemplate x:Key="MemoryCoverageTooltipTemplate" DataType="vm:MemoryCoverageSegmentViewModel">
-  <Border
-      Classes="surface"
-      MaxWidth="360"
-      Padding="10">
-    <StackPanel Spacing="{DynamicResource NfcSpace8}">
-      <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="{DynamicResource NfcSpace8}">
-        <Border
-            Classes="memoryCoverageFill memoryCoverageMarker"
-            Classes.changed="{Binding IsChanged}"
-            Classes.conflict="{Binding FillRole, Converter={x:Static converters:ObjectConverters.Equal}, ConverterParameter={x:Static vm:MemoryCoverageFillRole.Conflict}}"
-            Classes.ctrlRam="{Binding FillRole, Converter={x:Static converters:ObjectConverters.Equal}, ConverterParameter={x:Static vm:MemoryCoverageFillRole.CtrlRam}}"
-            Classes.ctrlRamNf="{Binding FillRole, Converter={x:Static converters:ObjectConverters.Equal}, ConverterParameter={x:Static vm:MemoryCoverageFillRole.CtrlRamNf}}"
-            Classes.ctrlRamNormal="{Binding FillRole, Converter={x:Static converters:ObjectConverters.Equal}, ConverterParameter={x:Static vm:MemoryCoverageFillRole.CtrlRamNormal}}"
-            Classes.ctrlRamMp="{Binding FillRole, Converter={x:Static converters:ObjectConverters.Equal}, ConverterParameter={x:Static vm:MemoryCoverageFillRole.CtrlRamMp}}"
-            Classes.ctrlRamVn="{Binding FillRole, Converter={x:Static converters:ObjectConverters.Equal}, ConverterParameter={x:Static vm:MemoryCoverageFillRole.CtrlRamVn}}"
-            Classes.ctrlRamVector="{Binding FillRole, Converter={x:Static converters:ObjectConverters.Equal}, ConverterParameter={x:Static vm:MemoryCoverageFillRole.CtrlRamVector}}"
-            Classes.diffDlm="{Binding FillRole, Converter={x:Static converters:ObjectConverters.Equal}, ConverterParameter={x:Static vm:MemoryCoverageFillRole.DiffDlm}}"
-            Classes.dp="{Binding FillRole, Converter={x:Static converters:ObjectConverters.Equal}, ConverterParameter={x:Static vm:MemoryCoverageFillRole.Dp}}"
-            Classes.kept="{Binding FillRole, Converter={x:Static converters:ObjectConverters.Equal}, ConverterParameter={x:Static vm:MemoryCoverageFillRole.Kept}}"
-            Classes.ldc="{Binding FillRole, Converter={x:Static converters:ObjectConverters.Equal}, ConverterParameter={x:Static vm:MemoryCoverageFillRole.Ldc}}"
-            Classes.source="{Binding FillRole, Converter={x:Static converters:ObjectConverters.Equal}, ConverterParameter={x:Static vm:MemoryCoverageFillRole.Source}}"
-            Classes.tp="{Binding FillRole, Converter={x:Static converters:ObjectConverters.Equal}, ConverterParameter={x:Static vm:MemoryCoverageFillRole.Tp}}"
-            Classes.tpBackup="{Binding FillRole, Converter={x:Static converters:ObjectConverters.Equal}, ConverterParameter={x:Static vm:MemoryCoverageFillRole.TpBackup}}"
-            Width="10"
-            Height="10"
-            VerticalAlignment="Center"
-            CornerRadius="2">
-          <Border
-              Background="{StaticResource KeptDiagonalStripeBrush}"
-              CornerRadius="2"
-              IsVisible="{Binding UsesKeptPattern}" />
-        </Border>
-        <TextBlock
-            Grid.Column="1"
-            VerticalAlignment="Center"
-            FontSize="{DynamicResource NfcFontSize12}"
-            FontWeight="SemiBold"
-            Foreground="{DynamicResource NfcTextStrongBrush}"
-            Text="{Binding SourceLabel}"
-            TextWrapping="Wrap" />
-        <Label
-            Grid.Column="2"
-            Classes="compactBadge neutralBadge countBadge coverageChangeBadge"
-            Classes.changed="{Binding IsChanged}"
-            Padding="7,2"
-            Content="{Binding ChangeLabel}"
-            IsVisible="{Binding HasChangeState}" />
-      </Grid>
-
-      <Grid ColumnDefinitions="54,*" RowDefinitions="Auto,Auto,Auto" ColumnSpacing="10" RowSpacing="5">
-        <TextBlock Classes="tableHeader" Text="{ReflectionBinding $parent[Window].DataContext.Text.RangeLabel}" />
-        <TextBlock Grid.Column="1" Classes="technicalValue" Text="{Binding RangeLabel}" TextWrapping="Wrap" />
-
-        <TextBlock Grid.Row="1" Classes="tableHeader" Text="{ReflectionBinding $parent[Window].DataContext.Text.ResultLabel}" />
-        <TextBlock
-            Grid.Row="1"
-            Grid.Column="1"
-            FontSize="{DynamicResource NfcFontSize11}"
-            Foreground="{DynamicResource NfcTextBrush}"
-            Text="{Binding PreservationSummary}"
-            TextWrapping="Wrap" />
-
-        <TextBlock Grid.Row="2" Classes="tableHeader" Text="{ReflectionBinding $parent[Window].DataContext.Text.DetailLabel}" />
-        <TextBlock
-            Grid.Row="2"
-            Grid.Column="1"
-            MaxWidth="280"
-            Classes="captionText"
-            Text="{Binding Detail}"
-            TextWrapping="Wrap" />
-      </Grid>
-    </StackPanel>
-  </Border>
-</DataTemplate>
-
 <DataTemplate x:Key="MemoryCoverageSegmentBarTemplate" DataType="vm:MemoryCoverageSegmentViewModel">
   <Border
       Classes="memoryCoverageFill memoryCoverageMarker memoryCoverageBarSegment"
+      Classes.linked="{Binding Interaction.IsActive}" Classes.reducedMotion="{ReflectionBinding $parent[Window].DataContext.IsReducedMotionEnabled}"
       Classes.changed="{Binding IsChanged}"
       Classes.conflict="{Binding FillRole, Converter={x:Static converters:ObjectConverters.Equal}, ConverterParameter={x:Static vm:MemoryCoverageFillRole.Conflict}}"
       Classes.ctrlRam="{Binding FillRole, Converter={x:Static converters:ObjectConverters.Equal}, ConverterParameter={x:Static vm:MemoryCoverageFillRole.CtrlRam}}"
@@ -225,22 +156,20 @@
       Classes.tpBackup="{Binding FillRole, Converter={x:Static converters:ObjectConverters.Equal}, ConverterParameter={x:Static vm:MemoryCoverageFillRole.TpBackup}}"
       AutomationProperties.HelpText="{Binding AccessibleDetail}"
       AutomationProperties.Name="{Binding AccessibleDetail}"
-      behaviors:FocusToolTipBehavior.IsEnabled="True"
+      behaviors:MemoryCoverageInteractionBehavior.IsEnabled="True"
       Focusable="True"
-      Width="{Binding BarWidth}"
+      RenderTransformOrigin="50%,50%"
       Height="34">
     <Border
         Background="{StaticResource KeptDiagonalStripeBrush}"
         IsVisible="{Binding UsesKeptPattern}" />
-    <ToolTip.Tip>
-      <ContentControl Content="{Binding}" ContentTemplate="{StaticResource MemoryCoverageTooltipTemplate}" />
-    </ToolTip.Tip>
   </Border>
 </DataTemplate>
 
 <DataTemplate x:Key="MemoryCoveragePlainSegmentBarTemplate" DataType="vm:MemoryCoverageSegmentViewModel">
   <Border
       Classes="memoryCoverageFill memoryCoverageBarSegment"
+      Classes.linked="{Binding Interaction.IsActive}" Classes.reducedMotion="{ReflectionBinding $parent[Window].DataContext.IsReducedMotionEnabled}"
       Classes.conflict="{Binding FillRole, Converter={x:Static converters:ObjectConverters.Equal}, ConverterParameter={x:Static vm:MemoryCoverageFillRole.Conflict}}"
       Classes.ctrlRam="{Binding FillRole, Converter={x:Static converters:ObjectConverters.Equal}, ConverterParameter={x:Static vm:MemoryCoverageFillRole.CtrlRam}}"
       Classes.ctrlRamNf="{Binding FillRole, Converter={x:Static converters:ObjectConverters.Equal}, ConverterParameter={x:Static vm:MemoryCoverageFillRole.CtrlRamNf}}"
@@ -257,13 +186,10 @@
       Classes.tpBackup="{Binding FillRole, Converter={x:Static converters:ObjectConverters.Equal}, ConverterParameter={x:Static vm:MemoryCoverageFillRole.TpBackup}}"
       AutomationProperties.HelpText="{Binding AccessibleDetail}"
       AutomationProperties.Name="{Binding AccessibleDetail}"
-      behaviors:FocusToolTipBehavior.IsEnabled="True"
+      behaviors:MemoryCoverageInteractionBehavior.IsEnabled="True"
+      RenderTransformOrigin="50%,50%"
       Focusable="True"
-      Width="{Binding BarWidth}"
       Height="34">
-    <ToolTip.Tip>
-      <ContentControl Content="{Binding}" ContentTemplate="{StaticResource MemoryCoverageTooltipTemplate}" />
-    </ToolTip.Tip>
   </Border>
 </DataTemplate>
 
@@ -273,9 +199,6 @@
       Padding="0,10"
       AutomationProperties.HelpText="{Binding AccessibleDetail}"
       AutomationProperties.Name="{Binding AccessibleDetail}">
-    <ToolTip.Tip>
-      <ContentControl Content="{Binding}" ContentTemplate="{StaticResource MemoryCoverageTooltipTemplate}" />
-    </ToolTip.Tip>
     <Grid
         ColumnDefinitions="12,*"
         ColumnSpacing="{DynamicResource NfcSpace8}">
@@ -379,9 +302,6 @@
       Padding="0,10"
       AutomationProperties.HelpText="{Binding AccessibleDetail}"
       AutomationProperties.Name="{Binding AccessibleDetail}">
-    <ToolTip.Tip>
-      <ContentControl Content="{Binding}" ContentTemplate="{StaticResource MemoryCoverageTooltipTemplate}" />
-    </ToolTip.Tip>
     <Grid
         ColumnDefinitions="12,*"
         ColumnSpacing="{DynamicResource NfcSpace8}">
@@ -472,12 +392,10 @@
           VerticalAlignment="Center"
           Content="{Binding}"
           ContentTemplate="{StaticResource MemoryCoverageCompactMarkerTemplate}" />
-      <Label
+      <TextBlock
           Grid.Column="2"
-          Classes="compactBadge neutralBadge countBadge coverageChangeBadge"
-          Classes.changed="{Binding IsChanged}"
-          Padding="7,2"
-          Content="{Binding ChangeLabel}"
+          Classes="memoryCoverageStateText"
+          Text="{Binding ChangeLabel}"
           IsVisible="{Binding HasChangeState}" />
       <StackPanel
           Grid.Column="1"
@@ -514,12 +432,10 @@
           Classes="bodyEmphasisText"
           Text="{Binding SourceLabel}"
           TextWrapping="Wrap" />
-      <Label
+      <TextBlock
           Grid.Column="2"
-          Classes="compactBadge neutralBadge countBadge coverageChangeBadge"
-          Classes.changed="{Binding PrimaryRange.IsChanged}"
-          Padding="7,2"
-          Content="{Binding PrimaryRange.ChangeLabel}"
+          Classes="memoryCoverageStateText"
+          Text="{Binding PrimaryRange.ChangeLabel}"
           IsVisible="{Binding PrimaryRange.HasChangeState}" />
       <StackPanel
           Grid.Row="1"
@@ -544,10 +460,13 @@
 
 <DataTemplate x:Key="MemoryCoverageLogicalItemTemplate" DataType="vm:MemoryCoverageLogicalItemViewModel">
   <Border
-      Classes="listRow memoryInfoRow"
+      Classes="listRow memoryInfoRow memoryCoverageLinkedRow"
+      Classes.linked="{Binding Interaction.IsActive}" Classes.reducedMotion="{ReflectionBinding $parent[Window].DataContext.IsReducedMotionEnabled}"
       Padding="0,10"
       AutomationProperties.HelpText="{Binding AccessibleDetail}"
-      AutomationProperties.Name="{Binding AccessibleDetail}">
+      AutomationProperties.Name="{Binding AccessibleDetail}"
+      behaviors:MemoryCoverageInteractionBehavior.IsEnabled="True"
+      Focusable="True">
     <StackPanel>
       <ContentControl
           Content="{Binding}"
@@ -577,24 +496,6 @@
       </Border>
     </StackPanel>
   </Border>
-</DataTemplate>
-
-<DataTemplate x:Key="MemoryCoverageGroupTemplate" DataType="vm:MemoryCoverageGroupViewModel">
-  <views:SpaciousPanel Classes="compact memoryCoverageGroup">
-    <Expander Classes="inlineDisclosure" Background="Transparent" HorizontalAlignment="Stretch" IsExpanded="{Binding IsExpanded, Mode=TwoWay}">
-      <Expander.Header>
-        <Grid HorizontalAlignment="Stretch" ColumnDefinitions="*,Auto" ColumnSpacing="{DynamicResource NfcSpace12}">
-          <TextBlock VerticalAlignment="Center" Classes="panelTitle" Text="{Binding Title}" />
-          <Label Grid.Column="1" Classes="compactBadge neutralBadge countBadge" Content="{Binding CountLabel}" />
-        </Grid>
-      </Expander.Header>
-      <ItemsControl
-          HorizontalAlignment="Stretch"
-          ItemContainerTheme="{StaticResource StretchContentPresenterTheme}"
-          ItemTemplate="{StaticResource MemoryCoverageLogicalItemTemplate}"
-          ItemsSource="{Binding Items}" />
-    </Expander>
-  </views:SpaciousPanel>
 </DataTemplate>
 
 <DataTemplate x:Key="ReplaceMemoryMapRowTemplate" DataType="vm:MemoryMapRowViewModel">
@@ -634,16 +535,14 @@
         </Border>
       </StackPanel>
 
-      <Border Height="34" Background="{DynamicResource NfcMemoryTrackBrush}" ClipToBounds="True" CornerRadius="{DynamicResource NfcCompactCornerRadius}">
-        <Viewbox Height="34" HorizontalAlignment="Stretch" Stretch="Fill">
-          <ItemsControl Width="300" Height="34" ItemTemplate="{StaticResource MemoryCoveragePlainSegmentBarTemplate}" ItemsSource="{Binding MergeCoverageSegments}">
-            <ItemsControl.ItemsPanel>
-              <ItemsPanelTemplate>
-                <StackPanel Orientation="Horizontal" />
-              </ItemsPanelTemplate>
-            </ItemsControl.ItemsPanel>
-          </ItemsControl>
-        </Viewbox>
+      <Border Height="34" Background="{DynamicResource NfcMemoryTrackBrush}" ClipToBounds="False" CornerRadius="{DynamicResource NfcCompactCornerRadius}">
+        <ItemsControl Height="34" HorizontalAlignment="Stretch" ClipToBounds="False" ItemContainerTheme="{StaticResource ProportionalContentPresenterTheme}" ItemTemplate="{StaticResource MemoryCoveragePlainSegmentBarTemplate}" ItemsSource="{Binding MergeCoverageSegments}">
+          <ItemsControl.ItemsPanel>
+            <ItemsPanelTemplate>
+              <views:ProportionalStackPanel />
+            </ItemsPanelTemplate>
+          </ItemsControl.ItemsPanel>
+        </ItemsControl>
       </Border>
 
       <ItemsControl ItemTemplate="{StaticResource MemoryCoveragePlainSegmentListTemplate}" ItemsSource="{Binding MergeCoverageSegments}" />
@@ -662,15 +561,12 @@
       Classes.pendingInput="{Binding IsPendingInput}"
       Classes.unknown="{Binding IsUnknown}"
       Classes.warning="{Binding IsWarning}"
-      Margin="0,5,7,0"
-      MinWidth="112"
-      Padding="6,9"
-      BorderThickness="1"
-      CornerRadius="{DynamicResource NfcCompactCornerRadius}">
+      HorizontalAlignment="Stretch"
+      Padding="0,0,16,0">
     <StackPanel Orientation="Vertical" Spacing="{DynamicResource NfcSpace2}">
-      <TextBlock Classes="firmwareSlotFactLabel" FontSize="{DynamicResource NfcFontSize10}" FontWeight="Medium" Text="{Binding Label}" />
+      <TextBlock Classes="firmwareSlotFactLabel" FontSize="{DynamicResource NfcFontSize11}" FontWeight="SemiBold" Text="{Binding Label}" TextTrimming="CharacterEllipsis" />
       <StackPanel Orientation="Horizontal" Spacing="{DynamicResource NfcSpace4}">
-        <TextBlock Classes="firmwareSlotFactValue" FontSize="{DynamicResource NfcFontSize11}" FontFamily="{DynamicResource NfcTechnicalFontFamily}" FontWeight="SemiBold" Text="{Binding Value}" />
+        <TextBlock Classes="firmwareSlotFactValue" FontSize="{DynamicResource NfcFontSize12}" FontFamily="{DynamicResource NfcTechnicalFontFamily}" FontWeight="Medium" Text="{Binding Value}" TextTrimming="CharacterEllipsis" />
         <Path
             AutomationProperties.Name="{Binding StateAutomationText}"
             behaviors:FocusToolTipBehavior.IsEnabled="True"

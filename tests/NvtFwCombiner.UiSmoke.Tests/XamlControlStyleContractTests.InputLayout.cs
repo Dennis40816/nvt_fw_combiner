@@ -4,8 +4,11 @@ using Avalonia.Automation;
 using Avalonia.Controls;
 using Avalonia.Controls.Presenters;
 using Avalonia.Controls.Primitives;
+using Avalonia.Headless;
 using Avalonia.Headless.XUnit;
 using Avalonia.Markup.Xaml.Styling;
+using Avalonia.Styling;
+using Avalonia.Threading;
 using Avalonia.VisualTree;
 using NvtFwCombiner.Application.Metadata;
 using NvtFwCombiner.Domain.Composition;
@@ -20,10 +23,12 @@ public sealed partial class XamlControlStyleContractTests
         "avares://NvtFwCombiner.Presentation.Avalonia/Styles/MainWindowButtonStyles.axaml");
     private static readonly Uri ProductionVisualStylesUri = new(
         "avares://NvtFwCombiner.Presentation.Avalonia/Styles/MainWindowVisualStyles.axaml");
+    private static readonly Uri ProductionFirmwareSlotStylesUri = new(
+        "avares://NvtFwCombiner.Presentation.Avalonia/Styles/FirmwareSlotExperienceStyles.axaml");
 
-    /// <summary>Selected-file facts use the full card body while the localized picker stays in the header.</summary>
+    /// <summary>Selected-file facts use one fixed identity/four-column-facts/Browse anatomy.</summary>
     [Fact]
-    public void FirmwareSlotCardUsesAResponsiveFullWidthFactBody()
+    public void FirmwareSlotCardUsesApprovedFixedFourColumnFactLayout()
     {
         string slotCard = ReadPresentationFile("Views/FirmwareSlotCard.axaml");
         string codeBehind = ReadPresentationFile("Views/FirmwareSlotCard.axaml.cs");
@@ -33,8 +38,10 @@ public sealed partial class XamlControlStyleContractTests
             HasXamlName(element, "SlotLayout"));
         XElement header = Assert.Single(document.Descendants(), element =>
             HasXamlName(element, "SlotHeaderContent"));
-        XElement body = Assert.Single(document.Descendants(), element =>
-            HasXamlName(element, "SlotBody"));
+        XElement identity = Assert.Single(document.Descendants(), element =>
+            HasXamlName(element, "SlotIdentity"));
+        XElement factsRegion = Assert.Single(document.Descendants(), element =>
+            HasXamlName(element, "SlotFactsRegion"));
         XElement browse = Assert.Single(document.Descendants(), element =>
             HasXamlName(element, "BrowseButton"));
         XElement primaryFacts = Assert.Single(document.Descendants(), element =>
@@ -42,15 +49,27 @@ public sealed partial class XamlControlStyleContractTests
         XElement additionalFacts = Assert.Single(document.Descendants(), element =>
             HasXamlName(element, "AdditionalFirmwareFactsHost"));
 
-        Assert.Equal("*,Auto", (string?)layout.Attribute("ColumnDefinitions"));
-        Assert.Equal("Auto,Auto", (string?)layout.Attribute("RowDefinitions"));
+        Assert.Equal("280,*,Auto", (string?)layout.Attribute("ColumnDefinitions"));
+        Assert.Equal("*", (string?)layout.Attribute("RowDefinitions"));
+        Assert.Equal("16,12", (string?)layout.Attribute("Margin"));
+        Assert.Equal("72", (string?)layout.Attribute("MinHeight"));
+        Assert.Equal("{DynamicResource NfcSpace8}", (string?)identity.Attribute("Spacing"));
         Assert.Equal("Grid", header.Name.LocalName);
         Assert.Equal("Auto,*", (string?)header.Attribute("ColumnDefinitions"));
-        Assert.Equal("1", (string?)body.Attribute("Grid.Row"));
-        Assert.Null(body.Attribute("Grid.ColumnSpan"));
-        Assert.Equal("1", (string?)browse.Attribute("Grid.Column"));
-        Assert.Equal("2", (string?)browse.Attribute("Grid.RowSpan"));
+        Assert.Equal("0", (string?)identity.Attribute("Grid.Column"));
+        Assert.Equal("1", (string?)factsRegion.Attribute("Grid.Column"));
+        Assert.Equal("Center", (string?)factsRegion.Attribute("VerticalAlignment"));
+        Assert.Equal("2", (string?)browse.Attribute("Grid.Column"));
+        Assert.Null(browse.Attribute("Grid.RowSpan"));
         Assert.Equal("Center", (string?)browse.Attribute("VerticalAlignment"));
+        Assert.Contains(primaryFacts.Descendants(), element =>
+            element.Name.LocalName == "UniformGrid" &&
+            (string?)element.Attribute("Columns") == "4" &&
+            (string?)element.Attribute("Rows") == "1");
+        Assert.Contains(additionalFacts.Descendants(), element =>
+            element.Name.LocalName == "UniformGrid" &&
+            (string?)element.Attribute("Columns") == "4" &&
+            (string?)element.Attribute("Rows") == "1");
         XElement[] browseLabels = [.. browse.Descendants().Where(element =>
             element.Name.LocalName == "MultiBinding")];
         Assert.Equal(2, browseLabels.Length);
@@ -91,12 +110,11 @@ public sealed partial class XamlControlStyleContractTests
             FirmwareSlotCard.FormatBrowseActionLabel(browseLabel, slotTitle));
     }
 
-    /// <summary>The supported compact card widths keep Browse in bounds and give facts the complete body width.</summary>
+    /// <summary>Supported window widths keep four equal left-filled fact columns and a shared center axis.</summary>
     [AvaloniaTheory]
-    [InlineData(320)]
-    [InlineData(480)]
     [InlineData(900)]
-    public void FirmwareSlotCardFitsSupportedCompactWidths(double width)
+    [InlineData(1180)]
+    public void FirmwareSlotCardKeepsApprovedFourColumnGeometry(double width)
     {
         var slot = new FirmwareSlotViewModel(
             "dp",
@@ -109,9 +127,9 @@ public sealed partial class XamlControlStyleContractTests
         slot.SetInputInspection(FirmwareInputInspectionSeverity.Valid, "The selected BIN is valid.");
         slot.SetFirmwareFacts(
         [
-            new("DP", "DCC-00"),
-            new("Jira", "AUTO_PRJ-576"),
-            new("Common FW", "2.0.0"),
+            new("DP Version", "DCC-00"),
+            new("Jira Index", "AUTO_PRJ-576"),
+            new("Common FW Version", "2.0.0"),
             new("PID", "0x135E"),
         ]);
         var card = new FirmwareSlotCard
@@ -131,13 +149,15 @@ public sealed partial class XamlControlStyleContractTests
         Grid header = Assert.IsType<Grid>(card.FindControl<Control>("SlotHeaderContent"));
         TextBlock title = Assert.IsType<TextBlock>(card.FindControl<Control>("SlotTitle"));
         Button browse = Assert.IsType<Button>(card.FindControl<Control>("BrowseButton"));
-        StackPanel body = Assert.IsType<StackPanel>(card.FindControl<Control>("SlotBody"));
+        StackPanel identity = Assert.IsType<StackPanel>(card.FindControl<Control>("SlotIdentity"));
+        StackPanel factsRegion = Assert.IsType<StackPanel>(card.FindControl<Control>("SlotFactsRegion"));
         Border selector = Assert.Single(
             card.GetVisualDescendants().OfType<Border>(),
             candidate => candidate.Classes.Contains("firmwareSlot"));
         ItemsControl primaryFacts = Assert.IsType<ItemsControl>(
             card.FindControl<Control>("PrimaryFirmwareFactsHost"));
         Point browseOrigin = Assert.IsType<Point>(browse.TranslatePoint(default, selector));
+        Point factsOrigin = Assert.IsType<Point>(factsRegion.TranslatePoint(default, selector));
         ToggleButton state = Assert.Single(
             card.GetVisualDescendants().OfType<ToggleButton>(),
             candidate => candidate.Classes.Contains("slotStateAction"));
@@ -146,24 +166,20 @@ public sealed partial class XamlControlStyleContractTests
 
         Assert.True(layout.Bounds.Width <= width);
         Assert.True(browse.Bounds.Right <= layout.Bounds.Width);
-        Assert.True(body.Bounds.Width < layout.Bounds.Width);
-        Assert.Equal(body.Bounds.Width, primaryFacts.Bounds.Width, precision: 3);
-        double selectorCenter = selector.Bounds.Height / 2;
+        Assert.Equal(280, identity.Bounds.Width, precision: 3);
+        Assert.Equal(factsRegion.Bounds.Width, primaryFacts.Bounds.Width, precision: 3);
         double browseCenter = browseOrigin.Y + (browse.Bounds.Height / 2);
-        Assert.InRange(Math.Abs(selectorCenter - browseCenter), 0, 0.5);
-        if (width >= 480)
-        {
-            double titleCenter = titleOrigin.Y + (title.Bounds.Height / 2);
-            double stateCenter = stateOrigin.Y + (state.Bounds.Height / 2);
-            Assert.InRange(Math.Abs(titleCenter - stateCenter), 0, 0.5);
-            Assert.True(
-                title.Bounds.Width < 100,
-                $"Title width {title.Bounds.Width}, desired {title.DesiredSize.Width}, state X {stateOrigin.X}.");
-            Assert.Equal(
-                8,
-                stateOrigin.X - (titleOrigin.X + title.Bounds.Width),
-                precision: 3);
-        }
+        double factsCenter = factsOrigin.Y + (factsRegion.Bounds.Height / 2);
+        Assert.InRange(Math.Abs(factsCenter - browseCenter), 0, 0.5);
+        double titleCenter = titleOrigin.Y + (title.Bounds.Height / 2);
+        double stateCenter = stateOrigin.Y + (state.Bounds.Height / 2);
+        Assert.InRange(Math.Abs(titleCenter - stateCenter), 0, 0.5);
+        UniformGrid factGrid = Assert.Single(
+            primaryFacts.GetVisualDescendants().OfType<UniformGrid>());
+        Control[] factCells = [.. factGrid.Children.OfType<Control>()];
+        Assert.Equal(4, factCells.Length);
+        Assert.All(factCells, cell =>
+            Assert.Equal(factGrid.Bounds.Width / 4, cell.Bounds.Width, precision: 3));
         Assert.Equal(88, browse.MinWidth);
         Assert.Equal(36, browse.MinHeight);
         Assert.Equal(36, browse.MaxHeight);
@@ -171,6 +187,7 @@ public sealed partial class XamlControlStyleContractTests
         Assert.Equal(Avalonia.Layout.VerticalAlignment.Center, browse.VerticalContentAlignment);
         Assert.True(browse.Bounds.Width >= 88);
         Assert.Equal(36, browse.Bounds.Height, precision: 3);
+        Assert.InRange(selector.Bounds.Height, 90, 104);
         Assert.Null(browse.FocusAdorner);
         Assert.NotNull(browse.Theme);
         browse.ApplyTemplate();
@@ -181,8 +198,8 @@ public sealed partial class XamlControlStyleContractTests
             card.GetVisualDescendants().OfType<Border>(),
             candidate => candidate.Classes.Contains("slotTypeIcon"));
         Assert.Equal(new CornerRadius(999), presenter.CornerRadius);
-        Assert.Equal(30, slotIcon.Bounds.Width, precision: 3);
-        Assert.Equal(30, slotIcon.Bounds.Height, precision: 3);
+        Assert.Equal(36, slotIcon.Bounds.Width, precision: 3);
+        Assert.Equal(36, slotIcon.Bounds.Height, precision: 3);
         Assert.Equal(ProductionButtonStylesUri, buttonStyles.Source);
         Assert.Equal(ProductionVisualStylesUri, visualStyles.Source);
 
@@ -204,15 +221,101 @@ public sealed partial class XamlControlStyleContractTests
         Assert.NotEqual("Checking", slot.SemanticStateLabel);
     }
 
-    /// <summary>Real long English and Chinese slot titles wrap inside the 320 px header without entering Browse.</summary>
+    /// <summary>Rendered DP/TP selectors share one optical axis at desktop and compact widths.</summary>
+    [AvaloniaTheory]
+    [InlineData(900, false, false)]
+    [InlineData(900, false, true)]
+    [InlineData(900, true, false)]
+    [InlineData(900, true, true)]
+    [InlineData(480, false, false)]
+    [InlineData(480, false, true)]
+    [InlineData(480, true, false)]
+    [InlineData(480, true, true)]
+    public async Task FirmwareSlotBrowseSelectorUsesSharedOpticalCenterAcrossThemesAndBreakpoints(
+        double width,
+        bool useDarkTheme,
+        bool useTpSlot)
+    {
+        FirmwareSlotViewModel slot = CreateSelectedFirmwareSlot(useTpSlot);
+        var card = new FirmwareSlotCard
+        {
+            BrowseLabel = "Browse",
+            DataContext = slot,
+            Width = width,
+        };
+        ThemeVariant theme = useDarkTheme ? ThemeVariant.Dark : ThemeVariant.Light;
+        (Window host, _, _) = HostWithProductionFirmwareSlotStyles(card);
+        host.Width = width;
+        host.Height = 220;
+        host.RequestedThemeVariant = theme;
+        host.Content = null;
+        host.Content = new StackPanel
+        {
+            Children = { card },
+        };
+
+        host.Show();
+        try
+        {
+            host.Measure(new Size(width, 220));
+            host.Arrange(new Rect(0, 0, width, 220));
+            Dispatcher.UIThread.RunJobs();
+            AvaloniaHeadlessPlatform.ForceRenderTimerTick();
+
+            Border selector = Assert.Single(
+                card.GetVisualDescendants().OfType<Border>(),
+                candidate => candidate.Classes.Contains("firmwareSlot"));
+            Grid layout = Assert.IsType<Grid>(card.FindControl<Control>("SlotLayout"));
+            StackPanel facts = Assert.IsType<StackPanel>(
+                card.FindControl<Control>("SlotFactsRegion"));
+            Button browse = Assert.IsType<Button>(card.FindControl<Control>("BrowseButton"));
+            browse.ApplyTemplate();
+            ContentPresenter browseSurface = Assert.Single(
+                browse.GetVisualDescendants().OfType<ContentPresenter>(),
+                candidate => candidate.Name == "PART_ContentPresenter");
+            Point factsOrigin = Assert.IsType<Point>(facts.TranslatePoint(default, selector));
+            Point browseSurfaceOrigin = Assert.IsType<Point>(
+                browseSurface.TranslatePoint(default, selector));
+            double factsCenter = factsOrigin.Y + (facts.Bounds.Height / 2);
+            double browseCenter = browseSurfaceOrigin.Y + (browseSurface.Bounds.Height / 2);
+            double selectorCenter = selector.Bounds.Height / 2;
+
+            Assert.InRange(Math.Abs(factsCenter - browseCenter), 0, 0.5);
+            double selectorOffset = browseCenter - selectorCenter;
+            Assert.True(
+                Math.Abs(selectorOffset) <= 0.5,
+                $"Browse surface offset {selectorOffset:F3}; selector={selector.Bounds}; " +
+                $"layout={layout.Bounds}; card={card.Bounds}.");
+            using Avalonia.Media.Imaging.Bitmap? frame = host.GetLastRenderedFrame();
+            Assert.NotNull(frame);
+            string? outputDirectory = Environment.GetEnvironmentVariable("NFC_VISUAL_OUTPUT_DIR");
+            if (!string.IsNullOrWhiteSpace(outputDirectory))
+            {
+                _ = Directory.CreateDirectory(outputDirectory);
+                string themeName = useDarkTheme ? "dark" : "light";
+                string slotName = useTpSlot ? "tp" : "dp";
+                string outputPath = Path.Combine(
+                    outputDirectory,
+                    $"nfc-slot-selector-{slotName}-{width:F0}-{themeName}.png");
+                await using FileStream output = File.Create(outputPath);
+                frame.Save(output);
+            }
+        }
+        finally
+        {
+            host.Close();
+        }
+    }
+
+    /// <summary>Real long English and Chinese slot titles stay inside the fixed identity region.</summary>
     [AvaloniaTheory]
     [InlineData("Browse", "Initial Code replacement BIN")]
     [InlineData("瀏覽", "Initial Code 取代 BIN 檔案")]
-    public void FirmwareSlotLongLocalizedTitleDoesNotIntersectBrowseAt320Pixels(
+    public void FirmwareSlotLongLocalizedTitleDoesNotIntersectBrowseAtSupportedWidth(
         string browseLabel,
         string slotTitle)
     {
-        const double width = 320;
+        const double width = 900;
         var card = new FirmwareSlotCard
         {
             BrowseLabel = browseLabel,
@@ -252,36 +355,25 @@ public sealed partial class XamlControlStyleContractTests
     [AvaloniaFact]
     public async Task DpReplaceSlotsRelocalizeTypedInitialCodeAndLdcBrowseActions()
     {
-        (MainWindowViewModel dpViewModel, MainWindowViewModel nt51928ViewModel, FirmwareSlotViewModel dp,
-            FirmwareSlotViewModel initialCode, FirmwareSlotViewModel ldc) =
-            await Task.Run(
-                () =>
-                {
-                    MainWindowViewModel createdDpViewModel = PresentationTestHost.CreateViewModel();
-                    createdDpViewModel.WorkflowSession.SelectedIc = "NT51927";
-                    OpenReplace(createdDpViewModel, ExperienceIds.DpReplace);
-                    FirmwareSlotViewModel createdDp = Assert.Single(
-                        createdDpViewModel.Replace.ReplaceSlots,
-                        slot => slot.AddressSpaceId == CompositionAddressSpaceIds.DpReplacement);
-                    MainWindowViewModel createdNt51928ViewModel = PresentationTestHost.CreateViewModel();
-                    createdNt51928ViewModel.WorkflowSession.SelectedIc = "NT51928";
-                    OpenReplace(createdNt51928ViewModel, ExperienceIds.DpReplace);
-                    FirmwareSlotViewModel createdInitialCode = Assert.Single(
-                        createdNt51928ViewModel.Replace.ReplaceSlots,
-                        slot => slot.AddressSpaceId == CompositionAddressSpaceIds.InitialCodeReplacement);
-                    FirmwareSlotViewModel createdLdc = Assert.Single(
-                        createdNt51928ViewModel.Replace.ReplaceSlots,
-                        slot => slot.AddressSpaceId == CompositionAddressSpaceIds.LdcReplacement);
-                    createdDpViewModel.SelectedLanguage = "Traditional Chinese";
-                    createdNt51928ViewModel.SelectedLanguage = "Traditional Chinese";
-                    return (
-                        createdDpViewModel,
-                        createdNt51928ViewModel,
-                        createdDp,
-                        createdInitialCode,
-                        createdLdc);
-                },
-                TestContext.Current.CancellationToken);
+        MainWindowViewModel dpViewModel = await PresentationTestHost.CreateViewModelAsync(
+            TestContext.Current.CancellationToken);
+        dpViewModel.WorkflowSession.SelectedIc = "NT51927";
+        OpenReplace(dpViewModel, ExperienceIds.DpReplace);
+        FirmwareSlotViewModel dp = Assert.Single(
+            dpViewModel.Replace.ReplaceSlots,
+            slot => slot.AddressSpaceId == CompositionAddressSpaceIds.DpReplacement);
+        MainWindowViewModel nt51928ViewModel = await PresentationTestHost.CreateViewModelAsync(
+            TestContext.Current.CancellationToken);
+        nt51928ViewModel.WorkflowSession.SelectedIc = "NT51928";
+        OpenReplace(nt51928ViewModel, ExperienceIds.DpReplace);
+        FirmwareSlotViewModel initialCode = Assert.Single(
+            nt51928ViewModel.Replace.ReplaceSlots,
+            slot => slot.AddressSpaceId == CompositionAddressSpaceIds.InitialCodeReplacement);
+        FirmwareSlotViewModel ldc = Assert.Single(
+            nt51928ViewModel.Replace.ReplaceSlots,
+            slot => slot.AddressSpaceId == CompositionAddressSpaceIds.LdcReplacement);
+        dpViewModel.SelectedLanguage = "Traditional Chinese";
+        nt51928ViewModel.SelectedLanguage = "Traditional Chinese";
 
         Assert.Equal("DP 取代 BIN 檔案", dp.Title);
         Assert.Equal("由編譯後的 DP Replace 設定檔宣告之 DP 取代資料。", dp.Description);
@@ -320,54 +412,42 @@ public sealed partial class XamlControlStyleContractTests
     [AvaloniaFact]
     public async Task CtrlRamSlotRelocalizesTypedRegionBrowseAction()
     {
-        (MainWindowViewModel topologyViewModel, MainWindowViewModel cascadeViewModel,
-            FirmwareSlotViewModel[] topologySlots, FirmwareSlotViewModel cascadeSlot,
-            Dictionary<FirmwareSlotViewModel, (string Title, string Description)> english) =
-            await Task.Run(
-                () =>
-                {
-                    MainWindowViewModel createdTopologyViewModel = PresentationTestHost.CreateViewModel();
-                    createdTopologyViewModel.WorkflowSession.SelectedIc = "NT51927";
-                    createdTopologyViewModel.WorkflowSession.SelectedNumber = "3";
-                    OpenReplace(createdTopologyViewModel, ExperienceIds.CtrlRamReplace);
-                    FirmwareSlotViewModel[] createdTopologySlots =
-                    [
-                        Assert.Single(createdTopologyViewModel.Replace.ReplaceSlots, candidate =>
-                            candidate.RegionGroup == ReplaceRegionGroup.Master &&
-                            candidate.Title == "Normal CtrlRAM (Master)"),
-                        Assert.Single(createdTopologyViewModel.Replace.ReplaceSlots, candidate =>
-                            candidate.RegionGroup == ReplaceRegionGroup.SlaveRight &&
-                            candidate.Title == "Normal CtrlRAM (Slave R)"),
-                        Assert.Single(createdTopologyViewModel.Replace.ReplaceSlots, candidate =>
-                            candidate.RegionGroup == ReplaceRegionGroup.SlaveLeft &&
-                            candidate.Title == "Normal CtrlRAM (Slave L)"),
-                        Assert.Single(createdTopologyViewModel.Replace.ReplaceSlots, candidate =>
-                            candidate.RegionGroup == ReplaceRegionGroup.Common &&
-                            candidate.Title == "NF CtrlRAM (Shared)"),
-                    ];
-                    MainWindowViewModel createdCascadeViewModel = PresentationTestHost.CreateViewModel();
-                    createdCascadeViewModel.WorkflowSession.SelectedIc = "NT51950";
-                    createdCascadeViewModel.WorkflowSession.SelectedNumber = "cascade";
-                    OpenReplace(createdCascadeViewModel, ExperienceIds.CtrlRamReplace);
-                    FirmwareSlotViewModel createdCascadeSlot = Assert.Single(
-                        createdCascadeViewModel.Replace.ReplaceSlots,
-                        candidate => candidate.RegionGroup == ReplaceRegionGroup.Cascade &&
-                            candidate.SlotId == "replace-ctrlram-diff");
-                    FirmwareSlotViewModel[] createdSlots = [.. createdTopologySlots, createdCascadeSlot];
-                    Dictionary<FirmwareSlotViewModel, (string Title, string Description)> createdEnglish =
-                        createdSlots.ToDictionary(
-                            static slot => slot,
-                            static slot => (slot.Title, slot.Description));
-                    createdTopologyViewModel.SelectedLanguage = "Traditional Chinese";
-                    createdCascadeViewModel.SelectedLanguage = "Traditional Chinese";
-                    return (
-                        createdTopologyViewModel,
-                        createdCascadeViewModel,
-                        createdTopologySlots,
-                        createdCascadeSlot,
-                        createdEnglish);
-                },
-                TestContext.Current.CancellationToken);
+        MainWindowViewModel topologyViewModel = await PresentationTestHost.CreateViewModelAsync(
+            TestContext.Current.CancellationToken);
+        topologyViewModel.WorkflowSession.SelectedIc = "NT51927";
+        topologyViewModel.WorkflowSession.SelectedNumber = "3";
+        OpenReplace(topologyViewModel, ExperienceIds.CtrlRamReplace);
+        FirmwareSlotViewModel[] topologySlots =
+        [
+            Assert.Single(topologyViewModel.Replace.ReplaceSlots, candidate =>
+                candidate.RegionGroup == ReplaceRegionGroup.Master &&
+                candidate.Title == "Normal CtrlRAM (Master)"),
+            Assert.Single(topologyViewModel.Replace.ReplaceSlots, candidate =>
+                candidate.RegionGroup == ReplaceRegionGroup.SlaveRight &&
+                candidate.Title == "Normal CtrlRAM (Slave R)"),
+            Assert.Single(topologyViewModel.Replace.ReplaceSlots, candidate =>
+                candidate.RegionGroup == ReplaceRegionGroup.SlaveLeft &&
+                candidate.Title == "Normal CtrlRAM (Slave L)"),
+            Assert.Single(topologyViewModel.Replace.ReplaceSlots, candidate =>
+                candidate.RegionGroup == ReplaceRegionGroup.Common &&
+                candidate.Title == "NF CtrlRAM (Shared)"),
+        ];
+        MainWindowViewModel cascadeViewModel = await PresentationTestHost.CreateViewModelAsync(
+            TestContext.Current.CancellationToken);
+        cascadeViewModel.WorkflowSession.SelectedIc = "NT51950";
+        cascadeViewModel.WorkflowSession.SelectedNumber = "cascade";
+        OpenReplace(cascadeViewModel, ExperienceIds.CtrlRamReplace);
+        FirmwareSlotViewModel cascadeSlot = Assert.Single(
+            cascadeViewModel.Replace.ReplaceSlots,
+            candidate => candidate.RegionGroup == ReplaceRegionGroup.Cascade &&
+                candidate.SlotId == "replace-ctrlram-diff");
+        FirmwareSlotViewModel[] slots = [.. topologySlots, cascadeSlot];
+        Dictionary<FirmwareSlotViewModel, (string Title, string Description)> english =
+            slots.ToDictionary(
+                static slot => slot,
+                static slot => (slot.Title, slot.Description));
+        topologyViewModel.SelectedLanguage = "Traditional Chinese";
+        cascadeViewModel.SelectedLanguage = "Traditional Chinese";
 
         FirmwareSlotViewModel master = topologySlots[0];
         FirmwareSlotViewModel slaveRight = topologySlots[1];
@@ -411,18 +491,41 @@ public sealed partial class XamlControlStyleContractTests
         AssertBrowseAction(cascadeSlot, cascadeViewModel.Text);
     }
 
-    /// <summary>Shell headers stay readable at compact width and vertically aligned while startup is running.</summary>
+    /// <summary>Workflow mode controls retain the owner-approved v0.9.15 header position.</summary>
     [Fact]
-    public void StartupPreparationHeaderCentersLabelsAndRightAlignsPercentage()
+    public void WorkflowModeSelectorsStayAtV0915HeaderRightPosition()
     {
         var shell = XDocument.Parse(ReadPresentationFile("MainWindow.axaml"));
         XElement replaceHeader = Assert.Single(shell.Descendants(), element =>
             HasXamlName(element, "ReplacePageHeader"));
         XElement mergeHeader = Assert.Single(shell.Descendants(), element =>
             HasXamlName(element, "MergePageHeader"));
-        Assert.Equal("Auto,Auto", (string?)replaceHeader.Attribute("RowDefinitions"));
-        Assert.Equal("Auto,Auto", (string?)mergeHeader.Attribute("RowDefinitions"));
 
+        Assert.Equal("*,Auto", (string?)replaceHeader.Attribute("ColumnDefinitions"));
+        Assert.Equal("*,Auto", (string?)mergeHeader.Attribute("ColumnDefinitions"));
+        Assert.Null(replaceHeader.Attribute("RowDefinitions"));
+        Assert.Null(mergeHeader.Attribute("RowDefinitions"));
+
+        XElement replaceMode = Assert.Single(replaceHeader.Descendants(), element =>
+            element.Name.LocalName == "ComboBox" &&
+            ((string?)element.Attribute("SelectedItem"))?.Contains(
+                "SelectedReplaceMode",
+                StringComparison.Ordinal) == true);
+        XElement mergeMode = Assert.Single(mergeHeader.Descendants(), element =>
+            element.Name.LocalName == "ComboBox" &&
+            ((string?)element.Attribute("SelectedItem"))?.Contains(
+                "SelectedMergeMode",
+                StringComparison.Ordinal) == true);
+
+        AssertModeContainerOccupiesHeaderRightColumn(replaceMode, replaceHeader);
+        AssertModeContainerOccupiesHeaderRightColumn(mergeMode, mergeHeader);
+    }
+
+    /// <summary>Shell headers stay readable at compact width and vertically aligned while startup is running.</summary>
+    [Fact]
+    public void StartupPreparationHeaderCentersLabelsAndRightAlignsPercentage()
+    {
+        var shell = XDocument.Parse(ReadPresentationFile("MainWindow.axaml"));
         XElement host = Assert.Single(shell.Descendants(), element =>
             HasXamlName(element, "OptionalPreloadStatusHost"));
         XElement[] centeredElements =
@@ -451,6 +554,46 @@ public sealed partial class XamlControlStyleContractTests
     {
         return element.Attributes().Any(attribute =>
             attribute.Name.LocalName == "Name" && attribute.Value == name);
+    }
+
+    private static void AssertModeContainerOccupiesHeaderRightColumn(
+        XElement modeSelector,
+        XElement header)
+    {
+        XElement modeContainer = Assert.Single(modeSelector.Ancestors(), element =>
+            element.Parent == header);
+        Assert.Equal("Grid", modeContainer.Name.LocalName);
+        Assert.Equal("1", (string?)modeContainer.Attribute("Grid.Column"));
+        Assert.Null(modeContainer.Attribute("Grid.Row"));
+        Assert.Equal("Center", (string?)modeContainer.Attribute("VerticalAlignment"));
+    }
+
+    private static FirmwareSlotViewModel CreateSelectedFirmwareSlot(bool useTpSlot)
+    {
+        var slot = new FirmwareSlotViewModel(
+            useTpSlot ? "tp" : "dp",
+            useTpSlot ? "TP BIN" : "DP BIN",
+            useTpSlot ? "Select TP firmware" : "Select DP firmware",
+            useTpSlot ? FirmwareSlotKind.Tp : FirmwareSlotKind.Dp)
+        {
+            FilePath = useTpSlot
+                ? @"C:\firmware\tp-input.bin"
+                : @"C:\firmware\dp-input.bin",
+        };
+        slot.SetInputInspection(FirmwareInputInspectionSeverity.Valid, "The selected BIN is valid.");
+        slot.SetFirmwareFacts(useTpSlot
+            ?
+            [
+                new("Common FW Version", "2.0.0"),
+                new("TP Version", "T04-00"),
+                new("PID", "0x135E"),
+            ]
+            :
+            [
+                new("DP Version", "DCC-00"),
+                new("Jira Index", "AUTO_PRJ-576"),
+            ]);
+        return slot;
     }
 
     private static void AssertBrowseAction(
@@ -500,9 +643,18 @@ public sealed partial class XamlControlStyleContractTests
         {
             Source = ProductionVisualStylesUri,
         };
+        var firmwareSlotStyles = new StyleInclude(ProductionFirmwareSlotStylesUri)
+        {
+            Source = ProductionFirmwareSlotStylesUri,
+        };
         var host = new Window();
+        host.Resources.MergedDictionaries.Add(new ResourceInclude(ProductionSharedTemplatesUri)
+        {
+            Source = ProductionSharedTemplatesUri,
+        });
         host.Styles.Add(buttonStyles);
         host.Styles.Add(visualStyles);
+        host.Styles.Add(firmwareSlotStyles);
         host.Content = card;
         return (host, buttonStyles, visualStyles);
     }

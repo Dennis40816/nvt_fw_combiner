@@ -10,7 +10,7 @@ public sealed partial class ShellNavigationSystemTests
     public void SettingsOpensCanonicalSupportMatrixFromFocusedChild()
     {
         MainWindowViewModel viewModel = PresentationTestHost.CreateViewModel();
-        viewModel.ShowSettingsCommand.Execute(null);
+        viewModel.OpenSettingsCommand.Execute(null);
 
         viewModel.Settings.SelectSectionCommand.Execute(SettingsSection.SupportMatrix);
 

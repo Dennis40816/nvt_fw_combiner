@@ -282,11 +282,11 @@ public sealed partial class XamlControlStyleContractTests
         Assert.Contains("Background\" Value=\"{DynamicResource NfcAccentSurfaceBrush}", openPill, StringComparison.Ordinal);
         Assert.Contains("BorderBrush\" Value=\"{DynamicResource NfcAccentBorderLightBrush}", openPill, StringComparison.Ordinal);
         Assert.Contains("NfcAccentStrongBrush", openText, StringComparison.Ordinal);
-        Assert.Contains("Background\" Value=\"{DynamicResource NfcPrimaryActionHoverBrush}", hoverPill, StringComparison.Ordinal);
-        Assert.Contains("BorderBrush\" Value=\"{DynamicResource NfcPrimaryActionHoverBrush}", hoverPill, StringComparison.Ordinal);
-        Assert.Contains("NfcPrimaryActionHoverTextBrush", hoverText, StringComparison.Ordinal);
-        Assert.Contains("NfcPrimaryActionPressedBrush", pressedPill, StringComparison.Ordinal);
-        Assert.Contains("NfcPrimaryActionPressedTextBrush", pressedText, StringComparison.Ordinal);
+        Assert.Contains("Background\" Value=\"{DynamicResource NfcAccentBrush}", hoverPill, StringComparison.Ordinal);
+        Assert.Contains("BorderBrush\" Value=\"{DynamicResource NfcAccentBrush}", hoverPill, StringComparison.Ordinal);
+        Assert.Contains("NfcSurfaceBrush", hoverText, StringComparison.Ordinal);
+        Assert.Contains("NfcAccentStrongBrush", pressedPill, StringComparison.Ordinal);
+        Assert.Contains("NfcSurfaceBrush", pressedText, StringComparison.Ordinal);
     }
 
     /// <summary>Keeps bounded multi-byte insertion explicit, accessible, and separate from overwrite/fill mode.</summary>
@@ -306,24 +306,23 @@ public sealed partial class XamlControlStyleContractTests
 
     /// <summary>Keeps CtrlRAM version confirmation in a typed UI contract without firmware layout details.</summary>
     [Fact]
-    public void CtrlRamBuildFirmwareVersionModalUsesTypedPreserveOrEditChoice()
+    public void BuildSettingsUsesTypedCtrlRamPreserveOrEditChoice()
     {
         string shell = ReadPresentationFile("MainWindow.axaml");
-        string modal = ReadPresentationFile("Views/CtrlRamFirmwareVersionModal.axaml");
+        string modal = ReadPresentationFile("Views/OutputDeliveryConfirmationModal.axaml");
         string styles = ReadPresentationFile("Styles/MainWindowStyles.axaml");
 
-        Assert.Contains("<views:CtrlRamFirmwareVersionModal", shell, StringComparison.Ordinal);
-        Assert.Contains("IsVisible=\"{Binding Replace.IsCtrlRamFirmwareVersionModalOpen}\"", shell, StringComparison.Ordinal);
+        Assert.Contains("<views:OutputDeliveryConfirmationModal", shell, StringComparison.Ordinal);
+        Assert.Contains("IsVisible=\"{Binding OutputDelivery.IsOpen}\"", shell, StringComparison.Ordinal);
+        Assert.Contains("IsVisible=\"{Binding HasCtrlRamOptions}\"", modal, StringComparison.Ordinal);
         Assert.Contains("SelectCtrlRamFirmwareVersionPreserveCommand", modal, StringComparison.Ordinal);
         Assert.Contains("SelectCtrlRamFirmwareVersionEditCommand", modal, StringComparison.Ordinal);
         Assert.Equal(2, modal.Split("Classes=\"segment versionChoice\"", StringSplitOptions.None).Length - 1);
-        Assert.Contains("AutomationProperties.Name=\"{Binding Text.CtrlRamFirmwareVersionKeepLabel}\"", modal, StringComparison.Ordinal);
-        Assert.Contains("AutomationProperties.Name=\"{Binding Text.CtrlRamFirmwareVersionEditLabel}\"", modal, StringComparison.Ordinal);
-        Assert.Contains("<TextBlock Text=\"{Binding Text.CtrlRamFirmwareVersionKeepLabel}\"", modal, StringComparison.Ordinal);
-        Assert.Contains("<TextBlock Text=\"{Binding Text.CtrlRamFirmwareVersionEditLabel}\"", modal, StringComparison.Ordinal);
-        Assert.Contains("TryCreateCtrlRamFirmwareVersionEdit", ReadPresentationFile("Views/CtrlRamFirmwareVersionModal.axaml.cs"), StringComparison.Ordinal);
-        Assert.Contains("AutomationProperties.Name=\"{Binding Text.CtrlRamFirmwareVersionByteLabel}\"", modal, StringComparison.Ordinal);
-        Assert.Contains("AutomationProperties.Name=\"{Binding Text.CtrlRamFirmwareSubVersionByteLabel}\"", modal, StringComparison.Ordinal);
+        Assert.Contains("CtrlRamOptions.Text.CtrlRamFirmwareVersionKeepLabel", modal, StringComparison.Ordinal);
+        Assert.Contains("CtrlRamOptions.Text.CtrlRamFirmwareVersionEditLabel", modal, StringComparison.Ordinal);
+        Assert.Contains("TryCreateCtrlRamFirmwareVersionEdit", ReadPresentationFile("ViewModels/ReplacePresentationViewModel.Execution.cs"), StringComparison.Ordinal);
+        Assert.Contains("CtrlRamOptions.Text.CtrlRamFirmwareVersionByteLabel", modal, StringComparison.Ordinal);
+        Assert.Contains("CtrlRamOptions.Text.CtrlRamFirmwareSubVersionByteLabel", modal, StringComparison.Ordinal);
         Assert.Contains("Selector=\"TextBox.hexByteInput\"", styles, StringComparison.Ordinal);
         Assert.Contains("Selector=\"ToggleButton.versionChoice\"", styles, StringComparison.Ordinal);
         Assert.Contains("Selector=\"Border.versionSummaryCard\"", styles, StringComparison.Ordinal);
@@ -373,7 +372,7 @@ public sealed partial class XamlControlStyleContractTests
             "{Binding RunSession.RunProgressStatusLabel}",
             progressBar.Attribute("AutomationProperties.Name")?.Value);
         Assert.Contains("Property=\"Height\" Value=\"22\"", nodeStyle, StringComparison.Ordinal);
-        Assert.Contains("Property=\"BorderThickness\" Value=\"1\"", nodeStyle, StringComparison.Ordinal);
+        Assert.Contains("Property=\"BorderThickness\" Value=\"2\"", nodeStyle, StringComparison.Ordinal);
         Assert.Contains("Property=\"BorderThickness\" Value=\"2\"", activeNodeStyle, StringComparison.Ordinal);
         Assert.Contains("NfcTextStrongBrush", markerStyle, StringComparison.Ordinal);
         Assert.DoesNotContain("AutomationProperties.Name=\"{Binding DeviceContextStatus}\"", shell, StringComparison.Ordinal);

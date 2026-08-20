@@ -47,7 +47,7 @@ public sealed partial class XamlControlStyleContractTests
             styles,
             "Button.action:pointerover /template/ ContentPresenter#PART_ContentPresenter");
         Assert.Contains(
-            "Background\" Value=\"{DynamicResource NfcPrimaryActionHoverBrush}",
+            "Background\" Value=\"{DynamicResource NfcAccentBrush}",
             browseHover,
             StringComparison.Ordinal);
         Assert.DoesNotContain(
@@ -55,7 +55,7 @@ public sealed partial class XamlControlStyleContractTests
             styles,
             StringComparison.Ordinal);
         Assert.Contains(
-            "TextElement.Foreground\" Value=\"{DynamicResource NfcPrimaryActionHoverTextBrush}",
+            "TextElement.Foreground\" Value=\"{DynamicResource NfcSurfaceBrush}",
             browseHover,
             StringComparison.Ordinal);
         string primary = ExtractStyle(styles, "Button.primary");
@@ -68,10 +68,10 @@ public sealed partial class XamlControlStyleContractTests
         Assert.Contains("NfcAccentSurfaceBrush", primary, StringComparison.Ordinal);
         Assert.Contains("NfcAccentBorderLightBrush", primary, StringComparison.Ordinal);
         Assert.Contains("NfcAccentStrongBrush", primary, StringComparison.Ordinal);
-        Assert.Contains("NfcPrimaryActionHoverBrush", primaryHover, StringComparison.Ordinal);
-        Assert.Contains("NfcPrimaryActionHoverTextBrush", primaryHover, StringComparison.Ordinal);
-        Assert.Contains("NfcPrimaryActionPressedBrush", primaryPressed, StringComparison.Ordinal);
-        Assert.Contains("NfcPrimaryActionPressedTextBrush", primaryPressed, StringComparison.Ordinal);
+        Assert.Contains("NfcAccentBrush", primaryHover, StringComparison.Ordinal);
+        Assert.Contains("NfcSurfaceBrush", primaryHover, StringComparison.Ordinal);
+        Assert.Contains("NfcAccentStrongBrush", primaryPressed, StringComparison.Ordinal);
+        Assert.Contains("NfcSurfaceBrush", primaryPressed, StringComparison.Ordinal);
 
         string secondary = ExtractStyle(styles, "Button.secondary");
         string secondaryHover = ExtractStyle(
@@ -286,6 +286,8 @@ public sealed partial class XamlControlStyleContractTests
         ContentPresenter ordinaryPresenter = Assert.Single(
             ordinaryAction.GetVisualDescendants().OfType<ContentPresenter>(),
             static candidate => candidate.Name == "PART_ContentPresenter");
+        Assert.Equal(new Thickness(2), ordinaryAction.BorderThickness);
+        Assert.Equal(new Thickness(2), ordinaryPresenter.BorderThickness);
         Assert.Equal(new CornerRadius(999), ordinaryPresenter.CornerRadius);
         Assert.True(Avalonia.Application.Current.TryGetResource(
             "NfcSurfaceBrush",

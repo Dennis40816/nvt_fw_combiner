@@ -1,4 +1,5 @@
 using System.Text;
+using NvtFwCombiner.Application.Authoring;
 using NvtFwCombiner.Domain.Composition;
 using NvtFwCombiner.Presentation.Avalonia;
 using NvtFwCombiner.Presentation.Avalonia.ViewModels;
@@ -33,7 +34,7 @@ public sealed partial class ShellNavigationSystemTests
         _ = Assert.Single(viewModel.Replace.GeneralReplaceMappings);
     }
 
-    /// <summary>Verifies Settings exposes catalog-backed status without requiring workflow context.</summary>
+    /// <summary>Verifies Settings opens as an application modal without becoming workflow navigation.</summary>
     [Fact]
     public void SettingsUsesCatalogBackedRowsWithoutDeviceContext()
     {
@@ -42,11 +43,17 @@ public sealed partial class ShellNavigationSystemTests
         Assert.Empty(viewModel.Settings.OverviewRows);
         Assert.Empty(viewModel.Settings.CapabilityRows);
 
-        viewModel.ShowSettingsCommand.Execute(null);
+        ShellPage pageBefore = viewModel.SelectedPage;
+        string navigationBefore = viewModel.NavigationPath;
 
-        Assert.True(viewModel.IsSettingsVisible);
+        viewModel.OpenSettingsCommand.Execute(null);
+
+        Assert.True(viewModel.IsSettingsModalOpen);
+        Assert.Equal(pageBefore, viewModel.SelectedPage);
+        Assert.Equal(navigationBefore, viewModel.NavigationPath);
+        Assert.False(viewModel.IsNavigationClearConfirmationOpen);
         Assert.False(viewModel.IsDeviceContextVisible);
-        Assert.True(viewModel.Settings.IsOverviewSelected);
+        Assert.True(viewModel.Settings.IsPreferencesSelected);
         Assert.Equal(
             "Installed version and authoring availability from the current catalog.",
             viewModel.Text.SettingsOverviewSubtitle);
@@ -73,11 +80,6 @@ public sealed partial class ShellNavigationSystemTests
             ["System", "Light", "Dark"],
             viewModel.Settings.ThemeChoices.Select(static choice => choice.Value));
 
-        viewModel.Settings.SelectSectionCommand.Execute(SettingsSection.Preferences);
-
-        Assert.True(viewModel.Settings.IsPreferencesSelected);
-        Assert.False(viewModel.Settings.IsOverviewSelected);
-
         viewModel.SelectedTheme = "Dark";
         viewModel.SelectedLanguage = "Traditional Chinese";
 
@@ -89,7 +91,7 @@ public sealed partial class ShellNavigationSystemTests
             ["英文", "繁體中文"],
             viewModel.Settings.LanguageChoices.Select(static choice => choice.Label));
         Assert.Equal("建立", viewModel.Text.BuildActionLabel);
-        Assert.Equal("首頁 > 設定", viewModel.NavigationPath);
+        Assert.Equal("首頁", viewModel.NavigationPath);
         Assert.Equal("已安裝版本，以及目前目錄中的編輯可用性。", viewModel.Text.SettingsOverviewSubtitle);
         Assert.Empty(viewModel.Merge.MergeSlots);
         Assert.Equal("必填", viewModel.Replace.ReplaceBaseSlot.RequirementLabel);
@@ -111,12 +113,100 @@ public sealed partial class ShellNavigationSystemTests
         Assert.True(viewModel.Settings.IsOverviewSelected);
         Assert.False(viewModel.Settings.IsSupportMatrixOpen);
 
+        viewModel.CloseSettingsCommand.Execute(null);
+
+        Assert.False(viewModel.IsSettingsModalOpen);
+        Assert.Equal(pageBefore, viewModel.SelectedPage);
+
         viewModel.ShowMergeCommand.Execute(null);
 
         Assert.Contains(viewModel.Merge.MergeSlots, slot =>
             slot.Title == "DP BIN" &&
             slot.RequirementLabel == "必填" &&
             slot.DisplayName == "尚未選擇 BIN");
+    }
+
+    /// <summary>Opening Settings preserves selected Replace files, mappings, inspection identity and readiness.</summary>
+    [Fact]
+    public void SettingsModalPreservesReplaceAuthoringState()
+    {
+        using var workspace = TempWorkspace.Create("nvt-fw-combiner-ui-settings-replace-isolation");
+        MainWindowViewModel viewModel = PresentationTestHost.CreateViewModel();
+        OpenReplace(viewModel, ExperienceIds.GeneralReplace);
+        viewModel.WorkflowSession.SelectedIc = "NT51927";
+        viewModel.WorkflowSession.SelectedNumber = "2";
+        GeneralReplaceMappingViewModel mapping = Assert.Single(viewModel.Replace.GeneralReplaceMappings);
+        mapping.TargetStartAddress = "0x120";
+        mapping.Length = "0x2";
+        string basePath = workspace.Write("base.bin", [0x10, 0x11]);
+        string mappingPath = workspace.Write("mapping.bin", [0x20, 0x21]);
+        viewModel.SetSlotFile("replace-base", basePath);
+        viewModel.SetSlotFile(mapping.MappingId, mappingPath);
+        string readiness = viewModel.Replace.ReplaceReadinessStatus;
+        FileStamp? acceptedStamp = mapping.AcceptedFileStamp;
+
+        viewModel.OpenSettingsCommand.Execute(null);
+        viewModel.CloseSettingsCommand.Execute(null);
+
+        Assert.True(viewModel.IsReplaceVisible);
+        Assert.False(viewModel.IsNavigationClearConfirmationOpen);
+        Assert.Equal("NT51927", viewModel.WorkflowSession.SelectedIc);
+        Assert.Equal("2", viewModel.WorkflowSession.SelectedNumber);
+        Assert.Equal(ExperienceIds.GeneralReplace, viewModel.Replace.SelectedReplaceMode);
+        Assert.Equal(basePath, viewModel.Replace.ReplaceBaseSlot.FilePath);
+        Assert.Equal(mappingPath, mapping.FilePath);
+        Assert.Equal(acceptedStamp, mapping.AcceptedFileStamp);
+        Assert.Equal("0x120", mapping.TargetStartAddress);
+        Assert.Equal("0x2", mapping.Length);
+        Assert.Equal(readiness, viewModel.Replace.ReplaceReadinessStatus);
+    }
+
+    /// <summary>Opening Settings preserves selected Merge inputs, mappings and readiness.</summary>
+    [Fact]
+    public void SettingsModalPreservesMergeAuthoringState()
+    {
+        using var workspace = TempWorkspace.Create("nvt-fw-combiner-ui-settings-merge-isolation");
+        MainWindowViewModel viewModel = PresentationTestHost.CreateViewModel();
+        viewModel.ShowMergeCommand.Execute(null);
+        viewModel.WorkflowSession.SelectedIc = "NT51927";
+        viewModel.Merge.SelectedMergeMode = ExperienceIds.GeneralMerge;
+        GeneralMergeMappingViewModel mapping = Assert.Single(viewModel.Merge.GeneralMergeMappings);
+        mapping.SourceStartAddress = "0x10";
+        mapping.TargetStartAddress = "0x20";
+        mapping.Length = "0x2";
+        string mappingPath = workspace.Write("mapping.bin", [0x20, 0x21]);
+        viewModel.SetSlotFile(mapping.MappingId, mappingPath);
+        string readiness = viewModel.Merge.MergeReadinessStatus;
+        FileStamp? acceptedStamp = mapping.AcceptedFileStamp;
+        Assert.True(viewModel.IsCompositionActionRailVisible);
+
+        viewModel.OpenSettingsCommand.Execute(null);
+
+        Assert.False(viewModel.IsCompositionActionRailVisible);
+        viewModel.CloseSettingsCommand.Execute(null);
+
+        Assert.True(viewModel.IsMergeVisible);
+        Assert.True(viewModel.IsCompositionActionRailVisible);
+        Assert.False(viewModel.IsNavigationClearConfirmationOpen);
+        Assert.Equal("NT51927", viewModel.WorkflowSession.SelectedIc);
+        Assert.Equal(ExperienceIds.GeneralMerge, viewModel.Merge.SelectedMergeMode);
+        Assert.Equal(mappingPath, mapping.FilePath);
+        Assert.Equal(acceptedStamp, mapping.AcceptedFileStamp);
+        Assert.Equal("0x10", mapping.SourceStartAddress);
+        Assert.Equal("0x20", mapping.TargetStartAddress);
+        Assert.Equal("0x2", mapping.Length);
+        Assert.Equal(readiness, viewModel.Merge.MergeReadinessStatus);
+    }
+
+    /// <summary>The legacy settings launch destination opens the modal over Home without page history.</summary>
+    [Fact]
+    public void UiLaunchOptionsMigrateSettingsPageToHomeModal()
+    {
+        UiLaunchOptions options = UiLaunchOptions.Parse(["--page", "settings"]);
+
+        Assert.Equal(ShellPage.Home, options.Page);
+        Assert.True(options.OpenSettings);
+        Assert.Empty(options.Issues);
     }
 
     /// <summary>Verifies breadcrumbs show page hierarchy while Back returns to the previous page.</summary>
@@ -199,9 +289,9 @@ public sealed partial class ShellNavigationSystemTests
         string expectedReplaceNumber = viewModel.WorkflowSession.SelectedNumber;
 
         viewModel.BeginAbMergeFromHomeCommand.Execute(null);
-        viewModel.WorkflowSession.WorkflowContextSetup.SelectedIc = "NT51929";
+        viewModel.WorkflowSession.WorkflowContextSetup.SelectedIc = "NT51950";
         viewModel.WorkflowSession.ConfirmWorkflowContextCommand.Execute(null);
-        viewModel.WorkflowSession.SelectedNumber = IcNumberSelectionTokens.CascadeTwoToEight;
+        viewModel.WorkflowSession.SelectedNumber = IcNumberSelectionTokens.Cascade;
         viewModel.GoBackCommand.Execute(null);
 
         Assert.True(viewModel.IsHomeVisible);

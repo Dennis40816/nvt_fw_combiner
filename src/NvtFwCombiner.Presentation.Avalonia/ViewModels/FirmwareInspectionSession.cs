@@ -1,6 +1,7 @@
 using NvtFwCombiner.Application.Authoring;
 using NvtFwCombiner.Application.InputInspection;
 using NvtFwCombiner.Application.Metadata;
+using NvtFwCombiner.Domain.Composition;
 
 namespace NvtFwCombiner.Presentation.Avalonia.ViewModels;
 
@@ -16,16 +17,14 @@ internal static class FirmwareInspectionProjection
         FirmwareInspectionBatchResult result,
         string selectedIc,
         string selectedNumber,
-        string selectedMergeMode,
-        string selectedReplaceMode,
+        WorkflowInspectionContext currentContext,
         Func<string, FirmwareSlotViewModel?> findSlot,
         string? currentTpPath)
     {
         return result.IsContentStable &&
             string.Equals(request.IcId, selectedIc, StringComparison.Ordinal) &&
             string.Equals(request.Number, selectedNumber, StringComparison.Ordinal) &&
-            string.Equals(request.MergeMode, selectedMergeMode, StringComparison.Ordinal) &&
-            string.Equals(request.ReplaceMode, selectedReplaceMode, StringComparison.Ordinal) &&
+            request.Context == currentContext &&
             request.Items.All(item =>
                 findSlot(item.SlotId) is { } slot &&
                 string.Equals(slot.FilePath, item.Path, StringComparison.Ordinal) &&
@@ -154,12 +153,30 @@ internal static class FirmwareInspectionProjection
     }
 }
 
+internal enum WorkflowInspectionOwner
+{
+    Merge,
+    Replace,
+}
+
+internal readonly record struct WorkflowInspectionContext(
+    WorkflowInspectionOwner Owner,
+    string Mode)
+{
+    internal bool IsMerge => Owner == WorkflowInspectionOwner.Merge;
+    internal bool IsReplace => Owner == WorkflowInspectionOwner.Replace;
+    internal bool IsStandardMerge => IsMerge && Mode == ExperienceIds.StandardMerge;
+    internal bool IsAbMerge => IsMerge && Mode == ExperienceIds.AbMerge;
+    internal bool IsDpReplace => IsReplace && Mode == ExperienceIds.DpReplace;
+    internal bool IsCtrlRamReplace => IsReplace && Mode == ExperienceIds.CtrlRamReplace;
+    internal bool IsGeneralReplace => IsReplace && Mode == ExperienceIds.GeneralReplace;
+}
+
 internal readonly record struct FirmwareInspectionBatchRequest(
     AuthoringRevision AuthoringRevision,
     string IcId,
     string Number,
-    string MergeMode,
-    string ReplaceMode,
+    WorkflowInspectionContext Context,
     IReadOnlyList<FirmwareInspectionItemRequest> Items);
 
 internal readonly record struct FirmwareInspectionItemRequest(

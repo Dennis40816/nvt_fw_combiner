@@ -15,4 +15,5 @@ internal sealed record MergeStateBindings(
     Action NotifySharedContextChanged,
     Func<Task> RefreshSelectedFirmwareInspections,
     Action ResetRunResult,
-    Action RefreshShellCommandState);
+    Action RefreshShellCommandState,
+    OutputDeliveryConfirmationViewModel OutputDelivery);

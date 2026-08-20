@@ -302,6 +302,15 @@ public interface ICompositionOutputNaming
         ActiveSessionSnapshot acceptedSession,
         CtrlRamFirmwareVersionDraftState? ctrlRamVersionEdit = null);
 
+    /// <summary>Resolves one editable bundle default from the same accepted output-name facts and UTC instant.</summary>
+    CompositionOutputBundleProposal ResolveAcceptedBundleProposal(
+        ActiveSessionSnapshot acceptedSession,
+        CtrlRamFirmwareVersionDraftState? ctrlRamVersionEdit = null);
+
+    /// <summary>Validates one edited prepared destination through the shared platform policy.</summary>
+    CompositionOutputBundleDestinationValidation ValidateBundleDestination(
+        CompositionOutputBundleIntent intent);
+
     /// <summary>Resolves one AB automatic output name and its compiled optional deliveries without execution.</summary>
     ValueTask<CompositionOutputPreparation> PrepareAutomaticOutputAsync(
         ActiveSessionSnapshot acceptedSession,

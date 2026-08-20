@@ -8,7 +8,7 @@
     <Setter Property="CornerRadius" Value="4" />
     <Setter Property="Background" Value="{DynamicResource NfcSurfaceBrush}" />
     <Setter Property="BorderBrush" Value="{DynamicResource NfcBorderBrush}" />
-    <Setter Property="BorderThickness" Value="1" />
+    <Setter Property="BorderThickness" Value="2" />
   </Style>
   <Style Selector="Border.runProgressNode.completed">
     <Setter Property="Background" Value="{DynamicResource NfcSuccessEmphasisBrush}" />
@@ -78,7 +78,7 @@
   </Style>
   <Style Selector="Expander.inlineDisclosure /template/ ToggleButton:focus-visible">
     <Setter Property="BorderBrush" Value="{DynamicResource NfcAccentStrongBrush}" />
-    <Setter Property="BorderThickness" Value="1" />
+    <Setter Property="BorderThickness" Value="2" />
   </Style>
   <Style Selector="ToggleButton.nav">
     <Setter Property="MinHeight" Value="30" />
@@ -145,14 +145,14 @@
     <Setter Property="Padding" Value="18,10" />
     <Setter Property="Background" Value="{DynamicResource NfcSurfaceBrush}" />
     <Setter Property="BorderBrush" Value="{DynamicResource NfcBorderBrush}" />
-    <Setter Property="BorderThickness" Value="1" />
+    <Setter Property="BorderThickness" Value="2" />
     <Setter Property="Foreground" Value="{DynamicResource NfcTextBrush}" />
     <Setter Property="FontSize" Value="{DynamicResource NfcFontSize13}" />
   </Style>
   <Style Selector="ToggleButton.segment /template/ ContentPresenter#PART_ContentPresenter">
     <Setter Property="Background" Value="{DynamicResource NfcSurfaceBrush}" />
     <Setter Property="BorderBrush" Value="{DynamicResource NfcBorderBrush}" />
-    <Setter Property="BorderThickness" Value="1" />
+    <Setter Property="BorderThickness" Value="2" />
     <Setter Property="CornerRadius" Value="{DynamicResource NfcPillCornerRadius}" />
   </Style>
   <Style Selector="ToggleButton.segment TextBlock">
@@ -167,7 +167,7 @@
   <Style Selector="ToggleButton.segment:checked /template/ ContentPresenter#PART_ContentPresenter">
     <Setter Property="Background" Value="{DynamicResource NfcAccentSurfaceBrush}" />
     <Setter Property="BorderBrush" Value="{DynamicResource NfcAccentBorderStrongBrush}" />
-    <Setter Property="BorderThickness" Value="1" />
+    <Setter Property="BorderThickness" Value="2" />
     <Setter Property="CornerRadius" Value="{DynamicResource NfcPillCornerRadius}" />
   </Style>
   <Style Selector="ToggleButton.versionChoice">
@@ -193,14 +193,14 @@
     <Setter Property="Padding" Value="14" />
     <Setter Property="Background" Value="{DynamicResource NfcSurfaceSubtleBrush}" />
     <Setter Property="BorderBrush" Value="{DynamicResource NfcBorderBrush}" />
-    <Setter Property="BorderThickness" Value="1" />
+    <Setter Property="BorderThickness" Value="2" />
     <Setter Property="CornerRadius" Value="{DynamicResource NfcSurfaceCornerRadius}" />
   </Style>
   <Style Selector="Border.versionValueBadge">
     <Setter Property="Padding" Value="12,7" />
     <Setter Property="Background" Value="{DynamicResource NfcSurfaceBrush}" />
     <Setter Property="BorderBrush" Value="{DynamicResource NfcAccentBorderLightBrush}" />
-    <Setter Property="BorderThickness" Value="1" />
+    <Setter Property="BorderThickness" Value="2" />
     <Setter Property="CornerRadius" Value="{DynamicResource NfcCompactCornerRadius}" />
   </Style>
   <Style Selector="TextBlock.versionValue">
@@ -211,8 +211,12 @@
     <Setter Property="MinHeight" Value="32" />
     <Setter Property="Background" Value="{DynamicResource NfcSurfaceSubtleBrush}" />
     <Setter Property="BorderBrush" Value="{DynamicResource NfcBorderBrush}" />
+    <Setter Property="BorderThickness" Value="2" />
     <Setter Property="FontFamily" Value="{DynamicResource NfcUiFontFamily}" />
     <Setter Property="FontSize" Value="{DynamicResource NfcFontSize13}" />
+  </Style>
+  <Style Selector="ComboBox:focus-visible">
+    <Setter Property="BorderBrush" Value="{DynamicResource NfcAccentStrongBrush}" />
   </Style>
   <Style Selector="ComboBoxItem">
     <Setter Property="FontFamily" Value="{DynamicResource NfcUiFontFamily}" />
@@ -239,7 +243,7 @@
   <Style Selector="TextBox.addressInput">
     <Setter Property="Background" Value="{DynamicResource NfcSurfaceBrush}" />
     <Setter Property="BorderBrush" Value="{DynamicResource NfcBorderBrush}" />
-    <Setter Property="BorderThickness" Value="1" />
+    <Setter Property="BorderThickness" Value="2" />
     <Setter Property="CornerRadius" Value="{DynamicResource NfcCompactCornerRadius}" />
     <Setter Property="behaviors:HexTextInputBehavior.Mode" Value="Address" />
   </Style>

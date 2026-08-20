@@ -6,17 +6,13 @@ internal sealed partial class MainWindowViewModel
 {
     private void SelectReplaceMode(string mode)
     {
-        Replace.SelectReplaceMode(mode);
         NavigateToPage(ShellPage.Replace);
+        Replace.SelectReplaceMode(mode);
     }
 
     private void ApplySelectedPage(ShellPage page)
     {
-        if (page == ShellPage.Settings)
-        {
-            _deferredState.EnsureSettings(RefreshSettingsState);
-        }
-        else if (page is ShellPage.Merge or ShellPage.Replace)
+        if (page is ShellPage.Merge or ShellPage.Replace)
         {
             bool wasWorkflowLoaded = WorkflowSession.IsWorkflowLoaded;
             WorkflowSession.EnsureWorkflowLoaded();
@@ -32,11 +28,11 @@ internal sealed partial class MainWindowViewModel
             return;
         }
 
+        WorkflowSession.RememberCurrentWorkflowContext();
         SelectedPage = page;
-        WorkflowSession.RefreshNumberChoicesForSelectedIc();
+        WorkflowSession.ActivateWorkflowPageContext(page);
         OnPropertyChanged(nameof(SelectedPage));
         OnPropertyChanged(nameof(IsHomeVisible));
-        OnPropertyChanged(nameof(IsSettingsVisible));
         OnPropertyChanged(nameof(IsMergeVisible));
         OnPropertyChanged(nameof(IsReplaceVisible));
         OnPropertyChanged(nameof(IsHexEditorVisible));

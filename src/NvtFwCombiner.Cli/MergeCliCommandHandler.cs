@@ -33,6 +33,11 @@ internal static partial class MergeCliCommandHandler
             return UsageError;
         }
 
+        if (!CliBundleOptions.TryValidateCombination(action, options.Values, error))
+        {
+            return UsageError;
+        }
+
         if (!RequireOption(options, "--profile", error, out string? profileSelector))
         {
             return UsageError;
@@ -81,10 +86,14 @@ internal static partial class MergeCliCommandHandler
                 draft.Mappings.WithSavedRuleResourcePolicy(savedRulePolicy));
         }
 
+        bool bundleBuild = CliBundleOptions.IsEnabled(options.Values);
+        bool hasExplicitOutput = options.Values.ContainsKey("--output");
         CliOutputTarget outputTarget = CliCompositionRunSupport.ResolveOutputTarget(
             options.Values.GetValueOrDefault("--output"),
             GeneralMergeAuthoringUseCase.GetDefaultOutputFileName(icId));
-        string? outputPath = action == "build" ? outputTarget.FullPath : null;
+        string? outputPath = action == "build" && hasExplicitOutput
+            ? outputTarget.FullPath
+            : null;
         List<ProtectedPathGuard.ProtectedPath> protectedPaths =
         [
             .. draft.Mappings.Rows.Select(mapping => new ProtectedPathGuard.ProtectedPath(
@@ -98,7 +107,7 @@ internal static partial class MergeCliCommandHandler
                 "saved-rule input"));
         }
 
-        if (action == "build")
+        if (action == "build" && !bundleBuild)
         {
             ProtectedPathGuard.EnsureDoesNotAlias(
                 outputTarget.FullPath,
@@ -112,7 +121,7 @@ internal static partial class MergeCliCommandHandler
             ProtectedPathGuard.EnsureDoesNotAlias(
                 reportPath,
                 "Report path",
-                action == "build"
+                action == "build" && !bundleBuild
                     ? [.. protectedPaths, new ProtectedPathGuard.ProtectedPath(outputTarget.FullPath, "built firmware output")]
                     : protectedPaths,
                 "--report");
@@ -132,12 +141,30 @@ internal static partial class MergeCliCommandHandler
             return CompositionFailed;
         }
 
+        if (!CliBundleOptions.TryCreateIntent(
+                host.CompositionOutputNaming,
+                prepared.AcceptedSession!,
+                options.Values,
+                error,
+                out CompositionOutputBundleIntent? outputBundle))
+        {
+            return UsageError;
+        }
+
         CompositionRunResult result = await host.CompositionExecution.ExecuteAsync(
             new AcceptedCompositionExecutionRequest(
                 prepared.AcceptedSession!,
                 new Dictionary<string, string>(StringComparer.Ordinal),
                 action == "build",
-                outputPath: outputPath),
+                outputPath: bundleBuild ? null : outputPath,
+                automaticOutputDirectory:
+                    action == "build" && !hasExplicitOutput && !bundleBuild
+                        ? outputTarget.OutputDirectory
+                        : null,
+                reportPath: action == "build"
+                    ? options.Values.GetValueOrDefault("--report")
+                    : null,
+                outputBundle: outputBundle),
             new CompositionRunProgressFeed(),
             cancellationToken).ConfigureAwait(false);
         bool reportWritten = options.Values.TryGetValue("--report", out string? requestedReportPath);
@@ -152,6 +179,7 @@ internal static partial class MergeCliCommandHandler
         }
 
         await PrintResultAsync(result, icId, output, error, reportWritten).ConfigureAwait(false);
+        await CliBundleOptions.PrintReceiptAsync(result, output).ConfigureAwait(false);
         return result.Succeeded ? Success : CompositionFailed;
     }
 }

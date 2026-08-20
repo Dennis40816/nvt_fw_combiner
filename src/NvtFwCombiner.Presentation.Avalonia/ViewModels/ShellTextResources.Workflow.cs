@@ -81,10 +81,6 @@ internal sealed partial class ShellTextResources
 
     public string FirmwareSlotErrorFactDetail { get; private init; } = string.Empty;
 
-    public string FirmwareSlotShowDetailsLabel { get; private init; } = string.Empty;
-
-    public string FirmwareSlotHideDetailsLabel { get; private init; } = string.Empty;
-
     public string FirmwareSlotShowMoreFactsTemplate { get; private init; } = string.Empty;
 
     public string FirmwareSlotShowFewerFactsLabel { get; private init; } = string.Empty;

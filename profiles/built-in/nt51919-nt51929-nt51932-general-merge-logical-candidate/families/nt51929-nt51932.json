@@ -91,8 +91,8 @@
           },
           "definitionReference": {
             "familyId": "nt51929-nt51932",
-            "familyVersion": "1.1.0",
-            "familyContentHash": "06ab5b5ac35e143587420ecdc40aa17324cb63ec8a0c48e4c208092b1be22f39",
+            "familyVersion": "1.2.0",
+            "familyContentHash": "7d2f46011942190b9cfe611983f129e69f3cc2bcbbf8cd3329d984e2542671bf",
             "structureId": "type-ab-tp-flash-header"
           }
         }

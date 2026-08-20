@@ -24,10 +24,6 @@
       <SolidColorBrush x:Key="NfcAccentBorderBrush" Color="#93C5FD" />
       <SolidColorBrush x:Key="NfcAccentBorderStrongBrush" Color="#60A5FA" />
       <SolidColorBrush x:Key="NfcAccentBorderLightBrush" Color="#BFDBFE" />
-      <SolidColorBrush x:Key="NfcPrimaryActionHoverBrush" Color="#1D4ED8" />
-      <SolidColorBrush x:Key="NfcPrimaryActionPressedBrush" Color="#1E3A8A" />
-      <SolidColorBrush x:Key="NfcPrimaryActionHoverTextBrush" Color="#FFFFFF" />
-      <SolidColorBrush x:Key="NfcPrimaryActionPressedTextBrush" Color="#FFFFFF" />
       <SolidColorBrush x:Key="NfcSecondaryActionPressedBrush" Color="#DBEAFE" />
       <SolidColorBrush x:Key="NfcSuccessSurfaceBrush" Color="#F0FDF4" />
       <SolidColorBrush x:Key="NfcSuccessBorderBrush" Color="#BBF7D0" />
@@ -71,7 +67,6 @@
       <SolidColorBrush x:Key="NfcRequiredSelectedBorderBrush" Color="#86EFAC" />
       <SolidColorBrush x:Key="NfcRequiredSelectedBadgeSurfaceBrush" Color="#DCFCE7" />
       <SolidColorBrush x:Key="NfcMemoryTrackBrush" Color="#E7EDF5" />
-      <SolidColorBrush x:Key="NfcMemorySegmentDividerBrush" Color="#7AFFFFFF" />
       <SolidColorBrush x:Key="NfcMemoryPanelSurfaceBrush" Color="#FFFFFF" />
       <SolidColorBrush x:Key="NfcMemoryPanelBorderBrush" Color="#D8E0EC" />
       <SolidColorBrush x:Key="NfcMemoryTextSecondaryBrush" Color="#58708F" />
@@ -79,6 +74,7 @@
       <SolidColorBrush x:Key="NfcMemoryAddressBorderBrush" Color="#CCD7E5" />
       <SolidColorBrush x:Key="NfcMemoryAddressTextBrush" Color="#243654" />
       <SolidColorBrush x:Key="NfcMemoryDividerBrush" Color="#E4E9F1" />
+      <SolidColorBrush x:Key="NfcMemoryInteractionSurfaceBrush" Color="#FFFFFF" /><BoxShadows x:Key="NfcMemoryRowHoverShadow">0 5 16 0 #29204B7C</BoxShadows><BoxShadows x:Key="NfcMemorySegmentHoverShadow">0 4 12 0 #57005BB5</BoxShadows>
       <SolidColorBrush x:Key="NfcMemoryNeutralFillBrush" Color="#94A3B8" />
       <SolidColorBrush x:Key="NfcMemoryDpFillBrush" Color="#2563EB" />
       <SolidColorBrush x:Key="NfcMemoryTpFillBrush" Color="#16A34A" />
@@ -122,10 +118,6 @@
       <SolidColorBrush x:Key="NfcAccentBorderBrush" Color="#2563EB" />
       <SolidColorBrush x:Key="NfcAccentBorderStrongBrush" Color="#60A5FA" />
       <SolidColorBrush x:Key="NfcAccentBorderLightBrush" Color="#1D4ED8" />
-      <SolidColorBrush x:Key="NfcPrimaryActionHoverBrush" Color="#1D4ED8" />
-      <SolidColorBrush x:Key="NfcPrimaryActionPressedBrush" Color="#1E3A8A" />
-      <SolidColorBrush x:Key="NfcPrimaryActionHoverTextBrush" Color="#FFFFFF" />
-      <SolidColorBrush x:Key="NfcPrimaryActionPressedTextBrush" Color="#FFFFFF" />
       <SolidColorBrush x:Key="NfcSecondaryActionPressedBrush" Color="#1E3A8A" />
       <SolidColorBrush x:Key="NfcSuccessSurfaceBrush" Color="#052E16" />
       <SolidColorBrush x:Key="NfcSuccessBorderBrush" Color="#166534" />
@@ -169,7 +161,6 @@
       <SolidColorBrush x:Key="NfcRequiredSelectedBorderBrush" Color="#4ADE80" />
       <SolidColorBrush x:Key="NfcRequiredSelectedBadgeSurfaceBrush" Color="#052E16" />
       <SolidColorBrush x:Key="NfcMemoryTrackBrush" Color="#263449" />
-      <SolidColorBrush x:Key="NfcMemorySegmentDividerBrush" Color="#7AFFFFFF" />
       <SolidColorBrush x:Key="NfcMemoryPanelSurfaceBrush" Color="#101827" />
       <SolidColorBrush x:Key="NfcMemoryPanelBorderBrush" Color="#2B3A50" />
       <SolidColorBrush x:Key="NfcMemoryTextSecondaryBrush" Color="#A8BDD8" />
@@ -177,6 +168,7 @@
       <SolidColorBrush x:Key="NfcMemoryAddressBorderBrush" Color="#34465F" />
       <SolidColorBrush x:Key="NfcMemoryAddressTextBrush" Color="#E1EBFA" />
       <SolidColorBrush x:Key="NfcMemoryDividerBrush" Color="#27364A" />
+      <SolidColorBrush x:Key="NfcMemoryInteractionSurfaceBrush" Color="#182538" /><BoxShadows x:Key="NfcMemoryRowHoverShadow">0 5 16 0 #59000000</BoxShadows><BoxShadows x:Key="NfcMemorySegmentHoverShadow">0 4 12 0 #52569EFF</BoxShadows>
       <SolidColorBrush x:Key="NfcMemoryNeutralFillBrush" Color="#64748B" />
       <SolidColorBrush x:Key="NfcMemoryDpFillBrush" Color="#3B82F6" />
       <SolidColorBrush x:Key="NfcMemoryTpFillBrush" Color="#22C55E" />
@@ -207,11 +199,13 @@
   <x:Double x:Key="NfcSpace8">8</x:Double>
   <x:Double x:Key="NfcSpace12">12</x:Double>
   <x:Double x:Key="NfcSpace16">16</x:Double>
+  <x:Double x:Key="NfcSpace24">24</x:Double>
   <x:Double x:Key="NfcFontSize10">10</x:Double>
   <x:Double x:Key="NfcFontSize11">11</x:Double>
   <x:Double x:Key="NfcFontSize12">12</x:Double>
   <x:Double x:Key="NfcFontSize13">13</x:Double>
   <x:Double x:Key="NfcFontSize14">14</x:Double>
+  <x:Double x:Key="NfcFontSize16">16</x:Double>
   <FontFamily x:Key="NfcUiFontFamily">fonts:Inter#Inter, Microsoft JhengHei UI, Noto Sans CJK TC, Noto Sans TC, Segoe UI</FontFamily>
   <FontFamily x:Key="NfcTechnicalFontFamily">Cascadia Mono, Consolas</FontFamily>
 </ResourceDictionary>

@@ -33,20 +33,15 @@ public sealed class SpaciousPanelTests
             "<ItemsControl Classes=\"spaciousList\" ItemTemplate=\"{StaticResource MemoryCoverageSegmentListTemplate}\"",
             outputTemplates,
             StringComparison.Ordinal);
-        Assert.DoesNotContain(
-            "<ItemsControl Classes=\"spaciousList\" HorizontalAlignment=\"Stretch\" ItemContainerTheme=\"{StaticResource StretchContentPresenterTheme}\"\n              ItemTemplate=\"{StaticResource MemoryCoverageGroupTemplate}\"",
-            workflowTemplates,
-            StringComparison.Ordinal);
+        Assert.Contains("ItemsSource=\"{Binding ReplaceSelectedCoverageItems}\"", workflowTemplates, StringComparison.Ordinal);
+        Assert.Contains("ItemsSource=\"{Binding ReplaceBaseCoverageItems}\"", workflowTemplates, StringComparison.Ordinal);
         Assert.Contains("Spacing=\"{DynamicResource NfcSpace16}\"", outputTemplates, StringComparison.Ordinal);
         Assert.Contains("<views:SpaciousPanel Classes=\"compact\"", reportPanels, StringComparison.Ordinal);
         Assert.Contains(
             "<DataTemplate x:Key=\"FirmwareSlotGroupTemplate\" DataType=\"vm:FirmwareSlotGroupViewModel\">\n  <views:SpaciousPanel Classes=\"compact\">",
             sharedTemplates,
             StringComparison.Ordinal);
-        Assert.Contains(
-            "<DataTemplate x:Key=\"MemoryCoverageGroupTemplate\" DataType=\"vm:MemoryCoverageGroupViewModel\">\n  <views:SpaciousPanel Classes=\"compact memoryCoverageGroup\">",
-            sharedTemplates,
-            StringComparison.Ordinal);
+        Assert.DoesNotContain("MemoryCoverageGroupTemplate", sharedTemplates, StringComparison.Ordinal);
         Assert.Contains(
             "<ItemsControl Classes=\"spaciousList\" HorizontalAlignment=\"Stretch\" ItemContainerTheme=\"{StaticResource StretchContentPresenterTheme}\" ItemsSource=\"{Binding ReplaceSlotGroups}\">",
             workflowTemplates,
@@ -69,6 +64,28 @@ public sealed class SpaciousPanelTests
 
         Assert.Same(child, panel.Child);
         Assert.Equal(new Size(90, 52), panel.DesiredSize);
+    }
+
+    /// <summary>The shared memory bar consumes available width without a fixed-width Viewbox.</summary>
+    [Fact]
+    public void ProportionalStackPanelArrangesChildrenByWeightAtAvailableWidth()
+    {
+        var first = new Border { Height = 20 };
+        var second = new Border { Height = 20 };
+        ProportionalStackPanel.SetWeight(first, 1d);
+        ProportionalStackPanel.SetWeight(second, 3d);
+        var panel = new ProportionalStackPanel
+        {
+            Children = { first, second },
+        };
+
+        panel.Measure(new Size(400, 20));
+        panel.Arrange(new Rect(0, 0, 400, 20));
+
+        Assert.Equal(400, panel.Bounds.Width);
+        Assert.Equal(100, first.Bounds.Width);
+        Assert.Equal(300, second.Bounds.Width);
+        Assert.Equal(100, second.Bounds.X);
     }
 
     private static string ReadPresentationFile(string relativePath)

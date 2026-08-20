@@ -65,7 +65,8 @@ internal static partial class ReplaceCliCommandHandler
         ParsedCliOptions options,
         IReadOnlyDictionary<string, string> protectedInputPaths,
         string defaultOutputFileName,
-        Func<string?, bool, CancellationToken, ValueTask<CompositionRunResult>> run,
+        CompositionOutputBundleIntent? outputBundle,
+        Func<string?, string?, CompositionOutputBundleIntent?, bool, CancellationToken, ValueTask<CompositionRunResult>> run,
         TextWriter output,
         TextWriter error,
         CancellationToken cancellationToken)
@@ -75,7 +76,9 @@ internal static partial class ReplaceCliCommandHandler
             options.Values.GetValueOrDefault("--output"),
             defaultOutputFileName);
         bool build = action == "build";
-        if (build)
+        bool bundleBuild = outputBundle is not null;
+        bool hasExplicitOutput = options.Values.ContainsKey("--output");
+        if (build && !bundleBuild)
         {
             CliCompositionRunSupport.EnsureOutputDoesNotAliasInputs(outputTarget, bindings);
         }
@@ -84,11 +87,18 @@ internal static partial class ReplaceCliCommandHandler
             options.Values.GetValueOrDefault("--report"),
             bindings,
             outputTarget,
-            build);
+            build && !bundleBuild);
 
-        string? outputPath = build ? outputTarget.FullPath : null;
+        string? outputPath = build && !bundleBuild && hasExplicitOutput
+            ? outputTarget.FullPath
+            : null;
+        string? automaticOutputDirectory = build && !bundleBuild && !hasExplicitOutput
+            ? outputTarget.OutputDirectory
+            : null;
         CompositionRunResult result = await run(
                 outputPath,
+                automaticOutputDirectory,
+                outputBundle,
                 build,
                 cancellationToken)
             .ConfigureAwait(false);
@@ -111,6 +121,7 @@ internal static partial class ReplaceCliCommandHandler
         }
 
         await PrintCompositionRunResultAsync(result, icId, workflowId, output, error).ConfigureAwait(false);
+        await CliBundleOptions.PrintReceiptAsync(result, output).ConfigureAwait(false);
         return result.Succeeded ? Success : CompositionFailed;
     }
 

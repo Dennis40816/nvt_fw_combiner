@@ -130,15 +130,12 @@ public sealed partial class MainWindow
             cancellationToken).GetAwaiter().GetResult();
     }
 
-    private static void ApplyLaunchPage(MainWindowViewModel viewModel, ShellPage? page)
+    private static void ApplyLaunchPage(MainWindowViewModel viewModel, UiLaunchOptions launchOptions)
     {
-        switch (page)
+        switch (launchOptions.Page)
         {
             case ShellPage.Home:
                 viewModel.ShowHomeCommand.Execute(null);
-                break;
-            case ShellPage.Settings:
-                viewModel.ShowSettingsCommand.Execute(null);
                 break;
             case ShellPage.Merge:
                 viewModel.ShowMergeCommand.Execute(null);
@@ -151,6 +148,11 @@ public sealed partial class MainWindow
                 break;
             default:
                 break;
+        }
+
+        if (launchOptions.OpenSettings)
+        {
+            viewModel.OpenSettingsCommand.Execute(null);
         }
     }
 

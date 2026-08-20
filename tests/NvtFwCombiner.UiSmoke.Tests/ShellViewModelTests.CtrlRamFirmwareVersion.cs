@@ -8,6 +8,40 @@ namespace NvtFwCombiner.UiSmoke.Tests;
 
 public sealed partial class CtrlRamWorkflowTests
 {
+    /// <summary>CtrlRAM keeps the verified edit lease through proposal creation, then closes both authoring modals.</summary>
+    [Fact]
+    public async Task CtrlRamConfirmedEditOpensOutputDeliveryForExactAcceptedSession()
+    {
+        CancellationToken cancellationToken = TestContext.Current.CancellationToken;
+        using var golden = StandardMergeGoldenManifest.Load();
+        using var workspace = TempWorkspace.Create("nvt-fw-combiner-ui-ctrlram-output-confirmation");
+        byte[] baseBytes = golden.ReadExpectedOutput(golden.CaseByIc("51926"));
+        MainWindowViewModel viewModel = CreateCtrlRamVersionReadyViewModel(baseBytes, workspace);
+        Assert.True(await viewModel.Replace.RequestCtrlRamBuildSettingsAsync());
+        Assert.True(viewModel.OutputDelivery.IsOpen);
+        Assert.True(viewModel.OutputDelivery.HasCtrlRamOptions);
+        viewModel.Replace.SelectCtrlRamFirmwareVersionEditCommand.Execute(null);
+        viewModel.Replace.CtrlRamFirmwareVersionText = "2A";
+        viewModel.Replace.CtrlRamFirmwareSubVersionText = "0C";
+        using var destination = TempWorkspace.Create("nvt-fw-combiner-ui-ctrlram-build-settings-state");
+        viewModel.OutputDelivery.SetBundleEnabled(true);
+        viewModel.OutputDelivery.SetParentDirectory(destination.Root);
+        viewModel.OutputDelivery.SetBundleFolderName("operator-edited-bundle");
+        (bool succeeded, CtrlRamFirmwareVersionDraftState? edit) =
+            await viewModel.Replace.TryCreateCtrlRamFirmwareVersionEditAsync(cancellationToken);
+        Assert.True(succeeded);
+
+        Assert.True(await viewModel.OutputDelivery.PrepareModeSpecificAsync());
+
+        Assert.True(viewModel.OutputDelivery.IsOpen);
+        Assert.False(viewModel.Replace.IsCtrlRamFirmwareVersionModalOpen);
+        Assert.True(viewModel.OutputDelivery.IsReplaceOutput);
+        Assert.Equal("nt51926-ctrlram-replace.bin", viewModel.OutputDelivery.OutputFileName);
+        Assert.True(viewModel.OutputDelivery.BundleEnabled);
+        Assert.Equal(destination.Root, viewModel.OutputDelivery.ParentDirectory);
+        Assert.Equal("operator-edited-bundle", viewModel.OutputDelivery.BundleFolderName);
+    }
+
     /// <summary>Verifies CtrlRAM Build exposes a Backup-derived Preserve/Edit choice and validates staged bytes.</summary>
     [Fact]
     public async Task CtrlRamBuildFirmwareVersionChoiceUsesVerifiedBackupMetadata()

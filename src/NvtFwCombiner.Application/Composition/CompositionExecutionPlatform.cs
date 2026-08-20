@@ -22,7 +22,8 @@ internal sealed record CompositionExecutionDestinationRequest(
     bool OutputPathUsesAutomaticName,
     IReadOnlyList<InputArtifactBinding> Bindings,
     IReadOnlyList<CompositionExecutionProtectedPath> AdditionalProtectedPaths,
-    CompositionExecutionDeliveryTarget? AdditionalDelivery);
+    CompositionExecutionDeliveryTarget? AdditionalDelivery,
+    CompositionExecutionBundleDelivery? BundleDelivery = null);
 
 /// <summary>Platform writers admitted for one Preview or Build operation.</summary>
 internal sealed record CompositionExecutionDestination(

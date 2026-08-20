@@ -294,13 +294,8 @@
   </Grid>
 </DataTemplate>
 
-<DataTemplate x:Key="SettingsPageTemplate" DataType="vm:MainWindowViewModel">
+<DataTemplate x:Key="SettingsModalContentTemplate" DataType="vm:MainWindowViewModel">
   <StackPanel Spacing="{DynamicResource NfcSpace16}">
-    <StackPanel Spacing="{DynamicResource NfcSpace4}">
-      <TextBlock Classes="pageTitle" Text="{Binding SettingsPreview.Title}" />
-      <TextBlock Classes="pageSubtitle" Text="{Binding SettingsPreview.Subtitle}" TextWrapping="Wrap" />
-    </StackPanel>
-
     <Grid ColumnDefinitions="188,*" ColumnSpacing="{DynamicResource NfcSpace16}">
       <Border Classes="panelSurface settingsNavigationSurface" VerticalAlignment="Top">
         <StackPanel Spacing="{DynamicResource NfcSpace4}">

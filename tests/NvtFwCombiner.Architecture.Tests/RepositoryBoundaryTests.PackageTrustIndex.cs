@@ -135,7 +135,7 @@ public sealed partial class RepositoryBoundaryTests
         Assert.Equal("built-in-profile-bundle-v2", root.GetProperty("trustAnchorBindingId").GetString());
 
         JsonElement[] bundles = [.. root.GetProperty("bundles").EnumerateArray()];
-        Assert.Equal(25, bundles.Length);
+        Assert.Equal(26, bundles.Length);
         Assert.Equal(
             bundles.Length,
             bundles.Select(static bundle => bundle.GetProperty("bundleDirectory").GetString())

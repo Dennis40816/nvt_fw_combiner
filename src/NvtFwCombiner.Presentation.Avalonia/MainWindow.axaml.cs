@@ -5,6 +5,7 @@ using Avalonia.Input;
 using Avalonia.Interactivity;
 using Avalonia.Styling;
 using Avalonia.Threading;
+using Avalonia.VisualTree;
 using NvtFwCombiner.Application.Capabilities;
 using NvtFwCombiner.Presentation.Avalonia.ViewModels;
 
@@ -26,6 +27,7 @@ public sealed partial class MainWindow : Window, IDisposable
     private readonly PresentationHostServices _hostServices;
     private readonly UiLaunchOptions _launchOptions;
     private readonly StartupTraceSession _startupTrace;
+    private bool _isStartupShellEnabled;
     private bool _isReportHistoryClosePending;
     private bool _isReportHistoryPersistenceComplete;
     private bool _isDisposed;
@@ -251,7 +253,7 @@ public sealed partial class MainWindow : Window, IDisposable
                 new(
                     () =>
                     {
-                        ApplyLaunchPage(viewModel, _launchOptions.Page);
+                        ApplyLaunchPage(viewModel, _launchOptions);
                         _startupTrace.Mark("startup-launch-page.ready");
                     },
                     async cancellationToken => RequireStartupPublication(await
@@ -272,7 +274,7 @@ public sealed partial class MainWindow : Window, IDisposable
                     async cancellationToken =>
                     {
                         await viewModel.MessageCenter.RefreshAfterStartupAsync(cancellationToken);
-                        if (viewModel.IsSettingsVisible)
+                        if (viewModel.IsSettingsModalOpen)
                         {
                             viewModel.Settings.Refresh(viewModel.Text);
                         }
@@ -405,8 +407,12 @@ public sealed partial class MainWindow : Window, IDisposable
         bool succeeded = stage.CurrentAttempt?.State == ShellPreloadStageState.Succeeded;
         CommitRequiredStagePresentation(
             succeeded,
-            ShellInteractionHost.IsEnabled,
-            enabled => ShellInteractionHost.IsEnabled = enabled,
+            _isStartupShellEnabled,
+            enabled =>
+            {
+                _isStartupShellEnabled = enabled;
+                ApplyShellInteractionState(viewModel);
+            },
             () => Dispatcher.UIThread.Post(
                 () => _ = HomeNavigationButton.Focus(NavigationMethod.Tab),
                 DispatcherPriority.Input),
@@ -509,6 +515,13 @@ public sealed partial class MainWindow : Window, IDisposable
         }
 
         ApplyDeferredShellContent(viewModel);
+        RetryOutputDeliveryReturnFocus();
+
+        if (e.PropertyName is nameof(MainWindowViewModel.IsSettingsModalOpen) or
+            nameof(MainWindowViewModel.OutputDelivery))
+        {
+            ApplyShellInteractionState(viewModel);
+        }
 
         if (e.PropertyName == nameof(MainWindowViewModel.SelectedTheme))
         {
@@ -526,6 +539,57 @@ public sealed partial class MainWindow : Window, IDisposable
             _shellPreferencePersistence.Queue(viewModel.ExportShellPreferences());
         }
 
+    }
+
+    private void ApplyShellInteractionState(MainWindowViewModel viewModel)
+    {
+        ApplyShellInteractionState(
+            ShellInteractionHost,
+            _isStartupShellEnabled,
+            viewModel);
+    }
+
+    internal static void ApplyShellInteractionState(
+        Control shellInteractionHost,
+        bool isStartupShellEnabled,
+        MainWindowViewModel viewModel)
+    {
+        ArgumentNullException.ThrowIfNull(shellInteractionHost);
+        ArgumentNullException.ThrowIfNull(viewModel);
+        bool interactive = isStartupShellEnabled &&
+            !viewModel.IsSettingsModalOpen &&
+            !viewModel.OutputDelivery.IsOpen;
+        shellInteractionHost.IsEnabled = interactive;
+        shellInteractionHost.IsHitTestVisible = interactive;
+    }
+
+    private void CaptureOutputDeliveryReturnFocus(
+        MainWindowViewModel viewModel,
+        object? triggeringControl)
+    {
+        if (triggeringControl is not IInputElement returnFocus)
+        {
+            return;
+        }
+
+        Dispatcher.UIThread.Post(
+            () => OutputDeliveryConfirmationModalHost
+                .GetVisualDescendants()
+                .OfType<Views.OutputDeliveryConfirmationModal>()
+                .FirstOrDefault()
+                ?.CaptureReturnFocus(
+                    returnFocus,
+                    () => viewModel.CanRestoreOutputDeliveryFocus),
+            DispatcherPriority.Input);
+    }
+
+    private void RetryOutputDeliveryReturnFocus()
+    {
+        OutputDeliveryConfirmationModalHost
+            .GetVisualDescendants()
+            .OfType<Views.OutputDeliveryConfirmationModal>()
+            .FirstOrDefault()
+            ?.RetryPendingFocusRestore();
     }
 
     private void Reports_OnPropertyChanged(object? sender, PropertyChangedEventArgs e)
@@ -571,18 +635,15 @@ public sealed partial class MainWindow : Window, IDisposable
     {
         LoadContent(DeviceContextHost, viewModel.IsDeviceContextVisible, viewModel);
         LoadContent(HomePageHost, viewModel.IsHomeVisible, viewModel);
-        LoadContent(SettingsPageHost, viewModel.IsSettingsVisible, viewModel);
+        LoadContent(SettingsModalHost, viewModel.IsSettingsModalOpen, viewModel);
         LoadContent(HexEditorPageHost, viewModel.IsHexEditorVisible, viewModel);
         LoadContent(ReplacePageHost, viewModel.IsReplaceVisible, viewModel.Replace);
         LoadContent(MergePageHost, viewModel.IsMergeVisible, viewModel.Merge);
         LoadContent(ReportToastHost, viewModel.Reports.HasReportToast, viewModel.Reports);
+        LoadContent(OutputDeliveryConfirmationModalHost,
+            viewModel.OutputDelivery.IsOpen,
+            viewModel.OutputDelivery);
         LoadContent(ReplaceSelectionModalHost, viewModel.Replace.IsReplaceSelectionModalOpen, viewModel.Replace);
-        LoadContent(CtrlRamFirmwareVersionModalHost,
-            viewModel.Replace.IsCtrlRamFirmwareVersionModalOpen,
-            viewModel.Replace);
-        LoadContent(AbAFlashCodeDeliveryPromptModalHost,
-            viewModel.Merge.IsAbAFlashCodeDeliveryPromptOpen,
-            viewModel.Merge);
         LoadContent(WorkflowContextSetupModalHost, viewModel.WorkflowSession.IsWorkflowContextModalOpen, viewModel.WorkflowSession);
         LoadContent(FirmwareIcMismatchModalHost, viewModel.WorkflowSession.IsFirmwareIcMismatchModalOpen, viewModel.WorkflowSession);
         LoadContent(FirmwareNumberMismatchModalHost, viewModel.WorkflowSession.IsFirmwareNumberMismatchModalOpen, viewModel.WorkflowSession);

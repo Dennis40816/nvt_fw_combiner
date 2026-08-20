@@ -30,6 +30,7 @@ internal static class AcceptedSessionCompositionExecution
         TopologySelection? abMergeTopologySelection,
         IReadOnlyList<CompositionIssue>? advisoryIssues,
         GeneralAuthoringAdmissionSummary? generalAdmission,
+        CompositionExecutionBundleDelivery? bundleDelivery,
         CompositionRunProgressFeed progress,
         CancellationToken cancellationToken)
     {
@@ -56,7 +57,11 @@ internal static class AcceptedSessionCompositionExecution
             generalAdmission: generalAdmission,
             outputNamingInspection: outputNaming?.Inspection,
             outputNamingAdmission: outputNaming?.Admission,
-            resolvedCapability: inputs.Capability);
+            resolvedCapability: inputs.Capability)
+        {
+            PreparedOutputName = bundleDelivery?.Admission.PreparedOutputName,
+            BundleDelivery = bundleDelivery,
+        };
         var service = new CompositionRunService(
             inputs.Reader,
             clock,

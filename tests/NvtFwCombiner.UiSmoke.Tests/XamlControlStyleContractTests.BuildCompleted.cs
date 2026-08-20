@@ -17,28 +17,27 @@ public sealed partial class XamlControlStyleContractTests
         Assert.DoesNotContain("Click=\"RevealOutputFileButton_OnClick\"", modal, StringComparison.Ordinal);
     }
 
-    /// <summary>An eligible AB Build asks for the optional A delivery before either output is selected or committed.</summary>
+    /// <summary>AB A-only selection belongs to the one shared Build Settings surface.</summary>
     [Fact]
-    public void AbBuildPromptsForAFlashCodeBeforeOutputSelection()
+    public void AbBuildUsesSharedModeAwareBuildSettings()
     {
         string shell = ReadPresentationFile("MainWindow.axaml");
         string buildCodeBehind = ReadPresentationFile("MainWindow.Build.cs");
-        string prompt = ReadPresentationFile("Views/AbAFlashCodeDeliveryPromptModal.axaml");
+        string buildSettings = ReadPresentationFile("Views/OutputDeliveryConfirmationModal.axaml");
+        string viewModel = ReadPresentationFile("ViewModels/OutputDeliveryConfirmationViewModel.cs");
         string modal = ReadPresentationFile("Views/BuildCompletedModal.axaml");
 
-        Assert.Contains("<views:AbAFlashCodeDeliveryPromptModal", shell, StringComparison.Ordinal);
-        Assert.Contains("IsVisible=\"{Binding Merge.IsAbAFlashCodeDeliveryPromptOpen}\"", shell, StringComparison.Ordinal);
-        Assert.Contains("Command=\"{Binding AcceptAbAFlashCodeDeliveryPromptCommand}\"", prompt, StringComparison.Ordinal);
-        Assert.Contains("Command=\"{Binding DeclineAbAFlashCodeDeliveryPromptCommand}\"", prompt, StringComparison.Ordinal);
-        Assert.Contains("Classes=\"semanticAction danger\"", prompt, StringComparison.Ordinal);
-        Assert.Contains("PromptForAbAFlashCodeDeliveryAsync", buildCodeBehind, StringComparison.Ordinal);
-        Assert.Contains("PickMergedFirmwareOutputPathAsync", buildCodeBehind, StringComparison.Ordinal);
-        Assert.Contains("PickAbAFlashCodeOutputPathAsync", buildCodeBehind, StringComparison.Ordinal);
-        Assert.True(
-            buildCodeBehind.IndexOf("PromptForAbAFlashCodeDeliveryAsync", StringComparison.Ordinal) <
-            buildCodeBehind.IndexOf("PickMergedFirmwareOutputPathAsync", StringComparison.Ordinal));
+        Assert.Contains("OutputDeliveryConfirmationModalHost", shell, StringComparison.Ordinal);
+        Assert.Contains("RequestBuildOutputDeliveryAsync", buildCodeBehind, StringComparison.Ordinal);
+        Assert.Contains("AdditionalDeliveryLabel", buildSettings, StringComparison.Ordinal);
+        Assert.Contains("request.AdditionalDelivery?.DeliveryKind", viewModel, StringComparison.Ordinal);
+        Assert.DoesNotMatch(
+            "if \\(enabled\\)\\s*\\{\\s*AdditionalDeliveryEnabled = false",
+            viewModel);
+        Assert.DoesNotMatch(
+            "if \\(AdditionalDeliveryEnabled\\)\\s*\\{\\s*BundleEnabled = false",
+            viewModel);
         Assert.Contains("IsVisible=\"{Binding BuildResult.HasAdditionalOutput}\"", modal, StringComparison.Ordinal);
-        Assert.DoesNotContain("ExportAbAFlashCode", modal, StringComparison.Ordinal);
     }
 
     /// <summary>Composition Build remains fixed at the bottom of the right-side action rail.</summary>
@@ -85,7 +84,7 @@ public sealed partial class XamlControlStyleContractTests
         Assert.DoesNotContain("Classes=\"toolbarAction\"", shell, StringComparison.Ordinal);
     }
 
-    /// <summary>Adjacent CtrlRAM slot and coverage groups retain visible separation.</summary>
+    /// <summary>CtrlRAM slots retain shared spacing while coverage uses the approved flat hierarchy.</summary>
     [Fact]
     public void CtrlRamGroupsUseExplicitVerticalSpacing()
     {
@@ -95,8 +94,10 @@ public sealed partial class XamlControlStyleContractTests
 
         Assert.Contains("ItemsSource=\"{Binding ReplaceSlotGroups}\"", workflows, StringComparison.Ordinal);
         Assert.Contains("Classes=\"spaciousList\"", workflows, StringComparison.Ordinal);
-        Assert.Contains("ItemsSource=\"{Binding ReplaceCoverageGroups}\"", workflows, StringComparison.Ordinal);
-        Assert.Contains("Classes=\"spaciousList\"", workflows, StringComparison.Ordinal);
+        Assert.DoesNotContain("ItemsSource=\"{Binding ReplaceCoverageGroups}\"", workflows, StringComparison.Ordinal);
+        Assert.Contains("ItemsSource=\"{Binding ReplaceSelectedCoverageItems}\"", workflows, StringComparison.Ordinal);
+        Assert.Contains("ItemsSource=\"{Binding ReplaceBaseCoverageItems}\"", workflows, StringComparison.Ordinal);
+        Assert.Contains("Classes=\"memorySupportingRow\"", workflows, StringComparison.Ordinal);
         Assert.Contains(
             "<StackPanel Spacing=\"{DynamicResource NfcSpace8}\" />",
             spaciousListStyle,
