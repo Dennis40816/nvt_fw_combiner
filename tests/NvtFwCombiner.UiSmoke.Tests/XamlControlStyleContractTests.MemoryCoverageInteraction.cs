@@ -44,11 +44,11 @@ public sealed partial class XamlControlStyleContractTests
         AssertTrackAllowsSegmentLift(workflowTemplates, "{Binding ReplaceCoverageSegments}");
         Assert.DoesNotContain("NfcMemoryAddressTextBrush", linkedSegment, StringComparison.Ordinal);
         Assert.Contains("MemoryCoverageTooltipTemplate", templates, StringComparison.Ordinal);
-        Assert.Contains(
+        Assert.DoesNotContain(
             "FocusToolTipBehavior.IsEnabled",
             ExtractDataTemplate(templates, "MemoryCoverageSegmentBarTemplate"),
             StringComparison.Ordinal);
-        Assert.Contains(
+        Assert.DoesNotContain(
             "FocusToolTipBehavior.IsEnabled",
             ExtractDataTemplate(templates, "MemoryCoveragePlainSegmentBarTemplate"),
             StringComparison.Ordinal);
@@ -71,7 +71,7 @@ public sealed partial class XamlControlStyleContractTests
                 StringSplitOptions.None).Length - 1);
 
         Assert.Contains("Border.memoryCoverageLinkedRow:focus-visible", styles, StringComparison.Ordinal);
-        Assert.Contains("Border.memoryCoverageBarSegment:focus-visible", styles, StringComparison.Ordinal);
+        Assert.DoesNotContain("Border.memoryCoverageBarSegment:focus-visible", styles, StringComparison.Ordinal);
         Assert.Contains("NfcAccentStrongBrush", styles, StringComparison.Ordinal);
         Assert.Contains("linked.reducedMotion", styles, StringComparison.Ordinal);
         Assert.Equal(
@@ -284,14 +284,15 @@ public sealed partial class XamlControlStyleContractTests
             Assert.Equal(1.18, activeSegment.RenderTransform.Value.M22, precision: 2);
             Assert.False(track.ClipToBounds);
             Assert.False(items.ClipToBounds);
-            Assert.True(FocusToolTipBehavior.GetIsEnabled(activeSegment));
+            Assert.False(activeSegment.Focusable);
+            Assert.False(FocusToolTipBehavior.GetIsEnabled(activeSegment));
             ContentControl segmentCard = Assert.IsType<ContentControl>(ToolTip.GetTip(activeSegment));
-            activeSegment.RaiseEvent(new FocusChangedEventArgs(InputElement.GotFocusEvent));
+            ToolTip.SetIsOpen(activeSegment, true);
             Dispatcher.UIThread.RunJobs();
             Assert.True(ToolTip.GetIsOpen(activeSegment));
             Assert.Same(active, segmentCard.Content);
             Assert.NotNull(segmentCard.ContentTemplate);
-            activeSegment.RaiseEvent(new FocusChangedEventArgs(InputElement.LostFocusEvent));
+            ToolTip.SetIsOpen(activeSegment, false);
 
             Border activeRow = Assert.Single(
                 panel.GetVisualDescendants().OfType<Border>(),
@@ -341,6 +342,47 @@ public sealed partial class XamlControlStyleContractTests
         finally
         {
             host.Close();
+        }
+    }
+
+    /// <summary>The map is hover-only while information rows remain the sole persistent focus target.</summary>
+    [Fact]
+    public void MemoryCoverageMapCannotPinSelectionButInformationRowsCan()
+    {
+        string templates = ReadPresentationFile("Resources/MainWindowSharedTemplates.axaml");
+        foreach (string templateName in new[]
+        {
+            "MemoryCoverageSegmentBarTemplate",
+            "MemoryCoveragePlainSegmentBarTemplate",
+        })
+        {
+            string mapTemplate = ExtractDataTemplate(templates, templateName);
+            Assert.Contains("Focusable=\"False\"", mapTemplate, StringComparison.Ordinal);
+            Assert.Contains(
+                "MemoryCoverageInteractionBehavior.IsEnabled=\"True\"",
+                mapTemplate,
+                StringComparison.Ordinal);
+            Assert.DoesNotContain("FocusToolTipBehavior.IsEnabled", mapTemplate, StringComparison.Ordinal);
+            Assert.DoesNotContain(" Command=", mapTemplate, StringComparison.Ordinal);
+            Assert.DoesNotContain(" Click=", mapTemplate, StringComparison.Ordinal);
+            Assert.DoesNotContain("Tapped=", mapTemplate, StringComparison.Ordinal);
+            Assert.DoesNotContain("PointerPressed=", mapTemplate, StringComparison.Ordinal);
+        }
+
+        foreach (string templateName in new[]
+        {
+            "MemoryCoverageSegmentListTemplate",
+            "MemoryCoveragePlainSegmentListTemplate",
+            "MemoryCoverageLogicalItemTemplate",
+        })
+        {
+            string rowTemplate = ExtractDataTemplate(templates, templateName);
+            Assert.Contains("Focusable=\"True\"", rowTemplate, StringComparison.Ordinal);
+            Assert.Contains("FocusToolTipBehavior.IsEnabled=\"True\"", rowTemplate, StringComparison.Ordinal);
+            Assert.Contains(
+                "MemoryCoverageInteractionBehavior.IsEnabled=\"True\"",
+                rowTemplate,
+                StringComparison.Ordinal);
         }
     }
 

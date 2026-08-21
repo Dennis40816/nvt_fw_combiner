@@ -160,8 +160,8 @@
       Classes.tpBackup="{Binding FillRole, Converter={x:Static converters:ObjectConverters.Equal}, ConverterParameter={x:Static vm:MemoryCoverageFillRole.TpBackup}}"
       AutomationProperties.HelpText="{Binding AccessibleDetail}"
       AutomationProperties.Name="{Binding AccessibleDetail}"
-      behaviors:FocusToolTipBehavior.IsEnabled="True" behaviors:MemoryCoverageInteractionBehavior.IsEnabled="True"
-      Focusable="True"
+      behaviors:MemoryCoverageInteractionBehavior.IsEnabled="True"
+      Focusable="False"
       RenderTransformOrigin="50%,50%"
       Height="34">
     <Border Background="{StaticResource KeptDiagonalStripeBrush}" IsVisible="{Binding UsesKeptPattern}" /><ToolTip.Tip><ContentControl Content="{Binding}" ContentTemplate="{StaticResource MemoryCoverageTooltipTemplate}" /></ToolTip.Tip>
@@ -188,9 +188,9 @@
       Classes.tpBackup="{Binding FillRole, Converter={x:Static converters:ObjectConverters.Equal}, ConverterParameter={x:Static vm:MemoryCoverageFillRole.TpBackup}}"
       AutomationProperties.HelpText="{Binding AccessibleDetail}"
       AutomationProperties.Name="{Binding AccessibleDetail}"
-      behaviors:FocusToolTipBehavior.IsEnabled="True" behaviors:MemoryCoverageInteractionBehavior.IsEnabled="True"
+      behaviors:MemoryCoverageInteractionBehavior.IsEnabled="True"
       RenderTransformOrigin="50%,50%"
-      Focusable="True"
+      Focusable="False"
       Height="34">
     <ToolTip.Tip><ContentControl Content="{Binding}" ContentTemplate="{StaticResource MemoryCoverageTooltipTemplate}" /></ToolTip.Tip></Border>
 </DataTemplate>

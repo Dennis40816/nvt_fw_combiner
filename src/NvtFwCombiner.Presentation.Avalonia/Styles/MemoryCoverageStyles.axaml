@@ -72,7 +72,7 @@
     <Setter Property="RenderTransform" Value="scaleY(1.18)" />
     <Setter Property="Panel.ZIndex" Value="3" />
   </Style>
-  <Style Selector="Border.memoryCoverageLinkedRow:focus-visible, Border.memoryCoverageBarSegment:focus-visible"><Setter Property="BorderBrush" Value="{DynamicResource NfcAccentStrongBrush}" /><Setter Property="BorderThickness" Value="2" /></Style>
+  <Style Selector="Border.memoryCoverageLinkedRow:focus-visible"><Setter Property="BorderBrush" Value="{DynamicResource NfcAccentStrongBrush}" /><Setter Property="BorderThickness" Value="2" /></Style>
   <Style Selector="Border.memoryCoverageLinkedRow.linked.reducedMotion, Border.memoryCoverageBarSegment.linked.reducedMotion"><Setter Property="RenderTransform" Value="none" /></Style>
   <Style Selector="Border.memoryCoverageFill.dp">
     <Setter Property="Background" Value="{DynamicResource NfcMemoryDpFillBrush}" />
