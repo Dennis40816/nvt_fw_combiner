@@ -1,7 +1,7 @@
 # NVT FW Combiner（NFC）實作規格
 
-> 文件狀態：`0.10.5 implementation complete; release-candidate validation in progress; v0.10.4 remains the stable predecessor`
-> 文件版本：`0.10.5`
+> 文件狀態：`0.10.6 internal managed-version candidate; final local validation in progress; v0.10.4 remains the stable predecessor`
+> 文件版本：`0.10.6`
 > 基準日期：`2026-08-13`
 > 產品名稱：`NVT FW Combiner`
 > 短名：`NFC`
@@ -30,13 +30,13 @@
 
 ## 0.1 Current owner priority
 
-`0.10.5` release-candidate validation is the current owner priority. The
-owner-approved PL-01 through PL-07 implementation graph is complete, and PL-00
-now owns only the frozen-tree verifier, package, performance, accessibility,
-provenance, protected-workflow, and release-owner gates. It builds on the
-stable support-neutral `v0.10.4` release and unifies catalog, report/history,
-diagnostics, deferred-view, external-environment, and selection-triggered
-inspection preparation behind the bounded lifecycle contract in ADR 0049. The
+`0.10.6` internal managed-version candidate is the current owner priority. Its
+stable launcher, verified side-by-side installation, activation/rollback state,
+and Settings Version experience follow the owner-approved specification and
+ADR 0051. The owner approved advancing the internal identity after focused
+upgrade-boundary hardening when the independent subagent reviewer was
+unavailable; this does not waive the public `1.0.0` release/security gates. It
+builds on the completed `0.10.5` bounded lifecycle contract in ADR 0049. The
 stable `v0.10.4` package preserved one Application-owned accepted-session route
 for all six Merge/Replace workflows, truthful foreground catalog progress,
 Dark-theme/reduced-motion presentation, and the additional duplicate-path

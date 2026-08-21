@@ -90,6 +90,35 @@ public sealed class UpdateCatalogValidatorTests
         Assert.Contains(result.Issues, issue => issue.Code == UpdateCatalogIssueCode.UnsafePackagePath);
     }
 
+    /// <summary>A missing versions collection is an empty catalog, never a null-reference escape.</summary>
+    [Fact]
+    public void NullVersionsCollectionFailsClosedAsEmpty()
+    {
+        var document = new UpdateCatalogDocument(1, "NVT FW Combiner", "win-x64", null);
+
+        UpdateCatalogValidationResult result = UpdateCatalogValidator.Validate(document);
+
+        Assert.False(result.IsValid);
+        Assert.Null(result.Snapshot);
+        Assert.Contains(result.Issues, issue => issue.Code == UpdateCatalogIssueCode.EmptyVersions);
+    }
+
+    /// <summary>Optional release notes normalize to an empty immutable value.</summary>
+    [Fact]
+    public void NullReleaseNotesNormalizeToEmptyText()
+    {
+        UpdateCatalogVersionDocument version = Version("0.10.6", "2026-08-21T00:00:00Z") with
+        {
+            ReleaseNotes = null,
+        };
+
+        UpdateCatalogValidationResult result = UpdateCatalogValidator.Validate(Catalog(version));
+
+        Assert.True(result.IsValid);
+        UpdateCatalogVersionSnapshot snapshot = Assert.Single(result.Snapshot!.Versions);
+        Assert.Empty(snapshot.ReleaseNotes);
+    }
+
     /// <summary>Windows device names never become a catalog-owned filesystem identity.</summary>
     [Theory]
     [InlineData("packages/CON/update.zip")]
@@ -155,6 +184,8 @@ public sealed class UpdateCatalogValidatorTests
         yield return (Catalog(valid with { PackageSize = 0 }), UpdateCatalogIssueCode.InvalidPackageSize);
         yield return (Catalog(valid with { PackageSize = 80_000_001 }), UpdateCatalogIssueCode.InvalidPackageSize);
         yield return (Catalog(valid with { PackageSha256 = "ABC" }), UpdateCatalogIssueCode.InvalidSha256);
+        yield return (Catalog(valid with { PackageSha256 = new string('A', 64) }), UpdateCatalogIssueCode.InvalidSha256);
+        yield return (Catalog(valid with { PackageSha256 = new string('g', 64) }), UpdateCatalogIssueCode.InvalidSha256);
         yield return (Catalog(valid with { ReleaseManifestSha256 = "xyz" }), UpdateCatalogIssueCode.InvalidSha256);
         yield return (Catalog(valid with { ReleaseNotes = new string('x', 65_537) }), UpdateCatalogIssueCode.ReleaseNotesTooLarge);
         yield return (Catalog(valid, valid), UpdateCatalogIssueCode.DuplicateVersion);

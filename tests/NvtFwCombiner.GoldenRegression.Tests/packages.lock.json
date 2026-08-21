@@ -191,16 +191,16 @@
       "nvtfwcombiner.application": {
         "type": "Project",
         "dependencies": {
-          "NvtFwCombiner.Contracts": "[0.10.5, )",
-          "NvtFwCombiner.Domain": "[0.10.5, )",
-          "NvtFwCombiner.VersionManagement.Application": "[0.10.5, )"
+          "NvtFwCombiner.Contracts": "[0.10.6, )",
+          "NvtFwCombiner.Domain": "[0.10.6, )",
+          "NvtFwCombiner.VersionManagement.Application": "[0.10.6, )"
         }
       },
       "nvtfwcombiner.bootstrap": {
         "type": "Project",
         "dependencies": {
-          "NvtFwCombiner.Application": "[0.10.5, )",
-          "NvtFwCombiner.Infrastructure": "[0.10.5, )"
+          "NvtFwCombiner.Application": "[0.10.6, )",
+          "NvtFwCombiner.Infrastructure": "[0.10.6, )"
         }
       },
       "nvtfwcombiner.contracts": {
@@ -213,38 +213,38 @@
         "type": "Project",
         "dependencies": {
           "JsonSchema.Net": "[8.0.5, )",
-          "NvtFwCombiner.Application": "[0.10.5, )",
-          "NvtFwCombiner.Contracts": "[0.10.5, )",
-          "NvtFwCombiner.Domain": "[0.10.5, )",
-          "NvtFwCombiner.Profiles": "[0.10.5, )",
-          "NvtFwCombiner.VersionManagement.Infrastructure": "[0.10.5, )"
+          "NvtFwCombiner.Application": "[0.10.6, )",
+          "NvtFwCombiner.Contracts": "[0.10.6, )",
+          "NvtFwCombiner.Domain": "[0.10.6, )",
+          "NvtFwCombiner.Profiles": "[0.10.6, )",
+          "NvtFwCombiner.VersionManagement.Infrastructure": "[0.10.6, )"
         }
       },
       "nvtfwcombiner.profiles": {
         "type": "Project",
         "dependencies": {
-          "NvtFwCombiner.Contracts": "[0.10.5, )",
-          "NvtFwCombiner.Domain": "[0.10.5, )"
+          "NvtFwCombiner.Contracts": "[0.10.6, )",
+          "NvtFwCombiner.Domain": "[0.10.6, )"
         }
       },
       "nvtfwcombiner.testsupport": {
         "type": "Project",
         "dependencies": {
-          "NvtFwCombiner.Application": "[0.10.5, )",
-          "NvtFwCombiner.Infrastructure": "[0.10.5, )"
+          "NvtFwCombiner.Application": "[0.10.6, )",
+          "NvtFwCombiner.Infrastructure": "[0.10.6, )"
         }
       },
       "nvtfwcombiner.versionmanagement.application": {
         "type": "Project",
         "dependencies": {
-          "NvtFwCombiner.Contracts": "[0.10.5, )"
+          "NvtFwCombiner.Contracts": "[0.10.6, )"
         }
       },
       "nvtfwcombiner.versionmanagement.infrastructure": {
         "type": "Project",
         "dependencies": {
-          "NvtFwCombiner.Contracts": "[0.10.5, )",
-          "NvtFwCombiner.VersionManagement.Application": "[0.10.5, )"
+          "NvtFwCombiner.Contracts": "[0.10.6, )",
+          "NvtFwCombiner.VersionManagement.Application": "[0.10.6, )"
         }
       },
       "JsonSchema.Net": {

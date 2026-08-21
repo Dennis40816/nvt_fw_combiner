@@ -4,10 +4,12 @@ All notable changes to NVT FW Combiner are documented here. The project follows 
 
 ## [Unreleased]
 
-The owner-authorized `v0.10.6` managed-version implementation is complete and
-awaiting its independent architecture review before repository identity moves
-from `0.10.5` to `0.10.6`. No stable `v0.10.5` or `v0.10.6` package or tag has
-been published.
+The owner-authorized `v0.10.6` managed-version implementation is complete, the
+repository identity has advanced to `0.10.6`, and final local verification
+passes.
+The owner explicitly approved proceeding without the unavailable independent
+subagent review; this is not represented as an independent review pass. No
+stable `v0.10.5` or `v0.10.6` package or tag has been published.
 
 ## [0.10.6] - Unreleased
 
@@ -19,26 +21,26 @@ reviewed, installed, switched, and recovered without overwriting the running
 application. It is the relocatable-folder proving ground for the first
 end-user-managed `1.0.0` package; it is not itself a new public distribution.
 
-### Feature changes
+### Product changes
 
 #### Managed application versions and Settings Version page
 
-- Before: the portable application had no typed owner for discovering or
+- Before → After: the portable application had no typed owner for discovering or
   verifying application updates, no installed-version inventory, and no safe
-  way to switch or recover between side-by-side versions.
-- After: Settings exposes an editable update-source folder, background and
+  way to switch or recover between side-by-side versions. Settings now exposes
+  an editable update-source folder, background and
   manual checks, verified update consent, installed/available/active/damaged
   state, release notes, explicit Install/Switch actions, and individually
   confirmed deletion of non-active versions. A stable launcher imports one
   immutable first-run seed, verifies installed payloads, performs an inherited
   ready handshake, commits activation atomically, and attempts at most one
   last-known-good rollback.
-- Affects: Settings, desktop startup/handoff, the stable launcher, and managed
+- Affected: Settings, desktop startup/handoff, the stable launcher, and managed
   application package/state adapters. Firmware composition workflows, IC
   profiles, support declarations, processor behavior, output bytes, naming,
   reports, and Golden evidence are unchanged.
 - Support status: unchanged/support-neutral.
-- Compatibility or migration: no published unmanaged `0.10.5` folder is
+- Compatibility: no published unmanaged `0.10.5` folder is
   converted in place. Existing portable-ZIP packaging remains unchanged.
   The first user-distributed managed root is deferred to `1.0.0`.
 - Verification: the isolated `artifacts/version-update-source-lab` proves
@@ -47,7 +49,7 @@ end-user-managed `1.0.0` package; it is not itself a new public distribution.
   damaged-candidate rollback, and guarded deletion. The canonical full verifier
   passes all structure, Python, CRC, .NET, UI, Golden, and coverage gates on the
   implementation commit.
-- Limitations/deferred: package signing/key management, production managed ZIP,
+- Limitations: package signing/key management, production managed ZIP,
   SBOM/provenance migration, and clean-machine end-user distribution remain
   `1.0.0` work.
 
@@ -79,17 +81,38 @@ end-user-managed `1.0.0` package; it is not itself a new public distribution.
 - The approved capability and owner-requested upgrade-boundary hardening add
   4,340 production nonblank lines while retaining
   the predecessor ratchets plus explicit per-slice allowances. The completion
-  accessibility follow-up removes an unused projection so the full production
-  total remains exactly 107,177 rather than raising the ratchet.
+  accessibility follow-up removes an unused projection; the hardened shared
+  path grammar and archive-content verifier bring the full production total to
+  exactly 107,237.
 
-### Known issues and human gates
+### Security
 
-- Independent R2 architecture/contract review of the launcher, state, package,
-  activation, and rollback boundary is still required. Repository `VERSION`
-  intentionally remains `0.10.5` until that review passes.
+- Update catalogs, packages, installed inventories, ready messages, and state
+  files are treated as untrusted and fail closed on unsafe paths, undeclared
+  content, hash/length mismatch, malformed input, or reparse boundaries.
+- Package signing and production trust-distribution policy remain deferred to
+  the first public `1.0.0`; this internal candidate does not claim signed-update
+  security.
+
+### Known issues
+
+- The independent R2 architecture/contract reviewer could not be scheduled
+  because the agent thread limit was exhausted. On 2026-08-21 the owner
+  explicitly approved the internal identity advance after focused boundary
+  hardening. This is an owner override, not an independent-review PASS.
 - Public managed packaging, clean Windows x64 smoke, and release/security
   approval apply to the first end-user `1.0.0` distribution, not this internal
   folder proof.
+
+### Upgrade and rollback
+
+- `0.10.6` is an internal relocatable-folder proof and does not migrate or
+  overwrite an unmanaged installation. A verified candidate is staged and
+  promoted beside existing versions before activation.
+- The launcher commits activation only after the candidate reports the exact
+  expected version over its one-use ready channel. Pre-ready failure attempts
+  at most one verified last-known-good rollback; installed verified versions
+  remain available for explicit offline switching.
 
 ### Downloads and integrity
 
