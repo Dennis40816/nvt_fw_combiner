@@ -4,8 +4,85 @@ All notable changes to NVT FW Combiner are documented here. The project follows 
 
 ## [Unreleased]
 
-The owner-approved `v0.10.5` implementation and PL-00 candidate evidence are
-tracked below. No stable `v0.10.5` package or tag has been published yet.
+The owner-authorized `v0.10.6` managed-version implementation is complete and
+awaiting its independent architecture review before repository identity moves
+from `0.10.5` to `0.10.6`. No stable `v0.10.5` or `v0.10.6` package or tag has
+been published.
+
+## [0.10.6] - Unreleased
+
+### Summary
+
+This internal candidate adds a stable launcher, verified side-by-side installed
+versions, and a Settings Version page so application updates can be discovered,
+reviewed, installed, switched, and recovered without overwriting the running
+application. It is the relocatable-folder proving ground for the first
+end-user-managed `1.0.0` package; it is not itself a new public distribution.
+
+### Feature changes
+
+#### Managed application versions and Settings Version page
+
+- Before: the portable application had no typed owner for discovering or
+  verifying application updates, no installed-version inventory, and no safe
+  way to switch or recover between side-by-side versions.
+- After: Settings exposes an editable update-source folder, background and
+  manual checks, verified update consent, installed/available/active/damaged
+  state, release notes, explicit Install/Switch actions, and individually
+  confirmed deletion of non-active versions. A stable launcher imports one
+  immutable first-run seed, verifies installed payloads, performs an inherited
+  ready handshake, commits activation atomically, and attempts at most one
+  last-known-good rollback.
+- Affects: Settings, desktop startup/handoff, the stable launcher, and managed
+  application package/state adapters. Firmware composition workflows, IC
+  profiles, support declarations, processor behavior, output bytes, naming,
+  reports, and Golden evidence are unchanged.
+- Support status: unchanged/support-neutral.
+- Compatibility or migration: no published unmanaged `0.10.5` folder is
+  converted in place. Existing portable-ZIP packaging remains unchanged.
+  The first user-distributed managed root is deferred to `1.0.0`.
+- Verification: the isolated `artifacts/version-update-source-lab` proves
+  catalog discovery, closed package verification, staged install, source and
+  managed-root relocation, successful `0.10.6` activation, offline switch,
+  damaged-candidate rollback, and guarded deletion. The canonical full verifier
+  passes all structure, Python, CRC, .NET, UI, Golden, and coverage gates on the
+  implementation commit.
+- Limitations/deferred: package signing/key management, production managed ZIP,
+  SBOM/provenance migration, and clean-machine end-user distribution remain
+  `1.0.0` work.
+
+### Fixes
+
+- Memory Layout graphical segments are hover-only and can no longer retain a
+  click/focus selection; persistent selection remains on the information rows.
+- Version connection-state and trash icons expose localized, non-color-only
+  automation names and tooltips, including the target installed version.
+
+### Performance and package
+
+- Separating focused Version Management Application/Infrastructure projects
+  reduced the trimmed stable launcher from 39,384,103 bytes to 11,674,541 bytes
+  (70.4%). The broader production-size/removable-module audit remains open.
+- The approved capability adds 4,280 production nonblank lines while retaining
+  the predecessor ratchets plus explicit per-slice allowances. The completion
+  accessibility follow-up removes an unused projection so the full production
+  total remains exactly 107,177 rather than raising the ratchet.
+
+### Known issues and human gates
+
+- Independent R2 architecture/contract review of the launcher, state, package,
+  activation, and rollback boundary is still required. Repository `VERSION`
+  intentionally remains `0.10.5` until that review passes.
+- Public managed packaging, clean Windows x64 smoke, and release/security
+  approval apply to the first end-user `1.0.0` distribution, not this internal
+  folder proof.
+
+### Downloads and integrity
+
+- No `v0.10.6` download or tag is published. Local lab packages contain only
+  synthetic ReadyProbe payloads and are excluded from Git.
+- The existing portable-package manifest, hashes, SBOM, provenance, and smoke
+  pipeline remain unchanged and continue to run through repository verification.
 
 ## [0.10.5] - Unreleased
 
