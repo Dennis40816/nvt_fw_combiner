@@ -2,6 +2,7 @@ using System.IO.Compression;
 using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
+using System.Text.Json.Nodes;
 using NvtFwCombiner.Application.VersionManagement;
 using NvtFwCombiner.Infrastructure.VersionManagement;
 using NvtFwCombiner.TestSupport;
@@ -10,7 +11,7 @@ namespace NvtFwCombiner.Infrastructure.Tests.VersionManagement;
 
 /// <summary>Tests closed-package staging, inventory, and destructive guards.</summary>
 [Collection(nameof(ReadyProbeProcessSerialGroup))]
-public sealed class FileSystemManagedVersionRepositoryTests
+public sealed partial class FileSystemManagedVersionRepositoryTests
 {
     private static readonly string[] WorkerProtocols = ["1.0"];
     private static readonly JsonSerializerOptions CatalogJsonOptions = new(JsonSerializerDefaults.Web);
@@ -99,6 +100,27 @@ public sealed class FileSystemManagedVersionRepositoryTests
         Assert.Equal(ManagedVersionInstallIssue.UnsafeArchive, result.Issue);
         Assert.False(Directory.Exists(Path.Combine(managedRoot, "versions", "0.10.6")));
         Assert.False(File.Exists(workspace.PathFor("escape.txt")));
+    }
+
+    /// <summary>A Windows device-name archive path is rejected during verification, before it can appear Verified.</summary>
+    [Fact]
+    public async Task WindowsDeviceNameArchivePathNeverVerifies()
+    {
+        using var workspace = TempWorkspace.Create();
+        string sourceRoot = workspace.PathFor("source");
+        string packageRoot = "NvtFwCombiner-v0.10.6-win-x64";
+        UpdateCatalogVersionSnapshot package = CreatePackage(
+            sourceRoot,
+            "0.10.6",
+            $"{packageRoot}/CON/payload.txt");
+
+        ManagedPackageVerificationResult result = await new FileSystemManagedVersionRepository().VerifyPackageAsync(
+            sourceRoot,
+            package,
+            TestContext.Current.CancellationToken);
+
+        Assert.False(result.IsVerified);
+        Assert.Equal(ManagedVersionInstallIssue.UnsafeArchive, result.Issue);
     }
 
     /// <summary>JSON-null manifest collections fail closed as invalid payload.</summary>
@@ -383,7 +405,11 @@ public sealed class FileSystemManagedVersionRepositoryTests
         string version,
         string? maliciousEntry = null,
         bool useReadyProbe = false,
-        bool nullManifestCollections = false)
+        bool nullManifestCollections = false,
+        Action<JsonObject>? mutateManifest = null,
+        Action<ZipArchive, string>? mutateArchive = null,
+        string? omittedPayload = null,
+        Action<string>? mutatePackage = null)
     {
         string packages = Path.Combine(sourceRoot, "packages");
         _ = Directory.CreateDirectory(packages);
@@ -412,21 +438,26 @@ public sealed class FileSystemManagedVersionRepositoryTests
                 files[targetName] = File.ReadAllBytes(source);
             }
         }
-        byte[] manifest = CreateReleaseManifest(version, files, nullManifestCollections);
+        byte[] manifest = CreateReleaseManifest(version, files, nullManifestCollections, mutateManifest);
         using (FileStream output = File.Create(packagePath))
         using (var archive = new ZipArchive(output, ZipArchiveMode.Create))
         {
             WriteEntry(archive, $"{packageRoot}/RELEASE-MANIFEST.json", manifest);
             foreach ((string path, byte[] bytes) in files)
             {
-                WriteEntry(archive, $"{packageRoot}/{path}", bytes);
+                if (!string.Equals(path, omittedPayload, StringComparison.Ordinal))
+                {
+                    WriteEntry(archive, $"{packageRoot}/{path}", bytes);
+                }
             }
             if (maliciousEntry is not null)
             {
                 WriteEntry(archive, maliciousEntry, [1]);
             }
+            mutateArchive?.Invoke(archive, packageRoot);
         }
 
+        mutatePackage?.Invoke(packagePath);
         byte[] packageBytes = File.ReadAllBytes(packagePath);
         string relativePackage = $"packages/NvtFwCombiner-v{version}-win-x64.zip";
         var document = new NvtFwCombiner.Contracts.VersionManagement.UpdateCatalogDocument(
@@ -490,7 +521,8 @@ public sealed class FileSystemManagedVersionRepositoryTests
     private static byte[] CreateReleaseManifest(
         string version,
         IReadOnlyDictionary<string, byte[]> files,
-        bool nullCollections = false)
+        bool nullCollections = false,
+        Action<JsonObject>? mutateManifest = null)
     {
         object[] entries = [.. files.Select(pair => new
         {
@@ -507,7 +539,7 @@ public sealed class FileSystemManagedVersionRepositoryTests
                 _ => "externalTool",
             },
         })];
-        return JsonSerializer.SerializeToUtf8Bytes(new
+        byte[] bytes = JsonSerializer.SerializeToUtf8Bytes(new
         {
             schemaVersion = "1.1",
             product = "NVT FW Combiner",
@@ -525,6 +557,14 @@ public sealed class FileSystemManagedVersionRepositoryTests
             sbomAsset = $"NvtFwCombiner-v{version}-win-x64.spdx.json",
             provenanceAsset = $"NvtFwCombiner-v{version}-win-x64.provenance.json",
         });
+        if (mutateManifest is null)
+        {
+            return bytes;
+        }
+
+        JsonObject document = JsonNode.Parse(bytes)!.AsObject();
+        mutateManifest(document);
+        return JsonSerializer.SerializeToUtf8Bytes(document);
     }
 
     private static void WriteEntry(ZipArchive archive, string path, byte[] bytes)

@@ -53,6 +53,19 @@ end-user-managed `1.0.0` package; it is not itself a new public distribution.
 
 ### Fixes
 
+- Package verification now hashes and length-checks every declared ZIP payload
+  before `Verified` can be published; install still re-verifies the staged
+  closed payload before atomic promotion.
+- Catalog and archive paths share one Windows-safe relative-path grammar that
+  rejects reserved device names, traversal, ADS, link/reparse, and escaping
+  shapes before filesystem mutation.
+- The inherited ready channel now handles malformed handles, oversized and
+  malformed messages, timeout/cancellation, and the pipe-EOF/process-exit race
+  with stable typed results. Real-process regressions cover successful ready,
+  candidate timeout/exit rollback, rollback failure, and post-ready crash.
+- Background update prompts no longer replace an already open destructive
+  version confirmation, and install/activation remains behind explicit user
+  consent.
 - Memory Layout graphical segments are hover-only and can no longer retain a
   click/focus selection; persistent selection remains on the information rows.
 - Version connection-state and trash icons expose localized, non-color-only
@@ -63,7 +76,8 @@ end-user-managed `1.0.0` package; it is not itself a new public distribution.
 - Separating focused Version Management Application/Infrastructure projects
   reduced the trimmed stable launcher from 39,384,103 bytes to 11,674,541 bytes
   (70.4%). The broader production-size/removable-module audit remains open.
-- The approved capability adds 4,280 production nonblank lines while retaining
+- The approved capability and owner-requested upgrade-boundary hardening add
+  4,340 production nonblank lines while retaining
   the predecessor ratchets plus explicit per-slice allowances. The completion
   accessibility follow-up removes an unused projection so the full production
   total remains exactly 107,177 rather than raising the ratchet.

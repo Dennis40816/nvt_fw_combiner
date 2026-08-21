@@ -79,4 +79,127 @@ public sealed class JsonVersionManagerStateStoreTests
         Assert.Equal(VersionManagerStateLoadIssue.Invalid, result.Issue);
         Assert.Null(result.State);
     }
+
+    /// <summary>A genuinely absent state remains distinguishable from malformed or unreadable state.</summary>
+    [Fact]
+    public async Task MissingStateReturnsStableMissingIssue()
+    {
+        using var workspace = TempWorkspace.Create();
+
+        VersionManagerStateLoadResult result = await new JsonVersionManagerStateStore(
+            workspace.PathFor("state/version-manager.v1.json")).LoadAsync(
+            TestContext.Current.CancellationToken);
+
+        Assert.False(result.IsSuccess);
+        Assert.Equal(VersionManagerStateLoadIssue.Missing, result.Issue);
+        Assert.Null(result.State);
+    }
+
+    /// <summary>Unknown fields, unsupported schema, and inconsistent active references all fail closed.</summary>
+    [Theory]
+    [InlineData("unknown")]
+    [InlineData("schema")]
+    [InlineData("unadmitted-active")]
+    [InlineData("duplicate-admission")]
+    public async Task InvalidStateShapesNeverPublishPartialState(string shape)
+    {
+        ArgumentNullException.ThrowIfNull(shape);
+        using var workspace = TempWorkspace.Create();
+        string admission = """
+            {
+              "version": "0.10.6",
+              "admissionIdentity": "identity-0.10.6",
+              "releaseManifestSha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+            }
+            """;
+        string json = shape switch
+        {
+            "unknown" => BaseState($"[{admission}]", "0.10.6")
+                .Replace("\"retentionReviewDue\": false", "\"retentionReviewDue\": false, \"unknown\": true", StringComparison.Ordinal),
+            "schema" => BaseState($"[{admission}]", "0.10.6")
+                .Replace("\"schemaVersion\": 1", "\"schemaVersion\": 2", StringComparison.Ordinal),
+            "unadmitted-active" => BaseState("[]", "0.10.6"),
+            "duplicate-admission" => BaseState($"[{admission}, {admission}]", "0.10.6"),
+            _ => throw new InvalidOperationException($"Unknown state shape '{shape}'."),
+        };
+        string path = workspace.Write("version-manager.v1.json", System.Text.Encoding.UTF8.GetBytes(json));
+
+        VersionManagerStateLoadResult result = await new JsonVersionManagerStateStore(path).LoadAsync(
+            TestContext.Current.CancellationToken);
+
+        Assert.False(result.IsSuccess);
+        Assert.Equal(VersionManagerStateLoadIssue.Invalid, result.Issue);
+        Assert.Null(result.State);
+    }
+
+    /// <summary>An oversized state is rejected before allocating its untrusted declared length.</summary>
+    [Fact]
+    public async Task OversizedStateFailsClosed()
+    {
+        using var workspace = TempWorkspace.Create();
+        string path = workspace.Write("version-manager.v1.json", new byte[(1024 * 1024) + 1]);
+
+        VersionManagerStateLoadResult result = await new JsonVersionManagerStateStore(path).LoadAsync(
+            TestContext.Current.CancellationToken);
+
+        Assert.Equal(VersionManagerStateLoadIssue.Invalid, result.Issue);
+        Assert.Null(result.State);
+    }
+
+    /// <summary>A cancelled atomic replacement preserves the prior complete state and removes its temporary file.</summary>
+    [Fact]
+    public async Task CancelledSavePreservesPriorStateAndCleansTemporaryFile()
+    {
+        using var workspace = TempWorkspace.Create();
+        string path = workspace.PathFor("state/version-manager.v1.json");
+        var store = new JsonVersionManagerStateStore(path);
+        ManagedAppVersion version = ManagedAppVersion.Parse("0.10.6");
+        var admission = new ManagedVersionAdmission(version, "identity-0.10.6", new string('a', 64));
+        VersionManagerState original = VersionManagerState.Create(
+            "X:\\original",
+            version,
+            version,
+            [admission],
+            pendingActivation: null,
+            failedActivationVersion: null,
+            retentionReviewDue: false);
+        VersionManagerState replacement = VersionManagerState.Create(
+            "Y:\\replacement",
+            version,
+            version,
+            [admission],
+            pendingActivation: null,
+            failedActivationVersion: null,
+            retentionReviewDue: true);
+        await store.SaveAsync(original, TestContext.Current.CancellationToken);
+        using var cancellation = new CancellationTokenSource();
+        cancellation.Cancel();
+
+        _ = await Assert.ThrowsAnyAsync<OperationCanceledException>(async () =>
+            await store.SaveAsync(replacement, cancellation.Token));
+        VersionManagerStateLoadResult loaded = await store.LoadAsync(TestContext.Current.CancellationToken);
+
+        Assert.Equal(original.UpdateSource, loaded.State!.UpdateSource);
+        Assert.False(loaded.State.RetentionReviewDue);
+        Assert.Empty(Directory.EnumerateFiles(
+            Path.GetDirectoryName(path)!,
+            ".version-manager.v1.json.*.tmp"));
+    }
+
+    private static string BaseState(string admissions, string? activeVersion)
+    {
+        string active = activeVersion is null ? "null" : $"\"{activeVersion}\"";
+        return $$"""
+            {
+              "schemaVersion": 1,
+              "updateSource": null,
+              "activeVersion": {{active}},
+              "lastKnownGoodVersion": {{active}},
+              "admissions": {{admissions}},
+              "pendingActivation": null,
+              "failedActivationVersion": null,
+              "retentionReviewDue": false
+            }
+            """;
+    }
 }

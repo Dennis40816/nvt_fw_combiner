@@ -90,6 +90,40 @@ public sealed class UpdateCatalogValidatorTests
         Assert.Contains(result.Issues, issue => issue.Code == UpdateCatalogIssueCode.UnsafePackagePath);
     }
 
+    /// <summary>Windows device names never become a catalog-owned filesystem identity.</summary>
+    [Theory]
+    [InlineData("packages/CON/update.zip")]
+    [InlineData("packages/nul.zip")]
+    [InlineData("packages/COM1.bin/update.zip")]
+    [InlineData("packages/LPT9/update.zip")]
+    [InlineData("packages/CONIN$/update.zip")]
+    public void WindowsDeviceNamesFailClosed(string packagePath)
+    {
+        UpdateCatalogVersionDocument version = Version("0.10.6", "2026-08-21T00:00:00Z") with
+        {
+            PackagePath = packagePath,
+        };
+
+        UpdateCatalogValidationResult result = UpdateCatalogValidator.Validate(Catalog(version));
+
+        Assert.False(result.IsValid);
+        Assert.Contains(result.Issues, issue => issue.Code == UpdateCatalogIssueCode.UnsafePackagePath);
+    }
+
+    /// <summary>The catalog entry-count ceiling fails the complete catalog without partial publication.</summary>
+    [Fact]
+    public void TooManyVersionsFailClosedWithoutPartialCatalog()
+    {
+        UpdateCatalogVersionDocument[] versions = [.. Enumerable.Range(0, UpdateCatalogValidator.MaximumVersionCount + 1)
+            .Select(index => Version($"1.0.{index}", "2026-08-21T00:00:00Z"))];
+
+        UpdateCatalogValidationResult result = UpdateCatalogValidator.Validate(Catalog(versions));
+
+        Assert.False(result.IsValid);
+        Assert.Null(result.Snapshot);
+        Assert.Contains(result.Issues, issue => issue.Code == UpdateCatalogIssueCode.TooManyVersions);
+    }
+
     /// <summary>Forbidden package path values that exercise every bounded path clause.</summary>
     public static TheoryData<string> UnsafePackagePaths =>
     [

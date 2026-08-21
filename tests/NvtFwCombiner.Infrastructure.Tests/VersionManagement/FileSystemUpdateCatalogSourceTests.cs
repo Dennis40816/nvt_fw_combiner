@@ -105,6 +105,73 @@ public sealed class FileSystemUpdateCatalogSourceTests
         Assert.Null(result.Snapshot);
     }
 
+    /// <summary>A missing folder or missing root catalog is an offline source, not an invalid verified catalog.</summary>
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task MissingSourceOrCatalogReturnsSourceMissing(bool createFolder)
+    {
+        using var workspace = TempWorkspace.Create();
+        string root = workspace.PathFor("source");
+        if (createFolder)
+        {
+            _ = Directory.CreateDirectory(root);
+        }
+
+        UpdateCatalogLoadResult result = await new FileSystemUpdateCatalogSource().LoadAsync(
+            root,
+            TestContext.Current.CancellationToken);
+
+        Assert.False(result.IsSuccess);
+        Assert.Equal(UpdateCatalogLoadIssue.SourceMissing, result.Issue);
+        Assert.Null(result.Snapshot);
+    }
+
+    /// <summary>Empty, malformed, and JSON-null documents never publish partial catalog state.</summary>
+    [Theory]
+    [InlineData("")]
+    [InlineData("{")]
+    [InlineData("null")]
+    public async Task InvalidRawCatalogFailsClosed(string content)
+    {
+        ArgumentNullException.ThrowIfNull(content);
+        using var workspace = TempWorkspace.Create();
+        string root = workspace.PathFor("source");
+        _ = Directory.CreateDirectory(root);
+        await File.WriteAllTextAsync(
+            Path.Combine(root, FileSystemUpdateCatalogSource.CatalogFileName),
+            content,
+            TestContext.Current.CancellationToken);
+
+        UpdateCatalogLoadResult result = await new FileSystemUpdateCatalogSource().LoadAsync(
+            root,
+            TestContext.Current.CancellationToken);
+
+        Assert.False(result.IsSuccess);
+        Assert.Equal(UpdateCatalogLoadIssue.InvalidManifest, result.Issue);
+        Assert.Null(result.Snapshot);
+    }
+
+    /// <summary>A configured source reparse point is never followed into another tree.</summary>
+    [Fact]
+    public async Task ReparseSourceRootFailsClosed()
+    {
+        using var workspace = TempWorkspace.Create();
+        string target = workspace.PathFor("real-source");
+        string link = workspace.PathFor("linked-source");
+        _ = Directory.CreateDirectory(target);
+        await WriteCatalogAsync(target);
+        _ = Directory.CreateSymbolicLink(link, target);
+
+        UpdateCatalogLoadResult result = await new FileSystemUpdateCatalogSource().LoadAsync(
+            link,
+            TestContext.Current.CancellationToken);
+
+        Assert.False(result.IsSuccess);
+        Assert.Equal(UpdateCatalogLoadIssue.UnsafeSource, result.Issue);
+        Assert.Null(result.Snapshot);
+    }
+
     private static async Task WriteCatalogAsync(string root)
     {
         const string packageHash =

@@ -1,4 +1,5 @@
 using NvtFwCombiner.Application.VersionManagement;
+using NvtFwCombiner.Contracts.VersionManagement;
 
 namespace NvtFwCombiner.Infrastructure.VersionManagement;
 
@@ -76,17 +77,7 @@ internal static class ManagedPathSafety
 
     internal static bool IsSafeRelativePayloadPath(string path)
     {
-        return !string.IsNullOrWhiteSpace(path) &&
-               path.Length <= 512 &&
-               path[0] is not '/' &&
-               !path.Contains('\\', StringComparison.Ordinal) &&
-               !path.Contains(':', StringComparison.Ordinal) &&
-               !path.Any(static character => character is < ' ' or '<' or '>' or '"' or '|' or '?' or '*') &&
-               !path.Split('/').Any(static segment =>
-                   string.IsNullOrWhiteSpace(segment) ||
-                   segment is "." or ".." ||
-                   segment.EndsWith(' ') ||
-                   segment.EndsWith('.'));
+        return ManagedRelativePathRules.IsSafeFilePath(path);
     }
 
     internal static async ValueTask<byte[]?> ReadBoundedFileAsync(

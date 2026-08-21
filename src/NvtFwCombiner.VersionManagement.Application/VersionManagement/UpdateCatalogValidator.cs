@@ -15,7 +15,6 @@ public static class UpdateCatalogValidator
     public const int MaximumReleaseNotesBytes = 64 * 1024;
     /// <summary>The maximum declared package length in bytes.</summary>
     public const long MaximumPackageBytes = 80_000_000;
-    private const int MaximumRelativePathCharacters = 512;
     private const string Product = "NVT FW Combiner";
     private const string RuntimeIdentifier = "win-x64";
 
@@ -140,23 +139,8 @@ public static class UpdateCatalogValidator
     private static bool TryCreatePackagePath(string? value, out UpdateCatalogPackagePath path)
     {
         path = default;
-        if (string.IsNullOrWhiteSpace(value) ||
-            value.Length > MaximumRelativePathCharacters ||
-            value[0] is '/' ||
-            value.Contains('\\', StringComparison.Ordinal) ||
-            value.Contains(':', StringComparison.Ordinal) ||
-            value.Any(static character => character is < ' ' or '<' or '>' or '"' or '|' or '?' or '*') ||
+        if (!ManagedRelativePathRules.IsSafeFilePath(value) ||
             !value.EndsWith(".zip", StringComparison.OrdinalIgnoreCase))
-        {
-            return false;
-        }
-
-        string[] segments = value.Split('/');
-        if (segments.Any(static segment =>
-                string.IsNullOrWhiteSpace(segment) ||
-                segment is "." or ".." ||
-                segment.EndsWith(' ') ||
-                segment.EndsWith('.')))
         {
             return false;
         }

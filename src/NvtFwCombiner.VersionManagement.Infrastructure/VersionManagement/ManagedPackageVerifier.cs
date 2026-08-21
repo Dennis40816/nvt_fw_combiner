@@ -126,8 +126,11 @@ internal static class ManagedPackageVerifier
         {
             return Failure(ManagedVersionInstallIssue.InvalidPayload);
         }
-        return manifest is not null && ValidateManifest(manifest, package.Version, entries.Keys)
-            ? new(new(manifest, entries, manifestBytes), ManagedVersionInstallIssue.None)
+        bool isValid = manifest is not null &&
+                       ValidateManifest(manifest, package.Version, entries.Keys) &&
+                       await VerifyArchiveContentAsync(manifest, entries, cancellationToken).ConfigureAwait(false);
+        return isValid
+            ? new(new(manifest!, entries, manifestBytes), ManagedVersionInstallIssue.None)
             : Failure(ManagedVersionInstallIssue.InvalidPayload);
     }
 
@@ -311,6 +314,37 @@ internal static class ManagedPackageVerifier
             hash.AppendData(buffer, 0, read);
         }
         return Convert.ToHexStringLower(hash.GetHashAndReset());
+    }
+
+    private static async ValueTask<bool> VerifyArchiveContentAsync(
+        ReleaseManifestDocument manifest,
+        Dictionary<string, ZipArchiveEntry> entries,
+        CancellationToken cancellationToken)
+    {
+        foreach (ReleaseManifestFileDocument file in manifest.Files!)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            if (!entries.TryGetValue(file.Path, out ZipArchiveEntry? entry) || entry.Length != file.Size)
+            {
+                return false;
+            }
+            await using Stream stream = entry.Open();
+            using var hash = IncrementalHash.CreateHash(HashAlgorithmName.SHA256);
+            byte[] buffer = GC.AllocateUninitializedArray<byte>(64 * 1024);
+            int read;
+            while ((read = await stream.ReadAsync(buffer, cancellationToken).ConfigureAwait(false)) != 0)
+            {
+                hash.AppendData(buffer, 0, read);
+            }
+            if (!string.Equals(
+                    Convert.ToHexStringLower(hash.GetHashAndReset()),
+                    file.Sha256,
+                    StringComparison.Ordinal))
+            {
+                return false;
+            }
+        }
+        return true;
     }
 
     private static bool IsLink(ZipArchiveEntry entry)

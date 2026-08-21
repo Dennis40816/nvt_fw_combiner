@@ -198,7 +198,8 @@ internal sealed partial class SettingsViewModel
                 $"Version {candidate.Version} is verified and available.",
                 $"版本 {candidate.Version} 已驗證並可安裝。")
             : string.Empty;
-        if (snapshot.ShouldPromptForUpdate &&
+        if (!IsVersionConfirmationOpen &&
+            snapshot.ShouldPromptForUpdate &&
             VersionRows.FirstOrDefault(row => row.Version == snapshot.VerifiedCandidate?.Version) is { } row)
         {
             BeginConfirmation(row, VersionConfirmationAction.Install);

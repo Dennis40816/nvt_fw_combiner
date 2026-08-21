@@ -69,6 +69,11 @@ public sealed class AnonymousPipeManagedApplicationProcess : IManagedApplication
                 {
                     return new(ManagedProcessStartOutcome.Ready, null);
                 }
+                if (readyTask.Result is { Length: 0 })
+                {
+                    await exitTask.ConfigureAwait(false);
+                    return new(ManagedProcessStartOutcome.ExitedBeforeReady, process.ExitCode);
+                }
                 KillIfRunning(process);
                 return new(ManagedProcessStartOutcome.InvalidReadySignal, process.HasExited ? process.ExitCode : null);
             }
@@ -191,7 +196,7 @@ public sealed class InheritedPipeApplicationReadySignal : IApplicationReadySigna
             await pipe.FlushAsync(cancellationToken).ConfigureAwait(false);
             return true;
         }
-        catch (Exception exception) when (exception is IOException or UnauthorizedAccessException)
+        catch (Exception exception) when (exception is IOException or UnauthorizedAccessException or ArgumentException)
         {
             return false;
         }

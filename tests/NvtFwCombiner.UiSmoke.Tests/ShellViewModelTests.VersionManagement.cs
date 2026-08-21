@@ -109,6 +109,72 @@ public sealed class VersionManagementSettingsTests
         Assert.Equal("刪除已安裝版本 0.10.4", chinese.DeleteActionLabel);
     }
 
+    /// <summary>A background update prompt never replaces an existing destructive confirmation.</summary>
+    [Fact]
+    public void AutomaticUpdatePromptDoesNotStackOverDeleteConfirmation()
+    {
+        var experience = new RecordingVersionExperience(Snapshot(retentionReviewDue: false));
+        MainWindowViewModel viewModel = MainWindow.CreateStartupViewModel(
+            PresentationTestHost.CreateServices("0.10.5", experience),
+            ShellPreferenceSnapshot.Default);
+        viewModel.Settings.ApplyVersionSnapshot(experience.Current);
+        SettingsVersionRowViewModel rollback = Assert.Single(
+            viewModel.Settings.VersionRows,
+            row => row.IsLastKnownGood);
+        viewModel.Settings.RequestDeleteVersionCommand.Execute(rollback);
+        string title = viewModel.Settings.VersionConfirmationTitle;
+        UpdateCatalogVersionSnapshot available = CatalogVersion("0.10.6");
+        VersionManagementSnapshot update = experience.Current with
+        {
+            Catalog = new([available]),
+            VerifiedCandidate = new(available.Version, available.Identity, available.ReleaseNotes),
+            ShouldPromptForUpdate = true,
+            SourceStatus = VersionSourceStatus.Connected,
+        };
+
+        viewModel.Settings.ApplyVersionSnapshot(update);
+
+        Assert.True(viewModel.Settings.IsVersionConfirmationOpen);
+        Assert.True(viewModel.Settings.IsVersionConfirmationDestructive);
+        Assert.Equal(title, viewModel.Settings.VersionConfirmationTitle);
+    }
+
+    /// <summary>A verified update performs no install or activation until the user confirms the named version.</summary>
+    [Fact]
+    public async Task VerifiedUpdateRequiresExplicitInstallConsentBeforeActivation()
+    {
+        VersionManagementSnapshot initial = Snapshot(retentionReviewDue: false);
+        UpdateCatalogVersionSnapshot available = CatalogVersion("0.10.6");
+        initial = initial with
+        {
+            Catalog = new([available]),
+            VerifiedCandidate = new(available.Version, available.Identity, available.ReleaseNotes),
+            SourceStatus = VersionSourceStatus.Connected,
+        };
+        var experience = new RecordingVersionExperience(initial);
+        MainWindowViewModel viewModel = MainWindow.CreateStartupViewModel(
+            PresentationTestHost.CreateServices("0.10.5", experience),
+            ShellPreferenceSnapshot.Default);
+        viewModel.Settings.ApplyVersionSnapshot(initial);
+        bool activationRequested = false;
+        viewModel.Settings.ActivationRequested += (_, _) => activationRequested = true;
+        SettingsVersionRowViewModel update = Assert.Single(
+            viewModel.Settings.VersionRows,
+            row => row.Version == available.Version);
+
+        viewModel.Settings.RequestVersionPrimaryActionCommand.Execute(update);
+
+        Assert.True(viewModel.Settings.IsVersionConfirmationOpen);
+        Assert.Empty(experience.Installations);
+        Assert.Empty(experience.Activations);
+
+        await viewModel.Settings.ConfirmVersionActionCommand.ExecuteAsync(null);
+
+        Assert.Equal([available.Version], experience.Installations);
+        Assert.Equal([available.Version], experience.Activations);
+        Assert.True(activationRequested);
+    }
+
     private static VersionManagementSnapshot Snapshot(bool retentionReviewDue)
     {
         ManagedVersionAdmission[] admissions =
@@ -153,6 +219,18 @@ public sealed class VersionManagementSettingsTests
         return new(ManagedAppVersion.Parse(version), $"identity-{version}", Hash);
     }
 
+    private static UpdateCatalogVersionSnapshot CatalogVersion(string version)
+    {
+        return new(
+            ManagedAppVersion.Parse(version),
+            DateTimeOffset.Parse("2026-08-21T00:00:00Z", System.Globalization.CultureInfo.InvariantCulture),
+            new($"packages/NvtFwCombiner-v{version}-win-x64.zip"),
+            42,
+            Hash,
+            Hash,
+            $"Release {version}");
+    }
+
     private sealed class RecordingVersionExperience(VersionManagementSnapshot initial)
         : IVersionManagementExperience
     {
@@ -161,6 +239,10 @@ public sealed class VersionManagementSettingsTests
         internal int Acknowledgements { get; private set; }
 
         internal List<bool> DeleteConfirmations { get; } = [];
+
+        internal List<ManagedAppVersion> Installations { get; } = [];
+
+        internal List<ManagedAppVersion> Activations { get; } = [];
 
         public ValueTask<VersionManagementSnapshot> InitializeAsync(CancellationToken cancellationToken)
         {
@@ -185,7 +267,29 @@ public sealed class VersionManagementSettingsTests
             ManagedAppVersion version,
             CancellationToken cancellationToken)
         {
-            throw new NotSupportedException();
+            Installations.Add(version);
+            VersionManagerState state = Current.State!;
+            ManagedVersionAdmission admission = Admission(version.ToString());
+            state = VersionManagerState.Create(
+                state.UpdateSource,
+                state.ActiveVersion,
+                state.LastKnownGoodVersion,
+                [.. state.Admissions, admission],
+                state.PendingActivation,
+                failedActivationVersion: null,
+                state.RetentionReviewDue);
+            ManagedVersionInventory inventory = ManagedVersionInventory.Create(
+                [.. Current.Inventory.Versions, new(
+                    admission.Version,
+                    admission.AdmissionIdentity,
+                    ManagedVersionIntegrity.Healthy,
+                    DamageReason: null,
+                    IsActive: false,
+                    IsLastKnownGood: false)]);
+            Current = Current with { State = state, Inventory = inventory };
+            return ValueTask.FromResult(new VersionInstallOperationResult(
+                new(admission, ManagedVersionInstallIssue.None, WasAlreadyInstalled: false),
+                Current));
         }
 
         public ValueTask<VersionDeleteOperationResult> DeleteAsync(
@@ -237,7 +341,10 @@ public sealed class VersionManagementSettingsTests
             ManagedAppVersion version,
             CancellationToken cancellationToken)
         {
-            throw new NotSupportedException();
+            Activations.Add(version);
+            VersionManagerState state = VersionActivationPolicy.BeginActivation(Current.State!, version);
+            Current = Current with { State = state };
+            return ValueTask.FromResult(state);
         }
     }
 }
