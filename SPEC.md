@@ -2553,6 +2553,13 @@ checks passed; it does not claim a publisher signature. `v0.10.6` adds no
 package signing or key-management system, and absolute source paths or folder
 names are never package identity.
 
+Package verification and extraction allow at most 4,096 entries and 512 MiB of
+actual expanded bytes per pass. Declared ZIP entry lengths are only early
+rejection evidence: each nonnegative length is compared to the remaining budget
+before aggregate addition so forged or ZIP64 metadata cannot overflow out of
+the typed fail-closed result. Installed inventory independently enforces the
+same ceiling over actual manifest, checksum, and payload bytes.
+
 Launcher/update state is a separate versioned local document under the existing
 per-user application-data root. It owns the configured source, active-version
 reference, admitted installed-version inventory, and recovery journal. Those

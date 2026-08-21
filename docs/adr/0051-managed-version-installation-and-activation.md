@@ -147,7 +147,8 @@ first initial managed package supplied to end users; there is no unmanaged
   schema after generation and again after the closed allowlist check, before
   archive creation. Managed verification and installed inventory enforce the
   same contract with actual expanded-byte counting; ZIP metadata is only an
-  early rejection hint.
+  early rejection hint and is compared to the remaining byte budget before
+  aggregate addition so ZIP64 metadata cannot overflow the typed boundary.
 - No firmware, profile, support, report-wire, output, or Golden contract changes.
 
 ## Migration and release path
@@ -169,6 +170,9 @@ made that a published unmanaged portable package self-adopts.
   offline, tamper, start-failure, timeout, rollback, retention, and delete cases.
 - Architecture tests prevent UI/package-policy leakage, direct filesystem or
   process access outside adapters, and a second launcher policy owner.
+- Production-adapter tests cover forged underreported and ZIP64 `long.MaxValue`
+  entry metadata through both Verify and Install, and seed-specific tests pin
+  busy-lease rejection plus post-acquisition durable-state reload.
 - Scoped Polytail, independent R2 review, canonical full verification, unchanged
   Goldens, existing portable-package regression smoke, managed-folder content/
   relocation/size evidence, and clean-machine evidence before the internal
