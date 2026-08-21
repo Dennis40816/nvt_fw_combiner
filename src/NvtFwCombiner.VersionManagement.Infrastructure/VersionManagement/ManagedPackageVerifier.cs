@@ -71,11 +71,11 @@ internal static class ManagedPackageVerifier
                 return Failure(ManagedVersionInstallIssue.UnsafeArchive);
             }
 
-            expandedBytes = checked(expandedBytes + entry.Length);
-            if (expandedBytes > maximumExpandedBytes)
+            if (entry.Length < 0 || entry.Length > maximumExpandedBytes - expandedBytes)
             {
                 return Failure(ManagedVersionInstallIssue.UnsafeArchive);
             }
+            expandedBytes += entry.Length;
         }
 
         if (!entries.TryGetValue("RELEASE-MANIFEST.json", out ZipArchiveEntry? manifestEntry) ||

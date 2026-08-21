@@ -126,14 +126,73 @@ public sealed class ManagedVersionSeedBootstrapperTests
         Assert.Null(destination.Saved);
     }
 
+    /// <summary>A contended writer lease prevents every seed read and durable mutation.</summary>
+    [Fact]
+    public async Task BusyWriterLeaseStopsSeedImportBeforeStateLoad()
+    {
+        var destination = new MemoryStateStore(
+            null,
+            VersionManagerStateLoadIssue.Missing,
+            leaseBusy: true);
+        var seed = new MemoryStateStore(SeedState(), VersionManagerStateLoadIssue.None);
+        var repository = new SeedRepository(ManagedVersionIntegrity.Healthy);
+        var bootstrapper = new ManagedVersionSeedBootstrapper(
+            "managed-root",
+            destination,
+            seed,
+            repository);
+
+        ManagedVersionSeedOutcome outcome = await bootstrapper.EnsureInitializedAsync(
+            TestContext.Current.CancellationToken);
+
+        Assert.Equal(ManagedVersionSeedOutcome.StateUnavailable, outcome);
+        Assert.Equal(1, destination.LeaseCount);
+        Assert.Equal(0, destination.LoadCount);
+        Assert.Equal(0, destination.SaveCount);
+        Assert.Equal(0, seed.LoadCount);
+        Assert.Equal(0, repository.InventoryCount);
+    }
+
+    /// <summary>State committed by another writer before acquisition wins over the packaged seed.</summary>
+    [Fact]
+    public async Task StateChangedBeforeLeaseAcquisitionIsReloadedAndWins()
+    {
+        VersionManagerState authoritative = CanonicalState("1.0.1", 'b');
+        var destination = new MemoryStateStore(null, VersionManagerStateLoadIssue.Missing);
+        destination.ChangeOnLeaseAcquisition(authoritative, VersionManagerStateLoadIssue.None);
+        var seed = new MemoryStateStore(SeedState(), VersionManagerStateLoadIssue.None);
+        var repository = new SeedRepository(ManagedVersionIntegrity.Healthy);
+        var bootstrapper = new ManagedVersionSeedBootstrapper(
+            "managed-root",
+            destination,
+            seed,
+            repository);
+
+        ManagedVersionSeedOutcome outcome = await bootstrapper.EnsureInitializedAsync(
+            TestContext.Current.CancellationToken);
+
+        Assert.Equal(ManagedVersionSeedOutcome.ExistingState, outcome);
+        Assert.Equal(1, destination.LeaseCount);
+        Assert.Equal(1, destination.LoadCount);
+        Assert.Equal(authoritative, destination.LastLoaded);
+        Assert.Equal(0, destination.SaveCount);
+        Assert.Equal(0, seed.LoadCount);
+        Assert.Equal(0, repository.InventoryCount);
+    }
+
     private static VersionManagerState SeedState()
     {
-        ManagedAppVersion version = ManagedAppVersion.Parse("1.0.0");
+        return CanonicalState("1.0.0", 'a');
+    }
+
+    private static VersionManagerState CanonicalState(string value, char hashCharacter)
+    {
+        ManagedAppVersion version = ManagedAppVersion.Parse(value);
         return VersionManagerState.Create(
             updateSource: null,
             activeVersion: version,
             lastKnownGoodVersion: version,
-            admissions: [new(version, "seed|1.0.0", new string('a', 64))],
+            admissions: [new(version, $"seed|{value}", new string(hashCharacter, 64))],
             pendingActivation: null,
             failedActivationVersion: null,
             retentionReviewDue: false);
@@ -163,25 +222,65 @@ public sealed class ManagedVersionSeedBootstrapperTests
             null, version, version, [admission], null, null, true);
     }
 
-    private sealed class MemoryStateStore(
-        VersionManagerState? state,
-        VersionManagerStateLoadIssue issue) : IVersionManagerStateStore
+    private sealed class MemoryStateStore : IVersionManagerStateStore
     {
+        private readonly bool _leaseBusy;
+        private VersionManagerStateLoadIssue _issue;
+        private VersionManagerState? _state;
+        private VersionManagerStateLoadIssue? _issueOnLeaseAcquisition;
+        private VersionManagerState? _stateOnLeaseAcquisition;
+
+        internal MemoryStateStore(
+            VersionManagerState? state,
+            VersionManagerStateLoadIssue issue,
+            bool leaseBusy = false)
+        {
+            _state = state;
+            _issue = issue;
+            _leaseBusy = leaseBusy;
+        }
+
+        internal int LeaseCount { get; private set; }
+
+        internal int LoadCount { get; private set; }
+
         internal int SaveCount { get; private set; }
 
         internal VersionManagerState? Saved { get; private set; }
+
+        internal VersionManagerState? LastLoaded { get; private set; }
+
+        internal void ChangeOnLeaseAcquisition(
+            VersionManagerState state,
+            VersionManagerStateLoadIssue issue)
+        {
+            _stateOnLeaseAcquisition = state;
+            _issueOnLeaseAcquisition = issue;
+        }
 
         public ValueTask<VersionManagerWriteLeaseResult> TryAcquireWriteLeaseAsync(
             string managedRoot,
             TimeSpan waitTimeout,
             CancellationToken cancellationToken)
         {
+            LeaseCount++;
+            if (_leaseBusy)
+            {
+                return ValueTask.FromResult(VersionManagerWriteLeaseTestSupport.Busy());
+            }
+            if (_issueOnLeaseAcquisition is { } nextIssue)
+            {
+                _state = _stateOnLeaseAcquisition;
+                _issue = nextIssue;
+            }
             return ValueTask.FromResult(VersionManagerWriteLeaseTestSupport.Acquired());
         }
 
         public ValueTask<VersionManagerStateLoadResult> LoadAsync(CancellationToken cancellationToken)
         {
-            return ValueTask.FromResult(new VersionManagerStateLoadResult(state, issue));
+            LoadCount++;
+            LastLoaded = _state;
+            return ValueTask.FromResult(new VersionManagerStateLoadResult(_state, _issue));
         }
 
         public ValueTask SaveAsync(VersionManagerState stateToSave, CancellationToken cancellationToken)
@@ -194,6 +293,8 @@ public sealed class ManagedVersionSeedBootstrapperTests
 
     private sealed class SeedRepository(ManagedVersionIntegrity integrity) : IManagedVersionRepository
     {
+        internal int InventoryCount { get; private set; }
+
         public ValueTask<ManagedVersionInventory> InventoryAsync(
             string managedRoot,
             IReadOnlyList<ManagedVersionAdmission> admissions,
@@ -202,6 +303,7 @@ public sealed class ManagedVersionSeedBootstrapperTests
             ManagedAppVersion? failedActivationVersion,
             CancellationToken cancellationToken)
         {
+            InventoryCount++;
             ManagedVersionAdmission admission = Assert.Single(admissions);
             return ValueTask.FromResult(ManagedVersionInventory.Create(
             [

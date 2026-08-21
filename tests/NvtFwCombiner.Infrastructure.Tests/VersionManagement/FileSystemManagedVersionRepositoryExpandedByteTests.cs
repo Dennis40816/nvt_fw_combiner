@@ -1,4 +1,5 @@
 using System.Buffers.Binary;
+using System.IO.Compression;
 using System.Text;
 using System.Text.Json.Nodes;
 using NvtFwCombiner.Application.VersionManagement;
@@ -95,6 +96,44 @@ public sealed partial class FileSystemManagedVersionRepositoryTests
             constrained.Find(admission.Version)?.DamageReason);
     }
 
+    /// <summary>ZIP64 metadata cannot overflow the production aggregate admission check.</summary>
+    [Fact]
+    public async Task Zip64DeclaredSizeOverflowFailsVerifyAndInstallWithoutResidue()
+    {
+        using var workspace = TempWorkspace.Create();
+        string sourceRoot = workspace.PathFor("source");
+        string managedRoot = workspace.PathFor("managed");
+        UpdateCatalogVersionSnapshot package = CreatePackage(
+            sourceRoot,
+            "0.10.6",
+            mutatePackage: InflateSecondCentralEntryToLongMax);
+        string packagePath = Path.Combine(
+            sourceRoot,
+            package.PackagePath.Value.Replace('/', Path.DirectorySeparatorChar));
+        using (ZipArchive archive = ZipFile.OpenRead(packagePath))
+        {
+            Assert.True(archive.Entries[0].Length > 0);
+            Assert.Equal(long.MaxValue, archive.Entries[1].Length);
+        }
+        var repository = new FileSystemManagedVersionRepository();
+
+        ManagedPackageVerificationResult verified = await repository.VerifyPackageAsync(
+            sourceRoot,
+            package,
+            TestContext.Current.CancellationToken);
+        ManagedVersionInstallResult installed = await repository.InstallAsync(
+            managedRoot,
+            sourceRoot,
+            package,
+            TestContext.Current.CancellationToken);
+
+        Assert.Equal(ManagedVersionInstallIssue.UnsafeArchive, verified.Issue);
+        Assert.Equal(ManagedVersionInstallIssue.UnsafeArchive, installed.Issue);
+        Assert.False(Directory.Exists(Path.Combine(managedRoot, "versions", "0.10.6")));
+        Assert.False(Directory.Exists(Path.Combine(managedRoot, ".staging")) &&
+                     Directory.EnumerateFileSystemEntries(Path.Combine(managedRoot, ".staging")).Any());
+    }
+
     private static void UnderreportZipEntry(
         string packagePath,
         string entryPath,
@@ -139,5 +178,56 @@ public sealed partial class FileSystemManagedVersionRepositoryTests
 
         Assert.True(found, $"ZIP entry '{entryPath}' was not found.");
         File.WriteAllBytes(packagePath, bytes);
+    }
+
+    private static void InflateSecondCentralEntryToLongMax(string packagePath)
+    {
+        byte[] original = File.ReadAllBytes(packagePath);
+        ReadOnlySpan<byte> endSignature = [0x50, 0x4b, 0x05, 0x06];
+        int oldEnd = original.AsSpan().LastIndexOf(endSignature);
+        Assert.True(oldEnd >= 0, "ZIP end-of-central-directory record was not found.");
+        int central = checked((int)BinaryPrimitives.ReadUInt32LittleEndian(
+            original.AsSpan(oldEnd + 16, sizeof(uint))));
+        int firstRecordLength = GetCentralRecordLength(original, central);
+        int second = checked(central + firstRecordLength);
+        Assert.Equal(0x02014b50u, BinaryPrimitives.ReadUInt32LittleEndian(
+            original.AsSpan(second, sizeof(uint))));
+        int nameLength = BinaryPrimitives.ReadUInt16LittleEndian(
+            original.AsSpan(second + 28, sizeof(ushort)));
+        int oldExtraLength = BinaryPrimitives.ReadUInt16LittleEndian(
+            original.AsSpan(second + 30, sizeof(ushort)));
+        int insertion = checked(second + 46 + nameLength + oldExtraLength);
+        ReadOnlySpan<byte> zip64Extra =
+            [0x01, 0x00, 0x08, 0x00, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0x7f];
+        byte[] mutated = new byte[checked(original.Length + zip64Extra.Length)];
+        original.AsSpan(0, insertion).CopyTo(mutated);
+        zip64Extra.CopyTo(mutated.AsSpan(insertion));
+        original.AsSpan(insertion).CopyTo(mutated.AsSpan(insertion + zip64Extra.Length));
+        BinaryPrimitives.WriteUInt32LittleEndian(
+            mutated.AsSpan(second + 24, sizeof(uint)),
+            uint.MaxValue);
+        BinaryPrimitives.WriteUInt16LittleEndian(
+            mutated.AsSpan(second + 30, sizeof(ushort)),
+            checked((ushort)(oldExtraLength + zip64Extra.Length)));
+        int newEnd = checked(oldEnd + zip64Extra.Length);
+        uint oldCentralSize = BinaryPrimitives.ReadUInt32LittleEndian(
+            mutated.AsSpan(newEnd + 12, sizeof(uint)));
+        BinaryPrimitives.WriteUInt32LittleEndian(
+            mutated.AsSpan(newEnd + 12, sizeof(uint)),
+            checked(oldCentralSize + (uint)zip64Extra.Length));
+        File.WriteAllBytes(packagePath, mutated);
+    }
+
+    private static int GetCentralRecordLength(byte[] bytes, int offset)
+    {
+        Assert.Equal(0x02014b50u, BinaryPrimitives.ReadUInt32LittleEndian(
+            bytes.AsSpan(offset, sizeof(uint))));
+        int nameLength = BinaryPrimitives.ReadUInt16LittleEndian(
+            bytes.AsSpan(offset + 28, sizeof(ushort)));
+        int extraLength = BinaryPrimitives.ReadUInt16LittleEndian(
+            bytes.AsSpan(offset + 30, sizeof(ushort)));
+        int commentLength = BinaryPrimitives.ReadUInt16LittleEndian(
+            bytes.AsSpan(offset + 32, sizeof(ushort)));
+        return checked(46 + nameLength + extraLength + commentLength);
     }
 }
