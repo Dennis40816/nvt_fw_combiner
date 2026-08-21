@@ -50,6 +50,11 @@ class CodeSizeLimits:
     bootstrap_cli_ratchet: int | None = None
     infrastructure_contracts_worker_ratchet: int | None = None
     full_production_ratchet: int | None = None
+    runtime_production_allowance: int = 0
+    application_allowance: int = 0
+    bootstrap_cli_allowance: int = 0
+    infrastructure_contracts_worker_allowance: int = 0
+    full_production_allowance: int = 0
 
 
 @dataclass(frozen=True)
@@ -99,6 +104,11 @@ DEFAULT_LIMITS = CodeSizeLimits(
     bootstrap_cli_ratchet=3_378,
     infrastructure_contracts_worker_ratchet=15_356,
     full_production_ratchet=102_897,
+    runtime_production_allowance=3_439,
+    application_allowance=1_817,
+    bootstrap_cli_allowance=123,
+    infrastructure_contracts_worker_allowance=1_499,
+    full_production_allowance=4_280,
 )
 
 
@@ -188,7 +198,14 @@ def _domain_profiles_files(root: Path) -> list[Path]:
 def _application_files(root: Path) -> list[Path]:
     """Return the fixed Canonical Core Application slice."""
 
-    return _matching_files(root, "src/NvtFwCombiner.Application", frozenset({".cs"}))
+    return [
+        *_matching_files(root, "src/NvtFwCombiner.Application", frozenset({".cs"})),
+        *_matching_files(
+            root,
+            "src/NvtFwCombiner.VersionManagement.Application",
+            frozenset({".cs"}),
+        ),
+    ]
 
 
 def _bootstrap_cli_files(root: Path) -> list[Path]:
@@ -198,6 +215,7 @@ def _bootstrap_cli_files(root: Path) -> list[Path]:
         *_matching_files(root, "src/NvtFwCombiner.Bootstrap", frozenset({".cs"})),
         *_matching_files(root, "src/NvtFwCombiner.Cli", frozenset({".cs"})),
         *_matching_files(root, "src/NvtFwCombiner.Desktop", frozenset({".cs"})),
+        *_matching_files(root, "src/NvtFwCombiner.Launcher", frozenset({".cs"})),
     ]
 
 
@@ -211,6 +229,11 @@ def _infrastructure_contracts_worker_files(root: Path) -> list[Path]:
             frozenset({".cs"}),
         ),
         *_matching_files(root, "src/NvtFwCombiner.Contracts", frozenset({".cs"})),
+        *_matching_files(
+            root,
+            "src/NvtFwCombiner.VersionManagement.Infrastructure",
+            frozenset({".cs"}),
+        ),
         *_worker_runtime_files(root),
     ]
 
@@ -317,15 +340,21 @@ def _review_slice_metric(
     file_count: int,
     actual: int,
     ratchet: int | None,
+    allowance: int,
     findings: list[str],
 ) -> None:
     if ratchet is None:
         return
-    findings.append(
-        f"{label} metric: {file_count} files / {actual} nonblank lines "
-        f"(ratchet {ratchet})"
+    effective = ratchet + allowance
+    budget = (
+        f"ratchet {ratchet}"
+        if allowance == 0
+        else f"ratchet {ratchet} + approved allowance {allowance} = {effective}"
     )
-    _review_exact_ratchet(f"{label} slice", actual, ratchet, findings)
+    findings.append(
+        f"{label} metric: {file_count} files / {actual} nonblank lines ({budget})"
+    )
+    _review_exact_ratchet(f"{label} slice", actual, effective, findings)
 
 
 def review_code_size_policy(
@@ -364,34 +393,38 @@ def review_code_size_policy(
         _review_exact_ratchet(
             "runtime production",
             snapshot.runtime_production_nonblank,
-            limits.runtime_production_ratchet,
+            limits.runtime_production_ratchet + limits.runtime_production_allowance,
             findings,
         )
 
-    for label, file_count, actual, ratchet in (
+    for label, file_count, actual, ratchet, allowance in (
         (
             "Domain + Profiles",
             snapshot.domain_profiles_files,
             snapshot.domain_profiles_nonblank,
             limits.domain_profiles_ratchet,
+            0,
         ),
         (
             "Application",
             snapshot.application_files,
             snapshot.application_nonblank,
             limits.application_ratchet,
+            limits.application_allowance,
         ),
         (
             "Bootstrap + CLI + Desktop host",
             snapshot.bootstrap_cli_files,
             snapshot.bootstrap_cli_nonblank,
             limits.bootstrap_cli_ratchet,
+            limits.bootstrap_cli_allowance,
         ),
         (
             "Infrastructure + Contracts + CRC worker",
             snapshot.infrastructure_contracts_worker_files,
             snapshot.infrastructure_contracts_worker_nonblank,
             limits.infrastructure_contracts_worker_ratchet,
+            limits.infrastructure_contracts_worker_allowance,
         ),
     ):
         _review_slice_metric(
@@ -399,6 +432,7 @@ def review_code_size_policy(
             file_count,
             actual,
             ratchet,
+            allowance,
             findings,
         )
     aggregates = {aggregate.name: aggregate for aggregate in snapshot.partial_types}
@@ -443,46 +477,53 @@ def validate_code_size_policy(
             "full production",
             snapshot.production_nonblank,
             limits.full_production_ratchet,
+            limits.full_production_allowance,
         ),
         (
             "runtime production",
             snapshot.runtime_production_nonblank,
             limits.runtime_production_ratchet,
+            limits.runtime_production_allowance,
         ),
         (
             "Domain + Profiles slice",
             snapshot.domain_profiles_nonblank,
             limits.domain_profiles_ratchet,
+            0,
         ),
         (
             "Application slice",
             snapshot.application_nonblank,
             limits.application_ratchet,
+            limits.application_allowance,
         ),
         (
             "Bootstrap + CLI + Desktop host slice",
             snapshot.bootstrap_cli_nonblank,
             limits.bootstrap_cli_ratchet,
+            limits.bootstrap_cli_allowance,
         ),
         (
             "Infrastructure + Contracts + CRC worker slice",
             snapshot.infrastructure_contracts_worker_nonblank,
             limits.infrastructure_contracts_worker_ratchet,
+            limits.infrastructure_contracts_worker_allowance,
         ),
     )
     slices = metrics[2:]
-    if all(ratchet is not None for _, _, ratchet in slices):
-        allocated = sum(actual for _, actual, _ in slices)
+    if all(ratchet is not None for _, _, ratchet, _ in slices):
+        allocated = sum(actual for _, actual, _, _ in slices)
         if allocated != snapshot.runtime_production_nonblank:
             errors.append(
                 "code-size runtime slice allocation mismatch: "
                 f"{allocated} != total {snapshot.runtime_production_nonblank}"
             )
-    for label, actual, ratchet in metrics:
-        if ratchet is not None and actual > ratchet:
-            errors.append(f"code-size {label} grew: {actual} > ratchet {ratchet}")
-        elif ratchet is not None and actual < ratchet:
+    for label, actual, ratchet, allowance in metrics:
+        effective = None if ratchet is None else ratchet + allowance
+        if effective is not None and actual > effective:
+            errors.append(f"code-size {label} grew: {actual} > ratchet {effective}")
+        elif effective is not None and actual < effective:
             errors.append(
-                f"code-size {label} improved: lower ratchet {ratchet} to {actual}"
+                f"code-size {label} improved: lower ratchet {effective} to {actual}"
             )
     return errors

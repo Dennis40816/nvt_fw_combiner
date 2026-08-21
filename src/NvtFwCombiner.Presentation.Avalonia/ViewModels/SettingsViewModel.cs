@@ -2,6 +2,7 @@ using System.Collections.ObjectModel;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using NvtFwCombiner.Application.Capabilities;
+using NvtFwCombiner.Application.VersionManagement;
 using NvtFwCombiner.Domain.Composition;
 
 namespace NvtFwCombiner.Presentation.Avalonia.ViewModels;
@@ -10,6 +11,7 @@ internal enum SettingsSection
 {
     Overview,
     Preferences,
+    Version,
     SupportMatrix,
 }
 
@@ -25,15 +27,18 @@ internal sealed partial class SettingsViewModel : ObservableObject
 {
     private readonly string _appVersion;
     private readonly Func<ShellTextResources> _textProvider;
+    private readonly IVersionManagementExperience? _versionManagement;
 
     internal SettingsViewModel(
         string appVersion,
         ICanonicalSupportMatrixQuery supportMatrixQuery,
-        Func<ShellTextResources> textProvider)
+        Func<ShellTextResources> textProvider,
+        IVersionManagementExperience? versionManagement = null)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(appVersion);
         _appVersion = appVersion;
         _textProvider = textProvider ?? throw new ArgumentNullException(nameof(textProvider));
+        _versionManagement = versionManagement;
         SupportMatrix = new SupportMatrixPresentationViewModel(supportMatrixQuery);
     }
 
@@ -60,6 +65,7 @@ internal sealed partial class SettingsViewModel : ObservableObject
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(IsOverviewSelected))]
     [NotifyPropertyChangedFor(nameof(IsPreferencesSelected))]
+    [NotifyPropertyChangedFor(nameof(IsVersionSelected))]
     [NotifyPropertyChangedFor(nameof(IsSupportMatrixOpen))]
     public partial SettingsSection SelectedSection { get; private set; }
 
@@ -67,12 +73,15 @@ internal sealed partial class SettingsViewModel : ObservableObject
 
     public bool IsPreferencesSelected => SelectedSection == SettingsSection.Preferences;
 
+    public bool IsVersionSelected => SelectedSection == SettingsSection.Version;
+
     public bool IsSupportMatrixOpen => SelectedSection == SettingsSection.SupportMatrix;
 
     internal void Refresh(ShellTextResources text)
     {
         ArgumentNullException.ThrowIfNull(text);
         ApplyChoiceLabels(text);
+        RefreshVersionLabels();
         SupportMatrix.Refresh(text);
         bool chinese = text.Language == ShellLanguage.ChineseTraditional;
         SupportMatrixRowViewModel[] authoringAvailableRows =
@@ -187,6 +196,11 @@ internal sealed partial class SettingsViewModel : ObservableObject
         if (section == SettingsSection.SupportMatrix)
         {
             SupportMatrix.Refresh(_textProvider());
+        }
+
+        if (section == SettingsSection.Version)
+        {
+            _ = RefreshVersionAsync(isAutomatic: false);
         }
 
         SelectedSection = section;

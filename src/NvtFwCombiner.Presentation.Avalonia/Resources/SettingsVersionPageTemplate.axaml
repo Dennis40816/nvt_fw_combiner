@@ -1,0 +1,141 @@
+<ResourceDictionary
+    xmlns="https://github.com/avaloniaui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:vm="using:NvtFwCombiner.Presentation.Avalonia.ViewModels">
+
+<DataTemplate x:Key="SettingsVersionPageTemplate" DataType="vm:MainWindowViewModel">
+  <StackPanel Spacing="{DynamicResource NfcSpace16}">
+    <StackPanel Spacing="{DynamicResource NfcSpace4}">
+      <TextBlock Classes="pageTitle" Text="{Binding Settings.VersionPageTitle}" />
+      <TextBlock Classes="pageSubtitle" Text="{Binding Settings.VersionPageSubtitle}" TextWrapping="Wrap" />
+    </StackPanel>
+
+    <Border Classes="versionCurrentSurface">
+      <Grid ColumnDefinitions="*,Auto" ColumnSpacing="{DynamicResource NfcSpace16}">
+        <StackPanel Spacing="{DynamicResource NfcSpace8}">
+          <TextBlock Classes="fieldLabel" Text="{Binding Settings.CurrentVersionHeading}" />
+          <TextBlock Classes="sectionTitle" Text="{Binding Settings.CurrentVersionLabel}" />
+        </StackPanel>
+        <Label Grid.Column="1" VerticalAlignment="Center" Classes="compactBadge reportBadge info" Content="{Binding Settings.CurrentStatusLabel}" />
+      </Grid>
+    </Border>
+
+    <Border Classes="statusNotice info" IsVisible="{Binding Settings.HasVerifiedUpdate}">
+      <Grid ColumnDefinitions="Auto,*" ColumnSpacing="{DynamicResource NfcSpace8}">
+        <TextBlock VerticalAlignment="Center" Foreground="{DynamicResource NfcAccentBrush}" FontSize="18" Text="ⓘ" />
+        <TextBlock Grid.Column="1" VerticalAlignment="Center" Classes="bodyStrongText" Text="{Binding Settings.VerifiedUpdateMessage}" TextWrapping="Wrap" />
+      </Grid>
+    </Border>
+
+    <Border Classes="statusNotice warning" IsVisible="{Binding Settings.HasRetentionReview}">
+      <Grid ColumnDefinitions="*,Auto" ColumnSpacing="{DynamicResource NfcSpace16}">
+        <TextBlock VerticalAlignment="Center" Classes="bodyStrongText" Text="{Binding Settings.RetentionReviewMessage}" TextWrapping="Wrap" />
+        <Button
+            Grid.Column="1"
+            VerticalAlignment="Center"
+            Classes="semanticAction secondary"
+            Command="{Binding Settings.KeepAllVersionsCommand}"
+            Content="{Binding Settings.KeepAllVersionsLabel}" />
+      </Grid>
+    </Border>
+
+    <StackPanel Spacing="{DynamicResource NfcSpace8}">
+      <TextBlock Classes="sectionTitle" Text="{Binding Settings.UpdateSourceHeading}" />
+      <Grid ColumnDefinitions="*,Auto,Auto" ColumnSpacing="{DynamicResource NfcSpace8}">
+        <Border Classes="versionSourceEditor">
+          <Grid ColumnDefinitions="42,*,Auto,Auto" ColumnSpacing="0">
+            <Border Classes="versionSourceStatusSegment" ToolTip.Tip="{Binding Settings.SourceStatusText}">
+              <Grid>
+                <ProgressBar
+                    Width="20"
+                    Height="4"
+                    HorizontalAlignment="Center"
+                    VerticalAlignment="Center"
+                    IsIndeterminate="True"
+                    IsVisible="{Binding Settings.IsVersionBusy}" />
+                <TextBlock
+                    HorizontalAlignment="Center"
+                    VerticalAlignment="Center"
+                    FontWeight="SemiBold"
+                    Foreground="{DynamicResource NfcAccentBrush}"
+                    IsVisible="{Binding !Settings.IsVersionBusy}"
+                    Text="{Binding Settings.SourceStatusGlyph}" />
+              </Grid>
+            </Border>
+            <TextBox
+                Grid.Column="1"
+                MinHeight="42"
+                Padding="12,8"
+                AutomationProperties.Name="{Binding Settings.UpdateSourceHeading}"
+                Background="Transparent"
+                BorderThickness="0"
+                IsReadOnly="{Binding !Settings.IsUpdateSourceEditing}"
+                Text="{Binding Settings.UpdateSourceDraft, Mode=TwoWay}"
+                PlaceholderText="\\server\share\NvtFwCombiner" />
+            <Button
+                Grid.Column="2"
+                Margin="4"
+                MinHeight="32"
+                MinWidth="32"
+                AutomationProperties.Name="{Binding Settings.EditSourceLabel}"
+                Classes="semanticAction iconButton"
+                Command="{Binding Settings.BeginEditUpdateSourceCommand}"
+                IsVisible="{Binding !Settings.IsUpdateSourceEditing}"
+                ToolTip.Tip="{Binding Settings.EditSourceLabel}">
+              <Path Width="14" Height="14" Data="M3 12L4 8L11 1L15 5L8 12L3 12Z M10 2L14 6" Stretch="Uniform" />
+            </Button>
+            <StackPanel Grid.Column="3" Margin="4" Orientation="Horizontal" Spacing="{DynamicResource NfcSpace4}" IsVisible="{Binding Settings.IsUpdateSourceEditing}">
+              <Button Classes="semanticAction primary" Command="{Binding Settings.ConfirmUpdateSourceCommand}" Content="{Binding Settings.ConfirmLabel}" />
+              <Button Classes="semanticAction secondary" Command="{Binding Settings.CancelEditUpdateSourceCommand}" Content="{Binding Settings.CancelLabel}" />
+            </StackPanel>
+          </Grid>
+        </Border>
+        <Button
+            Grid.Column="1"
+            Classes="semanticAction secondary"
+            Command="{Binding Settings.BrowseUpdateSourceCommand}"
+            Content="{Binding Settings.BrowseSourceLabel}"
+            IsEnabled="{Binding Settings.IsUpdateSourceEditing}" />
+        <Button
+            Grid.Column="2"
+            Classes="semanticAction secondary"
+            Command="{Binding Settings.CheckNowCommand}"
+            Content="{Binding Settings.CheckNowLabel}"
+            IsEnabled="{Binding !Settings.IsVersionBusy}" />
+      </Grid>
+      <TextBlock Classes="captionText" Text="{Binding Settings.SourceStatusText}" />
+    </StackPanel>
+
+    <Grid ColumnDefinitions="*,Auto" ColumnSpacing="{DynamicResource NfcSpace12}">
+      <TextBlock Classes="sectionTitle" Text="{Binding Settings.AvailableVersionsHeading}" />
+      <TextBlock Grid.Column="1" Classes="captionText" Text="{Binding Settings.InventorySummary}" />
+    </Grid>
+    <Border Classes="panelSurface versionTableSurface">
+      <StackPanel>
+        <Grid Classes="versionTableHeader" ColumnDefinitions="1.1*,1.4*,1*,Auto,38" ColumnSpacing="{DynamicResource NfcSpace12}">
+          <TextBlock Classes="fieldLabel" Text="{Binding Settings.VersionColumnLabel}" />
+          <TextBlock Grid.Column="1" Classes="fieldLabel" Text="{Binding Settings.StatusColumnLabel}" />
+          <TextBlock Grid.Column="2" Classes="fieldLabel" Text="{Binding Settings.PublishedColumnLabel}" />
+          <TextBlock Grid.Column="3" MinWidth="88" TextAlignment="Center" Classes="fieldLabel" Text="{Binding Settings.ActionColumnLabel}" />
+        </Grid>
+        <ItemsControl ItemTemplate="{StaticResource SettingsVersionRowTemplate}" ItemsSource="{Binding Settings.VersionRows}" />
+      </StackPanel>
+    </Border>
+
+    <Border Classes="statusNotice error" IsVisible="{Binding Settings.IsVersionConfirmationOpen}">
+      <Grid ColumnDefinitions="*,Auto" ColumnSpacing="{DynamicResource NfcSpace16}">
+        <StackPanel Spacing="{DynamicResource NfcSpace4}">
+          <TextBlock Classes="sectionTitle" Text="{Binding Settings.VersionConfirmationTitle}" />
+          <TextBlock Classes="supportingText" Text="{Binding Settings.VersionConfirmationDetail}" TextWrapping="Wrap" />
+        </StackPanel>
+        <StackPanel Grid.Column="1" VerticalAlignment="Center" Orientation="Horizontal" Spacing="{DynamicResource NfcSpace8}">
+          <Button Classes="semanticAction secondary" Command="{Binding Settings.CancelVersionConfirmationCommand}" Content="{Binding Settings.CancelLabel}" />
+          <Button Classes="semanticAction primary" Classes.danger="{Binding Settings.IsVersionConfirmationDestructive}" Command="{Binding Settings.ConfirmVersionActionCommand}" Content="{Binding Settings.VersionConfirmationActionLabel}" />
+        </StackPanel>
+      </Grid>
+    </Border>
+    <TextBlock Classes="captionText" Text="{Binding Settings.VersionOperationStatus}" TextWrapping="Wrap" />
+  </StackPanel>
+</DataTemplate>
+
+</ResourceDictionary>

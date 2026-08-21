@@ -206,6 +206,37 @@
   </Border>
 </DataTemplate>
 
+<DataTemplate x:Key="SettingsVersionRowTemplate" DataType="vm:SettingsVersionRowViewModel">
+  <Grid MinHeight="50" ColumnDefinitions="1.1*,1.4*,1*,Auto,38" ColumnSpacing="{DynamicResource NfcSpace12}">
+    <TextBlock VerticalAlignment="Center" Classes="bodyStrongText" Text="{Binding VersionLabel}" />
+    <TextBlock Grid.Column="1" VerticalAlignment="Center" Classes="captionText" Text="{Binding StatusLabel}" TextWrapping="Wrap" />
+    <TextBlock Grid.Column="2" VerticalAlignment="Center" Classes="technicalCaption" Text="{Binding PublishedLabel}" />
+    <Button
+        Grid.Column="3"
+        MinWidth="88"
+        VerticalAlignment="Center"
+        AutomationProperties.Name="{Binding PrimaryActionLabel}"
+        Classes="semanticAction secondary"
+        Command="{ReflectionBinding $parent[Window].DataContext.Settings.RequestVersionPrimaryActionCommand}"
+        CommandParameter="{Binding}"
+        Content="{Binding PrimaryActionLabel}"
+        IsEnabled="{Binding HasPrimaryAction}" />
+    <Button
+        Grid.Column="4"
+        MinHeight="32"
+        MinWidth="32"
+        VerticalAlignment="Center"
+        AutomationProperties.Name="Delete installed version"
+        Classes="semanticAction iconButton danger"
+        Command="{ReflectionBinding $parent[Window].DataContext.Settings.RequestDeleteVersionCommand}"
+        CommandParameter="{Binding}"
+        IsVisible="{Binding CanDelete}"
+        ToolTip.Tip="Delete installed version">
+      <Path Width="14" Height="14" Data="M3 4H13 M6 4V2H10V4 M5 6V13 M8 6V13 M11 6V13 M4 4L5 15H11L12 4Z" Stretch="Uniform" />
+    </Button>
+  </Grid>
+</DataTemplate>
+
 <ItemsPanelTemplate x:Key="HorizontalSupportMatrixPanel">
   <StackPanel Orientation="Horizontal" />
 </ItemsPanelTemplate>
@@ -326,6 +357,19 @@
               <TextBlock Grid.Column="1" Text="{Binding Text.SettingsPreferencesNavigationLabel}" />
             </Grid>
           </RadioButton>
+          <RadioButton
+              AutomationProperties.Name="{Binding Settings.VersionNavigationLabel}"
+              Classes="semanticAction command settingsNavItem"
+              Classes.selected="{Binding Settings.IsVersionSelected}"
+              Command="{Binding Settings.SelectSectionCommand}"
+              CommandParameter="{x:Static vm:SettingsSection.Version}"
+              GroupName="SettingsSections"
+              IsChecked="{Binding Settings.IsVersionSelected, Mode=OneWay}">
+            <Grid ColumnDefinitions="20,*" ColumnSpacing="{DynamicResource NfcSpace8}">
+              <Path Width="16" Height="16" Data="M8 1A7 7 0 1 0 8 15A7 7 0 0 0 8 1Z M8 7V12 M8 4V5" Stretch="Uniform" />
+              <TextBlock Grid.Column="1" Text="{Binding Settings.VersionNavigationLabel}" />
+            </Grid>
+          </RadioButton>
           <Border Margin="12,8" BorderBrush="{DynamicResource NfcDividerBrush}" BorderThickness="0,1,0,0" />
           <RadioButton
               AutomationProperties.Name="{Binding Text.SupportMatrixTitle}"
@@ -420,6 +464,12 @@
             </StackPanel>
           </Border>
         </StackPanel>
+
+        <ContentControl
+            Content="{Binding}"
+            ContentTemplate="{StaticResource SettingsVersionPageTemplate}"
+            IsVisible="{Binding Settings.IsVersionSelected}" />
+
 
         <StackPanel IsVisible="{Binding Settings.IsSupportMatrixOpen}" Spacing="{DynamicResource NfcSpace12}">
           <Grid ColumnDefinitions="*,Auto" ColumnSpacing="{DynamicResource NfcSpace12}">

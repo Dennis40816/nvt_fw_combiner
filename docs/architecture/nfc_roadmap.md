@@ -97,10 +97,12 @@ available reviewers. The owner release allocation recorded on 2026-08-04 is:
    terminal gate: one observable, cancellable, bounded, and user-controllable
    preload lifecycle, with selection-triggered inspection retaining its own
    workflow generation and typed semantic owner.
-6. `v0.10.6` reserves a configured-path update screen so routine delivery does
-   not require repackaging and email. Its trust, rollback, version,
-   network/share, and release-policy contract remains deferred to a later owner
-   specification discussion, so no implementation ticket is created yet.
+6. `v0.10.6` reserves a configured-path update screen and owns the managed
+   version experience: a stable
+   launcher, side-by-side content-verified payloads, explicit
+   install/switch/delete, startup-readiness rollback, offline selection, and a
+   unified Settings Version page. The owner-approved contract is
+   `docs/specs/v0.10.6-version-management.md` and accepted ADR 0051.
 
 The complete refactoring release `v0.10.3` closed #197 and records the applicable
 architecture, firmware-owner, Golden, deterministic package/provenance,

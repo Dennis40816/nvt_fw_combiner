@@ -77,6 +77,8 @@ public sealed partial class MainWindow : Window, IDisposable
         _reportToastHoldTimer.Tick += ReportToastHoldTimer_OnTick;
         _reportToastFadeTimer.Tick += ReportToastFadeTimer_OnTick;
         MainWindowViewModel viewModel = CreateStartupViewModel(_hostServices, startupPreferences);
+        viewModel.Settings.UpdateSourceBrowseRequested += Settings_UpdateSourceBrowseRequested;
+        viewModel.Settings.ActivationRequested += Settings_ActivationRequested;
         _preloadSession = new(
             stage => PresentPreloadStage(viewModel, stage),
             viewModel.Text,
@@ -196,6 +198,8 @@ public sealed partial class MainWindow : Window, IDisposable
         if (DataContext is MainWindowViewModel closedViewModel)
         {
             closedViewModel.Reports.PropertyChanged -= Reports_OnPropertyChanged;
+            closedViewModel.Settings.UpdateSourceBrowseRequested -= Settings_UpdateSourceBrowseRequested;
+            closedViewModel.Settings.ActivationRequested -= Settings_ActivationRequested;
         }
 
         _reportToastHoldTimer.Stop();
@@ -203,6 +207,7 @@ public sealed partial class MainWindow : Window, IDisposable
         _reportToastHoldTimer.Tick -= ReportToastHoldTimer_OnTick;
         _reportToastFadeTimer.Tick -= ReportToastFadeTimer_OnTick;
         base.OnClosed(e);
+        RestartThroughStableLauncherIfRequested();
         Dispose();
     }
 
@@ -246,6 +251,9 @@ public sealed partial class MainWindow : Window, IDisposable
         {
             return;
         }
+
+        await ReportManagedApplicationReadyAsync(startupCancellation);
+        _ = RunVersionDiscoveryAfterReadyAsync(startupCancellation);
 
         try
         {

@@ -321,13 +321,13 @@ public sealed partial class XamlControlStyleContractTests
             Assert.Contains($"x:Key=\"{token}\" Color=\"{light}\"", tokens, StringComparison.Ordinal);
             Assert.Contains($"x:Key=\"{token}\" Color=\"{dark}\"", tokens, StringComparison.Ordinal);
         }
-        Assert.Contains("Focusable=\"True\"", replaceBar, StringComparison.Ordinal);
-        Assert.Contains("FocusToolTipBehavior.IsEnabled", replaceBar, StringComparison.Ordinal);
+        Assert.Contains("Focusable=\"False\"", replaceBar, StringComparison.Ordinal);
+        Assert.DoesNotContain("FocusToolTipBehavior.IsEnabled", replaceBar, StringComparison.Ordinal);
         Assert.Contains("AutomationProperties.HelpText=\"{Binding AccessibleDetail}\"", replaceBar, StringComparison.Ordinal);
         Assert.Contains("MemoryCoverageInteractionBehavior.IsEnabled=\"True\"", replaceBar, StringComparison.Ordinal);
         Assert.Contains("Classes.linked=\"{Binding Interaction.IsActive}\"", replaceBar, StringComparison.Ordinal);
-        Assert.Contains("Focusable=\"True\"", mergeBar, StringComparison.Ordinal);
-        Assert.Contains("FocusToolTipBehavior.IsEnabled", mergeBar, StringComparison.Ordinal);
+        Assert.Contains("Focusable=\"False\"", mergeBar, StringComparison.Ordinal);
+        Assert.DoesNotContain("FocusToolTipBehavior.IsEnabled", mergeBar, StringComparison.Ordinal);
         Assert.Contains("AutomationProperties.HelpText=\"{Binding AccessibleDetail}\"", mergeBar, StringComparison.Ordinal);
         Assert.Contains("MemoryCoverageInteractionBehavior.IsEnabled=\"True\"", logicalItem, StringComparison.Ordinal);
         Assert.Contains("Classes.linked=\"{Binding Interaction.IsActive}\"", logicalItem, StringComparison.Ordinal);

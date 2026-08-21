@@ -4,6 +4,7 @@ using NvtFwCombiner.Application.Diagnostics;
 using NvtFwCombiner.Application.ExternalTools;
 using NvtFwCombiner.Application.HexEditor;
 using NvtFwCombiner.Application.Ports;
+using NvtFwCombiner.Application.VersionManagement;
 using NvtFwCombiner.Infrastructure.Capabilities;
 using NvtFwCombiner.Infrastructure.Composition;
 using NvtFwCombiner.Infrastructure.Diagnostics;
@@ -11,6 +12,7 @@ using NvtFwCombiner.Infrastructure.ExternalTools;
 using NvtFwCombiner.Infrastructure.Files;
 using NvtFwCombiner.Infrastructure.Shell;
 using NvtFwCombiner.Infrastructure.Time;
+using NvtFwCombiner.Infrastructure.VersionManagement;
 
 namespace NvtFwCombiner.Bootstrap;
 
@@ -164,6 +166,42 @@ public sealed class CompositionHostServices
     public static ILocalFileStore CreateLocalFileStore()
     {
         return new LocalFileStore();
+    }
+
+    /// <summary>Creates the typed desktop managed-version use-case graph.</summary>
+    /// <param name="applicationVersion">Running canonical stable version.</param>
+    /// <param name="managedRoot">Optional stable managed root override.</param>
+    /// <param name="statePath">Optional launcher-state path override.</param>
+    /// <returns>One session-scoped version-management experience.</returns>
+    public static IVersionManagementExperience CreateVersionManagementExperience(
+        string applicationVersion,
+        string? managedRoot = null,
+        string? statePath = null)
+    {
+        ManagedAppVersion version = ManagedAppVersion.Parse(applicationVersion);
+        string root = managedRoot ?? ManagedInstallationLayout.ResolveManagedRoot(AppContext.BaseDirectory);
+        return new VersionManagementExperience(
+            version,
+            root,
+            new JsonVersionManagerStateStore(statePath ?? JsonVersionManagerStateStore.GetDefaultPath()),
+            new FileSystemUpdateCatalogSource(),
+            new FileSystemManagedVersionRepository());
+    }
+
+    /// <summary>Creates the inherited one-use app-side ready signal.</summary>
+    /// <returns>The platform ready-signal adapter.</returns>
+    public static IApplicationReadySignal CreateApplicationReadySignal()
+    {
+        return new InheritedPipeApplicationReadySignal();
+    }
+
+    /// <summary>Creates the exact stable-launcher shutdown handoff.</summary>
+    /// <param name="managedRoot">Optional stable managed root override.</param>
+    /// <returns>The constrained launcher handoff.</returns>
+    public static IStableLauncherHandoff CreateStableLauncherHandoff(string? managedRoot = null)
+    {
+        return new StableLauncherHandoff(
+            managedRoot ?? ManagedInstallationLayout.ResolveManagedRoot(AppContext.BaseDirectory));
     }
 
     /// <summary>Creates a focused current-session System Information lifecycle.</summary>

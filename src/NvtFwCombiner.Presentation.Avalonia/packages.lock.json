@@ -208,7 +208,8 @@
         "type": "Project",
         "dependencies": {
           "NvtFwCombiner.Contracts": "[0.10.5, )",
-          "NvtFwCombiner.Domain": "[0.10.5, )"
+          "NvtFwCombiner.Domain": "[0.10.5, )",
+          "NvtFwCombiner.VersionManagement.Application": "[0.10.5, )"
         }
       },
       "nvtfwcombiner.contracts": {
@@ -216,6 +217,12 @@
       },
       "nvtfwcombiner.domain": {
         "type": "Project"
+      },
+      "nvtfwcombiner.versionmanagement.application": {
+        "type": "Project",
+        "dependencies": {
+          "NvtFwCombiner.Contracts": "[0.10.5, )"
+        }
       }
     }
   }

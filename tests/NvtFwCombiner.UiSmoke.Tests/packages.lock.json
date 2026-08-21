@@ -365,7 +365,8 @@
         "type": "Project",
         "dependencies": {
           "NvtFwCombiner.Contracts": "[0.10.5, )",
-          "NvtFwCombiner.Domain": "[0.10.5, )"
+          "NvtFwCombiner.Domain": "[0.10.5, )",
+          "NvtFwCombiner.VersionManagement.Application": "[0.10.5, )"
         }
       },
       "nvtfwcombiner.bootstrap": {
@@ -388,7 +389,8 @@
           "NvtFwCombiner.Application": "[0.10.5, )",
           "NvtFwCombiner.Contracts": "[0.10.5, )",
           "NvtFwCombiner.Domain": "[0.10.5, )",
-          "NvtFwCombiner.Profiles": "[0.10.5, )"
+          "NvtFwCombiner.Profiles": "[0.10.5, )",
+          "NvtFwCombiner.VersionManagement.Infrastructure": "[0.10.5, )"
         }
       },
       "nvtfwcombiner.presentation.avalonia": {
@@ -414,6 +416,19 @@
         "dependencies": {
           "NvtFwCombiner.Application": "[0.10.5, )",
           "NvtFwCombiner.Infrastructure": "[0.10.5, )"
+        }
+      },
+      "nvtfwcombiner.versionmanagement.application": {
+        "type": "Project",
+        "dependencies": {
+          "NvtFwCombiner.Contracts": "[0.10.5, )"
+        }
+      },
+      "nvtfwcombiner.versionmanagement.infrastructure": {
+        "type": "Project",
+        "dependencies": {
+          "NvtFwCombiner.Contracts": "[0.10.5, )",
+          "NvtFwCombiner.VersionManagement.Application": "[0.10.5, )"
         }
       },
       "Avalonia": {

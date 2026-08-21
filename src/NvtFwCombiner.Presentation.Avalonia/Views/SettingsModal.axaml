@@ -12,13 +12,13 @@
   <Border
       Classes="modalSurface"
       Margin="24"
-      MaxWidth="1100"
+      MaxWidth="1500"
       MaxHeight="720"
       MinHeight="560"
       Padding="0"
       HorizontalAlignment="Stretch"
       VerticalAlignment="Center">
-    <Grid RowDefinitions="Auto,*,Auto">
+    <Grid RowDefinitions="Auto,*">
       <Grid Margin="24,20,24,16" ColumnDefinitions="*,Auto" ColumnSpacing="{DynamicResource NfcSpace16}">
         <StackPanel Spacing="{DynamicResource NfcSpace4}">
           <TextBlock Classes="modalTitle" Text="{Binding SettingsPreview.Title}" />
@@ -35,19 +35,12 @@
         </Button>
       </Grid>
 
-      <Border Grid.Row="1" BorderBrush="{DynamicResource NfcDividerBrush}" BorderThickness="0,1,0,1">
+      <Border Grid.Row="1" BorderBrush="{DynamicResource NfcDividerBrush}" BorderThickness="0,1,0,0">
         <ScrollViewer Margin="24,18" HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto">
           <ContentControl Content="{Binding}" ContentTemplate="{DynamicResource SettingsModalContentTemplate}" />
         </ScrollViewer>
       </Border>
 
-      <Button
-          Grid.Row="2"
-          Margin="24,16,24,18"
-          HorizontalAlignment="Right"
-          Classes="semanticAction secondary"
-          Command="{Binding CloseSettingsCommand}"
-          Content="{Binding Text.CloseLabel}" />
     </Grid>
   </Border>
 </UserControl>

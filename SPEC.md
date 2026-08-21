@@ -1176,10 +1176,10 @@ to each `0.10.x` version.
    `v0.10.3` as the complete remaining refactoring graph through #197,
    `v0.10.4` as its simplification audit plus the measured Home-window startup
    target whose stable package retained an explicit 700 ms miss, `v0.10.5` as
-   unified preload performance control, and
-   `v0.10.6` as a reserved configured-path update
-   experience whose detailed contract is still deferred. Release grouping
-   never bypasses dependency or evidence gates.
+   unified preload performance control, and `v0.10.6` as the configured-path
+   managed-version experience whose owner-approved contract is
+   `docs/specs/v0.10.6-version-management.md` and accepted ADR 0051.
+   Release grouping never bypasses dependency or evidence gates.
 4. A slice may introduce a compatibility adapter temporarily, but it must name
    the callers that remain and the evidence required for deletion. A permanent
    parallel owner is not an acceptable endpoint.
@@ -2526,14 +2526,116 @@ refactor, reviewed residual ledgers, and exact ratchet gates are complete.
 and measured the exact packaged Home startup against a 700 ms target without
 synchronously publishing the canonical catalog before the first window. The
 stable package retained the measured miss as an explicit residual. `v0.10.5`
-owns the broader
-performance work that unifies every preload behind one observable, cancellable,
-bounded, and user-controllable lifecycle; and `v0.10.6` reserves a configured-path
-update experience. The `v0.10.6` trust, rollback, version-selection,
-network/share, and release-policy contract remains owner-deferred and requires
-a later specification review before implementation tickets exist. These
-allocations do not change current ticket dependencies or authorize guessed
-scope.
+owns the broader performance work that unifies every preload behind one
+observable, cancellable, bounded, and user-controllable lifecycle; and
+`v0.10.6` owns the configured-path update experience.
+
+The owner approved the `v0.10.6` installation model on 2026-08-21: a stable
+launcher/updater remains outside side-by-side version directories; a candidate
+is staged and verified before its version directory is admitted; activation
+changes one host-owned active-version reference atomically and then relaunches
+the selected executable. The running executable is never overwritten in
+place. Verified locally installed versions remain selectable while the update
+source is offline, providing the basis for rollback. Development must first
+exercise discovery, install, switching, offline selection, and recovery using
+the isolated local source `artifacts/version-update-source-lab/` before any
+network-share trial. That workspace path is test infrastructure, not a shipped
+default or production authority.
+
+The owner approved content-based, location-independent source verification on
+2026-08-21. The configured update folder is the administrative trust boundary;
+moving the complete folder to another local path, drive letter, or UNC location
+must not invalidate identical content. A versioned catalog may use only safe
+relative paths and pins every admitted package by file name, byte length, and
+SHA-256. Admission also verifies the package's inner release manifest and
+closed file allowlist. `Verified` means these integrity and closed-package
+checks passed; it does not claim a publisher signature. `v0.10.6` adds no
+package signing or key-management system, and absolute source paths or folder
+names are never package identity.
+
+Launcher/update state is a separate versioned local document under the existing
+per-user application-data root. It owns the configured source, active-version
+reference, admitted installed-version inventory, and recovery journal. Those
+fields must not be added to the existing cross-version
+`preferences.v1.json` or `report-history.v1.json` documents: switching to an
+older application must not erase or reinterpret launcher state. Existing shell
+preference and report-history formats remain unchanged by the updater.
+
+The owner approved installed-version integrity inventory and explicit damaged
+cleanup on 2026-08-21. The Version page summarizes healthy and damaged installed
+counts. Opening or refreshing that page and every switch attempt verify the
+candidate managed version against its admitted package identity, inner release
+manifest, closed safe-relative-path allowlist, file lengths, and SHA-256. A
+missing, changed, unreadable, unsafe, or unexpected package file marks the
+version `Damaged`; a damaged version is never launchable or switchable.
+
+Every non-active installed version exposes an explicit trash-can icon so the
+user, not an automatic retention rule, chooses which version to remove. The
+destructive icon is red and also has localized text/tooltip, accessible name,
+keyboard operation, and explicit confirmation; meaning cannot depend on red
+alone. The active version is undeletable. Deleting the recorded last-known-good
+version is permitted only after an additional warning that automatic rollback
+will be unavailable until another version is recorded healthy. The launcher
+resolves and guards the exact version directory beneath its managed root before
+removal and must reject traversal, link/reparse escape, root, or outside-root
+targets.
+
+The default healthy installed-version retention reminder is `3`. It is a soft
+threshold, not a deletion limit. After a successful update makes the healthy
+installed count exceed three, the Version page prompts the user to review and
+optionally delete individually selected non-active versions. `Keep all` is a
+valid outcome and the successful update remains installed. No healthy or
+damaged installed version is pruned automatically. Damaged versions are listed
+separately and do not consume the healthy reminder count. Failed or cancelled
+staging is cleaned automatically; every installed-version deletion remains an
+explicit user action.
+
+The owner approved non-blocking startup discovery and explicit update consent
+on 2026-08-21. The usable main window is not gated by update-source access,
+catalog parsing, hashing, or package verification. After the main window is
+available, discovery runs in the background and projects its state through the
+typed update service. The update-source field's leading status segment shows
+the rotating progress ring while checking. Offline, unavailable, malformed, or
+unverified results update Version-page status only and never fail startup or
+open an interrupting dialog.
+
+Only a catalog entry newer than the running version whose catalog and package
+verification fully pass may open an update confirmation window. The dialog
+identifies the version, exposes its release notes, and offers Update or Later;
+installation never begins without Update consent. At most one automatic update
+prompt is shown per application session. Later suppresses further automatic
+prompts in that session without disabling manual Check now.
+
+The owner approved bounded activation readiness and automatic startup rollback
+on 2026-08-21. Activation remains pending until the selected application
+process reports an authenticated one-use ready handshake to its launcher after
+the usable main window and required local startup state are available. If the
+process cannot start, exits before ready, or misses the bounded ready deadline,
+the launcher atomically restores the recorded last-known-good reference and
+starts that version. The failed candidate is not recorded healthy or offered as
+switchable until repaired or reinstalled.
+
+Once ready succeeds, later runtime crashes do not trigger automatic version
+rollback. The user retains explicit Version-page switching. This prevents
+launcher crash-loop oscillation and defines ready as startup health rather than
+a claim that every later firmware workflow has succeeded.
+
+The owner approved the first-managed-distribution boundary on 2026-08-21. The
+`0.10.x` line is the internal upgrade, switching, and rollback proving ground;
+the final managed `1.0.0` package is the only initial version distributed to
+end users. No released `0.10.5` portable installation is converted in place and
+no one-time migration executable is built. The local lab may seed managed
+`0.10.x` fixtures to prove upgrade into `0.10.6` and later candidates using the
+same launcher and package contracts intended for `1.0.0`; that evidence does
+not claim self-adoption by an unmanaged portable directory.
+
+The detailed `v0.10.6` catalog bounds, configuration compatibility,
+retention/recovery, network/share behavior, layer ownership, and release impact
+are consolidated in owner-approved
+`docs/specs/v0.10.6-version-management.md` and accepted ADR 0051. No product
+behavior decision remains open; implementation and evidence proceed through the
+approved dependency ledger without changing earlier ticket dependencies or
+authorizing guessed scope.
 
 Historical NT51920/NT51931 DPCMI locator evidence (`0x3E014` and `0x3E018`)
 remains traceability-only. #177 does not migrate either IC, and #221 removes

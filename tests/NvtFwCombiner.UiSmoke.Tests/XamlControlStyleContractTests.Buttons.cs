@@ -191,7 +191,7 @@ public sealed partial class XamlControlStyleContractTests
                     element.Name.LocalName == "RadioButton" &&
                     ((string?)element.Attribute("Classes"))?.Split(' ').Contains("settingsNavItem") == true),
         ];
-        Assert.Equal(3, settingsNavigationItems.Length);
+        Assert.Equal(4, settingsNavigationItems.Length);
         Assert.All(settingsNavigationItems, static item =>
         {
             Assert.Null(item.Attribute("Theme"));

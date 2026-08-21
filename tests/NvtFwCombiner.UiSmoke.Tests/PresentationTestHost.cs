@@ -96,6 +96,38 @@ internal static class PresentationTestHost
         return CreateServices(applicationVersion, static authoring => authoring);
     }
 
+    internal static PresentationHostServices CreateServices(
+        string applicationVersion,
+        Application.VersionManagement.IVersionManagementExperience versionManagement)
+    {
+        ArgumentNullException.ThrowIfNull(versionManagement);
+        var externalEnvironment = new ExternalProcessorEnvironmentLoader(ExternalEnvironment.Value);
+        var host = CompositionHostServices.Create(externalEnvironment);
+        return new PresentationHostServices(
+            new PresentationCompositionServices(
+                host.CompositionCapabilityExperience,
+                host.StandardMergeAuthoring,
+                host.AbMergeAuthoring,
+                host.DpReplaceAuthoring,
+                host.GeneralAuthoring,
+                host.CtrlRamAuthoring,
+                host.FirmwareInspectionExperience,
+                host.CompositionOutputNaming,
+                host.CompositionExecution),
+            CompositionHostServices.CreateFileRevealService(),
+            host.CanonicalSupportMatrixQuery,
+            host.CreateSystemInformationService(applicationVersion),
+            CompositionHostServices.CreateSystemDiagnosticsExporter(),
+            host.RawBinaryEditorFileSessions,
+            host.CanonicalCatalogLoader,
+            host.ExternalEnvironmentLoader,
+            host.LocalFiles,
+            Application.VersionManagement.ManagedAppVersion.Parse(applicationVersion),
+            versionManagement,
+            applicationReadySignal: null,
+            stableLauncherHandoff: null);
+    }
+
     private static PresentationHostServices CreateServices(
         string applicationVersion,
         Func<IGeneralAuthoring, IGeneralAuthoring> generalAuthoringDecorator)

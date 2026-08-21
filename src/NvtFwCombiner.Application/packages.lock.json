@@ -7,6 +7,12 @@
       },
       "nvtfwcombiner.domain": {
         "type": "Project"
+      },
+      "nvtfwcombiner.versionmanagement.application": {
+        "type": "Project",
+        "dependencies": {
+          "NvtFwCombiner.Contracts": "[0.10.5, )"
+        }
       }
     }
   }

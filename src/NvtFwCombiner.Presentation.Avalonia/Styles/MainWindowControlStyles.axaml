@@ -646,4 +646,41 @@
     <Setter Property="Background" Value="{DynamicResource NfcCriticalSurfaceBrush}" />
     <Setter Property="BorderBrush" Value="{DynamicResource NfcCriticalBorderBrush}" />
   </Style>
+  <Style Selector="Border.versionCurrentSurface">
+    <Setter Property="Padding" Value="16" />
+    <Setter Property="Background" Value="{DynamicResource NfcAccentSurfaceSubtleBrush}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource NfcAccentBorderBrush}" />
+    <Setter Property="BorderThickness" Value="2" />
+    <Setter Property="CornerRadius" Value="{DynamicResource NfcCompactCornerRadius}" />
+  </Style>
+  <Style Selector="Border.versionSourceEditor">
+    <Setter Property="Background" Value="{DynamicResource NfcSurfaceBrush}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource NfcBorderBrush}" />
+    <Setter Property="BorderThickness" Value="2" />
+    <Setter Property="CornerRadius" Value="{DynamicResource NfcCompactCornerRadius}" />
+    <Setter Property="ClipToBounds" Value="True" />
+  </Style>
+  <Style Selector="Border.versionSourceEditor:focus-within">
+    <Setter Property="BorderBrush" Value="{DynamicResource NfcAccentBrush}" />
+  </Style>
+  <Style Selector="Border.versionSourceStatusSegment">
+    <Setter Property="Background" Value="{DynamicResource NfcAccentSurfaceSubtleBrush}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource NfcAccentBorderBrush}" />
+    <Setter Property="BorderThickness" Value="0,0,2,0" />
+  </Style>
+  <Style Selector="Border.versionTableSurface">
+    <Setter Property="Padding" Value="0" />
+    <Setter Property="BorderThickness" Value="2" />
+    <Setter Property="ClipToBounds" Value="True" />
+  </Style>
+  <Style Selector="Grid.versionTableHeader">
+    <Setter Property="Margin" Value="14,10" />
+    <Setter Property="Background" Value="{DynamicResource NfcSurfaceSubtleBrush}" />
+  </Style>
+  <Style Selector="Button.danger Path">
+    <Setter Property="Stroke" Value="{DynamicResource NfcDangerTextBrush}" />
+    <Setter Property="StrokeThickness" Value="1.6" />
+    <Setter Property="StrokeLineCap" Value="Round" />
+    <Setter Property="StrokeJoin" Value="Round" />
+  </Style>
 </Styles>

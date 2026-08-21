@@ -89,7 +89,10 @@ internal sealed partial class MainWindowViewModel
         }
 
         _deferredState.EnsureSettings(RefreshSettingsState);
-        Settings.SelectSectionCommand.Execute(SettingsSection.Preferences);
+        Settings.SelectSectionCommand.Execute(
+            Settings.IsVersionConfirmationOpen || Settings.HasRetentionReview
+                ? SettingsSection.Version
+                : SettingsSection.Preferences);
         IsSettingsModalOpen = true;
     }
 

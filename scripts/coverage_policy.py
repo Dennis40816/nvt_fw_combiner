@@ -29,14 +29,23 @@ DOTNET_LANGUAGE = "dotnet"
 PYTHON_LANGUAGE = "python"
 LANGUAGES = frozenset({DOTNET_LANGUAGE, PYTHON_LANGUAGE})
 PRODUCTION_MODULES = {
-    "Domain": Path("src/NvtFwCombiner.Domain"),
-    "Contracts": Path("src/NvtFwCombiner.Contracts"),
-    "Application": Path("src/NvtFwCombiner.Application"),
-    "Profiles": Path("src/NvtFwCombiner.Profiles"),
-    "Infrastructure": Path("src/NvtFwCombiner.Infrastructure"),
-    "Bootstrap": Path("src/NvtFwCombiner.Bootstrap"),
-    "Cli": Path("src/NvtFwCombiner.Cli"),
-    "PresentationAvalonia": Path("src/NvtFwCombiner.Presentation.Avalonia"),
+    "Domain": (Path("src/NvtFwCombiner.Domain"),),
+    "Contracts": (Path("src/NvtFwCombiner.Contracts"),),
+    "Application": (
+        Path("src/NvtFwCombiner.Application"),
+        Path("src/NvtFwCombiner.VersionManagement.Application"),
+    ),
+    "Profiles": (Path("src/NvtFwCombiner.Profiles"),),
+    "Infrastructure": (
+        Path("src/NvtFwCombiner.Infrastructure"),
+        Path("src/NvtFwCombiner.VersionManagement.Infrastructure"),
+    ),
+    "Bootstrap": (
+        Path("src/NvtFwCombiner.Bootstrap"),
+        Path("src/NvtFwCombiner.Launcher"),
+    ),
+    "Cli": (Path("src/NvtFwCombiner.Cli"),),
+    "PresentationAvalonia": (Path("src/NvtFwCombiner.Presentation.Avalonia"),),
 }
 RATCHET_MODULES = {name: PRODUCTION_MODULES[name] for name in ("Domain", "Application")}
 FULL_SHA_PATTERN = re.compile(r"^[0-9a-f]{40}$")
@@ -299,8 +308,11 @@ def repository_relative_coverage_source(
 
 def _module_name(relative_path: str, language: str) -> str | None:
     if language == DOTNET_LANGUAGE:
-        for name, directory in PRODUCTION_MODULES.items():
-            if relative_path.startswith(f"{directory.as_posix()}/"):
+        for name, directories in PRODUCTION_MODULES.items():
+            if any(
+                relative_path.startswith(f"{directory.as_posix()}/")
+                for directory in directories
+            ):
                 return name
         return None
     if relative_path.startswith(
@@ -991,10 +1003,11 @@ def verify_coverage(
     if language == DOTNET_LANGUAGE:
         inventory = parse_dotnet_cobertura_reports(report_path, root)
         changed = {
-            name: changed_module_lines(
-                root, baseline["changeBaseRevision"], module_path
+            name: sum(
+                changed_module_lines(root, baseline["changeBaseRevision"], module_path)
+                for module_path in module_paths
             )
-            for name, module_path in RATCHET_MODULES.items()
+            for name, module_paths in RATCHET_MODULES.items()
         }
     elif language == PYTHON_LANGUAGE:
         inventory = parse_python_coverage_report(report_path, root)

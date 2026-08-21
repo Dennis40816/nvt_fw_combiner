@@ -59,7 +59,8 @@ internal sealed partial class MainWindowViewModel
         Settings = new SettingsViewModel(
             appVersion,
             supportMatrixQuery ?? hostServices.SupportMatrix,
-            () => Text);
+            () => Text,
+            hostServices.VersionManagement);
         OutputDelivery = new OutputDeliveryConfirmationViewModel(
             _compositionServices.OutputNaming,
             () => Text);

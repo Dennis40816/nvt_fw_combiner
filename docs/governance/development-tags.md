@@ -81,12 +81,11 @@ commit.
   deterministic results, current cache identity, and the canonical verifier.
   ADR 0049 and the approved `v0.10.5` specification define the exact preload,
   preparation, typed-owner, progress, failure, and ticket boundaries.
-- `v0.10.6` — reserved path-based update experience: add a screen that can
-  obtain reviewed update artifacts from a configured path so routine delivery
-  no longer depends on repackaging and email. Trust source, rollback, version
-  selection, share/network behavior, and release authorization are intentionally
-  deferred to a later owner discussion; no implementation ticket is implied by
-  this reservation.
+- `v0.10.6` — configured-path managed version experience: prove the stable
+  launcher, side-by-side verified payloads, explicit install/switch/delete,
+  readiness rollback, offline selection, and unified Settings Version page
+  against an isolated local source. The owner-approved contract is
+  `docs/specs/v0.10.6-version-management.md` and accepted ADR 0051.
 
 ### Recorded `v0.10.2` pre-deletion comparison point
 
@@ -221,7 +220,7 @@ and cannot re-admit a retired IC.
 | `v0.10.3` | Complete canonical refactoring | Complete LAR-01 through LAR-12, close LAR-00, remove Workbench/renamed parallel owners, retain one production path per module, complete all four evidence-backed Canonical Core Convergence ledgers, lower exact ratchets, and pass #197 integration/evidence/release gates before tagging. |
 | `v0.10.4` | Post-refactor simplification audit | Re-measure the completed canonical architecture, identify any remaining removable or simplifiable ownership, and accept further changes only with preserved behavior, evidence, and descending size gates. |
 | `v0.10.5` | Unified preload performance control | Optimize startup and background work by making every preload use one observable, cancellable, bounded, and user-controllable lifecycle without changing firmware results or support truth. |
-| `v0.10.6` | Path-based update experience | Reserve a user-facing update flow that obtains reviewed artifacts from a configured path so routine delivery does not require repackaging and email. Exact trust, rollback, version, network/share, and release-policy behavior remains owner-deferred and unimplemented until a later specification review. |
+| `v0.10.6` | Managed version experience | Prove the owner-approved configured-folder, content-verified, side-by-side launcher flow with explicit install/switch/delete, startup rollback, offline access, and the unified Settings Version page. |
 | `v1.0.0` | stable | Signed-off support matrix. |
 
 ## First-sample `v1.0.0` release gate
@@ -282,7 +281,7 @@ v0.10.2         canonical desktop adoption and first compatibility deletion
 v0.10.3         complete canonical refactoring and reviewed convergence ledgers
 v0.10.4         post-refactor simplification and ownership audit
 v0.10.5         unified controllable preload performance lifecycle
-v0.10.6         reserved configured-path update experience
+v0.10.6         configured-path managed version experience
 v1.0.0          stable
 ```
 

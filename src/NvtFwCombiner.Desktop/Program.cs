@@ -1,5 +1,6 @@
 using NvtFwCombiner.Bootstrap;
 using NvtFwCombiner.Presentation.Avalonia;
+using NvtFwCombiner.Application.VersionManagement;
 
 namespace NvtFwCombiner.Desktop;
 
@@ -17,6 +18,7 @@ internal static class Program
     private static PresentationHostServices CreatePresentationHostServices()
     {
         var host = CompositionHostServices.Create();
+        ManagedAppVersion appVersion = ManagedAppVersion.Parse(DesktopApplication.InformationalVersion);
         return new PresentationHostServices(
             new PresentationCompositionServices(
                 host.CompositionCapabilityExperience,
@@ -35,6 +37,10 @@ internal static class Program
             host.RawBinaryEditorFileSessions,
             host.CanonicalCatalogLoader,
             host.ExternalEnvironmentLoader,
-            host.LocalFiles);
+            host.LocalFiles,
+            appVersion,
+            CompositionHostServices.CreateVersionManagementExperience(appVersion.ToString()),
+            CompositionHostServices.CreateApplicationReadySignal(),
+            CompositionHostServices.CreateStableLauncherHandoff());
     }
 }
