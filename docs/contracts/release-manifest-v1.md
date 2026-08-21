@@ -12,7 +12,7 @@ Rules:
 - `SHA256SUMS.txt` is the one canonical auxiliary inventory. It is strict UTF-8 without BOM and contains exactly one lowercase SHA-256 line for every manifest-listed file plus `RELEASE-MANIFEST.json`; it does not list itself. Missing, duplicate, malformed, mismatched, or extra lines fail package admission.
 - Owner-approved golden firmware fixtures use role `goldenFixture`; non-BIN reference evidence uses role `reference`.
 - Built-in profile/schema/processor digests also pin the aggregated embedded authority, while every separately shipped profile/capability/tool file remains independently listed and hashed.
-- The release packager, release smoke, managed installer, and installed-version verifier consume this same schema and closed inventory. Validation counts actual decompressed bytes, not only ZIP metadata.
+- The release packager validates the actual generated `RELEASE-MANIFEST.json` against this schema immediately after writing it and again after the final closed-package allowlist comparison, before ZIP creation. Release smoke, managed installer, and installed-version verifier consume this same schema and closed inventory. Validation counts actual decompressed bytes, not only ZIP metadata.
 - `licenseSpdx` is `MIT`.
 - Signing fields may be omitted only for explicitly approved unsigned beta/smoke packages.
 

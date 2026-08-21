@@ -47,6 +47,17 @@ only after the filesystem result is known. Startup/Settings re-entry reconciles
 an interrupted prepared mutation from exact inventory facts; it never guesses
 from a directory name.
 
+Every seed import, install, delete, activation, ready commit, rollback, and
+recovery mutation is also covered by one OS-backed cross-process writer lease.
+Its identity is the normalized exact state-file path plus normalized exact
+managed root. The owner acquires the lease before reading authority, reloads
+durable state after acquisition, and holds it through the complete filesystem
+or supervised process transaction and its terminal state save. A contending
+desktop/launcher receives a typed bounded `Busy`/`StateUnavailable` result and
+does not act from an earlier in-memory snapshot. Closing or terminating the
+owner process releases the operating-system file handle, so restart convergence
+does not depend on deleting a stale marker file.
+
 Installations stage and verify complete immutable payloads before same-volume
 promotion into `versions/<semver>`. Activation is also a durable state machine:
 `Requested` is persisted before desktop handoff, `CandidateLaunchRecorded`
@@ -78,6 +89,9 @@ can move without rewriting package identity.
 Installed versions are reverified before launch/switch and through Version-page
 inventory. Inventory distinguishes state-admitted versions from exact
 self-admitted recovery candidates and unknown/unadmitted directories. Only
+Application may classify a recovery candidate, and only when the healthy
+self-admission exactly equals the durable prepared-install admission. A valid
+self-admission with no matching prepared install remains unadmitted. Only
 state-admitted versions are healthy/damaged installed rows or ordinary delete/
 switch targets; other directories are shown as recovery-required and cannot
 enter normal actions. Damaged versions cannot launch. Every non-active admitted
@@ -129,6 +143,11 @@ first initial managed package supplied to end users; there is no unmanaged
   state that limitation honestly.
 - Source unavailability never blocks ordinary app startup. Package/install and
   delete mutations remain explicit, typed, and fail-closed.
+- The release packager validates its generated manifest against the canonical
+  schema after generation and again after the closed allowlist check, before
+  archive creation. Managed verification and installed inventory enforce the
+  same contract with actual expanded-byte counting; ZIP metadata is only an
+  early rejection hint.
 - No firmware, profile, support, report-wire, output, or Golden contract changes.
 
 ## Migration and release path

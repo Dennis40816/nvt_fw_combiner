@@ -21,21 +21,22 @@ real process ready/exit/timeout behavior, relocation, offline switching,
 rollback, explicit update consent, and non-stacking confirmations.
 
 The owner explicitly approved advancing this internal identity on 2026-08-21
-after the independent subagent reviewer could not be scheduled due to the agent
-thread limit. This is not an independent review pass. No 0.10.6 tag or public
-package is authorized; production signing, provenance migration, clean-Windows
-smoke, and release/security approval remain gates for the first public `1.0.0`.
+after the original independent reviewer could not be scheduled. A later
+independent R2 review failed the first candidate and then the first correction;
+both finding sets are now corrected and a final independent verdict is pending.
+No 0.10.6 tag or public package is authorized; production signing, provenance
+migration, clean-Windows smoke, and release/security approval remain gates for
+the first public `1.0.0`.
 
-Final local identity verification passes `python scripts/verify.py --all`:
-Python 390 run with 386 passing and four platform skips; CRC worker 30/30 with
-100% line/branch coverage; and .NET 3,765/3,765 with two platform skips,
-including Application 635, Infrastructure 532, Bootstrap 974, UI smoke 593,
-Architecture 216, and all
-17 Golden regressions. Aggregate .NET coverage is 88.86% lines and 79.08%
-branches; Application changed-module coverage is 94.11% lines and 82.46%
-branches. Fresh local-folder evidence passes catalog/package install, source
-relocation, 0.10.6 activation, offline switching, rollback/deletion guards, and
-published-launcher first-run plus complete managed-root relocation.
+Current correction-tree verification passes `python scripts/verify.py --all`:
+Python 391 with four platform skips; CRC worker 30/30 with 100% line/branch
+coverage; and .NET 3,831 total with 3,829 passing plus two platform skips,
+including Application 671, Infrastructure 549 plus two skips, Bootstrap 974, UI
+smoke 604, Architecture 216, and all 17 Golden regressions. Aggregate .NET
+coverage is 88.82% lines and 79.06% branches. Fresh local-folder evidence passes
+catalog/package install, source relocation, 0.10.6 activation, offline
+switching, rollback/deletion guards, and the freshly published stable launcher
+after complete managed-root relocation.
 
 ## 0.10.5 unified preload lifecycle release candidate
 
