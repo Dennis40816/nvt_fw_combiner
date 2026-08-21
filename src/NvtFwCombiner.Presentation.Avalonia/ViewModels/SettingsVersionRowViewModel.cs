@@ -17,10 +17,10 @@ internal sealed record SettingsVersionRowViewModel(
     string ReleaseNotes,
     SettingsVersionPrimaryAction PrimaryAction,
     string PrimaryActionLabel,
+    string DeleteActionLabel,
     bool IsActive,
     bool IsInstalled,
     bool IsDamaged,
-    bool IsVerified,
     bool CanDelete,
     bool IsLastKnownGood)
 {

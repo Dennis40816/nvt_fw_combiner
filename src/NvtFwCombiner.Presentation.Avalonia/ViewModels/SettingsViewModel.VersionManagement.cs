@@ -495,10 +495,10 @@ internal sealed partial class SettingsViewModel
                     : action == SettingsVersionPrimaryAction.Switch
                         ? Localize("Switch", "切換")
                         : Localize("Current", "目前版本"),
+                Localize($"Delete installed version {version}", $"刪除已安裝版本 {version}"),
                 active,
                 local is not null,
                 damaged,
-                verified,
                 local is not null && !active,
                 local?.IsLastKnownGood == true);
         }));

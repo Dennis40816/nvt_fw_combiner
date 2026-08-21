@@ -44,7 +44,7 @@
       <Grid ColumnDefinitions="*,Auto,Auto" ColumnSpacing="{DynamicResource NfcSpace8}">
         <Border Classes="versionSourceEditor">
           <Grid ColumnDefinitions="42,*,Auto,Auto" ColumnSpacing="0">
-            <Border Classes="versionSourceStatusSegment" ToolTip.Tip="{Binding Settings.SourceStatusText}">
+            <Border AutomationProperties.AccessibilityView="Content" AutomationProperties.Name="{Binding Settings.SourceStatusText}" Classes="versionSourceStatusSegment" ToolTip.Tip="{Binding Settings.SourceStatusText}">
               <Grid>
                 <ProgressBar
                     Width="20"

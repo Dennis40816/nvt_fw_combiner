@@ -226,12 +226,12 @@
         MinHeight="32"
         MinWidth="32"
         VerticalAlignment="Center"
-        AutomationProperties.Name="Delete installed version"
+        AutomationProperties.Name="{Binding DeleteActionLabel}"
         Classes="semanticAction iconButton danger"
         Command="{ReflectionBinding $parent[Window].DataContext.Settings.RequestDeleteVersionCommand}"
         CommandParameter="{Binding}"
         IsVisible="{Binding CanDelete}"
-        ToolTip.Tip="Delete installed version">
+        ToolTip.Tip="{Binding DeleteActionLabel}">
       <Path Width="14" Height="14" Data="M3 4H13 M6 4V2H10V4 M5 6V13 M8 6V13 M11 6V13 M4 4L5 15H11L12 4Z" Stretch="Uniform" />
     </Button>
   </Grid>

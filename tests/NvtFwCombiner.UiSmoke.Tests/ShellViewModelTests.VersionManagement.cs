@@ -85,6 +85,30 @@ public sealed class VersionManagementSettingsTests
         Assert.NotEqual("Offline", viewModel.Settings.SourceStatusText);
     }
 
+    /// <summary>Delete icon names include the target version and follow the selected language.</summary>
+    [Fact]
+    public void DeleteActionAccessibleLabelIsVersionSpecificAndLocalized()
+    {
+        var experience = new RecordingVersionExperience(Snapshot(retentionReviewDue: false));
+        MainWindowViewModel viewModel = MainWindow.CreateStartupViewModel(
+            PresentationTestHost.CreateServices("0.10.5", experience),
+            ShellPreferenceSnapshot.Default);
+        viewModel.Settings.ApplyVersionSnapshot(experience.Current);
+        viewModel.OpenSettingsCommand.Execute(null);
+
+        SettingsVersionRowViewModel english = Assert.Single(
+            viewModel.Settings.VersionRows,
+            row => row.Version == ManagedAppVersion.Parse("0.10.4"));
+        Assert.Equal("Delete installed version 0.10.4", english.DeleteActionLabel);
+
+        viewModel.SelectedLanguage = "Traditional Chinese";
+
+        SettingsVersionRowViewModel chinese = Assert.Single(
+            viewModel.Settings.VersionRows,
+            row => row.Version == ManagedAppVersion.Parse("0.10.4"));
+        Assert.Equal("刪除已安裝版本 0.10.4", chinese.DeleteActionLabel);
+    }
+
     private static VersionManagementSnapshot Snapshot(bool retentionReviewDue)
     {
         ManagedVersionAdmission[] admissions =

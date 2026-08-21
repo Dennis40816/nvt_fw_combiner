@@ -97,4 +97,37 @@ public sealed partial class XamlControlStyleContractTests
         Assert.Contains("shellInteractionHost.IsHitTestVisible = interactive;", codeBehind, StringComparison.Ordinal);
         Assert.Contains("AutomationProperties.Name=\"{Binding SettingsPreview.Title}\"", modal, StringComparison.Ordinal);
     }
+
+    /// <summary>Version status and destructive icons expose localized non-color-only accessible names.</summary>
+    [Fact]
+    public void SettingsVersionIconsUseBoundAccessibleNamesAndTooltips()
+    {
+        string versionPage = ReadPresentationFile("Resources/SettingsVersionPageTemplate.axaml");
+        string sharedPages = ReadPresentationFile("Resources/MainWindowPageTemplates.axaml");
+
+        Assert.Contains(
+            "AutomationProperties.AccessibilityView=\"Content\"",
+            versionPage,
+            StringComparison.Ordinal);
+        Assert.Contains(
+            "AutomationProperties.Name=\"{Binding Settings.SourceStatusText}\"",
+            versionPage,
+            StringComparison.Ordinal);
+        Assert.Contains(
+            "ToolTip.Tip=\"{Binding Settings.SourceStatusText}\"",
+            versionPage,
+            StringComparison.Ordinal);
+        Assert.Contains(
+            "AutomationProperties.Name=\"{Binding DeleteActionLabel}\"",
+            sharedPages,
+            StringComparison.Ordinal);
+        Assert.Contains(
+            "ToolTip.Tip=\"{Binding DeleteActionLabel}\"",
+            sharedPages,
+            StringComparison.Ordinal);
+        Assert.DoesNotContain(
+            "AutomationProperties.Name=\"Delete installed version\"",
+            sharedPages,
+            StringComparison.Ordinal);
+    }
 }
