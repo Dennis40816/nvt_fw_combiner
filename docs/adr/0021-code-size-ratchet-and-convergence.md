@@ -595,6 +595,35 @@ bytes. DP Replace naming changes only the six recorded safe typed publications;
 all unresolved provider, NT51928, CtrlRAM, and General naming gates remain
 fail-closed under their recorded authority.
 
+### 2026-08-22 v0.10.6 independent-R2 correction amendment
+
+The fixed independent review of `e1212c11..67a83a23` found four P1 and three P2
+cross-boundary defects in the internal managed-version candidate. The required
+correction converges the managed verifier with the production release manifest,
+adds actual-byte decompression limits, durable install/delete/activation
+recovery, admitted versus recovery inventory, launcher-handoff failure
+retention, exact runtime catalog schema admission, and the approved reduced-
+motion checking ring. These are corrections to the already approved v0.10.6
+scope, not a reusable feature-growth budget.
+
+Relative to reviewed HEAD `67a83a23`, the exact physical production ledger is
+1,655 nonblank lines added and 318 removed, net +1,337. Full production changes
+from 107,237 to 108,574 and runtime changes from 73,555 to 74,635. Domain plus
+Profiles remains 20,632; Application changes from 32,493 to 33,041 (+548);
+Bootstrap plus CLI plus Desktop host changes from 3,501 to 3,502 (+1);
+Infrastructure plus Contracts plus CRC worker changes from 16,929 to 17,460
+(+531); Presentation accounts for the remaining +257.
+
+The executable allowances therefore become exactly 5,677 full production,
+4,578 runtime, 2,350 Application, 124 Bootstrap/CLI/Desktop host, and 2,104
+Infrastructure/Contracts/worker above the frozen pre-v0.10.6 base ratchets.
+They are non-transferable and become exact descending ceilings immediately.
+This amendment changes no firmware profile, range, output byte, CRC/header,
+processor, support, or Golden authority. It also does not close the separate
+repository-wide unused-module and code-size investigation TODO; that audit must
+still identify removable ownership and lower these ratchets in its own reviewed
+change.
+
 ## Consequences
 
 - `v0.9.8` must remove duplicate ownership and unused compatibility code before
