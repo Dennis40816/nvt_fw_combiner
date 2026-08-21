@@ -74,6 +74,8 @@ public enum ManagedLauncherOutcome
     StartFailed,
     /// <summary>A required durable activation phase could not be committed.</summary>
     StateUnavailable,
+    /// <summary>Another application or launcher owns the version-manager transaction.</summary>
+    Busy,
 }
 
 /// <summary>Stable launcher outcome with selected and optional failed versions.</summary>
@@ -87,6 +89,8 @@ public sealed class ManagedActivationCoordinator
 {
     /// <summary>The bounded default main-window ready deadline.</summary>
     public static readonly TimeSpan DefaultReadyDeadline = TimeSpan.FromSeconds(20);
+    /// <summary>Bounded wait for another process to release the exact writer lease.</summary>
+    public static readonly TimeSpan DefaultWriterLeaseTimeout = TimeSpan.FromSeconds(5);
 
     private readonly string _managedRoot;
     private readonly IManagedApplicationProcess _process;
@@ -121,6 +125,19 @@ public sealed class ManagedActivationCoordinator
     /// <returns>The stable launcher result.</returns>
     public async ValueTask<ManagedLauncherResult> RunAsync(CancellationToken cancellationToken)
     {
+        using VersionManagerWriteLeaseResult lease = await _stateStore.TryAcquireWriteLeaseAsync(
+            _managedRoot,
+            DefaultWriterLeaseTimeout,
+            cancellationToken).ConfigureAwait(false);
+        if (!lease.IsAcquired)
+        {
+            return new(
+                lease.Issue == VersionManagerWriteLeaseIssue.Busy
+                    ? ManagedLauncherOutcome.Busy
+                    : ManagedLauncherOutcome.StateUnavailable,
+                null,
+                null);
+        }
         VersionManagerStateLoadResult loaded = await _stateStore.LoadAsync(cancellationToken).ConfigureAwait(false);
         if (!loaded.IsSuccess)
         {

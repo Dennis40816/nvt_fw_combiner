@@ -1,4 +1,5 @@
 using NvtFwCombiner.Application.VersionManagement;
+using NvtFwCombiner.TestSupport;
 
 namespace NvtFwCombiner.Application.Tests.VersionManagement;
 
@@ -13,6 +14,14 @@ public sealed partial class VersionManagementExperienceTests
         internal int SaveCount => _saveCount;
 
         internal VersionManagerState State { get; private set; } = state;
+
+        public ValueTask<VersionManagerWriteLeaseResult> TryAcquireWriteLeaseAsync(
+            string managedRoot,
+            TimeSpan waitTimeout,
+            CancellationToken cancellationToken)
+        {
+            return ValueTask.FromResult(VersionManagerWriteLeaseTestSupport.Acquired());
+        }
 
         public ValueTask<VersionManagerStateLoadResult> LoadAsync(CancellationToken cancellationToken)
         {
@@ -124,7 +133,7 @@ public sealed partial class VersionManagementExperienceTests
                     lastKnownGoodVersion == pair.Key,
                     isAdmitted
                         ? ManagedVersionAdmissionState.Admitted
-                        : ManagedVersionAdmissionState.RecoveryCandidate,
+                        : ManagedVersionAdmissionState.Unadmitted,
                     identity);
             })));
         }
@@ -136,6 +145,11 @@ public sealed partial class VersionManagementExperienceTests
             CancellationToken cancellationToken)
         {
             DeleteCalls++;
+            if (DeleteIssue == ManagedVersionDeleteIssue.NotInstalled)
+            {
+                _ = _installed.Remove(admission.Version);
+                return ValueTask.FromResult(ManagedVersionDeleteIssue.NotInstalled);
+            }
             return ValueTask.FromResult(DeleteIssue != ManagedVersionDeleteIssue.None
                 ? DeleteIssue
                 : _installed.Remove(admission.Version)

@@ -33,6 +33,7 @@ internal static class ManagedPackageVerifier
     internal static async ValueTask<ManagedPackagePlanResult> CreatePlanAsync(
         ZipArchive archive,
         UpdateCatalogVersionSnapshot package,
+        long maximumExpandedBytes,
         CancellationToken cancellationToken)
     {
         if (archive.Entries.Count is 0 or > FileSystemManagedVersionRepository.MaximumArchiveEntries)
@@ -71,7 +72,7 @@ internal static class ManagedPackageVerifier
             }
 
             expandedBytes = checked(expandedBytes + entry.Length);
-            if (expandedBytes > FileSystemManagedVersionRepository.MaximumExpandedBytes)
+            if (expandedBytes > maximumExpandedBytes)
             {
                 return Failure(ManagedVersionInstallIssue.UnsafeArchive);
             }
@@ -83,8 +84,7 @@ internal static class ManagedPackageVerifier
             return Failure(ManagedVersionInstallIssue.InvalidPayload);
         }
 
-        var verificationBudget = new ExpandedByteBudget(
-            FileSystemManagedVersionRepository.MaximumExpandedBytes);
+        var verificationBudget = new ExpandedByteBudget(maximumExpandedBytes);
         using var manifestBuffer = new MemoryStream(
             capacity: checked((int)Math.Min(
                 manifestEntry.Length,
@@ -184,10 +184,10 @@ internal static class ManagedPackageVerifier
     internal static async ValueTask ExtractAsync(
         ManagedPackagePlan plan,
         string stagingDirectory,
+        long maximumExpandedBytes,
         CancellationToken cancellationToken)
     {
-        var extractionBudget = new ExpandedByteBudget(
-            FileSystemManagedVersionRepository.MaximumExpandedBytes);
+        var extractionBudget = new ExpandedByteBudget(maximumExpandedBytes);
         var expectedFiles =
             plan.Manifest.Files!.ToDictionary(file => file.Path, StringComparer.OrdinalIgnoreCase);
         foreach ((string relativePath, ZipArchiveEntry entry) in plan.Entries)
@@ -255,6 +255,7 @@ internal static class ManagedPackageVerifier
     internal static async ValueTask<ManagedVersionDamageReason?> VerifyInstalledAsync(
         string versionRoot,
         ManagedVersionAdmission admission,
+        long maximumExpandedBytes,
         CancellationToken cancellationToken)
     {
         try
@@ -324,8 +325,7 @@ internal static class ManagedPackageVerifier
                 return ManagedVersionDamageReason.ManifestMismatch;
             }
 
-            var installedBudget = new ExpandedByteBudget(
-                FileSystemManagedVersionRepository.MaximumExpandedBytes);
+            var installedBudget = new ExpandedByteBudget(maximumExpandedBytes);
             if (!installedBudget.Consume(manifestBytes.Length) ||
                 !installedBudget.Consume(checksumBytes.Length))
             {

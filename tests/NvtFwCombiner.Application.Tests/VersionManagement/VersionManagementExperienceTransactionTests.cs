@@ -110,6 +110,33 @@ public sealed partial class VersionManagementExperienceTests
         Assert.Equal(1, result.Snapshot.Inventory.UnadmittedCount);
     }
 
+    /// <summary>A valid self-admission without the exact pending install remains unadmitted.</summary>
+    [Fact]
+    public async Task ValidSelfAdmissionWithoutPendingInstallRemainsUnadmitted()
+    {
+        VersionManagerState initial = State(
+            [Admission("0.10.5")],
+            active: "0.10.5",
+            lastKnownGood: "0.10.5");
+        var repository = new TransactionRepository(
+            [.. initial.Admissions, Admission("0.10.6")]);
+        using var experience = new VersionManagementExperience(
+            ManagedAppVersion.Parse("0.10.5"),
+            "managed-root",
+            new MemoryStateStore(initial),
+            new FixedCatalogSource(Catalog("0.10.6")),
+            repository);
+
+        VersionManagementSnapshot snapshot = await experience.InitializeAsync(
+            TestContext.Current.CancellationToken);
+
+        InstalledVersionSnapshot observed = Assert.IsType<InstalledVersionSnapshot>(
+            snapshot.Inventory.Find(ManagedAppVersion.Parse("0.10.6")));
+        Assert.Equal(ManagedVersionAdmissionState.Unadmitted, observed.AdmissionState);
+        Assert.Equal(Admission("0.10.6"), observed.ObservedAdmission);
+        Assert.Null(snapshot.State!.PendingMutation);
+    }
+
     /// <summary>A failed install-prepare save prevents the repository mutation from starting.</summary>
     [Fact]
     public async Task InstallPrepareSaveFailureStartsNoRepositoryMutation()
@@ -341,7 +368,7 @@ public sealed partial class VersionManagementExperienceTests
 
         Assert.Equal(pending, blocked.State!.PendingMutation?.Admission);
         Assert.DoesNotContain(blocked.State.Admissions, item => item.Version == pending.Version);
-        Assert.Equal(ManagedVersionAdmissionState.RecoveryCandidate, blocked.Inventory.Find(pending.Version)?.AdmissionState);
+        Assert.Equal(ManagedVersionAdmissionState.Unadmitted, blocked.Inventory.Find(pending.Version)?.AdmissionState);
         Assert.Equal(0, stateStore.SaveCount);
     }
 
@@ -370,6 +397,82 @@ public sealed partial class VersionManagementExperienceTests
         Assert.Equal(VersionDeleteOperationIssue.StateUnavailable, result.OperationIssue);
         Assert.Equal(0, repository.DeleteCalls);
         Assert.Null(stateStore.State.PendingMutation);
+    }
+
+    /// <summary>An initial delete treats an already absent exact target as committed.</summary>
+    [Fact]
+    public async Task InitialJournaledDeleteCommitsWhenTargetAlreadyDisappeared()
+    {
+        VersionManagerState initial = State(
+            [Admission("0.10.5"), Admission("0.10.4")],
+            active: "0.10.5",
+            lastKnownGood: "0.10.5");
+        var stateStore = new MemoryStateStore(initial);
+        var repository = new TransactionRepository(initial.Admissions)
+        {
+            DeleteIssue = ManagedVersionDeleteIssue.NotInstalled,
+        };
+        using var experience = new VersionManagementExperience(
+            ManagedAppVersion.Parse("0.10.5"),
+            "managed-root",
+            stateStore,
+            new FixedCatalogSource(Catalog("0.10.6")),
+            repository);
+
+        VersionDeleteOperationResult result = await experience.DeleteAsync(
+            ManagedAppVersion.Parse("0.10.4"),
+            rollbackLossConfirmed: false,
+            TestContext.Current.CancellationToken);
+
+        Assert.Equal(VersionDeleteOperationIssue.None, result.OperationIssue);
+        Assert.Equal(ManagedVersionDeleteIssue.NotInstalled, result.RepositoryIssue);
+        Assert.DoesNotContain(result.Snapshot.State!.Admissions, admission =>
+            admission.Version == ManagedAppVersion.Parse("0.10.4"));
+        Assert.Null(result.Snapshot.State.PendingMutation);
+        Assert.Equal(2, stateStore.SaveCount);
+    }
+
+    /// <summary>An absent delete target converges after its commit save fails and the app restarts.</summary>
+    [Fact]
+    public async Task AlreadyAbsentDeleteCommitSaveFailureConvergesOnRestart()
+    {
+        VersionManagerState initial = State(
+            [Admission("0.10.5"), Admission("0.10.4")],
+            active: "0.10.5",
+            lastKnownGood: "0.10.5");
+        var stateStore = new FailingStateStore(initial, failOnSave: 2);
+        var repository = new TransactionRepository(initial.Admissions)
+        {
+            DeleteIssue = ManagedVersionDeleteIssue.NotInstalled,
+        };
+        using (var first = new VersionManagementExperience(
+                   ManagedAppVersion.Parse("0.10.5"),
+                   "managed-root",
+                   stateStore,
+                   new FixedCatalogSource(Catalog("0.10.6")),
+                   repository))
+        {
+            VersionDeleteOperationResult interrupted = await first.DeleteAsync(
+                ManagedAppVersion.Parse("0.10.4"),
+                rollbackLossConfirmed: false,
+                TestContext.Current.CancellationToken);
+            Assert.Equal(VersionDeleteOperationIssue.StateUnavailable, interrupted.OperationIssue);
+            Assert.Equal(ManagedVersionMutationKind.Delete, stateStore.State.PendingMutation?.Kind);
+        }
+
+        using var restarted = new VersionManagementExperience(
+            ManagedAppVersion.Parse("0.10.5"),
+            "managed-root",
+            stateStore,
+            new FixedCatalogSource(Catalog("0.10.6")),
+            repository);
+        VersionManagementSnapshot recovered = await restarted.InitializeAsync(
+            TestContext.Current.CancellationToken);
+
+        Assert.Null(recovered.State!.PendingMutation);
+        Assert.DoesNotContain(recovered.State.Admissions, admission =>
+            admission.Version == ManagedAppVersion.Parse("0.10.4"));
+        Assert.Equal(2, repository.DeleteCalls);
     }
 
     /// <summary>A restart after delete prepare but before mutation performs the exact guarded delete.</summary>

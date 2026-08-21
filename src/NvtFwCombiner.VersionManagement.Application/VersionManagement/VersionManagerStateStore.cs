@@ -38,9 +38,62 @@ public readonly record struct VersionManagerStateSaveResult(VersionManagerStateS
     public bool IsSuccess => Issue == VersionManagerStateSaveIssue.None;
 }
 
+/// <summary>Stable outcome from acquiring the one cross-process version-manager writer.</summary>
+public enum VersionManagerWriteLeaseIssue
+{
+    /// <summary>The caller exclusively owns the exact managed-root/state pair.</summary>
+    None,
+    /// <summary>Another application or launcher process currently owns the pair.</summary>
+    Busy,
+    /// <summary>The platform could not create or inspect the writer lease.</summary>
+    Unavailable,
+}
+
+/// <summary>Exclusive cross-process ownership held across one complete state/filesystem/process transaction.</summary>
+public sealed class VersionManagerWriteLeaseResult : IDisposable
+{
+    private readonly IDisposable? _lease;
+
+    /// <summary>Creates one typed lease result.</summary>
+    public VersionManagerWriteLeaseResult(
+        VersionManagerWriteLeaseIssue issue,
+        IDisposable? lease = null)
+    {
+        bool succeeded = issue == VersionManagerWriteLeaseIssue.None;
+        if (succeeded != (lease is not null))
+        {
+            throw new ArgumentException("A successful writer lease must own exactly one handle.", nameof(lease));
+        }
+        Issue = issue;
+        _lease = lease;
+    }
+
+    /// <summary>Gets the acquisition result.</summary>
+    public VersionManagerWriteLeaseIssue Issue { get; }
+
+    /// <summary>Gets whether this result owns the exclusive writer lease.</summary>
+    public bool IsAcquired => Issue == VersionManagerWriteLeaseIssue.None;
+
+    /// <inheritdoc />
+    public void Dispose()
+    {
+        _lease?.Dispose();
+    }
+}
+
 /// <summary>Atomic persistence port for launcher-owned managed-version state.</summary>
 public interface IVersionManagerStateStore
 {
+    /// <summary>Tries to own the exact managed-root/state pair across one complete transaction.</summary>
+    /// <param name="managedRoot">Stable launcher-owned managed root.</param>
+    /// <param name="waitTimeout">Maximum bounded contention wait.</param>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    /// <returns>An exclusive lease or a typed busy/unavailable outcome.</returns>
+    ValueTask<VersionManagerWriteLeaseResult> TryAcquireWriteLeaseAsync(
+        string managedRoot,
+        TimeSpan waitTimeout,
+        CancellationToken cancellationToken);
+
     /// <summary>Loads state without guessing missing version identities.</summary>
     /// <param name="cancellationToken">Cancellation token.</param>
     /// <returns>The fail-closed state result.</returns>

@@ -60,6 +60,36 @@ public sealed partial class FileSystemManagedVersionRepositoryTests
                      Directory.EnumerateFileSystemEntries(Path.Combine(managedRoot, ".staging")).Any());
     }
 
+    /// <summary>A healthy self-admission alone is observed evidence, not committed authority.</summary>
+    [Fact]
+    public async Task HealthySelfAdmissionWithoutCommittedStateIsOnlyObservedUnadmittedFact()
+    {
+        using var workspace = TempWorkspace.Create();
+        string sourceRoot = workspace.PathFor("source");
+        string managedRoot = workspace.PathFor("managed");
+        UpdateCatalogVersionSnapshot package = CreatePackage(sourceRoot, "0.10.6");
+        var repository = new FileSystemManagedVersionRepository();
+        ManagedVersionInstallResult installed = await repository.InstallAsync(
+            managedRoot,
+            sourceRoot,
+            package,
+            TestContext.Current.CancellationToken);
+
+        ManagedVersionInventory observed = await repository.InventoryAsync(
+            managedRoot,
+            admissions: [],
+            activeVersion: null,
+            lastKnownGoodVersion: null,
+            failedActivationVersion: null,
+            TestContext.Current.CancellationToken);
+
+        InstalledVersionSnapshot row = Assert.Single(observed.Versions);
+        Assert.True(installed.IsSuccess);
+        Assert.Equal(ManagedVersionAdmissionState.Unadmitted, row.AdmissionState);
+        Assert.Equal(installed.Admission, row.ObservedAdmission);
+        Assert.Equal(ManagedVersionIntegrity.Healthy, row.Integrity);
+    }
+
     /// <summary>Package verification is content-bound and survives moving the complete source folder.</summary>
     [Fact]
     public async Task PackageVerificationSurvivesUpdateSourceFolderRelocation()

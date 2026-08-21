@@ -624,6 +624,30 @@ repository-wide unused-module and code-size investigation TODO; that audit must
 still identify removable ownership and lower these ratchets in its own reviewed
 change.
 
+### 2026-08-22 v0.10.6 second independent-R2 correction amendment
+
+The independent review of the first correction boundary
+`67a83a23..6ca27508` confirmed the original seven findings but exposed one P1
+cross-process writer race plus four P2 convergence/evidence gaps. Closing that
+fixed review scope adds the exact state-path plus managed-root OS writer lease,
+durable reload after lease acquisition, idempotent already-absent delete,
+Application-owned recovery classification, production packager schema
+evaluation, and real-adapter underreported-ZIP/installed aggregate-byte tests.
+
+Relative to first-correction HEAD `6ca27508`, the exact physical production
+ledger grows by 302 nonblank lines. Full production changes from 108,574 to
+108,876 and runtime changes from 74,635 to 74,937. Domain plus Profiles remains
+20,632; Application changes from 33,041 to 33,225 (+184); Bootstrap plus CLI plus
+Desktop host changes from 3,502 to 3,503 (+1); and Infrastructure plus Contracts
+plus CRC worker changes from 17,460 to 17,577 (+117). Presentation is unchanged.
+
+The executable allowances therefore become exactly 5,979 full production,
+4,880 runtime, 2,534 Application, 125 Bootstrap/CLI/Desktop host, and 2,221
+Infrastructure/Contracts/worker above the frozen pre-v0.10.6 base ratchets.
+They are non-transferable exact descending ceilings. This correction changes no
+firmware/profile/range/output/CRC/processor/support/Golden authority and does not
+close the separate unused-module and repository-size investigation.
+
 ## Consequences
 
 - `v0.9.8` must remove duplicate ownership and unused compatibility code before

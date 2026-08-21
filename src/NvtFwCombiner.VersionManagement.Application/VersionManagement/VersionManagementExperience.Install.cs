@@ -12,7 +12,17 @@ public sealed partial class VersionManagementExperience
         try
         {
             SupersedeRunningCheck();
-            VersionManagementSnapshot current = await RequireCurrentWithoutLockAsync(cancellationToken).ConfigureAwait(false);
+            using VersionManagerWriteLeaseResult lease = await AcquireWriteLeaseAsync(
+                TimeSpan.Zero,
+                cancellationToken).ConfigureAwait(false);
+            if (!lease.IsAcquired)
+            {
+                return new(
+                    new(null, ManagedVersionInstallIssue.StateUnavailable, WasAlreadyInstalled: false),
+                    PublishStateUnavailable());
+            }
+            VersionManagementSnapshot current = await ReloadDurableCurrentWithoutLockAsync(cancellationToken)
+                .ConfigureAwait(false);
             VersionManagerState state = current.State ?? throw InvalidState();
             if (state.PendingMutation is not null)
             {

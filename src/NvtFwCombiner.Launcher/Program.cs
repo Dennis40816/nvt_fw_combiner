@@ -47,6 +47,7 @@ internal static class Program
                 ManagedLauncherOutcome.DamagedVersion => 12,
                 ManagedLauncherOutcome.StartFailed => 13,
                 ManagedLauncherOutcome.StateUnavailable => 14,
+                ManagedLauncherOutcome.Busy => 15,
                 _ => 99,
             };
         }

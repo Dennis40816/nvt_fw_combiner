@@ -22,6 +22,7 @@ public enum ManagedVersionSeedOutcome
 /// <summary>Creates first-run launcher state only from one explicit verified packaged seed.</summary>
 public sealed class ManagedVersionSeedBootstrapper
 {
+    private static readonly TimeSpan WriterLeaseTimeout = TimeSpan.FromSeconds(5);
     private readonly IVersionManagerStateStore _destinationStateStore;
     private readonly string _managedRoot;
     private readonly IManagedVersionRepository _repository;
@@ -46,6 +47,14 @@ public sealed class ManagedVersionSeedBootstrapper
     public async ValueTask<ManagedVersionSeedOutcome> EnsureInitializedAsync(
         CancellationToken cancellationToken)
     {
+        using VersionManagerWriteLeaseResult lease = await _destinationStateStore.TryAcquireWriteLeaseAsync(
+            _managedRoot,
+            WriterLeaseTimeout,
+            cancellationToken).ConfigureAwait(false);
+        if (!lease.IsAcquired)
+        {
+            return ManagedVersionSeedOutcome.StateUnavailable;
+        }
         VersionManagerStateLoadResult existing = await _destinationStateStore.LoadAsync(cancellationToken)
             .ConfigureAwait(false);
         if (existing.IsSuccess)

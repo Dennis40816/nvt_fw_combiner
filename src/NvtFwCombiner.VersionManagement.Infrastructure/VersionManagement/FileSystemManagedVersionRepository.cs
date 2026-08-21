@@ -24,6 +24,19 @@ public sealed class FileSystemManagedVersionRepository : IManagedVersionReposito
         WriteIndented = true,
     };
     private static readonly VersionManagementJsonContext AdmissionJsonContext = new(AdmissionJsonOptions);
+    private readonly long _maximumExpandedBytes;
+
+    /// <summary>Creates the production repository with the owner-approved 512 MiB expanded-byte ceiling.</summary>
+    public FileSystemManagedVersionRepository()
+        : this(MaximumExpandedBytes)
+    {
+    }
+
+    internal FileSystemManagedVersionRepository(long maximumExpandedBytes)
+    {
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(maximumExpandedBytes);
+        _maximumExpandedBytes = maximumExpandedBytes;
+    }
 
     /// <inheritdoc />
     public async ValueTask<ManagedPackageVerificationResult> VerifyPackageAsync(
@@ -53,6 +66,7 @@ public sealed class FileSystemManagedVersionRepository : IManagedVersionReposito
             ManagedPackagePlanResult plan = await ManagedPackageVerifier.CreatePlanAsync(
                 archive,
                 package,
+                _maximumExpandedBytes,
                 cancellationToken).ConfigureAwait(false);
             return plan.IsSuccess
                 ? new(new(package.Version, package.Identity, package.ReleaseNotes), ManagedVersionInstallIssue.None)
@@ -103,6 +117,7 @@ public sealed class FileSystemManagedVersionRepository : IManagedVersionReposito
             ManagedPackagePlanResult planResult = await ManagedPackageVerifier.CreatePlanAsync(
                 archive,
                 package,
+                _maximumExpandedBytes,
                 cancellationToken).ConfigureAwait(false);
             if (!planResult.IsSuccess)
             {
@@ -143,6 +158,7 @@ public sealed class FileSystemManagedVersionRepository : IManagedVersionReposito
                 ManagedVersionDamageReason? damage = await ManagedPackageVerifier.VerifyInstalledAsync(
                     target,
                     admission,
+                    _maximumExpandedBytes,
                     cancellationToken).ConfigureAwait(false);
                 return damage is null
                     ? new(admission, ManagedVersionInstallIssue.None, WasAlreadyInstalled: true)
@@ -154,11 +170,13 @@ public sealed class FileSystemManagedVersionRepository : IManagedVersionReposito
             await ManagedPackageVerifier.ExtractAsync(
                 plan,
                 stagingDirectory,
+                _maximumExpandedBytes,
                 cancellationToken).ConfigureAwait(false);
             await WriteAdmissionAsync(stagingDirectory, admission, cancellationToken).ConfigureAwait(false);
             ManagedVersionDamageReason? stagedDamage = await ManagedPackageVerifier.VerifyInstalledAsync(
                 stagingDirectory,
                 admission,
+                _maximumExpandedBytes,
                 cancellationToken).ConfigureAwait(false);
             if (stagedDamage is not null)
             {
@@ -220,6 +238,7 @@ public sealed class FileSystemManagedVersionRepository : IManagedVersionReposito
                 : await ManagedPackageVerifier.VerifyInstalledAsync(
                     target,
                     admission,
+                    _maximumExpandedBytes,
                     cancellationToken).ConfigureAwait(false);
             rows.Add(new(
                 admission.Version,
@@ -244,11 +263,12 @@ public sealed class FileSystemManagedVersionRepository : IManagedVersionReposito
                     ManagedVersionAdmission? observed = await ReadAdmissionAsync(
                         directory,
                         cancellationToken).ConfigureAwait(false);
-                    bool isRecoveryCandidate = observed?.Version == version;
-                    ManagedVersionDamageReason? damage = isRecoveryCandidate
+                    bool hasMatchingSelfAdmission = observed?.Version == version;
+                    ManagedVersionDamageReason? damage = hasMatchingSelfAdmission
                         ? await ManagedPackageVerifier.VerifyInstalledAsync(
                             directory,
                             observed!,
+                            _maximumExpandedBytes,
                             cancellationToken).ConfigureAwait(false)
                         : ManagedVersionDamageReason.UnexpectedPath;
                     rows.Add(new(
@@ -258,9 +278,7 @@ public sealed class FileSystemManagedVersionRepository : IManagedVersionReposito
                         damage,
                         activeVersion == version,
                         lastKnownGoodVersion == version,
-                        isRecoveryCandidate
-                            ? ManagedVersionAdmissionState.RecoveryCandidate
-                            : ManagedVersionAdmissionState.Unadmitted,
+                        ManagedVersionAdmissionState.Unadmitted,
                         observed));
                 }
             }

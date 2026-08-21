@@ -121,7 +121,6 @@ public sealed class ManagedVersionInventory
         if (rows.Any(row =>
                 string.IsNullOrWhiteSpace(row.AdmissionIdentity) ||
                 (row.AdmissionState == ManagedVersionAdmissionState.RecoveryCandidate && row.ObservedAdmission is null) ||
-                (row.AdmissionState == ManagedVersionAdmissionState.Unadmitted && row.ObservedAdmission is not null) ||
                 (row.Integrity == ManagedVersionIntegrity.Healthy && row.DamageReason is not null) ||
                 (row.Integrity == ManagedVersionIntegrity.Damaged && row.DamageReason is null)))
         {

@@ -1,4 +1,5 @@
 using NvtFwCombiner.Application.VersionManagement;
+using NvtFwCombiner.TestSupport;
 using NvtFwCombiner.Contracts.VersionManagement;
 
 namespace NvtFwCombiner.Application.Tests.VersionManagement;
@@ -470,6 +471,14 @@ public sealed partial class VersionManagementExperienceTests
         internal int SaveCount { get; private set; }
 
         internal VersionManagerState State { get; private set; } = state;
+
+        public ValueTask<VersionManagerWriteLeaseResult> TryAcquireWriteLeaseAsync(
+            string managedRoot,
+            TimeSpan waitTimeout,
+            CancellationToken cancellationToken)
+        {
+            return ValueTask.FromResult(VersionManagerWriteLeaseTestSupport.Acquired());
+        }
 
         public ValueTask<VersionManagerStateLoadResult> LoadAsync(CancellationToken cancellationToken)
         {

@@ -1,9 +1,10 @@
 using NvtFwCombiner.Application.VersionManagement;
+using NvtFwCombiner.TestSupport;
 
 namespace NvtFwCombiner.Application.Tests.VersionManagement;
 
 /// <summary>Tests launcher ready commit and bounded fallback orchestration.</summary>
-public sealed class ManagedActivationCoordinatorTests
+public sealed partial class ManagedActivationCoordinatorTests
 {
     /// <summary>Pending ready commits active and last-known-good.</summary>
     [Fact]
@@ -471,6 +472,14 @@ public sealed class ManagedActivationCoordinatorTests
     {
         internal VersionManagerState State { get; private set; } = state;
 
+        public ValueTask<VersionManagerWriteLeaseResult> TryAcquireWriteLeaseAsync(
+            string managedRoot,
+            TimeSpan waitTimeout,
+            CancellationToken cancellationToken)
+        {
+            return ValueTask.FromResult(VersionManagerWriteLeaseTestSupport.Acquired());
+        }
+
         public ValueTask<VersionManagerStateLoadResult> LoadAsync(CancellationToken cancellationToken)
         {
             return ValueTask.FromResult(new VersionManagerStateLoadResult(State, VersionManagerStateLoadIssue.None));
@@ -485,6 +494,14 @@ public sealed class ManagedActivationCoordinatorTests
 
     private sealed class LoadIssueStateStore(VersionManagerStateLoadIssue issue) : IVersionManagerStateStore
     {
+        public ValueTask<VersionManagerWriteLeaseResult> TryAcquireWriteLeaseAsync(
+            string managedRoot,
+            TimeSpan waitTimeout,
+            CancellationToken cancellationToken)
+        {
+            return ValueTask.FromResult(VersionManagerWriteLeaseTestSupport.Acquired());
+        }
+
         public ValueTask<VersionManagerStateLoadResult> LoadAsync(CancellationToken cancellationToken)
         {
             return ValueTask.FromResult(new VersionManagerStateLoadResult(null, issue));
@@ -503,6 +520,14 @@ public sealed class ManagedActivationCoordinatorTests
         private int _saveCount;
 
         internal VersionManagerState State { get; private set; } = state;
+
+        public ValueTask<VersionManagerWriteLeaseResult> TryAcquireWriteLeaseAsync(
+            string managedRoot,
+            TimeSpan waitTimeout,
+            CancellationToken cancellationToken)
+        {
+            return ValueTask.FromResult(VersionManagerWriteLeaseTestSupport.Acquired());
+        }
 
         public ValueTask<VersionManagerStateLoadResult> LoadAsync(CancellationToken cancellationToken)
         {

@@ -42,6 +42,19 @@ public sealed class JsonVersionManagerStateStore : IVersionManagerStateStore
     }
 
     /// <inheritdoc />
+    public ValueTask<VersionManagerWriteLeaseResult> TryAcquireWriteLeaseAsync(
+        string managedRoot,
+        TimeSpan waitTimeout,
+        CancellationToken cancellationToken)
+    {
+        return FileSystemVersionManagerWriteLease.TryAcquireAsync(
+            _path,
+            managedRoot,
+            waitTimeout,
+            cancellationToken);
+    }
+
+    /// <inheritdoc />
     public async ValueTask<VersionManagerStateLoadResult> LoadAsync(CancellationToken cancellationToken)
     {
         if (!File.Exists(_path))
