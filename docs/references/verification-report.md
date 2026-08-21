@@ -24,8 +24,8 @@ The owner explicitly approved advancing this internal identity on 2026-08-21
 after the original independent reviewer could not be scheduled. A later
 independent R2 review failed the original candidate and two correction
 checkpoints. All reported findings, including the final ZIP64 arithmetic bound
-and seed-import lease regressions, are now corrected; a final independent
-verdict is pending on the new frozen tree.
+and seed-import lease regressions, are corrected. Fresh independent R2 review
+of exact HEAD `248ab804` passed on 2026-08-22 with no P0/P1/P2/P3 findings.
 No 0.10.6 tag or public package is authorized; production signing, provenance
 migration, clean-Windows smoke, and release/security approval remain gates for
 the first public `1.0.0`.
@@ -34,8 +34,9 @@ The latest frozen correction tree passes `python scripts/verify.py --all`:
 Python 391 with four platform skips; CRC worker 30/30 with 100% line/branch
 coverage; and .NET 3,834 total with 3,832 passing plus two platform skips,
 including Application 673, Infrastructure 550 plus two skips, Bootstrap 974, UI
-smoke 604, Architecture 216, and all 17 Golden regressions. Aggregate .NET
-coverage is 88.83% lines and 79.07% branches. Fresh local-folder evidence passes
+smoke 604, Architecture 216, and all 17 Golden regressions. The exact reviewed-
+HEAD rerun measured aggregate .NET coverage at 88.82% lines and 79.06%
+branches. Fresh local-folder evidence passes
 catalog/package install, source relocation, 0.10.6 activation, offline
 switching, rollback/deletion guards, and the freshly published stable launcher
 after complete managed-root relocation.

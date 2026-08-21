@@ -1,7 +1,7 @@
 # ADR 0051: Manage application versions through a stable launcher and side-by-side payloads
 
 - Status: Accepted by product and architecture owner on 2026-08-21;
-  independent R2 review pending
+  independent R2 correction review passed on 2026-08-22
 - Date: 2026-08-21
 - Owners: Product owner, architecture owner, release owner
 - Risk: R2 cross-layer filesystem/process/package/UI contract; R3 distribution
