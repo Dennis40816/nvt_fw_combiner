@@ -98,7 +98,8 @@ internal static class PresentationTestHost
 
     internal static PresentationHostServices CreateServices(
         string applicationVersion,
-        Application.VersionManagement.IVersionManagementExperience versionManagement)
+        Application.VersionManagement.IVersionManagementExperience versionManagement,
+        Application.VersionManagement.IStableLauncherHandoff? stableLauncherHandoff = null)
     {
         ArgumentNullException.ThrowIfNull(versionManagement);
         var externalEnvironment = new ExternalProcessorEnvironmentLoader(ExternalEnvironment.Value);
@@ -125,7 +126,7 @@ internal static class PresentationTestHost
             Application.VersionManagement.ManagedAppVersion.Parse(applicationVersion),
             versionManagement,
             applicationReadySignal: null,
-            stableLauncherHandoff: null);
+            stableLauncherHandoff);
     }
 
     private static PresentationHostServices CreateServices(

@@ -93,9 +93,15 @@ public static class UpdateCatalogValidator
                 issues.Add(new(UpdateCatalogIssueCode.InvalidSha256, versionText));
             }
 
-            string releaseNotes = entry.ReleaseNotes ?? string.Empty;
-            bool releaseNotesValid = Encoding.UTF8.GetByteCount(releaseNotes) <= MaximumReleaseNotesBytes;
-            if (!releaseNotesValid)
+            string? releaseNotes = entry.ReleaseNotes;
+            bool releaseNotesPresent = releaseNotes is not null;
+            bool releaseNotesValid = releaseNotesPresent &&
+                                     Encoding.UTF8.GetByteCount(releaseNotes!) <= MaximumReleaseNotesBytes;
+            if (!releaseNotesPresent)
+            {
+                issues.Add(new(UpdateCatalogIssueCode.MissingReleaseNotes, versionText));
+            }
+            else if (!releaseNotesValid)
             {
                 issues.Add(new(UpdateCatalogIssueCode.ReleaseNotesTooLarge, versionText));
             }
@@ -110,7 +116,7 @@ public static class UpdateCatalogValidator
                     entry.PackageSize,
                     entry.PackageSha256!,
                     entry.ReleaseManifestSha256!,
-                    releaseNotes));
+                    releaseNotes!));
             }
         }
 
@@ -126,10 +132,15 @@ public static class UpdateCatalogValidator
     private static bool TryParseUtc(string? value, out DateTimeOffset publishedAt)
     {
         publishedAt = default;
-        return !string.IsNullOrWhiteSpace(value) &&
-               value.EndsWith('Z') &&
-               DateTimeOffset.TryParse(
+        string[] canonicalUtcFormats =
+        [
+            "yyyy-MM-dd'T'HH:mm:ss'Z'",
+            "yyyy-MM-dd'T'HH:mm:ss.FFFFFFF'Z'",
+        ];
+        return value is not null &&
+               DateTimeOffset.TryParseExact(
                    value,
+                   canonicalUtcFormats,
                    CultureInfo.InvariantCulture,
                    DateTimeStyles.AssumeUniversal | DateTimeStyles.AdjustToUniversal,
                    out publishedAt) &&
@@ -139,7 +150,9 @@ public static class UpdateCatalogValidator
     private static bool TryCreatePackagePath(string? value, out UpdateCatalogPackagePath path)
     {
         path = default;
-        if (!ManagedRelativePathRules.IsSafeFilePath(value) ||
+        if (value is null ||
+            value.Length < 5 ||
+            !ManagedRelativePathRules.IsSafeFilePath(value) ||
             !value.EndsWith(".zip", StringComparison.OrdinalIgnoreCase))
         {
             return false;

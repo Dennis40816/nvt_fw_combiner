@@ -33,6 +33,12 @@ def _probe_payload(probe_root: Path) -> dict[str, bytes]:
         raise FileNotFoundError(f"ready probe has not been built: {executable}")
     files: dict[str, bytes] = {
         "external-tools/crc-worker/0.1.0/Nfc.CrcWorker.exe": b"MZ-synthetic-worker",
+        "docs/contracts/canonical-capability-policy-v1.json": (
+            b'{"schemaVersion":1,"routes":[]}\n'
+        ),
+        "profiles/built-in/package-trust-index.json": (
+            b'{"schemaVersion":1,"profiles":[]}\n'
+        ),
         "THIRD-PARTY-NOTICES.txt": b"Synthetic local version-management lab only.\n",
         "LICENSE.txt": b"MIT\n",
         "README.txt": b"Synthetic local version-management lab payload.\n",
@@ -46,13 +52,20 @@ def _probe_payload(probe_root: Path) -> dict[str, bytes]:
 
 
 def _role(path: str) -> str:
-    return {
+    exact = {
         "NvtFwCombiner.exe": "application",
-        "external-tools/crc-worker/0.1.0/Nfc.CrcWorker.exe": "crcWorker",
+        "docs/contracts/canonical-capability-policy-v1.json": "capabilityPolicy",
         "THIRD-PARTY-NOTICES.txt": "notices",
         "LICENSE.txt": "license",
         "README.txt": "readme",
-    }.get(path, "externalTool")
+    }
+    if path in exact:
+        return exact[path]
+    if path.startswith("profiles/built-in/"):
+        return "builtInProfile"
+    if path.startswith("external-tools/"):
+        return "externalTool"
+    return "application"
 
 
 def _manifest(version: str, files: dict[str, bytes]) -> bytes:
@@ -85,10 +98,26 @@ def _manifest(version: str, files: dict[str, bytes]) -> bytes:
     )
 
 
+def _checksum_document(files: dict[str, bytes], manifest: bytes) -> bytes:
+    entries = [
+        *[(path, _sha256(data)) for path, data in files.items()],
+        ("RELEASE-MANIFEST.json", _sha256(manifest)),
+    ]
+    return "".join(
+        f"{digest}  {path}\n" for path, digest in sorted(entries)
+    ).encode("utf-8")
+
+
 def _write_zip(path: Path, version: str, files: dict[str, bytes], manifest: bytes) -> None:
     root = f"NvtFwCombiner-v{version}-win-x64"
+    checksums = _checksum_document(files, manifest)
     with zipfile.ZipFile(path, "w", compression=zipfile.ZIP_DEFLATED, compresslevel=9) as archive:
-        for relative, data in [("RELEASE-MANIFEST.json", manifest), *sorted(files.items())]:
+        inventory = [
+            ("RELEASE-MANIFEST.json", manifest),
+            ("SHA256SUMS.txt", checksums),
+            *sorted(files.items()),
+        ]
+        for relative, data in inventory:
             entry = zipfile.ZipInfo(f"{root}/{relative}", ZIP_TIMESTAMP)
             entry.compress_type = zipfile.ZIP_DEFLATED
             entry.external_attr = 0o100644 << 16

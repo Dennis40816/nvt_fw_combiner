@@ -7,6 +7,17 @@
     <ProjectReference Include="..\NvtFwCombiner.VersionManagement.Application\NvtFwCombiner.VersionManagement.Application.csproj" />
   </ItemGroup>
   <ItemGroup>
+    <PackageReference Include="JsonSchema.Net" />
+  </ItemGroup>
+  <ItemGroup>
+    <EmbeddedResource
+      Include="..\..\docs\contracts\release-manifest-v1.schema.json"
+      LogicalName="NvtFwCombiner.VersionManagement.Infrastructure.Contracts.release-manifest-v1.schema.json" />
+    <EmbeddedResource
+      Include="..\..\docs\contracts\update-catalog-v1.schema.json"
+      LogicalName="NvtFwCombiner.VersionManagement.Infrastructure.Contracts.update-catalog-v1.schema.json" />
+  </ItemGroup>
+  <ItemGroup>
     <InternalsVisibleTo Include="NvtFwCombiner.Bootstrap" />
     <InternalsVisibleTo Include="NvtFwCombiner.Infrastructure.Tests" />
     <InternalsVisibleTo Include="NvtFwCombiner.UiSmoke.Tests" />

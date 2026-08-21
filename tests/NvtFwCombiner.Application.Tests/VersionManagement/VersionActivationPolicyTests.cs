@@ -13,9 +13,10 @@ public sealed class VersionActivationPolicyTests
         VersionManagerState pending = VersionActivationPolicy.BeginActivation(
             initial,
             ManagedAppVersion.Parse("0.10.6"));
+        VersionManagerState launchRecorded = VersionActivationPolicy.RecordCandidateLaunch(pending);
 
         VersionManagerState committed = VersionActivationPolicy.CommitReady(
-            pending,
+            launchRecorded,
             ManagedAppVersion.Parse("0.10.6"));
 
         Assert.Equal("0.10.6", committed.ActiveVersion?.ToString());
@@ -60,6 +61,61 @@ public sealed class VersionActivationPolicyTests
             pendingActivation: null,
             failedActivationVersion: null,
             retentionReviewDue: false));
+    }
+
+    /// <summary>Activation ready cannot commit before candidate launch is durably recorded.</summary>
+    [Fact]
+    public void RequestedActivationCannotCommitReady()
+    {
+        VersionManagerState pending = VersionActivationPolicy.BeginActivation(
+            State("0.10.5", "0.10.5", "0.10.5", "0.10.6"),
+            ManagedAppVersion.Parse("0.10.6"));
+
+        _ = Assert.Throws<InvalidOperationException>(() => VersionActivationPolicy.CommitReady(
+            pending,
+            ManagedAppVersion.Parse("0.10.6")));
+    }
+
+    /// <summary>State cannot carry a filesystem transaction and activation transaction together.</summary>
+    [Fact]
+    public void ConcurrentDurableTransactionsAreRejected()
+    {
+        VersionManagerState initial = State("0.10.5", "0.10.5", "0.10.5", "0.10.6");
+        VersionManagerState pending = VersionActivationPolicy.BeginActivation(
+            initial,
+            ManagedAppVersion.Parse("0.10.6"));
+        ManagedVersionAdmission deleting = initial.Admissions.Single(
+            admission => admission.Version == ManagedAppVersion.Parse("0.10.5"));
+
+        _ = Assert.Throws<ArgumentException>(() => VersionManagerState.Create(
+            initial.UpdateSource,
+            initial.ActiveVersion,
+            initial.LastKnownGoodVersion,
+            initial.Admissions,
+            pending.PendingActivation,
+            initial.FailedActivationVersion,
+            initial.RetentionReviewDue,
+            new(ManagedVersionMutationKind.Delete, deleting)));
+    }
+
+    /// <summary>A delete journal must bind the exact committed admission, not only its version.</summary>
+    [Fact]
+    public void DeleteMutationAdmissionMustMatchCommittedAdmission()
+    {
+        VersionManagerState initial = State("0.10.5", "0.10.5", "0.10.5", "0.10.4");
+        ManagedVersionAdmission committed = initial.Admissions.Single(
+            admission => admission.Version == ManagedAppVersion.Parse("0.10.4"));
+        ManagedVersionAdmission mismatched = committed with { AdmissionIdentity = "different-identity" };
+
+        _ = Assert.Throws<ArgumentException>(() => VersionManagerState.Create(
+            initial.UpdateSource,
+            initial.ActiveVersion,
+            initial.LastKnownGoodVersion,
+            initial.Admissions,
+            pendingActivation: null,
+            initial.FailedActivationVersion,
+            initial.RetentionReviewDue,
+            new(ManagedVersionMutationKind.Delete, mismatched)));
     }
 
     private static VersionManagerState State(

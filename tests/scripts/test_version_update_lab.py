@@ -42,8 +42,21 @@ def test_lab_catalog_and_packages_remain_valid_after_folder_move(tmp_path: Path)
         with zipfile.ZipFile(package) as archive:
             root = f"NvtFwCombiner-v{entry['version']}-win-x64"
             manifest = archive.read(f"{root}/RELEASE-MANIFEST.json")
+            manifest_document = json.loads(manifest)
+            checksums = archive.read(f"{root}/SHA256SUMS.txt").decode("utf-8")
             assert hashlib.sha256(manifest).hexdigest() == entry["releaseManifestSha256"]
             assert f"{root}/NvtFwCombiner.exe" in archive.namelist()
+            assert {
+                file["role"] for file in manifest_document["files"]
+            } >= {"application", "externalTool", "capabilityPolicy", "builtInProfile"}
+            expected_checksums = {
+                file["path"]: file["sha256"] for file in manifest_document["files"]
+            }
+            expected_checksums["RELEASE-MANIFEST.json"] = hashlib.sha256(manifest).hexdigest()
+            actual_checksums = {
+                line[66:]: line[:64] for line in checksums.splitlines()
+            }
+            assert actual_checksums == expected_checksums
 
 
 def test_lab_builder_refuses_to_overwrite_existing_destination(tmp_path: Path) -> None:

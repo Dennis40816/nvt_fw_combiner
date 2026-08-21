@@ -62,6 +62,34 @@ public sealed class FileSystemUpdateCatalogSourceTests
         Assert.Null(result.Snapshot);
     }
 
+    /// <summary>Duplicate keys cannot select a last-wins catalog authority.</summary>
+    [Fact]
+    public async Task DuplicateCatalogPropertyFailsClosed()
+    {
+        using var workspace = TempWorkspace.Create();
+        string root = workspace.PathFor("source");
+        _ = Directory.CreateDirectory(root);
+        await File.WriteAllTextAsync(
+            Path.Combine(root, FileSystemUpdateCatalogSource.CatalogFileName),
+            """
+            {
+              "schemaVersion": 1,
+              "product": "Other",
+              "product": "NVT FW Combiner",
+              "runtimeIdentifier": "win-x64",
+              "versions": []
+            }
+            """,
+            TestContext.Current.CancellationToken);
+
+        UpdateCatalogLoadResult result = await new FileSystemUpdateCatalogSource().LoadAsync(
+            root,
+            TestContext.Current.CancellationToken);
+
+        Assert.Equal(UpdateCatalogLoadIssue.InvalidManifest, result.Issue);
+        Assert.Null(result.Snapshot);
+    }
+
     /// <summary>A catalog larger than one MiB is rejected before JSON allocation.</summary>
     [Fact]
     public async Task OversizedCatalogFailsBeforeParse()

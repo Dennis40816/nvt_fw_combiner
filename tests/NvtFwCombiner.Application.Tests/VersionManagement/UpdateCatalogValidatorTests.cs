@@ -103,9 +103,9 @@ public sealed class UpdateCatalogValidatorTests
         Assert.Contains(result.Issues, issue => issue.Code == UpdateCatalogIssueCode.EmptyVersions);
     }
 
-    /// <summary>Optional release notes normalize to an empty immutable value.</summary>
+    /// <summary>The normative schema requires release notes even when the text is empty.</summary>
     [Fact]
-    public void NullReleaseNotesNormalizeToEmptyText()
+    public void NullReleaseNotesFailClosedInsteadOfBecomingAnOptionalField()
     {
         UpdateCatalogVersionDocument version = Version("0.10.6", "2026-08-21T00:00:00Z") with
         {
@@ -114,9 +114,22 @@ public sealed class UpdateCatalogValidatorTests
 
         UpdateCatalogValidationResult result = UpdateCatalogValidator.Validate(Catalog(version));
 
-        Assert.True(result.IsValid);
-        UpdateCatalogVersionSnapshot snapshot = Assert.Single(result.Snapshot!.Versions);
-        Assert.Empty(snapshot.ReleaseNotes);
+        Assert.False(result.IsValid);
+        Assert.Null(result.Snapshot);
+    }
+
+    /// <summary>Runtime timestamp admission matches the schema's canonical UTC date-time grammar.</summary>
+    [Theory]
+    [InlineData("2026-08-21 00:00:00Z")]
+    [InlineData("2026-08-21T00:00Z")]
+    public void NonCanonicalUtcTimestampFailsClosed(string publishedAt)
+    {
+        UpdateCatalogValidationResult result = UpdateCatalogValidator.Validate(
+            Catalog(Version("0.10.6", publishedAt)));
+
+        Assert.False(result.IsValid);
+        Assert.Null(result.Snapshot);
+        Assert.Contains(result.Issues, issue => issue.Code == UpdateCatalogIssueCode.InvalidPublishedAt);
     }
 
     /// <summary>Windows device names never become a catalog-owned filesystem identity.</summary>
@@ -158,6 +171,7 @@ public sealed class UpdateCatalogValidatorTests
     [
         string.Empty,
         " ",
+        ".zip",
         new string('a', 513) + ".zip",
         "/absolute.zip",
         @"packages\file.zip",

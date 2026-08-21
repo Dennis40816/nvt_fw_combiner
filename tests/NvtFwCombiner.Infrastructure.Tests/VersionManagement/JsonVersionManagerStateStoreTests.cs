@@ -101,6 +101,8 @@ public sealed class JsonVersionManagerStateStoreTests
     [InlineData("schema")]
     [InlineData("unadmitted-active")]
     [InlineData("duplicate-admission")]
+    [InlineData("duplicate-property")]
+    [InlineData("mismatched-delete-journal")]
     public async Task InvalidStateShapesNeverPublishPartialState(string shape)
     {
         ArgumentNullException.ThrowIfNull(shape);
@@ -120,6 +122,26 @@ public sealed class JsonVersionManagerStateStoreTests
                 .Replace("\"schemaVersion\": 1", "\"schemaVersion\": 2", StringComparison.Ordinal),
             "unadmitted-active" => BaseState("[]", "0.10.6"),
             "duplicate-admission" => BaseState($"[{admission}, {admission}]", "0.10.6"),
+            "duplicate-property" => BaseState($"[{admission}]", "0.10.6")
+                .Replace(
+                    "\"retentionReviewDue\": false",
+                    "\"retentionReviewDue\": true, \"retentionReviewDue\": false",
+                    StringComparison.Ordinal),
+            "mismatched-delete-journal" => BaseState($"[{admission}]", "0.10.6")
+                .Replace(
+                    "\"retentionReviewDue\": false",
+                    """
+                    "retentionReviewDue": false,
+                    "pendingMutation": {
+                      "kind": "Delete",
+                      "admission": {
+                        "version": "0.10.6",
+                        "admissionIdentity": "different-identity",
+                        "releaseManifestSha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+                      }
+                    }
+                    """,
+                    StringComparison.Ordinal),
             _ => throw new InvalidOperationException($"Unknown state shape '{shape}'."),
         };
         string path = workspace.Write("version-manager.v1.json", System.Text.Encoding.UTF8.GetBytes(json));
@@ -184,6 +206,84 @@ public sealed class JsonVersionManagerStateStoreTests
         Assert.Empty(Directory.EnumerateFiles(
             Path.GetDirectoryName(path)!,
             ".version-manager.v1.json.*.tmp"));
+    }
+
+    /// <summary>Durable activation and filesystem transaction phases survive exact JSON round trips.</summary>
+    [Fact]
+    public async Task DurableTransactionPhasesRoundTrip()
+    {
+        using var workspace = TempWorkspace.Create();
+        var store = new JsonVersionManagerStateStore(workspace.PathFor("state/version-manager.v1.json"));
+        ManagedAppVersion active = ManagedAppVersion.Parse("0.10.5");
+        ManagedAppVersion candidate = ManagedAppVersion.Parse("0.10.6");
+        var activeAdmission = new ManagedVersionAdmission(active, "identity-0.10.5", new string('a', 64));
+        var candidateAdmission = new ManagedVersionAdmission(candidate, "identity-0.10.6", new string('b', 64));
+        VersionManagerState installPrepared = VersionManagerState.Create(
+            "X:\\source",
+            active,
+            active,
+            [activeAdmission],
+            pendingActivation: null,
+            failedActivationVersion: null,
+            retentionReviewDue: false,
+            new(ManagedVersionMutationKind.Install, candidateAdmission));
+
+        await store.SaveAsync(installPrepared, TestContext.Current.CancellationToken);
+        VersionManagerStateLoadResult loadedInstall = await store.LoadAsync(TestContext.Current.CancellationToken);
+
+        Assert.Equal(installPrepared.PendingMutation, loadedInstall.State!.PendingMutation);
+
+        VersionManagerState activationRecorded = VersionActivationPolicy.RecordRollbackLaunch(
+            VersionActivationPolicy.RecordCandidateLaunch(
+                VersionActivationPolicy.BeginActivation(
+                    VersionManagerState.Create(
+                        null,
+                        active,
+                        active,
+                        [activeAdmission, candidateAdmission],
+                        null,
+                        null,
+                        false),
+                    candidate)),
+            candidate).State;
+        await store.SaveAsync(activationRecorded, TestContext.Current.CancellationToken);
+        VersionManagerStateLoadResult loadedActivation = await store.LoadAsync(TestContext.Current.CancellationToken);
+
+        Assert.Equal(
+            VersionActivationPhase.RollbackLaunchRecorded,
+            loadedActivation.State!.PendingActivation?.Phase);
+        Assert.Equal(candidate, loadedActivation.State.FailedActivationVersion);
+    }
+
+    /// <summary>Idle and requested state retain the pre-journal wire shape for older installed apps.</summary>
+    [Fact]
+    public async Task OptionalTransactionFieldsAreAbsentUntilARecordedPhaseNeedsThem()
+    {
+        using var workspace = TempWorkspace.Create();
+        string path = workspace.PathFor("state/version-manager.v1.json");
+        var store = new JsonVersionManagerStateStore(path);
+        ManagedAppVersion active = ManagedAppVersion.Parse("0.10.5");
+        ManagedAppVersion candidate = ManagedAppVersion.Parse("0.10.6");
+        VersionManagerState requested = VersionActivationPolicy.BeginActivation(
+            VersionManagerState.Create(
+                null,
+                active,
+                active,
+                [
+                    new(active, "identity-0.10.5", new string('a', 64)),
+                    new(candidate, "identity-0.10.6", new string('b', 64)),
+                ],
+                pendingActivation: null,
+                failedActivationVersion: null,
+                retentionReviewDue: false),
+            candidate);
+
+        await store.SaveAsync(requested, TestContext.Current.CancellationToken);
+        string json = await File.ReadAllTextAsync(path, TestContext.Current.CancellationToken);
+
+        Assert.DoesNotContain("pendingMutation", json, StringComparison.Ordinal);
+        Assert.DoesNotContain("\"phase\"", json, StringComparison.Ordinal);
+        Assert.True((await store.LoadAsync(TestContext.Current.CancellationToken)).IsSuccess);
     }
 
     private static string BaseState(string admissions, string? activeVersion)

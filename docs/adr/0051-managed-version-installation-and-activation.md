@@ -40,11 +40,27 @@ relative package paths and exact lengths/SHA-256; admission also verifies the
 inner release manifest and closed payload. `Verified` does not claim a digital
 signature, and `v0.10.6` introduces no signing/key system.
 
+Install and delete are durable two-phase mutations. Application persists an
+exact prepared mutation (kind, version, and admission for install) before the
+filesystem adapter changes a version directory, then commits admitted state
+only after the filesystem result is known. Startup/Settings re-entry reconciles
+an interrupted prepared mutation from exact inventory facts; it never guesses
+from a directory name.
+
 Installations stage and verify complete immutable payloads before same-volume
-promotion into `versions/<semver>`. Activation writes a recoverable pending
-state, launches through the stable launcher, and commits only after one bounded
-authenticated ready handshake. Start/early-exit/timeout failure restores and
-starts last-known-good once. Later runtime crashes do not auto-rollback.
+promotion into `versions/<semver>`. Activation is also a durable state machine:
+`Requested` is persisted before desktop handoff, `CandidateLaunchRecorded`
+before the candidate process starts, and `RollbackLaunchRecorded` before the
+one automatic fallback target starts. Ready/rollback commit clears the journal
+only after the corresponding persisted phase. Restart from
+`CandidateLaunchRecorded` never starts the candidate again; its ready outcome is
+uncertain, so recovery advances to the exact prior last-known-good target.
+Restart from `RollbackLaunchRecorded` may retry only that same fallback until a
+ready or terminal result is durably committed. It never returns to the candidate
+or chooses another directory. Thus the protocol bounds rollback to one exact
+version without claiming impossible exactly-once process start across a power
+cut between process start and state commit. Later runtime crashes do not
+auto-rollback.
 
 Launcher state is a separate versioned file under per-user local application
 data. It is not merged into shell preferences or report history. Absolute update
@@ -60,8 +76,12 @@ remain exclusively in per-user application data, so the complete managed root
 can move without rewriting package identity.
 
 Installed versions are reverified before launch/switch and through Version-page
-inventory. Damaged versions cannot launch. Every non-active version can be
-explicitly deleted through a guarded destructive action. Three healthy versions
+inventory. Inventory distinguishes state-admitted versions from exact
+self-admitted recovery candidates and unknown/unadmitted directories. Only
+state-admitted versions are healthy/damaged installed rows or ordinary delete/
+switch targets; other directories are shown as recovery-required and cannot
+enter normal actions. Damaged versions cannot launch. Every non-active admitted
+version can be explicitly deleted through a guarded destructive action. Three healthy versions
 is a soft review threshold; exceeding it prompts review but never prunes
 automatically.
 

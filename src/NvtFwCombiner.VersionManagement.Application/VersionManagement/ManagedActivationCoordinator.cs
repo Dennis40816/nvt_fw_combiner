@@ -72,6 +72,8 @@ public enum ManagedLauncherOutcome
     DamagedVersion,
     /// <summary>The selected version failed and no valid rollback completed.</summary>
     StartFailed,
+    /// <summary>A required durable activation phase could not be committed.</summary>
+    StateUnavailable,
 }
 
 /// <summary>Stable launcher outcome with selected and optional failed versions.</summary>
@@ -125,7 +127,20 @@ public sealed class ManagedActivationCoordinator
             return new(ManagedLauncherOutcome.InvalidState, null, null);
         }
         VersionManagerState state = loaded.State!;
-        ManagedAppVersion? target = state.PendingActivation?.CandidateVersion ?? state.ActiveVersion;
+        PendingVersionActivation? pending = state.PendingActivation;
+        if (pending?.Phase == VersionActivationPhase.RollbackLaunchRecorded)
+        {
+            return await LaunchRecordedRollbackAsync(state, cancellationToken).ConfigureAwait(false);
+        }
+        if (pending?.Phase == VersionActivationPhase.CandidateLaunchRecorded)
+        {
+            return await RecordAndLaunchRollbackAsync(
+                state,
+                pending.CandidateVersion,
+                cancellationToken).ConfigureAwait(false);
+        }
+
+        ManagedAppVersion? target = pending?.CandidateVersion ?? state.ActiveVersion;
         if (target is null)
         {
             return new(ManagedLauncherOutcome.NoActiveVersion, null, null);
@@ -133,9 +148,18 @@ public sealed class ManagedActivationCoordinator
 
         if (!await IsHealthyAsync(state, target.Value, cancellationToken).ConfigureAwait(false))
         {
-            return state.PendingActivation?.CandidateVersion == target
-                ? await RollBackAsync(state, target.Value, cancellationToken).ConfigureAwait(false)
+            return pending?.CandidateVersion == target
+                ? await RecordAndLaunchRollbackAsync(state, target.Value, cancellationToken).ConfigureAwait(false)
                 : new(ManagedLauncherOutcome.DamagedVersion, null, target);
+        }
+
+        if (pending?.CandidateVersion == target)
+        {
+            state = VersionActivationPolicy.RecordCandidateLaunch(state);
+            if (!await TrySaveAsync(state, cancellationToken).ConfigureAwait(false))
+            {
+                return new(ManagedLauncherOutcome.StateUnavailable, null, target);
+            }
         }
 
         ManagedProcessStartResult start = await _process.StartUntilReadyAsync(
@@ -148,37 +172,78 @@ public sealed class ManagedActivationCoordinator
             if (state.PendingActivation?.CandidateVersion == target)
             {
                 state = VersionActivationPolicy.CommitReady(state, target.Value);
-                await _stateStore.SaveAsync(state, cancellationToken).ConfigureAwait(false);
+                if (!await TrySaveAsync(state, cancellationToken).ConfigureAwait(false))
+                {
+                    return new(ManagedLauncherOutcome.StateUnavailable, target, null);
+                }
             }
             return new(ManagedLauncherOutcome.Ready, target, null);
         }
 
         return state.PendingActivation?.CandidateVersion == target
-            ? await RollBackAsync(state, target.Value, cancellationToken).ConfigureAwait(false)
+            ? await RecordAndLaunchRollbackAsync(state, target.Value, cancellationToken).ConfigureAwait(false)
             : new(ManagedLauncherOutcome.StartFailed, null, target);
     }
 
-    private async ValueTask<ManagedLauncherResult> RollBackAsync(
+    private async ValueTask<ManagedLauncherResult> RecordAndLaunchRollbackAsync(
         VersionManagerState state,
         ManagedAppVersion failedVersion,
         CancellationToken cancellationToken)
     {
-        ActivationRecoveryDecision recovery = VersionActivationPolicy.FailActivation(state, failedVersion);
-        await _stateStore.SaveAsync(recovery.State, cancellationToken).ConfigureAwait(false);
-        if (recovery.RollbackVersion is not { } rollback ||
-            !await IsHealthyAsync(recovery.State, rollback, cancellationToken).ConfigureAwait(false))
+        ActivationRecoveryDecision recovery = VersionActivationPolicy.RecordRollbackLaunch(state, failedVersion);
+        return await TrySaveAsync(recovery.State, cancellationToken).ConfigureAwait(false)
+            ? await LaunchRecordedRollbackAsync(recovery.State, cancellationToken).ConfigureAwait(false)
+            : new(ManagedLauncherOutcome.StateUnavailable, null, failedVersion);
+    }
+
+    private async ValueTask<ManagedLauncherResult> LaunchRecordedRollbackAsync(
+        VersionManagerState state,
+        CancellationToken cancellationToken)
+    {
+        PendingVersionActivation pending = state.PendingActivation is
+        { Phase: VersionActivationPhase.RollbackLaunchRecorded } value
+                ? value
+                : throw new InvalidOperationException("Rollback launch was not durably recorded.");
+        ManagedAppVersion failedVersion = pending.CandidateVersion;
+        ManagedAppVersion? rollback = pending.PreviousLastKnownGoodVersion;
+        if (rollback is null || rollback == failedVersion ||
+            !await IsHealthyAsync(state, rollback.Value, cancellationToken).ConfigureAwait(false))
         {
-            return new(ManagedLauncherOutcome.StartFailed, null, failedVersion);
+            ActivationRecoveryDecision unavailableRollback = VersionActivationPolicy.FailActivation(
+                state,
+                failedVersion);
+            return await TrySaveAsync(unavailableRollback.State, cancellationToken).ConfigureAwait(false)
+                ? new(ManagedLauncherOutcome.StartFailed, null, failedVersion)
+                : new(ManagedLauncherOutcome.StateUnavailable, null, failedVersion);
         }
 
         ManagedProcessStartResult fallback = await _process.StartUntilReadyAsync(
             _managedRoot,
-            rollback,
+            rollback.Value,
             _readyDeadline,
             cancellationToken).ConfigureAwait(false);
-        return fallback.Outcome == ManagedProcessStartOutcome.Ready
-            ? new(ManagedLauncherOutcome.RolledBack, rollback, failedVersion)
-            : new(ManagedLauncherOutcome.StartFailed, null, failedVersion);
+        if (fallback.Outcome == ManagedProcessStartOutcome.Ready)
+        {
+            VersionManagerState committed = VersionActivationPolicy.CommitRollback(state, rollback.Value);
+            return await TrySaveAsync(committed, cancellationToken).ConfigureAwait(false)
+                ? new(ManagedLauncherOutcome.RolledBack, rollback, failedVersion)
+                : new(ManagedLauncherOutcome.StateUnavailable, rollback, failedVersion);
+        }
+
+        ActivationRecoveryDecision terminal = VersionActivationPolicy.FailActivation(state, failedVersion);
+        return await TrySaveAsync(terminal.State, cancellationToken).ConfigureAwait(false)
+            ? new(ManagedLauncherOutcome.StartFailed, null, failedVersion)
+            : new(ManagedLauncherOutcome.StateUnavailable, null, failedVersion);
+    }
+
+    private async ValueTask<bool> TrySaveAsync(
+        VersionManagerState state,
+        CancellationToken cancellationToken)
+    {
+        VersionManagerStateSaveResult result = await _stateStore.TrySaveAsync(
+            state,
+            cancellationToken).ConfigureAwait(false);
+        return result.IsSuccess;
     }
 
     private async ValueTask<bool> IsHealthyAsync(

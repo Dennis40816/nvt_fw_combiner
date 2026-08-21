@@ -51,6 +51,9 @@ internal sealed partial class SettingsViewModel
     public partial bool IsVersionBusy { get; private set; }
 
     [ObservableProperty]
+    public partial bool IsSourceChecking { get; private set; }
+
+    [ObservableProperty]
     public partial string SourceStatusGlyph { get; private set; } = "○";
 
     [ObservableProperty]
@@ -137,11 +140,13 @@ internal sealed partial class SettingsViewModel
             ApplyVersionSnapshot(initialized);
             if (initialized.State?.UpdateSource is not null)
             {
+                IsSourceChecking = true;
                 ApplyVersionSnapshot(await _versionManagement.CheckAsync(isAutomatic, CancellationToken.None));
             }
         }
         finally
         {
+            IsSourceChecking = false;
             IsVersionBusy = false;
         }
     }
@@ -182,9 +187,15 @@ internal sealed partial class SettingsViewModel
             VersionSourceStatus.NotConfigured => Localize("Not configured", "尚未設定"),
             _ => Localize("Not configured", "尚未設定"),
         };
+        string recoverySummary = snapshot.Inventory.UnadmittedCount > 0
+            ? Localize(
+                $" · {snapshot.Inventory.UnadmittedCount} need recovery",
+                $" · {snapshot.Inventory.UnadmittedCount} 個需要復原")
+            : string.Empty;
         InventorySummary = Localize(
             $"{snapshot.Inventory.HealthyCount} healthy · {snapshot.Inventory.DamagedCount} damaged",
-            $"{snapshot.Inventory.HealthyCount} 個正常 · {snapshot.Inventory.DamagedCount} 個已損壞");
+            $"{snapshot.Inventory.HealthyCount} 個正常 · {snapshot.Inventory.DamagedCount} 個已損壞") +
+            recoverySummary;
         HasRetentionReview = snapshot.State?.RetentionReviewDue == true;
         RetentionReviewMessage = HasRetentionReview
             ? Localize(
@@ -268,6 +279,7 @@ internal sealed partial class SettingsViewModel
             return;
         }
         IsVersionBusy = true;
+        IsSourceChecking = true;
         try
         {
             IsUpdateSourceEditing = false;
@@ -277,6 +289,7 @@ internal sealed partial class SettingsViewModel
         }
         finally
         {
+            IsSourceChecking = false;
             IsVersionBusy = false;
         }
     }
@@ -289,6 +302,7 @@ internal sealed partial class SettingsViewModel
             return;
         }
         IsVersionBusy = true;
+        IsSourceChecking = true;
         try
         {
             ApplyVersionSnapshot(await _versionManagement.CheckAsync(
@@ -297,8 +311,14 @@ internal sealed partial class SettingsViewModel
         }
         finally
         {
+            IsSourceChecking = false;
             IsVersionBusy = false;
         }
+    }
+
+    internal void SetSourceChecking(bool isChecking)
+    {
+        IsSourceChecking = isChecking;
     }
 
     [RelayCommand]
@@ -379,9 +399,19 @@ internal sealed partial class SettingsViewModel
                     return;
                 }
                 ApplyVersionSnapshot(deleted.Snapshot);
-                VersionOperationStatus = deleted.OperationIssue == VersionDeleteOperationIssue.None
-                    ? Localize($"Version {row.Version} deleted.", $"版本 {row.Version} 已刪除。")
-                    : Localize("The version could not be deleted.", "無法刪除此版本。");
+                VersionOperationStatus = deleted.OperationIssue switch
+                {
+                    VersionDeleteOperationIssue.None =>
+                        Localize($"Version {row.Version} deleted.", $"版本 {row.Version} 已刪除。"),
+                    VersionDeleteOperationIssue.StateUnavailable => Localize(
+                        "Version state is unavailable. No further action was taken; restart Settings to reconcile the operation.",
+                        "版本狀態目前無法使用。未再執行其他動作；請重新開啟設定以收斂此操作。"),
+                    VersionDeleteOperationIssue.PolicyBlocked or
+                    VersionDeleteOperationIssue.RollbackConfirmationRequired or
+                    VersionDeleteOperationIssue.RepositoryFailure =>
+                        Localize("The version could not be deleted.", "無法刪除此版本。"),
+                    _ => throw new InvalidOperationException("Unknown version delete operation outcome."),
+                };
                 return;
             }
             if (action == VersionConfirmationAction.Install)
@@ -392,12 +422,26 @@ internal sealed partial class SettingsViewModel
                 ApplyVersionSnapshot(installed.Snapshot);
                 if (!installed.Install.IsSuccess)
                 {
-                    VersionOperationStatus = Localize("Installation failed verification.", "安裝驗證失敗。");
+                    VersionOperationStatus = installed.Install.Issue == ManagedVersionInstallIssue.StateUnavailable
+                        ? Localize(
+                            "Version state is unavailable. Restart Settings to reconcile the installation.",
+                            "版本狀態目前無法使用。請重新開啟設定以收斂安裝狀態。")
+                        : Localize("Installation failed verification.", "安裝驗證失敗。");
                     return;
                 }
             }
 
-            _ = await _versionManagement.PrepareActivationAsync(row.Version, CancellationToken.None);
+            try
+            {
+                _ = await _versionManagement.PrepareActivationAsync(row.Version, CancellationToken.None);
+            }
+            catch (InvalidOperationException)
+            {
+                VersionOperationStatus = Localize(
+                    "Activation could not be prepared because version state is unavailable or changed.",
+                    "版本狀態目前無法使用或已變更，因此無法準備啟用。");
+                return;
+            }
             VersionOperationStatus = Localize("Restarting through the launcher…", "正在透過啟動器重新啟動…");
             ActivationRequested?.Invoke(this, EventArgs.Empty);
         }
@@ -405,6 +449,32 @@ internal sealed partial class SettingsViewModel
         {
             IsVersionBusy = false;
         }
+    }
+
+    internal async Task<bool> HandleLauncherHandoffFailureAsync()
+    {
+        bool activationCleared = true;
+        if (_versionManagement is not null)
+        {
+            try
+            {
+                VersionManagementSnapshot recovered = await _versionManagement.CancelPendingActivationAsync(
+                    CancellationToken.None);
+                ApplyVersionSnapshot(recovered);
+            }
+            catch (InvalidOperationException)
+            {
+                activationCleared = false;
+            }
+        }
+        VersionOperationStatus = activationCleared
+            ? Localize(
+                "The stable launcher could not be started. The app remains open; verify the managed folder and try again.",
+                "無法啟動穩定啟動器。應用程式仍保持開啟；請檢查受管資料夾後重試。")
+            : Localize(
+                "The stable launcher could not be started, and pending activation could not be cleared. The app remains open; restore version-state access and close again to retry the launcher.",
+                "無法啟動穩定啟動器，且無法清除待處理的版本啟用。應用程式仍保持開啟；請恢復版本狀態存取後再次關閉，以重試啟動器。");
+        return activationCleared;
     }
 
     private void BeginConfirmation(
@@ -457,29 +527,36 @@ internal sealed partial class SettingsViewModel
     {
         Dictionary<ManagedAppVersion, UpdateCatalogVersionSnapshot> catalog =
             snapshot.Catalog?.Versions.ToDictionary(version => version.Version) ?? [];
-        Dictionary<ManagedAppVersion, InstalledVersionSnapshot> installed =
+        var installed =
             snapshot.Inventory.Versions.ToDictionary(version => version.Version);
         ManagedAppVersion[] versions = [.. catalog.Keys.Concat(installed.Keys).Distinct().OrderDescending()];
         ReplaceRows(VersionRows, versions.Select(version =>
         {
             _ = catalog.TryGetValue(version, out UpdateCatalogVersionSnapshot? available);
             _ = installed.TryGetValue(version, out InstalledVersionSnapshot? local);
-            bool active = local?.IsActive == true;
-            bool damaged = local?.Integrity == ManagedVersionIntegrity.Damaged;
+            bool admitted = local?.AdmissionState == ManagedVersionAdmissionState.Admitted;
+            bool recoveryCandidate = local?.AdmissionState == ManagedVersionAdmissionState.RecoveryCandidate;
+            bool unadmitted = local?.AdmissionState == ManagedVersionAdmissionState.Unadmitted;
+            bool active = admitted && local?.IsActive == true;
+            bool damaged = admitted && local?.Integrity == ManagedVersionIntegrity.Damaged;
             bool verified = snapshot.VerifiedCandidate?.Version == version ||
-                            local?.Integrity == ManagedVersionIntegrity.Healthy;
+                            (admitted && local?.Integrity == ManagedVersionIntegrity.Healthy);
             SettingsVersionPrimaryAction action = active
                 ? SettingsVersionPrimaryAction.None
-                : local is not null && !damaged
+                : admitted && !damaged
                     ? SettingsVersionPrimaryAction.Switch
-                    : local is null && available is not null
+                : local is null && available is not null
                         ? SettingsVersionPrimaryAction.Install
                         : SettingsVersionPrimaryAction.None;
-            string status = active
+            string status = recoveryCandidate
+                ? Localize("Recovery pending", "等待復原")
+                : unadmitted
+                    ? Localize("Unmanaged folder · Recovery required", "非受管資料夾 · 需要復原")
+                    : active
                 ? Localize("Active · Verified", "使用中 · 已驗證")
                 : damaged
                     ? Localize("Damaged", "已損壞")
-                    : local is not null
+                    : admitted
                         ? Localize("Installed · Verified", "已安裝 · 已驗證")
                         : verified
                             ? Localize("Available · Verified", "可用 · 已驗證")
@@ -498,10 +575,10 @@ internal sealed partial class SettingsViewModel
                         : Localize("Current", "目前版本"),
                 Localize($"Delete installed version {version}", $"刪除已安裝版本 {version}"),
                 active,
-                local is not null,
+                admitted,
                 damaged,
-                local is not null && !active,
-                local?.IsLastKnownGood == true);
+                admitted && !active,
+                admitted && local?.IsLastKnownGood == true);
         }));
     }
 

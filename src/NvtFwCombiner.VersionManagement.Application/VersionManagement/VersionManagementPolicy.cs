@@ -26,6 +26,17 @@ public enum ManagedVersionDamageReason
     FailedActivation,
 }
 
+/// <summary>Trust relationship between a discovered directory and launcher state.</summary>
+public enum ManagedVersionAdmissionState
+{
+    /// <summary>The directory is bound to an admission in committed launcher state.</summary>
+    Admitted,
+    /// <summary>The directory has a valid self-admission and may close a matching durable transaction.</summary>
+    RecoveryCandidate,
+    /// <summary>The directory has no valid admission and is never ordinary installed inventory.</summary>
+    Unadmitted,
+}
+
 /// <summary>Immutable inventory row for one managed version directory.</summary>
 public sealed record InstalledVersionSnapshot(
     ManagedAppVersion Version,
@@ -33,7 +44,9 @@ public sealed record InstalledVersionSnapshot(
     ManagedVersionIntegrity Integrity,
     ManagedVersionDamageReason? DamageReason,
     bool IsActive,
-    bool IsLastKnownGood);
+    bool IsLastKnownGood,
+    ManagedVersionAdmissionState AdmissionState = ManagedVersionAdmissionState.Admitted,
+    ManagedVersionAdmission? ObservedAdmission = null);
 
 /// <summary>Verified package candidate admitted for an install or update decision.</summary>
 public sealed record VerifiedUpdateCandidate(
@@ -50,6 +63,8 @@ public enum ManagedVersionDeleteBlock
     ActiveVersion,
     /// <summary>The requested version is absent from admitted inventory.</summary>
     NotInstalled,
+    /// <summary>The directory is not admitted and requires a separate recovery action.</summary>
+    RecoveryRequired,
 }
 
 /// <summary>Application-owned delete decision before destructive confirmation.</summary>
@@ -67,8 +82,13 @@ public sealed class ManagedVersionInventory
     private ManagedVersionInventory(IReadOnlyList<InstalledVersionSnapshot> versions)
     {
         Versions = versions;
-        HealthyCount = versions.Count(version => version.Integrity == ManagedVersionIntegrity.Healthy);
-        DamagedCount = versions.Count - HealthyCount;
+        HealthyCount = versions.Count(version =>
+            version.AdmissionState == ManagedVersionAdmissionState.Admitted &&
+            version.Integrity == ManagedVersionIntegrity.Healthy);
+        DamagedCount = versions.Count(version =>
+            version.AdmissionState == ManagedVersionAdmissionState.Admitted &&
+            version.Integrity == ManagedVersionIntegrity.Damaged);
+        UnadmittedCount = versions.Count - HealthyCount - DamagedCount;
     }
 
     /// <summary>Gets rows ordered newest first.</summary>
@@ -79,6 +99,9 @@ public sealed class ManagedVersionInventory
 
     /// <summary>Gets the number of damaged installed versions.</summary>
     public int DamagedCount { get; }
+
+    /// <summary>Gets the number of directories outside committed admission state.</summary>
+    public int UnadmittedCount { get; }
 
     /// <summary>Creates a unique deterministic inventory.</summary>
     /// <param name="versions">Admitted installed-version rows.</param>
@@ -97,6 +120,8 @@ public sealed class ManagedVersionInventory
         }
         if (rows.Any(row =>
                 string.IsNullOrWhiteSpace(row.AdmissionIdentity) ||
+                (row.AdmissionState == ManagedVersionAdmissionState.RecoveryCandidate && row.ObservedAdmission is null) ||
+                (row.AdmissionState == ManagedVersionAdmissionState.Unadmitted && row.ObservedAdmission is not null) ||
                 (row.Integrity == ManagedVersionIntegrity.Healthy && row.DamageReason is not null) ||
                 (row.Integrity == ManagedVersionIntegrity.Damaged && row.DamageReason is null)))
         {
@@ -135,6 +160,8 @@ public static class VersionManagementPolicy
         return installed switch
         {
             null => new(ManagedVersionDeleteBlock.NotInstalled, RequiresRollbackLossWarning: false),
+            { AdmissionState: not ManagedVersionAdmissionState.Admitted } =>
+                new(ManagedVersionDeleteBlock.RecoveryRequired, RequiresRollbackLossWarning: false),
             { IsActive: true } => new(ManagedVersionDeleteBlock.ActiveVersion, RequiresRollbackLossWarning: false),
             _ => new(ManagedVersionDeleteBlock.None, installed.IsLastKnownGood),
         };

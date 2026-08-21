@@ -113,19 +113,6 @@ public sealed partial class MainWindow : Window, IDisposable
         _startupTrace.Mark("main-window-constructor.completed");
     }
 
-    internal static MainWindowViewModel CreateStartupViewModel(
-        PresentationHostServices hostServices,
-        ShellPreferenceSnapshot startupPreferences)
-    {
-        ArgumentNullException.ThrowIfNull(hostServices);
-        ArgumentNullException.ThrowIfNull(startupPreferences);
-        MainWindowViewModel viewModel = ShellViewModelFactory.Create(
-            hostServices,
-            ShellTextResources.LanguageFromPreference(startupPreferences.Language));
-        viewModel.LoadShellPreferences(startupPreferences);
-        return viewModel;
-    }
-
     /// <inheritdoc />
     protected override async void OnClosing(WindowClosingEventArgs e)
     {
@@ -140,6 +127,27 @@ public sealed partial class MainWindow : Window, IDisposable
             if (DataContext is MainWindowViewModel finalViewModel)
             {
                 finalViewModel.RunSession.CancelActiveRun();
+            }
+
+            if (_restartThroughStableLauncher && !_stableLauncherStarted)
+            {
+                e.Cancel = true;
+                if (_stableLauncherHandoffInProgress)
+                {
+                    base.OnClosing(e);
+                    return;
+                }
+                _stableLauncherHandoffInProgress = true;
+                bool started = await TryCompleteStableLauncherHandoffAsync();
+                _stableLauncherHandoffInProgress = false;
+                if (!started)
+                {
+                    base.OnClosing(e);
+                    return;
+                }
+                Dispatcher.UIThread.Post(Close);
+                base.OnClosing(e);
+                return;
             }
 
             base.OnClosing(e);
@@ -158,15 +166,6 @@ public sealed partial class MainWindow : Window, IDisposable
         if (DataContext is MainWindowViewModel viewModel)
         {
             viewModel.RunSession.CancelActiveRun();
-        }
-
-        if (DataContext is INotifyPropertyChanged notifier)
-        {
-            notifier.PropertyChanged -= ViewModel_OnPropertyChanged;
-        }
-        if (DataContext is MainWindowViewModel closingViewModel)
-        {
-            closingViewModel.Reports.PropertyChanged -= Reports_OnPropertyChanged;
         }
 
         var completion = Task.WhenAll(
@@ -207,7 +206,6 @@ public sealed partial class MainWindow : Window, IDisposable
         _reportToastHoldTimer.Tick -= ReportToastHoldTimer_OnTick;
         _reportToastFadeTimer.Tick -= ReportToastFadeTimer_OnTick;
         base.OnClosed(e);
-        RestartThroughStableLauncherIfRequested();
         Dispose();
     }
 

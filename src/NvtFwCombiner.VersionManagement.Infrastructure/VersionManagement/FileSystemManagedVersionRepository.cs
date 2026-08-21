@@ -227,7 +227,9 @@ public sealed class FileSystemManagedVersionRepository : IManagedVersionReposito
                 damage is null ? ManagedVersionIntegrity.Healthy : ManagedVersionIntegrity.Damaged,
                 damage,
                 activeVersion == admission.Version,
-                lastKnownGoodVersion == admission.Version));
+                lastKnownGoodVersion == admission.Version,
+                ManagedVersionAdmissionState.Admitted,
+                admission));
         }
 
         if (Directory.Exists(versionsRoot) && ManagedPathSafety.IsSafeExistingDirectory(versionsRoot))
@@ -239,13 +241,27 @@ public sealed class FileSystemManagedVersionRepository : IManagedVersionReposito
                 string name = Path.GetFileName(directory);
                 if (ManagedAppVersion.TryParse(name, out ManagedAppVersion version) && known.Add(version))
                 {
+                    ManagedVersionAdmission? observed = await ReadAdmissionAsync(
+                        directory,
+                        cancellationToken).ConfigureAwait(false);
+                    bool isRecoveryCandidate = observed?.Version == version;
+                    ManagedVersionDamageReason? damage = isRecoveryCandidate
+                        ? await ManagedPackageVerifier.VerifyInstalledAsync(
+                            directory,
+                            observed!,
+                            cancellationToken).ConfigureAwait(false)
+                        : ManagedVersionDamageReason.UnexpectedPath;
                     rows.Add(new(
                         version,
-                        $"unadmitted:{version}",
-                        ManagedVersionIntegrity.Damaged,
-                        ManagedVersionDamageReason.UnexpectedPath,
+                        observed?.AdmissionIdentity ?? $"unadmitted:{version}",
+                        damage is null ? ManagedVersionIntegrity.Healthy : ManagedVersionIntegrity.Damaged,
+                        damage,
                         activeVersion == version,
-                        lastKnownGoodVersion == version));
+                        lastKnownGoodVersion == version,
+                        isRecoveryCandidate
+                            ? ManagedVersionAdmissionState.RecoveryCandidate
+                            : ManagedVersionAdmissionState.Unadmitted,
+                        observed));
                 }
             }
         }

@@ -27,6 +27,8 @@ public enum UpdateCatalogIssueCode
     InvalidSha256,
     /// <summary>An entry exceeds the bounded release-note size.</summary>
     ReleaseNotesTooLarge,
+    /// <summary>An entry omits the required release notes field.</summary>
+    MissingReleaseNotes,
 }
 
 /// <summary>One stable catalog issue with an optional entry identity.</summary>

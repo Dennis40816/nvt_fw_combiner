@@ -15,6 +15,8 @@ public enum ManagedVersionSeedOutcome
     InvalidSeed,
     /// <summary>The seeded payload is absent, damaged, or contains unexpected managed versions.</summary>
     DamagedSeedPayload,
+    /// <summary>The verified seed could not be durably committed.</summary>
+    StateUnavailable,
 }
 
 /// <summary>Creates first-run launcher state only from one explicit verified packaged seed.</summary>
@@ -83,8 +85,12 @@ public sealed class ManagedVersionSeedBootstrapper
             return ManagedVersionSeedOutcome.DamagedSeedPayload;
         }
 
-        await _destinationStateStore.SaveAsync(state, cancellationToken).ConfigureAwait(false);
-        return ManagedVersionSeedOutcome.Seeded;
+        VersionManagerStateSaveResult saved = await _destinationStateStore.TrySaveAsync(
+            state,
+            cancellationToken).ConfigureAwait(false);
+        return saved.IsSuccess
+            ? ManagedVersionSeedOutcome.Seeded
+            : ManagedVersionSeedOutcome.StateUnavailable;
     }
 
     private static bool IsCanonicalFirstRunSeed(VersionManagerState state)
@@ -97,6 +103,7 @@ public sealed class ManagedVersionSeedBootstrapper
                state.LastKnownGoodVersion == active &&
                admission?.Version == active &&
                state.PendingActivation is null &&
+               state.PendingMutation is null &&
                state.FailedActivationVersion is null &&
                !state.RetentionReviewDue;
     }

@@ -23,6 +23,8 @@ public enum ManagedVersionInstallIssue
     IdentityConflict,
     /// <summary>Staging or atomic promotion could not complete.</summary>
     PromotionFailed,
+    /// <summary>Filesystem mutation completed or was withheld because durable state was unavailable.</summary>
+    StateUnavailable,
 }
 
 /// <summary>Fail-closed managed-package installation result.</summary>

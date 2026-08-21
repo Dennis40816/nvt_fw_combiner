@@ -58,8 +58,12 @@ public sealed class JsonVersionManagerStateStore : IVersionManagerStateStore
             {
                 return Failure(VersionManagerStateLoadIssue.Invalid);
             }
-            VersionManagerStateDocument? document =
-                JsonSerializer.Deserialize(bytes, JsonContext.VersionManagerStateDocument);
+            using JsonDocument stateJson = EmbeddedVersionManagementSchema.ParseStrict(
+                bytes,
+                maximumDepth: 32);
+            VersionManagerStateDocument? document = JsonSerializer.Deserialize(
+                stateJson.RootElement,
+                JsonContext.VersionManagerStateDocument);
             if (document is null || document.SchemaVersion != SchemaVersion)
             {
                 return Failure(VersionManagerStateLoadIssue.Invalid);
@@ -130,7 +134,8 @@ public sealed class JsonVersionManagerStateStore : IVersionManagerStateStore
             if (!ManagedAppVersion.TryParse(pendingDocument.CandidateVersion, out ManagedAppVersion candidate) ||
                 string.IsNullOrWhiteSpace(pendingDocument.CandidateAdmissionIdentity) ||
                 !TryParseOptional(pendingDocument.PreviousActiveVersion, out ManagedAppVersion? previousActive) ||
-                !TryParseOptional(pendingDocument.PreviousLastKnownGoodVersion, out ManagedAppVersion? previousLastKnownGood))
+                !TryParseOptional(pendingDocument.PreviousLastKnownGoodVersion, out ManagedAppVersion? previousLastKnownGood) ||
+                !TryParseActivationPhase(pendingDocument.Phase, out VersionActivationPhase phase))
             {
                 return null;
             }
@@ -138,7 +143,27 @@ public sealed class JsonVersionManagerStateStore : IVersionManagerStateStore
                 candidate,
                 pendingDocument.CandidateAdmissionIdentity,
                 previousActive,
-                previousLastKnownGood);
+                previousLastKnownGood,
+                phase);
+        }
+
+        PendingManagedVersionMutation? pendingMutation = null;
+        if (document.PendingMutation is { } mutationDocument)
+        {
+            if (!TryParseMutationKind(mutationDocument.Kind, out ManagedVersionMutationKind kind) ||
+                mutationDocument.Admission is not { } admissionDocument ||
+                !ManagedAppVersion.TryParse(admissionDocument.Version, out ManagedAppVersion mutationVersion) ||
+                string.IsNullOrWhiteSpace(admissionDocument.AdmissionIdentity) ||
+                !IsLowerSha256(admissionDocument.ReleaseManifestSha256))
+            {
+                return null;
+            }
+            pendingMutation = new(
+                kind,
+                new(
+                    mutationVersion,
+                    admissionDocument.AdmissionIdentity,
+                    admissionDocument.ReleaseManifestSha256!));
         }
 
         return VersionManagerState.Create(
@@ -148,7 +173,8 @@ public sealed class JsonVersionManagerStateStore : IVersionManagerStateStore
             installed,
             pending,
             failed,
-            document.RetentionReviewDue);
+            document.RetentionReviewDue,
+            pendingMutation);
     }
 
     private static VersionManagerStateDocument Project(VersionManagerState state)
@@ -158,7 +184,16 @@ public sealed class JsonVersionManagerStateStore : IVersionManagerStateStore
                 value.CandidateVersion.ToString(),
                 value.CandidateAdmissionIdentity,
                 value.PreviousActiveVersion?.ToString(),
-                value.PreviousLastKnownGoodVersion?.ToString())
+                value.PreviousLastKnownGoodVersion?.ToString(),
+                FormatActivationPhase(value.Phase))
+            : null;
+        PendingManagedVersionMutationDocument? pendingMutation = state.PendingMutation is { } mutation
+            ? new(
+                FormatMutationKind(mutation.Kind),
+                new(
+                    mutation.Admission.Version.ToString(),
+                    mutation.Admission.AdmissionIdentity,
+                    mutation.Admission.ReleaseManifestSha256))
             : null;
         return new(
             SchemaVersion,
@@ -171,7 +206,65 @@ public sealed class JsonVersionManagerStateStore : IVersionManagerStateStore
                 admission.ReleaseManifestSha256))],
             pending,
             state.FailedActivationVersion?.ToString(),
-            state.RetentionReviewDue);
+            state.RetentionReviewDue,
+            pendingMutation);
+    }
+
+    private static bool TryParseActivationPhase(string? value, out VersionActivationPhase phase)
+    {
+        switch (value)
+        {
+            case null:
+            case "requested":
+                phase = VersionActivationPhase.Requested;
+                return true;
+            case "candidateLaunchRecorded":
+                phase = VersionActivationPhase.CandidateLaunchRecorded;
+                return true;
+            case "rollbackLaunchRecorded":
+                phase = VersionActivationPhase.RollbackLaunchRecorded;
+                return true;
+            default:
+                phase = default;
+                return false;
+        }
+    }
+
+    private static string? FormatActivationPhase(VersionActivationPhase phase)
+    {
+        return phase switch
+        {
+            VersionActivationPhase.Requested => null,
+            VersionActivationPhase.CandidateLaunchRecorded => "candidateLaunchRecorded",
+            VersionActivationPhase.RollbackLaunchRecorded => "rollbackLaunchRecorded",
+            _ => throw new InvalidOperationException("Unknown activation transaction phase."),
+        };
+    }
+
+    private static bool TryParseMutationKind(string? value, out ManagedVersionMutationKind kind)
+    {
+        switch (value)
+        {
+            case "install":
+                kind = ManagedVersionMutationKind.Install;
+                return true;
+            case "delete":
+                kind = ManagedVersionMutationKind.Delete;
+                return true;
+            default:
+                kind = default;
+                return false;
+        }
+    }
+
+    private static string FormatMutationKind(ManagedVersionMutationKind kind)
+    {
+        return kind switch
+        {
+            ManagedVersionMutationKind.Install => "install",
+            ManagedVersionMutationKind.Delete => "delete",
+            _ => throw new InvalidOperationException("Unknown managed-version mutation kind."),
+        };
     }
 
     private static bool TryParseOptional(string? value, out ManagedAppVersion? version)

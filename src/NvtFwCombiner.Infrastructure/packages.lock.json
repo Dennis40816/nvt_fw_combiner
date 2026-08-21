@@ -60,6 +60,7 @@
       "nvtfwcombiner.versionmanagement.infrastructure": {
         "type": "Project",
         "dependencies": {
+          "JsonSchema.Net": "[8.0.5, )",
           "NvtFwCombiner.Contracts": "[0.10.6, )",
           "NvtFwCombiner.VersionManagement.Application": "[0.10.6, )"
         }

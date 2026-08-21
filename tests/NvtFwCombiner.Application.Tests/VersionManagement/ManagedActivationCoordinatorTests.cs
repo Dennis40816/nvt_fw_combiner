@@ -173,6 +173,282 @@ public sealed class ManagedActivationCoordinatorTests
         Assert.Equal(["0.10.6", "0.10.5"], process.Starts);
     }
 
+    /// <summary>A failed candidate-launch journal save prevents any process from starting.</summary>
+    [Fact]
+    public async Task CandidateLaunchJournalFailureStartsNoProcess()
+    {
+        VersionManagerState pending = VersionActivationPolicy.BeginActivation(
+            State(),
+            ManagedAppVersion.Parse("0.10.6"));
+        var store = new FailingStateStore(pending, failOnSave: 1);
+        var process = new FakeProcess(ManagedProcessStartOutcome.Ready);
+
+        ManagedLauncherResult result = await new ManagedActivationCoordinator(
+            "managed",
+            store,
+            new HealthyRepository(),
+            process,
+            TimeSpan.FromSeconds(1)).RunAsync(TestContext.Current.CancellationToken);
+
+        Assert.Equal(ManagedLauncherOutcome.StateUnavailable, result.Outcome);
+        Assert.Empty(process.Starts);
+        Assert.Equal(VersionActivationPhase.Requested, store.State.PendingActivation?.Phase);
+    }
+
+    /// <summary>A failed rollback-journal save prevents fallback launch after candidate failure.</summary>
+    [Fact]
+    public async Task RollbackLaunchJournalFailureStartsNoFallback()
+    {
+        VersionManagerState pending = VersionActivationPolicy.BeginActivation(
+            State(),
+            ManagedAppVersion.Parse("0.10.6"));
+        var store = new FailingStateStore(pending, failOnSave: 2);
+        var process = new FakeProcess(ManagedProcessStartOutcome.ReadyTimeout);
+
+        ManagedLauncherResult result = await new ManagedActivationCoordinator(
+            "managed",
+            store,
+            new HealthyRepository(),
+            process,
+            TimeSpan.FromSeconds(1)).RunAsync(TestContext.Current.CancellationToken);
+
+        Assert.Equal(ManagedLauncherOutcome.StateUnavailable, result.Outcome);
+        Assert.Equal(["0.10.6"], process.Starts);
+        Assert.Equal(VersionActivationPhase.CandidateLaunchRecorded, store.State.PendingActivation?.Phase);
+    }
+
+    /// <summary>An unavailable rollback target closes the durable journal without starting an arbitrary process.</summary>
+    [Fact]
+    public async Task MissingRollbackTargetCommitsTerminalFailure()
+    {
+        ManagedAppVersion current = ManagedAppVersion.Parse("0.10.5");
+        VersionManagerState state = VersionManagerState.Create(
+            null,
+            current,
+            lastKnownGoodVersion: null,
+            [Admission("0.10.5"), Admission("0.10.6")],
+            pendingActivation: null,
+            failedActivationVersion: null,
+            retentionReviewDue: false);
+        VersionManagerState pending = VersionActivationPolicy.BeginActivation(
+            state,
+            ManagedAppVersion.Parse("0.10.6"));
+        var store = new FakeStateStore(pending);
+        var process = new FakeProcess(ManagedProcessStartOutcome.ReadyTimeout);
+
+        ManagedLauncherResult result = await new ManagedActivationCoordinator(
+            "managed",
+            store,
+            new HealthyRepository(),
+            process,
+            TimeSpan.FromSeconds(1)).RunAsync(TestContext.Current.CancellationToken);
+
+        Assert.Equal(ManagedLauncherOutcome.StartFailed, result.Outcome);
+        Assert.Equal(["0.10.6"], process.Starts);
+        Assert.Null(store.State.PendingActivation);
+        Assert.Equal("0.10.6", store.State.FailedActivationVersion?.ToString());
+    }
+
+    /// <summary>An uncertain ready commit is never retried as another candidate launch after restart.</summary>
+    [Fact]
+    public async Task ReadyCommitFailureRestartsDirectlyIntoRecordedRollback()
+    {
+        VersionManagerState pending = VersionActivationPolicy.BeginActivation(
+            State(),
+            ManagedAppVersion.Parse("0.10.6"));
+        var store = new FailingStateStore(pending, failOnSave: 2);
+        var firstProcess = new FakeProcess(ManagedProcessStartOutcome.Ready);
+        ManagedLauncherResult interrupted = await new ManagedActivationCoordinator(
+            "managed",
+            store,
+            new HealthyRepository(),
+            firstProcess,
+            TimeSpan.FromSeconds(1)).RunAsync(TestContext.Current.CancellationToken);
+
+        Assert.Equal(ManagedLauncherOutcome.StateUnavailable, interrupted.Outcome);
+        Assert.Equal(["0.10.6"], firstProcess.Starts);
+        Assert.Equal(VersionActivationPhase.CandidateLaunchRecorded, store.State.PendingActivation?.Phase);
+
+        var restartedProcess = new FakeProcess(ManagedProcessStartOutcome.Ready);
+        ManagedLauncherResult recovered = await new ManagedActivationCoordinator(
+            "managed",
+            store,
+            new HealthyRepository(),
+            restartedProcess,
+            TimeSpan.FromSeconds(1)).RunAsync(TestContext.Current.CancellationToken);
+
+        Assert.Equal(ManagedLauncherOutcome.RolledBack, recovered.Outcome);
+        Assert.Equal(["0.10.5"], restartedProcess.Starts);
+        Assert.Null(store.State.PendingActivation);
+    }
+
+    /// <summary>A failed rollback commit restarts only the recorded fallback and then converges.</summary>
+    [Fact]
+    public async Task RollbackCommitFailureRestartsOnlyRecordedFallback()
+    {
+        VersionManagerState pending = VersionActivationPolicy.BeginActivation(
+            State(),
+            ManagedAppVersion.Parse("0.10.6"));
+        var store = new FailingStateStore(pending, failOnSave: 3);
+        var firstProcess = new FakeProcess(
+            ManagedProcessStartOutcome.ReadyTimeout,
+            ManagedProcessStartOutcome.Ready);
+        ManagedLauncherResult interrupted = await new ManagedActivationCoordinator(
+            "managed",
+            store,
+            new HealthyRepository(),
+            firstProcess,
+            TimeSpan.FromSeconds(1)).RunAsync(TestContext.Current.CancellationToken);
+
+        Assert.Equal(ManagedLauncherOutcome.StateUnavailable, interrupted.Outcome);
+        Assert.Equal(["0.10.6", "0.10.5"], firstProcess.Starts);
+        Assert.Equal(VersionActivationPhase.RollbackLaunchRecorded, store.State.PendingActivation?.Phase);
+
+        var restartedProcess = new FakeProcess(ManagedProcessStartOutcome.Ready);
+        ManagedLauncherResult recovered = await new ManagedActivationCoordinator(
+            "managed",
+            store,
+            new HealthyRepository(),
+            restartedProcess,
+            TimeSpan.FromSeconds(1)).RunAsync(TestContext.Current.CancellationToken);
+
+        Assert.Equal(ManagedLauncherOutcome.RolledBack, recovered.Outcome);
+        Assert.Equal(["0.10.5"], restartedProcess.Starts);
+        Assert.Null(store.State.PendingActivation);
+    }
+
+    /// <summary>A power cut after candidate-launch recording skips that candidate on restart.</summary>
+    [Fact]
+    public async Task CandidateLaunchRecordedPowerCutRestartsIntoRollbackOnly()
+    {
+        VersionManagerState requested = VersionActivationPolicy.BeginActivation(
+            State(),
+            ManagedAppVersion.Parse("0.10.6"));
+        VersionManagerState recorded = VersionActivationPolicy.RecordCandidateLaunch(requested);
+        var store = new FakeStateStore(recorded);
+        var process = new FakeProcess(ManagedProcessStartOutcome.Ready);
+
+        ManagedLauncherResult recovered = await new ManagedActivationCoordinator(
+            "managed",
+            store,
+            new HealthyRepository(),
+            process,
+            TimeSpan.FromSeconds(1)).RunAsync(TestContext.Current.CancellationToken);
+
+        Assert.Equal(ManagedLauncherOutcome.RolledBack, recovered.Outcome);
+        Assert.Equal(["0.10.5"], process.Starts);
+        Assert.Null(store.State.PendingActivation);
+    }
+
+    /// <summary>A power cut after rollback-launch recording starts only the exact fallback.</summary>
+    [Fact]
+    public async Task RollbackLaunchRecordedPowerCutRestartsFallbackOnly()
+    {
+        VersionManagerState requested = VersionActivationPolicy.BeginActivation(
+            State(),
+            ManagedAppVersion.Parse("0.10.6"));
+        VersionManagerState candidateRecorded = VersionActivationPolicy.RecordCandidateLaunch(requested);
+        VersionManagerState rollbackRecorded = VersionActivationPolicy.RecordRollbackLaunch(
+            candidateRecorded,
+            ManagedAppVersion.Parse("0.10.6")).State;
+        var store = new FakeStateStore(rollbackRecorded);
+        var process = new FakeProcess(ManagedProcessStartOutcome.Ready);
+
+        ManagedLauncherResult recovered = await new ManagedActivationCoordinator(
+            "managed",
+            store,
+            new HealthyRepository(),
+            process,
+            TimeSpan.FromSeconds(1)).RunAsync(TestContext.Current.CancellationToken);
+
+        Assert.Equal(ManagedLauncherOutcome.RolledBack, recovered.Outcome);
+        Assert.Equal(["0.10.5"], process.Starts);
+        Assert.Null(store.State.PendingActivation);
+    }
+
+    /// <summary>A failed terminal save retains rollback phase and never re-launches the candidate.</summary>
+    [Fact]
+    public async Task FallbackFailureCommitFailureRetriesOnlyFallbackAndConverges()
+    {
+        VersionManagerState requested = VersionActivationPolicy.BeginActivation(
+            State(),
+            ManagedAppVersion.Parse("0.10.6"));
+        VersionManagerState candidateRecorded = VersionActivationPolicy.RecordCandidateLaunch(requested);
+        VersionManagerState rollbackRecorded = VersionActivationPolicy.RecordRollbackLaunch(
+            candidateRecorded,
+            ManagedAppVersion.Parse("0.10.6")).State;
+        var store = new FailingStateStore(rollbackRecorded, failOnSave: 1);
+        var firstProcess = new FakeProcess(ManagedProcessStartOutcome.InvalidReadySignal);
+
+        ManagedLauncherResult interrupted = await new ManagedActivationCoordinator(
+            "managed",
+            store,
+            new HealthyRepository(),
+            firstProcess,
+            TimeSpan.FromSeconds(1)).RunAsync(TestContext.Current.CancellationToken);
+
+        Assert.Equal(ManagedLauncherOutcome.StateUnavailable, interrupted.Outcome);
+        Assert.Equal(["0.10.5"], firstProcess.Starts);
+        Assert.Equal(VersionActivationPhase.RollbackLaunchRecorded, store.State.PendingActivation?.Phase);
+
+        var secondProcess = new FakeProcess(ManagedProcessStartOutcome.Ready);
+        ManagedLauncherResult recovered = await new ManagedActivationCoordinator(
+            "managed",
+            store,
+            new HealthyRepository(),
+            secondProcess,
+            TimeSpan.FromSeconds(1)).RunAsync(TestContext.Current.CancellationToken);
+
+        Assert.Equal(ManagedLauncherOutcome.RolledBack, recovered.Outcome);
+        Assert.Equal(["0.10.5"], secondProcess.Starts);
+        Assert.Null(store.State.PendingActivation);
+    }
+
+    /// <summary>A failed terminal save with no rollback target closes on the next restart without a process.</summary>
+    [Fact]
+    public async Task MissingRollbackTerminalSaveFailureClosesOnNextRestart()
+    {
+        ManagedAppVersion current = ManagedAppVersion.Parse("0.10.5");
+        VersionManagerState state = VersionManagerState.Create(
+            null,
+            current,
+            lastKnownGoodVersion: null,
+            [Admission("0.10.5"), Admission("0.10.6")],
+            pendingActivation: null,
+            failedActivationVersion: null,
+            retentionReviewDue: false);
+        VersionManagerState requested = VersionActivationPolicy.BeginActivation(
+            state,
+            ManagedAppVersion.Parse("0.10.6"));
+        VersionManagerState candidateRecorded = VersionActivationPolicy.RecordCandidateLaunch(requested);
+        VersionManagerState rollbackRecorded = VersionActivationPolicy.RecordRollbackLaunch(
+            candidateRecorded,
+            ManagedAppVersion.Parse("0.10.6")).State;
+        var store = new FailingStateStore(rollbackRecorded, failOnSave: 1);
+        var process = new FakeProcess();
+
+        ManagedLauncherResult interrupted = await new ManagedActivationCoordinator(
+            "managed",
+            store,
+            new HealthyRepository(),
+            process,
+            TimeSpan.FromSeconds(1)).RunAsync(TestContext.Current.CancellationToken);
+        Assert.Equal(ManagedLauncherOutcome.StateUnavailable, interrupted.Outcome);
+        Assert.Equal(VersionActivationPhase.RollbackLaunchRecorded, store.State.PendingActivation?.Phase);
+
+        ManagedLauncherResult recovered = await new ManagedActivationCoordinator(
+            "managed",
+            store,
+            new HealthyRepository(),
+            process,
+            TimeSpan.FromSeconds(1)).RunAsync(TestContext.Current.CancellationToken);
+
+        Assert.Equal(ManagedLauncherOutcome.StartFailed, recovered.Outcome);
+        Assert.Empty(process.Starts);
+        Assert.Null(store.State.PendingActivation);
+        Assert.Equal("0.10.6", store.State.FailedActivationVersion?.ToString());
+    }
+
     private static VersionManagerState State()
     {
         ManagedAppVersion old = ManagedAppVersion.Parse("0.10.5");
@@ -217,6 +493,30 @@ public sealed class ManagedActivationCoordinatorTests
         public ValueTask SaveAsync(VersionManagerState stateToSave, CancellationToken cancellationToken)
         {
             throw new NotSupportedException();
+        }
+    }
+
+    private sealed class FailingStateStore(
+        VersionManagerState state,
+        int failOnSave) : IVersionManagerStateStore
+    {
+        private int _saveCount;
+
+        internal VersionManagerState State { get; private set; } = state;
+
+        public ValueTask<VersionManagerStateLoadResult> LoadAsync(CancellationToken cancellationToken)
+        {
+            return ValueTask.FromResult(new VersionManagerStateLoadResult(State, VersionManagerStateLoadIssue.None));
+        }
+
+        public ValueTask SaveAsync(VersionManagerState stateToSave, CancellationToken cancellationToken)
+        {
+            if (Interlocked.Increment(ref _saveCount) == failOnSave)
+            {
+                throw new IOException("Injected activation state failure.");
+            }
+            State = stateToSave;
+            return ValueTask.CompletedTask;
         }
     }
 

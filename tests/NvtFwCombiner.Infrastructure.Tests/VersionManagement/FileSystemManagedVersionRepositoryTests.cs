@@ -82,6 +82,23 @@ public sealed partial class FileSystemManagedVersionRepositoryTests
         Assert.DoesNotContain(relocatedSource, verified.Candidate.AdmissionIdentity, StringComparison.OrdinalIgnoreCase);
     }
 
+    /// <summary>The managed verifier consumes the same roles and payload families emitted by the production packager.</summary>
+    [Fact]
+    public async Task ProductionReleaseManifestRolesAreAdmittedByManagedVerifier()
+    {
+        using var workspace = TempWorkspace.Create();
+        string sourceRoot = workspace.PathFor("source");
+        UpdateCatalogVersionSnapshot package = CreatePackage(
+            sourceRoot,
+            "0.10.6",
+            includeProductionContractPayload: true);
+
+        ManagedPackageVerificationResult verified = await new FileSystemManagedVersionRepository()
+            .VerifyPackageAsync(sourceRoot, package, TestContext.Current.CancellationToken);
+
+        Assert.True(verified.IsVerified, verified.Issue.ToString());
+    }
+
     /// <summary>Archive traversal fails without a partial installed directory.</summary>
     [Fact]
     public async Task ZipTraversalFailsAndCleansStaging()
@@ -409,7 +426,10 @@ public sealed partial class FileSystemManagedVersionRepositoryTests
         Action<JsonObject>? mutateManifest = null,
         Action<ZipArchive, string>? mutateArchive = null,
         string? omittedPayload = null,
-        Action<string>? mutatePackage = null)
+        Action<string>? mutatePackage = null,
+        bool includeProductionContractPayload = true,
+        bool omitChecksumDocument = false,
+        Func<byte[], byte[]>? mutateChecksumDocument = null)
     {
         string packages = Path.Combine(sourceRoot, "packages");
         _ = Directory.CreateDirectory(packages);
@@ -423,6 +443,11 @@ public sealed partial class FileSystemManagedVersionRepositoryTests
             ["LICENSE.txt"] = Encoding.UTF8.GetBytes("license"),
             ["README.txt"] = Encoding.UTF8.GetBytes("readme"),
         };
+        if (includeProductionContractPayload)
+        {
+            files["docs/contracts/canonical-capability-policy-v1.json"] = Encoding.UTF8.GetBytes("{}");
+            files["profiles/built-in/package-trust-index.json"] = Encoding.UTF8.GetBytes("{}");
+        }
         if (useReadyProbe)
         {
             string probeRoot = Path.Combine(AppContext.BaseDirectory, "ready-probe");
@@ -439,10 +464,19 @@ public sealed partial class FileSystemManagedVersionRepositoryTests
             }
         }
         byte[] manifest = CreateReleaseManifest(version, files, nullManifestCollections, mutateManifest);
+        byte[] checksums = CreateChecksumDocument(files, manifest);
+        if (mutateChecksumDocument is not null)
+        {
+            checksums = mutateChecksumDocument(checksums);
+        }
         using (FileStream output = File.Create(packagePath))
         using (var archive = new ZipArchive(output, ZipArchiveMode.Create))
         {
             WriteEntry(archive, $"{packageRoot}/RELEASE-MANIFEST.json", manifest);
+            if (!omitChecksumDocument)
+            {
+                WriteEntry(archive, $"{packageRoot}/SHA256SUMS.txt", checksums);
+            }
             foreach ((string path, byte[] bytes) in files)
             {
                 if (!string.Equals(path, omittedPayload, StringComparison.Ordinal))
@@ -535,8 +569,11 @@ public sealed partial class FileSystemManagedVersionRepositoryTests
                 "THIRD-PARTY-NOTICES.txt" => "notices",
                 "LICENSE.txt" => "license",
                 "README.txt" => "readme",
-                "external-tools/crc-worker/0.1.0/Nfc.CrcWorker.exe" => "crcWorker",
-                _ => "externalTool",
+                "docs/contracts/canonical-capability-policy-v1.json" => "capabilityPolicy",
+                _ when pair.Key.StartsWith("profiles/built-in/", StringComparison.Ordinal) => "builtInProfile",
+                _ when pair.Key.StartsWith("external-tools/", StringComparison.Ordinal) => "externalTool",
+                _ when !pair.Key.Contains('/') => "application",
+                _ => "reference",
             },
         })];
         byte[] bytes = JsonSerializer.SerializeToUtf8Bytes(new
@@ -572,5 +609,22 @@ public sealed partial class FileSystemManagedVersionRepositoryTests
         ZipArchiveEntry entry = archive.CreateEntry(path, CompressionLevel.NoCompression);
         using Stream output = entry.Open();
         output.Write(bytes);
+    }
+
+    private static byte[] CreateChecksumDocument(
+        IReadOnlyDictionary<string, byte[]> files,
+        byte[] manifest)
+    {
+        IEnumerable<(string Path, string Hash)> entries = files
+            .Select(pair => (
+                Path: pair.Key,
+                Hash: Convert.ToHexStringLower(SHA256.HashData(pair.Value))))
+            .Append((
+                Path: "RELEASE-MANIFEST.json",
+                Hash: Convert.ToHexStringLower(SHA256.HashData(manifest))))
+            .OrderBy(entry => entry.Path, StringComparer.Ordinal);
+        return Encoding.UTF8.GetBytes(string.Join(
+            "\n",
+            entries.Select(entry => $"{entry.Hash}  {entry.Path}")) + "\n");
     }
 }

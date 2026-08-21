@@ -1,3 +1,4 @@
+using Avalonia.Headless.XUnit;
 using NvtFwCombiner.Application.VersionManagement;
 using NvtFwCombiner.Presentation.Avalonia;
 using NvtFwCombiner.Presentation.Avalonia.ViewModels;
@@ -83,6 +84,41 @@ public sealed class VersionManagementSettingsTests
         Assert.Equal("⊘", viewModel.Settings.SourceStatusGlyph);
         Assert.Equal("Permission denied", viewModel.Settings.SourceStatusText);
         Assert.NotEqual("Offline", viewModel.Settings.SourceStatusText);
+    }
+
+    /// <summary>An unknown version directory is shown as recovery state, never as installed or deletable.</summary>
+    [Fact]
+    public void UnadmittedDirectoryCannotAppearAsOrdinaryInstalledVersion()
+    {
+        VersionManagementSnapshot initial = Snapshot(retentionReviewDue: false);
+        ManagedAppVersion unknownVersion = ManagedAppVersion.Parse("0.10.7");
+        ManagedVersionInventory inventory = ManagedVersionInventory.Create(
+        [
+            .. initial.Inventory.Versions,
+            new InstalledVersionSnapshot(
+                unknownVersion,
+                "unadmitted-directory",
+                ManagedVersionIntegrity.Damaged,
+                ManagedVersionDamageReason.UnexpectedPath,
+                IsActive: false,
+                IsLastKnownGood: false,
+                ManagedVersionAdmissionState.Unadmitted),
+        ]);
+        initial = initial with { Inventory = inventory };
+        MainWindowViewModel viewModel = MainWindow.CreateStartupViewModel(
+            PresentationTestHost.CreateServices("0.10.5", new RecordingVersionExperience(initial)),
+            ShellPreferenceSnapshot.Default);
+
+        viewModel.Settings.ApplyVersionSnapshot(initial);
+
+        SettingsVersionRowViewModel row = Assert.Single(
+            viewModel.Settings.VersionRows,
+            candidate => candidate.Version == unknownVersion);
+        Assert.False(row.IsInstalled);
+        Assert.False(row.CanDelete);
+        Assert.False(row.HasPrimaryAction);
+        Assert.Contains("Recovery required", row.StatusLabel, StringComparison.Ordinal);
+        Assert.Contains("1 need recovery", viewModel.Settings.InventorySummary, StringComparison.Ordinal);
     }
 
     /// <summary>Delete icon names include the target version and follow the selected language.</summary>
@@ -175,6 +211,105 @@ public sealed class VersionManagementSettingsTests
         Assert.True(activationRequested);
     }
 
+    /// <summary>Launcher handoff failure clears only the unlaunched request and leaves an actionable status.</summary>
+    [Fact]
+    public async Task LauncherHandoffFailureClearsPendingActivationAndReportsOpenState()
+    {
+        var experience = new RecordingVersionExperience(Snapshot(retentionReviewDue: false));
+        MainWindowViewModel viewModel = MainWindow.CreateStartupViewModel(
+            PresentationTestHost.CreateServices("0.10.5", experience),
+            ShellPreferenceSnapshot.Default);
+        viewModel.Settings.ApplyVersionSnapshot(experience.Current);
+        SettingsVersionRowViewModel installed = Assert.Single(
+            viewModel.Settings.VersionRows,
+            row => row.Version == ManagedAppVersion.Parse("0.10.4"));
+        viewModel.Settings.RequestVersionPrimaryActionCommand.Execute(installed);
+        await viewModel.Settings.ConfirmVersionActionCommand.ExecuteAsync(null);
+        Assert.NotNull(experience.Current.State!.PendingActivation);
+
+        bool cleared = await viewModel.Settings.HandleLauncherHandoffFailureAsync();
+
+        Assert.True(cleared);
+        Assert.Null(experience.Current.State!.PendingActivation);
+        Assert.Contains("remains open", viewModel.Settings.VersionOperationStatus, StringComparison.Ordinal);
+    }
+
+    /// <summary>A failed pending-state clear stays visible and preserves launcher retry on the next close.</summary>
+    [AvaloniaFact]
+    public async Task HandoffAndPendingClearFailureRemainVisibleAndRetryable()
+    {
+        var experience = new RecordingVersionExperience(Snapshot(retentionReviewDue: false))
+        {
+            FailPendingActivationCancellation = true,
+        };
+        var handoff = new RecordingStableLauncherHandoff(started: false);
+        using var window = new MainWindow(
+            UiLaunchOptions.Empty,
+            StartupTraceSession.Disabled,
+            PresentationTestHost.CreateServices("0.10.5", experience, handoff),
+            ShellPreferenceSnapshot.Default);
+        window.RequestStableLauncherRestart();
+
+        Assert.False(await window.TryCompleteStableLauncherHandoffAsync());
+        Assert.False(await window.TryCompleteStableLauncherHandoffAsync());
+
+        Assert.Equal(2, handoff.Attempts);
+        MainWindowViewModel viewModel = Assert.IsType<MainWindowViewModel>(window.DataContext);
+        Assert.Contains("pending activation", viewModel.Settings.VersionOperationStatus, StringComparison.Ordinal);
+        Assert.True(window.IsEnabled);
+    }
+
+    /// <summary>The window reports a failed launcher start while it is still alive and usable.</summary>
+    [AvaloniaFact]
+    public async Task StableLauncherMustStartBeforeWindowCanCompleteHandoff()
+    {
+        var experience = new RecordingVersionExperience(Snapshot(retentionReviewDue: false));
+        var handoff = new RecordingStableLauncherHandoff(started: false);
+        PresentationHostServices services = PresentationTestHost.CreateServices(
+            "0.10.5",
+            experience,
+            handoff);
+        using var window = new MainWindow(
+            UiLaunchOptions.Empty,
+            StartupTraceSession.Disabled,
+            services,
+            ShellPreferenceSnapshot.Default);
+        window.RequestStableLauncherRestart();
+
+        bool started = await window.TryCompleteStableLauncherHandoffAsync();
+
+        Assert.False(started);
+        Assert.Equal(1, handoff.Attempts);
+        Assert.True(window.IsEnabled);
+        MainWindowViewModel viewModel = Assert.IsType<MainWindowViewModel>(window.DataContext);
+        Assert.Contains("remains open", viewModel.Settings.VersionOperationStatus, StringComparison.Ordinal);
+    }
+
+    /// <summary>A state-save failure during activation preparation never requests launcher handoff.</summary>
+    [Fact]
+    public async Task ActivationPreparationFailureRemainsVisibleWithoutClosing()
+    {
+        var experience = new RecordingVersionExperience(Snapshot(retentionReviewDue: false))
+        {
+            FailActivationPreparation = true,
+        };
+        MainWindowViewModel viewModel = MainWindow.CreateStartupViewModel(
+            PresentationTestHost.CreateServices("0.10.5", experience),
+            ShellPreferenceSnapshot.Default);
+        viewModel.Settings.ApplyVersionSnapshot(experience.Current);
+        bool activationRequested = false;
+        viewModel.Settings.ActivationRequested += (_, _) => activationRequested = true;
+        SettingsVersionRowViewModel installed = Assert.Single(
+            viewModel.Settings.VersionRows,
+            row => row.Version == ManagedAppVersion.Parse("0.10.4"));
+
+        viewModel.Settings.RequestVersionPrimaryActionCommand.Execute(installed);
+        await viewModel.Settings.ConfirmVersionActionCommand.ExecuteAsync(null);
+
+        Assert.False(activationRequested);
+        Assert.Contains("could not be prepared", viewModel.Settings.VersionOperationStatus, StringComparison.Ordinal);
+    }
+
     private static VersionManagementSnapshot Snapshot(bool retentionReviewDue)
     {
         ManagedVersionAdmission[] admissions =
@@ -243,6 +378,10 @@ public sealed class VersionManagementSettingsTests
         internal List<ManagedAppVersion> Installations { get; } = [];
 
         internal List<ManagedAppVersion> Activations { get; } = [];
+
+        internal bool FailActivationPreparation { get; init; }
+
+        internal bool FailPendingActivationCancellation { get; init; }
 
         public ValueTask<VersionManagementSnapshot> InitializeAsync(CancellationToken cancellationToken)
         {
@@ -341,10 +480,38 @@ public sealed class VersionManagementSettingsTests
             ManagedAppVersion version,
             CancellationToken cancellationToken)
         {
+            if (FailActivationPreparation)
+            {
+                throw new InvalidOperationException("Injected state failure.");
+            }
             Activations.Add(version);
             VersionManagerState state = VersionActivationPolicy.BeginActivation(Current.State!, version);
             Current = Current with { State = state };
             return ValueTask.FromResult(state);
+        }
+
+        public ValueTask<VersionManagementSnapshot> CancelPendingActivationAsync(
+            CancellationToken cancellationToken)
+        {
+            if (FailPendingActivationCancellation)
+            {
+                throw new InvalidOperationException("Injected pending-activation clear failure.");
+            }
+            VersionManagerState state = VersionActivationPolicy.CancelRequestedActivation(Current.State!);
+            Current = Current with { State = state };
+            return ValueTask.FromResult(Current);
+        }
+    }
+
+    private sealed class RecordingStableLauncherHandoff(bool started) : IStableLauncherHandoff
+    {
+        internal int Attempts { get; private set; }
+
+        public ValueTask<bool> TryStartLauncherAsync(CancellationToken cancellationToken)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            Attempts++;
+            return ValueTask.FromResult(started);
         }
     }
 }

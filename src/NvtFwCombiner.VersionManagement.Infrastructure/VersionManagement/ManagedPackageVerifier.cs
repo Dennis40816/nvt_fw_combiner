@@ -1,5 +1,6 @@
 using System.IO.Compression;
 using System.Security.Cryptography;
+using System.Text;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using NvtFwCombiner.Application.VersionManagement;
@@ -9,7 +10,8 @@ namespace NvtFwCombiner.Infrastructure.VersionManagement;
 internal sealed record ManagedPackagePlan(
     ReleaseManifestDocument Manifest,
     IReadOnlyDictionary<string, ZipArchiveEntry> Entries,
-    byte[] ManifestBytes);
+    byte[] ManifestBytes,
+    byte[] ChecksumBytes);
 
 internal sealed record ManagedPackagePlanResult(
     ManagedPackagePlan? Plan,
@@ -20,27 +22,6 @@ internal sealed record ManagedPackagePlanResult(
 
 internal static class ManagedPackageVerifier
 {
-    private static readonly string[] FixedPayloadFiles =
-    [
-        "NvtFwCombiner.exe",
-        "external-tools/crc-worker/0.1.0/Nfc.CrcWorker.exe",
-        "THIRD-PARTY-NOTICES.txt",
-        "LICENSE.txt",
-        "README.txt",
-    ];
-
-    private static readonly HashSet<string> Roles = new(StringComparer.Ordinal)
-    {
-        "application",
-        "crcWorker",
-        "notices",
-        "license",
-        "readme",
-        "externalTool",
-        "reference",
-        "goldenFixture",
-    };
-
     private static readonly JsonSerializerOptions ManifestJsonOptions = new(JsonSerializerDefaults.Web)
     {
         MaxDepth = 32,
@@ -102,13 +83,31 @@ internal static class ManagedPackageVerifier
             return Failure(ManagedVersionInstallIssue.InvalidPayload);
         }
 
-        byte[] manifestBytes = new byte[checked((int)manifestEntry.Length)];
+        var verificationBudget = new ExpandedByteBudget(
+            FileSystemManagedVersionRepository.MaximumExpandedBytes);
+        using var manifestBuffer = new MemoryStream(
+            capacity: checked((int)Math.Min(
+                manifestEntry.Length,
+                FileSystemManagedVersionRepository.MaximumManifestBytes)));
+        BoundedArchiveReadResult manifestRead;
         await using (Stream input = manifestEntry.Open())
         {
-            await input.ReadExactlyAsync(manifestBytes, cancellationToken).ConfigureAwait(false);
+            manifestRead = await BoundedArchiveReader.ReadAtMostAndHashAsync(
+                input,
+                FileSystemManagedVersionRepository.MaximumManifestBytes,
+                verificationBudget,
+                manifestBuffer,
+                cancellationToken).ConfigureAwait(false);
         }
+        if (!manifestRead.IsSuccess)
+        {
+            return Failure(manifestRead.Issue == BoundedArchiveReadIssue.AggregateLengthExceeded
+                ? ManagedVersionInstallIssue.UnsafeArchive
+                : ManagedVersionInstallIssue.InvalidPayload);
+        }
+        byte[] manifestBytes = manifestBuffer.ToArray();
         if (!string.Equals(
-                Convert.ToHexStringLower(SHA256.HashData(manifestBytes)),
+                manifestRead.Sha256,
                 package.ReleaseManifestSha256,
                 StringComparison.Ordinal))
         {
@@ -118,6 +117,13 @@ internal static class ManagedPackageVerifier
         ReleaseManifestDocument? manifest;
         try
         {
+            using JsonDocument manifestJson = EmbeddedVersionManagementSchema.ParseStrict(
+                manifestBytes,
+                maximumDepth: 32);
+            if (!ReleaseManifestSchema.IsValid(manifestJson.RootElement))
+            {
+                return Failure(ManagedVersionInstallIssue.InvalidPayload);
+            }
             manifest = JsonSerializer.Deserialize(
                 manifestBytes,
                 ManifestJsonContext.ReleaseManifestDocument);
@@ -126,12 +132,53 @@ internal static class ManagedPackageVerifier
         {
             return Failure(ManagedVersionInstallIssue.InvalidPayload);
         }
-        bool isValid = manifest is not null &&
-                       ValidateManifest(manifest, package.Version, entries.Keys) &&
-                       await VerifyArchiveContentAsync(manifest, entries, cancellationToken).ConfigureAwait(false);
-        return isValid
-            ? new(new(manifest!, entries, manifestBytes), ManagedVersionInstallIssue.None)
-            : Failure(ManagedVersionInstallIssue.InvalidPayload);
+        if (manifest is null || !ValidateManifest(manifest, package.Version, entries.Keys))
+        {
+            return Failure(ManagedVersionInstallIssue.InvalidPayload);
+        }
+
+        if (!entries.TryGetValue("SHA256SUMS.txt", out ZipArchiveEntry? checksumEntry) ||
+            checksumEntry.Length is < 1 or > FileSystemManagedVersionRepository.MaximumManifestBytes)
+        {
+            return Failure(ManagedVersionInstallIssue.InvalidPayload);
+        }
+        using var checksumBuffer = new MemoryStream(
+            capacity: checked((int)checksumEntry.Length));
+        BoundedArchiveReadResult checksumRead;
+        await using (Stream input = checksumEntry.Open())
+        {
+            checksumRead = await BoundedArchiveReader.ReadAtMostAndHashAsync(
+                input,
+                FileSystemManagedVersionRepository.MaximumManifestBytes,
+                verificationBudget,
+                checksumBuffer,
+                cancellationToken).ConfigureAwait(false);
+        }
+        if (!checksumRead.IsSuccess)
+        {
+            return Failure(checksumRead.Issue == BoundedArchiveReadIssue.AggregateLengthExceeded
+                ? ManagedVersionInstallIssue.UnsafeArchive
+                : ManagedVersionInstallIssue.InvalidPayload);
+        }
+        byte[] checksumBytes = checksumBuffer.ToArray();
+        if (!VerifyChecksumDocument(checksumBytes, manifestBytes, manifest.Files!))
+        {
+            return Failure(ManagedVersionInstallIssue.InvalidPayload);
+        }
+
+        ArchiveContentVerification content = await VerifyArchiveContentAsync(
+            manifest,
+            entries,
+            verificationBudget,
+            cancellationToken).ConfigureAwait(false);
+        return content switch
+        {
+            ArchiveContentVerification.Valid =>
+                new(new(manifest, entries, manifestBytes, checksumBytes), ManagedVersionInstallIssue.None),
+            ArchiveContentVerification.Invalid => Failure(ManagedVersionInstallIssue.InvalidPayload),
+            ArchiveContentVerification.Unsafe => Failure(ManagedVersionInstallIssue.UnsafeArchive),
+            _ => throw new InvalidOperationException("Unknown archive verification result."),
+        };
     }
 
     internal static async ValueTask ExtractAsync(
@@ -139,20 +186,69 @@ internal static class ManagedPackageVerifier
         string stagingDirectory,
         CancellationToken cancellationToken)
     {
+        var extractionBudget = new ExpandedByteBudget(
+            FileSystemManagedVersionRepository.MaximumExpandedBytes);
+        var expectedFiles =
+            plan.Manifest.Files!.ToDictionary(file => file.Path, StringComparer.OrdinalIgnoreCase);
         foreach ((string relativePath, ZipArchiveEntry entry) in plan.Entries)
         {
             cancellationToken.ThrowIfCancellationRequested();
             string target = ManagedPathSafety.ResolvePayloadPath(stagingDirectory, relativePath);
             _ = Directory.CreateDirectory(Path.GetDirectoryName(target)!);
+            long expectedLength;
+            string expectedHash;
+            if (relativePath.Equals("RELEASE-MANIFEST.json", StringComparison.OrdinalIgnoreCase))
+            {
+                expectedLength = plan.ManifestBytes.LongLength;
+                expectedHash = Convert.ToHexStringLower(SHA256.HashData(plan.ManifestBytes));
+            }
+            else if (relativePath.Equals("SHA256SUMS.txt", StringComparison.OrdinalIgnoreCase))
+            {
+                expectedLength = plan.ChecksumBytes.LongLength;
+                expectedHash = Convert.ToHexStringLower(SHA256.HashData(plan.ChecksumBytes));
+            }
+            else if (expectedFiles.TryGetValue(relativePath, out ReleaseManifestFileDocument? expected))
+            {
+                expectedLength = expected.Size;
+                expectedHash = expected.Sha256;
+            }
+            else
+            {
+                throw new InvalidDataException("Archive entry is absent from the admitted manifest.");
+            }
+
             await using Stream source = entry.Open();
-            await using var destination = new FileStream(
-                target,
-                FileMode.CreateNew,
-                FileAccess.Write,
-                FileShare.None,
-                bufferSize: 64 * 1024,
-                FileOptions.Asynchronous | FileOptions.SequentialScan);
-            await source.CopyToAsync(destination, cancellationToken).ConfigureAwait(false);
+            FileStream? destination = null;
+            try
+            {
+#pragma warning disable CA2000 // Ownership is transferred to the explicit async-dispose finally below.
+                destination = new FileStream(
+                    target,
+                    FileMode.CreateNew,
+                    FileAccess.Write,
+                    FileShare.None,
+                    bufferSize: 64 * 1024,
+                    FileOptions.Asynchronous | FileOptions.SequentialScan);
+#pragma warning restore CA2000
+                BoundedArchiveReadResult extracted = await BoundedArchiveReader.CopyAndHashAsync(
+                    source,
+                    expectedLength,
+                    extractionBudget,
+                    destination,
+                    cancellationToken).ConfigureAwait(false);
+                if (!extracted.IsSuccess ||
+                    !string.Equals(extracted.Sha256, expectedHash, StringComparison.Ordinal))
+                {
+                    throw new InvalidDataException("Archive content changed after admission.");
+                }
+            }
+            finally
+            {
+                if (destination is not null)
+                {
+                    await destination.DisposeAsync().ConfigureAwait(false);
+                }
+            }
         }
     }
 
@@ -198,6 +294,13 @@ internal static class ManagedPackageVerifier
                 return ManagedVersionDamageReason.ManifestMismatch;
             }
 
+            using JsonDocument manifestJson = EmbeddedVersionManagementSchema.ParseStrict(
+                manifestBytes,
+                maximumDepth: 32);
+            if (!ReleaseManifestSchema.IsValid(manifestJson.RootElement))
+            {
+                return ManagedVersionDamageReason.ManifestMismatch;
+            }
             ReleaseManifestDocument? manifest = JsonSerializer.Deserialize(
                 manifestBytes,
                 ManifestJsonContext.ReleaseManifestDocument);
@@ -205,14 +308,34 @@ internal static class ManagedPackageVerifier
                 !ValidateManifest(
                     manifest,
                     admission.Version,
-                    manifest.Files.Select(file => file.Path).Append("RELEASE-MANIFEST.json")))
+                    manifest.Files.Select(file => file.Path)
+                        .Append("RELEASE-MANIFEST.json")
+                        .Append("SHA256SUMS.txt")))
             {
                 return ManagedVersionDamageReason.ManifestMismatch;
+            }
+            string checksumPath = Path.Combine(versionRoot, "SHA256SUMS.txt");
+            byte[]? checksumBytes = await ManagedPathSafety.ReadBoundedFileAsync(
+                checksumPath,
+                FileSystemManagedVersionRepository.MaximumManifestBytes,
+                cancellationToken).ConfigureAwait(false);
+            if (checksumBytes is null || !VerifyChecksumDocument(checksumBytes, manifestBytes, manifest.Files))
+            {
+                return ManagedVersionDamageReason.ManifestMismatch;
+            }
+
+            var installedBudget = new ExpandedByteBudget(
+                FileSystemManagedVersionRepository.MaximumExpandedBytes);
+            if (!installedBudget.Consume(manifestBytes.Length) ||
+                !installedBudget.Consume(checksumBytes.Length))
+            {
+                return ManagedVersionDamageReason.ContentMismatch;
             }
 
             HashSet<string> expected = new(StringComparer.OrdinalIgnoreCase)
             {
                 "RELEASE-MANIFEST.json",
+                "SHA256SUMS.txt",
                 FileSystemManagedVersionRepository.AdmissionFileName,
             };
             foreach (ReleaseManifestFileDocument file in manifest.Files)
@@ -224,8 +347,17 @@ internal static class ManagedPackageVerifier
                     return ManagedVersionDamageReason.MissingFile;
                 }
                 var info = new FileInfo(path);
-                if (info.Length != file.Size ||
-                    !string.Equals(await HashFileAsync(path, cancellationToken).ConfigureAwait(false), file.Sha256, StringComparison.Ordinal))
+                if (info.Length != file.Size)
+                {
+                    return ManagedVersionDamageReason.ContentMismatch;
+                }
+                BoundedArchiveReadResult read = await BoundedArchiveReader.ReadFileAndHashAsync(
+                    path,
+                    file.Size,
+                    installedBudget,
+                    cancellationToken).ConfigureAwait(false);
+                if (!read.IsSuccess ||
+                    !string.Equals(read.Sha256, file.Sha256, StringComparison.Ordinal))
                 {
                     return ManagedVersionDamageReason.ContentMismatch;
                 }
@@ -265,7 +397,6 @@ internal static class ManagedPackageVerifier
             manifest.WorkerProtocolVersions is null ||
             manifest.WorkerProtocolVersions.Count == 0 ||
             manifest.Files is null ||
-            manifest.Files.Count < FixedPayloadFiles.Length ||
             !IsSafeFileName(manifest.SbomAsset) ||
             !IsSafeFileName(manifest.ProvenanceAsset))
         {
@@ -279,46 +410,23 @@ internal static class ManagedPackageVerifier
                 file.Path.Equals(FileSystemManagedVersionRepository.AdmissionFileName, StringComparison.OrdinalIgnoreCase) ||
                 file.Size <= 0 ||
                 !IsLowerHex(file.Sha256, 64) ||
-                !Roles.Contains(file.Role) ||
                 !declared.Add(file.Path))
             {
                 return false;
             }
         }
-        if (FixedPayloadFiles.Any(required => !declared.Contains(required)))
-        {
-            return false;
-        }
-
         var expectedArchive = new HashSet<string>(declared, StringComparer.OrdinalIgnoreCase)
         {
             "RELEASE-MANIFEST.json",
+            "SHA256SUMS.txt",
         };
         return expectedArchive.SetEquals(archivePaths);
     }
 
-    private static async ValueTask<string> HashFileAsync(string path, CancellationToken cancellationToken)
-    {
-        await using var stream = new FileStream(
-            path,
-            FileMode.Open,
-            FileAccess.Read,
-            FileShare.Read,
-            bufferSize: 64 * 1024,
-            FileOptions.Asynchronous | FileOptions.SequentialScan);
-        using var hash = IncrementalHash.CreateHash(HashAlgorithmName.SHA256);
-        byte[] buffer = GC.AllocateUninitializedArray<byte>(64 * 1024);
-        int read;
-        while ((read = await stream.ReadAsync(buffer, cancellationToken).ConfigureAwait(false)) != 0)
-        {
-            hash.AppendData(buffer, 0, read);
-        }
-        return Convert.ToHexStringLower(hash.GetHashAndReset());
-    }
-
-    private static async ValueTask<bool> VerifyArchiveContentAsync(
+    private static async ValueTask<ArchiveContentVerification> VerifyArchiveContentAsync(
         ReleaseManifestDocument manifest,
         Dictionary<string, ZipArchiveEntry> entries,
+        ExpandedByteBudget verificationBudget,
         CancellationToken cancellationToken)
     {
         foreach (ReleaseManifestFileDocument file in manifest.Files!)
@@ -326,25 +434,71 @@ internal static class ManagedPackageVerifier
             cancellationToken.ThrowIfCancellationRequested();
             if (!entries.TryGetValue(file.Path, out ZipArchiveEntry? entry) || entry.Length != file.Size)
             {
-                return false;
+                return ArchiveContentVerification.Invalid;
             }
             await using Stream stream = entry.Open();
-            using var hash = IncrementalHash.CreateHash(HashAlgorithmName.SHA256);
-            byte[] buffer = GC.AllocateUninitializedArray<byte>(64 * 1024);
-            int read;
-            while ((read = await stream.ReadAsync(buffer, cancellationToken).ConfigureAwait(false)) != 0)
+            BoundedArchiveReadResult read = await BoundedArchiveReader.ReadAndHashAsync(
+                stream,
+                file.Size,
+                verificationBudget,
+                cancellationToken).ConfigureAwait(false);
+            if (read.Issue == BoundedArchiveReadIssue.AggregateLengthExceeded)
             {
-                hash.AppendData(buffer, 0, read);
+                return ArchiveContentVerification.Unsafe;
             }
-            if (!string.Equals(
-                    Convert.ToHexStringLower(hash.GetHashAndReset()),
-                    file.Sha256,
-                    StringComparison.Ordinal))
+            if (!read.IsSuccess || !string.Equals(read.Sha256, file.Sha256, StringComparison.Ordinal))
+            {
+                return ArchiveContentVerification.Invalid;
+            }
+        }
+        return ArchiveContentVerification.Valid;
+    }
+
+    private static bool VerifyChecksumDocument(
+        byte[] checksumBytes,
+        byte[] manifestBytes,
+        IReadOnlyList<ReleaseManifestFileDocument> files)
+    {
+        string text;
+        try
+        {
+            text = new UTF8Encoding(
+                encoderShouldEmitUTF8Identifier: false,
+                throwOnInvalidBytes: true).GetString(checksumBytes);
+        }
+        catch (DecoderFallbackException)
+        {
+            return false;
+        }
+        if (text.Contains('\r') && !text.Contains("\r\n", StringComparison.Ordinal))
+        {
+            return false;
+        }
+
+        var expected = files.ToDictionary(file => file.Path, file => file.Sha256, StringComparer.Ordinal);
+        expected.Add(
+            "RELEASE-MANIFEST.json",
+            Convert.ToHexStringLower(SHA256.HashData(manifestBytes)));
+        var actual = new Dictionary<string, string>(StringComparer.Ordinal);
+        foreach (string line in text.Replace("\r\n", "\n", StringComparison.Ordinal)
+                     .Split('\n', StringSplitOptions.RemoveEmptyEntries))
+        {
+            if (line.Length < 67 || line[64] != ' ' || line[65] != ' ')
+            {
+                return false;
+            }
+            string hash = line[..64];
+            string path = line[66..];
+            if (!IsLowerHex(hash, 64) ||
+                !ManagedPathSafety.IsSafeRelativePayloadPath(path) ||
+                !actual.TryAdd(path, hash))
             {
                 return false;
             }
         }
-        return true;
+        return expected.Count == actual.Count && expected.All(pair =>
+            actual.TryGetValue(pair.Key, out string? hash) &&
+            string.Equals(hash, pair.Value, StringComparison.Ordinal));
     }
 
     private static bool IsLink(ZipArchiveEntry entry)
@@ -373,6 +527,13 @@ internal static class ManagedPackageVerifier
     private static ManagedPackagePlanResult Failure(ManagedVersionInstallIssue issue)
     {
         return new(null, issue);
+    }
+
+    private enum ArchiveContentVerification
+    {
+        Valid,
+        Invalid,
+        Unsafe,
     }
 }
 

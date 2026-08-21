@@ -1,5 +1,4 @@
 using System.IO.Compression;
-using System.Text.Json.Nodes;
 using NvtFwCombiner.Application.VersionManagement;
 using NvtFwCombiner.Infrastructure.VersionManagement;
 using NvtFwCombiner.TestSupport;
@@ -133,6 +132,51 @@ public sealed partial class FileSystemManagedVersionRepositoryTests
         Assert.Equal(ManagedVersionInstallIssue.UnsafeArchive, result.Issue);
     }
 
+    /// <summary>Actual decompressed bytes, not a declared length hint, stop an entry immediately.</summary>
+    [Fact]
+    public async Task ActualEntryBytesCannotExceedDeclaredLength()
+    {
+        await using var source = new MemoryStream(new byte[1024]);
+        var budget = new ExpandedByteBudget(maximumBytes: 2048);
+
+        BoundedArchiveReadResult result = await BoundedArchiveReader.ReadAndHashAsync(
+            source,
+            declaredLength: 8,
+            budget,
+            TestContext.Current.CancellationToken);
+
+        Assert.False(result.IsSuccess);
+        Assert.Equal(BoundedArchiveReadIssue.EntryLengthExceeded, result.Issue);
+        Assert.Equal(9, budget.ConsumedBytes);
+        Assert.Equal(9, source.Position);
+    }
+
+    /// <summary>The aggregate limit is enforced by the same actual-byte counter across entries.</summary>
+    [Fact]
+    public async Task ActualExpandedBytesShareOneAggregateBudget()
+    {
+        var budget = new ExpandedByteBudget(maximumBytes: 10);
+        await using var first = new MemoryStream(new byte[6]);
+        await using var second = new MemoryStream(new byte[1024]);
+
+        BoundedArchiveReadResult accepted = await BoundedArchiveReader.ReadAndHashAsync(
+            first,
+            declaredLength: 6,
+            budget,
+            TestContext.Current.CancellationToken);
+        BoundedArchiveReadResult rejected = await BoundedArchiveReader.ReadAndHashAsync(
+            second,
+            declaredLength: 1024,
+            budget,
+            TestContext.Current.CancellationToken);
+
+        Assert.True(accepted.IsSuccess);
+        Assert.False(rejected.IsSuccess);
+        Assert.Equal(BoundedArchiveReadIssue.AggregateLengthExceeded, rejected.Issue);
+        Assert.Equal(11, budget.ConsumedBytes);
+        Assert.Equal(5, second.Position);
+    }
+
     /// <summary>Inner-manifest length is bounded before JSON parsing or payload trust.</summary>
     [Fact]
     public async Task OversizedInnerManifestNeverVerifies()
@@ -144,6 +188,50 @@ public sealed partial class FileSystemManagedVersionRepositoryTests
             "0.10.6",
             mutateManifest: manifest =>
                 manifest["oversized"] = new string('x', FileSystemManagedVersionRepository.MaximumManifestBytes));
+
+        ManagedPackageVerificationResult result = await new FileSystemManagedVersionRepository().VerifyPackageAsync(
+            sourceRoot,
+            package,
+            TestContext.Current.CancellationToken);
+
+        Assert.False(result.IsVerified);
+        Assert.Equal(ManagedVersionInstallIssue.InvalidPayload, result.Issue);
+    }
+
+    /// <summary>The production checksum document is a mandatory closed-package member.</summary>
+    [Fact]
+    public async Task MissingChecksumDocumentNeverVerifies()
+    {
+        using var workspace = TempWorkspace.Create();
+        string sourceRoot = workspace.PathFor("source");
+        UpdateCatalogVersionSnapshot package = CreatePackage(
+            sourceRoot,
+            "0.10.6",
+            omitChecksumDocument: true);
+
+        ManagedPackageVerificationResult result = await new FileSystemManagedVersionRepository().VerifyPackageAsync(
+            sourceRoot,
+            package,
+            TestContext.Current.CancellationToken);
+
+        Assert.False(result.IsVerified);
+        Assert.Equal(ManagedVersionInstallIssue.InvalidPayload, result.Issue);
+    }
+
+    /// <summary>Checksums must match every declared payload and the release manifest exactly.</summary>
+    [Theory]
+    [InlineData("changed-hash")]
+    [InlineData("extra-line")]
+    public async Task NonCanonicalChecksumDocumentNeverVerifies(string mutation)
+    {
+        using var workspace = TempWorkspace.Create();
+        string sourceRoot = workspace.PathFor("source");
+        UpdateCatalogVersionSnapshot package = CreatePackage(
+            sourceRoot,
+            "0.10.6",
+            mutateChecksumDocument: bytes => mutation == "changed-hash"
+                ? [.. bytes.Select((value, index) => index == 0 ? (byte)(value == '0' ? '1' : '0') : value)]
+                : [.. bytes, .. System.Text.Encoding.UTF8.GetBytes($"{new string('0', 64)}  undeclared.txt\n")]);
 
         ManagedPackageVerificationResult result = await new FileSystemManagedVersionRepository().VerifyPackageAsync(
             sourceRoot,
@@ -580,53 +668,4 @@ public sealed partial class FileSystemManagedVersionRepositoryTests
         Assert.Null(state.State.PendingActivation);
     }
 
-    private static async ValueTask<ManagedLauncherResult> RunWithProbeBehaviorAsync(
-        string behavior,
-        ManagedActivationCoordinator coordinator)
-    {
-        const string key = "NVT_READY_PROBE_BEHAVIOR";
-        string? prior = Environment.GetEnvironmentVariable(key);
-        try
-        {
-            Environment.SetEnvironmentVariable(key, behavior);
-            return await coordinator.RunAsync(TestContext.Current.CancellationToken);
-        }
-        finally
-        {
-            Environment.SetEnvironmentVariable(key, prior);
-        }
-    }
-
-    private static void MutateManifest(JsonObject manifest, string mutation)
-    {
-        JsonArray files = manifest["files"]!.AsArray();
-        JsonObject readme = files.Select(node => node!.AsObject())
-            .Single(file => file["path"]!.GetValue<string>() == "README.txt");
-        switch (mutation)
-        {
-            case "product":
-                manifest["product"] = "Other";
-                break;
-            case "version":
-                manifest["version"] = "0.10.5";
-                break;
-            case "role":
-                readme["role"] = "arbitrary";
-                break;
-            case "hash":
-                readme["sha256"] = new string('0', 64);
-                break;
-            case "size":
-                readme["size"] = 99;
-                break;
-            case "unknown-field":
-                manifest["unexpected"] = true;
-                break;
-            case "missing-fixed":
-            case "extra-file":
-                break;
-            default:
-                throw new InvalidOperationException($"Unknown manifest mutation '{mutation}'.");
-        }
-    }
 }

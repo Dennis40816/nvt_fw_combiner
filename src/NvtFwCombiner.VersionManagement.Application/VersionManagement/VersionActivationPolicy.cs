@@ -1,11 +1,37 @@
 namespace NvtFwCombiner.Application.VersionManagement;
 
+/// <summary>Durable phase of one launcher-supervised activation transaction.</summary>
+public enum VersionActivationPhase
+{
+    /// <summary>The desktop persisted the requested candidate before launcher handoff.</summary>
+    Requested,
+    /// <summary>The launcher durably recorded that candidate launch may have begun.</summary>
+    CandidateLaunchRecorded,
+    /// <summary>The launcher durably recorded fallback selection before starting it.</summary>
+    RollbackLaunchRecorded,
+}
+
 /// <summary>Recoverable journal for one not-yet-ready activation.</summary>
 public sealed record PendingVersionActivation(
     ManagedAppVersion CandidateVersion,
     string CandidateAdmissionIdentity,
     ManagedAppVersion? PreviousActiveVersion,
-    ManagedAppVersion? PreviousLastKnownGoodVersion);
+    ManagedAppVersion? PreviousLastKnownGoodVersion,
+    VersionActivationPhase Phase = VersionActivationPhase.Requested);
+
+/// <summary>Filesystem/state mutation represented by the durable state journal.</summary>
+public enum ManagedVersionMutationKind
+{
+    /// <summary>A package promotion must converge with its admission.</summary>
+    Install,
+    /// <summary>An admitted directory deletion must converge with admission removal.</summary>
+    Delete,
+}
+
+/// <summary>Recoverable journal written before an install promotion or admitted delete.</summary>
+public sealed record PendingManagedVersionMutation(
+    ManagedVersionMutationKind Kind,
+    ManagedVersionAdmission Admission);
 
 /// <summary>Immutable launcher-owned managed-version state.</summary>
 public sealed class VersionManagerState
@@ -17,7 +43,8 @@ public sealed class VersionManagerState
         IReadOnlyList<ManagedVersionAdmission> admissions,
         PendingVersionActivation? pendingActivation,
         ManagedAppVersion? failedActivationVersion,
-        bool retentionReviewDue)
+        bool retentionReviewDue,
+        PendingManagedVersionMutation? pendingMutation)
     {
         UpdateSource = updateSource;
         ActiveVersion = activeVersion;
@@ -26,6 +53,7 @@ public sealed class VersionManagerState
         PendingActivation = pendingActivation;
         FailedActivationVersion = failedActivationVersion;
         RetentionReviewDue = retentionReviewDue;
+        PendingMutation = pendingMutation;
     }
 
     /// <summary>Gets the committed configured update-source folder.</summary>
@@ -49,6 +77,9 @@ public sealed class VersionManagerState
     /// <summary>Gets whether post-update retention review remains due.</summary>
     public bool RetentionReviewDue { get; }
 
+    /// <summary>Gets the durable install/delete transaction that must converge before another mutation.</summary>
+    public PendingManagedVersionMutation? PendingMutation { get; }
+
     /// <summary>Creates validated launcher state without inferring missing identities.</summary>
     /// <param name="updateSource">Committed source configuration.</param>
     /// <param name="activeVersion">Committed active version.</param>
@@ -57,6 +88,7 @@ public sealed class VersionManagerState
     /// <param name="pendingActivation">Optional activation journal.</param>
     /// <param name="failedActivationVersion">Optional failed candidate.</param>
     /// <param name="retentionReviewDue">Whether retention review is due.</param>
+    /// <param name="pendingMutation">Optional durable install/delete transaction.</param>
     /// <returns>Validated immutable state.</returns>
     public static VersionManagerState Create(
         string? updateSource,
@@ -65,7 +97,8 @@ public sealed class VersionManagerState
         IEnumerable<ManagedVersionAdmission> admissions,
         PendingVersionActivation? pendingActivation,
         ManagedAppVersion? failedActivationVersion,
-        bool retentionReviewDue)
+        bool retentionReviewDue,
+        PendingManagedVersionMutation? pendingMutation = null)
     {
         ArgumentNullException.ThrowIfNull(admissions);
         ManagedVersionAdmission[] installed = [.. admissions];
@@ -90,12 +123,31 @@ public sealed class VersionManagerState
         {
             ManagedVersionAdmission candidate = installed.Single(
                 admission => admission.Version == pendingActivation.CandidateVersion);
-            if (!string.Equals(
+            if (!Enum.IsDefined(pendingActivation.Phase) ||
+                (pendingActivation.PreviousActiveVersion is { } previousActive &&
+                 !versions.Contains(previousActive)) ||
+                (pendingActivation.PreviousLastKnownGoodVersion is { } previousLastKnownGood &&
+                 !versions.Contains(previousLastKnownGood)) ||
+                !string.Equals(
                     candidate.AdmissionIdentity,
                     pendingActivation.CandidateAdmissionIdentity,
                     StringComparison.Ordinal))
             {
                 throw new ArgumentException("Pending activation identity differs from installed admission.");
+            }
+        }
+        if (pendingMutation is { } mutation)
+        {
+            if (!Enum.IsDefined(mutation.Kind) ||
+                pendingActivation is not null ||
+                string.IsNullOrWhiteSpace(mutation.Admission.AdmissionIdentity) ||
+                !IsLowerSha256(mutation.Admission.ReleaseManifestSha256) ||
+                (mutation.Kind == ManagedVersionMutationKind.Delete &&
+                 !installed.Contains(mutation.Admission)) ||
+                (mutation.Kind == ManagedVersionMutationKind.Install &&
+                 versions.Contains(mutation.Admission.Version)))
+            {
+                throw new ArgumentException("Pending managed-version mutation is inconsistent.", nameof(pendingMutation));
             }
         }
 
@@ -107,7 +159,8 @@ public sealed class VersionManagerState
             installed,
             pendingActivation,
             failedActivationVersion,
-            retentionReviewDue);
+            retentionReviewDue,
+            pendingMutation);
     }
 
     private static bool IsLowerSha256(string? value)
@@ -129,7 +182,8 @@ public sealed class VersionManagerState
             Admissions,
             pendingActivation,
             failedActivationVersion,
-            RetentionReviewDue);
+            RetentionReviewDue,
+            PendingMutation);
     }
 
     internal VersionManagerState WithRetentionReviewDue(bool retentionReviewDue)
@@ -141,7 +195,21 @@ public sealed class VersionManagerState
             Admissions,
             PendingActivation,
             FailedActivationVersion,
-            retentionReviewDue);
+            retentionReviewDue,
+            PendingMutation);
+    }
+
+    internal VersionManagerState WithPendingMutation(PendingManagedVersionMutation? pendingMutation)
+    {
+        return Create(
+            UpdateSource,
+            ActiveVersion,
+            LastKnownGoodVersion,
+            Admissions,
+            PendingActivation,
+            FailedActivationVersion,
+            RetentionReviewDue,
+            pendingMutation);
     }
 }
 
@@ -166,6 +234,10 @@ public static class VersionActivationPolicy
         {
             throw new InvalidOperationException("Another managed-version activation is already pending.");
         }
+        if (state.PendingMutation is not null)
+        {
+            throw new InvalidOperationException("A managed-version filesystem mutation is still pending.");
+        }
         ManagedVersionAdmission candidate = state.Admissions.SingleOrDefault(
             admission => admission.Version == candidateVersion) ??
             throw new InvalidOperationException("Activation candidate is not installed and admitted.");
@@ -176,8 +248,37 @@ public static class VersionActivationPolicy
                 candidate.Version,
                 candidate.AdmissionIdentity,
                 state.ActiveVersion,
-                state.LastKnownGoodVersion),
+                state.LastKnownGoodVersion,
+                VersionActivationPhase.Requested),
             failedActivationVersion: null);
+    }
+
+    /// <summary>Records the candidate-launch seam before any process can be started.</summary>
+    public static VersionManagerState RecordCandidateLaunch(VersionManagerState state)
+    {
+        ArgumentNullException.ThrowIfNull(state);
+        PendingVersionActivation pending = state.PendingActivation is { Phase: VersionActivationPhase.Requested } value
+            ? value
+            : throw new InvalidOperationException("Candidate launch is not in the requested phase.");
+        return state.Rebuild(
+            state.ActiveVersion,
+            state.LastKnownGoodVersion,
+            pending with { Phase = VersionActivationPhase.CandidateLaunchRecorded },
+            state.FailedActivationVersion);
+    }
+
+    /// <summary>Cancels a requested activation when launcher handoff never started.</summary>
+    public static VersionManagerState CancelRequestedActivation(VersionManagerState state)
+    {
+        ArgumentNullException.ThrowIfNull(state);
+        _ = state.PendingActivation is { Phase: VersionActivationPhase.Requested }
+            ? true
+            : throw new InvalidOperationException("Only an unlaunched activation request can be cancelled.");
+        return state.Rebuild(
+            state.ActiveVersion,
+            state.LastKnownGoodVersion,
+            pendingActivation: null,
+            state.FailedActivationVersion);
     }
 
     /// <summary>Commits a pending candidate only after its authenticated ready signal.</summary>
@@ -189,9 +290,12 @@ public static class VersionActivationPolicy
         ManagedAppVersion readyVersion)
     {
         ArgumentNullException.ThrowIfNull(state);
-        _ = state.PendingActivation?.CandidateVersion == readyVersion
-            ? true
-            : throw new InvalidOperationException("Ready signal does not match the pending candidate.");
+        _ = state.PendingActivation is
+        { CandidateVersion: var candidate, Phase: VersionActivationPhase.CandidateLaunchRecorded } &&
+            candidate == readyVersion
+                ? true
+                : throw new InvalidOperationException(
+                    "Ready signal does not match a durably recorded candidate launch.");
         return state.Rebuild(
             readyVersion,
             readyVersion,
@@ -227,5 +331,50 @@ public static class VersionActivationPolicy
             pendingActivation: null,
             failedActivationVersion: failedVersion);
         return new(restored, rollbackAdmitted ? rollback : null);
+    }
+
+    /// <summary>Records rollback selection before the fallback process starts.</summary>
+    public static ActivationRecoveryDecision RecordRollbackLaunch(
+        VersionManagerState state,
+        ManagedAppVersion failedVersion)
+    {
+        ArgumentNullException.ThrowIfNull(state);
+        PendingVersionActivation? pending = state.PendingActivation;
+        if (pending?.CandidateVersion != failedVersion ||
+            pending.Phase == VersionActivationPhase.RollbackLaunchRecorded)
+        {
+            return new(state, RollbackVersion: null);
+        }
+
+        ManagedAppVersion? rollback = pending.PreviousLastKnownGoodVersion;
+        bool rollbackAdmitted = rollback is not null &&
+                                state.Admissions.Any(admission => admission.Version == rollback.Value) &&
+                                rollback.Value != failedVersion;
+        VersionManagerState recorded = state.Rebuild(
+            state.ActiveVersion,
+            state.LastKnownGoodVersion,
+            pending with { Phase = VersionActivationPhase.RollbackLaunchRecorded },
+            failedActivationVersion: failedVersion);
+        return new(recorded, rollbackAdmitted ? rollback : null);
+    }
+
+    /// <summary>Commits a ready fallback and closes the activation journal.</summary>
+    public static VersionManagerState CommitRollback(
+        VersionManagerState state,
+        ManagedAppVersion rollbackVersion)
+    {
+        ArgumentNullException.ThrowIfNull(state);
+        PendingVersionActivation pending = state.PendingActivation is
+        { Phase: VersionActivationPhase.RollbackLaunchRecorded } value
+                ? value
+                : throw new InvalidOperationException("Rollback is not durably recorded.");
+        _ = pending.PreviousLastKnownGoodVersion == rollbackVersion
+            ? true
+            : throw new InvalidOperationException("Ready fallback differs from the recorded rollback target.");
+        return state.Rebuild(
+            rollbackVersion,
+            rollbackVersion,
+            pendingActivation: null,
+            failedActivationVersion: pending.CandidateVersion);
     }
 }

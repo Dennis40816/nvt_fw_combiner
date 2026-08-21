@@ -3,6 +3,9 @@ using Avalonia.Controls;
 using Avalonia.Data;
 using Avalonia.Headless.XUnit;
 using Avalonia.Input;
+using Avalonia.Media;
+using Avalonia.Headless;
+using Avalonia.Styling;
 using Avalonia.Threading;
 using NvtFwCombiner.Presentation.Avalonia.ViewModels;
 using NvtFwCombiner.Presentation.Avalonia.Views;
@@ -98,6 +101,28 @@ public sealed partial class XamlControlStyleContractTests
         Assert.Contains("AutomationProperties.Name=\"{Binding SettingsPreview.Title}\"", modal, StringComparison.Ordinal);
     }
 
+    /// <summary>Launcher start is awaited from Closing, and Closed never performs a fire-and-forget handoff.</summary>
+    [Fact]
+    public void StableLauncherHandoffPrecedesTheFinalWindowClose()
+    {
+        string codeBehind = ReadPresentationFile("MainWindow.axaml.cs");
+        int closing = codeBehind.IndexOf("protected override async void OnClosing", StringComparison.Ordinal);
+        int handoff = codeBehind.IndexOf(
+            "bool started = await TryCompleteStableLauncherHandoffAsync();",
+            closing,
+            StringComparison.Ordinal);
+        int finalClose = codeBehind.IndexOf("Dispatcher.UIThread.Post(Close);", handoff, StringComparison.Ordinal);
+        int closed = codeBehind.IndexOf("protected override void OnClosed", StringComparison.Ordinal);
+        int dispose = codeBehind.IndexOf("public void Dispose()", closed, StringComparison.Ordinal);
+
+        Assert.True(closing >= 0 && handoff > closing && finalClose > handoff);
+        Assert.True(closed > finalClose && dispose > closed);
+        Assert.DoesNotContain(
+            "StableLauncherHandoff",
+            codeBehind[closed..dispose],
+            StringComparison.Ordinal);
+    }
+
     /// <summary>Version status and destructive icons expose localized non-color-only accessible names.</summary>
     [Fact]
     public void SettingsVersionIconsUseBoundAccessibleNamesAndTooltips()
@@ -129,5 +154,71 @@ public sealed partial class XamlControlStyleContractTests
             "AutomationProperties.Name=\"Delete installed version\"",
             sharedPages,
             StringComparison.Ordinal);
+    }
+
+    /// <summary>The source segment uses the approved ring and binds the shell motion preference.</summary>
+    [Fact]
+    public void VersionCheckingUsesDedicatedReducedMotionRingInsteadOfProgressBar()
+    {
+        string versionPage = ReadPresentationFile("Resources/SettingsVersionPageTemplate.axaml");
+
+        Assert.Contains("<views:VersionCheckingIndicator", versionPage, StringComparison.Ordinal);
+        Assert.Contains("IsVisible=\"{Binding Settings.IsSourceChecking}\"", versionPage, StringComparison.Ordinal);
+        Assert.Contains(
+            "IsReducedMotionEnabled=\"{ReflectionBinding $parent[Window].DataContext.IsReducedMotionEnabled}\"",
+            versionPage,
+            StringComparison.Ordinal);
+        Assert.DoesNotContain("<ProgressBar", versionPage, StringComparison.Ordinal);
+    }
+
+    /// <summary>The compact ring renders in both themes and disables time-based motion when requested.</summary>
+    [AvaloniaTheory]
+    [InlineData(false, false)]
+    [InlineData(false, true)]
+    [InlineData(true, false)]
+    [InlineData(true, true)]
+    public void VersionCheckingRingRendersForThemeAndMotionPreference(
+        bool useDarkTheme,
+        bool reducedMotion)
+    {
+        ThemeVariant theme = useDarkTheme ? ThemeVariant.Dark : ThemeVariant.Light;
+        Assert.True(Avalonia.Application.Current!.TryGetResource("NfcAccentBrush", theme, out object? indicator));
+        Assert.True(Avalonia.Application.Current.TryGetResource("NfcAccentBorderBrush", theme, out object? track));
+        var ring = new VersionCheckingIndicator
+        {
+            Width = 18,
+            Height = 18,
+            IndicatorBrush = Assert.IsType<IBrush>(indicator, exactMatch: false),
+            TrackBrush = Assert.IsType<IBrush>(track, exactMatch: false),
+            IsReducedMotionEnabled = reducedMotion,
+        };
+        var host = new Window
+        {
+            Width = 40,
+            Height = 40,
+            RequestedThemeVariant = theme,
+            Content = ring,
+        };
+        try
+        {
+            host.Show();
+            host.Measure(new Size(40, 40));
+            host.Arrange(new Rect(0, 0, 40, 40));
+            Dispatcher.UIThread.RunJobs();
+            AvaloniaHeadlessPlatform.ForceRenderTimerTick();
+
+            Assert.Equal(
+                !reducedMotion,
+                VersionCheckingIndicator.ShouldAnimate(
+                    isAttached: true,
+                    isVisible: true,
+                    reducedMotion));
+            using Avalonia.Media.Imaging.Bitmap? frame = host.GetLastRenderedFrame();
+            Assert.NotNull(frame);
+        }
+        finally
+        {
+            host.Close();
+        }
     }
 }

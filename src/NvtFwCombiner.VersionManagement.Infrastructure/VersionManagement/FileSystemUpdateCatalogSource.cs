@@ -73,6 +73,11 @@ public sealed class FileSystemUpdateCatalogSource : IUpdateCatalogSource
                 return Failure(UpdateCatalogLoadIssue.UnstableRead);
             }
 
+            using JsonDocument catalogJson = EmbeddedVersionManagementSchema.ParseStrict(bytes, maximumDepth: 16);
+            if (!UpdateCatalogSchema.IsValid(catalogJson.RootElement))
+            {
+                return Failure(UpdateCatalogLoadIssue.InvalidManifest);
+            }
             UpdateCatalogDocument? document = JsonSerializer.Deserialize(
                 bytes,
                 JsonContext.UpdateCatalogDocument);

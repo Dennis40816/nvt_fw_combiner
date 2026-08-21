@@ -4,7 +4,7 @@ using NvtFwCombiner.Contracts.VersionManagement;
 namespace NvtFwCombiner.Application.Tests.VersionManagement;
 
 /// <summary>Tests the stateful version-management use case rather than only its pure policies.</summary>
-public sealed class VersionManagementExperienceTests
+public sealed partial class VersionManagementExperienceTests
 {
     private const string Hash =
         "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef";

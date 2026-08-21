@@ -46,6 +46,23 @@ def test_managed_root_seed_is_content_bound_and_source_location_independent(tmp_
     assert str(relocated) not in admission["admissionIdentity"]
     assert (output / managed.LAUNCHER_NAME).read_bytes() == b"MZ-launcher"
     assert (output / "versions" / "0.10.5" / "NvtFwCombiner.exe").is_file()
+    assert (output / "versions" / "0.10.5" / "SHA256SUMS.txt").is_file()
+    assert (
+        output
+        / "versions"
+        / "0.10.5"
+        / "docs"
+        / "contracts"
+        / "canonical-capability-policy-v1.json"
+    ).is_file()
+    assert (
+        output
+        / "versions"
+        / "0.10.5"
+        / "profiles"
+        / "built-in"
+        / "package-trust-index.json"
+    ).is_file()
 
 
 def test_managed_root_builder_rejects_tampered_seed_package(tmp_path: Path) -> None:

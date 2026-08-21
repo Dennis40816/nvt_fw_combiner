@@ -7,6 +7,8 @@ namespace NvtFwCombiner.Presentation.Avalonia;
 public sealed partial class MainWindow
 {
     private bool _restartThroughStableLauncher;
+    private bool _stableLauncherStarted;
+    private bool _stableLauncherHandoffInProgress;
 
     private async Task ReportManagedApplicationReadyAsync(CancellationToken cancellationToken)
     {
@@ -32,10 +34,22 @@ public sealed partial class MainWindow
             if (DataContext is MainWindowViewModel initialViewModel)
             {
                 initialViewModel.Settings.ApplyVersionSnapshot(initialized);
+                initialViewModel.Settings.SetSourceChecking(initialized.State?.UpdateSource is not null);
             }
-            VersionManagementSnapshot checkedSnapshot = await versionManagement.CheckAsync(
-                isAutomatic: true,
-                cancellationToken);
+            VersionManagementSnapshot checkedSnapshot;
+            try
+            {
+                checkedSnapshot = await versionManagement.CheckAsync(
+                    isAutomatic: true,
+                    cancellationToken);
+            }
+            finally
+            {
+                if (DataContext is MainWindowViewModel finalViewModel)
+                {
+                    finalViewModel.Settings.SetSourceChecking(false);
+                }
+            }
             if (DataContext is MainWindowViewModel checkedViewModel)
             {
                 checkedViewModel.Settings.ApplyVersionSnapshot(checkedSnapshot);
@@ -71,19 +85,46 @@ public sealed partial class MainWindow
 
     private void Settings_ActivationRequested(object? sender, EventArgs e)
     {
-        _restartThroughStableLauncher = true;
+        RequestStableLauncherRestart();
         Close();
     }
 
-    private void RestartThroughStableLauncherIfRequested()
+    internal void RequestStableLauncherRestart()
     {
-        if (!_restartThroughStableLauncher || _hostServices.StableLauncherHandoff is not { } handoff)
+        _restartThroughStableLauncher = true;
+    }
+
+    internal async Task<bool> TryCompleteStableLauncherHandoffAsync()
+    {
+        bool started = await TryStartStableLauncherAsync();
+        if (!started)
         {
-            return;
+            await ReportStableLauncherHandoffFailureAsync();
         }
-        _ = handoff.TryStartLauncherAsync(CancellationToken.None)
-            .AsTask()
-            .GetAwaiter()
-            .GetResult();
+        return started;
+    }
+
+    private async Task<bool> TryStartStableLauncherAsync()
+    {
+        if (!_restartThroughStableLauncher ||
+            _stableLauncherStarted ||
+            _hostServices.StableLauncherHandoff is not { } handoff)
+        {
+            return false;
+        }
+        bool started = await handoff.TryStartLauncherAsync(CancellationToken.None);
+        _stableLauncherStarted = started;
+        return started;
+    }
+
+    private async Task ReportStableLauncherHandoffFailureAsync()
+    {
+        IsEnabled = true;
+        bool activationCleared = true;
+        if (DataContext is MainWindowViewModel viewModel)
+        {
+            activationCleared = await viewModel.Settings.HandleLauncherHandoffFailureAsync();
+        }
+        _restartThroughStableLauncher = !activationCleared;
     }
 }
