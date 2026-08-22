@@ -13,12 +13,13 @@ public sealed partial class FirmwareSlotCard : UserControl
 {
     /// <summary>Formats the shared visible, assistive, and picker-title Browse phrase.</summary>
     public const string BrowseActionFormat = "{0} — {1}";
-    private static readonly CompositeFormat BrowseActionCompositeFormat =
-        CompositeFormat.Parse(BrowseActionFormat);
+    private static readonly CompositeFormat BrowseActionCompositeFormat = CompositeFormat.Parse(BrowseActionFormat);
+
+    internal Func<global::Avalonia.Platform.Storage.IStorageProvider, string, Task<string?>> PickFirmwareFileAsync { get; init; } =
+        FirmwareFilePickerDialogs.PickFirmwareBinOpenFileAsync;
 
     /// <summary>Defines the localized browse button label.</summary>
-    public static readonly StyledProperty<string> BrowseLabelProperty =
-        AvaloniaProperty.Register<FirmwareSlotCard, string>(nameof(BrowseLabel), string.Empty);
+    public static readonly StyledProperty<string> BrowseLabelProperty = AvaloniaProperty.Register<FirmwareSlotCard, string>(nameof(BrowseLabel), string.Empty);
 
     /// <summary>Gets or sets the localized browse button label.</summary>
     public string BrowseLabel
@@ -104,7 +105,7 @@ public sealed partial class FirmwareSlotCard : UserControl
             return;
         }
 
-        string? path = await FirmwareFilePickerDialogs.PickFirmwareBinOpenFileAsync(
+        string? path = await PickFirmwareFileAsync(
             topLevel.StorageProvider,
             FormatBrowseActionLabel(BrowseLabel, slot.Title));
         if (!string.IsNullOrWhiteSpace(path))
