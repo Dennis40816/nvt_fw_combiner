@@ -674,10 +674,10 @@ output byte, CRC/header, processor, support, Golden, update-package verification
 installation, activation, or deletion authority. It also does not close or fund
 the separate unused-module and repository-size investigation.
 
-The 2026-08-22 current-session System Activity amendment and its exact source
-ledger continue in
-`0021-code-size-ratchet-system-activity-amendment.md`; that file is a normative
-appendix to this ADR and creates no second code-size policy owner.
+Later exact-ledger amendments continue in the normative appendices
+`0021-code-size-ratchet-system-activity-amendment.md` and
+`0021-code-size-ratchet-accepted-artifact-amendment.md`; neither creates a
+second code-size policy owner.
 
 ## Consequences
 

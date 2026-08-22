@@ -79,6 +79,10 @@ internal static class AcceptedSessionCompositionExecution
 /// <summary>Application-owned immutable inputs admitted for one accepted execution.</summary>
 internal sealed class AcceptedSessionExecutionInputs
 {
+    private static readonly StringComparer ArtifactLocatorComparer = OperatingSystem.IsWindows()
+        ? StringComparer.OrdinalIgnoreCase
+        : StringComparer.Ordinal;
+
     private AcceptedSessionExecutionInputs(
         ResolvedCapability capability,
         IReadOnlyList<InputArtifactBinding> bindings,
@@ -147,15 +151,16 @@ internal sealed class AcceptedSessionExecutionInputs
                         status.AcceptedByteArray!);
                 }),
         ];
-        StringComparer pathComparer = OperatingSystem.IsWindows()
-            ? StringComparer.OrdinalIgnoreCase
-            : StringComparer.Ordinal;
+        Dictionary<string, byte[]> artifacts = new(ArtifactLocatorComparer);
+        Dictionary<string, FileStamp> stamps = new(ArtifactLocatorComparer);
+        foreach ((InputArtifactBinding binding, byte[] bytes) in accepted)
+        {
+            AddAcceptedArtifact(artifacts, stamps, binding, bytes);
+        }
+
         return (
             [.. accepted.Select(static input => input.Binding)],
-            accepted.ToDictionary(
-                static input => input.Binding.ArtifactId,
-                static input => input.Bytes,
-                pathComparer));
+            artifacts);
     }
 
     internal static (
@@ -169,14 +174,9 @@ internal sealed class AcceptedSessionExecutionInputs
         ArgumentNullException.ThrowIfNull(compiledComposition);
         ArgumentNullException.ThrowIfNull(acceptedSession);
         ArgumentNullException.ThrowIfNull(plannedBindings);
-        StringComparison pathComparison = OperatingSystem.IsWindows()
-            ? StringComparison.OrdinalIgnoreCase
-            : StringComparison.Ordinal;
-        StringComparer pathComparer = OperatingSystem.IsWindows()
-            ? StringComparer.OrdinalIgnoreCase
-            : StringComparer.Ordinal;
         List<InputArtifactBinding> bindings = [];
-        Dictionary<string, byte[]> artifacts = new(pathComparer);
+        Dictionary<string, byte[]> artifacts = new(ArtifactLocatorComparer);
+        Dictionary<string, FileStamp> stamps = new(ArtifactLocatorComparer);
         foreach (InputArtifactBinding planned in plannedBindings)
         {
             if (virtualArtifacts?.TryGetValue(
@@ -188,6 +188,7 @@ internal sealed class AcceptedSessionExecutionInputs
                     planned.AddressSpaceId,
                     planned.ArtifactId));
                 artifacts.Add(planned.ArtifactId, virtualBytes.ToArray());
+                stamps.Add(planned.ArtifactId, FileStamp.FromBytes(virtualBytes.Span));
                 continue;
             }
 
@@ -196,10 +197,9 @@ internal sealed class AcceptedSessionExecutionInputs
                 throw new InvalidOperationException(
                     $"The accepted session does not contain General input '{planned.BindingId}'.");
             bool pathMatches = slot.SelectedPath is { } selectedPath &&
-                string.Equals(
+                ArtifactLocatorComparer.Equals(
                     Path.GetFullPath(selectedPath),
-                    Path.GetFullPath(planned.ArtifactId),
-                    pathComparison);
+                    Path.GetFullPath(planned.ArtifactId));
             if (!pathMatches ||
                 slot.FileStamp is not { } acceptedStamp ||
                 (planned.AcceptedContentStamp is { } plannedStamp &&
@@ -216,18 +216,7 @@ internal sealed class AcceptedSessionExecutionInputs
                 planned.ArtifactId,
                 acceptedContentStamp: acceptedStamp));
 
-            if (artifacts.TryGetValue(planned.ArtifactId, out byte[]? existingBytes))
-            {
-                if (!existingBytes.AsSpan().SequenceEqual(slot.AcceptedByteArray))
-                {
-                    throw new InvalidOperationException(
-                        $"General input '{planned.ArtifactId}' has conflicting accepted bytes.");
-                }
-            }
-            else
-            {
-                artifacts.Add(planned.ArtifactId, slot.AcceptedByteArray);
-            }
+            AddAcceptedArtifact(artifacts, stamps, bindings[^1], slot.AcceptedByteArray);
         }
 
         return ([.. bindings], artifacts);
@@ -265,10 +254,7 @@ internal sealed class AcceptedSessionExecutionInputs
             selectedPath,
             acceptedSession,
             referenceAddressSpaceId);
-        StringComparer pathComparer = OperatingSystem.IsWindows()
-            ? StringComparer.OrdinalIgnoreCase
-            : StringComparer.Ordinal;
-        Dictionary<string, byte[]> artifacts = new(accepted, pathComparer);
+        Dictionary<string, byte[]> artifacts = new(accepted, ArtifactLocatorComparer);
         _ = artifacts.TryAdd(referenceBinding.ArtifactId, referenceBytes) ||
             artifacts[referenceBinding.ArtifactId].AsSpan().SequenceEqual(referenceBytes)
                 ? true
@@ -335,11 +321,8 @@ internal sealed class AcceptedSessionExecutionInputs
             throw new InvalidOperationException(
                 $"The accepted session does not contain input slot '{definitionId}'.");
         string fullPath = Path.GetFullPath(selectedPath);
-        StringComparison pathComparison = OperatingSystem.IsWindows()
-            ? StringComparison.OrdinalIgnoreCase
-            : StringComparison.Ordinal;
         bool pathMatches = slot.SelectedPath is { } acceptedPath &&
-            string.Equals(Path.GetFullPath(acceptedPath), fullPath, pathComparison);
+            ArtifactLocatorComparer.Equals(Path.GetFullPath(acceptedPath), fullPath);
         FileStamp stamp = pathMatches &&
             slot.Lifecycle is AuthoringSlotLifecycle.Verified or AuthoringSlotLifecycle.Warning &&
             slot.FileStamp is { } acceptedStamp
@@ -352,6 +335,30 @@ internal sealed class AcceptedSessionExecutionInputs
             addressSpaceId,
             fullPath,
             stamp);
+    }
+
+    private static void AddAcceptedArtifact(
+        Dictionary<string, byte[]> artifacts,
+        Dictionary<string, FileStamp> stamps,
+        InputArtifactBinding binding,
+        byte[] bytes)
+    {
+        FileStamp stamp = binding.AcceptedContentStamp ??
+            throw new InvalidOperationException(
+                $"Input binding '{binding.BindingId}' has no accepted content identity.");
+        if (artifacts.TryGetValue(binding.ArtifactId, out byte[]? existingBytes))
+        {
+            if (stamps[binding.ArtifactId] != stamp || !existingBytes.AsSpan().SequenceEqual(bytes))
+            {
+                throw new InvalidOperationException(
+                    $"Input binding '{binding.BindingId}' has conflicting accepted snapshots.");
+            }
+
+            return;
+        }
+
+        artifacts.Add(binding.ArtifactId, bytes);
+        stamps.Add(binding.ArtifactId, stamp);
     }
 
     internal static string ResolveSlotDefinitionId(
@@ -448,10 +455,7 @@ internal sealed class AcceptedSessionExecutionInputs
         }
 
         InputArtifactBinding[] copiedBindings = [.. bindings];
-        StringComparer artifactComparer = OperatingSystem.IsWindows()
-            ? StringComparer.OrdinalIgnoreCase
-            : StringComparer.Ordinal;
-        var copiedArtifacts = new Dictionary<string, byte[]>(artifactComparer);
+        var copiedArtifacts = new Dictionary<string, byte[]>(ArtifactLocatorComparer);
         foreach ((string artifactId, byte[] bytes) in acceptedArtifacts)
         {
             ArgumentException.ThrowIfNullOrWhiteSpace(artifactId);

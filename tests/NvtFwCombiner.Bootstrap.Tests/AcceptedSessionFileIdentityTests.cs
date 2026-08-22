@@ -1,5 +1,8 @@
+using System.Text.Json;
 using NvtFwCombiner.Application.Authoring;
 using NvtFwCombiner.Application.Capabilities;
+using NvtFwCombiner.Application.ExternalTools;
+using NvtFwCombiner.Application.Ports;
 using NvtFwCombiner.Domain.Composition;
 using NvtFwCombiner.TestSupport;
 
@@ -51,6 +54,68 @@ public sealed class AcceptedSessionFileIdentityTests
         Assert.Equal(beforeMutation.OutputSha256, afterMutation.OutputSha256);
     }
 
+    /// <summary>One accepted immutable path may supply multiple Standard Merge logical bindings.</summary>
+    [Fact]
+    public async Task StandardMergeAcceptedSessionSharesOnePathAcrossLogicalSlots()
+    {
+        ReloadCatalog();
+        using var workspace = TempWorkspace.Create("nfc-standard-accepted-shared-path");
+        Dictionary<string, string> paths = CreateStandardInputs(workspace);
+        paths[CompositionAddressSpaceIds.TpInput] = paths[CompositionAddressSpaceIds.DpInput];
+        ActiveSessionSnapshot accepted = AcceptStandardSession(paths);
+        string outputPath = workspace.PathFor("shared-output.bin");
+
+        CompositionRunResult result = await ExecuteAsync(
+            accepted,
+            paths,
+            build: true,
+            outputPath: outputPath);
+
+        Assert.True(result.Succeeded, CompositionRunReportJson.Serialize(result));
+        Assert.Equal(result.OutputBytes.ToArray(), File.ReadAllBytes(outputPath));
+        Assert.Equal(
+            [CompositionAddressSpaceIds.DpInput, CompositionAddressSpaceIds.TpInput],
+            result.Report.Inputs.Select(static input => input.AddressSpaceId).Order(StringComparer.Ordinal));
+        _ = Assert.Single(result.Report.Inputs.Select(static input => input.Sha256).Distinct(StringComparer.Ordinal));
+        Assert.Contains(result.Report.Operations, static operation =>
+            operation.SourceSpaceId == CompositionAddressSpaceIds.DpInput);
+        Assert.Contains(result.Report.Operations, static operation =>
+            operation.SourceSpaceId == CompositionAddressSpaceIds.TpInput);
+        AssertOperationProjection(accepted, result);
+    }
+
+    /// <summary>Sharing one path is byte-for-byte equivalent to two paths containing identical accepted bytes.</summary>
+    [Fact]
+    public async Task StandardMergeSharedPathMatchesDistinctIdenticalFiles()
+    {
+        ReloadCatalog();
+        using var workspace = TempWorkspace.Create("nfc-standard-accepted-path-parity");
+        Dictionary<string, string> sharedPaths = CreateStandardInputs(workspace);
+        sharedPaths[CompositionAddressSpaceIds.TpInput] =
+            sharedPaths[CompositionAddressSpaceIds.DpInput];
+        byte[] sharedBytes = File.ReadAllBytes(sharedPaths[CompositionAddressSpaceIds.DpInput]);
+        var distinctPaths = new Dictionary<string, string>(StringComparer.Ordinal)
+        {
+            [CompositionAddressSpaceIds.DpInput] = workspace.Write("distinct-dp.bin", sharedBytes),
+            [CompositionAddressSpaceIds.TpInput] = workspace.Write("distinct-tp.bin", sharedBytes),
+        };
+
+        ActiveSessionSnapshot sharedSession = AcceptStandardSession(sharedPaths);
+        ActiveSessionSnapshot distinctSession = AcceptStandardSession(distinctPaths);
+        CompositionRunResult shared = await ExecuteAsync(sharedSession, sharedPaths);
+        CompositionRunResult distinct = await ExecuteAsync(distinctSession, distinctPaths);
+
+        Assert.True(shared.Succeeded, CompositionRunReportJson.Serialize(shared));
+        Assert.True(distinct.Succeeded, CompositionRunReportJson.Serialize(distinct));
+        Assert.Equal(distinct.OutputSha256, shared.OutputSha256);
+        Assert.Equal(distinct.OutputBytes.ToArray(), shared.OutputBytes.ToArray());
+        Assert.Equal(
+            distinct.Report.Inputs.Select(static input => input.AddressSpaceId).Order(StringComparer.Ordinal),
+            shared.Report.Inputs.Select(static input => input.AddressSpaceId).Order(StringComparer.Ordinal));
+        AssertOperationProjection(sharedSession, shared);
+        AssertOperationProjection(distinctSession, distinct);
+    }
+
     /// <summary>AB Merge ignores a client path alias after the session accepted canonical inputs.</summary>
     [Fact]
     public async Task AbMergeAcceptedSessionIgnoresSwappedClientPath()
@@ -90,6 +155,111 @@ public sealed class AcceptedSessionFileIdentityTests
         Assert.True(beforeMutation.Succeeded, CompositionRunReportJson.Serialize(beforeMutation));
         Assert.True(afterMutation.Succeeded, CompositionRunReportJson.Serialize(afterMutation));
         Assert.Equal(beforeMutation.OutputSha256, afterMutation.OutputSha256);
+    }
+
+    /// <summary>One accepted immutable TP path may supply independent AB TPA and TPB bindings.</summary>
+    [Fact]
+    public async Task AbMergeAcceptedSessionSharesOneTpPathAcrossLogicalSlots()
+    {
+        ReloadCatalog();
+        using var workspace = TempWorkspace.Create("nfc-ab-accepted-shared-tp-path");
+        Dictionary<string, string> paths = CreateAbInputs(workspace);
+        paths[CompositionAddressSpaceIds.TpBInput] = paths[CompositionAddressSpaceIds.TpAInput];
+        ActiveSessionSnapshot accepted = AcceptAbSession(paths);
+
+        CompositionRunResult result = await ExecuteAsync(accepted, paths);
+
+        Assert.True(result.Succeeded, CompositionRunReportJson.Serialize(result));
+        Assert.Equal(3, result.Report.Inputs.Count);
+        InputArtifactSummary tpA = Assert.Single(result.Report.Inputs, static input =>
+            input.AddressSpaceId == CompositionAddressSpaceIds.TpAInput);
+        InputArtifactSummary tpB = Assert.Single(result.Report.Inputs, static input =>
+            input.AddressSpaceId == CompositionAddressSpaceIds.TpBInput);
+        Assert.Equal(tpA.Sha256, tpB.Sha256);
+        Assert.NotEqual(tpA.ArtifactId, tpB.ArtifactId);
+        Assert.Contains(
+            CompositionAddressSpaceIds.TpAInput,
+            accepted.ExactCapability!.CompiledComposition.Plan.RequiredInputAddressSpaceIds);
+        Assert.Contains(
+            CompositionAddressSpaceIds.TpBInput,
+            accepted.ExactCapability.CompiledComposition.Plan.RequiredInputAddressSpaceIds);
+        AssertOperationProjection(accepted, result);
+    }
+
+    /// <summary>One reader locator must fail closed when retained logical slots disagree on stamp or bytes.</summary>
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void AcceptedSessionRejectsConflictingSnapshotsForOnePath(bool conflictStamp)
+    {
+        ReloadCatalog();
+        using var workspace = TempWorkspace.Create("nfc-ab-accepted-conflicting-snapshot");
+        Dictionary<string, string> paths = CreateAbInputs(workspace);
+        paths[CompositionAddressSpaceIds.TpBInput] = paths[CompositionAddressSpaceIds.TpAInput];
+        ActiveSessionSnapshot accepted = AcceptAbSession(paths);
+        ActiveSessionSnapshot conflicting = CreateConflictingSnapshot(
+            accepted,
+            CompositionAddressSpaceIds.TpBInput,
+            conflictStamp);
+
+        InvalidOperationException exception = Assert.Throws<InvalidOperationException>(() =>
+            AcceptedSessionExecutionInputs.CreateBindings(
+                conflicting.ExactCapability!.CompiledComposition,
+                conflicting));
+
+        Assert.Contains("conflicting accepted snapshots", exception.Message, StringComparison.Ordinal);
+        Assert.Contains(CompositionAddressSpaceIds.TpBInput, exception.Message, StringComparison.Ordinal);
+        Assert.DoesNotContain(paths[CompositionAddressSpaceIds.TpAInput], exception.Message, StringComparison.Ordinal);
+    }
+
+    /// <summary>One accepted immutable container path may supply CtrlRAM Base and one replacement binding.</summary>
+    [Fact]
+    public async Task CtrlRamReplaceAcceptedSessionSharesOnePathAcrossLogicalSlots()
+    {
+        ReloadCatalog();
+        JsonElement fixtureCase = CanonicalGoldenTestData.LoadDirectCase(
+            "ctrlram-replace",
+            "nt51926-fw200-single-auto-prj-597-20260718");
+        JsonElement[] artifacts = [.. fixtureCase.GetProperty("artifacts").EnumerateArray()];
+        string sharedPath = CanonicalGoldenTestData.ArtifactPath(artifacts.Single(artifact =>
+            artifact.GetProperty("artifactId").GetString() == "expected-output"));
+        var paths = new Dictionary<string, string>(StringComparer.Ordinal)
+        {
+            [CompositionSlotIds.ReplaceBase] = sharedPath,
+            ["replace-ctrlram-normal"] = sharedPath,
+        };
+        (ActiveSessionSnapshot? snapshot, _) = CtrlRamReplaceTestSupport.Prepare(
+            _host.Canonical,
+            "NT51926",
+            "single",
+            paths,
+            firmwareVersionEdit: null);
+        ActiveSessionSnapshot accepted = Assert.IsType<ActiveSessionSnapshot>(snapshot);
+
+        CompositionRunResult result = await CtrlRamReplaceTestSupport.RunWithProcessorAsync(
+            _host.Canonical,
+            "NT51926",
+            "single",
+            paths,
+            build: false,
+            outputPath: null,
+            firmwareVersionEdit: null,
+            new PassThroughProcessor(),
+            TestContext.Current.CancellationToken);
+
+        Assert.True(result.Succeeded, CompositionRunReportJson.Serialize(result));
+        Assert.Equal(2, result.Report.Inputs.Count);
+        Assert.Equal(2, result.Report.Inputs.Select(static input => input.AddressSpaceId)
+            .Distinct(StringComparer.Ordinal).Count());
+        _ = Assert.Single(result.Report.Inputs.Select(static input => input.Sha256)
+            .Distinct(StringComparer.Ordinal));
+        Assert.All(result.Report.Inputs, static input =>
+            Assert.Equal(input.AddressSpaceId, input.ArtifactId));
+        string replacementAddressSpaceId = result.Report.Inputs.Single(input =>
+            input.AddressSpaceId != CompositionAddressSpaceIds.ReferenceBase).AddressSpaceId;
+        Assert.Contains(result.Report.Operations, operation =>
+            operation.SourceSpaceId == replacementAddressSpaceId);
+        AssertOperationProjection(accepted, result);
     }
 
     /// <summary>DP Replace ignores a client path alias after the session accepted canonical inputs.</summary>
@@ -317,6 +487,106 @@ public sealed class AcceptedSessionFileIdentityTests
         return bytes;
     }
 
+    private static ActiveSessionSnapshot CreateConflictingSnapshot(
+        ActiveSessionSnapshot accepted,
+        string addressSpaceId,
+        bool conflictStamp)
+    {
+        AuthoringInputSlotStatus originalStatus = accepted.InputSlotStatuses.Single(status =>
+            StringComparer.Ordinal.Equals(status.AddressSpaceId, addressSpaceId));
+        byte[] conflictingBytes = originalStatus.AcceptedBytes!.Value.ToArray();
+        if (!conflictStamp)
+        {
+            conflictingBytes[0] ^= 0xFF;
+        }
+        FileStamp conflictingStamp = conflictStamp
+            ? new FileStamp(conflictingBytes.LongLength, new string('0', 64))
+            : originalStatus.FileStamp!.Value;
+        AuthoringInputSlotStatus conflictingStatus = new(
+            accepted.ExactCapability!.Identity,
+            originalStatus.ResolutionToken,
+            originalStatus.AuthoringRevision,
+            originalStatus.CapabilityFingerprint,
+            originalStatus.CompilationFingerprint,
+            originalStatus.SelectionReadiness,
+            originalStatus.AddressSpaceId,
+            originalStatus.InspectionLifecycle,
+            conflictingStamp,
+            originalStatus.Inspection,
+            originalStatus.SelectedPathHint,
+            originalStatus.Observation,
+            conflictingBytes);
+        AuthoringSlotState[] slots =
+        [
+            .. accepted.Slots.Select(slot =>
+                StringComparer.Ordinal.Equals(slot.DefinitionId, originalStatus.SlotId)
+                    ? new AuthoringSlotState(
+                        slot.DefinitionId,
+                        slot.SelectedPath,
+                        conflictingStamp,
+                        slot.Lifecycle,
+                        slot.BlockingIssue,
+                        conflictingBytes)
+                    : slot),
+        ];
+        AuthoringInputSlotStatus[] statuses =
+        [
+            .. accepted.InputSlotStatuses.Select(status =>
+                StringComparer.Ordinal.Equals(status.SlotId, originalStatus.SlotId)
+                    ? conflictingStatus
+                    : status),
+        ];
+        return new ActiveSessionSnapshot(
+            accepted.WorkflowId,
+            accepted.ResolutionToken,
+            accepted.AuthoringRevision,
+            accepted.SelectedRouteId,
+            accepted.CapabilityFingerprint,
+            accepted.ExecutionAdmitted,
+            accepted.SelectedIc,
+            accepted.SelectedIcCount,
+            accepted.SelectedMapVariant,
+            accepted.IcChoices,
+            accepted.IcCountChoices,
+            slots,
+            accepted.DraftState,
+            accepted.DraftCapabilityFingerprint,
+            accepted.DerivedPublications,
+            accepted.CompilationFingerprint,
+            accepted.ExactCapability,
+            statuses,
+            accepted.InputSelectionReadiness,
+            accepted.MetadataInspection);
+    }
+
+    private static void AssertOperationProjection(
+        ActiveSessionSnapshot accepted,
+        CompositionRunResult result)
+    {
+        (string OperationId, string? SourceSpaceId, ByteRange? SourceRange,
+            string TargetSpaceId, ByteRange TargetRange)[] expected =
+        [
+            .. accepted.ExactCapability!.CompiledComposition.Plan.OrderedOperations.Select(
+                static operation => (
+                    operation.OperationId,
+                    operation.SourceSpaceId,
+                    operation.SourceRange,
+                    operation.TargetSpaceId,
+                    operation.TargetRange)),
+        ];
+        (string OperationId, string? SourceSpaceId, ByteRange? SourceRange,
+            string TargetSpaceId, ByteRange TargetRange)[] actual =
+        [
+            .. result.Report.Operations.Select(static operation => (
+                operation.OperationId,
+                operation.SourceSpaceId,
+                operation.SourceRange,
+                operation.TargetSpaceId,
+                operation.TargetRange)),
+        ];
+        Assert.Equal(expected, actual);
+    }
+
     private static void MutateFirstByte(string path)
     {
         byte[] bytes = File.ReadAllBytes(path);
@@ -326,13 +596,16 @@ public sealed class AcceptedSessionFileIdentityTests
 
     private ValueTask<CompositionRunResult> ExecuteAsync(
         ActiveSessionSnapshot session,
-        IReadOnlyDictionary<string, string> paths)
+        IReadOnlyDictionary<string, string> paths,
+        bool build = false,
+        string? outputPath = null)
     {
         return _host.Services.CompositionExecution.ExecuteAsync(
             new AcceptedCompositionExecutionRequest(
                 session,
                 paths,
-                build: false),
+                build,
+                outputPath),
             new CompositionRunProgressFeed(),
             TestContext.Current.CancellationToken);
     }
@@ -351,5 +624,15 @@ public sealed class AcceptedSessionFileIdentityTests
         StandardMerge,
         AbMerge,
         DpReplace,
+    }
+
+    private sealed class PassThroughProcessor : IExternalProcessor
+    {
+        public ValueTask<ExternalProcessorResult> TransformAsync(
+            ExternalProcessorRequest request,
+            CancellationToken cancellationToken)
+        {
+            return ValueTask.FromResult(ExternalProcessorResult.Success(request.InputBytes, [], []));
+        }
     }
 }
