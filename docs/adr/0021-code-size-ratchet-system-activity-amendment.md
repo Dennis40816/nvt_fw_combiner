@@ -78,3 +78,30 @@ changes no profile geometry, range, output byte, operation order, CRC/header,
 processor authority, naming, support, UI, or Golden authority, and it does not
 close or fund the separate repository-wide single-implementation, layering,
 unused-module, and code-size audit.
+
+## 2026-08-22 typed CtrlRAM authoring-diagnostic correction
+
+The owner then approved carrying a failed CtrlRAM authoring compilation through
+the shared firmware-inspection result to the existing visible slot diagnostic.
+The correction preserves the compiler-owned issue code, operation id, severity
+and message, and keeps Build blocked without adding a Presentation exception
+catch-all, diagnostic service, ViewModel hierarchy, XAML control, or alternate
+firmware rule.
+
+After minimizing the hand-off to the existing `FirmwareInspectionStatusBatch`
+and slot diagnostic owners, full production changes from 109,929 to 109,955
+(+26) and runtime changes from 75,215 to 75,223 (+8). Domain plus Profiles
+remains 20,632; Application changes from 33,429 to 33,435 (+6); Bootstrap plus
+CLI plus Desktop host remains 3,503; and Infrastructure plus Contracts plus CRC
+worker changes from 17,651 to 17,653 (+2). The remaining +18 is the existing
+Presentation projection and exact diagnostic formatting; no layout changes.
+
+The executable allowances therefore become exactly 7,058 full production,
+5,166 runtime, 2,744 Application, and 2,297
+Infrastructure/Contracts/worker above the frozen pre-v0.10.6 base ratchets;
+every other slice allowance remains unchanged. This named R2 correction is
+non-transferable and becomes an exact descending ceiling immediately. It
+changes no profile, range, output byte, operation order, CRC/header, processor,
+naming, support, Golden, report wire, update, or release authority, and it does
+not close or fund the separate repository-wide single-implementation,
+layering, unused-module, and code-size audit.

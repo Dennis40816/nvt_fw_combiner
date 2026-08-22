@@ -160,7 +160,11 @@ internal sealed partial class CtrlRamAuthoringExperience
             capability = compilation.Capability;
             if (capability is null)
             {
-                return FirmwareInspectionStatusBatch.Empty;
+                return FirmwareInspectionStatusBatch.Empty with
+                {
+                    Issues = [.. compilation.Issues.Where(issue => selected.Length > 1 ||
+                        issue.Code != CompositionPlanningIssueCodes.ReplaceCtrlRamNoRegionInput)],
+                };
             }
         }
 

@@ -81,6 +81,47 @@ public sealed partial class CtrlRamWorkflowTests
         Assert.Null(exception);
         Assert.False(viewModel.Replace.CanBuildReplace);
         Assert.Equal(WorkflowInspectionAttemptState.Failed, viewModel.Replace.Inspection.State);
+        FirmwareSlotViewModel baseSlot = viewModel.Replace.ReplaceBaseSlot;
+        const string diagnostic = "input.address-space.length-mismatch [replace-base]: Base firmware BIN length 0x37001 is unsupported for NT51950 / single CtrlRAM Replace; accepted exact reference lengths are 0x37000 / 0x40000.";
+        Assert.Equal(FirmwareInputInspectionSeverity.Blocking, baseSlot.InputInspectionSeverity);
+        Assert.Equal(diagnostic, baseSlot.InputInspectionStatus);
+        Assert.True(baseSlot.BlocksBuild);
+        Assert.True(baseSlot.HasSemanticState);
+        Assert.Equal(FirmwareSlotSemanticState.Error, baseSlot.SemanticState);
+        Assert.Equal("Error", baseSlot.SemanticStateLabel);
+        Assert.Equal($"Error: {diagnostic}", baseSlot.SemanticStateAutomationText);
+    }
+
+    /// <summary>A valid target-family base alone remains a verified discovery input.</summary>
+    [Theory]
+    [InlineData("nt51950-fw200-single-auto-prj-676-20260717", "NT51950")]
+    [InlineData("nt51951-fw200-single-auto-prj-695-20260718", "NT51951")]
+    public async Task ValidBaseOnlyRemainsVerifiedBeforeReplacementSelection(
+        string caseId,
+        string icId)
+    {
+        JsonElement fixtureCase = CanonicalGoldenTestData.LoadDirectCase("ctrlram-replace", caseId);
+        JsonElement baseArtifact = fixtureCase.GetProperty("artifacts").EnumerateArray().Single(
+            artifact => artifact.GetProperty("artifactId").GetString() == "tp-input");
+        MainWindowViewModel viewModel = PresentationTestHost.CreateViewModel();
+        viewModel.WorkflowSession.SelectedIc = icId;
+        viewModel.WorkflowSession.SelectedNumber = IcNumberSelectionTokens.SingleChip;
+        OpenReplace(viewModel, ExperienceIds.CtrlRamReplace);
+
+        await viewModel.WorkflowSession.SetSlotFileAsync(
+            CompositionSlotIds.ReplaceBase,
+            CanonicalGoldenTestData.ArtifactPath(baseArtifact),
+            TestContext.Current.CancellationToken);
+
+        FirmwareSlotViewModel baseSlot = viewModel.Replace.ReplaceBaseSlot;
+        Assert.Equal(FirmwareInputInspectionSeverity.Valid, baseSlot.InputInspectionSeverity);
+        Assert.False(baseSlot.BlocksBuild);
+        Assert.Equal(FirmwareSlotSemanticState.Verified, baseSlot.SemanticState);
+        Assert.Equal(WorkflowInspectionAttemptState.Succeeded, viewModel.Replace.Inspection.State);
+        Assert.DoesNotContain(
+            CompositionPlanningIssueCodes.ReplaceCtrlRamNoRegionInput,
+            baseSlot.InputInspectionStatus,
+            StringComparison.Ordinal);
     }
 
     /// <summary>A CtrlRAM batch read rejects a replacement whose file identity changes in flight.</summary>

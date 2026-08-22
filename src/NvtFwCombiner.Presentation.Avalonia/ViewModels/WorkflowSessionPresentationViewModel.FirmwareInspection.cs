@@ -377,7 +377,13 @@ internal sealed partial class WorkflowSessionPresentationViewModel
                         text: Text));
             }
 
-            if (inspection.InputSlotStatus is { } inputSlotStatus)
+            if (inspection.AuthoringCompilationIssues.Count > 0)
+            {
+                FirmwareInspectionProjection.ApplyAuthoringIssues(
+                    slot,
+                    inspection.AuthoringCompilationIssues);
+            }
+            else if (inspection.InputSlotStatus is { } inputSlotStatus)
             {
                 if ((item.StandardMergeAddressSpaceId is not null &&
                         !standardMergeAccepted) ||
@@ -454,6 +460,7 @@ internal sealed partial class WorkflowSessionPresentationViewModel
             item.CtrlRamRequest is not null &&
             item.CtrlRamReplaceAddressSpaceId == CompositionAddressSpaceIds.ReferenceBase &&
             item.InspectionLease is null &&
+            inspection.AuthoringCompilationIssues.Count == 0 &&
             inspection.InputSlotStatus is null &&
             inspection.InputSlotCatalog is null;
     }

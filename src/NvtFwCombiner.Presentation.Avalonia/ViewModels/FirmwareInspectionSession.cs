@@ -109,6 +109,18 @@ internal static class FirmwareInspectionProjection
         slot.SetInputInspection(severity, text.GetInputSlotInspectionStatus(status));
     }
 
+    internal static void ApplyAuthoringIssues(
+        FirmwareSlotViewModel slot,
+        IReadOnlyList<CompositionIssue> issues)
+    {
+        slot.SetInputInspection(
+            FirmwareInputInspectionSeverity.Blocking,
+            string.Join(Environment.NewLine, issues.Select(static issue =>
+                issue.OperationId is { } operationId
+                    ? $"{issue.Code} [{operationId}]: {issue.Message}"
+                    : $"{issue.Code}: {issue.Message}")));
+    }
+
     internal static bool ApplyStaleInputInspection(
         IEnumerable<FirmwareSlotViewModel> slots,
         FirmwareInspectionBatchRequest request,
@@ -151,6 +163,7 @@ internal static class FirmwareInspectionProjection
             ? $"{value} · AUTO_PRJ-{trackerId}"
             : value;
     }
+
 }
 
 internal enum WorkflowInspectionOwner

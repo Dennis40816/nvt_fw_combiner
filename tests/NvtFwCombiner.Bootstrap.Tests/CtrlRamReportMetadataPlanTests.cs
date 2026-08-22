@@ -337,4 +337,91 @@ public sealed class CtrlRamReportMetadataPlanTests
                 issue.OperationId == CompositionSlotIds.ReplaceBase);
         Assert.Contains("length", issue.Message, StringComparison.OrdinalIgnoreCase);
     }
+
+    /// <summary>The shared firmware-inspection result preserves an exact CtrlRAM compilation failure.</summary>
+    [Theory]
+    [InlineData(
+        "nt51950-fw200-single-auto-prj-676-20260717",
+        "NT51950",
+        "Base firmware BIN length 0x37001 is unsupported for NT51950 / single CtrlRAM Replace; accepted exact reference lengths are 0x37000 / 0x40000.")]
+    [InlineData(
+        "nt51951-fw200-single-auto-prj-695-20260718",
+        "NT51951",
+        "Base firmware BIN length 0x37001 is unsupported for NT51951 / single CtrlRAM Replace; accepted exact reference lengths are 0x37000 / 0x80000.")]
+    public void FirmwareInspectionPreservesNonMapReferenceIssue(
+        string caseId,
+        string icId,
+        string expectedMessage)
+    {
+        JsonElement fixtureCase = CanonicalGoldenTestData.LoadDirectCase(
+            "ctrlram-replace",
+            caseId);
+        JsonElement baseArtifact = fixtureCase.GetProperty("artifacts").EnumerateArray().Single(
+            artifact => artifact.GetProperty("artifactId").GetString() == "tp-input");
+        JsonElement replacementArtifact = fixtureCase.GetProperty("artifacts").EnumerateArray().Single(
+            artifact => artifact.GetProperty("originalFileName").GetString() == "NF_Ctrlram.bin");
+        byte[] validBase = File.ReadAllBytes(CanonicalGoldenTestData.ArtifactPath(baseArtifact));
+        byte[] invalidBase = [.. validBase, 0x00];
+        byte[] replacement = File.ReadAllBytes(CanonicalGoldenTestData.ArtifactPath(replacementArtifact));
+        const string basePath = "invalid-reference.bin";
+        const string replacementPath = "nf-ctrlram.bin";
+        ReplaceInputSlot nfSlot = BootstrapTestHost.Services.CtrlRamAuthoring
+            .GetDiscoveryDisplay(icId, IcNumberSelectionTokens.SingleChip, basePath: null)
+            .InputSlots.Single(static slot => slot.SlotId == "replace-ctrlram-nf");
+
+        IReadOnlyList<FirmwareInspectionSnapshotResult> results =
+            BuiltInFirmwareInspection.InspectFirmwareBatch(
+                BootstrapTestHost.Canonical,
+                icId,
+                [
+                    new FirmwareInspectionSnapshotInput(
+                        CompositionSlotIds.ReplaceBase,
+                        basePath,
+                        CtrlRamRequest: new CtrlRamInspectionRequest(IcNumberSelectionTokens.SingleChip),
+                        CtrlRamReplaceAddressSpaceId: CompositionAddressSpaceIds.ReferenceBase),
+                    new FirmwareInspectionSnapshotInput(
+                        nfSlot.SlotId,
+                        replacementPath,
+                        CtrlRamReplaceAddressSpaceId: nfSlot.AddressSpaceId),
+                ],
+                path => path == basePath ? invalidBase : replacement);
+
+        FirmwareInspectionSnapshot baseInspection = results.Single(result =>
+            result.InspectionId == CompositionSlotIds.ReplaceBase).Inspection;
+        CompositionIssue issue = Assert.Single(baseInspection.AuthoringCompilationIssues);
+        Assert.Equal(CompositionIssueCodes.InputAddressSpaceLengthMismatch, issue.Code);
+        Assert.Equal(CompositionSlotIds.ReplaceBase, issue.OperationId);
+        Assert.Equal(expectedMessage, issue.Message);
+        Assert.Empty(results.Single(result => result.InspectionId == nfSlot.SlotId)
+            .Inspection.AuthoringCompilationIssues);
+    }
+
+    /// <summary>A valid target-family base alone remains a facts-only discovery input.</summary>
+    [Theory]
+    [InlineData("nt51950-fw200-single-auto-prj-676-20260717", "NT51950")]
+    [InlineData("nt51951-fw200-single-auto-prj-695-20260718", "NT51951")]
+    public void FirmwareInspectionKeepsValidBaseOnlyFreeOfCompilationIssues(
+        string caseId,
+        string icId)
+    {
+        JsonElement fixtureCase = CanonicalGoldenTestData.LoadDirectCase("ctrlram-replace", caseId);
+        JsonElement baseArtifact = fixtureCase.GetProperty("artifacts").EnumerateArray().Single(
+            artifact => artifact.GetProperty("artifactId").GetString() == "tp-input");
+        string basePath = CanonicalGoldenTestData.ArtifactPath(baseArtifact);
+
+        FirmwareInspectionSnapshot inspection = Assert.Single(
+            BuiltInFirmwareInspection.InspectFirmwareBatch(
+                BootstrapTestHost.Canonical,
+                icId,
+                [new FirmwareInspectionSnapshotInput(
+                    CompositionSlotIds.ReplaceBase,
+                    basePath,
+                    CtrlRamRequest: new CtrlRamInspectionRequest(IcNumberSelectionTokens.SingleChip),
+                    CtrlRamReplaceAddressSpaceId: CompositionAddressSpaceIds.ReferenceBase)]))
+            .Inspection;
+
+        Assert.Empty(inspection.AuthoringCompilationIssues);
+        Assert.Null(inspection.InputSlotStatus);
+        Assert.NotNull(inspection.CtrlRamDisplay);
+    }
 }

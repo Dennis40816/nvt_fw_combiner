@@ -120,6 +120,9 @@ public sealed record FirmwareInspectionSnapshot(
 
     /// <summary>Exact canonical prerequisite blocking DP metadata projection, when one is pending.</summary>
     public FirmwareMetadataPrerequisite? DpMetadataPrerequisite { get; init; }
+
+    /// <summary>Exact typed authoring issues that prevented this input batch from compiling.</summary>
+    public IReadOnlyList<CompositionIssue> AuthoringCompilationIssues { get; init; } = [];
 }
 
 /// <summary>Optional CtrlRAM display context projected during firmware inspection.</summary>

@@ -155,14 +155,16 @@ internal sealed partial class BuiltInFirmwareInspection : IFirmwareInspection
                 };
             }
 
-            if (ctrlRamInputBatch.Statuses.TryGetValue(
-                    input.InspectionId,
-                    out AuthoringInputSlotStatus? ctrlRamStatus))
+            if (input.CtrlRamReplaceAddressSpaceId is not null)
             {
+                _ = ctrlRamInputBatch.Statuses.TryGetValue(
+                    input.InspectionId,
+                    out AuthoringInputSlotStatus? ctrlRamStatus);
                 snapshot = snapshot with
                 {
                     InputSlotStatus = ctrlRamStatus,
                     InputSlotCatalog = ctrlRamInputBatch.Catalog,
+                    AuthoringCompilationIssues = input.CtrlRamReplaceAddressSpaceId == CompositionAddressSpaceIds.ReferenceBase ? ctrlRamInputBatch.Issues : [],
                 };
             }
 
