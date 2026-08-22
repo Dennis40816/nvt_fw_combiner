@@ -11,7 +11,6 @@ public sealed class Nt51950Nt51951V2StandardMergeGoldenTests
     private const int TpOverlayStart = 0x0A000;
     private const int TpOverlayLength = 0x2D000;
     private const int CustomerInfoStart = 0x37000;
-    private const int CustomerInfoLength = 0x1000;
 
     /// <summary>Locks the omitted 2026-07-17 owner single package to the canonical NT51950 Standard Merge route.</summary>
     [Fact]
@@ -85,7 +84,10 @@ public sealed class Nt51950Nt51951V2StandardMergeGoldenTests
         V2StandardMergeGoldenTestSupport.AssertSuccessfulGoldenOutput(result, v2, expectedOutput);
     }
 
-    /// <summary>Verifies every declared DP container capacity retains the direct V2 byte contract.</summary>
+    /// <summary>
+    /// Uses synthetic inputs and a complete independently constructed output oracle;
+    /// this is not direct owner Golden evidence.
+    /// </summary>
     [Theory]
     [InlineData("NT51950", 0x40000)]
     [InlineData("NT51950", 0x80000)]
@@ -93,7 +95,7 @@ public sealed class Nt51950Nt51951V2StandardMergeGoldenTests
     [InlineData("NT51951", 0x40000)]
     [InlineData("NT51951", 0x80000)]
     [InlineData("NT51951", 0x100000)]
-    public async Task TrustedV2BundleRetainsDeclaredDpPerspectiveByteContractAcrossCapacities(
+    public async Task SyntheticInputsMatchIndependentlyConstructedDpPerspectiveOutputAcrossCapacities(
         string icId,
         int capacity)
     {
@@ -114,14 +116,17 @@ public sealed class Nt51950Nt51951V2StandardMergeGoldenTests
         CompositionRunResult v2Result = await V2StandardMergeGoldenTestSupport.PreviewAsync(v2, inputs);
 
         Assert.Equal(CompositionExecutionStatus.Succeeded, v2Result.Status);
-        byte[] v2Output = v2Result.OutputBytes.ToArray();
-        AssertRangeEquals(inputs["tp-input"], TpOverlayStart, v2Output, TpOverlayStart, TpOverlayLength);
-        AssertRangeEquals(inputs["dp-input"], CustomerInfoStart, v2Output, CustomerInfoStart, CustomerInfoLength);
+        Assert.Equal(
+            ConstructDpPerspectiveOutput(inputs["dp-input"], inputs["tp-input"]),
+            v2Result.OutputBytes.ToArray());
     }
 
-    /// <summary>Verifies a TP input longer than the overlay span remains valid through the approved 256 KiB maximum.</summary>
+    /// <summary>
+    /// Uses a synthetic TP input within the approved maximum and a complete independently
+    /// constructed output oracle.
+    /// </summary>
     [Fact]
-    public async Task TrustedV2BundleExtractsDeclaredTpOverlayFromInputWithin256KiBMaximum()
+    public async Task SyntheticTpInputWithinMaximumMatchesIndependentlyConstructedDpPerspectiveOutput()
     {
         byte[] dp = CreatePattern(0x40000, 0x31);
         byte[] tp = CreatePattern(0x3C000, 0xC7);
@@ -141,9 +146,7 @@ public sealed class Nt51950Nt51951V2StandardMergeGoldenTests
         CompositionRunResult result = await V2StandardMergeGoldenTestSupport.PreviewAsync(v2, inputs);
 
         Assert.Equal(CompositionExecutionStatus.Succeeded, result.Status);
-        byte[] output = result.OutputBytes.ToArray();
-        AssertRangeEquals(tp, TpOverlayStart, output, TpOverlayStart, TpOverlayLength);
-        AssertRangeEquals(dp, CustomerInfoStart, output, CustomerInfoStart, CustomerInfoLength);
+        Assert.Equal(ConstructDpPerspectiveOutput(dp, tp), result.OutputBytes.ToArray());
     }
 
     private static byte[] CreatePattern(int length, byte salt)
@@ -186,11 +189,12 @@ public sealed class Nt51950Nt51951V2StandardMergeGoldenTests
         Assert.Equal(OverlapPolicy.ReplaceExisting, tpOverlay.OverlapPolicy);
     }
 
-    private static void AssertRangeEquals(byte[] expected, int expectedStart, byte[] actual, int actualStart, int length)
+    private static byte[] ConstructDpPerspectiveOutput(byte[] dp, byte[] tp)
     {
-        Assert.Equal(
-            expected.AsSpan(expectedStart, length).ToArray(),
-            actual.AsSpan(actualStart, length).ToArray());
+        byte[] expected = [.. dp];
+        tp.AsSpan(TpOverlayStart, TpOverlayLength).CopyTo(
+            expected.AsSpan(TpOverlayStart, TpOverlayLength));
+        return expected;
     }
 
     private static string ReadProfileId(string reportJson)
