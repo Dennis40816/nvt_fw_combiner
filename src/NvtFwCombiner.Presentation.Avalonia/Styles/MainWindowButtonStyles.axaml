@@ -166,8 +166,8 @@
     <Setter Property="VerticalAlignment" Value="Center" />
     <Setter Property="HorizontalContentAlignment" Value="Center" />
     <Setter Property="VerticalContentAlignment" Value="Center" />
-    <Setter Property="Background" Value="{DynamicResource NfcSurfaceBrush}" />
-    <Setter Property="BorderBrush" Value="{DynamicResource NfcBorderBrush}" />
+    <Setter Property="Background" Value="Transparent" />
+    <Setter Property="BorderBrush" Value="Transparent" />
     <Setter Property="Foreground" Value="{DynamicResource NfcTextBrush}" />
   </Style>
   <Style Selector="Button.closeButton /template/ ContentPresenter#PART_ContentPresenter">
@@ -180,14 +180,14 @@
   </Style>
   <Style Selector="Button.closeButton:pointerover /template/ ContentPresenter#PART_ContentPresenter">
     <Setter Property="Background" Value="{DynamicResource NfcAccentSurfaceBrush}" />
-    <Setter Property="BorderBrush" Value="{DynamicResource NfcAccentBorderBrush}" />
+    <Setter Property="BorderBrush" Value="Transparent" />
   </Style>
   <Style Selector="Button.closeButton:pointerover Path">
     <Setter Property="Stroke" Value="{DynamicResource NfcAccentStrongBrush}" />
   </Style>
   <Style Selector="Button.closeButton:pressed /template/ ContentPresenter#PART_ContentPresenter">
     <Setter Property="Background" Value="{DynamicResource NfcSecondaryActionPressedBrush}" />
-    <Setter Property="BorderBrush" Value="{DynamicResource NfcAccentBorderStrongBrush}" />
+    <Setter Property="BorderBrush" Value="Transparent" />
   </Style>
   <Style Selector="Button.closeButton:pressed Path">
     <Setter Property="Stroke" Value="{DynamicResource NfcAccentStrongBrush}" />

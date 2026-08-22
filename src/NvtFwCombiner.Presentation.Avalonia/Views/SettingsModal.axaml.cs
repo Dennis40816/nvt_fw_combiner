@@ -70,7 +70,7 @@ public sealed partial class SettingsModal : UserControl
     {
         _returnFocus = TopLevel.GetTopLevel(this)?.FocusManager?.GetFocusedElement();
         Dispatcher.UIThread.Post(
-            () => _ = CloseButton.Focus(NavigationMethod.Tab),
+            () => _ = CloseButton.Focus(),
             DispatcherPriority.Input);
     }
 

@@ -1,5 +1,6 @@
 using Avalonia;
 using Avalonia.Controls;
+using Avalonia.Controls.Presenters;
 using Avalonia.Data;
 using Avalonia.Headless.XUnit;
 using Avalonia.Input;
@@ -124,6 +125,16 @@ public sealed partial class XamlControlStyleContractTests
             Assert.InRange(navigation.Bounds.Width, 317.5, 318.5);
             Assert.Equal(40, close.Bounds.Width);
             Assert.Equal(close.Bounds.Width, close.Bounds.Height);
+            ContentPresenter closePresenter = Assert.Single(
+                close.GetVisualDescendants().OfType<ContentPresenter>(),
+                control => control.Name == "PART_ContentPresenter");
+            Assert.Equal(new CornerRadius(999), closePresenter.CornerRadius);
+            Assert.Equal(
+                Colors.Transparent,
+                Assert.IsType<ISolidColorBrush>(closePresenter.Background, exactMatch: false).Color);
+            Assert.Equal(
+                Colors.Transparent,
+                Assert.IsType<ISolidColorBrush>(closePresenter.BorderBrush, exactMatch: false).Color);
 
             Point bodyOrigin = Assert.IsType<Point>(body.TranslatePoint(default, surface));
             Point contentOrigin = Assert.IsType<Point>(content.TranslatePoint(default, body));
@@ -268,6 +279,20 @@ public sealed partial class XamlControlStyleContractTests
         Assert.Contains(
             "NfcPillCornerRadius",
             ExtractStyle(styles, "Button.closeButton /template/ ContentPresenter#PART_ContentPresenter"),
+            StringComparison.Ordinal);
+        Assert.Contains("Background\" Value=\"Transparent", closeStyle, StringComparison.Ordinal);
+        Assert.Contains("BorderBrush\" Value=\"Transparent", closeStyle, StringComparison.Ordinal);
+        Assert.Contains(
+            "BorderBrush\" Value=\"Transparent",
+            ExtractStyle(styles, "Button.closeButton:pointerover /template/ ContentPresenter#PART_ContentPresenter"),
+            StringComparison.Ordinal);
+        Assert.Contains(
+            "BorderBrush\" Value=\"Transparent",
+            ExtractStyle(styles, "Button.closeButton:pressed /template/ ContentPresenter#PART_ContentPresenter"),
+            StringComparison.Ordinal);
+        Assert.Contains(
+            "NfcAccentBorderStrongBrush",
+            ExtractStyle(styles, "Button:focus-visible /template/ ContentPresenter#PART_ContentPresenter"),
             StringComparison.Ordinal);
     }
 
