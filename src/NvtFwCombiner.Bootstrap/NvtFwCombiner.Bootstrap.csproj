@@ -114,7 +114,7 @@
             }
         }
         const string expectedSchemaSha256 =
-            "82c013193c028e0a5db34a79f4bb20ba2fbc6a9d1ae844762819ee70268fdb92";
+            "5cbcb27e312ef1ac2d047990043f356966153bf5d9393527b98d5abd982aeb7e";
         string actualSchemaSha256 = sha256Hex(readBoundedFile(TrustIndexSchemaPath, 131072));
         if (!string.Equals(actualSchemaSha256, expectedSchemaSha256, StringComparison.Ordinal))
         {
@@ -238,7 +238,7 @@
         string trustIndexId = readRequiredString(root, "trustIndexId", "trust-index root");
         string trustIndexVersion = readRequiredString(root, "trustIndexVersion", "trust-index root");
         string trustAnchorBindingId = readRequiredString(root, "trustAnchorBindingId", "trust-index root");
-        if (schemaVersion != "1.0")
+        if (schemaVersion != "1.1")
         {
             throw new InvalidDataException("Unsupported profile bundle package trust-index schema.");
         }
@@ -373,7 +373,7 @@
                     registration,
                     "runtime registration",
                     new[] { "workflowId", "icId", "profileId", "profileVersion" },
-                    new[] { "mapVariantSetId", "familyId", "postbuildProcessorId", "postbuildBranch" });
+                    new[] { "mapVariantSetId", "familyId", "postbuildProcessorId", "postbuildBranch", "reportMetadataMapId" });
                 string workflow = readRequiredString(registration, "workflowId", "runtime registration");
                 string icId = readRequiredString(registration, "icId", "runtime registration");
                 string profileId = readRequiredString(registration, "profileId", "runtime registration");
@@ -382,6 +382,10 @@
                 string familyId = readOptionalString(registration, "familyId", "runtime registration");
                 string processor = readOptionalString(registration, "postbuildProcessorId", "runtime registration");
                 string branch = readOptionalString(registration, "postbuildBranch", "runtime registration");
+                string reportMetadataMapId = readOptionalString(
+                    registration,
+                    "reportMetadataMapId",
+                    "runtime registration");
                 bool mapSetAllowed = workflow == "standard-merge" || workflow == "dp-replace";
                 bool generalMerge = workflow == "general-merge";
                 bool ctrlRam = workflow == "ctrlram-replace";
@@ -402,6 +406,8 @@
                     (ctrlRam && !Regex.IsMatch(processor ?? string.Empty, "^[a-z0-9]+(?:[.-][a-z0-9]+)*$")) ||
                     ((branch != null) != ctrlRam) ||
                     (ctrlRam && !(new[] { "single-chip", "two-chip", "three-chip", "cascade" }).Contains(branch)) ||
+                    (reportMetadataMapId != null &&
+                        (!ctrlRam || !isToken(reportMetadataMapId) || reportMetadataMapId.Length > 128)) ||
                     !registrationKeys.Add(registrationKey))
                 {
                     throw new InvalidDataException("Runtime registration does not satisfy its closed workflow shape.");

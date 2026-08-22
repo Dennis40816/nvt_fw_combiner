@@ -212,6 +212,12 @@ public sealed record CanonicalCapabilityCompilationContract
         [
             .. metadataPlan.ReportProjections.Select(static projection =>
                 $"report-metadata-slot:{projection.SpaceId}<-{projection.SlotId}"),
+            .. metadataPlan.Entries
+                .Where(static entry => entry.Purposes.Contains(
+                    MetadataReferencePurpose.ReportClassification))
+                .Select(static entry =>
+                    $"report-metadata-map:{entry.ResolvedMap.ImageMap.MapId}")
+                .Distinct(StringComparer.Ordinal),
         ];
         MetadataPlanSourceIdentity? sourceIdentity =
             reportMetadataBindings.Length == 0

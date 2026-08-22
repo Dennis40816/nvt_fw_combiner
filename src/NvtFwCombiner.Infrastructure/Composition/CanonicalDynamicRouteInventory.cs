@@ -1,5 +1,6 @@
 using NvtFwCombiner.Application.Capabilities;
 using NvtFwCombiner.Application.ExternalTools;
+using NvtFwCombiner.Application.Metadata;
 using NvtFwCombiner.Domain.Composition;
 using NvtFwCombiner.Domain.Firmware;
 using NvtFwCombiner.Infrastructure.ExternalTools;
@@ -214,25 +215,25 @@ internal static class CanonicalDynamicRouteInventory
             : throw new InvalidDataException(
                 $"CtrlRAM route '{identity.RouteId}' matched {matches.Length} reviewed definitions.");
         BuiltInV2Bundle bundle = BuiltInV2BundleRegistry.All[match.Route.BundleId];
-        BuiltInV2Registration reportMetadataRegistration =
-            BuiltInV2RegistrationRegistry.StandardMergeByIc.GetValueOrDefault(
-                match.Route.Key.IcId) ??
-            throw new InvalidDataException(
-                $"CtrlRAM route '{identity.RouteId}' has no reviewed Standard Merge metadata definition.");
         var semanticBindings = new List<string>
         {
             $"postbuild-processor:{match.Route.Key.PostbuildProcessorId}",
             $"postbuild-selector:{match.Selector.Token}",
             $"postbuild-plan:{match.PlanFingerprint}",
         };
-        if (reportMetadataRegistration.HasReportClassificationMetadata)
+        if (match.Route.ReportMetadataMapId is { } reportMetadataMapId)
         {
+            MetadataPlanSourceIdentity sourceIdentity =
+                match.Route.ReportMetadataPlan.SourceIdentity ??
+                throw new InvalidDataException(
+                    $"CtrlRAM route '{identity.RouteId}' has no report metadata source identity.");
             semanticBindings.Add(
-                $"report-metadata-profile:{reportMetadataRegistration.ProfileId}@{reportMetadataRegistration.ProfileVersion}");
+                $"report-metadata-profile:{sourceIdentity.ProfileId}@{sourceIdentity.ProfileVersion}");
             semanticBindings.Add(
-                $"report-metadata-bundle:{reportMetadataRegistration.BundleContentHash}");
-            semanticBindings.Add(
-                $"report-metadata-slot:{CompositionAddressSpaceIds.TpInput}<-{CompositionAddressSpaceIds.ReferenceBase}");
+                $"report-metadata-bundle:{sourceIdentity.TrustedDefinitionSha256}");
+            semanticBindings.AddRange(match.Route.ReportMetadataPlan.ReportProjections.Select(
+                static projection => $"report-metadata-slot:{projection.SpaceId}<-{projection.SlotId}"));
+            semanticBindings.Add($"report-metadata-map:{reportMetadataMapId}");
         }
 
         return Create(

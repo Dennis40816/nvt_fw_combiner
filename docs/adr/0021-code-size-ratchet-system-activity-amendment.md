@@ -52,3 +52,29 @@ immediately. It changes no profile, range, output byte, operation order,
 CRC/header, processor, naming, support, or Golden authority, and it does not
 close or fund the separate repository-wide single-implementation, layering,
 unused-module, and code-size audit.
+
+## 2026-08-22 exact CtrlRAM report-metadata counterpart correction
+
+The owner then approved removal of the remaining CtrlRAM report-metadata map
+heuristic. The correction adds one optional, hash-closed trust-index counterpart,
+validates the complete CtrlRAM registration set before publication, materializes
+the exact declared Standard-profile map through the existing compiler, and binds
+the actual map in the Application capability contract. It deletes the former
+capacity/TP-length search, candidate ranking, deduplication, and fallback. It
+introduces no second map catalog, per-IC C# table, runtime discovery, or UI path.
+
+After readability-preserving simplification, full production changes from
+109,883 to 109,929 (+46) and runtime changes from 75,169 to 75,215 (+46).
+Domain plus Profiles remains 20,632; Application changes from 33,423 to 33,429
+(+6); Bootstrap plus CLI plus Desktop host remains 3,503; and Infrastructure
+plus Contracts plus CRC worker changes from 17,611 to 17,651 (+40).
+
+The executable allowances therefore become exactly 7,032 full production,
+5,158 runtime, 2,738 Application, and 2,295
+Infrastructure/Contracts/worker above the frozen pre-v0.10.6 base ratchets;
+every other slice allowance remains unchanged. This named R2 correction is
+non-transferable and becomes an exact descending ceiling immediately. It
+changes no profile geometry, range, output byte, operation order, CRC/header,
+processor authority, naming, support, UI, or Golden authority, and it does not
+close or fund the separate repository-wide single-implementation, layering,
+unused-module, and code-size audit.

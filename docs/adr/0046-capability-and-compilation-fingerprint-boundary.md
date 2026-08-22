@@ -6,6 +6,7 @@
 - Owners: Product owner + architecture owner
 - Risk: R2 architecture and policy contract; existing R3 firmware evidence gates remain unchanged
 - Amends: ADR 0015, ADR 0038, and ADR 0043
+- Amended by: ADR 0052 for exact CtrlRAM report-metadata map counterparts
 
 ## Context
 
@@ -59,7 +60,11 @@ and runtime-reference routes retain their declared processor plus independently
 derived typed selector, plan-template, and report-metadata bindings. Processor
 authority comes only from the compiled invocation, report projection and source
 identity come only from report-classification entries in the metadata plan, and
-the postbuild proof is bound to the exact compilation. The proof also verifies
+CtrlRAM report metadata additionally binds the exact Standard-profile map id
+declared and admitted under ADR 0052. Capacity, IC identity, or input length
+cannot select or substitute that map. The actual materialized report entries
+must retain the same map id or compilation admission fails. The postbuild proof
+is bound to the exact compilation. The proof also verifies
 that compiled write ranges are the closed union of exact planner sections,
 complete compiler mappings, processor-authorized resolved write views, typed
 postbuild validation authority, and metadata-located firmware-version backup

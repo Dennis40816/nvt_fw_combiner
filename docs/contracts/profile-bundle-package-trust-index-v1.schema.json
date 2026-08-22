@@ -12,7 +12,7 @@
     "bundles"
   ],
   "properties": {
-    "schemaVersion": { "const": "1.0" },
+    "schemaVersion": { "const": "1.1" },
     "trustIndexId": {
       "type": "string",
       "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$"
@@ -83,6 +83,10 @@
         },
         "postbuildBranch": {
           "enum": ["single-chip", "two-chip", "three-chip", "cascade"]
+        },
+        "reportMetadataMapId": {
+          "allOf": [{ "$ref": "#/$defs/token" }],
+          "maxLength": 128
         }
       },
       "allOf": [
@@ -106,7 +110,8 @@
             "not": {
               "anyOf": [
                 { "required": ["postbuildProcessorId"] },
-                { "required": ["postbuildBranch"] }
+                { "required": ["postbuildBranch"] },
+                { "required": ["reportMetadataMapId"] }
               ]
             }
           }

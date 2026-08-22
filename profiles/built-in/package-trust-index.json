@@ -1,7 +1,7 @@
 {
-  "schemaVersion": "1.0",
+  "schemaVersion": "1.1",
   "trustIndexId": "built-in-profile-bundles",
-  "trustIndexVersion": "0.10.5.1",
+  "trustIndexVersion": "0.10.6.1",
   "trustAnchorBindingId": "built-in-profile-bundle-v2",
   "bundles": [
     {
@@ -165,6 +165,7 @@
           "icId": "NT51923",
           "profileId": "nt51923-ctrlram-replace-fw141-single",
           "profileVersion": "0.3.0",
+          "reportMetadataMapId": "nt51923-standard-merge-256k",
           "postbuildProcessorId": "nfc.nt51923.ctrlram-postbuild-v1",
           "postbuildBranch": "single-chip"
         },
@@ -173,6 +174,7 @@
           "icId": "NT51923",
           "profileId": "nt51923-ctrlram-replace-fw141-cascade3",
           "profileVersion": "0.3.0",
+          "reportMetadataMapId": "nt51923-standard-merge-256k",
           "postbuildProcessorId": "nfc.nt51923.ctrlram-postbuild-v1",
           "postbuildBranch": "cascade"
         }
@@ -193,6 +195,7 @@
           "icId": "NT51926",
           "profileId": "nt51926-ctrlram-replace-fw141-runtime-single",
           "profileVersion": "0.3.0",
+          "reportMetadataMapId": "nt51926-standard-merge-256k",
           "postbuildProcessorId": "nfc.nt51926.ctrlram-postbuild-fw1.4.1",
           "postbuildBranch": "single-chip"
         },
@@ -201,6 +204,7 @@
           "icId": "NT51926",
           "profileId": "nt51926-ctrlram-replace-fw141-runtime-cascade",
           "profileVersion": "0.3.0",
+          "reportMetadataMapId": "nt51926-standard-merge-256k",
           "postbuildProcessorId": "nfc.nt51926.ctrlram-postbuild-fw1.4.1",
           "postbuildBranch": "cascade"
         },
@@ -209,6 +213,7 @@
           "icId": "NT51926",
           "profileId": "nt51926-ctrlram-replace-fw200-runtime-single",
           "profileVersion": "0.3.0",
+          "reportMetadataMapId": "nt51926-standard-merge-256k",
           "postbuildProcessorId": "nfc.nt51926.ctrlram-postbuild-v1",
           "postbuildBranch": "single-chip"
         },
@@ -217,6 +222,7 @@
           "icId": "NT51926",
           "profileId": "nt51926-ctrlram-replace-fw200-runtime-cascade",
           "profileVersion": "0.3.0",
+          "reportMetadataMapId": "nt51926-standard-merge-256k",
           "postbuildProcessorId": "nfc.nt51926.ctrlram-postbuild-v1",
           "postbuildBranch": "cascade"
         },
@@ -247,6 +253,7 @@
           "icId": "NT51917",
           "profileId": "nt51917-ctrlram-replace-fw141-single",
           "profileVersion": "0.2.0",
+          "reportMetadataMapId": "nt51927-standard-merge-256k",
           "postbuildProcessorId": "nfc.nt51917.ctrlram-postbuild-v1",
           "postbuildBranch": "single-chip"
         },
@@ -255,6 +262,7 @@
           "icId": "NT51917",
           "profileId": "nt51917-ctrlram-replace-fw132-twochip",
           "profileVersion": "0.2.0",
+          "reportMetadataMapId": "nt51927-standard-merge-256k",
           "postbuildProcessorId": "nfc.nt51917.ctrlram-postbuild-v1",
           "postbuildBranch": "two-chip"
         },
@@ -263,6 +271,7 @@
           "icId": "NT51917",
           "profileId": "nt51917-ctrlram-replace-fw140-threechip",
           "profileVersion": "0.2.0",
+          "reportMetadataMapId": "nt51927-standard-merge-256k",
           "postbuildProcessorId": "nfc.nt51917.ctrlram-postbuild-v1",
           "postbuildBranch": "three-chip"
         }
@@ -283,6 +292,7 @@
           "icId": "NT51927",
           "profileId": "nt51927-ctrlram-replace-fw141-single",
           "profileVersion": "0.2.0",
+          "reportMetadataMapId": "nt51927-standard-merge-256k",
           "postbuildProcessorId": "nfc.nt51927.ctrlram-postbuild-v1",
           "postbuildBranch": "single-chip"
         },
@@ -291,6 +301,7 @@
           "icId": "NT51927",
           "profileId": "nt51927-ctrlram-replace-fw132-twochip",
           "profileVersion": "0.2.0",
+          "reportMetadataMapId": "nt51927-standard-merge-256k",
           "postbuildProcessorId": "nfc.nt51927.ctrlram-postbuild-v1",
           "postbuildBranch": "two-chip"
         },
@@ -299,6 +310,7 @@
           "icId": "NT51927",
           "profileId": "nt51927-ctrlram-replace-fw140-threechip",
           "profileVersion": "0.2.0",
+          "reportMetadataMapId": "nt51927-standard-merge-256k",
           "postbuildProcessorId": "nfc.nt51927.ctrlram-postbuild-v1",
           "postbuildBranch": "three-chip"
         }
@@ -319,6 +331,7 @@
           "icId": "NT51928",
           "profileId": "nt51928-ctrlram-replace-fw132-twochip",
           "profileVersion": "0.2.0",
+          "reportMetadataMapId": "nt51928-standard-merge-512k",
           "postbuildProcessorId": "nfc.nt51928.ctrlram-postbuild-v1",
           "postbuildBranch": "two-chip"
         },
@@ -327,6 +340,7 @@
           "icId": "NT51928",
           "profileId": "nt51928-ctrlram-replace-fw141-single",
           "profileVersion": "0.3.0",
+          "reportMetadataMapId": "nt51928-standard-merge-512k",
           "postbuildProcessorId": "nfc.nt51928.ctrlram-postbuild-v1",
           "postbuildBranch": "single-chip"
         },
@@ -335,6 +349,7 @@
           "icId": "NT51928",
           "profileId": "nt51928-ctrlram-replace-fw140-threechip",
           "profileVersion": "0.3.0",
+          "reportMetadataMapId": "nt51928-standard-merge-512k",
           "postbuildProcessorId": "nfc.nt51928.ctrlram-postbuild-v1",
           "postbuildBranch": "three-chip"
         }
@@ -371,6 +386,7 @@
           "icId": "NT51929",
           "profileId": "nt51929-ctrlram-replace-fw200-single",
           "profileVersion": "0.2.0",
+          "reportMetadataMapId": "nt51929-standard-merge-256k",
           "postbuildProcessorId": "nfc.nt51929.ctrlram-postbuild-v1",
           "postbuildBranch": "single-chip"
         },
@@ -379,6 +395,7 @@
           "icId": "NT51929",
           "profileId": "nt51929-ctrlram-replace-fw1x-cascade",
           "profileVersion": "0.4.0",
+          "reportMetadataMapId": "nt51929-standard-merge-256k",
           "postbuildProcessorId": "nfc.nt51929.ctrlram-postbuild-v1",
           "postbuildBranch": "cascade"
         }
@@ -399,6 +416,7 @@
           "icId": "NT51932",
           "profileId": "nt51932-ctrlram-replace-fw200-cascade",
           "profileVersion": "0.4.0",
+          "reportMetadataMapId": "nt51932-standard-merge-256k",
           "postbuildProcessorId": "nfc.nt51932.ctrlram-postbuild-v1",
           "postbuildBranch": "cascade"
         },
@@ -407,6 +425,7 @@
           "icId": "NT51932",
           "profileId": "nt51932-ctrlram-replace-fw1x-single",
           "profileVersion": "0.2.0",
+          "reportMetadataMapId": "nt51932-standard-merge-256k",
           "postbuildProcessorId": "nfc.nt51932.ctrlram-postbuild-v1",
           "postbuildBranch": "single-chip"
         }

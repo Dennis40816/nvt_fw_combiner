@@ -29,7 +29,14 @@ being shipped or listed.
 Every registration contains an exact `workflowId`, `icId`, `profileId`, and
 `profileVersion`. `general-merge` additionally requires `familyId`.
 `ctrlram-replace` additionally requires the reviewed postbuild processor and
-closed branch token. Standard Merge or DP Replace registrations whose profile
+closed branch token. A CtrlRAM registration whose same-IC Standard profile
+declares report-classification metadata must additionally declare the exact
+`reportMetadataMapId`; a CtrlRAM registration whose Standard profile declares
+no report classification must omit it. This is a cross-workflow counterpart
+reference, not a second map definition: the referenced map, metadata
+structure, report purpose, capacity, and selection rules remain owned by the
+registered Standard profile/family and the canonical profile compiler.
+Standard Merge or DP Replace registrations whose profile
 declares a selection group additionally declare the reviewed
 `mapVariantSetId`; runtime projection rejects a missing or extraneous binding.
 Fields that do not belong to the selected workflow are forbidden.
@@ -44,9 +51,15 @@ workflow vocabulary or compiler semantic is a separate contract and
 architecture change.
 
 Registration keys are globally unique by workflow, IC, processor, and branch.
-Runtime loaders validate the index before projecting any route and then
-independently validate each deployed bundle version and content hash. Unknown,
-duplicate, missing, or mismatched entries fail closed.
+Runtime loaders validate the index before projecting any route. CtrlRAM
+admission resolves the exact same-IC Standard registration, requires the
+presence or absence rule above, compiles the named map through the existing
+profile compiler, and retains only entries whose declared purpose is report
+classification. Unknown, cross-IC, same-capacity substitute, missing, and
+extraneous counterparts fail the complete candidate before any route is
+published. Runtime then independently validates each deployed bundle version
+and content hash. Unknown, duplicate, missing, or mismatched entries fail
+closed.
 
 ## Materialization and release
 
@@ -92,6 +105,8 @@ capability-catalog publication reload does not re-read or hot-swap the package
 trust index or bundle bytes; observing a new package requires a new process.
 
 `trustIndexVersion` changes whenever admitted bundle materialization or runtime
-registrations change. Schema-compatible data changes keep `schemaVersion`
-`1.0`; vocabulary or semantic changes require a reviewed schema revision and
-the normal R2/R3 gates.
+registrations change. Schema `1.1` adds only the closed CtrlRAM
+`reportMetadataMapId` counterpart described above; it does not move map or
+metadata semantics into the index. Future schema-compatible data changes keep
+`schemaVersion` `1.1`; vocabulary or semantic changes require a reviewed
+schema revision and the normal R2/R3 gates.

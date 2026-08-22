@@ -166,7 +166,7 @@ Minimum tests:
 ## CtrlRAM Replace steps
 
 1. Add or confirm TP/full-Flash shapes and TP flash-map CtrlRAM rows in hash-pinned `profiles/built-in/ctrlram-postbuild-v2/flash-map.json`.
-2. Add or reference the canonical TP Header definition and declare exact behavior bindings for header copy, backup, CRC, processor, or report consumers. Do not add a parallel geometry or report authority.
+2. Add or reference the canonical TP Header definition and declare exact behavior bindings for header copy, backup, CRC, processor, or report consumers. When the same-IC Standard profile declares report classification, every admitted CtrlRAM runtime registration names that exact map through `reportMetadataMapId`; when it declares none, the field is absent. Do not infer the map from capacity or input length, and do not add a parallel geometry or report authority.
 3. Add postbuild structured commands in `profiles/built-in/ctrlram-postbuild-v2/catalog.json` from owner-approved postbuild/mmap evidence and update its pinned SHA-256.
 4. Declare only owner-provided runtime postbuild revisions. One runtime profile covers Common FW
    `[1.0.0, infinity)`; multiple profiles form ordered effective-version intervals whose next entry

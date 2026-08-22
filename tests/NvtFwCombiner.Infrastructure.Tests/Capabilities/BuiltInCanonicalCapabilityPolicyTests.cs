@@ -29,7 +29,7 @@ public sealed class BuiltInCanonicalCapabilityPolicyTests
                     "nt51929-standard-merge-256k"));
 
         Assert.Equal("canonical-capability-policy", policy.CatalogId);
-        Assert.Equal("1.7.0", policy.CatalogVersion);
+        Assert.Equal("1.8.0", policy.CatalogVersion);
         Assert.Equal(
             BuiltInCanonicalCapabilityPolicy.ExpectedSha256,
             policy.SourceSha256);
@@ -68,18 +68,23 @@ public sealed class BuiltInCanonicalCapabilityPolicyTests
 
         Assert.Equal(78, policy.Routes.Count);
         Assert.Equal(72, internalRoutes.Length);
+        Assert.Equal(
+            49,
+            internalRoutes.Count(static route =>
+                route.Publication.DecisionId.EndsWith(
+                    "-publication-v3",
+                    StringComparison.Ordinal)));
+        Assert.Equal(
+            23,
+            internalRoutes.Count(static route =>
+                route.Publication.DecisionId.EndsWith(
+                    "-publication-v4",
+                    StringComparison.Ordinal)));
         Assert.All(
             internalRoutes,
-            static route =>
-            {
-                Assert.EndsWith(
-                    "-publication-v3",
-                    route.Publication.DecisionId,
-                    StringComparison.Ordinal);
-                Assert.Equal(
-                    "owner-approved:github-issue-195",
-                    route.Publication.SourceReference);
-            });
+            static route => Assert.Equal(
+                "owner-approved:github-issue-195",
+                route.Publication.SourceReference));
         Assert.Equal(
             2,
             policy.Routes.Count(static route =>

@@ -200,6 +200,51 @@ internal sealed class BuiltInV2Registration
             out issues);
     }
 
+    /// <summary>Compiles one declared exact map and retains its canonical metadata references.</summary>
+    internal MetadataPlanDefinition CreateExactMapMetadataPlan(string mapId)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(mapId);
+        IReadOnlyList<FirmwareImageMap> maps = GetMapVariants(
+            out _,
+            out IReadOnlyList<CompositionIssue> mapIssues);
+        FirmwareImageMap selectedMap = mapIssues.Count == 0
+            ? maps.SingleOrDefault(map => StringComparer.Ordinal.Equals(
+                    map.MapId,
+                    mapId)) ??
+                throw new InvalidDataException(
+                    $"No trusted {WorkflowId} map '{mapId}' is registered for {IcId}.")
+            : throw new InvalidDataException(
+                $"Trusted {WorkflowId} maps for {IcId} were rejected: " +
+                string.Join(", ", mapIssues.Select(static issue => issue.Code)));
+
+        IReadOnlyCollection<string>[] selections = InputSelectionGroupMemberSlotIds.Count == 0
+            ? [[]]
+            : [[], InputSelectionGroupMemberSlotIds];
+        var matches = new List<CompiledComposition>();
+        var issueCodes = new List<string>();
+        foreach (IReadOnlyCollection<string> selection in selections)
+        {
+            TryCompile(
+                selectedMap.CapacityBytes,
+                selection,
+                out CompiledComposition? composition,
+                out IReadOnlyList<CompositionIssue> compileIssues);
+            issueCodes.AddRange(compileIssues.Select(static issue => issue.Code));
+            if (compileIssues.Count == 0 &&
+                composition?.V2Details.Provenance.ResolvedMap.ImageMap is { } compiledMap &&
+                StringComparer.Ordinal.Equals(compiledMap.MapId, selectedMap.MapId))
+            {
+                matches.Add(composition);
+            }
+        }
+
+        return matches.Count == 1
+            ? CreateMetadataPlan(matches[0])
+            : throw new InvalidDataException(
+                $"Compiler matched {matches.Count} candidates for exact {WorkflowId} map " +
+                $"'{mapId}' on {IcId}: {string.Join(", ", issueCodes)}");
+    }
+
     internal bool TryGetContainerPolicy(
         [System.Diagnostics.CodeAnalysis.NotNullWhen(true)] out V2StandardMergeContainerPolicy? policy)
     {

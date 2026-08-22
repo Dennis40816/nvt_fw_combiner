@@ -14,6 +14,14 @@ public sealed class CtrlRamV2RouteRegistryTests
         Assert.Equal(
             CtrlRamV2RouteRegistry.All.Count,
             CtrlRamV2RouteRegistry.All.Select(static route => route.Key).Distinct().Count());
+        Assert.Equal(
+            19,
+            CtrlRamV2RouteRegistry.All.Count(static route =>
+                route.ReportMetadataMapId is not null));
+        Assert.Equal(
+            6,
+            CtrlRamV2RouteRegistry.All.Count(static route =>
+                route.ReportMetadataMapId is null));
     }
 
     /// <summary>Retired ICs have no production CtrlRAM route, bundle, profile, or processor owner.</summary>

@@ -8,6 +8,14 @@ Every row identifies one exact tuple of `icId`, `workflowId`, `icCountVariant`, 
 
 `capabilityFingerprint` is the reviewed capability-definition fingerprint for the route. It covers the allowed map variants, selection groups, and compiler semantics. It is not the per-run `CompilationFingerprint`.
 
+For runtime-reference CtrlRAM routes with Standard-profile report
+classification, the semantic bindings include the exact admitted report map,
+report slot projection, source profile, and trusted bundle identity. Adding the
+map binding changes the reviewed definition fingerprint even though output
+bytes do not change. Catalog `1.8.0` therefore supersedes the 23 affected
+CtrlRAM route fingerprints and their three pinned decisions; the 10 reportless
+CtrlRAM routes and all unrelated routes retain their prior fingerprints.
+
 ## Pinned decisions
 
 Each route contains three independent decisions:

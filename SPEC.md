@@ -1224,14 +1224,23 @@ to each `0.10.x` version.
    processor drift, or missing typed selector/plan/report bindings. Runtime
    processor authority is derived only from the compiled invocation; report
    projection/source identity is derived only from metadata-plan entries with
-   the declared report-classification purpose; and the postbuild proof is bound
+   the declared report-classification purpose. For CtrlRAM, a reportful
+   runtime registration also names one exact same-IC Standard-profile map;
+   startup admission materializes that exact map through the canonical profile
+   compiler before publishing any CtrlRAM route. Missing, extraneous, unknown,
+   cross-IC, or same-capacity substitute maps fail closed. The actual metadata
+   plan contributes its resolved map id to compilation admission, so it cannot
+   drift from the reviewed capability binding. The postbuild proof is bound
    to the exact `CompilationFingerprint`, planner-derived write sections,
    complete compiler mappings, processor-authorized resolved write views, typed
    postbuild validation authority, and metadata-located firmware-version
    backup fields.
    Routes whose reviewed profile has no report-classification entry omit those
-   report bindings. No raw adapter binding may compensate for another owner's
-   missing semantics.
+   report bindings and must omit the counterpart declaration. The package
+   trust index owns only the cross-workflow counterpart reference; the
+   Standard profile/family and profile compiler remain the sole owners of map
+   geometry, metadata purpose, and materialization. No raw adapter binding may
+   compensate for another owner's missing semantics.
    Preview and Build require the same compiled object instance retained by the
    accepted `ResolvedCapability`; matching fingerprint strings do not permit
    cross-publication substitution.
