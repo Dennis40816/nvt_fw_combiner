@@ -194,6 +194,7 @@
   <CornerRadius x:Key="NfcCompactCornerRadius">6</CornerRadius>
   <CornerRadius x:Key="NfcSurfaceCornerRadius">8</CornerRadius>
   <CornerRadius x:Key="NfcPillCornerRadius">999</CornerRadius>
+  <StreamGeometry x:Key="NfcCloseIconGeometry">M3 3L13 13 M13 3L3 13</StreamGeometry>
   <x:Double x:Key="NfcSpace2">2</x:Double>
   <x:Double x:Key="NfcSpace4">4</x:Double>
   <x:Double x:Key="NfcSpace8">8</x:Double>

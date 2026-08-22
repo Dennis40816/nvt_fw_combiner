@@ -92,27 +92,38 @@
     <Setter Property="Foreground" Value="{DynamicResource NfcTextDisabledBrush}" />
   </Style>
   <Style Selector="Button.settingsNavItem, RadioButton.settingsNavItem">
-    <Setter Property="Padding" Value="12,9" />
+    <Setter Property="Height" Value="64" />
+    <Setter Property="MinHeight" Value="64" />
+    <Setter Property="Margin" Value="0,0,0,4" />
+    <Setter Property="Padding" Value="16,12" />
     <Setter Property="BorderThickness" Value="2" />
     <Setter Property="Foreground" Value="{DynamicResource NfcTextSecondaryBrush}" />
+    <Setter Property="FontSize" Value="18" />
+  </Style>
+  <Style Selector="Button.settingsNavItem /template/ ContentPresenter#PART_ContentPresenter, RadioButton.settingsNavItem /template/ ContentPresenter#PART_ContentPresenter">
+    <Setter Property="CornerRadius" Value="{DynamicResource NfcCompactCornerRadius}" />
   </Style>
   <Style Selector="Button.settingsNavItem Path, RadioButton.settingsNavItem Path">
-    <Setter Property="Fill" Value="{DynamicResource NfcTextSecondaryBrush}" />
+    <Setter Property="Fill" Value="Transparent" />
+    <Setter Property="Stroke" Value="{DynamicResource NfcTextSecondaryBrush}" />
+    <Setter Property="StrokeThickness" Value="1.8" />
+    <Setter Property="StrokeLineCap" Value="Round" />
+    <Setter Property="StrokeJoin" Value="Round" />
   </Style>
   <Style Selector="Button.settingsNavItem:pointerover /template/ ContentPresenter#PART_ContentPresenter, Button.iconButton:disabled /template/ ContentPresenter#PART_ContentPresenter, RadioButton.settingsNavItem:pointerover /template/ ContentPresenter#PART_ContentPresenter">
     <Setter Property="Background" Value="{DynamicResource NfcSurfaceSubtleBrush}" />
     <Setter Property="BorderBrush" Value="{DynamicResource NfcBorderMutedBrush}" />
   </Style>
   <Style Selector="Button.settingsNavItem.selected, RadioButton.settingsNavItem.selected">
-    <Setter Property="Foreground" Value="{DynamicResource NfcAccentBrush}" />
+    <Setter Property="Foreground" Value="{DynamicResource NfcSurfaceBrush}" />
     <Setter Property="FontWeight" Value="SemiBold" />
   </Style>
   <Style Selector="Button.settingsNavItem.selected /template/ ContentPresenter#PART_ContentPresenter, RadioButton.settingsNavItem.selected /template/ ContentPresenter#PART_ContentPresenter">
-    <Setter Property="Background" Value="{DynamicResource NfcAccentSurfaceSubtleBrush}" />
-    <Setter Property="BorderBrush" Value="{DynamicResource NfcAccentBorderLightBrush}" />
+    <Setter Property="Background" Value="{DynamicResource NfcAccentBrush}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource NfcAccentBrush}" />
   </Style>
   <Style Selector="Button.settingsNavItem.selected Path, RadioButton.settingsNavItem.selected Path">
-    <Setter Property="Fill" Value="{DynamicResource NfcAccentBrush}" />
+    <Setter Property="Stroke" Value="{DynamicResource NfcSurfaceBrush}" />
   </Style>
   <Style Selector="Button.settingsNavItem:focus-visible /template/ ContentPresenter#PART_ContentPresenter, RadioButton.settingsNavItem:focus-visible /template/ ContentPresenter#PART_ContentPresenter">
     <Setter Property="BorderBrush" Value="{DynamicResource NfcAccentBrush}" />
@@ -142,6 +153,104 @@
     <Setter Property="Background" Value="{DynamicResource NfcSurfaceSubtleBrush}" />
     <Setter Property="BorderBrush" Value="{DynamicResource NfcBorderMutedBrush}" />
     <Setter Property="Foreground" Value="{DynamicResource NfcBorderBrush}" />
+  </Style>
+  <Style Selector="Button.closeButton">
+    <Setter Property="Width" Value="40" />
+    <Setter Property="Height" Value="40" />
+    <Setter Property="MinWidth" Value="40" />
+    <Setter Property="MaxWidth" Value="40" />
+    <Setter Property="MinHeight" Value="40" />
+    <Setter Property="MaxHeight" Value="40" />
+    <Setter Property="Padding" Value="0" />
+    <Setter Property="HorizontalAlignment" Value="Center" />
+    <Setter Property="VerticalAlignment" Value="Center" />
+    <Setter Property="HorizontalContentAlignment" Value="Center" />
+    <Setter Property="VerticalContentAlignment" Value="Center" />
+    <Setter Property="Background" Value="{DynamicResource NfcSurfaceBrush}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource NfcBorderBrush}" />
+    <Setter Property="Foreground" Value="{DynamicResource NfcTextBrush}" />
+  </Style>
+  <Style Selector="Button.closeButton /template/ ContentPresenter#PART_ContentPresenter">
+    <Setter Property="CornerRadius" Value="{DynamicResource NfcPillCornerRadius}" />
+  </Style>
+  <Style Selector="Button.closeButton Path">
+    <Setter Property="Stroke" Value="{DynamicResource NfcTextBrush}" />
+    <Setter Property="StrokeThickness" Value="1.8" />
+    <Setter Property="StrokeLineCap" Value="Round" />
+  </Style>
+  <Style Selector="Button.closeButton:pointerover /template/ ContentPresenter#PART_ContentPresenter">
+    <Setter Property="Background" Value="{DynamicResource NfcAccentSurfaceBrush}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource NfcAccentBorderBrush}" />
+  </Style>
+  <Style Selector="Button.closeButton:pointerover Path">
+    <Setter Property="Stroke" Value="{DynamicResource NfcAccentStrongBrush}" />
+  </Style>
+  <Style Selector="Button.closeButton:pressed /template/ ContentPresenter#PART_ContentPresenter">
+    <Setter Property="Background" Value="{DynamicResource NfcSecondaryActionPressedBrush}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource NfcAccentBorderStrongBrush}" />
+  </Style>
+  <Style Selector="Button.closeButton:pressed Path">
+    <Setter Property="Stroke" Value="{DynamicResource NfcAccentStrongBrush}" />
+  </Style>
+  <Style Selector="Button.sourceEditButton">
+    <Setter Property="MinWidth" Value="40" />
+    <Setter Property="Padding" Value="0" />
+    <Setter Property="HorizontalAlignment" Value="Center" />
+    <Setter Property="HorizontalContentAlignment" Value="Center" />
+    <Setter Property="Background" Value="Transparent" />
+    <Setter Property="BorderBrush" Value="Transparent" />
+    <Setter Property="Foreground" Value="{DynamicResource NfcTextSecondaryBrush}" />
+  </Style>
+  <Style Selector="Button.sourceEditButton Path">
+    <Setter Property="Stroke" Value="{DynamicResource NfcTextSecondaryBrush}" />
+    <Setter Property="StrokeThickness" Value="1.7" />
+    <Setter Property="StrokeLineCap" Value="Round" />
+    <Setter Property="StrokeJoin" Value="Round" />
+  </Style>
+  <Style Selector="Button.sourceEditButton:pointerover /template/ ContentPresenter#PART_ContentPresenter">
+    <Setter Property="Background" Value="{DynamicResource NfcAccentSurfaceBrush}" />
+    <Setter Property="BorderBrush" Value="Transparent" />
+  </Style>
+  <Style Selector="Button.sourceEditButton:pointerover Path">
+    <Setter Property="Stroke" Value="{DynamicResource NfcAccentStrongBrush}" />
+  </Style>
+  <Style Selector="Button.versionReleaseNotesAction">
+    <Setter Property="MinHeight" Value="40" />
+    <Setter Property="Padding" Value="12,8" />
+    <Setter Property="HorizontalAlignment" Value="Center" />
+    <Setter Property="HorizontalContentAlignment" Value="Center" />
+    <Setter Property="FontSize" Value="16" />
+    <Setter Property="Foreground" Value="{DynamicResource NfcAccentStrongBrush}" />
+  </Style>
+  <Style Selector="Button.versionReleaseNotesAction:pointerover /template/ ContentPresenter#PART_ContentPresenter">
+    <Setter Property="Background" Value="{DynamicResource NfcAccentSurfaceSubtleBrush}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource NfcAccentBorderLightBrush}" />
+  </Style>
+  <Style Selector="Button.versionInstallAction">
+    <Setter Property="MinWidth" Value="180" />
+    <Setter Property="MinHeight" Value="52" />
+    <Setter Property="FontSize" Value="16" />
+    <Setter Property="Background" Value="{DynamicResource NfcAccentBrush}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource NfcAccentBrush}" />
+    <Setter Property="Foreground" Value="{DynamicResource NfcSurfaceBrush}" />
+  </Style>
+  <Style Selector="Button.versionInstallAction /template/ ContentPresenter#PART_ContentPresenter">
+    <Setter Property="Background" Value="{DynamicResource NfcAccentBrush}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource NfcAccentBrush}" />
+    <Setter Property="TextElement.Foreground" Value="{DynamicResource NfcSurfaceBrush}" />
+  </Style>
+  <Style Selector="Button.versionInstallAction:pointerover /template/ ContentPresenter#PART_ContentPresenter">
+    <Setter Property="Background" Value="{DynamicResource NfcAccentStrongBrush}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource NfcAccentStrongBrush}" />
+    <Setter Property="TextElement.Foreground" Value="{DynamicResource NfcSurfaceBrush}" />
+  </Style>
+  <Style Selector="Button.versionSourceAction">
+    <Setter Property="MinHeight" Value="52" />
+    <Setter Property="FontSize" Value="16" />
+  </Style>
+  <Style Selector="Button.versionTableAction">
+    <Setter Property="BorderBrush" Value="{DynamicResource NfcAccentBorderBrush}" />
+    <Setter Property="Foreground" Value="{DynamicResource NfcAccentStrongBrush}" />
   </Style>
   <Style Selector="Button.danger">
     <Setter Property="Padding" Value="14,10" />

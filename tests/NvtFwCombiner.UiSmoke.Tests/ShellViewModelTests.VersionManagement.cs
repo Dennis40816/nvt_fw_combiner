@@ -81,7 +81,7 @@ public sealed class VersionManagementSettingsTests
 
         viewModel.Settings.ApplyVersionSnapshot(permissionDenied);
 
-        Assert.Equal("⊘", viewModel.Settings.SourceStatusGlyph);
+        Assert.True(viewModel.Settings.IsSourceDisconnected);
         Assert.Equal("Permission denied", viewModel.Settings.SourceStatusText);
         Assert.NotEqual("Offline", viewModel.Settings.SourceStatusText);
     }
@@ -115,6 +115,7 @@ public sealed class VersionManagementSettingsTests
             viewModel.Settings.VersionRows,
             candidate => candidate.Version == unknownVersion);
         Assert.False(row.IsInstalled);
+        Assert.False(row.IsAvailable);
         Assert.False(row.CanDelete);
         Assert.False(row.HasPrimaryAction);
         Assert.Contains("Recovery required", row.StatusLabel, StringComparison.Ordinal);
@@ -198,6 +199,12 @@ public sealed class VersionManagementSettingsTests
             viewModel.Settings.VersionRows,
             row => row.Version == available.Version);
 
+        viewModel.Settings.ShowVerifiedReleaseNotesCommand.Execute(null);
+
+        Assert.True(viewModel.Settings.IsVerifiedReleaseNotesVisible);
+        Assert.False(viewModel.Settings.IsVersionConfirmationOpen);
+        Assert.Empty(experience.Installations);
+
         viewModel.Settings.RequestVersionPrimaryActionCommand.Execute(update);
 
         Assert.True(viewModel.Settings.IsVersionConfirmationOpen);
@@ -209,6 +216,92 @@ public sealed class VersionManagementSettingsTests
         Assert.Equal([available.Version], experience.Installations);
         Assert.Equal([available.Version], experience.Activations);
         Assert.True(activationRequested);
+    }
+
+    /// <summary>An active damaged installation is never presented as verified or unmanaged.</summary>
+    [Fact]
+    public void ActiveDamagedVersionIsReportedAsDamaged()
+    {
+        VersionManagementSnapshot initial = Snapshot(retentionReviewDue: false);
+        ManagedVersionInventory damagedInventory = ManagedVersionInventory.Create(
+            initial.Inventory.Versions.Select(version => version.IsActive
+                ? version with
+                {
+                    Integrity = ManagedVersionIntegrity.Damaged,
+                    DamageReason = ManagedVersionDamageReason.ContentMismatch,
+                }
+                : version));
+        initial = initial with { Inventory = damagedInventory };
+        MainWindowViewModel viewModel = MainWindow.CreateStartupViewModel(
+            PresentationTestHost.CreateServices("0.10.5", new RecordingVersionExperience(initial)),
+            ShellPreferenceSnapshot.Default);
+
+        viewModel.Settings.ApplyVersionSnapshot(initial);
+
+        Assert.False(viewModel.Settings.HasManagedCurrentVersion);
+        Assert.Equal("Active · Damaged", viewModel.Settings.CurrentStatusLabel);
+        SettingsVersionRowViewModel active = Assert.Single(viewModel.Settings.VersionRows, row => row.IsActive);
+        Assert.Equal("Active · Damaged", active.StatusLabel);
+        Assert.True(active.IsDamaged);
+    }
+
+    /// <summary>Unavailable launcher state suppresses stale healthy Active/Verified badges.</summary>
+    [Fact]
+    public void UnavailableStateShowsRecoveryInsteadOfStaleVerifiedStatus()
+    {
+        VersionManagementSnapshot unavailable = Snapshot(retentionReviewDue: false) with
+        {
+            StateIssue = VersionManagerStateLoadIssue.Unavailable,
+        };
+        MainWindowViewModel viewModel = MainWindow.CreateStartupViewModel(
+            PresentationTestHost.CreateServices("0.10.5", new RecordingVersionExperience(unavailable)),
+            ShellPreferenceSnapshot.Default);
+
+        viewModel.Settings.ApplyVersionSnapshot(unavailable);
+
+        Assert.False(viewModel.Settings.HasManagedCurrentVersion);
+        Assert.Equal("Recovery required", viewModel.Settings.CurrentStatusLabel);
+    }
+
+    /// <summary>A valid managed 0.0.0 identity is not mistaken for missing launcher state.</summary>
+    [Fact]
+    public void ZeroVersionRemainsAValidManagedActiveVersion()
+    {
+        ManagedVersionAdmission admission = Admission("0.0.0");
+        VersionManagerState state = VersionManagerState.Create(
+            updateSource: null,
+            activeVersion: admission.Version,
+            lastKnownGoodVersion: null,
+            admissions: [admission],
+            pendingActivation: null,
+            failedActivationVersion: null,
+            retentionReviewDue: false);
+        var installed = new InstalledVersionSnapshot(
+            admission.Version,
+            admission.AdmissionIdentity,
+            ManagedVersionIntegrity.Healthy,
+            DamageReason: null,
+            IsActive: true,
+            IsLastKnownGood: false);
+        var snapshot = new VersionManagementSnapshot(
+            state,
+            ManagedVersionInventory.Create([installed]),
+            Catalog: null,
+            VerifiedCandidate: null,
+            SourceStatus: VersionSourceStatus.NotConfigured,
+            CatalogIssue: null,
+            Generation: 0,
+            ShouldPromptForUpdate: false,
+            VersionManagerStateLoadIssue.None);
+        MainWindowViewModel viewModel = MainWindow.CreateStartupViewModel(
+            PresentationTestHost.CreateServices("0.10.5", new RecordingVersionExperience(snapshot)),
+            ShellPreferenceSnapshot.Default);
+
+        viewModel.Settings.ApplyVersionSnapshot(snapshot);
+
+        Assert.Equal("NVT FW Combiner 0.0.0", viewModel.Settings.CurrentVersionLabel);
+        Assert.True(viewModel.Settings.HasManagedCurrentVersion);
+        Assert.Equal("Active · Verified", viewModel.Settings.CurrentStatusLabel);
     }
 
     /// <summary>Launcher handoff failure clears only the unlaunched request and leaves an actionable status.</summary>

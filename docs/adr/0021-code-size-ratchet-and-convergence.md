@@ -648,6 +648,32 @@ They are non-transferable exact descending ceilings. This correction changes no
 firmware/profile/range/output/CRC/processor/support/Golden authority and does not
 close the separate unused-module and repository-size investigation.
 
+### 2026-08-22 Settings reference-fidelity and circular Close-control amendment
+
+The owner then approved two bounded Presentation corrections: the Settings
+Version surface must match the accepted 1,584 by 997 reference geometry in both
+Light and Dark themes, and every upper-right Close/Exit entry must use one shared
+40 by 40 true-circle control with a centered vector glyph. The implementation
+also replaces the source-status font glyph with an accessible vector icon and
+retains the existing typed version-management commands, offline policy,
+localization, reduced-motion checking indicator, and explicit install/delete
+consent flows.
+
+Relative to the second-correction HEAD, the exact physical production ledger is
+515 nonblank lines added and 176 removed, net +339, entirely under Presentation.
+Full production changes from 108,876 to 109,215. Runtime remains 74,937; Domain
+plus Profiles remains 20,632; Application remains 33,225; Bootstrap plus CLI plus
+Desktop host remains 3,503; and Infrastructure plus Contracts plus CRC worker
+remains 17,577.
+
+The executable full-production allowance therefore becomes exactly 6,318 above
+the frozen pre-v0.10.6 base ratchet; every runtime and slice allowance remains
+unchanged. This owner-requested visual correction is non-transferable and becomes
+an exact descending ceiling immediately. It changes no firmware/profile/range,
+output byte, CRC/header, processor, support, Golden, update-package verification,
+installation, activation, or deletion authority. It also does not close or fund
+the separate unused-module and repository-size investigation.
+
 ## Consequences
 
 - `v0.9.8` must remove duplicate ownership and unused compatibility code before

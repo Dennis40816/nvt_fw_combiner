@@ -25,4 +25,8 @@ internal sealed record SettingsVersionRowViewModel(
     bool IsLastKnownGood)
 {
     public bool HasPrimaryAction => PrimaryAction != SettingsVersionPrimaryAction.None;
+
+    public bool IsAvailable => PrimaryAction == SettingsVersionPrimaryAction.Install;
+
+    public bool IsHealthyInstalled => IsInstalled && !IsDamaged;
 }

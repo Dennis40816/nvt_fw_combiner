@@ -13,10 +13,11 @@
       </StackPanel>
       <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="{DynamicResource NfcSpace8}">
         <Button
-            Classes="semanticAction iconButton"
+            Classes="semanticAction closeButton"
+            AutomationProperties.Name="{Binding Text.CloseReportTooltip}"
             Command="{Binding CloseReportCommand}"
             ToolTip.Tip="{Binding Text.CloseReportTooltip}">
-          <TextBlock Text="×" />
+          <Path Width="16" Height="16" Data="{StaticResource NfcCloseIconGeometry}" Stretch="Uniform" />
         </Button>
       </StackPanel>
     </Grid>

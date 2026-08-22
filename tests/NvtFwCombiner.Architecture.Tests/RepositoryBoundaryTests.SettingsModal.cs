@@ -16,6 +16,8 @@ public sealed partial class RepositoryBoundaryTests
                 .Select(File.ReadAllText));
         string shell = ReadText("src/NvtFwCombiner.Presentation.Avalonia/MainWindow.axaml");
         string modal = ReadText("src/NvtFwCombiner.Presentation.Avalonia/Views/SettingsModal.axaml");
+        string pageTemplates = ReadText(
+            "src/NvtFwCombiner.Presentation.Avalonia/Resources/MainWindowPageTemplates.axaml");
         string navigation = ReadText(
             "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/MainWindowViewModel.Navigation.cs");
 
@@ -30,6 +32,22 @@ public sealed partial class RepositoryBoundaryTests
         Assert.Contains("KeyboardNavigation.TabNavigation=\"Cycle\"", modal, StringComparison.Ordinal);
         Assert.Contains("KeyDown=\"SettingsModal_OnKeyDown\"", modal, StringComparison.Ordinal);
         Assert.Contains("AutomationProperties.Name=\"{Binding Text.CloseLabel}\"", modal, StringComparison.Ordinal);
-        Assert.Contains("VerticalScrollBarVisibility=\"Auto\"", modal, StringComparison.Ordinal);
+        Assert.DoesNotContain("ScrollViewer", modal, StringComparison.Ordinal);
+        Assert.Contains("x:Name=\"SettingsNavigationRail\"", pageTemplates, StringComparison.Ordinal);
+        var templateDocument = System.Xml.Linq.XDocument.Parse(pageTemplates);
+        System.Xml.Linq.XElement viewport = Assert.Single(
+            templateDocument.Descendants(),
+            element => element.Attributes().Any(
+                attribute => attribute.Name.LocalName == "Name" &&
+                    attribute.Value == "SettingsContentViewport"));
+        Assert.Equal("ScrollViewer", viewport.Name.LocalName);
+        Assert.Contains(
+            viewport.Attributes(),
+            attribute => attribute.Name.LocalName.EndsWith(".Column", StringComparison.Ordinal) &&
+                attribute.Value == "1");
+        Assert.Contains(
+            viewport.Attributes(),
+            attribute => attribute.Name.LocalName == "VerticalScrollBarVisibility" &&
+                attribute.Value == "Auto");
     }
 }

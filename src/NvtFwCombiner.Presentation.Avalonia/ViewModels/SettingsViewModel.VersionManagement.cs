@@ -36,6 +36,15 @@ internal sealed partial class SettingsViewModel
     public partial string CurrentStatusLabel { get; private set; } = string.Empty;
 
     [ObservableProperty]
+    public partial bool HasManagedCurrentVersion { get; private set; }
+
+    [ObservableProperty]
+    public partial string CurrentActivityLabel { get; private set; } = "Active";
+
+    [ObservableProperty]
+    public partial string CurrentIntegrityLabel { get; private set; } = "Verified";
+
+    [ObservableProperty]
     public partial string UpdateSourceHeading { get; private set; } = "Update source";
 
     [ObservableProperty]
@@ -51,13 +60,23 @@ internal sealed partial class SettingsViewModel
     public partial bool IsVersionBusy { get; private set; }
 
     [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(IsSourceStatusIconVisible))]
+    [NotifyPropertyChangedFor(nameof(IsSourceConnectedIndicator))]
     public partial bool IsSourceChecking { get; private set; }
 
     [ObservableProperty]
-    public partial string SourceStatusGlyph { get; private set; } = "○";
+    public partial string SourceStatusText { get; private set; } = string.Empty;
 
     [ObservableProperty]
-    public partial string SourceStatusText { get; private set; } = string.Empty;
+    [NotifyPropertyChangedFor(nameof(IsSourceDisconnected))]
+    [NotifyPropertyChangedFor(nameof(IsSourceConnectedIndicator))]
+    public partial bool IsSourceConnected { get; private set; }
+
+    public bool IsSourceStatusIconVisible => !IsSourceChecking;
+
+    public bool IsSourceDisconnected => !IsSourceConnected;
+
+    public bool IsSourceConnectedIndicator => IsSourceConnected && !IsSourceChecking;
 
     [ObservableProperty]
     public partial string EditSourceLabel { get; private set; } = "Edit";
@@ -114,6 +133,21 @@ internal sealed partial class SettingsViewModel
     public partial string VerifiedUpdateMessage { get; private set; } = string.Empty;
 
     [ObservableProperty]
+    public partial SettingsVersionRowViewModel? VerifiedCandidateRow { get; private set; }
+
+    [ObservableProperty]
+    public partial bool IsVerifiedReleaseNotesVisible { get; private set; }
+
+    [ObservableProperty]
+    public partial string ViewReleaseNotesLabel { get; private set; } = "View release notes";
+
+    [ObservableProperty]
+    public partial string InstallUpdateLabel { get; private set; } = "Install update";
+
+    [ObservableProperty]
+    public partial string OfflineVersionHint { get; private set; } = string.Empty;
+
+    [ObservableProperty]
     public partial string VersionOperationStatus { get; private set; } = string.Empty;
 
     [ObservableProperty]
@@ -160,23 +194,25 @@ internal sealed partial class SettingsViewModel
         {
             UpdateSourceDraft = UpdateSourcePath;
         }
-        CurrentVersionLabel = snapshot.State?.ActiveVersion?.ToString() ?? _appVersion;
-        CurrentStatusLabel = snapshot.Inventory.Find(snapshot.State?.ActiveVersion ?? default)?.Integrity ==
-            ManagedVersionIntegrity.Healthy
-                ? Localize("Active · Verified", "使用中 · 已驗證")
-                : snapshot.StateIssue == VersionManagerStateLoadIssue.None
-                    ? Localize("Current · Unmanaged", "目前版本 · 非受管安裝")
-                    : Localize("Recovery required", "需要復原");
-        SourceStatusGlyph = snapshot.SourceStatus switch
-        {
-            VersionSourceStatus.Checking => "◌",
-            VersionSourceStatus.Connected => "✓",
-            VersionSourceStatus.Offline => "!",
-            VersionSourceStatus.PermissionDenied => "⊘",
-            VersionSourceStatus.Invalid => "×",
-            VersionSourceStatus.NotConfigured => "○",
-            _ => "○",
-        };
+        ManagedAppVersion? activeVersion = snapshot.State?.ActiveVersion;
+        CurrentVersionLabel = $"NVT FW Combiner {activeVersion?.ToString() ?? _appVersion}";
+        InstalledVersionSnapshot? activeInstallation = activeVersion is { } managedVersion
+            ? snapshot.Inventory.Find(managedVersion)
+            : null;
+        HasManagedCurrentVersion = snapshot.StateIssue == VersionManagerStateLoadIssue.None &&
+            activeInstallation?.AdmissionState == ManagedVersionAdmissionState.Admitted &&
+            activeInstallation.Integrity == ManagedVersionIntegrity.Healthy;
+        CurrentActivityLabel = Localize("Active", "使用中");
+        CurrentIntegrityLabel = Localize("Verified", "已驗證");
+        CurrentStatusLabel = snapshot.StateIssue != VersionManagerStateLoadIssue.None
+            ? Localize("Recovery required", "需要復原")
+            : activeInstallation is null
+                ? Localize("Current · Unmanaged", "目前版本 · 非受管安裝")
+                : activeInstallation.AdmissionState != ManagedVersionAdmissionState.Admitted
+                    ? Localize("Recovery required", "需要復原")
+                    : activeInstallation.Integrity == ManagedVersionIntegrity.Damaged
+                        ? Localize("Active · Damaged", "使用中 · 已損壞")
+                        : Localize("Active · Verified", "使用中 · 已驗證");
         SourceStatusText = snapshot.SourceStatus switch
         {
             VersionSourceStatus.Checking => Localize("Checking", "檢查中"),
@@ -187,6 +223,7 @@ internal sealed partial class SettingsViewModel
             VersionSourceStatus.NotConfigured => Localize("Not configured", "尚未設定"),
             _ => Localize("Not configured", "尚未設定"),
         };
+        IsSourceConnected = snapshot.SourceStatus == VersionSourceStatus.Connected;
         string recoverySummary = snapshot.Inventory.UnadmittedCount > 0
             ? Localize(
                 $" · {snapshot.Inventory.UnadmittedCount} need recovery",
@@ -204,6 +241,13 @@ internal sealed partial class SettingsViewModel
             : string.Empty;
         ProjectVersionRows(snapshot);
         HasVerifiedUpdate = snapshot.VerifiedCandidate is not null;
+        VerifiedCandidateRow = snapshot.VerifiedCandidate is { } verified
+            ? VersionRows.FirstOrDefault(row => row.Version == verified.Version)
+            : null;
+        if (VerifiedCandidateRow is null)
+        {
+            IsVerifiedReleaseNotesVisible = false;
+        }
         VerifiedUpdateMessage = snapshot.VerifiedCandidate is { } candidate
             ? Localize(
                 $"Version {candidate.Version} is verified and available.",
@@ -245,6 +289,11 @@ internal sealed partial class SettingsViewModel
         PublishedColumnLabel = Localize("Published", "發布日期");
         ActionColumnLabel = Localize("Action", "動作");
         KeepAllVersionsLabel = Localize("Keep all", "全部保留");
+        ViewReleaseNotesLabel = Localize("View release notes", "檢視版本說明");
+        InstallUpdateLabel = Localize("Install update", "安裝更新");
+        OfflineVersionHint = Localize(
+            "Offline, you can switch only to verified versions already installed on this PC.",
+            "離線時，只能切換至此電腦上已安裝且驗證通過的版本。");
         if (_versionSnapshot is not null)
         {
             ApplyVersionSnapshot(_versionSnapshot);
@@ -341,6 +390,12 @@ internal sealed partial class SettingsViewModel
         {
             IsVersionBusy = false;
         }
+    }
+
+    [RelayCommand]
+    private void ShowVerifiedReleaseNotes()
+    {
+        IsVerifiedReleaseNotesVisible = VerifiedCandidateRow is not null;
     }
 
     [RelayCommand]
@@ -553,7 +608,9 @@ internal sealed partial class SettingsViewModel
                 : unadmitted
                     ? Localize("Unmanaged folder · Recovery required", "非受管資料夾 · 需要復原")
                     : active
-                ? Localize("Active · Verified", "使用中 · 已驗證")
+                ? damaged
+                    ? Localize("Active · Damaged", "使用中 · 已損壞")
+                    : Localize("Active · Verified", "使用中 · 已驗證")
                 : damaged
                     ? Localize("Damaged", "已損壞")
                     : admitted

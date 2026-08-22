@@ -20,10 +20,11 @@
         </StackPanel>
         <Button
             Grid.Column="1"
-            Classes="semanticAction iconButton"
+            Classes="semanticAction closeButton"
+            AutomationProperties.Name="{Binding Text.CloseSelectionTooltip}"
             Command="{Binding CloseReplaceSelectionCommand}"
             ToolTip.Tip="{Binding Text.CloseSelectionTooltip}">
-          <TextBlock Text="×" />
+          <Path Width="16" Height="16" Data="{StaticResource NfcCloseIconGeometry}" Stretch="Uniform" />
         </Button>
       </Grid>
 

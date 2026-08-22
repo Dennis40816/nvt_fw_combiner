@@ -205,11 +205,15 @@ public sealed partial class XamlControlStyleContractTests
             styles,
             "RadioButton.settingsNavItem.selected /template/ ContentPresenter#PART_ContentPresenter");
         Assert.Contains(
-            "NfcAccentSurfaceSubtleBrush",
+            "NfcAccentBrush",
             selectedNavigationStyle,
             StringComparison.Ordinal);
         Assert.Contains(
-            "NfcAccentBorderLightBrush",
+            "NfcSurfaceBrush",
+            ExtractStyle(styles, "RadioButton.settingsNavItem.selected"),
+            StringComparison.Ordinal);
+        Assert.Contains(
+            "NfcAccentBrush",
             selectedNavigationStyle,
             StringComparison.Ordinal);
         Assert.Contains(
@@ -242,8 +246,8 @@ public sealed partial class XamlControlStyleContractTests
 
         Assert.NotNull(navigationItem.Theme);
         Assert.Null(navigationItem.FocusAdorner);
-        Assert.Equal(42, navigationItem.MinHeight);
-        Assert.Equal(new Thickness(12, 9), navigationItem.Padding);
+        Assert.Equal(64, navigationItem.MinHeight);
+        Assert.Equal(new Thickness(16, 12), navigationItem.Padding);
         Assert.Equal(HorizontalAlignment.Stretch, navigationItem.HorizontalAlignment);
         Assert.Equal(HorizontalAlignment.Stretch, navigationItem.HorizontalContentAlignment);
         ISelectionItemProvider selectionItem = Assert.IsType<ISelectionItemProvider>(
@@ -253,16 +257,16 @@ public sealed partial class XamlControlStyleContractTests
         ContentPresenter presenter = Assert.Single(
             navigationItem.GetVisualDescendants().OfType<ContentPresenter>(),
             static candidate => candidate.Name == "PART_ContentPresenter");
-        Assert.Equal(new CornerRadius(999), presenter.CornerRadius);
+        Assert.Equal(new CornerRadius(6), presenter.CornerRadius);
         Assert.True(Avalonia.Application.Current!.TryGetResource(
-            "NfcAccentSurfaceSubtleBrush",
+            "NfcAccentBrush",
             ThemeVariant.Light,
             out object? selectedSurface));
         Assert.Equal(
             Assert.IsType<SolidColorBrush>(selectedSurface).Color,
             Assert.IsType<ISolidColorBrush>(presenter.Background, exactMatch: false).Color);
         Assert.True(Avalonia.Application.Current.TryGetResource(
-            "NfcAccentBorderLightBrush",
+            "NfcAccentBrush",
             ThemeVariant.Light,
             out object? selectedBorder));
         Assert.Equal(

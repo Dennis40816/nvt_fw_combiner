@@ -24,11 +24,11 @@
         <Button
             x:Name="CloseButton"
             Grid.Column="1"
-            Classes="semanticAction iconButton"
+            Classes="semanticAction closeButton"
             AutomationProperties.Name="{Binding Text.CloseLabel}"
             Command="{Binding CloseCommand}"
             ToolTip.Tip="{Binding Text.CloseLabel}">
-          <TextBlock Text="×" />
+          <Path Width="16" Height="16" Data="{StaticResource NfcCloseIconGeometry}" Stretch="Uniform" />
         </Button>
       </Grid>
 
