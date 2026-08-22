@@ -21,7 +21,7 @@ CRC/header behavior, evidence, support, release authority, or permissions.
 | CRC/header worker or staged transform protocol | `$crc-worker-contract` |
 | Golden bytes, hashes, provenance, promotion | `$golden-regression` |
 | Merge/Replace authoring and access | `$composition-experience-change` |
-| Avalonia, ViewModels, localization, accessibility | `$ui-experience-change` |
+| Avalonia, approved visual-reference fidelity, ViewModels, localization, accessibility | `$ui-experience-change` |
 | SDK, packages, restore, solution bootstrap | `$dotnet-bootstrap` |
 | Versioning, packaging, release evidence | `$release-readiness` |
 | Completion/review quality | `$polytail` |

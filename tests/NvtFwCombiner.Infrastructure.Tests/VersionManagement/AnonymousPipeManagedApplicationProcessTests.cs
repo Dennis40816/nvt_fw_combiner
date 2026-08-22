@@ -1,0 +1,349 @@
+using System.IO.Pipes;
+using NvtFwCombiner.Application.VersionManagement;
+using NvtFwCombiner.Infrastructure.VersionManagement;
+using NvtFwCombiner.TestSupport;
+
+namespace NvtFwCombiner.Infrastructure.Tests.VersionManagement;
+
+/// <summary>Runs real child processes through the inherited one-use ready channel.</summary>
+[Collection(nameof(ReadyProbeProcessSerialGroup))]
+public sealed class AnonymousPipeManagedApplicationProcessTests
+{
+    private const string BehaviorEnvironment = "NVT_READY_PROBE_BEHAVIOR";
+
+    /// <summary>An exact ready message succeeds without exposing handshake material in arguments.</summary>
+    [Fact]
+    public async Task ExactReadySignalSucceeds()
+    {
+        using var workspace = TempWorkspace.Create();
+        ManagedAppVersion version = ManagedAppVersion.Parse("0.10.6");
+        PrepareProbe(workspace.Root, version);
+
+        ManagedProcessStartResult result = await RunAsync(
+            workspace.Root,
+            version,
+            "ready",
+            TimeSpan.FromSeconds(5),
+            TestContext.Current.CancellationToken);
+        await Task.Delay(500, TestContext.Current.CancellationToken);
+
+        Assert.Equal(ManagedProcessStartOutcome.Ready, result.Outcome);
+    }
+
+    /// <summary>A missing ready signal reaches the deadline and the child is terminated.</summary>
+    [Fact]
+    public async Task ReadyTimeoutFailsBoundedly()
+    {
+        using var workspace = TempWorkspace.Create();
+        ManagedAppVersion version = ManagedAppVersion.Parse("0.10.6");
+        PrepareProbe(workspace.Root, version);
+
+        ManagedProcessStartResult result = await RunAsync(
+            workspace.Root,
+            version,
+            "timeout",
+            TimeSpan.FromMilliseconds(200),
+            TestContext.Current.CancellationToken);
+
+        Assert.Equal(ManagedProcessStartOutcome.ReadyTimeout, result.Outcome);
+    }
+
+    /// <summary>A wrong one-use ready message is rejected.</summary>
+    [Fact]
+    public async Task InvalidReadySignalIsRejected()
+    {
+        using var workspace = TempWorkspace.Create();
+        ManagedAppVersion version = ManagedAppVersion.Parse("0.10.6");
+        PrepareProbe(workspace.Root, version);
+
+        ManagedProcessStartResult result = await RunAsync(
+            workspace.Root,
+            version,
+            "invalid",
+            TimeSpan.FromSeconds(5),
+            TestContext.Current.CancellationToken);
+        await Task.Delay(500, TestContext.Current.CancellationToken);
+
+        Assert.Equal(ManagedProcessStartOutcome.InvalidReadySignal, result.Outcome);
+    }
+
+    /// <summary>Malformed UTF-8 cannot escape the process boundary as an unhandled decoder failure.</summary>
+    [Fact]
+    public async Task InvalidUtf8ReadySignalIsRejected()
+    {
+        using var workspace = TempWorkspace.Create();
+        ManagedAppVersion version = ManagedAppVersion.Parse("0.10.6");
+        PrepareProbe(workspace.Root, version);
+
+        ManagedProcessStartResult result = await RunAsync(
+            workspace.Root,
+            version,
+            "invalid-utf8",
+            TimeSpan.FromSeconds(5),
+            TestContext.Current.CancellationToken);
+
+        Assert.Equal(ManagedProcessStartOutcome.InvalidReadySignal, result.Outcome);
+    }
+
+    /// <summary>A child exit is distinguished from a deadline and retains its exit code.</summary>
+    [Fact]
+    public async Task ExitBeforeReadyIsReportedWithExitCode()
+    {
+        using var workspace = TempWorkspace.Create();
+        ManagedAppVersion version = ManagedAppVersion.Parse("0.10.6");
+        PrepareProbe(workspace.Root, version);
+
+        ManagedProcessStartResult result = await RunAsync(
+            workspace.Root,
+            version,
+            "exit",
+            TimeSpan.FromSeconds(5),
+            TestContext.Current.CancellationToken);
+        await Task.Delay(500, TestContext.Current.CancellationToken);
+
+        Assert.Equal(ManagedProcessStartOutcome.ExitedBeforeReady, result.Outcome);
+        Assert.Equal(7, result.ExitCode);
+    }
+
+    /// <summary>An oversized ready line cannot be truncated into a valid authenticated signal.</summary>
+    [Fact]
+    public async Task OversizedReadySignalIsRejected()
+    {
+        using var workspace = TempWorkspace.Create();
+        ManagedAppVersion version = ManagedAppVersion.Parse("0.10.6");
+        PrepareProbe(workspace.Root, version);
+
+        ManagedProcessStartResult result = await RunAsync(
+            workspace.Root,
+            version,
+            "oversized",
+            TimeSpan.FromSeconds(5),
+            TestContext.Current.CancellationToken);
+        await Task.Delay(500, TestContext.Current.CancellationToken);
+
+        Assert.Equal(ManagedProcessStartOutcome.InvalidReadySignal, result.Outcome);
+    }
+
+    /// <summary>A missing admitted executable is a bounded start failure.</summary>
+    [Fact]
+    public async Task MissingExecutableFailsBeforeProcessStart()
+    {
+        using var workspace = TempWorkspace.Create();
+
+        ManagedProcessStartResult result = await new AnonymousPipeManagedApplicationProcess().StartUntilReadyAsync(
+            workspace.Root,
+            ManagedAppVersion.Parse("0.10.6"),
+            TimeSpan.FromSeconds(1),
+            TestContext.Current.CancellationToken);
+
+        Assert.Equal(ManagedProcessStartOutcome.StartFailed, result.Outcome);
+        Assert.Null(result.ExitCode);
+    }
+
+    /// <summary>Caller cancellation propagates and terminates the supervised child rather than becoming a timeout.</summary>
+    [Fact]
+    public async Task CallerCancellationPropagates()
+    {
+        using var workspace = TempWorkspace.Create();
+        ManagedAppVersion version = ManagedAppVersion.Parse("0.10.6");
+        PrepareProbe(workspace.Root, version);
+        using var cancellation = new CancellationTokenSource(TimeSpan.FromMilliseconds(200));
+
+        _ = await Assert.ThrowsAnyAsync<OperationCanceledException>(async () =>
+            await RunAsync(
+                workspace.Root,
+                version,
+                "timeout",
+                TimeSpan.FromSeconds(5),
+                cancellation.Token));
+    }
+
+    /// <summary>The application-side inherited channel is version-bound and consumed exactly once.</summary>
+    [Fact]
+    public async Task ApplicationReadySignalIsVersionBoundAndOneUse()
+    {
+        ManagedAppVersion version = ManagedAppVersion.Parse("0.10.6");
+        using var pipe = new AnonymousPipeServerStream(PipeDirection.In, HandleInheritability.Inheritable);
+        string? priorHandle = Environment.GetEnvironmentVariable(
+            AnonymousPipeManagedApplicationProcess.ReadyPipeHandleEnvironment);
+        string? priorVersion = Environment.GetEnvironmentVariable(
+            AnonymousPipeManagedApplicationProcess.ExpectedVersionEnvironment);
+        try
+        {
+            Environment.SetEnvironmentVariable(
+                AnonymousPipeManagedApplicationProcess.ReadyPipeHandleEnvironment,
+                pipe.GetClientHandleAsString());
+            Environment.SetEnvironmentVariable(
+                AnonymousPipeManagedApplicationProcess.ExpectedVersionEnvironment,
+                version.ToString());
+            var signal = new InheritedPipeApplicationReadySignal();
+
+            bool first = await signal.TryReportReadyAsync(version, TestContext.Current.CancellationToken);
+            pipe.DisposeLocalCopyOfClientHandle();
+            using var reader = new StreamReader(pipe);
+            string? message = await reader.ReadLineAsync(TestContext.Current.CancellationToken);
+            bool second = await signal.TryReportReadyAsync(version, TestContext.Current.CancellationToken);
+
+            Assert.True(first);
+            Assert.Equal("READY:0.10.6", message);
+            Assert.False(second);
+            Assert.Null(Environment.GetEnvironmentVariable(
+                AnonymousPipeManagedApplicationProcess.ReadyPipeHandleEnvironment));
+            Assert.Null(Environment.GetEnvironmentVariable(
+                AnonymousPipeManagedApplicationProcess.ExpectedVersionEnvironment));
+        }
+        finally
+        {
+            Environment.SetEnvironmentVariable(
+                AnonymousPipeManagedApplicationProcess.ReadyPipeHandleEnvironment,
+                priorHandle);
+            Environment.SetEnvironmentVariable(
+                AnonymousPipeManagedApplicationProcess.ExpectedVersionEnvironment,
+                priorVersion);
+        }
+    }
+
+    /// <summary>A mismatched expected version consumes no untrusted handle and clears both ambient values.</summary>
+    [Fact]
+    public async Task ApplicationReadySignalRejectsWrongExpectedVersion()
+    {
+        string? priorHandle = Environment.GetEnvironmentVariable(
+            AnonymousPipeManagedApplicationProcess.ReadyPipeHandleEnvironment);
+        string? priorVersion = Environment.GetEnvironmentVariable(
+            AnonymousPipeManagedApplicationProcess.ExpectedVersionEnvironment);
+        try
+        {
+            Environment.SetEnvironmentVariable(
+                AnonymousPipeManagedApplicationProcess.ReadyPipeHandleEnvironment,
+                "not-opened");
+            Environment.SetEnvironmentVariable(
+                AnonymousPipeManagedApplicationProcess.ExpectedVersionEnvironment,
+                "0.10.5");
+
+            bool result = await new InheritedPipeApplicationReadySignal().TryReportReadyAsync(
+                ManagedAppVersion.Parse("0.10.6"),
+                TestContext.Current.CancellationToken);
+
+            Assert.False(result);
+            Assert.Null(Environment.GetEnvironmentVariable(
+                AnonymousPipeManagedApplicationProcess.ReadyPipeHandleEnvironment));
+            Assert.Null(Environment.GetEnvironmentVariable(
+                AnonymousPipeManagedApplicationProcess.ExpectedVersionEnvironment));
+        }
+        finally
+        {
+            Environment.SetEnvironmentVariable(
+                AnonymousPipeManagedApplicationProcess.ReadyPipeHandleEnvironment,
+                priorHandle);
+            Environment.SetEnvironmentVariable(
+                AnonymousPipeManagedApplicationProcess.ExpectedVersionEnvironment,
+                priorVersion);
+        }
+    }
+
+    /// <summary>An invalid inherited handle is consumed and reported without escaping an I/O exception.</summary>
+    [Fact]
+    public async Task ApplicationReadySignalRejectsInvalidInheritedHandle()
+    {
+        ManagedAppVersion version = ManagedAppVersion.Parse("0.10.6");
+        string? priorHandle = Environment.GetEnvironmentVariable(
+            AnonymousPipeManagedApplicationProcess.ReadyPipeHandleEnvironment);
+        string? priorVersion = Environment.GetEnvironmentVariable(
+            AnonymousPipeManagedApplicationProcess.ExpectedVersionEnvironment);
+        try
+        {
+            Environment.SetEnvironmentVariable(
+                AnonymousPipeManagedApplicationProcess.ReadyPipeHandleEnvironment,
+                "not-a-pipe-handle");
+            Environment.SetEnvironmentVariable(
+                AnonymousPipeManagedApplicationProcess.ExpectedVersionEnvironment,
+                version.ToString());
+
+            bool result = await new InheritedPipeApplicationReadySignal().TryReportReadyAsync(
+                version,
+                TestContext.Current.CancellationToken);
+
+            Assert.False(result);
+            Assert.Null(Environment.GetEnvironmentVariable(
+                AnonymousPipeManagedApplicationProcess.ReadyPipeHandleEnvironment));
+            Assert.Null(Environment.GetEnvironmentVariable(
+                AnonymousPipeManagedApplicationProcess.ExpectedVersionEnvironment));
+        }
+        finally
+        {
+            Environment.SetEnvironmentVariable(
+                AnonymousPipeManagedApplicationProcess.ReadyPipeHandleEnvironment,
+                priorHandle);
+            Environment.SetEnvironmentVariable(
+                AnonymousPipeManagedApplicationProcess.ExpectedVersionEnvironment,
+                priorVersion);
+        }
+    }
+
+    /// <summary>The desktop handoff starts only the exact stable launcher under its configured managed root.</summary>
+    [Fact]
+    public async Task StableLauncherHandoffRejectsMissingAndStartsExactLauncher()
+    {
+        using var workspace = TempWorkspace.Create();
+        var handoff = new StableLauncherHandoff(workspace.Root);
+
+        bool missing = await handoff.TryStartLauncherAsync(TestContext.Current.CancellationToken);
+        string probe = Path.Combine(AppContext.BaseDirectory, "ready-probe", "NvtFwCombiner.ReadyProbe.exe");
+        File.Copy(probe, Path.Combine(workspace.Root, "NvtFwCombiner.Launcher.exe"));
+        bool started = await handoff.TryStartLauncherAsync(TestContext.Current.CancellationToken);
+        await Task.Delay(500, TestContext.Current.CancellationToken);
+
+        Assert.False(missing);
+        Assert.True(started);
+    }
+
+    /// <summary>Launcher handoff honors caller cancellation before touching the process boundary.</summary>
+    [Fact]
+    public async Task StableLauncherHandoffHonorsCancellation()
+    {
+        using var workspace = TempWorkspace.Create();
+        using var cancellation = new CancellationTokenSource();
+        cancellation.Cancel();
+
+        _ = await Assert.ThrowsAnyAsync<OperationCanceledException>(async () =>
+            await new StableLauncherHandoff(workspace.Root).TryStartLauncherAsync(cancellation.Token));
+    }
+
+    private static async ValueTask<ManagedProcessStartResult> RunAsync(
+        string managedRoot,
+        ManagedAppVersion version,
+        string behavior,
+        TimeSpan deadline,
+        CancellationToken cancellationToken)
+    {
+        string? previous = Environment.GetEnvironmentVariable(BehaviorEnvironment);
+        try
+        {
+            Environment.SetEnvironmentVariable(BehaviorEnvironment, behavior);
+            return await new AnonymousPipeManagedApplicationProcess().StartUntilReadyAsync(
+                managedRoot,
+                version,
+                deadline,
+                cancellationToken);
+        }
+        finally
+        {
+            Environment.SetEnvironmentVariable(BehaviorEnvironment, previous);
+        }
+    }
+
+    private static void PrepareProbe(string managedRoot, ManagedAppVersion version)
+    {
+        string probeRoot = Path.Combine(AppContext.BaseDirectory, "ready-probe");
+        string versionRoot = Path.Combine(managedRoot, "versions", version.ToString());
+        _ = Directory.CreateDirectory(versionRoot);
+        foreach (string source in Directory.EnumerateFiles(probeRoot))
+        {
+            string fileName = Path.GetFileName(source);
+            string targetName = string.Equals(fileName, "NvtFwCombiner.ReadyProbe.exe", StringComparison.OrdinalIgnoreCase)
+                ? "NvtFwCombiner.exe"
+                : fileName;
+            File.Copy(source, Path.Combine(versionRoot, targetName));
+        }
+    }
+}

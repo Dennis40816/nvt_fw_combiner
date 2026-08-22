@@ -1,0 +1,154 @@
+using System.Security.Cryptography;
+
+namespace NvtFwCombiner.Infrastructure.VersionManagement;
+
+internal enum BoundedArchiveReadIssue
+{
+    None,
+    EntryLengthExceeded,
+    EntryLengthMismatch,
+    AggregateLengthExceeded,
+}
+
+internal sealed class ExpandedByteBudget
+{
+    internal ExpandedByteBudget(long maximumBytes)
+    {
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(maximumBytes);
+        MaximumBytes = maximumBytes;
+    }
+
+    internal long MaximumBytes { get; }
+
+    internal long ConsumedBytes { get; private set; }
+
+    internal long RemainingBytes => MaximumBytes - ConsumedBytes;
+
+    internal bool Consume(int count)
+    {
+        ArgumentOutOfRangeException.ThrowIfNegative(count);
+        ConsumedBytes = checked(ConsumedBytes + count);
+        return ConsumedBytes <= MaximumBytes;
+    }
+}
+
+internal sealed record BoundedArchiveReadResult(
+    long Length,
+    string? Sha256,
+    BoundedArchiveReadIssue Issue)
+{
+    internal bool IsSuccess => Issue == BoundedArchiveReadIssue.None;
+}
+
+/// <summary>Counts actual decompressed bytes while hashing and optionally extracting one entry.</summary>
+internal static class BoundedArchiveReader
+{
+    private const int BufferSize = 64 * 1024;
+
+    internal static async ValueTask<BoundedArchiveReadResult> ReadFileAndHashAsync(
+        string path,
+        long declaredLength,
+        ExpandedByteBudget budget,
+        CancellationToken cancellationToken)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(path);
+        await using var source = new FileStream(
+            path,
+            new FileStreamOptions
+            {
+                Mode = FileMode.Open,
+                Access = FileAccess.Read,
+                Share = FileShare.Read,
+                Options = FileOptions.Asynchronous | FileOptions.SequentialScan,
+            });
+        return await ReadAndHashAsync(
+            source,
+            declaredLength,
+            budget,
+            cancellationToken).ConfigureAwait(false);
+    }
+
+    internal static ValueTask<BoundedArchiveReadResult> ReadAndHashAsync(
+        Stream source,
+        long declaredLength,
+        ExpandedByteBudget budget,
+        CancellationToken cancellationToken)
+    {
+        ArgumentOutOfRangeException.ThrowIfNegative(declaredLength);
+        return ReadCoreAsync(source, declaredLength, exactLength: true, budget, null, cancellationToken);
+    }
+
+    internal static ValueTask<BoundedArchiveReadResult> ReadAtMostAndHashAsync(
+        Stream source,
+        long maximumLength,
+        ExpandedByteBudget budget,
+        Stream? destination,
+        CancellationToken cancellationToken)
+    {
+        ArgumentOutOfRangeException.ThrowIfNegative(maximumLength);
+        return ReadCoreAsync(source, maximumLength, exactLength: false, budget, destination, cancellationToken);
+    }
+
+    internal static ValueTask<BoundedArchiveReadResult> CopyAndHashAsync(
+        Stream source,
+        long declaredLength,
+        ExpandedByteBudget budget,
+        Stream destination,
+        CancellationToken cancellationToken)
+    {
+        ArgumentOutOfRangeException.ThrowIfNegative(declaredLength);
+        ArgumentNullException.ThrowIfNull(destination);
+        return ReadCoreAsync(source, declaredLength, exactLength: true, budget, destination, cancellationToken);
+    }
+
+    private static async ValueTask<BoundedArchiveReadResult> ReadCoreAsync(
+        Stream source,
+        long lengthLimit,
+        bool exactLength,
+        ExpandedByteBudget budget,
+        Stream? destination,
+        CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(source);
+        ArgumentNullException.ThrowIfNull(budget);
+        using var hash = IncrementalHash.CreateHash(HashAlgorithmName.SHA256);
+        byte[] buffer = GC.AllocateUninitializedArray<byte>(BufferSize);
+        long length = 0;
+        while (true)
+        {
+            long entryRemaining = lengthLimit - length;
+            long permitted = Math.Min(entryRemaining, budget.RemainingBytes);
+            int requested = permitted < BufferSize
+                ? checked((int)permitted + 1)
+                : BufferSize;
+            int read = await source.ReadAsync(
+                buffer.AsMemory(0, requested),
+                cancellationToken).ConfigureAwait(false);
+            if (read == 0)
+            {
+                break;
+            }
+
+            length = checked(length + read);
+            bool withinAggregate = budget.Consume(read);
+            if (!withinAggregate)
+            {
+                return new(length, null, BoundedArchiveReadIssue.AggregateLengthExceeded);
+            }
+            if (length > lengthLimit)
+            {
+                return new(length, null, BoundedArchiveReadIssue.EntryLengthExceeded);
+            }
+
+            hash.AppendData(buffer, 0, read);
+            if (destination is not null)
+            {
+                await destination.WriteAsync(buffer.AsMemory(0, read), cancellationToken).ConfigureAwait(false);
+            }
+        }
+
+        return exactLength && length != lengthLimit
+            ? new(length, null, BoundedArchiveReadIssue.EntryLengthMismatch)
+            : new(length, Convert.ToHexStringLower(hash.GetHashAndReset()), BoundedArchiveReadIssue.None);
+    }
+}

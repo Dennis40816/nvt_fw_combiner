@@ -2,36 +2,36 @@ using CommunityToolkit.Mvvm.ComponentModel;
 
 namespace NvtFwCombiner.Presentation.Avalonia.ViewModels;
 
-public sealed partial class MainWindowViewModel
+internal sealed partial class MainWindowViewModel
 {
-    /// <summary>Focused Settings status and choice presentation.</summary>
     public SettingsViewModel Settings { get; }
 
-    /// <summary>Gets or sets the selected UI theme preference.</summary>
     [ObservableProperty]
     public partial string SelectedTheme { get; set; } = "System";
 
-    /// <summary>Gets or sets the selected language preference.</summary>
     [ObservableProperty]
     public partial string SelectedLanguage { get; set; } = "English";
 
-    /// <summary>Gets or sets whether non-essential progress motion is replaced with static emphasis.</summary>
     [ObservableProperty]
     public partial bool IsReducedMotionEnabled { get; set; }
 
-    /// <summary>Exports local shell preferences for best-effort UI persistence.</summary>
     public ShellPreferenceSnapshot ExportShellPreferences()
     {
         return new ShellPreferenceSnapshot(SelectedTheme, SelectedLanguage, IsReducedMotionEnabled);
     }
 
-    /// <summary>Loads local shell preferences, ignoring values that are no longer valid choices.</summary>
     public void LoadShellPreferences(ShellPreferenceSnapshot preferences)
     {
         ArgumentNullException.ThrowIfNull(preferences);
 
-        SelectedTheme = NormalizePreference(preferences.Theme, Settings.ThemeChoices, SelectedTheme);
-        SelectedLanguage = NormalizePreference(preferences.Language, Settings.LanguageChoices, SelectedLanguage);
+        SelectedTheme = NormalizePreference(
+            preferences.Theme,
+            Settings.ThemeChoices.Select(static choice => choice.Value),
+            SelectedTheme);
+        SelectedLanguage = NormalizePreference(
+            preferences.Language,
+            Settings.LanguageChoices.Select(static choice => choice.Value),
+            SelectedLanguage);
         IsReducedMotionEnabled = preferences.IsReducedMotionEnabled;
     }
 
@@ -42,7 +42,7 @@ public sealed partial class MainWindowViewModel
 
     private static string NormalizePreference(
         string? value,
-        IReadOnlyList<string> choices,
+        IEnumerable<string> choices,
         string fallback)
     {
         return !string.IsNullOrWhiteSpace(value) && choices.Contains(value, StringComparer.Ordinal)
@@ -61,6 +61,8 @@ public sealed partial class MainWindowViewModel
     partial void OnIsReducedMotionEnabledChanged(bool value)
     {
         RunSession.CompositionProgress.SetReducedMotion(value);
+        Merge.InspectionLifecycles.ForEach(lifecycle => lifecycle.Loading.SetReducedMotion(value));
+        Replace.InspectionLifecycles.ForEach(lifecycle => lifecycle.Loading.SetReducedMotion(value));
         RunSession.NotifyReducedMotionChanged();
     }
 }

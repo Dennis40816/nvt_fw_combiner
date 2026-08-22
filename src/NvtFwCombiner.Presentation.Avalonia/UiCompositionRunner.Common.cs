@@ -6,21 +6,22 @@ using NvtFwCombiner.Presentation.Avalonia.ViewModels;
 
 namespace NvtFwCombiner.Presentation.Avalonia;
 
-public static partial class UiCompositionRunner
+internal static partial class UiCompositionRunner
 {
     /// <summary>Projects one accepted canonical memory layout into display-only rows.</summary>
-    public static (
+    internal static (
         string RangeLabel,
         IReadOnlyList<MemoryMapRowViewModel> Rows,
         IReadOnlyList<MemoryCoverageSegmentViewModel> CoverageSegments) GetMemoryDisplay(
         PresentationCompositionServices services,
         ActiveSessionSnapshot acceptedSession,
-        ShellTextResources? text = null,
+        ShellTextResources text,
         GeneralAuthoringAdmissionResult? admission = null,
         IReadOnlyList<CtrlRamRegion>? ctrlRamRegions = null)
     {
         ArgumentNullException.ThrowIfNull(services);
         ArgumentNullException.ThrowIfNull(acceptedSession);
+        ArgumentNullException.ThrowIfNull(text);
         ResolvedCapability capability = acceptedSession.ExactCapability ??
             throw new InvalidOperationException(
                 "Memory projection requires an exact compiled capability.");
@@ -35,8 +36,8 @@ public static partial class UiCompositionRunner
         return (
             FormatMemoryRange(new ByteRange(0, layout.Capacity)),
             [
-                .. layout.AfterSegments.Select(segment => ToMemoryMapRow(layout, segment)),
-                .. conflicts.Select(ToMemoryMapRow),
+                .. layout.AfterSegments.Select(segment => ToMemoryMapRow(layout, segment, text)),
+                .. conflicts.Select(conflict => ToMemoryMapRow(conflict, text)),
             ],
             [
                 .. layout.AfterSegments.Select(segment => ToMemoryCoverageSegment(layout, segment, text)),
@@ -45,208 +46,365 @@ public static partial class UiCompositionRunner
     }
 
     /// <summary>Projects a typed pending state when no exact authoring publication exists.</summary>
-    public static (
+    internal static (
         string RangeLabel,
         IReadOnlyList<MemoryMapRowViewModel> Rows,
         IReadOnlyList<MemoryCoverageSegmentViewModel> CoverageSegments) GetPendingMemoryDisplay(
-        string detail)
+        ShellTextResources text,
+        IEnumerable<FirmwareSlotViewModel> slots,
+        MemoryPendingPrerequisite fallbackPrerequisite)
     {
-        ArgumentException.ThrowIfNullOrWhiteSpace(detail);
+        ArgumentNullException.ThrowIfNull(text);
+        ArgumentNullException.ThrowIfNull(slots);
+        FirmwareSlotViewModel? pending = slots.FirstOrDefault(static slot =>
+                slot.AddressSpaceId == CompositionAddressSpaceIds.ReferenceBase && !slot.HasFile) ??
+            slots.FirstOrDefault(static slot => slot.HasFile && slot.IsInputInspectionBlocking) ??
+            slots.FirstOrDefault(static slot => !slot.IsOptional && !slot.HasFile);
+        bool blocked = pending is { HasFile: true, IsInputInspectionBlocking: true };
+        (string waitingLabel, string detail) = blocked
+            ? text.GetBlockingInputText(
+                pending!.AddressSpaceId,
+                pending.Title,
+                pending.InputInspectionStatus)
+            : pending is null
+                ? text.GetPendingInputText(fallbackPrerequisite)
+                : text.GetPendingInputText(pending.AddressSpaceId, pending.Title);
+        string unavailableLabel = text.NotAvailableLabel;
         return (
-            "Memory layout pending",
-            [new MemoryMapRowViewModel("Pending", "No output", "Select", "Pending input", detail)],
-            [new MemoryCoverageSegmentViewModel(
-                "Pending",
-                "Pending input",
+            waitingLabel,
+            [new MemoryMapRowViewModel(
+                unavailableLabel,
+                new MemoryPlanSource(MemoryPlanSourceKind.NoOutput),
+                blocked ? MemoryPlanActionKind.Blocked : MemoryPlanActionKind.Browse,
+                new MemoryPlanSource(MemoryPlanSourceKind.Localized, waitingLabel),
                 detail,
-                MemoryCoverageFillRole.Neutral,
-                300d)]);
+                text)],
+            [new MemoryCoverageSegmentViewModel(
+                unavailableLabel,
+                waitingLabel,
+                detail,
+                blocked ? MemoryCoverageFillRole.Conflict : MemoryCoverageFillRole.Neutral,
+                300d,
+                diagnosticSeverity: blocked
+                    ? MemoryDiagnosticSeverity.Error
+                    : MemoryDiagnosticSeverity.Information,
+                text: text,
+                addressRangeLabel: unavailableLabel,
+                lengthLabel: string.Empty,
+                compactDetail: detail)]);
     }
 
     private static MemoryMapRowViewModel ToMemoryMapRow(
         MemoryLayoutSnapshot layout,
-        MemoryLayoutSegment segment)
+        MemoryLayoutSegment segment,
+        ShellTextResources text)
     {
         MemoryLayoutSegment before = layout.BeforeSegments.Single(candidate =>
             candidate.Range.Contains(segment.Range));
         return new MemoryMapRowViewModel(
             FormatMemoryRange(segment.Range),
-            MemorySourceLabel(before),
-            MemoryActionLabel(segment),
-            MemorySourceLabel(segment),
-            MemoryDetail(layout, segment));
+            MemorySource(before),
+            MemoryAction(segment),
+            MemorySource(segment),
+            MemoryDetail(layout, segment, text),
+            text);
     }
 
-    private static MemoryMapRowViewModel ToMemoryMapRow(MemoryLayoutConflict conflict)
+    private static MemoryMapRowViewModel ToMemoryMapRow(
+        MemoryLayoutConflict conflict,
+        ShellTextResources text)
     {
         return new MemoryMapRowViewModel(
             FormatMemoryRange(conflict.Range),
-            "Output",
-            "Blocked",
-            "Overlap error",
-            MemoryConflictDetail(conflict));
+            new MemoryPlanSource(MemoryPlanSourceKind.Output),
+            MemoryPlanActionKind.Blocked,
+            new MemoryPlanSource(MemoryPlanSourceKind.OverlapError),
+            text.FormatMemoryLayoutConflictDetail(conflict.MappingIds),
+            text);
     }
 
     private static MemoryCoverageSegmentViewModel ToMemoryCoverageSegment(
         MemoryLayoutSnapshot layout,
         MemoryLayoutSegment segment,
-        ShellTextResources? text)
+        ShellTextResources text)
     {
-        string sourceLabel = MemorySourceLabel(segment);
-        bool changed = segment.Disposition is
-            MemoryWorkflowDisposition.WillWrite or
-            MemoryWorkflowDisposition.WillReplace;
+        string sourceLabel = text.GetMemoryPlanSourceLabel(MemorySource(segment));
+        string logicalSourceLabel = segment.ContentRole == MemoryContentRole.CtrlRam
+            ? ShellTextResources.GetCtrlRamRegionTechnicalLabel(segment.CtrlRamRegionRole)
+            : sourceLabel;
         return new MemoryCoverageSegmentViewModel(
             FormatMemoryRange(segment.Range),
             sourceLabel,
-            MemoryDetail(layout, segment),
+            MemoryDetail(layout, segment, text),
             ResolveCoverageFillRole(segment),
             300d * segment.Range.Length / layout.Capacity,
-            changed,
-            segment.Disposition == MemoryWorkflowDisposition.Kept ||
+            disposition: segment.Disposition,
+            observedChange: segment.ObservedChange,
+            diagnosticSeverity: segment.DiagnosticSeverity,
+            usesBaseFirmwarePattern: segment.Disposition == MemoryWorkflowDisposition.Kept ||
                 segment.SourceSpaceId == CompositionAddressSpaceIds.ReferenceBase,
-            segment.RegionId,
+            regionId: segment.RegionId,
+            sourceSlotId: segment.SourceSlotId,
+            logicalSourceLabel: logicalSourceLabel,
             preservationDetails: segment.PreservationDetails,
             text: text,
-            regionGroup: segment.RegionGroup);
+            regionGroup: segment.RegionGroup,
+            rangeStart: segment.Range.Start,
+            rangeEndExclusive: segment.Range.EndExclusive,
+            addressRangeLabel: FormatMemoryAddressRange(segment.Range),
+            lengthLabel: FormatMemoryLength(segment.Range),
+            compactDetail: MemoryCompactDetail(segment, sourceLabel, text));
     }
 
     private static MemoryCoverageSegmentViewModel ToMemoryCoverageSegment(
         MemoryLayoutSnapshot layout,
         MemoryLayoutConflict conflict,
-        ShellTextResources? text)
+        ShellTextResources text)
     {
+        string detail = text.FormatMemoryLayoutConflictDetail(conflict.MappingIds);
         return new MemoryCoverageSegmentViewModel(
             FormatMemoryRange(conflict.Range),
-            "Overlap error",
-            MemoryConflictDetail(conflict),
+            text.GetMemoryPlanSourceLabel(new MemoryPlanSource(MemoryPlanSourceKind.OverlapError)),
+            detail,
             MemoryCoverageFillRole.Conflict,
             300d * conflict.Range.Length / layout.Capacity,
-            isChanged: true,
-            text: text);
+            diagnosticSeverity: MemoryDiagnosticSeverity.Error,
+            text: text,
+            addressRangeLabel: FormatMemoryAddressRange(conflict.Range),
+            lengthLabel: FormatMemoryLength(conflict.Range),
+            compactDetail: detail);
     }
 
-    private static string MemoryActionLabel(MemoryLayoutSegment segment)
+    private static MemoryPlanActionKind MemoryAction(MemoryLayoutSegment segment)
     {
         return segment.SourceSpaceId == CompositionAddressSpaceIds.ReferenceBase &&
             segment.Disposition == MemoryWorkflowDisposition.WillReplace
-                ? "Restore"
+                ? MemoryPlanActionKind.Restore
                 : segment.SourceSpaceId == CompositionAddressSpaceIds.TpBWork
-                    ? "Transform + Overlay"
+                    ? MemoryPlanActionKind.TransformAndOverlay
                     : segment.Disposition switch
                     {
                         MemoryWorkflowDisposition.WillWrite =>
                             segment.ProcessorEffect == MemoryProcessorEffect.DeclaredWrite
-                                ? "Postbuild"
-                                : "Copy",
+                                ? MemoryPlanActionKind.Postbuild
+                                : MemoryPlanActionKind.Copy,
                         MemoryWorkflowDisposition.WillReplace =>
                             segment.ProcessorEffect == MemoryProcessorEffect.DeclaredWrite
-                                ? "Replace + CRC"
-                                : "Replace",
-                        MemoryWorkflowDisposition.Kept => "Preserve",
-                        MemoryWorkflowDisposition.Blank or MemoryWorkflowDisposition.Resolved => "Initialize",
-                        MemoryWorkflowDisposition.DpAbBase => "Copy",
-                        MemoryWorkflowDisposition.TpaOverlay => "Overlay",
-                        MemoryWorkflowDisposition.TpbOverlay => "Transform + Overlay",
-                        _ => "Project",
+                                ? MemoryPlanActionKind.ReplaceAndCrc
+                                : MemoryPlanActionKind.Replace,
+                        MemoryWorkflowDisposition.Kept => MemoryPlanActionKind.Preserve,
+                        MemoryWorkflowDisposition.Blank or MemoryWorkflowDisposition.Resolved =>
+                            MemoryPlanActionKind.Initialize,
+                        MemoryWorkflowDisposition.DpAbBase => MemoryPlanActionKind.Copy,
+                        MemoryWorkflowDisposition.TpaOverlay => MemoryPlanActionKind.Overlay,
+                        MemoryWorkflowDisposition.TpbOverlay => MemoryPlanActionKind.TransformAndOverlay,
+                        _ => MemoryPlanActionKind.Project,
                     };
     }
 
-    private static string MemorySourceLabel(MemoryLayoutSegment segment)
+    private static MemoryPlanSource MemorySource(MemoryLayoutSegment segment)
     {
-        return segment.SourceSpaceId is { } sourceSpaceId
-            ? DynamicCtrlRamReplacementIds.TryFormatDisplayLabel(sourceSpaceId, out _)
-                ? DynamicCtrlRamReplacementIds.FormatRegionDisplayLabel(
-                    segment.RegionId)
-                : AddressSpaceLabel(sourceSpaceId)
-            : segment.Disposition switch
-            {
-                MemoryWorkflowDisposition.Blank => "Reserved",
-                MemoryWorkflowDisposition.Kept => "Base flash",
-                MemoryWorkflowDisposition.Resolved or
-                MemoryWorkflowDisposition.WillWrite or
-                MemoryWorkflowDisposition.WillReplace or
-                MemoryWorkflowDisposition.DpAbBase or
-                MemoryWorkflowDisposition.TpaOverlay or
-                MemoryWorkflowDisposition.TpbOverlay => segment.ContentRole switch
-                {
-                    MemoryContentRole.Dp => "DP BIN",
-                    MemoryContentRole.Tp => "TP BIN",
-                    MemoryContentRole.TpBackup => "TPB",
-                    MemoryContentRole.Ldc => "LDC BIN",
-                    MemoryContentRole.CtrlRam => "CtrlRAM BIN",
-                    MemoryContentRole.Reserved => "Reserved",
-                    MemoryContentRole.General => "Output",
-                    _ => "Output",
-                },
-                _ => "Output",
-            };
+        return IsReferenceKept(segment) && segment.ContentRole == MemoryContentRole.CtrlRam
+                ? new(
+                    MemoryPlanSourceKind.Technical,
+                    ShellTextResources.GetCtrlRamRegionTechnicalLabel(segment.CtrlRamRegionRole))
+                : IsReferenceKept(segment)
+                ? new(MemoryPlanSourceKind.BaseFirmware)
+                : segment.ContentRole is
+            MemoryContentRole.CustomerInformation or
+            MemoryContentRole.Reserved
+                ? new(MemoryPlanSourceKind.Reserved)
+                : segment.ContentRole == MemoryContentRole.Unmapped &&
+                    segment.SourceSpaceId is null
+                    ? new(MemoryPlanSourceKind.Unmapped)
+                : segment.SourceSpaceId is { } sourceSpaceId
+                    ? DynamicCtrlRamReplacementIds.TryFormatDisplayLabel(sourceSpaceId, out _)
+                        ? new(
+                            MemoryPlanSourceKind.Technical,
+                            DynamicCtrlRamReplacementIds.FormatRegionDisplayLabel(segment.RegionId))
+                        : AddressSpaceSource(sourceSpaceId)
+                    : segment.Disposition switch
+                    {
+                        MemoryWorkflowDisposition.Blank => new(MemoryPlanSourceKind.Reserved),
+                        MemoryWorkflowDisposition.Kept => new(MemoryPlanSourceKind.BaseFirmware),
+                        MemoryWorkflowDisposition.Resolved or
+                        MemoryWorkflowDisposition.WillWrite or
+                        MemoryWorkflowDisposition.WillReplace or
+                        MemoryWorkflowDisposition.DpAbBase or
+                        MemoryWorkflowDisposition.TpaOverlay or
+                        MemoryWorkflowDisposition.TpbOverlay => segment.ContentRole switch
+                        {
+                            MemoryContentRole.Dp => new(MemoryPlanSourceKind.DpBin),
+                            MemoryContentRole.Tp => new(MemoryPlanSourceKind.TpBin),
+                            MemoryContentRole.TpBackup => new(MemoryPlanSourceKind.Tpb),
+                            MemoryContentRole.Ldc => new(MemoryPlanSourceKind.LdcBin),
+                            MemoryContentRole.CtrlRam => new(MemoryPlanSourceKind.CtrlRamBin),
+                            MemoryContentRole.CustomerInformation or MemoryContentRole.Reserved =>
+                                new(MemoryPlanSourceKind.Reserved),
+                            MemoryContentRole.Unmapped => new(MemoryPlanSourceKind.Unmapped),
+                            MemoryContentRole.General => new(MemoryPlanSourceKind.Output),
+                            _ => new(MemoryPlanSourceKind.Output),
+                        },
+                        _ => new(MemoryPlanSourceKind.Output),
+                    };
     }
 
     private static string MemoryDetail(
         MemoryLayoutSnapshot layout,
-        MemoryLayoutSegment segment)
+        MemoryLayoutSegment segment,
+        ShellTextResources text)
     {
-        string initialization = layout.BlankFillByte is { } fillByte
-            ? $"Blank fill 0x{fillByte:X2}. "
-            : string.Empty;
-        string operations = segment.ContributingOperations.Count == 0
-            ? "No compiled operation writes this range."
-            : $"Compiled operations: {string.Join(", ", segment.ContributingOperations.Select(static operation =>
-                $"{operation.OperationId} (Sequence {operation.Sequence}; Reason: {operation.Reason})"))}.";
-        return $"{segment.RegionId}. {initialization}{operations}";
+        return text.FormatMemoryLayoutTechnicalDetail(
+            segment.RegionId,
+            layout.BlankFillByte,
+            segment.ContributingOperations);
     }
 
-    private static string MemoryConflictDetail(MemoryLayoutConflict conflict)
+    private static string MemoryCompactDetail(
+        MemoryLayoutSegment segment,
+        string sourceLabel,
+        ShellTextResources text)
     {
-        string mappings = conflict.MappingIds.Count == 0
-            ? "No mapping ids were reported."
-            : $"Mappings: {string.Join(", ", conflict.MappingIds)}.";
-        return $"{conflict.Message} {mappings}";
+        string compactSourceLabel = segment.SourceSpaceId switch
+        {
+            CompositionAddressSpaceIds.DpReplacement => "DP BIN",
+            CompositionAddressSpaceIds.LdcReplacement => "LDC BIN",
+            _ => sourceLabel,
+        };
+        return IsReferenceKept(segment)
+            ? text.GetOutputLayoutBaseDetail(
+                segment.Disposition == MemoryWorkflowDisposition.WillReplace)
+            : segment.ContentRole == MemoryContentRole.CustomerInformation
+            ? text.GetMemoryPlanDetail(segment.SourceSpaceId switch
+            {
+                CompositionAddressSpaceIds.DpInput or CompositionAddressSpaceIds.DpAbInput =>
+                    MemoryPlanDetailKind.ProtectedCustomerInformationFromDp,
+                CompositionAddressSpaceIds.DpReplacement or
+                    CompositionAddressSpaceIds.InitialCodeReplacement =>
+                        MemoryPlanDetailKind.ProtectedCustomerInformationFromDpReplacement,
+                _ => MemoryPlanDetailKind.ReservedUnwritten,
+            })
+            : segment.ContentRole == MemoryContentRole.Reserved
+            ? text.GetMemoryPlanDetail(MemoryPlanDetailKind.ReservedUnwritten)
+            : segment.ContentRole == MemoryContentRole.Unmapped && segment.SourceSpaceId is null
+            ? text.GetMemoryPlanDetail(MemoryPlanDetailKind.Unmapped)
+            : segment.SourceSpaceId switch
+            {
+                CompositionAddressSpaceIds.DpInput or CompositionAddressSpaceIds.DpAbInput =>
+                    text.GetMemoryPlanDetail(MemoryPlanDetailKind.CopiedFromDp),
+                CompositionAddressSpaceIds.TpInput or CompositionAddressSpaceIds.TpAInput =>
+                    text.GetMemoryPlanDetail(MemoryPlanDetailKind.OverlaidFromTp),
+                CompositionAddressSpaceIds.ReferenceBase => text.GetOutputLayoutBaseDetail(
+                    segment.Disposition == MemoryWorkflowDisposition.WillReplace),
+                _ => text.FormatOutputLayoutSourceDetail(compactSourceLabel, segment.Disposition),
+            };
     }
 
-    private static string AddressSpaceLabel(string addressSpaceId)
+    private static MemoryPlanSource AddressSpaceSource(string addressSpaceId)
     {
         return addressSpaceId switch
         {
-            CompositionAddressSpaceIds.DpInput => "DP BIN",
-            CompositionAddressSpaceIds.TpInput => "TP BIN",
-            CompositionAddressSpaceIds.LdcInput => "LDC BIN",
-            CompositionAddressSpaceIds.ReferenceBase => "Base flash",
-            CompositionAddressSpaceIds.DpReplacement => "Changed DP BIN",
-            CompositionAddressSpaceIds.LdcReplacement => "Changed LDC BIN",
-            CompositionAddressSpaceIds.DpAbInput => "DP AB",
-            CompositionAddressSpaceIds.TpAInput => "TPA",
-            CompositionAddressSpaceIds.TpBInput or CompositionAddressSpaceIds.TpBWork => "TPB",
-            _ => addressSpaceId,
+            CompositionAddressSpaceIds.DpInput => new(MemoryPlanSourceKind.DpBin),
+            CompositionAddressSpaceIds.TpInput => new(MemoryPlanSourceKind.TpBin),
+            CompositionAddressSpaceIds.LdcInput => new(MemoryPlanSourceKind.LdcBin),
+            CompositionAddressSpaceIds.ReferenceBase => new(MemoryPlanSourceKind.BaseFirmware),
+            CompositionAddressSpaceIds.DpReplacement or
+                CompositionAddressSpaceIds.InitialCodeReplacement =>
+                    new(MemoryPlanSourceKind.DpReplacementBin),
+            CompositionAddressSpaceIds.LdcReplacement =>
+                new(MemoryPlanSourceKind.LdcReplacementBin),
+            CompositionAddressSpaceIds.DpAbInput => new(MemoryPlanSourceKind.DpAb),
+            CompositionAddressSpaceIds.TpAInput => new(MemoryPlanSourceKind.Tpa),
+            CompositionAddressSpaceIds.TpBInput or CompositionAddressSpaceIds.TpBWork =>
+                new(MemoryPlanSourceKind.Tpb),
+            _ => new(MemoryPlanSourceKind.Technical, addressSpaceId),
         };
     }
 
     private static string FormatMemoryRange(ByteRange range)
     {
         return FormattableString.Invariant(
-            $"0x{range.Start:X5}-0x{range.EndExclusive - 1:X5} (len 0x{range.Length:X})");
+            $"{FormatMemoryAddressRange(range)} ({FormatMemoryLength(range)})");
+    }
+
+    private static string FormatMemoryAddressRange(ByteRange range)
+    {
+        return FormattableString.Invariant(
+            $"0x{range.Start:X5}-0x{range.EndExclusive - 1:X5}");
+    }
+
+    private static string FormatMemoryLength(ByteRange range)
+    {
+        return FormattableString.Invariant($"len 0x{range.Length:X}");
     }
 
     private static MemoryCoverageFillRole ResolveCoverageFillRole(MemoryLayoutSegment segment)
     {
+        if (segment.ContentRole == MemoryContentRole.CtrlRam)
+        {
+            return ResolveCtrlRamCoverageFillRole(segment.CtrlRamRegionRole);
+        }
+
+        if (IsReferenceKept(segment))
+        {
+            return MemoryCoverageFillRole.Kept;
+        }
+
+        if (segment.ContentRole is MemoryContentRole.CustomerInformation or MemoryContentRole.Reserved)
+        {
+            return MemoryCoverageFillRole.Neutral;
+        }
+
+        MemoryContentRole role = segment.SourceSpaceId switch
+        {
+            CompositionAddressSpaceIds.DpInput or
+            CompositionAddressSpaceIds.DpReplacement or
+            CompositionAddressSpaceIds.DpAbInput or
+            CompositionAddressSpaceIds.InitialCodeReplacement => MemoryContentRole.Dp,
+            CompositionAddressSpaceIds.TpInput or
+            CompositionAddressSpaceIds.TpAInput => MemoryContentRole.Tp,
+            CompositionAddressSpaceIds.TpBInput or
+            CompositionAddressSpaceIds.TpBWork => MemoryContentRole.TpBackup,
+            CompositionAddressSpaceIds.LdcInput or
+            CompositionAddressSpaceIds.LdcReplacement => MemoryContentRole.Ldc,
+            _ => segment.ContentRole,
+        };
+        return role switch
+        {
+            MemoryContentRole.Dp => MemoryCoverageFillRole.Dp,
+            MemoryContentRole.Tp => MemoryCoverageFillRole.Tp,
+            MemoryContentRole.TpBackup => MemoryCoverageFillRole.TpBackup,
+            MemoryContentRole.Ldc => MemoryCoverageFillRole.Ldc,
+            MemoryContentRole.CtrlRam => ResolveCtrlRamCoverageFillRole(
+                segment.CtrlRamRegionRole),
+            MemoryContentRole.General => MemoryCoverageFillRole.Source,
+            MemoryContentRole.CustomerInformation or
+            MemoryContentRole.Reserved or
+            MemoryContentRole.Unmapped => MemoryCoverageFillRole.Neutral,
+            _ => MemoryCoverageFillRole.Neutral,
+        };
+    }
+
+    internal static MemoryCoverageFillRole ResolveCtrlRamCoverageFillRole(
+        CtrlRamRegionRole role)
+    {
+        return role switch
+        {
+            CtrlRamRegionRole.Nf => MemoryCoverageFillRole.CtrlRamNf,
+            CtrlRamRegionRole.Normal => MemoryCoverageFillRole.CtrlRamNormal,
+            CtrlRamRegionRole.Mp => MemoryCoverageFillRole.CtrlRamMp,
+            CtrlRamRegionRole.Vn => MemoryCoverageFillRole.CtrlRamVn,
+            CtrlRamRegionRole.Vector => MemoryCoverageFillRole.CtrlRamVector,
+            CtrlRamRegionRole.DiffDlm => MemoryCoverageFillRole.DiffDlm,
+            CtrlRamRegionRole.Other => MemoryCoverageFillRole.CtrlRam,
+            _ => throw new ArgumentOutOfRangeException(nameof(role), role, null),
+        };
+    }
+
+    private static bool IsReferenceKept(MemoryLayoutSegment segment)
+    {
         return segment.Disposition == MemoryWorkflowDisposition.Kept ||
-            segment.SourceSpaceId == CompositionAddressSpaceIds.ReferenceBase
-                ? MemoryCoverageFillRole.Kept
-                : segment.ContentRole switch
-                {
-                    MemoryContentRole.Dp => MemoryCoverageFillRole.Dp,
-                    MemoryContentRole.Tp => MemoryCoverageFillRole.Tp,
-                    MemoryContentRole.TpBackup => MemoryCoverageFillRole.TpBackup,
-                    MemoryContentRole.Ldc => MemoryCoverageFillRole.Ldc,
-                    MemoryContentRole.CtrlRam when
-                        segment.RegionGroup == ReplaceRegionGroup.Cascade =>
-                            MemoryCoverageFillRole.DiffDlm,
-                    MemoryContentRole.CtrlRam => MemoryCoverageFillRole.CtrlRam,
-                    MemoryContentRole.General => MemoryCoverageFillRole.Source,
-                    MemoryContentRole.Reserved => MemoryCoverageFillRole.Neutral,
-                    _ => MemoryCoverageFillRole.Neutral,
-                };
+            segment.SourceSpaceId == CompositionAddressSpaceIds.ReferenceBase;
     }
 
     private static string ToRange(long start, long length)

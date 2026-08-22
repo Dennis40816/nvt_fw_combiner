@@ -27,8 +27,12 @@ public sealed partial class CtrlRamExternalGoldenTests
         Assert.Contains("CtrlRAM", regionSlot.Title, StringComparison.Ordinal);
 
         fixtures.SetBaseSlot(viewModel, fixtureCase);
-        await viewModel.WorkflowSession.FirmwareInspectionRefreshTask;
+        await CurrentInspection(viewModel).ActiveTask;
+        Assert.Equal(
+            WorkflowInspectionAttemptState.Succeeded,
+            viewModel.Replace.Inspection.State);
         viewModel.SetSlotFile(regionSlot.SlotId, fixtures.ReplacementPathFor(fixtureCase, regionSlot.SlotId));
+        AssertInspectionTerminal(viewModel.Replace.Inspection);
 
         Assert.True(viewModel.Replace.PreviewReplaceCommand.CanExecute(null));
 
@@ -44,7 +48,9 @@ public sealed partial class CtrlRamExternalGoldenTests
             fact.Value.Contains("nfc.nt51927.ctrlram-postbuild-v1", StringComparison.Ordinal));
         Assert.All(postbuild.RuntimeCommands, command =>
             Assert.Contains("Combiner.exe", command.ArgumentListEvidence, StringComparison.OrdinalIgnoreCase));
-        Assert.Contains(viewModel.Replace.ReplaceCoverageSegments, segment => segment.IsChanged);
+        Assert.DoesNotContain(viewModel.Replace.ReplaceCoverageSegments, segment => segment.IsChanged);
+        Assert.Contains(viewModel.Replace.ReplaceCoverageSegments, segment =>
+            segment.ChangeLabel == "Will replace");
     }
 
     /// <summary>Verifies one CtrlRAM Replace run can select and report multiple region replacements.</summary>
@@ -66,7 +72,7 @@ public sealed partial class CtrlRamExternalGoldenTests
         // The verified FWConfig may choose the base image's branch. This fixture deliberately
         // exercises the owner-selected three-chip branch afterwards.
         viewModel.WorkflowSession.SelectedNumber = "3";
-        await viewModel.WorkflowSession.FirmwareInspectionRefreshTask;
+        await CurrentInspection(viewModel).ActiveTask;
         FirmwareSlotViewModel normalRight = viewModel.Replace.ReplaceSlots.Single(slot => slot.Title == "Normal CtrlRAM (Slave R)");
         FirmwareSlotViewModel vn = viewModel.Replace.ReplaceSlots.Single(slot => slot.Title == "VN CtrlRAM (Shared)");
         viewModel.SetSlotFile(normalRight.SlotId, fixtures.ReplacementPathFor(fixtureCase, normalRight.SlotId));
@@ -110,7 +116,7 @@ public sealed partial class CtrlRamExternalGoldenTests
 
         fixtures.SetBaseSlot(viewModel, fixtureCase);
         viewModel.WorkflowSession.SelectedNumber = "3";
-        await viewModel.WorkflowSession.FirmwareInspectionRefreshTask;
+        await CurrentInspection(viewModel).ActiveTask;
         FirmwareSlotViewModel vn = viewModel.Replace.ReplaceSlots.Single(slot => slot.Title == "VN CtrlRAM (Shared)");
         Assert.Contains("VN_Ctrlram.bin", vn.Description, StringComparison.Ordinal);
         Assert.Contains("VN CtrlRAM (Master): max 5728 B", vn.Description, StringComparison.Ordinal);
@@ -127,10 +133,16 @@ public sealed partial class CtrlRamExternalGoldenTests
         Assert.Equal(13, postbuild.RuntimeCommands.Count);
         Assert.Contains(postbuild.RuntimeCommands, command =>
             command.ArgumentListEvidence.Contains("VN_Ctrlram.bin", StringComparison.Ordinal));
-        Assert.Contains(viewModel.Replace.ReplaceCoverageSegments, segment =>
-            segment.SourceLabel == "VN CtrlRAM (Slave L)" &&
-            segment.RangeLabel == "0x2EBD0-0x3022F (len 0x1660)");
-        Assert.Contains(viewModel.Replace.ReplaceCoverageGroups, group => group.Title == "Slave L");
+        MemoryCoverageGroupViewModel common = Assert.Single(
+            viewModel.Replace.ReplaceCoverageGroups,
+            group => group.RegionGroup == ReplaceRegionGroup.Common);
+        MemoryCoverageLogicalItemViewModel logicalVn = Assert.Single(
+            common.Items,
+            item => item.DisplayId == $"slot:{vn.SlotId}");
+        Assert.Equal("VN CtrlRAM", logicalVn.SourceLabel);
+        Assert.Contains(logicalVn.Ranges, range =>
+            range.RegionGroupLabel == "Slave L" &&
+            range.RangeLabel == "0x2EBD0-0x3022F (len 0x1660)");
     }
 
     /// <summary>Verifies an exact V2 CtrlRAM replacement runs through the real postbuild path.</summary>
@@ -149,7 +161,7 @@ public sealed partial class CtrlRamExternalGoldenTests
 
         fixtures.SetBaseSlot(viewModel, fixtureCase);
         viewModel.WorkflowSession.SelectedNumber = "3";
-        await viewModel.WorkflowSession.FirmwareInspectionRefreshTask;
+        await CurrentInspection(viewModel).ActiveTask;
         FirmwareSlotViewModel vnSlot = viewModel.Replace.ReplaceSlots.Single(slot => slot.Title == "VN CtrlRAM (Shared)");
         viewModel.SetSlotFile(vnSlot.SlotId, fixtures.ReplacementPathFor(fixtureCase, vnSlot.SlotId));
 

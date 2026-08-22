@@ -1,7 +1,7 @@
 {
   "schemaVersion": "1.1",
   "familyId": "nt51927",
-  "familyVersion": "1.3.0",
+  "familyVersion": "1.4.0",
   "members": [
     {
       "memberId": "NT51917",
@@ -97,6 +97,40 @@
         "gen-flash-bin-v2-51927-golden",
         "standard-merge-alias-51917-to-51927"
       ]
+    },
+    {
+      "metadataSetId": "firmware-config-general-parameters",
+      "structures": [
+        {
+          "structureId": "firmware-config-general-parameters",
+          "artifactBindingId": "reference-base",
+          "definitionReference": {
+            "familyId": "nt51917-nt51927-nt51928-canonical-container",
+            "familyVersion": "1.4.0",
+            "familyContentHash": "11a286731539bc79eb4bc956cd62d5d4e4bb8662874a8f65f7f0cde6f974c761",
+            "structureId": "firmware-config-general-parameters"
+          },
+          "locator": {
+            "kind": "marker-relative",
+            "searchRange": {
+              "addressSpaceId": "flash",
+              "start": 0,
+              "length": 217088
+            },
+            "markerHex": "004e5654",
+            "selection": {
+              "kind": "unique"
+            },
+            "resultOffset": -4092,
+            "allowedResultRegionId": "tp-code"
+          }
+        }
+      ],
+      "evidenceRefs": [
+        "common-fw-ap-fwconfig-general-parameters",
+        "gen-flash-bin-v2-51927-golden",
+        "standard-merge-alias-51917-to-51927"
+      ]
     }
   ],
   "imageMaps": [
@@ -121,7 +155,8 @@
         "nt51917-standard-merge-flash"
       ],
       "metadataSetIds": [
-        "nt51917-nt51927-initial-code-metadata"
+        "nt51917-nt51927-initial-code-metadata",
+        "firmware-config-general-parameters"
       ],
       "evidenceRefs": [
         "standard-merge-alias-51917-to-51927",
@@ -149,7 +184,8 @@
         "nt51927-standard-merge-flash"
       ],
       "metadataSetIds": [
-        "nt51917-nt51927-initial-code-metadata"
+        "nt51917-nt51927-initial-code-metadata",
+        "firmware-config-general-parameters"
       ],
       "evidenceRefs": [
         "gen-flash-bin-v2-51927-golden",

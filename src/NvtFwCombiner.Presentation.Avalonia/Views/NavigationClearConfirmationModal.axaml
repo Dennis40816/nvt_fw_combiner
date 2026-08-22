@@ -32,11 +32,11 @@
       <StackPanel Grid.Row="2" HorizontalAlignment="Right" Orientation="Horizontal" Spacing="{DynamicResource NfcSpace8}">
         <Button
             x:Name="CancelButton"
-            Classes="secondary"
+            Classes="semanticAction secondary"
             Command="{Binding CancelNavigationClearCommand}"
             Content="{Binding Text.NavigationClearCancelLabel}" />
         <Button
-            Classes="primary"
+            Classes="semanticAction primary"
             Command="{Binding ConfirmNavigationAndClearCommand}"
             Content="{Binding Text.NavigationClearConfirmLabel}" />
       </StackPanel>

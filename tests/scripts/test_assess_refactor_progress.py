@@ -30,7 +30,7 @@ class AssessRefactorProgressTests(unittest.TestCase):
             REPOSITORY_ROOT / "docs" / "governance" / "0.10.x-ticket-dependency-plan.md"
         )
 
-        self.assertEqual(49, len(tickets))
+        self.assertEqual(57, len(tickets))
         self.assertEqual(
             {
                 "baseline": 3,
@@ -45,7 +45,43 @@ class AssessRefactorProgressTests(unittest.TestCase):
                 for group in MODULE.GROUP_WEIGHTS
             },
         )
+        self.assertEqual(
+            8, sum(ticket.group == "preloadLifecycle" for ticket in tickets)
+        )
         self.assertEqual(100.0, sum(MODULE.GROUP_WEIGHTS.values()))
+
+    def test_preload_inventory_contributes_to_completion_and_frontier(self) -> None:
+        plan_path = (
+            REPOSITORY_ROOT / "docs" / "governance" / "0.10.x-ticket-dependency-plan.md"
+        )
+        tickets = MODULE.parse_plan(plan_path)
+        issues = [
+            self._issue(
+                ticket.number,
+                completed=ticket.group != "preloadLifecycle",
+                ready=ticket.group == "preloadLifecycle",
+            )
+            for ticket in tickets
+        ]
+        snapshot = MODULE.build_snapshot(
+            root=REPOSITORY_ROOT,
+            plan_path=plan_path,
+            repository="owner/repo",
+            tickets=tickets,
+            issues=issues,
+            state_source="github-live",
+            queried_at=datetime(2026, 8, 13, tzinfo=timezone.utc),
+        )
+
+        self.assertEqual(
+            {"completed": 49, "total": 57, "percent": 86.0},
+            snapshot["metrics"]["ticketCompletion"],
+        )
+        self.assertEqual(
+            {"completed": 0, "total": 8, "percent": 0.0},
+            snapshot["metrics"]["unifiedPreloadLifecycle"],
+        )
+        self.assertEqual([373], [row["number"] for row in snapshot["frontier"]])
 
     def test_snapshot_separates_ticket_foundation_and_weighted_metrics(self) -> None:
         plan = """\
@@ -57,6 +93,12 @@ class AssessRefactorProgressTests(unittest.TestCase):
 | 3 | Runtime deletion | #4 | deletion | #3 |
 | 4 | Core convergence | #5 | core | #4 |
 | 5 | Integration | #6 | integration | #5 |
+
+## Stable execution ordering
+
+| Depth | Preload wave | Issue | Approved outcome | Blocked by |
+| ---: | --- | ---: | --- | --- |
+| 6 | Preload lifecycle | #7 | preload | #6 |
 """
         issues = [
             self._issue(1, completed=True),
@@ -65,6 +107,7 @@ class AssessRefactorProgressTests(unittest.TestCase):
             self._issue(4),
             self._issue(5),
             self._issue(6),
+            self._issue(7),
         ]
         with tempfile.TemporaryDirectory() as directory:
             plan_path = Path(directory) / "plan.md"
@@ -81,7 +124,7 @@ class AssessRefactorProgressTests(unittest.TestCase):
             )
 
         self.assertEqual(
-            {"completed": 2, "total": 6, "percent": 33.3},
+            {"completed": 2, "total": 7, "percent": 28.6},
             snapshot["metrics"]["ticketCompletion"],
         )
         self.assertEqual(
@@ -97,6 +140,12 @@ class AssessRefactorProgressTests(unittest.TestCase):
 | Depth | Wave | Issue | Approved outcome | Blocked by |
 | ---: | --- | ---: | --- | --- |
 | 0 | Baseline | #1 | baseline | — |
+
+## Stable execution ordering
+
+| Depth | Preload wave | Issue | Approved outcome | Blocked by |
+| ---: | --- | ---: | --- | --- |
+| 1 | Preload lifecycle | #2 | preload | #1 |
 """
         with tempfile.TemporaryDirectory() as directory:
             plan_path = Path(directory) / "plan.md"
@@ -146,9 +195,41 @@ class AssessRefactorProgressTests(unittest.TestCase):
 | Depth | Wave | Issue | Approved outcome | Blocked by |
 | ---: | --- | ---: | --- | --- |
 | 0 | Baseline | #1 | baseline | #999 |
+
+## Stable execution ordering
+
+| Depth | Preload wave | Issue | Approved outcome | Blocked by |
+| ---: | --- | ---: | --- | --- |
+| 1 | Preload lifecycle | #2 | preload | #1 |
 """
 
         with self.assertRaisesRegex(ValueError, r"#1.*#999"):
+            self._parse_temporary_plan(plan)
+
+    def test_missing_preload_table_fails_plan_integrity(self) -> None:
+        plan = """\
+| Depth | Wave | Issue | Approved outcome | Blocked by |
+| ---: | --- | ---: | --- | --- |
+| 0 | Baseline | #1 | baseline | — |
+"""
+
+        with self.assertRaisesRegex(ValueError, "exactly one preload table"):
+            self._parse_temporary_plan(plan)
+
+    def test_preload_table_rejects_legacy_wave(self) -> None:
+        plan = """\
+| Depth | Wave | Issue | Approved outcome | Blocked by |
+| ---: | --- | ---: | --- | --- |
+| 0 | Baseline | #1 | baseline | — |
+
+## Stable execution ordering
+
+| Depth | Preload wave | Issue | Approved outcome | Blocked by |
+| ---: | --- | ---: | --- | --- |
+| 1 | Integration | #2 | misclassified preload | #1 |
+"""
+
+        with self.assertRaisesRegex(ValueError, "invalid wave 'Integration'"):
             self._parse_temporary_plan(plan)
 
     def test_blank_line_cannot_silently_truncate_ticket_table(self) -> None:

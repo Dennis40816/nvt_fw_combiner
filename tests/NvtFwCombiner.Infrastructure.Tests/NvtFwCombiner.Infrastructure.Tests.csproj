@@ -13,10 +13,20 @@
     <ProjectReference Include="..\..\src\NvtFwCombiner.Contracts\NvtFwCombiner.Contracts.csproj" />
     <ProjectReference Include="..\..\src\NvtFwCombiner.Domain\NvtFwCombiner.Domain.csproj" />
     <ProjectReference Include="..\NvtFwCombiner.TestSupport\NvtFwCombiner.TestSupport.csproj" />
+    <ProjectReference Include="..\NvtFwCombiner.ReadyProbe\NvtFwCombiner.ReadyProbe.csproj"
+                      ReferenceOutputAssembly="false" />
   </ItemGroup>
   <ItemGroup>
     <PackageReference Include="Microsoft.NET.Test.Sdk" />
     <PackageReference Include="xunit.v3" />
     <PackageReference Include="xunit.runner.visualstudio" PrivateAssets="all" />
   </ItemGroup>
+  <Target Name="CopyReadyProbe" AfterTargets="Build">
+    <ItemGroup>
+      <ReadyProbeFiles Include="..\NvtFwCombiner.ReadyProbe\bin\$(Configuration)\net10.0\**\*" />
+    </ItemGroup>
+    <Copy SourceFiles="@(ReadyProbeFiles)"
+          DestinationFiles="@(ReadyProbeFiles->'$(OutDir)ready-probe\%(RecursiveDir)%(Filename)%(Extension)')"
+          SkipUnchangedFiles="true" />
+  </Target>
 </Project>

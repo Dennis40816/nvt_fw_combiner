@@ -2,45 +2,48 @@ using System.Collections.ObjectModel;
 using System.ComponentModel;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using NvtFwCombiner.Application.Diagnostics;
 
 namespace NvtFwCombiner.Presentation.Avalonia.ViewModels;
 
-public sealed partial class MainWindowViewModel
+internal sealed partial class MainWindowViewModel
 {
     private readonly List<ShellPage> _pageHistory = [ShellPage.Home];
     private PendingNavigation? _pendingNavigation;
 
-    /// <summary>True while leaving a composition page awaits confirmation to clear selected files.</summary>
     [ObservableProperty]
     public partial bool IsNavigationClearConfirmationOpen { get; set; }
 
-    /// <summary>Gets the clickable shell navigation hierarchy.</summary>
+    [ObservableProperty]
+    public partial bool IsSettingsModalOpen { get; private set; }
+
     public ObservableCollection<ShellNavigationEntryViewModel> NavigationTrail { get; } = [];
 
-    /// <summary>Gets a compact text version of the current navigation path.</summary>
     public string NavigationPath => string.Join(
         " > ",
         NavigationTrail.Select(entry => entry.Label));
 
-    /// <summary>Gets the current and requested pages shown by the navigation clear confirmation.</summary>
     public string NavigationClearRoute => _pendingNavigation is { } pending
         ? $"{PageLabel(SelectedPage)} → {PageLabel(pending.Target)}" : NavigationPath;
 
-    /// <summary>True when the shell can return to the previous visited page.</summary>
     public bool CanGoBack => _pageHistory.Count > 1;
 
-    /// <summary>True when the selected page or active run needs the captured device context.</summary>
     public bool IsDeviceContextVisible => RunSession.IsRunInProgress ||
         SelectedPage is ShellPage.Merge or ShellPage.Replace;
 
-    /// <summary>True when the fixed composition action rail belongs to the active page.</summary>
     public bool IsCompositionActionRailVisible =>
         (SelectedPage is ShellPage.Merge or ShellPage.Replace) && !IsBlockingSurfaceOpen;
 
-    /// <summary>True when the current composition page can reopen the latest committed output.</summary>
     public bool IsLatestOutputActionVisible => IsCompositionActionRailVisible && BuildResult.HasLatestCommittedOutput;
 
+    /// <summary>Whether a normal Settings close may return focus to its launcher.</summary>
+    public bool CanRestoreSettingsFocus => !IsOtherBlockingSurfaceOpen;
+
     private bool IsBlockingSurfaceOpen =>
+        IsSettingsModalOpen || IsOtherBlockingSurfaceOpen;
+
+    private bool IsOtherBlockingSurfaceOpen =>
+        OutputDelivery.IsOpen ||
         Replace.IsReplaceSelectionModalOpen ||
         Replace.IsCtrlRamFirmwareVersionModalOpen ||
         WorkflowSession.IsWorkflowContextModalOpen ||
@@ -56,7 +59,7 @@ public sealed partial class MainWindowViewModel
 
     private void MainWindowViewModel_OnPropertyChanged(object? sender, PropertyChangedEventArgs e)
     {
-        if (e.PropertyName == nameof(IsNavigationClearConfirmationOpen))
+        if (e.PropertyName is nameof(IsNavigationClearConfirmationOpen) or nameof(IsSettingsModalOpen))
         {
             NotifyCompositionActionRailVisibilityChanged();
         }
@@ -64,18 +67,44 @@ public sealed partial class MainWindowViewModel
 
     private void NotifyCompositionActionRailVisibilityChanged()
     {
+        if (IsSettingsModalOpen && IsOtherBlockingSurfaceOpen)
+        {
+            IsSettingsModalOpen = false;
+        }
+
         OnPropertyChanged(nameof(IsCompositionActionRailVisible));
         OnPropertyChanged(nameof(IsLatestOutputActionVisible));
     }
 
-    /// <summary>Command that returns to the previous navigation entry.</summary>
     public IRelayCommand GoBackCommand { get; }
 
-    /// <summary>Command that clears the current page file selections and completes navigation.</summary>
     public IRelayCommand ConfirmNavigationAndClearCommand { get; }
 
-    /// <summary>Command that keeps the current page and all of its selections.</summary>
     public IRelayCommand CancelNavigationClearCommand { get; }
+
+    private void OpenSettings()
+    {
+        if (IsBlockingSurfaceOpen)
+        {
+            return;
+        }
+
+        _deferredState.EnsureSettings(RefreshSettingsState);
+        Settings.SelectSectionCommand.Execute(
+            Settings.IsVersionConfirmationOpen || Settings.HasRetentionReview
+                ? SettingsSection.Version
+                : SettingsSection.Preferences);
+        IsSettingsModalOpen = true;
+        RecordDebugActivity(
+            SystemActivityCodes.SettingsOpened,
+            SystemActivityCategory.Navigation,
+            Settings.SelectedSection.ToString());
+    }
+
+    private void CloseSettings()
+    {
+        IsSettingsModalOpen = false;
+    }
 
     private void NavigateToPage(ShellPage page)
     {
@@ -167,7 +196,6 @@ public sealed partial class MainWindowViewModel
         return page switch
         {
             ShellPage.Home => Text.HomeLabel,
-            ShellPage.Settings => SettingsPreview.Title,
             ShellPage.Merge => Merge.MergePreview.Title,
             ShellPage.Replace => Replace.ReplacePreview.Title,
             ShellPage.HexEditor => Text.HexEditorTitle,

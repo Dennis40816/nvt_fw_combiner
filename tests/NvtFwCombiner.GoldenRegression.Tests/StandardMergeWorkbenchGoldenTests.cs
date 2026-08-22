@@ -123,9 +123,15 @@ public sealed class StandardMergeWorkbenchGoldenTests
         JsonElement[] inputs = [.. root.GetProperty("Inputs").EnumerateArray()];
         JsonElement[] operations = [.. root.GetProperty("Operations").EnumerateArray()];
 
-        Assert.Equal("nt51929-standard-merge-gen-flash.bin", result.OutputFileName);
+        DateTimeOffset resolvedAtUtc = root
+            .GetProperty("OutputNaming")
+            .GetProperty("ResolvedAtUtc")
+            .GetDateTimeOffset();
         Assert.Equal(
-            "377b6b9ad0d3f1b9c0c413b622e95f80b58a5e502a5fca5da90c5abf8e96d39d",
+            $"NT51929_FlashCode_D0200T0100_{resolvedAtUtc:yyyyMMdd}.bin",
+            result.OutputFileName);
+        Assert.Equal(
+            "d116db37fb2de5bb53a794051074d037100a5e9ba3fb78daeffbe9e28f2d9c0f",
             root.GetProperty("CompilationFingerprint").GetString());
         Assert.Equal(
             ["dp-input", "tp-input"],

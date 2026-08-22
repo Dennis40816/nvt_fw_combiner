@@ -15,7 +15,7 @@ internal readonly record struct ReportHexDiffRangeDescriptor(
 }
 
 /// <summary>One report-owned difference range in the compiled output address space.</summary>
-public sealed partial class ReportHexDiffRangeViewModel : ObservableObject
+internal sealed partial class ReportHexDiffRangeViewModel : ObservableObject
 {
     internal ReportHexDiffRangeViewModel(
         ReportHexDiffRangeDescriptor descriptor,
@@ -52,22 +52,17 @@ public sealed partial class ReportHexDiffRangeViewModel : ObservableObject
     /// <summary>Underlying report detail without Presentation-derived firmware meaning.</summary>
     public ReportLineViewModel Detail { get; }
 
-    /// <summary>Application/report-owned field or difference title.</summary>
     public string Title => Detail.Title;
 
-    /// <summary>Application/report-owned modification reason.</summary>
     public string Reason => Detail.Reason;
 
-    /// <summary>Localized expected/review label already projected from the report.</summary>
     public string Status => Detail.Badges.Count > 0 ? Detail.Badges[0].Text : string.Empty;
 
-    /// <summary>Readable changed-byte count.</summary>
     public string ChangedSummary => Detail.ChangedSummary;
 
     /// <summary>Compiled mutable address space containing this half-open range.</summary>
     public string OutputSpaceId { get; }
 
-    /// <summary>First output-space offset.</summary>
     public long Start => Descriptor.Start;
 
     /// <summary>Number of bytes in the half-open range.</summary>
@@ -76,7 +71,6 @@ public sealed partial class ReportHexDiffRangeViewModel : ObservableObject
     /// <summary>Exclusive end output-space offset.</summary>
     public long EndExclusive => Descriptor.EndExclusive;
 
-    /// <summary>True when Application/report policy accepted this difference.</summary>
     public bool IsAccepted => Descriptor.IsAccepted;
 
     /// <summary>True when a reviewer must inspect this range before release.</summary>

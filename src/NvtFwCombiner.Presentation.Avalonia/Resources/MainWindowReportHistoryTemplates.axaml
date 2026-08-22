@@ -6,6 +6,7 @@
 <DataTemplate x:Key="ReportHistoryEntryTemplate" DataType="vm:ReportHistoryEntryViewModel">
   <Grid Margin="0,0,0,6" ColumnDefinitions="*,34" ColumnSpacing="{DynamicResource NfcSpace8}">
     <Button
+        Classes="semanticAction command"
         HorizontalAlignment="Stretch"
         Padding="0"
         Background="Transparent"
@@ -26,7 +27,7 @@
     </Button>
     <Button
         Grid.Column="1"
-        Classes="iconButton dangerIcon"
+        Classes="semanticAction iconButton danger"
         HorizontalAlignment="Center"
         VerticalAlignment="Top"
         Command="{ReflectionBinding $parent[Window].DataContext.RemoveReportHistoryEntryCommand}"

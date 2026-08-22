@@ -98,10 +98,10 @@ public sealed partial class RepositoryBoundaryTests
         Assert.Contains("ToggleButton", shell, StringComparison.Ordinal);
         Assert.Contains("Classes=\"nav\"", shell, StringComparison.Ordinal);
         Assert.Contains("Classes=\"command\"", shellSurface, StringComparison.Ordinal);
-        Assert.Contains("Classes=\"iconButton\"", shellSurface, StringComparison.Ordinal);
+        Assert.Contains("Classes=\"semanticAction iconButton\"", shellSurface, StringComparison.Ordinal);
         Assert.Contains("Classes=\"breadcrumb\"", shellPanels, StringComparison.Ordinal);
-        Assert.Contains("Classes=\"primary\"", shellSurface, StringComparison.Ordinal);
-        Assert.Contains("Classes=\"action\"", shellSurface, StringComparison.Ordinal);
+        Assert.Contains("Classes=\"semanticAction primary\"", shellSurface, StringComparison.Ordinal);
+        Assert.Contains("Classes=\"semanticAction action\"", shellSurface, StringComparison.Ordinal);
         Assert.Contains("MainWindowStyles.axaml", shell, StringComparison.Ordinal);
         Assert.Contains("MainWindowButtonStyles.axaml", shell, StringComparison.Ordinal);
         Assert.Contains("MainWindowVisualStyles.axaml", shell, StringComparison.Ordinal);
@@ -131,9 +131,9 @@ public sealed partial class RepositoryBoundaryTests
         Assert.DoesNotContain("Selector=\"TextBlock.technicalHeader", controlStyles, StringComparison.Ordinal);
         Assert.DoesNotContain("Selector=\"Border.footerStatus", controlStyles, StringComparison.Ordinal);
         Assert.Contains("ContentTemplate=\"{StaticResource HomePageTemplate}\"", shell, StringComparison.Ordinal);
-        Assert.Contains("ContentTemplate=\"{StaticResource SettingsPageTemplate}\"", shell, StringComparison.Ordinal);
+        Assert.Contains("<views:SettingsModal", shell, StringComparison.Ordinal);
         Assert.Contains("DataTemplate x:Key=\"HomePageTemplate\"", pageTemplates, StringComparison.Ordinal);
-        Assert.Contains("DataTemplate x:Key=\"SettingsPageTemplate\"", pageTemplates, StringComparison.Ordinal);
+        Assert.DoesNotContain("DataTemplate x:Key=\"SettingsPageTemplate\"", pageTemplates, StringComparison.Ordinal);
         Assert.Contains("DataTemplate x:Key=\"HexEditorPageTemplate\"", pageTemplates, StringComparison.Ordinal);
         Assert.Contains("<views:HexEditorPanel", pageTemplates, StringComparison.Ordinal);
         Assert.DoesNotContain("HexEditorPanel", workflowTemplates, StringComparison.Ordinal);
@@ -162,13 +162,18 @@ public sealed partial class RepositoryBoundaryTests
         Assert.Contains("MergeOutputLayoutPanelTemplate", shell, StringComparison.Ordinal);
         Assert.Contains("MemoryCoverageSegmentBarTemplate", sharedTemplates, StringComparison.Ordinal);
         Assert.Contains("MemoryCoveragePlainSegmentBarTemplate", sharedTemplates, StringComparison.Ordinal);
-        Assert.Contains("MemoryCoverageGroupTemplate", sharedTemplates, StringComparison.Ordinal);
+        Assert.Contains("MemoryCoverageLogicalItemTemplate", sharedTemplates, StringComparison.Ordinal);
+        Assert.DoesNotContain("MemoryCoverageGroupTemplate", sharedTemplates, StringComparison.Ordinal);
+        Assert.Contains(
+            "ItemsSource=\"{Binding ReplaceSelectedCoverageItems}\"",
+            workflowTemplates,
+            StringComparison.Ordinal);
         Assert.Contains("ReplaceMemoryMapRowTemplate", sharedTemplates, StringComparison.Ordinal);
         Assert.Contains("MergeMemoryMapRowTemplate", sharedTemplates, StringComparison.Ordinal);
         Assert.Contains("MemoryCoverageTooltipTemplate", sharedTemplates, StringComparison.Ordinal);
         Assert.Contains("ContentTemplate=\"{StaticResource MemoryCoverageTooltipTemplate}\"", sharedTemplates, StringComparison.Ordinal);
-        Assert.Contains("Text=\"{ReflectionBinding $parent[Window].DataContext.Text.RangeLabel}\"", sharedTemplates, StringComparison.Ordinal);
-        Assert.Contains("Text=\"{ReflectionBinding $parent[Window].DataContext.Text.ResultLabel}\"", sharedTemplates, StringComparison.Ordinal);
+        Assert.Contains("AutomationProperties.HelpText=\"{Binding AccessibleDetail}\"", sharedTemplates, StringComparison.Ordinal);
+        Assert.Contains("Text=\"{Binding CompactDetail}\"", sharedTemplates, StringComparison.Ordinal);
         Assert.Contains("DataTemplate x:Key=\"FirmwareSlotInformationFactTemplate\"", sharedTemplates, StringComparison.Ordinal);
         Assert.Contains("<views:FirmwareSlotCard", workflowTemplates, StringComparison.Ordinal);
         Assert.DoesNotContain("<views:FirmwareSlotCard", shell, StringComparison.Ordinal);
@@ -205,9 +210,10 @@ public sealed partial class RepositoryBoundaryTests
         Assert.Contains("ItemsSource=\"{Binding MergeCoverageSegments}\"", sharedTemplates, StringComparison.Ordinal);
         Assert.Contains("ItemsSource=\"{Binding ReplaceSlots}\"", workflowTemplates, StringComparison.Ordinal);
         Assert.Contains("ItemsSource=\"{Binding ReplaceSlotGroups}\"", workflowTemplates, StringComparison.Ordinal);
-        Assert.Contains("ItemsSource=\"{Binding ReplaceCoverageGroups}\"", sharedTemplates, StringComparison.Ordinal);
+        Assert.Contains("ItemsSource=\"{Binding ReplaceBaseCoverageItems}\"", workflowTemplates, StringComparison.Ordinal);
+        Assert.DoesNotContain("ItemsSource=\"{Binding ReplaceCoverageGroups}\"", workflowTemplates, StringComparison.Ordinal);
         Assert.Contains("ItemsSource=\"{Binding MergeSlots}\"", workflowTemplates, StringComparison.Ordinal);
-        Assert.Contains("ItemsSource=\"{Binding ReplaceMemoryRows}\"", sharedTemplates, StringComparison.Ordinal);
+        Assert.Contains("ItemsSource=\"{Binding ReplaceMemoryRows}\"", workflowTemplates, StringComparison.Ordinal);
         Assert.Contains("ItemsSource=\"{Binding MergeMemoryRows}\"", sharedTemplates, StringComparison.Ordinal);
         Assert.DoesNotContain("Command=\"{Binding PreviewMergeCommand}\"", shell, StringComparison.Ordinal);
         Assert.DoesNotContain("Command=\"{Binding PreviewReplaceCommand}\"", shell, StringComparison.Ordinal);
@@ -250,6 +256,20 @@ public sealed partial class RepositoryBoundaryTests
         Assert.Contains("Text=\"{Binding Text.ChangeReviewTitle}\"", reportPanels, StringComparison.Ordinal);
         Assert.Contains("ContentTemplate=\"{StaticResource ReportAuditDetailsPanelTemplate}\"", reportModal, StringComparison.Ordinal);
         Assert.Contains("Text=\"{Binding Text.EvidenceTitle}\"", reportAuditTemplates, StringComparison.Ordinal);
+        foreach (string countBinding in new[]
+        {
+            "LoadedReport.InputCount",
+            "LoadedReport.OperationCount",
+            "LoadedReport.MutationCount",
+            "LoadedReport.OutputDifferenceCount",
+            "LoadedReport.IssueCount",
+            "LoadedReport.PostbuildInvocationCount",
+        })
+        {
+            Assert.Contains(countBinding, reportAuditTemplates, StringComparison.Ordinal);
+        }
+        Assert.Contains("Classes=\"subtlePanel\" Margin=\"16,14,16,0\"", reportPanels, StringComparison.Ordinal);
+        Assert.Contains("ColumnSpacing=\"{DynamicResource NfcSpace12}\"", reportPanels, StringComparison.Ordinal);
         Assert.Contains("ReportLineBadgeTemplate", reportTemplates, StringComparison.Ordinal);
         Assert.Contains("ReportDifferenceSummaryRowTemplate", reportPanels, StringComparison.Ordinal);
         Assert.DoesNotContain("ReportDifferenceSummaryChipTemplate", reportChangeTemplates, StringComparison.Ordinal);

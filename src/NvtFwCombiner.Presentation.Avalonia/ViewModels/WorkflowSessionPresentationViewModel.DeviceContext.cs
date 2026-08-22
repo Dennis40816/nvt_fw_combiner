@@ -4,7 +4,7 @@ using NvtFwCombiner.Domain.Composition;
 
 namespace NvtFwCombiner.Presentation.Avalonia.ViewModels;
 
-public sealed partial class WorkflowSessionPresentationViewModel
+internal sealed partial class WorkflowSessionPresentationViewModel
 {
     private string _selectedIc = string.Empty;
 
@@ -12,7 +12,6 @@ public sealed partial class WorkflowSessionPresentationViewModel
 
     internal string DeviceContextRefreshSummary { get; private set; } = string.Empty;
 
-    /// <summary>Gets IC choices admitted by the active authoring context.</summary>
     public IReadOnlyList<string> IcChoices => !IsCanonicalCatalogReady
         ? []
         : IsAbMergeContextActive
@@ -22,7 +21,6 @@ public sealed partial class WorkflowSessionPresentationViewModel
     /// <summary>True after the canonical capability publication is ready for workflow authoring.</summary>
     public bool IsCanonicalCatalogReady { get; private set; }
 
-    /// <summary>Gets grouped display choices for the IC-count control.</summary>
     [ObservableProperty]
     public partial IReadOnlyList<IcNumberChoiceViewModel> NumberSelectionChoices { get; set; } = [];
 
@@ -40,7 +38,6 @@ public sealed partial class WorkflowSessionPresentationViewModel
         }
     }
 
-    /// <summary>Gets or sets the selected IC id in the shared workflow context.</summary>
     public string SelectedIc
     {
         get => _selectedIc;
@@ -49,39 +46,39 @@ public sealed partial class WorkflowSessionPresentationViewModel
             if (SetProperty(ref _selectedIc, value))
             {
                 OnPropertyChanged(nameof(DeviceContextStatus));
-                OnSelectedIcChanged(value);
+                if (_isActivatingWorkflowPageContext)
+                {
+                    return;
+                }
+
+                WorkflowInspectionOwner? owner = ActiveWorkflowOwner;
+                StoreWorkflowPageContext(owner, value, SelectedNumber);
+                OnSelectedIcChanged(value, owner);
             }
         }
     }
 
-    /// <summary>Gets or sets the selected IC count/variant in the shared workflow context.</summary>
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(DeviceContextStatus))]
     public partial string SelectedNumber { get; set; } = IcNumberSelectionTokens.SingleChip;
 
-    /// <summary>Gets the shared device-context status.</summary>
     public string DeviceContextStatus => IsNumberSelectorVisible
         ? $"{_stateBindings.DisplayedDeviceIc()} / {_stateBindings.DisplayedDeviceNumber()}: {_stateBindings.DisplayedDeviceContextRefreshSummary()}"
         : $"{_stateBindings.DisplayedDeviceIc()}: {_stateBindings.DisplayedDeviceContextRefreshSummary()}";
 
-    /// <summary>True when the shared context row should expose the IC Number selector.</summary>
     public bool IsNumberSelectorVisible => _stateBindings.IsRunInProgress()
         ? _stateBindings.ActiveRunShowsNumberSelector()
         : ShouldShowNumberSelectorForSelectedPage();
 
-    /// <summary>True when the hidden IC Number selector should keep its layout space.</summary>
     public bool IsNumberSelectorPlaceholderVisible =>
         (_stateBindings.IsRunInProgress() || _stateBindings.SelectedPage() is ShellPage.Merge or ShellPage.Replace) &&
         !IsNumberSelectorVisible;
 
-    /// <summary>True when the mutable shell selection controls may be shown.</summary>
     public bool IsDeviceContextSelectionVisible => !_stateBindings.IsRunInProgress();
 
-    /// <summary>True when the mutable IC Number selection control may be shown.</summary>
     public bool IsDeviceContextNumberSelectionVisible =>
         IsNumberSelectorVisible && !_stateBindings.IsRunInProgress();
 
-    /// <summary>True when the selected-family badge describes the visible mutable context.</summary>
     public bool IsDeviceContextFamilyBadgeVisible =>
         !_stateBindings.IsRunInProgress() && HasSelectedIcFamily;
 
@@ -92,19 +89,16 @@ public sealed partial class WorkflowSessionPresentationViewModel
     /// <summary>Localized label for an owner-defined IC family.</summary>
     public string SelectedIcFamilyLabel => Text.GetIcFamilyLabel(SelectedIcFamilySummary.Relationship);
 
-    /// <summary>Localized boundary of reusable family facts.</summary>
     public string SelectedIcFamilyTooltip => Text.GetIcFamilyTooltip(SelectedIcFamilySummary);
 
     /// <summary>True when the selected IC has an owner-defined family relation.</summary>
     public bool HasSelectedIcFamily => SelectedIcFamilySummary.FamilyId is not null;
 
-    /// <summary>Concise family value shown inside the IC selector detail card.</summary>
     public string SelectedIcDetailFamily => Text.GetIcDetailFamilyValue(SelectedIcFamilySummary);
 
     /// <summary>Owner-declared fact reuse scope shown inside the IC selector detail card.</summary>
     public string SelectedIcDetailReuse => Text.GetIcDetailReuseValue(SelectedIcFamilySummary);
 
-    /// <summary>Typed executable workflow inventory shown inside the IC selector detail card.</summary>
     public string SelectedIcDetailRuntime => Text.GetIcDetailRuntimeValue(
         _merge.IsStandardMergeSupported,
         _merge.IsAbMergeSupported,
@@ -118,10 +112,8 @@ public sealed partial class WorkflowSessionPresentationViewModel
         _compositionServices.Capabilities.GetReplaceWorkflowReadiness(SelectedIc, ExperienceIds.CtrlRamReplace),
         _compositionServices.Capabilities.GetReplaceWorkflowReadiness(SelectedIc, ExperienceIds.GeneralReplace));
 
-    /// <summary>Support boundary shown inside the IC selector detail card.</summary>
     public string SelectedIcDetailSupport => Text.GetIcDetailSupportValue(_merge.IsAbMergeSupported);
 
-    /// <summary>Screen-reader equivalent of the visible IC detail card.</summary>
     public string SelectedIcDetailAutomationText => string.Join(
         Environment.NewLine,
         SelectedIc,
@@ -150,11 +142,11 @@ public sealed partial class WorkflowSessionPresentationViewModel
         ]);
         AbMergeIcChoices = abMergeIcChoices;
         _selectedIc = defaultIcId;
-        _replaceWorkflowContextIc = defaultIcId;
+        InitializeWorkflowPageContexts(defaultIcId);
         IsCanonicalCatalogReady = true;
-        OnPropertyChanged(nameof(IcChoices));
-        OnPropertyChanged(nameof(SelectedIc));
-        OnPropertyChanged(nameof(IsCanonicalCatalogReady));
+        PresentationObserver.Invoke(() => OnPropertyChanged(nameof(IcChoices)));
+        PresentationObserver.Invoke(() => OnPropertyChanged(nameof(SelectedIc)));
+        PresentationObserver.Invoke(() => OnPropertyChanged(nameof(IsCanonicalCatalogReady)));
     }
 
     internal bool ShouldShowNumberSelectorForSelectedPage()
@@ -203,8 +195,7 @@ public sealed partial class WorkflowSessionPresentationViewModel
             return;
         }
 
-        if (!nextDisplayChoices.Any(choice =>
-                string.Equals(choice.Token, SelectedNumber, StringComparison.Ordinal)))
+        if (!nextDisplayChoices.Any(choice => string.Equals(choice.Token, SelectedNumber, StringComparison.Ordinal)))
         {
             SelectedNumber = nextDisplayChoices.FirstOrDefault(choice =>
                 string.Equals(choice.Token, IcNumberSelectionTokens.SingleChip, StringComparison.Ordinal))?.Token ??
@@ -214,16 +205,23 @@ public sealed partial class WorkflowSessionPresentationViewModel
         OnPropertyChanged(nameof(SelectedNumberChoice));
     }
 
-    internal void RefreshContextState(bool resetRunResult = false, bool preserveReplaceSlotFiles = false)
+    internal void RefreshContextState(WorkflowInspectionOwner? owner = null, bool resetRunResult = false,
+        bool preserveReplaceSlotFiles = false)
     {
         EnsureWorkflowLoaded();
-        _merge.RefreshMergeSlotRequirements();
-        _replace.RefreshContextState(preserveSlotFiles: preserveReplaceSlotFiles);
-        _merge.ApplyFirmwareSlotText();
-        _replace.ApplyFirmwareSlotText();
-        _merge.RefreshMergeMemoryMapState();
+        if (owner is null or WorkflowInspectionOwner.Merge)
+        {
+            _merge.RefreshMergeSlotRequirements();
+            _merge.ApplyFirmwareSlotText();
+            _merge.RefreshMergeMemoryMapState();
+        }
+        if (owner is null or WorkflowInspectionOwner.Replace)
+        {
+            _replace.RefreshContextState(preserveSlotFiles: preserveReplaceSlotFiles);
+            _replace.ApplyFirmwareSlotText();
+        }
         _stateBindings.RefreshCommandState();
-        NotifyContextTextChanged();
+        NotifyContextTextChanged(owner, notifyIcChoices: false);
         if (resetRunResult)
         {
             _stateBindings.ResetRunResult();
@@ -239,7 +237,7 @@ public sealed partial class WorkflowSessionPresentationViewModel
 
         _merge.InvalidateCanonicalCatalogSessions();
         _replace.InvalidateCanonicalCatalogSessions();
-        InvalidateFirmwareInspection(clearBaseCache: true, clearFileProjections: true);
+        InvalidateFirmwareInspection(clearBaseProjection: true, clearSlotProjections: true);
         _replace.InvalidateCtrlRamFirmwareVersionContextState();
         RefreshContextState(preserveReplaceSlotFiles: true);
 
@@ -257,11 +255,20 @@ public sealed partial class WorkflowSessionPresentationViewModel
         }
     }
 
-    internal void NotifyContextTextChanged()
+    internal void NotifyContextTextChanged(WorkflowInspectionOwner? owner = null, bool notifyIcChoices = true)
     {
-        _merge.NotifyContextChanged();
-        _replace.NotifyContextChanged();
-        OnPropertyChanged(nameof(IcChoices));
+        if (owner is null or WorkflowInspectionOwner.Merge)
+        {
+            _merge.NotifyContextChanged();
+        }
+        if (owner is null or WorkflowInspectionOwner.Replace)
+        {
+            _replace.NotifyContextChanged();
+        }
+        if (notifyIcChoices)
+        {
+            OnPropertyChanged(nameof(IcChoices));
+        }
         OnPropertyChanged(nameof(SelectedIcFamilySummary));
         OnPropertyChanged(nameof(SelectedIcFamilyLabel));
         OnPropertyChanged(nameof(SelectedIcFamilyTooltip));
@@ -289,22 +296,29 @@ public sealed partial class WorkflowSessionPresentationViewModel
     internal void ReplaceModeChanged()
     {
         InvalidateFirmwareNumberMismatch();
-        InvalidateFirmwareInspection();
+        InvalidateFirmwareInspection(WorkflowInspectionOwner.Replace);
         _replace.InvalidateCtrlRamFirmwareVersionContextState();
-        RefreshContextState(resetRunResult: true);
+        RefreshContextState(WorkflowInspectionOwner.Replace, resetRunResult: true);
         RefreshCtrlRamDisplayFromInspection();
     }
 
     private bool IsAbMergeContextActive =>
         _stateBindings.SelectedPage() == ShellPage.Merge && _merge.IsAbCodeMergeModeSelected;
 
-    private void OnSelectedIcChanged(string value)
+    private void OnSelectedIcChanged(string value, WorkflowInspectionOwner? owner)
     {
         InvalidateFirmwareNumberMismatch();
         AcceptedFirmwareMismatchSelection? acceptedMismatch = ConsumeAcceptedFirmwareMismatchSelection();
-        InvalidateFirmwareInspection(clearBaseCache: true, clearFileProjections: true);
-        _replace.InvalidateCtrlRamFirmwareVersionContextState();
-        if (_merge.IsAbCodeMergeModeSelected &&
+        InvalidateFirmwareInspection(
+            owner,
+            clearBaseProjection: owner is null or WorkflowInspectionOwner.Replace,
+            clearSlotProjections: true);
+        if (owner is null or WorkflowInspectionOwner.Replace)
+        {
+            _replace.InvalidateCtrlRamFirmwareVersionContextState();
+        }
+        if (owner is not WorkflowInspectionOwner.Replace &&
+            _merge.IsAbCodeMergeModeSelected &&
             !_compositionServices.AbMergeAuthoring.IsAvailable(value))
         {
             _merge.SelectMergeMode(ExperienceIds.StandardMerge);
@@ -314,20 +328,31 @@ public sealed partial class WorkflowSessionPresentationViewModel
         try
         {
             RefreshNumberChoicesForSelectedIc();
-            _merge.GeneralMergeOutputLength =
-                _compositionServices.GeneralAuthoring.GetDefaultOutputLength(value);
-            _merge.GeneralMergeOutputFillByte =
-                _compositionServices.GeneralAuthoring.GetDefaultOutputFillByte(value);
+            if (owner is not WorkflowInspectionOwner.Replace)
+            {
+                _merge.GeneralMergeOutputLength =
+                    _compositionServices.GeneralAuthoring.GetDefaultOutputLength(value);
+                _merge.GeneralMergeOutputFillByte =
+                    _compositionServices.GeneralAuthoring.GetDefaultOutputFillByte(value);
+            }
         }
         finally
         {
             IsRefreshingFirmwareInspectionContext = false;
         }
 
-        RefreshContextState(resetRunResult: true, preserveReplaceSlotFiles: acceptedMismatch is not null);
+        RefreshContextState(
+            owner,
+            resetRunResult: true,
+            preserveReplaceSlotFiles: owner == WorkflowInspectionOwner.Replace &&
+                acceptedMismatch?.Context.Owner == WorkflowInspectionOwner.Replace);
+        WorkflowInspectionContext? refreshContext = acceptedMismatch is { } accepted
+            ? InspectionContext(accepted.Context.Owner)
+            : ActiveInspectionContext;
         string? acceptedMismatchSlotId = null;
         if (acceptedMismatch is { } selection &&
-            FindSlot(selection.SlotId) is { } acceptedSlot &&
+            refreshContext is { } retainedContext &&
+            FindInspectionSlot(retainedContext, selection.SlotId) is { } acceptedSlot &&
             string.Equals(acceptedSlot.FilePath, selection.Path, StringComparison.Ordinal))
         {
             acceptedMismatchSlotId = selection.SlotId;
@@ -339,35 +364,63 @@ public sealed partial class WorkflowSessionPresentationViewModel
                 Text.FormatFirmwareSelectionNotRetainedToast(Path.GetFileName(missingSelection.Path)));
         }
 
-        _ = RefreshAllSelectedFirmwareInspectionsAsync(acceptedMismatchSlotId);
-        RememberReplaceWorkflowContext();
+        _ = refreshContext?.Owner switch
+        {
+            WorkflowInspectionOwner.Merge => RefreshSelectedMergeFirmwareInspectionsAsync(acceptedMismatchSlotId),
+            WorkflowInspectionOwner.Replace => RefreshSelectedReplaceFirmwareInspectionsAsync(acceptedMismatchSlotId),
+            null => Task.CompletedTask,
+            _ => throw new InvalidOperationException("Unknown workflow inspection owner."),
+        };
+        StoreWorkflowPageContext(owner, SelectedIc, SelectedNumber);
     }
 
     partial void OnSelectedNumberChanged(string value)
     {
-        RememberReplaceWorkflowContext();
-        InvalidateFirmwareNumberMismatch();
-        if (IsRefreshingFirmwareInspectionContext)
+        if (_isActivatingWorkflowPageContext)
         {
-            _replace.InvalidateCtrlRamFirmwareVersionContextState();
             OnPropertyChanged(nameof(SelectedNumberChoice));
             return;
         }
 
-        bool clearFileProjections = _merge.IsAbCodeMergeModeSelected && _merge.HasAbMergeTopologyChoices;
-        InvalidateFirmwareInspection(clearFileProjections: clearFileProjections);
-        _replace.InvalidateCtrlRamFirmwareVersionContextState();
+        WorkflowInspectionOwner? owner = ActiveWorkflowOwner;
+        StoreWorkflowPageContext(owner, SelectedIc, value);
+        InvalidateFirmwareNumberMismatch();
+        if (IsRefreshingFirmwareInspectionContext)
+        {
+            if (owner is null or WorkflowInspectionOwner.Replace)
+            {
+                _replace.InvalidateCtrlRamFirmwareVersionContextState();
+            }
+            OnPropertyChanged(nameof(SelectedNumberChoice));
+            return;
+        }
+
+        bool clearSlotProjections = owner is not WorkflowInspectionOwner.Replace &&
+            _merge.IsAbCodeMergeModeSelected && _merge.HasAbMergeTopologyChoices;
+        InvalidateFirmwareInspection(owner, clearSlotProjections: clearSlotProjections);
+        if (owner is null or WorkflowInspectionOwner.Replace)
+        {
+            _replace.InvalidateCtrlRamFirmwareVersionContextState();
+        }
         OnPropertyChanged(nameof(SelectedNumberChoice));
-        RefreshContextState(resetRunResult: true, preserveReplaceSlotFiles: true);
-        RefreshAbMergeInputsAfterTopologyChange();
-        bool refreshCtrlRamInputs = IsCtrlRamReplaceModeSelected &&
+        RefreshContextState(
+            owner,
+            resetRunResult: true,
+            preserveReplaceSlotFiles: owner is null or WorkflowInspectionOwner.Replace);
+        if (owner is not WorkflowInspectionOwner.Replace)
+        {
+            RefreshAbMergeInputsAfterTopologyChange();
+        }
+        bool refreshCtrlRamInputs = owner is not WorkflowInspectionOwner.Merge &&
+            ActiveInspectionContext is { IsCtrlRamReplace: true } &&
             ReplaceSlots.Append(ReplaceBaseSlot).Any(static slot => slot.HasFile);
         if (refreshCtrlRamInputs)
         {
             _ = RefreshSelectedReplaceFirmwareInspectionsAsync();
         }
 
-        if (!IsApplyingFirmwareInspectionContext && !refreshCtrlRamInputs)
+        if (owner is not WorkflowInspectionOwner.Merge &&
+            !IsApplyingFirmwareInspectionContext && !refreshCtrlRamInputs)
         {
             RefreshCtrlRamDisplayFromInspection();
         }
@@ -375,7 +428,7 @@ public sealed partial class WorkflowSessionPresentationViewModel
 
     private void RefreshAbMergeInputsAfterTopologyChange()
     {
-        if (_merge.IsAbCodeMergeModeSelected &&
+        if (ActiveInspectionContext is { IsAbMerge: true } &&
             _merge.HasAbMergeTopologyChoices &&
             _merge.MergeSlots.Any(slot => slot.HasFile))
         {

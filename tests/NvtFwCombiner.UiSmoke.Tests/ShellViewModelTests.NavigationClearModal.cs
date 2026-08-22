@@ -6,6 +6,19 @@ namespace NvtFwCombiner.UiSmoke.Tests;
 
 public sealed partial class ShellNavigationSystemTests
 {
+    /// <summary>A newly opened application blocker closes Settings instead of nesting modal surfaces.</summary>
+    [Fact]
+    public void SettingsClosesWhenAnotherApplicationModalOpens()
+    {
+        MainWindowViewModel viewModel = PresentationTestHost.CreateViewModel();
+        viewModel.OpenSettingsCommand.Execute(null);
+
+        viewModel.IsNavigationClearConfirmationOpen = true;
+
+        Assert.False(viewModel.IsSettingsModalOpen);
+        Assert.True(viewModel.IsNavigationClearConfirmationOpen);
+    }
+
     /// <summary>A clear confirmation keeps its original destination until the user decides.</summary>
     [Fact]
     public void NavigationClearConfirmationIgnoresSubsequentNavigationRequests()
@@ -18,7 +31,7 @@ public sealed partial class ShellNavigationSystemTests
         viewModel.SetSlotFile("replace-base", workspace.Write("base.bin", [0x10, 0x11]));
 
         viewModel.ShowMergeCommand.Execute(null);
-        viewModel.ShowSettingsCommand.Execute(null);
+        viewModel.OpenSettingsCommand.Execute(null);
 
         Assert.True(viewModel.IsNavigationClearConfirmationOpen);
         Assert.Equal("Replace → Merge", viewModel.NavigationClearRoute);
@@ -26,6 +39,6 @@ public sealed partial class ShellNavigationSystemTests
         viewModel.ConfirmNavigationAndClearCommand.Execute(null);
 
         Assert.True(viewModel.IsMergeVisible);
-        Assert.False(viewModel.IsSettingsVisible);
+        Assert.False(viewModel.IsSettingsModalOpen);
     }
 }

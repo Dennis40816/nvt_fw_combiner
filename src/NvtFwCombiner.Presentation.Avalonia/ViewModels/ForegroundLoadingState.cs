@@ -1,147 +1,119 @@
 using System.Globalization;
 using CommunityToolkit.Mvvm.ComponentModel;
+using CommunityToolkit.Mvvm.Input;
 
 namespace NvtFwCombiner.Presentation.Avalonia.ViewModels;
 
 /// <summary>
 /// Presentation-owned state for one foreground operation without inventing progress that its owner did not report.
 /// </summary>
-public sealed class ForegroundLoadingState : ObservableObject
+internal sealed class ForegroundLoadingState : ObservableObject
 {
-    private string _title = string.Empty;
-    private string _detail = string.Empty;
-    private string _retryLabel = string.Empty;
-    private double? _progress;
-    private bool _isVisible;
-    private bool _isRunning;
-    private bool _hasFailed;
-    private bool _isReducedMotionEnabled;
+    private static readonly string[] PublishedPropertyNames =
+    [
+        nameof(Title), nameof(Detail), nameof(RetryLabel), nameof(CancelLabel),
+        nameof(Progress), nameof(IsVisible), nameof(IsRunning), nameof(IsReducedMotionEnabled),
+        nameof(HasDeterminateProgress), nameof(ProgressPercentLabel), nameof(ShouldAnimate),
+        nameof(CanRetry), nameof(CanCancel),
+    ];
+    private ForegroundLoadingPhase _phase;
+    internal ForegroundLoadingState(Func<Task>? retry = null, Func<Task>? cancel = null)
+    {
+        RetryCommand = retry is null ? null : new AsyncRelayCommand(retry);
+        CancelCommand = cancel is null ? null : new AsyncRelayCommand(cancel);
+    }
 
-    /// <summary>Whether the foreground surface currently blocks the underlying interaction.</summary>
-    public bool IsVisible => _isVisible;
-
-    /// <summary>Whether the represented operation is still running.</summary>
-    public bool IsRunning => _isRunning;
-
-    /// <summary>Whether the latest operation attempt failed.</summary>
-    public bool HasFailed => _hasFailed;
-
-    /// <summary>Localized concise operation title.</summary>
-    public string Title => _title;
-
-    /// <summary>Localized current status or recovery guidance.</summary>
-    public string Detail => _detail;
-
-    /// <summary>Localized retry action label, or empty when retry is unavailable.</summary>
-    public string RetryLabel => _retryLabel;
-
-    /// <summary>Reported determinate progress in the inclusive range 0..1, or null when no progress contract exists.</summary>
-    public double? Progress => _progress;
-
-    /// <summary>True when the operation owner supplied determinate progress.</summary>
+    public IAsyncRelayCommand? RetryCommand { get; }
+    public IAsyncRelayCommand? CancelCommand { get; }
+    public string Title { get; private set; } = string.Empty;
+    public string Detail { get; private set; } = string.Empty;
+    public string RetryLabel { get; private set; } = string.Empty;
+    public string CancelLabel { get; private set; } = string.Empty;
+    public double? Progress { get; private set; }
+    public bool IsVisible => _phase != ForegroundLoadingPhase.Hidden;
+    public bool IsRunning => _phase == ForegroundLoadingPhase.Running;
+    public bool IsReducedMotionEnabled { get; private set; }
     public bool HasDeterminateProgress => Progress.HasValue;
-
-    /// <summary>Current determinate progress as a concise percentage, or empty when progress is unknown.</summary>
     public string ProgressPercentLabel => Progress is { } progress
         ? string.Create(CultureInfo.CurrentCulture, $"{progress * 100:0}%")
         : string.Empty;
+    public bool ShouldAnimate => IsRunning && !IsReducedMotionEnabled;
+    public bool CanRetry => _phase == ForegroundLoadingPhase.Failed && !string.IsNullOrWhiteSpace(RetryLabel);
+    public bool CanCancel => IsVisible && !string.IsNullOrWhiteSpace(CancelLabel);
+    public string AccessibleStatus { get; private set; } = string.Empty;
 
-    /// <summary>True while the foreground operation is active, independently of its numeric status.</summary>
-    public bool IsIndeterminate => IsRunning;
-
-    /// <summary>True when continuous activity animation is both truthful and permitted.</summary>
-    public bool ShouldAnimate => IsIndeterminate && !IsReducedMotionEnabled;
-
-    /// <summary>True when user or platform preference requests a static progress presentation.</summary>
-    public bool IsReducedMotionEnabled => _isReducedMotionEnabled;
-
-    /// <summary>True only for a failed operation with an explicit retry action.</summary>
-    public bool CanRetry => HasFailed && !string.IsNullOrWhiteSpace(RetryLabel);
-
-    /// <summary>Localized live-region text that remains available without motion or color.</summary>
-    public string AccessibleStatus
+    public void Begin(
+        string title,
+        string detail,
+        double? progress = null,
+        string cancelLabel = "")
     {
-        get
-        {
-            string heading = HasDeterminateProgress
-                ? $"{Title} {ProgressPercentLabel}"
-                : Title;
-            return string.IsNullOrWhiteSpace(Detail)
-                ? heading
-                : $"{heading} — {Detail}";
-        }
+        Validate(title, detail, progress);
+        bool announce = !IsRunning || Title != title || Detail != detail || Progress != progress;
+        Title = title;
+        Detail = detail;
+        Progress = progress;
+        RetryLabel = string.Empty;
+        CancelLabel = cancelLabel ?? string.Empty;
+        _phase = ForegroundLoadingPhase.Running;
+        Publish(announce);
     }
 
-    /// <summary>Shows a new foreground operation using determinate progress only when supplied by its owner.</summary>
-    public void Begin(string title, string detail, double? progress = null)
-    {
-        ArgumentException.ThrowIfNullOrWhiteSpace(title);
-        ArgumentException.ThrowIfNullOrWhiteSpace(detail);
-        ValidateProgress(progress);
-
-        bool accessibleStatusChanged = SetTitle(title) |
-            SetDetail(detail) |
-            SetProgress(progress);
-        SetRetryLabel(string.Empty);
-        SetFailed(false);
-        SetRunning(true);
-        SetVisible(true);
-        NotifyAccessibleStatus(accessibleStatusChanged);
-    }
-
-    /// <summary>Updates determinate progress for the active operation.</summary>
-    public void ReportProgress(double progress, string? detail = null)
+    public void ReportProgress(double progress, string detail, bool announce = true)
     {
         if (!IsRunning)
         {
             throw new InvalidOperationException("Determinate progress requires an active foreground operation.");
         }
-
         ValidateProgress(progress);
-        bool accessibleStatusChanged = false;
-        if (detail is not null)
-        {
-            ArgumentException.ThrowIfNullOrWhiteSpace(detail);
-            accessibleStatusChanged = SetDetail(detail);
-        }
-
-        accessibleStatusChanged |= SetProgress(progress);
-        NotifyAccessibleStatus(accessibleStatusChanged);
+        ArgumentException.ThrowIfNullOrWhiteSpace(detail);
+        bool changed = Progress != progress || Detail != detail;
+        Progress = progress;
+        Detail = detail;
+        Publish(announce && changed);
     }
 
-    /// <summary>Keeps the foreground surface visible with explicit recovery guidance.</summary>
-    public void Fail(string title, string detail, string retryLabel = "")
+    public void Fail(
+        string title,
+        string detail,
+        string retryLabel = "",
+        string cancelLabel = "")
+    {
+        Validate(title, detail, progress: null);
+        bool announce = _phase != ForegroundLoadingPhase.Failed ||
+            Title != title || Detail != detail || Progress is not null;
+        Title = title;
+        Detail = detail;
+        Progress = null;
+        RetryLabel = retryLabel ?? string.Empty;
+        CancelLabel = cancelLabel ?? string.Empty;
+        _phase = ForegroundLoadingPhase.Failed;
+        Publish(announce);
+    }
+
+    public void Complete()
+    {
+        _phase = ForegroundLoadingPhase.Hidden;
+        RetryLabel = string.Empty;
+        CancelLabel = string.Empty;
+        Progress = null;
+        Publish(announce: false);
+    }
+
+    public void SetReducedMotion(bool enabled)
+    {
+        if (IsReducedMotionEnabled != enabled)
+        {
+            IsReducedMotionEnabled = enabled;
+            Publish(announce: false);
+        }
+    }
+
+    private static void Validate(string title, string detail, double? progress)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(title);
         ArgumentException.ThrowIfNullOrWhiteSpace(detail);
-
-        bool accessibleStatusChanged = SetTitle(title) |
-            SetDetail(detail) |
-            SetProgress(null);
-        SetRetryLabel(retryLabel ?? string.Empty);
-        SetRunning(false);
-        SetFailed(true);
-        SetVisible(true);
-        NotifyAccessibleStatus(accessibleStatusChanged);
-    }
-
-    /// <summary>Hides the foreground surface after the owning operation completes.</summary>
-    public void Complete()
-    {
-        SetRunning(false);
-        SetFailed(false);
-        SetRetryLabel(string.Empty);
-        _ = SetProgress(null);
-        SetVisible(false);
-    }
-
-    /// <summary>Updates whether non-essential activity motion is allowed.</summary>
-    public void SetReducedMotion(bool isEnabled)
-    {
-        if (SetProperty(ref _isReducedMotionEnabled, isEnabled, nameof(IsReducedMotionEnabled)))
-        {
-            OnPropertyChanged(nameof(ShouldAnimate));
-        }
+        ValidateProgress(progress);
     }
 
     private static void ValidateProgress(double? progress)
@@ -152,63 +124,22 @@ public sealed class ForegroundLoadingState : ObservableObject
         }
     }
 
-    private bool SetTitle(string value)
+    private void Publish(bool announce)
     {
-        return SetProperty(ref _title, value, nameof(Title));
-    }
-
-    private bool SetDetail(string value)
-    {
-        return SetProperty(ref _detail, value, nameof(Detail));
-    }
-
-    private void SetRetryLabel(string value)
-    {
-        if (SetProperty(ref _retryLabel, value, nameof(RetryLabel)))
+        if (announce)
         {
-            OnPropertyChanged(nameof(CanRetry));
+            string heading = HasDeterminateProgress ? $"{Title} {ProgressPercentLabel}" : Title;
+            AccessibleStatus = string.IsNullOrWhiteSpace(Detail) ? heading : $"{heading} — {Detail}";
+        }
+        foreach (string propertyName in PublishedPropertyNames)
+        {
+            PresentationObserver.Invoke(() => OnPropertyChanged(propertyName));
+        }
+        if (announce)
+        {
+            PresentationObserver.Invoke(() => OnPropertyChanged(nameof(AccessibleStatus)));
         }
     }
 
-    private bool SetProgress(double? value)
-    {
-        bool changed = SetProperty(ref _progress, value, nameof(Progress));
-        if (changed)
-        {
-            OnPropertyChanged(nameof(HasDeterminateProgress));
-            OnPropertyChanged(nameof(ProgressPercentLabel));
-        }
-
-        return changed;
-    }
-
-    private void SetVisible(bool value)
-    {
-        _ = SetProperty(ref _isVisible, value, nameof(IsVisible));
-    }
-
-    private void SetRunning(bool value)
-    {
-        if (SetProperty(ref _isRunning, value, nameof(IsRunning)))
-        {
-            OnPropertyChanged(nameof(IsIndeterminate));
-            OnPropertyChanged(nameof(ShouldAnimate));
-        }
-    }
-
-    private void SetFailed(bool value)
-    {
-        if (SetProperty(ref _hasFailed, value, nameof(HasFailed)))
-        {
-            OnPropertyChanged(nameof(CanRetry));
-        }
-    }
-
-    private void NotifyAccessibleStatus(bool changed)
-    {
-        if (changed)
-        {
-            OnPropertyChanged(nameof(AccessibleStatus));
-        }
-    }
+    private enum ForegroundLoadingPhase { Hidden, Running, Failed }
 }

@@ -3,7 +3,7 @@
 
 namespace NvtFwCombiner.Presentation.Avalonia.ViewModels;
 
-public sealed partial class ShellTextResources
+internal sealed partial class ShellTextResources
 {
     public string BinInspectorTitle { get; private init; } = string.Empty;
 

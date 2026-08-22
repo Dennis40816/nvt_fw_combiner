@@ -166,22 +166,41 @@ public sealed partial class RepositoryBoundaryTests
         Assert.Contains("FileMode.Append", staging, StringComparison.Ordinal);
     }
 
-    /// <summary>Locks manifest discovery and processor construction to one process lifetime.</summary>
+    /// <summary>Locks bounded discovery, publication, and leases to one Infrastructure lifecycle owner.</summary>
     [Fact]
     public void ExternalProcessorDiscoveryUsesOneExplicitProcessLifetime()
     {
-        string factory = ReadText("src/NvtFwCombiner.Bootstrap/ExternalProcessorFactory.cs");
+        string loader = ReadText(
+            "src/NvtFwCombiner.Infrastructure/ExternalTools/ExternalProcessorEnvironmentLoader.cs");
+        string host = ReadText("src/NvtFwCombiner.Bootstrap/CompositionHostServices.cs");
+        string cli = ReadText("src/NvtFwCombiner.Cli/CliApplication.cs");
         string ctrlRam = ReadText(
             "src/NvtFwCombiner.Application/Composition/CompositionExecutionExperience.cs");
 
-        Assert.Contains("ProcessLifetime = new(CreateUncached)", factory, StringComparison.Ordinal);
-        Assert.Contains("internal static ExternalProcessorGenerationLease AcquireCurrent()", factory, StringComparison.Ordinal);
-        Assert.DoesNotContain("internal static void Refresh()", factory, StringComparison.Ordinal);
+        Assert.False(File.Exists(Path.Combine(
+            Root.FullName,
+            "src/NvtFwCombiner.Bootstrap/ExternalProcessorFactory.cs")));
+        Assert.False(File.Exists(Path.Combine(
+            Root.FullName,
+            "src/NvtFwCombiner.Bootstrap/RuntimeDependencyReadinessLeaseProvider.cs")));
+        Assert.Equal(1, CountOccurrences(host, "new ExternalProcessorEnvironmentLoader()"));
+        Assert.Contains("Channel.CreateBounded<ExternalProcessorEnvironmentLoadUpdate>", loader,
+            StringComparison.Ordinal);
+        Assert.Contains("MaximumDepth = 16", loader, StringComparison.Ordinal);
+        Assert.Contains("MaximumVisitedEntries = 4_096", loader, StringComparison.Ordinal);
+        Assert.Contains("MaximumManifestCount = 256", loader, StringComparison.Ordinal);
+        Assert.Contains("MaximumManifestBytes = 1_048_576", loader, StringComparison.Ordinal);
+        Assert.Contains("MaximumCumulativeManifestBytes = 16_777_216", loader,
+            StringComparison.Ordinal);
+        Assert.Contains("ExternalProcessorEnvironmentLease AcquireCurrent()", loader,
+            StringComparison.Ordinal);
+        Assert.DoesNotContain("Process.Start", loader, StringComparison.Ordinal);
         Assert.DoesNotContain("RefreshCtrlRamRuntimeDependencies", ctrlRam, StringComparison.Ordinal);
         Assert.Contains("_acquireExternalProcessor()", ctrlRam, StringComparison.Ordinal);
         Assert.Contains("_externalProcessorGenerationIsCurrent", ctrlRam, StringComparison.Ordinal);
-        Assert.Contains("LazyThreadSafetyMode.ExecutionAndPublication", factory, StringComparison.Ordinal);
-        Assert.Equal(1, factory.Split("Directory.EnumerateFiles(", StringSplitOptions.None).Length - 1);
-        Assert.DoesNotContain("static IExternalProcessor? CreateOrNull()", factory, StringComparison.Ordinal);
+        int version = cli.IndexOf("if (args is [\"--version\"]", StringComparison.Ordinal);
+        int help = cli.IndexOf("if (args.Length == 0", StringComparison.Ordinal);
+        int load = cli.IndexOf("ExternalEnvironmentLoader.LoadToCompletionAsync", StringComparison.Ordinal);
+        Assert.True(version >= 0 && help > version && load > help);
     }
 }

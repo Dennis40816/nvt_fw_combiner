@@ -1,5 +1,7 @@
 using NvtFwCombiner.Bootstrap;
 using NvtFwCombiner.Application.Capabilities;
+using NvtFwCombiner.Application.ExternalTools;
+using NvtFwCombiner.Infrastructure.ExternalTools;
 using NvtFwCombiner.Presentation.Avalonia;
 using NvtFwCombiner.Presentation.Avalonia.ViewModels;
 
@@ -7,6 +9,9 @@ namespace NvtFwCombiner.UiSmoke.Tests;
 
 internal static class PresentationTestHost
 {
+    private static readonly Lazy<ExternalProcessorRuntimeEnvironment> ExternalEnvironment =
+        new(LoadExternalEnvironment);
+
     internal static MainWindowViewModel CreateViewModel(
         ShellLanguage language = ShellLanguage.English)
     {
@@ -14,6 +19,20 @@ internal static class PresentationTestHost
             ApplicationVersionProvider.InformationalVersion);
         MainWindowViewModel viewModel = ShellViewModelFactory.Create(services, language);
         return PublishCanonicalCatalog(services, viewModel);
+    }
+
+    internal static async Task<MainWindowViewModel> CreateViewModelAsync(
+        CancellationToken cancellationToken,
+        ShellLanguage language = ShellLanguage.English)
+    {
+        PresentationHostServices services = CreateServices(
+            ApplicationVersionProvider.InformationalVersion);
+        MainWindowViewModel viewModel = ShellViewModelFactory.Create(services, language);
+        return await PublishCanonicalCatalogAsync(
+                services,
+                viewModel,
+                cancellationToken)
+            .ConfigureAwait(false);
     }
 
     internal static MainWindowViewModel CreateViewModel(
@@ -41,6 +60,20 @@ internal static class PresentationTestHost
         return viewModel;
     }
 
+    private static async Task<MainWindowViewModel> PublishCanonicalCatalogAsync(
+        PresentationHostServices services,
+        MainWindowViewModel viewModel,
+        CancellationToken cancellationToken)
+    {
+        CapabilityCatalogReloadResult reload = await LoadCanonicalCatalogAsync(
+                services.CanonicalCatalogLoader,
+                cancellationToken)
+            .ConfigureAwait(false);
+        Assert.True(reload.Succeeded);
+        viewModel.PublishCanonicalCatalogState();
+        return viewModel;
+    }
+
     internal static async Task<CapabilityCatalogReloadResult> LoadCanonicalCatalogAsync(
         ICanonicalCapabilityCatalogLoader loader,
         CancellationToken cancellationToken)
@@ -63,11 +96,45 @@ internal static class PresentationTestHost
         return CreateServices(applicationVersion, static authoring => authoring);
     }
 
+    internal static PresentationHostServices CreateServices(
+        string applicationVersion,
+        Application.VersionManagement.IVersionManagementExperience versionManagement,
+        Application.VersionManagement.IStableLauncherHandoff? stableLauncherHandoff = null)
+    {
+        ArgumentNullException.ThrowIfNull(versionManagement);
+        var externalEnvironment = new ExternalProcessorEnvironmentLoader(ExternalEnvironment.Value);
+        var host = CompositionHostServices.Create(externalEnvironment);
+        return new PresentationHostServices(
+            new PresentationCompositionServices(
+                host.CompositionCapabilityExperience,
+                host.StandardMergeAuthoring,
+                host.AbMergeAuthoring,
+                host.DpReplaceAuthoring,
+                host.GeneralAuthoring,
+                host.CtrlRamAuthoring,
+                host.FirmwareInspectionExperience,
+                host.CompositionOutputNaming,
+                host.CompositionExecution),
+            CompositionHostServices.CreateFileRevealService(),
+            host.CanonicalSupportMatrixQuery,
+            host.CreateSystemInformationService(applicationVersion),
+            CompositionHostServices.CreateSystemDiagnosticsExporter(),
+            host.RawBinaryEditorFileSessions,
+            host.CanonicalCatalogLoader,
+            host.ExternalEnvironmentLoader,
+            host.LocalFiles,
+            Application.VersionManagement.ManagedAppVersion.Parse(applicationVersion),
+            versionManagement,
+            applicationReadySignal: null,
+            stableLauncherHandoff);
+    }
+
     private static PresentationHostServices CreateServices(
         string applicationVersion,
         Func<IGeneralAuthoring, IGeneralAuthoring> generalAuthoringDecorator)
     {
-        var host = CompositionHostServices.Create();
+        var externalEnvironment = new ExternalProcessorEnvironmentLoader(ExternalEnvironment.Value);
+        var host = CompositionHostServices.Create(externalEnvironment);
         return new PresentationHostServices(
             new PresentationCompositionServices(
                 host.CompositionCapabilityExperience,
@@ -84,7 +151,19 @@ internal static class PresentationTestHost
             host.CreateSystemInformationService(applicationVersion),
             CompositionHostServices.CreateSystemDiagnosticsExporter(),
             host.RawBinaryEditorFileSessions,
-            host.CanonicalCatalogLoader);
+            host.CanonicalCatalogLoader,
+            host.ExternalEnvironmentLoader,
+            host.LocalFiles);
+    }
+
+    private static ExternalProcessorRuntimeEnvironment LoadExternalEnvironment()
+    {
+        var loader = new ExternalProcessorEnvironmentLoader();
+        Assert.True(((IExternalProcessorEnvironmentLoader)loader)
+            .LoadToCompletionAsync(null, CancellationToken.None)
+            .GetAwaiter().GetResult().Succeeded);
+        ExternalProcessorEnvironmentLease lease = loader.AcquireCurrent();
+        return new(lease.Processor, lease.ReadinessProvider, loader.Current.ManifestCount);
     }
 
     internal static Application.HexEditor.IRawBinaryEditorFileSessionFactory

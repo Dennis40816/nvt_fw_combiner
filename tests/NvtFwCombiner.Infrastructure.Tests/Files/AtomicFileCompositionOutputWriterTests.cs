@@ -1,3 +1,4 @@
+using NvtFwCombiner.Application.Ports;
 using NvtFwCombiner.Infrastructure.Files;
 using NvtFwCombiner.TestSupport;
 
@@ -13,13 +14,13 @@ public sealed class AtomicFileCompositionOutputWriterTests
         using var workspace = TempWorkspace.Create();
         var writer = new AtomicFileCompositionOutputWriter(workspace.Root);
 
-        string committedPath = await writer.CommitAsync(
+        CompositionOutputCommitReceipt receipt = await writer.CommitAsync(
             "output.bin",
             new byte[] { 1, 2, 3 },
             CancellationToken.None);
 
-        Assert.Equal(Path.Combine(workspace.Root, "output.bin"), committedPath);
-        Assert.Equal([1, 2, 3], await File.ReadAllBytesAsync(committedPath, CancellationToken.None));
+        Assert.Equal(Path.Combine(workspace.Root, "output.bin"), receipt.OutputId);
+        Assert.Equal([1, 2, 3], await File.ReadAllBytesAsync(receipt.OutputId, CancellationToken.None));
         Assert.Empty(Directory.EnumerateFiles(workspace.Root, "*.tmp"));
     }
 
@@ -59,12 +60,12 @@ public sealed class AtomicFileCompositionOutputWriterTests
         await File.WriteAllBytesAsync(existingPath, [9], CancellationToken.None);
         var writer = new AtomicFileCompositionOutputWriter(workspace.Root, overwrite: true);
 
-        string committedPath = await writer.CommitAsync(
+        CompositionOutputCommitReceipt receipt = await writer.CommitAsync(
             "output.bin",
             new byte[] { 1 },
             CancellationToken.None);
 
-        Assert.Equal(existingPath, committedPath);
+        Assert.Equal(existingPath, receipt.OutputId);
         Assert.Equal([1], await File.ReadAllBytesAsync(existingPath, CancellationToken.None));
     }
 }

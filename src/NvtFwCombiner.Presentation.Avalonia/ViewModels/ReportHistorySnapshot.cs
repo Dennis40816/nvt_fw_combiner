@@ -1,40 +1,25 @@
 namespace NvtFwCombiner.Presentation.Avalonia.ViewModels;
 
 /// <summary>Serializable report history data that can restore a report without re-running workflows.</summary>
-public sealed class ReportHistorySnapshot
+internal sealed class ReportHistorySnapshot(
+    string sourceName,
+    string reportJson,
+    string outputArtifactPath,
+    ReportHistoryMetadataSnapshot? metadata = null)
 {
-    /// <summary>Creates a report history snapshot.</summary>
-    public ReportHistorySnapshot(
-        string sourceName,
-        string reportJson,
-        string outputArtifactPath,
-        ReportHistoryMetadataSnapshot? metadata = null)
-    {
-        ArgumentNullException.ThrowIfNull(sourceName);
-        ArgumentNullException.ThrowIfNull(reportJson);
-        ArgumentNullException.ThrowIfNull(outputArtifactPath);
+    public string SourceName { get; } = sourceName ?? throw new ArgumentNullException(nameof(sourceName));
 
-        SourceName = sourceName;
-        ReportJson = reportJson;
-        OutputArtifactPath = outputArtifactPath;
-        Metadata = metadata ?? ReportHistoryMetadataSnapshot.Empty;
-    }
+    public string ReportJson { get; } = reportJson ?? throw new ArgumentNullException(nameof(reportJson));
 
-    /// <summary>File name or parser source label.</summary>
-    public string SourceName { get; }
-
-    /// <summary>Original machine-readable run report JSON.</summary>
-    public string ReportJson { get; }
-
-    /// <summary>UI-local output artifact path metadata, stored outside the report JSON contract.</summary>
-    public string OutputArtifactPath { get; }
+    public string OutputArtifactPath { get; } = outputArtifactPath ??
+        throw new ArgumentNullException(nameof(outputArtifactPath));
 
     /// <summary>Persisted audit summary derived from the report JSON for fast history review.</summary>
-    public ReportHistoryMetadataSnapshot Metadata { get; }
+    public ReportHistoryMetadataSnapshot Metadata { get; } = metadata ?? ReportHistoryMetadataSnapshot.Empty;
 }
 
 /// <summary>UI-local report history summary. The original report JSON remains the contract source of truth.</summary>
-public sealed record ReportHistoryMetadataSnapshot(
+internal sealed record ReportHistoryMetadataSnapshot(
     string Title,
     string Status,
     string Context,
@@ -50,7 +35,6 @@ public sealed record ReportHistoryMetadataSnapshot(
     string ExperienceId,
     string CompositionKind)
 {
-    /// <summary>Gets an empty metadata snapshot for older local history files.</summary>
     public static ReportHistoryMetadataSnapshot Empty { get; } = new(
         string.Empty,
         string.Empty,

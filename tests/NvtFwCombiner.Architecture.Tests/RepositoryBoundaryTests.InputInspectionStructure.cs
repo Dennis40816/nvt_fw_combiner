@@ -148,7 +148,13 @@ public sealed partial class RepositoryBoundaryTests
         Assert.DoesNotContain("record IcNumberChoice", numberPolicy, StringComparison.Ordinal);
         Assert.DoesNotContain("public bool IsReady", runtimeReadiness, StringComparison.Ordinal);
         Assert.DoesNotContain("public long Length", fileStamp, StringComparison.Ordinal);
-        Assert.Contains("acceptedFileStamps[prerequisiteSlot].AcceptedLength", workflow, StringComparison.Ordinal);
+        Assert.Contains(
+            "acceptedFileStamps.TryGetValue(prerequisite, out FileStamp acceptedPrerequisite)",
+            workflow,
+            StringComparison.Ordinal);
+        Assert.Contains("ProjectPendingPrerequisite(discovery, selectedSlotIds, prerequisite)", workflow, StringComparison.Ordinal);
+        Assert.Contains("prerequisiteStamp?.AcceptedLength", workflow, StringComparison.Ordinal);
+        Assert.DoesNotContain("acceptedFileStamps[prerequisite].AcceptedLength", workflow, StringComparison.Ordinal);
         Assert.Contains("state.FileStamp?.AcceptedLength", memoryLayout, StringComparison.Ordinal);
         Assert.DoesNotContain("SourceFirmwareVersionAndBarBytes", versionPlan, StringComparison.Ordinal);
         Assert.DoesNotContain("SourceFirmwareSubVersionBytes", versionPlan, StringComparison.Ordinal);

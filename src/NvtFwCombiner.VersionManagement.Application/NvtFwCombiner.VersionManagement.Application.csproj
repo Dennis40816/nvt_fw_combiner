@@ -1,0 +1,14 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <RootNamespace>NvtFwCombiner.Application</RootNamespace>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\NvtFwCombiner.Contracts\NvtFwCombiner.Contracts.csproj" />
+  </ItemGroup>
+  <ItemGroup>
+    <InternalsVisibleTo Include="NvtFwCombiner.Application.Tests" />
+    <InternalsVisibleTo Include="NvtFwCombiner.Infrastructure.Tests" />
+    <InternalsVisibleTo Include="NvtFwCombiner.UiSmoke.Tests" />
+    <InternalsVisibleTo Include="NvtFwCombiner.VersionManagement.Infrastructure" />
+  </ItemGroup>
+</Project>

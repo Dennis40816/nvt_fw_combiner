@@ -4,7 +4,7 @@ using NvtFwCombiner.Domain.Composition;
 
 namespace NvtFwCombiner.Presentation.Avalonia.ViewModels;
 
-public sealed partial class ReplacePresentationViewModel
+internal sealed partial class ReplacePresentationViewModel
 {
     private CapabilityActionReadinessSnapshot? _ctrlRamActionReadiness;
     private ActiveSessionSnapshot? _ctrlRamReadinessSession;
@@ -106,7 +106,7 @@ public sealed partial class ReplacePresentationViewModel
                 leasesByInputId.TryGetValue(
                     ReplaceInspectionInputId(item),
                     out AuthoringSlotInspectionLease? lease)
-                    ? item with { ReplaceInspectionLease = lease }
+                    ? item with { InspectionLease = lease }
                     : item),
         ];
     }
@@ -130,13 +130,13 @@ public sealed partial class ReplacePresentationViewModel
         AuthoringSessionState? session = CurrentReplaceInputSession;
         if (catalog is null || session is null || results.Any(static result =>
                 result.InputSlotCatalog is null || result.InputSlotStatus is null) ||
-            selected.Any(static item => item.ReplaceInspectionLease is null))
+            selected.Any(static item => item.InspectionLease is null))
         {
             return false;
         }
         AuthoringSessionTransitionResult completed = session.TryCompleteSlotFileInspectionBatch(
             catalog,
-            [.. selected.Select(static item => item.ReplaceInspectionLease!)],
+            [.. selected.Select(static item => item.InspectionLease!)],
             results.ToDictionary(
                 static result => result.InputSlotStatus!.SlotId,
                 static result => result.InputSlotStatus!,

@@ -3,8 +3,6 @@ namespace NvtFwCombiner.Application.Composition;
 /// <summary>One completed external process invocation captured for run-report audit evidence.</summary>
 public sealed class ExternalProcessInvocation
 {
-    private readonly string[] _arguments;
-
     /// <summary>Creates an immutable record of the executable, working directory, and expanded argv.</summary>
     public ExternalProcessInvocation(
         string executablePath,
@@ -17,7 +15,7 @@ public sealed class ExternalProcessInvocation
 
         ExecutablePath = executablePath;
         WorkingDirectory = workingDirectory;
-        _arguments = [.. arguments];
+        Arguments = (string[])[.. arguments];
     }
 
     /// <summary>Resolved executable path supplied to <c>ProcessStartInfo.FileName</c>.</summary>
@@ -27,5 +25,5 @@ public sealed class ExternalProcessInvocation
     public string WorkingDirectory { get; }
 
     /// <summary>Expanded values supplied, in order, to <c>ProcessStartInfo.ArgumentList</c>.</summary>
-    public IReadOnlyList<string> Arguments => _arguments;
+    public IReadOnlyList<string> Arguments { get; }
 }

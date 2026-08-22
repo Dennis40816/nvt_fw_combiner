@@ -1,8 +1,8 @@
 # NVT FW Combiner（NFC）實作規格
 
-> 文件狀態：`0.10.4 post-refactor simplification and startup-performance release candidate; v0.10.3 is the stable predecessor`
-> 文件版本：`0.10.4`
-> 基準日期：`2026-08-12`
+> 文件狀態：`0.10.6 internal managed-version candidate; final local validation in progress; v0.10.4 remains the stable predecessor`
+> 文件版本：`0.10.6`
+> 基準日期：`2026-08-13`
 > 產品名稱：`NVT FW Combiner`
 > 短名：`NFC`
 > Repository：`Dennis40816/nvt_fw_combiner`
@@ -30,22 +30,28 @@
 
 ## 0.1 Current owner priority
 
-`0.10.4` is the support-neutral post-refactor simplification and startup-
-performance release built on the complete `v0.10.3` canonical architecture.
-It preserves the one Application-owned accepted-session route for all six
-Merge/Replace workflows while making Home visible within the controlled 700 ms
-package gate, publishing truthful foreground catalog progress, repairing Dark-
-theme and reduced-motion presentation, and removing additional duplicate
-runtime paths. Profiles remains the compilation authority, Infrastructure owns
-adapters, Presentation and CLI consume the same typed use cases, and Bootstrap
-contains composition-root/lifetime wiring only. This release does not convert
-function availability or golden observations into support certification and
-does not change profile, schema, firmware-family, processor-protocol, report-
-wire, naming, or golden byte authority. `v0.10.3` is the stable predecessor on
-this canonical line; independent `0.9.17`/`0.9.18` maintenance releases remain
-historical upgrade sources rather than alternate `0.10.x` architecture
-authority. The remaining sequence is maintained in
-[NFC Roadmap](docs/architecture/nfc_roadmap.md).
+`0.10.6` internal managed-version candidate is the current owner priority. Its
+stable launcher, verified side-by-side installation, activation/rollback state,
+and Settings Version experience follow the owner-approved specification and
+ADR 0051. The owner approved advancing the internal identity after focused
+upgrade-boundary hardening when the independent subagent reviewer was
+unavailable; this does not waive the public `1.0.0` release/security gates. It
+builds on the completed `0.10.5` bounded lifecycle contract in ADR 0049. The
+stable `v0.10.4` package preserved one Application-owned accepted-session route
+for all six Merge/Replace workflows, truthful foreground catalog progress,
+Dark-theme/reduced-motion presentation, and the additional duplicate-path
+retirement. Its exact published package did not reproduce the controlled 700 ms
+Home-window target: the recorded medians were 777.090 ms and 806.930 ms against
+a 782.368 ms control, so the absolute performance gate remains an explicit
+residual rather than a release-pass claim. Profiles remains the compilation
+authority, Infrastructure owns adapters, Presentation and CLI consume the same
+typed use cases, and Bootstrap contains composition-root/lifetime wiring only.
+`v0.10.5` does not convert function availability or golden observations into
+support certification and does not change profile, schema, firmware-family,
+processor-protocol, report-wire, naming, or golden byte authority. Independent
+`0.9.17`/`0.9.18` maintenance releases remain historical upgrade sources rather
+than alternate `0.10.x` architecture authority. The remaining sequence is
+maintained in [NFC Roadmap](docs/architecture/nfc_roadmap.md).
 Publication is permitted only after independent review, firmware-owner
 approval, protected CI, package verification, and release-owner approval; an
 omitted external gate must remain explicit rather than being described as
@@ -80,7 +86,7 @@ passing.
 
 - `v0.9.10` (`b0266f312a67d644475731153b1af82f7eadcc95`) is the only accepted predecessor for `0.9.11`. The premature `0.9.11.10` lineage is recovery evidence only and cannot be merged or released as-is.
 - The measured startup lifecycle opens a meaningful Home screen first, warms immutable catalog projections on a worker thread, then materializes common page visual trees at background dispatcher priority. Warm-up cannot navigate, read user firmware, mutate a profile, launch an external processor, select support, or acquire Build authority.
-- `v0.10.4` requires the exact compressed single-file, self-contained `win-x64` candidate to reach a nonzero Home main-window handle within a 700 ms median on the controlled owner machine after one unscored warm-up and across five measured launches. The first cold launch is recorded separately and is not substituted for the five-run median. Shell construction cannot force canonical catalog publication; Home workflow commands remain unavailable until the existing background warm publishes the canonical IC/default/profile choices on the UI thread. This is a reproducible package acceptance measurement, not a universal CI timing threshold.
+- `v0.10.4` used an exact compressed single-file, self-contained `win-x64` 700 ms Home-window target on the controlled owner machine after one unscored warm-up and across five measured launches. The stable release preserved all safety and publication gates but its exact published package did not reproduce that target; the miss remains an explicit performance residual for later measured work. Shell construction cannot force canonical catalog publication, and Home workflow commands remain unavailable until the background load publishes the canonical IC/default/profile choices on the UI thread. This is a reproducible package observation, not a universal CI timing threshold.
 - Main EXE at or below 70,000,000 bytes is a soft optimization target. Main EXE and complete release ZIP at or below 80,000,000 bytes are hard candidate ceilings; required safety, profiles, processors, evidence, accessibility, and self-contained runtime content cannot be removed to meet them.
 
 - Post-commit background report preparation is an explicit `0.9.10` requirement. A successful Build publishes the atomically committed output identity as soon as the BIN is usable, while complete JSON, Hex Diff, and history projection continue off the dispatcher. Preview and uncommitted failures publish no artifact, and the run retains command ownership until the complete report is ready.
@@ -1168,11 +1174,12 @@ to each `0.10.x` version.
    records `v0.10.1` as the headless foundation, `v0.10.2` as the canonical
    desktop-adoption and first compatibility-deletion checkpoint through #254,
    `v0.10.3` as the complete remaining refactoring graph through #197,
-   `v0.10.4` as its simplification audit plus the measured 700 ms Home-window
-   startup gate, `v0.10.5` as unified preload performance control, and
-   `v0.10.6` as a reserved configured-path update
-   experience whose detailed contract is still deferred. Release grouping
-   never bypasses dependency or evidence gates.
+   `v0.10.4` as its simplification audit plus the measured Home-window startup
+   target whose stable package retained an explicit 700 ms miss, `v0.10.5` as
+   unified preload performance control, and `v0.10.6` as the configured-path
+   managed-version experience whose owner-approved contract is
+   `docs/specs/v0.10.6-version-management.md` and accepted ADR 0051.
+   Release grouping never bypasses dependency or evidence gates.
 4. A slice may introduce a compatibility adapter temporarily, but it must name
    the callers that remain and the evidence required for deletion. A permanent
    parallel owner is not an acceptable endpoint.
@@ -1933,10 +1940,15 @@ must not be restored as a second admission or dependency catalog.
     report history. Normal system facts do not create notification badges.
     Blocking system diagnostics badge the Message Center and may also produce a
     concise global blocker that links to the exact diagnostic. System status is
-    re-probed at process start and keeps only a contract-bounded in-memory list
-    of recent transitions for the current session. Resolved issues stop
-    contributing to the active badge but may remain in that bounded list.
-    System events are not persisted automatically. An explicit
+    re-probed at process start and owns one contract-bounded in-memory activity
+    list for the current session. Diagnostic activation/resolution and
+    privacy-filtered user operations such as page, workflow context, input slot,
+    Preview, and Build actions share that sole owner. The default view shows
+    important events; Debug activity appears only after explicit operator
+    expansion. Resolved issues stop contributing to the active badge but may
+    remain in that bounded list. Raw paths, filenames, user identifiers, and
+    multiline values are forbidden activity fields. System events are not
+    persisted automatically. An explicit
     `Export Diagnostics` action may write a versioned, privacy-filtered
     diagnostic JSON for support; it is not a Build Report.
 36. Every page derives Preview and Build availability from one typed action
@@ -2113,7 +2125,8 @@ after the grill closes so issues do not become a competing draft specification.
     models/lifecycles, normal system facts do not create badge noise, a fatal
     cold-start diagnostic remains readable and focusable, and the same blocker
     is reachable from the global hint and disabled Build affordance. They also
-    prove session-event bounds, resolved-badge clearing, restart re-probe,
+    prove session-event bounds, default-important/explicit-Debug disclosure,
+    privacy-safe user-action capture, resolved-badge clearing, restart re-probe,
     privacy-filtered diagnostic export, and absence of automatic persistence
     into Report History.
 14. Hex Viewport extraction requires visual/interaction parity and measured
@@ -2161,6 +2174,140 @@ after the grill closes so issues do not become a competing draft specification.
     cannot pass. The four slices must sum exactly to runtime total; an
     unallocated runtime source root fails rather than creating a fifth
     ownership bucket.
+    Owner amendment on 2026-08-13 grants PL-02 (#374) one non-transferable
+    accounting rebaseline because it deletes Presentation-owned filesystem I/O,
+    which the four-slice runtime metric excludes, and moves that responsibility
+    to the counted Application port and Infrastructure adapter. The exact
+    candidate lowers full production from 97,306 to 97,303 lines while runtime
+    changes from 67,186 to 67,371: Application 29,383 to 29,404, Bootstrap plus
+    CLI plus Desktop 3,255 to 3,267, and Infrastructure plus Contracts plus CRC
+    worker 13,929 to 14,081. The displaced Presentation owner is deleted in the
+    same PR. These exact values become the new descending ratchets; they create
+    no reusable growth budget and do not authorize another excluded-to-counted
+    relocation. Golden, coverage, firmware, report-wire, architecture, and
+    full-production-net-negative gates remain unchanged.
+    Owner amendment on 2026-08-13 grants PL-04 (#376) one further
+    non-transferable accounting exception for truthful startup-report byte
+    progress. The prior bounded local-file port exposed no progress contract;
+    PL-04 adds a typed observer with stable admitted totals and distinct observer
+    failure handling. Preserving the complete lifecycle implementation and the
+    non-obvious Decision 31 contract documentation changes full production from
+    97,297 to 97,426,
+    while runtime changes from 67,371 to 67,404: Application 29,404 to 29,410
+    and Infrastructure plus Contracts plus CRC worker 14,081 to 14,108;
+    Domain plus Profiles remains 20,619 and Bootstrap plus CLI plus Desktop
+    remains 3,267. These exact values immediately become descending ratchets.
+    The +129 full-production and +33 runtime deltas are the complete, named
+    PL-04 exception. They create no reusable allowance, authorize no cross-slice
+    relocation, and preserve firmware, report-wire, Golden, coverage, and all
+    later descending-ratchet gates.
+    Owner amendment on 2026-08-13 grants PL-05 (#377) one named,
+    non-transferable accounting exception. The original 170/145 planning
+    envelope omitted the bounded filesystem traversal, stable-handle and hash
+    validation, typed request/publication generations, last-known-good state,
+    generation-zero blocked readiness, and the shared startup/refresh/CLI
+    adoption required to replace the synchronous Bootstrap factory safely.
+    The exact implementation removes 250 and adds 984 physical nonblank
+    production lines: full production changes from 97,426 to 98,160 and
+    runtime from 67,404 to 68,018. The runtime slices become Domain plus
+    Profiles 20,619, Application 29,585, Bootstrap plus CLI plus Desktop 3,074,
+    and Infrastructure plus Contracts plus CRC worker 14,740. These exact
+    values immediately become descending ratchets. The +734 full-production
+    and +614 runtime deltas are usable by PL-05 only; they authorize no later
+    growth, no cross-slice relocation, and no firmware, processor-protocol,
+    Golden, report-wire, coverage, or release-gate weakening.
+    A separate owner-requested Message Center readability amendment on
+    2026-08-13 changes only Presentation XAML. Four aligned two-column fact
+    cards replace the mixed three-column System Information grid, and Current
+    Report and Report History become two equal action cards. The exact 67 added
+    and 38 removed physical nonblank lines change full production from 98,160
+    to 98,189 while runtime and every counted slice remain unchanged. This
+    visual-only +29 is not reusable and changes no report, diagnostics,
+    firmware, profile, schema, processor, Golden, or persistence contract.
+    Owner-approved implementation decision on 2026-08-18 grants the Settings,
+    input-card, button, and memory-visualization readability closure one named,
+    non-transferable accounting amendment. The exact implementation removes
+    673 and adds 2,103 physical nonblank production lines, net +1,430: full
+    production changes from 98,133 to 99,563, while runtime changes from 67,981
+    to 68,109 through typed canonical CtrlRAM family roles and Application memory
+    projection facts. Application becomes 29,668;
+    Domain plus Profiles becomes 20,634,
+    Bootstrap plus CLI plus Desktop remains 3,074, and Infrastructure plus
+    Contracts plus CRC worker remains 14,733. The Presentation growth owns
+    aligned memory columns, one-item-per-source range grouping, truthful protected-region/source projection,
+    complete English/Traditional Chinese plan and slot text, responsive input
+    cards, and project-owned button/focus visuals. These exact values become
+    descending ratchets immediately. The amendment creates no reusable budget,
+    changes no profile, range, firmware byte, operation, support, Golden,
+    report-wire, processor, or release contract, and cannot fund later work.
+    Owner-approved implementation on 2026-08-19 applies the accepted Memory
+    Layout redesign mockup to the shared Presentation renderer. After the
+    shared-spacing correction lowered the full-production ratchet to 99,562,
+    the direct available-width proportional panel, flat selected CtrlRAM rows,
+    quiet Base firmware/readiness rows, and correlated pointer/keyboard
+    emphasis change full production to 99,804 nonblank lines. Runtime remains
+    68,109, and all four counted runtime slices remain unchanged. This exact
+    visual-only +242 amendment is non-transferable and creates no reusable
+    allowance. It changes no Application memory projection, profile, range,
+    firmware byte, operation, processor, support, Golden, report-wire, or
+    release authority.
+    Owner-approved implementation on 2026-08-19 also isolates selected-file
+    inspection by one captured `(Merge | Replace, mode)` owner. Removing the
+    mixed-page refresh path and adding fail-closed admission, owner-specific
+    lifecycle invalidation, and stale-callback publication guards changes full
+    production from 99,804 to 99,892 nonblank lines. Runtime remains 68,109,
+    and all four counted runtime slices remain unchanged. This exact +88
+    Presentation-only architecture amendment is non-transferable and creates
+    no reusable allowance. It changes no Application inspection authority,
+    profile, range, firmware byte, operation, output naming, processor,
+    support, Golden, report-wire, or release contract.
+    Owner-approved continuation on 2026-08-20 closes the remaining strict
+    page-owned device/downstream binding slices, the typed `Waiting for TP BIN`
+    prerequisite projection, the approved shared four-column slot-facts grid,
+    and the v0.9.15-compatible typed Standard Merge output-name contract. From
+    the preceding 99,892 / 68,109 checkpoint, the exact result is 100,157 full
+    production and 68,174 runtime nonblank lines: Domain plus Profiles lowers
+    from 20,634 to 20,632; Application changes from 29,668 to 29,672;
+    Bootstrap plus CLI plus Desktop changes from 3,074 to 3,105; and
+    Infrastructure plus Contracts plus CRC worker changes from 14,733 to
+    14,765. The remaining +200 full-production lines are Presentation. This
+    exact, named amendment is non-transferable and creates no reusable budget.
+    It authorizes only the recorded page-isolation, pending-reason, slot-layout,
+    trusted profile/family reference, capability-publication, and output-naming
+    parity work. It changes no firmware range, operation order, output byte,
+    CRC/header behavior, processor, support claim, Golden expected bytes,
+    report-wire schema, or release contract. These exact values immediately
+    resume descending-only enforcement.
+    Owner-approved remaining-TODO closure on 2026-08-20 grants the Settings
+    modal, shared Build Settings, exact atomic output bundle, selected AB
+    additional delivery, DP Replace naming-safe frontier, and Memory Layout
+    interaction lifecycle one named, non-transferable accounting amendment.
+    From the preceding 100,157 / 68,174 checkpoint, the exact frozen source is
+    102,977 full-production and 70,057 runtime nonblank lines. Domain plus
+    Profiles remains 20,632; Application becomes 30,691; Bootstrap plus CLI
+    plus Desktop becomes 3,378; and Infrastructure plus Contracts plus CRC
+    worker becomes 15,356. The remaining 937-line delta is Presentation.
+    These values immediately become descending ratchets and create no reusable
+    allowance. The amendment is limited to typed accepted-session admission,
+    host delivery/receipt/report provenance, mode-aware pre-Build UI,
+    localization/accessibility, and their fail-closed regressions. It changes
+    no firmware range, operation order, output byte, CRC/header behavior,
+    processor protocol, support claim, or Golden expected bytes; the six safe
+    DP Replace profiles change only their already-approved typed output-name
+    publication, while the recorded R3-gated profiles remain static.
+    Owner-approved current-session System Activity on 2026-08-22 replaces the
+    former bounded diagnostic-transition list with one Application-owned,
+    privacy-filtered activity list and implements the accepted 1,536 by 864
+    Message Center reference in both themes. Relative to its exact preceding
+    checkpoint, full production changes from 109,213 to 109,849 and runtime
+    from 74,937 to 75,135: Domain plus Profiles remains 20,632; Application
+    changes from 33,225 to 33,423; Bootstrap plus CLI plus Desktop remains
+    3,503; Infrastructure plus Contracts plus CRC worker remains 17,577; and
+    the remaining +438 is Presentation. The exact allowances become 6,952
+    full, 5,078 runtime, and 2,732 Application above the frozen base. This
+    amendment is non-transferable, creates no second history/persistence/report
+    owner, and does not close or fund the subsequent whole-repository
+    single-implementation, layering, unused-module, or code-size audit.
     Owner amendment on 2026-08-08 supersedes the earlier 44,000 total and
     18,000/12,000/7,500/5,500 slice completion caps. The dated numbers remain
     planning history after the merged #230 checkpoint at `ad672900` showed that
@@ -2311,8 +2458,13 @@ after the grill closes so issues do not become a competing draft specification.
 30. The Core Convergence entry change, after Workbench/parallel-catalog and
     legacy runtime deletion, freezes the measured baseline for all four slices
     and enables exact descending slice ratchets through `scripts/verify.py`.
-    Every Core PR lowers each affected slice ratchet and the total; moving
-    equivalent logic between slices cannot pass. Final integration enforces the
+    Every Core PR lowers each affected slice ratchet and the total, except for
+    the dated, non-transferable PL-02, PL-04, PL-05, PL-00 semantic-control,
+    and Message Center
+    readability owner amendments recorded in Decision 21 and ADR 0021; moving
+    equivalent logic between slices cannot pass. Each named amendment
+    immediately freezes its exact replacement ratchets and cannot fund later
+    work. Final integration enforces the
     latest exact ratchets, slice-sum integrity, completed candidate ledgers,
     and existing release gates through that same verifier, with no second
     command or CI entry point.
@@ -2389,17 +2541,127 @@ viewport, and first General/Saved Rule compatibility deletion form a stable,
 support-neutral checkpoint. The complete remaining approved refactoring graph
 through #197 moves to `v0.10.3`, which is tagged only after the full canonical
 refactor, reviewed residual ledgers, and exact ratchet gates are complete.
-`v0.10.4` then performs a
-fresh simplification/ownership audit of that result and restores the exact
-packaged Home startup median to at most 700 ms without synchronously publishing
-the canonical catalog before the first window. `v0.10.5` owns the broader
-performance work that unifies every preload behind one observable, cancellable,
-bounded, and user-controllable lifecycle; and `v0.10.6` reserves a configured-path
-update experience. The `v0.10.6` trust, rollback, version-selection,
-network/share, and release-policy contract remains owner-deferred and requires
-a later specification review before implementation tickets exist. These
-allocations do not change current ticket dependencies or authorize guessed
-scope.
+`v0.10.4` then performed a fresh simplification/ownership audit of that result
+and measured the exact packaged Home startup against a 700 ms target without
+synchronously publishing the canonical catalog before the first window. The
+stable package retained the measured miss as an explicit residual. `v0.10.5`
+owns the broader performance work that unifies every preload behind one
+observable, cancellable, bounded, and user-controllable lifecycle; and
+`v0.10.6` owns the configured-path update experience.
+
+The owner approved the `v0.10.6` installation model on 2026-08-21: a stable
+launcher/updater remains outside side-by-side version directories; a candidate
+is staged and verified before its version directory is admitted; activation
+changes one host-owned active-version reference atomically and then relaunches
+the selected executable. The running executable is never overwritten in
+place. Verified locally installed versions remain selectable while the update
+source is offline, providing the basis for rollback. Development must first
+exercise discovery, install, switching, offline selection, and recovery using
+the isolated local source `artifacts/version-update-source-lab/` before any
+network-share trial. That workspace path is test infrastructure, not a shipped
+default or production authority.
+
+The owner approved content-based, location-independent source verification on
+2026-08-21. The configured update folder is the administrative trust boundary;
+moving the complete folder to another local path, drive letter, or UNC location
+must not invalidate identical content. A versioned catalog may use only safe
+relative paths and pins every admitted package by file name, byte length, and
+SHA-256. Admission also verifies the package's inner release manifest and
+closed file allowlist. `Verified` means these integrity and closed-package
+checks passed; it does not claim a publisher signature. `v0.10.6` adds no
+package signing or key-management system, and absolute source paths or folder
+names are never package identity.
+
+Package verification and extraction allow at most 4,096 entries and 512 MiB of
+actual expanded bytes per pass. Declared ZIP entry lengths are only early
+rejection evidence: each nonnegative length is compared to the remaining budget
+before aggregate addition so forged or ZIP64 metadata cannot overflow out of
+the typed fail-closed result. Installed inventory independently enforces the
+same ceiling over actual manifest, checksum, and payload bytes.
+
+Launcher/update state is a separate versioned local document under the existing
+per-user application-data root. It owns the configured source, active-version
+reference, admitted installed-version inventory, and recovery journal. Those
+fields must not be added to the existing cross-version
+`preferences.v1.json` or `report-history.v1.json` documents: switching to an
+older application must not erase or reinterpret launcher state. Existing shell
+preference and report-history formats remain unchanged by the updater.
+
+The owner approved installed-version integrity inventory and explicit damaged
+cleanup on 2026-08-21. The Version page summarizes healthy and damaged installed
+counts. Opening or refreshing that page and every switch attempt verify the
+candidate managed version against its admitted package identity, inner release
+manifest, closed safe-relative-path allowlist, file lengths, and SHA-256. A
+missing, changed, unreadable, unsafe, or unexpected package file marks the
+version `Damaged`; a damaged version is never launchable or switchable.
+
+Every non-active installed version exposes an explicit trash-can icon so the
+user, not an automatic retention rule, chooses which version to remove. The
+destructive icon is red and also has localized text/tooltip, accessible name,
+keyboard operation, and explicit confirmation; meaning cannot depend on red
+alone. The active version is undeletable. Deleting the recorded last-known-good
+version is permitted only after an additional warning that automatic rollback
+will be unavailable until another version is recorded healthy. The launcher
+resolves and guards the exact version directory beneath its managed root before
+removal and must reject traversal, link/reparse escape, root, or outside-root
+targets.
+
+The default healthy installed-version retention reminder is `3`. It is a soft
+threshold, not a deletion limit. After a successful update makes the healthy
+installed count exceed three, the Version page prompts the user to review and
+optionally delete individually selected non-active versions. `Keep all` is a
+valid outcome and the successful update remains installed. No healthy or
+damaged installed version is pruned automatically. Damaged versions are listed
+separately and do not consume the healthy reminder count. Failed or cancelled
+staging is cleaned automatically; every installed-version deletion remains an
+explicit user action.
+
+The owner approved non-blocking startup discovery and explicit update consent
+on 2026-08-21. The usable main window is not gated by update-source access,
+catalog parsing, hashing, or package verification. After the main window is
+available, discovery runs in the background and projects its state through the
+typed update service. The update-source field's leading status segment shows
+the rotating progress ring while checking. Offline, unavailable, malformed, or
+unverified results update Version-page status only and never fail startup or
+open an interrupting dialog.
+
+Only a catalog entry newer than the running version whose catalog and package
+verification fully pass may open an update confirmation window. The dialog
+identifies the version, exposes its release notes, and offers Update or Later;
+installation never begins without Update consent. At most one automatic update
+prompt is shown per application session. Later suppresses further automatic
+prompts in that session without disabling manual Check now.
+
+The owner approved bounded activation readiness and automatic startup rollback
+on 2026-08-21. Activation remains pending until the selected application
+process reports an authenticated one-use ready handshake to its launcher after
+the usable main window and required local startup state are available. If the
+process cannot start, exits before ready, or misses the bounded ready deadline,
+the launcher atomically restores the recorded last-known-good reference and
+starts that version. The failed candidate is not recorded healthy or offered as
+switchable until repaired or reinstalled.
+
+Once ready succeeds, later runtime crashes do not trigger automatic version
+rollback. The user retains explicit Version-page switching. This prevents
+launcher crash-loop oscillation and defines ready as startup health rather than
+a claim that every later firmware workflow has succeeded.
+
+The owner approved the first-managed-distribution boundary on 2026-08-21. The
+`0.10.x` line is the internal upgrade, switching, and rollback proving ground;
+the final managed `1.0.0` package is the only initial version distributed to
+end users. No released `0.10.5` portable installation is converted in place and
+no one-time migration executable is built. The local lab may seed managed
+`0.10.x` fixtures to prove upgrade into `0.10.6` and later candidates using the
+same launcher and package contracts intended for `1.0.0`; that evidence does
+not claim self-adoption by an unmanaged portable directory.
+
+The detailed `v0.10.6` catalog bounds, configuration compatibility,
+retention/recovery, network/share behavior, layer ownership, and release impact
+are consolidated in owner-approved
+`docs/specs/v0.10.6-version-management.md` and accepted ADR 0051. No product
+behavior decision remains open; implementation and evidence proceed through the
+approved dependency ledger without changing earlier ticket dependencies or
+authorizing guessed scope.
 
 Historical NT51920/NT51931 DPCMI locator evidence (`0x3E014` and `0x3E018`)
 remains traceability-only. #177 does not migrate either IC, and #221 removes
@@ -2566,10 +2828,11 @@ unresolved architecture decision.
 
 ### 15.9 Complete Legacy Architecture Retirement
 
-Status: the owner accepted the individual architecture decisions and approved
-the consolidated specification and LAR-01..12 implementation. The terminal
-implementation is present on the feature branch; LAR-00 verification and
-release gates remain open.
+Status: completed by the stable `v0.10.3` release. The owner accepted the
+individual architecture decisions, approved and completed LAR-01..12 and
+LAR-00, and closed #197's verifier, Golden, review, package, CI, and release
+gates before publishing tag `v0.10.3` from commit
+`6301049e59432b093abe2bea676d0e223fa488cd`.
 The reviewable draft is
 [`docs/specs/0.10.x-legacy-architecture-retirement.md`](docs/specs/0.10.x-legacy-architecture-retirement.md),
 and its exact baseline/size assessment is
@@ -2591,11 +2854,41 @@ than relocated to its canonical owner. Exact gross/add/net and slice closure
 are recorded in the size assessment.
 
 The owner approved the `$to-tickets` graph on 2026-08-09. Stable repository
-planning ids LAR-01 through LAR-12 own the vertical implementation slices and
-LAR-00 owns aggregate completion; their exact blocker graph is maintained in
-`docs/governance/0.10.x-ticket-dependency-plan.md`. The graph is allocated to
-the `v0.10.3` complete-refactoring gate. The owner authorized the governed
-review/PR/merge/release sequence on 2026-08-10, but tag creation remains
-blocked until LAR-00, #197, CI, package/provenance, clean-Windows, and owner
-review gates pass. Support promotion, profile/schema implementation, and
-firmware-semantic mutation remain out of scope.
+planning ids LAR-01 through LAR-12 owned the vertical implementation slices and
+LAR-00 owned aggregate completion; their exact blocker graph remains in
+`docs/governance/0.10.x-ticket-dependency-plan.md` as completed traceability.
+The governed review/PR/merge/release sequence closed on the stable `v0.10.3`
+tag. Support promotion, profile/schema implementation, and firmware-semantic
+mutation were outside that release and remain controlled by their own evidence
+gates.
+
+### 15.10 Unified Preload Lifecycle
+
+Status: owner-approved on 2026-08-13. Detailed scope, failure behavior, evidence,
+and the approved `PL-*` implementation graph are in
+[`docs/specs/v0.10.5-unified-preload-lifecycle.md`](docs/specs/v0.10.5-unified-preload-lifecycle.md),
+with durable architecture authority in
+[`ADR 0049`](docs/adr/0049-unified-preload-lifecycle.md).
+
+`v0.10.5` distinguishes preload from demand-driven execution. The canonical
+catalog, report/history restore, startup diagnostics, deferred view work, and
+external environment discovery are preload candidates. Selected-file metadata
+and inspection are selection-triggered preparation with an independent workflow
+generation. Shell preferences remain a bounded first-frame prerequisite, while
+Preview, Build, processor execution, and run-bound metadata retain their existing
+typed Application progress and are not absorbed into shell startup.
+
+Presentation owns one shell preload lifecycle—generation, cancellation, closed
+stage order, concurrency budget, progress, retry, skip, and cancel—but never
+interprets feature semantics. Application and Infrastructure retain their typed
+catalog, diagnostics, inspection, filesystem, and external-runtime ownership.
+The catalog is the sole required blocking stage; independent optional failures
+remain visible and cannot suppress later work. Numeric percentage represents
+validated completed work units rather than guessed elapsed time. All work is
+bounded, cancellation-cooperative, stale-safe, and deleted from its former path
+after migration.
+
+The release is firmware- and support-neutral. Existing CLI behavior, report and
+Saved Rule formats, profiles/schemas, processor protocols, BIN bytes/hashes/
+names, Golden evidence, and publication truth remain unchanged. Any difference
+stops the implementation slice and returns to its normal owner/evidence gate.

@@ -1899,7 +1899,7 @@ class VerifyOrchestrationTests(unittest.TestCase):
                 (
                     "tests/NvtFwCombiner.Bootstrap.Tests/"
                     "NvtFwCombiner.Bootstrap.Tests.csproj",
-                    932,
+                    934,
                     0,
                 ),
             ),
@@ -1907,7 +1907,7 @@ class VerifyOrchestrationTests(unittest.TestCase):
                 (
                     "tests/NvtFwCombiner.UiSmoke.Tests/"
                     "NvtFwCombiner.UiSmoke.Tests.csproj",
-                    464,
+                    517,
                     0,
                 ),
             ),
@@ -1915,19 +1915,19 @@ class VerifyOrchestrationTests(unittest.TestCase):
                 (
                     "tests/NvtFwCombiner.Domain.Tests/"
                     "NvtFwCombiner.Domain.Tests.csproj",
-                    404,
+                    411,
                     0,
                 ),
                 (
                     "tests/NvtFwCombiner.Application.Tests/"
                     "NvtFwCombiner.Application.Tests.csproj",
-                    527,
+                    531,
                     0,
                 ),
                 (
                     "tests/NvtFwCombiner.Infrastructure.Tests/"
                     "NvtFwCombiner.Infrastructure.Tests.csproj",
-                    405,
+                    439,
                     2,
                 ),
                 (
@@ -1945,7 +1945,7 @@ class VerifyOrchestrationTests(unittest.TestCase):
                 (
                     "tests/NvtFwCombiner.Architecture.Tests/"
                     "NvtFwCombiner.Architecture.Tests.csproj",
-                    213,
+                    214,
                     0,
                 ),
             ),
@@ -1977,7 +1977,7 @@ class VerifyOrchestrationTests(unittest.TestCase):
         self.assertEqual(8, len(set(flattened)))
         self.assertEqual(solution_test_projects, set(flattened))
         self.assertEqual(
-            3349, sum(total for projects in actual.values() for _, total, _ in projects)
+            3450, sum(total for projects in actual.values() for _, total, _ in projects)
         )
         self.assertEqual(
             2,

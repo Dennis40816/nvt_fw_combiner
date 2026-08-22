@@ -12,7 +12,7 @@ public sealed partial class CanonicalCapabilityCatalogMigrationTests
         Assert.NotNull(typeof(CompositionHostServices).GetMethod(
             nameof(CompositionHostServices.Create),
             Type.EmptyTypes));
-        CompositionHostServices host = CompositionHostServices.Create();
+        var host = CompositionHostServices.Create();
 
         List<CanonicalCapabilityCatalogLoadUpdate> first = await ReadUpdatesAsync(
             host.CanonicalCatalogLoader.LoadAsync(TestContext.Current.CancellationToken));

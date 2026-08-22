@@ -4,19 +4,16 @@ using System.Globalization;
 
 namespace NvtFwCombiner.Presentation.Avalonia.ViewModels;
 
-public sealed partial class FirmwareSlotViewModel
+internal sealed partial class FirmwareSlotViewModel
 {
     private string _checkingLabel = "Checking";
     private string _verifiedLabel = "Verified";
     private string _warningLabel = "Warning";
     private string _errorLabel = "Error";
     private string _notApplicableLabel = "Not applicable";
-    private string _showDetailsLabel = "Show details";
-    private string _hideDetailsLabel = "Hide details";
     private string _showMoreFactsTemplate = "Show {0} more details";
     private string _showFewerFactsLabel = "Show fewer details";
 
-    /// <summary>One presentation state composed from selection readiness and typed input inspection.</summary>
     public FirmwareSlotSemanticState SemanticState =>
         InputInspectionSeverity == FirmwareInputInspectionSeverity.Blocking
             ? FirmwareSlotSemanticState.Error
@@ -44,34 +41,25 @@ public sealed partial class FirmwareSlotViewModel
             ResolvedChildReadiness.NotApplicable or
             ResolvedChildReadiness.PendingInput;
 
-    /// <summary>True when the slot has a semantic state beyond its empty requirement guidance.</summary>
     public bool HasSemanticState => SemanticState != FirmwareSlotSemanticState.Empty;
 
-    /// <summary>True while an empty applicable slot still needs its requirement label.</summary>
     public bool IsRequirementLabelVisible =>
         !HasFile && !HasSemanticState;
 
-    /// <summary>True when the composed state is checking.</summary>
     public bool IsSemanticStateChecking => SemanticState == FirmwareSlotSemanticState.Checking;
 
-    /// <summary>True when Checking represents a prerequisite-owned pending input.</summary>
     public bool IsSemanticStatePendingInput =>
         SemanticState == FirmwareSlotSemanticState.Checking &&
         SelectionReadinessState == ResolvedChildReadiness.PendingInput;
 
-    /// <summary>True when the composed state is verified.</summary>
     public bool IsSemanticStateVerified => SemanticState == FirmwareSlotSemanticState.Verified;
 
-    /// <summary>True when the composed state is warning.</summary>
     public bool IsSemanticStateWarning => SemanticState == FirmwareSlotSemanticState.Warning;
 
-    /// <summary>True when the composed state is error.</summary>
     public bool IsSemanticStateError => SemanticState == FirmwareSlotSemanticState.Error;
 
-    /// <summary>True when the compiled selection excludes this slot.</summary>
     public bool IsSemanticStateNotApplicable => SemanticState == FirmwareSlotSemanticState.NotApplicable;
 
-    /// <summary>Localized visible label for the composed slot state.</summary>
     public string SemanticStateLabel => SelectionReadinessOwnsSemanticText
         ? SelectionReadinessLabel
         : SemanticState switch
@@ -85,19 +73,16 @@ public sealed partial class FirmwareSlotViewModel
             _ => _errorLabel,
         };
 
-    /// <summary>Localized reason or next action for the composed slot state.</summary>
     public string SemanticStateDetail => SelectionReadinessOwnsSemanticText
         ? SelectionReadinessDetail
         : HasInputInspectionStatus
             ? InputInspectionStatus
             : Description;
 
-    /// <summary>Screen-reader equivalent of the composed visible state.</summary>
     public string SemanticStateAutomationText => SelectionReadinessOwnsSemanticText
         ? SelectionReadinessAutomationText
         : string.Join(": ", new[] { SemanticStateLabel, SemanticStateDetail }.Where(static value => value.Length > 0));
 
-    /// <summary>Vector icon path for the composed slot state.</summary>
     public string SemanticStateIconPathData => SemanticState switch
     {
         FirmwareSlotSemanticState.Checking => "M12 3A9 9 0 1 0 21 12 M12 7V12L15 14",
@@ -109,26 +94,14 @@ public sealed partial class FirmwareSlotViewModel
         _ => "M12 3A9 9 0 1 0 12 21A9 9 0 1 0 12 3 M12 7V13 M12 17H12.01",
     };
 
-    /// <summary>True when the operator has pinned the state reason open.</summary>
     [ObservableProperty]
     public partial bool IsSemanticStateDetailExpanded { get; set; }
-
-    /// <summary>True when additional facts beyond the first four are expanded.</summary>
-    [ObservableProperty]
-    [NotifyPropertyChangedFor(nameof(FirmwareFactsDisclosureLabel))]
-    public partial bool IsFirmwareFactsExpanded { get; set; }
 
     /// <summary>True when facts after the four primary values are disclosed.</summary>
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(AdditionalFirmwareFactsLabel))]
     public partial bool IsAdditionalFirmwareFactsExpanded { get; set; }
 
-    /// <summary>Localized quiet-disclosure label for the compact metadata body.</summary>
-    public string FirmwareFactsDisclosureLabel => IsFirmwareFactsExpanded
-        ? _hideDetailsLabel
-        : _showDetailsLabel;
-
-    /// <summary>Localized quiet-disclosure label for facts beyond the first four.</summary>
     public string AdditionalFirmwareFactsLabel => IsAdditionalFirmwareFactsExpanded
         ? _showFewerFactsLabel
         : string.Format(
@@ -136,7 +109,6 @@ public sealed partial class FirmwareSlotViewModel
             _showMoreFactsTemplate,
             AdditionalFirmwareFacts.Count);
 
-    /// <summary>Updates localized labels owned by the shared slot presentation.</summary>
     public void ApplyExperienceText(ShellTextResources text)
     {
         ArgumentNullException.ThrowIfNull(text);
@@ -146,17 +118,15 @@ public sealed partial class FirmwareSlotViewModel
         _warningLabel = text.FirmwareSlotWarningLabel;
         _errorLabel = text.FirmwareSlotErrorLabel;
         _notApplicableLabel = text.FirmwareSlotNotApplicableLabel;
-        _showDetailsLabel = text.FirmwareSlotShowDetailsLabel;
-        _hideDetailsLabel = text.FirmwareSlotHideDetailsLabel;
         _showMoreFactsTemplate = text.FirmwareSlotShowMoreFactsTemplate;
         _showFewerFactsLabel = text.FirmwareSlotShowFewerFactsLabel;
         NotifySemanticStateChanged();
-        OnPropertyChanged(nameof(FirmwareFactsDisclosureLabel));
         OnPropertyChanged(nameof(AdditionalFirmwareFactsLabel));
     }
 
     partial void OnFilePathChanged(string? value)
     {
+        ClearCurrentInspectionProjection();
         IsSemanticStateDetailExpanded = false;
         NotifySemanticStateChanged();
     }

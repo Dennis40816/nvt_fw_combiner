@@ -3,25 +3,30 @@ using NvtFwCombiner.Presentation.Avalonia.ViewModels;
 namespace NvtFwCombiner.Presentation.Avalonia;
 
 /// <summary>Command-line options that put the UI shell into a reviewable startup state.</summary>
-public sealed class UiLaunchOptions
+internal sealed class UiLaunchOptions
 {
     private UiLaunchOptions(
         ShellPage? page,
+        bool openSettings,
         string? reportPath,
         bool openReport,
         IReadOnlyList<string> issues)
     {
         Page = page;
+        OpenSettings = openSettings;
         ReportPath = reportPath;
         OpenReport = openReport;
         Issues = issues;
     }
 
     /// <summary>Gets empty launch options.</summary>
-    public static UiLaunchOptions Empty { get; } = new(null, null, openReport: false, []);
+    public static UiLaunchOptions Empty { get; } = new(null, openSettings: false, null, openReport: false, []);
 
     /// <summary>Gets the shell page selected after startup.</summary>
     public ShellPage? Page { get; }
+
+    /// <summary>True when the application Settings modal should open after launch navigation.</summary>
+    public bool OpenSettings { get; }
 
     /// <summary>Gets the run report JSON path loaded after startup.</summary>
     public string? ReportPath { get; }
@@ -38,6 +43,7 @@ public sealed class UiLaunchOptions
         ArgumentNullException.ThrowIfNull(args);
 
         ShellPage? page = null;
+        bool openSettings = false;
         string? reportPath = null;
         bool openReport = false;
         List<string> issues = [];
@@ -48,7 +54,8 @@ public sealed class UiLaunchOptions
             if (TrySplitValue(argument, "--page", out string? inlinePage))
             {
                 string? value = inlinePage ?? TakeValue(args, ref index, "--page", issues);
-                page = ParsePage(value, issues);
+                page = ParsePage(value, issues, out bool settingsRequested);
+                openSettings |= settingsRequested;
                 continue;
             }
 
@@ -70,7 +77,7 @@ public sealed class UiLaunchOptions
             }
         }
 
-        return new UiLaunchOptions(page, NormalizeBlank(reportPath), openReport, issues);
+        return new UiLaunchOptions(page, openSettings, NormalizeBlank(reportPath), openReport, issues);
     }
 
     private static bool TrySplitValue(string argument, string option, out string? value)
@@ -119,12 +126,13 @@ public sealed class UiLaunchOptions
         return value;
     }
 
-    private static ShellPage? ParsePage(string? value, List<string> issues)
+    private static ShellPage? ParsePage(string? value, List<string> issues, out bool openSettings)
     {
+        openSettings = string.Equals(value?.Trim(), "settings", StringComparison.OrdinalIgnoreCase);
         return string.IsNullOrWhiteSpace(value) ? null : value.Trim().ToLowerInvariant() switch
         {
             "home" => ShellPage.Home,
-            "settings" => ShellPage.Settings,
+            "settings" => ShellPage.Home,
             "merge" => ShellPage.Merge,
             "replace" => ShellPage.Replace,
             "hex-editor" => ShellPage.HexEditor,

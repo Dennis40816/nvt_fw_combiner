@@ -9,144 +9,170 @@
     KeyDown="MessageCenterModal_OnKeyDown"
     Background="{DynamicResource NfcModalScrimBrush}">
   <Border
+      x:Name="MessageCenterSurface"
       Classes="modalSurface"
-      Width="720"
-      MaxHeight="650"
-      Padding="22"
+      Width="1420"
+      Height="824"
+      Padding="0"
       HorizontalAlignment="Center"
       VerticalAlignment="Center">
-    <Grid RowDefinitions="Auto,Auto,*,Auto" RowSpacing="{DynamicResource NfcSpace16}">
-      <Grid ColumnDefinitions="*,Auto" ColumnSpacing="{DynamicResource NfcSpace16}">
-        <StackPanel Spacing="{DynamicResource NfcSpace4}">
-          <TextBlock Classes="modalTitle" Text="{Binding Text.MessageCenterTitle}" />
-          <TextBlock Classes="mutedText" Text="{Binding Text.MessageCenterTooltip}" />
-        </StackPanel>
-        <Button
-            x:Name="CloseButton"
-            Grid.Column="1"
-            Classes="iconButton"
-            AutomationProperties.Name="{Binding Text.CloseLabel}"
-            Command="{Binding CloseCommand}"
-            ToolTip.Tip="{Binding Text.CloseLabel}">
-          <TextBlock Text="×" />
-        </Button>
-      </Grid>
-
-      <StackPanel Grid.Row="1" Orientation="Horizontal" Spacing="{DynamicResource NfcSpace8}">
-        <ToggleButton
-            Classes="summaryChip"
-            Command="{Binding ShowRunReportsCommand}"
-            Content="{Binding Text.RunReportsLabel}"
-            IsChecked="{Binding IsRunReportsSelected, Mode=OneWay}" />
-        <ToggleButton
-            Classes="summaryChip"
-            Command="{Binding ShowSystemInformationCommand}"
-            Content="{Binding Text.SystemInformationLabel}"
-            IsChecked="{Binding IsSystemInformationSelected, Mode=OneWay}" />
-      </StackPanel>
-
-      <ScrollViewer Grid.Row="2" MaxHeight="430">
-        <Grid>
-          <StackPanel IsVisible="{Binding IsRunReportsSelected}" Spacing="{DynamicResource NfcSpace12}">
-            <Border Classes="subtlePanel contentPanel">
-              <StackPanel Spacing="5">
-                <TextBlock Classes="cardTitle" Text="{Binding Reports.ReportActionLabel}" />
-                <TextBlock Classes="mutedText" Text="{Binding Reports.ReportActionStatus}" />
-                <TextBlock Classes="cardTitle" Text="{Binding Reports.ReportHistorySummary}" />
-                <TextBlock Classes="mutedText" Text="{Binding Reports.ReportHistoryStorageSummary}" />
-                <TextBlock
-                    Classes="mutedText"
-                    IsVisible="{Binding Reports.IsReportHistoryEmpty}"
-                    Text="{Binding Text.NoReportHistoryLabel}" />
-              </StackPanel>
-            </Border>
-            <StackPanel Orientation="Horizontal" Spacing="{DynamicResource NfcSpace8}">
-              <Button
-                  Classes="secondary"
-                  AutomationProperties.Name="{Binding Reports.ReportActionLabel}"
-                  Command="{Binding OpenCurrentReportCommand}"
-                  Content="{Binding Reports.ReportActionLabel}"
-                  IsEnabled="{Binding Reports.CanOpenReport}" />
-              <Button
-                  Classes="secondary"
-                  AutomationProperties.Name="{Binding Text.OpenReportHistoryLabel}"
-                  Command="{Binding OpenReportHistoryCommand}"
-                  Content="{Binding Text.OpenReportHistoryLabel}"
-                  IsEnabled="{Binding Reports.CanOpenReportHistory}" />
-            </StackPanel>
+    <Grid RowDefinitions="80,*">
+      <Border Classes="messageCenterHeader">
+        <Grid Margin="28,0,24,0" ColumnDefinitions="*,Auto" ColumnSpacing="{DynamicResource NfcSpace16}">
+          <StackPanel VerticalAlignment="Center" Spacing="{DynamicResource NfcSpace4}">
+            <TextBlock Classes="modalTitle" Text="{Binding Text.MessageCenterTitle}" />
+            <TextBlock Classes="mutedText" Text="{Binding Text.MessageCenterTooltip}" />
           </StackPanel>
-
-          <StackPanel IsVisible="{Binding IsSystemInformationSelected}" Spacing="{DynamicResource NfcSpace12}">
-            <Border Classes="subtlePanel contentPanel">
-              <Grid ColumnDefinitions="Auto,*" RowDefinitions="Auto,Auto,Auto" ColumnSpacing="{DynamicResource NfcSpace16}" RowSpacing="7">
-                <TextBlock Classes="fieldLabel" Text="{Binding Text.ApplicationVersionLabel}" />
-                <TextBlock Grid.Column="1" Classes="detailText" Text="{Binding Current.ApplicationVersion}" />
-                <TextBlock Grid.Row="1" Classes="fieldLabel" Text="{Binding Text.RuntimeLabel}" />
-                <TextBlock Grid.Row="1" Grid.Column="1" Classes="detailText" Text="{Binding Current.Runtime.FrameworkDescription}" />
-                <TextBlock Grid.Row="2" Classes="fieldLabel" Text="{Binding Text.CatalogLabel}" />
-                <TextBlock Grid.Row="2" Grid.Column="1" Classes="detailText" Text="{Binding CatalogSummary}" />
-              </Grid>
-            </Border>
-
-            <TextBlock Classes="fieldLabel" Text="{Binding Text.ActiveDiagnosticsLabel}" />
-            <Border
-                Classes="subtlePanel contentPanel"
-                AutomationProperties.LiveSetting="Polite"
-                AutomationProperties.Name="{Binding SystemStatusAnnouncement}"
-                IsVisible="{Binding HasNoActiveDiagnostics}">
-              <TextBlock Classes="mutedText" Text="{Binding Text.NoActiveDiagnosticsLabel}" />
-            </Border>
-            <ItemsControl
-                AutomationProperties.LiveSetting="Polite"
-                ItemsSource="{Binding ActiveDiagnostics}">
-              <ItemsControl.ItemTemplate>
-                <DataTemplate x:DataType="vm:MessageCenterDiagnosticItem">
-                  <Border
-                      Classes="warningSurface contentPanel diagnosticCard"
-                      AutomationProperties.Name="{Binding AccessibleText}"
-                      Focusable="True"
-                      Margin="0,0,0,8">
-                    <StackPanel Spacing="{DynamicResource NfcSpace4}">
-                      <Grid ColumnDefinitions="*,Auto">
-                        <TextBlock Classes="bodyEmphasisText" Text="{Binding Message}" TextWrapping="Wrap" />
-                        <TextBlock Grid.Column="1" Classes="captionText" Text="{Binding Category}" />
-                      </Grid>
-                      <TextBlock Classes="detailText" Text="{Binding Action}" TextWrapping="Wrap" />
-                      <TextBlock Classes="captionText" Text="{Binding Code}" />
-                    </StackPanel>
-                  </Border>
-                </DataTemplate>
-              </ItemsControl.ItemTemplate>
-            </ItemsControl>
-            <TextBlock
-                Classes="infoText"
-                AutomationProperties.LiveSetting="Polite"
-                Text="{Binding ExportStatus}" />
-          </StackPanel>
+          <Button
+              x:Name="CloseButton"
+              Grid.Column="1"
+              Classes="semanticAction closeButton"
+              AutomationProperties.Name="{Binding Text.CloseLabel}"
+              Command="{Binding CloseCommand}"
+              ToolTip.Tip="{Binding Text.CloseLabel}">
+            <Path Width="16" Height="16" Data="{StaticResource NfcCloseIconGeometry}" Stretch="Uniform" />
+          </Button>
         </Grid>
-      </ScrollViewer>
+      </Border>
 
-      <Grid Grid.Row="3" ColumnDefinitions="*,Auto" ColumnSpacing="{DynamicResource NfcSpace12}">
-        <StackPanel
-            IsVisible="{Binding IsSystemInformationSelected}"
-            Orientation="Horizontal"
-            Spacing="{DynamicResource NfcSpace8}">
-          <Button
-              Classes="secondary"
-              AutomationProperties.Name="{Binding Text.RefreshDiagnosticsLabel}"
-              Command="{Binding RefreshCommand}"
-              Content="{Binding RefreshActionLabel}" />
-          <Button
-              Classes="secondary"
-              AutomationProperties.Name="{Binding Text.ExportDiagnosticsLabel}"
-              Click="ExportDiagnosticsButton_OnClick"
-              Content="{Binding Text.ExportDiagnosticsLabel}" />
-        </StackPanel>
-        <Button
-            Grid.Column="1"
-            Classes="primary"
-            Command="{Binding CloseCommand}"
-            Content="{Binding Text.CloseLabel}" />
+      <Grid x:Name="MessageCenterBody" Grid.Row="1" ColumnDefinitions="238,*">
+        <Border x:Name="MessageCenterNavigationRail" Classes="messageCenterNavigationSurface">
+          <StackPanel Spacing="{DynamicResource NfcSpace12}">
+            <TextBlock Margin="12,0,0,8" Classes="sectionLabel" Text="{Binding Text.MessageCenterTitle}" />
+            <ToggleButton
+                Classes="messageCenterNavigationItem"
+                Command="{Binding ShowRunReportsCommand}"
+                IsChecked="{Binding IsRunReportsSelected, Mode=OneWay}">
+              <Grid ColumnDefinitions="26,*" ColumnSpacing="{DynamicResource NfcSpace12}">
+                <Path Width="18" Height="18" Data="M3 4H15 M3 9H15 M3 14H15 M1 4H1.2 M1 9H1.2 M1 14H1.2"
+                    Stretch="Uniform" Stroke="{DynamicResource NfcTextSecondaryBrush}" StrokeThickness="1.8" StrokeLineCap="Round" />
+                <TextBlock Grid.Column="1" Classes="bodyStrongText" Text="{Binding Text.RunReportsLabel}" />
+              </Grid>
+            </ToggleButton>
+            <ToggleButton
+                Classes="messageCenterNavigationItem"
+                Command="{Binding ShowSystemInformationCommand}"
+                IsChecked="{Binding IsSystemInformationSelected, Mode=OneWay}">
+              <Grid ColumnDefinitions="26,*" ColumnSpacing="{DynamicResource NfcSpace12}">
+                <Path Width="18" Height="18" Data="M9 1A8 8 0 1 0 9 17A8 8 0 1 0 9 1 M9 5A4 4 0 1 0 9 13A4 4 0 1 0 9 5"
+                    Stretch="Uniform" Stroke="{DynamicResource NfcTextSecondaryBrush}" StrokeThickness="1.6" />
+                <TextBlock Grid.Column="1" Classes="bodyStrongText" Text="{Binding Text.SystemActivityTitle}" />
+              </Grid>
+            </ToggleButton>
+          </StackPanel>
+        </Border>
+
+        <Grid Grid.Column="1" Margin="38,28,38,24">
+          <StackPanel IsVisible="{Binding IsRunReportsSelected}" Spacing="{DynamicResource NfcSpace16}">
+            <StackPanel Spacing="{DynamicResource NfcSpace4}">
+              <TextBlock Classes="pageTitle" Text="{Binding Text.RunReportsLabel}" />
+              <TextBlock Classes="pageSubtitle" Text="{Binding Text.MessageCenterTooltip}" />
+            </StackPanel>
+            <Grid ColumnDefinitions="*,*" ColumnSpacing="{DynamicResource NfcSpace16}">
+              <Border Classes="insetSurface messageCenterReportCard" Padding="20">
+                <Grid RowDefinitions="Auto,*,Auto" RowSpacing="{DynamicResource NfcSpace12}">
+                  <TextBlock Classes="sectionLabel" Text="{Binding Reports.ReportActionLabel}" />
+                  <TextBlock Grid.Row="1" Classes="cardTitle" Text="{Binding Reports.ReportActionStatus}" TextWrapping="Wrap" />
+                  <Button Grid.Row="2" HorizontalAlignment="Left" Classes="semanticAction secondary"
+                      Command="{Binding OpenCurrentReportCommand}" Content="{Binding Reports.ReportActionLabel}"
+                      IsEnabled="{Binding Reports.CanOpenReport}" />
+                </Grid>
+              </Border>
+              <Border Grid.Column="1" Classes="insetSurface messageCenterReportCard" Padding="20">
+                <Grid RowDefinitions="Auto,*,Auto" RowSpacing="{DynamicResource NfcSpace12}">
+                  <TextBlock Classes="sectionLabel" Text="{Binding Text.OpenReportHistoryLabel}" />
+                  <StackPanel Grid.Row="1" Spacing="{DynamicResource NfcSpace4}">
+                    <TextBlock Classes="cardTitle" Text="{Binding Reports.ReportHistorySummary}" TextWrapping="Wrap" />
+                    <TextBlock Classes="mutedText" Text="{Binding Reports.ReportHistoryStorageSummary}" TextWrapping="Wrap" />
+                    <TextBlock Classes="mutedText" IsVisible="{Binding Reports.IsReportHistoryEmpty}" Text="{Binding Text.NoReportHistoryLabel}" />
+                  </StackPanel>
+                  <Button Grid.Row="2" HorizontalAlignment="Left" Classes="semanticAction secondary"
+                      Command="{Binding OpenReportHistoryCommand}" Content="{Binding Text.OpenReportHistoryLabel}"
+                      IsEnabled="{Binding Reports.CanOpenReportHistory}" />
+                </Grid>
+              </Border>
+            </Grid>
+          </StackPanel>
+
+          <Grid
+              x:Name="SystemActivityRoot"
+              IsVisible="{Binding IsSystemInformationSelected}"
+              RowDefinitions="Auto,Auto,Auto,*,Auto"
+              RowSpacing="{DynamicResource NfcSpace16}">
+            <Grid ColumnDefinitions="*,Auto" ColumnSpacing="{DynamicResource NfcSpace16}">
+              <StackPanel Spacing="{DynamicResource NfcSpace4}">
+                <TextBlock Classes="pageTitle" Text="{Binding Text.SystemActivityTitle}" />
+                <TextBlock Classes="pageSubtitle" Text="{Binding Text.SystemActivitySubtitle}" />
+              </StackPanel>
+              <Border Grid.Column="1" Classes="activitySessionPill" VerticalAlignment="Center">
+                <TextBlock Classes="infoText" Text="{Binding SessionActivitySummary}" />
+              </Border>
+            </Grid>
+
+            <Grid Grid.Row="1" ColumnDefinitions="Auto,*,Auto,Auto" ColumnSpacing="{DynamicResource NfcSpace12}">
+              <StackPanel Orientation="Horizontal" Spacing="{DynamicResource NfcSpace8}">
+                <ToggleButton Classes="activityFilter" Command="{Binding ShowImportantActivityCommand}"
+                    Content="{Binding Text.ImportantActivityLabel}" IsChecked="{Binding IsImportantActivitySelected, Mode=OneWay}" />
+                <ToggleButton Classes="activityFilter" Command="{Binding ShowWarningActivityCommand}"
+                    Content="{Binding Text.WarningActivityLabel}" IsChecked="{Binding IsWarningActivitySelected, Mode=OneWay}" />
+                <ToggleButton Classes="activityFilter" Command="{Binding ShowErrorActivityCommand}"
+                    Content="{Binding Text.ErrorActivityLabel}" IsChecked="{Binding IsErrorActivitySelected, Mode=OneWay}" />
+              </StackPanel>
+              <Button Grid.Column="2" Classes="semanticAction secondary" Command="{Binding ToggleDebugActivityCommand}"
+                  Content="{Binding DebugActivityActionLabel}" />
+              <Button Grid.Column="3" Classes="semanticAction secondary"
+                  Click="ExportDiagnosticsButton_OnClick" Content="{Binding Text.ExportActivityLabel}" />
+            </Grid>
+
+            <Border Grid.Row="2" Classes="messageCenterDivider" />
+
+            <Grid Grid.Row="3">
+              <ScrollViewer x:Name="SystemActivityTimelineViewport" HorizontalScrollBarVisibility="Disabled">
+                <ItemsControl AutomationProperties.LiveSetting="Polite" ItemsSource="{Binding ActivityItems}">
+                  <ItemsControl.ItemTemplate>
+                    <DataTemplate x:DataType="vm:MessageCenterActivityItem">
+                      <Border Classes="activityRow" AutomationProperties.Name="{Binding AccessibleText}" Focusable="True">
+                        <Grid ColumnDefinitions="82,24,*,Auto" ColumnSpacing="{DynamicResource NfcSpace12}">
+                          <TextBlock Classes="captionText" Text="{Binding Time}" VerticalAlignment="Top" Margin="0,3,0,0" />
+                          <Grid Grid.Column="1" Margin="0,5,0,0">
+                            <Border Classes="activityDot info" IsVisible="{Binding IsInformation}" />
+                            <Border Classes="activityDot success" IsVisible="{Binding IsSuccess}" />
+                            <Border Classes="activityDot warning" IsVisible="{Binding IsWarning}" />
+                            <Border Classes="activityDot error" IsVisible="{Binding IsError}" />
+                          </Grid>
+                          <StackPanel Grid.Column="2" Spacing="{DynamicResource NfcSpace4}">
+                            <StackPanel Orientation="Horizontal" Spacing="{DynamicResource NfcSpace8}">
+                              <TextBlock Classes="bodyStrongText" Text="{Binding Title}" />
+                              <TextBlock Classes="captionText" Text="{Binding Category}" VerticalAlignment="Center" />
+                            </StackPanel>
+                            <TextBlock Classes="detailText" Text="{Binding Detail}" TextWrapping="Wrap" />
+                          </StackPanel>
+                          <Grid Grid.Column="3" VerticalAlignment="Top">
+                            <TextBlock Classes="activityStatus info" Text="{Binding Status}" IsVisible="{Binding IsInformation}" />
+                            <TextBlock Classes="activityStatus success" Text="{Binding Status}" IsVisible="{Binding IsSuccess}" />
+                            <TextBlock Classes="activityStatus warning" Text="{Binding Status}" IsVisible="{Binding IsWarning}" />
+                            <TextBlock Classes="activityStatus error" Text="{Binding Status}" IsVisible="{Binding IsError}" />
+                          </Grid>
+                        </Grid>
+                      </Border>
+                    </DataTemplate>
+                  </ItemsControl.ItemTemplate>
+                </ItemsControl>
+              </ScrollViewer>
+              <TextBlock Classes="mutedText" HorizontalAlignment="Center" VerticalAlignment="Center"
+                  IsVisible="{Binding HasNoActivityItems}" Text="{Binding Text.NoActivityLabel}" />
+            </Grid>
+
+            <Grid Grid.Row="4" ColumnDefinitions="*,Auto" ColumnSpacing="{DynamicResource NfcSpace12}">
+              <TextBlock Classes="captionText" Text="{Binding Text.SessionActivityNotice}" VerticalAlignment="Center" />
+              <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="{DynamicResource NfcSpace12}">
+                <TextBlock Classes="infoText" AutomationProperties.LiveSetting="Polite" Text="{Binding ExportStatus}" VerticalAlignment="Center" />
+                <Button Classes="semanticAction secondary" AutomationProperties.Name="{Binding Text.RefreshDiagnosticsLabel}"
+                    Command="{Binding RefreshCommand}" Content="{Binding RefreshActionLabel}" />
+              </StackPanel>
+            </Grid>
+          </Grid>
+        </Grid>
       </Grid>
     </Grid>
   </Border>

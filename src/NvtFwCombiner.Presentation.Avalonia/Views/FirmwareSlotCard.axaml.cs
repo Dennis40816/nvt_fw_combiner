@@ -1,3 +1,5 @@
+using System.Globalization;
+using System.Text;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Input;
@@ -9,9 +11,14 @@ namespace NvtFwCombiner.Presentation.Avalonia.Views;
 /// <summary>Reusable firmware input slot card with browse and drag/drop file selection.</summary>
 public sealed partial class FirmwareSlotCard : UserControl
 {
+    /// <summary>Formats the shared visible, assistive, and picker-title Browse phrase.</summary>
+    public const string BrowseActionFormat = "{0} — {1}";
+    private static readonly CompositeFormat BrowseActionCompositeFormat =
+        CompositeFormat.Parse(BrowseActionFormat);
+
     /// <summary>Defines the localized browse button label.</summary>
     public static readonly StyledProperty<string> BrowseLabelProperty =
-        AvaloniaProperty.Register<FirmwareSlotCard, string>(nameof(BrowseLabel), "Browse");
+        AvaloniaProperty.Register<FirmwareSlotCard, string>(nameof(BrowseLabel), string.Empty);
 
     /// <summary>Gets or sets the localized browse button label.</summary>
     public string BrowseLabel
@@ -28,6 +35,17 @@ public sealed partial class FirmwareSlotCard : UserControl
 
     private MainWindowViewModel? ShellViewModel =>
         ShellViewModelLocator.Find(this);
+
+    internal static string FormatBrowseActionLabel(string browseLabel, string slotTitle)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(browseLabel);
+        ArgumentException.ThrowIfNullOrWhiteSpace(slotTitle);
+        return string.Format(
+            CultureInfo.CurrentCulture,
+            BrowseActionCompositeFormat,
+            browseLabel,
+            slotTitle);
+    }
 
     private void SlotDragOver_OnDragOver(object? sender, DragEventArgs e)
     {
@@ -73,7 +91,7 @@ public sealed partial class FirmwareSlotCard : UserControl
         if (sender is not Control
             {
                 Tag: string slotId,
-                DataContext: FirmwareSlotViewModel { CanSelectFile: true },
+                DataContext: FirmwareSlotViewModel { CanSelectFile: true } slot,
             } ||
             ShellViewModel is not MainWindowViewModel viewModel)
         {
@@ -88,7 +106,7 @@ public sealed partial class FirmwareSlotCard : UserControl
 
         string? path = await FirmwareFilePickerDialogs.PickFirmwareBinOpenFileAsync(
             topLevel.StorageProvider,
-            "Select BIN file");
+            FormatBrowseActionLabel(BrowseLabel, slot.Title));
         if (!string.IsNullOrWhiteSpace(path))
         {
             await viewModel.WorkflowSession.SetSlotFileAsync(slotId, path);

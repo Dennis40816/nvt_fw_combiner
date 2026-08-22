@@ -1,23 +1,55 @@
 using NvtFwCombiner.Application.Capabilities;
+using NvtFwCombiner.Application.Diagnostics;
 
 namespace NvtFwCombiner.Presentation.Avalonia.ViewModels;
 
-public sealed partial class MainWindowViewModel
+internal sealed partial class MainWindowViewModel
 {
     /// <summary>Focused Preview/Build lifetime and progress presentation.</summary>
     public CompositionRunPresentationViewModel RunSession { get; }
 
-    private Task RunCompositionAsync(
+    private async Task RunCompositionAsync(
         bool build,
         CompositionRunWork run,
         Action<string, string> loadErrorReport)
     {
-        return RunSession.RunCompositionAsync(build, run, loadErrorReport);
+        string mode = GetSelectedRunMode();
+        UiRunResultViewModel? previous = RunSession.LastRunResult;
+        RecordDebugActivity(
+            build ? SystemActivityCodes.BuildStarted : SystemActivityCodes.PreviewStarted,
+            SystemActivityCategory.Composition,
+            mode,
+            GetWorkflowSelectedIc());
+        await RunSession.RunCompositionAsync(build, run, loadErrorReport);
+        UiRunResultViewModel? result = RunSession.LastRunResult;
+        bool succeeded = !ReferenceEquals(previous, result) && result?.Succeeded == true;
+        RecordSystemActivity(new SystemActivityDraft(
+            succeeded
+                ? build ? SystemActivityCodes.BuildCompleted : SystemActivityCodes.PreviewCompleted
+                : build ? SystemActivityCodes.BuildFailed : SystemActivityCodes.PreviewFailed,
+            SystemActivityImportance.Important,
+            SystemActivityCategory.Composition,
+            succeeded ? SystemActivitySeverity.Success : SystemActivitySeverity.Error,
+            mode,
+            GetWorkflowSelectedIc()));
     }
 
-    private Task ShowDiagnosticPreviewAsync(CompositionRunReport report)
+    private async Task ShowDiagnosticPreviewAsync(CompositionRunReport report)
     {
-        return RunSession.ShowDiagnosticPreviewAsync(report);
+        string mode = GetSelectedRunMode();
+        RecordDebugActivity(
+            SystemActivityCodes.PreviewStarted,
+            SystemActivityCategory.Composition,
+            mode,
+            GetWorkflowSelectedIc());
+        await RunSession.ShowDiagnosticPreviewAsync(report);
+        RecordSystemActivity(new SystemActivityDraft(
+            SystemActivityCodes.PreviewFailed,
+            SystemActivityImportance.Important,
+            SystemActivityCategory.Composition,
+            SystemActivitySeverity.Warning,
+            mode,
+            GetWorkflowSelectedIc()));
     }
 
     private void ShowActionReadiness(

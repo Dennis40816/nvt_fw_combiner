@@ -54,7 +54,7 @@ public sealed class ExternalProcessorRuntimeDependencyInspector :
         RuntimeDependencyEntry[] entries =
         [
             .. request.Dependencies.Select(dependency =>
-                Inspect(dependency, resolver, stagingIssue)),
+                Inspect(dependency, resolver, stagingIssue, cancellationToken)),
         ];
         return ValueTask.FromResult(CreateSnapshot(request, generation, entries));
     }
@@ -78,7 +78,8 @@ public sealed class ExternalProcessorRuntimeDependencyInspector :
     private static RuntimeDependencyEntry Inspect(
         ExternalProcessorDependencyReference dependency,
         ExternalCombinerToolResolver resolver,
-        CompositionIssue? stagingIssue)
+        CompositionIssue? stagingIssue,
+        CancellationToken cancellationToken)
     {
         if (stagingIssue is not null)
         {
@@ -91,7 +92,8 @@ public sealed class ExternalProcessorRuntimeDependencyInspector :
                 dependency.ToolBindingId,
                 out ExternalCombinerToolManifest? manifest,
                 out _,
-                out CompositionIssue? issue);
+                out CompositionIssue? issue,
+                cancellationToken);
             return !resolved
                 ? Blocked(dependency, issue!)
                 : SupportsCurrentPlatform(manifest!.Platform)

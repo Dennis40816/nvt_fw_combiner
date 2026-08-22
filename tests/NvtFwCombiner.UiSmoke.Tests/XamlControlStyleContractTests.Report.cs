@@ -47,7 +47,7 @@ public sealed partial class XamlControlStyleContractTests
         Assert.Contains("<ItemsControl Classes=\"spaciousList\" ItemsSource=\"{Binding Rows}\">", inputs, StringComparison.Ordinal);
         Assert.Contains("<views:SpaciousPanel Classes=\"compactSurface\" IsVisible=\"{Binding LoadedReport.HasInputGroups}\">", audit, StringComparison.Ordinal);
         Assert.DoesNotContain("Classes=\"compactSurface contentPanel\" IsVisible=\"{Binding LoadedReport.HasInputGroups}\"", audit, StringComparison.Ordinal);
-        Assert.Contains("<TabControl Grid.Row=\"1\" MinHeight=\"0\"", audit, StringComparison.Ordinal);
+        Assert.Contains("<TabControl Grid.Row=\"2\" MinHeight=\"0\"", audit, StringComparison.Ordinal);
         Assert.Contains("HorizontalScrollBarVisibility=\"Disabled\"", audit, StringComparison.Ordinal);
         Assert.Contains("VerticalAlignment=\"Stretch\"", audit, StringComparison.Ordinal);
         Assert.Contains("VerticalScrollBarVisibility=\"Auto\"", audit, StringComparison.Ordinal);
@@ -168,7 +168,7 @@ public sealed partial class XamlControlStyleContractTests
         Assert.DoesNotContain("SelectedRange.Detail.BeforeLabel", audit, StringComparison.Ordinal);
         Assert.DoesNotContain("SelectedRange.Detail.AfterLabel", audit, StringComparison.Ordinal);
         Assert.DoesNotContain("Border.reportHexDiffRow.changed", styles, StringComparison.Ordinal);
-        Assert.Contains("Selector=\"ToggleSwitch.reportHexDiffOriginalToggle\"", styles, StringComparison.Ordinal);
+        _ = ExtractStyle(styles, "ToggleSwitch.reportHexDiffOriginalToggle");
         Assert.Contains("x:Key=\"ReportHexDiffRangeCardTheme\"", changes, StringComparison.Ordinal);
         Assert.Contains("ResourceKey=\"ReportHexDiffRangeCardTheme\"", audit, StringComparison.Ordinal);
         Assert.Contains("Property=\"CornerRadius\" Value=\"{DynamicResource NfcSurfaceCornerRadius}\"", changes, StringComparison.Ordinal);

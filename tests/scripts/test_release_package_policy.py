@@ -29,7 +29,7 @@ CAPABILITY_POLICY_RELATIVE_PATH = Path(
 )
 CAPABILITY_POLICY_ROLE = "capabilityPolicy"
 CAPABILITY_POLICY_SHA256 = (
-    "026fd116bb8380c373148953935cde01ceb5532f60bb3848dbab7d17fabd69e4"
+    "cb42918068ad4ca16f8eab854ea96295df83ecef11d768ad4ae98f68254d60d1"
 )
 RUNTIME_CAPABILITY_POLICY = (
     ROOT
@@ -91,6 +91,33 @@ def literal_run_blocks(workflow: str) -> tuple[str, ...]:
 
 class ReleasePackagePolicyTests(unittest.TestCase):
     """Exercises the packager and smoke policy without building release binaries."""
+
+    def test_packager_validates_the_generated_manifest_against_canonical_schema(
+        self,
+    ) -> None:
+        package_script = PACKAGE_SCRIPT.read_text(encoding="utf-8")
+
+        schema_path_index = package_script.index(
+            "docs/contracts/release-manifest-v1.schema.json"
+        )
+        manifest_write_index = package_script.index(
+            "$Manifest | ConvertTo-Json -Depth 8 | Set-Content"
+        )
+        validation_literal = (
+            "Assert-CanonicalJsonSchema -JsonPath $ManifestPath "
+            "-SchemaPath $ReleaseManifestSchemaPath"
+        )
+        validation_indexes = [
+            match.start()
+            for match in re.finditer(re.escape(validation_literal), package_script)
+        ]
+        archive_index = package_script.index("Compress-Archive -LiteralPath $PackageRoot")
+
+        self.assertLess(schema_path_index, manifest_write_index)
+        self.assertEqual(2, len(validation_indexes))
+        self.assertLess(manifest_write_index, validation_indexes[0])
+        self.assertLess(validation_indexes[0], validation_indexes[1])
+        self.assertLess(validation_indexes[1], archive_index)
 
     def test_packager_restores_then_cleans_and_smoke_requires_window(self) -> None:
         package_script = PACKAGE_SCRIPT.read_text(encoding="utf-8")

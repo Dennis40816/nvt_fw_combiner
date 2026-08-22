@@ -1,10 +1,79 @@
 <Styles xmlns="https://github.com/avaloniaui">
+  <Style Selector="Border.memoryInfoPanel">
+    <Setter Property="Background" Value="{DynamicResource NfcMemoryPanelSurfaceBrush}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource NfcMemoryPanelBorderBrush}" />
+    <Setter Property="BorderThickness" Value="2" />
+    <Setter Property="CornerRadius" Value="10" />
+  </Style>
+  <Style Selector="TextBlock.memoryInfoDescription">
+    <Setter Property="Foreground" Value="{DynamicResource NfcMemoryTextSecondaryBrush}" />
+  </Style>
+  <Style Selector="Border.memoryInfoAddress">
+    <Setter Property="Background" Value="{DynamicResource NfcMemoryAddressSurfaceBrush}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource NfcMemoryAddressBorderBrush}" />
+    <Setter Property="BorderThickness" Value="2" />
+  </Style>
+  <Style Selector="TextBlock.memoryInfoAddressText">
+    <Setter Property="Foreground" Value="{DynamicResource NfcMemoryAddressTextBrush}" />
+  </Style>
+  <Style Selector="TextBlock.memoryInfoRangeSummary">
+    <Setter Property="Foreground" Value="{DynamicResource NfcMemoryTextSecondaryBrush}" />
+  </Style>
+  <Style Selector="TextBlock.memoryInfoRangeGroup">
+    <Setter Property="Foreground" Value="{DynamicResource NfcMemoryAddressTextBrush}" />
+    <Setter Property="FontWeight" Value="SemiBold" />
+  </Style>
+  <Style Selector="Border.memoryInfoRow">
+    <Setter Property="BorderBrush" Value="{DynamicResource NfcMemoryDividerBrush}" />
+  </Style>
+  <Style Selector="TextBlock.memoryCoverageStateText">
+    <Setter Property="VerticalAlignment" Value="Center" />
+    <Setter Property="FontSize" Value="{DynamicResource NfcFontSize11}" />
+    <Setter Property="FontWeight" Value="SemiBold" />
+    <Setter Property="Foreground" Value="{DynamicResource NfcMemoryTextSecondaryBrush}" />
+  </Style>
+  <Style Selector="Border.memorySupportingRow">
+    <Setter Property="Background" Value="Transparent" />
+    <Setter Property="BorderBrush" Value="{DynamicResource NfcMemoryDividerBrush}" />
+    <Setter Property="BorderThickness" Value="0,1,0,0" />
+  </Style>
+  <Style Selector="Border.memoryCoverageLinkedRow.linked">
+    <Setter Property="Padding" Value="10" />
+    <Setter Property="Background" Value="{DynamicResource NfcMemoryInteractionSurfaceBrush}" />
+    <Setter Property="BorderBrush" Value="Transparent" />
+    <Setter Property="BoxShadow" Value="{DynamicResource NfcMemoryRowHoverShadow}" />
+    <Setter Property="CornerRadius" Value="7" />
+    <Setter Property="RenderTransform" Value="translateY(-1px)" />
+    <Setter Property="Panel.ZIndex" Value="2" />
+  </Style>
+  <Style Selector="Border.memoryInfoRangeList">
+    <Setter Property="Padding" Value="0" />
+    <Setter Property="BorderThickness" Value="0" />
+  </Style>
+  <Style Selector="Border.memoryInfoRangeList.multiple">
+    <Setter Property="Padding" Value="8,2" />
+    <Setter Property="Background" Value="{DynamicResource NfcMemoryAddressSurfaceBrush}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource NfcMemoryAddressBorderBrush}" />
+    <Setter Property="BorderThickness" Value="2" />
+    <Setter Property="CornerRadius" Value="{DynamicResource NfcCompactCornerRadius}" />
+  </Style>
   <Style Selector="Border.memoryCoverageFill">
     <Setter Property="Background" Value="{DynamicResource NfcMemoryNeutralFillBrush}" />
   </Style>
   <Style Selector="Border.memoryCoverageMarker">
     <Setter Property="BorderThickness" Value="0" />
   </Style>
+  <Style Selector="Border.memoryCoverageBarSegment">
+    <Setter Property="BorderThickness" Value="0" />
+  </Style>
+  <Style Selector="Border.memoryCoverageBarSegment.linked">
+    <Setter Property="BoxShadow" Value="{DynamicResource NfcMemorySegmentHoverShadow}" />
+    <Setter Property="CornerRadius" Value="4" />
+    <Setter Property="RenderTransform" Value="scaleY(1.18)" />
+    <Setter Property="Panel.ZIndex" Value="3" />
+  </Style>
+  <Style Selector="Border.memoryCoverageLinkedRow:focus-visible"><Setter Property="BorderBrush" Value="{DynamicResource NfcAccentStrongBrush}" /><Setter Property="BorderThickness" Value="2" /></Style>
+  <Style Selector="Border.memoryCoverageLinkedRow.linked.reducedMotion, Border.memoryCoverageBarSegment.linked.reducedMotion"><Setter Property="RenderTransform" Value="none" /></Style>
   <Style Selector="Border.memoryCoverageFill.dp">
     <Setter Property="Background" Value="{DynamicResource NfcMemoryDpFillBrush}" />
   </Style>
@@ -29,11 +98,25 @@
   <Style Selector="Border.memoryCoverageFill.ctrlRam">
     <Setter Property="Background" Value="{DynamicResource NfcMemoryCtrlRamFillBrush}" />
   </Style>
+  <Style Selector="Border.memoryCoverageFill.ctrlRamNf">
+    <Setter Property="Background" Value="{DynamicResource NfcMemoryCtrlRamNfFillBrush}" />
+  </Style>
+  <Style Selector="Border.memoryCoverageFill.ctrlRamNormal">
+    <Setter Property="Background" Value="{DynamicResource NfcMemoryCtrlRamNormalFillBrush}" />
+  </Style>
+  <Style Selector="Border.memoryCoverageFill.ctrlRamMp">
+    <Setter Property="Background" Value="{DynamicResource NfcMemoryCtrlRamMpFillBrush}" />
+  </Style>
+  <Style Selector="Border.memoryCoverageFill.ctrlRamVn">
+    <Setter Property="Background" Value="{DynamicResource NfcMemoryCtrlRamVnFillBrush}" />
+  </Style>
+  <Style Selector="Border.memoryCoverageFill.ctrlRamVector">
+    <Setter Property="Background" Value="{DynamicResource NfcMemoryCtrlRamVectorFillBrush}" />
+  </Style>
   <Style Selector="Border.memoryCoverageFill.diffDlm">
     <Setter Property="Background" Value="{DynamicResource NfcMemoryDiffDlmFillBrush}" />
   </Style>
   <Style Selector="Border.memoryCoverageMarker.changed">
-    <Setter Property="BorderBrush" Value="{DynamicResource NfcAccentStrongBrush}" />
-    <Setter Property="BorderThickness" Value="1" />
+    <Setter Property="BorderThickness" Value="0" />
   </Style>
 </Styles>

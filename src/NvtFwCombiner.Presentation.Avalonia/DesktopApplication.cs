@@ -1,4 +1,5 @@
 using Avalonia;
+using NvtFwCombiner.Application.Ports;
 using NvtFwCombiner.Presentation.Avalonia.ViewModels;
 
 namespace NvtFwCombiner.Presentation.Avalonia;
@@ -12,15 +13,18 @@ public static class DesktopApplication
     /// <summary>Creates the desktop dependency graph under startup tracing, then runs the UI.</summary>
     public static int Run(
         Func<PresentationHostServices> hostServicesFactory,
+        ILocalFileStore startupFiles,
         string[] args)
     {
         ArgumentNullException.ThrowIfNull(hostServicesFactory);
+        ArgumentNullException.ThrowIfNull(startupFiles);
         ArgumentNullException.ThrowIfNull(args);
         var startupTrace = StartupTraceSession.StartFromEnvironment();
         (PresentationHostServices hostServices, Task<ShellPreferenceSnapshot> shellPreferences) =
             PrepareStartup(
                 hostServicesFactory,
-                static () => ShellPreferenceFileStore.LoadAsync(
+                () => ShellPreferenceFileStore.LoadAsync(
+                    startupFiles,
                     ShellPreferenceFileStore.DefaultPreferencesPath),
                 startupTrace);
         var launchOptions = UiLaunchOptions.Parse(args);
@@ -41,8 +45,8 @@ public static class DesktopApplication
         ArgumentNullException.ThrowIfNull(startupTrace);
 
         startupTrace.Mark("shell-preferences.started");
-        Task<ShellPreferenceSnapshot> shellPreferences = shellPreferenceLoader() ??
-            throw new InvalidOperationException("The shell-preference loader returned null.");
+        Task<ShellPreferenceSnapshot> shellPreferences = Task.Run(
+            () => shellPreferenceLoader() ?? throw new InvalidOperationException("The shell-preference loader returned null."));
         startupTrace.Mark("host-services.started");
         PresentationHostServices hostServices = hostServicesFactory() ??
             throw new InvalidOperationException("The host-services factory returned null.");

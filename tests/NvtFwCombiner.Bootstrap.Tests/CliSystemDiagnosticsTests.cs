@@ -1,6 +1,7 @@
 using NvtFwCombiner.Application.Capabilities;
 using NvtFwCombiner.Application.Diagnostics;
 using NvtFwCombiner.Application.Ports;
+using NvtFwCombiner.Infrastructure.ExternalTools;
 
 namespace NvtFwCombiner.Bootstrap.Tests;
 
@@ -102,6 +103,8 @@ public sealed class CliSystemDiagnosticsTests
             "0.10.3-test",
             catalog,
             catalog,
+            new ExternalProcessorEnvironmentLoader(static (_, _) =>
+                throw new NotSupportedException()),
             new StubRuntimeProbe(),
             new StubClock());
     }

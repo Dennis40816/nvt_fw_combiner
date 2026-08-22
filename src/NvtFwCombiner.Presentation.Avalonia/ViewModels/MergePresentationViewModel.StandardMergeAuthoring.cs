@@ -3,7 +3,7 @@ using NvtFwCombiner.Application.Capabilities;
 
 namespace NvtFwCombiner.Presentation.Avalonia.ViewModels;
 
-public sealed partial class MergePresentationViewModel
+internal sealed partial class MergePresentationViewModel
 {
     internal AuthoringRevision StandardMergeAuthoringRevision =>
         _standardMergeSession.CurrentSnapshot?.AuthoringRevision ?? new AuthoringRevision(1);
@@ -50,7 +50,7 @@ public sealed partial class MergePresentationViewModel
             _standardMergeSession,
             selected,
             inspections,
-            static item => item.StandardMergeInspectionLease,
+            static item => item.InspectionLease,
             out ActiveSessionSnapshot? snapshot);
         if (completed && selected.Length > 0)
         {
@@ -86,13 +86,6 @@ public sealed partial class MergePresentationViewModel
             _standardMergeSession.Activate(projection);
         ApplyStandardMergeReadiness(projection);
         SyncStandardMergeMembership(activated.Snapshot);
-    }
-
-    internal IEnumerable<FirmwareSlotViewModel> CurrentStandardMergeInspectionSlots()
-    {
-        return StandardMergeSlots.Where(slot =>
-            slot.HasFile &&
-            slot.AddressSpaceId is not null);
     }
 
     private CompiledAuthoringSelectionSnapshot ResolveStandardMergeAuthoringSnapshot()
@@ -208,7 +201,7 @@ public sealed partial class MergePresentationViewModel
                 continue;
             }
 
-            string label = Text.GetDpInputSelectionReadinessLabel(member.Readiness);
+            string label = Text.GetDpInputSelectionReadinessLabel(member);
             string detail = Text.GetStandardMergeInputSelectionReadinessDetail(member);
             slot.SetSelectionReadiness(member.Readiness, label, detail,
                 Text.GetInputSelectionReadinessAutomationText(label, detail), member.CanSelect);

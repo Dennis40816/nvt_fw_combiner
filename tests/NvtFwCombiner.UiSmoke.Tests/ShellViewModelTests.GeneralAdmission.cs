@@ -48,10 +48,11 @@ public sealed partial class GeneralWorkflowTests
                     TestContext.Current.CancellationToken);
                 first.Length = "0x04";
                 delayedAuthoring.ReleaseFirstPreparation();
-                await viewModel.Merge.GeneralMergeReadinessRefreshTask.WaitAsync(
+                await viewModel.Merge.Inspection.ActiveTask.WaitAsync(
                     TimeSpan.FromSeconds(5),
                     TestContext.Current.CancellationToken);
                 Assert.True(viewModel.Merge.PreviewMergeCommand.CanExecute(null));
+                AssertInspectionTerminal(viewModel.Merge.Inspection);
                 Assert.NotEmpty(publicationThreads);
                 Assert.All(publicationThreads, threadId => Assert.Equal(uiThread.ThreadId, threadId));
 
@@ -63,7 +64,7 @@ public sealed partial class GeneralWorkflowTests
                     second.MappingId,
                     secondPath,
                     TestContext.Current.CancellationToken);
-                await viewModel.Merge.GeneralMergeReadinessRefreshTask;
+                await viewModel.Merge.Inspection.ActiveTask;
 
                 Assert.False(viewModel.Merge.PreviewMergeCommand.CanExecute(null));
                 MemoryCoverageSegmentViewModel overlap = Assert.Single(
@@ -119,7 +120,8 @@ public sealed partial class GeneralWorkflowTests
             AuthoringSessionState session,
             string icId,
             GeneralMergeDraftState draft,
-            CancellationToken cancellationToken)
+            CancellationToken cancellationToken,
+            IProgress<AuthoringInspectionProgress>? progress = null)
         {
             if (Interlocked.Increment(ref _preparationCount) == 1)
             {
@@ -131,7 +133,8 @@ public sealed partial class GeneralWorkflowTests
                 session,
                 icId,
                 draft,
-                cancellationToken).ConfigureAwait(false);
+                cancellationToken,
+                progress).ConfigureAwait(false);
         }
 
         public ValueTask<GeneralAuthoringSessionPreparation> PrepareReplaceSessionAsync(
@@ -140,7 +143,8 @@ public sealed partial class GeneralWorkflowTests
             string number,
             string referencePath,
             GeneralMappingDraftState draft,
-            CancellationToken cancellationToken)
+            CancellationToken cancellationToken,
+            IProgress<AuthoringInspectionProgress>? progress = null)
         {
             return inner.PrepareReplaceSessionAsync(
                 session,
@@ -148,7 +152,8 @@ public sealed partial class GeneralWorkflowTests
                 number,
                 referencePath,
                 draft,
-                cancellationToken);
+                cancellationToken,
+                progress);
         }
 
         internal void ReleaseFirstPreparation()
@@ -179,7 +184,7 @@ public sealed partial class GeneralWorkflowTests
         second.TargetStartAddress = "0x102";
         second.Length = "0x4";
         viewModel.SetSlotFile(second.MappingId, secondPath);
-        await viewModel.Replace.GeneralReplaceReadinessRefreshTask;
+        await viewModel.Replace.Inspection.ActiveTask;
 
         Assert.False(viewModel.Replace.PreviewReplaceCommand.CanExecute(null));
         Assert.True(first.HasAuthoringIssue);
@@ -216,10 +221,12 @@ public sealed partial class GeneralWorkflowTests
         mapping.TargetStartAddress = "0x100";
         mapping.Length = length;
         mapping.InlineValue = value;
-        await viewModel.Replace.GeneralReplaceReadinessRefreshTask;
+        await viewModel.Replace.Inspection.ActiveTask;
 
         Assert.Equal(!expectedAdmitted, mapping.HasAuthoringIssue);
-        Assert.Equal("Memory layout pending", viewModel.Replace.ReplaceMemoryRangeLabel);
+        Assert.Equal(WorkflowInspectionAttemptState.Failed, viewModel.Replace.Inspection.State);
+        Assert.True(viewModel.Replace.Inspection.Loading.CanRetry);
+        Assert.Equal("Waiting for Base BIN", viewModel.Replace.ReplaceMemoryRangeLabel);
         Assert.Equal(sourceKind == GeneralMappingSourceKind.HexFill ? "FILL" : "HEX", mapping.SourceKindIcon);
     }
 

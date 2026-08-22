@@ -1,0 +1,54 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schemas.example.invalid/nvt_fw_combiner/update-catalog-v1.schema.json",
+  "title": "NVT FW Combiner update catalog v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schemaVersion", "product", "runtimeIdentifier", "versions"],
+  "properties": {
+    "schemaVersion": { "const": 1 },
+    "product": { "const": "NVT FW Combiner" },
+    "runtimeIdentifier": { "const": "win-x64" },
+    "versions": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 128,
+      "items": { "$ref": "#/$defs/version" }
+    }
+  },
+  "$defs": {
+    "sha256": { "type": "string", "pattern": "^[0-9a-f]{64}$" },
+    "version": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "version",
+        "publishedAt",
+        "packagePath",
+        "packageSize",
+        "packageSha256",
+        "releaseManifestSha256",
+        "releaseNotes"
+      ],
+      "properties": {
+        "version": { "type": "string", "pattern": "^(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)$" },
+        "publishedAt": {
+          "type": "string",
+          "format": "date-time",
+          "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}(?:\\.[0-9]{1,7})?Z$"
+        },
+        "packagePath": {
+          "type": "string",
+          "minLength": 5,
+          "maxLength": 512,
+          "pattern": "^[^\\\\/:*?\"<>|]+(?:/[^\\\\/:*?\"<>|]+)*\\.[zZ][iI][pP]$",
+          "not": { "pattern": "(^|/)\\.{1,2}(/|$)|(^|/)[^/]*[ .](/|$)" }
+        },
+        "packageSize": { "type": "integer", "minimum": 1, "maximum": 80000000 },
+        "packageSha256": { "$ref": "#/$defs/sha256" },
+        "releaseManifestSha256": { "$ref": "#/$defs/sha256" },
+        "releaseNotes": { "type": "string", "maxLength": 65536 }
+      }
+    }
+  }
+}

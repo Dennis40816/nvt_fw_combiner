@@ -4,6 +4,19 @@ namespace NvtFwCombiner.Presentation.Avalonia;
 
 internal static class FirmwareFilePickerDialogs
 {
+    public static async Task<string?> PickBundleParentDirectoryAsync(
+        IStorageProvider storageProvider,
+        string title)
+    {
+        IReadOnlyList<IStorageFolder> folders = await storageProvider.OpenFolderPickerAsync(
+            new FolderPickerOpenOptions
+            {
+                Title = title,
+                AllowMultiple = false,
+            });
+        return folders.Count == 0 ? null : folders[0].TryGetLocalPath();
+    }
+
     public static async Task<string?> PickFirmwareBinOpenFileAsync(
         IStorageProvider storageProvider,
         string title)

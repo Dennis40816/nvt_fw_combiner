@@ -1,0 +1,103 @@
+<Styles
+    xmlns="https://github.com/avaloniaui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+  <Style Selector="TextBlock.versionPageTitle">
+    <Setter Property="FontSize" Value="30" />
+  </Style>
+  <Style Selector="TextBlock.versionPageSubtitle">
+    <Setter Property="FontSize" Value="18" />
+  </Style>
+  <Style Selector="TextBlock.versionSectionTitle">
+    <Setter Property="FontSize" Value="22" />
+  </Style>
+  <Style Selector="Border.versionSectionDivider">
+    <Setter Property="BorderBrush" Value="{DynamicResource NfcDividerBrush}" />
+    <Setter Property="BorderThickness" Value="0,0,0,1" />
+  </Style>
+  <Style Selector="TextBlock.versionCurrentText">
+    <Setter Property="FontSize" Value="20" />
+    <Setter Property="Foreground" Value="{DynamicResource NfcTextStrongBrush}" />
+  </Style>
+  <Style Selector="Label.versionCurrentBadge">
+    <Setter Property="MinHeight" Value="32" />
+    <Setter Property="Padding" Value="10,3" />
+    <Setter Property="FontSize" Value="16" />
+  </Style>
+  <Style Selector="TextBlock.versionUpdateMessage">
+    <Setter Property="FontSize" Value="18" />
+  </Style>
+  <Style Selector="Border.versionUpdateBanner">
+    <Setter Property="MinHeight" Value="84" />
+    <Setter Property="Padding" Value="20,12" />
+  </Style>
+  <Style Selector="Border.versionSourceEditor">
+    <Setter Property="Background" Value="{DynamicResource NfcSurfaceBrush}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource NfcBorderBrush}" />
+    <Setter Property="BorderThickness" Value="2" />
+    <Setter Property="CornerRadius" Value="{DynamicResource NfcCompactCornerRadius}" />
+    <Setter Property="ClipToBounds" Value="True" />
+  </Style>
+  <Style Selector="Border.versionSourceEditor:focus-within">
+    <Setter Property="BorderBrush" Value="{DynamicResource NfcAccentBrush}" />
+  </Style>
+  <Style Selector="Border.versionSourceStatusSegment">
+    <Setter Property="Background" Value="{DynamicResource NfcAccentSurfaceSubtleBrush}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource NfcAccentBorderBrush}" />
+    <Setter Property="BorderThickness" Value="0,0,2,0" />
+  </Style>
+  <Style Selector="Border.versionSourceStatusSegment.connected">
+    <Setter Property="Background" Value="{DynamicResource NfcSuccessSurfaceBrush}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource NfcSuccessBorderBrush}" />
+  </Style>
+  <Style Selector="Path.versionSourceStatusIcon">
+    <Setter Property="Fill" Value="Transparent" />
+    <Setter Property="StrokeThickness" Value="1.7" />
+    <Setter Property="StrokeLineCap" Value="Round" />
+    <Setter Property="StrokeJoin" Value="Round" />
+  </Style>
+  <Style Selector="Path.versionSourceStatusIcon.connected">
+    <Setter Property="Stroke" Value="{DynamicResource NfcSuccessEmphasisBrush}" />
+  </Style>
+  <Style Selector="Path.versionSourceStatusIcon.disconnected">
+    <Setter Property="Stroke" Value="{DynamicResource NfcAccentBrush}" />
+  </Style>
+  <Style Selector="Border.versionTableSurface">
+    <Setter Property="Padding" Value="0" />
+    <Setter Property="BorderThickness" Value="2" />
+    <Setter Property="ClipToBounds" Value="True" />
+  </Style>
+  <Style Selector="Grid.versionTableHeader">
+    <Setter Property="MinHeight" Value="44" />
+    <Setter Property="Margin" Value="14,0" />
+    <Setter Property="Background" Value="{DynamicResource NfcSurfaceSubtleBrush}" />
+  </Style>
+  <Style Selector="TextBlock.versionTableHeaderText">
+    <Setter Property="FontSize" Value="15" />
+    <Setter Property="VerticalAlignment" Value="Center" />
+  </Style>
+  <Style Selector="TextBlock.versionCaption">
+    <Setter Property="FontSize" Value="{DynamicResource NfcFontSize13}" />
+  </Style>
+  <Style Selector="TextBlock.versionOfflineHint">
+    <Setter Property="FontSize" Value="16" />
+  </Style>
+  <Style Selector="TextBlock.versionRowPrimary, TextBlock.versionRowStatus, TextBlock.versionRowPublished">
+    <Setter Property="FontSize" Value="15" />
+  </Style>
+  <Style Selector="Border.versionTableRow">
+    <Setter Property="BorderBrush" Value="{DynamicResource NfcDividerBrush}" />
+    <Setter Property="BorderThickness" Value="0,1,0,0" />
+  </Style>
+  <Style Selector="Ellipse.versionStatusDot">
+    <Setter Property="Fill" Value="{DynamicResource NfcTextDisabledBrush}" />
+  </Style>
+  <Style Selector="Ellipse.versionStatusDot.available">
+    <Setter Property="Fill" Value="{DynamicResource NfcAccentBrush}" />
+  </Style>
+  <Style Selector="Ellipse.versionStatusDot.healthy">
+    <Setter Property="Fill" Value="{DynamicResource NfcSuccessAccentBrush}" />
+  </Style>
+  <Style Selector="Ellipse.versionStatusDot.damaged">
+    <Setter Property="Fill" Value="{DynamicResource NfcDangerTextBrush}" />
+  </Style>
+</Styles>

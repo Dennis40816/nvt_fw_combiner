@@ -121,7 +121,7 @@ public sealed partial class CompositionRunServiceTests
 
         internal byte[] OutputBytes { get; private set; } = [];
 
-        public ValueTask<string> CommitAsync(
+        public ValueTask<CompositionOutputCommitReceipt> CommitAsync(
             string fileName,
             ReadOnlyMemory<byte> outputBytes,
             CancellationToken cancellationToken)
@@ -129,7 +129,8 @@ public sealed partial class CompositionRunServiceTests
             WasCalled = true;
             FileName = fileName;
             OutputBytes = outputBytes.ToArray();
-            return ValueTask.FromResult($"committed:{fileName}");
+            return ValueTask.FromResult(CompositionOutputCommitReceipt.CreateLoose(
+                $"committed:{fileName}", fileName, outputBytes.Span));
         }
     }
 

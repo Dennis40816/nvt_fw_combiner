@@ -25,7 +25,11 @@ public sealed class Nt51929Nt51932TpFlashHeaderMetadataTests
         MetadataPlanDefinition nt51932 = CreatePlan(
             BuiltInV2RegistrationRegistry.StandardMergeByIc["NT51932"]);
 
-        Assert.Empty(nt51919.Entries);
+        Assert.DoesNotContain(
+            nt51919.Entries,
+            static entry => StringComparer.Ordinal.Equals(
+                entry.StructureDefinition.Definition.DefinitionId,
+                "type-ab-tp-flash-header"));
         MetadataPlanEntry header29 = ReadModel(nt51929, "type-ab-tp-flash-header-read-model");
         MetadataPlanEntry header32 = ReadModel(nt51932, "type-ab-tp-flash-header-read-model");
 

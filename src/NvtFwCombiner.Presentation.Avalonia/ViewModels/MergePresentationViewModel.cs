@@ -4,7 +4,7 @@ using CommunityToolkit.Mvvm.Input;
 namespace NvtFwCombiner.Presentation.Avalonia.ViewModels;
 
 /// <summary>Owns Merge-page presentation state, commands, and workflow-specific lifetime.</summary>
-public sealed partial class MergePresentationViewModel : ObservableObject
+internal sealed partial class MergePresentationViewModel : ObservableObject
 {
     private readonly PresentationCompositionServices _compositionServices;
     private readonly Func<ShellTextResources> _textProvider;
@@ -18,6 +18,7 @@ public sealed partial class MergePresentationViewModel : ObservableObject
             throw new ArgumentNullException(nameof(compositionServices));
         _textProvider = textProvider ?? throw new ArgumentNullException(nameof(textProvider));
         _stateBindings = stateBindings ?? throw new ArgumentNullException(nameof(stateBindings));
+        InspectionLifecycles = new(NotifyCommandStateChanged, AbCodeMergeMode, GeneralMergeMode);
         AcceptAbAFlashCodeDeliveryPromptCommand = new RelayCommand(AcceptAbAFlashCodeDeliveryPrompt);
         DeclineAbAFlashCodeDeliveryPromptCommand = new RelayCommand(DeclineAbAFlashCodeDeliveryPrompt);
         AddGeneralMergeMappingCommand = new RelayCommand(AddGeneralMergeMapping);
@@ -25,7 +26,7 @@ public sealed partial class MergePresentationViewModel : ObservableObject
             () => RunMergeAsync(build: false, outputPath: null),
             CanRunMerge);
         BuildMergeCommand = new AsyncRelayCommand(
-            () => RunMergeAsync(build: true, outputPath: null),
+            RequestBuildOutputDeliveryAsync,
             CanRunMerge);
     }
 
@@ -35,6 +36,8 @@ public sealed partial class MergePresentationViewModel : ObservableObject
     internal void ApplyLanguageChanged()
     {
         ApplyFirmwareSlotText();
+        InspectionLifecycles.ForEach(lifecycle => lifecycle.ApplyText(Text));
+        RefreshMergeMemoryMapState(refreshAuthoring: false);
         OnPropertyChanged(nameof(Text));
         NotifyContextChanged();
     }

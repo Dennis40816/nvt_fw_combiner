@@ -164,12 +164,15 @@ class EvaluatedProjectItems:
 EXPECTED_PROJECTS = {
     "src/NvtFwCombiner.Domain/NvtFwCombiner.Domain.csproj",
     "src/NvtFwCombiner.Contracts/NvtFwCombiner.Contracts.csproj",
+    "src/NvtFwCombiner.VersionManagement.Application/NvtFwCombiner.VersionManagement.Application.csproj",
     "src/NvtFwCombiner.Application/NvtFwCombiner.Application.csproj",
     "src/NvtFwCombiner.Profiles/NvtFwCombiner.Profiles.csproj",
     "src/NvtFwCombiner.Infrastructure/NvtFwCombiner.Infrastructure.csproj",
+    "src/NvtFwCombiner.VersionManagement.Infrastructure/NvtFwCombiner.VersionManagement.Infrastructure.csproj",
     "src/NvtFwCombiner.Bootstrap/NvtFwCombiner.Bootstrap.csproj",
     "src/NvtFwCombiner.Cli/NvtFwCombiner.Cli.csproj",
     "src/NvtFwCombiner.Desktop/NvtFwCombiner.Desktop.csproj",
+    "src/NvtFwCombiner.Launcher/NvtFwCombiner.Launcher.csproj",
     "src/NvtFwCombiner.Presentation.Avalonia/NvtFwCombiner.Presentation.Avalonia.csproj",
     "tests/NvtFwCombiner.Domain.Tests/NvtFwCombiner.Domain.Tests.csproj",
     "tests/NvtFwCombiner.Application.Tests/NvtFwCombiner.Application.Tests.csproj",
@@ -180,14 +183,19 @@ EXPECTED_PROJECTS = {
     "tests/NvtFwCombiner.Architecture.Tests/NvtFwCombiner.Architecture.Tests.csproj",
     "tests/NvtFwCombiner.TestSupport/NvtFwCombiner.TestSupport.csproj",
     "tests/NvtFwCombiner.UiSmoke.Tests/NvtFwCombiner.UiSmoke.Tests.csproj",
+    "tests/NvtFwCombiner.ReadyProbe/NvtFwCombiner.ReadyProbe.csproj",
 }
 
 EXPECTED_PROJECT_REFERENCES = {
     "src/NvtFwCombiner.Domain/NvtFwCombiner.Domain.csproj": set(),
     "src/NvtFwCombiner.Contracts/NvtFwCombiner.Contracts.csproj": set(),
+    "src/NvtFwCombiner.VersionManagement.Application/NvtFwCombiner.VersionManagement.Application.csproj": {
+        "src/NvtFwCombiner.Contracts/NvtFwCombiner.Contracts.csproj",
+    },
     "src/NvtFwCombiner.Application/NvtFwCombiner.Application.csproj": {
         "src/NvtFwCombiner.Domain/NvtFwCombiner.Domain.csproj",
         "src/NvtFwCombiner.Contracts/NvtFwCombiner.Contracts.csproj",
+        "src/NvtFwCombiner.VersionManagement.Application/NvtFwCombiner.VersionManagement.Application.csproj",
     },
     "src/NvtFwCombiner.Profiles/NvtFwCombiner.Profiles.csproj": {
         "src/NvtFwCombiner.Domain/NvtFwCombiner.Domain.csproj",
@@ -198,6 +206,11 @@ EXPECTED_PROJECT_REFERENCES = {
         "src/NvtFwCombiner.Contracts/NvtFwCombiner.Contracts.csproj",
         "src/NvtFwCombiner.Application/NvtFwCombiner.Application.csproj",
         "src/NvtFwCombiner.Profiles/NvtFwCombiner.Profiles.csproj",
+        "src/NvtFwCombiner.VersionManagement.Infrastructure/NvtFwCombiner.VersionManagement.Infrastructure.csproj",
+    },
+    "src/NvtFwCombiner.VersionManagement.Infrastructure/NvtFwCombiner.VersionManagement.Infrastructure.csproj": {
+        "src/NvtFwCombiner.Contracts/NvtFwCombiner.Contracts.csproj",
+        "src/NvtFwCombiner.VersionManagement.Application/NvtFwCombiner.VersionManagement.Application.csproj",
     },
     "src/NvtFwCombiner.Bootstrap/NvtFwCombiner.Bootstrap.csproj": {
         "src/NvtFwCombiner.Application/NvtFwCombiner.Application.csproj",
@@ -209,6 +222,10 @@ EXPECTED_PROJECT_REFERENCES = {
     "src/NvtFwCombiner.Desktop/NvtFwCombiner.Desktop.csproj": {
         "src/NvtFwCombiner.Bootstrap/NvtFwCombiner.Bootstrap.csproj",
         "src/NvtFwCombiner.Presentation.Avalonia/NvtFwCombiner.Presentation.Avalonia.csproj",
+    },
+    "src/NvtFwCombiner.Launcher/NvtFwCombiner.Launcher.csproj": {
+        "src/NvtFwCombiner.VersionManagement.Application/NvtFwCombiner.VersionManagement.Application.csproj",
+        "src/NvtFwCombiner.VersionManagement.Infrastructure/NvtFwCombiner.VersionManagement.Infrastructure.csproj",
     },
     "src/NvtFwCombiner.Presentation.Avalonia/NvtFwCombiner.Presentation.Avalonia.csproj": {
         "src/NvtFwCombiner.Application/NvtFwCombiner.Application.csproj",
@@ -227,6 +244,7 @@ EXPECTED_PROJECT_REFERENCES = {
         "src/NvtFwCombiner.Application/NvtFwCombiner.Application.csproj",
         "src/NvtFwCombiner.Contracts/NvtFwCombiner.Contracts.csproj",
         "src/NvtFwCombiner.Domain/NvtFwCombiner.Domain.csproj",
+        "tests/NvtFwCombiner.ReadyProbe/NvtFwCombiner.ReadyProbe.csproj",
         "tests/NvtFwCombiner.TestSupport/NvtFwCombiner.TestSupport.csproj",
     },
     "tests/NvtFwCombiner.ProfileContract.Tests/NvtFwCombiner.ProfileContract.Tests.csproj": {
@@ -254,6 +272,7 @@ EXPECTED_PROJECT_REFERENCES = {
         "src/NvtFwCombiner.Presentation.Avalonia/NvtFwCombiner.Presentation.Avalonia.csproj",
         "tests/NvtFwCombiner.TestSupport/NvtFwCombiner.TestSupport.csproj",
     },
+    "tests/NvtFwCombiner.ReadyProbe/NvtFwCombiner.ReadyProbe.csproj": set(),
 }
 EXPECTED_REFCODE_SNAPSHOTS = {"gen_flash_bin_v2", "ab_code_combiner"}
 FORBIDDEN_SUFFIXES = {

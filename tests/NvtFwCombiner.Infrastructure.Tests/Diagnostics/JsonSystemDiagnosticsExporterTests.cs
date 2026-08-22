@@ -3,6 +3,7 @@ using NvtFwCombiner.Application.Capabilities;
 using NvtFwCombiner.Application.Diagnostics;
 using NvtFwCombiner.Application.Ports;
 using NvtFwCombiner.Infrastructure.Diagnostics;
+using NvtFwCombiner.Infrastructure.ExternalTools;
 
 namespace NvtFwCombiner.Infrastructure.Tests.Diagnostics;
 
@@ -22,6 +23,8 @@ public sealed class JsonSystemDiagnosticsExporterTests
                 "0.10.3-test",
                 new StubCatalog(),
                 new NoReload(),
+                new ExternalProcessorEnvironmentLoader(static (_, _) =>
+                    throw new NotSupportedException()),
                 new StubRuntimeProbe(),
                 new StubClock());
 
@@ -43,6 +46,8 @@ public sealed class JsonSystemDiagnosticsExporterTests
             Assert.DoesNotContain(destination, json, StringComparison.OrdinalIgnoreCase);
             Assert.DoesNotContain("C:/private/catalog.json", json, StringComparison.OrdinalIgnoreCase);
             Assert.Contains("catalog.source.invalid", json, StringComparison.Ordinal);
+            Assert.Contains("activities", json, StringComparison.Ordinal);
+            Assert.DoesNotContain("transitions", json, StringComparison.OrdinalIgnoreCase);
         }
         finally
         {

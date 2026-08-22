@@ -3,7 +3,7 @@ using NvtFwCombiner.Application.Authoring;
 
 namespace NvtFwCombiner.Presentation.Avalonia.ViewModels;
 
-public sealed partial class ReplacePresentationViewModel
+internal sealed partial class ReplacePresentationViewModel
 {
     private readonly IFirmwareInspection _firmwareInspection;
     private FirmwareConfigMetadataSnapshot? _ctrlRamFirmwareVersionMetadata;
@@ -70,13 +70,10 @@ public sealed partial class ReplacePresentationViewModel
         ? Text.CtrlRamFirmwareVersionSourceDetail
         : Text.CtrlRamFirmwareVersionEditUnavailableDetail;
 
-    /// <summary>Gets the input-validation detail for the modal.</summary>
     public string CtrlRamFirmwareVersionValidationDetail { get; private set; } = string.Empty;
 
-    /// <summary>True when the modal has an input-validation detail to show.</summary>
     public bool HasCtrlRamFirmwareVersionValidation => !string.IsNullOrWhiteSpace(CtrlRamFirmwareVersionValidationDetail);
 
-    /// <summary>True when the modal can move from version confirmation to the output file picker.</summary>
     public bool CanConfirmCtrlRamFirmwareVersion =>
         !IsCtrlRamFirmwareVersionMetadataLoading &&
         IsCtrlRamFirmwareVersionModalLeaseContextCurrent() &&
@@ -180,7 +177,6 @@ public sealed partial class ReplacePresentationViewModel
         return (true, edit);
     }
 
-    /// <summary>True when the modal confirmation still belongs to the current CtrlRAM inputs.</summary>
     public Task<bool> IsCtrlRamFirmwareVersionBuildConfirmationCurrentAsync(
         CancellationToken cancellationToken = default)
     {
@@ -240,34 +236,25 @@ public sealed partial class ReplacePresentationViewModel
         {
             await Task.Yield();
             cancellationToken.ThrowIfCancellationRequested();
-            CtrlRamFirmwareVersionMetadataWorkerResult workerResult = await Task.Run(
-                () => ReadCtrlRamFirmwareVersionMetadata(icId, basePath),
-                cancellationToken);
+            FirmwareConfigMetadataReadResult read = await _firmwareInspection
+                .ReadFirmwareConfigMetadataAsync(icId, basePath, cancellationToken);
             cancellationToken.ThrowIfCancellationRequested();
-            bool isCurrent = workerResult.IsFileIdentityStable &&
+            FileStamp? contentIdentity = read.FileStamp;
+            CtrlRamFirmwareVersionMetadataRequest request = contentIdentity is { } identity
+                ? new CtrlRamFirmwareVersionMetadataRequest(icId, basePath, identity)
+                : default;
+            bool isCurrent = contentIdentity.HasValue && read.IsContentStable &&
                 generation == Volatile.Read(ref _ctrlRamFirmwareVersionMetadataGeneration) &&
-                workerResult.Request.MatchesContext(SelectedIc, ReplaceBaseSlot.FilePath);
+                request.MatchesContext(SelectedIc, ReplaceBaseSlot.FilePath);
             return new CtrlRamFirmwareVersionMetadataReadResult(
                 isCurrent,
-                workerResult.Metadata,
-                workerResult.Request);
+                read.Metadata,
+                request);
         }
         finally
         {
             SetCtrlRamFirmwareVersionMetadataLoading(false);
         }
-    }
-
-    private CtrlRamFirmwareVersionMetadataWorkerResult ReadCtrlRamFirmwareVersionMetadata(
-        string icId,
-        string basePath)
-    {
-        FirmwareConfigMetadataReadResult read =
-            _firmwareInspection.ReadFirmwareConfigMetadata(icId, basePath);
-        return new CtrlRamFirmwareVersionMetadataWorkerResult(
-            read.IsFileIdentityStable,
-            read.Metadata,
-            new CtrlRamFirmwareVersionMetadataRequest(icId, basePath, read.FileIdentity));
     }
 
     private void InvalidateCtrlRamFirmwareVersionMetadataRead()
@@ -323,16 +310,15 @@ public sealed partial class ReplacePresentationViewModel
         {
             await Task.Yield();
             cancellationToken.ThrowIfCancellationRequested();
-            bool isFileIdentityCurrent = await Task.Run(
-                () => _firmwareInspection.IsFirmwareFileIdentityCurrent(
-                    lease.Request.BasePath,
-                    lease.Request.FileIdentity),
+            bool isContentCurrent = await _firmwareInspection.IsFirmwareContentCurrentAsync(
+                lease.Request.BasePath,
+                lease.Request.ContentIdentity,
                 cancellationToken);
             cancellationToken.ThrowIfCancellationRequested();
             return generation == Volatile.Read(ref _ctrlRamFirmwareVersionMetadataGeneration) &&
                 IsCtrlRamFirmwareVersionModalLeaseContextCurrent() &&
                 _ctrlRamFirmwareVersionModalLease == lease &&
-                isFileIdentityCurrent;
+                isContentCurrent;
         }
         finally
         {
@@ -396,11 +382,6 @@ public sealed partial class ReplacePresentationViewModel
         FirmwareConfigMetadataSnapshot? Metadata,
         CtrlRamFirmwareVersionMetadataRequest Request);
 
-    private readonly record struct CtrlRamFirmwareVersionMetadataWorkerResult(
-        bool IsFileIdentityStable,
-        FirmwareConfigMetadataSnapshot? Metadata,
-        CtrlRamFirmwareVersionMetadataRequest Request);
-
     private readonly record struct CtrlRamFirmwareVersionModalLease(
         long ContextGeneration,
         CtrlRamFirmwareVersionMetadataRequest Request);
@@ -408,7 +389,7 @@ public sealed partial class ReplacePresentationViewModel
     private readonly record struct CtrlRamFirmwareVersionMetadataRequest(
         string IcId,
         string BasePath,
-        FirmwareFileIdentity FileIdentity)
+        FileStamp ContentIdentity)
     {
         internal bool MatchesContext(string icId, string? basePath)
         {

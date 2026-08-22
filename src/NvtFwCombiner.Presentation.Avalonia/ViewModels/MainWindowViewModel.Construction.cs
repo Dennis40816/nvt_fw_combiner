@@ -7,7 +7,7 @@ using NvtFwCombiner.Domain.Composition;
 
 namespace NvtFwCombiner.Presentation.Avalonia.ViewModels;
 
-public sealed partial class MainWindowViewModel
+internal sealed partial class MainWindowViewModel
 {
     private const string DpReplaceMode = ExperienceIds.DpReplace;
     private const string CtrlRamReplaceMode = ExperienceIds.CtrlRamReplace;
@@ -22,7 +22,6 @@ public sealed partial class MainWindowViewModel
     private readonly ISystemInformationService _systemInformationService;
     private readonly bool _isInitializing = true;
 
-    /// <summary>Initializes the main desktop view model.</summary>
     internal MainWindowViewModel(
         string shellVersion,
         string appVersion,
@@ -60,48 +59,53 @@ public sealed partial class MainWindowViewModel
         Settings = new SettingsViewModel(
             appVersion,
             supportMatrixQuery ?? hostServices.SupportMatrix,
+            () => Text,
+            hostServices.VersionManagement);
+        OutputDelivery = new OutputDeliveryConfirmationViewModel(
+            _compositionServices.OutputNaming,
             () => Text);
+        OutputDelivery.PropertyChanged += OutputDelivery_OnPropertyChanged;
         Merge = new MergePresentationViewModel(
             _compositionServices,
             () => Text,
             new MergeStateBindings(
-                GetWorkflowSelectedIc,
-                GetWorkflowSelectedNumber,
+                () => WorkflowSession!.GetWorkflowPageIc(WorkflowInspectionOwner.Merge),
+                () => WorkflowSession!.GetWorkflowPageNumber(WorkflowInspectionOwner.Merge),
                 IsCompositionRunInProgress,
-                IsFirmwareInspectionLoading,
                 IsGlobalBuildBlocked,
                 IsWorkflowLoaded,
                 IsWorkflowLoading,
-                GetInspectedFileLength,
-                GetReportPresentation,
+                static slot => slot.InspectedFileLength,
+                () => Reports!,
                 RunCompositionAsync,
                 PublishLastRunResult,
                 RefreshWorkflowNumberChoices,
-                NotifyMergeSharedContextChanged,
-                RefreshSelectedMergeFirmwareInspectionsAsync,
+                () => WorkflowSession!.NotifyContextTextChanged(),
+                () => WorkflowSession!.RefreshSelectedMergeFirmwareInspectionsAsync(),
                 ResetRunResultForContextChange,
-                RefreshCommandState));
+                RefreshCommandState,
+                OutputDelivery));
         Merge.PropertyChanged += Merge_OnPropertyChanged;
         Replace = new ReplacePresentationViewModel(
             _compositionServices,
             new ReplaceStateBindings(
                 () => Text,
-                GetWorkflowSelectedIc,
-                GetWorkflowSelectedNumber,
+                () => WorkflowSession!.GetWorkflowPageIc(WorkflowInspectionOwner.Replace),
+                () => WorkflowSession!.GetWorkflowPageNumber(WorkflowInspectionOwner.Replace),
                 IsCompositionRunInProgress,
-                IsFirmwareInspectionLoading,
                 IsGlobalBuildBlocked,
                 IsWorkflowLoaded,
-                GetInspectedFileLength,
+                static slot => slot.InspectedFileLength,
                 GetSelectedReplaceBaseInspection,
-                 GetReportPresentation,
+                 () => Reports!,
                  RunCompositionAsync,
                  ShowDiagnosticPreviewAsync,
                  ShowActionReadiness,
                  WorkflowReplaceModeChanged,
                 ResetRunResultForContextChange,
-                RefreshSelectedReplaceFirmwareInspectionsAsync,
-                RefreshCommandState));
+                () => WorkflowSession!.RefreshSelectedReplaceFirmwareInspectionsAsync(),
+                RefreshCommandState,
+                OutputDelivery));
         Replace.PropertyChanged += Replace_OnPropertyChanged;
         SelectedLanguage = language == ShellLanguage.ChineseTraditional ? "Traditional Chinese" : "English";
         Reports = new ReportPresentationViewModel(() => Text, Replace.CloseSelectionForRun);
@@ -113,6 +117,7 @@ public sealed partial class MainWindowViewModel
             Replace,
             ApplyWorkflowContext,
             Reports.SetShellToast,
+            RecordSystemActivity,
             new WorkflowSessionStateBindings(
                 () => SelectedPage,
                 IsCompositionRunInProgress,
@@ -144,6 +149,7 @@ public sealed partial class MainWindowViewModel
         MessageCenter = new MessageCenterViewModel(
             () => Text,
             _systemInformationService,
+            hostServices.ExternalEnvironmentLoader,
             systemDiagnosticsExporter ?? hostServices.SystemDiagnosticsExporter,
             Reports,
             MessageCenterDiagnosticsChanged);
@@ -154,7 +160,8 @@ public sealed partial class MainWindowViewModel
             return new RelayCommand(execute, () => WorkflowSession.IsCanonicalCatalogReady);
         }
         ShowHomeCommand = new RelayCommand(() => NavigateToPage(ShellPage.Home));
-        ShowSettingsCommand = new RelayCommand(() => NavigateToPage(ShellPage.Settings));
+        OpenSettingsCommand = new RelayCommand(OpenSettings);
+        CloseSettingsCommand = new RelayCommand(CloseSettings);
         ShowMergeCommand = CreateCatalogCommand(() => NavigateToPage(ShellPage.Merge));
         ShowReplaceCommand = CreateCatalogCommand(() => NavigateToPage(ShellPage.Replace));
         GoBackCommand = new RelayCommand(GoBack, () => CanGoBack);

@@ -52,13 +52,41 @@ public sealed class FileContentSnapshotInspectorTests
     {
         await using var stream = new MemoryStream([1, 2, 3, 4, 5, 6, 7, 8]);
 
-        _ = await Assert.ThrowsAsync<IOException>(() =>
+        _ = await Assert.ThrowsAsync<SelectedFileChangedDuringInspectionException>(() =>
             FileContentSnapshotInspector.HashExactLengthAsync(
                 stream,
                 observedLength: 4,
                 TestContext.Current.CancellationToken).AsTask());
 
         Assert.Equal(5, stream.Position);
+    }
+
+    /// <summary>Concurrent truncation is a typed content-stability failure.</summary>
+    [Fact]
+    public async Task HashExactLengthAsyncRejectsShortReadAsContentChange()
+    {
+        await using var stream = new MemoryStream([1, 2, 3]);
+
+        _ = await Assert.ThrowsAsync<SelectedFileChangedDuringInspectionException>(() =>
+            FileContentSnapshotInspector.HashExactLengthAsync(
+                stream,
+                observedLength: 4,
+                TestContext.Current.CancellationToken).AsTask());
+    }
+
+    /// <summary>Cancellation remains distinct from content-stability failure.</summary>
+    [Fact]
+    public async Task HashExactLengthAsyncPropagatesCancellation()
+    {
+        using var cancellation = new CancellationTokenSource();
+        cancellation.Cancel();
+        await using var stream = new MemoryStream([1, 2, 3, 4]);
+
+        _ = await Assert.ThrowsAnyAsync<OperationCanceledException>(() =>
+            FileContentSnapshotInspector.HashExactLengthAsync(
+                stream,
+                observedLength: 4,
+                cancellation.Token).AsTask());
     }
 
     /// <summary>Same-size file mutation is visible even when host length does not change.</summary>

@@ -1,8 +1,10 @@
 using System.Text.Json;
 using NvtFwCombiner.Application.Capabilities;
 using NvtFwCombiner.Application.Diagnostics;
+using NvtFwCombiner.Application.ExternalTools;
 using NvtFwCombiner.Application.Ports;
 using NvtFwCombiner.Domain.Composition;
+using NvtFwCombiner.Infrastructure.ExternalTools;
 using NvtFwCombiner.Presentation.Avalonia;
 using NvtFwCombiner.Presentation.Avalonia.ViewModels;
 using NvtFwCombiner.TestSupport;
@@ -11,6 +13,105 @@ namespace NvtFwCombiner.UiSmoke.Tests;
 
 public sealed partial class ShellNavigationSystemTests
 {
+    /// <summary>A typed external discovery failure becomes a warning without escaping the refresh command.</summary>
+    [Fact]
+    public async Task ExternalEnvironmentFailureRemainsVisibleAndRetryable()
+    {
+        var loader = new ExternalProcessorEnvironmentLoader(static (_, _) =>
+            ValueTask.FromException<ExternalProcessorRuntimeEnvironment>(
+                new InvalidDataException("invalid manifest")));
+        StubCatalog catalog = new();
+        var diagnostics = new SystemInformationService(
+            "0.10.5-test",
+            catalog,
+            catalog,
+            loader,
+            new StubRuntimeProbe(),
+            new StubClock());
+        var text = ShellTextResources.For(ShellLanguage.English);
+        var viewModel = new MessageCenterViewModel(
+            () => text,
+            diagnostics,
+            loader,
+            new CapturingDiagnosticsExporter(),
+            new ReportPresentationViewModel(() => text, static () => { }),
+            static _ => { });
+
+        await viewModel.RefreshCommand.ExecuteAsync(null);
+
+        MessageCenterDiagnosticItem warning = Assert.Single(viewModel.ActiveDiagnostics);
+        Assert.Equal(SystemDiagnosticCodes.ExternalProcessorEnvironmentUnavailable, warning.Code);
+        Assert.Contains("Unavailable", viewModel.ExternalEnvironmentSummary, StringComparison.Ordinal);
+        Assert.False(viewModel.IsGlobalBuildBlocked);
+        Assert.False(viewModel.IsRefreshInProgress);
+    }
+
+    /// <summary>An explicit operator refresh supersedes startup discovery and publishes its own generation.</summary>
+    [Fact]
+    public async Task ExplicitRefreshSupersedesStartupExternalEnvironmentLoad()
+    {
+        var firstStarted = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var secondStarted = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var releaseSecond = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        int attempts = 0;
+        var loader = new ExternalProcessorEnvironmentLoader(async (progress, cancellationToken) =>
+        {
+            int attempt = Interlocked.Increment(ref attempts);
+            progress(0, 1);
+            if (attempt == 1)
+            {
+                firstStarted.SetResult();
+                await Task.Delay(Timeout.InfiniteTimeSpan, cancellationToken);
+            }
+            secondStarted.SetResult();
+            await releaseSecond.Task.WaitAsync(cancellationToken);
+            progress(1, 1);
+            return new ExternalProcessorRuntimeEnvironment(
+                null,
+                UnusedReadinessProvider.Instance,
+                0);
+        });
+        StubCatalog catalog = new();
+        var diagnostics = new SystemInformationService(
+            "0.10.5-test",
+            catalog,
+            catalog,
+            loader,
+            new StubRuntimeProbe(),
+            new StubClock());
+        var text = ShellTextResources.For(ShellLanguage.English);
+        var viewModel = new MessageCenterViewModel(
+            () => text,
+            diagnostics,
+            loader,
+            new CapturingDiagnosticsExporter(),
+            new ReportPresentationViewModel(() => text, static () => { }),
+            static _ => { });
+        var startupProgress = new List<(long Completed, long Total)>();
+
+        Task startup =
+            viewModel.RefreshExternalEnvironmentAfterStartupAsync(
+                (completed, total) => startupProgress.Add((completed, total)),
+                TestContext.Current.CancellationToken);
+        await firstStarted.Task.WaitAsync(
+            TimeSpan.FromSeconds(5), TestContext.Current.CancellationToken);
+        Task refresh = viewModel.RefreshCommand.ExecuteAsync(null);
+        await secondStarted.Task.WaitAsync(
+            TimeSpan.FromSeconds(5), TestContext.Current.CancellationToken);
+        _ = await Assert.ThrowsAsync<ShellPreloadSupersededException>(() => startup);
+        Assert.True(viewModel.IsRefreshInProgress);
+        Assert.Equal(text.RefreshingDiagnosticsLabel, viewModel.RefreshActionLabel);
+        Assert.Contains("Loading", viewModel.ExternalEnvironmentSummary, StringComparison.Ordinal);
+        releaseSecond.SetResult();
+        await refresh;
+
+        Assert.Equal([(0L, 1L)], startupProgress);
+        Assert.Equal(2, attempts);
+        Assert.Equal(ExternalProcessorEnvironmentState.Current, loader.Current.State);
+        Assert.False(viewModel.IsRefreshInProgress);
+        Assert.Contains("generation 1", viewModel.ExternalEnvironmentSummary, StringComparison.Ordinal);
+    }
+
     /// <summary>Cold catalog state owns the badge/global Build blocker and refresh clears it without a report.</summary>
     [Fact]
     public async Task MessageCenterKeepsSystemLifecycleSeparateFromRunReports()
@@ -20,6 +121,7 @@ public sealed partial class ShellNavigationSystemTests
             "0.10.3-test",
             catalog,
             catalog,
+            CreateExternalEnvironmentLoader(),
             new StubRuntimeProbe(),
             new StubClock());
         var exporter = new CapturingDiagnosticsExporter();
@@ -59,10 +161,85 @@ public sealed partial class ShellNavigationSystemTests
             CapabilityActionReadinessIssueCodes.InputPending,
             viewModel.Replace.PrimaryBuildBlocker?.Code);
         Assert.Empty(viewModel.Reports.ReportHistoryEntries);
-        Assert.Contains(diagnostics.CreateBundle().Transitions, transition =>
-            transition.ResolvedCodes.Contains(
-                SystemDiagnosticCodes.CapabilityCatalogUnavailable,
-                StringComparer.Ordinal));
+        Assert.Contains(diagnostics.CreateBundle().Activities, activity =>
+            activity.Code == SystemActivityCodes.DiagnosticResolved &&
+            activity.SubjectId == SystemDiagnosticCodes.CapabilityCatalogUnavailable);
+    }
+
+    /// <summary>Important events are the default; Debug explicitly reveals user operations.</summary>
+    [Fact]
+    public void ActivityHistoryUsesTwoDisclosureLevels()
+    {
+        StubCatalog catalog = new();
+        SystemInformationService diagnostics = new(
+            "0.10.6-test",
+            catalog,
+            catalog,
+            CreateExternalEnvironmentLoader(),
+            new StubRuntimeProbe(),
+            new StubClock());
+        var text = ShellTextResources.For(ShellLanguage.English);
+        var viewModel = new MessageCenterViewModel(
+            () => text,
+            diagnostics,
+            CreateExternalEnvironmentLoader(),
+            new CapturingDiagnosticsExporter(),
+            new ReportPresentationViewModel(() => text, static () => { }),
+            static _ => { });
+        diagnostics.RecordActivity(new SystemActivityDraft(
+            SystemActivityCodes.UserNavigated,
+            SystemActivityImportance.Debug,
+            SystemActivityCategory.Navigation,
+            SystemActivitySeverity.Information,
+            "Merge"));
+        viewModel.NotifyActivityChanged();
+
+        Assert.DoesNotContain(viewModel.ActivityItems, item => item.Title == "Page changed");
+
+        viewModel.ToggleDebugActivityCommand.Execute(null);
+
+        Assert.Contains(viewModel.ActivityItems, item => item.Title == "Page changed");
+        Assert.Contains("events", viewModel.SessionActivitySummary, StringComparison.Ordinal);
+    }
+
+    /// <summary>Shell selection operations publish path-free Debug activity through the sole service.</summary>
+    [Fact]
+    public void ShellNavigationAndContextSelectionAreRecordedAsUserActivity()
+    {
+        StubCatalog catalog = new();
+        SystemInformationService diagnostics = new(
+            "0.10.6-test",
+            catalog,
+            catalog,
+            CreateExternalEnvironmentLoader(),
+            new StubRuntimeProbe(),
+            new StubClock());
+        PresentationHostServices services = PresentationTestHost.CreateServices("0.10.6-test");
+        MainWindowViewModel viewModel = new(
+            "test",
+            "0.10.6-test",
+            ShellLanguage.English,
+            services,
+            new DelegatingFirmwareInspection(
+                TestHost.FirmwareInspectionExperience,
+                metadataReader: static (_, _) => null,
+                batchReader: static (_, _) => []),
+            systemInformationService: diagnostics,
+            systemDiagnosticsExporter: new CapturingDiagnosticsExporter());
+        _ = PresentationTestHost.PublishCanonicalCatalog(services, viewModel);
+
+        viewModel.ShowMergeCommand.Execute(null);
+        viewModel.WorkflowSession.SelectedIc = "NT51950";
+        viewModel.Merge.SelectedMergeMode = ExperienceIds.AbMerge;
+        viewModel.OpenSettingsCommand.Execute(null);
+
+        Assert.Contains(diagnostics.Activity, activity =>
+            activity.Code == SystemActivityCodes.UserNavigated && activity.SubjectId == "Merge");
+        Assert.Contains(diagnostics.Activity, activity =>
+            activity.Code == SystemActivityCodes.IcSelected && activity.SubjectId == "NT51950");
+        Assert.Contains(diagnostics.Activity, activity =>
+            activity.Code == SystemActivityCodes.ModeSelected && activity.SubjectId == ExperienceIds.AbMerge);
+        Assert.Contains(diagnostics.Activity, activity => activity.Code == SystemActivityCodes.SettingsOpened);
     }
 
     /// <summary>Blocker navigation selects the exact localized System Information surface.</summary>
@@ -74,6 +251,7 @@ public sealed partial class ShellNavigationSystemTests
             "0.10.3-test",
             catalog,
             catalog,
+            CreateExternalEnvironmentLoader(),
             new StubRuntimeProbe(),
             new StubClock());
         PresentationHostServices services = PresentationTestHost.CreateServices("0.10.3-test");
@@ -203,14 +381,14 @@ public sealed partial class ShellNavigationSystemTests
                 TimeSpan.FromSeconds(5),
                 TestContext.Current.CancellationToken);
             Assert.False(viewModel.Replace.CanBuildReplace);
-            Assert.True(viewModel.WorkflowSession.IsFirmwareInspectionLoading);
+            Assert.True(CurrentInspection(viewModel).IsRunning);
         }
         finally
         {
             reader.ReleaseInspection.SetResult();
         }
 
-        await viewModel.WorkflowSession.FirmwareInspectionRefreshTask;
+        await CurrentInspection(viewModel).ActiveTask;
         Assert.True(viewModel.Replace.CanBuildReplace, viewModel.Replace.ReplaceReadinessStatus);
     }
 
@@ -222,7 +400,12 @@ public sealed partial class ShellNavigationSystemTests
         MainWindowViewModel viewModel = CreateDiagnosticsViewModel(
             catalog,
             ReadBuiltInFirmwareInspectionBatch);
+        viewModel.PropertyChanged +=
+            static (_, _) => throw new InvalidOperationException("Shell observer failed.");
+        viewModel.MessageCenter.PropertyChanged +=
+            static (_, _) => throw new InvalidOperationException("Diagnostics observer failed.");
         Task refresh = viewModel.MessageCenter.RefreshCommand.ExecuteAsync(null);
+        Task startupRefresh = Task.CompletedTask;
         try
         {
             await catalog.ReloadEntered.Task.WaitAsync(
@@ -232,13 +415,16 @@ public sealed partial class ShellNavigationSystemTests
             Assert.Equal(
                 viewModel.Text.RefreshingDiagnosticsLabel,
                 viewModel.MessageCenter.RefreshActionLabel);
+            startupRefresh = viewModel.MessageCenter.RefreshAfterStartupAsync(
+                TestContext.Current.CancellationToken);
+            Assert.False(startupRefresh.IsCompleted);
         }
         finally
         {
             catalog.ReleaseReload.SetResult();
         }
 
-        await refresh;
+        await Task.WhenAll(refresh, startupRefresh);
         Assert.False(viewModel.MessageCenter.IsRefreshInProgress);
         Assert.Equal(
             viewModel.Text.RefreshDiagnosticsLabel,
@@ -254,6 +440,7 @@ public sealed partial class ShellNavigationSystemTests
             "0.10.3-test",
             catalog,
             catalog,
+            CreateExternalEnvironmentLoader(),
             new StubRuntimeProbe(),
             new StubClock());
         var exporter = new CapturingDiagnosticsExporter();
@@ -285,6 +472,7 @@ public sealed partial class ShellNavigationSystemTests
             "0.10.3-test",
             catalog,
             catalog,
+            CreateExternalEnvironmentLoader(),
             new StubRuntimeProbe(),
             new StubClock());
         var text = ShellTextResources.For(ShellLanguage.English);
@@ -293,6 +481,7 @@ public sealed partial class ShellNavigationSystemTests
         var viewModel = new MessageCenterViewModel(
             () => text,
             diagnostics,
+            CreateExternalEnvironmentLoader(),
             new CapturingDiagnosticsExporter(),
             reports,
             callbacks.Add);
@@ -315,6 +504,7 @@ public sealed partial class ShellNavigationSystemTests
             "0.10.3-test",
             catalog,
             reloader,
+            CreateExternalEnvironmentLoader(),
             new StubRuntimeProbe(),
             new StubClock());
         PresentationHostServices services = PresentationTestHost.CreateServices("0.10.3-test");
@@ -339,6 +529,13 @@ public sealed partial class ShellNavigationSystemTests
             (BuiltInFirmwareInspection)TestHost.FirmwareInspectionExperience,
             icId,
             inputs);
+    }
+
+    private static ExternalProcessorEnvironmentLoader CreateExternalEnvironmentLoader()
+    {
+        return new ExternalProcessorEnvironmentLoader(Path.Combine(
+            Path.GetTempPath(),
+            $"nfc-ui-empty-external-environment-{Guid.NewGuid():N}"));
     }
 
     private static CanonicalSupportMatrixQueryResult Result(
@@ -374,6 +571,19 @@ public sealed partial class ShellNavigationSystemTests
         {
             cancellationToken.ThrowIfCancellationRequested();
             _index = Math.Min(_index + 1, results.Length - 1);
+        }
+    }
+
+    private sealed class UnusedReadinessProvider : IRuntimeDependencyReadinessProvider
+    {
+        internal static UnusedReadinessProvider Instance { get; } = new();
+
+        public ValueTask<RuntimeDependencyReadinessSnapshot> RefreshAsync(
+            RuntimeDependencyReadinessRequest request,
+            long generation,
+            CancellationToken cancellationToken)
+        {
+            throw new NotSupportedException();
         }
     }
 

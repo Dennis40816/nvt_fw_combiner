@@ -23,51 +23,8 @@ public sealed partial class MainWindow
             return;
         }
 
-        MergeBuildSavePreparation? preparation = await viewModel.Merge.TryPrepareMergeBuildSaveAsync(
-            CancellationToken.None);
-        if (preparation is null)
-        {
-            return;
-        }
-
-        CompositionAdditionalDeliveryPlan? aFlashCodePlan = preparation.AFlashCodePlan;
-        bool exportAFlashCode = aFlashCodePlan is not null &&
-            await viewModel.Merge.PromptForAbAFlashCodeDeliveryAsync();
-        string? outputPath = await FirmwareFilePickerDialogs.PickMergedFirmwareOutputPathAsync(
-            StorageProvider,
-            preparation.SuggestedFileName);
-        if (string.IsNullOrWhiteSpace(outputPath))
-        {
-            return;
-        }
-        bool outputPathUsesAutomaticName = viewModel.Merge.IsAbCodeMergeModeSelected &&
-            string.Equals(
-                Path.GetFileName(outputPath),
-                preparation.SuggestedFileName,
-                StringComparison.Ordinal);
-
-        string? aFlashCodeOutputPath = null;
-        bool aFlashCodeOutputPathUsesAutomaticName = false;
-        if (exportAFlashCode)
-        {
-            aFlashCodeOutputPath = await FirmwareFilePickerDialogs.PickAbAFlashCodeOutputPathAsync(
-                StorageProvider,
-                aFlashCodePlan!.SuggestedFileName);
-            if (string.IsNullOrWhiteSpace(aFlashCodeOutputPath))
-            {
-                return;
-            }
-            aFlashCodeOutputPathUsesAutomaticName = string.Equals(
-                Path.GetFileName(aFlashCodeOutputPath),
-                aFlashCodePlan!.SuggestedFileName,
-                StringComparison.Ordinal);
-        }
-
-        await viewModel.Merge.BuildMergeAsync(
-            outputPath,
-            aFlashCodeOutputPath,
-            outputPathUsesAutomaticName,
-            aFlashCodeOutputPathUsesAutomaticName);
+        await viewModel.Merge.RequestBuildOutputDeliveryAsync();
+        CaptureOutputDeliveryReturnFocus(viewModel, sender);
     }
 
     private async void BuildReplaceButton_OnClick(object? sender, RoutedEventArgs e)
@@ -85,18 +42,12 @@ public sealed partial class MainWindow
 
         if (viewModel.Replace.IsCtrlRamReplaceModeSelected)
         {
-            _ = await viewModel.Replace.TryOpenCtrlRamFirmwareVersionModalAsync();
+            _ = await viewModel.Replace.RequestCtrlRamBuildSettingsAsync();
+            CaptureOutputDeliveryReturnFocus(viewModel, sender);
             return;
         }
 
-        string? outputPath = await FirmwareFilePickerDialogs.PickReplacedFirmwareOutputPathAsync(
-            StorageProvider,
-            viewModel.Replace.ReplaceOutputFileName);
-        if (string.IsNullOrWhiteSpace(outputPath))
-        {
-            return;
-        }
-
-        await viewModel.Replace.BuildReplaceAsync(outputPath);
+        await viewModel.Replace.RequestBuildOutputDeliveryAsync();
+        CaptureOutputDeliveryReturnFocus(viewModel, sender);
     }
 }

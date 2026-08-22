@@ -13,10 +13,11 @@
       </StackPanel>
       <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="{DynamicResource NfcSpace8}">
         <Button
-            Classes="iconButton"
+            Classes="semanticAction closeButton"
+            AutomationProperties.Name="{Binding Text.CloseReportTooltip}"
             Command="{Binding CloseReportCommand}"
             ToolTip.Tip="{Binding Text.CloseReportTooltip}">
-          <TextBlock Text="×" />
+          <Path Width="16" Height="16" Data="{StaticResource NfcCloseIconGeometry}" Stretch="Uniform" />
         </Button>
       </StackPanel>
     </Grid>
@@ -36,9 +37,9 @@
           <TextBlock Classes="captionText" Text="{Binding ReportHistoryStorageSummary}" />
         </StackPanel>
         <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="{DynamicResource NfcSpace8}">
-          <Button Classes="secondary" Command="{Binding CloseReportHistoryCommand}" Content="{Binding Text.BackToReportLabel}" />
+          <Button Classes="semanticAction secondary" Command="{Binding CloseReportHistoryCommand}" Content="{Binding Text.BackToReportLabel}" />
           <Button
-              Classes="danger"
+              Classes="semanticAction danger"
               Command="{Binding ClearReportHistoryCommand}"
               Content="{Binding Text.ClearAllLabel}"
               ToolTip.Tip="{Binding Text.ClearHistoryTooltip}" />
@@ -48,7 +49,7 @@
       <Border Grid.Row="1" Classes="warningSurface" Padding="10" IsVisible="{Binding HasReportHistoryStorageWarning}">
         <Grid ColumnDefinitions="*,Auto" ColumnSpacing="10">
           <TextBlock FontSize="{DynamicResource NfcFontSize12}" Foreground="{DynamicResource NfcWarningTextBrush}" Text="{Binding ReportHistoryStorageWarning}" TextWrapping="Wrap" />
-          <Button Grid.Column="1" Classes="danger" Command="{Binding ClearReportHistoryCommand}" Content="{Binding Text.ClearHistoryLabel}" />
+          <Button Grid.Column="1" Classes="semanticAction danger" Command="{Binding ClearReportHistoryCommand}" Content="{Binding Text.ClearHistoryLabel}" />
         </Grid>
       </Border>
 
@@ -70,7 +71,7 @@
 </DataTemplate>
 
 <DataTemplate x:Key="ReportSummaryPanelTemplate" DataType="vm:ReportPresentationViewModel">
-  <Border Classes="surface" Margin="16,14,16,0" Padding="0">
+  <Border Classes="subtlePanel" Margin="16,14,16,0" Padding="0">
     <Expander IsExpanded="{Binding LoadedReport.HasPrimaryIssue}">
       <Expander.Header>
         <Grid Margin="16,12" ColumnDefinitions="Auto,*,Auto,Auto" ColumnSpacing="{DynamicResource NfcSpace12}">
@@ -98,7 +99,7 @@
           <Label Grid.Column="2" Classes="compactBadge neutralBadge reportBadge" Content="{Binding LoadedReport.OutcomeMeta}" />
           <Button
               Grid.Column="3"
-              Classes="iconButton"
+              Classes="semanticAction iconButton"
               VerticalAlignment="Center"
               AutomationProperties.Name="{Binding Text.OpenReportHistoryAutomationName}"
               Command="{Binding ShowReportHistoryCommand}"
@@ -121,7 +122,7 @@
             Padding="16"
             Background="{DynamicResource NfcWarningSurfaceBrush}"
             BorderBrush="{DynamicResource NfcWarningBorderBrush}"
-            BorderThickness="1"
+            BorderThickness="2"
             IsVisible="{Binding LoadedReport.HasPrimaryIssue}">
           <Grid ColumnDefinitions="112,*" RowDefinitions="Auto,Auto,Auto,Auto" ColumnSpacing="14" RowSpacing="10">
             <TextBlock Classes="tableHeader" Text="{Binding Text.PrimaryReasonLabel}" />
@@ -147,8 +148,8 @@
           <TextBlock Classes="captionText" Text="{Binding LoadedReport.NextStepDetail}" TextWrapping="Wrap" />
         </StackPanel>
 
-        <Grid Grid.Row="1" ColumnDefinitions="*,*">
-        <Border Padding="16" BorderBrush="{DynamicResource NfcBorderMutedBrush}" BorderThickness="0,0,1,0">
+        <Grid Grid.Row="1" ColumnDefinitions="*,*" ColumnSpacing="{DynamicResource NfcSpace12}">
+        <Border Classes="insetSurface" Padding="14">
           <StackPanel Spacing="{DynamicResource NfcSpace8}">
             <TextBlock Classes="fieldLabel" Text="{Binding Text.OutputLabel}" />
             <Grid ColumnDefinitions="54,*" RowDefinitions="Auto,Auto,Auto" ColumnSpacing="10" RowSpacing="7">
@@ -166,7 +167,7 @@
           </StackPanel>
         </Border>
 
-        <Border Grid.Column="1" Padding="16">
+        <Border Grid.Column="1" Classes="insetSurface" Padding="14">
           <Grid RowDefinitions="Auto,*" RowSpacing="{DynamicResource NfcSpace8}">
             <Grid ColumnDefinitions="*,Auto" ColumnSpacing="10">
               <StackPanel Spacing="3">

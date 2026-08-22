@@ -1,7 +1,7 @@
 {
-  "schemaVersion": "2.13",
+  "schemaVersion": "2.15",
   "profileId": "nt51917-standard-merge-gen-flash-alias",
-  "profileVersion": "0.6.0",
+  "profileVersion": "0.7.0",
   "promotion": {
     "stage": "supported",
     "blockers": []
@@ -278,10 +278,28 @@
   ],
   "processorStages": [],
   "output": {
-    "fileNameTemplate": "nt51917-standard-merge-gen-flash-alias.bin",
+    "fileNameTemplate": "{ic}_FlashCode_D{dp-version}T{tp-version}_{date}.bin",
     "allowOverride": true,
     "invalidCharacterPolicy": "reject",
-    "requiredTokenIds": []
+    "requiredTokenIds": ["date", "dp-version", "ic", "tp-version"],
+    "ruleId": "normal-flashcode-v1",
+    "outputArtifactType": "flash-code",
+    "tokenRequirements": [
+      { "tokenId": "date", "source": { "kind": "run-date-utc" }, "missingPolicy": "block" },
+      {
+        "tokenId": "dp-version",
+        "source": { "kind": "dpcmi-version", "metadataBindingId": "dpcmi-inspection" },
+        "missingPolicy": "use-placeholder",
+        "placeholder": "xxxx"
+      },
+      { "tokenId": "ic", "source": { "kind": "compiled-ic" }, "missingPolicy": "block" },
+      {
+        "tokenId": "tp-version",
+        "source": { "kind": "firmware-config-tp-version", "metadataBindingId": "firmware-config-general-parameters-inspection" },
+        "missingPolicy": "use-placeholder",
+        "placeholder": "xxxx"
+      }
+    ]
   },
   "evidenceRefs": [
     "standard-merge-alias-51917-to-51927"

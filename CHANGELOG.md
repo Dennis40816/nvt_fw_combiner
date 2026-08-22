@@ -4,7 +4,508 @@ All notable changes to NVT FW Combiner are documented here. The project follows 
 
 ## [Unreleased]
 
-No unreleased changes.
+The owner-authorized `v0.10.6` managed-version implementation is complete, the
+repository identity has advanced to `0.10.6`, and final local verification
+passes.
+The owner explicitly approved proceeding without the unavailable independent
+subagent review; this is not represented as an independent review pass. No
+stable `v0.10.5` or `v0.10.6` package or tag has been published.
+
+## [0.10.6] - Unreleased
+
+### Summary
+
+This internal candidate adds a stable launcher, verified side-by-side installed
+versions, and a Settings Version page so application updates can be discovered,
+reviewed, installed, switched, and recovered without overwriting the running
+application. It is the relocatable-folder proving ground for the first
+end-user-managed `1.0.0` package; it is not itself a new public distribution.
+
+### Product changes
+
+#### Managed application versions and Settings Version page
+
+- Before → After: the portable application had no typed owner for discovering or
+  verifying application updates, no installed-version inventory, and no safe
+  way to switch or recover between side-by-side versions. Settings now exposes
+  an editable update-source folder, background and
+  manual checks, verified update consent, installed/available/active/damaged
+  state, release notes, explicit Install/Switch actions, and individually
+  confirmed deletion of non-active versions. A stable launcher imports one
+  immutable first-run seed, verifies installed payloads, performs an inherited
+  ready handshake, commits activation atomically, and attempts at most one
+  last-known-good rollback.
+- Affected: Settings, desktop startup/handoff, the stable launcher, and managed
+  application package/state adapters. Firmware composition workflows, IC
+  profiles, support declarations, processor behavior, output bytes, naming,
+  reports, and Golden evidence are unchanged.
+- Support status: unchanged/support-neutral.
+- Compatibility: no published unmanaged `0.10.5` folder is
+  converted in place. Existing portable-ZIP packaging remains unchanged.
+  The first user-distributed managed root is deferred to `1.0.0`.
+- Verification: the isolated `artifacts/version-update-source-lab` proves
+  catalog discovery, closed package verification, staged install, source and
+  managed-root relocation, successful `0.10.6` activation, offline switch,
+  damaged-candidate rollback, and guarded deletion. The canonical full verifier
+  passes all structure, Python, CRC, .NET, UI, Golden, and coverage gates on the
+  implementation commit.
+- Limitations: package signing/key management, production managed ZIP,
+  SBOM/provenance migration, and clean-machine end-user distribution remain
+  `1.0.0` work.
+
+### Fixes
+
+- Package verification now hashes and length-checks every declared ZIP payload
+  before `Verified` can be published; install still re-verifies the staged
+  closed payload before atomic promotion.
+- Catalog and archive paths share one Windows-safe relative-path grammar that
+  rejects reserved device names, traversal, ADS, link/reparse, and escaping
+  shapes before filesystem mutation.
+- The inherited ready channel now handles malformed handles, oversized and
+  malformed messages, timeout/cancellation, and the pipe-EOF/process-exit race
+  with stable typed results. Real-process regressions cover successful ready,
+  candidate timeout/exit rollback, rollback failure, and post-ready crash.
+- Background update prompts no longer replace an already open destructive
+  version confirmation, and install/activation remains behind explicit user
+  consent.
+- Memory Layout graphical segments are hover-only and can no longer retain a
+  click/focus selection; persistent selection remains on the information rows.
+- Version connection-state and trash icons expose localized, non-color-only
+  automation names and tooltips, including the target installed version.
+
+### Performance and package
+
+- Separating focused Version Management Application/Infrastructure projects
+  reduced the trimmed stable launcher from 39,384,103 bytes to 11,674,541 bytes
+  (70.4%). The broader production-size/removable-module audit remains open.
+- The approved capability and owner-requested upgrade-boundary hardening add
+  4,340 production nonblank lines while retaining
+  the predecessor ratchets plus explicit per-slice allowances. The completion
+  accessibility follow-up removes an unused projection; the hardened shared
+  path grammar and archive-content verifier bring the full production total to
+  exactly 107,237.
+
+### Security
+
+- Update catalogs, packages, installed inventories, ready messages, and state
+  files are treated as untrusted and fail closed on unsafe paths, undeclared
+  content, hash/length mismatch, malformed input, or reparse boundaries.
+- Package signing and production trust-distribution policy remain deferred to
+  the first public `1.0.0`; this internal candidate does not claim signed-update
+  security.
+
+### Known issues
+
+- The independent R2 architecture/contract reviewer could not be scheduled
+  because the agent thread limit was exhausted. On 2026-08-21 the owner
+  explicitly approved the internal identity advance after focused boundary
+  hardening. This is an owner override, not an independent-review PASS.
+- Public managed packaging, clean Windows x64 smoke, and release/security
+  approval apply to the first end-user `1.0.0` distribution, not this internal
+  folder proof.
+
+### Upgrade and rollback
+
+- `0.10.6` is an internal relocatable-folder proof and does not migrate or
+  overwrite an unmanaged installation. A verified candidate is staged and
+  promoted beside existing versions before activation.
+- The launcher commits activation only after the candidate reports the exact
+  expected version over its one-use ready channel. Pre-ready failure attempts
+  at most one verified last-known-good rollback; installed verified versions
+  remain available for explicit offline switching.
+
+### Downloads and integrity
+
+- No `v0.10.6` download or tag is published. Local lab packages contain only
+  synthetic ReadyProbe payloads and are excluded from Git.
+- The existing portable-package manifest, hashes, SBOM, provenance, and smoke
+  pipeline remain unchanged and continue to run through repository verification.
+
+## [0.10.5] - Unreleased
+
+### Summary
+
+This support-neutral release implements one observable, cancellable,
+bounded, and user-controllable preload lifecycle while retaining typed catalog,
+report, diagnostics, inspection, and external-runtime semantic owners. The
+implementation is complete and PL-00 release-candidate validation is in
+progress. Ancestor-package observations remain supporting performance evidence,
+but the frozen reviewed tree must refresh its package, measurement, provenance,
+and two exact-head CI attempts. Screen-reader review and release approval also
+remain open.
+
+### Product changes
+
+#### Settings, Support Matrix, and pending-input readability
+
+- Purpose: make Settings, support status, and incomplete workflow inputs faster
+  to understand without changing firmware or support semantics.
+- Before → After: Settings uses a compact section rail; Support Matrix cells name
+  their verification state; pending layouts identify the exact required DP, TP,
+  Base, or CtrlRAM input; responsive input cards keep facts visible; Browse
+  remains a fixed rounded button; all buttons use project-owned visuals; and
+  Memory Info aligns source, address, and length while distinguishing DP, TP,
+  protected customer information, and unmapped ranges.
+- Affected: Settings navigation and preferences, the read-only Support Matrix,
+  pending Merge/Replace layout presentation, Browse actions, and top navigation.
+- Support status: unchanged/support-neutral; no route, IC, profile, family,
+  processor, or Golden observation changes.
+- Localization and accessibility: English and Traditional Chinese slot, plan,
+  pending, conflict, and memory labels update together; selected navigation
+  remains distinct; mouse clicks leave no focus frame; and keyboard-only focus
+  remains visible.
+- Compatibility: profiles, schemas, firmware bytes/hashes/names, Golden evidence,
+  report wire/history, CLI behavior, and execution paths are unchanged.
+- Code size: the initial same-file cleanup lowered 98,135 to 98,133. The
+  owner-approved complete readability surface removes 673 and adds 2,103
+  physical nonblank production lines, net +1,430, setting exact ratchets to full
+  99,563 and runtime 68,109. Domain plus Profiles becomes 20,634 and Application
+  becomes 29,668; the other runtime slices remain unchanged.
+- Verification: Desktop Release build, UI smoke, Architecture, structure/full
+  verifier, scoped Polytail, and interactive dark/light layout review apply.
+- Limitations: this is a presentation/readability change; it adds no updater,
+  version-selection, workflow, report, or firmware capability.
+
+#### Message Center, report, and System Information readability
+
+- Purpose: make the existing Message Center and report-modal evidence faster to
+  scan without changing what the application computes or stores.
+- Before → After: the mixed three-column System Information layout becomes
+  four aligned two-column fact cards; Current Report and Report History become
+  two equal cards with their related actions kept together; the report modal's
+  long audit sentence becomes six explicit counters above the existing evidence
+  tabs.
+- Affected: Message Center → Run Reports and System Information, plus the report
+  modal Summary and Audit details presentation.
+- Support status: unchanged/support-neutral; no route, IC, profile, family,
+  processor, or Golden observation changes.
+- Accessibility: selector targets span the available width, each fact and audit
+  counter keeps its localized label/value relationship, and existing keyboard
+  actions, focus, live diagnostics, reduced-motion behavior, and automation text
+  are preserved.
+- Compatibility: report data/history, diagnostics, firmware bytes and names,
+  profiles, schemas, processor protocols, Golden evidence, and persistence are
+  unchanged.
+- Verification: XAML contract coverage, full UI smoke, Architecture ratchet,
+  canonical verifier, and interactive light/dark inspection.
+- Limitations: this is a visual hierarchy change only; it adds no new Report or
+  System Information data and changes no existing action.
+
+#### Unified bounded preload lifecycle
+
+- Before → After: startup and related preparation formerly used separate
+  cancellation, generation, progress, cache, and failure paths; scheduling and
+  operator control now converge into one Presentation lifecycle while each
+  feature keeps its existing typed semantic owner.
+- Affected: catalog startup, report/history input, diagnostics, deferred views,
+  external-environment discovery, and selection-triggered inspection across all
+  six workflows.
+- Support status: unchanged/support-neutral; no route, IC, profile, family,
+  processor, or Golden observation is promoted into support truth.
+- Compatibility: firmware bytes/hashes/names, report wire and history schema,
+  profiles/schemas, CLI behavior, Saved Rules, settings, and processor protocols
+  remain compatible.
+- Verification: PL-01 through PL-07 passed their behavioral, architecture,
+  accessibility automation, code-size, verifier, and Golden 17/17 gates.
+  Supporting ancestor packages met the performance target, but PL-00 must repeat
+  package, performance, provenance, and two same-SHA CI gates on the frozen tree.
+- Limitations: stable publication remains under PL-00 until those repeat gates,
+  screen-reader review, and release-owner approval complete; no aggregate cross-
+  stage percentage or Build/Preview run-progress replacement is introduced.
+
+#### Bounded local report and history input
+
+- Purpose: make startup history, `--load-report`, manual report selection, and
+  existing local preference persistence share one bounded, cancellable platform
+  file adapter while keeping report/history JSON semantics in Presentation.
+- Affected: desktop startup report/history restore, manual report selection,
+  shell preferences, and their Application/Infrastructure file boundary.
+- Before → After: unbounded `ReadAllText`/`ReadToEndAsync`, scheduling-only
+  history cancellation, and a 216-line Presentation filesystem owner are
+  replaced by one typed Application port and Infrastructure adapter with stable
+  read handles and atomic promotion.
+- Bounds: standalone reports accept exactly 10 MiB; history retains the existing
+  16 MiB soft payload and 64 MiB encoded-envelope rules, including metadata
+  fallback, oldest-first eviction, and previous-file preservation.
+- Code size: full production falls from 97,306 to 97,303 nonblank lines. ADR
+  0021 records the one-time runtime ownership rebaseline caused by moving code
+  from excluded Presentation into counted Application/Infrastructure.
+- Support status: unchanged/support-neutral; no IC, profile, workflow, or
+  processor support fact changes.
+- Compatibility: report wire/schema, history v1, settings, firmware bytes,
+  Golden outputs, profiles, CLI options, and support truth are unchanged.
+- Verification: exact file-boundary, history-envelope, startup/manual parity,
+  architecture, full verifier, and Golden 17/17 evidence passed.
+- Limitations: this boundary remains local-file-only; it adds no remote report
+  source, report schema, or second Presentation filesystem owner.
+
+#### Shell preload session and required catalog stage
+
+- Purpose: replace catalog-specific startup flags and callbacks with one reusable
+  Presentation shell lifecycle before optional startup work is migrated.
+- Affected: desktop startup, required catalog loading, foreground progress,
+  Retry, Cancel startup, close-time drain, focus restoration, and accessibility.
+- Before → After: `CanonicalCatalogStartupCoordinator` plus MainWindow-specific
+  attempt/in-progress fields become one immutable observable stage collection
+  with session/stage/attempt identity and current-plus-one-prior terminal history.
+- Progress: the UI keeps continuous activity motion and now shows exact catalog
+  route progress plus `stage index / admitted count`; live announcements remain
+  bounded to phase or percentage-decile changes.
+- Failure policy: typed cold or retained-last-known-good failure remains blocking
+  and offers Retry or Cancel; retry preserves the session plan, uses a fresh
+  attempt number, and stale callbacks cannot update the active surface.
+- Support status: unchanged/support-neutral; Application remains the sole catalog
+  validation, publication, token, cache, and last-known-good owner.
+- Compatibility: firmware bytes, Golden outputs, catalog routes, profiles,
+  schemas, report wire/history, CLI behavior, and processor protocols are unchanged.
+- Verification: catalog Application/Bootstrap parity, shell-session grammar,
+  startup UI, focus, localization, accessibility, architecture, full verifier,
+  coverage, and Golden 17/17 gates apply.
+- Code size: full production descends from 97,302 to 97,297 nonblank lines;
+  runtime production remains 67,371.
+- Limitations: required catalog failure remains blocking; optional report,
+  diagnostics, external-environment, and deferred-view failures remain isolated
+  in their admitted lifecycle stages.
+
+#### Optional shell preload lifecycle
+
+- Purpose: move report-history restore, an explicit startup report, System
+  information refresh, and deferred view materialization into the existing shell
+  preload session so optional work remains visible and controllable after catalog
+  publication.
+- Affected: desktop launch-page application, startup report precedence, Message
+  Center refresh, five deferred views, Retry/Skip/Cancel actions, startup trace,
+  localization, accessibility, and Presentation implementation visibility.
+- Before → After: one serial `ContinueStartupAsync` block with shared failure and
+  cancellation state becomes a closed stage plan. History precedes the explicit
+  report; diagnostics run beside that chain; views remain serial on the dispatcher
+  and wait while Preview/Build owns the UI.
+- Failure policy: optional failures retain one typed diagnostic and current plus
+  one prior attempt, do not disable the shell or suppress independent work, and
+  may retry only their failed stage or be skipped. Cancel stops and drains only
+  remaining preload work.
+- Progress and accessibility: the compact background disclosure shows the stage
+  position and stage-local percent when truthful, otherwise indeterminate; the
+  expanded immutable list exposes every admitted stage, bounded live status,
+  localized actions, and reduced-motion-compatible progress.
+- Architecture convergence: repository-internal ViewModel and UI projection types
+  no longer form an accidental public CLR surface. Boilerplate XML summaries that
+  only repeated those internal member names are removed; ownership, identity,
+  firmware, range, bound, cancellation, concurrency, and other non-obvious
+  invariants remain documented.
+- Support status: unchanged/support-neutral; no route, IC, workflow, processor,
+  profile, family, or Golden observation changes.
+- Compatibility: firmware bytes/hashes/names, report wire/history schema, CLI
+  behavior, settings, profiles/schemas, Saved Rules, and processor protocols are
+  unchanged.
+- Verification: shell-session ordering, retry/skip/cancel, operator priority,
+  localization, accessibility, architecture, full verifier, coverage, and Golden
+  17/17 gates apply.
+- Code size: preserving the complete lifecycle and non-obvious contract
+  documentation changes full production from 97,297 to 97,426 nonblank lines.
+  Truthful report-byte progress adds a one-time 33 counted runtime lines, so
+  runtime becomes 67,404. The named +129 full-production/+33 runtime exception
+  is non-transferable and creates no later growth allowance.
+- Limitations: external discovery and selection-triggered inspection remain owned
+  by PL-05 and PL-07; no Report UI redesign or aggregate cross-stage percentage is
+  introduced here.
+
+### PL-05 external environment lifecycle
+
+- Purpose: replace synchronous Bootstrap external-tool discovery with one
+  bounded, cancellable Infrastructure lifecycle shared by shell preload,
+  Message Center refresh, CLI dispatch, readiness, and execution leases.
+- Discovery is deterministic and fail-closed at depth 16, 4,096 visited entries,
+  256 manifests, 1 MiB per manifest, and 16 MiB cumulative manifest bytes;
+  reparse/escape, unstable handles, invalid manifests, and hash drift publish no
+  candidate. Preload never creates staging or launches a process.
+- Request and publication generations are separate. Newer refresh cancels and
+  drains older work; failure/cancellation retains the last known good candidate,
+  while cold generation zero exposes typed blocked readiness rather than a fake
+  usable environment. Startup progress is stage-local and Message Center shows
+  current state, manifest count, and publication generation.
+- Compatibility: external processor protocol, firmware bytes/ranges/names,
+  profiles/schemas, report wire, CLI help/version precedence, and Golden data are
+  unchanged.
+- Verification: Application 529, Infrastructure 437 (2 declared skips),
+  Bootstrap 927, and UI 481 cases contribute to the exact eight-project 3,396
+  inventory; bounded discovery, malformed/oversize/reparse/cancel/LKG/
+  supersession/acquisition paths, CLI order, and UI retry/refresh are covered.
+- Code size: the exact implementation removes 250 and adds 984 production
+  nonblank lines. The named PL-05-only amendment changes full production from
+  97,426 to 98,160 and runtime from 67,404 to 68,018; the exact four slices are
+  20,619 / 29,585 / 3,074 / 14,740. These become descending ratchets and create
+  no budget for later tickets.
+
+#### Coherent selected-file inspection identity
+
+- Purpose: make selection inspection and CtrlRAM Build confirmation consume one
+  coherent complete-file identity while deleting stale path/IC cache ownership.
+- Affected: selected-file inspection ports/adapters, current slot projections,
+  CtrlRAM Build confirmation, catalog-backed artifact classification, and tests.
+- Before → After: separate before/after `FileInfo` stamps, Presentation path/base
+  caches, and an unbounded IC-only compiled-classification cache are replaced by
+  one cancellable complete read with exact length/SHA, request-scoped bytes, and
+  current-catalog recomputation.
+- Dispatch: only typed Standard Merge, AB Merge, DP Replace, or CtrlRAM roles
+  invoke their inspection strategy; filename, bytes, and IC identity cannot
+  select a strategy. Differential evidence retains result/diagnostic order and
+  one read per distinct path against the characterized all-strategy path.
+- Failure/staleness: short, trailing, changing, unreadable, cancelled, and
+  same-path/same-length replacement cases cannot publish a stale content stamp;
+  CtrlRAM confirms the exact SHA again before Build.
+- Support status: unchanged/support-neutral; no IC, workflow, topology,
+  processor, profile, family, or evidence fact changes.
+- Compatibility: accepted firmware bytes, ranges, metadata semantics, output
+  naming, profiles/schemas, report wire, processors, and Golden data are unchanged.
+- Verification: Bootstrap 934, Infrastructure 439 (2 declared skips), and UI 482
+  contribute to the exact eight-project 3,406 inventory, with Architecture,
+  coverage, full verifier, Golden 17/17, and scoped R2/Polytail gates retained.
+- Code size: 403 production nonblank lines are removed and 289 added, net -114.
+  Full production descends from 98,189 to 98,075; runtime descends from 68,018 to
+  68,016 = 20,619 / 29,584 / 3,074 / 14,739.
+- Limitations: PL-06 converges identity/cache/strategy ownership only. PL-07 owns
+  the reusable observable per-workflow inspection lifecycle and cancellation UI.
+
+#### Unified selected-file inspection lifecycle
+
+- Purpose: make all six Merge/Replace workflow sessions use one observable,
+  cancellable, retryable selected-file inspection lifecycle.
+- Affected: Standard Merge, AB Merge, General Merge, DP Replace, CtrlRAM Replace,
+  General Replace, their selected-file inspection progress, and shared loading UI.
+- Before → After: separate firmware generation/loading state, General preparation
+  queues, cached projection glue, and workflow-specific task wrappers become one
+  request-scoped lifecycle with a never-reused generation and one active task per
+  workflow. Application and Infrastructure keep sole ownership of inspection facts.
+- Progress and control: exact distinct-file/item work reports through the standard
+  typed `IProgress<AuthoringInspectionProgress>` contract. Reselection cancels and
+  drains obsolete work; failure exposes localized Retry, active work exposes Cancel,
+  and reduced motion retains the exact static percentage without animation.
+- Failure/staleness: old-generation callbacks cannot clear pending state, publish
+  facts, enable Build, or overwrite a successor. Retry allocates a fresh generation
+  only after the prior terminal has drained; malformed progress fails closed.
+- Accessibility: the foreground catalog surface and workflow action rail reuse one
+  localized loading template with bounded decile announcements and truthful percent.
+- Input clarity: the typed `PendingInput` state is presented as the concrete
+  prerequisite, such as `Waiting for DP BIN` or `Waiting for Reference FlashCode`;
+  multi-input memory placeholders say `Waiting for required inputs` rather than
+  exposing an ambiguous implementation-state label.
+- Compatibility: firmware bytes, ranges, CRC/header behavior, output naming,
+  profiles, schemas, report wire, processors, CLI behavior, and Golden data are
+  unchanged.
+- Support status: unchanged/support-neutral; no IC, family, topology, workflow,
+  processor, profile, or evidence fact is promoted or removed.
+- Verification: Bootstrap 934, UI 490, and Architecture 214 pass locally and
+  contribute to the exact eight-project 3,414 inventory with 2 declared skips and
+  Golden 17/17 retained.
+- Code size: 950 physical nonblank production lines are removed and 949 added,
+  net -1. Full production descends from 98,075 to 98,074; runtime descends from
+  68,016 to 67,997 = 20,619 / 29,571 / 3,074 / 14,733.
+- Limitations: startup preload, Build/Preview run progress, CtrlRAM run-bound metadata,
+  firmware semantics, and Report/System Information layout remain separate owners.
+
+#### Reproducible startup and preload evidence
+
+- Purpose: make the release comparison show not only launch time but also private
+  memory and the exact terminal/work evidence for every preload stage.
+- Before → After: the opt-in startup trace reported timing/allocation points only;
+  schema v3 additionally records bounded stage identity, terminal state, and
+  nullable completed/total work, while the measurement result records working set
+  and private bytes at first window, lifecycle completion, and observed peak.
+- Affected: the opt-in Desktop startup trace and the repository-owned packaged
+  startup measurement runner.
+- Support status: unchanged/support-neutral; no route, IC, family, topology,
+  workflow, processor, profile, or evidence fact changes.
+- Compatibility: the runner still accepts the stable `v0.10.4` schema-v2 trace;
+  candidate evidence must explicitly require schema v3. Normal application launch,
+  firmware semantics, report wire, settings, CLI behavior, and Golden data do not
+  change.
+- Privacy and failure behavior: lifecycle evidence excludes titles, diagnostics,
+  paths, report content, and firmware facts; duplicate, non-terminal, inconsistent,
+  or incomplete successful work records fail the measurement.
+- Code size: 295 physical nonblank production lines are removed and 358 added,
+  net +63. Full production changes from 98,074 to 98,137 under the named
+  2026-08-14 semantic-control owner amendment; runtime still descends from
+  67,997 to 67,981 = 20,619 / 29,555 / 3,074 / 14,733. The runtime reduction
+  removes redundant private array aliases from immutable Application classes
+  without changing their copies, validation, ordering, or read-only properties.
+  The non-transferable Presentation increase closes framework-default leakage
+  across normal, hover, pressed, keyboard-focus, and disabled semantic-button
+  and shell-navigation states, including the startup-completion Home focus, and
+  preserves CtrlRAM inspection projection during relocalization. One shared
+  semantic disabled-state owner replaces four identical role-local opacity rules.
+- Accessibility closure: the optional preload disclosure now gives both its
+  Expander peer and keyboard-operable header the same bounded accessible status.
+  Reusing the existing Expander template style and removing the peerless host
+  lowers the current full-production ratchet from 98,137 to 98,135; runtime and
+  all four runtime slices are unchanged.
+- Verification: focused trace serialization and Architecture contract tests,
+  structure validation, scoped R2/Polytail review, canonical verifier, package
+  measurement, exact-head CI, and clean-package accessibility gates apply.
+- Limitations: measurements cover the exact local candidate package; official
+  stable publication still requires the recorded screen-reader review,
+  release-owner approval, immutable tag workflow, and downloaded-asset audit.
+
+#### DP Replace readiness projection stability
+
+- Purpose: prevent a reentrant DP Replace slot notification from invalidating
+  the collection currently being projected into readiness state.
+- Affected: DP Replace input-slot readiness refresh in the Presentation layer.
+- Before → After: readiness updates enumerated the live observable slot
+  collection; they now project one stable slot snapshot for each refresh.
+- Support status: unchanged/support-neutral; no IC, route, workflow, processor,
+  profile, or family availability fact changes.
+- Compatibility: readiness rules, slot order, firmware bytes, report wire,
+  profiles, schemas, CLI behavior, and Golden outputs are unchanged.
+- Verification: a deterministic reentrant-mutation regression, the originally
+  failing composition-run scenario, full UI smoke, architecture, verifier,
+  Golden 17/17, scoped review, and exact-head CI gates apply.
+- Limitations: this fixes the observed DP Replace collection race only; it does
+  not serialize the UI, change notification timing, or redesign readiness.
+
+### Security
+
+The implemented lifecycle does not broaden filesystem, executable, firmware, or
+network authority. Report input and external discovery remain bounded and
+fail-closed; external processors retain reviewed-root, trust, staging-copy, and
+write-range enforcement.
+
+### Release evidence and remaining gates
+
+- The first PL-00 package did not reproduce the 700 ms absolute startup target:
+  official `v0.10.4` measured 709.271 ms and candidate `6b1c874` measured
+  768.097 ms and 803.214 ms. Follow-up tracing isolated the bounded preference
+  adapter's synchronous pre-await admission on the startup thread. Exact
+  replacement candidate `7e7a31b` schedules that same canonical read before host
+  construction and still awaits it before the window; two independent one-warmup
+  plus five-run observations measured 631.132 ms and 634.589 ms. Those results
+  met the 700 ms target for that ancestor package, but they do not close the gate
+  for a later reviewed tree. All five preload stages were unique, terminal, and
+  `Succeeded` in both supporting observations.
+
+### Known issues
+
+- The implementation dependency chain is complete. Any revised reviewed head
+  must refresh its exact verifier, Golden, CI, package, measurement, SBOM,
+  provenance, and hash evidence. Clean-machine accessibility checks and release
+  approval remain external gates.
+
+### Upgrade and rollback
+
+When published, upgrade by replacing the complete portable `v0.10.4` folder
+with the complete `v0.10.5` folder; do not overlay individual files or merge it
+into a synchronized profile tree. Roll back by restoring the untouched complete
+`v0.10.4` package. No report, history, settings, profile, schema, or Saved Rule
+migration is required. A local PL-00 candidate is evidence, not distribution
+authority.
+
+### Downloads and integrity
+
+The stable release will publish the reviewed portable ZIP, SPDX SBOM,
+provenance, candidate manifest, outer hashes, and tag-derived source archives.
+Verify the checksum list and provenance source identity before distribution.
+Local PL-00 candidate artifacts are not stable downloads or immutable tag
+authority.
 
 ## [0.10.4] - 2026-08-13
 

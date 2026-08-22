@@ -12,6 +12,40 @@ mutable surfaces. Read the relevant source, contract/profile, and test once.
 Branch/version/release rules live in
 [`branch-version-and-release-governance.md`](branch-version-and-release-governance.md).
 
+## Capability-reuse gate (fail closed)
+
+Production edits must not begin until the active specification, ticket, or
+owner-approved handoff contains a capability-reuse record. Diagnostic reads,
+tests that characterize existing behavior, and planning may proceed while the
+record is incomplete; new or changed production logic may not.
+
+The record must name all of the following:
+
+1. the requested capability and every target or adjacent module/layer;
+2. the search evidence used to inspect those modules: CodeGraph when the
+   repository is indexed, otherwise exact symbol/text searches, project
+   references, callers, ports/adapters, and existing tests;
+3. the current semantic owner, typed result, complete production caller path,
+   adapter/projection boundary, and test owner, or `none-found` plus the exact
+   searched scope and commands;
+4. the proposed owner, dependency direction, reused contracts/results, and
+   affected firmware, persistence, UI, or release authority;
+5. explicit checks for an existing validator, parser, normalizer, formatter,
+   resolver, planner, compiler, service, cache, store/repository, processor,
+   naming rule, control/style, fallback, and compatibility path; and
+6. one disposition: `reuse`, `extend-owner`, `delete-then-replace`,
+   `reject-duplicate`, or `approved-migration-seam`.
+
+Unknown, unsearched, or conflicting ownership fails the gate. When an owner
+already exists, the change reuses or extends it. An `approved-migration-seam`
+requires the architecture owner, a complete caller inventory, a narrow test
+that distinguishes old and new paths, and an executable deletion milestone;
+it cannot acquire new semantic authority. R2/R3 work records the independent
+architecture/contract review before implementation begins.
+
+The gate is not satisfied by renaming a duplicate, moving it to another layer,
+adding an interface around it, or demonstrating only that new tests pass.
+
 ## Narrow test selection
 
 | Changed surface | First test |

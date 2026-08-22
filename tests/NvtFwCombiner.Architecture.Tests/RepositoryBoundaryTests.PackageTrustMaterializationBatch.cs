@@ -427,7 +427,7 @@ public sealed partial class RepositoryBoundaryTests
         using var cancellation = CancellationTokenSource.CreateLinkedTokenSource(
             timeout.Token,
             TestContext.Current.CancellationToken);
-        Task completion = Task.WhenAll(
+        var completion = Task.WhenAll(
             process.WaitForExitAsync(cancellation.Token),
             standardOutput,
             standardError);

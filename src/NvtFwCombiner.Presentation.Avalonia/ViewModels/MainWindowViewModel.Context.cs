@@ -1,22 +1,19 @@
 using System.ComponentModel;
+using NvtFwCombiner.Application.Diagnostics;
 
 namespace NvtFwCombiner.Presentation.Avalonia.ViewModels;
 
-public sealed partial class MainWindowViewModel
+internal sealed partial class MainWindowViewModel
 {
     private void SelectReplaceMode(string mode)
     {
-        Replace.SelectReplaceMode(mode);
         NavigateToPage(ShellPage.Replace);
+        Replace.SelectReplaceMode(mode);
     }
 
     private void ApplySelectedPage(ShellPage page)
     {
-        if (page == ShellPage.Settings)
-        {
-            _deferredState.EnsureSettings(RefreshSettingsState);
-        }
-        else if (page is ShellPage.Merge or ShellPage.Replace)
+        if (page is ShellPage.Merge or ShellPage.Replace)
         {
             bool wasWorkflowLoaded = WorkflowSession.IsWorkflowLoaded;
             WorkflowSession.EnsureWorkflowLoaded();
@@ -32,11 +29,11 @@ public sealed partial class MainWindowViewModel
             return;
         }
 
+        WorkflowSession.RememberCurrentWorkflowContext();
         SelectedPage = page;
-        WorkflowSession.RefreshNumberChoicesForSelectedIc();
+        WorkflowSession.ActivateWorkflowPageContext(page);
         OnPropertyChanged(nameof(SelectedPage));
         OnPropertyChanged(nameof(IsHomeVisible));
-        OnPropertyChanged(nameof(IsSettingsVisible));
         OnPropertyChanged(nameof(IsMergeVisible));
         OnPropertyChanged(nameof(IsReplaceVisible));
         OnPropertyChanged(nameof(IsHexEditorVisible));
@@ -45,6 +42,10 @@ public sealed partial class MainWindowViewModel
         OnPropertyChanged(nameof(IsLatestOutputActionVisible));
         WorkflowSession.NotifyContextTextChanged();
         UpdateNavigationState();
+        RecordDebugActivity(
+            SystemActivityCodes.UserNavigated,
+            SystemActivityCategory.Navigation,
+            page.ToString());
     }
 
     private bool CanRequestHexEditorSave()

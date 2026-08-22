@@ -1,7 +1,9 @@
 using System.Text.RegularExpressions;
 using System.Xml.Linq;
 using Avalonia;
+using Avalonia.Automation.Provider;
 using Avalonia.Controls;
+using Avalonia.Controls.Automation.Peers;
 using Avalonia.Input;
 using Avalonia.Interactivity;
 using Avalonia.LogicalTree;
@@ -94,7 +96,7 @@ public sealed partial class XamlControlStyleContractTests
         string sharedTemplates = ReadPresentationFile("Resources/MainWindowSharedTemplates.axaml");
         string reportHistoryTemplates = ReadPresentationFile("Resources/MainWindowReportHistoryTemplates.axaml");
 
-        Assert.Contains("Selector=\"Border.fileDropZone\"", styles, StringComparison.Ordinal);
+        _ = ExtractStyle(styles, "Border.fileDropZone");
         Assert.Contains("Classes=\"subtleSurface\"", mappingRow, StringComparison.Ordinal);
         Assert.Contains("Classes=\"fileDropZone\"", mappingRow, StringComparison.Ordinal);
         Assert.Contains("Classes=\"fileRevealAction\"", mappingRow, StringComparison.Ordinal);
@@ -119,6 +121,8 @@ public sealed partial class XamlControlStyleContractTests
         string slotCard = ReadPresentationFile("Views/FirmwareSlotCard.axaml");
 
         Assert.Contains("Styles/MainWindowControlStyles.axaml", application, StringComparison.Ordinal);
+        Assert.Contains("Styles/MessageCenterStyles.axaml", application, StringComparison.Ordinal);
+        Assert.Contains("Styles/SettingsVersionStyles.axaml", application, StringComparison.Ordinal);
         Assert.Contains("<Label", slotCard, StringComparison.Ordinal);
         Assert.Contains("Classes=\"compactBadge slotBadge firmwareSlotRequirement availableInput\"", slotCard, StringComparison.Ordinal);
         Assert.Contains("IsVisible=\"{Binding IsGuidanceVisible}\"", slotCard, StringComparison.Ordinal);
@@ -256,12 +260,35 @@ public sealed partial class XamlControlStyleContractTests
     public void HomeUtilityCardUsesOneLineSummaryAndHoverDetail()
     {
         string homeTemplates = ReadPresentationFile("Resources/MainWindowPageTemplates.axaml");
+        string visualStyles = ReadPresentationFile("Styles/MainWindowVisualStyles.axaml");
+        string openPill = ExtractStyle(visualStyles, "Border.workflowOpenPill");
+        string openText = ExtractStyle(visualStyles, "Border.workflowOpenPill TextBlock");
+        string hoverPill = ExtractStyle(
+            visualStyles,
+            "Button.command:pointerover Border.workflowOpenPill");
+        string hoverText = ExtractStyle(
+            visualStyles,
+            "Button.command:pointerover Border.workflowOpenPill TextBlock");
+        string pressedPill = ExtractStyle(
+            visualStyles,
+            "Button.command:pressed Border.workflowOpenPill");
+        string pressedText = ExtractStyle(
+            visualStyles,
+            "Button.command:pressed Border.workflowOpenPill TextBlock");
 
         Assert.Contains("Text=\"{Binding Text.UtilToolsLabel}\"", homeTemplates, StringComparison.Ordinal);
         Assert.Contains("Text=\"{Binding Text.UtilToolsHomeTitle}\"", homeTemplates, StringComparison.Ordinal);
         Assert.Contains("Text=\"{Binding Text.UtilToolsHomeDetail}\"", homeTemplates, StringComparison.Ordinal);
         Assert.Contains("TextTrimming=\"CharacterEllipsis\"", homeTemplates, StringComparison.Ordinal);
         Assert.Contains("ToolTip.Tip=\"{Binding Text.HexEditorDetail}\"", homeTemplates, StringComparison.Ordinal);
+        Assert.Contains("Background\" Value=\"{DynamicResource NfcAccentSurfaceBrush}", openPill, StringComparison.Ordinal);
+        Assert.Contains("BorderBrush\" Value=\"{DynamicResource NfcAccentBorderLightBrush}", openPill, StringComparison.Ordinal);
+        Assert.Contains("NfcAccentStrongBrush", openText, StringComparison.Ordinal);
+        Assert.Contains("Background\" Value=\"{DynamicResource NfcAccentBrush}", hoverPill, StringComparison.Ordinal);
+        Assert.Contains("BorderBrush\" Value=\"{DynamicResource NfcAccentBrush}", hoverPill, StringComparison.Ordinal);
+        Assert.Contains("NfcSurfaceBrush", hoverText, StringComparison.Ordinal);
+        Assert.Contains("NfcAccentStrongBrush", pressedPill, StringComparison.Ordinal);
+        Assert.Contains("NfcSurfaceBrush", pressedText, StringComparison.Ordinal);
     }
 
     /// <summary>Keeps bounded multi-byte insertion explicit, accessible, and separate from overwrite/fill mode.</summary>
@@ -281,24 +308,23 @@ public sealed partial class XamlControlStyleContractTests
 
     /// <summary>Keeps CtrlRAM version confirmation in a typed UI contract without firmware layout details.</summary>
     [Fact]
-    public void CtrlRamBuildFirmwareVersionModalUsesTypedPreserveOrEditChoice()
+    public void BuildSettingsUsesTypedCtrlRamPreserveOrEditChoice()
     {
         string shell = ReadPresentationFile("MainWindow.axaml");
-        string modal = ReadPresentationFile("Views/CtrlRamFirmwareVersionModal.axaml");
+        string modal = ReadPresentationFile("Views/OutputDeliveryConfirmationModal.axaml");
         string styles = ReadPresentationFile("Styles/MainWindowStyles.axaml");
 
-        Assert.Contains("<views:CtrlRamFirmwareVersionModal", shell, StringComparison.Ordinal);
-        Assert.Contains("IsVisible=\"{Binding Replace.IsCtrlRamFirmwareVersionModalOpen}\"", shell, StringComparison.Ordinal);
+        Assert.Contains("<views:OutputDeliveryConfirmationModal", shell, StringComparison.Ordinal);
+        Assert.Contains("IsVisible=\"{Binding OutputDelivery.IsOpen}\"", shell, StringComparison.Ordinal);
+        Assert.Contains("IsVisible=\"{Binding HasCtrlRamOptions}\"", modal, StringComparison.Ordinal);
         Assert.Contains("SelectCtrlRamFirmwareVersionPreserveCommand", modal, StringComparison.Ordinal);
         Assert.Contains("SelectCtrlRamFirmwareVersionEditCommand", modal, StringComparison.Ordinal);
         Assert.Equal(2, modal.Split("Classes=\"segment versionChoice\"", StringSplitOptions.None).Length - 1);
-        Assert.Contains("AutomationProperties.Name=\"{Binding Text.CtrlRamFirmwareVersionKeepLabel}\"", modal, StringComparison.Ordinal);
-        Assert.Contains("AutomationProperties.Name=\"{Binding Text.CtrlRamFirmwareVersionEditLabel}\"", modal, StringComparison.Ordinal);
-        Assert.Contains("<TextBlock Text=\"{Binding Text.CtrlRamFirmwareVersionKeepLabel}\"", modal, StringComparison.Ordinal);
-        Assert.Contains("<TextBlock Text=\"{Binding Text.CtrlRamFirmwareVersionEditLabel}\"", modal, StringComparison.Ordinal);
-        Assert.Contains("TryCreateCtrlRamFirmwareVersionEdit", ReadPresentationFile("Views/CtrlRamFirmwareVersionModal.axaml.cs"), StringComparison.Ordinal);
-        Assert.Contains("AutomationProperties.Name=\"{Binding Text.CtrlRamFirmwareVersionByteLabel}\"", modal, StringComparison.Ordinal);
-        Assert.Contains("AutomationProperties.Name=\"{Binding Text.CtrlRamFirmwareSubVersionByteLabel}\"", modal, StringComparison.Ordinal);
+        Assert.Contains("CtrlRamOptions.Text.CtrlRamFirmwareVersionKeepLabel", modal, StringComparison.Ordinal);
+        Assert.Contains("CtrlRamOptions.Text.CtrlRamFirmwareVersionEditLabel", modal, StringComparison.Ordinal);
+        Assert.Contains("TryCreateCtrlRamFirmwareVersionEdit", ReadPresentationFile("ViewModels/ReplacePresentationViewModel.Execution.cs"), StringComparison.Ordinal);
+        Assert.Contains("CtrlRamOptions.Text.CtrlRamFirmwareVersionByteLabel", modal, StringComparison.Ordinal);
+        Assert.Contains("CtrlRamOptions.Text.CtrlRamFirmwareSubVersionByteLabel", modal, StringComparison.Ordinal);
         Assert.Contains("Selector=\"TextBox.hexByteInput\"", styles, StringComparison.Ordinal);
         Assert.Contains("Selector=\"ToggleButton.versionChoice\"", styles, StringComparison.Ordinal);
         Assert.Contains("Selector=\"Border.versionSummaryCard\"", styles, StringComparison.Ordinal);
@@ -326,7 +352,10 @@ public sealed partial class XamlControlStyleContractTests
             contextDocument.Descendants(),
             static element => element.Name.LocalName == "ProgressBar");
 
-        Assert.DoesNotContain("<ProgressBar", shell, StringComparison.Ordinal);
+        XElement shellProgress = Assert.Single(
+            XDocument.Parse(shell).Descendants(),
+            static element => element.Name.LocalName == "ProgressBar");
+        Assert.Equal("{ReflectionBinding Progress}", shellProgress.Attribute("Value")?.Value);
         Assert.Contains("IsVisible=\"{Binding RunSession.IsRunInProgress}\"", contextPanel, StringComparison.Ordinal);
         Assert.Contains("ItemsSource=\"{Binding RunSession.CompositionProgress.Steps}\"", contextPanel, StringComparison.Ordinal);
         Assert.Contains("AutomationProperties.Name=\"{Binding AccessibleLabel}\"", contextPanel, StringComparison.Ordinal);
@@ -345,7 +374,7 @@ public sealed partial class XamlControlStyleContractTests
             "{Binding RunSession.RunProgressStatusLabel}",
             progressBar.Attribute("AutomationProperties.Name")?.Value);
         Assert.Contains("Property=\"Height\" Value=\"22\"", nodeStyle, StringComparison.Ordinal);
-        Assert.Contains("Property=\"BorderThickness\" Value=\"1\"", nodeStyle, StringComparison.Ordinal);
+        Assert.Contains("Property=\"BorderThickness\" Value=\"2\"", nodeStyle, StringComparison.Ordinal);
         Assert.Contains("Property=\"BorderThickness\" Value=\"2\"", activeNodeStyle, StringComparison.Ordinal);
         Assert.Contains("NfcTextStrongBrush", markerStyle, StringComparison.Ordinal);
         Assert.DoesNotContain("AutomationProperties.Name=\"{Binding DeviceContextStatus}\"", shell, StringComparison.Ordinal);
@@ -386,15 +415,36 @@ public sealed partial class XamlControlStyleContractTests
         Assert.DoesNotContain("#if DEBUG", startup, StringComparison.Ordinal);
         Assert.DoesNotContain("ReportHistoryFileStore.LoadInto(viewModel);", window, StringComparison.Ordinal);
         Assert.Contains("protected override async void OnOpened", window, StringComparison.Ordinal);
-        Assert.Contains("await ApplyDeferredLaunchOptionsAsync(", window, StringComparison.Ordinal);
-        Assert.Contains("ReportHistoryFileStore.LoadAsync", startup, StringComparison.Ordinal);
-        Assert.Contains("return viewModel.Reports.LoadReportJsonAsync(", startup, StringComparison.Ordinal);
+        Assert.Contains("_preloadSession.RunOptionalStagesAsync(", window, StringComparison.Ordinal);
+        Assert.Contains("ReportHistoryFileStore.LoadAsync", window, StringComparison.Ordinal);
+        Assert.Contains("ApplyStartupReportAsync(", startup, StringComparison.Ordinal);
     }
 
     /// <summary>Prevents repeated shell, panel, row, and text property bundles from drifting back into templates.</summary>
     [Fact]
     public void SharedControlStylesOwnTheCommonXamlRoles()
     {
+        var pages = XDocument.Parse(ReadPresentationFile("Resources/MainWindowPageTemplates.axaml"));
+        XElement[] settingsNavigationItems =
+        [
+            .. pages.Descendants().Where(element =>
+                element.Name.LocalName == "RadioButton" &&
+                ((string?)element.Attribute("Classes"))?.Split(' ').Contains("settingsNavItem") == true),
+        ];
+        Assert.Equal(4, settingsNavigationItems.Length);
+        Assert.All(
+            settingsNavigationItems,
+            static item => Assert.Equal("SettingsSections", (string?)item.Attribute("GroupName")));
+        Assert.Equal(
+            [
+                "{Binding Settings.IsOverviewSelected, Mode=OneWay}",
+                "{Binding Settings.IsPreferencesSelected, Mode=OneWay}",
+                "{Binding Settings.IsVersionSelected, Mode=OneWay}",
+                "{Binding Settings.IsSupportMatrixOpen, Mode=OneWay}",
+            ],
+            settingsNavigationItems.Select(static item => (string?)item.Attribute("IsChecked")));
+        Assert.True(typeof(ISelectionItemProvider).IsAssignableFrom(typeof(RadioButtonAutomationPeer)));
+
         string styles = ReadPresentationFile("Styles/MainWindowControlStyles.axaml");
         foreach (string selector in new[]
         {
@@ -404,6 +454,8 @@ public sealed partial class XamlControlStyleContractTests
             "Border.contentPanel",
             "Border.listRow",
             "Border.settingRow",
+            "Border.settingsNavigationSurface",
+            "Border.settingsOptionRow",
             "TextBlock.panelTitle",
             "TextBlock.compactTitle",
             "TextBlock.supportingText",
@@ -411,7 +463,19 @@ public sealed partial class XamlControlStyleContractTests
             "TextBlock.technicalValue",
         })
         {
-            Assert.Contains($"Selector=\"{selector}\"", styles, StringComparison.Ordinal);
+            _ = ExtractStyle(styles, selector);
+        }
+
+        string buttonStyles = ReadPresentationFile("Styles/MainWindowButtonStyles.axaml");
+        foreach (string selector in new[]
+        {
+            "Button.settingsNavItem",
+            "Button.settingsNavItem:pointerover /template/ ContentPresenter#PART_ContentPresenter",
+            "Button.settingsNavItem.selected /template/ ContentPresenter#PART_ContentPresenter",
+            "Button.settingsNavItem:focus-visible /template/ ContentPresenter#PART_ContentPresenter",
+        })
+        {
+            _ = ExtractStyle(buttonStyles, selector);
         }
 
         string[] legacyPropertyBundles =

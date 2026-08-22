@@ -28,24 +28,10 @@ public sealed partial class ReplaceSelectionModal : UserControl
 
         if (viewModel.IsCtrlRamReplaceModeSelected)
         {
-            _ = await viewModel.TryOpenCtrlRamFirmwareVersionModalAsync();
+            _ = await viewModel.RequestCtrlRamBuildSettingsAsync();
             return;
         }
 
-        var topLevel = TopLevel.GetTopLevel(this);
-        if (topLevel is null)
-        {
-            return;
-        }
-
-        string? outputPath = await FirmwareFilePickerDialogs.PickReplacedFirmwareOutputPathAsync(
-            topLevel.StorageProvider,
-            viewModel.ReplaceOutputFileName);
-        if (string.IsNullOrWhiteSpace(outputPath))
-        {
-            return;
-        }
-
-        await viewModel.BuildReplaceAsync(outputPath);
+        await viewModel.RequestBuildOutputDeliveryAsync();
     }
 }

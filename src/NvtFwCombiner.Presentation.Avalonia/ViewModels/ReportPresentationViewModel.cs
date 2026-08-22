@@ -1,12 +1,18 @@
 using System.Text.Json;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using NvtFwCombiner.Application.Ports;
 using NvtFwCombiner.Domain.Composition;
 
 namespace NvtFwCombiner.Presentation.Avalonia.ViewModels;
 
-/// <summary>Owns report review, history, persistence projection, and notification presentation.</summary>
-public sealed partial class ReportPresentationViewModel : ObservableObject
+internal enum ReportPublicationOutcome { Unknown, Published, Superseded, Failed }
+
+internal readonly record struct ReportPublicationResult(
+    ReportPublicationOutcome Outcome,
+    string Diagnostic = "");
+
+internal sealed partial class ReportPresentationViewModel : ObservableObject
 {
     private static readonly JsonSerializerOptions RunErrorReportJsonOptions = new() { WriteIndented = true };
     private readonly Action _beforeOpen;
@@ -39,63 +45,46 @@ public sealed partial class ReportPresentationViewModel : ObservableObject
         RemoveReportHistoryEntryCommand = new RelayCommand<ReportHistoryEntryViewModel>(RemoveReportHistoryEntry);
     }
 
-    /// <summary>Gets current localized shell text used by the report surface.</summary>
     public ShellTextResources Text => _textProvider();
 
     internal bool IsRelocalizationRunning => _relocalizeLoadedReportCommand.IsRunning;
 
     internal Task? RelocalizationTask => _relocalizeLoadedReportCommand.ExecutionTask;
 
-    /// <summary>Gets the loaded run report summary.</summary>
     public ReportReviewViewModel LoadedReport { get; private set; } = ReportReviewViewModel.Empty;
 
-    /// <summary>Gets the original report JSON used by Save report.</summary>
     public string LoadedReportJson { get; private set; } = string.Empty;
 
-    /// <summary>True when a run report is loaded into the shell.</summary>
     public bool HasLoadedReport => !LoadedReport.IsEmpty;
 
-    /// <summary>True when the report icon can open the report modal.</summary>
     public bool CanOpenReport => HasLoadedReport;
 
-    /// <summary>Gets the shell report action label.</summary>
     public string ReportActionLabel => Text.GetReportActionLabel(HasLoadedReport);
 
-    /// <summary>Gets the shell report action status.</summary>
     public string ReportActionStatus => HasLoadedReport
         ? LoadedReport.Status
         : Text.GetReportActionStatus(hasLoadedReport: false, LoadedReport.Status);
 
-    /// <summary>True when the latest report modal is open.</summary>
     public bool IsReportModalOpen { get; private set; }
 
-    /// <summary>True when a compact report notification should be shown.</summary>
     public bool HasReportToast { get; private set; }
 
-    /// <summary>Gets the compact report notification opacity.</summary>
     public double ReportToastOpacity { get; private set; }
 
-    /// <summary>Gets the compact report notification text.</summary>
     public string ReportToastText { get; private set; } = string.Empty;
 
-    /// <summary>Gets the title for the shell notification, including non-report context updates.</summary>
     public string ShellToastTitle { get; private set; } = string.Empty;
 
-    /// <summary>Gets the complete title and detail announced for the current shell notification.</summary>
     public string ShellToastAccessibleLabel => $"{ShellToastTitle}. {ReportToastText}";
 
-    /// <summary>Gets a suggested report JSON file name.</summary>
     public string ReportSaveFileName => HasLoadedReport
         ? $"{SanitizeFileName(LoadedReport.Title)}.json"
         : "nvt-fw-combiner-report.json";
 
-    /// <summary>Command that opens the latest report modal.</summary>
     public IRelayCommand ShowReportCommand { get; }
 
-    /// <summary>Command that closes the report modal.</summary>
     public IRelayCommand CloseReportCommand { get; }
 
-    /// <summary>Command that dismisses the compact report notification.</summary>
     public IRelayCommand DismissReportToastCommand { get; }
 
     /// <summary>Loads a CLI/application run report JSON into the readable report modal.</summary>
@@ -118,80 +107,55 @@ public sealed partial class ReportPresentationViewModel : ObservableObject
         }
     }
 
-    /// <summary>Projects a loaded report outside the UI dispatcher before publishing bounded state.</summary>
-    public async Task LoadReportJsonAsync(
-        string json,
-        string sourceName,
-        CancellationToken cancellationToken = default)
-    {
-        long generation = BeginReportProjection();
-        ReportReviewViewModel report = await ProjectReportAsync(
-            json,
-            sourceName,
-            outputArtifactPath: null,
-            cancellationToken);
-
-        if (IsCurrentReportProjection(generation))
-        {
-            ApplyLoadedReport(report, json, sourceName);
-        }
-    }
-
-    /// <summary>Loads an external report source away from the dispatcher unless a newer report wins.</summary>
-    internal async Task<bool> LoadReportJsonAsync(
-        Func<CancellationToken, Task<string>> loadJson,
+    /// <summary>Loads one admitted report-file snapshot unless a newer report wins.</summary>
+    internal async Task<ReportPublicationResult> LoadReportFileAsync(
+        Func<CancellationToken, ValueTask<string>> readFile,
         string sourceName,
         CancellationToken cancellationToken)
     {
-        ArgumentNullException.ThrowIfNull(loadJson);
+        ArgumentNullException.ThrowIfNull(readFile);
         ArgumentNullException.ThrowIfNull(sourceName);
         long generation = BeginReportProjection();
         string json;
         ReportReviewViewModel report;
-        bool sourceFailed = false;
         try
         {
-            json = await loadJson(cancellationToken);
+            json = await readFile(cancellationToken);
             cancellationToken.ThrowIfCancellationRequested();
             if (!IsCurrentReportProjection(generation))
             {
-                return false;
+                return new(ReportPublicationOutcome.Superseded);
             }
 
             report = await ProjectReportAsync(
                 json,
                 sourceName,
                 outputArtifactPath: null,
-                cancellationToken);
+                cancellationToken,
+                materializationErrorsAsReport: false);
         }
-        catch (Exception exception) when (IsReportSourceException(exception))
+        catch (Exception exception) when (
+            exception is LocalFileReadException || IsReportMaterializationException(exception))
         {
-            json = string.Empty;
-            sourceFailed = true;
-            report = ReportReviewViewModel.Error(
-                sourceName,
-                exception.Message,
-                "Load error",
-                "Load failed",
-                Text.Language);
+            cancellationToken.ThrowIfCancellationRequested();
+            if (!IsCurrentReportProjection(generation))
+            {
+                return new(ReportPublicationOutcome.Superseded);
+            }
+
+            SetShellToast(Text.ReportToastTitle, exception.Message);
+            return new(ReportPublicationOutcome.Failed, exception.Message);
         }
 
         cancellationToken.ThrowIfCancellationRequested();
         if (!IsCurrentReportProjection(generation))
         {
-            return false;
+            return new(ReportPublicationOutcome.Superseded);
         }
 
-        if (sourceFailed)
-        {
-            ApplyReportError(report, sourceName);
-        }
-        else
-        {
-            ApplyLoadedReport(report, json, sourceName);
-        }
+        ApplyLoadedReport(report, json, sourceName);
 
-        return true;
+        return new(ReportPublicationOutcome.Published);
     }
 
     internal async Task<ReportReviewViewModel> ProjectReportAsync(
@@ -305,21 +269,18 @@ public sealed partial class ReportPresentationViewModel : ObservableObject
         NotifyReportChanged();
     }
 
-    /// <summary>Loads a report review error as the latest reopenable report.</summary>
     public void LoadReportError(string sourceName, string message)
     {
         ArgumentNullException.ThrowIfNull(sourceName);
         ArgumentNullException.ThrowIfNull(message);
 
         _ = BeginReportProjection();
-        ApplyReportError(
-            ReportReviewViewModel.Error(sourceName, message, "Load error", "Load failed", Text.Language),
-            sourceName);
-    }
-
-    private void ApplyReportError(ReportReviewViewModel report, string sourceName)
-    {
-        LoadedReport = report;
+        LoadedReport = ReportReviewViewModel.Error(
+            sourceName,
+            message,
+            "Load error",
+            "Load failed",
+            Text.Language);
         LoadedReportJson = string.Empty;
         CaptureLoadedReportInHistory();
         SetReportToast(Text.FormatReportIssueToast(sourceName));
@@ -332,7 +293,6 @@ public sealed partial class ReportPresentationViewModel : ObservableObject
         SetReportToast(Text.FormatReportSavedToast(destinationName));
     }
 
-    /// <summary>Loads a UI-triggered run failure as the latest reopenable report.</summary>
     public void LoadRunErrorReport(
         string action,
         string profileId,
@@ -405,7 +365,6 @@ public sealed partial class ReportPresentationViewModel : ObservableObject
         NotifyReportChanged();
     }
 
-    /// <summary>Updates toast opacity during the view-owned fade-out animation.</summary>
     public void SetReportToastOpacity(double opacity)
     {
         double next = Math.Clamp(opacity, 0, 1);
@@ -431,10 +390,10 @@ public sealed partial class ReportPresentationViewModel : ObservableObject
         IsReportHistoryViewOpen = false;
         HasReportToast = false;
         ReportToastOpacity = 0;
-        OnPropertyChanged(nameof(IsReportModalOpen));
+        PresentationObserver.Invoke(() => OnPropertyChanged(nameof(IsReportModalOpen)));
         NotifyReportViewModeChanged();
-        OnPropertyChanged(nameof(HasReportToast));
-        OnPropertyChanged(nameof(ReportToastOpacity));
+        PresentationObserver.Invoke(() => OnPropertyChanged(nameof(HasReportToast)));
+        PresentationObserver.Invoke(() => OnPropertyChanged(nameof(ReportToastOpacity)));
     }
 
     private void CloseReport()
@@ -475,29 +434,29 @@ public sealed partial class ReportPresentationViewModel : ObservableObject
         ReportToastText = text;
         HasReportToast = true;
         ReportToastOpacity = 1;
-        OnPropertyChanged(nameof(ShellToastTitle));
-        OnPropertyChanged(nameof(ReportToastText));
-        OnPropertyChanged(nameof(ShellToastAccessibleLabel));
-        OnPropertyChanged(nameof(HasReportToast));
-        OnPropertyChanged(nameof(ReportToastOpacity));
+        PresentationObserver.Invoke(() => OnPropertyChanged(nameof(ShellToastTitle)));
+        PresentationObserver.Invoke(() => OnPropertyChanged(nameof(ReportToastText)));
+        PresentationObserver.Invoke(() => OnPropertyChanged(nameof(ShellToastAccessibleLabel)));
+        PresentationObserver.Invoke(() => OnPropertyChanged(nameof(HasReportToast)));
+        PresentationObserver.Invoke(() => OnPropertyChanged(nameof(ReportToastOpacity)));
     }
 
     private void NotifyReportViewModeChanged()
     {
-        OnPropertyChanged(nameof(IsReportHistoryViewOpen));
-        OnPropertyChanged(nameof(IsReportReviewViewOpen));
+        PresentationObserver.Invoke(() => OnPropertyChanged(nameof(IsReportHistoryViewOpen)));
+        PresentationObserver.Invoke(() => OnPropertyChanged(nameof(IsReportReviewViewOpen)));
     }
 
     private void NotifyReportChanged()
     {
-        OnPropertyChanged(nameof(LoadedReport));
-        OnPropertyChanged(nameof(LoadedReportJson));
-        OnPropertyChanged(nameof(HasLoadedReport));
-        OnPropertyChanged(nameof(CanOpenReport));
-        OnPropertyChanged(nameof(ReportActionLabel));
-        OnPropertyChanged(nameof(ReportActionStatus));
-        OnPropertyChanged(nameof(ReportSaveFileName));
-        ShowReportCommand.NotifyCanExecuteChanged();
+        PresentationObserver.Invoke(() => OnPropertyChanged(nameof(LoadedReport)));
+        PresentationObserver.Invoke(() => OnPropertyChanged(nameof(LoadedReportJson)));
+        PresentationObserver.Invoke(() => OnPropertyChanged(nameof(HasLoadedReport)));
+        PresentationObserver.Invoke(() => OnPropertyChanged(nameof(CanOpenReport)));
+        PresentationObserver.Invoke(() => OnPropertyChanged(nameof(ReportActionLabel)));
+        PresentationObserver.Invoke(() => OnPropertyChanged(nameof(ReportActionStatus)));
+        PresentationObserver.Invoke(() => OnPropertyChanged(nameof(ReportSaveFileName)));
+        PresentationObserver.Invoke(ShowReportCommand.NotifyCanExecuteChanged);
     }
 
     internal void ApplyLanguageChanged()
@@ -568,8 +527,4 @@ public sealed partial class ReportPresentationViewModel : ObservableObject
             OverflowException;
     }
 
-    private static bool IsReportSourceException(Exception exception)
-    {
-        return exception is ArgumentException or IOException or NotSupportedException or UnauthorizedAccessException;
-    }
 }

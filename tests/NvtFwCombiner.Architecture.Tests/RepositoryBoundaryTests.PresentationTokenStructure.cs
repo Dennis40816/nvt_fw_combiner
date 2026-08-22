@@ -137,9 +137,9 @@ public sealed partial class RepositoryBoundaryTests
         }
     }
 
-    /// <summary>Verifies CtrlRAM grouping reaches Presentation as typed Application data.</summary>
+    /// <summary>Verifies CtrlRAM grouping uses typed groups and one stable source identity.</summary>
     [Fact]
-    public void ReplaceRegionGroupsDoNotDependOnLocalizedLabels()
+    public void ReplaceRegionGroupsUseTypedGroupsAndStableSourceIdentity()
     {
         string models = ReadText(
             "src/NvtFwCombiner.Application/Composition/CompositionClientModels.cs");
@@ -148,8 +148,11 @@ public sealed partial class RepositoryBoundaryTests
 
         Assert.Contains("public enum ReplaceRegionGroup", models, StringComparison.Ordinal);
         Assert.Contains("GroupBy(static slot => slot.RegionGroup)", builder, StringComparison.Ordinal);
-        Assert.Contains("GroupBy(static segment => segment.RegionGroup)", builder, StringComparison.Ordinal);
-        Assert.DoesNotContain("SourceLabel", builder, StringComparison.Ordinal);
+        Assert.Contains("ResolveDisplayId(segment, index, selectedSlotsByRegion)", builder, StringComparison.Ordinal);
+        Assert.Contains("GroupBy(static entry => entry.Key, StringComparer.Ordinal)", builder, StringComparison.Ordinal);
+        Assert.Contains("GroupBy(ResolveDisplayGroup)", builder, StringComparison.Ordinal);
+        Assert.DoesNotContain("GroupBy(static segment => segment.RegionGroup)", builder, StringComparison.Ordinal);
+        Assert.DoesNotContain("GroupBy(static segment => segment.SourceLabel", builder, StringComparison.Ordinal);
         Assert.DoesNotContain("Title.Contains", builder, StringComparison.Ordinal);
     }
 

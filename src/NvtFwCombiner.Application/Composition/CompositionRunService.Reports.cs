@@ -19,7 +19,8 @@ public sealed partial class CompositionRunService
         IReadOnlyList<DeliveryArtifactSummary>? deliveryArtifacts = null,
         IReadOnlyList<CompositionIssue>? additionalIssues = null,
         IReadOnlyList<ValidationRunSummary>? validations = null,
-        Dictionary<string, IReadOnlyList<ExternalProcessInvocation>>? executedCommandsByOperationId = null)
+        Dictionary<string, IReadOnlyList<ExternalProcessInvocation>>? executedCommandsByOperationId = null,
+        CompositionOutputBundleDeliverySummary? bundleDelivery = null)
     {
         OperationRunSummary[] operations = [
             .. request.CompiledComposition.Plan.OrderedOperations.Select(operation =>
@@ -80,7 +81,8 @@ public sealed partial class CompositionRunService
                 ExperienceIds.GeneralMerge)
                     ? ImageInitializationSummary.FromCompiled(
                         request.CompiledComposition.Plan.OutputInitialization)
-                    : null);
+                    : null,
+            bundleDelivery: bundleDelivery);
     }
 
     private static MutationRunSummary ToMutationSummary(MutationRecord mutation)

@@ -102,6 +102,11 @@ internal sealed partial class BuiltInCtrlRamAuthoringAdapter
             BuiltInV2RegistrationRegistry.StandardMergeByIc.GetValueOrDefault(icId) ??
             throw new InvalidDataException(
                 $"CtrlRAM report metadata requires the reviewed {icId} Standard Merge definition.");
+        if (!registration.HasReportClassificationMetadata)
+        {
+            return MetadataPlanDefinition.Empty;
+        }
+
         CompiledComposition[] candidates =
         [
             .. CreateStandardMergeMetadataSelectionCandidates(registration)

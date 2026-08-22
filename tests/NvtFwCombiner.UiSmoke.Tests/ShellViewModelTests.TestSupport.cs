@@ -65,7 +65,9 @@ public abstract partial class ShellViewModelTestBase
             new DelegatingFirmwareInspection(
                 TestHost.FirmwareInspectionExperience,
                 batchReader: reader));
-        return PresentationTestHost.PublishCanonicalCatalog(services, viewModel);
+        _ = PresentationTestHost.PublishCanonicalCatalog(services, viewModel);
+        viewModel.ShowMergeCommand.Execute(null);
+        return viewModel;
     }
 
     private protected static void AssertStandardMergeInputsReady(
@@ -114,6 +116,20 @@ public abstract partial class ShellViewModelTestBase
         ArgumentNullException.ThrowIfNull(slot);
         return slot.SlotIconPathData.StartsWith('M') &&
             slot.SlotIconPathData.Contains('L');
+    }
+
+    private protected static WorkflowInspectionLifecycle CurrentInspection(MainWindowViewModel viewModel)
+    {
+        return viewModel.IsReplaceVisible ? viewModel.Replace.Inspection : viewModel.Merge.Inspection;
+    }
+
+    private protected static void AssertInspectionTerminal(WorkflowInspectionLifecycle lifecycle)
+    {
+        Assert.Equal(WorkflowInspectionAttemptState.Succeeded, lifecycle.State);
+        AuthoringInspectionProgress progress = Assert.IsType<AuthoringInspectionProgress>(
+            lifecycle.Progress,
+            exactMatch: false);
+        Assert.Equal(progress.TotalWork, progress.CompletedWork);
     }
 
 }

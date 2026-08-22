@@ -3,14 +3,12 @@ using NvtFwCombiner.Application.Authoring;
 namespace NvtFwCombiner.Presentation.Avalonia.ViewModels;
 
 /// <summary>General Replace row using one canonical source and Start + Length editor.</summary>
-public sealed class GeneralReplaceMappingViewModel : GeneralMappingRowViewModel
+internal sealed class GeneralReplaceMappingViewModel : GeneralMappingRowViewModel
 {
     private readonly string _inlineGuidance;
 
-    /// <summary>Closed source choices backed by the Application enum.</summary>
     public IReadOnlyList<GeneralReplaceSourceOption> SourceOptions { get; }
 
-    /// <summary>Creates a mapping row.</summary>
     public GeneralReplaceMappingViewModel(string mappingId, int index, ShellTextResources text)
         : base(mappingId, index, "No replacement BIN selected", text)
     {
@@ -84,7 +82,7 @@ public sealed class GeneralReplaceMappingViewModel : GeneralMappingRowViewModel
 }
 
 /// <summary>Display metadata for one canonical General Replace source kind.</summary>
-public sealed record GeneralReplaceSourceOption(
+internal sealed record GeneralReplaceSourceOption(
     GeneralMappingSourceKind Kind,
     string Icon,
     string Label);

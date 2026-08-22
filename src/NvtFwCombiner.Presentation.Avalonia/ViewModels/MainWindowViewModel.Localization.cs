@@ -1,6 +1,6 @@
 namespace NvtFwCombiner.Presentation.Avalonia.ViewModels;
 
-public sealed partial class MainWindowViewModel
+internal sealed partial class MainWindowViewModel
 {
     private void ApplyTextResources(ShellLanguage language, bool notify = true)
     {
@@ -26,7 +26,6 @@ public sealed partial class MainWindowViewModel
         OnPropertyChanged(nameof(WorkspaceTitle));
         OnPropertyChanged(nameof(WorkspaceSummary));
         OnPropertyChanged(nameof(SettingsPreview));
-        OnPropertyChanged(nameof(Merge.MergePreview));
         OnPropertyChanged(nameof(Merge.MergeMemorySummary));
         OnPropertyChanged(nameof(Merge.StandardMergeSupportSummary));
         OnPropertyChanged(nameof(Merge.MergeReadinessStatus));
@@ -39,19 +38,14 @@ public sealed partial class MainWindowViewModel
             RefreshSettingsState();
         }
 
-        if (WorkflowSession.IsWorkflowLoaded)
-        {
-            Replace.RefreshContextState(preserveSlotFiles: true);
-            WorkflowSession.RefreshCtrlRamDisplayFromInspection();
-            Replace.RefreshSelectionState();
-        }
     }
 
     private void ApplyCatalogBackedTextResources()
     {
+        WorkflowSession.ApplyLanguageChanged();
         Merge.ApplyLanguageChanged();
         Replace.ApplyLanguageChanged();
-        WorkflowSession.ApplyLanguageChanged();
+        OutputDelivery.ApplyLanguageChanged();
         Replace.NotifyCommandStateChanged();
     }
 }

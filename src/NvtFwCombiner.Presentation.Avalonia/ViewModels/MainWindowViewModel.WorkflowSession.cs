@@ -1,8 +1,9 @@
 using System.ComponentModel;
+using NvtFwCombiner.Application.Diagnostics;
 
 namespace NvtFwCombiner.Presentation.Avalonia.ViewModels;
 
-public sealed partial class MainWindowViewModel
+internal sealed partial class MainWindowViewModel
 {
     /// <summary>Focused shared workflow-context and selected-firmware prompt presentation.</summary>
     public WorkflowSessionPresentationViewModel WorkflowSession { get; }
@@ -35,15 +36,19 @@ public sealed partial class MainWindowViewModel
     internal void PublishCanonicalCatalogState()
     {
         WorkflowSession.PublishCanonicalCatalogState();
+        if (!WorkflowSession.IsCanonicalCatalogReady)
+        {
+            throw new InvalidOperationException("Canonical catalog presentation state was not published.");
+        }
         ApplyCatalogBackedTextResources();
-        ShowMergeCommand.NotifyCanExecuteChanged();
-        ShowReplaceCommand.NotifyCanExecuteChanged();
-        BeginDpReplaceFromHomeCommand.NotifyCanExecuteChanged();
-        BeginCtrlRamReplaceFromHomeCommand.NotifyCanExecuteChanged();
-        BeginGeneralReplaceFromHomeCommand.NotifyCanExecuteChanged();
-        BeginNormalMergeFromHomeCommand.NotifyCanExecuteChanged();
-        BeginAbMergeFromHomeCommand.NotifyCanExecuteChanged();
-        BeginGeneralMergeFromHomeCommand.NotifyCanExecuteChanged();
+        PresentationObserver.Invoke(ShowMergeCommand.NotifyCanExecuteChanged);
+        PresentationObserver.Invoke(ShowReplaceCommand.NotifyCanExecuteChanged);
+        PresentationObserver.Invoke(BeginDpReplaceFromHomeCommand.NotifyCanExecuteChanged);
+        PresentationObserver.Invoke(BeginCtrlRamReplaceFromHomeCommand.NotifyCanExecuteChanged);
+        PresentationObserver.Invoke(BeginGeneralReplaceFromHomeCommand.NotifyCanExecuteChanged);
+        PresentationObserver.Invoke(BeginNormalMergeFromHomeCommand.NotifyCanExecuteChanged);
+        PresentationObserver.Invoke(BeginAbMergeFromHomeCommand.NotifyCanExecuteChanged);
+        PresentationObserver.Invoke(BeginGeneralMergeFromHomeCommand.NotifyCanExecuteChanged);
     }
 
     private void WorkflowReplaceModeChanged()
@@ -59,13 +64,29 @@ public sealed partial class MainWindowViewModel
         }
         else
         {
-            Merge.SelectMergeMode(selection.Mode);
             NavigateToPage(ShellPage.Merge);
+            Merge.SelectMergeMode(selection.Mode);
         }
     }
 
     private void WorkflowSession_OnPropertyChanged(object? sender, PropertyChangedEventArgs e)
     {
+        if (e.PropertyName == nameof(WorkflowSessionPresentationViewModel.SelectedIc))
+        {
+            RecordDebugActivity(
+                SystemActivityCodes.IcSelected,
+                SystemActivityCategory.Workflow,
+                WorkflowSession.SelectedIc);
+        }
+        else if (e.PropertyName == nameof(WorkflowSessionPresentationViewModel.SelectedNumber))
+        {
+            RecordDebugActivity(
+                SystemActivityCodes.NumberSelected,
+                SystemActivityCategory.Workflow,
+                WorkflowSession.SelectedNumber,
+                WorkflowSession.SelectedIc);
+        }
+
         if (e.PropertyName is nameof(WorkflowSessionPresentationViewModel.IsWorkflowContextModalOpen) or
             nameof(WorkflowSessionPresentationViewModel.IsFirmwareIcMismatchModalOpen) or
             nameof(WorkflowSessionPresentationViewModel.IsFirmwareNumberMismatchModalOpen))

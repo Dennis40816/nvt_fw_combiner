@@ -1,0 +1,13 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <AssemblyName>NvtFwCombiner.Launcher</AssemblyName>
+    <RootNamespace>NvtFwCombiner.Launcher</RootNamespace>
+    <ApplicationManifest>..\NvtFwCombiner.Presentation.Avalonia\app.manifest</ApplicationManifest>
+    <ApplicationIcon>..\NvtFwCombiner.Presentation.Avalonia\Assets\AppIcon.ico</ApplicationIcon>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\NvtFwCombiner.VersionManagement.Application\NvtFwCombiner.VersionManagement.Application.csproj" />
+    <ProjectReference Include="..\NvtFwCombiner.VersionManagement.Infrastructure\NvtFwCombiner.VersionManagement.Infrastructure.csproj" />
+  </ItemGroup>
+</Project>

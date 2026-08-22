@@ -47,6 +47,7 @@ internal sealed class CompositionExecutionExperience : ICompositionExecution
     {
         ArgumentNullException.ThrowIfNull(request);
         ArgumentNullException.ThrowIfNull(progress);
+        ValidateBundleRequestOptions(request);
         ActiveSessionSnapshot session = request.AcceptedSession;
         ResolvedCapability capability = AcceptedSessionExecutionInputs.RequireCapability(
             session,
@@ -368,6 +369,7 @@ internal sealed class CompositionExecutionExperience : ICompositionExecution
         CancellationToken cancellationToken,
         TopologySelection? abMergeTopologySelection = null)
     {
+        CompositionExecutionBundleDelivery? bundleDelivery = CreateBundleDelivery(request);
         if (request.OutputPathUsesAutomaticName &&
             (string.IsNullOrWhiteSpace(request.OutputPath) ||
              request.PreviewOutputFileName is not null))
@@ -377,12 +379,16 @@ internal sealed class CompositionExecutionExperience : ICompositionExecution
                 nameof(request));
         }
 
-        (string outputDirectory, string outputFileName) = ResolveOutputTarget(
-            firstInputPath,
-            request.Build,
-            request.OutputPath,
-            composition.V2Details.OutputNamingRequirement.FileNameTemplate,
-            request.AutomaticOutputDirectory);
+        (string outputDirectory, string outputFileName) = bundleDelivery is null
+            ? ResolveOutputTarget(
+                firstInputPath,
+                request.Build,
+                request.OutputPath,
+                composition.V2Details.OutputNamingRequirement.FileNameTemplate,
+                request.AutomaticOutputDirectory)
+            : (
+                bundleDelivery.ParentDirectory,
+                bundleDelivery.Admission.OutputPreparation.OutputName.FileName);
         if (request.OutputPathUsesAutomaticName)
         {
             outputFileName =
@@ -413,7 +419,11 @@ internal sealed class CompositionExecutionExperience : ICompositionExecution
                 request.OutputPathUsesAutomaticName,
                 bindings,
                 additionalProtectedPaths,
-                additionalDelivery));
+                additionalDelivery,
+                bundleDelivery));
+        string executionOutputFileName = bundleDelivery is null
+            ? outputFileName
+            : composition.V2Details.OutputNamingRequirement.FileNameTemplate;
         return await AcceptedSessionCompositionExecution.ExecuteAsync(
                 _capabilities,
                 CreateRunId(runIdPrefix, request.Build),
@@ -421,7 +431,7 @@ internal sealed class CompositionExecutionExperience : ICompositionExecution
                 capability,
                 bindings,
                 artifacts,
-                outputFileName,
+                executionOutputFileName,
                 request.Build,
                 _clock,
                 destination.OutputWriter,
@@ -434,9 +444,71 @@ internal sealed class CompositionExecutionExperience : ICompositionExecution
                 abMergeTopologySelection,
                 advisoryIssues,
                 generalAdmission?.ToSummary(),
+                bundleDelivery,
                 progress,
                 cancellationToken)
             .ConfigureAwait(false);
+    }
+
+    private static CompositionExecutionBundleDelivery? CreateBundleDelivery(
+        AcceptedCompositionExecutionRequest request)
+    {
+        return request.OutputBundle is null
+            ? null
+            : request.Build
+                ? CreateAdmittedBundleDelivery(request)
+                : throw new ArgumentException(
+                    "Atomic bundle delivery is available only for Build.",
+                    nameof(request));
+    }
+
+    private static CompositionExecutionBundleDelivery CreateAdmittedBundleDelivery(
+        AcceptedCompositionExecutionRequest request)
+    {
+        request.OutputBundle!.Admission.ValidateSession(request.AcceptedSession);
+        return new CompositionExecutionBundleDelivery(request.OutputBundle);
+    }
+
+    private static void ValidateBundleRequestOptions(
+        AcceptedCompositionExecutionRequest request)
+    {
+        ValidateBundleOptionCombination(
+            request.OutputBundle is not null,
+            request.Build,
+            request.OutputPath is not null,
+            request.PreviewOutputFileName is not null,
+            request.AutomaticOutputDirectory is not null,
+            request.OutputPathUsesAutomaticName,
+            request.AdditionalDeliveryOutputPath is not null,
+            request.AdditionalDeliveryOutputPathUsesAutomaticName);
+    }
+
+    internal static void ValidateBundleOptionCombination(
+        bool hasBundle,
+        bool build,
+        bool hasOutputPath,
+        bool hasPreviewOutputFileName,
+        bool hasAutomaticOutputDirectory,
+        bool outputPathUsesAutomaticName,
+        bool hasAdditionalDeliveryOutputPath,
+        bool additionalDeliveryOutputPathUsesAutomaticName)
+    {
+        if (!hasBundle)
+        {
+            return;
+        }
+
+        if (!build ||
+            hasOutputPath ||
+            hasPreviewOutputFileName ||
+            hasAutomaticOutputDirectory ||
+            outputPathUsesAutomaticName ||
+            hasAdditionalDeliveryOutputPath ||
+            additionalDeliveryOutputPathUsesAutomaticName)
+        {
+            throw new ArgumentException(
+                "Prepared bundle delivery cannot be combined with Preview, primary-name overrides, automatic output paths, or a separate loose additional-delivery path.");
+        }
     }
 
     private void RequireCtrlRamActionReadiness(

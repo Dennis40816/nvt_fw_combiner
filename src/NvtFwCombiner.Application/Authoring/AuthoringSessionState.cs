@@ -175,7 +175,8 @@ public sealed partial class AuthoringSessionState
                 _current.DraftCapabilityFingerprint,
                 _current.DerivedPublications,
                 _current.InputSlotStatuses,
-                selection.Slots);
+                selection.Slots,
+                _current.MetadataInspection);
             Volatile.Write(ref _current, snapshot);
             return new AuthoringSessionTransitionResult(snapshot, null);
         }

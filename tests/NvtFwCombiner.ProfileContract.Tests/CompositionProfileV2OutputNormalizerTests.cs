@@ -124,13 +124,9 @@ public sealed class CompositionProfileV2OutputNormalizerTests
         }
     }
 
-    /// <summary>Typed metadata tokens require the exact canonical binding purpose and structure.</summary>
-    [Theory]
-    [InlineData("validation", "dpcmi")]
-    [InlineData("output-naming", "firmware-config-general-parameters")]
-    public void OutputRejectsNonCanonicalMetadataBinding(
-        string purpose,
-        string structureId)
+    /// <summary>Typed metadata tokens require an explicit output-naming binding purpose.</summary>
+    [Fact]
+    public void OutputRejectsMetadataBindingWithoutOutputNamingPurpose()
     {
         CompositionProfileOutputDocument document = new(
             CompiledOutputNamingRequirement.NormalFlashCodeV1Template,
@@ -146,16 +142,13 @@ public sealed class CompositionProfileV2OutputNormalizerTests
                 Token("ic", "compiled-ic", "block"),
                 Token("tp-version", "firmware-config-tp-version", "use-placeholder", "tp-inspection", "xxxx"),
             ]);
-        CompositionProfileMetadataPurpose bindingPurpose = purpose == "output-naming"
-            ? CompositionProfileMetadataPurpose.OutputNaming
-            : CompositionProfileMetadataPurpose.Validation;
         CompositionProfileMetadataBinding[] bindings = OutputBindings();
         bindings[0] = CompositionProfileV2DefinitionTestData.CreateMetadataBinding(
             "dp-inspection",
             "tp-source",
-            structureId,
+            "dpcmi",
             ["version"],
-            [bindingPurpose]);
+            [CompositionProfileMetadataPurpose.Validation]);
 
         CompositionProfileNormalizationException exception =
             Assert.Throws<CompositionProfileNormalizationException>(() =>
@@ -167,6 +160,44 @@ public sealed class CompositionProfileV2OutputNormalizerTests
         Assert.Equal(
             "output.tokenRequirements[1].source.metadataBindingId",
             exception.Path);
+    }
+
+    /// <summary>
+    /// A family-local structure id remains valid until resolved-map coherence
+    /// proves that its immutable definition is the canonical DPCMI contract.
+    /// </summary>
+    [Fact]
+    public void OutputRetainsFamilyLocalMetadataBindingAlias()
+    {
+        CompositionProfileMetadataBinding[] bindings = OutputBindings();
+        bindings[0] = CompositionProfileV2DefinitionTestData.CreateMetadataBinding(
+            "dp-inspection",
+            "dp-source",
+            "nt51950-dpcmi-standard-merge",
+            ["version"],
+            [CompositionProfileMetadataPurpose.OutputNaming]);
+
+        CompiledOutputNamingRequirement output = CompositionProfileNormalizer.NormalizeOutput(
+            new CompositionProfileOutputDocument(
+                CompiledOutputNamingRequirement.NormalFlashCodeV1Template,
+                AllowOverride: true,
+                InvalidCharacterPolicy: "reject",
+                RequiredTokenIds: ["date", "dp-version", "ic", "tp-version"],
+                RuleId: CompiledOutputNamingRequirement.NormalFlashCodeV1RuleId,
+                OutputArtifactType: "flash-code",
+                TokenRequirements:
+                [
+                    Token("date", "run-date-utc", "block"),
+                    Token("dp-version", "dpcmi-version", "use-placeholder", "dp-inspection", "xxxx"),
+                    Token("ic", "compiled-ic", "block"),
+                    Token("tp-version", "firmware-config-tp-version", "use-placeholder", "tp-inspection", "xxxx"),
+                ]),
+            "output",
+            bindings);
+
+        Assert.Equal(
+            "dp-source",
+            output.TokenRequirements.Single(static token => token.TokenId == "dp-version").MetadataSpaceId);
     }
 
     private static CompositionProfileOutputDocument Output(string policy, bool allowOverride = false)

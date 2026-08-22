@@ -41,7 +41,7 @@ public sealed partial class RepositoryBoundaryTests
         Assert.DoesNotContain("Saved rules", resources, StringComparison.OrdinalIgnoreCase);
         Assert.DoesNotContain("demo", resources, StringComparison.OrdinalIgnoreCase);
         Assert.Contains("CapabilityEvidenceStatus.SyntheticOracle", resources, StringComparison.Ordinal);
-        Assert.Contains("合成 oracle", resources, StringComparison.Ordinal);
+        Assert.Contains("合成判定基準", resources, StringComparison.Ordinal);
         Assert.DoesNotContain("synthetic demo", resources, StringComparison.OrdinalIgnoreCase);
 
         foreach (string retiredName in new[]

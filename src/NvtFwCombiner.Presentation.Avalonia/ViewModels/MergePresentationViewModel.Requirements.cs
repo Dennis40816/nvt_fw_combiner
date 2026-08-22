@@ -4,7 +4,7 @@ using NvtFwCombiner.Domain.Composition;
 
 namespace NvtFwCombiner.Presentation.Avalonia.ViewModels;
 
-public sealed partial class MergePresentationViewModel
+internal sealed partial class MergePresentationViewModel
 {
     internal void RefreshMergeSlotRequirements()
     {
@@ -164,7 +164,7 @@ public sealed partial class MergePresentationViewModel
     {
         return !_stateBindings.IsGlobalBuildBlocked() &&
             !_stateBindings.IsRunInProgress() &&
-            !_stateBindings.IsFirmwareInspectionLoading() &&
+            !Inspection.IsRunning &&
             SelectedMergeMode switch
             {
                 NormalMergeMode => CanRunStandardMerge(),

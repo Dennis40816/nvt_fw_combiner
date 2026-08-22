@@ -215,7 +215,7 @@ internal static class CapabilityPublicationCoherence
                 inputBinding is null ||
                 !entry.Purposes.Contains(MetadataReferencePurpose.OutputNaming) ||
                 !StringComparer.Ordinal.Equals(
-                    entry.StructureDefinition.StructureId,
+                    entry.StructureDefinition.Definition.DefinitionId,
                     expectedStructureId) ||
                 !StringComparer.Ordinal.Equals(
                     entry.SpaceId,

@@ -1,7 +1,6 @@
 using System.Text.Json;
 using NvtFwCombiner.Application.Authoring;
 using NvtFwCombiner.Application.Capabilities;
-using NvtFwCombiner.Application.FlashMaps;
 using NvtFwCombiner.Domain.Composition;
 using NvtFwCombiner.Presentation.Avalonia.ViewModels;
 using NvtFwCombiner.TestSupport;
@@ -203,6 +202,7 @@ public sealed partial class MergeWorkflowTests
         string tpBPath = workspace.Write("tp-b.bin", CreateUiAbTpImage(
             0x82, 0x03, commonFwMajor: 2, commonFwMinor: 0, commonFwAdditional: 0, projectId: 0x6A5C));
         MainWindowViewModel viewModel = PresentationTestHost.CreateViewModel();
+        viewModel.ShowMergeCommand.Execute(null);
         viewModel.WorkflowSession.SelectedIc = "NT51929";
         viewModel.Merge.SelectedMergeMode = ExperienceIds.AbMerge;
 
@@ -235,17 +235,17 @@ public sealed partial class MergeWorkflowTests
         Assert.Contains(
             tpASlot.FirmwareFacts,
             static fact => fact.Label == "TPA" && fact.Value == "T81-00");
-        Assert.Contains(tpASlot.FirmwareFacts, static fact => fact.Label == "Common FW" && fact.Value == "1.4.1");
+        Assert.Contains(tpASlot.FirmwareFacts, static fact => fact.Label == "Common FW Version" && fact.Value == "1.4.1");
         Assert.Contains(tpASlot.FirmwareFacts, static fact => fact.Label == "PID" && fact.Value == "0x5102");
-        Assert.DoesNotContain(tpASlot.FirmwareFacts, static fact => fact.Label == "TP");
+        Assert.Contains(tpASlot.FirmwareFacts, static fact => fact.Label == "TP Version" && fact.Value == "T81-00");
         FirmwareSlotViewModel tpBSlot = viewModel.Merge.MergeSlots.Single(
             static slot => slot.SlotId == CompositionAddressSpaceIds.TpBInput);
         Assert.Contains(
             tpBSlot.FirmwareFacts,
             static fact => fact.Label == "TPB" && fact.Value == "T82-03");
-        Assert.Contains(tpBSlot.FirmwareFacts, static fact => fact.Label == "Common FW" && fact.Value == "2.0.0");
+        Assert.Contains(tpBSlot.FirmwareFacts, static fact => fact.Label == "Common FW Version" && fact.Value == "2.0.0");
         Assert.Contains(tpBSlot.FirmwareFacts, static fact => fact.Label == "PID" && fact.Value == "0x6A5C");
-        Assert.DoesNotContain(tpBSlot.FirmwareFacts, static fact => fact.Label == "TP");
+        Assert.Contains(tpBSlot.FirmwareFacts, static fact => fact.Label == "TP Version" && fact.Value == "T82-03");
         Assert.True(viewModel.Merge.CanBuildMerge);
         Assert.True(viewModel.Merge.PreviewMergeCommand.CanExecute(null));
 
@@ -316,6 +316,7 @@ public sealed partial class MergeWorkflowTests
         WriteUiAbCmi(dp, dpLength / 2, major: 0x07, minor: 0x08, jira: 0x456);
         string dpPath = workspace.Write("dp-ab.bin", dp);
         MainWindowViewModel viewModel = PresentationTestHost.CreateViewModel();
+        viewModel.ShowMergeCommand.Execute(null);
         viewModel.WorkflowSession.SelectedIc = "NT51929";
         viewModel.Merge.SelectedMergeMode = ExperienceIds.AbMerge;
         await viewModel.WorkflowSession.SetSlotFileAsync(
@@ -356,6 +357,7 @@ public sealed partial class MergeWorkflowTests
         const int tpLength = 0x40000;
         using var workspace = TempWorkspace.Create("nvt-fw-combiner-ui-ab-health");
         MainWindowViewModel viewModel = PresentationTestHost.CreateViewModel();
+        viewModel.ShowMergeCommand.Execute(null);
         viewModel.WorkflowSession.SelectedIc = "NT51929";
         viewModel.Merge.SelectedMergeMode = ExperienceIds.AbMerge;
 
@@ -398,8 +400,20 @@ public sealed partial class MergeWorkflowTests
         Assert.Equal("NT51950: refresh profile, slots, validation", viewModel.WorkflowSession.DeviceContextStatus);
         Assert.Equal("0x100000", viewModel.Merge.GeneralMergeOutputLength);
         Assert.Equal("0x00", viewModel.Merge.GeneralMergeOutputFillByte);
-        Assert.Equal("Memory layout pending", viewModel.Merge.MergeMemoryRangeLabel);
-        Assert.Equal("Pending input", Assert.Single(viewModel.Merge.MergeMemoryRows).AfterSource);
+        Assert.Equal("Waiting for source mapping", viewModel.Merge.MergeMemoryRangeLabel);
+        MemoryMapRowViewModel pendingMapping = Assert.Single(viewModel.Merge.MergeMemoryRows);
+        Assert.Equal("Waiting for source mapping", pendingMapping.AfterSource);
+        Assert.Contains("source BIN", pendingMapping.Detail, StringComparison.Ordinal);
+        Assert.Equal("Merge", viewModel.Merge.MergePreview.Title);
+        var localizedProperties = new List<string?>();
+        viewModel.Merge.PropertyChanged += (_, args) => localizedProperties.Add(args.PropertyName);
+        viewModel.SelectedLanguage = "Traditional Chinese";
+        Assert.Contains(nameof(viewModel.Merge.MergePreview), localizedProperties);
+        Assert.Equal("合併", viewModel.Merge.MergePreview.Title);
+        pendingMapping = Assert.Single(viewModel.Merge.MergeMemoryRows);
+        Assert.Equal("等待來源對應", pendingMapping.AfterSource);
+        Assert.Contains("來源 BIN", pendingMapping.Detail, StringComparison.Ordinal);
+        Assert.Equal("等待來源對應", Assert.Single(viewModel.Merge.MergeCoverageSegments).SourceLabel);
         Assert.Equal("nt51950-general-merge.bin", viewModel.Merge.MergeOutputFileName);
         _ = Assert.Single(viewModel.Merge.GeneralMergeMappings);
 
@@ -410,7 +424,9 @@ public sealed partial class MergeWorkflowTests
         GeneralMergeMappingViewModel mapping = Assert.Single(viewModel.Merge.GeneralMergeMappings);
         Assert.Equal(1, mapping.Index);
         Assert.Equal("No source BIN selected", mapping.DisplayName);
-        Assert.Contains("reserved", viewModel.Merge.MergeMemorySummary, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("保留值", viewModel.Merge.MergeMemorySummary, StringComparison.Ordinal);
+        viewModel.SelectedLanguage = "English";
+        Assert.Equal("Merge", viewModel.Merge.MergePreview.Title);
     }
 
     /// <summary>Verifies the Home General Merge shortcut opens Merge in General mode.</summary>
@@ -446,7 +462,7 @@ public sealed partial class MergeWorkflowTests
         Assert.Equal(["DP BIN", "TP BIN", "LDC BIN"], viewModel.Merge.MergeSlots.Select(slot => slot.Title));
     }
 
-    /// <summary>Verifies memory-map rows expose readable operation details without relying on tooltips.</summary>
+    /// <summary>Verifies memory-map rows expose localized operation identity without raw compiler reason prose.</summary>
     [Fact]
     public void MergeMemoryRowsExposeReadableOperationDetails()
     {
@@ -459,7 +475,7 @@ public sealed partial class MergeWorkflowTests
             row => row.RangeLabel == "0x00000-0x3BFFF (len 0x3C000)" && row.ActionLabel == "Copy");
         Assert.Equal("Reserved -> TP BIN", copyRow.FlowLabel);
         Assert.Contains("Sequence 100", copyRow.Detail, StringComparison.Ordinal);
-        Assert.Contains("Reason:", copyRow.Detail, StringComparison.Ordinal);
+        Assert.DoesNotContain("Reason:", copyRow.Detail, StringComparison.Ordinal);
     }
 
     /// <summary>Verifies representative Standard Merge workflow shapes through the Merge ViewModel command path.</summary>
@@ -471,6 +487,7 @@ public sealed partial class MergeWorkflowTests
         JsonElement goldenCase = golden.CaseByIc(ic);
         using var workspace = TempWorkspace.Create($"nvt-fw-combiner-ui-{ic}");
         MainWindowViewModel viewModel = PresentationTestHost.CreateViewModel();
+        viewModel.ShowMergeCommand.Execute(null);
         viewModel.WorkflowSession.SelectedIc = $"NT{ic}";
         golden.CopyInputFilesToMergeSlots(viewModel, workspace, goldenCase);
 
@@ -540,7 +557,7 @@ public sealed partial class MergeWorkflowTests
         Assert.False(viewModel.Merge.PreviewMergeCommand.CanExecute(null));
         Assert.False(viewModel.Merge.CanBuildMerge);
         viewModel.Merge.GeneralMergeOutputFillByte = "0xA5";
-        await viewModel.Merge.GeneralMergeReadinessRefreshTask;
+        await viewModel.Merge.Inspection.ActiveTask;
         Assert.Contains(
             viewModel.Merge.MergeMemoryRows,
             row => row.Detail.Contains("0xA5", StringComparison.Ordinal));
@@ -548,7 +565,7 @@ public sealed partial class MergeWorkflowTests
         mapping.TargetStartAddress = "0x5";
         Assert.Equal(acceptedStamp, mapping.AcceptedFileStamp);
         mapping.TargetStartAddress = "0x4";
-        await viewModel.Merge.GeneralMergeReadinessRefreshTask;
+        await viewModel.Merge.Inspection.ActiveTask;
         Assert.True(viewModel.Merge.PreviewMergeCommand.CanExecute(null));
         Assert.True(viewModel.Merge.CanBuildMerge);
         Assert.True(viewModel.Merge.IsGeneralMergeModeSelected);
@@ -601,6 +618,7 @@ public sealed partial class MergeWorkflowTests
         JsonElement goldenCase = golden.CaseByIc("51926");
         using var workspace = TempWorkspace.Create("nvt-fw-combiner-ui-merge-gate");
         MainWindowViewModel viewModel = PresentationTestHost.CreateViewModel();
+        viewModel.ShowMergeCommand.Execute(null);
         viewModel.WorkflowSession.SelectedIc = "NT51926";
         golden.CopyInputFilesToMergeSlots(viewModel, workspace, goldenCase);
 
@@ -616,7 +634,7 @@ public sealed partial class MergeWorkflowTests
         Assert.True(viewModel.Merge.CanBuildMerge);
 
         viewModel.WorkflowSession.SelectedIc = "NT51927";
-        await viewModel.WorkflowSession.FirmwareInspectionRefreshTask;
+        await CurrentInspection(viewModel).ActiveTask;
 
         Assert.True(viewModel.Merge.PreviewMergeCommand.CanExecute(null));
         Assert.True(viewModel.Merge.CanBuildMerge);
@@ -645,30 +663,4 @@ public sealed partial class MergeWorkflowTests
         return cases;
     }
 
-    private static byte[] CreateUiAbTpImage(
-        byte version,
-        byte subVersion,
-        byte commonFwMajor,
-        byte commonFwMinor,
-        byte commonFwAdditional,
-        ushort projectId)
-    {
-        const int tpLength = 0x40000;
-        const int backupStart = 0x1000;
-        const int markerStart = backupStart + 0xFFC;
-        byte[] image = new byte[tpLength];
-        image[backupStart + FirmwareConfigLayout.FirmwareVersionOffset] = version;
-        image[backupStart + FirmwareConfigLayout.FirmwareVersionBarOffset] = unchecked((byte)~version);
-        image[backupStart + FirmwareConfigLayout.FirmwareSubVersionOffset] = subVersion;
-        image[backupStart + FirmwareConfigLayout.CommonFwMajorVersionOffset] = commonFwMajor;
-        image[backupStart + FirmwareConfigLayout.CommonFwMinorVersionOffset] = commonFwMinor;
-        image[backupStart + FirmwareConfigLayout.CommonFwAdditionalVersionOffset] = commonFwAdditional;
-        image[backupStart + FirmwareConfigLayout.ProjectIdOffset] = (byte)(projectId & 0xFF);
-        image[backupStart + FirmwareConfigLayout.ProjectIdOffset + 1] = checked((byte)(projectId >> 8));
-        image[markerStart] = 0x00;
-        image[markerStart + 1] = (byte)'N';
-        image[markerStart + 2] = (byte)'V';
-        image[markerStart + 3] = (byte)'T';
-        return image;
-    }
 }

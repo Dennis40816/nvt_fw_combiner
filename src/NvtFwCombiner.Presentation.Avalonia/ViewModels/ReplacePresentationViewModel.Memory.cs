@@ -2,8 +2,13 @@ using NvtFwCombiner.Application.Authoring;
 
 namespace NvtFwCombiner.Presentation.Avalonia.ViewModels;
 
-public sealed partial class ReplacePresentationViewModel
+internal sealed partial class ReplacePresentationViewModel
 {
+    public bool HasObservedMemoryChanges =>
+        ReplaceCoverageSegments.Any(static segment => segment.IsChanged);
+
+    public bool ShowsGenericCoverageStateLegend => !IsCtrlRamReplaceModeSelected;
+
     internal void RefreshContextState(bool preserveSlotFiles = false)
     {
         RefreshReplaceModeState(preserveSlotFiles: preserveSlotFiles);
@@ -52,8 +57,8 @@ public sealed partial class ReplacePresentationViewModel
         ReplaceCoverageSegments.Clear();
         ReplaceCoverageGroups.Clear();
         OnPropertyChanged(nameof(ReplaceMemoryRangeLabel));
-        OnPropertyChanged(nameof(IsReplaceCoverageGrouped));
-        OnPropertyChanged(nameof(IsReplaceCoverageFlat));
+        OnPropertyChanged(nameof(HasObservedMemoryChanges));
+        NotifyCoverageGroupingChanged();
     }
 
     internal void ApplyCtrlRamInspectionDisplay(CtrlRamInspectionDisplay display)
@@ -64,6 +69,11 @@ public sealed partial class ReplacePresentationViewModel
         RefreshReplaceModeState(
             preserveSlotFiles: true,
             ctrlRamInputSlots: UiCompositionRunner.GetCtrlRamReplaceInputSlots(display.InputSlots));
+        ApplyCtrlRamMemoryDisplay(display);
+    }
+
+    private void ApplyCtrlRamMemoryDisplay(CtrlRamInspectionDisplay display)
+    {
         ActiveSessionSnapshot? acceptedSession =
             _ctrlRamReplaceSession.CurrentSnapshot;
         (
@@ -72,13 +82,31 @@ public sealed partial class ReplacePresentationViewModel
             IReadOnlyList<MemoryCoverageSegmentViewModel> coverageSegments) =
             acceptedSession?.ExactCapability is null
                 ? UiCompositionRunner.GetPendingMemoryDisplay(
-                    "Select and inspect the required inputs to resolve the compiled memory layout.")
+                    Text,
+                    ReplaceSlots,
+                    GetPendingReplaceMemoryPrerequisite())
                 : UiCompositionRunner.GetMemoryDisplay(
                     _compositionServices,
                     acceptedSession,
                     Text,
                     ctrlRamRegions: display.Regions);
         ApplyReplaceMemoryDisplay(rangeLabel, rows, coverageSegments);
+    }
+
+    private void RelocalizeReplaceMemoryMapState()
+    {
+        if (IsCtrlRamReplaceModeSelected &&
+            ReplaceBaseSlot.CurrentInspectionProjection is { } inspection)
+        {
+            ApplyCtrlRamMemoryDisplay(FirmwareInspectionProjection.ResolveCtrlRamDisplay(
+                _firmwareInspection,
+                inspection,
+                SelectedIc,
+                SelectedNumber));
+            return;
+        }
+
+        RefreshReplaceMemoryMapState(refreshAuthoring: false);
     }
 
     internal void RefreshReplaceMemoryMapState(bool refreshAuthoring = true)
@@ -127,8 +155,20 @@ public sealed partial class ReplacePresentationViewModel
         RefreshReplaceCoverageGroups();
         OnPropertyChanged(nameof(ReplaceMemoryRangeLabel));
         OnPropertyChanged(nameof(ReplaceMemorySummary));
+        OnPropertyChanged(nameof(HasObservedMemoryChanges));
+        NotifyCoverageGroupingChanged();
+    }
+
+    private void NotifyCoverageGroupingChanged()
+    {
         OnPropertyChanged(nameof(IsReplaceCoverageGrouped));
         OnPropertyChanged(nameof(IsReplaceCoverageFlat));
+        OnPropertyChanged(nameof(ReplaceSelectedCoverageItems));
+        OnPropertyChanged(nameof(ReplaceBaseCoverageItems));
+        OnPropertyChanged(nameof(ReplaceBaseCoverageGroup));
+        OnPropertyChanged(nameof(HasReplaceBaseCoverage));
+        OnPropertyChanged(nameof(ReplaceSelectedCoverageSummary));
+        OnPropertyChanged(nameof(ReplaceBaseCoverageSummary));
     }
 
     private (
@@ -145,8 +185,20 @@ public sealed partial class ReplacePresentationViewModel
         };
         return acceptedSession?.ExactCapability is null
             ? UiCompositionRunner.GetPendingMemoryDisplay(
-                "Select and inspect the required inputs to resolve the compiled memory layout.")
+                Text,
+                ReplaceSlots,
+                GetPendingReplaceMemoryPrerequisite())
             : UiCompositionRunner.GetMemoryDisplay(_compositionServices, acceptedSession, Text);
+    }
+
+    private MemoryPendingPrerequisite GetPendingReplaceMemoryPrerequisite()
+    {
+        return SelectedReplaceMode switch
+        {
+            DpReplaceMode => MemoryPendingPrerequisite.DpBin,
+            CtrlRamReplaceMode => MemoryPendingPrerequisite.CtrlRamReplacement,
+            _ => MemoryPendingPrerequisite.BaseBin,
+        };
     }
 
     private void RefreshReplaceModeState(
@@ -203,6 +255,7 @@ public sealed partial class ReplacePresentationViewModel
         OnPropertyChanged(nameof(IsSelectedReplaceModeEvidenceGated));
         OnPropertyChanged(nameof(IsSelectedReplaceModeUnavailable));
         OnPropertyChanged(nameof(IsCtrlRamReplaceModeSelected));
+        OnPropertyChanged(nameof(ShowsGenericCoverageStateLegend));
         OnPropertyChanged(nameof(IsGeneralReplaceModeSelected));
         OnPropertyChanged(nameof(IsStructuredReplaceModeSelected));
         OnPropertyChanged(nameof(IsNonCtrlRamStructuredReplaceModeSelected));

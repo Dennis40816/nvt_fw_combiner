@@ -16,6 +16,7 @@ $ErrorActionPreference = 'Stop'
 $ProgressPreference = 'SilentlyContinue'
 
 $RepoRoot = Split-Path -Parent $PSScriptRoot
+$ReleaseManifestSchemaPath = Join-Path $RepoRoot 'docs/contracts/release-manifest-v1.schema.json'
 $DistributionOwner = 'MSP/FW3'
 $SourceIdentity = 'urn:msp-fw3:nvt-fw-combiner:source'
 $ReleaseNamespace = 'urn:msp-fw3:nvt-fw-combiner:release'
@@ -23,6 +24,24 @@ $SourceTag = if ($Version.StartsWith('v', [StringComparison]::Ordinal)) { $Versi
 $SemanticVersion = $SourceTag.Substring(1)
 $StableSemVerPattern = '^[0-9]+\.[0-9]+\.[0-9]+$'
 $PackageSemVerPattern = '^[0-9]+\.[0-9]+\.[0-9]+(?:-[0-9A-Za-z.-]+)?$'
+
+function Assert-CanonicalJsonSchema {
+    param(
+        [Parameter(Mandatory = $true)]
+        [string]$JsonPath,
+
+        [Parameter(Mandatory = $true)]
+        [string]$SchemaPath
+    )
+
+    if (-not (Test-Path -LiteralPath $SchemaPath -PathType Leaf)) {
+        throw "Canonical JSON schema is missing: $SchemaPath"
+    }
+    $Json = Get-Content -LiteralPath $JsonPath -Raw
+    if (-not ($Json | Test-Json -SchemaFile $SchemaPath -ErrorAction Stop)) {
+        throw "JSON document does not satisfy canonical schema: $JsonPath"
+    }
+}
 if ($AllowPrerelease) {
     if ($SemanticVersion -notmatch $PackageSemVerPattern) {
         throw "Package version must be SemVer without build metadata; received '$Version'."
@@ -138,7 +157,7 @@ $PackageTrustIndexPackagePath = 'profiles/built-in/package-trust-index.json'
 $ApprovedCanonicalCapabilityPolicyPackageContract = [pscustomobject]@{
     path = 'docs/contracts/canonical-capability-policy-v1.json'
     role = 'capabilityPolicy'
-    sha256 = '026fd116bb8380c373148953935cde01ceb5532f60bb3848dbab7d17fabd69e4'
+    sha256 = 'cb42918068ad4ca16f8eab854ea96295df83ecef11d768ad4ae98f68254d60d1'
 }
 
 $ApprovedCanonicalCapabilityPolicyPackagePath =
@@ -1198,6 +1217,7 @@ $Manifest = [ordered]@{
 }
 $ManifestPath = Join-Path $PackageRoot 'RELEASE-MANIFEST.json'
 $Manifest | ConvertTo-Json -Depth 8 | Set-Content -LiteralPath $ManifestPath -Encoding utf8NoBOM
+Assert-CanonicalJsonSchema -JsonPath $ManifestPath -SchemaPath $ReleaseManifestSchemaPath
 
 $Sbom = [ordered]@{
     spdxVersion = 'SPDX-2.3'
@@ -1273,6 +1293,7 @@ $Actual = @(
 if (Compare-Object -ReferenceObject $Expected -DifferenceObject $Actual) {
     throw "Release package contents differ from the closed allowlist: $($Actual -join ', ')"
 }
+Assert-CanonicalJsonSchema -JsonPath $ManifestPath -SchemaPath $ReleaseManifestSchemaPath
 
 $ZipPath = Join-Path $ReleaseRoot "$PackageName.zip"
 Compress-Archive -LiteralPath $PackageRoot -DestinationPath $ZipPath -CompressionLevel Optimal

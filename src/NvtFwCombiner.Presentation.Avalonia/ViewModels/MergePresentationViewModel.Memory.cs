@@ -3,7 +3,7 @@ using NvtFwCombiner.Application.Authoring;
 
 namespace NvtFwCombiner.Presentation.Avalonia.ViewModels;
 
-public sealed partial class MergePresentationViewModel
+internal sealed partial class MergePresentationViewModel
 {
     private readonly Lock _memoryProjectionGate = new();
 
@@ -28,7 +28,11 @@ public sealed partial class MergePresentationViewModel
                 IReadOnlyList<MemoryCoverageSegmentViewModel> coverageSegments) =
                     acceptedSession?.ExactCapability is null
                     ? UiCompositionRunner.GetPendingMemoryDisplay(
-                        "Select and inspect the required inputs to resolve the compiled memory layout.")
+                        Text,
+                        IsGeneralMergeModeSelected ? [] : MergeSlots,
+                        IsGeneralMergeModeSelected
+                            ? MemoryPendingPrerequisite.GeneralMergeSourceMapping
+                            : MemoryPendingPrerequisite.DpBin)
                     : UiCompositionRunner.GetMemoryDisplay(
                         _compositionServices,
                         acceptedSession,

@@ -1,8 +1,10 @@
+using System.Text.Json;
+using NvtFwCombiner.Application.Ports;
 using NvtFwCombiner.Presentation.Avalonia.ViewModels;
 
 namespace NvtFwCombiner.Presentation.Avalonia;
 
-/// <summary>Local UI preference persistence. These values never relax firmware validation gates.</summary>
+/// <summary>Local UI preference projection. These values never relax firmware validation gates.</summary>
 public static class ShellPreferenceFileStore
 {
     private const int SchemaVersion = 1;
@@ -10,91 +12,58 @@ public static class ShellPreferenceFileStore
     internal const long MaximumPreferencesFileBytes = 64L * 1024;
 
     /// <summary>Gets the default local preference path for the current user.</summary>
-    public static string DefaultPreferencesPath => BestEffortLocalJsonFileStore.GetDefaultPath(PreferencesFileName);
+    public static string DefaultPreferencesPath => LocalJsonDocument.GetDefaultPath(PreferencesFileName);
 
-    /// <summary>Loads persisted preferences into the view model from the default path.</summary>
-    public static void LoadInto(MainWindowViewModel viewModel)
+    /// <summary>Loads a bounded preference snapshot without blocking framework initialization.</summary>
+    internal static async Task<ShellPreferenceSnapshot> LoadAsync(ILocalFileStore files, string path)
     {
-        ArgumentNullException.ThrowIfNull(viewModel);
-        viewModel.LoadShellPreferences(Load(DefaultPreferencesPath));
+        ArgumentNullException.ThrowIfNull(files);
+        try
+        {
+            ShellPreferenceFile? file = await files.ReadAsync(
+                    path,
+                    MaximumPreferencesFileBytes,
+                    LocalJsonDocument.DeserializeAsync<ShellPreferenceFile>,
+                    CancellationToken.None)
+                .ConfigureAwait(false);
+            return file is { SchemaVersion: SchemaVersion, Preferences: { } entry }
+                ? new(entry.Theme ?? string.Empty, entry.Language ?? string.Empty, entry.IsReducedMotionEnabled)
+                : ShellPreferenceSnapshot.Default;
+        }
+        catch (Exception exception) when (exception is LocalFileReadException or JsonException or NotSupportedException)
+        {
+            return ShellPreferenceSnapshot.Default;
+        }
     }
 
-    /// <summary>Saves the view model preferences to the default path.</summary>
-    public static void Save(MainWindowViewModel viewModel)
-    {
-        ArgumentNullException.ThrowIfNull(viewModel);
-        Save(DefaultPreferencesPath, viewModel.ExportShellPreferences());
-    }
-
-    /// <summary>Loads persisted shell preferences from a specific path.</summary>
-    public static ShellPreferenceSnapshot Load(string path)
-    {
-        return BestEffortLocalJsonFileStore.Load(
-            path,
-            ShellPreferenceSnapshot.Default,
-            (ShellPreferenceFile? file) => file is { SchemaVersion: SchemaVersion, Preferences: { } entry }
-                ? new ShellPreferenceSnapshot(
-                    entry.Theme ?? string.Empty,
-                    entry.Language ?? string.Empty,
-                    entry.IsReducedMotionEnabled)
-                : ShellPreferenceSnapshot.Default,
-            MaximumPreferencesFileBytes);
-    }
-
-    /// <summary>Starts the bounded startup preference read without blocking framework initialization.</summary>
-    internal static Task<ShellPreferenceSnapshot> LoadAsync(string path)
-    {
-        ArgumentException.ThrowIfNullOrWhiteSpace(path);
-        return Task.Run(() => Load(path));
-    }
-
-    /// <summary>Saves shell preferences to a specific path.</summary>
-    public static void Save(string path, ShellPreferenceSnapshot preferences)
-    {
-        ArgumentException.ThrowIfNullOrWhiteSpace(path);
-        ArgumentNullException.ThrowIfNull(preferences);
-
-        BestEffortLocalJsonFileStore.Save(
-            path,
-            new ShellPreferenceFile(
-                SchemaVersion,
-                new ShellPreferenceFileEntry(
-                    preferences.Theme,
-                    "Strict",
-                    preferences.Language,
-                    preferences.IsReducedMotionEnabled)));
-    }
-
-    /// <summary>Saves a default-path snapshot without blocking the UI dispatcher.</summary>
-    internal static Task SaveAsync(
-        ShellPreferenceSnapshot preferences,
-        CancellationToken cancellationToken)
-    {
-        return SaveAsync(DefaultPreferencesPath, preferences, cancellationToken);
-    }
-
-    internal static Task SaveAsync(
+    internal static async Task SaveAsync(
+        ILocalFileStore files,
         string path,
         ShellPreferenceSnapshot preferences,
         CancellationToken cancellationToken)
     {
-        ArgumentException.ThrowIfNullOrWhiteSpace(path);
+        ArgumentNullException.ThrowIfNull(files);
         ArgumentNullException.ThrowIfNull(preferences);
-        return BestEffortLocalJsonFileStore.SaveAsync(
-            path,
-            new ShellPreferenceFile(
-                SchemaVersion,
-                new ShellPreferenceFileEntry(
-                    preferences.Theme,
-                    "Strict",
-                    preferences.Language,
-                    preferences.IsReducedMotionEnabled)),
-            cancellationToken);
+        try
+        {
+            await files.WriteAsync(
+                    path,
+                    JsonSerializer.SerializeToUtf8Bytes(
+                        new ShellPreferenceFile(
+                            SchemaVersion,
+                            new(preferences.Theme, "Strict", preferences.Language, preferences.IsReducedMotionEnabled)),
+                        LocalJsonDocument.Options),
+                    cancellationToken)
+                .ConfigureAwait(false);
+        }
+        catch (Exception exception) when (exception is
+            ArgumentException or IOException or NotSupportedException or OperationCanceledException or
+            UnauthorizedAccessException)
+        {
+        }
     }
 
-    private sealed record ShellPreferenceFile(
-        int SchemaVersion,
-        ShellPreferenceFileEntry? Preferences);
+    private sealed record ShellPreferenceFile(int SchemaVersion, ShellPreferenceFileEntry? Preferences);
 
     private sealed record ShellPreferenceFileEntry(
         string? Theme,

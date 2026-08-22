@@ -93,7 +93,7 @@ public sealed class Nt51950Nt51951TpPrerequisiteMetadataTests
             FirmwareMetadataStructureResolutionFailure.MissingArtifact,
             dpcmi.Resolution?.Failure);
         Assert.Equal(
-            "firmware-config-standard-merge",
+            "firmware-config-general-parameters",
             dpcmi.Resolution?.Prerequisite?.StructureId);
         ResolvedPrerequisiteAction action =
             Assert.IsType<ResolvedPrerequisiteAction>(dpcmi.NextAction);
@@ -201,7 +201,7 @@ public sealed class Nt51950Nt51951TpPrerequisiteMetadataTests
             FirmwareMetadataStructureResolutionFailure.PrerequisiteRejected,
             dpcmi.Resolution?.Failure);
         Assert.Equal(
-            "firmware-config-standard-merge",
+            "firmware-config-general-parameters",
             dpcmi.Resolution?.Prerequisite?.StructureId);
         Assert.Null(dpcmi.NextAction);
     }

@@ -1,5 +1,7 @@
 using NvtFwCombiner.Application.Composition;
+using NvtFwCombiner.Application.Ports;
 using NvtFwCombiner.Domain.Composition;
+using System.Text.Json;
 
 namespace NvtFwCombiner.Application.Tests.Composition;
 
@@ -84,5 +86,48 @@ public sealed class CompositionRunReportTests
         _ = Assert.Single(report.Mutations);
         _ = Assert.Single(report.Issues);
         _ = Assert.Single(report.OutputDifferences);
+    }
+
+    /// <summary>Bundle delivery is additive while loose reports retain their previous JSON shape.</summary>
+    [Fact]
+    public void BundleDeliverySerializesOnlyWhenCommittedEvidenceExists()
+    {
+        const string sha = "0000000000000000000000000000000000000000000000000000000000000000";
+        CompositionOutputBundleDeliverySummary bundle =
+            CompositionOutputBundleDeliverySummary.FromReceipt(
+                new CompositionOutputBundleCommitReceipt(
+                    @"C:\delivery\bundle",
+                    [new CompositionOutputBundleArtifactReceipt(
+                        "output", null, "output.bin", 1, sha)]));
+        CompositionRunReport bundled = CreateReport(bundle);
+        CompositionRunReport loose = CreateReport(bundleDelivery: null);
+
+        string bundledJson = JsonSerializer.Serialize(bundled);
+        string looseJson = JsonSerializer.Serialize(loose);
+
+        Assert.Contains("\"BundleDelivery\"", bundledJson, StringComparison.Ordinal);
+        Assert.Contains("\"ResolvedDirectory\"", bundledJson, StringComparison.Ordinal);
+        Assert.DoesNotContain("\"BundleDelivery\"", looseJson, StringComparison.Ordinal);
+    }
+
+    private static CompositionRunReport CreateReport(
+        CompositionOutputBundleDeliverySummary? bundleDelivery)
+    {
+        return new CompositionRunReport(
+            "run",
+            "profile",
+            "1.0.0",
+            "NT51929",
+            "mode",
+            "experience",
+            CompositionKind.Merge,
+            DateTimeOffset.UnixEpoch,
+            DateTimeOffset.UnixEpoch,
+            [],
+            [],
+            [],
+            [],
+            new OutputArtifactSummary("output.bin", 1, "output-hash", committed: true),
+            bundleDelivery: bundleDelivery);
     }
 }

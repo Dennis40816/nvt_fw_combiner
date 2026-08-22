@@ -125,7 +125,7 @@ public static class AcceptedSessionOutputNameResolver
             bindings,
             composition.V2Details.OutputNamingRequirement.FileNameTemplate,
             icNumberSelection: composition.V2Details.CompositionKind == CompositionKind.Replace
-                ? IcNumberSelection.FromToken(session.SelectedIcCount)
+                ? ResolveAcceptedIcNumberSelection(currentCapability)
                 : null,
             abMergeTopologySelection: abMergeTopologySelection,
             outputNamingInspection: naming?.Inspection,
@@ -155,6 +155,16 @@ public static class AcceptedSessionOutputNameResolver
                             delivery.Kind) ?? throw new InvalidOperationException(
                             $"Compiled additional delivery '{delivery.Kind}' could not be prepared.")),
                 ]);
+    }
+
+    private static IcNumberSelection ResolveAcceptedIcNumberSelection(
+        ResolvedCapability capability)
+    {
+        return capability.DpExecutionPlan?.IcNumberSelection ??
+            capability.CtrlRamExecutionPlan?.IcNumberSelection ??
+            capability.GeneralExecutionPlan?.IcNumberSelection ??
+            throw new InvalidOperationException(
+                "Replace output naming requires the exact accepted IC-number selection.");
     }
 
     private static InputArtifactExecutionSnapshotSummary? CreateExecutionSnapshot(

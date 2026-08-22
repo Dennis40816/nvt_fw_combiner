@@ -13,20 +13,21 @@ public sealed class BuiltInV2DpReplaceRoutingTests
 {
     /// <summary>Every canonical Gen Flash map exposes only its owner-approved DP partition.</summary>
     [Theory]
-    [InlineData("NT51917", 0x40000, "nt51917-dp-replace-gen-flash-alias", "d47faa5137c34e1f771ec1568f699f1c5301a9fb9235f243ca9ad467315d5db3", 0x3C000, 0x4000)]
-    [InlineData("NT51919", 0x40000, "nt51919-dp-replace-gen-flash-alias", "31c545eb367ff902eb2e95bc0b90643c337ab26b4e5831169bfc1a31f060f3cd", 0x00000, 0x6000)]
-    [InlineData("NT51923", 0x40000, "nt51923-dp-replace-gen-flash", "fd5ee9dda6de6b0ba2142adf0ddae9736282407fb96e53895e4cbfd505746df6", 0x3E000, 0x2000)]
-    [InlineData("NT51926", 0x40000, "nt51926-dp-replace-gen-flash", "fd5ee9dda6de6b0ba2142adf0ddae9736282407fb96e53895e4cbfd505746df6", 0x3E000, 0x2000)]
-    [InlineData("NT51927", 0x40000, "nt51927-dp-replace-gen-flash", "d47faa5137c34e1f771ec1568f699f1c5301a9fb9235f243ca9ad467315d5db3", 0x3C000, 0x4000)]
-    [InlineData("NT51929", 0x40000, "nt51929-dp-replace-gen-flash", "31c545eb367ff902eb2e95bc0b90643c337ab26b4e5831169bfc1a31f060f3cd", 0x00000, 0x6000)]
-    [InlineData("NT51932", 0x40000, "nt51932-dp-replace-gen-flash", "31c545eb367ff902eb2e95bc0b90643c337ab26b4e5831169bfc1a31f060f3cd", 0x00000, 0x6000)]
+    [InlineData("NT51917", 0x40000, "nt51917-dp-replace-gen-flash-alias", "1b97f66f779ab9bc260e43b26abfcba0b1488dd18fe215a4d76ce2d8393e8ae6", 0x3C000, 0x4000, true)]
+    [InlineData("NT51919", 0x40000, "nt51919-dp-replace-gen-flash-alias", "31c545eb367ff902eb2e95bc0b90643c337ab26b4e5831169bfc1a31f060f3cd", 0x00000, 0x6000, false)]
+    [InlineData("NT51923", 0x40000, "nt51923-dp-replace-gen-flash", "14d3a379d5fc29b37904897b044fd834d8f6e1399cee73f7b00147276ce7bc79", 0x3E000, 0x2000, true)]
+    [InlineData("NT51926", 0x40000, "nt51926-dp-replace-gen-flash", "14d3a379d5fc29b37904897b044fd834d8f6e1399cee73f7b00147276ce7bc79", 0x3E000, 0x2000, true)]
+    [InlineData("NT51927", 0x40000, "nt51927-dp-replace-gen-flash", "1b97f66f779ab9bc260e43b26abfcba0b1488dd18fe215a4d76ce2d8393e8ae6", 0x3C000, 0x4000, true)]
+    [InlineData("NT51929", 0x40000, "nt51929-dp-replace-gen-flash", "31c545eb367ff902eb2e95bc0b90643c337ab26b4e5831169bfc1a31f060f3cd", 0x00000, 0x6000, false)]
+    [InlineData("NT51932", 0x40000, "nt51932-dp-replace-gen-flash", "31c545eb367ff902eb2e95bc0b90643c337ab26b4e5831169bfc1a31f060f3cd", 0x00000, 0x6000, false)]
     public void GenFlashDpReplaceUsesCanonicalDpPartition(
         string icId,
         long baseCapacity,
         string profileId,
         string bundleContentHash,
         long dpStart,
-        long dpLength)
+        long dpLength,
+        bool usesNormalFlashCodeNaming)
     {
         bool registered = BootstrapTestHost.Canonical.Compiler.TryCompileDpReplace(
             icId,
@@ -47,6 +48,96 @@ public sealed class BuiltInV2DpReplaceRoutingTests
         Assert.Equal(CompositionAddressSpaceIds.DpReplacement, operation.SourceSpaceId);
         Assert.Equal(new ByteRange(dpStart, dpLength), operation.TargetRange);
         Assert.Equal(operation.TargetRange, operation.SourceRange);
+        if (usesNormalFlashCodeNaming)
+        {
+            AssertNormalFlashCodeNamingUsesReplacementAndReference(artifact);
+        }
+        else
+        {
+            Assert.Equal(
+                CompiledOutputNameRendererKind.Static,
+                artifact.V2Details.OutputNamingRequirement.RendererKind);
+            Assert.Null(artifact.V2Details.OutputNamingRequirement.RuleId);
+            Assert.Equal(
+                CompiledOutputArtifactType.Unspecified,
+                artifact.V2Details.OutputNamingRequirement.OutputArtifactType);
+            Assert.Empty(artifact.V2Details.OutputNamingRequirement.TokenRequirements);
+        }
+    }
+
+    private static void AssertNormalFlashCodeNamingUsesReplacementAndReference(
+        CompiledComposition composition)
+    {
+        CompiledOutputNamingRequirement naming = composition.V2Details.OutputNamingRequirement;
+        Assert.Equal(CompiledOutputNameRendererKind.NormalFlashCodeV1, naming.RendererKind);
+        Assert.Equal(CompiledOutputNamingRequirement.NormalFlashCodeV1RuleId, naming.RuleId);
+        Assert.Equal(CompiledOutputNamingRequirement.NormalFlashCodeV1Template, naming.FileNameTemplate);
+        Assert.Equal(CompiledOutputArtifactType.FlashCode, naming.OutputArtifactType);
+
+        CompiledOutputTokenRequirement dpVersion = Assert.Single(
+            naming.TokenRequirements,
+            static requirement => requirement.TokenId == "dp-version");
+        Assert.Equal(CompiledOutputTokenSourceKind.DpcmiVersion, dpVersion.SourceKind);
+        Assert.Equal(CompositionAddressSpaceIds.DpReplacement, dpVersion.MetadataSpaceId);
+        Assert.Equal(CompiledOutputTokenMissingPolicy.UsePlaceholder, dpVersion.MissingPolicy);
+        Assert.Equal("xxxx", dpVersion.Placeholder);
+
+        CompiledOutputTokenRequirement tpVersion = Assert.Single(
+            naming.TokenRequirements,
+            static requirement => requirement.TokenId == "tp-version");
+        Assert.Equal(CompiledOutputTokenSourceKind.FirmwareConfigTpVersion, tpVersion.SourceKind);
+        Assert.Equal(CompositionAddressSpaceIds.ReferenceBase, tpVersion.MetadataSpaceId);
+        Assert.Equal(CompiledOutputTokenMissingPolicy.UsePlaceholder, tpVersion.MissingPolicy);
+        Assert.Equal("xxxx", tpVersion.Placeholder);
+    }
+
+    /// <summary>
+    /// Every migrated DP Replace member resolves naming from the immutable typed
+    /// selector retained by its accepted capability, never from the route token.
+    /// </summary>
+    [Theory]
+    [InlineData("NT51917")]
+    [InlineData("NT51923")]
+    [InlineData("NT51926")]
+    [InlineData("NT51927")]
+    [InlineData("NT51950")]
+    [InlineData("NT51951")]
+    public void MigratedDpReplaceAcceptedSessionUsesTypedSingleSelectorForOutputNaming(
+        string icId)
+    {
+        using var workspace = TempWorkspace.Create($"nfc-dp-replace-output-name-{icId}");
+        byte[] reference = CreatePattern(0x40000, 0x31);
+        byte[] replacement = CreatePattern(0x40000, 0xA7);
+        var session = new AuthoringSessionState(ExperienceIds.DpReplace);
+        CompiledAuthoringSessionPreparation prepared =
+            BootstrapTestHost.Services.DpReplaceAuthoring.PrepareSession(
+                session,
+                icId,
+                [
+                    new CompiledAuthoringSelectedInput(
+                        CompositionAddressSpaceIds.ReferenceBase,
+                        workspace.Write("reference.bin", reference),
+                        reference),
+                    new CompiledAuthoringSelectedInput(
+                        CompositionAddressSpaceIds.DpReplacement,
+                        workspace.Write("replacement.bin", replacement),
+                        replacement),
+                ]);
+
+        Assert.True(prepared.Succeeded, string.Join(
+            Environment.NewLine,
+            prepared.Issues.Select(static issue => $"{issue.Code}: {issue.Message}")));
+        ActiveSessionSnapshot snapshot = Assert.IsType<ActiveSessionSnapshot>(prepared.Snapshot);
+        ResolvedCapability capability = Assert.IsType<ResolvedCapability>(snapshot.ExactCapability);
+        AcceptedDpExecutionPlan plan = Assert.IsType<AcceptedDpExecutionPlan>(capability.DpExecutionPlan);
+        Assert.Equal(IcNumberInputMode.SingleSelector, plan.IcNumberSelection.Mode);
+
+        CompositionOutputPreparation output =
+            BootstrapTestHost.Services.CompositionOutputNaming.ResolveAcceptedOutput(snapshot);
+
+        Assert.Matches(
+            $"^{icId}_FlashCode_D[0-9A-Fx]{{4}}T[0-9A-Fx]{{4}}_[0-9]{{8}}\\.bin$",
+            output.OutputName.FileName);
     }
 
     /// <summary>NT51928 lowers one selection group into only the selected non-overlapping replacement writes.</summary>
@@ -450,7 +541,7 @@ public sealed class BuiltInV2DpReplaceRoutingTests
         CompiledComposition artifact = Assert.IsType<CompiledComposition>(composition);
         Assert.Equal(CompiledCompositionEligibility.V2RuntimeExecutable, artifact.Eligibility);
         V2CompiledCompositionDetails details = Assert.IsType<V2CompiledCompositionDetails>(artifact.V2Details);
-        Assert.Equal("56e39af41aaed8abad5da0f49274053ad2fb619949b53efd9497ed31a10ee99b", details.Provenance.Bundle.ContentHash);
+        Assert.Equal("efc155288c2c470c0cac15e51142ebd357eff6151259b9b8164560f2a105ec6d", details.Provenance.Bundle.ContentHash);
         Assert.Equal($"nt{icId[2..]}-dp-replace-dp-perspective", artifact.V2Details.ProfileId);
         Assert.Equal(baseCapacity, artifact.Plan.OutputInitialization.Capacity);
         CapabilityProfileSummary summary = BootstrapTestHost.Canonical.Projection.GetDpReplaceProfileSummaries()

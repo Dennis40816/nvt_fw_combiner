@@ -39,8 +39,8 @@
       </Border>
 
       <StackPanel Grid.Row="3" HorizontalAlignment="Right" Orientation="Horizontal" Spacing="{DynamicResource NfcSpace8}">
-        <Button Classes="secondary" Command="{Binding CancelInsertBytesCommand}" Content="{Binding Text.CloseLabel}" />
-        <Button Classes="primary" Command="{Binding ConfirmInsertBytesCommand}" Content="{Binding Text.HexEditorInsertBytesActionLabel}" />
+        <Button Classes="semanticAction secondary" Command="{Binding CancelInsertBytesCommand}" Content="{Binding Text.CloseLabel}" />
+        <Button Classes="semanticAction primary" Command="{Binding ConfirmInsertBytesCommand}" Content="{Binding Text.HexEditorInsertBytesActionLabel}" />
       </StackPanel>
     </Grid>
   </Border>

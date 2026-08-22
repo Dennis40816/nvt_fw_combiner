@@ -10,7 +10,7 @@ namespace NvtFwCombiner.Presentation.Avalonia.ViewModels;
 /// profile, flash-map, processor, or report behavior; it only projects one application-owned
 /// in-memory binary editing session.
 /// </summary>
-public sealed partial class HexEditorWorkspaceViewModel : ObservableObject
+internal sealed partial class HexEditorWorkspaceViewModel : ObservableObject
 {
     private const int BytesPerRow = 16;
     private static readonly int CurrentViewportRowCount = HexViewportCapabilityProfile.RawEditor.InitialRows;
@@ -27,7 +27,6 @@ public sealed partial class HexEditorWorkspaceViewModel : ObservableObject
         HexViewportCapabilityProfile.RawEditor,
         "raw-binary-work-buffer");
 
-    /// <summary>Creates the standalone raw-BIN workspace with its initial localized text bundle.</summary>
     public HexEditorWorkspaceViewModel(
         ShellTextResources text,
         IRawBinaryEditorFileSessionFactory fileSessions)
@@ -78,7 +77,6 @@ public sealed partial class HexEditorWorkspaceViewModel : ObservableObject
         _findAsciiAsync = findAsciiAsync ?? throw new ArgumentNullException(nameof(findAsciiAsync));
     }
 
-    /// <summary>Gets the active localized text bundle.</summary>
     public ShellTextResources Text { get; private set; }
 
     /// <summary>Gets fixed byte-offset headers for the 16-column grid.</summary>
@@ -91,7 +89,6 @@ public sealed partial class HexEditorWorkspaceViewModel : ObservableObject
     [ObservableProperty]
     public partial string ViewportAddress { get; set; } = "0x000000";
 
-    /// <summary>Printable ASCII text to find in the in-memory work buffer.</summary>
     [ObservableProperty]
     public partial string AsciiSearchText { get; set; } = string.Empty;
 
@@ -107,11 +104,9 @@ public sealed partial class HexEditorWorkspaceViewModel : ObservableObject
     [ObservableProperty]
     public partial string RangeEndAddress { get; set; } = "0x000000";
 
-    /// <summary>Gets or sets hexadecimal bytes used by overwrite or the one-byte fill value.</summary>
     [ObservableProperty]
     public partial string RangeValue { get; set; } = string.Empty;
 
-    /// <summary>Controls the optional original-source row below changed current-data rows.</summary>
     [ObservableProperty]
     public partial bool IsOriginalRowsVisible { get; set; }
 
@@ -125,11 +120,9 @@ public sealed partial class HexEditorWorkspaceViewModel : ObservableObject
     [NotifyPropertyChangedFor(nameof(SourcePathDisplay))]
     public partial string? SourcePath { get; set; }
 
-    /// <summary>Current local status for the raw-BIN workspace.</summary>
     [ObservableProperty]
     public partial string EditorStatus { get; set; } = string.Empty;
 
-    /// <summary>Display name of the loaded source document.</summary>
     public string SourceName => string.IsNullOrWhiteSpace(SourcePath)
         ? Text.NoBinSelectedLabel
         : Path.GetFileName(SourcePath);
@@ -142,58 +135,46 @@ public sealed partial class HexEditorWorkspaceViewModel : ObservableObject
     /// <summary>True when the application-owned work buffer has a loaded document.</summary>
     public bool HasDocument => _state.HasDocument;
 
-    /// <summary>True when one or more retained edits differ from the loaded source document.</summary>
     public bool HasUnsavedChanges => _state.HasUnsavedChanges;
 
     /// <summary>True when Save As can export a new BIN without modifying the source file.</summary>
     public bool CanSave => HasDocument && HasUnsavedChanges;
 
-    /// <summary>True while one byte is receiving direct inline text input.</summary>
     public bool IsInlineEditActive => _activeInlineEditAddress.HasValue;
 
-    /// <summary>True while an editor text box owns the keyboard, preserving its native editing shortcuts.</summary>
     [ObservableProperty]
     public partial bool IsTextEntryFocused { get; set; }
 
     /// <summary>Currently selected work-buffer address, retained while it is outside the visible row window.</summary>
     public string? SelectedByteAddress { get; private set; }
 
-    /// <summary>Accessible value and change context for the currently selected byte.</summary>
     public string SelectedByteAccessibleLabel => TryGetViewportCell(SelectedByteAddress, out HexViewportCell cell)
         ? CreateAccessibleLabel(cell)
         : SelectedByteAddress ?? string.Empty;
 
-    /// <summary>Compact hexadecimal length of the in-memory work buffer.</summary>
     public string WorkingLengthLabel => FormattableString.Invariant($"0x{_state.WorkingLength:X} bytes");
 
-    /// <summary>Gets the complete logical 16-byte-row count used to size the document scrollbar immediately.</summary>
     public int TotalRowCount => GetRowCount();
 
     /// <summary>Gets the greatest valid first-row position for the bounded document viewport.</summary>
     public int DocumentScrollMaximum => CalculateDocumentScrollMaximum();
 
-    /// <summary>Gets the fixed number of logical rows displayed in one document viewport.</summary>
     public int VisibleRowCount => Math.Min(ViewportRowCount, TotalRowCount);
 
-    /// <summary>Number of retained in-memory edit operations.</summary>
     public int ChangeCount => _state.UndoCount;
 
-    /// <summary>Suggested non-destructive output file name.</summary>
     public string SuggestedOutputFileName => _files.SuggestedOutputFileName;
 
     /// <summary>Explicit navigation command for a requested address.</summary>
     public IRelayCommand GoToCommand { get; }
 
-    /// <summary>Finds the next printable ASCII occurrence in the in-memory work buffer.</summary>
     public IAsyncRelayCommand FindAsciiCommand { get; }
 
     /// <summary>Moves the bounded viewport to a coalesced document-scrollbar row position.</summary>
     public IRelayCommand<int> SetViewportStartRowCommand { get; }
 
-    /// <summary>Starts direct two-character editing for one current-data byte.</summary>
     public IRelayCommand<long> BeginByteEditCommand { get; }
 
-    /// <summary>Commits the current inline byte value through the raw-BIN application session.</summary>
     internal IRelayCommand<HexEditorByteEditRequest> CommitByteEditCommand { get; }
 
     /// <summary>Cancels one inline edit without changing the in-memory work buffer.</summary>
@@ -205,13 +186,10 @@ public sealed partial class HexEditorWorkspaceViewModel : ObservableObject
     /// <summary>Inserts one 00 byte after the selected current-data byte.</summary>
     public IRelayCommand<long> InsertZeroAfterCommand { get; }
 
-    /// <summary>Deletes the selected current-data byte.</summary>
     public IRelayCommand<long> DeleteByteCommand { get; }
 
-    /// <summary>Sets the selected current-data byte to 00.</summary>
     public IRelayCommand<long> SetByteToZeroCommand { get; }
 
-    /// <summary>Sets the selected current-data byte to FF.</summary>
     public IRelayCommand<long> SetByteToFfCommand { get; }
 
     /// <summary>Applies an exact byte sequence to the chosen inclusive range.</summary>
@@ -220,19 +198,14 @@ public sealed partial class HexEditorWorkspaceViewModel : ObservableObject
     /// <summary>Fills the chosen inclusive range with one byte.</summary>
     public IRelayCommand ApplyFillRangeCommand { get; }
 
-    /// <summary>Reverts the most recent in-memory edit.</summary>
     public IRelayCommand UndoCommand { get; }
 
-    /// <summary>Reapplies the most recently reverted in-memory edit.</summary>
     public IRelayCommand RedoCommand { get; }
 
-    /// <summary>Opens the non-destructive Save As confirmation.</summary>
     public IRelayCommand RequestSaveCommand { get; }
 
-    /// <summary>Closes the non-destructive Save As confirmation.</summary>
     public IRelayCommand CancelSaveCommand { get; }
 
-    /// <summary>Records whether a text entry control currently owns the keyboard focus.</summary>
     public void SetTextEntryFocused(bool isFocused)
     {
         IsTextEntryFocused = isFocused;

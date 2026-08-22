@@ -17,11 +17,24 @@ public sealed partial class RepositoryBoundaryTests
     public void UiDocumentsForbidFirmwareSemanticsInViewModels()
     {
         string boundaries = ReadText("docs/ui/viewmodel-boundaries.md");
+        string directory = Path.Combine(
+            Root.FullName,
+            "src",
+            "NvtFwCombiner.Presentation.Avalonia",
+            "ViewModels");
+        string viewModels = string.Join(
+            Environment.NewLine,
+            Directory.GetFiles(directory, "*.cs").Select(File.ReadAllText));
 
         Assert.Contains("byte range arithmetic", boundaries, StringComparison.Ordinal);
         Assert.Contains("CRC/Header calculation or `combiner.exe` invocation", boundaries, StringComparison.Ordinal);
         Assert.Contains("No `File.ReadAllBytes` or `Process.Start` in ViewModels", boundaries, StringComparison.Ordinal);
+        Assert.DoesNotMatch(PublicViewModelTypeRegex(), viewModels);
     }
+
+    [System.Text.RegularExpressions.GeneratedRegex(
+        @"(?m)^public\s+(?:(?:sealed|abstract|static|partial|readonly)\s+)*(?:(?:class|record|interface|struct|delegate|enum)\s+)")]
+    private static partial System.Text.RegularExpressions.Regex PublicViewModelTypeRegex();
 
     /// <summary>Verifies Presentation consumes focused Application contracts, never concrete firmware adapters.</summary>
     [Fact]
@@ -63,7 +76,15 @@ public sealed partial class RepositoryBoundaryTests
             ReadText("src/NvtFwCombiner.Presentation.Avalonia/ViewModels/ReportReviewViewModel.Bindings.cs"),
             ReadText("src/NvtFwCombiner.Presentation.Avalonia/ViewModels/ReportReviewViewModel.Factory.cs"),
             ReadText("src/NvtFwCombiner.Presentation.Avalonia/ViewModels/ReportReviewViewModel.OutputDifferences.cs"));
+        string externalLifecycleConsumers = string.Join(
+            Environment.NewLine,
+            ReadText("src/NvtFwCombiner.Presentation.Avalonia/PresentationHostServices.cs"),
+            ReadText("src/NvtFwCombiner.Presentation.Avalonia/ViewModels/MessageCenterViewModel.cs"),
+            ReadText("src/NvtFwCombiner.Presentation.Avalonia/ViewModels/ShellTextResources.MessageCenter.cs"));
         string presentationSource = ReadPresentationSources(
+            "PresentationHostServices.cs",
+            "MessageCenterViewModel.cs",
+            "ShellTextResources.MessageCenter.cs",
             "CompositionRunProgressViewModel.cs",
             "ShellTextResources.RunProgress.cs",
             "CompositionRunPresentationViewModel.cs",
@@ -144,6 +165,9 @@ public sealed partial class RepositoryBoundaryTests
         Assert.Contains("CompositionRunPhase", progressResources, StringComparison.Ordinal);
         Assert.Contains("CompositionRunProgressFeed", progressConsumer, StringComparison.Ordinal);
         Assert.Contains("CompositionRunInspectionSnapshot", inspectionProjection, StringComparison.Ordinal);
+        Assert.Contains("IExternalProcessorEnvironmentLoader", externalLifecycleConsumers, StringComparison.Ordinal);
+        Assert.DoesNotContain("NvtFwCombiner.Infrastructure", externalLifecycleConsumers, StringComparison.Ordinal);
+        Assert.DoesNotContain("new ExternalProcessorEnvironmentLoader", externalLifecycleConsumers, StringComparison.Ordinal);
         foreach (string token in forbiddenTokens)
         {
             if (!StringComparer.Ordinal.Equals(token, "NvtFwCombiner.Domain."))

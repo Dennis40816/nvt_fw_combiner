@@ -6,8 +6,6 @@ namespace NvtFwCombiner.Application.Composition;
 /// </summary>
 public sealed class CompositionRunInspectionSnapshot
 {
-    private readonly byte[] _referenceBytes;
-
     internal CompositionRunInspectionSnapshot(
         string runId,
         string outputSpaceId,
@@ -32,7 +30,7 @@ public sealed class CompositionRunInspectionSnapshot
         OutputSpaceId = outputSpaceId;
         ReferenceSpaceId = referenceSpaceId;
         OutputSha256 = outputSha256;
-        _referenceBytes = immutableReferenceBytes;
+        ReferenceBytes = immutableReferenceBytes;
         OutputBytes = immutableOutputBytes;
     }
 
@@ -49,7 +47,7 @@ public sealed class CompositionRunInspectionSnapshot
     public string OutputSha256 { get; }
 
     /// <summary>Reference image bytes captured during the authoritative run.</summary>
-    public ReadOnlyMemory<byte> ReferenceBytes => _referenceBytes;
+    public ReadOnlyMemory<byte> ReferenceBytes { get; }
 
     /// <summary>Final output bytes from that same authoritative run.</summary>
     public ReadOnlyMemory<byte> OutputBytes { get; }

@@ -2,6 +2,7 @@ using NvtFwCombiner.Application.Authoring;
 using NvtFwCombiner.Application.Capabilities;
 using NvtFwCombiner.Application.ExternalTools;
 using NvtFwCombiner.Application.Metadata;
+using NvtFwCombiner.Application.Ports;
 
 namespace NvtFwCombiner.Application.Tests.Capabilities;
 
@@ -9,6 +10,35 @@ namespace NvtFwCombiner.Application.Tests.Capabilities;
 public sealed class CapabilityActionReadinessTests
 {
     private static readonly ResolutionToken Token = new("catalog:1");
+
+    /// <summary>Cold external generation zero yields typed blocked readiness until publication.</summary>
+    [Fact]
+    public async Task ColdExternalGenerationZeroRemainsAValidReadinessSnapshot()
+    {
+        var request = new RuntimeDependencyReadinessRequest(
+            "route-ctrlram",
+            new string('a', 64),
+            new string('b', 64),
+            Token,
+            new AuthoringRevision(0),
+            [new("processor", "tool")]);
+
+        CapabilityActionReadinessSnapshot result =
+            await CapabilityActionReadinessResolver.RefreshAndResolveAsync(
+                Admission(),
+                [Child("base", ResolvedChildReadiness.Ready)],
+                request,
+                new ColdRuntimeProvider(),
+                runtimeDependencyGeneration: 0,
+                static generation => generation == 0,
+                TestContext.Current.CancellationToken);
+
+        Assert.Equal(0, result.RuntimeDependencyGeneration);
+        Assert.False(result.Build.IsAvailable);
+        Assert.Equal(
+            CapabilityReadinessDimension.RuntimeDependency,
+            result.Build.PrimaryBlocker!.Dimension);
+    }
 
     /// <summary>Evidence and publication remain certification dimensions rather than Build switches.</summary>
     [Fact]
@@ -378,7 +408,7 @@ public sealed class CapabilityActionReadinessTests
                 admission,
                 [],
                 runtime,
-                currentRuntimeDependencyGeneration: 0));
+                currentRuntimeDependencyGeneration: -1));
     }
 
     /// <summary>Runtime dependency requests and snapshots reject stale or malformed identities and entries.</summary>
@@ -533,5 +563,29 @@ public sealed class CapabilityActionReadinessTests
             generation: 1,
             DateTimeOffset.UnixEpoch,
             entries);
+    }
+
+    private sealed class ColdRuntimeProvider : IRuntimeDependencyReadinessProvider
+    {
+        public ValueTask<RuntimeDependencyReadinessSnapshot> RefreshAsync(
+            RuntimeDependencyReadinessRequest request,
+            long generation,
+            CancellationToken cancellationToken)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            return ValueTask.FromResult(new RuntimeDependencyReadinessSnapshot(
+                request.RouteId,
+                request.CapabilityFingerprint,
+                request.CompilationFingerprint,
+                request.ResolutionToken,
+                request.AuthoringRevision,
+                generation,
+                DateTimeOffset.UnixEpoch,
+                request.Dependencies.Select(static dependency => RuntimeDependencyEntry.Blocked(
+                    dependency.ProcessorId,
+                    dependency.ToolBindingId,
+                    "external-environment.unavailable",
+                    "The external tool environment is not loaded."))));
+        }
     }
 }

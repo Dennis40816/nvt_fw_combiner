@@ -15,6 +15,7 @@ public sealed partial class FirmwareInspectionSlotTests
         JsonElement goldenCase = golden.CaseByIc("51926");
         using var workspace = TempWorkspace.Create("nvt-fw-combiner-ui-950-negative");
         MainWindowViewModel viewModel = PresentationTestHost.CreateViewModel();
+        viewModel.ShowMergeCommand.Execute(null);
         viewModel.WorkflowSession.SelectedIc = "NT51950";
         golden.CopyInputFilesToMergeSlots(viewModel, workspace, goldenCase);
 
@@ -81,6 +82,7 @@ public sealed partial class FirmwareInspectionSlotTests
         WriteUiAbCmi(dp, singleCapacity / 2, major: 0x07, minor: 0x08, jira: 0x456);
         string path = workspace.Write("single-dp-ab.bin", dp);
         MainWindowViewModel viewModel = PresentationTestHost.CreateViewModel();
+        viewModel.ShowMergeCommand.Execute(null);
         viewModel.WorkflowSession.SelectedIc = "NT51950";
         viewModel.Merge.SelectedMergeMode = ExperienceIds.AbMerge;
 
@@ -93,7 +95,7 @@ public sealed partial class FirmwareInspectionSlotTests
         Assert.Equal(FirmwareInputInspectionSeverity.Valid, slot.InputInspectionSeverity);
 
         viewModel.WorkflowSession.SelectedNumber = "cascade";
-        await viewModel.WorkflowSession.FirmwareInspectionRefreshTask;
+        await CurrentInspection(viewModel).ActiveTask;
 
         Assert.Equal(path, slot.FilePath);
         Assert.Equal(FirmwareInputInspectionSeverity.Blocking, slot.InputInspectionSeverity);

@@ -2,8 +2,10 @@ using System.ComponentModel;
 using System.Diagnostics;
 using Avalonia.Controls;
 using Avalonia.Input;
+using Avalonia.Interactivity;
 using Avalonia.Styling;
 using Avalonia.Threading;
+using Avalonia.VisualTree;
 using NvtFwCombiner.Application.Capabilities;
 using NvtFwCombiner.Presentation.Avalonia.ViewModels;
 
@@ -16,39 +18,28 @@ public sealed partial class MainWindow : Window, IDisposable
     private readonly DispatcherTimer _reportToastHoldTimer = new() { Interval = TimeSpan.FromSeconds(3) };
     private readonly DispatcherTimer _reportToastFadeTimer = new() { Interval = TimeSpan.FromMilliseconds(40) };
     private readonly LatestSnapshotPersistenceCoordinator<IReadOnlyList<ReportHistorySnapshot>>
-        _reportHistoryPersistence = new(ReportHistoryFileStore.SaveAsync, snapshots => [.. snapshots]);
+        _reportHistoryPersistence;
     private readonly LatestSnapshotPersistenceCoordinator<ShellPreferenceSnapshot>
-        _shellPreferencePersistence = new(ShellPreferenceFileStore.SaveAsync, static snapshot => snapshot);
+        _shellPreferencePersistence;
     private readonly CancellationTokenSource _startupLoadCancellation = new();
-    private readonly ForegroundLoadingState _catalogLoading = new();
+    private readonly ForegroundLoadingState _preloadLoading;
+    private readonly ShellPreloadSession _preloadSession;
     private readonly PresentationHostServices _hostServices;
     private readonly UiLaunchOptions _launchOptions;
     private readonly StartupTraceSession _startupTrace;
+    private bool _isStartupShellEnabled;
     private bool _isReportHistoryClosePending;
     private bool _isReportHistoryPersistenceComplete;
     private bool _isDisposed;
     private bool _isStartupLoadStarted;
-    private bool _isCanonicalCatalogWarmupInProgress;
-    private bool _isDeferredStartupComplete;
-    private int _catalogLoadingAttempt;
 
-    /// <summary>Initializes the main window controls.</summary>
+    /// <summary>Initializes the XAML loader constructor; production supplies explicit startup state.</summary>
     public MainWindow()
         : this(
             UiLaunchOptions.Empty,
             StartupTraceSession.Disabled,
             App.HostServices ?? throw new InvalidOperationException("Presentation host services are not configured."),
-            ShellPreferenceFileStore.Load(ShellPreferenceFileStore.DefaultPreferencesPath))
-    {
-    }
-
-    /// <summary>Initializes the main window controls with command-line startup state.</summary>
-    public MainWindow(UiLaunchOptions launchOptions)
-        : this(
-            launchOptions,
-            StartupTraceSession.Disabled,
-            App.HostServices ?? throw new InvalidOperationException("Presentation host services are not configured."),
-            ShellPreferenceFileStore.Load(ShellPreferenceFileStore.DefaultPreferencesPath))
+            ShellPreferenceSnapshot.Default)
     {
     }
 
@@ -65,6 +56,20 @@ public sealed partial class MainWindow : Window, IDisposable
         _launchOptions = launchOptions;
         _startupTrace = startupTrace;
         _hostServices = hostServices;
+        _reportHistoryPersistence = new(
+            (snapshots, cancellationToken) => ReportHistoryFileStore.SaveAsync(
+                hostServices.LocalFiles,
+                ReportHistoryFileStore.DefaultHistoryPath,
+                snapshots,
+                cancellationToken),
+            snapshots => [.. snapshots]);
+        _shellPreferencePersistence = new(
+            (snapshot, cancellationToken) => ShellPreferenceFileStore.SaveAsync(
+                hostServices.LocalFiles,
+                ShellPreferenceFileStore.DefaultPreferencesPath,
+                snapshot,
+                cancellationToken),
+            static snapshot => snapshot);
         _startupTrace.Mark("main-window-constructor.started");
 
         InitializeComponent();
@@ -72,13 +77,24 @@ public sealed partial class MainWindow : Window, IDisposable
         _reportToastHoldTimer.Tick += ReportToastHoldTimer_OnTick;
         _reportToastFadeTimer.Tick += ReportToastFadeTimer_OnTick;
         MainWindowViewModel viewModel = CreateStartupViewModel(_hostServices, startupPreferences);
+        viewModel.Settings.UpdateSourceBrowseRequested += Settings_UpdateSourceBrowseRequested;
+        viewModel.Settings.ActivationRequested += Settings_ActivationRequested;
+        _preloadSession = new(
+            stage => PresentPreloadStage(viewModel, stage),
+            viewModel.Text,
+            HasStartupReportStage(_launchOptions));
+        _preloadLoading = new(RetryStartupPreloadAsync, CancelStartupAsync);
+        _preloadSession.SetReducedMotion(viewModel.IsReducedMotionEnabled);
         _startupTrace.Mark("shell-view-model.created");
-        _catalogLoading.SetReducedMotion(viewModel.IsReducedMotionEnabled);
-        BeginCatalogLoading(
+        _preloadLoading.SetReducedMotion(viewModel.IsReducedMotionEnabled);
+        ShellInteractionHost.IsEnabled = false;
+        _preloadLoading.Begin(
             viewModel.Text.CatalogLoadingTitle,
-            viewModel.Text.CatalogLoadingDetail,
-            progress: 0);
-        CatalogLoadingSurfaceHost.DataContext = _catalogLoading;
+            $"{_preloadSession.CatalogStage.PositionLabel} · {viewModel.Text.CatalogLoadingDetail}",
+            progress: 0,
+            viewModel.Text.CancelStartupLabel);
+        CatalogLoadingSurfaceHost.DataContext = _preloadLoading;
+        OptionalPreloadStatusHost.DataContext = _preloadSession;
         _startupTrace.Mark("shell-preferences.applied");
         DataContext = viewModel;
         _startupTrace.Mark("shell-data-context.assigned");
@@ -97,19 +113,6 @@ public sealed partial class MainWindow : Window, IDisposable
         _startupTrace.Mark("main-window-constructor.completed");
     }
 
-    internal static MainWindowViewModel CreateStartupViewModel(
-        PresentationHostServices hostServices,
-        ShellPreferenceSnapshot startupPreferences)
-    {
-        ArgumentNullException.ThrowIfNull(hostServices);
-        ArgumentNullException.ThrowIfNull(startupPreferences);
-        MainWindowViewModel viewModel = ShellViewModelFactory.Create(
-            hostServices,
-            ShellTextResources.LanguageFromPreference(startupPreferences.Language));
-        viewModel.LoadShellPreferences(startupPreferences);
-        return viewModel;
-    }
-
     /// <inheritdoc />
     protected override async void OnClosing(WindowClosingEventArgs e)
     {
@@ -124,6 +127,27 @@ public sealed partial class MainWindow : Window, IDisposable
             if (DataContext is MainWindowViewModel finalViewModel)
             {
                 finalViewModel.RunSession.CancelActiveRun();
+            }
+
+            if (_restartThroughStableLauncher && !_stableLauncherStarted)
+            {
+                e.Cancel = true;
+                if (_stableLauncherHandoffInProgress)
+                {
+                    base.OnClosing(e);
+                    return;
+                }
+                _stableLauncherHandoffInProgress = true;
+                bool started = await TryCompleteStableLauncherHandoffAsync();
+                _stableLauncherHandoffInProgress = false;
+                if (!started)
+                {
+                    base.OnClosing(e);
+                    return;
+                }
+                Dispatcher.UIThread.Post(Close);
+                base.OnClosing(e);
+                return;
             }
 
             base.OnClosing(e);
@@ -144,18 +168,10 @@ public sealed partial class MainWindow : Window, IDisposable
             viewModel.RunSession.CancelActiveRun();
         }
 
-        if (DataContext is INotifyPropertyChanged notifier)
-        {
-            notifier.PropertyChanged -= ViewModel_OnPropertyChanged;
-        }
-        if (DataContext is MainWindowViewModel closingViewModel)
-        {
-            closingViewModel.Reports.PropertyChanged -= Reports_OnPropertyChanged;
-        }
-
         var completion = Task.WhenAll(
             _reportHistoryPersistence.CompleteAsync(),
-            _shellPreferencePersistence.CompleteAsync());
+            _shellPreferencePersistence.CompleteAsync(),
+            _preloadSession.CancelAndDrainAsync());
         base.OnClosing(e);
         try
         {
@@ -181,6 +197,8 @@ public sealed partial class MainWindow : Window, IDisposable
         if (DataContext is MainWindowViewModel closedViewModel)
         {
             closedViewModel.Reports.PropertyChanged -= Reports_OnPropertyChanged;
+            closedViewModel.Settings.UpdateSourceBrowseRequested -= Settings_UpdateSourceBrowseRequested;
+            closedViewModel.Settings.ActivationRequested -= Settings_ActivationRequested;
         }
 
         _reportToastHoldTimer.Stop();
@@ -201,6 +219,7 @@ public sealed partial class MainWindow : Window, IDisposable
 
         _isDisposed = true;
         _startupLoadCancellation.Dispose();
+        _preloadSession.Dispose();
         GC.SuppressFinalize(this);
     }
 
@@ -217,199 +236,281 @@ public sealed partial class MainWindow : Window, IDisposable
 
         _isStartupLoadStarted = true;
         CancellationToken startupCancellation = _startupLoadCancellation.Token;
-        CatalogLoadingSurfaceHost.Content = _catalogLoading;
+        CatalogLoadingSurfaceHost.Content = _preloadLoading;
         await Task.Yield();
-        await ContinueStartupAsync(
-            viewModel,
-            startupCancellation);
+        await RunStartupPreloadAsync(viewModel, startupCancellation);
     }
 
-    private async Task ContinueStartupAsync(
+    private async Task RunStartupPreloadAsync(
         MainWindowViewModel viewModel,
         CancellationToken startupCancellation)
     {
-        if (!await TryWarmCanonicalCatalogAsync(
-                viewModel,
-                startupCancellation) ||
-            _isDeferredStartupComplete)
+        if (!await RunRequiredPreloadAsync(viewModel, startupCancellation))
         {
             return;
         }
 
+        await ReportManagedApplicationReadyAsync(startupCancellation);
+        _ = RunVersionDiscoveryAfterReadyAsync(startupCancellation);
+
         try
         {
-            ApplyLaunchPage(viewModel, _launchOptions.Page);
-            _startupTrace.Mark("startup-launch-page.ready");
-            await ApplyDeferredLaunchOptionsAsync(viewModel, _launchOptions, startupCancellation);
-            _startupTrace.Mark("startup-launch-options.ready");
-            await viewModel.MessageCenter.RefreshAfterStartupAsync(startupCancellation);
-            if (viewModel.IsSettingsVisible)
+            await _preloadSession.RunOptionalStagesAsync(
+                new(
+                    () =>
+                    {
+                        ApplyLaunchPage(viewModel, _launchOptions);
+                        _startupTrace.Mark("startup-launch-page.ready");
+                    },
+                    async cancellationToken => RequireStartupPublication(await
+                        viewModel.Reports.LoadReportHistoryAsync(
+                            token => ReportHistoryFileStore.LoadAsync(
+                                _hostServices.LocalFiles,
+                                ReportHistoryFileStore.DefaultHistoryPath,
+                                token),
+                            cancellationToken)),
+                    HasStartupReportStage(_launchOptions)
+                        ? (progress, cancellationToken) => ApplyStartupReportAsync(
+                            viewModel,
+                            _hostServices.LocalFiles,
+                            _launchOptions,
+                            progress,
+                            cancellationToken)
+                        : null,
+                    async cancellationToken =>
+                    {
+                        await viewModel.MessageCenter.RefreshAfterStartupAsync(cancellationToken);
+                        if (viewModel.IsSettingsModalOpen)
+                        {
+                            viewModel.Settings.Refresh(viewModel.Text);
+                        }
+                    },
+                    (progress, isCurrent, cancellationToken) => WarmDeferredShellAsync(
+                        viewModel,
+                        progress,
+                        isCurrent,
+                        cancellationToken),
+                    async (progress, cancellationToken) =>
+                        await viewModel.MessageCenter.RefreshExternalEnvironmentAfterStartupAsync(
+                            progress,
+                            cancellationToken)),
+                startupCancellation);
+            ShellPreloadStageState history = _preloadSession.Stage(ShellPreloadSession.HistoryStageId).State;
+            bool hasStartupReport = HasStartupReportStage(_launchOptions);
+            ShellPreloadStageState report = hasStartupReport
+                ? _preloadSession.Stage(ShellPreloadSession.ReportStageId).State
+                : ShellPreloadStageState.Succeeded;
+            ShellPreloadStageState diagnostics = _preloadSession.Stage(ShellPreloadSession.DiagnosticsStageId).State;
+            ShellPreloadStageState externalEnvironment = _preloadSession.Stage(
+                ShellPreloadSession.ExternalEnvironmentStageId).State;
+            if (history == ShellPreloadStageState.Succeeded &&
+                (!hasStartupReport || report == ShellPreloadStageState.Succeeded))
             {
-                viewModel.Settings.Refresh(viewModel.Text);
+                _startupTrace.Mark("startup-launch-options.ready");
+            }
+            if (diagnostics == ShellPreloadStageState.Succeeded)
+            {
+                _startupTrace.Mark("startup-warmup.catalogs.ready");
             }
 
-            _startupTrace.Mark("startup-warmup.catalogs.ready");
-            await WarmDeferredShellAsync(viewModel, startupCancellation);
-            _isDeferredStartupComplete = true;
-            _ = _startupTrace.Complete("startup-warmup.completed");
+            ShellPreloadStageState[] optionals = [history, report, diagnostics, externalEnvironment,
+                _preloadSession.Stage(ShellPreloadSession.ViewsStageId).State];
+            string terminal = optionals.Any(static state => state is
+                ShellPreloadStageState.Failed or ShellPreloadStageState.DependencyBlocked or
+                ShellPreloadStageState.Pending or ShellPreloadStageState.Running)
+                ? "startup-warmup.failed"
+                : optionals.Contains(ShellPreloadStageState.Cancelled)
+                    ? "startup-warmup.cancelled"
+                    : "startup-warmup.completed";
+            CompleteStartupTrace(terminal);
         }
         catch (OperationCanceledException) when (startupCancellation.IsCancellationRequested)
         {
-            _ = _startupTrace.Complete("startup-warmup.cancelled");
+            CompleteStartupTrace("startup-warmup.cancelled");
         }
         catch (Exception exception)
         {
             Trace.TraceWarning("Deferred shell warm-up did not complete: {0}", exception.Message);
-            _ = _startupTrace.Complete("startup-warmup.failed");
+            CompleteStartupTrace("startup-warmup.failed");
         }
     }
 
-    private async Task<bool> TryWarmCanonicalCatalogAsync(
+    private async Task<bool> RunRequiredPreloadAsync(
         MainWindowViewModel viewModel,
         CancellationToken startupCancellation)
     {
         if (viewModel.WorkflowSession.IsCanonicalCatalogReady)
         {
-            CompleteCatalogLoading();
+            _preloadSession.AdoptReadyCatalog();
             return true;
         }
 
-        if (_isCanonicalCatalogWarmupInProgress)
+        if (_preloadSession.CatalogStage.CurrentAttempt is not null && !_preloadSession.CanRetryCatalog)
         {
             return false;
         }
 
-        _isCanonicalCatalogWarmupInProgress = true;
-        BeginCatalogLoading(
-            viewModel.Text.CatalogLoadingTitle,
-            viewModel.Text.CatalogLoadingDetail,
-            progress: 0);
-        int attempt = ++_catalogLoadingAttempt;
         try
         {
-            CapabilityCatalogReloadResult reload =
-                await CanonicalCatalogStartupCoordinator.LoadAndApplyAsync(
-                    _hostServices.CanonicalCatalogLoader,
-                    (progress, cancellationToken) => ReportCatalogProgressAsync(
-                        viewModel,
-                        progress,
-                        attempt,
-                        cancellationToken),
-                    cancellationToken => ApplyCanonicalCatalogStateAsync(
-                        viewModel,
-                        attempt,
-                        cancellationToken),
-                    startupCancellation);
-
+            CapabilityCatalogReloadResult reload = await _preloadSession.RunCatalogAsync(
+                _hostServices.CanonicalCatalogLoader,
+                async cancellationToken => await Dispatcher.UIThread.InvokeAsync(
+                    viewModel.PublishCanonicalCatalogState,
+                    DispatcherPriority.Render,
+                    cancellationToken),
+                retry: _preloadSession.CatalogStage.CurrentAttempt is not null,
+                startupCancellation);
             if (!reload.Succeeded)
             {
-                throw new InvalidOperationException(string.Join(
-                    Environment.NewLine,
-                    reload.Issues.Select(static issue =>
-                        $"{issue.Code}: {issue.Message}")));
+                _startupTrace.Mark("startup-warmup.catalog-load.failed");
+                return false;
             }
-            CompleteCatalogLoading();
+
             _startupTrace.Mark("startup-warmup.catalog-state.applied");
             return true;
         }
         catch (OperationCanceledException) when (startupCancellation.IsCancellationRequested)
         {
-            CompleteCatalogLoading();
-            _ = _startupTrace.Complete("startup-warmup.cancelled");
+            CompleteStartupTrace("startup-warmup.cancelled");
             return false;
         }
         catch (Exception exception)
         {
-            FailCatalogLoading(
-                viewModel.Text.CatalogLoadingFailedTitle,
-                viewModel.Text.CatalogLoadingFailedDetail,
-                viewModel.Text.RetryLabel);
             Trace.TraceWarning("Canonical catalog warm-up did not complete: {0}", exception.Message);
             _startupTrace.Mark("startup-warmup.catalog-load.failed");
             return false;
         }
-        finally
-        {
-            _isCanonicalCatalogWarmupInProgress = false;
-        }
     }
 
-    private async ValueTask ReportCatalogProgressAsync(
-        MainWindowViewModel viewModel,
-        CanonicalCatalogStartupProgress progress,
-        int attempt,
-        CancellationToken startupCancellation)
+    private Task RetryStartupPreloadAsync()
     {
-        await Dispatcher.UIThread.InvokeAsync(
-            () =>
-            {
-                ApplyCatalogProgress(
-                    _catalogLoading,
-                    viewModel.Text,
-                    _catalogLoadingAttempt,
-                    attempt,
-                    progress);
-            },
-            DispatcherPriority.Render,
-            startupCancellation);
+        return !_isDisposed && DataContext is MainWindowViewModel viewModel
+            ? RunStartupPreloadAsync(viewModel, _startupLoadCancellation.Token)
+            : Task.CompletedTask;
     }
 
-    internal static void ApplyCatalogProgress(
-        ForegroundLoadingState catalogLoading,
+    private void CompleteStartupTrace(string terminal)
+    {
+        _ = _startupTrace.Complete(terminal, _preloadSession.Stages);
+    }
+
+    private Task CancelStartupAsync()
+    {
+        Task drain = _preloadSession.CancelAndDrainAsync();
+        Close();
+        return drain;
+    }
+
+    private void PresentPreloadStage(
+        MainWindowViewModel viewModel,
+        ShellPreloadStageSnapshot stage)
+    {
+        if (!stage.IsRequired)
+        {
+            return;
+        }
+
+        bool succeeded = stage.CurrentAttempt?.State == ShellPreloadStageState.Succeeded;
+        CommitRequiredStagePresentation(
+            succeeded,
+            _isStartupShellEnabled,
+            enabled =>
+            {
+                _isStartupShellEnabled = enabled;
+                ApplyShellInteractionState(viewModel);
+            },
+            () => Dispatcher.UIThread.Post(
+                () => _ = HomeNavigationButton.Focus(NavigationMethod.Tab),
+                DispatcherPriority.Input),
+            () => ApplyPreloadStage(_preloadSession, _preloadLoading, viewModel.Text, stage));
+    }
+
+    internal static void CommitRequiredStagePresentation(
+        bool succeeded,
+        bool shellWasEnabled,
+        Action<bool> setShellEnabled,
+        Action restoreFocus,
+        Action presentLoadingState)
+    {
+        setShellEnabled(succeeded);
+        if (succeeded && !shellWasEnabled)
+        {
+            restoreFocus();
+        }
+        presentLoadingState();
+    }
+
+    internal static void ApplyPreloadStage(
+        ShellPreloadSession session,
+        ForegroundLoadingState loading,
         ShellTextResources text,
-        int currentAttempt,
-        int attempt,
-        CanonicalCatalogStartupProgress progress)
+        ShellPreloadStageSnapshot stage)
     {
-        ArgumentNullException.ThrowIfNull(catalogLoading);
+        ArgumentNullException.ThrowIfNull(session);
+        ArgumentNullException.ThrowIfNull(loading);
         ArgumentNullException.ThrowIfNull(text);
-        if (attempt != currentAttempt ||
-            !catalogLoading.IsRunning ||
-            !double.IsFinite(progress.Value) ||
-            progress.Value is < 0 or > 1 ||
-            (catalogLoading.Progress is { } current && progress.Value < current))
+        ShellPreloadAttemptSnapshot? attempt = stage.CurrentAttempt;
+        if (attempt is null || session.CatalogStage.CurrentAttempt?.Identity != attempt.Identity)
         {
             return;
         }
 
-        string detail = progress.Phase switch
+        string prefix = $"{stage.Index} / {stage.Count} · ";
+        if (attempt.State == ShellPreloadStageState.Failed)
         {
-            CanonicalCatalogStartupPhase.Dispatched => text.CatalogLoadingDetail,
-            CanonicalCatalogStartupPhase.MaterializingRoutes => text.CatalogMaterializingDetail,
-            CanonicalCatalogStartupPhase.ApplyingState => text.CatalogApplyingDetail,
-            CanonicalCatalogStartupPhase.Ready => text.CatalogReadyDetail,
-            _ => throw new InvalidOperationException("Unknown catalog startup phase."),
-        };
-        catalogLoading.ReportProgress(progress.Value, detail);
-    }
-
-    private async ValueTask ApplyCanonicalCatalogStateAsync(
-        MainWindowViewModel viewModel,
-        int attempt,
-        CancellationToken startupCancellation)
-    {
-        await Dispatcher.UIThread.InvokeAsync(
-            () =>
-            {
-                if (attempt == _catalogLoadingAttempt && _catalogLoading.IsRunning)
-                {
-                    viewModel.PublishCanonicalCatalogState();
-                }
-            },
-            DispatcherPriority.Render,
-            startupCancellation);
-    }
-
-    private async void CatalogLoadingSurface_OnRetryRequested(object? sender, EventArgs e)
-    {
-        if (_isDisposed || DataContext is not MainWindowViewModel viewModel)
+            loading.Fail(
+                text.CatalogLoadingFailedTitle,
+                prefix + text.CatalogLoadingFailedDetail,
+                text.RetryLabel,
+                text.CancelStartupLabel);
+            return;
+        }
+        if (attempt.State is ShellPreloadStageState.Succeeded or ShellPreloadStageState.Cancelled)
         {
+            loading.Complete();
             return;
         }
 
-        await ContinueStartupAsync(
-            viewModel,
-            _startupLoadCancellation.Token);
+        string phase = attempt.Progress == 1
+            ? text.CatalogApplyingDetail
+            : attempt.Progress is > 0 ? text.CatalogMaterializingDetail : text.CatalogLoadingDetail;
+        string detail = prefix + phase;
+        double progress = attempt.Progress ?? 0;
+        if (!loading.IsRunning)
+        {
+            loading.Begin(text.CatalogLoadingTitle, detail, progress, text.CancelStartupLabel);
+            return;
+        }
+
+        bool announce = detail != loading.Detail ||
+            (int)(progress * 10) != (int)((loading.Progress ?? 0) * 10);
+        loading.ReportProgress(progress, detail, announce);
+    }
+
+    private async void OptionalPreloadRetryButton_OnClick(object? sender, RoutedEventArgs e)
+    {
+        if (sender is Button { Tag: string stageId })
+        {
+            Task<bool> retry = _preloadSession.TryRetryOptionalAsync(stageId, _startupLoadCancellation.Token);
+            _ = OptionalPreloadFocusTarget.Focus(NavigationMethod.Tab);
+            _ = await retry;
+        }
+    }
+
+    private void OptionalPreloadSkipButton_OnClick(object? sender, RoutedEventArgs e)
+    {
+        if (sender is Button { Tag: string stageId })
+        {
+            _ = _preloadSession.TrySkipOptional(stageId);
+            _ = OptionalPreloadFocusTarget.Focus(NavigationMethod.Tab);
+        }
+    }
+
+    private async void OptionalPreloadCancelButton_OnClick(object? sender, RoutedEventArgs e)
+    {
+        Task cancellation = _preloadSession.CancelOptionalsAndDrainAsync();
+        _ = OptionalPreloadFocusTarget.Focus(NavigationMethod.Tab);
+        await cancellation;
     }
 
     private void ViewModel_OnPropertyChanged(object? sender, PropertyChangedEventArgs e)
@@ -420,6 +521,13 @@ public sealed partial class MainWindow : Window, IDisposable
         }
 
         ApplyDeferredShellContent(viewModel);
+        RetryOutputDeliveryReturnFocus();
+
+        if (e.PropertyName is nameof(MainWindowViewModel.IsSettingsModalOpen) or
+            nameof(MainWindowViewModel.OutputDelivery))
+        {
+            ApplyShellInteractionState(viewModel);
+        }
 
         if (e.PropertyName == nameof(MainWindowViewModel.SelectedTheme))
         {
@@ -429,7 +537,7 @@ public sealed partial class MainWindow : Window, IDisposable
         if (e.PropertyName is nameof(MainWindowViewModel.SelectedLanguage) or
             nameof(MainWindowViewModel.IsReducedMotionEnabled))
         {
-            RefreshCatalogLoadingPresentation(viewModel);
+            RefreshPreloadPresentation(viewModel);
         }
 
         if (IsShellPreferenceProperty(e.PropertyName))
@@ -437,6 +545,57 @@ public sealed partial class MainWindow : Window, IDisposable
             _shellPreferencePersistence.Queue(viewModel.ExportShellPreferences());
         }
 
+    }
+
+    private void ApplyShellInteractionState(MainWindowViewModel viewModel)
+    {
+        ApplyShellInteractionState(
+            ShellInteractionHost,
+            _isStartupShellEnabled,
+            viewModel);
+    }
+
+    internal static void ApplyShellInteractionState(
+        Control shellInteractionHost,
+        bool isStartupShellEnabled,
+        MainWindowViewModel viewModel)
+    {
+        ArgumentNullException.ThrowIfNull(shellInteractionHost);
+        ArgumentNullException.ThrowIfNull(viewModel);
+        bool interactive = isStartupShellEnabled &&
+            !viewModel.IsSettingsModalOpen &&
+            !viewModel.OutputDelivery.IsOpen;
+        shellInteractionHost.IsEnabled = interactive;
+        shellInteractionHost.IsHitTestVisible = interactive;
+    }
+
+    private void CaptureOutputDeliveryReturnFocus(
+        MainWindowViewModel viewModel,
+        object? triggeringControl)
+    {
+        if (triggeringControl is not IInputElement returnFocus)
+        {
+            return;
+        }
+
+        Dispatcher.UIThread.Post(
+            () => OutputDeliveryConfirmationModalHost
+                .GetVisualDescendants()
+                .OfType<Views.OutputDeliveryConfirmationModal>()
+                .FirstOrDefault()
+                ?.CaptureReturnFocus(
+                    returnFocus,
+                    () => viewModel.CanRestoreOutputDeliveryFocus),
+            DispatcherPriority.Input);
+    }
+
+    private void RetryOutputDeliveryReturnFocus()
+    {
+        OutputDeliveryConfirmationModalHost
+            .GetVisualDescendants()
+            .OfType<Views.OutputDeliveryConfirmationModal>()
+            .FirstOrDefault()
+            ?.RetryPendingFocusRestore();
     }
 
     private void Reports_OnPropertyChanged(object? sender, PropertyChangedEventArgs e)
@@ -482,18 +641,15 @@ public sealed partial class MainWindow : Window, IDisposable
     {
         LoadContent(DeviceContextHost, viewModel.IsDeviceContextVisible, viewModel);
         LoadContent(HomePageHost, viewModel.IsHomeVisible, viewModel);
-        LoadContent(SettingsPageHost, viewModel.IsSettingsVisible, viewModel);
+        LoadContent(SettingsModalHost, viewModel.IsSettingsModalOpen, viewModel);
         LoadContent(HexEditorPageHost, viewModel.IsHexEditorVisible, viewModel);
         LoadContent(ReplacePageHost, viewModel.IsReplaceVisible, viewModel.Replace);
         LoadContent(MergePageHost, viewModel.IsMergeVisible, viewModel.Merge);
         LoadContent(ReportToastHost, viewModel.Reports.HasReportToast, viewModel.Reports);
+        LoadContent(OutputDeliveryConfirmationModalHost,
+            viewModel.OutputDelivery.IsOpen,
+            viewModel.OutputDelivery);
         LoadContent(ReplaceSelectionModalHost, viewModel.Replace.IsReplaceSelectionModalOpen, viewModel.Replace);
-        LoadContent(CtrlRamFirmwareVersionModalHost,
-            viewModel.Replace.IsCtrlRamFirmwareVersionModalOpen,
-            viewModel.Replace);
-        LoadContent(AbAFlashCodeDeliveryPromptModalHost,
-            viewModel.Merge.IsAbAFlashCodeDeliveryPromptOpen,
-            viewModel.Merge);
         LoadContent(WorkflowContextSetupModalHost, viewModel.WorkflowSession.IsWorkflowContextModalOpen, viewModel.WorkflowSession);
         LoadContent(FirmwareIcMismatchModalHost, viewModel.WorkflowSession.IsFirmwareIcMismatchModalOpen, viewModel.WorkflowSession);
         LoadContent(FirmwareNumberMismatchModalHost, viewModel.WorkflowSession.IsFirmwareNumberMismatchModalOpen, viewModel.WorkflowSession);
@@ -521,49 +677,16 @@ public sealed partial class MainWindow : Window, IDisposable
         };
     }
 
-    private void RefreshCatalogLoadingPresentation(MainWindowViewModel viewModel)
+    private void RefreshPreloadPresentation(MainWindowViewModel viewModel)
     {
-        _catalogLoading.SetReducedMotion(viewModel.IsReducedMotionEnabled);
-        if (_catalogLoading.IsRunning)
-        {
-            _catalogLoading.Begin(
-                viewModel.Text.CatalogLoadingTitle,
-                viewModel.Text.CatalogLoadingDetail,
-                _catalogLoading.Progress);
-        }
-        else if (_catalogLoading.HasFailed)
-        {
-            _catalogLoading.Fail(
-                viewModel.Text.CatalogLoadingFailedTitle,
-                viewModel.Text.CatalogLoadingFailedDetail,
-                viewModel.Text.RetryLabel);
-        }
+        _preloadLoading.SetReducedMotion(viewModel.IsReducedMotionEnabled);
+        _preloadSession.SetReducedMotion(viewModel.IsReducedMotionEnabled);
+        _preloadSession.Relocalize(viewModel.Text);
+        ApplyPreloadStage(
+            _preloadSession,
+            _preloadLoading,
+            viewModel.Text,
+            _preloadSession.CatalogStage);
     }
 
-    private void BeginCatalogLoading(
-        string title,
-        string detail,
-        double? progress)
-    {
-        ShellInteractionHost.IsEnabled = false;
-        _catalogLoading.Begin(title, detail, progress);
-    }
-
-    private void FailCatalogLoading(
-        string title,
-        string detail,
-        string retryLabel)
-    {
-        ShellInteractionHost.IsEnabled = false;
-        _catalogLoading.Fail(title, detail, retryLabel);
-    }
-
-    private void CompleteCatalogLoading()
-    {
-        _catalogLoading.Complete();
-        ShellInteractionHost.IsEnabled = true;
-        Dispatcher.UIThread.Post(
-            () => _ = HomeNavigationButton.Focus(NavigationMethod.Tab),
-            DispatcherPriority.Input);
-    }
 }

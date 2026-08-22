@@ -149,7 +149,8 @@ public interface IGeneralAuthoring
         AuthoringSessionState session,
         string icId,
         GeneralMergeDraftState draft,
-        CancellationToken cancellationToken);
+        CancellationToken cancellationToken,
+        IProgress<AuthoringInspectionProgress>? progress = null);
 
     /// <summary>Prepares one exact General Replace accepted session.</summary>
     ValueTask<GeneralAuthoringSessionPreparation> PrepareReplaceSessionAsync(
@@ -158,7 +159,8 @@ public interface IGeneralAuthoring
         string number,
         string referencePath,
         GeneralMappingDraftState draft,
-        CancellationToken cancellationToken);
+        CancellationToken cancellationToken,
+        IProgress<AuthoringInspectionProgress>? progress = null);
 }
 
 /// <summary>Focused trusted Saved Rule v2 authoring operations.</summary>
@@ -260,19 +262,30 @@ public sealed record CtrlRamAuthoringSessionPreparation(
     public bool Succeeded => AcceptedSession is not null && Issues.Count == 0;
 }
 
+/// <summary>Truthful completed and total work reported by selected-file inspection.</summary>
+public readonly record struct AuthoringInspectionProgress(int CompletedWork, int TotalWork);
+
 /// <summary>Immutable firmware inspection operations.</summary>
 public interface IFirmwareInspection
 {
-    /// <summary>Reads FWConfig metadata and the adapter-owned file identity from one stable observation.</summary>
-    FirmwareConfigMetadataReadResult ReadFirmwareConfigMetadata(string icId, string path);
-
-    /// <summary>Inspects a distinct-path batch once and reports adapter-owned path stability.</summary>
-    FirmwareInspectionBatchResult InspectFirmwareBatch(
+    /// <summary>Reads FWConfig metadata from one cancellable content-authoritative observation.</summary>
+    ValueTask<FirmwareConfigMetadataReadResult> ReadFirmwareConfigMetadataAsync(
         string icId,
-        IReadOnlyList<FirmwareInspectionSnapshotInput> inputs);
+        string path,
+        CancellationToken cancellationToken);
 
-    /// <summary>Checks whether a path still has the identity retained by an accepted UI lease.</summary>
-    bool IsFirmwareFileIdentityCurrent(string path, FirmwareFileIdentity identity);
+    /// <summary>Inspects every distinct path once and reports content-authoritative stability.</summary>
+    ValueTask<FirmwareInspectionBatchResult> InspectFirmwareBatchAsync(
+        string icId,
+        IReadOnlyList<FirmwareInspectionSnapshotInput> inputs,
+        CancellationToken cancellationToken,
+        IProgress<AuthoringInspectionProgress>? progress = null);
+
+    /// <summary>Checks whether a fresh complete read still has an accepted content identity.</summary>
+    ValueTask<bool> IsFirmwareContentCurrentAsync(
+        string path,
+        FileStamp identity,
+        CancellationToken cancellationToken);
 
     /// <summary>Projects CtrlRAM display from an already-inspected base.</summary>
     CtrlRamInspectionDisplay ProjectCtrlRamInspectionDisplay(
@@ -288,6 +301,15 @@ public interface ICompositionOutputNaming
     CompositionOutputPreparation ResolveAcceptedOutput(
         ActiveSessionSnapshot acceptedSession,
         CtrlRamFirmwareVersionDraftState? ctrlRamVersionEdit = null);
+
+    /// <summary>Resolves one editable bundle default from the same accepted output-name facts and UTC instant.</summary>
+    CompositionOutputBundleProposal ResolveAcceptedBundleProposal(
+        ActiveSessionSnapshot acceptedSession,
+        CtrlRamFirmwareVersionDraftState? ctrlRamVersionEdit = null);
+
+    /// <summary>Validates one edited prepared destination through the shared platform policy.</summary>
+    CompositionOutputBundleDestinationValidation ValidateBundleDestination(
+        CompositionOutputBundleIntent intent);
 
     /// <summary>Resolves one AB automatic output name and its compiled optional deliveries without execution.</summary>
     ValueTask<CompositionOutputPreparation> PrepareAutomaticOutputAsync(

@@ -4,7 +4,7 @@ using NvtFwCombiner.Domain.Composition;
 namespace NvtFwCombiner.Presentation.Avalonia.ViewModels;
 
 /// <summary>Cancelable device-context draft used before a Home workflow entry is opened.</summary>
-public sealed partial class WorkflowContextSetupViewModel : ObservableObject
+internal sealed partial class WorkflowContextSetupViewModel : ObservableObject
 {
     private readonly PresentationCompositionServices _compositionServices;
 
@@ -14,18 +14,14 @@ public sealed partial class WorkflowContextSetupViewModel : ObservableObject
             throw new ArgumentNullException(nameof(compositionServices));
     }
 
-    /// <summary>Gets available IC identifiers.</summary>
     public IReadOnlyList<string> IcChoices { get; private set; } = [];
 
-    /// <summary>Gets whether this workflow requires an IC-count choice.</summary>
     [ObservableProperty]
     public partial bool IsNumberVisible { get; set; }
 
-    /// <summary>Gets or sets the draft IC identifier.</summary>
     [ObservableProperty]
     public partial string SelectedIc { get; set; } = string.Empty;
 
-    /// <summary>Gets selectable grouped IC-count choices for the draft IC.</summary>
     [ObservableProperty]
     public partial IReadOnlyList<IcNumberChoiceViewModel> NumberChoices { get; set; } = [];
 
@@ -33,7 +29,6 @@ public sealed partial class WorkflowContextSetupViewModel : ObservableObject
     [ObservableProperty]
     public partial string SelectedNumber { get; set; } = IcNumberSelectionTokens.SingleChip;
 
-    /// <summary>Gets or sets the selected grouped IC-count choice.</summary>
     public IcNumberChoiceViewModel? SelectedNumberChoice
     {
         get => NumberChoices.FirstOrDefault(choice =>
@@ -47,7 +42,6 @@ public sealed partial class WorkflowContextSetupViewModel : ObservableObject
         }
     }
 
-    /// <summary>Resets the independent draft from the active shell context.</summary>
     public void Configure(
         string icId,
         string number,

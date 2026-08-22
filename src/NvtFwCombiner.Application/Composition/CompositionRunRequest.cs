@@ -105,6 +105,12 @@ public sealed class CompositionRunRequest
     /// <summary>Publication-bound capability that owns report metadata for this exact compilation.</summary>
     public ResolvedCapability? ResolvedCapability { get; }
 
+    /// <summary>Prepared canonical bundle name captured from the exact accepted naming publication.</summary>
+    internal OutputNameResolution? PreparedOutputName { get; set; }
+
+    /// <summary>Exact prepared bundle source and receipt expectation.</summary>
+    internal CompositionExecutionBundleDelivery? BundleDelivery { get; set; }
+
     /// <summary>Returns a copy of this request with a preview token approved for build.</summary>
     public CompositionRunRequest WithApprovedPreviewToken(string previewToken)
     {

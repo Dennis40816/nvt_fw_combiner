@@ -5,6 +5,8 @@
   <Application.Styles>
     <FluentTheme />
     <StyleInclude Source="avares://NvtFwCombiner.Presentation.Avalonia/Styles/MainWindowControlStyles.axaml" />
+    <StyleInclude Source="avares://NvtFwCombiner.Presentation.Avalonia/Styles/MessageCenterStyles.axaml" />
+    <StyleInclude Source="avares://NvtFwCombiner.Presentation.Avalonia/Styles/SettingsVersionStyles.axaml" />
     <StyleInclude Source="avares://NvtFwCombiner.Presentation.Avalonia/Styles/MemoryCoverageStyles.axaml" />
     <StyleInclude Source="avares://NvtFwCombiner.Presentation.Avalonia/Styles/FirmwareSlotExperienceStyles.axaml" />
   </Application.Styles>

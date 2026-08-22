@@ -7,6 +7,31 @@ namespace NvtFwCombiner.UiSmoke.Tests;
 
 public sealed partial class DpReplaceWorkflowTests
 {
+    /// <summary>Readiness refresh tolerates a slot collection change raised by a slot projection update.</summary>
+    [Fact]
+    public void DpReplaceReadinessUsesOneSlotSnapshotDuringProjection()
+    {
+        MainWindowViewModel viewModel = PresentationTestHost.CreateViewModel();
+        viewModel.WorkflowSession.SelectedIc = "NT51928";
+        OpenReplace(viewModel, ExperienceIds.DpReplace);
+        FirmwareSlotViewModel firstInput = viewModel.Replace.ReplaceSlots.First(slot =>
+            !ReferenceEquals(slot, viewModel.Replace.ReplaceBaseSlot));
+        firstInput.ClearSelectionReadiness();
+        bool collectionChanged = false;
+        firstInput.PropertyChanged += (_, _) =>
+        {
+            if (!collectionChanged)
+            {
+                collectionChanged = true;
+                viewModel.Replace.ReplaceSlots.RemoveAt(viewModel.Replace.ReplaceSlots.Count - 1);
+            }
+        };
+
+        viewModel.Replace.NotifyCommandStateChanged();
+
+        Assert.True(collectionChanged);
+    }
+
     /// <summary>
     /// Keeps NT51928 DP Replace Build and LDC applicability on the Application-owned
     /// reference-capacity truth table.
@@ -98,8 +123,8 @@ public sealed partial class DpReplaceWorkflowTests
 
         if (referenceLength == 0)
         {
-            Assert.Equal("Pending input", ldc.SelectionReadinessLabel);
-            Assert.Contains("Load Reference first", ldc.SelectionReadinessDetail, StringComparison.Ordinal);
+            Assert.Equal("Waiting for Reference FlashCode", ldc.SelectionReadinessLabel);
+            Assert.Contains("Load Reference FlashCode first", ldc.SelectionReadinessDetail, StringComparison.Ordinal);
             Assert.Equal(FirmwareSlotSemanticState.Checking, ldc.SemanticState);
             Assert.True(ldc.IsSemanticStatePendingInput);
             Assert.Equal(ldc.SelectionReadinessDetail, ldc.SemanticStateDetail);
@@ -167,6 +192,7 @@ public sealed partial class DpReplaceWorkflowTests
         Assert.Equal("Verified", initialCode.SemanticStateLabel);
         Assert.False(initialCode.BlocksBuild);
         Assert.True(viewModel.Replace.CanBuildReplace);
+        AssertInspectionTerminal(viewModel.Replace.Inspection);
     }
 
     /// <summary>A selected source shorter than the compiled view is a terminal blocking error.</summary>
@@ -245,20 +271,20 @@ public sealed partial class DpReplaceWorkflowTests
 
     /// <summary>Standard Merge and CtrlRAM Replace use the same localized semantic card.</summary>
     [Fact]
-    public void StandardMergeAndCtrlRamReplaceUseSharedSlotPresentation()
+    public void StandardMergeAndCtrlRamReplaceStartWithTheSharedEmptyFactProjection()
     {
         MainWindowViewModel viewModel = PresentationTestHost.CreateViewModel();
 
         OpenReplace(viewModel, ExperienceIds.CtrlRamReplace);
 
         Assert.All(viewModel.Replace.ReplaceSlots, slot =>
-            Assert.Equal(viewModel.Text.FirmwareSlotShowDetailsLabel, slot.FirmwareFactsDisclosureLabel));
+            Assert.Empty(slot.PrimaryFirmwareFacts));
 
         viewModel.Merge.SelectedMergeMode = ExperienceIds.StandardMerge;
         viewModel.ShowMergeCommand.Execute(null);
 
         Assert.All(viewModel.Merge.MergeSlots, slot =>
-            Assert.Equal(viewModel.Text.FirmwareSlotShowDetailsLabel, slot.FirmwareFactsDisclosureLabel));
+            Assert.Empty(slot.PrimaryFirmwareFacts));
     }
 
     /// <summary>Localizes the typed LDC state and its next action without changing its meaning.</summary>
@@ -273,8 +299,18 @@ public sealed partial class DpReplaceWorkflowTests
         FirmwareSlotViewModel ldc = Assert.Single(
             viewModel.Replace.ReplaceSlots,
             static slot => slot.SlotId == CompositionSlotIds.ReplaceLdc);
-        Assert.Equal("Pending input", ldc.SelectionReadinessLabel);
-        Assert.Contains("Load Reference first", ldc.SelectionReadinessDetail, StringComparison.Ordinal);
+        Assert.Equal("Waiting for Reference FlashCode", ldc.SelectionReadinessLabel);
+        Assert.Contains("Load Reference FlashCode first", ldc.SelectionReadinessDetail, StringComparison.Ordinal);
+
+        viewModel.SelectedLanguage = "Traditional Chinese";
+
+        Assert.Equal("等待 Reference FlashCode", ldc.SelectionReadinessLabel);
+        Assert.Contains("請先載入 Reference FlashCode", ldc.SelectionReadinessDetail, StringComparison.Ordinal);
+
+        viewModel.SelectedLanguage = "English";
+        ldc = Assert.Single(
+            viewModel.Replace.ReplaceSlots,
+            static slot => slot.SlotId == CompositionSlotIds.ReplaceLdc);
 
         viewModel.SetSlotFile(
             CompositionSlotIds.ReplaceBase,
@@ -283,6 +319,9 @@ public sealed partial class DpReplaceWorkflowTests
         Assert.Equal("Not applicable", ldc.SelectionReadinessLabel);
 
         viewModel.SelectedLanguage = "Traditional Chinese";
+        ldc = Assert.Single(
+            viewModel.Replace.ReplaceSlots,
+            static slot => slot.SlotId == CompositionSlotIds.ReplaceLdc);
 
         Assert.Equal("不適用", ldc.SelectionReadinessLabel);
         Assert.Equal(
@@ -325,9 +364,9 @@ public sealed partial class DpReplaceWorkflowTests
             initialCode.InputInspectionStatus);
     }
 
-    /// <summary>Confirmed navigation clears terminal input health together with the selected DP files.</summary>
+    /// <summary>Settings preserves terminal input health together with the selected DP files.</summary>
     [Fact]
-    public void DpReplaceNavigationClearRemovesTerminalInspection()
+    public void SettingsModalPreservesDpReplaceTerminalInspection()
     {
         using var workspace = TempWorkspace.Create("nvt-fw-combiner-ui-dp-health-clear");
         MainWindowViewModel viewModel = PresentationTestHost.CreateViewModel();
@@ -341,14 +380,23 @@ public sealed partial class DpReplaceWorkflowTests
             workspace.Write("initial-code.bin", CreatePattern(0x40000, 0x41)));
         Assert.Contains(viewModel.Replace.ReplaceSlots, static slot => slot.InputInspectionSeverity is not null);
 
-        viewModel.ShowSettingsCommand.Execute(null);
-        viewModel.ConfirmNavigationAndClearCommand.Execute(null);
+        (string SlotId, FirmwareInputInspectionSeverity? InputInspectionSeverity, string InputInspectionStatus)[] health =
+        [
+            .. viewModel.Replace.ReplaceSlots.Select(slot => (
+                slot.SlotId,
+                slot.InputInspectionSeverity,
+                slot.InputInspectionStatus)),
+        ];
 
-        Assert.All(viewModel.Replace.ReplaceSlots, static slot =>
-        {
-            Assert.Null(slot.InputInspectionSeverity);
-            Assert.Equal(string.Empty, slot.InputInspectionStatus);
-        });
+        viewModel.OpenSettingsCommand.Execute(null);
+        viewModel.CloseSettingsCommand.Execute(null);
+
+        Assert.Equal(
+            health,
+            viewModel.Replace.ReplaceSlots.Select(slot => (
+                slot.SlotId,
+                slot.InputInspectionSeverity,
+                slot.InputInspectionStatus)));
     }
 
     /// <summary>An unresolved selection snapshot fails closed instead of falling back to optional-slot heuristics.</summary>

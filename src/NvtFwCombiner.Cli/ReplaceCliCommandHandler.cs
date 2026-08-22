@@ -37,6 +37,8 @@ internal static partial class ReplaceCliCommandHandler
             "--base",
             "--output",
             "--report",
+            CliBundleOptions.ParentOption,
+            CliBundleOptions.NameOption,
         ];
         List<string> repeatableValueOptions = [];
         switch (command)
@@ -66,6 +68,11 @@ internal static partial class ReplaceCliCommandHandler
                 [],
                 error,
                 out ParsedCliOptions options))
+        {
+            return UsageError;
+        }
+
+        if (!CliBundleOptions.TryValidateCombination(action, options.Values, error))
         {
             return UsageError;
         }

@@ -7,7 +7,7 @@ namespace NvtFwCombiner.Bootstrap.Tests;
 public sealed class Nt51950Nt51951V2StandardMergeGoldenTests
 {
     private const string BundleDirectory = "nt51950-nt51951-standard-merge";
-    private const string BundleContentHash = "56e39af41aaed8abad5da0f49274053ad2fb619949b53efd9497ed31a10ee99b";
+    private const string BundleContentHash = "d62b6b3f83a2350724de476d582d3a8de3483366134c39d94f144b77ae1402d7";
     private const int TpOverlayStart = 0x0A000;
     private const int TpOverlayLength = 0x2D000;
     private const int CustomerInfoStart = 0x37000;
@@ -58,8 +58,8 @@ public sealed class Nt51950Nt51951V2StandardMergeGoldenTests
 
     /// <summary>Runs the two owner-approved DP Perspective fixtures through the V2 compiler and shared engine.</summary>
     [Theory]
-    [InlineData("NT51950", "nt51950-standard-merge-dp-perspective", "51950", "nt51950-standard-merge-dp-perspective.bin")]
-    [InlineData("NT51951", "nt51951-standard-merge-dp-perspective", "51951", "nt51951-standard-merge-dp-perspective.bin")]
+    [InlineData("NT51950", "nt51950-standard-merge-dp-perspective", "51950", "{ic}_FlashCode_D{dp-version}T{tp-version}_{date}.bin")]
+    [InlineData("NT51951", "nt51951-standard-merge-dp-perspective", "51951", "{ic}_FlashCode_D{dp-version}T{tp-version}_{date}.bin")]
     public async Task TrustedV2BundleMatchesOwnerApprovedDpPerspectiveGolden(
         string icId,
         string profileId,
@@ -74,7 +74,7 @@ public sealed class Nt51950Nt51951V2StandardMergeGoldenTests
         CompiledComposition v2 = V2StandardMergeGoldenTestSupport.CompileV2(
             V2StandardMergeGoldenTestSupport.LoadDeployedCatalog(BundleDirectory, BundleContentHash),
             profileId,
-            "0.6.0",
+            "0.7.0",
             icId,
             capacity);
 
@@ -106,7 +106,7 @@ public sealed class Nt51950Nt51951V2StandardMergeGoldenTests
         CompiledComposition v2 = V2StandardMergeGoldenTestSupport.CompileV2(
             V2StandardMergeGoldenTestSupport.LoadDeployedCatalog(BundleDirectory, BundleContentHash),
             profileId,
-            "0.6.0",
+            "0.7.0",
             icId,
             capacity);
 
@@ -133,7 +133,7 @@ public sealed class Nt51950Nt51951V2StandardMergeGoldenTests
         CompiledComposition v2 = V2StandardMergeGoldenTestSupport.CompileV2(
             V2StandardMergeGoldenTestSupport.LoadDeployedCatalog(BundleDirectory, BundleContentHash),
             "nt51950-standard-merge-dp-perspective",
-            "0.6.0",
+            "0.7.0",
             "NT51950",
             dp.LongLength);
 

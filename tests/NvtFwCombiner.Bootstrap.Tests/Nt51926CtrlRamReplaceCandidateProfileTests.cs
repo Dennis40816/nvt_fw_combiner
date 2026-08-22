@@ -6,6 +6,7 @@ using NvtFwCombiner.Application.Ports;
 using NvtFwCombiner.Domain.Composition;
 using NvtFwCombiner.Domain.Firmware;
 using NvtFwCombiner.Profiles.V2;
+using NvtFwCombiner.Infrastructure.ExternalTools;
 using NvtFwCombiner.TestSupport;
 
 namespace NvtFwCombiner.Bootstrap.Tests;
@@ -453,7 +454,8 @@ public sealed class Nt51926CtrlRamReplaceCandidateProfileTests
         Dictionary<string, byte[]> candidateInputs,
         string runId)
     {
-        ExternalProcessorGenerationLease processorLease = ExternalProcessorFactory.AcquireCurrent();
+        ExternalProcessorEnvironmentLease processorLease =
+            ExternalProcessorEnvironmentTestSupport.AcquireCurrent();
         IExternalProcessor processor = Assert.IsType<IExternalProcessor>(
             processorLease.Processor,
             exactMatch: false);

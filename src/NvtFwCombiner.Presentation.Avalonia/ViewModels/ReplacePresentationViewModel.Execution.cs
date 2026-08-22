@@ -5,19 +5,16 @@ using NvtFwCombiner.Domain.Composition;
 
 namespace NvtFwCombiner.Presentation.Avalonia.ViewModels;
 
-public sealed partial class ReplacePresentationViewModel
+internal sealed partial class ReplacePresentationViewModel
 {
-    /// <summary>Gets short Replace memory-map summary text.</summary>
     public string ReplaceMemorySummary => Text.GetReplaceMemorySummary(SelectedReplaceMode);
 
-    /// <summary>Status shown in the replace inspector.</summary>
-    public string ReplaceReadinessStatus => _stateBindings.IsFirmwareInspectionLoading()
+    public string ReplaceReadinessStatus => Inspection.IsRunning
         ? Text.FirmwareInspectionLoadingStatus
         : IsSelectedReplaceModeSupported
             ? Text.GetReplaceReadinessStatus(SelectedReplaceMode, CanRunReplace())
             : Text.GetReplaceNotSupportedStatus(SelectedIc);
 
-    /// <summary>Builds Replace output to a user-selected path.</summary>
     public Task BuildReplaceAsync(
         string outputPath,
         CtrlRamFirmwareVersionDraftState? ctrlRamFirmwareVersionEdit = null)
@@ -26,12 +23,124 @@ public sealed partial class ReplacePresentationViewModel
         return RunBuildReplaceAsync(outputPath, ctrlRamFirmwareVersionEdit);
     }
 
+    private async Task RequestBuildFromCommandAsync()
+    {
+        if (IsCtrlRamReplaceModeSelected)
+        {
+            _ = await RequestCtrlRamBuildSettingsAsync();
+            return;
+        }
+
+        await RequestBuildOutputDeliveryAsync();
+    }
+
+    internal Task RequestBuildOutputDeliveryAsync(
+        CtrlRamFirmwareVersionDraftState? ctrlRamFirmwareVersionEdit = null,
+        ActiveSessionSnapshot? exactSession = null)
+    {
+        ActiveSessionSnapshot session = exactSession ?? SelectedReplaceMode switch
+        {
+            DpReplaceMode => _dpReplaceSession.CurrentSnapshot,
+            CtrlRamReplaceMode => _ctrlRamReplaceSession.CurrentSnapshot,
+            GeneralReplaceMode => _generalReplaceSession.CurrentSnapshot,
+            _ => null,
+        } ?? throw new InvalidOperationException(
+            "Build output confirmation requires one accepted Replace session.");
+        CompositionOutputBundleProposal proposal =
+            _compositionServices.OutputNaming.ResolveAcceptedBundleProposal(
+                session,
+                exactSession is null ? ctrlRamFirmwareVersionEdit : null);
+        CloseSelectionForRun();
+        _stateBindings.OutputDelivery.Open(new OutputDeliveryRequest(
+            proposal,
+            IsReplaceOutput: true,
+            AdditionalDelivery: null,
+            () => IsAcceptedReplaceSessionCurrent(session),
+            CtrlRamOptions: IsCtrlRamReplaceModeSelected ? this : null,
+            PrepareModeSpecificAsync: IsCtrlRamReplaceModeSelected && exactSession is null
+                ? PrepareCtrlRamBuildSettingsAsync
+                : null,
+            Cancel: IsCtrlRamReplaceModeSelected ? CloseCtrlRamFirmwareVersionModal : null,
+            decision => RunReplaceAsync(
+                build: true,
+                decision.OutputPath,
+                ctrlRamFirmwareVersionEdit,
+                decision.OutputPathUsesAutomaticName,
+                decision.BundleIntent,
+                exactSession)),
+            preserveDeliveryState: exactSession is not null);
+        return Task.CompletedTask;
+    }
+
+    internal async Task<bool> RequestCtrlRamBuildSettingsAsync()
+    {
+        if (!await TryOpenCtrlRamFirmwareVersionModalAsync())
+        {
+            return false;
+        }
+
+        await RequestBuildOutputDeliveryAsync();
+        return true;
+    }
+
+    private async Task<bool> PrepareCtrlRamBuildSettingsAsync()
+    {
+        (bool succeeded, CtrlRamFirmwareVersionDraftState? edit) =
+            await TryCreateCtrlRamFirmwareVersionEditAsync();
+        return succeeded && await RequestCtrlRamBuildOutputDeliveryAsync(edit);
+    }
+
+    private bool IsAcceptedReplaceSessionCurrent(ActiveSessionSnapshot acceptedSession)
+    {
+        ActiveSessionSnapshot? current = SelectedReplaceMode switch
+        {
+            DpReplaceMode => _dpReplaceSession.CurrentSnapshot,
+            CtrlRamReplaceMode => _ctrlRamReplaceSession.CurrentSnapshot,
+            GeneralReplaceMode => _generalReplaceSession.CurrentSnapshot,
+            _ => null,
+        };
+        return ReferenceEquals(current, acceptedSession);
+    }
+
+    internal async Task<bool> RequestCtrlRamBuildOutputDeliveryAsync(
+        CtrlRamFirmwareVersionDraftState? edit)
+    {
+        if (!IsCtrlRamReplaceModeSelected ||
+            !await IsCtrlRamFirmwareVersionBuildConfirmationCurrentAsync())
+        {
+            return false;
+        }
+
+        CtrlRamAuthoringTransitionResult transition =
+            _compositionServices.CtrlRamAuthoring.TransitionFirmwareVersionCompilation(
+                _ctrlRamReplaceSession,
+                SelectedIc,
+                SelectedNumber,
+                CreateReplaceSlotPaths(),
+                edit);
+        if (!transition.Succeeded || transition.Session is null)
+        {
+            return false;
+        }
+
+        await RefreshCtrlRamActionReadinessAsync(CancellationToken.None);
+        if (!CanBuildReplace)
+        {
+            return false;
+        }
+
+        await RequestBuildOutputDeliveryAsync(edit, transition.Session);
+        CloseCtrlRamFirmwareVersionModal();
+        return true;
+    }
+
     private Task PreviewReplaceAsync()
     {
         return RunReplaceAsync(
             build: false,
             outputPath: null,
-            ctrlRamFirmwareVersionEdit: null);
+            ctrlRamFirmwareVersionEdit: null,
+            outputPathUsesAutomaticName: false);
     }
 
     private Task RunBuildReplaceAsync(
@@ -41,13 +150,14 @@ public sealed partial class ReplacePresentationViewModel
         return RunReplaceAsync(
             build: true,
             outputPath,
-            ctrlRamFirmwareVersionEdit);
+            ctrlRamFirmwareVersionEdit,
+            outputPathUsesAutomaticName: false);
     }
 
     private bool CanRunReplace()
     {
         return !_stateBindings.IsGlobalBuildBlocked() &&
-            !_stateBindings.IsRunInProgress() && !_stateBindings.IsFirmwareInspectionLoading() &&
+            !_stateBindings.IsRunInProgress() && !Inspection.IsRunning &&
             IsSelectedReplaceModeSupported &&
             (SelectedReplaceMode switch
             {
@@ -82,7 +192,7 @@ public sealed partial class ReplacePresentationViewModel
                 : currentSelection && session!.InputSelectionReadiness.Count != 0
                     ? session.InputSelectionReadiness
                     : ResolveDpReplaceAuthoringSnapshot(selected).Slots;
-        foreach (FirmwareSlotViewModel slot in ReplaceSlots.Where(slot =>
+        foreach (FirmwareSlotViewModel slot in ReplaceSlots.ToArray().Where(slot =>
                      !ReferenceEquals(slot, ReplaceBaseSlot)))
         {
             InputSelectionMemberReadiness? member = readiness?.FirstOrDefault(candidate =>
@@ -98,7 +208,7 @@ public sealed partial class ReplacePresentationViewModel
                 ? !member.IsRequired
                 : slot.DeclaredIsOptional;
 
-            string label = Text.GetDpInputSelectionReadinessLabel(member.Readiness);
+            string label = Text.GetDpInputSelectionReadinessLabel(member);
             string detail = Text.GetDpInputSelectionReadinessDetail(member);
             slot.SetSelectionReadiness(
                 member.Readiness,
@@ -112,7 +222,10 @@ public sealed partial class ReplacePresentationViewModel
     private async Task RunReplaceAsync(
         bool build,
         string? outputPath,
-        CtrlRamFirmwareVersionDraftState? ctrlRamFirmwareVersionEdit)
+        CtrlRamFirmwareVersionDraftState? ctrlRamFirmwareVersionEdit,
+        bool outputPathUsesAutomaticName,
+        CompositionOutputBundleIntent? outputBundle = null,
+        ActiveSessionSnapshot? exactPreparedSession = null)
     {
         CloseSelectionForRun();
         string icId = SelectedIc;
@@ -120,7 +233,7 @@ public sealed partial class ReplacePresentationViewModel
         string replaceMode = SelectedReplaceMode;
         IReadOnlyDictionary<string, string> slotPaths = CreateReplaceSlotPaths();
         CtrlRamAuthoringTransitionResult? ctrlRamTransition =
-            replaceMode == CtrlRamReplaceMode
+            replaceMode == CtrlRamReplaceMode && exactPreparedSession is null
                 ? _compositionServices.CtrlRamAuthoring.TransitionFirmwareVersionCompilation(
                     _ctrlRamReplaceSession,
                     icId,
@@ -142,7 +255,7 @@ public sealed partial class ReplacePresentationViewModel
         ActiveSessionSnapshot? compiledSession = replaceMode switch
         {
             DpReplaceMode => _dpReplaceSession.CurrentSnapshot,
-            CtrlRamReplaceMode => ctrlRamTransition?.Session,
+            CtrlRamReplaceMode => exactPreparedSession ?? ctrlRamTransition?.Session,
             _ => null,
         };
         CapabilityActionReadinessSnapshot? actionReadiness = replaceMode switch
@@ -194,7 +307,9 @@ public sealed partial class ReplacePresentationViewModel
                             slotPaths,
                              build,
                              outputPath: outputPath,
-                             actionReadiness: actionReadiness),
+                             outputPathUsesAutomaticName: outputPathUsesAutomaticName,
+                             actionReadiness: actionReadiness,
+                             outputBundle: outputBundle),
                         progress,
                         cancellationToken)
                     .ConfigureAwait(false);

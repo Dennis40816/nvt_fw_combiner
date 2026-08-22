@@ -116,9 +116,12 @@ public sealed partial class MemoryLayoutProjectorTests
 
         Assert.All(
             snapshot.BeforeSegments,
-            static segment => Assert.Equal(
-                MemoryWorkflowDisposition.Kept,
-                segment.Disposition));
+            static segment =>
+            {
+                Assert.Equal(MemoryWorkflowDisposition.Kept, segment.Disposition);
+                Assert.Equal("reference-base", segment.SourceSpaceId);
+                Assert.Equal("reference-base", segment.SourceSlotId);
+            });
         Assert.Equal(
             [
                 MemoryWorkflowDisposition.WillReplace,
@@ -144,6 +147,14 @@ public sealed partial class MemoryLayoutProjectorTests
             snapshot.AfterSegments[0].ContributingOperations.Select(static operation => operation.OperationId));
         Assert.Empty(snapshot.AfterSegments[1].ContributingOperations);
         Assert.Empty(snapshot.AfterSegments[3].ContributingOperations);
+        Assert.All(
+            snapshot.AfterSegments.Where(static segment =>
+                segment.Disposition == MemoryWorkflowDisposition.Kept),
+            static segment =>
+            {
+                Assert.Equal("reference-base", segment.SourceSpaceId);
+                Assert.Equal("reference-base", segment.SourceSlotId);
+            });
     }
 
     /// <summary>Keeps unresolved inputs non-geometric until a compiled overlay is supplied.</summary>
@@ -233,7 +244,8 @@ public sealed partial class MemoryLayoutProjectorTests
             fixture.TpRegion.Range.Start,
             fixture.TpRegion.Range.Length,
             IsMultiChipOnly: true,
-            ReplaceRegionGroup.SlaveRight);
+            ReplaceRegionGroup.SlaveRight,
+            CtrlRamRegionRole.Vn);
 
         MemoryLayoutSnapshot snapshot = MemoryLayoutProjector.Project(
             fixture.Capability,
@@ -246,6 +258,7 @@ public sealed partial class MemoryLayoutProjectorTests
             candidate => ReferenceEquals(candidate.CanonicalRegion, fixture.TpRegion));
         Assert.Equal("tp-code", segment.RegionId);
         Assert.Equal(ReplaceRegionGroup.SlaveRight, segment.RegionGroup);
+        Assert.Equal(CtrlRamRegionRole.Vn, segment.CtrlRamRegionRole);
 
         _ = Assert.Throws<ArgumentException>(() =>
         {
@@ -270,13 +283,14 @@ public sealed partial class MemoryLayoutProjectorTests
         CompositionPlan? customPlan = null,
         CompiledInputContract? customInputContract = null,
         string? customWorkflowId = null,
-        bool ctrlRamMap = false)
+        bool ctrlRamMap = false,
+        IReadOnlyList<FirmwareRegion>? customRegions = null)
     {
         string workflowId = customWorkflowId ?? (kind == CompositionKind.Merge
             ? ExperienceIds.StandardMerge
             : ExperienceIds.DpReplace);
         FirmwareFamilyResolutionDefinition.ResolvedFirmwareImageMap resolvedMap =
-            CreateResolvedMap(workflowId, ctrlRamMap);
+            CreateResolvedMap(workflowId, ctrlRamMap, customRegions);
         FirmwareRegion dp = resolvedMap.ImageMap.Regions.Single(
             static region => region.RegionId == "dp-code");
         FirmwareRegion tp = resolvedMap.ImageMap.Regions.Single(
@@ -336,53 +350,58 @@ public sealed partial class MemoryLayoutProjectorTests
     }
 
     private static FirmwareFamilyResolutionDefinition.ResolvedFirmwareImageMap
-        CreateResolvedMap(string modeId, bool ctrlRamMap)
+        CreateResolvedMap(
+            string modeId,
+            bool ctrlRamMap,
+            IReadOnlyList<FirmwareRegion>? customRegions)
     {
-        FirmwareRegion[] regions =
-        [
-            new(
-                "flash-image",
-                parentRegionId: null,
-                FirmwareRegionOwner.System,
-                FirmwareRegionKind.Image,
-                new ByteRange(0, Capacity),
-                FirmwareWriteConstraint.Forbidden),
-            new(
-                "dp-code",
-                "flash-image",
-                FirmwareRegionOwner.Dp,
-                FirmwareRegionKind.Code,
-                new ByteRange(0, 8),
-                FirmwareWriteConstraint.WholeRegion),
-            new(
-                "dp-code-before-anchor",
-                "dp-code",
-                FirmwareRegionOwner.Dp,
-                FirmwareRegionKind.Code,
-                new ByteRange(0, 4),
-                FirmwareWriteConstraint.WholeRegion),
-            new(
-                "dp-code-anchor",
-                "dp-code",
-                FirmwareRegionOwner.Dp,
-                FirmwareRegionKind.Command,
-                new ByteRange(4, 4),
-                FirmwareWriteConstraint.WholeRegion),
-            new(
-                "reserved-gap",
-                "flash-image",
-                FirmwareRegionOwner.Reserved,
-                FirmwareRegionKind.Reserved,
-                new ByteRange(8, 4),
-                FirmwareWriteConstraint.Forbidden),
-            new(
-                "tp-code",
-                "flash-image",
-                FirmwareRegionOwner.Tp,
-                ctrlRamMap ? FirmwareRegionKind.CtrlRam : FirmwareRegionKind.Code,
-                new ByteRange(12, 4),
-                FirmwareWriteConstraint.WholeRegion),
-        ];
+        FirmwareRegion[] regions = customRegions is null
+            ?
+            [
+                new(
+                    "flash-image",
+                    parentRegionId: null,
+                    FirmwareRegionOwner.System,
+                    FirmwareRegionKind.Image,
+                    new ByteRange(0, Capacity),
+                    FirmwareWriteConstraint.Forbidden),
+                new(
+                    "dp-code",
+                    "flash-image",
+                    FirmwareRegionOwner.Dp,
+                    FirmwareRegionKind.Code,
+                    new ByteRange(0, 8),
+                    FirmwareWriteConstraint.WholeRegion),
+                new(
+                    "dp-code-before-anchor",
+                    "dp-code",
+                    FirmwareRegionOwner.Dp,
+                    FirmwareRegionKind.Code,
+                    new ByteRange(0, 4),
+                    FirmwareWriteConstraint.WholeRegion),
+                new(
+                    "dp-code-anchor",
+                    "dp-code",
+                    FirmwareRegionOwner.Dp,
+                    FirmwareRegionKind.Command,
+                    new ByteRange(4, 4),
+                    FirmwareWriteConstraint.WholeRegion),
+                new(
+                    "reserved-gap",
+                    "flash-image",
+                    FirmwareRegionOwner.Reserved,
+                    FirmwareRegionKind.Reserved,
+                    new ByteRange(8, 4),
+                    FirmwareWriteConstraint.Forbidden),
+                new(
+                    "tp-code",
+                    "flash-image",
+                    FirmwareRegionOwner.Tp,
+                    ctrlRamMap ? FirmwareRegionKind.CtrlRam : FirmwareRegionKind.Code,
+                    new ByteRange(12, 4),
+                    FirmwareWriteConstraint.WholeRegion),
+            ]
+            : [.. customRegions];
         FirmwareImageMap map = FirmwareImageMapTestFactory.CreateDirect(
             "synthetic-map",
             "flash",
