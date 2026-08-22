@@ -26,27 +26,25 @@ public sealed partial class XamlControlStyleContractTests
     [Fact]
     public void FirmwareSlotFactsUseSharedNormalAndWarningVisualStates()
     {
-        string tokens = ReadPresentationFile("Styles/ThemeTokens.axaml");
         string styles = ReadPresentationFile("Styles/MainWindowControlStyles.axaml") +
             ReadPresentationFile("Styles/FirmwareSlotExperienceStyles.axaml");
         string factTemplate = ExtractDataTemplate(
             ReadPresentationFile("Resources/MainWindowSharedTemplates.axaml"),
             "FirmwareSlotInformationFactTemplate");
         string viewModel = ReadPresentationFile("ViewModels/FirmwareSlotFactViewModel.cs");
-        string normalStyle = ExtractStyle(styles, "Border.firmwareSlotFact");
         string pendingStyle = ExtractStyle(styles, "Border.firmwareSlotFact.pendingInput");
-        string unknownStyle = ExtractStyle(styles, "Border.firmwareSlotFact.unknown");
         string warningStyle = ExtractStyle(styles, "Border.firmwareSlotFact.warning");
         string errorStyle = ExtractStyle(styles, "Border.firmwareSlotFact.error");
         string warningTextStyle = ExtractStyle(styles, "Border.firmwareSlotFact.warning TextBlock");
 
-        Assert.Contains("x:Key=\"NfcSlotFactSurfaceBrush\" Color=\"#EEF6FF\"", tokens, StringComparison.Ordinal);
-        Assert.Contains("Value=\"{DynamicResource NfcSlotFactSurfaceBrush}\"", normalStyle, StringComparison.Ordinal);
-        Assert.Contains("Value=\"{DynamicResource NfcAccentBorderLightBrush}\"", normalStyle, StringComparison.Ordinal);
         Assert.Contains("Value=\"{DynamicResource NfcWarningSurfaceBrush}\"", warningStyle, StringComparison.Ordinal);
         Assert.Contains("Value=\"{DynamicResource NfcWarningBorderStrongBrush}\"", warningStyle, StringComparison.Ordinal);
         Assert.Contains("NfcAccentSurfaceBrush", pendingStyle, StringComparison.Ordinal);
-        Assert.Contains("NfcSurfaceSubtleBrush", unknownStyle, StringComparison.Ordinal);
+        Assert.DoesNotContain("<Style Selector=\"Border.firmwareSlotFact.unknown\">", styles, StringComparison.Ordinal);
+        Assert.DoesNotContain(
+            "<Style Selector=\"Border.firmwareSlotFact\">",
+            ReadPresentationFile("Styles/MainWindowControlStyles.axaml"),
+            StringComparison.Ordinal);
         Assert.Contains("NfcCriticalSurfaceBrush", errorStyle, StringComparison.Ordinal);
         Assert.Contains("Selector=\"TextBlock.firmwareSlotFactLabel\"", styles, StringComparison.Ordinal);
         Assert.Contains("Selector=\"TextBlock.firmwareSlotFactValue\"", styles, StringComparison.Ordinal);

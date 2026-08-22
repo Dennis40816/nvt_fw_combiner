@@ -104,7 +104,9 @@ internal sealed partial class MergePresentationViewModel
 
     public string StandardMergeOutputFileName => ResolveAcceptedOutputFileName(
         _standardMergeSession.CurrentSnapshot,
-        "nvt-fw-combiner-standard-merge.bin");
+        _compositionServices.Capabilities.GetStandardMergeProfileSummaries().FirstOrDefault(profile =>
+            StringComparer.Ordinal.Equals(profile.IcId, SelectedIc))?
+            .DefaultOutputFileName ?? "nvt-fw-combiner-standard-merge.bin");
 
     public string GeneralMergeOutputFileName => ResolveAcceptedOutputFileName(
         _generalMergeSession.CurrentSnapshot,

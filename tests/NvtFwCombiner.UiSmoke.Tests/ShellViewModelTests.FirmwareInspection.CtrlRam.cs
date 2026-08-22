@@ -1,3 +1,4 @@
+using System.Text.Json;
 using NvtFwCombiner.Domain.Composition;
 using NvtFwCombiner.Presentation.Avalonia.ViewModels;
 using NvtFwCombiner.TestSupport;
@@ -6,6 +7,45 @@ namespace NvtFwCombiner.UiSmoke.Tests;
 
 public sealed partial class CtrlRamWorkflowTests
 {
+    /// <summary>A wrong-but-readable CtrlRAM artifact becomes a typed warning without terminating the shell.</summary>
+    [Fact]
+    public async Task Nt51950NormalCtrlRamLoadedIntoNfSlotBecomesTypedWarningWithoutThrowing()
+    {
+        JsonElement fixtureCase = CanonicalGoldenTestData.LoadDirectCase(
+            "ctrlram-replace",
+            "nt51950-fw200-single-auto-prj-676-20260717");
+        JsonElement baseArtifact = fixtureCase.GetProperty("artifacts").EnumerateArray().Single(
+            artifact => artifact.GetProperty("role").GetString() == "expected");
+        JsonElement normalArtifact = fixtureCase.GetProperty("artifacts").EnumerateArray().Single(
+            artifact => artifact.GetProperty("role").GetString() == "input" &&
+                artifact.GetProperty("originalFileName").GetString() == "Normal_Ctrlram.bin");
+        MainWindowViewModel viewModel = PresentationTestHost.CreateViewModel();
+        viewModel.WorkflowSession.SelectedIc = "NT51950";
+        viewModel.WorkflowSession.SelectedNumber = "single";
+        OpenReplace(viewModel, ExperienceIds.CtrlRamReplace);
+
+        await viewModel.WorkflowSession.SetSlotFileAsync(
+            CompositionSlotIds.ReplaceBase,
+            CanonicalGoldenTestData.ArtifactPath(baseArtifact),
+            TestContext.Current.CancellationToken);
+        FirmwareSlotViewModel nfSlot = viewModel.Replace.ReplaceSlots.Single(slot =>
+            slot.SlotId == "replace-ctrlram-nf");
+
+        Exception? exception = await Record.ExceptionAsync(() =>
+            viewModel.WorkflowSession.SetSlotFileAsync(
+                nfSlot.SlotId,
+                CanonicalGoldenTestData.ArtifactPath(normalArtifact),
+                TestContext.Current.CancellationToken));
+        nfSlot = viewModel.Replace.ReplaceSlots.Single(slot =>
+            slot.SlotId == "replace-ctrlram-nf");
+
+        Assert.Null(exception);
+        Assert.Equal(FirmwareInputInspectionSeverity.Warning, nfSlot.InputInspectionSeverity);
+        Assert.True(nfSlot.HasFile);
+        Assert.True(nfSlot.IsSemanticStateWarning);
+        Assert.Equal(WorkflowInspectionAttemptState.Succeeded, viewModel.Replace.Inspection.State);
+    }
+
     /// <summary>A CtrlRAM batch read rejects a replacement whose file identity changes in flight.</summary>
     [Fact]
     public async Task CtrlRamInputInspectionMarksChangedFileAsBlocking()

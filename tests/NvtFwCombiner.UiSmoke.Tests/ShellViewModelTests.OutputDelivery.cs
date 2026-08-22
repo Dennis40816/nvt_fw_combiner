@@ -143,6 +143,9 @@ public sealed partial class FirmwareInspectionSlotTests
             TextBox outputName = Assert.IsType<TextBox>(
                 modal.FindControl<TextBox>("OutputFileNameInput"),
                 exactMatch: false);
+            SelectableTextBlock outputNameDisplay = Assert.IsType<SelectableTextBlock>(
+                modal.FindControl<SelectableTextBlock>("OutputFileNameDisplay"),
+                exactMatch: false);
             Button editOutputName = Assert.IsType<Button>(
                 modal.FindControl<Button>("EditOutputFileNameButton"),
                 exactMatch: false);
@@ -159,7 +162,8 @@ public sealed partial class FirmwareInspectionSlotTests
             Assert.DoesNotContain(shell, modal.GetVisualAncestors());
             Assert.True(modal.IsEffectivelyEnabled);
             Assert.True(bundleToggle.IsEffectivelyEnabled);
-            Assert.True(outputName.IsReadOnly);
+            Assert.True(outputNameDisplay.IsVisible);
+            Assert.False(outputName.IsVisible);
             Assert.True(editOutputName.IsEffectivelyEnabled);
 
             editOutputName.RaiseEvent(new Avalonia.Interactivity.RoutedEventArgs(
@@ -167,6 +171,8 @@ public sealed partial class FirmwareInspectionSlotTests
             Dispatcher.UIThread.RunJobs();
 
             Assert.True(viewModel.OutputDelivery.IsOutputFileNameEditing);
+            Assert.False(outputNameDisplay.IsVisible);
+            Assert.True(outputName.IsVisible);
             Assert.False(outputName.IsReadOnly);
             Assert.Same(outputName, window.FocusManager?.GetFocusedElement());
 

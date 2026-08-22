@@ -25,6 +25,8 @@ public sealed class SpaciousPanelTests
         Assert.DoesNotContain("Property=\"Padding\" Value=\"18,16,20,18\"", styles, StringComparison.Ordinal);
         Assert.Contains("Selector=\"views|SpaciousPanel.compact\"", styles, StringComparison.Ordinal);
         Assert.Contains("Property=\"Padding\" Value=\"4,4,8,4\"", styles, StringComparison.Ordinal);
+        Assert.Contains("Selector=\"views|SpaciousPanel.firmwareSlotGroupSurface\"", styles, StringComparison.Ordinal);
+        Assert.Contains("Property=\"BorderThickness\" Value=\"2\"", styles, StringComparison.Ordinal);
         Assert.Contains("Selector=\"ItemsControl.spaciousList\"", styles, StringComparison.Ordinal);
         Assert.Contains("Spacing=\"{DynamicResource NfcSpace8}\"", styles, StringComparison.Ordinal);
         Assert.Equal(2, outputTemplates.Split("<views:SpaciousPanel>", StringSplitOptions.None).Length - 1);
@@ -38,7 +40,7 @@ public sealed class SpaciousPanelTests
         Assert.Contains("Spacing=\"{DynamicResource NfcSpace16}\"", outputTemplates, StringComparison.Ordinal);
         Assert.Contains("<views:SpaciousPanel Classes=\"compact\"", reportPanels, StringComparison.Ordinal);
         Assert.Contains(
-            "<DataTemplate x:Key=\"FirmwareSlotGroupTemplate\" DataType=\"vm:FirmwareSlotGroupViewModel\">\n  <views:SpaciousPanel Classes=\"compact\">",
+            "<DataTemplate x:Key=\"FirmwareSlotGroupTemplate\" DataType=\"vm:FirmwareSlotGroupViewModel\">\n  <views:SpaciousPanel Classes=\"compact firmwareSlotGroupSurface\">",
             sharedTemplates,
             StringComparison.Ordinal);
         Assert.DoesNotContain("MemoryCoverageGroupTemplate", sharedTemplates, StringComparison.Ordinal);

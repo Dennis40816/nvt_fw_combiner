@@ -21,8 +21,12 @@ public sealed partial class XamlControlStyleContractTests
         Assert.DoesNotContain("MinWidth=\"980\"", modal, StringComparison.Ordinal);
         Assert.Contains("NfcModalScrimBrush", modal, StringComparison.Ordinal);
         Assert.Contains("ItemsSource=\"{Binding Sources}\"", modal, StringComparison.Ordinal);
+        Assert.Contains("x:Name=\"OutputFileNameDisplay\"", modal, StringComparison.Ordinal);
+        Assert.Contains("<SelectableTextBlock x:Name=\"OutputFileNameDisplay\"", modal, StringComparison.Ordinal);
+        Assert.Contains("IsVisible=\"{Binding !IsOutputFileNameEditing}\"", modal, StringComparison.Ordinal);
         Assert.Contains("x:Name=\"OutputFileNameInput\"", modal, StringComparison.Ordinal);
-        Assert.Contains("IsReadOnly=\"{Binding !IsOutputFileNameEditing}\"", modal, StringComparison.Ordinal);
+        Assert.Contains("IsVisible=\"{Binding IsOutputFileNameEditing}\"", modal, StringComparison.Ordinal);
+        Assert.DoesNotContain("IsReadOnly=\"{Binding !IsOutputFileNameEditing}\"", modal, StringComparison.Ordinal);
         Assert.Contains("x:Name=\"EditOutputFileNameButton\"", modal, StringComparison.Ordinal);
         Assert.Contains("Click=\"EditOutputFileNameButton_OnClick\"", modal, StringComparison.Ordinal);
         Assert.Contains("AutomationProperties.Name=\"{Binding Text.OutputDeliveryEditOutputNameLabel}\"", modal, StringComparison.Ordinal);

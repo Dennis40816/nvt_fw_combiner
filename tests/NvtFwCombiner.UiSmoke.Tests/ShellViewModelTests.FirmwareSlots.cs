@@ -1,4 +1,5 @@
 using System.Text.Json;
+using NvtFwCombiner.Application.Capabilities;
 using NvtFwCombiner.Domain.Composition;
 using NvtFwCombiner.Presentation.Avalonia;
 using NvtFwCombiner.Presentation.Avalonia.ViewModels;
@@ -8,6 +9,24 @@ namespace NvtFwCombiner.UiSmoke.Tests;
 
 public sealed partial class FirmwareInspectionSlotTests
 {
+    /// <summary>Every authorable Standard Merge IC retains the owner-approved FlashCode naming contract.</summary>
+    [Fact]
+    public void EveryAuthorableStandardMergeIcUsesCanonicalGoldenOutputName()
+    {
+        CapabilityProfileSummary[] profiles =
+        [
+            .. TestProjection.GetStandardMergeProfileSummaries(),
+        ];
+
+        Assert.NotEmpty(profiles);
+        Assert.All(profiles, profile => Assert.Equal(
+            "{ic}_FlashCode_D{dp-version}T{tp-version}_{date}.bin",
+            profile.DefaultOutputFileName));
+        Assert.Equal(
+            profiles.Length,
+            profiles.Select(static profile => profile.IcId).Distinct(StringComparer.Ordinal).Count());
+    }
+
     /// <summary>Legacy and CMI readers display hexadecimal DP minor version D identically.</summary>
     [Fact]
     public void DpMinorHexDigitDisplaysConsistentlyAcrossMetadataSources()
@@ -145,6 +164,28 @@ public sealed partial class FirmwareInspectionSlotTests
         Assert.DoesNotContain(viewModel.Replace.ReplaceBaseSlot.FirmwareFacts, fact => fact.Label == "Refresh");
     }
 
+    /// <summary>An erased DP region is not presented as a meaningful Unknown DP version.</summary>
+    [Fact]
+    public async Task UniformInvalidBaseDpRegionDoesNotPublishDpVersionFact()
+    {
+        using var workspace = TempWorkspace.Create("nvt-fw-combiner-uniform-invalid-dp-fact");
+        string basePath = workspace.Write(
+            "erased-flash.bin",
+            [.. Enumerable.Repeat((byte)0xFF, 0x40000)]);
+        MainWindowViewModel viewModel = PresentationTestHost.CreateViewModel();
+        viewModel.WorkflowSession.SelectedIc = "NT51926";
+        OpenReplace(viewModel, ExperienceIds.DpReplace);
+
+        await viewModel.WorkflowSession.SetSlotFileAsync(
+            CompositionSlotIds.ReplaceBase,
+            basePath,
+            TestContext.Current.CancellationToken);
+
+        Assert.DoesNotContain(
+            viewModel.Replace.ReplaceBaseSlot.FirmwareFacts,
+            fact => fact.Label == "DP Version");
+    }
+
     /// <summary>Verifies NT51951 DPCMI waits for its canonical TP FirmwareConfig prerequisite.</summary>
     [Fact]
     public async Task BaseFirmwareSlotMarksDpUnknownWithoutTpMetadata()
@@ -212,6 +253,10 @@ public sealed partial class FirmwareInspectionSlotTests
             viewModel.Merge.MergeOutputFileName);
 
         viewModel.WorkflowSession.SelectedIc = "NT51950";
+        Assert.Equal(
+            "{ic}_FlashCode_D{dp-version}T{tp-version}_{date}.bin",
+            viewModel.Merge.MergeOutputFileName);
+        Assert.DoesNotContain("NT51926", viewModel.Merge.MergeOutputFileName, StringComparison.Ordinal);
         JsonElement nt51950 = golden.CaseByIc("51950");
         string nt51950DpPath = golden.ManifestPath(nt51950.GetProperty("inputs").GetProperty("dp-input"));
         string nt51950TpPath = golden.ManifestPath(nt51950.GetProperty("inputs").GetProperty("tp-input"));
@@ -459,13 +504,17 @@ public sealed partial class FirmwareInspectionSlotTests
         ]);
         viewModel.WorkflowSession.SelectedIc = "NT51950";
         await viewModel.WorkflowSession.SetSlotFileAsync("merge-dp", path, TestContext.Current.CancellationToken);
-        Assert.Equal("nvt-fw-combiner-standard-merge.bin", viewModel.Merge.StandardMergeOutputFileName);
+        Assert.Equal(
+            "{ic}_FlashCode_D{dp-version}T{tp-version}_{date}.bin",
+            viewModel.Merge.StandardMergeOutputFileName);
         Assert.Equal("Waiting for TP BIN", viewModel.Merge.MergeMemoryRangeLabel);
 
         mutateDuringRefresh = true;
         await viewModel.WorkflowSession.RefreshSelectedMergeFirmwareInspectionsAsync();
 
-        Assert.Equal("nvt-fw-combiner-standard-merge.bin", viewModel.Merge.StandardMergeOutputFileName);
+        Assert.Equal(
+            "{ic}_FlashCode_D{dp-version}T{tp-version}_{date}.bin",
+            viewModel.Merge.StandardMergeOutputFileName);
         Assert.Equal("DP BIN needs attention", viewModel.Merge.MergeMemoryRangeLabel);
         Assert.Equal(
             FirmwareSlotSemanticState.Error,

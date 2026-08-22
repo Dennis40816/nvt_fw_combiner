@@ -31,7 +31,6 @@
       <SolidColorBrush x:Key="NfcSuccessTextStrongBrush" Color="#14532D" />
       <SolidColorBrush x:Key="NfcSuccessTextBrush" Color="#166534" />
       <SolidColorBrush x:Key="NfcSuccessEmphasisBrush" Color="#15803D" />
-      <SolidColorBrush x:Key="NfcSlotFactSurfaceBrush" Color="#EEF6FF" />
       <SolidColorBrush x:Key="NfcInfoSurfaceStrongBrush" Color="#DBEAFE" />
       <SolidColorBrush x:Key="NfcInfoTextBrush" Color="#0F766E" />
       <SolidColorBrush x:Key="NfcReferenceInputSurfaceBrush" Color="#EEF2FF" />
@@ -125,7 +124,6 @@
       <SolidColorBrush x:Key="NfcSuccessTextStrongBrush" Color="#BBF7D0" />
       <SolidColorBrush x:Key="NfcSuccessTextBrush" Color="#86EFAC" />
       <SolidColorBrush x:Key="NfcSuccessEmphasisBrush" Color="#22C55E" />
-      <SolidColorBrush x:Key="NfcSlotFactSurfaceBrush" Color="#0D2847" />
       <SolidColorBrush x:Key="NfcInfoSurfaceStrongBrush" Color="#12345A" />
       <SolidColorBrush x:Key="NfcInfoTextBrush" Color="#5EEAD4" />
       <SolidColorBrush x:Key="NfcReferenceInputSurfaceBrush" Color="#1E1B4B" />

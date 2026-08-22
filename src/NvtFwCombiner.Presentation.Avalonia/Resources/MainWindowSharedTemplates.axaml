@@ -115,7 +115,7 @@
 </DrawingBrush>
 
 <DataTemplate x:Key="FirmwareSlotGroupTemplate" DataType="vm:FirmwareSlotGroupViewModel">
-  <views:SpaciousPanel Classes="compact">
+  <views:SpaciousPanel Classes="compact firmwareSlotGroupSurface">
     <Expander Classes="inlineDisclosure" HorizontalAlignment="Stretch" IsExpanded="{Binding IsExpanded, Mode=TwoWay}">
       <Expander.Header>
         <Grid HorizontalAlignment="Stretch" ColumnDefinitions="*,Auto" ColumnSpacing="{DynamicResource NfcSpace12}">
@@ -566,9 +566,9 @@
       Padding="0,0,16,0">
     <StackPanel Orientation="Vertical" Spacing="{DynamicResource NfcSpace2}">
       <TextBlock Classes="firmwareSlotFactLabel" FontSize="{DynamicResource NfcFontSize11}" FontWeight="SemiBold" Text="{Binding Label}" TextTrimming="CharacterEllipsis" />
-      <StackPanel Orientation="Horizontal" Spacing="{DynamicResource NfcSpace4}">
-        <TextBlock Classes="firmwareSlotFactValue" FontSize="{DynamicResource NfcFontSize12}" FontFamily="{DynamicResource NfcTechnicalFontFamily}" FontWeight="Medium" Text="{Binding Value}" TextTrimming="CharacterEllipsis" />
-        <Path
+      <Grid ColumnDefinitions="*,Auto" ColumnSpacing="{DynamicResource NfcSpace4}" HorizontalAlignment="Stretch">
+        <TextBlock Classes="firmwareSlotFactValue" FontSize="{DynamicResource NfcFontSize12}" FontFamily="{DynamicResource NfcTechnicalFontFamily}" FontWeight="Medium" Text="{Binding Value}" TextTrimming="CharacterEllipsis" ToolTip.Tip="{Binding Value}" />
+        <Path Grid.Column="1"
             AutomationProperties.Name="{Binding StateAutomationText}"
             behaviors:FocusToolTipBehavior.IsEnabled="True"
             Classes="firmwareSlotFactStateIcon"
@@ -579,7 +579,7 @@
             Stretch="Uniform"
             ToolTip.Tip="{Binding StateAutomationText}"
             Width="12" />
-      </StackPanel>
+      </Grid>
     </StackPanel>
   </Border>
 </DataTemplate>

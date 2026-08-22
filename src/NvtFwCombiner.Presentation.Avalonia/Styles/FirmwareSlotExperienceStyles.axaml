@@ -151,16 +151,9 @@
     <Setter Property="BorderBrush" Value="{DynamicResource NfcAccentStrongBrush}" />
     <Setter Property="BorderThickness" Value="2" />
   </Style>
-  <Style Selector="Border.firmwareSlotFact">
-    <Setter Property="Background" Value="Transparent" /><Setter Property="BorderBrush" Value="Transparent" />
-  </Style>
   <Style Selector="Border.firmwareSlotFact.pendingInput">
     <Setter Property="Background" Value="{DynamicResource NfcAccentSurfaceBrush}" />
     <Setter Property="BorderBrush" Value="{DynamicResource NfcAccentBorderLightBrush}" />
-  </Style>
-  <Style Selector="Border.firmwareSlotFact.unknown">
-    <Setter Property="Background" Value="{DynamicResource NfcSurfaceSubtleBrush}" />
-    <Setter Property="BorderBrush" Value="{DynamicResource NfcBorderMutedBrush}" />
   </Style>
   <Style Selector="Border.firmwareSlotFact.error">
     <Setter Property="Background" Value="{DynamicResource NfcCriticalSurfaceBrush}" />

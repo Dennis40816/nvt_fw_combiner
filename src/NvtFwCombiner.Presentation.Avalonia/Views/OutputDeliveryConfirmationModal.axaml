@@ -17,10 +17,11 @@
         <StackPanel Grid.Row="1" Spacing="{DynamicResource NfcSpace8}">
           <TextBlock Classes="fieldLabel" FontWeight="SemiBold" Text="{Binding Text.OutputDeliveryOutputLabel}" />
           <Grid ColumnDefinitions="*,Auto" ColumnSpacing="{DynamicResource NfcSpace8}">
-            <TextBox x:Name="OutputFileNameInput" Classes="buildSettingInput outputNameInput"
-                     Classes.editable="{Binding IsOutputFileNameEditing}"
+            <SelectableTextBlock x:Name="OutputFileNameDisplay" AutomationProperties.Name="{Binding Text.OutputDeliveryOutputLabel}" IsVisible="{Binding !IsOutputFileNameEditing}"
+                                 MinHeight="34" Padding="2,5" Text="{Binding OutputFileName}" TextTrimming="CharacterEllipsis" ToolTip.Tip="{Binding OutputFileName}" VerticalAlignment="Center" />
+            <TextBox x:Name="OutputFileNameInput" Classes="buildSettingInput outputNameInput editable"
                      AutomationProperties.Name="{Binding Text.OutputDeliveryOutputLabel}"
-                     IsReadOnly="{Binding !IsOutputFileNameEditing}" Text="{Binding OutputFileName, Mode=OneWay}"
+                     IsVisible="{Binding IsOutputFileNameEditing}" Text="{Binding OutputFileName, Mode=OneWay}"
                      TextChanged="OutputFileNameInput_OnTextChanged" />
             <Button x:Name="EditOutputFileNameButton" Grid.Column="1" Width="34" Height="34"
                     Classes="semanticAction iconButton outputNameEdit"

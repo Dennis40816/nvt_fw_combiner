@@ -11,6 +11,26 @@ relative path, length, package SHA-256, and inner `RELEASE-MANIFEST.json`
 SHA-256. The configured source folder is intentionally excluded, so moving an
 identical catalog and package set does not change identity.
 
+A publishable network folder therefore has this practical shape:
+
+```text
+\\server\share\NvtFwCombiner\
+├── update-catalog.v1.json
+└── packages\
+    ├── NvtFwCombiner-v0.10.6-win-x64.zip
+    └── NvtFwCombiner-v1.0.0-win-x64.zip
+```
+
+The `packagePath` values in the root catalog are respectively
+`packages/NvtFwCombiner-v0.10.6-win-x64.zip` and
+`packages/NvtFwCombiner-v1.0.0-win-x64.zip`; the declared lengths and hashes
+must describe those exact ZIP bytes and their inner `RELEASE-MANIFEST.json`.
+For a relocation test, rename or move the complete `NvtFwCombiner` root,
+confirm the new source path in Settings, and run Check now. This is
+identity-neutral. Renaming only `packages`, an individual ZIP, or another path
+below the root is not the same test: its catalog-relative `packagePath` must be
+updated and therefore changes the admitted package identity.
+
 All fields are required and unknown fields are rejected. Versions are stable
 three-component SemVer values. Hashes are lowercase hexadecimal SHA-256.
 `publishedAt` is canonical UTC ISO-8601 using
