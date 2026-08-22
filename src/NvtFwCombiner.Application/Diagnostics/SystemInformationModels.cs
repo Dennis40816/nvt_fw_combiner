@@ -130,47 +130,156 @@ public sealed class SystemInformationSnapshot
         diagnostic.Severity == SystemDiagnosticSeverity.Blocking);
 }
 
-/// <summary>One bounded record of diagnostic activation and resolution.</summary>
-public sealed class SystemDiagnosticTransition
+/// <summary>Disclosure level for one current-session activity entry.</summary>
+public enum SystemActivityImportance
 {
-    internal SystemDiagnosticTransition(
-        long generation,
+    /// <summary>Shown in the default operator history.</summary>
+    Important,
+
+    /// <summary>Shown only after the operator explicitly expands Debug activity.</summary>
+    Debug,
+}
+
+/// <summary>Stable category for one current-session activity entry.</summary>
+public enum SystemActivityCategory
+{
+    /// <summary>Application process-session lifecycle.</summary>
+    Session,
+    /// <summary>System diagnostic lifecycle.</summary>
+    Diagnostics,
+    /// <summary>Shell and modal navigation.</summary>
+    Navigation,
+    /// <summary>Workflow context selection.</summary>
+    Workflow,
+    /// <summary>Firmware input selection.</summary>
+    Input,
+    /// <summary>Preview and Build execution.</summary>
+    Composition,
+}
+
+/// <summary>Visual and filtering severity for one current-session activity entry.</summary>
+public enum SystemActivitySeverity
+{
+    /// <summary>Neutral information.</summary>
+    Information,
+    /// <summary>Successful completion.</summary>
+    Success,
+    /// <summary>Operator attention is useful.</summary>
+    Warning,
+    /// <summary>An operation failed.</summary>
+    Error,
+}
+
+/// <summary>Stable event codes owned by the System Information lifecycle.</summary>
+public static class SystemActivityCodes
+{
+    /// <summary>The application process started.</summary>
+    public const string ApplicationStarted = "activity.session.started";
+    /// <summary>A system diagnostic became active.</summary>
+    public const string DiagnosticActivated = "activity.diagnostic.activated";
+    /// <summary>A system diagnostic was resolved.</summary>
+    public const string DiagnosticResolved = "activity.diagnostic.resolved";
+    /// <summary>System information was reprobed.</summary>
+    public const string SystemRefreshed = "activity.diagnostic.refreshed";
+    /// <summary>The user changed shell page.</summary>
+    public const string UserNavigated = "activity.navigation.changed";
+    /// <summary>The user opened Settings.</summary>
+    public const string SettingsOpened = "activity.navigation.settings-opened";
+    /// <summary>The user opened Message Center.</summary>
+    public const string MessageCenterOpened = "activity.navigation.message-center-opened";
+    /// <summary>The user selected a workflow mode.</summary>
+    public const string ModeSelected = "activity.workflow.mode-selected";
+    /// <summary>The user selected an IC.</summary>
+    public const string IcSelected = "activity.workflow.ic-selected";
+    /// <summary>The user selected a firmware number.</summary>
+    public const string NumberSelected = "activity.workflow.number-selected";
+    /// <summary>The user selected a firmware input.</summary>
+    public const string InputSelected = "activity.input.selected";
+    /// <summary>A Preview attempt started.</summary>
+    public const string PreviewStarted = "activity.composition.preview-started";
+    /// <summary>A Build attempt started.</summary>
+    public const string BuildStarted = "activity.composition.build-started";
+    /// <summary>A Preview attempt completed.</summary>
+    public const string PreviewCompleted = "activity.composition.preview-completed";
+    /// <summary>A Build attempt completed.</summary>
+    public const string BuildCompleted = "activity.composition.build-completed";
+    /// <summary>A Preview attempt failed.</summary>
+    public const string PreviewFailed = "activity.composition.preview-failed";
+    /// <summary>A Build attempt failed.</summary>
+    public const string BuildFailed = "activity.composition.build-failed";
+    /// <summary>The user requested a diagnostic refresh.</summary>
+    public const string DiagnosticsRefreshRequested = "activity.diagnostic.refresh-requested";
+    /// <summary>A diagnostics bundle was exported.</summary>
+    public const string DiagnosticsExported = "activity.diagnostic.exported";
+    /// <summary>A diagnostics export failed.</summary>
+    public const string DiagnosticsExportFailed = "activity.diagnostic.export-failed";
+}
+
+/// <summary>Privacy-filtered request to append one activity entry.</summary>
+public sealed record SystemActivityDraft(
+    string Code,
+    SystemActivityImportance Importance,
+    SystemActivityCategory Category,
+    SystemActivitySeverity Severity,
+    string? SubjectId = null,
+    string? ContextId = null);
+
+/// <summary>One immutable, bounded, privacy-filtered current-session activity entry.</summary>
+public sealed class SystemActivityEntry
+{
+    internal SystemActivityEntry(
+        long sequence,
         DateTimeOffset observedAtUtc,
-        IEnumerable<string> addedCodes,
-        IEnumerable<string> resolvedCodes)
+        SystemActivityDraft draft)
     {
-        Generation = generation;
+        Sequence = sequence;
         ObservedAtUtc = observedAtUtc;
-        AddedCodes = Array.AsReadOnly([.. addedCodes.Order(StringComparer.Ordinal)]);
-        ResolvedCodes = Array.AsReadOnly([.. resolvedCodes.Order(StringComparer.Ordinal)]);
+        Code = draft.Code;
+        Importance = draft.Importance;
+        Category = draft.Category;
+        Severity = draft.Severity;
+        SubjectId = draft.SubjectId;
+        ContextId = draft.ContextId;
     }
 
-    /// <summary>System Information generation that observed the change.</summary>
-    public long Generation { get; }
+    /// <summary>Monotonic sequence within the current process.</summary>
+    public long Sequence { get; }
 
     /// <summary>UTC observation time.</summary>
     public DateTimeOffset ObservedAtUtc { get; }
 
-    /// <summary>Diagnostic codes activated by this observation.</summary>
-    public IReadOnlyList<string> AddedCodes { get; }
+    /// <summary>Stable activity code.</summary>
+    public string Code { get; }
 
-    /// <summary>Diagnostic codes resolved by this observation.</summary>
-    public IReadOnlyList<string> ResolvedCodes { get; }
+    /// <summary>Disclosure level.</summary>
+    public SystemActivityImportance Importance { get; }
+
+    /// <summary>Stable category.</summary>
+    public SystemActivityCategory Category { get; }
+
+    /// <summary>Filtering and visual severity.</summary>
+    public SystemActivitySeverity Severity { get; }
+
+    /// <summary>Optional privacy-safe primary token.</summary>
+    public string? SubjectId { get; }
+
+    /// <summary>Optional privacy-safe context token.</summary>
+    public string? ContextId { get; }
 }
 
 /// <summary>Versioned privacy-filtered payload supplied to the host exporter.</summary>
 public sealed class SystemDiagnosticsBundle
 {
     /// <summary>Current JSON contract identity.</summary>
-    public const string CurrentSchemaVersion = "system-diagnostics-v1";
+    public const string CurrentSchemaVersion = "system-diagnostics-v2";
 
     internal SystemDiagnosticsBundle(
         SystemInformationSnapshot current,
-        IEnumerable<SystemDiagnosticTransition> transitions)
+        IEnumerable<SystemActivityEntry> activities)
     {
         SchemaVersion = CurrentSchemaVersion;
         Current = current;
-        Transitions = Array.AsReadOnly([.. transitions]);
+        Activities = Array.AsReadOnly([.. activities]);
     }
 
     /// <summary>Stable schema version.</summary>
@@ -179,6 +288,6 @@ public sealed class SystemDiagnosticsBundle
     /// <summary>Latest immutable System Information snapshot.</summary>
     public SystemInformationSnapshot Current { get; }
 
-    /// <summary>Bounded current-session activation/resolution history.</summary>
-    public IReadOnlyList<SystemDiagnosticTransition> Transitions { get; }
+    /// <summary>Bounded current-session activity history; no raw path or report data is allowed.</summary>
+    public IReadOnlyList<SystemActivityEntry> Activities { get; }
 }

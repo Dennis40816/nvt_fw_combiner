@@ -1,4 +1,5 @@
 using NvtFwCombiner.Application.Authoring;
+using NvtFwCombiner.Application.Diagnostics;
 using NvtFwCombiner.Domain.Composition;
 
 namespace NvtFwCombiner.Presentation.Avalonia.ViewModels;
@@ -69,6 +70,7 @@ internal sealed partial class WorkflowSessionPresentationViewModel
                 _ => throw new InvalidOperationException("Unknown General mapping row."),
             };
             await preparation.WaitAsync(cancellationToken);
+            RecordInputSelected(context, mapping.MappingId);
             return;
         }
 
@@ -81,6 +83,7 @@ internal sealed partial class WorkflowSessionPresentationViewModel
         if (context.IsReplace)
         {
             await RefreshSelectedReplaceFirmwareInspectionsAsync(slot.SlotId);
+            RecordInputSelected(context, slot.SlotId);
             return;
         }
 
@@ -88,6 +91,7 @@ internal sealed partial class WorkflowSessionPresentationViewModel
             (context.IsAbMerge && AbMergeAddressSpaceBySlotId.ContainsKey(slot.SlotId)))
         {
             await RefreshSelectedMergeFirmwareInspectionsAsync(IsAbMergeContextActive ? slot.SlotId : null);
+            RecordInputSelected(context, slot.SlotId);
             return;
         }
 
@@ -111,6 +115,18 @@ internal sealed partial class WorkflowSessionPresentationViewModel
                 slot.FilePath));
         }
         await RunFirmwareInspectionAsync(context, items, cancellationToken);
+        RecordInputSelected(context, slot.SlotId);
+    }
+
+    private void RecordInputSelected(WorkflowInspectionContext context, string slotId)
+    {
+        _recordActivity(new SystemActivityDraft(
+            SystemActivityCodes.InputSelected,
+            SystemActivityImportance.Debug,
+            SystemActivityCategory.Input,
+            SystemActivitySeverity.Information,
+            slotId,
+            context.Mode));
     }
 
     private IEnumerable<FirmwareSlotViewModel> InspectionSlots(WorkflowInspectionContext context)

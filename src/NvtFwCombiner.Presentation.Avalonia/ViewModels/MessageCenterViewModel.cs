@@ -34,6 +34,10 @@ internal sealed partial class MessageCenterViewModel : ObservableObject
         CloseCommand = new RelayCommand(Close);
         ShowRunReportsCommand = new RelayCommand(() => SelectSystemInformation(false));
         ShowSystemInformationCommand = new RelayCommand(() => SelectSystemInformation(true));
+        ShowImportantActivityCommand = new RelayCommand(() => SelectedActivityFilter = SystemActivityFilter.Important);
+        ShowWarningActivityCommand = new RelayCommand(() => SelectedActivityFilter = SystemActivityFilter.Warnings);
+        ShowErrorActivityCommand = new RelayCommand(() => SelectedActivityFilter = SystemActivityFilter.Errors);
+        ToggleDebugActivityCommand = new RelayCommand(() => IsDebugActivityExpanded = !IsDebugActivityExpanded);
         RefreshCommand = new AsyncRelayCommand(
             RefreshExplicitAsync);
         OpenCurrentReportCommand = new RelayCommand(OpenCurrentReport, () => Reports.CanOpenReport);
@@ -57,6 +61,60 @@ internal sealed partial class MessageCenterViewModel : ObservableObject
 
     /// <summary>True when immutable run history is selected.</summary>
     public bool IsRunReportsSelected => !IsSystemInformationSelected;
+
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(ActivityItems))]
+    [NotifyPropertyChangedFor(nameof(HasActivityItems))]
+    [NotifyPropertyChangedFor(nameof(HasNoActivityItems))]
+    [NotifyPropertyChangedFor(nameof(IsImportantActivitySelected))]
+    [NotifyPropertyChangedFor(nameof(IsWarningActivitySelected))]
+    [NotifyPropertyChangedFor(nameof(IsErrorActivitySelected))]
+    public partial SystemActivityFilter SelectedActivityFilter { get; private set; }
+
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(ActivityItems))]
+    [NotifyPropertyChangedFor(nameof(HasActivityItems))]
+    [NotifyPropertyChangedFor(nameof(HasNoActivityItems))]
+    [NotifyPropertyChangedFor(nameof(DebugActivityActionLabel))]
+    public partial bool IsDebugActivityExpanded { get; private set; }
+
+    public bool IsImportantActivitySelected => SelectedActivityFilter == SystemActivityFilter.Important;
+
+    public bool IsWarningActivitySelected => SelectedActivityFilter == SystemActivityFilter.Warnings;
+
+    public bool IsErrorActivitySelected => SelectedActivityFilter == SystemActivityFilter.Errors;
+
+    public string DebugActivityActionLabel => IsDebugActivityExpanded
+        ? Text.HideDebugActivityLabel
+        : Text.ShowDebugActivityLabel;
+
+    public string SessionActivitySummary => Text.FormatSessionActivitySummary(_systemInformation.Activity.Count);
+
+    public IReadOnlyList<MessageCenterActivityItem> ActivityItems =>
+    [
+        .. _systemInformation.Activity
+            .Where(activity => IsDebugActivityExpanded ||
+                activity.Importance == SystemActivityImportance.Important)
+            .Where(activity => SelectedActivityFilter switch
+            {
+                SystemActivityFilter.Important => true,
+                SystemActivityFilter.Warnings => activity.Severity == SystemActivitySeverity.Warning,
+                SystemActivityFilter.Errors => activity.Severity == SystemActivitySeverity.Error,
+                _ => throw new ArgumentOutOfRangeException(),
+            })
+            .OrderByDescending(static activity => activity.Sequence)
+            .Select(activity => new MessageCenterActivityItem(
+                activity.ObservedAtUtc.ToLocalTime().ToString("HH:mm:ss", System.Globalization.CultureInfo.InvariantCulture),
+                Text.GetSystemActivityTitle(activity),
+                Text.GetSystemActivityDetail(activity),
+                Text.GetSystemActivityCategory(activity.Category),
+                Text.GetSystemActivityStatus(activity.Severity),
+                activity.Severity)),
+    ];
+
+    public bool HasActivityItems => ActivityItems.Count > 0;
+
+    public bool HasNoActivityItems => !HasActivityItems;
 
     public int ActiveBadgeCount => Current.ActiveDiagnostics.Count;
 
@@ -130,6 +188,14 @@ internal sealed partial class MessageCenterViewModel : ObservableObject
 
     public IRelayCommand ShowSystemInformationCommand { get; }
 
+    public IRelayCommand ShowImportantActivityCommand { get; }
+
+    public IRelayCommand ShowWarningActivityCommand { get; }
+
+    public IRelayCommand ShowErrorActivityCommand { get; }
+
+    public IRelayCommand ToggleDebugActivityCommand { get; }
+
     public IAsyncRelayCommand RefreshCommand { get; }
 
     /// <summary>Opens the existing current immutable run report.</summary>
@@ -179,14 +245,26 @@ internal sealed partial class MessageCenterViewModel : ObservableObject
                 _systemInformation.CreateBundle(),
                 destinationPath,
                 cancellationToken);
+            _systemInformation.RecordActivity(new SystemActivityDraft(
+                SystemActivityCodes.DiagnosticsExported,
+                SystemActivityImportance.Debug,
+                SystemActivityCategory.Diagnostics,
+                SystemActivitySeverity.Success));
             ExportStatus = Text.DiagnosticsExportedLabel;
+            NotifyActivityChanged();
         }
         catch (Exception exception) when (exception is
             IOException or
             UnauthorizedAccessException or
             ArgumentException)
         {
+            _systemInformation.RecordActivity(new SystemActivityDraft(
+                SystemActivityCodes.DiagnosticsExportFailed,
+                SystemActivityImportance.Important,
+                SystemActivityCategory.Diagnostics,
+                SystemActivitySeverity.Error));
             ExportStatus = Text.DiagnosticsExportFailedLabel;
+            NotifyActivityChanged();
         }
     }
 
@@ -200,6 +278,9 @@ internal sealed partial class MessageCenterViewModel : ObservableObject
         OnPropertyChanged(nameof(SystemStatusAnnouncement));
         OnPropertyChanged(nameof(GlobalBuildBlockerText));
         OnPropertyChanged(nameof(RefreshActionLabel));
+        OnPropertyChanged(nameof(ActivityItems));
+        OnPropertyChanged(nameof(SessionActivitySummary));
+        OnPropertyChanged(nameof(DebugActivityActionLabel));
         if (!string.IsNullOrEmpty(ExportStatus))
         {
             ExportStatus = string.Empty;
@@ -213,9 +294,23 @@ internal sealed partial class MessageCenterViewModel : ObservableObject
         OpenReportHistoryCommand.NotifyCanExecuteChanged();
     }
 
+    internal void NotifyActivityChanged()
+    {
+        PresentationObserver.Invoke(() => OnPropertyChanged(nameof(ActivityItems)));
+        PresentationObserver.Invoke(() => OnPropertyChanged(nameof(HasActivityItems)));
+        PresentationObserver.Invoke(() => OnPropertyChanged(nameof(HasNoActivityItems)));
+        PresentationObserver.Invoke(() => OnPropertyChanged(nameof(SessionActivitySummary)));
+    }
+
     private void Open()
     {
         ExportStatus = string.Empty;
+        _systemInformation.RecordActivity(new SystemActivityDraft(
+            SystemActivityCodes.MessageCenterOpened,
+            SystemActivityImportance.Debug,
+            SystemActivityCategory.Navigation,
+            SystemActivitySeverity.Information));
+        NotifyActivityChanged();
         IsOpen = true;
     }
 
@@ -253,6 +348,12 @@ internal sealed partial class MessageCenterViewModel : ObservableObject
 
     private async Task RefreshExplicitAsync(CancellationToken cancellationToken)
     {
+        _systemInformation.RecordActivity(new SystemActivityDraft(
+            SystemActivityCodes.DiagnosticsRefreshRequested,
+            SystemActivityImportance.Debug,
+            SystemActivityCategory.Diagnostics,
+            SystemActivitySeverity.Information));
+        NotifyActivityChanged();
         PresentationObserver.Invoke(() => IsRefreshInProgress = true);
         PresentationObserver.Invoke(() => OnPropertyChanged(nameof(ExternalEnvironmentSummary)));
         try
@@ -345,6 +446,7 @@ internal sealed partial class MessageCenterViewModel : ObservableObject
         PresentationObserver.Invoke(() => OnPropertyChanged(nameof(ExternalEnvironmentSummary)));
         PresentationObserver.Invoke(() => OnPropertyChanged(nameof(MessageCenterAccessibleName)));
         PresentationObserver.Invoke(() => OnPropertyChanged(nameof(SystemStatusAnnouncement)));
+        PresentationObserver.Invoke(NotifyActivityChanged);
     }
 
     private void OpenReportHistory()
@@ -368,6 +470,32 @@ internal sealed partial class MessageCenterViewModel : ObservableObject
         Close();
         Reports.ShowReportCommand.Execute(null);
     }
+}
+
+internal enum SystemActivityFilter
+{
+    Important,
+    Warnings,
+    Errors,
+}
+
+internal sealed record MessageCenterActivityItem(
+    string Time,
+    string Title,
+    string Detail,
+    string Category,
+    string Status,
+    SystemActivitySeverity Severity)
+{
+    public bool IsInformation => Severity == SystemActivitySeverity.Information;
+
+    public bool IsSuccess => Severity == SystemActivitySeverity.Success;
+
+    public bool IsWarning => Severity == SystemActivitySeverity.Warning;
+
+    public bool IsError => Severity == SystemActivitySeverity.Error;
+
+    public string AccessibleText => $"{Time}. {Title}. {Category}. {Detail}. {Status}.";
 }
 
 internal sealed record MessageCenterDiagnosticItem(

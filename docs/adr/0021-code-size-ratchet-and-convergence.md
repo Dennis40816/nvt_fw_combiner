@@ -674,6 +674,11 @@ output byte, CRC/header, processor, support, Golden, update-package verification
 installation, activation, or deletion authority. It also does not close or fund
 the separate unused-module and repository-size investigation.
 
+The 2026-08-22 current-session System Activity amendment and its exact source
+ledger continue in
+`0021-code-size-ratchet-system-activity-amendment.md`; that file is a normative
+appendix to this ADR and creates no second code-size policy owner.
+
 ## Consequences
 
 - `v0.9.8` must remove duplicate ownership and unused compatibility code before

@@ -2,6 +2,7 @@ using System.Collections.ObjectModel;
 using System.ComponentModel;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using NvtFwCombiner.Application.Diagnostics;
 
 namespace NvtFwCombiner.Presentation.Avalonia.ViewModels;
 
@@ -94,6 +95,10 @@ internal sealed partial class MainWindowViewModel
                 ? SettingsSection.Version
                 : SettingsSection.Preferences);
         IsSettingsModalOpen = true;
+        RecordDebugActivity(
+            SystemActivityCodes.SettingsOpened,
+            SystemActivityCategory.Navigation,
+            Settings.SelectedSection.ToString());
     }
 
     private void CloseSettings()

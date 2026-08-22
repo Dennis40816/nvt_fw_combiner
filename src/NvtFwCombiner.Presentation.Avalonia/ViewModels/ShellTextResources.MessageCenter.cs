@@ -41,6 +41,26 @@ internal sealed partial class ShellTextResources
 
     public string RefreshingDiagnosticsLabel { get; private init; } = string.Empty;
 
+    public string SystemActivityTitle { get; private init; } = string.Empty;
+
+    public string SystemActivitySubtitle { get; private init; } = string.Empty;
+
+    public string ImportantActivityLabel { get; private init; } = string.Empty;
+
+    public string WarningActivityLabel { get; private init; } = string.Empty;
+
+    public string ErrorActivityLabel { get; private init; } = string.Empty;
+
+    public string ShowDebugActivityLabel { get; private init; } = string.Empty;
+
+    public string HideDebugActivityLabel { get; private init; } = string.Empty;
+
+    public string SessionActivityNotice { get; private init; } = string.Empty;
+
+    public string NoActivityLabel { get; private init; } = string.Empty;
+
+    public string ExportActivityLabel { get; private init; } = string.Empty;
+
     public string FormatMessageCenterAccessibleName(int activeCount)
     {
         return activeCount == 0

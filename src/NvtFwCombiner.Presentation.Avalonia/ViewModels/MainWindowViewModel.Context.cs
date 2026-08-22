@@ -1,4 +1,5 @@
 using System.ComponentModel;
+using NvtFwCombiner.Application.Diagnostics;
 
 namespace NvtFwCombiner.Presentation.Avalonia.ViewModels;
 
@@ -41,6 +42,10 @@ internal sealed partial class MainWindowViewModel
         OnPropertyChanged(nameof(IsLatestOutputActionVisible));
         WorkflowSession.NotifyContextTextChanged();
         UpdateNavigationState();
+        RecordDebugActivity(
+            SystemActivityCodes.UserNavigated,
+            SystemActivityCategory.Navigation,
+            page.ToString());
     }
 
     private bool CanRequestHexEditorSave()

@@ -46,6 +46,8 @@ public sealed class JsonSystemDiagnosticsExporterTests
             Assert.DoesNotContain(destination, json, StringComparison.OrdinalIgnoreCase);
             Assert.DoesNotContain("C:/private/catalog.json", json, StringComparison.OrdinalIgnoreCase);
             Assert.Contains("catalog.source.invalid", json, StringComparison.Ordinal);
+            Assert.Contains("activities", json, StringComparison.Ordinal);
+            Assert.DoesNotContain("transitions", json, StringComparison.OrdinalIgnoreCase);
         }
         finally
         {

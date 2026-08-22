@@ -87,13 +87,17 @@ public sealed partial class XamlControlStyleContractTests
         Assert.Contains("NfcSecondaryActionPressedBrush", secondaryPressed, StringComparison.Ordinal);
 
         var messageCenter = XDocument.Parse(ReadPresentationFile("Views/MessageCenterModal.axaml"));
+        XNamespace x = "http://schemas.microsoft.com/winfx/2006/xaml";
         XElement closeButton = Assert.Single(messageCenter.Descendants(), element =>
             element.Name.LocalName == "Button" &&
-            (string?)element.Attribute("Content") == "{Binding Text.CloseLabel}");
+            (string?)element.Attribute(x + "Name") == "CloseButton");
         string[] closeClasses = ((string?)closeButton.Attribute("Classes") ?? string.Empty)
             .Split(' ', StringSplitOptions.RemoveEmptyEntries);
-        Assert.Contains("secondary", closeClasses);
+        Assert.Contains("closeButton", closeClasses);
         Assert.DoesNotContain("primary", closeClasses);
+        Assert.DoesNotContain(messageCenter.Descendants(), element =>
+            element.Name.LocalName == "Button" &&
+            (string?)element.Attribute("Content") == "{Binding Text.CloseLabel}");
 
         XElement[] textualDismissActions =
         [

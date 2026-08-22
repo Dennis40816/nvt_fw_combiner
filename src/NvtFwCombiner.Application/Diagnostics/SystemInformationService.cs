@@ -10,17 +10,23 @@ public interface ISystemInformationService
     /// <summary>Latest immutable observation.</summary>
     SystemInformationSnapshot Current { get; }
 
+    /// <summary>Bounded current-session activity history.</summary>
+    IReadOnlyList<SystemActivityEntry> Activity { get; }
+
     /// <summary>Reprobes runtime state and optionally reloads the canonical catalog first.</summary>
     SystemInformationSnapshot Refresh(bool reloadCatalog, CancellationToken cancellationToken);
 
     /// <summary>Captures a versioned privacy-filtered export payload.</summary>
     SystemDiagnosticsBundle CreateBundle();
+
+    /// <summary>Records one privacy-filtered user or system activity.</summary>
+    void RecordActivity(SystemActivityDraft activity);
 }
 
 /// <summary>Owns refreshable System Information separately from immutable run reports.</summary>
 public sealed class SystemInformationService : ISystemInformationService
 {
-    private const int DefaultTransitionLimit = 32;
+    private const int DefaultActivityLimit = 128;
     private readonly Lock _gate = new();
     private readonly Lock _refreshGate = new();
     private readonly string _applicationVersion;
@@ -29,8 +35,9 @@ public sealed class SystemInformationService : ISystemInformationService
     private readonly ISystemRuntimeProbe _runtimeProbe;
     private readonly IExternalProcessorEnvironmentLoader _externalEnvironment;
     private readonly ISystemClock _clock;
-    private readonly int _transitionLimit;
-    private readonly List<SystemDiagnosticTransition> _transitions = [];
+    private readonly int _activityLimit;
+    private readonly List<SystemActivityEntry> _activity = [];
+    private long _activitySequence;
     private SystemInformationSnapshot _current;
 
     /// <summary>Creates one current-session lifecycle and performs its startup probe.</summary>
@@ -41,10 +48,10 @@ public sealed class SystemInformationService : ISystemInformationService
         IExternalProcessorEnvironmentLoader externalEnvironment,
         ISystemRuntimeProbe runtimeProbe,
         ISystemClock clock,
-        int transitionLimit = DefaultTransitionLimit)
+        int activityLimit = DefaultActivityLimit)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(applicationVersion);
-        ArgumentOutOfRangeException.ThrowIfLessThan(transitionLimit, 1);
+        ArgumentOutOfRangeException.ThrowIfLessThan(activityLimit, 1);
         _applicationVersion = applicationVersion;
         _catalogQuery = catalogQuery ?? throw new ArgumentNullException(nameof(catalogQuery));
         _catalogReloader = catalogReloader ?? throw new ArgumentNullException(nameof(catalogReloader));
@@ -52,9 +59,27 @@ public sealed class SystemInformationService : ISystemInformationService
             throw new ArgumentNullException(nameof(externalEnvironment));
         _runtimeProbe = runtimeProbe ?? throw new ArgumentNullException(nameof(runtimeProbe));
         _clock = clock ?? throw new ArgumentNullException(nameof(clock));
-        _transitionLimit = transitionLimit;
+        _activityLimit = activityLimit;
         _current = Capture(generation: 1);
-        RecordTransition(previous: null, _current);
+        RecordActivityCore(new SystemActivityDraft(
+            SystemActivityCodes.ApplicationStarted,
+            SystemActivityImportance.Important,
+            SystemActivityCategory.Session,
+            SystemActivitySeverity.Information,
+            _applicationVersion));
+        RecordDiagnosticChanges(previous: null, _current);
+    }
+
+    /// <inheritdoc />
+    public IReadOnlyList<SystemActivityEntry> Activity
+    {
+        get
+        {
+            lock (_gate)
+            {
+                return Array.AsReadOnly([.. _activity]);
+            }
+        }
     }
 
     /// <inheritdoc />
@@ -86,8 +111,14 @@ public sealed class SystemInformationService : ISystemInformationService
             lock (_gate)
             {
                 SystemInformationSnapshot next = Capture(checked(_current.Generation + 1));
-                RecordTransition(_current, next);
+                RecordDiagnosticChanges(_current, next);
                 _current = next;
+                RecordActivityCore(new SystemActivityDraft(
+                    SystemActivityCodes.SystemRefreshed,
+                    SystemActivityImportance.Debug,
+                    SystemActivityCategory.Diagnostics,
+                    SystemActivitySeverity.Information,
+                    reloadCatalog ? "catalog-and-runtime" : "runtime"));
                 return next;
             }
         }
@@ -98,7 +129,18 @@ public sealed class SystemInformationService : ISystemInformationService
     {
         lock (_gate)
         {
-            return new SystemDiagnosticsBundle(_current, _transitions);
+            return new SystemDiagnosticsBundle(_current, _activity);
+        }
+    }
+
+    /// <inheritdoc />
+    public void RecordActivity(SystemActivityDraft activity)
+    {
+        ArgumentNullException.ThrowIfNull(activity);
+        ValidateActivity(activity);
+        lock (_gate)
+        {
+            RecordActivityCore(activity);
         }
     }
 
@@ -171,7 +213,7 @@ public sealed class SystemInformationService : ISystemInformationService
         return diagnostics;
     }
 
-    private void RecordTransition(
+    private void RecordDiagnosticChanges(
         SystemInformationSnapshot? previous,
         SystemInformationSnapshot current)
     {
@@ -183,19 +225,84 @@ public sealed class SystemInformationService : ISystemInformationService
             .ToHashSet(StringComparer.Ordinal);
         string[] added = [.. after.Except(before, StringComparer.Ordinal)];
         string[] resolved = [.. before.Except(after, StringComparer.Ordinal)];
-        if (added.Length == 0 && resolved.Length == 0)
+        foreach (string code in added.Order(StringComparer.Ordinal))
+        {
+            RecordActivityCore(new SystemActivityDraft(
+                SystemActivityCodes.DiagnosticActivated,
+                SystemActivityImportance.Important,
+                SystemActivityCategory.Diagnostics,
+                SystemActivitySeverity.Warning,
+                code));
+        }
+
+        foreach (string code in resolved.Order(StringComparer.Ordinal))
+        {
+            RecordActivityCore(new SystemActivityDraft(
+                SystemActivityCodes.DiagnosticResolved,
+                SystemActivityImportance.Important,
+                SystemActivityCategory.Diagnostics,
+                SystemActivitySeverity.Success,
+                code));
+        }
+    }
+
+    private void RecordActivityCore(SystemActivityDraft activity)
+    {
+        ValidateActivity(activity);
+        _activity.Add(new SystemActivityEntry(
+            checked(++_activitySequence),
+            _clock.UtcNow,
+            activity));
+        while (_activity.Count > _activityLimit)
+        {
+            _activity.RemoveAt(0);
+        }
+    }
+
+    private static void ValidateActivity(SystemActivityDraft activity)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(activity.Code);
+        if (!Enum.IsDefined(activity.Importance))
+        {
+            throw new ArgumentOutOfRangeException(
+                nameof(activity),
+                activity.Importance,
+                "Activity importance must use the closed disclosure vocabulary.");
+        }
+        if (!Enum.IsDefined(activity.Category))
+        {
+            throw new ArgumentOutOfRangeException(
+                nameof(activity),
+                activity.Category,
+                "Activity category must use the closed system vocabulary.");
+        }
+        if (!Enum.IsDefined(activity.Severity))
+        {
+            throw new ArgumentOutOfRangeException(
+                nameof(activity),
+                activity.Severity,
+                "Activity severity must use the closed presentation vocabulary.");
+        }
+        ValidateToken(activity.Code, nameof(activity.Code));
+        ValidateToken(activity.SubjectId, nameof(activity.SubjectId));
+        ValidateToken(activity.ContextId, nameof(activity.ContextId));
+    }
+
+    private static void ValidateToken(string? value, string parameterName)
+    {
+        if (value is null)
         {
             return;
         }
 
-        _transitions.Add(new SystemDiagnosticTransition(
-            current.Generation,
-            current.ObservedAtUtc,
-            added,
-            resolved));
-        while (_transitions.Count > _transitionLimit)
+        if (string.IsNullOrWhiteSpace(value) ||
+            value.Length > 128 ||
+            value.IndexOfAny(['/', '\\', '\r', '\n']) >= 0 ||
+            value.Any(char.IsControl))
         {
-            _transitions.RemoveAt(0);
+            throw new ArgumentException(
+                "Activity identifiers must be short, single-line, path-free tokens.",
+                parameterName);
         }
     }
 }

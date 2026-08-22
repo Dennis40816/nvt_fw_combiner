@@ -1,5 +1,6 @@
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using NvtFwCombiner.Application.Diagnostics;
 
 namespace NvtFwCombiner.Presentation.Avalonia.ViewModels;
 
@@ -11,6 +12,7 @@ internal sealed partial class WorkflowSessionPresentationViewModel : ObservableO
     private readonly MergePresentationViewModel _merge;
     private readonly ReplacePresentationViewModel _replace;
     private readonly Action<string, string> _showToast;
+    private readonly Action<SystemActivityDraft> _recordActivity;
     private readonly WorkflowSessionStateBindings _stateBindings;
     private readonly Func<ShellTextResources> _textProvider;
 
@@ -21,6 +23,7 @@ internal sealed partial class WorkflowSessionPresentationViewModel : ObservableO
         ReplacePresentationViewModel replace,
         Action<WorkflowContextSelection> applyWorkflowContext,
         Action<string, string> showToast,
+        Action<SystemActivityDraft> recordActivity,
         WorkflowSessionStateBindings stateBindings)
     {
         _compositionServices = compositionServices ??
@@ -30,6 +33,7 @@ internal sealed partial class WorkflowSessionPresentationViewModel : ObservableO
         _replace = replace ?? throw new ArgumentNullException(nameof(replace));
         _applyWorkflowContext = applyWorkflowContext ?? throw new ArgumentNullException(nameof(applyWorkflowContext));
         _showToast = showToast ?? throw new ArgumentNullException(nameof(showToast));
+        _recordActivity = recordActivity ?? throw new ArgumentNullException(nameof(recordActivity));
         _stateBindings = stateBindings ?? throw new ArgumentNullException(nameof(stateBindings));
         WorkflowContextSetup = new WorkflowContextSetupViewModel(_compositionServices);
         ConfirmWorkflowContextCommand = new RelayCommand(ConfirmWorkflowContext);

@@ -1,0 +1,107 @@
+<Styles xmlns="https://github.com/avaloniaui">
+  <Style Selector="Border.messageCenterHeader">
+    <Setter Property="Background" Value="{DynamicResource NfcSurfaceBrush}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource NfcDividerBrush}" />
+    <Setter Property="BorderThickness" Value="0,0,0,2" />
+  </Style>
+  <Style Selector="Border.messageCenterNavigationSurface">
+    <Setter Property="Padding" Value="18,30" />
+    <Setter Property="Background" Value="{DynamicResource NfcSurfaceBrush}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource NfcDividerBrush}" />
+    <Setter Property="BorderThickness" Value="0,0,2,0" />
+  </Style>
+  <Style Selector="Border.messageCenterDivider">
+    <Setter Property="Height" Value="2" />
+    <Setter Property="Background" Value="{DynamicResource NfcDividerBrush}" />
+  </Style>
+  <Style Selector="Border.activitySessionPill">
+    <Setter Property="Padding" Value="12,6" />
+    <Setter Property="Background" Value="{DynamicResource NfcAccentSurfaceSubtleBrush}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource NfcAccentBorderLightBrush}" />
+    <Setter Property="BorderThickness" Value="2" />
+    <Setter Property="CornerRadius" Value="{DynamicResource NfcPillCornerRadius}" />
+  </Style>
+  <Style Selector="Border.activityRow">
+    <Setter Property="MinHeight" Value="78" />
+    <Setter Property="Padding" Value="14,12" />
+    <Setter Property="Background" Value="Transparent" />
+    <Setter Property="BorderBrush" Value="{DynamicResource NfcDividerBrush}" />
+    <Setter Property="BorderThickness" Value="0,0,0,1" />
+    <Setter Property="CornerRadius" Value="{DynamicResource NfcCompactCornerRadius}" />
+  </Style>
+  <Style Selector="Border.activityRow:pointerover, Border.activityRow:focus-visible">
+    <Setter Property="Background" Value="{DynamicResource NfcAccentSurfaceSubtleBrush}" />
+  </Style>
+  <Style Selector="Border.activityRow:focus-visible">
+    <Setter Property="BorderBrush" Value="{DynamicResource NfcAccentBorderStrongBrush}" />
+    <Setter Property="BorderThickness" Value="2" />
+  </Style>
+  <Style Selector="Border.activityDot">
+    <Setter Property="Width" Value="10" />
+    <Setter Property="Height" Value="10" />
+    <Setter Property="CornerRadius" Value="5" />
+    <Setter Property="HorizontalAlignment" Value="Center" />
+    <Setter Property="VerticalAlignment" Value="Top" />
+  </Style>
+  <Style Selector="Border.activityDot.info"><Setter Property="Background" Value="{DynamicResource NfcAccentBrush}" /></Style>
+  <Style Selector="Border.activityDot.success"><Setter Property="Background" Value="{DynamicResource NfcSuccessAccentBrush}" /></Style>
+  <Style Selector="Border.activityDot.warning"><Setter Property="Background" Value="{DynamicResource NfcWarningTextStrongBrush}" /></Style>
+  <Style Selector="Border.activityDot.error"><Setter Property="Background" Value="{DynamicResource NfcDangerTextBrush}" /></Style>
+  <Style Selector="TextBlock.activityStatus">
+    <Setter Property="FontSize" Value="{DynamicResource NfcFontSize11}" />
+    <Setter Property="FontWeight" Value="SemiBold" />
+    <Setter Property="Padding" Value="8,3" />
+  </Style>
+  <Style Selector="TextBlock.activityStatus.info"><Setter Property="Foreground" Value="{DynamicResource NfcAccentStrongBrush}" /></Style>
+  <Style Selector="TextBlock.activityStatus.success"><Setter Property="Foreground" Value="{DynamicResource NfcSuccessTextBrush}" /></Style>
+  <Style Selector="TextBlock.activityStatus.warning"><Setter Property="Foreground" Value="{DynamicResource NfcWarningTextStrongBrush}" /></Style>
+  <Style Selector="TextBlock.activityStatus.error"><Setter Property="Foreground" Value="{DynamicResource NfcDangerTextBrush}" /></Style>
+
+  <Style Selector="ToggleButton.messageCenterNavigationItem">
+    <Setter Property="MinHeight" Value="48" />
+    <Setter Property="Padding" Value="14,10" />
+    <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+    <Setter Property="Background" Value="Transparent" />
+    <Setter Property="BorderBrush" Value="Transparent" />
+    <Setter Property="BorderThickness" Value="2" />
+    <Setter Property="Foreground" Value="{DynamicResource NfcTextBrush}" />
+  </Style>
+  <Style Selector="ToggleButton.messageCenterNavigationItem /template/ ContentPresenter#PART_ContentPresenter">
+    <Setter Property="Background" Value="Transparent" />
+    <Setter Property="BorderBrush" Value="Transparent" />
+    <Setter Property="BorderThickness" Value="2" />
+    <Setter Property="CornerRadius" Value="{DynamicResource NfcCompactCornerRadius}" />
+  </Style>
+  <Style Selector="ToggleButton.messageCenterNavigationItem:pointerover /template/ ContentPresenter#PART_ContentPresenter">
+    <Setter Property="Background" Value="{DynamicResource NfcAccentSurfaceSubtleBrush}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource NfcAccentBorderLightBrush}" />
+  </Style>
+  <Style Selector="ToggleButton.messageCenterNavigationItem:checked /template/ ContentPresenter#PART_ContentPresenter">
+    <Setter Property="Background" Value="{DynamicResource NfcAccentSurfaceBrush}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource NfcAccentBorderStrongBrush}" />
+    <Setter Property="TextElement.Foreground" Value="{DynamicResource NfcAccentStrongBrush}" />
+  </Style>
+  <Style Selector="ToggleButton.activityFilter">
+    <Setter Property="MinHeight" Value="36" />
+    <Setter Property="Padding" Value="14,7" />
+    <Setter Property="Background" Value="{DynamicResource NfcSurfaceBrush}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource NfcBorderBrush}" />
+    <Setter Property="BorderThickness" Value="2" />
+    <Setter Property="Foreground" Value="{DynamicResource NfcTextBrush}" />
+  </Style>
+  <Style Selector="ToggleButton.activityFilter /template/ ContentPresenter#PART_ContentPresenter">
+    <Setter Property="Background" Value="{DynamicResource NfcSurfaceBrush}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource NfcBorderBrush}" />
+    <Setter Property="BorderThickness" Value="2" />
+    <Setter Property="CornerRadius" Value="{DynamicResource NfcPillCornerRadius}" />
+  </Style>
+  <Style Selector="ToggleButton.activityFilter:pointerover /template/ ContentPresenter#PART_ContentPresenter">
+    <Setter Property="Background" Value="{DynamicResource NfcAccentSurfaceSubtleBrush}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource NfcAccentBorderLightBrush}" />
+  </Style>
+  <Style Selector="ToggleButton.activityFilter:checked /template/ ContentPresenter#PART_ContentPresenter">
+    <Setter Property="Background" Value="{DynamicResource NfcAccentSurfaceBrush}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource NfcAccentBorderStrongBrush}" />
+    <Setter Property="TextElement.Foreground" Value="{DynamicResource NfcAccentStrongBrush}" />
+  </Style>
+</Styles>

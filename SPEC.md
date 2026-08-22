@@ -1940,10 +1940,15 @@ must not be restored as a second admission or dependency catalog.
     report history. Normal system facts do not create notification badges.
     Blocking system diagnostics badge the Message Center and may also produce a
     concise global blocker that links to the exact diagnostic. System status is
-    re-probed at process start and keeps only a contract-bounded in-memory list
-    of recent transitions for the current session. Resolved issues stop
-    contributing to the active badge but may remain in that bounded list.
-    System events are not persisted automatically. An explicit
+    re-probed at process start and owns one contract-bounded in-memory activity
+    list for the current session. Diagnostic activation/resolution and
+    privacy-filtered user operations such as page, workflow context, input slot,
+    Preview, and Build actions share that sole owner. The default view shows
+    important events; Debug activity appears only after explicit operator
+    expansion. Resolved issues stop contributing to the active badge but may
+    remain in that bounded list. Raw paths, filenames, user identifiers, and
+    multiline values are forbidden activity fields. System events are not
+    persisted automatically. An explicit
     `Export Diagnostics` action may write a versioned, privacy-filtered
     diagnostic JSON for support; it is not a Build Report.
 36. Every page derives Preview and Build availability from one typed action
@@ -2120,7 +2125,8 @@ after the grill closes so issues do not become a competing draft specification.
     models/lifecycles, normal system facts do not create badge noise, a fatal
     cold-start diagnostic remains readable and focusable, and the same blocker
     is reachable from the global hint and disabled Build affordance. They also
-    prove session-event bounds, resolved-badge clearing, restart re-probe,
+    prove session-event bounds, default-important/explicit-Debug disclosure,
+    privacy-safe user-action capture, resolved-badge clearing, restart re-probe,
     privacy-filtered diagnostic export, and absence of automatic persistence
     into Report History.
 14. Hex Viewport extraction requires visual/interaction parity and measured
@@ -2289,6 +2295,19 @@ after the grill closes so issues do not become a competing draft specification.
     processor protocol, support claim, or Golden expected bytes; the six safe
     DP Replace profiles change only their already-approved typed output-name
     publication, while the recorded R3-gated profiles remain static.
+    Owner-approved current-session System Activity on 2026-08-22 replaces the
+    former bounded diagnostic-transition list with one Application-owned,
+    privacy-filtered activity list and implements the accepted 1,536 by 864
+    Message Center reference in both themes. Relative to its exact preceding
+    checkpoint, full production changes from 109,213 to 109,849 and runtime
+    from 74,937 to 75,135: Domain plus Profiles remains 20,632; Application
+    changes from 33,225 to 33,423; Bootstrap plus CLI plus Desktop remains
+    3,503; Infrastructure plus Contracts plus CRC worker remains 17,577; and
+    the remaining +438 is Presentation. The exact allowances become 6,952
+    full, 5,078 runtime, and 2,732 Application above the frozen base. This
+    amendment is non-transferable, creates no second history/persistence/report
+    owner, and does not close or fund the subsequent whole-repository
+    single-implementation, layering, unused-module, or code-size audit.
     Owner amendment on 2026-08-08 supersedes the earlier 44,000 total and
     18,000/12,000/7,500/5,500 slice completion caps. The dated numbers remain
     planning history after the merged #230 checkpoint at `ad672900` showed that

@@ -1,4 +1,5 @@
 using System.ComponentModel;
+using NvtFwCombiner.Application.Diagnostics;
 
 namespace NvtFwCombiner.Presentation.Avalonia.ViewModels;
 
@@ -70,6 +71,22 @@ internal sealed partial class MainWindowViewModel
 
     private void WorkflowSession_OnPropertyChanged(object? sender, PropertyChangedEventArgs e)
     {
+        if (e.PropertyName == nameof(WorkflowSessionPresentationViewModel.SelectedIc))
+        {
+            RecordDebugActivity(
+                SystemActivityCodes.IcSelected,
+                SystemActivityCategory.Workflow,
+                WorkflowSession.SelectedIc);
+        }
+        else if (e.PropertyName == nameof(WorkflowSessionPresentationViewModel.SelectedNumber))
+        {
+            RecordDebugActivity(
+                SystemActivityCodes.NumberSelected,
+                SystemActivityCategory.Workflow,
+                WorkflowSession.SelectedNumber,
+                WorkflowSession.SelectedIc);
+        }
+
         if (e.PropertyName is nameof(WorkflowSessionPresentationViewModel.IsWorkflowContextModalOpen) or
             nameof(WorkflowSessionPresentationViewModel.IsFirmwareIcMismatchModalOpen) or
             nameof(WorkflowSessionPresentationViewModel.IsFirmwareNumberMismatchModalOpen))

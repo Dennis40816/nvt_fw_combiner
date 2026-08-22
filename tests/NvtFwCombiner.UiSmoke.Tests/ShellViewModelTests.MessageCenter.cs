@@ -161,10 +161,85 @@ public sealed partial class ShellNavigationSystemTests
             CapabilityActionReadinessIssueCodes.InputPending,
             viewModel.Replace.PrimaryBuildBlocker?.Code);
         Assert.Empty(viewModel.Reports.ReportHistoryEntries);
-        Assert.Contains(diagnostics.CreateBundle().Transitions, transition =>
-            transition.ResolvedCodes.Contains(
-                SystemDiagnosticCodes.CapabilityCatalogUnavailable,
-                StringComparer.Ordinal));
+        Assert.Contains(diagnostics.CreateBundle().Activities, activity =>
+            activity.Code == SystemActivityCodes.DiagnosticResolved &&
+            activity.SubjectId == SystemDiagnosticCodes.CapabilityCatalogUnavailable);
+    }
+
+    /// <summary>Important events are the default; Debug explicitly reveals user operations.</summary>
+    [Fact]
+    public void ActivityHistoryUsesTwoDisclosureLevels()
+    {
+        StubCatalog catalog = new();
+        SystemInformationService diagnostics = new(
+            "0.10.6-test",
+            catalog,
+            catalog,
+            CreateExternalEnvironmentLoader(),
+            new StubRuntimeProbe(),
+            new StubClock());
+        var text = ShellTextResources.For(ShellLanguage.English);
+        var viewModel = new MessageCenterViewModel(
+            () => text,
+            diagnostics,
+            CreateExternalEnvironmentLoader(),
+            new CapturingDiagnosticsExporter(),
+            new ReportPresentationViewModel(() => text, static () => { }),
+            static _ => { });
+        diagnostics.RecordActivity(new SystemActivityDraft(
+            SystemActivityCodes.UserNavigated,
+            SystemActivityImportance.Debug,
+            SystemActivityCategory.Navigation,
+            SystemActivitySeverity.Information,
+            "Merge"));
+        viewModel.NotifyActivityChanged();
+
+        Assert.DoesNotContain(viewModel.ActivityItems, item => item.Title == "Page changed");
+
+        viewModel.ToggleDebugActivityCommand.Execute(null);
+
+        Assert.Contains(viewModel.ActivityItems, item => item.Title == "Page changed");
+        Assert.Contains("events", viewModel.SessionActivitySummary, StringComparison.Ordinal);
+    }
+
+    /// <summary>Shell selection operations publish path-free Debug activity through the sole service.</summary>
+    [Fact]
+    public void ShellNavigationAndContextSelectionAreRecordedAsUserActivity()
+    {
+        StubCatalog catalog = new();
+        SystemInformationService diagnostics = new(
+            "0.10.6-test",
+            catalog,
+            catalog,
+            CreateExternalEnvironmentLoader(),
+            new StubRuntimeProbe(),
+            new StubClock());
+        PresentationHostServices services = PresentationTestHost.CreateServices("0.10.6-test");
+        MainWindowViewModel viewModel = new(
+            "test",
+            "0.10.6-test",
+            ShellLanguage.English,
+            services,
+            new DelegatingFirmwareInspection(
+                TestHost.FirmwareInspectionExperience,
+                metadataReader: static (_, _) => null,
+                batchReader: static (_, _) => []),
+            systemInformationService: diagnostics,
+            systemDiagnosticsExporter: new CapturingDiagnosticsExporter());
+        _ = PresentationTestHost.PublishCanonicalCatalog(services, viewModel);
+
+        viewModel.ShowMergeCommand.Execute(null);
+        viewModel.WorkflowSession.SelectedIc = "NT51950";
+        viewModel.Merge.SelectedMergeMode = ExperienceIds.AbMerge;
+        viewModel.OpenSettingsCommand.Execute(null);
+
+        Assert.Contains(diagnostics.Activity, activity =>
+            activity.Code == SystemActivityCodes.UserNavigated && activity.SubjectId == "Merge");
+        Assert.Contains(diagnostics.Activity, activity =>
+            activity.Code == SystemActivityCodes.IcSelected && activity.SubjectId == "NT51950");
+        Assert.Contains(diagnostics.Activity, activity =>
+            activity.Code == SystemActivityCodes.ModeSelected && activity.SubjectId == ExperienceIds.AbMerge);
+        Assert.Contains(diagnostics.Activity, activity => activity.Code == SystemActivityCodes.SettingsOpened);
     }
 
     /// <summary>Blocker navigation selects the exact localized System Information surface.</summary>

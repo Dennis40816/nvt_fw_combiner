@@ -16,7 +16,7 @@ public sealed class SystemInformationServiceTests
         StubCatalog catalog = new(
             Result(CanonicalSupportMatrixCatalogState.ColdStartBlocked),
             Result(CanonicalSupportMatrixCatalogState.Current, Matrix()));
-        SystemInformationService service = CreateService(catalog, transitionLimit: 4);
+        SystemInformationService service = CreateService(catalog, activityLimit: 8);
 
         Assert.True(service.Current.IsBuildBlocked);
         Assert.Equal(SystemDiagnosticCodes.CapabilityCatalogUnavailable,
@@ -29,10 +29,9 @@ public sealed class SystemInformationServiceTests
         Assert.False(refreshed.IsBuildBlocked);
         Assert.Empty(refreshed.ActiveDiagnostics);
         Assert.Equal(1, catalog.ReloadCount);
-        Assert.Contains(service.CreateBundle().Transitions, transition =>
-            transition.ResolvedCodes.Contains(
-                SystemDiagnosticCodes.CapabilityCatalogUnavailable,
-                StringComparer.Ordinal));
+        Assert.Contains(service.CreateBundle().Activities, activity =>
+            activity.Code == SystemActivityCodes.DiagnosticResolved &&
+            activity.SubjectId == SystemDiagnosticCodes.CapabilityCatalogUnavailable);
     }
 
     /// <summary>A failed reload identifies LKG without disabling execution through the retained publication.</summary>
@@ -142,32 +141,119 @@ public sealed class SystemInformationServiceTests
         Assert.Equal(2, (await refresh).Generation);
     }
 
-    /// <summary>Transition history is bounded in memory and diagnostic bundles expose no report model.</summary>
+    /// <summary>Activity history is bounded in memory and diagnostic bundles expose no report model.</summary>
     [Fact]
-    public void CurrentSessionTransitionsAreBoundedAndBundleIsReportFree()
+    public void CurrentSessionActivityIsBoundedAndBundleIsReportFree()
     {
         StubCatalog catalog = new(
             Result(CanonicalSupportMatrixCatalogState.ColdStartBlocked),
             Result(CanonicalSupportMatrixCatalogState.Current, Matrix()),
             Result(CanonicalSupportMatrixCatalogState.ColdStartBlocked),
             Result(CanonicalSupportMatrixCatalogState.Current, Matrix()));
-        SystemInformationService service = CreateService(catalog, transitionLimit: 2);
+        SystemInformationService service = CreateService(catalog, activityLimit: 3);
 
         _ = service.Refresh(true, TestContext.Current.CancellationToken);
         _ = service.Refresh(true, TestContext.Current.CancellationToken);
         _ = service.Refresh(true, TestContext.Current.CancellationToken);
         SystemDiagnosticsBundle bundle = service.CreateBundle();
 
-        Assert.Equal(2, bundle.Transitions.Count);
+        Assert.Equal(3, bundle.Activities.Count);
+        Assert.DoesNotContain(
+            typeof(SystemDiagnosticsBundle).GetProperties(),
+            property => property.Name.Contains("Transition", StringComparison.OrdinalIgnoreCase));
         Assert.Equal(SystemDiagnosticsBundle.CurrentSchemaVersion, bundle.SchemaVersion);
         Assert.DoesNotContain(
             typeof(SystemDiagnosticsBundle).GetProperties(),
             property => property.Name.Contains("Report", StringComparison.OrdinalIgnoreCase));
     }
 
+    /// <summary>User actions share the sole bounded activity owner and remain hidden at default disclosure.</summary>
+    [Fact]
+    public void UserActivitySupportsImportantAndDebugDisclosureLevels()
+    {
+        SystemInformationService service = CreateService(new StubCatalog(Result(
+            CanonicalSupportMatrixCatalogState.Current,
+            Matrix())));
+
+        service.RecordActivity(new SystemActivityDraft(
+            SystemActivityCodes.UserNavigated,
+            SystemActivityImportance.Debug,
+            SystemActivityCategory.Navigation,
+            SystemActivitySeverity.Information,
+            "Merge"));
+        service.RecordActivity(new SystemActivityDraft(
+            SystemActivityCodes.BuildCompleted,
+            SystemActivityImportance.Important,
+            SystemActivityCategory.Composition,
+            SystemActivitySeverity.Success,
+            "standard-merge",
+            "NT51950"));
+
+        Assert.Contains(service.Activity, activity =>
+            activity.Code == SystemActivityCodes.UserNavigated &&
+            activity.Importance == SystemActivityImportance.Debug);
+        Assert.Contains(service.Activity, activity =>
+            activity.Code == SystemActivityCodes.BuildCompleted &&
+            activity.Importance == SystemActivityImportance.Important);
+    }
+
+    /// <summary>Activity tokens reject raw paths before they can enter memory or exported diagnostics.</summary>
+    [Theory]
+    [InlineData("C:\\private\\firmware.bin")]
+    [InlineData("/private/firmware.bin")]
+    [InlineData("line\nbreak")]
+    public void ActivityRejectsPathOrMultilineTokens(string unsafeToken)
+    {
+        SystemInformationService service = CreateService(new StubCatalog(Result(
+            CanonicalSupportMatrixCatalogState.Current,
+            Matrix())));
+
+        _ = Assert.Throws<ArgumentException>(() => service.RecordActivity(new SystemActivityDraft(
+            SystemActivityCodes.InputSelected,
+            SystemActivityImportance.Debug,
+            SystemActivityCategory.Input,
+            SystemActivitySeverity.Information,
+            unsafeToken)));
+    }
+
+    /// <summary>Exported activity cannot contain undefined disclosure, category, or severity values.</summary>
+    [Fact]
+    public void ActivityRejectsUndefinedClosedVocabularyValues()
+    {
+        SystemInformationService service = CreateService(new StubCatalog(Result(
+            CanonicalSupportMatrixCatalogState.Current,
+            Matrix())));
+        SystemActivityDraft[] invalid =
+        [
+            new(
+                SystemActivityCodes.UserNavigated,
+                (SystemActivityImportance)999,
+                SystemActivityCategory.Navigation,
+                SystemActivitySeverity.Information),
+            new(
+                SystemActivityCodes.UserNavigated,
+                SystemActivityImportance.Debug,
+                (SystemActivityCategory)999,
+                SystemActivitySeverity.Information),
+            new(
+                SystemActivityCodes.UserNavigated,
+                SystemActivityImportance.Debug,
+                SystemActivityCategory.Navigation,
+                (SystemActivitySeverity)999),
+        ];
+
+        foreach (SystemActivityDraft activity in invalid)
+        {
+            _ = Assert.Throws<ArgumentOutOfRangeException>(() => service.RecordActivity(activity));
+        }
+
+        Assert.DoesNotContain(service.Activity, activity =>
+            activity.Code == SystemActivityCodes.UserNavigated);
+    }
+
     private static SystemInformationService CreateService(
         StubCatalog catalog,
-        int transitionLimit = 16,
+        int activityLimit = 16,
         ExternalProcessorEnvironmentState externalState = ExternalProcessorEnvironmentState.Current)
     {
         return new SystemInformationService(
@@ -177,7 +263,7 @@ public sealed class SystemInformationServiceTests
             new StubExternalEnvironmentLoader(externalState),
             new StubRuntimeProbe(),
             new StubClock(),
-            transitionLimit);
+            activityLimit);
     }
 
     private static CanonicalSupportMatrixQueryResult Result(
