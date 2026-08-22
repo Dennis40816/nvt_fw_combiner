@@ -26,3 +26,29 @@ changes no firmware/profile/range/output byte, CRC/header, processor, support,
 Golden, update-package, installation, activation, deletion, or report-history
 authority. It also does not close or fund the owner-requested repository-wide
 single-implementation, layering, unused-module, and code-size audit.
+
+## 2026-08-22 CtrlRAM input-admission crash correction
+
+The owner approved the bounded correction after the real NT51950 `0x37000`
+TP-work base exposed two invariant exceptions during CtrlRAM authoring. The
+correction reuses the selected CtrlRAM route's profile maps to reject non-exact
+reference capacities as a typed input-length issue before canonical identity
+resolution, and returns the canonical empty report-metadata plan when the
+reviewed Standard Merge profile declares no report-classification authority.
+No second capacity table, map resolver, or Presentation exception policy is
+introduced.
+
+Relative to the preceding exact checkpoint, full production changes from
+109,849 to 109,883 (+34) and runtime changes from 75,135 to 75,169 (+34).
+Domain plus Profiles remains 20,632; Application remains 33,423; Bootstrap plus
+CLI plus Desktop host remains 3,503; and Infrastructure plus Contracts plus CRC
+worker changes from 17,577 to 17,611 (+34). Presentation is unchanged.
+
+The executable allowances therefore become exactly 6,986 full production,
+5,112 runtime, and 2,255 Infrastructure/Contracts/worker above the frozen
+pre-v0.10.6 base ratchets; every other slice allowance remains unchanged. This
+named R2 correction is non-transferable and becomes an exact descending ceiling
+immediately. It changes no profile, range, output byte, operation order,
+CRC/header, processor, naming, support, or Golden authority, and it does not
+close or fund the separate repository-wide single-implementation, layering,
+unused-module, and code-size audit.

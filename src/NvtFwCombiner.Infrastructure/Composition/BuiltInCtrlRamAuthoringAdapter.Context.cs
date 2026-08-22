@@ -3,6 +3,7 @@ using NvtFwCombiner.Application.Capabilities;
 using NvtFwCombiner.Application.ExternalTools;
 using NvtFwCombiner.Application.FlashMaps;
 using NvtFwCombiner.Domain.Composition;
+using NvtFwCombiner.Domain.Firmware;
 using NvtFwCombiner.Infrastructure.ExternalTools;
 
 namespace NvtFwCombiner.Infrastructure.Composition;
@@ -265,6 +266,35 @@ internal sealed partial class BuiltInCtrlRamAuthoringAdapter
                     CompositionIssueCodes.InputAddressSpaceLengthMismatch,
                     $"Base firmware BIN is too short for {icId} / {number} CtrlRAM postbuild (actual {baseLength} bytes, required at least {requiredCapacity} bytes).",
                     CompositionSlotIds.ReplaceBase));
+            }
+            else if (CtrlRamV2RouteRegistry.TryResolve(
+                         commandPlan,
+                         out CtrlRamV2Route? route))
+            {
+                IReadOnlyList<FirmwareImageMap> maps =
+                    BuiltInV2BundleRegistry.All[route.BundleId].GetMapVariants(
+                        route.ProfileId,
+                        route.ProfileVersion,
+                        route.Key.IcId,
+                        ExperienceIds.CtrlRamReplace,
+                        out IReadOnlyList<CompositionIssue> mapIssues);
+                if (mapIssues.Count != 0)
+                {
+                    validationIssues.AddRange(mapIssues);
+                }
+                else if (!maps.Any(map => map.CapacityBytes == baseLength))
+                {
+                    long[] acceptedCapacities =
+                    [
+                        .. maps.Select(static map => map.CapacityBytes)
+                            .Distinct()
+                            .Order(),
+                    ];
+                    validationIssues.Add(new CompositionIssue(
+                        CompositionIssueCodes.InputAddressSpaceLengthMismatch,
+                        $"Base firmware BIN length 0x{baseLength:X} is unsupported for {icId} / {number} CtrlRAM Replace; accepted exact reference lengths are {BuiltInV2Bundle.FormatCapacities(acceptedCapacities)}.",
+                        CompositionSlotIds.ReplaceBase));
+                }
             }
         }
 
