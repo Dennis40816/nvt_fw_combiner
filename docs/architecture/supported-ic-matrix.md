@@ -69,7 +69,9 @@ Current DP Perspective input contract for NT51950/NT51951:
 
 - the UI calls `reference-base` **Reference FlashCode**, not `base.bin`;
 - it must be one complete final Standard/Normal Merge `.bin` for the same selected IC and exactly one declared capacity: `0x40000`, `0x80000`, or `0x100000` bytes;
-- the DP replacement is a DP/FlashCode-shaped `.bin` no larger than that reference capacity; a shorter input is padded with `0x00`, while an oversized input is rejected;
+- the DP replacement is a DP/FlashCode-shaped `.bin` whose length exactly
+  equals that selected reference capacity; shorter, oversized, and
+  cross-capacity pairs are rejected without padding;
 - the output clones Reference FlashCode, replaces the declared full DP container, then restores the reference TP overlay. The existing owner rule keeps customer information from the replacement DP image.
 
 A same-capacity complete Standard/Normal FlashCode is therefore a valid *shape* for the current DP replacement slot, but parity/support claims stay limited to recorded evidence. Future AB FlashCode input must use an AB-specific profile-declared artifact shape/extractor and explicit A/B bank, header-copy, preserved-range, and Legacy Combiner rules. Normal FlashCode offsets must not be guessed or reused for AB input.
