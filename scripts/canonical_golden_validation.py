@@ -178,6 +178,14 @@ def _validate_artifact(
             errors.append(f"{label} has unsupported role: {role}")
     if relative_path is None:
         return
+    if relative_path.suffix.casefold() == ".bin":
+        case_ic = case_directory.parts[0]
+        ic_digits = case_ic.removeprefix("NT")
+        if ic_digits.casefold() not in relative_path.name.casefold():
+            errors.append(
+                f"{label} canonical BIN filename must identify case IC "
+                f"{case_ic}: {relative_path.name}"
+            )
     expected_parent = case_directory / ROLE_DIRECTORIES.get(role or "", "invalid")
     if (
         len(relative_path.parts) <= len(expected_parent.parts)

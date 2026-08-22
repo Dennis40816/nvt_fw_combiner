@@ -56,7 +56,7 @@
     {
       "artifactId": "mp-ctrlram-input",
       "role": "input",
-      "path": "NT51926/ctrlram-replace/fw2.0.0/single/nt51926-fw200-single-auto-prj-597-20260718/inputs/postbuild/MP_Ctrlram.bin",
+      "path": "NT51926/ctrlram-replace/fw2.0.0/single/nt51926-fw200-single-auto-prj-597-20260718/inputs/postbuild/nt51926-mp-ctrlram-input.bin",
       "size": 655360,
       "sha256": "19b4b394a541dfbd37177cb42c7cb538bdc5910bb93152b4f9e56bbec1c66593",
       "legacyPaths": [
@@ -68,7 +68,7 @@
     {
       "artifactId": "nf-ctrlram-input",
       "role": "input",
-      "path": "NT51926/ctrlram-replace/fw2.0.0/single/nt51926-fw200-single-auto-prj-597-20260718/inputs/postbuild/NF_Ctrlram.bin",
+      "path": "NT51926/ctrlram-replace/fw2.0.0/single/nt51926-fw200-single-auto-prj-597-20260718/inputs/postbuild/nt51926-nf-ctrlram-input.bin",
       "size": 11728,
       "sha256": "001795ec55fa6cbb07785c10b62c80db4d2a17bd7227ea224dc787d3c7f4a478",
       "legacyPaths": [
@@ -80,7 +80,7 @@
     {
       "artifactId": "normal-ctrlram-input",
       "role": "input",
-      "path": "NT51926/ctrlram-replace/fw2.0.0/single/nt51926-fw200-single-auto-prj-597-20260718/inputs/postbuild/Normal_Ctrlram.bin",
+      "path": "NT51926/ctrlram-replace/fw2.0.0/single/nt51926-fw200-single-auto-prj-597-20260718/inputs/postbuild/nt51926-normal-ctrlram-input.bin",
       "size": 655360,
       "sha256": "8caef6c99d9a5eab3a43bd1f377acd8916f9a655a56c4034a1ed3191d6531249",
       "legacyPaths": [
@@ -92,7 +92,7 @@
     {
       "artifactId": "vn-ctrlram-input",
       "role": "input",
-      "path": "NT51926/ctrlram-replace/fw2.0.0/single/nt51926-fw200-single-auto-prj-597-20260718/inputs/postbuild/VN_Ctrlram.bin",
+      "path": "NT51926/ctrlram-replace/fw2.0.0/single/nt51926-fw200-single-auto-prj-597-20260718/inputs/postbuild/nt51926-vn-ctrlram-input.bin",
       "size": 5728,
       "sha256": "1a6b4476dd67af21dc276206a7f172f3c1d1ad9ae5340818fffca78568dc62f6",
       "legacyPaths": [

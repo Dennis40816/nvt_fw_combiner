@@ -27,7 +27,7 @@ build/
 !testdata/golden/standard-merge-gen-flash/**/*.bin
 !testdata/golden/ctrlram-replace/fixtures/**/*.bin
 !testdata/golden/ab-merge/**/*.bin
-!testdata/golden/canonical/NT51932/ctrlram-replace/fw2.0.0/cascade-4/nt51932-diffdlm-nf-mask-cascade4-20260727/**/*.bin
+!testdata/golden/canonical/**/*.bin
 *.hex
 *.fw
 

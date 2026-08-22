@@ -91,7 +91,7 @@ Example:
       "role": "externalTool"
     },
     {
-      "path": "reference/testdata/golden/canonical/NT51927/standard-merge/gen-flash/topology-unscoped/nt51927-gen-flash/expected/flash.bin",
+      "path": "reference/testdata/golden/canonical/NT51927/standard-merge/gen-flash/topology-unscoped/nt51927-gen-flash/expected/nt51927-expected-output.bin",
       "size": 1,
       "sha256": "0000000000000000000000000000000000000000000000000000000000000000",
       "role": "goldenFixture"

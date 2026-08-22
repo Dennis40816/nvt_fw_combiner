@@ -40,7 +40,7 @@
     {
       "artifactId": "normal-ctrlram-input",
       "role": "input",
-      "path": "NT51929/ctrlram-replace/andes-d22-t01/single/nt51929-andes-normal-cross-110us-to-115us-20260724/inputs/AUO_16.4_CTRLRAM_Tsen_115us.bin",
+      "path": "NT51929/ctrlram-replace/andes-d22-t01/single/nt51929-andes-normal-cross-110us-to-115us-20260724/inputs/nt51929-normal-ctrlram-input.bin",
       "size": 655360,
       "sha256": "4272f4db1d40155f3fcc492f1d6fb218c1d4832945fed1000fc8177e947f6adb",
       "legacyPaths": [
@@ -52,7 +52,7 @@
     {
       "artifactId": "normal-ctrlram-control",
       "role": "input",
-      "path": "NT51929/ctrlram-replace/andes-d22-t01/single/nt51929-andes-normal-cross-110us-to-115us-20260724/inputs/AUO_16.4_CTRLRAM_Tsen_110us.bin",
+      "path": "NT51929/ctrlram-replace/andes-d22-t01/single/nt51929-andes-normal-cross-110us-to-115us-20260724/inputs/nt51929-normal-ctrlram-control.bin",
       "size": 655360,
       "sha256": "edb7fc302cbfbb191c1fd494566cf9d6176d53f9f62bf90119350dd65c2b1c34",
       "legacyPaths": [

@@ -72,7 +72,7 @@
     {
       "artifactId": "normal-ctrlram-input",
       "role": "input",
-      "path": "NT51951/ctrlram-replace/fw2.0.0/cascade-2/nt51951-fw200-cascade2-auto-prj-599-20260731/inputs/postbuild/Normal_Ctrlram.bin",
+      "path": "NT51951/ctrlram-replace/fw2.0.0/cascade-2/nt51951-fw200-cascade2-auto-prj-599-20260731/inputs/postbuild/nt51951-normal-ctrlram-input.bin",
       "size": 655360,
       "sha256": "e7dbfeb2f34c2dbb4f4e9531f3858b15f673b179b4118ad5f564f28976cf7129",
       "legacyPaths": [ "testdata/golden/ctrlram-replace/fixtures/20260731/51950_Cascade_AUTO_PRJ-599/Normal_Ctrlram.bin" ],
@@ -82,7 +82,7 @@
     {
       "artifactId": "vn-ctrlram-input",
       "role": "input",
-      "path": "NT51951/ctrlram-replace/fw2.0.0/cascade-2/nt51951-fw200-cascade2-auto-prj-599-20260731/inputs/postbuild/VN_Ctrlram.bin",
+      "path": "NT51951/ctrlram-replace/fw2.0.0/cascade-2/nt51951-fw200-cascade2-auto-prj-599-20260731/inputs/postbuild/nt51951-vn-ctrlram-input.bin",
       "size": 4120,
       "sha256": "066815c150f47318ba255cf5d84b7b2116267b5adc6bbcf771a7c50f78bc289b",
       "legacyPaths": [ "testdata/golden/ctrlram-replace/fixtures/20260731/51950_Cascade_AUTO_PRJ-599/VN_Ctrlram.bin" ],
@@ -92,7 +92,7 @@
     {
       "artifactId": "diffdlm-input",
       "role": "input",
-      "path": "NT51951/ctrlram-replace/fw2.0.0/cascade-2/nt51951-fw200-cascade2-auto-prj-599-20260731/inputs/postbuild/DiffDLM.bin",
+      "path": "NT51951/ctrlram-replace/fw2.0.0/cascade-2/nt51951-fw200-cascade2-auto-prj-599-20260731/inputs/postbuild/nt51951-diffdlm-input.bin",
       "size": 10240,
       "sha256": "d5b2a200645dc83c9cdf2988276915dfcfde656d2cfacb8a759ce0c5dd88eb00",
       "legacyPaths": [ "testdata/golden/ctrlram-replace/fixtures/20260731/51950_Cascade_AUTO_PRJ-599/DiffDLM.bin" ],
@@ -102,7 +102,7 @@
     {
       "artifactId": "independent-nf-excluded-reference",
       "role": "provenance",
-      "path": "NT51951/ctrlram-replace/fw2.0.0/cascade-2/nt51951-fw200-cascade2-auto-prj-599-20260731/provenance/reference-only/NF_Ctrlram.bin",
+      "path": "NT51951/ctrlram-replace/fw2.0.0/cascade-2/nt51951-fw200-cascade2-auto-prj-599-20260731/provenance/reference-only/nt51951-independent-nf-excluded-reference.bin",
       "size": 2816,
       "sha256": "3531fd2a89195c1418d27673e4b7420cde0067be971ad72f666a01cf21e6a322",
       "legacyPaths": [ "testdata/golden/ctrlram-replace/fixtures/20260731/51950_Cascade_AUTO_PRJ-599/NF_Ctrlram.bin" ],
@@ -112,7 +112,7 @@
     {
       "artifactId": "nf-diff-zero-reference",
       "role": "provenance",
-      "path": "NT51951/ctrlram-replace/fw2.0.0/cascade-2/nt51951-fw200-cascade2-auto-prj-599-20260731/provenance/reference-only/NF_Diff_0.bin",
+      "path": "NT51951/ctrlram-replace/fw2.0.0/cascade-2/nt51951-fw200-cascade2-auto-prj-599-20260731/provenance/reference-only/nt51951-nf-diff-zero-reference.bin",
       "size": 2816,
       "sha256": "3531fd2a89195c1418d27673e4b7420cde0067be971ad72f666a01cf21e6a322",
       "legacyPaths": [ "testdata/golden/ctrlram-replace/fixtures/20260731/51950_Cascade_AUTO_PRJ-599/NF_Diff/NF_Diff_0.bin" ],
@@ -122,7 +122,7 @@
     {
       "artifactId": "nf-diff-active-reference",
       "role": "provenance",
-      "path": "NT51951/ctrlram-replace/fw2.0.0/cascade-2/nt51951-fw200-cascade2-auto-prj-599-20260731/provenance/reference-only/NF_Diff_1.bin",
+      "path": "NT51951/ctrlram-replace/fw2.0.0/cascade-2/nt51951-fw200-cascade2-auto-prj-599-20260731/provenance/reference-only/nt51951-nf-diff-active-reference.bin",
       "size": 2800,
       "sha256": "32f7d47cc53c494e5e1ef3a0eda894cf17ee2f99ea2d8a0e8592e0588e098341",
       "legacyPaths": [ "testdata/golden/ctrlram-replace/fixtures/20260731/51950_Cascade_AUTO_PRJ-599/NF_Diff/NF_Diff_1.bin" ],

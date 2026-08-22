@@ -49,7 +49,7 @@
     {
       "artifactId": "normal-ctrlram-input",
       "role": "input",
-      "path": "NT51932/ctrlram-replace/fw2.0.0/cascade-4/nt51932-diffdlm-nf-mask-cascade4-20260727/inputs/postbuild/Normal_Ctrlram.bin",
+      "path": "NT51932/ctrlram-replace/fw2.0.0/cascade-4/nt51932-diffdlm-nf-mask-cascade4-20260727/inputs/postbuild/nt51932-normal-ctrlram-input.bin",
       "size": 655360,
       "sha256": "ce28725b4cb1790524702885f323c1174de790fc2f565c912cf23a196aca7068",
       "legacyPaths": [ "testdata/golden/ctrlram-replace/fixtures/20260727/NT51932/replace/ctrlram/cascade-4/ctrlram_0723/Normal_Ctrlram.bin" ],
@@ -59,7 +59,7 @@
     {
       "artifactId": "diffdlm-input",
       "role": "input",
-      "path": "NT51932/ctrlram-replace/fw2.0.0/cascade-4/nt51932-diffdlm-nf-mask-cascade4-20260727/inputs/postbuild/DiffDLM.bin",
+      "path": "NT51932/ctrlram-replace/fw2.0.0/cascade-4/nt51932-diffdlm-nf-mask-cascade4-20260727/inputs/postbuild/nt51932-diffdlm-input.bin",
       "size": 97280,
       "sha256": "167893f613e26349a09a5821379109a73a671cb9aa62b9f49e2901748ec8c65a",
       "legacyPaths": [ "testdata/golden/ctrlram-replace/fixtures/20260727/NT51932/replace/ctrlram/cascade-4/ctrlram_0723/DiffDLM.bin" ],

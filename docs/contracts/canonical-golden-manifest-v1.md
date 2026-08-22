@@ -42,6 +42,13 @@ and one or more pre-migration `legacyPaths`. Input, expected, and provenance art
 the corresponding case subtree; nested source groups such as `inputs/NF/` remain confined there.
 Expected bytes are never regenerated during layout migration.
 
+Every canonical `.bin` filename must itself contain the case IC number (for example `51950`). A
+generic basename such as `tp_bin.bin`, `dp-input.bin`, `flash.bin`, or `expected-output.bin` is not
+canonical even when its parent directories identify the IC. Existing descriptive owner filenames
+may remain when they already identify the same case IC; otherwise the preferred bounded form is
+`<ic>-<artifact-id>.bin`. The original supplied filename remains evidence in `originalFileName`
+and/or `legacyPaths`; renaming a canonical path never authorizes payload or hash changes.
+
 A direct input-evidence case declares `directGolden: false` and `directEvidence: true`. It contains
 one or more immutable input artifacts but cannot declare an expected artifact. This represents
 owner-approved base, replacement, or processor inputs whose execution facts are useful without

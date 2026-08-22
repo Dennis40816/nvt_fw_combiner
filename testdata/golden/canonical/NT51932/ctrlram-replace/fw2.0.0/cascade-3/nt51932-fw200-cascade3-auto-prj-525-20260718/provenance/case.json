@@ -56,7 +56,7 @@
     {
       "artifactId": "diffdlm-input",
       "role": "input",
-      "path": "NT51932/ctrlram-replace/fw2.0.0/cascade-3/nt51932-fw200-cascade3-auto-prj-525-20260718/inputs/postbuild/DiffDLM.bin",
+      "path": "NT51932/ctrlram-replace/fw2.0.0/cascade-3/nt51932-fw200-cascade3-auto-prj-525-20260718/inputs/postbuild/nt51932-diffdlm-input.bin",
       "size": 97280,
       "sha256": "673b089947265ae766ff317ff2fc0ec1476171f644e7cea2247daf6d19c34dd4",
       "legacyPaths": [
@@ -68,7 +68,7 @@
     {
       "artifactId": "nf-diff-0-source",
       "role": "input",
-      "path": "NT51932/ctrlram-replace/fw2.0.0/cascade-3/nt51932-fw200-cascade3-auto-prj-525-20260718/inputs/postbuild/NF/NF_Diff_0.bin",
+      "path": "NT51932/ctrlram-replace/fw2.0.0/cascade-3/nt51932-fw200-cascade3-auto-prj-525-20260718/inputs/postbuild/NF/nt51932-nf-diff-0-source.bin",
       "size": 1758,
       "sha256": "a76cc832e496b3866fa6fc73c749098b72c1549ce8ccf7bb0d2675b8e519b99b",
       "legacyPaths": [
@@ -80,7 +80,7 @@
     {
       "artifactId": "nf-diff-1-source",
       "role": "input",
-      "path": "NT51932/ctrlram-replace/fw2.0.0/cascade-3/nt51932-fw200-cascade3-auto-prj-525-20260718/inputs/postbuild/NF/NF_Diff_1.bin",
+      "path": "NT51932/ctrlram-replace/fw2.0.0/cascade-3/nt51932-fw200-cascade3-auto-prj-525-20260718/inputs/postbuild/NF/nt51932-nf-diff-1-source.bin",
       "size": 3072,
       "sha256": "23e74315e3892f27b5a684d0e8d8f0430396f1c26a272905a2a3b8b562a42da2",
       "legacyPaths": [
@@ -92,7 +92,7 @@
     {
       "artifactId": "nf-diff-10-source",
       "role": "input",
-      "path": "NT51932/ctrlram-replace/fw2.0.0/cascade-3/nt51932-fw200-cascade3-auto-prj-525-20260718/inputs/postbuild/NF/NF_Diff_10.bin",
+      "path": "NT51932/ctrlram-replace/fw2.0.0/cascade-3/nt51932-fw200-cascade3-auto-prj-525-20260718/inputs/postbuild/NF/nt51932-nf-diff-10-source.bin",
       "size": 2160,
       "sha256": "687feb4ef613b43ca1a112419a104d250abe687100af0b4141a7ffafa7629c16",
       "legacyPaths": [
@@ -104,7 +104,7 @@
     {
       "artifactId": "nf-diff-11-source",
       "role": "input",
-      "path": "NT51932/ctrlram-replace/fw2.0.0/cascade-3/nt51932-fw200-cascade3-auto-prj-525-20260718/inputs/postbuild/NF/NF_Diff_11.bin",
+      "path": "NT51932/ctrlram-replace/fw2.0.0/cascade-3/nt51932-fw200-cascade3-auto-prj-525-20260718/inputs/postbuild/NF/nt51932-nf-diff-11-source.bin",
       "size": 2160,
       "sha256": "687feb4ef613b43ca1a112419a104d250abe687100af0b4141a7ffafa7629c16",
       "legacyPaths": [
@@ -116,7 +116,7 @@
     {
       "artifactId": "nf-diff-12-source",
       "role": "input",
-      "path": "NT51932/ctrlram-replace/fw2.0.0/cascade-3/nt51932-fw200-cascade3-auto-prj-525-20260718/inputs/postbuild/NF/NF_Diff_12.bin",
+      "path": "NT51932/ctrlram-replace/fw2.0.0/cascade-3/nt51932-fw200-cascade3-auto-prj-525-20260718/inputs/postbuild/NF/nt51932-nf-diff-12-source.bin",
       "size": 2160,
       "sha256": "687feb4ef613b43ca1a112419a104d250abe687100af0b4141a7ffafa7629c16",
       "legacyPaths": [
@@ -128,7 +128,7 @@
     {
       "artifactId": "nf-diff-13-source",
       "role": "input",
-      "path": "NT51932/ctrlram-replace/fw2.0.0/cascade-3/nt51932-fw200-cascade3-auto-prj-525-20260718/inputs/postbuild/NF/NF_Diff_13.bin",
+      "path": "NT51932/ctrlram-replace/fw2.0.0/cascade-3/nt51932-fw200-cascade3-auto-prj-525-20260718/inputs/postbuild/NF/nt51932-nf-diff-13-source.bin",
       "size": 2160,
       "sha256": "687feb4ef613b43ca1a112419a104d250abe687100af0b4141a7ffafa7629c16",
       "legacyPaths": [
@@ -140,7 +140,7 @@
     {
       "artifactId": "nf-diff-14-source",
       "role": "input",
-      "path": "NT51932/ctrlram-replace/fw2.0.0/cascade-3/nt51932-fw200-cascade3-auto-prj-525-20260718/inputs/postbuild/NF/NF_Diff_14.bin",
+      "path": "NT51932/ctrlram-replace/fw2.0.0/cascade-3/nt51932-fw200-cascade3-auto-prj-525-20260718/inputs/postbuild/NF/nt51932-nf-diff-14-source.bin",
       "size": 2160,
       "sha256": "687feb4ef613b43ca1a112419a104d250abe687100af0b4141a7ffafa7629c16",
       "legacyPaths": [
@@ -152,7 +152,7 @@
     {
       "artifactId": "nf-diff-15-source",
       "role": "input",
-      "path": "NT51932/ctrlram-replace/fw2.0.0/cascade-3/nt51932-fw200-cascade3-auto-prj-525-20260718/inputs/postbuild/NF/NF_Diff_15.bin",
+      "path": "NT51932/ctrlram-replace/fw2.0.0/cascade-3/nt51932-fw200-cascade3-auto-prj-525-20260718/inputs/postbuild/NF/nt51932-nf-diff-15-source.bin",
       "size": 2160,
       "sha256": "687feb4ef613b43ca1a112419a104d250abe687100af0b4141a7ffafa7629c16",
       "legacyPaths": [
@@ -164,7 +164,7 @@
     {
       "artifactId": "nf-diff-2-source",
       "role": "input",
-      "path": "NT51932/ctrlram-replace/fw2.0.0/cascade-3/nt51932-fw200-cascade3-auto-prj-525-20260718/inputs/postbuild/NF/NF_Diff_2.bin",
+      "path": "NT51932/ctrlram-replace/fw2.0.0/cascade-3/nt51932-fw200-cascade3-auto-prj-525-20260718/inputs/postbuild/NF/nt51932-nf-diff-2-source.bin",
       "size": 3072,
       "sha256": "3abf1c2c2cefde16d5e8dea2a24260e2b7d1bba39c5c9241dc17435f90da9b5d",
       "legacyPaths": [
@@ -176,7 +176,7 @@
     {
       "artifactId": "nf-diff-3-source",
       "role": "input",
-      "path": "NT51932/ctrlram-replace/fw2.0.0/cascade-3/nt51932-fw200-cascade3-auto-prj-525-20260718/inputs/postbuild/NF/NF_Diff_3.bin",
+      "path": "NT51932/ctrlram-replace/fw2.0.0/cascade-3/nt51932-fw200-cascade3-auto-prj-525-20260718/inputs/postbuild/NF/nt51932-nf-diff-3-source.bin",
       "size": 2160,
       "sha256": "687feb4ef613b43ca1a112419a104d250abe687100af0b4141a7ffafa7629c16",
       "legacyPaths": [
@@ -188,7 +188,7 @@
     {
       "artifactId": "nf-diff-4-source",
       "role": "input",
-      "path": "NT51932/ctrlram-replace/fw2.0.0/cascade-3/nt51932-fw200-cascade3-auto-prj-525-20260718/inputs/postbuild/NF/NF_Diff_4.bin",
+      "path": "NT51932/ctrlram-replace/fw2.0.0/cascade-3/nt51932-fw200-cascade3-auto-prj-525-20260718/inputs/postbuild/NF/nt51932-nf-diff-4-source.bin",
       "size": 2160,
       "sha256": "687feb4ef613b43ca1a112419a104d250abe687100af0b4141a7ffafa7629c16",
       "legacyPaths": [
@@ -200,7 +200,7 @@
     {
       "artifactId": "nf-diff-5-source",
       "role": "input",
-      "path": "NT51932/ctrlram-replace/fw2.0.0/cascade-3/nt51932-fw200-cascade3-auto-prj-525-20260718/inputs/postbuild/NF/NF_Diff_5.bin",
+      "path": "NT51932/ctrlram-replace/fw2.0.0/cascade-3/nt51932-fw200-cascade3-auto-prj-525-20260718/inputs/postbuild/NF/nt51932-nf-diff-5-source.bin",
       "size": 2160,
       "sha256": "687feb4ef613b43ca1a112419a104d250abe687100af0b4141a7ffafa7629c16",
       "legacyPaths": [
@@ -212,7 +212,7 @@
     {
       "artifactId": "nf-diff-6-source",
       "role": "input",
-      "path": "NT51932/ctrlram-replace/fw2.0.0/cascade-3/nt51932-fw200-cascade3-auto-prj-525-20260718/inputs/postbuild/NF/NF_Diff_6.bin",
+      "path": "NT51932/ctrlram-replace/fw2.0.0/cascade-3/nt51932-fw200-cascade3-auto-prj-525-20260718/inputs/postbuild/NF/nt51932-nf-diff-6-source.bin",
       "size": 2160,
       "sha256": "687feb4ef613b43ca1a112419a104d250abe687100af0b4141a7ffafa7629c16",
       "legacyPaths": [
@@ -224,7 +224,7 @@
     {
       "artifactId": "nf-diff-7-source",
       "role": "input",
-      "path": "NT51932/ctrlram-replace/fw2.0.0/cascade-3/nt51932-fw200-cascade3-auto-prj-525-20260718/inputs/postbuild/NF/NF_Diff_7.bin",
+      "path": "NT51932/ctrlram-replace/fw2.0.0/cascade-3/nt51932-fw200-cascade3-auto-prj-525-20260718/inputs/postbuild/NF/nt51932-nf-diff-7-source.bin",
       "size": 2160,
       "sha256": "687feb4ef613b43ca1a112419a104d250abe687100af0b4141a7ffafa7629c16",
       "legacyPaths": [
@@ -236,7 +236,7 @@
     {
       "artifactId": "nf-diff-8-source",
       "role": "input",
-      "path": "NT51932/ctrlram-replace/fw2.0.0/cascade-3/nt51932-fw200-cascade3-auto-prj-525-20260718/inputs/postbuild/NF/NF_Diff_8.bin",
+      "path": "NT51932/ctrlram-replace/fw2.0.0/cascade-3/nt51932-fw200-cascade3-auto-prj-525-20260718/inputs/postbuild/NF/nt51932-nf-diff-8-source.bin",
       "size": 2160,
       "sha256": "687feb4ef613b43ca1a112419a104d250abe687100af0b4141a7ffafa7629c16",
       "legacyPaths": [
@@ -248,7 +248,7 @@
     {
       "artifactId": "nf-diff-9-source",
       "role": "input",
-      "path": "NT51932/ctrlram-replace/fw2.0.0/cascade-3/nt51932-fw200-cascade3-auto-prj-525-20260718/inputs/postbuild/NF/NF_Diff_9.bin",
+      "path": "NT51932/ctrlram-replace/fw2.0.0/cascade-3/nt51932-fw200-cascade3-auto-prj-525-20260718/inputs/postbuild/NF/nt51932-nf-diff-9-source.bin",
       "size": 2160,
       "sha256": "687feb4ef613b43ca1a112419a104d250abe687100af0b4141a7ffafa7629c16",
       "legacyPaths": [
@@ -260,7 +260,7 @@
     {
       "artifactId": "nf-ctrlram-input",
       "role": "input",
-      "path": "NT51932/ctrlram-replace/fw2.0.0/cascade-3/nt51932-fw200-cascade3-auto-prj-525-20260718/inputs/postbuild/NF_Ctrlram.bin",
+      "path": "NT51932/ctrlram-replace/fw2.0.0/cascade-3/nt51932-fw200-cascade3-auto-prj-525-20260718/inputs/postbuild/nt51932-nf-ctrlram-input.bin",
       "size": 1758,
       "sha256": "a76cc832e496b3866fa6fc73c749098b72c1549ce8ccf7bb0d2675b8e519b99b",
       "legacyPaths": [
@@ -272,7 +272,7 @@
     {
       "artifactId": "normal-ctrlram-input",
       "role": "input",
-      "path": "NT51932/ctrlram-replace/fw2.0.0/cascade-3/nt51932-fw200-cascade3-auto-prj-525-20260718/inputs/postbuild/Normal_Ctrlram.bin",
+      "path": "NT51932/ctrlram-replace/fw2.0.0/cascade-3/nt51932-fw200-cascade3-auto-prj-525-20260718/inputs/postbuild/nt51932-normal-ctrlram-input.bin",
       "size": 655360,
       "sha256": "da3613e8a858e408d2122a984554f20028e3621adf1b2a7e33cc753ae2abe89b",
       "legacyPaths": [
@@ -284,7 +284,7 @@
     {
       "artifactId": "vn-ctrlram-input",
       "role": "input",
-      "path": "NT51932/ctrlram-replace/fw2.0.0/cascade-3/nt51932-fw200-cascade3-auto-prj-525-20260718/inputs/postbuild/VN_Ctrlram.bin",
+      "path": "NT51932/ctrlram-replace/fw2.0.0/cascade-3/nt51932-fw200-cascade3-auto-prj-525-20260718/inputs/postbuild/nt51932-vn-ctrlram-input.bin",
       "size": 4120,
       "sha256": "066815c150f47318ba255cf5d84b7b2116267b5adc6bbcf771a7c50f78bc289b",
       "legacyPaths": [

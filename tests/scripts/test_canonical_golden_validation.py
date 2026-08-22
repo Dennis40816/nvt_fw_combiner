@@ -38,8 +38,12 @@ class CanonicalGoldenValidationTests(unittest.TestCase):
             "NT51927/standard-merge/gen-flash/topology-unscoped/"
             "nt51927-standard-merge-gen-flash"
         )
-        input_path = self.case_directory / "inputs/dp.bin"
-        expected_path = self.case_directory / "expected/flash.bin"
+        input_path = self.case_directory / (
+            "inputs/nt51927-standard-merge-gen-flash-dp-input.bin"
+        )
+        expected_path = self.case_directory / (
+            "expected/nt51927-standard-merge-gen-flash-expected-output.bin"
+        )
         input_path.parent.mkdir(parents=True)
         expected_path.parent.mkdir(parents=True)
         input_path.write_bytes(b"dp input")
@@ -153,7 +157,9 @@ class CanonicalGoldenValidationTests(unittest.TestCase):
         self.write_json(self.canonical / "manifest.json", self.root_manifest)
 
     def convert_direct_golden_to_input_evidence(self) -> None:
-        expected_path = self.case_directory / "expected/flash.bin"
+        expected_path = self.case_directory / (
+            "expected/nt51927-standard-merge-gen-flash-expected-output.bin"
+        )
         expected_path.unlink()
         expected_path.parent.rmdir()
         self.case_manifest["directGolden"] = False
@@ -416,7 +422,9 @@ class CanonicalGoldenValidationTests(unittest.TestCase):
                 )
 
     def test_rejects_payload_hash_drift(self) -> None:
-        (self.case_directory / "expected/flash.bin").write_bytes(b"changed")
+        (self.case_directory / (
+            "expected/nt51927-standard-merge-gen-flash-expected-output.bin"
+        )).write_bytes(b"changed")
 
         errors = self.validate()
 
@@ -424,7 +432,9 @@ class CanonicalGoldenValidationTests(unittest.TestCase):
         self.assertTrue(any("SHA-256 mismatch" in error for error in errors))
 
     def test_rejects_same_size_payload_hash_drift(self) -> None:
-        path = self.case_directory / "expected/flash.bin"
+        path = self.case_directory / (
+            "expected/nt51927-standard-merge-gen-flash-expected-output.bin"
+        )
         payload = bytearray(path.read_bytes())
         payload[0] ^= 0xFF
         path.write_bytes(payload)
@@ -478,7 +488,9 @@ class CanonicalGoldenValidationTests(unittest.TestCase):
         )
 
     def test_rejects_symlinked_artifact(self) -> None:
-        path = self.case_directory / "expected/flash.bin"
+        path = self.case_directory / (
+            "expected/nt51927-standard-merge-gen-flash-expected-output.bin"
+        )
         outside = self.root / "outside.bin"
         outside.write_bytes(path.read_bytes())
         path.unlink()
@@ -492,7 +504,9 @@ class CanonicalGoldenValidationTests(unittest.TestCase):
         self.assertTrue(any("cannot contain a symlink" in error for error in errors))
 
     def test_rejects_missing_declared_file(self) -> None:
-        (self.case_directory / "expected/flash.bin").unlink()
+        (self.case_directory / (
+            "expected/nt51927-standard-merge-gen-flash-expected-output.bin"
+        )).unlink()
 
         errors = self.validate()
 
@@ -517,9 +531,11 @@ class CanonicalGoldenValidationTests(unittest.TestCase):
         self.assertTrue(any("requires input artifacts" in error for error in errors))
 
     def test_rejects_direct_case_with_multiple_expected_roles(self) -> None:
-        duplicate_path = self.case_directory / "expected/flash-copy.bin"
+        duplicate_path = self.case_directory / "expected/nt51927-flash-copy.bin"
         duplicate_path.write_bytes(
-            (self.case_directory / "expected/flash.bin").read_bytes()
+            (self.case_directory / (
+                "expected/nt51927-standard-merge-gen-flash-expected-output.bin"
+            )).read_bytes()
         )
         duplicate = dict(self.case_manifest["artifacts"][1])
         duplicate["artifactId"] = "expected-output-copy"
@@ -530,6 +546,20 @@ class CanonicalGoldenValidationTests(unittest.TestCase):
         errors = self.validate()
 
         self.assertTrue(any("exactly one expected" in error for error in errors))
+
+    def test_rejects_canonical_bin_filename_without_case_ic(self) -> None:
+        artifact = self.case_manifest["artifacts"][0]
+        original_path = self.canonical / artifact["path"]
+        ambiguous_path = original_path.with_name("tp_bin.bin")
+        original_path.rename(ambiguous_path)
+        artifact["path"] = ambiguous_path.relative_to(self.canonical).as_posix()
+        self.rewrite_case()
+
+        errors = self.validate()
+
+        self.assertTrue(
+            any("filename must identify case IC NT51927" in error for error in errors)
+        )
 
     def test_rejects_direct_input_evidence_with_expected_role(self) -> None:
         self.case_manifest["directGolden"] = False

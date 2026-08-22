@@ -192,10 +192,10 @@ class CtrlRamCanonical20260717Tests(unittest.TestCase):
             artifact["path"].rsplit("/", 1)[-1]: artifact["originalFileName"]
             for artifact in case["artifacts"]
         }
-        self.assertIn("expected-output.bin", shortened)
-        self.assertIn("dp-input.bin", shortened)
-        self.assertIn("WhitePoint", shortened["expected-output.bin"])
-        self.assertIn("WhitePoint", shortened["dp-input.bin"])
+        self.assertIn("nt51923-expected-output.bin", shortened)
+        self.assertIn("nt51923-dp-input.bin", shortened)
+        self.assertIn("WhitePoint", shortened["nt51923-expected-output.bin"])
+        self.assertIn("WhitePoint", shortened["nt51923-dp-input.bin"])
 
 
 if __name__ == "__main__":

@@ -56,7 +56,7 @@
     {
       "artifactId": "diffdlm-input",
       "role": "input",
-      "path": "NT51930/ctrlram-replace/fw1.3.0/cascade-3/nt51930-fw130-cascade3-auto-prj-302-inx-20260718/inputs/postbuild/DiffDLM.bin",
+      "path": "NT51930/ctrlram-replace/fw1.3.0/cascade-3/nt51930-fw130-cascade3-auto-prj-302-inx-20260718/inputs/postbuild/nt51930-diffdlm-input.bin",
       "size": 66352,
       "sha256": "cf957572939dc140a4287d54ad174fcfeacbd9c2afc48c1768d1df47c09c2a6e",
       "legacyPaths": [
@@ -68,7 +68,7 @@
     {
       "artifactId": "mp-ctrlram-input",
       "role": "input",
-      "path": "NT51930/ctrlram-replace/fw1.3.0/cascade-3/nt51930-fw130-cascade3-auto-prj-302-inx-20260718/inputs/postbuild/MP_Ctrlram.bin",
+      "path": "NT51930/ctrlram-replace/fw1.3.0/cascade-3/nt51930-fw130-cascade3-auto-prj-302-inx-20260718/inputs/postbuild/nt51930-mp-ctrlram-input.bin",
       "size": 655360,
       "sha256": "35c746074e67d19fe39494fe2d2c09c3e50ba5c6689207fba68a7bebb21db183",
       "legacyPaths": [
@@ -80,7 +80,7 @@
     {
       "artifactId": "nf-diff-0-source",
       "role": "input",
-      "path": "NT51930/ctrlram-replace/fw1.3.0/cascade-3/nt51930-fw130-cascade3-auto-prj-302-inx-20260718/inputs/postbuild/NF/NF_Diff_0.bin",
+      "path": "NT51930/ctrlram-replace/fw1.3.0/cascade-3/nt51930-fw130-cascade3-auto-prj-302-inx-20260718/inputs/postbuild/NF/nt51930-nf-diff-0-source.bin",
       "size": 3072,
       "sha256": "a54f5ebeb680595df1d8f1eb0a85685733373ccf0b51f59f6dd9a0af3d4e9366",
       "legacyPaths": [
@@ -92,7 +92,7 @@
     {
       "artifactId": "nf-diff-1-source",
       "role": "input",
-      "path": "NT51930/ctrlram-replace/fw1.3.0/cascade-3/nt51930-fw130-cascade3-auto-prj-302-inx-20260718/inputs/postbuild/NF/NF_Diff_1.bin",
+      "path": "NT51930/ctrlram-replace/fw1.3.0/cascade-3/nt51930-fw130-cascade3-auto-prj-302-inx-20260718/inputs/postbuild/NF/nt51930-nf-diff-1-source.bin",
       "size": 3072,
       "sha256": "66d54d8377a48c16822338d88974e56f01b46b575972f794d7da9243a88f22f5",
       "legacyPaths": [
@@ -104,7 +104,7 @@
     {
       "artifactId": "nf-diff-10-source",
       "role": "input",
-      "path": "NT51930/ctrlram-replace/fw1.3.0/cascade-3/nt51930-fw130-cascade3-auto-prj-302-inx-20260718/inputs/postbuild/NF/NF_Diff_10.bin",
+      "path": "NT51930/ctrlram-replace/fw1.3.0/cascade-3/nt51930-fw130-cascade3-auto-prj-302-inx-20260718/inputs/postbuild/NF/nt51930-nf-diff-10-source.bin",
       "size": 2048,
       "sha256": "811f40f7b32e57269b38ab644810fd3c30321034c9655e3bf72a2e7fd80098d7",
       "legacyPaths": [
@@ -116,7 +116,7 @@
     {
       "artifactId": "nf-diff-11-source",
       "role": "input",
-      "path": "NT51930/ctrlram-replace/fw1.3.0/cascade-3/nt51930-fw130-cascade3-auto-prj-302-inx-20260718/inputs/postbuild/NF/NF_Diff_11.bin",
+      "path": "NT51930/ctrlram-replace/fw1.3.0/cascade-3/nt51930-fw130-cascade3-auto-prj-302-inx-20260718/inputs/postbuild/NF/nt51930-nf-diff-11-source.bin",
       "size": 2048,
       "sha256": "811f40f7b32e57269b38ab644810fd3c30321034c9655e3bf72a2e7fd80098d7",
       "legacyPaths": [
@@ -128,7 +128,7 @@
     {
       "artifactId": "nf-diff-12-source",
       "role": "input",
-      "path": "NT51930/ctrlram-replace/fw1.3.0/cascade-3/nt51930-fw130-cascade3-auto-prj-302-inx-20260718/inputs/postbuild/NF/NF_Diff_12.bin",
+      "path": "NT51930/ctrlram-replace/fw1.3.0/cascade-3/nt51930-fw130-cascade3-auto-prj-302-inx-20260718/inputs/postbuild/NF/nt51930-nf-diff-12-source.bin",
       "size": 2048,
       "sha256": "811f40f7b32e57269b38ab644810fd3c30321034c9655e3bf72a2e7fd80098d7",
       "legacyPaths": [
@@ -140,7 +140,7 @@
     {
       "artifactId": "nf-diff-13-source",
       "role": "input",
-      "path": "NT51930/ctrlram-replace/fw1.3.0/cascade-3/nt51930-fw130-cascade3-auto-prj-302-inx-20260718/inputs/postbuild/NF/NF_Diff_13.bin",
+      "path": "NT51930/ctrlram-replace/fw1.3.0/cascade-3/nt51930-fw130-cascade3-auto-prj-302-inx-20260718/inputs/postbuild/NF/nt51930-nf-diff-13-source.bin",
       "size": 2048,
       "sha256": "811f40f7b32e57269b38ab644810fd3c30321034c9655e3bf72a2e7fd80098d7",
       "legacyPaths": [
@@ -152,7 +152,7 @@
     {
       "artifactId": "nf-diff-14-source",
       "role": "input",
-      "path": "NT51930/ctrlram-replace/fw1.3.0/cascade-3/nt51930-fw130-cascade3-auto-prj-302-inx-20260718/inputs/postbuild/NF/NF_Diff_14.bin",
+      "path": "NT51930/ctrlram-replace/fw1.3.0/cascade-3/nt51930-fw130-cascade3-auto-prj-302-inx-20260718/inputs/postbuild/NF/nt51930-nf-diff-14-source.bin",
       "size": 2048,
       "sha256": "811f40f7b32e57269b38ab644810fd3c30321034c9655e3bf72a2e7fd80098d7",
       "legacyPaths": [
@@ -164,7 +164,7 @@
     {
       "artifactId": "nf-diff-15-source",
       "role": "input",
-      "path": "NT51930/ctrlram-replace/fw1.3.0/cascade-3/nt51930-fw130-cascade3-auto-prj-302-inx-20260718/inputs/postbuild/NF/NF_Diff_15.bin",
+      "path": "NT51930/ctrlram-replace/fw1.3.0/cascade-3/nt51930-fw130-cascade3-auto-prj-302-inx-20260718/inputs/postbuild/NF/nt51930-nf-diff-15-source.bin",
       "size": 2048,
       "sha256": "811f40f7b32e57269b38ab644810fd3c30321034c9655e3bf72a2e7fd80098d7",
       "legacyPaths": [
@@ -176,7 +176,7 @@
     {
       "artifactId": "nf-diff-16-source",
       "role": "input",
-      "path": "NT51930/ctrlram-replace/fw1.3.0/cascade-3/nt51930-fw130-cascade3-auto-prj-302-inx-20260718/inputs/postbuild/NF/NF_Diff_16.bin",
+      "path": "NT51930/ctrlram-replace/fw1.3.0/cascade-3/nt51930-fw130-cascade3-auto-prj-302-inx-20260718/inputs/postbuild/NF/nt51930-nf-diff-16-source.bin",
       "size": 2048,
       "sha256": "811f40f7b32e57269b38ab644810fd3c30321034c9655e3bf72a2e7fd80098d7",
       "legacyPaths": [
@@ -188,7 +188,7 @@
     {
       "artifactId": "nf-diff-17-source",
       "role": "input",
-      "path": "NT51930/ctrlram-replace/fw1.3.0/cascade-3/nt51930-fw130-cascade3-auto-prj-302-inx-20260718/inputs/postbuild/NF/NF_Diff_17.bin",
+      "path": "NT51930/ctrlram-replace/fw1.3.0/cascade-3/nt51930-fw130-cascade3-auto-prj-302-inx-20260718/inputs/postbuild/NF/nt51930-nf-diff-17-source.bin",
       "size": 2048,
       "sha256": "811f40f7b32e57269b38ab644810fd3c30321034c9655e3bf72a2e7fd80098d7",
       "legacyPaths": [
@@ -200,7 +200,7 @@
     {
       "artifactId": "nf-diff-18-source",
       "role": "input",
-      "path": "NT51930/ctrlram-replace/fw1.3.0/cascade-3/nt51930-fw130-cascade3-auto-prj-302-inx-20260718/inputs/postbuild/NF/NF_Diff_18.bin",
+      "path": "NT51930/ctrlram-replace/fw1.3.0/cascade-3/nt51930-fw130-cascade3-auto-prj-302-inx-20260718/inputs/postbuild/NF/nt51930-nf-diff-18-source.bin",
       "size": 2048,
       "sha256": "811f40f7b32e57269b38ab644810fd3c30321034c9655e3bf72a2e7fd80098d7",
       "legacyPaths": [
@@ -212,7 +212,7 @@
     {
       "artifactId": "nf-diff-19-source",
       "role": "input",
-      "path": "NT51930/ctrlram-replace/fw1.3.0/cascade-3/nt51930-fw130-cascade3-auto-prj-302-inx-20260718/inputs/postbuild/NF/NF_Diff_19.bin",
+      "path": "NT51930/ctrlram-replace/fw1.3.0/cascade-3/nt51930-fw130-cascade3-auto-prj-302-inx-20260718/inputs/postbuild/NF/nt51930-nf-diff-19-source.bin",
       "size": 2048,
       "sha256": "811f40f7b32e57269b38ab644810fd3c30321034c9655e3bf72a2e7fd80098d7",
       "legacyPaths": [
@@ -224,7 +224,7 @@
     {
       "artifactId": "nf-diff-2-source",
       "role": "input",
-      "path": "NT51930/ctrlram-replace/fw1.3.0/cascade-3/nt51930-fw130-cascade3-auto-prj-302-inx-20260718/inputs/postbuild/NF/NF_Diff_2.bin",
+      "path": "NT51930/ctrlram-replace/fw1.3.0/cascade-3/nt51930-fw130-cascade3-auto-prj-302-inx-20260718/inputs/postbuild/NF/nt51930-nf-diff-2-source.bin",
       "size": 2944,
       "sha256": "844773646d691b4e9bd10c968928e9ab52c9b6a801d77e5cc33cd1e1648ee9cb",
       "legacyPaths": [
@@ -236,7 +236,7 @@
     {
       "artifactId": "nf-diff-20-source",
       "role": "input",
-      "path": "NT51930/ctrlram-replace/fw1.3.0/cascade-3/nt51930-fw130-cascade3-auto-prj-302-inx-20260718/inputs/postbuild/NF/NF_Diff_20.bin",
+      "path": "NT51930/ctrlram-replace/fw1.3.0/cascade-3/nt51930-fw130-cascade3-auto-prj-302-inx-20260718/inputs/postbuild/NF/nt51930-nf-diff-20-source.bin",
       "size": 2048,
       "sha256": "811f40f7b32e57269b38ab644810fd3c30321034c9655e3bf72a2e7fd80098d7",
       "legacyPaths": [
@@ -248,7 +248,7 @@
     {
       "artifactId": "nf-diff-21-source",
       "role": "input",
-      "path": "NT51930/ctrlram-replace/fw1.3.0/cascade-3/nt51930-fw130-cascade3-auto-prj-302-inx-20260718/inputs/postbuild/NF/NF_Diff_21.bin",
+      "path": "NT51930/ctrlram-replace/fw1.3.0/cascade-3/nt51930-fw130-cascade3-auto-prj-302-inx-20260718/inputs/postbuild/NF/nt51930-nf-diff-21-source.bin",
       "size": 2048,
       "sha256": "811f40f7b32e57269b38ab644810fd3c30321034c9655e3bf72a2e7fd80098d7",
       "legacyPaths": [
@@ -260,7 +260,7 @@
     {
       "artifactId": "nf-diff-22-source",
       "role": "input",
-      "path": "NT51930/ctrlram-replace/fw1.3.0/cascade-3/nt51930-fw130-cascade3-auto-prj-302-inx-20260718/inputs/postbuild/NF/NF_Diff_22.bin",
+      "path": "NT51930/ctrlram-replace/fw1.3.0/cascade-3/nt51930-fw130-cascade3-auto-prj-302-inx-20260718/inputs/postbuild/NF/nt51930-nf-diff-22-source.bin",
       "size": 2048,
       "sha256": "811f40f7b32e57269b38ab644810fd3c30321034c9655e3bf72a2e7fd80098d7",
       "legacyPaths": [
@@ -272,7 +272,7 @@
     {
       "artifactId": "nf-diff-23-source",
       "role": "input",
-      "path": "NT51930/ctrlram-replace/fw1.3.0/cascade-3/nt51930-fw130-cascade3-auto-prj-302-inx-20260718/inputs/postbuild/NF/NF_Diff_23.bin",
+      "path": "NT51930/ctrlram-replace/fw1.3.0/cascade-3/nt51930-fw130-cascade3-auto-prj-302-inx-20260718/inputs/postbuild/NF/nt51930-nf-diff-23-source.bin",
       "size": 2048,
       "sha256": "811f40f7b32e57269b38ab644810fd3c30321034c9655e3bf72a2e7fd80098d7",
       "legacyPaths": [
@@ -284,7 +284,7 @@
     {
       "artifactId": "nf-diff-24-source",
       "role": "input",
-      "path": "NT51930/ctrlram-replace/fw1.3.0/cascade-3/nt51930-fw130-cascade3-auto-prj-302-inx-20260718/inputs/postbuild/NF/NF_Diff_24.bin",
+      "path": "NT51930/ctrlram-replace/fw1.3.0/cascade-3/nt51930-fw130-cascade3-auto-prj-302-inx-20260718/inputs/postbuild/NF/nt51930-nf-diff-24-source.bin",
       "size": 2048,
       "sha256": "811f40f7b32e57269b38ab644810fd3c30321034c9655e3bf72a2e7fd80098d7",
       "legacyPaths": [
@@ -296,7 +296,7 @@
     {
       "artifactId": "nf-diff-25-source",
       "role": "input",
-      "path": "NT51930/ctrlram-replace/fw1.3.0/cascade-3/nt51930-fw130-cascade3-auto-prj-302-inx-20260718/inputs/postbuild/NF/NF_Diff_25.bin",
+      "path": "NT51930/ctrlram-replace/fw1.3.0/cascade-3/nt51930-fw130-cascade3-auto-prj-302-inx-20260718/inputs/postbuild/NF/nt51930-nf-diff-25-source.bin",
       "size": 2048,
       "sha256": "811f40f7b32e57269b38ab644810fd3c30321034c9655e3bf72a2e7fd80098d7",
       "legacyPaths": [
@@ -308,7 +308,7 @@
     {
       "artifactId": "nf-diff-26-source",
       "role": "input",
-      "path": "NT51930/ctrlram-replace/fw1.3.0/cascade-3/nt51930-fw130-cascade3-auto-prj-302-inx-20260718/inputs/postbuild/NF/NF_Diff_26.bin",
+      "path": "NT51930/ctrlram-replace/fw1.3.0/cascade-3/nt51930-fw130-cascade3-auto-prj-302-inx-20260718/inputs/postbuild/NF/nt51930-nf-diff-26-source.bin",
       "size": 2048,
       "sha256": "811f40f7b32e57269b38ab644810fd3c30321034c9655e3bf72a2e7fd80098d7",
       "legacyPaths": [
@@ -320,7 +320,7 @@
     {
       "artifactId": "nf-diff-27-source",
       "role": "input",
-      "path": "NT51930/ctrlram-replace/fw1.3.0/cascade-3/nt51930-fw130-cascade3-auto-prj-302-inx-20260718/inputs/postbuild/NF/NF_Diff_27.bin",
+      "path": "NT51930/ctrlram-replace/fw1.3.0/cascade-3/nt51930-fw130-cascade3-auto-prj-302-inx-20260718/inputs/postbuild/NF/nt51930-nf-diff-27-source.bin",
       "size": 2048,
       "sha256": "811f40f7b32e57269b38ab644810fd3c30321034c9655e3bf72a2e7fd80098d7",
       "legacyPaths": [
@@ -332,7 +332,7 @@
     {
       "artifactId": "nf-diff-28-source",
       "role": "input",
-      "path": "NT51930/ctrlram-replace/fw1.3.0/cascade-3/nt51930-fw130-cascade3-auto-prj-302-inx-20260718/inputs/postbuild/NF/NF_Diff_28.bin",
+      "path": "NT51930/ctrlram-replace/fw1.3.0/cascade-3/nt51930-fw130-cascade3-auto-prj-302-inx-20260718/inputs/postbuild/NF/nt51930-nf-diff-28-source.bin",
       "size": 2048,
       "sha256": "811f40f7b32e57269b38ab644810fd3c30321034c9655e3bf72a2e7fd80098d7",
       "legacyPaths": [
@@ -344,7 +344,7 @@
     {
       "artifactId": "nf-diff-3-source",
       "role": "input",
-      "path": "NT51930/ctrlram-replace/fw1.3.0/cascade-3/nt51930-fw130-cascade3-auto-prj-302-inx-20260718/inputs/postbuild/NF/NF_Diff_3.bin",
+      "path": "NT51930/ctrlram-replace/fw1.3.0/cascade-3/nt51930-fw130-cascade3-auto-prj-302-inx-20260718/inputs/postbuild/NF/nt51930-nf-diff-3-source.bin",
       "size": 2048,
       "sha256": "811f40f7b32e57269b38ab644810fd3c30321034c9655e3bf72a2e7fd80098d7",
       "legacyPaths": [
@@ -356,7 +356,7 @@
     {
       "artifactId": "nf-diff-4-source",
       "role": "input",
-      "path": "NT51930/ctrlram-replace/fw1.3.0/cascade-3/nt51930-fw130-cascade3-auto-prj-302-inx-20260718/inputs/postbuild/NF/NF_Diff_4.bin",
+      "path": "NT51930/ctrlram-replace/fw1.3.0/cascade-3/nt51930-fw130-cascade3-auto-prj-302-inx-20260718/inputs/postbuild/NF/nt51930-nf-diff-4-source.bin",
       "size": 2048,
       "sha256": "811f40f7b32e57269b38ab644810fd3c30321034c9655e3bf72a2e7fd80098d7",
       "legacyPaths": [
@@ -368,7 +368,7 @@
     {
       "artifactId": "nf-diff-5-source",
       "role": "input",
-      "path": "NT51930/ctrlram-replace/fw1.3.0/cascade-3/nt51930-fw130-cascade3-auto-prj-302-inx-20260718/inputs/postbuild/NF/NF_Diff_5.bin",
+      "path": "NT51930/ctrlram-replace/fw1.3.0/cascade-3/nt51930-fw130-cascade3-auto-prj-302-inx-20260718/inputs/postbuild/NF/nt51930-nf-diff-5-source.bin",
       "size": 2048,
       "sha256": "811f40f7b32e57269b38ab644810fd3c30321034c9655e3bf72a2e7fd80098d7",
       "legacyPaths": [
@@ -380,7 +380,7 @@
     {
       "artifactId": "nf-diff-6-source",
       "role": "input",
-      "path": "NT51930/ctrlram-replace/fw1.3.0/cascade-3/nt51930-fw130-cascade3-auto-prj-302-inx-20260718/inputs/postbuild/NF/NF_Diff_6.bin",
+      "path": "NT51930/ctrlram-replace/fw1.3.0/cascade-3/nt51930-fw130-cascade3-auto-prj-302-inx-20260718/inputs/postbuild/NF/nt51930-nf-diff-6-source.bin",
       "size": 2048,
       "sha256": "811f40f7b32e57269b38ab644810fd3c30321034c9655e3bf72a2e7fd80098d7",
       "legacyPaths": [
@@ -392,7 +392,7 @@
     {
       "artifactId": "nf-diff-7-source",
       "role": "input",
-      "path": "NT51930/ctrlram-replace/fw1.3.0/cascade-3/nt51930-fw130-cascade3-auto-prj-302-inx-20260718/inputs/postbuild/NF/NF_Diff_7.bin",
+      "path": "NT51930/ctrlram-replace/fw1.3.0/cascade-3/nt51930-fw130-cascade3-auto-prj-302-inx-20260718/inputs/postbuild/NF/nt51930-nf-diff-7-source.bin",
       "size": 2048,
       "sha256": "811f40f7b32e57269b38ab644810fd3c30321034c9655e3bf72a2e7fd80098d7",
       "legacyPaths": [
@@ -404,7 +404,7 @@
     {
       "artifactId": "nf-diff-8-source",
       "role": "input",
-      "path": "NT51930/ctrlram-replace/fw1.3.0/cascade-3/nt51930-fw130-cascade3-auto-prj-302-inx-20260718/inputs/postbuild/NF/NF_Diff_8.bin",
+      "path": "NT51930/ctrlram-replace/fw1.3.0/cascade-3/nt51930-fw130-cascade3-auto-prj-302-inx-20260718/inputs/postbuild/NF/nt51930-nf-diff-8-source.bin",
       "size": 2048,
       "sha256": "811f40f7b32e57269b38ab644810fd3c30321034c9655e3bf72a2e7fd80098d7",
       "legacyPaths": [
@@ -416,7 +416,7 @@
     {
       "artifactId": "nf-diff-9-source",
       "role": "input",
-      "path": "NT51930/ctrlram-replace/fw1.3.0/cascade-3/nt51930-fw130-cascade3-auto-prj-302-inx-20260718/inputs/postbuild/NF/NF_Diff_9.bin",
+      "path": "NT51930/ctrlram-replace/fw1.3.0/cascade-3/nt51930-fw130-cascade3-auto-prj-302-inx-20260718/inputs/postbuild/NF/nt51930-nf-diff-9-source.bin",
       "size": 2048,
       "sha256": "811f40f7b32e57269b38ab644810fd3c30321034c9655e3bf72a2e7fd80098d7",
       "legacyPaths": [
@@ -428,7 +428,7 @@
     {
       "artifactId": "nf-ctrlram-input",
       "role": "input",
-      "path": "NT51930/ctrlram-replace/fw1.3.0/cascade-3/nt51930-fw130-cascade3-auto-prj-302-inx-20260718/inputs/postbuild/NF_Ctrlram.bin",
+      "path": "NT51930/ctrlram-replace/fw1.3.0/cascade-3/nt51930-fw130-cascade3-auto-prj-302-inx-20260718/inputs/postbuild/nt51930-nf-ctrlram-input.bin",
       "size": 577,
       "sha256": "2e79b9cdc060442190e31c9e3c3a11f82ee6e76407d3db73d90add907dde148e",
       "legacyPaths": [
@@ -440,7 +440,7 @@
     {
       "artifactId": "normal-ctrlram-input",
       "role": "input",
-      "path": "NT51930/ctrlram-replace/fw1.3.0/cascade-3/nt51930-fw130-cascade3-auto-prj-302-inx-20260718/inputs/postbuild/Normal_Ctrlram.bin",
+      "path": "NT51930/ctrlram-replace/fw1.3.0/cascade-3/nt51930-fw130-cascade3-auto-prj-302-inx-20260718/inputs/postbuild/nt51930-normal-ctrlram-input.bin",
       "size": 655360,
       "sha256": "cd9473f2e0e06fc6f14c5b4471000ce80d14456e82976a6353f4891d55aae375",
       "legacyPaths": [
@@ -452,7 +452,7 @@
     {
       "artifactId": "vn-ctrlram-input",
       "role": "input",
-      "path": "NT51930/ctrlram-replace/fw1.3.0/cascade-3/nt51930-fw130-cascade3-auto-prj-302-inx-20260718/inputs/postbuild/VN_Ctrlram.bin",
+      "path": "NT51930/ctrlram-replace/fw1.3.0/cascade-3/nt51930-fw130-cascade3-auto-prj-302-inx-20260718/inputs/postbuild/nt51930-vn-ctrlram-input.bin",
       "size": 6496,
       "sha256": "b634459d02232867c2093ce3e7bc2264a5fdcdf65df769bad5c9d75289be05f2",
       "legacyPaths": [

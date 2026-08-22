@@ -13,7 +13,7 @@
     {
       "artifactId": "dp-input",
       "role": "input",
-      "path": "NT51920/standard-merge/gen-flash/topology-unscoped/nt51920-gen-flash/inputs/dp-input.bin",
+      "path": "NT51920/standard-merge/gen-flash/topology-unscoped/nt51920-gen-flash/inputs/nt51920-dp-input.bin",
       "size": 262144,
       "sha256": "6fc8a14c03bf84a0d2db2777cbca9d1b273ccba35f518457928e44f538acfc0d",
       "legacyPaths": [
@@ -25,7 +25,7 @@
     {
       "artifactId": "tp-input",
       "role": "input",
-      "path": "NT51920/standard-merge/gen-flash/topology-unscoped/nt51920-gen-flash/inputs/tp-input.bin",
+      "path": "NT51920/standard-merge/gen-flash/topology-unscoped/nt51920-gen-flash/inputs/nt51920-tp-input.bin",
       "size": 196608,
       "sha256": "4db68971dbb5bd8be4f68eccdfe1335b8dc4cfec8b65b46799133cde7bf142d5",
       "legacyPaths": [
@@ -37,7 +37,7 @@
     {
       "artifactId": "expected-output",
       "role": "expected",
-      "path": "NT51920/standard-merge/gen-flash/topology-unscoped/nt51920-gen-flash/expected/flash.bin",
+      "path": "NT51920/standard-merge/gen-flash/topology-unscoped/nt51920-gen-flash/expected/nt51920-expected-output.bin",
       "size": 262144,
       "sha256": "1803d16e5c6c3082899c783156516734f9d43e3209ecd74099296d216a389be9",
       "legacyPaths": [

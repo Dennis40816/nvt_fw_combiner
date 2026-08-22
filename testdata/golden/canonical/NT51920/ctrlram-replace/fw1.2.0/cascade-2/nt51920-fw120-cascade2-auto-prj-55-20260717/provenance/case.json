@@ -52,7 +52,7 @@
     {
       "artifactId": "postbuild-mp-ctrlram-s",
       "role": "input",
-      "path": "NT51920/ctrlram-replace/fw1.2.0/cascade-2/nt51920-fw120-cascade2-auto-prj-55-20260717/inputs/postbuild/MP_Ctrlram_S.bin",
+      "path": "NT51920/ctrlram-replace/fw1.2.0/cascade-2/nt51920-fw120-cascade2-auto-prj-55-20260717/inputs/postbuild/nt51920-postbuild-mp-ctrlram-s.bin",
       "size": 262144,
       "sha256": "356f0494059caa678643df857896ac27ec81756b1e6d986d8da4c30c339925c6",
       "legacyPaths": [
@@ -64,7 +64,7 @@
     {
       "artifactId": "postbuild-mp-ctrlram",
       "role": "input",
-      "path": "NT51920/ctrlram-replace/fw1.2.0/cascade-2/nt51920-fw120-cascade2-auto-prj-55-20260717/inputs/postbuild/MP_Ctrlram.bin",
+      "path": "NT51920/ctrlram-replace/fw1.2.0/cascade-2/nt51920-fw120-cascade2-auto-prj-55-20260717/inputs/postbuild/nt51920-postbuild-mp-ctrlram.bin",
       "size": 262144,
       "sha256": "b143377fa81e3b0263f6224e38bad967f3805782c0eba4442db62762b4a407b8",
       "legacyPaths": [
@@ -76,7 +76,7 @@
     {
       "artifactId": "postbuild-nf-ctrlram",
       "role": "input",
-      "path": "NT51920/ctrlram-replace/fw1.2.0/cascade-2/nt51920-fw120-cascade2-auto-prj-55-20260717/inputs/postbuild/NF_Ctrlram.bin",
+      "path": "NT51920/ctrlram-replace/fw1.2.0/cascade-2/nt51920-fw120-cascade2-auto-prj-55-20260717/inputs/postbuild/nt51920-postbuild-nf-ctrlram.bin",
       "size": 8080,
       "sha256": "23ee2286640a156992d8ea11b4a66f0782530b4d31b5886f42797cdbcdedd1e5",
       "legacyPaths": [
@@ -88,7 +88,7 @@
     {
       "artifactId": "postbuild-normal-ctrlram-s",
       "role": "input",
-      "path": "NT51920/ctrlram-replace/fw1.2.0/cascade-2/nt51920-fw120-cascade2-auto-prj-55-20260717/inputs/postbuild/Normal_Ctrlram_S.bin",
+      "path": "NT51920/ctrlram-replace/fw1.2.0/cascade-2/nt51920-fw120-cascade2-auto-prj-55-20260717/inputs/postbuild/nt51920-postbuild-normal-ctrlram-s.bin",
       "size": 262144,
       "sha256": "cbf9d6861ec4657a7fd256dd2c8799de206179c2f43ce690b3d421a7667a8b4a",
       "legacyPaths": [
@@ -100,7 +100,7 @@
     {
       "artifactId": "postbuild-normal-ctrlram",
       "role": "input",
-      "path": "NT51920/ctrlram-replace/fw1.2.0/cascade-2/nt51920-fw120-cascade2-auto-prj-55-20260717/inputs/postbuild/Normal_Ctrlram.bin",
+      "path": "NT51920/ctrlram-replace/fw1.2.0/cascade-2/nt51920-fw120-cascade2-auto-prj-55-20260717/inputs/postbuild/nt51920-postbuild-normal-ctrlram.bin",
       "size": 262144,
       "sha256": "2ef1acb1bb2c026514f0f260fc92ae96d10455b5045e428b61d6dc26713f0af5",
       "legacyPaths": [
@@ -112,7 +112,7 @@
     {
       "artifactId": "postbuild-vector-ctrlram",
       "role": "input",
-      "path": "NT51920/ctrlram-replace/fw1.2.0/cascade-2/nt51920-fw120-cascade2-auto-prj-55-20260717/inputs/postbuild/Vector_Ctrlram.bin",
+      "path": "NT51920/ctrlram-replace/fw1.2.0/cascade-2/nt51920-fw120-cascade2-auto-prj-55-20260717/inputs/postbuild/nt51920-postbuild-vector-ctrlram.bin",
       "size": 416,
       "sha256": "6c17eda5564301489d3b88349faf7b2e3543bfbb66b6176b90a38b36add69c4b",
       "legacyPaths": [
@@ -124,7 +124,7 @@
     {
       "artifactId": "postbuild-vn-ctrlram",
       "role": "input",
-      "path": "NT51920/ctrlram-replace/fw1.2.0/cascade-2/nt51920-fw120-cascade2-auto-prj-55-20260717/inputs/postbuild/VN_Ctrlram.bin",
+      "path": "NT51920/ctrlram-replace/fw1.2.0/cascade-2/nt51920-fw120-cascade2-auto-prj-55-20260717/inputs/postbuild/nt51920-postbuild-vn-ctrlram.bin",
       "size": 4120,
       "sha256": "4df9827466afc63256cae6a24ec058a7f6be979e7c375b6f43ff7c0b13c9659e",
       "legacyPaths": [

@@ -56,7 +56,7 @@
     {
       "artifactId": "diffdlm-input",
       "role": "input",
-      "path": "NT51926/ctrlram-replace/fw2.0.0/cascade-3/nt51926-fw200-cascade3-auto-prj-597-20260718/inputs/postbuild/DiffDLM.bin",
+      "path": "NT51926/ctrlram-replace/fw2.0.0/cascade-3/nt51926-fw200-cascade3-auto-prj-597-20260718/inputs/postbuild/nt51926-diffdlm-input.bin",
       "size": 10240,
       "sha256": "869633426bb4dfe26f34c3542630e379eb54482e47c330d6286722a932354817",
       "legacyPaths": [
@@ -68,7 +68,7 @@
     {
       "artifactId": "mp-ctrlram-input",
       "role": "input",
-      "path": "NT51926/ctrlram-replace/fw2.0.0/cascade-3/nt51926-fw200-cascade3-auto-prj-597-20260718/inputs/postbuild/MP_Ctrlram.bin",
+      "path": "NT51926/ctrlram-replace/fw2.0.0/cascade-3/nt51926-fw200-cascade3-auto-prj-597-20260718/inputs/postbuild/nt51926-mp-ctrlram-input.bin",
       "size": 655360,
       "sha256": "d512606dd69db32e11b616588e4874ecfa615b0660b33cc65a38f8fc29363c19",
       "legacyPaths": [
@@ -80,7 +80,7 @@
     {
       "artifactId": "nf-ctrlram-input",
       "role": "input",
-      "path": "NT51926/ctrlram-replace/fw2.0.0/cascade-3/nt51926-fw200-cascade3-auto-prj-597-20260718/inputs/postbuild/NF_Ctrlram.bin",
+      "path": "NT51926/ctrlram-replace/fw2.0.0/cascade-3/nt51926-fw200-cascade3-auto-prj-597-20260718/inputs/postbuild/nt51926-nf-ctrlram-input.bin",
       "size": 11728,
       "sha256": "46c8a7eadadab86a4b2f04049619c8e60ca0ded410b89a0037dbf93be4564be1",
       "legacyPaths": [
@@ -92,7 +92,7 @@
     {
       "artifactId": "normal-ctrlram-input",
       "role": "input",
-      "path": "NT51926/ctrlram-replace/fw2.0.0/cascade-3/nt51926-fw200-cascade3-auto-prj-597-20260718/inputs/postbuild/Normal_Ctrlram.bin",
+      "path": "NT51926/ctrlram-replace/fw2.0.0/cascade-3/nt51926-fw200-cascade3-auto-prj-597-20260718/inputs/postbuild/nt51926-normal-ctrlram-input.bin",
       "size": 655360,
       "sha256": "3fb5fd130be8205b44f75a1c49356d00e51a47f884c477a7e17b1c3110d81da5",
       "legacyPaths": [
@@ -104,7 +104,7 @@
     {
       "artifactId": "vn-ctrlram-input",
       "role": "input",
-      "path": "NT51926/ctrlram-replace/fw2.0.0/cascade-3/nt51926-fw200-cascade3-auto-prj-597-20260718/inputs/postbuild/VN_Ctrlram.bin",
+      "path": "NT51926/ctrlram-replace/fw2.0.0/cascade-3/nt51926-fw200-cascade3-auto-prj-597-20260718/inputs/postbuild/nt51926-vn-ctrlram-input.bin",
       "size": 5728,
       "sha256": "b855cbc3ce8f9b57e83ee16ce4c902a8089689dfc951e9138dc4294acbf6c5c7",
       "legacyPaths": [

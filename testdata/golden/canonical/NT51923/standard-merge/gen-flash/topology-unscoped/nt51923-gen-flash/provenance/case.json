@@ -13,7 +13,7 @@
     {
       "artifactId": "dp-input",
       "role": "input",
-      "path": "NT51923/standard-merge/gen-flash/topology-unscoped/nt51923-gen-flash/inputs/dp-input.bin",
+      "path": "NT51923/standard-merge/gen-flash/topology-unscoped/nt51923-gen-flash/inputs/nt51923-dp-input.bin",
       "size": 262144,
       "sha256": "eb15b2ad0172e325d767a27e32f56cc19df7b9d95e96e4b19cc2cd547656612d",
       "legacyPaths": [
@@ -25,7 +25,7 @@
     {
       "artifactId": "tp-input",
       "role": "input",
-      "path": "NT51923/standard-merge/gen-flash/topology-unscoped/nt51923-gen-flash/inputs/tp-input.bin",
+      "path": "NT51923/standard-merge/gen-flash/topology-unscoped/nt51923-gen-flash/inputs/nt51923-tp-input.bin",
       "size": 245760,
       "sha256": "4efbb496096d5851b8ae5fee396a77f6aa85eb0240bc19e0fc3171c25c6b6514",
       "legacyPaths": [
@@ -37,7 +37,7 @@
     {
       "artifactId": "expected-output",
       "role": "expected",
-      "path": "NT51923/standard-merge/gen-flash/topology-unscoped/nt51923-gen-flash/expected/flash.bin",
+      "path": "NT51923/standard-merge/gen-flash/topology-unscoped/nt51923-gen-flash/expected/nt51923-expected-output.bin",
       "size": 262144,
       "sha256": "b611bd837991be1ccb8e1dfffa7a9a1e825e71221c27377cf1aca8b37cf5666f",
       "legacyPaths": [

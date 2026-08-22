@@ -52,7 +52,7 @@
     {
       "artifactId": "postbuild-nf-ctrlram",
       "role": "input",
-      "path": "NT51950/ctrlram-replace/fw2.0.0/single/nt51950-fw200-single-auto-prj-676-20260717/inputs/postbuild/NF_Ctrlram.bin",
+      "path": "NT51950/ctrlram-replace/fw2.0.0/single/nt51950-fw200-single-auto-prj-676-20260717/inputs/postbuild/nt51950-postbuild-nf-ctrlram.bin",
       "size": 2816,
       "sha256": "3531fd2a89195c1418d27673e4b7420cde0067be971ad72f666a01cf21e6a322",
       "legacyPaths": [
@@ -64,7 +64,7 @@
     {
       "artifactId": "postbuild-normal-ctrlram",
       "role": "input",
-      "path": "NT51950/ctrlram-replace/fw2.0.0/single/nt51950-fw200-single-auto-prj-676-20260717/inputs/postbuild/Normal_Ctrlram.bin",
+      "path": "NT51950/ctrlram-replace/fw2.0.0/single/nt51950-fw200-single-auto-prj-676-20260717/inputs/postbuild/nt51950-postbuild-normal-ctrlram.bin",
       "size": 655360,
       "sha256": "f2db8a22f7e2ba5d46699e6b405412e9e804d679448b2aa5e61fa14e9b07b478",
       "legacyPaths": [
@@ -76,7 +76,7 @@
     {
       "artifactId": "postbuild-vn-ctrlram",
       "role": "input",
-      "path": "NT51950/ctrlram-replace/fw2.0.0/single/nt51950-fw200-single-auto-prj-676-20260717/inputs/postbuild/VN_Ctrlram.bin",
+      "path": "NT51950/ctrlram-replace/fw2.0.0/single/nt51950-fw200-single-auto-prj-676-20260717/inputs/postbuild/nt51950-postbuild-vn-ctrlram.bin",
       "size": 8444,
       "sha256": "3f1bd04de707ba7584dd860caa9069e4b66774b9c3b8a001eea1d69db62cb709",
       "legacyPaths": [
