@@ -246,12 +246,24 @@ public sealed partial class XamlControlStyleContractTests
         Assert.False(ToolTip.GetIsOpen(control));
         Assert.False(ToolTip.GetServiceEnabled(control));
 
-        control.RaiseEvent(new FocusChangedEventArgs(InputElement.GotFocusEvent));
+        control.RaiseEvent(new FocusChangedEventArgs(InputElement.GotFocusEvent)
+        {
+            NavigationMethod = NavigationMethod.Unspecified,
+        });
         Assert.False(ToolTip.GetIsOpen(control));
 
         control.RaiseEvent(new FocusChangedEventArgs(InputElement.LostFocusEvent));
         Assert.True(ToolTip.GetServiceEnabled(control));
-        control.RaiseEvent(new FocusChangedEventArgs(InputElement.GotFocusEvent));
+        control.RaiseEvent(new FocusChangedEventArgs(InputElement.GotFocusEvent)
+        {
+            NavigationMethod = NavigationMethod.Unspecified,
+        });
+        Assert.False(ToolTip.GetIsOpen(control));
+        control.RaiseEvent(new FocusChangedEventArgs(InputElement.LostFocusEvent));
+        control.RaiseEvent(new FocusChangedEventArgs(InputElement.GotFocusEvent)
+        {
+            NavigationMethod = NavigationMethod.Tab,
+        });
         Assert.True(ToolTip.GetIsOpen(control));
     }
 

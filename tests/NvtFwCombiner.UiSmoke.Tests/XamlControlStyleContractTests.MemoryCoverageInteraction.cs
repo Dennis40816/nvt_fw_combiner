@@ -308,7 +308,10 @@ public sealed partial class XamlControlStyleContractTests
                 Assert.IsType<SolidColorBrush>(expectedRowSurface).Color,
                 Assert.IsType<ISolidColorBrush>(activeRow.Background, exactMatch: false).Color);
             ContentControl rowCard = Assert.IsType<ContentControl>(ToolTip.GetTip(activeRow));
-            activeRow.RaiseEvent(new FocusChangedEventArgs(InputElement.GotFocusEvent));
+            activeRow.RaiseEvent(new FocusChangedEventArgs(InputElement.GotFocusEvent)
+            {
+                NavigationMethod = NavigationMethod.Tab,
+            });
             Dispatcher.UIThread.RunJobs();
             Assert.True(ToolTip.GetIsOpen(activeRow));
             Assert.Same(active, rowCard.Content);

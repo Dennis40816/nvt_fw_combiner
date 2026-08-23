@@ -69,7 +69,7 @@ public sealed class FocusToolTipBehavior : AvaloniaObject
 
     private static void Control_OnGotFocus(object? sender, RoutedEventArgs e)
     {
-        if (sender is Control control)
+        if (sender is Control control && e is FocusChangedEventArgs { NavigationMethod: NavigationMethod.Tab or NavigationMethod.Directional })
         {
             if (ToolTip.GetServiceEnabled(control))
             {
