@@ -2815,7 +2815,7 @@ class VerifyOrchestrationTests(unittest.TestCase):
                 (
                     "tests/NvtFwCombiner.Bootstrap.Tests/"
                     "NvtFwCombiner.Bootstrap.Tests.csproj",
-                    1012,
+                    1013,
                     0,
                 ),
             ),
@@ -2823,7 +2823,7 @@ class VerifyOrchestrationTests(unittest.TestCase):
                 (
                     "tests/NvtFwCombiner.UiSmoke.Tests/"
                     "NvtFwCombiner.UiSmoke.Tests.csproj",
-                    639,
+                    640,
                     0,
                 ),
             ),
@@ -2855,7 +2855,7 @@ class VerifyOrchestrationTests(unittest.TestCase):
                 (
                     "tests/NvtFwCombiner.GoldenRegression.Tests/"
                     "NvtFwCombiner.GoldenRegression.Tests.csproj",
-                    17,
+                    18,
                     0,
                 ),
                 (
@@ -2902,7 +2902,7 @@ class VerifyOrchestrationTests(unittest.TestCase):
         self.assertEqual(8, len(set(flattened)))
         self.assertEqual(solution_test_projects, set(flattened))
         self.assertEqual(
-            3932, sum(total for projects in actual.values() for _, total, _ in projects)
+            3935, sum(total for projects in actual.values() for _, total, _ in projects)
         )
         self.assertEqual(
             2,
@@ -3393,11 +3393,6 @@ class VerifyOrchestrationTests(unittest.TestCase):
                     "verify_coverage",
                     side_effect=lambda *_args: events.append("coverage"),
                 ) as verify_coverage,
-                patch.object(
-                    MODULE,
-                    "run",
-                    side_effect=lambda *_args: events.append("fixture"),
-                ) as run_command,
             ):
                 MODULE.finalize_ci_dotnet_evidence(download_root)
 
@@ -3407,14 +3402,7 @@ class VerifyOrchestrationTests(unittest.TestCase):
                 8, len(tuple(coverage_root.rglob("coverage.cobertura.xml")))
             )
             verify_coverage.assert_called_once_with("dotnet", coverage_root)
-            run_command.assert_called_once_with(
-                [
-                    sys.executable,
-                    str(MODULE.CTRL_RAM_REPLACE_FIXTURE_VERIFIER),
-                    "--skip-public-smoke",
-                ]
-            )
-            self.assertEqual(["fixture", "coverage"], events)
+            self.assertEqual(["coverage"], events)
 
     def test_ci_dotnet_finalizer_rejects_hash_extra_and_job_result_drift(self) -> None:
         source_sha = "2" * 40
@@ -3515,7 +3503,9 @@ class VerifyOrchestrationTests(unittest.TestCase):
                 verify_coverage.assert_not_called()
                 run_command.assert_not_called()
 
-    def test_ci_dotnet_finalizer_runs_fixture_before_failing_coverage(self) -> None:
+    def test_ci_dotnet_finalizer_reaches_coverage_after_closed_evidence_validation(
+        self,
+    ) -> None:
         source_sha = "6" * 40
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary)
@@ -3540,15 +3530,12 @@ class VerifyOrchestrationTests(unittest.TestCase):
                 patch.object(MODULE, "ROOT", root),
                 patch.object(MODULE, "COVERAGE_ROOT", root / "coverage"),
                 patch.object(MODULE, "repository_sdk_version", return_value="10.0.301"),
-                patch.object(
-                    MODULE, "run", side_effect=lambda *_args: events.append("fixture")
-                ),
                 patch.object(MODULE, "verify_coverage", side_effect=fail_coverage),
                 self.assertRaisesRegex(RuntimeError, "coverage probe"),
             ):
                 MODULE.finalize_ci_dotnet_evidence(download_root)
 
-            self.assertEqual(["fixture", "coverage"], events)
+            self.assertEqual(["coverage"], events)
 
     def test_ci_dotnet_shard_continues_after_ordinary_project_failure(self) -> None:
         first = MODULE.CiDotnetProject("tests/First/First.csproj", 1)

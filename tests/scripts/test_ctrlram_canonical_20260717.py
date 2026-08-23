@@ -42,7 +42,7 @@ DIRECT_CASES = {
         "fw1.4.1",
         "cascade-2",
         "AUTO_PRJ-597",
-        8,
+        9,
         "acdfb0a03c41d6b6e40d1e8f0f6ed72f7b82d5330aa3c13cc6269c930f7d016c",
     ),
     "nt51927-fw141-single-auto-prj-529-20260717": (
@@ -119,9 +119,9 @@ class CtrlRamCanonical20260717Tests(unittest.TestCase):
         artifacts = [
             artifact for case in self.cases.values() for artifact in case["artifacts"]
         ]
-        self.assertEqual(56, len(artifacts))
-        self.assertEqual(50, sum(artifact["path"].endswith(".bin") for artifact in artifacts))
-        self.assertEqual(13_625_444, sum(artifact["size"] for artifact in artifacts))
+        self.assertEqual(57, len(artifacts))
+        self.assertEqual(51, sum(artifact["path"].endswith(".bin") for artifact in artifacts))
+        self.assertEqual(13_871_204, sum(artifact["size"] for artifact in artifacts))
         collection = next(
             item
             for item in self.root_manifest["sourceCollections"]

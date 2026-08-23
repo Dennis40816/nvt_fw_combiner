@@ -6,6 +6,12 @@
   "variantOrVersion": "t05-d06",
   "topology": "topology-unscoped",
   "directGolden": false,
+  "testDisposition": {
+    "kind": "fact-scoped-alias",
+    "evidenceRefs": [
+      "tests/NvtFwCombiner.Bootstrap.Tests/AbMergeGoldenRegressionTests.cs#EveryAbFactScopedAliasResolvesItsDeclaredDirectCase"
+    ]
+  },
   "sourceClassification": "owner-approved-fact-scoped-alias",
   "ownerApproval": "Firmware owner approved the NT51929 AB evidence as fact-scoped NT51932 family evidence on 2026-07-18.",
   "alias": {

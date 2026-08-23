@@ -13,7 +13,7 @@ The executable workflow is [`.github/workflows/ci.yml`](../../.github/workflows/
 3. **`dotnet / build-test`** is the stable final verdict over one complete
    Release-build producer and three closed Windows test shards. The canonical
     verifier validates the exact eight-project/TRX/coverage manifest, 3,450 test
-   cases with the two declared skips, GoldenRegression 17/17, coverage policy,
+   cases with the two declared skips, GoldenRegression 18/18, coverage policy,
    and CtrlRAM fixture evidence before the check passes.
 
 Private firmware golden regression remains an approved-runner gate once private vectors exist. It must publish reports/hashes only, never firmware payloads.

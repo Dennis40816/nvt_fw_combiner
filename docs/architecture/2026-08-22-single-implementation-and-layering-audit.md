@@ -342,11 +342,15 @@ NT51920, NT51930, and NT51931 on 2026-08-23, so these gaps must be removed with
 their active catalog, test, package, and Golden residue rather than filled with
 new runners. The handoff records that bounded R3 evidence cleanup as
 `RET-IC-01`; immutable `refcode/` and accepted historical provenance remain.
-After retirement, recompute the canonical denominator and fail-closed
-dispositions. NT51926 FW 1.4.1 cascade intake partly uses canonical artifacts
-while a complete regression still reads
-`testdata/golden/ctrlram-replace/manifest.json`. Bundle CLI, CtrlRAM CLI, and UI
-fixture helpers also retain direct legacy-root consumers.
+GOLD-01 closes this finding: the canonical denominator is 39 cases, every case
+has one fail-closed typed disposition, and NT51926 FW 1.4.1 selective-VN
+regression evidence is a supporting provenance artifact in its canonical case.
+The closed GOLD-01 declaration ledger is 175 artifact facts totaling
+41,406,330 declared bytes; the physical canonical payload tree is 172 files
+and 40,693,626 bytes because repeated case facts do not create copied payloads.
+Bundle CLI, CtrlRAM CLI, candidate, and UI tests now use the canonical loader;
+the active legacy manifest, fail-open verifier, and duplicate payload roots are
+retired. The separate 20260717 diagnostic quarantine remains non-executable.
 
 `RET-IC-01` candidate result on 2026-08-23 removes the seven retired Direct
 Golden cases and all retired-only active evidence consumers. The resulting

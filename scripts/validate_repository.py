@@ -85,7 +85,6 @@ REQUIRED_FILES = {
     "scripts/diagnostic_golden_validation.py",
     "scripts/external_tool_policy.py",
     "scripts/repository_contract_validation.py",
-    "scripts/verify_ctrlram_replace_fixture.py",
     "scripts/verify.py",
     "external-tools/README.md",
     "external-tools/catalog.json",
@@ -727,104 +726,6 @@ def validate_source_manifest(manifest_path: Path, errors: list[str]) -> None:
             )
 
 
-def validate_ctrlram_replace_golden_fixtures(errors: list[str]) -> None:
-    manifest_path = ROOT / "testdata/golden/ctrlram-replace/manifest.json"
-    from verify_ctrlram_replace_fixture import verify_fixture_manifest
-
-    try:
-        verify_fixture_manifest(manifest_path)
-    except (OSError, ValueError, json.JSONDecodeError) as exc:
-        errors.append(f"ctrlram-replace golden manifest contract invalid: {exc}")
-    manifest = load_json(manifest_path, errors)
-    if not isinstance(manifest, dict):
-        return
-
-    if manifest.get("payloadClass") != "owner-approved-golden-firmware":
-        errors.append(
-            "ctrlram-replace golden manifest must declare owner-approved-golden-firmware payloadClass"
-        )
-    if manifest.get("binaryPayloadsIncluded") is not True:
-        errors.append(
-            "ctrlram-replace golden manifest must explicitly include binaryPayloadsIncluded=true"
-        )
-
-    golden_root = manifest_path.parent
-    declared_bins: set[PurePosixPath] = set()
-    cases = manifest.get("cases")
-    if not isinstance(cases, list) or not cases:
-        errors.append("ctrlram-replace golden manifest must contain cases")
-        return
-
-    for index, item in enumerate(cases):
-        if not isinstance(item, dict):
-            errors.append(f"invalid ctrlram-replace golden case[{index}]")
-            continue
-
-        base = item.get("base")
-        if isinstance(base, dict):
-            relative = validate_golden_manifest_entry(
-                golden_root, base, errors, require_bin=True, label="ctrlram-replace"
-            )
-            if relative is not None:
-                declared_bins.add(relative)
-        else:
-            errors.append(f"ctrlram-replace golden case[{index}] has no base")
-
-        replacement_inputs = item.get("replacementInputs")
-        if not isinstance(replacement_inputs, list) or not replacement_inputs:
-            errors.append(
-                f"ctrlram-replace golden case[{index}] has no replacementInputs"
-            )
-            continue
-
-        for replacement_index, replacement in enumerate(replacement_inputs):
-            if not isinstance(replacement, dict):
-                errors.append(
-                    f"invalid ctrlram-replace golden case[{index}].replacementInputs[{replacement_index}]"
-                )
-                continue
-            file_entry = replacement.get("file")
-            if isinstance(file_entry, dict):
-                relative = validate_golden_manifest_entry(
-                    golden_root,
-                    file_entry,
-                    errors,
-                    require_bin=True,
-                    label="ctrlram-replace",
-                )
-                if relative is not None:
-                    declared_bins.add(relative)
-            else:
-                errors.append(
-                    f"ctrlram-replace golden case[{index}].replacementInputs[{replacement_index}] has no file"
-                )
-
-        expected = item.get("expectedOutput")
-        if isinstance(expected, dict):
-            relative = validate_golden_manifest_entry(
-                golden_root,
-                expected,
-                errors,
-                require_bin=True,
-                label="ctrlram-replace",
-            )
-            if relative is not None:
-                declared_bins.add(relative)
-
-    actual_bins = {
-        PurePosixPath(path.relative_to(golden_root).as_posix())
-        for path in golden_root.rglob("*.bin")
-        if path.is_file()
-        and not path.is_relative_to(golden_root / "fixtures/20260717")
-    }
-    if actual_bins != declared_bins:
-        errors.append(
-            "ctrlram-replace golden BIN manifest drift: "
-            f"expected={sorted(path.as_posix() for path in declared_bins)} "
-            f"actual={sorted(path.as_posix() for path in actual_bins)}"
-        )
-
-
 def validate_golden_manifest_entry(
     golden_root: Path,
     entry: dict[str, Any],
@@ -1377,10 +1278,6 @@ def validate_workflows(errors: list[str]) -> None:
     ):
         if marker not in ci:
             errors.append(f"CI is missing coverage evidence marker: {marker}")
-    if "verify_ctrlram_replace_fixture.py" not in verifier:
-        errors.append(
-            "canonical verifier must include the CtrlRAM Replace fixture gate"
-        )
     release = (ROOT / ".github/workflows/release.yml").read_text(encoding="utf-8")
     required_release_markers = (
         "workflow_dispatch",
@@ -1546,7 +1443,6 @@ def validate() -> list[str]:
     validate_canonical_golden(ROOT, errors)
     validate_diagnostic_golden_separation(ROOT, errors, files)
     validate_standard_merge_release_allowlist(ROOT, errors)
-    validate_ctrlram_replace_golden_fixtures(errors)
     validate_skills(errors)
     validate_refcode(errors)
     validate_version_license_and_sdk(errors)

@@ -26,6 +26,12 @@ LEGACY_GOLDEN_ROOTS = {
     PurePosixPath("testdata/golden/ab-merge"),
     PurePosixPath("testdata/golden/standard-merge-gen-flash"),
 }
+RETIRED_ACTIVE_CTRLRAM_PATHS = {
+    PurePosixPath("testdata/golden/ctrlram-replace/manifest.json"),
+    PurePosixPath("testdata/golden/ctrlram-replace/manifest.template.json"),
+    PurePosixPath("testdata/golden/ctrlram-replace/fixtures/20260705"),
+    PurePosixPath("testdata/golden/ctrlram-replace/fixtures/derived"),
+}
 ALLOWED_WORKFLOWS = {
     "ab-merge",
     "ctrlram-replace",
@@ -41,6 +47,17 @@ IC_PATTERN = re.compile(r"NT519[0-9]{2}\Z")
 SLUG_PATTERN = re.compile(r"[a-z0-9][a-z0-9.-]*\Z")
 TOPOLOGY_PATTERN = re.compile(r"(?:single|cascade-[1-9][0-9]*|topology-unscoped)\Z")
 SHA256_PATTERN = re.compile(r"[0-9a-f]{64}\Z")
+HEX_OFFSET_PATTERN = re.compile(r"0x[0-9A-Fa-f]+\Z")
+TEST_DISPOSITION_KINDS = {
+    "direct-full-output",
+    "allowed-byte-difference",
+    "artifact-integrity-route-blocked",
+    "input-only-evidence",
+    "fact-scoped-alias",
+}
+ALLOWED_DIFFERENCE_RUNNER_TOKEN = (
+    "CanonicalGoldenTestData.AssertAllowedByteDifferences("
+)
 
 
 def _is_link_or_junction(path: Path) -> bool:
@@ -125,6 +142,229 @@ def _required_string(
         errors.append(f"{label} must contain non-empty string {key}")
         return None
     return value
+
+
+def _validate_test_evidence_refs(
+    repository_root: Path,
+    value: object,
+    label: str,
+    errors: list[str],
+) -> None:
+    if (
+        not isinstance(value, list)
+        or not value
+        or not all(isinstance(item, str) and item for item in value)
+    ):
+        errors.append(f"{label} must be a non-empty string array")
+        return
+    if len(set(value)) != len(value):
+        errors.append(f"{label} cannot contain duplicate references")
+    for index, reference in enumerate(value):
+        path_text, separator, symbol = reference.partition("#")
+        reference_label = f"{label}[{index}]"
+        path = _relative_path(path_text, reference_label, errors)
+        if separator != "#" or not symbol:
+            errors.append(f"{reference_label} must use tests/path#test-symbol")
+            continue
+        if path is None:
+            continue
+        if not path.parts or path.parts[0] != "tests" or path.suffix not in {".cs", ".py"}:
+            errors.append(f"{reference_label} must identify a C# or Python test below tests/")
+            continue
+        payload = _read_confined_file(
+            repository_root / Path(path),
+            repository_root,
+            "canonical disposition evidence",
+            errors,
+        )
+        if payload is None:
+            continue
+        try:
+            source = payload.decode("utf-8")
+        except UnicodeDecodeError as error:
+            errors.append(f"cannot decode {reference_label}: {error}")
+            continue
+        if symbol not in source:
+            errors.append(
+                f"{reference_label} test symbol is not present in {path}: {symbol}"
+            )
+
+
+def _validate_allowed_difference_contract(
+    case: dict[str, Any],
+    property_name: object,
+    expected_size: int | None,
+    label: str,
+    errors: list[str],
+) -> None:
+    if not isinstance(property_name, str) or not property_name:
+        errors.append(f"{label}.differenceContractProperty must be a non-empty string")
+        return
+    contract = case.get(property_name)
+    if not isinstance(contract, dict):
+        errors.append(
+            f"{label}.differenceContractProperty must reference a case-local object: "
+            f"{property_name}"
+        )
+        return
+    if contract.get("addressSpaceId") != "output-image":
+        errors.append(
+            f"{label} difference contract must declare addressSpaceId output-image"
+        )
+    ranges = contract.get("allowedDifferenceRanges")
+    if not isinstance(ranges, list) or not ranges:
+        errors.append(f"{label} difference contract must contain allowedDifferenceRanges")
+        return
+    previous_end = -1
+    for index, item in enumerate(ranges):
+        range_label = f"{label} difference ranges[{index}]"
+        if not isinstance(item, dict):
+            errors.append(f"{range_label} must be an object")
+            continue
+        start_text = item.get("start")
+        end_text = item.get("endExclusive")
+        classification = item.get("classification")
+        if not isinstance(classification, str) or not classification:
+            errors.append(f"{range_label} must contain a classification")
+        if not isinstance(start_text, str) or HEX_OFFSET_PATTERN.fullmatch(start_text) is None:
+            errors.append(f"{range_label}.start must be a hexadecimal string")
+            continue
+        if not isinstance(end_text, str) or HEX_OFFSET_PATTERN.fullmatch(end_text) is None:
+            errors.append(f"{range_label}.endExclusive must be a hexadecimal string")
+            continue
+        start = int(start_text, 16)
+        end_exclusive = int(end_text, 16)
+        if start >= end_exclusive:
+            errors.append(f"{range_label} must be a non-empty half-open range")
+        if start < previous_end:
+            errors.append(f"{range_label} must be sorted and non-overlapping")
+        if expected_size is not None and end_exclusive > expected_size:
+            errors.append(
+                f"{range_label} exceeds expected output size {expected_size}"
+            )
+        previous_end = max(previous_end, end_exclusive)
+
+
+def _validate_allowed_difference_runner_refs(
+    repository_root: Path,
+    value: object,
+    label: str,
+    errors: list[str],
+) -> None:
+    if not isinstance(value, list):
+        return
+    for index, reference in enumerate(value):
+        if not isinstance(reference, str):
+            continue
+        path_text, separator, symbol = reference.partition("#")
+        if separator != "#" or not symbol:
+            continue
+        path = PurePosixPath(path_text)
+        if path.is_absolute() or ".." in path.parts:
+            continue
+        payload = _read_confined_file(
+            repository_root / Path(path),
+            repository_root,
+            "canonical allowed-difference runner",
+            errors,
+        )
+        if payload is None:
+            continue
+        try:
+            source = payload.decode("utf-8")
+        except UnicodeDecodeError:
+            continue
+        symbol_start = source.find(symbol)
+        if symbol_start < 0:
+            continue
+        next_test = source.find("\n    /// <summary>", symbol_start + len(symbol))
+        symbol_section = source[
+            symbol_start : next_test if next_test >= 0 else len(source)
+        ]
+        if ALLOWED_DIFFERENCE_RUNNER_TOKEN not in symbol_section:
+            errors.append(
+                f"{label}[{index}] allowed-difference runner must consume the "
+                "case-local typed ranges via "
+                f"{ALLOWED_DIFFERENCE_RUNNER_TOKEN[:-1]}"
+            )
+
+
+def _validate_test_disposition(
+    repository_root: Path,
+    case: dict[str, Any],
+    direct: bool,
+    direct_evidence: bool,
+    roles: list[str],
+    expected_size: int | None,
+    label: str,
+    errors: list[str],
+) -> None:
+    disposition = case.get("testDisposition")
+    if not isinstance(disposition, dict):
+        errors.append(f"{label} must declare exactly one testDisposition object")
+        return
+    kind = disposition.get("kind")
+    if kind not in TEST_DISPOSITION_KINDS:
+        errors.append(f"{label}.testDisposition has unsupported kind: {kind}")
+        return
+    expected_keys = {"kind", "evidenceRefs"}
+    if kind == "allowed-byte-difference":
+        expected_keys.add("differenceContractProperty")
+    elif kind == "artifact-integrity-route-blocked":
+        expected_keys.add("routeBlockingEvidenceRefs")
+    if set(disposition) != expected_keys:
+        errors.append(
+            f"{label}.testDisposition keys must be exactly {sorted(expected_keys)}"
+        )
+    _validate_test_evidence_refs(
+        repository_root,
+        disposition.get("evidenceRefs"),
+        f"{label}.testDisposition.evidenceRefs",
+        errors,
+    )
+
+    expected_count = roles.count("expected")
+    if kind in {
+        "direct-full-output",
+        "allowed-byte-difference",
+        "artifact-integrity-route-blocked",
+    }:
+        if not direct or direct_evidence or expected_count != 1:
+            errors.append(
+                f"{label} {kind} disposition requires directGolden=true and exactly one expected artifact"
+            )
+    elif kind == "input-only-evidence":
+        if direct or not direct_evidence or expected_count != 0:
+            errors.append(
+                f"{label} input-only-evidence disposition requires only directEvidence=true with no expected artifact"
+            )
+    elif kind == "fact-scoped-alias":
+        if direct or direct_evidence or roles:
+            errors.append(
+                f"{label} fact-scoped-alias disposition requires an artifact-free alias case"
+            )
+
+    if kind == "allowed-byte-difference":
+        _validate_allowed_difference_contract(
+            case,
+            disposition.get("differenceContractProperty"),
+            expected_size,
+            f"{label}.testDisposition",
+            errors,
+        )
+        _validate_allowed_difference_runner_refs(
+            repository_root,
+            disposition.get("evidenceRefs"),
+            f"{label}.testDisposition.evidenceRefs",
+            errors,
+        )
+    elif kind == "artifact-integrity-route-blocked":
+        _validate_test_evidence_refs(
+            repository_root,
+            disposition.get("routeBlockingEvidenceRefs"),
+            f"{label}.testDisposition.routeBlockingEvidenceRefs",
+            errors,
+        )
 
 
 def _case_directory(
@@ -249,6 +489,11 @@ def validate_canonical_golden(repository_root: Path, errors: list[str]) -> None:
             errors.append(
                 f"canonical migration legacy root must be removed: {legacy_root}"
             )
+    for retired_path in RETIRED_ACTIVE_CTRLRAM_PATHS:
+        if (repository_root / Path(retired_path)).exists():
+            errors.append(
+                f"retired active CtrlRAM fixture authority must stay absent: {retired_path}"
+            )
 
     canonical_root = repository_root / Path(CANONICAL_ROOT)
     try:
@@ -343,6 +588,8 @@ def validate_canonical_golden(repository_root: Path, errors: list[str]) -> None:
         if direct and direct_evidence:
             errors.append(f"{label} cannot be both a direct golden and direct evidence")
             continue
+        roles: list[str] = []
+        expected_size: int | None = None
         if direct or direct_evidence:
             direct_source_case_ids.add(case_id)
             workflow = case.get("workflow")
@@ -354,7 +601,6 @@ def validate_canonical_golden(repository_root: Path, errors: list[str]) -> None:
                 errors.append(f"{label} {kind} must contain artifacts")
                 continue
             artifact_ids: set[str] = set()
-            roles: list[str] = []
             for artifact_index, artifact in enumerate(artifacts):
                 _validate_artifact(
                     canonical_root,
@@ -366,6 +612,12 @@ def validate_canonical_golden(repository_root: Path, errors: list[str]) -> None:
                     roles,
                     errors,
                 )
+                if (
+                    isinstance(artifact, dict)
+                    and artifact.get("role") == "expected"
+                    and type(artifact.get("size")) is int
+                ):
+                    expected_size = artifact["size"]
             if direct and "input" not in roles:
                 errors.append(f"{label} direct golden requires input artifacts")
             if direct and roles.count("expected") != 1:
@@ -412,6 +664,17 @@ def validate_canonical_golden(repository_root: Path, errors: list[str]) -> None:
                 workflow = case.get("workflow")
                 if isinstance(workflow, str):
                     alias_sources.append((case_id, workflow, source_case_id))
+
+        _validate_test_disposition(
+            repository_root,
+            case,
+            direct,
+            direct_evidence,
+            roles,
+            expected_size,
+            label,
+            errors,
+        )
 
     for alias_case_id, alias_workflow, source_case_id in alias_sources:
         if source_case_id not in direct_source_case_ids:

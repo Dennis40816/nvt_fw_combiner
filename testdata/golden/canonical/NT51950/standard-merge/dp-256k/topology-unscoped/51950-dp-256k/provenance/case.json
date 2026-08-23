@@ -6,6 +6,12 @@
   "variantOrVersion": "dp-256k",
   "topology": "topology-unscoped",
   "directGolden": true,
+  "testDisposition": {
+    "kind": "direct-full-output",
+    "evidenceRefs": [
+      "tests/NvtFwCombiner.GoldenRegression.Tests/StandardMergeWorkbenchGoldenTests.cs#WorkbenchBuildStandardMergeMatchesGoldenBytes"
+    ]
+  },
   "sourceClassification": "private-owner-approved-golden",
   "ownerApproval": "Repository owner supplied merge_bin.7z for remaining Standard Merge golden fixtures on 2026-07-03.",
   "profileId": "nt51950-standard-merge-dp-perspective",

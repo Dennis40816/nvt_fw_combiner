@@ -75,6 +75,9 @@ public sealed class Nt51926CtrlRamFw141SingleRouteTests
             .. Enumerable.Range(0, expected.Length).Where(index => expected[index] != actual[index]),
         ];
         Assert.Equal("30de4735472950e3e7b22e941cc0ae080f393b2b6e601e82b7b1b767b7c56e7a", Hash(actual));
+        CanonicalGoldenDifferenceResult manifestDifferences =
+            CanonicalGoldenTestData.AssertAllowedByteDifferences(evidence, expected, actual);
+        Assert.Equal(16, manifestDifferences.DifferenceCount);
         Assert.Equal(
             [
                 0x1C, 0x1D, 0x1E, 0x1F,

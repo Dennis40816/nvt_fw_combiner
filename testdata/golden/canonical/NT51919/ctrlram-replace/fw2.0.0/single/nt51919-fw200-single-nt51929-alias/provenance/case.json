@@ -6,6 +6,12 @@
   "variantOrVersion": "fw2.0.0",
   "topology": "single",
   "directGolden": false,
+  "testDisposition": {
+    "kind": "fact-scoped-alias",
+    "evidenceRefs": [
+      "tests/scripts/test_ctrlram_canonical_20260705.py#test_aliases_are_same_workflow_fact_records_without_payloads"
+    ]
+  },
   "sourceClassification": "owner-approved-fact-scoped-alias",
   "ownerApproval": "Firmware owner confirmed NT51919, NT51929, and NT51932 are one family for the recorded exact fact scope.",
   "alias": {

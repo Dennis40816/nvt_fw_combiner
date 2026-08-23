@@ -54,6 +54,13 @@ public sealed class Nt51929AndesNormalCtrlRamGoldenTests
         Assert.True(result.Succeeded, CompositionRunReportJson.Serialize(result));
         byte[] output = File.ReadAllBytes(outputPath);
         Assert.Equal(OutputSha256, Hash(output));
+        JsonElement goldenCase = CanonicalGoldenTestData.LoadDirectCase("ctrlram-replace", CaseId);
+        CanonicalGoldenDifferenceResult manifestDifferences =
+            CanonicalGoldenTestData.AssertAllowedByteDifferences(
+                goldenCase,
+                ownerCase.Expected.Bytes,
+                output);
+        Assert.Equal(16, manifestDifferences.DifferenceCount);
         AssertCrcOnlyDifference(ownerCase.Expected.Bytes, output);
 
         using var report = JsonDocument.Parse(CompositionRunReportJson.Serialize(result));

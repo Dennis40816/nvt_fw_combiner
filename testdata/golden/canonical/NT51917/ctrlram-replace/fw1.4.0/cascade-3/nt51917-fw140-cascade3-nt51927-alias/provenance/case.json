@@ -6,6 +6,12 @@
   "variantOrVersion": "fw1.4.0",
   "topology": "cascade-3",
   "directGolden": false,
+  "testDisposition": {
+    "kind": "fact-scoped-alias",
+    "evidenceRefs": [
+      "tests/scripts/test_ctrlram_canonical_20260705.py#test_aliases_are_same_workflow_fact_records_without_payloads"
+    ]
+  },
   "sourceClassification": "owner-approved-fact-scoped-alias",
   "ownerApproval": "Firmware owner confirmed NT51917 follows the NT51927 perfect-family CtrlRAM facts for the exact single, two-chip, and three-chip routes.",
   "alias": {

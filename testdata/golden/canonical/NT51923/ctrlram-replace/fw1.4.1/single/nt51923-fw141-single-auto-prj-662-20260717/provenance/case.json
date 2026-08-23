@@ -6,6 +6,13 @@
   "variantOrVersion": "fw1.4.1",
   "topology": "single",
   "directGolden": true,
+  "testDisposition": {
+    "kind": "allowed-byte-difference",
+    "evidenceRefs": [
+      "tests/NvtFwCombiner.Bootstrap.Tests/Nt51923CtrlRamFw141EvidenceTests.cs#ExactOwnerCasesRunThroughV2WithLockedProcessEvidenceAsync"
+    ],
+    "differenceContractProperty": "phaseBResult"
+  },
   "sourceClassification": "private-owner-approved-golden",
   "ownerApproval": "Repository owner explicitly approved committing all supplied golden sample payloads to public Git on 2026-07-17. Technical project/AUTO_PRJ data is retained; personal data is excluded.",
   "project": "AUTO_PRJ-662",
@@ -137,6 +144,7 @@
   },
   "pid": "0x6005",
   "phaseBResult": {
+    "addressSpaceId": "output-image",
     "caseId": "nt51923-fw141-single-auto-prj-662-20260717",
     "ic": "NT51923",
     "workflow": "ctrlram-replace",

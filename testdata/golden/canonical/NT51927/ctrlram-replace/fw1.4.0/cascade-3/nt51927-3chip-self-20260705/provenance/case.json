@@ -6,6 +6,12 @@
   "variantOrVersion": "fw1.4.0",
   "topology": "cascade-3",
   "directGolden": false,
+  "testDisposition": {
+    "kind": "input-only-evidence",
+    "evidenceRefs": [
+      "tests/scripts/test_ctrlram_canonical_20260705.py#test_two_nt51927_cases_are_input_only_direct_evidence"
+    ]
+  },
   "directEvidence": true,
   "sourceClassification": "owner-approved-golden-firmware",
   "ownerApproval": "Repository owner explicitly approved committing this golden firmware fixture to Git on 2026-07-05.",

@@ -11,8 +11,6 @@ public sealed partial class CtrlRamExternalGoldenTests
     [Fact]
     public async Task CtrlRamReplacePreviewReportsPostbuildCommandTrace()
     {
-        using var fixtures = CtrlRamReplaceFixtureManifest.LoadIfPresent();
-        Assert.NotNull(fixtures);
         JsonElement fixtureCase = CanonicalGoldenTestData.LoadDirectEvidenceCase(
             "ctrlram-replace",
             "nt51927-2chip-self-20260705");
@@ -26,12 +24,12 @@ public sealed partial class CtrlRamExternalGoldenTests
         Assert.True(regionSlot.IsOptional);
         Assert.Contains("CtrlRAM", regionSlot.Title, StringComparison.Ordinal);
 
-        fixtures.SetBaseSlot(viewModel, fixtureCase);
+        CanonicalCtrlRamTestData.SetBaseSlot(viewModel, fixtureCase);
         await CurrentInspection(viewModel).ActiveTask;
         Assert.Equal(
             WorkflowInspectionAttemptState.Succeeded,
             viewModel.Replace.Inspection.State);
-        viewModel.SetSlotFile(regionSlot.SlotId, fixtures.ReplacementPathFor(fixtureCase, regionSlot.SlotId));
+        viewModel.SetSlotFile(regionSlot.SlotId, CanonicalCtrlRamTestData.ReplacementPathFor(fixtureCase, regionSlot.SlotId));
         AssertInspectionTerminal(viewModel.Replace.Inspection);
 
         Assert.True(viewModel.Replace.PreviewReplaceCommand.CanExecute(null));
@@ -57,8 +55,6 @@ public sealed partial class CtrlRamExternalGoldenTests
     [Fact]
     public async Task CtrlRamReplacePreviewReportsMultipleSelectedRegions()
     {
-        using var fixtures = CtrlRamReplaceFixtureManifest.LoadIfPresent();
-        Assert.NotNull(fixtures);
         JsonElement fixtureCase = CanonicalGoldenTestData.LoadDirectEvidenceCase(
             "ctrlram-replace",
             "nt51927-3chip-self-20260705");
@@ -67,7 +63,7 @@ public sealed partial class CtrlRamExternalGoldenTests
         viewModel.WorkflowSession.SelectedNumber = "3";
         OpenReplace(viewModel, Domain.Composition.ExperienceIds.CtrlRamReplace);
 
-        fixtures.SetBaseSlot(viewModel, fixtureCase);
+        CanonicalCtrlRamTestData.SetBaseSlot(viewModel, fixtureCase);
 
         // The verified FWConfig may choose the base image's branch. This fixture deliberately
         // exercises the owner-selected three-chip branch afterwards.
@@ -75,8 +71,8 @@ public sealed partial class CtrlRamExternalGoldenTests
         await CurrentInspection(viewModel).ActiveTask;
         FirmwareSlotViewModel normalRight = viewModel.Replace.ReplaceSlots.Single(slot => slot.Title == "Normal CtrlRAM (Slave R)");
         FirmwareSlotViewModel vn = viewModel.Replace.ReplaceSlots.Single(slot => slot.Title == "VN CtrlRAM (Shared)");
-        viewModel.SetSlotFile(normalRight.SlotId, fixtures.ReplacementPathFor(fixtureCase, normalRight.SlotId));
-        viewModel.SetSlotFile(vn.SlotId, fixtures.ReplacementPathFor(fixtureCase, vn.SlotId));
+        viewModel.SetSlotFile(normalRight.SlotId, CanonicalCtrlRamTestData.ReplacementPathFor(fixtureCase, normalRight.SlotId));
+        viewModel.SetSlotFile(vn.SlotId, CanonicalCtrlRamTestData.ReplacementPathFor(fixtureCase, vn.SlotId));
 
         Assert.Equal("2 / 8 targets selected", viewModel.Replace.ReplaceSelectionCountLabel);
         Assert.Contains(viewModel.Replace.ReplaceSelectionRows, row => row.Title == "Normal CtrlRAM (Slave R)");
@@ -104,8 +100,6 @@ public sealed partial class CtrlRamExternalGoldenTests
     [Fact]
     public async Task CtrlRamReplacePreviewAcceptsGoldenBackedVnSelfReplacement()
     {
-        using var fixtures = CtrlRamReplaceFixtureManifest.LoadIfPresent();
-        Assert.NotNull(fixtures);
         JsonElement fixtureCase = CanonicalGoldenTestData.LoadDirectEvidenceCase(
             "ctrlram-replace",
             "nt51927-3chip-self-20260705");
@@ -114,14 +108,14 @@ public sealed partial class CtrlRamExternalGoldenTests
         viewModel.WorkflowSession.SelectedNumber = "3";
         OpenReplace(viewModel, Domain.Composition.ExperienceIds.CtrlRamReplace);
 
-        fixtures.SetBaseSlot(viewModel, fixtureCase);
+        CanonicalCtrlRamTestData.SetBaseSlot(viewModel, fixtureCase);
         viewModel.WorkflowSession.SelectedNumber = "3";
         await CurrentInspection(viewModel).ActiveTask;
         FirmwareSlotViewModel vn = viewModel.Replace.ReplaceSlots.Single(slot => slot.Title == "VN CtrlRAM (Shared)");
         Assert.Contains("VN_Ctrlram.bin", vn.Description, StringComparison.Ordinal);
         Assert.Contains("VN CtrlRAM (Master): max 5728 B", vn.Description, StringComparison.Ordinal);
         Assert.Contains("VN CtrlRAM (Slave L): max 5728 B", vn.Description, StringComparison.Ordinal);
-        viewModel.SetSlotFile(vn.SlotId, fixtures.ReplacementPathFor(fixtureCase, vn.SlotId));
+        viewModel.SetSlotFile(vn.SlotId, CanonicalCtrlRamTestData.ReplacementPathFor(fixtureCase, vn.SlotId));
 
         Assert.True(viewModel.Replace.PreviewReplaceCommand.CanExecute(null));
 
@@ -149,8 +143,6 @@ public sealed partial class CtrlRamExternalGoldenTests
     [Fact]
     public async Task CtrlRamReplacePreviewSelfReplacementRunsPostbuild()
     {
-        using var fixtures = CtrlRamReplaceFixtureManifest.LoadIfPresent();
-        Assert.NotNull(fixtures);
         JsonElement fixtureCase = CanonicalGoldenTestData.LoadDirectEvidenceCase(
             "ctrlram-replace",
             "nt51927-3chip-self-20260705");
@@ -159,11 +151,11 @@ public sealed partial class CtrlRamExternalGoldenTests
         viewModel.WorkflowSession.SelectedNumber = "3";
         OpenReplace(viewModel, Domain.Composition.ExperienceIds.CtrlRamReplace);
 
-        fixtures.SetBaseSlot(viewModel, fixtureCase);
+        CanonicalCtrlRamTestData.SetBaseSlot(viewModel, fixtureCase);
         viewModel.WorkflowSession.SelectedNumber = "3";
         await CurrentInspection(viewModel).ActiveTask;
         FirmwareSlotViewModel vnSlot = viewModel.Replace.ReplaceSlots.Single(slot => slot.Title == "VN CtrlRAM (Shared)");
-        viewModel.SetSlotFile(vnSlot.SlotId, fixtures.ReplacementPathFor(fixtureCase, vnSlot.SlotId));
+        viewModel.SetSlotFile(vnSlot.SlotId, CanonicalCtrlRamTestData.ReplacementPathFor(fixtureCase, vnSlot.SlotId));
 
         Assert.True(viewModel.Replace.PreviewReplaceCommand.CanExecute(null));
 

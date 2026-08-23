@@ -1,60 +1,19 @@
-# CtrlRAM Replace Fixture Handoff
+# CtrlRAM Legacy Diagnostic Quarantine
 
-This directory is reserved for owner-provided CtrlRAM Replace evidence.
+This directory is not an executable golden source. All active CtrlRAM direct,
+input-only, alias, and supporting derived regression evidence is owned by
+`../canonical/` and validated by `scripts/canonical_golden_validation.py`.
 
-Owner-approved committed fixtures live under `fixtures/` until their migration
-slice closes. `manifest.json` now retains only the NT51926 direct/derived
-controls; the two NT51927 2026-07-05 direct-input cases, seven direct 2026-07-17
-cases, and all final 2026-07-18 direct cases live under `../canonical/`. The
-canonical verifier checks every inventory, size, SHA-256 value, direct-evidence
-and alias relationship without promoting runtime support. `manifest.20260717.json`
-is now the hash-pinned legacy quarantine inventory for the remaining diagnostic
-and cross-workflow duplicate artifacts. The authoritative diagnostic
-classification lives at `../../diagnostics/golden-evidence/manifest.json`;
-physical payload relocation is frozen and these files are not canonical expected
-evidence or release inputs.
+The only retained payload tree is `fixtures/20260717`, indexed by
+`manifest.20260717.json`. It contains diagnostic and cross-workflow duplicate
+artifacts whose physical relocation is frozen. Its authoritative classification
+lives in `../../diagnostics/golden-evidence/manifest.json`; canonical test
+runners and release packaging must not consume it as expected evidence.
 
-Do not commit new private firmware BIN files by default. Put unapproved
-local/private payloads under `private/`, update `private/manifest.json` from
-`manifest.template.json`, and only promote them to `fixtures/` after explicit
-owner approval.
-
-Run:
-
-```text
-python scripts/verify_ctrlram_replace_fixture.py --require-fixture
-```
-
-Current behavior:
-
-- The verifier always can run public CtrlRAM Preview/Build smoke using self-replacement inputs sliced from existing approved Standard Merge golden data.
-- When schema `0.2` `manifest.json` exists, the verifier checks manifest metadata, sizes, SHA-256, and base-image FWConfig Common FW version for the base firmware, replacement CtrlRAM BINs, and expected output if provided.
-- The final owner intake is complete. Remaining full-byte comparison, command
-  reconstruction, route convergence, and independent review are repository-owned
-  gates; no additional owner input is required.
-- The 2026-07-17 snapshot contains owner-approved public golden payloads and
-  preserves technical project and `AUTO_PRJ` filenames. It is evidence intake,
-  not a runtime-support promotion.
-- The official owner system may provide only the final expected firmware and physical CtrlRAM inputs. Do not ask the owner to fabricate or rename that final output as `base.bin`. Expected-only intake may use the documented expected-derived sentinel audit, but it is range/processor evidence rather than independent base-backed parity and cannot promote support by itself.
-- The retained canonical 2026-07-18 final intake records exact NT51926,
-  NT51932, and NT51951 cases. Most provide Standard Merge DP/TP inputs rather
-  than a pre-Replace FlashCode. Each canonical case keeps those base kinds
-  distinct and lists every unresolved tool/provenance gate.
-- The owner-authorized NT51926 TP-base self-test case lives under `fixtures/derived/20260717`; it archives the same-byte TP golden input and real-workflow output, plus exact half-open integrity ranges and the two-command Combiner 1.13.0 trace. Git deduplicates the copied TP input blob and keeps it distinct from the HackMD intake inventory.
-- Full-byte comparison and independent R3 review remain pending for the other
-  cases before broader parity can be claimed.
-- The TP-base case now establishes full-output V2-candidate parity with its archived Legacy Combiner 1.13.0 result for NT51926 Common FW 1.4.1 cascade. The owner intake also establishes V1/V2 parity for the exact full-Flash self-replacement shape and byte-for-byte tail preservation. It does not establish all-IC parity, an independent pre-replacement product base, or runtime promotion.
-
-Required evidence fields for any future case:
-
-- IC and IC number mode, for example `NT51927` / `3`.
-- Common FW version decoded from the available official firmware and the postbuild category used for the run.
-- Each physical replacement CtrlRAM slot id, display name, BIN hash, and size;
-  a Postbuild file reused at several logical destinations is listed once.
-- Base firmware BIN hash and size when a genuine pre-replacement base exists.
-- Expected final output hash and size for the staged Combiner postbuild result.
-- Source classification, provenance, and owner approval note.
-
-Schema `0.2` remains the stronger base-backed private-fixture format. When no
-pre-replacement base exists, use the separately reviewed expected-only intake
-contract. Do not put the expected firmware into the schema `0.2` `base` field.
+The former active `manifest.json`, manifest template, `fixtures/20260705`, and
+`fixtures/derived` authorities are retired and must stay absent. Canonical case
+metadata preserves applicable pre-migration artifact paths in `legacyPaths`
+and legacy manifest provenance in `legacyManifest`; this is not a claim that
+every retired path has a one-for-one canonical artifact entry.
+Unapproved local payloads remain ignored under `private/` and must never be
+promoted without the repository golden policy and explicit owner approval.

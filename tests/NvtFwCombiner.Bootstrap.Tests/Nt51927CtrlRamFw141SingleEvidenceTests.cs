@@ -87,6 +87,15 @@ public sealed class Nt51927CtrlRamFw141SingleEvidenceTests
         byte[] v2Bytes = File.ReadAllBytes(v2OutputPath);
         const string outputSha256 = "fdb8fef05bdb375e175091eb75d555c2b1c5ddb216a2815f02e25c6533020ab9";
         Assert.Equal(outputSha256, Hash(v2Bytes));
+        JsonElement goldenCase = CanonicalGoldenTestData.LoadDirectCase(
+            "ctrlram-replace",
+            "nt51927-fw141-single-auto-prj-529-20260717");
+        CanonicalGoldenDifferenceResult manifestDifferences =
+            CanonicalGoldenTestData.AssertAllowedByteDifferences(
+                goldenCase,
+                ownerCase.Expected.Bytes,
+                v2Bytes);
+        Assert.Equal(24, manifestDifferences.DifferenceCount);
         AssertOwnerCrcOnlyDifference(ownerCase.Expected.Bytes, v2Bytes);
 
         using var v2Report = JsonDocument.Parse(CompositionRunReportJson.Serialize(v2));

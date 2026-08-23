@@ -6,6 +6,12 @@
   "variantOrVersion": "fw1.3.2-non-nb",
   "topology": "cascade-2",
   "directGolden": false,
+  "testDisposition": {
+    "kind": "fact-scoped-alias",
+    "evidenceRefs": [
+      "tests/scripts/test_ctrlram_canonical_20260705.py#test_aliases_are_same_workflow_fact_records_without_payloads"
+    ]
+  },
   "sourceClassification": "owner-approved-fact-scoped-alias",
   "ownerApproval": "Firmware owner confirmed NT51928 non-NB follows the NT51927 CtrlRAM postbuild family; NT51928 NB is explicitly excluded.",
   "alias": {

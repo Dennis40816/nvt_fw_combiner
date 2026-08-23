@@ -34,6 +34,11 @@ class CanonicalGoldenValidationTests(unittest.TestCase):
         self.temporary_directory = tempfile.TemporaryDirectory()
         self.root = Path(self.temporary_directory.name)
         self.canonical = self.root / "testdata/golden/canonical"
+        self.disposition_test = self.root / "tests/golden_runner.py"
+        self.disposition_test.parent.mkdir(parents=True)
+        self.disposition_test.write_text(
+            "def direct_full_output():\n    pass\n", encoding="utf-8"
+        )
         self.case_directory = self.canonical / (
             "NT51927/standard-merge/gen-flash/topology-unscoped/"
             "nt51927-standard-merge-gen-flash"
@@ -63,6 +68,12 @@ class CanonicalGoldenValidationTests(unittest.TestCase):
             "variantOrVersion": "gen-flash",
             "topology": "topology-unscoped",
             "directGolden": True,
+            "testDisposition": {
+                "kind": "direct-full-output",
+                "evidenceRefs": [
+                    "tests/golden_runner.py#direct_full_output"
+                ],
+            },
             "sourceClassification": "owner-approved",
             "ownerApproval": "test fixture",
             "artifacts": [
@@ -165,6 +176,10 @@ class CanonicalGoldenValidationTests(unittest.TestCase):
         self.case_manifest["directGolden"] = False
         self.case_manifest["directEvidence"] = True
         self.case_manifest["artifacts"] = [self.case_manifest["artifacts"][0]]
+        self.case_manifest["testDisposition"] = {
+            "kind": "input-only-evidence",
+            "evidenceRefs": ["tests/golden_runner.py#direct_full_output"],
+        }
         self.rewrite_case()
 
     def add_alias(
@@ -193,6 +208,10 @@ class CanonicalGoldenValidationTests(unittest.TestCase):
                 "variantOrVersion": "gen-flash",
                 "topology": "topology-unscoped",
                 "directGolden": False,
+                "testDisposition": {
+                    "kind": "fact-scoped-alias",
+                    "evidenceRefs": ["tests/golden_runner.py#direct_full_output"],
+                },
                 "sourceClassification": "owner-approved-fact-alias",
                 "ownerApproval": "test fixture",
                 "alias": {
@@ -511,6 +530,91 @@ class CanonicalGoldenValidationTests(unittest.TestCase):
         errors = self.validate()
 
         self.assertTrue(any("must be a boolean" in error for error in errors))
+
+    def test_rejects_case_without_test_disposition(self) -> None:
+        del self.case_manifest["testDisposition"]
+        self.rewrite_case()
+
+        errors = self.validate()
+
+        self.assertTrue(
+            any("must declare exactly one testDisposition" in error for error in errors)
+        )
+
+    def test_rejects_unknown_test_disposition_kind(self) -> None:
+        self.case_manifest["testDisposition"]["kind"] = "runner-decides"
+        self.rewrite_case()
+
+        errors = self.validate()
+
+        self.assertTrue(any("unsupported kind" in error for error in errors))
+
+    def test_rejects_overlapping_allowed_difference_ranges(self) -> None:
+        self.case_manifest["allowedByteDifferenceContract"] = {
+            "addressSpaceId": "output-image",
+            "allowedDifferenceRanges": [
+                {"start": "0x0", "endExclusive": "0x2", "classification": "first"},
+                {"start": "0x1", "endExclusive": "0x3", "classification": "overlap"},
+            ],
+        }
+        self.case_manifest["testDisposition"] = {
+            "kind": "allowed-byte-difference",
+            "evidenceRefs": ["tests/golden_runner.py#direct_full_output"],
+            "differenceContractProperty": "allowedByteDifferenceContract",
+        }
+        self.rewrite_case()
+
+        errors = self.validate()
+
+        self.assertTrue(any("sorted and non-overlapping" in error for error in errors))
+
+    def test_rejects_allowed_difference_runner_that_does_not_consume_manifest_ranges(
+        self,
+    ) -> None:
+        self.case_manifest["allowedByteDifferenceContract"] = {
+            "addressSpaceId": "output-image",
+            "allowedDifferenceRanges": [
+                {"start": "0x0", "endExclusive": "0x1", "classification": "crc"},
+            ],
+        }
+        self.case_manifest["testDisposition"] = {
+            "kind": "allowed-byte-difference",
+            "evidenceRefs": ["tests/golden_runner.py#direct_full_output"],
+            "differenceContractProperty": "allowedByteDifferenceContract",
+        }
+        self.rewrite_case()
+
+        errors = self.validate()
+
+        self.assertTrue(
+            any("must consume the case-local typed ranges" in error for error in errors)
+        )
+
+    def test_rejects_test_evidence_outside_tests_tree(self) -> None:
+        self.case_manifest["testDisposition"]["evidenceRefs"] = [
+            "scripts/golden_runner.py#direct_full_output"
+        ]
+        self.rewrite_case()
+
+        errors = self.validate()
+
+        self.assertTrue(any("below tests/" in error for error in errors))
+
+    def test_rejects_retired_active_ctrlram_fixture_authority(self) -> None:
+        retired_manifest = (
+            self.root / "testdata/golden/ctrlram-replace/manifest.json"
+        )
+        retired_manifest.parent.mkdir(parents=True)
+        retired_manifest.write_text("{}\n", encoding="utf-8")
+
+        errors = self.validate()
+
+        self.assertTrue(
+            any(
+                "retired active CtrlRAM fixture authority must stay absent" in error
+                for error in errors
+            )
+        )
 
     def test_rejects_diagnostic_path_as_canonical_artifact(self) -> None:
         self.case_manifest["artifacts"][0]["path"] = (

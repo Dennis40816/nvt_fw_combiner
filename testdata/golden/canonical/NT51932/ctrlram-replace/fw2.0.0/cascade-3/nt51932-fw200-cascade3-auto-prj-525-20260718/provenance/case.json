@@ -6,6 +6,13 @@
   "variantOrVersion": "fw2.0.0",
   "topology": "cascade-3",
   "directGolden": true,
+  "testDisposition": {
+    "kind": "allowed-byte-difference",
+    "evidenceRefs": [
+      "tests/NvtFwCombiner.Bootstrap.Tests/Nt51932CtrlRamFw200EvidenceTests.cs#V2ProducesLockedExactOutputWithCrcOnlyOwnerDeviationAsync"
+    ],
+    "differenceContractProperty": "phaseBResult"
+  },
   "sourceClassification": "private-owner-approved-golden",
   "ownerApproval": "Repository owner explicitly approved committing all golden payloads to Git on 2026-07-18. Technical project and AUTO_PRJ data is retained; personal data, placeholders, PDBs, and unapproved executable copies are excluded.",
   "project": "AUTO_PRJ-525",
@@ -296,6 +303,7 @@
   ],
   "phaseBResult": {
     "status": "v1-v2-parity-routed-owner-crc-delta-classified",
+    "addressSpaceId": "output-image",
     "routeProfileId": "nt51932-ctrlram-replace-fw200-cascade3",
     "routeProfileVersion": "0.1.0",
     "ownerExpectedSha256": "3eb556e0a9323dd4fbe4c703be1eb33679df2b1ba839e79ddd7bbffa235008fd",

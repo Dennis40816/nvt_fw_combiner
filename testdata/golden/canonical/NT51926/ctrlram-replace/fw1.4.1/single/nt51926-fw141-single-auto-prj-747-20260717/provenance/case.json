@@ -6,6 +6,13 @@
   "variantOrVersion": "fw1.4.1",
   "topology": "single",
   "directGolden": true,
+  "testDisposition": {
+    "kind": "allowed-byte-difference",
+    "evidenceRefs": [
+      "tests/NvtFwCombiner.Bootstrap.Tests/Nt51926CtrlRamFw141SingleRouteTests.cs#RoutedFw141SingleDiffersFromOwnerGoldenOnlyAtApprovedCrcWordsAsync"
+    ],
+    "differenceContractProperty": "allowedByteDifferenceContract"
+  },
   "sourceClassification": "private-owner-approved-golden",
   "ownerApproval": "Repository owner explicitly approved committing all supplied golden sample payloads to public Git on 2026-07-17. Technical project/AUTO_PRJ data is retained; personal data is excluded.",
   "project": "AUTO_PRJ-747",
@@ -124,5 +131,30 @@
     "releaseRedistributionApproved": false
   },
   "pid": "0x136E",
-  "evidenceStatus": "direct-owner-golden-without-standalone-phase-b-result"
+  "evidenceStatus": "direct-owner-golden-without-standalone-phase-b-result",
+  "allowedByteDifferenceContract": {
+    "addressSpaceId": "output-image",
+    "allowedDifferenceRanges": [
+      {
+        "start": "0x1C",
+        "endExclusive": "0x20",
+        "classification": "header-crc-word"
+      },
+      {
+        "start": "0xFC",
+        "endExclusive": "0x100",
+        "classification": "header-copy-crc-word"
+      },
+      {
+        "start": "0x32F6C",
+        "endExclusive": "0x32F70",
+        "classification": "copied-header-crc-word"
+      },
+      {
+        "start": "0x3304C",
+        "endExclusive": "0x33050",
+        "classification": "copied-header-copy-crc-word"
+      }
+    ]
+  }
 }

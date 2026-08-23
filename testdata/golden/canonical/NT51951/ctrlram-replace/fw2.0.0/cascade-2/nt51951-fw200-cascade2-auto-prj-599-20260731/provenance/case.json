@@ -6,6 +6,13 @@
   "variantOrVersion": "fw2.0.0",
   "topology": "cascade-2",
   "directGolden": true,
+  "testDisposition": {
+    "kind": "allowed-byte-difference",
+    "evidenceRefs": [
+      "tests/NvtFwCombiner.Bootstrap.Tests/Nt51950Nt51951DiffDlmMaskCascade2GoldenTests.cs#RegisteredCombinerDiffersOnlyInApprovedCrcWordsAsync"
+    ],
+    "differenceContractProperty": "allowedByteDifferenceContract"
+  },
   "sourceClassification": "private-owner-approved-golden",
   "ownerApproval": "Repository owner supplied the HackMD transfer as the 950 Cascade expected case, approved repository reference intake, and approved golden-only inactive-record uniformity on 2026-07-31.",
   "icCount": 2,
@@ -16,8 +23,14 @@
     "kind": "standard-merge-overlay",
     "initializerArtifactId": "initial-code-input",
     "overlayArtifactId": "tp-firmware-input",
-    "sourceRange": { "start": "0x0A000", "endExclusive": "0x37000" },
-    "targetRange": { "start": "0x0A000", "endExclusive": "0x37000" },
+    "sourceRange": {
+      "start": "0x0A000",
+      "endExclusive": "0x37000"
+    },
+    "targetRange": {
+      "start": "0x0A000",
+      "endExclusive": "0x37000"
+    },
     "resultSha256": "ff9ad012454cab3d9d76d7270dfde7b402d23c2d0376ba6776cd1a242144aa32",
     "observation": "The reconstructed immutable CtrlRAM Replace base is byte-identical to the owner expected output before this no-op replacement case."
   },
@@ -25,8 +38,14 @@
     "sourceRecordStride": "0x1400",
     "targetRecordStart": "0x33200",
     "targetRecordStride": "0x1400",
-    "writableDlmRange": { "start": "0x0000", "endExclusive": "0x0910" },
-    "referencePreservedDiffNfRange": { "start": "0x0910", "endExclusive": "0x1400" },
+    "writableDlmRange": {
+      "start": "0x0000",
+      "endExclusive": "0x0910"
+    },
+    "referencePreservedDiffNfRange": {
+      "start": "0x0910",
+      "endExclusive": "0x1400"
+    },
     "activeSlaveRecords": 1,
     "fixedFirmwareConfigPrimaryStart": "0x22200",
     "fixedFirmwareConfigBackupStart": "0x36000",
@@ -36,7 +55,11 @@
       "fixtureQualityRule": "Each later record must independently contain only 0x00 or only 0xFF.",
       "productionRule": "No byte-content uniformity check; exact IC Count prevents inactive records from receiving read or write authority.",
       "observedRecords": [
-        { "recordIndex": 1, "fill": "0xFF", "sha256": "dec46103d51c7f72655de13d150415c284d97003363a65ddb2b126319fc105ba" }
+        {
+          "recordIndex": 1,
+          "fill": "0xFF",
+          "sha256": "dec46103d51c7f72655de13d150415c284d97003363a65ddb2b126319fc105ba"
+        }
       ]
     }
   },
@@ -55,7 +78,9 @@
       "path": "NT51951/ctrlram-replace/fw2.0.0/cascade-2/nt51951-fw200-cascade2-auto-prj-599-20260731/inputs/initial-code/NT51951TT_Initial Code_TM_TE291XVKS02_Platform _D05_20260508.bin",
       "size": 524288,
       "sha256": "3fdcc5d7380d3b3dcbddd47d000e4bdafc1462497c3f49267fa1228590d35c40",
-      "legacyPaths": [ "testdata/golden/ctrlram-replace/fixtures/20260731/51950_Cascade_AUTO_PRJ-599/Initial Code/NT51951TT_Initial Code_TM_TE291XVKS02_Platform _D05_20260508.bin" ],
+      "legacyPaths": [
+        "testdata/golden/ctrlram-replace/fixtures/20260731/51950_Cascade_AUTO_PRJ-599/Initial Code/NT51951TT_Initial Code_TM_TE291XVKS02_Platform _D05_20260508.bin"
+      ],
       "originalFileName": "NT51951TT_Initial Code_TM_TE291XVKS02_Platform _D05_20260508.bin",
       "sourceRole": "standard-merge-initializer-and-ctrlram-reference-recipe"
     },
@@ -65,7 +90,9 @@
       "path": "NT51951/ctrlram-replace/fw2.0.0/cascade-2/nt51951-fw200-cascade2-auto-prj-599-20260731/inputs/tp-fw/NT51951_FW_TM2910_6080x1680_V81_20260408.bin",
       "size": 225280,
       "sha256": "1397cfed395d937826d6e6378b030c80f7a0d6322102d028b1907e66d5a4a31a",
-      "legacyPaths": [ "testdata/golden/ctrlram-replace/fixtures/20260731/51950_Cascade_AUTO_PRJ-599/TP Firmware/NT51951_FW_TM2910_6080x1680_V81_20260408.bin" ],
+      "legacyPaths": [
+        "testdata/golden/ctrlram-replace/fixtures/20260731/51950_Cascade_AUTO_PRJ-599/TP Firmware/NT51951_FW_TM2910_6080x1680_V81_20260408.bin"
+      ],
       "originalFileName": "NT51951_FW_TM2910_6080x1680_V81_20260408.bin",
       "sourceRole": "standard-merge-tp-overlay-and-ctrlram-reference-recipe"
     },
@@ -75,7 +102,9 @@
       "path": "NT51951/ctrlram-replace/fw2.0.0/cascade-2/nt51951-fw200-cascade2-auto-prj-599-20260731/inputs/postbuild/nt51951-normal-ctrlram-input.bin",
       "size": 655360,
       "sha256": "e7dbfeb2f34c2dbb4f4e9531f3858b15f673b179b4118ad5f564f28976cf7129",
-      "legacyPaths": [ "testdata/golden/ctrlram-replace/fixtures/20260731/51950_Cascade_AUTO_PRJ-599/Normal_Ctrlram.bin" ],
+      "legacyPaths": [
+        "testdata/golden/ctrlram-replace/fixtures/20260731/51950_Cascade_AUTO_PRJ-599/Normal_Ctrlram.bin"
+      ],
       "originalFileName": "Normal_Ctrlram.bin",
       "sourceRole": "ctrlram-postbuild-input"
     },
@@ -85,7 +114,9 @@
       "path": "NT51951/ctrlram-replace/fw2.0.0/cascade-2/nt51951-fw200-cascade2-auto-prj-599-20260731/inputs/postbuild/nt51951-vn-ctrlram-input.bin",
       "size": 4120,
       "sha256": "066815c150f47318ba255cf5d84b7b2116267b5adc6bbcf771a7c50f78bc289b",
-      "legacyPaths": [ "testdata/golden/ctrlram-replace/fixtures/20260731/51950_Cascade_AUTO_PRJ-599/VN_Ctrlram.bin" ],
+      "legacyPaths": [
+        "testdata/golden/ctrlram-replace/fixtures/20260731/51950_Cascade_AUTO_PRJ-599/VN_Ctrlram.bin"
+      ],
       "originalFileName": "VN_Ctrlram.bin",
       "sourceRole": "ctrlram-postbuild-input"
     },
@@ -95,7 +126,9 @@
       "path": "NT51951/ctrlram-replace/fw2.0.0/cascade-2/nt51951-fw200-cascade2-auto-prj-599-20260731/inputs/postbuild/nt51951-diffdlm-input.bin",
       "size": 10240,
       "sha256": "d5b2a200645dc83c9cdf2988276915dfcfde656d2cfacb8a759ce0c5dd88eb00",
-      "legacyPaths": [ "testdata/golden/ctrlram-replace/fixtures/20260731/51950_Cascade_AUTO_PRJ-599/DiffDLM.bin" ],
+      "legacyPaths": [
+        "testdata/golden/ctrlram-replace/fixtures/20260731/51950_Cascade_AUTO_PRJ-599/DiffDLM.bin"
+      ],
       "originalFileName": "DiffDLM.bin",
       "sourceRole": "one-active-record-plus-one-inactive-dummy-record"
     },
@@ -105,7 +138,9 @@
       "path": "NT51951/ctrlram-replace/fw2.0.0/cascade-2/nt51951-fw200-cascade2-auto-prj-599-20260731/provenance/reference-only/nt51951-independent-nf-excluded-reference.bin",
       "size": 2816,
       "sha256": "3531fd2a89195c1418d27673e4b7420cde0067be971ad72f666a01cf21e6a322",
-      "legacyPaths": [ "testdata/golden/ctrlram-replace/fixtures/20260731/51950_Cascade_AUTO_PRJ-599/NF_Ctrlram.bin" ],
+      "legacyPaths": [
+        "testdata/golden/ctrlram-replace/fixtures/20260731/51950_Cascade_AUTO_PRJ-599/NF_Ctrlram.bin"
+      ],
       "originalFileName": "NF_Ctrlram.bin",
       "sourceRole": "provided-reference-only; unavailable to the resolved production route"
     },
@@ -115,7 +150,9 @@
       "path": "NT51951/ctrlram-replace/fw2.0.0/cascade-2/nt51951-fw200-cascade2-auto-prj-599-20260731/provenance/reference-only/nt51951-nf-diff-zero-reference.bin",
       "size": 2816,
       "sha256": "3531fd2a89195c1418d27673e4b7420cde0067be971ad72f666a01cf21e6a322",
-      "legacyPaths": [ "testdata/golden/ctrlram-replace/fixtures/20260731/51950_Cascade_AUTO_PRJ-599/NF_Diff/NF_Diff_0.bin" ],
+      "legacyPaths": [
+        "testdata/golden/ctrlram-replace/fixtures/20260731/51950_Cascade_AUTO_PRJ-599/NF_Diff/NF_Diff_0.bin"
+      ],
       "originalFileName": "NF_Diff_0.bin",
       "sourceRole": "provided-reference-only"
     },
@@ -125,7 +162,9 @@
       "path": "NT51951/ctrlram-replace/fw2.0.0/cascade-2/nt51951-fw200-cascade2-auto-prj-599-20260731/provenance/reference-only/nt51951-nf-diff-active-reference.bin",
       "size": 2800,
       "sha256": "32f7d47cc53c494e5e1ef3a0eda894cf17ee2f99ea2d8a0e8592e0588e098341",
-      "legacyPaths": [ "testdata/golden/ctrlram-replace/fixtures/20260731/51950_Cascade_AUTO_PRJ-599/NF_Diff/NF_Diff_1.bin" ],
+      "legacyPaths": [
+        "testdata/golden/ctrlram-replace/fixtures/20260731/51950_Cascade_AUTO_PRJ-599/NF_Diff/NF_Diff_1.bin"
+      ],
       "originalFileName": "NF_Diff_1.bin",
       "sourceRole": "provided-source-tail-cross-check; production preserves the immutable reference instead"
     },
@@ -135,7 +174,9 @@
       "path": "NT51951/ctrlram-replace/fw2.0.0/cascade-2/nt51951-fw200-cascade2-auto-prj-599-20260731/provenance/51950_PostbuildSetup.bat",
       "size": 5676,
       "sha256": "676b2e0d4178731034a0e8b118e9ad514b9beadf7094c5f9a6ee56ea784318a0",
-      "legacyPaths": [ "testdata/golden/ctrlram-replace/fixtures/20260731/51950_Cascade_AUTO_PRJ-599/51950_PostbuildSetup.bat" ],
+      "legacyPaths": [
+        "testdata/golden/ctrlram-replace/fixtures/20260731/51950_Cascade_AUTO_PRJ-599/51950_PostbuildSetup.bat"
+      ],
       "originalFileName": "51950_PostbuildSetup.bat",
       "sourceRole": "owner-postbuild-command-reference; not executed by golden audit"
     },
@@ -145,7 +186,9 @@
       "path": "NT51951/ctrlram-replace/fw2.0.0/cascade-2/nt51951-fw200-cascade2-auto-prj-599-20260731/provenance/DiffNFMerge.exe.config",
       "size": 174,
       "sha256": "e2f8febf28b49915d142e4b698435d53b7eb3443853bd2892b86fe20e8895620",
-      "legacyPaths": [ "testdata/golden/ctrlram-replace/fixtures/20260731/51950_Cascade_AUTO_PRJ-599/DiffNFMerge.exe.config" ],
+      "legacyPaths": [
+        "testdata/golden/ctrlram-replace/fixtures/20260731/51950_Cascade_AUTO_PRJ-599/DiffNFMerge.exe.config"
+      ],
       "originalFileName": "DiffNFMerge.exe.config",
       "sourceRole": "provided-reference-only; DiffNFMerge is neither registered nor executed"
     },
@@ -155,7 +198,9 @@
       "path": "NT51951/ctrlram-replace/fw2.0.0/cascade-2/nt51951-fw200-cascade2-auto-prj-599-20260731/expected/NT51951_Flashcode_TM2910_Platform_6080x1680_D05T81_20260511.bin",
       "size": 524288,
       "sha256": "ff9ad012454cab3d9d76d7270dfde7b402d23c2d0376ba6776cd1a242144aa32",
-      "legacyPaths": [ "testdata/golden/ctrlram-replace/fixtures/20260731/51950_Cascade_AUTO_PRJ-599/NT51951_Flashcode_TM2910_Platform_6080x1680_D05T81_20260511.bin" ],
+      "legacyPaths": [
+        "testdata/golden/ctrlram-replace/fixtures/20260731/51950_Cascade_AUTO_PRJ-599/NT51951_Flashcode_TM2910_Platform_6080x1680_D05T81_20260511.bin"
+      ],
       "originalFileName": "NT51951_Flashcode_TM2910_Platform_6080x1680_D05T81_20260511.bin",
       "sourceRole": "owner-expected-complete-flash-output"
     }
@@ -188,5 +233,30 @@
     "forbiddenProcessor": "DiffNFMerge.exe",
     "expectedOutputIdentity": "Owner complete 0x80000-byte output SHA-256 ff9ad012454cab3d9d76d7270dfde7b402d23c2d0376ba6776cd1a242144aa32; registered Combiner 1.13.0 output SHA-256 1536d344af83aafd29e5884d9d2d904f1efa03c8fdcc4e913832253814644ebd with only the four approved CRC-word differences."
   },
-  "promotion": "support-neutral evidence intake for issue #188; no release redistribution or support promotion"
+  "promotion": "support-neutral evidence intake for issue #188; no release redistribution or support promotion",
+  "allowedByteDifferenceContract": {
+    "addressSpaceId": "output-image",
+    "allowedDifferenceRanges": [
+      {
+        "start": "0xA11C",
+        "endExclusive": "0xA120",
+        "classification": "header-crc-word"
+      },
+      {
+        "start": "0xA130",
+        "endExclusive": "0xA134",
+        "classification": "header-copy-crc-word"
+      },
+      {
+        "start": "0x2D428",
+        "endExclusive": "0x2D42C",
+        "classification": "copied-header-crc-word"
+      },
+      {
+        "start": "0x2D43C",
+        "endExclusive": "0x2D440",
+        "classification": "copied-header-copy-crc-word"
+      }
+    ]
+  }
 }

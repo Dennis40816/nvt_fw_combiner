@@ -23,7 +23,6 @@ public sealed class Nt51926CtrlRamReplaceCandidateProfileTests
     private static readonly ByteRange DiffCtrlRamRange = new(0x27800, 0x2800);
     private static readonly ByteRange NfCtrlRamRange = new(0x2C800, 0x2DD0);
     private static readonly ByteRange VnCtrlRamRange = new(0x315D0, 0x1660);
-
     private static ReadOnlySpan<byte> NvtMarker => [0x00, 0x4E, 0x56, 0x54];
 
     /// <summary>Locks V2 staging and write authority to the legacy Common FW 1.4.1 cascade command plan.</summary>
@@ -345,6 +344,16 @@ public sealed class Nt51926CtrlRamReplaceCandidateProfileTests
         if (fullFlashBase)
         {
             Assert.Equal(originalReference[Capacity..], v2.OutputBytes.Span[Capacity..].ToArray());
+            JsonElement goldenCase = CanonicalGoldenTestData.LoadDirectCase(
+                "ctrlram-replace",
+                "nt51926-fw141-cascade2-auto-prj-597-20260717");
+            CanonicalGoldenDifferenceResult differences =
+                CanonicalGoldenTestData.AssertAllowedByteDifferences(
+                    goldenCase,
+                    originalReference,
+                    routedOutput);
+            Assert.Equal(16, differences.DifferenceCount);
+            Assert.All(differences.DifferenceCountByAllowedRange, count => Assert.Equal(4, count));
         }
 
         Assert.All(
@@ -608,25 +617,31 @@ public sealed class Nt51926CtrlRamReplaceCandidateProfileTests
 
     private static OwnerRegressionCase ReadOwnerRegressionCase()
     {
-        string goldenRoot = RepositoryPaths.FromRepositoryRoot(
-            "testdata",
-            "golden",
-            "ctrlram-replace");
-        using var manifest = JsonDocument.Parse(File.ReadAllText(Path.Combine(goldenRoot, "manifest.json")));
-        JsonElement evidenceCase = manifest.RootElement.GetProperty("cases")
+        JsonElement standardMergeCase = CanonicalGoldenTestData.LoadDirectCase(
+            "standard-merge",
+            "nt51926-gen-flash");
+        JsonElement ctrlRamCase = CanonicalGoldenTestData.LoadDirectCase(
+            "ctrlram-replace",
+            "nt51926-fw141-cascade2-auto-prj-597-20260717");
+        JsonElement baseArtifact = standardMergeCase.GetProperty("artifacts")
             .EnumerateArray()
             .Single(candidate => StringComparer.Ordinal.Equals(
-                candidate.GetProperty("id").GetString(),
-                "nt51926-cascade-tp-base-self-regression-20260717"));
-        JsonElement vn = evidenceCase.GetProperty("replacementInputs")
+                candidate.GetProperty("artifactId").GetString(),
+                "tp-input"));
+        JsonElement expectedArtifact = ctrlRamCase.GetProperty("artifacts")
             .EnumerateArray()
-            .Single(input => StringComparer.Ordinal.Equals(
-                input.GetProperty("slotId").GetString(),
-                "replace-ctrlram-vn"));
+            .Single(candidate => StringComparer.Ordinal.Equals(
+                candidate.GetProperty("artifactId").GetString(),
+                "selective-vn-regression-output"));
+        JsonElement vnArtifact = ctrlRamCase.GetProperty("artifacts")
+            .EnumerateArray()
+            .Single(candidate => StringComparer.Ordinal.Equals(
+                candidate.GetProperty("artifactId").GetString(),
+                "postbuild-vn-ctrlram"));
         return new OwnerRegressionCase(
-            ReadManifestArtifact(goldenRoot, evidenceCase.GetProperty("base")),
-            ReadManifestArtifact(goldenRoot, evidenceCase.GetProperty("expectedOutput")),
-            ReadManifestArtifact(goldenRoot, vn.GetProperty("file")));
+            ReadManifestArtifact(CanonicalGoldenTestData.Root, baseArtifact),
+            ReadManifestArtifact(CanonicalGoldenTestData.Root, expectedArtifact),
+            ReadManifestArtifact(CanonicalGoldenTestData.Root, vnArtifact));
     }
 
     private static OwnerIntakeFile ReadManifestArtifact(string goldenRoot, JsonElement entry)

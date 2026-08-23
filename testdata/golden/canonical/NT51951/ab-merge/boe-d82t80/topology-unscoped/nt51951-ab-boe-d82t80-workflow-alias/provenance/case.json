@@ -6,6 +6,12 @@
   "variantOrVersion": "boe-d82t80",
   "topology": "topology-unscoped",
   "directGolden": false,
+  "testDisposition": {
+    "kind": "fact-scoped-alias",
+    "evidenceRefs": [
+      "tests/NvtFwCombiner.Bootstrap.Tests/AbMergeGoldenRegressionTests.cs#EveryAbFactScopedAliasResolvesItsDeclaredDirectCase"
+    ]
+  },
   "sourceClassification": "owner-approved-fact-scoped-alias",
   "ownerApproval": "Firmware owner approved NT51950 AB evidence as NT51951 workflow-logic evidence on 2026-07-18.",
   "alias": {

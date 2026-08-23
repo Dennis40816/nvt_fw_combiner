@@ -5,6 +5,7 @@ from __future__ import annotations
 import hashlib
 import json
 import unittest
+from collections import Counter
 from pathlib import Path
 
 from scripts.canonical_golden_validation import validate_canonical_golden
@@ -70,6 +71,25 @@ class CtrlRamCanonicalFinalIntakeTests(unittest.TestCase):
         validate_canonical_golden(ROOT, errors)
         self.assertEqual([], errors)
 
+    def test_every_case_has_one_closed_test_disposition(self) -> None:
+        cases = [
+            json.loads((CANONICAL_ROOT / entry["manifestPath"]).read_text(encoding="utf-8"))
+            for entry in self.root_manifest["cases"]
+        ]
+        counts = Counter(case["testDisposition"]["kind"] for case in cases)
+        self.assertEqual(
+            {
+                "direct-full-output": 11,
+                "allowed-byte-difference": 14,
+                "input-only-evidence": 2,
+                "fact-scoped-alias": 12,
+            },
+            dict(counts),
+        )
+        self.assertTrue(
+            all(case["testDisposition"]["evidenceRefs"] for case in cases)
+        )
+
     def test_retirement_preserves_every_surviving_case_and_artifact_fact(self) -> None:
         retired_ics = {"NT51920", "NT51930", "NT51931"}
         cases = [
@@ -103,12 +123,12 @@ class CtrlRamCanonicalFinalIntakeTests(unittest.TestCase):
 
         self.assertEqual(39, len(cases))
         self.assertEqual(
-            "d12ac7ea8c2ed5295ee5e2c7f52c819ce33e899887e5c54ecd130c547ac43735",
+            "fe3d025b89e987e5a546bf09ba1ced859107eb60debfabd9e0a41e3a847eaba2",
             normalized_sha256(cases),
         )
-        self.assertEqual(174, len(artifact_facts))
+        self.assertEqual(175, len(artifact_facts))
         self.assertEqual(
-            "e11c7817c85f844ef1112bd9c2bfaa4a1b157e68d506ccc30af992d140508252",
+            "95209722dee66562b619e89c7176c4df94c9b5996ee2c2bda5ce40ea84da2f28",
             normalized_sha256(artifact_facts),
         )
 
@@ -177,6 +197,27 @@ class CtrlRamCanonicalFinalIntakeTests(unittest.TestCase):
                 for artifact in case["artifacts"]
             )
         )
+
+    def test_nt51950_geometry_alias_is_explicitly_bound(self) -> None:
+        manifest_path = next(
+            entry["manifestPath"]
+            for entry in self.root_manifest["cases"]
+            if entry["caseId"]
+            == "nt51950-cascade2-geometry-nt51951-auto-prj-599-alias"
+        )
+        case = json.loads(
+            (CANONICAL_ROOT / manifest_path).read_text(encoding="utf-8")
+        )
+        self.assertFalse(case["directGolden"])
+        self.assertEqual(
+            "nt51951-fw200-cascade2-auto-prj-599-20260731",
+            case["alias"]["sourceCaseId"],
+        )
+        self.assertIn(
+            "exact 2-ic cascade applicability",
+            [scope.casefold() for scope in case["alias"]["factScope"]],
+        )
+        self.assertNotIn("artifacts", case)
 
 
 if __name__ == "__main__":

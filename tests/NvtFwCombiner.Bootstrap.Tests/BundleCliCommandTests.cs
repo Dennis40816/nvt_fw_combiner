@@ -399,29 +399,11 @@ public sealed class BundleCliCommandTests
     public async Task CtrlRamReplaceBuildCommitsReadinessBoundBundle()
     {
         using var workspace = TempWorkspace.Create("nfc-cli-bundle-ctrlram");
-        string fixtureRoot = RepositoryPaths.FromRepositoryRoot(
-            "testdata",
-            "golden",
-            "ctrlram-replace");
-        using JsonDocument manifest = JsonDocument.Parse(
-            await File.ReadAllTextAsync(
-                Path.Combine(fixtureRoot, "manifest.json"),
-                TestContext.Current.CancellationToken));
-        JsonElement fixtureCase = manifest.RootElement.GetProperty("cases").EnumerateArray()
-            .Single(item =>
-                item.GetProperty("id").GetString() ==
-                    "nt51926-cascade-tp-base-self-regression-20260717");
-        string basePath = RepositoryPaths.ManifestPath(
-            fixtureRoot,
-            fixtureCase.GetProperty("base"));
-        JsonElement replacement = Assert.Single(
-            fixtureCase.GetProperty("replacementInputs").EnumerateArray());
-        string vnPath = RepositoryPaths.ManifestPath(
-            fixtureRoot,
-            replacement.GetProperty("file"));
-        string expectedPath = RepositoryPaths.ManifestPath(
-            fixtureRoot,
-            fixtureCase.GetProperty("expectedOutput"));
+        ReplaceCliCommandTests.Nt51926SelectiveVnRegression fixture =
+            ReplaceCliCommandTests.LoadNt51926SelectiveVnRegression();
+        string basePath = CanonicalGoldenTestData.ArtifactPath(fixture.BaseArtifact);
+        string vnPath = CanonicalGoldenTestData.ArtifactPath(fixture.VnArtifact);
+        string expectedPath = CanonicalGoldenTestData.ArtifactPath(fixture.ExpectedArtifact);
         string reportPath = workspace.PathFor("ctrlram-bundle-report.json");
 
         CliRunResult result = await CliTestHarness.RunAsync(

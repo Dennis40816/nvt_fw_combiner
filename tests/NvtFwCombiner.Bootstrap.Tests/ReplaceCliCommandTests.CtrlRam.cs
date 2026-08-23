@@ -7,20 +7,18 @@ namespace NvtFwCombiner.Bootstrap.Tests;
 
 public sealed partial class ReplaceCliCommandTests
 {
-    private const string Nt51926TpBaseCaseId = "nt51926-cascade-tp-base-self-regression-20260717";
+    private const string Nt51926CtrlRamCaseId =
+        "nt51926-fw141-cascade2-auto-prj-597-20260717";
 
     /// <summary>Verifies malformed CtrlRAM arguments demonstrate a currently accepted physical slot id.</summary>
     [Fact]
     public async Task CtrlRamReplaceMalformedSlotUsesPhysicalVnExample()
     {
-        string basePath = RepositoryPaths.FromRepositoryRoot(
-            "testdata",
-            "golden",
+        JsonElement fixtureCase = CanonicalGoldenTestData.LoadDirectCase(
             "ctrlram-replace",
-            "fixtures",
-            "20260705",
-            "base",
-            "nt51926-2ic-csot-toyota-d02t06-jira0597-20260622.bin");
+            Nt51926CtrlRamCaseId);
+        string basePath = CanonicalGoldenTestData.ArtifactPath(
+            CanonicalGoldenTestData.Artifact(fixtureCase, "expected-output"));
 
         CliRunResult result = await RunCliAsync([
             "ctrlram-replace",
@@ -45,14 +43,10 @@ public sealed partial class ReplaceCliCommandTests
     public async Task Nt51926CtrlRamReplaceAcceptsTpFirmwareBase()
     {
         using var workspace = TempWorkspace.Create();
-        string fixtureRoot = RepositoryPaths.FromRepositoryRoot("testdata", "golden", "ctrlram-replace");
-        using var manifest = JsonDocument.Parse(File.ReadAllText(Path.Combine(fixtureRoot, "manifest.json")));
-        JsonElement fixtureCase = manifest.RootElement.GetProperty("cases").EnumerateArray()
-            .Single(item => item.GetProperty("id").GetString() == Nt51926TpBaseCaseId);
-        string basePath = RepositoryPaths.ManifestPath(fixtureRoot, fixtureCase.GetProperty("base"));
-        JsonElement replacement = Assert.Single(fixtureCase.GetProperty("replacementInputs").EnumerateArray());
-        string vnPath = RepositoryPaths.ManifestPath(fixtureRoot, replacement.GetProperty("file"));
-        string expectedPath = RepositoryPaths.ManifestPath(fixtureRoot, fixtureCase.GetProperty("expectedOutput"));
+        Nt51926SelectiveVnRegression fixture = LoadNt51926SelectiveVnRegression();
+        string basePath = CanonicalGoldenTestData.ArtifactPath(fixture.BaseArtifact);
+        string vnPath = CanonicalGoldenTestData.ArtifactPath(fixture.VnArtifact);
+        string expectedPath = CanonicalGoldenTestData.ArtifactPath(fixture.ExpectedArtifact);
         string previewReport = workspace.PathFor("preview-report.json");
 
         CliRunResult preview = await RunCliAsync([
@@ -77,7 +71,11 @@ public sealed partial class ReplaceCliCommandTests
         Assert.Contains("Size: 245760 bytes", preview.Output, StringComparison.Ordinal);
         Assert.Contains("postbuild-cascade", preview.Output, StringComparison.Ordinal);
         Assert.Contains("changed=16", preview.Output, StringComparison.Ordinal);
-        AssertProcessorTrace(previewReport, fixtureCase);
+        AssertProcessorTrace(
+            previewReport,
+            fixture.Regression,
+            fixture.BaseArtifact,
+            fixture.ExpectedArtifact);
 
         string outputPath = workspace.PathFor("nt51926-tp-base.bin");
         string buildReport = workspace.PathFor("build-report.json");
@@ -108,9 +106,9 @@ public sealed partial class ReplaceCliCommandTests
         Assert.Equal(0x3C000, outputBytes.Length);
         Assert.Equal(expectedBytes, outputBytes);
         Assert.Equal(
-            fixtureCase.GetProperty("expectedOutput").GetProperty("sha256").GetString(),
+            fixture.ExpectedArtifact.GetProperty("sha256").GetString(),
             Convert.ToHexString(SHA256.HashData(outputBytes)).ToLowerInvariant());
-        AssertExactChangedRanges(baseBytes, outputBytes, ReadManifestRanges(fixtureCase));
+        AssertExactChangedRanges(baseBytes, outputBytes, ReadManifestRanges(fixture.Regression));
         using (var report = JsonDocument.Parse(File.ReadAllText(buildReport)))
         {
             Assert.Equal(
@@ -121,7 +119,11 @@ public sealed partial class ReplaceCliCommandTests
                 operation => operation.GetProperty("OperationId").GetString() == "replace-vn-00");
         }
 
-        AssertProcessorTrace(buildReport, fixtureCase);
+        AssertProcessorTrace(
+            buildReport,
+            fixture.Regression,
+            fixture.BaseArtifact,
+            fixture.ExpectedArtifact);
     }
 
     /// <summary>Locks one CtrlRAM Replace result across TP-only and full-Flash base containers.</summary>
@@ -129,14 +131,13 @@ public sealed partial class ReplaceCliCommandTests
     public async Task Nt51926CtrlRamReplaceAcceptsTpAndFullFlashBasesWithTheSameTpResult()
     {
         using var workspace = TempWorkspace.Create();
-        string fixtureRoot = RepositoryPaths.FromRepositoryRoot("testdata", "golden", "ctrlram-replace");
-        using var manifest = JsonDocument.Parse(File.ReadAllText(Path.Combine(fixtureRoot, "manifest.json")));
-        JsonElement fixtureCase = manifest.RootElement.GetProperty("cases").EnumerateArray()
-            .Single(item => item.GetProperty("id").GetString() == "nt51926-cascade-self-20260705");
-        string fullFlashPath = RepositoryPaths.ManifestPath(fixtureRoot, fixtureCase.GetProperty("base"));
-        JsonElement replacement = fixtureCase.GetProperty("replacementInputs").EnumerateArray()
-            .Single(item => item.GetProperty("slotId").GetString() == "replace-ctrlram-vn");
-        string vnPath = RepositoryPaths.ManifestPath(fixtureRoot, replacement.GetProperty("file"));
+        JsonElement fixtureCase = CanonicalGoldenTestData.LoadDirectCase(
+            "ctrlram-replace",
+            Nt51926CtrlRamCaseId);
+        string fullFlashPath = CanonicalGoldenTestData.ArtifactPath(
+            CanonicalGoldenTestData.Artifact(fixtureCase, "expected-output"));
+        string vnPath = CanonicalGoldenTestData.ArtifactPath(
+            CanonicalGoldenTestData.Artifact(fixtureCase, "postbuild-vn-ctrlram"));
         byte[] fullFlashBase = File.ReadAllBytes(fullFlashPath);
         Assert.Equal(0x40000, fullFlashBase.Length);
         string tpBasePath = workspace.Write("base-tp.bin", fullFlashBase[..0x3C000]);
@@ -185,15 +186,11 @@ public sealed partial class ReplaceCliCommandTests
     {
         using var workspace = TempWorkspace.Create();
         string reportPath = workspace.PathFor("missing-base-report.json");
-        string vnPath = RepositoryPaths.FromRepositoryRoot(
-            "testdata",
-            "golden",
+        JsonElement fixtureCase = CanonicalGoldenTestData.LoadDirectCase(
             "ctrlram-replace",
-            "fixtures",
-            "20260705",
-            "inputs",
-            "nt51926-cascade-self-20260705",
-            "vn.bin");
+            Nt51926CtrlRamCaseId);
+        string vnPath = CanonicalGoldenTestData.ArtifactPath(
+            CanonicalGoldenTestData.Artifact(fixtureCase, "postbuild-vn-ctrlram"));
 
         CliRunResult result = await RunCliAsync([
             "ctrlram-replace",
@@ -278,10 +275,14 @@ public sealed partial class ReplaceCliCommandTests
         Assert.Equal("RunExternalProcessor", operation.GetProperty("Kind").GetString());
     }
 
-    private static void AssertProcessorTrace(string reportPath, JsonElement fixtureCase)
+    private static void AssertProcessorTrace(
+        string reportPath,
+        JsonElement regression,
+        JsonElement baseArtifact,
+        JsonElement expectedArtifact)
     {
         using var reportDocument = JsonDocument.Parse(File.ReadAllText(reportPath));
-        JsonElement trace = fixtureCase.GetProperty("processorTrace");
+        JsonElement trace = regression.GetProperty("processorTrace");
         JsonElement operation = reportDocument.RootElement.GetProperty("Operations").EnumerateArray()
             .Single(candidate => candidate.TryGetProperty("ProcessorId", out JsonElement processorId) &&
                 processorId.GetString() == trace.GetProperty("processorId").GetString());
@@ -325,8 +326,8 @@ public sealed partial class ReplaceCliCommandTests
             .Single(candidate => candidate.GetProperty("OperationId").GetString() == "postbuild-cascade");
         Assert.Equal(16, mutation.GetProperty("ChangedByteCount").GetInt64());
         Assert.Equal(0x3C000, mutation.GetProperty("TargetRange").GetProperty("Length").GetInt64());
-        Assert.Equal(fixtureCase.GetProperty("base").GetProperty("sha256").GetString(), mutation.GetProperty("BeforeSha256").GetString());
-        Assert.Equal(fixtureCase.GetProperty("expectedOutput").GetProperty("sha256").GetString(), mutation.GetProperty("AfterSha256").GetString());
+        Assert.Equal(baseArtifact.GetProperty("sha256").GetString(), mutation.GetProperty("BeforeSha256").GetString());
+        Assert.Equal(expectedArtifact.GetProperty("sha256").GetString(), mutation.GetProperty("AfterSha256").GetString());
     }
 
     private static (int Start, int EndExclusive)[] ReadManifestRanges(JsonElement fixtureCase)
@@ -371,4 +372,25 @@ public sealed partial class ReplaceCliCommandTests
             Assert.Equal(4, actualRanges[index].EndExclusive - actualRanges[index].Start);
         }
     }
+
+    internal static Nt51926SelectiveVnRegression LoadNt51926SelectiveVnRegression()
+    {
+        JsonElement standardMergeCase = CanonicalGoldenTestData.LoadDirectCase(
+            "standard-merge",
+            "nt51926-gen-flash");
+        JsonElement ctrlRamCase = CanonicalGoldenTestData.LoadDirectCase(
+            "ctrlram-replace",
+            Nt51926CtrlRamCaseId);
+        return new Nt51926SelectiveVnRegression(
+            ctrlRamCase.GetProperty("selectiveVnRegression"),
+            CanonicalGoldenTestData.Artifact(standardMergeCase, "tp-input"),
+            CanonicalGoldenTestData.Artifact(ctrlRamCase, "postbuild-vn-ctrlram"),
+            CanonicalGoldenTestData.Artifact(ctrlRamCase, "selective-vn-regression-output"));
+    }
+
+    internal sealed record Nt51926SelectiveVnRegression(
+        JsonElement Regression,
+        JsonElement BaseArtifact,
+        JsonElement VnArtifact,
+        JsonElement ExpectedArtifact);
 }

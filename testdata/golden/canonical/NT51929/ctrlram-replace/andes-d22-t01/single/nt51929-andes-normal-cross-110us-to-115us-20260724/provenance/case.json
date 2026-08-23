@@ -6,6 +6,13 @@
   "variantOrVersion": "andes-d22-t01",
   "topology": "single",
   "directGolden": true,
+  "testDisposition": {
+    "kind": "allowed-byte-difference",
+    "evidenceRefs": [
+      "tests/NvtFwCombiner.Bootstrap.Tests/Nt51929AndesNormalCtrlRamGoldenTests.cs#SingleNormalCrossReplacementDiffersFromAndesGoldenOnlyAtDeclaredCrcWordsAsync"
+    ],
+    "differenceContractProperty": "phaseBResult"
+  },
   "sourceClassification": "private-owner-approved-golden",
   "ownerApproval": "Repository owner supplied the 51929-normal-ctrlram-replace.7z archive through HackMD and directed this NT51929 single Normal CtrlRAM Andes case to be added as a golden on 2026-07-24.",
   "project": "Andes-D22T01-Tsen",
@@ -89,6 +96,7 @@
     "releaseRedistributionApproved": false
   },
   "phaseBResult": {
+    "addressSpaceId": "output-image",
     "caseId": "nt51929-andes-normal-cross-110us-to-115us-20260724",
     "ic": "NT51929",
     "workflow": "ctrlram-replace",

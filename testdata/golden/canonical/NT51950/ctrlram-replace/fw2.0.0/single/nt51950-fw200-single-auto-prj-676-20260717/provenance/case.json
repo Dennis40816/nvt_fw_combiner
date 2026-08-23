@@ -6,6 +6,13 @@
   "variantOrVersion": "fw2.0.0",
   "topology": "single",
   "directGolden": true,
+  "testDisposition": {
+    "kind": "allowed-byte-difference",
+    "evidenceRefs": [
+      "tests/NvtFwCombiner.Bootstrap.Tests/Nt51950CtrlRamFw200EvidenceTests.cs#V2ProducesLockedOutputWithCrcOnlyOwnerDeviationAsync"
+    ],
+    "differenceContractProperty": "phaseBResult"
+  },
   "sourceClassification": "private-owner-approved-golden",
   "ownerApproval": "Repository owner explicitly approved committing all supplied golden sample payloads to public Git on 2026-07-17. Technical project/AUTO_PRJ data is retained; personal data is excluded.",
   "project": "AUTO_PRJ-676",
@@ -113,6 +120,7 @@
   },
   "pid": "0x4A06",
   "phaseBResult": {
+    "addressSpaceId": "output-image",
     "caseId": "nt51950-fw200-single-auto-prj-676-20260717",
     "ic": "NT51950",
     "workflow": "ctrlram-replace",

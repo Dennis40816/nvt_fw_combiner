@@ -44,9 +44,6 @@ else:
 ROOT = Path(__file__).resolve().parents[1]
 WORKER_ROOT = ROOT / "tools" / "crc-worker"
 SOLUTION = ROOT / "NvtFwCombiner.slnx"
-CTRL_RAM_REPLACE_FIXTURE_VERIFIER = (
-    ROOT / "scripts" / "verify_ctrlram_replace_fixture.py"
-)
 CTRL_RAM_SENTINEL_CREATOR = ROOT / "scripts" / "create_ctrlram_universal_sentinel.py"
 IDLE_BUILD_WORKER_STOPPER = ROOT / "scripts" / "stop-idle-build-workers.ps1"
 REPOSITORY_SCRIPT_TESTS = ROOT / "tests" / "scripts"
@@ -287,13 +284,13 @@ CI_DOTNET_SHARDS: dict[str, tuple[CiDotnetProject, ...]] = {
     "bootstrap": (
         CiDotnetProject(
             "tests/NvtFwCombiner.Bootstrap.Tests/NvtFwCombiner.Bootstrap.Tests.csproj",
-            1012,
+            1013,
         ),
     ),
     "ui": (
         CiDotnetProject(
             "tests/NvtFwCombiner.UiSmoke.Tests/NvtFwCombiner.UiSmoke.Tests.csproj",
-            639,
+            640,
             requires_exclusive_local_coverage=True,
         ),
     ),
@@ -321,7 +318,7 @@ CI_DOTNET_SHARDS: dict[str, tuple[CiDotnetProject, ...]] = {
         CiDotnetProject(
             "tests/NvtFwCombiner.GoldenRegression.Tests/"
             "NvtFwCombiner.GoldenRegression.Tests.csproj",
-            17,
+            18,
         ),
         CiDotnetProject(
             "tests/NvtFwCombiner.Architecture.Tests/"
@@ -1605,12 +1602,7 @@ def verify_dotnet(log_path: Path | None = None) -> None:
     dotnet = resolve_dotnet()
     coverage_directory = reset_coverage_directory("dotnet")
     environment = dotnet_batch_environment()
-    commands = (
-        *dotnet_build_commands(dotnet),
-        # The exact project inventory runs all CtrlRAM UI smoke tests below. Keep the
-        # fixture gate here for manifest and payload-hash validation only.
-        [sys.executable, str(CTRL_RAM_REPLACE_FIXTURE_VERIFIER), "--skip-public-smoke"],
-    )
+    commands = dotnet_build_commands(dotnet)
     failure: BaseException | None = None
     try:
         run_dotnet_commands(commands, environment=environment, log_path=log_path)
@@ -2594,14 +2586,13 @@ def finalize_ci_dotnet_evidence(download_root: Path) -> None:
         destination.mkdir()
         shutil.copyfile(json_report, destination / "coverage.json")
         shutil.copyfile(cobertura_report, destination / "coverage.cobertura.xml")
-    run([sys.executable, str(CTRL_RAM_REPLACE_FIXTURE_VERIFIER), "--skip-public-smoke"])
     verify_coverage("dotnet", coverage_root)
     projects = flatten_ci_dotnet_projects()
     print(
         ".NET CI evidence: "
         f"{len(projects)} projects, "
         f"{sum(project.expected_total for project in projects)} tests, "
-        f"{sum(project.expected_skipped for project in projects)} skips, Golden 17/17."
+        f"{sum(project.expected_skipped for project in projects)} skips, Golden 18/18."
     )
 
 

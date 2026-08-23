@@ -6,6 +6,12 @@
   "variantOrVersion": "gen-flash",
   "topology": "topology-unscoped",
   "directGolden": false,
+  "testDisposition": {
+    "kind": "fact-scoped-alias",
+    "evidenceRefs": [
+      "tests/NvtFwCombiner.GoldenRegression.Tests/StandardMergeWorkbenchGoldenTests.cs#WorkbenchBuildStandardMergeAliasMatchesReferenceGoldenBytes"
+    ]
+  },
   "sourceClassification": "owner-approved-fact-scoped-alias",
   "ownerApproval": "Firmware owner confirmed NT51917 follows the NT51927 perfect-family Standard Merge facts.",
   "alias": {

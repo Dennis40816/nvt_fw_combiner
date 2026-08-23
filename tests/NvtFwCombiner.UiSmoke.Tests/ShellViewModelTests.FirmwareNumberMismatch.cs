@@ -299,8 +299,6 @@ public sealed partial class CtrlRamWorkflowTests
     [Fact]
     public async Task FirmwareNumberMismatchCancelThenBuildRemainsFailClosed()
     {
-        using var fixtures = CtrlRamReplaceFixtureManifest.LoadIfPresent();
-        Assert.NotNull(fixtures);
         JsonElement fixtureCase = CanonicalGoldenTestData.LoadDirectEvidenceCase(
             "ctrlram-replace",
             "nt51927-3chip-self-20260705");
@@ -310,14 +308,14 @@ public sealed partial class CtrlRamWorkflowTests
         viewModel.WorkflowSession.SelectedNumber = IcNumberSelectionTokens.SingleChip;
         OpenReplace(viewModel, ExperienceIds.CtrlRamReplace);
 
-        fixtures.SetBaseSlot(viewModel, fixtureCase);
+        CanonicalCtrlRamTestData.SetBaseSlot(viewModel, fixtureCase);
         await CurrentInspection(viewModel).ActiveTask;
         Assert.True(viewModel.WorkflowSession.IsFirmwareNumberMismatchModalOpen);
         Assert.Equal("3 IC", viewModel.WorkflowSession.FirmwareNumberMismatchDetectedNumber);
         string basePath = Assert.IsType<string>(viewModel.Replace.ReplaceBaseSlot.FilePath);
         byte[] immutableBase = File.ReadAllBytes(basePath);
         FirmwareSlotViewModel nf = viewModel.Replace.ReplaceSlots.Single(slot => slot.SlotId == "replace-ctrlram-nf");
-        viewModel.SetSlotFile(nf.SlotId, fixtures.ReplacementPathFor(fixtureCase, nf.SlotId));
+        viewModel.SetSlotFile(nf.SlotId, CanonicalCtrlRamTestData.ReplacementPathFor(fixtureCase, nf.SlotId));
 
         viewModel.WorkflowSession.DismissFirmwareNumberMismatchCommand.Execute(null);
         string outputPath = workspace.PathFor("must-not-exist.bin");

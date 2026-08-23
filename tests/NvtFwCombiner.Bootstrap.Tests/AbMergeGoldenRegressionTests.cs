@@ -100,6 +100,25 @@ public sealed class AbMergeGoldenRegressionTests
         Assert.Equal("c7e1e263ac8ca70f83a6f66fa268da4aa9be37c2c822a39d58fa9c153d66abe2", Hash(result.OutputBytes.Span));
     }
 
+    /// <summary>Every AB alias is explicitly bound to one direct canonical case.</summary>
+    [Fact]
+    public void EveryAbFactScopedAliasResolvesItsDeclaredDirectCase()
+    {
+        var expected = new Dictionary<string, string>(StringComparer.Ordinal)
+        {
+            ["nt51919-ab-t05-d06-alias"] = "nt51929-ab-t05-d06",
+            ["nt51932-ab-t05-d06-alias"] = "nt51929-ab-t05-d06",
+            ["nt51951-ab-boe-d82t80-workflow-alias"] = "nt51950-ab-boe-d82t80",
+            ["nt51951-ab-hiway-d82t80-workflow-alias"] = "nt51950-ab-hiway-d82t80",
+        };
+
+        IReadOnlyList<CanonicalGoldenAlias> aliases =
+            CanonicalGoldenTestData.LoadWorkflowAliases("ab-merge");
+
+        Assert.Equal(expected.Count, aliases.Count);
+        Assert.All(aliases, alias => Assert.Equal(expected[alias.CaseId], alias.SourceCaseId));
+    }
+
     /// <summary>
     /// Verifies each directly named 51929/51932 candidate configuration against the immutable Python snapshot.
     /// This synthetic parity is migration evidence and is not a direct owner product golden.
@@ -442,7 +461,11 @@ public sealed class AbMergeGoldenRegressionTests
 
     private static JsonElement ReadGoldenCase(string caseId)
     {
-        return CanonicalGoldenTestData.LoadDirectCase("ab-merge", caseId);
+        JsonElement goldenCase = CanonicalGoldenTestData.LoadDirectCase("ab-merge", caseId);
+        _ = CanonicalGoldenTestData.RequireDisposition(
+            goldenCase,
+            CanonicalGoldenTestDispositionKind.DirectFullOutput);
+        return goldenCase;
     }
 
     private static Dictionary<string, byte[]> ReadInputs(JsonElement goldenCase)
