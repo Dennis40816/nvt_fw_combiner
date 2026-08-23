@@ -92,3 +92,30 @@ Verification includes every approved enable/conflict/disable transition,
 independent typed TPA/TPB health, locked TPB selection while linked, output-byte
 and operation parity against two independent equal-content TP files, complete
 UI Smoke, Architecture, structure/Polytail, and independent R2 review.
+
+## 2026-08-24 shared selected-slot Clear action
+
+The owner approved one shared Presentation-only Clear action for an already
+selected fixed-workflow firmware slot. The action reuses the existing
+`FirmwareSlotCard`, session selection lifecycle, typed readiness owners, and
+dependent inspection refresh. It clears only in-memory authoring state, never
+deletes the selected source file, and adds no parser, cache, profile, executor,
+or workflow-specific service. The linked AB same-TP state clears its shared
+selection through the existing TPA-owned lifecycle; independent slots remain
+independent.
+
+Relative to the preceding `SEL-03` checkpoint, full production changes from
+110,383 to 110,547 (+164). The non-UI runtime metric remains 535 files / 75,287
+nonblank lines; Domain plus Profiles remains 20,632, Application remains
+33,474, Bootstrap plus CLI plus Desktop host remains 3,503, and Infrastructure
+plus Contracts plus CRC worker remains 17,678. The executable full-production
+allowance therefore becomes exactly 7,651 above the frozen pre-v0.10.6 ratchet;
+every non-UI slice allowance remains unchanged. This named R1 allowance is a
+non-transferable exact descending ceiling and does not close or fund the
+separate repository-wide single-implementation, layering, unused-module, and
+code-size audit.
+
+Verification covers Standard Merge dependency recomputation, the NT51950
+DP-first waiting-for-TP lifecycle, independent and linked AB selection clearing,
+CtrlRAM base/region-derived state, source-file preservation, real shared-card
+interaction, and exact 480/900 Light/Dark geometry without card reflow.

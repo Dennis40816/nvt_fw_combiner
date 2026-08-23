@@ -219,6 +219,7 @@ internal sealed partial class ShellTextResources
             OutputFillByteLabel = Pick("Fill byte", "填充值元組"),
             OutputFillBytePlaceholder = "0x00",
             BrowseLabel = Pick("Browse", "瀏覽"),
+            ClearFirmwareSelectionLabel = Pick("Clear selected file", "清除已選檔案"),
             RequiredLabel = Pick("Required", "必填"),
             OptionalLabel = Pick("Optional", "選填"),
             NoBinSelectedLabel = Pick("No BIN selected", "尚未選擇 BIN"),

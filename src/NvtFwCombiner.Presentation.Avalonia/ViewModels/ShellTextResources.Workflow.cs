@@ -55,6 +55,8 @@ internal sealed partial class ShellTextResources
 
     public string BrowseLabel { get; private init; } = string.Empty;
 
+    public string ClearFirmwareSelectionLabel { get; private init; } = string.Empty;
+
     public string RequiredLabel { get; private init; } = string.Empty;
 
     public string OptionalLabel { get; private init; } = string.Empty;

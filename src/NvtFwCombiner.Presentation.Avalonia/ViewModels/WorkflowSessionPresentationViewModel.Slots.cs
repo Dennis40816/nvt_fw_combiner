@@ -1,3 +1,5 @@
+using NvtFwCombiner.Domain.Composition;
+
 namespace NvtFwCombiner.Presentation.Avalonia.ViewModels;
 
 internal sealed partial class WorkflowSessionPresentationViewModel
@@ -100,6 +102,94 @@ internal sealed partial class WorkflowSessionPresentationViewModel
         _stateBindings.RefreshCommandState();
     }
 
+    /// <summary>Clears one selected fixed-workflow slot without mutating its source file.</summary>
+    public async Task ClearSlotFileAsync(
+        string slotId,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(slotId);
+        if (!IsWorkflowLoaded || ActiveInspectionContext is not { } context)
+        {
+            return;
+        }
+
+        FirmwareSlotViewModel? slot = FindInspectionSlot(context, slotId);
+        if (slot is null || !slot.HasFile)
+        {
+            return;
+        }
+
+        FirmwareSlotViewModel[] slotsToClear = ResolveSlotsToClear(context, slot);
+        bool clearsBase = slotsToClear.Contains(_replace.ReplaceBaseSlot);
+        if (context.IsReplace)
+        {
+            _replace.InvalidateCtrlRamFirmwareVersionContextState();
+        }
+        InvalidateFirmwareInspection(context.Owner, clearBaseProjection: clearsBase);
+        InvalidateFirmwareIcMismatch();
+        InvalidateFirmwareNumberMismatch();
+        foreach (FirmwareSlotViewModel retained in InspectionSlots(context).Where(static item => item.HasFile))
+        {
+            retained.SetFirmwareFacts([]);
+            retained.ClearInputInspection();
+            retained.ClearCurrentInspectionProjection();
+        }
+        foreach (FirmwareSlotViewModel selected in slotsToClear)
+        {
+            ClearFirmwareSlot(selected);
+        }
+
+        if (context.IsMerge)
+        {
+            _merge.RefreshMergeMemoryMapState();
+        }
+        else
+        {
+            if (clearsBase && context.IsCtrlRamReplace)
+            {
+                _replace.ClearCtrlRamBaseSelectionState();
+            }
+            else
+            {
+                _replace.RefreshReplaceMemoryMapState();
+            }
+        }
+
+        NotifySlotFileOutputNames();
+        _stateBindings.ResetRunResult();
+        _stateBindings.RefreshCommandState();
+        Task refresh = context.IsMerge
+            ? RefreshSelectedMergeFirmwareInspectionsAsync()
+            : RefreshSelectedReplaceFirmwareInspectionsAsync();
+        await refresh.WaitAsync(cancellationToken);
+    }
+
+    private Task ClearSlotFileFromCommandAsync(string? slotId)
+    {
+        return string.IsNullOrWhiteSpace(slotId)
+            ? Task.CompletedTask
+            : ClearSlotFileAsync(slotId);
+    }
+
+    private FirmwareSlotViewModel[] ResolveSlotsToClear(
+        WorkflowInspectionContext context,
+        FirmwareSlotViewModel slot)
+    {
+        bool clearsLinkedPair = context.IsAbMerge && _merge.UseSameTpForAbMerge &&
+            (_merge.MirrorsAbTpSelection(slot.SlotId) ||
+                _merge.BlocksIndependentAbTpSelection(slot.SlotId));
+        return clearsLinkedPair
+            ?
+            [
+                .. _merge.AbMergeSlotsByAddressSpace
+                    .Where(static pair => pair.Key is
+                        CompositionAddressSpaceIds.TpAInput or CompositionAddressSpaceIds.TpBInput)
+                    .Select(static pair => pair.Value)
+                    .Distinct(),
+            ]
+            : [slot];
+    }
+
     private FirmwareSlotViewModel? SelectSlotFile(
         WorkflowInspectionContext context,
         string slotId,
@@ -168,5 +258,6 @@ internal sealed partial class WorkflowSessionPresentationViewModel
         slot.FilePath = null;
         slot.SetFirmwareFacts([]);
         slot.ClearInputInspection();
+        slot.ClearCurrentInspectionProjection();
     }
 }

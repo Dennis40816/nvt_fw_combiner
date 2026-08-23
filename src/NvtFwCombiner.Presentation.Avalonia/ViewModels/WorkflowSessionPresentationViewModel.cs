@@ -42,9 +42,12 @@ internal sealed partial class WorkflowSessionPresentationViewModel : ObservableO
         DismissFirmwareIcMismatchCommand = new RelayCommand(DismissFirmwareIcMismatch);
         AcceptFirmwareNumberMismatchCommand = new RelayCommand(AcceptFirmwareNumberMismatch);
         DismissFirmwareNumberMismatchCommand = new RelayCommand(DismissFirmwareNumberMismatch);
+        ClearSlotFileCommand = new AsyncRelayCommand<string>(ClearSlotFileFromCommandAsync);
     }
 
     public ShellTextResources Text => _textProvider();
+
+    public IAsyncRelayCommand<string> ClearSlotFileCommand { get; }
 
     internal bool IsApplyingFirmwareInspectionContext { get; set; }
 

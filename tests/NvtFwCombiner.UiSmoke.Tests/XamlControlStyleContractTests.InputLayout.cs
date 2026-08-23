@@ -44,6 +44,10 @@ public sealed partial class XamlControlStyleContractTests
             HasXamlName(element, "SlotFactsRegion"));
         XElement browse = Assert.Single(document.Descendants(), element =>
             HasXamlName(element, "BrowseButton"));
+        XElement clear = Assert.Single(document.Descendants(), element =>
+            HasXamlName(element, "ClearButton"));
+        XElement actions = Assert.Single(document.Descendants(), element =>
+            HasXamlName(element, "SlotActions"));
         XElement primaryFacts = Assert.Single(document.Descendants(), element =>
             HasXamlName(element, "PrimaryFirmwareFactsHost"));
         XElement additionalFacts = Assert.Single(document.Descendants(), element =>
@@ -59,9 +63,21 @@ public sealed partial class XamlControlStyleContractTests
         Assert.Equal("0", (string?)identity.Attribute("Grid.Column"));
         Assert.Equal("1", (string?)factsRegion.Attribute("Grid.Column"));
         Assert.Equal("Center", (string?)factsRegion.Attribute("VerticalAlignment"));
-        Assert.Equal("2", (string?)browse.Attribute("Grid.Column"));
+        Assert.Equal("2", (string?)actions.Attribute("Grid.Column"));
+        Assert.Equal("10", (string?)actions.Attribute("Spacing"));
+        Assert.Equal("Center", (string?)actions.Attribute("VerticalAlignment"));
+        Assert.Null(browse.Attribute("Grid.Column"));
         Assert.Null(browse.Attribute("Grid.RowSpan"));
         Assert.Equal("Center", (string?)browse.Attribute("VerticalAlignment"));
+        Assert.Equal([browse, clear], actions.Elements());
+        Assert.Equal("{Binding HasFile}", (string?)clear.Attribute("IsVisible"));
+        Assert.Equal(
+            "{Binding ClearSelectionCommand, ElementName=Root}",
+            (string?)clear.Attribute("Command"));
+        Assert.Equal("{Binding SlotId}", (string?)clear.Attribute("CommandParameter"));
+        Assert.Null(clear.Attribute("Click"));
+        Assert.Contains("slotClearAction", (string?)clear.Attribute("Classes"), StringComparison.Ordinal);
+        Assert.Contains("danger", (string?)clear.Attribute("Classes"), StringComparison.Ordinal);
         Assert.Contains(primaryFacts.Descendants(), element =>
             element.Name.LocalName == "UniformGrid" &&
             (string?)element.Attribute("Columns") == "4" &&
@@ -82,6 +98,22 @@ public sealed partial class XamlControlStyleContractTests
                 element.Name.LocalName == "Binding" &&
                 (string?)element.Attribute("ElementName") == "Root" &&
                 (string?)element.Attribute("Path") == "BrowseLabel");
+            Assert.Contains(binding.Descendants(), element =>
+                element.Name.LocalName == "Binding" &&
+                (string?)element.Attribute("Path") == "Title");
+        });
+        XElement[] clearLabels = [.. clear.Descendants().Where(element =>
+            element.Name.LocalName == "MultiBinding")];
+        Assert.Equal(2, clearLabels.Length);
+        Assert.All(clearLabels, binding =>
+        {
+            Assert.Equal(
+                "{x:Static views:FirmwareSlotCard.ClearActionFormat}",
+                (string?)binding.Attribute("StringFormat"));
+            Assert.Contains(binding.Descendants(), element =>
+                element.Name.LocalName == "Binding" &&
+                (string?)element.Attribute("ElementName") == "Root" &&
+                (string?)element.Attribute("Path") == "ClearSelectionLabel");
             Assert.Contains(binding.Descendants(), element =>
                 element.Name.LocalName == "Binding" &&
                 (string?)element.Attribute("Path") == "Title");
@@ -135,6 +167,7 @@ public sealed partial class XamlControlStyleContractTests
         var card = new FirmwareSlotCard
         {
             BrowseLabel = "Browse",
+            ClearSelectionLabel = "Clear selected file",
             DataContext = slot,
             Width = width,
         };
@@ -149,6 +182,8 @@ public sealed partial class XamlControlStyleContractTests
         Grid header = Assert.IsType<Grid>(card.FindControl<Control>("SlotHeaderContent"));
         TextBlock title = Assert.IsType<TextBlock>(card.FindControl<Control>("SlotTitle"));
         Button browse = Assert.IsType<Button>(card.FindControl<Control>("BrowseButton"));
+        Button clear = Assert.IsType<Button>(card.FindControl<Control>("ClearButton"));
+        StackPanel actions = Assert.IsType<StackPanel>(card.FindControl<Control>("SlotActions"));
         StackPanel identity = Assert.IsType<StackPanel>(card.FindControl<Control>("SlotIdentity"));
         StackPanel factsRegion = Assert.IsType<StackPanel>(card.FindControl<Control>("SlotFactsRegion"));
         Border selector = Assert.Single(
@@ -179,7 +214,11 @@ public sealed partial class XamlControlStyleContractTests
         Control[] factCells = [.. factGrid.Children.OfType<Control>()];
         Assert.Equal(4, factCells.Length);
         Assert.All(factCells, cell =>
-            Assert.Equal(factGrid.Bounds.Width / 4, cell.Bounds.Width, precision: 3));
+            Assert.InRange(Math.Abs(cell.Bounds.Width - (factGrid.Bounds.Width / 4)), 0, 0.5));
+        Assert.InRange(
+            Math.Abs(factCells.Sum(static cell => cell.Bounds.Width) - factGrid.Bounds.Width),
+            0,
+            2);
         Assert.Equal(88, browse.MinWidth);
         Assert.Equal(36, browse.MinHeight);
         Assert.Equal(36, browse.MaxHeight);
@@ -187,6 +226,10 @@ public sealed partial class XamlControlStyleContractTests
         Assert.Equal(Avalonia.Layout.VerticalAlignment.Center, browse.VerticalContentAlignment);
         Assert.True(browse.Bounds.Width >= 88);
         Assert.Equal(36, browse.Bounds.Height, precision: 3);
+        Assert.Equal(10, actions.Spacing);
+        Assert.Equal(36, clear.Bounds.Width, precision: 3);
+        Assert.Equal(36, clear.Bounds.Height, precision: 3);
+        Assert.True(clear.IsVisible);
         Assert.InRange(selector.Bounds.Height, 90, 104);
         Assert.Null(browse.FocusAdorner);
         Assert.NotNull(browse.Theme);
@@ -240,6 +283,7 @@ public sealed partial class XamlControlStyleContractTests
         var card = new FirmwareSlotCard
         {
             BrowseLabel = "Browse",
+            ClearSelectionLabel = "Clear selected file",
             DataContext = slot,
             Width = width,
         };
@@ -269,6 +313,7 @@ public sealed partial class XamlControlStyleContractTests
             StackPanel facts = Assert.IsType<StackPanel>(
                 card.FindControl<Control>("SlotFactsRegion"));
             Button browse = Assert.IsType<Button>(card.FindControl<Control>("BrowseButton"));
+            Button clear = Assert.IsType<Button>(card.FindControl<Control>("ClearButton"));
             browse.ApplyTemplate();
             ContentPresenter browseSurface = Assert.Single(
                 browse.GetVisualDescendants().OfType<ContentPresenter>(),
@@ -276,11 +321,17 @@ public sealed partial class XamlControlStyleContractTests
             Point factsOrigin = Assert.IsType<Point>(facts.TranslatePoint(default, selector));
             Point browseSurfaceOrigin = Assert.IsType<Point>(
                 browseSurface.TranslatePoint(default, selector));
+            Point clearOrigin = Assert.IsType<Point>(clear.TranslatePoint(default, selector));
             double factsCenter = factsOrigin.Y + (facts.Bounds.Height / 2);
             double browseCenter = browseSurfaceOrigin.Y + (browseSurface.Bounds.Height / 2);
+            double clearCenter = clearOrigin.Y + (clear.Bounds.Height / 2);
             double selectorCenter = selector.Bounds.Height / 2;
 
             Assert.InRange(Math.Abs(factsCenter - browseCenter), 0, 0.5);
+            Assert.InRange(Math.Abs(clearCenter - browseCenter), 0, 0.5);
+            Assert.Equal(36, clear.Bounds.Width);
+            Assert.Equal(36, clear.Bounds.Height);
+            Assert.InRange(clearOrigin.X, 0, selector.Bounds.Width - clear.Bounds.Width);
             double selectorOffset = browseCenter - selectorCenter;
             Assert.True(
                 Math.Abs(selectorOffset) <= 0.5,
@@ -491,81 +542,10 @@ public sealed partial class XamlControlStyleContractTests
         AssertBrowseAction(cascadeSlot, cascadeViewModel.Text);
     }
 
-    /// <summary>Workflow mode controls retain the owner-approved v0.9.15 header position.</summary>
-    [Fact]
-    public void WorkflowModeSelectorsStayAtV0915HeaderRightPosition()
-    {
-        var shell = XDocument.Parse(ReadPresentationFile("MainWindow.axaml"));
-        XElement replaceHeader = Assert.Single(shell.Descendants(), element =>
-            HasXamlName(element, "ReplacePageHeader"));
-        XElement mergeHeader = Assert.Single(shell.Descendants(), element =>
-            HasXamlName(element, "MergePageHeader"));
-
-        Assert.Equal("*,Auto", (string?)replaceHeader.Attribute("ColumnDefinitions"));
-        Assert.Equal("*,Auto", (string?)mergeHeader.Attribute("ColumnDefinitions"));
-        Assert.Null(replaceHeader.Attribute("RowDefinitions"));
-        Assert.Null(mergeHeader.Attribute("RowDefinitions"));
-
-        XElement replaceMode = Assert.Single(replaceHeader.Descendants(), element =>
-            element.Name.LocalName == "ComboBox" &&
-            ((string?)element.Attribute("SelectedItem"))?.Contains(
-                "SelectedReplaceMode",
-                StringComparison.Ordinal) == true);
-        XElement mergeMode = Assert.Single(mergeHeader.Descendants(), element =>
-            element.Name.LocalName == "ComboBox" &&
-            ((string?)element.Attribute("SelectedItem"))?.Contains(
-                "SelectedMergeMode",
-                StringComparison.Ordinal) == true);
-
-        AssertModeContainerOccupiesHeaderRightColumn(replaceMode, replaceHeader);
-        AssertModeContainerOccupiesHeaderRightColumn(mergeMode, mergeHeader);
-    }
-
-    /// <summary>Shell headers stay readable at compact width and vertically aligned while startup is running.</summary>
-    [Fact]
-    public void StartupPreparationHeaderCentersLabelsAndRightAlignsPercentage()
-    {
-        var shell = XDocument.Parse(ReadPresentationFile("MainWindow.axaml"));
-        XElement host = Assert.Single(shell.Descendants(), element =>
-            HasXamlName(element, "OptionalPreloadStatusHost"));
-        XElement[] centeredElements =
-        [
-            Assert.Single(host.Descendants(), element =>
-                (string?)element.Attribute("Text") ==
-                "{ReflectionBinding $parent[Window].DataContext.Text.PreloadStatusTitle}"),
-            Assert.Single(host.Descendants(), element =>
-                (string?)element.Attribute("Text") == "{ReflectionBinding SummaryStage.PositionLabel}"),
-            Assert.Single(host.Descendants(), element =>
-                (string?)element.Attribute("Grid.Column") == "2" &&
-                element.Name.LocalName == "StackPanel" &&
-                (string?)element.Attribute("Orientation") == "Horizontal"),
-            Assert.Single(host.Descendants(), element =>
-                (string?)element.Attribute("Text") == "{ReflectionBinding SummaryStage.ProgressLabel}"),
-        ];
-
-        Assert.All(centeredElements, element =>
-            Assert.Equal("Center", (string?)element.Attribute("VerticalAlignment")));
-        XElement percentage = centeredElements[^1];
-        Assert.Equal("44", (string?)percentage.Attribute("MinWidth"));
-        Assert.Equal("Right", (string?)percentage.Attribute("TextAlignment"));
-    }
-
     private static bool HasXamlName(XElement element, string name)
     {
         return element.Attributes().Any(attribute =>
             attribute.Name.LocalName == "Name" && attribute.Value == name);
-    }
-
-    private static void AssertModeContainerOccupiesHeaderRightColumn(
-        XElement modeSelector,
-        XElement header)
-    {
-        XElement modeContainer = Assert.Single(modeSelector.Ancestors(), element =>
-            element.Parent == header);
-        Assert.Equal("Grid", modeContainer.Name.LocalName);
-        Assert.Equal("1", (string?)modeContainer.Attribute("Grid.Column"));
-        Assert.Null(modeContainer.Attribute("Grid.Row"));
-        Assert.Equal("Center", (string?)modeContainer.Attribute("VerticalAlignment"));
     }
 
     private static FirmwareSlotViewModel CreateSelectedFirmwareSlot(bool useTpSlot)

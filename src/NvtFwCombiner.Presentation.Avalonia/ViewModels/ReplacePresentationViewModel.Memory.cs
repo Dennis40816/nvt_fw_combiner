@@ -61,6 +61,13 @@ internal sealed partial class ReplacePresentationViewModel
         NotifyCoverageGroupingChanged();
     }
 
+    /// <summary>Returns dynamic CtrlRAM inputs to discovery state after their Base identity is cleared.</summary>
+    internal void ClearCtrlRamBaseSelectionState()
+    {
+        ClearCtrlRamInspectionDisplay();
+        RefreshReplaceModeState();
+    }
+
     internal void ApplyCtrlRamInspectionDisplay(CtrlRamInspectionDisplay display)
     {
         ArgumentNullException.ThrowIfNull(display);

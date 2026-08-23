@@ -5,7 +5,9 @@
     xmlns:vm="using:NvtFwCombiner.Presentation.Avalonia.ViewModels">
 
 <DataTemplate x:Key="FirmwareSlotCardTemplate" DataType="vm:FirmwareSlotViewModel">
-  <views:FirmwareSlotCard BrowseLabel="{ReflectionBinding $parent[Window].DataContext.Text.BrowseLabel}" />
+  <views:FirmwareSlotCard BrowseLabel="{ReflectionBinding $parent[Window].DataContext.Text.BrowseLabel}"
+                          ClearSelectionLabel="{ReflectionBinding $parent[Window].DataContext.Text.ClearFirmwareSelectionLabel}"
+                          ClearSelectionCommand="{ReflectionBinding $parent[Window].DataContext.WorkflowSession.ClearSlotFileCommand}" />
 </DataTemplate>
 
 <DataTemplate x:Key="ReplaceModeContentTemplate" DataType="vm:ReplacePresentationViewModel">

@@ -1,5 +1,6 @@
 using System.Globalization;
 using System.Text;
+using System.Windows.Input;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Input;
@@ -15,6 +16,9 @@ public sealed partial class FirmwareSlotCard : UserControl
     public const string BrowseActionFormat = "{0} — {1}";
     private static readonly CompositeFormat BrowseActionCompositeFormat = CompositeFormat.Parse(BrowseActionFormat);
 
+    /// <summary>Formats the shared visible and assistive Clear phrase.</summary>
+    public const string ClearActionFormat = "{0} — {1}";
+
     internal Func<global::Avalonia.Platform.Storage.IStorageProvider, string, Task<string?>> PickFirmwareFileAsync { get; init; } =
         FirmwareFilePickerDialogs.PickFirmwareBinOpenFileAsync;
 
@@ -26,6 +30,28 @@ public sealed partial class FirmwareSlotCard : UserControl
     {
         get => GetValue(BrowseLabelProperty);
         set => SetValue(BrowseLabelProperty, value);
+    }
+
+    /// <summary>Defines the localized selected-file clear label.</summary>
+    public static readonly StyledProperty<string> ClearSelectionLabelProperty =
+        AvaloniaProperty.Register<FirmwareSlotCard, string>(nameof(ClearSelectionLabel), string.Empty);
+
+    /// <summary>Gets or sets the localized selected-file clear label.</summary>
+    public string ClearSelectionLabel
+    {
+        get => GetValue(ClearSelectionLabelProperty);
+        set => SetValue(ClearSelectionLabelProperty, value);
+    }
+
+    /// <summary>Defines the shared selected-file clear command.</summary>
+    public static readonly StyledProperty<ICommand?> ClearSelectionCommandProperty =
+        AvaloniaProperty.Register<FirmwareSlotCard, ICommand?>(nameof(ClearSelectionCommand));
+
+    /// <summary>Gets or sets the shared selected-file clear command.</summary>
+    public ICommand? ClearSelectionCommand
+    {
+        get => GetValue(ClearSelectionCommandProperty);
+        set => SetValue(ClearSelectionCommandProperty, value);
     }
 
     /// <summary>Initializes the firmware slot card.</summary>
@@ -119,4 +145,5 @@ public sealed partial class FirmwareSlotCard : UserControl
             await viewModel.WorkflowSession.SetSlotFileAsync(slotId, path);
         }
     }
+
 }
