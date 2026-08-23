@@ -9,6 +9,12 @@ Current-head refresh: 2026-08-23 at
 numeric inventory and verification counts below where explicitly stated; it
 does not rewrite the original 2026-08-22 provenance.
 
+Adversarial architecture follow-up: 2026-08-23 at docs-only audit head
+`7f853623fc839723bea28d74d8602585332ca563`. This follow-up records pre-existing
+boundary and verification-strategy debt that the earlier scoped selector
+reviews did not assess. It is refactor input, not evidence of a new firmware
+byte regression.
+
 ## Scope and method
 
 The audit covers every production project under `src/` at audited feature
@@ -37,7 +43,7 @@ for catalog, input inspection, execution, naming, memory layout, processor
 plans, page isolation, persistence, and retired compatibility paths.
 
 One concrete dependency defect, one owner-decision-only adapter candidate, and
-four structural refactor candidates remain. They do not justify broad
+ten structural refactor candidates remain. They do not justify broad
 refactoring before the current functional verification is finished. The
 refresh still finds no `workaround`, `obsolete`, or `deprecated` marker in
 production source; text occurrence is not used as proof that a module is live
@@ -143,6 +149,95 @@ tests. This remains an explicit owner decision from the `v0.10.4` audit, not an
 automatic deletion: delete the concrete adapter only if the owner confirms
 that external Saved Rule identity adapters are not a compatibility boundary.
 
+### A6 — workflow-specific execution dispatch (high)
+
+`CompositionExecutionExperience` still switches on `session.WorkflowId` and
+dispatches Standard Merge, AB Merge, General Merge, General Replace, DP
+Replace, and CtrlRAM Replace through workflow-specific methods before reaching
+the shared `CompositionRunService`. The byte engine remains single, so this is
+not a second firmware executor, but it conflicts with `SPEC.md` and ADR 0003,
+which require the executor not to branch on experience identifiers.
+
+After canonical Golden and manual flow evidence are frozen, bind the remaining
+workflow-specific preparation, readiness, delivery, and report facts into one
+typed accepted execution envelope. Make `ICompositionExecution` consume that
+envelope without an experience switch. Preserve the sole planner/engine,
+operation order, ranges, processors, output bytes, names, and reports.
+
+### A7 — friend-assembly boundary permeability (high)
+
+Application exposes internals to Infrastructure and Bootstrap; Domain and
+Profiles also expose semantic internals to those upper layers. Infrastructure
+currently constructs against concrete Application internals including
+`CanonicalCapabilityCompilerAdapter`, `StandardMergeAuthoringExperience`,
+`AbMergeAuthoringExperience`, `DpReplaceAuthoringExperience`, and
+`CtrlRamAuthoringExperience`. Assembly reference direction is legal, but the
+contract boundary is not narrow: internal implementation changes propagate
+across layers.
+
+Replace production friend access one bounded caller set at a time with the
+existing focused ports or the smallest missing typed port. Do not make all
+internals public and do not move firmware semantics into Infrastructure. Lock
+the permitted friend list and compiled dependency graph with architecture
+tests before removing each access.
+
+### A8 — hidden build-time trust validator (high)
+
+`NvtFwCombiner.Bootstrap.csproj` contains a RoslynCodeTaskFactory implementation
+of more than five hundred lines that hashes schemas and manually restates
+trust-index, manifest, closed-field, identifier, SemVer, path, and hash rules.
+Runtime Infrastructure separately loads and validates the same package family.
+Independent build/runtime rejection is required, but two handwritten semantic
+interpretations can drift, and the inline C# is omitted from ordinary
+production C#/AXAML size reporting.
+
+Retain two independent enforcement points while converging on one normative
+schema/contract implementation. Move the build operation to a focused tested
+build tool or shared contract validator rather than another runtime service;
+Bootstrap must return to wiring/materialization only. Preserve schema hash
+binding, closed package admission, and fail-closed behavior.
+
+### A9 — architecture-test strategy overfits source text (high)
+
+The Architecture suite passes 219 tests while A1 remains present because
+`ProjectDependencyTests` protects only the Domain project graph. Most boundary
+tests read source text and assert token presence/absence. These sentinels are
+useful for forbidden legacy symbols, but a matching string somewhere in a
+concatenated source set does not prove the compiled reference graph, concrete
+call path, dispatch behavior, or single semantic owner.
+
+Keep source sentinels only where literal absence is the contract. Add exact
+project-reference, assembly dependency, friend-access, public-contract, and
+behavior/work-count tests for the high-value boundaries. Each new architecture
+refactor must first add a red-capable guard for the defect it removes.
+
+### A10 — broad Bootstrap host exposure (medium)
+
+`CompositionHostServices` publicly exposes catalog, authoring, inspection,
+naming, execution, file, diagnostics, and version-management capabilities.
+Desktop narrows these into Presentation services, but CLI handlers receive the
+broad Bootstrap host directly. This is typed, not a string service locator, but
+it allows handlers to reach unrelated capabilities and conflicts with the
+SPEC's wiring-only Bootstrap target.
+
+Create the smallest CLI dependency record or focused handler parameters at the
+entry-point composition boundary. Keep object construction in Bootstrap and
+do not introduce a DI framework or a second application facade.
+
+### A11 — single-evaluation and immutable-evidence enforcement (medium)
+
+Infrastructure has multiple compilation/evaluation sites for route inventory,
+dynamic routes, capability disclosure, and readiness. Determinism tests are
+green, but no work-count contract proves one parse/inspect/resolve/compile per
+accepted revision. `CompositionRunResult` also exposes internal setters that
+are populated after construction, so immutable run evidence is a convention
+rather than a type-enforced boundary.
+
+Add invocation-count and identity-sharing tests before consolidating repeated
+evaluation. Then construct the complete run result once, or use one private
+builder that returns an immutable result. Do not add a process-global cache or
+change report/output identity.
+
 ## 2026-08-23 code-size refresh
 
 All measurements use the physical nonblank rules in
@@ -226,6 +321,52 @@ routes are authoring-available, but availability is not certification: 76 are
 | General Merge | 10 / 10 | 0 | 10 | Candidate-profile, CLI, Saved Rule, initializer/mapping/engine tests | R3 owner/evidence decision for stale promotion-blocker metadata; owner-visible mapping/Build check |
 | General Replace | 1 / 1 | 0 | 1 | Candidate profile, postbuild readiness, patch, ADR 0044 plan-only Diagnostic Preview, memory projection and UI tests | Owner-visible POSTBUILD/tool-unavailable and output-delivery check; ADR 0044 grants no fixed-workflow Diagnostic Preview authority |
 
+The route-policy `DirectGolden` column above is a publication/evidence-status
+fact and is not the physical canonical fixture count. A separate point check at
+`7f853623` found 46 canonical cases and 248 physical artifacts totaling
+50,904,224 bytes. Every declared physical path, size, SHA-256, case identity,
+workflow, and alias source resolved without error:
+
+| Canonical workflow | Direct Golden | Direct input evidence | Fact-scoped alias | Current executable disposition |
+| --- | ---: | ---: | ---: | --- |
+| Standard Merge | 11 | 0 | 2 | The data-driven workbench runner executes all 11 direct cases byte-for-byte and both approved aliases. |
+| AB Merge | 3 | 0 | 4 | Bootstrap Golden tests execute the NT51929 direct case, both NT51950 direct cases, approved NT51919/NT51932 alias parity, and the separately scoped NT51951 synthetic plan. |
+| CtrlRAM Replace | 18 | 2 | 6 | Canonical-backed per-family tests cover most active cases, but there is no closed manifest-to-runner coverage gate and some consumers still read the legacy CtrlRAM evidence root. |
+
+Focused evidence passed on 2026-08-23: canonical Python validation 57/57,
+`NvtFwCombiner.GoldenRegression.Tests` 17/17, and AB Golden regression 8/8.
+This does not yet prove every retained canonical case has the right executable
+test. No current C# canonical runner names the two NT51920 direct cases, the
+NT51930 direct case, or the NT51931 direct case. The owner explicitly retired
+NT51920, NT51930, and NT51931 on 2026-08-23, so these gaps must be removed with
+their active catalog, test, package, and Golden residue rather than filled with
+new runners. The handoff records that bounded R3 evidence cleanup as
+`RET-IC-01`; immutable `refcode/` and accepted historical provenance remain.
+After retirement, recompute the canonical denominator and fail-closed
+dispositions. NT51926 FW 1.4.1 cascade intake partly uses canonical artifacts
+while a complete regression still reads
+`testdata/golden/ctrlram-replace/manifest.json`. Bundle CLI, CtrlRAM CLI, and UI
+fixture helpers also retain direct legacy-root consumers.
+
+`RET-IC-01` candidate result on 2026-08-23 removes the seven retired Direct
+Golden cases and all retired-only active evidence consumers. The resulting
+closed inventory is 39 cases, 174 artifacts, and 41,160,570 bytes: Standard
+Merge 8 Direct Golden + 2 aliases; AB Merge unchanged at 3 Direct Golden + 4
+aliases; CtrlRAM Replace 14 Direct Golden + 2 Direct Evidence + 6 aliases. A
+pre-delete survivor ledger now locks the complete normalized JSON of all 39
+case manifests and the exact 174 `(caseId, artifactId, role, path, size,
+sha256)` facts. Raw map/Postbuild/source-generator snapshots remain
+byte-identical historical provenance; they are not runtime, selector,
+publication-policy, or executable-Golden authority.
+
+The required closure is data-driven and fail-closed: every canonical case must
+be claimed as exactly one of active direct full-output execution, explicitly
+explained allowed-byte-difference execution, retired/non-executable artifact
+integrity plus route-blocking evidence, input-only direct evidence, or
+fact-scoped alias resolution. A new canonical case without a declared runner
+disposition must fail verification. Alias and input-only evidence must never be
+promoted to direct product parity.
+
 The route-level matrix is supplemented by the following cross-cutting surface
 matrix. `Automated green` means the frozen verifier protects the declared
 behavior; it never promotes a route or replaces a visual/OS/firmware-owner
@@ -257,11 +398,23 @@ Before checking any item, record `candidate build / commit`, `executor`,
 hash, or signed review note) next to that item. Blank metadata is a failing
 gate, not an implicit pass.
 
-- [ ] Standard Merge: representative ordinary, TP-first and NT51950 DP-first
+- [x] Standard Merge: representative ordinary, TP-first and NT51950 DP-first
   selection through native Browse/drop, Preview, Build, output name and report.
-- [ ] AB Merge: every exposed topology, two independent TP cards, same/different
-  TP intent, additional A delivery, output name and report. Same-TP authoring
-  stays blocked until its separate approved implementation lands.
+  **Owner-visible acceptance recorded 2026-08-23:** candidate production
+  baseline `0.10.6@c660e84e` under docs-only audit head `7f853623`; executor
+  repository owner Dennis; result PASS for the currently exposed Standard Merge
+  flow; evidence reference is the owner's explicit acceptance in this task,
+  supplemented by the canonical Standard full-byte regression suite.
+- [x] AB Merge, currently exposed surface: exposed topology selection, two
+  independent TP cards, additional A delivery, output name and report.
+  **Owner-visible acceptance recorded 2026-08-23:** candidate production
+  baseline `0.10.6@c660e84e` under docs-only audit head `7f853623`; executor
+  repository owner Dennis; result PASS for the currently exposed independent-
+  TP flow; evidence reference is the owner's explicit acceptance in this task,
+  supplemented by focused AB Golden regression 8/8. The approved future
+  `Use the same TP for A and B` option is not yet an exposed surface and remains
+  separately open in the selector TODO; it requires its own automated and
+  owner-visible acceptance after implementation.
 - [ ] DP Replace: representative retained route, exact-capacity failure,
   Preview/Build and output name, without treating AB FlashCode as Normal DP
   authority. Final owner keep/gate/retire decision remains separate.
@@ -302,13 +455,25 @@ is insufficient.
 
 ## Refactor order after functional freeze
 
-1. Fix A1 and lock the exact project-reference graph.
-2. Extract the shallow shell slices in A2 without changing the six session
+1. Close the canonical Golden manifest-to-runner coverage gate and accept the
+   owner-visible functional-freeze ledger; do not begin structural changes
+   before this prerequisite.
+2. Fix A1 and add the exact project-reference graph portion of A9.
+3. Reduce A7 friend access and A10 broad host exposure one compiled caller set
+   at a time, with a narrow port and exact dependency tests for each slice.
+4. Replace A6 workflow dispatch with one fully bound accepted execution
+   envelope. Protect every workflow with direct Golden, synthetic oracle, and
+   manual-flow evidence appropriate to its declared evidence class.
+5. Extract A8's build validator into one focused, independently tested
+   schema-bound tool while preserving separate build/runtime enforcement.
+6. Extract the shallow shell slices in A2 without changing the six session
    identities or page-isolation behavior.
-3. Decompose internal compiler/run phases in A3 one golden-protected vertical
-   slice at a time.
-4. Re-audit readiness/naming/persistence after each slice; delete only a
-   confirmed obsolete owner, never add a second path for migration convenience.
+7. Decompose internal compiler/run phases in A3 and enforce A11 single
+   evaluation/immutable result construction one golden-protected vertical slice
+   at a time.
+8. Re-audit A4 readiness vocabulary and A5 deletion candidates after each
+   slice; delete only a confirmed obsolete owner and never add a second path for
+   migration convenience.
 
 Every refactor slice must first pass the repository capability-reuse gate and
 record `reuse`, `extend-owner`, `delete-then-replace`, `reject-duplicate`, or an
@@ -331,10 +496,13 @@ UI 639, Domain 411, Application 687, Infrastructure 560 total, Profile
 Contract 387, Golden 17, and Architecture 219. The unchanged coverage policy
 passed at 61,393/68,581 lines (89.52%) and 19,211/24,331 branches (78.96%).
 
-Independent architecture, scoped Polytail, and route/evidence reviews found no
-P0-P2. All three verdicts are `PASS-WITH-HUMAN-GATE`: the document is a
-reliable readiness snapshot, but the unchecked manual/Windows/visual/R3 ledger
-is still blocking authority. The final docs-only refresh also passes
+The earlier independent architecture, scoped Polytail, and route/evidence
+reviews found no P0-P2 in their selector/functional-verification scope. Their
+verdicts remain `PASS-WITH-HUMAN-GATE` for those diffs. The later adversarial
+whole-architecture review adds A6-A11 as pre-existing refactor blockers; it
+does not claim a new byte regression or invalidate the scoped test passes. The
+unchecked manual/Windows/visual/R3 ledger still blocks functional-freeze
+authority. The final docs-only refresh also passes
 `python scripts/verify.py --structure-only`.
 
 The refreshed non-blocking code-size warnings remain explicit refactor inputs:
@@ -342,7 +510,7 @@ The refreshed non-blocking code-size warnings remain explicit refactor inputs:
 satisfying the exact ADR 0021 ratchet; `MainWindowViewModel` remains 1,060
 lines against its 985-line partial-aggregate review threshold; and
 `ShellTextResources` is 2,503 lines against the 2,500 default review threshold.
-Findings A1–A5 and the Saved Rule adapter owner decision remain open for
+Findings A1–A11 and the Saved Rule adapter owner decision remain open for
 post-functional-freeze work. The audit itself does not approve firmware-
 semantic, version-activation, persistence, or UI behavior changes.
 

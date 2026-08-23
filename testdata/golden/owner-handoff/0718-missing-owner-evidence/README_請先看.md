@@ -18,13 +18,10 @@ owner 決定已關閉所有 owner 補件 gate；以下 P0/P1 舊列不得再當�
 
 | 優先 | Case | 仍缺內容 |
 | --- | --- | --- |
-| P0 | NT51930 Common FW 1.3 cascade | 同一次 run 的正確 `DiffDLM.bin`，或能解釋既有三個 Diff 檔如何產生正式輸出的命令、log 與 input/output hash |
-| 已關閉 owner 補件 | NT51931 AUTO_PRJ-158 cascade 6 | Exact input/expected/BAT/hash 已納入；InsertSID 不阻塞。Registered 1.13.0/51931-based、retained V1 與 exact V2 route 已完成 full-byte/process parity；僅維持 support-neutral/no-promotion policy |
 | P0 | NT51932 cascade | 正確 `DiffDLM.bin` 或其生成命令／log／hash；以及 DiffNFMerge 完成後的 `NF_Ctrlram.bin` 或等價 input/output hash 與 log |
 | P0 | NT51950 CtrlRAM cascade | 同一次 run 的 Normal、VN、NF、DiffDLM 與完整最終 FlashCode |
 | 已關閉 | NT51951 CtrlRAM single | AUTO_PRJ-695 修正版已納入；V1/V2 full-byte 相同，1.11 expected 與 1.13 結果只差四個已分類 CRC words，不再需要 owner 補件 |
 | 範圍排除 | NT51951 CtrlRAM cascade | 目前沒有實際 product project，排除於 v0.9.9 release scope，不是缺少 evidence |
-| P0 | NT51930 DP Replace direct golden | 以既有 Standard Merge expected FlashCode 作 Reference FlashCode 時，提供實際 replacement DP／FlashCode 與完整最終 expected FlashCode，並在 `Reply.md` 確認 reference 身分 |
 | P1 | NT51926 Common FW 2.0.0 | 提供 single/cascade evidence，或只在 `Reply.md` 明確核准排除於 stable v0.9.9 範圍 |
 | P1 | General Replace migration | 先核准 protected ranges、mapping envelope、overlap/alignment 與 release IC/count；再提供代表性的 TP/CtrlRAM-touching input、mapping 與完整 expected FlashCode |
 
@@ -34,7 +31,7 @@ owner 決定已關閉所有 owner 補件 gate；以下 P0/P1 舊列不得再當�
 - NT51950 AB direct golden（兩個 product case）。
 - NT51932 AB：已核准使用 NT51929 的 fact-scoped family evidence，不另要 product golden。
 - NT51951 AB：已核准使用 NT51950 的 workflow-logic evidence，不另要 product golden。
-- NT51920、NT51923 single/cascade 的目前實體 inputs 與 expected output。
+- NT51923 single/cascade 的目前實體 inputs 與 expected output。
 - NT51926 Common FW 1.4.1 single/cascade 的目前 inputs 與 expected output。
 - NT51927 single、2-chip、3-chip 的目前 inputs 與 expected output。
 - NT51929 non-AB single 的目前 inputs 與 expected output。

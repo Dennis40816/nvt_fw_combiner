@@ -43,7 +43,7 @@
         "recoveredAtTaipei": "2026-07-17T17:18:00+08:00",
         "sourceClassification": "private-owner-approved-golden",
         "approval": "Repository owner explicitly approved committing all supplied golden sample payloads to public Git on 2026-07-17. Technical project/AUTO_PRJ data is retained; personal data is excluded.",
-        "evidenceScope": "Nine direct CtrlRAM exact cases plus diagnostic evidence; canonicalization does not promote runtime support or release redistribution."
+        "evidenceScope": "Nine direct CtrlRAM exact cases were canonicalized from this intake. RET-IC-01 later retired the two NT51920 cases, leaving seven active direct cases; canonicalization does not promote runtime support or release redistribution."
       }
     },
     {
@@ -81,8 +81,8 @@
           "NT51950 cascade and NT51951 cascade are excluded from the v0.9.9 release scope rather than treated as missing owner evidence.",
           "General Replace must apply every replacement first and then run one complete postbuild in the same terminal/session.",
           "TP firmware version editing must occur before postbuild so CRC is calculated from the staged value.",
-          "NT51931 InsertSID is an out-of-scope pre-step for this V1 retirement and does not block exact CtrlRAM/Postbuild full-byte parity.",
-          "NT51931 selects registered Combiner 1.13.0 NT51931BASED_NORMAL_MODE after its output matched the owner 1.2.0.4 NT51930BASED_NORMAL_MODE control byte-for-byte on 2026-07-19.",
+          "Historical (retired NT51931): InsertSID was an out-of-scope pre-step for this V1 retirement and did not block exact CtrlRAM/Postbuild full-byte parity.",
+          "Historical (retired NT51931): NT51931 selected registered Combiner 1.13.0 NT51931BASED_NORMAL_MODE after its output matched the owner 1.2.0.4 NT51930BASED_NORMAL_MODE control byte-for-byte on 2026-07-19.",
           "NT51951 Combiner 1.11 and 1.13 equivalence is an owner-authorized compatibility hypothesis that must be resolved by direct 1.11-expected versus registered-1.13 parity."
         ]
       }
@@ -130,10 +130,6 @@
   ],
   "cases": [
     {
-      "caseId": "nt51920-gen-flash",
-      "manifestPath": "NT51920/standard-merge/gen-flash/topology-unscoped/nt51920-gen-flash/provenance/case.json"
-    },
-    {
       "caseId": "nt51923-gen-flash",
       "manifestPath": "NT51923/standard-merge/gen-flash/topology-unscoped/nt51923-gen-flash/provenance/case.json"
     },
@@ -160,14 +156,6 @@
     {
       "caseId": "nt51929-gen-flash",
       "manifestPath": "NT51929/standard-merge/gen-flash/topology-unscoped/nt51929-gen-flash/provenance/case.json"
-    },
-    {
-      "caseId": "51930-flashmap",
-      "manifestPath": "NT51930/standard-merge/flashmap/topology-unscoped/51930-flashmap/provenance/case.json"
-    },
-    {
-      "caseId": "nt51931-gen-flash",
-      "manifestPath": "NT51931/standard-merge/gen-flash/topology-unscoped/nt51931-gen-flash/provenance/case.json"
     },
     {
       "caseId": "nt51932-gen-flash",
@@ -218,14 +206,6 @@
       "manifestPath": "NT51926/ctrlram-replace/fw2.0.0/cascade-3/nt51926-fw200-cascade3-auto-prj-597-20260718/provenance/case.json"
     },
     {
-      "caseId": "nt51930-fw130-cascade3-auto-prj-302-inx-20260718",
-      "manifestPath": "NT51930/ctrlram-replace/fw1.3.0/cascade-3/nt51930-fw130-cascade3-auto-prj-302-inx-20260718/provenance/case.json"
-    },
-    {
-      "caseId": "nt51931-fw130-cascade6-auto-prj-158-20260718",
-      "manifestPath": "NT51931/ctrlram-replace/fw1.3.0/cascade-6/nt51931-fw130-cascade6-auto-prj-158-20260718/provenance/case.json"
-    },
-    {
       "caseId": "nt51932-fw200-cascade3-auto-prj-525-20260718",
       "manifestPath": "NT51932/ctrlram-replace/fw2.0.0/cascade-3/nt51932-fw200-cascade3-auto-prj-525-20260718/provenance/case.json"
     },
@@ -244,14 +224,6 @@
     {
       "caseId": "nt51951-fw200-single-auto-prj-695-20260718",
       "manifestPath": "NT51951/ctrlram-replace/fw2.0.0/single/nt51951-fw200-single-auto-prj-695-20260718/provenance/case.json"
-    },
-    {
-      "caseId": "nt51920-fw120-single-auto-prj-72-20260717",
-      "manifestPath": "NT51920/ctrlram-replace/fw1.2.0/single/nt51920-fw120-single-auto-prj-72-20260717/provenance/case.json"
-    },
-    {
-      "caseId": "nt51920-fw120-cascade2-auto-prj-55-20260717",
-      "manifestPath": "NT51920/ctrlram-replace/fw1.2.0/cascade-2/nt51920-fw120-cascade2-auto-prj-55-20260717/provenance/case.json"
     },
     {
       "caseId": "nt51923-fw141-single-auto-prj-662-20260717",

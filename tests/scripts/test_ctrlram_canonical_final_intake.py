@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import hashlib
 import json
 import unittest
 from pathlib import Path
@@ -27,22 +28,6 @@ FINAL_CASES = {
         "AUTO_PRJ-597",
         8,
         "2521192e6a846c8beeb49395e98977d243053efd292b094b31272fff70825825",
-    ),
-    "nt51930-fw130-cascade3-auto-prj-302-inx-20260718": (
-        "NT51930",
-        "fw1.3.0",
-        "cascade-3",
-        "AUTO_PRJ-302",
-        38,
-        "676a4b3fb1a302b9bee4b2cea795e17189d70b6d4dd20a45b3fef603afabb1a8",
-    ),
-    "nt51931-fw130-cascade6-auto-prj-158-20260718": (
-        "NT51931",
-        "fw1.3.0",
-        "cascade-6",
-        "AUTO_PRJ-158",
-        8,
-        "2268ac5b49df546a03e177b97858805f0f83fa58b3e55a3b1590899ce9fd07c3",
     ),
     "nt51932-fw200-cascade3-auto-prj-525-20260718": (
         "NT51932",
@@ -84,6 +69,48 @@ class CtrlRamCanonicalFinalIntakeTests(unittest.TestCase):
         errors: list[str] = []
         validate_canonical_golden(ROOT, errors)
         self.assertEqual([], errors)
+
+    def test_retirement_preserves_every_surviving_case_and_artifact_fact(self) -> None:
+        retired_ics = {"NT51920", "NT51930", "NT51931"}
+        cases = [
+            json.loads((CANONICAL_ROOT / entry["manifestPath"]).read_text(encoding="utf-8"))
+            for entry in self.root_manifest["cases"]
+        ]
+        self.assertTrue(retired_ics.isdisjoint(case["ic"] for case in cases))
+
+        cases.sort(key=lambda case: case["caseId"])
+        artifact_facts = sorted(
+            (
+                case["caseId"],
+                artifact["artifactId"],
+                artifact["role"],
+                artifact["path"],
+                artifact["size"],
+                artifact["sha256"],
+            )
+            for case in cases
+            for artifact in case.get("artifacts", [])
+        )
+
+        def normalized_sha256(value: object) -> str:
+            payload = json.dumps(
+                value,
+                sort_keys=True,
+                separators=(",", ":"),
+                ensure_ascii=False,
+            ).encode("utf-8")
+            return hashlib.sha256(payload).hexdigest()
+
+        self.assertEqual(39, len(cases))
+        self.assertEqual(
+            "d12ac7ea8c2ed5295ee5e2c7f52c819ce33e899887e5c54ecd130c547ac43735",
+            normalized_sha256(cases),
+        )
+        self.assertEqual(174, len(artifact_facts))
+        self.assertEqual(
+            "e11c7817c85f844ef1112bd9c2bfaa4a1b157e68d506ccc30af992d140508252",
+            normalized_sha256(artifact_facts),
+        )
 
     def test_final_case_facts_and_expected_hashes_are_exact(self) -> None:
         for case_id, expected in FINAL_CASES.items():
@@ -132,21 +159,8 @@ class CtrlRamCanonicalFinalIntakeTests(unittest.TestCase):
         artifacts = [
             artifact for case in self.cases.values() for artifact in case["artifacts"]
         ]
-        self.assertEqual(91, len(artifacts))
-        self.assertEqual(11_892_421, sum(artifact["size"] for artifact in artifacts))
-
-    def test_nt51931_historical_flashcode_is_diagnostic_only(self) -> None:
-        case = self.cases["nt51931-fw130-cascade6-auto-prj-158-20260718"]
-        diagnostic = case["diagnosticLegacyPaths"]
-        self.assertEqual(1, len(diagnostic))
-        self.assertEqual(
-            "historical-non-same-build-flashcode",
-            diagnostic[0]["classification"],
-        )
-        self.assertNotIn(
-            diagnostic[0]["sha256"],
-            {artifact["sha256"] for artifact in case["artifacts"]},
-        )
+        self.assertEqual(45, len(artifacts))
+        self.assertEqual(7_727_759, sum(artifact["size"] for artifact in artifacts))
 
     def test_recovered_tools_remain_observations_not_payloads(self) -> None:
         observations = [
@@ -154,7 +168,7 @@ class CtrlRamCanonicalFinalIntakeTests(unittest.TestCase):
             for case in self.cases.values()
             for observation in case.get("externalToolObservations", [])
         ]
-        self.assertEqual(3, len(observations))
+        self.assertEqual(1, len(observations))
         self.assertTrue(
             all(
                 artifact["originalFileName"].lower()

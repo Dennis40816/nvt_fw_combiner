@@ -132,7 +132,6 @@ class CtrlRamCanonical20260705Tests(unittest.TestCase):
             "testdata/golden/ctrlram-replace/" + path.relative_to(LEGACY_ROOT).as_posix()
             for path in LEGACY_ROOT.rglob("*.bin")
             if not path.is_relative_to(LEGACY_ROOT / "fixtures/20260717")
-            and not path.is_relative_to(LEGACY_ROOT / "fixtures/20260718")
         }
         self.assertTrue(migrated.isdisjoint(remaining))
         self.assertEqual(8, len(remaining))
