@@ -65,6 +65,10 @@ internal sealed partial class ShellTextResources
 
     public string FirmwareSlotVerifiedLabel { get; private init; } = string.Empty;
 
+    public string CtrlRamBaseInspectedLabel { get; private init; } = string.Empty;
+
+    public string CtrlRamBaseInspectedDetail { get; private init; } = string.Empty;
+
     public string FirmwareSlotWarningLabel { get; private init; } = string.Empty;
 
     public string FirmwareSlotErrorLabel { get; private init; } = string.Empty;

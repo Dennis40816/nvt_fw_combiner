@@ -7,6 +7,7 @@ namespace NvtFwCombiner.Presentation.Avalonia.ViewModels;
 internal sealed partial class FirmwareSlotViewModel
 {
     private string _checkingLabel = "Checking";
+    private string _inspectedLabel = "Base inspected";
     private string _verifiedLabel = "Verified";
     private string _warningLabel = "Warning";
     private string _errorLabel = "Error";
@@ -23,6 +24,7 @@ internal sealed partial class FirmwareSlotViewModel
                 ResolvedChildReadiness.NotApplicable => FirmwareSlotSemanticState.NotApplicable,
                 ResolvedChildReadiness.PendingInput => FirmwareSlotSemanticState.Checking,
                 ResolvedChildReadiness.Ready or null when IsInputInspectionPending => FirmwareSlotSemanticState.Checking,
+                ResolvedChildReadiness.Ready or null when IsBaseDiscoveryInspected => FirmwareSlotSemanticState.Inspected,
                 ResolvedChildReadiness.Ready or null => InputInspectionSeverity switch
                 {
                     FirmwareInputInspectionSeverity.Blocking => FirmwareSlotSemanticState.Error,
@@ -48,6 +50,8 @@ internal sealed partial class FirmwareSlotViewModel
 
     public bool IsSemanticStateChecking => SemanticState == FirmwareSlotSemanticState.Checking;
 
+    public bool IsSemanticStateInspected => SemanticState == FirmwareSlotSemanticState.Inspected;
+
     public bool IsSemanticStatePendingInput =>
         SemanticState == FirmwareSlotSemanticState.Checking &&
         SelectionReadinessState == ResolvedChildReadiness.PendingInput;
@@ -66,6 +70,7 @@ internal sealed partial class FirmwareSlotViewModel
         {
             FirmwareSlotSemanticState.Empty => string.Empty,
             FirmwareSlotSemanticState.Checking => _checkingLabel,
+            FirmwareSlotSemanticState.Inspected => _inspectedLabel,
             FirmwareSlotSemanticState.Verified => _verifiedLabel,
             FirmwareSlotSemanticState.Warning => _warningLabel,
             FirmwareSlotSemanticState.Error => _errorLabel,
@@ -86,6 +91,7 @@ internal sealed partial class FirmwareSlotViewModel
     public string SemanticStateIconPathData => SemanticState switch
     {
         FirmwareSlotSemanticState.Checking => "M12 3A9 9 0 1 0 21 12 M12 7V12L15 14",
+        FirmwareSlotSemanticState.Inspected => "M12 8A4 4 0 1 0 12 16A4 4 0 1 0 12 8",
         FirmwareSlotSemanticState.Verified => "M4 12L9 17L20 6",
         FirmwareSlotSemanticState.Warning => "M12 3L22 20H2L12 3 M12 9V14 M12 17H12.01",
         FirmwareSlotSemanticState.Error => "M12 3A9 9 0 1 0 12 21A9 9 0 1 0 12 3 M12 7V13 M12 17H12.01",
@@ -114,12 +120,18 @@ internal sealed partial class FirmwareSlotViewModel
         ArgumentNullException.ThrowIfNull(text);
 
         _checkingLabel = text.FirmwareSlotCheckingLabel;
+        _inspectedLabel = text.CtrlRamBaseInspectedLabel;
         _verifiedLabel = text.FirmwareSlotVerifiedLabel;
         _warningLabel = text.FirmwareSlotWarningLabel;
         _errorLabel = text.FirmwareSlotErrorLabel;
         _notApplicableLabel = text.FirmwareSlotNotApplicableLabel;
         _showMoreFactsTemplate = text.FirmwareSlotShowMoreFactsTemplate;
         _showFewerFactsLabel = text.FirmwareSlotShowFewerFactsLabel;
+        if (IsBaseDiscoveryInspected)
+        {
+            InputInspectionStatus = text.CtrlRamBaseInspectedDetail;
+            OnPropertyChanged(nameof(InputInspectionStatus));
+        }
         NotifySemanticStateChanged();
         OnPropertyChanged(nameof(AdditionalFirmwareFactsLabel));
     }
@@ -137,6 +149,7 @@ internal sealed partial class FirmwareSlotViewModel
         OnPropertyChanged(nameof(HasSemanticState));
         OnPropertyChanged(nameof(IsRequirementLabelVisible));
         OnPropertyChanged(nameof(IsSemanticStateChecking));
+        OnPropertyChanged(nameof(IsSemanticStateInspected));
         OnPropertyChanged(nameof(IsSemanticStatePendingInput));
         OnPropertyChanged(nameof(IsSemanticStateVerified));
         OnPropertyChanged(nameof(IsSemanticStateWarning));

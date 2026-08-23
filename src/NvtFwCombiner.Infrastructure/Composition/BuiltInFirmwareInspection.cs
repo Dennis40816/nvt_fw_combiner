@@ -165,6 +165,11 @@ internal sealed partial class BuiltInFirmwareInspection : IFirmwareInspection
                     InputSlotStatus = ctrlRamStatus,
                     InputSlotCatalog = ctrlRamInputBatch.Catalog,
                     AuthoringCompilationIssues = input.CtrlRamReplaceAddressSpaceId == CompositionAddressSpaceIds.ReferenceBase ? ctrlRamInputBatch.Issues : [],
+                    CtrlRamBaseDiscoveryReadiness =
+                        ctrlRamInputBatch.CtrlRamBaseDiscovery is { } discovery &&
+                        StringComparer.Ordinal.Equals(discovery.InspectionId, input.InspectionId)
+                            ? discovery.Readiness
+                            : CtrlRamBaseDiscoveryReadiness.NotApplicable,
                 };
             }
 

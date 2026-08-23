@@ -93,6 +93,16 @@ public enum BaseFirmwareArtifactKind
     FlashCode,
 }
 
+/// <summary>Non-terminal CtrlRAM Base discovery state before an exact replacement compilation exists.</summary>
+public enum CtrlRamBaseDiscoveryReadiness
+{
+    /// <summary>The inspection did not establish a valid base-only discovery result.</summary>
+    NotApplicable,
+
+    /// <summary>The base was inspected and may declare replacement inputs, but no replacement is compiled yet.</summary>
+    Inspected,
+}
+
 /// <summary>One read-only client projection decoded from one immutable firmware image read.</summary>
 public sealed record FirmwareInspectionSnapshot(
     string? DetectedIcId,
@@ -123,6 +133,9 @@ public sealed record FirmwareInspectionSnapshot(
 
     /// <summary>Exact typed authoring issues that prevented this input batch from compiling.</summary>
     public IReadOnlyList<CompositionIssue> AuthoringCompilationIssues { get; init; } = [];
+
+    /// <summary>Typed non-terminal CtrlRAM Base discovery result.</summary>
+    public CtrlRamBaseDiscoveryReadiness CtrlRamBaseDiscoveryReadiness { get; init; }
 }
 
 /// <summary>Optional CtrlRAM display context projected during firmware inspection.</summary>
@@ -152,11 +165,17 @@ public sealed record FirmwareInspectionSnapshotInput(
 internal sealed record FirmwareInspectionStatusBatch(
     AuthoringCapabilityCatalogSnapshot? Catalog,
     IReadOnlyDictionary<string, AuthoringInputSlotStatus> Statuses,
-    IReadOnlyList<CompositionIssue> Issues)
+    IReadOnlyList<CompositionIssue> Issues,
+    CtrlRamBaseDiscoveryResult? CtrlRamBaseDiscovery = null)
 {
     internal static FirmwareInspectionStatusBatch Empty { get; } =
         new(null, new Dictionary<string, AuthoringInputSlotStatus>(StringComparer.Ordinal), []);
 }
+
+/// <summary>One Application-owned base-only discovery result keyed to the caller inspection identity.</summary>
+internal sealed record CtrlRamBaseDiscoveryResult(
+    string InspectionId,
+    CtrlRamBaseDiscoveryReadiness Readiness);
 
 /// <summary>One coherent AB Merge inspection batch mapped to client inspection ids.</summary>
 internal sealed record AbMergeInspectionBatch(

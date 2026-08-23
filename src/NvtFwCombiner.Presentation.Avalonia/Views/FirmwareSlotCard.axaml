@@ -40,6 +40,7 @@
                               behaviors:FocusToolTipBehavior.IsEnabled="True" Classes="slotStateAction"
                               Classes.checking="{Binding IsSemanticStateChecking}" Classes.error="{Binding IsSemanticStateError}"
                               Classes.notApplicable="{Binding IsSemanticStateNotApplicable}"
+                              Classes.inspected="{Binding IsSemanticStateInspected}"
                               Classes.pendingInput="{Binding IsSemanticStatePendingInput}"
                               Classes.verified="{Binding IsSemanticStateVerified}" Classes.warning="{Binding IsSemanticStateWarning}"
                               Focusable="True" IsChecked="{Binding IsSemanticStateDetailExpanded}"

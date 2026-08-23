@@ -160,10 +160,24 @@ internal sealed partial class CtrlRamAuthoringExperience
             capability = compilation.Capability;
             if (capability is null)
             {
+                CompositionIssue[] remainingIssues =
+                [
+                    .. compilation.Issues.Where(issue => selected.Length > 1 ||
+                        issue.Code != CompositionPlanningIssueCodes.ReplaceCtrlRamNoRegionInput),
+                ];
+                bool baseOnlyDiscovery = selected.Length == 1 &&
+                    selectedInputBytes.ContainsKey(CompositionSlotIds.ReplaceBase) &&
+                    compilation.Issues.Count == 1 &&
+                    compilation.Issues[0].Code ==
+                        CompositionPlanningIssueCodes.ReplaceCtrlRamNoRegionInput;
                 return FirmwareInspectionStatusBatch.Empty with
                 {
-                    Issues = [.. compilation.Issues.Where(issue => selected.Length > 1 ||
-                        issue.Code != CompositionPlanningIssueCodes.ReplaceCtrlRamNoRegionInput)],
+                    Issues = remainingIssues,
+                    CtrlRamBaseDiscovery = baseOnlyDiscovery
+                        ? new CtrlRamBaseDiscoveryResult(
+                            reference.InspectionId,
+                            CtrlRamBaseDiscoveryReadiness.Inspected)
+                        : null,
                 };
             }
         }

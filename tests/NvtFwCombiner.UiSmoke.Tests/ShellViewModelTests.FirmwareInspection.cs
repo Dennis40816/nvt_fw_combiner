@@ -217,7 +217,10 @@ public sealed partial class FirmwareInspectionSlotTests
         MainWindowViewModel viewModel = CreateInspectionViewModel((_, _, _, _) =>
         {
             reads++;
-            return DpInspection(reads == 1 ? "0101" : "0202");
+            return DpInspection(reads == 1 ? "0101" : "0202") with
+            {
+                CtrlRamBaseDiscoveryReadiness = CtrlRamBaseDiscoveryReadiness.Inspected,
+            };
         });
         OpenReplace(viewModel, ExperienceIds.CtrlRamReplace);
         viewModel.WorkflowSession.SelectedIc = "NT51926";

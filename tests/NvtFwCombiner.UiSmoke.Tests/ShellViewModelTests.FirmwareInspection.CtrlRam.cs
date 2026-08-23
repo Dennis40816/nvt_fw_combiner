@@ -92,11 +92,11 @@ public sealed partial class CtrlRamWorkflowTests
         Assert.Equal($"Error: {diagnostic}", baseSlot.SemanticStateAutomationText);
     }
 
-    /// <summary>A valid target-family base alone remains a verified discovery input.</summary>
+    /// <summary>A valid target-family base alone reports discovery without fabricating terminal verification.</summary>
     [Theory]
     [InlineData("nt51950-fw200-single-auto-prj-676-20260717", "NT51950")]
     [InlineData("nt51951-fw200-single-auto-prj-695-20260718", "NT51951")]
-    public async Task ValidBaseOnlyRemainsVerifiedBeforeReplacementSelection(
+    public async Task ValidBaseOnlyIsInspectedBeforeReplacementSelection(
         string caseId,
         string icId)
     {
@@ -114,10 +114,15 @@ public sealed partial class CtrlRamWorkflowTests
             TestContext.Current.CancellationToken);
 
         FirmwareSlotViewModel baseSlot = viewModel.Replace.ReplaceBaseSlot;
-        Assert.Equal(FirmwareInputInspectionSeverity.Valid, baseSlot.InputInspectionSeverity);
+        Assert.Null(baseSlot.InputInspectionSeverity);
         Assert.False(baseSlot.BlocksBuild);
-        Assert.Equal(FirmwareSlotSemanticState.Verified, baseSlot.SemanticState);
+        Assert.Equal(FirmwareSlotSemanticState.Inspected, baseSlot.SemanticState);
+        Assert.Equal("Base inspected", baseSlot.SemanticStateLabel);
+        Assert.Equal(
+            CtrlRamBaseDiscoveryReadiness.Inspected,
+            baseSlot.CurrentInspectionProjection?.CtrlRamBaseDiscoveryReadiness);
         Assert.Equal(WorkflowInspectionAttemptState.Succeeded, viewModel.Replace.Inspection.State);
+        Assert.False(viewModel.Replace.CanBuildReplace);
         Assert.DoesNotContain(
             CompositionPlanningIssueCodes.ReplaceCtrlRamNoRegionInput,
             baseSlot.InputInspectionStatus,

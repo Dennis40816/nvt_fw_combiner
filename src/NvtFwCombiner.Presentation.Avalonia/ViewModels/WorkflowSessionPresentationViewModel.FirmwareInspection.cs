@@ -341,9 +341,10 @@ internal sealed partial class WorkflowSessionPresentationViewModel
             .. request.Items.Where(static item => item.DpReplaceAddressSpaceId is not null ||
                 item.CtrlRamReplaceAddressSpaceId is not null),
         ];
-        bool replaceFactsOnly = replaceItems.Length > 0 && replaceItems.All(item =>
-            IsCtrlRamBaseFactsOnly(item, result.InspectionsById[item.SlotId]));
-        bool replaceAccepted = replaceFactsOnly || _replace.TryCompleteReplaceInputBatch(
+        bool replaceDiscoveryOnly = replaceItems.Length > 0 && replaceItems.All(item =>
+            result.InspectionsById[item.SlotId].CtrlRamBaseDiscoveryReadiness ==
+                CtrlRamBaseDiscoveryReadiness.Inspected);
+        bool replaceAccepted = replaceDiscoveryOnly || _replace.TryCompleteReplaceInputBatch(
             request.Items,
             result.InspectionsById);
         FirmwareInspectionItemRequest ctrlRamBase = request.Items.FirstOrDefault(static item =>
@@ -402,11 +403,10 @@ internal sealed partial class WorkflowSessionPresentationViewModel
                     FirmwareInspectionProjection.ApplyInputSlotInspection(slot, inputSlotStatus, Text);
                 }
             }
-            else if (IsCtrlRamBaseFactsOnly(item, inspection))
+            else if (inspection.CtrlRamBaseDiscoveryReadiness ==
+                CtrlRamBaseDiscoveryReadiness.Inspected)
             {
-                slot.SetInputInspection(
-                    FirmwareInputInspectionSeverity.Valid,
-                    Text.FirmwareSlotVerifiedLabel);
+                slot.SetBaseDiscoveryInspected(Text.CtrlRamBaseInspectedDetail);
             }
 
             if (item.PromptForMismatch)
@@ -450,19 +450,6 @@ internal sealed partial class WorkflowSessionPresentationViewModel
 
         _stateBindings.RefreshCommandState();
         return standardMergeAccepted && abMergeAccepted && replaceAccepted;
-    }
-
-    private static bool IsCtrlRamBaseFactsOnly(
-        FirmwareInspectionItemRequest item,
-        FirmwareInspectionSnapshot inspection)
-    {
-        return item.SlotId == CompositionSlotIds.ReplaceBase &&
-            item.CtrlRamRequest is not null &&
-            item.CtrlRamReplaceAddressSpaceId == CompositionAddressSpaceIds.ReferenceBase &&
-            item.InspectionLease is null &&
-            inspection.AuthoringCompilationIssues.Count == 0 &&
-            inspection.InputSlotStatus is null &&
-            inspection.InputSlotCatalog is null;
     }
 
     internal void ApplyCtrlRamDisplayFromInspection(FirmwareInspectionSnapshot inspection)

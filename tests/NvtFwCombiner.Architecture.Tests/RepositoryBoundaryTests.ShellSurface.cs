@@ -80,7 +80,10 @@ public sealed partial class RepositoryBoundaryTests
         Assert.DoesNotContain("Text=\"General Replace\"", pageTemplates, StringComparison.Ordinal);
         Assert.Contains("WindowState=\"Maximized\"", shell, StringComparison.Ordinal);
         Assert.Contains("RowDefinitions=\"Auto,Auto,Auto,*,Auto\"", shell, StringComparison.Ordinal);
-        Assert.Contains("<ScrollViewer Grid.Row=\"3\">", shell, StringComparison.Ordinal);
+        Assert.Contains(
+            "<ScrollViewer Grid.Row=\"3\" Classes=\"contentScrollSurface\">",
+            shell,
+            StringComparison.Ordinal);
         Assert.Contains("<Grid Margin=\"28,24,28,132\"", shell, StringComparison.Ordinal);
         Assert.Contains(
             "x:Name=\"CompositionBuildActionRail\"\n        Grid.Row=\"3\"",

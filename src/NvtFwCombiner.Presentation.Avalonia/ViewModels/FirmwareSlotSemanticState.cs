@@ -7,6 +7,8 @@ internal enum FirmwareSlotSemanticState
 
     Checking,
 
+    Inspected,
+
     Verified,
 
     Warning,

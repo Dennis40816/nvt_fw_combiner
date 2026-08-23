@@ -224,6 +224,10 @@ internal sealed partial class ShellTextResources
             NoBinSelectedLabel = Pick("No BIN selected", "尚未選擇 BIN"),
             FirmwareSlotCheckingLabel = Pick("Checking", "檢查中"),
             FirmwareSlotVerifiedLabel = Pick("Verified", "已驗證"),
+            CtrlRamBaseInspectedLabel = Pick("Base inspected", "基礎檔已檢查"),
+            CtrlRamBaseInspectedDetail = Pick(
+                "Base firmware was inspected; select at least one CtrlRAM replacement to compile the exact operation.",
+                "已檢查基礎韌體；請至少選擇一個 CtrlRAM 取代檔，才能編譯確切操作。"),
             FirmwareSlotWarningLabel = Pick("Warning", "警告"),
             FirmwareSlotErrorLabel = Pick("Error", "錯誤"),
             FirmwareSlotNotApplicableLabel = Pick("Not applicable", "不適用"),

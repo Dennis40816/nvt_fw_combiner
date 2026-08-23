@@ -429,15 +429,14 @@ public sealed partial class CtrlRamWorkflowTests
             basePath,
             TestContext.Current.CancellationToken);
 
+        Assert.Null(viewModel.Replace.ReplaceBaseSlot.InputInspectionSeverity);
         Assert.Equal(
-            FirmwareInputInspectionSeverity.Valid,
-            viewModel.Replace.ReplaceBaseSlot.InputInspectionSeverity);
-        Assert.Equal(
-            FirmwareSlotSemanticState.Verified,
+            FirmwareSlotSemanticState.Inspected,
             viewModel.Replace.ReplaceBaseSlot.SemanticState);
         Assert.Equal(
             WorkflowInspectionAttemptState.Succeeded,
             viewModel.Replace.Inspection.State);
+        Assert.False(viewModel.Replace.CanBuildReplace);
 
         Assert.Contains(viewModel.Replace.CtrlRamRegions, region =>
             region.Name == "VN CtrlRAM" &&

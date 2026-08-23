@@ -107,13 +107,17 @@ internal sealed partial class FirmwareSlotViewModel : ObservableObject
     /// <summary>True when decoded firmware facts exceed the four-card primary limit.</summary>
     public bool HasAdditionalFirmwareFacts => FirmwareFacts.Count > 4;
 
-    public bool HasInputInspectionStatus => IsInputInspectionPending || InputInspectionSeverity is not null;
+    public bool HasInputInspectionStatus =>
+        IsInputInspectionPending || InputInspectionSeverity is not null || IsBaseDiscoveryInspected;
 
     public bool BlocksBuild =>
         InputInspectionSeverity == FirmwareInputInspectionSeverity.Blocking ||
         SelectionReadinessState == ResolvedChildReadiness.Blocked;
 
     public bool IsInputInspectionPending { get; private set; }
+
+    /// <summary>True only for Application-owned non-terminal CtrlRAM Base discovery.</summary>
+    public bool IsBaseDiscoveryInspected { get; private set; }
 
     /// <summary>Highest completed typed input health, or null before inspection.</summary>
     public FirmwareInputInspectionSeverity? InputInspectionSeverity { get; private set; }
@@ -232,6 +236,7 @@ internal sealed partial class FirmwareSlotViewModel : ObservableObject
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(status);
         IsInputInspectionPending = true;
+        IsBaseDiscoveryInspected = false;
         InputInspectionSeverity = null;
         InputInspectionStatus = status;
         NotifyInputInspectionChanged();
@@ -248,8 +253,20 @@ internal sealed partial class FirmwareSlotViewModel : ObservableObject
         }
 
         IsInputInspectionPending = false;
+        IsBaseDiscoveryInspected = false;
         InputInspectionSeverity = severity;
         InputInspectionStatus = status;
+        NotifyInputInspectionChanged();
+    }
+
+    /// <summary>Projects a typed base-only discovery without claiming terminal input health.</summary>
+    public void SetBaseDiscoveryInspected(string detail)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(detail);
+        IsInputInspectionPending = false;
+        IsBaseDiscoveryInspected = true;
+        InputInspectionSeverity = null;
+        InputInspectionStatus = detail;
         NotifyInputInspectionChanged();
     }
 
@@ -257,6 +274,7 @@ internal sealed partial class FirmwareSlotViewModel : ObservableObject
     public void ClearInputInspection()
     {
         IsInputInspectionPending = false;
+        IsBaseDiscoveryInspected = false;
         InputInspectionSeverity = null;
         InputInspectionStatus = string.Empty;
         NotifyInputInspectionChanged();
@@ -320,6 +338,7 @@ internal sealed partial class FirmwareSlotViewModel : ObservableObject
         OnPropertyChanged(nameof(HasInputInspectionStatus));
         OnPropertyChanged(nameof(BlocksBuild));
         OnPropertyChanged(nameof(IsInputInspectionPending));
+        OnPropertyChanged(nameof(IsBaseDiscoveryInspected));
         OnPropertyChanged(nameof(InputInspectionSeverity));
         OnPropertyChanged(nameof(InputInspectionStatus));
         OnPropertyChanged(nameof(IsInputInspectionBlocking));
