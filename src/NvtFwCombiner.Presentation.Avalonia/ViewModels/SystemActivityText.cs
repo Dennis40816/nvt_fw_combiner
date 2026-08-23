@@ -1,3 +1,4 @@
+using System.Globalization;
 using NvtFwCombiner.Application.Diagnostics;
 
 namespace NvtFwCombiner.Presentation.Avalonia.ViewModels;
@@ -48,6 +49,7 @@ internal static class SystemActivityText
         return activity.Code switch
         {
             SystemActivityCodes.ApplicationStarted => Pick(text, "Application started", "應用程式已啟動"),
+            SystemActivityCodes.StartupReady => Pick(text, "Application ready", "應用程式已就緒"),
             SystemActivityCodes.DiagnosticActivated => Pick(text, "System issue detected", "偵測到系統問題"),
             SystemActivityCodes.DiagnosticResolved => Pick(text, "System issue resolved", "系統問題已解除"),
             SystemActivityCodes.SystemRefreshed => Pick(text, "System information refreshed", "系統資訊已重新整理"),
@@ -76,6 +78,16 @@ internal static class SystemActivityText
         SystemActivityEntry activity)
     {
         ArgumentNullException.ThrowIfNull(activity);
+        if (activity.Code == SystemActivityCodes.StartupReady &&
+            long.TryParse(activity.SubjectId, NumberStyles.None, CultureInfo.InvariantCulture, out long milliseconds))
+        {
+            string duration = milliseconds.ToString("N0", CultureInfo.InvariantCulture);
+            return Pick(
+                text,
+                $"Managed entry to ready · {duration} ms",
+                $"Managed 進入點至就緒 · {duration} 毫秒");
+        }
+
         string tokens = string.Join(" · ", new[] { activity.SubjectId, activity.ContextId }
             .Where(static value => !string.IsNullOrWhiteSpace(value)));
         return string.IsNullOrEmpty(tokens)

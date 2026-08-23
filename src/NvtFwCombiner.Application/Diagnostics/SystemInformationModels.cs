@@ -175,6 +175,8 @@ public static class SystemActivityCodes
 {
     /// <summary>The application process started.</summary>
     public const string ApplicationStarted = "activity.session.started";
+    /// <summary>The required managed startup path became interactive.</summary>
+    public const string StartupReady = "activity.session.ready";
     /// <summary>A system diagnostic became active.</summary>
     public const string DiagnosticActivated = "activity.diagnostic.activated";
     /// <summary>A system diagnostic was resolved.</summary>

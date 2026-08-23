@@ -11,11 +11,12 @@
   <Border
       x:Name="MessageCenterSurface"
       Classes="modalSurface"
-      Width="1420"
-      Height="824"
+      MaxWidth="1420"
+      MaxHeight="824"
+      Margin="14,10,14,12"
       Padding="0"
-      HorizontalAlignment="Center"
-      VerticalAlignment="Center">
+      HorizontalAlignment="Stretch"
+      VerticalAlignment="Stretch">
     <Grid RowDefinitions="80,*">
       <Border Classes="messageCenterHeader">
         <Grid Margin="28,0,24,0" ColumnDefinitions="*,Auto" ColumnSpacing="{DynamicResource NfcSpace16}">

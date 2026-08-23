@@ -106,4 +106,25 @@ public sealed class StartupTraceSessionTests
         Assert.False(trace.IsEnabled);
         Assert.False(trace.Complete("ignored"));
     }
+
+    /// <summary>A normal launch measures managed-entry-to-ready time without enabling trace output.</summary>
+    [Fact]
+    public void NormalLaunchKeepsOneMonotonicDurationWithoutTraceOutput()
+    {
+        long origin = 4321;
+        var timestamps = new Queue<long>(
+            [origin, origin + (3 * Stopwatch.Frequency / 2)]);
+        StartupTraceSession trace = StartupTraceSession.Create(
+            outputPath: null,
+            timestamps.Dequeue,
+            static () => DateTimeOffset.UnixEpoch,
+            static () => 0,
+            measureWithoutOutput: true);
+
+        TimeSpan elapsed = Assert.IsType<TimeSpan>(trace.ElapsedSinceManagedEntry);
+
+        Assert.False(trace.IsEnabled);
+        Assert.Equal(1500, elapsed.TotalMilliseconds);
+        Assert.False(trace.Complete("ignored"));
+    }
 }

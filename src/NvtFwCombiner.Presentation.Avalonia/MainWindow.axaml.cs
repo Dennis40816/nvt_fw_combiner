@@ -32,6 +32,7 @@ public sealed partial class MainWindow : Window, IDisposable
     private bool _isReportHistoryPersistenceComplete;
     private bool _isDisposed;
     private bool _isStartupLoadStarted;
+    private bool _isStartupDurationReported;
 
     /// <summary>Initializes the XAML loader constructor; production supplies explicit startup state.</summary>
     public MainWindow()
@@ -250,6 +251,7 @@ public sealed partial class MainWindow : Window, IDisposable
             return;
         }
 
+        ReportStartupDuration(viewModel);
         await ReportManagedApplicationReadyAsync(startupCancellation);
         _ = RunVersionDiscoveryAfterReadyAsync(startupCancellation);
 

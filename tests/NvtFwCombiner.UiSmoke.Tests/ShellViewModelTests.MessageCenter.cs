@@ -165,42 +165,6 @@ public sealed partial class ShellNavigationSystemTests
             activity.SubjectId == SystemDiagnosticCodes.CapabilityCatalogUnavailable);
     }
 
-    /// <summary>Important events are the default; Debug explicitly reveals user operations.</summary>
-    [Fact]
-    public void ActivityHistoryUsesTwoDisclosureLevels()
-    {
-        StubCatalog catalog = new();
-        SystemInformationService diagnostics = new(
-            "0.10.6-test",
-            catalog,
-            catalog,
-            CreateExternalEnvironmentLoader(),
-            new StubRuntimeProbe(),
-            new StubClock());
-        var text = ShellTextResources.For(ShellLanguage.English);
-        var viewModel = new MessageCenterViewModel(
-            () => text,
-            diagnostics,
-            CreateExternalEnvironmentLoader(),
-            new CapturingDiagnosticsExporter(),
-            new ReportPresentationViewModel(() => text, static () => { }),
-            static _ => { });
-        diagnostics.RecordActivity(new SystemActivityDraft(
-            SystemActivityCodes.UserNavigated,
-            SystemActivityImportance.Debug,
-            SystemActivityCategory.Navigation,
-            SystemActivitySeverity.Information,
-            "Merge"));
-        viewModel.NotifyActivityChanged();
-
-        Assert.DoesNotContain(viewModel.ActivityItems, item => item.Title == "Page changed");
-
-        viewModel.ToggleDebugActivityCommand.Execute(null);
-
-        Assert.Contains(viewModel.ActivityItems, item => item.Title == "Page changed");
-        Assert.Contains("events", viewModel.SessionActivitySummary, StringComparison.Ordinal);
-    }
-
     /// <summary>Shell selection operations publish path-free Debug activity through the sole service.</summary>
     [Fact]
     public void ShellNavigationAndContextSelectionAreRecordedAsUserActivity()

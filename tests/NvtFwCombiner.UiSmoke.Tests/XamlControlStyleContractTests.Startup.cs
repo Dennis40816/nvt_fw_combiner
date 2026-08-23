@@ -139,6 +139,7 @@ public sealed partial class XamlControlStyleContractTests
         string status = ReadPresentationFile("Resources/MainWindowSharedTemplates.axaml");
         string shell = ReadPresentationFile("MainWindow.axaml");
         string lifecycle = ReadPresentationFile("MainWindow.axaml.cs");
+        string startupWarmup = ReadPresentationFile("MainWindow.StartupWarmup.cs");
         string preloadSession = ReadPresentationFile("ShellPreloadSession.cs");
         string focusBehavior = ReadPresentationFile("Behaviors/FocusOnRevealBehavior.cs");
         string buttonStyles = ReadPresentationFile("Styles/MainWindowButtonStyles.axaml");
@@ -449,6 +450,9 @@ public sealed partial class XamlControlStyleContractTests
         Assert.Contains("_preloadSession.CancelAndDrainAsync()", lifecycle, StringComparison.Ordinal);
         Assert.DoesNotContain("reloadCatalog", opened, StringComparison.Ordinal);
         Assert.Contains("RunStartupPreloadAsync(", retry, StringComparison.Ordinal);
+        Assert.Contains("ReportStartupDuration(viewModel);", lifecycle, StringComparison.Ordinal);
+        Assert.Contains("_isStartupDurationReported ||", startupWarmup, StringComparison.Ordinal);
+        Assert.Contains("_isStartupDurationReported = true;", startupWarmup, StringComparison.Ordinal);
         Assert.DoesNotContain("SystemInformation.Refresh(", lifecycle, StringComparison.Ordinal);
         Assert.DoesNotContain("WarmCanonicalCapabilities", lifecycle, StringComparison.Ordinal);
         Assert.DoesNotContain("Task.Delay", lifecycle, StringComparison.Ordinal);

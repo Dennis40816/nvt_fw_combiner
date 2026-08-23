@@ -128,4 +128,15 @@ public sealed partial class MainWindow
             runSession.PropertyChanged -= handler;
         }
     }
+
+    private void ReportStartupDuration(MainWindowViewModel viewModel)
+    {
+        if (_isStartupDurationReported || _startupTrace.ElapsedSinceManagedEntry is not { } elapsed)
+        {
+            return;
+        }
+
+        _isStartupDurationReported = true;
+        viewModel.RecordStartupDuration(elapsed);
+    }
 }

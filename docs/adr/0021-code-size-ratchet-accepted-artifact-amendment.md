@@ -119,3 +119,32 @@ Verification covers Standard Merge dependency recomputation, the NT51950
 DP-first waiting-for-TP lifecycle, independent and linked AB selection clearing,
 CtrlRAM base/region-derived state, source-file preservation, real shared-card
 interaction, and exact 480/900 Light/Dark geometry without card reflow.
+
+## 2026-08-24 responsive System Activity and startup duration
+
+The owner approved a Presentation-led responsive boundary for the existing
+System Activity modal and one current-session startup-duration event. The
+surface replaces only its fixed width and height with equivalent maxima and
+native stretch margins; the approved 1536x864 geometry, timeline composition,
+filters, event store, and Debug opt-in remain unchanged. The duration reuses
+the sole monotonic `StartupTraceSession`, is sampled once at the existing
+required-ready seam, and is appended through the sole
+`SystemInformationService` activity path. No timer, history store, responsive
+control, or page-local scrolling implementation was added.
+
+Relative to the preceding shared Clear-action checkpoint, full production
+changes from 110,547 to 110,595 (+48). The runtime metric changes from 535
+files / 75,287 nonblank lines to 535 / 75,289; Domain plus Profiles remains
+20,632, Application changes from 33,474 to 33,476, Bootstrap plus CLI plus
+Desktop host remains 3,503, and Infrastructure plus Contracts plus CRC worker
+remains 17,678. The executable full-production allowance therefore becomes
+exactly 7,699 above the frozen pre-v0.10.6 ratchet; runtime and Application
+allowances increase by exactly two, while all other non-UI slice allowances
+remain unchanged. These named R1 allowances are non-transferable exact
+descending ceilings and do not close or fund the later architecture and
+unused-module audit.
+
+Verification covers the 980x640 application minimum in Light/Dark and English/
+Traditional Chinese, unchanged approved wide geometry, monotonic measurement
+without trace-file output, one required-ready publication guard, Important
+default visibility, Debug opt-in, and localized duration text.
