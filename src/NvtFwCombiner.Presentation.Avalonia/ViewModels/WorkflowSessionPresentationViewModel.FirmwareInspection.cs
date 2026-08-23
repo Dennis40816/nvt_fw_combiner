@@ -74,6 +74,17 @@ internal sealed partial class WorkflowSessionPresentationViewModel
             return;
         }
 
+        if (context.IsAbMerge && _merge.MirrorsAbTpSelection(slotId))
+        {
+            await SetAbSameTpFileAsync(path, cancellationToken);
+            return;
+        }
+
+        if (context.IsAbMerge && _merge.BlocksIndependentAbTpSelection(slotId))
+        {
+            return;
+        }
+
         FirmwareSlotViewModel? slot = SelectSlotFile(context, slotId, path);
         if (slot is null)
         {

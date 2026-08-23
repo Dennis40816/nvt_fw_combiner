@@ -14,6 +14,7 @@ internal sealed record MergeStateBindings(
     Action RefreshNumberChoices,
     Action NotifySharedContextChanged,
     Func<Task> RefreshSelectedFirmwareInspections,
+    Func<string, CancellationToken, Task> SetAbSameTpFileAsync,
     Action ResetRunResult,
     Action RefreshShellCommandState,
     OutputDeliveryConfirmationViewModel OutputDelivery);

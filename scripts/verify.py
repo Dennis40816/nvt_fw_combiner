@@ -284,13 +284,13 @@ CI_DOTNET_SHARDS: dict[str, tuple[CiDotnetProject, ...]] = {
     "bootstrap": (
         CiDotnetProject(
             "tests/NvtFwCombiner.Bootstrap.Tests/NvtFwCombiner.Bootstrap.Tests.csproj",
-            1016,
+            1017,
         ),
     ),
     "ui": (
         CiDotnetProject(
             "tests/NvtFwCombiner.UiSmoke.Tests/NvtFwCombiner.UiSmoke.Tests.csproj",
-            655,
+            663,
             requires_exclusive_local_coverage=True,
         ),
     ),

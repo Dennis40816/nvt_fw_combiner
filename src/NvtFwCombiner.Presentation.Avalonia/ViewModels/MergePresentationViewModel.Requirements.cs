@@ -79,6 +79,8 @@ internal sealed partial class MergePresentationViewModel
             MergeSlots.Add(slot);
         }
 
+        ApplyAbSameTpPresentation();
+
         RefreshAbMergeAuthoringState(projection);
     }
 

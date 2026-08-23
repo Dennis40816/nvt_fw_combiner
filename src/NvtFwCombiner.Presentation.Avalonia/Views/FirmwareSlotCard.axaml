@@ -58,9 +58,9 @@
           <TextBlock Classes="mutedText" IsVisible="{Binding IsGuidanceVisible}" Text="{Binding Description}" TextWrapping="Wrap" />
           <TextBlock IsVisible="{Binding IsGuidanceVisible}" Classes="firmwareSlotGuidance"
                      Text="{Binding DisplayName}" TextWrapping="Wrap" />
-          <Button AutomationProperties.HelpText="{Binding DisplayDetail}" AutomationProperties.Name="{Binding DisplayName}"
+          <Button AutomationProperties.HelpText="{Binding DisplayDetail}" AutomationProperties.Name="{Binding DisplayNameWithSelectionContext}"
                   Classes="fileRevealAction" Command="{ReflectionBinding $parent[Window].DataContext.RevealFileCommand}"
-                  CommandParameter="{Binding FilePath}" Content="{Binding DisplayName}" HorizontalAlignment="Left"
+                  CommandParameter="{Binding FilePath}" Content="{Binding DisplayNameWithSelectionContext}" HorizontalAlignment="Left"
                   IsVisible="{Binding HasFile}" ToolTip.BetweenShowDelay="-1" ToolTip.Placement="BottomEdgeAlignedLeft"
                   ToolTip.ShowDelay="300" ToolTip.Tip="{Binding DisplayDetail}" ToolTip.VerticalOffset="8" />
           <TextBlock AutomationProperties.LiveSetting="Polite" Classes="slotStateDetail"

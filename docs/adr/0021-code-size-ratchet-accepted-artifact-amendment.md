@@ -65,3 +65,30 @@ Additional verification:
 - fixed-workflow and same-path Bootstrap wiring;
 - exact-container, source-view, and CtrlRAM truncation regressions; and
 - independent R2 architecture/contract and scoped Polytail review.
+
+## 2026-08-24 explicit AB same-TP authoring
+
+The owner approved an explicit Presentation-only `Use the same TP for A and B`
+authoring option. It preserves the existing independent `tp-a-input` and
+`tp-b-input` compiled bindings, operations, typed health and reports while
+reusing the accepted immutable same-path snapshot behavior already owned by
+Application. Presentation adds only the linked selector state, the focused
+keep-TPA/keep-TPB/cancel conflict choice, localization, and the existing-card
+filename marker. No executor, inspection adapter, profile, or firmware rule is
+duplicated.
+
+Relative to the preceding `SEL-02` checkpoint recorded in the canonical
+handoff, full production changes from 110,066 to 110,383 (+317). The non-UI
+runtime metric remains 535 files / 75,287 nonblank lines; Domain plus Profiles
+remains 20,632, Application remains 33,474, Bootstrap plus CLI plus Desktop
+host remains 3,503, and Infrastructure plus Contracts plus CRC worker remains
+17,678. The executable full-production allowance therefore becomes exactly
+7,487 above the frozen pre-v0.10.6 ratchet; every non-UI slice allowance remains
+unchanged. This named R2 allowance is a non-transferable exact descending
+ceiling and does not close or fund the separate repository-wide
+single-implementation, layering, unused-module, and code-size audit.
+
+Verification includes every approved enable/conflict/disable transition,
+independent typed TPA/TPB health, locked TPB selection while linked, output-byte
+and operation parity against two independent equal-content TP files, complete
+UI Smoke, Architecture, structure/Polytail, and independent R2 review.

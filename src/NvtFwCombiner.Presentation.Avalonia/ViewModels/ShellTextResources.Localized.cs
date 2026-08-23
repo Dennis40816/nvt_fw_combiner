@@ -292,6 +292,14 @@ internal sealed partial class ShellTextResources
             AbCodeMergeDetail = Pick(
                 "Compose one compiled DP_AB container with independent TPA and TPB payloads. Input versions are informational and never choose the route.",
                 "以 compiled profile 合成一個 DP_AB container 與獨立 TPA、TPB payload；input 版本只供確認，絕不選擇執行路徑。"),
+            AbSameTpOptionLabel = Pick("Use the same TP for A and B", "A 與 B 使用相同 TP"),
+            AbSameTpLinkedLabel = Pick("Same as TPA", "與 TPA 相同"),
+            AbSameTpConflictTitle = Pick("Choose the shared TP", "選擇共用 TP"),
+            AbSameTpConflictDetail = Pick(
+                "TPA and TPB currently use different files. Choose which one will supply both logical slots, or cancel without changing either selection.",
+                "TPA 與 TPB 目前使用不同檔案。請選擇要讓哪一個檔案供應兩個 logical slot，或取消並保留兩個現有選擇。"),
+            AbSameTpKeepALabel = Pick("Keep TPA", "保留 TPA"),
+            AbSameTpKeepBLabel = Pick("Keep TPB", "保留 TPB"),
             IcDetailTitle = Pick("IC details", "IC 詳細資訊"),
             IcDetailFamilyLabel = Pick("Family", "Family"),
             IcDetailReuseLabel = Pick("Reusable scope", "可沿用範圍"),

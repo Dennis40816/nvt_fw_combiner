@@ -17,7 +17,8 @@ internal sealed partial class MainWindowViewModel
                 Merge.SelectedMergeMode,
                 "merge");
         }
-        if (e.PropertyName == nameof(MergePresentationViewModel.IsAbAFlashCodeDeliveryPromptOpen))
+        if (e.PropertyName is nameof(MergePresentationViewModel.IsAbAFlashCodeDeliveryPromptOpen) or
+            nameof(MergePresentationViewModel.IsAbSameTpConflictPromptOpen))
         {
             NotifyCompositionActionRailVisibilityChanged();
         }

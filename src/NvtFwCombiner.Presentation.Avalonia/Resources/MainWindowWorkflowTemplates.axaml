@@ -241,6 +241,11 @@
           <TextBlock Classes="sectionTitle" Text="{Binding Text.AbCodeMergeTitle}" />
           <TextBlock Classes="mutedText" Text="{Binding Text.AbCodeMergeDetail}" TextWrapping="Wrap" />
         </StackPanel>
+        <CheckBox
+            AutomationProperties.Name="{Binding Text.AbSameTpOptionLabel}"
+            Command="{Binding ToggleAbSameTpCommand}"
+            Content="{Binding Text.AbSameTpOptionLabel}"
+            IsChecked="{Binding UseSameTpForAbMerge, Mode=OneWay}" />
         <ItemsControl ItemContainerTheme="{StaticResource StretchContentPresenterTheme}" ItemsSource="{Binding MergeSlots}">
           <ItemsControl.ItemTemplate>
             <StaticResource ResourceKey="FirmwareSlotCardTemplate" />

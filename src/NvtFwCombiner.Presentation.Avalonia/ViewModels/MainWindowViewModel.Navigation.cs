@@ -53,6 +53,7 @@ internal sealed partial class MainWindowViewModel
         MessageCenter.IsOpen ||
         Reports.IsReportModalOpen ||
         Merge.IsAbAFlashCodeDeliveryPromptOpen ||
+        Merge.IsAbSameTpConflictPromptOpen ||
         BuildResult.IsOpen ||
         LoadedHexEditorWorkspace?.IsInsertBytesPromptOpen == true ||
         LoadedHexEditorWorkspace?.IsSaveConfirmationOpen == true;

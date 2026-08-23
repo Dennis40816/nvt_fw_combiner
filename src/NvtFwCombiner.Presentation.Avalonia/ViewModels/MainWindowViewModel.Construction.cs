@@ -82,6 +82,7 @@ internal sealed partial class MainWindowViewModel
                 RefreshWorkflowNumberChoices,
                 () => WorkflowSession!.NotifyContextTextChanged(),
                 () => WorkflowSession!.RefreshSelectedMergeFirmwareInspectionsAsync(),
+                (path, cancellationToken) => WorkflowSession!.SetAbSameTpFileAsync(path, cancellationToken),
                 ResetRunResultForContextChange,
                 RefreshCommandState,
                 OutputDelivery));

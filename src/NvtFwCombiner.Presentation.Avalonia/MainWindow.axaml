@@ -620,6 +620,15 @@
       </ContentControl.ContentTemplate>
     </ContentControl>
 
+    <ContentControl x:Name="AbSameTpConflictModalHost" Grid.RowSpan="5"
+        IsVisible="{Binding Merge.IsAbSameTpConflictPromptOpen}">
+      <ContentControl.ContentTemplate>
+        <DataTemplate DataType="vm:MergePresentationViewModel">
+          <views:AbSameTpConflictModal />
+        </DataTemplate>
+      </ContentControl.ContentTemplate>
+    </ContentControl>
+
     <ContentControl Grid.RowSpan="5" Content="{Binding LoadedHexEditorWorkspace}">
       <ContentControl.ContentTemplate>
         <DataTemplate DataType="vm:HexEditorWorkspaceViewModel">

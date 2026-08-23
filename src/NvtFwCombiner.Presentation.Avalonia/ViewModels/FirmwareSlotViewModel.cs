@@ -10,6 +10,8 @@ internal sealed partial class FirmwareSlotViewModel : ObservableObject
     private string RequiredText { get; set; } = "Required";
     private string OptionalText { get; set; } = "Optional";
     private string EmptyDisplayName { get; set; } = "No BIN selected";
+    private bool _isSelectionLinked;
+    private string _selectionLinkLabel = string.Empty;
 
     /// <summary>Creates a firmware slot.</summary>
     public FirmwareSlotViewModel(
@@ -85,6 +87,11 @@ internal sealed partial class FirmwareSlotViewModel : ObservableObject
 
     public string DisplayName => HasFile ? Path.GetFileName(FilePath!) : EmptyDisplayName;
 
+    /// <summary>Filename plus a Presentation-owned linked-selection marker when the picker is delegated.</summary>
+    public string DisplayNameWithSelectionContext => _isSelectionLinked
+        ? $"{DisplayName} · {_selectionLinkLabel}"
+        : DisplayName;
+
     public string DisplayDetail => HasFile ? FirmwarePathDisplay.Normalize(FilePath!) : string.Empty;
 
     /// <summary>Current immutable Application inspection used only by this selected slot projection.</summary>
@@ -132,7 +139,7 @@ internal sealed partial class FirmwareSlotViewModel : ObservableObject
     /// <summary>Application-owned admission for an independent picker transition.</summary>
     public bool? SelectionReadinessCanSelect { get; private set; }
 
-    public bool CanSelectFile => SelectionReadinessCanSelect ?? true;
+    public bool CanSelectFile => !_isSelectionLinked && (SelectionReadinessCanSelect ?? true);
 
     public string SelectionReadinessLabel { get; private set; } = string.Empty;
 
@@ -150,6 +157,7 @@ internal sealed partial class FirmwareSlotViewModel : ObservableObject
     [NotifyPropertyChangedFor(nameof(HasFile))]
     [NotifyPropertyChangedFor(nameof(IsGuidanceVisible))]
     [NotifyPropertyChangedFor(nameof(DisplayName))]
+    [NotifyPropertyChangedFor(nameof(DisplayNameWithSelectionContext))]
     [NotifyPropertyChangedFor(nameof(DisplayDetail))]
     public partial string? FilePath { get; set; }
 
@@ -181,7 +189,29 @@ internal sealed partial class FirmwareSlotViewModel : ObservableObject
         OnPropertyChanged(nameof(Description));
         OnPropertyChanged(nameof(RequirementLabel));
         OnPropertyChanged(nameof(DisplayName));
+        OnPropertyChanged(nameof(DisplayNameWithSelectionContext));
         NotifySemanticStateChanged();
+    }
+
+    /// <summary>Delegates this card's picker to a peer while retaining its independent logical slot.</summary>
+    internal void SetLinkedSelection(bool isLinked, string label)
+    {
+        if (isLinked)
+        {
+            ArgumentException.ThrowIfNullOrWhiteSpace(label);
+        }
+
+        string nextLabel = isLinked ? label : string.Empty;
+        if (_isSelectionLinked == isLinked &&
+            string.Equals(_selectionLinkLabel, nextLabel, StringComparison.Ordinal))
+        {
+            return;
+        }
+
+        _isSelectionLinked = isLinked;
+        _selectionLinkLabel = nextLabel;
+        OnPropertyChanged(nameof(CanSelectFile));
+        OnPropertyChanged(nameof(DisplayNameWithSelectionContext));
     }
 
     /// <summary>Replaces decoded firmware facts for this slot.</summary>

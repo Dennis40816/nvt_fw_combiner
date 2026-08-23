@@ -175,6 +175,18 @@ internal sealed partial class ShellTextResources
 
     public string AbCodeMergeDetail { get; private init; } = string.Empty;
 
+    public string AbSameTpOptionLabel { get; private init; } = string.Empty;
+
+    public string AbSameTpLinkedLabel { get; private init; } = string.Empty;
+
+    public string AbSameTpConflictTitle { get; private init; } = string.Empty;
+
+    public string AbSameTpConflictDetail { get; private init; } = string.Empty;
+
+    public string AbSameTpKeepALabel { get; private init; } = string.Empty;
+
+    public string AbSameTpKeepBLabel { get; private init; } = string.Empty;
+
     public string IcDetailTitle { get; private init; } = string.Empty;
 
     public string IcDetailFamilyLabel { get; private init; } = string.Empty;
