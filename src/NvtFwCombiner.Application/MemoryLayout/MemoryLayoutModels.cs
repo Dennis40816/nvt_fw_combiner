@@ -20,10 +20,10 @@ public sealed record MemoryLayoutBlockedIssueReference
     {
         ArgumentNullException.ThrowIfNull(slotIdentity);
         ArgumentNullException.ThrowIfNull(issue);
-        if (slotIdentity.SelectedPath is null || slotIdentity.FileStamp is null)
+        if (slotIdentity.SelectedPath is null)
         {
             throw new ArgumentException(
-                "A blocked issue requires the exact selected-file identity.",
+                "A blocked issue requires the exact selected-path identity.",
                 nameof(slotIdentity));
         }
 
@@ -39,7 +39,7 @@ public sealed record MemoryLayoutBlockedIssueReference
     /// <summary>Exact authoring-input revision.</summary>
     public AuthoringRevision AuthoringRevision { get; }
 
-    /// <summary>Exact slot, path, and host-captured file identity.</summary>
+    /// <summary>Exact slot and path; content identity is null before bytes are accepted.</summary>
     public AuthoringSlotPublicationIdentity SlotIdentity { get; }
 
     /// <summary>Reference to the actual separately owned diagnostic issue.</summary>

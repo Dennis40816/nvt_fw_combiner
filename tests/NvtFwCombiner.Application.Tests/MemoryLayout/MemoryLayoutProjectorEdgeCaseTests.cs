@@ -7,6 +7,37 @@ namespace NvtFwCombiner.Application.Tests.MemoryLayout;
 
 public sealed partial class MemoryLayoutProjectorTests
 {
+    /// <summary>A pre-content selector error remains linked without inventing a file stamp.</summary>
+    [Fact]
+    public void BlockedPreContentIssueRetainsPathWithoutFabricatedStamp()
+    {
+        ProjectionFixture fixture = CreateFixture(CompositionKind.Merge);
+        var issue = new AuthoringSlotIssueReference(
+            AuthoringDerivedResultKind.Inspection,
+            "inspection-result:dp:3",
+            "input.inspection.extension-not-accepted");
+        ActiveSessionSnapshot session = CreateSession(
+            fixture,
+            new AuthoringSlotState(
+                "dp-input",
+                "dp-input.txt",
+                fileStamp: null,
+                AuthoringSlotLifecycle.Error,
+                issue),
+            Slot("tp-input", AuthoringSlotLifecycle.Verified, Capacity));
+
+        MemoryLayoutSnapshot snapshot = MemoryLayoutProjector.Project(
+            fixture.Capability,
+            session,
+            compiledOverlay: null);
+
+        MemoryLayoutBlockedIssueReference blocked = Assert.IsType<MemoryLayoutBlockedIssueReference>(
+            Assert.Single(snapshot.PendingItems).BlockedIssue);
+        Assert.Equal("dp-input.txt", blocked.SlotIdentity.SelectedPath);
+        Assert.Null(blocked.SlotIdentity.FileStamp);
+        Assert.Same(issue, blocked.Issue);
+    }
+
     /// <summary>Retains the actual inspection or validation issue for each blocked slot.</summary>
     [Fact]
     public void BlockedItemsRetainDistinctIdentityPinnedIssueReferences()

@@ -50,6 +50,52 @@ public sealed partial class FirmwareInspectionSlotTests
         Assert.True(viewModel.Merge.CanBuildMerge);
     }
 
+    /// <summary>An invalid extension remains selected as visible Error and a later BIN selection recovers.</summary>
+    [Fact]
+    public async Task StandardMergeExtensionErrorIsRetainedUntilAcceptedSelectionRecovers()
+    {
+        using var golden = StandardMergeGoldenManifest.Load();
+        JsonElement goldenCase = golden.CaseByIc("51926");
+        string sourcePath = golden.ManifestPath(goldenCase.GetProperty("inputs").GetProperty("dp-input"));
+        using var workspace = TempWorkspace.Create("nvt-fw-combiner-ui-extension-admission");
+        byte[] source = File.ReadAllBytes(sourcePath);
+        string rejectedPath = workspace.Write("dp-input.txt", source);
+        string recoveredPath = workspace.Write("dp-input.BIN", source);
+        MainWindowViewModel viewModel = await PresentationTestHost.CreateViewModelAsync(
+            TestContext.Current.CancellationToken);
+        viewModel.ShowMergeCommand.Execute(null);
+        viewModel.WorkflowSession.SelectedIc = "NT51926";
+
+        await viewModel.WorkflowSession.SetSlotFileAsync(
+            CompositionSlotIds.MergeDp,
+            rejectedPath,
+            TestContext.Current.CancellationToken);
+
+        FirmwareSlotViewModel dp = viewModel.Merge.MergeSlots.Single(static slot =>
+            slot.SlotId == CompositionSlotIds.MergeDp);
+        Assert.Equal(rejectedPath, dp.FilePath);
+        Assert.Equal(FirmwareSlotSemanticState.Error, dp.SemanticState);
+        Assert.Equal(FirmwareInputInspectionSeverity.Blocking, dp.InputInspectionSeverity);
+        Assert.Contains("extension", dp.InputInspectionStatus, StringComparison.OrdinalIgnoreCase);
+        Assert.False(viewModel.Merge.CanBuildMerge);
+
+        viewModel.SelectedLanguage = "Traditional Chinese";
+        Assert.Contains("副檔名", dp.InputInspectionStatus, StringComparison.Ordinal);
+        Assert.Contains("副檔名", dp.SemanticStateAutomationText, StringComparison.Ordinal);
+        viewModel.SelectedLanguage = "English";
+
+        await viewModel.WorkflowSession.SetSlotFileAsync(
+            CompositionSlotIds.MergeDp,
+            recoveredPath,
+            TestContext.Current.CancellationToken);
+
+        Assert.Equal(recoveredPath, dp.FilePath);
+        Assert.Contains(
+            dp.SemanticState,
+            new[] { FirmwareSlotSemanticState.Verified, FirmwareSlotSemanticState.Warning });
+        Assert.DoesNotContain("extension", dp.InputInspectionStatus, StringComparison.OrdinalIgnoreCase);
+    }
+
     /// <summary>A multi-map Standard Merge route exposes the compiler-required DP prerequisite without IC rules in UI.</summary>
     [AvaloniaFact]
     public async Task MultiMapStandardMergeDefersOtherInputsUntilDpResolves()

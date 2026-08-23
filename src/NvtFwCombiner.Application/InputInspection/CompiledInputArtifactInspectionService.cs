@@ -13,6 +13,9 @@ public static class InputArtifactInspectionIssueCodes
     /// <summary>The selected source could not be materialized for inspection.</summary>
     public const string SourceUnreadable = "input.inspection.source-unreadable";
 
+    /// <summary>The selected file name does not satisfy the compiler-owned extension contract.</summary>
+    public const string ExtensionNotAccepted = "input.inspection.extension-not-accepted";
+
     /// <summary>An accepted AB input has no readable informational version metadata.</summary>
     public const string AbVersionMetadataUnknown = "ab.input.version-unknown";
 }
@@ -81,6 +84,24 @@ public sealed record CompiledInputArtifactInspectionResult(
 /// </summary>
 public static class CompiledInputArtifactInspectionService
 {
+    /// <summary>
+    /// Returns whether one original file name satisfies the compiled slot's extension contract.
+    /// This is admission policy; picker filters remain presentation-only guidance.
+    /// </summary>
+    internal static bool AcceptsOriginalFileName(
+        CompiledComposition composition,
+        string addressSpaceId,
+        string originalFileName)
+    {
+        ArgumentNullException.ThrowIfNull(composition);
+        ArgumentException.ThrowIfNullOrWhiteSpace(originalFileName);
+        (_, CompiledInputSlotRequirement slot) = ResolveBinding(
+            composition.V2Details.InputContract,
+            addressSpaceId);
+        string extension = Path.GetExtension(originalFileName);
+        return slot.AcceptedExtensions.Contains(extension, StringComparer.OrdinalIgnoreCase);
+    }
+
     /// <summary>
     /// Inspects one immutable source using its complete compiled contract and compiler-derived
     /// address-space projection.

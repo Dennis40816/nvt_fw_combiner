@@ -42,6 +42,21 @@ public sealed partial class CompositionRunRequestV2Tests
         Assert.Equal("input.bin", Assert.Single(request.ArtifactBindings.Values).OriginalFileName);
     }
 
+    /// <summary>Runtime defense-in-depth uses the same case-insensitive compiled extension policy.</summary>
+    [Fact]
+    public void RequestAcceptsUppercaseCompiledExtension()
+    {
+        CompiledComposition composition = CreateV2RuntimeExecutable();
+
+        var request = new CompositionRunRequest(
+            "v2-runtime-uppercase-extension",
+            composition,
+            [CreateBinding("input.BIN")],
+            "v2-output.bin");
+
+        Assert.Equal("input.BIN", Assert.Single(request.ArtifactBindings.Values).OriginalFileName);
+    }
+
     /// <summary>Verifies V2 Replace artifacts enforce their compiled IC-number selector at the shared Application boundary.</summary>
     [Fact]
     public void RequestAcceptsV2ReplaceRuntimeArtifactWithMatchingIcNumberSelection()

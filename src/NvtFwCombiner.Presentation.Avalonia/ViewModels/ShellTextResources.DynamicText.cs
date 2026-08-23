@@ -236,6 +236,11 @@ internal sealed partial class ShellTextResources
         ArgumentNullException.ThrowIfNull(status);
         return status.InspectionLifecycle switch
         {
+            AuthoringSlotLifecycle.Error when StringComparer.Ordinal.Equals(
+                status.InspectionIssueCode,
+                InputArtifactInspectionIssueCodes.ExtensionNotAccepted) => SelectLanguage(
+                "Error: this file extension is not accepted for this input. Select a compatible file.",
+                "錯誤：此輸入不接受所選檔案的副檔名，請選擇相容的檔案。"),
             AuthoringSlotLifecycle.Error when status.FileStamp is null => SelectLanguage(
                 "Error: this BIN could not be read. Select a readable local file.",
                 "錯誤：無法讀取此 BIN，請選擇可讀取的本機檔案。"),

@@ -25,7 +25,7 @@ internal static class FirmwareFilePickerDialogs
         {
             Title = title,
             AllowMultiple = false,
-            FileTypeFilter = CreateFirmwareBinChoices(),
+            FileTypeFilter = CreateFirmwareBinChoices(includeAllFiles: false),
         });
 
         return files.Count == 0 ? null : files[0].TryGetLocalPath();
@@ -130,16 +130,14 @@ internal static class FirmwareFilePickerDialogs
         });
     }
 
-    private static IReadOnlyList<FilePickerFileType> CreateFirmwareBinChoices()
+    private static IReadOnlyList<FilePickerFileType> CreateFirmwareBinChoices(
+        bool includeAllFiles = true)
     {
-        return
-        [
-            new FilePickerFileType("Firmware BIN")
-            {
-                Patterns = ["*.bin"],
-                MimeTypes = ["application/octet-stream"],
-            },
-            FilePickerFileTypes.All,
-        ];
+        var bin = new FilePickerFileType("Firmware BIN")
+        {
+            Patterns = ["*.bin"],
+            MimeTypes = ["application/octet-stream"],
+        };
+        return includeAllFiles ? [bin, FilePickerFileTypes.All] : [bin];
     }
 }

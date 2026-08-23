@@ -1,9 +1,13 @@
+using System.Diagnostics.CodeAnalysis;
+using System.Reflection;
 using System.Text.Json;
 using Avalonia.Controls;
 using Avalonia.Headless.XUnit;
 using Avalonia.Interactivity;
+using Avalonia.Platform.Storage;
 using Avalonia.Threading;
 using NvtFwCombiner.Domain.Composition;
+using NvtFwCombiner.Presentation.Avalonia;
 using NvtFwCombiner.Presentation.Avalonia.ViewModels;
 using NvtFwCombiner.Presentation.Avalonia.Views;
 using NvtFwCombiner.TestSupport;
@@ -17,6 +21,29 @@ public sealed class FirmwareBrowseProcessSmokeTests
         "input.address-space.length-mismatch [replace-base]: Base firmware BIN length " +
         "0x37001 is unsupported for NT51950 / single CtrlRAM Replace; accepted exact " +
         "reference lengths are 0x37000 / 0x40000.";
+
+    /// <summary>Firmware Browse guides users to BIN without exposing All Files as a bypass.</summary>
+    [Fact]
+    public async Task FirmwareBrowseOpenPickerIsWiredToOnlyBinChoice()
+    {
+        IStorageProvider storageProvider = DispatchProxy.Create<IStorageProvider, StorageProviderProxy>();
+        StorageProviderProxy proxy = Assert.IsType<StorageProviderProxy>(
+            storageProvider,
+            exactMatch: false);
+
+        string? selectedPath = await FirmwareFilePickerDialogs.PickFirmwareBinOpenFileAsync(
+            storageProvider,
+            "Select firmware BIN");
+
+        Assert.Null(selectedPath);
+        FilePickerOpenOptions options = Assert.IsType<FilePickerOpenOptions>(
+            proxy.OpenOptions);
+        Assert.False(options.AllowMultiple);
+        FilePickerFileType choice = Assert.Single(options.FileTypeFilter!);
+        Assert.Equal("Firmware BIN", choice.Name);
+        Assert.Equal(["*.bin"], choice.Patterns);
+        Assert.Equal(["application/octet-stream"], choice.MimeTypes);
+    }
 
     /// <summary>The async-void Browse handler returns and the Dispatcher remains operational.</summary>
     [AvaloniaFact]
@@ -84,6 +111,33 @@ public sealed class FirmwareBrowseProcessSmokeTests
         finally
         {
             window.Close();
+        }
+    }
+
+    [SuppressMessage(
+        "Performance",
+        "CA1852:Seal internal types",
+        Justification = "DispatchProxy creates a runtime subclass of this proxy base.")]
+    private class StorageProviderProxy : DispatchProxy
+    {
+        public FilePickerOpenOptions? OpenOptions { get; private set; }
+
+        protected override object? Invoke(MethodInfo? targetMethod, object?[]? args)
+        {
+            ArgumentNullException.ThrowIfNull(targetMethod);
+            return targetMethod.Name switch
+            {
+                "get_CanOpen" => true,
+                "get_CanSave" or "get_CanPickFolder" => false,
+                nameof(IStorageProvider.OpenFilePickerAsync) => CaptureOpenOptions(args),
+                _ => throw new NotSupportedException(targetMethod.Name),
+            };
+        }
+
+        private Task<IReadOnlyList<IStorageFile>> CaptureOpenOptions(object?[]? args)
+        {
+            OpenOptions = Assert.IsType<FilePickerOpenOptions>(Assert.Single(args!));
+            return Task.FromResult<IReadOnlyList<IStorageFile>>([]);
         }
     }
 

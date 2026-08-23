@@ -17,8 +17,19 @@ public sealed partial class RepositoryBoundaryTests
                     "public static class CompiledInputArtifactInspectionService",
                     StringComparison.Ordinal)),
         ];
+        string[] extensionAdmissionOwners =
+        [
+            .. Directory.EnumerateFiles(applicationRoot, "*.cs", SearchOption.AllDirectories)
+                .Where(path => File.ReadAllText(path).Contains(
+                    "AcceptedExtensions.Contains",
+                    StringComparison.Ordinal)),
+        ];
         string headless = ReadText(
             "src/NvtFwCombiner.Application/Authoring/AuthoringInputSlotInspection.cs");
+        string runtimeRequest = ReadText(
+            "src/NvtFwCombiner.Application/Composition/CompositionRunRequest.cs");
+        string inspectionOwner = ReadText(
+            "src/NvtFwCombiner.Application/InputInspection/CompiledInputArtifactInspectionService.cs");
         string abOutputNaming = ReadText(
             "src/NvtFwCombiner.Application/Composition/AbCodeOutputNameResolver.cs");
         string abProjection = ReadText(
@@ -32,10 +43,25 @@ public sealed partial class RepositoryBoundaryTests
         string presentation = ReadPresentationSources();
 
         _ = Assert.Single(inspectorOwners);
+        Assert.Equal(inspectorOwners, extensionAdmissionOwners);
         Assert.Contains(
             "CompiledInputArtifactInspectionService.Inspect(",
             headless,
             StringComparison.Ordinal);
+        Assert.Contains(
+            "CompiledInputArtifactInspectionService.AcceptsOriginalFileName(",
+            headless,
+            StringComparison.Ordinal);
+        Assert.Contains(
+            "CompiledInputArtifactInspectionService.AcceptsOriginalFileName(",
+            runtimeRequest,
+            StringComparison.Ordinal);
+        Assert.DoesNotContain("AcceptedExtensions.Contains", headless, StringComparison.Ordinal);
+        Assert.DoesNotContain("AcceptedExtensions.Contains", runtimeRequest, StringComparison.Ordinal);
+        Assert.Equal(1, CountOccurrences(inspectionOwner, "AcceptedExtensions.Contains"));
+        Assert.DoesNotContain("TryCreatePublication", headless, StringComparison.Ordinal);
+        Assert.DoesNotContain("AuthoringInputSlotPublicationResult", headless, StringComparison.Ordinal);
+        Assert.DoesNotContain("BeginInspection(", headless, StringComparison.Ordinal);
         Assert.Contains(
             "CompiledInputArtifactObservationService.Observe(",
             headless,
