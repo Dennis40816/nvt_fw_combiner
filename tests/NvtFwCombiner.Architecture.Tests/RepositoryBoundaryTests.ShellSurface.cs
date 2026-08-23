@@ -188,8 +188,9 @@ public sealed partial class RepositoryBoundaryTests
         Assert.Contains("await viewModel.WorkflowSession.SetSlotFileAsync", firmwareSlotCardCode, StringComparison.Ordinal);
         Assert.DoesNotContain("viewModel.SetSlotFile(", firmwareSlotCardCode, StringComparison.Ordinal);
         Assert.Contains("DropZoneDragState.ApplyFileDropEffect", firmwareSlotCardCode, StringComparison.Ordinal);
-        Assert.Contains("DropZoneDragState.GetFirstLocalFilePath", firmwareSlotCardCode, StringComparison.Ordinal);
-        Assert.Contains("GetFirstLocalFilePath", dropZoneDragState, StringComparison.Ordinal);
+        Assert.Contains("DropZoneDragState.GetSingleLocalFile", firmwareSlotCardCode, StringComparison.Ordinal);
+        Assert.Contains("GetSingleLocalFile", dropZoneDragState, StringComparison.Ordinal);
+        Assert.DoesNotContain("FirstOrDefault", dropZoneDragState, StringComparison.Ordinal);
         Assert.Contains("DragActiveClass", dropZoneDragState, StringComparison.Ordinal);
         Assert.Equal(2, CountOccurrences(workflowTemplates, "<views:GeneralMappingRow"));
         Assert.DoesNotContain("<views:GeneralMappingRow", shell, StringComparison.Ordinal);

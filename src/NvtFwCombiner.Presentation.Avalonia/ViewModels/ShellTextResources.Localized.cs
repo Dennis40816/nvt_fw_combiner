@@ -491,6 +491,10 @@ internal sealed partial class ShellTextResources
             FirmwareNumberMismatchCancelLabel = Pick("Cancel", "取消"),
             FirmwareNumberMismatchSwitchLabel = Pick("Switch Number", "切換 Number"),
             ContextUpdatedToastTitle = Pick("Context updated", "條件已更新"),
+            FileDropRejectedTitle = Pick("File not selected", "未選取檔案"),
+            FileDropRejectedDetail = Pick(
+                "Drop exactly one local file.",
+                "請一次拖放一個本機檔案。"),
             FirmwareInspectionLoadingTitle = Pick("Inspecting selected files", "正在檢查所選檔案"),
             FirmwareInspectionFailedTitle = Pick("Inspection unavailable", "檢查目前無法完成"),
             FirmwareInspectionCancelLabel = Pick("Cancel inspection", "取消檢查"),

@@ -208,11 +208,21 @@ public sealed partial class HexEditorPanel : UserControl
             return;
         }
 
-        string? path = DropZoneDragState.GetFirstLocalFilePath(e);
-        if (!string.IsNullOrWhiteSpace(path))
+        SingleLocalFileDropSelection selection = DropZoneDragState.GetSingleLocalFile(e);
+        e.Handled = true;
+        if (!selection.IsAccepted)
         {
-            await viewModel.LoadAsync(path);
+            if (ShellViewModelLocator.Find(this) is MainWindowViewModel shell)
+            {
+                shell.Reports.SetShellToast(
+                    shell.Text.FileDropRejectedTitle,
+                    shell.Text.FileDropRejectedDetail);
+            }
+
+            return;
         }
+
+        await viewModel.LoadAsync(selection.Path!);
     }
 
     private void HexViewport_OnInteractionRequested(object? sender, HexViewportInteractionEventArgs e)

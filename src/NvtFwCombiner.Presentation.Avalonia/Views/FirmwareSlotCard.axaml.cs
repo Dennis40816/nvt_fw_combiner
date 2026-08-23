@@ -80,11 +80,17 @@ public sealed partial class FirmwareSlotCard : UserControl
             return;
         }
 
-        string? path = DropZoneDragState.GetFirstLocalFilePath(e);
-        if (!string.IsNullOrWhiteSpace(path))
+        SingleLocalFileDropSelection selection = DropZoneDragState.GetSingleLocalFile(e);
+        e.Handled = true;
+        if (!selection.IsAccepted)
         {
-            await viewModel.WorkflowSession.SetSlotFileAsync(slotId, path);
+            viewModel.Reports.SetShellToast(
+                viewModel.Text.FileDropRejectedTitle,
+                viewModel.Text.FileDropRejectedDetail);
+            return;
         }
+
+        await viewModel.WorkflowSession.SetSlotFileAsync(slotId, selection.Path!);
     }
 
     private async void BrowseButton_OnClick(object? sender, RoutedEventArgs e)

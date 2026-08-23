@@ -15,9 +15,18 @@ internal static class DropZoneDragState
         return canDrop;
     }
 
-    public static string? GetFirstLocalFilePath(DragEventArgs e)
+    public static SingleLocalFileDropSelection GetSingleLocalFile(DragEventArgs e)
     {
-        return e.DataTransfer.TryGetFiles()?.OfType<IStorageFile>().FirstOrDefault()?.TryGetLocalPath();
+        IStorageItem[]? items = e.DataTransfer.TryGetFiles();
+        if (items is not { Length: 1 })
+        {
+            return new(SingleLocalFileDropStatus.WrongItemCount, null);
+        }
+
+        string? path = (items[0] as IStorageFile)?.TryGetLocalPath();
+        return string.IsNullOrWhiteSpace(path)
+            ? new(SingleLocalFileDropStatus.NonLocalFile, null)
+            : new(SingleLocalFileDropStatus.Accepted, path);
     }
 
     public static void SetActive(object? sender, bool isActive)
@@ -39,4 +48,19 @@ internal static class DropZoneDragState
             _ = control.Classes.Remove(DragActiveClass);
         }
     }
+}
+
+internal enum SingleLocalFileDropStatus
+{
+    Accepted,
+    WrongItemCount,
+    NonLocalFile,
+}
+
+internal readonly record struct SingleLocalFileDropSelection(
+    SingleLocalFileDropStatus Status,
+    string? Path)
+{
+    public bool IsAccepted =>
+        Status == SingleLocalFileDropStatus.Accepted && !string.IsNullOrWhiteSpace(Path);
 }

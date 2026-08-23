@@ -221,6 +221,10 @@ internal sealed partial class ShellTextResources
 
     public string ContextUpdatedToastTitle { get; private init; } = string.Empty;
 
+    public string FileDropRejectedTitle { get; private init; } = string.Empty;
+
+    public string FileDropRejectedDetail { get; private init; } = string.Empty;
+
     public string FirmwareInspectionLoadingStatus { get; private init; } = string.Empty;
 
     public string FirmwareInspectionLoadingTitle { get; private init; } = string.Empty;
