@@ -150,7 +150,7 @@
         ContentTemplate="{StaticResource DeviceContextPanelTemplate}"
         IsVisible="{Binding IsDeviceContextVisible}" />
 
-    <ScrollViewer Grid.Row="3">
+    <ScrollViewer Grid.Row="3" Classes="contentScrollSurface">
       <Grid Margin="28,24,28,132" RowDefinitions="*" RowSpacing="0">
         <ContentControl
             x:Name="HomePageHost"

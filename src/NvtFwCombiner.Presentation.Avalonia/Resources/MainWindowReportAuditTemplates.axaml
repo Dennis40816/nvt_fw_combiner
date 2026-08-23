@@ -35,6 +35,7 @@
         <TabItem Header="{Binding Text.ReportTabInputs}">
           <ScrollViewer
               MinHeight="0"
+              Classes="contentScrollSurface"
               HorizontalScrollBarVisibility="Disabled"
               VerticalAlignment="Stretch"
               VerticalScrollBarVisibility="Auto">
@@ -216,7 +217,7 @@
         </TabItem>
 
         <TabItem Header="{Binding Text.ReportTabOperations}">
-          <ScrollViewer HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto">
+          <ScrollViewer Classes="contentScrollSurface" HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto">
             <StackPanel Margin="0,12,0,0" Spacing="{DynamicResource NfcSpace12}">
               <Border Classes="insetSurface" Padding="14" IsVisible="{Binding LoadedReport.HasNoOperations}">
                 <TextBlock Classes="mutedText" Text="{Binding Text.EmptyOperationsMessage}" TextWrapping="Wrap" />
@@ -260,7 +261,7 @@
         </TabItem>
 
         <TabItem Header="{Binding Text.ReportTabPostbuild}">
-          <ScrollViewer HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto">
+          <ScrollViewer Classes="contentScrollSurface" HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto">
             <StackPanel Margin="0,12,0,0" Spacing="{DynamicResource NfcSpace12}">
               <Border Classes="insetSurface" Padding="14" IsVisible="{Binding LoadedReport.HasNoPostbuildInvocations}">
                 <TextBlock Classes="mutedText" Text="{Binding Text.EmptyPostbuildMessage}" TextWrapping="Wrap" />
@@ -285,7 +286,7 @@
         </TabItem>
 
         <TabItem Header="{Binding Text.ReportTabIssues}">
-          <ScrollViewer HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto">
+          <ScrollViewer Classes="contentScrollSurface" HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto">
             <StackPanel Margin="0,12,0,0" Spacing="{DynamicResource NfcSpace12}">
               <Border Classes="successInset" Padding="16" IsVisible="{Binding LoadedReport.HasNoIssues}">
                 <Grid ColumnDefinitions="34,*" ColumnSpacing="{DynamicResource NfcSpace12}">

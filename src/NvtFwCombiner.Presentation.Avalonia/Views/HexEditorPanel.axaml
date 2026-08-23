@@ -406,7 +406,7 @@
                     Text="{Binding Text.HexEditorNoChangedBlocksDetail}"
                     TextAlignment="Center"
                     TextWrapping="Wrap" />
-                <ScrollViewer Grid.Row="2" IsVisible="{Binding HasChangedBlocks}" VerticalScrollBarVisibility="Auto">
+                <ScrollViewer Grid.Row="2" Classes="contentScrollSurface" IsVisible="{Binding HasChangedBlocks}" VerticalScrollBarVisibility="Auto">
                   <ItemsControl ItemsSource="{Binding ChangedBlockPage.Items}">
                     <ItemsControl.ItemTemplate>
                       <DataTemplate x:DataType="vm:HexEditorChangedBlockViewModel">

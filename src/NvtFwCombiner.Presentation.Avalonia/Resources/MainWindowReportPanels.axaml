@@ -57,7 +57,7 @@
         <TextBlock Classes="supportingText" Text="{Binding Text.NoReportHistoryLabel}" />
       </Border>
 
-      <ScrollViewer Grid.Row="2" IsVisible="{Binding HasReportHistory}">
+      <ScrollViewer Grid.Row="2" Classes="contentScrollSurface" IsVisible="{Binding HasReportHistory}">
         <views:SpaciousPanel Classes="compact">
           <ItemsControl Classes="spaciousList" ItemsSource="{Binding ReportHistoryEntries}">
             <ItemsControl.ItemTemplate>

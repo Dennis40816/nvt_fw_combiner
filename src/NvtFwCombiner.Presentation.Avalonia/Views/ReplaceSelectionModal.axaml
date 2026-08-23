@@ -41,7 +41,7 @@
         </Grid>
       </Border>
 
-      <ScrollViewer Grid.Row="2">
+      <ScrollViewer Grid.Row="2" Classes="contentScrollSurface">
         <StackPanel Spacing="14">
           <StackPanel Spacing="6">
             <TextBlock Classes="fieldLabel" Text="{Binding Text.SelectedReplacementsTitle}" />

@@ -54,7 +54,10 @@ public sealed partial class XamlControlStyleContractTests
         int replaceBuildAction = shell.IndexOf("Click=\"BuildReplaceButton_OnClick\"", StringComparison.Ordinal);
 
         Assert.Contains("RowDefinitions=\"Auto,Auto,Auto,*,Auto\"", shell, StringComparison.Ordinal);
-        Assert.Contains("<ScrollViewer Grid.Row=\"3\">", shell, StringComparison.Ordinal);
+        Assert.Contains(
+            "<ScrollViewer Grid.Row=\"3\" Classes=\"contentScrollSurface\">",
+            shell,
+            StringComparison.Ordinal);
         Assert.Contains("x:Name=\"CompositionBuildActionRail\"", shell, StringComparison.Ordinal);
         Assert.Contains("Grid.Row=\"3\"", shell, StringComparison.Ordinal);
         Assert.DoesNotContain("ZIndex=\"1\"", shell, StringComparison.Ordinal);

@@ -7,7 +7,7 @@
              KeyboardNavigation.TabNavigation="Cycle" KeyDown="OutputDeliveryConfirmationModal_OnKeyDown">
   <Border Classes="modalSurface" Width="760" MaxHeight="720" Margin="16" Padding="22"
           HorizontalAlignment="Center" VerticalAlignment="Center">
-    <ScrollViewer HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto">
+    <ScrollViewer Classes="contentScrollSurface" HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto">
       <Grid RowDefinitions="Auto,Auto,Auto,Auto,Auto,Auto" RowSpacing="{DynamicResource NfcSpace16}">
         <StackPanel Spacing="5">
           <TextBlock Classes="modalTitle" Text="{Binding Text.OutputDeliveryTitle}" />

@@ -127,7 +127,7 @@
             <Border Grid.Row="2" Classes="messageCenterDivider" />
 
             <Grid Grid.Row="3">
-              <ScrollViewer x:Name="SystemActivityTimelineViewport" HorizontalScrollBarVisibility="Disabled">
+              <ScrollViewer x:Name="SystemActivityTimelineViewport" Classes="contentScrollSurface" HorizontalScrollBarVisibility="Disabled">
                 <ItemsControl AutomationProperties.LiveSetting="Polite" ItemsSource="{Binding ActivityItems}">
                   <ItemsControl.ItemTemplate>
                     <DataTemplate x:DataType="vm:MessageCenterActivityItem">

@@ -194,7 +194,10 @@ public sealed partial class XamlControlStyleContractTests
         string hexEditor = ReadPresentationFile("Views/HexEditorPanel.axaml");
         string codeBehind = ReadPresentationFile("Views/HexEditorPanel.axaml.cs");
 
-        Assert.Contains("<ScrollViewer Grid.Row=\"3\">", shell, StringComparison.Ordinal);
+        Assert.Contains(
+            "<ScrollViewer Grid.Row=\"3\" Classes=\"contentScrollSurface\">",
+            shell,
+            StringComparison.Ordinal);
         Assert.True(
             shell.IndexOf("ContentTemplate=\"{StaticResource HexEditorPageTemplate}\"", StringComparison.Ordinal) <
             shell.IndexOf("</ScrollViewer>", StringComparison.Ordinal));

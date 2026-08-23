@@ -378,6 +378,7 @@
       <ScrollViewer
           x:Name="SettingsContentViewport"
           Grid.Column="1"
+          Classes="contentScrollSurface"
           Margin="43,18,42,24"
           HorizontalScrollBarVisibility="Disabled"
           VerticalScrollBarVisibility="Auto">
