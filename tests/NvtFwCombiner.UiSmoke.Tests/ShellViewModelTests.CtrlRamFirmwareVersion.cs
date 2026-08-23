@@ -1,5 +1,6 @@
 using System.Text.Json;
 using NvtFwCombiner.Application.Authoring;
+using NvtFwCombiner.Application.InputInspection;
 using NvtFwCombiner.Domain.Composition;
 using NvtFwCombiner.Presentation.Avalonia.ViewModels;
 using NvtFwCombiner.TestSupport;
@@ -153,143 +154,6 @@ public sealed partial class CtrlRamWorkflowTests
         Assert.Equal(previewSha256, viewModel.Reports.LoadedReport.OutputSha256);
     }
 
-    /// <summary>The CtrlRAM metadata read yields immediately, runs off-thread, and admits only one request.</summary>
-    [Fact]
-    public async Task CtrlRamFirmwareVersionMetadataReadDoesNotBlockCallerOrRunConcurrently()
-    {
-        CancellationToken cancellationToken = TestContext.Current.CancellationToken;
-        using var golden = StandardMergeGoldenManifest.Load();
-        using var workspace = TempWorkspace.Create("nvt-fw-combiner-ui-ctrlram-version-async");
-        byte[] baseBytes = golden.ReadExpectedOutput(golden.CaseByIc("51926"));
-        FirmwareConfigMetadataSnapshot? metadata = null;
-        using var readerEntered = new ManualResetEventSlim();
-        using var releaseReader = new ManualResetEventSlim();
-        int callerThread = Environment.CurrentManagedThreadId;
-        int readerThread = 0;
-        int readCount = 0;
-        MainWindowViewModel viewModel = CreateCtrlRamVersionReadyViewModel(
-            baseBytes,
-            workspace,
-            (icId, path) =>
-            {
-                _ = Interlocked.Increment(ref readCount);
-                readerThread = Environment.CurrentManagedThreadId;
-                readerEntered.Set();
-                Assert.True(releaseReader.Wait(TimeSpan.FromSeconds(10), cancellationToken));
-                return metadata ??= BuiltInFirmwareInspection.TryReadFirmwareConfigMetadata(TestProjection, icId, path);
-            });
-
-        Task<bool> firstOpen = viewModel.Replace.TryOpenCtrlRamFirmwareVersionModalAsync(cancellationToken);
-
-        Assert.True(viewModel.Replace.IsCtrlRamFirmwareVersionMetadataLoading);
-        Assert.True(readerEntered.Wait(TimeSpan.FromSeconds(10), cancellationToken));
-        Assert.False(firstOpen.IsCompleted);
-        Assert.NotEqual(callerThread, readerThread);
-        Assert.False(await viewModel.Replace.TryOpenCtrlRamFirmwareVersionModalAsync(cancellationToken));
-        Assert.Equal(1, Volatile.Read(ref readCount));
-
-        releaseReader.Set();
-        Assert.True(await firstOpen);
-        Assert.False(viewModel.Replace.IsCtrlRamFirmwareVersionMetadataLoading);
-        Assert.True(viewModel.Replace.IsCtrlRamFirmwareVersionModalOpen);
-    }
-
-    /// <summary>A base file changed while metadata is read cannot open a modal for the stale identity.</summary>
-    [Fact]
-    public async Task CtrlRamFirmwareVersionMetadataReadRejectsChangedFileIdentity()
-    {
-        CancellationToken cancellationToken = TestContext.Current.CancellationToken;
-        using var golden = StandardMergeGoldenManifest.Load();
-        using var workspace = TempWorkspace.Create("nvt-fw-combiner-ui-ctrlram-version-stamp-race");
-        byte[] baseBytes = golden.ReadExpectedOutput(golden.CaseByIc("51926"));
-        FirmwareConfigMetadataSnapshot? metadata = null;
-        using var readerEntered = new ManualResetEventSlim();
-        using var releaseReader = new ManualResetEventSlim();
-        MainWindowViewModel viewModel = CreateCtrlRamVersionReadyViewModel(
-            baseBytes,
-            workspace,
-            (icId, path) =>
-            {
-                readerEntered.Set();
-                Assert.True(releaseReader.Wait(TimeSpan.FromSeconds(10), cancellationToken));
-                return metadata ??= BuiltInFirmwareInspection.TryReadFirmwareConfigMetadata(TestProjection, icId, path);
-            });
-        string basePath = Assert.IsType<string>(viewModel.Replace.ReplaceBaseSlot.FilePath);
-
-        Task<bool> open = viewModel.Replace.TryOpenCtrlRamFirmwareVersionModalAsync(cancellationToken);
-        Assert.True(readerEntered.Wait(TimeSpan.FromSeconds(10), cancellationToken));
-        byte[] changed = File.ReadAllBytes(basePath);
-        changed[^1] ^= 0x01;
-        File.WriteAllBytes(basePath, changed);
-        releaseReader.Set();
-
-        Assert.False(await open);
-        Assert.False(viewModel.Replace.IsCtrlRamFirmwareVersionModalOpen);
-        Assert.False(viewModel.Replace.IsCtrlRamFirmwareVersionMetadataLoading);
-    }
-
-    /// <summary>A context generation changed while metadata is read cannot publish the old modal state.</summary>
-    [Fact]
-    public async Task CtrlRamFirmwareVersionMetadataReadRejectsChangedContextGeneration()
-    {
-        CancellationToken cancellationToken = TestContext.Current.CancellationToken;
-        using var golden = StandardMergeGoldenManifest.Load();
-        using var workspace = TempWorkspace.Create("nvt-fw-combiner-ui-ctrlram-version-context-race");
-        byte[] baseBytes = golden.ReadExpectedOutput(golden.CaseByIc("51926"));
-        FirmwareConfigMetadataSnapshot? metadata = null;
-        using var readerEntered = new ManualResetEventSlim();
-        using var releaseReader = new ManualResetEventSlim();
-        MainWindowViewModel viewModel = CreateCtrlRamVersionReadyViewModel(
-            baseBytes,
-            workspace,
-            (icId, path) =>
-            {
-                readerEntered.Set();
-                Assert.True(releaseReader.Wait(TimeSpan.FromSeconds(10), cancellationToken));
-                return metadata ??= BuiltInFirmwareInspection.TryReadFirmwareConfigMetadata(TestProjection, icId, path);
-            });
-
-        Task<bool> open = viewModel.Replace.TryOpenCtrlRamFirmwareVersionModalAsync(cancellationToken);
-        Assert.True(readerEntered.Wait(TimeSpan.FromSeconds(10), cancellationToken));
-        viewModel.Replace.SelectedReplaceMode = ExperienceIds.DpReplace;
-        releaseReader.Set();
-
-        Assert.False(await open);
-        Assert.False(viewModel.Replace.IsCtrlRamFirmwareVersionModalOpen);
-        Assert.False(viewModel.Replace.IsCtrlRamFirmwareVersionMetadataLoading);
-    }
-
-    /// <summary>A cancellation requested during the synchronous read prevents modal publication and resets loading.</summary>
-    [Fact]
-    public async Task CtrlRamFirmwareVersionMetadataReadHonorsCancellationAfterReaderStarts()
-    {
-        CancellationToken testCancellationToken = TestContext.Current.CancellationToken;
-        using var cancellationSource = CancellationTokenSource.CreateLinkedTokenSource(testCancellationToken);
-        using var golden = StandardMergeGoldenManifest.Load();
-        using var workspace = TempWorkspace.Create("nvt-fw-combiner-ui-ctrlram-version-cancel");
-        byte[] baseBytes = golden.ReadExpectedOutput(golden.CaseByIc("51926"));
-        using var readerEntered = new ManualResetEventSlim();
-        using var releaseReader = new ManualResetEventSlim();
-        MainWindowViewModel viewModel = CreateCtrlRamVersionReadyViewModel(
-            baseBytes,
-            workspace,
-            (icId, path) =>
-            {
-                readerEntered.Set();
-                Assert.True(releaseReader.Wait(TimeSpan.FromSeconds(10), testCancellationToken));
-                return BuiltInFirmwareInspection.TryReadFirmwareConfigMetadata(TestProjection, icId, path);
-            });
-
-        Task<bool> open = viewModel.Replace.TryOpenCtrlRamFirmwareVersionModalAsync(cancellationSource.Token);
-        Assert.True(readerEntered.Wait(TimeSpan.FromSeconds(10), testCancellationToken));
-        cancellationSource.Cancel();
-        releaseReader.Set();
-
-        _ = await Assert.ThrowsAnyAsync<OperationCanceledException>(() => open);
-        Assert.False(viewModel.Replace.IsCtrlRamFirmwareVersionModalOpen);
-        Assert.False(viewModel.Replace.IsCtrlRamFirmwareVersionMetadataLoading);
-    }
-
     /// <summary>IC, number, and slot changes revoke both Preserve and Edit confirmation intent.</summary>
     [Theory]
     [InlineData("ic", false)]
@@ -347,9 +211,9 @@ public sealed partial class CtrlRamWorkflowTests
         Assert.False(succeeded);
     }
 
-    /// <summary>Build confirmation re-reads content and rejects same-path same-length replacement.</summary>
+    /// <summary>Build confirmation and execution retain the immutable bytes accepted by the verified session.</summary>
     [Fact]
-    public async Task CtrlRamFirmwareVersionBuildConfirmationReinspectsContentIdentity()
+    public async Task CtrlRamFirmwareVersionBuildConfirmationUsesAcceptedBytesAfterDiskMutation()
     {
         CancellationToken cancellationToken = TestContext.Current.CancellationToken;
         using var golden = StandardMergeGoldenManifest.Load();
@@ -357,69 +221,99 @@ public sealed partial class CtrlRamWorkflowTests
         byte[] baseBytes = golden.ReadExpectedOutput(golden.CaseByIc("51926"));
         MainWindowViewModel viewModel = CreateCtrlRamVersionReadyViewModel(baseBytes, workspace);
 
+        Assert.True(viewModel.Replace.PreviewReplaceCommand.CanExecute(null));
+        await viewModel.Replace.PreviewReplaceCommand.ExecuteAsync(null);
+        Assert.True(viewModel.RunSession.LastRunResult.Succeeded, viewModel.RunSession.LastRunResult.Detail);
+        string acceptedOutputSha256 = viewModel.Reports.LoadedReport.OutputSha256;
         Assert.True(await viewModel.Replace.TryOpenCtrlRamFirmwareVersionModalAsync(cancellationToken));
         string basePath = Assert.IsType<string>(viewModel.Replace.ReplaceBaseSlot.FilePath);
         byte[] changed = File.ReadAllBytes(basePath);
         changed[^1] ^= 0x01;
         File.WriteAllBytes(basePath, changed);
 
-        Assert.False(await viewModel.Replace.IsCtrlRamFirmwareVersionBuildConfirmationCurrentAsync(
+        Assert.True(await viewModel.Replace.IsCtrlRamFirmwareVersionBuildConfirmationCurrentAsync(
             cancellationToken));
         (bool succeeded, _) = await viewModel.Replace.TryCreateCtrlRamFirmwareVersionEditAsync(
             cancellationToken);
-        Assert.False(succeeded);
+        Assert.True(succeeded);
+
+        string outputPath = workspace.PathFor("accepted-session-output.bin");
+        await viewModel.Replace.BuildReplaceAsync(outputPath);
+
+        Assert.True(viewModel.RunSession.LastRunResult.Succeeded, viewModel.RunSession.LastRunResult.Detail);
+        Assert.True(File.Exists(outputPath));
+        Assert.Equal(acceptedOutputSha256, viewModel.Reports.LoadedReport.OutputSha256);
     }
 
-    /// <summary>Close and Preserve/Edit selection races revoke an in-flight Edit metadata completion.</summary>
+    /// <summary>Open and Edit use canonical inspection facts even when the accepted Base path changes or disappears.</summary>
     [Theory]
-    [InlineData(false)]
-    [InlineData(true)]
-    public async Task CtrlRamFirmwareVersionEditReadRejectsModalStateRace(bool closeModal)
+    [InlineData("overwrite-before-open")]
+    [InlineData("delete-before-open")]
+    [InlineData("overwrite-after-open")]
+    [InlineData("delete-after-open")]
+    public async Task CtrlRamFirmwareVersionEditUsesAcceptedFactsWithoutPathReread(string mutation)
     {
+        ArgumentException.ThrowIfNullOrWhiteSpace(mutation);
         CancellationToken cancellationToken = TestContext.Current.CancellationToken;
         using var golden = StandardMergeGoldenManifest.Load();
-        using var workspace = TempWorkspace.Create($"nvt-fw-combiner-ui-ctrlram-version-edit-race-{closeModal}");
+        using var workspace = TempWorkspace.Create($"nvt-fw-combiner-ui-ctrlram-version-{mutation}");
         byte[] baseBytes = golden.ReadExpectedOutput(golden.CaseByIc("51926"));
-        using var readerEntered = new ManualResetEventSlim();
-        using var releaseReader = new ManualResetEventSlim();
-        int readCount = 0;
-        MainWindowViewModel viewModel = CreateCtrlRamVersionReadyViewModel(
-            baseBytes,
-            workspace,
-            (icId, path) =>
-            {
-                if (Interlocked.Increment(ref readCount) == 2)
-                {
-                    readerEntered.Set();
-                    Assert.True(releaseReader.Wait(TimeSpan.FromSeconds(10), cancellationToken));
-                }
+        MainWindowViewModel viewModel = CreateCtrlRamVersionReadyViewModel(baseBytes, workspace);
+        string basePath = Assert.IsType<string>(viewModel.Replace.ReplaceBaseSlot.FilePath);
+        CompiledInputVersionObservation acceptedMetadata = Assert.Single(
+            viewModel.Replace.ReplaceBaseSlot.CurrentInspectionProjection?
+                .InputSlotStatus?.Observation.Versions ?? [],
+            static version => version.Kind == CompiledInputVersionKind.TpReferenceFirmwareConfig);
 
-                return BuiltInFirmwareInspection.TryReadFirmwareConfigMetadata(TestProjection, icId, path);
-            });
+        if (mutation.EndsWith("before-open", StringComparison.Ordinal))
+        {
+            MutateAcceptedPath(basePath, mutation);
+        }
 
         Assert.True(await viewModel.Replace.TryOpenCtrlRamFirmwareVersionModalAsync(cancellationToken));
+        Assert.Equal(
+            FormattableString.Invariant(
+                $"{acceptedMetadata.Major:X2} / {acceptedMetadata.Minor:X2}"),
+            viewModel.Replace.CtrlRamFirmwareVersionCurrentValue);
+        if (mutation.EndsWith("after-open", StringComparison.Ordinal))
+        {
+            MutateAcceptedPath(basePath, mutation);
+        }
+
+        Assert.True(await viewModel.Replace.IsCtrlRamFirmwareVersionBuildConfirmationCurrentAsync(
+            cancellationToken));
         viewModel.Replace.SelectCtrlRamFirmwareVersionEditCommand.Execute(null);
-        Task<(bool Succeeded, CtrlRamFirmwareVersionDraftState? Edit)> confirm =
-            viewModel.Replace.TryCreateCtrlRamFirmwareVersionEditAsync(cancellationToken);
-        Assert.True(readerEntered.Wait(TimeSpan.FromSeconds(10), cancellationToken));
+        viewModel.Replace.CtrlRamFirmwareVersionText = "2A";
+        viewModel.Replace.CtrlRamFirmwareSubVersionText = "0C";
+        (bool succeeded, CtrlRamFirmwareVersionDraftState? edit) =
+            await viewModel.Replace.TryCreateCtrlRamFirmwareVersionEditAsync(cancellationToken);
+        Assert.True(succeeded);
+        Assert.NotNull(edit);
 
-        if (closeModal)
+        string outputPath = workspace.PathFor($"{mutation}-output.bin");
+        await viewModel.Replace.BuildReplaceAsync(outputPath, edit);
+
+        Assert.True(viewModel.RunSession.LastRunResult.Succeeded, viewModel.RunSession.LastRunResult.Detail);
+        FirmwareConfigMetadataSnapshot outputMetadata = Assert.IsType<FirmwareConfigMetadataSnapshot>(
+            BuiltInFirmwareInspection.TryReadFirmwareConfigMetadata(
+                TestProjection,
+                "NT51926",
+                outputPath));
+        Assert.Equal(0x2A, outputMetadata.FirmwareVersion);
+        Assert.Equal(0x0C, outputMetadata.FirmwareSubVersion);
+    }
+
+    private static void MutateAcceptedPath(string path, string mutation)
+    {
+        if (mutation.StartsWith("delete", StringComparison.Ordinal))
         {
-            viewModel.Replace.CloseCtrlRamFirmwareVersionModal();
-        }
-        else
-        {
-            viewModel.Replace.SelectCtrlRamFirmwareVersionPreserveCommand.Execute(null);
+            File.Delete(path);
+            return;
         }
 
-        releaseReader.Set();
-        (bool succeeded, CtrlRamFirmwareVersionDraftState? edit) = await confirm;
-
-        Assert.False(succeeded);
-        Assert.Null(edit);
-        Assert.False(viewModel.Replace.IsCtrlRamFirmwareVersionMetadataLoading);
-        Assert.Equal(!closeModal, viewModel.Replace.IsCtrlRamFirmwareVersionModalOpen);
-        Assert.Equal(!closeModal, viewModel.Replace.IsCtrlRamFirmwareVersionPreserveSelected);
+        byte[] changed = File.ReadAllBytes(path);
+        changed[^1] ^= 0x01;
+        File.WriteAllBytes(path, changed);
     }
 
 }

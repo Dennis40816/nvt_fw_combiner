@@ -9,29 +9,11 @@ namespace NvtFwCombiner.UiSmoke.Tests;
 
 public abstract partial class ShellViewModelTestBase
 {
-    private protected MainWindowViewModel CreateCtrlRamVersionReadyViewModel(
+    private protected static MainWindowViewModel CreateCtrlRamVersionReadyViewModel(
         byte[] baseBytes,
-        TempWorkspace workspace,
-        Func<string, string, FirmwareConfigMetadataSnapshot?>? firmwareConfigMetadataReader = null)
+        TempWorkspace workspace)
     {
-        MainWindowViewModel viewModel;
-        if (firmwareConfigMetadataReader is null)
-        {
-            viewModel = PresentationTestHost.CreateViewModel();
-        }
-        else
-        {
-            PresentationHostServices services = PresentationTestHost.CreateServices("test-app");
-            viewModel = new MainWindowViewModel(
-                "test-shell",
-                "test-app",
-                ShellLanguage.English,
-                services,
-                new DelegatingFirmwareInspection(
-                    TestHost.FirmwareInspectionExperience,
-                    metadataReader: firmwareConfigMetadataReader));
-            _ = PresentationTestHost.PublishCanonicalCatalog(services, viewModel);
-        }
+        MainWindowViewModel viewModel = PresentationTestHost.CreateViewModel();
         viewModel.WorkflowSession.SelectedIc = "NT51926";
         viewModel.WorkflowSession.SelectedNumber = "cascade";
         OpenReplace(viewModel, ExperienceIds.CtrlRamReplace);

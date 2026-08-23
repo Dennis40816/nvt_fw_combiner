@@ -167,7 +167,6 @@ internal sealed partial class ReplacePresentationViewModel
     internal WorkflowInspectionSet InspectionLifecycles { get; }
 
     public bool CanBuildReplace => CanRunReplace() &&
-        !IsCtrlRamFirmwareVersionMetadataLoading &&
         (!IsCtrlRamReplaceModeSelected || HasCurrentCtrlRamActionReadiness(build: true)) &&
         (!IsGeneralReplaceModeSelected || _generalReplaceActionReadiness?.Build.IsAvailable == true);
 

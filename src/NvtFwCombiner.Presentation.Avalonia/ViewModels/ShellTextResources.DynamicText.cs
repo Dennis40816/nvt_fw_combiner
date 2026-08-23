@@ -227,6 +227,8 @@ internal sealed partial class ShellTextResources
             CompiledInputVersionKind.DpB => "DP2",
             CompiledInputVersionKind.TpA => "TPA",
             CompiledInputVersionKind.TpB => "TPB",
+            CompiledInputVersionKind.TpReferenceFirmwareConfig =>
+                throw new ArgumentOutOfRangeException(nameof(kind), kind, null),
             _ => throw new ArgumentOutOfRangeException(nameof(kind), kind, null),
         };
     }

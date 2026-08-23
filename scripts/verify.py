@@ -61,6 +61,7 @@ WINDOWS_PROCESS_ORCHESTRATION_TEST = (
 DEFAULT_VERIFY_JOBS = 3
 MAXIMUM_VERIFY_JOBS = 3
 DEFAULT_LANE_TIMEOUT_SECONDS = 600
+LOCAL_DOTNET_COVERAGE_TIMEOUT_SECONDS = 480
 MINIMUM_LANE_TIMEOUT_SECONDS = 60
 MAXIMUM_LANE_TIMEOUT_SECONDS = 900
 CLEANUP_TIMEOUT_SECONDS = 30
@@ -262,6 +263,7 @@ class CiDotnetProject:
     relative_path: str
     expected_total: int
     expected_skipped: int = 0
+    requires_exclusive_local_coverage: bool = False
 
     @property
     def name(self) -> str:
@@ -285,13 +287,14 @@ CI_DOTNET_SHARDS: dict[str, tuple[CiDotnetProject, ...]] = {
     "bootstrap": (
         CiDotnetProject(
             "tests/NvtFwCombiner.Bootstrap.Tests/NvtFwCombiner.Bootstrap.Tests.csproj",
-            1014,
+            1015,
         ),
     ),
     "ui": (
         CiDotnetProject(
             "tests/NvtFwCombiner.UiSmoke.Tests/NvtFwCombiner.UiSmoke.Tests.csproj",
-            629,
+            639,
+            requires_exclusive_local_coverage=True,
         ),
     ),
     "core": (
@@ -1479,26 +1482,45 @@ def collect_local_dotnet_coverage(
                 )
             )
 
-        lanes = tuple(
-            VerificationLane(
-                stage.project.name,
-                lambda project_log, current=stage: run_local_dotnet_coverage_project(
-                    current,
-                    dotnet,
-                    adapter_path,
-                    environment,
-                    project_log,
-                ),
+        batches = (
+            *(
+                (stage,)
+                for stage in stages
+                if stage.project.requires_exclusive_local_coverage
+            ),
+            tuple(
+                stage
+                for stage in stages
+                if not stage.project.requires_exclusive_local_coverage
+            ),
+        )
+        results = ()
+        for batch in (batch for batch in batches if batch):
+            lanes = tuple(
+                VerificationLane(
+                    stage.project.name,
+                    lambda project_log, current=stage: (
+                        run_local_dotnet_coverage_project(
+                            current,
+                            dotnet,
+                            adapter_path,
+                            environment,
+                            project_log,
+                        )
+                    ),
+                )
+                for stage in batch
             )
-            for stage in stages
-        )
-        results = run_lanes(
-            lanes,
-            jobs=MAXIMUM_VERIFY_JOBS,
-            log_directory=coverage_directory / "logs",
-            lane_timeout_seconds=DEFAULT_LANE_TIMEOUT_SECONDS,
-            preserve_cancellation_request=True,
-        )
+            batch_results = run_lanes(
+                lanes,
+                jobs=min(MAXIMUM_VERIFY_JOBS, len(lanes)),
+                log_directory=coverage_directory / "logs",
+                lane_timeout_seconds=LOCAL_DOTNET_COVERAGE_TIMEOUT_SECONDS,
+                preserve_cancellation_request=True,
+            )
+            results += batch_results
+            if any(not result.succeeded for result in batch_results):
+                break
         report_lane_results(results)
         try:
             require_local_dotnet_sources_unchanged(stages, repository_root)

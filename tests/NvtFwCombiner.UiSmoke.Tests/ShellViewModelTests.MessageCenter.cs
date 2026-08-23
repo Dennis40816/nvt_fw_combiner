@@ -133,7 +133,6 @@ public sealed partial class ShellNavigationSystemTests
             services,
             new DelegatingFirmwareInspection(
                 TestHost.FirmwareInspectionExperience,
-                metadataReader: static (_, _) => null,
                 batchReader: static (_, _) => []),
             systemInformationService: diagnostics,
             systemDiagnosticsExporter: exporter);
@@ -222,7 +221,6 @@ public sealed partial class ShellNavigationSystemTests
             services,
             new DelegatingFirmwareInspection(
                 TestHost.FirmwareInspectionExperience,
-                metadataReader: static (_, _) => null,
                 batchReader: static (_, _) => []),
             systemInformationService: diagnostics,
             systemDiagnosticsExporter: new CapturingDiagnosticsExporter());
@@ -262,7 +260,6 @@ public sealed partial class ShellNavigationSystemTests
             services,
             new DelegatingFirmwareInspection(
                 TestHost.FirmwareInspectionExperience,
-                metadataReader: static (_, _) => null,
                 batchReader: static (_, _) => []),
             systemInformationService: diagnostics,
             systemDiagnosticsExporter: new CapturingDiagnosticsExporter());
@@ -451,7 +448,6 @@ public sealed partial class ShellNavigationSystemTests
             PresentationTestHost.CreateServices("0.10.3-test"),
             new DelegatingFirmwareInspection(
                 TestHost.FirmwareInspectionExperience,
-                metadataReader: static (_, _) => null,
                 batchReader: static (_, _) => []),
             systemInformationService: diagnostics,
             systemDiagnosticsExporter: exporter);

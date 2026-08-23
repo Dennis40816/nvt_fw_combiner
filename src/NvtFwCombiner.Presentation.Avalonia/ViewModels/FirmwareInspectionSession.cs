@@ -7,9 +7,9 @@ namespace NvtFwCombiner.Presentation.Avalonia.ViewModels;
 
 internal static class FirmwareInspectionProjection
 {
-    internal static bool SupportsFacts(FirmwareSlotViewModel slot)
+    internal static bool SupportsFacts(FirmwareSlotViewModel slot, FirmwareInspectionSnapshot? inspection = null)
     {
-        return slot.SlotKind is FirmwareSlotKind.Base or FirmwareSlotKind.Dp or FirmwareSlotKind.Tp;
+        return (slot.SlotKind is FirmwareSlotKind.Base or FirmwareSlotKind.Dp or FirmwareSlotKind.Tp) && inspection?.InputSlotStatus is not { BlocksBuild: true, FileStamp: null };
     }
 
     internal static bool IsCurrent(

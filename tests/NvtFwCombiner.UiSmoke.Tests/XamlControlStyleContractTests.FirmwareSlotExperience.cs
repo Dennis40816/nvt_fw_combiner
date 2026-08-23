@@ -15,8 +15,11 @@ public sealed partial class XamlControlStyleContractTests
         string inspection = ReadPresentationFile(
             "ViewModels/WorkflowSessionPresentationViewModel.FirmwareInspection.cs");
 
-        Assert.Contains("!FirmwareInspectionProjection.SupportsFacts(slot)", localization, StringComparison.Ordinal);
-        Assert.Contains("else if (item.PublishFacts)", inspection, StringComparison.Ordinal);
+        Assert.Contains("!FirmwareInspectionProjection.SupportsFacts(slot, inspection)", localization, StringComparison.Ordinal);
+        Assert.Contains(
+            "else if (item.PublishFacts && FirmwareInspectionProjection.SupportsFacts(slot, inspection))",
+            inspection,
+            StringComparison.Ordinal);
     }
 
     /// <summary>Selected files replace requirement chrome with one keyboard-equivalent pinnable state surface.</summary>

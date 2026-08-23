@@ -128,7 +128,6 @@ internal sealed partial class WorkflowSessionPresentationViewModel
         InvalidateFirmwareInspection(
             context.Owner,
             clearBaseProjection: slot.SlotId == _replace.ReplaceBaseSlot.SlotId);
-        slot.ClearCurrentInspectionProjection();
         InvalidateFirmwareIcMismatch();
         InvalidateFirmwareNumberMismatch();
         slot.FilePath = path;

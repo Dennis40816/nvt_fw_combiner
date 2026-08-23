@@ -8,9 +8,9 @@ namespace NvtFwCombiner.Bootstrap.Tests;
 
 public sealed partial class FirmwareInspectionSnapshotTests
 {
-    /// <summary>The Infrastructure inspection port owns stable file identity and later lease checks.</summary>
+    /// <summary>The inspection batch returns one immutable identity and never tracks later path mutation.</summary>
     [Fact]
-    public async Task InspectionPortReturnsContentIdentityAndDetectsSameLengthReplacement()
+    public async Task InspectionBatchIdentityRemainsAcceptedAfterSameLengthDiskReplacement()
     {
         using var workspace = TempWorkspace.Create("nfc-firmware-inspection-identity");
         byte[] original = new byte[0x40000];
@@ -24,24 +24,13 @@ public sealed partial class FirmwareInspectionSnapshotTests
             [new FirmwareInspectionSnapshotInput("base", path)],
             TestContext.Current.CancellationToken,
             progress);
-        FirmwareConfigMetadataReadResult metadata =
-            await inspection.ReadFirmwareConfigMetadataAsync(
-                "NT51926",
-                path,
-                TestContext.Current.CancellationToken);
-
         Assert.True(batch.IsContentStable);
         Assert.Equal(
             [new AuthoringInspectionProgress(0, 1), new AuthoringInspectionProgress(1, 1)],
             progress.Updates);
-        Assert.True(metadata.IsContentStable);
-        FileStamp stamp = Assert.IsType<FileStamp>(metadata.FileStamp);
-        Assert.Equal(stamp, batch.FileStamps[path]);
+        FileStamp stamp = Assert.IsType<FileStamp>(batch.FileStamps[path]);
         Assert.Equal(0x40000, stamp.AcceptedLength);
-        Assert.True(await inspection.IsFirmwareContentCurrentAsync(
-            path,
-            stamp,
-            TestContext.Current.CancellationToken));
+        Assert.Equal(stamp, batch.InspectionsById["base"].FileStamp);
 
         byte[] replacement = new byte[original.Length];
         replacement[^1] = 2;
@@ -50,10 +39,9 @@ public sealed partial class FirmwareInspectionSnapshotTests
             replacement,
             TestContext.Current.CancellationToken);
 
-        Assert.False(await inspection.IsFirmwareContentCurrentAsync(
-            path,
-            stamp,
-            TestContext.Current.CancellationToken));
+        Assert.Equal(stamp, batch.FileStamps[path]);
+        Assert.Equal(stamp, batch.InspectionsById["base"].FileStamp);
+        Assert.NotEqual(stamp, FileStamp.FromBytes(replacement));
     }
 
     /// <summary>A changing source is reported distinctly and cannot publish a content stamp.</summary>

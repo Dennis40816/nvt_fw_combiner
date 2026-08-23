@@ -363,11 +363,11 @@ internal sealed partial class WorkflowSessionPresentationViewModel
 
             slot.SetCurrentInspectionProjection(inspection);
 
-            if (inspection.AbMergeFacts is not null)
+            if (inspection.AbMergeFacts is not null && FirmwareInspectionProjection.SupportsFacts(slot, inspection))
             {
                 FirmwareInspectionProjection.ApplyAbInputFacts(slot, inspection, Text);
             }
-            else if (item.PublishFacts)
+            else if (item.PublishFacts && FirmwareInspectionProjection.SupportsFacts(slot, inspection))
             {
                 slot.SetFirmwareFacts(item.SlotKind == FirmwareSlotKind.Dp
                     ? UiCompositionRunner.GetDpFirmwareSlotFacts(inspection, Text)

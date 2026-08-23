@@ -19,8 +19,10 @@ and branch counts, not test counts.
   verifier requires the copied DLL/PDB pair and both hashes to match.
   The collector adapter is resolved only from this baseline's version below the
   repository-pinned `.packages` root. One unfiltered `dotnet vstest` producer
-  per exact project runs with at most three workers and unique log, TRX, result,
-  and shadow paths. VSTest's hash-identical duplicate attachments are collapsed
+  per exact project runs with unique log, TRX, result, and shadow paths. The
+  Avalonia UI Smoke producer runs alone; after it completes, the other seven
+  projects run with at most three workers. VSTest's hash-identical duplicate
+  attachments are collapsed
   to one retained JSON/Cobertura pair per project; divergent attachments fail.
   All eight exact TRX counters and pairs must pass before the unchanged coverage
   policy unions reports. CI retains its separate-checkout shard execution and

@@ -1,5 +1,6 @@
 using NvtFwCombiner.Application.Capabilities;
 using NvtFwCombiner.Application.Composition;
+using NvtFwCombiner.Application.InputInspection;
 using NvtFwCombiner.Domain.Composition;
 
 namespace NvtFwCombiner.Application.Authoring;
@@ -24,6 +25,23 @@ internal sealed partial class CtrlRamAuthoringExperience : ICtrlRamAuthoring
         string? basePath = null)
     {
         return _adapter.GetDiscoveryDisplay(icId, number, basePath);
+    }
+
+    /// <inheritdoc />
+    public CompiledInputVersionObservation? ProjectFirmwareVersionConfirmationLease(ActiveSessionSnapshot session)
+    {
+        ArgumentNullException.ThrowIfNull(session);
+        return session.WorkflowId == ExperienceIds.CtrlRamReplace && session.HasCurrentInputInspection
+                ? session.InputSlotStatuses.SingleOrDefault(static status => status.AddressSpaceId == CompositionAddressSpaceIds.ReferenceBase)?
+                    .Observation.Versions.SingleOrDefault(static version =>
+                        version.Kind == CompiledInputVersionKind.TpReferenceFirmwareConfig)
+                : null;
+    }
+
+    /// <inheritdoc />
+    public bool IsFirmwareVersionConfirmationLeaseCurrent(ActiveSessionSnapshot current, ActiveSessionSnapshot lease)
+    {
+        return ReferenceEquals(current, lease);
     }
 
     /// <summary>Atomically prepares one exact CtrlRAM Replace session from host-read immutable inputs.</summary>

@@ -97,8 +97,8 @@ internal sealed partial class WorkflowSessionPresentationViewModel : ObservableO
                      .Append(_replace.ReplaceBaseSlot)
                      .Distinct())
         {
-            if (!FirmwareInspectionProjection.SupportsFacts(slot) ||
-                slot.CurrentInspectionProjection is not { } inspection)
+            if (slot.CurrentInspectionProjection is not { } inspection ||
+                !FirmwareInspectionProjection.SupportsFacts(slot, inspection))
             {
                 continue;
             }

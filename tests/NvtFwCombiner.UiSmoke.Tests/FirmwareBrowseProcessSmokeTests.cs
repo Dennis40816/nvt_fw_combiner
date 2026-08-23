@@ -6,6 +6,7 @@ using Avalonia.Headless.XUnit;
 using Avalonia.Interactivity;
 using Avalonia.Platform.Storage;
 using Avalonia.Threading;
+using NvtFwCombiner.Application.Authoring;
 using NvtFwCombiner.Domain.Composition;
 using NvtFwCombiner.Presentation.Avalonia;
 using NvtFwCombiner.Presentation.Avalonia.ViewModels;
@@ -43,6 +44,72 @@ public sealed class FirmwareBrowseProcessSmokeTests
         Assert.Equal("Firmware BIN", choice.Name);
         Assert.Equal(["*.bin"], choice.Patterns);
         Assert.Equal(["application/octet-stream"], choice.MimeTypes);
+    }
+
+    /// <summary>Cancelling the shared native picker leaves the accepted selection and session untouched.</summary>
+    [AvaloniaFact]
+    public async Task FirmwareBrowseCancelIsAnExactNoOpForAcceptedSession()
+    {
+        using var golden = StandardMergeGoldenManifest.Load();
+        using var workspace = TempWorkspace.Create("nvt-fw-combiner-ui-picker-cancel");
+        JsonElement goldenCase = golden.CaseByIc("51926");
+        MainWindowViewModel viewModel = await Task.Run(() =>
+        {
+            MainWindowViewModel prepared = PresentationTestHost.CreateViewModel();
+            prepared.WorkflowSession.SelectedIc = "NT51926";
+            prepared.ShowMergeCommand.Execute(null);
+            prepared.Merge.SelectedMergeMode = ExperienceIds.StandardMerge;
+            golden.CopyInputFilesToMergeSlots(prepared, workspace, goldenCase);
+            return prepared;
+        }, TestContext.Current.CancellationToken);
+        FirmwareSlotViewModel slot = viewModel.Merge.MergeDpSlot;
+        string acceptedPath = Assert.IsType<string>(slot.FilePath);
+        FirmwareInspectionSnapshot acceptedProjection =
+            Assert.IsType<FirmwareInspectionSnapshot>(slot.CurrentInspectionProjection);
+        AuthoringRevision acceptedRevision = viewModel.Merge.StandardMergeAuthoringRevision;
+        Task acceptedTask = viewModel.Merge.Inspection.ActiveTask;
+        FirmwareSlotFactViewModel[] acceptedFacts = [.. slot.FirmwareFacts];
+        var pickerInvoked = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var releasePicker = new TaskCompletionSource<string?>(TaskCreationOptions.RunContinuationsAsynchronously);
+        var card = new FirmwareSlotCard
+        {
+            BrowseLabel = "Browse",
+            DataContext = slot,
+            PickFirmwareFileAsync = (_, _) =>
+            {
+                _ = pickerInvoked.TrySetResult();
+                return releasePicker.Task;
+            },
+        };
+        var window = new Window
+        {
+            DataContext = viewModel,
+            Content = card,
+        };
+
+        try
+        {
+            window.Show();
+            Dispatcher.UIThread.RunJobs();
+            Button browse = Assert.IsType<Button>(card.FindControl<Control>("BrowseButton"));
+            browse.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+            await pickerInvoked.Task.WaitAsync(
+                TimeSpan.FromSeconds(10),
+                TestContext.Current.CancellationToken);
+            _ = releasePicker.TrySetResult(null);
+            await Dispatcher.UIThread.InvokeAsync(static () => { });
+
+            Assert.Equal(acceptedPath, slot.FilePath);
+            Assert.Same(acceptedProjection, slot.CurrentInspectionProjection);
+            Assert.Equal(acceptedRevision, viewModel.Merge.StandardMergeAuthoringRevision);
+            Assert.Same(acceptedTask, viewModel.Merge.Inspection.ActiveTask);
+            Assert.Equal(acceptedFacts, slot.FirmwareFacts);
+            Assert.True(viewModel.Merge.PreviewMergeCommand.CanExecute(null));
+        }
+        finally
+        {
+            window.Close();
+        }
     }
 
     /// <summary>The async-void Browse handler returns and the Dispatcher remains operational.</summary>

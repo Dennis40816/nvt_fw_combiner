@@ -57,7 +57,7 @@ public enum CompiledInputArtifactInspectionNextAction
 
 /// <summary>
 /// Path-free diagnostic for one immutable source inspected against one compiled input-space binding.
-/// A prior inspection is display evidence only; Build re-reads and revalidates its own binding.
+/// Fixed-workflow Build revalidates this accepted immutable snapshot through its exact compiled binding.
 /// </summary>
 public sealed record CompiledInputArtifactInspectionResult(
     string AddressSpaceId,

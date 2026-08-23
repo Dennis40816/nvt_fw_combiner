@@ -1,5 +1,6 @@
 using NvtFwCombiner.Application.Authoring;
 using NvtFwCombiner.Application.Capabilities;
+using NvtFwCombiner.Application.InputInspection;
 using NvtFwCombiner.Domain.Composition;
 
 namespace NvtFwCombiner.Application.Composition;
@@ -225,6 +226,13 @@ public interface ICtrlRamAuthoring
         string number,
         IReadOnlyDictionary<string, string> slotPaths,
         CtrlRamFirmwareVersionDraftState? firmwareVersionEdit);
+
+    /// <summary>Projects path-free confirmation facts from one exact accepted session lease.</summary>
+    CompiledInputVersionObservation? ProjectFirmwareVersionConfirmationLease(ActiveSessionSnapshot session);
+
+    /// <summary>Checks whether the exact accepted session lease is still current.</summary>
+    bool IsFirmwareVersionConfirmationLeaseCurrent(ActiveSessionSnapshot current, ActiveSessionSnapshot lease);
+
 }
 
 /// <summary>Authoring-session lifecycle and per-slot readiness operations.</summary>
@@ -268,24 +276,12 @@ public readonly record struct AuthoringInspectionProgress(int CompletedWork, int
 /// <summary>Immutable firmware inspection operations.</summary>
 public interface IFirmwareInspection
 {
-    /// <summary>Reads FWConfig metadata from one cancellable content-authoritative observation.</summary>
-    ValueTask<FirmwareConfigMetadataReadResult> ReadFirmwareConfigMetadataAsync(
-        string icId,
-        string path,
-        CancellationToken cancellationToken);
-
     /// <summary>Inspects every distinct path once and reports content-authoritative stability.</summary>
     ValueTask<FirmwareInspectionBatchResult> InspectFirmwareBatchAsync(
         string icId,
         IReadOnlyList<FirmwareInspectionSnapshotInput> inputs,
         CancellationToken cancellationToken,
         IProgress<AuthoringInspectionProgress>? progress = null);
-
-    /// <summary>Checks whether a fresh complete read still has an accepted content identity.</summary>
-    ValueTask<bool> IsFirmwareContentCurrentAsync(
-        string path,
-        FileStamp identity,
-        CancellationToken cancellationToken);
 
     /// <summary>Projects CtrlRAM display from an already-inspected base.</summary>
     CtrlRamInspectionDisplay ProjectCtrlRamInspectionDisplay(

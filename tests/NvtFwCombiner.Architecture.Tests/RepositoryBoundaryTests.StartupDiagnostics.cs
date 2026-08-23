@@ -354,14 +354,18 @@ public sealed partial class RepositoryBoundaryTests
         Assert.False(File.Exists(Path.Combine(
             Root.FullName,
             "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/SerialTaskQueue.cs")));
-        Assert.Contains("_ctrlRamFirmwareVersionMetadataGeneration", ctrlRamRunMetadata, StringComparison.Ordinal);
+        Assert.DoesNotContain("_ctrlRamFirmwareVersionMetadataGeneration", ctrlRamRunMetadata, StringComparison.Ordinal);
+        Assert.DoesNotContain("ReadCtrlRamFirmwareVersionMetadataAsync", ctrlRamRunMetadata, StringComparison.Ordinal);
+        Assert.Contains("_ctrlRamFirmwareVersionAcceptedSession", ctrlRamRunMetadata, StringComparison.Ordinal);
+        Assert.Contains("_ctrlRamFirmwareVersionObservation", ctrlRamRunMetadata, StringComparison.Ordinal);
+        Assert.Contains("ProjectFirmwareVersionConfirmationLease", ctrlRamRunMetadata, StringComparison.Ordinal);
+        Assert.Contains("IsFirmwareVersionConfirmationLeaseCurrent", ctrlRamRunMetadata, StringComparison.Ordinal);
         Assert.Contains("TryOpenCtrlRamFirmwareVersionModalAsync", ctrlRamRunMetadata, StringComparison.Ordinal);
         Assert.Contains("TryCreateCtrlRamFirmwareVersionEditAsync", ctrlRamRunMetadata, StringComparison.Ordinal);
         Assert.Contains(
             "IsCtrlRamFirmwareVersionBuildConfirmationCurrentAsync",
             ctrlRamRunMetadata,
             StringComparison.Ordinal);
-        Assert.Contains("ReadCtrlRamFirmwareVersionMetadataAsync", ctrlRamRunMetadata, StringComparison.Ordinal);
         Assert.Contains("RequestCtrlRamBuildSettingsAsync", build, StringComparison.Ordinal);
         Assert.Contains("RequestCtrlRamBuildSettingsAsync", replaceModal, StringComparison.Ordinal);
         Assert.Contains("TryCreateCtrlRamFirmwareVersionEditAsync", replaceExecution, StringComparison.Ordinal);

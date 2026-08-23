@@ -77,6 +77,10 @@ public sealed partial class RepositoryBoundaryTests
             "src/NvtFwCombiner.Infrastructure/Composition/BuiltInFirmwareInspection.ContentRead.cs");
         string contentInspector = ReadText(
             "src/NvtFwCombiner.Infrastructure/Files/FileContentSnapshotInspector.cs");
+        string observationOwner = ReadText(
+            "src/NvtFwCombiner.Application/InputInspection/CompiledInputArtifactObservationService.cs");
+        string ctrlRamVersionOwner = ReadText(
+            "src/NvtFwCombiner.Application/Authoring/CtrlRamAuthoringExperience.cs");
 
         Assert.DoesNotContain("SetSlotFileAsync", viewModels, StringComparison.Ordinal);
         Assert.Contains("SetSlotFileAsync", workflowInspection, StringComparison.Ordinal);
@@ -100,8 +104,21 @@ public sealed partial class RepositoryBoundaryTests
         Assert.DoesNotContain("FirmwareFileIdentity.Capture", firmwareInspectionReader, StringComparison.Ordinal);
         Assert.DoesNotContain("FirmwareFileIdentity.Capture", ctrlRamVersion, StringComparison.Ordinal);
         Assert.Contains("ValueTask<FirmwareInspectionBatchResult> InspectFirmwareBatchAsync", inspectionPort, StringComparison.Ordinal);
-        Assert.Contains("ValueTask<FirmwareConfigMetadataReadResult> ReadFirmwareConfigMetadataAsync", inspectionPort, StringComparison.Ordinal);
-        Assert.Contains("ValueTask<bool> IsFirmwareContentCurrentAsync", inspectionPort, StringComparison.Ordinal);
+        Assert.DoesNotContain("ReadFirmwareConfigMetadataAsync", inspectionPort, StringComparison.Ordinal);
+        Assert.DoesNotContain("IsFirmwareContentCurrentAsync", inspectionPort, StringComparison.Ordinal);
+        Assert.DoesNotContain("ReadFirmwareConfigMetadataAsync", firmwareInspectionSources, StringComparison.Ordinal);
+        Assert.DoesNotContain("IsFirmwareContentCurrentAsync", firmwareInspectionSources, StringComparison.Ordinal);
+        Assert.DoesNotContain("ReadFirmwareConfigMetadataAsync", ctrlRamVersion, StringComparison.Ordinal);
+        Assert.DoesNotContain("IsFirmwareContentCurrentAsync", ctrlRamVersion, StringComparison.Ordinal);
+        Assert.Contains("TpReferenceFirmwareConfig", observationOwner, StringComparison.Ordinal);
+        Assert.Contains("slot.Role == ReferenceBaseRole", observationOwner, StringComparison.Ordinal);
+        Assert.Contains("DecodeTp(CompiledInputVersionKind.TpReferenceFirmwareConfig", observationOwner, StringComparison.Ordinal);
+        Assert.Contains("ProjectFirmwareVersionConfirmationLease", ctrlRamVersionOwner, StringComparison.Ordinal);
+        Assert.Contains("Observation.Versions.SingleOrDefault", ctrlRamVersionOwner, StringComparison.Ordinal);
+        Assert.Contains("ReferenceEquals(current, lease)", ctrlRamVersionOwner, StringComparison.Ordinal);
+        Assert.Contains("ProjectFirmwareVersionConfirmationLease", ctrlRamVersion, StringComparison.Ordinal);
+        Assert.Contains("IsFirmwareVersionConfirmationLeaseCurrent", ctrlRamVersion, StringComparison.Ordinal);
+        Assert.DoesNotContain("File.", ctrlRamVersion, StringComparison.Ordinal);
         Assert.Contains("record struct AuthoringInspectionProgress", inspectionPort, StringComparison.Ordinal);
         Assert.Contains("IProgress<AuthoringInspectionProgress>? progress = null", inspectionPort, StringComparison.Ordinal);
         Assert.DoesNotContain("IAuthoringInspectionProgressObserver", inspectionPort, StringComparison.Ordinal);

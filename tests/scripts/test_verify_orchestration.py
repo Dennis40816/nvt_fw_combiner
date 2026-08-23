@@ -2522,30 +2522,41 @@ class VerifyOrchestrationTests(unittest.TestCase):
                         MODULE.canonicalize_dotnet_project_reports("Probe", results)
                     MODULE.shutil.rmtree(duplicate)
 
-    def test_local_coverage_success_runs_each_project_once_with_three_workers(
+    def test_local_coverage_isolates_opted_in_ui_and_uses_three_workers_for_rest(
         self,
     ) -> None:
         projects = tuple(
-            MODULE.CiDotnetProject(f"tests/P{index}/P{index}.Tests.csproj", 1)
+            MODULE.CiDotnetProject(
+                f"tests/P{index}/P{index}.Tests.csproj",
+                1,
+                requires_exclusive_local_coverage=index == 0,
+            )
             for index in range(8)
         )
         attempted: list[str] = []
         active = 0
         maximum_active = 0
+        exclusive_active = False
+        overlapped_exclusive = False
         lock = threading.Lock()
 
         def successful_run(
             stage: MODULE.LocalDotnetCoverageStage,
             *_args: object,
         ) -> None:
-            nonlocal active, maximum_active
+            nonlocal active, maximum_active, exclusive_active, overlapped_exclusive
             with lock:
+                overlapped_exclusive |= exclusive_active or (
+                    stage.project.requires_exclusive_local_coverage and active > 0
+                )
                 attempted.append(stage.project.name)
                 active += 1
                 maximum_active = max(maximum_active, active)
+                exclusive_active |= stage.project.requires_exclusive_local_coverage
             time.sleep(0.03)
             with lock:
                 active -= 1
+                exclusive_active &= not stage.project.requires_exclusive_local_coverage
 
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary)
@@ -2601,6 +2612,7 @@ class VerifyOrchestrationTests(unittest.TestCase):
             )
             self.assertEqual(len(projects), len(attempted))
             self.assertEqual(3, maximum_active)
+            self.assertFalse(overlapped_exclusive)
             verify_coverage.assert_called_once_with("dotnet", coverage)
             self.assertFalse(work.exists())
 
@@ -2803,7 +2815,7 @@ class VerifyOrchestrationTests(unittest.TestCase):
                 (
                     "tests/NvtFwCombiner.Bootstrap.Tests/"
                     "NvtFwCombiner.Bootstrap.Tests.csproj",
-                    1014,
+                    1015,
                     0,
                 ),
             ),
@@ -2811,7 +2823,7 @@ class VerifyOrchestrationTests(unittest.TestCase):
                 (
                     "tests/NvtFwCombiner.UiSmoke.Tests/"
                     "NvtFwCombiner.UiSmoke.Tests.csproj",
-                    629,
+                    639,
                     0,
                 ),
             ),
@@ -2868,6 +2880,15 @@ class VerifyOrchestrationTests(unittest.TestCase):
         }
 
         self.assertEqual(expected, actual)
+        self.assertEqual(
+            ["tests/NvtFwCombiner.UiSmoke.Tests/NvtFwCombiner.UiSmoke.Tests.csproj"],
+            [
+                project.relative_path
+                for projects in MODULE.CI_DOTNET_SHARDS.values()
+                for project in projects
+                if project.requires_exclusive_local_coverage
+            ],
+        )
         flattened = [path for projects in actual.values() for path, _, _ in projects]
         solution_test_projects = {
             project.attrib["Path"].replace("\\", "/")
@@ -2881,7 +2902,7 @@ class VerifyOrchestrationTests(unittest.TestCase):
         self.assertEqual(8, len(set(flattened)))
         self.assertEqual(solution_test_projects, set(flattened))
         self.assertEqual(
-            3924, sum(total for projects in actual.values() for _, total, _ in projects)
+            3935, sum(total for projects in actual.values() for _, total, _ in projects)
         )
         self.assertEqual(
             2,

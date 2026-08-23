@@ -1,3 +1,4 @@
+using System.Text.Json;
 using NvtFwCombiner.Presentation.Avalonia.ViewModels;
 using NvtFwCombiner.Domain.Composition;
 using NvtFwCombiner.TestSupport;
@@ -115,6 +116,78 @@ public sealed partial class ShellNavigationSystemTests
         viewModel.Merge.SelectedMergeMode = ExperienceIds.AbMerge;
 
         Assert.All(viewModel.Merge.MergeSlots, static slot => Assert.False(slot.HasFile));
+    }
+
+    /// <summary>A Standard input hidden by another Merge mode remains guarded and is cleared on page exit.</summary>
+    [Fact]
+    public async Task HiddenStandardMergeSelectionIsClearedBeforeLeavingMergeAsync()
+    {
+        using var golden = StandardMergeGoldenManifest.Load();
+        JsonElement goldenCase = golden.CaseByIc("51926");
+        MainWindowViewModel viewModel = PresentationTestHost.CreateViewModel();
+        viewModel.ShowMergeCommand.Execute(null);
+        viewModel.WorkflowSession.SelectedIc = "NT51926";
+        await viewModel.WorkflowSession.SetSlotFileAsync(
+            CompositionSlotIds.MergeDp,
+            golden.ManifestPath(goldenCase.GetProperty("inputs").GetProperty("dp-input")),
+            TestContext.Current.CancellationToken);
+        Assert.True(viewModel.Merge.MergeDpSlot.HasFile);
+
+        viewModel.Merge.SelectedMergeMode = ExperienceIds.GeneralMerge;
+        Assert.True(viewModel.Merge.IsGeneralMergeModeSelected);
+        Assert.False(viewModel.Merge.IsNormalMergeModeSelected);
+        Assert.True(viewModel.Merge.MergeDpSlot.HasFile);
+        viewModel.ShowHomeCommand.Execute(null);
+
+        Assert.True(viewModel.IsNavigationClearConfirmationOpen);
+        viewModel.ConfirmNavigationAndClearCommand.Execute(null);
+        Assert.True(viewModel.IsHomeVisible);
+        Assert.False(viewModel.Merge.MergeDpSlot.HasFile);
+
+        viewModel.ShowMergeCommand.Execute(null);
+        viewModel.Merge.SelectedMergeMode = ExperienceIds.StandardMerge;
+        Assert.All(viewModel.Merge.MergeSlots, static slot => Assert.False(slot.HasFile));
+    }
+
+    /// <summary>A CtrlRAM session cannot survive the shared Replace page-exit clear through another mode.</summary>
+    [Fact]
+    public async Task HiddenCtrlRamSessionIsClearedBeforeLeavingReplaceAsync()
+    {
+        JsonElement fixtureCase = CanonicalGoldenTestData.LoadDirectCase(
+            "ctrlram-replace",
+            "nt51926-fw200-single-auto-prj-597-20260718");
+        JsonElement baseArtifact = fixtureCase.GetProperty("artifacts").EnumerateArray().Single(
+            artifact => artifact.GetProperty("artifactId").GetString() == "tp-input");
+        JsonElement replacementArtifact = fixtureCase.GetProperty("artifacts").EnumerateArray().Single(
+            artifact => artifact.GetProperty("artifactId").GetString() == "normal-ctrlram-input");
+        MainWindowViewModel viewModel = PresentationTestHost.CreateViewModel();
+        viewModel.WorkflowSession.SelectedIc = "NT51926";
+        viewModel.WorkflowSession.SelectedNumber = IcNumberSelectionTokens.SingleChip;
+        OpenReplace(viewModel, ExperienceIds.CtrlRamReplace);
+        await viewModel.WorkflowSession.SetSlotFileAsync(
+            CompositionSlotIds.ReplaceBase,
+            CanonicalGoldenTestData.ArtifactPath(baseArtifact),
+            TestContext.Current.CancellationToken);
+        await viewModel.WorkflowSession.SetSlotFileAsync(
+            "replace-ctrlram-normal",
+            CanonicalGoldenTestData.ArtifactPath(replacementArtifact),
+            TestContext.Current.CancellationToken);
+        Assert.True(viewModel.Replace.ReplaceBaseSlot.HasFile);
+        Assert.True(viewModel.Replace.ReplaceSlots.Single(static slot =>
+            slot.SlotId == "replace-ctrlram-normal").HasFile);
+        Assert.True(viewModel.Replace.Inspection.State is WorkflowInspectionAttemptState.Succeeded);
+
+        viewModel.Replace.SelectedReplaceMode = ExperienceIds.GeneralReplace;
+        viewModel.ShowHomeCommand.Execute(null);
+
+        Assert.True(viewModel.IsNavigationClearConfirmationOpen);
+        viewModel.ConfirmNavigationAndClearCommand.Execute(null);
+        Assert.True(viewModel.IsHomeVisible);
+        Assert.False(viewModel.Replace.ReplaceBaseSlot.HasFile);
+
+        OpenReplace(viewModel, ExperienceIds.CtrlRamReplace);
+        Assert.All(viewModel.Replace.ReplaceSlots, static slot => Assert.False(slot.HasFile));
+        Assert.False(viewModel.Replace.CanBuildReplace);
     }
 
     /// <summary>Settings bypasses navigation clearing and preserves Replace files and mapping context.</summary>

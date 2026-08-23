@@ -18,6 +18,9 @@ public enum CompiledInputVersionKind
 
     /// <summary>TP bank B firmware version.</summary>
     TpB,
+
+    /// <summary>TP firmware version from a CtrlRAM Reference Base FWConfig Backup.</summary>
+    TpReferenceFirmwareConfig,
 }
 
 /// <summary>One typed version observation from the accepted immutable source snapshot.</summary>
@@ -80,12 +83,14 @@ public sealed class CompiledInputArtifactObservationResult
 
     /// <summary>Stable accepted-input advisories ordered by issue code.</summary>
     public IReadOnlyList<CompiledInputArtifactInspectionAdvisory> Advisories { get; }
+
 }
 
 /// <summary>Application-owned observation policy selected only by compiled role and naming contracts.</summary>
 internal static class CompiledInputArtifactObservationService
 {
     private const string DpRole = "dp-ab";
+    private const string ReferenceBaseRole = "reference-base";
     private const string TpARole = "tp-a";
     private const string TpBRole = "tp-b";
 
@@ -95,25 +100,31 @@ internal static class CompiledInputArtifactObservationService
         ReadOnlyMemory<byte>? sourceBytes,
         CompiledInputArtifactInspectionResult? inspection)
     {
+        CompiledInputSpaceBinding binding = composition.V2Details.InputContract.SpaceBindings.Single(candidate =>
+            StringComparer.Ordinal.Equals(candidate.AddressSpaceId, addressSpaceId));
+        CompiledInputSlotRequirement slot = composition.V2Details.InputContract.Slots.Single(candidate =>
+            StringComparer.Ordinal.Equals(candidate.SlotId, binding.SlotId));
+        ReadOnlyMemory<byte> acceptedSnapshot = GetAcceptedSnapshot(sourceBytes, inspection);
+        if (slot.Role == ReferenceBaseRole)
+        {
+            return new([DecodeTp(CompiledInputVersionKind.TpReferenceFirmwareConfig, acceptedSnapshot)], []);
+        }
+
         CompiledOutputNamingRequirement naming = composition.V2Details.OutputNamingRequirement;
         if (naming.RendererKind != CompiledOutputNameRendererKind.AbCodeV1)
         {
             return CompiledInputArtifactObservationResult.Empty;
         }
 
-        CompiledInputSpaceBinding binding = composition.V2Details.InputContract.SpaceBindings.Single(candidate =>
-            StringComparer.Ordinal.Equals(candidate.AddressSpaceId, addressSpaceId));
-        CompiledInputSlotRequirement slot = composition.V2Details.InputContract.Slots.Single(candidate =>
-            StringComparer.Ordinal.Equals(candidate.SlotId, binding.SlotId));
         CompiledInputVersionObservation[] versions = slot.Role switch
         {
             DpRole => ObserveDp(composition, sourceBytes, inspection),
             TpARole => [DecodeTp(
                 CompiledInputVersionKind.TpA,
-                GetAcceptedSnapshot(sourceBytes, inspection))],
+                acceptedSnapshot)],
             TpBRole => [DecodeTp(
                 CompiledInputVersionKind.TpB,
-                GetAcceptedSnapshot(sourceBytes, inspection))],
+                acceptedSnapshot)],
             _ => throw new InvalidOperationException(
                 $"AB Code naming declares unsupported compiled input role '{slot.Role}'."),
         };

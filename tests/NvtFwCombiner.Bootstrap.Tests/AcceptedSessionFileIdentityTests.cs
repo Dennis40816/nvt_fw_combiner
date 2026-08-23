@@ -9,7 +9,7 @@ using NvtFwCombiner.TestSupport;
 namespace NvtFwCombiner.Bootstrap.Tests;
 
 /// <summary>Accepted fixed-workflow sessions bind paths once and retain immutable inspected bytes.</summary>
-public sealed class AcceptedSessionFileIdentityTests
+public sealed partial class AcceptedSessionFileIdentityTests
 {
     private readonly IsolatedBootstrapTestHost _host = new();
 
@@ -45,13 +45,22 @@ public sealed class AcceptedSessionFileIdentityTests
         Dictionary<string, string> paths = CreateStandardInputs(workspace);
         ActiveSessionSnapshot accepted = AcceptStandardSession(paths);
         CompositionRunResult beforeMutation = await ExecuteAsync(accepted, paths);
-        MutateFirstByte(paths[CompositionAddressSpaceIds.TpInput]);
+        MutateFirstConsumedByte(
+            accepted,
+            CompositionAddressSpaceIds.TpInput,
+            paths[CompositionAddressSpaceIds.TpInput]);
 
         CompositionRunResult afterMutation = await ExecuteAsync(accepted, paths);
+        CompositionRunResult refreshed = await ExecuteAsync(AcceptStandardSession(paths), paths);
 
         Assert.True(beforeMutation.Succeeded, CompositionRunReportJson.Serialize(beforeMutation));
         Assert.True(afterMutation.Succeeded, CompositionRunReportJson.Serialize(afterMutation));
         Assert.Equal(beforeMutation.OutputSha256, afterMutation.OutputSha256);
+        Assert.NotEqual(beforeMutation.OutputSha256, refreshed.OutputSha256);
+        AssertAcceptedSourceByteProjected(
+            accepted,
+            afterMutation,
+            CompositionAddressSpaceIds.TpInput);
     }
 
     /// <summary>One accepted immutable path may supply multiple Standard Merge logical bindings.</summary>
@@ -148,13 +157,22 @@ public sealed class AcceptedSessionFileIdentityTests
         Dictionary<string, string> paths = CreateAbInputs(workspace);
         ActiveSessionSnapshot accepted = AcceptAbSession(paths);
         CompositionRunResult beforeMutation = await ExecuteAsync(accepted, paths);
-        MutateFirstByte(paths[CompositionAddressSpaceIds.TpBInput]);
+        MutateFirstConsumedByte(
+            accepted,
+            CompositionAddressSpaceIds.TpBInput,
+            paths[CompositionAddressSpaceIds.TpBInput]);
 
         CompositionRunResult afterMutation = await ExecuteAsync(accepted, paths);
+        CompositionRunResult refreshed = await ExecuteAsync(AcceptAbSession(paths), paths);
 
         Assert.True(beforeMutation.Succeeded, CompositionRunReportJson.Serialize(beforeMutation));
         Assert.True(afterMutation.Succeeded, CompositionRunReportJson.Serialize(afterMutation));
         Assert.Equal(beforeMutation.OutputSha256, afterMutation.OutputSha256);
+        Assert.NotEqual(beforeMutation.OutputSha256, refreshed.OutputSha256);
+        AssertAcceptedSourceByteProjected(
+            accepted,
+            afterMutation,
+            CompositionAddressSpaceIds.TpBInput);
     }
 
     /// <summary>One accepted immutable TP path may supply independent AB TPA and TPB bindings.</summary>
@@ -587,10 +605,42 @@ public sealed class AcceptedSessionFileIdentityTests
         Assert.Equal(expected, actual);
     }
 
+    private static void AssertAcceptedSourceByteProjected(
+        ActiveSessionSnapshot accepted,
+        CompositionRunResult result,
+        string addressSpaceId)
+    {
+        AuthoringInputSlotStatus status = accepted.InputSlotStatuses.Single(candidate =>
+            candidate.AddressSpaceId == addressSpaceId);
+        string operationSource = addressSpaceId == CompositionAddressSpaceIds.TpBInput
+            ? CompositionAddressSpaceIds.TpBWork
+            : addressSpaceId;
+        CompositionOperation operation = accepted.ExactCapability!.CompiledComposition.Plan
+            .OrderedOperations.Last(candidate => candidate.SourceSpaceId == operationSource);
+        Assert.Equal(
+            status.AcceptedBytes!.Value.Span[checked((int)operation.SourceRange!.Value.Start)],
+            result.OutputBytes.Span[checked((int)operation.TargetRange.Start)]);
+    }
+
     private static void MutateFirstByte(string path)
     {
         byte[] bytes = File.ReadAllBytes(path);
         bytes[0] ^= 0xFF;
+        File.WriteAllBytes(path, bytes);
+    }
+
+    private static void MutateFirstConsumedByte(
+        ActiveSessionSnapshot accepted,
+        string addressSpaceId,
+        string path)
+    {
+        string operationSource = addressSpaceId == CompositionAddressSpaceIds.TpBInput
+            ? CompositionAddressSpaceIds.TpBWork
+            : addressSpaceId;
+        CompositionOperation operation = accepted.ExactCapability!.CompiledComposition.Plan
+            .OrderedOperations.Last(candidate => candidate.SourceSpaceId == operationSource);
+        byte[] bytes = File.ReadAllBytes(path);
+        bytes[checked((int)operation.SourceRange!.Value.Start)] ^= 0xFF;
         File.WriteAllBytes(path, bytes);
     }
 

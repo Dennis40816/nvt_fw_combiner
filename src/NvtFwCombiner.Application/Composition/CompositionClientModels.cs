@@ -214,29 +214,6 @@ public sealed class FirmwareInspectionBatchResult
     public bool IsContentStable => UnstableFilePaths.Count == 0;
 }
 
-/// <summary>FWConfig metadata and content identity observed by one adapter-owned read.</summary>
-public sealed class FirmwareConfigMetadataReadResult
-{
-    internal FirmwareConfigMetadataReadResult(
-        FirmwareConfigMetadataSnapshot? metadata,
-        FileStamp? fileStamp,
-        bool isContentStable)
-    {
-        Metadata = metadata;
-        FileStamp = fileStamp;
-        IsContentStable = isContentStable;
-    }
-
-    /// <summary>Decoded FWConfig metadata when the selected image declares it.</summary>
-    public FirmwareConfigMetadataSnapshot? Metadata { get; }
-
-    /// <summary>Exact accepted length/SHA identity, or null without accepted bytes.</summary>
-    public FileStamp? FileStamp { get; }
-
-    /// <summary>True unless the source changed during this read.</summary>
-    public bool IsContentStable { get; }
-}
-
 /// <summary>Typed Replace presentation group derived before the UI boundary.</summary>
 public enum ReplaceRegionGroup
 {

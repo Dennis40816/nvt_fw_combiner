@@ -291,9 +291,17 @@ retains that owner's existing contract.
 PL-06 implements the inspection boundary by deleting the path-stamp file,
 Presentation path/base dictionaries, and IC-only static classification cache.
 The one Infrastructure read now returns accepted bytes plus exact length/SHA,
-rejects short/trailing/change observations, and is re-read at CtrlRAM Build
-confirmation. Current canonical publication plus typed input roles are the only
+rejects short/trailing/change observations, and publishes the typed FWConfig
+observation with the exact accepted CtrlRAM session. CtrlRAM Build confirmation
+leases that session identity and performs no path read or repeat metadata
+decode. Current canonical publication plus typed input roles are the only
 classification and strategy authorities.
+
+**Supersession note (2026-08-23):** the former PL-06 wording required a CtrlRAM
+Build-confirmation reread. The later accepted-session immutable execution
+contract and owner-approved selector architecture standard supersede that
+fixed-workflow behavior. ADR 0044's separate General Merge/Replace reopen
+contract remains unchanged.
 
 ADR 0027's restart-only external-environment boundary is superseded for
 `v0.10.5`. Explicit refresh materializes a candidate behind that one

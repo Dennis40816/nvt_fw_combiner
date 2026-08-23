@@ -6,24 +6,6 @@ namespace NvtFwCombiner.Infrastructure.Composition;
 
 internal sealed partial class BuiltInFirmwareInspection
 {
-    public async ValueTask<FirmwareConfigMetadataReadResult> ReadFirmwareConfigMetadataAsync(
-        string icId,
-        string path,
-        CancellationToken cancellationToken)
-    {
-        ArgumentException.ThrowIfNullOrWhiteSpace(icId);
-        ArgumentException.ThrowIfNullOrWhiteSpace(path);
-        FirmwareContentRead file =
-            await ReadFirmwareFileAsync(
-                path,
-                CompiledInputArtifactInspectionService.MaximumContentReadBytes,
-                cancellationToken).ConfigureAwait(false);
-        return new FirmwareConfigMetadataReadResult(
-            file.Image is null ? null : ReadFirmwareConfigMetadata(_projection, icId, file.Image),
-            file.FileStamp,
-            file.IsStable);
-    }
-
     public async ValueTask<FirmwareInspectionBatchResult> InspectFirmwareBatchAsync(
         string icId,
         IReadOnlyList<FirmwareInspectionSnapshotInput> inputs,
@@ -63,20 +45,6 @@ internal sealed partial class BuiltInFirmwareInspection
                 static pair => pair.Value.FileStamp,
                 StringComparer.Ordinal),
             files.Where(static pair => !pair.Value.IsStable).Select(static pair => pair.Key));
-    }
-
-    public async ValueTask<bool> IsFirmwareContentCurrentAsync(
-        string path,
-        FileStamp identity,
-        CancellationToken cancellationToken)
-    {
-        ArgumentException.ThrowIfNullOrWhiteSpace(path);
-        FirmwareContentRead file =
-            await ReadFirmwareFileAsync(
-                path,
-                CompiledInputArtifactInspectionService.MaximumContentReadBytes,
-                cancellationToken).ConfigureAwait(false);
-        return file.FileStamp == identity;
     }
 
     private async ValueTask<FirmwareContentRead> ReadFirmwareFileAsync(
