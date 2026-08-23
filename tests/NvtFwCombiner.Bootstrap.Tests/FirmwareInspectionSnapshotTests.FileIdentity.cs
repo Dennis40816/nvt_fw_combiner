@@ -1,5 +1,7 @@
 using NvtFwCombiner.Application.Authoring;
+using NvtFwCombiner.Application.Capabilities;
 using NvtFwCombiner.Application.Ports;
+using NvtFwCombiner.Domain.Composition;
 using NvtFwCombiner.TestSupport;
 
 namespace NvtFwCombiner.Bootstrap.Tests;
@@ -132,7 +134,7 @@ public sealed partial class FirmwareInspectionSnapshotTests
         BuiltInFirmwareInspection inspection = CreateInspection(
             new DelegatingContentInspector(async (path, maximumBytes, token) =>
             {
-                Assert.Equal(int.MaxValue, maximumBytes);
+                Assert.Equal(100_000_000, maximumBytes);
                 int current = Interlocked.Increment(ref invocation);
                 byte[] bytes = current == 1 ? firstBytes : secondBytes;
                 if (current == 1)
@@ -170,6 +172,133 @@ public sealed partial class FirmwareInspectionSnapshotTests
             second.InspectionsById["base"].FileStamp);
     }
 
+    /// <summary>Every fixed-workflow typed binding reaches the shared compiled ceiling owner.</summary>
+    [Theory]
+    [InlineData("standard")]
+    [InlineData("ab")]
+    [InlineData("dp-replace")]
+    [InlineData("ctrlram-replace")]
+    public async Task FixedWorkflowBindingFieldsReuseTheCompiledReadCeiling(string workflow)
+    {
+        IsolatedBootstrapTestHost host = CreateLoadedHost();
+        ResolvedCapability capability = DpReplaceCapability(host, includeLdc: false);
+        long observedMaximum = 0;
+        BuiltInFirmwareInspection inspection = CreateInspection(
+            host,
+            new DelegatingContentInspector((_, maximumBytes, _) =>
+            {
+                observedMaximum = maximumBytes;
+                return ValueTask.FromException<SelectedFileContentInspection>(
+                    new ResourceCeilingObservedException());
+            }));
+        FirmwareInspectionSnapshotInput input = workflow switch
+        {
+            "standard" => new(
+                "input",
+                "input.bin",
+                StandardMergeAddressSpaceId: CompositionAddressSpaceIds.ReferenceBase,
+                ExactCapability: capability),
+            "ab" => new(
+                "input",
+                "input.bin",
+                AbMergeAddressSpaceId: CompositionAddressSpaceIds.ReferenceBase,
+                ExactCapability: capability),
+            "dp-replace" => new(
+                "input",
+                "input.bin",
+                DpReplaceAddressSpaceId: CompositionAddressSpaceIds.ReferenceBase,
+                ExactCapability: capability),
+            "ctrlram-replace" => new(
+                "input",
+                "input.bin",
+                CtrlRamReplaceAddressSpaceId: CompositionAddressSpaceIds.ReferenceBase,
+                ExactCapability: capability),
+            _ => throw new ArgumentOutOfRangeException(nameof(workflow)),
+        };
+
+        _ = await Assert.ThrowsAsync<ResourceCeilingObservedException>(() =>
+            inspection.InspectFirmwareBatchAsync(
+                "NT51926",
+                [input],
+                TestContext.Current.CancellationToken).AsTask());
+
+        Assert.Equal(0x40000, observedMaximum);
+    }
+
+    /// <summary>A metadata-only TP dependency does not inherit the DP binding's narrower limit.</summary>
+    [Fact]
+    public async Task TpMetadataDependencyKeepsTheHardCeilingWithoutItsOwnTypedBinding()
+    {
+        IsolatedBootstrapTestHost host = CreateLoadedHost();
+        ResolvedCapability capability = DpReplaceCapability(host, includeLdc: false);
+        var maxima = new Dictionary<string, long>(StringComparer.Ordinal);
+        BuiltInFirmwareInspection inspection = CreateInspection(
+            host,
+            new DelegatingContentInspector((path, maximumBytes, _) =>
+            {
+                maxima.Add(path, maximumBytes);
+                byte[] bytes = [1];
+                return ValueTask.FromResult(new SelectedFileContentInspection(
+                    FileStamp.FromBytes(bytes),
+                    acceptedBytes: bytes));
+            }));
+
+        _ = await inspection.InspectFirmwareBatchAsync(
+            "NT51928",
+            [new FirmwareInspectionSnapshotInput(
+                "dp",
+                "dp.bin",
+                TpPath: "tp-metadata.bin",
+                DpReplaceAddressSpaceId: CompositionAddressSpaceIds.ReferenceBase,
+                ExactCapability: capability)],
+            TestContext.Current.CancellationToken);
+
+        Assert.Equal(0x40000, maxima["dp.bin"]);
+        Assert.Equal(100_000_000, maxima["tp-metadata.bin"]);
+    }
+
+    /// <summary>Multiple typed bindings on one path are read once at their minimum ceiling.</summary>
+    [Fact]
+    public async Task SharedPathUsesTheMostRestrictiveTypedBindingCeilingOnce()
+    {
+        IsolatedBootstrapTestHost host = CreateLoadedHost();
+        ResolvedCapability largerCapability = DpReplaceCapability(host, includeLdc: true);
+        ResolvedCapability smallerCapability = DpReplaceCapability(host, includeLdc: false);
+        int reads = 0;
+        long observedMaximum = 0;
+        BuiltInFirmwareInspection inspection = CreateInspection(
+            host,
+            new DelegatingContentInspector((_, maximumBytes, _) =>
+            {
+                reads++;
+                observedMaximum = maximumBytes;
+                byte[] bytes = [1];
+                return ValueTask.FromResult(new SelectedFileContentInspection(
+                    FileStamp.FromBytes(bytes),
+                    acceptedBytes: bytes));
+            }));
+
+        _ = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+            inspection.InspectFirmwareBatchAsync(
+                "NT51928",
+                [
+                    new FirmwareInspectionSnapshotInput(
+                        "larger-reference",
+                        "shared.bin",
+                        DpReplaceAddressSpaceId: CompositionAddressSpaceIds.ReferenceBase,
+                        ExactCapability: largerCapability),
+                    new FirmwareInspectionSnapshotInput(
+                        "smaller-reference",
+                        "shared.bin",
+                        DpReplaceAddressSpaceId: CompositionAddressSpaceIds.ReferenceBase,
+                        ExactCapability: smallerCapability),
+                ],
+                TestContext.Current.CancellationToken).AsTask());
+
+        Assert.Equal(1, reads);
+        Assert.Equal(0x40000, observedMaximum);
+    }
+
     private static BuiltInFirmwareInspection CreateInspection(
         ISelectedFileContentInspector contentInspector)
     {
@@ -182,6 +311,60 @@ public sealed partial class FirmwareInspectionSnapshotTests
             (DpReplaceAuthoringExperience)services.DpReplaceAuthoring,
             (CtrlRamAuthoringExperience)services.CtrlRamAuthoring,
             contentInspector);
+    }
+
+    private static BuiltInFirmwareInspection CreateInspection(
+        IsolatedBootstrapTestHost host,
+        ISelectedFileContentInspector contentInspector)
+    {
+        return new BuiltInFirmwareInspection(
+            host.Canonical.Catalog,
+            host.Canonical.Projection,
+            (StandardMergeAuthoringExperience)host.Services.StandardMergeAuthoring,
+            (AbMergeAuthoringExperience)host.Services.AbMergeAuthoring,
+            (DpReplaceAuthoringExperience)host.Services.DpReplaceAuthoring,
+            (CtrlRamAuthoringExperience)host.Services.CtrlRamAuthoring,
+            contentInspector);
+    }
+
+    private static IsolatedBootstrapTestHost CreateLoadedHost()
+    {
+        var host = new IsolatedBootstrapTestHost();
+        Assert.True(host.Catalog.Reload(TestContext.Current.CancellationToken).Succeeded);
+        return host;
+    }
+
+    private static ResolvedCapability DpReplaceCapability(
+        IsolatedBootstrapTestHost host,
+        bool includeLdc)
+    {
+        string[] selected = includeLdc
+            ?
+            [
+                CompositionAddressSpaceIds.ReferenceBase,
+                CompositionAddressSpaceIds.InitialCodeReplacement,
+                CompositionAddressSpaceIds.LdcReplacement,
+            ]
+            :
+            [
+                CompositionAddressSpaceIds.ReferenceBase,
+                CompositionAddressSpaceIds.InitialCodeReplacement,
+            ];
+        CompiledAuthoringSelectionSnapshot snapshot = host.Services.DpReplaceAuthoring
+            .GetAuthoringSnapshot(
+                "NT51928",
+                selected,
+                new Dictionary<string, FileStamp>(StringComparer.Ordinal)
+                {
+                    [CompositionAddressSpaceIds.ReferenceBase] =
+                        new FileStamp(includeLdc ? 0x80000 : 0x40000, new string('a', 64)),
+                },
+                new AuthoringRevision(1));
+        return Assert.IsType<ResolvedCapability>(Assert.Single(snapshot.Catalog.Routes).ExactCapability);
+    }
+
+    private sealed class ResourceCeilingObservedException : Exception
+    {
     }
 
     private sealed class DelegatingContentInspector(

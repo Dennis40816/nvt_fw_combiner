@@ -4,6 +4,44 @@ namespace NvtFwCombiner.Architecture.Tests;
 
 public sealed partial class RepositoryBoundaryTests
 {
+    /// <summary>Fixed-workflow resource admission has one Application owner before allocation.</summary>
+    [Fact]
+    public void FirmwareContentReadCeilingStaysApplicationOwnedAndPreAllocation()
+    {
+        string applicationOwner = ReadText(
+            "src/NvtFwCombiner.Application/InputInspection/CompiledInputArtifactInspectionService.cs");
+        string contentRead = ReadText(
+            "src/NvtFwCombiner.Infrastructure/Composition/BuiltInFirmwareInspection.ContentRead.cs");
+        string filesystemAdapter = ReadText(
+            "src/NvtFwCombiner.Infrastructure/Files/FileContentSnapshotInspector.cs");
+        string presentation = ReadText(
+            "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/WorkflowSessionPresentationViewModel.FirmwareInspection.cs");
+        string generalLimits = ReadText(
+            "src/NvtFwCombiner.Application/Authoring/GeneralAuthoringResourceLimits.cs");
+
+        Assert.Contains("MaximumContentReadBytes = 100_000_000", applicationOwner, StringComparison.Ordinal);
+        Assert.Contains("CompiledTruncateCtrlRamInputNormalization", applicationOwner, StringComparison.Ordinal);
+        Assert.Contains("ResolveMaximumContentReadBytes", contentRead, StringComparison.Ordinal);
+        Assert.Contains(
+            "CompiledInputArtifactInspectionService.MaximumContentReadBytes",
+            contentRead,
+            StringComparison.Ordinal);
+        Assert.DoesNotContain("int.MaxValue", contentRead, StringComparison.Ordinal);
+        Assert.DoesNotContain("CompiledInputLengthRequirement", contentRead, StringComparison.Ordinal);
+        Assert.DoesNotContain("CompiledExact", contentRead, StringComparison.Ordinal);
+        Assert.DoesNotContain("CompiledBounded", contentRead, StringComparison.Ordinal);
+        Assert.DoesNotContain("CompiledSourceView", contentRead, StringComparison.Ordinal);
+        Assert.DoesNotContain("CompiledTruncateCtrlRam", contentRead, StringComparison.Ordinal);
+        Assert.DoesNotContain("100_000_000", contentRead, StringComparison.Ordinal);
+        Assert.DoesNotContain("MaximumContentReadBytes", presentation, StringComparison.Ordinal);
+        Assert.DoesNotContain("MaximumContentReadBytes", generalLimits, StringComparison.Ordinal);
+        Assert.Contains("observedLength > maximumBytes", filesystemAdapter, StringComparison.Ordinal);
+        Assert.Contains("new byte[checked((int)observedLength)]", filesystemAdapter, StringComparison.Ordinal);
+        Assert.True(
+            filesystemAdapter.IndexOf("observedLength > maximumBytes", StringComparison.Ordinal) <
+            filesystemAdapter.IndexOf("new byte[checked((int)observedLength)]", StringComparison.Ordinal));
+    }
+
     /// <summary>Slot and context refreshes cannot synchronously inspect firmware from Presentation.</summary>
     [Fact]
     public void PresentationFirmwareInspectionStaysBatchAsync()

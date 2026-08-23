@@ -18,7 +18,7 @@ public sealed class FileContentSnapshotInspectorTests
 
         SelectedFileContentInspection result = await inspector.InspectAsync(
             path,
-            maximumBytes: int.MaxValue,
+            maximumBytes: 4,
             CancellationToken.None);
 
         Assert.Equal(FileStamp.FromBytes([1, 2, 3, 4]), result.FileStamp);
@@ -44,6 +44,29 @@ public sealed class FileContentSnapshotInspectorTests
 
         Assert.Equal(4, exception.ObservedBytes);
         Assert.Equal(3, exception.MaximumBytes);
+    }
+
+    /// <summary>The fixed-workflow hard ceiling rejects a sparse oversized file before allocation.</summary>
+    [Fact]
+    public async Task InspectAsyncRejectsHundredMegabyteOverflowBeforeMaterialization()
+    {
+        using var workspace = TempWorkspace.Create();
+        string path = Path.Combine(workspace.Root, "oversized-sparse.bin");
+        await using (var stream = new FileStream(path, FileMode.CreateNew, FileAccess.Write))
+        {
+            stream.SetLength(100_000_001);
+        }
+        var inspector = new FileContentSnapshotInspector([workspace.Root]);
+
+        SelectedFileSizeLimitExceededException exception =
+            await Assert.ThrowsAsync<SelectedFileSizeLimitExceededException>(() =>
+                inspector.InspectAsync(
+                    path,
+                    maximumBytes: 100_000_000,
+                    TestContext.Current.CancellationToken).AsTask());
+
+        Assert.Equal(100_000_001, exception.ObservedBytes);
+        Assert.Equal(100_000_000, exception.MaximumBytes);
     }
 
     /// <summary>Concurrent growth is rejected after reading only one byte beyond the admitted length.</summary>

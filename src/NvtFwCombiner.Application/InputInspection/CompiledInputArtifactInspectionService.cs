@@ -84,6 +84,39 @@ public sealed record CompiledInputArtifactInspectionResult(
 /// </summary>
 public static class CompiledInputArtifactInspectionService
 {
+    /// <summary>Inclusive fixed-workflow complete-file read ceiling (decimal 100 MB).</summary>
+    internal const long MaximumContentReadBytes = 100_000_000;
+
+    /// <summary>
+    /// Resolves the inclusive complete-file read ceiling from one compiler-owned input binding.
+    /// Resource admission remains distinct from firmware geometry and normalization.
+    /// </summary>
+    internal static long ResolveMaximumContentReadBytes(
+        CompiledComposition composition,
+        string addressSpaceId)
+    {
+        ArgumentNullException.ThrowIfNull(composition);
+        (CompiledInputSpaceBinding _, CompiledInputSlotRequirement slot) = ResolveBinding(
+            composition.V2Details.InputContract,
+            addressSpaceId);
+        if (slot.Normalization is CompiledTruncateCtrlRamInputNormalization)
+        {
+            return MaximumContentReadBytes;
+        }
+
+        long declaredMaximum = slot.LengthRequirement switch
+        {
+            CompiledExactBytesInputLengthRequirement exact => exact.Bytes,
+            CompiledExactResolvedMapCapacityInputLengthRequirement exact => exact.Bytes,
+            CompiledBoundedInputLengthRequirement bounded => bounded.MaximumBytes,
+            CompiledSourceViewCoverageInputLengthRequirement { MaximumBytes: { } maximum } => maximum,
+            CompiledSourceViewCoverageInputLengthRequirement => MaximumContentReadBytes,
+            _ => throw new InvalidOperationException(
+                "Unknown compiled input length requirement for content-read admission."),
+        };
+        return Math.Min(MaximumContentReadBytes, declaredMaximum);
+    }
+
     /// <summary>
     /// Returns whether one original file name satisfies the compiled slot's extension contract.
     /// This is admission policy; picker filters remain presentation-only guidance.

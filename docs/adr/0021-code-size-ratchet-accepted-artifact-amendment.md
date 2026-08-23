@@ -28,3 +28,40 @@ writer, support claim, Golden expectation, or release authority.
 - fixed-workflow accepted-session identity regressions for Standard Merge, AB
   Merge, and CtrlRAM Replace
 - `python scripts/verify.py --all`
+
+## Fixed-workflow bounded content-read admission
+
+The owner approved decimal 100 MB (`100,000,000` bytes) as the inclusive hard
+resource ceiling for fixed-workflow selected-file inspection, further narrowed
+only by the exact compiled slot's declared maximum. The existing Application
+compiled-input inspector owns the policy. Infrastructure groups immutable typed
+bindings for one selected path, passes their minimum resolved ceiling to the
+existing complete-file snapshot adapter, and rejects an oversized stream length
+before allocating its retained byte array. General Merge/Replace retains its
+separate existing resource owner.
+
+Relative to the preceding extension-admission checkpoint, ordinary multiline
+production code grows by exactly 80 nonblank lines. Full production changes
+from 109,938 to 110,018 and runtime from 75,203 to 75,283. Application changes
+from 33,415 to 33,445 (+30); Infrastructure plus Contracts plus CRC worker
+changes from 17,653 to 17,703 (+50). Domain plus Profiles and Bootstrap plus CLI
+plus Desktop host are unchanged.
+
+The executable allowances therefore become exactly 7,122 full production,
+5,227 runtime, 2,755 Application, and 2,347
+Infrastructure/Contracts/worker above the frozen pre-v0.10.6 base ratchets.
+They are non-transferable exact descending ceilings. The bounded read keeps
+complete immutable bytes, SHA-256, `FileStamp`, source-view trailing diagnostics,
+and evidenced CtrlRAM truncation behavior unchanged. It changes no profile,
+firmware range, output byte, operation order, CRC/header behavior, processor,
+output naming, support, Golden, UI, General authoring, or release authority, and
+does not close or fund the separate repository-wide unused-module/code-size
+investigation.
+
+Additional verification:
+
+- Application boundaries `99,999,999`, `100,000,000`, and `100,000,001`;
+- Infrastructure sparse-file rejection before materialization;
+- fixed-workflow and same-path Bootstrap wiring;
+- exact-container, source-view, and CtrlRAM truncation regressions; and
+- independent R2 architecture/contract and scoped Polytail review.
