@@ -13,19 +13,11 @@
     <Border Classes="homePreviewSurface">
       <Grid RowDefinitions="Auto,Auto">
         <StackPanel MinHeight="88" Spacing="6">
-          <TextBlock
-              FontSize="{DynamicResource NfcFontSize12}"
-              FontWeight="SemiBold"
-              Foreground="{DynamicResource NfcAccentBrush}"
-              Text="{Binding Text.WorkflowKicker}" />
+          <TextBlock Classes="workflowKicker" Text="{Binding Text.WorkflowKicker}" />
           <TextBlock
               Classes="previewTitle"
               Text="{Binding Replace.ReplacePreview.Title}" />
-          <TextBlock
-              FontSize="{DynamicResource NfcFontSize13}"
-              Foreground="{DynamicResource NfcTextMutedBrush}"
-              Text="{Binding Replace.ReplacePreview.Subtitle}"
-              TextWrapping="Wrap" />
+          <TextBlock Classes="pageSubtitle" Text="{Binding Replace.ReplacePreview.Subtitle}" TextWrapping="Wrap" />
         </StackPanel>
         <Grid Grid.Row="1" Margin="0,18,0,0" RowDefinitions="Auto,Auto,Auto" RowSpacing="{DynamicResource NfcSpace8}">
           <Button
@@ -35,7 +27,7 @@
               <Grid ColumnDefinitions="*,Auto" ColumnSpacing="14">
                 <TextBlock Classes="strongText" Text="DP Replace" />
                 <Border Grid.Column="1" Classes="workflowOpenPill">
-                  <TextBlock FontSize="{DynamicResource NfcFontSize12}" FontWeight="SemiBold" Text="{Binding Text.OpenLabel}" />
+                  <TextBlock Classes="workflowActionText" Text="{Binding Text.OpenLabel}" />
                 </Border>
               </Grid>
             </Border>
@@ -48,7 +40,7 @@
               <Grid ColumnDefinitions="*,Auto" ColumnSpacing="14">
                 <TextBlock Classes="strongText" Text="CtrlRAM Replace" />
                 <Border Grid.Column="1" Classes="workflowOpenPill">
-                  <TextBlock FontSize="{DynamicResource NfcFontSize12}" FontWeight="SemiBold" Text="{Binding Text.OpenLabel}" />
+                  <TextBlock Classes="workflowActionText" Text="{Binding Text.OpenLabel}" />
                 </Border>
               </Grid>
             </Border>
@@ -61,7 +53,7 @@
               <Grid ColumnDefinitions="*,Auto" ColumnSpacing="14">
                 <TextBlock Classes="strongText" Text="Customized Replace" />
                 <Border Grid.Column="1" Classes="workflowOpenPill">
-                  <TextBlock FontSize="{DynamicResource NfcFontSize12}" FontWeight="SemiBold" Text="{Binding Text.OpenLabel}" />
+                  <TextBlock Classes="workflowActionText" Text="{Binding Text.OpenLabel}" />
                 </Border>
               </Grid>
             </Border>
@@ -73,19 +65,11 @@
     <Border Grid.Column="1" Classes="homePreviewSurface">
       <Grid RowDefinitions="Auto,Auto">
         <StackPanel MinHeight="88" Spacing="6">
-          <TextBlock
-              FontSize="{DynamicResource NfcFontSize12}"
-              FontWeight="SemiBold"
-              Foreground="{DynamicResource NfcAccentBrush}"
-              Text="{Binding Text.WorkflowKicker}" />
+          <TextBlock Classes="workflowKicker" Text="{Binding Text.WorkflowKicker}" />
           <TextBlock
               Classes="previewTitle"
               Text="{Binding Merge.MergePreview.Title}" />
-          <TextBlock
-              FontSize="{DynamicResource NfcFontSize13}"
-              Foreground="{DynamicResource NfcTextMutedBrush}"
-              Text="{Binding Merge.MergePreview.Subtitle}"
-              TextWrapping="Wrap" />
+          <TextBlock Classes="pageSubtitle" Text="{Binding Merge.MergePreview.Subtitle}" TextWrapping="Wrap" />
         </StackPanel>
         <Grid Grid.Row="1" Margin="0,18,0,0" RowDefinitions="Auto,Auto,Auto" RowSpacing="{DynamicResource NfcSpace8}">
           <Button
@@ -95,7 +79,7 @@
               <Grid ColumnDefinitions="*,Auto" ColumnSpacing="14">
                 <TextBlock Classes="strongText" Text="Standard Merge" />
                 <Border Grid.Column="1" Classes="workflowOpenPill">
-                  <TextBlock FontSize="{DynamicResource NfcFontSize12}" FontWeight="SemiBold" Text="{Binding Text.OpenLabel}" />
+                  <TextBlock Classes="workflowActionText" Text="{Binding Text.OpenLabel}" />
                 </Border>
               </Grid>
             </Border>
@@ -108,7 +92,7 @@
               <Grid ColumnDefinitions="*,Auto" ColumnSpacing="14">
                 <TextBlock Classes="strongText" Text="AB Code" />
                 <Border Grid.Column="1" Classes="workflowOpenPill">
-                  <TextBlock FontSize="{DynamicResource NfcFontSize12}" FontWeight="SemiBold" Text="{Binding Text.OpenLabel}" />
+                  <TextBlock Classes="workflowActionText" Text="{Binding Text.OpenLabel}" />
                 </Border>
               </Grid>
             </Border>
@@ -121,7 +105,7 @@
               <Grid ColumnDefinitions="*,Auto" ColumnSpacing="14">
                 <TextBlock Classes="strongText" Text="Customized Merge" />
                 <Border Grid.Column="1" Classes="workflowOpenPill">
-                  <TextBlock FontSize="{DynamicResource NfcFontSize12}" FontWeight="SemiBold" Text="{Binding Text.OpenLabel}" />
+                  <TextBlock Classes="workflowActionText" Text="{Binding Text.OpenLabel}" />
                 </Border>
               </Grid>
             </Border>
@@ -133,19 +117,11 @@
     <Border Grid.Column="2" Classes="homePreviewSurface">
       <Grid RowDefinitions="Auto,Auto">
         <StackPanel MinHeight="88" Spacing="6">
-          <TextBlock
-              FontSize="{DynamicResource NfcFontSize12}"
-              FontWeight="SemiBold"
-              Foreground="{DynamicResource NfcInfoTextBrush}"
-              Text="{Binding Text.UtilToolsLabel}" />
+          <TextBlock Classes="workflowKicker info" Text="{Binding Text.UtilToolsLabel}" />
           <TextBlock
               Classes="previewTitle"
               Text="{Binding Text.UtilToolsHomeTitle}" />
-          <TextBlock
-              FontSize="{DynamicResource NfcFontSize13}"
-              Foreground="{DynamicResource NfcTextMutedBrush}"
-              Text="{Binding Text.UtilToolsHomeDetail}"
-              TextTrimming="CharacterEllipsis" />
+          <TextBlock Classes="pageSubtitle" Text="{Binding Text.UtilToolsHomeDetail}" TextTrimming="CharacterEllipsis" />
         </StackPanel>
         <Grid Grid.Row="1" Margin="0,18,0,0" RowDefinitions="Auto" RowSpacing="{DynamicResource NfcSpace8}">
           <Button
@@ -156,7 +132,7 @@
               <Grid ColumnDefinitions="*,Auto" ColumnSpacing="14">
                 <TextBlock Classes="strongText" Text="{Binding Text.HexEditorTitle}" />
                 <Border Grid.Column="1" Classes="workflowOpenPill">
-                  <TextBlock FontSize="{DynamicResource NfcFontSize12}" FontWeight="SemiBold" Text="{Binding Text.OpenLabel}" />
+                  <TextBlock Classes="workflowActionText" Text="{Binding Text.OpenLabel}" />
                 </Border>
               </Grid>
             </Border>

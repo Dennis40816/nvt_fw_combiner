@@ -30,8 +30,7 @@
             </Border>
             <WrapPanel Grid.Column="1" VerticalAlignment="Center">
               <TextBlock x:Name="SlotTitle" Margin="0,0,10,0" VerticalAlignment="Center"
-                         FontSize="{DynamicResource NfcFontSize16}" FontWeight="SemiBold"
-                         Foreground="{DynamicResource NfcTextStrongBrush}" Text="{Binding Title}" TextWrapping="Wrap" />
+                         Classes="firmwareSlotTitle" Text="{Binding Title}" TextWrapping="Wrap" />
               <WrapPanel VerticalAlignment="Center">
                 <Label Classes="compactBadge slotBadge firmwareSlotRequirement availableInput"
                        Classes.optional="{Binding IsOptional}" Content="{Binding RequirementLabel}"
@@ -49,16 +48,14 @@
                   <StackPanel Orientation="Horizontal" Spacing="6">
                     <Path Width="16" Height="16" Classes="slotStateIcon"
                           Data="{Binding SemanticStateIconPathData}" Stretch="Uniform" />
-                    <TextBlock VerticalAlignment="Center" FontSize="{DynamicResource NfcFontSize11}"
-                               FontWeight="SemiBold" Text="{Binding SemanticStateLabel}" />
+                    <TextBlock VerticalAlignment="Center" Classes="firmwareSlotStatus" Text="{Binding SemanticStateLabel}" />
                   </StackPanel>
                 </ToggleButton>
               </WrapPanel>
             </WrapPanel>
           </Grid>
           <TextBlock Classes="mutedText" IsVisible="{Binding IsGuidanceVisible}" Text="{Binding Description}" TextWrapping="Wrap" />
-          <TextBlock IsVisible="{Binding IsGuidanceVisible}" FontSize="{DynamicResource NfcFontSize13}"
-                     FontWeight="SemiBold" Foreground="{DynamicResource NfcTextBrush}"
+          <TextBlock IsVisible="{Binding IsGuidanceVisible}" Classes="firmwareSlotGuidance"
                      Text="{Binding DisplayName}" TextWrapping="Wrap" />
           <Button AutomationProperties.HelpText="{Binding DisplayDetail}" AutomationProperties.Name="{Binding DisplayName}"
                   Classes="fileRevealAction" Command="{ReflectionBinding $parent[Window].DataContext.RevealFileCommand}"

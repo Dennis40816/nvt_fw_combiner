@@ -90,7 +90,7 @@ internal sealed partial class WorkflowSessionPresentationViewModel
         if ((context.IsStandardMerge && _merge.IsStandardMergeSlot(slot)) ||
             (context.IsAbMerge && AbMergeAddressSpaceBySlotId.ContainsKey(slot.SlotId)))
         {
-            await RefreshSelectedMergeFirmwareInspectionsAsync(IsAbMergeContextActive ? slot.SlotId : null);
+            await RefreshSelectedMergeFirmwareInspectionsAsync(slot.SlotId);
             RecordInputSelected(context, slot.SlotId);
             return;
         }

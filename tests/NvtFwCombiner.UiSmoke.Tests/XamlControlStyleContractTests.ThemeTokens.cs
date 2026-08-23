@@ -204,7 +204,124 @@ public sealed partial class XamlControlStyleContractTests
         string pages = ReadPresentationFile("Resources/MainWindowPageTemplates.axaml");
 
         Assert.Contains("Selector=\"TextBlock.previewTitle\"", styles, StringComparison.Ordinal);
+        Assert.Contains("<Setter Property=\"FontSize\" Value=\"24\" />", ExtractStyle(styles, "TextBlock.previewTitle"), StringComparison.Ordinal);
         Assert.Equal(3, pages.Split("Classes=\"previewTitle\"", StringSplitOptions.None).Length - 1);
         Assert.DoesNotContain("FontSize=\"25\"", pages, StringComparison.Ordinal);
+    }
+
+    /// <summary>Home typography uses named roles while preserving the approved geometry.</summary>
+    [Fact]
+    public void HomeTypographyUsesSharedSemanticRolesWithoutLocalOverrides()
+    {
+        var pages = XDocument.Parse(ReadPresentationFile("Resources/MainWindowPageTemplates.axaml"));
+        XNamespace x = "http://schemas.microsoft.com/winfx/2006/xaml";
+        XElement home = Assert.Single(pages.Descendants(), element =>
+            element.Name.LocalName == "DataTemplate" &&
+            (string?)element.Attribute(x + "Key") == "HomePageTemplate");
+        XElement[] textBlocks = [.. home.Descendants().Where(element => element.Name.LocalName == "TextBlock")];
+
+        Assert.Equal(3, textBlocks.Count(element => HasClass(element, "workflowKicker")));
+        Assert.Equal(3, textBlocks.Count(element => HasClass(element, "pageSubtitle")));
+        Assert.Equal(7, textBlocks.Count(element => HasClass(element, "workflowActionText")));
+        Assert.All(textBlocks, static textBlock =>
+        {
+            Assert.Null(textBlock.Attribute("FontFamily"));
+            Assert.Null(textBlock.Attribute("FontSize"));
+            Assert.Null(textBlock.Attribute("FontWeight"));
+            Assert.Null(textBlock.Attribute("Foreground"));
+        });
+    }
+
+    /// <summary>Only dynamic workflow readiness remains visible; Standard keeps slot-owned status and drop behavior.</summary>
+    [Fact]
+    public void StandardMergeOmitsDuplicatedReadinessStripWhileDynamicModesRetainIt()
+    {
+        var templates = XDocument.Parse(ReadPresentationFile("Resources/MainWindowWorkflowTemplates.axaml"));
+        XNamespace x = "http://schemas.microsoft.com/winfx/2006/xaml";
+        XElement mergeTemplate = Assert.Single(templates.Descendants(), element =>
+            element.Name.LocalName == "DataTemplate" &&
+            (string?)element.Attribute(x + "Key") == "MergeModeContentTemplate");
+
+        XElement standard = Assert.Single(mergeTemplate.Descendants(), element =>
+            (string?)element.Attribute("IsVisible") == "{Binding IsNormalMergeModeSelected}");
+        XElement general = Assert.Single(mergeTemplate.Descendants(), element =>
+            (string?)element.Attribute("IsVisible") == "{Binding IsGeneralMergeModeSelected}");
+        XElement ab = Assert.Single(mergeTemplate.Descendants(), element =>
+            (string?)element.Attribute("IsVisible") == "{Binding IsAbCodeMergeModeSelected}");
+
+        Assert.DoesNotContain(standard.Descendants(), IsMergeReadinessProjection);
+        Assert.Contains(general.Descendants(), IsMergeReadinessProjection);
+        Assert.Contains(ab.Descendants(), IsMergeReadinessProjection);
+        Assert.Contains(
+            "DragDrop.AllowDrop=\"{Binding CanSelectFile}\"",
+            ReadPresentationFile("Views/FirmwareSlotCard.axaml"),
+            StringComparison.Ordinal);
+        var shell = XDocument.Parse(ReadPresentationFile("MainWindow.axaml"));
+        XElement mergeBlocker = Assert.Single(shell.Descendants(), element =>
+            element.Name.LocalName == "Border" &&
+            (string?)element.Attribute("IsVisible") == "{Binding HasMergeBuildBlocker}");
+        Assert.Equal(
+            "{Binding MergeBuildBlockerText}",
+            mergeBlocker.Attributes().Single(attribute =>
+                attribute.Name.LocalName == "AutomationProperties.HelpText").Value);
+        Assert.Equal(
+            "{Binding MergeBuildBlockerText}",
+            mergeBlocker.Attributes().Single(attribute =>
+                attribute.Name.LocalName == "ToolTip.Tip").Value);
+        Assert.Equal(
+            "True",
+            mergeBlocker.Attributes().Single(attribute =>
+                attribute.Name.LocalName == "FocusToolTipBehavior.IsEnabled").Value);
+    }
+
+    /// <summary>Replace output avoids a repeated status row while Build owns an accessible blocker.</summary>
+    [Fact]
+    public void ReplaceOutputOmitsDuplicatedReadinessStripAndBuildOwnsAccessibleBlocker()
+    {
+        string workflowSource = ReadPresentationFile("Resources/MainWindowWorkflowTemplates.axaml");
+        var templates = XDocument.Parse(workflowSource);
+        XNamespace x = "http://schemas.microsoft.com/winfx/2006/xaml";
+        XElement replaceOutput = Assert.Single(templates.Descendants(), element =>
+            element.Name.LocalName == "DataTemplate" &&
+            (string?)element.Attribute(x + "Key") == "ReplaceOutputLayoutPanelTemplate");
+        XElement replaceMode = Assert.Single(templates.Descendants(), element =>
+            element.Name.LocalName == "DataTemplate" &&
+            (string?)element.Attribute(x + "Key") == "ReplaceModeContentTemplate");
+
+        Assert.DoesNotContain(replaceOutput.Descendants(), IsReplaceReadinessProjection);
+        Assert.Contains(replaceMode.Descendants(), IsReplaceReadinessProjection);
+
+        var shell = XDocument.Parse(ReadPresentationFile("MainWindow.axaml"));
+        XElement replaceBlocker = Assert.Single(shell.Descendants(), element =>
+            element.Name.LocalName == "Border" &&
+            (string?)element.Attribute("IsVisible") == "{Binding HasReplaceBuildBlocker}");
+        Assert.Equal(
+            "{Binding ReplaceBuildBlockerText}",
+            replaceBlocker.Attributes().Single(attribute =>
+                attribute.Name.LocalName == "AutomationProperties.HelpText").Value);
+        Assert.Equal(
+            "{Binding ReplaceBuildBlockerText}",
+            replaceBlocker.Attributes().Single(attribute =>
+                attribute.Name.LocalName == "AutomationProperties.Name").Value);
+        Assert.Equal(
+            "{Binding ReplaceBuildBlockerText}",
+            replaceBlocker.Attributes().Single(attribute =>
+                attribute.Name.LocalName == "ToolTip.Tip").Value);
+        Assert.Equal(
+            "True",
+            replaceBlocker.Attributes().Single(attribute =>
+                attribute.Name.LocalName == "FocusToolTipBehavior.IsEnabled").Value);
+    }
+
+    private static bool IsMergeReadinessProjection(XElement element)
+    {
+        return element.Name.LocalName == "TextBlock" &&
+            (string?)element.Attribute("Text") == "{Binding MergeReadinessStatus}";
+    }
+
+    private static bool IsReplaceReadinessProjection(XElement element)
+    {
+        return element.Name.LocalName == "TextBlock" &&
+            (string?)element.Attribute("Text") == "{Binding ReplaceReadinessStatus}";
     }
 }

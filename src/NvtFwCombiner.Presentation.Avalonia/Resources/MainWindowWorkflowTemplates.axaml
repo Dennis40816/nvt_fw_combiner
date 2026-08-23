@@ -161,12 +161,6 @@
             <StaticResource ResourceKey="FirmwareSlotCardTemplate" />
           </ItemsControl.ItemTemplate>
         </ItemsControl>
-        <Border Classes="subtleSurface" Padding="10,8">
-          <TextBlock Classes="readinessText"
-                     AutomationProperties.LiveSetting="Polite"
-                     Text="{Binding MergeReadinessStatus}"
-                     TextWrapping="Wrap" />
-        </Border>
       </StackPanel>
     </Border>
 
@@ -356,12 +350,6 @@
         <TextBlock Classes="sectionLabel" Text="{Binding Text.PlanTitle}" />
         <ItemsControl ItemTemplate="{StaticResource ReplaceMemoryMapRowTemplate}" ItemsSource="{Binding ReplaceMemoryRows}" />
       </StackPanel>
-      <Border Classes="memorySupportingRow" Padding="0,10,0,0">
-        <TextBlock Classes="readinessText"
-                   AutomationProperties.LiveSetting="Polite"
-                   Text="{Binding ReplaceReadinessStatus}"
-                   TextWrapping="Wrap" />
-      </Border>
       </StackPanel>
     </views:SpaciousPanel>
   </Border>

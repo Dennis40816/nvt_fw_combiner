@@ -77,6 +77,8 @@ public sealed partial class XamlControlStyleContractTests
         string slotCard = ReadPresentationFile("Views/FirmwareSlotCard.axaml");
         string templates = ReadPresentationFile("Resources/MainWindowSharedTemplates.axaml");
         string factTemplate = ExtractDataTemplate(templates, "FirmwareSlotInformationFactTemplate");
+        string controlStyles = ReadPresentationFile("Styles/MainWindowControlStyles.axaml");
+        string factLabelStyle = ExtractStyle(controlStyles, "TextBlock.firmwareSlotFactLabel");
 
         Assert.Contains("ItemsSource=\"{Binding PrimaryFirmwareFacts}\"", slotCard, StringComparison.Ordinal);
         Assert.Contains("ItemsSource=\"{Binding AdditionalFirmwareFacts}\"", slotCard, StringComparison.Ordinal);
@@ -90,7 +92,7 @@ public sealed partial class XamlControlStyleContractTests
         Assert.DoesNotContain("BorderThickness=", factTemplate, StringComparison.Ordinal);
         Assert.DoesNotContain("CornerRadius=", factTemplate, StringComparison.Ordinal);
         Assert.Contains("Orientation=\"Vertical\"", factTemplate, StringComparison.Ordinal);
-        Assert.Contains("FontWeight=\"SemiBold\"", factTemplate, StringComparison.Ordinal);
+        Assert.Contains("Property=\"FontWeight\" Value=\"SemiBold\"", factLabelStyle, StringComparison.Ordinal);
         Assert.Contains("TextTrimming=\"CharacterEllipsis\"", factTemplate, StringComparison.Ordinal);
         Assert.Contains("Classes=\"firmwareSlotFactStateIcon\"", factTemplate, StringComparison.Ordinal);
         Assert.Contains("AutomationProperties.Name=\"{Binding StateAutomationText}\"", factTemplate, StringComparison.Ordinal);

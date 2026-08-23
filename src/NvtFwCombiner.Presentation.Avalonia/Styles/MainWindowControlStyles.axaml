@@ -309,9 +309,21 @@
     <Setter Property="Foreground" Value="{DynamicResource NfcTextMutedBrush}" />
   </Style>
   <Style Selector="TextBlock.previewTitle">
-    <Setter Property="FontSize" Value="25" />
+    <Setter Property="FontSize" Value="24" />
     <Setter Property="FontWeight" Value="SemiBold" />
     <Setter Property="Foreground" Value="{DynamicResource NfcTextStrongBrush}" />
+  </Style>
+  <Style Selector="TextBlock.workflowKicker">
+    <Setter Property="FontSize" Value="{DynamicResource NfcFontSize12}" />
+    <Setter Property="FontWeight" Value="SemiBold" />
+    <Setter Property="Foreground" Value="{DynamicResource NfcAccentBrush}" />
+  </Style>
+  <Style Selector="TextBlock.workflowKicker.info">
+    <Setter Property="Foreground" Value="{DynamicResource NfcInfoTextBrush}" />
+  </Style>
+  <Style Selector="TextBlock.workflowActionText">
+    <Setter Property="FontSize" Value="{DynamicResource NfcFontSize12}" />
+    <Setter Property="FontWeight" Value="SemiBold" />
   </Style>
   <Style Selector="TextBlock.sectionTitle">
     <Setter Property="FontSize" Value="18" />
@@ -379,6 +391,25 @@
     <Setter Property="FontSize" Value="{DynamicResource NfcFontSize12}" />
     <Setter Property="FontWeight" Value="SemiBold" />
     <Setter Property="Foreground" Value="{DynamicResource NfcTextSecondaryBrush}" />
+  </Style>
+  <Style Selector="TextBlock.memoryFlowText">
+    <Setter Property="FontSize" Value="{DynamicResource NfcFontSize11}" />
+    <Setter Property="FontWeight" Value="SemiBold" />
+    <Setter Property="Foreground" Value="{DynamicResource NfcTextSecondaryBrush}" />
+  </Style>
+  <Style Selector="TextBlock.firmwareSlotTitle">
+    <Setter Property="FontSize" Value="{DynamicResource NfcFontSize16}" />
+    <Setter Property="FontWeight" Value="SemiBold" />
+    <Setter Property="Foreground" Value="{DynamicResource NfcTextStrongBrush}" />
+  </Style>
+  <Style Selector="TextBlock.firmwareSlotStatus">
+    <Setter Property="FontSize" Value="{DynamicResource NfcFontSize11}" />
+    <Setter Property="FontWeight" Value="SemiBold" />
+  </Style>
+  <Style Selector="TextBlock.firmwareSlotGuidance">
+    <Setter Property="FontSize" Value="{DynamicResource NfcFontSize13}" />
+    <Setter Property="FontWeight" Value="SemiBold" />
+    <Setter Property="Foreground" Value="{DynamicResource NfcTextBrush}" />
   </Style>
   <Style Selector="TextBlock.mutedText">
     <Setter Property="FontSize" Value="{DynamicResource NfcFontSize12}" />
@@ -492,9 +523,14 @@
     <Setter Property="Foreground" Value="{DynamicResource NfcSuccessEmphasisBrush}" />
   </Style>
   <Style Selector="TextBlock.firmwareSlotFactLabel">
+    <Setter Property="FontSize" Value="{DynamicResource NfcFontSize11}" />
+    <Setter Property="FontWeight" Value="SemiBold" />
     <Setter Property="Foreground" Value="{DynamicResource NfcTextSecondaryBrush}" />
   </Style>
   <Style Selector="TextBlock.firmwareSlotFactValue">
+    <Setter Property="FontFamily" Value="{DynamicResource NfcTechnicalFontFamily}" />
+    <Setter Property="FontSize" Value="{DynamicResource NfcFontSize12}" />
+    <Setter Property="FontWeight" Value="Medium" />
     <Setter Property="Foreground" Value="{DynamicResource NfcTextStrongBrush}" />
   </Style>
   <Style Selector="Label.countBadge">

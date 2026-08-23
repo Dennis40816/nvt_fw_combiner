@@ -2823,7 +2823,7 @@ class VerifyOrchestrationTests(unittest.TestCase):
                 (
                     "tests/NvtFwCombiner.UiSmoke.Tests/"
                     "NvtFwCombiner.UiSmoke.Tests.csproj",
-                    640,
+                    644,
                     0,
                 ),
             ),
@@ -2902,7 +2902,7 @@ class VerifyOrchestrationTests(unittest.TestCase):
         self.assertEqual(8, len(set(flattened)))
         self.assertEqual(solution_test_projects, set(flattened))
         self.assertEqual(
-            3935, sum(total for projects in actual.values() for _, total, _ in projects)
+            3939, sum(total for projects in actual.values() for _, total, _ in projects)
         )
         self.assertEqual(
             2,

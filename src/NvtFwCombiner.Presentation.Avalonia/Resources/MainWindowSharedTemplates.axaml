@@ -507,7 +507,7 @@
         <TextBlock Classes="microInfoText" Text="{Binding ActionLabel}" TextWrapping="Wrap" />
       </StackPanel>
       <TextBlock Grid.Column="1" Classes="technicalValue" Text="{Binding RangeLabel}" TextWrapping="Wrap" />
-      <TextBlock Grid.Row="1" Grid.Column="1" FontSize="{DynamicResource NfcFontSize11}" FontWeight="SemiBold" Foreground="{DynamicResource NfcTextSecondaryBrush}" Text="{Binding FlowLabel}" TextWrapping="Wrap" />
+      <TextBlock Grid.Row="1" Grid.Column="1" Classes="memoryFlowText" Text="{Binding FlowLabel}" TextWrapping="Wrap" />
     </Grid>
   </Border>
 </DataTemplate>
@@ -517,7 +517,7 @@
     <Grid ColumnDefinitions="62,*" RowDefinitions="Auto,Auto" ColumnSpacing="10" RowSpacing="3">
       <TextBlock Classes="microInfoText" Text="{Binding ActionLabel}" TextWrapping="Wrap" />
       <TextBlock Grid.Column="1" Classes="technicalValue" Text="{Binding RangeLabel}" TextWrapping="Wrap" />
-      <TextBlock Grid.Row="1" Grid.Column="1" FontSize="{DynamicResource NfcFontSize11}" FontWeight="SemiBold" Foreground="{DynamicResource NfcTextSecondaryBrush}" Text="{Binding FlowLabel}" TextWrapping="Wrap" />
+      <TextBlock Grid.Row="1" Grid.Column="1" Classes="memoryFlowText" Text="{Binding FlowLabel}" TextWrapping="Wrap" />
     </Grid>
   </Border>
 </DataTemplate>
@@ -565,9 +565,9 @@
       HorizontalAlignment="Stretch"
       Padding="0,0,16,0">
     <StackPanel Orientation="Vertical" Spacing="{DynamicResource NfcSpace2}">
-      <TextBlock Classes="firmwareSlotFactLabel" FontSize="{DynamicResource NfcFontSize11}" FontWeight="SemiBold" Text="{Binding Label}" TextTrimming="CharacterEllipsis" />
+      <TextBlock Classes="firmwareSlotFactLabel" Text="{Binding Label}" TextTrimming="CharacterEllipsis" />
       <Grid ColumnDefinitions="*,Auto" ColumnSpacing="{DynamicResource NfcSpace4}" HorizontalAlignment="Stretch">
-        <TextBlock Classes="firmwareSlotFactValue" FontSize="{DynamicResource NfcFontSize12}" FontFamily="{DynamicResource NfcTechnicalFontFamily}" FontWeight="Medium" Text="{Binding Value}" TextTrimming="CharacterEllipsis" ToolTip.Tip="{Binding Value}" />
+        <TextBlock Classes="firmwareSlotFactValue" Text="{Binding Value}" TextTrimming="CharacterEllipsis" ToolTip.Tip="{Binding Value}" />
         <Path Grid.Column="1"
             AutomationProperties.Name="{Binding StateAutomationText}"
             behaviors:FocusToolTipBehavior.IsEnabled="True"

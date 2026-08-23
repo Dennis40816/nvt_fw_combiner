@@ -452,6 +452,31 @@ public sealed partial class FirmwareInspectionSlotTests
         Assert.Contains("Jira Index:AUTO_PRJ-576", tpFirstFacts);
     }
 
+    /// <summary>Standard Merge forwards the selected slot's inspected IC to the shared mismatch prompt.</summary>
+    [Fact]
+    public async Task StandardMergeSelectionPromptsForInspectedIcProfileMismatch()
+    {
+        using var workspace = TempWorkspace.Create("nvt-fw-combiner-ui-standard-merge-ic-suggestion");
+        string tpPath = workspace.Write("NT51950_tp.bin", [0x01]);
+        MainWindowViewModel viewModel = CreateBatchInspectionViewModel((_, inputs) =>
+        [
+            .. inputs.Select(input => new FirmwareInspectionSnapshotResult(
+                input.InspectionId,
+                new FirmwareInspectionSnapshot("NT51950", null, null, null, null, null))),
+        ]);
+        viewModel.WorkflowSession.SelectedIc = "NT51926";
+
+        await viewModel.WorkflowSession.SetSlotFileAsync(
+            CompositionSlotIds.MergeTp,
+            tpPath,
+            TestContext.Current.CancellationToken);
+
+        Assert.True(viewModel.WorkflowSession.IsFirmwareIcMismatchModalOpen);
+        Assert.Equal("NT51950", viewModel.WorkflowSession.FirmwareIcMismatchDetectedIc);
+        Assert.Equal("NT51950_tp.bin", viewModel.WorkflowSession.FirmwareIcMismatchFileName);
+        Assert.Equal("NT51926", viewModel.WorkflowSession.SelectedIc);
+    }
+
     /// <summary>A marker within one perfect family silently adopts the detected IC and retains the selected BIN.</summary>
     [Fact]
     public async Task PerfectFamilyIcHintAdoptsDetectedContextWithoutPrompt()

@@ -36,6 +36,7 @@ public sealed partial class XamlControlStyleContractTests
         string warningStyle = ExtractStyle(styles, "Border.firmwareSlotFact.warning");
         string errorStyle = ExtractStyle(styles, "Border.firmwareSlotFact.error");
         string warningTextStyle = ExtractStyle(styles, "Border.firmwareSlotFact.warning TextBlock");
+        string valueStyle = ExtractStyle(styles, "TextBlock.firmwareSlotFactValue");
 
         Assert.Contains("Value=\"{DynamicResource NfcWarningSurfaceBrush}\"", warningStyle, StringComparison.Ordinal);
         Assert.Contains("Value=\"{DynamicResource NfcWarningBorderStrongBrush}\"", warningStyle, StringComparison.Ordinal);
@@ -57,7 +58,7 @@ public sealed partial class XamlControlStyleContractTests
         Assert.Contains("Classes.warning=\"{Binding IsWarning}\"", factTemplate, StringComparison.Ordinal);
         Assert.Contains("Classes=\"firmwareSlotFactLabel\"", factTemplate, StringComparison.Ordinal);
         Assert.Contains("Classes=\"firmwareSlotFactValue\"", factTemplate, StringComparison.Ordinal);
-        Assert.Contains("FontFamily=\"{DynamicResource NfcTechnicalFontFamily}\"", factTemplate, StringComparison.Ordinal);
+        Assert.Contains("Value=\"{DynamicResource NfcTechnicalFontFamily}\"", valueStyle, StringComparison.Ordinal);
         Assert.Contains("Text=\"{Binding Label}\"", factTemplate, StringComparison.Ordinal);
         Assert.Contains("Text=\"{Binding Value}\"", factTemplate, StringComparison.Ordinal);
         Assert.DoesNotContain("BackgroundBrush", factTemplate, StringComparison.Ordinal);
