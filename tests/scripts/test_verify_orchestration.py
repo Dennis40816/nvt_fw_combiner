@@ -1538,6 +1538,31 @@ class VerifyOrchestrationTests(unittest.TestCase):
 
         self.assertEqual(invalid.decode("utf-8", errors="replace"), output.getvalue())
 
+    def test_stream_log_tail_escapes_text_the_console_cannot_encode(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            primary = Path(temporary) / "invalid.log"
+            primary.write_bytes(b"before-\xff-after")
+            raw_console = io.BytesIO()
+            console = io.TextIOWrapper(
+                raw_console,
+                encoding="cp950",
+                errors="strict",
+                newline="",
+            )
+            try:
+                with patch.object(MODULE.sys, "stdout", console):
+                    MODULE.stream_log_tail(
+                        primary,
+                        start_offset=0,
+                        echo=True,
+                    )
+                console.flush()
+                rendered = raw_console.getvalue().decode("cp950")
+            finally:
+                console.detach()
+
+        self.assertEqual(r"before-\ufffd-after", rendered)
+
     def test_skip_python_leaves_repository_script_tests_out_of_dotnet_only_lane(
         self,
     ) -> None:
@@ -1715,7 +1740,7 @@ class VerifyOrchestrationTests(unittest.TestCase):
                     return_value=root / "coverage",
                 ),
                 patch.object(MODULE, "run", side_effect=fake_run),
-                patch.object(MODULE, "verify_coverage"),
+                patch.object(MODULE, "collect_local_dotnet_coverage"),
                 patch.object(MODULE, "stop_idle_build_workers"),
             ):
                 MODULE.verify_dotnet(root / "dotnet.log")
@@ -1749,7 +1774,13 @@ class VerifyOrchestrationTests(unittest.TestCase):
                     "run",
                     side_effect=lambda command, **_kwargs: commands.append(command),
                 ),
-                patch.object(MODULE, "verify_coverage") as verify_coverage,
+                patch.object(
+                    MODULE,
+                    "collect_local_dotnet_coverage",
+                    side_effect=lambda *_args, **_kwargs: commands.append(
+                        ["collect-local-dotnet-coverage"]
+                    ),
+                ) as collect_coverage,
                 patch.object(MODULE, "stop_idle_build_workers"),
             ):
                 MODULE.verify_dotnet()
@@ -1778,13 +1809,12 @@ class VerifyOrchestrationTests(unittest.TestCase):
             if len(command) > 1 and command[1] == "format"
         )
         format_command = commands[format_index]
-        test_command = next(command for command in commands if "test" in command)
-        test_index = commands.index(test_command)
+        collect_index = commands.index(["collect-local-dotnet-coverage"])
 
         self.assertLess(restore_index, ownership_index)
         self.assertLess(ownership_index, format_index)
         self.assertLess(format_index, build_index)
-        self.assertLess(build_index, test_index)
+        self.assertLess(build_index, collect_index)
         self.assertEqual(
             [
                 "dotnet",
@@ -1796,16 +1826,890 @@ class VerifyOrchestrationTests(unittest.TestCase):
             ],
             format_command,
         )
-        self.assertIn("--collect:XPlat Code Coverage", test_command)
+        self.assertFalse(any("test" in command for command in commands))
+        collect_coverage.assert_called_once()
+        self.assertEqual(
+            coverage_directory,
+            collect_coverage.call_args.args[1],
+        )
+
+    def test_local_dotnet_preserves_primary_and_cleanup_failures(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            with (
+                patch.object(MODULE, "resolve_dotnet", return_value="dotnet"),
+                patch.object(
+                    MODULE,
+                    "reset_coverage_directory",
+                    return_value=root / "coverage",
+                ),
+                patch.object(
+                    MODULE,
+                    "run_dotnet_commands",
+                    side_effect=RuntimeError("primary probe"),
+                ),
+                patch.object(
+                    MODULE,
+                    "cleanup_dotnet_batch",
+                    side_effect=RuntimeError("cleanup probe"),
+                ),
+                self.assertRaisesRegex(
+                    RuntimeError,
+                    "primary probe.*cleanup also failed.*cleanup probe",
+                ),
+            ):
+                MODULE.verify_dotnet()
+
+    def test_nested_dotnet_cancellation_stays_latched_through_outer_cleanup(
+        self,
+    ) -> None:
+        projects = (
+            MODULE.CiDotnetProject("tests/First/First.Tests.csproj", 1),
+            MODULE.CiDotnetProject("tests/Second/Second.Tests.csproj", 1),
+        )
+        cancellation = threading.Event()
+        cancellation_handoffs: list[str] = []
+
+        def cancelled_project(*_args: object, **_kwargs: object) -> None:
+            raise MODULE.VerificationTerminationRequested("cancel probe")
+
+        def cancel_active() -> None:
+            cancellation_handoffs.append("cancel")
+            cancellation.set()
+
+        with tempfile.TemporaryDirectory(dir=MODULE.ROOT / "artifacts") as temporary:
+            root = Path(temporary)
+            coverage = root / "coverage"
+            coverage.mkdir()
+            work = root / "work"
+            with (
+                patch.object(MODULE, "PROCESS_CANCELLATION_REQUESTED", cancellation),
+                patch.object(MODULE, "resolve_dotnet", return_value="dotnet"),
+                patch.object(
+                    MODULE,
+                    "reset_coverage_directory",
+                    return_value=coverage,
+                ),
+                patch.object(MODULE, "DOTNET_COVERAGE_WORK_ROOT", work),
+                patch.object(MODULE, "run_dotnet_commands"),
+                patch.object(
+                    MODULE, "flatten_ci_dotnet_projects", return_value=projects
+                ),
+                patch.object(
+                    MODULE,
+                    "resolve_coverlet_adapter_path",
+                    return_value=root / "adapter",
+                ),
+                patch.object(
+                    MODULE,
+                    "prepare_local_dotnet_coverage_stage",
+                    side_effect=lambda project, *_args, **_kwargs: (
+                        MODULE.LocalDotnetCoverageStage(
+                            project,
+                            root / project.name / "source",
+                            work / project.name / "shadow",
+                            work / project.name / f"{project.name}.dll",
+                            coverage / project.name,
+                            {},
+                            (),
+                        )
+                    ),
+                ),
+                patch.object(
+                    MODULE,
+                    "run_local_dotnet_coverage_project",
+                    side_effect=cancelled_project,
+                ),
+                patch.object(
+                    MODULE,
+                    "cancel_active_processes_after_handoffs",
+                    side_effect=cancel_active,
+                ),
+                patch.object(MODULE, "run") as run_command,
+                patch.object(MODULE, "stop_idle_build_workers") as stop_idle_workers,
+                self.assertRaises(MODULE.VerificationTerminationRequested),
+            ):
+                MODULE.verify_dotnet()
+
+            self.assertTrue(cancellation.is_set())
+            self.assertEqual(["cancel"], cancellation_handoffs)
+            run_command.assert_not_called()
+            stop_idle_workers.assert_not_called()
+
+    def test_local_vstest_command_uses_one_shadow_assembly_and_pinned_collector(
+        self,
+    ) -> None:
+        assembly = Path("shadow/Probe.Tests/bin/Release/net10.0/Probe.Tests.dll")
+        adapter = Path(".packages/coverlet.collector/6.0.4/build/netstandard2.0")
+        results = Path("artifacts/coverage/dotnet/Probe.Tests")
+
+        command = MODULE.local_dotnet_vstest_command(
+            "dotnet",
+            assembly,
+            adapter,
+            results,
+        )
+
+        self.assertEqual(["dotnet", "vstest", str(assembly)], command[:3])
+        self.assertIn(f"--TestAdapterPath:{adapter}", command)
+        self.assertIn("--Collect:XPlat Code Coverage", command)
+        self.assertIn(f"--ResultsDirectory:{results}", command)
+        self.assertIn("--Logger:trx;LogFileName=test-results.trx", command)
+        self.assertNotIn("--filter", tuple(part.casefold() for part in command))
+        self.assertFalse(any("exclude" in part.casefold() for part in command))
         self.assertEqual(
             "DataCollectionRunSettings.DataCollectors.DataCollector.Configuration.Format=json,cobertura",
-            test_command[-1],
+            command[-1],
         )
-        self.assertEqual(
-            str(coverage_directory),
-            test_command[test_command.index("--results-directory") + 1],
+
+    def test_coverlet_adapter_comes_only_from_baseline_and_repository_packages(
+        self,
+    ) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            adapter = root / ".packages/coverlet.collector/6.0.4/build/netstandard2.0"
+            adapter.mkdir(parents=True)
+            (adapter / "coverlet.collector.dll").write_bytes(b"collector")
+            (adapter / "coverlet.collector.deps.json").write_text(
+                "{}", encoding="utf-8"
+            )
+
+            resolved = MODULE.resolve_coverlet_adapter_path(
+                root,
+                {
+                    "collection": {
+                        "dotnet": {
+                            "collector": "coverlet.collector",
+                            "version": "6.0.4",
+                            "format": "json,cobertura",
+                        }
+                    }
+                },
+            )
+
+            self.assertEqual(adapter, resolved)
+
+            with self.assertRaisesRegex(RuntimeError, "collector version"):
+                MODULE.resolve_coverlet_adapter_path(
+                    root,
+                    {
+                        "collection": {
+                            "dotnet": {
+                                "collector": "coverlet.collector",
+                                "version": "../global-cache",
+                                "format": "json,cobertura",
+                            }
+                        }
+                    },
+                )
+
+            (adapter / "coverlet.collector.dll").unlink()
+            with self.assertRaisesRegex(RuntimeError, "coverlet.collector.dll"):
+                MODULE.resolve_coverlet_adapter_path(
+                    root,
+                    {
+                        "collection": {
+                            "dotnet": {
+                                "collector": "coverlet.collector",
+                                "version": "6.0.4",
+                                "format": "json,cobertura",
+                            }
+                        }
+                    },
+                )
+
+    def test_coverlet_adapter_rejects_a_link_before_vstest(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            external = root / "external"
+            external.mkdir()
+            (external / "coverlet.collector.dll").write_bytes(b"collector")
+            (external / "coverlet.collector.deps.json").write_text(
+                "{}", encoding="utf-8"
+            )
+            adapter = root / ".packages/coverlet.collector/6.0.4/build/netstandard2.0"
+            adapter.parent.mkdir(parents=True)
+            try:
+                adapter.symlink_to(external, target_is_directory=True)
+            except OSError as error:
+                self.skipTest(f"directory symlinks are unavailable: {error}")
+
+            with self.assertRaisesRegex(RuntimeError, "reparse|symbolic|junction"):
+                MODULE.resolve_coverlet_adapter_path(
+                    root,
+                    {
+                        "collection": {
+                            "dotnet": {
+                                "collector": "coverlet.collector",
+                                "version": "6.0.4",
+                                "format": "json,cobertura",
+                            }
+                        }
+                    },
+                )
+
+    def test_shadow_snapshot_is_exact_and_detects_source_or_destination_mutation(
+        self,
+    ) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            source = root / "source/bin/Release/net10.0"
+            destination = root / "work/Probe.Tests/bin/Release/net10.0"
+            source.mkdir(parents=True)
+            (source / "Probe.Tests.dll").write_bytes(b"test")
+            (source / "Probe.Tests.pdb").write_bytes(b"symbols")
+            (source / "fixture.bin").write_bytes(b"fixture")
+
+            hashes = MODULE.snapshot_regular_tree(
+                source,
+                destination,
+                source_boundary=root / "source",
+                destination_boundary=root / "work",
+            )
+
+            self.assertEqual(
+                hashes,
+                MODULE.regular_tree_hashes(
+                    destination,
+                    boundary=root / "work",
+                    description="shadow output",
+                ),
+            )
+            (destination / "Probe.Tests.dll").write_bytes(b"mutated")
+            with self.assertRaisesRegex(RuntimeError, "changed|hash|inventory"):
+                MODULE.require_regular_tree_hashes(
+                    destination,
+                    hashes,
+                    boundary=root / "work",
+                    description="shadow output",
+                )
+
+            original_copy = MODULE.shutil.copyfile
+            mutation_done = False
+
+            def mutate_source_after_copy(
+                from_path: Path,
+                to_path: Path,
+                *,
+                follow_symlinks: bool = True,
+            ) -> str:
+                nonlocal mutation_done
+                result = original_copy(
+                    from_path,
+                    to_path,
+                    follow_symlinks=follow_symlinks,
+                )
+                if not mutation_done:
+                    Path(from_path).write_bytes(b"changed during copy")
+                    mutation_done = True
+                return result
+
+            second_destination = root / "work/Second/bin/Release/net10.0"
+            with (
+                patch.object(
+                    MODULE.shutil,
+                    "copyfile",
+                    side_effect=mutate_source_after_copy,
+                ),
+                self.assertRaisesRegex(RuntimeError, "changed during snapshot"),
+            ):
+                MODULE.snapshot_regular_tree(
+                    source,
+                    second_destination,
+                    source_boundary=root / "source",
+                    destination_boundary=root / "work",
+                )
+
+    def test_shadow_snapshot_rejects_links_and_path_escape(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            source = root / "source/bin/Release/net10.0"
+            source.mkdir(parents=True)
+            (source / "Probe.Tests.dll").write_bytes(b"test")
+            outside = root / "outside"
+            outside.mkdir()
+            with self.assertRaisesRegex(RuntimeError, "outside|escapes"):
+                MODULE.snapshot_regular_tree(
+                    source,
+                    outside / "shadow",
+                    source_boundary=root / "source",
+                    destination_boundary=root / "work",
+                )
+
+            link = source / "linked.dll"
+            try:
+                link.symlink_to(root / "outside.dll")
+            except OSError as error:
+                self.skipTest(f"file symlinks are unavailable: {error}")
+            with self.assertRaisesRegex(RuntimeError, "reparse|symbolic|junction"):
+                MODULE.regular_tree_hashes(
+                    source,
+                    boundary=root / "source",
+                    description="test output",
+                )
+
+    def test_production_dll_and_pdb_must_match_canonical_release(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            test_output = root / "test-output"
+            canonical_output = root / "canonical"
+            test_output.mkdir()
+            canonical_output.mkdir()
+            for suffix, content in (("dll", b"binary"), ("pdb", b"symbols")):
+                (test_output / f"NvtFwCombiner.Probe.{suffix}").write_bytes(content)
+                (canonical_output / f"NvtFwCombiner.Probe.{suffix}").write_bytes(
+                    content
+                )
+
+            MODULE.require_production_release_matches(
+                test_output,
+                {"NvtFwCombiner.Probe": canonical_output},
+            )
+
+            (test_output / "NvtFwCombiner.Probe.pdb").write_bytes(b"stale")
+            with self.assertRaisesRegex(RuntimeError, "PDB|pdb|hash"):
+                MODULE.require_production_release_matches(
+                    test_output,
+                    {"NvtFwCombiner.Probe": canonical_output},
+                )
+
+    def test_post_collector_freshness_rejects_canonical_output_mutation(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            source = root / "source"
+            source.mkdir()
+            source_file = source / "Probe.Tests.dll"
+            source_file.write_bytes(b"test")
+            canonical = root / "canonical/NvtFwCombiner.Probe.dll"
+            canonical.parent.mkdir()
+            canonical.write_bytes(b"product")
+            shadow = root / "shadow"
+            source_hashes = MODULE.snapshot_regular_tree(
+                source,
+                shadow,
+                source_boundary=root,
+                destination_boundary=root,
+            )
+            stage = MODULE.LocalDotnetCoverageStage(
+                MODULE.CiDotnetProject("tests/Probe/Probe.Tests.csproj", 1),
+                source,
+                shadow,
+                shadow / "Probe.Tests.dll",
+                root / "results",
+                source_hashes,
+                ((canonical, MODULE.sha256_file(canonical)),),
+            )
+
+            MODULE.require_local_dotnet_sources_unchanged((stage,), root)
+
+            canonical.write_bytes(b"mutated")
+            with self.assertRaisesRegex(RuntimeError, "production output hash changed"):
+                MODULE.require_local_dotnet_sources_unchanged((stage,), root)
+
+    def test_post_collector_freshness_rejects_shadow_output_mutation(self) -> None:
+        project = MODULE.CiDotnetProject("tests/Probe/Probe.Tests.csproj", 1)
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            work = root / "work"
+            coverage = root / "coverage"
+            coverage.mkdir()
+            source = root / "source/bin/Release/net10.0"
+            source.mkdir(parents=True)
+            (source / "Probe.Tests.dll").write_bytes(b"test")
+            (source / "NvtFwCombiner.Probe.dll").write_bytes(b"product")
+            canonical = root / "canonical/NvtFwCombiner.Probe.dll"
+            canonical.parent.mkdir()
+            canonical.write_bytes(b"product")
+
+            def prepare(*_args: object, **_kwargs: object):
+                shadow = work / "12345678/bin/Release/net10.0"
+                hashes = MODULE.snapshot_regular_tree(
+                    source,
+                    shadow,
+                    source_boundary=root,
+                    destination_boundary=work,
+                )
+                results = coverage / project.name
+                results.mkdir()
+                return MODULE.LocalDotnetCoverageStage(
+                    project,
+                    source,
+                    shadow,
+                    shadow / "Probe.Tests.dll",
+                    results,
+                    hashes,
+                    ((canonical, MODULE.sha256_file(canonical)),),
+                )
+
+            def mutate_shadow(stage: MODULE.LocalDotnetCoverageStage, *_args: object):
+                (stage.shadow_output / "NvtFwCombiner.Probe.dll").write_bytes(
+                    b"mutated"
+                )
+
+            with (
+                patch.object(
+                    MODULE, "flatten_ci_dotnet_projects", return_value=(project,)
+                ),
+                patch.object(
+                    MODULE,
+                    "resolve_coverlet_adapter_path",
+                    return_value=root / "adapter",
+                ),
+                patch.object(
+                    MODULE,
+                    "prepare_local_dotnet_coverage_stage",
+                    side_effect=prepare,
+                ),
+                patch.object(
+                    MODULE,
+                    "run_local_dotnet_coverage_project",
+                    side_effect=mutate_shadow,
+                ),
+                patch.object(MODULE, "verify_coverage") as verify_coverage,
+                self.assertRaisesRegex(RuntimeError, "shadow.*changed|hash changed"),
+            ):
+                MODULE.collect_local_dotnet_coverage(
+                    "dotnet",
+                    coverage,
+                    work,
+                    {},
+                    None,
+                    repository_root=root,
+                )
+
+            verify_coverage.assert_not_called()
+            self.assertFalse(work.exists())
+
+    def test_canonical_hash_snapshot_cannot_move_between_equality_and_baseline(
+        self,
+    ) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            test_output = root / "test-output"
+            canonical_output = root / "canonical"
+            source = root / "source"
+            test_output.mkdir()
+            canonical_output.mkdir()
+            source.mkdir()
+            test_dll = test_output / "NvtFwCombiner.Probe.dll"
+            canonical_dll = canonical_output / "NvtFwCombiner.Probe.dll"
+            test_dll.write_bytes(b"accepted")
+            canonical_dll.write_bytes(b"accepted")
+            source_file = source / "Probe.Tests.dll"
+            source_file.write_bytes(b"test")
+            shadow = root / "shadow"
+            source_hashes = MODULE.snapshot_regular_tree(
+                source,
+                shadow,
+                source_boundary=root,
+                destination_boundary=root,
+            )
+            original_hash = MODULE.sha256_file
+            canonical_calls = 0
+
+            def mutate_after_first_canonical_hash(path: Path) -> str:
+                nonlocal canonical_calls
+                value = original_hash(path)
+                if Path(path) == canonical_dll:
+                    canonical_calls += 1
+                    if canonical_calls == 1:
+                        canonical_dll.write_bytes(b"changed")
+                return value
+
+            with patch.object(
+                MODULE,
+                "sha256_file",
+                side_effect=mutate_after_first_canonical_hash,
+            ):
+                canonical_hashes = MODULE.require_production_release_matches(
+                    test_output,
+                    {"NvtFwCombiner.Probe": canonical_output},
+                )
+
+            stage = MODULE.LocalDotnetCoverageStage(
+                MODULE.CiDotnetProject("tests/Probe/Probe.Tests.csproj", 1),
+                source,
+                shadow,
+                shadow / "Probe.Tests.dll",
+                root / "results",
+                source_hashes,
+                canonical_hashes,
+            )
+            with self.assertRaisesRegex(RuntimeError, "production output hash changed"):
+                MODULE.require_local_dotnet_sources_unchanged((stage,), root)
+
+    def test_optional_production_pdb_presence_must_be_exact_and_regular(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            test_output = root / "test-output"
+            canonical_output = root / "canonical"
+            test_output.mkdir()
+            canonical_output.mkdir()
+            for output in (test_output, canonical_output):
+                (output / "NvtFwCombiner.Probe.dll").write_bytes(b"binary")
+            test_pdb = test_output / "NvtFwCombiner.Probe.pdb"
+            canonical_pdb = canonical_output / "NvtFwCombiner.Probe.pdb"
+
+            canonical_pdb.write_bytes(b"symbols")
+            with self.assertRaisesRegex(RuntimeError, "PDB pairing mismatch"):
+                MODULE.require_production_release_matches(
+                    test_output,
+                    {"NvtFwCombiner.Probe": canonical_output},
+                )
+            canonical_pdb.unlink()
+            test_pdb.write_bytes(b"symbols")
+            with self.assertRaisesRegex(RuntimeError, "PDB pairing mismatch"):
+                MODULE.require_production_release_matches(
+                    test_output,
+                    {"NvtFwCombiner.Probe": canonical_output},
+                )
+            test_pdb.unlink()
+            canonical_pdb.mkdir()
+            with self.assertRaisesRegex(RuntimeError, "non-regular.*PDB"):
+                MODULE.require_production_release_matches(
+                    test_output,
+                    {"NvtFwCombiner.Probe": canonical_output},
+                )
+
+    def test_optional_production_pdb_rejects_a_symbolic_link(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            test_output = root / "test-output"
+            canonical_output = root / "canonical"
+            test_output.mkdir()
+            canonical_output.mkdir()
+            for output in (test_output, canonical_output):
+                (output / "NvtFwCombiner.Probe.dll").write_bytes(b"binary")
+            target = root / "symbols.pdb"
+            target.write_bytes(b"symbols")
+            canonical_pdb = canonical_output / "NvtFwCombiner.Probe.pdb"
+            try:
+                canonical_pdb.symlink_to(target)
+            except OSError as error:
+                self.skipTest(f"file symlinks are unavailable: {error}")
+
+            with self.assertRaisesRegex(RuntimeError, "link|reparse"):
+                MODULE.require_production_release_matches(
+                    test_output,
+                    {"NvtFwCombiner.Probe": canonical_output},
+                )
+
+    def test_local_shadow_path_is_short_stable_and_preserves_release_suffix(
+        self,
+    ) -> None:
+        project = MODULE.CiDotnetProject(
+            "tests/Deep/NvtFwCombiner.DeepFixture.Tests/"
+            "NvtFwCombiner.DeepFixture.Tests.csproj",
+            1,
         )
-        verify_coverage.assert_called_once_with("dotnet", coverage_directory)
+        expected_token = hashlib.sha256(
+            project.relative_path.encode("utf-8")
+        ).hexdigest()[:8]
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            source = root / "source/bin/Release/net10.0"
+            source.mkdir(parents=True)
+            (source / f"{project.name}.dll").write_bytes(b"test")
+            work = root / "work"
+            coverage = root / "coverage"
+            coverage.mkdir()
+            release_suffix = Path("bin/Release/net10.0")
+            with (
+                patch.object(
+                    MODULE,
+                    "find_project_release_output",
+                    return_value=(source, release_suffix),
+                ),
+                patch.object(
+                    MODULE,
+                    "canonical_production_release_outputs",
+                    return_value={},
+                ),
+                patch.object(
+                    MODULE,
+                    "require_production_release_matches",
+                    return_value=(),
+                ),
+            ):
+                stage = MODULE.prepare_local_dotnet_coverage_stage(
+                    project,
+                    work,
+                    coverage,
+                    repository_root=root,
+                )
+
+            self.assertEqual(
+                (expected_token, "bin", "Release", "net10.0"),
+                stage.shadow_output.relative_to(work).parts,
+            )
+            self.assertRegex(expected_token, r"^[0-9a-f]{8}$")
+            self.assertEqual(
+                stage.shadow_output / f"{project.name}.dll",
+                stage.test_assembly,
+            )
+            self.assertNotIn("NvtFwCombiner.DeepFixture.Tests", expected_token)
+
+    def test_local_project_evidence_requires_exact_counter_trx_and_pair(self) -> None:
+        project = MODULE.CiDotnetProject("tests/Probe/Probe.Tests.csproj", 3, 1)
+        with tempfile.TemporaryDirectory() as temporary:
+            results = Path(temporary)
+            self.write_ci_trx(results / "test-results.trx", total=3, skipped=1)
+            report = results / "coverage"
+            report.mkdir()
+            (report / "coverage.json").write_text("{}", encoding="utf-8")
+            (report / "coverage.cobertura.xml").write_text(
+                "<coverage />", encoding="utf-8"
+            )
+
+            MODULE.require_local_dotnet_project_evidence(project, results)
+
+            self.write_ci_trx(results / "extra.trx", total=3, skipped=1)
+            with self.assertRaisesRegex(RuntimeError, "exactly one TRX"):
+                MODULE.require_local_dotnet_project_evidence(project, results)
+            (results / "extra.trx").unlink()
+
+            (report / "coverage.cobertura.xml").unlink()
+            with self.assertRaisesRegex(RuntimeError, "paired coverage"):
+                MODULE.require_local_dotnet_project_evidence(project, results)
+
+            (report / "coverage.cobertura.xml").write_text(
+                "<coverage />", encoding="utf-8"
+            )
+            self.write_ci_trx(results / "test-results.trx", total=4, skipped=1)
+            with self.assertRaisesRegex(RuntimeError, "test counters changed"):
+                MODULE.require_local_dotnet_project_evidence(project, results)
+
+    def test_duplicate_coverage_attachments_must_be_identical_before_collapse(
+        self,
+    ) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            results = Path(temporary)
+            self.write_ci_trx(results / "test-results.trx", total=1, skipped=0)
+            for parent in (results / "attachment", results / "trx/In/host"):
+                parent.mkdir(parents=True)
+                (parent / "coverage.json").write_text("{}", encoding="utf-8")
+                (parent / "coverage.cobertura.xml").write_text(
+                    "<coverage />", encoding="utf-8"
+                )
+
+            _, json_report, cobertura_report = (
+                MODULE.canonicalize_dotnet_project_reports("Probe", results)
+            )
+
+            self.assertEqual(results / "attachment/coverage.json", json_report)
+            self.assertEqual(
+                results / "attachment/coverage.cobertura.xml",
+                cobertura_report,
+            )
+            self.assertEqual(1, len(tuple(results.rglob("coverage.json"))))
+            self.assertEqual(1, len(tuple(results.rglob("coverage.cobertura.xml"))))
+
+            for divergent_name, divergent_content in (
+                ("coverage.json", '{"different": true}'),
+                ("coverage.cobertura.xml", '<coverage branch-rate="1" />'),
+            ):
+                with self.subTest(divergent_name=divergent_name):
+                    duplicate = results / "other"
+                    duplicate.mkdir()
+                    (duplicate / "coverage.json").write_text("{}", encoding="utf-8")
+                    (duplicate / "coverage.cobertura.xml").write_text(
+                        "<coverage />", encoding="utf-8"
+                    )
+                    (duplicate / divergent_name).write_text(
+                        divergent_content, encoding="utf-8"
+                    )
+                    with self.assertRaisesRegex(RuntimeError, "divergent"):
+                        MODULE.canonicalize_dotnet_project_reports("Probe", results)
+                    MODULE.shutil.rmtree(duplicate)
+
+    def test_local_coverage_success_runs_each_project_once_with_three_workers(
+        self,
+    ) -> None:
+        projects = tuple(
+            MODULE.CiDotnetProject(f"tests/P{index}/P{index}.Tests.csproj", 1)
+            for index in range(8)
+        )
+        attempted: list[str] = []
+        active = 0
+        maximum_active = 0
+        lock = threading.Lock()
+
+        def successful_run(
+            stage: MODULE.LocalDotnetCoverageStage,
+            *_args: object,
+        ) -> None:
+            nonlocal active, maximum_active
+            with lock:
+                attempted.append(stage.project.name)
+                active += 1
+                maximum_active = max(maximum_active, active)
+            time.sleep(0.03)
+            with lock:
+                active -= 1
+
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            work = root / "work"
+            coverage = root / "coverage"
+            coverage.mkdir()
+            with (
+                patch.object(
+                    MODULE,
+                    "flatten_ci_dotnet_projects",
+                    return_value=projects,
+                ),
+                patch.object(
+                    MODULE,
+                    "resolve_coverlet_adapter_path",
+                    return_value=root / "adapter",
+                ),
+                patch.object(
+                    MODULE,
+                    "prepare_local_dotnet_coverage_stage",
+                    side_effect=lambda project, *_args, **_kwargs: (
+                        MODULE.LocalDotnetCoverageStage(
+                            project,
+                            root / project.name / "source",
+                            root / project.name / "shadow",
+                            root / project.name / f"{project.name}.dll",
+                            root / project.name / "results",
+                            {},
+                            (),
+                        )
+                    ),
+                ),
+                patch.object(
+                    MODULE,
+                    "run_local_dotnet_coverage_project",
+                    side_effect=successful_run,
+                ),
+                patch.object(MODULE, "require_local_dotnet_sources_unchanged"),
+                patch.object(MODULE, "verify_coverage") as verify_coverage,
+            ):
+                MODULE.collect_local_dotnet_coverage(
+                    "dotnet",
+                    coverage,
+                    work,
+                    {},
+                    None,
+                    repository_root=root,
+                )
+
+            self.assertEqual(
+                {project.name for project in projects},
+                set(attempted),
+            )
+            self.assertEqual(len(projects), len(attempted))
+            self.assertEqual(3, maximum_active)
+            verify_coverage.assert_called_once_with("dotnet", coverage)
+            self.assertFalse(work.exists())
+
+    def test_invalid_collector_blocks_every_project_runner(self) -> None:
+        project = MODULE.CiDotnetProject("tests/Probe/Probe.Tests.csproj", 1)
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            work = root / "work"
+            work.mkdir()
+            (work / "stale.txt").write_text("stale", encoding="utf-8")
+            with (
+                patch.object(
+                    MODULE,
+                    "flatten_ci_dotnet_projects",
+                    return_value=(project,),
+                ),
+                patch.object(
+                    MODULE,
+                    "resolve_coverlet_adapter_path",
+                    side_effect=RuntimeError("collector missing"),
+                ),
+                patch.object(MODULE, "prepare_local_dotnet_coverage_stage") as prepare,
+                patch.object(MODULE, "run_local_dotnet_coverage_project") as run,
+                patch.object(MODULE, "verify_coverage") as verify_coverage,
+                self.assertRaisesRegex(RuntimeError, "collector missing"),
+            ):
+                MODULE.collect_local_dotnet_coverage(
+                    "dotnet",
+                    root / "coverage",
+                    work,
+                    {},
+                    None,
+                    repository_root=root,
+                )
+
+            prepare.assert_not_called()
+            run.assert_not_called()
+            verify_coverage.assert_not_called()
+            self.assertFalse(work.exists())
+
+    def test_local_coverage_orchestration_aggregates_failures_before_policy(
+        self,
+    ) -> None:
+        projects = (
+            MODULE.CiDotnetProject("tests/First/First.Tests.csproj", 1),
+            MODULE.CiDotnetProject("tests/Second/Second.Tests.csproj", 1),
+            MODULE.CiDotnetProject("tests/Third/Third.Tests.csproj", 1),
+        )
+        attempted: list[str] = []
+
+        def fail_two(stage: MODULE.LocalDotnetCoverageStage, *_args: object) -> None:
+            attempted.append(stage.project.name)
+            if stage.project.name != "Third.Tests":
+                raise RuntimeError(f"{stage.project.name} failed")
+
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            work = root / "work"
+            work.mkdir()
+            with (
+                patch.object(
+                    MODULE,
+                    "flatten_ci_dotnet_projects",
+                    return_value=projects,
+                ),
+                patch.object(
+                    MODULE,
+                    "prepare_local_dotnet_coverage_stage",
+                    side_effect=lambda project, *_args, **_kwargs: (
+                        MODULE.LocalDotnetCoverageStage(
+                            project,
+                            root / project.name / "source",
+                            root / project.name / "shadow",
+                            root / project.name / f"{project.name}.dll",
+                            root / project.name / "results",
+                            {},
+                            (),
+                        )
+                    ),
+                ),
+                patch.object(
+                    MODULE,
+                    "resolve_coverlet_adapter_path",
+                    return_value=root / "adapter",
+                ),
+                patch.object(
+                    MODULE,
+                    "run_local_dotnet_coverage_project",
+                    side_effect=fail_two,
+                ),
+                patch.object(MODULE, "require_local_dotnet_sources_unchanged"),
+                patch.object(MODULE, "verify_coverage") as verify_coverage,
+                self.assertRaisesRegex(RuntimeError, "First.Tests.*Second.Tests"),
+            ):
+                MODULE.collect_local_dotnet_coverage(
+                    "dotnet",
+                    root / "coverage",
+                    work,
+                    {},
+                    None,
+                    repository_root=root,
+                )
+
+            self.assertEqual(
+                {project.name for project in projects},
+                set(attempted),
+            )
+            verify_coverage.assert_not_called()
+            self.assertFalse(work.exists())
 
     def test_python_lane_emits_one_json_report_before_policy_validation(self) -> None:
         commands: list[list[str]] = []
@@ -1899,7 +2803,7 @@ class VerifyOrchestrationTests(unittest.TestCase):
                 (
                     "tests/NvtFwCombiner.Bootstrap.Tests/"
                     "NvtFwCombiner.Bootstrap.Tests.csproj",
-                    934,
+                    1014,
                     0,
                 ),
             ),
@@ -1907,7 +2811,7 @@ class VerifyOrchestrationTests(unittest.TestCase):
                 (
                     "tests/NvtFwCombiner.UiSmoke.Tests/"
                     "NvtFwCombiner.UiSmoke.Tests.csproj",
-                    517,
+                    629,
                     0,
                 ),
             ),
@@ -1921,13 +2825,13 @@ class VerifyOrchestrationTests(unittest.TestCase):
                 (
                     "tests/NvtFwCombiner.Application.Tests/"
                     "NvtFwCombiner.Application.Tests.csproj",
-                    531,
+                    687,
                     0,
                 ),
                 (
                     "tests/NvtFwCombiner.Infrastructure.Tests/"
                     "NvtFwCombiner.Infrastructure.Tests.csproj",
-                    439,
+                    560,
                     2,
                 ),
                 (
@@ -1945,7 +2849,7 @@ class VerifyOrchestrationTests(unittest.TestCase):
                 (
                     "tests/NvtFwCombiner.Architecture.Tests/"
                     "NvtFwCombiner.Architecture.Tests.csproj",
-                    214,
+                    219,
                     0,
                 ),
             ),
@@ -1977,7 +2881,7 @@ class VerifyOrchestrationTests(unittest.TestCase):
         self.assertEqual(8, len(set(flattened)))
         self.assertEqual(solution_test_projects, set(flattened))
         self.assertEqual(
-            3450, sum(total for projects in actual.values() for _, total, _ in projects)
+            3924, sum(total for projects in actual.values() for _, total, _ in projects)
         )
         self.assertEqual(
             2,
@@ -2347,7 +3251,7 @@ class VerifyOrchestrationTests(unittest.TestCase):
             with (
                 patch.object(
                     MODULE,
-                    "is_ci_evidence_reparse_point",
+                    "is_reparse_point",
                     side_effect=lambda path: path.name == "coverage.json",
                 ),
                 self.assertRaisesRegex(RuntimeError, "reparse-point"),
@@ -2430,7 +3334,7 @@ class VerifyOrchestrationTests(unittest.TestCase):
                 ),
                 patch.object(
                     MODULE,
-                    "is_ci_evidence_reparse_point",
+                    "is_reparse_point",
                     side_effect=lambda path: (
                         path.name == "manifest.json"
                         and "dotnet-build-evidence" in path.parts

@@ -51,6 +51,7 @@ CTRL_RAM_SENTINEL_CREATOR = ROOT / "scripts" / "create_ctrlram_universal_sentine
 IDLE_BUILD_WORKER_STOPPER = ROOT / "scripts" / "stop-idle-build-workers.ps1"
 REPOSITORY_SCRIPT_TESTS = ROOT / "tests" / "scripts"
 COVERAGE_ROOT = ROOT / "artifacts" / "coverage"
+DOTNET_COVERAGE_WORK_ROOT = ROOT / "artifacts" / "cov-shadow"
 CI_DOTNET_EVIDENCE_ROOT = ROOT / "artifacts" / "ci-dotnet-work"
 CI_DOTNET_UPLOAD_ROOT = ROOT / "artifacts" / "ci-dotnet-upload"
 WINDOWS_PROCESS_ORCHESTRATION_TEST = (
@@ -82,6 +83,7 @@ PYTHON_COVERAGE_OVERRIDE_ENVIRONMENT_VARIABLES = (
 )
 CI_DOTNET_EVIDENCE_SCHEMA_VERSION = 1
 CI_SOURCE_SHA_PATTERN = re.compile(r"[0-9a-f]{40}")
+NUGET_VERSION_PATTERN = re.compile(r"[0-9]+(?:\.[0-9]+){2}(?:[-+][0-9A-Za-z.-]+)?")
 
 
 class _JobObjectBasicLimitInformation(ctypes.Structure):
@@ -266,17 +268,30 @@ class CiDotnetProject:
         return Path(self.relative_path).stem
 
 
+@dataclass(frozen=True)
+class LocalDotnetCoverageStage:
+    """One immutable test-output snapshot and its retained evidence location."""
+
+    project: CiDotnetProject
+    source_output: Path
+    shadow_output: Path
+    test_assembly: Path
+    results_directory: Path
+    source_hashes: dict[str, str]
+    canonical_hashes: tuple[tuple[Path, str], ...]
+
+
 CI_DOTNET_SHARDS: dict[str, tuple[CiDotnetProject, ...]] = {
     "bootstrap": (
         CiDotnetProject(
             "tests/NvtFwCombiner.Bootstrap.Tests/NvtFwCombiner.Bootstrap.Tests.csproj",
-            934,
+            1014,
         ),
     ),
     "ui": (
         CiDotnetProject(
             "tests/NvtFwCombiner.UiSmoke.Tests/NvtFwCombiner.UiSmoke.Tests.csproj",
-            517,
+            629,
         ),
     ),
     "core": (
@@ -287,12 +302,12 @@ CI_DOTNET_SHARDS: dict[str, tuple[CiDotnetProject, ...]] = {
         CiDotnetProject(
             "tests/NvtFwCombiner.Application.Tests/"
             "NvtFwCombiner.Application.Tests.csproj",
-            531,
+            687,
         ),
         CiDotnetProject(
             "tests/NvtFwCombiner.Infrastructure.Tests/"
             "NvtFwCombiner.Infrastructure.Tests.csproj",
-            439,
+            560,
             2,
         ),
         CiDotnetProject(
@@ -308,7 +323,7 @@ CI_DOTNET_SHARDS: dict[str, tuple[CiDotnetProject, ...]] = {
         CiDotnetProject(
             "tests/NvtFwCombiner.Architecture.Tests/"
             "NvtFwCombiner.Architecture.Tests.csproj",
-            214,
+            219,
         ),
     ),
 }
@@ -689,6 +704,15 @@ def run(
     )
 
 
+def write_console_text(text: str) -> None:
+    """Write diagnostics without letting a legacy console encoding fail the gate."""
+
+    encoding = getattr(sys.stdout, "encoding", None)
+    if encoding:
+        text = text.encode(encoding, errors="backslashreplace").decode(encoding)
+    sys.stdout.write(text)
+
+
 def stream_log_tail(
     primary_path: Path,
     *,
@@ -712,9 +736,9 @@ def stream_log_tail(
             for mirror in mirrors:
                 mirror.write(chunk)
             if decoder is not None:
-                sys.stdout.write(decoder.decode(chunk))
+                write_console_text(decoder.decode(chunk))
         if decoder is not None:
-            sys.stdout.write(decoder.decode(b"", final=True))
+            write_console_text(decoder.decode(b"", final=True))
 
 
 def _run_to_logs(
@@ -824,38 +848,62 @@ def verify_repository_scripts(log_path: Path | None = None) -> None:
     )
 
 
-def validated_disposable_directory(directory: Path, root: Path) -> Path:
-    """Resolve a disposable directory without following repository-internal links."""
+def is_reparse_point(path: Path) -> bool:
+    """Return whether a path is a symbolic link or Windows junction."""
+
+    is_junction = getattr(path, "is_junction", None)
+    return path.is_symlink() or (is_junction is not None and is_junction())
+
+
+def validated_path_within_root(
+    path: Path,
+    root: Path,
+    *,
+    description: str,
+) -> Path:
+    """Resolve one lexical path without following a link or escaping its owner."""
 
     lexical_root = root.absolute()
-    lexical_directory = directory.absolute()
+    lexical_path = path.absolute()
     try:
-        relative = lexical_directory.relative_to(lexical_root)
+        relative = lexical_path.relative_to(lexical_root)
     except ValueError as error:
-        raise RuntimeError(
-            f"refusing to delete a directory outside the repository: {directory}"
-        ) from error
-    if not relative.parts:
-        raise RuntimeError("refusing to delete the repository root")
+        raise RuntimeError(f"{description} path escapes its root: {path}") from error
 
     candidate = lexical_root
+    if is_reparse_point(candidate):
+        raise RuntimeError(
+            f"symbolic link or junction/reparse-point {description} is forbidden: "
+            f"{candidate}"
+        )
     for part in relative.parts:
         candidate /= part
-        is_junction = getattr(candidate, "is_junction", None)
-        if candidate.is_symlink() or (is_junction is not None and is_junction()):
+        if is_reparse_point(candidate):
             raise RuntimeError(
-                f"refusing to delete through a symbolic link or junction: {candidate}"
+                f"symbolic link or junction/reparse-point {description} is forbidden: "
+                f"{candidate}"
             )
 
     resolved_root = lexical_root.resolve()
-    resolved_directory = lexical_directory.resolve(strict=False)
+    resolved_path = lexical_path.resolve(strict=False)
     try:
-        resolved_directory.relative_to(resolved_root)
+        resolved_path.relative_to(resolved_root)
     except ValueError as error:
-        raise RuntimeError(
-            f"refusing to delete a directory outside the repository: {directory}"
-        ) from error
-    return lexical_directory
+        raise RuntimeError(f"{description} path escapes its root: {path}") from error
+    return lexical_path
+
+
+def validated_disposable_directory(directory: Path, root: Path) -> Path:
+    """Resolve a disposable directory without following repository-internal links."""
+
+    target = validated_path_within_root(
+        directory,
+        root,
+        description="disposable directory",
+    )
+    if target == root.absolute():
+        raise RuntimeError("refusing to delete the repository root")
+    return target
 
 
 def reset_coverage_directory(language: str) -> Path:
@@ -1071,6 +1119,415 @@ def dotnet_build_commands(dotnet: str) -> tuple[list[str], ...]:
     )
 
 
+def flatten_ci_dotnet_projects() -> tuple[CiDotnetProject, ...]:
+    """Return the one closed local/CI project-and-counter inventory."""
+
+    projects = tuple(
+        project
+        for shard_projects in CI_DOTNET_SHARDS.values()
+        for project in shard_projects
+    )
+    paths = tuple(project.relative_path for project in projects)
+    names = tuple(project.name for project in projects)
+    if (
+        len(projects) != 8
+        or len(paths) != len(set(paths))
+        or len(names) != len(set(names))
+        or any(
+            project.expected_total <= 0
+            or not 0 <= project.expected_skipped < project.expected_total
+            for project in projects
+        )
+    ):
+        raise RuntimeError("invalid closed .NET test project inventory")
+    return projects
+
+
+def resolve_coverlet_adapter_path(
+    repository_root: Path = ROOT,
+    baseline: dict[str, object] | None = None,
+) -> Path:
+    """Resolve the exact repository-pinned Coverlet adapter without fallback."""
+
+    document = load_baseline() if baseline is None else baseline
+    try:
+        collection = document["collection"]
+        dotnet = collection["dotnet"]  # type: ignore[index]
+        collector = dotnet["collector"]  # type: ignore[index]
+        version = dotnet["version"]  # type: ignore[index]
+        report_format = dotnet["format"]  # type: ignore[index]
+    except (KeyError, TypeError) as error:
+        raise RuntimeError(
+            "coverage baseline is missing .NET collector authority"
+        ) from error
+    if collector != "coverlet.collector":
+        raise RuntimeError(f"unsupported .NET coverage collector: {collector}")
+    if not isinstance(version, str) or NUGET_VERSION_PATTERN.fullmatch(version) is None:
+        raise RuntimeError(f"invalid .NET coverage collector version: {version}")
+    if report_format != "json,cobertura":
+        raise RuntimeError(f"unsupported .NET coverage format: {report_format}")
+
+    adapter = (
+        repository_root
+        / ".packages"
+        / "coverlet.collector"
+        / version
+        / "build"
+        / "netstandard2.0"
+    )
+    hashes = regular_tree_hashes(
+        adapter,
+        boundary=repository_root,
+        description="Coverlet adapter",
+    )
+    for required in ("coverlet.collector.dll", "coverlet.collector.deps.json"):
+        if required not in hashes:
+            raise RuntimeError(f"Coverlet adapter is missing {required}")
+    return adapter
+
+
+def local_dotnet_vstest_command(
+    dotnet: str,
+    test_assembly: Path,
+    adapter_path: Path,
+    results_directory: Path,
+) -> list[str]:
+    """Build one unfiltered shadow-assembly command with paired coverage evidence."""
+
+    return [
+        dotnet,
+        "vstest",
+        str(test_assembly),
+        f"--TestAdapterPath:{adapter_path}",
+        "--Collect:XPlat Code Coverage",
+        f"--ResultsDirectory:{results_directory}",
+        "--Logger:trx;LogFileName=test-results.trx",
+        "--",
+        "DataCollectionRunSettings.DataCollectors.DataCollector.Configuration.Format=json,cobertura",
+    ]
+
+
+def find_project_release_output(
+    project: CiDotnetProject,
+    repository_root: Path = ROOT,
+) -> tuple[Path, Path]:
+    """Find the one built Release output and its project-relative layout suffix."""
+
+    project_file = validated_path_within_root(
+        repository_root / project.relative_path,
+        repository_root,
+        description=".NET test project",
+    )
+    project_directory = project_file.parent
+    release_root = project_directory / "bin" / "Release"
+    candidates = tuple(sorted(release_root.glob(f"*/{project.name}.dll")))
+    if len(candidates) != 1:
+        raise RuntimeError(
+            f"{project.name} must have exactly one canonical Release test assembly"
+        )
+    output = validated_path_within_root(
+        candidates[0].parent,
+        project_directory,
+        description=f"{project.name} Release output",
+    )
+    suffix = output.relative_to(project_directory)
+    if len(suffix.parts) != 3 or suffix.parts[:2] != ("bin", "Release"):
+        raise RuntimeError(f"unexpected {project.name} Release output layout: {suffix}")
+    return output, suffix
+
+
+def canonical_production_release_outputs(
+    release_suffix: Path,
+    repository_root: Path = ROOT,
+    solution: Path = SOLUTION,
+) -> dict[str, Path]:
+    """Map solution-owned production assembly names to canonical Release outputs."""
+
+    outputs: dict[str, Path] = {}
+    for node in ET.parse(solution).findall(".//Project"):
+        relative_text = node.attrib["Path"].replace("\\", "/")
+        relative = PurePosixPath(relative_text)
+        if not relative.parts or relative.parts[0] != "src":
+            continue
+        name = relative.stem
+        output = repository_root.joinpath(*relative.parent.parts) / release_suffix
+        dll = validated_path_within_root(
+            output / f"{name}.dll",
+            repository_root,
+            description="canonical production DLL",
+        )
+        try:
+            mode = dll.stat(follow_symlinks=False).st_mode
+        except OSError as error:
+            raise RuntimeError(f"missing canonical production DLL: {dll}") from error
+        if is_reparse_point(dll) or not stat.S_ISREG(mode):
+            raise RuntimeError(f"invalid canonical production DLL: {dll}")
+        if name in outputs:
+            raise RuntimeError(f"duplicate canonical production assembly: {name}")
+        outputs[name] = output
+    if not outputs:
+        raise RuntimeError("solution contains no canonical production outputs")
+    return outputs
+
+
+def require_production_release_matches(
+    test_output: Path,
+    canonical_outputs: dict[str, Path],
+) -> tuple[tuple[Path, str], ...]:
+    """Require every referenced production DLL and optional PDB to be canonical."""
+
+    canonical_hashes: dict[Path, str] = {}
+    for name, canonical_output in sorted(canonical_outputs.items()):
+        test_dll = test_output / f"{name}.dll"
+        test_pdb = test_output / f"{name}.pdb"
+        canonical_dll = canonical_output / f"{name}.dll"
+        canonical_pdb = canonical_output / f"{name}.pdb"
+        test_dll_file = optional_regular_file(
+            test_dll,
+            test_output,
+            description="referenced production DLL",
+        )
+        test_pdb_file = optional_regular_file(
+            test_pdb,
+            test_output,
+            description="referenced production PDB",
+        )
+        if test_dll_file is None and test_pdb_file is None:
+            continue
+        if test_dll_file is None:
+            raise RuntimeError(f"invalid referenced production DLL: {test_dll}")
+        canonical_dll_file = optional_regular_file(
+            canonical_dll,
+            canonical_output,
+            description="canonical production DLL",
+        )
+        if canonical_dll_file is None:
+            raise RuntimeError(f"missing canonical production DLL: {canonical_dll}")
+        canonical_dll_hash = sha256_file(canonical_dll_file)
+        if sha256_file(test_dll_file) != canonical_dll_hash:
+            raise RuntimeError(f"referenced production DLL hash mismatch: {name}")
+        canonical_hashes[canonical_dll_file] = canonical_dll_hash
+        canonical_pdb_file = optional_regular_file(
+            canonical_pdb,
+            canonical_output,
+            description="canonical production PDB",
+        )
+        if (canonical_pdb_file is None) != (test_pdb_file is None):
+            raise RuntimeError(f"referenced production PDB pairing mismatch: {name}")
+        if canonical_pdb_file is not None and test_pdb_file is not None:
+            canonical_pdb_hash = sha256_file(canonical_pdb_file)
+            if sha256_file(test_pdb_file) != canonical_pdb_hash:
+                raise RuntimeError(f"referenced production PDB hash mismatch: {name}")
+            canonical_hashes[canonical_pdb_file] = canonical_pdb_hash
+    return tuple(sorted(canonical_hashes.items(), key=lambda item: str(item[0])))
+
+
+def prepare_local_dotnet_coverage_stage(
+    project: CiDotnetProject,
+    work_root: Path,
+    coverage_directory: Path,
+    repository_root: Path = ROOT,
+) -> LocalDotnetCoverageStage:
+    """Validate and snapshot one project's immutable Release test output."""
+
+    source_output, release_suffix = find_project_release_output(
+        project,
+        repository_root,
+    )
+    canonical_outputs = canonical_production_release_outputs(
+        release_suffix,
+        repository_root,
+        repository_root / "NvtFwCombiner.slnx",
+    )
+    canonical_hashes = require_production_release_matches(
+        source_output,
+        canonical_outputs,
+    )
+    project_token = hashlib.sha256(project.relative_path.encode("utf-8")).hexdigest()[
+        :8
+    ]
+    shadow_output = work_root / project_token / release_suffix
+    source_hashes = snapshot_regular_tree(
+        source_output,
+        shadow_output,
+        source_boundary=repository_root,
+        destination_boundary=work_root,
+    )
+    test_assembly = shadow_output / f"{project.name}.dll"
+    if not test_assembly.is_file() or is_reparse_point(test_assembly):
+        raise RuntimeError(f"missing shadow test assembly: {test_assembly}")
+    results_directory = coverage_directory / project.name
+    if results_directory.exists():
+        raise RuntimeError(f"duplicate local .NET results directory: {project.name}")
+    results_directory.mkdir(parents=True)
+    return LocalDotnetCoverageStage(
+        project,
+        source_output,
+        shadow_output,
+        test_assembly,
+        results_directory,
+        source_hashes,
+        canonical_hashes,
+    )
+
+
+def require_local_dotnet_project_evidence(
+    project: CiDotnetProject,
+    results_directory: Path,
+) -> None:
+    """Validate one exact TRX and one paired local coverage attachment."""
+
+    regular_files = enumerate_ci_regular_files(results_directory)
+    trx_report, _, _ = canonicalize_dotnet_project_reports_from_files(
+        project.name,
+        results_directory,
+        regular_files,
+    )
+    counters = parse_trx_counters(trx_report)
+    expected = {
+        "total": project.expected_total,
+        "passed": project.expected_total - project.expected_skipped,
+        "failed": 0,
+        "skipped": project.expected_skipped,
+    }
+    if counters != expected:
+        raise RuntimeError(
+            f"{project.name} test counters changed: expected {expected}, observed {counters}"
+        )
+
+
+def run_local_dotnet_coverage_project(
+    stage: LocalDotnetCoverageStage,
+    dotnet: str,
+    adapter_path: Path,
+    environment: dict[str, str],
+    log_path: Path | None,
+) -> None:
+    """Collect and validate one isolated test-project producer."""
+
+    run(
+        local_dotnet_vstest_command(
+            dotnet,
+            stage.test_assembly,
+            adapter_path,
+            stage.results_directory,
+        ),
+        environment=environment,
+        log_path=log_path,
+    )
+    require_local_dotnet_project_evidence(stage.project, stage.results_directory)
+
+
+def require_local_dotnet_sources_unchanged(
+    stages: Sequence[LocalDotnetCoverageStage],
+    repository_root: Path,
+) -> None:
+    """Prove source, execution shadow, and canonical production stayed immutable."""
+
+    for stage in stages:
+        require_regular_tree_hashes(
+            stage.source_output,
+            stage.source_hashes,
+            boundary=repository_root,
+            description=f"{stage.project.name} canonical test output",
+        )
+        require_regular_tree_hashes(
+            stage.shadow_output,
+            stage.source_hashes,
+            boundary=repository_root,
+            description=f"{stage.project.name} shadow test output",
+        )
+        for path, expected_hash in stage.canonical_hashes:
+            current = optional_regular_file(
+                path,
+                repository_root,
+                description="canonical production output",
+            )
+            if current is None:
+                raise RuntimeError(f"canonical production output changed: {path}")
+            if sha256_file(current) != expected_hash:
+                raise RuntimeError(f"canonical production output hash changed: {path}")
+
+
+def collect_local_dotnet_coverage(
+    dotnet: str,
+    coverage_directory: Path,
+    work_root: Path,
+    environment: dict[str, str],
+    _aggregate_log_path: Path | None,
+    *,
+    repository_root: Path = ROOT,
+) -> None:
+    """Run every exact project against a private snapshot, then apply one policy."""
+
+    projects = flatten_ci_dotnet_projects()
+    work = validated_disposable_directory(work_root, repository_root)
+    if work.exists():
+        shutil.rmtree(work)
+    work.mkdir(parents=True)
+    stages: list[LocalDotnetCoverageStage] = []
+    failure: BaseException | None = None
+    try:
+        adapter_path = resolve_coverlet_adapter_path(repository_root)
+        for project in projects:
+            stages.append(
+                prepare_local_dotnet_coverage_stage(
+                    project,
+                    work,
+                    coverage_directory,
+                    repository_root,
+                )
+            )
+
+        lanes = tuple(
+            VerificationLane(
+                stage.project.name,
+                lambda project_log, current=stage: run_local_dotnet_coverage_project(
+                    current,
+                    dotnet,
+                    adapter_path,
+                    environment,
+                    project_log,
+                ),
+            )
+            for stage in stages
+        )
+        results = run_lanes(
+            lanes,
+            jobs=MAXIMUM_VERIFY_JOBS,
+            log_directory=coverage_directory / "logs",
+            lane_timeout_seconds=DEFAULT_LANE_TIMEOUT_SECONDS,
+            preserve_cancellation_request=True,
+        )
+        report_lane_results(results)
+        try:
+            require_local_dotnet_sources_unchanged(stages, repository_root)
+        except BaseException as error:
+            failure = combine_failures(failure, error, secondary_label="freshness gate")
+        failed_projects = tuple(
+            result.name for result in results if not result.succeeded
+        )
+        if failed_projects:
+            failure = combine_failures(
+                failure,
+                RuntimeError(
+                    "local .NET coverage projects failed: " + ", ".join(failed_projects)
+                ),
+                secondary_label="project collection",
+            )
+    except BaseException as error:
+        failure = combine_failures(failure, error, secondary_label="collection")
+    finally:
+        try:
+            if work.exists():
+                shutil.rmtree(work)
+        except BaseException as error:
+            failure = combine_failures(failure, error, secondary_label="shadow cleanup")
+    if failure is not None:
+        raise failure
+    verify_coverage("dotnet", coverage_directory)
+
+
 def run_dotnet_commands(
     commands: Sequence[list[str]],
     *,
@@ -1128,30 +1585,31 @@ def verify_dotnet(log_path: Path | None = None) -> None:
     environment = dotnet_batch_environment()
     commands = (
         *dotnet_build_commands(dotnet),
-        [
-            dotnet,
-            "test",
-            str(SOLUTION),
-            "-c",
-            "Release",
-            "--no-build",
-            "--collect:XPlat Code Coverage",
-            "--results-directory",
-            str(coverage_directory),
-            "--",
-            "DataCollectionRunSettings.DataCollectors.DataCollector.Configuration.Format=json,cobertura",
-        ],
-        # The full solution test command already runs CtrlRAM UI smoke tests. Keep the
+        # The exact project inventory runs all CtrlRAM UI smoke tests below. Keep the
         # fixture gate here for manifest and payload-hash validation only.
         [sys.executable, str(CTRL_RAM_REPLACE_FIXTURE_VERIFIER), "--skip-public-smoke"],
     )
+    failure: BaseException | None = None
     try:
         run_dotnet_commands(commands, environment=environment, log_path=log_path)
-        verify_coverage("dotnet", coverage_directory)
+        collect_local_dotnet_coverage(
+            dotnet,
+            coverage_directory,
+            DOTNET_COVERAGE_WORK_ROOT,
+            environment,
+            log_path,
+        )
+    except BaseException as error:
+        failure = error
     finally:
         # Avalonia/Roslyn may start compiler servers even with node reuse disabled.
         # Stop only servers from the repository-selected SDK after every verification run.
-        cleanup_dotnet_batch(dotnet, environment, log_path)
+        try:
+            cleanup_dotnet_batch(dotnet, environment, log_path)
+        except BaseException as error:
+            failure = combine_failures(failure, error)
+    if failure is not None:
+        raise failure
 
 
 def ci_dotnet_test_command(
@@ -1219,42 +1677,128 @@ def sha256_file(path: Path) -> str:
     return digest.hexdigest()
 
 
-def is_ci_evidence_reparse_point(path: Path) -> bool:
-    is_junction = getattr(path, "is_junction", None)
-    return path.is_symlink() or (is_junction is not None and is_junction())
+def regular_tree_hashes(
+    directory: Path,
+    *,
+    boundary: Path,
+    description: str,
+) -> dict[str, str]:
+    """Hash one closed regular-file tree without following reparse points."""
+
+    root = directory.absolute()
+    return {
+        path.relative_to(root).as_posix(): sha256_file(path)
+        for path in enumerate_regular_files(
+            directory,
+            boundary=boundary,
+            description=description,
+        )
+    }
 
 
-def require_ci_regular_file(path: Path, evidence_root: Path) -> Path:
-    lexical_root = evidence_root.absolute()
-    lexical_path = path.absolute()
-    try:
-        relative = lexical_path.relative_to(lexical_root)
-    except ValueError as error:
-        raise RuntimeError(f".NET CI evidence path escapes its root: {path}") from error
-    current = lexical_root
-    if is_ci_evidence_reparse_point(current):
-        raise RuntimeError(f"reparse-point .NET CI evidence is forbidden: {current}")
-    for part in relative.parts:
-        current /= part
-        if is_ci_evidence_reparse_point(current):
-            raise RuntimeError(
-                f"reparse-point .NET CI evidence is forbidden: {current}"
-            )
+def require_regular_tree_hashes(
+    directory: Path,
+    expected: dict[str, str],
+    *,
+    boundary: Path,
+    description: str,
+) -> None:
+    """Fail closed when a regular-file inventory or any content hash changed."""
+
+    observed = regular_tree_hashes(
+        directory,
+        boundary=boundary,
+        description=description,
+    )
+    if observed != expected:
+        raise RuntimeError(f"{description} inventory or hash changed")
+
+
+def snapshot_regular_tree(
+    source: Path,
+    destination: Path,
+    *,
+    source_boundary: Path,
+    destination_boundary: Path,
+) -> dict[str, str]:
+    """Copy one immutable regular-file snapshot and verify both sides exactly."""
+
+    source_hashes = regular_tree_hashes(
+        source,
+        boundary=source_boundary,
+        description="coverage source output",
+    )
+    target = validated_path_within_root(
+        destination,
+        destination_boundary,
+        description="coverage shadow output",
+    )
+    if target.exists():
+        raise RuntimeError(f"coverage shadow output already exists: {target}")
+    target.mkdir(parents=True)
+    for relative_path in source_hashes:
+        source_file = source.joinpath(*PurePosixPath(relative_path).parts)
+        destination_file = target.joinpath(*PurePosixPath(relative_path).parts)
+        destination_file.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copyfile(source_file, destination_file, follow_symlinks=False)
+    require_regular_tree_hashes(
+        source,
+        source_hashes,
+        boundary=source_boundary,
+        description="coverage source output changed during snapshot",
+    )
+    require_regular_tree_hashes(
+        target,
+        source_hashes,
+        boundary=destination_boundary,
+        description="coverage shadow output",
+    )
+    return source_hashes
+
+
+def require_regular_file(path: Path, root: Path, *, description: str) -> Path:
+    current = validated_path_within_root(path, root, description=description)
+    relative = current.relative_to(root.absolute())
     try:
         mode = current.stat(follow_symlinks=False).st_mode
     except OSError as error:
         raise RuntimeError(
-            f"missing .NET CI evidence file: {relative.as_posix()}"
+            f"missing {description} file: {relative.as_posix()}"
         ) from error
     if not stat.S_ISREG(mode):
-        raise RuntimeError(f"non-regular .NET CI evidence is forbidden: {current}")
+        raise RuntimeError(f"non-regular {description} is forbidden: {current}")
     return current
 
 
-def enumerate_ci_regular_files(directory: Path) -> tuple[Path, ...]:
-    root = directory.absolute()
-    if not root.is_dir() or is_ci_evidence_reparse_point(root):
-        raise RuntimeError(f"invalid .NET CI evidence directory: {directory}")
+def optional_regular_file(
+    path: Path,
+    root: Path,
+    *,
+    description: str,
+) -> Path | None:
+    """Return an optional regular file while rejecting every invalid entry."""
+
+    current = validated_path_within_root(path, root, description=description)
+    try:
+        mode = current.stat(follow_symlinks=False).st_mode
+    except FileNotFoundError:
+        return None
+    except OSError as error:
+        raise RuntimeError(f"invalid {description}: {current}") from error
+    if not stat.S_ISREG(mode):
+        raise RuntimeError(f"non-regular {description} is forbidden: {current}")
+    return current
+
+
+def enumerate_regular_files(
+    directory: Path,
+    *,
+    boundary: Path,
+    description: str,
+) -> tuple[Path, ...]:
+    root = validated_path_within_root(directory, boundary, description=description)
+    if not root.is_dir() or is_reparse_point(root):
+        raise RuntimeError(f"invalid {description} directory: {directory}")
     files: list[Path] = []
     for current_text, directory_names, file_names in os.walk(
         root,
@@ -1264,13 +1808,25 @@ def enumerate_ci_regular_files(directory: Path) -> tuple[Path, ...]:
         current = Path(current_text)
         for name in directory_names:
             child = current / name
-            if is_ci_evidence_reparse_point(child) or not child.is_dir():
-                raise RuntimeError(
-                    f"reparse-point .NET CI evidence is forbidden: {child}"
-                )
+            if is_reparse_point(child) or not child.is_dir():
+                raise RuntimeError(f"reparse-point {description} is forbidden: {child}")
         for name in file_names:
-            files.append(require_ci_regular_file(current / name, root))
+            files.append(
+                require_regular_file(current / name, root, description=description)
+            )
     return tuple(sorted(files))
+
+
+def require_ci_regular_file(path: Path, evidence_root: Path) -> Path:
+    return require_regular_file(path, evidence_root, description=".NET CI evidence")
+
+
+def enumerate_ci_regular_files(directory: Path) -> tuple[Path, ...]:
+    return enumerate_regular_files(
+        directory,
+        boundary=directory,
+        description=".NET CI evidence",
+    )
 
 
 def ci_relative_path(path: Path, evidence_root: Path) -> str:
@@ -1289,7 +1845,7 @@ def write_ci_manifest(path: Path, document: dict[str, object]) -> None:
 def ci_file_hashes(paths: Sequence[Path], evidence_root: Path) -> dict[str, str]:
     hashes: dict[str, str] = {}
     for path in sorted(paths):
-        if not path.exists() and not is_ci_evidence_reparse_point(path):
+        if not path.exists() and not is_reparse_point(path):
             continue
         regular = require_ci_regular_file(path, evidence_root)
         hashes[ci_relative_path(regular, evidence_root)] = sha256_file(regular)
@@ -1475,14 +2031,27 @@ def normalize_ci_dotnet_coverage_reports(
     )
 
 
-def collect_ci_project_evidence(
-    project: CiDotnetProject,
+def canonicalize_dotnet_project_reports(
+    owner_name: str,
     results_directory: Path,
-    evidence_root: Path,
-) -> tuple[dict[str, object], tuple[Path, ...]]:
+) -> tuple[Path, Path, Path]:
     regular_files = enumerate_ci_regular_files(results_directory)
+    return canonicalize_dotnet_project_reports_from_files(
+        owner_name,
+        results_directory,
+        regular_files,
+    )
+
+
+def canonicalize_dotnet_project_reports_from_files(
+    owner_name: str,
+    results_directory: Path,
+    regular_files: Sequence[Path],
+) -> tuple[Path, Path, Path]:
+    """Retain one exact TRX and one hash-identical coverage attachment pair."""
+
     trx_reports = tuple(
-        path for path in regular_files if path.name == "test-results.trx"
+        path for path in regular_files if path.suffix.casefold() == ".trx"
     )
     json_reports = tuple(path for path in regular_files if path.name == "coverage.json")
     cobertura_reports = tuple(
@@ -1490,17 +2059,18 @@ def collect_ci_project_evidence(
     )
     if (
         len(trx_reports) != 1
+        or trx_reports[0].name != "test-results.trx"
         or not json_reports
         or {report.parent for report in json_reports}
         != {report.parent for report in cobertura_reports}
     ):
         raise RuntimeError(
-            f"{project.name} must emit exactly one TRX and one paired coverage report"
+            f"{owner_name} must emit exactly one TRX and one paired coverage report"
         )
     json_hashes = {sha256_file(report) for report in json_reports}
     cobertura_hashes = {sha256_file(report) for report in cobertura_reports}
     if len(json_hashes) != 1 or len(cobertura_hashes) != 1:
-        raise RuntimeError(f"{project.name} emitted divergent coverage attachments")
+        raise RuntimeError(f"{owner_name} emitted divergent coverage attachments")
     canonical_parent = min(
         (report.parent for report in json_reports),
         key=lambda parent: len(parent.relative_to(results_directory).parts),
@@ -1510,9 +2080,21 @@ def collect_ci_project_evidence(
             report.unlink()
     json_report = canonical_parent / "coverage.json"
     cobertura_report = canonical_parent / "coverage.cobertura.xml"
+    return trx_reports[0], json_report, cobertura_report
+
+
+def collect_ci_project_evidence(
+    project: CiDotnetProject,
+    results_directory: Path,
+    evidence_root: Path,
+) -> tuple[dict[str, object], tuple[Path, ...]]:
+    trx_report, json_report, cobertura_report = canonicalize_dotnet_project_reports(
+        project.name,
+        results_directory,
+    )
     normalize_ci_dotnet_coverage_reports(json_report, cobertura_report)
 
-    counters = parse_trx_counters(trx_reports[0])
+    counters = parse_trx_counters(trx_report)
     expected_passed = project.expected_total - project.expected_skipped
     expected = {
         "total": project.expected_total,
@@ -1525,7 +2107,7 @@ def collect_ci_project_evidence(
             f"{project.name} test counters changed: expected {expected}, observed {counters}"
         )
 
-    evidence_paths = (trx_reports[0], json_report, cobertura_report)
+    evidence_paths = (trx_report, json_report, cobertura_report)
     return (
         {
             "relativePath": project.relative_path,
@@ -1533,7 +2115,7 @@ def collect_ci_project_evidence(
             "passed": counters["passed"],
             "failed": counters["failed"],
             "skipped": counters["skipped"],
-            "trx": ci_relative_path(trx_reports[0], evidence_root),
+            "trx": ci_relative_path(trx_report, evidence_root),
             "coverageJson": ci_relative_path(json_report, evidence_root),
             "coverageCobertura": ci_relative_path(cobertura_report, evidence_root),
         },
@@ -1730,7 +2312,7 @@ def require_ci_dotnet_artifact_roots(download_root: Path) -> dict[str, Path]:
         **{shard: f"dotnet-test-{shard}-evidence" for shard in CI_DOTNET_SHARDS},
     }
     root = download_root.absolute()
-    if not root.is_dir() or is_ci_evidence_reparse_point(root):
+    if not root.is_dir() or is_reparse_point(root):
         raise RuntimeError(f"missing or invalid .NET CI evidence root: {download_root}")
     entries = {path.name: path for path in root.iterdir()}
     if set(entries) != set(expected_names.values()):
@@ -1738,7 +2320,7 @@ def require_ci_dotnet_artifact_roots(download_root: Path) -> dict[str, Path]:
     artifact_roots: dict[str, Path] = {}
     for owner, name in expected_names.items():
         artifact_root = entries[name]
-        if is_ci_evidence_reparse_point(artifact_root) or not artifact_root.is_dir():
+        if is_reparse_point(artifact_root) or not artifact_root.is_dir():
             raise RuntimeError(f"invalid .NET CI producer artifact root: {name}")
         artifact_roots[owner] = artifact_root
     return artifact_roots
@@ -1992,7 +2574,13 @@ def finalize_ci_dotnet_evidence(download_root: Path) -> None:
         shutil.copyfile(cobertura_report, destination / "coverage.cobertura.xml")
     run([sys.executable, str(CTRL_RAM_REPLACE_FIXTURE_VERIFIER), "--skip-public-smoke"])
     verify_coverage("dotnet", coverage_root)
-    print(".NET CI evidence: 8 projects, 3450 tests, 2 skips, Golden 17/17.")
+    projects = flatten_ci_dotnet_projects()
+    print(
+        ".NET CI evidence: "
+        f"{len(projects)} projects, "
+        f"{sum(project.expected_total for project in projects)} tests, "
+        f"{sum(project.expected_skipped for project in projects)} skips, Golden 17/17."
+    )
 
 
 def verify_windows_process_orchestration(log_path: Path | None = None) -> None:
@@ -2177,6 +2765,7 @@ def run_lanes(
     jobs: int,
     log_directory: Path,
     lane_timeout_seconds: float = DEFAULT_LANE_TIMEOUT_SECONDS,
+    preserve_cancellation_request: bool = False,
 ) -> tuple[LaneResult, ...]:
     """Run independent lanes once, preserving declared result order and isolated logs."""
 
@@ -2221,7 +2810,8 @@ def run_lanes(
             cancel_active_processes_after_handoffs()
             raise
         finally:
-            PROCESS_CANCELLATION_REQUESTED.clear()
+            if not preserve_cancellation_request:
+                PROCESS_CANCELLATION_REQUESTED.clear()
 
     PROCESS_CANCELLATION_REQUESTED.clear()
     results: dict[str, LaneResult] = {}
@@ -2255,7 +2845,8 @@ def run_lanes(
         executor.shutdown(wait=True)
         return tuple(results[lane.name] for lane in lanes)
     finally:
-        PROCESS_CANCELLATION_REQUESTED.clear()
+        if not preserve_cancellation_request:
+            PROCESS_CANCELLATION_REQUESTED.clear()
 
 
 def report_lane_results(results: Sequence[LaneResult]) -> None:
