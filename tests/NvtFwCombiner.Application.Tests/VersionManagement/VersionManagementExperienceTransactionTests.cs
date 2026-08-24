@@ -44,6 +44,35 @@ public sealed partial class VersionManagementExperienceTests
         Assert.Equal(2, recovered.Inventory.HealthyCount);
     }
 
+    /// <summary>A recovered fourth healthy install retains the same review reminder as a normal install.</summary>
+    [Fact]
+    public async Task RecoveredFourthHealthyInstallPersistsRetentionReview()
+    {
+        VersionManagerState initial = State(
+            [Admission("0.10.5"), Admission("0.10.4"), Admission("0.10.3")],
+            active: "0.10.5",
+            lastKnownGood: "0.10.5");
+        ManagedVersionAdmission pending = Admission("0.10.6");
+        VersionManagerState prepared = initial.WithPendingMutation(
+            new(ManagedVersionMutationKind.Install, pending));
+        var stateStore = new MemoryStateStore(prepared);
+        var repository = new TransactionRepository([.. initial.Admissions, pending]);
+        using var restarted = new VersionManagementExperience(
+            ManagedAppVersion.Parse("0.10.5"),
+            "managed-root",
+            stateStore,
+            new FixedCatalogSource(Catalog("0.10.6")),
+            repository);
+
+        VersionManagementSnapshot recovered = await restarted.InitializeAsync(
+            TestContext.Current.CancellationToken);
+
+        Assert.Null(recovered.State!.PendingMutation);
+        Assert.Equal(4, recovered.Inventory.HealthyCount);
+        Assert.True(recovered.State.RetentionReviewDue);
+        Assert.True(stateStore.State.RetentionReviewDue);
+    }
+
     /// <summary>A completed delete with a failed commit save removes its admission after restart.</summary>
     [Fact]
     public async Task DeleteCommitSaveFailureConvergesFromDurableJournalAfterRestart()

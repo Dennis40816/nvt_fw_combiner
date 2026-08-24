@@ -22,6 +22,16 @@ public sealed partial class VersionManagementExperience
                      row.ObservedAdmission == pending.Admission)
             {
                 converged = CommitInstall(state, pending.Admission);
+                ManagedVersionInventory committedInventory = await InventoryAsync(
+                    converged,
+                    cancellationToken).ConfigureAwait(false);
+                if (!converged.RetentionReviewDue &&
+                    VersionManagementPolicy.ShouldOfferRetentionReview(
+                        committedInventory,
+                        updateSucceeded: true))
+                {
+                    converged = converged.WithRetentionReviewDue(retentionReviewDue: true);
+                }
             }
         }
         else
