@@ -25,13 +25,7 @@ public sealed partial class VersionManagementExperience
                 ManagedVersionInventory committedInventory = await InventoryAsync(
                     converged,
                     cancellationToken).ConfigureAwait(false);
-                if (!converged.RetentionReviewDue &&
-                    VersionManagementPolicy.ShouldOfferRetentionReview(
-                        committedInventory,
-                        updateSucceeded: true))
-                {
-                    converged = converged.WithRetentionReviewDue(retentionReviewDue: true);
-                }
+                converged = MarkRetentionReviewDue(converged, committedInventory, updateSucceeded: true);
             }
         }
         else
@@ -71,6 +65,17 @@ public sealed partial class VersionManagementExperience
             failedActivationVersion: null,
             state.RetentionReviewDue,
             pendingMutation: null);
+    }
+
+    private static VersionManagerState MarkRetentionReviewDue(
+        VersionManagerState state,
+        ManagedVersionInventory inventory,
+        bool updateSucceeded)
+    {
+        return !state.RetentionReviewDue &&
+               VersionManagementPolicy.ShouldOfferRetentionReview(inventory, updateSucceeded)
+            ? state.WithRetentionReviewDue(retentionReviewDue: true)
+            : state;
     }
 
     private static VersionManagerState CommitDelete(

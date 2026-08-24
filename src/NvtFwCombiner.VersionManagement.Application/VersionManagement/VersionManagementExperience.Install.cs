@@ -100,14 +100,10 @@ public sealed partial class VersionManagementExperience
 
             state = CommitInstall(state, expectedAdmission);
             ManagedVersionInventory inventory = await InventoryAsync(state, cancellationToken).ConfigureAwait(false);
-            bool retentionReviewDue = state.RetentionReviewDue ||
-                VersionManagementPolicy.ShouldOfferRetentionReview(
-                    inventory,
-                    result.IsSuccess && !result.WasAlreadyInstalled);
-            if (retentionReviewDue != state.RetentionReviewDue)
-            {
-                state = state.WithRetentionReviewDue(retentionReviewDue);
-            }
+            state = MarkRetentionReviewDue(
+                state,
+                inventory,
+                result.IsSuccess && !result.WasAlreadyInstalled);
             if (!await TrySaveAsync(state, cancellationToken).ConfigureAwait(false))
             {
                 VersionManagerState durablePrepared = prepared;

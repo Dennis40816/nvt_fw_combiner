@@ -52,11 +52,25 @@ public sealed partial class VersionManagementExperienceTests
             [Admission("0.10.5"), Admission("0.10.4"), Admission("0.10.3")],
             active: "0.10.5",
             lastKnownGood: "0.10.5");
-        ManagedVersionAdmission pending = Admission("0.10.6");
-        VersionManagerState prepared = initial.WithPendingMutation(
-            new(ManagedVersionMutationKind.Install, pending));
-        var stateStore = new MemoryStateStore(prepared);
-        var repository = new TransactionRepository([.. initial.Admissions, pending]);
+        var stateStore = new FailingStateStore(initial, failOnSave: 2);
+        var repository = new TransactionRepository(initial.Admissions);
+        using (var first = new VersionManagementExperience(
+            ManagedAppVersion.Parse("0.10.5"),
+            "managed-root",
+            stateStore,
+            new FixedCatalogSource(Catalog("0.10.6")),
+            repository))
+        {
+            _ = await first.CheckAsync(isAutomatic: false, TestContext.Current.CancellationToken);
+            VersionInstallOperationResult interrupted = await first.InstallAsync(
+                ManagedAppVersion.Parse("0.10.6"),
+                TestContext.Current.CancellationToken);
+            Assert.Equal(ManagedVersionInstallIssue.StateUnavailable, interrupted.Install.Issue);
+            Assert.Equal(ManagedVersionMutationKind.Install, stateStore.State.PendingMutation?.Kind);
+            Assert.Equal(1, repository.InstallCalls);
+            Assert.Equal(0, repository.DeleteCalls);
+        }
+
         using var restarted = new VersionManagementExperience(
             ManagedAppVersion.Parse("0.10.5"),
             "managed-root",
@@ -71,6 +85,8 @@ public sealed partial class VersionManagementExperienceTests
         Assert.Equal(4, recovered.Inventory.HealthyCount);
         Assert.True(recovered.State.RetentionReviewDue);
         Assert.True(stateStore.State.RetentionReviewDue);
+        Assert.Equal(1, repository.InstallCalls);
+        Assert.Equal(0, repository.DeleteCalls);
     }
 
     /// <summary>A completed delete with a failed commit save removes its admission after restart.</summary>
