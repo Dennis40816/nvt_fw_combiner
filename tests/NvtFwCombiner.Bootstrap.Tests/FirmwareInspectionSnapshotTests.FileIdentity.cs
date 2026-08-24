@@ -108,6 +108,35 @@ public sealed partial class FirmwareInspectionSnapshotTests
         Assert.Null(batch.InspectionsById["base"].FileStamp);
     }
 
+    /// <summary>A malformed locator remains a stable unavailable input instead of faulting the whole batch.</summary>
+    [Fact]
+    public async Task InspectionPortReportsMalformedPathWithoutCallingContentAdapter()
+    {
+        const string malformedPath = "malformed\0firmware.bin";
+        int reads = 0;
+        BuiltInFirmwareInspection inspection = CreateInspection(
+            new DelegatingContentInspector((_, _, _) =>
+            {
+                reads++;
+                throw new InvalidOperationException("Malformed paths must not reach the content adapter.");
+            }));
+        var progress = new RecordingAuthoringInspectionProgress();
+
+        FirmwareInspectionBatchResult batch = await inspection.InspectFirmwareBatchAsync(
+            "NT51926",
+            [new FirmwareInspectionSnapshotInput("base", malformedPath)],
+            TestContext.Current.CancellationToken,
+            progress);
+
+        Assert.Equal(0, reads);
+        Assert.True(batch.IsContentStable);
+        Assert.Null(batch.FileStamps[malformedPath]);
+        Assert.Null(batch.InspectionsById["base"].FileStamp);
+        Assert.Equal(
+            [new AuthoringInspectionProgress(0, 1), new AuthoringInspectionProgress(1, 1)],
+            progress.Updates);
+    }
+
     /// <summary>Concurrent reads of one path retain request-scoped bytes and identities.</summary>
     [Fact]
     public async Task ConcurrentInspectionRequestsKeepContentIdentityRequestScoped()
@@ -285,6 +314,97 @@ public sealed partial class FirmwareInspectionSnapshotTests
 
         Assert.Equal(1, reads);
         Assert.Equal(0x40000, observedMaximum);
+    }
+
+    /// <summary>Windows path casing aliases one physical source without losing either logical result key.</summary>
+    [Fact]
+    public async Task WindowsCaseAliasesReadOnceAtTheStrictestBindingCeiling()
+    {
+        if (!OperatingSystem.IsWindows())
+        {
+            return;
+        }
+
+        IsolatedBootstrapTestHost host = CreateLoadedHost();
+        ResolvedCapability capability = DpReplaceCapability(host, includeLdc: false);
+        string mixedCasePath = Path.Combine(
+            Path.GetTempPath(),
+            "Nfc-Inspection-Case-Alias",
+            "Shared.bin");
+        string upperCasePath = mixedCasePath.ToUpperInvariant();
+        Assert.NotEqual(mixedCasePath, upperCasePath, StringComparer.Ordinal);
+        int reads = 0;
+        long observedMaximum = 0;
+        byte[] bytes = [1];
+        BuiltInFirmwareInspection inspection = CreateInspection(
+            host,
+            new DelegatingContentInspector((_, maximumBytes, _) =>
+            {
+                reads++;
+                observedMaximum = maximumBytes;
+                return ValueTask.FromResult(new SelectedFileContentInspection(
+                    FileStamp.FromBytes(bytes),
+                    acceptedBytes: bytes));
+            }));
+
+        FirmwareInspectionBatchResult batch = await inspection.InspectFirmwareBatchAsync(
+            "NT51928",
+            [
+                new FirmwareInspectionSnapshotInput(
+                    "bounded",
+                    mixedCasePath,
+                    DpReplaceAddressSpaceId: CompositionAddressSpaceIds.ReferenceBase,
+                    ExactCapability: capability),
+                new FirmwareInspectionSnapshotInput("alias", upperCasePath),
+            ],
+            TestContext.Current.CancellationToken);
+
+        Assert.Equal(1, reads);
+        Assert.Equal(0x40000, observedMaximum);
+        Assert.Equal(FileStamp.FromBytes(bytes), batch.FileStamps[mixedCasePath]);
+        Assert.Equal(batch.FileStamps[mixedCasePath], batch.FileStamps[upperCasePath]);
+    }
+
+    /// <summary>Relative and absolute aliases share one bounded read while retaining both logical result keys.</summary>
+    [Fact]
+    public async Task RelativeAndAbsoluteAliasesReadOnceAtTheStrictestBindingCeiling()
+    {
+        IsolatedBootstrapTestHost host = CreateLoadedHost();
+        ResolvedCapability capability = DpReplaceCapability(host, includeLdc: false);
+        string relativePath = Path.Combine(
+            "nfc-inspection-relative-alias",
+            "shared.bin");
+        string absolutePath = Path.GetFullPath(relativePath);
+        int reads = 0;
+        long observedMaximum = 0;
+        byte[] bytes = [1];
+        BuiltInFirmwareInspection inspection = CreateInspection(
+            host,
+            new DelegatingContentInspector((_, maximumBytes, _) =>
+            {
+                reads++;
+                observedMaximum = maximumBytes;
+                return ValueTask.FromResult(new SelectedFileContentInspection(
+                    FileStamp.FromBytes(bytes),
+                    acceptedBytes: bytes));
+            }));
+
+        FirmwareInspectionBatchResult batch = await inspection.InspectFirmwareBatchAsync(
+            "NT51928",
+            [
+                new FirmwareInspectionSnapshotInput(
+                    "bounded",
+                    relativePath,
+                    DpReplaceAddressSpaceId: CompositionAddressSpaceIds.ReferenceBase,
+                    ExactCapability: capability),
+                new FirmwareInspectionSnapshotInput("alias", absolutePath),
+            ],
+            TestContext.Current.CancellationToken);
+
+        Assert.Equal(1, reads);
+        Assert.Equal(0x40000, observedMaximum);
+        Assert.Equal(FileStamp.FromBytes(bytes), batch.FileStamps[relativePath]);
+        Assert.Equal(batch.FileStamps[relativePath], batch.FileStamps[absolutePath]);
     }
 
     private static BuiltInFirmwareInspection CreateInspection(

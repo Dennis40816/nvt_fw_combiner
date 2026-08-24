@@ -1,6 +1,7 @@
 using NvtFwCombiner.Application.Authoring;
 using NvtFwCombiner.Application.InputInspection;
 using NvtFwCombiner.Application.Ports;
+using NvtFwCombiner.Infrastructure.Files;
 
 namespace NvtFwCombiner.Infrastructure.Composition;
 
@@ -14,23 +15,68 @@ internal sealed partial class BuiltInFirmwareInspection
     {
         ValidateInspectionInputs(icId, inputs);
         var files = new Dictionary<string, FirmwareContentRead>(StringComparer.Ordinal);
-        string[] paths =
+        string[] logicalPaths =
         [
             .. inputs.SelectMany(static input => new[] { input.Path, input.TpPath })
                 .Where(static path => !string.IsNullOrWhiteSpace(path))
                 .Select(static path => path!)
                 .Distinct(StringComparer.Ordinal),
         ];
-        progress?.Report(new(0, paths.Length));
-        foreach (string path in paths)
+        var identityPolicy = new FileSystemCompositionArtifactIdentityPolicy();
+        var pathsByCanonicalIdentity = new Dictionary<string, List<string>>(StringComparer.Ordinal);
+        var canonicalIdentityOrder = new List<string>();
+        var unavailablePaths = new List<string>();
+        foreach (string logicalPath in logicalPaths)
         {
-            files.Add(
-                path,
-                await ReadFirmwareFileAsync(
-                    path,
-                    ResolveMaximumContentReadBytes(path, inputs),
-                    cancellationToken).ConfigureAwait(false));
-            progress?.Report(new(files.Count, paths.Length));
+            string canonicalIdentity;
+            try
+            {
+                canonicalIdentity = identityPolicy.Resolve(logicalPath).CanonicalIdentity;
+            }
+            catch (Exception exception) when (exception is
+                IOException or
+                UnauthorizedAccessException or
+                ArgumentException or
+                NotSupportedException)
+            {
+                unavailablePaths.Add(logicalPath);
+                continue;
+            }
+
+            if (!pathsByCanonicalIdentity.TryGetValue(
+                    canonicalIdentity,
+                    out List<string>? aliases))
+            {
+                aliases = [];
+                pathsByCanonicalIdentity.Add(canonicalIdentity, aliases);
+                canonicalIdentityOrder.Add(canonicalIdentity);
+            }
+
+            aliases.Add(logicalPath);
+        }
+
+        int totalReads = canonicalIdentityOrder.Count + unavailablePaths.Count;
+        progress?.Report(new(0, totalReads));
+        int completedReads = 0;
+        foreach (string unavailablePath in unavailablePaths)
+        {
+            files.Add(unavailablePath, new FirmwareContentRead(null, null, IsStable: true));
+            progress?.Report(new(++completedReads, totalReads));
+        }
+
+        foreach (string canonicalIdentity in canonicalIdentityOrder)
+        {
+            List<string> aliases = pathsByCanonicalIdentity[canonicalIdentity];
+            FirmwareContentRead content = await ReadFirmwareFileAsync(
+                aliases[0],
+                aliases.Min(path => ResolveMaximumContentReadBytes(path, inputs)),
+                cancellationToken).ConfigureAwait(false);
+            foreach (string logicalPath in aliases)
+            {
+                files.Add(logicalPath, content);
+            }
+
+            progress?.Report(new(++completedReads, totalReads));
         }
 
         IReadOnlyList<FirmwareInspectionSnapshotResult> inspections =
