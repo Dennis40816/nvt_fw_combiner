@@ -272,6 +272,119 @@ public sealed class BundleCliCommandTests
         Assert.Equal<string>([dpPath, tpAPath, tpBPath], remainingInputs);
     }
 
+    /// <summary>One physical TP can fill both AB roles without collapsing logical inputs or duplicate delivery.</summary>
+    [Fact]
+    public async Task AbMergeSameTpBuildKeepsLogicalRolesAndDeduplicatesBundleSource()
+    {
+        using var sharedWorkspace = TempWorkspace.Create("nfc-cli-bundle-ab-shared-tp");
+        using var distinctWorkspace = TempWorkspace.Create("nfc-cli-bundle-ab-distinct-equal-tp");
+        (string sharedJson, byte[] sharedOutput) = await BuildBundleAsync(
+            sharedWorkspace,
+            sameTpPath: true,
+            "shared_bundle");
+        (string distinctJson, byte[] distinctOutput) = await BuildBundleAsync(
+            distinctWorkspace,
+            sameTpPath: false,
+            "distinct_bundle");
+
+        using JsonDocument sharedReport = JsonDocument.Parse(sharedJson);
+        using JsonDocument distinctReport = JsonDocument.Parse(distinctJson);
+        JsonElement[] inputs = [.. sharedReport.RootElement.GetProperty("Inputs").EnumerateArray()];
+        Assert.Equal<string>(
+            [
+                CompositionAddressSpaceIds.DpAbInput,
+                CompositionAddressSpaceIds.TpAInput,
+                CompositionAddressSpaceIds.TpBInput,
+            ],
+            [.. inputs.Select(input => input.GetProperty("AddressSpaceId").GetString()!)]);
+        Assert.Equal(inputs[1].GetProperty("Sha256").GetString(), inputs[2].GetProperty("Sha256").GetString());
+        Assert.Equal(
+            distinctReport.RootElement.GetProperty("Inputs").EnumerateArray()
+                .Select(input => input.GetProperty("Sha256").GetString()),
+            inputs.Select(input => input.GetProperty("Sha256").GetString()));
+
+        JsonElement[] artifacts =
+        [
+            .. sharedReport.RootElement.GetProperty("BundleDelivery")
+                .GetProperty("Artifacts")
+                .EnumerateArray(),
+        ];
+        Assert.Equal<string>(
+            ["output", "additional-delivery", "source", "source"],
+            [.. artifacts.Select(artifact => artifact.GetProperty("Role").GetString()!)]);
+        JsonElement[] sources =
+        [
+            .. artifacts.Where(artifact => artifact.GetProperty("Role").GetString() == "source"),
+        ];
+        Assert.Equal<string>(
+            [CompositionAddressSpaceIds.DpAbInput, CompositionAddressSpaceIds.TpAInput],
+            [.. sources.Select(source => source.GetProperty("BindingId").GetString()!)]);
+        Assert.Equal(
+            [inputs[0].GetProperty("Sha256").GetString(), inputs[1].GetProperty("Sha256").GetString()],
+            sources.Select(source => source.GetProperty("Sha256").GetString()));
+
+        JsonElement additional = Assert.Single(
+            artifacts,
+            artifact => artifact.GetProperty("Role").GetString() == "additional-delivery");
+        Assert.Equal(
+            CompiledAdditionalDelivery.AbAFlashCodeKind,
+            additional.GetProperty("BindingId").GetString());
+        JsonElement delivery = Assert.Single(
+            sharedReport.RootElement.GetProperty("DeliveryArtifacts").EnumerateArray());
+        Assert.Equal(0, delivery.GetProperty("SourceRange").GetProperty("Start").GetInt64());
+        Assert.Equal(additional.GetProperty("Size").GetInt64(),
+            delivery.GetProperty("SourceRange").GetProperty("Length").GetInt64());
+        Assert.Equal(additional.GetProperty("Sha256").GetString(), delivery.GetProperty("Sha256").GetString());
+        Assert.Equal(distinctOutput, sharedOutput);
+
+        static async Task<(string ReportJson, byte[] Output)> BuildBundleAsync(
+            TempWorkspace workspace,
+            bool sameTpPath,
+            string bundleName)
+        {
+            string dpPath = workspace.Write("dp-ab.bin", new byte[0x80000]);
+            byte[] tp = new byte[0x40000];
+            string tpAPath = workspace.Write("tp-a.bin", tp);
+            string tpBPath = sameTpPath
+                ? tpAPath
+                : workspace.Write("tp-b.bin", tp);
+            string reportPath = workspace.PathFor("report.json");
+            CliRunResult result = await CliTestHarness.RunAsync(
+                [
+                    "ab-merge",
+                    "build",
+                    "--profile",
+                    "NT51929",
+                    "--dp-ab",
+                    dpPath,
+                    "--tp-a",
+                    tpAPath,
+                    "--tp-b",
+                    tpBPath,
+                    "--bundle-parent",
+                    workspace.Root,
+                    "--bundle-name",
+                    bundleName,
+                    "--include-a-flashcode",
+                    "--report",
+                    reportPath,
+                ],
+                TestContext.Current.CancellationToken);
+            Assert.True(result.ExitCode == 0, result.Error + Environment.NewLine + result.Output);
+            string reportJson = await File.ReadAllTextAsync(
+                reportPath,
+                TestContext.Current.CancellationToken);
+            using JsonDocument report = JsonDocument.Parse(reportJson);
+            JsonElement output = Assert.Single(
+                report.RootElement.GetProperty("BundleDelivery").GetProperty("Artifacts").EnumerateArray(),
+                artifact => artifact.GetProperty("Role").GetString() == "output");
+            byte[] outputBytes = await File.ReadAllBytesAsync(
+                Path.Combine(workspace.Root, bundleName, output.GetProperty("DeliveredFileName").GetString()!),
+                TestContext.Current.CancellationToken);
+            return (reportJson, outputBytes);
+        }
+    }
+
     /// <summary>The AB-only artifact cannot escape the atomic bundle delivery transaction.</summary>
     [Fact]
     public async Task AbAdditionalDeliveryRequiresAtomicBundle()
