@@ -2,7 +2,7 @@ using NvtFwCombiner.Application.Ports;
 
 namespace NvtFwCombiner.Infrastructure.Files;
 
-/// <summary>Filesystem identity policy for accepted physical source artifacts.</summary>
+/// <summary>Canonical platform-path identity; reparse targets and hardlink file ids are not resolved.</summary>
 internal sealed class FileSystemCompositionArtifactIdentityPolicy :
     ICompositionArtifactIdentityPolicy
 {
@@ -14,7 +14,7 @@ internal sealed class FileSystemCompositionArtifactIdentityPolicy :
         if (string.IsNullOrWhiteSpace(fileName))
         {
             throw new ArgumentException(
-                "Accepted artifact locator must identify one physical file.",
+                "Accepted artifact locator must identify one filesystem path.",
                 nameof(artifactLocator));
         }
 
