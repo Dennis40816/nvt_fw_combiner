@@ -115,7 +115,8 @@ public sealed partial class XamlControlStyleContractTests
                 control => control.Classes.Contains("selected"));
             Button installUpdate = Assert.Single(
                 modal.GetVisualDescendants().OfType<Button>(),
-                control => control.Classes.Contains("versionInstallAction"));
+                control => control.Classes.Contains("versionInstallAction") &&
+                    !control.Classes.Contains("versionSourceAction"));
             Button close = Assert.IsType<Button>(modal.FindControl<Control>("CloseButton"));
 
             Assert.InRange(surface.Bounds.Width, 1555.5, 1556.5);
@@ -238,6 +239,43 @@ public sealed partial class XamlControlStyleContractTests
         Assert.Contains("NfcCompactCornerRadius", ExtractStyle(buttonStyles, "Button.settingsNavItem /template/ ContentPresenter#PART_ContentPresenter"), StringComparison.Ordinal);
         Assert.Contains("MinWidth\" Value=\"180", ExtractStyle(buttonStyles, "Button.versionInstallAction"), StringComparison.Ordinal);
         Assert.Contains("MinHeight\" Value=\"52", ExtractStyle(buttonStyles, "Button.versionInstallAction"), StringComparison.Ordinal);
+    }
+
+    /// <summary>The owner-approved Version Option A keeps two separate rounded actions with icons and one primary check action.</summary>
+    [Fact]
+    public void SettingsVersionSourceActionsMatchApprovedOptionA()
+    {
+        string versionPage = ReadPresentationFile("Resources/SettingsVersionPageTemplate.axaml");
+        string buttonStyles = ReadPresentationFile("Styles/MainWindowButtonStyles.axaml");
+        var document = System.Xml.Linq.XDocument.Parse(versionPage);
+        System.Xml.Linq.XElement browse = Assert.Single(
+            document.Descendants(),
+            element => element.Name.LocalName == "Button" &&
+                (string?)element.Attribute("Command") == "{Binding Settings.BrowseUpdateSourceCommand}");
+        System.Xml.Linq.XElement check = Assert.Single(
+            document.Descendants(),
+            element => element.Name.LocalName == "Button" &&
+                (string?)element.Attribute("Command") == "{Binding Settings.CheckNowCommand}");
+
+        Assert.Equal("semanticAction secondary versionSourceAction", (string?)browse.Attribute("Classes"));
+        Assert.Equal(
+            "semanticAction versionInstallAction versionSourceAction",
+            (string?)check.Attribute("Classes"));
+        Assert.NotNull(Assert.Single(browse.Descendants(), element => element.Name.LocalName == "Path"));
+        Assert.NotNull(Assert.Single(check.Descendants(), element => element.Name.LocalName == "Path"));
+        Assert.Equal(
+            "{Binding Settings.BrowseSourceLabel}",
+            (string?)Assert.Single(browse.Descendants(), element => element.Name.LocalName == "TextBlock")
+                .Attribute("Text"));
+        Assert.Equal(
+            "{Binding Settings.CheckNowLabel}",
+            (string?)Assert.Single(check.Descendants(), element => element.Name.LocalName == "TextBlock")
+                .Attribute("Text"));
+        string primarySurface = ExtractStyle(
+            buttonStyles,
+            "Button.versionInstallAction /template/ ContentPresenter#PART_ContentPresenter");
+        Assert.Contains("NfcAccentBrush", primarySurface, StringComparison.Ordinal);
+        Assert.Contains("NfcSurfaceBrush", primarySurface, StringComparison.Ordinal);
     }
 
     /// <summary>Every upper-right Close/Exit entry uses the dedicated true-circle control contract.</summary>

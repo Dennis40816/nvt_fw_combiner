@@ -132,7 +132,8 @@ public sealed partial class XamlControlStyleContractTests
         Assert.Contains("ToolTip.Tip=\"{Binding DisplayDetail}\"", slotCard, StringComparison.Ordinal);
         Assert.Contains("Classes=\"fileRevealAction\"", slotCard, StringComparison.Ordinal);
         Assert.Contains("Command=\"{ReflectionBinding $parent[Window].DataContext.RevealFileCommand}\"", slotCard, StringComparison.Ordinal);
-        Assert.Contains("Content=\"{Binding DisplayNameWithSelectionContext}\"", slotCard, StringComparison.Ordinal);
+        Assert.Contains("Text=\"{Binding DisplayNameWithSelectionContext}\"", slotCard, StringComparison.Ordinal);
+        Assert.Contains("TextTrimming=\"CharacterEllipsis\"", slotCard, StringComparison.Ordinal);
         Assert.Contains("IsVisible=\"{Binding HasFile}\"", slotCard, StringComparison.Ordinal);
         Assert.Contains("CommandParameter=\"{Binding FilePath}\"", slotCard, StringComparison.Ordinal);
     }

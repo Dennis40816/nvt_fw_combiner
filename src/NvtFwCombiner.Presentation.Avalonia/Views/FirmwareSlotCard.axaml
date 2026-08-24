@@ -60,9 +60,11 @@
                      Text="{Binding DisplayName}" TextWrapping="Wrap" />
           <Button AutomationProperties.HelpText="{Binding DisplayDetail}" AutomationProperties.Name="{Binding DisplayNameWithSelectionContext}"
                   Classes="fileRevealAction" Command="{ReflectionBinding $parent[Window].DataContext.RevealFileCommand}"
-                  CommandParameter="{Binding FilePath}" Content="{Binding DisplayNameWithSelectionContext}" HorizontalAlignment="Left"
+                  CommandParameter="{Binding FilePath}" HorizontalAlignment="Stretch" HorizontalContentAlignment="Left"
                   IsVisible="{Binding HasFile}" ToolTip.BetweenShowDelay="-1" ToolTip.Placement="BottomEdgeAlignedLeft"
-                  ToolTip.ShowDelay="300" ToolTip.Tip="{Binding DisplayDetail}" ToolTip.VerticalOffset="8" />
+                  ToolTip.ShowDelay="300" ToolTip.Tip="{Binding DisplayDetail}" ToolTip.VerticalOffset="8">
+            <TextBlock Text="{Binding DisplayNameWithSelectionContext}" TextTrimming="CharacterEllipsis" />
+          </Button>
           <TextBlock AutomationProperties.LiveSetting="Polite" Classes="slotStateDetail"
                      IsVisible="{Binding IsSemanticStateDetailExpanded}"
                      Text="{Binding SemanticStateAutomationText}" TextWrapping="Wrap" />
@@ -73,7 +75,7 @@
                         IsVisible="{Binding HasFirmwareFacts}" ItemsSource="{Binding PrimaryFirmwareFacts}">
             <ItemsControl.ItemsPanel>
               <ItemsPanelTemplate>
-                <UniformGrid Columns="4" Rows="1" />
+                <UniformGrid Columns="{Binding FactColumnCount, ElementName=Root}" />
               </ItemsPanelTemplate>
             </ItemsControl.ItemsPanel>
             <ItemsControl.ItemTemplate>
@@ -88,7 +90,7 @@
                         ItemsSource="{Binding AdditionalFirmwareFacts}">
             <ItemsControl.ItemsPanel>
               <ItemsPanelTemplate>
-                <UniformGrid Columns="4" Rows="1" />
+                <UniformGrid Columns="{Binding FactColumnCount, ElementName=Root}" />
               </ItemsPanelTemplate>
             </ItemsControl.ItemsPanel>
             <ItemsControl.ItemTemplate>

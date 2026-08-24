@@ -12,6 +12,9 @@ namespace NvtFwCombiner.Presentation.Avalonia.Views;
 /// <summary>Reusable firmware input slot card with browse and drag/drop file selection.</summary>
 public sealed partial class FirmwareSlotCard : UserControl
 {
+    private const double CompactLayoutBreakpoint = 820;
+    private bool? _isCompactLayout;
+
     /// <summary>Formats the shared visible, assistive, and picker-title Browse phrase.</summary>
     public const string BrowseActionFormat = "{0} — {1}";
     private static readonly CompositeFormat BrowseActionCompositeFormat = CompositeFormat.Parse(BrowseActionFormat);
@@ -47,6 +50,10 @@ public sealed partial class FirmwareSlotCard : UserControl
     public static readonly StyledProperty<ICommand?> ClearSelectionCommandProperty =
         AvaloniaProperty.Register<FirmwareSlotCard, ICommand?>(nameof(ClearSelectionCommand));
 
+    /// <summary>Defines the responsive number of columns used by compact firmware facts.</summary>
+    public static readonly StyledProperty<int> FactColumnCountProperty =
+        AvaloniaProperty.Register<FirmwareSlotCard, int>(nameof(FactColumnCount), 4);
+
     /// <summary>Gets or sets the shared selected-file clear command.</summary>
     public ICommand? ClearSelectionCommand
     {
@@ -54,10 +61,40 @@ public sealed partial class FirmwareSlotCard : UserControl
         set => SetValue(ClearSelectionCommandProperty, value);
     }
 
+    /// <summary>Gets the current responsive firmware-fact column count.</summary>
+    public int FactColumnCount => GetValue(FactColumnCountProperty);
+
     /// <summary>Initializes the firmware slot card.</summary>
     public FirmwareSlotCard()
     {
         InitializeComponent();
+    }
+
+    /// <inheritdoc />
+    protected override Size MeasureOverride(Size availableSize)
+    {
+        ApplyResponsiveLayout(availableSize.Width);
+        return base.MeasureOverride(availableSize);
+    }
+
+    private void ApplyResponsiveLayout(double width)
+    {
+        bool compact = width is > 0 and < CompactLayoutBreakpoint;
+        if (_isCompactLayout == compact)
+        {
+            return;
+        }
+
+        _isCompactLayout = compact;
+        SlotLayout.ColumnDefinitions = new ColumnDefinitions(compact ? "*,Auto" : "280,*,Auto");
+        SlotLayout.RowDefinitions = new RowDefinitions(compact ? "Auto,Auto" : "*");
+
+        Grid.SetColumn(SlotActions, compact ? 1 : 2);
+        Grid.SetColumn(SlotFactsRegion, compact ? 0 : 1);
+        Grid.SetColumnSpan(SlotFactsRegion, compact ? 2 : 1);
+        Grid.SetRow(SlotFactsRegion, compact ? 1 : 0);
+        SlotFactsRegion.Margin = compact ? new Thickness(0, 12, 0, 0) : default;
+        SetCurrentValue(FactColumnCountProperty, compact ? 2 : 4);
     }
 
     private MainWindowViewModel? ShellViewModel =>

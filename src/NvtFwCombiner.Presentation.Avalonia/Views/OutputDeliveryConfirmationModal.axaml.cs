@@ -91,6 +91,7 @@ public sealed partial class OutputDeliveryConfirmationModal : UserControl
     private void EnterModal()
     {
         _returnFocus ??= TopLevel.GetTopLevel(this)?.FocusManager?.GetFocusedElement();
+        BuildSettingsViewport.Offset = default;
         Dispatcher.UIThread.Post(
             () => _ = CancelButton.Focus(NavigationMethod.Tab),
             DispatcherPriority.Input);

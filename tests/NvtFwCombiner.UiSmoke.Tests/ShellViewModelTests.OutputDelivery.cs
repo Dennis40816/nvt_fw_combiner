@@ -216,6 +216,42 @@ public sealed partial class FirmwareInspectionSlotTests
         modal.EndConfirmation();
     }
 
+    /// <summary>Every Build Settings entry starts at the top instead of retaining a prior scroll position.</summary>
+    [AvaloniaFact]
+    public void OutputDeliveryReopenResetsContentScrollPosition()
+    {
+        var modal = new OutputDeliveryConfirmationModal();
+        var window = new Window
+        {
+            Width = 800,
+            Height = 320,
+            Content = modal,
+        };
+        try
+        {
+            window.Show();
+            ScrollViewer viewport = Assert.IsType<ScrollViewer>(
+                modal.FindControl<Control>("BuildSettingsViewport"),
+                exactMatch: false);
+            StackPanel content = Assert.IsType<StackPanel>(viewport.Content);
+            content.Children.Add(new Border { Height = 1_000 });
+            modal.IsOpen = true;
+            Dispatcher.UIThread.RunJobs();
+            viewport.Offset = new Vector(0, 180);
+            Assert.True(viewport.Offset.Y > 0);
+
+            modal.IsOpen = false;
+            modal.IsOpen = true;
+            Dispatcher.UIThread.RunJobs();
+
+            Assert.Equal(0, viewport.Offset.Y);
+        }
+        finally
+        {
+            window.Close();
+        }
+    }
+
     /// <summary>Confirm completion retries its pending focus lease and defers to a successor modal.</summary>
     [AvaloniaFact]
     public void OutputDeliveryConfirmCompletionRestoresOrHandsOffFocus()

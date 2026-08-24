@@ -86,7 +86,10 @@ public sealed partial class XamlControlStyleContractTests
         Assert.DoesNotContain("Content=\"{Binding FirmwareFactsDisclosureLabel}\"", slotCard, StringComparison.Ordinal);
         Assert.Contains("IsChecked=\"{Binding IsAdditionalFirmwareFactsExpanded}\"", slotCard, StringComparison.Ordinal);
         Assert.Contains("Content=\"{Binding AdditionalFirmwareFactsLabel}\"", slotCard, StringComparison.Ordinal);
-        Assert.Equal(2, CountOccurrences(slotCard, "<UniformGrid Columns=\"4\" Rows=\"1\" />"));
+        Assert.Equal(2, CountOccurrences(
+            slotCard,
+            "<UniformGrid Columns=\"{Binding FactColumnCount, ElementName=Root}\""));
+        Assert.DoesNotContain("Rows=", slotCard, StringComparison.Ordinal);
         Assert.Contains("Classes=\"firmwareSlotFact\"", factTemplate, StringComparison.Ordinal);
         Assert.Contains("Padding=\"0,0,16,0\"", factTemplate, StringComparison.Ordinal);
         Assert.DoesNotContain("BorderThickness=", factTemplate, StringComparison.Ordinal);

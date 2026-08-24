@@ -83,12 +83,12 @@ public sealed partial class XamlControlStyleContractTests
         Assert.Contains("danger", (string?)clear.Attribute("Classes"), StringComparison.Ordinal);
         Assert.Contains(primaryFacts.Descendants(), element =>
             element.Name.LocalName == "UniformGrid" &&
-            (string?)element.Attribute("Columns") == "4" &&
-            (string?)element.Attribute("Rows") == "1");
+            (string?)element.Attribute("Columns") == "{Binding FactColumnCount, ElementName=Root}" &&
+            element.Attribute("Rows") is null);
         Assert.Contains(additionalFacts.Descendants(), element =>
             element.Name.LocalName == "UniformGrid" &&
-            (string?)element.Attribute("Columns") == "4" &&
-            (string?)element.Attribute("Rows") == "1");
+            (string?)element.Attribute("Columns") == "{Binding FactColumnCount, ElementName=Root}" &&
+            element.Attribute("Rows") is null);
         XElement[] browseLabels = [.. browse.Descendants().Where(element =>
             element.Name.LocalName == "MultiBinding")];
         Assert.Equal(2, browseLabels.Length);
@@ -327,6 +327,8 @@ public sealed partial class XamlControlStyleContractTests
             Button clear = Assert.IsType<Button>(card.FindControl<Control>("ClearButton"));
             StackPanel actions = Assert.IsType<StackPanel>(
                 card.FindControl<Control>("SlotActions"));
+            StackPanel identity = Assert.IsType<StackPanel>(
+                card.FindControl<Control>("SlotIdentity"));
             browse.ApplyTemplate();
             ContentPresenter browseSurface = Assert.Single(
                 browse.GetVisualDescendants().OfType<ContentPresenter>(),
@@ -335,21 +337,31 @@ public sealed partial class XamlControlStyleContractTests
             Point browseSurfaceOrigin = Assert.IsType<Point>(
                 browseSurface.TranslatePoint(default, selector));
             Point clearOrigin = Assert.IsType<Point>(clear.TranslatePoint(default, selector));
+            Point identityOrigin = Assert.IsType<Point>(identity.TranslatePoint(default, selector));
             double factsCenter = factsOrigin.Y + (facts.Bounds.Height / 2);
             double browseCenter = browseSurfaceOrigin.Y + (browseSurface.Bounds.Height / 2);
             double clearCenter = clearOrigin.Y + (clear.Bounds.Height / 2);
             double selectorCenter = selector.Bounds.Height / 2;
 
-            Assert.InRange(Math.Abs(factsCenter - browseCenter), 0, 0.5);
             Assert.InRange(Math.Abs(clearCenter - browseCenter), 0, 0.5);
             Assert.Equal(36, clear.Bounds.Width);
             Assert.Equal(36, clear.Bounds.Height);
             Assert.InRange(clearOrigin.X, 0, selector.Bounds.Width - clear.Bounds.Width);
-            double selectorOffset = browseCenter - selectorCenter;
-            Assert.True(
-                Math.Abs(selectorOffset) <= 0.5,
-                $"Browse surface offset {selectorOffset:F3}; selector={selector.Bounds}; " +
-                $"layout={layout.Bounds}; card={card.Bounds}.");
+            if (width >= 820)
+            {
+                Assert.InRange(Math.Abs(factsCenter - browseCenter), 0, 0.5);
+                double selectorOffset = browseCenter - selectorCenter;
+                Assert.True(
+                    Math.Abs(selectorOffset) <= 0.5,
+                    $"Browse surface offset {selectorOffset:F3}; selector={selector.Bounds}; " +
+                    $"layout={layout.Bounds}; card={card.Bounds}.");
+            }
+            else
+            {
+                double identityCenter = identityOrigin.Y + (identity.Bounds.Height / 2);
+                Assert.InRange(Math.Abs(identityCenter - browseCenter), 0, 0.5);
+                Assert.True(factsOrigin.Y >= identityOrigin.Y + identity.Bounds.Height);
+            }
 
             double selectedBrowseX = browseSurfaceOrigin.X;
             double selectedActionsWidth = actions.Bounds.Width;

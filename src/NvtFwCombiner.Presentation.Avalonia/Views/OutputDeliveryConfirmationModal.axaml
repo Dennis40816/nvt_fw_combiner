@@ -22,7 +22,7 @@
         </Grid>
       </Border>
 
-      <ScrollViewer Grid.Row="1" Classes="contentScrollSurface"
+      <ScrollViewer x:Name="BuildSettingsViewport" Grid.Row="1" Classes="contentScrollSurface"
                     HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto">
         <StackPanel Margin="22,0">
           <Border x:Name="OutputSettingSection" Padding="0,16" BorderBrush="{DynamicResource NfcBorderMutedBrush}" BorderThickness="0,0,0,1">

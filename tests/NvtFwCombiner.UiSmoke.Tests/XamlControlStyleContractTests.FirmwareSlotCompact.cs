@@ -66,6 +66,68 @@ public sealed partial class XamlControlStyleContractTests
         }
     }
 
+    /// <summary>Compact cards move facts below identity/actions and retain readable two-column facts.</summary>
+    [AvaloniaTheory]
+    [InlineData(480)]
+    [InlineData(684)]
+    public void FirmwareSlotCompactLayoutUsesTwoFactColumns(double width)
+    {
+        var slot = new FirmwareSlotViewModel(
+            "tp",
+            "TP BIN",
+            "Select TP firmware",
+            FirmwareSlotKind.Tp)
+        {
+            FilePath = @"C:\firmware\a-very-long-selected-firmware-file-name.bin",
+        };
+        slot.SetInputInspection(FirmwareInputInspectionSeverity.Valid, "Verified");
+        slot.SetFirmwareFacts(
+        [
+            new("Common FW Version", "2.0.0"),
+            new("TP Version", "T04-00"),
+            new("PID", "0x135E"),
+            new("Jira Index", "AUTO_PRJ-576"),
+        ]);
+        var card = new FirmwareSlotCard
+        {
+            BrowseLabel = "Browse",
+            DataContext = slot,
+            Width = width,
+        };
+        (Window host, _, _) = HostWithProductionFirmwareSlotStyles(card);
+
+        host.Measure(new Size(width, 1_000));
+        card.Measure(new Size(width, 1_000));
+        card.Arrange(new Rect(0, 0, width, card.DesiredSize.Height));
+        Dispatcher.UIThread.RunJobs();
+        card.Measure(new Size(width, 1_000));
+        card.Arrange(new Rect(0, 0, width, card.DesiredSize.Height));
+
+        Grid layout = Assert.IsType<Grid>(card.FindControl<Control>("SlotLayout"));
+        StackPanel identity = Assert.IsType<StackPanel>(card.FindControl<Control>("SlotIdentity"));
+        StackPanel facts = Assert.IsType<StackPanel>(card.FindControl<Control>("SlotFactsRegion"));
+        StackPanel actions = Assert.IsType<StackPanel>(card.FindControl<Control>("SlotActions"));
+        ItemsControl primaryFacts = Assert.IsType<ItemsControl>(
+            card.FindControl<Control>("PrimaryFirmwareFactsHost"));
+        UniformGrid factGrid = Assert.Single(
+            primaryFacts.GetVisualDescendants().OfType<UniformGrid>());
+
+        Assert.Equal(2, layout.RowDefinitions.Count);
+        Assert.Equal(0, Grid.GetRow(identity));
+        Assert.Equal(0, Grid.GetRow(actions));
+        Assert.Equal(1, Grid.GetRow(facts));
+        Assert.Equal(2, Grid.GetColumnSpan(facts));
+        Assert.Equal(2, factGrid.Columns);
+        Control[] factCells = [.. factGrid.Children.OfType<Control>()];
+        Assert.Equal(4, factCells.Length);
+        Assert.Equal(factCells[0].Bounds.Y, factCells[1].Bounds.Y);
+        Assert.True(factCells[2].Bounds.Y > factCells[0].Bounds.Y);
+        Assert.Equal(factCells[2].Bounds.Y, factCells[3].Bounds.Y);
+        Assert.True(
+            facts.Bounds.Width > identity.Bounds.Width,
+            $"facts={facts.Bounds}; identity={identity.Bounds}; layout={layout.Bounds}");
+    }
+
     /// <summary>Collapsed CtrlRAM slot groups retain the shared two-pixel surface in both themes.</summary>
     [AvaloniaTheory]
     [InlineData(false)]

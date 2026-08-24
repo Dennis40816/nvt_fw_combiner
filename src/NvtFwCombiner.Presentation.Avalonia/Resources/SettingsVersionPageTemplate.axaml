@@ -154,15 +154,37 @@
             MinWidth="128"
             Classes="semanticAction secondary versionSourceAction"
             Command="{Binding Settings.BrowseUpdateSourceCommand}"
-            Content="{Binding Settings.BrowseSourceLabel}"
-            IsEnabled="{Binding Settings.IsUpdateSourceEditing}" />
+            IsEnabled="{Binding Settings.IsUpdateSourceEditing}">
+          <StackPanel Orientation="Horizontal" Spacing="{DynamicResource NfcSpace8}">
+            <Path
+                Width="18"
+                Height="18"
+                Data="M2 5H7L9 7H16V9H7.5L5.5 16H2Z M7.8 10H16L14.2 16H6Z"
+                Fill="Transparent"
+                Stroke="{Binding $parent[Button].Foreground}"
+                StrokeLineCap="Round" StrokeJoin="Round" StrokeThickness="1.8"
+                Stretch="Uniform" />
+            <TextBlock Text="{Binding Settings.BrowseSourceLabel}" />
+          </StackPanel>
+        </Button>
         <Button
             Grid.Column="2"
             MinWidth="144"
-            Classes="semanticAction secondary versionSourceAction"
+            Classes="semanticAction versionInstallAction versionSourceAction"
             Command="{Binding Settings.CheckNowCommand}"
-            Content="{Binding Settings.CheckNowLabel}"
-            IsEnabled="{Binding !Settings.IsVersionBusy}" />
+            IsEnabled="{Binding !Settings.IsVersionBusy}">
+          <StackPanel Orientation="Horizontal" Spacing="{DynamicResource NfcSpace8}">
+            <Path
+                Width="18"
+                Height="18"
+                Data="M14 5V1L12.5 2.5A6 6 0 1 0 14 11 M14 1V5H10"
+                Fill="Transparent"
+                Stroke="{Binding $parent[Button].Foreground}"
+                StrokeLineCap="Round" StrokeJoin="Round" StrokeThickness="1.8"
+                Stretch="Uniform" />
+            <TextBlock Text="{Binding Settings.CheckNowLabel}" />
+          </StackPanel>
+        </Button>
       </Grid>
       <TextBlock Classes="captionText" Text="{Binding Settings.SourceStatusText}" />
       <Border Margin="0,8,0,0" Classes="versionSectionDivider" />
