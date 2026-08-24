@@ -15,6 +15,15 @@ boundary and verification-strategy debt that the earlier scoped selector
 reviews did not assess. It is refactor input, not evidence of a new firmware
 byte regression.
 
+Owner refactor-start authority: 2026-08-24 at
+`ff5aa7a3`. The owner accepted the complete recorded functional-freeze gap
+ledger as sufficient authority to begin A1-A11 in the dependency order below.
+Unchecked Windows, release, firmware-owner, and R3 observations remain explicit
+residual gates; this authorization does not relabel them as verified or permit
+firmware-semantic changes. The post-refactor gate is a fresh whole-repository
+architecture/duplication review followed by owner review of the managed-version
+network release-folder contract.
+
 ## Scope and method
 
 The audit covers every production project under `src/` at audited feature
