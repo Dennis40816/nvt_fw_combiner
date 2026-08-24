@@ -163,3 +163,24 @@ runtime remains 535 files / 75,289 lines. The executable full-production
 allowance therefore descends from 7,699 to 7,698; all non-UI slice allowances
 remain unchanged. The MainWindowViewModel aggregate falls below its named
 985-line ceiling.
+
+## 2026-08-24 immutable run publication and resolved-map compiler phase
+
+The A3/A11 slice retains one public compiler and one public run service while
+extracting resolved-map lowering into a private compiler phase and constructing
+all run evidence before publication. Six result properties become get-only.
+Three result dimensions with no production writer (`HasRunReport`,
+`ActionReadiness`, and `SuppressOutputInExternalReport`) and their unreachable
+client branches are deleted. No firmware, report, delivery, readiness, or UI
+behavior changes.
+
+The same A11 boundary classifies each canonical route once, resolves it once,
+and creates one disclosure per accepted catalog policy revision. Static routes
+still materialize before dynamic routes, preserving the existing progress and
+failure sequence without a process-global cache.
+
+Full production descends from 110,594 to 110,559 nonblank lines. Counted runtime
+descends from 75,289 to 75,272; Domain plus Profiles remains
+20,632; Application descends from 33,476 to 33,473; and Bootstrap plus CLI plus
+Desktop descends from 3,503 to 3,489. Their exact ratchets/allowances descend to
+those values; Infrastructure plus Contracts plus CRC worker remains 17,678.

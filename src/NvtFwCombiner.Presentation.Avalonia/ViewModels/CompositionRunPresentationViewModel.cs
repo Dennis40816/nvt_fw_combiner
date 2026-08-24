@@ -278,12 +278,6 @@ internal sealed class CompositionRunPresentationViewModel : ObservableObject
         CancellationToken cancellationToken)
     {
         ReportPresentationViewModel reports = _stateBindings.Reports();
-        if (!result.HasRunReport)
-        {
-            ApplyReadinessOnlyResult(result, build);
-            return;
-        }
-
         long reportProjectionGeneration = reports.BeginReportProjection();
         string action = build ? "Build" : "Preview";
         Task<string> reportJsonTask = Task.Run(
@@ -345,20 +339,6 @@ internal sealed class CompositionRunPresentationViewModel : ObservableObject
             reportJson,
             action,
             show: build && (!deliveryComplete || string.IsNullOrWhiteSpace(result.CommittedOutputId)));
-    }
-
-    private void ApplyReadinessOnlyResult(CompositionRunResult result, bool build)
-    {
-        string action = build ? "Build" : "Preview";
-        CapabilityActionBlocker? blocker = build
-            ? result.ActionReadiness?.Build.PrimaryBlocker
-            : result.ActionReadiness?.Preview.PrimaryBlocker;
-        LastRunResult = new UiRunResultViewModel(
-            $"{action} blocked",
-            blocker?.Message ?? result.OutcomeStatus,
-            "No output",
-            succeeded: false);
-        OnPropertyChanged(nameof(LastRunResult));
     }
 
     private async Task ObserveRunProgressAsync(

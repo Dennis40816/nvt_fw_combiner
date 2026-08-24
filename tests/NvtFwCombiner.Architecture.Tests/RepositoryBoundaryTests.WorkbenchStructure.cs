@@ -354,11 +354,11 @@ public sealed partial class RepositoryBoundaryTests
         Assert.DoesNotContain("File.Exists", replaceMapping, StringComparison.Ordinal);
         Assert.DoesNotContain("FileInfo", replaceMapping, StringComparison.Ordinal);
         Assert.Contains(
-            "generalAdmission: plan.Admission",
+            "generalExecution: (plan.Admission, draft.Mappings)",
             mergeRun,
             StringComparison.Ordinal);
         Assert.Contains(
-            "generalAdmission: plan.Admission",
+            "generalExecution: (plan.Admission, draft)",
             replaceRun,
             StringComparison.Ordinal);
         Assert.Contains(
@@ -370,7 +370,7 @@ public sealed partial class RepositoryBoundaryTests
             mergeDisplay,
             StringComparison.Ordinal);
         Assert.Contains(
-            "GeneralAuthoringAdmissionResult? generalAdmission",
+            "(GeneralAuthoringAdmissionResult Admission, GeneralMappingDraftState Draft)? generalExecution",
             runner,
             StringComparison.Ordinal);
     }

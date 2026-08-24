@@ -160,7 +160,7 @@ internal sealed class CompositionExecutionExperience : ICompositionExecution
                 composition,
                 session,
                 plan.InputBindings);
-        CompositionRunResult result = await RunCompiledCompositionAsync(
+        return await RunCompiledCompositionAsync(
             "ui-merge-general",
                 composition,
                 bindings,
@@ -173,12 +173,10 @@ internal sealed class CompositionExecutionExperience : ICompositionExecution
                 additionalProtectedPaths: [],
                 additionalDelivery: null,
                 advisoryIssues: null,
-                generalAdmission: plan.Admission,
+                generalExecution: (plan.Admission, draft.Mappings),
                 capability,
                 cancellationToken)
             .ConfigureAwait(false);
-        result.AcceptedGeneralMappingDraft = draft.Mappings;
-        return result;
     }
 
     internal async ValueTask<CompositionRunResult> ExecuteGeneralReplaceAsync(
@@ -216,7 +214,7 @@ internal sealed class CompositionExecutionExperience : ICompositionExecution
                 operation.Kind == CompositionOperationKind.RunExternalProcessor)
                     ? _acquireExternalProcessor().Processor
                     : null;
-        CompositionRunResult result = await RunCompiledCompositionAsync(
+        return await RunCompiledCompositionAsync(
             "ui-replace-general",
                 composition,
                 bindings,
@@ -230,12 +228,10 @@ internal sealed class CompositionExecutionExperience : ICompositionExecution
                 additionalProtectedPaths: [],
                 additionalDelivery: null,
                 advisoryIssues: null,
-                generalAdmission: plan.Admission,
+                generalExecution: (plan.Admission, draft),
                 capability,
                 cancellationToken)
             .ConfigureAwait(false);
-        result.AcceptedGeneralMappingDraft = draft;
-        return result;
     }
 
     internal async ValueTask<CompositionRunResult> ExecuteCtrlRamReplaceAsync(
@@ -279,7 +275,7 @@ internal sealed class CompositionExecutionExperience : ICompositionExecution
                 additionalProtectedPaths: [],
                 additionalDelivery: null,
                 advisoryIssues: plan.AdvisoryIssues,
-                generalAdmission: null,
+                generalExecution: null,
                 capability,
                 cancellationToken)
             .ConfigureAwait(false);
@@ -321,7 +317,7 @@ internal sealed class CompositionExecutionExperience : ICompositionExecution
             additionalProtectedPaths,
             additionalDelivery,
             advisoryIssues: null,
-            generalAdmission: null,
+            generalExecution: null,
             capability,
             cancellationToken,
             abMergeTopologySelection);
@@ -340,7 +336,7 @@ internal sealed class CompositionExecutionExperience : ICompositionExecution
         IReadOnlyList<CompositionExecutionProtectedPath> additionalProtectedPaths,
         CompositionExecutionDeliveryTarget? additionalDelivery,
         IReadOnlyList<CompositionIssue>? advisoryIssues,
-        GeneralAuthoringAdmissionResult? generalAdmission,
+        (GeneralAuthoringAdmissionResult Admission, GeneralMappingDraftState Draft)? generalExecution,
         ResolvedCapability capability,
         CancellationToken cancellationToken,
         TopologySelection? abMergeTopologySelection = null)
@@ -419,7 +415,8 @@ internal sealed class CompositionExecutionExperience : ICompositionExecution
                     request.PreviewOutputFileName is not null,
                 abMergeTopologySelection,
                 advisoryIssues,
-                generalAdmission?.ToSummary(),
+                generalExecution?.Admission.ToSummary(),
+                generalExecution?.Draft,
                 bundleDelivery,
                 progress,
                 cancellationToken)

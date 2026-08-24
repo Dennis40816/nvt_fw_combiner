@@ -44,6 +44,63 @@ public sealed partial class CanonicalCapabilityCatalogMigrationTests
         Assert.Same(published, host.Catalog.GetCurrentSnapshot());
     }
 
+    /// <summary>One accepted policy revision classifies and resolves each exact route once.</summary>
+    [Fact]
+    public void SourceEvaluatesEachRouteOnceBeforeOneDisclosure()
+    {
+        CanonicalCapabilityPolicySnapshot policy =
+            BuiltInCanonicalCapabilityPolicy.Load();
+        var classifications = new Dictionary<string, int>(StringComparer.Ordinal);
+        var resolutions = new Dictionary<string, int>(StringComparer.Ordinal);
+        int policyLoads = 0;
+        int disclosureLoads = 0;
+        var source = new CanonicalCapabilityCatalogSource(
+            () =>
+            {
+                policyLoads++;
+                return policy;
+            },
+            identity =>
+            {
+                classifications[identity.RouteId] =
+                    classifications.GetValueOrDefault(identity.RouteId) + 1;
+                return CanonicalDynamicRouteInventory.IsDynamic(identity);
+            },
+            identity =>
+            {
+                resolutions[identity.RouteId] =
+                    resolutions.GetValueOrDefault(identity.RouteId) + 1;
+                return CanonicalCompiledRouteInventory.Resolve(identity);
+            },
+            identity =>
+            {
+                resolutions[identity.RouteId] =
+                    resolutions.GetValueOrDefault(identity.RouteId) + 1;
+                return CanonicalDynamicRouteInventory.Resolve(identity);
+            },
+            (definitions, dynamicDefinitions) =>
+            {
+                disclosureLoads++;
+                return CanonicalCapabilityDisclosureInventory.Create(
+                    definitions,
+                    dynamicDefinitions);
+            });
+
+        CapabilityCatalogLoadResult result = source.Load(
+            TestContext.Current.CancellationToken);
+
+        Assert.True(result.Succeeded);
+        Assert.Equal(1, policyLoads);
+        Assert.Equal(1, disclosureLoads);
+        Assert.Equal(policy.Routes.Count, classifications.Count);
+        Assert.Equal(policy.Routes.Count, resolutions.Count);
+        Assert.All(policy.Routes, route =>
+        {
+            Assert.Equal(1, classifications[route.Identity.RouteId]);
+            Assert.Equal(1, resolutions[route.Identity.RouteId]);
+        });
+    }
+
     /// <summary>Concurrent operations retain distinct FIFO progress and terminal-result streams.</summary>
     [Fact]
     public async Task ConcurrentCatalogLoadsKeepProgressRequestScoped()

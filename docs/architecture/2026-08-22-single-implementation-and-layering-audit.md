@@ -152,12 +152,29 @@ architecture worse. After golden and exact-write evidence is frozen, extract
 pure internal phase objects while retaining one public compiler and one
 execution port.
 
+**Completed 2026-08-24.** `V2CompositionPlanCompiler` remains the sole public
+compiler and now delegates its admitted resolved-map lowering sequence to one
+private `ResolvedMapCompilationPhase`. `CompositionRunService` remains the
+sole run publisher; accepted General draft, resolved capability, and delivery
+evidence enter before execution and every published evidence property is
+get-only. No alternate compiler, executor, result DTO, or cache was added.
+Architecture passes 225/225; Application 688/688, Profile Contract 387/387,
+Golden 18/18, Bootstrap 1,018/1,018, and UI Smoke 673/673 pass. Shipped
+production falls to 793 files / 110,559 nonblank lines and counted runtime to
+536 / 75,272.
+
 ### A4 — readiness vocabulary density (medium)
 
 Input selection, General admission, active-session blocking, and action ranking
 are intentionally separate dimensions, not confirmed duplicates. Their similar
 names make a new `IsReady` helper easy to add incorrectly. Future changes must
 declare the readiness dimension and reuse the final typed blocker/ranking path.
+
+**Completed 2026-08-24.** The re-audit retained the distinct input-selection,
+General-admission, active-session blocking, and action-ranking dimensions.
+Three result-level flags with no non-default production writer were removed
+with their unreachable client branches. The live action-readiness presentation
+path remains typed and unchanged; no generic `IsReady` alias was introduced.
 
 ### A5 — unused-module deletion confidence (medium)
 
@@ -179,6 +196,14 @@ composition-root instance; it implements the live
 tests. This remains an explicit owner decision from the `v0.10.4` audit, not an
 automatic deletion: delete the concrete adapter only if the owner confirms
 that external Saved Rule identity adapters are not a compatibility boundary.
+
+**Completed 2026-08-24 as a conservative deletion audit.** Constructor,
+assignment, production-caller, composition-root, XAML/reflection, package, and
+focused-test scans confirmed no whole production module safe to delete without
+an owner compatibility decision. Only the three zero-writer run-result
+dimensions proven unreachable by compiled clients were deleted. The
+`SavedRuleDocumentIdentityReader` adapter remains the one explicit owner
+decision and is not misreported as dead code.
 
 ### A6 — workflow-specific execution dispatch (high)
 
@@ -315,6 +340,15 @@ Add invocation-count and identity-sharing tests before consolidating repeated
 evaluation. Then construct the complete run result once, or use one private
 builder that returns an immutable result. Do not add a process-global cache or
 change report/output identity.
+
+**Completed 2026-08-24.** A red-capable work-count test proved the catalog
+source classified every route twice. It now classifies each exact route once,
+resolves it once, and creates disclosure once per policy revision while
+preserving the existing static-before-dynamic progress/failure order. Existing
+run tests continue to prove one successful read/hash for a shared immutable
+artifact. `CompositionRunResult` now publishes complete defensive-copied,
+get-only evidence in one construction; post-return evidence mutation is
+impossible. No process-global cache or report/output identity change was made.
 
 ## 2026-08-23 code-size refresh
 

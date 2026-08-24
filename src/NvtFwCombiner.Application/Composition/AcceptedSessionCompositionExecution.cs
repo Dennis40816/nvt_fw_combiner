@@ -30,6 +30,7 @@ internal static class AcceptedSessionCompositionExecution
         TopologySelection? abMergeTopologySelection,
         IReadOnlyList<CompositionIssue>? advisoryIssues,
         GeneralAuthoringAdmissionSummary? generalAdmission,
+        GeneralMappingDraftState? acceptedGeneralMappingDraft,
         CompositionExecutionBundleDelivery? bundleDelivery,
         CompositionRunProgressFeed progress,
         CancellationToken cancellationToken)
@@ -61,6 +62,7 @@ internal static class AcceptedSessionCompositionExecution
         {
             PreparedOutputName = bundleDelivery?.Admission.PreparedOutputName,
             BundleDelivery = bundleDelivery,
+            AcceptedGeneralMappingDraft = acceptedGeneralMappingDraft,
         };
         var service = new CompositionRunService(
             inputs.Reader,
@@ -68,11 +70,9 @@ internal static class AcceptedSessionCompositionExecution
             outputWriter,
             externalProcessor,
             deliveryWriter);
-        CompositionRunResult result = await service
+        return await service
             .PreviewOrBuildAsync(request, build, progress, cancellationToken)
             .ConfigureAwait(false);
-        result.ResolvedCapability = inputs.Capability;
-        return result;
     }
 }
 

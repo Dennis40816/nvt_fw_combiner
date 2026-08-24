@@ -17,14 +17,7 @@ public static class CompositionRunReportJson
     public static string Serialize(CompositionRunResult result)
     {
         ArgumentNullException.ThrowIfNull(result);
-        if (!result.SuppressOutputInExternalReport)
-        {
-            return JsonSerializer.Serialize(result.Report, Options);
-        }
-
-        JsonObject projection = JsonSerializer.SerializeToNode(result.Report, Options)!.AsObject();
-        projection[nameof(CompositionRunReport.Output)] = null;
-        return projection.ToJsonString(Options);
+        return JsonSerializer.Serialize(result.Report, Options);
     }
 
     /// <summary>Serializes one typed plan-only report while explicitly omitting an output artifact.</summary>

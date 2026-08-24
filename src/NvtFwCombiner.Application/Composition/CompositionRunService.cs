@@ -249,7 +249,9 @@ public sealed partial class CompositionRunService
                 inspectionOutputSpaceId: null,
                 inspectionReferenceSpaceId: null,
                 inspectionReferenceBytes: null,
-                inspectionOutputBytes: null);
+                inspectionOutputBytes: null,
+                acceptedGeneralMappingDraft: request.AcceptedGeneralMappingDraft,
+                resolvedCapability: request.ResolvedCapability);
         }
 
         progressPublisher.Report(CompositionRunPhase.ReadingInputs);
@@ -536,12 +538,12 @@ public sealed partial class CompositionRunService
             inspectionReferenceBytes,
             inspectionReferenceBytes is null
                 ? default(ReadOnlyMemory<byte>?)
-                : execution.OutputBytes)
-        {
-            DeliveryArtifacts = deliveredArtifacts.AsReadOnly(),
-            IsDeliveryComplete = isDeliveryComplete,
-            DeliveryFailureMessage = deliveryFailureMessage,
-        };
+                : execution.OutputBytes,
+            acceptedGeneralMappingDraft: request.AcceptedGeneralMappingDraft,
+            resolvedCapability: request.ResolvedCapability,
+            deliveryArtifacts: deliveredArtifacts,
+            isDeliveryComplete: isDeliveryComplete,
+            deliveryFailureMessage: deliveryFailureMessage);
     }
 
     private static CompositionOutputBundleDeliverySummary? ValidateCommitReceipt(

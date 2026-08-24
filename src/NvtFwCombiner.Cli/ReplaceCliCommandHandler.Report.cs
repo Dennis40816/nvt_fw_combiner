@@ -1,5 +1,4 @@
 using System.Globalization;
-using NvtFwCombiner.Application.Capabilities;
 using NvtFwCombiner.Domain.Composition;
 
 namespace NvtFwCombiner.Cli;
@@ -19,7 +18,7 @@ internal static partial class ReplaceCliCommandHandler
         bool isDiagnosticPlanOnly = StringComparer.Ordinal.Equals(
             result.OutcomeStatus,
             "DiagnosticPlanOnly");
-        if (isDiagnosticPlanOnly || !result.HasRunReport)
+        if (isDiagnosticPlanOnly)
         {
             await output.WriteLineAsync("Output: not produced").ConfigureAwait(false);
         }
@@ -33,20 +32,6 @@ internal static partial class ReplaceCliCommandHandler
         if (result.CommittedOutputId is not null)
         {
             await output.WriteLineAsync($"Committed: {result.CommittedOutputId}").ConfigureAwait(false);
-        }
-
-        if (!result.HasRunReport)
-        {
-            CapabilityActionBlocker? blocker =
-                result.ActionReadiness?.Build.PrimaryBlocker;
-            if (blocker is not null)
-            {
-                await error.WriteLineAsync(
-                        $"  {blocker.Code}: {blocker.Message} ({blocker.SubjectId})")
-                    .ConfigureAwait(false);
-            }
-
-            return;
         }
 
         if (result.Report.DiagnosticPreview is { } diagnostic)

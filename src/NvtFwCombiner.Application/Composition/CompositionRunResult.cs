@@ -18,8 +18,11 @@ public sealed class CompositionRunResult
         byte[]? inspectionReferenceBytes,
         ReadOnlyMemory<byte>? inspectionOutputBytes,
         string? outcomeStatus = null,
-        bool suppressOutputInExternalReport = false,
-        bool hasRunReport = true)
+        GeneralMappingDraftState? acceptedGeneralMappingDraft = null,
+        ResolvedCapability? resolvedCapability = null,
+        IReadOnlyList<CompositionDeliveryArtifact>? deliveryArtifacts = null,
+        bool isDeliveryComplete = true,
+        string? deliveryFailureMessage = null)
     {
         ArgumentNullException.ThrowIfNull(report);
         bool hasInspection = inspectionReferenceBytes is not null;
@@ -39,8 +42,12 @@ public sealed class CompositionRunResult
         OutcomeStatus = string.IsNullOrWhiteSpace(outcomeStatus)
             ? status.ToString()
             : outcomeStatus;
-        SuppressOutputInExternalReport = suppressOutputInExternalReport;
-        HasRunReport = hasRunReport;
+        AcceptedGeneralMappingDraft = acceptedGeneralMappingDraft;
+        ResolvedCapability = resolvedCapability;
+        DeliveryArtifacts = Array.AsReadOnly<CompositionDeliveryArtifact>(
+            deliveryArtifacts is null ? [] : [.. deliveryArtifacts]);
+        IsDeliveryComplete = isDeliveryComplete;
+        DeliveryFailureMessage = deliveryFailureMessage;
         InspectionSnapshot = inspectionReferenceBytes is { } referenceBytes
             ? new CompositionRunInspectionSnapshot(
                 report.RunId,
@@ -71,7 +78,7 @@ public sealed class CompositionRunResult
     public CompositionRunInspectionSnapshot? InspectionSnapshot { get; }
 
     /// <summary>Application summary for UI, CLI, and regression tests; not the canonical v1 report artifact.</summary>
-    public CompositionRunReport Report { get; internal set; }
+    public CompositionRunReport Report { get; }
 
     /// <summary>Adapter-owned destination id when build committed output.</summary>
     public string? CommittedOutputId { get; }
@@ -95,26 +102,18 @@ public sealed class CompositionRunResult
     internal OutputNamingSummary? OutputNaming => Report.OutputNaming;
 
     /// <summary>Exact accepted General draft retained for Preview-to-Build reuse.</summary>
-    public GeneralMappingDraftState? AcceptedGeneralMappingDraft { get; internal set; }
+    public GeneralMappingDraftState? AcceptedGeneralMappingDraft { get; }
 
     /// <summary>Exact immutable capability consumed by this run.</summary>
-    public ResolvedCapability? ResolvedCapability { get; internal set; }
-
-    /// <summary>True when this outcome owns a typed run report rather than readiness only.</summary>
-    public bool HasRunReport { get; }
-
-    /// <summary>Shared action readiness retained for a non-executed typed result.</summary>
-    public CapabilityActionReadinessSnapshot? ActionReadiness { get; internal set; }
+    public ResolvedCapability? ResolvedCapability { get; }
 
     /// <summary>Additional artifacts committed from the completed primary output.</summary>
-    public IReadOnlyList<CompositionDeliveryArtifact> DeliveryArtifacts { get; internal set; } = [];
+    public IReadOnlyList<CompositionDeliveryArtifact> DeliveryArtifacts { get; }
 
     /// <summary>True when every selected additional delivery completed.</summary>
-    public bool IsDeliveryComplete { get; internal set; } = true;
+    public bool IsDeliveryComplete { get; }
 
     /// <summary>Operator-safe detail when the primary output committed but an additional delivery failed.</summary>
-    public string? DeliveryFailureMessage { get; internal set; }
-
-    internal bool SuppressOutputInExternalReport { get; }
+    public string? DeliveryFailureMessage { get; }
 
 }

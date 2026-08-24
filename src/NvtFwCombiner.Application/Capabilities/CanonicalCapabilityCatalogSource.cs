@@ -68,16 +68,16 @@ internal sealed class CanonicalCapabilityCatalogSource(
             _ = progress?.TryWrite(new(0, Result: null));
             List<CanonicalCapabilityDefinition> definitions = [];
             List<CanonicalDynamicCapabilityDefinition> dynamicDefinitions = [];
-            foreach (CanonicalCapabilityPolicyRoute route in
-                     policy.Routes.Where(route => !isDynamicRoute(route.Identity)))
+            ILookup<bool, CanonicalCapabilityPolicyRoute> classifiedRoutes =
+                policy.Routes.ToLookup(route => isDynamicRoute(route.Identity));
+            foreach (CanonicalCapabilityPolicyRoute route in classifiedRoutes[false])
             {
                 cancellationToken.ThrowIfCancellationRequested();
                 definitions.Add(Materialize(route));
                 cancellationToken.ThrowIfCancellationRequested();
                 _ = progress?.TryWrite(new((double)++completedRoutes / (totalRoutes + 1), Result: null));
             }
-            foreach (CanonicalCapabilityPolicyRoute route in
-                     policy.Routes.Where(route => isDynamicRoute(route.Identity)))
+            foreach (CanonicalCapabilityPolicyRoute route in classifiedRoutes[true])
             {
                 cancellationToken.ThrowIfCancellationRequested();
                 dynamicDefinitions.Add(MaterializeDynamic(route));

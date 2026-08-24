@@ -103,8 +103,7 @@ internal static partial class ReplaceCliCommandHandler
                 cancellationToken)
             .ConfigureAwait(false);
 
-        if (result.HasRunReport &&
-            options.Values.TryGetValue("--report", out string? reportPath))
+        if (options.Values.TryGetValue("--report", out string? reportPath))
         {
             string fullPath = Path.GetFullPath(reportPath);
             ProtectedPathGuard.EnsureDoesNotAlias(

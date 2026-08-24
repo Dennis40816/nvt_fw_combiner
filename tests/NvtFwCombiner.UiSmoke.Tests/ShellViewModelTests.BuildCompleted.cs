@@ -502,11 +502,13 @@ public sealed partial class BuildOutcomeTests
         bool isDeliveryComplete = true,
         string? deliveryFailureMessage = null)
     {
-        CompositionRunResult clone = CloneRunResult(source, source.CommittedOutputId, source.Report);
-        clone.DeliveryArtifacts = [.. deliveryArtifacts];
-        clone.IsDeliveryComplete = isDeliveryComplete;
-        clone.DeliveryFailureMessage = deliveryFailureMessage;
-        return clone;
+        return CloneRunResult(
+            source,
+            source.CommittedOutputId,
+            source.Report,
+            deliveryArtifacts,
+            isDeliveryComplete,
+            deliveryFailureMessage);
     }
 
     private sealed class RecordingFileRevealService(bool result) : IFileRevealService

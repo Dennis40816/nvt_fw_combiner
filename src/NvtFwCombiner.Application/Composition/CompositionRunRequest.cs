@@ -112,6 +112,9 @@ public sealed class CompositionRunRequest
     /// <summary>Exact prepared bundle source and receipt expectation.</summary>
     internal CompositionExecutionBundleDelivery? BundleDelivery { get; set; }
 
+    /// <summary>Exact accepted General draft captured before execution begins.</summary>
+    internal GeneralMappingDraftState? AcceptedGeneralMappingDraft { get; init; }
+
     /// <summary>Returns a copy of this request with a preview token approved for build.</summary>
     public CompositionRunRequest WithApprovedPreviewToken(string previewToken)
     {
