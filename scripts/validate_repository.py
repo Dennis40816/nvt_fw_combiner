@@ -194,7 +194,6 @@ EXPECTED_PROJECT_REFERENCES = {
     "src/NvtFwCombiner.Application/NvtFwCombiner.Application.csproj": {
         "src/NvtFwCombiner.Domain/NvtFwCombiner.Domain.csproj",
         "src/NvtFwCombiner.Contracts/NvtFwCombiner.Contracts.csproj",
-        "src/NvtFwCombiner.VersionManagement.Application/NvtFwCombiner.VersionManagement.Application.csproj",
     },
     "src/NvtFwCombiner.Profiles/NvtFwCombiner.Profiles.csproj": {
         "src/NvtFwCombiner.Domain/NvtFwCombiner.Domain.csproj",
@@ -205,7 +204,6 @@ EXPECTED_PROJECT_REFERENCES = {
         "src/NvtFwCombiner.Contracts/NvtFwCombiner.Contracts.csproj",
         "src/NvtFwCombiner.Application/NvtFwCombiner.Application.csproj",
         "src/NvtFwCombiner.Profiles/NvtFwCombiner.Profiles.csproj",
-        "src/NvtFwCombiner.VersionManagement.Infrastructure/NvtFwCombiner.VersionManagement.Infrastructure.csproj",
     },
     "src/NvtFwCombiner.VersionManagement.Infrastructure/NvtFwCombiner.VersionManagement.Infrastructure.csproj": {
         "src/NvtFwCombiner.Contracts/NvtFwCombiner.Contracts.csproj",
@@ -214,6 +212,8 @@ EXPECTED_PROJECT_REFERENCES = {
     "src/NvtFwCombiner.Bootstrap/NvtFwCombiner.Bootstrap.csproj": {
         "src/NvtFwCombiner.Application/NvtFwCombiner.Application.csproj",
         "src/NvtFwCombiner.Infrastructure/NvtFwCombiner.Infrastructure.csproj",
+        "src/NvtFwCombiner.VersionManagement.Application/NvtFwCombiner.VersionManagement.Application.csproj",
+        "src/NvtFwCombiner.VersionManagement.Infrastructure/NvtFwCombiner.VersionManagement.Infrastructure.csproj",
     },
     "src/NvtFwCombiner.Cli/NvtFwCombiner.Cli.csproj": {
         "src/NvtFwCombiner.Bootstrap/NvtFwCombiner.Bootstrap.csproj"

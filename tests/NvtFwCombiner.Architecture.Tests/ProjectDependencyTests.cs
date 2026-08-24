@@ -20,6 +20,31 @@ public sealed class ProjectDependencyTests
         Assert.Empty(project.Descendants("ProjectReference"));
     }
 
+    /// <summary>Verifies that only Bootstrap directly composes the managed-version bounded context.</summary>
+    [Fact]
+    public void BootstrapOwnsDirectVersionManagementProjectReferences()
+    {
+        Assert.Equal(
+            ["NvtFwCombiner.Contracts", "NvtFwCombiner.Domain"],
+            ProjectReferences("NvtFwCombiner.Application"));
+        Assert.Equal(
+            [
+                "NvtFwCombiner.Application",
+                "NvtFwCombiner.Contracts",
+                "NvtFwCombiner.Domain",
+                "NvtFwCombiner.Profiles",
+            ],
+            ProjectReferences("NvtFwCombiner.Infrastructure"));
+        Assert.Equal(
+            [
+                "NvtFwCombiner.Application",
+                "NvtFwCombiner.Infrastructure",
+                "NvtFwCombiner.VersionManagement.Application",
+                "NvtFwCombiner.VersionManagement.Infrastructure",
+            ],
+            ProjectReferences("NvtFwCombiner.Bootstrap"));
+    }
+
     /// <summary>Verifies that immutable reference code is never compiled by production projects.</summary>
     [Fact]
     public void ReferenceCodeIsNeverIncludedByProductionProjects()
@@ -53,5 +78,18 @@ public sealed class ProjectDependencyTests
         }
 
         return current ?? throw new DirectoryNotFoundException("Repository root was not found.");
+    }
+
+    private static string[] ProjectReferences(string projectName)
+    {
+        DirectoryInfo root = FindRepositoryRoot();
+        string projectPath = Path.Combine(root.FullName, "src", projectName, $"{projectName}.csproj");
+        var project = XDocument.Load(projectPath);
+        return
+        [
+            .. project.Descendants("ProjectReference")
+                .Select(reference => Path.GetFileNameWithoutExtension(reference.Attribute("Include")!.Value))
+                .Order(StringComparer.Ordinal),
+        ];
     }
 }

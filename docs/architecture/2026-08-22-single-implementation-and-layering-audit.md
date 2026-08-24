@@ -109,6 +109,17 @@ version-management, Bootstrap, and full gates. This is a dependency-only
 refactor and must not alter update, verification, activation, or rollback
 behavior.
 
+**Completed 2026-08-24 — A1 plus the project-graph portion of A9.** Bootstrap
+now owns both direct version-management references; the main Application and
+Infrastructure projects no longer carry their unused bounded-context
+references. `ProjectDependencyTests` and the canonical repository validator
+both lock the same exact direct graph. The new test failed against the old graph
+before the project edit. Architecture passed 221/221, version-management
+Application/Infrastructure tests passed 114/114 and 98/98, Bootstrap passed
+1,017/1,017, the Release solution build completed with zero warnings/errors,
+the validator unit slice passed 19/19, and the structure/Polytail gate passed.
+Production C#/AXAML and counted runtime size are unchanged.
+
 ### A2 — Presentation orchestration depth (high)
 
 The refreshed partial-module scan reports `MainWindowViewModel` 1,060 lines,
