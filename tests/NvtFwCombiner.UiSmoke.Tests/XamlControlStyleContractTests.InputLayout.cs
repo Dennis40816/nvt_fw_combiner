@@ -7,6 +7,7 @@ using Avalonia.Controls.Primitives;
 using Avalonia.Headless;
 using Avalonia.Headless.XUnit;
 using Avalonia.Markup.Xaml.Styling;
+using Avalonia.Media;
 using Avalonia.Styling;
 using Avalonia.Threading;
 using Avalonia.VisualTree;
@@ -32,6 +33,7 @@ public sealed partial class XamlControlStyleContractTests
     {
         string slotCard = ReadPresentationFile("Views/FirmwareSlotCard.axaml");
         string codeBehind = ReadPresentationFile("Views/FirmwareSlotCard.axaml.cs");
+        string buttonStyles = ReadPresentationFile("Styles/MainWindowButtonStyles.axaml");
 
         var document = XDocument.Parse(slotCard);
         XElement layout = Assert.Single(document.Descendants(), element =>
@@ -126,6 +128,14 @@ public sealed partial class XamlControlStyleContractTests
         Assert.Contains(
             "FormatBrowseActionLabel(BrowseLabel, slot.Title)",
             codeBehind,
+            StringComparison.Ordinal);
+        Assert.Contains(
+            "<Style Selector=\"Button.danger:disabled /template/ ContentPresenter#PART_ContentPresenter\">",
+            buttonStyles,
+            StringComparison.Ordinal);
+        Assert.Contains(
+            "<Setter Property=\"TextElement.Foreground\" Value=\"{DynamicResource NfcTextDisabledBrush}\" />",
+            buttonStyles,
             StringComparison.Ordinal);
     }
 
@@ -351,14 +361,22 @@ public sealed partial class XamlControlStyleContractTests
 
             Point emptyBrowseSurfaceOrigin = Assert.IsType<Point>(
                 browseSurface.TranslatePoint(default, selector));
+            TextBlock clearIcon = Assert.IsType<TextBlock>(clear.Content);
+            Color disabledColor = Color.Parse(useDarkTheme ? "#64748B" : "#94A3B8");
             Assert.True(clear.IsVisible);
             Assert.False(clear.IsEnabled);
+            Assert.Equal(disabledColor, Assert.IsType<SolidColorBrush>(clear.Foreground).Color);
+            Assert.Equal(disabledColor, Assert.IsType<SolidColorBrush>(clearIcon.Foreground).Color);
             Assert.Equal(selectedBrowseX, emptyBrowseSurfaceOrigin.X, precision: 3);
             Assert.Equal(selectedActionsWidth, actions.Bounds.Width, precision: 3);
 
             slot.FilePath = useTpSlot ? @"C:\firmware\tp.bin" : @"C:\firmware\dp.bin";
             Dispatcher.UIThread.RunJobs();
+            AvaloniaHeadlessPlatform.ForceRenderTimerTick();
             Assert.True(clear.IsEnabled);
+            Color dangerColor = Color.Parse(useDarkTheme ? "#FCA5A5" : "#B91C1C");
+            Assert.Equal(dangerColor, Assert.IsType<SolidColorBrush>(clear.Foreground).Color);
+            Assert.Equal(dangerColor, Assert.IsType<SolidColorBrush>(clearIcon.Foreground).Color);
             using Avalonia.Media.Imaging.Bitmap? frame = host.GetLastRenderedFrame();
             Assert.NotNull(frame);
             string? outputDirectory = Environment.GetEnvironmentVariable("NFC_VISUAL_OUTPUT_DIR");
