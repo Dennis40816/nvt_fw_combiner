@@ -250,7 +250,7 @@ internal sealed partial class BuiltInFirmwareInspection : IFirmwareInspection
             CompiledFirmwareArtifactKind.Unknown or null => BaseFirmwareArtifactKind.Unknown,
             _ => throw new InvalidOperationException("Unknown compiled firmware artifact kind."),
         };
-        bool shouldProjectDpMetadata = artifactKind != BaseFirmwareArtifactKind.TpFirmware;
+        bool shouldProjectDpMetadata = artifactClassification?.IsDpMetadataApplicable != false;
         LegacyCombinerPostbuildProfile? postbuildProfile = TryResolvePostbuildProfileForDisplay(
             inspection._projection,
             icId,

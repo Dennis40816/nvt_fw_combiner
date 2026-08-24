@@ -82,7 +82,7 @@ public sealed record FirmwareContextSuggestion(
     string CommonFwVersion,
     ushort ProjectId);
 
-/// <summary>Read-only base-image shape classification used only for CtrlRAM Replace output naming.</summary>
+/// <summary>Compatibility shape for CtrlRAM naming; DP metadata uses it only when compiled classification is absent.</summary>
 public enum BaseFirmwareArtifactKind
 {
     /// <summary>The available bytes do not establish a declared TP-only or FlashCode shape.</summary>

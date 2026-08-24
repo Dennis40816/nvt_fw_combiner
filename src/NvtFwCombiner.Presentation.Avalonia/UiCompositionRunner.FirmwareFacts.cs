@@ -1,4 +1,3 @@
-using NvtFwCombiner.Application.InputInspection;
 using NvtFwCombiner.Domain.Composition;
 using NvtFwCombiner.Presentation.Avalonia.ViewModels;
 
@@ -46,9 +45,9 @@ internal static partial class UiCompositionRunner
         ArgumentNullException.ThrowIfNull(inspection);
         text ??= ShellTextResources.For(ShellLanguage.English);
 
-        if (inspection.ArtifactClassification?.Signals.Any(static signal =>
-                signal.Kind == CompiledFirmwareArtifactSignalKind.DpContentPlausibility &&
-                signal.Status == CompiledFirmwareArtifactSignalStatus.NotSatisfied) == true)
+        bool isApplicable = inspection.ArtifactClassification?.IsDpMetadataApplicable ??
+            (inspection.BaseFirmwareArtifactKind != BaseFirmwareArtifactKind.TpFirmware);
+        if (!isApplicable)
         {
             return [];
         }

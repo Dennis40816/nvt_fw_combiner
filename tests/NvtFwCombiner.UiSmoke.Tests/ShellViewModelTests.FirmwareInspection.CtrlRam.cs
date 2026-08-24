@@ -1,4 +1,5 @@
 using System.Text.Json;
+using NvtFwCombiner.Application.InputInspection;
 using NvtFwCombiner.Domain.Composition;
 using NvtFwCombiner.Presentation.Avalonia.ViewModels;
 using NvtFwCombiner.TestSupport;
@@ -114,13 +115,23 @@ public sealed partial class CtrlRamWorkflowTests
             TestContext.Current.CancellationToken);
 
         FirmwareSlotViewModel baseSlot = viewModel.Replace.ReplaceBaseSlot;
-        Assert.Null(baseSlot.InputInspectionSeverity);
+        FirmwareInspectionSnapshot inspection = Assert.IsType<FirmwareInspectionSnapshot>(
+            baseSlot.CurrentInspectionProjection);
+        Assert.True(baseSlot.InputInspectionSeverity is null, baseSlot.InputInspectionStatus);
         Assert.False(baseSlot.BlocksBuild);
         Assert.Equal(FirmwareSlotSemanticState.Inspected, baseSlot.SemanticState);
         Assert.Equal("Base inspected", baseSlot.SemanticStateLabel);
         Assert.Equal(
             CtrlRamBaseDiscoveryReadiness.Inspected,
-            baseSlot.CurrentInspectionProjection?.CtrlRamBaseDiscoveryReadiness);
+            inspection.CtrlRamBaseDiscoveryReadiness);
+        Assert.Equal(BaseFirmwareArtifactKind.TpFirmware, inspection.BaseFirmwareArtifactKind);
+        Assert.Equal(
+            CompiledFirmwareArtifactKind.TpFirmware,
+            Assert.IsType<CompiledFirmwareArtifactClassification>(inspection.ArtifactClassification).Kind);
+        Assert.False(inspection.ArtifactClassification.IsDpMetadataApplicable);
+        Assert.Null(inspection.DpVersion);
+        Assert.Null(inspection.CmiDpCode);
+        Assert.DoesNotContain(baseSlot.FirmwareFacts, fact => fact.Label is "DP Version" or "Jira Index");
         Assert.Equal(WorkflowInspectionAttemptState.Succeeded, viewModel.Replace.Inspection.State);
         Assert.False(viewModel.Replace.CanBuildReplace);
         Assert.DoesNotContain(

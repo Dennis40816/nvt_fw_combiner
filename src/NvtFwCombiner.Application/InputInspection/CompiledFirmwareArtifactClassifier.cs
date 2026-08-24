@@ -89,6 +89,9 @@ public sealed class CompiledFirmwareArtifactClassification
 
     /// <summary>Complete typed evidence used to establish <see cref="Kind"/>.</summary>
     public IReadOnlyList<CompiledFirmwareArtifactSignal> Signals { get; }
+
+    /// <summary>Gets the terminal Application decision for DP metadata applicability.</summary>
+    public bool IsDpMetadataApplicable => Kind != CompiledFirmwareArtifactKind.TpFirmware && _signals.Single(static signal => signal.Kind == CompiledFirmwareArtifactSignalKind.DpContentPlausibility).Status != CompiledFirmwareArtifactSignalStatus.NotSatisfied;
 }
 
 /// <summary>

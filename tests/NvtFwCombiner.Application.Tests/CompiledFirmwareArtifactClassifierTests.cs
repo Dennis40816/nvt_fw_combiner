@@ -20,6 +20,7 @@ public sealed class CompiledFirmwareArtifactClassifierTests
         Assert.Equal(CompiledFirmwareArtifactKind.FlashCode, result.Kind);
         Assert.All(result.Signals, static signal =>
             Assert.Equal(CompiledFirmwareArtifactSignalStatus.Satisfied, signal.Status));
+        Assert.True(result.IsDpMetadataApplicable);
     }
 
     /// <summary>A TP source with a repeated-byte DP range is identified without claiming FlashCode.</summary>
@@ -38,6 +39,7 @@ public sealed class CompiledFirmwareArtifactClassifierTests
         Assert.Equal(
             CompiledFirmwareArtifactSignalStatus.Satisfied,
             Signal(result, CompiledFirmwareArtifactSignalKind.TpContentPlausibility).Status);
+        Assert.False(result.IsDpMetadataApplicable);
     }
 
     /// <summary>A full-length Initial Code candidate with no plausible TP range remains Unknown.</summary>
@@ -53,6 +55,42 @@ public sealed class CompiledFirmwareArtifactClassifierTests
         Assert.Equal(
             new ByteRange(4, 4),
             Signal(result, CompiledFirmwareArtifactSignalKind.TpContentPlausibility).FailedRange);
+        Assert.True(result.IsDpMetadataApplicable);
+    }
+
+    /// <summary>Uniform DP remains metadata-inapplicable even when uniform TP keeps the overall kind Unknown.</summary>
+    [Fact]
+    public void UniformDpHasTerminalNotApplicableMetadataDisposition()
+    {
+        CompiledFirmwareArtifactClassification result =
+            CompiledFirmwareArtifactClassifier.Classify(
+                Composition(),
+                Candidate(dpProgrammed: false, tpProgrammed: false, length: 16));
+
+        Assert.Equal(CompiledFirmwareArtifactKind.Unknown, result.Kind);
+        Assert.False(result.IsDpMetadataApplicable);
+    }
+
+    /// <summary>The terminal TP-only kind wins even if lower DP plausibility evidence conflicts.</summary>
+    [Fact]
+    public void TpFirmwareKindCannotExposeDpMetadataFromLowerSignal()
+    {
+        CompiledFirmwareArtifactSignal[] signals =
+        [
+            .. Enum.GetValues<CompiledFirmwareArtifactSignalKind>().Select(kind =>
+                new CompiledFirmwareArtifactSignal(
+                    kind,
+                    CompiledFirmwareArtifactSignalStatus.Satisfied,
+                    AddressSpaceId: null,
+                    RequiredEndExclusive: 0,
+                    FailedRange: null)),
+        ];
+
+        var result = new CompiledFirmwareArtifactClassification(
+            CompiledFirmwareArtifactKind.TpFirmware,
+            signals);
+
+        Assert.False(result.IsDpMetadataApplicable);
     }
 
     /// <summary>Valid section content cannot replace exact complete-container capacity authority.</summary>

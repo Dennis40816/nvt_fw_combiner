@@ -164,6 +164,71 @@ public sealed partial class VersionManagementExperienceTests
         Assert.Null(stateStore.State.PendingMutation);
     }
 
+    /// <summary>A confirmed install from an obsolete source generation fails typed before any mutation.</summary>
+    [Fact]
+    public async Task SourceChangedAfterConfirmationReturnsPackageUnavailableWithoutMutation()
+    {
+        VersionManagerState initial = State(
+            [Admission("0.10.5")],
+            active: "0.10.5",
+            lastKnownGood: "0.10.5");
+        var stateStore = new MemoryStateStore(initial);
+        var repository = new TransactionRepository(initial.Admissions);
+        using var experience = new VersionManagementExperience(
+            ManagedAppVersion.Parse("0.10.5"),
+            "managed-root",
+            stateStore,
+            new FixedCatalogSource(Catalog("0.10.6")),
+            repository);
+        _ = await experience.CheckAsync(isAutomatic: false, TestContext.Current.CancellationToken);
+        stateStore.ReplaceState(State(
+            initial.Admissions,
+            active: "0.10.5",
+            lastKnownGood: "0.10.5",
+            source: "other-source"));
+
+        VersionInstallOperationResult result = await experience.InstallAsync(
+            ManagedAppVersion.Parse("0.10.6"),
+            TestContext.Current.CancellationToken);
+
+        Assert.Equal(ManagedVersionInstallIssue.PackageUnavailable, result.Install.Issue);
+        Assert.Equal("other-source", result.Snapshot.State!.UpdateSource);
+        Assert.Equal(0, repository.InstallCalls);
+        Assert.Equal(0, stateStore.SaveCount);
+        Assert.Null(stateStore.State.PendingMutation);
+    }
+
+    /// <summary>A newer catalog generation that removes the requested version fails before mutation.</summary>
+    [Fact]
+    public async Task CurrentCatalogWithoutRequestedVersionReturnsPackageUnavailableWithoutMutation()
+    {
+        VersionManagerState initial = State(
+            [Admission("0.10.5")],
+            active: "0.10.5",
+            lastKnownGood: "0.10.5");
+        var stateStore = new MemoryStateStore(initial);
+        var repository = new TransactionRepository(initial.Admissions);
+        var source = new MutableCatalogSource(Catalog("0.10.6"));
+        using var experience = new VersionManagementExperience(
+            ManagedAppVersion.Parse("0.10.5"),
+            "managed-root",
+            stateStore,
+            source,
+            repository);
+        _ = await experience.CheckAsync(isAutomatic: false, TestContext.Current.CancellationToken);
+        source.Snapshot = Catalog("0.10.7");
+        _ = await experience.CheckAsync(isAutomatic: false, TestContext.Current.CancellationToken);
+
+        VersionInstallOperationResult result = await experience.InstallAsync(
+            ManagedAppVersion.Parse("0.10.6"),
+            TestContext.Current.CancellationToken);
+
+        Assert.Equal(ManagedVersionInstallIssue.PackageUnavailable, result.Install.Issue);
+        Assert.Equal(0, repository.InstallCalls);
+        Assert.Equal(0, stateStore.SaveCount);
+        Assert.Null(stateStore.State.PendingMutation);
+    }
+
     /// <summary>An exact admitted retry is idempotent and never opens a second filesystem transaction.</summary>
     [Fact]
     public async Task ExactAlreadyAdmittedInstallReturnsSuccessWithoutMutation()

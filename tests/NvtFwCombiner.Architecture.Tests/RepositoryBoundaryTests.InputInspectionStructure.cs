@@ -2,6 +2,17 @@ namespace NvtFwCombiner.Architecture.Tests;
 
 public sealed partial class RepositoryBoundaryTests
 {
+    /// <summary>Only Application may interpret lower-level artifact-classification evidence.</summary>
+    [Fact]
+    public void PresentationCannotReclassifyTerminalFirmwareFacts()
+    {
+        string nonApplication = ReadNonApplicationProductionSources();
+        Assert.DoesNotContain("ArtifactClassification?.Signals", nonApplication, StringComparison.Ordinal);
+        Assert.DoesNotContain("ArtifactClassification.Signals", nonApplication, StringComparison.Ordinal);
+        Assert.DoesNotContain("CompiledFirmwareArtifactSignalKind", nonApplication, StringComparison.Ordinal);
+        Assert.DoesNotContain("CompiledFirmwareArtifactSignalStatus", nonApplication, StringComparison.Ordinal);
+    }
+
     /// <summary>One Application inspector owns input admission while adapters only project its result.</summary>
     [Fact]
     public void HeadlessSlotHealthKeepsOneApplicationInspectionAuthority()

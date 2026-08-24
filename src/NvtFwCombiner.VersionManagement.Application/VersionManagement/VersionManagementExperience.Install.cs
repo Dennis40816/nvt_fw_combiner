@@ -40,14 +40,11 @@ public sealed partial class VersionManagementExperience
                         current);
                 }
             }
-            string sourceRoot = state.UpdateSource ?? throw new InvalidOperationException("No update source is configured.");
-            UpdateCatalogVersionSnapshot package = current.Catalog?.Versions.SingleOrDefault(
-                candidate => candidate.Version == version) ??
-                throw new InvalidOperationException("The requested version is not in the current catalog generation.");
-            var expectedAdmission = new ManagedVersionAdmission(
-                package.Version,
-                package.Identity,
-                package.ReleaseManifestSha256);
+            if (state.UpdateSource is not { } sourceRoot || current.Catalog?.Versions.SingleOrDefault(candidate => candidate.Version == version) is not { } package)
+            {
+                return new(new(null, ManagedVersionInstallIssue.PackageUnavailable, WasAlreadyInstalled: false), current);
+            }
+            var expectedAdmission = new ManagedVersionAdmission(package.Version, package.Identity, package.ReleaseManifestSha256);
             ManagedVersionAdmission? existingAdmission = state.Admissions.SingleOrDefault(
                 admission => admission.Version == version);
             if (existingAdmission is not null)

@@ -334,10 +334,11 @@ public sealed partial class VersionManagementExperienceTests
     private static VersionManagerState State(
         IReadOnlyList<ManagedVersionAdmission> admissions,
         string active,
-        string lastKnownGood)
+        string lastKnownGood,
+        string source = "source-root")
     {
         return VersionManagerState.Create(
-            "source-root",
+            source,
             ManagedAppVersion.Parse(active),
             ManagedAppVersion.Parse(lastKnownGood),
             admissions,
@@ -375,6 +376,18 @@ public sealed partial class VersionManagementExperienceTests
             CancellationToken cancellationToken)
         {
             return ValueTask.FromResult(new UpdateCatalogLoadResult(snapshot, UpdateCatalogLoadIssue.None));
+        }
+    }
+
+    private sealed class MutableCatalogSource(UpdateCatalogSnapshot snapshot) : IUpdateCatalogSource
+    {
+        internal UpdateCatalogSnapshot Snapshot { get; set; } = snapshot;
+
+        public ValueTask<UpdateCatalogLoadResult> LoadAsync(
+            string sourceRoot,
+            CancellationToken cancellationToken)
+        {
+            return ValueTask.FromResult(new UpdateCatalogLoadResult(Snapshot, UpdateCatalogLoadIssue.None));
         }
     }
 
@@ -471,6 +484,11 @@ public sealed partial class VersionManagementExperienceTests
         internal int SaveCount { get; private set; }
 
         internal VersionManagerState State { get; private set; } = state;
+
+        internal void ReplaceState(VersionManagerState replacement)
+        {
+            State = replacement;
+        }
 
         public ValueTask<VersionManagerWriteLeaseResult> TryAcquireWriteLeaseAsync(
             string managedRoot,

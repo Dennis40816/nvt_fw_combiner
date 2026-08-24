@@ -1,5 +1,6 @@
 using System.Text.Json;
 using NvtFwCombiner.Application.Capabilities;
+using NvtFwCombiner.Application.InputInspection;
 using NvtFwCombiner.Domain.Composition;
 using NvtFwCombiner.Presentation.Avalonia;
 using NvtFwCombiner.Presentation.Avalonia.ViewModels;
@@ -51,6 +52,63 @@ public sealed partial class FirmwareInspectionSlotTests
 
         Assert.Equal(new FirmwareSlotFactViewModel("DP Version", "D00-0D"), legacyFact);
         Assert.Equal(legacyFact, cmiFact);
+    }
+
+    /// <summary>The terminal DP decision suppresses facts even when lower-level classification evidence is absent.</summary>
+    [Fact]
+    public void TerminalDpDecisionSuppressesFactsWithoutClassificationEvidence()
+    {
+        var tpFirmware = new FirmwareInspectionSnapshot(
+            "NT51927",
+            null,
+            null,
+            null,
+            null,
+            null,
+            BaseFirmwareArtifactKind.TpFirmware);
+
+        Assert.Empty(UiCompositionRunner.GetDpFirmwareSlotFacts(tpFirmware));
+    }
+
+    /// <summary>A compiled classification wins both directions of a contradictory legacy Base value.</summary>
+    [Fact]
+    public void CompiledDpMetadataDecisionWinsLegacyBaseFallback()
+    {
+        var legacyFlashCode = new FirmwareInspectionSnapshot(
+            "NT51927",
+            null,
+            new DpVersionMetadata("0102"),
+            null,
+            null,
+            null,
+            BaseFirmwareArtifactKind.FlashCode)
+        {
+            ArtifactClassification = CreateArtifactClassification(CompiledFirmwareArtifactKind.TpFirmware),
+        };
+        FirmwareInspectionSnapshot legacyTpFirmware = legacyFlashCode with
+        {
+            BaseFirmwareArtifactKind = BaseFirmwareArtifactKind.TpFirmware,
+            ArtifactClassification = CreateArtifactClassification(CompiledFirmwareArtifactKind.FlashCode),
+        };
+
+        Assert.Empty(UiCompositionRunner.GetDpFirmwareSlotFacts(legacyFlashCode));
+        Assert.NotEmpty(UiCompositionRunner.GetDpFirmwareSlotFacts(legacyTpFirmware));
+    }
+
+    private static CompiledFirmwareArtifactClassification CreateArtifactClassification(
+        CompiledFirmwareArtifactKind kind)
+    {
+        return new CompiledFirmwareArtifactClassification(
+            kind,
+            [
+                .. Enum.GetValues<CompiledFirmwareArtifactSignalKind>().Select(signalKind =>
+                    new CompiledFirmwareArtifactSignal(
+                        signalKind,
+                        CompiledFirmwareArtifactSignalStatus.Satisfied,
+                        AddressSpaceId: null,
+                        RequiredEndExclusive: 0,
+                        FailedRange: null)),
+            ]);
     }
 
     /// <summary>Verifies slot completion retains required and optional semantics for XAML state selectors.</summary>
