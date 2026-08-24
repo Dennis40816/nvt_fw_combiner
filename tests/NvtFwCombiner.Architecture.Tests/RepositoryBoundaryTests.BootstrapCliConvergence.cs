@@ -46,23 +46,16 @@ public sealed partial class RepositoryBoundaryTests
             bootstrapDirectory,
             "*CommandHandler*.cs",
             SearchOption.TopDirectoryOnly));
-        Assert.Contains("namespace NvtFwCombiner.Cli;", cliSources, StringComparison.Ordinal);
-        Assert.DoesNotContain("namespace NvtFwCombiner.Bootstrap;", cliSources, StringComparison.Ordinal);
+        AssertContainsAll(cliSources, "namespace NvtFwCombiner.Cli;");
+        AssertDoesNotContainAny(cliSources, "namespace NvtFwCombiner.Bootstrap;", "ReplaceRunAttempt");
         Assert.Empty(broadHostHandlers);
-        Assert.DoesNotContain("ReplaceRunAttempt", cliSources, StringComparison.Ordinal);
-        Assert.DoesNotContain("WarmCanonicalCapabilities", bootstrap, StringComparison.Ordinal);
-        Assert.DoesNotContain("StartCanonicalCatalogLoad", bootstrap, StringComparison.Ordinal);
-
-        Assert.DoesNotContain(
+        AssertDoesNotContainAny(bootstrap, "WarmCanonicalCapabilities", "StartCanonicalCatalogLoad",
             "public static OutputFileNameSuggestion CreateFlashCodeOutputFileName(",
-            bootstrap,
-            StringComparison.Ordinal);
-        Assert.DoesNotContain("private static string? FindDpVersionToken(", bootstrap, StringComparison.Ordinal);
-        Assert.DoesNotContain("private static string? FindTpVersionToken(", bootstrap, StringComparison.Ordinal);
-        Assert.DoesNotContain("public static FirmwareInspectionSnapshot InspectFirmware(", bootstrap, StringComparison.Ordinal);
-        Assert.DoesNotContain("public static DpVersionMetadata? TryReadDpVersionMetadata(", bootstrap, StringComparison.Ordinal);
-        Assert.DoesNotContain("public static CmiDpCodeMetadata? TryReadCmiDpCodeMetadata(", bootstrap, StringComparison.Ordinal);
-        Assert.DoesNotContain("public static FirmwareContextSuggestion? TryReadFirmwareContextSuggestion(", bootstrap, StringComparison.Ordinal);
+            "private static string? FindDpVersionToken(", "private static string? FindTpVersionToken(",
+            "public static FirmwareInspectionSnapshot InspectFirmware(",
+            "public static DpVersionMetadata? TryReadDpVersionMetadata(",
+            "public static CmiDpCodeMetadata? TryReadCmiDpCodeMetadata(",
+            "public static FirmwareContextSuggestion? TryReadFirmwareContextSuggestion(");
 
         Assert.False(File.Exists(Path.Combine(
             Root.FullName,
@@ -70,50 +63,39 @@ public sealed partial class RepositoryBoundaryTests
             "NvtFwCombiner.Bootstrap",
             "CliApplication.AbMerge.cs")));
         string cli = ReadText("src/NvtFwCombiner.Cli/CliApplication.cs");
-        Assert.DoesNotContain("RunAbMergeAsync(args[1..]", cli, StringComparison.Ordinal);
-        Assert.Contains("AbMergeCliCommandHandler.RunAsync(", cli, StringComparison.Ordinal);
+        AssertDoesNotContainAny(cli, "RunAbMergeAsync(args[1..]");
+        AssertContainsAll(cli, "AbMergeCliCommandHandler.RunAsync(");
 
         string generalMerge = ReadText(
             "src/NvtFwCombiner.Cli/MergeCliCommandHandler.cs");
-        Assert.DoesNotContain("string command,", generalMerge, StringComparison.Ordinal);
-        Assert.DoesNotContain("unknown merge command", generalMerge, StringComparison.Ordinal);
+        AssertDoesNotContainAny(generalMerge, "string command,", "unknown merge command");
 
         string standardMerge = ReadText(
             "src/NvtFwCombiner.Cli/CliApplication.StandardMerge.cs");
-        Assert.DoesNotContain("CompositionAddressSpaceIds.DpAbInput", standardMerge, StringComparison.Ordinal);
-        Assert.DoesNotContain("CompositionAddressSpaceIds.TpAInput", standardMerge, StringComparison.Ordinal);
-        Assert.DoesNotContain("CompositionAddressSpaceIds.TpBInput", standardMerge, StringComparison.Ordinal);
+        AssertDoesNotContainAny(standardMerge, "CompositionAddressSpaceIds.DpAbInput",
+            "CompositionAddressSpaceIds.TpAInput", "CompositionAddressSpaceIds.TpBInput");
 
         string sharedExecution = ReadText(
             "src/NvtFwCombiner.Application/Composition/CompositionExecutionExperience.cs");
         string standardExecution = sharedExecution;
         string abExecution = sharedExecution;
-        Assert.Contains("private ValueTask<CompositionRunResult> ExecuteAcceptedCompositionAsync(", sharedExecution, StringComparison.Ordinal);
-        Assert.Equal(2, CountOccurrences(sharedExecution, "AcceptedSessionExecutionInputs.CreateBindings("));
-        Assert.Contains("ExecuteAcceptedCompositionAsync(", standardExecution, StringComparison.Ordinal);
-        Assert.Contains("ExecuteAcceptedCompositionAsync(", abExecution, StringComparison.Ordinal);
-        Assert.DoesNotContain("RunStandardMergeCoreAsync(", bootstrap, StringComparison.Ordinal);
-        Assert.DoesNotContain("RunAbMergeCoreAsync(", bootstrap, StringComparison.Ordinal);
-        string replaceExecution = sharedExecution;
-        Assert.DoesNotContain("RunReplaceCoreAsync(", bootstrap, StringComparison.Ordinal);
-        Assert.Contains("ExecuteAcceptedCompositionAsync(", replaceExecution, StringComparison.Ordinal);
-        Assert.Contains(
+        AssertContainsAll(sharedExecution,
+            "private ValueTask<CompositionRunResult> ExecuteAcceptedCompositionAsync(",
             "internal async ValueTask<CompositionRunResult> ExecuteCtrlRamReplaceAsync(",
-            sharedExecution,
-            StringComparison.Ordinal);
-        Assert.DoesNotContain(
-            "RunCtrlRamReplaceWithProcessorAsync(",
-            bootstrap,
-            StringComparison.Ordinal);
+            "internal async ValueTask<CompositionRunResult> ExecuteGeneralReplaceAsync(",
+            "AcceptedSessionExecutionInputs.CreateGeneralReplaceBindings(");
+        Assert.Equal(2, CountOccurrences(sharedExecution, "AcceptedSessionExecutionInputs.CreateBindings("));
+        AssertContainsAll(standardExecution, "ExecuteAcceptedCompositionAsync(");
+        AssertContainsAll(abExecution, "ExecuteAcceptedCompositionAsync(");
+        AssertDoesNotContainAny(bootstrap, "RunStandardMergeCoreAsync(", "RunAbMergeCoreAsync(",
+            "RunReplaceCoreAsync(", "RunCtrlRamReplaceWithProcessorAsync(",
+            "new AuthoringRevision(0)");
+        string replaceExecution = sharedExecution;
+        AssertContainsAll(replaceExecution, "ExecuteAcceptedCompositionAsync(");
 
         string generalReplaceExecution = sharedExecution;
-        Assert.DoesNotContain("GeneralReplaceEphemeralDraft", generalReplaceExecution, StringComparison.Ordinal);
-        Assert.DoesNotContain("GeneralReplaceWithInitialInspection", generalReplaceExecution, StringComparison.Ordinal);
-        Assert.Contains("internal async ValueTask<CompositionRunResult> ExecuteGeneralReplaceAsync(", generalReplaceExecution, StringComparison.Ordinal);
-        Assert.Contains("AcceptedSessionExecutionInputs.CreateGeneralReplaceBindings(", generalReplaceExecution, StringComparison.Ordinal);
-        Assert.DoesNotContain("GeneralReplaceRunActionStrategy", generalReplaceExecution, StringComparison.Ordinal);
-        Assert.DoesNotContain("TryPlanGeneralReplacePostbuild", generalReplaceExecution, StringComparison.Ordinal);
-        Assert.DoesNotContain("TryCreateGeneralReplaceMappings", generalReplaceExecution, StringComparison.Ordinal);
-        Assert.DoesNotContain("new AuthoringRevision(0)", bootstrap, StringComparison.Ordinal);
+        AssertDoesNotContainAny(generalReplaceExecution, "GeneralReplaceEphemeralDraft",
+            "GeneralReplaceWithInitialInspection", "GeneralReplaceRunActionStrategy",
+            "TryPlanGeneralReplacePostbuild", "TryCreateGeneralReplaceMappings");
     }
 }

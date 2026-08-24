@@ -15,38 +15,22 @@ public sealed partial class RepositoryBoundaryTests
         string destination = ReadText(
             "src/NvtFwCombiner.Infrastructure/Files/ProtectedCompositionDestinationProvider.cs");
 
-        Assert.Contains("CompositionRunService", application, StringComparison.Ordinal);
-        Assert.Contains("AcceptedSessionExecutionInputs.Create", application, StringComparison.Ordinal);
-        Assert.Contains(") CreateBindings(", application, StringComparison.Ordinal);
-        Assert.Contains(") CreateGeneralBindings(", application, StringComparison.Ordinal);
-        Assert.Contains(
+        AssertContainsAll(application, "CompositionRunService", "AcceptedSessionExecutionInputs.Create",
+            ") CreateBindings(", ") CreateGeneralBindings(");
+        AssertContainsAll(execution,
             "internal sealed class CompositionExecutionExperience : ICompositionExecution",
-            execution,
-            StringComparison.Ordinal);
-        Assert.Contains("AcceptedSessionCompositionExecution.ExecuteAsync", execution, StringComparison.Ordinal);
-        Assert.Contains("GetAcceptedAbMergeTopologySelection", execution, StringComparison.Ordinal);
-        Assert.DoesNotContain("CanonicalCapabilityCompilerAdapter", execution, StringComparison.Ordinal);
-        Assert.DoesNotContain("ResolveAbMergeTopologySelection", execution, StringComparison.Ordinal);
-        Assert.DoesNotContain("session.WorkflowId switch", execution, StringComparison.Ordinal);
-        Assert.DoesNotContain(".WorkflowId switch", execution, StringComparison.Ordinal);
-        Assert.Contains("request.Route(this, request, progress, cancellationToken)", execution, StringComparison.Ordinal);
-        Assert.Contains("internal delegate ValueTask<CompositionRunResult> AcceptedCompositionExecutionRoute", request, StringComparison.Ordinal);
-        Assert.Contains("internal static class AcceptedCompositionExecutionRoutes", request, StringComparison.Ordinal);
-        foreach (string workflow in new[]
-        {
-            "ExperienceIds.StandardMerge =>",
-            "ExperienceIds.AbMerge =>",
-            "ExperienceIds.GeneralMerge =>",
-            "ExperienceIds.DpReplace =>",
-            "ExperienceIds.CtrlRamReplace =>",
-            "ExperienceIds.GeneralReplace =>",
-        })
-        {
-            Assert.Contains(workflow, request, StringComparison.Ordinal);
-        }
-        Assert.DoesNotContain("AbMergeTopologyToken", request, StringComparison.Ordinal);
-        Assert.Contains("ICompositionExecutionDestinationProvider", execution, StringComparison.Ordinal);
-        Assert.Contains("ICompositionExecutionDestinationProvider", destination, StringComparison.Ordinal);
+            "AcceptedSessionCompositionExecution.ExecuteAsync", "GetAcceptedAbMergeTopologySelection",
+            "request.Route(this, request, progress, cancellationToken)",
+            "ICompositionExecutionDestinationProvider");
+        AssertDoesNotContainAny(execution, "CanonicalCapabilityCompilerAdapter",
+            "ResolveAbMergeTopologySelection", "session.WorkflowId switch", ".WorkflowId switch");
+        AssertContainsAll(request,
+            "internal delegate ValueTask<CompositionRunResult> AcceptedCompositionExecutionRoute",
+            "internal static class AcceptedCompositionExecutionRoutes",
+            "ExperienceIds.StandardMerge =>", "ExperienceIds.AbMerge =>", "ExperienceIds.GeneralMerge =>",
+            "ExperienceIds.DpReplace =>", "ExperienceIds.CtrlRamReplace =>", "ExperienceIds.GeneralReplace =>");
+        AssertDoesNotContainAny(request, "AbMergeTopologyToken");
+        AssertContainsAll(destination, "ICompositionExecutionDestinationProvider");
         Assert.Empty(Directory.EnumerateFiles(
             Path.Combine(Root.FullName, "src", "NvtFwCombiner.Bootstrap"),
             "CompositionExecutionAdapter*.cs",
