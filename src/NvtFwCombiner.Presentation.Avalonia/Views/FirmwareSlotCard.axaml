@@ -116,7 +116,7 @@
           </Button>
           <Button x:Name="ClearButton" Classes="semanticAction iconButton danger slotClearAction"
                   Command="{Binding ClearSelectionCommand, ElementName=Root}"
-                  CommandParameter="{Binding SlotId}" IsVisible="{Binding HasFile}" Tag="{Binding SlotId}">
+                  CommandParameter="{Binding SlotId}" IsEnabled="{Binding HasFile}" Tag="{Binding SlotId}">
             <AutomationProperties.Name>
               <MultiBinding StringFormat="{x:Static views:FirmwareSlotCard.ClearActionFormat}">
                 <Binding ElementName="Root" Path="ClearSelectionLabel" />

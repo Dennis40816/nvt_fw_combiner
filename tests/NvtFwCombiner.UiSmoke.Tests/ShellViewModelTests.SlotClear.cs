@@ -329,6 +329,7 @@ public sealed partial class FirmwareInspectionSlotTests
             Button clear = Assert.IsType<Button>(card.FindControl<Control>("ClearButton"));
 
             Assert.True(clear.IsVisible);
+            Assert.True(clear.IsEnabled);
             Assert.Contains("slotClearAction", clear.Classes);
             Assert.Contains("danger", clear.Classes);
             Assert.Equal(
@@ -352,7 +353,8 @@ public sealed partial class FirmwareInspectionSlotTests
             await Dispatcher.UIThread.InvokeAsync(static () => { });
 
             Assert.False(slot.HasFile);
-            Assert.False(clear.IsVisible);
+            Assert.True(clear.IsVisible);
+            Assert.False(clear.IsEnabled);
             Assert.True(File.Exists(dpPath));
         }
         finally

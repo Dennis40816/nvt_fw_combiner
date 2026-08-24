@@ -70,7 +70,8 @@ public sealed partial class XamlControlStyleContractTests
         Assert.Null(browse.Attribute("Grid.RowSpan"));
         Assert.Equal("Center", (string?)browse.Attribute("VerticalAlignment"));
         Assert.Equal([browse, clear], actions.Elements());
-        Assert.Equal("{Binding HasFile}", (string?)clear.Attribute("IsVisible"));
+        Assert.Null(clear.Attribute("IsVisible"));
+        Assert.Equal("{Binding HasFile}", (string?)clear.Attribute("IsEnabled"));
         Assert.Equal(
             "{Binding ClearSelectionCommand, ElementName=Root}",
             (string?)clear.Attribute("Command"));
@@ -314,6 +315,8 @@ public sealed partial class XamlControlStyleContractTests
                 card.FindControl<Control>("SlotFactsRegion"));
             Button browse = Assert.IsType<Button>(card.FindControl<Control>("BrowseButton"));
             Button clear = Assert.IsType<Button>(card.FindControl<Control>("ClearButton"));
+            StackPanel actions = Assert.IsType<StackPanel>(
+                card.FindControl<Control>("SlotActions"));
             browse.ApplyTemplate();
             ContentPresenter browseSurface = Assert.Single(
                 browse.GetVisualDescendants().OfType<ContentPresenter>(),
@@ -337,6 +340,25 @@ public sealed partial class XamlControlStyleContractTests
                 Math.Abs(selectorOffset) <= 0.5,
                 $"Browse surface offset {selectorOffset:F3}; selector={selector.Bounds}; " +
                 $"layout={layout.Bounds}; card={card.Bounds}.");
+
+            double selectedBrowseX = browseSurfaceOrigin.X;
+            double selectedActionsWidth = actions.Bounds.Width;
+            slot.FilePath = null;
+            Dispatcher.UIThread.RunJobs();
+            host.Measure(new Size(width, 220));
+            host.Arrange(new Rect(0, 0, width, 220));
+            AvaloniaHeadlessPlatform.ForceRenderTimerTick();
+
+            Point emptyBrowseSurfaceOrigin = Assert.IsType<Point>(
+                browseSurface.TranslatePoint(default, selector));
+            Assert.True(clear.IsVisible);
+            Assert.False(clear.IsEnabled);
+            Assert.Equal(selectedBrowseX, emptyBrowseSurfaceOrigin.X, precision: 3);
+            Assert.Equal(selectedActionsWidth, actions.Bounds.Width, precision: 3);
+
+            slot.FilePath = useTpSlot ? @"C:\firmware\tp.bin" : @"C:\firmware\dp.bin";
+            Dispatcher.UIThread.RunJobs();
+            Assert.True(clear.IsEnabled);
             using Avalonia.Media.Imaging.Bitmap? frame = host.GetLastRenderedFrame();
             Assert.NotNull(frame);
             string? outputDirectory = Environment.GetEnvironmentVariable("NFC_VISUAL_OUTPUT_DIR");
