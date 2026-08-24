@@ -228,3 +228,37 @@ Verification covers the shared ViewModel admission states, production-host
 focus and interaction, 980x720 Light/Dark geometry, the T2 mode-above-fields
 contract, collapsed source disclosure, two-line bundle review, pencil-only
 editing, and the canonical full repository gate.
+
+## 2026-08-25 reviewed path-safety corrections
+
+The owner authorized closure of the non-UI path-risk findings before the final
+`1.0.0` review. Standard and AB CLI inputs now use the existing stable bounded
+file adapter and compiler-resolved slot ceiling; firmware-inspection batches
+reuse the existing platform artifact identity for valid aliases and retain the
+typed unavailable result for malformed locators; every inspected IC hint now
+waits for explicit confirmation. No second reader, identity policy, IC
+classifier, planner, executor, or firmware rule is introduced.
+
+Relative to committed checkpoint `ba1626af`, full production changes from
+110,865 to 111,066 nonblank lines (+201) and counted runtime changes from
+75,382 to 75,590 (+208). Bootstrap plus CLI plus Desktop changes from 3,498 to
+3,665 (+167); Infrastructure plus Contracts plus CRC worker changes from
+17,673 to 17,714 (+41); Domain plus Profiles remains 20,632 and Application
+remains 33,579. The Presentation IC-confirmation correction removes seven
+lines, which accounts for the difference between full-production and runtime
+deltas.
+
+The executable allowances therefore become exactly 8,170 full production,
+5,534 runtime, 287 Bootstrap/CLI/Desktop, and 2,358
+Infrastructure/Contracts/worker above their frozen base ratchets. All other
+allowances remain unchanged. These values are non-transferable exact descending
+ceilings and do not fund or close the separate unused-module, duplication, and
+repository-size audit.
+
+Independent R2 reviews found no remaining P0-P3 and confirmed that firmware
+bytes, ranges, operation order, CRC/header behavior, processors, profiles,
+output naming, support, and Golden authority are unchanged. Verification covers
+the inclusive decimal 100 MB CLI boundary and oversized rejection, dynamic
+Standard exact-route resolution, AB exact admission, case and relative path
+aliases, malformed locators, IC-confirmation flow, Release build with zero
+warnings/errors, Architecture, and the canonical final gate.
