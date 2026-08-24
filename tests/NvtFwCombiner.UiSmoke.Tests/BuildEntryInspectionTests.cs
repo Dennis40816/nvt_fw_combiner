@@ -153,13 +153,17 @@ public sealed class BuildEntryInspectionTests(ShellViewModelTestHostFixture fixt
         });
     }
 
-    /// <summary>Opening CtrlRAM Build Settings never starts a second input inspection batch.</summary>
-    [AvaloniaFact]
-    public async Task CtrlRamBuildRoutedClickDoesNotRepeatAcceptedFirmwareInspection()
+    /// <summary>Opening CtrlRAM Build Settings after source mutation never starts a second input inspection batch.</summary>
+    [AvaloniaTheory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task CtrlRamBuildRoutedClickDoesNotRepeatAcceptedFirmwareInspection(
+        bool overwriteSource)
     {
         using StandardMergeGoldenManifest golden = StandardMergeGoldenManifest.Load();
         using var workspace = TempWorkspace.Create("nvt-fw-combiner-ui-ctrlram-build-inspection");
         byte[] baseBytes = golden.ReadExpectedOutput(golden.CaseByIc("51926"));
+        string? replacementPath = null;
         int inspectionBatchCount = 0;
         CancellationToken cancellationToken = TestContext.Current.CancellationToken;
         PresentationHostServices services = await Task.Run(
@@ -183,15 +187,43 @@ public sealed class BuildEntryInspectionTests(ShellViewModelTestHostFixture fixt
             CtrlRamRegionViewModel region = candidate.Replace.CtrlRamRegions.Single(regionCandidate =>
                 regionCandidate.Name == replacementSlot.Title);
             (int start, int length) = ParseCtrlRamRegion(region);
+            replacementPath = workspace.Write(
+                "self-vn-ctrlram.bin",
+                baseBytes[start..(start + length)]);
             await candidate.WorkflowSession.SetSlotFileAsync(
                 replacementSlot.SlotId,
-                workspace.Write("self-vn-ctrlram.bin", baseBytes[start..(start + length)]),
+                replacementPath,
                 cancellationToken);
             return candidate;
         }, cancellationToken);
         Assert.True(viewModel.Replace.CanBuildReplace, viewModel.Replace.ReplaceReadinessStatus);
         int acceptedBatchCount = inspectionBatchCount;
         Assert.True(acceptedBatchCount > 0);
+        string acceptedReplacementPath = Assert.IsType<string>(replacementPath);
+        if (overwriteSource)
+        {
+            byte[] changedBytes = await File.ReadAllBytesAsync(
+                acceptedReplacementPath,
+                cancellationToken);
+            Assert.NotEmpty(changedBytes);
+            byte acceptedFirstByte = changedBytes[0];
+            changedBytes[0] ^= 0xFF;
+            await File.WriteAllBytesAsync(
+                acceptedReplacementPath,
+                changedBytes,
+                cancellationToken);
+            Assert.True(File.Exists(acceptedReplacementPath));
+            byte[] persistedBytes = await File.ReadAllBytesAsync(
+                acceptedReplacementPath,
+                cancellationToken);
+            Assert.Equal(changedBytes, persistedBytes);
+            Assert.NotEqual(acceptedFirstByte, persistedBytes[0]);
+        }
+        else
+        {
+            File.Delete(acceptedReplacementPath);
+            Assert.False(File.Exists(acceptedReplacementPath));
+        }
 
         await ClickBuildAsync(
             services,
