@@ -8,13 +8,13 @@ internal static partial class MergeCliCommandHandler
     private const int CompositionFailed = 1;
     private const int UsageError = 64;
     internal static async Task<int> RunAsync(
-        CompositionHostServices host,
+        CliCompositionServices services,
         string[] args,
         TextWriter output,
         TextWriter error,
         CancellationToken cancellationToken)
     {
-        ArgumentNullException.ThrowIfNull(host);
+        ArgumentNullException.ThrowIfNull(services);
         if (args.Length == 0 || args[0] is "--help")
         {
             await WriteUsageAsync(output).ConfigureAwait(false);
@@ -44,7 +44,7 @@ internal static partial class MergeCliCommandHandler
         }
 
         if (!TryResolveIc(
-                host.CompositionCapabilityExperience,
+                services.Capabilities,
                 profileSelector,
                 out string? icId))
         {
@@ -71,7 +71,7 @@ internal static partial class MergeCliCommandHandler
 
         if (!TryCreateGeneralMergeDraft(
                 options,
-                host.SavedRuleAuthoring,
+                services.SavedRuleAuthoring,
                 icId,
                 error,
                 out GeneralMergeDraftState? draft,
@@ -129,7 +129,7 @@ internal static partial class MergeCliCommandHandler
 
         var session = new AuthoringSessionState(ExperienceIds.GeneralMerge);
         GeneralAuthoringSessionPreparation prepared =
-            await host.GeneralAuthoring.PrepareMergeSessionAsync(
+            await services.GeneralAuthoring.PrepareMergeSessionAsync(
                     session,
                     icId,
                     draft!,
@@ -142,7 +142,7 @@ internal static partial class MergeCliCommandHandler
         }
 
         if (!CliBundleOptions.TryCreateIntent(
-                host.CompositionOutputNaming,
+                services.OutputNaming,
                 prepared.AcceptedSession!,
                 options.Values,
                 error,
@@ -151,7 +151,7 @@ internal static partial class MergeCliCommandHandler
             return UsageError;
         }
 
-        CompositionRunResult result = await host.CompositionExecution.ExecuteAsync(
+        CompositionRunResult result = await services.Execution.ExecuteAsync(
             new AcceptedCompositionExecutionRequest(
                 prepared.AcceptedSession!,
                 new Dictionary<string, string>(StringComparer.Ordinal),

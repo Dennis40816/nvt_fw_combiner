@@ -154,7 +154,7 @@ public sealed partial class RepositoryBoundaryTests
         Assert.DoesNotContain("NT51929", canonicalRouting, StringComparison.Ordinal);
         Assert.DoesNotContain("IsCanonicalStandardMergePilot", routing, StringComparison.Ordinal);
         Assert.DoesNotContain("IsCanonicalStandardMergePilot", canonicalRouting, StringComparison.Ordinal);
-        Assert.Contains("host.StandardMergeAuthoring.PrepareSession(", cli, StringComparison.Ordinal);
+        Assert.Contains("services.StandardMergeAuthoring.PrepareSession(", cli, StringComparison.Ordinal);
         Assert.Contains("_compositionServices.StandardMergeAuthoring.IsSupported", presentation, StringComparison.Ordinal);
         Assert.DoesNotContain("CanonicalAuthoringAdapter", presentation, StringComparison.Ordinal);
         Assert.DoesNotContain("new ByteRange(", source, StringComparison.Ordinal);
@@ -189,7 +189,7 @@ public sealed partial class RepositoryBoundaryTests
             "AcceptedSessionExecutionInputs.CreateBindings("));
         Assert.DoesNotContain("TryCreateBuiltInV2DpReplaceRunContext", execution, StringComparison.Ordinal);
         Assert.DoesNotContain("new AuthoringRevision(", execution, StringComparison.Ordinal);
-        Assert.Contains("DpReplaceAuthoring.PrepareSession", cli, StringComparison.Ordinal);
+        Assert.Contains("services.DpReplaceAuthoring.PrepareSession", cli, StringComparison.Ordinal);
         Assert.DoesNotContain("CompositionExecutionAdapter.RunReplaceAsync", cli, StringComparison.Ordinal);
         Assert.DoesNotContain("_dpReplaceSelection", presentation, StringComparison.Ordinal);
     }

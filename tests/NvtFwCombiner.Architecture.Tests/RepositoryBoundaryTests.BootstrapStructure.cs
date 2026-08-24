@@ -25,7 +25,7 @@ public sealed partial class RepositoryBoundaryTests
         Assert.Equal(1, CountOccurrences(applicationExecution, ".PreviewOrBuildAsync("));
         Assert.Contains("AbMergeCliCommandHandler.RunAsync", abCliRouter, StringComparison.Ordinal);
         Assert.DoesNotContain(".PreviewOrBuildAsync(", abCliRouter, StringComparison.Ordinal);
-        Assert.Contains("host.AbMergeAuthoring.PrepareSession", abCliHandler, StringComparison.Ordinal);
+        Assert.Contains("services.AbMergeAuthoring.PrepareSession", abCliHandler, StringComparison.Ordinal);
         Assert.Contains(".ExecuteAsync(", abCliHandler, StringComparison.Ordinal);
         Assert.Contains("AcceptedCompositionExecutionRequest", abCliHandler, StringComparison.Ordinal);
         Assert.DoesNotContain("RunAbMergeForCliAsync", abCliHandler, StringComparison.Ordinal);
@@ -139,7 +139,7 @@ public sealed partial class RepositoryBoundaryTests
         Assert.DoesNotContain("CompiledCompositionInputBindingFactory.Create", replaceDp, StringComparison.Ordinal);
         Assert.DoesNotContain("BuiltInReplaceProfiles", replaceDp, StringComparison.Ordinal);
         Assert.DoesNotContain("CompositionProfileCompiler", replaceDp, StringComparison.Ordinal);
-        Assert.Contains("DpReplaceAuthoring.PrepareSession", replaceCli, StringComparison.Ordinal);
+        Assert.Contains("services.DpReplaceAuthoring.PrepareSession", replaceCli, StringComparison.Ordinal);
         Assert.DoesNotContain("TryResolveBuiltInV2DpReplaceSelector", replaceCli, StringComparison.Ordinal);
         Assert.DoesNotContain("BuiltInReplaceProfiles", replaceCli, StringComparison.Ordinal);
         Assert.DoesNotContain("CompositionProfileDefinition", replaceCli, StringComparison.Ordinal);

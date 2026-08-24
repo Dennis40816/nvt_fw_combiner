@@ -275,8 +275,8 @@ public sealed partial class RepositoryBoundaryTests
         Assert.Contains("AcceptedSessionExecutionInputs.CreateGeneralReplaceBindings(", run, StringComparison.Ordinal);
         Assert.Contains("plan.VirtualArtifacts", run, StringComparison.Ordinal);
         Assert.Contains("RequireGeneralReplaceActionReadiness", run, StringComparison.Ordinal);
-        Assert.Contains("host.GeneralAuthoring.PrepareReplaceSessionAsync", cli, StringComparison.Ordinal);
-        Assert.Equal(1, CountOccurrences(cli, "host.CompositionExecution.ExecuteAsync"));
+        Assert.Contains("services.GeneralAuthoring.PrepareReplaceSessionAsync", cli, StringComparison.Ordinal);
+        Assert.Equal(1, CountOccurrences(cli, "services.Execution.ExecuteAsync"));
         Assert.Contains("ResolveAcceptedOutput", cli, StringComparison.Ordinal);
         Assert.Contains("AcceptedCompositionExecutionRequest", cli, StringComparison.Ordinal);
         Assert.Contains("_compositionServices.Execution.ExecuteAsync", presentation, StringComparison.Ordinal);

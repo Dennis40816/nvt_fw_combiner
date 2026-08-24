@@ -201,6 +201,13 @@ internals public and do not move firmware semantics into Infrastructure. Lock
 the permitted friend list and compiled dependency graph with architecture
 tests before removing each access.
 
+**Slice 1 completed 2026-08-24.** Exact friend-list evidence proved that
+Bootstrap directly consumes no Domain or Profiles internal symbol, so those two
+unused friend entries were removed and locked by a red-capable exact-list test.
+Application/Infrastructure/VersionManagement friend access that still has
+compiled callers remains explicit for later bounded A7 slices; it was not
+papered over by making internal semantic types public.
+
 ### A8 — hidden build-time trust validator (high)
 
 `NvtFwCombiner.Bootstrap.csproj` contains a RoslynCodeTaskFactory implementation
@@ -243,6 +250,16 @@ SPEC's wiring-only Bootstrap target.
 Create the smallest CLI dependency record or focused handler parameters at the
 entry-point composition boundary. Keep object construction in Bootstrap and
 do not introduce a DI framework or a second application facade.
+
+**Completed 2026-08-24.** `CliApplication.RunAsync` is now the only CLI source
+that sees `CompositionHostServices`. It projects the existing public ports into
+one CLI-only `CliCompositionServices` record; every command handler consumes
+that bounded projection and cannot reach file, Hex, diagnostics, version,
+startup, or external-environment host capabilities. The guard failed first on
+seven broad-host handler files. Architecture passed 222/222, Bootstrap passed
+1,017/1,017, Golden passed 18/18, the Release solution build succeeded with
+zero warnings/errors, and structure/scoped Polytail passed. The production and
+runtime line counts remain exactly unchanged.
 
 ### A11 — single-evaluation and immutable-evidence enforcement (medium)
 

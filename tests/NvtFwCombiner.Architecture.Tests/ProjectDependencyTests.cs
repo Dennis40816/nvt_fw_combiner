@@ -45,6 +45,30 @@ public sealed class ProjectDependencyTests
             ProjectReferences("NvtFwCombiner.Bootstrap"));
     }
 
+    /// <summary>Verifies lower semantic projects expose internals only to their proven production consumers.</summary>
+    [Fact]
+    public void LowerSemanticProjectsDoNotFriendBootstrapWithoutCallers()
+    {
+        Assert.Equal(
+            [
+                "NvtFwCombiner.Application.Tests",
+                "NvtFwCombiner.Bootstrap.Tests",
+                "NvtFwCombiner.Domain.Tests",
+                "NvtFwCombiner.Infrastructure",
+                "NvtFwCombiner.ProfileContract.Tests",
+                "NvtFwCombiner.Profiles",
+                "NvtFwCombiner.TestSupport",
+            ],
+            FriendAssemblies("NvtFwCombiner.Domain"));
+        Assert.Equal(
+            [
+                "NvtFwCombiner.Bootstrap.Tests",
+                "NvtFwCombiner.Infrastructure",
+                "NvtFwCombiner.ProfileContract.Tests",
+            ],
+            FriendAssemblies("NvtFwCombiner.Profiles"));
+    }
+
     /// <summary>Verifies that immutable reference code is never compiled by production projects.</summary>
     [Fact]
     public void ReferenceCodeIsNeverIncludedByProductionProjects()
@@ -89,6 +113,19 @@ public sealed class ProjectDependencyTests
         [
             .. project.Descendants("ProjectReference")
                 .Select(reference => Path.GetFileNameWithoutExtension(reference.Attribute("Include")!.Value))
+                .Order(StringComparer.Ordinal),
+        ];
+    }
+
+    private static string[] FriendAssemblies(string projectName)
+    {
+        DirectoryInfo root = FindRepositoryRoot();
+        string projectPath = Path.Combine(root.FullName, "src", projectName, $"{projectName}.csproj");
+        var project = XDocument.Load(projectPath);
+        return
+        [
+            .. project.Descendants("InternalsVisibleTo")
+                .Select(friend => friend.Attribute("Include")!.Value)
                 .Order(StringComparer.Ordinal),
         ];
     }

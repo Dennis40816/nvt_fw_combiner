@@ -7,7 +7,7 @@ namespace NvtFwCombiner.Cli;
 internal static partial class ReplaceCliCommandHandler
 {
     private static async Task<int> RunCtrlRamReplaceAsync(
-        CompositionHostServices host,
+        CliCompositionServices services,
         string action,
         string icId,
         ParsedCliOptions options,
@@ -22,7 +22,7 @@ internal static partial class ReplaceCliCommandHandler
         }
 
         if (!TryCreateCtrlRamSlotPaths(
-                host.CtrlRamAuthoring,
+                services.CtrlRamAuthoring,
                 icId,
                 icNumber,
                 basePath,
@@ -63,7 +63,7 @@ internal static partial class ReplaceCliCommandHandler
 
         var session = new AuthoringSessionState(ExperienceIds.CtrlRamReplace);
         CtrlRamAuthoringSessionPreparation prepared =
-            host.CtrlRamAuthoring.PrepareSession(
+            services.CtrlRamAuthoring.PrepareSession(
                 session,
                 icId,
                 icNumber,
@@ -78,7 +78,7 @@ internal static partial class ReplaceCliCommandHandler
 
         ActiveSessionSnapshot acceptedSession = prepared.AcceptedSession!;
         CapabilityActionReadinessSnapshot? readiness =
-            await host.CtrlRamAuthoring.GetActionReadinessAsync(
+            await services.CtrlRamAuthoring.GetActionReadinessAsync(
                     icId,
                     icNumber,
                     slotPaths,
@@ -103,11 +103,11 @@ internal static partial class ReplaceCliCommandHandler
             return CompositionFailed;
         }
 
-        string defaultOutputFileName = host.CompositionOutputNaming
+        string defaultOutputFileName = services.OutputNaming
             .ResolveAcceptedOutput(acceptedSession)
             .OutputName.FileName;
         if (!CliBundleOptions.TryCreateIntent(
-                host.CompositionOutputNaming,
+                services.OutputNaming,
                 acceptedSession,
                 options.Values,
                 error,
@@ -123,7 +123,7 @@ internal static partial class ReplaceCliCommandHandler
             bool executeBuild,
             CancellationToken token)
         {
-            return host.CompositionExecution.ExecuteAsync(
+            return services.Execution.ExecuteAsync(
                 new AcceptedCompositionExecutionRequest(
                     acceptedSession,
                     slotPaths,

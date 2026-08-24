@@ -7,7 +7,7 @@ namespace NvtFwCombiner.Cli;
 internal static partial class ReplaceCliCommandHandler
 {
     private static async Task<int> RunDpReplaceAsync(
-        CompositionHostServices host,
+        CliCompositionServices services,
         string action,
         string icId,
         ParsedCliOptions options,
@@ -25,7 +25,7 @@ internal static partial class ReplaceCliCommandHandler
         {
             string supportedIcIds = string.Join(
                 "/",
-                host.CompositionCapabilityExperience.GetDpReplaceProfileSummaries()
+                services.Capabilities.GetDpReplaceProfileSummaries()
                     .Select(static profile => profile.IcId)
                     .Distinct(StringComparer.Ordinal)
                     .Order(StringComparer.Ordinal));
@@ -38,7 +38,7 @@ internal static partial class ReplaceCliCommandHandler
             [CompositionSlotIds.ReplaceBase] = Path.GetFullPath(basePath),
         };
         CompiledAuthoringSelectionSnapshot discovery =
-            host.DpReplaceAuthoring.GetAuthoringSnapshot(
+            services.DpReplaceAuthoring.GetAuthoringSnapshot(
                 icId,
                 [],
                 new Dictionary<string, FileStamp>(StringComparer.Ordinal),
@@ -98,7 +98,7 @@ internal static partial class ReplaceCliCommandHandler
             }),
         ];
         CompiledAuthoringSessionPreparation prepared =
-            host.DpReplaceAuthoring.PrepareSession(
+            services.DpReplaceAuthoring.PrepareSession(
                 session,
                 icId,
                 selectedInputs);
@@ -114,7 +114,7 @@ internal static partial class ReplaceCliCommandHandler
 
         ActiveSessionSnapshot acceptedSession = prepared.Snapshot!;
         if (!CliBundleOptions.TryCreateIntent(
-                host.CompositionOutputNaming,
+                services.OutputNaming,
                 acceptedSession,
                 options.Values,
                 error,
@@ -123,7 +123,7 @@ internal static partial class ReplaceCliCommandHandler
             return UsageError;
         }
 
-        string defaultOutputFileName = host.CompositionOutputNaming
+        string defaultOutputFileName = services.OutputNaming
             .ResolveAcceptedOutput(acceptedSession)
             .OutputName.FileName;
         ValueTask<CompositionRunResult> RunAcceptedAsync(
@@ -133,7 +133,7 @@ internal static partial class ReplaceCliCommandHandler
             bool build,
             CancellationToken token)
         {
-            return host.CompositionExecution.ExecuteAsync(
+            return services.Execution.ExecuteAsync(
                 new AcceptedCompositionExecutionRequest(
                     acceptedSession,
                     slotPaths,

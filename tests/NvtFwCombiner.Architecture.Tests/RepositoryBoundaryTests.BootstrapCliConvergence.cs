@@ -24,6 +24,19 @@ public sealed partial class RepositoryBoundaryTests
             Directory.GetFiles(cliDirectory, "*.cs", SearchOption.TopDirectoryOnly)
                 .Order(StringComparer.Ordinal)
                 .Select(File.ReadAllText));
+        string[] broadHostHandlers =
+        [
+            .. Directory.GetFiles(cliDirectory, "*.cs", SearchOption.TopDirectoryOnly)
+                .Where(path => !StringComparer.Ordinal.Equals(
+                    Path.GetFileName(path),
+                    "CliApplication.cs"))
+                .Where(path => File.ReadAllText(path).Contains(
+                    "CompositionHostServices",
+                    StringComparison.Ordinal))
+                .Select(path => Path.GetFileName(path) ??
+                    throw new InvalidOperationException("CLI source path has no file name."))
+                .Order(StringComparer.Ordinal),
+        ];
 
         Assert.Empty(Directory.GetFiles(
             bootstrapDirectory,
@@ -35,6 +48,7 @@ public sealed partial class RepositoryBoundaryTests
             SearchOption.TopDirectoryOnly));
         Assert.Contains("namespace NvtFwCombiner.Cli;", cliSources, StringComparison.Ordinal);
         Assert.DoesNotContain("namespace NvtFwCombiner.Bootstrap;", cliSources, StringComparison.Ordinal);
+        Assert.Empty(broadHostHandlers);
         Assert.DoesNotContain("ReplaceRunAttempt", cliSources, StringComparison.Ordinal);
         Assert.DoesNotContain("WarmCanonicalCapabilities", bootstrap, StringComparison.Ordinal);
         Assert.DoesNotContain("StartCanonicalCatalogLoad", bootstrap, StringComparison.Ordinal);

@@ -8,7 +8,7 @@ namespace NvtFwCombiner.Cli;
 internal static partial class ReplaceCliCommandHandler
 {
     private static async Task<int> RunGeneralReplaceAsync(
-        CompositionHostServices host,
+        CliCompositionServices services,
         string action,
         string icId,
         ParsedCliOptions options,
@@ -16,7 +16,7 @@ internal static partial class ReplaceCliCommandHandler
         TextWriter error,
         CancellationToken cancellationToken)
     {
-        ArgumentNullException.ThrowIfNull(host);
+        ArgumentNullException.ThrowIfNull(services);
         if (!RequireOption(options, "--ic-num", error, out string? icNumber) ||
             !RequireOption(options, "--base", error, out string? basePath))
         {
@@ -39,7 +39,7 @@ internal static partial class ReplaceCliCommandHandler
 
         if (usesSavedRule
                 ? !TryCreateGeneralReplaceDraftFromSavedRule(
-                    host.SavedRuleAuthoring,
+                    services.SavedRuleAuthoring,
                     rulePath!,
                     options.GetValues("--slot"),
                     basePath,
@@ -83,7 +83,7 @@ internal static partial class ReplaceCliCommandHandler
 
         var session = new AuthoringSessionState(ExperienceIds.GeneralReplace);
         GeneralAuthoringSessionPreparation prepared =
-            await host.GeneralAuthoring.PrepareReplaceSessionAsync(
+            await services.GeneralAuthoring.PrepareReplaceSessionAsync(
                     session,
                     icId,
                     icNumber,
@@ -129,11 +129,11 @@ internal static partial class ReplaceCliCommandHandler
             }
         }
 
-        string defaultOutputFileName = host.CompositionOutputNaming
+        string defaultOutputFileName = services.OutputNaming
             .ResolveAcceptedOutput(acceptedSession)
             .OutputName.FileName;
         bool destinationAccepted = CliBundleOptions.TryCreateIntent(
-                host.CompositionOutputNaming,
+                services.OutputNaming,
                 acceptedSession,
                 options.Values,
                 error,
@@ -149,7 +149,7 @@ internal static partial class ReplaceCliCommandHandler
                 defaultOutputFileName,
                 outputBundle,
                 (outputPath, automaticOutputDirectory, bundle, build, token) =>
-                    host.CompositionExecution.ExecuteAsync(
+                    services.Execution.ExecuteAsync(
                         new AcceptedCompositionExecutionRequest(
                             acceptedSession,
                             slotPaths,

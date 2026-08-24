@@ -9,14 +9,14 @@ internal static partial class ReplaceCliCommandHandler
     private const int UsageError = 64;
 
     internal static async Task<int> RunAsync(
-        CompositionHostServices host,
+        CliCompositionServices services,
         string command,
         string[] args,
         TextWriter output,
         TextWriter error,
         CancellationToken cancellationToken)
     {
-        ArgumentNullException.ThrowIfNull(host);
+        ArgumentNullException.ThrowIfNull(services);
         if (args.Length == 0 || args[0] is "--help")
         {
             await WriteUsageAsync(command, output).ConfigureAwait(false);
@@ -84,7 +84,7 @@ internal static partial class ReplaceCliCommandHandler
         }
 
         if (!TryResolveReplaceIc(
-                host.CompositionCapabilityExperience,
+                services.Capabilities,
                 command,
                 profileSelector,
                 out string? icId))
@@ -98,7 +98,7 @@ internal static partial class ReplaceCliCommandHandler
             ExperienceIds.CtrlRamReplace => ExperienceIds.CtrlRamReplace,
             _ => ExperienceIds.GeneralReplace,
         };
-        if (!host.CompositionCapabilityExperience.IsReplaceWorkflowAvailable(
+        if (!services.Capabilities.IsReplaceWorkflowAvailable(
                 icId,
                 replaceMode))
         {
@@ -110,7 +110,7 @@ internal static partial class ReplaceCliCommandHandler
 
         return command == ExperienceIds.DpReplace
             ? await RunDpReplaceAsync(
-                    host,
+                    services,
                     action,
                     icId,
                     options,
@@ -120,7 +120,7 @@ internal static partial class ReplaceCliCommandHandler
                 .ConfigureAwait(false)
             : command == ExperienceIds.CtrlRamReplace
             ? await RunCtrlRamReplaceAsync(
-                    host,
+                    services,
                     action,
                     icId,
                     options,
@@ -129,7 +129,7 @@ internal static partial class ReplaceCliCommandHandler
                     cancellationToken)
                 .ConfigureAwait(false)
             : await RunGeneralReplaceAsync(
-                    host,
+                    services,
                     action,
                     icId,
                     options,

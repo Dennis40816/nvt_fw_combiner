@@ -16,7 +16,7 @@ public static partial class CliApplication
         };
 
     private static async Task<int> RunStandardMergeAsync(
-        CompositionHostServices host,
+        CliCompositionServices services,
         string[] args,
         TextWriter output,
         TextWriter error,
@@ -59,7 +59,7 @@ public static partial class CliApplication
         }
 
         if (!TryFindStandardMergeProfileSummary(
-                host.CompositionCapabilityExperience,
+                services.Capabilities,
                 profileSelector,
                 out CapabilityProfileSummary? selectedProfile))
         {
@@ -70,7 +70,7 @@ public static partial class CliApplication
         if (!selectedProfile.CompileSucceeded)
         {
             CompiledAuthoringSelectionSnapshot unavailable =
-                host.StandardMergeAuthoring.GetAuthoringSnapshot(
+                services.StandardMergeAuthoring.GetAuthoringSnapshot(
                 selectedProfile.IcId,
                 [],
                 new Dictionary<string, FileStamp>(StringComparer.Ordinal),
@@ -81,7 +81,7 @@ public static partial class CliApplication
         }
 
         IReadOnlyList<string> availableInputAddressSpaces =
-            host.StandardMergeAuthoring.GetInputAddressSpaces(
+            services.StandardMergeAuthoring.GetInputAddressSpaces(
                 selectedProfile.IcId);
         foreach ((string addressSpaceId, string optionName) in InputOptionsByAddressSpace)
         {
@@ -138,7 +138,7 @@ public static partial class CliApplication
         }
         var session = new AuthoringSessionState(ExperienceIds.StandardMerge);
         CompiledAuthoringSessionPreparation prepared =
-            host.StandardMergeAuthoring.PrepareSession(
+            services.StandardMergeAuthoring.PrepareSession(
                 session,
                 selectedProfile.IcId,
                 inputs);
@@ -176,7 +176,7 @@ public static partial class CliApplication
         bool build = action == "build";
         bool bundleBuild = CliBundleOptions.IsEnabled(options.Values);
         if (!CliBundleOptions.TryCreateIntent(
-                host.CompositionOutputNaming,
+                services.OutputNaming,
                 prepared.Snapshot!,
                 options.Values,
                 error,
@@ -193,7 +193,7 @@ public static partial class CliApplication
         {
             try
             {
-                CompositionOutputPreparation preparation = await host.CompositionOutputNaming
+                CompositionOutputPreparation preparation = await services.OutputNaming
                     .PrepareAutomaticOutputAsync(
                         prepared.Snapshot!,
                         cancellationToken)
@@ -221,7 +221,7 @@ public static partial class CliApplication
             outputTarget,
             build && !bundleBuild);
 
-        CompositionRunResult result = await host.CompositionExecution
+        CompositionRunResult result = await services.Execution
             .ExecuteAsync(
                 new AcceptedCompositionExecutionRequest(
                     prepared.Snapshot!,

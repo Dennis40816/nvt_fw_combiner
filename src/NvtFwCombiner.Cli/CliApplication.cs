@@ -23,6 +23,11 @@ public static partial class CliApplication
         ArgumentNullException.ThrowIfNull(output);
         ArgumentNullException.ThrowIfNull(error);
         var host = CompositionHostServices.Create();
+        var services = new CliCompositionServices(
+            host.CompositionCapabilityExperience, host.SavedRuleAuthoring,
+            host.StandardMergeAuthoring, host.AbMergeAuthoring,
+            host.DpReplaceAuthoring, host.CtrlRamAuthoring,
+            host.GeneralAuthoring, host.CompositionOutputNaming, host.CompositionExecution);
 
         if (args is ["--version"] or ["version"])
         {
@@ -51,31 +56,19 @@ public static partial class CliApplication
             return args[0] switch
             {
                 "profiles" => await RunProfilesAsync(
-                        host.CompositionCapabilityExperience,
-                        args[1..],
-                        output,
-                        error)
-                    .ConfigureAwait(false),
-                ExperienceIds.StandardMerge => await RunStandardMergeAsync(host, args[1..], output, error, cancellationToken)
-                    .ConfigureAwait(false),
-                ExperienceIds.AbMerge => await AbMergeCliCommandHandler.RunAsync(host, args[1..], output, error, cancellationToken)
-                    .ConfigureAwait(false),
+                    services.Capabilities, args[1..], output, error).ConfigureAwait(false),
+                ExperienceIds.StandardMerge => await RunStandardMergeAsync(
+                    services, args[1..], output, error, cancellationToken).ConfigureAwait(false),
+                ExperienceIds.AbMerge => await AbMergeCliCommandHandler.RunAsync(
+                    services, args[1..], output, error, cancellationToken).ConfigureAwait(false),
                 ExperienceIds.GeneralMerge => await MergeCliCommandHandler.RunAsync(
-                        host,
-                        args[1..],
-                        output,
-                        error,
-                        cancellationToken)
-                    .ConfigureAwait(false),
+                    services, args[1..], output, error, cancellationToken).ConfigureAwait(false),
                 "saved-rule" => await SavedRuleCliCommandHandler.RunAsync(
-                        host.SavedRuleAuthoring,
-                        args[1..],
-                        output,
-                        error,
-                        cancellationToken)
+                    services.SavedRuleAuthoring, args[1..], output, error, cancellationToken)
                     .ConfigureAwait(false),
                 ExperienceIds.DpReplace or ExperienceIds.CtrlRamReplace or ExperienceIds.GeneralReplace =>
-                    await ReplaceCliCommandHandler.RunAsync(host, args[0], args[1..], output, error, cancellationToken)
+                    await ReplaceCliCommandHandler.RunAsync(
+                            services, args[0], args[1..], output, error, cancellationToken)
                         .ConfigureAwait(false),
                 _ => await UnknownCommandAsync(args[0], error).ConfigureAwait(false),
             };

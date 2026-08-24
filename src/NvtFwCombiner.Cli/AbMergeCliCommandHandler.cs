@@ -24,7 +24,7 @@ internal static class AbMergeCliCommandHandler
         };
 
     internal static async Task<int> RunAsync(
-        CompositionHostServices host,
+        CliCompositionServices services,
         string[] args,
         TextWriter output,
         TextWriter error,
@@ -84,7 +84,7 @@ internal static class AbMergeCliCommandHandler
         }
 
         if (!TryFindProfile(
-                host.CompositionCapabilityExperience,
+                services.Capabilities,
                 profileSelector,
                 out CapabilityProfileSummary? profile))
         {
@@ -95,7 +95,7 @@ internal static class AbMergeCliCommandHandler
         if (!profile.CompileSucceeded)
         {
             CompiledAuthoringSelectionSnapshot unavailable =
-                host.AbMergeAuthoring.GetAuthoringSnapshot(
+                services.AbMergeAuthoring.GetAuthoringSnapshot(
                 profile.IcId,
                 topologyToken: null,
                 [],
@@ -112,7 +112,7 @@ internal static class AbMergeCliCommandHandler
         }
 
         IReadOnlyList<CapabilityTopologyChoice> topologyChoices =
-            host.AbMergeAuthoring.GetTopologyChoices(profile.IcId);
+            services.AbMergeAuthoring.GetTopologyChoices(profile.IcId);
         if (!TryCreateTopologySelection(
                 topologyChoices,
                 options,
@@ -148,7 +148,7 @@ internal static class AbMergeCliCommandHandler
 
         var session = new AuthoringSessionState(ExperienceIds.AbMerge);
         CompiledAuthoringSessionPreparation prepared =
-            host.AbMergeAuthoring.PrepareSession(
+            services.AbMergeAuthoring.PrepareSession(
                 session,
                 profile.IcId,
                 options.Values.GetValueOrDefault("--ab-topology"),
@@ -168,7 +168,7 @@ internal static class AbMergeCliCommandHandler
         {
             try
             {
-                CompositionOutputPreparation preparation = await host.CompositionOutputNaming
+                CompositionOutputPreparation preparation = await services.OutputNaming
                     .PrepareAutomaticOutputAsync(
                         prepared.Snapshot!,
                         cancellationToken)
@@ -204,7 +204,7 @@ internal static class AbMergeCliCommandHandler
         }
 
         if (!CliBundleOptions.TryCreateIntent(
-                host.CompositionOutputNaming,
+                services.OutputNaming,
                 prepared.Snapshot!,
                 options.Values,
                 error,
@@ -216,7 +216,7 @@ internal static class AbMergeCliCommandHandler
             return UsageError;
         }
 
-        CompositionRunResult result = await host.CompositionExecution
+        CompositionRunResult result = await services.Execution
             .ExecuteAsync(
                 new AcceptedCompositionExecutionRequest(
                     prepared.Snapshot!,
