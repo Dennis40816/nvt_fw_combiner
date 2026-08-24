@@ -98,7 +98,7 @@ public sealed partial class RepositoryBoundaryTests
         Assert.DoesNotContain("RunReplaceCoreAsync(", bootstrap, StringComparison.Ordinal);
         Assert.Contains("ExecuteAcceptedCompositionAsync(", replaceExecution, StringComparison.Ordinal);
         Assert.Contains(
-            "private async ValueTask<CompositionRunResult> ExecuteCtrlRamReplaceAsync(",
+            "internal async ValueTask<CompositionRunResult> ExecuteCtrlRamReplaceAsync(",
             sharedExecution,
             StringComparison.Ordinal);
         Assert.DoesNotContain(
@@ -109,7 +109,7 @@ public sealed partial class RepositoryBoundaryTests
         string generalReplaceExecution = sharedExecution;
         Assert.DoesNotContain("GeneralReplaceEphemeralDraft", generalReplaceExecution, StringComparison.Ordinal);
         Assert.DoesNotContain("GeneralReplaceWithInitialInspection", generalReplaceExecution, StringComparison.Ordinal);
-        Assert.Contains("private async ValueTask<CompositionRunResult> ExecuteGeneralReplaceAsync(", generalReplaceExecution, StringComparison.Ordinal);
+        Assert.Contains("internal async ValueTask<CompositionRunResult> ExecuteGeneralReplaceAsync(", generalReplaceExecution, StringComparison.Ordinal);
         Assert.Contains("AcceptedSessionExecutionInputs.CreateGeneralReplaceBindings(", generalReplaceExecution, StringComparison.Ordinal);
         Assert.DoesNotContain("GeneralReplaceRunActionStrategy", generalReplaceExecution, StringComparison.Ordinal);
         Assert.DoesNotContain("TryPlanGeneralReplacePostbuild", generalReplaceExecution, StringComparison.Ordinal);

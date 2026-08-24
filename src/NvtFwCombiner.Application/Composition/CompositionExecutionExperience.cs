@@ -10,13 +10,6 @@ namespace NvtFwCombiner.Application.Composition;
 /// <summary>Executes every accepted workflow through one Application-owned operation.</summary>
 internal sealed class CompositionExecutionExperience : ICompositionExecution
 {
-    private const string StandardMergeRunIdPrefix = "ui";
-    private const string GeneralMergeRunIdPrefix = "ui-merge-general";
-    private const string AbMergeRunIdPrefix = "ui-merge-ab";
-    private const string DpReplaceRunIdPrefix = "ui-replace-dp";
-    private const string CtrlRamReplaceRunIdPrefix = "ui-replace-ctrlram";
-    private const string GeneralReplaceRunIdPrefix = "ui-replace-general";
-
     private readonly ICanonicalCapabilityQuery _capabilities;
     private readonly ICompositionExecutionDestinationProvider _destinations;
     private readonly Func<CompositionExternalProcessorLease> _acquireExternalProcessor;
@@ -48,20 +41,18 @@ internal sealed class CompositionExecutionExperience : ICompositionExecution
         ArgumentNullException.ThrowIfNull(request);
         ArgumentNullException.ThrowIfNull(progress);
         ValidateBundleRequestOptions(request);
-        ActiveSessionSnapshot session = request.AcceptedSession;
-        ResolvedCapability capability = AcceptedSessionExecutionInputs.RequireCapability(
-            session,
-            session.WorkflowId,
-            request.IcId,
-            session.WorkflowId is ExperienceIds.GeneralMerge or ExperienceIds.GeneralReplace
-                ? AuthoringDerivedResultKind.Validation
-                : AuthoringDerivedResultKind.Inspection);
-        return session.WorkflowId switch
-        {
-            ExperienceIds.StandardMerge => ExecuteAcceptedCompositionAsync(
-                StandardMergeRunIdPrefix,
+        return request.Route(this, request, progress, cancellationToken);
+    }
+
+    internal ValueTask<CompositionRunResult> ExecuteStandardMergeAsync(
+        AcceptedCompositionExecutionRequest request,
+        CompositionRunProgressFeed progress,
+        CancellationToken cancellationToken)
+    {
+        return ExecuteAcceptedCompositionAsync(
+                "ui",
                 request,
-                capability,
+                AcceptedSessionExecutionInputs.RequireCapability(request.AcceptedSession, ExperienceIds.StandardMerge, request.IcId, AuthoringDerivedResultKind.Inspection),
                 progress,
                 firstInputAddressSpaceId: null,
                 externalProcessor: null,
@@ -69,52 +60,37 @@ internal sealed class CompositionExecutionExperience : ICompositionExecution
                 abMergeTopologySelection: null,
                 additionalProtectedPaths: [],
                 additionalDelivery: null,
-                cancellationToken),
-            ExperienceIds.GeneralMerge => ExecuteGeneralMergeAsync(
-                request,
-                capability,
-                progress,
-                cancellationToken),
-            ExperienceIds.AbMerge => ExecuteAbMergeAsync(
-                request,
-                capability,
-                progress,
-                cancellationToken),
-            ExperienceIds.GeneralReplace => ExecuteGeneralReplaceAsync(
-                request,
-                capability,
-                progress,
-                cancellationToken),
-            ExperienceIds.DpReplace => ExecuteAcceptedCompositionAsync(
-                DpReplaceRunIdPrefix,
-                request,
-                capability,
-                progress,
-                CompositionAddressSpaceIds.ReferenceBase,
-                externalProcessor: null,
-                capability.DpExecutionPlan?.IcNumberSelection ??
-                    throw new InvalidOperationException(
-                        "Accepted DP Replace capability has no execution selection."),
-                abMergeTopologySelection: null,
-                additionalProtectedPaths: [],
-                additionalDelivery: null,
-                cancellationToken),
-            ExperienceIds.CtrlRamReplace => ExecuteCtrlRamReplaceAsync(
-                request,
-                capability,
-                progress,
-                cancellationToken),
-            _ => throw new InvalidOperationException(
-                $"Accepted workflow '{session.WorkflowId}' has no execution path."),
-        };
+                cancellationToken);
     }
 
-    private ValueTask<CompositionRunResult> ExecuteAbMergeAsync(
+    internal ValueTask<CompositionRunResult> ExecuteDpReplaceAsync(
         AcceptedCompositionExecutionRequest request,
-        ResolvedCapability capability,
         CompositionRunProgressFeed progress,
         CancellationToken cancellationToken)
     {
+        ResolvedCapability capability = AcceptedSessionExecutionInputs.RequireCapability(request.AcceptedSession, ExperienceIds.DpReplace, request.IcId, AuthoringDerivedResultKind.Inspection);
+        return ExecuteAcceptedCompositionAsync(
+            "ui-replace-dp",
+            request,
+            capability,
+            progress,
+            CompositionAddressSpaceIds.ReferenceBase,
+            externalProcessor: null,
+            capability.DpExecutionPlan?.IcNumberSelection ??
+                throw new InvalidOperationException(
+                    "Accepted DP Replace capability has no execution selection."),
+            abMergeTopologySelection: null,
+            additionalProtectedPaths: [],
+            additionalDelivery: null,
+            cancellationToken);
+    }
+
+    internal ValueTask<CompositionRunResult> ExecuteAbMergeAsync(
+        AcceptedCompositionExecutionRequest request,
+        CompositionRunProgressFeed progress,
+        CancellationToken cancellationToken)
+    {
+        ResolvedCapability capability = AcceptedSessionExecutionInputs.RequireCapability(request.AcceptedSession, ExperienceIds.AbMerge, request.IcId, AuthoringDerivedResultKind.Inspection);
         CompositionExecutionDeliveryTarget? additionalDelivery = null;
         if (!string.IsNullOrWhiteSpace(request.AdditionalDeliveryOutputPath))
         {
@@ -145,7 +121,7 @@ internal sealed class CompositionExecutionExperience : ICompositionExecution
                 : [new CompositionExecutionProtectedPath(request.ReportPath, "CLI report")],
         ];
         return ExecuteAcceptedCompositionAsync(
-            AbMergeRunIdPrefix,
+            "ui-merge-ab",
             request,
             capability,
             progress,
@@ -159,12 +135,12 @@ internal sealed class CompositionExecutionExperience : ICompositionExecution
             cancellationToken);
     }
 
-    private async ValueTask<CompositionRunResult> ExecuteGeneralMergeAsync(
+    internal async ValueTask<CompositionRunResult> ExecuteGeneralMergeAsync(
         AcceptedCompositionExecutionRequest request,
-        ResolvedCapability capability,
         CompositionRunProgressFeed progress,
         CancellationToken cancellationToken)
     {
+        ResolvedCapability capability = AcceptedSessionExecutionInputs.RequireCapability(request.AcceptedSession, ExperienceIds.GeneralMerge, request.IcId, AuthoringDerivedResultKind.Validation);
         ActiveSessionSnapshot session = request.AcceptedSession;
         GeneralMergeDraftState draft = session.DraftState as GeneralMergeDraftState ??
             throw new InvalidOperationException(
@@ -185,7 +161,7 @@ internal sealed class CompositionExecutionExperience : ICompositionExecution
                 session,
                 plan.InputBindings);
         CompositionRunResult result = await RunCompiledCompositionAsync(
-                GeneralMergeRunIdPrefix,
+            "ui-merge-general",
                 composition,
                 bindings,
                 bindings[0].ArtifactId,
@@ -205,12 +181,12 @@ internal sealed class CompositionExecutionExperience : ICompositionExecution
         return result;
     }
 
-    private async ValueTask<CompositionRunResult> ExecuteGeneralReplaceAsync(
+    internal async ValueTask<CompositionRunResult> ExecuteGeneralReplaceAsync(
         AcceptedCompositionExecutionRequest request,
-        ResolvedCapability capability,
         CompositionRunProgressFeed progress,
         CancellationToken cancellationToken)
     {
+        ResolvedCapability capability = AcceptedSessionExecutionInputs.RequireCapability(request.AcceptedSession, ExperienceIds.GeneralReplace, request.IcId, AuthoringDerivedResultKind.Validation);
         ActiveSessionSnapshot session = request.AcceptedSession;
         GeneralMappingDraftState draft = session.DraftState as GeneralMappingDraftState ??
             throw new InvalidOperationException(
@@ -241,7 +217,7 @@ internal sealed class CompositionExecutionExperience : ICompositionExecution
                     ? _acquireExternalProcessor().Processor
                     : null;
         CompositionRunResult result = await RunCompiledCompositionAsync(
-                GeneralReplaceRunIdPrefix,
+            "ui-replace-general",
                 composition,
                 bindings,
                 bindings[0].ArtifactId,
@@ -262,12 +238,12 @@ internal sealed class CompositionExecutionExperience : ICompositionExecution
         return result;
     }
 
-    private async ValueTask<CompositionRunResult> ExecuteCtrlRamReplaceAsync(
+    internal async ValueTask<CompositionRunResult> ExecuteCtrlRamReplaceAsync(
         AcceptedCompositionExecutionRequest request,
-        ResolvedCapability capability,
         CompositionRunProgressFeed progress,
         CancellationToken cancellationToken)
     {
+        ResolvedCapability capability = AcceptedSessionExecutionInputs.RequireCapability(request.AcceptedSession, ExperienceIds.CtrlRamReplace, request.IcId, AuthoringDerivedResultKind.Inspection);
         CompositionExternalProcessorLease runtime = _acquireExternalProcessor();
         ArgumentOutOfRangeException.ThrowIfLessThan(runtime.Generation, 1);
         ActiveSessionSnapshot session = request.AcceptedSession;
@@ -291,7 +267,7 @@ internal sealed class CompositionExecutionExperience : ICompositionExecution
                 binding.AddressSpaceId,
                 CompositionAddressSpaceIds.ReferenceBase));
         return await RunCompiledCompositionAsync(
-                CtrlRamReplaceRunIdPrefix,
+            "ui-replace-ctrlram",
                 composition,
                 bindings,
                 reference.ArtifactId,

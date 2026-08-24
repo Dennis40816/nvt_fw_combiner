@@ -27,6 +27,23 @@ public sealed partial class RepositoryBoundaryTests
         Assert.Contains("GetAcceptedAbMergeTopologySelection", execution, StringComparison.Ordinal);
         Assert.DoesNotContain("CanonicalCapabilityCompilerAdapter", execution, StringComparison.Ordinal);
         Assert.DoesNotContain("ResolveAbMergeTopologySelection", execution, StringComparison.Ordinal);
+        Assert.DoesNotContain("session.WorkflowId switch", execution, StringComparison.Ordinal);
+        Assert.DoesNotContain(".WorkflowId switch", execution, StringComparison.Ordinal);
+        Assert.Contains("request.Route(this, request, progress, cancellationToken)", execution, StringComparison.Ordinal);
+        Assert.Contains("internal delegate ValueTask<CompositionRunResult> AcceptedCompositionExecutionRoute", request, StringComparison.Ordinal);
+        Assert.Contains("internal static class AcceptedCompositionExecutionRoutes", request, StringComparison.Ordinal);
+        foreach (string workflow in new[]
+        {
+            "ExperienceIds.StandardMerge =>",
+            "ExperienceIds.AbMerge =>",
+            "ExperienceIds.GeneralMerge =>",
+            "ExperienceIds.DpReplace =>",
+            "ExperienceIds.CtrlRamReplace =>",
+            "ExperienceIds.GeneralReplace =>",
+        })
+        {
+            Assert.Contains(workflow, request, StringComparison.Ordinal);
+        }
         Assert.DoesNotContain("AbMergeTopologyToken", request, StringComparison.Ordinal);
         Assert.Contains("ICompositionExecutionDestinationProvider", execution, StringComparison.Ordinal);
         Assert.Contains("ICompositionExecutionDestinationProvider", destination, StringComparison.Ordinal);

@@ -184,6 +184,20 @@ typed accepted execution envelope. Make `ICompositionExecution` consume that
 envelope without an experience switch. Preserve the sole planner/engine,
 operation order, ranges, processors, output bytes, names, and reports.
 
+**Completed 2026-08-24.** `AcceptedCompositionExecutionRequest` now resolves
+its accepted session identity once into a closed immutable execution delegate.
+`CompositionExecutionExperience.ExecuteAsync` invokes that typed envelope and
+contains no `WorkflowId`/experience switch; the six route methods retain the
+same capability result kind, compiled inputs, readiness, delivery, processor,
+run-id prefix, and shared `AcceptedSessionCompositionExecution` convergence.
+The exact six-route mapping and absence of executor string dispatch are locked
+by red-capable architecture guards. Architecture 222/222, Golden 18/18,
+Bootstrap 1017/1017, Release solution build, structure validation, and scoped
+Polytail pass. The first correct-but-verbose implementation was rejected by
+the repository size gate; the accepted form leaves all production ratchets
+exactly unchanged at 791 files / 110,595 nonblank lines and runtime 535 /
+75,289, including Application 217 / 33,476.
+
 ### A7 — friend-assembly boundary permeability (high)
 
 Application exposes internals to Infrastructure and Bootstrap; Domain and

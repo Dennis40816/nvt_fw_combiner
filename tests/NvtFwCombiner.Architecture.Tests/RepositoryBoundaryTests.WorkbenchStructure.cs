@@ -186,7 +186,7 @@ public sealed partial class RepositoryBoundaryTests
         string candidate = ReadText("src/NvtFwCombiner.Infrastructure/Composition/BuiltInGeneralAuthoringPlanner.GeneralMerge.V2.cs");
 
         Assert.DoesNotContain("RunGeneralMergeEphemeralDraftAsync", entry, StringComparison.Ordinal);
-        Assert.Contains("private async ValueTask<CompositionRunResult> ExecuteGeneralMergeAsync", entry, StringComparison.Ordinal);
+        Assert.Contains("internal async ValueTask<CompositionRunResult> ExecuteGeneralMergeAsync", entry, StringComparison.Ordinal);
         Assert.False(File.Exists(Path.Combine(
             Root.FullName,
             "src",
@@ -489,9 +489,10 @@ public sealed partial class RepositoryBoundaryTests
             "NvtFwCombiner.Bootstrap",
             "CompositionMemoryProjection.AbMerge.cs")));
         Assert.Contains(
-            "ExperienceIds.StandardMerge => ExecuteAcceptedCompositionAsync",
+            "internal ValueTask<CompositionRunResult> ExecuteStandardMergeAsync",
             standardMergeRun,
             StringComparison.Ordinal);
+        Assert.DoesNotContain("WorkflowId switch", standardMergeRun, StringComparison.Ordinal);
         Assert.Contains("ExecuteAcceptedCompositionAsync", standardMergeRun, StringComparison.Ordinal);
         Assert.Equal(2, CountOccurrences(runner, "AcceptedSessionExecutionInputs.CreateBindings"));
         Assert.Contains("AcceptedSessionCompositionExecution.ExecuteAsync", runner, StringComparison.Ordinal);

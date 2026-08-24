@@ -455,17 +455,15 @@ public sealed partial class RepositoryBoundaryTests
             "src/NvtFwCombiner.Application/Composition/CompositionExecutionExperience.cs");
         string bootstrapSource = ReadBootstrapSources();
 
-        Assert.Contains("private const string StandardMergeRunIdPrefix = \"ui\";", runner, StringComparison.Ordinal);
-        Assert.Contains("private const string GeneralMergeRunIdPrefix = \"ui-merge-general\";", runner, StringComparison.Ordinal);
-        Assert.Contains("private const string DpReplaceRunIdPrefix = \"ui-replace-dp\";", runner, StringComparison.Ordinal);
-        Assert.Contains("private const string CtrlRamReplaceRunIdPrefix = \"ui-replace-ctrlram\";", runner, StringComparison.Ordinal);
-        Assert.Contains("private const string GeneralReplaceRunIdPrefix = \"ui-replace-general\";", runner, StringComparison.Ordinal);
+        foreach (string prefix in new[]
+        {
+            "ui", "ui-merge-general", "ui-merge-ab",
+            "ui-replace-dp", "ui-replace-ctrlram", "ui-replace-general",
+        })
+        {
+            Assert.Equal(1, CountOccurrences(runner, $"\"{prefix}\""));
+        }
         Assert.DoesNotContain("private static string CreateWorkbenchReportRunId", runner, StringComparison.Ordinal);
-        Assert.Equal(2, CountOccurrences(runner, "StandardMergeRunIdPrefix"));
-        Assert.Equal(2, CountOccurrences(runner, "GeneralMergeRunIdPrefix"));
-        Assert.Equal(2, CountOccurrences(runner, "DpReplaceRunIdPrefix"));
-        Assert.Equal(2, CountOccurrences(runner, "CtrlRamReplaceRunIdPrefix"));
-        Assert.Equal(2, CountOccurrences(runner, "GeneralReplaceRunIdPrefix"));
         Assert.DoesNotContain("CreateBlockedCompositionRunResult", bootstrapSource, StringComparison.Ordinal);
         Assert.DoesNotContain("CreateReplaceReadinessOnlyResult", bootstrapSource, StringComparison.Ordinal);
         Assert.False(File.Exists(Path.Combine(

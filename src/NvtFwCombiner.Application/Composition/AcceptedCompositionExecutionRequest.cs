@@ -1,6 +1,7 @@
 using System.Collections.ObjectModel;
 using NvtFwCombiner.Application.Authoring;
 using NvtFwCombiner.Application.Capabilities;
+using NvtFwCombiner.Domain.Composition;
 
 namespace NvtFwCombiner.Application.Composition;
 
@@ -23,6 +24,10 @@ public sealed class AcceptedCompositionExecutionRequest(
     public ActiveSessionSnapshot AcceptedSession { get; } = CompositionSummaryValue.NotNull(
         acceptedSession,
         nameof(acceptedSession));
+
+    internal AcceptedCompositionExecutionRoute Route { get; } = AcceptedCompositionExecutionRoutes.Resolve(CompositionSummaryValue.NotNull(
+            acceptedSession,
+            nameof(acceptedSession)).WorkflowId);
 
     /// <summary>Current host path hints matched against the accepted immutable input identities.</summary>
     public IReadOnlyDictionary<string, string> SlotPaths { get; } = SnapshotSlotPaths(slotPaths);
@@ -70,5 +75,28 @@ public sealed class AcceptedCompositionExecutionRequest(
                 static pair => pair.Key,
                 static pair => pair.Value,
                 StringComparer.Ordinal));
+    }
+}
+
+internal delegate ValueTask<CompositionRunResult> AcceptedCompositionExecutionRoute(
+    CompositionExecutionExperience owner,
+    AcceptedCompositionExecutionRequest request,
+    CompositionRunProgressFeed progress,
+    CancellationToken cancellationToken);
+
+internal static class AcceptedCompositionExecutionRoutes
+{
+    internal static AcceptedCompositionExecutionRoute Resolve(string workflowId)
+    {
+        return workflowId switch
+        {
+            ExperienceIds.StandardMerge => static (owner, request, progress, token) => owner.ExecuteStandardMergeAsync(request, progress, token),
+            ExperienceIds.AbMerge => static (owner, request, progress, token) => owner.ExecuteAbMergeAsync(request, progress, token),
+            ExperienceIds.GeneralMerge => static (owner, request, progress, token) => owner.ExecuteGeneralMergeAsync(request, progress, token),
+            ExperienceIds.DpReplace => static (owner, request, progress, token) => owner.ExecuteDpReplaceAsync(request, progress, token),
+            ExperienceIds.CtrlRamReplace => static (owner, request, progress, token) => owner.ExecuteCtrlRamReplaceAsync(request, progress, token),
+            ExperienceIds.GeneralReplace => static (owner, request, progress, token) => owner.ExecuteGeneralReplaceAsync(request, progress, token),
+            _ => throw new InvalidOperationException($"Accepted workflow '{workflowId}' has no execution path."),
+        };
     }
 }
