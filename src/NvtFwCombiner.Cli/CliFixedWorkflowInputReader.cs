@@ -75,4 +75,6 @@ internal sealed class CliFixedWorkflowInputReadException(
     internal string AddressSpaceId { get; } = addressSpaceId;
 
     internal string Path { get; } = path;
+
+    internal bool IsMissing { get; } = innerException is LocalFileNotFoundException;
 }

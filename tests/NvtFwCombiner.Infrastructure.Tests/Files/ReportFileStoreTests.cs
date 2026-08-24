@@ -90,7 +90,7 @@ public sealed class LocalFileStoreTests
     {
         using var workspace = TempWorkspace.Create();
 
-        _ = await Assert.ThrowsAsync<LocalFileReadException>(() =>
+        _ = await Assert.ThrowsAsync<LocalFileNotFoundException>(() =>
             new LocalFileStore().ReadTextAsync(
                 workspace.PathFor("missing.json"),
                 1,

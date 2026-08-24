@@ -49,9 +49,14 @@ public sealed class WorkbenchCtrlRamPhysicalInputTests
     {
         CtrlRamInspectionDisplay display = BootstrapTestHost.Services.CtrlRamAuthoring
             .GetDiscoveryDisplay(icId, number, basePath: null);
+        CtrlRamInspectionDisplay acceptedBaseDisplay = BootstrapTestHost.Services.CtrlRamAuthoring
+            .GetDiscoveryDisplayFromAcceptedBase(icId, number, new byte[1]);
         IReadOnlyList<ReplaceInputSlot> slots = display.InputSlots;
 
         Assert.Equal(expectedCount, slots.Count);
+        Assert.Equal(
+            slots.Select(static slot => slot.SlotId),
+            acceptedBaseDisplay.InputSlots.Select(static slot => slot.SlotId));
         Assert.Contains(slots, slot => slot.SlotId == "replace-ctrlram-nf");
         Assert.Contains(slots, slot => slot.SlotId == "replace-ctrlram-vn");
         Assert.DoesNotContain(slots, slot => slot.SlotId.StartsWith("replace-ctrlram-nf-", StringComparison.Ordinal));

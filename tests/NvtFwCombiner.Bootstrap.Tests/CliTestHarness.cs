@@ -41,6 +41,7 @@ internal static class CliTestHarness
         {
             exitCode = await ReplaceCliCommandHandler.RunAsync(
                 services,
+                host.LocalFiles,
                 args[0],
                 args[1..],
                 output,

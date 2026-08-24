@@ -209,7 +209,7 @@ public static partial class CliApplication
                         StringComparer.Ordinal.Equals(
                                 exception.AddressSpaceId,
                                 CompositionAddressSpaceIds.DpInput) &&
-                            !File.Exists(exception.Path)
+                            exception.IsMissing
                                 ? $"Selected DP BIN path does not exist for {selectedProfile.IcId} Standard Merge."
                                 : exception.Message,
                         exception.AddressSpaceId)])

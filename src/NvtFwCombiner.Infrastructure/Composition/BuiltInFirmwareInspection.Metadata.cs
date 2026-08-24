@@ -162,4 +162,25 @@ internal sealed partial class BuiltInFirmwareInspection
             : null;
         return matchedBaseProfile || postbuildProfile is not null;
     }
+
+    internal static bool TryResolvePostbuildProfileFromAcceptedBaseForDisplay(
+        ICompositionCapabilityExperience projection,
+        string icId,
+        ReadOnlySpan<byte> acceptedBaseBytes,
+        out LegacyCombinerPostbuildProfile? postbuildProfile)
+    {
+        FirmwareConfigMetadata? metadata =
+            TryReadFirmwareConfigBackupMetadata(
+                projection,
+                icId,
+                acceptedBaseBytes,
+                out FirmwareConfigMetadata parsed)
+                    ? parsed
+                    : null;
+        return TryResolvePostbuildProfileForDisplay(
+            projection,
+            icId,
+            metadata,
+            out postbuildProfile);
+    }
 }

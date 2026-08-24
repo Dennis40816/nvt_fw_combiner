@@ -169,10 +169,11 @@ public sealed class LocalFileStore : ILocalFileStore
             OperationCanceledException => null,
             LocalFileReadException => null,
             FileNotFoundException or DirectoryNotFoundException =>
-                new(exception.Message, exception),
-            UnauthorizedAccessException or NotSupportedException => new(exception.Message, exception),
-            DecoderFallbackException => new(exception.Message, exception),
-            IOException => new(exception.Message, exception),
+                new LocalFileNotFoundException(exception.Message, exception),
+            UnauthorizedAccessException or NotSupportedException =>
+                new LocalFileReadException(exception.Message, exception),
+            DecoderFallbackException => new LocalFileReadException(exception.Message, exception),
+            IOException => new LocalFileReadException(exception.Message, exception),
             _ => null,
         };
     }

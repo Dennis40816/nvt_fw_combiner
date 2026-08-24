@@ -210,6 +210,12 @@ public interface ICtrlRamAuthoring
         string number,
         string? basePath);
 
+    /// <summary>Gets CtrlRAM discovery from one already admitted immutable base snapshot.</summary>
+    CtrlRamInspectionDisplay GetDiscoveryDisplayFromAcceptedBase(
+        string icId,
+        string number,
+        ReadOnlyMemory<byte> acceptedBaseBytes);
+
     /// <summary>Prepares one exact CtrlRAM Replace session from immutable inputs.</summary>
     CtrlRamAuthoringSessionPreparation PrepareSession(
         AuthoringSessionState session,

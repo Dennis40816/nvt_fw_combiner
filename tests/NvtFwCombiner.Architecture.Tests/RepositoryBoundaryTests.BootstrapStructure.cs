@@ -82,6 +82,8 @@ public sealed partial class RepositoryBoundaryTests
         string ctrlRam = ReadText("src/NvtFwCombiner.Cli/ReplaceCliCommandHandler.CtrlRam.cs");
         string ctrlRamSlots = ReadText(
             "src/NvtFwCombiner.Cli/ReplaceCliCommandHandler.CtrlRam.Slots.cs");
+        string ctrlRamAdapter = ReadText(
+            "src/NvtFwCombiner.Infrastructure/Composition/BuiltInCtrlRamAuthoringAdapter.cs");
         string support = ReadText("src/NvtFwCombiner.Cli/ReplaceCliCommandHandler.RunSupport.cs");
         string report = ReadText("src/NvtFwCombiner.Cli/ReplaceCliCommandHandler.Report.cs");
 
@@ -91,8 +93,16 @@ public sealed partial class RepositoryBoundaryTests
         Assert.DoesNotContain("private static async Task WriteWorkbenchReportFileIfRequestedAsync", ctrlRam, StringComparison.Ordinal);
         Assert.DoesNotContain("private static async Task PrintCompositionRunResultAsync", ctrlRam, StringComparison.Ordinal);
         Assert.DoesNotContain("private static bool TryCreateCtrlRamSlotPaths", ctrlRam, StringComparison.Ordinal);
+        Assert.Contains("CliFixedWorkflowInputReader.ReadBytesAsync", ctrlRam, StringComparison.Ordinal);
+        Assert.DoesNotContain("File.ReadAllBytes", ctrlRam, StringComparison.Ordinal);
+        Assert.DoesNotContain("File.Exists", ctrlRam, StringComparison.Ordinal);
+        Assert.DoesNotContain("GetAuthoringCatalog", ctrlRam, StringComparison.Ordinal);
         Assert.Contains("private static bool TryCreateCtrlRamSlotPaths", ctrlRamSlots, StringComparison.Ordinal);
+        Assert.Contains("GetDiscoveryDisplayFromAcceptedBase", ctrlRamSlots, StringComparison.Ordinal);
+        Assert.DoesNotContain("GetDiscoveryDisplay(", ctrlRamSlots, StringComparison.Ordinal);
         Assert.Contains("private static Dictionary<string, ReplaceInputSlot> CreateCtrlRamSlotLookup", ctrlRamSlots, StringComparison.Ordinal);
+        Assert.Contains("TryResolvePostbuildProfileFromAcceptedBaseForDisplay", ctrlRamAdapter, StringComparison.Ordinal);
+        Assert.Contains("acceptedBaseBytes.Span", ctrlRamAdapter, StringComparison.Ordinal);
         Assert.Contains("private static bool TryResolveIc", support, StringComparison.Ordinal);
         Assert.Contains("private static InputArtifactBinding[] CreateBindings", support, StringComparison.Ordinal);
         Assert.DoesNotContain("WriteWorkbenchReportFileIfRequestedAsync", report, StringComparison.Ordinal);

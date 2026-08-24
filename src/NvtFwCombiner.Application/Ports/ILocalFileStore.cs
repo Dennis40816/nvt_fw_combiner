@@ -34,5 +34,9 @@ public readonly record struct LocalFileReadProgress(long BytesRead, long TotalBy
 public class LocalFileReadException(string message, Exception? innerException = null)
     : IOException(message, innerException);
 
+/// <summary>The requested local file or one of its parent directories does not exist.</summary>
+public sealed class LocalFileNotFoundException(string message, Exception? innerException = null)
+    : LocalFileReadException(message, innerException);
+
 /// <summary>A bounded local file exceeds the caller-owned byte ceiling.</summary>
 public sealed class LocalFileTooLargeException(string message) : LocalFileReadException(message);

@@ -5,12 +5,51 @@ namespace NvtFwCombiner.Cli;
 
 internal static partial class ReplaceCliCommandHandler
 {
+    private static bool TryParseCtrlRamSlotArguments(
+        ParsedCliOptions options,
+        TextWriter error,
+        [NotNullWhen(true)] out IReadOnlyList<CtrlRamSlotArgument>? arguments)
+    {
+        List<string> values = options.GetValues("--ctrlram");
+        if (values.Count == 0)
+        {
+            error.WriteLine("error: at least one --ctrlram <slot-id=path> value is required for real IC CtrlRAM Replace");
+            arguments = null;
+            return false;
+        }
+
+        var parsed = new List<CtrlRamSlotArgument>(values.Count);
+        foreach (string value in values)
+        {
+            int separatorIndex = value.IndexOf('=', StringComparison.Ordinal);
+            string token = separatorIndex > 0
+                ? value[..separatorIndex].Trim()
+                : string.Empty;
+            string path = separatorIndex >= 0 && separatorIndex < value.Length - 1
+                ? value[(separatorIndex + 1)..].Trim()
+                : string.Empty;
+            if (token.Length == 0 || path.Length == 0)
+            {
+                error.WriteLine(
+                    $"error: real IC CtrlRAM Replace expects --ctrlram <slot-id=path>; example: --ctrlram {CompositionAddressSpaceIds.DynamicCtrlRamReplacementPrefix}vn=C:\\path\\vn.bin");
+                arguments = null;
+                return false;
+            }
+
+            parsed.Add(new(token, path));
+        }
+
+        arguments = parsed;
+        return true;
+    }
+
     private static bool TryCreateCtrlRamSlotPaths(
         ICtrlRamAuthoring authoring,
         string icId,
         string icNumber,
         string basePath,
-        ParsedCliOptions options,
+        ReadOnlyMemory<byte> acceptedBaseBytes,
+        IReadOnlyList<CtrlRamSlotArgument> arguments,
         TextWriter error,
         [NotNullWhen(true)] out Dictionary<string, string>? slotPaths)
     {
@@ -18,19 +57,11 @@ internal static partial class ReplaceCliCommandHandler
         {
             [CompositionSlotIds.ReplaceBase] = Path.GetFullPath(basePath),
         };
-        List<string> ctrlRamValues = options.GetValues("--ctrlram");
-        if (ctrlRamValues.Count == 0)
-        {
-            error.WriteLine("error: at least one --ctrlram <slot-id=path> value is required for real IC CtrlRAM Replace");
-            slotPaths = null;
-            return false;
-        }
-
         Dictionary<string, ReplaceInputSlot> slotsByToken = CreateCtrlRamSlotLookup(
             authoring,
             icId,
             icNumber,
-            basePath);
+            acceptedBaseBytes);
         if (slotsByToken.Count == 0)
         {
             error.WriteLine($"error: no CtrlRAM replacement slots are available for {icId} / {icNumber}");
@@ -38,28 +69,17 @@ internal static partial class ReplaceCliCommandHandler
             return false;
         }
 
-        foreach (string value in ctrlRamValues)
+        foreach (CtrlRamSlotArgument argument in arguments)
         {
-            int separatorIndex = value.IndexOf('=', StringComparison.Ordinal);
-            if (separatorIndex <= 0 || separatorIndex == value.Length - 1)
+            if (!slotsByToken.TryGetValue(argument.Token, out ReplaceInputSlot? slot))
             {
-                error.WriteLine(
-                    $"error: real IC CtrlRAM Replace expects --ctrlram <slot-id=path>; example: --ctrlram {CompositionAddressSpaceIds.DynamicCtrlRamReplacementPrefix}vn=C:\\path\\vn.bin");
-                slotPaths = null;
-                return false;
-            }
-
-            string token = value[..separatorIndex].Trim();
-            string path = value[(separatorIndex + 1)..].Trim();
-            if (!slotsByToken.TryGetValue(token, out ReplaceInputSlot? slot))
-            {
-                error.WriteLine($"error: unknown CtrlRAM slot '{token}' for {icId} / {icNumber}");
+                error.WriteLine($"error: unknown CtrlRAM slot '{argument.Token}' for {icId} / {icNumber}");
                 error.WriteLine($"available slots: {FormatAvailableSlotIds(slotsByToken)}");
                 slotPaths = null;
                 return false;
             }
 
-            if (!slotPaths.TryAdd(slot.SlotId, Path.GetFullPath(path)))
+            if (!slotPaths.TryAdd(slot.SlotId, Path.GetFullPath(argument.Path)))
             {
                 error.WriteLine($"error: duplicate CtrlRAM slot '{slot.SlotId}'");
                 slotPaths = null;
@@ -74,13 +94,13 @@ internal static partial class ReplaceCliCommandHandler
         ICtrlRamAuthoring authoring,
         string icId,
         string icNumber,
-        string basePath)
+        ReadOnlyMemory<byte> acceptedBaseBytes)
     {
         Dictionary<string, ReplaceInputSlot> slotsByToken = new(StringComparer.OrdinalIgnoreCase);
-        foreach (ReplaceInputSlot slot in authoring.GetDiscoveryDisplay(
+        foreach (ReplaceInputSlot slot in authoring.GetDiscoveryDisplayFromAcceptedBase(
                      icId,
                      icNumber,
-                     basePath).InputSlots)
+                     acceptedBaseBytes).InputSlots)
         {
             slotsByToken[slot.SlotId] = slot;
             if (!string.IsNullOrWhiteSpace(slot.RegionId))
@@ -101,4 +121,6 @@ internal static partial class ReplaceCliCommandHandler
                 .Distinct(StringComparer.Ordinal)
                 .Order(StringComparer.Ordinal));
     }
+
+    private sealed record CtrlRamSlotArgument(string Token, string Path);
 }

@@ -10,6 +10,7 @@ internal static partial class ReplaceCliCommandHandler
 
     internal static async Task<int> RunAsync(
         CliCompositionServices services,
+        ILocalFileStore localFiles,
         string command,
         string[] args,
         TextWriter output,
@@ -17,6 +18,7 @@ internal static partial class ReplaceCliCommandHandler
         CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(services);
+        ArgumentNullException.ThrowIfNull(localFiles);
         if (args.Length == 0 || args[0] is "--help")
         {
             await WriteUsageAsync(command, output).ConfigureAwait(false);
@@ -121,6 +123,7 @@ internal static partial class ReplaceCliCommandHandler
             : command == ExperienceIds.CtrlRamReplace
             ? await RunCtrlRamReplaceAsync(
                     services,
+                    localFiles,
                     action,
                     icId,
                     options,

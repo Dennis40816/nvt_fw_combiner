@@ -337,11 +337,11 @@ public sealed class StandardMergeCliCommandTests
         Assert.Contains("--tp is required for address space 'tp-input'", result.Error, StringComparison.Ordinal);
     }
 
-    /// <summary>Missing DP Perspective files report a stable input issue instead of an empty compilation failure.</summary>
+    /// <summary>DP Perspective read failures retain the adapter's missing-versus-unreadable classification.</summary>
     [Theory]
     [InlineData("51950")]
     [InlineData("51951")]
-    public async Task StandardMergePreviewReportsMissingDpPerspectiveFile(string profileSelector)
+    public async Task StandardMergePreviewClassifiesDpPerspectiveReadFailure(string profileSelector)
     {
         using var workspace = TempWorkspace.Create();
         string missingDpPath = workspace.PathFor("missing-dp.bin");
@@ -361,6 +361,21 @@ public sealed class StandardMergeCliCommandTests
         Assert.Equal(70, result.ExitCode);
         Assert.Contains("input.artifact.read-failed [dp-input]", result.Error, StringComparison.Ordinal);
         Assert.Contains("Selected DP BIN path does not exist", result.Error, StringComparison.Ordinal);
+
+        CliRunResult unreadable = await RunCliAsync([
+            "standard-merge",
+            "preview",
+            "--profile",
+            profileSelector,
+            "--dp",
+            workspace.Root,
+            "--tp",
+            tpPath,
+        ]);
+
+        Assert.Equal(70, unreadable.ExitCode);
+        Assert.Contains("input.artifact.read-failed [dp-input]", unreadable.Error, StringComparison.Ordinal);
+        Assert.DoesNotContain("Selected DP BIN path does not exist", unreadable.Error, StringComparison.Ordinal);
     }
 
     /// <summary>Workbench DP Perspective runs surface the same stable missing-input issue as the CLI.</summary>

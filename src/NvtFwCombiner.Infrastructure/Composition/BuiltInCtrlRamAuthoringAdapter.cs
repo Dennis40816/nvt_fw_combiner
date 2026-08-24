@@ -25,6 +25,26 @@ internal sealed partial class BuiltInCtrlRamAuthoringAdapter(
         return ResolveDisplay(icId, number, basePath);
     }
 
+    public CtrlRamInspectionDisplay GetDiscoveryDisplayFromAcceptedBase(
+        string icId,
+        string number,
+        ReadOnlyMemory<byte> acceptedBaseBytes)
+    {
+        LegacyCombinerPostbuildProfile? postbuildProfile =
+            BuiltInFirmwareInspection.TryResolvePostbuildProfileFromAcceptedBaseForDisplay(
+                _projection,
+                icId,
+                acceptedBaseBytes.Span,
+                out LegacyCombinerPostbuildProfile? profile)
+                    ? profile
+                    : null;
+        return CreateDisplay(
+            icId,
+            number,
+            postbuildProfile,
+            hasReadableBase: true);
+    }
+
     private CtrlRamInspectionDisplay ResolveDisplay(
         string icId,
         string number,

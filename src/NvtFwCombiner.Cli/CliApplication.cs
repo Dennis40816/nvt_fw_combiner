@@ -68,7 +68,7 @@ public static partial class CliApplication
                     .ConfigureAwait(false),
                 ExperienceIds.DpReplace or ExperienceIds.CtrlRamReplace or ExperienceIds.GeneralReplace =>
                     await ReplaceCliCommandHandler.RunAsync(
-                            services, args[0], args[1..], output, error, cancellationToken)
+                            services, host.LocalFiles, args[0], args[1..], output, error, cancellationToken)
                         .ConfigureAwait(false),
                 _ => await UnknownCommandAsync(args[0], error).ConfigureAwait(false),
             };

@@ -8,6 +8,7 @@ internal static partial class ReplaceCliCommandHandler
 {
     private static async Task<int> RunCtrlRamReplaceAsync(
         CliCompositionServices services,
+        ILocalFileStore localFiles,
         string action,
         string icId,
         ParsedCliOptions options,
@@ -21,37 +22,80 @@ internal static partial class ReplaceCliCommandHandler
             return UsageError;
         }
 
+        if (!TryParseCtrlRamSlotArguments(
+                options,
+                error,
+                out IReadOnlyList<CtrlRamSlotArgument>? ctrlRamArguments))
+        {
+            return UsageError;
+        }
+
+        string resolvedBasePath = Path.GetFullPath(basePath);
+        byte[] acceptedBaseBytes;
+        try
+        {
+            acceptedBaseBytes = await CliFixedWorkflowInputReader.ReadBytesAsync(
+                    localFiles,
+                    resolvedBasePath,
+                    CompiledInputArtifactInspectionService.MaximumContentReadBytes,
+                    cancellationToken)
+                .ConfigureAwait(false);
+        }
+        catch (LocalFileReadException exception)
+        {
+            string message = exception is LocalFileNotFoundException
+                ? "Base firmware BIN path does not exist."
+                : exception.Message;
+            await CliCompositionRunSupport.PrintIssuesAsync(
+                    error,
+                    [new CompositionIssue(
+                        CompositionPlanningIssueCodes.InputArtifactReadFailed,
+                        message,
+                        CompositionSlotIds.ReplaceBase)])
+                .ConfigureAwait(false);
+            return CompositionFailed;
+        }
+
         if (!TryCreateCtrlRamSlotPaths(
                 services.CtrlRamAuthoring,
                 icId,
                 icNumber,
-                basePath,
-                options,
+                resolvedBasePath,
+                acceptedBaseBytes,
+                ctrlRamArguments,
                 error,
                 out Dictionary<string, string>? slotPaths))
         {
             return UsageError;
         }
 
-        Dictionary<string, byte[]> inputBytes = new(StringComparer.Ordinal);
+        var inputBytes = new Dictionary<string, byte[]>(StringComparer.Ordinal)
+        {
+            [CompositionSlotIds.ReplaceBase] = acceptedBaseBytes,
+        };
         IReadOnlyList<CompositionIssue> inputReadIssues = [];
-        try
+        foreach ((string slotId, string path) in slotPaths.Where(static pair =>
+                     !StringComparer.Ordinal.Equals(
+                         pair.Key,
+                         CompositionSlotIds.ReplaceBase)))
         {
-            inputBytes = slotPaths.ToDictionary(
-                static pair => pair.Key,
-                static pair => File.ReadAllBytes(pair.Value),
-                StringComparer.Ordinal);
-        }
-        catch (Exception exception) when (
-            exception is IOException or UnauthorizedAccessException)
-        {
-            string message = !File.Exists(basePath)
-                ? "Base firmware BIN path does not exist."
-                : exception.Message;
-            inputReadIssues = [new CompositionIssue(
-                CompositionPlanningIssueCodes.InputArtifactReadFailed,
-                message,
-                CompositionSlotIds.ReplaceBase)];
+            try
+            {
+                inputBytes[slotId] = await CliFixedWorkflowInputReader.ReadBytesAsync(
+                        localFiles,
+                        path,
+                        CompiledInputArtifactInspectionService.MaximumContentReadBytes,
+                        cancellationToken)
+                    .ConfigureAwait(false);
+            }
+            catch (LocalFileReadException exception)
+            {
+                inputReadIssues = [new CompositionIssue(
+                    CompositionPlanningIssueCodes.InputArtifactReadFailed,
+                    exception.Message,
+                    slotId)];
+                break;
+            }
         }
 
         if (inputReadIssues.Count != 0)

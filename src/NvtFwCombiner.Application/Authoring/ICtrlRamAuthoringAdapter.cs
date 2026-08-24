@@ -14,6 +14,11 @@ public interface ICtrlRamAuthoringAdapter
         string number,
         string? basePath);
 
+    CtrlRamInspectionDisplay GetDiscoveryDisplayFromAcceptedBase(
+        string icId,
+        string number,
+        ReadOnlyMemory<byte> acceptedBaseBytes);
+
     CtrlRamAuthoringCompilation Resolve(
         string icId,
         string number,

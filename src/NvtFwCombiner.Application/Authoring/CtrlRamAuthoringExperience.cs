@@ -30,6 +30,18 @@ internal sealed partial class CtrlRamAuthoringExperience :
     }
 
     /// <inheritdoc />
+    public CtrlRamInspectionDisplay GetDiscoveryDisplayFromAcceptedBase(
+        string icId,
+        string number,
+        ReadOnlyMemory<byte> acceptedBaseBytes)
+    {
+        return _adapter.GetDiscoveryDisplayFromAcceptedBase(
+            icId,
+            number,
+            acceptedBaseBytes);
+    }
+
+    /// <inheritdoc />
     public CompiledInputVersionObservation? ProjectFirmwareVersionConfirmationLease(ActiveSessionSnapshot session)
     {
         ArgumentNullException.ThrowIfNull(session);
