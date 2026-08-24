@@ -322,6 +322,16 @@ project-reference, assembly dependency, friend-access, public-contract, and
 behavior/work-count tests for the high-value boundaries. Each new architecture
 refactor must first add a red-capable guard for the defect it removes.
 
+**Completed 2026-08-24.** The refactor now has exact project-reference and
+source-consumer dependency guards, exact friend lists, compiled public/internal
+visibility checks, single-evaluation work-count evidence, immutable-result
+metadata checks, closed six-workflow dispatch checks, bounded CLI-host checks,
+and build-tool mutation tests. Source sentinels remain only for literal
+repository-shape or forbidden-symbol contracts. The fresh-restore A1 failure
+proved the broader project-consumer guard can catch a real compiled-graph defect
+that the earlier text-only checks and stale assets missed. Architecture passes
+227/227 at the final reviewed head.
+
 ### A10 — broad Bootstrap host exposure (medium)
 
 `CompositionHostServices` publicly exposes catalog, authoring, inspection,
@@ -367,6 +377,45 @@ run tests continue to prove one successful read/hash for a shared immutable
 artifact. `CompositionRunResult` now publishes complete defensive-copied,
 get-only evidence in one construction; post-return evidence mutation is
 impossible. No process-global cache or report/output identity change was made.
+
+## 2026-08-24 post-refactor three-round review
+
+Reviewed range: `ff5aa7a3..6c147fb8`. All three rounds use the fixed final
+production/test diff; a pass is not inferred from documentation or test count
+alone.
+
+1. **Firmware and behavior parity — PASS, no finding.** No profile, canonical
+   Golden fixture, CRC-worker, schema, operation-range, or firmware Domain
+   source changed. The compiler extraction preserves the admitted lowering
+   order and the six accepted workflows retain their bindings, processors,
+   delivery/report paths, and single `CompositionRunService` convergence.
+   Golden Regression passes 18/18.
+2. **Layering and single ownership — PASS, no finding.** Approved XAML
+   geometry is unchanged; shell navigation moved behind a typed child only.
+   `CliApplication.RunAsync` is the sole CLI caller of the broad Bootstrap
+   host. Application no longer friends sibling Infrastructure; focused ports
+   cross that boundary while concrete compiler/authoring implementations stay
+   internal. Exact project, friend, public-metadata, workflow-dispatch, and
+   build-tool ownership guards pass.
+3. **Regression evidence, dead code, size, and managed-release contract — PASS,
+   no finding.** No new skipped/ignored test or compatibility fallback was
+   added. The AB IC-switch regression covers consent, context/topology rebuild,
+   compatible input retention, and re-inspection. Static callers, construction,
+   XAML/reflection, package roots, and result writers disclose no newly safe
+   whole-module deletion; the previously documented Saved Rule adapter remains
+   an owner decision. The update source remains the one schema-bound
+   `update-catalog.v1.json` plus catalog-relative ZIP contract, including
+   relocation tests. Final exact production size is 793 files / 110,620
+   nonblank lines; counted runtime is 536 / 75,333.
+
+The canonical `python scripts/verify.py --all` gate passes at the reviewed
+head: Structure; 413 repository Python tests with four declared platform
+skips; CRC worker 30/30 at 100% line/branch; 3,983 .NET tests with only two
+declared Unix-only skips; 89.61% .NET line and 79.11% branch coverage; and a
+Release build with zero warnings/errors. The exact .NET inventory is Bootstrap
+1,018, UI Smoke 673, Domain 411, Application 689, Infrastructure 560
+(558 pass plus two skips), Profile Contract 387, Golden 18, and Architecture
+227.
 
 ## 2026-08-23 code-size refresh
 
