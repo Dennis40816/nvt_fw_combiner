@@ -202,3 +202,29 @@ Domain plus Profiles remains 20,632 and Bootstrap plus CLI plus Desktop remains
 runtime, 2,843 Application, and 2,323 Infrastructure/Contracts/worker. This is
 accepted as the measured cost of replacing compiler-visible sibling internals
 with narrow compiled contracts; it does not authorize later growth.
+
+## 2026-08-24 approved Build settings A3/T2 reference
+
+The owner approved the A3 compact review layout and T2 two-row TP-version
+layout for the existing shared Build settings surface. The Presentation change
+keeps the canonical output name locked until the pencil action, collapses the
+already-typed source summaries behind one disclosure, keeps bundle destination
+values read-only until the pencil action, and uses the existing typed CtrlRAM
+preserve/edit state and bundle-destination validator. Header, scrolling body,
+footer, Light/Dark theme tokens, localization, focus return, and the existing
+shared confirmation remain within their current owners. No output naming,
+source acceptance, validation, planner, executor, firmware, report, or delivery
+semantics change, and no second semantic implementation is introduced.
+
+Relative to the `0.10.7` DP Replace exposure checkpoint, full production rises
+from 110,688 to 110,876 nonblank lines (+188), entirely under Presentation.
+Counted runtime remains 536 files / 75,383 lines, and every non-UI slice remains
+unchanged. The executable full-production allowance therefore becomes exactly
+7,980 above the frozen 102,896 ratchet. This owner-approved R1 visual allowance
+is non-transferable, becomes an exact descending ceiling immediately, and does
+not close or fund the separate unused-module and repository-size investigation.
+
+Verification covers the shared ViewModel admission states, production-host
+focus and interaction, 980x720 Light/Dark geometry, the T2 mode-above-fields
+contract, collapsed source disclosure, two-line bundle review, pencil-only
+editing, and the canonical full repository gate.

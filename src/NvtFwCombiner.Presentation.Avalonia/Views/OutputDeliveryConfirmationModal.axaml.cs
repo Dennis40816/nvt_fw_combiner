@@ -129,6 +129,14 @@ public sealed partial class OutputDeliveryConfirmationModal : UserControl
         }
     }
 
+    private void SourcesDisclosureToggle_OnIsCheckedChanged(object? sender, RoutedEventArgs e)
+    {
+        if (DataContext is OutputDeliveryConfirmationViewModel viewModel)
+        {
+            viewModel.SetSourcesExpanded(SourcesDisclosureToggle.IsChecked == true);
+        }
+    }
+
     private void FolderNameInput_OnTextChanged(object? sender, TextChangedEventArgs e)
     {
         if (DataContext is OutputDeliveryConfirmationViewModel viewModel)
@@ -162,6 +170,39 @@ public sealed partial class OutputDeliveryConfirmationModal : UserControl
                     OutputFileNameInput.SelectAll();
                 }
             },
+            DispatcherPriority.Input);
+    }
+
+    private void EditBundleDestinationButton_OnClick(object? sender, RoutedEventArgs e)
+    {
+        if (DataContext is not OutputDeliveryConfirmationViewModel viewModel)
+        {
+            return;
+        }
+
+        viewModel.BeginBundleDestinationEdit();
+        Dispatcher.UIThread.Post(
+            () =>
+            {
+                if (viewModel.IsBundleDestinationEditing)
+                {
+                    _ = FolderNameInput.Focus(NavigationMethod.Tab);
+                    FolderNameInput.SelectAll();
+                }
+            },
+            DispatcherPriority.Input);
+    }
+
+    private void CompleteBundleDestinationEditButton_OnClick(object? sender, RoutedEventArgs e)
+    {
+        if (DataContext is not OutputDeliveryConfirmationViewModel viewModel)
+        {
+            return;
+        }
+
+        viewModel.CompleteBundleDestinationEdit();
+        Dispatcher.UIThread.Post(
+            () => _ = EditBundleDestinationButton.Focus(NavigationMethod.Tab),
             DispatcherPriority.Input);
     }
 

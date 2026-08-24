@@ -137,8 +137,8 @@ public sealed partial class FirmwareInspectionSlotTests
                 window.GetVisualDescendants()
                     .OfType<OutputDeliveryConfirmationModal>(),
                 static candidate => candidate.IsVisible);
-            CheckBox bundleToggle = Assert.IsType<CheckBox>(
-                modal.FindControl<CheckBox>("BundleToggle"),
+            ToggleSwitch bundleToggle = Assert.IsType<ToggleSwitch>(
+                modal.FindControl<ToggleSwitch>("BundleToggle"),
                 exactMatch: false);
             TextBox outputName = Assert.IsType<TextBox>(
                 modal.FindControl<TextBox>("OutputFileNameInput"),
@@ -316,6 +316,41 @@ public sealed partial class FirmwareInspectionSlotTests
         Assert.False(viewModel.OutputDelivery.IsOutputFileNameEditing);
         Assert.Equal(canonicalName, viewModel.OutputDelivery.OutputFileName);
         Assert.True(viewModel.OutputDelivery.OutputFileNameUsesAutomaticName);
+    }
+
+    /// <summary>The approved A3 review keeps disclosures and bundle values locked until explicit admission.</summary>
+    [Fact]
+    public async Task OutputConfirmationReviewStateUsesExplicitDisclosureAndBundleEditAdmission()
+    {
+        using StandardMergeGoldenManifest golden = StandardMergeGoldenManifest.Load();
+        JsonElement goldenCase = golden.CaseByIc("51926");
+        MainWindowViewModel viewModel = await CreateReadyStandardMergeAsync(golden, goldenCase);
+        await viewModel.Merge.RequestBuildOutputDeliveryAsync();
+
+        Assert.False(viewModel.OutputDelivery.AreSourcesExpanded);
+        Assert.False(viewModel.OutputDelivery.IsBundleDestinationEditing);
+        Assert.False(viewModel.OutputDelivery.CanEditBundleDestination);
+
+        viewModel.OutputDelivery.SetSourcesExpanded(true);
+        Assert.True(viewModel.OutputDelivery.AreSourcesExpanded);
+
+        viewModel.OutputDelivery.SetBundleEnabled(true);
+        Assert.True(viewModel.OutputDelivery.CanEditBundleDestination);
+        Assert.False(viewModel.OutputDelivery.IsBundleDestinationEditing);
+
+        viewModel.OutputDelivery.BeginBundleDestinationEdit();
+        Assert.True(viewModel.OutputDelivery.IsBundleDestinationEditing);
+
+        viewModel.OutputDelivery.SetBundleFolderName("operator-bundle");
+        viewModel.OutputDelivery.SetParentDirectory("C:\\Output");
+        viewModel.OutputDelivery.CompleteBundleDestinationEdit();
+        Assert.False(viewModel.OutputDelivery.IsBundleDestinationEditing);
+        Assert.Equal("operator-bundle", viewModel.OutputDelivery.BundleFolderName);
+        Assert.Equal("C:\\Output", viewModel.OutputDelivery.ParentDirectory);
+
+        viewModel.OutputDelivery.SetBundleEnabled(false);
+        Assert.False(viewModel.OutputDelivery.CanEditBundleDestination);
+        Assert.False(viewModel.OutputDelivery.IsBundleDestinationEditing);
     }
 
     /// <summary>Cancel writes nothing and retains the operator's edited bundle state.</summary>

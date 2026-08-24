@@ -123,6 +123,8 @@ internal sealed partial class ShellTextResources
 
     public string OutputDeliveryBundleLabel { get; private init; } = string.Empty;
 
+    public string OutputDeliverySectionLabel { get; private init; } = string.Empty;
+
     public string OutputDeliveryAdditionalLabel { get; private init; } = string.Empty;
 
     public string OutputDeliveryAdditionalInBundleLabel { get; private init; } = string.Empty;
@@ -133,17 +135,23 @@ internal sealed partial class ShellTextResources
 
     public string OutputDeliverySourcesLabel { get; private init; } = string.Empty;
 
+    public string OutputDeliverySourcesSummaryFormat { get; private init; } = string.Empty;
+
     public string OutputDeliveryFolderNameLabel { get; private init; } = string.Empty;
 
     public string OutputDeliveryParentLabel { get; private init; } = string.Empty;
 
     public string OutputDeliveryChooseParentLabel { get; private init; } = string.Empty;
 
-    public string OutputDeliveryResolvedLabel { get; private init; } = string.Empty;
+    public string OutputDeliveryEditBundleDestinationLabel { get; private init; } = string.Empty;
+
+    public string OutputDeliveryDoneEditingLabel { get; private init; } = string.Empty;
 
     public string OutputDeliveryConfirmLabel { get; private init; } = string.Empty;
 
     public string OutputDeliveryCancelLabel { get; private init; } = string.Empty;
+
+    public string OutputDeliveryReadySummary { get; private init; } = string.Empty;
 
     public string OutputDeliveryDestinationRequired { get; private init; } = string.Empty;
 

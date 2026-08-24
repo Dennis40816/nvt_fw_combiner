@@ -75,11 +75,20 @@ internal sealed partial class OutputDeliveryConfirmationViewModel : ObservableOb
     public IReadOnlyList<CompositionOutputBundleSourceSummary> Sources =>
         _request?.Proposal.Sources ?? [];
 
+    public bool AreSourcesExpanded { get; private set; }
+
+    public string SourcesSummary => string.Format(
+        System.Globalization.CultureInfo.CurrentCulture,
+        Text.OutputDeliverySourcesSummaryFormat,
+        Sources.Count);
+
     public string BundleFolderName { get; private set; } = string.Empty;
 
     public string ParentDirectory { get; private set; } = string.Empty;
 
-    public string ResolvedDirectoryPreview { get; private set; } = string.Empty;
+    public bool IsBundleDestinationEditing { get; private set; }
+
+    public bool CanEditBundleDestination => BundleEnabled;
 
     public string ValidationMessage { get; private set; } = string.Empty;
 
@@ -97,6 +106,8 @@ internal sealed partial class OutputDeliveryConfirmationViewModel : ObservableOb
             !OutputFileNameUsesAutomaticName &&
             !string.IsNullOrWhiteSpace(OutputFileName);
         _request = request;
+        AreSourcesExpanded = false;
+        IsBundleDestinationEditing = false;
         if (!preserveCustomOutputName || BundleEnabled)
         {
             ResetOutputFileName();
@@ -122,12 +133,41 @@ internal sealed partial class OutputDeliveryConfirmationViewModel : ObservableOb
         {
             ResetOutputFileName();
         }
+        else
+        {
+            IsBundleDestinationEditing = false;
+        }
 
         RefreshValidation();
         OnPropertyChanged(nameof(BundleEnabled));
         OnPropertyChanged(nameof(CanEditOutputFileName));
+        OnPropertyChanged(nameof(CanEditBundleDestination));
+        OnPropertyChanged(nameof(IsBundleDestinationEditing));
         OnPropertyChanged(nameof(AdditionalDeliveryLabel));
         OnPropertyChanged(nameof(CanConfirm));
+    }
+
+    internal void SetSourcesExpanded(bool expanded)
+    {
+        AreSourcesExpanded = expanded;
+        OnPropertyChanged(nameof(AreSourcesExpanded));
+    }
+
+    internal void BeginBundleDestinationEdit()
+    {
+        if (!CanEditBundleDestination)
+        {
+            return;
+        }
+
+        IsBundleDestinationEditing = true;
+        OnPropertyChanged(nameof(IsBundleDestinationEditing));
+    }
+
+    internal void CompleteBundleDestinationEdit()
+    {
+        IsBundleDestinationEditing = false;
+        OnPropertyChanged(nameof(IsBundleDestinationEditing));
     }
 
     internal void BeginOutputFileNameEdit()
@@ -242,6 +282,7 @@ internal sealed partial class OutputDeliveryConfirmationViewModel : ObservableOb
     internal void ApplyLanguageChanged()
     {
         OnPropertyChanged(nameof(Text));
+        OnPropertyChanged(nameof(SourcesSummary));
         RefreshValidation();
     }
 
@@ -286,7 +327,6 @@ internal sealed partial class OutputDeliveryConfirmationViewModel : ObservableOb
             string.IsNullOrWhiteSpace(BundleFolderName))
         {
             IsBundleDestinationValid = false;
-            ResolvedDirectoryPreview = string.Empty;
             ValidationMessage = BundleEnabled
                 ? Text.OutputDeliveryDestinationRequired
                 : string.Empty;
@@ -307,7 +347,6 @@ internal sealed partial class OutputDeliveryConfirmationViewModel : ObservableOb
         catch (ArgumentException exception)
         {
             IsBundleDestinationValid = false;
-            ResolvedDirectoryPreview = string.Empty;
             ValidationMessage = exception.Message;
             NotifyValidation();
         }
@@ -325,7 +364,6 @@ internal sealed partial class OutputDeliveryConfirmationViewModel : ObservableOb
     private void ApplyValidation(CompositionOutputBundleDestinationValidation validation)
     {
         IsBundleDestinationValid = validation.IsValid;
-        ResolvedDirectoryPreview = validation.ResolvedDirectoryPreview ?? string.Empty;
         ValidationMessage = validation.Issues.Count == 0
             ? string.Empty
             : validation.Issues[0].Message;
@@ -335,7 +373,6 @@ internal sealed partial class OutputDeliveryConfirmationViewModel : ObservableOb
     private void NotifyValidation()
     {
         OnPropertyChanged(nameof(IsBundleDestinationValid));
-        OnPropertyChanged(nameof(ResolvedDirectoryPreview));
         OnPropertyChanged(nameof(ValidationMessage));
         OnPropertyChanged(nameof(CanConfirm));
     }
@@ -355,9 +392,13 @@ internal sealed partial class OutputDeliveryConfirmationViewModel : ObservableOb
         OnPropertyChanged(nameof(OutputFileNameUsesAutomaticName));
         OnPropertyChanged(nameof(AdditionalSuggestedFileName));
         OnPropertyChanged(nameof(Sources));
+        OnPropertyChanged(nameof(AreSourcesExpanded));
+        OnPropertyChanged(nameof(SourcesSummary));
         OnPropertyChanged(nameof(BundleFolderName));
         OnPropertyChanged(nameof(ParentDirectory));
         OnPropertyChanged(nameof(BundleEnabled));
+        OnPropertyChanged(nameof(IsBundleDestinationEditing));
+        OnPropertyChanged(nameof(CanEditBundleDestination));
         OnPropertyChanged(nameof(AdditionalDeliveryEnabled));
         NotifyValidation();
     }

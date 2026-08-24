@@ -339,10 +339,11 @@ public sealed partial class XamlControlStyleContractTests
         Assert.Contains("CtrlRamOptions.Text.CtrlRamFirmwareSubVersionByteLabel", modal, StringComparison.Ordinal);
         Assert.Contains("Selector=\"TextBox.hexByteInput\"", styles, StringComparison.Ordinal);
         Assert.Contains("Selector=\"ToggleButton.versionChoice\"", styles, StringComparison.Ordinal);
-        Assert.Contains("Selector=\"Border.versionSummaryCard\"", styles, StringComparison.Ordinal);
         Assert.Contains("Classes=\"technicalCenteredInput hexByteInput\"", modal, StringComparison.Ordinal);
-        Assert.Contains("Classes=\"versionSummaryCard\"", modal, StringComparison.Ordinal);
         Assert.Contains("Classes=\"technicalValue versionValue\"", modal, StringComparison.Ordinal);
+        Assert.Contains("x:Name=\"CtrlRamVersionModeRow\"", modal, StringComparison.Ordinal);
+        Assert.Contains("x:Name=\"CtrlRamVersionFieldRow\"", modal, StringComparison.Ordinal);
+        Assert.DoesNotContain("Classes=\"versionSummaryCard\"", modal, StringComparison.Ordinal);
         Assert.Contains("behaviors:HexTextInputBehavior.Mode\" Value=\"ByteSequence\"", styles, StringComparison.Ordinal);
         Assert.DoesNotContain("FirmwareConfigLayout", modal, StringComparison.Ordinal);
         Assert.DoesNotContain("Combiner.exe", modal, StringComparison.Ordinal);

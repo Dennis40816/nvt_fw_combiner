@@ -49,6 +49,25 @@ The policy separation adds 69 production nonblank lines, moving
   75,333 to 75,383. Application moves to 33,580, Bootstrap/CLI/Desktop to
   3,498, and Infrastructure/Contracts/CRC improves by six lines to 17,673.
 
+#### Build settings visual alignment
+
+- Before → After: Build settings used an always-expanded source block, a large
+  TP-version card, and always-editable bundle fields. The shared surface now
+  follows the approved A3/T2 compact review and explicit pencil-edit flow.
+- Affected: shared Build settings Presentation, source disclosure, output and
+  bundle edit admission, CtrlRAM TP-version projection, and Light/Dark styling.
+- Support status: unchanged/support-neutral; every existing workflow continues
+  through the same shared confirmation and typed Build services.
+- Compatibility: existing output naming, source summaries, CtrlRAM typed state,
+  destination validation, saved preferences, and Build execution are unchanged.
+- Verification: ViewModel admission coverage, production-host focus tests, full
+  UI Smoke, and exact 980x720 Light/Dark A3/T2 geometry rendering.
+- Limitations: this is a visual/interaction alignment only; it does not add
+  workflow support, change output semantics, or close final owner visual review.
+
+This Presentation-only alignment moves full production from 110,688 to 110,876
+nonblank lines (+188). Counted runtime and all non-UI slices remain unchanged.
+
 ### Security
 
 Unavailable DP routes fail closed through the same hash-pinned canonical

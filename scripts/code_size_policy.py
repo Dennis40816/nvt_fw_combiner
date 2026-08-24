@@ -108,7 +108,7 @@ DEFAULT_LIMITS = CodeSizeLimits(
     application_allowance=2_890,
     bootstrap_cli_allowance=120,
     infrastructure_contracts_worker_allowance=2_317,
-    full_production_allowance=7_792,
+    full_production_allowance=7_980,
 )
 
 

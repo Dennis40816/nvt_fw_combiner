@@ -187,6 +187,35 @@
   <Style Selector="Button.closeButton:pressed Path">
     <Setter Property="Stroke" Value="{DynamicResource NfcAccentStrongBrush}" />
   </Style>
+  <Style Selector="Button.inlineEdit">
+    <Setter Property="Width" Value="34" />
+    <Setter Property="Height" Value="34" />
+    <Setter Property="MinWidth" Value="34" />
+    <Setter Property="MaxWidth" Value="34" />
+    <Setter Property="MinHeight" Value="34" />
+    <Setter Property="MaxHeight" Value="34" />
+    <Setter Property="Padding" Value="0" />
+    <Setter Property="HorizontalContentAlignment" Value="Center" />
+    <Setter Property="VerticalContentAlignment" Value="Center" />
+    <Setter Property="Background" Value="Transparent" />
+    <Setter Property="BorderBrush" Value="Transparent" />
+  </Style>
+  <Style Selector="Button.inlineEdit /template/ ContentPresenter#PART_ContentPresenter">
+    <Setter Property="Background" Value="Transparent" />
+    <Setter Property="BorderBrush" Value="Transparent" />
+    <Setter Property="CornerRadius" Value="{DynamicResource NfcCompactCornerRadius}" />
+  </Style>
+  <Style Selector="Button.inlineEdit:pointerover /template/ ContentPresenter#PART_ContentPresenter">
+    <Setter Property="Background" Value="{DynamicResource NfcAccentSurfaceBrush}" />
+    <Setter Property="BorderBrush" Value="Transparent" />
+  </Style>
+  <Style Selector="Button.inlineEdit:pressed /template/ ContentPresenter#PART_ContentPresenter">
+    <Setter Property="Background" Value="{DynamicResource NfcSecondaryActionPressedBrush}" />
+    <Setter Property="BorderBrush" Value="Transparent" />
+  </Style>
+  <Style Selector="Button.inlineEdit:disabled Path">
+    <Setter Property="Stroke" Value="{DynamicResource NfcTextDisabledBrush}" />
+  </Style>
   <Style Selector="Button.sourceEditButton">
     <Setter Property="MinWidth" Value="40" />
     <Setter Property="Padding" Value="0" />

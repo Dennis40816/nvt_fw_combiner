@@ -205,8 +205,8 @@
     <Setter Property="CornerRadius" Value="{DynamicResource NfcPillCornerRadius}" />
   </Style>
   <Style Selector="ToggleButton.versionChoice">
-    <Setter Property="MinHeight" Value="54" />
-    <Setter Property="Padding" Value="14,10" />
+    <Setter Property="MinHeight" Value="34" />
+    <Setter Property="Padding" Value="12,6" />
   </Style>
   <Style Selector="ToggleButton.versionChoice /template/ ContentPresenter#PART_ContentPresenter">
     <Setter Property="CornerRadius" Value="{DynamicResource NfcSurfaceCornerRadius}" />
@@ -222,13 +222,6 @@
   </Style>
   <Style Selector="ToggleButton.versionChoice:checked Path">
     <Setter Property="Stroke" Value="{DynamicResource NfcAccentStrongBrush}" />
-  </Style>
-  <Style Selector="Border.versionSummaryCard">
-    <Setter Property="Padding" Value="14" />
-    <Setter Property="Background" Value="{DynamicResource NfcSurfaceSubtleBrush}" />
-    <Setter Property="BorderBrush" Value="{DynamicResource NfcBorderBrush}" />
-    <Setter Property="BorderThickness" Value="2" />
-    <Setter Property="CornerRadius" Value="{DynamicResource NfcSurfaceCornerRadius}" />
   </Style>
   <Style Selector="Border.versionValueBadge">
     <Setter Property="Padding" Value="12,7" />
