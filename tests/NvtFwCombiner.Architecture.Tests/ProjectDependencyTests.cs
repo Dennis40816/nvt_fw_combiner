@@ -5,6 +5,8 @@ namespace NvtFwCombiner.Architecture.Tests;
 /// <summary>Architecture boundary tests for project references and source inclusion.</summary>
 public sealed class ProjectDependencyTests
 {
+    private static readonly string[] SourceRoots = ["src", "tests"];
+
     /// <summary>Verifies that the domain project remains free of project references.</summary>
     [Fact]
     public void DomainProjectHasNoProjectReferences()
@@ -20,9 +22,9 @@ public sealed class ProjectDependencyTests
         Assert.Empty(project.Descendants("ProjectReference"));
     }
 
-    /// <summary>Verifies that only Bootstrap directly composes the managed-version bounded context.</summary>
+    /// <summary>Verifies core composition projects keep the managed-version bounded context separate.</summary>
     [Fact]
-    public void BootstrapOwnsDirectVersionManagementProjectReferences()
+    public void CoreCompositionProjectsKeepVersionBoundedContextSeparate()
     {
         Assert.Equal(
             ["NvtFwCombiner.Contracts", "NvtFwCombiner.Domain"],
@@ -43,6 +45,63 @@ public sealed class ProjectDependencyTests
                 "NvtFwCombiner.VersionManagement.Infrastructure",
             ],
             ProjectReferences("NvtFwCombiner.Bootstrap"));
+    }
+
+    /// <summary>Every source consumer of managed-version types references its owning project directly.</summary>
+    [Fact]
+    public void VersionManagementSourceConsumersReferenceOwningProjectsDirectly()
+    {
+        DirectoryInfo root = FindRepositoryRoot();
+        AssertSourceConsumersReferenceOwner(
+            root,
+            string.Concat("NvtFwCombiner.Application.", "VersionManagement"),
+            Path.Combine(
+                root.FullName,
+                "src",
+                "NvtFwCombiner.VersionManagement.Application",
+                "NvtFwCombiner.VersionManagement.Application.csproj"),
+            "NvtFwCombiner.VersionManagement.Application");
+        AssertSourceConsumersReferenceOwner(
+            root,
+            string.Concat("NvtFwCombiner.Infrastructure.", "VersionManagement"),
+            Path.Combine(
+                root.FullName,
+                "src",
+                "NvtFwCombiner.VersionManagement.Infrastructure",
+                "NvtFwCombiner.VersionManagement.Infrastructure.csproj"),
+            "NvtFwCombiner.VersionManagement.Infrastructure");
+    }
+
+    private static void AssertSourceConsumersReferenceOwner(
+        DirectoryInfo root,
+        string ownedNamespace,
+        string ownerProject,
+        string ownerProjectName)
+    {
+        string[] consumerProjects =
+        [
+            .. SourceRoots
+                .SelectMany(directory => Directory.EnumerateFiles(
+                    Path.Combine(root.FullName, directory),
+                    "*.cs",
+                    SearchOption.AllDirectories))
+                .Where(path => !path.Split(Path.DirectorySeparatorChar)
+                    .Any(part => part is "bin" or "obj"))
+                .Where(path => File.ReadAllText(path).Contains(
+                    ownedNamespace,
+                    StringComparison.Ordinal))
+                .Select(FindOwningProject)
+                .Where(path => !StringComparer.OrdinalIgnoreCase.Equals(path, ownerProject))
+                .Distinct(StringComparer.OrdinalIgnoreCase)
+                .Order(StringComparer.OrdinalIgnoreCase),
+        ];
+
+        foreach (string consumerProject in consumerProjects)
+        {
+            Assert.Contains(
+                ownerProjectName,
+                ProjectReferencesFromPath(consumerProject));
+        }
     }
 
     /// <summary>Verifies lower semantic projects expose internals only to their proven production consumers.</summary>
@@ -142,5 +201,32 @@ public sealed class ProjectDependencyTests
                 .Select(friend => friend.Attribute("Include")!.Value)
                 .Order(StringComparer.Ordinal),
         ];
+    }
+
+    private static string[] ProjectReferencesFromPath(string projectPath)
+    {
+        var project = XDocument.Load(projectPath);
+        return
+        [
+            .. project.Descendants("ProjectReference")
+                .Select(reference => Path.GetFileNameWithoutExtension(reference.Attribute("Include")!.Value))
+                .Order(StringComparer.Ordinal),
+        ];
+    }
+
+    private static string FindOwningProject(string sourcePath)
+    {
+        for (DirectoryInfo? directory = Directory.GetParent(sourcePath);
+             directory is not null;
+             directory = directory.Parent)
+        {
+            string[] projects = Directory.GetFiles(directory.FullName, "*.csproj");
+            if (projects.Length == 1)
+            {
+                return projects[0];
+            }
+        }
+
+        throw new InvalidOperationException($"No owning project found for '{sourcePath}'.");
     }
 }

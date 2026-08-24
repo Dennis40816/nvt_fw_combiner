@@ -9,5 +9,6 @@
   <ItemGroup>
     <ProjectReference Include="..\NvtFwCombiner.Bootstrap\NvtFwCombiner.Bootstrap.csproj" />
     <ProjectReference Include="..\NvtFwCombiner.Presentation.Avalonia\NvtFwCombiner.Presentation.Avalonia.csproj" />
+    <ProjectReference Include="..\NvtFwCombiner.VersionManagement.Application\NvtFwCombiner.VersionManagement.Application.csproj" />
   </ItemGroup>
 </Project>

@@ -110,15 +110,19 @@ refactor and must not alter update, verification, activation, or rollback
 behavior.
 
 **Completed 2026-08-24 — A1 plus the project-graph portion of A9.** Bootstrap
-now owns both direct version-management references; the main Application and
-Infrastructure projects no longer carry their unused bounded-context
-references. `ProjectDependencyTests` and the canonical repository validator
-both lock the same exact direct graph. The new test failed against the old graph
-before the project edit. Architecture passed 221/221, version-management
-Application/Infrastructure tests passed 114/114 and 98/98, Bootstrap passed
-1,017/1,017, the Release solution build completed with zero warnings/errors,
-the validator unit slice passed 19/19, and the structure/Polytail gate passed.
-Production C#/AXAML and counted runtime size are unchanged.
+owns construction of both version-management contexts; the main Application
+and Infrastructure projects no longer carry their unused bounded-context
+references. Every project whose source directly consumes a version Application
+or Infrastructure namespace now declares that owning project directly. A
+fresh-restore review caught that the initial exact-graph guard covered only the
+three main composition projects and stale assets had masked missing direct
+references in Presentation, Desktop, TestSupport and tests. The corrected
+architecture guard derives every source consumer and fails if its direct
+reference is absent; the canonical repository validator locks the same graph.
+The red Presentation build reproduced 19 missing-type errors and the expanded
+guard separately caught the version-Infrastructure test dependency before the
+fix. Fresh restore and full Release build now succeed. Production C#/AXAML and
+counted runtime size remain unchanged.
 
 ### A2 — Presentation orchestration depth (high)
 
