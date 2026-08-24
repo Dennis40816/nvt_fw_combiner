@@ -148,3 +148,18 @@ Verification covers the 980x640 application minimum in Light/Dark and English/
 Traditional Chinese, unchanged approved wide geometry, monotonic measurement
 without trace-file output, one required-ready publication guard, Important
 default visibility, Debug opt-in, and localized duration text.
+
+## 2026-08-24 focused shell-navigation owner
+
+The A2 architecture slice moves navigation history, breadcrumb projection,
+pending-clear state, and navigation commands out of the shell aggregate into
+one typed `ShellNavigationViewModel`. The existing Main shell remains the page,
+settings, and blocking-surface composition owner. Deferred modal creation,
+navigation behavior, localization, page isolation, and every approved visual
+layout remain unchanged; obsolete mutable breadcrumb-entry state is deleted.
+
+Full production decreases from 110,595 to 110,594 nonblank lines while counted
+runtime remains 535 files / 75,289 lines. The executable full-production
+allowance therefore descends from 7,699 to 7,698; all non-UI slice allowances
+remain unchanged. The MainWindowViewModel aggregate falls below its named
+985-line ceiling.

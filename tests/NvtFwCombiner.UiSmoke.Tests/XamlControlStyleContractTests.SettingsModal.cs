@@ -355,7 +355,7 @@ public sealed partial class XamlControlStyleContractTests
 
             viewModel.OpenSettingsCommand.Execute(null);
             Dispatcher.UIThread.RunJobs();
-            viewModel.IsNavigationClearConfirmationOpen = true;
+            viewModel.Navigation.IsNavigationClearConfirmationOpen = true;
             _ = successorModalFocus.Focus(NavigationMethod.Tab);
             Dispatcher.UIThread.RunJobs();
             Assert.False(viewModel.IsSettingsModalOpen);

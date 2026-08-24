@@ -29,9 +29,7 @@ internal sealed partial class MainWindowViewModel
         OnPropertyChanged(nameof(Merge.MergeMemorySummary));
         OnPropertyChanged(nameof(Merge.StandardMergeSupportSummary));
         OnPropertyChanged(nameof(Merge.MergeReadinessStatus));
-        RefreshNavigationTrail();
-        OnPropertyChanged(nameof(NavigationPath));
-        OnPropertyChanged(nameof(NavigationClearRoute));
+        Navigation.UpdateState(textChanged: true);
         Reports.ApplyLanguageChanged();
         if (_deferredState.IsSettingsLoaded)
         {

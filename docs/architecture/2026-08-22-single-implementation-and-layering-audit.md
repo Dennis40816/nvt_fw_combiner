@@ -132,6 +132,17 @@ Refactor later by extracting focused navigation/activity/build-result
 coordinators behind existing typed children. Do not create a generic workflow
 god ViewModel and do not move session/readiness/firmware semantics into UI.
 
+**Completed 2026-08-24.** Build-result and activity/history ownership were
+confirmed already focused, so no duplicate coordinators were created. The one
+remaining shell concern—navigation history, breadcrumb projection, pending
+clear confirmation, and back/confirm/cancel commands—now belongs to the typed
+`ShellNavigationViewModel`. Main retains page application, workflow callbacks,
+settings, and blocking-surface composition. The modal remains deferred and all
+approved XAML geometry is unchanged. Architecture passes 224/224 and UI Smoke
+passes 673/673. `MainWindowViewModel` falls to 974 nonblank lines, while full
+production descends to 792 files / 110,594 nonblank lines and counted runtime
+remains 535 / 75,289.
+
 ### A3 — compiler and execution owner depth (high)
 
 `V2CompositionPlanCompiler` totals 2,798 lines across nine partials and

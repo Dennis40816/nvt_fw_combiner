@@ -1,12 +1,9 @@
-using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 
 namespace NvtFwCombiner.Presentation.Avalonia.ViewModels;
 
-internal sealed partial class ShellNavigationEntryViewModel : ObservableObject
+internal sealed class ShellNavigationEntryViewModel
 {
-    private readonly Action<ShellPage> _navigate;
-
     public ShellNavigationEntryViewModel(
         ShellPage page,
         string label,
@@ -18,9 +15,8 @@ internal sealed partial class ShellNavigationEntryViewModel : ObservableObject
 
         Page = page;
         Label = label;
-        _navigate = navigate;
-        IsCurrent = isCurrent;
-        NavigateCommand = new RelayCommand(Open);
+        IsChevronVisible = !isCurrent;
+        NavigateCommand = new RelayCommand(() => navigate(Page));
     }
 
     public ShellPage Page { get; }
@@ -30,23 +26,5 @@ internal sealed partial class ShellNavigationEntryViewModel : ObservableObject
     public IRelayCommand NavigateCommand { get; }
 
     /// <summary>True when a separator should be shown after this entry.</summary>
-    public bool IsChevronVisible => !IsCurrent;
-
-    [ObservableProperty]
-    public partial bool IsCurrent { get; private set; }
-
-    public void SetCurrent(bool isCurrent)
-    {
-        IsCurrent = isCurrent;
-    }
-
-    partial void OnIsCurrentChanged(bool value)
-    {
-        OnPropertyChanged(nameof(IsChevronVisible));
-    }
-
-    private void Open()
-    {
-        _navigate(Page);
-    }
+    public bool IsChevronVisible { get; }
 }

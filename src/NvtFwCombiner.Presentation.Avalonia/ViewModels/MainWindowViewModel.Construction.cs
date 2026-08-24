@@ -160,24 +160,25 @@ internal sealed partial class MainWindowViewModel
         {
             return new RelayCommand(execute, () => WorkflowSession.IsCanonicalCatalogReady);
         }
-        ShowHomeCommand = new RelayCommand(() => NavigateToPage(ShellPage.Home));
         OpenSettingsCommand = new RelayCommand(OpenSettings);
         CloseSettingsCommand = new RelayCommand(CloseSettings);
-        ShowMergeCommand = CreateCatalogCommand(() => NavigateToPage(ShellPage.Merge));
-        ShowReplaceCommand = CreateCatalogCommand(() => NavigateToPage(ShellPage.Replace));
-        GoBackCommand = new RelayCommand(GoBack, () => CanGoBack);
-        ConfirmNavigationAndClearCommand = new RelayCommand(ConfirmNavigationAndClear);
-        CancelNavigationClearCommand = new RelayCommand(CancelNavigationClear);
+        ShowHexEditorCommand = new RelayCommand(ShowHexEditor);
+        RequestHexEditorSaveCommand = new RelayCommand(RequestHexEditorSave, CanRequestHexEditorSave);
+        RequestHexEditorUndoCommand = new RelayCommand(RequestHexEditorUndo, CanRequestHexEditorUndo);
+        RequestHexEditorRedoCommand = new RelayCommand(RequestHexEditorRedo, CanRequestHexEditorRedo);
+        Navigation = new ShellNavigationViewModel(new ShellNavigationBindings(
+            () => SelectedPage, () => Text, WorkflowSession.HasSelectedInputs,
+            WorkflowSession.InvalidateFirmwareNumberMismatch, WorkflowSession.ClearSelectedInputs,
+            ApplySelectedPage, PageLabel, NotifyCompositionActionRailVisibilityChanged));
+        ShowHomeCommand = new RelayCommand(() => Navigation.NavigateToPage(ShellPage.Home));
+        ShowMergeCommand = CreateCatalogCommand(() => Navigation.NavigateToPage(ShellPage.Merge));
+        ShowReplaceCommand = CreateCatalogCommand(() => Navigation.NavigateToPage(ShellPage.Replace));
         BeginDpReplaceFromHomeCommand = CreateCatalogCommand(
             () => WorkflowSession.BeginWorkflowContext(ShellPage.Replace, DpReplaceMode, showNumber: true));
         BeginCtrlRamReplaceFromHomeCommand = CreateCatalogCommand(
             () => WorkflowSession.BeginWorkflowContext(ShellPage.Replace, CtrlRamReplaceMode, showNumber: true));
         BeginGeneralReplaceFromHomeCommand = CreateCatalogCommand(
             () => WorkflowSession.BeginWorkflowContext(ShellPage.Replace, GeneralReplaceMode, showNumber: true));
-        ShowHexEditorCommand = new RelayCommand(ShowHexEditor);
-        RequestHexEditorSaveCommand = new RelayCommand(RequestHexEditorSave, CanRequestHexEditorSave);
-        RequestHexEditorUndoCommand = new RelayCommand(RequestHexEditorUndo, CanRequestHexEditorUndo);
-        RequestHexEditorRedoCommand = new RelayCommand(RequestHexEditorRedo, CanRequestHexEditorRedo);
         BeginNormalMergeFromHomeCommand = CreateCatalogCommand(
             () => WorkflowSession.BeginWorkflowContext(ShellPage.Merge, NormalMergeMode, showNumber: false));
         BeginAbMergeFromHomeCommand = CreateCatalogCommand(
@@ -188,7 +189,6 @@ internal sealed partial class MainWindowViewModel
         BeginGeneralMergeFromHomeCommand = CreateCatalogCommand(
             () => WorkflowSession.BeginWorkflowContext(ShellPage.Merge, GeneralMergeMode, showNumber: false));
         RevealFileCommand = new RelayCommand<string>(RevealFile);
-        NavigationTrail.Add(CreateNavigationEntry(ShellPage.Home, isCurrent: true));
         PropertyChanged += MainWindowViewModel_OnPropertyChanged;
         _isInitializing = false;
     }

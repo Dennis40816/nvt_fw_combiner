@@ -355,7 +355,7 @@ public sealed partial class RepositoryBoundaryTests
         string settingsViewModel = ReadText(
             "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/SettingsViewModel.cs");
         string navigationViewModel = ReadText(
-            "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/MainWindowViewModel.Navigation.cs");
+            "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/ShellNavigationViewModel.cs");
         Assert.Contains("LoadReportJson", reportViewModel, StringComparison.Ordinal);
         Assert.Contains("ReportReviewViewModel", reportViewModel, StringComparison.Ordinal);
         Assert.Contains("CanOpenReport", reportViewModel, StringComparison.Ordinal);

@@ -6,7 +6,7 @@ internal sealed partial class MainWindowViewModel
     {
         _ = HexEditorWorkspace;
         OnPropertyChanged(nameof(LoadedHexEditorWorkspace));
-        NavigateToPage(ShellPage.HexEditor);
+        Navigation.NavigateToPage(ShellPage.HexEditor);
     }
 
 }

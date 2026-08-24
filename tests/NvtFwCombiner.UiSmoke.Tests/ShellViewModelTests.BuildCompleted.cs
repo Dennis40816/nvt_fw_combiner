@@ -300,7 +300,7 @@ public sealed partial class BuildOutcomeTests
                 viewModel.WorkflowSession.IsFirmwareNumberMismatchModalOpen = true;
                 break;
             case "navigation-clear":
-                viewModel.IsNavigationClearConfirmationOpen = true;
+                viewModel.Navigation.IsNavigationClearConfirmationOpen = true;
                 break;
             case "report":
                 viewModel.Reports.LoadReportJson(ReportJsonSamples.Succeeded(runId: "rail-blocking-surface"), "report.json");
@@ -345,7 +345,7 @@ public sealed partial class BuildOutcomeTests
                 viewModel.WorkflowSession.DismissFirmwareNumberMismatchCommand.Execute(null);
                 break;
             case "navigation-clear":
-                viewModel.CancelNavigationClearCommand.Execute(null);
+                viewModel.Navigation.CancelNavigationClearCommand.Execute(null);
                 break;
             case "report":
                 viewModel.Reports.CloseReportCommand.Execute(null);
@@ -376,7 +376,7 @@ public sealed partial class BuildOutcomeTests
             "workflow-context" => viewModel.WorkflowSession.IsWorkflowContextModalOpen,
             "firmware-ic-mismatch" => viewModel.WorkflowSession.IsFirmwareIcMismatchModalOpen,
             "firmware-number-mismatch" => viewModel.WorkflowSession.IsFirmwareNumberMismatchModalOpen,
-            "navigation-clear" => viewModel.IsNavigationClearConfirmationOpen,
+            "navigation-clear" => viewModel.Navigation.IsNavigationClearConfirmationOpen,
             "report" => viewModel.Reports.IsReportModalOpen,
             "ab-a-flashcode-delivery" => viewModel.Merge.IsAbAFlashCodeDeliveryPromptOpen,
             "build-completed" => viewModel.BuildResult.IsOpen,

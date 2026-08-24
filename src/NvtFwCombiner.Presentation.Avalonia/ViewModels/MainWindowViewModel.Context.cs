@@ -7,7 +7,7 @@ internal sealed partial class MainWindowViewModel
 {
     private void SelectReplaceMode(string mode)
     {
-        NavigateToPage(ShellPage.Replace);
+        Navigation.NavigateToPage(ShellPage.Replace);
         Replace.SelectReplaceMode(mode);
     }
 
@@ -23,29 +23,30 @@ internal sealed partial class MainWindowViewModel
             }
         }
 
-        if (SelectedPage == page)
+        bool pageChanged = SelectedPage != page;
+        if (pageChanged)
         {
-            UpdateNavigationState();
-            return;
+            WorkflowSession.RememberCurrentWorkflowContext();
+            SelectedPage = page;
+            WorkflowSession.ActivateWorkflowPageContext(page);
+            OnPropertyChanged(nameof(SelectedPage));
+            OnPropertyChanged(nameof(IsHomeVisible));
+            OnPropertyChanged(nameof(IsMergeVisible));
+            OnPropertyChanged(nameof(IsReplaceVisible));
+            OnPropertyChanged(nameof(IsHexEditorVisible));
+            OnPropertyChanged(nameof(IsDeviceContextVisible));
+            OnPropertyChanged(nameof(IsCompositionActionRailVisible));
+            OnPropertyChanged(nameof(IsLatestOutputActionVisible));
+            WorkflowSession.NotifyContextTextChanged();
         }
 
-        WorkflowSession.RememberCurrentWorkflowContext();
-        SelectedPage = page;
-        WorkflowSession.ActivateWorkflowPageContext(page);
-        OnPropertyChanged(nameof(SelectedPage));
-        OnPropertyChanged(nameof(IsHomeVisible));
-        OnPropertyChanged(nameof(IsMergeVisible));
-        OnPropertyChanged(nameof(IsReplaceVisible));
-        OnPropertyChanged(nameof(IsHexEditorVisible));
-        OnPropertyChanged(nameof(IsDeviceContextVisible));
-        OnPropertyChanged(nameof(IsCompositionActionRailVisible));
-        OnPropertyChanged(nameof(IsLatestOutputActionVisible));
-        WorkflowSession.NotifyContextTextChanged();
-        UpdateNavigationState();
-        RecordDebugActivity(
-            SystemActivityCodes.UserNavigated,
-            SystemActivityCategory.Navigation,
-            page.ToString());
+        Navigation.UpdateState();
+        NotifyHexEditorCommandStateChanged();
+        if (pageChanged)
+        {
+            RecordDebugActivity(SystemActivityCodes.UserNavigated,
+                SystemActivityCategory.Navigation, page.ToString());
+        }
     }
 
     private bool CanRequestHexEditorSave()
@@ -112,6 +113,11 @@ internal sealed partial class MainWindowViewModel
             return;
         }
 
+        NotifyHexEditorCommandStateChanged();
+    }
+
+    private void NotifyHexEditorCommandStateChanged()
+    {
         RequestHexEditorSaveCommand.NotifyCanExecuteChanged();
         RequestHexEditorUndoCommand.NotifyCanExecuteChanged();
         RequestHexEditorRedoCommand.NotifyCanExecuteChanged();

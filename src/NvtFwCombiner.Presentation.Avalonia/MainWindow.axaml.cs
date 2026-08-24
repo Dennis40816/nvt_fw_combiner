@@ -655,7 +655,7 @@ public sealed partial class MainWindow : Window, IDisposable
         LoadContent(WorkflowContextSetupModalHost, viewModel.WorkflowSession.IsWorkflowContextModalOpen, viewModel.WorkflowSession);
         LoadContent(FirmwareIcMismatchModalHost, viewModel.WorkflowSession.IsFirmwareIcMismatchModalOpen, viewModel.WorkflowSession);
         LoadContent(FirmwareNumberMismatchModalHost, viewModel.WorkflowSession.IsFirmwareNumberMismatchModalOpen, viewModel.WorkflowSession);
-        LoadContent(NavigationClearConfirmationModalHost, viewModel.IsNavigationClearConfirmationOpen, viewModel);
+        LoadContent(NavigationClearConfirmationModalHost, viewModel.Navigation.IsNavigationClearConfirmationOpen, viewModel.Navigation);
         LoadContent(AbSameTpConflictModalHost, viewModel.Merge.IsAbSameTpConflictPromptOpen, viewModel.Merge);
         LoadContent(MessageCenterModalHost, viewModel.MessageCenter.IsOpen, viewModel.MessageCenter);
         LoadContent(ReportModalHost, viewModel.Reports.IsReportModalOpen, viewModel.Reports);

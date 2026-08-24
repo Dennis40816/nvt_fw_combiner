@@ -142,7 +142,7 @@
       </Grid>
     </Border>
 
-    <ContentControl Grid.Row="1" Content="{Binding}" ContentTemplate="{StaticResource NavigationTrailPanelTemplate}" />
+    <ContentControl Grid.Row="1" Content="{Binding Navigation}" ContentTemplate="{StaticResource NavigationTrailPanelTemplate}" />
 
     <ContentControl
         x:Name="DeviceContextHost"
@@ -612,9 +612,9 @@
     <ContentControl
         x:Name="NavigationClearConfirmationModalHost"
         Grid.RowSpan="5"
-        IsVisible="{Binding IsNavigationClearConfirmationOpen}">
+        IsVisible="{Binding Navigation.IsNavigationClearConfirmationOpen}">
       <ContentControl.ContentTemplate>
-        <DataTemplate DataType="vm:MainWindowViewModel">
+        <DataTemplate DataType="vm:ShellNavigationViewModel">
           <views:NavigationClearConfirmationModal />
         </DataTemplate>
       </ContentControl.ContentTemplate>

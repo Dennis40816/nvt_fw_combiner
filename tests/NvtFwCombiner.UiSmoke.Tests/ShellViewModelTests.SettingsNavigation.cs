@@ -44,14 +44,14 @@ public sealed partial class ShellNavigationSystemTests
         Assert.Empty(viewModel.Settings.CapabilityRows);
 
         ShellPage pageBefore = viewModel.SelectedPage;
-        string navigationBefore = viewModel.NavigationPath;
+        string navigationBefore = viewModel.Navigation.NavigationPath;
 
         viewModel.OpenSettingsCommand.Execute(null);
 
         Assert.True(viewModel.IsSettingsModalOpen);
         Assert.Equal(pageBefore, viewModel.SelectedPage);
-        Assert.Equal(navigationBefore, viewModel.NavigationPath);
-        Assert.False(viewModel.IsNavigationClearConfirmationOpen);
+        Assert.Equal(navigationBefore, viewModel.Navigation.NavigationPath);
+        Assert.False(viewModel.Navigation.IsNavigationClearConfirmationOpen);
         Assert.False(viewModel.IsDeviceContextVisible);
         Assert.True(viewModel.Settings.IsPreferencesSelected);
         Assert.Equal(
@@ -91,7 +91,7 @@ public sealed partial class ShellNavigationSystemTests
             ["英文", "繁體中文"],
             viewModel.Settings.LanguageChoices.Select(static choice => choice.Label));
         Assert.Equal("建立", viewModel.Text.BuildActionLabel);
-        Assert.Equal("首頁", viewModel.NavigationPath);
+        Assert.Equal("首頁", viewModel.Navigation.NavigationPath);
         Assert.Equal("已安裝版本，以及目前目錄中的編輯可用性。", viewModel.Text.SettingsOverviewSubtitle);
         Assert.Empty(viewModel.Merge.MergeSlots);
         Assert.Equal("必填", viewModel.Replace.ReplaceBaseSlot.RequirementLabel);
@@ -149,7 +149,7 @@ public sealed partial class ShellNavigationSystemTests
         viewModel.CloseSettingsCommand.Execute(null);
 
         Assert.True(viewModel.IsReplaceVisible);
-        Assert.False(viewModel.IsNavigationClearConfirmationOpen);
+        Assert.False(viewModel.Navigation.IsNavigationClearConfirmationOpen);
         Assert.Equal("NT51927", viewModel.WorkflowSession.SelectedIc);
         Assert.Equal("2", viewModel.WorkflowSession.SelectedNumber);
         Assert.Equal(ExperienceIds.GeneralReplace, viewModel.Replace.SelectedReplaceMode);
@@ -187,7 +187,7 @@ public sealed partial class ShellNavigationSystemTests
 
         Assert.True(viewModel.IsMergeVisible);
         Assert.True(viewModel.IsCompositionActionRailVisible);
-        Assert.False(viewModel.IsNavigationClearConfirmationOpen);
+        Assert.False(viewModel.Navigation.IsNavigationClearConfirmationOpen);
         Assert.Equal("NT51927", viewModel.WorkflowSession.SelectedIc);
         Assert.Equal(ExperienceIds.GeneralMerge, viewModel.Merge.SelectedMergeMode);
         Assert.Equal(mappingPath, mapping.FilePath);
@@ -220,15 +220,15 @@ public sealed partial class ShellNavigationSystemTests
 
         Assert.True(viewModel.IsReplaceVisible);
         Assert.True(viewModel.IsDeviceContextVisible);
-        Assert.Equal("Home > Replace", viewModel.NavigationPath);
-        Assert.DoesNotContain("Merge > Replace", viewModel.NavigationPath, StringComparison.Ordinal);
-        Assert.False(viewModel.NavigationTrail[^1].IsChevronVisible);
+        Assert.Equal("Home > Replace", viewModel.Navigation.NavigationPath);
+        Assert.DoesNotContain("Merge > Replace", viewModel.Navigation.NavigationPath, StringComparison.Ordinal);
+        Assert.False(viewModel.Navigation.NavigationTrail[^1].IsChevronVisible);
 
-        viewModel.GoBackCommand.Execute(null);
+        viewModel.Navigation.GoBackCommand.Execute(null);
 
         Assert.True(viewModel.IsMergeVisible);
         Assert.True(viewModel.IsDeviceContextVisible);
-        Assert.Equal("Home > Merge", viewModel.NavigationPath);
+        Assert.Equal("Home > Merge", viewModel.Navigation.NavigationPath);
     }
 
     /// <summary>Verifies the Home Hex Editor entry opens an independent raw utility without device context.</summary>
@@ -242,7 +242,7 @@ public sealed partial class ShellNavigationSystemTests
         Assert.True(viewModel.IsHexEditorVisible);
         Assert.False(viewModel.IsReplaceVisible);
         Assert.False(viewModel.IsDeviceContextVisible);
-        Assert.Equal("Home > Hex Editor", viewModel.NavigationPath);
+        Assert.Equal("Home > Hex Editor", viewModel.Navigation.NavigationPath);
         Assert.False(viewModel.Replace.ReplaceBaseSlot.HasFile);
     }
 
@@ -292,7 +292,7 @@ public sealed partial class ShellNavigationSystemTests
         viewModel.WorkflowSession.WorkflowContextSetup.SelectedIc = "NT51950";
         viewModel.WorkflowSession.ConfirmWorkflowContextCommand.Execute(null);
         viewModel.WorkflowSession.SelectedNumber = IcNumberSelectionTokens.Cascade;
-        viewModel.GoBackCommand.Execute(null);
+        viewModel.Navigation.GoBackCommand.Execute(null);
 
         Assert.True(viewModel.IsHomeVisible);
         viewModel.BeginDpReplaceFromHomeCommand.Execute(null);

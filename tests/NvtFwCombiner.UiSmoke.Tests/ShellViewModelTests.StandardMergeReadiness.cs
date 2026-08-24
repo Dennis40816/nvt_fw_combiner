@@ -332,8 +332,8 @@ public sealed partial class FirmwareInspectionSlotTests
             TestContext.Current.CancellationToken);
 
         viewModel.ShowHomeCommand.Execute(null);
-        Assert.True(viewModel.IsNavigationClearConfirmationOpen);
-        viewModel.ConfirmNavigationAndClearCommand.Execute(null);
+        Assert.True(viewModel.Navigation.IsNavigationClearConfirmationOpen);
+        viewModel.Navigation.ConfirmNavigationAndClearCommand.Execute(null);
         Assert.True(viewModel.IsHomeVisible);
         viewModel.BeginCtrlRamReplaceFromHomeCommand.Execute(null);
         Assert.True(viewModel.WorkflowSession.IsWorkflowContextModalOpen);

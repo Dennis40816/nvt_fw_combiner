@@ -26,18 +26,18 @@ public sealed partial class ShellNavigationSystemTests
 
         viewModel.ShowHomeCommand.Execute(null);
 
-        Assert.True(viewModel.IsNavigationClearConfirmationOpen);
+        Assert.True(viewModel.Navigation.IsNavigationClearConfirmationOpen);
         Assert.True(viewModel.IsMergeVisible);
         Assert.True(mapping.HasFile);
 
-        viewModel.CancelNavigationClearCommand.Execute(null);
+        viewModel.Navigation.CancelNavigationClearCommand.Execute(null);
 
-        Assert.False(viewModel.IsNavigationClearConfirmationOpen);
+        Assert.False(viewModel.Navigation.IsNavigationClearConfirmationOpen);
         Assert.True(viewModel.IsMergeVisible);
         Assert.True(mapping.HasFile);
 
         viewModel.ShowReplaceCommand.Execute(null);
-        viewModel.ConfirmNavigationAndClearCommand.Execute(null);
+        viewModel.Navigation.ConfirmNavigationAndClearCommand.Execute(null);
 
         Assert.True(viewModel.IsReplaceVisible);
         Assert.All(viewModel.Merge.MergeSlots, static slot => Assert.False(slot.HasFile));
@@ -67,12 +67,12 @@ public sealed partial class ShellNavigationSystemTests
 
         viewModel.ShowHomeCommand.Execute(null);
 
-        Assert.True(viewModel.IsNavigationClearConfirmationOpen);
+        Assert.True(viewModel.Navigation.IsNavigationClearConfirmationOpen);
         Assert.True(viewModel.IsMergeVisible);
         Assert.True(viewModel.Merge.MergeSlots.Single(static slot =>
             slot.SlotId == CompositionAddressSpaceIds.DpAbInput).HasFile);
 
-        viewModel.ConfirmNavigationAndClearCommand.Execute(null);
+        viewModel.Navigation.ConfirmNavigationAndClearCommand.Execute(null);
         viewModel.ShowMergeCommand.Execute(null);
 
         Assert.True(viewModel.Merge.IsAbCodeMergeModeSelected);
@@ -107,10 +107,10 @@ public sealed partial class ShellNavigationSystemTests
 
         viewModel.ShowHomeCommand.Execute(null);
 
-        Assert.True(viewModel.IsNavigationClearConfirmationOpen);
+        Assert.True(viewModel.Navigation.IsNavigationClearConfirmationOpen);
         Assert.True(viewModel.IsMergeVisible);
 
-        viewModel.ConfirmNavigationAndClearCommand.Execute(null);
+        viewModel.Navigation.ConfirmNavigationAndClearCommand.Execute(null);
         viewModel.ShowMergeCommand.Execute(null);
         viewModel.WorkflowSession.SelectedIc = "NT51932";
         viewModel.Merge.SelectedMergeMode = ExperienceIds.AbMerge;
@@ -139,8 +139,8 @@ public sealed partial class ShellNavigationSystemTests
         Assert.True(viewModel.Merge.MergeDpSlot.HasFile);
         viewModel.ShowHomeCommand.Execute(null);
 
-        Assert.True(viewModel.IsNavigationClearConfirmationOpen);
-        viewModel.ConfirmNavigationAndClearCommand.Execute(null);
+        Assert.True(viewModel.Navigation.IsNavigationClearConfirmationOpen);
+        viewModel.Navigation.ConfirmNavigationAndClearCommand.Execute(null);
         Assert.True(viewModel.IsHomeVisible);
         Assert.False(viewModel.Merge.MergeDpSlot.HasFile);
 
@@ -180,8 +180,8 @@ public sealed partial class ShellNavigationSystemTests
         viewModel.Replace.SelectedReplaceMode = ExperienceIds.GeneralReplace;
         viewModel.ShowHomeCommand.Execute(null);
 
-        Assert.True(viewModel.IsNavigationClearConfirmationOpen);
-        viewModel.ConfirmNavigationAndClearCommand.Execute(null);
+        Assert.True(viewModel.Navigation.IsNavigationClearConfirmationOpen);
+        viewModel.Navigation.ConfirmNavigationAndClearCommand.Execute(null);
         Assert.True(viewModel.IsHomeVisible);
         Assert.False(viewModel.Replace.ReplaceBaseSlot.HasFile);
 
@@ -208,7 +208,7 @@ public sealed partial class ShellNavigationSystemTests
 
         viewModel.OpenSettingsCommand.Execute(null);
 
-        Assert.False(viewModel.IsNavigationClearConfirmationOpen);
+        Assert.False(viewModel.Navigation.IsNavigationClearConfirmationOpen);
         Assert.True(viewModel.IsReplaceVisible);
         Assert.True(viewModel.IsSettingsModalOpen);
         Assert.True(viewModel.Replace.ReplaceBaseSlot.HasFile);
@@ -234,7 +234,7 @@ public sealed partial class ShellNavigationSystemTests
         viewModel.Merge.SelectedMergeMode = mergeMode;
 
         Assert.True(viewModel.IsReplaceVisible);
-        Assert.False(viewModel.IsNavigationClearConfirmationOpen);
+        Assert.False(viewModel.Navigation.IsNavigationClearConfirmationOpen);
         Assert.True(viewModel.Replace.ReplaceBaseSlot.HasFile);
         Assert.Equal(mergeMode, viewModel.Merge.SelectedMergeMode);
     }
@@ -251,7 +251,7 @@ public sealed partial class ShellNavigationSystemTests
         viewModel.WorkflowSession.SelectedIc = "NT51928";
 
         Assert.True(viewModel.IsReplaceVisible);
-        Assert.False(viewModel.IsNavigationClearConfirmationOpen);
+        Assert.False(viewModel.Navigation.IsNavigationClearConfirmationOpen);
         Assert.True(viewModel.Replace.ReplaceBaseSlot.HasFile);
     }
 
@@ -266,21 +266,21 @@ public sealed partial class ShellNavigationSystemTests
 
         viewModel.ShowMergeCommand.Execute(null);
 
-        Assert.True(viewModel.IsNavigationClearConfirmationOpen);
+        Assert.True(viewModel.Navigation.IsNavigationClearConfirmationOpen);
         Assert.True(viewModel.IsReplaceVisible);
-        Assert.Equal("Replace → Merge", viewModel.NavigationClearRoute);
+        Assert.Equal("Replace → Merge", viewModel.Navigation.NavigationClearRoute);
 
         viewModel.SelectedLanguage = "Traditional Chinese";
 
-        Assert.True(viewModel.IsNavigationClearConfirmationOpen);
-        Assert.Equal("取代 → 合併", viewModel.NavigationClearRoute);
+        Assert.True(viewModel.Navigation.IsNavigationClearConfirmationOpen);
+        Assert.Equal("取代 → 合併", viewModel.Navigation.NavigationClearRoute);
 
-        viewModel.CancelNavigationClearCommand.Execute(null);
+        viewModel.Navigation.CancelNavigationClearCommand.Execute(null);
 
-        Assert.False(viewModel.IsNavigationClearConfirmationOpen);
+        Assert.False(viewModel.Navigation.IsNavigationClearConfirmationOpen);
         Assert.True(viewModel.IsReplaceVisible);
         Assert.True(viewModel.Replace.ReplaceBaseSlot.HasFile);
-        Assert.Equal("首頁 > 取代", viewModel.NavigationClearRoute);
+        Assert.Equal("首頁 > 取代", viewModel.Navigation.NavigationClearRoute);
     }
 
     /// <summary>Back navigation does not mutate history or inputs until its clear action is confirmed.</summary>
@@ -292,16 +292,16 @@ public sealed partial class ShellNavigationSystemTests
         viewModel.ShowMergeCommand.Execute(null);
         viewModel.SetSlotFile("merge-dp", workspace.Write("dp.bin", [0x30]));
 
-        viewModel.GoBackCommand.Execute(null);
+        viewModel.Navigation.GoBackCommand.Execute(null);
 
-        Assert.True(viewModel.IsNavigationClearConfirmationOpen);
+        Assert.True(viewModel.Navigation.IsNavigationClearConfirmationOpen);
         Assert.True(viewModel.IsMergeVisible);
-        Assert.True(viewModel.CanGoBack);
+        Assert.True(viewModel.Navigation.CanGoBack);
 
-        viewModel.ConfirmNavigationAndClearCommand.Execute(null);
+        viewModel.Navigation.ConfirmNavigationAndClearCommand.Execute(null);
 
         Assert.True(viewModel.IsHomeVisible);
-        Assert.False(viewModel.CanGoBack);
+        Assert.False(viewModel.Navigation.CanGoBack);
         Assert.All(viewModel.Merge.MergeSlots, static slot => Assert.False(slot.HasFile));
     }
 

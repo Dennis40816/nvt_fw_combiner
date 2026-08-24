@@ -441,7 +441,7 @@ public sealed partial class MergeWorkflowTests
         Assert.True(viewModel.IsMergeVisible);
         Assert.True(viewModel.Merge.IsGeneralMergeModeSelected);
         Assert.False(viewModel.Merge.IsNormalMergeModeSelected);
-        Assert.Equal("Home > Merge", viewModel.NavigationPath);
+        Assert.Equal("Home > Merge", viewModel.Navigation.NavigationPath);
         Assert.False(viewModel.WorkflowSession.IsNumberSelectorVisible);
         Assert.True(viewModel.WorkflowSession.IsNumberSelectorPlaceholderVisible);
     }

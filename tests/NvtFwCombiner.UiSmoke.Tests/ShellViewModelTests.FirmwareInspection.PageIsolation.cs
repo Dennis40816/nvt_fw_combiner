@@ -371,9 +371,9 @@ public sealed partial class FirmwareInspectionSlotTests
                 TimeSpan.FromSeconds(10),
                 TestContext.Current.CancellationToken));
             viewModel.ShowReplaceCommand.Execute(null);
-            Assert.True(viewModel.IsNavigationClearConfirmationOpen);
+            Assert.True(viewModel.Navigation.IsNavigationClearConfirmationOpen);
 
-            viewModel.ConfirmNavigationAndClearCommand.Execute(null);
+            viewModel.Navigation.ConfirmNavigationAndClearCommand.Execute(null);
 
             Assert.True(viewModel.IsReplaceVisible);
             Assert.Null(viewModel.Merge.MergeDpSlot.FilePath);
@@ -421,9 +421,9 @@ public sealed partial class FirmwareInspectionSlotTests
                 TimeSpan.FromSeconds(10),
                 TestContext.Current.CancellationToken));
             viewModel.ShowMergeCommand.Execute(null);
-            Assert.True(viewModel.IsNavigationClearConfirmationOpen);
+            Assert.True(viewModel.Navigation.IsNavigationClearConfirmationOpen);
 
-            viewModel.ConfirmNavigationAndClearCommand.Execute(null);
+            viewModel.Navigation.ConfirmNavigationAndClearCommand.Execute(null);
 
             Assert.True(viewModel.IsMergeVisible);
             Assert.Null(viewModel.Replace.ReplaceBaseSlot.FilePath);

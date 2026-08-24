@@ -13,10 +13,10 @@ public sealed partial class ShellNavigationSystemTests
         MainWindowViewModel viewModel = PresentationTestHost.CreateViewModel();
         viewModel.OpenSettingsCommand.Execute(null);
 
-        viewModel.IsNavigationClearConfirmationOpen = true;
+        viewModel.Navigation.IsNavigationClearConfirmationOpen = true;
 
         Assert.False(viewModel.IsSettingsModalOpen);
-        Assert.True(viewModel.IsNavigationClearConfirmationOpen);
+        Assert.True(viewModel.Navigation.IsNavigationClearConfirmationOpen);
     }
 
     /// <summary>A clear confirmation keeps its original destination until the user decides.</summary>
@@ -33,10 +33,10 @@ public sealed partial class ShellNavigationSystemTests
         viewModel.ShowMergeCommand.Execute(null);
         viewModel.OpenSettingsCommand.Execute(null);
 
-        Assert.True(viewModel.IsNavigationClearConfirmationOpen);
-        Assert.Equal("Replace → Merge", viewModel.NavigationClearRoute);
+        Assert.True(viewModel.Navigation.IsNavigationClearConfirmationOpen);
+        Assert.Equal("Replace → Merge", viewModel.Navigation.NavigationClearRoute);
 
-        viewModel.ConfirmNavigationAndClearCommand.Execute(null);
+        viewModel.Navigation.ConfirmNavigationAndClearCommand.Execute(null);
 
         Assert.True(viewModel.IsMergeVisible);
         Assert.False(viewModel.IsSettingsModalOpen);
