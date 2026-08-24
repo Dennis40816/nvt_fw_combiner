@@ -258,6 +258,20 @@ Application/Infrastructure/VersionManagement friend access that still has
 compiled callers remains explicit for later bounded A7 slices; it was not
 papered over by making internal semantic types public.
 
+**Slice 2 completed 2026-08-24.** Application no longer friends its sibling
+Infrastructure assembly. Existing platform implementations now cross the
+assembly boundary through their focused Application-owned ports and immutable
+adapter records. The only missing seams were one generic compiled-slot
+inspection port and one Standard Merge compilation port; the concrete compiler
+and four authoring experiences remain internal. Bootstrap remains the sole
+composition root allowed to construct them. A compiled metadata guard proves
+those implementations are not public, and an exact friend-list guard locks the
+removed sibling access. Domain/Profiles-to-Infrastructure and vertical
+Bootstrap friend access remain because compiler evidence found live callers;
+they are not disguised as completed cleanup. This boundary costs 61 runtime
+nonblank lines: Application +60 and Infrastructure +1, with no firmware,
+inspection, output, report, or UI behavior change.
+
 ### A8 — hidden build-time trust validator (high)
 
 `NvtFwCombiner.Bootstrap.csproj` contains a RoslynCodeTaskFactory implementation

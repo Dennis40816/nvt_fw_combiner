@@ -35,7 +35,7 @@ internal sealed class FileSystemCompositionOutputBundleDestinationValidator :
         ArgumentNullException.ThrowIfNull(intent);
         List<CompositionOutputBundleValidationIssue> issues = [];
         string? resolvedDirectory = null;
-        bool protectedAliasesChecked = intent.Admission.Sources.Count == 0;
+        bool protectedAliasesChecked = intent.Sources.Count == 0;
         try
         {
             string parent = FileSystemPathGuard.ResolveExistingRoot(intent.ParentDirectory);
@@ -45,9 +45,9 @@ internal sealed class FileSystemCompositionOutputBundleDestinationValidator :
                 resolvedDirectory = ResolveAvailableDirectory(parent, intent.FolderName);
                 ValidatePath(resolvedDirectory, issues);
                 ValidatePath(
-                    Path.Combine(resolvedDirectory, intent.Admission.OutputPreparation.OutputName.FileName),
+                    Path.Combine(resolvedDirectory, intent.OutputFileName),
                     issues);
-                foreach (CompositionExecutionBundleSource source in intent.Admission.Sources)
+                foreach (CompositionExecutionBundleSource source in intent.Sources)
                 {
                     string child = Path.Combine(resolvedDirectory, source.Summary.OriginalFileName);
                     ValidatePath(child, issues);

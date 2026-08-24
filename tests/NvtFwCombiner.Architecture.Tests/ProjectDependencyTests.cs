@@ -69,6 +69,20 @@ public sealed class ProjectDependencyTests
             FriendAssemblies("NvtFwCombiner.Profiles"));
     }
 
+    /// <summary>Infrastructure consumes Application through focused public adapter ports, not implementation internals.</summary>
+    [Fact]
+    public void ApplicationDoesNotFriendSiblingInfrastructure()
+    {
+        Assert.Equal(
+            [
+                "NvtFwCombiner.Application.Tests",
+                "NvtFwCombiner.Bootstrap",
+                "NvtFwCombiner.Bootstrap.Tests",
+                "NvtFwCombiner.UiSmoke.Tests",
+            ],
+            FriendAssemblies("NvtFwCombiner.Application"));
+    }
+
     /// <summary>Verifies that immutable reference code is never compiled by production projects.</summary>
     [Fact]
     public void ReferenceCodeIsNeverIncludedByProductionProjects()

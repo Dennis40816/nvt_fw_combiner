@@ -184,3 +184,21 @@ descends from 75,289 to 75,272; Domain plus Profiles remains
 20,632; Application descends from 33,476 to 33,473; and Bootstrap plus CLI plus
 Desktop descends from 3,503 to 3,489. Their exact ratchets/allowances descend to
 those values; Infrastructure plus Contracts plus CRC worker remains 17,678.
+
+## 2026-08-24 focused Application-to-Infrastructure adapter boundary
+
+The A7 slice removes sibling `InternalsVisibleTo` access from Application to
+Infrastructure. Existing platform implementations cross through explicit
+Application-owned ports and immutable adapter records; one generic compiled
+slot-inspection port and one Standard Merge compilation port replace the five
+concrete Application implementation leaks. Those concrete types remain
+internal and Bootstrap remains their sole construction root.
+
+Full production rises from 110,559 to 110,620 nonblank lines while counted
+runtime rises from 75,272 to 75,333. Application rises from 33,473 to 33,533
+and Infrastructure plus Contracts plus CRC worker rises from 17,678 to 17,679.
+Domain plus Profiles remains 20,632 and Bootstrap plus CLI plus Desktop remains
+3,489. The exact approved allowances therefore become 7,724 full, 5,277
+runtime, 2,843 Application, and 2,323 Infrastructure/Contracts/worker. This is
+accepted as the measured cost of replacing compiler-visible sibling internals
+with narrow compiled contracts; it does not authorize later growth.

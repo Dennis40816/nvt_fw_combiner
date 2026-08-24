@@ -4,6 +4,8 @@ using NvtFwCombiner.Application.Capabilities;
 using NvtFwCombiner.Application.Ports;
 using NvtFwCombiner.Domain.Composition;
 
+#pragma warning disable CS1591 // Infrastructure adapter contracts are not end-user API.
+
 namespace NvtFwCombiner.Application.Composition;
 
 /// <summary>Path-free exact accepted source shown before bundle delivery.</summary>
@@ -42,7 +44,7 @@ public sealed class CompositionOutputBundleSourceSummary
 }
 
 /// <summary>One immutable accepted source retained privately for atomic delivery.</summary>
-internal sealed class CompositionExecutionBundleSource
+public sealed class CompositionExecutionBundleSource
 {
     internal CompositionExecutionBundleSource(
         string bindingId,
@@ -63,13 +65,13 @@ internal sealed class CompositionExecutionBundleSource
         Bytes = bytes.ToArray();
     }
 
-    internal CompositionOutputBundleSourceSummary Summary { get; }
+    public CompositionOutputBundleSourceSummary Summary { get; }
 
-    internal string AcceptedIdentity { get; }
+    public string AcceptedIdentity { get; }
 
-    internal FileStamp FileStamp { get; }
+    public FileStamp FileStamp { get; }
 
-    internal ReadOnlyMemory<byte> Bytes { get; }
+    public ReadOnlyMemory<byte> Bytes { get; }
 }
 
 /// <summary>Exact accepted-session, naming, and source admission retained by one proposal.</summary>
@@ -332,7 +334,7 @@ internal sealed class CompositionOutputBundleSourceCandidate
 }
 
 /// <summary>Application-owned delivery projection consumed directly from one prepared admission.</summary>
-internal sealed class CompositionExecutionBundleDelivery
+public sealed class CompositionExecutionBundleDelivery
 {
     internal CompositionExecutionBundleDelivery(CompositionOutputBundleIntent intent)
     {
@@ -344,15 +346,15 @@ internal sealed class CompositionExecutionBundleDelivery
         AdditionalDelivery = intent.AdditionalDelivery;
     }
 
-    internal string ParentDirectory { get; }
+    public string ParentDirectory { get; }
 
-    internal string FolderName { get; }
+    public string FolderName { get; }
 
     internal CompositionOutputBundleAdmission Admission { get; }
 
-    internal IReadOnlyList<CompositionExecutionBundleSource> Sources { get; }
+    public IReadOnlyList<CompositionExecutionBundleSource> Sources { get; }
 
-    internal CompositionAdditionalDeliveryPlan? AdditionalDelivery { get; }
+    public CompositionAdditionalDeliveryPlan? AdditionalDelivery { get; }
 
     internal static CompositionAdditionalDeliveryPlan? ResolveAdditionalDelivery(
         IReadOnlyList<CompositionAdditionalDeliveryPlan> preparedDeliveries,

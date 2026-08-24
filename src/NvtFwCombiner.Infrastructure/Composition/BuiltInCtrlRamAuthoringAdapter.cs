@@ -10,11 +10,11 @@ namespace NvtFwCombiner.Infrastructure.Composition;
 /// <summary>Adapts trusted CtrlRAM profiles and maps to the Application authoring use case.</summary>
 internal sealed partial class BuiltInCtrlRamAuthoringAdapter(
     ICanonicalCapabilityQuery catalog,
-    CanonicalCapabilityExperience projection) : ICtrlRamAuthoringAdapter
+    ICompositionCapabilityExperience projection) : ICtrlRamAuthoringAdapter
 {
     private readonly ICanonicalCapabilityQuery _catalog =
         catalog ?? throw new ArgumentNullException(nameof(catalog));
-    private readonly CanonicalCapabilityExperience _projection =
+    private readonly ICompositionCapabilityExperience _projection =
         projection ?? throw new ArgumentNullException(nameof(projection));
 
     public CtrlRamInspectionDisplay GetDiscoveryDisplay(

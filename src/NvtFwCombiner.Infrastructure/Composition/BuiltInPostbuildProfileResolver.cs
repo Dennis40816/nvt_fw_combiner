@@ -1,4 +1,3 @@
-using NvtFwCombiner.Application.Capabilities;
 using NvtFwCombiner.Application.ExternalTools;
 using NvtFwCombiner.Application.FlashMaps;
 using NvtFwCombiner.Domain.Composition;
@@ -9,7 +8,7 @@ namespace NvtFwCombiner.Infrastructure.Composition;
 internal static class BuiltInPostbuildProfileResolver
 {
     internal static bool TryGetPostbuildProfile(
-        CanonicalCapabilityExperience projection,
+        ICompositionCapabilityExperience projection,
         string icId,
         string basePath,
         out LegacyCombinerPostbuildProfile? postbuildProfile,

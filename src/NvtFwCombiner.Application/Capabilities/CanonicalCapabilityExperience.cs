@@ -184,7 +184,8 @@ public sealed class CanonicalCapabilityExperience : ICompositionCapabilityExperi
         return _catalog.GetCurrentSnapshot().Disclosure.IsDpPerspectiveIc(icId);
     }
 
-    internal CapabilityProfileSummary? FindStandardMergeProfileSummary(
+    /// <inheritdoc />
+    public CapabilityProfileSummary? FindStandardMergeProfileSummary(
         string icId)
     {
         string normalizedIcId = IcIdentifier.Normalize(icId);
@@ -192,7 +193,8 @@ public sealed class CanonicalCapabilityExperience : ICompositionCapabilityExperi
             StringComparer.Ordinal.Equals(summary.IcId, normalizedIcId));
     }
 
-    internal bool IsKnownIcId(string icId)
+    /// <inheritdoc />
+    public bool IsKnownIcId(string icId)
     {
         return GetIcIds().Contains(
             IcIdentifier.Normalize(icId),

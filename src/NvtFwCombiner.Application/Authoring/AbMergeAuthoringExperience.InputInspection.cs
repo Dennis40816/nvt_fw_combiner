@@ -6,7 +6,7 @@ namespace NvtFwCombiner.Application.Authoring;
 
 internal sealed partial class AbMergeAuthoringExperience
 {
-    internal AbMergeInspectionBatch InspectInputSlots(
+    public AbMergeInspectionBatch InspectInputSlots(
         string icId,
         IReadOnlyList<FirmwareInspectionSnapshotInput> inputs,
         Func<string, byte[]?> readFirmwareImage)

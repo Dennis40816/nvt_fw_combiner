@@ -85,13 +85,13 @@ public sealed record CompiledInputArtifactInspectionResult(
 public static class CompiledInputArtifactInspectionService
 {
     /// <summary>Inclusive fixed-workflow complete-file read ceiling (decimal 100 MB).</summary>
-    internal const long MaximumContentReadBytes = 100_000_000;
+    public const long MaximumContentReadBytes = 100_000_000;
 
     /// <summary>
     /// Resolves the inclusive complete-file read ceiling from one compiler-owned input binding.
     /// Resource admission remains distinct from firmware geometry and normalization.
     /// </summary>
-    internal static long ResolveMaximumContentReadBytes(
+    public static long ResolveMaximumContentReadBytes(
         CompiledComposition composition,
         string addressSpaceId)
     {

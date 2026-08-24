@@ -5,7 +5,9 @@ using NvtFwCombiner.Domain.Composition;
 
 namespace NvtFwCombiner.Application.Authoring;
 
-internal sealed partial class CtrlRamAuthoringExperience : ICtrlRamAuthoring
+internal sealed partial class CtrlRamAuthoringExperience :
+    ICtrlRamAuthoring,
+    ICompiledInputSlotInspector<FirmwareInspectionStatusBatch>
 {
     private readonly ICtrlRamAuthoringAdapter _adapter;
     private readonly IRuntimeDependencyReadinessLeaseProvider _runtimeLeases;

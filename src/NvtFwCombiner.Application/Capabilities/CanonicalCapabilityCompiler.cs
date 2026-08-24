@@ -8,7 +8,8 @@ namespace NvtFwCombiner.Application.Capabilities;
 /// Resolves and binds canonical capabilities through the current publication.
 /// Profile compilation is delegated to one injected canonical adapter.
 /// </summary>
-internal sealed partial class CanonicalCapabilityCompilerAdapter
+internal sealed partial class CanonicalCapabilityCompilerAdapter :
+    IStandardMergeCompilationPort
 {
     private const string SelectorFreeIcCountVariant = "selector-free";
     private readonly ICanonicalCapabilityQuery _catalog;

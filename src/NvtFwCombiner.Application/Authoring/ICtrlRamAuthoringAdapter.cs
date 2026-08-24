@@ -2,10 +2,12 @@ using NvtFwCombiner.Application.Capabilities;
 using NvtFwCombiner.Application.Composition;
 using NvtFwCombiner.Domain.Composition;
 
+#pragma warning disable CS1591 // Infrastructure adapter contracts are not end-user API.
+
 namespace NvtFwCombiner.Application.Authoring;
 
 /// <summary>Host adapter for profile-owned CtrlRAM compilation and display facts.</summary>
-internal interface ICtrlRamAuthoringAdapter
+public interface ICtrlRamAuthoringAdapter
 {
     CtrlRamInspectionDisplay GetDiscoveryDisplay(
         string icId,
@@ -30,9 +32,9 @@ internal interface ICtrlRamAuthoringAdapter
         out IReadOnlyList<CompositionIssue> issues);
 }
 
-internal sealed class CtrlRamAuthoringCompilation
+public sealed class CtrlRamAuthoringCompilation
 {
-    internal CtrlRamAuthoringCompilation(
+    public CtrlRamAuthoringCompilation(
         ResolvedCapability? capability,
         IReadOnlyDictionary<string, string> expectedPaths,
         IEnumerable<CompositionIssue> issues)
@@ -45,9 +47,9 @@ internal sealed class CtrlRamAuthoringCompilation
         Issues = Array.AsReadOnly([.. issues]);
     }
 
-    internal ResolvedCapability? Capability { get; }
+    public ResolvedCapability? Capability { get; }
 
-    internal IReadOnlyDictionary<string, string> ExpectedPaths { get; }
+    public IReadOnlyDictionary<string, string> ExpectedPaths { get; }
 
-    internal IReadOnlyList<CompositionIssue> Issues { get; }
+    public IReadOnlyList<CompositionIssue> Issues { get; }
 }

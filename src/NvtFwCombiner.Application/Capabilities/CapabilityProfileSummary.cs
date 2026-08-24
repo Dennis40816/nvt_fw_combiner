@@ -13,7 +13,8 @@ public sealed record CapabilityProfileSummary(
     bool CompileSucceeded,
     IReadOnlyList<string> IssueCodes)
 {
-    internal static CapabilityProfileSummary FromCompiled(
+    /// <summary>Projects one compiled composition into authoring disclosure.</summary>
+    public static CapabilityProfileSummary FromCompiled(
         CompiledComposition composition)
     {
         ArgumentNullException.ThrowIfNull(composition);

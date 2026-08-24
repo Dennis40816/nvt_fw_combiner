@@ -1,13 +1,15 @@
 using NvtFwCombiner.Application.Metadata;
 using NvtFwCombiner.Domain.Composition;
 
+#pragma warning disable CS1591 // Infrastructure adapter contracts are not end-user API.
+
 namespace NvtFwCombiner.Application.Capabilities;
 
 /// <summary>
 /// Compiles one profile-owned dynamic route selected by the current canonical
 /// publication. Application retains publication and binding authority.
 /// </summary>
-internal interface ICanonicalDynamicCompilationAdapter
+public interface ICanonicalDynamicCompilationAdapter
 {
     IReadOnlyList<long> GetMapCapacities(
         string icId,

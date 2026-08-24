@@ -1,6 +1,8 @@
 using System.Collections.ObjectModel;
 using NvtFwCombiner.Domain.Composition;
 
+#pragma warning disable CS1591 // Infrastructure adapter contracts are not end-user API.
+
 namespace NvtFwCombiner.Application.Capabilities;
 
 /// <summary>
@@ -8,7 +10,7 @@ namespace NvtFwCombiner.Application.Capabilities;
 /// candidate. They are published atomically with the routes and are never
 /// recompiled by UI or CLI queries.
 /// </summary>
-internal sealed class CanonicalCapabilityDisclosure
+public sealed class CanonicalCapabilityDisclosure
 {
     private readonly ReadOnlyDictionary<string, CapabilityProfileSummary[]>
         _profileSummariesByWorkflow;
@@ -20,7 +22,7 @@ internal sealed class CanonicalCapabilityDisclosure
         _familyByIc;
     private readonly HashSet<string> _dpPerspectiveIcs;
 
-    internal CanonicalCapabilityDisclosure(
+    public CanonicalCapabilityDisclosure(
         IReadOnlyDictionary<string, IReadOnlyList<CapabilityProfileSummary>>
             profileSummariesByWorkflow,
         IReadOnlyDictionary<string, IReadOnlyList<CapabilityNumberChoice>>

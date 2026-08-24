@@ -4,7 +4,9 @@ using NvtFwCombiner.Domain.Composition;
 
 namespace NvtFwCombiner.Application.Authoring;
 
-internal sealed class DpReplaceAuthoringExperience : IDpReplaceAuthoring
+internal sealed class DpReplaceAuthoringExperience :
+    IDpReplaceAuthoring,
+    ICompiledInputSlotInspector<FirmwareInspectionStatusBatch>
 {
     private readonly CanonicalCapabilityCompilerAdapter _compiler;
     private readonly ICanonicalCapabilityQuery _catalog;
@@ -39,7 +41,7 @@ internal sealed class DpReplaceAuthoringExperience : IDpReplaceAuthoring
             .PrepareExactSession(icId, session, inputs);
     }
 
-    internal FirmwareInspectionStatusBatch InspectInputSlots(
+    public FirmwareInspectionStatusBatch InspectInputSlots(
         string icId,
         IReadOnlyList<FirmwareInspectionSnapshotInput> inputs,
         Func<string, byte[]?> readFirmwareImage)

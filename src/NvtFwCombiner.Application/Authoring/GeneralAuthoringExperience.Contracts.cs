@@ -3,9 +3,11 @@ using NvtFwCombiner.Application.ExternalTools;
 using NvtFwCombiner.Application.Ports;
 using NvtFwCombiner.Domain.Composition;
 
+#pragma warning disable CS1591 // Infrastructure adapter contracts are not end-user API.
+
 namespace NvtFwCombiner.Application.Authoring;
 
-internal interface IGeneralAuthoringPlanner
+public interface IGeneralAuthoringPlanner
 {
     bool CanPlanGeneralReplace(string icId);
 
@@ -35,32 +37,32 @@ internal interface IGeneralAuthoringPlanner
         ResolvedCapability? retainedCapability);
 }
 
-internal interface IRuntimeDependencyReadinessLeaseProvider
+public interface IRuntimeDependencyReadinessLeaseProvider
 {
     RuntimeDependencyReadinessLease AcquireCurrent();
 }
 
-internal sealed record RuntimeDependencyReadinessLease(
+public sealed record RuntimeDependencyReadinessLease(
     IRuntimeDependencyReadinessProvider ReadinessProvider,
     long Generation,
     Func<long, bool> GenerationIsCurrent);
 
-internal sealed record GeneralReplaceRuntimeAuthority(
+public sealed record GeneralReplaceRuntimeAuthority(
     SavedRuleParentIdentity ParentBinding,
     IReadOnlyList<string> ProcessorStageIds,
     IReadOnlyList<ExternalProcessorDependencyReference> RuntimeDependencies);
 
-internal sealed record GeneralMergeAuthoringPlan(
+public sealed record GeneralMergeAuthoringPlan(
     GeneralMappingDraftState MappingDraft,
     ResolvedCapability Capability,
     IReadOnlyList<GeneralInputResource> InputResources);
 
-internal sealed record GeneralMergeAuthoringPlanResult(
+public sealed record GeneralMergeAuthoringPlanResult(
     GeneralMergeAuthoringPlan? Plan,
     GeneralAuthoringAdmissionResult? Admission,
     IReadOnlyList<CompositionIssue> Issues);
 
-internal sealed record GeneralReplaceAuthoringPlan(
+public sealed record GeneralReplaceAuthoringPlan(
     GeneralMappingDraftState MappingDraft,
     ResolvedCapability Capability,
     GeneralAuthoringAdmissionResult Admission,
@@ -69,7 +71,7 @@ internal sealed record GeneralReplaceAuthoringPlan(
     CompositionIssue? PlanningIssue,
     long ReferenceCapacity);
 
-internal sealed record GeneralReplaceAuthoringPlanResult(
+public sealed record GeneralReplaceAuthoringPlanResult(
     GeneralReplaceAuthoringPlan? Plan,
     GeneralAuthoringAdmissionResult? Admission,
     IReadOnlyList<CompositionIssue> Issues);

@@ -1,5 +1,4 @@
 using NvtFwCombiner.Application.Authoring;
-using NvtFwCombiner.Application.Capabilities;
 using NvtFwCombiner.Application.ExternalTools;
 using NvtFwCombiner.Application.FlashMaps;
 using NvtFwCombiner.Domain.Composition;
@@ -11,7 +10,7 @@ namespace NvtFwCombiner.Infrastructure.Composition;
 internal sealed partial class BuiltInCtrlRamAuthoringAdapter
 {
     internal static CtrlRamReplaceRunContext CreateCtrlRamReplaceRunContext(
-        CanonicalCapabilityExperience projection,
+        ICompositionCapabilityExperience projection,
         string icId,
         string number,
         IReadOnlyDictionary<string, string> slotPaths,

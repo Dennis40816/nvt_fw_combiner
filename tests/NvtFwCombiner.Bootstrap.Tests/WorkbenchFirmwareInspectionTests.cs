@@ -194,7 +194,7 @@ public sealed partial class FirmwareInspectionSnapshotTests
             ctrlRamRequest);
 
         Assert.Equal(
-            BuiltInFirmwareInspection.TryReadFirmwareConfigMetadata(BootstrapTestHost.Canonical, "NT51926", basePath),
+            BuiltInFirmwareInspection.TryReadFirmwareConfigMetadata(BootstrapTestHost.Canonical.Projection, "NT51926", basePath),
             inspection.FirmwareConfig);
         Assert.Equal(
             FirmwareInspectionTestSupport.TryReadDpVersionMetadata("NT51926", basePath),

@@ -6,6 +6,8 @@ using NvtFwCombiner.Application.InputInspection;
 using NvtFwCombiner.Domain.Composition;
 using NvtFwCombiner.Domain.Firmware;
 
+#pragma warning disable CS1591 // Infrastructure adapter contracts are not end-user API.
+
 namespace NvtFwCombiner.Application.Composition;
 
 /// <summary>Stable completed health priority for one selected input.</summary>
@@ -162,29 +164,29 @@ public sealed record FirmwareInspectionSnapshotInput(
     ResolvedCapability? ExactCapability = null);
 
 /// <summary>One coherent compiled input-inspection batch mapped to client inspection ids.</summary>
-internal sealed record FirmwareInspectionStatusBatch(
+public sealed record FirmwareInspectionStatusBatch(
     AuthoringCapabilityCatalogSnapshot? Catalog,
     IReadOnlyDictionary<string, AuthoringInputSlotStatus> Statuses,
     IReadOnlyList<CompositionIssue> Issues,
     CtrlRamBaseDiscoveryResult? CtrlRamBaseDiscovery = null)
 {
-    internal static FirmwareInspectionStatusBatch Empty { get; } =
+    public static FirmwareInspectionStatusBatch Empty { get; } =
         new(null, new Dictionary<string, AuthoringInputSlotStatus>(StringComparer.Ordinal), []);
 }
 
 /// <summary>One Application-owned base-only discovery result keyed to the caller inspection identity.</summary>
-internal sealed record CtrlRamBaseDiscoveryResult(
+public sealed record CtrlRamBaseDiscoveryResult(
     string InspectionId,
     CtrlRamBaseDiscoveryReadiness Readiness);
 
 /// <summary>One coherent AB Merge inspection batch mapped to client inspection ids.</summary>
-internal sealed record AbMergeInspectionBatch(
+public sealed record AbMergeInspectionBatch(
     AuthoringCapabilityCatalogSnapshot? Catalog,
     IReadOnlyDictionary<string, AuthoringInputSlotStatus> Statuses,
     IReadOnlyDictionary<string, AbMergeInputFacts> Facts,
     IReadOnlyList<CompositionIssue> Issues)
 {
-    internal static AbMergeInspectionBatch Empty { get; } =
+    public static AbMergeInspectionBatch Empty { get; } =
         new(
             null,
             new Dictionary<string, AuthoringInputSlotStatus>(StringComparer.Ordinal),
@@ -200,7 +202,7 @@ public sealed record FirmwareInspectionSnapshotResult(
 /// <summary>One distinct-path inspection batch over coherent content reads.</summary>
 public sealed class FirmwareInspectionBatchResult
 {
-    internal FirmwareInspectionBatchResult(
+    public FirmwareInspectionBatchResult(
         IReadOnlyDictionary<string, FirmwareInspectionSnapshot> inspectionsById,
         IReadOnlyDictionary<string, FileStamp?> fileStamps,
         IEnumerable<string> unstableFilePaths)

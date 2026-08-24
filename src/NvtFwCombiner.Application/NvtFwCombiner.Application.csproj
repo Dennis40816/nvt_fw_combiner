@@ -7,7 +7,6 @@
     <InternalsVisibleTo Include="NvtFwCombiner.Application.Tests" />
     <InternalsVisibleTo Include="NvtFwCombiner.Bootstrap" />
     <InternalsVisibleTo Include="NvtFwCombiner.Bootstrap.Tests" />
-    <InternalsVisibleTo Include="NvtFwCombiner.Infrastructure" />
     <InternalsVisibleTo Include="NvtFwCombiner.UiSmoke.Tests" />
   </ItemGroup>
 </Project>

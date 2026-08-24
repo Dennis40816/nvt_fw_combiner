@@ -9,14 +9,14 @@ namespace NvtFwCombiner.Infrastructure.Composition;
 
 internal sealed partial class BuiltInGeneralAuthoringPlanner(
     ICanonicalCapabilityQuery catalog,
-    CanonicalCapabilityCompilerAdapter compiler,
-    CanonicalCapabilityExperience projection) : IGeneralAuthoringPlanner
+    IStandardMergeCompilationPort compiler,
+    ICompositionCapabilityExperience projection) : IGeneralAuthoringPlanner
 {
     private readonly ICanonicalCapabilityQuery _catalog =
         catalog ?? throw new ArgumentNullException(nameof(catalog));
-    private readonly CanonicalCapabilityCompilerAdapter _compiler =
+    private readonly IStandardMergeCompilationPort _compiler =
         compiler ?? throw new ArgumentNullException(nameof(compiler));
-    private readonly CanonicalCapabilityExperience _projection =
+    private readonly ICompositionCapabilityExperience _projection =
         projection ?? throw new ArgumentNullException(nameof(projection));
 
     public bool CanPlanGeneralReplace(string icId)

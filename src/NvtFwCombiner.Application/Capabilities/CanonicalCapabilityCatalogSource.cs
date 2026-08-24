@@ -2,6 +2,8 @@ using NvtFwCombiner.Application.Metadata;
 using NvtFwCombiner.Domain.Composition;
 using System.Threading.Channels;
 
+#pragma warning disable CS1591 // Infrastructure adapter contracts are not end-user API.
+
 namespace NvtFwCombiner.Application.Capabilities;
 
 /// <summary>Typed trusted-policy facts ready to join exact compiler results.</summary>
@@ -20,13 +22,13 @@ public sealed record CanonicalCapabilityPolicyRoute(
     PinnedCapabilityDecision<CapabilityEvidenceStatus> Evidence);
 
 /// <summary>Exact compiler-owned artifacts for one static catalog route.</summary>
-internal sealed record CanonicalCompiledRoute(
+public sealed record CanonicalCompiledRoute(
     string CapabilityFingerprint,
     CompiledComposition Composition,
     MetadataPlanDefinition MetadataPlan);
 
 /// <summary>Exact compiler contract for one authoring-bound dynamic route.</summary>
-internal sealed record CanonicalDynamicRoute(
+public sealed record CanonicalDynamicRoute(
     string CapabilityFingerprint,
     CanonicalCapabilityCompilationContract CompilationContract);
 

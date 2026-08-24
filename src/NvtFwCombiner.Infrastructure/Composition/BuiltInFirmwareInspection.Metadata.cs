@@ -1,4 +1,3 @@
-using NvtFwCombiner.Application.Capabilities;
 using NvtFwCombiner.Application.ExternalTools;
 using NvtFwCombiner.Application.FlashMaps;
 using NvtFwCombiner.Domain.Composition;
@@ -10,7 +9,7 @@ internal sealed partial class BuiltInFirmwareInspection
 {
     /// <summary>Reads FWConfig display metadata from the canonical NVT-located Backup in a selected firmware image.</summary>
     internal static FirmwareConfigMetadataSnapshot? TryReadFirmwareConfigMetadata(
-        CanonicalCapabilityExperience projection,
+        ICompositionCapabilityExperience projection,
         string icId,
         string path)
     {
@@ -24,7 +23,7 @@ internal sealed partial class BuiltInFirmwareInspection
     }
 
     internal static bool TryReadBaseCommonFwVersion(
-        CanonicalCapabilityExperience projection,
+        ICompositionCapabilityExperience projection,
         string icId,
         string basePath,
         out string? commonFwVersion)
@@ -44,7 +43,7 @@ internal sealed partial class BuiltInFirmwareInspection
     }
 
     private static bool TryResolveNumberTokenForFirmwareConfig(
-        CanonicalCapabilityExperience projection,
+        ICompositionCapabilityExperience projection,
         string icId,
         FirmwareConfigMetadata firmwareConfig,
         out string? numberToken)
@@ -76,7 +75,7 @@ internal sealed partial class BuiltInFirmwareInspection
     }
 
     internal static bool TryReadFirmwareConfigBackupMetadata(
-        CanonicalCapabilityExperience projection,
+        ICompositionCapabilityExperience projection,
         string icId,
         string path,
         out FirmwareConfigMetadata metadata)
@@ -108,7 +107,7 @@ internal sealed partial class BuiltInFirmwareInspection
     }
 
     internal static bool TryReadFirmwareConfigBackupMetadata(
-        CanonicalCapabilityExperience projection,
+        ICompositionCapabilityExperience projection,
         string icId,
         ReadOnlySpan<byte> image,
         out FirmwareConfigMetadata metadata)
@@ -125,7 +124,7 @@ internal sealed partial class BuiltInFirmwareInspection
     }
 
     internal static bool TryResolvePostbuildProfileFromBasePathForDisplay(
-        CanonicalCapabilityExperience projection,
+        ICompositionCapabilityExperience projection,
         string icId,
         string? basePath,
         out LegacyCombinerPostbuildProfile? postbuildProfile)

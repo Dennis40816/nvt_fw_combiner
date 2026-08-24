@@ -18,20 +18,24 @@ internal sealed partial class BuiltInFirmwareInspection : IFirmwareInspection
 {
     private const int FirmwareIcHintHeaderProbeLength = 256 * 1024;
     private readonly ICanonicalCapabilityQuery _catalog;
-    private readonly CanonicalCapabilityExperience _projection;
-    private readonly StandardMergeAuthoringExperience _standardMergeAuthoring;
-    private readonly AbMergeAuthoringExperience _abMergeAuthoring;
-    private readonly DpReplaceAuthoringExperience _dpReplaceAuthoring;
-    private readonly CtrlRamAuthoringExperience _ctrlRamAuthoring;
+    private readonly ICompositionCapabilityExperience _projection;
+    private readonly ICompiledInputSlotInspector<FirmwareInspectionStatusBatch>
+        _standardMergeAuthoring;
+    private readonly ICompiledInputSlotInspector<AbMergeInspectionBatch>
+        _abMergeAuthoring;
+    private readonly ICompiledInputSlotInspector<FirmwareInspectionStatusBatch>
+        _dpReplaceAuthoring;
+    private readonly ICompiledInputSlotInspector<FirmwareInspectionStatusBatch>
+        _ctrlRamAuthoring;
     private readonly ISelectedFileContentInspector _contentInspector;
 
     internal BuiltInFirmwareInspection(
         ICanonicalCapabilityQuery catalog,
-        CanonicalCapabilityExperience projection,
-        StandardMergeAuthoringExperience standardMergeAuthoring,
-        AbMergeAuthoringExperience abMergeAuthoring,
-        DpReplaceAuthoringExperience dpReplaceAuthoring,
-        CtrlRamAuthoringExperience ctrlRamAuthoring,
+        ICompositionCapabilityExperience projection,
+        ICompiledInputSlotInspector<FirmwareInspectionStatusBatch> standardMergeAuthoring,
+        ICompiledInputSlotInspector<AbMergeInspectionBatch> abMergeAuthoring,
+        ICompiledInputSlotInspector<FirmwareInspectionStatusBatch> dpReplaceAuthoring,
+        ICompiledInputSlotInspector<FirmwareInspectionStatusBatch> ctrlRamAuthoring,
         ISelectedFileContentInspector? contentInspector = null)
     {
         _catalog = catalog ?? throw new ArgumentNullException(nameof(catalog));
@@ -473,7 +477,7 @@ internal sealed partial class BuiltInFirmwareInspection : IFirmwareInspection
     }
 
     internal static FirmwareConfigMetadataSnapshot? ReadFirmwareConfigMetadata(
-        CanonicalCapabilityExperience projection,
+        ICompositionCapabilityExperience projection,
         string icId,
         ReadOnlySpan<byte> image)
     {
@@ -516,7 +520,7 @@ internal sealed partial class BuiltInFirmwareInspection : IFirmwareInspection
     }
 
     private static FirmwareContextSuggestion? ReadFirmwareContextSuggestion(
-        CanonicalCapabilityExperience projection,
+        ICompositionCapabilityExperience projection,
         string icId,
         FirmwareConfigMetadata? metadata)
     {
@@ -580,7 +584,7 @@ internal sealed partial class BuiltInFirmwareInspection : IFirmwareInspection
     }
 
     private static bool TryReadFirmwareConfigMetadataFromImage(
-        CanonicalCapabilityExperience projection,
+        ICompositionCapabilityExperience projection,
         string icId,
         ReadOnlySpan<byte> image,
         out FirmwareConfigMetadata metadata)
@@ -591,7 +595,7 @@ internal sealed partial class BuiltInFirmwareInspection : IFirmwareInspection
     }
 
     private static bool TryResolvePostbuildProfileForDisplay(
-        CanonicalCapabilityExperience projection,
+        ICompositionCapabilityExperience projection,
         string icId,
         FirmwareConfigMetadata? metadata,
         out LegacyCombinerPostbuildProfile? postbuildProfile)
@@ -604,7 +608,7 @@ internal sealed partial class BuiltInFirmwareInspection : IFirmwareInspection
     }
 
     private static bool TryResolvePostbuildProfileForDisplay(
-        CanonicalCapabilityExperience projection,
+        ICompositionCapabilityExperience projection,
         string icId,
         string? commonFwVersion,
         out LegacyCombinerPostbuildProfile? postbuildProfile)

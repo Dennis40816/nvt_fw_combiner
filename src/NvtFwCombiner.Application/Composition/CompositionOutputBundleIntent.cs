@@ -28,6 +28,12 @@ public sealed class CompositionOutputBundleIntent
     /// <summary>Validated plain proposed folder name; Infrastructure applies platform validation.</summary>
     public string FolderName { get; }
 
+    /// <summary>Accepted canonical output filename used by destination preflight.</summary>
+    public string OutputFileName => Admission.OutputPreparation.OutputName.FileName;
+
+    /// <summary>Accepted immutable sources used by destination preflight.</summary>
+    public IReadOnlyList<CompositionExecutionBundleSource> Sources => Admission.Sources;
+
     /// <summary>Selected compiled additional delivery retained by this exact prepared admission.</summary>
     internal CompositionAdditionalDeliveryPlan? AdditionalDelivery { get; }
 

@@ -5,7 +5,9 @@ using NvtFwCombiner.Domain.Firmware;
 
 namespace NvtFwCombiner.Application.Authoring;
 
-internal sealed partial class AbMergeAuthoringExperience : IAbMergeAuthoring
+internal sealed partial class AbMergeAuthoringExperience :
+    IAbMergeAuthoring,
+    ICompiledInputSlotInspector<AbMergeInspectionBatch>
 {
     private readonly CanonicalCapabilityCompilerAdapter _compiler;
     private readonly ICanonicalCapabilityQuery _catalog;

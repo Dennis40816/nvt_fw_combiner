@@ -5,6 +5,16 @@ using NvtFwCombiner.Domain.Composition;
 
 namespace NvtFwCombiner.Application.Composition;
 
+/// <summary>Focused host-facing projection of one workflow's compiled input-slot inspection.</summary>
+public interface ICompiledInputSlotInspector<out TBatch>
+{
+    /// <summary>Inspects the applicable inputs through one caller-owned distinct-path reader.</summary>
+    TBatch InspectInputSlots(
+        string icId,
+        IReadOnlyList<FirmwareInspectionSnapshotInput> inputs,
+        Func<string, byte[]?> readFirmwareImage);
+}
+
 /// <summary>Read-only capability and workflow disclosure consumed by UI and CLI surfaces.</summary>
 public interface ICompositionCapabilityExperience
 {
@@ -29,6 +39,12 @@ public interface ICompositionCapabilityExperience
     /// <summary>Gets authorable Standard Merge profiles.</summary>
     IReadOnlyList<CapabilityProfileSummary> GetStandardMergeProfileSummaries();
 
+    /// <summary>Gets one authorable Standard Merge profile when declared.</summary>
+    CapabilityProfileSummary? FindStandardMergeProfileSummary(string icId);
+
+    /// <summary>Returns whether the current publication declares the IC.</summary>
+    bool IsKnownIcId(string icId);
+
     /// <summary>Gets authorable DP Replace profiles.</summary>
     IReadOnlyList<CapabilityProfileSummary> GetDpReplaceProfileSummaries();
 
@@ -48,7 +64,6 @@ public interface ICompositionCapabilityExperience
 
     /// <summary>Returns whether the IC uses a DP-perspective composition.</summary>
     bool IsDpPerspectiveIc(string icId);
-
 }
 
 /// <summary>Focused Standard Merge authoring operations over one canonical workflow owner.</summary>

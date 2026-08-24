@@ -125,7 +125,7 @@ public sealed class FocusedCompositionAdaptersTests
     [Fact]
     public void FirmwareConfigMetadataShortensPostbuildSetupCategoryForDisplay()
     {
-        FirmwareConfigMetadataSnapshot? metadata = BuiltInFirmwareInspection.TryReadFirmwareConfigMetadata(BootstrapTestHost.Canonical,
+        FirmwareConfigMetadataSnapshot? metadata = BuiltInFirmwareInspection.TryReadFirmwareConfigMetadata(BootstrapTestHost.Canonical.Projection,
             "NT51926",
             GoldenArtifactPath("51926", "expected-output"));
 
@@ -209,7 +209,7 @@ public sealed class FocusedCompositionAdaptersTests
 
         Assert.Null(FirmwareInspectionTestSupport.TryReadDpVersionMetadata("NT51950", missing));
         Assert.Null(FirmwareInspectionTestSupport.TryReadCmiDpCodeMetadata("NT51950", missing));
-        Assert.Null(BuiltInFirmwareInspection.TryReadFirmwareConfigMetadata(BootstrapTestHost.Canonical, "NT51926", missing));
+        Assert.Null(BuiltInFirmwareInspection.TryReadFirmwareConfigMetadata(BootstrapTestHost.Canonical.Projection, "NT51926", missing));
         Assert.Null(FirmwareInspectionTestSupport.TryReadFirmwareContextSuggestion("NT51926", missing));
     }
 

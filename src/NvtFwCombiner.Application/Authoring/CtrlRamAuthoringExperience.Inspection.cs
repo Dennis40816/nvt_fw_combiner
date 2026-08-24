@@ -99,7 +99,7 @@ internal sealed partial class CtrlRamAuthoringExperience
             : null;
     }
 
-    internal FirmwareInspectionStatusBatch InspectInputSlots(
+    public FirmwareInspectionStatusBatch InspectInputSlots(
         string icId,
         IReadOnlyList<FirmwareInspectionSnapshotInput> inputs,
         Func<string, byte[]?> readFirmwareImage)

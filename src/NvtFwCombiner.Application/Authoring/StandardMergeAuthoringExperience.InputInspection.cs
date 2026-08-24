@@ -5,7 +5,7 @@ namespace NvtFwCombiner.Application.Authoring;
 
 internal sealed partial class StandardMergeAuthoringExperience
 {
-    internal FirmwareInspectionStatusBatch InspectInputSlots(
+    public FirmwareInspectionStatusBatch InspectInputSlots(
         string icId,
         IReadOnlyList<FirmwareInspectionSnapshotInput> inputs,
         Func<string, byte[]?> readFirmwareImage)
