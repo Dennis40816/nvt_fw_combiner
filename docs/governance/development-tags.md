@@ -86,6 +86,9 @@ commit.
   readiness rollback, offline selection, and unified Settings Version page
   against an isolated local source. The owner-approved contract is
   `docs/specs/v0.10.6-version-management.md` and accepted ADR 0051.
+- `v0.10.7` — final-effect candidate: hide ordinary DP Replace authoring through
+  canonical policy while retaining its executable and Golden regression
+  semantics; decide retirement or reopening at `1.1.0`.
 
 ### Recorded `v0.10.2` pre-deletion comparison point
 
@@ -221,6 +224,7 @@ and cannot re-admit a retired IC.
 | `v0.10.4` | Post-refactor simplification audit | Re-measure the completed canonical architecture, identify any remaining removable or simplifiable ownership, and accept further changes only with preserved behavior, evidence, and descending size gates. |
 | `v0.10.5` | Unified preload performance control | Optimize startup and background work by making every preload use one observable, cancellable, bounded, and user-controllable lifecycle without changing firmware results or support truth. |
 | `v0.10.6` | Managed version experience | Prove the owner-approved configured-folder, content-verified, side-by-side launcher flow with explicit install/switch/delete, startup rollback, offline access, and the unified Settings Version page. |
+| `v0.10.7` | Final-effect candidate | Hide ordinary DP Replace UI/CLI authoring through canonical policy while retaining fail-closed behavior and regression evidence until the `1.1.0` owner decision. |
 | `v1.0.0` | stable | Signed-off support matrix. |
 
 ## First-sample `v1.0.0` release gate
@@ -282,6 +286,7 @@ v0.10.3         complete canonical refactoring and reviewed convergence ledgers
 v0.10.4         post-refactor simplification and ownership audit
 v0.10.5         unified controllable preload performance lifecycle
 v0.10.6         configured-path managed version experience
+v0.10.7         final-effect candidate with DP Replace authoring hidden
 v1.0.0          stable
 ```
 

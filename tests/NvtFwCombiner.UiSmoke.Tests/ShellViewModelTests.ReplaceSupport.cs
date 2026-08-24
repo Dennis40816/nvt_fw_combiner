@@ -1,9 +1,41 @@
 using NvtFwCombiner.Presentation.Avalonia.ViewModels;
+using NvtFwCombiner.TestSupport;
 
 namespace NvtFwCombiner.UiSmoke.Tests;
 
 public sealed partial class DpReplaceWorkflowTests
 {
+    /// <summary>The shipped policy omits DP Replace without changing selector geometry.</summary>
+    [Fact]
+    public void ReplaceModeChoicesHideDpReplaceAndSelectAnAvailableMode()
+    {
+        MainWindowViewModel viewModel =
+            PresentationTestHost.CreateProductViewModel();
+
+        viewModel.ShowReplaceCommand.Execute(null);
+
+        Assert.DoesNotContain(
+            Domain.Composition.ExperienceIds.DpReplace,
+            viewModel.Replace.ReplaceModeChoices);
+        Assert.Contains(
+            Domain.Composition.ExperienceIds.CtrlRamReplace,
+            viewModel.Replace.ReplaceModeChoices);
+        Assert.Equal(
+            Domain.Composition.ExperienceIds.CtrlRamReplace,
+            viewModel.Replace.SelectedReplaceMode);
+        Assert.True(viewModel.Replace.IsCtrlRamReplaceModeSelected);
+        Assert.False(viewModel.WorkflowSession.IsDpReplaceAvailable);
+        string home = File.ReadAllText(RepositoryPaths.FromRepositoryRoot(
+            "src",
+            "NvtFwCombiner.Presentation.Avalonia",
+            "Resources",
+            "MainWindowPageTemplates.axaml"));
+        Assert.Contains(
+            "IsVisible=\"{Binding WorkflowSession.IsDpReplaceAvailable}\"",
+            home,
+            StringComparison.Ordinal);
+    }
+
     /// <summary>Canonical evidence status does not disable an evidence-gated authoring flow.</summary>
     [Fact]
     public void ReplaceEvidenceBadgeDoesNotTurnPendingGoldenIntoFeatureBan()

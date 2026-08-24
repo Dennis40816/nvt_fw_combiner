@@ -4,6 +4,7 @@ using NvtFwCombiner.Application.ExternalTools;
 using NvtFwCombiner.Infrastructure.ExternalTools;
 using NvtFwCombiner.Presentation.Avalonia;
 using NvtFwCombiner.Presentation.Avalonia.ViewModels;
+using NvtFwCombiner.TestSupport;
 
 namespace NvtFwCombiner.UiSmoke.Tests;
 
@@ -18,6 +19,19 @@ internal static class PresentationTestHost
         PresentationHostServices services = CreateServices(
             ApplicationVersionProvider.InformationalVersion);
         MainWindowViewModel viewModel = ShellViewModelFactory.Create(services, language);
+        return PublishCanonicalCatalog(services, viewModel);
+    }
+
+    internal static MainWindowViewModel CreateProductViewModel(
+        ShellLanguage language = ShellLanguage.English)
+    {
+        PresentationHostServices services = CreateServices(
+            ApplicationVersionProvider.InformationalVersion,
+            static authoring => authoring,
+            useRetainedDpReplacePolicy: false);
+        MainWindowViewModel viewModel = ShellViewModelFactory.Create(
+            services,
+            language);
         return PublishCanonicalCatalog(services, viewModel);
     }
 
@@ -103,7 +117,9 @@ internal static class PresentationTestHost
     {
         ArgumentNullException.ThrowIfNull(versionManagement);
         var externalEnvironment = new ExternalProcessorEnvironmentLoader(ExternalEnvironment.Value);
-        var host = CompositionHostServices.Create(externalEnvironment);
+        CompositionHostServices host = CompositionHostServices.Create(
+            externalEnvironment,
+            RetainedDpReplaceRegressionPolicy.Load);
         return new PresentationHostServices(
             new PresentationCompositionServices(
                 host.CompositionCapabilityExperience,
@@ -131,10 +147,15 @@ internal static class PresentationTestHost
 
     private static PresentationHostServices CreateServices(
         string applicationVersion,
-        Func<IGeneralAuthoring, IGeneralAuthoring> generalAuthoringDecorator)
+        Func<IGeneralAuthoring, IGeneralAuthoring> generalAuthoringDecorator,
+        bool useRetainedDpReplacePolicy = true)
     {
         var externalEnvironment = new ExternalProcessorEnvironmentLoader(ExternalEnvironment.Value);
-        var host = CompositionHostServices.Create(externalEnvironment);
+        CompositionHostServices host = useRetainedDpReplacePolicy
+            ? CompositionHostServices.Create(
+                externalEnvironment,
+                RetainedDpReplaceRegressionPolicy.Load)
+            : CompositionHostServices.Create(externalEnvironment);
         return new PresentationHostServices(
             new PresentationCompositionServices(
                 host.CompositionCapabilityExperience,

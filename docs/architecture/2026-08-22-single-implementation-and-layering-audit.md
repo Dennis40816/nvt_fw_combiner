@@ -465,17 +465,17 @@ trust, UI, or evidence code as duplication.
 
 ## 2026-08-23 functional-verification matrix
 
-The exact route denominator is the 78-row
-`canonical-capability-policy-v1.json`, not a hand-maintained test list. All 78
-routes are authoring-available, but availability is not certification: 76 are
-`ContractOnly` and two are `DirectGolden`; publication is 72 `Internal`, three
-`Candidate`, two `Supported`, and one `TestOnly`.
+The exact route denominator is the 78-row `canonical-capability-policy-v1.json`,
+not a hand-maintained test list. Catalog `1.9.0` exposes 64 routes for ordinary
+authoring and marks all 14 DP Replace routes unavailable by the 2026-08-24 owner
+decision; availability is not certification. Evidence remains 76 `ContractOnly`
+and two `DirectGolden`; publication remains 72 `Internal`, three `Candidate`, two `Supported`, and one `TestOnly`.
 
 | Workflow | Exact routes / ICs | DirectGolden | ContractOnly | Executable evidence | Remaining gate |
 | --- | ---: | ---: | ---: | --- | --- |
 | Standard Merge | 14 / 10 | 1 | 13 | Profile Contract, `BuiltInV2StandardMergeRoutingTests`, executable canonical/950/951 fixture-oracle tests, CLI and selector lifecycle smoke; these tests do not rewrite policy `EvidenceStatus` | Firmware-owner/direct evidence for certification; owner-visible full-flow check |
 | AB Merge | 6 / 5 | 0 | 6 | AB runtime admission, topology, executable fixture regression, CLI, six-order readiness and immutable-session tests; these tests do not rewrite policy `EvidenceStatus` | Same-TP authoring contract; direct evidence and firmware-owner certification |
-| DP Replace | 14 / 10 | 1 | 13 | V2 routing, changed-input Golden Regression, 950/951 synthetic oracle, readiness smoke | Owner decision to retain/gate/retire; non-Standard naming gaps; remaining certification evidence |
+| DP Replace | 14 / 10 | 1 | 13 | Hidden from ordinary authoring; retained V2 routing, changed-input Golden Regression, 950/951 synthetic oracle, and fail-closed product smoke | Owner decision at `1.1.0` to retire or reopen; non-Standard naming gaps and certification evidence remain if reopened |
 | CtrlRAM Replace | 33 / 10 | 0 | 33 | V2 registry/plan closure, processor and report metadata, per-family evidence, NT51950 Normal-CtrlRAM non-termination, immutable-session tests | Typed Base discovery; trusted IC provenance; direct firmware/output evidence and R3 sign-off |
 | General Merge | 10 / 10 | 0 | 10 | Candidate-profile, CLI, Saved Rule, initializer/mapping/engine tests | R3 owner/evidence decision for stale promotion-blocker metadata; owner-visible mapping/Build check |
 | General Replace | 1 / 1 | 0 | 1 | Candidate profile, postbuild readiness, patch, ADR 0044 plan-only Diagnostic Preview, memory projection and UI tests | Owner-visible POSTBUILD/tool-unavailable and output-delivery check; ADR 0044 grants no fixed-workflow Diagnostic Preview authority |
@@ -537,7 +537,7 @@ gate.
 
 | Surface | Current automated evidence | Current disposition / open gap |
 | --- | --- | --- |
-| Canonical catalog and Support Matrix | Policy/profile materialization, fingerprint, Support Matrix Application/Bootstrap/UI/architecture tests | Automated green for 78-row identity and separation; 76 rows remain ContractOnly |
+| Canonical catalog and Support Matrix | Policy/profile materialization, fingerprint, Support Matrix Application/Bootstrap/UI/architecture tests | Automated green for 78-row identity and separation; 64 authoring-available, 14 DP Replace unavailable, and 76 rows remain ContractOnly |
 | Selector lifecycle and immutable input identity | Standard/AB/CtrlRAM ordering, Checking/Error/recovery, cancel no-op, 100 MB intake, same-path binding, post-Verified mutation | Automated green for approved slice; exact-one-file drop, same-TP authoring, per-slot Clear and CtrlRAM Base discovery remain open |
 | Preview/Build and firmware execution | Shared engine, accepted session, operation/trace/report, golden and processor write-range suites | Automated green; ADR 0044 authorizes only General Replace plan-only Diagnostic Preview, not fixed-workflow execution/re-labelling of invalid selected bytes; no firmware byte/range/name/CRC change is authorized by this audit |
 | Output naming and delivery | Naming parity, bundle proposal/admission, atomic loose/bundle writers, AB additional delivery, UI/CLI/report parity | Automated green for declared rules; DP/CtrlRAM non-Standard naming requires its firmware-owner/typed-artifact contract decision; native Save As/bundle owner check remains manual |

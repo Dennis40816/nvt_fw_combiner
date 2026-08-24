@@ -1,8 +1,8 @@
 {
   "schemaVersion": "1.0",
   "catalogId": "canonical-capability-policy",
-  "catalogVersion": "1.8.0",
-  "issuedOn": "2026-08-22",
+  "catalogVersion": "1.9.0",
+  "issuedOn": "2026-08-24",
   "routes": [
     {
       "icId": "NT51917",
@@ -12,11 +12,11 @@
       "routeId": "route-7-nt51917-10-dp-replace-4-1-ic-27-nt51917-standard-merge-256k",
       "capabilityFingerprint": "003890bdac2b974a92ba8db4dcee1a66e0c71f0893e8bb9685cc57975e9d9f1d",
       "authoring": {
-        "decisionId": "nt51917-dp-replace-1-ic-nt51917-standard-merge-256k-authoring-v1",
+        "decisionId": "nt51917-dp-replace-1-ic-nt51917-standard-merge-256k-authoring-v2",
         "routeId": "route-7-nt51917-10-dp-replace-4-1-ic-27-nt51917-standard-merge-256k",
         "capabilityFingerprint": "003890bdac2b974a92ba8db4dcee1a66e0c71f0893e8bb9685cc57975e9d9f1d",
-        "value": "available",
-        "sourceReference": "ic-support:NT51917:dp-replace"
+        "value": "unavailable",
+        "sourceReference": "owner-decision:2026-08-24:dp-replace-hidden-until-1.1.0"
       },
       "publication": {
         "decisionId": "nt51917-dp-replace-1-ic-nt51917-standard-merge-256k-publication-v3",
@@ -186,11 +186,11 @@
       "routeId": "route-7-nt51919-10-dp-replace-4-1-ic-40-nt51919-nt51929-nt51932-perfect-map-256k",
       "capabilityFingerprint": "bfe8b4eebbc51ff2d1bbf6852f96d5fa2dc71a0bd55f0008729b0d0b3e77be29",
       "authoring": {
-        "decisionId": "nt51919-dp-replace-1-ic-nt51919-nt51929-nt51932-perfect-map-256k-authoring-v1",
+        "decisionId": "nt51919-dp-replace-1-ic-nt51919-nt51929-nt51932-perfect-map-256k-authoring-v2",
         "routeId": "route-7-nt51919-10-dp-replace-4-1-ic-40-nt51919-nt51929-nt51932-perfect-map-256k",
         "capabilityFingerprint": "bfe8b4eebbc51ff2d1bbf6852f96d5fa2dc71a0bd55f0008729b0d0b3e77be29",
-        "value": "available",
-        "sourceReference": "ic-support:NT51919:dp-replace"
+        "value": "unavailable",
+        "sourceReference": "owner-decision:2026-08-24:dp-replace-hidden-until-1.1.0"
       },
       "publication": {
         "decisionId": "nt51919-dp-replace-1-ic-nt51919-nt51929-nt51932-perfect-map-256k-publication-v3",
@@ -360,11 +360,11 @@
       "routeId": "route-7-nt51923-10-dp-replace-4-1-ic-27-nt51923-standard-merge-256k",
       "capabilityFingerprint": "d1bcd6c23e65c6c0ee206f8bb8fed91af7f090000cffa5d7a1dc6070b9c88085",
       "authoring": {
-        "decisionId": "nt51923-dp-replace-1-ic-nt51923-standard-merge-256k-authoring-v1",
+        "decisionId": "nt51923-dp-replace-1-ic-nt51923-standard-merge-256k-authoring-v2",
         "routeId": "route-7-nt51923-10-dp-replace-4-1-ic-27-nt51923-standard-merge-256k",
         "capabilityFingerprint": "d1bcd6c23e65c6c0ee206f8bb8fed91af7f090000cffa5d7a1dc6070b9c88085",
-        "value": "available",
-        "sourceReference": "ic-support:NT51923:dp-replace"
+        "value": "unavailable",
+        "sourceReference": "owner-decision:2026-08-24:dp-replace-hidden-until-1.1.0"
       },
       "publication": {
         "decisionId": "nt51923-dp-replace-1-ic-nt51923-standard-merge-256k-publication-v3",
@@ -505,11 +505,11 @@
       "routeId": "route-7-nt51926-10-dp-replace-4-1-ic-27-nt51926-standard-merge-256k",
       "capabilityFingerprint": "cd480869bfb9aa1568018ac5aee540795c34318a801533792493d2ce8a531ded",
       "authoring": {
-        "decisionId": "nt51926-dp-replace-1-ic-nt51926-standard-merge-256k-authoring-v1",
+        "decisionId": "nt51926-dp-replace-1-ic-nt51926-standard-merge-256k-authoring-v2",
         "routeId": "route-7-nt51926-10-dp-replace-4-1-ic-27-nt51926-standard-merge-256k",
         "capabilityFingerprint": "cd480869bfb9aa1568018ac5aee540795c34318a801533792493d2ce8a531ded",
-        "value": "available",
-        "sourceReference": "ic-support:NT51926:dp-replace"
+        "value": "unavailable",
+        "sourceReference": "owner-decision:2026-08-24:dp-replace-hidden-until-1.1.0"
       },
       "publication": {
         "decisionId": "nt51926-dp-replace-1-ic-nt51926-standard-merge-256k-publication-v3",
@@ -853,11 +853,11 @@
       "routeId": "route-7-nt51927-10-dp-replace-4-1-ic-27-nt51927-standard-merge-256k",
       "capabilityFingerprint": "5c6670de135d78c1ab16bb5844f98095c88d2860b35771130ee9f8fc356928d3",
       "authoring": {
-        "decisionId": "nt51927-dp-replace-1-ic-nt51927-standard-merge-256k-authoring-v1",
+        "decisionId": "nt51927-dp-replace-1-ic-nt51927-standard-merge-256k-authoring-v2",
         "routeId": "route-7-nt51927-10-dp-replace-4-1-ic-27-nt51927-standard-merge-256k",
         "capabilityFingerprint": "5c6670de135d78c1ab16bb5844f98095c88d2860b35771130ee9f8fc356928d3",
-        "value": "available",
-        "sourceReference": "ic-support:NT51927:dp-replace"
+        "value": "unavailable",
+        "sourceReference": "owner-decision:2026-08-24:dp-replace-hidden-until-1.1.0"
       },
       "publication": {
         "decisionId": "nt51927-dp-replace-1-ic-nt51927-standard-merge-256k-publication-v3",
@@ -1027,11 +1027,11 @@
       "routeId": "route-7-nt51928-10-dp-replace-4-1-ic-31-nt51928-dual-capacity-256k-512k",
       "capabilityFingerprint": "eae5c050606a4328846354d39e4c80900dfea025deeb570644ebe1b91d607c2b",
       "authoring": {
-        "decisionId": "nt51928-dp-replace-1-ic-nt51928-dual-capacity-256k-512k-authoring-v1",
+        "decisionId": "nt51928-dp-replace-1-ic-nt51928-dual-capacity-256k-512k-authoring-v2",
         "routeId": "route-7-nt51928-10-dp-replace-4-1-ic-31-nt51928-dual-capacity-256k-512k",
         "capabilityFingerprint": "eae5c050606a4328846354d39e4c80900dfea025deeb570644ebe1b91d607c2b",
-        "value": "available",
-        "sourceReference": "ic-support:NT51928:dp-replace"
+        "value": "unavailable",
+        "sourceReference": "owner-decision:2026-08-24:dp-replace-hidden-until-1.1.0"
       },
       "publication": {
         "decisionId": "nt51928-dp-replace-1-ic-nt51928-dual-capacity-256k-512k-publication-v3",
@@ -1201,11 +1201,11 @@
       "routeId": "route-7-nt51929-10-dp-replace-4-1-ic-40-nt51919-nt51929-nt51932-perfect-map-256k",
       "capabilityFingerprint": "8f9119cad4733527cb86a4d216ac19dae563a870dea47b6e4debaf97f6df67d6",
       "authoring": {
-        "decisionId": "nt51929-dp-replace-authoring-v1",
+        "decisionId": "nt51929-dp-replace-authoring-v2",
         "routeId": "route-7-nt51929-10-dp-replace-4-1-ic-40-nt51919-nt51929-nt51932-perfect-map-256k",
         "capabilityFingerprint": "8f9119cad4733527cb86a4d216ac19dae563a870dea47b6e4debaf97f6df67d6",
-        "value": "available",
-        "sourceReference": "owner-approved:github-issue-174"
+        "value": "unavailable",
+        "sourceReference": "owner-decision:2026-08-24:dp-replace-hidden-until-1.1.0"
       },
       "publication": {
         "decisionId": "nt51929-dp-replace-publication-v1",
@@ -1375,11 +1375,11 @@
       "routeId": "route-7-nt51932-10-dp-replace-4-1-ic-40-nt51919-nt51929-nt51932-perfect-map-256k",
       "capabilityFingerprint": "29ffeaf93dd34a129b2780b92ec56b526caded1c2b9b88615149df5526723dc0",
       "authoring": {
-        "decisionId": "nt51932-dp-replace-1-ic-nt51919-nt51929-nt51932-perfect-map-256k-authoring-v1",
+        "decisionId": "nt51932-dp-replace-1-ic-nt51919-nt51929-nt51932-perfect-map-256k-authoring-v2",
         "routeId": "route-7-nt51932-10-dp-replace-4-1-ic-40-nt51919-nt51929-nt51932-perfect-map-256k",
         "capabilityFingerprint": "29ffeaf93dd34a129b2780b92ec56b526caded1c2b9b88615149df5526723dc0",
-        "value": "available",
-        "sourceReference": "ic-support:NT51932:dp-replace"
+        "value": "unavailable",
+        "sourceReference": "owner-decision:2026-08-24:dp-replace-hidden-until-1.1.0"
       },
       "publication": {
         "decisionId": "nt51932-dp-replace-1-ic-nt51919-nt51929-nt51932-perfect-map-256k-publication-v3",
@@ -1549,11 +1549,11 @@
       "routeId": "route-7-nt51950-10-dp-replace-4-1-ic-27-nt51950-standard-merge-256k",
       "capabilityFingerprint": "58e850f14fac0bcc623c3dd5ff9eee902724f5262e28b301761e6e2751feac36",
       "authoring": {
-        "decisionId": "nt51950-dp-replace-1-ic-nt51950-standard-merge-256k-authoring-v2",
+        "decisionId": "nt51950-dp-replace-1-ic-nt51950-standard-merge-256k-authoring-v3",
         "routeId": "route-7-nt51950-10-dp-replace-4-1-ic-27-nt51950-standard-merge-256k",
         "capabilityFingerprint": "58e850f14fac0bcc623c3dd5ff9eee902724f5262e28b301761e6e2751feac36",
-        "value": "available",
-        "sourceReference": "ic-support:NT51950:dp-replace"
+        "value": "unavailable",
+        "sourceReference": "owner-decision:2026-08-24:dp-replace-hidden-until-1.1.0"
       },
       "publication": {
         "decisionId": "nt51950-dp-replace-1-ic-nt51950-standard-merge-256k-publication-v3",
@@ -1578,11 +1578,11 @@
       "routeId": "route-7-nt51950-10-dp-replace-4-1-ic-27-nt51950-standard-merge-512k",
       "capabilityFingerprint": "0f96feaccf377d38e76be95ee692b4861bd3daa1d9e60b1a088cee8cf2e1d633",
       "authoring": {
-        "decisionId": "nt51950-dp-replace-1-ic-nt51950-standard-merge-512k-authoring-v2",
+        "decisionId": "nt51950-dp-replace-1-ic-nt51950-standard-merge-512k-authoring-v3",
         "routeId": "route-7-nt51950-10-dp-replace-4-1-ic-27-nt51950-standard-merge-512k",
         "capabilityFingerprint": "0f96feaccf377d38e76be95ee692b4861bd3daa1d9e60b1a088cee8cf2e1d633",
-        "value": "available",
-        "sourceReference": "ic-support:NT51950:dp-replace"
+        "value": "unavailable",
+        "sourceReference": "owner-decision:2026-08-24:dp-replace-hidden-until-1.1.0"
       },
       "publication": {
         "decisionId": "nt51950-dp-replace-1-ic-nt51950-standard-merge-512k-publication-v3",
@@ -1607,11 +1607,11 @@
       "routeId": "route-7-nt51950-10-dp-replace-4-1-ic-28-nt51950-standard-merge-1024k",
       "capabilityFingerprint": "8d83edbab0131d243ced3f71b1ca23bb1b79e1df90f5185b858edcf003eb2d7b",
       "authoring": {
-        "decisionId": "nt51950-dp-replace-1-ic-nt51950-standard-merge-1024k-authoring-v2",
+        "decisionId": "nt51950-dp-replace-1-ic-nt51950-standard-merge-1024k-authoring-v3",
         "routeId": "route-7-nt51950-10-dp-replace-4-1-ic-28-nt51950-standard-merge-1024k",
         "capabilityFingerprint": "8d83edbab0131d243ced3f71b1ca23bb1b79e1df90f5185b858edcf003eb2d7b",
-        "value": "available",
-        "sourceReference": "ic-support:NT51950:dp-replace"
+        "value": "unavailable",
+        "sourceReference": "owner-decision:2026-08-24:dp-replace-hidden-until-1.1.0"
       },
       "publication": {
         "decisionId": "nt51950-dp-replace-1-ic-nt51950-standard-merge-1024k-publication-v3",
@@ -1926,11 +1926,11 @@
       "routeId": "route-7-nt51951-10-dp-replace-4-1-ic-27-nt51951-standard-merge-256k",
       "capabilityFingerprint": "245eae82e26f42529931251bd871c83a12939ee05724bf0a98b693d91ade7215",
       "authoring": {
-        "decisionId": "nt51951-dp-replace-1-ic-nt51951-standard-merge-256k-authoring-v2",
+        "decisionId": "nt51951-dp-replace-1-ic-nt51951-standard-merge-256k-authoring-v3",
         "routeId": "route-7-nt51951-10-dp-replace-4-1-ic-27-nt51951-standard-merge-256k",
         "capabilityFingerprint": "245eae82e26f42529931251bd871c83a12939ee05724bf0a98b693d91ade7215",
-        "value": "available",
-        "sourceReference": "ic-support:NT51951:dp-replace"
+        "value": "unavailable",
+        "sourceReference": "owner-decision:2026-08-24:dp-replace-hidden-until-1.1.0"
       },
       "publication": {
         "decisionId": "nt51951-dp-replace-1-ic-nt51951-standard-merge-256k-publication-v3",
@@ -1955,11 +1955,11 @@
       "routeId": "route-7-nt51951-10-dp-replace-4-1-ic-27-nt51951-standard-merge-512k",
       "capabilityFingerprint": "5e121ba8a2eba7c9aff6039ca5306052f515d2f01ef34ba82545d50d3c466628",
       "authoring": {
-        "decisionId": "nt51951-dp-replace-1-ic-nt51951-standard-merge-512k-authoring-v2",
+        "decisionId": "nt51951-dp-replace-1-ic-nt51951-standard-merge-512k-authoring-v3",
         "routeId": "route-7-nt51951-10-dp-replace-4-1-ic-27-nt51951-standard-merge-512k",
         "capabilityFingerprint": "5e121ba8a2eba7c9aff6039ca5306052f515d2f01ef34ba82545d50d3c466628",
-        "value": "available",
-        "sourceReference": "ic-support:NT51951:dp-replace"
+        "value": "unavailable",
+        "sourceReference": "owner-decision:2026-08-24:dp-replace-hidden-until-1.1.0"
       },
       "publication": {
         "decisionId": "nt51951-dp-replace-1-ic-nt51951-standard-merge-512k-publication-v3",
@@ -1984,11 +1984,11 @@
       "routeId": "route-7-nt51951-10-dp-replace-4-1-ic-28-nt51951-standard-merge-1024k",
       "capabilityFingerprint": "b1399695fd68c115b7f5b8f64512f20b8ce068fd16929bc107947f7e3064f35f",
       "authoring": {
-        "decisionId": "nt51951-dp-replace-1-ic-nt51951-standard-merge-1024k-authoring-v2",
+        "decisionId": "nt51951-dp-replace-1-ic-nt51951-standard-merge-1024k-authoring-v3",
         "routeId": "route-7-nt51951-10-dp-replace-4-1-ic-28-nt51951-standard-merge-1024k",
         "capabilityFingerprint": "b1399695fd68c115b7f5b8f64512f20b8ce068fd16929bc107947f7e3064f35f",
-        "value": "available",
-        "sourceReference": "ic-support:NT51951:dp-replace"
+        "value": "unavailable",
+        "sourceReference": "owner-decision:2026-08-24:dp-replace-hidden-until-1.1.0"
       },
       "publication": {
         "decisionId": "nt51951-dp-replace-1-ic-nt51951-standard-merge-1024k-publication-v3",

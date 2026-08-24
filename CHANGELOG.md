@@ -4,12 +4,73 @@ All notable changes to NVT FW Combiner are documented here. The project follows 
 
 ## [Unreleased]
 
-The owner-authorized `v0.10.6` managed-version implementation is complete, the
-repository identity has advanced to `0.10.6`, and final local verification
-passes.
-The owner explicitly approved proceeding without the unavailable independent
-subagent review; this is not represented as an independent review pass. No
-stable `v0.10.5` or `v0.10.6` package or tag has been published.
+The repository identity has advanced to the internal `0.10.7` candidate for
+final owner-visible effect confirmation. No `v0.10.7` package or tag has been
+published.
+
+## [0.10.7] - Unreleased
+
+### Summary
+
+This internal final-effect candidate hides ordinary DP Replace authoring while
+retaining its reviewed implementation and regression evidence for the later
+`1.1.0` retirement-or-reopen decision.
+
+### Product changes
+
+#### DP Replace authoring exposure
+
+- Before → After: DP Replace appeared as an ordinary Replace authoring choice
+  for every admitted IC. The shared canonical authoring policy now marks all
+  14 exact DP Replace routes unavailable, so the desktop selector and ordinary
+  CLI help hide that workflow and direct authoring fails closed with a typed
+  not-supported result.
+- Affected: canonical authoring policy, Replace selector projection, ordinary
+  CLI discovery, and typed DP authoring admission. Standard Merge, AB Merge,
+  CtrlRAM Replace, General Merge, and General Replace keep their existing
+  presentation and behavior.
+- Retained evidence: DP Replace profiles, compiler/executor paths, publication
+  classification, evidence state, fingerprints, and Golden regression remain
+  intact. A test-only policy seam keeps those retained semantics executable in
+  regression tests without reopening the shipped product surface.
+- Support status: unchanged/support-neutral. Firmware bytes, address ranges,
+  processors, CRC/header behavior, output naming, and Golden fixtures are
+  unchanged.
+- Compatibility: retained DP profiles and regression hosts continue to execute
+  the same semantics; ordinary UI and CLI discovery no longer offer the mode.
+- Verification: focused policy, Bootstrap, CLI, UI, and retained DP Golden
+  suites plus the canonical full verifier are required before this candidate
+  is committed. Final visual confirmation remains an owner gate.
+- Limitations: DP Replace remains hidden for `0.10.7` and the initial `1.0.0`;
+  retirement or reopening is deferred to owner review at `1.1.0`.
+
+The policy separation adds 69 production nonblank lines, moving
+  the exact full-production ratchet from 110,620 to 110,688 and runtime from
+  75,333 to 75,383. Application moves to 33,580, Bootstrap/CLI/Desktop to
+  3,498, and Infrastructure/Contracts/CRC improves by six lines to 17,673.
+
+### Security
+
+Unavailable DP routes fail closed through the same hash-pinned canonical
+policy used by product UI and CLI; no presentation-only bypass is introduced.
+
+### Known issues
+
+Final owner-visible Light/Dark and workflow-navigation confirmation remains
+open. This candidate is not a support promotion or public release.
+
+### Upgrade and rollback
+
+This source candidate upgrades the repository identity from `0.10.6` to
+`0.10.7`. Reverting the candidate restores the earlier authoring decision;
+installed-version switching remains governed by the existing managed-version
+contract.
+
+### Downloads and integrity
+
+No package, tag, checksum list, or public download is published by this change.
+Any later package must contain the hash-pinned catalog `1.9.0` policy and pass
+the canonical packaging and clean-machine gates.
 
 ## [0.10.6] - Unreleased
 

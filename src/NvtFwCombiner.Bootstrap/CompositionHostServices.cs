@@ -97,14 +97,27 @@ public sealed class CompositionHostServices
     /// <summary>Creates one isolated host graph at an executable composition root.</summary>
     public static CompositionHostServices Create()
     {
-        return Create(new ExternalProcessorEnvironmentLoader());
+        return Create(BuiltInCanonicalCapabilityPolicy.Load);
     }
 
     internal static CompositionHostServices Create(
         ExternalProcessorEnvironmentLoader externalEnvironment)
     {
+        return Create(externalEnvironment, loadPolicy: null);
+    }
+
+    internal static CompositionHostServices Create(Func<CanonicalCapabilityPolicySnapshot> loadPolicy)
+    {
+        ArgumentNullException.ThrowIfNull(loadPolicy);
+        return Create(new(), loadPolicy);
+    }
+
+    internal static CompositionHostServices Create(
+        ExternalProcessorEnvironmentLoader externalEnvironment,
+        Func<CanonicalCapabilityPolicySnapshot>? loadPolicy)
+    {
         var catalog = new CanonicalCapabilityCatalog(
-            CreateCanonicalCapabilityCatalogSource());
+            CreateCanonicalCapabilityCatalogSource(loadPolicy));
         var compiler = new CanonicalCapabilityCompilerAdapter(
             catalog,
             new BuiltInV2DynamicCompilationAdapter());

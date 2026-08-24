@@ -2,13 +2,22 @@
 
 Status: historical seed-preparation report for the 2026-06-25 bootstrap
 baseline, updated through the stable 0.10.4 post-refactor simplification,
-0.10.5 startup-performance work, and the active 0.10.6 internal managed-version
-validation. Current
+0.10.5 startup-performance work, the 0.10.6 internal managed-version
+implementation, and the active 0.10.7 final-effect candidate. Current
 verification evidence is produced by the canonical
 `python scripts/verify.py --structure-only` and `python scripts/verify.py --all`
 commands.
 
-Specification package version: `0.10.6`
+Specification package version: `0.10.7`
+
+## 0.10.7 internal final-effect candidate
+
+The owner approved hiding ordinary DP Replace authoring in `0.10.7` and the
+initial `1.0.0`, while retaining its profiles, execution semantics, publication
+and evidence decisions, fingerprints, and Golden regressions. Product UI/CLI
+discovery is fail-closed through canonical policy catalog `1.9.0`; retirement
+or reopening is deferred to `1.1.0`. This is not a firmware-byte or support
+promotion change, and no package or tag is authorized by this report.
 
 ## 0.10.6 internal managed-version candidate
 

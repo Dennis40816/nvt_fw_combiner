@@ -34,7 +34,7 @@ $ApprovedPackageTrustIndexSha256 = '155e27daab124879f1734d454dfef1886c9f35c3fec9
 $ApprovedCanonicalCapabilityPolicyPackageContract = [pscustomobject]@{
     path = 'docs/contracts/canonical-capability-policy-v1.json'
     role = 'capabilityPolicy'
-    sha256 = 'b37ad16c4c2d9bbcbec17f3b4bfacc008a247b2ee42c1a145c1464a8e781baa5'
+    sha256 = '512e995d0ed7ca7d4765c89dad79f96cf36eb1353615f08a58d172ebfc21e4a8'
 }
 $RetiredSupportPublicationPolicyPackagePaths = @(
     'docs/contracts/support-publication-policy-v1.0.0.json',

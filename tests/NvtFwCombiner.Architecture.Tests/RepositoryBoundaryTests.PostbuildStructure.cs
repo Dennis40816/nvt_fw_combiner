@@ -183,7 +183,7 @@ public sealed partial class RepositoryBoundaryTests
         Assert.False(File.Exists(Path.Combine(
             Root.FullName,
             "src/NvtFwCombiner.Bootstrap/RuntimeDependencyReadinessLeaseProvider.cs")));
-        Assert.Equal(1, CountOccurrences(host, "new ExternalProcessorEnvironmentLoader()"));
+        Assert.Equal(1, CountOccurrences(host, "Create(new(), loadPolicy)"));
         Assert.Contains("Channel.CreateBounded<ExternalProcessorEnvironmentLoadUpdate>", loader,
             StringComparison.Ordinal);
         Assert.Contains("MaximumDepth = 16", loader, StringComparison.Ordinal);

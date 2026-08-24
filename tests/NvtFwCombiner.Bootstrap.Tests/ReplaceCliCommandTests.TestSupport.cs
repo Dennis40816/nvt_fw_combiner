@@ -4,6 +4,8 @@ public sealed partial class ReplaceCliCommandTests
 {
     private static Task<CliRunResult> RunCliAsync(string[] args)
     {
-        return CliTestHarness.RunAsync(args, TestContext.Current.CancellationToken);
+        return CliTestHarness.RunRetainedReplaceAsync(
+            args,
+            TestContext.Current.CancellationToken);
     }
 }

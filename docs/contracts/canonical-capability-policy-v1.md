@@ -16,6 +16,14 @@ bytes do not change. Catalog `1.8.0` therefore supersedes the 23 affected
 CtrlRAM route fingerprints and their three pinned decisions; the 10 reportless
 CtrlRAM routes and all unrelated routes retain their prior fingerprints.
 
+Catalog `1.9.0` records the 2026-08-24 owner decision to hide ordinary DP
+Replace authoring through the initial `1.0.0`. All 14 exact `dp-replace` rows
+are `Unavailable` with source reference
+`owner-decision:2026-08-24:dp-replace-hidden-until-1.1.0`. Their compiled
+definitions, fingerprints, publication decisions, evidence decisions, and
+Golden regression authority are unchanged. The owner will decide retirement
+or renewed exposure at `1.1.0`; no UI- or CLI-local override may reopen them.
+
 ## Pinned decisions
 
 Each route contains three independent decisions:

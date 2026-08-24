@@ -2,13 +2,15 @@ using NvtFwCombiner.Application.Authoring;
 using NvtFwCombiner.Application.Capabilities;
 using NvtFwCombiner.Bootstrap;
 using NvtFwCombiner.Domain.Composition;
+using NvtFwCombiner.TestSupport;
 
 namespace NvtFwCombiner.GoldenRegression.Tests;
 
 internal static class GoldenTestHost
 {
     internal static CompositionHostServices Services { get; } =
-        CompositionHostServices.Create();
+        CompositionHostServices.Create(
+            RetainedDpReplaceRegressionPolicy.Load);
 
     internal static async ValueTask<CompositionRunResult> RunStandardMergeAsync(
         string icId,

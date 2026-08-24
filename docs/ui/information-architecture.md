@@ -31,7 +31,7 @@ This document defines the owner-approved UI direction for the first usable NVT F
 | Home | Clean launcher | workflow groups for Replace, Merge, and Util Tools | Memory coverage, reports, mixed workflow controls, IC/Number context |
 | Settings | Configure folders, profile packs, strictness, theme, diagnostics access | compact settings groups, profile catalog status, log/report access | direct GitHub secret editing, firmware mutation logic |
 | Merge | Normal / AB Code merge entry point | mode selector with Normal enabled and AB Code disabled, shared IC/profile context, slot cards, visual-first memory coverage preview, preview/build actions | Replace controls, hard-coded copy/offset rules |
-| Replace | DP / CtrlRAM / General replace entry point | shared IC/IC Count context, persona selector, base/reference slot cards, overlay slot cards including separate Initial Code/LDC cards when a DP Replace profile requires them, visual-first memory coverage preview, preview/build actions | Merge controls, region authorization logic in UI |
+| Replace | CtrlRAM / General replace entry point; DP Replace retained but hidden by canonical policy through the initial `1.0.0` | shared IC/IC Count context, persona selector, base/reference slot cards, overlay slot cards, visual-first memory coverage preview, preview/build actions | Merge controls, region authorization logic in UI; reopening DP Replace without the `1.1.0` owner decision |
 | Hex Editor | Raw BIN utility | source BIN, compact bounded 16-byte viewport with full-document scrollbar, in-memory edits, original rows, undo/redo, confirmed Save As | IC/Number context, Flash Map, profile restrictions, CRC/postbuild, General Replace, firmware report |
 
 ## Production shell constraints

@@ -117,7 +117,8 @@ public sealed class CanonicalMemoryLayoutProjectionTests
     private static PilotFixture CreatePilot(string workflowId)
     {
         var catalog = new CanonicalCapabilityCatalog(
-            CompositionHostServices.CreateCanonicalCapabilityCatalogSource());
+            CompositionHostServices.CreateCanonicalCapabilityCatalogSource(
+                NvtFwCombiner.TestSupport.RetainedDpReplaceRegressionPolicy.Load));
         CapabilityCatalogReloadResult reload =
             catalog.Reload(TestContext.Current.CancellationToken);
         Assert.True(

@@ -68,16 +68,6 @@ public sealed class ProfilesCliCommandTests
             "nt51950-ab-merge  ic=NT51950  inputs=dp-ab-input, tp-a-input, tp-b-input  default-output=NT{ic}_FlashCode_A_{dp-a}{tp-a}_B_{dp-b}{tp-b}_{date}.bin",
             "nt51951-ab-merge  ic=NT51951  inputs=dp-ab-input, tp-a-input, tp-b-input  default-output=NT{ic}_FlashCode_A_{dp-a}{tp-a}_B_{dp-b}{tp-b}_{date}.bin",
             "Built-in replace profiles:",
-            "nt51917-dp-replace-gen-flash-alias  ic=NT51917  inputs=dp-replacement, reference-base  ic-num=SingleSelector  default-output={ic}_FlashCode_D{dp-version}T{tp-version}_{date}.bin",
-            "nt51919-dp-replace-gen-flash-alias  ic=NT51919  inputs=dp-replacement, reference-base  ic-num=SingleSelector  default-output=nt51919-dp-replace.bin",
-            "nt51923-dp-replace-gen-flash  ic=NT51923  inputs=dp-replacement, reference-base  ic-num=SingleSelector  default-output={ic}_FlashCode_D{dp-version}T{tp-version}_{date}.bin",
-            "nt51926-dp-replace-gen-flash  ic=NT51926  inputs=dp-replacement, reference-base  ic-num=SingleSelector  default-output={ic}_FlashCode_D{dp-version}T{tp-version}_{date}.bin",
-            "nt51927-dp-replace-gen-flash  ic=NT51927  inputs=dp-replacement, reference-base  ic-num=SingleSelector  default-output={ic}_FlashCode_D{dp-version}T{tp-version}_{date}.bin",
-            "nt51928-dp-replace-gen-flash  ic=NT51928  inputs=initial-code-replacement, reference-base  ic-num=SingleSelector  default-output=nt51928-dp-replace.bin",
-            "nt51929-dp-replace-gen-flash  ic=NT51929  inputs=dp-replacement, reference-base  ic-num=SingleSelector  default-output=nt51929-dp-replace.bin",
-            "nt51932-dp-replace-gen-flash  ic=NT51932  inputs=dp-replacement, reference-base  ic-num=SingleSelector  default-output=nt51932-dp-replace.bin",
-            "nt51950-dp-replace-dp-perspective  ic=NT51950  inputs=dp-replacement, reference-base  ic-num=SingleSelector  default-output={ic}_FlashCode_D{dp-version}T{tp-version}_{date}.bin",
-            "nt51951-dp-replace-dp-perspective  ic=NT51951  inputs=dp-replacement, reference-base  ic-num=SingleSelector  default-output={ic}_FlashCode_D{dp-version}T{tp-version}_{date}.bin",
             string.Empty,
         ]);
 

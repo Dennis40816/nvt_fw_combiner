@@ -1,7 +1,7 @@
 # NVT FW Combiner（NFC）實作規格
 
-> 文件狀態：`0.10.6 internal managed-version candidate; final local validation in progress; v0.10.4 remains the stable predecessor`
-> 文件版本：`0.10.6`
+> 文件狀態：`0.10.7 internal final-effect candidate; v0.10.4 remains the stable predecessor`
+> 文件版本：`0.10.7`
 > 基準日期：`2026-08-13`
 > 產品名稱：`NVT FW Combiner`
 > 短名：`NFC`
@@ -30,13 +30,14 @@
 
 ## 0.1 Current owner priority
 
-`0.10.6` internal managed-version candidate is the current owner priority. Its
-stable launcher, verified side-by-side installation, activation/rollback state,
-and Settings Version experience follow the owner-approved specification and
-ADR 0051. The owner approved advancing the internal identity after focused
-upgrade-boundary hardening when the independent subagent reviewer was
-unavailable; this does not waive the public `1.0.0` release/security gates. It
-builds on the completed `0.10.5` bounded lifecycle contract in ADR 0049. The
+`0.10.7` is the internal final-effect candidate. By owner decision on
+2026-08-24, ordinary DP Replace authoring is hidden in `0.10.7` and the initial
+`1.0.0`; all profiles, compiler/executor semantics, publication/evidence facts,
+and Golden regressions remain retained until the owner decides at `1.1.0`
+whether to retire or reopen the feature. The preceding `0.10.6` managed-version
+implementation follows the owner-approved specification and ADR 0051. This
+does not waive the public `1.0.0` release/security gates. It builds on the
+completed `0.10.5` bounded lifecycle contract in ADR 0049. The
 stable `v0.10.4` package preserved one Application-owned accepted-session route
 for all six Merge/Replace workflows, truthful foreground catalog progress,
 Dark-theme/reduced-motion presentation, and the additional duplicate-path
@@ -220,7 +221,7 @@ passing.
   FWConfig at `0x22200` into that fixed Backup; Replace does not relocate it.
   Their current Cascade applicability is exactly 2 IC. Wider counts and the
   NT51929-family count-derived Backup placement formula are not inferred.
-- FW Register ranges are first-class map evidence. REG Replace is represented as a pending capability over those regions, but remains without an executable profile or UI exposure until owner evidence is approved. Current executable Replace scope remains DP Replace, CtrlRAM Replace, and General Replace.
+- FW Register ranges are first-class map evidence. REG Replace is represented as a pending capability over those regions, but remains without an executable profile or UI exposure until owner evidence is approved. Current executable Replace semantics remain DP Replace, CtrlRAM Replace, and General Replace; ordinary DP Replace authoring is hidden by canonical policy through the initial `1.0.0` without deleting those semantics.
 - Merge and Replace runs must produce a report modal after Preview/Build and persist run history. The report must show each operation step, input/output hashes, IC/IC-num context, normalized ranges, external Combiner command sequence, processor result, warnings, and final artifact path.
 - Per-IC Merge/Replace flowcharts live in [`docs/architecture/ic-workflow-flowcharts.md`](docs/architecture/ic-workflow-flowcharts.md). Any change to built-in merge profiles, replace profiles, CtrlRAM postbuild catalog, 950/951 DP policy, or supported IC workflow matrix must update that reference in the same change.
 - Real firmware golden evidence is still required before declaring end-to-end CtrlRAM Replace parity for a production IC profile.
@@ -886,7 +887,8 @@ Rule v2 consume that same value; General Replace cannot declare it.
 The pre-retirement compatibility runtime implemented 31 modeled CtrlRAM
 interval/plan pairs. The `0.10.x` target does not preserve that inventory:
 #221 removes NT51920/NT51925/NT51930/NT51931 and #194 must not migrate or
-re-expose them. Retained priorities are DP Replace and CtrlRAM Replace for
+re-expose them. Retained executable/regression scope includes DP Replace and
+CtrlRAM Replace for
 NT51917, NT51919, NT51923, NT51926, NT51927, NT51928 non-NB, NT51929,
 NT51932, NT51950, and NT51951. NT51919/NT51929 follow the NT51932 fact scope.
 NT51928 non-NB shares only the explicitly referenced NT51927 Initial Code and
@@ -936,13 +938,14 @@ Reports and diagnostics are secondary surfaces. Preview/Build reports and diagno
 
 ### 11.3 Replace page
 
-Replace page groups experiences by user mental model：
+Replace taxonomy groups experiences by user mental model：
 
-- DP Replace。
+- DP Replace（retained but hidden from ordinary authoring in `0.10.7` and the
+  initial `1.0.0`; retirement or reopening is decided at `1.1.0`）。
 - CtrlRAM Replace。
 - General Replace。
 
-The UI must make atomicity visible: whole-only, declared-parts, or explicit-range. Replace uses slot cards for firmware inputs and the same fixed-position Memory coverage before/after area as Merge. DP Replace slot cards must allow profile-declared DP and LDC payloads to be separate files when the profile requires it. Memory coverage is visual-first; tables are supporting detail. Replace must expose an explicit IC num selector/input before profile regions and processor readiness are shown. Current implementation priority is DP Replace and CtrlRAM Replace workflows. IC num mode is profile-declared: two-option profiles use text choices such as `single` and `cascade`; three-or-more concrete IC-count profiles use numeric count selection with future room for Other/custom exceptions.
+The UI must make atomicity visible: whole-only, declared-parts, or explicit-range. Replace uses slot cards for firmware inputs and the same fixed-position Memory coverage before/after area as Merge. Retained DP Replace regression projections must allow profile-declared DP and LDC payloads to be separate files when the profile requires it, but the shipped selector does not enumerate that mode while its canonical authoring policy is unavailable. Memory coverage is visual-first; tables are supporting detail. Replace must expose an explicit IC num selector/input before profile regions and processor readiness are shown. Current ordinary-authoring priority is CtrlRAM Replace; General Replace retains its existing gated surface. IC num mode is profile-declared: two-option profiles use text choices such as `single` and `cascade`; three-or-more concrete IC-count profiles use numeric count selection with future room for Other/custom exceptions.
 
 ### 11.4 Preview/Build separation
 

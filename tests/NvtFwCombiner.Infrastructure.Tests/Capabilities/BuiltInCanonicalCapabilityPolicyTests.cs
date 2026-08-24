@@ -29,7 +29,7 @@ public sealed class BuiltInCanonicalCapabilityPolicyTests
                     "nt51929-standard-merge-256k"));
 
         Assert.Equal("canonical-capability-policy", policy.CatalogId);
-        Assert.Equal("1.8.0", policy.CatalogVersion);
+        Assert.Equal("1.9.0", policy.CatalogVersion);
         Assert.Equal(
             BuiltInCanonicalCapabilityPolicy.ExpectedSha256,
             policy.SourceSha256);
@@ -52,6 +52,36 @@ public sealed class BuiltInCanonicalCapabilityPolicyTests
             "owner-approved:github-issue-186",
             route.Publication.SourceReference);
         Assert.Equal("nt51929-standard-merge-evidence-v2", route.Evidence.DecisionId);
+    }
+
+    /// <summary>All retained DP Replace routes are hidden by one authoring-only owner decision.</summary>
+    [Fact]
+    public void DpReplaceAuthoringIsUnavailableWithoutChangingRetainedEvidence()
+    {
+        CanonicalCapabilityPolicySnapshot policy =
+            BuiltInCanonicalCapabilityPolicy.Load();
+        CanonicalCapabilityPolicyRoute[] routes =
+        [
+            .. policy.Routes.Where(static route =>
+                StringComparer.Ordinal.Equals(
+                    route.Identity.WorkflowId,
+                    "dp-replace")),
+        ];
+
+        Assert.Equal(14, routes.Length);
+        Assert.All(routes, static route =>
+        {
+            Assert.Equal(
+                CapabilityAuthoringAvailability.Unavailable,
+                route.Authoring.Value);
+            Assert.Equal(
+                "owner-decision:2026-08-24:dp-replace-hidden-until-1.1.0",
+                route.Authoring.SourceReference);
+            Assert.NotEqual(CapabilityEvidenceStatus.Missing, route.Evidence.Value);
+            Assert.Equal(
+                route.CapabilityFingerprint,
+                route.Evidence.CapabilityFingerprint);
+        });
     }
 
     /// <summary>The retired unclassified state migrates only its 72 exact routes to explicit internal decisions.</summary>

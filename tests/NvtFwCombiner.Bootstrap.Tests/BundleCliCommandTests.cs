@@ -454,7 +454,7 @@ public sealed class BundleCliCommandTests
         string dpPath = workspace.Write("dp.bin", new byte[0x40000]);
         string reportPath = workspace.PathFor("dp-bundle-report.json");
 
-        CliRunResult result = await CliTestHarness.RunAsync(
+        CliRunResult result = await CliTestHarness.RunRetainedReplaceAsync(
             [
                 "dp-replace",
                 "build",
@@ -503,7 +503,7 @@ public sealed class BundleCliCommandTests
 
         try
         {
-            CliRunResult automatic = await CliTestHarness.RunAsync(
+            CliRunResult automatic = await CliTestHarness.RunRetainedReplaceAsync(
                 [
                     "dp-replace",
                     "build",
@@ -519,7 +519,7 @@ public sealed class BundleCliCommandTests
                     automaticReportPath,
                 ],
                 TestContext.Current.CancellationToken);
-            CliRunResult explicitResult = await CliTestHarness.RunAsync(
+            CliRunResult explicitResult = await CliTestHarness.RunRetainedReplaceAsync(
                 [
                     "dp-replace",
                     "build",

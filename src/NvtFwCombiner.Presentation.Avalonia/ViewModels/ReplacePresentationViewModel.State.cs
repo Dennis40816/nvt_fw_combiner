@@ -18,14 +18,24 @@ internal sealed partial class ReplacePresentationViewModel
     private readonly AuthoringSessionState _generalReplaceSession =
         new(ExperienceIds.GeneralReplace);
     private int _generalReplaceMappingCounter;
-    private string _selectedReplaceMode = DpReplaceMode;
+    private string _selectedReplaceMode = CtrlRamReplaceMode;
 
-    public IReadOnlyList<string> ReplaceModeChoices { get; } =
-    [
-        DpReplaceMode,
-        CtrlRamReplaceMode,
-        GeneralReplaceMode,
-    ];
+    public IReadOnlyList<string> ReplaceModeChoices =>
+        string.IsNullOrWhiteSpace(SelectedIc)
+            ? []
+            : Array.AsReadOnly(
+            [
+                .. new[]
+                {
+                    DpReplaceMode,
+                    CtrlRamReplaceMode,
+                    GeneralReplaceMode,
+                }.Where(mode =>
+                    !StringComparer.Ordinal.Equals(mode, DpReplaceMode) ||
+                    _compositionServices.Capabilities.IsReplaceWorkflowAvailable(
+                        SelectedIc,
+                        mode)),
+            ]);
 
     public PlanningCardText ReplacePreview => Text.ReplacePreview;
 
@@ -219,6 +229,11 @@ internal sealed partial class ReplacePresentationViewModel
 
     private void SetSelectedReplaceMode(string value)
     {
+        if (!ReplaceModeChoices.Contains(value, StringComparer.Ordinal))
+        {
+            return;
+        }
+
         if (string.Equals(_selectedReplaceMode, value, StringComparison.Ordinal))
         {
             return;
@@ -241,6 +256,7 @@ internal sealed partial class ReplacePresentationViewModel
 
     internal void NotifyContextChanged()
     {
+        OnPropertyChanged(nameof(ReplaceModeChoices));
         OnPropertyChanged(nameof(ReplacePreview));
         OnPropertyChanged(nameof(SelectedReplaceModeDescription));
         OnPropertyChanged(nameof(SelectedReplaceWorkflowReadiness));

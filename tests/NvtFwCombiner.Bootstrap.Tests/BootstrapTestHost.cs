@@ -7,16 +7,58 @@ internal static class BootstrapTestHost
     internal static CompositionHostServices Services { get; } =
         CreateServices();
 
+    internal static CompositionHostServices ProductServices { get; } =
+        CreateProductServices();
+
+    internal static CompositionHostServices RetainedDpReplaceServices { get; } =
+        Services;
+
     internal static CanonicalTestContext Canonical { get; } = new(Services);
+
+    internal static CanonicalTestContext ProductCanonical { get; } = new(ProductServices);
 
     internal static CompositionHostServices CreateServices()
     {
-        var services = CompositionHostServices.Create();
+        var services = CompositionHostServices.Create(
+            NvtFwCombiner.TestSupport.RetainedDpReplaceRegressionPolicy.Load);
         return services.ExternalEnvironmentLoader
             .LoadToCompletionAsync(null, CancellationToken.None)
             .GetAwaiter().GetResult().Succeeded
             ? services
             : throw new InvalidOperationException("The test external environment did not load.");
+    }
+
+    internal static CompositionHostServices CreateProductServices()
+    {
+        var services = CompositionHostServices.Create();
+        if (!services.ExternalEnvironmentLoader
+            .LoadToCompletionAsync(null, CancellationToken.None)
+            .GetAwaiter().GetResult().Succeeded)
+        {
+            throw new InvalidOperationException(
+                "The product-policy test external environment did not load.");
+        }
+
+        CapabilityCatalogReloadResult? result = null;
+        IAsyncEnumerator<CanonicalCapabilityCatalogLoadUpdate> updates =
+            services.CanonicalCatalogLoader.LoadAsync(CancellationToken.None)
+                .GetAsyncEnumerator(CancellationToken.None);
+        try
+        {
+            while (updates.MoveNextAsync().AsTask().GetAwaiter().GetResult())
+            {
+                result = updates.Current.Result ?? result;
+            }
+        }
+        finally
+        {
+            updates.DisposeAsync().AsTask().GetAwaiter().GetResult();
+        }
+
+        return result?.Succeeded == true
+            ? services
+            : throw new InvalidOperationException(
+                "The product-policy canonical catalog did not load.");
     }
 }
 

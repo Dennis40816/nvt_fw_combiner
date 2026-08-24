@@ -104,11 +104,11 @@ DEFAULT_LIMITS = CodeSizeLimits(
     bootstrap_cli_ratchet=3_378,
     infrastructure_contracts_worker_ratchet=15_356,
     full_production_ratchet=102_896,
-    runtime_production_allowance=5_277,
-    application_allowance=2_843,
-    bootstrap_cli_allowance=111,
-    infrastructure_contracts_worker_allowance=2_323,
-    full_production_allowance=7_724,
+    runtime_production_allowance=5_327,
+    application_allowance=2_890,
+    bootstrap_cli_allowance=120,
+    infrastructure_contracts_worker_allowance=2_317,
+    full_production_allowance=7_792,
 )
 
 

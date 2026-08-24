@@ -19,9 +19,10 @@
               Text="{Binding Replace.ReplacePreview.Title}" />
           <TextBlock Classes="pageSubtitle" Text="{Binding Replace.ReplacePreview.Subtitle}" TextWrapping="Wrap" />
         </StackPanel>
-        <Grid Grid.Row="1" Margin="0,18,0,0" RowDefinitions="Auto,Auto,Auto" RowSpacing="{DynamicResource NfcSpace8}">
+        <StackPanel Grid.Row="1" Margin="0,18,0,0" Spacing="{DynamicResource NfcSpace8}">
           <Button
               Classes="command"
+              IsVisible="{Binding WorkflowSession.IsDpReplaceAvailable}"
               Command="{Binding BeginDpReplaceFromHomeCommand}">
             <Border Classes="workflowCard">
               <Grid ColumnDefinitions="*,Auto" ColumnSpacing="14">
@@ -33,7 +34,6 @@
             </Border>
           </Button>
           <Button
-              Grid.Row="1"
               Classes="command"
               Command="{Binding BeginCtrlRamReplaceFromHomeCommand}">
             <Border Classes="workflowCard">
@@ -46,7 +46,6 @@
             </Border>
           </Button>
           <Button
-              Grid.Row="2"
               Classes="command"
               Command="{Binding BeginGeneralReplaceFromHomeCommand}">
             <Border Classes="workflowCard">
@@ -58,7 +57,7 @@
               </Grid>
             </Border>
           </Button>
-        </Grid>
+        </StackPanel>
       </Grid>
     </Border>
 

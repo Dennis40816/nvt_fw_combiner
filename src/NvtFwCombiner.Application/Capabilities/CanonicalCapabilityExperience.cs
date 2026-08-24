@@ -137,12 +137,12 @@ public sealed class CanonicalCapabilityExperience : ICompositionCapabilityExperi
         string unsupportedReason = workflowId is null
             ? "The selected Replace mode is not declared by the canonical capability contract."
             : isDpReplace
-                ? "No owner-approved DP Replace profile/map is registered for this IC."
+                ? "DP Replace authoring is hidden until the 1.1.0 retirement decision."
                 : "No owner-approved executable and safety contract is registered for this IC and Replace mode.";
         string openCondition = workflowId is null
             ? "Add an owner-reviewed capability definition, profile/safety contract, and full-byte evidence."
             : isDpReplace
-                ? "Add the IC-specific DP map/profile, full-byte golden parity, and firmware-owner review."
+                ? "At 1.1.0, owner must retire the route or re-enable authoring after approved AB/non-AB admission evidence."
                 : "Owner must reactivate the scope with a safe executable contract, direct evidence, and firmware-owner review.";
         return CapabilityWorkflowReadinessProjector.Project(
             _supportMatrix.Query().Matrix,

@@ -99,6 +99,10 @@ internal sealed partial class WorkflowSessionPresentationViewModel
     /// <summary>Owner-declared fact reuse scope shown inside the IC selector detail card.</summary>
     public string SelectedIcDetailReuse => Text.GetIcDetailReuseValue(SelectedIcFamilySummary);
 
+    /// <summary>True when canonical policy permits the Home DP Replace entry.</summary>
+    public bool IsDpReplaceAvailable => _compositionServices.Capabilities
+        .IsReplaceWorkflowAvailable(SelectedIc, ExperienceIds.DpReplace);
+
     public string SelectedIcDetailRuntime => Text.GetIcDetailRuntimeValue(
         _merge.IsStandardMergeSupported,
         _merge.IsAbMergeSupported,
@@ -275,6 +279,7 @@ internal sealed partial class WorkflowSessionPresentationViewModel
         OnPropertyChanged(nameof(HasSelectedIcFamily));
         OnPropertyChanged(nameof(SelectedIcDetailFamily));
         OnPropertyChanged(nameof(SelectedIcDetailReuse));
+        OnPropertyChanged(nameof(IsDpReplaceAvailable));
         OnPropertyChanged(nameof(SelectedIcDetailRuntime));
         OnPropertyChanged(nameof(SelectedIcDetailEvidence));
         OnPropertyChanged(nameof(SelectedIcDetailSupport));
