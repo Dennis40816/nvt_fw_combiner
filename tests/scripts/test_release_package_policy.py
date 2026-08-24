@@ -464,6 +464,70 @@ class ReleasePackagePolicyTests(unittest.TestCase):
             "release-authoritative Python policy must use the pinned interpreter",
         )
 
+    def test_stable_release_emits_separate_update_source_handoff(self) -> None:
+        release = (ROOT / ".github/workflows/release.yml").read_text(
+            encoding="utf-8"
+        )
+        candidate_start = release.index("\n  candidate:")
+        promote_start = release.index("\n  promote:")
+        smoke_start = release.index("\n  published-smoke:")
+        candidate = release[candidate_start:promote_start]
+        promote = release[promote_start:smoke_start]
+
+        self.assertIn("published_at:", release)
+        self.assertIn(
+            "NFC_RELEASE_PUBLISHED_AT: ${{ inputs.published_at }}", release
+        )
+        self.assertIn("-cnotmatch", candidate)
+        self.assertIn(
+            "published-at=$env:NFC_RELEASE_PUBLISHED_AT", candidate
+        )
+
+        setup_python = candidate.index("Setup pinned Python for release policy")
+        helper_copy = candidate.index(
+            "Copy-Item -LiteralPath ./scripts/create_update_catalog.py"
+        )
+        detach = candidate.index("git checkout --detach")
+        package = candidate.index("Build closed-allowlist release package")
+        smoke = candidate.index("Smoke candidate package")
+        notes = candidate.index("Render complete release notes from CHANGELOG")
+        handoff = candidate.index("Create single-version update-source handoff")
+        manifest = candidate.index(
+            "Create closed candidate manifest and outer checksums"
+        )
+        candidate_upload = candidate.index("Upload immutable candidate assets")
+        handoff_upload = candidate.index("Upload update-source handoff")
+
+        self.assertLess(setup_python, helper_copy)
+        self.assertLess(helper_copy, detach)
+        self.assertLess(package, smoke)
+        self.assertLess(smoke, notes)
+        self.assertLess(notes, handoff)
+        self.assertLess(handoff, manifest)
+        self.assertLess(manifest, candidate_upload)
+        self.assertLess(candidate_upload, handoff_upload)
+
+        self.assertIn("NFC_UPDATE_CATALOG_TOOL", candidate)
+        self.assertIn("artifacts/update-source-handoff", candidate)
+        self.assertIn("'artifacts/update-source-handoff'", candidate)
+        self.assertIn("'packages'", candidate)
+        self.assertIn("NvtFwCombiner-$env:NFC_TAG-win-x64.zip", candidate)
+        self.assertIn("'--source-root'", candidate)
+        self.assertIn("'--published-at'", candidate)
+        self.assertIn("'--release-notes-file'", candidate)
+        self.assertIn("update-catalog.v1.json", candidate)
+
+        self.assertEqual(2, release.count("actions/upload-artifact@"))
+        self.assertIn("path: artifacts/release/*", candidate)
+        self.assertIn("path: artifacts/update-source-handoff/*", candidate)
+        self.assertNotIn("update-source-handoff", promote)
+        self.assertNotIn("update-catalog.v1.json", promote)
+        self.assertIn(
+            "$expectedNames = @($manifest.assets.name) + "
+            "@($env:NFC_MANIFEST_NAME, $checksumName)",
+            promote,
+        )
+
     def test_write_token_job_never_checks_out_or_executes_maintenance_code(
         self,
     ) -> None:

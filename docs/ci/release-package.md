@@ -151,6 +151,25 @@ After `scripts/package.ps1` produces a ZIP, run the deterministic local smoke be
 
 The smoke extracts into a fresh temporary directory, checks the closed package surface and manifest hashes, verifies the adjacent SBOM and provenance sidecars against the package version, source tag/commit, runtime, and declared file hashes, runs the bundled CRC worker `123456789` vector, then starts the self-contained desktop executable and requires a responding main-window handle before passing. A process that remains present only because Windows Error Reporting is handling a startup crash must fail this gate. `SHA256SUMS.txt` is UTF-8 without a byte-order mark so every manifest-approved Unicode package path remains exact after extraction; changing or replacing an unrepresentable path must fail verification. Keep the ZIP, SBOM, and provenance files together in the artifact directory. Use `-SkipUiLaunch` only when a visible desktop startup check cannot run; that omission must be recorded in release evidence.
 
+After the ZIP passes smoke and release notes render, `release.yml` uses the
+catalog helper copied from protected `main` to upload a separate 30-day
+`update-source-handoff-v<version>-<source-sha>` Actions artifact. That handoff
+contains one canonical ZIP and a one-version seed catalog. It is deliberately
+outside `artifacts/release/`, the candidate manifest, outer checksums,
+promotion, and the immutable GitHub Release. It is not a ready-to-overwrite
+multi-version network source.
+
+The operator stages the live source with every retained ZIP, adds the handoff
+ZIP, and reruns `scripts/create_update_catalog.py` across the complete staging
+root with the new version's canonical UTC publication time and rendered notes.
+The helper recalculates actual ZIP size/SHA-256 and inner-manifest SHA-256,
+preserves unchanged metadata, and rejects changed bytes for an already listed
+SemVer without rewriting the old catalog. Publish immutable ZIPs first and the
+aggregate catalog last. The exact two-ZIP local/UNC layout, commands, mismatch
+behavior, and checklist are in `docs/contracts/update-catalog-v1.md`. The live
+catalog is mutable update-source state, not a sixth immutable GitHub Release
+asset; changing that boundary requires separate release-policy approval.
+
 Both `scripts/verify.py` and `scripts/package.ps1` finish by stopping the repository SDK build server and any idle, repo-bound Avalonia BuildServices collector. The cleanup is scoped to that collector command line and never targets the packaged application, CRC worker, or Combiner process.
 
 ## Package-size ceiling

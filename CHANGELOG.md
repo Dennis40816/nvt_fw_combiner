@@ -68,6 +68,91 @@ The policy separation adds 69 production nonblank lines, moving
 This Presentation-only alignment moves full production from 110,688 to 110,876
 nonblank lines (+188). Counted runtime and all non-UI slices remain unchanged.
 
+#### Deterministic update-source handoff and catalog identity
+
+- Before → After: a stable release did not produce a self-contained operator
+  handoff for updating the configured local or UNC source. The protected-main
+  release workflow now creates a separate 30-day seed handoff after package
+  smoke and release-note generation, with the aggregate catalog written last
+  and the exact package staged under `packages/`.
+- Before → After: regenerating an existing SemVer could replace package or
+  release metadata under the same identity. Catalog generation now accepts an
+  exact repeat but fails closed before rewrite when either package bytes or
+  immutable published metadata differs for that SemVer.
+- Affected: protected-main release automation, update-catalog generation, and
+  the operator handoff used to maintain an update-source folder. Runtime
+  discovery, firmware workflows, and the five immutable GitHub Release assets
+  are unchanged.
+- Support status: unchanged/support-neutral. No IC, workflow, firmware byte,
+  range, processor, output-name, or Golden decision changes.
+- Compatibility: the catalog remains update-catalog v1 and keeps previously
+  published version entries. The handoff is a separate expiring workflow
+  artifact, not a sixth Release asset and not an automatic network-folder
+  mutation.
+- Verification: focused direct and real-CLI regressions cover exact replay,
+  same-SemVer byte drift, metadata drift, aggregate preservation, canonical UTC
+  metadata, and catalog-last staging. The frozen candidate still requires the
+  canonical full verifier, release-owner review, and protected release checks.
+- Limitations: the final immutable registry/version-list path, production UNC
+  evidence, signing, and managed `1.0.0` package publication remain explicit
+  owner and release gates.
+
+#### Stale Version install requests
+
+- Before → After: Settings could retain an Install action from an older
+  catalog/source snapshot and enter installation after that package was no
+  longer current. The Application owner now returns typed
+  `PackageUnavailable` before any repository, staging, or durable-state
+  mutation.
+- Affected: Settings Version install admission and the shared Version
+  Management Application service. Discovery, switching, deletion, launcher
+  activation, and firmware composition are unchanged.
+- Support status: unchanged/support-neutral; the correction narrows unsafe
+  admission without changing package identity or supported application
+  versions.
+- Compatibility: valid current-catalog installs behave as before. A stale row
+  must be refreshed and selected again instead of acting on obsolete state.
+- Verification: focused Application regressions assert the typed result and
+  zero filesystem/state mutation. Frozen-candidate full verification and
+  release review remain required.
+
+#### Terminal DP metadata classification
+
+- Before → After: Presentation could re-derive DP applicability from a
+  lower-signal inspection fact and show an inapplicable `DP Version Unknown`
+  for a terminally classified TP-only artifact. The terminal typed Application
+  classification is now the single owner and Presentation only projects it.
+- Affected: shared input inspection and metadata projection, including TP-only
+  CtrlRAM/TP inputs. File acceptance, selector layout, composition, and output
+  bytes are unchanged.
+- Support status: unchanged/support-neutral. No profile, region, integrity, or
+  Golden authority changes.
+- Compatibility: applicable DP/FlashCode inputs retain their DP metadata;
+  TP-only artifacts omit it instead of publishing a contradictory unknown.
+- Verification: focused classifier, projection, architecture, and UI
+  regressions protect the terminal-owner direction. Final frozen-diff review
+  remains a candidate gate.
+
+#### Build uses the accepted inspection session
+
+- Before → After: pressing Build could re-read and SHA-256 the selected
+  paths, creating a second long `Inspecting` phase and coupling confirmation to
+  later path contents. Standard Merge, AB Merge, and CtrlRAM Replace now open
+  Build Settings from the already accepted immutable session without
+  incrementing inspection work.
+- Affected: routed Build entry and shared Build-settings admission for Standard
+  Merge, AB Merge, and CtrlRAM Replace. A new file selection or session
+  revision still performs its normal inspection.
+- Support status: unchanged/support-neutral. Execution, output naming,
+  declared write ranges, processors, reports, and accepted bytes are unchanged.
+- Compatibility: deleting or overwriting a source path after acceptance no
+  longer causes Build entry to inspect different bytes; users replace the slot
+  explicitly to accept a new revision.
+- Verification: real routed-event regressions require a positive pre-click
+  inspection baseline, an unchanged work count, and accepted-session behavior
+  for deleted or overwritten Standard, AB, and CtrlRAM source paths. The
+  canonical full verifier and three frozen-diff reviews remain required.
+
 ### Security
 
 Unavailable DP routes fail closed through the same hash-pinned canonical
@@ -76,7 +161,10 @@ policy used by product UI and CLI; no presentation-only bypass is introduced.
 ### Known issues
 
 Final owner-visible Light/Dark and workflow-navigation confirmation remains
-open. This candidate is not a support promotion or public release.
+open. The final immutable registry/version-list path and production UNC replay
+must be supplied and verified before `1.0.0`; the generated seed handoff does
+not publish or mutate that network location automatically. This candidate is
+not a support promotion or public release.
 
 ### Upgrade and rollback
 
@@ -176,10 +264,12 @@ end-user-managed `1.0.0` package; it is not itself a new public distribution.
 
 ### Known issues
 
-- The independent R2 architecture/contract reviewer could not be scheduled
-  because the agent thread limit was exhausted. On 2026-08-21 the owner
-  explicitly approved the internal identity advance after focused boundary
-  hardening. This is an owner override, not an independent-review PASS.
+- The original reviewer could not be scheduled before the 2026-08-21 internal
+  identity decision, but that is no longer an open review gap. Independent R2
+  correction review of exact HEAD `248ab804` passed on 2026-08-22 with no
+  P0/P1/P2/P3 findings after the reported ZIP64 arithmetic and seed-import
+  lease defects were corrected. Subsequent `0.10.7` changes still require
+  their own frozen-candidate review and do not inherit release approval.
 - Public managed packaging, clean Windows x64 smoke, and release/security
   approval apply to the first end-user `1.0.0` distribution, not this internal
   folder proof.

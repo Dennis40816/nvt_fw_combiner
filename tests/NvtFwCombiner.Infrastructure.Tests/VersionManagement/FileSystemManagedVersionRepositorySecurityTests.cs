@@ -252,6 +252,7 @@ public sealed partial class FileSystemManagedVersionRepositoryTests
     {
         using var workspace = TempWorkspace.Create();
         string sourceRoot = workspace.PathFor("source");
+        string managedRoot = workspace.PathFor("managed");
         UpdateCatalogVersionSnapshot package = CreatePackage(sourceRoot, "0.10.6");
         string packagePath = Path.Combine(sourceRoot, package.PackagePath.Value.Replace('/', Path.DirectorySeparatorChar));
         if (mutation == "length")
@@ -265,13 +266,23 @@ public sealed partial class FileSystemManagedVersionRepositoryTests
             await File.WriteAllBytesAsync(packagePath, bytes, TestContext.Current.CancellationToken);
         }
 
-        ManagedPackageVerificationResult result = await new FileSystemManagedVersionRepository().VerifyPackageAsync(
+        var repository = new FileSystemManagedVersionRepository();
+        ManagedPackageVerificationResult result = await repository.VerifyPackageAsync(
+            sourceRoot,
+            package,
+            TestContext.Current.CancellationToken);
+        ManagedVersionInstallResult install = await repository.InstallAsync(
+            managedRoot,
             sourceRoot,
             package,
             TestContext.Current.CancellationToken);
 
         Assert.False(result.IsVerified);
         Assert.Equal(expected, result.Issue);
+        Assert.Equal(expected, install.Issue);
+        Assert.False(Directory.Exists(Path.Combine(managedRoot, "versions", "0.10.6")));
+        string stagingRoot = Path.Combine(managedRoot, ".staging");
+        Assert.False(Directory.Exists(stagingRoot) && Directory.EnumerateFileSystemEntries(stagingRoot).Any());
     }
 
     /// <summary>A malformed ZIP is a typed verification/install failure with no partial target.</summary>

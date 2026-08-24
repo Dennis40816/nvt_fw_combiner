@@ -78,6 +78,10 @@ data. It is not merged into shell preferences or report history. Absolute update
 source paths are configuration, not identity; installed payload identities are
 version plus admitted content and managed relative location.
 
+A fixed update-source registry is not part of this accepted decision. Its
+partially approved fallback direction and unresolved trust/persistence rules
+are isolated in proposed ADR 0053, which is not implementation authority.
+
 The managed root contains one immutable `version-manager.seed.v1.json` beside
 the launcher. It bootstraps per-user state only when that state is genuinely
 missing and only after the seed's single active/last-known-good admission and

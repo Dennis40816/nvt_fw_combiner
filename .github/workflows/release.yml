@@ -21,6 +21,10 @@ on:
         description: Final reviewed pull request merged as this release-branch commit
         required: true
         type: string
+      published_at:
+        description: Canonical UTC package publication timestamp (for example 2026-08-24T00:00:00Z)
+        required: true
+        type: string
       owner_self_approval_exception:
         description: Sole repository-owner exception when GitHub forbids author approval; protected release approval still applies
         required: true
@@ -64,6 +68,7 @@ jobs:
         env:
           NFC_RELEASE_COMMIT: ${{ inputs.commit }}
           NFC_RELEASE_PR: ${{ inputs.pull_request }}
+          NFC_RELEASE_PUBLISHED_AT: ${{ inputs.published_at }}
           NFC_RELEASE_SOURCE_BRANCH: ${{ inputs.source_branch }}
           NFC_OWNER_SELF_APPROVAL_EXCEPTION: ${{ inputs.owner_self_approval_exception }}
           NFC_WORKFLOW_REF: ${{ github.ref }}
@@ -74,6 +79,9 @@ jobs:
           }
           if ($env:NFC_RELEASE_PR -notmatch '^[1-9][0-9]*$') {
             throw 'Release requires one positive final pull-request number.'
+          }
+          if ($env:NFC_RELEASE_PUBLISHED_AT -cnotmatch '^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}(?:\.[0-9]{1,7})?Z$') {
+            throw 'Release published_at must be canonical UTC.'
           }
           if ($env:NFC_OWNER_SELF_APPROVAL_EXCEPTION -notin @('true', 'false')) {
             throw 'The owner self-approval exception input is invalid.'
@@ -89,6 +97,7 @@ jobs:
           }
           "requested-sha=$env:NFC_RELEASE_COMMIT" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
           "pull-request=$env:NFC_RELEASE_PR" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+          "published-at=$env:NFC_RELEASE_PUBLISHED_AT" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
       - name: Checkout protected main
         uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
         with:
@@ -121,6 +130,9 @@ jobs:
           $policyPath = Join-Path $env:RUNNER_TEMP 'release_promotion_policy.py'
           Copy-Item -LiteralPath ./scripts/release_promotion_policy.py -Destination $policyPath
           "NFC_RELEASE_POLICY=$policyPath" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+          $catalogToolPath = Join-Path $env:RUNNER_TEMP 'create_update_catalog.py'
+          Copy-Item -LiteralPath ./scripts/create_update_catalog.py -Destination $catalogToolPath
+          "NFC_UPDATE_CATALOG_TOOL=$catalogToolPath" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
           git checkout --detach $sourceSha
           if ($LASTEXITCODE -ne 0) { throw 'The exact release source could not be checked out.' }
           $version = (Get-Content -LiteralPath ./VERSION -Raw).Trim()
@@ -379,6 +391,46 @@ jobs:
         env:
           NFC_VERSION: ${{ steps.identity.outputs.version }}
         run: python ./scripts/render_release_notes.py --version $env:NFC_VERSION --output ./artifacts/release/RELEASE-NOTES.md
+      - name: Create single-version update-source handoff
+        shell: pwsh
+        env:
+          NFC_VERSION: ${{ steps.identity.outputs.version }}
+          NFC_TAG: ${{ steps.identity.outputs.tag }}
+          NFC_PUBLISHED_AT: ${{ steps.request.outputs.published-at }}
+        run: |
+          $handoffRoot = Join-Path (Get-Location).Path 'artifacts/update-source-handoff'
+          $packagesRoot = Join-Path $handoffRoot 'packages'
+          if (Test-Path -LiteralPath $handoffRoot) {
+            throw 'Update-source handoff directory must not already exist.'
+          }
+          New-Item -ItemType Directory -Path $packagesRoot | Out-Null
+
+          $packageName = "NvtFwCombiner-$env:NFC_TAG-win-x64.zip"
+          $packageSource = (Resolve-Path -LiteralPath (Join-Path './artifacts/release' $packageName)).Path
+          $packageDestination = Join-Path $packagesRoot $packageName
+          Copy-Item -LiteralPath $packageSource -Destination $packageDestination
+
+          $notesPath = (Resolve-Path -LiteralPath './artifacts/release/RELEASE-NOTES.md').Path
+          $publishedAssignment = '{0}={1}' -f $env:NFC_VERSION, $env:NFC_PUBLISHED_AT
+          $notesAssignment = '{0}={1}' -f $env:NFC_VERSION, $notesPath
+          $catalogArguments = @(
+            $env:NFC_UPDATE_CATALOG_TOOL
+            '--source-root'
+            $handoffRoot
+            '--published-at'
+            $publishedAssignment
+            '--release-notes-file'
+            $notesAssignment
+          )
+          & python @catalogArguments
+          if ($LASTEXITCODE -ne 0) {
+            throw 'Update-source handoff catalog generation failed.'
+          }
+
+          $catalogPath = Join-Path $handoffRoot 'update-catalog.v1.json'
+          if (-not (Test-Path -LiteralPath $catalogPath -PathType Leaf)) {
+            throw 'Update-source handoff catalog was not produced.'
+          }
       - name: Create closed candidate manifest and outer checksums
         id: manifest
         shell: pwsh
@@ -412,6 +464,14 @@ jobs:
           path: artifacts/release/*
           if-no-files-found: error
           retention-days: 3
+      - name: Upload update-source handoff
+        id: update-source-upload
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: update-source-handoff-v${{ steps.identity.outputs.version }}-${{ steps.identity.outputs.source-sha }}
+          path: artifacts/update-source-handoff/*
+          if-no-files-found: error
+          retention-days: 30
 
   promote:
     name: release / promote
