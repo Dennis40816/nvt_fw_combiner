@@ -20,8 +20,6 @@ internal sealed partial class MergePresentationViewModel : ObservableObject
         _textProvider = textProvider ?? throw new ArgumentNullException(nameof(textProvider));
         _stateBindings = stateBindings ?? throw new ArgumentNullException(nameof(stateBindings));
         InspectionLifecycles = new(NotifyCommandStateChanged, AbCodeMergeMode, GeneralMergeMode);
-        AcceptAbAFlashCodeDeliveryPromptCommand = new RelayCommand(AcceptAbAFlashCodeDeliveryPrompt);
-        DeclineAbAFlashCodeDeliveryPromptCommand = new RelayCommand(DeclineAbAFlashCodeDeliveryPrompt);
         ToggleAbSameTpCommand = new AsyncRelayCommand(ToggleAbSameTpAsync);
         KeepTpAForAbSameTpCommand = new AsyncRelayCommand(() => KeepTpForAbSameTpAsync(
             CompositionAddressSpaceIds.TpAInput));

@@ -75,13 +75,11 @@ public sealed partial class XamlControlStyleContractTests
         string reportUi = string.Join(Environment.NewLine, changes, panels, audit);
 
         Assert.Contains("x:Key=\"ReportPagerTemplate\"", templates, StringComparison.Ordinal);
-        Assert.Contains("x:Key=\"ReportWindowedPagerTemplate\"", templates, StringComparison.Ordinal);
+        Assert.DoesNotContain("ReportWindowedPagerTemplate", templates, StringComparison.Ordinal);
         Assert.DoesNotContain("IsVisible=\"{Binding HasMoreItems}\"", templates, StringComparison.Ordinal);
         Assert.Contains("AutomationProperties.Name=\"{Binding PageStatus}\"", templates, StringComparison.Ordinal);
         Assert.Contains("AutomationProperties.LiveSetting=\"Polite\"", templates, StringComparison.Ordinal);
         Assert.Contains("AutomationProperties.Name=\"{Binding LoadMoreLabel}\"", templates, StringComparison.Ordinal);
-        Assert.Contains("Command=\"{Binding PreviousPageCommand}\"", templates, StringComparison.Ordinal);
-        Assert.Contains("Command=\"{Binding NextPageCommand}\"", templates, StringComparison.Ordinal);
         Assert.DoesNotContain("RowsPage.Items", changes, StringComparison.Ordinal);
         Assert.Contains("OutputDifferenceSummaryPage.Items", panels, StringComparison.Ordinal);
         Assert.DoesNotContain("OutputDifferenceGroupPage.Items", audit, StringComparison.Ordinal);

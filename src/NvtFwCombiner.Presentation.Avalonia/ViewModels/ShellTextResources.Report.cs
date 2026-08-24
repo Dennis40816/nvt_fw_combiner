@@ -35,14 +35,6 @@ internal sealed partial class ShellTextResources
 
     public string BuildCompletedOpenFolderError { get; private init; } = string.Empty;
 
-    public string AbAFlashCodePromptTitle { get; private init; } = string.Empty;
-
-    public string AbAFlashCodePromptDetail { get; private init; } = string.Empty;
-
-    public string AbAFlashCodePromptYesLabel { get; private init; } = string.Empty;
-
-    public string AbAFlashCodePromptNoLabel { get; private init; } = string.Empty;
-
     public string BuildCompletedAdditionalOutputLabel { get; private init; } = string.Empty;
 
     public string FileRevealFailedTitle { get; private init; } = string.Empty;
@@ -122,8 +114,6 @@ internal sealed partial class ShellTextResources
     public string EmptyInputsMessage { get; private init; } = string.Empty;
 
     public string EmptyByteChangesMessage { get; private init; } = string.Empty;
-
-    public string OutputChangesTitle { get; private init; } = string.Empty;
 
     public string HexDiffViewportTitle { get; private init; } = string.Empty;
 

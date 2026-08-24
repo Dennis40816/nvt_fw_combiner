@@ -19,8 +19,6 @@ internal sealed partial class ShellTextResources
 
     public string CatalogApplyingDetail { get; private init; } = string.Empty;
 
-    public string CatalogReadyDetail { get; private init; } = string.Empty;
-
     public string CatalogLoadingFailedTitle { get; private init; } = string.Empty;
 
     public string CatalogLoadingFailedDetail { get; private init; } = string.Empty;
@@ -61,15 +59,11 @@ internal sealed partial class ShellTextResources
 
     public string WorkspaceSummary { get; private init; } = string.Empty;
 
-    public string PreviewActionLabel { get; private init; } = string.Empty;
-
     public string BuildActionLabel { get; private init; } = string.Empty;
 
     public string PreviewRunProgressAccessibleLabel { get; private init; } = string.Empty;
 
     public string BuildRunProgressAccessibleLabel { get; private init; } = string.Empty;
-
-    public string ReportModalActionLabel { get; private init; } = string.Empty;
 
     public string DeviceContextTitle { get; private init; } = string.Empty;
 
@@ -104,8 +98,6 @@ internal sealed partial class ShellTextResources
     public string NavigationClearCancelLabel { get; private init; } = string.Empty;
 
     public string OpenLabel { get; private init; } = string.Empty;
-
-    public string PendingLabel { get; private init; } = string.Empty;
 
     public string LoadJsonLabel { get; private init; } = string.Empty;
 

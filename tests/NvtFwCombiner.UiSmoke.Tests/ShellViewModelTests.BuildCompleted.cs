@@ -115,26 +115,6 @@ public sealed partial class BuildOutcomeTests
         Assert.True(viewModel.BuildResult.HasLatestCommittedOutput);
     }
 
-    /// <summary>The A FlashCode choice resolves before output selection and cannot leave the prompt open after either answer.</summary>
-    [Fact]
-    public async Task AbAFlashCodeDeliveryPromptResolvesBeforeBuild()
-    {
-        MainWindowViewModel viewModel = PresentationTestHost.CreateViewModel();
-
-        Task<bool> yes = viewModel.Merge.PromptForAbAFlashCodeDeliveryAsync();
-        Assert.True(viewModel.Merge.IsAbAFlashCodeDeliveryPromptOpen);
-        viewModel.Merge.AcceptAbAFlashCodeDeliveryPromptCommand.Execute(null);
-
-        Assert.True(await yes);
-        Assert.False(viewModel.Merge.IsAbAFlashCodeDeliveryPromptOpen);
-
-        Task<bool> no = viewModel.Merge.PromptForAbAFlashCodeDeliveryAsync();
-        viewModel.Merge.DeclineAbAFlashCodeDeliveryPromptCommand.Execute(null);
-
-        Assert.False(await no);
-        Assert.False(viewModel.Merge.IsAbAFlashCodeDeliveryPromptOpen);
-    }
-
     /// <summary>Completion shows the already-delivered A FlashCode rather than offering a second post-Build export action.</summary>
     [Fact]
     public void CompletedBuildShowsAlreadyDeliveredAFlashCode()
@@ -224,7 +204,6 @@ public sealed partial class BuildOutcomeTests
     [InlineData("firmware-number-mismatch")]
     [InlineData("navigation-clear")]
     [InlineData("report")]
-    [InlineData("ab-a-flashcode-delivery")]
     [InlineData("build-completed")]
     [InlineData("hex-insert")]
     [InlineData("hex-save")]
@@ -311,9 +290,6 @@ public sealed partial class BuildOutcomeTests
                     CreateRunResult(succeeded: true, outputPath: "output.bin"),
                     build: true));
                 break;
-            case "ab-a-flashcode-delivery":
-                _ = viewModel.Merge.PromptForAbAFlashCodeDeliveryAsync();
-                break;
             case "hex-insert":
                 viewModel.HexEditorWorkspace.IsInsertBytesPromptOpen = true;
                 break;
@@ -353,9 +329,6 @@ public sealed partial class BuildOutcomeTests
             case "build-completed":
                 viewModel.BuildResult.Close();
                 break;
-            case "ab-a-flashcode-delivery":
-                viewModel.Merge.DeclineAbAFlashCodeDeliveryPromptCommand.Execute(null);
-                break;
             case "hex-insert":
                 viewModel.HexEditorWorkspace.CancelInsertBytesCommand.Execute(null);
                 break;
@@ -378,7 +351,6 @@ public sealed partial class BuildOutcomeTests
             "firmware-number-mismatch" => viewModel.WorkflowSession.IsFirmwareNumberMismatchModalOpen,
             "navigation-clear" => viewModel.Navigation.IsNavigationClearConfirmationOpen,
             "report" => viewModel.Reports.IsReportModalOpen,
-            "ab-a-flashcode-delivery" => viewModel.Merge.IsAbAFlashCodeDeliveryPromptOpen,
             "build-completed" => viewModel.BuildResult.IsOpen,
             "hex-insert" => viewModel.HexEditorWorkspace.IsInsertBytesPromptOpen,
             "hex-save" => viewModel.HexEditorWorkspace.IsSaveConfirmationOpen,

@@ -62,7 +62,7 @@
     <Setter Property="BorderThickness" Value="2" />
     <Setter Property="CornerRadius" Value="{DynamicResource NfcSurfaceCornerRadius}" />
   </Style>
-  <Style Selector="Border.diagnosticCard:focus-visible, Border.buildBlockerBadge:focus-visible, Border.supportMatrixCell:focus-visible">
+  <Style Selector="Border.buildBlockerBadge:focus-visible, Border.supportMatrixCell:focus-visible">
     <Setter Property="BorderBrush" Value="{DynamicResource NfcAccentBrush}" />
     <Setter Property="BorderThickness" Value="2" />
   </Style>

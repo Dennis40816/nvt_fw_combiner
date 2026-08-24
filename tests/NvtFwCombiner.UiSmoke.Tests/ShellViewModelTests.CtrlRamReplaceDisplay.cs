@@ -497,7 +497,6 @@ public sealed partial class CtrlRamWorkflowTests
         Assert.Contains("Complete FlashCode or TP FW", viewModel.Replace.ReplaceBaseSlot.Description, StringComparison.Ordinal);
         Assert.DoesNotContain("base flash", viewModel.Text.CtrlRamInputFilesDetail, StringComparison.OrdinalIgnoreCase);
         Assert.DoesNotContain("base flash", traditionalChinese.CtrlRamInputFilesDetail, StringComparison.OrdinalIgnoreCase);
-        Assert.DoesNotContain("FlashCode", viewModel.Text.CtrlRamFirmwareVersionCurrentLabel, StringComparison.Ordinal);
         Assert.DoesNotContain("FlashCode", traditionalChinese.CtrlRamFirmwareVersionSourceDetail, StringComparison.Ordinal);
         Assert.Contains(viewModel.Replace.ReplaceSelectionMissingRows, row => row.Title == "Base firmware (FlashCode / TP FW)");
 

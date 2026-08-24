@@ -17,8 +17,6 @@ internal sealed partial class ShellTextResources
 
     public string BinInspectorFieldsTitle { get; private init; } = string.Empty;
 
-    public string BinInspectorNoFieldsLabel { get; private init; } = string.Empty;
-
     public string BinInspectorNoByteSelectedLabel { get; private init; } = string.Empty;
 
     public string BinInspectorNoFieldLabel { get; private init; } = string.Empty;

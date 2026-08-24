@@ -325,7 +325,6 @@ public sealed partial class RepositoryBoundaryTests
         Assert.Contains("<x:Double x:Key=\"NfcFontSize12\">12</x:Double>", themeTokens, StringComparison.Ordinal);
         Assert.Contains("<x:Double x:Key=\"NfcFontSize13\">13</x:Double>", themeTokens, StringComparison.Ordinal);
         Assert.Contains("<x:Double x:Key=\"NfcFontSize14\">14</x:Double>", themeTokens, StringComparison.Ordinal);
-        Assert.DoesNotContain("Classes=\"secondary\" Content=\"{Binding PreviewActionLabel}\"", shell, StringComparison.Ordinal);
         Assert.DoesNotContain("Background=\"#0F172A\" CornerRadius=\"8\"", shell, StringComparison.Ordinal);
         Assert.DoesNotContain("Merge / Replace workspace", shell, StringComparison.Ordinal);
         Assert.DoesNotContain("ColumnDefinitions=\"220,*\"", shell, StringComparison.Ordinal);
@@ -335,7 +334,6 @@ public sealed partial class RepositoryBoundaryTests
         Assert.DoesNotContain("0x0000 - 0xFFFF", shell, StringComparison.Ordinal);
         Assert.DoesNotContain("AB disabled", shell, StringComparison.Ordinal);
         Assert.DoesNotContain("LOADED REPORT", shell, StringComparison.Ordinal);
-        Assert.DoesNotContain("Content=\"{Binding ReportModalActionLabel}\"", shell, StringComparison.Ordinal);
 
         string viewModel = ReadViewModelPartials();
         string workflowContext = ReadText(

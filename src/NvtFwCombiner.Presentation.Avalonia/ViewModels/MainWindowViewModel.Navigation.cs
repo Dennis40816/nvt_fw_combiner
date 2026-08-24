@@ -36,7 +36,6 @@ internal sealed partial class MainWindowViewModel
         Navigation.IsNavigationClearConfirmationOpen ||
         MessageCenter.IsOpen ||
         Reports.IsReportModalOpen ||
-        Merge.IsAbAFlashCodeDeliveryPromptOpen ||
         Merge.IsAbSameTpConflictPromptOpen ||
         BuildResult.IsOpen ||
         LoadedHexEditorWorkspace?.IsInsertBytesPromptOpen == true ||

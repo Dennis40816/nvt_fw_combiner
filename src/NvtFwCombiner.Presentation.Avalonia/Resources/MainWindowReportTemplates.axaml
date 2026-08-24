@@ -24,30 +24,6 @@
   </Grid>
 </DataTemplate>
 
-<DataTemplate x:Key="ReportWindowedPagerTemplate" DataType="vm:ReportWindowedListViewModel">
-  <Grid Margin="0,8,0,0" ColumnDefinitions="Auto,*,Auto" ColumnSpacing="{DynamicResource NfcSpace8}">
-    <Button
-        Classes="semanticAction secondary"
-        Command="{Binding PreviousPageCommand}"
-        Content="{Binding PreviousPageLabel}"
-        AutomationProperties.Name="{Binding PreviousPageLabel}" />
-    <TextBlock
-        Grid.Column="1"
-        HorizontalAlignment="Center"
-        VerticalAlignment="Center"
-        Classes="captionText"
-        Text="{Binding PageStatus}"
-        AutomationProperties.Name="{Binding PageStatus}"
-        AutomationProperties.LiveSetting="Polite" />
-    <Button
-        Grid.Column="2"
-        Classes="semanticAction secondary"
-        Command="{Binding NextPageCommand}"
-        Content="{Binding NextPageLabel}"
-        AutomationProperties.Name="{Binding NextPageLabel}" />
-  </Grid>
-</DataTemplate>
-
 <DataTemplate x:Key="ReportLineFactTemplate" DataType="vm:ReportLineFactViewModel">
   <Grid Margin="0,1" ColumnDefinitions="Auto,*" ColumnSpacing="10">
     <TextBlock Classes="tableHeader" Text="{Binding Label}" TextWrapping="Wrap" />

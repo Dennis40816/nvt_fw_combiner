@@ -20,8 +20,6 @@ public sealed partial class RepositoryBoundaryTests
             "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/MergePresentationViewModel.Memory.cs");
         string mergeExecution = ReadText(
             "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/MergePresentationViewModel.Execution.cs");
-        string mergePrompt = ReadText(
-            "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/MergePresentationViewModel.AbAFlashCodeDeliveryPrompt.cs");
         string shellPartials = ReadViewModelPartials();
         string shell = ReadText("src/NvtFwCombiner.Presentation.Avalonia/MainWindow.axaml");
         string shellCode = ReadText("src/NvtFwCombiner.Presentation.Avalonia/MainWindow.axaml.cs");
@@ -34,19 +32,11 @@ public sealed partial class RepositoryBoundaryTests
         Assert.Contains("AddGeneralMergeMapping", mergeGeneral, StringComparison.Ordinal);
         Assert.Contains("RefreshMergeMemoryMapState", mergeMemory, StringComparison.Ordinal);
         Assert.Contains("public Task BuildMergeAsync", mergeExecution, StringComparison.Ordinal);
-        Assert.Contains("PromptForAbAFlashCodeDeliveryAsync", mergePrompt, StringComparison.Ordinal);
         Assert.Contains("DataTemplate DataType=\"vm:MergePresentationViewModel\"", shell, StringComparison.Ordinal);
         Assert.Contains("LoadContent(MergePageHost, viewModel.IsMergeVisible, viewModel.Merge)", shellCode, StringComparison.Ordinal);
         Assert.DoesNotContain("public ObservableCollection<FirmwareSlotViewModel> MergeSlots", shellPartials, StringComparison.Ordinal);
         Assert.DoesNotContain("public string MergeReadinessStatus", shellPartials, StringComparison.Ordinal);
         Assert.DoesNotContain("public Task BuildMergeAsync", shellPartials, StringComparison.Ordinal);
-        Assert.DoesNotContain("public bool IsAbAFlashCodeDeliveryPromptOpen", shellPartials, StringComparison.Ordinal);
-        Assert.False(File.Exists(Path.Combine(
-            Root.FullName,
-            "src",
-            "NvtFwCombiner.Presentation.Avalonia",
-            "ViewModels",
-            "MainWindowViewModel.AbAFlashCodeDeliveryPrompt.cs")));
     }
 
     /// <summary>Replace-only selection policy and modal lifetime belong to a focused child.</summary>

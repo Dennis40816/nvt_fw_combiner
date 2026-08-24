@@ -5,8 +5,6 @@ namespace NvtFwCombiner.Presentation.Avalonia.ViewModels;
 
 internal sealed partial class ShellTextResources
 {
-    public string InitialCodeAndLdcSlotHint { get; private init; } = string.Empty;
-
     public string ReviewReplacementInputsTooltip { get; private init; } = string.Empty;
 
     public string InputFilesTitle { get; private init; } = string.Empty;
@@ -42,8 +40,6 @@ internal sealed partial class ShellTextResources
     public string LengthLabel { get; private init; } = string.Empty;
 
     public string SourceBinLabel { get; private init; } = string.Empty;
-
-    public string ReplacementBinLabel { get; private init; } = string.Empty;
 
     public string OutputLengthLabel { get; private init; } = string.Empty;
 
@@ -84,8 +80,6 @@ internal sealed partial class ShellTextResources
     public string FirmwareSlotPendingFactDetail { get; private init; } = string.Empty;
 
     public string FirmwareSlotWarningFactDetail { get; private init; } = string.Empty;
-
-    public string FirmwareSlotErrorFactDetail { get; private init; } = string.Empty;
 
     public string FirmwareSlotShowMoreFactsTemplate { get; private init; } = string.Empty;
 
@@ -159,8 +153,6 @@ internal sealed partial class ShellTextResources
 
     public string CtrlRamFirmwareVersionEditLabel { get; private init; } = string.Empty;
 
-    public string CtrlRamFirmwareVersionCurrentLabel { get; private init; } = string.Empty;
-
     public string CtrlRamFirmwareVersionByteLabel { get; private init; } = string.Empty;
 
     public string CtrlRamFirmwareSubVersionByteLabel { get; private init; } = string.Empty;
@@ -170,8 +162,6 @@ internal sealed partial class ShellTextResources
     public string CtrlRamFirmwareVersionEditUnavailableDetail { get; private init; } = string.Empty;
 
     public string CtrlRamFirmwareVersionInvalidByteDetail { get; private init; } = string.Empty;
-
-    public string CtrlRamFirmwareVersionChooseOutputLabel { get; private init; } = string.Empty;
 
     public string AbCodeMergeTitle { get; private init; } = string.Empty;
 

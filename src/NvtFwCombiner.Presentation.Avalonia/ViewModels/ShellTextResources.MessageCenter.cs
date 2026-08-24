@@ -19,19 +19,7 @@ internal sealed partial class ShellTextResources
 
     public string RefreshDiagnosticsLabel { get; private init; } = string.Empty;
 
-    public string ExportDiagnosticsLabel { get; private init; } = string.Empty;
-
     public string NoActiveDiagnosticsLabel { get; private init; } = string.Empty;
-
-    public string ActiveDiagnosticsLabel { get; private init; } = string.Empty;
-
-    public string ApplicationVersionLabel { get; private init; } = string.Empty;
-
-    public string RuntimeLabel { get; private init; } = string.Empty;
-
-    public string CatalogLabel { get; private init; } = string.Empty;
-
-    public string ExternalToolsLabel { get; private init; } = string.Empty;
 
     public string OpenReportHistoryLabel { get; private init; } = string.Empty;
 

@@ -26,9 +26,6 @@ internal sealed partial class ShellTextResources
             CatalogApplyingDetail = Pick(
                 "Applying the validated capability state.",
                 "正在套用已驗證的功能狀態。"),
-            CatalogReadyDetail = Pick(
-                "Capability state is ready.",
-                "功能狀態已準備完成。"),
             CatalogLoadingFailedTitle = Pick("Capabilities unavailable", "功能目前無法使用"),
             CatalogLoadingFailedDetail = Pick(
                 "The canonical catalog could not be loaded. Retry to restore Merge and Replace.",
@@ -54,13 +51,7 @@ internal sealed partial class ShellTextResources
             RunReportsLabel = Pick("Run reports", "執行報告"),
             SystemInformationLabel = Pick("System information", "系統資訊"),
             RefreshDiagnosticsLabel = Pick("Refresh", "重新整理"),
-            ExportDiagnosticsLabel = Pick("Export diagnostics", "匯出診斷"),
             NoActiveDiagnosticsLabel = Pick("No active system diagnostics.", "目前沒有系統診斷問題。"),
-            ActiveDiagnosticsLabel = Pick("Active diagnostics", "目前診斷"),
-            ApplicationVersionLabel = Pick("Application", "應用程式"),
-            RuntimeLabel = Pick("Runtime", "執行環境"),
-            CatalogLabel = Pick("Catalog", "目錄"),
-            ExternalToolsLabel = Pick("External tools", "外部工具"),
             OpenReportHistoryLabel = Pick("Open report history", "開啟報告記錄"),
             DiagnosticsExportedLabel = Pick("Diagnostics exported.", "診斷已匯出。"),
             DiagnosticsExportFailedLabel = Pick("Diagnostics could not be exported.", "無法匯出診斷。"),
@@ -81,11 +72,9 @@ internal sealed partial class ShellTextResources
             ExportActivityLabel = Pick("Export", "匯出"),
             WorkspaceTitle = Pick("Merge / Replace workspace", "合併 / 取代工作區"),
             WorkspaceSummary = Pick("Production-backed shell with built-in profiles, flash-map catalog, and report review.", "使用內建 profile、flash-map catalog 與 report review 的生產導向介面。"),
-            PreviewActionLabel = Pick("Preview", "預覽"),
             BuildActionLabel = Pick("Build", "建立"),
             PreviewRunProgressAccessibleLabel = Pick("Preview in progress", "正在預覽"),
             BuildRunProgressAccessibleLabel = Pick("Build in progress", "正在建立"),
-            ReportModalActionLabel = "Report",
             OutputDeliveryTitle = Pick("Build settings", "Build 設定"),
             OutputDeliverySummary = Pick(
                 "Review the output, then confirm optional changes.",
@@ -193,7 +182,6 @@ internal sealed partial class ShellTextResources
             NavigationClearConfirmLabel = Pick("Clear and continue", "清除並繼續"),
             NavigationClearCancelLabel = Pick("Stay on this page", "留在此頁"),
             OpenLabel = Pick("Open", "開啟"),
-            PendingLabel = Pick("Pending", "待實作"),
             LoadJsonLabel = Pick("Load Report", "載入報告"),
             LoadJsonTooltip = Pick("Load a report", "載入報告"),
             BackTooltip = Pick("Back", "返回"),
@@ -217,7 +205,6 @@ internal sealed partial class ShellTextResources
             TargetStartLabel = Pick("Target start", "目標起始"),
             LengthLabel = Pick("Length", "長度"),
             SourceBinLabel = "Source BIN",
-            ReplacementBinLabel = "Replacement BIN",
             OutputLengthLabel = Pick("Output length", "輸出長度"),
             OutputLengthPlaceholder = "0x...",
             OutputFillByteLabel = Pick("Fill byte", "填充值元組"),
@@ -246,9 +233,6 @@ internal sealed partial class ShellTextResources
             FirmwareSlotWarningFactDetail = Pick(
                 "This metadata value requires review; inspect the selected file and report details.",
                 "此 metadata 值需要確認；請檢查選定檔案與 report 詳細資料。"),
-            FirmwareSlotErrorFactDetail = Pick(
-                "This metadata value blocks the workflow; resolve the reported issue.",
-                "此 metadata 值會阻擋流程；請解決 report 中的問題。"),
             FirmwareSlotShowMoreFactsTemplate = Pick("Show {0} more details", "顯示另外 {0} 項詳細資料"),
             FirmwareSlotShowFewerFactsLabel = Pick("Show fewer details", "收合詳細資料"),
             MergeDpSlotDescription = Pick("Display payload for Standard Merge", "Standard Merge 的 Display payload"),
@@ -285,15 +269,12 @@ internal sealed partial class ShellTextResources
             CtrlRamFirmwareVersionDetail = Pick("Choose the source, then enter the version.", "選擇版本來源，再輸入版本。"),
             CtrlRamFirmwareVersionKeepLabel = Pick("Keep base", "沿用 Base"),
             CtrlRamFirmwareVersionEditLabel = Pick("Set new", "設定新版本"),
-            CtrlRamFirmwareVersionCurrentLabel = Pick("Base firmware TP version", "Base firmware 的 TP 版本"),
             CtrlRamFirmwareVersionByteLabel = Pick("FW version", "FW 版本"),
             CtrlRamFirmwareSubVersionByteLabel = Pick("FW sub-version", "FW 子版本"),
             CtrlRamFirmwareVersionSourceDetail = Pick("Read from the verified NVT Backup in the base firmware. Postbuild propagates the chosen value to the output Backup.", "此值取自 base firmware 內已驗證的 NVT Backup；postbuild 會把選定版本帶到輸出 Backup。"),
             CtrlRamFirmwareVersionEditUnavailableDetail = Pick("The NVT Backup version metadata is unavailable or invalid, so only keeping the original version is allowed.", "NVT Backup 的版本資訊不存在或驗證失敗，因此只能維持原本版本。"),
             CtrlRamFirmwareVersionInvalidByteDetail = Pick("Enter each version field as one hexadecimal byte from 00 to FF.", "每個版本欄位須輸入 00 到 FF 的一個十六進位 byte。"),
-            CtrlRamFirmwareVersionChooseOutputLabel = Pick("Continue to output", "繼續選擇輸出"),
             AbCodeMergeTitle = "AB Code Merge",
-            InitialCodeAndLdcSlotHint = Pick("(Initial Code + LDC)", "（Initial Code + LDC）"),
             AbCodeMergeDetail = Pick(
                 "Compose one compiled DP_AB container with independent TPA and TPB payloads. Input versions are informational and never choose the route.",
                 "以 compiled profile 合成一個 DP_AB container 與獨立 TPA、TPB payload；input 版本只供確認，絕不選擇執行路徑。"),
@@ -398,12 +379,6 @@ internal sealed partial class ShellTextResources
             BuildCompletedOpenFolderError = Pick(
                 "Explorer could not select the output BIN. It may have moved or been deleted.",
                 "檔案總管無法選取輸出 BIN；檔案可能已被移動或刪除。"),
-            AbAFlashCodePromptTitle = Pick("Also export A FlashCode?", "是否也輸出 A FlashCode？"),
-            AbAFlashCodePromptDetail = Pick(
-                "Choose both output names before Build. The A FlashCode is copied from the declared A range of the same completed AB image.",
-                "Build 前會先選擇兩個輸出名稱；A FlashCode 會從同一次完成的 AB image 之已宣告 A 範圍複製。"),
-            AbAFlashCodePromptYesLabel = Pick("Yes, export A Code", "是，也輸出 A Code"),
-            AbAFlashCodePromptNoLabel = Pick("No, AB only", "否，只輸出 AB"),
             BuildCompletedAdditionalOutputLabel = Pick("A FlashCode", "A FlashCode"),
             FileRevealFailedTitle = Pick("File unavailable", "檔案無法開啟"),
             FileRevealFailedDetail = Pick(
@@ -446,7 +421,6 @@ internal sealed partial class ShellTextResources
             InputsAndHashesTitle = Pick("Input files", "輸入檔案"),
             EmptyInputsMessage = Pick("No input artifact rows were recorded in this report.", "此 report 沒有記錄 input artifact rows。"),
             EmptyByteChangesMessage = Pick("No output differences or changed ranges were recorded.", "此 report 沒有記錄 output differences 或 changed ranges。"),
-            OutputChangesTitle = Pick("Output changes", "輸出差異"),
             HexDiffViewportTitle = Pick("Read-only Hex Diff", "唯讀 Hex Diff"),
             HexDiffShowOriginalRowsLabel = Pick("Show original rows for changes", "在變更列下方顯示原始內容"),
             HexDiffOriginalRowLabel = Pick("original", "原始"),
@@ -462,7 +436,6 @@ internal sealed partial class ShellTextResources
             BinInspectorResizeAutomationName = Pick("Resize BIN bytes and metadata panels", "調整 BIN 位元組與中繼資料面板寬度"),
             BinInspectorStructuresTitle = Pick("Structures", "結構"),
             BinInspectorFieldsTitle = Pick("Fields", "欄位"),
-            BinInspectorNoFieldsLabel = Pick("No declared fields", "沒有已宣告欄位"),
             BinInspectorNoByteSelectedLabel = Pick("No BIN byte selected.", "尚未選取 BIN 位元組。"),
             BinInspectorNoFieldLabel = Pick("no selected field", "未選取欄位"),
             BinInspectorSelectedByteFormat = Pick(
