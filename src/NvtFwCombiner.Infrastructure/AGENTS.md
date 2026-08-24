@@ -7,4 +7,3 @@
   identity, timeout, bounded output, and host-side changed-range validation.
 - Fail closed on malformed data, missing tools, process errors, or undeclared
   writes; return stable Application-facing issues.
-- First test: `NvtFwCombiner.Infrastructure.Tests`.

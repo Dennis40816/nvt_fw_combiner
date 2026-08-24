@@ -12,7 +12,9 @@ the nearest `AGENTS.md`. Implement only owner-approved scope.
    non-goals, mutable surfaces, evidence gates, narrow test, and final gate.
 2. Complete the fail-closed
    [capability-reuse gate](../../../docs/governance/development-execution-workflow.md#capability-reuse-gate-fail-closed)
-   before any production edit. Inventory existing semantic producers, callers,
+   before adding, changing, moving, wrapping, splitting, replacing, or
+   refactoring production behavior, a semantic branch, or an owner contract.
+   Inventory existing semantic producers, callers,
    ports/adapters, tests, and duplicate-risk helpers; record the owner or exact
    `none-found` evidence and the approved disposition. A projection may
    translate an existing typed result but must not re-derive its fact.

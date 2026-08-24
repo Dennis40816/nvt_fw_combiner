@@ -11,7 +11,9 @@ description: Review or design changes that affect NVT FW Combiner layers, depend
 4. Complete and review the fail-closed
    [capability-reuse gate](../../../docs/governance/development-execution-workflow.md#capability-reuse-gate-fail-closed).
    Confirm the current producer, caller path, port/adapter, tests, proposed
-   owner, and dependency direction before adding logic or an abstraction.
+   owner, and dependency direction before adding, changing, moving, wrapping,
+   splitting, replacing, or refactoring production behavior, a semantic branch,
+   or an owner contract.
    Cross-layer projections may translate typed results but cannot re-derive
    their facts.
 5. Reject UI-owned firmware logic, infrastructure-owned business rules, and production dependencies on `refcode/`.

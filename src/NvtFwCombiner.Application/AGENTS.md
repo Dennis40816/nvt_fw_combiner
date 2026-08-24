@@ -8,4 +8,3 @@
 - Keep Merge and Replace on the same composition planner/executor.
 - Temporary compatibility adapters require a named replacement and deletion
   criterion.
-- First test: `NvtFwCombiner.Application.Tests`.

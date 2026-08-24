@@ -14,37 +14,38 @@ Branch/version/release rules live in
 
 ## Capability-reuse gate (fail closed)
 
-Production edits must not begin until the active specification, ticket, or
-owner-approved handoff contains a capability-reuse record. Diagnostic reads,
-tests that characterize existing behavior, and planning may proceed while the
-record is incomplete; new or changed production logic may not.
+Before adding, changing, moving, wrapping, splitting, replacing, or refactoring
+production behavior, a semantic branch, or an owner contract, the active
+specification, ticket, or owner-approved handoff must contain a staged,
+`design-active` [capability-reuse record](capability-reuse-record.md).
+The record is parsed from its real staged Git blob; intent-to-add and any
+index/worktree byte mismatch fail closed. Diagnostic reads, characterization
+tests, and planning may proceed while it is incomplete; new or changed
+production behavior may not. Unknown, unsearched, or conflicting
+ownership fails the gate. Renaming, relocating, or wrapping a duplicate does
+not satisfy it. R2/R3 work records the independent
+architecture/contract admission before implementation begins. The frozen exact
+candidate then receives the risk-appropriate independent review. Before the
+evidence commit, every admitted record becomes `final-complete`, binds the same
+`implementationHead` and `reviewedHead`, records the committed path-state
+digest and final-review evidence, and passes the repository validator. Each
+task must still exist as `design-active` at that reviewed head; finalization
+preserves all admitted design fields and changes only lifecycle/final-evidence
+fields. R3 continues to require its existing external firmware-owner or
+release-owner gate and authority-specific evidence; schema v2 cannot satisfy
+that authority. Committed final records are immutable archives and never open
+a later batch. The final evidence commit is the direct child of the reviewed
+head, changes no governed path, and advances the only valid checkpoint. Every
+later batch binds that checkpoint exactly, including committed changes; the
+validator never substitutes a worktree-only `git diff HEAD`. Complete Git
+history is a prerequisite for this validation.
 
-The record must name all of the following:
-
-1. the requested capability and every target or adjacent module/layer;
-2. the search evidence used to inspect those modules: CodeGraph when the
-   repository is indexed, otherwise exact symbol/text searches, project
-   references, callers, ports/adapters, and existing tests;
-3. the current semantic owner, typed result, complete production caller path,
-   adapter/projection boundary, and test owner, or `none-found` plus the exact
-   searched scope and commands;
-4. the proposed owner, dependency direction, reused contracts/results, and
-   affected firmware, persistence, UI, or release authority;
-5. explicit checks for an existing validator, parser, normalizer, formatter,
-   resolver, planner, compiler, service, cache, store/repository, processor,
-   naming rule, control/style, fallback, and compatibility path; and
-6. one disposition: `reuse`, `extend-owner`, `delete-then-replace`,
-   `reject-duplicate`, or `approved-migration-seam`.
-
-Unknown, unsearched, or conflicting ownership fails the gate. When an owner
-already exists, the change reuses or extends it. An `approved-migration-seam`
-requires the architecture owner, a complete caller inventory, a narrow test
-that distinguishes old and new paths, and an executable deletion milestone;
-it cannot acquire new semantic authority. R2/R3 work records the independent
-architecture/contract review before implementation begins.
-
-The gate is not satisfied by renaming a duplicate, moving it to another layer,
-adding an interface around it, or demonstrating only that new tests pass.
+An initial checkpoint is not self-authorized by a record. Until its existing
+owner authority accepts the trusted initial boundary, the validator reports a
+pending-checkpoint error and finalization is blocked. A `final-complete` record
+also cannot satisfy R3 firmware-owner, release-owner, golden/byte, exact-range,
+signing, permission, or protected-environment gates; those existing authorities
+remain mandatory.
 
 ## Narrow test selection
 
@@ -71,6 +72,12 @@ Commit at stable review checkpoints. Each commit must be coherent, tested, and
 recoverable; documentation, tests, and review corrections that belong to the
 same outcome need not become separate ceremony commits. Stage only explicit
 owned files. Never stage, reset, amend, or revert another agent's changes.
+
+For governed work, create implementation commits first, review the exact frozen
+implementation head, then populate and commit the `final-complete` records as a
+separate evidence checkpoint. An intermediate commit that still contains a
+`design-active` record intentionally fails the final repository gate; it is not
+mergeable and cannot authorize follow-on development.
 
 Before handoff: format changed files, run the narrow test, inspect the exact
 diff, apply scoped Polytail, run the final gate, and record residual evidence.
@@ -118,6 +125,12 @@ explicitly block integration.
 
 ## Handoff
 
-Report outcome, changed files, risk, exact commands/results, firmware/profile/
-protocol/release impact, required reviewers, and unresolved evidence. PR bodies
-record outcomes and gates; they do not reproduce a complete agent execution log.
+Start with one current table containing `open TODO`, `owner`, `blocker`, and
+`next action`; write `none` when it is empty. Historical detail may remain as
+evidence but cannot become a second queue. Report outcome, changed files, risk,
+exact commands/results, firmware/profile/protocol/release impact, required
+reviewers, unresolved evidence, and the repository's canonical code-size
+breakdown. Separate shipped production, tests, tooling, contracts/profiles,
+generated data, and deleted binary evidence, including the exact canonical
+code-size command and values. PR bodies record outcomes and gates; they do not
+reproduce a complete agent execution log.

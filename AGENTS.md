@@ -34,6 +34,15 @@ selection, retry, and checkpoints.
 - Domain is pure. Application owns use cases through ports. Infrastructure
   implements adapters without redefining firmware semantics. UI/CLI send typed
   requests through the same Application services.
+- Semantic authority is one-way: Domain/Profiles own canonical firmware facts;
+  Application owns terminal use-case decisions; adapters carry typed results;
+  Presentation/CLI render them. Before adding, changing, moving, wrapping,
+  splitting, replacing, or refactoring production behavior, a semantic branch,
+  or an owner contract, complete the
+  [fail-closed capability-reuse gate](docs/governance/development-execution-workflow.md#capability-reuse-gate-fail-closed).
+  Extend the existing owner when its contract is insufficient. A second
+  semantic path requires an approved migration seam and executable deletion
+  milestone.
 - Every workflow uses one planner/executor. Merge initializes blank bytes;
   Replace clones a required immutable reference.
 - Profiles own regions, atomicity, access, mappings, overlap, processors,

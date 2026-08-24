@@ -100,6 +100,7 @@ REQUIRED_FILES = {
     "docs/adr/0006-external-combiner-tool-runner.md",
     "docs/adr/0007-dev0-contract-scope-and-region-model.md",
     "docs/adr/0015-canonical-firmware-map-and-compiled-composition.md",
+    "docs/adr/0054-finalize-capability-reuse-records.md",
     "docs/architecture/canonical-variable-model.md",
     "docs/architecture/experience-and-access-policy.md",
     "docs/architecture/external-combiner-tool-runner.md",
@@ -134,6 +135,7 @@ REQUIRED_FILES = {
     "docs/contracts/saved-composition-rule-v2.schema.json",
     "docs/governance/agent-skill-inventory.md",
     "docs/governance/agent-skill-routing.md",
+    "docs/governance/capability-reuse-record.md",
     "docs/governance/development-execution-workflow.md",
     "docs/governance/development-tags.md",
     "docs/policies/polytail.md",
@@ -1376,8 +1378,1088 @@ def validate_packaging_policy(files: Iterable[Path], errors: list[str]) -> None:
             )
 
 
+CAPABILITY_REUSE_RECORD_FIELDS = {
+    "schemaVersion",
+    "taskId",
+    "capability",
+    "integrationBase",
+    "risk",
+    "kind",
+    "state",
+    "mutablePaths",
+    "implementationOwner",
+    "searchEvidence",
+    "semanticOwner",
+    "terminalContract",
+    "disposition",
+    "designReview",
+    "implementationHead",
+    "reviewedHead",
+    "pathStateDigest",
+    "finalReview",
+}
+CAPABILITY_REUSE_RISKS = {"R0", "R1", "R2", "R3"}
+CAPABILITY_REUSE_KINDS = {"behavior", "refactor", "ui", "release", "governance"}
+CAPABILITY_REUSE_STATES = {"design-active", "final-complete", "blocked"}
+CAPABILITY_REUSE_DISPOSITIONS = {"reuse", "extend-owner", "reject-duplicate"}
+CAPABILITY_REUSE_DESIGN_REVIEW_OUTCOMES = {
+    "not-required",
+    "approved",
+    "findings-incorporated",
+    "blocked",
+}
+CAPABILITY_REUSE_FINAL_REVIEW_OUTCOMES = {
+    "pending",
+    "approved",
+    "findings-incorporated",
+}
+CAPABILITY_REUSE_TASK_ID = re.compile(r"[A-Z][A-Z0-9]*(?:-[A-Z0-9]+)+")
+CAPABILITY_REUSE_CHANGE_RECORD_ROOT = PurePosixPath(
+    "docs/governance/change-records"
+)
+CAPABILITY_REUSE_RISK_LEVELS = {"R0": 0, "R1": 1, "R2": 2, "R3": 3}
+CAPABILITY_REUSE_FINALIZED_FIELDS = {
+    "state",
+    "implementationHead",
+    "reviewedHead",
+    "pathStateDigest",
+    "finalReview",
+}
+CAPABILITY_REUSE_R3_SCRIPTS = {
+    "scripts/ab_merge_fixture_validation.py",
+    "scripts/canonical_golden_validation.py",
+    "scripts/create_candidate_ic_intake.py",
+    "scripts/create_ctrlram_universal_sentinel.py",
+    "scripts/create_update_catalog.py",
+    "scripts/diagnostic_golden_validation.py",
+    "scripts/external_tool_policy.py",
+    "scripts/intake_ic_reference.py",
+    "scripts/package.ps1",
+    "scripts/publish-github.ps1",
+    "scripts/publish-github.sh",
+    "scripts/release_promotion_policy.py",
+    "scripts/render_release_notes.py",
+    "scripts/sign-release.ps1",
+    "scripts/sign-release.sh",
+    "scripts/sign_release.py",
+    "scripts/signing_policy.py",
+    "scripts/smoke-release.ps1",
+}
+
+
+@dataclass(frozen=True)
+class _CommittedCapabilityRecord:
+    revision: str
+    content: bytes
+    value: dict[str, Any]
+
+
+@dataclass(frozen=True)
+class _CapabilityRecordHistory:
+    first_active: _CommittedCapabilityRecord | None
+    first_final: _CommittedCapabilityRecord | None
+    latest_unfinalized_active: _CommittedCapabilityRecord | None
+    admitted_field_violation: str | None
+
+
+def _is_capability_reuse_governed_path(relative: str) -> bool:
+    path = PurePosixPath(relative)
+    parts = path.parts
+    if parts[:3] == CAPABILITY_REUSE_CHANGE_RECORD_ROOT.parts:
+        return False
+    if path.name == "AGENTS.md":
+        return True
+    if parts[:2] == (".agents", "skills"):
+        return True
+    if parts[:2] in {
+        ("docs", "governance"),
+        ("docs", "policies"),
+        ("docs", "adr"),
+        ("docs", "specs"),
+        ("docs", "contracts"),
+        (".github", "workflows"),
+        ("testdata", "golden"),
+        ("tools", "crc-worker"),
+    }:
+        if parts[:2] == ("tools", "crc-worker") and any(
+            part in {"tests", "cache", ".cache", ".pytest_cache", "__pycache__"}
+            for part in parts[2:]
+        ):
+            return False
+        return True
+    if relative == "docs/ci/release-package.md":
+        return True
+    if parts and parts[0] in {"src", "profiles", "eng"}:
+        return True
+    return (
+        len(parts) == 2
+        and parts[0] == "scripts"
+        and path.suffix.casefold() in {".py", ".ps1", ".sh"}
+    )
+
+
+def _capability_reuse_minimum_risk(relative: str) -> str:
+    path = PurePosixPath(relative)
+    parts = path.parts
+    if path.name == "AGENTS.md":
+        return "R2"
+    if parts[:2] == (".agents", "skills"):
+        return "R2"
+    if parts[:2] in {
+        ("docs", "governance"),
+        ("docs", "policies"),
+        ("docs", "adr"),
+        ("docs", "specs"),
+        ("docs", "contracts"),
+    } or relative == "docs/ci/release-package.md":
+        return "R2"
+    if parts[:2] in {
+        (".github", "workflows"),
+        ("testdata", "golden"),
+        ("tools", "crc-worker"),
+    }:
+        return "R3"
+    if parts and parts[0] == "profiles":
+        return "R3"
+    if relative in CAPABILITY_REUSE_R3_SCRIPTS:
+        return "R3"
+    if parts and parts[0] in {"scripts", "eng"}:
+        return "R2"
+    return "R1"
+
+
+def _git_paths(root: Path, arguments: list[str]) -> tuple[set[str], str | None]:
+    result = subprocess.run(
+        ["git", *arguments],
+        cwd=root,
+        check=False,
+        capture_output=True,
+    )
+    if result.returncode != 0:
+        detail = result.stderr.decode("utf-8", errors="replace").strip()
+        return set(), detail or f"git exited {result.returncode}"
+    return {
+        value.decode("utf-8", errors="strict")
+        for value in result.stdout.split(b"\0")
+        if value
+    }, None
+
+
+def _parse_git_name_status(output: bytes) -> set[str]:
+    values = [value.decode("utf-8", errors="strict") for value in output.split(b"\0") if value]
+    paths: set[str] = set()
+    index = 0
+    while index < len(values):
+        status = values[index]
+        index += 1
+        if not status or status[0] not in "ACDMRT":
+            raise ValueError(f"unsupported git name-status entry: {status!r}")
+        path_count = 2 if status[0] in {"R", "C"} else 1
+        if index + path_count > len(values):
+            raise ValueError(f"truncated git name-status entry: {status!r}")
+        paths.update(values[index : index + path_count])
+        index += path_count
+    return paths
+
+
+def _git_changed_paths(root: Path, integration_base: str) -> tuple[set[str], str | None]:
+    result = subprocess.run(
+        [
+            "git",
+            "diff",
+            "--name-status",
+            "-z",
+            "--find-renames",
+            integration_base,
+            "--",
+        ],
+        cwd=root,
+        check=False,
+        capture_output=True,
+    )
+    if result.returncode != 0:
+        detail = result.stderr.decode("utf-8", errors="replace").strip()
+        return set(), detail or f"git exited {result.returncode}"
+    try:
+        return _parse_git_name_status(result.stdout), None
+    except (UnicodeDecodeError, ValueError) as exc:
+        return set(), str(exc)
+
+
+def _git_revision_changed_paths(
+    root: Path,
+    older: str,
+    newer: str,
+) -> tuple[set[str], str | None]:
+    result = subprocess.run(
+        [
+            "git",
+            "diff",
+            "--name-status",
+            "-z",
+            "--find-renames",
+            older,
+            newer,
+            "--",
+        ],
+        cwd=root,
+        check=False,
+        capture_output=True,
+    )
+    if result.returncode != 0:
+        detail = result.stderr.decode("utf-8", errors="replace").strip()
+        return set(), detail or f"git exited {result.returncode}"
+    try:
+        return _parse_git_name_status(result.stdout), None
+    except (UnicodeDecodeError, ValueError) as exc:
+        return set(), str(exc)
+
+
+def _git_object(root: Path, arguments: list[str]) -> tuple[bytes, str | None]:
+    result = subprocess.run(
+        ["git", *arguments],
+        cwd=root,
+        check=False,
+        capture_output=True,
+    )
+    if result.returncode != 0:
+        detail = result.stderr.decode("utf-8", errors="replace").strip()
+        return b"", detail or f"git exited {result.returncode}"
+    return result.stdout, None
+
+
+def _capability_path_state_digest(
+    root: Path,
+    revision: str,
+    paths: Iterable[str],
+) -> tuple[str | None, str | None]:
+    """Hash committed Git path states without depending on checkout EOL conversion."""
+    digest = hashlib.sha256()
+    digest.update(b"nfc-capability-path-state-v1\0")
+    for relative in sorted(paths):
+        encoded_path = relative.encode("utf-8")
+        digest.update(len(encoded_path).to_bytes(4, "big"))
+        digest.update(encoded_path)
+        tree_entry, tree_error = _git_object(
+            root,
+            ["ls-tree", "-z", revision, "--", relative],
+        )
+        if tree_error is not None:
+            return None, tree_error
+        if not tree_entry:
+            digest.update(b"\0deleted\0")
+            continue
+        entries = [entry for entry in tree_entry.split(b"\0") if entry]
+        if len(entries) != 1 or b"\t" not in entries[0]:
+            return None, f"expected one exact Git tree entry for {relative}"
+        metadata, actual_path = entries[0].split(b"\t", 1)
+        values = metadata.split(b" ")
+        if len(values) != 3 or actual_path.decode("utf-8", errors="strict") != relative:
+            return None, f"invalid Git tree entry for {relative}"
+        mode, object_type, object_id = values
+        if object_type != b"blob":
+            return None, f"capability mutable path is not a Git blob: {relative}"
+        blob, blob_error = _git_object(root, ["cat-file", "blob", object_id.decode("ascii")])
+        if blob_error is not None:
+            return None, blob_error
+        digest.update(b"\0present\0")
+        digest.update(mode)
+        digest.update(b"\0")
+        digest.update(len(blob).to_bytes(8, "big"))
+        digest.update(blob)
+    return digest.hexdigest(), None
+
+
+def _historical_final_records(
+    root: Path,
+) -> tuple[dict[str, _CapabilityRecordHistory], set[str], str | None]:
+    """Return committed active/final snapshots for every historical task path."""
+    output, error = _git_object(
+        root,
+        [
+            "log",
+            "--format=",
+            "--name-only",
+            "--diff-filter=ADMR",
+            "--",
+            CAPABILITY_REUSE_CHANGE_RECORD_ROOT.as_posix(),
+        ],
+    )
+    if error is not None:
+        return {}, set(), error
+    candidates = {
+        value.decode("utf-8", errors="strict")
+        for value in output.splitlines()
+        if value
+    }
+    history: dict[str, _CapabilityRecordHistory] = {}
+    invalid_nested_paths: set[str] = set()
+    for relative in sorted(candidates):
+        path = PurePosixPath(relative)
+        if path.suffix != ".json":
+            continue
+        if path.parent != CAPABILITY_REUSE_CHANGE_RECORD_ROOT:
+            invalid_nested_paths.add(relative)
+            continue
+        revisions, revision_error = _git_object(
+            root,
+            ["rev-list", "--reverse", "HEAD", "--", relative],
+        )
+        if revision_error is not None:
+            return {}, invalid_nested_paths, revision_error
+        first_active: _CommittedCapabilityRecord | None = None
+        first_final: _CommittedCapabilityRecord | None = None
+        latest_active: _CommittedCapabilityRecord | None = None
+        admitted_field_violation: str | None = None
+        for revision_value in revisions.splitlines():
+            revision = revision_value.decode("ascii")
+            content, content_error = _git_object(
+                root,
+                ["show", f"{revision}:{relative}"],
+            )
+            if content_error is not None:
+                continue
+            try:
+                value = json.loads(content.decode("utf-8"))
+            except (UnicodeDecodeError, json.JSONDecodeError):
+                continue
+            if not isinstance(value, dict) or value.get("schemaVersion") != 2:
+                continue
+            committed = _CommittedCapabilityRecord(revision, content, value)
+            if value.get("state") == "design-active":
+                if first_active is None:
+                    first_active = committed
+                elif any(
+                    first_active.value.get(field) != value.get(field)
+                    for field in CAPABILITY_REUSE_RECORD_FIELDS - CAPABILITY_REUSE_FINALIZED_FIELDS
+                ):
+                    admitted_field_violation = revision
+                latest_active = committed
+            elif value.get("state") == "final-complete":
+                if first_active is not None and any(
+                    first_active.value.get(field) != value.get(field)
+                    for field in CAPABILITY_REUSE_RECORD_FIELDS - CAPABILITY_REUSE_FINALIZED_FIELDS
+                ):
+                    admitted_field_violation = revision
+                first_final = committed
+                break
+        if first_final is not None or latest_active is not None:
+            history[relative] = _CapabilityRecordHistory(
+                first_active=first_active,
+                first_final=first_final,
+                latest_unfinalized_active=None if first_final is not None else latest_active,
+                admitted_field_violation=admitted_field_violation,
+            )
+    return history, invalid_nested_paths, None
+
+
+def _git_index_blob(root: Path, relative: str) -> tuple[bytes | None, str | None]:
+    output, error = _git_object(root, ["ls-files", "--stage", "-z", "--", relative])
+    if error is not None:
+        return None, error
+    entries = [entry for entry in output.split(b"\0") if entry]
+    if not entries:
+        return None, "record is not present in the Git index"
+    if len(entries) != 1 or b"\t" not in entries[0]:
+        return None, "record has multiple or malformed Git index entries"
+    metadata, actual_path = entries[0].split(b"\t", 1)
+    values = metadata.split(b" ")
+    if len(values) != 3 or actual_path.decode("utf-8", errors="strict") != relative:
+        return None, "record has a malformed Git index entry"
+    mode, object_id, stage = values
+    if stage != b"0":
+        return None, "record has an unresolved Git index stage"
+    if object_id == b"0" * len(object_id):
+        return None, "record is intent-to-add and has no indexed blob"
+    in_head = subprocess.run(
+        ["git", "cat-file", "-e", f"HEAD:{relative}"],
+        cwd=root,
+        check=False,
+        capture_output=True,
+    )
+    if in_head.returncode != 0:
+        staged_paths, staged_error = _git_paths(
+            root,
+            ["diff", "--cached", "--name-only", "-z", "--", relative],
+        )
+        if staged_error is not None:
+            return None, staged_error
+        if relative not in staged_paths:
+            return None, "record is intent-to-add and has no indexed candidate blob"
+    if mode not in {b"100644", b"100755"}:
+        return None, f"record has unsupported Git index mode {mode.decode('ascii')}"
+    content, content_error = _git_object(
+        root,
+        ["cat-file", "blob", object_id.decode("ascii")],
+    )
+    if content_error is not None:
+        return None, content_error
+    return content, None
+
+
+def _record_changed_in_commits_after(
+    root: Path,
+    relative: str,
+    revision: str,
+) -> tuple[bool, str | None]:
+    revisions, revisions_error = _git_object(
+        root,
+        ["rev-list", "--ancestry-path", f"{revision}..HEAD"],
+    )
+    if revisions_error is not None:
+        return False, revisions_error
+    for candidate in revisions.splitlines():
+        changed, changed_error = _git_object(
+            root,
+            [
+                "diff-tree",
+                "--no-commit-id",
+                "--name-status",
+                "-z",
+                "-r",
+                "-m",
+                "--find-renames",
+                candidate.decode("ascii"),
+                "--",
+            ],
+        )
+        if changed_error is not None:
+            return False, changed_error
+        try:
+            if relative in _parse_git_name_status(changed):
+                return True, None
+        except (UnicodeDecodeError, ValueError) as exc:
+            return False, str(exc)
+    return False, None
+
+
+def _validate_capability_reuse_record(
+    path: Path,
+    record: object,
+    errors: list[str],
+) -> dict[str, Any] | None:
+    relative = path.as_posix()
+    if not isinstance(record, dict):
+        errors.append(f"capability-reuse record must be a JSON object: {relative}")
+        return None
+    if record.get("schemaVersion") != 2:
+        errors.append(f"capability-reuse record requires schemaVersion 2: {relative}")
+        return None
+    fields = set(record)
+    if fields != CAPABILITY_REUSE_RECORD_FIELDS:
+        errors.append(
+            f"capability-reuse record fields differ from v2 in {relative}: "
+            f"missing={sorted(CAPABILITY_REUSE_RECORD_FIELDS - fields)}, "
+            f"extra={sorted(fields - CAPABILITY_REUSE_RECORD_FIELDS)}"
+        )
+        return None
+    for field in (
+        "taskId",
+        "capability",
+        "integrationBase",
+        "implementationOwner",
+        "semanticOwner",
+        "terminalContract",
+    ):
+        if not isinstance(record[field], str) or not record[field].strip():
+            errors.append(f"capability-reuse record requires non-empty {field}: {relative}")
+    task_id = record["taskId"]
+    if not isinstance(task_id, str) or CAPABILITY_REUSE_TASK_ID.fullmatch(task_id) is None:
+        errors.append(f"capability-reuse taskId has invalid format: {relative}")
+    if path.stem != task_id:
+        errors.append(
+            f"capability-reuse filename must equal taskId: {relative}: {task_id}"
+        )
+    if not re.fullmatch(r"[0-9a-f]{40}", str(record["integrationBase"])):
+        errors.append(f"capability-reuse integrationBase must be a full lowercase SHA: {relative}")
+    for field, allowed in (
+        ("risk", CAPABILITY_REUSE_RISKS),
+        ("kind", CAPABILITY_REUSE_KINDS),
+        ("state", CAPABILITY_REUSE_STATES),
+        ("disposition", CAPABILITY_REUSE_DISPOSITIONS),
+    ):
+        if record[field] not in allowed:
+            errors.append(
+                f"capability-reuse {field} must be one of {sorted(allowed)}: {relative}"
+            )
+    search_evidence = record["searchEvidence"]
+    if not isinstance(search_evidence, list) or not search_evidence or not all(
+        isinstance(value, str) and value.strip() for value in search_evidence
+    ):
+        errors.append(f"capability-reuse searchEvidence must be a non-empty string list: {relative}")
+
+    mutable_paths = record["mutablePaths"]
+    if not isinstance(mutable_paths, list) or not all(isinstance(value, str) for value in mutable_paths):
+        errors.append(f"capability-reuse mutablePaths must be a string list: {relative}")
+        mutable_paths = []
+    normalized_paths: list[str] = []
+    for value in mutable_paths:
+        candidate = PurePosixPath(value)
+        if (
+            not value
+            or "\\" in value
+            or candidate.is_absolute()
+            or any(part in {"", ".", ".."} for part in candidate.parts)
+            or any(token in value for token in "*?[")
+            or candidate.as_posix() != value
+        ):
+            errors.append(f"capability-reuse mutable path must be exact and repo-relative: {relative}: {value}")
+            continue
+        normalized_paths.append(value)
+    if len(normalized_paths) != len(set(normalized_paths)):
+        errors.append(f"capability-reuse mutablePaths contains duplicates: {relative}")
+    record["mutablePaths"] = normalized_paths
+    state = record["state"]
+    if state == "blocked" and normalized_paths:
+        errors.append(f"blocked capability-reuse record requires empty mutablePaths: {relative}")
+    if state in {"design-active", "final-complete"} and not normalized_paths:
+        errors.append(f"{state} capability-reuse record requires mutablePaths: {relative}")
+    if record["disposition"] == "reject-duplicate" and state != "blocked":
+        errors.append(f"reject-duplicate capability-reuse record must be blocked: {relative}")
+    governed_mutable_paths = [
+        value for value in normalized_paths if _is_capability_reuse_governed_path(value)
+    ]
+    if governed_mutable_paths and record["risk"] in CAPABILITY_REUSE_RISK_LEVELS:
+        minimum_risk = max(
+            (_capability_reuse_minimum_risk(value) for value in governed_mutable_paths),
+            key=CAPABILITY_REUSE_RISK_LEVELS.__getitem__,
+        )
+        if (
+            CAPABILITY_REUSE_RISK_LEVELS[record["risk"]]
+            < CAPABILITY_REUSE_RISK_LEVELS[minimum_risk]
+        ):
+            errors.append(
+                f"capability-reuse risk is below path minimum {minimum_risk}: "
+                f"{relative}: {record['risk']}"
+            )
+
+    review = record["designReview"]
+    if not isinstance(review, dict) or set(review) != {"reviewer", "outcome", "evidence"}:
+        errors.append(f"capability-reuse designReview differs from v2: {relative}")
+        return record
+    outcome = review.get("outcome")
+    if outcome not in CAPABILITY_REUSE_DESIGN_REVIEW_OUTCOMES:
+        errors.append(
+            f"capability-reuse design review outcome must be one of "
+            f"{sorted(CAPABILITY_REUSE_DESIGN_REVIEW_OUTCOMES)}: {relative}"
+        )
+    reviewer = review.get("reviewer")
+    evidence = review.get("evidence")
+    requires_independent_review = record["risk"] in {"R2", "R3"}
+    if requires_independent_review:
+        if not isinstance(reviewer, str) or not reviewer.strip():
+            errors.append(f"R2/R3 capability-reuse record requires a design reviewer: {relative}")
+        elif reviewer.strip().casefold() == record["implementationOwner"].strip().casefold():
+            errors.append(f"R2/R3 capability-reuse design reviewer must be independent: {relative}")
+        if not isinstance(evidence, str) or not evidence.strip():
+            errors.append(f"R2/R3 capability-reuse record requires design-review evidence: {relative}")
+    elif reviewer is not None:
+        errors.append(f"R0/R1 capability-reuse design reviewer must be null: {relative}")
+    if state == "blocked":
+        if outcome != "blocked":
+            errors.append(f"blocked capability-reuse record requires blocked design review: {relative}")
+    elif requires_independent_review:
+        if outcome not in {"approved", "findings-incorporated"}:
+            errors.append(f"R2/R3 admitted record requires an admitted design review: {relative}")
+    elif outcome != "not-required":
+        errors.append(f"R0/R1 capability-reuse design review must be not-required: {relative}")
+    final_review = record["finalReview"]
+    if not isinstance(final_review, dict) or set(final_review) != {
+        "reviewer",
+        "outcome",
+        "evidence",
+    }:
+        errors.append(f"capability-reuse finalReview differs from v2: {relative}")
+        return record
+    final_outcome = final_review.get("outcome")
+    if final_outcome not in CAPABILITY_REUSE_FINAL_REVIEW_OUTCOMES:
+        errors.append(
+            f"capability-reuse final review outcome must be one of "
+            f"{sorted(CAPABILITY_REUSE_FINAL_REVIEW_OUTCOMES)}: {relative}"
+        )
+    final_reviewer = final_review.get("reviewer")
+    final_evidence = final_review.get("evidence")
+    head_fields = ("implementationHead", "reviewedHead")
+    if state == "final-complete":
+        for field in head_fields:
+            if re.fullmatch(r"[0-9a-f]{40}", str(record[field])) is None:
+                errors.append(
+                    f"final-complete capability-reuse record requires full lowercase {field}: {relative}"
+                )
+        if record["implementationHead"] != record["reviewedHead"]:
+            errors.append(
+                f"final-complete capability-reuse implementationHead must equal reviewedHead: {relative}"
+            )
+        if re.fullmatch(r"[0-9a-f]{64}", str(record["pathStateDigest"])) is None:
+            errors.append(
+                f"final-complete capability-reuse record requires SHA-256 pathStateDigest: {relative}"
+            )
+        if not isinstance(final_reviewer, str) or not final_reviewer.strip():
+            errors.append(f"final-complete capability-reuse record requires a final reviewer: {relative}")
+        elif final_reviewer.strip().casefold() == record["implementationOwner"].strip().casefold():
+            errors.append(
+                f"final-complete capability-reuse final reviewer must be independent: {relative}"
+            )
+        if final_outcome not in {"approved", "findings-incorporated"}:
+            errors.append(f"final-complete capability-reuse record requires an admitted final review: {relative}")
+        if not isinstance(final_evidence, str) or not final_evidence.strip():
+            errors.append(f"final-complete capability-reuse record requires final-review evidence: {relative}")
+        if record["risk"] == "R3":
+            errors.append(
+                f"R3 final-complete capability-reuse record remains pending existing "
+                f"external owner authority; schema v2 evidence alone is insufficient: {relative}"
+            )
+    else:
+        for field in (*head_fields, "pathStateDigest"):
+            if record[field] is not None:
+                errors.append(f"{state} capability-reuse record requires null {field}: {relative}")
+        if final_reviewer is not None or final_outcome != "pending" or final_evidence != "":
+            errors.append(f"{state} capability-reuse final review must remain pending: {relative}")
+    return record
+
+
+def validate_capability_reuse_governance(
+    root: Path,
+    errors: list[str],
+    *,
+    trusted_initial_base: str | None = None,
+) -> None:
+    shallow = subprocess.run(
+        ["git", "rev-parse", "--is-shallow-repository"],
+        cwd=root,
+        check=False,
+        capture_output=True,
+        text=True,
+    )
+    if shallow.returncode != 0 or shallow.stdout.strip() not in {"true", "false"}:
+        errors.append(
+            "capability-reuse history availability could not be read: "
+            f"{shallow.stderr.strip() or f'git exited {shallow.returncode}'}"
+        )
+        return
+    if shallow.stdout.strip() == "true":
+        errors.append(
+            "capability-reuse validation requires complete Git history; shallow repositories fail closed"
+        )
+        return
+
+    history, historical_nested_paths, history_error = _historical_final_records(root)
+    if history_error is not None:
+        errors.append(f"capability-reuse record history could not be read: {history_error}")
+        return
+    records_root = root / "docs" / "governance" / "change-records"
+    all_index_paths, index_paths_error = _git_paths(
+        root,
+        [
+            "ls-files",
+            "-z",
+            "--",
+            CAPABILITY_REUSE_CHANGE_RECORD_ROOT.as_posix(),
+        ],
+    )
+    if index_paths_error is not None:
+        errors.append(f"capability-reuse Git index could not be read: {index_paths_error}")
+        return
+    all_worktree_paths = {
+        path.relative_to(root).as_posix()
+        for path in records_root.rglob("*.json")
+    } if records_root.is_dir() else set()
+    invalid_nested_paths = historical_nested_paths | {
+        relative
+        for relative in all_index_paths | all_worktree_paths
+        if PurePosixPath(relative).suffix == ".json"
+        and PurePosixPath(relative).parent != CAPABILITY_REUSE_CHANGE_RECORD_ROOT
+    }
+    for relative in sorted(invalid_nested_paths):
+        errors.append(
+            f"capability-reuse record parent must be exactly "
+            f"{CAPABILITY_REUSE_CHANGE_RECORD_ROOT.as_posix()}: {relative}"
+        )
+    index_paths = {
+        relative
+        for relative in all_index_paths
+        if PurePosixPath(relative).parent == CAPABILITY_REUSE_CHANGE_RECORD_ROOT
+        and PurePosixPath(relative).suffix == ".json"
+    }
+    worktree_paths = {
+        relative
+        for relative in all_worktree_paths
+        if PurePosixPath(relative).parent == CAPABILITY_REUSE_CHANGE_RECORD_ROOT
+    }
+    current_relatives = sorted(index_paths | worktree_paths)
+
+    indexed_content: dict[str, bytes] = {}
+    records_by_relative: dict[str, dict[str, Any]] = {}
+    for relative in current_relatives:
+        path = root / PurePosixPath(relative)
+        ignored = subprocess.run(
+            ["git", "check-ignore", "-q", "--", relative],
+            cwd=root,
+            check=False,
+            capture_output=True,
+        )
+        if ignored.returncode == 0:
+            errors.append(f"capability-reuse record is ignored and cannot open the gate: {relative}")
+            continue
+        if ignored.returncode != 1:
+            detail = ignored.stderr.decode("utf-8", errors="replace").strip()
+            errors.append(
+                f"capability-reuse record tracking state could not be read: {relative}: "
+                f"{detail or f'git exited {ignored.returncode}'}"
+            )
+            continue
+        content, content_error = _git_index_blob(root, relative)
+        if content_error is not None or content is None:
+            if content_error == "record is not present in the Git index":
+                errors.append(f"capability-reuse record must be tracked in Git: {relative}")
+            else:
+                errors.append(
+                    f"capability-reuse record must have one real staged Git blob: "
+                    f"{relative}: {content_error or 'missing blob'}"
+                )
+            continue
+        indexed_content[relative] = content
+        try:
+            worktree_content = path.read_bytes()
+        except OSError as exc:
+            errors.append(f"capability-reuse index/worktree mismatch: {relative}: {exc}")
+            continue
+        if worktree_content != content:
+            errors.append(f"capability-reuse index/worktree content differs: {relative}")
+        try:
+            value = json.loads(content.decode("utf-8"))
+        except (UnicodeDecodeError, json.JSONDecodeError) as exc:
+            errors.append(f"invalid capability-reuse JSON {relative}: {exc}")
+            continue
+        validated = _validate_capability_reuse_record(PurePosixPath(relative), value, errors)
+        if validated is not None:
+            records_by_relative[relative] = validated
+
+    for relative, record_history in history.items():
+        if record_history.admitted_field_violation is not None:
+            errors.append(
+                f"committed capability-reuse record changed immutable admitted fields: "
+                f"{relative}: {record_history.admitted_field_violation}"
+            )
+        first_final = record_history.first_final
+        if first_final is not None:
+            if relative not in indexed_content:
+                errors.append(f"final-complete capability-reuse record was deleted: {relative}")
+            elif indexed_content[relative] != first_final.content:
+                errors.append(f"final-complete capability-reuse record is immutable after commit: {relative}")
+            changed, changed_error = _record_changed_in_commits_after(
+                root,
+                relative,
+                first_final.revision,
+            )
+            if changed_error is not None:
+                errors.append(
+                    f"final-complete capability-reuse history could not be audited: "
+                    f"{relative}: {changed_error}"
+                )
+            elif changed:
+                errors.append(
+                    f"final-complete capability-reuse record changed in commit history: {relative}"
+                )
+        active = record_history.latest_unfinalized_active
+        if active is not None:
+            current = records_by_relative.get(relative)
+            if current is None or current.get("state") == "blocked":
+                errors.append(
+                    f"committed design-active capability-reuse record cannot be deleted or blocked: {relative}"
+                )
+            elif record_history.first_active is not None and any(
+                record_history.first_active.value.get(field) != current.get(field)
+                for field in CAPABILITY_REUSE_RECORD_FIELDS - CAPABILITY_REUSE_FINALIZED_FIELDS
+            ):
+                errors.append(
+                    f"capability-reuse record changed immutable admitted fields: {relative}"
+                )
+
+    task_ids = [record.get("taskId") for record in records_by_relative.values()]
+    duplicate_task_ids = {
+        value for value in task_ids if isinstance(value, str) and task_ids.count(value) > 1
+    }
+    for task_id in sorted(duplicate_task_ids):
+        errors.append(f"capability-reuse taskId must be unique: {task_id}")
+
+    if trusted_initial_base is not None:
+        if re.fullmatch(r"[0-9a-f]{40}", trusted_initial_base) is None:
+            errors.append("trusted initial capability-reuse base must be a full lowercase SHA")
+            return
+        trusted_commit = subprocess.run(
+            ["git", "merge-base", "--is-ancestor", trusted_initial_base, "HEAD"],
+            cwd=root,
+            check=False,
+            capture_output=True,
+        )
+        if trusted_commit.returncode != 0:
+            errors.append("trusted initial capability-reuse base is not on current HEAD ancestry")
+            return
+
+    final_groups: dict[str, list[tuple[str, dict[str, Any]]]] = {}
+    for relative, record_history in history.items():
+        if record_history.first_final is not None:
+            final_groups.setdefault(record_history.first_final.revision, []).append(
+                (relative, record_history.first_final.value)
+            )
+    revision_order, revision_order_error = _git_object(root, ["rev-list", "--reverse", "HEAD"])
+    if revision_order_error is not None:
+        errors.append(f"capability-reuse commit order could not be read: {revision_order_error}")
+        return
+    ordered_final_commits = [
+        value.decode("ascii")
+        for value in revision_order.splitlines()
+        if value.decode("ascii") in final_groups
+    ]
+    checkpoint = trusted_initial_base
+    if final_groups and checkpoint is None:
+        errors.append(
+            "capability-reuse trusted initial evidence checkpoint is pending owner authority"
+        )
+    for evidence_commit in ordered_final_commits:
+        group = final_groups[evidence_commit]
+        batch_error_count = len(errors)
+        if any(
+            relative not in records_by_relative
+            or records_by_relative[relative].get("state") != "final-complete"
+            for relative, _ in group
+        ):
+            errors.append(
+                f"final capability-reuse batch contains an invalid current record: {evidence_commit}"
+            )
+        if any(record.get("risk") == "R3" for _, record in group):
+            errors.append(
+                f"R3 final capability-reuse batch remains pending existing external owner authority: "
+                f"{evidence_commit}"
+            )
+        reviewed_heads = {record.get("reviewedHead") for _, record in group}
+        bases = {record.get("integrationBase") for _, record in group}
+        if checkpoint is None or bases != {checkpoint}:
+            errors.append(
+                f"final capability-reuse batch does not bind the latest evidence checkpoint: {evidence_commit}"
+            )
+        if len(reviewed_heads) != 1:
+            errors.append(f"final capability-reuse batch must bind one reviewedHead: {evidence_commit}")
+            continue
+        reviewed_head = next(iter(reviewed_heads))
+        if not isinstance(reviewed_head, str) or re.fullmatch(r"[0-9a-f]{40}", reviewed_head) is None:
+            continue
+        parents, parents_error = _git_object(
+            root,
+            ["rev-list", "--parents", "-n", "1", evidence_commit],
+        )
+        parent_values = parents.decode("ascii").split() if parents_error is None else []
+        if parent_values != [evidence_commit, reviewed_head]:
+            errors.append(
+                f"first final evidence commit must be the direct child of reviewedHead: {evidence_commit}"
+            )
+        evidence_changes, evidence_error = _git_revision_changed_paths(
+            root,
+            reviewed_head,
+            evidence_commit,
+        )
+        if evidence_error is not None:
+            errors.append(f"final evidence diff could not be read: {evidence_commit}: {evidence_error}")
+        elif any(_is_capability_reuse_governed_path(path) for path in evidence_changes):
+            errors.append(
+                f"final evidence commit changes governed paths after reviewedHead: {evidence_commit}"
+            )
+        batch_coverage: dict[str, list[str]] = {}
+        for relative, record in group:
+            task_id = str(record.get("taskId", "<invalid>"))
+            design_content, design_error = _git_object(
+                root,
+                ["show", f"{reviewed_head}:{relative}"],
+            )
+            try:
+                design_record = json.loads(design_content.decode("utf-8")) if design_error is None else None
+            except (UnicodeDecodeError, json.JSONDecodeError):
+                design_record = None
+            if not isinstance(design_record, dict) or design_record.get("state") != "design-active":
+                errors.append(
+                    f"final record requires its design-active predecessor at reviewedHead: {task_id}"
+                )
+                continue
+            invariant_fields = CAPABILITY_REUSE_RECORD_FIELDS - CAPABILITY_REUSE_FINALIZED_FIELDS
+            if any(design_record.get(field) != record.get(field) for field in invariant_fields):
+                errors.append(f"final record changed admitted design fields: {task_id}")
+            if any(
+                design_record.get(field) is not None
+                for field in ("implementationHead", "reviewedHead", "pathStateDigest")
+            ) or design_record.get("finalReview") != {
+                "reviewer": None,
+                "outcome": "pending",
+                "evidence": "",
+            }:
+                errors.append(f"design-active predecessor contains premature final evidence: {task_id}")
+            expected_digest, digest_error = _capability_path_state_digest(
+                root,
+                reviewed_head,
+                record.get("mutablePaths", []),
+            )
+            if digest_error is not None or expected_digest != record.get("pathStateDigest"):
+                errors.append(f"final record pathStateDigest differs from reviewed Git state: {task_id}")
+            for mutable_path in record.get("mutablePaths", []):
+                if _is_capability_reuse_governed_path(mutable_path):
+                    batch_coverage.setdefault(mutable_path, []).append(task_id)
+        if checkpoint is not None:
+            batch_changes, batch_diff_error = _git_revision_changed_paths(
+                root,
+                checkpoint,
+                reviewed_head,
+            )
+            if batch_diff_error is not None:
+                errors.append(f"final batch governed diff could not be read: {batch_diff_error}")
+            else:
+                governed_batch_changes = {
+                    path for path in batch_changes if _is_capability_reuse_governed_path(path)
+                }
+                if set(batch_coverage) != governed_batch_changes or any(
+                    len(owners) != 1 for owners in batch_coverage.values()
+                ):
+                    errors.append(
+                        f"final capability-reuse batch does not exactly cover its governed diff: {evidence_commit}"
+                    )
+        if len(errors) == batch_error_count:
+            checkpoint = evidence_commit
+
+    current_records = [
+        record
+        for relative, record in records_by_relative.items()
+        if record.get("state") == "design-active"
+        or (
+            record.get("state") == "final-complete"
+            and history.get(relative, _CapabilityRecordHistory(None, None, None, None)).first_final is None
+        )
+    ]
+    if checkpoint is None:
+        errors.append(
+            "capability-reuse trusted initial evidence checkpoint is pending owner authority"
+        )
+        return
+    bases = {
+        record.get("integrationBase")
+        for record in current_records
+    }
+    if current_records and bases != {checkpoint}:
+        errors.append(
+            f"current capability-reuse records must bind latest evidence checkpoint {checkpoint}"
+        )
+
+    for record in current_records:
+        task_id = str(record.get("taskId", "<invalid>"))
+        relative = f"{CAPABILITY_REUSE_CHANGE_RECORD_ROOT.as_posix()}/{task_id}.json"
+        if record.get("state") == "design-active":
+            committed, committed_error = _git_object(root, ["show", f"HEAD:{relative}"])
+            if committed_error is None and committed == indexed_content.get(relative):
+                errors.append(
+                    f"design-active capability-reuse record cannot remain committed or be reused: {relative}"
+                )
+        elif record.get("state") == "final-complete":
+            reviewed_head = subprocess.run(
+                ["git", "rev-parse", "HEAD"],
+                cwd=root,
+                check=False,
+                capture_output=True,
+                text=True,
+            ).stdout.strip()
+            if record.get("reviewedHead") != reviewed_head:
+                errors.append(f"uncommitted final record must bind current HEAD: {task_id}")
+                continue
+            design_content, design_error = _git_object(
+                root,
+                ["show", f"{reviewed_head}:{relative}"],
+            )
+            try:
+                design_record = json.loads(design_content.decode("utf-8")) if design_error is None else None
+            except (UnicodeDecodeError, json.JSONDecodeError):
+                design_record = None
+            if not isinstance(design_record, dict) or design_record.get("state") != "design-active":
+                errors.append(f"final record requires its design-active predecessor at reviewedHead: {task_id}")
+                continue
+            invariant_fields = CAPABILITY_REUSE_RECORD_FIELDS - CAPABILITY_REUSE_FINALIZED_FIELDS
+            if any(design_record.get(field) != record.get(field) for field in invariant_fields):
+                errors.append(f"final record changed admitted design fields: {task_id}")
+                continue
+            if any(
+                design_record.get(field) is not None
+                for field in ("implementationHead", "reviewedHead", "pathStateDigest")
+            ) or design_record.get("finalReview") != {
+                "reviewer": None,
+                "outcome": "pending",
+                "evidence": "",
+            }:
+                errors.append(f"design-active predecessor contains premature final evidence: {task_id}")
+                continue
+            expected_digest, digest_error = _capability_path_state_digest(
+                root,
+                reviewed_head,
+                record.get("mutablePaths", []),
+            )
+            if digest_error is not None or expected_digest != record.get("pathStateDigest"):
+                errors.append(f"final record pathStateDigest differs from reviewed Git state: {task_id}")
+
+    if any(record.get("state") == "final-complete" for record in current_records):
+        post_review_changes, post_review_error = _git_changed_paths(root, "HEAD")
+        post_review_untracked, post_review_untracked_error = _git_paths(
+            root,
+            ["ls-files", "--others", "--exclude-standard", "-z"],
+        )
+        if post_review_error is not None or post_review_untracked_error is not None:
+            errors.append(
+                "uncommitted final post-review diff could not be read: "
+                f"{post_review_error or post_review_untracked_error}"
+            )
+        elif any(
+            _is_capability_reuse_governed_path(path)
+            for path in post_review_changes | post_review_untracked
+        ):
+            errors.append("uncommitted final records cannot cover governed changes after reviewedHead")
+
+    tracked, tracked_error = _git_changed_paths(root, checkpoint)
+    untracked, untracked_error = _git_paths(
+        root,
+        ["ls-files", "--others", "--exclude-standard", "-z"],
+    )
+    if tracked_error is not None or untracked_error is not None:
+        errors.append(
+            "capability-reuse governed checkpoint diff could not be read: "
+            f"{tracked_error or untracked_error}"
+        )
+        return
+    governed_changes = {
+        value for value in tracked | untracked if _is_capability_reuse_governed_path(value)
+    }
+    coverage: dict[str, list[str]] = {}
+    for record in current_records:
+        task_id = str(record.get("taskId", "<invalid>"))
+        for relative in record.get("mutablePaths", []):
+            if not _is_capability_reuse_governed_path(relative):
+                errors.append(f"current capability-reuse mutable path is not governed: {task_id}: {relative}")
+                continue
+            coverage.setdefault(relative, []).append(task_id)
+            if relative not in governed_changes:
+                errors.append(
+                    f"current capability-reuse path is not in the current governed diff from checkpoint: "
+                    f"{task_id}: {relative}"
+                )
+    for relative in sorted(governed_changes):
+        owners = coverage.get(relative, [])
+        if not owners:
+            errors.append(
+                f"governed changed path lacks a design-active/current-final "
+                f"capability-reuse record: {relative}"
+            )
+        elif len(owners) > 1:
+            errors.append(
+                f"governed changed path has duplicate capability-reuse coverage: {relative}: {sorted(owners)}"
+            )
+
+
 def validate_agent_files(errors: list[str]) -> None:
-    if (ROOT / "AGENTS.md").stat().st_size > 16 * 1024:
+    root_agents = ROOT / "AGENTS.md"
+    if root_agents.is_file() and root_agents.stat().st_size > 16 * 1024:
         errors.append("root AGENTS.md exceeds 16 KiB")
     for relative in {
         "profiles/AGENTS.md",
@@ -1392,6 +2474,8 @@ def validate_agent_files(errors: list[str]) -> None:
     }:
         if not (ROOT / relative).is_file():
             errors.append(f"missing scoped AGENTS.md: {relative}")
+
+    validate_capability_reuse_governance(ROOT, errors)
 
     config = tomllib.loads(
         (ROOT / ".codex" / "config.toml").read_text(encoding="utf-8")

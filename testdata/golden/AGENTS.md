@@ -8,4 +8,3 @@
 - Fact-scoped aliases prove only the declared fact; they do not replace direct
   product evidence outside that scope.
 - Keep private evidence and unapproved firmware outside Git.
-- First test: `NvtFwCombiner.GoldenRegression.Tests`.

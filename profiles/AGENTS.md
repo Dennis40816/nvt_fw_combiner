@@ -11,4 +11,3 @@
 - Every byte-semantic change is R3 and requires schema/profile tests,
   independent byte/golden evidence, and firmware-owner approval.
 - Do not add real firmware payloads.
-- First test: `NvtFwCombiner.ProfileContract.Tests`.

@@ -7,4 +7,3 @@
 - Prefer one deep interface over workflow-specific wrappers.
 - Keep values deterministic, immutable where practical, and independent of
   filenames, environment, and current time.
-- First test: `NvtFwCombiner.Domain.Tests`.
