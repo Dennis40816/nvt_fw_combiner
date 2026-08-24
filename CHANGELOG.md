@@ -115,6 +115,9 @@ nonblank lines (+188). Counted runtime and all non-UI slices remain unchanged.
 - Verification: focused Application regressions assert the typed result and
   zero filesystem/state mutation. Frozen-candidate full verification and
   release review remain required.
+- Limitations: the result does not recover or install a package that vanished
+  from the current source; the user must refresh discovery and select a current
+  catalog entry again.
 
 #### Terminal DP metadata classification
 
@@ -132,6 +135,10 @@ nonblank lines (+188). Counted runtime and all non-UI slices remain unchanged.
 - Verification: focused classifier, projection, architecture, and UI
   regressions protect the terminal-owner direction. Final frozen-diff review
   remains a candidate gate.
+- Limitations: when compiled terminal classification is absent, the legacy
+  inspection enum remains a compatibility fallback. A present compiled result
+  takes priority; the enum and fallback retire together in the planned `1.1.0`
+  cleanup.
 
 #### Build uses the accepted inspection session
 
@@ -152,6 +159,9 @@ nonblank lines (+188). Counted runtime and all non-UI slices remain unchanged.
   inspection baseline, an unchanged work count, and accepted-session behavior
   for deleted or overwritten Standard, AB, and CtrlRAM source paths. The
   canonical full verifier and three frozen-diff reviews remain required.
+- Limitations: accepted bytes intentionally remain in force for that selection
+  revision; observing later disk contents requires explicit reselection and a
+  new inspection.
 
 ### Security
 
