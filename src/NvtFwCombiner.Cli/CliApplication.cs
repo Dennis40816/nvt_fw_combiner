@@ -58,9 +58,9 @@ public static partial class CliApplication
                 "profiles" => await RunProfilesAsync(
                     services.Capabilities, args[1..], output, error).ConfigureAwait(false),
                 ExperienceIds.StandardMerge => await RunStandardMergeAsync(
-                    services, args[1..], output, error, cancellationToken).ConfigureAwait(false),
+                    services, host.LocalFiles, args[1..], output, error, cancellationToken).ConfigureAwait(false),
                 ExperienceIds.AbMerge => await AbMergeCliCommandHandler.RunAsync(
-                    services, args[1..], output, error, cancellationToken).ConfigureAwait(false),
+                    services, host.LocalFiles, args[1..], output, error, cancellationToken).ConfigureAwait(false),
                 ExperienceIds.GeneralMerge => await MergeCliCommandHandler.RunAsync(
                     services, args[1..], output, error, cancellationToken).ConfigureAwait(false),
                 "saved-rule" => await SavedRuleCliCommandHandler.RunAsync(

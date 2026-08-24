@@ -1,4 +1,6 @@
 global using NvtFwCombiner.Application.Composition;
+global using NvtFwCombiner.Application.InputInspection;
+global using NvtFwCombiner.Application.Ports;
 global using NvtFwCombiner.Bootstrap;
 global using ProtectedPathGuard =
     NvtFwCombiner.Infrastructure.Files.ProtectedPathGuard;

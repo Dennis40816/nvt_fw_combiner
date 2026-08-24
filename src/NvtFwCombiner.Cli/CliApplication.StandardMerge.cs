@@ -17,6 +17,7 @@ public static partial class CliApplication
 
     private static async Task<int> RunStandardMergeAsync(
         CliCompositionServices services,
+        ILocalFileStore localFiles,
         string[] args,
         TextWriter output,
         TextWriter error,
@@ -108,33 +109,112 @@ public static partial class CliApplication
             return UsageError;
         }
 
-        List<CompiledAuthoringSelectedInput> inputs = [];
-        foreach ((string slotId, string path) in slotPaths)
+        IReadOnlyList<CompiledAuthoringSelectedInput> inputs;
+        try
         {
-            try
+            CompiledAuthoringSelectionSnapshot exactSelection =
+                services.StandardMergeAuthoring.GetAuthoringSnapshot(
+                    selectedProfile.IcId,
+                    [.. slotPaths.Keys],
+                    new Dictionary<string, FileStamp>(StringComparer.Ordinal),
+                    new AuthoringRevision(1));
+            ResolvedCapability? exactCapability = exactSelection.Catalog.Routes
+                .SingleOrDefault()?.ExactCapability;
+            if (exactCapability is null)
             {
-                inputs.Add(new CompiledAuthoringSelectedInput(
-                    slotId,
-                    path,
-                    File.ReadAllBytes(path)));
+                string prerequisiteId = CompositionAddressSpaceIds.DpInput;
+                string prerequisitePath = slotPaths[prerequisiteId];
+                byte[] prerequisiteBytes;
+                try
+                {
+                    prerequisiteBytes = await CliFixedWorkflowInputReader.ReadBytesAsync(
+                            localFiles,
+                            prerequisitePath,
+                            CompiledInputArtifactInspectionService.MaximumContentReadBytes,
+                            cancellationToken)
+                        .ConfigureAwait(false);
+                }
+                catch (LocalFileReadException exception)
+                {
+                    throw new CliFixedWorkflowInputReadException(
+                        prerequisiteId,
+                        prerequisitePath,
+                        exception);
+                }
+
+                exactSelection = services.StandardMergeAuthoring.GetAuthoringSnapshot(
+                    selectedProfile.IcId,
+                    [.. slotPaths.Keys],
+                    new Dictionary<string, FileStamp>(StringComparer.Ordinal)
+                    {
+                        [prerequisiteId] = FileStamp.FromBytes(prerequisiteBytes),
+                    },
+                    new AuthoringRevision(1));
+                exactCapability = exactSelection.Catalog.Routes
+                    .SingleOrDefault()?.ExactCapability;
+                if (exactCapability is null)
+                {
+                    await CliCompositionRunSupport.PrintIssuesAsync(
+                            error,
+                            exactSelection.Issues)
+                        .ConfigureAwait(false);
+                    return SoftwareError;
+                }
+
+                long prerequisiteMaximum = CompiledInputArtifactInspectionService
+                    .ResolveMaximumContentReadBytes(
+                        exactCapability.CompiledComposition,
+                        prerequisiteId);
+                if (prerequisiteBytes.LongLength > prerequisiteMaximum)
+                {
+                    throw new CliFixedWorkflowInputReadException(
+                        prerequisiteId,
+                        prerequisitePath,
+                        new LocalFileTooLargeException(
+                            $"File length {prerequisiteBytes.LongLength} exceeds the {prerequisiteMaximum}-byte limit."));
+                }
+
+                var remainingPaths = slotPaths
+                    .Where(pair => !StringComparer.Ordinal.Equals(pair.Key, prerequisiteId))
+                    .ToDictionary(static pair => pair.Key, static pair => pair.Value, StringComparer.Ordinal);
+                inputs =
+                [
+                    new CompiledAuthoringSelectedInput(
+                        prerequisiteId,
+                        prerequisitePath,
+                        prerequisiteBytes),
+                    .. await CliFixedWorkflowInputReader.ReadAsync(
+                        localFiles,
+                        exactCapability.CompiledComposition,
+                        remainingPaths,
+                        cancellationToken).ConfigureAwait(false),
+                ];
             }
-            catch (Exception exception) when (
-                exception is IOException or UnauthorizedAccessException)
+            else
             {
-                await CliCompositionRunSupport.PrintIssuesAsync(
-                        error,
-                        [new CompositionIssue(
-                            CompositionPlanningIssueCodes.InputArtifactReadFailed,
-                            StringComparer.Ordinal.Equals(
-                                    slotId,
-                                    CompositionAddressSpaceIds.DpInput) &&
-                                !File.Exists(path)
-                                    ? $"Selected DP BIN path does not exist for {selectedProfile.IcId} Standard Merge."
-                                    : exception.Message,
-                            slotId)])
+                inputs = await CliFixedWorkflowInputReader.ReadAsync(
+                        localFiles,
+                        exactCapability.CompiledComposition,
+                        slotPaths,
+                        cancellationToken)
                     .ConfigureAwait(false);
-                return SoftwareError;
             }
+        }
+        catch (CliFixedWorkflowInputReadException exception)
+        {
+            await CliCompositionRunSupport.PrintIssuesAsync(
+                    error,
+                    [new CompositionIssue(
+                        CompositionPlanningIssueCodes.InputArtifactReadFailed,
+                        StringComparer.Ordinal.Equals(
+                                exception.AddressSpaceId,
+                                CompositionAddressSpaceIds.DpInput) &&
+                            !File.Exists(exception.Path)
+                                ? $"Selected DP BIN path does not exist for {selectedProfile.IcId} Standard Merge."
+                                : exception.Message,
+                        exception.AddressSpaceId)])
+                .ConfigureAwait(false);
+            return SoftwareError;
         }
         var session = new AuthoringSessionState(ExperienceIds.StandardMerge);
         CompiledAuthoringSessionPreparation prepared =

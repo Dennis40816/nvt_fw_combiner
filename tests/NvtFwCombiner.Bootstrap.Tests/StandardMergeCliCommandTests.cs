@@ -1,4 +1,5 @@
 using System.Text.Json;
+using NvtFwCombiner.Application.InputInspection;
 using NvtFwCombiner.TestSupport;
 
 namespace NvtFwCombiner.Bootstrap.Tests;
@@ -580,6 +581,73 @@ public sealed class StandardMergeCliCommandTests
 
         Assert.Equal(70, result.ExitCode);
         Assert.Contains("accepts DP input lengths", result.Error, StringComparison.Ordinal);
+    }
+
+    /// <summary>An oversized sparse source is rejected from file metadata before the CLI can allocate its payload or create outputs.</summary>
+    [Fact]
+    public async Task StandardMergeRejectsOversizedSparseInputBeforeMaterialization()
+    {
+        using var workspace = TempWorkspace.Create();
+        string dpPath = workspace.PathFor("oversized-dp.bin");
+        await CreateSparseFileAsync(dpPath, 100_000_001);
+        string tpPath = workspace.Write("tp.bin", new byte[0x3C000]);
+        string outputPath = workspace.PathFor("must-not-exist.bin");
+        string reportPath = workspace.PathFor("must-not-exist.json");
+
+        CliRunResult result = await RunCliAsync([
+            "standard-merge",
+            "build",
+            "--profile",
+            "NT51923",
+            "--dp",
+            dpPath,
+            "--tp",
+            tpPath,
+            "--output",
+            outputPath,
+            "--report",
+            reportPath,
+        ]);
+
+        Assert.Equal(70, result.ExitCode);
+        Assert.Contains("input.artifact.read-failed [dp-input]", result.Error, StringComparison.Ordinal);
+        Assert.Contains("100000001", result.Error, StringComparison.Ordinal);
+        Assert.Contains("100000000-byte limit", result.Error, StringComparison.Ordinal);
+        Assert.Empty(result.Output);
+        Assert.False(File.Exists(outputPath));
+        Assert.False(File.Exists(reportPath));
+    }
+
+    /// <summary>The shared stable reader treats the decimal 100 MB resource ceiling as inclusive.</summary>
+    [Fact]
+    public async Task FixedWorkflowReaderAcceptsInclusiveDecimalHundredMegabyteBoundary()
+    {
+        using var workspace = TempWorkspace.Create();
+        string path = workspace.PathFor("inclusive-boundary.bin");
+        await CreateSparseFileAsync(path, 100_000_000);
+
+        byte[] bytes = await CliFixedWorkflowInputReader.ReadBytesAsync(
+            CompositionHostServices.CreateLocalFileStore(),
+            path,
+            CompiledInputArtifactInspectionService.MaximumContentReadBytes,
+            TestContext.Current.CancellationToken);
+
+        Assert.Equal(100_000_000, bytes.LongLength);
+        Assert.Equal(0, bytes[0]);
+        Assert.Equal(0, bytes[^1]);
+    }
+
+    private static async Task CreateSparseFileAsync(string path, long length)
+    {
+        await using var stream = new FileStream(
+            path,
+            FileMode.CreateNew,
+            FileAccess.Write,
+            FileShare.None,
+            bufferSize: 1,
+            FileOptions.Asynchronous);
+        stream.SetLength(length);
+        await stream.FlushAsync(TestContext.Current.CancellationToken);
     }
 
     private static GoldenCasePaths LoadGoldenCase(string caseId)

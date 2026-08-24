@@ -25,6 +25,7 @@ internal static class AbMergeCliCommandHandler
 
     internal static async Task<int> RunAsync(
         CliCompositionServices services,
+        ILocalFileStore localFiles,
         string[] args,
         TextWriter output,
         TextWriter error,
@@ -122,28 +123,44 @@ internal static class AbMergeCliCommandHandler
             return UsageError;
         }
 
-        List<CompiledAuthoringSelectedInput> inputs = [];
-        foreach ((string slotId, string path) in slotPaths)
+        IReadOnlyList<CompiledAuthoringSelectedInput> inputs;
+        try
         {
-            try
-            {
-                inputs.Add(new CompiledAuthoringSelectedInput(
-                    slotId,
-                    path,
-                    File.ReadAllBytes(path)));
-            }
-            catch (Exception exception) when (
-                exception is IOException or UnauthorizedAccessException)
+            CompiledAuthoringSelectionSnapshot exactSelection =
+                services.AbMergeAuthoring.GetAuthoringSnapshot(
+                    profile.IcId,
+                    options.Values.GetValueOrDefault("--ab-topology"),
+                    [.. slotPaths.Keys],
+                    new Dictionary<string, FileStamp>(StringComparer.Ordinal),
+                    new AuthoringRevision(1));
+            ResolvedCapability? exactCapability = exactSelection.Catalog.Routes
+                .SingleOrDefault()?.ExactCapability;
+            if (exactCapability is null)
             {
                 await CliCompositionRunSupport.PrintIssuesAsync(
                         error,
-                        [new CompositionIssue(
-                            CompositionPlanningIssueCodes.InputArtifactReadFailed,
-                            exception.Message,
-                            slotId)])
+                        exactSelection.Issues)
                     .ConfigureAwait(false);
                 return SoftwareError;
             }
+
+            inputs = await CliFixedWorkflowInputReader.ReadAsync(
+                    localFiles,
+                    exactCapability.CompiledComposition,
+                    slotPaths,
+                    cancellationToken)
+                .ConfigureAwait(false);
+        }
+        catch (CliFixedWorkflowInputReadException exception)
+        {
+            await CliCompositionRunSupport.PrintIssuesAsync(
+                    error,
+                    [new CompositionIssue(
+                        CompositionPlanningIssueCodes.InputArtifactReadFailed,
+                        exception.Message,
+                        exception.AddressSpaceId)])
+                .ConfigureAwait(false);
+            return SoftwareError;
         }
 
         var session = new AuthoringSessionState(ExperienceIds.AbMerge);
