@@ -278,13 +278,19 @@ public sealed class BundleCliCommandTests
     {
         using var sharedWorkspace = TempWorkspace.Create("nfc-cli-bundle-ab-shared-tp");
         using var distinctWorkspace = TempWorkspace.Create("nfc-cli-bundle-ab-distinct-equal-tp");
-        (string sharedJson, byte[] sharedOutput) = await BuildBundleAsync(
+        byte[] dp = [.. Enumerable.Repeat((byte)0xA5, 0x80000)];
+        byte[] tp = [.. Enumerable.Repeat((byte)0x5A, 0x40000)];
+        (string sharedJson, string sharedBundle) = await BuildBundleAsync(
             sharedWorkspace,
             sameTpPath: true,
+            dp,
+            tp,
             "shared_bundle");
-        (string distinctJson, byte[] distinctOutput) = await BuildBundleAsync(
+        (string distinctJson, string distinctBundle) = await BuildBundleAsync(
             distinctWorkspace,
             sameTpPath: false,
+            dp,
+            tp,
             "distinct_bundle");
 
         using JsonDocument sharedReport = JsonDocument.Parse(sharedJson);
@@ -312,6 +318,28 @@ public sealed class BundleCliCommandTests
         Assert.Equal<string>(
             ["output", "additional-delivery", "source", "source"],
             [.. artifacts.Select(artifact => artifact.GetProperty("Role").GetString()!)]);
+        Assert.Equal(4, Directory.EnumerateFiles(sharedBundle).Count());
+        JsonElement[] distinctArtifacts =
+        [
+            .. distinctReport.RootElement.GetProperty("BundleDelivery")
+                .GetProperty("Artifacts")
+                .EnumerateArray(),
+        ];
+        Assert.Equal<string>(
+            ["output", "additional-delivery", "source", "source", "source"],
+            [.. distinctArtifacts.Select(artifact => artifact.GetProperty("Role").GetString()!)]);
+        Assert.Equal(5, Directory.EnumerateFiles(distinctBundle).Count());
+        Assert.Equal<string>(
+            [
+                CompositionAddressSpaceIds.DpAbInput,
+                CompositionAddressSpaceIds.TpAInput,
+                CompositionAddressSpaceIds.TpBInput,
+            ],
+            [
+                .. distinctArtifacts
+                    .Where(artifact => artifact.GetProperty("Role").GetString() == "source")
+                    .Select(source => source.GetProperty("BindingId").GetString()!),
+            ]);
         JsonElement[] sources =
         [
             .. artifacts.Where(artifact => artifact.GetProperty("Role").GetString() == "source"),
@@ -322,6 +350,16 @@ public sealed class BundleCliCommandTests
         Assert.Equal(
             [inputs[0].GetProperty("Sha256").GetString(), inputs[1].GetProperty("Sha256").GetString()],
             sources.Select(source => source.GetProperty("Sha256").GetString()));
+        foreach (JsonElement artifact in artifacts)
+        {
+            byte[] delivered = await ReadDeliveredAsync(sharedBundle, artifact);
+            Assert.Equal(delivered.LongLength, artifact.GetProperty("Size").GetInt64());
+            Assert.Equal(
+                Convert.ToHexStringLower(SHA256.HashData(delivered)),
+                artifact.GetProperty("Sha256").GetString());
+        }
+        Assert.Equal(dp, await ReadDeliveredAsync(sharedBundle, sources[0]));
+        Assert.Equal(tp, await ReadDeliveredAsync(sharedBundle, sources[1]));
 
         JsonElement additional = Assert.Single(
             artifacts,
@@ -331,19 +369,34 @@ public sealed class BundleCliCommandTests
             additional.GetProperty("BindingId").GetString());
         JsonElement delivery = Assert.Single(
             sharedReport.RootElement.GetProperty("DeliveryArtifacts").EnumerateArray());
+        Assert.Equal(
+            CompiledAdditionalDelivery.AbAFlashCodeKind,
+            delivery.GetProperty("DeliveryKind").GetString());
         Assert.Equal(0, delivery.GetProperty("SourceRange").GetProperty("Start").GetInt64());
         Assert.Equal(additional.GetProperty("Size").GetInt64(),
             delivery.GetProperty("SourceRange").GetProperty("Length").GetInt64());
-        Assert.Equal(additional.GetProperty("Sha256").GetString(), delivery.GetProperty("Sha256").GetString());
+        byte[] sharedOutput = await ReadDeliveredAsync(
+            sharedBundle,
+            Assert.Single(artifacts, artifact => artifact.GetProperty("Role").GetString() == "output"));
+        byte[] sharedAdditional = await ReadDeliveredAsync(sharedBundle, additional);
+        string additionalSha256 = Convert.ToHexStringLower(SHA256.HashData(sharedAdditional));
+        Assert.Equal(sharedAdditional.LongLength, additional.GetProperty("Size").GetInt64());
+        Assert.Equal(additionalSha256, additional.GetProperty("Sha256").GetString());
+        Assert.Equal(additionalSha256, delivery.GetProperty("Sha256").GetString());
+        Assert.True(sharedOutput.AsSpan(0, sharedAdditional.Length).SequenceEqual(sharedAdditional));
+        byte[] distinctOutput = await ReadDeliveredAsync(
+            distinctBundle,
+            Assert.Single(distinctArtifacts, artifact => artifact.GetProperty("Role").GetString() == "output"));
         Assert.Equal(distinctOutput, sharedOutput);
 
-        static async Task<(string ReportJson, byte[] Output)> BuildBundleAsync(
+        static async Task<(string ReportJson, string BundleDirectory)> BuildBundleAsync(
             TempWorkspace workspace,
             bool sameTpPath,
+            byte[] dp,
+            byte[] tp,
             string bundleName)
         {
-            string dpPath = workspace.Write("dp-ab.bin", new byte[0x80000]);
-            byte[] tp = new byte[0x40000];
+            string dpPath = workspace.Write("dp-ab.bin", dp);
             string tpAPath = workspace.Write("tp-a.bin", tp);
             string tpBPath = sameTpPath
                 ? tpAPath
@@ -374,14 +427,14 @@ public sealed class BundleCliCommandTests
             string reportJson = await File.ReadAllTextAsync(
                 reportPath,
                 TestContext.Current.CancellationToken);
-            using JsonDocument report = JsonDocument.Parse(reportJson);
-            JsonElement output = Assert.Single(
-                report.RootElement.GetProperty("BundleDelivery").GetProperty("Artifacts").EnumerateArray(),
-                artifact => artifact.GetProperty("Role").GetString() == "output");
-            byte[] outputBytes = await File.ReadAllBytesAsync(
-                Path.Combine(workspace.Root, bundleName, output.GetProperty("DeliveredFileName").GetString()!),
+            return (reportJson, Path.Combine(workspace.Root, bundleName));
+        }
+
+        static Task<byte[]> ReadDeliveredAsync(string bundleDirectory, JsonElement artifact)
+        {
+            return File.ReadAllBytesAsync(
+                Path.Combine(bundleDirectory, artifact.GetProperty("DeliveredFileName").GetString()!),
                 TestContext.Current.CancellationToken);
-            return (reportJson, outputBytes);
         }
     }
 
