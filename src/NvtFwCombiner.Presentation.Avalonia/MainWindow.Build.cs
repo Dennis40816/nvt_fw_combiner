@@ -7,47 +7,52 @@ public sealed partial class MainWindow
 {
     private async void BuildMergeButton_OnClick(object? sender, RoutedEventArgs e)
     {
-        if (DataContext is not MainWindowViewModel viewModel || !viewModel.Merge.CanBuildMerge)
+        if (DataContext is not MainWindowViewModel viewModel ||
+            !await OpenMergeBuildSettingsAsync(viewModel))
         {
             return;
         }
 
-        await viewModel.WorkflowSession.RefreshSelectedMergeFirmwareInspectionsAsync();
+        CaptureOutputDeliveryReturnFocus(viewModel, sender);
+    }
+
+    internal static async Task<bool> OpenMergeBuildSettingsAsync(MainWindowViewModel viewModel)
+    {
+        ArgumentNullException.ThrowIfNull(viewModel);
         if (!viewModel.Merge.CanBuildMerge)
         {
-            if (viewModel.Merge.IsAbCodeMergeModeSelected)
-            {
-                _ = await viewModel.Merge.TryPrepareMergeBuildSaveAsync(CancellationToken.None);
-            }
-
-            return;
+            return false;
         }
 
         await viewModel.Merge.RequestBuildOutputDeliveryAsync();
-        CaptureOutputDeliveryReturnFocus(viewModel, sender);
+        return true;
     }
 
     private async void BuildReplaceButton_OnClick(object? sender, RoutedEventArgs e)
     {
-        if (DataContext is not MainWindowViewModel viewModel || !viewModel.Replace.CanBuildReplace)
+        if (DataContext is not MainWindowViewModel viewModel ||
+            !await OpenReplaceBuildSettingsAsync(viewModel.Replace))
         {
             return;
         }
 
-        await viewModel.Replace.RefreshSelectedFirmwareInspectionsAsync();
-        if (!viewModel.Replace.CanBuildReplace)
-        {
-            return;
-        }
-
-        if (viewModel.Replace.IsCtrlRamReplaceModeSelected)
-        {
-            _ = await viewModel.Replace.RequestCtrlRamBuildSettingsAsync();
-            CaptureOutputDeliveryReturnFocus(viewModel, sender);
-            return;
-        }
-
-        await viewModel.Replace.RequestBuildOutputDeliveryAsync();
         CaptureOutputDeliveryReturnFocus(viewModel, sender);
+    }
+
+    internal static async Task<bool> OpenReplaceBuildSettingsAsync(ReplacePresentationViewModel viewModel)
+    {
+        ArgumentNullException.ThrowIfNull(viewModel);
+        if (!viewModel.CanBuildReplace)
+        {
+            return false;
+        }
+
+        if (viewModel.IsCtrlRamReplaceModeSelected)
+        {
+            return await viewModel.RequestCtrlRamBuildSettingsAsync();
+        }
+
+        await viewModel.RequestBuildOutputDeliveryAsync();
+        return true;
     }
 }

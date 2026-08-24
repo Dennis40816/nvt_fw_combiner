@@ -367,7 +367,9 @@ public sealed partial class RepositoryBoundaryTests
             ctrlRamRunMetadata,
             StringComparison.Ordinal);
         Assert.Contains("RequestCtrlRamBuildSettingsAsync", build, StringComparison.Ordinal);
-        Assert.Contains("RequestCtrlRamBuildSettingsAsync", replaceModal, StringComparison.Ordinal);
+        Assert.Contains("OpenReplaceBuildSettingsAsync", replaceModal, StringComparison.Ordinal);
+        Assert.DoesNotContain("RefreshSelectedFirmwareInspectionsAsync", build, StringComparison.Ordinal);
+        Assert.DoesNotContain("RefreshSelectedFirmwareInspectionsAsync", replaceModal, StringComparison.Ordinal);
         Assert.Contains("TryCreateCtrlRamFirmwareVersionEditAsync", replaceExecution, StringComparison.Ordinal);
         Assert.Contains(
             "IsCtrlRamFirmwareVersionBuildConfirmationCurrentAsync",

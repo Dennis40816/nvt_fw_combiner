@@ -249,15 +249,13 @@ public sealed partial class MergeWorkflowTests
         Assert.True(viewModel.Merge.CanBuildMerge);
         Assert.True(viewModel.Merge.PreviewMergeCommand.CanExecute(null));
 
-        MergeBuildSavePreparation initialPreparation = Assert.IsType<MergeBuildSavePreparation>(
-            await viewModel.Merge.TryPrepareMergeBuildSaveAsync(TestContext.Current.CancellationToken));
-        string suggestedOutputName = initialPreparation.SuggestedFileName;
+        await viewModel.Merge.RequestBuildOutputDeliveryAsync();
+        string suggestedOutputName = viewModel.OutputDelivery.OutputFileName;
         Assert.Matches(
             "^NT51929_FlashCode_A_D0605T8100_B_D0708T8203_[0-9]{8}\\.bin$",
             suggestedOutputName);
         Assert.DoesNotContain("D06-05", suggestedOutputName, StringComparison.Ordinal);
-        CompositionAdditionalDeliveryPlan initialAFlashCodePlan = Assert.IsType<CompositionAdditionalDeliveryPlan>(
-            initialPreparation.AFlashCodePlan);
+        Assert.True(viewModel.OutputDelivery.OffersAdditionalDelivery);
 
         WriteUiAbCmi(dp, 0, major: 0x0A, minor: 0x01, jira: 0x123);
         await File.WriteAllBytesAsync(dpPath, dp, TestContext.Current.CancellationToken);
@@ -266,7 +264,8 @@ public sealed partial class MergeWorkflowTests
             dpPath,
             TestContext.Current.CancellationToken);
         string automaticOutputPath = workspace.PathFor(suggestedOutputName);
-        string automaticAFlashCodeOutputPath = workspace.PathFor(initialAFlashCodePlan.SuggestedFileName);
+        string automaticAFlashCodeOutputPath = workspace.PathFor(
+            viewModel.OutputDelivery.AdditionalSuggestedFileName);
         await viewModel.Merge.BuildMergeAsync(
             automaticOutputPath,
             automaticAFlashCodeOutputPath,
@@ -303,50 +302,6 @@ public sealed partial class MergeWorkflowTests
 
         Assert.True(viewModel.RunSession.LastRunResult.Succeeded, viewModel.RunSession.LastRunResult.Detail);
         Assert.True(viewModel.Reports.HasLoadedReport);
-    }
-
-    /// <summary>A source that disappears after inspection becomes a Build report before the native save dialog opens.</summary>
-    [Fact]
-    public async Task AbMergeBuildSavePreparationReportsStaleInput()
-    {
-        const int dpLength = 0x80000;
-        using var workspace = TempWorkspace.Create("nvt-fw-combiner-ui-ab-stale-input");
-        byte[] dp = new byte[dpLength];
-        WriteUiAbCmi(dp, 0, major: 0x06, minor: 0x05, jira: 0x123);
-        WriteUiAbCmi(dp, dpLength / 2, major: 0x07, minor: 0x08, jira: 0x456);
-        string dpPath = workspace.Write("dp-ab.bin", dp);
-        MainWindowViewModel viewModel = PresentationTestHost.CreateViewModel();
-        viewModel.ShowMergeCommand.Execute(null);
-        viewModel.WorkflowSession.SelectedIc = "NT51929";
-        viewModel.Merge.SelectedMergeMode = ExperienceIds.AbMerge;
-        await viewModel.WorkflowSession.SetSlotFileAsync(
-            CompositionAddressSpaceIds.DpAbInput,
-            dpPath,
-            TestContext.Current.CancellationToken);
-        await viewModel.WorkflowSession.SetSlotFileAsync(
-            CompositionAddressSpaceIds.TpAInput,
-            workspace.Write("tp-a.bin", CreateUiAbTpImage(0x81, 0x00, 1, 4, 1, 0x5102)),
-            TestContext.Current.CancellationToken);
-        await viewModel.WorkflowSession.SetSlotFileAsync(
-            CompositionAddressSpaceIds.TpBInput,
-            workspace.Write("tp-b.bin", CreateUiAbTpImage(0x82, 0x03, 2, 0, 0, 0x6A5C)),
-            TestContext.Current.CancellationToken);
-
-        Assert.True(viewModel.Merge.CanBuildMerge);
-        File.Delete(dpPath);
-
-        await viewModel.WorkflowSession.RefreshSelectedMergeFirmwareInspectionsAsync();
-        Assert.False(viewModel.Merge.CanBuildMerge);
-
-        MergeBuildSavePreparation? preparation = await viewModel.Merge.TryPrepareMergeBuildSaveAsync(
-            TestContext.Current.CancellationToken);
-
-        Assert.Null(preparation);
-        Assert.False(viewModel.RunSession.LastRunResult.Succeeded);
-        Assert.Equal("Build failed", viewModel.RunSession.LastRunResult.Title);
-        Assert.True(viewModel.Reports.HasLoadedReport);
-        Assert.True(viewModel.Reports.IsReportModalOpen);
-        Assert.Equal("ui.run.failed", viewModel.Reports.LoadedReport.PrimaryIssue.Title);
     }
 
     /// <summary>A short AB source blocks immediately while an ignored tail remains a non-blocking warning.</summary>

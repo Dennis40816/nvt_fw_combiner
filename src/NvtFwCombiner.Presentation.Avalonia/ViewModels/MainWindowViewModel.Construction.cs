@@ -104,7 +104,6 @@ internal sealed partial class MainWindowViewModel
                  ShowActionReadiness,
                  WorkflowReplaceModeChanged,
                 ResetRunResultForContextChange,
-                () => WorkflowSession!.RefreshSelectedReplaceFirmwareInspectionsAsync(),
                 RefreshCommandState,
                 OutputDelivery));
         Replace.PropertyChanged += Replace_OnPropertyChanged;

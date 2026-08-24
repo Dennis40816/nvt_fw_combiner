@@ -99,7 +99,9 @@ public sealed partial class XamlControlStyleContractTests
         string replace = ReadPresentationFile("ViewModels/ReplacePresentationViewModel.cs");
 
         Assert.Contains("RequestBuildOutputDeliveryAsync", mainBuild, StringComparison.Ordinal);
-        Assert.Contains("RequestBuildOutputDeliveryAsync", replaceSelection, StringComparison.Ordinal);
+        Assert.Contains("OpenReplaceBuildSettingsAsync", replaceSelection, StringComparison.Ordinal);
+        Assert.DoesNotContain("RefreshSelected", mainBuild, StringComparison.Ordinal);
+        Assert.DoesNotContain("RefreshSelected", replaceSelection, StringComparison.Ordinal);
         Assert.Contains("RequestCtrlRamBuildSettingsAsync", ctrlRam, StringComparison.Ordinal);
         Assert.Contains("RequestBuildOutputDeliveryAsync", merge, StringComparison.Ordinal);
         Assert.Contains("RequestBuildFromCommandAsync", replace, StringComparison.Ordinal);

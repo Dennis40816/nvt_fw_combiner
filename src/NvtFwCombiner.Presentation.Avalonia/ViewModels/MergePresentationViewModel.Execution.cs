@@ -3,10 +3,6 @@ using NvtFwCombiner.Domain.Composition;
 
 namespace NvtFwCombiner.Presentation.Avalonia.ViewModels;
 
-internal sealed record MergeBuildSavePreparation(
-    string SuggestedFileName,
-    CompositionAdditionalDeliveryPlan? AFlashCodePlan);
-
 internal sealed partial class MergePresentationViewModel
 {
     public Task BuildMergeAsync(
@@ -99,35 +95,6 @@ internal sealed partial class MergePresentationViewModel
                 outputBundle),
             _ => Task.CompletedTask,
         };
-    }
-
-    internal async ValueTask<MergeBuildSavePreparation?> TryPrepareMergeBuildSaveAsync(
-        CancellationToken cancellationToken)
-    {
-        if (!IsAbCodeMergeModeSelected)
-        {
-            return new MergeBuildSavePreparation(MergeOutputFileName, AFlashCodePlan: null);
-        }
-
-        try
-        {
-            CompositionOutputPreparation preparation = await _compositionServices.OutputNaming.PrepareAutomaticOutputAsync(
-                    _abMergeSession.CurrentSnapshot ?? throw new InvalidOperationException(
-                        "AB Merge Build preparation requires one accepted authoring session."),
-                    cancellationToken)
-                .ConfigureAwait(false);
-            CompositionAdditionalDeliveryPlan? aFlashCodePlan = preparation.AdditionalDeliveries
-                .SingleOrDefault(delivery => StringComparer.Ordinal.Equals(
-                    delivery.DeliveryKind,
-                    CompiledAdditionalDelivery.AbAFlashCodeKind));
-            return new MergeBuildSavePreparation(preparation.OutputName.FileName, aFlashCodePlan);
-        }
-        catch (Exception exception) when (
-            exception is InvalidOperationException or IOException or UnauthorizedAccessException or ArgumentException)
-        {
-            PublishAbMergeBuildSavePreparationFailure(exception.Message);
-            return null;
-        }
     }
 
     private Task RunStandardMergeAsync(
@@ -257,29 +224,6 @@ internal sealed partial class MergePresentationViewModel
                 compositionKind: "Merge",
                 modeId: ExperienceIds.AbMerge,
                 experienceId: ExperienceIds.AbMerge));
-    }
-
-    private void PublishAbMergeBuildSavePreparationFailure(string message)
-    {
-        string icId = SelectedIc;
-        string number = SelectedNumber;
-        IReadOnlyDictionary<string, string> slotPaths = CreateAbMergeSlotPaths();
-        string profileId = _compositionServices.Capabilities.GetAbMergeProfileSummaries()
-            .Single(profile => StringComparer.Ordinal.Equals(profile.IcId, icId))
-            .ProfileId;
-        Reports.LoadRunErrorReport(
-            "Build",
-            profileId,
-            icId,
-            number,
-            message,
-            slotPaths,
-            compositionKind: "Merge",
-            modeId: ExperienceIds.AbMerge,
-            experienceId: ExperienceIds.AbMerge);
-        _stateBindings.PublishRunResult(
-            new UiRunResultViewModel("Build failed", message, "No output", succeeded: false));
-        Reports.ShowReport();
     }
 
     private Dictionary<string, string> CreateStandardMergeSlotPaths()

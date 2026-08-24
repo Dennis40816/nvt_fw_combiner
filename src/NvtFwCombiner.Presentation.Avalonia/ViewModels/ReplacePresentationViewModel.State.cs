@@ -307,11 +307,6 @@ internal sealed partial class ReplacePresentationViewModel
         RefreshSelectionState();
     }
 
-    internal Task RefreshSelectedFirmwareInspectionsAsync()
-    {
-        return _stateBindings.RefreshSelectedFirmwareInspections();
-    }
-
     internal void InvalidateCtrlRamFirmwareVersionContextState()
     {
         InvalidateCtrlRamFirmwareVersionContext();

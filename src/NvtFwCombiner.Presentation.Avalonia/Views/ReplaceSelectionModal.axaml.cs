@@ -20,18 +20,6 @@ public sealed partial class ReplaceSelectionModal : UserControl
             return;
         }
 
-        await viewModel.RefreshSelectedFirmwareInspectionsAsync();
-        if (!viewModel.CanBuildReplace)
-        {
-            return;
-        }
-
-        if (viewModel.IsCtrlRamReplaceModeSelected)
-        {
-            _ = await viewModel.RequestCtrlRamBuildSettingsAsync();
-            return;
-        }
-
-        await viewModel.RequestBuildOutputDeliveryAsync();
+        _ = await MainWindow.OpenReplaceBuildSettingsAsync(viewModel);
     }
 }
