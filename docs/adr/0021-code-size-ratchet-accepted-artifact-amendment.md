@@ -262,3 +262,37 @@ the inclusive decimal 100 MB CLI boundary and oversized rejection, dynamic
 Standard exact-route resolution, AB exact admission, case and relative path
 aliases, malformed locators, IC-confirmation flow, Release build with zero
 warnings/errors, Architecture, and the canonical final gate.
+
+## 2026-08-25 supported CtrlRAM CLI admission and unreachable UI deletion
+
+The final supported-CLI path audit extends the same stable bounded file adapter
+to CtrlRAM base and replacement inputs. The CLI passes one accepted immutable
+base snapshot into the existing Application/Infrastructure display projection,
+then delegates exact geometry to the existing compiler and slot-inspection
+owner. Standard missing-versus-unreadable diagnostics also consume the typed
+adapter result without a second filesystem probe. No profile, range, mapping,
+operation order, processor, CRC/header, output naming, firmware bytes, or
+Golden authority changes.
+
+The conservative unused-module audit separately deletes 163 nonblank
+Presentation lines whose only references were declarations, initializers, or
+stale tests: an unmounted AB A-FlashCode prompt already superseded by the live
+Output Delivery Confirmation flow, one unreferenced report pager template, and
+unused localization/style declarations. It does not delete or alter a mounted
+control, live ViewModel call path, AppIcon, Saved Rule, Bin Inspector, hidden DP
+Replace, General experience, profile, or Golden fixture.
+
+Relative to the preceding reviewed path-safety snapshot, full production falls
+from 111,066 to 111,031 nonblank lines (-35) while counted runtime rises from
+75,590 to 75,718 (+128). Application changes from 33,579 to 33,602 (+23),
+Bootstrap plus CLI plus Desktop from 3,665 to 3,730 (+65), and Infrastructure
+plus Contracts plus CRC worker from 17,714 to 17,754 (+40); Domain plus Profiles
+remains 20,632. The runtime increase is exactly offset by the 163-line
+Presentation deletion in the full-production total.
+
+The executable allowances therefore become exactly 8,135 full production,
+5,662 runtime, 2,912 Application, 352 Bootstrap/CLI/Desktop, and 2,398
+Infrastructure/Contracts/worker above their frozen base ratchets. These values
+are non-transferable exact descending ceilings; the 35-line net reduction is
+retained rather than reassigned. Independent Architecture and semantic reviews
+must remain green, and the canonical final gate remains required.
