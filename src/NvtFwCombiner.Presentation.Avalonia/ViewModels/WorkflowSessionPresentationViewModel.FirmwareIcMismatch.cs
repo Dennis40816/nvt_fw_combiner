@@ -43,14 +43,6 @@ internal sealed partial class WorkflowSessionPresentationViewModel
             return false;
         }
 
-        if (_compositionServices.Capabilities.ArePerfectFamilyMembers(SelectedIc, detectedIc))
-        {
-            SelectDetectedFirmwareIc(
-                new(context, slot.SlotId, slot.FilePath),
-                detectedIc);
-            return true;
-        }
-
         FirmwareIcMismatchFileName = Path.GetFileName(slot.FilePath);
         FirmwareIcMismatchDetectedIc = detectedIc;
         _firmwareIcMismatchSelection = new(context, slot.SlotId, slot.FilePath);
