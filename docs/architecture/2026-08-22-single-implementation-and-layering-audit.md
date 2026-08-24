@@ -238,6 +238,22 @@ build tool or shared contract validator rather than another runtime service;
 Bootstrap must return to wiring/materialization only. Preserve schema hash
 binding, closed package admission, and fail-closed behavior.
 
+**Completed 2026-08-24.** The exact existing task and materialization target
+were mechanically extracted to the named repository build tool
+`eng/profile-bundle-materializer/NvtFwCombiner.ProfileBundleMaterializer.targets`.
+The normalized task/target body is byte-for-text identical to the previously
+embedded block, so the independent build/runtime rejection points and their
+normative schema hashes, closed fields, path checks, entry hashes, copy
+destinations, errors, and fail-closed behavior are unchanged. Bootstrap's
+project is now 28 physical / 27 nonblank lines of properties, references,
+content wiring, and one import; it contains no task factory or materialization
+target implementation. The focused build tool is 632 physical / 616 nonblank
+lines and is now explicitly covered by the repository large-file guard.
+Architecture 223/223 (including all materialization mutation cases), Bootstrap
+1017/1017, Release solution build, structure validation, and scoped Polytail
+pass. Shipped production remains exactly 791 files / 110,595 nonblank lines;
+runtime remains 535 / 75,289 and Bootstrap + CLI + Desktop remains 34 / 3,503.
+
 ### A9 — architecture-test strategy overfits source text (high)
 
 The Architecture suite passes 219 tests while A1 remains present because

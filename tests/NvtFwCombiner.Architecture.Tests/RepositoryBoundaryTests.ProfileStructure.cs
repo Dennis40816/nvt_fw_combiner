@@ -390,7 +390,9 @@ public sealed partial class RepositoryBoundaryTests
     [Fact]
     public void BuiltInBundleMaterializationUsesPackageTrustIndex()
     {
-        string project = ReadText("src/NvtFwCombiner.Bootstrap/NvtFwCombiner.Bootstrap.csproj");
+        string project = string.Concat(
+            ReadText("src/NvtFwCombiner.Bootstrap/NvtFwCombiner.Bootstrap.csproj"),
+            ReadText("eng/profile-bundle-materializer/NvtFwCombiner.ProfileBundleMaterializer.targets"));
         string builtInRoot = Path.Combine(Root.FullName, "profiles", "built-in");
         using var index = JsonDocument.Parse(
             ReadText("profiles/built-in/package-trust-index.json"));
@@ -522,7 +524,8 @@ public sealed partial class RepositoryBoundaryTests
                 Convert.ToHexString(SHA256.HashData(File.ReadAllBytes(sourcePath))).ToLowerInvariant());
         }
 
-        string project = ReadText("src/NvtFwCombiner.Bootstrap/NvtFwCombiner.Bootstrap.csproj");
+        string project = ReadText(
+            "eng/profile-bundle-materializer/NvtFwCombiner.ProfileBundleMaterializer.targets");
         Assert.Contains("Built-in profile canonical firmware-family metadata must declare both source and destination", project, StringComparison.Ordinal);
         Assert.Contains("Built-in profile canonical firmware-family source escapes the approved source root", project, StringComparison.Ordinal);
         Assert.Contains("Built-in profile canonical firmware-family destination escapes the bundle families root", project, StringComparison.Ordinal);

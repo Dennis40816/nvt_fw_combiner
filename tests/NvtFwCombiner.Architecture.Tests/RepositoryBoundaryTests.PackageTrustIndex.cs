@@ -258,7 +258,9 @@ public sealed partial class RepositoryBoundaryTests
             "src/NvtFwCombiner.Infrastructure/Composition/BuiltInGeneralAuthoringPlanner.GeneralMerge.V2.cs");
         string generalMergePlanning = ReadText(
             "src/NvtFwCombiner.Infrastructure/Composition/BuiltInGeneralAuthoringPlanner.GeneralMerge.V2.cs");
-        string project = ReadText("src/NvtFwCombiner.Bootstrap/NvtFwCombiner.Bootstrap.csproj");
+        string project = string.Concat(
+            ReadText("src/NvtFwCombiner.Bootstrap/NvtFwCombiner.Bootstrap.csproj"),
+            ReadText("eng/profile-bundle-materializer/NvtFwCombiner.ProfileBundleMaterializer.targets"));
         string packager = ReadText("scripts/package.ps1");
         string releaseSmoke = ReadText("scripts/smoke-release.ps1");
         string metadataResolver = ReadText(
