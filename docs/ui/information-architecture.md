@@ -30,7 +30,7 @@ This document defines the owner-approved UI direction for the first usable NVT F
 | --- | --- | --- | --- |
 | Home | Clean launcher | workflow groups for Replace, Merge, and Util Tools | Memory coverage, reports, mixed workflow controls, IC/Number context |
 | Settings | Configure folders, profile packs, strictness, theme, diagnostics access | compact settings groups, profile catalog status, log/report access | direct GitHub secret editing, firmware mutation logic |
-| Merge | Normal / AB Code merge entry point | mode selector with Normal enabled and AB Code disabled, shared IC/profile context, slot cards, visual-first memory coverage preview, preview/build actions | Replace controls, hard-coded copy/offset rules |
+| Merge | Standard / AB Code merge entry point | mode selector exposing Standard and canonical authorable AB profiles, shared IC/profile context, slot cards, visual-first memory coverage preview, preview/build actions | Replace controls, hard-coded copy/offset rules |
 | Replace | CtrlRAM / General replace entry point; DP Replace retained but hidden by canonical policy through the initial `1.0.0` | shared IC/IC Count context, persona selector, base/reference slot cards, overlay slot cards, visual-first memory coverage preview, preview/build actions | Merge controls, region authorization logic in UI; reopening DP Replace without the `1.1.0` owner decision |
 | Hex Editor | Raw BIN utility | source BIN, compact bounded 16-byte viewport with full-document scrollbar, in-memory edits, original rows, undo/redo, confirmed Save As | IC/Number context, Flash Map, profile restrictions, CRC/postbuild, General Replace, firmware report |
 
@@ -62,7 +62,7 @@ Shell
 
 - Build automatically performs Preview validation before committing output; the Preview action remains available as an explicit dry run.
 - Risky processors show readiness before execution.
-- Current implementation priority is normal Merge and normal Replace for DP Replace and CtrlRAM Replace workflows; AB is deferred.
+- Current implementation priority is Standard Merge, canonical authorable AB Merge, and CtrlRAM Replace. DP Replace remains regression-retained but hidden from ordinary authoring through the initial `1.0.0` release.
 - IC and Number remain in the same fixed Device context location across Merge and Replace, and are hidden on Home, Settings, and Hex Editor.
 - Breadcrumb history stays visible across Home, Settings, Merge, Replace, and Hex Editor so users can return to earlier page levels.
 - Replace UI requires shared Number selection before showing profile-specific regions. First UI should render two-option IC count choices as text and render three-or-more concrete count choices as numeric selection, with future room for Other/custom exceptions.
@@ -83,8 +83,8 @@ Shell
 ## Resolved UI decisions
 
 - Home uses Replace, Merge, and Util Tools Hex Editor cards; Settings remains top navigation.
-- Replace quick jumps are DP, CtrlRAM, and General.
-- Merge quick jumps are Normal and disabled AB Code.
+- Replace quick jumps expose CtrlRAM and General; DP Replace has no ordinary-authoring entry while the retained capability is hidden.
+- Merge quick jumps expose Standard and AB Code when the canonical catalog declares an authorable route.
 - Memory coverage is visual-first with table support.
 - Workflow pages use left workspace plus right inspector.
 - Navigation and mode controls expose active selection state.
