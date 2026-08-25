@@ -27,13 +27,8 @@ public sealed class CompositionExecutionInput
 
     internal bool TryGetImmutableBuffer(string addressSpaceId, out byte[] bytes)
     {
-        if (_addressSpaceBytes.TryGetValue(addressSpaceId, out byte[]? buffer))
-        {
-            bytes = buffer;
-            return true;
-        }
-
-        bytes = [];
-        return false;
+        bool found = _addressSpaceBytes.TryGetValue(addressSpaceId, out byte[]? buffer);
+        bytes = buffer ?? [];
+        return found;
     }
 }

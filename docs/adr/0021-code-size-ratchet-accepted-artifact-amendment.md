@@ -301,3 +301,11 @@ The 2026-08-25 formal-route and managed-root integration snapshot subsequently
 reduced Infrastructure/Contracts/worker from 17,754 to 17,714 nonblank lines.
 Its non-transferable allowance is therefore lowered from 2,398 to 2,358. The
 40-line reduction is retained and is not transferred to another slice.
+
+The same integration review rejected argument-line consolidation as a valid
+Domain/Profiles reduction. Readable formatting is restored; immutable input
+lookup now uses one dictionary result, and clone-reference resolution owns its
+one required initializer lookup instead of passing redundant state. These
+semantic-preserving simplifications lower Domain/Profiles from 20,632 to
+20,627 nonblank lines and the V2 compiler aggregate to 2,796. The exact
+Domain/Profiles ratchet is therefore lowered to 20,627 with no transfer.

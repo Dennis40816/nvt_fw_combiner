@@ -103,10 +103,9 @@ internal static partial class V2CompositionPlanCompiler
                 issues);
     }
 
-    private static string ResolveCloneReferenceSourceSpaceId(
-        CompositionProfileDefinition profile,
-        CloneProfileInitializer clone)
+    private static string ResolveCloneReferenceSourceSpaceId(CompositionProfileDefinition profile)
     {
+        var clone = (CloneProfileInitializer)AssertOutputSpace(profile).Initializer;
         return profile.Spaces.OfType<InputArtifactProfileSpace>().Single(space =>
             StringComparer.Ordinal.Equals(space.SlotId, clone.SourceSlotId))
             .SpaceId;

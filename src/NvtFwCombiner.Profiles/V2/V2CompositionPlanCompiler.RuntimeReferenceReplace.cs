@@ -195,7 +195,8 @@ internal static partial class V2CompositionPlanCompiler
             profileEntry.EntryIdentity,
             new RuntimeReferenceReplaceV2CompilationContext(
                 resolvedMap,
-                profile.Header.AllowsConditionalProcessor, processorWriteViewIds),
+                profile.Header.AllowsConditionalProcessor,
+                processorWriteViewIds),
             plan,
             profile.InputSlots.Select(slot => MapInputSlot(slot, resolvedMap)),
             bindings.Values.Select(binding => new CompiledInputSpaceBinding(
@@ -205,7 +206,8 @@ internal static partial class V2CompositionPlanCompiler
                     ? CompiledInputInstancePolicy.Singleton
                     : CompiledInputInstancePolicy.PerBinding)),
             regionAccess.Contract,
-            capabilityAdmissions, runtimeExecutable: profile.Promotion.Stage == CompiledProfilePromotionStage.Supported,
+            capabilityAdmissions,
+            runtimeExecutable: profile.Promotion.Stage == CompiledProfilePromotionStage.Supported,
             additionalValidationRequirements:
             [
                 .. inputValidations,
