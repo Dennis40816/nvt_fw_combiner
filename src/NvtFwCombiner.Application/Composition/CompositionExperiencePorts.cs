@@ -225,12 +225,11 @@ public interface ICtrlRamAuthoring
         IReadOnlyDictionary<string, byte[]> inputBytes,
         CtrlRamFirmwareVersionDraftState? firmwareVersionEdit = null);
 
-    /// <summary>Gets CtrlRAM authoring catalog for selected paths.</summary>
-    AuthoringCapabilityCatalogSnapshot? GetAuthoringCatalog(
-        string icId,
-        string number,
-        IReadOnlyDictionary<string, string> slotPaths,
-        ActiveSessionSnapshot? retainedSession = null);
+    /// <summary>Adopts one already-inspected exact batch without resolving or reading it again.</summary>
+    AuthoringSessionTransitionResult AdoptInspectedBatch(
+        AuthoringSessionState session,
+        AuthoringCapabilityCatalogSnapshot catalog,
+        IReadOnlyCollection<AuthoringInputSlotStatus> statuses);
 
     /// <summary>Gets CtrlRAM action readiness.</summary>
     ValueTask<CapabilityActionReadinessSnapshot?> GetActionReadinessAsync(

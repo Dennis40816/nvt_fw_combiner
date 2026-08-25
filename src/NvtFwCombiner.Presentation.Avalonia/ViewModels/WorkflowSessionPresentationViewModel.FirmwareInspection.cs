@@ -93,7 +93,7 @@ internal sealed partial class WorkflowSessionPresentationViewModel
 
         if (context.IsReplace)
         {
-            await RefreshSelectedReplaceFirmwareInspectionsAsync(slot.SlotId);
+            await RefreshSelectedReplaceFirmwareInspectionsAsync(slot.SlotId, cancellationToken);
             RecordInputSelected(context, slot.SlotId);
             return;
         }
@@ -101,7 +101,7 @@ internal sealed partial class WorkflowSessionPresentationViewModel
         if ((context.IsStandardMerge && _merge.IsStandardMergeSlot(slot)) ||
             (context.IsAbMerge && AbMergeAddressSpaceBySlotId.ContainsKey(slot.SlotId)))
         {
-            await RefreshSelectedMergeFirmwareInspectionsAsync(slot.SlotId);
+            await RefreshSelectedMergeFirmwareInspectionsAsync(slot.SlotId, cancellationToken);
             RecordInputSelected(context, slot.SlotId);
             return;
         }
@@ -473,7 +473,8 @@ internal sealed partial class WorkflowSessionPresentationViewModel
     }
 
     internal Task RefreshSelectedMergeFirmwareInspectionsAsync(
-        string? applyVerifiedContextSlotId = null)
+        string? applyVerifiedContextSlotId = null,
+        CancellationToken cancellationToken = default)
     {
         return ActiveInspectionContext is { IsMerge: true } context
             ? RefreshSelectedFirmwareInspectionsAsync(
@@ -481,25 +482,37 @@ internal sealed partial class WorkflowSessionPresentationViewModel
                 context is { IsStandardMerge: true } or { IsAbMerge: true }
                     ? MergeSlots
                     : [],
-                applyVerifiedContextSlotId)
+                applyVerifiedContextSlotId,
+                cancellationToken)
             : Task.CompletedTask;
     }
 
     internal Task RefreshSelectedReplaceFirmwareInspectionsAsync(
         string? applyVerifiedContextSlotId = null)
     {
+        return RefreshSelectedReplaceFirmwareInspectionsAsync(
+            applyVerifiedContextSlotId,
+            CancellationToken.None);
+    }
+
+    private Task RefreshSelectedReplaceFirmwareInspectionsAsync(
+        string? applyVerifiedContextSlotId,
+        CancellationToken cancellationToken)
+    {
         return ActiveInspectionContext is { IsReplace: true } context
             ? RefreshSelectedFirmwareInspectionsAsync(
                 context,
                 ReplaceSlots.Concat([ReplaceBaseSlot]),
-                applyVerifiedContextSlotId)
+                applyVerifiedContextSlotId,
+                cancellationToken)
             : Task.CompletedTask;
     }
 
     private Task RefreshSelectedFirmwareInspectionsAsync(
         WorkflowInspectionContext context,
         IEnumerable<FirmwareSlotViewModel> candidateSlots,
-        string? applyVerifiedContextSlotId = null)
+        string? applyVerifiedContextSlotId,
+        CancellationToken cancellationToken)
     {
         var slots = candidateSlots
             .Where(static slot => slot.HasFile)
@@ -571,7 +584,7 @@ internal sealed partial class WorkflowSessionPresentationViewModel
             _replace.RefreshReplaceMemoryMapState();
         }
 
-        return RunFirmwareInspectionAsync(context, items, CancellationToken.None);
+        return RunFirmwareInspectionAsync(context, items, cancellationToken);
     }
 
     private IReadOnlyList<FirmwareInspectionItemRequest> AttachAbMergeInspectionLeases(

@@ -94,6 +94,48 @@ public sealed class AuthoringInputSlotStatus
                     inspection?.NextAction ?? CompiledInputArtifactInspectionNextAction.None);
     }
 
+    /// <summary>Rebinds one typed result to an equivalent exact capability and revision.</summary>
+    internal AuthoringInputSlotStatus RebindEquivalentCapability(
+        ResolvedCapability capability,
+        AuthoringRevision authoringRevision)
+    {
+        ArgumentNullException.ThrowIfNull(capability);
+        if (InspectionLifecycle is not { } lifecycle ||
+            CompilationFingerprint is null ||
+            SelectedPathHint is null)
+        {
+            throw new InvalidOperationException(
+                "Only one terminal exact inspection may be rebound for session adoption.");
+        }
+
+        (string, CompiledInputArtifactInspectionNextAction)? preContentIssue =
+            lifecycle == AuthoringSlotLifecycle.Error &&
+            Inspection is null &&
+            FileStamp is null &&
+            AcceptedByteArray is null
+                ? (InspectionIssueCode ?? InputArtifactInspectionIssueCodes.SourceUnreadable,
+                    InspectionNextAction)
+                : null;
+        return new AuthoringInputSlotStatus(
+            capability.Identity,
+            capability.ResolutionToken,
+            authoringRevision,
+            capability.CapabilityFingerprint,
+            capability.CompiledComposition.CompilationFingerprint,
+            SelectionReadiness,
+            AddressSpaceId,
+            lifecycle,
+            FileStamp,
+            Inspection,
+            SelectedPathHint,
+            Observation,
+            acceptedBytes: null,
+            preContentIssue)
+        {
+            AcceptedByteArray = this.AcceptedByteArray,
+        };
+    }
+
     /// <summary>Canonical workflow owning this slot.</summary>
     public string WorkflowId { get; }
 
@@ -147,7 +189,7 @@ public sealed class AuthoringInputSlotStatus
         ? (ReadOnlyMemory<byte>?)null
         : new ReadOnlyMemory<byte>(AcceptedByteArray);
 
-    internal byte[]? AcceptedByteArray { get; }
+    internal byte[]? AcceptedByteArray { get; private init; }
 
     /// <summary>Compiler-owned terminal diagnostic, or null while absent/checking.</summary>
     public CompiledInputArtifactInspectionResult? Inspection { get; }

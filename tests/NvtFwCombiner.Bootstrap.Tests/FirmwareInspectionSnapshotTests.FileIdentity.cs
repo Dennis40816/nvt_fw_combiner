@@ -1,5 +1,6 @@
 using NvtFwCombiner.Application.Authoring;
 using NvtFwCombiner.Application.Capabilities;
+using NvtFwCombiner.Application.InputInspection;
 using NvtFwCombiner.Application.Ports;
 using NvtFwCombiner.Domain.Composition;
 using NvtFwCombiner.TestSupport;
@@ -240,6 +241,38 @@ public sealed partial class FirmwareInspectionSnapshotTests
                 TestContext.Current.CancellationToken).AsTask());
 
         Assert.Equal(0x40000, observedMaximum);
+    }
+
+    /// <summary>CtrlRAM base discovery performs one hard-bounded read before an exact route exists.</summary>
+    [Fact]
+    public async Task CtrlRamBaseDiscoveryUsesTheSharedHardCeilingOnce()
+    {
+        int reads = 0;
+        long observedMaximum = 0;
+        BuiltInFirmwareInspection inspection = CreateInspection(
+            new DelegatingContentInspector((_, maximumBytes, _) =>
+            {
+                reads++;
+                observedMaximum = maximumBytes;
+                return ValueTask.FromException<SelectedFileContentInspection>(
+                    new ResourceCeilingObservedException());
+            }));
+
+        _ = await Assert.ThrowsAsync<ResourceCeilingObservedException>(() =>
+            inspection.InspectFirmwareBatchAsync(
+                "NT51950",
+                [new FirmwareInspectionSnapshotInput(
+                    "base",
+                    "base.bin",
+                    CtrlRamRequest: new CtrlRamInspectionRequest(
+                        IcNumberSelectionTokens.SingleChip),
+                    CtrlRamReplaceAddressSpaceId: CompositionAddressSpaceIds.ReferenceBase)],
+                TestContext.Current.CancellationToken).AsTask());
+
+        Assert.Equal(1, reads);
+        Assert.Equal(
+            CompiledInputArtifactInspectionService.MaximumContentReadBytes,
+            observedMaximum);
     }
 
     /// <summary>A metadata-only TP dependency does not inherit the DP binding's narrower limit.</summary>

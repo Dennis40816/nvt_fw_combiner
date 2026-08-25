@@ -35,8 +35,7 @@ internal sealed partial class WorkflowSessionPresentationViewModel
             return;
         }
 
-        await RefreshSelectedMergeFirmwareInspectionsAsync(selectedA.SlotId)
-            .WaitAsync(cancellationToken);
+        await RefreshSelectedMergeFirmwareInspectionsAsync(selectedA.SlotId, cancellationToken);
         RecordInputSelected(context, selectedA.SlotId);
         RecordInputSelected(context, selectedB.SlotId);
     }

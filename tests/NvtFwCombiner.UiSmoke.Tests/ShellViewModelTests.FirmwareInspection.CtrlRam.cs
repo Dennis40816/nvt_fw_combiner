@@ -1,4 +1,5 @@
 using System.Text.Json;
+using NvtFwCombiner.Application.Authoring;
 using NvtFwCombiner.Application.InputInspection;
 using NvtFwCombiner.Domain.Composition;
 using NvtFwCombiner.Presentation.Avalonia.ViewModels;
@@ -45,6 +46,46 @@ public sealed partial class CtrlRamWorkflowTests
         Assert.True(nfSlot.HasFile);
         Assert.True(nfSlot.IsSemanticStateWarning);
         Assert.Equal(WorkflowInspectionAttemptState.Succeeded, viewModel.Replace.Inspection.State);
+    }
+
+    /// <summary>A readable rejected CtrlRAM input keeps its typed blocking diagnostic through UI adoption.</summary>
+    [Fact]
+    public async Task Nt51923RejectedExtensionKeepsTypedBlockingDiagnostic()
+    {
+        JsonElement fixtureCase = CanonicalGoldenTestData.LoadDirectCase(
+            "ctrlram-replace",
+            "nt51923-fw141-single-auto-prj-662-20260717");
+        JsonElement baseArtifact = fixtureCase.GetProperty("artifacts").EnumerateArray().Single(
+            artifact => artifact.GetProperty("artifactId").GetString() == "expected-output");
+        using var workspace = TempWorkspace.Create("nvt-fw-combiner-ui-ctrlram-short-input");
+        string rejectedInputPath = workspace.Write("normal-ctrlram.txt", [0x00]);
+        MainWindowViewModel viewModel = PresentationTestHost.CreateViewModel();
+        viewModel.WorkflowSession.SelectedIc = "NT51923";
+        viewModel.WorkflowSession.SelectedNumber = IcNumberSelectionTokens.SingleChip;
+        OpenReplace(viewModel, ExperienceIds.CtrlRamReplace);
+
+        await viewModel.WorkflowSession.SetSlotFileAsync(
+            CompositionSlotIds.ReplaceBase,
+            CanonicalGoldenTestData.ArtifactPath(baseArtifact),
+            TestContext.Current.CancellationToken);
+        await viewModel.WorkflowSession.SetSlotFileAsync(
+            "replace-ctrlram-normal",
+            rejectedInputPath,
+            TestContext.Current.CancellationToken);
+
+        FirmwareSlotViewModel replacement = viewModel.Replace.ReplaceSlots.Single(slot =>
+            slot.SlotId == "replace-ctrlram-normal");
+        Assert.Equal(WorkflowInspectionAttemptState.Failed, viewModel.Replace.Inspection.State);
+        Assert.False(replacement.IsInputInspectionPending);
+        Assert.Equal(FirmwareInputInspectionSeverity.Blocking, replacement.InputInspectionSeverity);
+        Assert.Equal(
+            InputArtifactInspectionIssueCodes.ExtensionNotAccepted,
+            Assert.IsType<AuthoringInputSlotStatus>(
+                replacement.CurrentInspectionProjection?.InputSlotStatus).InspectionIssueCode);
+        Assert.Contains("extension", replacement.InputInspectionStatus, StringComparison.OrdinalIgnoreCase);
+        Assert.NotEqual(viewModel.Text.FirmwareInspectionStaleFileStatus, replacement.InputInspectionStatus);
+        Assert.True(replacement.BlocksBuild);
+        Assert.False(viewModel.Replace.CanBuildReplace);
     }
 
     /// <summary>A readable CtrlRAM base outside every declared map blocks the workflow without throwing.</summary>

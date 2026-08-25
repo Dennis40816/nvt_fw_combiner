@@ -463,7 +463,7 @@ public sealed partial class CompiledAuthoringWorkflowService
                 : resolved;
     }
 
-    private static bool IsEquivalentExactCapability(
+    internal static bool IsEquivalentExactCapability(
         ResolvedCapability left,
         ResolvedCapability right)
     {

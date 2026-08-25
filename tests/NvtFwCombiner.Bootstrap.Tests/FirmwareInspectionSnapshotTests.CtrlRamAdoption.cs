@@ -1,0 +1,231 @@
+using System.Text.Json;
+using NvtFwCombiner.Application.Authoring;
+using NvtFwCombiner.Application.Capabilities;
+using NvtFwCombiner.Domain.Composition;
+using NvtFwCombiner.TestSupport;
+
+namespace NvtFwCombiner.Bootstrap.Tests;
+
+public sealed partial class FirmwareInspectionSnapshotTests
+{
+    /// <summary>NT51923 adopts each bounded inspection once and retains one exact route instance.</summary>
+    [Fact]
+    public async Task Nt51923CtrlRamAdoptionReusesInspectedBytesAndEquivalentCapability()
+    {
+        JsonElement fixtureCase = CanonicalGoldenTestData.LoadDirectCase(
+            "ctrlram-replace",
+            "nt51923-fw141-single-auto-prj-662-20260717");
+        JsonElement[] artifacts = [.. fixtureCase.GetProperty("artifacts").EnumerateArray()];
+        string basePath = CanonicalGoldenTestData.ArtifactPath(artifacts.Single(artifact =>
+            artifact.GetProperty("artifactId").GetString() == "expected-output"));
+        string normalPath = CanonicalGoldenTestData.ArtifactPath(artifacts.Single(artifact =>
+            artifact.GetProperty("artifactId").GetString() == "postbuild-normal-ctrlram"));
+        using var workspace = TempWorkspace.Create("nfc-ctrlram-adoption-path-change");
+        string secondBasePath = workspace.Write("base-b.bin", File.ReadAllBytes(basePath));
+        string secondNormalPath = workspace.Write("normal-b.bin", File.ReadAllBytes(normalPath));
+        IFirmwareInspection inspection = BootstrapTestHost.Services.FirmwareInspectionExperience;
+        ICtrlRamAuthoring authoring = BootstrapTestHost.Services.CtrlRamAuthoring;
+        var session = new AuthoringSessionState(ExperienceIds.CtrlRamReplace);
+
+        async Task<(AuthoringCapabilityCatalogSnapshot Catalog,
+            AuthoringInputSlotStatus[] Statuses)> InspectAsync(
+                long revision,
+                string selectedBasePath,
+                string selectedNormalPath)
+        {
+            FirmwareInspectionBatchResult batch = await inspection.InspectFirmwareBatchAsync(
+                "NT51923",
+                [
+                    new FirmwareInspectionSnapshotInput(
+                        "base",
+                        selectedBasePath,
+                        CtrlRamRequest: new CtrlRamInspectionRequest(
+                            IcNumberSelectionTokens.SingleChip),
+                        AuthoringRevision: revision,
+                        CtrlRamReplaceAddressSpaceId:
+                            CompositionAddressSpaceIds.ReferenceBase),
+                    new FirmwareInspectionSnapshotInput(
+                        "normal",
+                        selectedNormalPath,
+                        AuthoringRevision: revision,
+                        CtrlRamReplaceAddressSpaceId: "replace-ctrlram-normal"),
+                ],
+                TestContext.Current.CancellationToken);
+            FirmwareInspectionSnapshot[] snapshots = [.. batch.InspectionsById.Values];
+            return (
+                Assert.IsType<AuthoringCapabilityCatalogSnapshot>(
+                    snapshots[0].InputSlotCatalog),
+                [.. snapshots.Select(snapshot => Assert.IsType<AuthoringInputSlotStatus>(
+                    snapshot.InputSlotStatus))]);
+        }
+
+        (AuthoringCapabilityCatalogSnapshot firstCatalog,
+            AuthoringInputSlotStatus[] firstStatuses) = await InspectAsync(
+                1,
+                basePath,
+                normalPath);
+        AuthoringSessionTransitionResult first = authoring.AdoptInspectedBatch(
+            session,
+            firstCatalog,
+            firstStatuses);
+        Assert.True(first.Succeeded, first.Issue?.Message);
+        ActiveSessionSnapshot firstSnapshot = first.Snapshot!;
+        Assert.Equal(new AuthoringRevision(2), firstSnapshot.AuthoringRevision);
+        Assert.All(firstStatuses, status => Assert.Same(
+            status.AcceptedByteArray,
+            firstSnapshot.InputSlotStatuses.Single(adopted =>
+                adopted.SlotId == status.SlotId).AcceptedByteArray));
+
+        (AuthoringCapabilityCatalogSnapshot secondCatalog,
+            AuthoringInputSlotStatus[] secondStatuses) = await InspectAsync(
+                firstSnapshot.AuthoringRevision.Value,
+                secondBasePath,
+                secondNormalPath);
+        AuthoringSessionTransitionResult second = authoring.AdoptInspectedBatch(
+            session,
+            secondCatalog,
+            secondStatuses);
+        Assert.True(second.Succeeded, second.Issue?.Message);
+        ActiveSessionSnapshot secondSnapshot = second.Snapshot!;
+        Assert.Equal(new AuthoringRevision(3), secondSnapshot.AuthoringRevision);
+        Assert.Same(firstSnapshot.ExactCapability, secondSnapshot.ExactCapability);
+        Assert.Equal(
+            [secondBasePath, secondNormalPath],
+            secondSnapshot.Slots.Select(static slot => slot.SelectedPath).Order(StringComparer.Ordinal));
+        Assert.All(secondStatuses, status => Assert.Same(
+            status.AcceptedByteArray,
+            secondSnapshot.InputSlotStatuses.Single(adopted =>
+                adopted.SlotId == status.SlotId).AcceptedByteArray));
+
+        (AuthoringCapabilityCatalogSnapshot concurrentSecondCatalog,
+            AuthoringInputSlotStatus[] concurrentSecondStatuses) = await InspectAsync(
+                1,
+                secondBasePath,
+                secondNormalPath);
+        var concurrentSession = new AuthoringSessionState(ExperienceIds.CtrlRamReplace);
+        AuthoringSessionTransitionResult[] concurrent = await Task.WhenAll(
+            Task.Run(() => authoring.AdoptInspectedBatch(
+                concurrentSession,
+                firstCatalog,
+                firstStatuses),
+                TestContext.Current.CancellationToken),
+            Task.Run(() => authoring.AdoptInspectedBatch(
+                concurrentSession,
+                concurrentSecondCatalog,
+                concurrentSecondStatuses),
+                TestContext.Current.CancellationToken));
+        _ = Assert.Single(concurrent, static result => result.Succeeded);
+        AuthoringSessionTransitionResult stale = Assert.Single(
+            concurrent,
+            static result => !result.Succeeded);
+        Assert.Equal(AuthoringSessionIssueCodes.StaleInspection, stale.Issue!.Code);
+        string[] finalPaths =
+        [
+            .. concurrentSession.CurrentSnapshot!.Slots
+                .Select(static slot => slot.SelectedPath!)
+                .Order(StringComparer.Ordinal),
+        ];
+        Assert.True(
+            finalPaths.SequenceEqual([basePath, normalPath]) ||
+            finalPaths.SequenceEqual([secondBasePath, secondNormalPath]));
+
+        var countingAdapter = new CountingCtrlRamAuthoringAdapter(
+            new BuiltInCtrlRamAuthoringAdapter(
+                BootstrapTestHost.Canonical.Catalog,
+                BootstrapTestHost.Canonical.Projection));
+        var countedAuthoring = new CtrlRamAuthoringExperience(
+            countingAdapter,
+            BootstrapTestHost.Services.ExternalEnvironment);
+        FirmwareInspectionStatusBatch countedBatch = countedAuthoring.InspectInputSlots(
+            "NT51923",
+            [
+                new FirmwareInspectionSnapshotInput(
+                    "base",
+                    basePath,
+                    CtrlRamRequest: new CtrlRamInspectionRequest(
+                        IcNumberSelectionTokens.SingleChip),
+                    AuthoringRevision: 1,
+                    CtrlRamReplaceAddressSpaceId:
+                        CompositionAddressSpaceIds.ReferenceBase),
+                new FirmwareInspectionSnapshotInput(
+                    "normal",
+                    normalPath,
+                    AuthoringRevision: 1,
+                    CtrlRamReplaceAddressSpaceId: "replace-ctrlram-normal"),
+            ],
+            static path => File.ReadAllBytes(path));
+        Assert.Equal(1, countingAdapter.ResolveCalls);
+        (int Resolve, int IsAccepted) callsAfterInspection = countingAdapter.Counts;
+        AuthoringSessionTransitionResult countedAdoption = countedAuthoring.AdoptInspectedBatch(
+            new AuthoringSessionState(ExperienceIds.CtrlRamReplace),
+            Assert.IsType<AuthoringCapabilityCatalogSnapshot>(countedBatch.Catalog),
+            [.. countedBatch.Statuses.Values]);
+        Assert.True(countedAdoption.Succeeded, countedAdoption.Issue?.Message);
+        Assert.Equal(callsAfterInspection, countingAdapter.Counts);
+    }
+
+    private sealed class CountingCtrlRamAuthoringAdapter(ICtrlRamAuthoringAdapter inner)
+        : ICtrlRamAuthoringAdapter
+    {
+        internal int ResolveCalls { get; private set; }
+
+        internal (int Resolve, int IsAccepted) Counts =>
+            (ResolveCalls, IsAcceptedCapabilityCalls);
+
+        private int IsAcceptedCapabilityCalls { get; set; }
+
+        public CtrlRamInspectionDisplay GetDiscoveryDisplay(
+            string icId,
+            string number,
+            string? basePath)
+        {
+            return inner.GetDiscoveryDisplay(icId, number, basePath);
+        }
+
+        public CtrlRamInspectionDisplay GetDiscoveryDisplayFromAcceptedBase(
+            string icId,
+            string number,
+            ReadOnlyMemory<byte> acceptedBaseBytes)
+        {
+            return inner.GetDiscoveryDisplayFromAcceptedBase(icId, number, acceptedBaseBytes);
+        }
+
+        public CtrlRamAuthoringCompilation Resolve(
+            string icId,
+            string number,
+            IReadOnlyDictionary<string, string> slotPaths,
+            CtrlRamFirmwareVersionDraftState? firmwareVersionEdit,
+            IReadOnlyDictionary<string, byte[]>? selectedInputBytes = null)
+        {
+            ResolveCalls++;
+            return inner.Resolve(
+                icId,
+                number,
+                slotPaths,
+                firmwareVersionEdit,
+                selectedInputBytes);
+        }
+
+        public bool IsAcceptedCapability(
+            string icId,
+            string number,
+            IReadOnlyDictionary<string, string> slotPaths,
+            CtrlRamFirmwareVersionDraftState? firmwareVersionEdit,
+            IReadOnlyDictionary<string, byte[]>? selectedInputBytes,
+            ResolvedCapability capability,
+            out IReadOnlyDictionary<string, string> expectedPaths,
+            out IReadOnlyList<CompositionIssue> issues)
+        {
+            IsAcceptedCapabilityCalls++;
+            return inner.IsAcceptedCapability(
+                icId,
+                number,
+                slotPaths,
+                firmwareVersionEdit,
+                selectedInputBytes,
+                capability,
+                out expectedPaths,
+                out issues);
+        }
+    }
+}

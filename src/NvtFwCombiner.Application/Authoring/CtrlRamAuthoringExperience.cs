@@ -79,6 +79,16 @@ internal sealed partial class CtrlRamAuthoringExperience :
         return new CtrlRamAuthoringSessionPreparation(acceptedSession, issues);
     }
 
+    /// <inheritdoc />
+    public AuthoringSessionTransitionResult AdoptInspectedBatch(
+        AuthoringSessionState session,
+        AuthoringCapabilityCatalogSnapshot catalog,
+        IReadOnlyCollection<AuthoringInputSlotStatus> statuses)
+    {
+        ArgumentNullException.ThrowIfNull(session);
+        return session.TryAdoptExactSlotFileInspectionBatch(catalog, statuses);
+    }
+
     private bool TryPrepareSession(
         string icId,
         string number,

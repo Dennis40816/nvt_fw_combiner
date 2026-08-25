@@ -46,36 +46,20 @@ internal sealed partial class ReplacePresentationViewModel
         {
             return items;
         }
+
+        if (SelectedReplaceMode == CtrlRamReplaceMode)
+        {
+            ClearCtrlRamActionReadiness();
+            return items;
+        }
+
         FirmwareSlotViewModel[] selected =
         [
             .. slots.Where(slot => slot.HasFile && requested.Contains(ReplaceInputId(slot))),
         ];
-        if (SelectedReplaceMode == CtrlRamReplaceMode)
-        {
-            ClearCtrlRamActionReadiness();
-        }
-        CompiledAuthoringSelectionSnapshot? dpProjection = SelectedReplaceMode == DpReplaceMode
-            ? ResolveDpReplaceAuthoringSnapshot(selected)
-            : null;
-        AuthoringCapabilityCatalogSnapshot? catalog = dpProjection is not null
-            ? dpProjection.Catalog
-            : _compositionServices.CtrlRamAuthoring.GetAuthoringCatalog(
-                SelectedIc,
-                SelectedNumber,
-                selected.ToDictionary(
-                    slot => ReplaceInputId(slot) == CompositionAddressSpaceIds.ReferenceBase
-                        ? CompositionSlotIds.ReplaceBase
-                        : ReplaceInputId(slot),
-                    static slot => slot.FilePath!,
-                    StringComparer.Ordinal),
-                _ctrlRamReplaceSession.CurrentSnapshot);
-        if (catalog is null)
-        {
-            return items;
-        }
-        AuthoringSessionTransitionResult activated = dpProjection is null
-            ? session.Activate(catalog)
-            : session.Activate(dpProjection);
+        CompiledAuthoringSelectionSnapshot dpProjection =
+            ResolveDpReplaceAuthoringSnapshot(selected);
+        AuthoringSessionTransitionResult activated = session.Activate(dpProjection);
         if (!activated.Succeeded)
         {
             return items;
@@ -129,11 +113,24 @@ internal sealed partial class ReplacePresentationViewModel
         AuthoringCapabilityCatalogSnapshot? catalog = results[0].InputSlotCatalog;
         AuthoringSessionState? session = CurrentReplaceInputSession;
         if (catalog is null || session is null || results.Any(static result =>
-                result.InputSlotCatalog is null || result.InputSlotStatus is null) ||
-            selected.Any(static item => item.InspectionLease is null))
+                result.InputSlotCatalog is null || result.InputSlotStatus is null))
         {
             return false;
         }
+
+        if (SelectedReplaceMode == CtrlRamReplaceMode)
+        {
+            return _compositionServices.CtrlRamAuthoring.AdoptInspectedBatch(
+                session,
+                catalog,
+                [.. results.Select(static result => result.InputSlotStatus!)]).Succeeded;
+        }
+
+        if (selected.Any(static item => item.InspectionLease is null))
+        {
+            return false;
+        }
+
         AuthoringSessionTransitionResult completed = session.TryCompleteSlotFileInspectionBatch(
             catalog,
             [.. selected.Select(static item => item.InspectionLease!)],

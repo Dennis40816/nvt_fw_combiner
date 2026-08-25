@@ -159,9 +159,9 @@ internal sealed partial class WorkflowSessionPresentationViewModel
         _stateBindings.ResetRunResult();
         _stateBindings.RefreshCommandState();
         Task refresh = context.IsMerge
-            ? RefreshSelectedMergeFirmwareInspectionsAsync()
-            : RefreshSelectedReplaceFirmwareInspectionsAsync();
-        await refresh.WaitAsync(cancellationToken);
+            ? RefreshSelectedMergeFirmwareInspectionsAsync(cancellationToken: cancellationToken)
+            : RefreshSelectedReplaceFirmwareInspectionsAsync(null, cancellationToken);
+        await refresh;
     }
 
     private Task ClearSlotFileFromCommandAsync(string? slotId)

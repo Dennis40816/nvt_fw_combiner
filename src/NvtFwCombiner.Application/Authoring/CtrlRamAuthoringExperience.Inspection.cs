@@ -62,43 +62,6 @@ internal sealed partial class CtrlRamAuthoringExperience
             readiness);
     }
 
-    /// <summary>Resolves the exact CtrlRAM Replace authoring catalog for selected paths.</summary>
-    public AuthoringCapabilityCatalogSnapshot? GetAuthoringCatalog(
-        string icId,
-        string number,
-        IReadOnlyDictionary<string, string> slotPaths,
-        ActiveSessionSnapshot? retainedSession = null)
-    {
-        ArgumentNullException.ThrowIfNull(slotPaths);
-        ResolvedCapability? retained = retainedSession?.ExactCapability;
-        if (retainedSession is not null && retained is not null &&
-            StringComparer.Ordinal.Equals(
-                retainedSession.WorkflowId,
-                ExperienceIds.CtrlRamReplace) &&
-            _adapter.IsAcceptedCapability(
-                icId,
-                number,
-                slotPaths,
-                firmwareVersionEdit: null,
-                selectedInputBytes: null,
-                retained,
-                out IReadOnlyDictionary<string, string> expectedPaths,
-                out _) &&
-            HasExpectedPaths(retainedSession, expectedPaths))
-        {
-            return AuthoringCapabilityCatalogSnapshot.FromResolvedCapability(retained);
-        }
-
-        CtrlRamAuthoringCompilation compilation = _adapter.Resolve(
-            icId,
-            number,
-            slotPaths,
-            firmwareVersionEdit: null);
-        return compilation.Capability is { } capability
-            ? AuthoringCapabilityCatalogSnapshot.FromResolvedCapability(capability)
-            : null;
-    }
-
     public FirmwareInspectionStatusBatch InspectInputSlots(
         string icId,
         IReadOnlyList<FirmwareInspectionSnapshotInput> inputs,

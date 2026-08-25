@@ -502,7 +502,8 @@ public sealed partial class FirmwareInspectionSlotTests
         Assert.Contains(dp.FirmwareFacts, fact => fact.Value == "D01-01");
 
         File.WriteAllBytes(path, [0x02, 0x03]);
-        await viewModel.WorkflowSession.RefreshSelectedMergeFirmwareInspectionsAsync();
+        await viewModel.WorkflowSession.RefreshSelectedMergeFirmwareInspectionsAsync(
+            cancellationToken: TestContext.Current.CancellationToken);
 
         Assert.Contains(dp.FirmwareFacts, fact => fact.Value == "D02-02");
     }
@@ -530,7 +531,8 @@ public sealed partial class FirmwareInspectionSlotTests
         await viewModel.WorkflowSession.SetSlotFileAsync("replace-base", replacePath, TestContext.Current.CancellationToken);
         inspectedSlotIds.Clear();
 
-        await viewModel.WorkflowSession.RefreshSelectedMergeFirmwareInspectionsAsync();
+        await viewModel.WorkflowSession.RefreshSelectedMergeFirmwareInspectionsAsync(
+            cancellationToken: TestContext.Current.CancellationToken);
 
         Assert.Equal(["merge-dp"], inspectedSlotIds);
     }
@@ -568,7 +570,8 @@ public sealed partial class FirmwareInspectionSlotTests
         Assert.Equal("Waiting for TP BIN", viewModel.Merge.MergeMemoryRangeLabel);
 
         mutateDuringRefresh = true;
-        await viewModel.WorkflowSession.RefreshSelectedMergeFirmwareInspectionsAsync();
+        await viewModel.WorkflowSession.RefreshSelectedMergeFirmwareInspectionsAsync(
+            cancellationToken: TestContext.Current.CancellationToken);
 
         Assert.Equal(
             "{ic}_FlashCode_D{dp-version}T{tp-version}_{date}.bin",
