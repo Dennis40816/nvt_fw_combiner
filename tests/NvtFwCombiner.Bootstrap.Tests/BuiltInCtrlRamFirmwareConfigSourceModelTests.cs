@@ -24,17 +24,25 @@ public sealed class BuiltInCtrlRamFirmwareConfigSourceModelTests
     private static readonly IReadOnlyDictionary<string, string> ExpectedCtrlRamMapTopologies =
         new Dictionary<string, string>(StringComparer.Ordinal)
         {
+            ["nt51923-ctrlram-fw141-single-tp-work-240k"] = "single",
             ["nt51923-ctrlram-fw141-single-full-flash"] = "single",
+            ["nt51923-ctrlram-fw141-cascade3-tp-work-240k"] = "cascade:2-*",
             ["nt51923-ctrlram-fw141-cascade3-full-flash"] = "cascade:2-*",
             ["nt51926-ctrlram-fw141-tp-work-240k"] = "none",
             ["nt51926-ctrlram-fw141-full-flash-256k"] = "none",
             ["nt51926-ctrlram-fw200-tp-work-240k"] = "none",
             ["nt51926-ctrlram-fw200-full-flash-256k"] = "none",
+            ["nt51927-ctrlram-fw132-twochip-tp-work-212k"] = "exact-count:2",
             ["nt51927-ctrlram-fw132-twochip-full-flash"] = "exact-count:2",
+            ["nt51927-ctrlram-fw140-threechip-tp-work-212k"] = "exact-count:3",
             ["nt51927-ctrlram-fw140-threechip-full-flash"] = "exact-count:3",
+            ["nt51927-ctrlram-fw141-single-tp-work-212k"] = "single",
             ["nt51927-ctrlram-fw141-single-full-flash"] = "single",
+            ["nt51928-ctrlram-fw141-single-tp-work-212k"] = "single",
             ["nt51928-ctrlram-fw141-single-full-flash"] = "single",
+            ["nt51928-ctrlram-fw132-twochip-tp-work-212k"] = "exact-count:2",
             ["nt51928-ctrlram-fw132-twochip-full-flash"] = "exact-count:2",
+            ["nt51928-ctrlram-fw140-threechip-tp-work-212k"] = "exact-count:3",
             ["nt51928-ctrlram-fw140-threechip-full-flash"] = "exact-count:3",
             ["nt51929-ctrlram-fw200-single-full-flash"] = "single",
             ["nt51929-ctrlram-fw1x-cascade-full-flash"] = "cascade:2-8",
@@ -79,6 +87,43 @@ public sealed class BuiltInCtrlRamFirmwareConfigSourceModelTests
         }
 
         Assert.Equal(ExpectedCtrlRamMapTopologies, actualTopologies);
+    }
+
+    /// <summary>All declared CtrlRAM profiles are formally supported without residual promotion blockers.</summary>
+    [Fact]
+    public void EveryCtrlRamProfileIsSupportedWithoutPromotionBlockers()
+    {
+        int profileCount = 0;
+
+        foreach (string bundleDirectory in CtrlRamBundleDirectories)
+        {
+            string profileRoot = RepositoryPaths.FromRepositoryRoot(
+                "profiles",
+                "built-in",
+                bundleDirectory,
+                "profiles");
+            foreach (string profilePath in Directory.EnumerateFiles(
+                         profileRoot,
+                         "*.json",
+                         SearchOption.TopDirectoryOnly))
+            {
+                using var profileDocument = JsonDocument.Parse(File.ReadAllBytes(profilePath));
+                JsonElement profile = profileDocument.RootElement;
+                if (!StringComparer.Ordinal.Equals(
+                        profile.GetProperty("experience").GetProperty("experienceId").GetString(),
+                        "ctrlram-replace"))
+                {
+                    continue;
+                }
+
+                profileCount++;
+                JsonElement promotion = profile.GetProperty("promotion");
+                Assert.Equal("supported", promotion.GetProperty("stage").GetString());
+                Assert.Empty(promotion.GetProperty("blockers").EnumerateArray());
+            }
+        }
+
+        Assert.Equal(26, profileCount);
     }
 
     /// <summary>Every CtrlRAM profile requires one TP firmware-config region at the cataloged Primary start.</summary>

@@ -253,6 +253,28 @@ public sealed partial class RepositoryBoundaryTests
             "profiles/built-in/nt51951-ctrlram-replace-candidate/families/nt51951-ctrlram-replace.json");
         string generalProfile = ReadText(
             "profiles/built-in/nt51926-ctrlram-replace-candidate/profiles/nt51926-general-replace-dp-single-candidate.json");
+        string[] supportedCtrlRamProfiles =
+        [
+            diagnosticProfile,
+            runtimeProfile,
+            fw200SingleProfile,
+            fw200CascadeProfile,
+            nt51923SingleProfile,
+            nt51923CascadeProfile,
+            nt51927SingleProfile,
+            nt51927TwoChipProfile,
+            nt51927ThreeChipProfile,
+            nt51917SingleProfile,
+            nt51917TwoChipProfile,
+            nt51917ThreeChipProfile,
+            nt51929Profile,
+            nt51919Profile,
+            nt51932Profile,
+            nt51950Profile,
+            nt51950CascadeProfile,
+            nt51951Profile,
+            nt51951CascadeProfile,
+        ];
 
         Assert.DoesNotContain("nt51923-ctrlram-replace-candidate", registrations, StringComparison.Ordinal);
         Assert.DoesNotContain("nt51923-ctrlram-replace-candidate", cli, StringComparison.Ordinal);
@@ -278,7 +300,11 @@ public sealed partial class RepositoryBoundaryTests
         Assert.Contains("nt51932-ctrlram-replace-candidate", packageTrustIndex, StringComparison.Ordinal);
         Assert.Contains("nt51950-ctrlram-replace-candidate", packageTrustIndex, StringComparison.Ordinal);
         Assert.Contains("nt51951-ctrlram-replace-candidate", packageTrustIndex, StringComparison.Ordinal);
-        Assert.Contains("\"blockerId\": \"runtime-route\"", diagnosticProfile, StringComparison.Ordinal);
+        Assert.All(supportedCtrlRamProfiles, profile =>
+        {
+            Assert.Contains("\"stage\": \"supported\"", profile, StringComparison.Ordinal);
+            Assert.Contains("\"blockers\": []", profile, StringComparison.Ordinal);
+        });
         Assert.Contains(
             "CtrlRamV2FirmwareVersionAdapter.Create(context.FirmwareVersionWritePlan)",
             ctrlRamV2,
@@ -317,63 +343,52 @@ public sealed partial class RepositoryBoundaryTests
         Assert.Contains("nt51926-ctrlram-replace-fw200-runtime-cascade", packageTrustIndex, StringComparison.Ordinal);
         Assert.Contains("nt51950-ctrlram-replace-fw1x-cascade", packageTrustIndex, StringComparison.Ordinal);
         Assert.Contains("nt51951-ctrlram-replace-fw1x-cascade", packageTrustIndex, StringComparison.Ordinal);
-        Assert.Contains("\"stage\": \"executable-candidate\"", runtimeProfile, StringComparison.Ordinal);
-        Assert.DoesNotContain("\"blockerId\": \"direct-golden-evidence\"", runtimeProfile, StringComparison.Ordinal);
-        Assert.DoesNotContain("\"blockerId\": \"runtime-route\"", runtimeProfile, StringComparison.Ordinal);
-        Assert.Contains("\"blockerId\": \"firmware-owner-review\"", runtimeProfile, StringComparison.Ordinal);
         Assert.Contains("\"icNumberInputMode\": \"cascade-selector\"", runtimeProfile, StringComparison.Ordinal);
         Assert.Contains("nt51926-ctrlram-fw141-tp-work-240k", runtimeProfile, StringComparison.Ordinal);
         Assert.Contains("nt51926-ctrlram-fw141-full-flash-256k", runtimeProfile, StringComparison.Ordinal);
-        Assert.Contains("\"stage\": \"executable-candidate\"", fw200SingleProfile, StringComparison.Ordinal);
-        Assert.Contains("\"blockerId\": \"release-support-review\"", fw200SingleProfile, StringComparison.Ordinal);
         Assert.Contains("\"icNumberInputMode\": \"single-selector\"", fw200SingleProfile, StringComparison.Ordinal);
         Assert.Contains("nt51926-ctrlram-fw200-tp-work-240k", fw200SingleProfile, StringComparison.Ordinal);
         Assert.Contains("nt51926-ctrlram-fw200-full-flash-256k", fw200SingleProfile, StringComparison.Ordinal);
-        Assert.Contains("\"stage\": \"executable-candidate\"", fw200CascadeProfile, StringComparison.Ordinal);
-        Assert.Contains("\"blockerId\": \"release-support-review\"", fw200CascadeProfile, StringComparison.Ordinal);
         Assert.Contains("\"icNumberInputMode\": \"cascade-selector\"", fw200CascadeProfile, StringComparison.Ordinal);
         Assert.Contains("nt51926-ctrlram-fw200-tp-work-240k", fw200CascadeProfile, StringComparison.Ordinal);
         Assert.Contains("nt51926-ctrlram-fw200-full-flash-256k", fw200CascadeProfile, StringComparison.Ordinal);
-        Assert.Contains("\"stage\": \"executable-candidate\"", nt51923SingleProfile, StringComparison.Ordinal);
         Assert.Contains("\"icNumberInputMode\": \"single-selector\"", nt51923SingleProfile, StringComparison.Ordinal);
+        Assert.Contains("nt51923-ctrlram-fw141-single-tp-work-240k", nt51923SingleProfile, StringComparison.Ordinal);
         Assert.Contains("nt51923-ctrlram-fw141-single-full-flash", nt51923SingleProfile, StringComparison.Ordinal);
-        Assert.Contains("\"stage\": \"executable-candidate\"", nt51923CascadeProfile, StringComparison.Ordinal);
         Assert.Contains("\"icNumberInputMode\": \"cascade-selector\"", nt51923CascadeProfile, StringComparison.Ordinal);
+        Assert.Contains("nt51923-ctrlram-fw141-cascade3-tp-work-240k", nt51923CascadeProfile, StringComparison.Ordinal);
         Assert.Contains("nt51923-ctrlram-fw141-cascade3-full-flash", nt51923CascadeProfile, StringComparison.Ordinal);
         Assert.DoesNotContain("metadataPredicates", nt51923Family, StringComparison.Ordinal);
-        Assert.Contains("\"stage\": \"executable-candidate\"", nt51927SingleProfile, StringComparison.Ordinal);
-        Assert.Contains("\"blockerId\": \"support-neutral-no-promotion\"", nt51927SingleProfile, StringComparison.Ordinal);
         Assert.Contains("\"icNumberInputMode\": \"single-selector\"", nt51927SingleProfile, StringComparison.Ordinal);
         Assert.Contains("nfc.nt51927.ctrlram-postbuild-v1", nt51927SingleProfile, StringComparison.Ordinal);
+        Assert.Contains("nt51927-ctrlram-fw141-single-tp-work-212k", nt51927SingleProfile, StringComparison.Ordinal);
         Assert.Contains("nt51927-ctrlram-fw141-single-full-flash", nt51927SingleProfile, StringComparison.Ordinal);
-        Assert.Contains("\"stage\": \"executable-candidate\"", nt51927TwoChipProfile, StringComparison.Ordinal);
-        Assert.Contains("\"blockerId\": \"support-neutral-expected-derived-route\"", nt51927TwoChipProfile, StringComparison.Ordinal);
         Assert.Contains("\"icNumberInputMode\": \"numeric-selector\"", nt51927TwoChipProfile, StringComparison.Ordinal);
         Assert.Contains("nfc.nt51927.ctrlram-postbuild-v1", nt51927TwoChipProfile, StringComparison.Ordinal);
+        Assert.Contains("nt51927-ctrlram-fw132-twochip-tp-work-212k", nt51927TwoChipProfile, StringComparison.Ordinal);
         Assert.Contains("nt51927-ctrlram-fw132-twochip-full-flash", nt51927TwoChipProfile, StringComparison.Ordinal);
-        Assert.Contains("\"stage\": \"executable-candidate\"", nt51927ThreeChipProfile, StringComparison.Ordinal);
-        Assert.Contains("\"blockerId\": \"support-neutral-expected-derived-route\"", nt51927ThreeChipProfile, StringComparison.Ordinal);
         Assert.Contains("\"icNumberInputMode\": \"numeric-selector\"", nt51927ThreeChipProfile, StringComparison.Ordinal);
         Assert.Contains("nfc.nt51927.ctrlram-postbuild-v1", nt51927ThreeChipProfile, StringComparison.Ordinal);
+        Assert.Contains("nt51927-ctrlram-fw140-threechip-tp-work-212k", nt51927ThreeChipProfile, StringComparison.Ordinal);
         Assert.Contains("nt51927-ctrlram-fw140-threechip-full-flash", nt51927ThreeChipProfile, StringComparison.Ordinal);
         Assert.Contains("\"topologyRequirement\": { \"kind\": \"exact-count\", \"chipCount\": 2 }", nt51927Family, StringComparison.Ordinal);
         Assert.Contains("\"topologyRequirement\": { \"kind\": \"exact-count\", \"chipCount\": 3 }", nt51927Family, StringComparison.Ordinal);
         Assert.DoesNotContain("metadataPredicates", nt51927Family, StringComparison.Ordinal);
         Assert.Contains("\"memberId\": \"NT51917\"", nt51927Family, StringComparison.Ordinal);
-        Assert.Equal(3, CountOccurrences(nt51927Family, "\"memberIds\": [ \"NT51917\", \"NT51927\" ]"));
-        Assert.Contains("\"stage\": \"executable-candidate\"", nt51917SingleProfile, StringComparison.Ordinal);
+        Assert.Equal(6, CountOccurrences(nt51927Family, "\"memberIds\": [ \"NT51917\", \"NT51927\" ]"));
         Assert.Contains("\"icNumberInputMode\": \"single-selector\"", nt51917SingleProfile, StringComparison.Ordinal);
         Assert.Contains("nfc.nt51917.ctrlram-postbuild-v1", nt51917SingleProfile, StringComparison.Ordinal);
+        Assert.Contains("nt51927-ctrlram-fw141-single-tp-work-212k", nt51917SingleProfile, StringComparison.Ordinal);
         Assert.Contains("nt51927-ctrlram-fw141-single-full-flash", nt51917SingleProfile, StringComparison.Ordinal);
         Assert.Contains("ctrlram-replace-perfect-family-51917-to-51927", nt51917SingleProfile, StringComparison.Ordinal);
         Assert.Contains("\"icNumberInputMode\": \"numeric-selector\"", nt51917TwoChipProfile, StringComparison.Ordinal);
         Assert.Contains("nfc.nt51917.ctrlram-postbuild-v1", nt51917TwoChipProfile, StringComparison.Ordinal);
+        Assert.Contains("nt51927-ctrlram-fw132-twochip-tp-work-212k", nt51917TwoChipProfile, StringComparison.Ordinal);
         Assert.Contains("nt51927-ctrlram-fw132-twochip-full-flash", nt51917TwoChipProfile, StringComparison.Ordinal);
         Assert.Contains("\"icNumberInputMode\": \"numeric-selector\"", nt51917ThreeChipProfile, StringComparison.Ordinal);
         Assert.Contains("nfc.nt51917.ctrlram-postbuild-v1", nt51917ThreeChipProfile, StringComparison.Ordinal);
+        Assert.Contains("nt51927-ctrlram-fw140-threechip-tp-work-212k", nt51917ThreeChipProfile, StringComparison.Ordinal);
         Assert.Contains("nt51927-ctrlram-fw140-threechip-full-flash", nt51917ThreeChipProfile, StringComparison.Ordinal);
-        Assert.Contains("\"stage\": \"executable-candidate\"", nt51929Profile, StringComparison.Ordinal);
-        Assert.Contains("\"blockerId\": \"support-neutral-no-promotion\"", nt51929Profile, StringComparison.Ordinal);
         Assert.Contains("\"icNumberInputMode\": \"single-selector\"", nt51929Profile, StringComparison.Ordinal);
         Assert.Contains("nfc.nt51929.ctrlram-postbuild-v1", nt51929Profile, StringComparison.Ordinal);
         Assert.Contains("nt51929-ctrlram-fw200-single-full-flash", nt51929Profile, StringComparison.Ordinal);
@@ -382,27 +397,19 @@ public sealed partial class RepositoryBoundaryTests
         Assert.Contains("\"regionId\": \"fw-config-backup\"", nt51929Family, StringComparison.Ordinal);
         Assert.Contains("\"memberId\": \"NT51919\"", nt51929Family, StringComparison.Ordinal);
         Assert.Contains("\"memberIds\": [ \"NT51919\", \"NT51929\" ]", nt51929Family, StringComparison.Ordinal);
-        Assert.Contains("\"stage\": \"executable-candidate\"", nt51919Profile, StringComparison.Ordinal);
-        Assert.Contains("\"blockerId\": \"support-neutral-no-promotion\"", nt51919Profile, StringComparison.Ordinal);
         Assert.Contains("\"icNumberInputMode\": \"single-selector\"", nt51919Profile, StringComparison.Ordinal);
         Assert.Contains("nfc.nt51919.ctrlram-postbuild-v1", nt51919Profile, StringComparison.Ordinal);
         Assert.Contains("nt51929-ctrlram-fw200-single-full-flash", nt51919Profile, StringComparison.Ordinal);
         Assert.Contains("ctrlram-replace-perfect-family-51919-to-51929", nt51919Profile, StringComparison.Ordinal);
-        Assert.Contains("\"stage\": \"executable-candidate\"", nt51932Profile, StringComparison.Ordinal);
-        Assert.Contains("\"blockerId\": \"support-neutral-no-promotion\"", nt51932Profile, StringComparison.Ordinal);
         Assert.Contains("\"icNumberInputMode\": \"cascade-selector\"", nt51932Profile, StringComparison.Ordinal);
         Assert.Contains("nfc.nt51932.ctrlram-postbuild-v1", nt51932Profile, StringComparison.Ordinal);
         Assert.Contains("nt51932-ctrlram-fw200-cascade-full-flash", nt51932Profile, StringComparison.Ordinal);
         Assert.DoesNotContain("metadataPredicates", nt51932Family, StringComparison.Ordinal);
-        Assert.Contains("\"stage\": \"executable-candidate\"", nt51950Profile, StringComparison.Ordinal);
-        Assert.Contains("\"blockerId\": \"support-neutral-no-promotion\"", nt51950Profile, StringComparison.Ordinal);
         Assert.Contains("\"icNumberInputMode\": \"single-selector\"", nt51950Profile, StringComparison.Ordinal);
         Assert.Contains("nfc.nt51950.ctrlram-postbuild-v1", nt51950Profile, StringComparison.Ordinal);
         Assert.Contains("nt51950-ctrlram-fw200-single-full-flash", nt51950Profile, StringComparison.Ordinal);
         Assert.Contains("\"diff-ctrlram\"", nt51950CascadeProfile, StringComparison.Ordinal);
         Assert.DoesNotContain("metadataPredicates", nt51950Family, StringComparison.Ordinal);
-        Assert.Contains("\"stage\": \"executable-candidate\"", nt51951Profile, StringComparison.Ordinal);
-        Assert.Contains("\"blockerId\": \"support-neutral-no-promotion\"", nt51951Profile, StringComparison.Ordinal);
         Assert.Contains("\"icNumberInputMode\": \"single-selector\"", nt51951Profile, StringComparison.Ordinal);
         Assert.Contains("nfc.nt51951.ctrlram-postbuild-v1", nt51951Profile, StringComparison.Ordinal);
         Assert.Contains("nt51951-ctrlram-fw200-single-full-flash", nt51951Profile, StringComparison.Ordinal);

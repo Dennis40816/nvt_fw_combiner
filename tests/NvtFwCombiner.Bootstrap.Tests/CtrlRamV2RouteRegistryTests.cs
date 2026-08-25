@@ -1,11 +1,70 @@
 using NvtFwCombiner.Application.ExternalTools;
 using NvtFwCombiner.Domain.Composition;
+using NvtFwCombiner.Domain.Firmware;
 
 namespace NvtFwCombiner.Bootstrap.Tests;
 
 /// <summary>Locks CtrlRAM V2 routing to profile and typed-plan authority.</summary>
 public sealed class CtrlRamV2RouteRegistryTests
 {
+    /// <summary>Every declared CtrlRAM route must normalize through its trusted bundle.</summary>
+    [Fact]
+    public void EveryDeclaredRouteNormalizesThroughItsTrustedBundle()
+    {
+        foreach (CtrlRamV2Route route in CtrlRamV2RouteRegistry.All)
+        {
+            IReadOnlyList<FirmwareImageMap> maps = BuiltInV2BundleRegistry.All[route.BundleId]
+                .GetMapVariants(
+                    route.ProfileId,
+                    route.ProfileVersion,
+                    route.Key.IcId,
+                    ExperienceIds.CtrlRamReplace,
+                    out IReadOnlyList<CompositionIssue> issues);
+
+            Assert.True(
+                issues.Count == 0,
+                $"Route '{route.Key}' did not normalize: {string.Join(" | ", issues.Select(static issue => $"{issue.Code}: {issue.Message}"))}");
+            Assert.NotEmpty(maps);
+        }
+    }
+
+    /// <summary>The eleven owner-approved TP/full route cells expose exactly one TP-core map and one full-container map.</summary>
+    [Theory]
+    [InlineData("NT51917", "nt51917-ctrlram-replace-fw141-single", "0.3.0", "nt51927-ctrlram-fw141-single-tp-work-212k", "nt51927-ctrlram-fw141-single-full-flash")]
+    [InlineData("NT51917", "nt51917-ctrlram-replace-fw132-twochip", "0.3.0", "nt51927-ctrlram-fw132-twochip-tp-work-212k", "nt51927-ctrlram-fw132-twochip-full-flash")]
+    [InlineData("NT51917", "nt51917-ctrlram-replace-fw140-threechip", "0.3.0", "nt51927-ctrlram-fw140-threechip-tp-work-212k", "nt51927-ctrlram-fw140-threechip-full-flash")]
+    [InlineData("NT51923", "nt51923-ctrlram-replace-fw141-single", "0.4.0", "nt51923-ctrlram-fw141-single-tp-work-240k", "nt51923-ctrlram-fw141-single-full-flash")]
+    [InlineData("NT51923", "nt51923-ctrlram-replace-fw141-cascade3", "0.4.0", "nt51923-ctrlram-fw141-cascade3-tp-work-240k", "nt51923-ctrlram-fw141-cascade3-full-flash")]
+    [InlineData("NT51927", "nt51927-ctrlram-replace-fw141-single", "0.3.0", "nt51927-ctrlram-fw141-single-tp-work-212k", "nt51927-ctrlram-fw141-single-full-flash")]
+    [InlineData("NT51927", "nt51927-ctrlram-replace-fw132-twochip", "0.3.0", "nt51927-ctrlram-fw132-twochip-tp-work-212k", "nt51927-ctrlram-fw132-twochip-full-flash")]
+    [InlineData("NT51927", "nt51927-ctrlram-replace-fw140-threechip", "0.3.0", "nt51927-ctrlram-fw140-threechip-tp-work-212k", "nt51927-ctrlram-fw140-threechip-full-flash")]
+    [InlineData("NT51928", "nt51928-ctrlram-replace-fw141-single", "0.4.0", "nt51928-ctrlram-fw141-single-tp-work-212k", "nt51928-ctrlram-fw141-single-full-flash")]
+    [InlineData("NT51928", "nt51928-ctrlram-replace-fw132-twochip", "0.3.0", "nt51928-ctrlram-fw132-twochip-tp-work-212k", "nt51928-ctrlram-fw132-twochip-full-flash")]
+    [InlineData("NT51928", "nt51928-ctrlram-replace-fw140-threechip", "0.4.0", "nt51928-ctrlram-fw140-threechip-tp-work-212k", "nt51928-ctrlram-fw140-threechip-full-flash")]
+    public void TpAndFullRouteCellBindsExactlyTwoCapacityMaps(
+        string icId,
+        string profileId,
+        string profileVersion,
+        string expectedTpMapId,
+        string expectedFullMapId)
+    {
+        CtrlRamV2Route route = Assert.Single(
+            CtrlRamV2RouteRegistry.All,
+            candidate => StringComparer.Ordinal.Equals(candidate.Key.IcId, icId) &&
+                StringComparer.Ordinal.Equals(candidate.ProfileId, profileId));
+        IReadOnlyList<FirmwareImageMap> maps = BuiltInV2BundleRegistry.All[route.BundleId]
+            .GetMapVariants(
+                route.ProfileId,
+                route.ProfileVersion,
+                route.Key.IcId,
+                ExperienceIds.CtrlRamReplace,
+                out IReadOnlyList<CompositionIssue> issues);
+
+        Assert.Empty(issues);
+        Assert.Equal(profileVersion, route.ProfileVersion);
+        Assert.Equal([expectedFullMapId, expectedTpMapId], maps.Select(static map => map.MapId));
+    }
+
     /// <summary>Every declared route has one unique IC/effective-profile/plan authority key.</summary>
     [Fact]
     public void ProductionRouteKeysAreUnique()
@@ -75,9 +134,9 @@ public sealed class CtrlRamV2RouteRegistryTests
 
     /// <summary>NT51928 uses each matching NT51927 TP branch while retaining its separate DP/LDC tail.</summary>
     [Theory]
-    [InlineData(IcNumberInputMode.SingleSelector, IcNumberSelectionTokens.SingleChip, "nt51928-ctrlram-replace-fw141-single", "0.3.0")]
-    [InlineData(IcNumberInputMode.NumericSelector, "2", "nt51928-ctrlram-replace-fw132-twochip", "0.2.0")]
-    [InlineData(IcNumberInputMode.NumericSelector, "3", "nt51928-ctrlram-replace-fw140-threechip", "0.3.0")]
+    [InlineData(IcNumberInputMode.SingleSelector, IcNumberSelectionTokens.SingleChip, "nt51928-ctrlram-replace-fw141-single", "0.4.0")]
+    [InlineData(IcNumberInputMode.NumericSelector, "2", "nt51928-ctrlram-replace-fw132-twochip", "0.3.0")]
+    [InlineData(IcNumberInputMode.NumericSelector, "3", "nt51928-ctrlram-replace-fw140-threechip", "0.4.0")]
     public void Nt51928NonNbPlanResolvesMatchingTpRoute(
         IcNumberInputMode mode,
         string token,
@@ -112,7 +171,7 @@ public sealed class CtrlRamV2RouteRegistryTests
             out CtrlRamV2Route? route));
         Assert.NotNull(route);
         Assert.Equal(expectedProfileId, route.ProfileId);
-        Assert.Equal("0.6.0", route.ProfileVersion);
+        Assert.Equal("0.7.0", route.ProfileVersion);
     }
 
     private static CtrlRamV2RouteKey Key(

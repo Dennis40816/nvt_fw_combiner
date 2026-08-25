@@ -11,7 +11,7 @@ using NvtFwCombiner.TestSupport;
 
 namespace NvtFwCombiner.Bootstrap.Tests;
 
-/// <summary>Executable-candidate evidence for the routed NT51926 Common FW 1.4.1 cascade CtrlRAM postbuild plan.</summary>
+/// <summary>Supported-route evidence for the NT51926 Common FW 1.4.1 cascade CtrlRAM postbuild plan.</summary>
 public sealed class Nt51926CtrlRamReplaceCandidateProfileTests
 {
     private const int Capacity = 0x3C000;
@@ -43,13 +43,11 @@ public sealed class Nt51926CtrlRamReplaceCandidateProfileTests
             processorOperation.ExternalProcessorInvocation);
         LegacyCombinerPostbuildCommandPlan legacyPlan = LegacyCombinerPostbuildCatalog.Nt51926CommonFw141.ResolvePlan(new IcNumberSelection(IcNumberInputMode.CascadeSelector, ["cascade"]));
 
-        Assert.Equal(CompiledCompositionEligibility.V2PlanCompiled, composition.Eligibility);
+        Assert.Equal(CompiledCompositionEligibility.V2RuntimeExecutable, composition.Eligibility);
         V2CompiledCompositionDetails details = Assert.IsType<V2CompiledCompositionDetails>(composition.V2Details);
         Assert.Equal("nt51926-ctrlram-fw141-tp-work-240k", details.Provenance.ResolvedMap.ImageMap.MapId);
-        Assert.Equal(CompiledProfilePromotionStage.ExecutableCandidate, details.Provenance.Promotion.Stage);
-        Assert.Equal(
-            ["firmware-owner-review", "runtime-route"],
-            details.Provenance.Promotion.Blockers.Select(static blocker => blocker.BlockerId));
+        Assert.Equal(CompiledProfilePromotionStage.Supported, details.Provenance.Promotion.Stage);
+        Assert.Empty(details.Provenance.Promotion.Blockers);
         FirmwareResolvedMetadataStructure backup = Assert.Single(
             details.Provenance.ResolvedMap.ResolvedMetadataStructures);
         Assert.Equal("nt51926-fwconfig-backup-envelope", backup.DecodedStructure.MetadataStructureId);
@@ -182,7 +180,7 @@ public sealed class Nt51926CtrlRamReplaceCandidateProfileTests
             "f11e8bc970bfebcb803082c9f048b235fd990fba440f5900cbe81e100b3c9cd3",
             first.V2Details.Provenance.ResolvedMap.ResolutionFingerprint);
         Assert.Equal(
-            "d4ca898a8324723a104c690bd64a1db3edf61a217bb6a0a092d600f356a1da27",
+            "19dd9d7af3efc0641ec6ccbd8c04f105bbc59e1fcb7317001cf6c37683b29d9c",
             first.CompilationFingerprint);
         Assert.Equal(
             first.V2Details.Provenance.ResolvedMap.ResolutionFingerprint,
@@ -207,7 +205,7 @@ public sealed class Nt51926CtrlRamReplaceCandidateProfileTests
             static issue => issue.Code == "profile.v2.compile.map-capacity-unavailable");
     }
 
-    /// <summary>Verifies CtrlRAM-only oversize normalization is declared while the candidate remains outside runtime admission.</summary>
+    /// <summary>Verifies the supported route still applies only its declared CtrlRAM oversize normalization.</summary>
     [Fact]
     public async Task CandidatePlanTruncatesOnlyCtrlRamInputsBeforeHostStagingAsync()
     {
@@ -502,7 +500,7 @@ public sealed class Nt51926CtrlRamReplaceCandidateProfileTests
         V2CompositionPlanCompileResult compilation = BuiltInV2BundleRegistry.All[
             "nt51926-ctrlram-replace-candidate"].CompileRuntimeReferenceReplace(
                 "nt51926-ctrlram-replace-fw141-runtime-cascade",
-                "0.3.0",
+                "0.4.0",
                 "NT51926",
                 ExperienceIds.CtrlRamReplace,
                 new TopologySelection(
@@ -531,7 +529,9 @@ public sealed class Nt51926CtrlRamReplaceCandidateProfileTests
                         alignment: 1,
                         reason: "NT51926 Common FW 1.4.1 runtime CtrlRAM golden mapping.")]));
         Assert.True(compilation.IsCompiled, FormatIssues(compilation.Issues));
-        return Assert.IsType<CompiledComposition>(compilation.CompiledComposition);
+        CompiledComposition composition = Assert.IsType<CompiledComposition>(compilation.CompiledComposition);
+        Assert.Equal(CompiledCompositionEligibility.V2RuntimeExecutable, composition.Eligibility);
+        return composition;
     }
 
     private static Dictionary<string, byte[]> CreateBaseDerivedCandidateInputs(byte[] referenceBase)
@@ -556,7 +556,9 @@ public sealed class Nt51926CtrlRamReplaceCandidateProfileTests
     {
         V2CompositionPlanCompileResult compilation = CompileCandidateResult(referenceBase);
         Assert.True(compilation.IsCompiled, FormatIssues(compilation.Issues));
-        return Assert.IsType<CompiledComposition>(compilation.CompiledComposition);
+        CompiledComposition composition = Assert.IsType<CompiledComposition>(compilation.CompiledComposition);
+        Assert.Equal(CompiledCompositionEligibility.V2RuntimeExecutable, composition.Eligibility);
+        return composition;
     }
 
     private static V2CompositionPlanCompileResult CompileCandidateResult(byte[] referenceBase)
@@ -566,7 +568,7 @@ public sealed class Nt51926CtrlRamReplaceCandidateProfileTests
             referenceBase);
         return BuiltInV2BundleRegistry.All["nt51926-ctrlram-replace-candidate"].Compile(
             "nt51926-ctrlram-replace-fw141-cascade",
-            "0.6.0",
+            "0.7.0",
             "NT51926",
             ExperienceIds.CtrlRamReplace,
             referenceBase.Length,
