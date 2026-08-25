@@ -59,6 +59,17 @@ result and does not act from an earlier in-memory snapshot. Closing or
 terminating the owner process releases the operating-system file handle, so
 restart convergence does not depend on deleting a stale marker file.
 
+The managed child has one Application-owned startup coordinator. Infrastructure
+classifies the consumed inherited context as not inherited, exact READY
+reported, invalid inherited context, or write failure. Only an exact expected
+version whose one-use READY write succeeds may wait up to five seconds for the
+same state-path writer lease: this lets the launcher commit Ready and release
+the lease before the child reloads durable state. Missing, partial, mismatched,
+malformed, or unwritable inheritance and unmanaged startup perform the ordinary
+zero-wait initialization. Settings and every mutation also remain zero-wait.
+Presentation invokes this coordinator once and does not independently derive
+READY qualification or initialize version state a second time.
+
 Installations stage and verify complete immutable payloads before same-volume
 promotion into `versions/<semver>`. Activation is also a durable state machine:
 `Requested` is persisted before desktop handoff, `CandidateLaunchRecorded`
@@ -174,7 +185,8 @@ made that a published unmanaged portable package self-adopts.
 - Real local-folder managed `0.10.5` to `0.10.6` evidence plus relocation,
   offline, tamper, start-failure, timeout, rollback, retention, and delete cases.
 - Architecture tests prevent UI/package-policy leakage, direct filesystem or
-  process access outside adapters, and a second launcher policy owner.
+  process access outside adapters, a second launcher policy owner, or a second
+  Presentation startup initialization path.
 - Production-adapter tests cover forged underreported and ZIP64 `long.MaxValue`
   entry metadata through both Verify and Install, and seed-specific tests pin
   busy-lease rejection plus post-acquisition durable-state reload.

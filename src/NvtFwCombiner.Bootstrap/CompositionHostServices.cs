@@ -212,6 +212,20 @@ public sealed class CompositionHostServices
         return new InheritedPipeApplicationReadySignal();
     }
 
+    /// <summary>Creates the Application-owned managed-child startup seam.</summary>
+    /// <param name="applicationVersion">Running canonical stable version.</param>
+    /// <param name="versionManagement">Session-scoped version-management owner.</param>
+    /// <returns>One READY-qualified startup coordinator.</returns>
+    public static IManagedApplicationStartupCoordinator CreateManagedApplicationStartupCoordinator(
+        string applicationVersion,
+        IVersionManagementExperience versionManagement)
+    {
+        return new ManagedApplicationStartupCoordinator(
+            ManagedAppVersion.Parse(applicationVersion),
+            CreateApplicationReadySignal(),
+            versionManagement);
+    }
+
     /// <summary>Creates the exact stable-launcher shutdown handoff.</summary>
     /// <param name="managedRoot">Optional stable managed root override.</param>
     /// <returns>The constrained launcher handoff.</returns>

@@ -36,14 +36,27 @@ public interface IManagedApplicationProcess
         CancellationToken cancellationToken);
 }
 
+/// <summary>Stable application-side outcome from consuming the inherited ready context.</summary>
+public enum ApplicationReadySignalOutcome
+{
+    /// <summary>No inherited launcher context was present.</summary>
+    NotInherited,
+    /// <summary>The exact inherited context accepted the one-use ready write.</summary>
+    Reported,
+    /// <summary>The inherited context was incomplete, mismatched, or malformed.</summary>
+    InvalidInheritedContext,
+    /// <summary>The exact inherited channel could not accept the ready write.</summary>
+    WriteFailed,
+}
+
 /// <summary>Application-side one-use inherited ready-channel writer.</summary>
 public interface IApplicationReadySignal
 {
     /// <summary>Reports that the expected version reached the usable main-window boundary.</summary>
     /// <param name="version">Running application version.</param>
     /// <param name="cancellationToken">Cancellation token.</param>
-    /// <returns><see langword="true"/> when a launcher channel was present and accepted the write.</returns>
-    ValueTask<bool> TryReportReadyAsync(
+    /// <returns>The typed inherited-context and write outcome.</returns>
+    ValueTask<ApplicationReadySignalOutcome> ReportReadyAsync(
         ManagedAppVersion version,
         CancellationToken cancellationToken);
 }

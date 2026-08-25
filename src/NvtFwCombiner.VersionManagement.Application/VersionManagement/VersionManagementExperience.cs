@@ -64,6 +64,12 @@ public interface IVersionManagementExperience
     /// <returns>The initial immutable snapshot.</returns>
     ValueTask<VersionManagementSnapshot> InitializeAsync(CancellationToken cancellationToken);
 
+    /// <summary>Loads durable state after an exact inherited READY write while the launcher commits.</summary>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    /// <returns>The durable post-launcher snapshot.</returns>
+    ValueTask<VersionManagementSnapshot> InitializeAfterManagedReadyAsync(
+        CancellationToken cancellationToken);
+
     /// <summary>Runs one generation-keyed source check.</summary>
     /// <param name="isAutomatic">Whether a verified newer package may consume the session prompt.</param>
     /// <param name="cancellationToken">Cancellation token.</param>
@@ -156,12 +162,30 @@ public sealed partial class VersionManagementExperience : IVersionManagementExpe
     /// <inheritdoc />
     public async ValueTask<VersionManagementSnapshot> InitializeAsync(CancellationToken cancellationToken)
     {
+        return await InitializeWithWriterLeaseTimeoutAsync(
+            TimeSpan.Zero,
+            cancellationToken).ConfigureAwait(false);
+    }
+
+    /// <inheritdoc />
+    public async ValueTask<VersionManagementSnapshot> InitializeAfterManagedReadyAsync(
+        CancellationToken cancellationToken)
+    {
+        return await InitializeWithWriterLeaseTimeoutAsync(
+            ManagedActivationCoordinator.DefaultWriterLeaseTimeout,
+            cancellationToken).ConfigureAwait(false);
+    }
+
+    private async ValueTask<VersionManagementSnapshot> InitializeWithWriterLeaseTimeoutAsync(
+        TimeSpan writerLeaseTimeout,
+        CancellationToken cancellationToken)
+    {
         ThrowIfDisposed();
         await _mutation.WaitAsync(cancellationToken).ConfigureAwait(false);
         try
         {
             using VersionManagerWriteLeaseResult lease = await AcquireWriteLeaseAsync(
-                TimeSpan.Zero,
+                writerLeaseTimeout,
                 cancellationToken).ConfigureAwait(false);
             return lease.IsAcquired
                 ? await ReloadDurableCurrentWithoutLockAsync(cancellationToken).ConfigureAwait(false)

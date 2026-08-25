@@ -19,6 +19,8 @@ internal static class Program
     {
         var host = CompositionHostServices.Create();
         ManagedAppVersion appVersion = ManagedAppVersion.Parse(DesktopApplication.InformationalVersion);
+        IVersionManagementExperience versionManagement =
+            CompositionHostServices.CreateVersionManagementExperience(appVersion.ToString());
         return new PresentationHostServices(
             new PresentationCompositionServices(
                 host.CompositionCapabilityExperience,
@@ -38,9 +40,10 @@ internal static class Program
             host.CanonicalCatalogLoader,
             host.ExternalEnvironmentLoader,
             host.LocalFiles,
-            appVersion,
-            CompositionHostServices.CreateVersionManagementExperience(appVersion.ToString()),
-            CompositionHostServices.CreateApplicationReadySignal(),
+            versionManagement,
+            CompositionHostServices.CreateManagedApplicationStartupCoordinator(
+                appVersion.ToString(),
+                versionManagement),
             CompositionHostServices.CreateStableLauncherHandoff());
     }
 }

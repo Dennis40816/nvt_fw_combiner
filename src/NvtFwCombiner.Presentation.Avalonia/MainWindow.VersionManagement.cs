@@ -12,14 +12,16 @@ public sealed partial class MainWindow
 
     private async Task ReportManagedApplicationReadyAsync(CancellationToken cancellationToken)
     {
-        if (_hostServices.ApplicationReadySignal is null ||
-            _hostServices.ManagedAppVersion is not { } version)
+        if (_hostServices.ManagedApplicationStartup is not { } startup)
         {
             return;
         }
-        _ = await _hostServices.ApplicationReadySignal.TryReportReadyAsync(
-            version,
-            cancellationToken);
+        ManagedApplicationStartupResult result = await startup.CompleteStartupAsync(cancellationToken);
+        if (DataContext is MainWindowViewModel viewModel)
+        {
+            viewModel.Settings.ApplyVersionSnapshot(result.Snapshot);
+            viewModel.Settings.SetSourceChecking(result.Snapshot.State?.UpdateSource is not null);
+        }
     }
 
     private async Task RunVersionDiscoveryAfterReadyAsync(CancellationToken cancellationToken)
@@ -30,12 +32,6 @@ public sealed partial class MainWindow
         }
         try
         {
-            VersionManagementSnapshot initialized = await versionManagement.InitializeAsync(cancellationToken);
-            if (DataContext is MainWindowViewModel initialViewModel)
-            {
-                initialViewModel.Settings.ApplyVersionSnapshot(initialized);
-                initialViewModel.Settings.SetSourceChecking(initialized.State?.UpdateSource is not null);
-            }
             VersionManagementSnapshot checkedSnapshot;
             try
             {

@@ -548,6 +548,12 @@ public sealed class VersionManagementSettingsTests
             return ValueTask.FromResult(Current);
         }
 
+        public ValueTask<VersionManagementSnapshot> InitializeAfterManagedReadyAsync(
+            CancellationToken cancellationToken)
+        {
+            return InitializeAsync(cancellationToken);
+        }
+
         public ValueTask<VersionManagementSnapshot> CheckAsync(
             bool isAutomatic,
             CancellationToken cancellationToken)

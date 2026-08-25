@@ -168,7 +168,7 @@ public sealed class AnonymousPipeManagedApplicationProcess : IManagedApplication
 public sealed class InheritedPipeApplicationReadySignal : IApplicationReadySignal
 {
     /// <inheritdoc />
-    public async ValueTask<bool> TryReportReadyAsync(
+    public async ValueTask<ApplicationReadySignalOutcome> ReportReadyAsync(
         ManagedAppVersion version,
         CancellationToken cancellationToken)
     {
@@ -182,10 +182,14 @@ public sealed class InheritedPipeApplicationReadySignal : IApplicationReadySigna
         Environment.SetEnvironmentVariable(
             AnonymousPipeManagedApplicationProcess.ExpectedVersionEnvironment,
             null);
+        if (handle is null && expected is null)
+        {
+            return ApplicationReadySignalOutcome.NotInherited;
+        }
         if (string.IsNullOrWhiteSpace(handle) ||
             !string.Equals(expected, version.ToString(), StringComparison.Ordinal))
         {
-            return false;
+            return ApplicationReadySignalOutcome.InvalidInheritedContext;
         }
 
         try
@@ -194,11 +198,15 @@ public sealed class InheritedPipeApplicationReadySignal : IApplicationReadySigna
             byte[] message = Encoding.UTF8.GetBytes($"READY:{version}\n");
             await pipe.WriteAsync(message, cancellationToken).ConfigureAwait(false);
             await pipe.FlushAsync(cancellationToken).ConfigureAwait(false);
-            return true;
+            return ApplicationReadySignalOutcome.Reported;
         }
-        catch (Exception exception) when (exception is IOException or UnauthorizedAccessException or ArgumentException)
+        catch (ArgumentException)
         {
-            return false;
+            return ApplicationReadySignalOutcome.InvalidInheritedContext;
+        }
+        catch (Exception exception) when (exception is IOException or UnauthorizedAccessException)
+        {
+            return ApplicationReadySignalOutcome.WriteFailed;
         }
     }
 }

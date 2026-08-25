@@ -14,6 +14,10 @@ public sealed partial class RepositoryBoundaryTests
             "src/NvtFwCombiner.Desktop/Program.cs");
         string solution = ReadText("NvtFwCombiner.slnx");
         string presentationSources = ReadPresentationSources();
+        string presentationHost = ReadText(
+            "src/NvtFwCombiner.Presentation.Avalonia/PresentationHostServices.cs");
+        string versionStartup = ReadText(
+            "src/NvtFwCombiner.Presentation.Avalonia/MainWindow.VersionManagement.cs");
 
         Assert.DoesNotContain("NvtFwCombiner.Bootstrap.csproj", presentationProject, StringComparison.Ordinal);
         Assert.DoesNotContain("<OutputType>WinExe</OutputType>", presentationProject, StringComparison.Ordinal);
@@ -29,6 +33,24 @@ public sealed partial class RepositoryBoundaryTests
             desktopProgram,
             StringComparison.Ordinal);
         Assert.Equal(1, CountOccurrences(desktopProgram, "new PresentationHostServices("));
+        Assert.Equal(1, CountOccurrences(
+            desktopProgram,
+            "CreateManagedApplicationStartupCoordinator("));
+        Assert.DoesNotContain(
+            "CreateApplicationReadySignal(",
+            desktopProgram,
+            StringComparison.Ordinal);
+        Assert.Contains(
+            "IManagedApplicationStartupCoordinator? managedApplicationStartup",
+            presentationHost,
+            StringComparison.Ordinal);
+        Assert.DoesNotContain("IApplicationReadySignal", presentationHost, StringComparison.Ordinal);
+        Assert.Equal(1, CountOccurrences(versionStartup, "CompleteStartupAsync("));
+        Assert.DoesNotContain("InitializeAsync(", versionStartup, StringComparison.Ordinal);
+        Assert.DoesNotContain(
+            "InitializeAfterManagedReadyAsync",
+            presentationSources,
+            StringComparison.Ordinal);
         Assert.Equal(2, CountOccurrences(desktopProgram, "CreatePresentationHostServices"));
         Assert.Contains(
             "DesktopApplication.Run(",

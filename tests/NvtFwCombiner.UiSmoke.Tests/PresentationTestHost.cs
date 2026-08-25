@@ -139,9 +139,11 @@ internal static class PresentationTestHost
             host.CanonicalCatalogLoader,
             host.ExternalEnvironmentLoader,
             host.LocalFiles,
-            Application.VersionManagement.ManagedAppVersion.Parse(applicationVersion),
             versionManagement,
-            applicationReadySignal: null,
+            new Application.VersionManagement.ManagedApplicationStartupCoordinator(
+                Application.VersionManagement.ManagedAppVersion.Parse(applicationVersion),
+                new UnmanagedApplicationReadySignal(),
+                versionManagement),
             stableLauncherHandoff);
     }
 
@@ -191,5 +193,18 @@ internal static class PresentationTestHost
         CreateRawBinaryEditorFileSessionFactory()
     {
         return CompositionHostServices.Create().RawBinaryEditorFileSessions;
+    }
+
+    private sealed class UnmanagedApplicationReadySignal
+        : Application.VersionManagement.IApplicationReadySignal
+    {
+        public ValueTask<Application.VersionManagement.ApplicationReadySignalOutcome> ReportReadyAsync(
+            Application.VersionManagement.ManagedAppVersion version,
+            CancellationToken cancellationToken)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            return ValueTask.FromResult(
+                Application.VersionManagement.ApplicationReadySignalOutcome.NotInherited);
+        }
     }
 }

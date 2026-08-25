@@ -31,9 +31,8 @@ public sealed class PresentationHostServices
             canonicalCatalogLoader,
             externalEnvironmentLoader,
             localFiles,
-            managedAppVersion: null,
             versionManagement: null,
-            applicationReadySignal: null,
+            managedApplicationStartup: null,
             stableLauncherHandoff: null)
     {
     }
@@ -49,9 +48,8 @@ public sealed class PresentationHostServices
         ICanonicalCapabilityCatalogLoader canonicalCatalogLoader,
         IExternalProcessorEnvironmentLoader externalEnvironmentLoader,
         ILocalFileStore localFiles,
-        ManagedAppVersion? managedAppVersion,
         IVersionManagementExperience? versionManagement,
-        IApplicationReadySignal? applicationReadySignal,
+        IManagedApplicationStartupCoordinator? managedApplicationStartup,
         IStableLauncherHandoff? stableLauncherHandoff)
     {
         Composition = composition ?? throw new ArgumentNullException(nameof(composition));
@@ -67,9 +65,8 @@ public sealed class PresentationHostServices
         ExternalEnvironmentLoader = externalEnvironmentLoader ??
             throw new ArgumentNullException(nameof(externalEnvironmentLoader));
         LocalFiles = localFiles ?? throw new ArgumentNullException(nameof(localFiles));
-        ManagedAppVersion = managedAppVersion;
         VersionManagement = versionManagement;
-        ApplicationReadySignal = applicationReadySignal;
+        ManagedApplicationStartup = managedApplicationStartup;
         StableLauncherHandoff = stableLauncherHandoff;
     }
 
@@ -91,11 +88,9 @@ public sealed class PresentationHostServices
 
     internal ILocalFileStore LocalFiles { get; }
 
-    internal ManagedAppVersion? ManagedAppVersion { get; }
-
     internal IVersionManagementExperience? VersionManagement { get; }
 
-    internal IApplicationReadySignal? ApplicationReadySignal { get; }
+    internal IManagedApplicationStartupCoordinator? ManagedApplicationStartup { get; }
 
     internal IStableLauncherHandoff? StableLauncherHandoff { get; }
 }
