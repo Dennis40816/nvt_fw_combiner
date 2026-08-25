@@ -427,6 +427,15 @@ public sealed partial class RepositoryBoundaryTests
         string mergeCli = ReadText("src/NvtFwCombiner.Cli/MergeCliCommandHandler.cs");
         string firmwareMetadata = ReadText("src/NvtFwCombiner.Infrastructure/Composition/BuiltInFirmwareInspection.Metadata.cs");
         string firmwareInspection = ReadText("src/NvtFwCombiner.Infrastructure/Composition/BuiltInFirmwareInspection.cs");
+        string metadataAuthority = ReadText(
+            "src/NvtFwCombiner.Application/Composition/FirmwareMetadataPlanAuthority.cs");
+        string infrastructureSources = string.Join(
+            Environment.NewLine,
+            Directory.EnumerateFiles(
+                    Path.Combine(Root.FullName, "src", "NvtFwCombiner.Infrastructure"),
+                    "*.cs",
+                    SearchOption.AllDirectories)
+                .Select(File.ReadAllText));
         string workbenchModels = ReadText("src/NvtFwCombiner.Application/Composition/CompositionClientModels.cs");
         string outputNaming = ReadText(
             "src/NvtFwCombiner.Application/Composition/AcceptedSessionOutputNameResolver.cs");
@@ -510,8 +519,15 @@ public sealed partial class RepositoryBoundaryTests
         Assert.DoesNotContain("FirmwareConfigMetadataReader.TryReadAtAbsoluteAddress", firmwareMetadata, StringComparison.Ordinal);
         Assert.DoesNotContain("TryGetFirmwareConfigPrimaryStart", firmwareMetadata, StringComparison.Ordinal);
         Assert.DoesNotContain("HaveEquivalentFirmwareConfigValues", firmwareMetadata, StringComparison.Ordinal);
-        Assert.Contains("ReadDpMetadata(", firmwareInspection, StringComparison.Ordinal);
-        Assert.Contains("TryReadCanonicalDpcmi", firmwareInspection, StringComparison.Ordinal);
+        Assert.Contains("ReadDpMetadata(", firmwareMetadata, StringComparison.Ordinal);
+        Assert.Contains("TryReadCanonicalDpcmi", firmwareMetadata, StringComparison.Ordinal);
+        Assert.DoesNotContain("TryReadCanonicalDpcmi", firmwareInspection, StringComparison.Ordinal);
+        Assert.DoesNotContain("ResolveUniqueMetadataPlan", firmwareInspection, StringComparison.Ordinal);
+        Assert.DoesNotContain("ResolveUniqueMetadataPlan", firmwareMetadata, StringComparison.Ordinal);
+        Assert.DoesNotContain("ResolveUniqueMetadataPlan(", infrastructureSources, StringComparison.Ordinal);
+        Assert.DoesNotContain("ExperienceIds.StandardMerge", firmwareMetadata, StringComparison.Ordinal);
+        Assert.DoesNotContain("ExperienceIds.DpReplace", firmwareMetadata, StringComparison.Ordinal);
+        Assert.Contains("ResolveUniqueMetadataPlan", metadataAuthority, StringComparison.Ordinal);
         Assert.DoesNotContain("GenFlashVersionCatalog", firmwareInspection, StringComparison.Ordinal);
         Assert.Contains("InspectFirmware", firmwareInspection, StringComparison.Ordinal);
         Assert.Contains("DisplayCategory", firmwareInspection, StringComparison.Ordinal);

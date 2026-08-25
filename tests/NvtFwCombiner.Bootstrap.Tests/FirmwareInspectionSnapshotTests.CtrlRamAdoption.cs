@@ -1,6 +1,8 @@
 using System.Text.Json;
 using NvtFwCombiner.Application.Authoring;
 using NvtFwCombiner.Application.Capabilities;
+using NvtFwCombiner.Application.Metadata;
+using NvtFwCombiner.Application.Ports;
 using NvtFwCombiner.Domain.Composition;
 using NvtFwCombiner.TestSupport;
 
@@ -8,6 +10,49 @@ namespace NvtFwCombiner.Bootstrap.Tests;
 
 public sealed partial class FirmwareInspectionSnapshotTests
 {
+    /// <summary>An exact reportless CtrlRAM route cannot fall back to DP metadata.</summary>
+    [Fact]
+    public async Task Nt51950ReportlessCtrlRamInspectionKeepsMetadataAbsent()
+    {
+        JsonElement fixtureCase = CanonicalGoldenTestData.LoadDirectCase(
+            "ctrlram-replace",
+            "nt51950-fw200-single-auto-prj-676-20260717");
+        JsonElement[] artifacts = [.. fixtureCase.GetProperty("artifacts").EnumerateArray()];
+        string basePath = CanonicalGoldenTestData.ArtifactPath(artifacts.Single(artifact =>
+            artifact.GetProperty("artifactId").GetString() == "expected-output"));
+        string nfPath = CanonicalGoldenTestData.ArtifactPath(artifacts.Single(artifact =>
+            artifact.GetProperty("artifactId").GetString() == "postbuild-nf-ctrlram"));
+
+        FirmwareInspectionBatchResult batch = await BootstrapTestHost.Services
+            .FirmwareInspectionExperience.InspectFirmwareBatchAsync(
+            "NT51950",
+            [
+                new FirmwareInspectionSnapshotInput(
+                    "base",
+                    basePath,
+                    CtrlRamRequest: new CtrlRamInspectionRequest(
+                        IcNumberSelectionTokens.SingleChip),
+                    CtrlRamReplaceAddressSpaceId:
+                        CompositionAddressSpaceIds.ReferenceBase),
+                new FirmwareInspectionSnapshotInput(
+                    "nf",
+                    nfPath,
+                    CtrlRamReplaceAddressSpaceId: "replace-ctrlram-nf"),
+            ],
+            TestContext.Current.CancellationToken);
+
+        FirmwareInspectionSnapshot inspection = batch.InspectionsById["base"];
+        AuthoringCapabilityCatalogSnapshot catalog =
+            Assert.IsType<AuthoringCapabilityCatalogSnapshot>(inspection.InputSlotCatalog);
+        ResolvedCapability exact = Assert.IsType<ResolvedCapability>(
+            Assert.Single(catalog.Routes).ExactCapability);
+        Assert.Empty(exact.MetadataPlan.Entries);
+        Assert.NotNull(inspection.InputSlotStatus);
+        Assert.Null(inspection.DpVersion);
+        Assert.Null(inspection.CmiDpCode);
+        Assert.Null(inspection.DpMetadataPrerequisite);
+    }
+
     /// <summary>NT51923 adopts each bounded inspection once and retains one exact route instance.</summary>
     [Fact]
     public async Task Nt51923CtrlRamAdoptionReusesInspectedBytesAndEquivalentCapability()
@@ -23,7 +68,22 @@ public sealed partial class FirmwareInspectionSnapshotTests
         using var workspace = TempWorkspace.Create("nfc-ctrlram-adoption-path-change");
         string secondBasePath = workspace.Write("base-b.bin", File.ReadAllBytes(basePath));
         string secondNormalPath = workspace.Write("normal-b.bin", File.ReadAllBytes(normalPath));
-        IFirmwareInspection inspection = BootstrapTestHost.Services.FirmwareInspectionExperience;
+        BuiltInFirmwareInspection inspection = CreateInspection(
+            new InterceptingMetadataPlanQuery(
+                BootstrapTestHost.Canonical.Catalog,
+                static (_, _, _, _) =>
+                {
+                    throw new InvalidOperationException(
+                        "An exact CtrlRAM inspection must not re-resolve its metadata plan.");
+                }),
+            new DelegatingContentInspector(static (path, _, _) =>
+            {
+                byte[] bytes = File.ReadAllBytes(path);
+                return ValueTask.FromResult(new SelectedFileContentInspection(
+                    FileStamp.FromBytes(bytes),
+                    Path.GetFileName(path),
+                    acceptedBytes: bytes));
+            }));
         ICtrlRamAuthoring authoring = BootstrapTestHost.Services.CtrlRamAuthoring;
         var session = new AuthoringSessionState(ExperienceIds.CtrlRamReplace);
 
@@ -52,9 +112,21 @@ public sealed partial class FirmwareInspectionSnapshotTests
                 ],
                 TestContext.Current.CancellationToken);
             FirmwareInspectionSnapshot[] snapshots = [.. batch.InspectionsById.Values];
+            FirmwareInspectionSnapshot baseInspection = batch.InspectionsById["base"];
+            AuthoringCapabilityCatalogSnapshot catalog = Assert.IsType<
+                AuthoringCapabilityCatalogSnapshot>(baseInspection.InputSlotCatalog);
+            ResolvedCapability exact = Assert.IsType<ResolvedCapability>(
+                Assert.Single(catalog.Routes).ExactCapability);
+            Assert.NotEmpty(exact.MetadataPlan.Entries);
+            Assert.DoesNotContain(exact.MetadataPlan.Entries, entry =>
+                StringComparer.Ordinal.Equals(
+                    entry.Definition.StructureDefinition.Definition.DefinitionId,
+                    DpcmiMetadataContract.StructureId));
+            Assert.Null(baseInspection.DpVersion);
+            Assert.Null(baseInspection.CmiDpCode);
+            Assert.Null(baseInspection.DpMetadataPrerequisite);
             return (
-                Assert.IsType<AuthoringCapabilityCatalogSnapshot>(
-                    snapshots[0].InputSlotCatalog),
+                catalog,
                 [.. snapshots.Select(snapshot => Assert.IsType<AuthoringInputSlotStatus>(
                     snapshot.InputSlotStatus))]);
         }

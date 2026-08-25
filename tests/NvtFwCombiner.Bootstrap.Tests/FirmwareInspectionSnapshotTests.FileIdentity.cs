@@ -446,6 +446,8 @@ public sealed partial class FirmwareInspectionSnapshotTests
         CompositionHostServices services = BootstrapTestHost.Services;
         return new BuiltInFirmwareInspection(
             BootstrapTestHost.Canonical.Catalog,
+            new FirmwareMetadataPlanAuthorityResolver(
+                BootstrapTestHost.Canonical.Catalog),
             BootstrapTestHost.Canonical.Projection,
             (StandardMergeAuthoringExperience)services.StandardMergeAuthoring,
             (AbMergeAuthoringExperience)services.AbMergeAuthoring,
@@ -460,6 +462,7 @@ public sealed partial class FirmwareInspectionSnapshotTests
     {
         return new BuiltInFirmwareInspection(
             host.Canonical.Catalog,
+            new FirmwareMetadataPlanAuthorityResolver(host.Canonical.Catalog),
             host.Canonical.Projection,
             (StandardMergeAuthoringExperience)host.Services.StandardMergeAuthoring,
             (AbMergeAuthoringExperience)host.Services.AbMergeAuthoring,

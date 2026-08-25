@@ -51,6 +51,7 @@ public sealed class CompositionHostServices
         CtrlRamAuthoring = ctrlRamAuthoring;
         FirmwareInspectionExperience = new BuiltInFirmwareInspection(
             catalog,
+            new FirmwareMetadataPlanAuthorityResolver(catalog),
             projection,
             standardMergeAuthoring,
             abMergeAuthoring,

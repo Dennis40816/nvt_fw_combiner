@@ -3,7 +3,6 @@ using NvtFwCombiner.Application.Capabilities;
 using NvtFwCombiner.Application.ExternalTools;
 using NvtFwCombiner.Application.FlashMaps;
 using NvtFwCombiner.Application.InputInspection;
-using NvtFwCombiner.Application.Metadata;
 using NvtFwCombiner.Application.Ports;
 using NvtFwCombiner.Domain.Composition;
 using NvtFwCombiner.Domain.Firmware;
@@ -18,6 +17,7 @@ internal sealed partial class BuiltInFirmwareInspection : IFirmwareInspection
 {
     private const int FirmwareIcHintHeaderProbeLength = 256 * 1024;
     private readonly ICanonicalCapabilityQuery _catalog;
+    private readonly IFirmwareMetadataPlanAuthorityResolver _metadataPlanAuthority;
     private readonly ICompositionCapabilityExperience _projection;
     private readonly ICompiledInputSlotInspector<FirmwareInspectionStatusBatch>
         _standardMergeAuthoring;
@@ -31,6 +31,7 @@ internal sealed partial class BuiltInFirmwareInspection : IFirmwareInspection
 
     internal BuiltInFirmwareInspection(
         ICanonicalCapabilityQuery catalog,
+        IFirmwareMetadataPlanAuthorityResolver metadataPlanAuthority,
         ICompositionCapabilityExperience projection,
         ICompiledInputSlotInspector<FirmwareInspectionStatusBatch> standardMergeAuthoring,
         ICompiledInputSlotInspector<AbMergeInspectionBatch> abMergeAuthoring,
@@ -39,6 +40,8 @@ internal sealed partial class BuiltInFirmwareInspection : IFirmwareInspection
         ISelectedFileContentInspector? contentInspector = null)
     {
         _catalog = catalog ?? throw new ArgumentNullException(nameof(catalog));
+        _metadataPlanAuthority = metadataPlanAuthority ??
+            throw new ArgumentNullException(nameof(metadataPlanAuthority));
         _projection = projection ?? throw new ArgumentNullException(nameof(projection));
         _standardMergeAuthoring = standardMergeAuthoring ??
             throw new ArgumentNullException(nameof(standardMergeAuthoring));
@@ -118,6 +121,16 @@ internal sealed partial class BuiltInFirmwareInspection : IFirmwareInspection
         List<FirmwareInspectionSnapshotResult> results = [];
         foreach (FirmwareInspectionSnapshotInput input in inputs)
         {
+            byte[]? primaryImage = ReadOnce(input.Path);
+            FirmwareMetadataPlanAuthority metadataAuthority = primaryImage is null
+                ? FirmwareMetadataPlanAuthority.NotApplicable
+                : inspection._metadataPlanAuthority.Resolve(
+                    icId,
+                    input,
+                    primaryImage.LongLength,
+                    dpInputBatch,
+                    standardMergeInputBatch,
+                    ctrlRamInputBatch);
             FirmwareInspectionSnapshot snapshot = InspectFirmware(
                 inspection,
                 icId,
@@ -126,7 +139,8 @@ internal sealed partial class BuiltInFirmwareInspection : IFirmwareInspection
                 input.CtrlRamRequest,
                 ReadOnce,
                 input.ExactCapability,
-                input.StandardMergeAddressSpaceId);
+                input.StandardMergeAddressSpaceId,
+                metadataAuthority);
             if (!string.IsNullOrWhiteSpace(input.AbMergeAddressSpaceId))
             {
                 snapshot = snapshot with
@@ -212,7 +226,8 @@ internal sealed partial class BuiltInFirmwareInspection : IFirmwareInspection
         CtrlRamInspectionRequest? ctrlRamRequest,
         Func<string, byte[]?> readFirmwareImage,
         ResolvedCapability? exactCapability = null,
-        string? standardMergeAddressSpaceId = null)
+        string? standardMergeAddressSpaceId = null,
+        FirmwareMetadataPlanAuthority? metadataAuthority = null)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(icId);
         ArgumentException.ThrowIfNullOrWhiteSpace(path);
@@ -227,6 +242,20 @@ internal sealed partial class BuiltInFirmwareInspection : IFirmwareInspection
         {
             return new FirmwareInspectionSnapshot(detectedIcId, null, null, null, null, null);
         }
+
+        metadataAuthority ??= inspection._metadataPlanAuthority.Resolve(
+            icId,
+            new FirmwareInspectionSnapshotInput(
+                "direct",
+                path,
+                tpPath,
+                CtrlRamRequest: ctrlRamRequest,
+                StandardMergeAddressSpaceId: standardMergeAddressSpaceId,
+                ExactCapability: exactCapability),
+            image.LongLength,
+            FirmwareInspectionStatusBatch.Empty,
+            FirmwareInspectionStatusBatch.Empty,
+            FirmwareInspectionStatusBatch.Empty);
 
         byte[]? tpImage = string.IsNullOrWhiteSpace(tpPath)
             ? null
@@ -270,11 +299,10 @@ internal sealed partial class BuiltInFirmwareInspection : IFirmwareInspection
             FirmwareMetadataPrerequisite? Prerequisite)
             dpMetadata = shouldProjectDpMetadata
                 ? ReadDpMetadata(
-                    inspection,
-                    icId,
                     image,
                     string.Equals(path, tpPath, StringComparison.Ordinal) ? null : tpImage,
-                    standardMergeAddressSpaceId)
+                    standardMergeAddressSpaceId,
+                    metadataAuthority)
                 : (null, null, null);
         return new FirmwareInspectionSnapshot(
             detectedIcId ?? DetectFirmwareIcHintFromHeader(image),
@@ -313,167 +341,6 @@ internal sealed partial class BuiltInFirmwareInspection : IFirmwareInspection
             number,
             postbuildProfile,
             hasReadableBase: true);
-    }
-
-    private static (
-        DpVersionMetadata? Version,
-        CmiDpCodeMetadata? Cmi,
-        FirmwareMetadataPrerequisite? Prerequisite)
-        ReadDpMetadata(
-            BuiltInFirmwareInspection inspection,
-            string icId,
-            byte[] image,
-            byte[]? tpImage,
-            string? standardMergeAddressSpaceId)
-    {
-        if (TryReadCanonicalDpcmi(
-                inspection,
-                icId,
-                image,
-                tpImage,
-                standardMergeAddressSpaceId,
-                out DpcmiMetadataFacts? dpcmi,
-                out FirmwareMetadataPrerequisite? prerequisite))
-        {
-            return dpcmi is null
-                ? (null, null, prerequisite)
-                : (
-                    new DpVersionMetadata(dpcmi.VersionToken),
-                    new CmiDpCodeMetadata(
-                        dpcmi.MajorVersion,
-                        dpcmi.MinorVersion,
-                        dpcmi.JiraNumber,
-                        checked((int)dpcmi.ResolvedRange.Start)),
-                    null);
-        }
-
-        return (null, null, null);
-    }
-
-    private static bool TryReadCanonicalDpcmi(
-        BuiltInFirmwareInspection inspection,
-        string icId,
-        byte[] image,
-        byte[]? tpImage,
-        string? standardMergeAddressSpaceId,
-        out DpcmiMetadataFacts? facts,
-        out FirmwareMetadataPrerequisite? prerequisite)
-    {
-        facts = null;
-        prerequisite = null;
-        string normalizedIcId = IcIdentifier.Normalize(icId);
-        bool isStandardMergeDpInput = StringComparer.Ordinal.Equals(
-            standardMergeAddressSpaceId,
-            CompositionAddressSpaceIds.DpInput);
-        MetadataPlanResolutionResult resolution;
-        if (tpImage is null && !isStandardMergeDpInput)
-        {
-            resolution = inspection._catalog.ResolveUniqueMetadataPlan(
-                normalizedIcId,
-                ExperienceIds.DpReplace,
-                "1-ic");
-            if (StringComparer.Ordinal.Equals(
-                    resolution.Issue?.Code,
-                    CapabilityCatalogIssueCodes.RouteAmbiguous))
-            {
-                resolution = inspection._catalog.ResolveUniqueMetadataPlan(
-                    normalizedIcId,
-                    ExperienceIds.DpReplace,
-                    "1-ic",
-                    image.LongLength);
-            }
-        }
-        else
-        {
-            resolution = inspection._catalog.ResolveUniqueMetadataPlan(
-                normalizedIcId,
-                ExperienceIds.StandardMerge,
-                "selector-free",
-                image.LongLength);
-        }
-
-        ResolvedMetadataPlan? plan = resolution.MetadataPlan;
-        bool declaresDpcmi = DeclaresDpcmi(plan);
-        if (!declaresDpcmi)
-        {
-            MetadataPlanResolutionResult dpResolution =
-                inspection._catalog.ResolveUniqueMetadataPlan(
-                    normalizedIcId,
-                    ExperienceIds.DpReplace,
-                    "1-ic");
-            if (StringComparer.Ordinal.Equals(
-                    dpResolution.Issue?.Code,
-                    CapabilityCatalogIssueCodes.RouteAmbiguous))
-            {
-                dpResolution = inspection._catalog.ResolveUniqueMetadataPlan(
-                    normalizedIcId,
-                    ExperienceIds.DpReplace,
-                    "1-ic",
-                    image.LongLength);
-            }
-
-            plan = dpResolution.MetadataPlan;
-            declaresDpcmi = DeclaresDpcmi(plan);
-        }
-
-        if (!declaresDpcmi)
-        {
-            return false;
-        }
-
-        if (image.Length == 0)
-        {
-            return true;
-        }
-
-        FirmwareArtifactPayload[] artifacts =
-        [
-            .. plan!.Entries
-                .Select(static entry => entry.Definition.SpaceId)
-                .Distinct(StringComparer.Ordinal)
-                .Where(spaceId =>
-                    !isStandardMergeDpInput ||
-                    tpImage is not null ||
-                    !StringComparer.Ordinal.Equals(
-                        spaceId,
-                        CompositionAddressSpaceIds.TpInput))
-                .Select(spaceId => new FirmwareArtifactPayload(
-                    spaceId,
-                    StringComparer.Ordinal.Equals(
-                            spaceId,
-                            CompositionAddressSpaceIds.TpInput) &&
-                        tpImage is not null
-                            ? tpImage
-                            : image)),
-        ];
-        MetadataInspectionSnapshot snapshot = FirmwareMetadataInspector.Inspect(
-            plan,
-            artifacts);
-        if (DpcmiMetadataProjector.TryProject(snapshot, out DpcmiMetadataFacts projected))
-        {
-            facts = projected;
-        }
-        else
-        {
-            prerequisite = snapshot.Results
-                .Single(result => StringComparer.Ordinal.Equals(
-                    result.PlanEntry.Definition.StructureDefinition.Definition.DefinitionId,
-                    DpcmiMetadataContract.StructureId))
-                .Resolution?
-                .Prerequisite;
-        }
-
-        // A declared canonical DPCMI route owns both success and failure. Never
-        // fall back to a second physical-offset interpretation for that route.
-        return true;
-    }
-
-    private static bool DeclaresDpcmi(ResolvedMetadataPlan? plan)
-    {
-        return plan?.Entries.Any(entry =>
-            StringComparer.Ordinal.Equals(
-                entry.Definition.StructureDefinition.Definition.DefinitionId,
-                DpcmiMetadataContract.StructureId)) == true;
     }
 
     internal static FirmwareConfigMetadataSnapshot? ReadFirmwareConfigMetadata(

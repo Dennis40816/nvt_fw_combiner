@@ -2,6 +2,7 @@ using NvtFwCombiner.Application.Authoring;
 using NvtFwCombiner.Application.Capabilities;
 using NvtFwCombiner.Application.Ports;
 using NvtFwCombiner.Domain.Composition;
+using NvtFwCombiner.Domain.Firmware;
 
 namespace NvtFwCombiner.Bootstrap.Tests;
 
@@ -187,12 +188,81 @@ public sealed partial class FirmwareInspectionSnapshotTests
         CompositionHostServices services = BootstrapTestHost.Services;
         return new BuiltInFirmwareInspection(
             catalog,
+            new FirmwareMetadataPlanAuthorityResolver(catalog),
             BootstrapTestHost.Canonical.Projection,
             (StandardMergeAuthoringExperience)services.StandardMergeAuthoring,
             (AbMergeAuthoringExperience)services.AbMergeAuthoring,
             (DpReplaceAuthoringExperience)services.DpReplaceAuthoring,
             (CtrlRamAuthoringExperience)services.CtrlRamAuthoring,
             contentInspector);
+    }
+
+    private sealed class InterceptingMetadataPlanQuery(
+        ICanonicalCapabilityQuery inner,
+        Func<string, string, string, long?, MetadataPlanResolutionResult> resolveMetadataPlan)
+        : ICanonicalCapabilityQuery
+    {
+        public CanonicalCapabilityCatalogSnapshot GetCurrentSnapshot()
+        {
+            return inner.GetCurrentSnapshot();
+        }
+
+        public CanonicalCapabilityCatalogSnapshot? TryGetCurrentSnapshot()
+        {
+            return inner.TryGetCurrentSnapshot();
+        }
+
+        public CapabilityResolutionResult Resolve(string routeId)
+        {
+            return inner.Resolve(routeId);
+        }
+
+        public CapabilityRouteResolutionResult ResolveDynamicRoute(string routeId)
+        {
+            return inner.ResolveDynamicRoute(routeId);
+        }
+
+        public CapabilityResolutionResult ResolveUniqueRoute(
+            string icId,
+            string workflowId,
+            string icCountVariant,
+            long? outputCapacity = null)
+        {
+            return inner.ResolveUniqueRoute(icId, workflowId, icCountVariant, outputCapacity);
+        }
+
+        public MetadataPlanResolutionResult ResolveUniqueMetadataPlan(
+            string icId,
+            string workflowId,
+            string icCountVariant,
+            long? outputCapacity = null)
+        {
+            return resolveMetadataPlan(
+                icId,
+                workflowId,
+                icCountVariant,
+                outputCapacity);
+        }
+
+        public CapabilityResolutionResult ResolveUniqueTopologyRoute(
+            string icId,
+            string workflowId,
+            TopologySelection? topology)
+        {
+            return inner.ResolveUniqueTopologyRoute(icId, workflowId, topology);
+        }
+
+        public bool HasAuthorableCapability(string icId, string workflowId)
+        {
+            return inner.HasAuthorableCapability(icId, workflowId);
+        }
+
+        public ResolvedCapability? ResolveCurrentCompilation(
+            CompiledComposition composition,
+            ResolvedCapability? acceptedCapability = null)
+        {
+            return inner.ResolveCurrentCompilation(composition, acceptedCapability);
+        }
     }
 
     private sealed class QueuedCandidateSource(

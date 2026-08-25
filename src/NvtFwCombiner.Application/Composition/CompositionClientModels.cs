@@ -3,6 +3,7 @@ using NvtFwCombiner.Application.Authoring;
 using NvtFwCombiner.Application.Capabilities;
 using NvtFwCombiner.Application.FlashMaps;
 using NvtFwCombiner.Application.InputInspection;
+using NvtFwCombiner.Application.Metadata;
 using NvtFwCombiner.Domain.Composition;
 using NvtFwCombiner.Domain.Firmware;
 
@@ -172,6 +173,15 @@ public sealed record FirmwareInspectionStatusBatch(
 {
     public static FirmwareInspectionStatusBatch Empty { get; } =
         new(null, new Dictionary<string, AuthoringInputSlotStatus>(StringComparer.Ordinal), []);
+
+    /// <summary>
+    /// Gets the sole publication-bound metadata plan returned by a completed
+    /// exact authoring inspection; discovery-only catalogs return null.
+    /// </summary>
+    public ResolvedMetadataPlan? ExactMetadataPlan =>
+        Catalog?.Routes.Count == 1
+            ? Catalog.Routes[0].ExactCapability?.MetadataPlan
+            : null;
 }
 
 /// <summary>One Application-owned base-only discovery result keyed to the caller inspection identity.</summary>

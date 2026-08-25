@@ -3,6 +3,7 @@ using System.Text.RegularExpressions;
 using NvtFwCombiner.Application.Capabilities;
 using NvtFwCombiner.Application.FlashMaps;
 using NvtFwCombiner.Application.InputInspection;
+using NvtFwCombiner.Application.Ports;
 using NvtFwCombiner.Domain.Composition;
 using NvtFwCombiner.Domain.Firmware;
 using static NvtFwCombiner.Bootstrap.Tests.BootstrapTestData;
@@ -117,28 +118,53 @@ public sealed partial class FirmwareInspectionSnapshotTests
         string dpPath = GoldenArtifactPath("51926", "dp-input");
         string tpPath = GoldenArtifactPath("51926", "tp-input");
 
+        BuiltInFirmwareInspection exactInspection = CreateInspection(
+            new InterceptingMetadataPlanQuery(
+                BootstrapTestHost.Canonical.Catalog,
+                static (_, _, _, _) =>
+                {
+                    throw new InvalidOperationException(
+                        "An exact typed inspection must not re-resolve its metadata plan.");
+                }),
+            new DelegatingContentInspector(static (_, _, _) =>
+                ValueTask.FromException<SelectedFileContentInspection>(
+                    new InvalidOperationException("The synchronous test reader owns bytes."))));
+
         FirmwareInspectionSnapshot inspection = FirmwareInspectionTestSupport.InspectFirmware(
             "NT51926",
             dpPath,
             tpPath);
 
-        FirmwareInspectionSnapshot typedInspection = Assert.Single(
+        IReadOnlyList<FirmwareInspectionSnapshotResult> typedResults =
             BuiltInFirmwareInspection.InspectFirmwareBatch(
-                BootstrapTestHost.Canonical,
+                exactInspection,
                 "NT51926",
-                [new FirmwareInspectionSnapshotInput(
-                    "merge-dp",
-                    dpPath,
-                    tpPath,
-                    StandardMergeAddressSpaceId: CompositionAddressSpaceIds.DpInput)]))
+                [
+                    new FirmwareInspectionSnapshotInput(
+                        "merge-dp",
+                        dpPath,
+                        tpPath,
+                        StandardMergeAddressSpaceId: CompositionAddressSpaceIds.DpInput),
+                    new FirmwareInspectionSnapshotInput(
+                        "merge-tp",
+                        tpPath,
+                        StandardMergeAddressSpaceId: CompositionAddressSpaceIds.TpInput),
+                ],
+                static path => File.ReadAllBytes(path));
+        FirmwareInspectionSnapshot typedInspection = typedResults
+            .Single(static result => result.InspectionId == "merge-dp")
             .Inspection;
 
         Assert.Equal("0100", Assert.IsType<DpVersionMetadata>(inspection.DpVersion).VersionToken);
         Assert.Equal("0100", Assert.IsType<DpVersionMetadata>(typedInspection.DpVersion).VersionToken);
         CmiDpCodeMetadata cmi = Assert.IsType<CmiDpCodeMetadata>(inspection.CmiDpCode);
+        CmiDpCodeMetadata typedCmi = Assert.IsType<CmiDpCodeMetadata>(
+            typedInspection.CmiDpCode);
         Assert.Equal((byte)0x01, cmi.MajorVersionByte);
         Assert.Equal((byte)0x00, cmi.MinorVersionNibble);
         Assert.Equal((ushort)597, cmi.JiraNumber);
+        Assert.Equal(cmi, typedCmi);
+        Assert.Null(typedInspection.DpMetadataPrerequisite);
     }
 
     /// <summary>A Standard Merge DP inspection preserves its exact TP prerequisite until TP arrives.</summary>
@@ -187,11 +213,30 @@ public sealed partial class FirmwareInspectionSnapshotTests
     {
         string basePath = GoldenArtifactPath("51926", "expected-output");
 
+        List<(string IcId, string WorkflowId, string IcCountVariant, long? Capacity)> calls = [];
+        ICanonicalCapabilityQuery inner = BootstrapTestHost.ProductCanonical.Catalog;
+        BuiltInFirmwareInspection genericInspection = CreateInspection(
+            new InterceptingMetadataPlanQuery(
+                inner,
+                (icId, workflowId, icCountVariant, outputCapacity) =>
+                {
+                    calls.Add((icId, workflowId, icCountVariant, outputCapacity));
+                    return inner.ResolveUniqueMetadataPlan(
+                        icId,
+                        workflowId,
+                        icCountVariant,
+                        outputCapacity);
+                }),
+            new DelegatingContentInspector(static (_, _, _) =>
+                ValueTask.FromException<SelectedFileContentInspection>(
+                    new InvalidOperationException("The synchronous test reader owns bytes."))));
+
         FirmwareInspectionSnapshot inspection = Assert.Single(
             BuiltInFirmwareInspection.InspectFirmwareBatch(
-                BootstrapTestHost.ProductCanonical,
+                genericInspection,
                 "NT51926",
-                [new FirmwareInspectionSnapshotInput("replace-base", basePath)]))
+                [new FirmwareInspectionSnapshotInput("replace-base", basePath)],
+                static path => File.ReadAllBytes(path)))
             .Inspection;
         CapabilityResolutionResult authoring =
             BootstrapTestHost.ProductCanonical.Catalog.ResolveUniqueRoute(
@@ -210,6 +255,9 @@ public sealed partial class FirmwareInspectionSnapshotTests
         Assert.Equal(
             (ushort)597,
             Assert.IsType<CmiDpCodeMetadata>(inspection.CmiDpCode).JiraNumber);
+        Assert.Equal(
+            [("NT51926", ExperienceIds.DpReplace, "1-ic", 0x40000L)],
+            calls);
     }
 
     /// <summary>The consolidated snapshot preserves existing metadata and CtrlRAM display projections.</summary>
