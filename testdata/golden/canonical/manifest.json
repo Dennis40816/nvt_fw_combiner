@@ -296,7 +296,7 @@
       "routeId": "route-7-nt51923-15-ctrlram-replace-4-1-ic-41-nt51923-ctrlram-fw141-single-tp-work-240k",
       "capabilityFingerprint": "4fbf5e5156050649d22c17d80534e000b088c6c28f93616fd37aef56ef4c8338",
       "caseId": "nt51923-fw141-single-auto-prj-662-20260717",
-      "testReference": "tests/NvtFwCombiner.Bootstrap.Tests/CtrlRamV2PlanClosureProfileTests.cs#DirectGoldenExpectedViewsRemainExactAndImmutable",
+      "testReference": "tests/NvtFwCombiner.Bootstrap.Tests/CtrlRamDirectTpGoldenExecutionTests.cs#OriginalTpBaseProducesCompleteDeclaredOwnerViewWithinExactAuthorityAsync",
       "expectedView": {
         "artifactId": "expected-output",
         "start": 0,
@@ -318,7 +318,7 @@
       "routeId": "route-7-nt51923-15-ctrlram-replace-9-2-plus-ic-43-nt51923-ctrlram-fw141-cascade3-tp-work-240k",
       "capabilityFingerprint": "7fe47d2fedb18d421ce7d75e9376857816e58294ac1d80a81618cbb741881202",
       "caseId": "nt51923-fw141-cascade3-auto-prj-734-20260717",
-      "testReference": "tests/NvtFwCombiner.Bootstrap.Tests/CtrlRamV2PlanClosureProfileTests.cs#DirectGoldenExpectedViewsRemainExactAndImmutable",
+      "testReference": "tests/NvtFwCombiner.Bootstrap.Tests/CtrlRamDirectTpGoldenExecutionTests.cs#OriginalTpBaseProducesCompleteDeclaredOwnerViewWithinExactAuthorityAsync",
       "expectedView": {
         "artifactId": "expected-output",
         "start": 0,
@@ -362,7 +362,7 @@
       "routeId": "route-7-nt51926-15-ctrlram-replace-4-1-ic-34-nt51926-ctrlram-fw141-tp-work-240k",
       "capabilityFingerprint": "7fb4770dece9b9e2055731c18f45c4f6427ae74a744ce6e9495b99ed3ed99544",
       "caseId": "nt51926-fw141-single-auto-prj-747-20260717",
-      "testReference": "tests/NvtFwCombiner.Bootstrap.Tests/CtrlRamV2PlanClosureProfileTests.cs#DirectGoldenExpectedViewsRemainExactAndImmutable",
+      "testReference": "tests/NvtFwCombiner.Bootstrap.Tests/CtrlRamDirectTpGoldenExecutionTests.cs#OriginalTpBaseProducesCompleteDeclaredOwnerViewWithinExactAuthorityAsync",
       "expectedView": {
         "artifactId": "expected-output",
         "start": 0,
@@ -384,7 +384,7 @@
       "routeId": "route-7-nt51926-15-ctrlram-replace-4-1-ic-34-nt51926-ctrlram-fw200-tp-work-240k",
       "capabilityFingerprint": "557d381e0fc2b7c9bf6a76e402d952012f1bbf6d1c45bd931bf48ca30aed9c9e",
       "caseId": "nt51926-fw200-single-auto-prj-597-20260718",
-      "testReference": "tests/NvtFwCombiner.Bootstrap.Tests/CtrlRamV2PlanClosureProfileTests.cs#DirectGoldenExpectedViewsRemainExactAndImmutable",
+      "testReference": "tests/NvtFwCombiner.Bootstrap.Tests/CtrlRamDirectTpGoldenExecutionTests.cs#OriginalTpBaseProducesCompleteDeclaredOwnerViewWithinExactAuthorityAsync",
       "expectedView": {
         "artifactId": "expected-output",
         "start": 0,
@@ -406,7 +406,7 @@
       "routeId": "route-7-nt51926-15-ctrlram-replace-9-2-plus-ic-34-nt51926-ctrlram-fw141-tp-work-240k",
       "capabilityFingerprint": "59f07391c59f7da664b5c99388c9a1dd631b3d3a531d636b974465d80a6ec45d",
       "caseId": "nt51926-fw141-cascade2-auto-prj-597-20260717",
-      "testReference": "tests/NvtFwCombiner.Bootstrap.Tests/CtrlRamV2PlanClosureProfileTests.cs#DirectGoldenExpectedViewsRemainExactAndImmutable",
+      "testReference": "tests/NvtFwCombiner.Bootstrap.Tests/CtrlRamDirectTpGoldenExecutionTests.cs#OriginalTpBaseProducesCompleteDeclaredOwnerViewWithinExactAuthorityAsync",
       "expectedView": {
         "artifactId": "expected-output",
         "start": 0,
@@ -428,7 +428,7 @@
       "routeId": "route-7-nt51926-15-ctrlram-replace-9-2-plus-ic-34-nt51926-ctrlram-fw200-tp-work-240k",
       "capabilityFingerprint": "71123feedb8bb0f7c87da35d6278cc443c2302510253d51c860b89304d092ef1",
       "caseId": "nt51926-fw200-cascade3-auto-prj-597-20260718",
-      "testReference": "tests/NvtFwCombiner.Bootstrap.Tests/CtrlRamV2PlanClosureProfileTests.cs#DirectGoldenExpectedViewsRemainExactAndImmutable",
+      "testReference": "tests/NvtFwCombiner.Bootstrap.Tests/CtrlRamDirectTpGoldenExecutionTests.cs#OriginalTpBaseProducesCompleteDeclaredOwnerViewWithinExactAuthorityAsync",
       "expectedView": {
         "artifactId": "expected-output",
         "start": 0,
@@ -479,7 +479,7 @@
       "routeId": "route-7-nt51927-15-ctrlram-replace-4-1-ic-41-nt51927-ctrlram-fw141-single-tp-work-212k",
       "capabilityFingerprint": "e4ae2ab5b54c967438e442c48eadd2dea8861bcdec967ac3016e258353b4e07f",
       "caseId": "nt51927-fw141-single-auto-prj-529-20260717",
-      "testReference": "tests/NvtFwCombiner.Bootstrap.Tests/CtrlRamV2PlanClosureProfileTests.cs#DirectGoldenExpectedViewsRemainExactAndImmutable",
+      "testReference": "tests/NvtFwCombiner.Bootstrap.Tests/CtrlRamDirectTpGoldenExecutionTests.cs#OriginalTpBaseProducesCompleteDeclaredOwnerViewWithinExactAuthorityAsync",
       "expectedView": {
         "artifactId": "expected-output",
         "start": 0,
