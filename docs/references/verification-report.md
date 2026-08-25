@@ -56,7 +56,7 @@ release-owner approval remain open.
 The owner approved hiding ordinary DP Replace authoring in `0.10.7` and the
 initial `1.0.0`, while retaining its profiles, execution semantics, publication
 and evidence decisions, fingerprints, and Golden regressions. Product UI/CLI
-discovery is fail-closed through canonical policy catalog `1.9.0`; retirement
+discovery is fail-closed through canonical policy catalog `1.10.0`; retirement
 or reopening is deferred to `1.1.0`. This is not a firmware-byte or support
 promotion change, and no package or tag is authorized by this report.
 
@@ -67,7 +67,8 @@ versions, atomic activation state, one-use ready supervision, bounded rollback,
 and the Settings Version experience defined by ADR 0051. Focused automated
 evidence covers closed package/catalog/path validation, staged install and
 failure cleanup, exact inventory damage, state corruption and atomic saves,
-real process ready/exit/timeout behavior, relocation, offline switching,
+real process ready/exit/timeout behavior, update-source relocation, managed-root
+mismatch rejection, offline switching,
 rollback, explicit update consent, and non-stacking confirmations.
 
 The owner explicitly approved advancing this internal identity on 2026-08-21
@@ -87,9 +88,10 @@ including Application 673, Infrastructure 550 plus two skips, Bootstrap 974, UI
 smoke 604, Architecture 216, and all 17 Golden regressions. The exact reviewed-
 HEAD rerun measured aggregate .NET coverage at 88.82% lines and 79.06%
 branches. Fresh local-folder evidence passes
-catalog/package install, source relocation, 0.10.6 activation, offline
-switching, rollback/deletion guards, and the freshly published stable launcher
-after complete managed-root relocation.
+catalog/package install, update-source relocation, 0.10.6 activation, offline
+switching, rollback/deletion guards, and the freshly published stable launcher.
+An installed managed-root relocation now fails closed; adopting a new root
+requires a future explicit verified rebind transaction.
 
 ## 0.10.5 unified preload lifecycle release candidate
 
