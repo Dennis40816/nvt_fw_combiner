@@ -137,6 +137,7 @@ public sealed partial class VersionManagementExperience : IVersionManagementExpe
     private readonly Lock _generationSync = new();
     private CancellationTokenSource? _checkCancellation;
     private VersionManagementSnapshot? _current;
+    private VersionManagementSnapshot? _recoverableSourceAuthority;
     private bool _disposed;
 
     /// <summary>Creates one version-management use-case graph.</summary>
@@ -213,7 +214,9 @@ public sealed partial class VersionManagementExperience : IVersionManagementExpe
         try
         {
             current = await RequireCurrentWithoutLockAsync(cancellationToken).ConfigureAwait(false);
-            if (current.State?.UpdateSource is not { } configuredSource)
+            if (current.StateIssue != VersionManagerStateLoadIssue.None ||
+                current.InventoryIssue != ManagedVersionInventoryReadIssue.None ||
+                current.State?.UpdateSource is not { } configuredSource)
             {
                 return current;
             }
@@ -561,7 +564,8 @@ public sealed partial class VersionManagementExperience : IVersionManagementExpe
             }
             VersionManagementSnapshot current = await ReloadDurableCurrentWithoutLockAsync(cancellationToken)
                 .ConfigureAwait(false);
-            if (current.State is not { } state)
+            if (current.InventoryIssue != ManagedVersionInventoryReadIssue.None ||
+                current.State is not { } state)
             {
                 return current;
             }

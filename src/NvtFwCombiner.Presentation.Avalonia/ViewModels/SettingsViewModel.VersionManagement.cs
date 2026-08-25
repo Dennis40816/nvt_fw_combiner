@@ -196,11 +196,12 @@ internal sealed partial class SettingsViewModel
         }
         ManagedAppVersion? activeVersion = snapshot.State?.ActiveVersion;
         CurrentVersionLabel = $"NVT FW Combiner {activeVersion?.ToString() ?? _appVersion}";
+        bool inventoryAvailable = snapshot.StateIssue == VersionManagerStateLoadIssue.None &&
+            snapshot.InventoryIssue == ManagedVersionInventoryReadIssue.None;
         InstalledVersionSnapshot? activeInstallation = activeVersion is { } managedVersion
             ? snapshot.Inventory.Find(managedVersion)
             : null;
-        HasManagedCurrentVersion = snapshot.StateIssue == VersionManagerStateLoadIssue.None &&
-            snapshot.InventoryIssue == ManagedVersionInventoryReadIssue.None &&
+        HasManagedCurrentVersion = inventoryAvailable &&
             activeInstallation?.AdmissionState == ManagedVersionAdmissionState.Admitted &&
             activeInstallation.Integrity == ManagedVersionIntegrity.Healthy;
         CurrentActivityLabel = Localize("Active", "使用中");
@@ -232,34 +233,42 @@ internal sealed partial class SettingsViewModel
                 $" · {snapshot.Inventory.UnadmittedCount} need recovery",
                 $" · {snapshot.Inventory.UnadmittedCount} 個需要復原")
             : string.Empty;
-        InventorySummary = snapshot.InventoryIssue != ManagedVersionInventoryReadIssue.None
+        InventorySummary = !inventoryAvailable
             ? Localize("Inventory unavailable", "版本清單無法使用")
             : Localize(
                 $"{snapshot.Inventory.HealthyCount} healthy · {snapshot.Inventory.DamagedCount} damaged",
                 $"{snapshot.Inventory.HealthyCount} 個正常 · {snapshot.Inventory.DamagedCount} 個已損壞") +
               recoverySummary;
-        HasRetentionReview = snapshot.State?.RetentionReviewDue == true;
+        HasRetentionReview = inventoryAvailable && snapshot.State?.RetentionReviewDue == true;
         RetentionReviewMessage = HasRetentionReview
             ? Localize(
                 $"More than {VersionManagementPolicy.DefaultHealthyVersionReminderThreshold} healthy versions are installed. Delete any non-active version below, or keep all.",
                 $"已安裝超過 {VersionManagementPolicy.DefaultHealthyVersionReminderThreshold} 個正常版本。可在下方逐一刪除非使用中版本，或全部保留。")
             : string.Empty;
-        ProjectVersionRows(snapshot);
-        HasVerifiedUpdate = snapshot.VerifiedCandidate is not null;
-        VerifiedCandidateRow = snapshot.VerifiedCandidate is { } verified
+        if (inventoryAvailable)
+        {
+            ProjectVersionRows(snapshot);
+        }
+        else
+        {
+            VersionRows.Clear();
+            CancelVersionConfirmation();
+        }
+        HasVerifiedUpdate = inventoryAvailable && snapshot.VerifiedCandidate is not null;
+        VerifiedCandidateRow = inventoryAvailable && snapshot.VerifiedCandidate is { } verified
             ? VersionRows.FirstOrDefault(row => row.Version == verified.Version)
             : null;
         if (VerifiedCandidateRow is null)
         {
             IsVerifiedReleaseNotesVisible = false;
         }
-        VerifiedUpdateMessage = snapshot.VerifiedCandidate is { } candidate
+        VerifiedUpdateMessage = HasVerifiedUpdate && snapshot.VerifiedCandidate is { } candidate
             ? Localize(
                 $"Version {candidate.Version} is verified and available.",
                 $"版本 {candidate.Version} 已驗證並可安裝。")
             : string.Empty;
         if (!IsVersionConfirmationOpen &&
-            snapshot.ShouldPromptForUpdate &&
+            inventoryAvailable && snapshot.ShouldPromptForUpdate &&
             VersionRows.FirstOrDefault(row => row.Version == snapshot.VerifiedCandidate?.Version) is { } row)
         {
             BeginConfirmation(row, VersionConfirmationAction.Install);

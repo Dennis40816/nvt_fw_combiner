@@ -69,9 +69,9 @@ public sealed partial class VersionManagementSettingsTests
         Assert.Equal("Recovery required", viewModel.Settings.CurrentStatusLabel);
     }
 
-    /// <summary>An unavailable retention acknowledgement remains visible and cannot report success.</summary>
+    /// <summary>An unavailable retention result hides stale actions and cannot report success.</summary>
     [Fact]
-    public async Task UnavailableRetentionAcknowledgementDoesNotReportSuccess()
+    public async Task UnavailableRetentionAcknowledgementHidesReviewAndDoesNotReportSuccess()
     {
         VersionManagementSnapshot initial = Snapshot(retentionReviewDue: true);
         VersionManagementSnapshot unavailable = initial with
@@ -89,7 +89,8 @@ public sealed partial class VersionManagementSettingsTests
 
         await viewModel.Settings.KeepAllVersionsCommand.ExecuteAsync(null);
 
-        Assert.True(viewModel.Settings.HasRetentionReview);
+        Assert.False(viewModel.Settings.HasRetentionReview);
+        Assert.Empty(viewModel.Settings.VersionRows);
         Assert.Contains("unavailable", viewModel.Settings.VersionOperationStatus, StringComparison.OrdinalIgnoreCase);
         Assert.DoesNotContain("were kept", viewModel.Settings.VersionOperationStatus, StringComparison.Ordinal);
         Assert.False(viewModel.Settings.IsVersionBusy);

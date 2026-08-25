@@ -24,7 +24,7 @@ public sealed partial class MainWindow
         }
     }
 
-    private async Task RunVersionDiscoveryAfterReadyAsync(CancellationToken cancellationToken)
+    internal async Task RunVersionDiscoveryAfterReadyAsync(CancellationToken cancellationToken)
     {
         if (_hostServices.VersionManagement is not { } versionManagement)
         {
@@ -49,8 +49,12 @@ public sealed partial class MainWindow
             if (DataContext is MainWindowViewModel checkedViewModel)
             {
                 checkedViewModel.Settings.ApplyVersionSnapshot(checkedSnapshot);
-                if (checkedSnapshot.ShouldPromptForUpdate ||
-                    checkedSnapshot.State?.RetentionReviewDue == true)
+                bool authorityAvailable =
+                    checkedSnapshot.StateIssue == VersionManagerStateLoadIssue.None &&
+                    checkedSnapshot.InventoryIssue == ManagedVersionInventoryReadIssue.None;
+                if (authorityAvailable &&
+                    (checkedSnapshot.ShouldPromptForUpdate ||
+                     checkedSnapshot.State?.RetentionReviewDue == true))
                 {
                     checkedViewModel.OpenSettingsCommand.Execute(null);
                 }

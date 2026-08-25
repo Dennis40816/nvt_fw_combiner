@@ -5,9 +5,9 @@ public sealed partial class VersionManagementExperience
     private async ValueTask<VersionManagementSnapshot> RequireCurrentWithoutLockAsync(
         CancellationToken cancellationToken)
     {
-        if (_current is not null)
+        if (_current is { } current && HasUsableAuthority(current))
         {
-            return _current;
+            return current;
         }
         using VersionManagerWriteLeaseResult lease = await AcquireWriteLeaseAsync(
             TimeSpan.Zero,
@@ -21,6 +21,10 @@ public sealed partial class VersionManagementExperience
         CancellationToken cancellationToken)
     {
         VersionManagementSnapshot? prior = _current;
+        bool isRecoveringSourceAuthority = prior is null || !HasUsableAuthority(prior);
+        VersionManagementSnapshot? sourcePrior = isRecoveringSourceAuthority
+            ? _recoverableSourceAuthority
+            : prior;
         VersionManagerStateLoadResult loaded = await _stateStore.LoadAsync(cancellationToken).ConfigureAwait(false);
         bool managedRootMismatch = loaded.IsSuccess && !loaded.State!.IsBoundToManagedRoot(_managedRoot);
         VersionManagerState? state = loaded.IsSuccess && !managedRootMismatch
@@ -33,31 +37,47 @@ public sealed partial class VersionManagementExperience
             state = await ReconcilePendingMutationAsync(state, cancellationToken).ConfigureAwait(false);
         }
         ManagedVersionInventoryReadResult inventoryResult = state is null
-            ? ManagedVersionInventoryReadResult.Success(ManagedVersionInventory.Create([]))
+            ? ManagedVersionInventoryReadResult.Unavailable()
             : await InventoryAsync(state, cancellationToken).ConfigureAwait(false);
         ManagedVersionInventory inventory = inventoryResult.Inventory ?? ManagedVersionInventory.Create([]);
-        bool sameSource = prior?.State?.UpdateSource == state?.UpdateSource;
+        bool sameSource = state is not null && inventoryResult.IsSuccess &&
+            sourcePrior?.State?.UpdateSource == state.UpdateSource;
+        bool sameCandidateContext = sameSource &&
+            sourcePrior?.State?.ActiveVersion == state?.ActiveVersion;
         _current = new(
             state,
             inventory,
-            sameSource ? prior?.Catalog : null,
-            sameSource ? prior?.VerifiedCandidate : null,
-            sameSource && prior is not null
-                ? prior.SourceStatus
+            sameSource ? sourcePrior?.Catalog : null,
+            sameCandidateContext && !isRecoveringSourceAuthority
+                ? sourcePrior?.VerifiedCandidate
+                : null,
+            sameSource && sourcePrior is not null && !isRecoveringSourceAuthority
+                ? sourcePrior.SourceStatus
                 : state is null
                     ? VersionSourceStatus.Offline
                     : state.UpdateSource is null
                         ? VersionSourceStatus.NotConfigured
                         : VersionSourceStatus.Offline,
-            sameSource ? prior?.CatalogIssue : null,
-            sameSource ? prior?.Generation ?? 0 : 0,
-            sameSource && prior?.ShouldPromptForUpdate == true,
+            sameSource && !isRecoveringSourceAuthority ? sourcePrior?.CatalogIssue : null,
+            sameCandidateContext && !isRecoveringSourceAuthority
+                ? sourcePrior?.Generation ?? 0
+                : 0,
+            sameCandidateContext && !isRecoveringSourceAuthority &&
+                sourcePrior?.ShouldPromptForUpdate == true,
             managedRootMismatch
                 ? VersionManagerStateLoadIssue.ManagedRootMismatch
                 : loaded.Issue == VersionManagerStateLoadIssue.Missing
                     ? VersionManagerStateLoadIssue.None
                     : loaded.Issue,
             inventoryResult.Issue);
+        if (state is not null && inventoryResult.IsSuccess)
+        {
+            _recoverableSourceAuthority = null;
+        }
+        else if (managedRootMismatch || loaded.Issue == VersionManagerStateLoadIssue.Invalid)
+        {
+            _recoverableSourceAuthority = null;
+        }
         return _current;
     }
 
@@ -72,8 +92,20 @@ public sealed partial class VersionManagementExperience
 
     private VersionManagementSnapshot PublishStateUnavailable()
     {
+        PreserveRecoverableSourceAuthority();
         _current = _current is { } current
-            ? current with { StateIssue = VersionManagerStateLoadIssue.Unavailable }
+            ? current with
+            {
+                Inventory = ManagedVersionInventory.Create([]),
+                Catalog = null,
+                VerifiedCandidate = null,
+                SourceStatus = VersionSourceStatus.Offline,
+                CatalogIssue = null,
+                Generation = 0,
+                ShouldPromptForUpdate = false,
+                StateIssue = VersionManagerStateLoadIssue.Unavailable,
+                InventoryIssue = ManagedVersionInventoryReadIssue.Unavailable,
+            }
             : new(
                 State: null,
                 ManagedVersionInventory.Create([]),
@@ -83,17 +115,25 @@ public sealed partial class VersionManagementExperience
                 CatalogIssue: null,
                 Generation: 0,
                 ShouldPromptForUpdate: false,
-                VersionManagerStateLoadIssue.Unavailable);
+                VersionManagerStateLoadIssue.Unavailable,
+                ManagedVersionInventoryReadIssue.Unavailable);
         return _current;
     }
 
     private VersionManagementSnapshot PublishInventoryUnavailable(VersionManagerState? state = null)
     {
+        PreserveRecoverableSourceAuthority();
         _current = _current is { } current
             ? current with
             {
                 State = state ?? current.State,
                 Inventory = ManagedVersionInventory.Create([]),
+                Catalog = null,
+                VerifiedCandidate = null,
+                SourceStatus = VersionSourceStatus.Offline,
+                CatalogIssue = null,
+                Generation = 0,
+                ShouldPromptForUpdate = false,
                 InventoryIssue = ManagedVersionInventoryReadIssue.Unavailable,
             }
             : new(
@@ -110,17 +150,49 @@ public sealed partial class VersionManagementExperience
         return _current;
     }
 
-    private static VersionManagementSnapshot WithInventory(
+    private VersionManagementSnapshot WithInventory(
         VersionManagementSnapshot snapshot,
         VersionManagerState state,
         ManagedVersionInventoryReadResult result)
     {
-        return snapshot with
+        VersionManagementSnapshot updated = snapshot with
         {
             State = state,
             Inventory = result.Inventory ?? ManagedVersionInventory.Create([]),
             InventoryIssue = result.Issue,
         };
+        if (result.IsSuccess)
+        {
+            return updated;
+        }
+
+        if (HasUsableAuthority(snapshot))
+        {
+            _recoverableSourceAuthority = snapshot;
+        }
+        return updated with
+        {
+            Catalog = null,
+            VerifiedCandidate = null,
+            SourceStatus = VersionSourceStatus.Offline,
+            CatalogIssue = null,
+            Generation = 0,
+            ShouldPromptForUpdate = false,
+        };
+    }
+
+    private void PreserveRecoverableSourceAuthority()
+    {
+        if (_current is { } current && HasUsableAuthority(current))
+        {
+            _recoverableSourceAuthority = current;
+        }
+    }
+
+    private static bool HasUsableAuthority(VersionManagementSnapshot snapshot)
+    {
+        return snapshot.StateIssue == VersionManagerStateLoadIssue.None &&
+            snapshot.InventoryIssue == ManagedVersionInventoryReadIssue.None;
     }
 
     private async ValueTask<ManagedVersionInventoryReadResult> InventoryAsync(

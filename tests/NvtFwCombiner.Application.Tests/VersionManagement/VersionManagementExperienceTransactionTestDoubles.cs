@@ -67,6 +67,8 @@ public sealed partial class VersionManagementExperienceTests
 
         internal int InventoryCalls { get; private set; }
 
+        internal int VerifyPackageCalls { get; private set; }
+
         internal ManagedVersionInventoryReadResult? InventoryResultOverride { get; set; }
 
         public ValueTask<ManagedPackageVerificationResult> VerifyPackageAsync(
@@ -74,6 +76,7 @@ public sealed partial class VersionManagementExperienceTests
             UpdateCatalogVersionSnapshot package,
             CancellationToken cancellationToken)
         {
+            VerifyPackageCalls++;
             return ValueTask.FromResult(new ManagedPackageVerificationResult(
                 new(package.Version, package.Identity, package.ReleaseNotes),
                 ManagedVersionInstallIssue.None));
