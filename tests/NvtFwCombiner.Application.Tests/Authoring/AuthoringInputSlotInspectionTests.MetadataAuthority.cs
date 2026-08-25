@@ -9,7 +9,7 @@ namespace NvtFwCombiner.Application.Tests.Authoring;
 
 public sealed partial class AuthoringInputSlotInspectionTests
 {
-    /// <summary>Fixed workflow omission is terminal while generic discovery performs one bounded query.</summary>
+    /// <summary>Fixed plans stay terminal while an uncompiled CtrlRAM base uses one bounded read-only query.</summary>
     [Fact]
     public void FirmwareMetadataAuthorityHasOneApplicationOwner()
     {
@@ -104,6 +104,21 @@ public sealed partial class AuthoringInputSlotInspectionTests
         Assert.Same(FirmwareMetadataPlanAuthority.NotApplicable, ab);
         Assert.Empty(query.Calls);
 
+        FirmwareMetadataPlanAuthority uncompiledCtrlRamBase = resolver.Resolve(
+            "NT-HEADLESS",
+            new FirmwareInspectionSnapshotInput(
+                "uncompiled-ctrlram-base",
+                "base.bin",
+                CtrlRamReplaceAddressSpaceId: CompositionAddressSpaceIds.ReferenceBase),
+            inputLength: 7,
+            FirmwareInspectionStatusBatch.Empty,
+            FirmwareInspectionStatusBatch.Empty,
+            FirmwareInspectionStatusBatch.Empty);
+        Assert.Same(genericPlan, uncompiledCtrlRamBase.Plan);
+        Assert.Equal(
+            [new MetadataQueryCall("NT-HEADLESS", ExperienceIds.DpReplace, "1-ic", 7)],
+            query.Calls);
+
         FirmwareMetadataPlanAuthority generic = resolver.Resolve(
             "NT-HEADLESS",
             new FirmwareInspectionSnapshotInput("generic", "base.bin"),
@@ -113,7 +128,10 @@ public sealed partial class AuthoringInputSlotInspectionTests
             FirmwareInspectionStatusBatch.Empty);
         Assert.Same(genericPlan, generic.Plan);
         Assert.Equal(
-            [new MetadataQueryCall("NT-HEADLESS", ExperienceIds.DpReplace, "1-ic", 8)],
+            [
+                new MetadataQueryCall("NT-HEADLESS", ExperienceIds.DpReplace, "1-ic", 7),
+                new MetadataQueryCall("NT-HEADLESS", ExperienceIds.DpReplace, "1-ic", 8),
+            ],
             query.Calls);
 
         var ambiguity = new CapabilityCatalogIssue(
@@ -131,6 +149,7 @@ public sealed partial class AuthoringInputSlotInspectionTests
         Assert.Same(ambiguity, ambiguous.Issue);
         Assert.Equal(
             [
+                new MetadataQueryCall("NT-HEADLESS", ExperienceIds.DpReplace, "1-ic", 7),
                 new MetadataQueryCall("NT-HEADLESS", ExperienceIds.DpReplace, "1-ic", 8),
                 new MetadataQueryCall("NT-HEADLESS", ExperienceIds.DpReplace, "1-ic", 9),
             ],

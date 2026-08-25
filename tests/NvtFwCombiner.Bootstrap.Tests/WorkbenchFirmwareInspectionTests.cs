@@ -235,7 +235,13 @@ public sealed partial class FirmwareInspectionSnapshotTests
             BuiltInFirmwareInspection.InspectFirmwareBatch(
                 genericInspection,
                 "NT51926",
-                [new FirmwareInspectionSnapshotInput("replace-base", basePath)],
+                [new FirmwareInspectionSnapshotInput(
+                    "replace-base",
+                    basePath,
+                    CtrlRamRequest: new CtrlRamInspectionRequest(
+                        IcNumberSelectionTokens.Cascade),
+                    CtrlRamReplaceAddressSpaceId:
+                        CompositionAddressSpaceIds.ReferenceBase)],
                 static path => File.ReadAllBytes(path)))
             .Inspection;
         CapabilityResolutionResult authoring =
@@ -249,15 +255,19 @@ public sealed partial class FirmwareInspectionSnapshotTests
         Assert.Equal(
             CapabilityCatalogIssueCodes.AuthoringUnavailable,
             authoring.Issue!.Code);
+        Assert.Empty(inspection.AuthoringCompilationIssues);
+        Assert.Equal(
+            CtrlRamBaseDiscoveryReadiness.Inspected,
+            inspection.CtrlRamBaseDiscoveryReadiness);
+        Assert.Equal(
+            [("NT51926", ExperienceIds.DpReplace, "1-ic", 0x40000L)],
+            calls);
         Assert.Equal(
             "0100",
             Assert.IsType<DpVersionMetadata>(inspection.DpVersion).VersionToken);
         Assert.Equal(
             (ushort)597,
             Assert.IsType<CmiDpCodeMetadata>(inspection.CmiDpCode).JiraNumber);
-        Assert.Equal(
-            [("NT51926", ExperienceIds.DpReplace, "1-ic", 0x40000L)],
-            calls);
     }
 
     /// <summary>The consolidated snapshot preserves existing metadata and CtrlRAM display projections.</summary>

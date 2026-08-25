@@ -10,6 +10,84 @@ namespace NvtFwCombiner.Bootstrap.Tests;
 
 public sealed partial class FirmwareInspectionSnapshotTests
 {
+    /// <summary>A reportful CtrlRAM reference resolves one bounded read-only DPCMI display plan.</summary>
+    [Fact]
+    public async Task Nt51926ReportfulCtrlRamReferenceUsesOneBoundedDpcmiQuery()
+    {
+        JsonElement fixtureCase = CanonicalGoldenTestData.LoadDirectCase(
+            "ctrlram-replace",
+            "nt51926-fw200-single-auto-prj-597-20260718");
+        JsonElement[] artifacts = [.. fixtureCase.GetProperty("artifacts").EnumerateArray()];
+        string basePath = CanonicalGoldenTestData.ArtifactPath(artifacts.Single(artifact =>
+            artifact.GetProperty("artifactId").GetString() == "expected-output"));
+        string normalPath = CanonicalGoldenTestData.ArtifactPath(artifacts.Single(artifact =>
+            artifact.GetProperty("artifactId").GetString() == "normal-ctrlram-input"));
+        var calls = new List<(
+            string IcId,
+            string WorkflowId,
+            string IcCountVariant,
+            long? Capacity)>();
+        ICanonicalCapabilityQuery queryCatalog = BootstrapTestHost.Canonical.Catalog;
+        BuiltInFirmwareInspection firmwareInspection = CreateInspection(
+            new InterceptingMetadataPlanQuery(
+                queryCatalog,
+                (icId, workflowId, icCountVariant, outputCapacity) =>
+                {
+                    calls.Add((icId, workflowId, icCountVariant, outputCapacity));
+                    return queryCatalog.ResolveUniqueMetadataPlan(
+                        icId,
+                        workflowId,
+                        icCountVariant,
+                        outputCapacity);
+                }),
+            new DelegatingContentInspector(static (path, _, _) =>
+            {
+                byte[] bytes = File.ReadAllBytes(path);
+                return ValueTask.FromResult(new SelectedFileContentInspection(
+                    FileStamp.FromBytes(bytes),
+                    Path.GetFileName(path),
+                    acceptedBytes: bytes));
+            }));
+
+        FirmwareInspectionBatchResult batch = await firmwareInspection.InspectFirmwareBatchAsync(
+            "NT51926",
+            [
+                new FirmwareInspectionSnapshotInput(
+                    "base",
+                    basePath,
+                    CtrlRamRequest: new CtrlRamInspectionRequest(
+                        IcNumberSelectionTokens.SingleChip),
+                    CtrlRamReplaceAddressSpaceId:
+                        CompositionAddressSpaceIds.ReferenceBase),
+                new FirmwareInspectionSnapshotInput(
+                    "normal",
+                    normalPath,
+                    CtrlRamReplaceAddressSpaceId: "replace-ctrlram-normal"),
+            ],
+            TestContext.Current.CancellationToken);
+
+        FirmwareInspectionSnapshot baseInspection = batch.InspectionsById["base"];
+        AuthoringCapabilityCatalogSnapshot catalog = Assert.IsType<
+            AuthoringCapabilityCatalogSnapshot>(baseInspection.InputSlotCatalog);
+        ResolvedCapability exact = Assert.IsType<ResolvedCapability>(
+            Assert.Single(catalog.Routes).ExactCapability);
+        Assert.DoesNotContain(exact.MetadataPlan.Entries, entry =>
+            StringComparer.Ordinal.Equals(
+                entry.Definition.StructureDefinition.Definition.DefinitionId,
+                DpcmiMetadataContract.StructureId));
+        Assert.NotEmpty(exact.MetadataPlan.Definition.ReportProjections);
+        Assert.Equal(
+            [("NT51926", ExperienceIds.DpReplace, "1-ic", 0x40000L)],
+            calls);
+        Assert.Equal(
+            "0200",
+            Assert.IsType<DpVersionMetadata>(baseInspection.DpVersion).VersionToken);
+        Assert.Equal(
+            (ushort)597,
+            Assert.IsType<CmiDpCodeMetadata>(baseInspection.CmiDpCode).JiraNumber);
+        Assert.Null(baseInspection.DpMetadataPrerequisite);
+    }
+
     /// <summary>An exact reportless CtrlRAM route cannot fall back to DP metadata.</summary>
     [Fact]
     public async Task Nt51950ReportlessCtrlRamInspectionKeepsMetadataAbsent()
@@ -22,9 +100,21 @@ public sealed partial class FirmwareInspectionSnapshotTests
             artifact.GetProperty("artifactId").GetString() == "expected-output"));
         string nfPath = CanonicalGoldenTestData.ArtifactPath(artifacts.Single(artifact =>
             artifact.GetProperty("artifactId").GetString() == "postbuild-nf-ctrlram"));
+        BuiltInFirmwareInspection firmwareInspection = CreateInspection(
+            new InterceptingMetadataPlanQuery(
+                BootstrapTestHost.Canonical.Catalog,
+                static (_, _, _, _) => throw new InvalidOperationException(
+                    "An exact reportless CtrlRAM route must remain terminal.")),
+            new DelegatingContentInspector(static (path, _, _) =>
+            {
+                byte[] bytes = File.ReadAllBytes(path);
+                return ValueTask.FromResult(new SelectedFileContentInspection(
+                    FileStamp.FromBytes(bytes),
+                    Path.GetFileName(path),
+                    acceptedBytes: bytes));
+            }));
 
-        FirmwareInspectionBatchResult batch = await BootstrapTestHost.Services
-            .FirmwareInspectionExperience.InspectFirmwareBatchAsync(
+        FirmwareInspectionBatchResult batch = await firmwareInspection.InspectFirmwareBatchAsync(
             "NT51950",
             [
                 new FirmwareInspectionSnapshotInput(
@@ -68,13 +158,27 @@ public sealed partial class FirmwareInspectionSnapshotTests
         using var workspace = TempWorkspace.Create("nfc-ctrlram-adoption-path-change");
         string secondBasePath = workspace.Write("base-b.bin", File.ReadAllBytes(basePath));
         string secondNormalPath = workspace.Write("normal-b.bin", File.ReadAllBytes(normalPath));
+        var metadataCalls = new List<(
+            string IcId,
+            string WorkflowId,
+            string IcCountVariant,
+            long? Capacity)>();
+        ICanonicalCapabilityQuery queryCatalog = BootstrapTestHost.Canonical.Catalog;
         BuiltInFirmwareInspection inspection = CreateInspection(
             new InterceptingMetadataPlanQuery(
-                BootstrapTestHost.Canonical.Catalog,
-                static (_, _, _, _) =>
+                queryCatalog,
+                (icId, workflowId, icCountVariant, outputCapacity) =>
                 {
-                    throw new InvalidOperationException(
-                        "An exact CtrlRAM inspection must not re-resolve its metadata plan.");
+                    metadataCalls.Add((
+                        icId,
+                        workflowId,
+                        icCountVariant,
+                        outputCapacity));
+                    return queryCatalog.ResolveUniqueMetadataPlan(
+                        icId,
+                        workflowId,
+                        icCountVariant,
+                        outputCapacity);
                 }),
             new DelegatingContentInspector(static (path, _, _) =>
             {
@@ -122,8 +226,8 @@ public sealed partial class FirmwareInspectionSnapshotTests
                 StringComparer.Ordinal.Equals(
                     entry.Definition.StructureDefinition.Definition.DefinitionId,
                     DpcmiMetadataContract.StructureId));
-            Assert.Null(baseInspection.DpVersion);
-            Assert.Null(baseInspection.CmiDpCode);
+            _ = Assert.IsType<DpVersionMetadata>(baseInspection.DpVersion);
+            _ = Assert.IsType<CmiDpCodeMetadata>(baseInspection.CmiDpCode);
             Assert.Null(baseInspection.DpMetadataPrerequisite);
             return (
                 catalog,
@@ -200,6 +304,11 @@ public sealed partial class FirmwareInspectionSnapshotTests
         Assert.True(
             finalPaths.SequenceEqual([basePath, normalPath]) ||
             finalPaths.SequenceEqual([secondBasePath, secondNormalPath]));
+        Assert.Equal(
+            Enumerable.Repeat(
+                ("NT51923", ExperienceIds.DpReplace, "1-ic", (long?)0x40000),
+                3),
+            metadataCalls);
 
         var countingAdapter = new CountingCtrlRamAuthoringAdapter(
             new BuiltInCtrlRamAuthoringAdapter(

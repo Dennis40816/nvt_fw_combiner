@@ -40,8 +40,9 @@ public interface IFirmwareMetadataPlanAuthorityResolver
 }
 
 /// <summary>
-/// Application-owned metadata authority resolver. Fixed workflows consume only
-/// their compiled inspection batch; generic discovery performs one exact,
+/// Application-owned metadata authority resolver. Fixed workflows consume
+/// their compiled inspection batch. Generic discovery and a typed CtrlRAM
+/// reference that needs read-only DPCMI display perform one exact,
 /// capacity-bound metadata-only catalog query.
 /// </summary>
 public sealed class FirmwareMetadataPlanAuthorityResolver(
@@ -95,19 +96,32 @@ public sealed class FirmwareMetadataPlanAuthorityResolver(
             ResolvedMetadataPlan? exactPlan = ctrlRamInputBatch.ExactMetadataPlan;
             if (exactPlan is not null)
             {
-                return FirmwareMetadataPlanAuthority.Terminal(exactPlan);
-            }
+                bool hasReportProjection =
+                    exactPlan.Definition.ReportProjections.Count != 0;
+                if (!hasReportProjection || DeclaresDpcmi(exactPlan))
+                {
+                    return FirmwareMetadataPlanAuthority.Terminal(exactPlan);
+                }
 
-            bool isBaseOnlyDiscovery =
-                ctrlRamInputBatch.CtrlRamBaseDiscovery is { } discovery &&
-                StringComparer.Ordinal.Equals(discovery.InspectionId, input.InspectionId);
-            return isBaseOnlyDiscovery
-                ? ResolveGeneric(
+                // CtrlRAM report classification and read-only full-base DPCMI
+                // are separate authorities. Keep the exact report plan intact,
+                // but resolve the display plan once through the Application
+                // metadata-only port; this grants no DP authoring authority.
+                return ResolveGeneric(
                     icId,
                     ExperienceIds.DpReplace,
                     "1-ic",
-                    inputLength)
-                : FirmwareMetadataPlanAuthority.Terminal(plan: null);
+                    inputLength);
+            }
+
+            // Read-only base metadata is independent from whether the current
+            // CtrlRAM selector has already compiled. This covers the first
+            // inspection before an FWConfig IC-count suggestion is accepted.
+            return ResolveGeneric(
+                icId,
+                ExperienceIds.DpReplace,
+                "1-ic",
+                inputLength);
         }
 
         bool hasDistinctTpArtifact = !string.IsNullOrWhiteSpace(input.TpPath) &&
@@ -136,5 +150,12 @@ public sealed class FirmwareMetadataPlanAuthorityResolver(
         return FirmwareMetadataPlanAuthority.Terminal(
             resolution.MetadataPlan,
             resolution.Issue);
+    }
+
+    private static bool DeclaresDpcmi(ResolvedMetadataPlan plan)
+    {
+        return plan.Entries.Any(entry => StringComparer.Ordinal.Equals(
+            entry.Definition.StructureDefinition.Definition.DefinitionId,
+            DpcmiMetadataContract.StructureId));
     }
 }
