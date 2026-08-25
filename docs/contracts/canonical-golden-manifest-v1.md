@@ -39,10 +39,12 @@ therefore contains these common fields:
 
 The pair `(routeId, capabilityFingerprint)` is also unique. A changed fingerprint makes the old
 declaration stale; it cannot inherit evidence by retaining the same route id. Kind-specific objects
-are closed: undeclared fields fail validation. Every current policy route must resolve to exactly one
-identical route-evidence pair, and every route-evidence pair must resolve to that route. That
-cross-catalog equality is enforced by capability-policy materialization in addition to this
-manifest's structural validator.
+are closed: undeclared fields fail validation. The validator loads
+`docs/contracts/canonical-capability-policy-v1.json` and requires exactly one manifest declaration
+for every policy route and no extras. The manifest `evidenceId`, `routeId`,
+`capabilityFingerprint`, and `kind` must respectively equal that route's evidence `decisionId`,
+route identity, fingerprint, and `value`. Missing, extra, renamed, stale, or reclassified evidence
+therefore fails the same structure gate; the two inventories cannot drift independently.
 
 A `direct-golden` declaration adds `caseId` and `testReference`. The case must be a physical direct
 golden with its owner expected artifact. It may also add one `expectedView` object containing exactly
@@ -57,13 +59,19 @@ An `approved-alias` declaration adds `caseId`, `sourceRouteId`,
 `testReference`. `caseId` must select a canonical artifact-free alias case. The exact source identity
 must be present as `direct-golden`, and that declaration's `caseId` must match the alias case's
 `sourceCaseId`. Alias chains, a missing or stale source fingerprint, and aliasing another fingerprint
-of the same route id fail validation. `factScopeIds` grant only the named reviewed facts; they never
-grant whole-family or whole-workflow equivalence.
+of the same route id fail validation. Each `factScopeIds` item uses the closed
+`<alias-case-id>:fact-<one-based-index>` form and resolves to the corresponding entry in that alias
+case's declared `alias.factScope` array. Unknown indexes, another case's prefix, and duplicates fail
+validation. These IDs grant only the named reviewed facts; they never grant whole-family or
+whole-workflow equivalence.
 
 A `synthetic-oracle` declaration adds `oracleReference`, `expectedSha256`, and `testReference`.
 `oracleReference` is a normalized, confined, existing repository file; `expectedSha256` is the
-lowercase 64-hex oracle result pinned by the referenced test. The declaration does not turn a
-synthetic result into owner-supplied expected firmware.
+lowercase 64-hex oracle result pinned by the referenced test. Structure validation does not execute
+.NET, but it requires that exact lowercase hash literal to remain present in the referenced test
+source; a manifest-only hash edit therefore fails closed. The normal executable test gate remains
+responsible for proving that the named test actually produces and compares that value. The
+declaration does not turn a synthetic result into owner-supplied expected firmware.
 
 A `contract-only` declaration contains exactly one of `testReference` or `contractReference`.
 `testReference` uses `tests/<path>.cs#<test-symbol>` or

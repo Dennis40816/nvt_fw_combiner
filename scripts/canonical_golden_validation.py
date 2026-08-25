@@ -21,6 +21,7 @@ DIAGNOSTIC_OWNER_HANDOFF_ROOT = PurePosixPath("testdata/golden/owner-handoff")
 STANDARD_MERGE_RELEASE_ALLOWLIST = PurePosixPath(
     "testdata/golden/release-standard-merge-v1.json"
 )
+CAPABILITY_POLICY = PurePosixPath("docs/contracts/canonical-capability-policy-v1.json")
 ROOT_FILES = {PurePosixPath("README.md"), PurePosixPath("manifest.json")}
 LEGACY_GOLDEN_ROOTS = {
     PurePosixPath("testdata/golden/ab-merge"),
@@ -180,8 +181,14 @@ def _validate_test_evidence_refs(
             continue
         if path is None:
             continue
-        if not path.parts or path.parts[0] != "tests" or path.suffix not in {".cs", ".py"}:
-            errors.append(f"{reference_label} must identify a C# or Python test below tests/")
+        if (
+            not path.parts
+            or path.parts[0] != "tests"
+            or path.suffix not in {".cs", ".py"}
+        ):
+            errors.append(
+                f"{reference_label} must identify a C# or Python test below tests/"
+            )
             continue
         payload = _read_confined_file(
             repository_root / Path(path),
@@ -232,6 +239,121 @@ def _validate_repository_file_reference(
         label,
         errors,
     )
+
+
+def _validate_synthetic_hash_binding(
+    repository_root: Path,
+    test_reference: object,
+    expected_sha256: object,
+    label: str,
+    errors: list[str],
+) -> None:
+    """Bind a declared synthetic hash to its executable test source.
+
+    Structure validation deliberately does not execute .NET. Requiring the exact
+    lowercase hash literal in the already-resolved test source still makes a
+    manifest-only hash edit fail closed and leaves execution to the normal test
+    gate.
+    """
+    if (
+        not isinstance(test_reference, str)
+        or not isinstance(expected_sha256, str)
+        or SHA256_PATTERN.fullmatch(expected_sha256) is None
+    ):
+        return
+    path_text, separator, symbol = test_reference.partition("#")
+    path = _relative_path(path_text, f"{label}.testReference", errors)
+    if separator != "#" or not symbol or path is None:
+        return
+    payload = _read_confined_file(
+        repository_root / Path(path),
+        repository_root,
+        f"{label} synthetic test source",
+        errors,
+    )
+    if payload is None:
+        return
+    try:
+        source = payload.decode("utf-8")
+    except UnicodeDecodeError as error:
+        errors.append(f"cannot decode {label}.testReference: {error}")
+        return
+    if expected_sha256 not in source:
+        errors.append(
+            f"{label}.expectedSha256 must appear as an exact literal in its "
+            f"referenced test source: {path}#{symbol}"
+        )
+
+
+def _load_policy_route_evidence(
+    repository_root: Path,
+    errors: list[str],
+) -> dict[str, tuple[str, str, str]]:
+    policy = _load_object(
+        repository_root / Path(CAPABILITY_POLICY),
+        repository_root,
+        "canonical capability policy",
+        errors,
+    )
+    if policy is None:
+        return {}
+    routes = policy.get("routes")
+    if not isinstance(routes, list) or not routes:
+        errors.append(
+            "canonical capability policy must contain a non-empty routes array"
+        )
+        return {}
+
+    result: dict[str, tuple[str, str, str]] = {}
+    route_identities: set[tuple[str, str]] = set()
+    for index, route in enumerate(routes):
+        label = f"canonical capability policy routes[{index}]"
+        if not isinstance(route, dict):
+            errors.append(f"{label} must be an object")
+            continue
+        route_id = _required_string(route, "routeId", label, errors)
+        fingerprint = _required_string(route, "capabilityFingerprint", label, errors)
+        evidence = route.get("evidence")
+        if not isinstance(evidence, dict):
+            errors.append(f"{label}.evidence must be an object")
+            continue
+        evidence_id = _required_string(
+            evidence, "decisionId", f"{label}.evidence", errors
+        )
+        evidence_route_id = _required_string(
+            evidence, "routeId", f"{label}.evidence", errors
+        )
+        evidence_fingerprint = _required_string(
+            evidence, "capabilityFingerprint", f"{label}.evidence", errors
+        )
+        kind = _required_string(evidence, "value", f"{label}.evidence", errors)
+        if fingerprint is not None and SHA256_PATTERN.fullmatch(fingerprint) is None:
+            errors.append(f"{label}.capabilityFingerprint must be a lowercase SHA-256")
+        if kind is not None and kind not in ROUTE_EVIDENCE_KINDS:
+            errors.append(f"{label}.evidence has unsupported value: {kind}")
+        if route_id is not None and evidence_route_id != route_id:
+            errors.append(f"{label}.evidence.routeId must match its routeId")
+        if fingerprint is not None and evidence_fingerprint != fingerprint:
+            errors.append(
+                f"{label}.evidence.capabilityFingerprint must match its route fingerprint"
+            )
+        if route_id is not None and fingerprint is not None:
+            identity = (route_id, fingerprint)
+            if identity in route_identities:
+                errors.append(
+                    "duplicate canonical capability policy route identity: "
+                    f"{route_id} / {fingerprint}"
+                )
+            route_identities.add(identity)
+        if None in (evidence_id, route_id, fingerprint, kind):
+            continue
+        if evidence_id in result:
+            errors.append(
+                f"duplicate canonical capability policy evidence decisionId: {evidence_id}"
+            )
+            continue
+        result[evidence_id] = (route_id, fingerprint, kind)
+    return result
 
 
 def _validate_expected_view(
@@ -319,10 +441,16 @@ def _validate_route_evidence(
     canonical_root: Path,
     value: object,
     cases_by_id: dict[str, tuple[dict[str, Any], PurePosixPath]],
+    policy_evidence_by_id: dict[str, tuple[str, str, str]],
     errors: list[str],
 ) -> None:
     if not isinstance(value, list) or not value:
         errors.append("canonical manifest must contain a non-empty routeEvidence array")
+        if policy_evidence_by_id:
+            errors.append(
+                "canonical route evidence is missing capability-policy evidenceIds: "
+                + ", ".join(sorted(policy_evidence_by_id))
+            )
         return
 
     evidence_ids: set[str] = set()
@@ -341,6 +469,30 @@ def _validate_route_evidence(
             if evidence_id in evidence_ids:
                 errors.append(f"duplicate canonical route evidenceId: {evidence_id}")
             evidence_ids.add(evidence_id)
+            policy_identity = policy_evidence_by_id.get(evidence_id)
+            if policy_identity is None:
+                errors.append(
+                    "canonical route evidence is extra or has an unknown evidenceId: "
+                    f"{evidence_id}"
+                )
+            else:
+                expected_route_id, expected_fingerprint, expected_kind = policy_identity
+                if route_id != expected_route_id:
+                    errors.append(
+                        f"canonical route evidence {evidence_id} routeId does not match "
+                        f"capability policy: expected {expected_route_id}, actual {route_id}"
+                    )
+                if fingerprint != expected_fingerprint:
+                    errors.append(
+                        f"canonical route evidence {evidence_id} capabilityFingerprint "
+                        "does not match capability policy: "
+                        f"expected {expected_fingerprint}, actual {fingerprint}"
+                    )
+                if kind != expected_kind:
+                    errors.append(
+                        f"canonical route evidence {evidence_id} kind does not match "
+                        f"capability policy: expected {expected_kind}, actual {kind}"
+                    )
         if kind not in ROUTE_EVIDENCE_KINDS:
             errors.append(f"{label} has unsupported kind: {kind}")
             continue
@@ -487,6 +639,13 @@ def _validate_route_evidence(
                 f"{label}.testReference",
                 errors,
             )
+            _validate_synthetic_hash_binding(
+                repository_root,
+                evidence.get("testReference"),
+                expected_sha,
+                label,
+                errors,
+            )
         else:
             has_test = "testReference" in evidence
             has_contract = "contractReference" in evidence
@@ -533,6 +692,23 @@ def _validate_route_evidence(
             continue
         alias_case, _ = case_record
         alias = alias_case.get("alias")
+        fact_scope = alias.get("factScope") if isinstance(alias, dict) else None
+        fact_scope_ids = evidence.get("factScopeIds")
+        if isinstance(fact_scope, list) and isinstance(fact_scope_ids, list):
+            case_id = str(evidence.get("caseId", ""))
+            declared_fact_ids = {
+                f"{case_id}:fact-{index}" for index in range(1, len(fact_scope) + 1)
+            }
+            for fact_scope_id in fact_scope_ids:
+                if (
+                    isinstance(fact_scope_id, str)
+                    and fact_scope_id not in declared_fact_ids
+                ):
+                    errors.append(
+                        f"{label}.factScopeIds contains an unknown or wrong-case "
+                        f"fact id: {fact_scope_id}; expected one of "
+                        f"{sorted(declared_fact_ids)}"
+                    )
         if isinstance(alias, dict) and alias.get("sourceCaseId") != source.get(
             "caseId"
         ):
@@ -540,6 +716,13 @@ def _validate_route_evidence(
                 f"{label} canonical alias sourceCaseId must match the source "
                 f"route evidence caseId {source.get('caseId')}"
             )
+
+    missing_evidence_ids = sorted(policy_evidence_by_id.keys() - evidence_ids)
+    if missing_evidence_ids:
+        errors.append(
+            "canonical route evidence is missing capability-policy evidenceIds: "
+            + ", ".join(missing_evidence_ids)
+        )
 
 
 def _validate_allowed_difference_contract(
@@ -565,7 +748,9 @@ def _validate_allowed_difference_contract(
         )
     ranges = contract.get("allowedDifferenceRanges")
     if not isinstance(ranges, list) or not ranges:
-        errors.append(f"{label} difference contract must contain allowedDifferenceRanges")
+        errors.append(
+            f"{label} difference contract must contain allowedDifferenceRanges"
+        )
         return
     previous_end = -1
     for index, item in enumerate(ranges):
@@ -578,10 +763,16 @@ def _validate_allowed_difference_contract(
         classification = item.get("classification")
         if not isinstance(classification, str) or not classification:
             errors.append(f"{range_label} must contain a classification")
-        if not isinstance(start_text, str) or HEX_OFFSET_PATTERN.fullmatch(start_text) is None:
+        if (
+            not isinstance(start_text, str)
+            or HEX_OFFSET_PATTERN.fullmatch(start_text) is None
+        ):
             errors.append(f"{range_label}.start must be a hexadecimal string")
             continue
-        if not isinstance(end_text, str) or HEX_OFFSET_PATTERN.fullmatch(end_text) is None:
+        if (
+            not isinstance(end_text, str)
+            or HEX_OFFSET_PATTERN.fullmatch(end_text) is None
+        ):
             errors.append(f"{range_label}.endExclusive must be a hexadecimal string")
             continue
         start = int(start_text, 16)
@@ -591,9 +782,7 @@ def _validate_allowed_difference_contract(
         if start < previous_end:
             errors.append(f"{range_label} must be sorted and non-overlapping")
         if expected_size is not None and end_exclusive > expected_size:
-            errors.append(
-                f"{range_label} exceeds expected output size {expected_size}"
-            )
+            errors.append(f"{range_label} exceeds expected output size {expected_size}")
         previous_end = max(previous_end, end_exclusive)
 
 
@@ -878,6 +1067,7 @@ def validate_canonical_golden(repository_root: Path, errors: list[str]) -> None:
         errors.append("canonical manifest must declare binaryPayloadsIncluded=true")
     if root_manifest.get("diagnosticsRoot") != DIAGNOSTICS_ROOT:
         errors.append(f"canonical manifest diagnosticsRoot must be {DIAGNOSTICS_ROOT}")
+    policy_evidence_by_id = _load_policy_route_evidence(repository_root, errors)
     case_entries = root_manifest.get("cases")
     if not isinstance(case_entries, list) or not case_entries:
         errors.append("canonical manifest must contain a non-empty cases array")
@@ -1047,6 +1237,7 @@ def validate_canonical_golden(repository_root: Path, errors: list[str]) -> None:
         canonical_root,
         root_manifest.get("routeEvidence"),
         cases_by_id,
+        policy_evidence_by_id,
         errors,
     )
 
