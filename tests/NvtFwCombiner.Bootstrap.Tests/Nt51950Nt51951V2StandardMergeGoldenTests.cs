@@ -89,15 +89,16 @@ public sealed class Nt51950Nt51951V2StandardMergeGoldenTests
     /// this is not direct owner Golden evidence.
     /// </summary>
     [Theory]
-    [InlineData("NT51950", 0x40000)]
-    [InlineData("NT51950", 0x80000)]
-    [InlineData("NT51950", 0x100000)]
-    [InlineData("NT51951", 0x40000)]
-    [InlineData("NT51951", 0x80000)]
-    [InlineData("NT51951", 0x100000)]
+    [InlineData("NT51950", 0x40000, "983046ff9bb50f89905064429449958bd665b0a9442fdd10f9b8f8c4cd33eee5")]
+    [InlineData("NT51950", 0x80000, "51292dd980ad34ed5123b51d59447b99b43c7fcdd4638c8e4705f57e33729f63")]
+    [InlineData("NT51950", 0x100000, "4266203f6d5e949dc6633f9dbca69d700d0cda73de0c4894d7438343c638d19a")]
+    [InlineData("NT51951", 0x40000, "983046ff9bb50f89905064429449958bd665b0a9442fdd10f9b8f8c4cd33eee5")]
+    [InlineData("NT51951", 0x80000, "51292dd980ad34ed5123b51d59447b99b43c7fcdd4638c8e4705f57e33729f63")]
+    [InlineData("NT51951", 0x100000, "4266203f6d5e949dc6633f9dbca69d700d0cda73de0c4894d7438343c638d19a")]
     public async Task SyntheticInputsMatchIndependentlyConstructedDpPerspectiveOutputAcrossCapacities(
         string icId,
-        int capacity)
+        int capacity,
+        string expectedSha256)
     {
         string profileId = $"nt{icId[2..]}-standard-merge-dp-perspective";
         var inputs = new Dictionary<string, byte[]>(StringComparer.Ordinal)
@@ -116,9 +117,11 @@ public sealed class Nt51950Nt51951V2StandardMergeGoldenTests
         CompositionRunResult v2Result = await V2StandardMergeGoldenTestSupport.PreviewAsync(v2, inputs);
 
         Assert.Equal(CompositionExecutionStatus.Succeeded, v2Result.Status);
-        Assert.Equal(
-            ConstructDpPerspectiveOutput(inputs["dp-input"], inputs["tp-input"]),
-            v2Result.OutputBytes.ToArray());
+        byte[] expected = ConstructDpPerspectiveOutput(inputs["dp-input"], inputs["tp-input"]);
+        Assert.Equal(expectedSha256, Convert.ToHexString(
+            System.Security.Cryptography.SHA256.HashData(expected)).ToLowerInvariant());
+        Assert.Equal(expected, v2Result.OutputBytes.ToArray());
+        Assert.Equal(expectedSha256, v2Result.OutputSha256);
     }
 
     /// <summary>
