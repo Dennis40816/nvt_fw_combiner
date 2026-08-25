@@ -29,6 +29,12 @@ public sealed partial class VersionManagementExperience
                     new(null, ManagedVersionInstallIssue.StateUnavailable, WasAlreadyInstalled: false),
                     current);
             }
+            if (current.InventoryIssue != ManagedVersionInventoryReadIssue.None)
+            {
+                return new(
+                    new(null, ManagedVersionInstallIssue.StateUnavailable, WasAlreadyInstalled: false),
+                    current);
+            }
             if (state.PendingActivation is not null)
             {
                 return new(
@@ -38,13 +44,12 @@ public sealed partial class VersionManagementExperience
             if (state.PendingMutation is not null)
             {
                 state = await ReconcilePendingMutationAsync(state, cancellationToken).ConfigureAwait(false);
-                current = current with
-                {
-                    State = state,
-                    Inventory = await InventoryAsync(state, cancellationToken).ConfigureAwait(false),
-                };
+                ManagedVersionInventoryReadResult recoveredInventory = await InventoryAsync(
+                    state,
+                    cancellationToken).ConfigureAwait(false);
+                current = WithInventory(current, state, recoveredInventory);
                 _current = current;
-                if (state.PendingMutation is not null)
+                if (!recoveredInventory.IsSuccess || state.PendingMutation is not null)
                 {
                     return new(
                         new(null, ManagedVersionInstallIssue.StateUnavailable, WasAlreadyInstalled: false),
@@ -60,10 +65,17 @@ public sealed partial class VersionManagementExperience
                 admission => admission.Version == version);
             if (existingAdmission is not null)
             {
-                ManagedVersionInventory existingInventory = await InventoryAsync(
+                ManagedVersionInventoryReadResult existingInventoryResult = await InventoryAsync(
                     state,
                     cancellationToken).ConfigureAwait(false);
-                _current = current with { State = state, Inventory = existingInventory };
+                _current = WithInventory(current, state, existingInventoryResult);
+                if (!existingInventoryResult.IsSuccess)
+                {
+                    return new(
+                        new(null, ManagedVersionInstallIssue.StateUnavailable, WasAlreadyInstalled: false),
+                        _current);
+                }
+                ManagedVersionInventory existingInventory = existingInventoryResult.Inventory!;
                 InstalledVersionSnapshot? existing = existingInventory.Find(version);
                 bool exactHealthyPayload = existing is
                 {
@@ -107,11 +119,12 @@ public sealed partial class VersionManagementExperience
                 state = await ReconcilePendingMutationAsync(
                     state,
                     cancellationToken).ConfigureAwait(false);
-                ManagedVersionInventory failedInventory = await InventoryAsync(
+                ManagedVersionInventoryReadResult failedInventoryResult = await InventoryAsync(
                     state,
                     cancellationToken).ConfigureAwait(false);
-                _current = current with { State = state, Inventory = failedInventory };
-                ManagedVersionInstallIssue issue = state.PendingMutation is not null
+                _current = WithInventory(current, state, failedInventoryResult);
+                ManagedVersionInstallIssue issue = !failedInventoryResult.IsSuccess ||
+                    state.PendingMutation is not null
                     ? ManagedVersionInstallIssue.StateUnavailable
                     : result.Issue == ManagedVersionInstallIssue.None
                         ? ManagedVersionInstallIssue.InvalidPayload
@@ -122,7 +135,17 @@ public sealed partial class VersionManagementExperience
             }
 
             state = CommitInstall(state, expectedAdmission);
-            ManagedVersionInventory inventory = await InventoryAsync(state, cancellationToken).ConfigureAwait(false);
+            ManagedVersionInventoryReadResult inventoryResult = await InventoryAsync(
+                state,
+                cancellationToken).ConfigureAwait(false);
+            if (!inventoryResult.IsSuccess)
+            {
+                _current = WithInventory(current, prepared, inventoryResult);
+                return new(
+                    new(null, ManagedVersionInstallIssue.StateUnavailable, WasAlreadyInstalled: false),
+                    _current);
+            }
+            ManagedVersionInventory inventory = inventoryResult.Inventory!;
             state = MarkRetentionReviewDue(
                 state,
                 inventory,
@@ -130,15 +153,20 @@ public sealed partial class VersionManagementExperience
             if (!await TrySaveAsync(state, cancellationToken).ConfigureAwait(false))
             {
                 VersionManagerState durablePrepared = prepared;
-                ManagedVersionInventory recoveryInventory = await InventoryAsync(
+                ManagedVersionInventoryReadResult recoveryInventory = await InventoryAsync(
                     durablePrepared,
                     cancellationToken).ConfigureAwait(false);
-                _current = current with { State = durablePrepared, Inventory = recoveryInventory };
+                _current = WithInventory(current, durablePrepared, recoveryInventory);
                 return new(
                     new(null, ManagedVersionInstallIssue.StateUnavailable, WasAlreadyInstalled: false),
                     _current);
             }
-            _current = current with { State = state, Inventory = inventory };
+            _current = current with
+            {
+                State = state,
+                Inventory = inventory,
+                InventoryIssue = ManagedVersionInventoryReadIssue.None,
+            };
             return new(result, _current);
         }
         finally

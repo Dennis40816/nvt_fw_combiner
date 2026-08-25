@@ -65,6 +65,10 @@ public sealed partial class VersionManagementExperienceTests
 
         internal ManagedVersionInstallResult? InstallResultOverride { get; set; }
 
+        internal int InventoryCalls { get; private set; }
+
+        internal ManagedVersionInventoryReadResult? InventoryResultOverride { get; set; }
+
         public ValueTask<ManagedPackageVerificationResult> VerifyPackageAsync(
             string sourceRoot,
             UpdateCatalogVersionSnapshot package,
@@ -104,7 +108,7 @@ public sealed partial class VersionManagementExperienceTests
                 WasAlreadyInstalled: false));
         }
 
-        public ValueTask<ManagedVersionInventory> InventoryAsync(
+        public ValueTask<ManagedVersionInventoryReadResult> InventoryAsync(
             string managedRoot,
             IReadOnlyList<ManagedVersionAdmission> admissions,
             ManagedAppVersion? activeVersion,
@@ -112,8 +116,14 @@ public sealed partial class VersionManagementExperienceTests
             ManagedAppVersion? failedActivationVersion,
             CancellationToken cancellationToken)
         {
+            InventoryCalls++;
+            if (InventoryResultOverride is { } result)
+            {
+                return ValueTask.FromResult(result);
+            }
             var committed = admissions.ToDictionary(admission => admission.Version);
-            return ValueTask.FromResult(ManagedVersionInventory.Create(_installed.Select(pair =>
+            return ValueTask.FromResult(ManagedVersionInventoryReadResult.Success(
+                ManagedVersionInventory.Create(_installed.Select(pair =>
             {
                 bool isAdmitted = committed.TryGetValue(pair.Key, out ManagedVersionAdmission? admission);
                 ManagedVersionAdmission? observed = pair.Value;
@@ -140,7 +150,7 @@ public sealed partial class VersionManagementExperienceTests
                         ? ManagedVersionAdmissionState.Admitted
                         : ManagedVersionAdmissionState.Unadmitted,
                     identity);
-            })));
+            }))));
         }
 
         public ValueTask<ManagedVersionDeleteIssue> DeleteAsync(

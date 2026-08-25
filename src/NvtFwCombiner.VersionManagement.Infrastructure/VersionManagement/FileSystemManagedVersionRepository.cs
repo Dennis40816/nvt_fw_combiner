@@ -24,17 +24,30 @@ public sealed class FileSystemManagedVersionRepository : IManagedVersionReposito
         WriteIndented = true,
     };
     private static readonly VersionManagementJsonContext AdmissionJsonContext = new(AdmissionJsonOptions);
+    private readonly Func<string, bool> _directoryExists;
+    private readonly Func<string, IEnumerable<string>> _enumerateDirectories;
     private readonly long _maximumExpandedBytes;
 
     /// <summary>Creates the production repository with the owner-approved 512 MiB expanded-byte ceiling.</summary>
     public FileSystemManagedVersionRepository()
-        : this(MaximumExpandedBytes)
+        : this(MaximumExpandedBytes, Directory.EnumerateDirectories, Directory.Exists)
     {
     }
 
     internal FileSystemManagedVersionRepository(long maximumExpandedBytes)
+        : this(maximumExpandedBytes, Directory.EnumerateDirectories, Directory.Exists)
+    {
+    }
+
+    internal FileSystemManagedVersionRepository(
+        long maximumExpandedBytes,
+        Func<string, IEnumerable<string>> enumerateDirectories,
+        Func<string, bool>? directoryExists = null)
     {
         ArgumentOutOfRangeException.ThrowIfNegativeOrZero(maximumExpandedBytes);
+        _enumerateDirectories = enumerateDirectories ??
+            throw new ArgumentNullException(nameof(enumerateDirectories));
+        _directoryExists = directoryExists ?? Directory.Exists;
         _maximumExpandedBytes = maximumExpandedBytes;
     }
 
@@ -217,7 +230,7 @@ public sealed class FileSystemManagedVersionRepository : IManagedVersionReposito
     }
 
     /// <inheritdoc />
-    public async ValueTask<ManagedVersionInventory> InventoryAsync(
+    public async ValueTask<ManagedVersionInventoryReadResult> InventoryAsync(
         string managedRoot,
         IReadOnlyList<ManagedVersionAdmission> admissions,
         ManagedAppVersion? activeVersion,
@@ -227,64 +240,107 @@ public sealed class FileSystemManagedVersionRepository : IManagedVersionReposito
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(managedRoot);
         ArgumentNullException.ThrowIfNull(admissions);
-        string versionsRoot = Path.Combine(Path.GetFullPath(managedRoot), VersionsDirectoryName);
-        var rows = new List<InstalledVersionSnapshot>();
-        foreach (ManagedVersionAdmission admission in admissions)
+        try
         {
-            cancellationToken.ThrowIfCancellationRequested();
-            string target = ManagedPathSafety.GetExactVersionDirectory(versionsRoot, admission.Version);
-            ManagedVersionDamageReason? damage = failedActivationVersion == admission.Version
-                ? ManagedVersionDamageReason.FailedActivation
-                : await ManagedPackageVerifier.VerifyInstalledAsync(
-                    target,
-                    admission,
-                    _maximumExpandedBytes,
-                    cancellationToken).ConfigureAwait(false);
-            rows.Add(new(
-                admission.Version,
-                admission.AdmissionIdentity,
-                damage is null ? ManagedVersionIntegrity.Healthy : ManagedVersionIntegrity.Damaged,
-                damage,
-                activeVersion == admission.Version,
-                lastKnownGoodVersion == admission.Version,
-                ManagedVersionAdmissionState.Admitted,
-                admission));
-        }
-
-        if (Directory.Exists(versionsRoot) && ManagedPathSafety.IsSafeExistingDirectory(versionsRoot))
-        {
-            HashSet<ManagedAppVersion> known = [.. admissions.Select(admission => admission.Version)];
-            foreach (string directory in Directory.EnumerateDirectories(versionsRoot))
+            string versionsRoot = Path.Combine(Path.GetFullPath(managedRoot), VersionsDirectoryName);
+            bool versionsRootExists;
+            try
             {
-                cancellationToken.ThrowIfCancellationRequested();
-                string name = Path.GetFileName(directory);
-                if (ManagedAppVersion.TryParse(name, out ManagedAppVersion version) && known.Add(version))
+                FileAttributes attributes = File.GetAttributes(versionsRoot);
+                versionsRootExists = (attributes & FileAttributes.Directory) != 0;
+                if (!versionsRootExists)
                 {
-                    ManagedVersionAdmission? observed = await ReadAdmissionAsync(
-                        directory,
-                        cancellationToken).ConfigureAwait(false);
-                    bool hasMatchingSelfAdmission = observed?.Version == version;
-                    ManagedVersionDamageReason? damage = hasMatchingSelfAdmission
-                        ? await ManagedPackageVerifier.VerifyInstalledAsync(
-                            directory,
-                            observed!,
-                            _maximumExpandedBytes,
-                            cancellationToken).ConfigureAwait(false)
-                        : ManagedVersionDamageReason.UnexpectedPath;
-                    rows.Add(new(
-                        version,
-                        observed?.AdmissionIdentity ?? $"unadmitted:{version}",
-                        damage is null ? ManagedVersionIntegrity.Healthy : ManagedVersionIntegrity.Damaged,
-                        damage,
-                        activeVersion == version,
-                        lastKnownGoodVersion == version,
-                        ManagedVersionAdmissionState.Unadmitted,
-                        observed));
+                    return ManagedVersionInventoryReadResult.Unavailable();
                 }
             }
-        }
+            catch (FileNotFoundException)
+            {
+                versionsRootExists = false;
+            }
+            catch (DirectoryNotFoundException)
+            {
+                versionsRootExists = false;
+            }
+            var rows = new List<InstalledVersionSnapshot>();
+            foreach (ManagedVersionAdmission admission in admissions)
+            {
+                cancellationToken.ThrowIfCancellationRequested();
+                string target = ManagedPathSafety.GetExactVersionDirectory(versionsRoot, admission.Version);
+                ManagedVersionDamageReason? damage = failedActivationVersion == admission.Version
+                    ? ManagedVersionDamageReason.FailedActivation
+                    : await ManagedPackageVerifier.VerifyInstalledAsync(
+                        target,
+                        admission,
+                        _maximumExpandedBytes,
+                        cancellationToken).ConfigureAwait(false);
+                rows.Add(new(
+                    admission.Version,
+                    admission.AdmissionIdentity,
+                    damage is null ? ManagedVersionIntegrity.Healthy : ManagedVersionIntegrity.Damaged,
+                    damage,
+                    activeVersion == admission.Version,
+                    lastKnownGoodVersion == admission.Version,
+                    ManagedVersionAdmissionState.Admitted,
+                    admission));
+            }
 
-        return ManagedVersionInventory.Create(rows);
+            if (versionsRootExists)
+            {
+                if (!ManagedPathSafety.IsSafeExistingDirectory(versionsRoot))
+                {
+                    return ManagedVersionInventoryReadResult.Unavailable();
+                }
+
+                string[] directories = [.. _enumerateDirectories(versionsRoot)];
+                HashSet<ManagedAppVersion> known = [.. admissions.Select(admission => admission.Version)];
+                foreach (string directory in directories)
+                {
+                    cancellationToken.ThrowIfCancellationRequested();
+                    string name = Path.GetFileName(directory);
+                    if (ManagedAppVersion.TryParse(name, out ManagedAppVersion version) && known.Add(version))
+                    {
+                        ManagedVersionAdmission? observed = await ReadAdmissionAsync(
+                            directory,
+                            cancellationToken).ConfigureAwait(false);
+                        if (observed is null && !_directoryExists(directory))
+                        {
+                            return ManagedVersionInventoryReadResult.Unavailable();
+                        }
+                        bool hasMatchingSelfAdmission = observed?.Version == version;
+                        ManagedVersionDamageReason? damage = hasMatchingSelfAdmission
+                            ? await ManagedPackageVerifier.VerifyInstalledAsync(
+                                directory,
+                                observed!,
+                                _maximumExpandedBytes,
+                                cancellationToken).ConfigureAwait(false)
+                            : ManagedVersionDamageReason.UnexpectedPath;
+                        if (!_directoryExists(directory))
+                        {
+                            return ManagedVersionInventoryReadResult.Unavailable();
+                        }
+                        rows.Add(new(
+                            version,
+                            observed?.AdmissionIdentity ?? $"unadmitted:{version}",
+                            damage is null ? ManagedVersionIntegrity.Healthy : ManagedVersionIntegrity.Damaged,
+                            damage,
+                            activeVersion == version,
+                            lastKnownGoodVersion == version,
+                            ManagedVersionAdmissionState.Unadmitted,
+                            observed));
+                    }
+                }
+            }
+
+            return ManagedVersionInventoryReadResult.Success(ManagedVersionInventory.Create(rows));
+        }
+        catch (OperationCanceledException)
+        {
+            throw;
+        }
+        catch (Exception exception) when (exception is IOException or UnauthorizedAccessException)
+        {
+            return ManagedVersionInventoryReadResult.Unavailable();
+        }
     }
 
     /// <inheritdoc />

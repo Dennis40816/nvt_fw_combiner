@@ -121,6 +121,17 @@ version can be explicitly deleted through a guarded destructive action. Three he
 is a soft review threshold; exceeding it prompts review but never prunes
 automatically.
 
+Per-version damage and whole-inventory unavailability are separate typed facts.
+A missing, changed, or unreadable payload beneath an otherwise completely
+observed versions root is one `Damaged` row. Failure to enumerate the complete
+versions root because of I/O, permission, or directory-race conditions is
+`Unavailable` with no inventory payload; Infrastructure must never publish the
+rows observed before that failure as a partial inventory. Launcher and seed
+bootstrap return `StateUnavailable` without starting a process or committing a
+seed. Settings projects the independent inventory issue, and install/delete
+recovery retains its durable prepared journal until a later complete inventory
+can prove the terminal filesystem fact.
+
 The main window is usable before background discovery. Only a newer fully
 verified package may trigger one consent dialog per session. Update is never
 automatic. Settings uses the approved shared rail and control system and keeps

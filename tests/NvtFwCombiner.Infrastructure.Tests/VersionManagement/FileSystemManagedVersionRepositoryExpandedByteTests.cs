@@ -74,20 +74,20 @@ public sealed partial class FileSystemManagedVersionRepositoryTests
             .Sum(path => new FileInfo(path).Length);
         var constrainedRepository = new FileSystemManagedVersionRepository(actualExpandedBytes - 1);
 
-        ManagedVersionInventory healthy = await productionRepository.InventoryAsync(
+        ManagedVersionInventory healthy = RequireInventory(await productionRepository.InventoryAsync(
             managedRoot,
             [admission],
             activeVersion: null,
             lastKnownGoodVersion: null,
             failedActivationVersion: null,
-            TestContext.Current.CancellationToken);
-        ManagedVersionInventory constrained = await constrainedRepository.InventoryAsync(
+            TestContext.Current.CancellationToken));
+        ManagedVersionInventory constrained = RequireInventory(await constrainedRepository.InventoryAsync(
             managedRoot,
             [admission],
             activeVersion: null,
             lastKnownGoodVersion: null,
             failedActivationVersion: null,
-            TestContext.Current.CancellationToken);
+            TestContext.Current.CancellationToken));
 
         Assert.Equal(ManagedVersionIntegrity.Healthy, healthy.Find(admission.Version)?.Integrity);
         Assert.Equal(ManagedVersionIntegrity.Damaged, constrained.Find(admission.Version)?.Integrity);

@@ -87,6 +87,32 @@ public sealed class ManagedApplicationStartupCoordinatorTests
         Assert.Equal(VersionManagerStateLoadIssue.Unavailable, result.StateIssue);
     }
 
+    /// <summary>Managed startup publishes an unavailable inventory snapshot instead of throwing.</summary>
+    [Fact]
+    public async Task ManagedStartupReturnsTypedInventoryUnavailableSnapshot()
+    {
+        ManagedAppVersion version = ManagedAppVersion.Parse("0.10.6");
+        using var experience = new VersionManagementExperience(
+            version,
+            "managed",
+            new DelayedLeaseStateStore(State("durable")),
+            new EmptyCatalogSource(),
+            new EmptyRepository(inventoryUnavailable: true));
+        var coordinator = new ManagedApplicationStartupCoordinator(
+            version,
+            new FixedReadySignal(ApplicationReadySignalOutcome.Reported),
+            experience);
+
+        ManagedApplicationStartupResult result = await coordinator.CompleteStartupAsync(
+            TestContext.Current.CancellationToken);
+
+        Assert.Equal(ApplicationReadySignalOutcome.Reported, result.ReadySignalOutcome);
+        Assert.Equal(VersionManagerStateLoadIssue.None, result.Snapshot.StateIssue);
+        Assert.Equal(ManagedVersionInventoryReadIssue.Unavailable, result.Snapshot.InventoryIssue);
+        Assert.Empty(result.Snapshot.Inventory.Versions);
+        Assert.Equal("durable", result.Snapshot.State!.UpdateSource);
+    }
+
     private static VersionManagementSnapshot Snapshot(string updateSource)
     {
         return new(
@@ -306,7 +332,7 @@ public sealed class ManagedApplicationStartupCoordinatorTests
         }
     }
 
-    private sealed class EmptyRepository : IManagedVersionRepository
+    private sealed class EmptyRepository(bool inventoryUnavailable = false) : IManagedVersionRepository
     {
         public ValueTask<ManagedPackageVerificationResult> VerifyPackageAsync(
             string sourceRoot,
@@ -325,7 +351,7 @@ public sealed class ManagedApplicationStartupCoordinatorTests
             throw new NotSupportedException();
         }
 
-        public ValueTask<ManagedVersionInventory> InventoryAsync(
+        public ValueTask<ManagedVersionInventoryReadResult> InventoryAsync(
             string managedRoot,
             IReadOnlyList<ManagedVersionAdmission> admissions,
             ManagedAppVersion? activeVersion,
@@ -334,7 +360,9 @@ public sealed class ManagedApplicationStartupCoordinatorTests
             CancellationToken cancellationToken)
         {
             cancellationToken.ThrowIfCancellationRequested();
-            return ValueTask.FromResult(ManagedVersionInventory.Create([]));
+            return ValueTask.FromResult(inventoryUnavailable
+                ? ManagedVersionInventoryReadResult.Unavailable()
+                : ManagedVersionInventoryReadResult.Success(ManagedVersionInventory.Create([])));
         }
 
         public ValueTask<ManagedVersionDeleteIssue> DeleteAsync(

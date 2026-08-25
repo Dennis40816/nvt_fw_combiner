@@ -489,13 +489,13 @@ public sealed partial class FileSystemManagedVersionRepositoryTests
                 throw new InvalidOperationException($"Unknown inventory mutation '{mutation}'.");
         }
 
-        ManagedVersionInventory inventory = await repository.InventoryAsync(
+        ManagedVersionInventory inventory = RequireInventory(await repository.InventoryAsync(
             managedRoot,
             [admission],
             activeVersion: null,
             lastKnownGoodVersion: null,
             failedActivationVersion: mutation == "failed" ? admission.Version : null,
-            TestContext.Current.CancellationToken);
+            TestContext.Current.CancellationToken));
 
         InstalledVersionSnapshot row = Assert.Single(inventory.Versions);
         Assert.Equal(ManagedVersionIntegrity.Damaged, row.Integrity);
@@ -516,13 +516,13 @@ public sealed partial class FileSystemManagedVersionRepositoryTests
             TestContext.Current.CancellationToken);
         var repository = new FileSystemManagedVersionRepository();
 
-        ManagedVersionInventory inventory = await repository.InventoryAsync(
+        ManagedVersionInventory inventory = RequireInventory(await repository.InventoryAsync(
             managedRoot,
             [],
             activeVersion: null,
             lastKnownGoodVersion: null,
             failedActivationVersion: null,
-            TestContext.Current.CancellationToken);
+            TestContext.Current.CancellationToken));
         ManagedVersionDeleteIssue delete = await repository.DeleteAsync(
             managedRoot,
             new(ManagedAppVersion.Parse("0.10.6"), "forged", new string('a', 64)),
@@ -555,13 +555,13 @@ public sealed partial class FileSystemManagedVersionRepositoryTests
         string versionRoot = Path.Combine(managedRoot, "versions", "0.10.6");
         _ = Directory.CreateSymbolicLink(Path.Combine(versionRoot, "linked"), outsideRoot);
 
-        ManagedVersionInventory inventory = await repository.InventoryAsync(
+        ManagedVersionInventory inventory = RequireInventory(await repository.InventoryAsync(
             managedRoot,
             [admission],
             activeVersion: null,
             lastKnownGoodVersion: null,
             failedActivationVersion: null,
-            TestContext.Current.CancellationToken);
+            TestContext.Current.CancellationToken));
         ManagedVersionDeleteIssue delete = await repository.DeleteAsync(
             managedRoot,
             admission,

@@ -43,15 +43,19 @@ public sealed partial class ManagedActivationCoordinatorTests
         var coordinator = new ManagedActivationCoordinator(
             "managed",
             new FakeStateStore(State()),
-            new FixedInventoryRepository(new(
-                admission.Version,
-                admission.AdmissionIdentity,
-                ManagedVersionIntegrity.Healthy,
-                DamageReason: null,
-                IsActive: true,
-                IsLastKnownGood: true,
-                ManagedVersionAdmissionState.Unadmitted,
-                admission)),
+            new FixedInventoryRepository(ManagedVersionInventoryReadResult.Success(
+                ManagedVersionInventory.Create(
+                [
+                    new(
+                        admission.Version,
+                        admission.AdmissionIdentity,
+                        ManagedVersionIntegrity.Healthy,
+                        DamageReason: null,
+                        IsActive: true,
+                        IsLastKnownGood: true,
+                        ManagedVersionAdmissionState.Unadmitted,
+                        admission),
+                ]))),
             process,
             TimeSpan.FromSeconds(1));
 
@@ -71,13 +75,17 @@ public sealed partial class ManagedActivationCoordinatorTests
         var coordinator = new ManagedActivationCoordinator(
             "managed",
             new FakeStateStore(State()),
-            new FixedInventoryRepository(new(
-                admission.Version,
-                "different-admission",
-                ManagedVersionIntegrity.Healthy,
-                DamageReason: null,
-                IsActive: true,
-                IsLastKnownGood: true)),
+            new FixedInventoryRepository(ManagedVersionInventoryReadResult.Success(
+                ManagedVersionInventory.Create(
+                [
+                    new(
+                        admission.Version,
+                        "different-admission",
+                        ManagedVersionIntegrity.Healthy,
+                        DamageReason: null,
+                        IsActive: true,
+                        IsLastKnownGood: true),
+                ]))),
             process,
             TimeSpan.FromSeconds(1));
 
@@ -88,7 +96,57 @@ public sealed partial class ManagedActivationCoordinatorTests
         Assert.Empty(process.Starts);
     }
 
-    private sealed class FixedInventoryRepository(InstalledVersionSnapshot row)
+    /// <summary>An unavailable whole inventory never launches even an admitted active version.</summary>
+    [Fact]
+    public async Task UnavailableInventoryReturnsStateUnavailableWithoutStartingProcess()
+    {
+        var process = new FakeProcess(ManagedProcessStartOutcome.Ready);
+        var coordinator = new ManagedActivationCoordinator(
+            "managed",
+            new FakeStateStore(State()),
+            new FixedInventoryRepository(ManagedVersionInventoryReadResult.Unavailable()),
+            process,
+            TimeSpan.FromSeconds(1));
+
+        ManagedLauncherResult result = await coordinator.RunAsync(
+            TestContext.Current.CancellationToken);
+
+        Assert.Equal(ManagedLauncherOutcome.StateUnavailable, result.Outcome);
+        Assert.Equal(ManagedAppVersion.Parse("0.10.5"), result.FailedVersion);
+        Assert.Empty(process.Starts);
+    }
+
+    /// <summary>An unavailable fallback inventory preserves the recorded rollback and starts nothing.</summary>
+    [Fact]
+    public async Task RollbackLaunchRecordedInventoryUnavailablePreservesJournalWithoutStartingProcess()
+    {
+        ManagedAppVersion failed = ManagedAppVersion.Parse("0.10.6");
+        VersionManagerState requested = VersionActivationPolicy.BeginActivation(State(), failed);
+        VersionManagerState candidateRecorded = VersionActivationPolicy.RecordCandidateLaunch(requested);
+        VersionManagerState rollbackRecorded = VersionActivationPolicy.RecordRollbackLaunch(
+            candidateRecorded,
+            failed).State;
+        var store = new FakeStateStore(rollbackRecorded);
+        var process = new FakeProcess(ManagedProcessStartOutcome.Ready);
+        var coordinator = new ManagedActivationCoordinator(
+            "managed",
+            store,
+            new FixedInventoryRepository(ManagedVersionInventoryReadResult.Unavailable()),
+            process,
+            TimeSpan.FromSeconds(1));
+
+        ManagedLauncherResult result = await coordinator.RunAsync(
+            TestContext.Current.CancellationToken);
+
+        Assert.Equal(ManagedLauncherOutcome.StateUnavailable, result.Outcome);
+        Assert.Null(result.RunningVersion);
+        Assert.Equal(failed, result.FailedVersion);
+        Assert.Empty(process.Starts);
+        Assert.Equal(rollbackRecorded, store.State);
+        Assert.Equal(VersionActivationPhase.RollbackLaunchRecorded, store.State.PendingActivation?.Phase);
+    }
+
+    private sealed class FixedInventoryRepository(ManagedVersionInventoryReadResult result)
         : IManagedVersionRepository
     {
         public ValueTask<ManagedPackageVerificationResult> VerifyPackageAsync(
@@ -108,7 +166,7 @@ public sealed partial class ManagedActivationCoordinatorTests
             throw new NotSupportedException();
         }
 
-        public ValueTask<ManagedVersionInventory> InventoryAsync(
+        public ValueTask<ManagedVersionInventoryReadResult> InventoryAsync(
             string managedRoot,
             IReadOnlyList<ManagedVersionAdmission> admissions,
             ManagedAppVersion? activeVersion,
@@ -117,7 +175,7 @@ public sealed partial class ManagedActivationCoordinatorTests
             CancellationToken cancellationToken)
         {
             cancellationToken.ThrowIfCancellationRequested();
-            return ValueTask.FromResult(ManagedVersionInventory.Create([row]));
+            return ValueTask.FromResult(result);
         }
 
         public ValueTask<ManagedVersionDeleteIssue> DeleteAsync(

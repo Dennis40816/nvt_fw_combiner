@@ -605,7 +605,7 @@ public sealed partial class ManagedActivationCoordinatorTests
             throw new NotSupportedException();
         }
 
-        public ValueTask<ManagedVersionInventory> InventoryAsync(
+        public ValueTask<ManagedVersionInventoryReadResult> InventoryAsync(
             string managedRoot,
             IReadOnlyList<ManagedVersionAdmission> admissions,
             ManagedAppVersion? activeVersion,
@@ -613,7 +613,8 @@ public sealed partial class ManagedActivationCoordinatorTests
             ManagedAppVersion? failedActivationVersion,
             CancellationToken cancellationToken)
         {
-            return ValueTask.FromResult(ManagedVersionInventory.Create(admissions.Select(admission =>
+            return ValueTask.FromResult(ManagedVersionInventoryReadResult.Success(
+                ManagedVersionInventory.Create(admissions.Select(admission =>
             {
                 bool failedActivation = failedActivationVersion == admission.Version;
                 bool damaged = failedActivation || _damaged.Contains(admission.Version);
@@ -630,7 +631,7 @@ public sealed partial class ManagedActivationCoordinatorTests
                     lastKnownGoodVersion == admission.Version,
                     ManagedVersionAdmissionState.Admitted,
                     admission);
-            })));
+            }))));
         }
 
         public ValueTask<ManagedVersionDeleteIssue> DeleteAsync(

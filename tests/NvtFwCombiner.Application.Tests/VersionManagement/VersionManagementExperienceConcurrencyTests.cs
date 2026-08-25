@@ -270,7 +270,7 @@ public sealed partial class VersionManagementExperienceTests
                 WasAlreadyInstalled: false);
         }
 
-        public ValueTask<ManagedVersionInventory> InventoryAsync(
+        public ValueTask<ManagedVersionInventoryReadResult> InventoryAsync(
             string managedRoot,
             IReadOnlyList<ManagedVersionAdmission> admissions,
             ManagedAppVersion? activeVersion,
@@ -293,7 +293,7 @@ public sealed partial class VersionManagementExperienceTests
                     IsLastKnownGood: admission.Version == lastKnownGoodVersion,
                     ManagedVersionAdmissionState.Admitted,
                     admission)));
-            return ValueTask.FromResult(inventory);
+            return ValueTask.FromResult(ManagedVersionInventoryReadResult.Success(inventory));
         }
 
         public ValueTask<ManagedVersionDeleteIssue> DeleteAsync(

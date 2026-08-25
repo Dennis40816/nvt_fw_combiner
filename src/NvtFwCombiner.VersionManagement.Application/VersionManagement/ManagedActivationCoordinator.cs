@@ -100,6 +100,13 @@ public sealed record ManagedLauncherResult(
 /// <summary>Application-owned launcher workflow for verification, ready commit, and one rollback.</summary>
 public sealed class ManagedActivationCoordinator
 {
+    private enum ManagedVersionHealth
+    {
+        Healthy,
+        Unhealthy,
+        Unavailable,
+    }
+
     /// <summary>The bounded default main-window ready deadline.</summary>
     public static readonly TimeSpan DefaultReadyDeadline = TimeSpan.FromSeconds(20);
     /// <summary>Bounded wait for another process to release the exact writer lease.</summary>
@@ -179,7 +186,15 @@ public sealed class ManagedActivationCoordinator
             return new(ManagedLauncherOutcome.NoActiveVersion, null, null);
         }
 
-        if (!await IsHealthyAsync(state, target.Value, cancellationToken).ConfigureAwait(false))
+        ManagedVersionHealth targetHealth = await GetHealthAsync(
+            state,
+            target.Value,
+            cancellationToken).ConfigureAwait(false);
+        if (targetHealth == ManagedVersionHealth.Unavailable)
+        {
+            return new(ManagedLauncherOutcome.StateUnavailable, null, target);
+        }
+        if (targetHealth == ManagedVersionHealth.Unhealthy)
         {
             return pending?.CandidateVersion == target
                 ? await RecordAndLaunchRollbackAsync(state, target.Value, cancellationToken).ConfigureAwait(false)
@@ -239,8 +254,25 @@ public sealed class ManagedActivationCoordinator
                 : throw new InvalidOperationException("Rollback launch was not durably recorded.");
         ManagedAppVersion failedVersion = pending.CandidateVersion;
         ManagedAppVersion? rollback = pending.PreviousLastKnownGoodVersion;
-        if (rollback is null || rollback == failedVersion ||
-            !await IsHealthyAsync(state, rollback.Value, cancellationToken).ConfigureAwait(false))
+        if (rollback is null || rollback == failedVersion)
+        {
+            ActivationRecoveryDecision unavailableRollback = VersionActivationPolicy.FailActivation(
+                state,
+                failedVersion);
+            return await TrySaveAsync(unavailableRollback.State, cancellationToken).ConfigureAwait(false)
+                ? new(ManagedLauncherOutcome.StartFailed, null, failedVersion)
+                : new(ManagedLauncherOutcome.StateUnavailable, null, failedVersion);
+        }
+
+        ManagedVersionHealth rollbackHealth = await GetHealthAsync(
+            state,
+            rollback.Value,
+            cancellationToken).ConfigureAwait(false);
+        if (rollbackHealth == ManagedVersionHealth.Unavailable)
+        {
+            return new(ManagedLauncherOutcome.StateUnavailable, null, failedVersion);
+        }
+        if (rollbackHealth == ManagedVersionHealth.Unhealthy)
         {
             ActivationRecoveryDecision unavailableRollback = VersionActivationPolicy.FailActivation(
                 state,
@@ -279,7 +311,7 @@ public sealed class ManagedActivationCoordinator
         return result.IsSuccess;
     }
 
-    private async ValueTask<bool> IsHealthyAsync(
+    private async ValueTask<ManagedVersionHealth> GetHealthAsync(
         VersionManagerState state,
         ManagedAppVersion version,
         CancellationToken cancellationToken)
@@ -288,20 +320,24 @@ public sealed class ManagedActivationCoordinator
             candidate => candidate.Version == version);
         if (admission is null)
         {
-            return false;
+            return ManagedVersionHealth.Unhealthy;
         }
-        ManagedVersionInventory inventory = await _repository.InventoryAsync(
+        ManagedVersionInventoryReadResult inventoryResult = await _repository.InventoryAsync(
             _managedRoot,
             state.Admissions,
             state.ActiveVersion,
             state.LastKnownGoodVersion,
             state.FailedActivationVersion,
             cancellationToken).ConfigureAwait(false);
-        return inventory.Find(version) is
-        {
-            AdmissionState: ManagedVersionAdmissionState.Admitted,
-            Integrity: ManagedVersionIntegrity.Healthy,
-            ObservedAdmission: { } observed,
-        } && observed == admission;
+        return !inventoryResult.IsSuccess
+            ? ManagedVersionHealth.Unavailable
+            : inventoryResult.Inventory!.Find(version) is
+            {
+                AdmissionState: ManagedVersionAdmissionState.Admitted,
+                Integrity: ManagedVersionIntegrity.Healthy,
+                ObservedAdmission: { } observed,
+            } && observed == admission
+                ? ManagedVersionHealth.Healthy
+                : ManagedVersionHealth.Unhealthy;
     }
 }

@@ -33,24 +33,24 @@ public sealed partial class FileSystemManagedVersionRepositoryTests
             TestContext.Current.CancellationToken);
         Assert.True(installed.IsSuccess, installed.Issue.ToString());
         ManagedVersionAdmission admission = Assert.IsType<ManagedVersionAdmission>(installed.Admission);
-        ManagedVersionInventory healthy = await repository.InventoryAsync(
+        ManagedVersionInventory healthy = RequireInventory(await repository.InventoryAsync(
             managedRoot,
             [admission],
             admission.Version,
             admission.Version,
             failedActivationVersion: null,
-            TestContext.Current.CancellationToken);
+            TestContext.Current.CancellationToken));
         await File.AppendAllTextAsync(
             Path.Combine(managedRoot, "versions", "0.10.6", "README.txt"),
             "tampered",
             TestContext.Current.CancellationToken);
-        ManagedVersionInventory damaged = await repository.InventoryAsync(
+        ManagedVersionInventory damaged = RequireInventory(await repository.InventoryAsync(
             managedRoot,
             [admission],
             admission.Version,
             admission.Version,
             failedActivationVersion: null,
-            TestContext.Current.CancellationToken);
+            TestContext.Current.CancellationToken));
 
         Assert.False(installed.WasAlreadyInstalled);
         Assert.Equal(1, healthy.HealthyCount);
@@ -75,13 +75,13 @@ public sealed partial class FileSystemManagedVersionRepositoryTests
             package,
             TestContext.Current.CancellationToken);
 
-        ManagedVersionInventory observed = await repository.InventoryAsync(
+        ManagedVersionInventory observed = RequireInventory(await repository.InventoryAsync(
             managedRoot,
             admissions: [],
             activeVersion: null,
             lastKnownGoodVersion: null,
             failedActivationVersion: null,
-            TestContext.Current.CancellationToken);
+            TestContext.Current.CancellationToken));
 
         InstalledVersionSnapshot row = Assert.Single(observed.Versions);
         Assert.True(installed.IsSuccess);
@@ -247,13 +247,13 @@ public sealed partial class FileSystemManagedVersionRepositoryTests
             new byte[FileSystemManagedVersionRepository.MaximumManifestBytes + 1],
             TestContext.Current.CancellationToken);
 
-        ManagedVersionInventory inventory = await repository.InventoryAsync(
+        ManagedVersionInventory inventory = RequireInventory(await repository.InventoryAsync(
             managedRoot,
             [admission],
             activeVersion: null,
             lastKnownGoodVersion: null,
             failedActivationVersion: null,
-            TestContext.Current.CancellationToken);
+            TestContext.Current.CancellationToken));
 
         InstalledVersionSnapshot damaged = Assert.Single(inventory.Versions);
         Assert.Equal(ManagedVersionIntegrity.Damaged, damaged.Integrity);

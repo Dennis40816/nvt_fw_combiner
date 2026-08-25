@@ -8,10 +8,17 @@ public sealed partial class VersionManagementExperience
     {
         PendingManagedVersionMutation pending = state.PendingMutation ??
             throw new InvalidOperationException("No managed-version mutation requires recovery.");
+        ManagedVersionInventoryReadResult inventoryResult = await InventoryAsync(
+            state,
+            cancellationToken).ConfigureAwait(false);
+        if (!inventoryResult.IsSuccess)
+        {
+            return state;
+        }
+        ManagedVersionInventory inventory = inventoryResult.Inventory!;
         VersionManagerState? converged = null;
         if (pending.Kind == ManagedVersionMutationKind.Install)
         {
-            ManagedVersionInventory inventory = await InventoryAsync(state, cancellationToken).ConfigureAwait(false);
             InstalledVersionSnapshot? row = inventory.Find(pending.Admission.Version);
             if (row is null)
             {
@@ -22,10 +29,17 @@ public sealed partial class VersionManagementExperience
                      row.ObservedAdmission == pending.Admission)
             {
                 converged = CommitInstall(state, pending.Admission);
-                ManagedVersionInventory committedInventory = await InventoryAsync(
+                ManagedVersionInventoryReadResult committedInventoryResult = await InventoryAsync(
                     converged,
                     cancellationToken).ConfigureAwait(false);
-                converged = MarkRetentionReviewDue(converged, committedInventory, updateSucceeded: true);
+                if (!committedInventoryResult.IsSuccess)
+                {
+                    return state;
+                }
+                converged = MarkRetentionReviewDue(
+                    converged,
+                    committedInventoryResult.Inventory!,
+                    updateSucceeded: true);
             }
         }
         else
@@ -40,10 +54,16 @@ public sealed partial class VersionManagementExperience
                 converged = CommitDelete(state, pending.Admission);
                 if (converged.RetentionReviewDue)
                 {
-                    ManagedVersionInventory committedInventory = await InventoryAsync(
+                    ManagedVersionInventoryReadResult committedInventoryResult = await InventoryAsync(
                         converged,
                         cancellationToken).ConfigureAwait(false);
-                    converged = ClearRetentionReviewIfAtOrBelowThreshold(converged, committedInventory);
+                    if (!committedInventoryResult.IsSuccess)
+                    {
+                        return state;
+                    }
+                    converged = ClearRetentionReviewIfAtOrBelowThreshold(
+                        converged,
+                        committedInventoryResult.Inventory!);
                 }
             }
         }

@@ -200,12 +200,15 @@ internal sealed partial class SettingsViewModel
             ? snapshot.Inventory.Find(managedVersion)
             : null;
         HasManagedCurrentVersion = snapshot.StateIssue == VersionManagerStateLoadIssue.None &&
+            snapshot.InventoryIssue == ManagedVersionInventoryReadIssue.None &&
             activeInstallation?.AdmissionState == ManagedVersionAdmissionState.Admitted &&
             activeInstallation.Integrity == ManagedVersionIntegrity.Healthy;
         CurrentActivityLabel = Localize("Active", "使用中");
         CurrentIntegrityLabel = Localize("Verified", "已驗證");
         CurrentStatusLabel = snapshot.StateIssue != VersionManagerStateLoadIssue.None
             ? Localize("Recovery required", "需要復原")
+            : snapshot.InventoryIssue != ManagedVersionInventoryReadIssue.None
+                ? Localize("Inventory unavailable", "版本清單無法使用")
             : activeInstallation is null
                 ? Localize("Current · Unmanaged", "目前版本 · 非受管安裝")
                 : activeInstallation.AdmissionState != ManagedVersionAdmissionState.Admitted
@@ -229,10 +232,12 @@ internal sealed partial class SettingsViewModel
                 $" · {snapshot.Inventory.UnadmittedCount} need recovery",
                 $" · {snapshot.Inventory.UnadmittedCount} 個需要復原")
             : string.Empty;
-        InventorySummary = Localize(
-            $"{snapshot.Inventory.HealthyCount} healthy · {snapshot.Inventory.DamagedCount} damaged",
-            $"{snapshot.Inventory.HealthyCount} 個正常 · {snapshot.Inventory.DamagedCount} 個已損壞") +
-            recoverySummary;
+        InventorySummary = snapshot.InventoryIssue != ManagedVersionInventoryReadIssue.None
+            ? Localize("Inventory unavailable", "版本清單無法使用")
+            : Localize(
+                $"{snapshot.Inventory.HealthyCount} healthy · {snapshot.Inventory.DamagedCount} damaged",
+                $"{snapshot.Inventory.HealthyCount} 個正常 · {snapshot.Inventory.DamagedCount} 個已損壞") +
+              recoverySummary;
         HasRetentionReview = snapshot.State?.RetentionReviewDue == true;
         RetentionReviewMessage = HasRetentionReview
             ? Localize(

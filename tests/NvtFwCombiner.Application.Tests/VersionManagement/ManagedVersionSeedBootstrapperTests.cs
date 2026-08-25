@@ -161,6 +161,29 @@ public sealed class ManagedVersionSeedBootstrapperTests
         Assert.Null(destination.Saved);
     }
 
+    /// <summary>An unavailable whole inventory cannot seed partially observed managed state.</summary>
+    [Fact]
+    public async Task UnavailableSeedInventoryFailsAsStateUnavailableWithoutPersistence()
+    {
+        var destination = new MemoryStateStore(null, VersionManagerStateLoadIssue.Missing);
+        var repository = new SeedRepository(
+            ManagedVersionIntegrity.Healthy,
+            inventoryUnavailable: true);
+        var bootstrapper = new ManagedVersionSeedBootstrapper(
+            "managed-root",
+            destination,
+            new MemoryStateStore(SeedState(), VersionManagerStateLoadIssue.None),
+            repository);
+
+        ManagedVersionSeedOutcome outcome = await bootstrapper.EnsureInitializedAsync(
+            TestContext.Current.CancellationToken);
+
+        Assert.Equal(ManagedVersionSeedOutcome.StateUnavailable, outcome);
+        Assert.Equal(1, repository.InventoryCount);
+        Assert.Null(destination.Saved);
+        Assert.Equal(0, destination.SaveCount);
+    }
+
     /// <summary>A contended writer lease prevents every seed read and durable mutation.</summary>
     [Fact]
     public async Task BusyWriterLeaseStopsSeedImportBeforeStateLoad()
@@ -329,11 +352,13 @@ public sealed class ManagedVersionSeedBootstrapperTests
         }
     }
 
-    private sealed class SeedRepository(ManagedVersionIntegrity integrity) : IManagedVersionRepository
+    private sealed class SeedRepository(
+        ManagedVersionIntegrity integrity,
+        bool inventoryUnavailable = false) : IManagedVersionRepository
     {
         internal int InventoryCount { get; private set; }
 
-        public ValueTask<ManagedVersionInventory> InventoryAsync(
+        public ValueTask<ManagedVersionInventoryReadResult> InventoryAsync(
             string managedRoot,
             IReadOnlyList<ManagedVersionAdmission> admissions,
             ManagedAppVersion? activeVersion,
@@ -342,19 +367,24 @@ public sealed class ManagedVersionSeedBootstrapperTests
             CancellationToken cancellationToken)
         {
             InventoryCount++;
+            if (inventoryUnavailable)
+            {
+                return ValueTask.FromResult(ManagedVersionInventoryReadResult.Unavailable());
+            }
             ManagedVersionAdmission admission = Assert.Single(admissions);
-            return ValueTask.FromResult(ManagedVersionInventory.Create(
-            [
-                new(
-                    admission.Version,
-                    admission.AdmissionIdentity,
-                    integrity,
-                    integrity == ManagedVersionIntegrity.Healthy
-                        ? null
-                        : ManagedVersionDamageReason.ContentMismatch,
-                    IsActive: true,
-                    IsLastKnownGood: true),
-            ]));
+            return ValueTask.FromResult(ManagedVersionInventoryReadResult.Success(
+                ManagedVersionInventory.Create(
+                [
+                    new(
+                        admission.Version,
+                        admission.AdmissionIdentity,
+                        integrity,
+                        integrity == ManagedVersionIntegrity.Healthy
+                            ? null
+                            : ManagedVersionDamageReason.ContentMismatch,
+                        IsActive: true,
+                        IsLastKnownGood: true),
+                ])));
         }
 
         public ValueTask<ManagedPackageVerificationResult> VerifyPackageAsync(

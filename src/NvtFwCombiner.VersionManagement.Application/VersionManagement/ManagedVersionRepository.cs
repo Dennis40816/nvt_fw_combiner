@@ -46,6 +46,51 @@ public sealed record ManagedPackageVerificationResult(
     public bool IsVerified => Candidate is not null && Issue == ManagedVersionInstallIssue.None;
 }
 
+/// <summary>Stable whole-inventory read result category.</summary>
+public enum ManagedVersionInventoryReadIssue
+{
+    /// <summary>The complete managed-version inventory was observed.</summary>
+    None,
+    /// <summary>The complete inventory could not be observed without returning partial facts.</summary>
+    Unavailable,
+}
+
+/// <summary>Fail-closed result for one complete managed-version inventory read.</summary>
+public sealed record ManagedVersionInventoryReadResult
+{
+    private ManagedVersionInventoryReadResult(
+        ManagedVersionInventory? inventory,
+        ManagedVersionInventoryReadIssue issue)
+    {
+        Inventory = inventory;
+        Issue = issue;
+    }
+
+    /// <summary>Gets the complete inventory when the read succeeded.</summary>
+    public ManagedVersionInventory? Inventory { get; }
+
+    /// <summary>Gets the terminal whole-inventory read issue.</summary>
+    public ManagedVersionInventoryReadIssue Issue { get; }
+
+    /// <summary>Gets whether the complete inventory is available.</summary>
+    public bool IsSuccess =>
+        Inventory is not null && Issue == ManagedVersionInventoryReadIssue.None;
+
+    /// <summary>Creates one complete successful inventory result.</summary>
+    public static ManagedVersionInventoryReadResult Success(ManagedVersionInventory inventory)
+    {
+        return new(
+            inventory ?? throw new ArgumentNullException(nameof(inventory)),
+            ManagedVersionInventoryReadIssue.None);
+    }
+
+    /// <summary>Creates one whole-inventory unavailable result with no partial facts.</summary>
+    public static ManagedVersionInventoryReadResult Unavailable()
+    {
+        return new(null, ManagedVersionInventoryReadIssue.Unavailable);
+    }
+}
+
 /// <summary>Stable guarded-delete result category.</summary>
 public enum ManagedVersionDeleteIssue
 {
@@ -93,8 +138,8 @@ public interface IManagedVersionRepository
     /// <param name="lastKnownGoodVersion">Current fallback version.</param>
     /// <param name="failedActivationVersion">Optional activation-failed version.</param>
     /// <param name="cancellationToken">Cancellation token.</param>
-    /// <returns>Verified immutable inventory.</returns>
-    ValueTask<ManagedVersionInventory> InventoryAsync(
+    /// <returns>The complete verified inventory, or a typed unavailable result without partial facts.</returns>
+    ValueTask<ManagedVersionInventoryReadResult> InventoryAsync(
         string managedRoot,
         IReadOnlyList<ManagedVersionAdmission> admissions,
         ManagedAppVersion? activeVersion,

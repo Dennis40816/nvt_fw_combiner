@@ -27,7 +27,8 @@ public sealed record VersionManagementSnapshot(
     UpdateCatalogLoadIssue? CatalogIssue,
     long Generation,
     bool ShouldPromptForUpdate,
-    VersionManagerStateLoadIssue StateIssue);
+    VersionManagerStateLoadIssue StateIssue,
+    ManagedVersionInventoryReadIssue InventoryIssue = ManagedVersionInventoryReadIssue.None);
 
 /// <summary>Install operation plus its refreshed version-management snapshot.</summary>
 public sealed record VersionInstallOperationResult(
@@ -279,7 +280,8 @@ public sealed partial class VersionManagementExperience : IVersionManagementExpe
                     loaded.Issue,
                     generation,
                     shouldPrompt,
-                    current.StateIssue);
+                    current.StateIssue,
+                    current.InventoryIssue);
                 _checkCancellation = null;
                 ownedCancellation.Dispose();
                 return _current;
@@ -382,6 +384,14 @@ public sealed partial class VersionManagementExperience : IVersionManagementExpe
                     RepositoryIssue: null,
                     current);
             }
+            if (current.InventoryIssue != ManagedVersionInventoryReadIssue.None)
+            {
+                return new(
+                    new(ManagedVersionDeleteBlock.RecoveryRequired, RequiresRollbackLossWarning: false),
+                    VersionDeleteOperationIssue.StateUnavailable,
+                    RepositoryIssue: null,
+                    current);
+            }
             if (state.PendingActivation is not null)
             {
                 return new(
@@ -393,13 +403,12 @@ public sealed partial class VersionManagementExperience : IVersionManagementExpe
             if (state.PendingMutation is not null)
             {
                 state = await ReconcilePendingMutationAsync(state, cancellationToken).ConfigureAwait(false);
-                current = current with
-                {
-                    State = state,
-                    Inventory = await InventoryAsync(state, cancellationToken).ConfigureAwait(false),
-                };
+                ManagedVersionInventoryReadResult recoveredInventory = await InventoryAsync(
+                    state,
+                    cancellationToken).ConfigureAwait(false);
+                current = WithInventory(current, state, recoveredInventory);
                 _current = current;
-                if (state.PendingMutation is not null)
+                if (!recoveredInventory.IsSuccess || state.PendingMutation is not null)
                 {
                     return new(
                         new(ManagedVersionDeleteBlock.RecoveryRequired, RequiresRollbackLossWarning: false),
@@ -408,7 +417,19 @@ public sealed partial class VersionManagementExperience : IVersionManagementExpe
                         current);
                 }
             }
-            ManagedVersionInventory inventory = await InventoryAsync(state, cancellationToken).ConfigureAwait(false);
+            ManagedVersionInventoryReadResult inventoryResult = await InventoryAsync(
+                state,
+                cancellationToken).ConfigureAwait(false);
+            if (!inventoryResult.IsSuccess)
+            {
+                VersionManagementSnapshot unavailable = PublishInventoryUnavailable(state);
+                return new(
+                    new(ManagedVersionDeleteBlock.RecoveryRequired, RequiresRollbackLossWarning: false),
+                    VersionDeleteOperationIssue.StateUnavailable,
+                    RepositoryIssue: null,
+                    unavailable);
+            }
+            ManagedVersionInventory inventory = inventoryResult.Inventory!;
             ManagedVersionDeleteDecision decision = VersionManagementPolicy.DecideDelete(inventory, version);
             if (!decision.IsAllowed)
             {
@@ -454,11 +475,10 @@ public sealed partial class VersionManagementExperience : IVersionManagementExpe
                 VersionManagerState cleared = state.WithPendingMutation(null);
                 if (!await TrySaveAsync(cleared, cancellationToken).ConfigureAwait(false))
                 {
-                    _current = current with
-                    {
-                        State = prepared,
-                        Inventory = await InventoryAsync(prepared, cancellationToken).ConfigureAwait(false),
-                    };
+                    ManagedVersionInventoryReadResult preparedInventory = await InventoryAsync(
+                        prepared,
+                        cancellationToken).ConfigureAwait(false);
+                    _current = WithInventory(current, prepared, preparedInventory);
                     return new(
                         decision,
                         VersionDeleteOperationIssue.StateUnavailable,
@@ -466,31 +486,49 @@ public sealed partial class VersionManagementExperience : IVersionManagementExpe
                         _current);
                 }
                 state = cleared;
-                inventory = await InventoryAsync(state, cancellationToken).ConfigureAwait(false);
-                _current = current with { State = state, Inventory = inventory };
+                ManagedVersionInventoryReadResult clearedInventory = await InventoryAsync(
+                    state,
+                    cancellationToken).ConfigureAwait(false);
+                _current = WithInventory(current, state, clearedInventory);
                 return new(
                     decision,
-                    VersionDeleteOperationIssue.RepositoryFailure,
+                    clearedInventory.IsSuccess
+                        ? VersionDeleteOperationIssue.RepositoryFailure
+                        : VersionDeleteOperationIssue.StateUnavailable,
                     deleteIssue,
                     _current);
             }
-            inventory = await InventoryAsync(state, cancellationToken).ConfigureAwait(false);
-            state = ClearRetentionReviewIfAtOrBelowThreshold(state, inventory);
-            if (!await TrySaveAsync(state, cancellationToken).ConfigureAwait(false))
+            inventoryResult = await InventoryAsync(state, cancellationToken).ConfigureAwait(false);
+            if (!inventoryResult.IsSuccess)
             {
-                VersionManagerState durablePrepared = prepared;
-                _current = current with
-                {
-                    State = durablePrepared,
-                    Inventory = await InventoryAsync(durablePrepared, cancellationToken).ConfigureAwait(false),
-                };
+                _current = WithInventory(current, prepared, inventoryResult);
                 return new(
                     decision,
                     VersionDeleteOperationIssue.StateUnavailable,
                     deleteIssue,
                     _current);
             }
-            _current = current with { State = state, Inventory = inventory };
+            inventory = inventoryResult.Inventory!;
+            state = ClearRetentionReviewIfAtOrBelowThreshold(state, inventory);
+            if (!await TrySaveAsync(state, cancellationToken).ConfigureAwait(false))
+            {
+                VersionManagerState durablePrepared = prepared;
+                ManagedVersionInventoryReadResult durableInventory = await InventoryAsync(
+                    durablePrepared,
+                    cancellationToken).ConfigureAwait(false);
+                _current = WithInventory(current, durablePrepared, durableInventory);
+                return new(
+                    decision,
+                    VersionDeleteOperationIssue.StateUnavailable,
+                    deleteIssue,
+                    _current);
+            }
+            _current = current with
+            {
+                State = state,
+                Inventory = inventory,
+                InventoryIssue = ManagedVersionInventoryReadIssue.None,
+            };
             return new(
                 decision,
                 filesystemDeleteCommitted
@@ -564,12 +602,24 @@ public sealed partial class VersionManagementExperience : IVersionManagementExpe
             VersionManagementSnapshot current = await ReloadDurableCurrentWithoutLockAsync(cancellationToken)
                 .ConfigureAwait(false);
             VersionManagerState state = current.State ?? throw InvalidState();
+            if (current.InventoryIssue != ManagedVersionInventoryReadIssue.None)
+            {
+                throw new InvalidOperationException("Installed-version inventory is unavailable.");
+            }
             if (state.PendingMutation is not null)
             {
                 throw new InvalidOperationException(
                     "A managed-version filesystem mutation still requires recovery.");
             }
-            ManagedVersionInventory inventory = await InventoryAsync(state, cancellationToken).ConfigureAwait(false);
+            ManagedVersionInventoryReadResult inventoryResult = await InventoryAsync(
+                state,
+                cancellationToken).ConfigureAwait(false);
+            if (!inventoryResult.IsSuccess)
+            {
+                _ = PublishInventoryUnavailable(state);
+                throw new InvalidOperationException("Installed-version inventory is unavailable.");
+            }
+            ManagedVersionInventory inventory = inventoryResult.Inventory!;
             InstalledVersionSnapshot target = inventory.Find(version) ??
                 throw new InvalidOperationException("Activation target is not installed.");
             if (target.AdmissionState != ManagedVersionAdmissionState.Admitted ||
@@ -608,11 +658,10 @@ public sealed partial class VersionManagementExperience : IVersionManagementExpe
             VersionManagerState state = current.State ?? throw InvalidState();
             state = VersionActivationPolicy.CancelRequestedActivation(state);
             await SaveOrThrowAsync(state, cancellationToken).ConfigureAwait(false);
-            _current = current with
-            {
-                State = state,
-                Inventory = await InventoryAsync(state, cancellationToken).ConfigureAwait(false),
-            };
+            ManagedVersionInventoryReadResult inventoryResult = await InventoryAsync(
+                state,
+                cancellationToken).ConfigureAwait(false);
+            _current = WithInventory(current, state, inventoryResult);
             return _current;
         }
         finally

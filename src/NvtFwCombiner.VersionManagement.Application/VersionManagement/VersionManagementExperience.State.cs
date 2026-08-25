@@ -32,9 +32,10 @@ public sealed partial class VersionManagementExperience
         {
             state = await ReconcilePendingMutationAsync(state, cancellationToken).ConfigureAwait(false);
         }
-        ManagedVersionInventory inventory = state is null
-            ? ManagedVersionInventory.Create([])
+        ManagedVersionInventoryReadResult inventoryResult = state is null
+            ? ManagedVersionInventoryReadResult.Success(ManagedVersionInventory.Create([]))
             : await InventoryAsync(state, cancellationToken).ConfigureAwait(false);
+        ManagedVersionInventory inventory = inventoryResult.Inventory ?? ManagedVersionInventory.Create([]);
         bool sameSource = prior?.State?.UpdateSource == state?.UpdateSource;
         _current = new(
             state,
@@ -55,7 +56,8 @@ public sealed partial class VersionManagementExperience
                 ? VersionManagerStateLoadIssue.ManagedRootMismatch
                 : loaded.Issue == VersionManagerStateLoadIssue.Missing
                     ? VersionManagerStateLoadIssue.None
-                    : loaded.Issue);
+                    : loaded.Issue,
+            inventoryResult.Issue);
         return _current;
     }
 
@@ -85,28 +87,70 @@ public sealed partial class VersionManagementExperience
         return _current;
     }
 
-    private async ValueTask<ManagedVersionInventory> InventoryAsync(
+    private VersionManagementSnapshot PublishInventoryUnavailable(VersionManagerState? state = null)
+    {
+        _current = _current is { } current
+            ? current with
+            {
+                State = state ?? current.State,
+                Inventory = ManagedVersionInventory.Create([]),
+                InventoryIssue = ManagedVersionInventoryReadIssue.Unavailable,
+            }
+            : new(
+                State: state,
+                ManagedVersionInventory.Create([]),
+                Catalog: null,
+                VerifiedCandidate: null,
+                VersionSourceStatus.Offline,
+                CatalogIssue: null,
+                Generation: 0,
+                ShouldPromptForUpdate: false,
+                VersionManagerStateLoadIssue.None,
+                ManagedVersionInventoryReadIssue.Unavailable);
+        return _current;
+    }
+
+    private static VersionManagementSnapshot WithInventory(
+        VersionManagementSnapshot snapshot,
+        VersionManagerState state,
+        ManagedVersionInventoryReadResult result)
+    {
+        return snapshot with
+        {
+            State = state,
+            Inventory = result.Inventory ?? ManagedVersionInventory.Create([]),
+            InventoryIssue = result.Issue,
+        };
+    }
+
+    private async ValueTask<ManagedVersionInventoryReadResult> InventoryAsync(
         VersionManagerState state,
         CancellationToken cancellationToken)
     {
-        ManagedVersionInventory observed = await _repository.InventoryAsync(
+        ManagedVersionInventoryReadResult observedResult = await _repository.InventoryAsync(
             _managedRoot,
             state.Admissions,
             state.ActiveVersion,
             state.LastKnownGoodVersion,
             state.FailedActivationVersion,
             cancellationToken).ConfigureAwait(false);
+        if (!observedResult.IsSuccess)
+        {
+            return ManagedVersionInventoryReadResult.Unavailable();
+        }
+        ManagedVersionInventory observed = observedResult.Inventory!;
         ManagedVersionAdmission? recoverable =
             state.PendingMutation is { Kind: ManagedVersionMutationKind.Install } pending
             ? pending.Admission
             : null;
-        return ManagedVersionInventory.Create(observed.Versions.Select(row =>
-            row.AdmissionState == ManagedVersionAdmissionState.Admitted
-                ? row
-                : recoverable is not null &&
-                  row.Integrity == ManagedVersionIntegrity.Healthy &&
-                  row.ObservedAdmission == recoverable
-                    ? row with { AdmissionState = ManagedVersionAdmissionState.RecoveryCandidate }
-                    : row with { AdmissionState = ManagedVersionAdmissionState.Unadmitted }));
+        return ManagedVersionInventoryReadResult.Success(
+            ManagedVersionInventory.Create(observed.Versions.Select(row =>
+                row.AdmissionState == ManagedVersionAdmissionState.Admitted
+                    ? row
+                    : recoverable is not null &&
+                      row.Integrity == ManagedVersionIntegrity.Healthy &&
+                      row.ObservedAdmission == recoverable
+                        ? row with { AdmissionState = ManagedVersionAdmissionState.RecoveryCandidate }
+                        : row with { AdmissionState = ManagedVersionAdmissionState.Unadmitted })));
     }
 }

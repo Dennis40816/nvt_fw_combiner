@@ -6,7 +6,7 @@ using NvtFwCombiner.Presentation.Avalonia.ViewModels;
 namespace NvtFwCombiner.UiSmoke.Tests;
 
 /// <summary>Exercises the Settings projection and consent flow for managed versions.</summary>
-public sealed class VersionManagementSettingsTests
+public sealed partial class VersionManagementSettingsTests
 {
     private const string Hash =
         "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef";

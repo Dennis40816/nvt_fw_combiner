@@ -83,13 +83,18 @@ public sealed class ManagedVersionSeedBootstrapper
             return ManagedVersionSeedOutcome.InvalidSeed;
         }
 
-        ManagedVersionInventory inventory = await _repository.InventoryAsync(
+        ManagedVersionInventoryReadResult inventoryResult = await _repository.InventoryAsync(
             _managedRoot,
             state.Admissions,
             state.ActiveVersion,
             state.LastKnownGoodVersion,
             state.FailedActivationVersion,
             cancellationToken).ConfigureAwait(false);
+        if (!inventoryResult.IsSuccess)
+        {
+            return ManagedVersionSeedOutcome.StateUnavailable;
+        }
+        ManagedVersionInventory inventory = inventoryResult.Inventory!;
         if (inventory.Versions.Count != 1 ||
             inventory.HealthyCount != 1 ||
             inventory.DamagedCount != 0)

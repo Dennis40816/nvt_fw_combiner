@@ -599,7 +599,7 @@ public sealed partial class VersionManagementExperienceTests
                 WasAlreadyInstalled: false));
         }
 
-        public ValueTask<ManagedVersionInventory> InventoryAsync(
+        public ValueTask<ManagedVersionInventoryReadResult> InventoryAsync(
             string managedRoot,
             IReadOnlyList<ManagedVersionAdmission> admissions,
             ManagedAppVersion? activeVersion,
@@ -607,18 +607,19 @@ public sealed partial class VersionManagementExperienceTests
             ManagedAppVersion? failedActivationVersion,
             CancellationToken cancellationToken)
         {
-            return ValueTask.FromResult(ManagedVersionInventory.Create(admissions.Select(admission =>
-                new InstalledVersionSnapshot(
-                    admission.Version,
-                    admission.AdmissionIdentity,
-                    failedActivationVersion == admission.Version
-                        ? ManagedVersionIntegrity.Damaged
-                        : ManagedVersionIntegrity.Healthy,
-                    failedActivationVersion == admission.Version
-                        ? ManagedVersionDamageReason.FailedActivation
-                        : null,
-                    activeVersion == admission.Version,
-                    lastKnownGoodVersion == admission.Version))));
+            return ValueTask.FromResult(ManagedVersionInventoryReadResult.Success(
+                ManagedVersionInventory.Create(admissions.Select(admission =>
+                    new InstalledVersionSnapshot(
+                        admission.Version,
+                        admission.AdmissionIdentity,
+                        failedActivationVersion == admission.Version
+                            ? ManagedVersionIntegrity.Damaged
+                            : ManagedVersionIntegrity.Healthy,
+                        failedActivationVersion == admission.Version
+                            ? ManagedVersionDamageReason.FailedActivation
+                            : null,
+                        activeVersion == admission.Version,
+                        lastKnownGoodVersion == admission.Version)))));
         }
 
         public ValueTask<ManagedVersionDeleteIssue> DeleteAsync(
