@@ -2815,7 +2815,7 @@ class VerifyOrchestrationTests(unittest.TestCase):
                 (
                     "tests/NvtFwCombiner.Bootstrap.Tests/"
                     "NvtFwCombiner.Bootstrap.Tests.csproj",
-                    1032,
+                    1033,
                     0,
                 ),
             ),
@@ -2837,7 +2837,7 @@ class VerifyOrchestrationTests(unittest.TestCase):
                 (
                     "tests/NvtFwCombiner.Application.Tests/"
                     "NvtFwCombiner.Application.Tests.csproj",
-                    704,
+                    705,
                     0,
                 ),
                 (
@@ -2902,7 +2902,7 @@ class VerifyOrchestrationTests(unittest.TestCase):
         self.assertEqual(8, len(set(flattened)))
         self.assertEqual(solution_test_projects, set(flattened))
         self.assertEqual(
-            4047, sum(total for projects in actual.values() for _, total, _ in projects)
+            4049, sum(total for projects in actual.values() for _, total, _ in projects)
         )
         self.assertEqual(
             2,
