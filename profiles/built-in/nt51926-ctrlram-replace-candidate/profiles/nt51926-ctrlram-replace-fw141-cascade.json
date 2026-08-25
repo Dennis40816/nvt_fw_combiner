@@ -1,24 +1,8 @@
 {
   "schemaVersion": "2.9",
   "profileId": "nt51926-ctrlram-replace-fw141-cascade",
-  "profileVersion": "0.6.0",
-  "promotion": {
-    "stage": "executable-candidate",
-    "blockers": [
-      {
-        "blockerId": "firmware-owner-review",
-        "kind": "human-review",
-        "reason": "Firmware owner must approve the exact legacy Combiner command sequence and declared header integrity writes before runtime exposure.",
-        "evidenceRefs": [ "nt51926-common-fw141-postbuild" ]
-      },
-      {
-        "blockerId": "runtime-route",
-        "kind": "ui",
-        "reason": "The candidate is intentionally not routed until selective-slot, TP FW version-edit, report, naming, CLI, and UI parity are reviewed.",
-        "evidenceRefs": [ "nt51926-cascade-tp-base-self-regression-20260717" ]
-      }
-    ]
-  },
+  "profileVersion": "0.7.0",
+  "promotion": { "stage": "supported", "blockers": [] },
   "compositionKind": "replace",
   "icNumberInputMode": "cascade-selector",
   "experience": {

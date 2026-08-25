@@ -1,9 +1,9 @@
 {
   "schemaVersion": "1.0",
   "bundleId": "nt51917-ctrlram-replace-alias-candidate",
-  "bundleVersion": "0.9.12-candidate.1",
+  "bundleVersion": "0.9.12-candidate.2",
   "hashAlgorithm": "sha256-rfc8785-entry-array-v1",
-  "contentHash": "8992dbc5483054c5dc16e545444b1f94446c698c68b1abe7946efdb4d4ffb26b",
+  "contentHash": "b4e12745789f522c3007a346d2370161db17a76a5eb94c367fd6c6cf40c2b45b",
   "trustAnchorBindingId": "built-in-profile-bundle-v2",
   "entries": [
     {
@@ -25,28 +25,28 @@
       "kind": "firmware-family",
       "path": "families/nt51927-ctrlram-replace.json",
       "schemaId": "https://example.invalid/nfc/schemas/firmware-family-v1.schema.json",
-      "contentHash": "3b72d1b2788463c2def4d57e1318fc392dad4a79990d03c59e1d8abe072ae4e1"
+      "contentHash": "2a37bf2c7c9dd0c4123a2c19da3e7600b9f3ec55d9a12f9da9cad0cdc25a2dbb"
     },
     {
       "entryId": "nt51917-ctrlram-replace-fw132-twochip-profile",
       "kind": "composition-profile",
       "path": "profiles/nt51917-ctrlram-replace-fw132-twochip.json",
       "schemaId": "https://example.invalid/nfc/schemas/composition-profile-v2.schema.json",
-      "contentHash": "9b5acfe64890b5966fae178bc5a1d2bd9aa4c4d1d06c5c27c2e573e09b76620f"
+      "contentHash": "b1ad0d416a617fe9cd5e59321c6c5b483ec4f40605950cdf489056d3789796f2"
     },
     {
       "entryId": "nt51917-ctrlram-replace-fw140-threechip-profile",
       "kind": "composition-profile",
       "path": "profiles/nt51917-ctrlram-replace-fw140-threechip.json",
       "schemaId": "https://example.invalid/nfc/schemas/composition-profile-v2.schema.json",
-      "contentHash": "0087dac5cd14453c0a3a7a6a6478a5e80bdf024ec6fe59b305ce29a6c7124d6b"
+      "contentHash": "f132fb7866b2f26094ef0af0260b06eb84c86e34455cea56147fcd2f0e54120c"
     },
     {
       "entryId": "nt51917-ctrlram-replace-fw141-single-profile",
       "kind": "composition-profile",
       "path": "profiles/nt51917-ctrlram-replace-fw141-single.json",
       "schemaId": "https://example.invalid/nfc/schemas/composition-profile-v2.schema.json",
-      "contentHash": "892eb95770ca599cf92924d3dd28941afb7e071e3403af68017ec89f458c8aee"
+      "contentHash": "8c59ac3988b3387debb21c871071e311cf3c9b896c87e8d896ebef508a4cbe64"
     }
   ]
 }

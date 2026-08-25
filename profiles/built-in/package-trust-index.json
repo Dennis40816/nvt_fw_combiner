@@ -1,7 +1,7 @@
 {
   "schemaVersion": "1.1",
   "trustIndexId": "built-in-profile-bundles",
-  "trustIndexVersion": "0.10.6.1",
+  "trustIndexVersion": "0.10.6.2",
   "trustAnchorBindingId": "built-in-profile-bundle-v2",
   "bundles": [
     {
@@ -153,8 +153,8 @@
     {
       "bundleDirectory": "nt51923-ctrlram-replace-candidate",
       "bundleSchemaVersion": "1.0",
-      "bundleVersion": "0.9.16-candidate.1",
-      "contentHash": "8c1318f9e83a658028b1e0a07b2c38a28bcdeb6031d3a393d6b4912c2cdba14f",
+      "bundleVersion": "0.9.16-candidate.2",
+      "contentHash": "67ff8e3e10a3bb079aa8f25732a189baaa384bdf7554a34fc97c057d6af5af96",
       "materialization": {
         "compositionProfileSchemaFile": "composition-profile-v2.9.schema.json",
         "firmwareFamilySchemaFile": "firmware-family-v1.schema.json"
@@ -164,7 +164,7 @@
           "workflowId": "ctrlram-replace",
           "icId": "NT51923",
           "profileId": "nt51923-ctrlram-replace-fw141-single",
-          "profileVersion": "0.3.0",
+          "profileVersion": "0.4.0",
           "reportMetadataMapId": "nt51923-standard-merge-256k",
           "postbuildProcessorId": "nfc.nt51923.ctrlram-postbuild-v1",
           "postbuildBranch": "single-chip"
@@ -173,7 +173,7 @@
           "workflowId": "ctrlram-replace",
           "icId": "NT51923",
           "profileId": "nt51923-ctrlram-replace-fw141-cascade3",
-          "profileVersion": "0.3.0",
+          "profileVersion": "0.4.0",
           "reportMetadataMapId": "nt51923-standard-merge-256k",
           "postbuildProcessorId": "nfc.nt51923.ctrlram-postbuild-v1",
           "postbuildBranch": "cascade"
@@ -183,8 +183,8 @@
     {
       "bundleDirectory": "nt51926-ctrlram-replace-candidate",
       "bundleSchemaVersion": "1.0",
-      "bundleVersion": "0.9.16-candidate.1",
-      "contentHash": "25d5adc9697eacedcf238835da197b0359c41f8cc6d82110c181496038469529",
+      "bundleVersion": "0.9.16-candidate.2",
+      "contentHash": "8a6dc717feeb109ee265122b5796606297f1bbe14e11ec1e8da31d26678c26a7",
       "materialization": {
         "compositionProfileSchemaFile": "composition-profile-v2.9.schema.json",
         "firmwareFamilySchemaFile": "firmware-family-v1.schema.json"
@@ -194,7 +194,7 @@
           "workflowId": "ctrlram-replace",
           "icId": "NT51926",
           "profileId": "nt51926-ctrlram-replace-fw141-runtime-single",
-          "profileVersion": "0.3.0",
+          "profileVersion": "0.4.0",
           "reportMetadataMapId": "nt51926-standard-merge-256k",
           "postbuildProcessorId": "nfc.nt51926.ctrlram-postbuild-fw1.4.1",
           "postbuildBranch": "single-chip"
@@ -203,7 +203,7 @@
           "workflowId": "ctrlram-replace",
           "icId": "NT51926",
           "profileId": "nt51926-ctrlram-replace-fw141-runtime-cascade",
-          "profileVersion": "0.3.0",
+          "profileVersion": "0.4.0",
           "reportMetadataMapId": "nt51926-standard-merge-256k",
           "postbuildProcessorId": "nfc.nt51926.ctrlram-postbuild-fw1.4.1",
           "postbuildBranch": "cascade"
@@ -212,7 +212,7 @@
           "workflowId": "ctrlram-replace",
           "icId": "NT51926",
           "profileId": "nt51926-ctrlram-replace-fw200-runtime-single",
-          "profileVersion": "0.3.0",
+          "profileVersion": "0.4.0",
           "reportMetadataMapId": "nt51926-standard-merge-256k",
           "postbuildProcessorId": "nfc.nt51926.ctrlram-postbuild-v1",
           "postbuildBranch": "single-chip"
@@ -221,7 +221,7 @@
           "workflowId": "ctrlram-replace",
           "icId": "NT51926",
           "profileId": "nt51926-ctrlram-replace-fw200-runtime-cascade",
-          "profileVersion": "0.3.0",
+          "profileVersion": "0.4.0",
           "reportMetadataMapId": "nt51926-standard-merge-256k",
           "postbuildProcessorId": "nfc.nt51926.ctrlram-postbuild-v1",
           "postbuildBranch": "cascade"
@@ -237,8 +237,8 @@
     {
       "bundleDirectory": "nt51917-ctrlram-replace-alias-candidate",
       "bundleSchemaVersion": "1.0",
-      "bundleVersion": "0.9.12-candidate.1",
-      "contentHash": "8992dbc5483054c5dc16e545444b1f94446c698c68b1abe7946efdb4d4ffb26b",
+      "bundleVersion": "0.9.12-candidate.2",
+      "contentHash": "b4e12745789f522c3007a346d2370161db17a76a5eb94c367fd6c6cf40c2b45b",
       "materialization": {
         "compositionProfileSchemaFile": "composition-profile-v2.9.schema.json",
         "firmwareFamilySchemaFile": "firmware-family-v1.schema.json",
@@ -252,7 +252,7 @@
           "workflowId": "ctrlram-replace",
           "icId": "NT51917",
           "profileId": "nt51917-ctrlram-replace-fw141-single",
-          "profileVersion": "0.2.0",
+          "profileVersion": "0.3.0",
           "reportMetadataMapId": "nt51927-standard-merge-256k",
           "postbuildProcessorId": "nfc.nt51917.ctrlram-postbuild-v1",
           "postbuildBranch": "single-chip"
@@ -261,7 +261,7 @@
           "workflowId": "ctrlram-replace",
           "icId": "NT51917",
           "profileId": "nt51917-ctrlram-replace-fw132-twochip",
-          "profileVersion": "0.2.0",
+          "profileVersion": "0.3.0",
           "reportMetadataMapId": "nt51927-standard-merge-256k",
           "postbuildProcessorId": "nfc.nt51917.ctrlram-postbuild-v1",
           "postbuildBranch": "two-chip"
@@ -270,7 +270,7 @@
           "workflowId": "ctrlram-replace",
           "icId": "NT51917",
           "profileId": "nt51917-ctrlram-replace-fw140-threechip",
-          "profileVersion": "0.2.0",
+          "profileVersion": "0.3.0",
           "reportMetadataMapId": "nt51927-standard-merge-256k",
           "postbuildProcessorId": "nfc.nt51917.ctrlram-postbuild-v1",
           "postbuildBranch": "three-chip"
@@ -280,8 +280,8 @@
     {
       "bundleDirectory": "nt51927-ctrlram-replace-candidate",
       "bundleSchemaVersion": "1.0",
-      "bundleVersion": "0.9.12-candidate.1",
-      "contentHash": "d0c8a8775a35a01b52b8d8f32a93af0ac798067e2577d2420ab0dd65dd815d0f",
+      "bundleVersion": "0.9.12-candidate.2",
+      "contentHash": "f44c1b82f3fc38905dee222a60be5b884f717b37cb3d8fafe8affd7c48353714",
       "materialization": {
         "compositionProfileSchemaFile": "composition-profile-v2.9.schema.json",
         "firmwareFamilySchemaFile": "firmware-family-v1.schema.json"
@@ -291,7 +291,7 @@
           "workflowId": "ctrlram-replace",
           "icId": "NT51927",
           "profileId": "nt51927-ctrlram-replace-fw141-single",
-          "profileVersion": "0.2.0",
+          "profileVersion": "0.3.0",
           "reportMetadataMapId": "nt51927-standard-merge-256k",
           "postbuildProcessorId": "nfc.nt51927.ctrlram-postbuild-v1",
           "postbuildBranch": "single-chip"
@@ -300,7 +300,7 @@
           "workflowId": "ctrlram-replace",
           "icId": "NT51927",
           "profileId": "nt51927-ctrlram-replace-fw132-twochip",
-          "profileVersion": "0.2.0",
+          "profileVersion": "0.3.0",
           "reportMetadataMapId": "nt51927-standard-merge-256k",
           "postbuildProcessorId": "nfc.nt51927.ctrlram-postbuild-v1",
           "postbuildBranch": "two-chip"
@@ -309,7 +309,7 @@
           "workflowId": "ctrlram-replace",
           "icId": "NT51927",
           "profileId": "nt51927-ctrlram-replace-fw140-threechip",
-          "profileVersion": "0.2.0",
+          "profileVersion": "0.3.0",
           "reportMetadataMapId": "nt51927-standard-merge-256k",
           "postbuildProcessorId": "nfc.nt51927.ctrlram-postbuild-v1",
           "postbuildBranch": "three-chip"
@@ -319,8 +319,8 @@
     {
       "bundleDirectory": "nt51928-ctrlram-replace-candidate",
       "bundleSchemaVersion": "1.0",
-      "bundleVersion": "0.9.12-candidate.1",
-      "contentHash": "bba0e65221aff3ebbd4b06f83f38295b6e315eff0741fe68952e5844ae64c634",
+      "bundleVersion": "0.9.12-candidate.2",
+      "contentHash": "82a7a98f4883540595a3af22887fecef5f283fdff5e2af816b294c6345bd523d",
       "materialization": {
         "compositionProfileSchemaFile": "composition-profile-v2.9.schema.json",
         "firmwareFamilySchemaFile": "firmware-family-v1.schema.json"
@@ -330,7 +330,7 @@
           "workflowId": "ctrlram-replace",
           "icId": "NT51928",
           "profileId": "nt51928-ctrlram-replace-fw132-twochip",
-          "profileVersion": "0.2.0",
+          "profileVersion": "0.3.0",
           "reportMetadataMapId": "nt51928-standard-merge-512k",
           "postbuildProcessorId": "nfc.nt51928.ctrlram-postbuild-v1",
           "postbuildBranch": "two-chip"
@@ -339,7 +339,7 @@
           "workflowId": "ctrlram-replace",
           "icId": "NT51928",
           "profileId": "nt51928-ctrlram-replace-fw141-single",
-          "profileVersion": "0.3.0",
+          "profileVersion": "0.4.0",
           "reportMetadataMapId": "nt51928-standard-merge-512k",
           "postbuildProcessorId": "nfc.nt51928.ctrlram-postbuild-v1",
           "postbuildBranch": "single-chip"
@@ -348,7 +348,7 @@
           "workflowId": "ctrlram-replace",
           "icId": "NT51928",
           "profileId": "nt51928-ctrlram-replace-fw140-threechip",
-          "profileVersion": "0.3.0",
+          "profileVersion": "0.4.0",
           "reportMetadataMapId": "nt51928-standard-merge-512k",
           "postbuildProcessorId": "nfc.nt51928.ctrlram-postbuild-v1",
           "postbuildBranch": "three-chip"
@@ -358,8 +358,8 @@
     {
       "bundleDirectory": "nt51929-ctrlram-replace-candidate",
       "bundleSchemaVersion": "1.0",
-      "bundleVersion": "0.10.1-candidate.1",
-      "contentHash": "ea9cf1fe05a1462ddff67ece4a037757375100b67d91da3eb1eac1dd0417a4a5",
+      "bundleVersion": "0.10.1-candidate.2",
+      "contentHash": "ef145b1fb938bd3ea91227b1d46e83d49c71c5d75fa3ce80b98f21e8f5347979",
       "materialization": {
         "compositionProfileSchemaFile": "composition-profile-v2.9.schema.json",
         "firmwareFamilySchemaFile": "firmware-family-v1.schema.json"
@@ -369,7 +369,7 @@
           "workflowId": "ctrlram-replace",
           "icId": "NT51919",
           "profileId": "nt51919-ctrlram-replace-fw200-single",
-          "profileVersion": "0.2.0",
+          "profileVersion": "0.3.0",
           "postbuildProcessorId": "nfc.nt51919.ctrlram-postbuild-v1",
           "postbuildBranch": "single-chip"
         },
@@ -377,7 +377,7 @@
           "workflowId": "ctrlram-replace",
           "icId": "NT51919",
           "profileId": "nt51919-ctrlram-replace-fw1x-cascade",
-          "profileVersion": "0.4.0",
+          "profileVersion": "0.5.0",
           "postbuildProcessorId": "nfc.nt51919.ctrlram-postbuild-v1",
           "postbuildBranch": "cascade"
         },
@@ -385,7 +385,7 @@
           "workflowId": "ctrlram-replace",
           "icId": "NT51929",
           "profileId": "nt51929-ctrlram-replace-fw200-single",
-          "profileVersion": "0.2.0",
+          "profileVersion": "0.3.0",
           "reportMetadataMapId": "nt51929-standard-merge-256k",
           "postbuildProcessorId": "nfc.nt51929.ctrlram-postbuild-v1",
           "postbuildBranch": "single-chip"
@@ -394,7 +394,7 @@
           "workflowId": "ctrlram-replace",
           "icId": "NT51929",
           "profileId": "nt51929-ctrlram-replace-fw1x-cascade",
-          "profileVersion": "0.4.0",
+          "profileVersion": "0.5.0",
           "reportMetadataMapId": "nt51929-standard-merge-256k",
           "postbuildProcessorId": "nfc.nt51929.ctrlram-postbuild-v1",
           "postbuildBranch": "cascade"
@@ -404,8 +404,8 @@
     {
       "bundleDirectory": "nt51932-ctrlram-replace-candidate",
       "bundleSchemaVersion": "1.0",
-      "bundleVersion": "0.10.1-candidate.1",
-      "contentHash": "9a2c69c1b4bc4b5c047b9534c12f3e03b6be5492c9aa26eb626c9a657d101daf",
+      "bundleVersion": "0.10.1-candidate.2",
+      "contentHash": "47361d7eb2c573f86f9d802f87d0db3ad8e0d41336a937ffe57a2a28239e7f61",
       "materialization": {
         "compositionProfileSchemaFile": "composition-profile-v2.9.schema.json",
         "firmwareFamilySchemaFile": "firmware-family-v1.schema.json"
@@ -415,7 +415,7 @@
           "workflowId": "ctrlram-replace",
           "icId": "NT51932",
           "profileId": "nt51932-ctrlram-replace-fw200-cascade",
-          "profileVersion": "0.4.0",
+          "profileVersion": "0.5.0",
           "reportMetadataMapId": "nt51932-standard-merge-256k",
           "postbuildProcessorId": "nfc.nt51932.ctrlram-postbuild-v1",
           "postbuildBranch": "cascade"
@@ -424,7 +424,7 @@
           "workflowId": "ctrlram-replace",
           "icId": "NT51932",
           "profileId": "nt51932-ctrlram-replace-fw1x-single",
-          "profileVersion": "0.2.0",
+          "profileVersion": "0.3.0",
           "reportMetadataMapId": "nt51932-standard-merge-256k",
           "postbuildProcessorId": "nfc.nt51932.ctrlram-postbuild-v1",
           "postbuildBranch": "single-chip"
@@ -434,8 +434,8 @@
     {
       "bundleDirectory": "nt51950-ctrlram-replace-candidate",
       "bundleSchemaVersion": "1.0",
-      "bundleVersion": "0.10.0-candidate.2",
-      "contentHash": "793e521f1015569ed57cb01033bf6e501abcc55c16b5fd890c7525af3e169926",
+      "bundleVersion": "0.10.0-candidate.3",
+      "contentHash": "86c06344e50856d590dc58bb0485de06ec9dcef825076a92a83574a3a0d6b554",
       "materialization": {
         "compositionProfileSchemaFile": "composition-profile-v2.9.schema.json",
         "firmwareFamilySchemaFile": "firmware-family-v1.schema.json"
@@ -445,7 +445,7 @@
           "workflowId": "ctrlram-replace",
           "icId": "NT51950",
           "profileId": "nt51950-ctrlram-replace-fw200-single",
-          "profileVersion": "0.4.0",
+          "profileVersion": "0.5.0",
           "postbuildProcessorId": "nfc.nt51950.ctrlram-postbuild-v1",
           "postbuildBranch": "single-chip"
         },
@@ -453,7 +453,7 @@
           "workflowId": "ctrlram-replace",
           "icId": "NT51950",
           "profileId": "nt51950-ctrlram-replace-fw1x-cascade",
-          "profileVersion": "0.6.0",
+          "profileVersion": "0.7.0",
           "postbuildProcessorId": "nfc.nt51950.ctrlram-postbuild-v1",
           "postbuildBranch": "cascade"
         }
@@ -462,8 +462,8 @@
     {
       "bundleDirectory": "nt51951-ctrlram-replace-candidate",
       "bundleSchemaVersion": "1.0",
-      "bundleVersion": "0.10.0-candidate.2",
-      "contentHash": "0fae69274908a044493ac838ac8204cb7513433732804691f8a56d39e0a8eaba",
+      "bundleVersion": "0.10.0-candidate.3",
+      "contentHash": "17380c4dfdc04123ee46504cf626f43365c9d506d798f2c1ada999f14c8d3c4c",
       "materialization": {
         "compositionProfileSchemaFile": "composition-profile-v2.9.schema.json",
         "firmwareFamilySchemaFile": "firmware-family-v1.schema.json"
@@ -473,7 +473,7 @@
           "workflowId": "ctrlram-replace",
           "icId": "NT51951",
           "profileId": "nt51951-ctrlram-replace-fw200-single",
-          "profileVersion": "0.4.0",
+          "profileVersion": "0.5.0",
           "postbuildProcessorId": "nfc.nt51951.ctrlram-postbuild-v1",
           "postbuildBranch": "single-chip"
         },
@@ -481,7 +481,7 @@
           "workflowId": "ctrlram-replace",
           "icId": "NT51951",
           "profileId": "nt51951-ctrlram-replace-fw1x-cascade",
-          "profileVersion": "0.6.0",
+          "profileVersion": "0.7.0",
           "postbuildProcessorId": "nfc.nt51951.ctrlram-postbuild-v1",
           "postbuildBranch": "cascade"
         }

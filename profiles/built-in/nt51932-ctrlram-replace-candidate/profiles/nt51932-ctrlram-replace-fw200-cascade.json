@@ -1,18 +1,8 @@
 {
   "schemaVersion": "2.9",
   "profileId": "nt51932-ctrlram-replace-fw200-cascade",
-  "profileVersion": "0.4.0",
-  "promotion": {
-    "stage": "executable-candidate",
-    "blockers": [
-      {
-        "blockerId": "support-neutral-no-promotion",
-        "kind": "release",
-        "reason": "The exact route is evidence-complete and intentionally remains support-neutral; this no-promotion policy is not a missing owner input or decision.",
-        "evidenceRefs": [ "nt51932-fw200-cascade3-auto-prj-525-owner-golden-20260718" ]
-      }
-    ]
-  },
+  "profileVersion": "0.5.0",
+  "promotion": { "stage": "supported", "blockers": [] },
   "compositionKind": "replace",
   "icNumberInputMode": "cascade-selector",
   "experience": {

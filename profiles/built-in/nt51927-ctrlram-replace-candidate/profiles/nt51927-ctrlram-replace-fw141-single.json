@@ -1,18 +1,8 @@
 {
   "schemaVersion": "2.9",
   "profileId": "nt51927-ctrlram-replace-fw141-single",
-  "profileVersion": "0.2.0",
-  "promotion": {
-    "stage": "executable-candidate",
-    "blockers": [
-      {
-        "blockerId": "support-neutral-no-promotion",
-        "kind": "release",
-        "reason": "The exact route is evidence-complete and intentionally remains support-neutral; this no-promotion policy is not a missing owner input or decision.",
-        "evidenceRefs": [ "nt51927-fw141-single-auto-prj-529-owner-golden-20260717" ]
-      }
-    ]
-  },
+  "profileVersion": "0.3.0",
+  "promotion": { "stage": "supported", "blockers": [] },
   "compositionKind": "replace",
   "icNumberInputMode": "single-selector",
   "experience": {
@@ -26,9 +16,12 @@
   "compilationContext": { "kind": "runtime-reference-replace" },
   "mapBinding": {
     "familyId": "nt51927-ctrlram-replace",
-    "familyVersion": "0.5.0",
-    "familyContentHash": "3b72d1b2788463c2def4d57e1318fc392dad4a79990d03c59e1d8abe072ae4e1",
-    "mapIds": [ "nt51927-ctrlram-fw141-single-full-flash" ],
+    "familyVersion": "0.6.0",
+    "familyContentHash": "2a37bf2c7c9dd0c4123a2c19da3e7600b9f3ec55d9a12f9da9cad0cdc25a2dbb",
+    "mapIds": [
+      "nt51927-ctrlram-fw141-single-tp-work-212k",
+      "nt51927-ctrlram-fw141-single-full-flash"
+    ],
     "requiredRegionIds": [
       "flash-image",
       "fw-config-source",

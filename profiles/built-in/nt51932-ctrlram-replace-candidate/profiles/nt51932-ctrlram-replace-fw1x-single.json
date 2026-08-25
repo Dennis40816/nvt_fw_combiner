@@ -1,20 +1,8 @@
 {
   "schemaVersion": "2.9",
   "profileId": "nt51932-ctrlram-replace-fw1x-single",
-  "profileVersion": "0.2.0",
-  "promotion": {
-    "stage": "executable-candidate",
-    "blockers": [
-      {
-        "blockerId": "firmware-owner-review",
-        "kind": "human-review",
-        "reason": "The owner-provided NT51932 single command plan is materialized, but support remains neutral until independent single-plan output and firmware-owner review are complete.",
-        "evidenceRefs": [
-          "nt51932-fw200-cascade3-auto-prj-525-owner-golden-20260718"
-        ]
-      }
-    ]
-  },
+  "profileVersion": "0.3.0",
+  "promotion": { "stage": "supported", "blockers": [] },
   "compositionKind": "replace",
   "icNumberInputMode": "single-selector",
   "experience": {

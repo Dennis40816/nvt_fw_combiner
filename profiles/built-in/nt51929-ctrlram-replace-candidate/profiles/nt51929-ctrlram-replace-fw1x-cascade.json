@@ -1,18 +1,8 @@
 {
   "schemaVersion": "2.9",
   "profileId": "nt51929-ctrlram-replace-fw1x-cascade",
-  "profileVersion": "0.4.0",
-  "promotion": {
-    "stage": "executable-candidate",
-    "blockers": [
-      {
-        "blockerId": "firmware-owner-review",
-        "kind": "human-review",
-        "reason": "The owner-provided NT51929 cascade command plan is materialized, but support remains neutral until independent cascade output and firmware-owner review are complete.",
-        "evidenceRefs": [ "nt51929-fw200-single-auto-prj-594-owner-golden-20260717" ]
-      }
-    ]
-  },
+  "profileVersion": "0.5.0",
+  "promotion": { "stage": "supported", "blockers": [] },
   "compositionKind": "replace",
   "icNumberInputMode": "cascade-selector",
   "experience": {

@@ -1,21 +1,8 @@
 {
   "schemaVersion": "2.9",
   "profileId": "nt51917-ctrlram-replace-fw132-twochip",
-  "profileVersion": "0.2.0",
-  "promotion": {
-    "stage": "executable-candidate",
-    "blockers": [
-      {
-        "blockerId": "support-neutral-expected-derived-route",
-        "kind": "release",
-        "reason": "This exact full-reference-SHA route closes V1/V2 engineering parity with the owner-approved base and repository-derived replay inputs; it does not claim an independent owner expected output or public support promotion.",
-        "evidenceRefs": [
-          "nt51927-2chip-self-20260705-expected-derived",
-          "ctrlram-replace-perfect-family-51917-to-51927"
-        ]
-      }
-    ]
-  },
+  "profileVersion": "0.3.0",
+  "promotion": { "stage": "supported", "blockers": [] },
   "compositionKind": "replace",
   "icNumberInputMode": "numeric-selector",
   "experience": {
@@ -29,9 +16,12 @@
   "compilationContext": { "kind": "runtime-reference-replace" },
   "mapBinding": {
     "familyId": "nt51927-ctrlram-replace",
-    "familyVersion": "0.5.0",
-    "familyContentHash": "3b72d1b2788463c2def4d57e1318fc392dad4a79990d03c59e1d8abe072ae4e1",
-    "mapIds": [ "nt51927-ctrlram-fw132-twochip-full-flash" ],
+    "familyVersion": "0.6.0",
+    "familyContentHash": "2a37bf2c7c9dd0c4123a2c19da3e7600b9f3ec55d9a12f9da9cad0cdc25a2dbb",
+    "mapIds": [
+      "nt51927-ctrlram-fw132-twochip-tp-work-212k",
+      "nt51927-ctrlram-fw132-twochip-full-flash"
+    ],
     "requiredRegionIds": [
       "flash-image",
       "fw-config-source",

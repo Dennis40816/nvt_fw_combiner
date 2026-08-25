@@ -1,9 +1,9 @@
 {
   "schemaVersion": "1.0",
   "bundleId": "nt51929-ctrlram-replace-candidate",
-  "bundleVersion": "0.10.1-candidate.1",
+  "bundleVersion": "0.10.1-candidate.2",
   "hashAlgorithm": "sha256-rfc8785-entry-array-v1",
-  "contentHash": "ea9cf1fe05a1462ddff67ece4a037757375100b67d91da3eb1eac1dd0417a4a5",
+  "contentHash": "ef145b1fb938bd3ea91227b1d46e83d49c71c5d75fa3ce80b98f21e8f5347979",
   "trustAnchorBindingId": "built-in-profile-bundle-v2",
   "entries": [
     {
@@ -32,28 +32,28 @@
       "kind": "composition-profile",
       "path": "profiles/nt51919-ctrlram-replace-fw200-single.json",
       "schemaId": "https://example.invalid/nfc/schemas/composition-profile-v2.schema.json",
-      "contentHash": "1b71d37ec166ee677fbeec90c0138896b741ca88992dd12d3ebeb12eaeedc815"
+      "contentHash": "b8340db22972c218db005b0de2068f451a6a5a4a97c8687d9539dc66351ed819"
     },
     {
       "entryId": "nt51919-ctrlram-replace-fw1x-cascade-profile",
       "kind": "composition-profile",
       "path": "profiles/nt51919-ctrlram-replace-fw1x-cascade.json",
       "schemaId": "https://example.invalid/nfc/schemas/composition-profile-v2.schema.json",
-      "contentHash": "74f8124c30578e974074ab7773719d7daf2ffaa72efadfbe6d6808d294e3734f"
+      "contentHash": "45c0dc82e03bff3617836773504240542e5ddac631796f86e9d96d5a775ded2d"
     },
     {
       "entryId": "nt51929-ctrlram-replace-fw200-single-profile",
       "kind": "composition-profile",
       "path": "profiles/nt51929-ctrlram-replace-fw200-single.json",
       "schemaId": "https://example.invalid/nfc/schemas/composition-profile-v2.schema.json",
-      "contentHash": "4af3cd019131a940ba307be99e1e885a3c6d02abbad19428bb728f06d6b847b9"
+      "contentHash": "8a342e8ee388d901612a95d9fa2bab97ae894b62ef439bc69e73df6778305207"
     },
     {
       "entryId": "nt51929-ctrlram-replace-fw1x-cascade-profile",
       "kind": "composition-profile",
       "path": "profiles/nt51929-ctrlram-replace-fw1x-cascade.json",
       "schemaId": "https://example.invalid/nfc/schemas/composition-profile-v2.schema.json",
-      "contentHash": "c6d9fa7a7ad95d5eae9e868ff2e754bb433986f5a86d5caa4c6addd6e43aeed3"
+      "contentHash": "1ae5caf9c188295b2825c81a7ea02912fad735f69682c78bc42c68687a14f4a2"
     }
   ]
 }
