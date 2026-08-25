@@ -16,7 +16,7 @@ public sealed partial class AbMergeRuntimeAdmissionTests
 
     /// <summary>Function-open AB profiles are exposed even while 950/951 certification evidence remains pending.</summary>
     [Fact]
-    public void RuntimeCatalogContainsOnlyTheApprovedPilot()
+    public void RuntimeCatalogContainsFunctionOpenProfiles()
     {
         Assert.Equal(
             ["NT51919", "NT51929", "NT51932", "NT51950", "NT51951"],
@@ -25,9 +25,9 @@ public sealed partial class AbMergeRuntimeAdmissionTests
         Assert.All(
             BootstrapTestHost.Canonical.Projection.GetAbMergeProfileSummaries(),
             static profile => Assert.True(profile.CompileSucceeded, string.Join(',', profile.IssueCodes)));
-        Assert.True(BootstrapTestHost.Canonical.Compiler.IsAbMergeSupported("51929"));
-        Assert.True(BootstrapTestHost.Canonical.Compiler.IsAbMergeSupported("NT51950"));
-        Assert.True(BootstrapTestHost.Canonical.Compiler.IsAbMergeSupported("NT51951"));
+        Assert.True(BootstrapTestHost.Services.AbMergeAuthoring.IsAvailable("51929"));
+        Assert.True(BootstrapTestHost.Services.AbMergeAuthoring.IsAvailable("NT51950"));
+        Assert.True(BootstrapTestHost.Services.AbMergeAuthoring.IsAvailable("NT51951"));
     }
 
     /// <summary>The desktop adapter exposes compiler-owned exact-container and source-view authority.</summary>

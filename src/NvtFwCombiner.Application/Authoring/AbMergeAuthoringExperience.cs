@@ -23,7 +23,9 @@ internal sealed partial class AbMergeAuthoringExperience :
     /// <summary>Returns whether the selected IC owns an authorable AB Merge route.</summary>
     public bool IsAvailable(string icId)
     {
-        return _compiler.IsAbMergeSupported(icId);
+        return _catalog.HasAuthorableCapability(
+            IcIdentifier.Normalize(icId),
+            ExperienceIds.AbMerge);
     }
 
     /// <summary>Gets the explicit topology choices for one AB Merge route.</summary>

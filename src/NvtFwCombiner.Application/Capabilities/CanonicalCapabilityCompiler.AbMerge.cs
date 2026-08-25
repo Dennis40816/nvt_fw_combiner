@@ -6,14 +6,6 @@ namespace NvtFwCombiner.Application.Capabilities;
 
 internal sealed partial class CanonicalCapabilityCompilerAdapter
 {
-    internal bool IsAbMergeSupported(string icId)
-    {
-        ArgumentException.ThrowIfNullOrWhiteSpace(icId);
-        return _catalog.HasAuthorableCapability(
-            IcIdentifier.Normalize(icId),
-            ExperienceIds.AbMerge);
-    }
-
     internal bool TryCompileAbMerge(
         string icId,
         TopologySelection? requestedTopology,
