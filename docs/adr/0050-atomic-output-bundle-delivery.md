@@ -1,9 +1,13 @@
 # ADR 0050: Deliver optional output bundles through one atomic host boundary
 
-- Status: Accepted by product owner directive on 2026-08-20; independent R2 review pending
+- Status: Accepted by product owner directive on 2026-08-20; independent R2 review `PASS-WITH-HUMAN-GATE` on 2026-08-20
 - Owners: Product owner, architecture owner
-- Amends: ADR 0036
+- Amends: ADR 0036 and the public destination, atomicity, failure, and report semantics in ADR 0037
 - Risk: R2 delivery and public host-contract change; no firmware-semantic change
+
+Residual firmware-owner authority for A-only eligibility/ranges and release
+evidence for production packages remain mandatory; this ADR does not satisfy
+either gate.
 
 ## Context
 
@@ -33,6 +37,13 @@ stamps, and immutable bytes already used by execution. Repeated canonical
 identity plus stamp is delivered once. Different sources with the same basename
 are ordered by canonical binding/slot order and receive ` (2)`, ` (3)`, and so
 on without changing the originals.
+
+Optional additional artifacts, including the ADR 0037 A-only FlashCode, are
+members of that same bundle transaction. Public GUI and CLI entry points never
+request an independent secondary destination: canonical output, additional
+artifacts, and accepted sources are staged together and promoted once. This
+amendment changes no A-only eligibility, half-open range, bytes, naming token,
+or canonical firmware result identity.
 
 Infrastructure validates Windows names, traversal, reserved names, protected
 input aliases, and path length before visible mutation. It writes the output and
@@ -66,6 +77,9 @@ canonical firmware result identity.
 - Test invalid/reserved/traversal/path-length names and inline UI diagnostics.
 - Test deterministic source order, identical-source de-duplication, duplicate
   basename suffixes, destination races, cancellation, and injected copy failure.
+- Test that an optional AB A-only artifact requires bundle intent in GUI and
+  CLI, is included in the same promotion, and never survives as a loose or
+  partial output.
 - Test that no visible folder survives failure and no selected input is reopened
   or mutated.
 - Test UI cancellation/state retention, localization, keyboard/focus behavior,
