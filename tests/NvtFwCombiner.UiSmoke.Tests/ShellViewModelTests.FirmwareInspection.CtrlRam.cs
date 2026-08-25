@@ -145,7 +145,7 @@ public sealed partial class CtrlRamWorkflowTests
         JsonElement fixtureCase = CanonicalGoldenTestData.LoadDirectCase("ctrlram-replace", caseId);
         JsonElement baseArtifact = fixtureCase.GetProperty("artifacts").EnumerateArray().Single(
             artifact => artifact.GetProperty("artifactId").GetString() == "tp-input");
-        MainWindowViewModel viewModel = PresentationTestHost.CreateViewModel();
+        MainWindowViewModel viewModel = PresentationTestHost.CreateProductViewModel();
         viewModel.WorkflowSession.SelectedIc = icId;
         viewModel.WorkflowSession.SelectedNumber = IcNumberSelectionTokens.SingleChip;
         OpenReplace(viewModel, ExperienceIds.CtrlRamReplace);

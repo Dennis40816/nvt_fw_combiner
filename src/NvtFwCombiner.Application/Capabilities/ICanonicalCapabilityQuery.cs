@@ -29,6 +29,16 @@ public interface ICanonicalCapabilityQuery
         string icCountVariant,
         long? outputCapacity = null);
 
+    /// <summary>
+    /// Resolves one exact publication-bound metadata plan without granting
+    /// authoring or execution authority.
+    /// </summary>
+    MetadataPlanResolutionResult ResolveUniqueMetadataPlan(
+        string icId,
+        string workflowId,
+        string icCountVariant,
+        long? outputCapacity = null);
+
     /// <summary>Resolves the sole exact route matching a topology selection.</summary>
     CapabilityResolutionResult ResolveUniqueTopologyRoute(
         string icId,

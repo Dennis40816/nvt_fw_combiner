@@ -365,10 +365,10 @@ internal sealed partial class BuiltInFirmwareInspection : IFirmwareInspection
         bool isStandardMergeDpInput = StringComparer.Ordinal.Equals(
             standardMergeAddressSpaceId,
             CompositionAddressSpaceIds.DpInput);
-        CapabilityResolutionResult resolution;
+        MetadataPlanResolutionResult resolution;
         if (tpImage is null && !isStandardMergeDpInput)
         {
-            resolution = inspection._catalog.ResolveUniqueRoute(
+            resolution = inspection._catalog.ResolveUniqueMetadataPlan(
                 normalizedIcId,
                 ExperienceIds.DpReplace,
                 "1-ic");
@@ -376,7 +376,7 @@ internal sealed partial class BuiltInFirmwareInspection : IFirmwareInspection
                     resolution.Issue?.Code,
                     CapabilityCatalogIssueCodes.RouteAmbiguous))
             {
-                resolution = inspection._catalog.ResolveUniqueRoute(
+                resolution = inspection._catalog.ResolveUniqueMetadataPlan(
                     normalizedIcId,
                     ExperienceIds.DpReplace,
                     "1-ic",
@@ -385,19 +385,19 @@ internal sealed partial class BuiltInFirmwareInspection : IFirmwareInspection
         }
         else
         {
-            resolution = inspection._catalog.ResolveUniqueRoute(
+            resolution = inspection._catalog.ResolveUniqueMetadataPlan(
                 normalizedIcId,
                 ExperienceIds.StandardMerge,
                 "selector-free",
                 image.LongLength);
         }
 
-        ResolvedMetadataPlan? plan = resolution.Capability?.MetadataPlan;
+        ResolvedMetadataPlan? plan = resolution.MetadataPlan;
         bool declaresDpcmi = DeclaresDpcmi(plan);
         if (!declaresDpcmi)
         {
-            CapabilityResolutionResult dpResolution =
-                inspection._catalog.ResolveUniqueRoute(
+            MetadataPlanResolutionResult dpResolution =
+                inspection._catalog.ResolveUniqueMetadataPlan(
                     normalizedIcId,
                     ExperienceIds.DpReplace,
                     "1-ic");
@@ -405,14 +405,14 @@ internal sealed partial class BuiltInFirmwareInspection : IFirmwareInspection
                     dpResolution.Issue?.Code,
                     CapabilityCatalogIssueCodes.RouteAmbiguous))
             {
-                dpResolution = inspection._catalog.ResolveUniqueRoute(
+                dpResolution = inspection._catalog.ResolveUniqueMetadataPlan(
                     normalizedIcId,
                     ExperienceIds.DpReplace,
                     "1-ic",
                     image.LongLength);
             }
 
-            plan = dpResolution.Capability?.MetadataPlan;
+            plan = dpResolution.MetadataPlan;
             declaresDpcmi = DeclaresDpcmi(plan);
         }
 

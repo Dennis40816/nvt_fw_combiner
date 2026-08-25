@@ -1,5 +1,6 @@
 using NvtFwCombiner.Domain.Composition;
 using NvtFwCombiner.Domain.Firmware;
+using NvtFwCombiner.Application.Metadata;
 using System.Threading.Channels;
 
 namespace NvtFwCombiner.Application.Capabilities;
@@ -111,6 +112,18 @@ public sealed record CapabilityResolutionResult(
 {
     /// <summary>True only when the exact route is authoring- and execution-admitted.</summary>
     public bool Succeeded => Capability is not null && Issue is null;
+}
+
+/// <summary>
+/// Read-only metadata-plan result that carries no authoring or execution
+/// capability.
+/// </summary>
+public sealed record MetadataPlanResolutionResult(
+    ResolvedMetadataPlan? MetadataPlan,
+    CapabilityCatalogIssue? Issue)
+{
+    /// <summary>True only when one exact publication-bound metadata plan was selected.</summary>
+    public bool Succeeded => MetadataPlan is not null && Issue is null;
 }
 
 /// <summary>
@@ -345,30 +358,49 @@ public sealed class CanonicalCapabilityCatalog :
                 "No valid canonical capability catalog is loaded.");
         }
 
-        ResolvedCapability[] matches =
-        [
-            .. snapshot.Capabilities.Where(capability =>
-                StringComparer.Ordinal.Equals(capability.Identity.IcId, icId) &&
-                StringComparer.Ordinal.Equals(
-                    capability.Identity.WorkflowId,
-                    workflowId) &&
-                StringComparer.Ordinal.Equals(
-                    capability.Identity.IcCountVariant,
-                    icCountVariant) &&
-                (outputCapacity is null ||
-                 capability.CompiledComposition.Plan.OutputInitialization.Capacity ==
-                 outputCapacity.Value)),
-        ];
-        return matches.Length switch
+        PublishedRouteSelection selection = SelectUniquePublishedRoute(
+            snapshot,
+            icId,
+            workflowId,
+            icCountVariant,
+            outputCapacity);
+        return selection.Capability is null
+            ? new CapabilityResolutionResult(null, selection.Issue)
+            : Resolve(snapshot, selection.Capability.Identity.RouteId);
+    }
+
+    /// <inheritdoc />
+    public MetadataPlanResolutionResult ResolveUniqueMetadataPlan(
+        string icId,
+        string workflowId,
+        string icCountVariant,
+        long? outputCapacity = null)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(icId);
+        ArgumentException.ThrowIfNullOrWhiteSpace(workflowId);
+        ArgumentException.ThrowIfNullOrWhiteSpace(icCountVariant);
+        _ = EnsureLoaded(CancellationToken.None);
+        CanonicalCapabilityCatalogSnapshot? snapshot = Volatile.Read(ref _current);
+        if (snapshot is null)
         {
-            0 => Failure(
-                CapabilityCatalogIssueCodes.RouteUnavailable,
-                "The requested selection is not present in the current catalog."),
-            > 1 => Failure(
-                CapabilityCatalogIssueCodes.RouteAmbiguous,
-                "The requested selection resolves to more than one map variant."),
-            _ => Resolve(snapshot, matches[0].Identity.RouteId),
-        };
+            return new MetadataPlanResolutionResult(
+                null,
+                new CapabilityCatalogIssue(
+                    CapabilityCatalogIssueCodes.CatalogUnavailable,
+                    "No valid canonical capability catalog is loaded."));
+        }
+
+        PublishedRouteSelection selection = SelectUniquePublishedRoute(
+            snapshot,
+            icId,
+            workflowId,
+            icCountVariant,
+            outputCapacity);
+        return selection.Capability is null
+            ? new MetadataPlanResolutionResult(null, selection.Issue)
+            : new MetadataPlanResolutionResult(
+                selection.Capability.MetadataPlan,
+                null);
     }
 
     /// <summary>Resolves the sole published map admitted by an exact topology selection.</summary>
@@ -508,6 +540,43 @@ public sealed class CanonicalCapabilityCatalog :
             authoring.Value == CapabilityAuthoringAvailability.Available;
     }
 
+    private static PublishedRouteSelection SelectUniquePublishedRoute(
+        CanonicalCapabilityCatalogSnapshot snapshot,
+        string icId,
+        string workflowId,
+        string icCountVariant,
+        long? outputCapacity)
+    {
+        ResolvedCapability[] matches =
+        [
+            .. snapshot.Capabilities.Where(capability =>
+                StringComparer.Ordinal.Equals(capability.Identity.IcId, icId) &&
+                StringComparer.Ordinal.Equals(
+                    capability.Identity.WorkflowId,
+                    workflowId) &&
+                StringComparer.Ordinal.Equals(
+                    capability.Identity.IcCountVariant,
+                    icCountVariant) &&
+                (outputCapacity is null ||
+                 capability.CompiledComposition.Plan.OutputInitialization.Capacity ==
+                 outputCapacity.Value)),
+        ];
+        return matches.Length switch
+        {
+            0 => new PublishedRouteSelection(
+                null,
+                new CapabilityCatalogIssue(
+                    CapabilityCatalogIssueCodes.RouteUnavailable,
+                    "The requested selection is not present in the current catalog.")),
+            > 1 => new PublishedRouteSelection(
+                null,
+                new CapabilityCatalogIssue(
+                    CapabilityCatalogIssueCodes.RouteAmbiguous,
+                    "The requested selection resolves to more than one map variant.")),
+            _ => new PublishedRouteSelection(matches[0], null),
+        };
+    }
+
     private static CapabilityResolutionResult Resolve(
         CanonicalCapabilityCatalogSnapshot snapshot,
         string routeId)
@@ -585,4 +654,8 @@ public sealed class CanonicalCapabilityCatalog :
             null,
             new CapabilityCatalogIssue(code, message, subject));
     }
+
+    private sealed record PublishedRouteSelection(
+        ResolvedCapability? Capability,
+        CapabilityCatalogIssue? Issue);
 }

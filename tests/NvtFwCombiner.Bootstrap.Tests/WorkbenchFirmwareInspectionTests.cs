@@ -1,5 +1,6 @@
 using System.Text;
 using System.Text.RegularExpressions;
+using NvtFwCombiner.Application.Capabilities;
 using NvtFwCombiner.Application.FlashMaps;
 using NvtFwCombiner.Application.InputInspection;
 using NvtFwCombiner.Domain.Composition;
@@ -149,7 +150,7 @@ public sealed partial class FirmwareInspectionSnapshotTests
 
         FirmwareInspectionSnapshot dpOnly = Assert.Single(
             BuiltInFirmwareInspection.InspectFirmwareBatch(
-                BootstrapTestHost.Canonical,
+                BootstrapTestHost.ProductCanonical,
                 "NT51950",
                 [new FirmwareInspectionSnapshotInput(
                     "merge-dp",
@@ -166,7 +167,7 @@ public sealed partial class FirmwareInspectionSnapshotTests
 
         FirmwareInspectionSnapshot paired = Assert.Single(
             BuiltInFirmwareInspection.InspectFirmwareBatch(
-                BootstrapTestHost.Canonical,
+                BootstrapTestHost.ProductCanonical,
                 "NT51950",
                 [new FirmwareInspectionSnapshotInput(
                     "merge-dp",
@@ -178,6 +179,37 @@ public sealed partial class FirmwareInspectionSnapshotTests
         Assert.Null(paired.DpMetadataPrerequisite);
         Assert.Equal("CC00", Assert.IsType<DpVersionMetadata>(paired.DpVersion).VersionToken);
         Assert.Equal((ushort)576, Assert.IsType<CmiDpCodeMetadata>(paired.CmiDpCode).JiraNumber);
+    }
+
+    /// <summary>Hidden DP authoring cannot erase full-Flash DPCMI inspection facts.</summary>
+    [Fact]
+    public void ProductPolicyFullFlashRetainsReadOnlyDpcmiMetadata()
+    {
+        string basePath = GoldenArtifactPath("51926", "expected-output");
+
+        FirmwareInspectionSnapshot inspection = Assert.Single(
+            BuiltInFirmwareInspection.InspectFirmwareBatch(
+                BootstrapTestHost.ProductCanonical,
+                "NT51926",
+                [new FirmwareInspectionSnapshotInput("replace-base", basePath)]))
+            .Inspection;
+        CapabilityResolutionResult authoring =
+            BootstrapTestHost.ProductCanonical.Catalog.ResolveUniqueRoute(
+                "NT51926",
+                ExperienceIds.DpReplace,
+                "1-ic",
+                outputCapacity: 0x40000);
+
+        Assert.False(authoring.Succeeded);
+        Assert.Equal(
+            CapabilityCatalogIssueCodes.AuthoringUnavailable,
+            authoring.Issue!.Code);
+        Assert.Equal(
+            "0100",
+            Assert.IsType<DpVersionMetadata>(inspection.DpVersion).VersionToken);
+        Assert.Equal(
+            (ushort)597,
+            Assert.IsType<CmiDpCodeMetadata>(inspection.CmiDpCode).JiraNumber);
     }
 
     /// <summary>The consolidated snapshot preserves existing metadata and CtrlRAM display projections.</summary>

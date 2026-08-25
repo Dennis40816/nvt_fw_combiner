@@ -174,12 +174,18 @@ public sealed partial class CanonicalCapabilityCatalogTests
         CapabilityCatalogReloadResult reload =
             catalog.Reload(TestContext.Current.CancellationToken);
         CapabilityResolutionResult resolution = catalog.Resolve(Route.RouteId);
+        MetadataPlanResolutionResult metadata = catalog.ResolveUniqueMetadataPlan(
+            "NT51929",
+            "standard-merge",
+            "selector-free");
 
         Assert.False(reload.Succeeded);
         Assert.False(reload.RetainedLastKnownGood);
         Assert.Null(reload.Snapshot);
         Assert.False(resolution.Succeeded);
         Assert.Equal(CapabilityCatalogIssueCodes.CatalogUnavailable, resolution.Issue!.Code);
+        Assert.False(metadata.Succeeded);
+        Assert.Equal(CapabilityCatalogIssueCodes.CatalogUnavailable, metadata.Issue!.Code);
     }
 
     /// <summary>An explicit retry bypasses the cached cold-start failure and can publish a repaired source.</summary>
@@ -357,6 +363,119 @@ public sealed partial class CanonicalCapabilityCatalogTests
             resolution.Issue!.Code);
     }
 
+    /// <summary>Read-only metadata lookup retains the publication plan without reopening authoring.</summary>
+    [Fact]
+    public void ResolveUniqueMetadataPlanIgnoresAuthoringWithoutReturningExecutionAuthority()
+    {
+        CanonicalCapabilityDefinition definition = CreateDefinition(
+            CreateCompiledComposition(),
+            authoringAvailability:
+                CapabilityAuthoringAvailability.Unavailable);
+        var catalog = new CanonicalCapabilityCatalog(
+            new QueueCapabilitySource(
+                CapabilityCatalogLoadResult.Success(
+                    new CanonicalCapabilityCatalogCandidate(
+                        "canonical-capability-catalog",
+                        "1.0.0",
+                        new string('a', 64),
+                        [definition]))));
+        CapabilityCatalogReloadResult reload =
+            catalog.Reload(TestContext.Current.CancellationToken);
+
+        CapabilityResolutionResult authoring = catalog.ResolveUniqueRoute(
+            "NT51929",
+            "standard-merge",
+            "selector-free",
+            outputCapacity: 8);
+        MetadataPlanResolutionResult metadata = catalog.ResolveUniqueMetadataPlan(
+            "NT51929",
+            "standard-merge",
+            "selector-free",
+            outputCapacity: 8);
+
+        Assert.False(authoring.Succeeded);
+        Assert.Equal(
+            CapabilityCatalogIssueCodes.AuthoringUnavailable,
+            authoring.Issue!.Code);
+        Assert.True(metadata.Succeeded);
+        Assert.NotNull(metadata.MetadataPlan);
+        Assert.Equal(
+            reload.Snapshot!.ResolutionToken,
+            metadata.MetadataPlan.ResolutionToken);
+    }
+
+    /// <summary>Read-only metadata lookup uses exact capacity and fails closed on ambiguous axes.</summary>
+    [Fact]
+    public void ResolveUniqueMetadataPlanUsesCapacityAndRejectsAmbiguity()
+    {
+        var alternateRoute = new CapabilityRouteIdentity(
+            "NT51929",
+            "standard-merge",
+            "selector-free",
+            "nt51929-standard-merge-alternate");
+        var catalog = new CanonicalCapabilityCatalog(
+            new QueueCapabilitySource(
+                CapabilityCatalogLoadResult.Success(
+                    new CanonicalCapabilityCatalogCandidate(
+                        "canonical-capability-catalog",
+                        "1.0.0",
+                        new string('a', 64),
+                        [
+                            CreateDefinition(CreateCompiledComposition()),
+                            CreateDefinition(
+                                CreateCompiledComposition(
+                                    alternateRoute.MapVariant,
+                                    outputCapacity: 16),
+                                alternateRoute),
+                        ]))));
+        CapabilityCatalogReloadResult reload =
+            catalog.Reload(TestContext.Current.CancellationToken);
+
+        MetadataPlanResolutionResult ambiguous = catalog.ResolveUniqueMetadataPlan(
+            "NT51929",
+            "standard-merge",
+            "selector-free");
+        MetadataPlanResolutionResult exact = catalog.ResolveUniqueMetadataPlan(
+            "NT51929",
+            "standard-merge",
+            "selector-free",
+            outputCapacity: 16);
+        MetadataPlanResolutionResult unavailable = catalog.ResolveUniqueMetadataPlan(
+            "NT51950",
+            "standard-merge",
+            "selector-free",
+            outputCapacity: 16);
+        MetadataPlanResolutionResult wrongWorkflow = catalog.ResolveUniqueMetadataPlan(
+            "NT51929",
+            "ab-merge",
+            "selector-free",
+            outputCapacity: 16);
+        MetadataPlanResolutionResult wrongCount = catalog.ResolveUniqueMetadataPlan(
+            "NT51929",
+            "standard-merge",
+            "2-ic",
+            outputCapacity: 16);
+
+        Assert.False(ambiguous.Succeeded);
+        Assert.Equal(
+            CapabilityCatalogIssueCodes.RouteAmbiguous,
+            ambiguous.Issue!.Code);
+        Assert.True(exact.Succeeded);
+        Assert.Equal(
+            reload.Snapshot!.ResolutionToken,
+            exact.MetadataPlan!.ResolutionToken);
+        Assert.False(unavailable.Succeeded);
+        Assert.Equal(
+            CapabilityCatalogIssueCodes.RouteUnavailable,
+            unavailable.Issue!.Code);
+        Assert.Equal(
+            CapabilityCatalogIssueCodes.RouteUnavailable,
+            wrongWorkflow.Issue!.Code);
+        Assert.Equal(
+            CapabilityCatalogIssueCodes.RouteUnavailable,
+            wrongCount.Issue!.Code);
+    }
+
     /// <summary>Selection without a map variant fails closed when more than one map is published.</summary>
     [Fact]
     public void ResolveUniqueRouteRejectsAmbiguousMapVariants()
@@ -462,16 +581,17 @@ public sealed partial class CanonicalCapabilityCatalogTests
     }
 
     private static CompiledComposition CreateCompiledComposition(
-        string? mapId = null)
+        string? mapId = null,
+        long outputCapacity = 8)
     {
         AddressSpace[] addressSpaces =
         [
             new("dp-input", 4, AddressSpaceMutability.Immutable),
             new("tp-input", 4, AddressSpaceMutability.Immutable),
-            new("output-image", 8, AddressSpaceMutability.Mutable),
+            new("output-image", outputCapacity, AddressSpaceMutability.Mutable),
         ];
         var plan = new CompositionPlan(
-            ImageInitialization.Blank("output-image", 8, 0),
+            ImageInitialization.Blank("output-image", outputCapacity, 0),
             addressSpaces,
             [
                 CompositionOperation.CopyRange(

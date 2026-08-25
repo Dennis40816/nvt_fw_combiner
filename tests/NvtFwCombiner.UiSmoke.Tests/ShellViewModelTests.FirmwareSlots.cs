@@ -197,8 +197,9 @@ public sealed partial class FirmwareInspectionSlotTests
     [Fact]
     public async Task BaseFirmwareSlotShowsFwConfigFacts()
     {
-        MainWindowViewModel viewModel = PresentationTestHost.CreateViewModel();
+        MainWindowViewModel viewModel = PresentationTestHost.CreateProductViewModel();
         viewModel.WorkflowSession.SelectedIc = "NT51926";
+        OpenReplace(viewModel, ExperienceIds.CtrlRamReplace);
         using var golden = StandardMergeGoldenManifest.Load();
         string basePath = golden.ExpectedOutputPath(golden.CaseByIc("51926"));
 
