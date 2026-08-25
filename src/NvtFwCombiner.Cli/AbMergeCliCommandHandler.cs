@@ -220,9 +220,32 @@ internal static class AbMergeCliCommandHandler
             return CompositionFailed;
         }
 
+        ActiveSessionSnapshot acceptedSession = prepared.Snapshot!;
+        CapabilityActionReadinessSnapshot? readiness =
+            await services.AbMergeAuthoring.GetActionReadinessAsync(
+                    acceptedSession,
+                    cancellationToken)
+                .ConfigureAwait(false);
+        CapabilityActionAvailability? selectedAction = build
+            ? readiness?.Build
+            : readiness?.Preview;
+        if (selectedAction?.IsAvailable != true)
+        {
+            CapabilityActionBlocker? blocker = selectedAction?.PrimaryBlocker;
+            await CliCompositionRunSupport.PrintIssuesAsync(
+                    error,
+                    [new CompositionIssue(
+                        blocker?.Code ?? CapabilityActionReadinessIssueCodes.RuntimeSnapshotStale,
+                        blocker?.Message ??
+                            "AB Merge action readiness is unavailable for the accepted publication.",
+                        blocker?.SubjectId ?? ExperienceIds.AbMerge)])
+                .ConfigureAwait(false);
+            return CompositionFailed;
+        }
+
         if (!CliBundleOptions.TryCreateIntent(
                 services.OutputNaming,
-                prepared.Snapshot!,
+                acceptedSession,
                 options.Values,
                 error,
                 out CompositionOutputBundleIntent? outputBundle,
@@ -236,7 +259,7 @@ internal static class AbMergeCliCommandHandler
         CompositionRunResult result = await services.Execution
             .ExecuteAsync(
                 new AcceptedCompositionExecutionRequest(
-                    prepared.Snapshot!,
+                    acceptedSession,
                     slotPaths,
                     build,
                     outputPath: build && hasExplicitOutput && !bundleBuild ? outputTarget.FullPath : null,
@@ -247,6 +270,7 @@ internal static class AbMergeCliCommandHandler
                         ? outputTarget.OutputDirectory
                         : null,
                     reportPath: build ? reportPath : null,
+                    actionReadiness: readiness,
                     outputBundle: outputBundle),
                 new CompositionRunProgressFeed(),
                 cancellationToken)

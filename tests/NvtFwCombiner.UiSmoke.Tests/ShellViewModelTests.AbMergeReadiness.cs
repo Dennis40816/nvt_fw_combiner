@@ -93,6 +93,45 @@ public sealed partial class FirmwareInspectionSlotTests
         Assert.True(viewModel.Reports.LoadedReport.HasOperations);
     }
 
+    /// <summary>NT51950 publishes processor readiness before the ordinary desktop Preview command executes.</summary>
+    [Fact]
+    public async Task Nt51950AbMergeRefreshesRuntimeReadinessForDesktopPreview()
+    {
+        JsonElement goldenCase = CanonicalGoldenTestData.LoadDirectCase(
+            "ab-merge",
+            "nt51950-ab-boe-d82t80");
+        using var workspace = TempWorkspace.Create("nvt-fw-combiner-ui-ab-runtime-readiness");
+        MainWindowViewModel viewModel = PresentationTestHost.CreateViewModel();
+        viewModel.ShowMergeCommand.Execute(null);
+        viewModel.WorkflowSession.SelectedIc = "NT51950";
+        viewModel.WorkflowSession.SelectedNumber = IcNumberSelectionTokens.SingleChip;
+        viewModel.Merge.SelectedMergeMode = ExperienceIds.AbMerge;
+
+        foreach (JsonElement artifact in goldenCase.GetProperty("artifacts")
+                     .EnumerateArray()
+                     .Where(static candidate =>
+                         candidate.GetProperty("role").GetString() == "input"))
+        {
+            string slotId = artifact.GetProperty("artifactId").GetString()!;
+            string path = workspace.PathFor($"{slotId}.bin");
+            File.Copy(CanonicalGoldenTestData.ArtifactPath(artifact), path);
+            await viewModel.WorkflowSession.SetSlotFileAsync(
+                slotId,
+                path,
+                TestContext.Current.CancellationToken);
+        }
+
+        Assert.True(viewModel.Merge.PreviewMergeCommand.CanExecute(null));
+        Assert.True(viewModel.Merge.CanBuildMerge);
+
+        await viewModel.Merge.PreviewMergeCommand.ExecuteAsync(null);
+
+        Assert.True(
+            viewModel.RunSession.LastRunResult.Succeeded,
+            viewModel.RunSession.LastRunResult.Detail);
+        Assert.True(viewModel.Merge.CanBuildMerge);
+    }
+
     /// <summary>Informational AB facts cannot replace canonical session publication.</summary>
     [Fact]
     public async Task AbMergeFactsDoNotReplaceCanonicalStatus()

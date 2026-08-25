@@ -28,21 +28,37 @@ internal sealed partial class AbMergeAuthoringExperience
             RuntimeDependencyReadinessRequest.FromResolvedCapability(
                 capability,
                 acceptedSession.AuthoringRevision);
+        CapabilityAdmissionSnapshot admission =
+            CapabilityAdmissionSnapshot.FromResolvedCapability(
+                capability,
+                acceptedSession.AuthoringRevision);
+        IEnumerable<CapabilityChildReadiness> inputs =
+            acceptedSession.InputSlotStatuses.Select(static status =>
+                new CapabilityChildReadiness(
+                    status.SlotId,
+                    ResolvedChildReadiness.Ready));
         if (request.Dependencies.Count == 0)
         {
-            return null;
+            return CapabilityActionReadinessResolver.Resolve(
+                admission,
+                inputs,
+                new RuntimeDependencyReadinessSnapshot(
+                    request.RouteId,
+                    request.CapabilityFingerprint,
+                    request.CompilationFingerprint,
+                    request.ResolutionToken,
+                    request.AuthoringRevision,
+                    generation: 0,
+                    DateTimeOffset.UnixEpoch,
+                    []),
+                currentRuntimeDependencyGeneration: 0);
         }
 
         RuntimeDependencyReadinessLease runtime = _runtimeLeases.AcquireCurrent();
         CapabilityActionReadinessSnapshot readiness =
             await CapabilityActionReadinessResolver.RefreshAndResolveAsync(
-                CapabilityAdmissionSnapshot.FromResolvedCapability(
-                    capability,
-                    acceptedSession.AuthoringRevision),
-                acceptedSession.InputSlotStatuses.Select(static status =>
-                    new CapabilityChildReadiness(
-                        status.SlotId,
-                        ResolvedChildReadiness.Ready)),
+                admission,
+                inputs,
                 request,
                 runtime.ReadinessProvider,
                 runtime.Generation,

@@ -1,5 +1,6 @@
 using System.Buffers.Binary;
 using System.Text.Json;
+using NvtFwCombiner.Application.Capabilities;
 using NvtFwCombiner.Application.FlashMaps;
 using NvtFwCombiner.Domain.Composition;
 using NvtFwCombiner.TestSupport;
@@ -165,6 +166,10 @@ public sealed class AbMergeCliCommandTests
             TestContext.Current.CancellationToken);
 
         Assert.True(result.ExitCode == 0, result.Error + Environment.NewLine + result.Output);
+        Assert.DoesNotContain(
+            CapabilityActionReadinessIssueCodes.RuntimeSnapshotStale,
+            result.Error,
+            StringComparison.Ordinal);
         using var report = JsonDocument.Parse(await File.ReadAllTextAsync(
             reportPath,
             TestContext.Current.CancellationToken));

@@ -185,13 +185,36 @@ internal sealed partial class MergePresentationViewModel
                 experienceId: ExperienceIds.GeneralMerge));
     }
 
-    private Task RunAbMergeAsync(
+    private async Task RunAbMergeAsync(
         bool build,
         string? outputPath,
         string? aFlashCodeOutputPath,
         bool outputPathUsesAutomaticName,
         bool aFlashCodeOutputPathUsesAutomaticName,
         CompositionOutputBundleIntent? outputBundle = null)
+    {
+        await RefreshAbMergeActionReadinessAsync(CancellationToken.None);
+        if (!HasCurrentAbMergeActionReadiness(build))
+        {
+            return;
+        }
+
+        await RunAbMergeWithCurrentReadinessAsync(
+            build,
+            outputPath,
+            aFlashCodeOutputPath,
+            outputPathUsesAutomaticName,
+            aFlashCodeOutputPathUsesAutomaticName,
+            outputBundle);
+    }
+
+    private Task RunAbMergeWithCurrentReadinessAsync(
+        bool build,
+        string? outputPath,
+        string? aFlashCodeOutputPath,
+        bool outputPathUsesAutomaticName,
+        bool aFlashCodeOutputPathUsesAutomaticName,
+        CompositionOutputBundleIntent? outputBundle)
     {
         string icId = SelectedIc;
         IReadOnlyDictionary<string, string> slotPaths = CreateAbMergeSlotPaths();
@@ -211,6 +234,7 @@ internal sealed partial class MergePresentationViewModel
                     outputPathUsesAutomaticName: outputPathUsesAutomaticName,
                     additionalDeliveryOutputPathUsesAutomaticName:
                         aFlashCodeOutputPathUsesAutomaticName,
+                    actionReadiness: _abMergeActionReadiness,
                     outputBundle: outputBundle),
                 progress,
                 cancellationToken),

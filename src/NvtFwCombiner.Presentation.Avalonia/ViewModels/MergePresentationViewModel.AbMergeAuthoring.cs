@@ -1,9 +1,13 @@
 using NvtFwCombiner.Application.Authoring;
+using NvtFwCombiner.Application.Capabilities;
 
 namespace NvtFwCombiner.Presentation.Avalonia.ViewModels;
 
 internal sealed partial class MergePresentationViewModel
 {
+    private CapabilityActionReadinessSnapshot? _abMergeActionReadiness;
+    private ActiveSessionSnapshot? _abMergeReadinessSession;
+
     internal AuthoringRevision AbMergeAuthoringRevision =>
         _abMergeSession.CurrentSnapshot?.AuthoringRevision ?? new AuthoringRevision(1);
 
@@ -16,6 +20,7 @@ internal sealed partial class MergePresentationViewModel
             return EmptyInspectionLeases();
         }
 
+        ClearAbMergeActionReadiness();
         CompiledAuthoringSelectionSnapshot projection = ResolveAbMergeAuthoringSnapshot();
         AuthoringSessionTransitionResult activated =
             _abMergeSession.Activate(projection.Catalog);
@@ -53,6 +58,7 @@ internal sealed partial class MergePresentationViewModel
 
     internal void RefreshAbMergeAuthoringState()
     {
+        ClearAbMergeActionReadiness();
         if (!IsAbCodeMergeModeSelected)
         {
             return;
@@ -98,5 +104,54 @@ internal sealed partial class MergePresentationViewModel
     private void SyncAbMergeMembership(ActiveSessionSnapshot? snapshot)
     {
         SyncInputMembership(snapshot, AbMergeSlots, static slot => slot.SlotId);
+    }
+
+    internal async Task RefreshAbMergeActionReadinessAsync(
+        CancellationToken cancellationToken)
+    {
+        ClearAbMergeActionReadiness();
+        ActiveSessionSnapshot? session = _abMergeSession.CurrentSnapshot;
+        if (!IsAbCodeMergeModeSelected || session is null)
+        {
+            RefreshCommandState();
+            return;
+        }
+
+        CapabilityActionReadinessSnapshot? readiness =
+            await _compositionServices.AbMergeAuthoring.GetActionReadinessAsync(
+                    session,
+                    cancellationToken)
+                .ConfigureAwait(false);
+        if (readiness is not null &&
+            ReferenceEquals(session, _abMergeSession.CurrentSnapshot) &&
+            IsAbCodeMergeModeSelected)
+        {
+            _abMergeActionReadiness = readiness;
+            _abMergeReadinessSession = session;
+        }
+        RefreshCommandState();
+    }
+
+    internal bool HasCurrentAbMergeActionReadiness(bool build)
+    {
+        ActiveSessionSnapshot? current = _abMergeSession.CurrentSnapshot;
+        CapabilityActionReadinessSnapshot? readiness = _abMergeActionReadiness;
+        return readiness is not null &&
+            ReferenceEquals(current, _abMergeReadinessSession) &&
+            readiness.ResolutionToken == current?.ResolutionToken &&
+            readiness.AuthoringRevision == current?.AuthoringRevision &&
+            StringComparer.Ordinal.Equals(
+                readiness.CapabilityFingerprint,
+                current?.ExactCapability?.CapabilityFingerprint) &&
+            StringComparer.Ordinal.Equals(
+                readiness.CompilationFingerprint,
+                current?.CompilationFingerprint) &&
+            (build ? readiness.Build : readiness.Preview).IsAvailable;
+    }
+
+    private void ClearAbMergeActionReadiness()
+    {
+        _abMergeActionReadiness = null;
+        _abMergeReadinessSession = null;
     }
 }

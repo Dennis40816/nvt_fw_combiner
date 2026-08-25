@@ -159,7 +159,8 @@ internal sealed partial class MergePresentationViewModel
             IsAbMergeSupported &&
             (!HasAbMergeTopologyChoices || GetSelectedAbMergeTopologyToken() is not null) &&
             session?.HasCurrentInputInspection == true &&
-            StringComparer.Ordinal.Equals(session.SelectedIc, SelectedIc);
+            StringComparer.Ordinal.Equals(session.SelectedIc, SelectedIc) &&
+            HasCurrentAbMergeActionReadiness(build: false);
     }
 
     internal bool CanRunMerge()

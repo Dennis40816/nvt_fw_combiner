@@ -297,6 +297,12 @@ internal sealed partial class WorkflowSessionPresentationViewModel
                             await _replace.RefreshCtrlRamActionReadinessAsync(
                                 cancellationToken);
                         }
+                        if (request.Items.Any(static item =>
+                                item.AbMergeAddressSpaceId is not null))
+                        {
+                            await _merge.RefreshAbMergeActionReadinessAsync(
+                                cancellationToken);
+                        }
                         return new(true);
                     }
                     else if (isCurrent() && !result.IsContentStable &&

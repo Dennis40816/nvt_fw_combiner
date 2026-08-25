@@ -161,10 +161,11 @@ public sealed partial class AbMergeGoldenRegressionTests
             BootstrapTestHost.Canonical.Compiler,
             BootstrapTestHost.Canonical.Catalog,
             ThrowingRuntimeLeaseProvider.Instance);
-        CapabilityActionReadinessSnapshot? readiness =
-            await authoring.GetActionReadinessAsync(
+        CapabilityActionReadinessSnapshot readiness =
+            Assert.IsType<CapabilityActionReadinessSnapshot>(
+                await authoring.GetActionReadinessAsync(
                 accepted,
-                TestContext.Current.CancellationToken);
+                TestContext.Current.CancellationToken));
         int leaseAcquisitions = 0;
         ICompositionExecution execution = CompositionExecutionTestSupport.Create(
             BootstrapTestHost.Canonical,
@@ -184,7 +185,9 @@ public sealed partial class AbMergeGoldenRegressionTests
             TestContext.Current.CancellationToken);
 
         Assert.True(result.Succeeded, CompositionRunReportJson.Serialize(result));
-        Assert.Null(readiness);
+        Assert.Equal(0, readiness.RuntimeDependencyGeneration);
+        Assert.True(readiness.Preview.IsAvailable);
+        Assert.True(readiness.Build.IsAvailable);
         Assert.Equal(0, leaseAcquisitions);
     }
 

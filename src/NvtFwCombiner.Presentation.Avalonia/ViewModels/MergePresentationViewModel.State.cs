@@ -190,7 +190,8 @@ internal sealed partial class MergePresentationViewModel
             _generalMergeActionReadiness),
         AbCodeMergeMode => ActiveSessionBuildBlockerResolver.Resolve(
             _abMergeSession.CurrentSnapshot,
-            AbCodeMergeMode),
+            AbCodeMergeMode,
+            _abMergeActionReadiness),
         _ => ActiveSessionBuildBlockerResolver.Resolve(
             _standardMergeSession.CurrentSnapshot,
             NormalMergeMode),
