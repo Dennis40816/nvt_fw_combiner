@@ -1,4 +1,5 @@
 using System.Text.Json;
+using NvtFwCombiner.Application.InputInspection;
 using NvtFwCombiner.Domain.Composition;
 using NvtFwCombiner.Presentation.Avalonia;
 using NvtFwCombiner.Presentation.Avalonia.ViewModels;
@@ -607,6 +608,9 @@ public sealed partial class FirmwareInspectionSlotTests
             new DpVersionMetadata(versionToken),
             null,
             null,
-            null);
+            null)
+        {
+            ArtifactClassification = CreateArtifactClassification(CompiledFirmwareArtifactKind.FlashCode),
+        };
     }
 }

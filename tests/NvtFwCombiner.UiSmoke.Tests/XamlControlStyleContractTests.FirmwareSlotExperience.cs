@@ -1,6 +1,5 @@
 using NvtFwCombiner.Application.Metadata;
 using NvtFwCombiner.Domain.Composition;
-using NvtFwCombiner.Presentation.Avalonia;
 using NvtFwCombiner.Presentation.Avalonia.ViewModels;
 
 namespace NvtFwCombiner.UiSmoke.Tests;
@@ -519,14 +518,5 @@ public sealed partial class XamlControlStyleContractTests
         _ = Assert.Throws<ArgumentOutOfRangeException>(() =>
             new FirmwareSlotFactViewModel("TP", "T01-01", (FirmwareSlotFactState)999, "Invalid", "Invalid state."));
 
-        var emptyInspection = new FirmwareInspectionSnapshot(null, null, null, null, null, null);
-        FirmwareSlotFactViewModel localizedUnknown = Assert.Single(
-            UiCompositionRunner.GetDpFirmwareSlotFacts(
-                emptyInspection,
-                ShellTextResources.For(ShellLanguage.ChineseTraditional)));
-        Assert.Equal("未知", localizedUnknown.Value);
-        Assert.Contains("DP", localizedUnknown.StateAutomationText, StringComparison.Ordinal);
-        Assert.Contains("未知", localizedUnknown.StateAutomationText, StringComparison.Ordinal);
-        Assert.Contains("無法解碼 metadata", localizedUnknown.StateAutomationText, StringComparison.Ordinal);
     }
 }

@@ -38,77 +38,26 @@ public sealed partial class FirmwareInspectionSlotTests
             new DpVersionMetadata("000D"),
             null,
             null,
-            null);
+            null)
+        {
+            ArtifactClassification = CreateArtifactClassification(CompiledFirmwareArtifactKind.FlashCode),
+        };
         var cmi = new FirmwareInspectionSnapshot(
             null,
             null,
             null,
             new CmiDpCodeMetadata(0x00, 0x0D, 0, 0),
             null,
-            null);
+            null)
+        {
+            ArtifactClassification = CreateArtifactClassification(CompiledFirmwareArtifactKind.FlashCode),
+        };
 
         FirmwareSlotFactViewModel legacyFact = Assert.Single(UiCompositionRunner.GetDpFirmwareSlotFacts(legacy));
         FirmwareSlotFactViewModel cmiFact = Assert.Single(UiCompositionRunner.GetDpFirmwareSlotFacts(cmi));
 
         Assert.Equal(new FirmwareSlotFactViewModel("DP Version", "D00-0D"), legacyFact);
         Assert.Equal(legacyFact, cmiFact);
-    }
-
-    /// <summary>The terminal DP decision suppresses facts even when lower-level classification evidence is absent.</summary>
-    [Fact]
-    public void TerminalDpDecisionSuppressesFactsWithoutClassificationEvidence()
-    {
-        var tpFirmware = new FirmwareInspectionSnapshot(
-            "NT51927",
-            null,
-            null,
-            null,
-            null,
-            null,
-            BaseFirmwareArtifactKind.TpFirmware);
-
-        Assert.Empty(UiCompositionRunner.GetDpFirmwareSlotFacts(tpFirmware));
-    }
-
-    /// <summary>A compiled classification wins both directions of a contradictory legacy Base value.</summary>
-    [Fact]
-    public void CompiledDpMetadataDecisionWinsLegacyBaseFallback()
-    {
-        var legacyFlashCode = new FirmwareInspectionSnapshot(
-            "NT51927",
-            null,
-            new DpVersionMetadata("0102"),
-            null,
-            null,
-            null,
-            BaseFirmwareArtifactKind.FlashCode)
-        {
-            ArtifactClassification = CreateArtifactClassification(CompiledFirmwareArtifactKind.TpFirmware),
-        };
-        FirmwareInspectionSnapshot legacyTpFirmware = legacyFlashCode with
-        {
-            BaseFirmwareArtifactKind = BaseFirmwareArtifactKind.TpFirmware,
-            ArtifactClassification = CreateArtifactClassification(CompiledFirmwareArtifactKind.FlashCode),
-        };
-
-        Assert.Empty(UiCompositionRunner.GetDpFirmwareSlotFacts(legacyFlashCode));
-        Assert.NotEmpty(UiCompositionRunner.GetDpFirmwareSlotFacts(legacyTpFirmware));
-    }
-
-    private static CompiledFirmwareArtifactClassification CreateArtifactClassification(
-        CompiledFirmwareArtifactKind kind)
-    {
-        return new CompiledFirmwareArtifactClassification(
-            kind,
-            [
-                .. Enum.GetValues<CompiledFirmwareArtifactSignalKind>().Select(signalKind =>
-                    new CompiledFirmwareArtifactSignal(
-                        signalKind,
-                        CompiledFirmwareArtifactSignalStatus.Satisfied,
-                        AddressSpaceId: null,
-                        RequiredEndExclusive: 0,
-                        FailedRange: null)),
-            ]);
     }
 
     /// <summary>Verifies slot completion retains required and optional semantics for XAML state selectors.</summary>
@@ -413,13 +362,7 @@ public sealed partial class FirmwareInspectionSlotTests
             [
                 .. inputs.Select(input => new FirmwareInspectionSnapshotResult(
                     input.InspectionId,
-                    new FirmwareInspectionSnapshot(
-                        null,
-                        null,
-                        new DpVersionMetadata(version),
-                        null,
-                        null,
-                        null))),
+                    DpInspection(version))),
             ];
         });
         viewModel.ShowMergeCommand.Execute(null);

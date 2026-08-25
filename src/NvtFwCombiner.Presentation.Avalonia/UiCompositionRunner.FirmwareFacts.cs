@@ -45,9 +45,7 @@ internal static partial class UiCompositionRunner
         ArgumentNullException.ThrowIfNull(inspection);
         text ??= ShellTextResources.For(ShellLanguage.English);
 
-        bool isApplicable = inspection.ArtifactClassification?.IsDpMetadataApplicable ??
-            (inspection.BaseFirmwareArtifactKind != BaseFirmwareArtifactKind.TpFirmware);
-        if (!isApplicable)
+        if (inspection.ArtifactClassification?.IsDpMetadataApplicable != true)
         {
             return [];
         }

@@ -83,7 +83,7 @@ public sealed record FirmwareContextSuggestion(
     string CommonFwVersion,
     ushort ProjectId);
 
-/// <summary>Compatibility shape for CtrlRAM naming; DP metadata uses it only when compiled classification is absent.</summary>
+/// <summary>Compatibility shape for CtrlRAM naming; terminal artifact classification alone owns DP metadata applicability.</summary>
 public enum BaseFirmwareArtifactKind
 {
     /// <summary>The available bytes do not establish a declared TP-only or FlashCode shape.</summary>
