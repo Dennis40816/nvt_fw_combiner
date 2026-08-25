@@ -2,6 +2,7 @@ using System.Security.Cryptography;
 using System.Text.Json;
 using NvtFwCombiner.Domain.Composition;
 using NvtFwCombiner.Presentation.Avalonia.ViewModels;
+using NvtFwCombiner.Presentation.Avalonia.Views;
 using NvtFwCombiner.TestSupport;
 
 namespace NvtFwCombiner.UiSmoke.Tests;
@@ -83,6 +84,59 @@ public sealed partial class MergeWorkflowTests
         Assert.Equal(
             Convert.ToHexStringLower(SHA256.HashData(additionalBytes)),
             delivery.GetProperty("Sha256").GetString());
+    }
+
+    /// <summary>Cancelling the loose A-only picker after choosing a primary publishes nothing.</summary>
+    [Fact]
+    public async Task AbLooseAdditionalPickerCancellationDoesNotRunOrPublishPrimary()
+    {
+        const int dpLength = 0x80000;
+        const int tpLength = 0x40000;
+        using var inputs = TempWorkspace.Create("nvt-fw-combiner-ui-ab-cancel-inputs");
+        using var destination = TempWorkspace.Create("nvt-fw-combiner-ui-ab-cancel-output");
+        byte[] dp = new byte[dpLength];
+        WriteUiAbCmi(dp, 0, major: 0x06, minor: 0x05, jira: 0x123);
+        WriteUiAbCmi(dp, tpLength, major: 0x07, minor: 0x08, jira: 0x456);
+        MainWindowViewModel viewModel = PresentationTestHost.CreateViewModel();
+        viewModel.ShowMergeCommand.Execute(null);
+        viewModel.WorkflowSession.SelectedIc = "NT51929";
+        viewModel.Merge.SelectedMergeMode = ExperienceIds.AbMerge;
+        await viewModel.WorkflowSession.SetSlotFileAsync(
+            CompositionAddressSpaceIds.DpAbInput,
+            inputs.Write("dp-ab.bin", dp),
+            TestContext.Current.CancellationToken);
+        await viewModel.WorkflowSession.SetSlotFileAsync(
+            CompositionAddressSpaceIds.TpAInput,
+            inputs.Write("tp-a.bin", CreateUiAbTpImage(0x81, 0x00, 1, 4, 1, 0x5102)),
+            TestContext.Current.CancellationToken);
+        await viewModel.WorkflowSession.SetSlotFileAsync(
+            CompositionAddressSpaceIds.TpBInput,
+            inputs.Write("tp-b.bin", CreateUiAbTpImage(0x82, 0x03, 2, 0, 0, 0x6A5C)),
+            TestContext.Current.CancellationToken);
+        await viewModel.Merge.RequestBuildOutputDeliveryAsync();
+        viewModel.OutputDelivery.SetAdditionalDeliveryEnabled(true);
+        UiRunResultViewModel before = viewModel.RunSession.LastRunResult;
+        int primaryPickCount = 0;
+        int additionalPickCount = 0;
+        string primaryPath = Path.Combine(destination.Root, viewModel.OutputDelivery.OutputFileName);
+
+        await OutputDeliveryConfirmationModal.ConfirmPreparedLooseWithPickersAsync(
+            viewModel.OutputDelivery,
+            () =>
+            {
+                primaryPickCount++;
+                return Task.FromResult<string?>(primaryPath);
+            },
+            () =>
+            {
+                additionalPickCount++;
+                return Task.FromResult<string?>(null);
+            });
+
+        Assert.Equal(1, primaryPickCount);
+        Assert.Equal(1, additionalPickCount);
+        Assert.Same(before, viewModel.RunSession.LastRunResult);
+        Assert.Empty(Directory.EnumerateFileSystemEntries(destination.Root));
     }
 
 }

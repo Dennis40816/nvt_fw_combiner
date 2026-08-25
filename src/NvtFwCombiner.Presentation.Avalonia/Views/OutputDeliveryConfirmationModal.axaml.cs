@@ -267,13 +267,30 @@ public sealed partial class OutputDeliveryConfirmationModal : UserControl
             return;
         }
 
-        string? outputPath = viewModel.IsReplaceOutput
-            ? await FirmwareFilePickerDialogs.PickReplacedFirmwareOutputPathAsync(
+        await ConfirmPreparedLooseWithPickersAsync(
+            viewModel,
+            () => viewModel.IsReplaceOutput
+                ? FirmwareFilePickerDialogs.PickReplacedFirmwareOutputPathAsync(
+                    storageProvider,
+                    viewModel.OutputFileName)
+                : FirmwareFilePickerDialogs.PickMergedFirmwareOutputPathAsync(
+                    storageProvider,
+                    viewModel.OutputFileName),
+            () => FirmwareFilePickerDialogs.PickAbAFlashCodeOutputPathAsync(
                 storageProvider,
-                viewModel.OutputFileName)
-            : await FirmwareFilePickerDialogs.PickMergedFirmwareOutputPathAsync(
-                storageProvider,
-                viewModel.OutputFileName);
+                viewModel.AdditionalSuggestedFileName));
+    }
+
+    internal static async Task ConfirmPreparedLooseWithPickersAsync(
+        OutputDeliveryConfirmationViewModel viewModel,
+        Func<Task<string?>> pickPrimaryAsync,
+        Func<Task<string?>> pickAdditionalAsync)
+    {
+        ArgumentNullException.ThrowIfNull(viewModel);
+        ArgumentNullException.ThrowIfNull(pickPrimaryAsync);
+        ArgumentNullException.ThrowIfNull(pickAdditionalAsync);
+
+        string? outputPath = await pickPrimaryAsync();
         if (outputPath is null)
         {
             return;
@@ -282,9 +299,7 @@ public sealed partial class OutputDeliveryConfirmationModal : UserControl
         string? additionalPath = null;
         if (viewModel.AdditionalDeliveryEnabled && !viewModel.BundleEnabled)
         {
-            additionalPath = await FirmwareFilePickerDialogs.PickAbAFlashCodeOutputPathAsync(
-                storageProvider,
-                viewModel.AdditionalSuggestedFileName);
+            additionalPath = await pickAdditionalAsync();
             if (additionalPath is null)
             {
                 return;
