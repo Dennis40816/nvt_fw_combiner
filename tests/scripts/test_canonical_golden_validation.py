@@ -92,12 +92,31 @@ class CanonicalGoldenValidationTests(unittest.TestCase):
             ],
         }
         self.write_json(provenance / "case.json", self.case_manifest)
+        self.route_id = "test-standard-merge-route"
+        self.route_fingerprint = "1" * 64
+        expected_payload = expected_path.read_bytes()
         self.root_manifest = {
-            "schemaVersion": "1.0",
+            "schemaVersion": "1.1",
             "payloadClass": "owner-approved-golden",
             "binaryPayloadsIncluded": True,
             "diagnosticsRoot": "testdata/diagnostics/golden-evidence",
             "cases": [{"caseId": case_id, "manifestPath": case_manifest_path}],
+            "routeEvidence": [
+                {
+                    "evidenceId": "test-direct-golden",
+                    "kind": "direct-golden",
+                    "routeId": self.route_id,
+                    "capabilityFingerprint": self.route_fingerprint,
+                    "caseId": case_id,
+                    "testReference": ("tests/golden_runner.py#direct_full_output"),
+                    "expectedView": {
+                        "artifactId": "expected-output",
+                        "start": 0,
+                        "length": len(expected_payload),
+                        "sha256": hashlib.sha256(expected_payload).hexdigest(),
+                    },
+                }
+            ],
         }
         self.write_json(self.canonical / "manifest.json", self.root_manifest)
         (self.canonical / "README.md").write_text(
@@ -181,6 +200,16 @@ class CanonicalGoldenValidationTests(unittest.TestCase):
             "evidenceRefs": ["tests/golden_runner.py#direct_full_output"],
         }
         self.rewrite_case()
+        self.root_manifest["routeEvidence"] = [
+            {
+                "evidenceId": "test-contract-only",
+                "kind": "contract-only",
+                "routeId": self.route_id,
+                "capabilityFingerprint": self.route_fingerprint,
+                "testReference": "tests/golden_runner.py#direct_full_output",
+            }
+        ]
+        self.rewrite_root()
 
     def add_alias(
         self,
@@ -227,8 +256,227 @@ class CanonicalGoldenValidationTests(unittest.TestCase):
         self.rewrite_root()
         return alias_provenance / "case.json"
 
+    def add_route_evidence_alias(
+        self,
+        *,
+        source_route_id: str | None = None,
+        source_fingerprint: str | None = None,
+        fact_scope_ids: list[str] | None = None,
+    ) -> dict[str, object]:
+        alias_manifest = self.add_alias("nt51927-standard-merge-gen-flash")
+        alias_case = json.loads(alias_manifest.read_text(encoding="utf-8"))
+        evidence: dict[str, object] = {
+            "evidenceId": "test-approved-alias",
+            "kind": "approved-alias",
+            "routeId": "test-standard-merge-alias-route",
+            "capabilityFingerprint": "2" * 64,
+            "sourceRouteId": source_route_id or self.route_id,
+            "sourceCapabilityFingerprint": (
+                source_fingerprint or self.route_fingerprint
+            ),
+            "caseId": alias_case["caseId"],
+            "factScopeIds": fact_scope_ids or ["standard-merge-region-set"],
+            "testReference": "tests/golden_runner.py#direct_full_output",
+        }
+        self.root_manifest["routeEvidence"].append(evidence)
+        self.rewrite_root()
+        return evidence
+
     def test_accepts_hash_pinned_direct_case(self) -> None:
         self.assertEqual([], self.validate())
+
+    def test_accepts_direct_route_evidence_without_an_expected_view(self) -> None:
+        del self.root_manifest["routeEvidence"][0]["expectedView"]
+        self.rewrite_root()
+
+        self.assertEqual([], self.validate())
+
+    def test_accepts_contract_only_route_evidence_with_contract_reference(
+        self,
+    ) -> None:
+        contract = self.root / "docs/contracts/test-route-contract.md"
+        contract.parent.mkdir(parents=True)
+        contract.write_text("# Exact route contract\n", encoding="utf-8")
+        self.root_manifest["routeEvidence"] = [
+            {
+                "evidenceId": "test-contract-only",
+                "kind": "contract-only",
+                "routeId": self.route_id,
+                "capabilityFingerprint": self.route_fingerprint,
+                "contractReference": (
+                    "docs/contracts/test-route-contract.md#exact-route-contract"
+                ),
+            }
+        ]
+        self.rewrite_root()
+
+        self.assertEqual([], self.validate())
+
+    def test_accepts_synthetic_oracle_route_evidence(self) -> None:
+        oracle = self.root / "testdata/public-synthetic/oracle.json"
+        oracle.parent.mkdir(parents=True)
+        oracle.write_text('{"oracle":"test"}\n', encoding="utf-8")
+        self.root_manifest["routeEvidence"] = [
+            {
+                "evidenceId": "test-synthetic-oracle",
+                "kind": "synthetic-oracle",
+                "routeId": self.route_id,
+                "capabilityFingerprint": self.route_fingerprint,
+                "oracleReference": "testdata/public-synthetic/oracle.json",
+                "expectedSha256": "3" * 64,
+                "testReference": "tests/golden_runner.py#direct_full_output",
+            }
+        ]
+        self.rewrite_root()
+
+        self.assertEqual([], self.validate())
+
+    def test_accepts_exact_route_approved_alias(self) -> None:
+        self.add_route_evidence_alias()
+
+        self.assertEqual([], self.validate())
+
+    def test_rejects_stale_expected_view_hash(self) -> None:
+        self.root_manifest["routeEvidence"][0]["expectedView"]["sha256"] = "0" * 64
+        self.rewrite_root()
+
+        errors = self.validate()
+
+        self.assertTrue(
+            any("expectedView SHA-256 mismatch" in error for error in errors)
+        )
+
+    def test_rejects_expected_view_length_outside_payload(self) -> None:
+        self.root_manifest["routeEvidence"][0]["expectedView"]["length"] += 1
+        self.rewrite_root()
+
+        errors = self.validate()
+
+        self.assertTrue(any("exceeds artifact size" in error for error in errors))
+
+    def test_rejects_direct_route_evidence_with_unknown_case(self) -> None:
+        self.root_manifest["routeEvidence"][0]["caseId"] = "missing-case"
+        self.rewrite_root()
+
+        errors = self.validate()
+
+        self.assertTrue(
+            any("does not identify a canonical case" in error for error in errors)
+        )
+
+    def test_rejects_expected_view_with_unknown_artifact(self) -> None:
+        self.root_manifest["routeEvidence"][0]["expectedView"]["artifactId"] = (
+            "missing-artifact"
+        )
+        self.rewrite_root()
+
+        errors = self.validate()
+
+        self.assertTrue(
+            any("must identify exactly one artifact" in error for error in errors)
+        )
+
+    def test_rejects_alias_with_stale_source_fingerprint(self) -> None:
+        self.add_route_evidence_alias(source_fingerprint="f" * 64)
+
+        errors = self.validate()
+
+        self.assertTrue(
+            any(
+                "source route evidence is missing or stale" in error for error in errors
+            )
+        )
+
+    def test_rejects_alias_of_the_same_route_id(self) -> None:
+        self.add_route_evidence_alias(source_route_id=self.route_id)
+        alias = self.root_manifest["routeEvidence"][-1]
+        alias["routeId"] = self.route_id
+        alias["capabilityFingerprint"] = "2" * 64
+        self.rewrite_root()
+
+        errors = self.validate()
+
+        self.assertTrue(any("same routeId" in error for error in errors))
+
+    def test_rejects_duplicate_alias_fact_scope_ids(self) -> None:
+        self.add_route_evidence_alias(fact_scope_ids=["standard-map", "standard-map"])
+
+        errors = self.validate()
+
+        self.assertTrue(
+            any("factScopeIds cannot contain duplicates" in error for error in errors)
+        )
+
+    def test_rejects_duplicate_route_evidence_ids(self) -> None:
+        duplicate = {
+            "evidenceId": "test-direct-golden",
+            "kind": "contract-only",
+            "routeId": "another-route",
+            "capabilityFingerprint": "4" * 64,
+            "testReference": "tests/golden_runner.py#direct_full_output",
+        }
+        self.root_manifest["routeEvidence"].append(duplicate)
+        self.rewrite_root()
+
+        errors = self.validate()
+
+        self.assertTrue(
+            any("duplicate canonical route evidenceId" in error for error in errors)
+        )
+
+    def test_rejects_duplicate_exact_route_evidence_identity(self) -> None:
+        duplicate = {
+            "evidenceId": "another-evidence-id",
+            "kind": "contract-only",
+            "routeId": self.route_id,
+            "capabilityFingerprint": self.route_fingerprint,
+            "testReference": "tests/golden_runner.py#direct_full_output",
+        }
+        self.root_manifest["routeEvidence"].append(duplicate)
+        self.rewrite_root()
+
+        errors = self.validate()
+
+        self.assertTrue(
+            any(
+                "duplicate canonical route evidence identity" in error
+                for error in errors
+            )
+        )
+
+    def test_rejects_unknown_route_evidence_field(self) -> None:
+        self.root_manifest["routeEvidence"][0]["supportStatus"] = "supported"
+        self.rewrite_root()
+
+        errors = self.validate()
+
+        self.assertTrue(
+            any("direct-golden keys must be exactly" in error for error in errors)
+        )
+
+    def test_rejects_unknown_route_evidence_kind(self) -> None:
+        self.root_manifest["routeEvidence"][0]["kind"] = "observed-output"
+        self.rewrite_root()
+
+        errors = self.validate()
+
+        self.assertTrue(any("unsupported kind" in error for error in errors))
+
+    def test_rejects_malformed_capability_fingerprint(self) -> None:
+        self.root_manifest["routeEvidence"][0]["capabilityFingerprint"] = "ABC123"
+        self.rewrite_root()
+
+        errors = self.validate()
+
+        self.assertTrue(any("must be a lowercase SHA-256" in error for error in errors))
+
+    def test_rejects_root_manifest_without_route_evidence(self) -> None:
+        del self.root_manifest["routeEvidence"]
+        self.rewrite_root()
+
+        errors = self.validate()
+
+        self.assertTrue(any("non-empty routeEvidence" in error for error in errors))
 
     def test_accepts_hash_pinned_direct_input_evidence_without_expected(self) -> None:
         self.convert_direct_golden_to_input_evidence()

@@ -1,4 +1,4 @@
-# Canonical Golden Manifest v1
+# Canonical Golden Manifest v1.1
 
 ## Purpose
 
@@ -11,17 +11,66 @@ alias without copying payloads or presenting an alias as a direct product golden
 
 `testdata/golden/canonical/manifest.json` declares:
 
-- `schemaVersion`: exactly `1.0`;
+- `schemaVersion`: exactly `1.1` (case manifests remain version `1.0`);
 - `payloadClass`: exactly `owner-approved-golden`;
 - `binaryPayloadsIncluded`: exactly `true`;
 - `diagnosticsRoot`: exactly `testdata/diagnostics/golden-evidence`;
 - `cases`: the closed case inventory, each with a globally unique `caseId` and confined
-  `manifestPath`.
+  `manifestPath`; and
+- `routeEvidence`: the closed exact-route evidence inventory described below.
 
 The root, every case manifest, and every declared artifact form a closed file inventory. Extra files,
 missing files, duplicate declarations, path escapes, symlinked files or directories, and sibling-path
 discovery fail validation. Containment is checked on resolved paths before any manifest or payload is
 read.
+
+## Exact-route evidence inventory
+
+`routeEvidence` contains exactly one selected evidence declaration for every admitted capability
+route. A declaration never admits execution, changes publication, or alters a case or payload. It
+only binds the evidence classification to the exact current capability identity. Every declaration
+therefore contains these common fields:
+
+- `evidenceId`: a stable identifier, unique across the inventory;
+- `kind`: exactly `direct-golden`, `approved-alias`, `synthetic-oracle`, or
+  `contract-only`;
+- `routeId`: the exact, opaque canonical route id; and
+- `capabilityFingerprint`: the exact lowercase 64-hex capability fingerprint.
+
+The pair `(routeId, capabilityFingerprint)` is also unique. A changed fingerprint makes the old
+declaration stale; it cannot inherit evidence by retaining the same route id. Kind-specific objects
+are closed: undeclared fields fail validation. Every current policy route must resolve to exactly one
+identical route-evidence pair, and every route-evidence pair must resolve to that route. That
+cross-catalog equality is enforced by capability-policy materialization in addition to this
+manifest's structural validator.
+
+A `direct-golden` declaration adds `caseId` and `testReference`. The case must be a physical direct
+golden with its owner expected artifact. It may also add one `expectedView` object containing exactly
+`artifactId`, non-negative integer `start`, positive integer `length`, and lowercase `sha256`.
+`artifactId` must select the case's expected artifact. The half-open byte view
+`[start, start + length)` must remain inside that immutable payload, and `sha256` must equal the hash
+of those exact bytes. Omitting `expectedView` means the declaration relies on the case's complete
+expected output and its full-output runner; it does not authorize a partial comparison.
+
+An `approved-alias` declaration adds `caseId`, `sourceRouteId`,
+`sourceCapabilityFingerprint`, a non-empty duplicate-free `factScopeIds` array, and
+`testReference`. `caseId` must select a canonical artifact-free alias case. The exact source identity
+must be present as `direct-golden`, and that declaration's `caseId` must match the alias case's
+`sourceCaseId`. Alias chains, a missing or stale source fingerprint, and aliasing another fingerprint
+of the same route id fail validation. `factScopeIds` grant only the named reviewed facts; they never
+grant whole-family or whole-workflow equivalence.
+
+A `synthetic-oracle` declaration adds `oracleReference`, `expectedSha256`, and `testReference`.
+`oracleReference` is a normalized, confined, existing repository file; `expectedSha256` is the
+lowercase 64-hex oracle result pinned by the referenced test. The declaration does not turn a
+synthetic result into owner-supplied expected firmware.
+
+A `contract-only` declaration contains exactly one of `testReference` or `contractReference`.
+`testReference` uses `tests/<path>.cs#<test-symbol>` or
+`tests/<path>.py#<test-symbol>` and must resolve to an existing symbol. `contractReference` is the
+honest fallback when there is no route-specific executable oracle; it is a normalized, confined,
+existing repository file with an optional non-empty `#locator`. A contract-only row cannot carry a
+case, expected hash, oracle, alias source, or fact scope.
 
 ## Case path and manifest
 

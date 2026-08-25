@@ -55,6 +55,18 @@ TEST_DISPOSITION_KINDS = {
     "input-only-evidence",
     "fact-scoped-alias",
 }
+ROUTE_EVIDENCE_KINDS = {
+    "approved-alias",
+    "contract-only",
+    "direct-golden",
+    "synthetic-oracle",
+}
+ROUTE_EVIDENCE_COMMON_KEYS = {
+    "capabilityFingerprint",
+    "evidenceId",
+    "kind",
+    "routeId",
+}
 ALLOWED_DIFFERENCE_RUNNER_TOKEN = (
     "CanonicalGoldenTestData.AssertAllowedByteDifferences("
 )
@@ -187,6 +199,346 @@ def _validate_test_evidence_refs(
         if symbol not in source:
             errors.append(
                 f"{reference_label} test symbol is not present in {path}: {symbol}"
+            )
+
+
+def _validate_single_test_reference(
+    repository_root: Path,
+    value: object,
+    label: str,
+    errors: list[str],
+) -> None:
+    _validate_test_evidence_refs(repository_root, [value], label, errors)
+
+
+def _validate_repository_file_reference(
+    repository_root: Path,
+    value: object,
+    label: str,
+    errors: list[str],
+) -> None:
+    if not isinstance(value, str) or not value:
+        errors.append(f"{label} must be a non-empty repository file reference")
+        return
+    path_text, separator, locator = value.partition("#")
+    if separator and not locator:
+        errors.append(f"{label} cannot contain an empty locator")
+    path = _relative_path(path_text, label, errors)
+    if path is None:
+        return
+    _read_confined_file(
+        repository_root / Path(path),
+        repository_root,
+        label,
+        errors,
+    )
+
+
+def _validate_expected_view(
+    canonical_root: Path,
+    case: dict[str, Any],
+    case_directory: PurePosixPath,
+    value: object,
+    label: str,
+    errors: list[str],
+) -> None:
+    if not isinstance(value, dict):
+        errors.append(f"{label} must be an object")
+        return
+    expected_keys = {"artifactId", "start", "length", "sha256"}
+    if set(value) != expected_keys:
+        errors.append(f"{label} keys must be exactly {sorted(expected_keys)}")
+
+    artifact_id = _required_string(value, "artifactId", label, errors)
+    start = value.get("start")
+    length = value.get("length")
+    if type(start) is not int or start < 0:
+        errors.append(f"{label}.start must be a non-negative integer")
+    if type(length) is not int or length <= 0:
+        errors.append(f"{label}.length must be a positive integer")
+    expected_sha = value.get("sha256")
+    if (
+        not isinstance(expected_sha, str)
+        or SHA256_PATTERN.fullmatch(expected_sha) is None
+    ):
+        errors.append(f"{label}.sha256 must be a lowercase SHA-256")
+
+    artifacts = case.get("artifacts")
+    if artifact_id is None or not isinstance(artifacts, list):
+        return
+    matches = [
+        artifact
+        for artifact in artifacts
+        if isinstance(artifact, dict) and artifact.get("artifactId") == artifact_id
+    ]
+    if len(matches) != 1:
+        errors.append(
+            f"{label}.artifactId must identify exactly one artifact in case "
+            f"{case.get('caseId')}: {artifact_id}"
+        )
+        return
+    artifact = matches[0]
+    if artifact.get("role") != "expected":
+        errors.append(f"{label}.artifactId must identify an expected artifact")
+    relative_path = _relative_path(
+        artifact.get("path"), f"{label}.artifact.path", errors
+    )
+    if relative_path is None:
+        return
+    expected_parent = case_directory / "expected"
+    if (
+        len(relative_path.parts) <= len(expected_parent.parts)
+        or relative_path.parts[: len(expected_parent.parts)] != expected_parent.parts
+    ):
+        errors.append(
+            f"{label}.artifact path must stay below {expected_parent}: {relative_path}"
+        )
+        return
+    payload = _read_confined_file(
+        canonical_root / Path(relative_path),
+        canonical_root,
+        f"{label} canonical payload",
+        errors,
+    )
+    if payload is None or type(start) is not int or type(length) is not int:
+        return
+    if start < 0 or length <= 0 or start > len(payload) - length:
+        errors.append(
+            f"{label} [{start}, {start + length}) exceeds artifact size {len(payload)}"
+        )
+        return
+    actual_sha = hashlib.sha256(payload[start : start + length]).hexdigest()
+    if isinstance(expected_sha, str) and expected_sha != actual_sha:
+        errors.append(
+            f"{label} SHA-256 mismatch: expected {expected_sha}, actual {actual_sha}"
+        )
+
+
+def _validate_route_evidence(
+    repository_root: Path,
+    canonical_root: Path,
+    value: object,
+    cases_by_id: dict[str, tuple[dict[str, Any], PurePosixPath]],
+    errors: list[str],
+) -> None:
+    if not isinstance(value, list) or not value:
+        errors.append("canonical manifest must contain a non-empty routeEvidence array")
+        return
+
+    evidence_ids: set[str] = set()
+    route_identities: dict[tuple[str, str], dict[str, Any]] = {}
+    aliases: list[tuple[dict[str, Any], str]] = []
+    for index, evidence in enumerate(value):
+        label = f"canonical routeEvidence[{index}]"
+        if not isinstance(evidence, dict):
+            errors.append(f"{label} must be an object")
+            continue
+        evidence_id = _required_string(evidence, "evidenceId", label, errors)
+        kind = _required_string(evidence, "kind", label, errors)
+        route_id = _required_string(evidence, "routeId", label, errors)
+        fingerprint = _required_string(evidence, "capabilityFingerprint", label, errors)
+        if evidence_id is not None:
+            if evidence_id in evidence_ids:
+                errors.append(f"duplicate canonical route evidenceId: {evidence_id}")
+            evidence_ids.add(evidence_id)
+        if kind not in ROUTE_EVIDENCE_KINDS:
+            errors.append(f"{label} has unsupported kind: {kind}")
+            continue
+        if fingerprint is not None and SHA256_PATTERN.fullmatch(fingerprint) is None:
+            errors.append(f"{label}.capabilityFingerprint must be a lowercase SHA-256")
+        if route_id is not None and fingerprint is not None:
+            identity = (route_id, fingerprint)
+            if identity in route_identities:
+                errors.append(
+                    "duplicate canonical route evidence identity: "
+                    f"{route_id} / {fingerprint}"
+                )
+            else:
+                route_identities[identity] = evidence
+
+        if kind == "direct-golden":
+            allowed_keys = ROUTE_EVIDENCE_COMMON_KEYS | {
+                "caseId",
+                "expectedView",
+                "testReference",
+            }
+            required_keys = allowed_keys - {"expectedView"}
+            if not required_keys.issubset(evidence) or not set(evidence).issubset(
+                allowed_keys
+            ):
+                errors.append(
+                    f"{label} direct-golden keys must be exactly "
+                    f"{sorted(required_keys)} plus optional expectedView"
+                )
+            _validate_single_test_reference(
+                repository_root,
+                evidence.get("testReference"),
+                f"{label}.testReference",
+                errors,
+            )
+            case_id = _required_string(evidence, "caseId", label, errors)
+            case_record = cases_by_id.get(case_id or "")
+            if case_record is None:
+                errors.append(
+                    f"{label}.caseId does not identify a canonical case: {case_id}"
+                )
+            else:
+                case, case_directory = case_record
+                if case.get("directGolden") is not True:
+                    errors.append(
+                        f"{label}.caseId must identify a direct golden case: {case_id}"
+                    )
+                if "expectedView" in evidence:
+                    _validate_expected_view(
+                        canonical_root,
+                        case,
+                        case_directory,
+                        evidence.get("expectedView"),
+                        f"{label}.expectedView",
+                        errors,
+                    )
+        elif kind == "approved-alias":
+            expected_keys = ROUTE_EVIDENCE_COMMON_KEYS | {
+                "caseId",
+                "factScopeIds",
+                "sourceCapabilityFingerprint",
+                "sourceRouteId",
+                "testReference",
+            }
+            if set(evidence) != expected_keys:
+                errors.append(
+                    f"{label} approved-alias keys must be exactly "
+                    f"{sorted(expected_keys)}"
+                )
+            _validate_single_test_reference(
+                repository_root,
+                evidence.get("testReference"),
+                f"{label}.testReference",
+                errors,
+            )
+            source_route_id = _required_string(evidence, "sourceRouteId", label, errors)
+            source_fingerprint = _required_string(
+                evidence, "sourceCapabilityFingerprint", label, errors
+            )
+            if (
+                source_fingerprint is not None
+                and SHA256_PATTERN.fullmatch(source_fingerprint) is None
+            ):
+                errors.append(
+                    f"{label}.sourceCapabilityFingerprint must be a lowercase SHA-256"
+                )
+            if route_id is not None and route_id == source_route_id:
+                errors.append(
+                    f"{label} cannot alias another fingerprint of the same routeId"
+                )
+            fact_scope_ids = evidence.get("factScopeIds")
+            if (
+                not isinstance(fact_scope_ids, list)
+                or not fact_scope_ids
+                or not all(isinstance(item, str) and item for item in fact_scope_ids)
+            ):
+                errors.append(f"{label}.factScopeIds must be a non-empty string array")
+            elif len(set(fact_scope_ids)) != len(fact_scope_ids):
+                errors.append(f"{label}.factScopeIds cannot contain duplicates")
+            case_id = _required_string(evidence, "caseId", label, errors)
+            case_record = cases_by_id.get(case_id or "")
+            if case_record is None:
+                errors.append(
+                    f"{label}.caseId does not identify a canonical case: {case_id}"
+                )
+            else:
+                case, _ = case_record
+                if (
+                    case.get("directGolden") is not False
+                    or case.get("directEvidence", False) is not False
+                    or not isinstance(case.get("alias"), dict)
+                ):
+                    errors.append(
+                        f"{label}.caseId must identify a canonical alias case: "
+                        f"{case_id}"
+                    )
+            aliases.append((evidence, label))
+        elif kind == "synthetic-oracle":
+            expected_keys = ROUTE_EVIDENCE_COMMON_KEYS | {
+                "expectedSha256",
+                "oracleReference",
+                "testReference",
+            }
+            if set(evidence) != expected_keys:
+                errors.append(
+                    f"{label} synthetic-oracle keys must be exactly "
+                    f"{sorted(expected_keys)}"
+                )
+            _validate_repository_file_reference(
+                repository_root,
+                evidence.get("oracleReference"),
+                f"{label}.oracleReference",
+                errors,
+            )
+            expected_sha = evidence.get("expectedSha256")
+            if (
+                not isinstance(expected_sha, str)
+                or SHA256_PATTERN.fullmatch(expected_sha) is None
+            ):
+                errors.append(f"{label}.expectedSha256 must be a lowercase SHA-256")
+            _validate_single_test_reference(
+                repository_root,
+                evidence.get("testReference"),
+                f"{label}.testReference",
+                errors,
+            )
+        else:
+            has_test = "testReference" in evidence
+            has_contract = "contractReference" in evidence
+            expected_keys = ROUTE_EVIDENCE_COMMON_KEYS | (
+                {"testReference"} if has_test else {"contractReference"}
+            )
+            if has_test == has_contract or set(evidence) != expected_keys:
+                errors.append(
+                    f"{label} contract-only must contain exactly one of "
+                    "testReference or contractReference and no other fields"
+                )
+            if has_test:
+                _validate_single_test_reference(
+                    repository_root,
+                    evidence.get("testReference"),
+                    f"{label}.testReference",
+                    errors,
+                )
+            elif has_contract:
+                _validate_repository_file_reference(
+                    repository_root,
+                    evidence.get("contractReference"),
+                    f"{label}.contractReference",
+                    errors,
+                )
+
+    for evidence, label in aliases:
+        source_identity = (
+            evidence.get("sourceRouteId"),
+            evidence.get("sourceCapabilityFingerprint"),
+        )
+        source = route_identities.get(source_identity)
+        if source is None:
+            errors.append(
+                f"{label} source route evidence is missing or stale: "
+                f"{source_identity[0]} / {source_identity[1]}"
+            )
+            continue
+        if source.get("kind") != "direct-golden":
+            errors.append(f"{label} source route evidence must be direct-golden")
+            continue
+        case_record = cases_by_id.get(str(evidence.get("caseId", "")))
+        if case_record is None:
+            continue
+        alias_case, _ = case_record
+        alias = alias_case.get("alias")
+        if isinstance(alias, dict) and alias.get("sourceCaseId") != source.get(
+            "caseId"
+        ):
+            errors.append(
+                f"{label} canonical alias sourceCaseId must match the source "
+                f"route evidence caseId {source.get('caseId')}"
             )
 
 
@@ -518,8 +870,8 @@ def validate_canonical_golden(repository_root: Path, errors: list[str]) -> None:
     )
     if root_manifest is None:
         return
-    if root_manifest.get("schemaVersion") != "1.0":
-        errors.append("canonical manifest schemaVersion must be 1.0")
+    if root_manifest.get("schemaVersion") != "1.1":
+        errors.append("canonical manifest schemaVersion must be 1.1")
     if root_manifest.get("payloadClass") != "owner-approved-golden":
         errors.append("canonical manifest payloadClass must be owner-approved-golden")
     if root_manifest.get("binaryPayloadsIncluded") is not True:
@@ -536,6 +888,7 @@ def validate_canonical_golden(repository_root: Path, errors: list[str]) -> None:
     alias_sources: list[tuple[str, str, str]] = []
     direct_source_workflows: dict[str, str] = {}
     case_ids: set[str] = set()
+    cases_by_id: dict[str, tuple[dict[str, Any], PurePosixPath]] = {}
     for index, entry in enumerate(case_entries):
         entry_label = f"canonical cases[{index}]"
         if not isinstance(entry, dict):
@@ -571,6 +924,7 @@ def validate_canonical_golden(repository_root: Path, errors: list[str]) -> None:
         case_directory = _case_directory(case, label, errors)
         if case_directory is None:
             continue
+        cases_by_id.setdefault(case_id, (case, case_directory))
         expected_manifest_path = case_directory / "provenance/case.json"
         if manifest_path != expected_manifest_path:
             errors.append(
@@ -688,6 +1042,14 @@ def validate_canonical_golden(repository_root: Path, errors: list[str]) -> None:
                 f"{source_case_id}"
             )
 
+    _validate_route_evidence(
+        repository_root,
+        canonical_root,
+        root_manifest.get("routeEvidence"),
+        cases_by_id,
+        errors,
+    )
+
     actual_files: set[PurePosixPath] = set()
     for path in canonical_root.rglob("*"):
         if path.is_symlink():
@@ -707,6 +1069,7 @@ def validate_canonical_golden(repository_root: Path, errors: list[str]) -> None:
                 "canonical root contains undeclared files: "
                 + ", ".join(str(path) for path in extra)
             )
+
 
 def validate_standard_merge_release_allowlist(
     repository_root: Path, errors: list[str]
