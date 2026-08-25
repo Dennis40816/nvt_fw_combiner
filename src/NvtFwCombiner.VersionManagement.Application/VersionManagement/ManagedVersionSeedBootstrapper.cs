@@ -17,6 +17,8 @@ public enum ManagedVersionSeedOutcome
     DamagedSeedPayload,
     /// <summary>The verified seed could not be durably committed.</summary>
     StateUnavailable,
+    /// <summary>The durable destination belongs to another root or lacks its required binding.</summary>
+    ManagedRootMismatch,
 }
 
 /// <summary>Creates first-run launcher state only from one explicit verified packaged seed.</summary>
@@ -36,7 +38,7 @@ public sealed class ManagedVersionSeedBootstrapper
         IManagedVersionRepository repository)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(managedRoot);
-        _managedRoot = managedRoot;
+        _managedRoot = Path.TrimEndingDirectorySeparator(Path.GetFullPath(managedRoot));
         _destinationStateStore = destinationStateStore ??
             throw new ArgumentNullException(nameof(destinationStateStore));
         _seedStateStore = seedStateStore ?? throw new ArgumentNullException(nameof(seedStateStore));
@@ -58,7 +60,9 @@ public sealed class ManagedVersionSeedBootstrapper
             .ConfigureAwait(false);
         if (existing.IsSuccess)
         {
-            return ManagedVersionSeedOutcome.ExistingState;
+            return existing.State!.IsBoundToManagedRoot(_managedRoot)
+                ? ManagedVersionSeedOutcome.ExistingState
+                : ManagedVersionSeedOutcome.ManagedRootMismatch;
         }
         if (existing.Issue != VersionManagerStateLoadIssue.Missing)
         {
@@ -93,8 +97,9 @@ public sealed class ManagedVersionSeedBootstrapper
             return ManagedVersionSeedOutcome.DamagedSeedPayload;
         }
 
+        VersionManagerState bound = state.BindToManagedRoot(_managedRoot);
         VersionManagerStateSaveResult saved = await _destinationStateStore.TrySaveAsync(
-            state,
+            bound,
             cancellationToken).ConfigureAwait(false);
         return saved.IsSuccess
             ? ManagedVersionSeedOutcome.Seeded
@@ -107,6 +112,7 @@ public sealed class ManagedVersionSeedBootstrapper
             ? state.Admissions[0]
             : null;
         return state.UpdateSource is null &&
+               state.ManagedRootIdentity is null &&
                state.ActiveVersion is { } active &&
                state.LastKnownGoodVersion == active &&
                admission?.Version == active &&

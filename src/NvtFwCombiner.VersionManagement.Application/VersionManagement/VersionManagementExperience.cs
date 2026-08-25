@@ -153,7 +153,7 @@ public sealed partial class VersionManagementExperience : IVersionManagementExpe
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(managedRoot);
         _currentAppVersion = currentAppVersion;
-        _managedRoot = managedRoot;
+        _managedRoot = Path.TrimEndingDirectorySeparator(Path.GetFullPath(managedRoot));
         _stateStore = stateStore ?? throw new ArgumentNullException(nameof(stateStore));
         _catalogSource = catalogSource ?? throw new ArgumentNullException(nameof(catalogSource));
         _repository = repository ?? throw new ArgumentNullException(nameof(repository));
@@ -307,7 +307,10 @@ public sealed partial class VersionManagementExperience : IVersionManagementExpe
             }
             VersionManagementSnapshot current = await ReloadDurableCurrentWithoutLockAsync(cancellationToken)
                 .ConfigureAwait(false);
-            VersionManagerState state = current.State ?? throw InvalidState();
+            if (current.State is not { } state)
+            {
+                return current;
+            }
             state = VersionManagerState.Create(
                 sourceRoot,
                 state.ActiveVersion,
@@ -316,7 +319,8 @@ public sealed partial class VersionManagementExperience : IVersionManagementExpe
                 state.PendingActivation,
                 state.FailedActivationVersion,
                 state.RetentionReviewDue,
-                state.PendingMutation);
+                state.PendingMutation,
+                state.ManagedRootIdentity);
             if (!await TrySaveAsync(state, cancellationToken).ConfigureAwait(false))
             {
                 return PublishStateUnavailable();
@@ -363,7 +367,14 @@ public sealed partial class VersionManagementExperience : IVersionManagementExpe
             }
             VersionManagementSnapshot current = await ReloadDurableCurrentWithoutLockAsync(cancellationToken)
                 .ConfigureAwait(false);
-            VersionManagerState state = current.State ?? throw InvalidState();
+            if (current.State is not { } state)
+            {
+                return new(
+                    new(ManagedVersionDeleteBlock.RecoveryRequired, RequiresRollbackLossWarning: false),
+                    VersionDeleteOperationIssue.StateUnavailable,
+                    RepositoryIssue: null,
+                    current);
+            }
             if (state.PendingActivation is not null)
             {
                 return new(
@@ -505,7 +516,10 @@ public sealed partial class VersionManagementExperience : IVersionManagementExpe
             }
             VersionManagementSnapshot current = await ReloadDurableCurrentWithoutLockAsync(cancellationToken)
                 .ConfigureAwait(false);
-            VersionManagerState state = current.State ?? throw InvalidState();
+            if (current.State is not { } state)
+            {
+                return current;
+            }
             if (state.RetentionReviewDue)
             {
                 state = state.WithRetentionReviewDue(retentionReviewDue: false);
@@ -615,109 +629,6 @@ public sealed partial class VersionManagementExperience : IVersionManagementExpe
         }
         _mutation.Dispose();
         _disposed = true;
-    }
-
-    private async ValueTask<VersionManagementSnapshot> RequireCurrentWithoutLockAsync(
-        CancellationToken cancellationToken)
-    {
-        if (_current is not null)
-        {
-            return _current;
-        }
-        using VersionManagerWriteLeaseResult lease = await AcquireWriteLeaseAsync(
-            TimeSpan.Zero,
-            cancellationToken).ConfigureAwait(false);
-        return lease.IsAcquired
-            ? await ReloadDurableCurrentWithoutLockAsync(cancellationToken).ConfigureAwait(false)
-            : PublishStateUnavailable();
-    }
-
-    private async ValueTask<VersionManagementSnapshot> ReloadDurableCurrentWithoutLockAsync(
-        CancellationToken cancellationToken)
-    {
-        VersionManagementSnapshot? prior = _current;
-        VersionManagerStateLoadResult loaded = await _stateStore.LoadAsync(cancellationToken).ConfigureAwait(false);
-        VersionManagerState? state = loaded.IsSuccess
-            ? loaded.State
-            : loaded.Issue == VersionManagerStateLoadIssue.Missing
-                ? EmptyState()
-                : null;
-        if (state?.PendingMutation is not null)
-        {
-            state = await ReconcilePendingMutationAsync(state, cancellationToken).ConfigureAwait(false);
-        }
-        ManagedVersionInventory inventory = state is null
-            ? ManagedVersionInventory.Create([])
-            : await InventoryAsync(state, cancellationToken).ConfigureAwait(false);
-        bool sameSource = prior?.State?.UpdateSource == state?.UpdateSource;
-        _current = new(
-            state,
-            inventory,
-            sameSource ? prior?.Catalog : null,
-            sameSource ? prior?.VerifiedCandidate : null,
-            sameSource && prior is not null
-                ? prior.SourceStatus
-                : state?.UpdateSource is null
-                    ? VersionSourceStatus.NotConfigured
-                    : VersionSourceStatus.Offline,
-            sameSource ? prior?.CatalogIssue : null,
-            sameSource ? prior?.Generation ?? 0 : 0,
-            sameSource && prior?.ShouldPromptForUpdate == true,
-            loaded.Issue == VersionManagerStateLoadIssue.Missing
-                ? VersionManagerStateLoadIssue.None
-                : loaded.Issue);
-        return _current;
-    }
-
-    private ValueTask<VersionManagerWriteLeaseResult> AcquireWriteLeaseAsync(
-        TimeSpan waitTimeout,
-        CancellationToken cancellationToken)
-    {
-        return _stateStore.TryAcquireWriteLeaseAsync(
-            waitTimeout,
-            cancellationToken);
-    }
-
-    private VersionManagementSnapshot PublishStateUnavailable()
-    {
-        _current = _current is { } current
-            ? current with { StateIssue = VersionManagerStateLoadIssue.Unavailable }
-            : new(
-                State: null,
-                ManagedVersionInventory.Create([]),
-                Catalog: null,
-                VerifiedCandidate: null,
-                VersionSourceStatus.Offline,
-                CatalogIssue: null,
-                Generation: 0,
-                ShouldPromptForUpdate: false,
-                VersionManagerStateLoadIssue.Unavailable);
-        return _current;
-    }
-
-    private async ValueTask<ManagedVersionInventory> InventoryAsync(
-        VersionManagerState state,
-        CancellationToken cancellationToken)
-    {
-        ManagedVersionInventory observed = await _repository.InventoryAsync(
-            _managedRoot,
-            state.Admissions,
-            state.ActiveVersion,
-            state.LastKnownGoodVersion,
-            state.FailedActivationVersion,
-            cancellationToken).ConfigureAwait(false);
-        ManagedVersionAdmission? recoverable =
-            state.PendingMutation is { Kind: ManagedVersionMutationKind.Install } pending
-            ? pending.Admission
-            : null;
-        return ManagedVersionInventory.Create(observed.Versions.Select(row =>
-            row.AdmissionState == ManagedVersionAdmissionState.Admitted
-                ? row
-                : recoverable is not null &&
-                  row.Integrity == ManagedVersionIntegrity.Healthy &&
-                  row.ObservedAdmission == recoverable
-                    ? row with { AdmissionState = ManagedVersionAdmissionState.RecoveryCandidate }
-                    : row with { AdmissionState = ManagedVersionAdmissionState.Unadmitted }));
     }
 
 }

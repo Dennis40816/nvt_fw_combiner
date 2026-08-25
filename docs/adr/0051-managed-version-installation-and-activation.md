@@ -1,7 +1,8 @@
 # ADR 0051: Manage application versions through a stable launcher and side-by-side payloads
 
 - Status: Accepted by product and architecture owner on 2026-08-21;
-  independent R2 correction review passed on 2026-08-22
+  independent R2 correction review passed on 2026-08-22; the 2026-08-25
+  durable managed-root binding correction awaits frozen-diff final review
 - Date: 2026-08-21
 - Owners: Product owner, architecture owner, release owner
 - Risk: R2 cross-layer filesystem/process/package/UI contract; R3 distribution
@@ -51,7 +52,10 @@ Every seed import, install, delete, activation, ready commit, rollback, and
 recovery mutation is also covered by one OS-backed cross-process writer lease.
 Its identity is only the normalized exact state-file path. The managed root
 remains repository inventory authority but cannot split writer ownership for
-shared durable state. The owner acquires the lease before reading authority,
+shared durable state. That durable state additionally records one normalized
+managed-root identity. A missing binding or a different root sharing the state
+path fails closed before inventory, install, delete, activation, or launch. No
+automatic relocation/adoption is permitted. The owner acquires the lease before reading authority,
 reloads durable state after acquisition, and holds it through the complete
 filesystem or supervised process transaction and its terminal state save. A
 contending desktop/launcher receives a typed bounded `Busy`/`StateUnavailable`
@@ -94,13 +98,15 @@ A fixed update-source registry is not part of this accepted decision. Its
 partially approved fallback direction and unresolved trust/persistence rules
 are isolated in proposed ADR 0053, which is not implementation authority.
 
-The managed root contains one immutable `version-manager.seed.v1.json` beside
+The managed root contains one immutable, unbound `version-manager.seed.v1.json` beside
 the launcher. It bootstraps per-user state only when that state is genuinely
 missing and only after the seed's single active/last-known-good admission and
 installed payload verify completely. It never repairs or replaces malformed,
 unsupported, unreadable, or permission-denied existing state. Runtime writes
-remain exclusively in per-user application data, so the complete managed root
-can move without rewriting package identity.
+remain exclusively in per-user application data. The verified first-run seed
+transaction creates the initial root binding. Moving an installed managed root
+later requires a future explicit verified adoption/rebind transaction; `v0.10.6`
+does not infer or perform one.
 
 Installed versions are reverified before launch/switch and through Version-page
 inventory. Inventory distinguishes state-admitted versions from exact
@@ -145,7 +151,7 @@ first initial managed package supplied to end users; there is no unmanaged
 
 ## Consequences
 
-- `v0.10.6` proves the managed layout as an internal relocatable folder without
+- `v0.10.6` proves the managed layout as an internal side-by-side folder without
   changing the existing end-user portable ZIP contract. The first managed
   end-user `v1.0.0` package must update package layout, manifests, smoke tooling,
   SBOM/provenance, and size evidence together under release-owner review.
@@ -171,7 +177,7 @@ first initial managed package supplied to end users; there is no unmanaged
 
 Implement and verify against an ignored local managed lab seeded with generated
 `0.10.x` packages and an immutable bootstrap seed. Advance `VERSION` only after
-real discovery, install, activation, managed-root relocation, offline switching,
+real discovery, install, activation, managed-root mismatch rejection, update-source relocation, offline switching,
 damaged cleanup, and rollback evidence passes. For internal `v0.10.6`, the
 evidence artifact is the verified folder contents, not a newly distributed ZIP.
 The final `1.0.0` managed ZIP becomes the first end-user baseline. No claim is
@@ -182,7 +188,7 @@ made that a published unmanaged portable package self-adopts.
 - Contract, Application state-machine, Infrastructure path/archive/hash, and
   process-ready tests described by the specification.
 - UI smoke/accessibility in Light/Dark and both languages.
-- Real local-folder managed `0.10.5` to `0.10.6` evidence plus relocation,
+- Real local-folder managed `0.10.5` to `0.10.6` evidence plus source relocation and root-mismatch rejection,
   offline, tamper, start-failure, timeout, rollback, retention, and delete cases.
 - Architecture tests prevent UI/package-policy leakage, direct filesystem or
   process access outside adapters, a second launcher policy owner, or a second
@@ -192,6 +198,6 @@ made that a published unmanaged portable package self-adopts.
   busy-lease rejection plus post-acquisition durable-state reload.
 - Scoped Polytail, independent R2 review, canonical full verification, unchanged
   Goldens, existing portable-package regression smoke, managed-folder content/
-  relocation/size evidence, and clean-machine evidence before the internal
+  binding/size evidence, and clean-machine evidence before the internal
   identity advances. Managed-package SBOM/provenance and distribution approval
   remain required before the `1.0.0` end-user release.

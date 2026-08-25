@@ -125,7 +125,7 @@ public sealed class ManagedActivationCoordinator
         TimeSpan? readyDeadline = null)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(managedRoot);
-        _managedRoot = managedRoot;
+        _managedRoot = Path.TrimEndingDirectorySeparator(Path.GetFullPath(managedRoot));
         _stateStore = stateStore ?? throw new ArgumentNullException(nameof(stateStore));
         _repository = repository ?? throw new ArgumentNullException(nameof(repository));
         _process = process ?? throw new ArgumentNullException(nameof(process));
@@ -156,6 +156,10 @@ public sealed class ManagedActivationCoordinator
             return new(ManagedLauncherOutcome.InvalidState, null, null);
         }
         VersionManagerState state = loaded.State!;
+        if (!state.IsBoundToManagedRoot(_managedRoot))
+        {
+            return new(ManagedLauncherOutcome.InvalidState, null, null);
+        }
         PendingVersionActivation? pending = state.PendingActivation;
         if (pending?.Phase == VersionActivationPhase.RollbackLaunchRecorded)
         {

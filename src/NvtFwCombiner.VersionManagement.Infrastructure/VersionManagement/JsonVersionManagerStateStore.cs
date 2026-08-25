@@ -21,14 +21,17 @@ public sealed class JsonVersionManagerStateStore : IVersionManagerStateStore
         WriteIndented = true,
     };
     private static readonly VersionManagementJsonContext JsonContext = new(JsonOptions);
+    private readonly bool _allowUnboundSeedTemplate;
     private readonly string _path;
 
     /// <summary>Creates a state store at an explicit executable-owned location.</summary>
     /// <param name="path">Exact state-file path.</param>
-    public JsonVersionManagerStateStore(string path)
+    /// <param name="allowUnboundSeedTemplate">Whether this store is exclusively writing a packaged unbound seed template.</param>
+    public JsonVersionManagerStateStore(string path, bool allowUnboundSeedTemplate = false)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(path);
         _path = Path.GetFullPath(path);
+        _allowUnboundSeedTemplate = allowUnboundSeedTemplate;
     }
 
     /// <summary>Gets the canonical per-user launcher state path.</summary>
@@ -105,6 +108,11 @@ public sealed class JsonVersionManagerStateStore : IVersionManagerStateStore
         CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(state);
+        if (state.ManagedRootIdentity is null && !_allowUnboundSeedTemplate)
+        {
+            throw new InvalidOperationException(
+                "Durable version-manager state must be bound to one managed root.");
+        }
         VersionManagerStateDocument document = Project(state);
         byte[] bytes = JsonSerializer.SerializeToUtf8Bytes(
             document,
@@ -177,7 +185,7 @@ public sealed class JsonVersionManagerStateStore : IVersionManagerStateStore
                     admissionDocument.ReleaseManifestSha256!));
         }
 
-        return VersionManagerState.Create(
+        VersionManagerState state = VersionManagerState.Create(
             document.UpdateSource,
             active,
             lastKnownGood,
@@ -185,7 +193,14 @@ public sealed class JsonVersionManagerStateStore : IVersionManagerStateStore
             pending,
             failed,
             document.RetentionReviewDue,
-            pendingMutation);
+            pendingMutation,
+            document.ManagedRootIdentity);
+        return document.ManagedRootIdentity is null || string.Equals(
+            document.ManagedRootIdentity,
+            state.ManagedRootIdentity,
+            StringComparison.Ordinal)
+                ? state
+                : null;
     }
 
     private static VersionManagerStateDocument Project(VersionManagerState state)
@@ -218,7 +233,8 @@ public sealed class JsonVersionManagerStateStore : IVersionManagerStateStore
             pending,
             state.FailedActivationVersion?.ToString(),
             state.RetentionReviewDue,
-            pendingMutation);
+            pendingMutation,
+            state.ManagedRootIdentity);
     }
 
     private static bool TryParseActivationPhase(string? value, out VersionActivationPhase phase)

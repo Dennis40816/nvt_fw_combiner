@@ -22,7 +22,9 @@ public sealed class ManagedVersionSeedBootstrapperTests
             TestContext.Current.CancellationToken);
 
         Assert.Equal(ManagedVersionSeedOutcome.Seeded, outcome);
-        Assert.Equal(seed, destination.Saved);
+        Assert.Equal(seed.ActiveVersion, destination.Saved?.ActiveVersion);
+        Assert.True(Assert.IsType<VersionManagerState>(destination.Saved)
+            .IsBoundToManagedRoot("managed-root"));
         Assert.Equal(1, destination.SaveCount);
     }
 
@@ -49,7 +51,7 @@ public sealed class ManagedVersionSeedBootstrapperTests
     [Fact]
     public async Task ExistingStateSkipsSeedImport()
     {
-        VersionManagerState existing = SeedState();
+        VersionManagerState existing = CanonicalState("1.0.0", 'a', bindToManagedRoot: true);
         var destination = new MemoryStateStore(existing, VersionManagerStateLoadIssue.None);
         var bootstrapper = new ManagedVersionSeedBootstrapper(
             "managed-root",
@@ -62,6 +64,39 @@ public sealed class ManagedVersionSeedBootstrapperTests
 
         Assert.Equal(ManagedVersionSeedOutcome.ExistingState, outcome);
         Assert.Equal(0, destination.SaveCount);
+    }
+
+    /// <summary>Legacy-unbound and differently-bound durable state are never adopted automatically.</summary>
+    [Theory]
+    [InlineData(null)]
+    [InlineData("other-managed-root")]
+    public async Task MissingOrDifferentDurableRootBindingFailsClosed(string? existingRoot)
+    {
+        VersionManagerState existing = VersionManagerState.Create(
+            updateSource: null,
+            activeVersion: null,
+            lastKnownGoodVersion: null,
+            admissions: [],
+            pendingActivation: null,
+            failedActivationVersion: null,
+            retentionReviewDue: false,
+            managedRootIdentity: existingRoot);
+        var destination = new MemoryStateStore(existing, VersionManagerStateLoadIssue.None);
+        var seed = new MemoryStateStore(SeedState(), VersionManagerStateLoadIssue.None);
+        var repository = new SeedRepository(ManagedVersionIntegrity.Healthy);
+        var bootstrapper = new ManagedVersionSeedBootstrapper(
+            "managed-root",
+            destination,
+            seed,
+            repository);
+
+        ManagedVersionSeedOutcome outcome = await bootstrapper.EnsureInitializedAsync(
+            TestContext.Current.CancellationToken);
+
+        Assert.Equal(ManagedVersionSeedOutcome.ManagedRootMismatch, outcome);
+        Assert.Equal(0, destination.SaveCount);
+        Assert.Equal(0, seed.LoadCount);
+        Assert.Equal(0, repository.InventoryCount);
     }
 
     /// <summary>Missing and malformed packaged seed files remain distinct fail-closed outcomes.</summary>
@@ -157,7 +192,7 @@ public sealed class ManagedVersionSeedBootstrapperTests
     [Fact]
     public async Task StateChangedBeforeLeaseAcquisitionIsReloadedAndWins()
     {
-        VersionManagerState authoritative = CanonicalState("1.0.1", 'b');
+        VersionManagerState authoritative = CanonicalState("1.0.1", 'b', bindToManagedRoot: true);
         var destination = new MemoryStateStore(null, VersionManagerStateLoadIssue.Missing);
         destination.ChangeOnLeaseAcquisition(authoritative, VersionManagerStateLoadIssue.None);
         var seed = new MemoryStateStore(SeedState(), VersionManagerStateLoadIssue.None);
@@ -185,7 +220,10 @@ public sealed class ManagedVersionSeedBootstrapperTests
         return CanonicalState("1.0.0", 'a');
     }
 
-    private static VersionManagerState CanonicalState(string value, char hashCharacter)
+    private static VersionManagerState CanonicalState(
+        string value,
+        char hashCharacter,
+        bool bindToManagedRoot = false)
     {
         ManagedAppVersion version = ManagedAppVersion.Parse(value);
         return VersionManagerState.Create(
@@ -195,7 +233,8 @@ public sealed class ManagedVersionSeedBootstrapperTests
             admissions: [new(version, $"seed|{value}", new string(hashCharacter, 64))],
             pendingActivation: null,
             failedActivationVersion: null,
-            retentionReviewDue: false);
+            retentionReviewDue: false,
+            managedRootIdentity: bindToManagedRoot ? "managed-root" : null);
     }
 
     private static IEnumerable<VersionManagerState> NonCanonicalSeedStates()

@@ -71,7 +71,8 @@ public sealed partial class VersionManagementExperience
             state.PendingActivation,
             state.FailedActivationVersion,
             state.RetentionReviewDue,
-            pendingMutation: null);
+            pendingMutation: null,
+            managedRootIdentity: state.ManagedRootIdentity);
     }
 
     private static VersionManagerState MarkRetentionReviewDue(
@@ -112,7 +113,8 @@ public sealed partial class VersionManagementExperience
             state.PendingActivation,
             state.FailedActivationVersion == admission.Version ? null : state.FailedActivationVersion,
             state.RetentionReviewDue,
-            pendingMutation: null);
+            pendingMutation: null,
+            managedRootIdentity: state.ManagedRootIdentity);
     }
 
     private async ValueTask<bool> TrySaveAsync(
@@ -226,7 +228,7 @@ public sealed partial class VersionManagementExperience
         return _current ?? throw InvalidState();
     }
 
-    private static VersionManagerState EmptyState()
+    private VersionManagerState EmptyState()
     {
         return VersionManagerState.Create(
             updateSource: null,
@@ -235,7 +237,8 @@ public sealed partial class VersionManagementExperience
             admissions: [],
             pendingActivation: null,
             failedActivationVersion: null,
-            retentionReviewDue: false);
+            retentionReviewDue: false,
+            managedRootIdentity: _managedRoot);
     }
 
     private static InvalidOperationException InvalidState()

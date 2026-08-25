@@ -11,6 +11,8 @@ public enum VersionManagerStateLoadIssue
     Invalid,
     /// <summary>State exists but could not be read.</summary>
     Unavailable,
+    /// <summary>State is unbound or belongs to another normalized managed root.</summary>
+    ManagedRootMismatch,
 }
 
 /// <summary>Fail-closed launcher-state load result.</summary>

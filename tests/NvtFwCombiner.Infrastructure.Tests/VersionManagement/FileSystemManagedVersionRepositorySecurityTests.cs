@@ -604,7 +604,8 @@ public sealed partial class FileSystemManagedVersionRepositoryTests
                 admissions: [v105, v106],
                 pendingActivation: null,
                 failedActivationVersion: null,
-                retentionReviewDue: false),
+                retentionReviewDue: false,
+                managedRootIdentity: managedRoot),
             v106.Version);
         var store = new JsonVersionManagerStateStore(statePath);
         await store.SaveAsync(pending, TestContext.Current.CancellationToken);
@@ -655,7 +656,8 @@ public sealed partial class FileSystemManagedVersionRepositoryTests
                 admissions: [v105, v106],
                 pendingActivation: null,
                 failedActivationVersion: null,
-                retentionReviewDue: false),
+                retentionReviewDue: false,
+                managedRootIdentity: managedRoot),
             v106.Version);
         var store = new JsonVersionManagerStateStore(statePath);
         await store.SaveAsync(pending, TestContext.Current.CancellationToken);

@@ -78,7 +78,7 @@ public sealed partial class ManagedActivationCoordinatorTests
     public async Task EmptyStateReportsNoActiveVersion()
     {
         VersionManagerState state = VersionManagerState.Create(
-            null, null, null, [], null, null, false);
+            null, null, null, [], null, null, false, managedRootIdentity: "managed");
         var process = new FakeProcess();
         var coordinator = new ManagedActivationCoordinator(
             "managed",
@@ -90,6 +90,27 @@ public sealed partial class ManagedActivationCoordinatorTests
         ManagedLauncherResult result = await coordinator.RunAsync(TestContext.Current.CancellationToken);
 
         Assert.Equal(ManagedLauncherOutcome.NoActiveVersion, result.Outcome);
+        Assert.Empty(process.Starts);
+    }
+
+    /// <summary>A launcher cannot use Active or LKG admissions owned by another managed root.</summary>
+    [Fact]
+    public async Task DifferentManagedRootCannotLaunchActiveOrLastKnownGood()
+    {
+        VersionManagerState state = State();
+        var process = new FakeProcess();
+        var coordinator = new ManagedActivationCoordinator(
+            "other-managed-root",
+            new FakeStateStore(state),
+            new HealthyRepository(),
+            process,
+            TimeSpan.FromSeconds(1));
+
+        ManagedLauncherResult result = await coordinator.RunAsync(TestContext.Current.CancellationToken);
+
+        Assert.Equal(ManagedLauncherOutcome.InvalidState, result.Outcome);
+        Assert.Null(result.RunningVersion);
+        Assert.Null(result.FailedVersion);
         Assert.Empty(process.Starts);
     }
 
@@ -230,7 +251,8 @@ public sealed partial class ManagedActivationCoordinatorTests
             [Admission("0.10.5"), Admission("0.10.6")],
             pendingActivation: null,
             failedActivationVersion: null,
-            retentionReviewDue: false);
+            retentionReviewDue: false,
+            managedRootIdentity: "managed");
         VersionManagerState pending = VersionActivationPolicy.BeginActivation(
             state,
             ManagedAppVersion.Parse("0.10.6"));
@@ -417,7 +439,8 @@ public sealed partial class ManagedActivationCoordinatorTests
             [Admission("0.10.5"), Admission("0.10.6")],
             pendingActivation: null,
             failedActivationVersion: null,
-            retentionReviewDue: false);
+            retentionReviewDue: false,
+            managedRootIdentity: "managed");
         VersionManagerState requested = VersionActivationPolicy.BeginActivation(
             state,
             ManagedAppVersion.Parse("0.10.6"));
@@ -460,7 +483,8 @@ public sealed partial class ManagedActivationCoordinatorTests
             [Admission("0.10.5"), Admission("0.10.6")],
             null,
             null,
-            false);
+            false,
+            managedRootIdentity: "managed");
     }
 
     private static ManagedVersionAdmission Admission(string version)

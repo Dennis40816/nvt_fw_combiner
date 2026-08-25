@@ -110,7 +110,8 @@ public sealed class ManagedApplicationStartupCoordinatorTests
             admissions: [],
             pendingActivation: null,
             failedActivationVersion: null,
-            retentionReviewDue: false);
+            retentionReviewDue: false,
+            managedRootIdentity: "managed");
     }
 
     private sealed class FixedReadySignal(ApplicationReadySignalOutcome outcome)

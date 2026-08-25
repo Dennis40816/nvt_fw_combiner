@@ -23,7 +23,8 @@ public sealed class JsonVersionManagerStateStoreTests
             [admission],
             pendingActivation: null,
             failedActivationVersion: null,
-            retentionReviewDue: true);
+            retentionReviewDue: true,
+            managedRootIdentity: "X:\\managed-root");
 
         await store.SaveAsync(state, TestContext.Current.CancellationToken);
         VersionManagerStateLoadResult loaded = await store.LoadAsync(TestContext.Current.CancellationToken);
@@ -33,6 +34,7 @@ public sealed class JsonVersionManagerStateStoreTests
         Assert.Equal(state.ActiveVersion, loaded.State.ActiveVersion);
         Assert.Equal(state.LastKnownGoodVersion, loaded.State.LastKnownGoodVersion);
         Assert.Equal(state.Admissions, loaded.State.Admissions);
+        Assert.Equal(Path.GetFullPath("X:\\managed-root"), loaded.State.ManagedRootIdentity);
         Assert.True(loaded.State.RetentionReviewDue);
         Assert.False(File.Exists(path + ".tmp"));
     }
@@ -95,6 +97,24 @@ public sealed class JsonVersionManagerStateStoreTests
         Assert.Null(result.State);
     }
 
+    /// <summary>Legacy state remains readable only as an unbound template; durable writes require an explicit binding.</summary>
+    [Fact]
+    public async Task LegacyUnboundStateLoadsButCannotBeWrittenAsDurableState()
+    {
+        using var workspace = TempWorkspace.Create();
+        string path = workspace.Write(
+            "version-manager.v1.json",
+            System.Text.Encoding.UTF8.GetBytes(BaseState("[]", activeVersion: null)));
+        var store = new JsonVersionManagerStateStore(path);
+
+        VersionManagerStateLoadResult loaded = await store.LoadAsync(TestContext.Current.CancellationToken);
+        _ = await Assert.ThrowsAsync<InvalidOperationException>(async () =>
+            await store.SaveAsync(loaded.State!, TestContext.Current.CancellationToken));
+
+        Assert.True(loaded.IsSuccess);
+        Assert.Null(loaded.State!.ManagedRootIdentity);
+    }
+
     /// <summary>Unknown fields, unsupported schema, and inconsistent active references all fail closed.</summary>
     [Theory]
     [InlineData("unknown")]
@@ -103,6 +123,7 @@ public sealed class JsonVersionManagerStateStoreTests
     [InlineData("duplicate-admission")]
     [InlineData("duplicate-property")]
     [InlineData("mismatched-delete-journal")]
+    [InlineData("unnormalized-root")]
     public async Task InvalidStateShapesNeverPublishPartialState(string shape)
     {
         ArgumentNullException.ThrowIfNull(shape);
@@ -141,6 +162,11 @@ public sealed class JsonVersionManagerStateStoreTests
                       }
                     }
                     """,
+                    StringComparison.Ordinal),
+            "unnormalized-root" => BaseState($"[{admission}]", "0.10.6")
+                .Replace(
+                    "\"retentionReviewDue\": false",
+                    "\"retentionReviewDue\": false, \"managedRootIdentity\": \"relative-root\"",
                     StringComparison.Ordinal),
             _ => throw new InvalidOperationException($"Unknown state shape '{shape}'."),
         };
@@ -184,7 +210,8 @@ public sealed class JsonVersionManagerStateStoreTests
             [admission],
             pendingActivation: null,
             failedActivationVersion: null,
-            retentionReviewDue: false);
+            retentionReviewDue: false,
+            managedRootIdentity: "X:\\managed-root");
         VersionManagerState replacement = VersionManagerState.Create(
             "Y:\\replacement",
             version,
@@ -192,7 +219,8 @@ public sealed class JsonVersionManagerStateStoreTests
             [admission],
             pendingActivation: null,
             failedActivationVersion: null,
-            retentionReviewDue: true);
+            retentionReviewDue: true,
+            managedRootIdentity: "X:\\managed-root");
         await store.SaveAsync(original, TestContext.Current.CancellationToken);
         using var cancellation = new CancellationTokenSource();
         cancellation.Cancel();
@@ -226,7 +254,8 @@ public sealed class JsonVersionManagerStateStoreTests
             pendingActivation: null,
             failedActivationVersion: null,
             retentionReviewDue: false,
-            new(ManagedVersionMutationKind.Install, candidateAdmission));
+            new(ManagedVersionMutationKind.Install, candidateAdmission),
+            managedRootIdentity: "X:\\managed-root");
 
         await store.SaveAsync(installPrepared, TestContext.Current.CancellationToken);
         VersionManagerStateLoadResult loadedInstall = await store.LoadAsync(TestContext.Current.CancellationToken);
@@ -243,7 +272,8 @@ public sealed class JsonVersionManagerStateStoreTests
                         [activeAdmission, candidateAdmission],
                         null,
                         null,
-                        false),
+                        false,
+                        managedRootIdentity: "X:\\managed-root"),
                     candidate)),
             candidate).State;
         await store.SaveAsync(activationRecorded, TestContext.Current.CancellationToken);
@@ -275,7 +305,8 @@ public sealed class JsonVersionManagerStateStoreTests
                 ],
                 pendingActivation: null,
                 failedActivationVersion: null,
-                retentionReviewDue: false),
+                retentionReviewDue: false,
+                managedRootIdentity: "X:\\managed-root"),
             candidate);
 
         await store.SaveAsync(requested, TestContext.Current.CancellationToken);

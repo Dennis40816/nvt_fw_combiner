@@ -335,7 +335,7 @@ public sealed partial class FileSystemManagedVersionRepositoryTests
             failedActivationVersion: null,
             retentionReviewDue: false);
         string seedPath = Path.Combine(managedRoot, "version-manager.seed.v1.json");
-        await new JsonVersionManagerStateStore(seedPath).SaveAsync(
+        await new JsonVersionManagerStateStore(seedPath, allowUnboundSeedTemplate: true).SaveAsync(
             seedState,
             TestContext.Current.CancellationToken);
         ManagedVersionSeedOutcome seedOutcome = await new ManagedVersionSeedBootstrapper(

@@ -209,7 +209,8 @@ public sealed partial class VersionManagementExperienceTests
             [Admission("0.10.5")],
             null,
             null,
-            false);
+            false,
+            managedRootIdentity: "managed-root");
         var source = new CountingCatalogSource();
         using var experience = new VersionManagementExperience(
             version,
@@ -398,7 +399,8 @@ public sealed partial class VersionManagementExperienceTests
             admissions,
             pendingActivation: null,
             failedActivationVersion: null,
-            retentionReviewDue: false);
+            retentionReviewDue: false,
+            managedRootIdentity: "managed-root");
     }
 
     private static ManagedVersionAdmission Admission(string version)

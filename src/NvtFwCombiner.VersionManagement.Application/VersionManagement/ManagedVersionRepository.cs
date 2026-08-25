@@ -17,7 +17,7 @@ public enum ManagedVersionInstallIssue
     PackageMismatch,
     /// <summary>The archive path or expansion shape is unsafe.</summary>
     UnsafeArchive,
-    /// <summary>The inner release manifest or closed payload is invalid.</summary>
+    /// <summary>The source or an already admitted installed closed payload is invalid.</summary>
     InvalidPayload,
     /// <summary>The same version is already installed with another identity.</summary>
     IdentityConflict,

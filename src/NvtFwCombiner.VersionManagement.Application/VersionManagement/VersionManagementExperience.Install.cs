@@ -23,7 +23,12 @@ public sealed partial class VersionManagementExperience
             }
             VersionManagementSnapshot current = await ReloadDurableCurrentWithoutLockAsync(cancellationToken)
                 .ConfigureAwait(false);
-            VersionManagerState state = current.State ?? throw InvalidState();
+            if (current.State is not { } state)
+            {
+                return new(
+                    new(null, ManagedVersionInstallIssue.StateUnavailable, WasAlreadyInstalled: false),
+                    current);
+            }
             if (state.PendingActivation is not null)
             {
                 return new(
@@ -59,10 +64,24 @@ public sealed partial class VersionManagementExperience
                     state,
                     cancellationToken).ConfigureAwait(false);
                 _current = current with { State = state, Inventory = existingInventory };
-                return existingAdmission == expectedAdmission
+                InstalledVersionSnapshot? existing = existingInventory.Find(version);
+                bool exactHealthyPayload = existing is
+                {
+                    AdmissionState: ManagedVersionAdmissionState.Admitted,
+                    Integrity: ManagedVersionIntegrity.Healthy,
+                } &&
+                    string.Equals(
+                        existing.AdmissionIdentity,
+                        existingAdmission.AdmissionIdentity,
+                        StringComparison.Ordinal);
+                return existingAdmission == expectedAdmission && exactHealthyPayload
                     ? new(
                         new(existingAdmission, ManagedVersionInstallIssue.None, WasAlreadyInstalled: true),
                         _current)
+                    : existingAdmission == expectedAdmission
+                        ? new(
+                            new(null, ManagedVersionInstallIssue.InvalidPayload, WasAlreadyInstalled: false),
+                            _current)
                     : new(
                         new(null, ManagedVersionInstallIssue.IdentityConflict, WasAlreadyInstalled: false),
                         _current);

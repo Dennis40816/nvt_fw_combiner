@@ -22,7 +22,8 @@ public sealed partial class VersionManagementExperienceTests
             [active, candidate],
             pending,
             failedActivationVersion: null,
-            retentionReviewDue: false);
+            retentionReviewDue: false,
+            managedRootIdentity: "managed-root");
         var stateStore = new MemoryStateStore(initial);
         var repository = new TransactionRepository(initial.Admissions);
         using var experience = new VersionManagementExperience(
@@ -63,7 +64,8 @@ public sealed partial class VersionManagementExperienceTests
             [active, candidate, removable],
             pending,
             failedActivationVersion: null,
-            retentionReviewDue: false);
+            retentionReviewDue: false,
+            managedRootIdentity: "managed-root");
         var stateStore = new MemoryStateStore(initial);
         var repository = new TransactionRepository(initial.Admissions);
         using var experience = new VersionManagementExperience(
@@ -99,7 +101,8 @@ public sealed partial class VersionManagementExperienceTests
             [active, failed],
             pendingActivation: null,
             failed.Version,
-            retentionReviewDue: false);
+            retentionReviewDue: false,
+            managedRootIdentity: "managed-root");
         var stateStore = new FailingStateStore(initial, failOnSave: 2);
         var repository = new TransactionRepository(initial.Admissions);
         using (var first = new VersionManagementExperience(
@@ -146,7 +149,8 @@ public sealed partial class VersionManagementExperienceTests
             [active, failed],
             pendingActivation: null,
             failed.Version,
-            retentionReviewDue: false);
+            retentionReviewDue: false,
+            managedRootIdentity: "managed-root");
         var stateStore = new MemoryStateStore(initial);
         var repository = new TransactionRepository(initial.Admissions);
         using var experience = new VersionManagementExperience(
@@ -180,7 +184,8 @@ public sealed partial class VersionManagementExperienceTests
             [active, failed],
             pendingActivation: null,
             failed.Version,
-            retentionReviewDue: false);
+            retentionReviewDue: false,
+            managedRootIdentity: "managed-root");
         var stateStore = new MemoryStateStore(initial);
         var repository = new TransactionRepository(initial.Admissions);
         using var experience = new VersionManagementExperience(
@@ -220,7 +225,8 @@ public sealed partial class VersionManagementExperienceTests
             [active, Admission("0.10.5"), Admission("0.10.4"), removable],
             pendingActivation: null,
             failedActivationVersion: null,
-            retentionReviewDue: true);
+            retentionReviewDue: true,
+            managedRootIdentity: "managed-root");
         var stateStore = new MemoryStateStore(initial);
         var repository = new TransactionRepository(initial.Admissions);
         using var experience = new VersionManagementExperience(
@@ -256,7 +262,8 @@ public sealed partial class VersionManagementExperienceTests
             [active, Admission("0.10.5"), Admission("0.10.4"), removable],
             pendingActivation: null,
             failedActivationVersion: null,
-            retentionReviewDue: true);
+            retentionReviewDue: true,
+            managedRootIdentity: "managed-root");
         var stateStore = new FailingStateStore(initial, failOnSave: 2);
         var repository = new TransactionRepository(initial.Admissions);
         using (var first = new VersionManagementExperience(

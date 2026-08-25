@@ -37,6 +37,7 @@ public sealed record PendingManagedVersionMutation(
 public sealed class VersionManagerState
 {
     private VersionManagerState(
+        string? managedRootIdentity,
         string? updateSource,
         ManagedAppVersion? activeVersion,
         ManagedAppVersion? lastKnownGoodVersion,
@@ -46,6 +47,7 @@ public sealed class VersionManagerState
         bool retentionReviewDue,
         PendingManagedVersionMutation? pendingMutation)
     {
+        ManagedRootIdentity = managedRootIdentity;
         UpdateSource = updateSource;
         ActiveVersion = activeVersion;
         LastKnownGoodVersion = lastKnownGoodVersion;
@@ -55,6 +57,9 @@ public sealed class VersionManagerState
         RetentionReviewDue = retentionReviewDue;
         PendingMutation = pendingMutation;
     }
+
+    /// <summary>Gets the normalized managed root that exclusively owns this durable state.</summary>
+    public string? ManagedRootIdentity { get; }
 
     /// <summary>Gets the committed configured update-source folder.</summary>
     public string? UpdateSource { get; }
@@ -89,6 +94,7 @@ public sealed class VersionManagerState
     /// <param name="failedActivationVersion">Optional failed candidate.</param>
     /// <param name="retentionReviewDue">Whether retention review is due.</param>
     /// <param name="pendingMutation">Optional durable install/delete transaction.</param>
+    /// <param name="managedRootIdentity">Normalized managed-root ownership, or null only for an unbound seed template.</param>
     /// <returns>Validated immutable state.</returns>
     public static VersionManagerState Create(
         string? updateSource,
@@ -98,7 +104,8 @@ public sealed class VersionManagerState
         PendingVersionActivation? pendingActivation,
         ManagedAppVersion? failedActivationVersion,
         bool retentionReviewDue,
-        PendingManagedVersionMutation? pendingMutation = null)
+        PendingManagedVersionMutation? pendingMutation = null,
+        string? managedRootIdentity = null)
     {
         ArgumentNullException.ThrowIfNull(admissions);
         ManagedVersionAdmission[] installed = [.. admissions];
@@ -153,6 +160,7 @@ public sealed class VersionManagerState
 
         Array.Sort(installed, static (left, right) => right.Version.CompareTo(left.Version));
         return new(
+            NormalizeManagedRootIdentity(managedRootIdentity),
             string.IsNullOrWhiteSpace(updateSource) ? null : updateSource,
             activeVersion,
             lastKnownGoodVersion,
@@ -162,6 +170,47 @@ public sealed class VersionManagerState
             retentionReviewDue,
             pendingMutation);
     }
+
+    /// <summary>Creates the first durable root binding after its packaged seed payload was verified.</summary>
+    internal VersionManagerState BindToManagedRoot(string managedRoot)
+    {
+        _ = ManagedRootIdentity is null
+            ? true
+            : throw new InvalidOperationException("Managed-version state is already bound to a managed root.");
+        return Create(
+            UpdateSource,
+            ActiveVersion,
+            LastKnownGoodVersion,
+            Admissions,
+            PendingActivation,
+            FailedActivationVersion,
+            RetentionReviewDue,
+            PendingMutation,
+            managedRoot);
+    }
+
+    /// <summary>Checks that this durable state belongs to the exact current managed root.</summary>
+    internal bool IsBoundToManagedRoot(string managedRoot)
+    {
+        return ManagedRootIdentity is not null &&
+               ManagedRootIdentityComparer.Equals(
+                   ManagedRootIdentity,
+                   NormalizeManagedRootIdentity(managedRoot));
+    }
+
+    private static string? NormalizeManagedRootIdentity(string? managedRoot)
+    {
+        if (managedRoot is null)
+        {
+            return null;
+        }
+        ArgumentException.ThrowIfNullOrWhiteSpace(managedRoot);
+        return Path.TrimEndingDirectorySeparator(Path.GetFullPath(managedRoot));
+    }
+
+    private static StringComparer ManagedRootIdentityComparer => OperatingSystem.IsWindows()
+        ? StringComparer.OrdinalIgnoreCase
+        : StringComparer.Ordinal;
 
     private static bool IsLowerSha256(string? value)
     {
@@ -183,7 +232,8 @@ public sealed class VersionManagerState
             pendingActivation,
             failedActivationVersion,
             RetentionReviewDue,
-            PendingMutation);
+            PendingMutation,
+            ManagedRootIdentity);
     }
 
     internal VersionManagerState WithRetentionReviewDue(bool retentionReviewDue)
@@ -196,7 +246,8 @@ public sealed class VersionManagerState
             PendingActivation,
             FailedActivationVersion,
             retentionReviewDue,
-            PendingMutation);
+            PendingMutation,
+            ManagedRootIdentity);
     }
 
     internal VersionManagerState WithPendingMutation(PendingManagedVersionMutation? pendingMutation)
@@ -209,7 +260,8 @@ public sealed class VersionManagerState
             PendingActivation,
             FailedActivationVersion,
             RetentionReviewDue,
-            pendingMutation);
+            pendingMutation,
+            ManagedRootIdentity);
     }
 }
 

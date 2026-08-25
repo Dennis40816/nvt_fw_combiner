@@ -13,7 +13,9 @@ public sealed record VersionManagerStateDocument(
     string? FailedActivationVersion,
     bool RetentionReviewDue,
     [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
-    PendingManagedVersionMutationDocument? PendingMutation = null);
+    PendingManagedVersionMutationDocument? PendingMutation = null,
+    [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    string? ManagedRootIdentity = null);
 
 /// <summary>One installed managed-version admission transport.</summary>
 public sealed record ManagedVersionAdmissionDocument(
