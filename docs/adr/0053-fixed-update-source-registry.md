@@ -41,9 +41,11 @@ below.
    size/count guards and returns typed entries; it does not choose a source.
 3. The existing `VersionManagementExperience` orders candidates and invokes the
    existing catalog/package verification ports.
-4. Only after candidate admission does Application acquire the existing writer
-   lease, reload durable state, revalidate the candidate generation, and save
-   the effective `UpdateSource`. No adapter performs an independent state write.
+4. Only after candidate admission does Application acquire the existing
+   state-path-scoped writer lease, reload durable state, revalidate the
+   candidate generation, and save the effective `UpdateSource`. Managed root
+   remains inventory authority and does not create a second writer identity.
+   No adapter performs an independent state write.
 5. Bootstrap injects the one registry source. The stable launcher remains
    unaware of registry/catalog discovery.
 6. Presentation renders typed registry/effective-source status only. It never

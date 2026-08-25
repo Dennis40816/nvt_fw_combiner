@@ -650,7 +650,6 @@ public sealed partial class VersionManagementExperience : IVersionManagementExpe
         CancellationToken cancellationToken)
     {
         return _stateStore.TryAcquireWriteLeaseAsync(
-            _managedRoot,
             waitTimeout,
             cancellationToken);
     }

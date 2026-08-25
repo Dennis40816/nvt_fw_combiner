@@ -8,32 +8,67 @@ namespace NvtFwCombiner.Infrastructure.Tests.VersionManagement;
 /// <summary>Exercises the OS-backed, exact-identity version-manager writer lease.</summary>
 public sealed class FileSystemVersionManagerWriteLeaseTests
 {
-    /// <summary>Exact state and managed-root identity has one writer across store instances.</summary>
+    /// <summary>One canonical state file has one writer across store instances.</summary>
     [Fact]
-    public async Task ExactStateAndManagedRootHaveOneCrossInstanceWriter()
+    public async Task SameStateHasOneCrossInstanceWriter()
     {
         using var workspace = TempWorkspace.Create("nfc-version-lease");
         string statePath = Path.Combine(workspace.Root, "state", "version-manager.v1.json");
-        string managedRoot = Path.Combine(workspace.Root, "managed");
         var firstStore = new JsonVersionManagerStateStore(statePath);
         var secondStore = new JsonVersionManagerStateStore(statePath);
 
         using VersionManagerWriteLeaseResult first = await firstStore.TryAcquireWriteLeaseAsync(
-            managedRoot,
             TimeSpan.Zero,
             TestContext.Current.CancellationToken);
         using VersionManagerWriteLeaseResult contended = await secondStore.TryAcquireWriteLeaseAsync(
-            managedRoot,
-            TimeSpan.Zero,
-            TestContext.Current.CancellationToken);
-        using VersionManagerWriteLeaseResult otherRoot = await secondStore.TryAcquireWriteLeaseAsync(
-            managedRoot + "-other",
             TimeSpan.Zero,
             TestContext.Current.CancellationToken);
 
         Assert.True(first.IsAcquired);
         Assert.Equal(VersionManagerWriteLeaseIssue.Busy, contended.Issue);
-        Assert.True(otherRoot.IsAcquired);
+    }
+
+    /// <summary>Independent state files retain independent writer leases.</summary>
+    [Fact]
+    public async Task DifferentStatePathsDoNotContend()
+    {
+        using var workspace = TempWorkspace.Create("nfc-version-lease");
+        var firstStore = new JsonVersionManagerStateStore(
+            Path.Combine(workspace.Root, "state-a", "version-manager.v1.json"));
+        var secondStore = new JsonVersionManagerStateStore(
+            Path.Combine(workspace.Root, "state-b", "version-manager.v1.json"));
+
+        using VersionManagerWriteLeaseResult first = await firstStore.TryAcquireWriteLeaseAsync(
+            TimeSpan.Zero,
+            TestContext.Current.CancellationToken);
+        using VersionManagerWriteLeaseResult second = await secondStore.TryAcquireWriteLeaseAsync(
+            TimeSpan.Zero,
+            TestContext.Current.CancellationToken);
+
+        Assert.True(first.IsAcquired);
+        Assert.True(second.IsAcquired);
+    }
+
+    /// <summary>Lexically different paths resolving to the same state file share one writer.</summary>
+    [Fact]
+    public async Task CanonicallyEquivalentStatePathsContend()
+    {
+        using var workspace = TempWorkspace.Create("nfc-version-lease");
+        string stateDirectory = Path.Combine(workspace.Root, "state");
+        var directStore = new JsonVersionManagerStateStore(
+            Path.Combine(stateDirectory, "version-manager.v1.json"));
+        var equivalentStore = new JsonVersionManagerStateStore(
+            Path.Combine(stateDirectory, "unused", "..", "version-manager.v1.json"));
+
+        using VersionManagerWriteLeaseResult first = await directStore.TryAcquireWriteLeaseAsync(
+            TimeSpan.Zero,
+            TestContext.Current.CancellationToken);
+        using VersionManagerWriteLeaseResult contended = await equivalentStore.TryAcquireWriteLeaseAsync(
+            TimeSpan.Zero,
+            TestContext.Current.CancellationToken);
+
+        Assert.True(first.IsAcquired);
+        Assert.Equal(VersionManagerWriteLeaseIssue.Busy, contended.Issue);
     }
 
     /// <summary>Disposing the writer handle makes the exact identity immediately available.</summary>
@@ -42,10 +77,8 @@ public sealed class FileSystemVersionManagerWriteLeaseTests
     {
         using var workspace = TempWorkspace.Create("nfc-version-lease");
         string statePath = Path.Combine(workspace.Root, "state", "version-manager.v1.json");
-        string managedRoot = Path.Combine(workspace.Root, "managed");
         var store = new JsonVersionManagerStateStore(statePath);
         using (VersionManagerWriteLeaseResult first = await store.TryAcquireWriteLeaseAsync(
-                   managedRoot,
                    TimeSpan.Zero,
                    TestContext.Current.CancellationToken))
         {
@@ -53,7 +86,6 @@ public sealed class FileSystemVersionManagerWriteLeaseTests
         }
 
         using VersionManagerWriteLeaseResult second = await store.TryAcquireWriteLeaseAsync(
-            managedRoot,
             TimeSpan.Zero,
             TestContext.Current.CancellationToken);
 
@@ -71,8 +103,7 @@ public sealed class FileSystemVersionManagerWriteLeaseTests
 
         using var workspace = TempWorkspace.Create("nfc-version-lease");
         string statePath = Path.Combine(workspace.Root, "state", "version-manager.v1.json");
-        string managedRoot = Path.Combine(workspace.Root, "managed");
-        string lockPath = FileSystemVersionManagerWriteLease.GetLockPath(statePath, managedRoot);
+        string lockPath = FileSystemVersionManagerWriteLease.GetLockPath(statePath);
         string readyPath = Path.Combine(workspace.Root, "lease-ready.txt");
         _ = Directory.CreateDirectory(Path.GetDirectoryName(lockPath)!);
         using var process = new Process
@@ -98,7 +129,6 @@ public sealed class FileSystemVersionManagerWriteLeaseTests
             await WaitForFileAsync(readyPath, process, TestContext.Current.CancellationToken);
             var store = new JsonVersionManagerStateStore(statePath);
             using VersionManagerWriteLeaseResult held = await store.TryAcquireWriteLeaseAsync(
-                managedRoot,
                 TimeSpan.Zero,
                 TestContext.Current.CancellationToken);
             Assert.Equal(VersionManagerWriteLeaseIssue.Busy, held.Issue);
@@ -106,7 +136,6 @@ public sealed class FileSystemVersionManagerWriteLeaseTests
             process.Kill(entireProcessTree: true);
             await process.WaitForExitAsync(TestContext.Current.CancellationToken);
             using VersionManagerWriteLeaseResult recovered = await store.TryAcquireWriteLeaseAsync(
-                managedRoot,
                 TimeSpan.FromSeconds(2),
                 TestContext.Current.CancellationToken);
             Assert.True(recovered.IsAcquired);

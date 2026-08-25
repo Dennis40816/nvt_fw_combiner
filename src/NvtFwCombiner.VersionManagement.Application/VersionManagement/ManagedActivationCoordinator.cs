@@ -126,7 +126,6 @@ public sealed class ManagedActivationCoordinator
     public async ValueTask<ManagedLauncherResult> RunAsync(CancellationToken cancellationToken)
     {
         using VersionManagerWriteLeaseResult lease = await _stateStore.TryAcquireWriteLeaseAsync(
-            _managedRoot,
             DefaultWriterLeaseTimeout,
             cancellationToken).ConfigureAwait(false);
         if (!lease.IsAcquired)

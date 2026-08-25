@@ -60,7 +60,6 @@ public sealed partial class ManagedActivationCoordinatorTests
         internal VersionManagerState State { get; private set; } = state;
 
         public ValueTask<VersionManagerWriteLeaseResult> TryAcquireWriteLeaseAsync(
-            string managedRoot,
             TimeSpan waitTimeout,
             CancellationToken cancellationToken)
         {

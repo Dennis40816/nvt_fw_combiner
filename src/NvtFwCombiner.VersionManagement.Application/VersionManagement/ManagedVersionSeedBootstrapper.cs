@@ -48,7 +48,6 @@ public sealed class ManagedVersionSeedBootstrapper
         CancellationToken cancellationToken)
     {
         using VersionManagerWriteLeaseResult lease = await _destinationStateStore.TryAcquireWriteLeaseAsync(
-            _managedRoot,
             WriterLeaseTimeout,
             cancellationToken).ConfigureAwait(false);
         if (!lease.IsAcquired)

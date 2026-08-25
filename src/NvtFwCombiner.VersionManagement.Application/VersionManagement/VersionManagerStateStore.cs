@@ -41,9 +41,9 @@ public readonly record struct VersionManagerStateSaveResult(VersionManagerStateS
 /// <summary>Stable outcome from acquiring the one cross-process version-manager writer.</summary>
 public enum VersionManagerWriteLeaseIssue
 {
-    /// <summary>The caller exclusively owns the exact managed-root/state pair.</summary>
+    /// <summary>The caller exclusively owns the exact canonical state file.</summary>
     None,
-    /// <summary>Another application or launcher process currently owns the pair.</summary>
+    /// <summary>Another application or launcher process currently owns the state file.</summary>
     Busy,
     /// <summary>The platform could not create or inspect the writer lease.</summary>
     Unavailable,
@@ -84,13 +84,11 @@ public sealed class VersionManagerWriteLeaseResult : IDisposable
 /// <summary>Atomic persistence port for launcher-owned managed-version state.</summary>
 public interface IVersionManagerStateStore
 {
-    /// <summary>Tries to own the exact managed-root/state pair across one complete transaction.</summary>
-    /// <param name="managedRoot">Stable launcher-owned managed root.</param>
+    /// <summary>Tries to own the store's canonical state path across one complete transaction.</summary>
     /// <param name="waitTimeout">Maximum bounded contention wait.</param>
     /// <param name="cancellationToken">Cancellation token.</param>
     /// <returns>An exclusive lease or a typed busy/unavailable outcome.</returns>
     ValueTask<VersionManagerWriteLeaseResult> TryAcquireWriteLeaseAsync(
-        string managedRoot,
         TimeSpan waitTimeout,
         CancellationToken cancellationToken);
 

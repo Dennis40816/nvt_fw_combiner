@@ -545,7 +545,6 @@ public sealed partial class VersionManagementExperienceTests
         }
 
         public ValueTask<VersionManagerWriteLeaseResult> TryAcquireWriteLeaseAsync(
-            string managedRoot,
             TimeSpan waitTimeout,
             CancellationToken cancellationToken)
         {

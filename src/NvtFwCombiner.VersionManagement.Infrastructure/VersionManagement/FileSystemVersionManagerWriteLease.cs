@@ -4,24 +4,22 @@ using NvtFwCombiner.Application.VersionManagement;
 
 namespace NvtFwCombiner.Infrastructure.VersionManagement;
 
-/// <summary>OS-backed exclusive writer for one exact managed-root/state pair.</summary>
+/// <summary>OS-backed exclusive writer for one exact canonical state path.</summary>
 internal static class FileSystemVersionManagerWriteLease
 {
     private static readonly TimeSpan RetryInterval = TimeSpan.FromMilliseconds(50);
 
     internal static async ValueTask<VersionManagerWriteLeaseResult> TryAcquireAsync(
         string statePath,
-        string managedRoot,
         TimeSpan waitTimeout,
         CancellationToken cancellationToken)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(statePath);
-        ArgumentException.ThrowIfNullOrWhiteSpace(managedRoot);
         ArgumentOutOfRangeException.ThrowIfLessThan(waitTimeout, TimeSpan.Zero);
         string lockPath;
         try
         {
-            lockPath = GetLockPath(statePath, managedRoot);
+            lockPath = GetLockPath(statePath);
             _ = Directory.CreateDirectory(Path.GetDirectoryName(lockPath)!);
         }
         catch (Exception exception) when (exception is IOException or UnauthorizedAccessException or ArgumentException)
@@ -69,11 +67,9 @@ internal static class FileSystemVersionManagerWriteLease
         }
     }
 
-    internal static string GetLockPath(string statePath, string managedRoot)
+    internal static string GetLockPath(string statePath)
     {
-        string state = NormalizeIdentityPath(statePath);
-        string root = NormalizeIdentityPath(managedRoot);
-        string identity = state + "\n" + root;
+        string identity = NormalizeIdentityPath(statePath);
         string hash = Convert.ToHexStringLower(SHA256.HashData(Encoding.UTF8.GetBytes(identity)));
         string directory = Path.GetDirectoryName(Path.GetFullPath(statePath)) ??
             throw new ArgumentException("Version-manager state has no parent directory.", nameof(statePath));

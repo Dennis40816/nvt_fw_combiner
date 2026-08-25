@@ -259,7 +259,6 @@ public sealed class ManagedVersionSeedBootstrapperTests
         }
 
         public ValueTask<VersionManagerWriteLeaseResult> TryAcquireWriteLeaseAsync(
-            string managedRoot,
             TimeSpan waitTimeout,
             CancellationToken cancellationToken)
         {

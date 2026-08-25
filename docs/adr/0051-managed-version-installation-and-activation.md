@@ -49,14 +49,15 @@ from a directory name.
 
 Every seed import, install, delete, activation, ready commit, rollback, and
 recovery mutation is also covered by one OS-backed cross-process writer lease.
-Its identity is the normalized exact state-file path plus normalized exact
-managed root. The owner acquires the lease before reading authority, reloads
-durable state after acquisition, and holds it through the complete filesystem
-or supervised process transaction and its terminal state save. A contending
-desktop/launcher receives a typed bounded `Busy`/`StateUnavailable` result and
-does not act from an earlier in-memory snapshot. Closing or terminating the
-owner process releases the operating-system file handle, so restart convergence
-does not depend on deleting a stale marker file.
+Its identity is only the normalized exact state-file path. The managed root
+remains repository inventory authority but cannot split writer ownership for
+shared durable state. The owner acquires the lease before reading authority,
+reloads durable state after acquisition, and holds it through the complete
+filesystem or supervised process transaction and its terminal state save. A
+contending desktop/launcher receives a typed bounded `Busy`/`StateUnavailable`
+result and does not act from an earlier in-memory snapshot. Closing or
+terminating the owner process releases the operating-system file handle, so
+restart convergence does not depend on deleting a stale marker file.
 
 Installations stage and verify complete immutable payloads before same-volume
 promotion into `versions/<semver>`. Activation is also a durable state machine:

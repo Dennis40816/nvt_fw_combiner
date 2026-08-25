@@ -473,7 +473,6 @@ public sealed partial class ManagedActivationCoordinatorTests
         internal VersionManagerState State { get; private set; } = state;
 
         public ValueTask<VersionManagerWriteLeaseResult> TryAcquireWriteLeaseAsync(
-            string managedRoot,
             TimeSpan waitTimeout,
             CancellationToken cancellationToken)
         {
@@ -495,7 +494,6 @@ public sealed partial class ManagedActivationCoordinatorTests
     private sealed class LoadIssueStateStore(VersionManagerStateLoadIssue issue) : IVersionManagerStateStore
     {
         public ValueTask<VersionManagerWriteLeaseResult> TryAcquireWriteLeaseAsync(
-            string managedRoot,
             TimeSpan waitTimeout,
             CancellationToken cancellationToken)
         {
@@ -522,7 +520,6 @@ public sealed partial class ManagedActivationCoordinatorTests
         internal VersionManagerState State { get; private set; } = state;
 
         public ValueTask<VersionManagerWriteLeaseResult> TryAcquireWriteLeaseAsync(
-            string managedRoot,
             TimeSpan waitTimeout,
             CancellationToken cancellationToken)
         {

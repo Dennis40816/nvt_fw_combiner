@@ -5,9 +5,9 @@ namespace NvtFwCombiner.Application.Tests.VersionManagement;
 
 public sealed partial class VersionManagementExperienceTests
 {
-    /// <summary>Separate experiences serialize installs and reload before committing.</summary>
+    /// <summary>Experiences with different managed roots serialize through shared state and reload before committing.</summary>
     [Fact]
-    public async Task TwoExperiencesSerializeInstallsAndReloadBeforeSecondCommit()
+    public async Task TwoManagedRootsSharingStateSerializeInstallsAndReloadBeforeSecondCommit()
     {
         VersionManagerState initial = VersionManagerState.Create(
             "source",
@@ -21,13 +21,13 @@ public sealed partial class VersionManagementExperienceTests
         var repository = new FirstInstallBlockingRepository();
         using var first = new VersionManagementExperience(
             ManagedAppVersion.Parse("0.10.5"),
-            "managed",
+            "managed-a",
             stateStore,
             new FixedCatalogSource(Catalog("0.10.6")),
             repository);
         using var second = new VersionManagementExperience(
             ManagedAppVersion.Parse("0.10.5"),
-            "managed",
+            "managed-b",
             stateStore,
             new FixedCatalogSource(Catalog("0.10.7")),
             repository);
@@ -79,7 +79,6 @@ public sealed partial class VersionManagementExperienceTests
         }
 
         public ValueTask<VersionManagerWriteLeaseResult> TryAcquireWriteLeaseAsync(
-            string managedRoot,
             TimeSpan waitTimeout,
             CancellationToken cancellationToken)
         {
