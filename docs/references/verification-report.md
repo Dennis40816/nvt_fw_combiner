@@ -10,6 +10,38 @@ commands.
 
 Specification package version: `0.10.7`
 
+## 2026-08-25 formal-support policy checkpoint
+
+Commit `ed834f9c` reconciles canonical policy catalog `1.10.0` against an
+independently frozen 89-route denominator and the current executable route
+fingerprints. The 2026-08-25 owner decision publishes all 64 exact Standard
+Merge, AB Merge, and CtrlRAM Replace routes as `Supported` and makes ordinary
+authoring `Available`. All 14 DP Replace routes remain `Internal` and
+`Unavailable` until the `1.1.0` decision; General retains its existing ten
+internal and one test-only routes.
+
+Evidence remains a separate fact. The complete catalog contains 31 Direct
+Golden, nine Approved Alias, five Synthetic Oracle, and 44 Contract Only
+routes. This includes 11 exact TP-prefix CtrlRAM base routes; input-only
+multi-IC cases remain Contract Only, and NT51929 DP is Contract Only because
+its retained direct Golden case belongs to Standard Merge. No evidence type is
+inferred from a filename.
+
+The exact LF policy hash is
+`a385f0710f1f7d082cefc857b52c96d0fa174d669d1bb317de7bf7d7d7ef9f94`.
+The 26-bundle package trust index is `0.10.6.2` with SHA-256
+`e365b73e53aff65faa107347400aac82546a3dc700160914b1412f6858fe276d`.
+Focused local checks passed: policy loader 20/20, canonical host/route
+convergence 7/7, Support Matrix projection 8/8, package-trust architecture
+17/17, release-package policy 30/30, and the previously blocked CtrlRAM
+ProductServices paths 3/3.
+
+This is not a full verification or release authorization. The Golden manifest
+still requires one strict route-evidence cross-link for every exact policy
+route. Full frozen-tree verification, independent R3/firmware review,
+packaged/clean-machine smoke, signing, provenance, protected CI, and
+release-owner approval remain open.
+
 ## 0.10.7 internal final-effect candidate
 
 The owner approved hiding ordinary DP Replace authoring in `0.10.7` and the

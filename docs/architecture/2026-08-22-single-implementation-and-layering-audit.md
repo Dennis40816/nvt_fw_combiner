@@ -463,6 +463,51 @@ only unconditional correction is the project-reference graph. Claiming a
 larger saving would require inventing callers or treating required firmware,
 trust, UI, or evidence code as duplication.
 
+## 2026-08-25 FORMAL-SUPPORT-01 superseding checkpoint
+
+The 2026-08-25 owner decision supersedes the publication counts in the dated
+2026-08-23 matrix below. Catalog `1.10.0` is generated from the independently
+frozen 89-axis route denominator and current compiled/dynamic route inventory;
+no route, support state, or evidence type is inferred from a filename, PID,
+version string, or whole-file Golden hash.
+
+| Policy axis | Current exact count | Decision |
+| --- | ---: | --- |
+| Standard Merge | 14 | All `Available` + `Supported`; evidence 7 Direct Golden / 2 Approved Alias / 4 Synthetic Oracle / 1 Contract Only |
+| AB Merge | 6 | All `Available` + `Supported`; evidence 2 / 2 / 1 / 1 |
+| CtrlRAM Replace | 44 | All `Available` + `Supported`; evidence 22 / 5 / 0 / 17; includes 11 new exact TP-prefix base routes |
+| DP Replace | 14 | All `Unavailable` + `Internal`; evidence is honestly Contract Only until the `1.1.0` decision |
+| General Merge / Replace | 11 | Existing 10 Internal + 1 Test Only publication retained; all Contract Only |
+| Total | 89 | 64 Supported / 24 Internal / 1 Test Only; 75 Available / 14 Unavailable; evidence 31 Direct / 9 Alias / 5 Synthetic / 44 Contract |
+
+The 11 TP-prefix routes are separate exact route identities from their
+full-flash counterparts. They authorize only the profile-declared effective TP
+work-image range even where the CtrlRAM planner and expected output view are
+equivalent. The three new direct TP-prefix views (NT51923 single/cascade and
+NT51927 single), the seven previously admitted direct TP-prefix views, and all
+full-image routes retain their own current capability fingerprints. Multi-IC
+input-only cases are `ContractOnly`, not aliases; an `ApprovedAlias` is used
+only when its exact source route resolves to Direct Golden evidence.
+
+The checked-in policy LF-byte SHA-256 is
+`a385f0710f1f7d082cefc857b52c96d0fa174d669d1bb317de7bf7d7d7ef9f94`.
+The current 26-bundle trust index is version `0.10.6.2` with SHA-256
+`e365b73e53aff65faa107347400aac82546a3dc700160914b1412f6858fe276d`.
+Runtime, packager, smoke, and release-policy tests pin these identities.
+
+Focused local evidence for commit `ed834f9c` passed policy loader 20/20,
+canonical host/route convergence 7/7, Support Matrix projection 8/8,
+package-trust architecture 17/17, and release-package policy 30/30. The three
+previously blocked CtrlRAM ProductServices cases also passed 3/3 after the
+policy reconciliation. These are focused checks, not a full frozen-tree
+verification.
+
+This checkpoint does **not** claim release readiness. The canonical manifest
+must still populate and validate one strict `routeEvidence` row for all 89
+exact `(routeId, capabilityFingerprint)` pairs, after which the full verifier,
+independent R3/firmware review, package/clean-machine smoke, signing,
+provenance, protected CI, and release-owner approval remain mandatory.
+
 ## 2026-08-23 functional-verification matrix
 
 The exact route denominator is the 78-row `canonical-capability-policy-v1.json`,
