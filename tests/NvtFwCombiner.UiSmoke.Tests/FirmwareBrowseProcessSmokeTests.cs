@@ -46,9 +46,55 @@ public sealed class FirmwareBrowseProcessSmokeTests
         Assert.Equal(["application/octet-stream"], choice.MimeTypes);
     }
 
-    /// <summary>Cancelling the shared native picker leaves the accepted selection and session untouched.</summary>
-    [AvaloniaFact]
-    public async Task FirmwareBrowseCancelIsAnExactNoOpForAcceptedSession()
+    /// <summary>The native firmware picker admits exactly one local provider result.</summary>
+    [Theory]
+    [InlineData(PickerResultScenario.Zero, false)]
+    [InlineData(PickerResultScenario.OneLocal, true)]
+    [InlineData(PickerResultScenario.TwoLocal, false)]
+    [InlineData(PickerResultScenario.OneNonLocal, false)]
+    public async Task FirmwareBrowseOpenPickerAcceptsExactlyOneLocalFile(
+        PickerResultScenario scenario,
+        bool expectedAccepted)
+    {
+        string localPath = Path.Combine(Path.GetTempPath(), "native-picker-firmware.bin");
+        IStorageProvider storageProvider = CreateStorageProvider(
+            fileResults: CreateStorageResults<IStorageFile>(scenario, localPath, "firmware.bin"));
+
+        string? selectedPath = await FirmwareFilePickerDialogs.PickFirmwareBinOpenFileAsync(
+            storageProvider,
+            "Select firmware BIN");
+
+        Assert.Equal(expectedAccepted ? localPath : null, selectedPath);
+    }
+
+    /// <summary>The bundle-parent picker admits exactly one local provider result.</summary>
+    [Theory]
+    [InlineData(PickerResultScenario.Zero, false)]
+    [InlineData(PickerResultScenario.OneLocal, true)]
+    [InlineData(PickerResultScenario.TwoLocal, false)]
+    [InlineData(PickerResultScenario.OneNonLocal, false)]
+    public async Task BundleParentBrowsePickerAcceptsExactlyOneLocalFolder(
+        PickerResultScenario scenario,
+        bool expectedAccepted)
+    {
+        string localPath = Path.Combine(Path.GetTempPath(), "native-picker-bundle-parent");
+        IStorageProvider storageProvider = CreateStorageProvider(
+            folderResults: CreateStorageResults<IStorageFolder>(scenario, localPath, "bundle-parent"));
+
+        string? selectedPath = await FirmwareFilePickerDialogs.PickBundleParentDirectoryAsync(
+            storageProvider,
+            "Select bundle parent directory");
+
+        Assert.Equal(expectedAccepted ? localPath : null, selectedPath);
+    }
+
+    /// <summary>Rejected native picker results leave the accepted selection and session untouched.</summary>
+    [AvaloniaTheory]
+    [InlineData(PickerResultScenario.Zero)]
+    [InlineData(PickerResultScenario.TwoLocal)]
+    [InlineData(PickerResultScenario.OneNonLocal)]
+    public async Task RejectedFirmwareBrowseResultIsAnExactNoOpForAcceptedSession(
+        PickerResultScenario scenario)
     {
         using var golden = StandardMergeGoldenManifest.Load();
         using var workspace = TempWorkspace.Create("nvt-fw-combiner-ui-picker-cancel");
@@ -70,15 +116,30 @@ public sealed class FirmwareBrowseProcessSmokeTests
         Task acceptedTask = viewModel.Merge.Inspection.ActiveTask;
         FirmwareSlotFactViewModel[] acceptedFacts = [.. slot.FirmwareFacts];
         var pickerInvoked = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
-        var releasePicker = new TaskCompletionSource<string?>(TaskCreationOptions.RunContinuationsAsynchronously);
+        var releasePicker = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var pickerCompleted = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        string localPath = Path.Combine(workspace.Root, "native-picker-rejected.bin");
+        IStorageProvider storageProvider = CreateStorageProvider(
+            fileResults: CreateStorageResults<IStorageFile>(scenario, localPath, "rejected.bin"));
         var card = new FirmwareSlotCard
         {
             BrowseLabel = "Browse",
             DataContext = slot,
-            PickFirmwareFileAsync = (_, _) =>
+            PickFirmwareFileAsync = async (provider, title) =>
             {
+                _ = provider;
                 _ = pickerInvoked.TrySetResult();
-                return releasePicker.Task;
+                await releasePicker.Task;
+                try
+                {
+                    return await FirmwareFilePickerDialogs.PickFirmwareBinOpenFileAsync(
+                        storageProvider,
+                        title);
+                }
+                finally
+                {
+                    _ = pickerCompleted.TrySetResult();
+                }
             },
         };
         var window = new Window
@@ -96,7 +157,10 @@ public sealed class FirmwareBrowseProcessSmokeTests
             await pickerInvoked.Task.WaitAsync(
                 TimeSpan.FromSeconds(10),
                 TestContext.Current.CancellationToken);
-            _ = releasePicker.TrySetResult(null);
+            _ = releasePicker.TrySetResult();
+            await pickerCompleted.Task.WaitAsync(
+                TimeSpan.FromSeconds(10),
+                TestContext.Current.CancellationToken);
             await Dispatcher.UIThread.InvokeAsync(static () => { });
 
             Assert.Equal(acceptedPath, slot.FilePath);
@@ -189,14 +253,20 @@ public sealed class FirmwareBrowseProcessSmokeTests
     {
         public FilePickerOpenOptions? OpenOptions { get; private set; }
 
+        public IReadOnlyList<IStorageFile> FileResults { get; set; } = [];
+
+        public IReadOnlyList<IStorageFolder> FolderResults { get; set; } = [];
+
         protected override object? Invoke(MethodInfo? targetMethod, object?[]? args)
         {
             ArgumentNullException.ThrowIfNull(targetMethod);
             return targetMethod.Name switch
             {
                 "get_CanOpen" => true,
-                "get_CanSave" or "get_CanPickFolder" => false,
+                "get_CanPickFolder" => true,
+                "get_CanSave" => false,
                 nameof(IStorageProvider.OpenFilePickerAsync) => CaptureOpenOptions(args),
+                nameof(IStorageProvider.OpenFolderPickerAsync) => CaptureFolderOptions(args),
                 _ => throw new NotSupportedException(targetMethod.Name),
             };
         }
@@ -204,8 +274,98 @@ public sealed class FirmwareBrowseProcessSmokeTests
         private Task<IReadOnlyList<IStorageFile>> CaptureOpenOptions(object?[]? args)
         {
             OpenOptions = Assert.IsType<FilePickerOpenOptions>(Assert.Single(args!));
-            return Task.FromResult<IReadOnlyList<IStorageFile>>([]);
+            return Task.FromResult(FileResults);
         }
+
+        private Task<IReadOnlyList<IStorageFolder>> CaptureFolderOptions(object?[]? args)
+        {
+            _ = Assert.IsType<FolderPickerOpenOptions>(Assert.Single(args!));
+            return Task.FromResult(FolderResults);
+        }
+    }
+
+    [SuppressMessage(
+        "Performance",
+        "CA1852:Seal internal types",
+        Justification = "DispatchProxy creates a runtime subclass of this proxy base.")]
+    private class StorageItemProxy : DispatchProxy
+    {
+        public required Uri ItemPath { get; set; }
+
+        protected override object? Invoke(MethodInfo? targetMethod, object?[]? args)
+        {
+            ArgumentNullException.ThrowIfNull(targetMethod);
+            return targetMethod.Name switch
+            {
+                "get_Path" => ItemPath,
+                "get_Name" => ItemPath.Segments.LastOrDefault() ?? string.Empty,
+                nameof(IDisposable.Dispose) => null,
+                _ => throw new NotSupportedException(targetMethod.Name),
+            };
+        }
+    }
+
+    private static IStorageProvider CreateStorageProvider(
+        IReadOnlyList<IStorageFile>? fileResults = null,
+        IReadOnlyList<IStorageFolder>? folderResults = null)
+    {
+        IStorageProvider storageProvider = DispatchProxy.Create<IStorageProvider, StorageProviderProxy>();
+        StorageProviderProxy proxy = Assert.IsType<StorageProviderProxy>(
+            storageProvider,
+            exactMatch: false);
+        proxy.FileResults = fileResults ?? [];
+        proxy.FolderResults = folderResults ?? [];
+        return storageProvider;
+    }
+
+    [SuppressMessage(
+        "Reliability",
+        "CA2000:Dispose objects before losing scope",
+        Justification = "DispatchProxy storage items have a no-op Dispose and are scoped to one test invocation.")]
+    private static IReadOnlyList<TStorageItem> CreateStorageResults<TStorageItem>(
+        PickerResultScenario scenario,
+        string localPath,
+        string nonLocalName)
+        where TStorageItem : class, IStorageItem
+    {
+        return scenario switch
+        {
+            PickerResultScenario.Zero => [],
+            PickerResultScenario.OneLocal => [CreateStorageItem<TStorageItem>(new Uri(localPath))],
+            PickerResultScenario.TwoLocal =>
+            [
+                CreateStorageItem<TStorageItem>(new Uri(localPath)),
+                CreateStorageItem<TStorageItem>(new Uri(localPath + ".second")),
+            ],
+            PickerResultScenario.OneNonLocal =>
+                [CreateStorageItem<TStorageItem>(new Uri($"https://example.invalid/{nonLocalName}"))],
+            _ => throw new ArgumentOutOfRangeException(nameof(scenario), scenario, null),
+        };
+    }
+
+    private static TStorageItem CreateStorageItem<TStorageItem>(Uri path)
+        where TStorageItem : class, IStorageItem
+    {
+        TStorageItem item = DispatchProxy.Create<TStorageItem, StorageItemProxy>();
+        StorageItemProxy proxy = Assert.IsType<StorageItemProxy>(item, exactMatch: false);
+        proxy.ItemPath = path;
+        return item;
+    }
+
+    /// <summary>Provider result shapes exercised at the native picker boundary.</summary>
+    public enum PickerResultScenario
+    {
+        /// <summary>No selected storage item.</summary>
+        Zero,
+
+        /// <summary>One selected local storage item.</summary>
+        OneLocal,
+
+        /// <summary>Two selected local storage items despite single-selection options.</summary>
+        TwoLocal,
+
+        /// <summary>One selected storage item without a local filesystem path.</summary>
+        OneNonLocal,
     }
 
 }

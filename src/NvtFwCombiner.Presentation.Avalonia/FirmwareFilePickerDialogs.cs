@@ -14,7 +14,7 @@ internal static class FirmwareFilePickerDialogs
                 Title = title,
                 AllowMultiple = false,
             });
-        return folders.Count == 0 ? null : folders[0].TryGetLocalPath();
+        return folders.Count == 1 ? folders[0].TryGetLocalPath() : null;
     }
 
     public static async Task<string?> PickFirmwareBinOpenFileAsync(
@@ -28,7 +28,7 @@ internal static class FirmwareFilePickerDialogs
             FileTypeFilter = CreateFirmwareBinChoices(includeAllFiles: false),
         });
 
-        return files.Count == 0 ? null : files[0].TryGetLocalPath();
+        return files.Count == 1 ? files[0].TryGetLocalPath() : null;
     }
 
     public static async Task<string?> PickMergedFirmwareOutputPathAsync(
