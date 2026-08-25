@@ -19,7 +19,7 @@ public sealed partial class RepositoryBoundaryTests
         using JsonDocument document = JsonDocument.Parse(File.ReadAllText(trustIndexPath));
         JsonElement root = document.RootElement;
         Assert.Equal("1.1", root.GetProperty("schemaVersion").GetString());
-        Assert.Equal("0.10.6.1", root.GetProperty("trustIndexVersion").GetString());
+        Assert.Equal("0.10.6.2", root.GetProperty("trustIndexVersion").GetString());
 
         JsonElement[] ctrlRamRegistrations =
         [

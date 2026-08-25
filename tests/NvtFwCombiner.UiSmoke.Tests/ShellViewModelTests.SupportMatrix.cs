@@ -16,8 +16,8 @@ public sealed partial class ShellNavigationSystemTests
 
         Assert.True(viewModel.Settings.IsSupportMatrixOpen);
         Assert.False(viewModel.Settings.IsOverviewSelected);
-        Assert.Equal(78, viewModel.Settings.SupportMatrix.Rows.Count);
-        Assert.Equal("78 routes", viewModel.Settings.SupportMatrix.RouteCountLabel);
+        Assert.Equal(89, viewModel.Settings.SupportMatrix.Rows.Count);
+        Assert.Equal("89 routes", viewModel.Settings.SupportMatrix.RouteCountLabel);
         Assert.Equal("Current", viewModel.Settings.SupportMatrix.CatalogStateLabel);
         Assert.False(viewModel.Settings.SupportMatrix.HasStatusNotice);
         Assert.Equal(6, viewModel.Settings.SupportMatrix.WorkflowColumns.Count);
@@ -32,10 +32,10 @@ public sealed partial class ShellNavigationSystemTests
             "Verified",
             nt51929.Cells.Single(static cell => cell.WorkflowLabel == "Standard Merge").StatusLabel);
         Assert.Equal(
-            SupportMatrixCellStatus.ContractOnly,
+            SupportMatrixCellStatus.ReviewRequired,
             nt51929.Cells.Single(static cell => cell.WorkflowLabel == "CtrlRAM Replace").Status);
         Assert.Equal(
-            "Defined only",
+            "Review required",
             nt51929.Cells.Single(static cell => cell.WorkflowLabel == "CtrlRAM Replace").StatusLabel);
         Assert.All(
             viewModel.Settings.SupportMatrix.Rows,

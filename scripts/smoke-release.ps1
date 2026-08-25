@@ -30,11 +30,11 @@ $ApprovedRuntimeCatalogPackagePaths = @(
     'profiles/built-in/ctrlram-postbuild-v2/flash-map.json'
 ) | Sort-Object
 $PackageTrustIndexPackagePath = 'profiles/built-in/package-trust-index.json'
-$ApprovedPackageTrustIndexSha256 = '155e27daab124879f1734d454dfef1886c9f35c3fec91eb6eb208b63a0d52a30'
+$ApprovedPackageTrustIndexSha256 = 'e365b73e53aff65faa107347400aac82546a3dc700160914b1412f6858fe276d'
 $ApprovedCanonicalCapabilityPolicyPackageContract = [pscustomobject]@{
     path = 'docs/contracts/canonical-capability-policy-v1.json'
     role = 'capabilityPolicy'
-    sha256 = '512e995d0ed7ca7d4765c89dad79f96cf36eb1353615f08a58d172ebfc21e4a8'
+    sha256 = 'a385f0710f1f7d082cefc857b52c96d0fa174d669d1bb317de7bf7d7d7ef9f94'
 }
 $RetiredSupportPublicationPolicyPackagePaths = @(
     'docs/contracts/support-publication-policy-v1.0.0.json',
