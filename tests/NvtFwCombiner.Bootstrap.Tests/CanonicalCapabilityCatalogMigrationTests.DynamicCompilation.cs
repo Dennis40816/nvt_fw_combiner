@@ -91,6 +91,12 @@ public sealed partial class CanonicalCapabilityCatalogMigrationTests
             .. policy.Routes.Where(static route =>
                 route.Identity.WorkflowId == ExperienceIds.CtrlRamReplace),
         ];
+        string[] tpRoutesAwaitingIndependentExpectedOutput =
+        [
+            "route-7-nt51950-15-ctrlram-replace-4-1-ic-36-nt51950-ctrlram-fw200-single-tp-work",
+            "route-7-nt51951-15-ctrlram-replace-4-1-ic-36-nt51951-ctrlram-fw200-single-tp-work",
+            "route-7-nt51951-15-ctrlram-replace-4-2-ic-36-nt51951-ctrlram-fw1x-cascade-tp-work",
+        ];
         var expectedMaps = new Dictionary<string, string>(StringComparer.Ordinal)
         {
             ["NT51917"] = "nt51927-standard-merge-256k",
@@ -111,11 +117,19 @@ public sealed partial class CanonicalCapabilityCatalogMigrationTests
                 .Order(StringComparer.Ordinal),
             policyRoutes.Select(static route => route.Identity.RouteId)
                 .Order(StringComparer.Ordinal));
-        Assert.All(policyRoutes, static route =>
+        Assert.All(policyRoutes, route =>
         {
             Assert.EndsWith("-authoring-v3", route.Authoring.DecisionId, StringComparison.Ordinal);
             Assert.EndsWith("-publication-v5", route.Publication.DecisionId, StringComparison.Ordinal);
-            Assert.EndsWith("-evidence-v3", route.Evidence.DecisionId, StringComparison.Ordinal);
+            string expectedEvidenceRevision = tpRoutesAwaitingIndependentExpectedOutput.Contains(
+                route.Identity.RouteId,
+                StringComparer.Ordinal)
+                ? "-evidence-v4"
+                : "-evidence-v3";
+            Assert.EndsWith(
+                expectedEvidenceRevision,
+                route.Evidence.DecisionId,
+                StringComparison.Ordinal);
         });
         Assert.All(reportless, route => Assert.DoesNotContain(
             route.CompilationContract.SemanticBindingIds,

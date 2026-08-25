@@ -475,22 +475,25 @@ version string, or whole-file Golden hash.
 | --- | ---: | --- |
 | Standard Merge | 14 | All `Available` + `Supported`; evidence 7 Direct Golden / 2 Approved Alias / 4 Synthetic Oracle / 1 Contract Only |
 | AB Merge | 6 | All `Available` + `Supported`; evidence 2 / 2 / 1 / 1 |
-| CtrlRAM Replace | 44 | All `Available` + `Supported`; evidence 22 / 5 / 0 / 17; includes 11 new exact TP-prefix base routes |
+| CtrlRAM Replace | 44 | All `Available` + `Supported`; evidence 19 / 5 / 0 / 20; includes 11 new exact TP-prefix base routes |
 | DP Replace | 14 | All `Unavailable` + `Internal`; evidence is honestly Contract Only until the `1.1.0` decision |
 | General Merge / Replace | 11 | Existing 10 Internal + 1 Test Only publication retained; all Contract Only |
-| Total | 89 | 64 Supported / 24 Internal / 1 Test Only; 75 Available / 14 Unavailable; evidence 31 Direct / 9 Alias / 5 Synthetic / 44 Contract |
+| Total | 89 | 64 Supported / 24 Internal / 1 Test Only; 75 Available / 14 Unavailable; evidence 28 Direct / 9 Alias / 5 Synthetic / 47 Contract |
 
 The 11 TP-prefix routes are separate exact route identities from their
 full-flash counterparts. They authorize only the profile-declared effective TP
-work-image range even where the CtrlRAM planner and expected output view are
-equivalent. The three new direct TP-prefix views (NT51923 single/cascade and
-NT51927 single), the seven previously admitted direct TP-prefix views, and all
-full-image routes retain their own current capability fingerprints. Multi-IC
-input-only cases are `ContractOnly`, not aliases; an `ApprovedAlias` is used
-only when its exact source route resolves to Direct Golden evidence.
+work-image range. A full-output prefix is Direct Golden evidence for a TP route
+only when original-TP execution has exact or approved allowed-difference parity
+with that view. NT51950 single and NT51951 single/two-IC TP execution succeeds,
+but the outputs differ from their owner full-Flash prefixes because those views
+contain DP-origin bytes; these three routes are therefore Contract Only pending
+independent TP-only expected outputs. All route ids and capability fingerprints
+remain unchanged. Multi-IC input-only cases are `ContractOnly`, not aliases; an
+`ApprovedAlias` is used only when its exact source route resolves to Direct
+Golden evidence.
 
 The checked-in policy LF-byte SHA-256 is
-`a385f0710f1f7d082cefc857b52c96d0fa174d669d1bb317de7bf7d7d7ef9f94`.
+`bf818a4c9aa4d539882e4bc4a0a662ef70ece67a44e78ae83356430365828f50`.
 The current 26-bundle trust index is version `0.10.6.2` with SHA-256
 `e365b73e53aff65faa107347400aac82546a3dc700160914b1412f6858fe276d`.
 Runtime, packager, smoke, and release-policy tests pin these identities.
@@ -504,8 +507,8 @@ verification.
 
 Follow-up commit `851ffad7` closes the repository cross-link: manifest schema
 `1.1` contains 89 strict `routeEvidence` rows, with zero missing, extra, kind,
-route-id, or fingerprint mismatches against policy. Canonical validation passes
-58/58 and preserves the same 31/9/5/44 evidence totals.
+route-id, or fingerprint mismatches against policy. The later TP execution
+reconciliation preserves that join and corrects the totals to 28/9/5/47.
 
 This checkpoint still does **not** claim release readiness. The full verifier,
 independent R3/firmware review, package/clean-machine smoke, signing,

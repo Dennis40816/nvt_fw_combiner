@@ -1969,11 +1969,11 @@
         "sourceReference": "owner-decision:2026-08-25:standard-ab-ctrlram-formal-support"
       },
       "evidence": {
-        "decisionId": "nt51950-ctrlram-replace-1-ic-nt51950-ctrlram-fw200-single-tp-work-evidence-v3",
+        "decisionId": "nt51950-ctrlram-replace-1-ic-nt51950-ctrlram-fw200-single-tp-work-evidence-v4",
         "routeId": "route-7-nt51950-15-ctrlram-replace-4-1-ic-36-nt51950-ctrlram-fw200-single-tp-work",
         "capabilityFingerprint": "290123b9bdad932c1474a120def1386dfabaef3bb7ff03cecdec3e7025e37cbc",
-        "value": "direct-golden",
-        "sourceReference": "canonical-golden:nt51950-fw200-single-auto-prj-676-20260717"
+        "value": "contract-only",
+        "sourceReference": "evidence-gap:2026-08-25:independent-tp-only-expected-output-missing"
       }
     },
     {
@@ -2317,11 +2317,11 @@
         "sourceReference": "owner-decision:2026-08-25:standard-ab-ctrlram-formal-support"
       },
       "evidence": {
-        "decisionId": "nt51951-ctrlram-replace-1-ic-nt51951-ctrlram-fw200-single-tp-work-evidence-v3",
+        "decisionId": "nt51951-ctrlram-replace-1-ic-nt51951-ctrlram-fw200-single-tp-work-evidence-v4",
         "routeId": "route-7-nt51951-15-ctrlram-replace-4-1-ic-36-nt51951-ctrlram-fw200-single-tp-work",
         "capabilityFingerprint": "824903e83aa402b8f47adec84313500802ed418053db9597508fd43a960d6b0f",
-        "value": "direct-golden",
-        "sourceReference": "canonical-golden:nt51951-fw200-single-auto-prj-695-20260718"
+        "value": "contract-only",
+        "sourceReference": "evidence-gap:2026-08-25:independent-tp-only-expected-output-missing"
       }
     },
     {
@@ -2375,11 +2375,11 @@
         "sourceReference": "owner-decision:2026-08-25:standard-ab-ctrlram-formal-support"
       },
       "evidence": {
-        "decisionId": "nt51951-ctrlram-replace-2-ic-nt51951-ctrlram-fw1x-cascade-tp-work-evidence-v3",
+        "decisionId": "nt51951-ctrlram-replace-2-ic-nt51951-ctrlram-fw1x-cascade-tp-work-evidence-v4",
         "routeId": "route-7-nt51951-15-ctrlram-replace-4-2-ic-36-nt51951-ctrlram-fw1x-cascade-tp-work",
         "capabilityFingerprint": "f1cf4f16561f4fa45f4d5ef204f8479e60bea491c215ae85b675eaf33ded0f44",
-        "value": "direct-golden",
-        "sourceReference": "canonical-golden:nt51951-fw200-cascade2-auto-prj-599-20260731"
+        "value": "contract-only",
+        "sourceReference": "evidence-gap:2026-08-25:independent-tp-only-expected-output-missing"
       }
     },
     {

@@ -32,14 +32,17 @@ The corresponding full-flash and TP-prefix routes remain separate exact
 identities even when they execute the same effective TP address range.
 
 Evidence classification remains independent of publication. The 64 formal
-routes contain 31 `DirectGolden`, nine `ApprovedAlias`, five
-`SyntheticOracle`, and 19 `ContractOnly` decisions. Across all 89 routes, the
-counts are 31, nine, five, and 44 respectively. In particular, input-only
-multi-IC cases are not promoted to approved aliases, and the NT51929 DP route
-is `ContractOnly` because its retained Golden case belongs to Standard Merge,
-not DP Replace. All 14 DP routes remain `Unavailable` and `Internal` until the
-`1.1.0` owner decision; General routes retain their existing internal or
-test-only policy.
+routes contain 28 `DirectGolden`, nine `ApprovedAlias`, five
+`SyntheticOracle`, and 22 `ContractOnly` decisions. Across all 89 routes, the
+counts are 28, nine, five, and 47 respectively. In particular, input-only
+multi-IC cases are not promoted to approved aliases. The NT51950 single,
+NT51951 single, and NT51951 two-IC TP-work routes are `ContractOnly`: execution
+from the original TP bases succeeds, but the owner full-Flash expected prefixes
+contain DP-origin bytes and are not independent TP-only expected outputs. The
+NT51929 DP route is also `ContractOnly` because its retained Golden case belongs
+to Standard Merge, not DP Replace. All 14 DP routes remain `Unavailable` and
+`Internal` until the `1.1.0` owner decision; General routes retain their
+existing internal or test-only policy.
 
 `Supported` is the owner-approved publication state for the exact route. It
 does not by itself prove a clean release package, signing, clean-machine smoke,

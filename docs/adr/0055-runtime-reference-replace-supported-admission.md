@@ -63,8 +63,14 @@ fingerprint.
 The canonical Golden manifest therefore records each direct Golden,
 owner-approved alias, synthetic oracle, or honest contract-only route
 declaration explicitly. A TP expected output may be a hash-pinned prefix view
-of an owner-approved full output; the repository must declare that view and its
-exact route rather than infer it from a filename, IC, version, PID, or folder.
+of an owner-approved full output only when execution from the original
+canonical TP base has exact or owner-approved allowed-difference parity with
+that view. A full-output prefix containing DP-origin bytes that are absent from
+the standalone TP base is not Direct Golden evidence for the TP route. Such a
+route remains independently publishable as Supported, but its evidence stays
+Contract Only until an independent TP-only expected output is supplied. The
+repository must declare every view and its exact route rather than infer it
+from a filename, IC, version, PID, or folder.
 
 Release promotion still requires the policy, profile bundle trust index,
 canonical evidence inventory, packaged hashes, and regression tests to agree.

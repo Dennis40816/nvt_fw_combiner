@@ -721,18 +721,11 @@
       "testReference": "tests/NvtFwCombiner.Bootstrap.Tests/Nt51950CtrlRamFw200EvidenceTests.cs#V2ProducesLockedOutputWithCrcOnlyOwnerDeviationAsync"
     },
     {
-      "evidenceId": "nt51950-ctrlram-replace-1-ic-nt51950-ctrlram-fw200-single-tp-work-evidence-v3",
-      "kind": "direct-golden",
+      "evidenceId": "nt51950-ctrlram-replace-1-ic-nt51950-ctrlram-fw200-single-tp-work-evidence-v4",
+      "kind": "contract-only",
       "routeId": "route-7-nt51950-15-ctrlram-replace-4-1-ic-36-nt51950-ctrlram-fw200-single-tp-work",
       "capabilityFingerprint": "290123b9bdad932c1474a120def1386dfabaef3bb7ff03cecdec3e7025e37cbc",
-      "caseId": "nt51950-fw200-single-auto-prj-676-20260717",
-      "testReference": "tests/NvtFwCombiner.Bootstrap.Tests/CtrlRamV2PlanClosureProfileTests.cs#DirectGoldenExpectedViewsRemainExactAndImmutable",
-      "expectedView": {
-        "artifactId": "expected-output",
-        "start": 0,
-        "length": 225280,
-        "sha256": "91d45b5696bb4e0560e96c555336811d2fc8d6691948ba6b5e6458743cf90425"
-      }
+      "contractReference": "profiles/built-in/nt51950-ctrlram-replace-candidate/profiles/nt51950-ctrlram-replace-fw200-single.json"
     },
     {
       "evidenceId": "nt51950-ctrlram-replace-2-ic-nt51950-ctrlram-fw1x-cascade-full-flash-evidence-v3",
@@ -757,8 +750,8 @@
       "routeId": "route-7-nt51950-15-ctrlram-replace-4-2-ic-36-nt51950-ctrlram-fw1x-cascade-tp-work",
       "capabilityFingerprint": "df822064eaa890d08bc0e0ecbaa9d8cd7f6464395066308e1dd64b11507fbb49",
       "caseId": "nt51950-cascade2-geometry-nt51951-auto-prj-599-alias",
-      "sourceRouteId": "route-7-nt51951-15-ctrlram-replace-4-2-ic-36-nt51951-ctrlram-fw1x-cascade-tp-work",
-      "sourceCapabilityFingerprint": "f1cf4f16561f4fa45f4d5ef204f8479e60bea491c215ae85b675eaf33ded0f44",
+      "sourceRouteId": "route-7-nt51951-15-ctrlram-replace-4-2-ic-39-nt51951-ctrlram-fw1x-cascade-full-flash",
+      "sourceCapabilityFingerprint": "6a8dfcce871d0aa5586a8bd2a393093776b687055e546d7dce37fb2e9f35909f",
       "factScopeIds": [
         "nt51950-cascade2-geometry-nt51951-auto-prj-599-alias:fact-1",
         "nt51950-cascade2-geometry-nt51951-auto-prj-599-alias:fact-2",
@@ -840,18 +833,11 @@
       "testReference": "tests/NvtFwCombiner.Bootstrap.Tests/Nt51951CtrlRamFw200EvidenceTests.cs#V2ProducesLockedOutputWithCrcOnlyCombinerVersionDeviationAsync"
     },
     {
-      "evidenceId": "nt51951-ctrlram-replace-1-ic-nt51951-ctrlram-fw200-single-tp-work-evidence-v3",
-      "kind": "direct-golden",
+      "evidenceId": "nt51951-ctrlram-replace-1-ic-nt51951-ctrlram-fw200-single-tp-work-evidence-v4",
+      "kind": "contract-only",
       "routeId": "route-7-nt51951-15-ctrlram-replace-4-1-ic-36-nt51951-ctrlram-fw200-single-tp-work",
       "capabilityFingerprint": "824903e83aa402b8f47adec84313500802ed418053db9597508fd43a960d6b0f",
-      "caseId": "nt51951-fw200-single-auto-prj-695-20260718",
-      "testReference": "tests/NvtFwCombiner.Bootstrap.Tests/CtrlRamV2PlanClosureProfileTests.cs#DirectGoldenExpectedViewsRemainExactAndImmutable",
-      "expectedView": {
-        "artifactId": "expected-output",
-        "start": 0,
-        "length": 225280,
-        "sha256": "a852548c2d12a8e592c903e319539f531d540ec23bd271eee25a811c9ff45592"
-      }
+      "contractReference": "profiles/built-in/nt51951-ctrlram-replace-candidate/profiles/nt51951-ctrlram-replace-fw200-single.json"
     },
     {
       "evidenceId": "nt51951-ctrlram-replace-2-ic-nt51951-ctrlram-fw1x-cascade-full-flash-evidence-v3",
@@ -862,18 +848,11 @@
       "testReference": "tests/NvtFwCombiner.Bootstrap.Tests/Nt51950Nt51951DiffDlmMaskCascade2GoldenTests.cs#RegisteredCombinerDiffersOnlyInApprovedCrcWordsAsync"
     },
     {
-      "evidenceId": "nt51951-ctrlram-replace-2-ic-nt51951-ctrlram-fw1x-cascade-tp-work-evidence-v3",
-      "kind": "direct-golden",
+      "evidenceId": "nt51951-ctrlram-replace-2-ic-nt51951-ctrlram-fw1x-cascade-tp-work-evidence-v4",
+      "kind": "contract-only",
       "routeId": "route-7-nt51951-15-ctrlram-replace-4-2-ic-36-nt51951-ctrlram-fw1x-cascade-tp-work",
       "capabilityFingerprint": "f1cf4f16561f4fa45f4d5ef204f8479e60bea491c215ae85b675eaf33ded0f44",
-      "caseId": "nt51951-fw200-cascade2-auto-prj-599-20260731",
-      "testReference": "tests/NvtFwCombiner.Bootstrap.Tests/CtrlRamV2PlanClosureProfileTests.cs#DirectGoldenExpectedViewsRemainExactAndImmutable",
-      "expectedView": {
-        "artifactId": "expected-output",
-        "start": 0,
-        "length": 225280,
-        "sha256": "6b8151dbb706ed7cf71c8e34a0c864fe5de5bea939ed50516e2e835e7535efcb"
-      }
+      "contractReference": "profiles/built-in/nt51951-ctrlram-replace-candidate/profiles/nt51951-ctrlram-replace-fw1x-cascade.json"
     },
     {
       "evidenceId": "nt51951-dp-replace-1-ic-nt51951-standard-merge-1024k-evidence-v2",

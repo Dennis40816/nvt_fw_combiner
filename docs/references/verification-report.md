@@ -20,15 +20,20 @@ authoring `Available`. All 14 DP Replace routes remain `Internal` and
 `Unavailable` until the `1.1.0` decision; General retains its existing ten
 internal and one test-only routes.
 
-Evidence remains a separate fact. The complete catalog contains 31 Direct
-Golden, nine Approved Alias, five Synthetic Oracle, and 44 Contract Only
-routes. This includes 11 exact TP-prefix CtrlRAM base routes; input-only
-multi-IC cases remain Contract Only, and NT51929 DP is Contract Only because
-its retained direct Golden case belongs to Standard Merge. No evidence type is
-inferred from a filename.
+Evidence remains a separate fact. The complete catalog contains 28 Direct
+Golden, nine Approved Alias, five Synthetic Oracle, and 47 Contract Only
+routes. This includes 11 exact TP-prefix CtrlRAM base routes. Original-TP
+execution now proves NT51950 single, NT51951 single, and NT51951 two-IC can
+build, but those outputs do not match the owner full-Flash expected prefixes;
+the full prefixes contain DP-origin bytes and cannot stand in for independent
+TP-only expected outputs. Those three routes therefore remain Supported while
+their evidence is honestly Contract Only. Input-only multi-IC cases remain
+Contract Only, and NT51929 DP is Contract Only because its retained direct
+Golden case belongs to Standard Merge. No evidence type is inferred from a
+filename.
 
 The exact LF policy hash is
-`a385f0710f1f7d082cefc857b52c96d0fa174d669d1bb317de7bf7d7d7ef9f94`.
+`bf818a4c9aa4d539882e4bc4a0a662ef70ece67a44e78ae83356430365828f50`.
 The 26-bundle package trust index is `0.10.6.2` with SHA-256
 `e365b73e53aff65faa107347400aac82546a3dc700160914b1412f6858fe276d`.
 Focused local checks passed: policy loader 20/20, canonical host/route
@@ -37,8 +42,9 @@ convergence 7/7, Support Matrix projection 8/8, package-trust architecture
 ProductServices paths 3/3.
 
 Follow-up commit `851ffad7` adds one strict route-evidence cross-link for every
-exact policy route. Policy/manifest comparison has zero missing, extra, kind,
-route-id, or fingerprint mismatches, and canonical validation passes 58/58.
+exact policy route. The later TP execution reconciliation preserves that exact
+89-route join while correcting the three evidence ranks above. Policy/manifest
+comparison has zero missing, extra, kind, route-id, or fingerprint mismatches.
 
 This remains neither full verification nor release authorization. Full
 frozen-tree verification, independent R3/firmware review,

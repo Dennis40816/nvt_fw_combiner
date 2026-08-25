@@ -147,7 +147,7 @@ public sealed class BuiltInCanonicalCapabilityPolicyTests
             static route =>
                 route.Publication.Value == CapabilityPublicationStatus.Candidate);
         Assert.Equal(
-            31,
+            28,
             policy.Routes.Count(static route =>
                 route.Evidence.Value == CapabilityEvidenceStatus.DirectGolden));
         Assert.Equal(
@@ -159,9 +159,30 @@ public sealed class BuiltInCanonicalCapabilityPolicyTests
             policy.Routes.Count(static route =>
                 route.Evidence.Value == CapabilityEvidenceStatus.SyntheticOracle));
         Assert.Equal(
-            44,
+            47,
             policy.Routes.Count(static route =>
                 route.Evidence.Value == CapabilityEvidenceStatus.ContractOnly));
+        string[] tpRoutesAwaitingIndependentExpectedOutput =
+        [
+            "route-7-nt51950-15-ctrlram-replace-4-1-ic-36-nt51950-ctrlram-fw200-single-tp-work",
+            "route-7-nt51951-15-ctrlram-replace-4-1-ic-36-nt51951-ctrlram-fw200-single-tp-work",
+            "route-7-nt51951-15-ctrlram-replace-4-2-ic-36-nt51951-ctrlram-fw1x-cascade-tp-work",
+        ];
+        foreach (string routeId in tpRoutesAwaitingIndependentExpectedOutput)
+        {
+            CanonicalCapabilityPolicyRoute route = Assert.Single(
+                policy.Routes,
+                candidate => StringComparer.Ordinal.Equals(
+                    candidate.Identity.RouteId,
+                    routeId));
+            Assert.Equal(CapabilityAuthoringAvailability.Available, route.Authoring.Value);
+            Assert.Equal(CapabilityPublicationStatus.Supported, route.Publication.Value);
+            Assert.Equal(CapabilityEvidenceStatus.ContractOnly, route.Evidence.Value);
+            Assert.EndsWith("-evidence-v4", route.Evidence.DecisionId, StringComparison.Ordinal);
+            Assert.Equal(
+                "evidence-gap:2026-08-25:independent-tp-only-expected-output-missing",
+                route.Evidence.SourceReference);
+        }
         Assert.DoesNotContain(
             policy.Routes,
             static route =>
