@@ -3,7 +3,6 @@ using System.Text.Json;
 using NvtFwCombiner.Application.Capabilities;
 using NvtFwCombiner.Application.ExternalTools;
 using NvtFwCombiner.Application.FlashMaps;
-using NvtFwCombiner.Application.Ports;
 using NvtFwCombiner.Domain.Composition;
 using NvtFwCombiner.Infrastructure.Capabilities;
 using NvtFwCombiner.TestSupport;
@@ -687,76 +686,4 @@ internal static class CanonicalFormalRouteRuntimeFixtureCatalog
         string SourceWorkflowId,
         string SourceIcId,
         string SourceCaseId);
-}
-
-internal enum CanonicalFormalRuntimePolicyEvidenceClass
-{
-    DirectGolden,
-    ApprovedAlias,
-    SyntheticOracle,
-    ContractOnly,
-}
-
-internal sealed record CanonicalFormalRouteRuntimeFixture(
-    CanonicalCapabilityPolicyRoute Policy,
-    CanonicalFormalRuntimePolicyEvidenceClass PolicyEvidenceClass)
-{
-    internal string RouteId => Policy.Identity.RouteId;
-}
-
-internal sealed record CanonicalFormalRouteRuntimeCase(
-    string CaseId,
-    CanonicalFormalRouteRuntimeFixture Fixture,
-    string ExpectedMapId,
-    string? SelectionToken,
-    IReadOnlyDictionary<string, string> SlotPaths,
-    IReadOnlyList<CanonicalFormalRuntimeWitnessProvenance> WitnessProvenance,
-    int? ExpectedFirmwareConfigChipCount = null,
-    int? ExpectedResolvedIcCount = null);
-
-internal enum CanonicalFormalRuntimeWitnessKind
-{
-    DirectCanonicalInput,
-    ApprovedAlias,
-    CanonicalDerived,
-    Synthetic,
-}
-
-internal enum CanonicalFormalRuntimeParityClaim
-{
-    RuntimeContractOnly,
-    DirectGoldenParity,
-}
-
-internal sealed record CanonicalFormalRuntimeWitnessProvenance(
-    string SlotId,
-    CanonicalFormalRuntimeWitnessKind Kind,
-    string? SourceWorkflowId,
-    string? SourceIcId,
-    string? SourceCaseId,
-    CanonicalFormalRuntimeParityClaim ParityClaim);
-
-/// <summary>Deterministic constrained processor used only to close the host execution contract.</summary>
-internal sealed class CanonicalFormalRuntimePassThroughProcessor : IExternalProcessor
-{
-    private readonly List<ExternalProcessorRequest> _requests = [];
-
-    internal IReadOnlyList<ExternalProcessorRequest> Requests => _requests;
-
-    public ValueTask<ExternalProcessorResult> TransformAsync(
-        ExternalProcessorRequest request,
-        CancellationToken cancellationToken)
-    {
-        cancellationToken.ThrowIfCancellationRequested();
-        ArgumentNullException.ThrowIfNull(request);
-        if (request.AllowedWriteRanges.Count == 0 ||
-            request.AllowedWriteRanges.Any(range =>
-                range.Start < 0 || range.EndExclusive > request.InputBytes.Length))
-        {
-            throw new InvalidOperationException(
-                $"Processor authority for '{request.ProcessorId}' is empty or outside its staging image.");
-        }
-        _requests.Add(request);
-        return ValueTask.FromResult(ExternalProcessorResult.Success(request.InputBytes, [], []));
-    }
 }
