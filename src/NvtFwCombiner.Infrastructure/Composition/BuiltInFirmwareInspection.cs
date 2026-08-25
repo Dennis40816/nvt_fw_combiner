@@ -16,7 +16,6 @@ namespace NvtFwCombiner.Infrastructure.Composition;
 internal sealed partial class BuiltInFirmwareInspection : IFirmwareInspection
 {
     private const int FirmwareIcHintHeaderProbeLength = 256 * 1024;
-    private readonly ICanonicalCapabilityQuery _catalog;
     private readonly IFirmwareMetadataPlanAuthorityResolver _metadataPlanAuthority;
     private readonly ICompositionCapabilityExperience _projection;
     private readonly ICompiledInputSlotInspector<FirmwareInspectionStatusBatch>
@@ -28,18 +27,18 @@ internal sealed partial class BuiltInFirmwareInspection : IFirmwareInspection
     private readonly ICompiledInputSlotInspector<FirmwareInspectionStatusBatch>
         _ctrlRamAuthoring;
     private readonly ISelectedFileContentInspector _contentInspector;
+    private readonly IFirmwareArtifactClassificationResolver _artifactClassification;
 
     internal BuiltInFirmwareInspection(
-        ICanonicalCapabilityQuery catalog,
         IFirmwareMetadataPlanAuthorityResolver metadataPlanAuthority,
         ICompositionCapabilityExperience projection,
         ICompiledInputSlotInspector<FirmwareInspectionStatusBatch> standardMergeAuthoring,
         ICompiledInputSlotInspector<AbMergeInspectionBatch> abMergeAuthoring,
         ICompiledInputSlotInspector<FirmwareInspectionStatusBatch> dpReplaceAuthoring,
         ICompiledInputSlotInspector<FirmwareInspectionStatusBatch> ctrlRamAuthoring,
+        IFirmwareArtifactClassificationResolver artifactClassification,
         ISelectedFileContentInspector? contentInspector = null)
     {
-        _catalog = catalog ?? throw new ArgumentNullException(nameof(catalog));
         _metadataPlanAuthority = metadataPlanAuthority ??
             throw new ArgumentNullException(nameof(metadataPlanAuthority));
         _projection = projection ?? throw new ArgumentNullException(nameof(projection));
@@ -51,6 +50,8 @@ internal sealed partial class BuiltInFirmwareInspection : IFirmwareInspection
             throw new ArgumentNullException(nameof(dpReplaceAuthoring));
         _ctrlRamAuthoring = ctrlRamAuthoring ??
             throw new ArgumentNullException(nameof(ctrlRamAuthoring));
+        _artifactClassification = artifactClassification ??
+            throw new ArgumentNullException(nameof(artifactClassification));
         _contentInspector = contentInspector ?? new FileContentSnapshotInspector();
     }
 
@@ -271,7 +272,7 @@ internal sealed partial class BuiltInFirmwareInspection : IFirmwareInspection
                     ? metadata
                     : null;
         CompiledFirmwareArtifactClassification? artifactClassification =
-            ClassifyBaseFirmwareArtifact(inspection, icId, exactCapability, image);
+            inspection._artifactClassification.Resolve(icId, exactCapability, image);
         BaseFirmwareArtifactKind artifactKind = artifactClassification?.Kind switch
         {
             CompiledFirmwareArtifactKind.TpFirmware => BaseFirmwareArtifactKind.TpFirmware,
@@ -404,50 +405,6 @@ internal sealed partial class BuiltInFirmwareInspection : IFirmwareInspection
                     firmwareConfig.CommonFwVersion,
                     firmwareConfig.ProjectId)
                 : null;
-    }
-
-    private static CompiledFirmwareArtifactClassification? ClassifyBaseFirmwareArtifact(
-        BuiltInFirmwareInspection inspection,
-        string icId,
-        ResolvedCapability? exactCapability,
-        ReadOnlySpan<byte> image)
-    {
-        string normalizedIcId = IcIdentifier.Normalize(icId);
-        CanonicalCapabilityCatalogSnapshot snapshot = inspection._catalog.GetCurrentSnapshot();
-        IEnumerable<ResolvedCapability> capabilities = exactCapability is null
-            ? snapshot.Capabilities
-            : snapshot.Capabilities.Append(exactCapability);
-        CompiledComposition[] compositions =
-        [
-            .. capabilities
-                .Where(capability =>
-                    capability.ResolutionToken == snapshot.ResolutionToken &&
-                    StringComparer.Ordinal.Equals(capability.Identity.IcId, normalizedIcId) &&
-                    StringComparer.Ordinal.Equals(
-                        capability.Identity.WorkflowId,
-                        ExperienceIds.StandardMerge))
-                .Select(static capability => capability.CompiledComposition)
-                .DistinctBy(static composition => composition.CompilationFingerprint),
-        ];
-        CompiledFirmwareArtifactClassification? best = null;
-        foreach (CompiledComposition composition in compositions)
-        {
-            CompiledFirmwareArtifactClassification classification =
-                CompiledFirmwareArtifactClassifier.Classify(composition, image);
-            if (classification.Kind == CompiledFirmwareArtifactKind.FlashCode)
-            {
-                return classification;
-            }
-
-            if (best is null ||
-                (best.Kind == CompiledFirmwareArtifactKind.Unknown &&
-                 classification.Kind == CompiledFirmwareArtifactKind.TpFirmware))
-            {
-                best = classification;
-            }
-        }
-
-        return best;
     }
 
     private static bool TryReadFirmwareConfigMetadataFromImage(

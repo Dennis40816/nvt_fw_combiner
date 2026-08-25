@@ -3,6 +3,7 @@ using NvtFwCombiner.Application.Capabilities;
 using NvtFwCombiner.Application.Diagnostics;
 using NvtFwCombiner.Application.ExternalTools;
 using NvtFwCombiner.Application.HexEditor;
+using NvtFwCombiner.Application.InputInspection;
 using NvtFwCombiner.Application.Ports;
 using NvtFwCombiner.Application.VersionManagement;
 using NvtFwCombiner.Infrastructure.Capabilities;
@@ -53,13 +54,15 @@ public sealed class CompositionHostServices
             externalEnvironment);
         CtrlRamAuthoring = ctrlRamAuthoring;
         FirmwareInspectionExperience = new BuiltInFirmwareInspection(
-            catalog,
             new FirmwareMetadataPlanAuthorityResolver(catalog),
             projection,
             standardMergeAuthoring,
             abMergeAuthoring,
             dpReplaceAuthoring,
-            ctrlRamAuthoring);
+            ctrlRamAuthoring,
+            new FirmwareArtifactClassificationResolver(
+                catalog,
+                compiler));
         var artifactIdentityPolicy = new FileSystemCompositionArtifactIdentityPolicy();
         var bundleDestinationValidator =
             new FileSystemCompositionOutputBundleDestinationValidator();

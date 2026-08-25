@@ -13,6 +13,37 @@ public sealed partial class RepositoryBoundaryTests
         Assert.DoesNotContain("CompiledFirmwareArtifactSignalStatus", nonApplication, StringComparison.Ordinal);
     }
 
+    /// <summary>Infrastructure consumes one terminal Application classification without route ranking.</summary>
+    [Fact]
+    public void FirmwareInspectionKeepsArtifactCandidateAuthorityInApplication()
+    {
+        string inspection = ReadText(
+            "src/NvtFwCombiner.Infrastructure/Composition/BuiltInFirmwareInspection.cs");
+        string applicationRoot = Path.Combine(
+            Root.FullName,
+            "src",
+            "NvtFwCombiner.Application");
+        string[] resolverOwners =
+        [
+            .. Directory.EnumerateFiles(applicationRoot, "*.cs", SearchOption.AllDirectories)
+                .Where(path => File.ReadAllText(path).Contains(
+                    ": IFirmwareArtifactClassificationResolver",
+                    StringComparison.Ordinal)),
+        ];
+
+        _ = Assert.Single(resolverOwners);
+        Assert.Contains("_artifactClassification.Resolve(", inspection, StringComparison.Ordinal);
+        Assert.DoesNotContain("ICanonicalCapabilityQuery", inspection, StringComparison.Ordinal);
+        Assert.DoesNotContain("TryGetCurrentSnapshot(", inspection, StringComparison.Ordinal);
+        Assert.DoesNotContain("ResolveDynamicRoute(", inspection, StringComparison.Ordinal);
+        Assert.DoesNotContain(".DynamicRoutes", inspection, StringComparison.Ordinal);
+        Assert.DoesNotContain(
+            "CompiledFirmwareArtifactClassifier.Classify(",
+            inspection,
+            StringComparison.Ordinal);
+        Assert.DoesNotContain("ClassifyBaseFirmwareArtifact", inspection, StringComparison.Ordinal);
+    }
+
     /// <summary>One Application inspector owns input admission while adapters only project its result.</summary>
     [Fact]
     public void HeadlessSlotHealthKeepsOneApplicationInspectionAuthority()

@@ -1,8 +1,12 @@
+using System.Text.Json;
 using NvtFwCombiner.Application.Authoring;
 using NvtFwCombiner.Application.Capabilities;
+using NvtFwCombiner.Application.InputInspection;
+using NvtFwCombiner.Application.Metadata;
 using NvtFwCombiner.Application.Ports;
 using NvtFwCombiner.Domain.Composition;
 using NvtFwCombiner.Domain.Firmware;
+using NvtFwCombiner.TestSupport;
 
 namespace NvtFwCombiner.Bootstrap.Tests;
 
@@ -119,6 +123,388 @@ public sealed partial class FirmwareInspectionSnapshotTests
         Assert.Equal(BaseFirmwareArtifactKind.Unknown, second.BaseFirmwareArtifactKind);
     }
 
+    /// <summary>
+    /// Application classification resolves exact multi-capacity containers,
+    /// requires every TP-prefix candidate to agree, and fails closed otherwise.
+    /// </summary>
+    [Fact]
+    public void Nt51928ArtifactClassificationIsCapacityExactAndFailsClosed()
+    {
+        CompositionHostServices classificationHost = CompositionHostServices.Create();
+        var resolver = new FirmwareArtifactClassificationResolver(
+            classificationHost.Catalog,
+            classificationHost.Compiler);
+        foreach (int capacity in new[] { 0x40000, 0x80000 })
+        {
+            CompiledFirmwareArtifactClassification classification = Assert.IsType<
+                CompiledFirmwareArtifactClassification>(
+                    resolver.Resolve(
+                        "NT51928",
+                        exactCapability: null,
+                        CreateNonUniformArtifact(capacity)));
+            Assert.Equal(CompiledFirmwareArtifactKind.FlashCode, classification.Kind);
+        }
+
+        CompiledFirmwareArtifactClassification tpClassification = Assert.IsType<
+            CompiledFirmwareArtifactClassification>(
+                resolver.Resolve(
+                    "NT51928",
+                    exactCapability: null,
+                    CreateNonUniformArtifact(0x35000)));
+        Assert.Equal(CompiledFirmwareArtifactKind.TpFirmware, tpClassification.Kind);
+        Assert.False(tpClassification.IsDpMetadataApplicable);
+
+        Assert.Null(resolver.Resolve("NT51928", null, new byte[17]));
+        Assert.Null(resolver.Resolve(
+            "NT51928",
+            null,
+            CreateNonUniformArtifact(0x50000)));
+        Assert.Null(resolver.Resolve(
+            "NT59999",
+            null,
+            CreateNonUniformArtifact(0x40000)));
+
+        CompositionHostServices staleHost = CompositionHostServices.Create();
+        ResolvedCapability staleStandard = staleHost.Catalog.GetCurrentSnapshot()
+            .Capabilities.First(static capability =>
+                capability.Identity.IcId == "NT51927" &&
+                capability.Identity.WorkflowId == ExperienceIds.StandardMerge);
+        Assert.Null(resolver.Resolve(
+            "NT51927",
+            staleStandard,
+            CreateNonUniformArtifact(0x40000)));
+
+        JsonElement ctrlRamCase = CanonicalGoldenTestData.LoadDirectCase(
+            "ctrlram-replace",
+            "nt51950-fw200-single-auto-prj-676-20260717");
+        JsonElement[] ctrlRamArtifacts =
+        [
+            .. ctrlRamCase.GetProperty("artifacts").EnumerateArray(),
+        ];
+        string tpPath = CanonicalGoldenTestData.ArtifactPath(ctrlRamArtifacts.Single(artifact =>
+            artifact.GetProperty("artifactId").GetString() == "tp-input"));
+        string nfPath = CanonicalGoldenTestData.ArtifactPath(ctrlRamArtifacts.Single(artifact =>
+            artifact.GetProperty("artifactId").GetString() == "postbuild-nf-ctrlram"));
+        var slotPaths = new Dictionary<string, string>(StringComparer.Ordinal)
+        {
+            [CompositionSlotIds.ReplaceBase] = tpPath,
+            ["replace-ctrlram-nf"] = nfPath,
+        };
+        (ActiveSessionSnapshot? accepted, IReadOnlyList<CompositionIssue> issues) =
+            CtrlRamReplaceTestSupport.Prepare(
+                new CanonicalTestContext(classificationHost),
+                "NT51950",
+                IcNumberSelectionTokens.SingleChip,
+                slotPaths,
+                firmwareVersionEdit: null);
+        ActiveSessionSnapshot session = Assert.IsType<ActiveSessionSnapshot>(
+            accepted,
+            exactMatch: false);
+        Assert.Empty(issues);
+        ResolvedCapability ctrlRamTpWork = Assert.IsType<ResolvedCapability>(
+            session.GetAcceptedCapability(AuthoringDerivedResultKind.Inspection));
+        Assert.Equal(ExperienceIds.CtrlRamReplace, ctrlRamTpWork.Identity.WorkflowId);
+        Assert.Equal(
+            "nt51950-ctrlram-fw200-single-tp-work",
+            ctrlRamTpWork.CompiledComposition.V2Details.Provenance.ResolvedMap.ImageMap.MapId);
+        Assert.Equal(
+            0x37000,
+            ctrlRamTpWork.CompiledComposition.Plan.OutputInitialization.Capacity);
+        CompiledFirmwareArtifactClassification acceptedTp = Assert.IsType<
+            CompiledFirmwareArtifactClassification>(resolver.Resolve(
+                "NT51950",
+                ctrlRamTpWork,
+                File.ReadAllBytes(tpPath)));
+        Assert.Equal(CompiledFirmwareArtifactKind.TpFirmware, acceptedTp.Kind);
+        Assert.False(acceptedTp.IsDpMetadataApplicable);
+        Assert.Null(resolver.Resolve(
+            "NT51950",
+            ctrlRamTpWork,
+            CreateNonUniformArtifact(0x40000)));
+    }
+
+    /// <summary>NT51928 multi-capacity classification survives the full inspection facade.</summary>
+    [Fact]
+    public async Task Nt51928ArtifactClassificationFlowsThroughInspectionFacade()
+    {
+        var images = new Dictionary<string, byte[]>(StringComparer.Ordinal)
+        {
+            ["compact.bin"] = CreateNonUniformArtifact(0x40000),
+            ["extended.bin"] = CreateNonUniformArtifact(0x80000),
+            ["tp.bin"] = CreateNonUniformArtifact(0x35000),
+            ["divergent.bin"] = CreateNonUniformArtifact(0x50000),
+        };
+        var host = new IsolatedBootstrapTestHost();
+        BuiltInFirmwareInspection inspection = CreateInspection(
+            host,
+            new DelegatingContentInspector((path, _, _) =>
+                ValueTask.FromResult(new SelectedFileContentInspection(
+                    FileStamp.FromBytes(images[path]),
+                    Path.GetFileName(path),
+                    acceptedBytes: images[path]))));
+
+        FirmwareInspectionBatchResult batch = await inspection.InspectFirmwareBatchAsync(
+            "NT51928",
+            [
+                new("compact", "compact.bin"),
+                new("extended", "extended.bin"),
+                new("tp", "tp.bin"),
+                new("divergent", "divergent.bin"),
+            ],
+            TestContext.Current.CancellationToken);
+
+        Assert.Equal(
+            CompiledFirmwareArtifactKind.FlashCode,
+            Assert.IsType<CompiledFirmwareArtifactClassification>(
+                batch.InspectionsById["compact"].ArtifactClassification).Kind);
+        Assert.Equal(
+            CompiledFirmwareArtifactKind.FlashCode,
+            Assert.IsType<CompiledFirmwareArtifactClassification>(
+                batch.InspectionsById["extended"].ArtifactClassification).Kind);
+        FirmwareInspectionSnapshot tp = batch.InspectionsById["tp"];
+        Assert.Equal(
+            CompiledFirmwareArtifactKind.TpFirmware,
+            Assert.IsType<CompiledFirmwareArtifactClassification>(tp.ArtifactClassification).Kind);
+        Assert.Equal(BaseFirmwareArtifactKind.TpFirmware, tp.BaseFirmwareArtifactKind);
+        Assert.Null(tp.DpVersion);
+        Assert.Null(tp.CmiDpCode);
+        Assert.Null(batch.InspectionsById["divergent"].ArtifactClassification);
+        Assert.Equal(
+            BaseFirmwareArtifactKind.Unknown,
+            batch.InspectionsById["divergent"].BaseFirmwareArtifactKind);
+    }
+
+    /// <summary>Read-only artifact classification is independent from authoring availability.</summary>
+    [Fact]
+    public void Nt51928ArtifactClassificationUsesPublishedGeometryWhenAuthoringIsUnavailable()
+    {
+        var sourceCatalog = new CanonicalCapabilityCatalog(
+            CompositionHostServices.CreateCanonicalCapabilityCatalogSource());
+        CapabilityCatalogReloadResult sourceLoad = sourceCatalog.Reload(
+            TestContext.Current.CancellationToken);
+        ResolvedCapabilityRoute route = sourceLoad.Snapshot!.DynamicRoutes.Single(candidate =>
+            candidate.Identity.IcId == "NT51928" &&
+            candidate.Identity.WorkflowId == ExperienceIds.StandardMerge);
+        var unavailable = new CanonicalDynamicCapabilityDefinition(
+            route.Identity,
+            route.CapabilityFingerprint,
+            route.CompilationContract,
+            new PinnedCapabilityDecision<CapabilityAuthoringAvailability>(
+                route.Authoring.DecisionId,
+                route.Identity.RouteId,
+                route.CapabilityFingerprint,
+                CapabilityAuthoringAvailability.Unavailable,
+                route.Authoring.SourceReference),
+            route.Publication,
+            route.Evidence);
+        var catalog = new CanonicalCapabilityCatalog(
+            new QueuedCandidateSource(new CanonicalCapabilityCatalogCandidate(
+                "classification-authoring-unavailable",
+                "1.0.0",
+                new string('a', 64),
+                [],
+                [unavailable])));
+        Assert.True(catalog.Reload(TestContext.Current.CancellationToken).Succeeded);
+        var resolver = new FirmwareArtifactClassificationResolver(
+            catalog,
+            new CanonicalCapabilityCompilerAdapter(
+                catalog,
+                new BuiltInV2DynamicCompilationAdapter()));
+
+        Assert.False(catalog.HasAuthorableCapability("NT51928", ExperienceIds.StandardMerge));
+        CompiledFirmwareArtifactClassification classification = Assert.IsType<
+            CompiledFirmwareArtifactClassification>(resolver.Resolve(
+                "NT51928",
+                exactCapability: null,
+                CreateNonUniformArtifact(0x40000)));
+        Assert.Equal(CompiledFirmwareArtifactKind.FlashCode, classification.Kind);
+    }
+
+    /// <summary>A malformed dynamic compiler fails artifact classification closed.</summary>
+    [Fact]
+    public void DynamicArtifactClassificationFailsClosedOnInvalidCompilationData()
+    {
+        var catalog = new CanonicalCapabilityCatalog(
+            CompositionHostServices.CreateCanonicalCapabilityCatalogSource());
+        Assert.True(catalog.Reload(TestContext.Current.CancellationToken).Succeeded);
+        var resolver = new FirmwareArtifactClassificationResolver(
+            catalog,
+            new CanonicalCapabilityCompilerAdapter(
+                catalog,
+                new InvalidDataDynamicCompilationAdapter()));
+
+        CompiledFirmwareArtifactClassification? classification = resolver.Resolve(
+            "NT51928",
+            exactCapability: null,
+            CreateNonUniformArtifact(0x40000));
+
+        Assert.Null(classification);
+    }
+
+    /// <summary>An incomplete dynamic-map enumeration cannot classify an artifact.</summary>
+    [Fact]
+    public void DynamicArtifactClassificationFailsClosedOnIncompletePublicationEnumeration()
+    {
+        var catalog = new CanonicalCapabilityCatalog(
+            CompositionHostServices.CreateCanonicalCapabilityCatalogSource());
+        Assert.True(catalog.Reload(TestContext.Current.CancellationToken).Succeeded);
+        var resolver = new FirmwareArtifactClassificationResolver(
+            catalog,
+            new CanonicalCapabilityCompilerAdapter(
+                catalog,
+                new IncompleteDynamicCompilationAdapter(
+                    new BuiltInV2DynamicCompilationAdapter())));
+
+        CompiledFirmwareArtifactClassification? classification = resolver.Resolve(
+            "NT51928",
+            exactCapability: null,
+            CreateNonUniformArtifact(0x40000));
+
+        Assert.Null(classification);
+    }
+
+    /// <summary>A catalog publication rollover during dynamic compilation fails closed.</summary>
+    [Fact]
+    public void DynamicArtifactClassificationFailsClosedOnPublicationRollover()
+    {
+        CapabilityCatalogLoadResult seedLoad =
+            CompositionHostServices.CreateCanonicalCapabilityCatalogSource().Load(
+                TestContext.Current.CancellationToken);
+        CanonicalCapabilityCatalogCandidate seed = seedLoad.Candidate!;
+        var rollover = new CanonicalCapabilityCatalogCandidate(
+            seed.CatalogId,
+            "classification-rollover-2",
+            seed.SourceSha256,
+            seed.Definitions,
+            seed.DynamicDefinitions);
+        var catalog = new CanonicalCapabilityCatalog(
+            new QueuedCandidateSource(seed, rollover));
+        Assert.True(catalog.Reload(TestContext.Current.CancellationToken).Succeeded);
+        CapabilityCatalogReloadResult? rolloverResult = null;
+        var adapter = new RolloverDynamicCompilationAdapter(
+            new BuiltInV2DynamicCompilationAdapter(),
+            () => rolloverResult = catalog.Reload(TestContext.Current.CancellationToken));
+        var resolver = new FirmwareArtifactClassificationResolver(
+            catalog,
+            new CanonicalCapabilityCompilerAdapter(catalog, adapter));
+
+        CompiledFirmwareArtifactClassification? classification = resolver.Resolve(
+            "NT51928",
+            exactCapability: null,
+            CreateNonUniformArtifact(0x40000));
+
+        Assert.Null(classification);
+        Assert.True(rolloverResult?.Succeeded);
+        Assert.Equal(1, adapter.RolloverCalls);
+    }
+
+    private static byte[] CreateNonUniformArtifact(int length)
+    {
+        var artifact = new byte[length];
+        for (int index = 0; index < artifact.Length; index++)
+        {
+            artifact[index] = checked((byte)(index % 251));
+        }
+
+        return artifact;
+    }
+
+    private sealed class InvalidDataDynamicCompilationAdapter :
+        ICanonicalDynamicCompilationAdapter
+    {
+        public IReadOnlyList<long> GetMapCapacities(
+            string icId,
+            string workflowId,
+            out IReadOnlyList<CompositionIssue> issues)
+        {
+            issues = [];
+            return [];
+        }
+
+        public void Compile(
+            string icId,
+            string workflowId,
+            long? requestedMapCapacity,
+            IReadOnlyCollection<string>? selectedInputSlotIds,
+            out CompiledComposition? composition,
+            out MetadataPlanDefinition? metadataPlan,
+            out IReadOnlyList<CompositionIssue> issues)
+        {
+            throw new InvalidDataException("Synthetic malformed dynamic compilation.");
+        }
+    }
+
+    private sealed class IncompleteDynamicCompilationAdapter(
+        ICanonicalDynamicCompilationAdapter inner) : ICanonicalDynamicCompilationAdapter
+    {
+        public IReadOnlyList<long> GetMapCapacities(
+            string icId,
+            string workflowId,
+            out IReadOnlyList<CompositionIssue> issues)
+        {
+            return inner.GetMapCapacities(icId, workflowId, out issues);
+        }
+
+        public void Compile(
+            string icId,
+            string workflowId,
+            long? requestedMapCapacity,
+            IReadOnlyCollection<string>? selectedInputSlotIds,
+            out CompiledComposition? composition,
+            out MetadataPlanDefinition? metadataPlan,
+            out IReadOnlyList<CompositionIssue> issues)
+        {
+            inner.Compile(
+                icId,
+                workflowId,
+                requestedMapCapacity,
+                selectedInputSlotIds: [],
+                out composition,
+                out metadataPlan,
+                out issues);
+        }
+    }
+
+    private sealed class RolloverDynamicCompilationAdapter(
+        ICanonicalDynamicCompilationAdapter inner,
+        Action rollover) : ICanonicalDynamicCompilationAdapter
+    {
+        private int _rolloverCalls;
+
+        internal int RolloverCalls => _rolloverCalls;
+
+        public IReadOnlyList<long> GetMapCapacities(
+            string icId,
+            string workflowId,
+            out IReadOnlyList<CompositionIssue> issues)
+        {
+            return inner.GetMapCapacities(icId, workflowId, out issues);
+        }
+
+        public void Compile(
+            string icId,
+            string workflowId,
+            long? requestedMapCapacity,
+            IReadOnlyCollection<string>? selectedInputSlotIds,
+            out CompiledComposition? composition,
+            out MetadataPlanDefinition? metadataPlan,
+            out IReadOnlyList<CompositionIssue> issues)
+        {
+            inner.Compile(
+                icId,
+                workflowId,
+                requestedMapCapacity,
+                selectedInputSlotIds,
+                out composition,
+                out metadataPlan,
+                out issues);
+            if (Interlocked.Increment(ref _rolloverCalls) == 1)
+            {
+                rollover();
+            }
+        }
+    }
+
     private static byte[] ReadOnce(
         string path,
         Dictionary<string, byte[]> images,
@@ -187,13 +573,13 @@ public sealed partial class FirmwareInspectionSnapshotTests
     {
         CompositionHostServices services = BootstrapTestHost.Services;
         return new BuiltInFirmwareInspection(
-            catalog,
             new FirmwareMetadataPlanAuthorityResolver(catalog),
             BootstrapTestHost.Canonical.Projection,
             (StandardMergeAuthoringExperience)services.StandardMergeAuthoring,
             (AbMergeAuthoringExperience)services.AbMergeAuthoring,
             (DpReplaceAuthoringExperience)services.DpReplaceAuthoring,
             (CtrlRamAuthoringExperience)services.CtrlRamAuthoring,
+            new FirmwareArtifactClassificationResolver(catalog, services.Compiler),
             contentInspector);
     }
 

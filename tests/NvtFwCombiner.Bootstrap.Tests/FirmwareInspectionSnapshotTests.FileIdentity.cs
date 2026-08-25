@@ -445,7 +445,6 @@ public sealed partial class FirmwareInspectionSnapshotTests
     {
         CompositionHostServices services = BootstrapTestHost.Services;
         return new BuiltInFirmwareInspection(
-            BootstrapTestHost.Canonical.Catalog,
             new FirmwareMetadataPlanAuthorityResolver(
                 BootstrapTestHost.Canonical.Catalog),
             BootstrapTestHost.Canonical.Projection,
@@ -453,6 +452,9 @@ public sealed partial class FirmwareInspectionSnapshotTests
             (AbMergeAuthoringExperience)services.AbMergeAuthoring,
             (DpReplaceAuthoringExperience)services.DpReplaceAuthoring,
             (CtrlRamAuthoringExperience)services.CtrlRamAuthoring,
+            new FirmwareArtifactClassificationResolver(
+                BootstrapTestHost.Canonical.Catalog,
+                services.Compiler),
             contentInspector);
     }
 
@@ -461,13 +463,15 @@ public sealed partial class FirmwareInspectionSnapshotTests
         ISelectedFileContentInspector contentInspector)
     {
         return new BuiltInFirmwareInspection(
-            host.Canonical.Catalog,
             new FirmwareMetadataPlanAuthorityResolver(host.Canonical.Catalog),
             host.Canonical.Projection,
             (StandardMergeAuthoringExperience)host.Services.StandardMergeAuthoring,
             (AbMergeAuthoringExperience)host.Services.AbMergeAuthoring,
             (DpReplaceAuthoringExperience)host.Services.DpReplaceAuthoring,
             (CtrlRamAuthoringExperience)host.Services.CtrlRamAuthoring,
+            new FirmwareArtifactClassificationResolver(
+                host.Canonical.Catalog,
+                host.Services.Compiler),
             contentInspector);
     }
 
