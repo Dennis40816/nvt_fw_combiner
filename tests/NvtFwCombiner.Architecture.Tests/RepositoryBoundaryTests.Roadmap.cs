@@ -139,13 +139,13 @@ public sealed partial class RepositoryBoundaryTests
     {
         string matrix = ReadText("docs/architecture/supported-ic-matrix.md");
 
-        Assert.Contains("## AB function availability, direct-golden debt, and progress", matrix, StringComparison.Ordinal);
-        Assert.Contains("A missing direct golden is an evidence debt, not a", matrix, StringComparison.Ordinal);
+        Assert.Contains("## AB support, direct-golden debt, and release progress", matrix, StringComparison.Ordinal);
+        Assert.Contains("A missing direct Golden remains an", matrix, StringComparison.Ordinal);
         Assert.Contains("**33.3%**; **4 missing**", matrix, StringComparison.Ordinal);
         Assert.Contains("NT51950 `Cascade`, and selector-free NT51951", matrix, StringComparison.Ordinal);
         Assert.Contains("**66.7%**", matrix, StringComparison.Ordinal);
         Assert.Contains("**100.0%**; external golden, firmware-owner, independent-review, packaging, and release-owner gates remain open.", matrix, StringComparison.Ordinal);
-        Assert.Contains("**0.0%**; function availability must not be presented as certification.", matrix, StringComparison.Ordinal);
+        Assert.Contains("**0.0%**; local support policy does not self-approve firmware, package, signing, or release-owner gates.", matrix, StringComparison.Ordinal);
     }
 
     /// <summary>Locks the historical v0.9.13 AB gate and the current function-open but certification-neutral re-admission state.</summary>

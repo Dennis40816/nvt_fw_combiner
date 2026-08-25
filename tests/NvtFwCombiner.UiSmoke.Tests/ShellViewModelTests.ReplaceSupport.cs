@@ -50,7 +50,7 @@ public sealed partial class DpReplaceWorkflowTests
         Assert.Contains("Complete FlashCode", viewModel.Replace.ReplaceBaseSlot.Description, StringComparison.Ordinal);
         Assert.Contains("Only declared DP ranges change", viewModel.Replace.ReplaceBaseSlot.Description, StringComparison.Ordinal);
 
-        viewModel.WorkflowSession.SelectedIc = "NT51932";
+        viewModel.WorkflowSession.SelectedIc = "NT51928";
         OpenReplace(viewModel, Domain.Composition.ExperienceIds.CtrlRamReplace);
 
         Assert.True(viewModel.Replace.IsSelectedReplaceModeEvidenceGated);

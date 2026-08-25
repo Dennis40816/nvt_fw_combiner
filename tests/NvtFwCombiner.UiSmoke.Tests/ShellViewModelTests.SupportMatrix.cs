@@ -35,7 +35,7 @@ public sealed partial class ShellNavigationSystemTests
             SupportMatrixCellStatus.ReviewRequired,
             nt51929.Cells.Single(static cell => cell.WorkflowLabel == "CtrlRAM Replace").Status);
         Assert.Equal(
-            "Review required",
+            "Needs review",
             nt51929.Cells.Single(static cell => cell.WorkflowLabel == "CtrlRAM Replace").StatusLabel);
         Assert.All(
             viewModel.Settings.SupportMatrix.Rows,

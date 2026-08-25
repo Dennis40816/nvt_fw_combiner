@@ -67,8 +67,8 @@ public sealed class CanonicalCapabilityProjectionPolicyTests
             ExperienceIds.DpReplace);
 
         Assert.False(verified.IsAvailable);
-        Assert.Equal(CapabilityEvidenceStatus.DirectGolden, verified.EvidenceStatus);
-        Assert.True(verified.HasReviewedEvidence);
+        Assert.Equal(CapabilityEvidenceStatus.ContractOnly, verified.EvidenceStatus);
+        Assert.False(verified.HasReviewedEvidence);
         Assert.False(gated.IsAvailable);
         Assert.Equal(CapabilityEvidenceStatus.ContractOnly, gated.EvidenceStatus);
         Assert.False(gated.IsEvidencePending);

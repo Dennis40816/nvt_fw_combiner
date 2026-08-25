@@ -111,7 +111,10 @@ internal static class AbMergeTestSupport
         return selection is null
             ? null
             : host.AbMergeAuthoring.GetTopologyChoices(icId)
-                .Single(choice => Equals(choice.Selection, selection))
+                .Single(choice =>
+                    choice.Selection.ChipCount == 1
+                        ? selection.ChipCount == 1
+                        : selection.ChipCount > 1)
                 .Token;
     }
 }

@@ -86,24 +86,10 @@ public sealed partial class CanonicalCapabilityCatalogMigrationTests
         ];
         CanonicalCapabilityPolicySnapshot policy =
             BuiltInCanonicalCapabilityPolicy.Load();
-        CanonicalCapabilityPolicyRoute[] superseded =
+        CanonicalCapabilityPolicyRoute[] policyRoutes =
         [
             .. policy.Routes.Where(static route =>
-                route.Identity.WorkflowId == ExperienceIds.CtrlRamReplace &&
-                route.Publication.DecisionId.EndsWith(
-                    "-publication-v4",
-                    StringComparison.Ordinal)),
-        ];
-        string[] reportlessRouteIds =
-        [
-            .. reportless.Select(static route => route.Identity.RouteId)
-                .Order(StringComparer.Ordinal),
-        ];
-        CanonicalCapabilityPolicyRoute[] unchanged =
-        [
-            .. policy.Routes.Where(route => reportlessRouteIds.Contains(
-                route.Identity.RouteId,
-                StringComparer.Ordinal)),
+                route.Identity.WorkflowId == ExperienceIds.CtrlRamReplace),
         ];
         var expectedMaps = new Dictionary<string, string>(StringComparer.Ordinal)
         {
@@ -117,29 +103,19 @@ public sealed partial class CanonicalCapabilityCatalogMigrationTests
         };
 
         Assert.True(reload.Succeeded);
-        Assert.Equal(33, ctrlRamRoutes.Length);
+        Assert.Equal(44, ctrlRamRoutes.Length);
         Assert.Equal(10, reportless.Length);
-        Assert.Equal(23, reportful.Length);
+        Assert.Equal(34, reportful.Length);
         Assert.Equal(
-            reportful.Select(static route => route.Identity.RouteId)
+            ctrlRamRoutes.Select(static route => route.Identity.RouteId)
                 .Order(StringComparer.Ordinal),
-            superseded.Select(static route => route.Identity.RouteId)
+            policyRoutes.Select(static route => route.Identity.RouteId)
                 .Order(StringComparer.Ordinal));
-        Assert.Equal(
-            reportlessRouteIds,
-            unchanged.Select(static route => route.Identity.RouteId)
-                .Order(StringComparer.Ordinal));
-        Assert.All(superseded, static route =>
+        Assert.All(policyRoutes, static route =>
         {
-            Assert.EndsWith("-authoring-v2", route.Authoring.DecisionId, StringComparison.Ordinal);
-            Assert.EndsWith("-publication-v4", route.Publication.DecisionId, StringComparison.Ordinal);
-            Assert.EndsWith("-evidence-v2", route.Evidence.DecisionId, StringComparison.Ordinal);
-        });
-        Assert.All(unchanged, static route =>
-        {
-            Assert.EndsWith("-authoring-v1", route.Authoring.DecisionId, StringComparison.Ordinal);
-            Assert.EndsWith("-publication-v3", route.Publication.DecisionId, StringComparison.Ordinal);
-            Assert.EndsWith("-evidence-v1", route.Evidence.DecisionId, StringComparison.Ordinal);
+            Assert.EndsWith("-authoring-v3", route.Authoring.DecisionId, StringComparison.Ordinal);
+            Assert.EndsWith("-publication-v5", route.Publication.DecisionId, StringComparison.Ordinal);
+            Assert.EndsWith("-evidence-v3", route.Evidence.DecisionId, StringComparison.Ordinal);
         });
         Assert.All(reportless, route => Assert.DoesNotContain(
             route.CompilationContract.SemanticBindingIds,
