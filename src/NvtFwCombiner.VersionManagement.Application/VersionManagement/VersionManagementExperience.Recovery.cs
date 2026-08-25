@@ -38,6 +38,13 @@ public sealed partial class VersionManagementExperience
             if (issue is ManagedVersionDeleteIssue.None or ManagedVersionDeleteIssue.NotInstalled)
             {
                 converged = CommitDelete(state, pending.Admission);
+                if (converged.RetentionReviewDue)
+                {
+                    ManagedVersionInventory committedInventory = await InventoryAsync(
+                        converged,
+                        cancellationToken).ConfigureAwait(false);
+                    converged = ClearRetentionReviewIfAtOrBelowThreshold(converged, committedInventory);
+                }
             }
         }
 
@@ -62,7 +69,7 @@ public sealed partial class VersionManagementExperience
             state.LastKnownGoodVersion,
             [.. state.Admissions, admission],
             state.PendingActivation,
-            failedActivationVersion: null,
+            state.FailedActivationVersion,
             state.RetentionReviewDue,
             pendingMutation: null);
     }
@@ -75,6 +82,16 @@ public sealed partial class VersionManagementExperience
         return !state.RetentionReviewDue &&
                VersionManagementPolicy.ShouldOfferRetentionReview(inventory, updateSucceeded)
             ? state.WithRetentionReviewDue(retentionReviewDue: true)
+            : state;
+    }
+
+    private static VersionManagerState ClearRetentionReviewIfAtOrBelowThreshold(
+        VersionManagerState state,
+        ManagedVersionInventory inventory)
+    {
+        return state.RetentionReviewDue &&
+               inventory.HealthyCount <= VersionManagementPolicy.DefaultHealthyVersionReminderThreshold
+            ? state.WithRetentionReviewDue(retentionReviewDue: false)
             : state;
     }
 

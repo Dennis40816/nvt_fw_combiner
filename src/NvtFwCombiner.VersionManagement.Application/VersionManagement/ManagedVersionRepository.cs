@@ -11,9 +11,9 @@ public enum ManagedVersionInstallIssue
 {
     /// <summary>The version was installed or was already installed identically.</summary>
     None,
-    /// <summary>The source package is absent or unreadable.</summary>
+    /// <summary>The requested catalog version or source package is unavailable, unreadable, or differs from its catalog length.</summary>
     PackageUnavailable,
-    /// <summary>The package changed from its catalog length or digest.</summary>
+    /// <summary>The source package length matches but its SHA-256 digest differs from the catalog.</summary>
     PackageMismatch,
     /// <summary>The archive path or expansion shape is unsafe.</summary>
     UnsafeArchive,
@@ -23,7 +23,7 @@ public enum ManagedVersionInstallIssue
     IdentityConflict,
     /// <summary>Staging or atomic promotion could not complete.</summary>
     PromotionFailed,
-    /// <summary>Filesystem mutation completed or was withheld because durable state was unavailable.</summary>
+    /// <summary>An activation or recovery transaction blocks the request, writer/durable state is unavailable, or the mutation journal or commit cannot be saved.</summary>
     StateUnavailable,
 }
 

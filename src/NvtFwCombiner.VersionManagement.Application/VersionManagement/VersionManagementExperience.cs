@@ -52,7 +52,7 @@ public enum VersionDeleteOperationIssue
     RollbackConfirmationRequired,
     /// <summary>The repository rejected or could not complete the guarded deletion.</summary>
     RepositoryFailure,
-    /// <summary>The durable mutation journal or its commit could not be saved.</summary>
+    /// <summary>An activation or recovery transaction blocks deletion, writer/durable state is unavailable, or the mutation journal or commit cannot be saved.</summary>
     StateUnavailable,
 }
 
@@ -337,6 +337,14 @@ public sealed partial class VersionManagementExperience : IVersionManagementExpe
             VersionManagementSnapshot current = await ReloadDurableCurrentWithoutLockAsync(cancellationToken)
                 .ConfigureAwait(false);
             VersionManagerState state = current.State ?? throw InvalidState();
+            if (state.PendingActivation is not null)
+            {
+                return new(
+                    new(ManagedVersionDeleteBlock.RecoveryRequired, RequiresRollbackLossWarning: false),
+                    VersionDeleteOperationIssue.StateUnavailable,
+                    RepositoryIssue: null,
+                    current);
+            }
             if (state.PendingMutation is not null)
             {
                 state = await ReconcilePendingMutationAsync(state, cancellationToken).ConfigureAwait(false);
@@ -422,11 +430,7 @@ public sealed partial class VersionManagementExperience : IVersionManagementExpe
                     _current);
             }
             inventory = await InventoryAsync(state, cancellationToken).ConfigureAwait(false);
-            if (state.RetentionReviewDue &&
-                inventory.HealthyCount <= VersionManagementPolicy.DefaultHealthyVersionReminderThreshold)
-            {
-                state = state.WithRetentionReviewDue(retentionReviewDue: false);
-            }
+            state = ClearRetentionReviewIfAtOrBelowThreshold(state, inventory);
             if (!await TrySaveAsync(state, cancellationToken).ConfigureAwait(false))
             {
                 VersionManagerState durablePrepared = prepared;

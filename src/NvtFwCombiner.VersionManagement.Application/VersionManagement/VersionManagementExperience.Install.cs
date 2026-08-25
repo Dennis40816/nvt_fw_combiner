@@ -24,6 +24,12 @@ public sealed partial class VersionManagementExperience
             VersionManagementSnapshot current = await ReloadDurableCurrentWithoutLockAsync(cancellationToken)
                 .ConfigureAwait(false);
             VersionManagerState state = current.State ?? throw InvalidState();
+            if (state.PendingActivation is not null)
+            {
+                return new(
+                    new(null, ManagedVersionInstallIssue.StateUnavailable, WasAlreadyInstalled: false),
+                    current);
+            }
             if (state.PendingMutation is not null)
             {
                 state = await ReconcilePendingMutationAsync(state, cancellationToken).ConfigureAwait(false);
