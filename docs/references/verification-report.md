@@ -36,9 +36,12 @@ convergence 7/7, Support Matrix projection 8/8, package-trust architecture
 17/17, release-package policy 30/30, and the previously blocked CtrlRAM
 ProductServices paths 3/3.
 
-This is not a full verification or release authorization. The Golden manifest
-still requires one strict route-evidence cross-link for every exact policy
-route. Full frozen-tree verification, independent R3/firmware review,
+Follow-up commit `851ffad7` adds one strict route-evidence cross-link for every
+exact policy route. Policy/manifest comparison has zero missing, extra, kind,
+route-id, or fingerprint mismatches, and canonical validation passes 58/58.
+
+This remains neither full verification nor release authorization. Full
+frozen-tree verification, independent R3/firmware review,
 packaged/clean-machine smoke, signing, provenance, protected CI, and
 release-owner approval remain open.
 

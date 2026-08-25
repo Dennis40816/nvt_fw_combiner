@@ -502,9 +502,12 @@ previously blocked CtrlRAM ProductServices cases also passed 3/3 after the
 policy reconciliation. These are focused checks, not a full frozen-tree
 verification.
 
-This checkpoint does **not** claim release readiness. The canonical manifest
-must still populate and validate one strict `routeEvidence` row for all 89
-exact `(routeId, capabilityFingerprint)` pairs, after which the full verifier,
+Follow-up commit `851ffad7` closes the repository cross-link: manifest schema
+`1.1` contains 89 strict `routeEvidence` rows, with zero missing, extra, kind,
+route-id, or fingerprint mismatches against policy. Canonical validation passes
+58/58 and preserves the same 31/9/5/44 evidence totals.
+
+This checkpoint still does **not** claim release readiness. The full verifier,
 independent R3/firmware review, package/clean-machine smoke, signing,
 provenance, protected CI, and release-owner approval remain mandatory.
 
