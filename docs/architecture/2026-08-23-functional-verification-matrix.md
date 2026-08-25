@@ -3,6 +3,11 @@
 This document is the detailed functional-verification appendix of
 [the single-implementation and layering audit](2026-08-22-single-implementation-and-layering-audit.md).
 
+> **Historical snapshot.** The counts below are frozen at catalog `1.9.0` and
+> are intentionally not the current support authority. For the current catalog,
+> exact route decisions, and evidence ranks, use
+> `canonical-capability-policy-v1.json` and `supported-ic-matrix.md`.
+
 
 The exact route denominator is the 78-row `canonical-capability-policy-v1.json`,
 not a hand-maintained test list. Catalog `1.9.0` exposes 64 routes for ordinary
@@ -154,4 +159,3 @@ baseline is coherent, but accepting the freeze still requires the named manual
 Windows/visual checks and the firmware/evidence decisions above. Refactoring
 may start only after the owner accepts that gap ledger; a green test count alone
 is insufficient.
-
