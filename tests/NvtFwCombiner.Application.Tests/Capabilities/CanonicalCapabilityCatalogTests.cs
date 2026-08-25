@@ -404,6 +404,34 @@ public sealed partial class CanonicalCapabilityCatalogTests
             metadata.MetadataPlan.ResolutionToken);
     }
 
+    /// <summary>A cold metadata query loads one publication and reuses it for later queries.</summary>
+    [Fact]
+    public void ResolveUniqueMetadataPlanColdQueryLoadsAndCachesPublishedPlan()
+    {
+        var source = new QueueCapabilitySource(
+            CapabilityCatalogLoadResult.Success(CreateCandidate()));
+        var catalog = new CanonicalCapabilityCatalog(source);
+
+        MetadataPlanResolutionResult first = catalog.ResolveUniqueMetadataPlan(
+            "NT51929",
+            "standard-merge",
+            "selector-free",
+            outputCapacity: 8);
+        MetadataPlanResolutionResult second = catalog.ResolveUniqueMetadataPlan(
+            "NT51929",
+            "standard-merge",
+            "selector-free",
+            outputCapacity: 8);
+
+        Assert.True(first.Succeeded);
+        Assert.True(second.Succeeded);
+        Assert.Same(first.MetadataPlan, second.MetadataPlan);
+        Assert.Equal(
+            first.MetadataPlan!.ResolutionToken,
+            second.MetadataPlan!.ResolutionToken);
+        Assert.Equal(1, source.LoadCount);
+    }
+
     /// <summary>Read-only metadata lookup uses exact capacity and fails closed on ambiguous axes.</summary>
     [Fact]
     public void ResolveUniqueMetadataPlanUsesCapacityAndRejectsAmbiguity()
@@ -671,9 +699,12 @@ public sealed partial class CanonicalCapabilityCatalogTests
     {
         private readonly Queue<CapabilityCatalogLoadResult> _results = new(results);
 
+        public int LoadCount { get; private set; }
+
         public CapabilityCatalogLoadResult Load(CancellationToken cancellationToken)
         {
             cancellationToken.ThrowIfCancellationRequested();
+            LoadCount++;
             return _results.Dequeue();
         }
     }
