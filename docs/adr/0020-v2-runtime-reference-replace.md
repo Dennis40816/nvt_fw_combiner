@@ -5,9 +5,10 @@
 - Amended: 2026-07-18 for the NT51926 processor-free DP runtime slice
 - Amended: 2026-07-29 for plan-only diagnostic Preview when required POSTBUILD is unavailable
 - Amended: 2026-08-07 to replace workflow-name semantics with closed profile and map semantics
+- Amended: 2026-08-25 by ADR 0055 for supported CtrlRAM runtime admission
 - Owners: Architecture owner + firmware owner
 - Amends: ADR 0015 and ADR 0019
-- Amended by: ADR 0023 and ADR 0024
+- Amended by: ADR 0023, ADR 0024, and ADR 0055
 
 ## Context
 
@@ -38,6 +39,10 @@ routing and support promotion.
 This acceptance authorizes only request-scoped candidate compilation and
 Application admission. It does not register a built-in route, promote firmware
 support, or retire the existing legacy General Replace path.
+
+ADR 0055 closes that historical candidate-only gate for exact, owner-approved
+CtrlRAM routes whose profiles are now `supported`. General Replace and every
+profile below `supported` retain this candidate boundary.
 
 The declaration must contain exactly:
 
@@ -79,6 +84,11 @@ with promotion stage `executable-candidate`, a reference singleton, and one-or-m
 typed per-binding sources. A generic resolved-map artifact cannot obtain this
 admission from its input shape. This candidate admission is not a production route,
 UI catalog change, or support promotion.
+
+As amended by ADR 0055, the Profiles compiler also mints ordinary
+`V2RuntimeExecutable` eligibility for a structurally safe runtime-reference
+profile whose promotion stage is exactly `supported`. Publication and evidence
+remain independent canonical-policy decisions.
 
 ## Typed CtrlRAM Source Candidate Boundary
 

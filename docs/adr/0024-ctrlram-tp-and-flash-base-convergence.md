@@ -3,9 +3,11 @@
 - Status: Accepted
 - Date: 2026-07-17
 - Amended: 2026-07-18 for reviewed NT51926 1.4.1 cascade and 2.0.0 single/cascade runtime slices
+- Amended: 2026-08-25 by ADR 0055 for supported CtrlRAM admission across declared TP/full maps
 - Owners: Architecture owner + firmware owner
 - Supersedes: ADR 0023
 - Amends: ADR 0015 and ADR 0020
+- Amended by: ADR 0055
 
 ## Context
 
@@ -58,6 +60,11 @@ the profile retains only the closed invocation profile id and processor authorit
   owner review remain mandatory.
 - Other IC/count branches and firmware-version edits remain separate
   evidence/migration work.
+
+ADR 0055 later applies this same TP-prefix/full-tail contract to every declared
+owner-approved CtrlRAM route and permits its structurally safe profile to be
+promoted to `supported`. The exact route/fingerprint evidence and product
+publication decisions remain separate release authorities.
 
 ## Verification
 

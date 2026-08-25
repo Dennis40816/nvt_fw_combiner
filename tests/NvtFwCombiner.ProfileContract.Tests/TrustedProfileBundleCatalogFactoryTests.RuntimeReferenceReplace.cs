@@ -1,4 +1,5 @@
 using System.Text.Json;
+using System.Text.Json.Nodes;
 using NvtFwCombiner.Domain.Composition;
 using NvtFwCombiner.Domain.Firmware;
 using NvtFwCombiner.Profiles.V2;
@@ -44,6 +45,44 @@ public sealed partial class TrustedProfileBundleCatalogFactoryTests
         Assert.Equal([0, 1, 2, 3, 4, 5, 6, 7, 0xCC, 0xDD, 10, 11, 12, 13, 14, 15], execution.OutputBytes.ToArray());
         Assert.Equal(originalReference, reference);
         Assert.Equal(originalSource, source);
+    }
+
+    /// <summary>Only a structurally safe supported runtime-reference profile mints runtime eligibility.</summary>
+    [Fact]
+    public void RuntimeReferenceReplacePromotionMintsRuntimeArtifactOnlyForSupportedProfile()
+    {
+        V2CompositionPlanCompileResult supported = CreateRuntimeReferenceReplaceCatalog(
+                promotionStage: "supported")
+            .CompileRuntimeReferenceReplace(
+                "runtime-general-replace",
+                "1.0.0",
+                LogicalTestMemberId,
+                RuntimeReferenceReplaceRequest());
+        V2CompositionPlanCompileResult candidate = CreateRuntimeReferenceReplaceCatalog(
+                promotionStage: "executable-candidate")
+            .CompileRuntimeReferenceReplace(
+                "runtime-general-replace",
+                "1.0.0",
+                LogicalTestMemberId,
+                RuntimeReferenceReplaceRequest());
+
+        Assert.Equal(
+            CompiledCompositionEligibility.V2RuntimeExecutable,
+            Assert.IsType<CompiledComposition>(supported.CompiledComposition).Eligibility);
+        Assert.Equal(
+            CompiledCompositionEligibility.V2PlanCompiled,
+            Assert.IsType<CompiledComposition>(candidate.CompiledComposition).Eligibility);
+    }
+
+    /// <summary>A supported runtime-reference profile cannot mint an executable with deferred filename sanitization.</summary>
+    [Fact]
+    public void RuntimeReferenceReplaceSupportedProfileRejectsUnsafeOutputRenderer()
+    {
+        _ = Assert.Throws<TrustedProfileBundleCatalogException>(() =>
+            CreateRuntimeReferenceReplaceCatalog(
+                promotionStage: "supported",
+                schemaVersion: "2.9",
+                invalidCharacterPolicy: "replace-underscore"));
     }
 
     /// <summary>Verifies a denied map-bound target rejects only the selected runtime-reference-replace compilation request.</summary>
@@ -340,7 +379,9 @@ public sealed partial class TrustedProfileBundleCatalogFactoryTests
     private static TrustedProfileBundleCatalog CreateRuntimeReferenceReplaceCatalog(
         FirmwareWriteConstraint writeConstraint = FirmwareWriteConstraint.ExplicitRange,
         string promotionStage = "compilable",
-        IReadOnlyList<RuntimeReferenceReplaceMapDocument>? mapDefinitions = null)
+        IReadOnlyList<RuntimeReferenceReplaceMapDocument>? mapDefinitions = null,
+        string schemaVersion = "2.6",
+        string invalidCharacterPolicy = "reject")
     {
         RuntimeReferenceReplaceMapDocument[] maps = mapDefinitions is { Count: > 0 }
             ? [.. mapDefinitions]
@@ -361,10 +402,15 @@ public sealed partial class TrustedProfileBundleCatalogFactoryTests
         };
         string familyJson = RuntimeReferenceReplaceTestDocuments.FamilyJson(maps, writeConstraintToken);
         string familyHash = Hash(familyJson);
-        string profileJson = RuntimeReferenceReplaceTestDocuments.ProfileJson(
-            familyHash,
-            promotionStage,
-            maps.Select(static map => map.MapId));
+        JsonObject profile = Assert.IsType<JsonObject>(JsonNode.Parse(
+            RuntimeReferenceReplaceTestDocuments.ProfileJson(
+                familyHash,
+                promotionStage,
+                maps.Select(static map => map.MapId))));
+        profile["schemaVersion"] = schemaVersion;
+        Assert.IsType<JsonObject>(profile["output"])["invalidCharacterPolicy"] =
+            invalidCharacterPolicy;
+        string profileJson = profile.ToJsonString();
         using var familyDocument = JsonDocument.Parse(familyJson);
         using var profileDocument = JsonDocument.Parse(profileJson);
         return CreateCatalogFromSources(
