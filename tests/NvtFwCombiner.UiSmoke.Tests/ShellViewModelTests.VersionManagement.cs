@@ -36,6 +36,65 @@ public sealed class VersionManagementSettingsTests
         Assert.Empty(experience.DeleteConfirmations);
     }
 
+    /// <summary>An unavailable source commit keeps the last visible source and always clears busy state.</summary>
+    [Fact]
+    public async Task UnavailableSourceCommitDoesNotAdoptDraftOrLeaveBusyState()
+    {
+        VersionManagementSnapshot initial = Snapshot(
+            retentionReviewDue: false,
+            updateSource: "source-root");
+        VersionManagementSnapshot unavailable = initial with
+        {
+            StateIssue = VersionManagerStateLoadIssue.Unavailable,
+        };
+        var experience = new RecordingVersionExperience(initial)
+        {
+            UpdateSourceCommitResult = unavailable,
+        };
+        MainWindowViewModel viewModel = MainWindow.CreateStartupViewModel(
+            PresentationTestHost.CreateServices("0.10.5", experience),
+            ShellPreferenceSnapshot.Default);
+        viewModel.Settings.ApplyVersionSnapshot(initial);
+        viewModel.Settings.BeginEditUpdateSourceCommand.Execute(null);
+        viewModel.Settings.UpdateSourceDraft = "candidate-source-root";
+
+        await viewModel.Settings.ConfirmUpdateSourceCommand.ExecuteAsync(null);
+
+        Assert.Equal("candidate-source-root", experience.LastCommittedUpdateSource);
+        Assert.Equal("source-root", viewModel.Settings.UpdateSourcePath);
+        Assert.Equal("source-root", viewModel.Settings.UpdateSourceDraft);
+        Assert.False(viewModel.Settings.IsUpdateSourceEditing);
+        Assert.False(viewModel.Settings.IsSourceChecking);
+        Assert.False(viewModel.Settings.IsVersionBusy);
+        Assert.Equal("Recovery required", viewModel.Settings.CurrentStatusLabel);
+    }
+
+    /// <summary>An unavailable retention acknowledgement remains visible and cannot report success.</summary>
+    [Fact]
+    public async Task UnavailableRetentionAcknowledgementDoesNotReportSuccess()
+    {
+        VersionManagementSnapshot initial = Snapshot(retentionReviewDue: true);
+        VersionManagementSnapshot unavailable = initial with
+        {
+            StateIssue = VersionManagerStateLoadIssue.Unavailable,
+        };
+        var experience = new RecordingVersionExperience(initial)
+        {
+            RetentionAcknowledgementResult = unavailable,
+        };
+        MainWindowViewModel viewModel = MainWindow.CreateStartupViewModel(
+            PresentationTestHost.CreateServices("0.10.5", experience),
+            ShellPreferenceSnapshot.Default);
+        viewModel.Settings.ApplyVersionSnapshot(initial);
+
+        await viewModel.Settings.KeepAllVersionsCommand.ExecuteAsync(null);
+
+        Assert.True(viewModel.Settings.HasRetentionReview);
+        Assert.Contains("unavailable", viewModel.Settings.VersionOperationStatus, StringComparison.OrdinalIgnoreCase);
+        Assert.DoesNotContain("were kept", viewModel.Settings.VersionOperationStatus, StringComparison.Ordinal);
+        Assert.False(viewModel.Settings.IsVersionBusy);
+    }
+
     /// <summary>The last-known-good trash action requires two confirmations and passes explicit consent.</summary>
     [Fact]
     public async Task LastKnownGoodTrashRequiresSecondRollbackWarning()
@@ -403,7 +462,9 @@ public sealed class VersionManagementSettingsTests
         Assert.Contains("could not be prepared", viewModel.Settings.VersionOperationStatus, StringComparison.Ordinal);
     }
 
-    private static VersionManagementSnapshot Snapshot(bool retentionReviewDue)
+    private static VersionManagementSnapshot Snapshot(
+        bool retentionReviewDue,
+        string? updateSource = null)
     {
         ManagedVersionAdmission[] admissions =
         [
@@ -415,7 +476,7 @@ public sealed class VersionManagementSettingsTests
         ManagedAppVersion active = ManagedAppVersion.Parse("0.10.5");
         ManagedAppVersion lastKnownGood = ManagedAppVersion.Parse("0.10.4");
         VersionManagerState state = VersionManagerState.Create(
-            updateSource: null,
+            updateSource,
             activeVersion: active,
             lastKnownGoodVersion: lastKnownGood,
             admissions: admissions,
@@ -476,6 +537,12 @@ public sealed class VersionManagementSettingsTests
 
         internal bool FailPendingActivationCancellation { get; init; }
 
+        internal string? LastCommittedUpdateSource { get; private set; }
+
+        internal VersionManagementSnapshot? RetentionAcknowledgementResult { get; init; }
+
+        internal VersionManagementSnapshot? UpdateSourceCommitResult { get; init; }
+
         public ValueTask<VersionManagementSnapshot> InitializeAsync(CancellationToken cancellationToken)
         {
             return ValueTask.FromResult(Current);
@@ -492,6 +559,8 @@ public sealed class VersionManagementSettingsTests
             string sourceRoot,
             CancellationToken cancellationToken)
         {
+            LastCommittedUpdateSource = sourceRoot;
+            Current = UpdateSourceCommitResult ?? Current;
             return ValueTask.FromResult(Current);
         }
 
@@ -554,6 +623,11 @@ public sealed class VersionManagementSettingsTests
             CancellationToken cancellationToken)
         {
             Acknowledgements++;
+            if (RetentionAcknowledgementResult is { } result)
+            {
+                Current = result;
+                return ValueTask.FromResult(Current);
+            }
             VersionManagerState state = Current.State!;
             Current = Current with
             {

@@ -47,6 +47,32 @@ public sealed partial class VersionManagementExperienceTests
         Assert.Empty(repository.Deleted);
     }
 
+    /// <summary>A failed retention save keeps the durable reminder and returns typed unavailable state.</summary>
+    [Fact]
+    public async Task RetentionAcknowledgementSaveFailurePreservesReminder()
+    {
+        VersionManagerState initial = State(
+            [Admission("0.10.5")],
+            active: "0.10.5",
+            lastKnownGood: "0.10.5")
+            .WithRetentionReviewDue(retentionReviewDue: true);
+        var stateStore = new FailingStateStore(initial, failOnSave: 1);
+        using var experience = new VersionManagementExperience(
+            ManagedAppVersion.Parse("0.10.5"),
+            "managed-root",
+            stateStore,
+            new CountingCatalogSource(),
+            new HealthyRepository());
+
+        VersionManagementSnapshot result = await experience.AcknowledgeRetentionReviewAsync(
+            TestContext.Current.CancellationToken);
+
+        Assert.Equal(VersionManagerStateLoadIssue.Unavailable, result.StateIssue);
+        Assert.True(result.State!.RetentionReviewDue);
+        Assert.True(stateStore.State.RetentionReviewDue);
+        Assert.Equal(1, stateStore.SaveCount);
+    }
+
     /// <summary>Deleting last-known-good revalidates and refuses mutation until the second warning is confirmed.</summary>
     [Fact]
     public async Task LastKnownGoodDeleteRequiresSeparateConfirmedRequest()
@@ -278,6 +304,34 @@ public sealed partial class VersionManagementExperienceTests
         Assert.Equal("new-source-root", committed.State!.UpdateSource);
         Assert.Equal(ManagedAppVersion.Parse("0.10.7"), Assert.Single(committed.Catalog!.Versions).Version);
         Assert.Equal(VersionSourceStatus.Connected, committed.SourceStatus);
+    }
+
+    /// <summary>A failed durable source commit keeps the prior source and never probes the candidate.</summary>
+    [Fact]
+    public async Task CommitSourceSaveFailurePreservesCommittedSourceAndSkipsCatalog()
+    {
+        VersionManagerState initial = State(
+            [Admission("0.10.5")],
+            active: "0.10.5",
+            lastKnownGood: "0.10.5");
+        var stateStore = new FailingStateStore(initial, failOnSave: 1);
+        var source = new CountingCatalogSource();
+        using var experience = new VersionManagementExperience(
+            ManagedAppVersion.Parse("0.10.5"),
+            "managed-root",
+            stateStore,
+            source,
+            new HealthyRepository());
+
+        VersionManagementSnapshot result = await experience.CommitUpdateSourceAsync(
+            "candidate-source-root",
+            TestContext.Current.CancellationToken);
+
+        Assert.Equal(VersionManagerStateLoadIssue.Unavailable, result.StateIssue);
+        Assert.Equal("source-root", result.State!.UpdateSource);
+        Assert.Equal("source-root", stateStore.State.UpdateSource);
+        Assert.Equal(1, stateStore.SaveCount);
+        Assert.Equal(0, source.LoadCount);
     }
 
     /// <summary>An interrupted refresh restores the last completed source result instead of remaining Checking.</summary>

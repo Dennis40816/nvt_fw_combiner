@@ -293,7 +293,10 @@ public sealed partial class VersionManagementExperience : IVersionManagementExpe
                 state.FailedActivationVersion,
                 state.RetentionReviewDue,
                 state.PendingMutation);
-            await SaveOrThrowAsync(state, cancellationToken).ConfigureAwait(false);
+            if (!await TrySaveAsync(state, cancellationToken).ConfigureAwait(false))
+            {
+                return PublishStateUnavailable();
+            }
             _current = current with
             {
                 State = state,
@@ -482,7 +485,10 @@ public sealed partial class VersionManagementExperience : IVersionManagementExpe
             if (state.RetentionReviewDue)
             {
                 state = state.WithRetentionReviewDue(retentionReviewDue: false);
-                await SaveOrThrowAsync(state, cancellationToken).ConfigureAwait(false);
+                if (!await TrySaveAsync(state, cancellationToken).ConfigureAwait(false))
+                {
+                    return PublishStateUnavailable();
+                }
                 _current = current with { State = state };
             }
             return _current ?? current;

@@ -380,11 +380,17 @@ internal sealed partial class SettingsViewModel
         IsVersionBusy = true;
         try
         {
-            ApplyVersionSnapshot(await _versionManagement.AcknowledgeRetentionReviewAsync(
-                CancellationToken.None));
-            VersionOperationStatus = Localize(
-                "All installed versions were kept.",
-                "已保留所有安裝版本。");
+            VersionManagementSnapshot snapshot = await _versionManagement.AcknowledgeRetentionReviewAsync(
+                CancellationToken.None);
+            ApplyVersionSnapshot(snapshot);
+            VersionOperationStatus = snapshot.StateIssue == VersionManagerStateLoadIssue.None &&
+                snapshot.State?.RetentionReviewDue == false
+                ? Localize(
+                    "All installed versions were kept.",
+                    "已保留所有安裝版本。")
+                : Localize(
+                    "Version state is unavailable. The retention reminder was not cleared; restart Settings to try again.",
+                    "版本狀態目前無法使用，保留提醒尚未清除；請重新開啟設定後再試一次。");
         }
         finally
         {
