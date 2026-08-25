@@ -126,6 +126,40 @@ public sealed partial class ShellNavigationSystemTests
             slot.DisplayName == "尚未選擇 BIN");
     }
 
+    /// <summary>The shipped catalog hides DP Replace consistently in Settings while preserving the other authoring routes.</summary>
+    [Fact]
+    public void ProductSettingsProjectTheShippedHiddenDpReplacePolicy()
+    {
+        MainWindowViewModel viewModel = PresentationTestHost.CreateProductViewModel();
+
+        viewModel.OpenSettingsCommand.Execute(null);
+
+        Assert.Contains(
+            viewModel.Settings.OverviewRows,
+            row => row.Title == "Standard Merge" && row.Value == "10 ICs");
+        Assert.Contains(
+            viewModel.Settings.OverviewRows,
+            row => row.Title == "DP Replace" && row.Value == "0 ICs");
+        Assert.Contains(
+            viewModel.Settings.CapabilityRows,
+            row => row.Title == "CtrlRAM Replace available ICs" && row.Value == "10 ICs");
+
+        SupportMatrixRowViewModel[] availableRows =
+        [
+            .. viewModel.Settings.SupportMatrix.Rows.Where(static row => row.IsAuthoringAvailable),
+        ];
+        Assert.Equal(
+            5,
+            availableRows
+                .Where(static row => row.WorkflowId == ExperienceIds.AbMerge)
+                .Select(static row => row.IcId)
+                .Distinct(StringComparer.Ordinal)
+                .Count());
+        Assert.DoesNotContain(
+            availableRows,
+            static row => row.WorkflowId == ExperienceIds.DpReplace);
+    }
+
     /// <summary>Opening Settings preserves selected Replace files, mappings, inspection identity and readiness.</summary>
     [Fact]
     public void SettingsModalPreservesReplaceAuthoringState()
