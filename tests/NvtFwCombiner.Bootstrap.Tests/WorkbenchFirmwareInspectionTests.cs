@@ -1,4 +1,5 @@
 using System.Text;
+using System.Text.Json;
 using System.Text.RegularExpressions;
 using NvtFwCombiner.Application.Capabilities;
 using NvtFwCombiner.Application.FlashMaps;
@@ -6,6 +7,7 @@ using NvtFwCombiner.Application.InputInspection;
 using NvtFwCombiner.Application.Ports;
 using NvtFwCombiner.Domain.Composition;
 using NvtFwCombiner.Domain.Firmware;
+using NvtFwCombiner.TestSupport;
 using static NvtFwCombiner.Bootstrap.Tests.BootstrapTestData;
 
 namespace NvtFwCombiner.Bootstrap.Tests;
@@ -13,6 +15,61 @@ namespace NvtFwCombiner.Bootstrap.Tests;
 /// <summary>Parity and read-count evidence for the shell firmware inspection facade.</summary>
 public sealed partial class FirmwareInspectionSnapshotTests
 {
+    /// <summary>
+    /// Direct CtrlRAM fixture roles project display classification only; they do not admit a route,
+    /// support state, or CtrlRAM subtype.
+    /// </summary>
+    [Theory]
+    [InlineData("nt51923-fw141-single-auto-prj-662-20260717", "NT51923", "tp-input", BaseFirmwareArtifactKind.TpFirmware, CompiledFirmwareArtifactKind.TpFirmware, false)]
+    [InlineData("nt51923-fw141-single-auto-prj-662-20260717", "NT51923", "expected-output", BaseFirmwareArtifactKind.FlashCode, CompiledFirmwareArtifactKind.FlashCode, true)]
+    [InlineData("nt51926-fw200-single-auto-prj-597-20260718", "NT51926", "tp-input", BaseFirmwareArtifactKind.TpFirmware, CompiledFirmwareArtifactKind.TpFirmware, false)]
+    [InlineData("nt51926-fw200-single-auto-prj-597-20260718", "NT51926", "expected-output", BaseFirmwareArtifactKind.FlashCode, CompiledFirmwareArtifactKind.FlashCode, true)]
+    [InlineData("nt51927-fw141-single-auto-prj-529-20260717", "NT51927", "tp-input", BaseFirmwareArtifactKind.TpFirmware, CompiledFirmwareArtifactKind.TpFirmware, false)]
+    [InlineData("nt51927-fw141-single-auto-prj-529-20260717", "NT51927", "expected-output", BaseFirmwareArtifactKind.FlashCode, CompiledFirmwareArtifactKind.FlashCode, true)]
+    [InlineData("nt51929-fw200-single-auto-prj-594-20260717", "NT51929", "tp-input", BaseFirmwareArtifactKind.TpFirmware, CompiledFirmwareArtifactKind.TpFirmware, false)]
+    [InlineData("nt51929-fw200-single-auto-prj-594-20260717", "NT51929", "expected-output", BaseFirmwareArtifactKind.FlashCode, CompiledFirmwareArtifactKind.FlashCode, true)]
+    [InlineData("nt51932-fw200-cascade3-auto-prj-525-20260718", "NT51932", "tp-input", BaseFirmwareArtifactKind.TpFirmware, CompiledFirmwareArtifactKind.TpFirmware, false)]
+    [InlineData("nt51932-fw200-cascade3-auto-prj-525-20260718", "NT51932", "expected-output", BaseFirmwareArtifactKind.FlashCode, CompiledFirmwareArtifactKind.FlashCode, true)]
+    [InlineData("nt51950-fw200-single-auto-prj-676-20260717", "NT51950", "tp-input", BaseFirmwareArtifactKind.TpFirmware, CompiledFirmwareArtifactKind.TpFirmware, false)]
+    [InlineData("nt51950-fw200-single-auto-prj-676-20260717", "NT51950", "expected-output", BaseFirmwareArtifactKind.FlashCode, CompiledFirmwareArtifactKind.FlashCode, true)]
+    [InlineData("nt51951-fw200-single-auto-prj-695-20260718", "NT51951", "tp-input", BaseFirmwareArtifactKind.TpFirmware, CompiledFirmwareArtifactKind.TpFirmware, false)]
+    [InlineData("nt51951-fw200-single-auto-prj-695-20260718", "NT51951", "expected-output", BaseFirmwareArtifactKind.FlashCode, CompiledFirmwareArtifactKind.FlashCode, true)]
+    public void DirectCtrlRamFixtureRolesClassifyDisplayWithoutAdmittingRouteSupportOrSubtype(
+        string caseId,
+        string icId,
+        string artifactId,
+        BaseFirmwareArtifactKind expectedBaseKind,
+        CompiledFirmwareArtifactKind expectedCompiledKind,
+        bool expectedDpMetadataApplicability)
+    {
+        JsonElement fixtureCase = CanonicalGoldenTestData.LoadDirectCase(
+            "ctrlram-replace",
+            caseId);
+        JsonElement artifact = fixtureCase.GetProperty("artifacts")
+            .EnumerateArray()
+            .Single(candidate => StringComparer.Ordinal.Equals(
+                candidate.GetProperty("artifactId").GetString(),
+                artifactId));
+        string path = CanonicalGoldenTestData.ArtifactPath(artifact);
+
+        FirmwareInspectionSnapshot inspection = FirmwareInspectionTestSupport.InspectFirmware(
+            icId,
+            path,
+            tpPath: null,
+            ctrlRamRequest: null);
+
+        CompiledFirmwareArtifactClassification classification = Assert.IsType<
+            CompiledFirmwareArtifactClassification>(inspection.ArtifactClassification);
+        Assert.Equal(expectedBaseKind, inspection.BaseFirmwareArtifactKind);
+        Assert.Equal(expectedCompiledKind, classification.Kind);
+        Assert.Equal(expectedDpMetadataApplicability, classification.IsDpMetadataApplicable);
+        if (expectedCompiledKind == CompiledFirmwareArtifactKind.TpFirmware)
+        {
+            Assert.Null(inspection.DpVersion);
+            Assert.Null(inspection.CmiDpCode);
+        }
+    }
+
     /// <summary>NT51950/NT51951 recognize a plausible TP overlay in their standalone 0x37000 TP FW shape.</summary>
     [Theory]
     [InlineData("NT51950")]
