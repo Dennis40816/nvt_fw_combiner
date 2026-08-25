@@ -852,10 +852,10 @@ function Get-DeclaredStandardMergeGoldenPaths {
     }
 
     $Manifest = Get-Content -LiteralPath $ManifestPath -Raw | ConvertFrom-Json
-    if ($Manifest.schemaVersion -ne '1.0' -or
+    if ($Manifest.schemaVersion -ne '1.1' -or
         $Manifest.payloadClass -ne 'owner-approved-golden' -or
         $Manifest.binaryPayloadsIncluded -ne $true) {
-        throw 'Canonical golden inventory must declare schemaVersion=1.0, owner-approved-golden, and binaryPayloadsIncluded=true.'
+        throw 'Canonical golden inventory must declare schemaVersion=1.1, owner-approved-golden, and binaryPayloadsIncluded=true.'
     }
     if (-not (Test-Path -LiteralPath $ReleaseAllowlistPath -PathType Leaf)) {
         throw "Standard Merge golden release allowlist was not found at $ReleaseAllowlistPath"
