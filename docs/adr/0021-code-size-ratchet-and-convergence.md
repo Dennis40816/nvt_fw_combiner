@@ -576,10 +576,8 @@ Settings surface. The same fixed work adds an exact accepted-session output
 bundle admission, atomic primary/additional/source promotion, typed commit
 receipts and additive bundle provenance, the six-profile DP Replace naming-safe
 frontier, a route-independent Settings modal, and lifecycle-safe Memory Layout
-interaction. AB A-only output is selected from the compiled delivery plan and
-commits inside the same atomic bundle when bundle intent is enabled. The GUI
-also retains ADR 0037's loose primary-plus-A-only delivery and typed partial-
-failure report, while CLI A-only delivery remains bundle-only.
+interaction. Bundle intent commits plan-selected AB A-only output atomically; GUI loose
+primary-plus-A-only delivery and its typed partial-failure report remain under ADR 0037, while CLI A-only delivery remains bundle-only.
 
 The exact frozen measurement changes full production from 100,157 to 102,977
 and runtime from 68,174 to 70,057 nonblank lines. Domain plus Profiles remains
