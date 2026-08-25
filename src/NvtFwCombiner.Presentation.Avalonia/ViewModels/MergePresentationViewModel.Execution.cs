@@ -196,10 +196,6 @@ internal sealed partial class MergePresentationViewModel
         await RefreshAbMergeActionReadinessAsync(CancellationToken.None);
         if (!HasCurrentAbMergeActionReadiness(build))
         {
-            if (_abMergeActionReadiness is { } readiness)
-            {
-                _stateBindings.ShowActionReadiness(readiness, build);
-            }
             return;
         }
 
