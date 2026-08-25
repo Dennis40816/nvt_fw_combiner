@@ -125,44 +125,12 @@ internal sealed partial class BuiltInFirmwareInspection
         return true;
     }
 
-    internal static bool TryResolvePostbuildProfileFromBasePathForDisplay(
-        ICompositionCapabilityExperience projection,
-        string icId,
-        string? basePath,
-        out LegacyCombinerPostbuildProfile? postbuildProfile)
+    internal static LegacyCombinerPostbuildProfile? ResolveDeclaredPostbuildProfileForDisplay(
+        string icId)
     {
-        postbuildProfile = null;
         IReadOnlyList<LegacyCombinerPostbuildProfile> profiles =
-            BuiltInPostbuildProfileCatalog.GetProfiles(
-                IcIdentifier.Normalize(icId));
-        if (profiles.Count == 0)
-        {
-            return false;
-        }
-
-        if (profiles.Count == 1)
-        {
-            postbuildProfile = profiles[0];
-            return true;
-        }
-
-        bool hasReadableBase = !string.IsNullOrWhiteSpace(basePath) && File.Exists(basePath);
-        bool matchedBaseProfile = hasReadableBase &&
-            TryReadBaseCommonFwVersion(
-                projection,
-                icId,
-                basePath!,
-                out string? commonFwVersion) &&
-            BuiltInPostbuildProfileCatalog.TrySelectProfileForCommonFwVersion(
-                IcIdentifier.Normalize(icId),
-                commonFwVersion,
-                out postbuildProfile,
-                out _);
-
-        postbuildProfile ??= !hasReadableBase && profiles.Count != 0
-            ? profiles[0]
-            : null;
-        return matchedBaseProfile || postbuildProfile is not null;
+            BuiltInPostbuildProfileCatalog.GetProfiles(IcIdentifier.Normalize(icId));
+        return profiles.Count == 0 ? null : profiles[0];
     }
 
     internal static bool TryResolvePostbuildProfileFromAcceptedBaseForDisplay(

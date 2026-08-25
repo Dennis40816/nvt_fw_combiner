@@ -132,10 +132,9 @@ public sealed partial class CtrlRamWorkflowTests
 
         public CtrlRamInspectionDisplay GetDiscoveryDisplay(
             string icId,
-            string number,
-            string? basePath)
+            string number)
         {
-            return inner.GetDiscoveryDisplay(icId, number, basePath);
+            return inner.GetDiscoveryDisplay(icId, number);
         }
 
         public CtrlRamInspectionDisplay GetDiscoveryDisplayFromAcceptedBase(

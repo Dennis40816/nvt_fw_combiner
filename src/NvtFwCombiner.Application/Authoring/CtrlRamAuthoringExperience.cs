@@ -20,13 +20,12 @@ internal sealed partial class CtrlRamAuthoringExperience :
         _runtimeLeases = runtimeLeases ?? throw new ArgumentNullException(nameof(runtimeLeases));
     }
 
-    /// <summary>Gets one coherent CtrlRAM region and input-slot discovery publication.</summary>
+    /// <summary>Gets the declared CtrlRAM regions and input slots before a base is accepted.</summary>
     public CtrlRamInspectionDisplay GetDiscoveryDisplay(
         string icId,
-        string number,
-        string? basePath = null)
+        string number)
     {
-        return _adapter.GetDiscoveryDisplay(icId, number, basePath);
+        return _adapter.GetDiscoveryDisplay(icId, number);
     }
 
     /// <inheritdoc />

@@ -19,10 +19,15 @@ internal sealed partial class BuiltInCtrlRamAuthoringAdapter(
 
     public CtrlRamInspectionDisplay GetDiscoveryDisplay(
         string icId,
-        string number,
-        string? basePath)
+        string number)
     {
-        return ResolveDisplay(icId, number, basePath);
+        LegacyCombinerPostbuildProfile? declaredProfile =
+            BuiltInFirmwareInspection.ResolveDeclaredPostbuildProfileForDisplay(icId);
+        return CreateDisplay(
+            icId,
+            number,
+            declaredProfile,
+            hasReadableBase: false);
     }
 
     public CtrlRamInspectionDisplay GetDiscoveryDisplayFromAcceptedBase(
@@ -43,26 +48,6 @@ internal sealed partial class BuiltInCtrlRamAuthoringAdapter(
             number,
             postbuildProfile,
             hasReadableBase: true);
-    }
-
-    private CtrlRamInspectionDisplay ResolveDisplay(
-        string icId,
-        string number,
-        string? basePath)
-    {
-        LegacyCombinerPostbuildProfile? postbuildProfile =
-            BuiltInFirmwareInspection.TryResolvePostbuildProfileFromBasePathForDisplay(
-                _projection,
-                icId,
-                basePath,
-                out LegacyCombinerPostbuildProfile? profile)
-                    ? profile
-                    : null;
-        return CreateDisplay(
-            icId,
-            number,
-            postbuildProfile,
-            !string.IsNullOrWhiteSpace(basePath) && File.Exists(basePath));
     }
 
     internal static CtrlRamInspectionDisplay CreateDisplay(

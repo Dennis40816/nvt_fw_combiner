@@ -366,7 +366,7 @@ public sealed class CtrlRamReportMetadataPlanTests
         const string basePath = "invalid-reference.bin";
         const string replacementPath = "nf-ctrlram.bin";
         ReplaceInputSlot nfSlot = BootstrapTestHost.Services.CtrlRamAuthoring
-            .GetDiscoveryDisplay(icId, IcNumberSelectionTokens.SingleChip, basePath: null)
+            .GetDiscoveryDisplay(icId, IcNumberSelectionTokens.SingleChip)
             .InputSlots.Single(static slot => slot.SlotId == "replace-ctrlram-nf");
 
         IReadOnlyList<FirmwareInspectionSnapshotResult> results =

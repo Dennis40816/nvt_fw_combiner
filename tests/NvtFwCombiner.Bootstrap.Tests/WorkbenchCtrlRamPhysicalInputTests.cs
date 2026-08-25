@@ -48,7 +48,7 @@ public sealed class WorkbenchCtrlRamPhysicalInputTests
         int expectedCount)
     {
         CtrlRamInspectionDisplay display = BootstrapTestHost.Services.CtrlRamAuthoring
-            .GetDiscoveryDisplay(icId, number, basePath: null);
+            .GetDiscoveryDisplay(icId, number);
         CtrlRamInspectionDisplay acceptedBaseDisplay = BootstrapTestHost.Services.CtrlRamAuthoring
             .GetDiscoveryDisplayFromAcceptedBase(icId, number, new byte[1]);
         IReadOnlyList<ReplaceInputSlot> slots = display.InputSlots;
@@ -77,8 +77,7 @@ public sealed class WorkbenchCtrlRamPhysicalInputTests
         CtrlRamInspectionDisplay display =
             BootstrapTestHost.Services.CtrlRamAuthoring.GetDiscoveryDisplay(
                 icId,
-                IcNumberSelectionTokens.CascadeTwoToEight,
-                basePath: null);
+                IcNumberSelectionTokens.CascadeTwoToEight);
         IReadOnlyList<ReplaceInputSlot> slots = display.InputSlots;
 
         Assert.Contains(
@@ -102,8 +101,7 @@ public sealed class WorkbenchCtrlRamPhysicalInputTests
         IReadOnlyList<ReplaceInputSlot> slots =
             BootstrapTestHost.Services.CtrlRamAuthoring.GetDiscoveryDisplay(
                 icId,
-                number,
-                basePath: null).InputSlots;
+                number).InputSlots;
 
         Assert.Contains(
             slots,
@@ -124,8 +122,7 @@ public sealed class WorkbenchCtrlRamPhysicalInputTests
     {
         ReplaceInputSlot nf = BootstrapTestHost.Services.CtrlRamAuthoring.GetDiscoveryDisplay(
             icId,
-            "single",
-            basePath: null).InputSlots.Single(slot => slot.SlotId == "replace-ctrlram-nf");
+            "single").InputSlots.Single(slot => slot.SlotId == "replace-ctrlram-nf");
 
         Assert.DoesNotContain("DiffNFMerge.exe", nf.Description, StringComparison.Ordinal);
         Assert.DoesNotContain("DiffNFMerge output", nf.Title, StringComparison.Ordinal);
@@ -137,8 +134,7 @@ public sealed class WorkbenchCtrlRamPhysicalInputTests
     {
         ReplaceInputSlot nf = BootstrapTestHost.Services.CtrlRamAuthoring.GetDiscoveryDisplay(
             "NT51950",
-            "single",
-            basePath: null).InputSlots.Single(slot => slot.SlotId == "replace-ctrlram-nf");
+            "single").InputSlots.Single(slot => slot.SlotId == "replace-ctrlram-nf");
 
         Assert.Equal("NF_Ctrlram.bin · NF CtrlRAM: max 10768 B → 0x22C00", nf.Description);
     }

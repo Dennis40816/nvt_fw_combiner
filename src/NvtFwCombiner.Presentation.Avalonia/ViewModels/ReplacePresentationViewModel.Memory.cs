@@ -217,8 +217,7 @@ internal sealed partial class ReplacePresentationViewModel
             CtrlRamInspectionDisplay display =
                 _compositionServices.CtrlRamAuthoring.GetDiscoveryDisplay(
                     SelectedIc,
-                    SelectedNumber,
-                    basePath: null);
+                    SelectedNumber);
             ReplaceRows(CtrlRamRegions, UiCompositionRunner.GetCtrlRamRegions(display.Regions));
             ctrlRamInputSlots = UiCompositionRunner.GetCtrlRamReplaceInputSlots(display.InputSlots);
         }

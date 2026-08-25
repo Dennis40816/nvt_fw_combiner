@@ -79,7 +79,7 @@ public sealed class FirmwareInspectionExtensionAdmissionTests
         const string basePath = "ctrlram-base.bin";
         const string replacementPath = "nf-ctrlram.txt";
         ReplaceInputSlot replacementSlot = BootstrapTestHost.Services.CtrlRamAuthoring
-            .GetDiscoveryDisplay("NT51950", IcNumberSelectionTokens.SingleChip, basePath: null)
+            .GetDiscoveryDisplay("NT51950", IcNumberSelectionTokens.SingleChip)
             .InputSlots.Single(static slot => slot.SlotId == "replace-ctrlram-nf");
 
         IReadOnlyList<FirmwareInspectionSnapshotResult> results =

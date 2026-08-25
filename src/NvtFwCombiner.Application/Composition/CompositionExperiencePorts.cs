@@ -204,11 +204,10 @@ public interface ISavedRuleAuthoring
 /// <summary>Focused CtrlRAM Replace authoring owner.</summary>
 public interface ICtrlRamAuthoring
 {
-    /// <summary>Gets one coherent CtrlRAM region and input-slot discovery publication.</summary>
+    /// <summary>Gets the declared CtrlRAM regions and input slots before a base is accepted.</summary>
     CtrlRamInspectionDisplay GetDiscoveryDisplay(
         string icId,
-        string number,
-        string? basePath);
+        string number);
 
     /// <summary>Gets CtrlRAM discovery from one already admitted immutable base snapshot.</summary>
     CtrlRamInspectionDisplay GetDiscoveryDisplayFromAcceptedBase(

@@ -298,10 +298,10 @@ public sealed partial class FirmwareInspectionSnapshotTests
 
         CtrlRamInspectionDisplay display = Assert.IsType<CtrlRamInspectionDisplay>(inspection.CtrlRamDisplay);
         CtrlRamInspectionDisplay expectedDisplay =
-            BootstrapTestHost.Services.CtrlRamAuthoring.GetDiscoveryDisplay(
+            BootstrapTestHost.Services.CtrlRamAuthoring.GetDiscoveryDisplayFromAcceptedBase(
                 "NT51926",
                 ctrlRamRequest.NumberToken,
-                basePath);
+                File.ReadAllBytes(basePath));
         Assert.Equal(ctrlRamRequest.NumberToken, display.NumberToken);
         Assert.Equal(expectedDisplay.Regions, display.Regions);
         AssertCtrlRamInputSlotsEqual(expectedDisplay.InputSlots, display.InputSlots);

@@ -218,25 +218,6 @@ public sealed partial class ReplaceCliCommandTests
             CanonicalGoldenTestData.Artifact(fixtureCase, "postbuild-vn-ctrlram"));
         string validBasePath = CanonicalGoldenTestData.ArtifactPath(
             CanonicalGoldenTestData.Artifact(fixtureCase, "expected-output"));
-        byte[] validBaseBytes = await File.ReadAllBytesAsync(
-            validBasePath,
-            TestContext.Current.CancellationToken);
-        CtrlRamInspectionDisplay pathDisplay = BootstrapTestHost.Services.CtrlRamAuthoring
-            .GetDiscoveryDisplay("NT51926", "cascade", validBasePath);
-        CtrlRamInspectionDisplay acceptedDisplay = BootstrapTestHost.Services.CtrlRamAuthoring
-            .GetDiscoveryDisplayFromAcceptedBase("NT51926", "cascade", validBaseBytes);
-        Assert.Equal(
-            pathDisplay.InputSlots.Select(static slot => slot.SlotId),
-            acceptedDisplay.InputSlots.Select(static slot => slot.SlotId));
-
-        string invalidMetadataPath = workspace.Write("invalid-metadata.bin", new byte[1]);
-        CtrlRamInspectionDisplay invalidPathDisplay = BootstrapTestHost.Services.CtrlRamAuthoring
-            .GetDiscoveryDisplay("NT51926", "cascade", invalidMetadataPath);
-        CtrlRamInspectionDisplay invalidAcceptedDisplay = BootstrapTestHost.Services.CtrlRamAuthoring
-            .GetDiscoveryDisplayFromAcceptedBase("NT51926", "cascade", new byte[1]);
-        Assert.Equal(
-            invalidPathDisplay.InputSlots.Select(static slot => slot.SlotId),
-            invalidAcceptedDisplay.InputSlots.Select(static slot => slot.SlotId));
 
         CliRunResult result = await RunCliAsync([
             "ctrlram-replace",

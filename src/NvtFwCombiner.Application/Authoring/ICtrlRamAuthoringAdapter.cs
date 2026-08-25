@@ -11,8 +11,7 @@ public interface ICtrlRamAuthoringAdapter
 {
     CtrlRamInspectionDisplay GetDiscoveryDisplay(
         string icId,
-        string number,
-        string? basePath);
+        string number);
 
     CtrlRamInspectionDisplay GetDiscoveryDisplayFromAcceptedBase(
         string icId,
