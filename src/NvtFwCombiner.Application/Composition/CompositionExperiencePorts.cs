@@ -120,6 +120,11 @@ public interface IAbMergeAuthoring
         string icId,
         string? topologyToken,
         IReadOnlyCollection<CompiledAuthoringSelectedInput> inputs);
+
+    /// <summary>Refreshes action readiness for one exact accepted AB Merge session.</summary>
+    ValueTask<CapabilityActionReadinessSnapshot?> GetActionReadinessAsync(
+        ActiveSessionSnapshot acceptedSession,
+        CancellationToken cancellationToken);
 }
 
 /// <summary>Focused DP Replace authoring operations over one canonical workflow owner.</summary>

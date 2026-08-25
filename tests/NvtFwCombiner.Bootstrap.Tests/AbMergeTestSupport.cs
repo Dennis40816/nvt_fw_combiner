@@ -1,4 +1,5 @@
 using NvtFwCombiner.Application.Authoring;
+using NvtFwCombiner.Application.Capabilities;
 using NvtFwCombiner.Domain.Composition;
 using NvtFwCombiner.Domain.Firmware;
 
@@ -68,30 +69,38 @@ internal static class AbMergeTestSupport
             icId,
             slotPaths,
             topologySelection);
-        return prepared.Succeeded
-            ? await host.CompositionExecution.ExecuteAsync(
-                    new AcceptedCompositionExecutionRequest(
-                        prepared.Snapshot!,
-                        slotPaths,
-                        build,
-                        outputPath: outputPath,
-                        previewOutputFileName: previewOutputFileName,
-                        additionalDeliveryOutputPath: aFlashCodeOutputPath,
-                        outputPathUsesAutomaticName: outputPathUsesAutomaticName,
-                        additionalDeliveryOutputPathUsesAutomaticName:
-                            aFlashCodeOutputPathUsesAutomaticName,
-                        automaticOutputDirectory: automaticOutputDirectory,
-                        reportPath: reportPath),
-                    progress ?? new CompositionRunProgressFeed(),
-                    cancellationToken)
-                .ConfigureAwait(false)
-            : throw new InvalidOperationException(CompositionExecutionTestSupport.FormatIssues(
+        if (!prepared.Succeeded)
+        {
+            throw new InvalidOperationException(CompositionExecutionTestSupport.FormatIssues(
                 prepared.Issues.Count != 0
                     ? prepared.Issues
                     : [new CompositionIssue(
                         prepared.SessionIssue?.Code ?? AuthoringSessionIssueCodes.StaleInspection,
                         prepared.SessionIssue?.Message ??
                             "AB Merge preparation did not produce one accepted session.")]));
+        }
+
+        CapabilityActionReadinessSnapshot? readiness =
+            await host.AbMergeAuthoring.GetActionReadinessAsync(
+                prepared.Snapshot!,
+                cancellationToken).ConfigureAwait(false);
+        return await host.CompositionExecution.ExecuteAsync(
+                new AcceptedCompositionExecutionRequest(
+                    prepared.Snapshot!,
+                    slotPaths,
+                    build,
+                    outputPath: outputPath,
+                    previewOutputFileName: previewOutputFileName,
+                    additionalDeliveryOutputPath: aFlashCodeOutputPath,
+                    outputPathUsesAutomaticName: outputPathUsesAutomaticName,
+                    additionalDeliveryOutputPathUsesAutomaticName:
+                        aFlashCodeOutputPathUsesAutomaticName,
+                    automaticOutputDirectory: automaticOutputDirectory,
+                    reportPath: reportPath,
+                    actionReadiness: readiness),
+                progress ?? new CompositionRunProgressFeed(),
+                cancellationToken)
+            .ConfigureAwait(false);
     }
 
     private static string? ResolveTopologyToken(

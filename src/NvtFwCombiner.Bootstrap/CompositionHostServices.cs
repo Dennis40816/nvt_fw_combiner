@@ -34,7 +34,10 @@ public sealed class CompositionHostServices
             catalog,
             projection);
         StandardMergeAuthoring = standardMergeAuthoring;
-        var abMergeAuthoring = new AbMergeAuthoringExperience(compiler, catalog);
+        var abMergeAuthoring = new AbMergeAuthoringExperience(
+            compiler,
+            catalog,
+            externalEnvironment);
         AbMergeAuthoring = abMergeAuthoring;
         var dpReplaceAuthoring = new DpReplaceAuthoringExperience(compiler, catalog);
         DpReplaceAuthoring = dpReplaceAuthoring;

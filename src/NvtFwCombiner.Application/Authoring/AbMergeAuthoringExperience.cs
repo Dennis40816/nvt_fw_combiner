@@ -11,13 +11,16 @@ internal sealed partial class AbMergeAuthoringExperience :
 {
     private readonly CanonicalCapabilityCompilerAdapter _compiler;
     private readonly ICanonicalCapabilityQuery _catalog;
+    private readonly IRuntimeDependencyReadinessLeaseProvider _runtimeLeases;
 
     internal AbMergeAuthoringExperience(
         CanonicalCapabilityCompilerAdapter compiler,
-        ICanonicalCapabilityQuery catalog)
+        ICanonicalCapabilityQuery catalog,
+        IRuntimeDependencyReadinessLeaseProvider runtimeLeases)
     {
         _compiler = compiler ?? throw new ArgumentNullException(nameof(compiler));
         _catalog = catalog ?? throw new ArgumentNullException(nameof(catalog));
+        _runtimeLeases = runtimeLeases ?? throw new ArgumentNullException(nameof(runtimeLeases));
     }
 
     /// <summary>Returns whether the selected IC owns an authorable AB Merge route.</summary>

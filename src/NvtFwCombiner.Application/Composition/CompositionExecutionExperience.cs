@@ -1,6 +1,7 @@
 using System.Globalization;
 using NvtFwCombiner.Application.Authoring;
 using NvtFwCombiner.Application.Capabilities;
+using NvtFwCombiner.Application.ExternalTools;
 using NvtFwCombiner.Application.Ports;
 using NvtFwCombiner.Domain.Composition;
 using NvtFwCombiner.Domain.Firmware;
@@ -91,6 +92,21 @@ internal sealed class CompositionExecutionExperience : ICompositionExecution
         CancellationToken cancellationToken)
     {
         ResolvedCapability capability = AcceptedSessionExecutionInputs.RequireCapability(request.AcceptedSession, ExperienceIds.AbMerge, request.IcId, AuthoringDerivedResultKind.Inspection);
+        IExternalProcessor? externalProcessor = null;
+        RuntimeDependencyReadinessRequest runtimeRequest =
+            RuntimeDependencyReadinessRequest.FromResolvedCapability(
+                capability,
+                request.AcceptedSession.AuthoringRevision);
+        if (runtimeRequest.Dependencies.Count > 0)
+        {
+            CompositionExternalProcessorLease runtime = _acquireExternalProcessor();
+            RequireRuntimeActionReadiness(
+                request,
+                capability,
+                runtime.Generation);
+            externalProcessor = runtime.Processor;
+        }
+
         CompositionExecutionDeliveryTarget? additionalDelivery = null;
         if (!string.IsNullOrWhiteSpace(request.AdditionalDeliveryOutputPath))
         {
@@ -126,7 +142,7 @@ internal sealed class CompositionExecutionExperience : ICompositionExecution
             capability,
             progress,
             CompositionAddressSpaceIds.DpAbInput,
-            _acquireExternalProcessor().Processor,
+            externalProcessor,
             icNumberSelection: null,
             abMergeTopologySelection:
                 CapabilityPublicationCoherence.GetAcceptedAbMergeTopologySelection(capability),
@@ -254,7 +270,10 @@ internal sealed class CompositionExecutionExperience : ICompositionExecution
                 "The accepted CtrlRAM firmware-version draft does not match its retained execution plan.");
         }
 
-        RequireCtrlRamActionReadiness(request, capability, runtime.Generation);
+        RequireRuntimeActionReadiness(
+            request,
+            capability,
+            runtime.Generation);
         CompiledComposition composition = capability.CompiledComposition;
         (InputArtifactBinding[] bindings, IReadOnlyDictionary<string, byte[]> artifacts) =
             AcceptedSessionExecutionInputs.CreateBindings(composition, session);
@@ -484,14 +503,14 @@ internal sealed class CompositionExecutionExperience : ICompositionExecution
         }
     }
 
-    private void RequireCtrlRamActionReadiness(
+    private void RequireRuntimeActionReadiness(
         AcceptedCompositionExecutionRequest request,
         ResolvedCapability capability,
         long runtimeDependencyGeneration)
     {
         CapabilityActionReadinessSnapshot readiness = request.ActionReadiness ??
             throw new InvalidOperationException(
-                "CtrlRAM Replace execution requires its exact typed action readiness.");
+                "Processor-backed execution requires its exact typed action readiness.");
         ActiveSessionSnapshot session = request.AcceptedSession;
         if (readiness.ResolutionToken != session.ResolutionToken ||
             readiness.AuthoringRevision != session.AuthoringRevision ||
@@ -508,10 +527,15 @@ internal sealed class CompositionExecutionExperience : ICompositionExecution
                 capability.CompiledComposition.CompilationFingerprint))
         {
             throw new InvalidOperationException(
-                "CtrlRAM Replace action readiness does not match the accepted publication and runtime generation.");
+                "Processor-backed action readiness does not match the accepted publication and runtime generation.");
         }
 
         RequireAvailableAction(request, readiness);
+        if (runtimeDependencyGeneration < 1)
+        {
+            throw new InvalidOperationException(
+                "Processor-backed available action readiness requires a positive runtime generation.");
+        }
     }
 
     private static void RequireGeneralReplaceActionReadiness(
