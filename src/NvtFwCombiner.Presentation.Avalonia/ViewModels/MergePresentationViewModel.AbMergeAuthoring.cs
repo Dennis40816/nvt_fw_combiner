@@ -120,8 +120,7 @@ internal sealed partial class MergePresentationViewModel
         CapabilityActionReadinessSnapshot? readiness =
             await _compositionServices.AbMergeAuthoring.GetActionReadinessAsync(
                     session,
-                    cancellationToken)
-                .ConfigureAwait(false);
+                    cancellationToken);
         if (readiness is not null &&
             ReferenceEquals(session, _abMergeSession.CurrentSnapshot) &&
             IsAbCodeMergeModeSelected)
