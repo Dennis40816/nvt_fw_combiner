@@ -247,7 +247,14 @@ public sealed partial class VersionManagementExperience : IVersionManagementExpe
                         sourceRoot,
                         newest,
                         ownedToken).ConfigureAwait(false);
-                    verified = verification.Candidate;
+                    verified = verification is { IsVerified: true, Candidate: { } candidate } &&
+                               candidate.Version == newest.Version &&
+                               string.Equals(
+                                   candidate.AdmissionIdentity,
+                                   newest.Identity,
+                                   StringComparison.Ordinal)
+                        ? candidate
+                        : null;
                 }
             }
 

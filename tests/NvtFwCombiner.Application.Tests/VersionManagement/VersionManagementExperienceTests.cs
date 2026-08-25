@@ -568,7 +568,8 @@ public sealed partial class VersionManagementExperienceTests
 
     private sealed class HealthyRepository(
         bool verifyPackages = true,
-        ManagedVersionDeleteIssue deleteIssue = ManagedVersionDeleteIssue.None) : IManagedVersionRepository
+        ManagedVersionDeleteIssue deleteIssue = ManagedVersionDeleteIssue.None,
+        ManagedPackageVerificationResult? verificationResult = null) : IManagedVersionRepository
     {
         internal List<ManagedAppVersion> Deleted { get; } = [];
 
@@ -577,13 +578,13 @@ public sealed partial class VersionManagementExperienceTests
             UpdateCatalogVersionSnapshot package,
             CancellationToken cancellationToken)
         {
-            return ValueTask.FromResult(verifyPackages
+            return ValueTask.FromResult(verificationResult ?? (verifyPackages
                 ? new ManagedPackageVerificationResult(
                     new(package.Version, package.Identity, package.ReleaseNotes),
                     ManagedVersionInstallIssue.None)
                 : new ManagedPackageVerificationResult(
                     Candidate: null,
-                    ManagedVersionInstallIssue.PackageMismatch));
+                    ManagedVersionInstallIssue.PackageMismatch)));
         }
 
         public ValueTask<ManagedVersionInstallResult> InstallAsync(

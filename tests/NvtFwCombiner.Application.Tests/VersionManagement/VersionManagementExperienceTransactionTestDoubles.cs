@@ -63,6 +63,8 @@ public sealed partial class VersionManagementExperienceTests
 
         internal ManagedVersionInstallIssue InstallIssue { get; set; }
 
+        internal ManagedVersionInstallResult? InstallResultOverride { get; set; }
+
         public ValueTask<ManagedPackageVerificationResult> VerifyPackageAsync(
             string sourceRoot,
             UpdateCatalogVersionSnapshot package,
@@ -80,6 +82,10 @@ public sealed partial class VersionManagementExperienceTests
             CancellationToken cancellationToken)
         {
             InstallCalls++;
+            if (InstallResultOverride is { } result)
+            {
+                return ValueTask.FromResult(result);
+            }
             if (InstallIssue != ManagedVersionInstallIssue.None)
             {
                 return ValueTask.FromResult(new ManagedVersionInstallResult(

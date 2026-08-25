@@ -284,13 +284,24 @@ public sealed class ManagedActivationCoordinator
         ManagedAppVersion version,
         CancellationToken cancellationToken)
     {
+        ManagedVersionAdmission? admission = state.Admissions.SingleOrDefault(
+            candidate => candidate.Version == version);
+        if (admission is null)
+        {
+            return false;
+        }
         ManagedVersionInventory inventory = await _repository.InventoryAsync(
             _managedRoot,
             state.Admissions,
             state.ActiveVersion,
             state.LastKnownGoodVersion,
-            failedActivationVersion: null,
+            state.FailedActivationVersion,
             cancellationToken).ConfigureAwait(false);
-        return inventory.Find(version)?.Integrity == ManagedVersionIntegrity.Healthy;
+        return inventory.Find(version) is
+        {
+            AdmissionState: ManagedVersionAdmissionState.Admitted,
+            Integrity: ManagedVersionIntegrity.Healthy,
+            ObservedAdmission: { } observed,
+        } && observed == admission;
     }
 }

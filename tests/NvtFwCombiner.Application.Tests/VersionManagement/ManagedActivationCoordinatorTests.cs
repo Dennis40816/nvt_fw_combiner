@@ -615,14 +615,21 @@ public sealed partial class ManagedActivationCoordinatorTests
         {
             return ValueTask.FromResult(ManagedVersionInventory.Create(admissions.Select(admission =>
             {
-                bool damaged = _damaged.Contains(admission.Version);
+                bool failedActivation = failedActivationVersion == admission.Version;
+                bool damaged = failedActivation || _damaged.Contains(admission.Version);
                 return new InstalledVersionSnapshot(
                     admission.Version,
                     admission.AdmissionIdentity,
                     damaged ? ManagedVersionIntegrity.Damaged : ManagedVersionIntegrity.Healthy,
-                    damaged ? ManagedVersionDamageReason.ContentMismatch : null,
+                    failedActivation
+                        ? ManagedVersionDamageReason.FailedActivation
+                        : damaged
+                            ? ManagedVersionDamageReason.ContentMismatch
+                            : null,
                     activeVersion == admission.Version,
-                    lastKnownGoodVersion == admission.Version);
+                    lastKnownGoodVersion == admission.Version,
+                    ManagedVersionAdmissionState.Admitted,
+                    admission);
             })));
         }
 
@@ -635,4 +642,5 @@ public sealed partial class ManagedActivationCoordinatorTests
             throw new NotSupportedException();
         }
     }
+
 }

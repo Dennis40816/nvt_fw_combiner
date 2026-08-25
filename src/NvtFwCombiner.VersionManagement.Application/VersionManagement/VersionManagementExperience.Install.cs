@@ -102,25 +102,23 @@ public sealed partial class VersionManagementExperience
                 sourceRoot,
                 package,
                 cancellationToken).ConfigureAwait(false);
-            if (result.Admission is null || result.Admission != expectedAdmission)
+            if (!result.IsSuccess || result.Admission != expectedAdmission)
             {
-                VersionManagerState cleared = state.WithPendingMutation(null);
-                if (!await TrySaveAsync(cleared, cancellationToken).ConfigureAwait(false))
-                {
-                    ManagedVersionInventory pendingInventory = await InventoryAsync(
-                        state,
-                        cancellationToken).ConfigureAwait(false);
-                    _current = current with { State = state, Inventory = pendingInventory };
-                    return new(
-                        new(null, ManagedVersionInstallIssue.StateUnavailable, WasAlreadyInstalled: false),
-                        _current);
-                }
-                state = cleared;
+                state = await ReconcilePendingMutationAsync(
+                    state,
+                    cancellationToken).ConfigureAwait(false);
                 ManagedVersionInventory failedInventory = await InventoryAsync(
                     state,
                     cancellationToken).ConfigureAwait(false);
                 _current = current with { State = state, Inventory = failedInventory };
-                return new(result, _current);
+                ManagedVersionInstallIssue issue = state.PendingMutation is not null
+                    ? ManagedVersionInstallIssue.StateUnavailable
+                    : result.Issue == ManagedVersionInstallIssue.None
+                        ? ManagedVersionInstallIssue.InvalidPayload
+                        : result.Issue;
+                return new(
+                    new(null, issue, WasAlreadyInstalled: false),
+                    _current);
             }
 
             state = CommitInstall(state, expectedAdmission);
