@@ -1,5 +1,25 @@
 namespace NvtFwCombiner.Application.VersionManagement;
 
+/// <summary>Single Application owner for normalized managed-root state identity.</summary>
+internal static class ManagedRootPathIdentity
+{
+    internal static string Normalize(string managedRoot)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(managedRoot);
+        return Path.TrimEndingDirectorySeparator(Path.GetFullPath(managedRoot));
+    }
+
+    internal static bool Equals(string? storedIdentity, string currentManagedRoot)
+    {
+        return storedIdentity is not null &&
+               Comparer.Equals(storedIdentity, Normalize(currentManagedRoot));
+    }
+
+    private static StringComparer Comparer => OperatingSystem.IsWindows()
+        ? StringComparer.OrdinalIgnoreCase
+        : StringComparer.Ordinal;
+}
+
 /// <summary>Durable phase of one launcher-supervised activation transaction.</summary>
 public enum VersionActivationPhase
 {
@@ -160,7 +180,7 @@ public sealed class VersionManagerState
 
         Array.Sort(installed, static (left, right) => right.Version.CompareTo(left.Version));
         return new(
-            NormalizeManagedRootIdentity(managedRootIdentity),
+            managedRootIdentity is null ? null : ManagedRootPathIdentity.Normalize(managedRootIdentity),
             string.IsNullOrWhiteSpace(updateSource) ? null : updateSource,
             activeVersion,
             lastKnownGoodVersion,
@@ -192,25 +212,8 @@ public sealed class VersionManagerState
     /// <summary>Checks that this durable state belongs to the exact current managed root.</summary>
     internal bool IsBoundToManagedRoot(string managedRoot)
     {
-        return ManagedRootIdentity is not null &&
-               ManagedRootIdentityComparer.Equals(
-                   ManagedRootIdentity,
-                   NormalizeManagedRootIdentity(managedRoot));
+        return ManagedRootPathIdentity.Equals(ManagedRootIdentity, managedRoot);
     }
-
-    private static string? NormalizeManagedRootIdentity(string? managedRoot)
-    {
-        if (managedRoot is null)
-        {
-            return null;
-        }
-        ArgumentException.ThrowIfNullOrWhiteSpace(managedRoot);
-        return Path.TrimEndingDirectorySeparator(Path.GetFullPath(managedRoot));
-    }
-
-    private static StringComparer ManagedRootIdentityComparer => OperatingSystem.IsWindows()
-        ? StringComparer.OrdinalIgnoreCase
-        : StringComparer.Ordinal;
 
     private static bool IsLowerSha256(string? value)
     {

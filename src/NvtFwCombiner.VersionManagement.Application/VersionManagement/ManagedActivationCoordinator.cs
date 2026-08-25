@@ -125,7 +125,7 @@ public sealed class ManagedActivationCoordinator
         TimeSpan? readyDeadline = null)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(managedRoot);
-        _managedRoot = Path.TrimEndingDirectorySeparator(Path.GetFullPath(managedRoot));
+        _managedRoot = ManagedRootPathIdentity.Normalize(managedRoot);
         _stateStore = stateStore ?? throw new ArgumentNullException(nameof(stateStore));
         _repository = repository ?? throw new ArgumentNullException(nameof(repository));
         _process = process ?? throw new ArgumentNullException(nameof(process));

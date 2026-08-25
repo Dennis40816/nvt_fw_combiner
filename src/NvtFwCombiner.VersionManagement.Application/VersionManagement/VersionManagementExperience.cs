@@ -153,7 +153,7 @@ public sealed partial class VersionManagementExperience : IVersionManagementExpe
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(managedRoot);
         _currentAppVersion = currentAppVersion;
-        _managedRoot = Path.TrimEndingDirectorySeparator(Path.GetFullPath(managedRoot));
+        _managedRoot = ManagedRootPathIdentity.Normalize(managedRoot);
         _stateStore = stateStore ?? throw new ArgumentNullException(nameof(stateStore));
         _catalogSource = catalogSource ?? throw new ArgumentNullException(nameof(catalogSource));
         _repository = repository ?? throw new ArgumentNullException(nameof(repository));

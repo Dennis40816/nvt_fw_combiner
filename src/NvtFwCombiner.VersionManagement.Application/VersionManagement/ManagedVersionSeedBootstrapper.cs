@@ -38,7 +38,7 @@ public sealed class ManagedVersionSeedBootstrapper
         IManagedVersionRepository repository)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(managedRoot);
-        _managedRoot = Path.TrimEndingDirectorySeparator(Path.GetFullPath(managedRoot));
+        _managedRoot = ManagedRootPathIdentity.Normalize(managedRoot);
         _destinationStateStore = destinationStateStore ??
             throw new ArgumentNullException(nameof(destinationStateStore));
         _seedStateStore = seedStateStore ?? throw new ArgumentNullException(nameof(seedStateStore));
