@@ -35,7 +35,7 @@ internal sealed partial class WorkflowSessionPresentationViewModel : ObservableO
         _showToast = showToast ?? throw new ArgumentNullException(nameof(showToast));
         _recordActivity = recordActivity ?? throw new ArgumentNullException(nameof(recordActivity));
         _stateBindings = stateBindings ?? throw new ArgumentNullException(nameof(stateBindings));
-        WorkflowContextSetup = new WorkflowContextSetupViewModel(_compositionServices);
+        WorkflowContextSetup = new WorkflowContextSetupViewModel();
         ConfirmWorkflowContextCommand = new RelayCommand(ConfirmWorkflowContext);
         CancelWorkflowContextCommand = new RelayCommand(CancelWorkflowContext);
         AcceptFirmwareIcMismatchCommand = new RelayCommand(AcceptFirmwareIcMismatch);

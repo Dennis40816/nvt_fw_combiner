@@ -110,6 +110,21 @@ internal static class PresentationTestHost
         return CreateServices(applicationVersion, static authoring => authoring);
     }
 
+    internal static PresentationHostServices CreateServicesWithCatalogPolicy(
+        string applicationVersion,
+        Func<CanonicalCapabilityPolicySnapshot> loadPolicy)
+    {
+        ArgumentNullException.ThrowIfNull(loadPolicy);
+        var externalEnvironment = new ExternalProcessorEnvironmentLoader(ExternalEnvironment.Value);
+        CompositionHostServices host = CompositionHostServices.Create(
+            externalEnvironment,
+            loadPolicy);
+        return CreateServices(
+            applicationVersion,
+            host,
+            static authoring => authoring);
+    }
+
     internal static PresentationHostServices CreateServices(
         string applicationVersion,
         Application.VersionManagement.IVersionManagementExperience versionManagement,
@@ -158,6 +173,14 @@ internal static class PresentationTestHost
                 externalEnvironment,
                 RetainedDpReplaceRegressionPolicy.Load)
             : CompositionHostServices.Create(externalEnvironment);
+        return CreateServices(applicationVersion, host, generalAuthoringDecorator);
+    }
+
+    private static PresentationHostServices CreateServices(
+        string applicationVersion,
+        CompositionHostServices host,
+        Func<IGeneralAuthoring, IGeneralAuthoring> generalAuthoringDecorator)
+    {
         return new PresentationHostServices(
             new PresentationCompositionServices(
                 host.CompositionCapabilityExperience,

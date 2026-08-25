@@ -18,6 +18,9 @@ public interface ICompiledInputSlotInspector<out TBatch>
 /// <summary>Read-only capability and workflow disclosure consumed by UI and CLI surfaces.</summary>
 public interface ICompositionCapabilityExperience
 {
+    /// <summary>Gets one immutable selector projection from the current publication.</summary>
+    CapabilitySelectorPublication GetSelectorPublication();
+
     /// <summary>Default IC selected before explicit user input.</summary>
     string DefaultIcId { get; }
 

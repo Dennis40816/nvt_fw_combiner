@@ -9,7 +9,9 @@ internal sealed partial class ReplacePresentationViewModel
 {
     public string ReplaceMemorySummary => Text.GetReplaceMemorySummary(SelectedReplaceMode);
 
-    public string ReplaceReadinessStatus => Inspection.IsRunning
+    public string ReplaceReadinessStatus => !HasSelectedIc
+        ? Text.NotAvailableLabel
+        : Inspection.IsRunning
         ? Text.FirmwareInspectionLoadingStatus
         : IsSelectedReplaceModeSupported
             ? Text.GetReplaceReadinessStatus(SelectedReplaceMode, CanRunReplace())
@@ -180,6 +182,15 @@ internal sealed partial class ReplacePresentationViewModel
 
     private void RefreshDpReplaceInputSelectionReadiness()
     {
+        if (!HasSelectedIc)
+        {
+            foreach (FirmwareSlotViewModel slot in ReplaceSlots)
+            {
+                slot.ClearSelectionReadiness();
+            }
+            return;
+        }
+
         FirmwareSlotViewModel[] selected = [.. CurrentReplaceInputSlots().DistinctBy(ReplaceInputId)];
         ActiveSessionSnapshot? session = _dpReplaceSession.CurrentSnapshot;
         bool currentSelection = session is not null &&

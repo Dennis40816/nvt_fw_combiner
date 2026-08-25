@@ -49,36 +49,9 @@ internal sealed partial class CanonicalCapabilityCompilerAdapter
         string icId)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(icId);
-        string normalizedIcId = IcIdentifier.Normalize(icId);
-        CanonicalCapabilityCatalogSnapshot snapshot = _catalog.GetCurrentSnapshot();
-        CapabilityTopologyChoice[] choices =
-        [
-            .. snapshot.Capabilities
-                .Where(capability =>
-                    capability.Authoring.Value ==
-                        CapabilityAuthoringAvailability.Available &&
-                    StringComparer.Ordinal.Equals(
-                        capability.Identity.IcId,
-                        normalizedIcId) &&
-                    StringComparer.Ordinal.Equals(
-                        capability.Identity.WorkflowId,
-                        ExperienceIds.AbMerge))
-                .Select(static capability =>
-                    capability.CompiledComposition.V2Details.Provenance.Context)
-                .OfType<MapBoundV2CompilationContext>()
-                .Select(static context => context.ResolvedMap.TopologySelection)
-                .Where(static topology => topology is not null)
-                .Select(static topology => topology!)
-                .GroupBy(static topology => topology.ChipCount == 1
-                    ? TopologyRequirement.RequireSingleChip().CanonicalId
-                    : TopologyRequirement.RequireCascade().CanonicalId,
-                    StringComparer.Ordinal)
-                .Select(static group => new CapabilityTopologyChoice(
-                    group.Key,
-                    group.OrderBy(static topology => topology.ChipCount).First()))
-                .OrderBy(static choice => choice.Selection.ChipCount),
-        ];
-        return Array.AsReadOnly(choices);
+        return _catalog.GetCurrentSnapshot()
+            .SelectorPublication
+            .GetAbMergeTopologyChoices(icId);
     }
 
     internal TopologySelection? ResolveAbMergeTopologySelection(
@@ -98,5 +71,47 @@ internal sealed partial class CanonicalCapabilityCompilerAdapter
         return choice?.Selection ?? throw new ArgumentException(
             "The AB Merge topology token is not declared by the selected IC's compiled capability.",
             nameof(token));
+    }
+}
+
+/// <summary>
+/// Sole Application projection from accepted compiled AB topology to selector
+/// choices. Both the selector publication and compiler disclosure consume it.
+/// </summary>
+internal static class AbMergeTopologyChoiceProjection
+{
+    internal static IReadOnlyList<CapabilityTopologyChoice> Project(
+        IReadOnlyList<ResolvedCapability> capabilities,
+        string icId)
+    {
+        ArgumentNullException.ThrowIfNull(capabilities);
+        string normalizedIcId = IcIdentifier.Normalize(icId);
+        CapabilityTopologyChoice[] choices =
+        [
+            .. capabilities
+                .Where(capability =>
+                    capability.Authoring.Value ==
+                        CapabilityAuthoringAvailability.Available &&
+                    StringComparer.Ordinal.Equals(
+                        capability.Identity.IcId,
+                        normalizedIcId) &&
+                    StringComparer.Ordinal.Equals(
+                        capability.Identity.WorkflowId,
+                        ExperienceIds.AbMerge))
+                .Select(CapabilityPublicationCoherence
+                    .GetAcceptedAbMergeTopologySelection)
+                .Where(static topology => topology is not null)
+                .Select(static topology => topology!)
+                .GroupBy(static topology => topology.ChipCount == 1
+                    ? TopologyRequirement.RequireSingleChip().CanonicalId
+                    : TopologyRequirement.RequireCascade().CanonicalId,
+                    StringComparer.Ordinal)
+                .Select(static group => new CapabilityTopologyChoice(
+                    group.Key,
+                    group.OrderBy(static topology => topology.ChipCount).First()))
+                .OrderBy(static choice => choice.Selection.ChipCount)
+                .ThenBy(static choice => choice.Token, StringComparer.Ordinal),
+        ];
+        return Array.AsReadOnly(choices);
     }
 }

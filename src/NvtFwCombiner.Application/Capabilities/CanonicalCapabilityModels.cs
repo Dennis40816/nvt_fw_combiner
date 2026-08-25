@@ -356,6 +356,11 @@ public sealed partial record CanonicalCapabilityCatalogSnapshot
             DynamicRoutes.ToDictionary(
                 static route => route.Identity.RouteId,
                 StringComparer.Ordinal));
+        SelectorPublication = CapabilitySelectorPublication.Create(
+            resolutionToken,
+            Capabilities,
+            DynamicRoutes,
+            Disclosure);
         CertificationIssues = Array.AsReadOnly(
         [
             .. Capabilities
@@ -393,6 +398,9 @@ public sealed partial record CanonicalCapabilityCatalogSnapshot
 
     /// <summary>Resolved exact routes in stable identity order.</summary>
     public IReadOnlyList<ResolvedCapability> Capabilities { get; }
+
+    /// <summary>Selector facts eagerly bound to this exact publication.</summary>
+    public CapabilitySelectorPublication SelectorPublication { get; }
 
     /// <summary>Certification inconsistencies that do not rewrite Build admission.</summary>
     public IReadOnlyList<CapabilityCatalogIssue> CertificationIssues { get; }

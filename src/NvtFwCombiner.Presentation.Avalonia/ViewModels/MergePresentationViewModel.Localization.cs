@@ -31,7 +31,7 @@ internal sealed partial class MergePresentationViewModel
 
         if (IsNormalMergeModeSelected)
         {
-            RefreshStandardMergeAuthoringState();
+            RelocalizeStandardMergeReadiness();
         }
         foreach (CompiledAuthoringInputBinding input in _abMergeBindingsByAddressSpace.Values)
         {

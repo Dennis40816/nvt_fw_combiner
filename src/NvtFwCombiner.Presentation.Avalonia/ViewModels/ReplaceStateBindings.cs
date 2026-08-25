@@ -6,6 +6,7 @@ internal sealed record ReplaceStateBindings(
     Func<ShellTextResources> Text,
     Func<string> SelectedIc,
     Func<string> SelectedNumber,
+    Func<string, string, bool> IsWorkflowAuthorable,
     Func<bool> IsRunInProgress,
     Func<bool> IsGlobalBuildBlocked,
     Func<bool> IsWorkflowLoaded,

@@ -8,6 +8,14 @@ internal sealed partial class MergePresentationViewModel
 {
     internal void RefreshMergeSlotRequirements()
     {
+        if (!HasSelectedIc)
+        {
+            MergeSlots.Clear();
+            AbMergeTopologyChoices.Clear();
+            _abMergeTopologyChoicesIcId = null;
+            return;
+        }
+
         if (IsAbCodeMergeModeSelected)
         {
             RefreshAbMergeSlots();
@@ -87,7 +95,7 @@ internal sealed partial class MergePresentationViewModel
     private void RefreshAbMergeTopologyChoices()
     {
         IReadOnlyList<CapabilityTopologyChoice> choices =
-            _compositionServices.AbMergeAuthoring.GetTopologyChoices(SelectedIc);
+            _stateBindings.GetAbMergeTopologyChoices(SelectedIc);
         AbMergeTopologyChoices.Clear();
         _abMergeTopologyChoicesIcId = SelectedIc;
         foreach (CapabilityTopologyChoice choice in choices)
@@ -109,6 +117,11 @@ internal sealed partial class MergePresentationViewModel
 
     private string GetRequiredStandardMergeSlotLabels()
     {
+        if (!HasSelectedIc)
+        {
+            return "none";
+        }
+
         IReadOnlyList<string> required =
             _compositionServices.StandardMergeAuthoring.GetRequiredAddressSpaces(SelectedIc);
         return required.Count == 0
@@ -165,7 +178,8 @@ internal sealed partial class MergePresentationViewModel
 
     internal bool CanRunMerge()
     {
-        return !_stateBindings.IsGlobalBuildBlocked() &&
+        return HasSelectedIc &&
+            !_stateBindings.IsGlobalBuildBlocked() &&
             !_stateBindings.IsRunInProgress() &&
             !Inspection.IsRunning &&
             SelectedMergeMode switch

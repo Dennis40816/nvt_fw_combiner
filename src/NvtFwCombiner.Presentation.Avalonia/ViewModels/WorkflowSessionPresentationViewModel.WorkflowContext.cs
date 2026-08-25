@@ -1,5 +1,7 @@
+using System.Collections.ObjectModel;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using NvtFwCombiner.Application.Capabilities;
 using NvtFwCombiner.Domain.Composition;
 
 namespace NvtFwCombiner.Presentation.Avalonia.ViewModels;
@@ -31,16 +33,21 @@ internal sealed partial class WorkflowSessionPresentationViewModel
     internal void BeginWorkflowContext(
         ShellPage page,
         string mode,
-        bool showNumber,
-        IReadOnlyList<string>? icChoices = null)
+        bool showNumber)
     {
-        icChoices ??= string.Equals(mode, ExperienceIds.AbMerge, StringComparison.Ordinal)
-            ? [.. _compositionServices.Capabilities.GetAbMergeProfileSummaries()
-                .Select(static profile => profile.IcId)]
-            : null;
+        if (_selectorPublication is not { } publication || publication.IcIds.Count == 0)
+        {
+            return;
+        }
+
+        IReadOnlyList<string> icChoices = GetPublishedWorkflowIcChoices(mode);
+        if (icChoices.Count == 0)
+        {
+            return;
+        }
         _workflowContextTarget = new WorkflowContextTarget(page, mode, showNumber);
         (string draftIc, string draftNumber) = GetWorkflowPageContext(page);
-        WorkflowContextSetup.Configure(draftIc, draftNumber, showNumber, icChoices);
+        WorkflowContextSetup.Configure(publication, draftIc, draftNumber, showNumber, icChoices);
         WorkflowContextDetail = page == ShellPage.Replace
             ? Text.WorkflowContextReplaceDetail
             : Text.WorkflowContextMergeDetail;
@@ -79,6 +86,38 @@ internal sealed partial class WorkflowSessionPresentationViewModel
         IsWorkflowContextModalOpen = false;
     }
 
+    private void InvalidateWorkflowContextDraft()
+    {
+        _workflowContextTarget = null;
+        IsWorkflowContextModalOpen = false;
+        WorkflowContextSetup.Clear();
+    }
+
+    private void ReconcileOpenWorkflowContext(CapabilitySelectorPublication publication)
+    {
+        if (_workflowContextTarget is not { } target)
+        {
+            return;
+        }
+
+        ReadOnlyCollection<string> choices = GetPublishedWorkflowIcChoices(
+            publication,
+            target.Mode);
+        if (choices.Count == 0)
+        {
+            InvalidateWorkflowContextDraft();
+            return;
+        }
+
+        (string draftIc, string draftNumber) = GetWorkflowPageContext(target.Page);
+        WorkflowContextSetup.Configure(
+            publication,
+            draftIc,
+            draftNumber,
+            target.ShowNumber,
+            choices);
+    }
+
     internal WorkflowInspectionOwner? ActiveWorkflowOwner => _stateBindings.SelectedPage() switch
     {
         ShellPage.Merge => WorkflowInspectionOwner.Merge,
@@ -87,10 +126,11 @@ internal sealed partial class WorkflowSessionPresentationViewModel
         _ => throw new InvalidOperationException("Unknown shell page."),
     };
 
-    internal void InitializeWorkflowPageContexts(string defaultIc)
+    internal void InitializeWorkflowPageContexts(string? defaultIc)
     {
-        _mergeWorkflowContextIc = defaultIc;
-        _replaceWorkflowContextIc = defaultIc;
+        string resolvedIc = ResolveWorkflowContextIc(defaultIc);
+        _mergeWorkflowContextIc = resolvedIc;
+        _replaceWorkflowContextIc = resolvedIc;
         _mergeWorkflowContextNumber = IcNumberSelectionTokens.SingleChip;
         _replaceWorkflowContextNumber = IcNumberSelectionTokens.SingleChip;
         _mergeWorkflowContextNeedsRefresh = false;
@@ -113,9 +153,14 @@ internal sealed partial class WorkflowSessionPresentationViewModel
         }
 
         (string ic, string number) = GetWorkflowPageContext(page);
+        ic = ResolveWorkflowContextIc(ic);
         _isActivatingWorkflowPageContext = true;
         try
         {
+            // SelectedPage already names the destination. Publish its IC list
+            // before restoring SelectedIc so a TwoWay ComboBox cannot reject
+            // the destination value against the previous page's filtered list.
+            OnPropertyChanged(nameof(IcChoices));
             SelectedIc = ic;
             SelectedNumber = number;
             RefreshNumberChoicesForSelectedIc();
@@ -134,15 +179,6 @@ internal sealed partial class WorkflowSessionPresentationViewModel
             return;
         }
 
-        if (page == ShellPage.Merge)
-        {
-            _mergeWorkflowContextNeedsRefresh = false;
-        }
-        else
-        {
-            _replaceWorkflowContextNeedsRefresh = false;
-        }
-
         WorkflowInspectionOwner owner = page == ShellPage.Merge
             ? WorkflowInspectionOwner.Merge
             : WorkflowInspectionOwner.Replace;
@@ -158,6 +194,15 @@ internal sealed partial class WorkflowSessionPresentationViewModel
             owner,
             resetRunResult: true,
             preserveReplaceSlotFiles: owner == WorkflowInspectionOwner.Replace);
+        RefreshRetainedFirmwareInspections(owner);
+        if (page == ShellPage.Merge)
+        {
+            _mergeWorkflowContextNeedsRefresh = false;
+        }
+        else
+        {
+            _replaceWorkflowContextNeedsRefresh = false;
+        }
     }
 
     internal void StoreWorkflowPageContext(
@@ -165,6 +210,7 @@ internal sealed partial class WorkflowSessionPresentationViewModel
         string ic,
         string number)
     {
+        ic = ResolveWorkflowContextIc(ic);
         if (owner is null or WorkflowInspectionOwner.Merge)
         {
             _mergeWorkflowContextIc = ic;
@@ -211,6 +257,7 @@ internal sealed partial class WorkflowSessionPresentationViewModel
 
     private void SetWorkflowPageContext(ShellPage page, string ic, string number)
     {
+        ic = ResolveWorkflowContextIc(ic);
         switch (page)
         {
             case ShellPage.Merge:
@@ -233,6 +280,15 @@ internal sealed partial class WorkflowSessionPresentationViewModel
             default:
                 throw new InvalidOperationException("Unknown shell page.");
         }
+    }
+
+    private string ResolveWorkflowContextIc(string? candidate)
+    {
+        IReadOnlyList<string> choices = _selectorPublication?.IcIds ?? [];
+        return !string.IsNullOrWhiteSpace(candidate) &&
+            choices.Contains(candidate, StringComparer.Ordinal)
+                ? candidate
+                : _selectorPublication?.DefaultIcId ?? string.Empty;
     }
 
     private sealed record WorkflowContextTarget(ShellPage Page, string Mode, bool ShowNumber);

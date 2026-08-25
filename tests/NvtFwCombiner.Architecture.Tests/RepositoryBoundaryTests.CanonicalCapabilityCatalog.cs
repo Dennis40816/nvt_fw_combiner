@@ -118,6 +118,113 @@ public sealed partial class RepositoryBoundaryTests
         Assert.DoesNotContain("CompositionOperation.", applicationCapabilitySources, StringComparison.Ordinal);
     }
 
+    /// <summary>Selector disclosure is one token-bound Application child and never a second firmware model.</summary>
+    [Fact]
+    public void CapabilitySelectorPublicationIsApplicationOwnedImmutableAndFirmwareNeutral()
+    {
+        string selector = ReadText(
+            "src/NvtFwCombiner.Application/Capabilities/CapabilitySelectorPublication.cs");
+        string models = ReadText(
+            "src/NvtFwCombiner.Application/Capabilities/CanonicalCapabilityModels.cs");
+        string experience = ReadText(
+            "src/NvtFwCombiner.Application/Capabilities/CanonicalCapabilityExperience.cs");
+        string abCompiler = ReadText(
+            "src/NvtFwCombiner.Application/Capabilities/CanonicalCapabilityCompiler.AbMerge.cs");
+        string deviceContext = ReadText(
+            "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/WorkflowSessionPresentationViewModel.DeviceContext.cs");
+        string workflowSetup = ReadText(
+            "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/WorkflowContextSetupViewModel.cs");
+        string mergeState = ReadText(
+            "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/MergePresentationViewModel.State.cs");
+        string mergeRequirements = ReadText(
+            "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/MergePresentationViewModel.Requirements.cs");
+        string replaceState = ReadText(
+            "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/ReplacePresentationViewModel.State.cs");
+        string replaceGeneral = ReadText(
+            "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/ReplacePresentationViewModel.General.cs");
+        string selectorConsumers = string.Join(
+            Environment.NewLine,
+            deviceContext,
+            mergeState,
+            mergeRequirements,
+            replaceState,
+            replaceGeneral);
+        string presentation = ReadPresentationSources();
+        string production = ReadProductionSources();
+
+        Assert.Contains("public sealed class CapabilitySelectorPublication", selector, StringComparison.Ordinal);
+        Assert.Contains("ResolutionToken", selector, StringComparison.Ordinal);
+        Assert.Contains("string? DefaultIcId", selector, StringComparison.Ordinal);
+        Assert.Contains("SelectorPublication = CapabilitySelectorPublication.Create", models, StringComparison.Ordinal);
+        Assert.Contains(
+            "public CapabilitySelectorPublication SelectorPublication { get; }",
+            models,
+            StringComparison.Ordinal);
+        Assert.Contains("GetSelectorPublication()", experience, StringComparison.Ordinal);
+        Assert.Contains("AbMergeTopologyChoiceProjection.Project", selector, StringComparison.Ordinal);
+        Assert.Contains(".SelectorPublication", abCompiler, StringComparison.Ordinal);
+        Assert.Contains(".GetAbMergeTopologyChoices(icId)", abCompiler, StringComparison.Ordinal);
+        Assert.DoesNotContain("CompiledComposition", selector, StringComparison.Ordinal);
+        Assert.DoesNotContain("ByteRange", selector, StringComparison.Ordinal);
+        Assert.DoesNotContain("CompositionOperation", selector, StringComparison.Ordinal);
+        Assert.DoesNotContain("NT519", selector, StringComparison.OrdinalIgnoreCase);
+        Assert.DoesNotContain("Lazy<CapabilitySelectorPublication", selector, StringComparison.Ordinal);
+        Assert.DoesNotContain("Lazy<CapabilitySelectorPublication", deviceContext, StringComparison.Ordinal);
+        Assert.DoesNotContain("GetAbMergeProfileSummaries", deviceContext, StringComparison.Ordinal);
+        Assert.DoesNotContain("AbMergeAuthoring.GetTopologyChoices", deviceContext, StringComparison.Ordinal);
+        Assert.DoesNotContain("AbMergeAuthoring.IsAvailable", deviceContext, StringComparison.Ordinal);
+        Assert.DoesNotContain("Capabilities.GetIcIds", workflowSetup, StringComparison.Ordinal);
+        Assert.Equal(1, CountOccurrences(production, "CapabilitySelectorPublication.Create("));
+        Assert.Equal(1, CountOccurrences(production, "AbMergeTopologyChoiceProjection.Project("));
+        Assert.DoesNotContain("AbMergeAuthoring.IsAvailable", selectorConsumers, StringComparison.Ordinal);
+        Assert.DoesNotContain("AbMergeAuthoring.GetTopologyChoices", selectorConsumers, StringComparison.Ordinal);
+        Assert.DoesNotContain("StandardMergeAuthoring.IsSupported", selectorConsumers, StringComparison.Ordinal);
+        Assert.DoesNotContain("Capabilities.IsReplaceWorkflowAvailable", selectorConsumers, StringComparison.Ordinal);
+        Assert.DoesNotContain("new CapabilityWorkflowReadiness", presentation, StringComparison.Ordinal);
+        Assert.DoesNotContain("CapabilityEvidenceStatus.", replaceState, StringComparison.Ordinal);
+        Assert.Contains(
+            "CapabilityWorkflowReadiness? SelectedReplaceWorkflowReadiness",
+            replaceState,
+            StringComparison.Ordinal);
+        int stageStart = mergeState.IndexOf(
+            "internal bool StageStandardMergeForCatalogReconciliation()",
+            StringComparison.Ordinal);
+        int publishStart = mergeState.IndexOf(
+            "internal void PublishCatalogReconciledMergeMode()",
+            StringComparison.Ordinal);
+        Assert.True(stageStart >= 0 && publishStart > stageStart);
+        string stagedFallback = mergeState[stageStart..publishStart];
+        Assert.DoesNotContain("RefreshMergeSlotRequirements", stagedFallback, StringComparison.Ordinal);
+        Assert.DoesNotContain("RefreshMergeMemoryMapState", stagedFallback, StringComparison.Ordinal);
+        Assert.DoesNotContain("RefreshSelectedFirmwareInspections", stagedFallback, StringComparison.Ordinal);
+        Assert.DoesNotContain("_compositionServices", stagedFallback, StringComparison.Ordinal);
+        Assert.DoesNotContain("NotifyContextChanged", stagedFallback, StringComparison.Ordinal);
+        Assert.True(
+            deviceContext.IndexOf(
+                "PublishActiveSelectorState(activeIc, activeNumber);",
+                StringComparison.Ordinal) <
+            deviceContext.IndexOf(
+                "_merge.PublishCatalogReconciledMergeMode();",
+                StringComparison.Ordinal));
+        Assert.Contains(
+            "_selectorPublication.ResolutionToken == publication.ResolutionToken",
+            deviceContext,
+            StringComparison.Ordinal);
+        int zeroStart = deviceContext.IndexOf(
+            "if (publication.IcIds.Count == 0)",
+            StringComparison.Ordinal);
+        int nonZeroStart = deviceContext.IndexOf(
+            "string mergeIc = ResolveWorkflowContextIc",
+            zeroStart,
+            StringComparison.Ordinal);
+        Assert.True(zeroStart >= 0 && nonZeroStart > zeroStart);
+        string zeroAuthorableBranch = deviceContext[zeroStart..nonZeroStart];
+        Assert.Contains("InvalidateWorkflowContextDraft();", zeroAuthorableBranch, StringComparison.Ordinal);
+        Assert.Contains("PublishActiveSelectorState(string.Empty", zeroAuthorableBranch, StringComparison.Ordinal);
+        Assert.Contains("return;", zeroAuthorableBranch, StringComparison.Ordinal);
+        Assert.DoesNotContain("RefreshContextState", zeroAuthorableBranch, StringComparison.Ordinal);
+    }
+
     /// <summary>Application joins reviewed policy to compiler results without a Bootstrap materialization source.</summary>
     [Fact]
     public void CanonicalRouteUsesIcNeutralOneWayInventoryAdapter()
@@ -155,7 +262,7 @@ public sealed partial class RepositoryBoundaryTests
         Assert.DoesNotContain("IsCanonicalStandardMergePilot", routing, StringComparison.Ordinal);
         Assert.DoesNotContain("IsCanonicalStandardMergePilot", canonicalRouting, StringComparison.Ordinal);
         Assert.Contains("services.StandardMergeAuthoring.PrepareSession(", cli, StringComparison.Ordinal);
-        Assert.Contains("_compositionServices.StandardMergeAuthoring.IsSupported", presentation, StringComparison.Ordinal);
+        Assert.DoesNotContain("_compositionServices.StandardMergeAuthoring.IsSupported", presentation, StringComparison.Ordinal);
         Assert.DoesNotContain("CanonicalAuthoringAdapter", presentation, StringComparison.Ordinal);
         Assert.DoesNotContain("new ByteRange(", source, StringComparison.Ordinal);
         Assert.DoesNotContain("CompositionOperation.", source, StringComparison.Ordinal);

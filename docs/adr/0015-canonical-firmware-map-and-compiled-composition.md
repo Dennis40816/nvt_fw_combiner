@@ -328,17 +328,17 @@ be accepted into the typed session before naming. Bootstrap and client
 path-backed naming projections and workflow-specific auto-name preflights are
 removed without changing displayed or golden names.
 
-Catalog publication has one dependency-inverted chain. Infrastructure loads
-and trust-validates immutable bundle source; Profiles is the only normalizer,
-map/profile semantic resolver, and compiler; Application's
-`CanonicalCapabilityCatalog` is the only publication, reload, cache,
-fixed/dynamic route-resolution, and `ResolutionToken` owner. Narrow ports allow
-the outer loader/compiler implementations to be registered without moving
-orchestration into Bootstrap. Bootstrap performs registration only and retains
-no projection, materialization, fallback lookup, or second cache. UI and CLI
-query the Application snapshot. The migration source and Bootstrap
-`CanonicalCapabilityResolution*`/`CanonicalCapabilityProjection*` graph is
-deleted rather than renamed.
+Catalog publication has one dependency-inverted chain. Infrastructure loads and trust-validates immutable bundle source;
+Profiles is the only normalizer, map/profile semantic resolver, and compiler; Application's `CanonicalCapabilityCatalog`
+is the only publication, reload, cache, fixed/dynamic route-resolution, and `ResolutionToken` owner. Every snapshot eagerly
+constructs one immutable `CapabilitySelectorPublication` before atomic publication. That child carries the identical token
+and solely owns the nullable default IC, globally authorable ICs, per-workflow authorability, per-IC number choices,
+AB-authorable ICs, and compiler-derived AB topology choices. Legacy focused getters may remain only by delegating to it;
+UI and CLI cannot join independent live getters, infer selector facts, or own a second selector cache. A valid publication
+with no authorable route has `DefaultIcId == null` and empty selector collections; authoring clients fail closed before any
+profile-dependent query. Narrow ports register outer loader/compiler implementations without moving orchestration into
+Bootstrap, which retains no projection, materialization, fallback lookup, or second cache. UI and CLI query the Application
+snapshot; the migration `CanonicalCapabilityResolution*`/`CanonicalCapabilityProjection*` graph is deleted, not renamed.
 
 Authoring mutation has one state machine. `AuthoringSessionState` and
 `CompiledAuthoringWorkflowService` own all typed IC, IC Count, slot, draft, and

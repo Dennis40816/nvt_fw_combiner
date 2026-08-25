@@ -33,9 +33,10 @@ internal sealed partial class MainWindowViewModel
 
     private void MessageCenterDiagnosticsChanged(bool catalogPublicationChanged)
     {
-        if (catalogPublicationChanged && WorkflowSession.IsWorkflowLoaded)
+        if (catalogPublicationChanged)
         {
             WorkflowSession.RefreshCanonicalCatalogState();
+            NotifyCatalogWorkflowCommandStateChanged();
         }
 
         PresentationObserver.Invoke(RefreshCommandState);

@@ -2,6 +2,7 @@ using System.Buffers.Binary;
 using System.Security.Cryptography;
 using System.Text.Json;
 using NvtFwCombiner.Application.Authoring;
+using NvtFwCombiner.Application.Capabilities;
 using NvtFwCombiner.Application.FlashMaps;
 using NvtFwCombiner.Domain.Composition;
 using NvtFwCombiner.TestSupport;
@@ -75,10 +76,23 @@ public sealed partial class AbMergeRuntimeAdmissionTests
     [Fact]
     public void TopologyChoicesAreProfileMapOwned()
     {
+        IReadOnlyList<CapabilityTopologyChoice> choices =
+            BootstrapTestHost.Canonical.Compiler.GetAbMergeTopologyChoices("NT51950");
         Assert.Equal(
             ["single", "cascade"],
-            BootstrapTestHost.Canonical.Compiler.GetAbMergeTopologyChoices("NT51950")
-                .Select(static choice => choice.Token));
+            choices.Select(static choice => choice.Token));
+        Assert.Collection(
+            choices,
+            choice =>
+            {
+                Assert.Equal(1, choice.Selection.ChipCount);
+                Assert.Equal("1 IC", choice.DisplayLabel);
+            },
+            choice =>
+            {
+                Assert.Equal(2, choice.Selection.ChipCount);
+                Assert.Equal("2 IC", choice.DisplayLabel);
+            });
         Assert.Empty(BootstrapTestHost.Canonical.Compiler.GetAbMergeTopologyChoices("NT51951"));
         Assert.Empty(BootstrapTestHost.Canonical.Compiler.GetAbMergeTopologyChoices("NT51929"));
     }

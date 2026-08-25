@@ -47,7 +47,10 @@ public sealed partial class RepositoryBoundaryTests
             "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/ReplacePresentationViewModel.Memory.cs"),
             StringComparison.Ordinal);
         Assert.DoesNotContain("RunReplaceAsync", replace, StringComparison.Ordinal);
-        Assert.Contains("_compositionServices.Capabilities.GetIcIds", deviceContext, StringComparison.Ordinal);
+        Assert.Contains("_compositionServices.Capabilities.GetSelectorPublication", deviceContext, StringComparison.Ordinal);
+        Assert.DoesNotContain("_compositionServices.Capabilities.GetIcIds", deviceContext, StringComparison.Ordinal);
+        Assert.DoesNotContain("GetAbMergeProfileSummaries", deviceContext, StringComparison.Ordinal);
+        Assert.DoesNotContain("AbMergeAuthoring.GetTopologyChoices", deviceContext, StringComparison.Ordinal);
         Assert.Contains("_compositionServices.Execution.ExecuteAsync", mergeViewModel, StringComparison.Ordinal);
         Assert.Contains("_compositionServices.Execution.ExecuteAsync", replaceViewModel, StringComparison.Ordinal);
         Assert.DoesNotContain("CanonicalCapabilityProjection", deviceContext, StringComparison.Ordinal);

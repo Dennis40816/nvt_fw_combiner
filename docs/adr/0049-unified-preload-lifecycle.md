@@ -140,6 +140,20 @@ refresh batch. This refinement changes Presentation routing and lifecycle
 ownership only; Application inspection/readiness authority, profiles, ranges,
 firmware bytes, output naming, and evidence remain unchanged.
 
+Catalog apply and direct workflow-page activation form one Presentation
+transaction. Presentation captures one selector publication, repairs retained
+Merge and Replace drafts independently, stages an invalid-mode fallback without
+profile lookup, slot rebuild, readiness projection, or inspection admission,
+publishes selector ItemsSource before SelectedItem, publishes the reconciled
+mode, and then performs at most one active-page rebuild and successor
+inspection. A hidden page may update only its retained typed IC/count draft and
+pending-refresh marker; it cannot borrow or clear the active page's slots, AB
+link state, inspection lifecycle, readiness, plan, paths, or output state. A
+same-token last-known-good update is a no-op. A fresh token invalidates prior
+sessions and inspection projections, and delayed prior-token completion cannot
+publish. A zero-authorable publication clears selector state and disables
+workflow entry without converting catalog success into startup failure.
+
 ### Required and optional stages have different failure policy
 
 The canonical catalog is the only required startup stage. Until its typed
@@ -388,6 +402,12 @@ later growth allowance.
 - Architecture tests reject a second coordinator, feature-result interpretation
   in the lifecycle owner, Bootstrap manifest semantics, Presentation filesystem
   identity probing, and alternate execution paths.
+- Catalog reconciliation tests prove that a same-token last-known-good update
+  retains the verified session with zero additional work; a fresh publication
+  orders ItemsSource, SelectedItem, mode, and one rebuild; a loaded workflow
+  becoming zero-authorable executes no profile-dependent authoring query; and a
+  delayed prior-token inspection or catalog completion cannot overwrite the
+  current publication.
 - Performance evidence compares the exact packaged predecessor and candidate on
   the same controlled machine: first-window handle, usable-after-catalog time,
   optional-preload completion, peak working set/private bytes, and work counts.

@@ -18,7 +18,14 @@ internal sealed partial class ReplacePresentationViewModel
     {
         _dpReplaceSession.InvalidateCanonicalPublication();
         _ctrlRamReplaceSession.InvalidateCanonicalPublication();
+        _generalReplaceSession.InvalidateCanonicalPublication();
         ClearCtrlRamActionReadiness();
+        _generalReplaceAdmission = null;
+        _generalReplaceActionReadiness = null;
+        _generalReplaceDiagnosticPreviewReport = null;
+        InspectionLifecycles[DpReplaceMode].Invalidate();
+        InspectionLifecycles[CtrlRamReplaceMode].Invalidate();
+        InspectionLifecycles[GeneralReplaceMode].Invalidate();
     }
 
     private AuthoringSessionState? CurrentReplaceInputSession => SelectedReplaceMode switch

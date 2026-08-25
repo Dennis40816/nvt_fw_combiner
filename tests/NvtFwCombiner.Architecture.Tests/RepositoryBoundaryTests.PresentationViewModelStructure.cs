@@ -133,7 +133,19 @@ public sealed partial class RepositoryBoundaryTests
         Assert.Contains("OnSelectedIcChanged(value, owner);", deviceContext, StringComparison.Ordinal);
         Assert.Contains("internal void PublishCanonicalCatalogState()", deviceContext, StringComparison.Ordinal);
         Assert.Contains(
-            "_selectedIc = defaultIcId;",
+            "_selectorPublication = publication;",
+            deviceContext,
+            StringComparison.Ordinal);
+        Assert.Contains(
+            "_selectedIc = publication.DefaultIcId ?? string.Empty;",
+            deviceContext,
+            StringComparison.Ordinal);
+        Assert.Contains(
+            "InitializeWorkflowPageContexts(publication.DefaultIcId);",
+            deviceContext,
+            StringComparison.Ordinal);
+        Assert.Contains(
+            "if (publication.IcIds.Count == 0)",
             deviceContext,
             StringComparison.Ordinal);
         Assert.Contains("public partial string SelectedNumber", deviceContext, StringComparison.Ordinal);

@@ -9,12 +9,12 @@ internal static partial class UiCompositionRunner
 {
     /// <summary>Gets grouped IC-number display choices while preserving planner tokens.</summary>
     internal static IReadOnlyList<IcNumberChoiceViewModel> GetNumberSelectionChoices(
-        PresentationCompositionServices services,
+        CapabilitySelectorPublication publication,
         string icId)
     {
-        ArgumentNullException.ThrowIfNull(services);
+        ArgumentNullException.ThrowIfNull(publication);
         IReadOnlyList<CapabilityNumberChoice> canonicalChoices =
-            services.Capabilities.GetNumberSelectionChoices(icId);
+            publication.GetNumberSelectionChoices(icId);
         IReadOnlyList<IcNumberChoiceViewModel> choices =
         [
             .. canonicalChoices

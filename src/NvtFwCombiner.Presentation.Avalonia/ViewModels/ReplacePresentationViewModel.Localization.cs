@@ -8,7 +8,7 @@ internal sealed partial class ReplacePresentationViewModel
             Text.GetReplaceBaseTitle(SelectedReplaceMode),
             Text.GetReplaceBaseDescription(
                 SelectedReplaceMode,
-                _stateBindings.IsWorkflowLoaded()
+                _stateBindings.IsWorkflowLoaded() && HasSelectedIc
                     ? _compositionServices.Capabilities.GetDpReplaceReferenceCapacityLabel(SelectedIc)
                     : null),
             Text.RequiredLabel,

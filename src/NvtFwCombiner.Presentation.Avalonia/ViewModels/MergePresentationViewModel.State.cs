@@ -102,22 +102,28 @@ internal sealed partial class MergePresentationViewModel
     [NotifyPropertyChangedFor(nameof(CanBuildMerge))]
     public partial string GeneralMergeOutputFillByte { get; set; } = string.Empty;
 
-    public string StandardMergeOutputFileName => ResolveAcceptedOutputFileName(
-        _standardMergeSession.CurrentSnapshot,
-        _compositionServices.Capabilities.GetStandardMergeProfileSummaries().FirstOrDefault(profile =>
-            StringComparer.Ordinal.Equals(profile.IcId, SelectedIc))?
-            .DefaultOutputFileName ?? "nvt-fw-combiner-standard-merge.bin");
+    public string StandardMergeOutputFileName => HasSelectedIc
+        ? ResolveAcceptedOutputFileName(
+            _standardMergeSession.CurrentSnapshot,
+            _compositionServices.Capabilities.GetStandardMergeProfileSummaries().FirstOrDefault(profile =>
+                StringComparer.Ordinal.Equals(profile.IcId, SelectedIc))?
+                .DefaultOutputFileName ?? "nvt-fw-combiner-standard-merge.bin")
+        : string.Empty;
 
-    public string GeneralMergeOutputFileName => ResolveAcceptedOutputFileName(
-        _generalMergeSession.CurrentSnapshot,
-        GeneralMergeAuthoringUseCase.GetDefaultOutputFileName(SelectedIc));
+    public string GeneralMergeOutputFileName => HasSelectedIc
+        ? ResolveAcceptedOutputFileName(
+            _generalMergeSession.CurrentSnapshot,
+            GeneralMergeAuthoringUseCase.GetDefaultOutputFileName(SelectedIc))
+        : string.Empty;
 
-    public string AbMergeOutputFileName => ResolveAcceptedOutputFileName(
-        _abMergeSession.CurrentSnapshot,
-        _compositionServices.Capabilities
-            .GetAbMergeProfileSummaries()
-            .FirstOrDefault(profile => StringComparer.Ordinal.Equals(profile.IcId, SelectedIc))?
-            .DefaultOutputFileName ?? "nvt-fw-combiner-ab-output.bin");
+    public string AbMergeOutputFileName => HasSelectedIc
+        ? ResolveAcceptedOutputFileName(
+            _abMergeSession.CurrentSnapshot,
+            _compositionServices.Capabilities
+                .GetAbMergeProfileSummaries()
+                .FirstOrDefault(profile => StringComparer.Ordinal.Equals(profile.IcId, SelectedIc))?
+                .DefaultOutputFileName ?? "nvt-fw-combiner-ab-output.bin")
+        : string.Empty;
 
     public string MergeOutputFileName => SelectedMergeMode switch
     {
@@ -155,15 +161,17 @@ internal sealed partial class MergePresentationViewModel
     public bool HasAbMergeTopologyChoices => AbMergeTopologyChoices.Count > 0;
 
     public bool IsAbMergeSupported =>
-        _compositionServices.AbMergeAuthoring.IsAvailable(SelectedIc);
+        HasSelectedIc && _stateBindings.IsWorkflowAuthorable(SelectedIc, AbCodeMergeMode);
 
     public bool IsStandardMergeSupported =>
-        _compositionServices.StandardMergeAuthoring.IsSupported(SelectedIc);
+        HasSelectedIc && _stateBindings.IsWorkflowAuthorable(SelectedIc, NormalMergeMode);
 
     public WorkflowInspectionLifecycle Inspection => InspectionLifecycles[SelectedMergeMode];
     internal WorkflowInspectionSet InspectionLifecycles { get; }
 
-    public string MergeReadinessStatus => Inspection.IsRunning
+    public string MergeReadinessStatus => !HasSelectedIc
+        ? Text.NotAvailableLabel
+        : Inspection.IsRunning
         ? Text.FirmwareInspectionLoadingStatus
         : IsAbCodeMergeModeSelected
             ? Text.GetAbMergeReadinessStatus(
@@ -212,6 +220,8 @@ internal sealed partial class MergePresentationViewModel
 
     private string SelectedIc => _stateBindings.SelectedIc();
 
+    private bool HasSelectedIc => !string.IsNullOrWhiteSpace(SelectedIc);
+
     private string SelectedNumber => _stateBindings.SelectedNumber();
 
     private ReportPresentationViewModel Reports => _stateBindings.Reports();
@@ -236,6 +246,47 @@ internal sealed partial class MergePresentationViewModel
 
         InspectionLifecycles[_selectedMergeMode].Invalidate();
         _selectedMergeMode = nextMode;
+        PublishMergeModeSelectionChanged();
+        _stateBindings.NotifySharedContextChanged();
+        _stateBindings.ResetRunResult();
+        _stateBindings.RefreshNumberChoices();
+        if (!HasSelectedIc)
+        {
+            RefreshCommandState();
+            return;
+        }
+
+        RefreshMergeSlotRequirements();
+        if ((IsNormalMergeModeSelected || IsAbCodeMergeModeSelected) &&
+            MergeSlots.Any(static slot => slot.HasFile))
+        {
+            _ = _stateBindings.RefreshSelectedFirmwareInspections();
+        }
+
+        RefreshMergeMemoryMapState();
+        RefreshCommandState();
+    }
+
+    internal bool StageStandardMergeForCatalogReconciliation()
+    {
+        if (string.Equals(_selectedMergeMode, NormalMergeMode, StringComparison.Ordinal))
+        {
+            return false;
+        }
+
+        InspectionLifecycles[_selectedMergeMode].Invalidate();
+        _selectedMergeMode = NormalMergeMode;
+        return true;
+    }
+
+    internal void PublishCatalogReconciledMergeMode()
+    {
+        PublishMergeModeSelectionChanged();
+        _stateBindings.ResetRunResult();
+    }
+
+    private void PublishMergeModeSelectionChanged()
+    {
         OnPropertyChanged(nameof(SelectedMergeMode));
         OnPropertyChanged(nameof(Inspection));
         OnPropertyChanged(nameof(IsNormalMergeModeSelected));
@@ -244,17 +295,6 @@ internal sealed partial class MergePresentationViewModel
         OnPropertyChanged(nameof(MergeOutputFileName));
         OnPropertyChanged(nameof(MergeReadinessStatus));
         OnPropertyChanged(nameof(MergeMemorySummary));
-        _stateBindings.NotifySharedContextChanged();
-        _stateBindings.ResetRunResult();
-        _stateBindings.RefreshNumberChoices();
-        RefreshMergeSlotRequirements();
-        if (IsAbCodeMergeModeSelected && MergeSlots.Any(slot => slot.HasFile))
-        {
-            _ = _stateBindings.RefreshSelectedFirmwareInspections();
-        }
-
-        RefreshMergeMemoryMapState();
-        RefreshCommandState();
     }
 
     internal void RefreshContextState()

@@ -32,9 +32,7 @@ internal sealed partial class ReplacePresentationViewModel
                     GeneralReplaceMode,
                 }.Where(mode =>
                     !StringComparer.Ordinal.Equals(mode, DpReplaceMode) ||
-                    _compositionServices.Capabilities.IsReplaceWorkflowAvailable(
-                        SelectedIc,
-                        mode)),
+                    _stateBindings.IsWorkflowAuthorable(SelectedIc, mode)),
             ]);
 
     public PlanningCardText ReplacePreview => Text.ReplacePreview;
@@ -93,15 +91,17 @@ internal sealed partial class ReplacePresentationViewModel
         set => SetSelectedReplaceMode(value);
     }
 
-    public string ReplaceOutputFileName => ResolveAcceptedOutputFileName(
-        SelectedReplaceMode switch
-        {
-            DpReplaceMode => _dpReplaceSession.CurrentSnapshot,
-            CtrlRamReplaceMode => _ctrlRamReplaceSession.CurrentSnapshot,
-            GeneralReplaceMode => _generalReplaceSession.CurrentSnapshot,
-            _ => null,
-        },
-        $"{SelectedIc.ToLowerInvariant()}-{SelectedReplaceMode}.bin");
+    public string ReplaceOutputFileName => HasSelectedIc
+        ? ResolveAcceptedOutputFileName(
+            SelectedReplaceMode switch
+            {
+                DpReplaceMode => _dpReplaceSession.CurrentSnapshot,
+                CtrlRamReplaceMode => _ctrlRamReplaceSession.CurrentSnapshot,
+                GeneralReplaceMode => _generalReplaceSession.CurrentSnapshot,
+                _ => null,
+            },
+            $"{SelectedIc.ToLowerInvariant()}-{SelectedReplaceMode}.bin")
+        : string.Empty;
 
     public string CreateCtrlRamReplaceOutputFileName(CtrlRamFirmwareVersionDraftState? edit)
     {
@@ -150,28 +150,37 @@ internal sealed partial class ReplacePresentationViewModel
 
     public string SelectedReplaceModeDescription => Text.GetReplaceModeDescription(SelectedReplaceMode);
 
-    /// <summary>Selected Replace workflow availability and golden-evidence state.</summary>
-    public CapabilityWorkflowReadiness SelectedReplaceWorkflowReadiness =>
-        _compositionServices.Capabilities.GetReplaceWorkflowReadiness(SelectedIc, SelectedReplaceMode);
+    /// <summary>
+    /// Selected Replace workflow availability and golden-evidence state, or
+    /// null when no IC is selected.
+    /// </summary>
+    public CapabilityWorkflowReadiness? SelectedReplaceWorkflowReadiness =>
+        HasSelectedIc
+            ? _compositionServices.Capabilities.GetReplaceWorkflowReadiness(SelectedIc, SelectedReplaceMode)
+            : null;
 
     /// <summary>Localized evidence badge for the selected Replace workflow.</summary>
     public string SelectedReplaceModeEvidenceLabel =>
-        Text.GetWorkflowEvidenceLabel(SelectedReplaceWorkflowReadiness);
+        SelectedReplaceWorkflowReadiness is { } readiness
+            ? Text.GetWorkflowEvidenceLabel(readiness)
+            : string.Empty;
 
     /// <summary>Localized evidence reason and opening condition for the selected Replace workflow.</summary>
     public string SelectedReplaceModeEvidenceTooltip =>
-        Text.GetWorkflowEvidenceTooltip(SelectedReplaceWorkflowReadiness);
+        SelectedReplaceWorkflowReadiness is { } readiness
+            ? Text.GetWorkflowEvidenceTooltip(readiness)
+            : string.Empty;
 
     /// <summary>True when selected Replace has golden parity evidence.</summary>
     public bool IsSelectedReplaceModeGoldenVerified =>
-        SelectedReplaceWorkflowReadiness.HasReviewedEvidence;
+        SelectedReplaceWorkflowReadiness?.HasReviewedEvidence == true;
 
     /// <summary>True when selected Replace is available with evidence still open.</summary>
     public bool IsSelectedReplaceModeEvidenceGated =>
-        SelectedReplaceWorkflowReadiness.IsEvidencePending;
+        SelectedReplaceWorkflowReadiness?.IsEvidencePending == true;
 
     public bool IsSelectedReplaceModeUnavailable =>
-        !SelectedReplaceWorkflowReadiness.IsAvailable;
+        SelectedReplaceWorkflowReadiness is { IsAvailable: false };
 
     public WorkflowInspectionLifecycle Inspection => InspectionLifecycles[SelectedReplaceMode];
     internal WorkflowInspectionSet InspectionLifecycles { get; }
@@ -212,12 +221,15 @@ internal sealed partial class ReplacePresentationViewModel
 
     private string SelectedIc => _stateBindings.SelectedIc();
 
+    private bool HasSelectedIc => !string.IsNullOrWhiteSpace(SelectedIc);
+
     private string SelectedNumber => _stateBindings.SelectedNumber();
 
     private ReportPresentationViewModel Reports => _stateBindings.Reports();
 
     private bool IsSelectedReplaceModeSupported =>
-        _compositionServices.Capabilities.IsReplaceWorkflowAvailable(SelectedIc, SelectedReplaceMode);
+        HasSelectedIc &&
+        _stateBindings.IsWorkflowAuthorable(SelectedIc, SelectedReplaceMode);
 
     private Task RunCompositionAsync(
         bool build,

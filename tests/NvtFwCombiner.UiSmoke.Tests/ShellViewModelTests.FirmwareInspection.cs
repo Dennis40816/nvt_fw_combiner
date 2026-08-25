@@ -255,9 +255,9 @@ public sealed partial class FirmwareInspectionSlotTests
         Assert.Contains(viewModel.Replace.ReplaceBaseSlot.FirmwareFacts, fact => fact.Value == "D02-02");
     }
 
-    /// <summary>Non-canonical fact projections cannot publish a compiled memory layout.</summary>
+    /// <summary>A tokenless fact projection never publishes canonical input readiness and remains blocking.</summary>
     [Fact]
-    public async Task MergeMemoryStaysPendingWithoutCanonicalInputPublication()
+    public async Task MergeMemoryRejectsExternallyChangedTokenlessProjectionAfterReinspection()
     {
         using var workspace = TempWorkspace.Create("nvt-fw-combiner-ui-dp-length-snapshot");
         string dpPath = workspace.Write("dp.bin", new byte[0x40000]);
@@ -265,6 +265,10 @@ public sealed partial class FirmwareInspectionSlotTests
         viewModel.WorkflowSession.SelectedIc = "NT51950";
         await viewModel.WorkflowSession.SetSlotFileAsync("merge-dp", dpPath, TestContext.Current.CancellationToken);
         Assert.Equal("Waiting for TP BIN", viewModel.Merge.MergeMemoryRangeLabel);
+        FirmwareSlotViewModel dpSlot = viewModel.Merge.MergeSlots.Single(slot => slot.SlotId == "merge-dp");
+        Assert.Equal(FirmwareSlotSemanticState.Error, dpSlot.SemanticState);
+        object acceptedProjection = Assert.IsType<FirmwareInspectionSnapshot>(
+            dpSlot.CurrentInspectionProjection);
 
         using (var stream = new FileStream(dpPath, FileMode.Open, FileAccess.Write, FileShare.Read))
         {
@@ -272,15 +276,17 @@ public sealed partial class FirmwareInspectionSlotTests
         }
         viewModel.Merge.SelectedMergeMode = ExperienceIds.GeneralMerge;
         viewModel.Merge.SelectedMergeMode = ExperienceIds.StandardMerge;
+        await CurrentInspection(viewModel).ActiveTask;
 
-        Assert.Equal("DP BIN needs attention", viewModel.Merge.MergeMemoryRangeLabel);
-        Assert.Equal(
-            FirmwareSlotSemanticState.Error,
-            viewModel.Merge.MergeSlots.Single(slot => slot.SlotId == "merge-dp").SemanticState);
+        Assert.Equal("Waiting for TP BIN", viewModel.Merge.MergeMemoryRangeLabel);
+        Assert.NotSame(acceptedProjection, dpSlot.CurrentInspectionProjection);
+        Assert.Equal(FirmwareSlotSemanticState.Error, dpSlot.SemanticState);
 
         await viewModel.WorkflowSession.SetSlotFileAsync("merge-dp", dpPath, TestContext.Current.CancellationToken);
 
         Assert.Equal("Waiting for TP BIN", viewModel.Merge.MergeMemoryRangeLabel);
+        Assert.Equal(FirmwareSlotSemanticState.Error, dpSlot.SemanticState);
+        Assert.NotSame(acceptedProjection, dpSlot.CurrentInspectionProjection);
     }
 
     /// <summary>Switching Merge modes cancels the hidden mode's inspection before it can publish late work.</summary>

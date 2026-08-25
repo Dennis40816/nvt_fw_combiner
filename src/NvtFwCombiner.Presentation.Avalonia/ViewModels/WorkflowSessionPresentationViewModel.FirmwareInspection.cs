@@ -22,25 +22,17 @@ internal sealed partial class WorkflowSessionPresentationViewModel
             return;
         }
 
-        GeneralMappingRowViewModel? mapping = _merge.GeneralMergeMappings
-            .Cast<GeneralMappingRowViewModel>()
-            .Concat(_replace.GeneralReplaceMappings)
-            .FirstOrDefault(row => StringComparer.Ordinal.Equals(row.MappingId, slotId));
+        GeneralMappingRowViewModel? mapping = context switch
+        {
+            { IsGeneralMerge: true } =>
+                _merge.GeneralMergeMappings.FirstOrDefault(
+                row => StringComparer.Ordinal.Equals(row.MappingId, slotId)),
+            { IsGeneralReplace: true } => _replace.GeneralReplaceMappings.FirstOrDefault(
+                row => StringComparer.Ordinal.Equals(row.MappingId, slotId)),
+            _ => null,
+        };
         if (mapping is not null)
         {
-            bool isCurrentMapping = mapping switch
-            {
-                GeneralMergeMappingViewModel => context.IsMerge &&
-                    context.Mode == ExperienceIds.GeneralMerge,
-                GeneralReplaceMappingViewModel => context.IsReplace &&
-                    context.Mode == ExperienceIds.GeneralReplace,
-                _ => false,
-            };
-            if (!isCurrentMapping)
-            {
-                return;
-            }
-
             if (!mapping.CanSelectFile)
             {
                 return;
@@ -147,6 +139,7 @@ internal sealed partial class WorkflowSessionPresentationViewModel
             { IsStandardMerge: true } or { IsAbMerge: true } => MergeSlots,
             { IsDpReplace: true } or { IsCtrlRamReplace: true } =>
                 ReplaceSlots.Append(ReplaceBaseSlot).Distinct(),
+            { IsGeneralMerge: true } => [],
             { IsGeneralReplace: true } => [ReplaceBaseSlot],
             _ => [],
         };
@@ -476,42 +469,6 @@ internal sealed partial class WorkflowSessionPresentationViewModel
             inspection,
             SelectedIc,
             SelectedNumber));
-    }
-
-    internal Task RefreshSelectedMergeFirmwareInspectionsAsync(
-        string? applyVerifiedContextSlotId = null,
-        CancellationToken cancellationToken = default)
-    {
-        return ActiveInspectionContext is { IsMerge: true } context
-            ? RefreshSelectedFirmwareInspectionsAsync(
-                context,
-                context is { IsStandardMerge: true } or { IsAbMerge: true }
-                    ? MergeSlots
-                    : [],
-                applyVerifiedContextSlotId,
-                cancellationToken)
-            : Task.CompletedTask;
-    }
-
-    internal Task RefreshSelectedReplaceFirmwareInspectionsAsync(
-        string? applyVerifiedContextSlotId = null)
-    {
-        return RefreshSelectedReplaceFirmwareInspectionsAsync(
-            applyVerifiedContextSlotId,
-            CancellationToken.None);
-    }
-
-    private Task RefreshSelectedReplaceFirmwareInspectionsAsync(
-        string? applyVerifiedContextSlotId,
-        CancellationToken cancellationToken)
-    {
-        return ActiveInspectionContext is { IsReplace: true } context
-            ? RefreshSelectedFirmwareInspectionsAsync(
-                context,
-                ReplaceSlots.Concat([ReplaceBaseSlot]),
-                applyVerifiedContextSlotId,
-                cancellationToken)
-            : Task.CompletedTask;
     }
 
     private Task RefreshSelectedFirmwareInspectionsAsync(

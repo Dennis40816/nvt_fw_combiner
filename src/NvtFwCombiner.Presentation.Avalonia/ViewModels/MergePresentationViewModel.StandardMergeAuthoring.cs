@@ -12,6 +12,13 @@ internal sealed partial class MergePresentationViewModel
     {
         _standardMergeSession.InvalidateCanonicalPublication();
         _abMergeSession.InvalidateCanonicalPublication();
+        _generalMergeSession.InvalidateCanonicalPublication();
+        ClearAbMergeActionReadiness();
+        _generalMergeAdmission = null;
+        _generalMergeActionReadiness = null;
+        InspectionLifecycles[NormalMergeMode].Invalidate();
+        InspectionLifecycles[AbCodeMergeMode].Invalidate();
+        InspectionLifecycles[GeneralMergeMode].Invalidate();
     }
 
     internal IReadOnlyDictionary<string, AuthoringSlotInspectionLease>
@@ -75,8 +82,15 @@ internal sealed partial class MergePresentationViewModel
 
     internal void RefreshStandardMergeAuthoringState()
     {
-        if (!IsNormalMergeModeSelected)
+        if (!IsNormalMergeModeSelected || !HasSelectedIc)
         {
+            if (!HasSelectedIc)
+            {
+                foreach (FirmwareSlotViewModel slot in StandardMergeSlots)
+                {
+                    slot.ClearSelectionReadiness();
+                }
+            }
             return;
         }
 
@@ -86,6 +100,17 @@ internal sealed partial class MergePresentationViewModel
             _standardMergeSession.Activate(projection);
         ApplyStandardMergeReadiness(projection);
         SyncStandardMergeMembership(activated.Snapshot);
+    }
+
+    internal void RelocalizeStandardMergeReadiness()
+    {
+        if (IsNormalMergeModeSelected && _standardMergeSession.CurrentSnapshot is { } snapshot)
+        {
+            ApplyInputReadiness(
+                StandardMergeSlots,
+                snapshot.InputSelectionReadiness,
+                static slot => slot.AddressSpaceId);
+        }
     }
 
     private CompiledAuthoringSelectionSnapshot ResolveStandardMergeAuthoringSnapshot()

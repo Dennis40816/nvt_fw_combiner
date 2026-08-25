@@ -1,3 +1,8 @@
+using System.Text.Json;
+using Avalonia.Controls;
+using Avalonia.Data;
+using Avalonia.Headless.XUnit;
+using Avalonia.Threading;
 using NvtFwCombiner.Domain.Composition;
 using NvtFwCombiner.Presentation.Avalonia;
 using NvtFwCombiner.Presentation.Avalonia.ViewModels;
@@ -439,5 +444,210 @@ public sealed partial class FirmwareInspectionSlotTests
             viewModel.Replace.InspectionLifecycles[ExperienceIds.DpReplace].State);
         Assert.Empty(viewModel.Replace.ReplaceBaseSlot.FirmwareFacts);
         Assert.False(viewModel.WorkflowSession.IsFirmwareIcMismatchModalOpen);
+    }
+
+    /// <summary>A live AB-filtered selector preserves independent Merge and Replace state across a canonical linked-TP round trip.</summary>
+    /// <remarks>The owner's NT51950 2-IC AB scenario is represented by the profile-owned generic <c>cascade</c> topology token.</remarks>
+    [AvaloniaFact]
+    public async Task Nt51950CanonicalLinkedAbTpCanRoundTripThroughIndependentReplaceContext()
+    {
+        JsonElement goldenCase = CanonicalGoldenTestData.LoadDirectCase(
+            "ab-merge",
+            "nt51950-ab-boe-d82t80");
+        JsonElement tpAArtifact = goldenCase.GetProperty("artifacts").EnumerateArray().Single(
+            static artifact =>
+                artifact.GetProperty("artifactId").GetString() == CompositionAddressSpaceIds.TpAInput);
+        string canonicalTpAPath = CanonicalGoldenTestData.ArtifactPath(tpAArtifact);
+        MainWindowViewModel viewModel = await Task.Run(
+            () => PresentationTestHost.CreateViewModel(),
+            TestContext.Current.CancellationToken);
+
+        OpenReplace(viewModel, ExperienceIds.CtrlRamReplace);
+        viewModel.WorkflowSession.SelectedIc = "NT51926";
+        viewModel.WorkflowSession.SelectedNumber = IcNumberSelectionTokens.SingleChip;
+        string replaceOutputBefore = viewModel.Replace.ReplaceOutputFileName;
+        string replaceReadinessBefore = viewModel.Replace.ReplaceReadinessStatus;
+        WorkflowInspectionLifecycle replaceInspection = viewModel.Replace.Inspection;
+        WorkflowInspectionAttemptState replaceInspectionBefore = replaceInspection.State;
+        (string SlotId, string? FilePath)[] replaceSlotsBefore =
+        [
+            .. viewModel.Replace.ReplaceSlots
+                .Prepend(viewModel.Replace.ReplaceBaseSlot)
+                .Select(static slot => (slot.SlotId, slot.FilePath)),
+        ];
+        void AssertReplaceStateUnchanged()
+        {
+            Assert.Equal(replaceSlotsBefore, ReplaceSlotPaths(viewModel));
+            Assert.Equal(replaceOutputBefore, viewModel.Replace.ReplaceOutputFileName);
+            Assert.Equal(replaceReadinessBefore, viewModel.Replace.ReplaceReadinessStatus);
+            Assert.Equal(replaceInspectionBefore, replaceInspection.State);
+        }
+
+        viewModel.ShowMergeCommand.Execute(null);
+        viewModel.WorkflowSession.SelectedIc = "NT51950";
+        viewModel.Merge.SelectedMergeMode = ExperienceIds.AbMerge;
+        Assert.Equal(
+            [IcNumberSelectionTokens.SingleChip, IcNumberSelectionTokens.Cascade],
+            viewModel.WorkflowSession.NumberSelectionChoices.Select(static choice => choice.Token));
+        Assert.Equal(
+            "2 IC",
+            Assert.Single(
+                viewModel.WorkflowSession.NumberSelectionChoices,
+                static choice => choice.Token == IcNumberSelectionTokens.Cascade).DisplayLabel);
+        viewModel.WorkflowSession.SelectedNumber = IcNumberSelectionTokens.Cascade;
+        await viewModel.WorkflowSession.SetSlotFileAsync(
+            CompositionAddressSpaceIds.TpAInput,
+            canonicalTpAPath,
+            TestContext.Current.CancellationToken);
+        await viewModel.Merge.ToggleAbSameTpCommand.ExecuteAsync(null);
+        WorkflowInspectionLifecycle mergeInspection = viewModel.Merge.Inspection;
+        WorkflowInspectionAttemptState mergeInspectionBeforeNavigation = mergeInspection.State;
+        var selector = new ComboBox { DataContext = viewModel };
+        _ = selector.Bind(
+            ItemsControl.ItemsSourceProperty,
+            new Binding("WorkflowSession.IcChoices"));
+        _ = selector.Bind(
+            ComboBox.SelectedItemProperty,
+            new Binding("WorkflowSession.SelectedIc") { Mode = BindingMode.TwoWay });
+        Dispatcher.UIThread.RunJobs();
+
+        Assert.True(viewModel.Merge.UseSameTpForAbMerge);
+        Assert.Equal(canonicalTpAPath, AbTpSlot(viewModel, CompositionAddressSpaceIds.TpAInput).FilePath);
+        Assert.Equal(canonicalTpAPath, AbTpSlot(viewModel, CompositionAddressSpaceIds.TpBInput).FilePath);
+        Assert.False(AbTpSlot(viewModel, CompositionAddressSpaceIds.TpBInput).CanSelectFile);
+        Assert.Equal(WorkflowInspectionAttemptState.Succeeded, mergeInspectionBeforeNavigation);
+        Assert.Equal("NT51950", selector.SelectedItem);
+        Assert.Equal("NT51950", viewModel.WorkflowSession.GetWorkflowPageIc(WorkflowInspectionOwner.Merge));
+        Assert.Equal(
+            IcNumberSelectionTokens.Cascade,
+            viewModel.WorkflowSession.GetWorkflowPageNumber(WorkflowInspectionOwner.Merge));
+        Assert.Equal("NT51926", viewModel.WorkflowSession.GetWorkflowPageIc(WorkflowInspectionOwner.Replace));
+        Assert.Equal(
+            IcNumberSelectionTokens.SingleChip,
+            viewModel.WorkflowSession.GetWorkflowPageNumber(WorkflowInspectionOwner.Replace));
+        AssertReplaceStateUnchanged();
+        Assert.NotSame(mergeInspection, replaceInspection);
+
+        viewModel.ShowReplaceCommand.Execute(null);
+        Dispatcher.UIThread.RunJobs();
+        Assert.True(viewModel.Navigation.IsNavigationClearConfirmationOpen);
+        viewModel.Navigation.ConfirmNavigationAndClearCommand.Execute(null);
+        Dispatcher.UIThread.RunJobs();
+
+        Assert.True(viewModel.IsReplaceVisible);
+        Assert.Equal("NT51926", viewModel.WorkflowSession.SelectedIc);
+        Assert.Equal(IcNumberSelectionTokens.SingleChip, viewModel.WorkflowSession.SelectedNumber);
+        Assert.Equal("NT51926", selector.SelectedItem);
+        Assert.Contains("NT51926", selector.Items.Cast<string>());
+        AssertReplaceStateUnchanged();
+        Assert.Equal(mergeInspectionBeforeNavigation, mergeInspection.State);
+        Assert.DoesNotContain(
+            viewModel.Replace.ReplaceSlots.Prepend(viewModel.Replace.ReplaceBaseSlot),
+            static slot => slot.HasFile);
+        Assert.False(viewModel.WorkflowSession.IsFirmwareIcMismatchModalOpen);
+        Assert.False(viewModel.WorkflowSession.IsFirmwareNumberMismatchModalOpen);
+
+        viewModel.ShowMergeCommand.Execute(null);
+        Dispatcher.UIThread.RunJobs();
+
+        Assert.True(viewModel.IsMergeVisible);
+        Assert.Equal(ExperienceIds.AbMerge, viewModel.Merge.SelectedMergeMode);
+        Assert.Equal("NT51950", viewModel.WorkflowSession.SelectedIc);
+        Assert.Equal(IcNumberSelectionTokens.Cascade, viewModel.WorkflowSession.SelectedNumber);
+        Assert.Equal(
+            IcNumberSelectionTokens.Cascade,
+            viewModel.WorkflowSession.GetWorkflowPageNumber(WorkflowInspectionOwner.Merge));
+        Assert.Equal("NT51950", selector.SelectedItem);
+        Assert.True(viewModel.Merge.UseSameTpForAbMerge);
+        Assert.False(AbTpSlot(viewModel, CompositionAddressSpaceIds.TpBInput).CanSelectFile);
+        Assert.All(viewModel.Merge.MergeSlots, static slot => Assert.False(slot.HasFile));
+        Assert.Null(AbTpSlot(viewModel, CompositionAddressSpaceIds.TpAInput).FilePath);
+        Assert.Null(AbTpSlot(viewModel, CompositionAddressSpaceIds.TpBInput).FilePath);
+        Assert.Equal(mergeInspectionBeforeNavigation, mergeInspection.State);
+        Assert.NotEqual(replaceReadinessBefore, viewModel.Merge.MergeReadinessStatus);
+        Assert.NotEqual(replaceOutputBefore, viewModel.Merge.MergeOutputFileName);
+        AssertReplaceStateUnchanged();
+    }
+
+    private static (string SlotId, string? FilePath)[] ReplaceSlotPaths(MainWindowViewModel viewModel)
+    {
+        return
+        [
+            .. viewModel.Replace.ReplaceSlots
+                .Prepend(viewModel.Replace.ReplaceBaseSlot)
+                .Select(static slot => (slot.SlotId, slot.FilePath)),
+        ];
+    }
+
+    private static string StandardMergeDraftSignature(MainWindowViewModel viewModel)
+    {
+        return string.Join(
+            '|',
+            viewModel.Merge.SelectedMergeMode,
+            viewModel.WorkflowSession.GetWorkflowPageIc(WorkflowInspectionOwner.Merge),
+            viewModel.Merge.MergeDpSlot.FilePath ?? string.Empty,
+            viewModel.Merge.StandardMergeOutputFileName);
+    }
+
+    private static string AbMergeDraftSignature(MainWindowViewModel viewModel)
+    {
+        return string.Join(
+            '|',
+            viewModel.Merge.SelectedMergeMode,
+            viewModel.WorkflowSession.GetWorkflowPageIc(WorkflowInspectionOwner.Merge),
+            viewModel.Merge.UseSameTpForAbMerge,
+            viewModel.Merge.AbMergeOutputFileName);
+    }
+
+    private static string GeneralMergeDraftSignature(MainWindowViewModel viewModel)
+    {
+        GeneralMergeMappingViewModel mapping = Assert.Single(viewModel.Merge.GeneralMergeMappings);
+        return string.Join(
+            '|',
+            viewModel.Merge.SelectedMergeMode,
+            viewModel.WorkflowSession.GetWorkflowPageIc(WorkflowInspectionOwner.Merge),
+            viewModel.Merge.GeneralMergeOutputLength,
+            viewModel.Merge.GeneralMergeOutputFillByte,
+            mapping.MappingId,
+            mapping.SourceStartAddress,
+            mapping.TargetStartAddress,
+            mapping.Length);
+    }
+
+    private static string CtrlRamReplaceDraftSignature(MainWindowViewModel viewModel)
+    {
+        return string.Join(
+            '|',
+            viewModel.Replace.SelectedReplaceMode,
+            viewModel.WorkflowSession.GetWorkflowPageIc(WorkflowInspectionOwner.Replace),
+            viewModel.WorkflowSession.GetWorkflowPageNumber(WorkflowInspectionOwner.Replace),
+            viewModel.Replace.ReplaceOutputFileName);
+    }
+
+    private static string GeneralReplaceDraftSignature(MainWindowViewModel viewModel)
+    {
+        GeneralReplaceMappingViewModel mapping = Assert.Single(viewModel.Replace.GeneralReplaceMappings);
+        return string.Join(
+            '|',
+            viewModel.Replace.SelectedReplaceMode,
+            viewModel.WorkflowSession.GetWorkflowPageIc(WorkflowInspectionOwner.Replace),
+            viewModel.WorkflowSession.GetWorkflowPageNumber(WorkflowInspectionOwner.Replace),
+            mapping.MappingId,
+            mapping.TargetStartAddress,
+            mapping.Length);
+    }
+
+    private static string ActiveWorkflowDraftSignature(MainWindowViewModel viewModel)
+    {
+        return viewModel.IsMergeVisible
+            ? viewModel.Merge.SelectedMergeMode switch
+            {
+                ExperienceIds.AbMerge => AbMergeDraftSignature(viewModel),
+                ExperienceIds.GeneralMerge => GeneralMergeDraftSignature(viewModel),
+                _ => StandardMergeDraftSignature(viewModel),
+            }
+            : viewModel.Replace.SelectedReplaceMode == ExperienceIds.GeneralReplace
+                ? GeneralReplaceDraftSignature(viewModel)
+                : CtrlRamReplaceDraftSignature(viewModel);
     }
 }

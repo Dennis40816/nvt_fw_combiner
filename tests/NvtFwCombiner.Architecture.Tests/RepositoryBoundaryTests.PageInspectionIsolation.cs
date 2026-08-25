@@ -8,6 +8,8 @@ public sealed partial class RepositoryBoundaryTests
     {
         string inspection = ReadText(
             "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/WorkflowSessionPresentationViewModel.FirmwareInspection.cs");
+        string inspectionRefresh = ReadText(
+            "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/WorkflowSessionPresentationViewModel.FirmwareInspectionRefresh.cs");
         string deviceContext = ReadText(
             "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/WorkflowSessionPresentationViewModel.DeviceContext.cs");
         string inspectionSession = ReadText(
@@ -20,17 +22,112 @@ public sealed partial class RepositoryBoundaryTests
             "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/MainWindowViewModel.Context.cs");
         string construction = ReadText(
             "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/MainWindowViewModel.Construction.cs");
+        string mergeState = ReadText(
+            "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/MergePresentationViewModel.State.cs");
+        static string Slice(string source, string startToken, string endToken)
+        {
+            int start = source.IndexOf(startToken, StringComparison.Ordinal);
+            int end = start < 0
+                ? -1
+                : source.IndexOf(endToken, start + startToken.Length, StringComparison.Ordinal);
+            Assert.True(start >= 0 && end > start);
+            return source[start..end];
+        }
+
+        string inspectionSlots = Slice(
+            inspection,
+            "private IEnumerable<FirmwareSlotViewModel> InspectionSlots(",
+            "private IEnumerable<FirmwareSlotViewModel> AllInspectionSlots(");
+        string findInspectionSlot = Slice(
+            inspection,
+            "private FirmwareSlotViewModel? FindInspectionSlot(",
+            "private FirmwareInspectionItemRequest CreateFirmwareInspectionItem(");
+        string refreshMerge = Slice(
+            inspectionRefresh,
+            "internal Task RefreshSelectedMergeFirmwareInspectionsAsync(",
+            "internal Task RefreshSelectedReplaceFirmwareInspectionsAsync(");
+        string refreshReplace = Slice(
+            inspectionRefresh,
+            "private Task RefreshSelectedReplaceFirmwareInspectionsAsync(",
+            "private bool TryRefreshRetainedReplaceFirmwareInspectionsIfStale(");
 
         Assert.Contains("WorkflowInspectionContext context", inspection, StringComparison.Ordinal);
         Assert.Contains("if (ActiveInspectionContext is not { } context)", inspection, StringComparison.Ordinal);
-        Assert.Contains("context.Mode == ExperienceIds.GeneralMerge", inspection, StringComparison.Ordinal);
-        Assert.Contains("context.Mode == ExperienceIds.GeneralReplace", inspection, StringComparison.Ordinal);
         Assert.Contains(
-            "{ IsStandardMerge: true } or { IsAbMerge: true } => MergeSlots",
+            "{ IsGeneralMerge: true } =>",
             inspection,
             StringComparison.Ordinal);
+        Assert.Contains(
+            "{ IsGeneralReplace: true } => _replace.GeneralReplaceMappings",
+            inspection,
+            StringComparison.Ordinal);
+        Assert.Contains(
+            "{ IsStandardMerge: true } or { IsAbMerge: true } => MergeSlots",
+            inspectionSlots,
+            StringComparison.Ordinal);
+        Assert.Contains(
+            "{ IsDpReplace: true } or { IsCtrlRamReplace: true } =>",
+            inspectionSlots,
+            StringComparison.Ordinal);
+        Assert.Contains(
+            "ReplaceSlots.Append(ReplaceBaseSlot).Distinct()",
+            inspectionSlots,
+            StringComparison.Ordinal);
+        Assert.Contains("{ IsGeneralMerge: true } => []", inspectionSlots, StringComparison.Ordinal);
+        Assert.Contains(
+            "{ IsGeneralReplace: true } => [ReplaceBaseSlot]",
+            inspectionSlots,
+            StringComparison.Ordinal);
+        Assert.Contains("_ => []", inspectionSlots, StringComparison.Ordinal);
+        Assert.DoesNotContain("Mode:", inspectionSlots, StringComparison.Ordinal);
+        Assert.DoesNotContain("AbMergeSlots", inspectionSlots, StringComparison.Ordinal);
+        Assert.Contains("InspectionSlots(context)", findInspectionSlot, StringComparison.Ordinal);
+        Assert.Contains("InspectionSlots(context)", refreshMerge, StringComparison.Ordinal);
+        Assert.Contains("InspectionSlots(context)", refreshReplace, StringComparison.Ordinal);
+        Assert.Contains(
+            "RefreshRetainedMergeFirmwareInspectionsIfStaleAsync",
+            construction,
+            StringComparison.Ordinal);
+        Assert.Contains(
+            "RequiresCurrentSelectorReinspection(context)",
+            refreshMerge + refreshReplace,
+            StringComparison.Ordinal);
+        Assert.Contains(
+            "projection.InputSlotStatus?.ResolutionToken",
+            inspectionRefresh,
+            StringComparison.Ordinal);
+        Assert.Contains(
+            "projection.InputSlotCatalog?.ResolutionToken",
+            inspectionRefresh,
+            StringComparison.Ordinal);
+        Assert.Contains(
+            "token is null",
+            inspectionRefresh,
+            StringComparison.Ordinal);
+        Assert.Contains(
+            "? !context.IsGeneralReplace",
+            inspectionRefresh,
+            StringComparison.Ordinal);
+        Assert.Contains(
+            "TryRefreshRetainedReplaceFirmwareInspectionsIfStale()",
+            deviceContext,
+            StringComparison.Ordinal);
         Assert.DoesNotContain(
-            "{ IsAbMerge: true } => AbMergeSlots",
+            "canonicalCatalogInspectionRefreshPending",
+            inspection + inspectionRefresh + mergeState + deviceContext,
+            StringComparison.OrdinalIgnoreCase);
+        Assert.Contains(
+            "internal bool IsGeneralMerge => IsMerge && Mode == ExperienceIds.GeneralMerge",
+            inspectionSession,
+            StringComparison.Ordinal);
+        Assert.Contains(
+            "internal bool IsGeneralReplace => IsReplace && Mode == ExperienceIds.GeneralReplace",
+            inspectionSession,
+            StringComparison.Ordinal);
+        Assert.DoesNotContain("context.Mode ==", inspection, StringComparison.Ordinal);
+        Assert.DoesNotContain("Mode: ExperienceIds.", inspection, StringComparison.Ordinal);
+        Assert.DoesNotContain(
+            "GeneralMergeMappings.Concat",
             inspection,
             StringComparison.Ordinal);
         Assert.Contains("request.Context == currentContext", inspectionSession, StringComparison.Ordinal);

@@ -51,6 +51,8 @@ public sealed partial class RepositoryBoundaryTests
             "src/NvtFwCombiner.Application/Composition/CompositionExperiencePorts.cs");
         string applicationGlobalUsing = ReadText(
             "src/NvtFwCombiner.Presentation.Avalonia/ApplicationCompositionGlobalUsings.cs");
+        string workflowContextSetup = ReadText(
+            "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/WorkflowContextSetupViewModel.cs");
         string presentationConsumers = ReadPresentationSources(
             "PresentationCompositionServices.cs",
             "PresentationHostServices.cs");
@@ -141,9 +143,21 @@ public sealed partial class RepositoryBoundaryTests
         Assert.Contains("CompositionHostServices", desktopProgram, StringComparison.Ordinal);
         Assert.Contains("PresentationHostServices", hostServices, StringComparison.Ordinal);
         Assert.DoesNotContain("CompositionHostServices", presentationConsumers, StringComparison.Ordinal);
-        Assert.Equal(4, CountOccurrences(
+        Assert.Equal(3, CountOccurrences(
             injectedViewModels,
             "private readonly PresentationCompositionServices _compositionServices;"));
+        Assert.DoesNotContain(
+            "PresentationCompositionServices",
+            workflowContextSetup,
+            StringComparison.Ordinal);
+        Assert.Contains(
+            "private CapabilitySelectorPublication? _selectorPublication;",
+            workflowContextSetup,
+            StringComparison.Ordinal);
+        Assert.Contains(
+            "CapabilitySelectorPublication publication",
+            workflowContextSetup,
+            StringComparison.Ordinal);
         string[] concreteAdapterTokens =
         [
             "CanonicalCapabilityProjection",

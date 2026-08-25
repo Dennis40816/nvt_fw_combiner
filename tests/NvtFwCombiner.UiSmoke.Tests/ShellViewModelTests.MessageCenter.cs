@@ -191,13 +191,14 @@ public sealed partial class ShellNavigationSystemTests
         _ = PresentationTestHost.PublishCanonicalCatalog(services, viewModel);
 
         viewModel.ShowMergeCommand.Execute(null);
+        viewModel.WorkflowSession.SelectedIc = "NT51928";
         viewModel.WorkflowSession.SelectedIc = "NT51950";
         viewModel.Merge.SelectedMergeMode = ExperienceIds.AbMerge;
         viewModel.OpenSettingsCommand.Execute(null);
 
         Assert.Contains(diagnostics.Activity, activity =>
             activity.Code == SystemActivityCodes.UserNavigated && activity.SubjectId == "Merge");
-        Assert.Contains(diagnostics.Activity, activity =>
+        _ = Assert.Single(diagnostics.Activity, activity =>
             activity.Code == SystemActivityCodes.IcSelected && activity.SubjectId == "NT51950");
         Assert.Contains(diagnostics.Activity, activity =>
             activity.Code == SystemActivityCodes.ModeSelected && activity.SubjectId == ExperienceIds.AbMerge);
@@ -286,9 +287,11 @@ public sealed partial class ShellNavigationSystemTests
                 CanonicalSupportMatrixCatalogState.LastKnownGood,
                 current,
                 new CapabilityCatalogIssue("catalog.reload.failed", "private", null)));
+        var reader = new BlockingInspectionReader(
+            (BuiltInFirmwareInspection)TestHost.FirmwareInspectionExperience);
         MainWindowViewModel viewModel = CreateDiagnosticsViewModel(
             catalog,
-            ReadBuiltInFirmwareInspectionBatch);
+            reader.Read);
         viewModel.ShowMergeCommand.Execute(null);
         viewModel.WorkflowSession.SelectedIc = "NT51926";
         await viewModel.WorkflowSession.SetSlotFileAsync(
@@ -300,9 +303,11 @@ public sealed partial class ShellNavigationSystemTests
             golden.ManifestPath(goldenCase.GetProperty("inputs").GetProperty("tp-input")),
             TestContext.Current.CancellationToken);
         Assert.True(viewModel.Merge.CanBuildMerge);
+        int inspectionBatchCount = reader.BatchCount;
 
         await viewModel.MessageCenter.RefreshCommand.ExecuteAsync(null);
 
+        Assert.Equal(inspectionBatchCount, reader.BatchCount);
         Assert.True(viewModel.Merge.CanBuildMerge);
         Assert.All(viewModel.Merge.MergeSlots.Where(static slot => !slot.IsOptional), static slot =>
             Assert.Contains(
@@ -318,12 +323,21 @@ public sealed partial class ShellNavigationSystemTests
     public async Task FreshTokenReloadReinspectsVerifiedDpReplaceBeforeBuildReturns()
     {
         using var workspace = TempWorkspace.Create("nvt-fw-combiner-ui-message-center-rebind");
+        PresentationHostServices services = PresentationTestHost.CreateServices(
+            "0.10.6-message-center-rebind-test");
         var reader = new BlockingInspectionReader(
-            (BuiltInFirmwareInspection)TestHost.FirmwareInspectionExperience);
-        var catalog = new SequencedCatalog(
-            Result(CanonicalSupportMatrixCatalogState.Current, Matrix("catalog:before")),
-            Result(CanonicalSupportMatrixCatalogState.Current, Matrix("catalog:after")));
-        MainWindowViewModel viewModel = CreateDiagnosticsViewModel(catalog, reader.Read);
+            (BuiltInFirmwareInspection)services.Composition.FirmwareInspection);
+        var viewModel = new MainWindowViewModel(
+            "test",
+            "0.10.6-message-center-rebind-test",
+            ShellLanguage.English,
+            services,
+            new DelegatingFirmwareInspection(
+                services.Composition.FirmwareInspection,
+                batchReader: reader.Read));
+        _ = PresentationTestHost.PublishCanonicalCatalog(services, viewModel);
+        ResolutionToken originalToken = services.Composition.Capabilities
+            .GetSelectorPublication().ResolutionToken;
         viewModel.WorkflowSession.SelectedIc = "NT51928";
         OpenReplace(viewModel, ExperienceIds.DpReplace);
         viewModel.SetSlotFile(
@@ -336,6 +350,10 @@ public sealed partial class ShellNavigationSystemTests
         reader.BlockNextBatch();
 
         await viewModel.MessageCenter.RefreshCommand.ExecuteAsync(null);
+        ResolutionToken refreshedToken = services.Composition.Capabilities
+            .GetSelectorPublication().ResolutionToken;
+        Assert.NotEqual(originalToken, refreshedToken);
+        Assert.Equal(refreshedToken.Value, viewModel.MessageCenter.Current.PublicationToken);
         try
         {
             await reader.InspectionEntered.Task.WaitAsync(
@@ -572,6 +590,13 @@ public sealed partial class ShellNavigationSystemTests
     private sealed class BlockingInspectionReader(BuiltInFirmwareInspection firmwareInspection)
     {
         private int _blockNextBatch;
+        private int _batchCount;
+        private IReadOnlyList<string> _lastInspectionIds = [];
+
+        internal int BatchCount => Volatile.Read(ref _batchCount);
+
+        internal IReadOnlyList<string> LastInspectionIds =>
+            Volatile.Read(ref _lastInspectionIds);
 
         internal TaskCompletionSource InspectionEntered { get; } = new(
             TaskCreationOptions.RunContinuationsAsynchronously);
@@ -588,6 +613,10 @@ public sealed partial class ShellNavigationSystemTests
             string selectedIc,
             IReadOnlyList<FirmwareInspectionSnapshotInput> inputs)
         {
+            _ = Interlocked.Increment(ref _batchCount);
+            Volatile.Write(
+                ref _lastInspectionIds,
+                Array.AsReadOnly(inputs.Select(static input => input.InspectionId).ToArray()));
             if (Interlocked.Exchange(ref _blockNextBatch, 0) == 1)
             {
                 InspectionEntered.SetResult();

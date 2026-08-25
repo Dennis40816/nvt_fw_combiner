@@ -180,6 +180,7 @@ internal readonly record struct WorkflowInspectionContext(
     internal bool IsReplace => Owner == WorkflowInspectionOwner.Replace;
     internal bool IsStandardMerge => IsMerge && Mode == ExperienceIds.StandardMerge;
     internal bool IsAbMerge => IsMerge && Mode == ExperienceIds.AbMerge;
+    internal bool IsGeneralMerge => IsMerge && Mode == ExperienceIds.GeneralMerge;
     internal bool IsDpReplace => IsReplace && Mode == ExperienceIds.DpReplace;
     internal bool IsCtrlRamReplace => IsReplace && Mode == ExperienceIds.CtrlRamReplace;
     internal bool IsGeneralReplace => IsReplace && Mode == ExperienceIds.GeneralReplace;

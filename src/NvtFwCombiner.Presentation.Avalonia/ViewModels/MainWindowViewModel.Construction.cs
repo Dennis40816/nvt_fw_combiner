@@ -71,6 +71,8 @@ internal sealed partial class MainWindowViewModel
             new MergeStateBindings(
                 () => WorkflowSession!.GetWorkflowPageIc(WorkflowInspectionOwner.Merge),
                 () => WorkflowSession!.GetWorkflowPageNumber(WorkflowInspectionOwner.Merge),
+                (icId, workflowId) => WorkflowSession!.IsPublishedWorkflowAuthorable(icId, workflowId),
+                icId => WorkflowSession!.GetPublishedAbMergeTopologyChoices(icId),
                 IsCompositionRunInProgress,
                 IsGlobalBuildBlocked,
                 IsWorkflowLoaded,
@@ -81,7 +83,7 @@ internal sealed partial class MainWindowViewModel
                 PublishLastRunResult,
                 RefreshWorkflowNumberChoices,
                 () => WorkflowSession!.NotifyContextTextChanged(),
-                () => WorkflowSession!.RefreshSelectedMergeFirmwareInspectionsAsync(),
+                () => WorkflowSession!.RefreshRetainedMergeFirmwareInspectionsIfStaleAsync(),
                 (path, cancellationToken) => WorkflowSession!.SetAbSameTpFileAsync(path, cancellationToken),
                 ResetRunResultForContextChange,
                 RefreshCommandState,
@@ -93,6 +95,7 @@ internal sealed partial class MainWindowViewModel
                 () => Text,
                 () => WorkflowSession!.GetWorkflowPageIc(WorkflowInspectionOwner.Replace),
                 () => WorkflowSession!.GetWorkflowPageNumber(WorkflowInspectionOwner.Replace),
+                (icId, workflowId) => WorkflowSession!.IsPublishedWorkflowAuthorable(icId, workflowId),
                 IsCompositionRunInProgress,
                 IsGlobalBuildBlocked,
                 IsWorkflowLoaded,
@@ -155,9 +158,10 @@ internal sealed partial class MainWindowViewModel
             MessageCenterDiagnosticsChanged);
         MessageCenter.PropertyChanged += MessageCenter_OnPropertyChanged;
         ApplyTextResources(language, notify: false);
-        RelayCommand CreateCatalogCommand(Action execute)
+        RelayCommand CreateCatalogCommand(Action execute, params string[] workflowIds)
         {
-            return new RelayCommand(execute, () => WorkflowSession.IsCanonicalCatalogReady);
+            return new RelayCommand(execute, () => WorkflowSession.IsCanonicalCatalogReady &&
+                WorkflowSession.HasPublishedWorkflowAuthoringChoices(workflowIds));
         }
         OpenSettingsCommand = new RelayCommand(OpenSettings);
         CloseSettingsCommand = new RelayCommand(CloseSettings);
@@ -170,23 +174,25 @@ internal sealed partial class MainWindowViewModel
             WorkflowSession.InvalidateFirmwareNumberMismatch, WorkflowSession.ClearSelectedInputs,
             ApplySelectedPage, PageLabel, NotifyCompositionActionRailVisibilityChanged));
         ShowHomeCommand = new RelayCommand(() => Navigation.NavigateToPage(ShellPage.Home));
-        ShowMergeCommand = CreateCatalogCommand(() => Navigation.NavigateToPage(ShellPage.Merge));
-        ShowReplaceCommand = CreateCatalogCommand(() => Navigation.NavigateToPage(ShellPage.Replace));
+        ShowMergeCommand = CreateCatalogCommand(
+            () => Navigation.NavigateToPage(ShellPage.Merge),
+            NormalMergeMode, AbCodeMergeMode, GeneralMergeMode);
+        ShowReplaceCommand = CreateCatalogCommand(
+            () => Navigation.NavigateToPage(ShellPage.Replace),
+            DpReplaceMode, CtrlRamReplaceMode, GeneralReplaceMode);
         BeginDpReplaceFromHomeCommand = CreateCatalogCommand(
-            () => WorkflowSession.BeginWorkflowContext(ShellPage.Replace, DpReplaceMode, showNumber: true));
+            () => WorkflowSession.BeginWorkflowContext(ShellPage.Replace, DpReplaceMode, showNumber: true), DpReplaceMode);
         BeginCtrlRamReplaceFromHomeCommand = CreateCatalogCommand(
-            () => WorkflowSession.BeginWorkflowContext(ShellPage.Replace, CtrlRamReplaceMode, showNumber: true));
+            () => WorkflowSession.BeginWorkflowContext(ShellPage.Replace, CtrlRamReplaceMode, showNumber: true), CtrlRamReplaceMode);
         BeginGeneralReplaceFromHomeCommand = CreateCatalogCommand(
-            () => WorkflowSession.BeginWorkflowContext(ShellPage.Replace, GeneralReplaceMode, showNumber: true));
+            () => WorkflowSession.BeginWorkflowContext(ShellPage.Replace, GeneralReplaceMode, showNumber: true), GeneralReplaceMode);
         BeginNormalMergeFromHomeCommand = CreateCatalogCommand(
-            () => WorkflowSession.BeginWorkflowContext(ShellPage.Merge, NormalMergeMode, showNumber: false));
+            () => WorkflowSession.BeginWorkflowContext(ShellPage.Merge, NormalMergeMode, showNumber: false), NormalMergeMode);
         BeginAbMergeFromHomeCommand = CreateCatalogCommand(
-            () => WorkflowSession.BeginWorkflowContext(
-                ShellPage.Merge,
-                AbCodeMergeMode,
-                showNumber: false));
+            () => WorkflowSession.BeginWorkflowContext(ShellPage.Merge, AbCodeMergeMode, showNumber: false),
+            AbCodeMergeMode);
         BeginGeneralMergeFromHomeCommand = CreateCatalogCommand(
-            () => WorkflowSession.BeginWorkflowContext(ShellPage.Merge, GeneralMergeMode, showNumber: false));
+            () => WorkflowSession.BeginWorkflowContext(ShellPage.Merge, GeneralMergeMode, showNumber: false), GeneralMergeMode);
         RevealFileCommand = new RelayCommand<string>(RevealFile);
         PropertyChanged += MainWindowViewModel_OnPropertyChanged;
         _isInitializing = false;

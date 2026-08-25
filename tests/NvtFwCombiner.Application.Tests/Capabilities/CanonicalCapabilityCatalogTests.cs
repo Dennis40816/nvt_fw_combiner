@@ -420,14 +420,16 @@ public sealed partial class CanonicalCapabilityCatalogTests
             Assert.Single(reload.Issues).Code);
     }
 
-    private static CanonicalCapabilityCatalogCandidate CreateCandidate()
+    private static CanonicalCapabilityCatalogCandidate CreateCandidate(
+        params CanonicalCapabilityDefinition[] definitions)
     {
-        CanonicalCapabilityDefinition definition = CreateDefinition(CreateCompiledComposition());
         return new CanonicalCapabilityCatalogCandidate(
             "canonical-capability-catalog",
             "1.0.0",
             new string('a', 64),
-            [definition]);
+            definitions.Length == 0
+                ? [CreateDefinition(CreateCompiledComposition())]
+                : definitions);
     }
 
     private static CanonicalCapabilityDefinition CreateDefinition(
@@ -469,8 +471,10 @@ public sealed partial class CanonicalCapabilityCatalogTests
 
     private static CompiledComposition CreateCompiledComposition(
         string? mapId = null,
-        long outputCapacity = 8)
+        long outputCapacity = 8,
+        CapabilityRouteIdentity? route = null)
     {
+        CapabilityRouteIdentity effectiveRoute = route ?? Route;
         AddressSpace[] addressSpaces =
         [
             new("dp-input", 4, AddressSpaceMutability.Immutable),
@@ -503,15 +507,28 @@ public sealed partial class CanonicalCapabilityCatalogTests
         return CompiledCompositionTestFactory.Create(
             plan,
             new TestCompiledCompositionIdentity(
-                "synthetic-nt51929-standard-merge",
+                $"synthetic-{effectiveRoute.IcId.ToLowerInvariant()}-{effectiveRoute.WorkflowId}",
                 "1.0.0",
-                "NT51929",
-                "standard-merge",
-                "standard-merge",
+                effectiveRoute.IcId,
+                effectiveRoute.WorkflowId,
+                effectiveRoute.WorkflowId,
                 CompositionKind.Merge),
-            "synthetic-nt51929-standard-merge.bin",
+            $"synthetic-{effectiveRoute.IcId.ToLowerInvariant()}-{effectiveRoute.WorkflowId}.bin",
             null,
-            mapId: mapId ?? Route.MapVariant);
+            mapId: mapId ?? effectiveRoute.MapVariant);
+    }
+
+    private static CanonicalCapabilityDisclosure CreateDisclosure(
+        IReadOnlyDictionary<string, IReadOnlyList<CapabilityNumberChoice>>
+            numberChoicesByIc)
+    {
+        return new CanonicalCapabilityDisclosure(
+            new Dictionary<string, IReadOnlyList<CapabilityProfileSummary>>(
+                StringComparer.Ordinal),
+            numberChoicesByIc,
+            new Dictionary<string, IReadOnlyList<long>>(StringComparer.Ordinal),
+            new Dictionary<string, CapabilityFamilySummary>(StringComparer.Ordinal),
+            []);
     }
 
     private static CompiledComposition CreateCompiledCompositionWithExternalProcessor()
@@ -567,4 +584,5 @@ public sealed partial class CanonicalCapabilityCatalogTests
             return _results.Dequeue();
         }
     }
+
 }

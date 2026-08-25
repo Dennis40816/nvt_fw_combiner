@@ -46,9 +46,7 @@ internal sealed partial class ReplacePresentationViewModel
         _generalReplaceDiagnosticPreviewReport = null;
         long? inspectedCapacity = _stateBindings.GetInspectedFileLength(ReplaceBaseSlot);
         bool canSelectFile = inspectedCapacity is > 0 &&
-            _compositionServices.Capabilities.IsReplaceWorkflowAvailable(
-                SelectedIc,
-                GeneralReplaceMode);
+            _stateBindings.IsWorkflowAuthorable(SelectedIc, GeneralReplaceMode);
         foreach (GeneralReplaceMappingViewModel mapping in GeneralReplaceMappings)
         {
             mapping.ApplyAuthoringIssue(null);

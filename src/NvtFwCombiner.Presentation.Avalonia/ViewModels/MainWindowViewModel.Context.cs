@@ -13,8 +13,18 @@ internal sealed partial class MainWindowViewModel
 
     private void ApplySelectedPage(ShellPage page)
     {
+        bool pageChanged = SelectedPage != page;
+        if (pageChanged)
+        {
+            WorkflowSession.RememberCurrentWorkflowContext();
+            SelectedPage = page;
+            WorkflowSession.ActivateWorkflowPageContext(page);
+        }
+
         if (page is ShellPage.Merge or ShellPage.Replace)
         {
+            // Destination publication and page-owned selection must be active
+            // before any profile-dependent lazy-load query observes the IC.
             bool wasWorkflowLoaded = WorkflowSession.IsWorkflowLoaded;
             WorkflowSession.EnsureWorkflowLoaded();
             if (!wasWorkflowLoaded)
@@ -23,12 +33,8 @@ internal sealed partial class MainWindowViewModel
             }
         }
 
-        bool pageChanged = SelectedPage != page;
         if (pageChanged)
         {
-            WorkflowSession.RememberCurrentWorkflowContext();
-            SelectedPage = page;
-            WorkflowSession.ActivateWorkflowPageContext(page);
             OnPropertyChanged(nameof(SelectedPage));
             OnPropertyChanged(nameof(IsHomeVisible));
             OnPropertyChanged(nameof(IsMergeVisible));
