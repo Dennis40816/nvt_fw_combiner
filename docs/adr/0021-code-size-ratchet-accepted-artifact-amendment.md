@@ -296,3 +296,8 @@ Infrastructure/Contracts/worker above their frozen base ratchets. These values
 are non-transferable exact descending ceilings; the 35-line net reduction is
 retained rather than reassigned. Independent Architecture and semantic reviews
 must remain green, and the canonical final gate remains required.
+
+The 2026-08-25 formal-route and managed-root integration snapshot subsequently
+reduced Infrastructure/Contracts/worker from 17,754 to 17,714 nonblank lines.
+Its non-transferable allowance is therefore lowered from 2,398 to 2,358. The
+40-line reduction is retained and is not transferred to another slice.
