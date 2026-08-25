@@ -47,11 +47,14 @@ This does not create a CtrlRAM executor. Preview and Build continue through the
 same `CompositionPlan`, `CompositionEngine`, Application request, capability
 binding, runtime proof, and external-processor host used before promotion.
 
-For each declared CtrlRAM topology, TP and full-Flash bases are separate exact
-map capacities over one TP-relative geometry. The processor may read and write
-only the profile-declared zero-based TP prefix. A complete FlashCode is cloned
-at its complete capacity and every byte after the TP prefix remains immutable
-unless a separately declared region and operation grants authority.
+For each declared CtrlRAM topology, every base resolves by exact capacity over
+one TP-relative geometry. A shortened TP artifact and its larger full-Flash
+container use separate exact-capacity maps. When a typed TP artifact already
+spans the complete declared image capacity, it reuses that same capacity-matched
+map; sharing a map never reclassifies it as FlashCode. The processor may read
+and write only the profile-declared zero-based TP range. A complete FlashCode is
+cloned at its complete capacity and every byte after that range remains
+immutable unless a separately declared region and operation grants authority.
 
 ## Independent publication and evidence
 

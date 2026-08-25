@@ -12,6 +12,63 @@ namespace NvtFwCombiner.Bootstrap.Tests;
 /// </summary>
 public sealed class CtrlRamDirectTpGoldenExecutionTests
 {
+    private static readonly Dictionary<(string IcId, string Number, string MapId), ExpectedCapability>
+        ExpectedCapabilities = new()
+        {
+            [("NT51919", "single", "nt51929-ctrlram-fw200-single-full-flash")] = new(
+                "route-7-nt51919-15-ctrlram-replace-4-1-ic-39-nt51929-ctrlram-fw200-single-full-flash",
+                "df281e85b4597ed2e71e03f088ff28c406ccea9d5a4f5ad62c6b12d0ebb8dafa",
+                CapabilityEvidenceStatus.ApprovedAlias),
+            [("NT51923", "single", "nt51923-ctrlram-fw141-single-tp-work-240k")] = new(
+                "route-7-nt51923-15-ctrlram-replace-4-1-ic-41-nt51923-ctrlram-fw141-single-tp-work-240k",
+                "4fbf5e5156050649d22c17d80534e000b088c6c28f93616fd37aef56ef4c8338",
+                CapabilityEvidenceStatus.DirectGolden),
+            [("NT51923", "cascade", "nt51923-ctrlram-fw141-cascade3-tp-work-240k")] = new(
+                "route-7-nt51923-15-ctrlram-replace-9-2-plus-ic-43-nt51923-ctrlram-fw141-cascade3-tp-work-240k",
+                "7fe47d2fedb18d421ce7d75e9376857816e58294ac1d80a81618cbb741881202",
+                CapabilityEvidenceStatus.DirectGolden),
+            [("NT51926", "single", "nt51926-ctrlram-fw141-tp-work-240k")] = new(
+                "route-7-nt51926-15-ctrlram-replace-4-1-ic-34-nt51926-ctrlram-fw141-tp-work-240k",
+                "7fb4770dece9b9e2055731c18f45c4f6427ae74a744ce6e9495b99ed3ed99544",
+                CapabilityEvidenceStatus.DirectGolden),
+            [("NT51926", "single", "nt51926-ctrlram-fw200-tp-work-240k")] = new(
+                "route-7-nt51926-15-ctrlram-replace-4-1-ic-34-nt51926-ctrlram-fw200-tp-work-240k",
+                "557d381e0fc2b7c9bf6a76e402d952012f1bbf6d1c45bd931bf48ca30aed9c9e",
+                CapabilityEvidenceStatus.DirectGolden),
+            [("NT51926", "cascade", "nt51926-ctrlram-fw141-tp-work-240k")] = new(
+                "route-7-nt51926-15-ctrlram-replace-9-2-plus-ic-34-nt51926-ctrlram-fw141-tp-work-240k",
+                "59f07391c59f7da664b5c99388c9a1dd631b3d3a531d636b974465d80a6ec45d",
+                CapabilityEvidenceStatus.DirectGolden),
+            [("NT51926", "cascade", "nt51926-ctrlram-fw200-tp-work-240k")] = new(
+                "route-7-nt51926-15-ctrlram-replace-9-2-plus-ic-34-nt51926-ctrlram-fw200-tp-work-240k",
+                "71123feedb8bb0f7c87da35d6278cc443c2302510253d51c860b89304d092ef1",
+                CapabilityEvidenceStatus.DirectGolden),
+            [("NT51927", "single", "nt51927-ctrlram-fw141-single-tp-work-212k")] = new(
+                "route-7-nt51927-15-ctrlram-replace-4-1-ic-41-nt51927-ctrlram-fw141-single-tp-work-212k",
+                "e4ae2ab5b54c967438e442c48eadd2dea8861bcdec967ac3016e258353b4e07f",
+                CapabilityEvidenceStatus.DirectGolden),
+            [("NT51929", "single", "nt51929-ctrlram-fw200-single-full-flash")] = new(
+                "route-7-nt51929-15-ctrlram-replace-4-1-ic-39-nt51929-ctrlram-fw200-single-full-flash",
+                "842dc2b4065d94f0558910b2717450490dabd42b205277376e2418987b0dca52",
+                CapabilityEvidenceStatus.DirectGolden),
+            [("NT51932", IcNumberSelectionTokens.CascadeTwoToEight, "nt51932-ctrlram-fw200-cascade-full-flash")] = new(
+                "route-7-nt51932-15-ctrlram-replace-6-2-8-ic-40-nt51932-ctrlram-fw200-cascade-full-flash",
+                "79e337b555022db0c24d98104f255052eb12b227144c3b613a74ff335357b6a2",
+                CapabilityEvidenceStatus.DirectGolden),
+            [("NT51950", "single", "nt51950-ctrlram-fw200-single-tp-work")] = new(
+                "route-7-nt51950-15-ctrlram-replace-4-1-ic-36-nt51950-ctrlram-fw200-single-tp-work",
+                "290123b9bdad932c1474a120def1386dfabaef3bb7ff03cecdec3e7025e37cbc",
+                CapabilityEvidenceStatus.ContractOnly),
+            [("NT51951", "single", "nt51951-ctrlram-fw200-single-tp-work")] = new(
+                "route-7-nt51951-15-ctrlram-replace-4-1-ic-36-nt51951-ctrlram-fw200-single-tp-work",
+                "824903e83aa402b8f47adec84313500802ed418053db9597508fd43a960d6b0f",
+                CapabilityEvidenceStatus.ContractOnly),
+            [("NT51951", "cascade", "nt51951-ctrlram-fw1x-cascade-tp-work")] = new(
+                "route-7-nt51951-15-ctrlram-replace-4-2-ic-36-nt51951-ctrlram-fw1x-cascade-tp-work",
+                "f1cf4f16561f4fa45f4d5ef204f8479e60bea491c215ae85b675eaf33ded0f44",
+                CapabilityEvidenceStatus.ContractOnly),
+        };
+
     /// <summary>
     /// Proves each TP route uses the canonical inputs, the exact production route and constrained
     /// processor, and produces the complete declared owner TP view modulo only reviewed ranges.
@@ -80,7 +137,7 @@ public sealed class CtrlRamDirectTpGoldenExecutionTests
         int tpLength,
         string expectedOutputSha256)
     {
-        _ = await ExecuteRouteAsync(
+        RouteExecution execution = await ExecuteRouteAsync(
             caseId,
             icId,
             number,
@@ -89,6 +146,10 @@ public sealed class CtrlRamDirectTpGoldenExecutionTests
             expectedMapId,
             tpLength,
             expectedOutputSha256);
+        if (!execution.IsSkipped)
+        {
+            AssertOwnerFullFlashPrefixIsNotTpGolden(execution, tpLength);
+        }
     }
 
     /// <summary>
@@ -171,6 +232,12 @@ public sealed class CtrlRamDirectTpGoldenExecutionTests
         Assert.Equal(
             expectedMapId,
             capability.CompiledComposition.V2Details.Provenance.ResolvedMap.ImageMap.MapId);
+        ExpectedCapability expectedCapability = ExpectedCapabilities[(icId, number, expectedMapId)];
+        Assert.Equal(expectedCapability.RouteId, capability.Identity.RouteId);
+        Assert.Equal(expectedCapability.CapabilityFingerprint, capability.CapabilityFingerprint);
+        Assert.Equal(expectedCapability.Evidence, capability.Evidence.Value);
+        Assert.Equal(expectedCapability.RouteId, capability.Evidence.RouteId);
+        Assert.Equal(expectedCapability.CapabilityFingerprint, capability.Evidence.CapabilityFingerprint);
 
         var immutableHashes = artifacts
             .Where(static artifact => StringComparer.Ordinal.Equals(artifact.Role, "input"))
@@ -195,7 +262,13 @@ public sealed class CtrlRamDirectTpGoldenExecutionTests
             StringComparer.Ordinal.Equals(expectedOutputSha256, actualSha256),
             $"Actual TP output SHA-256: {actualSha256}");
         Assert.Equal(expectedOutputSha256, result.OutputSha256);
-        AssertExecutionAuthority(result, expectedProfileId, tpLength, tpBase.Bytes, actual);
+        AssertExecutionAuthority(
+            result,
+            expectedProfileId,
+            capability.CompiledComposition.CompilationFingerprint,
+            tpLength,
+            tpBase.Bytes,
+            actual);
         Assert.All(
             immutableHashes,
             pair => Assert.Equal(pair.Value, Hash(File.ReadAllBytes(pair.Key))));
@@ -281,14 +354,41 @@ public sealed class CtrlRamDirectTpGoldenExecutionTests
         Assert.All(differenceCounts, static count => Assert.Equal(4, count));
     }
 
+    private static void AssertOwnerFullFlashPrefixIsNotTpGolden(
+        RouteExecution execution,
+        int tpLength)
+    {
+        OwnerArtifact expected = RequireArtifact(execution.Artifacts, "expected-output");
+        Assert.True(expected.Bytes.Length >= tpLength);
+        CanonicalGoldenTestDisposition disposition = CanonicalGoldenTestData.RequireDisposition(
+            execution.GoldenCase,
+            CanonicalGoldenTestDispositionKind.AllowedByteDifference);
+        bool hasUnapprovedDifference = false;
+        for (int index = 0; index < tpLength; index++)
+        {
+            if (expected.Bytes[index] != execution.Actual[index] &&
+                !disposition.AllowedDifferenceRanges.Any(range => range.Contains(index)))
+            {
+                hasUnapprovedDifference = true;
+                break;
+            }
+        }
+
+        Assert.True(
+            hasUnapprovedDifference,
+            "The owner full-FlashCode prefix must not be promoted as this TP-only route's Golden.");
+    }
+
     private static void AssertExecutionAuthority(
         CompositionRunResult result,
         string expectedProfileId,
+        string expectedCompilationFingerprint,
         int tpLength,
         ReadOnlySpan<byte> originalBase,
         ReadOnlySpan<byte> actual)
     {
         Assert.Equal(expectedProfileId, result.Report.ProfileId);
+        Assert.Equal(expectedCompilationFingerprint, result.Report.CompilationFingerprint);
         Assert.All(result.Report.Operations, operation =>
         {
             Assert.Equal(OperationRunStatus.Succeeded, operation.Status);
@@ -349,6 +449,11 @@ public sealed class CtrlRamDirectTpGoldenExecutionTests
         string Role,
         string Path,
         byte[] Bytes);
+
+    private sealed record ExpectedCapability(
+        string RouteId,
+        string CapabilityFingerprint,
+        CapabilityEvidenceStatus Evidence);
 
     private sealed record RouteExecution(
         JsonElement GoldenCase,
