@@ -1,0 +1,34 @@
+{
+  "schemaVersion": 2,
+  "taskId": "ROADMAP-110-TEST-SYNC-01",
+  "capability": "Synchronize the executable NFC roadmap contract with the owner-approved 1.1.0 milestone",
+  "integrationBase": "87ad6b9f025a0f6e2fc8ddd95aec141a01d14e94",
+  "risk": "R2",
+  "kind": "governance",
+  "state": "design-active",
+  "mutablePaths": [
+    "tests/NvtFwCombiner.Architecture.Tests/RepositoryBoundaryTests.Roadmap.cs"
+  ],
+  "implementationOwner": "root",
+  "searchEvidence": [
+    "docs/architecture/nfc_roadmap.md is the canonical owner of future milestone ordering and assigns deferred product expansion and analyzer cleanup to 1.1.0 after reviewed v1.0.0.",
+    "The Architecture suite at integrationBase reports 238 passed and one failed; the only failure is the obsolete 0.11.0 assertion in RepositoryBoundaryTests.Roadmap.cs.",
+    "Repository search found the old test method name and obsolete heading assertion only in RepositoryBoundaryTests.Roadmap.cs."
+  ],
+  "semanticOwner": "docs/architecture/nfc_roadmap.md owns milestone ordering; RepositoryBoundaryTests.Roadmap.cs consumes that authority without redefining it",
+  "terminalContract": "The architecture test preserves the historical 0.9.16 and 0.10.x checks while asserting the existing reviewed-v1.0.0 predecessor, 1.1.0 heading, AB evidence tracks, saved-rule authoring scope, and later IC/rule-authoring boundary. No roadmap, product, release, firmware, profile, schema, or runtime behavior changes.",
+  "disposition": "reuse",
+  "designReview": {
+    "reviewer": "review_roadmap_integration_fix",
+    "outcome": "approved",
+    "evidence": "Independent R2 architecture review confirmed that the roadmap is already authoritative and that the bounded test-only synchronization preserves dependency direction and existing scope."
+  },
+  "implementationHead": null,
+  "reviewedHead": null,
+  "pathStateDigest": null,
+  "finalReview": {
+    "reviewer": null,
+    "outcome": "pending",
+    "evidence": ""
+  }
+}
