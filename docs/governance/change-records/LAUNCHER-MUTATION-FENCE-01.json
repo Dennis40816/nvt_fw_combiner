@@ -1,0 +1,42 @@
+{
+  "schemaVersion": 2,
+  "taskId": "LAUNCHER-MUTATION-FENCE-01",
+  "capability": "Protocol-aware managed-version mutation fence and launcher-owner deletion protection",
+  "integrationBase": "3aaeca625cf9277d613fd57a1f466415d991972c",
+  "risk": "R2",
+  "kind": "behavior",
+  "state": "design-active",
+  "mutablePaths": [
+    "src/NvtFwCombiner.VersionManagement.Application/VersionManagement/LauncherMutationFence.cs",
+    "src/NvtFwCombiner.VersionManagement.Application/VersionManagement/VersionManagementExperience.cs",
+    "src/NvtFwCombiner.VersionManagement.Application/VersionManagement/VersionManagementExperience.Install.cs",
+    "src/NvtFwCombiner.VersionManagement.Application/VersionManagement/VersionManagementExperience.Recovery.cs",
+    "src/NvtFwCombiner.VersionManagement.Application/VersionManagement/VersionManagementPolicy.cs",
+    "src/NvtFwCombiner.VersionManagement.Infrastructure/VersionManagement/JsonLauncherMutationFence.cs",
+    "tests/NvtFwCombiner.Application.Tests/VersionManagement/LauncherMutationFenceTests.cs",
+    "tests/NvtFwCombiner.Infrastructure.Tests/VersionManagement/JsonLauncherMutationFenceTests.cs"
+  ],
+  "implementationOwner": "implement_launcher100",
+  "searchEvidence": [
+    "VersionManagementExperience is the sole install/delete/source/activation mutation owner and already serializes through the exact app-state lease.",
+    "LauncherBootstrapCoordinator releases that lease while supervising a process, so the durable launcher Pending transaction must also be inspected by every mutator.",
+    "VersionManagementPolicy is the sole delete decision owner; no launcher-owner protection projection or rollback-retirement command existed before ADR 0056.",
+    "JsonLauncherBootstrapStateStore is the sole launcher journal adapter and intentionally declares no second lease."
+  ],
+  "semanticOwner": "VersionManagement Application mutation policy over one read/retire port; Infrastructure only projects and atomically persists the strict launcher journal under the caller-held app-state lease",
+  "terminalContract": "Every managed-version state or filesystem mutation fails closed while launcher activation is pending or the launcher journal is invalid/unavailable; active and pending launcher owner admissions cannot be deleted; a last-known-good-only owner is durably rehomed to the active launcher after the existing rollback-loss confirmation and before app deletion; recovery repeats the same protection; no second writer lease is introduced.",
+  "disposition": "extend-owner",
+  "designReview": {
+    "reviewer": "launcher_arch_admission",
+    "outcome": "approved",
+    "evidence": "ADR 0056 production admission explicitly requires a protocol-aware logical mutation fence, exact active/LKG/pending owner deletion protection, and durable LKG retire-before-delete under the existing app-state lease."
+  },
+  "implementationHead": null,
+  "reviewedHead": null,
+  "pathStateDigest": null,
+  "finalReview": {
+    "reviewer": null,
+    "outcome": "pending",
+    "evidence": ""
+  }
+}
