@@ -1,0 +1,251 @@
+{
+  "schemaVersion": 1,
+  "checkpointId": "CAPABILITY-REUSE-INITIAL-100",
+  "reviewedHead": "f6e0963c97c2eb4f2b8a782cab36b655deb3072b",
+  "reviewedTree": "efbe0c36ff4fb617affd39cabae03d90288b8b02",
+  "ownerDecisionRef": "Codex owner decision 2026-08-26: approved the exact reviewed head/tree and retained all six inventoried R3 authorities as pending.",
+  "legacyRecords": [
+    {
+      "taskId": "ARTIFACT-CLASS-01",
+      "path": "docs/governance/change-records/ARTIFACT-CLASS-01.json",
+      "risk": "R2",
+      "state": "design-active",
+      "contentSha256": "d60e519b659bc299b452db2b5238c5ff033067206ee9580c3f294d91e4eea693"
+    },
+    {
+      "taskId": "DP-META-01",
+      "path": "docs/governance/change-records/DP-META-01.json",
+      "risk": "R2",
+      "state": "design-active",
+      "contentSha256": "1964ec3fc30318cad64c2556e0b605257bd97134cb3a7a92adf5245af1cdc169"
+    },
+    {
+      "taskId": "FORMAL-RUNTIME-CLOSURE-01",
+      "path": "docs/governance/change-records/FORMAL-RUNTIME-CLOSURE-01.json",
+      "risk": "R2",
+      "state": "design-active",
+      "contentSha256": "83990e77c0dd4dc4b059e31912c5c8e0f447b6cb41286009966f73e787d23dc1"
+    },
+    {
+      "taskId": "FORMAL-SUPPORT-01",
+      "path": "docs/governance/change-records/FORMAL-SUPPORT-01.json",
+      "risk": "R3",
+      "state": "design-active",
+      "contentSha256": "53d799d3644ab069a72843aec6233c4604d07b222d9b8e5da0e217516e101b85"
+    },
+    {
+      "taskId": "LAUNCHER-LIFETIME-IDENTITY-CORRECTION-01",
+      "path": "docs/governance/change-records/LAUNCHER-LIFETIME-IDENTITY-CORRECTION-01.json",
+      "risk": "R2",
+      "state": "design-active",
+      "contentSha256": "c3a5e0280fd06756c594cbebf121f249e51a7e7bc1c6088b5581e36cdc57d42c"
+    },
+    {
+      "taskId": "LAUNCHER-MUTATION-FENCE-01",
+      "path": "docs/governance/change-records/LAUNCHER-MUTATION-FENCE-01.json",
+      "risk": "R2",
+      "state": "design-active",
+      "contentSha256": "08cf1a3e2fc32fad075150fe1a0282f71ff9f8e11f799ad40b4efc86d599d9f3"
+    },
+    {
+      "taskId": "LAUNCHER-PACKAGE-01",
+      "path": "docs/governance/change-records/LAUNCHER-PACKAGE-01.json",
+      "risk": "R3",
+      "state": "design-active",
+      "contentSha256": "50654d94a651b501ce2e126376ad0325f10cf21a9a9267198f16ad69c19b9d76"
+    },
+    {
+      "taskId": "LAUNCHER-PROCESS-SMOKE-01",
+      "path": "docs/governance/change-records/LAUNCHER-PROCESS-SMOKE-01.json",
+      "risk": "R3",
+      "state": "design-active",
+      "contentSha256": "ff80677b6aa1c89d4b500e8d0217ae06b0ccdfd0af1ac1a1ac72c9b45fb7449a"
+    },
+    {
+      "taskId": "LAUNCHER-RECOVERY-FENCE-01",
+      "path": "docs/governance/change-records/LAUNCHER-RECOVERY-FENCE-01.json",
+      "risk": "R2",
+      "state": "design-active",
+      "contentSha256": "3528f52eba9168ce0a9d1145a86ee54a6556b6cb807a6c3be52b9e5254f5c7fa"
+    },
+    {
+      "taskId": "LAUNCHER-SELF-UPDATE-01",
+      "path": "docs/governance/change-records/LAUNCHER-SELF-UPDATE-01.json",
+      "risk": "R2",
+      "state": "design-active",
+      "contentSha256": "b23f269b5063833ba30d82601167fdc1fae1bdcf2f8a662401754bda40fe4752"
+    },
+    {
+      "taskId": "NAV-P1-REMEDIATION-01",
+      "path": "docs/governance/change-records/NAV-P1-REMEDIATION-01.json",
+      "risk": "R2",
+      "state": "design-active",
+      "contentSha256": "d90e2194a7aa194c956a25746c5811c4484a4fcd1d366893b976d6bc9815c829"
+    },
+    {
+      "taskId": "NAV-STATE-ISOLATION-01",
+      "path": "docs/governance/change-records/NAV-STATE-ISOLATION-01.json",
+      "risk": "R2",
+      "state": "design-active",
+      "contentSha256": "ab332a64becce9b3da1cfed4770b5360d28ff387a955c38b9a6f1f014a95ab4b"
+    },
+    {
+      "taskId": "PACKAGE-SOURCE-IDENTITY-01",
+      "path": "docs/governance/change-records/PACKAGE-SOURCE-IDENTITY-01.json",
+      "risk": "R3",
+      "state": "design-active",
+      "contentSha256": "1b6287a67210d997669dd80ddc0f3730375f06fefdd792b8e0d4f3a3016ce85c"
+    },
+    {
+      "taskId": "ROADMAP-110-TEST-SYNC-01",
+      "path": "docs/governance/change-records/ROADMAP-110-TEST-SYNC-01.json",
+      "risk": "R2",
+      "state": "final-complete",
+      "contentSha256": "30af8a52922551154b1d705e732bc32ca13509437e7f8c0dc18e496b3e28a3cb"
+    },
+    {
+      "taskId": "TEST-COUNT-01",
+      "path": "docs/governance/change-records/TEST-COUNT-01.json",
+      "risk": "R2",
+      "state": "design-active",
+      "contentSha256": "7e5cd75bd165939bb15a60580d6f2b14f6150d96c581c582e1a90a58c721649d"
+    },
+    {
+      "taskId": "TRUSTED-CHECKPOINT-MIGRATION-01",
+      "path": "docs/governance/change-records/TRUSTED-CHECKPOINT-MIGRATION-01.json",
+      "risk": "R2",
+      "state": "design-active",
+      "contentSha256": "bc1bebd5c6c6f85a58582b64009ea292960c6e5424bd5f162a5a68f421e5510e"
+    },
+    {
+      "taskId": "UPDATE-CATALOG-100-SIZE-01",
+      "path": "docs/governance/change-records/UPDATE-CATALOG-100-SIZE-01.json",
+      "risk": "R3",
+      "state": "design-active",
+      "contentSha256": "8aa5c9f7b363b072926ae2e3db61e1778e5af45a770c08f03e6a2029a27d3c4f"
+    },
+    {
+      "taskId": "UPDATE-HANDOFF-101-01",
+      "path": "docs/governance/change-records/UPDATE-HANDOFF-101-01.json",
+      "risk": "R3",
+      "state": "design-active",
+      "contentSha256": "62a479b86d87a911434cdd74995250c48f1f6f3074912410c236feb72f5b3d1c"
+    },
+    {
+      "taskId": "VER-REG-100",
+      "path": "docs/governance/change-records/VER-REG-100.json",
+      "risk": "R2",
+      "state": "design-active",
+      "contentSha256": "46ec5b8bd2d0c08b2dcbef986b775580adfeadf04b5ea000487baea955a671f4"
+    },
+    {
+      "taskId": "VER-REG-FILE-BOUNDARIES-01",
+      "path": "docs/governance/change-records/VER-REG-FILE-BOUNDARIES-01.json",
+      "risk": "R1",
+      "state": "design-active",
+      "contentSha256": "14c5804dcaf8a306986415ff90983315b90809d106b4259b1743cbcc64d40698"
+    },
+    {
+      "taskId": "VER-REG-LIFECYCLE-01",
+      "path": "docs/governance/change-records/VER-REG-LIFECYCLE-01.json",
+      "risk": "R2",
+      "state": "design-active",
+      "contentSha256": "db73ebc82b29310fdfb7557cadf5c964718e557d6f836cacb678954c31af3e60"
+    },
+    {
+      "taskId": "VER-REG-NO-LOCATOR-01",
+      "path": "docs/governance/change-records/VER-REG-NO-LOCATOR-01.json",
+      "risk": "R2",
+      "state": "design-active",
+      "contentSha256": "b493eb74a34e64d97b05d639f8aeb2840f7f7f98e50ce2545b635ae2a847c68b"
+    },
+    {
+      "taskId": "VER-REG-STATE-01",
+      "path": "docs/governance/change-records/VER-REG-STATE-01.json",
+      "risk": "R2",
+      "state": "design-active",
+      "contentSha256": "259a28af03de2568b3230891803fcc34ec7a48516172c1dd8d9549868b822fbf"
+    },
+    {
+      "taskId": "VER-SELFTEST-01",
+      "path": "docs/governance/change-records/VER-SELFTEST-01.json",
+      "risk": "R1",
+      "state": "design-active",
+      "contentSha256": "6f47a88b02169a51e5157f2a9551c873c2a07469d8d88e9b158c9ced37f58837"
+    },
+    {
+      "taskId": "VER-SELFTEST-LAB-01",
+      "path": "docs/governance/change-records/VER-SELFTEST-LAB-01.json",
+      "risk": "R2",
+      "state": "design-active",
+      "contentSha256": "4bbb103b129096ccf30b13ba592edbbf1cbbef1aba2af4c462152a8b722494c8"
+    },
+    {
+      "taskId": "VER-SELFTEST-UI-01",
+      "path": "docs/governance/change-records/VER-SELFTEST-UI-01.json",
+      "risk": "R2",
+      "state": "design-active",
+      "contentSha256": "0f132f5a6180ba1013a5b30bf6f30d695340fe6f3b6ede487bf117fbf59f59ee"
+    },
+    {
+      "taskId": "VER-SELFTEST-UI-FIDELITY-01",
+      "path": "docs/governance/change-records/VER-SELFTEST-UI-FIDELITY-01.json",
+      "risk": "R1",
+      "state": "design-active",
+      "contentSha256": "3b1686c3d5e71f99251bf4f0680a46137500e98c9d0ef5c306d2426a2f9eba66"
+    },
+    {
+      "taskId": "VM-HARDEN-01",
+      "path": "docs/governance/change-records/VM-HARDEN-01.json",
+      "risk": "R2",
+      "state": "design-active",
+      "contentSha256": "c7c7659014fe913b2bcb57205ef90ea426ee2b17524c7929e44f64b99f872084"
+    },
+    {
+      "taskId": "VM-INVENTORY-STATE-01",
+      "path": "docs/governance/change-records/VM-INVENTORY-STATE-01.json",
+      "risk": "R2",
+      "state": "design-active",
+      "contentSha256": "cf754b7483179672eaac89ff2d2924a4c1c74dd4dad18bca8a08a74172f9b06f"
+    },
+    {
+      "taskId": "VM-TRANSACTION-SAFETY-01",
+      "path": "docs/governance/change-records/VM-TRANSACTION-SAFETY-01.json",
+      "risk": "R2",
+      "state": "design-active",
+      "contentSha256": "dabddd13fdaad8c79a1f4fc00acec70d6d1f5d84edc4c3247dd6f8afd28eec6c"
+    }
+  ],
+  "openR3Authorities": [
+    {
+      "taskId": "FORMAL-SUPPORT-01",
+      "authorityType": "firmware-owner",
+      "status": "pending"
+    },
+    {
+      "taskId": "LAUNCHER-PACKAGE-01",
+      "authorityType": "release-owner",
+      "status": "pending"
+    },
+    {
+      "taskId": "LAUNCHER-PROCESS-SMOKE-01",
+      "authorityType": "release-owner",
+      "status": "pending"
+    },
+    {
+      "taskId": "PACKAGE-SOURCE-IDENTITY-01",
+      "authorityType": "release-owner",
+      "status": "pending"
+    },
+    {
+      "taskId": "UPDATE-CATALOG-100-SIZE-01",
+      "authorityType": "release-owner",
+      "status": "pending"
+    },
+    {
+      "taskId": "UPDATE-HANDOFF-101-01",
+      "authorityType": "release-owner",
+      "status": "pending"
+    }
+  ]
+}
