@@ -340,7 +340,12 @@ internal sealed partial class ReplacePresentationViewModel
         OnPropertyChanged(nameof(IsStructuredReplaceModeSelected));
         OnPropertyChanged(nameof(IsNonCtrlRamStructuredReplaceModeSelected));
         OnPropertyChanged(nameof(ReplaceOutputFileName));
-        RefreshCommandState(dpProjection);
+        if (usesPreparedDpProjection && dpProjection is not null)
+        {
+            _preparedDpReplaceIc = SelectedIc;
+            _preparedDpReplaceSnapshot = dpProjection;
+        }
+        RefreshCommandState();
     }
 
     private CtrlRamInspectionDisplay ResolveCtrlRamDiscoveryDisplay(

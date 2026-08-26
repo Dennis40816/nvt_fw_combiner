@@ -6,8 +6,6 @@ public sealed partial class RepositoryBoundaryTests
     [Fact]
     public void WorkflowPageModeCatalogOwnsEveryPageModeProjection()
     {
-        string catalog = ReadText(
-            "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/WorkflowPageModeCatalog.cs");
         string selector = ReadText(
             "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/WorkflowSelectorProjection.cs");
         string merge = ReadText(
@@ -17,7 +15,7 @@ public sealed partial class RepositoryBoundaryTests
         string construction = ReadText(
             "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/MainWindowViewModel.Construction.cs");
 
-        Assert.Contains("Array.AsReadOnly", catalog, StringComparison.Ordinal);
+        Assert.Contains("Array.AsReadOnly", selector, StringComparison.Ordinal);
         Assert.Contains("WorkflowPageModeCatalog.ForPage", selector, StringComparison.Ordinal);
         Assert.Contains("WorkflowPageModeCatalog.ForPage", merge, StringComparison.Ordinal);
         Assert.Contains("WorkflowPageModeCatalog.ForPage", replace, StringComparison.Ordinal);

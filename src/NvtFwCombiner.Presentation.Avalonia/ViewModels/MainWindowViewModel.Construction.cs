@@ -121,6 +121,7 @@ internal sealed partial class MainWindowViewModel
             ApplyWorkflowContext,
             Reports.SetShellToast,
             RecordSystemActivity,
+            () => RefreshCommandState(refreshReplaceReadiness: false),
             new WorkflowSessionStateBindings(
                 () => SelectedPage,
                 IsCompositionRunInProgress,
@@ -130,7 +131,6 @@ internal sealed partial class MainWindowViewModel
                 GetDisplayedDeviceContextRefreshSummary,
                 ResetRunResultForContextChange,
                 () => RefreshCommandState(),
-                () => RefreshCommandState(refreshReplaceReadiness: false),
                 NotifyRunContextChanged));
         WorkflowSession.PropertyChanged += WorkflowSession_OnPropertyChanged;
         BuildResult = new BuildResultViewModel(_fileRevealService, () => Text.BuildCompletedOpenFolderError);

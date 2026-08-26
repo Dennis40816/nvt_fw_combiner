@@ -255,8 +255,7 @@ internal sealed partial class ReplacePresentationViewModel
         string icId,
         IReadOnlyCollection<FirmwareSlotViewModel> selected)
     {
-        if (selected.Count == 0 &&
-            string.Equals(_preparedDpReplaceIc, icId, StringComparison.Ordinal) &&
+        if (string.Equals(_preparedDpReplaceIc, icId, StringComparison.Ordinal) &&
             _preparedDpReplaceSnapshot is not null)
         {
             CompiledAuthoringSelectionSnapshot prepared = _preparedDpReplaceSnapshot;

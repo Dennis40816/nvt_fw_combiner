@@ -13,6 +13,7 @@ internal sealed partial class WorkflowSessionPresentationViewModel : ObservableO
     private readonly ReplacePresentationViewModel _replace;
     private readonly Action<string, string> _showToast;
     private readonly Action<SystemActivityDraft> _recordActivity;
+    private readonly Action _refreshCommandAvailability;
     private readonly WorkflowSessionStateBindings _stateBindings;
     private readonly Func<ShellTextResources> _textProvider;
 
@@ -24,6 +25,7 @@ internal sealed partial class WorkflowSessionPresentationViewModel : ObservableO
         Action<WorkflowContextSelection> applyWorkflowContext,
         Action<string, string> showToast,
         Action<SystemActivityDraft> recordActivity,
+        Action refreshCommandAvailability,
         WorkflowSessionStateBindings stateBindings)
     {
         _compositionServices = compositionServices ??
@@ -34,6 +36,8 @@ internal sealed partial class WorkflowSessionPresentationViewModel : ObservableO
         _applyWorkflowContext = applyWorkflowContext ?? throw new ArgumentNullException(nameof(applyWorkflowContext));
         _showToast = showToast ?? throw new ArgumentNullException(nameof(showToast));
         _recordActivity = recordActivity ?? throw new ArgumentNullException(nameof(recordActivity));
+        _refreshCommandAvailability = refreshCommandAvailability ??
+            throw new ArgumentNullException(nameof(refreshCommandAvailability));
         _stateBindings = stateBindings ?? throw new ArgumentNullException(nameof(stateBindings));
         WorkflowContextSetup = new WorkflowContextSetupViewModel();
         ConfirmWorkflowContextCommand = new RelayCommand(ConfirmWorkflowContext);

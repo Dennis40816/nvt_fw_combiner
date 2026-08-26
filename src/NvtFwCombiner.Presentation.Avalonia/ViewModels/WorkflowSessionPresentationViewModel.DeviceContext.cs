@@ -357,7 +357,7 @@ internal sealed partial class WorkflowSessionPresentationViewModel
             _replace.RefreshContextState(preserveSlotFiles: preserveReplaceSlotFiles);
             _replace.ApplyFirmwareSlotText();
         }
-        _stateBindings.RefreshCommandAvailability();
+        _refreshCommandAvailability();
         NotifyContextTextChanged(owner, notifyIcChoices: false);
         if (resetRunResult)
         {
