@@ -64,6 +64,7 @@ public sealed class FileSystemLauncherInstallationSelfTest : ILauncherInstallati
         {
             return Failure(LauncherInstallationSelfTestIssue.ActiveAdmissionMissing);
         }
+        VersionManagerState.DurableSnapshotToken appSnapshot = appState.CreateDurableSnapshotToken();
 
         LauncherBootstrapStateLoadResult launcherLoaded = await _launcherStateStore.LoadAsync(
             cancellationToken).ConfigureAwait(false);
@@ -83,6 +84,8 @@ public sealed class FileSystemLauncherInstallationSelfTest : ILauncherInstallati
         {
             return Failure(LauncherInstallationSelfTestIssue.ActiveLauncherMismatch);
         }
+        LauncherBootstrapState.DurableSnapshotToken launcherSnapshot =
+            launcherState.CreateDurableSnapshotToken();
 
         InstalledLauncherResult verified = await _launcherRepository.VerifyAsync(
             _managedRoot,
@@ -114,8 +117,8 @@ public sealed class FileSystemLauncherInstallationSelfTest : ILauncherInstallati
             cancellationToken).ConfigureAwait(false);
         bool snapshotStable = terminalLauncher.IsSuccess &&
             terminalLauncher.State is { } terminalLauncherState &&
-            SameSnapshot(appState, terminalAppState) &&
-            SameSnapshot(launcherState, terminalLauncherState);
+            appSnapshot.Matches(terminalAppState.CreateDurableSnapshotToken()) &&
+            launcherSnapshot.Matches(terminalLauncherState.CreateDurableSnapshotToken());
         return snapshotStable
             ? new(
                 LauncherInstallationSelfTestIssue.None,
@@ -168,28 +171,6 @@ public sealed class FileSystemLauncherInstallationSelfTest : ILauncherInstallati
         LauncherInstallationSelfTestIssue issue)
     {
         return new(issue, bootstrap: null, activeLauncher: null);
-    }
-
-    private static bool SameSnapshot(VersionManagerState left, VersionManagerState right)
-    {
-        return string.Equals(left.ManagedRootIdentity, right.ManagedRootIdentity, StringComparison.Ordinal) &&
-               string.Equals(left.UpdateSource, right.UpdateSource, StringComparison.Ordinal) &&
-               left.ActiveVersion == right.ActiveVersion &&
-               left.LastKnownGoodVersion == right.LastKnownGoodVersion &&
-               left.Admissions.SequenceEqual(right.Admissions) &&
-               left.PendingActivation == right.PendingActivation &&
-               left.FailedActivationVersion == right.FailedActivationVersion &&
-               left.RetentionReviewDue == right.RetentionReviewDue &&
-               left.PendingMutation == right.PendingMutation;
-    }
-
-    private static bool SameSnapshot(LauncherBootstrapState left, LauncherBootstrapState right)
-    {
-        return string.Equals(left.ManagedRootIdentity, right.ManagedRootIdentity, StringComparison.Ordinal) &&
-               left.Active == right.Active &&
-               left.LastKnownGood == right.LastKnownGood &&
-               left.Pending == right.Pending &&
-               left.Failed == right.Failed;
     }
 
     private static LauncherInstallationSelfTestIssue Map(VersionManagerStateLoadIssue issue)

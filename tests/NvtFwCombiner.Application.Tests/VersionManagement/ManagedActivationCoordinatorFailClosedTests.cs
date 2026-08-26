@@ -4,6 +4,29 @@ namespace NvtFwCombiner.Application.Tests.VersionManagement;
 
 public sealed partial class ManagedActivationCoordinatorTests
 {
+    /// <summary>Unconfirmed candidate cleanup preserves the recoverable journal and starts no fallback.</summary>
+    [Fact]
+    public async Task CandidateTerminationUnconfirmedPreservesJournalWithoutStartingFallback()
+    {
+        ManagedAppVersion candidate = ManagedAppVersion.Parse("0.10.6");
+        VersionManagerState requested = VersionActivationPolicy.BeginActivation(State(), candidate);
+        var store = new FakeStateStore(requested);
+        var process = new FakeProcess(ManagedProcessStartOutcome.TerminationUnconfirmed);
+        var coordinator = new ManagedActivationCoordinator(
+            "managed",
+            store,
+            new HealthyRepository(),
+            process,
+            TimeSpan.FromSeconds(1));
+
+        ManagedLauncherResult result = await coordinator.RunAsync(TestContext.Current.CancellationToken);
+
+        Assert.Equal(ManagedLauncherOutcome.TerminationUnconfirmed, result.Outcome);
+        Assert.Equal(["0.10.6"], process.Starts);
+        Assert.Equal(VersionActivationPhase.CandidateLaunchRecorded, store.State.PendingActivation?.Phase);
+        Assert.Equal(candidate, store.State.PendingActivation?.CandidateVersion);
+    }
+
     /// <summary>A durably quarantined active version cannot be launched again.</summary>
     [Fact]
     public async Task FailedActiveVersionDoesNotLaunch()
@@ -186,5 +209,27 @@ public sealed partial class ManagedActivationCoordinatorTests
         {
             throw new NotSupportedException();
         }
+    }
+}
+
+public sealed partial class LauncherBootstrapCoordinatorTests
+{
+    /// <summary>Unconfirmed candidate cleanup preserves the exact journal and starts no fallback.</summary>
+    [Fact]
+    public async Task CandidateTerminationUnconfirmedPreservesJournalWithoutStartingFallback()
+    {
+        var launcherStore = new RecordingLauncherStateStore(
+            LauncherBootstrapState.Create(Root, Launcher100, Launcher100, pending: null, failed: null));
+        var process = new RecordingLauncherProcess(LauncherProcessStartOutcome.TerminationUnconfirmed);
+
+        LauncherBootstrapResult result = await Create(
+            new RecordingAppStateStore(AppState(App101, App100)),
+            launcherStore,
+            new RecordingLauncherRepository(Launcher101, Launcher100),
+            process).RunAsync(TestContext.Current.CancellationToken);
+
+        Assert.Equal(LauncherBootstrapOutcome.TerminationUnconfirmed, result.Outcome);
+        Assert.Equal([Launcher101], process.Started);
+        Assert.Equal(LauncherActivationPhase.CandidateLaunchRecorded, launcherStore.Current!.Pending!.Phase);
     }
 }

@@ -32,6 +32,10 @@ Rules:
   `candidateLaunchRecorded` never starts it again after restart.
   `rollbackLaunchRecorded` may start only the recorded previous
   last-known-good identity.
+- A rejected or timed-out process permits automatic fallback in the same
+  invocation only after the process adapter confirms exit. Unconfirmed
+  termination returns a distinct fail-closed outcome and preserves the current
+  recoverable journal phase without starting another process.
 - `failed` is diagnostic history and never a fallback selector.
 - Launcher activation is forbidden while application `pendingActivation` or
   `pendingMutation` exists. A pending activation runs only the already admitted

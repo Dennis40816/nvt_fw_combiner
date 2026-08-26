@@ -1,4 +1,6 @@
 using System.IO.Pipes;
+using System.ComponentModel;
+using System.Diagnostics;
 using NvtFwCombiner.Application.VersionManagement;
 using NvtFwCombiner.Infrastructure.VersionManagement;
 using NvtFwCombiner.TestSupport;
@@ -81,6 +83,36 @@ public sealed class AnonymousPipeManagedApplicationProcessTests
             TestContext.Current.CancellationToken);
 
         Assert.Equal(ManagedProcessStartOutcome.ReadyTimeout, result.Outcome);
+    }
+
+    /// <summary>A Win32 kill failure cannot authorize Application rollback in the same invocation.</summary>
+    [Fact]
+    public async Task KillFailureReturnsUnconfirmedTermination()
+    {
+        using var workspace = TempWorkspace.Create();
+        ManagedAppVersion version = ManagedAppVersion.Parse("0.10.6");
+        PrepareProbe(workspace.Root, version);
+        string? previous = Environment.GetEnvironmentVariable(BehaviorEnvironment);
+        try
+        {
+            Environment.SetEnvironmentVariable(BehaviorEnvironment, "timeout");
+            var termination = new ManagedProcessTermination(
+                new FailingTerminationOperations(failKill: true, failWait: false));
+
+            ManagedProcessStartResult result = await new AnonymousPipeManagedApplicationProcess(
+                statePath: null,
+                termination).StartUntilReadyAsync(
+                    workspace.Root,
+                    version,
+                    TimeSpan.FromMilliseconds(200),
+                    TestContext.Current.CancellationToken);
+
+            Assert.Equal(ManagedProcessStartOutcome.TerminationUnconfirmed, result.Outcome);
+        }
+        finally
+        {
+            Environment.SetEnvironmentVariable(BehaviorEnvironment, previous);
+        }
     }
 
     /// <summary>A wrong one-use ready message is rejected.</summary>
@@ -414,6 +446,22 @@ public sealed class AnonymousPipeManagedApplicationProcessTests
             await new StableLauncherHandoff(workspace.Root).TryStartLauncherAsync(cancellation.Token));
     }
 
+    /// <summary>A residual Win32 start failure is converted to the handoff's fail-closed result.</summary>
+    [Fact]
+    public async Task StableLauncherHandoffConvertsWin32StartFailureToFalse()
+    {
+        using var workspace = TempWorkspace.Create();
+        await File.WriteAllTextAsync(
+            Path.Combine(workspace.Root, "NvtFwCombiner.Bootstrap.exe"),
+            "not-a-windows-executable",
+            TestContext.Current.CancellationToken);
+
+        bool started = await new StableLauncherHandoff(workspace.Root)
+            .TryStartLauncherAsync(TestContext.Current.CancellationToken);
+
+        Assert.False(started);
+    }
+
     private static async ValueTask<ManagedProcessStartResult> RunAsync(
         string managedRoot,
         ManagedAppVersion version,
@@ -449,6 +497,38 @@ public sealed class AnonymousPipeManagedApplicationProcessTests
                 ? "NvtFwCombiner.exe"
                 : fileName;
             File.Copy(source, Path.Combine(versionRoot, targetName));
+        }
+    }
+
+    private sealed class FailingTerminationOperations(bool failKill, bool failWait)
+        : IManagedProcessTerminationOperations
+    {
+        public bool HasExited(Process process)
+        {
+            return false;
+        }
+
+        public void Kill(Process process)
+        {
+            process.Kill(entireProcessTree: true);
+            if (failKill)
+            {
+                throw new Win32Exception("Injected kill failure.");
+            }
+        }
+
+        public void WaitForExit(Process process)
+        {
+            if (failWait)
+            {
+                throw new InvalidOperationException("Injected wait failure.");
+            }
+            process.WaitForExit();
+        }
+
+        public int GetExitCode(Process process)
+        {
+            return process.ExitCode;
         }
     }
 }

@@ -39,11 +39,20 @@ public sealed partial class RepositoryBoundaryTests
             "--state-path",
             "TryAcquireWriteLeaseAsync",
             "ManagedActivationCoordinator.DefaultWriterLeaseTimeout");
-        AssertContainsAll(launcherProgram, "AnonymousPipeManagedApplicationProcess(statePath)", "ReportNestedReadyAsync");
-        AssertContainsAll(launcherProgram, "bool outerReadyExpected", "!reported && outerReadyExpected", "return 16");
+        AssertContainsAll(
+            launcherProgram,
+            "CaptureNestedReadyContext()",
+            "InvalidInheritedContext",
+            "AnonymousPipeManagedApplicationProcess(statePath)",
+            "ReportNestedReadyAsync",
+            "return 16");
         Assert.True(
-            launcherProgram.IndexOf("bool outerReadyExpected", StringComparison.Ordinal) <
-            launcherProgram.IndexOf("ReportNestedReadyAsync", StringComparison.Ordinal));
+            launcherProgram.IndexOf("CaptureNestedReadyContext()", StringComparison.Ordinal) <
+            launcherProgram.IndexOf("new AnonymousPipeManagedApplicationProcess", StringComparison.Ordinal));
+        Assert.DoesNotContain(
+            "NVT_FW_COMBINER_EXPECTED_LAUNCHER_READY",
+            launcherProgram,
+            StringComparison.Ordinal);
         AssertContainsAll(
             bootstrapRuntime,
             "new ManagedVersionSeedBootstrapper(",
@@ -54,6 +63,24 @@ public sealed partial class RepositoryBoundaryTests
         Assert.DoesNotContain("ManagedVersionSeedBootstrapper", launcherProgram, StringComparison.Ordinal);
         AssertContainsAll(desktopProgram, "ParseManagedHostOptions(args)", "CreateVersionManagementExperience");
         AssertContainsAll(contracts, "launcher/NvtFwCombiner.Launcher.exe", "SupportedProtocolVersion = 1");
+    }
+
+    /// <summary>Durable generation equality stays with both Application state owners.</summary>
+    [Fact]
+    public void LauncherSelfTestConsumesOwnerGeneratedDurableSnapshotTokens()
+    {
+        string appState = ReadText(
+            "src/NvtFwCombiner.VersionManagement.Application/VersionManagement/VersionActivationPolicy.cs");
+        string launcherState = ReadText(
+            "src/NvtFwCombiner.VersionManagement.Application/VersionManagement/LauncherBootstrapContracts.cs");
+        string selfTest = ReadText(
+            "src/NvtFwCombiner.VersionManagement.Infrastructure/VersionManagement/FileSystemLauncherInstallationSelfTest.cs");
+
+        AssertContainsAll(appState, "CreateDurableSnapshotToken", "HasSameDurableSnapshot");
+        AssertContainsAll(launcherState, "CreateDurableSnapshotToken", "HasSameDurableSnapshot");
+        Assert.Equal(4, CountOccurrences(selfTest, "CreateDurableSnapshotToken()"));
+        Assert.DoesNotContain("SameSnapshot", selfTest, StringComparison.Ordinal);
+        Assert.DoesNotContain("TryAcquireWriteLease", selfTest, StringComparison.Ordinal);
     }
 
     /// <summary>Launcher activation shares the existing exact app-state lease and declares no second writer.</summary>

@@ -18,11 +18,20 @@ public sealed class AnonymousPipeManagedApplicationProcess : IManagedApplication
 
     private const int MaximumReadyLineCharacters = 128;
     private readonly string? _statePath;
+    private readonly IManagedProcessTermination _termination;
 
     /// <summary>Creates a process adapter, optionally propagating an exact custom version-state path.</summary>
     public AnonymousPipeManagedApplicationProcess(string? statePath = null)
+        : this(statePath, ManagedProcessTermination.Instance)
+    {
+    }
+
+    internal AnonymousPipeManagedApplicationProcess(
+        string? statePath,
+        IManagedProcessTermination termination)
     {
         _statePath = statePath is null ? null : Path.GetFullPath(statePath);
+        _termination = termination ?? throw new ArgumentNullException(nameof(termination));
     }
 
     /// <inheritdoc />
@@ -97,8 +106,7 @@ public sealed class AnonymousPipeManagedApplicationProcess : IManagedApplication
                     await exitTask.ConfigureAwait(false);
                     return new(ManagedProcessStartOutcome.ExitedBeforeReady, process.ExitCode);
                 }
-                KillIfRunning(process);
-                return new(ManagedProcessStartOutcome.InvalidReadySignal, TryGetExitCode(process));
+                return Terminate(process, ManagedProcessStartOutcome.InvalidReadySignal);
             }
             if (completed == exitTask && exitTask.IsCompletedSuccessfully)
             {
@@ -106,41 +114,34 @@ public sealed class AnonymousPipeManagedApplicationProcess : IManagedApplication
             }
 
             await completed.ConfigureAwait(false);
-            KillIfRunning(process);
-            return new(ManagedProcessStartOutcome.ReadyTimeout, TryGetExitCode(process));
+            return Terminate(process, ManagedProcessStartOutcome.ReadyTimeout);
         }
         catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested)
         {
-            if (process is not null)
-            {
-                KillIfRunning(process);
-            }
-            return new(ManagedProcessStartOutcome.ReadyTimeout, TryGetExitCode(process));
+            return process is null
+                ? new(ManagedProcessStartOutcome.ReadyTimeout, null)
+                : Terminate(process, ManagedProcessStartOutcome.ReadyTimeout);
         }
         catch (OperationCanceledException)
         {
             if (process is not null)
             {
-                KillIfRunning(process);
+                _ = _termination.ConfirmExited(process);
             }
             throw;
         }
         catch (DecoderFallbackException)
         {
-            if (process is not null)
-            {
-                KillIfRunning(process);
-            }
-            return new(ManagedProcessStartOutcome.InvalidReadySignal, TryGetExitCode(process));
+            return process is not null
+                ? Terminate(process, ManagedProcessStartOutcome.InvalidReadySignal)
+                : new(ManagedProcessStartOutcome.InvalidReadySignal, null);
         }
         catch (Exception exception) when (exception is
             IOException or UnauthorizedAccessException or InvalidOperationException or Win32Exception)
         {
-            if (process is not null)
-            {
-                KillIfRunning(process);
-            }
-            return new(ManagedProcessStartOutcome.StartFailed, TryGetExitCode(process));
+            return process is not null
+                ? Terminate(process, ManagedProcessStartOutcome.StartFailed)
+                : new(ManagedProcessStartOutcome.StartFailed, null);
         }
         finally
         {
@@ -172,31 +173,14 @@ public sealed class AnonymousPipeManagedApplicationProcess : IManagedApplication
         return null;
     }
 
-    private static void KillIfRunning(Process process)
+    private ManagedProcessStartResult Terminate(
+        Process process,
+        ManagedProcessStartOutcome confirmedOutcome)
     {
-        try
-        {
-            if (!process.HasExited)
-            {
-                process.Kill(entireProcessTree: true);
-                process.WaitForExit();
-            }
-        }
-        catch (Exception exception) when (exception is InvalidOperationException or Win32Exception)
-        {
-        }
-    }
-
-    private static int? TryGetExitCode(Process? process)
-    {
-        try
-        {
-            return process is not null && process.HasExited ? process.ExitCode : null;
-        }
-        catch (Exception exception) when (exception is InvalidOperationException or Win32Exception)
-        {
-            return null;
-        }
+        ManagedProcessTerminationResult termination = _termination.ConfirmExited(process);
+        return termination.IsExitConfirmed
+            ? new(confirmedOutcome, termination.ExitCode)
+            : new(ManagedProcessStartOutcome.TerminationUnconfirmed, null);
     }
 
     private static void DisposeLocalClientHandle(AnonymousPipeServerStream pipe)
@@ -218,6 +202,93 @@ public sealed class AnonymousPipeManagedApplicationProcess : IManagedApplication
         }
         catch (Exception exception) when (exception is InvalidOperationException or Win32Exception)
         {
+        }
+    }
+}
+
+internal readonly record struct ManagedProcessTerminationResult(bool IsExitConfirmed, int? ExitCode)
+{
+    internal static ManagedProcessTerminationResult Unconfirmed => new(false, null);
+}
+
+internal interface IManagedProcessTermination
+{
+    ManagedProcessTerminationResult ConfirmExited(Process process);
+}
+
+internal interface IManagedProcessTerminationOperations
+{
+    bool HasExited(Process process);
+    void Kill(Process process);
+    void WaitForExit(Process process);
+    int GetExitCode(Process process);
+}
+
+internal sealed class ManagedProcessTermination : IManagedProcessTermination
+{
+    private readonly IManagedProcessTerminationOperations _operations;
+
+    internal static ManagedProcessTermination Instance { get; } = new(new ProcessTerminationOperations());
+
+    internal ManagedProcessTermination(IManagedProcessTerminationOperations operations)
+    {
+        _operations = operations ?? throw new ArgumentNullException(nameof(operations));
+    }
+
+    public ManagedProcessTerminationResult ConfirmExited(Process process)
+    {
+        ArgumentNullException.ThrowIfNull(process);
+        try
+        {
+            if (!_operations.HasExited(process))
+            {
+                _operations.Kill(process);
+                _operations.WaitForExit(process);
+            }
+            return _operations.HasExited(process)
+                ? new(true, _operations.GetExitCode(process))
+                : ManagedProcessTerminationResult.Unconfirmed;
+        }
+        catch (Exception exception) when (exception is InvalidOperationException or Win32Exception)
+        {
+            return TryObserveConfirmedExit(process);
+        }
+    }
+
+    private ManagedProcessTerminationResult TryObserveConfirmedExit(Process process)
+    {
+        try
+        {
+            return _operations.HasExited(process)
+                ? new(true, _operations.GetExitCode(process))
+                : ManagedProcessTerminationResult.Unconfirmed;
+        }
+        catch (Exception exception) when (exception is InvalidOperationException or Win32Exception)
+        {
+            return ManagedProcessTerminationResult.Unconfirmed;
+        }
+    }
+
+    private sealed class ProcessTerminationOperations : IManagedProcessTerminationOperations
+    {
+        public bool HasExited(Process process)
+        {
+            return process.HasExited;
+        }
+
+        public void Kill(Process process)
+        {
+            process.Kill(entireProcessTree: true);
+        }
+
+        public void WaitForExit(Process process)
+        {
+            process.WaitForExit();
+        }
+
+        public int GetExitCode(Process process)
+        {
+            return process.ExitCode;
         }
     }
 }
@@ -353,7 +424,8 @@ public sealed class StableLauncherHandoff : IStableLauncherHandoff
             process?.Dispose();
             return ValueTask.FromResult(process is not null);
         }
-        catch (Exception exception) when (exception is IOException or UnauthorizedAccessException or InvalidOperationException)
+        catch (Exception exception) when (exception is
+            IOException or UnauthorizedAccessException or InvalidOperationException or Win32Exception)
         {
             return ValueTask.FromResult(false);
         }

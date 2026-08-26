@@ -108,6 +108,13 @@ failure cannot advance active launcher state. No directory scan or newest-
 version fallback is permitted. A running executable is never overwritten or
 deleted.
 
+Within one invocation, a rejected or timed-out application or launcher permits
+automatic rollback only after its process adapter confirms exit. A `Kill` or
+wait failure that leaves exit unconfirmed returns a distinct fail-closed
+outcome, preserves the current recoverable launch-recorded phase, and starts no
+fallback. A later invocation continues to apply the existing power-loss
+recovery rule from that durable phase.
+
 Application deletion policy protects every exact owner admission named by an
 active or pending launcher identity. Invalid or unavailable launcher state
 blocks deletion. A target named only by launcher last-known-good requires the

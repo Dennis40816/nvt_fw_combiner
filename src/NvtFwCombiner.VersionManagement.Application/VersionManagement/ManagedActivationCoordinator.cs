@@ -13,6 +13,8 @@ public enum ManagedProcessStartOutcome
     ReadyTimeout,
     /// <summary>The inherited one-use ready message was invalid.</summary>
     InvalidReadySignal,
+    /// <summary>The host could not confirm that a rejected or timed-out process exited.</summary>
+    TerminationUnconfirmed,
 }
 
 /// <summary>Stable process adapter result without command-line handshake material.</summary>
@@ -89,6 +91,8 @@ public enum ManagedLauncherOutcome
     StateUnavailable,
     /// <summary>Another application or launcher owns the version-manager transaction.</summary>
     Busy,
+    /// <summary>The rejected process may still be running, so rollback was not started.</summary>
+    TerminationUnconfirmed,
 }
 
 /// <summary>Stable launcher outcome with selected and optional failed versions.</summary>
@@ -228,9 +232,11 @@ public sealed class ManagedActivationCoordinator
             return new(ManagedLauncherOutcome.Ready, target, null);
         }
 
-        return state.PendingActivation?.CandidateVersion == target
-            ? await RecordAndLaunchRollbackAsync(state, target.Value, cancellationToken).ConfigureAwait(false)
-            : new(ManagedLauncherOutcome.StartFailed, null, target);
+        return start.Outcome == ManagedProcessStartOutcome.TerminationUnconfirmed
+            ? new(ManagedLauncherOutcome.TerminationUnconfirmed, null, target)
+            : state.PendingActivation?.CandidateVersion == target
+                ? await RecordAndLaunchRollbackAsync(state, target.Value, cancellationToken).ConfigureAwait(false)
+                : new(ManagedLauncherOutcome.StartFailed, null, target);
     }
 
     private async ValueTask<ManagedLauncherResult> RecordAndLaunchRollbackAsync(
@@ -293,6 +299,10 @@ public sealed class ManagedActivationCoordinator
             return await TrySaveAsync(committed, cancellationToken).ConfigureAwait(false)
                 ? new(ManagedLauncherOutcome.RolledBack, rollback, failedVersion)
                 : new(ManagedLauncherOutcome.StateUnavailable, rollback, failedVersion);
+        }
+        if (fallback.Outcome == ManagedProcessStartOutcome.TerminationUnconfirmed)
+        {
+            return new(ManagedLauncherOutcome.TerminationUnconfirmed, null, failedVersion);
         }
 
         ActivationRecoveryDecision terminal = VersionActivationPolicy.FailActivation(state, failedVersion);

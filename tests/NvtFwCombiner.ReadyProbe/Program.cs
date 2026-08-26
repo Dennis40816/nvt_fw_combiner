@@ -40,6 +40,10 @@ if (string.Equals(behavior, "exit", StringComparison.Ordinal) ||
 {
     return 7;
 }
+if (!isManagedApplication && string.Equals(behavior, "termination-unconfirmed", StringComparison.Ordinal))
+{
+    return 17;
+}
 if (string.Equals(behavior, "timeout", StringComparison.Ordinal) ||
     (candidate && string.Equals(behavior, "timeout-candidate", StringComparison.Ordinal)))
 {

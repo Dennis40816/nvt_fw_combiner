@@ -183,6 +183,37 @@ internal sealed class LauncherBootstrapState
         return ManagedRootPathIdentity.Equals(ManagedRootIdentity, managedRoot);
     }
 
+    /// <summary>Captures all durable fields for exact generation comparison by read-only observers.</summary>
+    internal DurableSnapshotToken CreateDurableSnapshotToken()
+    {
+        return new(this);
+    }
+
+    internal sealed class DurableSnapshotToken
+    {
+        private readonly LauncherBootstrapState _state;
+
+        internal DurableSnapshotToken(LauncherBootstrapState state)
+        {
+            _state = state;
+        }
+
+        internal bool Matches(DurableSnapshotToken other)
+        {
+            ArgumentNullException.ThrowIfNull(other);
+            return _state.HasSameDurableSnapshot(other._state);
+        }
+    }
+
+    private bool HasSameDurableSnapshot(LauncherBootstrapState other)
+    {
+        return string.Equals(ManagedRootIdentity, other.ManagedRootIdentity, StringComparison.Ordinal) &&
+               Active == other.Active &&
+               LastKnownGood == other.LastKnownGood &&
+               Pending == other.Pending &&
+               Failed == other.Failed;
+    }
+
     internal LauncherBootstrapState Begin(ManagedLauncherIdentity candidate)
     {
         return Pending is not null || candidate == Active
@@ -292,7 +323,15 @@ internal interface IInstalledLauncherRepository
         CancellationToken cancellationToken);
 }
 
-internal enum LauncherProcessStartOutcome { Ready, StartFailed, ExitedBeforeReady, ReadyTimeout, InvalidReadySignal }
+internal enum LauncherProcessStartOutcome
+{
+    Ready,
+    StartFailed,
+    ExitedBeforeReady,
+    ReadyTimeout,
+    InvalidReadySignal,
+    TerminationUnconfirmed,
+}
 internal sealed record LauncherProcessStartResult(
     LauncherProcessStartOutcome Outcome,
     int? ExitCode,
@@ -322,6 +361,7 @@ internal enum LauncherBootstrapOutcome
     StateChanged,
     StateUnavailable,
     Busy,
+    TerminationUnconfirmed,
 }
 
 internal sealed record LauncherBootstrapResult(

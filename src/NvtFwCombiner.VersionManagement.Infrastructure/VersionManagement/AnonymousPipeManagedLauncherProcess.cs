@@ -1,5 +1,6 @@
 using System.ComponentModel;
 using System.Diagnostics;
+using System.Globalization;
 using System.IO.Pipes;
 using System.Security.Cryptography;
 using System.Text;
@@ -46,6 +47,17 @@ internal sealed class AnonymousPipeManagedLauncherProcess : IManagedLauncherProc
     internal const string ReadyPipeHandleEnvironment = "NVT_FW_COMBINER_LAUNCHER_READY_PIPE_HANDLE";
     internal const string ExpectedReadyEnvironment = "NVT_FW_COMBINER_EXPECTED_LAUNCHER_READY";
     private const int MaximumReadyLineCharacters = 4096;
+    private readonly IManagedProcessTermination _termination;
+
+    internal AnonymousPipeManagedLauncherProcess()
+        : this(ManagedProcessTermination.Instance)
+    {
+    }
+
+    internal AnonymousPipeManagedLauncherProcess(IManagedProcessTermination termination)
+    {
+        _termination = termination ?? throw new ArgumentNullException(nameof(termination));
+    }
 
     public async ValueTask<LauncherProcessStartResult> StartUntilReadyAsync(
         string managedRoot,
@@ -118,35 +130,38 @@ internal sealed class AnonymousPipeManagedLauncherProcess : IManagedLauncherProc
                 if (readyTask.Result is { Length: 0 })
                 {
                     await exitTask.ConfigureAwait(false);
-                    return new(LauncherProcessStartOutcome.ExitedBeforeReady, process.ExitCode);
+                    return Exited(process.ExitCode);
                 }
-                KillIfRunning(process);
-                return new(LauncherProcessStartOutcome.InvalidReadySignal, TryGetExitCode(process));
+                return Terminate(process, LauncherProcessStartOutcome.InvalidReadySignal);
             }
             if (completed == exitTask && exitTask.IsCompletedSuccessfully)
             {
-                return new(LauncherProcessStartOutcome.ExitedBeforeReady, process.ExitCode);
+                return Exited(process.ExitCode);
             }
             await completed.ConfigureAwait(false);
-            KillIfRunning(process);
-            return new(LauncherProcessStartOutcome.ReadyTimeout, TryGetExitCode(process));
+            return Terminate(process, LauncherProcessStartOutcome.ReadyTimeout);
         }
         catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested)
         {
-            KillIfRunning(process);
-            return new(LauncherProcessStartOutcome.ReadyTimeout, TryGetExitCode(process));
+            return process is null
+                ? new(LauncherProcessStartOutcome.ReadyTimeout, null)
+                : Terminate(process, LauncherProcessStartOutcome.ReadyTimeout);
         }
         catch (OperationCanceledException)
         {
-            KillIfRunning(process);
+            if (process is not null)
+            {
+                _ = _termination.ConfirmExited(process);
+            }
             throw;
         }
         catch (Exception exception) when (exception is
             IOException or UnauthorizedAccessException or InvalidOperationException or
             DecoderFallbackException or Win32Exception)
         {
-            KillIfRunning(process);
-            return new(LauncherProcessStartOutcome.StartFailed, TryGetExitCode(process));
+            return process is null
+                ? new(LauncherProcessStartOutcome.StartFailed, null)
+                : Terminate(process, LauncherProcessStartOutcome.StartFailed);
         }
         finally
         {
@@ -181,31 +196,21 @@ internal sealed class AnonymousPipeManagedLauncherProcess : IManagedLauncherProc
         return new(outcome, null);
     }
 
-    private static void KillIfRunning(Process? process)
+    private static LauncherProcessStartResult Exited(int exitCode)
     {
-        try
-        {
-            if (process is not null && !process.HasExited)
-            {
-                process.Kill(entireProcessTree: true);
-                process.WaitForExit();
-            }
-        }
-        catch (Exception exception) when (exception is InvalidOperationException or Win32Exception)
-        {
-        }
+        return exitCode == LauncherBootstrapRuntime.UnconfirmedTerminationExitCode
+            ? new(LauncherProcessStartOutcome.TerminationUnconfirmed, exitCode)
+            : new(LauncherProcessStartOutcome.ExitedBeforeReady, exitCode);
     }
 
-    private static int? TryGetExitCode(Process? process)
+    private LauncherProcessStartResult Terminate(
+        Process process,
+        LauncherProcessStartOutcome confirmedOutcome)
     {
-        try
-        {
-            return process is not null && process.HasExited ? process.ExitCode : null;
-        }
-        catch (Exception exception) when (exception is InvalidOperationException or Win32Exception)
-        {
-            return null;
-        }
+        ManagedProcessTerminationResult termination = _termination.ConfirmExited(process);
+        return termination.IsExitConfirmed
+            ? new(confirmedOutcome, termination.ExitCode)
+            : new(LauncherProcessStartOutcome.TerminationUnconfirmed, null);
     }
 
     private static void DisposeLocalClientHandle(AnonymousPipeServerStream pipe)
@@ -294,6 +299,23 @@ internal static class LauncherReadyProtocol
         }
     }
 
+    internal static bool IsExpectedPrefix(string? value)
+    {
+        if (value is null)
+        {
+            return false;
+        }
+        string[] fields = value.Split(':');
+        return fields.Length == 6 &&
+               string.Equals(fields[0], "READY-LAUNCHER", StringComparison.Ordinal) &&
+               int.TryParse(fields[1], NumberStyles.None, CultureInfo.InvariantCulture, out int protocol) &&
+               protocol == ManagedLauncherIdentity.SupportedProtocolVersion &&
+               ManagedAppVersion.TryParse(fields[2], out _) &&
+               IsLowerSha256(fields[3]) &&
+               IsLowerSha256(fields[4]) &&
+               IsLowerSha256(fields[5]);
+    }
+
     private static bool IsLowerSha256(string? value)
     {
         return value is { Length: 64 } &&
@@ -301,10 +323,55 @@ internal static class LauncherReadyProtocol
     }
 }
 
+/// <summary>Classification of one consumed outer launcher READY inheritance context.</summary>
+public enum LauncherReadyInheritanceOutcome
+{
+    /// <summary>The Launcher was started without immutable-Bootstrap supervision.</summary>
+    NotInherited,
+    /// <summary>Both inherited values are syntactically valid and may be used once.</summary>
+    Inherited,
+    /// <summary>The inherited pair was partial, blank, or malformed.</summary>
+    InvalidInheritedContext,
+}
+
+/// <summary>One consumed outer READY inheritance context with no public handshake material.</summary>
+public sealed class LauncherReadyInheritance
+{
+    private LauncherReadyInheritance(
+        LauncherReadyInheritanceOutcome outcome,
+        string? handle,
+        string? expected)
+    {
+        Outcome = outcome;
+        Handle = handle;
+        Expected = expected;
+    }
+
+    /// <summary>Gets the complete inherited-context classification.</summary>
+    public LauncherReadyInheritanceOutcome Outcome { get; }
+
+    internal string? Handle { get; }
+    internal string? Expected { get; }
+
+    internal static LauncherReadyInheritance NotInherited { get; } =
+        new(LauncherReadyInheritanceOutcome.NotInherited, null, null);
+
+    internal static LauncherReadyInheritance Invalid { get; } =
+        new(LauncherReadyInheritanceOutcome.InvalidInheritedContext, null, null);
+
+    internal static LauncherReadyInheritance CreateInherited(string handle, string expected)
+    {
+        return new(LauncherReadyInheritanceOutcome.Inherited, handle, expected);
+    }
+}
+
 /// <summary>Public host seam used only by the immutable Bootstrap executable.</summary>
 public static class LauncherBootstrapRuntime
 {
     private const string SeedStateFileName = "version-manager.seed.v1.json";
+
+    /// <summary>Launcher exit code preserving an unconfirmed nested-process cleanup journal.</summary>
+    public const int UnconfirmedTerminationExitCode = 17;
 
     /// <summary>Runs exact launcher selection and rollback under the existing app-state writer lease.</summary>
     public static async ValueTask<int> RunAsync(
@@ -354,15 +421,13 @@ public static class LauncherBootstrapRuntime
             LauncherBootstrapOutcome.RollbackUnavailable => 16,
             LauncherBootstrapOutcome.StateChanged => 17,
             LauncherBootstrapOutcome.StateUnavailable => 18,
+            LauncherBootstrapOutcome.TerminationUnconfirmed => 19,
             _ => 99,
         };
     }
 
-    /// <summary>Reports nested app readiness only after reloading exact app and launcher identities.</summary>
-    public static async ValueTask<bool> ReportNestedReadyAsync(
-        string managedRoot,
-        string statePath,
-        CancellationToken cancellationToken)
+    /// <summary>Consumes and classifies the outer READY environment before a nested process can inherit it.</summary>
+    public static LauncherReadyInheritance CaptureNestedReadyContext()
     {
         string? handle = Environment.GetEnvironmentVariable(
             AnonymousPipeManagedLauncherProcess.ReadyPipeHandleEnvironment);
@@ -370,10 +435,30 @@ public static class LauncherBootstrapRuntime
             AnonymousPipeManagedLauncherProcess.ExpectedReadyEnvironment);
         Environment.SetEnvironmentVariable(AnonymousPipeManagedLauncherProcess.ReadyPipeHandleEnvironment, null);
         Environment.SetEnvironmentVariable(AnonymousPipeManagedLauncherProcess.ExpectedReadyEnvironment, null);
-        if (string.IsNullOrWhiteSpace(handle) || string.IsNullOrWhiteSpace(expected))
+        return handle is null && expected is null
+            ? LauncherReadyInheritance.NotInherited
+            : !string.IsNullOrWhiteSpace(handle) &&
+               long.TryParse(handle, NumberStyles.None, CultureInfo.InvariantCulture, out long pipeHandle) &&
+               pipeHandle > 0 &&
+               LauncherReadyProtocol.IsExpectedPrefix(expected)
+                ? LauncherReadyInheritance.CreateInherited(handle, expected!)
+                : LauncherReadyInheritance.Invalid;
+    }
+
+    /// <summary>Reports nested app readiness only after reloading exact app and launcher identities.</summary>
+    public static async ValueTask<bool> ReportNestedReadyAsync(
+        LauncherReadyInheritance context,
+        string managedRoot,
+        string statePath,
+        CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(context);
+        if (context.Outcome != LauncherReadyInheritanceOutcome.Inherited)
         {
             return false;
         }
+        string handle = context.Handle!;
+        string expected = context.Expected!;
 
         try
         {

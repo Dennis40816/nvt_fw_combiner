@@ -11,6 +11,11 @@ internal static class Program
         try
         {
             (string managedRoot, string statePath) = Parse(args);
+            LauncherReadyInheritance outerReady = LauncherBootstrapRuntime.CaptureNestedReadyContext();
+            if (outerReady.Outcome == LauncherReadyInheritanceOutcome.InvalidInheritedContext)
+            {
+                return 16;
+            }
             var stateStore = new JsonVersionManagerStateStore(statePath);
             var repository = new FileSystemManagedVersionRepository();
             var coordinator = new ManagedActivationCoordinator(
@@ -24,16 +29,15 @@ internal static class Program
                 .GetResult();
             if (result.Outcome is ManagedLauncherOutcome.Ready or ManagedLauncherOutcome.RolledBack)
             {
-                bool outerReadyExpected = !string.IsNullOrWhiteSpace(Environment.GetEnvironmentVariable(
-                    "NVT_FW_COMBINER_EXPECTED_LAUNCHER_READY"));
-                bool reported = LauncherBootstrapRuntime.ReportNestedReadyAsync(
-                        managedRoot,
-                        statePath,
-                        CancellationToken.None)
-                    .AsTask()
-                    .GetAwaiter()
-                    .GetResult();
-                if (!reported && outerReadyExpected)
+                if (outerReady.Outcome == LauncherReadyInheritanceOutcome.Inherited &&
+                    !LauncherBootstrapRuntime.ReportNestedReadyAsync(
+                            outerReady,
+                            managedRoot,
+                            statePath,
+                            CancellationToken.None)
+                        .AsTask()
+                        .GetAwaiter()
+                        .GetResult())
                 {
                     return 16;
                 }
@@ -48,6 +52,8 @@ internal static class Program
                 ManagedLauncherOutcome.StartFailed => 13,
                 ManagedLauncherOutcome.StateUnavailable => 14,
                 ManagedLauncherOutcome.Busy => 15,
+                ManagedLauncherOutcome.TerminationUnconfirmed =>
+                    LauncherBootstrapRuntime.UnconfirmedTerminationExitCode,
                 _ => 99,
             };
         }

@@ -170,10 +170,20 @@ internal sealed class LauncherBootstrapCoordinator
             launcher,
             _readyDeadline,
             cancellationToken).ConfigureAwait(false);
-        return start.Outcome == LauncherProcessStartOutcome.Ready
-            ? await ValidateExistingReadyAsync(launcher, start.ReadyAdmission, cancellationToken)
-                .ConfigureAwait(false)
-            : Result(LauncherBootstrapOutcome.StartFailed, failed: launcher);
+        return start.Outcome switch
+        {
+            LauncherProcessStartOutcome.Ready =>
+                await ValidateExistingReadyAsync(launcher, start.ReadyAdmission, cancellationToken)
+                    .ConfigureAwait(false),
+            LauncherProcessStartOutcome.TerminationUnconfirmed =>
+                Result(LauncherBootstrapOutcome.TerminationUnconfirmed, failed: launcher),
+            LauncherProcessStartOutcome.StartFailed or
+            LauncherProcessStartOutcome.ExitedBeforeReady or
+            LauncherProcessStartOutcome.ReadyTimeout or
+            LauncherProcessStartOutcome.InvalidReadySignal =>
+                Result(LauncherBootstrapOutcome.StartFailed, failed: launcher),
+            _ => throw new InvalidOperationException("Managed launcher returned an undefined process outcome."),
+        };
     }
 
     private async ValueTask<LauncherBootstrapResult> LaunchCandidateAsync(
@@ -192,9 +202,20 @@ internal sealed class LauncherBootstrapCoordinator
             candidate,
             _readyDeadline,
             cancellationToken).ConfigureAwait(false);
-        return start.Outcome == LauncherProcessStartOutcome.Ready
-            ? await CommitCandidateReadyAsync(candidate, start.ReadyAdmission, cancellationToken).ConfigureAwait(false)
-            : await RecordAndLaunchRollbackAsync(candidate, cancellationToken).ConfigureAwait(false);
+        return start.Outcome switch
+        {
+            LauncherProcessStartOutcome.Ready =>
+                await CommitCandidateReadyAsync(candidate, start.ReadyAdmission, cancellationToken)
+                    .ConfigureAwait(false),
+            LauncherProcessStartOutcome.TerminationUnconfirmed =>
+                Result(LauncherBootstrapOutcome.TerminationUnconfirmed, failed: candidate),
+            LauncherProcessStartOutcome.StartFailed or
+            LauncherProcessStartOutcome.ExitedBeforeReady or
+            LauncherProcessStartOutcome.ReadyTimeout or
+            LauncherProcessStartOutcome.InvalidReadySignal =>
+                await RecordAndLaunchRollbackAsync(candidate, cancellationToken).ConfigureAwait(false),
+            _ => throw new InvalidOperationException("Managed launcher returned an undefined process outcome."),
+        };
     }
 
     private async ValueTask<LauncherBootstrapResult> CommitCandidateReadyAsync(
@@ -304,7 +325,11 @@ internal sealed class LauncherBootstrapCoordinator
             cancellationToken).ConfigureAwait(false);
         if (start.Outcome != LauncherProcessStartOutcome.Ready)
         {
-            return Result(LauncherBootstrapOutcome.RollbackUnavailable, failed: pending.Candidate);
+            return Result(
+                start.Outcome == LauncherProcessStartOutcome.TerminationUnconfirmed
+                    ? LauncherBootstrapOutcome.TerminationUnconfirmed
+                    : LauncherBootstrapOutcome.RollbackUnavailable,
+                failed: pending.Candidate);
         }
         using VersionManagerWriteLeaseResult lease = await _appStateStore.TryAcquireWriteLeaseAsync(
             ManagedActivationCoordinator.DefaultWriterLeaseTimeout,

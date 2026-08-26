@@ -3,7 +3,7 @@ using NvtFwCombiner.Application.VersionManagement;
 namespace NvtFwCombiner.Application.Tests.VersionManagement;
 
 /// <summary>Locks the rollback-safe launcher activation transaction and its power phases.</summary>
-public sealed class LauncherBootstrapCoordinatorTests
+public sealed partial class LauncherBootstrapCoordinatorTests
 {
     private static readonly ManagedAppVersion App100 = ManagedAppVersion.Parse("1.0.0");
     private static readonly ManagedAppVersion App101 = ManagedAppVersion.Parse("1.0.1");

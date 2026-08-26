@@ -235,6 +235,41 @@ public sealed class VersionManagerState
         return ManagedRootPathIdentity.Equals(ManagedRootIdentity, managedRoot);
     }
 
+    /// <summary>Captures all durable fields for exact generation comparison by read-only observers.</summary>
+    internal DurableSnapshotToken CreateDurableSnapshotToken()
+    {
+        return new(this);
+    }
+
+    internal sealed class DurableSnapshotToken
+    {
+        private readonly VersionManagerState _state;
+
+        internal DurableSnapshotToken(VersionManagerState state)
+        {
+            _state = state;
+        }
+
+        internal bool Matches(DurableSnapshotToken other)
+        {
+            ArgumentNullException.ThrowIfNull(other);
+            return _state.HasSameDurableSnapshot(other._state);
+        }
+    }
+
+    private bool HasSameDurableSnapshot(VersionManagerState other)
+    {
+        return string.Equals(ManagedRootIdentity, other.ManagedRootIdentity, StringComparison.Ordinal) &&
+               string.Equals(UpdateSource, other.UpdateSource, StringComparison.Ordinal) &&
+               ActiveVersion == other.ActiveVersion &&
+               LastKnownGoodVersion == other.LastKnownGoodVersion &&
+               Admissions.SequenceEqual(other.Admissions) &&
+               PendingActivation == other.PendingActivation &&
+               FailedActivationVersion == other.FailedActivationVersion &&
+               RetentionReviewDue == other.RetentionReviewDue &&
+               PendingMutation == other.PendingMutation;
+    }
+
     private static bool IsLowerSha256(string? value)
     {
         return value is { Length: 64 } &&
