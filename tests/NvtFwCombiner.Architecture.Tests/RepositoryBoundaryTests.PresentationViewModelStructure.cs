@@ -2,6 +2,32 @@ namespace NvtFwCombiner.Architecture.Tests;
 
 public sealed partial class RepositoryBoundaryTests
 {
+    /// <summary>Page workflow membership and order have one immutable Presentation owner.</summary>
+    [Fact]
+    public void WorkflowPageModeCatalogOwnsEveryPageModeProjection()
+    {
+        string catalog = ReadText(
+            "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/WorkflowPageModeCatalog.cs");
+        string selector = ReadText(
+            "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/WorkflowSelectorProjection.cs");
+        string merge = ReadText(
+            "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/MergePresentationViewModel.State.cs");
+        string replace = ReadText(
+            "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/ReplacePresentationViewModel.State.cs");
+        string construction = ReadText(
+            "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/MainWindowViewModel.Construction.cs");
+
+        Assert.Contains("Array.AsReadOnly", catalog, StringComparison.Ordinal);
+        Assert.Contains("WorkflowPageModeCatalog.ForPage", selector, StringComparison.Ordinal);
+        Assert.Contains("WorkflowPageModeCatalog.ForPage", merge, StringComparison.Ordinal);
+        Assert.Contains("WorkflowPageModeCatalog.ForPage", replace, StringComparison.Ordinal);
+        Assert.Contains("WorkflowPageModeCatalog.ForPage", construction, StringComparison.Ordinal);
+        Assert.DoesNotContain("s_mergeModeOrder", merge, StringComparison.Ordinal);
+        Assert.DoesNotContain("s_replaceModeOrder", replace, StringComparison.Ordinal);
+        Assert.DoesNotContain("s_mergeWorkflowIds", selector, StringComparison.Ordinal);
+        Assert.DoesNotContain("s_replaceWorkflowIds", selector, StringComparison.Ordinal);
+    }
+
     /// <summary>Merge-only presentation lifetime belongs to a focused child rather than the shell.</summary>
     [Fact]
     public void MergePresentationLivesBehindFocusedChild()

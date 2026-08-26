@@ -177,10 +177,10 @@ internal sealed partial class MainWindowViewModel
         ShowHomeCommand = new RelayCommand(() => Navigation.NavigateToPage(ShellPage.Home));
         ShowMergeCommand = CreateCatalogCommand(
             () => Navigation.NavigateToPage(ShellPage.Merge),
-            NormalMergeMode, AbCodeMergeMode, GeneralMergeMode);
+            [.. WorkflowPageModeCatalog.ForPage(ShellPage.Merge)]);
         ShowReplaceCommand = CreateCatalogCommand(
             () => Navigation.NavigateToPage(ShellPage.Replace),
-            DpReplaceMode, CtrlRamReplaceMode, GeneralReplaceMode);
+            [.. WorkflowPageModeCatalog.ForPage(ShellPage.Replace)]);
         BeginDpReplaceFromHomeCommand = CreateCatalogCommand(
             () => WorkflowSession.BeginWorkflowContext(ShellPage.Replace, DpReplaceMode, showNumber: true), DpReplaceMode);
         BeginCtrlRamReplaceFromHomeCommand = CreateCatalogCommand(

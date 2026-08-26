@@ -12,8 +12,6 @@ internal sealed partial class MergePresentationViewModel
     private const string NormalMergeMode = ExperienceIds.StandardMerge;
     private const string AbCodeMergeMode = ExperienceIds.AbMerge;
     private const string GeneralMergeMode = ExperienceIds.GeneralMerge;
-    private static readonly IReadOnlyList<string> s_mergeModeOrder =
-        Array.AsReadOnly([NormalMergeMode, AbCodeMergeMode, GeneralMergeMode]);
     private readonly Dictionary<string, string> _abMergeAddressSpaceBySlotId = new(StringComparer.Ordinal);
     private readonly Dictionary<string, CompiledAuthoringInputBinding> _abMergeBindingsByAddressSpace = new(StringComparer.Ordinal);
     private readonly Dictionary<string, FirmwareSlotViewModel> _abMergeSlotsByAddressSpace = new(StringComparer.Ordinal);
@@ -70,7 +68,7 @@ internal sealed partial class MergePresentationViewModel
         ? []
         : Array.AsReadOnly(
         [
-            .. s_mergeModeOrder.Where(mode =>
+            .. WorkflowPageModeCatalog.ForPage(ShellPage.Merge).Where(mode =>
                 _stateBindings.IsWorkflowAuthorable(SelectedIc, mode)),
         ]);
 
@@ -291,13 +289,15 @@ internal sealed partial class MergePresentationViewModel
         return !string.IsNullOrWhiteSpace(_selectedMergeMode) &&
             isAuthorable(_selectedMergeMode)
             ? _selectedMergeMode
-            : s_mergeModeOrder.FirstOrDefault(isAuthorable) ?? string.Empty;
+            : WorkflowPageModeCatalog.ForPage(ShellPage.Merge)
+                .FirstOrDefault(isAuthorable) ?? string.Empty;
     }
 
     internal bool StageModeForWorkflowNavigation(string mode, bool isAuthorable)
     {
         if (!isAuthorable ||
-            !s_mergeModeOrder.Contains(mode, StringComparer.Ordinal) ||
+            !WorkflowPageModeCatalog.ForPage(ShellPage.Merge)
+                .Contains(mode, StringComparer.Ordinal) ||
             string.Equals(_selectedMergeMode, mode, StringComparison.Ordinal))
         {
             return false;

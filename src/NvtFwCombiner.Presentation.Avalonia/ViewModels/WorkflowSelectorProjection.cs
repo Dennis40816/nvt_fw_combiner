@@ -6,21 +6,6 @@ namespace NvtFwCombiner.Presentation.Avalonia.ViewModels;
 
 internal static class WorkflowSelectorProjection
 {
-    private static readonly IReadOnlyList<string> s_mergeWorkflowIds =
-        Array.AsReadOnly(
-        [
-            ExperienceIds.StandardMerge,
-            ExperienceIds.AbMerge,
-            ExperienceIds.GeneralMerge,
-        ]);
-    private static readonly IReadOnlyList<string> s_replaceWorkflowIds =
-        Array.AsReadOnly(
-        [
-            ExperienceIds.DpReplace,
-            ExperienceIds.CtrlRamReplace,
-            ExperienceIds.GeneralReplace,
-        ]);
-
     internal static ReadOnlyCollection<string> WorkflowIcChoices(
         CapabilitySelectorPublication publication,
         string workflowId)
@@ -37,15 +22,7 @@ internal static class WorkflowSelectorProjection
         ShellPage page)
     {
         ArgumentNullException.ThrowIfNull(publication);
-        IReadOnlyList<string> workflowIds = page switch
-        {
-            ShellPage.Merge => s_mergeWorkflowIds,
-            ShellPage.Replace => s_replaceWorkflowIds,
-            ShellPage.Home or ShellPage.HexEditor => throw new ArgumentException(
-                "Workflow page IC choices require Merge or Replace ownership.",
-                nameof(page)),
-            _ => throw new InvalidOperationException("Unknown shell page."),
-        };
+        IReadOnlyList<string> workflowIds = WorkflowPageModeCatalog.ForPage(page);
         return Array.AsReadOnly(publication.IcIds
             .Where(icId => workflowIds.Any(workflowId =>
                 publication.IsWorkflowAuthorable(icId, workflowId)))

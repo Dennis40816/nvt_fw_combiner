@@ -11,8 +11,6 @@ internal sealed partial class ReplacePresentationViewModel
     private const string DpReplaceMode = ExperienceIds.DpReplace;
     private const string CtrlRamReplaceMode = ExperienceIds.CtrlRamReplace;
     private const string GeneralReplaceMode = ExperienceIds.GeneralReplace;
-    private static readonly IReadOnlyList<string> s_replaceModeOrder =
-        Array.AsReadOnly([DpReplaceMode, CtrlRamReplaceMode, GeneralReplaceMode]);
     private readonly AuthoringSessionState _dpReplaceSession =
         new(ExperienceIds.DpReplace);
     private readonly AuthoringSessionState _ctrlRamReplaceSession =
@@ -28,7 +26,7 @@ internal sealed partial class ReplacePresentationViewModel
             ? []
             : Array.AsReadOnly(
             [
-                .. s_replaceModeOrder.Where(mode =>
+                .. WorkflowPageModeCatalog.ForPage(ShellPage.Replace).Where(mode =>
                     _stateBindings.IsWorkflowAuthorable(SelectedIc, mode)),
             ]);
 
@@ -285,13 +283,15 @@ internal sealed partial class ReplacePresentationViewModel
         return !string.IsNullOrWhiteSpace(_selectedReplaceMode) &&
             isAuthorable(_selectedReplaceMode)
             ? _selectedReplaceMode
-            : s_replaceModeOrder.FirstOrDefault(isAuthorable) ?? string.Empty;
+            : WorkflowPageModeCatalog.ForPage(ShellPage.Replace)
+                .FirstOrDefault(isAuthorable) ?? string.Empty;
     }
 
     internal bool StageModeForWorkflowNavigation(string mode, bool isAuthorable)
     {
         if (!isAuthorable ||
-            !s_replaceModeOrder.Contains(mode, StringComparer.Ordinal) ||
+            !WorkflowPageModeCatalog.ForPage(ShellPage.Replace)
+                .Contains(mode, StringComparer.Ordinal) ||
             string.Equals(_selectedReplaceMode, mode, StringComparison.Ordinal))
         {
             return false;
