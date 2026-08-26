@@ -192,20 +192,26 @@ public sealed class CompositionHostServices
     /// <param name="applicationVersion">Running canonical stable version.</param>
     /// <param name="managedRoot">Optional stable managed root override.</param>
     /// <param name="statePath">Optional launcher-state path override.</param>
+    /// <param name="updateSourceRegistryPath">Optional absolute fixed-registry file locator.</param>
     /// <returns>One session-scoped version-management experience.</returns>
     public static IVersionManagementExperience CreateVersionManagementExperience(
         string applicationVersion,
         string? managedRoot = null,
-        string? statePath = null)
+        string? statePath = null,
+        string? updateSourceRegistryPath = null)
     {
         ManagedAppVersion version = ManagedAppVersion.Parse(applicationVersion);
         string root = managedRoot ?? ManagedInstallationLayout.ResolveManagedRoot(AppContext.BaseDirectory);
+        IUpdateSourceRegistry? sourceRegistry = string.IsNullOrWhiteSpace(updateSourceRegistryPath)
+            ? null
+            : new FileSystemUpdateSourceRegistry(updateSourceRegistryPath);
         return new VersionManagementExperience(
             version,
             root,
             new JsonVersionManagerStateStore(statePath ?? JsonVersionManagerStateStore.GetDefaultPath()),
             new FileSystemUpdateCatalogSource(),
-            new FileSystemManagedVersionRepository());
+            new FileSystemManagedVersionRepository(),
+            sourceRegistry);
     }
 
     /// <summary>Creates the inherited one-use app-side ready signal.</summary>

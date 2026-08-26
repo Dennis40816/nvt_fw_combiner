@@ -16,6 +16,9 @@
     <EmbeddedResource
       Include="..\..\docs\contracts\update-catalog-v1.schema.json"
       LogicalName="NvtFwCombiner.VersionManagement.Infrastructure.Contracts.update-catalog-v1.schema.json" />
+    <EmbeddedResource
+      Include="..\..\docs\contracts\update-source-registry-v1.schema.json"
+      LogicalName="NvtFwCombiner.VersionManagement.Infrastructure.Contracts.update-source-registry-v1.schema.json" />
   </ItemGroup>
   <ItemGroup>
     <InternalsVisibleTo Include="NvtFwCombiner.Bootstrap" />

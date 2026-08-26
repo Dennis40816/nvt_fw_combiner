@@ -28,7 +28,9 @@ public sealed record VersionManagementSnapshot(
     long Generation,
     bool ShouldPromptForUpdate,
     VersionManagerStateLoadIssue StateIssue,
-    ManagedVersionInventoryReadIssue InventoryIssue = ManagedVersionInventoryReadIssue.None);
+    ManagedVersionInventoryReadIssue InventoryIssue = ManagedVersionInventoryReadIssue.None,
+    VersionRegistryStatus RegistryStatus = VersionRegistryStatus.NotConfigured,
+    UpdateSourceRegistryIssue RegistryIssue = UpdateSourceRegistryIssue.None);
 
 /// <summary>Install operation plus its refreshed version-management snapshot.</summary>
 public sealed record VersionInstallOperationResult(
@@ -87,6 +89,22 @@ public interface IVersionManagementExperience
         string sourceRoot,
         CancellationToken cancellationToken);
 
+    /// <summary>Resumes automatic registry resolution without clearing a durable pin on failure.</summary>
+    ValueTask<VersionManagementSnapshot> ResumeRegistryAsync(CancellationToken cancellationToken)
+    {
+        return CheckAsync(isAutomatic: false, cancellationToken);
+    }
+
+    /// <summary>Verifies the fixed registry and every automatic source without mutating session or durable state.</summary>
+    ValueTask<VersionEnvironmentSelfTestResult> RunEnvironmentSelfTestAsync(
+        CancellationToken cancellationToken)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+        return ValueTask.FromResult(new VersionEnvironmentSelfTestResult(
+            UpdateSourceRegistryLoadIssue.NotConfigured,
+            []));
+    }
+
     /// <summary>Explicitly installs one catalog version after UI consent.</summary>
     /// <param name="version">Exact catalog version.</param>
     /// <param name="cancellationToken">Cancellation token.</param>
@@ -131,6 +149,8 @@ public sealed partial class VersionManagementExperience : IVersionManagementExpe
     private readonly IUpdateCatalogSource _catalogSource;
     private readonly string _managedRoot;
     private readonly IManagedVersionRepository _repository;
+    private readonly IUpdateSourceRegistry? _sourceRegistry;
+    private readonly IVersionManagementMutationFence _mutationFence;
     private readonly VersionDiscoverySession _session = new();
     private readonly IVersionManagerStateStore _stateStore;
     private readonly SemaphoreSlim _mutation = new(1, 1);
@@ -146,12 +166,16 @@ public sealed partial class VersionManagementExperience : IVersionManagementExpe
     /// <param name="stateStore">Atomic launcher-state port.</param>
     /// <param name="catalogSource">Configured-folder catalog port.</param>
     /// <param name="repository">Managed payload repository port.</param>
+    /// <param name="sourceRegistry">Optional fixed-registry read port.</param>
+    /// <param name="mutationFence">Optional launcher logical mutation fence.</param>
     public VersionManagementExperience(
         ManagedAppVersion currentAppVersion,
         string managedRoot,
         IVersionManagerStateStore stateStore,
         IUpdateCatalogSource catalogSource,
-        IManagedVersionRepository repository)
+        IManagedVersionRepository repository,
+        IUpdateSourceRegistry? sourceRegistry = null,
+        IVersionManagementMutationFence? mutationFence = null)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(managedRoot);
         _currentAppVersion = currentAppVersion;
@@ -159,6 +183,8 @@ public sealed partial class VersionManagementExperience : IVersionManagementExpe
         _stateStore = stateStore ?? throw new ArgumentNullException(nameof(stateStore));
         _catalogSource = catalogSource ?? throw new ArgumentNullException(nameof(catalogSource));
         _repository = repository ?? throw new ArgumentNullException(nameof(repository));
+        _sourceRegistry = sourceRegistry;
+        _mutationFence = mutationFence ?? AllowVersionManagementMutationFence.Instance;
     }
 
     /// <inheritdoc />
@@ -205,6 +231,17 @@ public sealed partial class VersionManagementExperience : IVersionManagementExpe
         CancellationToken cancellationToken)
     {
         ThrowIfDisposed();
+        if (_sourceRegistry is not null)
+        {
+            VersionManagementSnapshot? registryResult = await CheckRegistryAsync(
+                isAutomatic,
+                allowManualPin: false,
+                cancellationToken).ConfigureAwait(false);
+            if (registryResult is not null)
+            {
+                return registryResult;
+            }
+        }
         VersionManagementSnapshot current;
         string sourceRoot;
         long generation;
@@ -284,7 +321,11 @@ public sealed partial class VersionManagementExperience : IVersionManagementExpe
                     generation,
                     shouldPrompt,
                     current.StateIssue,
-                    current.InventoryIssue);
+                    current.InventoryIssue,
+                    current.State?.SourceRegistryState?.IsManualPin == true
+                        ? VersionRegistryStatus.ManualPin
+                        : current.RegistryStatus,
+                    current.RegistryIssue);
                 _checkCancellation = null;
                 ownedCancellation.Dispose();
                 return _current;
@@ -323,19 +364,29 @@ public sealed partial class VersionManagementExperience : IVersionManagementExpe
             {
                 return current;
             }
-            state = VersionManagerState.Create(
-                sourceRoot,
-                state.ActiveVersion,
-                state.LastKnownGoodVersion,
-                state.Admissions,
-                state.PendingActivation,
-                state.FailedActivationVersion,
-                state.RetentionReviewDue,
-                state.PendingMutation,
-                state.ManagedRootIdentity);
+            bool registryAware = _sourceRegistry is not null || state.SourceRegistryState is not null;
+            if (registryAware &&
+                !await _mutationFence.CanMutateAsync(cancellationToken).ConfigureAwait(false))
+            {
+                return PublishRegistryStateUnavailable(current);
+            }
+            VersionSourceRegistryState? registryState = registryAware
+                ? new(
+                    state.SourceRegistryState?.AcceptedRevision ?? 0,
+                    state.SourceRegistryState?.AcceptedDigest,
+                    isManualPin: true)
+                : null;
+            string committedSource = registryAware
+                ? VersionManagerState.NormalizeRegistrySource(
+                    sourceRoot,
+                    requireAlreadyNormalized: false)
+                : sourceRoot;
+            state = state.WithUpdateSource(committedSource, registryState);
             if (!await TrySaveAsync(state, cancellationToken).ConfigureAwait(false))
             {
-                return PublishStateUnavailable();
+                return registryAware
+                    ? PublishRegistryStateUnavailable(current)
+                    : PublishStateUnavailable();
             }
             _current = current with
             {
@@ -345,6 +396,10 @@ public sealed partial class VersionManagementExperience : IVersionManagementExpe
                 SourceStatus = VersionSourceStatus.Offline,
                 CatalogIssue = null,
                 ShouldPromptForUpdate = false,
+                RegistryStatus = registryAware
+                    ? VersionRegistryStatus.ManualPin
+                    : VersionRegistryStatus.NotConfigured,
+                RegistryIssue = UpdateSourceRegistryIssue.None,
             };
         }
         finally

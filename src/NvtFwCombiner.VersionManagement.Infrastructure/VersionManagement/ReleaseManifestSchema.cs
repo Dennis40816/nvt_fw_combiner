@@ -129,3 +129,18 @@ internal static class UpdateCatalogSchema
         return EmbeddedVersionManagementSchema.IsValid(Schema.Value, document);
     }
 }
+
+/// <summary>Canonical fixed update-source registry contract.</summary>
+internal static class UpdateSourceRegistrySchema
+{
+    private static readonly Lazy<JsonSchema> Schema = new(() => EmbeddedVersionManagementSchema.Load(
+        typeof(UpdateSourceRegistrySchema),
+        "NvtFwCombiner.VersionManagement.Infrastructure.Contracts.update-source-registry-v1.schema.json",
+        "https://schemas.example.invalid/nvt_fw_combiner/update-source-registry-v1.schema.json",
+        "Canonical update-source registry schema is unavailable."));
+
+    internal static bool IsValid(JsonElement document)
+    {
+        return EmbeddedVersionManagementSchema.IsValid(Schema.Value, document);
+    }
+}

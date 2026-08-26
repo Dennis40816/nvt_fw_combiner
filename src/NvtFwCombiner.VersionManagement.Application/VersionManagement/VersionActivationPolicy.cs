@@ -65,7 +65,8 @@ public sealed class VersionManagerState
         PendingVersionActivation? pendingActivation,
         ManagedAppVersion? failedActivationVersion,
         bool retentionReviewDue,
-        PendingManagedVersionMutation? pendingMutation)
+        PendingManagedVersionMutation? pendingMutation,
+        VersionSourceRegistryState? sourceRegistryState)
     {
         ManagedRootIdentity = managedRootIdentity;
         UpdateSource = updateSource;
@@ -76,6 +77,7 @@ public sealed class VersionManagerState
         FailedActivationVersion = failedActivationVersion;
         RetentionReviewDue = retentionReviewDue;
         PendingMutation = pendingMutation;
+        SourceRegistryState = sourceRegistryState;
     }
 
     /// <summary>Gets the normalized managed root that exclusively owns this durable state.</summary>
@@ -105,6 +107,9 @@ public sealed class VersionManagerState
     /// <summary>Gets the durable install/delete transaction that must converge before another mutation.</summary>
     public PendingManagedVersionMutation? PendingMutation { get; }
 
+    /// <summary>Gets durable fixed-registry anti-rollback and manual-pin state.</summary>
+    public VersionSourceRegistryState? SourceRegistryState { get; }
+
     /// <summary>Creates validated launcher state without inferring missing identities.</summary>
     /// <param name="updateSource">Committed source configuration.</param>
     /// <param name="activeVersion">Committed active version.</param>
@@ -115,6 +120,7 @@ public sealed class VersionManagerState
     /// <param name="retentionReviewDue">Whether retention review is due.</param>
     /// <param name="pendingMutation">Optional durable install/delete transaction.</param>
     /// <param name="managedRootIdentity">Normalized managed-root ownership, or null only for an unbound seed template.</param>
+    /// <param name="sourceRegistryState">Optional durable fixed-registry authority.</param>
     /// <returns>Validated immutable state.</returns>
     public static VersionManagerState Create(
         string? updateSource,
@@ -125,9 +131,21 @@ public sealed class VersionManagerState
         ManagedAppVersion? failedActivationVersion,
         bool retentionReviewDue,
         PendingManagedVersionMutation? pendingMutation = null,
-        string? managedRootIdentity = null)
+        string? managedRootIdentity = null,
+        VersionSourceRegistryState? sourceRegistryState = null)
     {
         ArgumentNullException.ThrowIfNull(admissions);
+        string? normalizedUpdateSource = string.IsNullOrWhiteSpace(updateSource)
+            ? null
+            : sourceRegistryState is null
+                ? updateSource
+                : NormalizeRegistrySource(updateSource, requireAlreadyNormalized: true);
+        if (sourceRegistryState is not null && normalizedUpdateSource is null)
+        {
+            throw new ArgumentException(
+                "Registry state requires one normalized effective update source.",
+                nameof(updateSource));
+        }
         ManagedVersionAdmission[] installed = [.. admissions];
         if (installed.GroupBy(admission => admission.Version).Any(group => group.Count() != 1) ||
             installed.Any(admission =>
@@ -181,14 +199,15 @@ public sealed class VersionManagerState
         Array.Sort(installed, static (left, right) => right.Version.CompareTo(left.Version));
         return new(
             managedRootIdentity is null ? null : ManagedRootPathIdentity.Normalize(managedRootIdentity),
-            string.IsNullOrWhiteSpace(updateSource) ? null : updateSource,
+            normalizedUpdateSource,
             activeVersion,
             lastKnownGoodVersion,
             installed,
             pendingActivation,
             failedActivationVersion,
             retentionReviewDue,
-            pendingMutation);
+            pendingMutation,
+            sourceRegistryState);
     }
 
     /// <summary>Creates the first durable root binding after its packaged seed payload was verified.</summary>
@@ -206,7 +225,8 @@ public sealed class VersionManagerState
             FailedActivationVersion,
             RetentionReviewDue,
             PendingMutation,
-            managedRoot);
+            managedRoot,
+            SourceRegistryState);
     }
 
     /// <summary>Checks that this durable state belongs to the exact current managed root.</summary>
@@ -220,6 +240,28 @@ public sealed class VersionManagerState
         return value is { Length: 64 } &&
                value.All(static character => character is (>= '0' and <= '9') or (>= 'a' and <= 'f'));
     }
+
+    internal static string NormalizeRegistrySource(
+        string updateSource,
+        bool requireAlreadyNormalized)
+    {
+        if (!Path.IsPathFullyQualified(updateSource))
+        {
+            throw new ArgumentException(
+                "Registry-managed update source must be fully qualified.",
+                nameof(updateSource));
+        }
+        string normalized = Path.TrimEndingDirectorySeparator(Path.GetFullPath(updateSource));
+        return !requireAlreadyNormalized || PathComparer.Equals(normalized, updateSource)
+            ? normalized
+            : throw new ArgumentException(
+                "Registry-managed update source must already be normalized.",
+                nameof(updateSource));
+    }
+
+    private static StringComparer PathComparer => OperatingSystem.IsWindows()
+        ? StringComparer.OrdinalIgnoreCase
+        : StringComparer.Ordinal;
 
     internal VersionManagerState Rebuild(
         ManagedAppVersion? activeVersion,
@@ -236,7 +278,8 @@ public sealed class VersionManagerState
             failedActivationVersion,
             RetentionReviewDue,
             PendingMutation,
-            ManagedRootIdentity);
+            ManagedRootIdentity,
+            SourceRegistryState);
     }
 
     internal VersionManagerState WithRetentionReviewDue(bool retentionReviewDue)
@@ -250,7 +293,8 @@ public sealed class VersionManagerState
             FailedActivationVersion,
             retentionReviewDue,
             PendingMutation,
-            ManagedRootIdentity);
+            ManagedRootIdentity,
+            SourceRegistryState);
     }
 
     internal VersionManagerState WithPendingMutation(PendingManagedVersionMutation? pendingMutation)
@@ -264,7 +308,25 @@ public sealed class VersionManagerState
             FailedActivationVersion,
             RetentionReviewDue,
             pendingMutation,
-            ManagedRootIdentity);
+            ManagedRootIdentity,
+            SourceRegistryState);
+    }
+
+    internal VersionManagerState WithUpdateSource(
+        string? updateSource,
+        VersionSourceRegistryState? sourceRegistryState)
+    {
+        return Create(
+            updateSource,
+            ActiveVersion,
+            LastKnownGoodVersion,
+            Admissions,
+            PendingActivation,
+            FailedActivationVersion,
+            RetentionReviewDue,
+            PendingMutation,
+            ManagedRootIdentity,
+            sourceRegistryState);
     }
 }
 

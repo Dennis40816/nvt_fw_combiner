@@ -70,6 +70,17 @@ public sealed partial class VersionManagementExperience
                     ? VersionManagerStateLoadIssue.None
                     : loaded.Issue,
             inventoryResult.Issue);
+        _current = _current with
+        {
+            RegistryStatus = state?.SourceRegistryState?.IsManualPin == true
+                ? VersionRegistryStatus.ManualPin
+                : sameSource
+                    ? sourcePrior?.RegistryStatus ?? VersionRegistryStatus.NotConfigured
+                    : VersionRegistryStatus.NotConfigured,
+            RegistryIssue = sameSource
+                ? sourcePrior?.RegistryIssue ?? UpdateSourceRegistryIssue.None
+                : UpdateSourceRegistryIssue.None,
+        };
         if (state is not null && inventoryResult.IsSuccess)
         {
             _recoverableSourceAuthority = null;

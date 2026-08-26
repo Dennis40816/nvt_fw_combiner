@@ -11,7 +11,8 @@ public sealed class JsonVersionManagerStateStore : IVersionManagerStateStore
     /// <summary>The launcher-state file name under per-user local application data.</summary>
     public const string StateFileName = "version-manager.v1.json";
 
-    private const int SchemaVersion = 1;
+    private const int LegacySchemaVersion = 1;
+    private const int RegistrySchemaVersion = 2;
     private const int MaximumStateBytes = 1024 * 1024;
     private static readonly JsonSerializerOptions JsonOptions = new(JsonSerializerDefaults.Web)
     {
@@ -78,7 +79,10 @@ public sealed class JsonVersionManagerStateStore : IVersionManagerStateStore
             VersionManagerStateDocument? document = JsonSerializer.Deserialize(
                 stateJson.RootElement,
                 JsonContext.VersionManagerStateDocument);
-            if (document is null || document.SchemaVersion != SchemaVersion)
+            if (document is null ||
+                document.SchemaVersion is not (LegacySchemaVersion or RegistrySchemaVersion) ||
+                (document.SchemaVersion == LegacySchemaVersion && document.SourceRegistryState is not null) ||
+                (document.SchemaVersion == RegistrySchemaVersion && document.SourceRegistryState is null))
             {
                 return Failure(VersionManagerStateLoadIssue.Invalid);
             }
@@ -185,6 +189,22 @@ public sealed class JsonVersionManagerStateStore : IVersionManagerStateStore
                     admissionDocument.ReleaseManifestSha256!));
         }
 
+        VersionSourceRegistryState? sourceRegistryState = null;
+        if (document.SourceRegistryState is { } registryDocument)
+        {
+            try
+            {
+                sourceRegistryState = new(
+                    registryDocument.AcceptedRevision,
+                    registryDocument.AcceptedDigest,
+                    registryDocument.IsManualPin);
+            }
+            catch (ArgumentException)
+            {
+                return null;
+            }
+        }
+
         VersionManagerState state = VersionManagerState.Create(
             document.UpdateSource,
             active,
@@ -194,7 +214,8 @@ public sealed class JsonVersionManagerStateStore : IVersionManagerStateStore
             failed,
             document.RetentionReviewDue,
             pendingMutation,
-            document.ManagedRootIdentity);
+            document.ManagedRootIdentity,
+            sourceRegistryState);
         return document.ManagedRootIdentity is null || string.Equals(
             document.ManagedRootIdentity,
             state.ManagedRootIdentity,
@@ -221,8 +242,11 @@ public sealed class JsonVersionManagerStateStore : IVersionManagerStateStore
                     mutation.Admission.AdmissionIdentity,
                     mutation.Admission.ReleaseManifestSha256))
             : null;
+        VersionSourceRegistryStateDocument? sourceRegistryState = state.SourceRegistryState is { } registry
+            ? new(registry.AcceptedRevision, registry.AcceptedDigest, registry.IsManualPin)
+            : null;
         return new(
-            SchemaVersion,
+            sourceRegistryState is null ? LegacySchemaVersion : RegistrySchemaVersion,
             state.UpdateSource,
             state.ActiveVersion?.ToString(),
             state.LastKnownGoodVersion?.ToString(),
@@ -234,7 +258,8 @@ public sealed class JsonVersionManagerStateStore : IVersionManagerStateStore
             state.FailedActivationVersion?.ToString(),
             state.RetentionReviewDue,
             pendingMutation,
-            state.ManagedRootIdentity);
+            state.ManagedRootIdentity,
+            sourceRegistryState);
     }
 
     private static bool TryParseActivationPhase(string? value, out VersionActivationPhase phase)

@@ -15,7 +15,15 @@ public sealed record VersionManagerStateDocument(
     [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     PendingManagedVersionMutationDocument? PendingMutation = null,
     [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
-    string? ManagedRootIdentity = null);
+    string? ManagedRootIdentity = null,
+    [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    VersionSourceRegistryStateDocument? SourceRegistryState = null);
+
+/// <summary>Durable fixed-registry authority stored atomically with the effective source.</summary>
+public sealed record VersionSourceRegistryStateDocument(
+    long AcceptedRevision,
+    string? AcceptedDigest,
+    bool IsManualPin);
 
 /// <summary>One installed managed-version admission transport.</summary>
 public sealed record ManagedVersionAdmissionDocument(
