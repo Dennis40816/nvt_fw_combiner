@@ -5,7 +5,7 @@
   "integrationBase": "c4b3fc70f26a9347958691e21798b182b3b6e9bc",
   "risk": "R2",
   "kind": "behavior",
-  "state": "design-active",
+  "state": "final-complete",
   "mutablePaths": [
     "docs/adr/0015-canonical-firmware-map-and-compiled-composition.md",
     "src/NvtFwCombiner.Domain/Composition/CompositionOperation.cs",
@@ -35,12 +35,12 @@
     "outcome": "findings-incorporated",
     "evidence": "Independent R2 Application and UI architecture admission findings are incorporated. Retained-companion selection is an exact distinct admitted-slot query using canonical Domain DeclaredWriteRanges overlap against the physical ProjectionRegion, and every group identity uses collision-free typed namespaces with stable ids plus ambiguous fail-closed nested-map resolution. Existing Option B remains hover-only: bars are not focus targets and cannot click/pin; visible cards share pointer state, card focus highlights bars, and collapsed Base disclosure never auto-expands. Conflict and pending synthetic namespaces are explicitly isolated. Required evidence covers Domain, Application, all-route, Architecture, Merge/Replace grouping, exact bar geometry, bilingual partial rows and interaction cleanup. ADR 0015 remains the correct durable owner."
   },
-  "implementationHead": null,
-  "reviewedHead": null,
-  "pathStateDigest": null,
+  "implementationHead": "3ea3221c38cdea159a91bd3f218ed7316f47cb06",
+  "reviewedHead": "3ea3221c38cdea159a91bd3f218ed7316f47cb06",
+  "pathStateDigest": "f90c6f1d878bdad3cc02b8da27bf7671c428bd21f0da2f525e32b4785f8b7179",
   "finalReview": {
-    "reviewer": null,
-    "outcome": "pending",
-    "evidence": ""
+    "reviewer": "audit_dirty_application + audit_dirty_ui + audit_dirty_governance",
+    "outcome": "approved",
+    "evidence": "Three independent exact-head reviews of c4b3fc70f26a9347958691e21798b182b3b6e9bc..3ea3221c38cdea159a91bd3f218ed7316f47cb06 found no P0-P3 and Polytail PASS after two P2 findings were closed. Application review confirmed exact ProjectionRegion-keyed retained companions, Domain DeclaredWriteRanges authority, nested split fail-closed behavior and no byte/range/order drift. UI review confirmed unchanged plain Merge single-row geometry, exact proportional-bar geometry, adjacent-compatible partial rows, shared hover/focus interaction and no click/focus/pin bar semantics. Governance review confirmed exact mutable-path coverage, ADR/layer agreement, no private/generated payload and no new human gate. Release build passed with 0 warnings/0 errors; full Application 850/850, UI 810/810 and Architecture 240/240 passed; formal runtime closure passed 4/4 across the 64-route denominator; diff check passed."
   }
 }
