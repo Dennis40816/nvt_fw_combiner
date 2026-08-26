@@ -680,12 +680,22 @@ public sealed partial class CtrlRamWorkflowTests
         Assert.Equal("1 selected / 2 areas.", sharedGroup.SelectionSummary);
         Assert.Contains("Build blocked", viewModel.Replace.ReplaceSelectionStatusLabel, StringComparison.Ordinal);
         Assert.Empty(viewModel.Replace.ReplaceSelectionMissingRows);
-        Assert.Contains(viewModel.Replace.ReplaceSelectionRows, row =>
-            row.Title == "VN CtrlRAM (Shared)" &&
-            row.Detail == "vn.bin" &&
-            row.Meta.Contains("VN_Ctrlram.bin", StringComparison.Ordinal) &&
-            row.Meta.Contains("VN CtrlRAM (Slave L)", StringComparison.Ordinal) &&
-            row.Meta.Contains("0x", StringComparison.Ordinal));
+        ReportLineViewModel selectedRow = Assert.Single(viewModel.Replace.ReplaceSelectionRows);
+        Assert.Equal("VN CtrlRAM (Shared)", selectedRow.Title);
+        Assert.Equal("vn.bin", selectedRow.Detail);
+        Assert.Equal(
+            "VN_Ctrlram.bin · VN CtrlRAM (Master): max 5728 B → 0x1CBD0; " +
+            "VN CtrlRAM (Slave R): max 5728 B → 0x25BD0; " +
+            "VN CtrlRAM (Slave L): max 5728 B → 0x2EBD0",
+            selectedRow.Meta);
+
+        viewModel.SelectedLanguage = "Traditional Chinese";
+        ReportLineViewModel localizedRow = Assert.Single(viewModel.Replace.ReplaceSelectionRows);
+        Assert.Equal(
+            "VN_Ctrlram.bin · VN CtrlRAM（主控）：上限 5728 B → 0x1CBD0；" +
+            "VN CtrlRAM（右側從屬）：上限 5728 B → 0x25BD0；" +
+            "VN CtrlRAM（左側從屬）：上限 5728 B → 0x2EBD0",
+            localizedRow.Meta);
         Assert.Contains("Complete the required inputs", viewModel.Replace.ReplaceSelectionRunHint, StringComparison.Ordinal);
 
         Assert.False(viewModel.Replace.IsReplaceSelectionModalOpen);
