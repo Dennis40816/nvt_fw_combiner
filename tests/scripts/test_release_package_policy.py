@@ -10,6 +10,7 @@ import shutil
 import subprocess
 import sys
 import tempfile
+import time
 import unittest
 import zipfile
 from pathlib import Path
@@ -329,6 +330,315 @@ class ReleasePackagePolicyTests(unittest.TestCase):
         self.assertFalse(
             probe_path.exists(), "packager did not clean its source policy probe"
         )
+
+    @unittest.skipUnless(
+        POWERSHELL, "PowerShell is required for Windows release-policy tests"
+    )
+    def test_packager_rejects_version_that_differs_from_repository_identity(self) -> None:
+        repository_version = (ROOT / "VERSION").read_text(encoding="utf-8").strip()
+        major, minor, patch = (int(value) for value in repository_version.split("."))
+        mismatched_version = f"{major}.{minor}.{patch + 1}"
+        repository_head = subprocess.run(
+            ["git", "rev-parse", "HEAD"],
+            cwd=ROOT,
+            check=True,
+            capture_output=True,
+            text=True,
+        ).stdout.strip()
+
+        result = self.run_powershell(
+            PACKAGE_SCRIPT,
+            "-Version",
+            mismatched_version,
+            "-Commit",
+            repository_head,
+            "-AllowPrerelease",
+            "-ExternalToolPolicyDryRun",
+        )
+
+        self.assertNotEqual(0, result.returncode, result.stdout + result.stderr)
+        self.assertIn(
+            f"Package version '{mismatched_version}' does not match repository "
+            f"VERSION '{repository_version}'",
+            normalize_console_output(result.stdout + result.stderr),
+        )
+
+    @unittest.skipUnless(
+        POWERSHELL, "PowerShell is required for Windows release-policy tests"
+    )
+    def test_packager_rejects_commit_that_differs_from_repository_head(self) -> None:
+        repository_version = (ROOT / "VERSION").read_text(encoding="utf-8").strip()
+
+        result = self.run_powershell(
+            PACKAGE_SCRIPT,
+            "-Version",
+            repository_version,
+            "-Commit",
+            "1" * 40,
+            "-ExternalToolPolicyDryRun",
+        )
+
+        self.assertNotEqual(0, result.returncode, result.stdout + result.stderr)
+        self.assertIn(
+            "Package commit does not match repository HEAD",
+            normalize_console_output(result.stdout + result.stderr),
+        )
+
+    @unittest.skipUnless(
+        POWERSHELL, "PowerShell is required for Windows release-policy tests"
+    )
+    def test_packager_rejects_dirty_repository_before_policy_dry_run(self) -> None:
+        for dirty_kind in ("staged", "unstaged", "untracked"):
+            with self.subTest(dirty_kind=dirty_kind), tempfile.TemporaryDirectory(
+                prefix="nvt-package-source-identity-"
+            ) as temporary_directory:
+                repository_root = Path(temporary_directory)
+                script_path = repository_root / "scripts" / "package.ps1"
+                script_path.parent.mkdir(parents=True)
+                shutil.copy2(PACKAGE_SCRIPT, script_path)
+                (repository_root / "VERSION").write_text("1.0.0\n", encoding="utf-8")
+                tracked_path = repository_root / "tracked.txt"
+                tracked_path.write_text("clean\n", encoding="utf-8")
+                for arguments in (
+                    ("init", "-q"),
+                    ("config", "user.name", "Package Identity Test"),
+                    ("config", "user.email", "package-identity@example.invalid"),
+                    ("config", "commit.gpgsign", "false"),
+                    ("add", "."),
+                    ("commit", "-q", "-m", "baseline"),
+                ):
+                    subprocess.run(
+                        ["git", *arguments],
+                        cwd=repository_root,
+                        check=True,
+                        capture_output=True,
+                        text=True,
+                    )
+                repository_head = subprocess.run(
+                    ["git", "rev-parse", "HEAD"],
+                    cwd=repository_root,
+                    check=True,
+                    capture_output=True,
+                    text=True,
+                ).stdout.strip()
+
+                if dirty_kind == "staged":
+                    (repository_root / "staged.cs").write_text(
+                        "internal sealed class Staged {}\n", encoding="utf-8"
+                    )
+                    subprocess.run(
+                        ["git", "add", "staged.cs"],
+                        cwd=repository_root,
+                        check=True,
+                    )
+                elif dirty_kind == "unstaged":
+                    tracked_path.write_text("changed\n", encoding="utf-8")
+                else:
+                    (repository_root / "untracked.cs").write_text(
+                        "internal sealed class Untracked {}\n", encoding="utf-8"
+                    )
+
+                result = self.run_powershell(
+                    script_path,
+                    "-Version",
+                    "1.0.0",
+                    "-Commit",
+                    repository_head,
+                    "-ExternalToolPolicyDryRun",
+                )
+
+                self.assertNotEqual(
+                    0, result.returncode, result.stdout + result.stderr
+                )
+                self.assertIn(
+                    "Release packaging requires a clean repository worktree and index",
+                    normalize_console_output(result.stdout + result.stderr),
+                )
+
+    @unittest.skipUnless(
+        POWERSHELL, "PowerShell is required for Windows release-policy tests"
+    )
+    def test_packager_fails_closed_when_repository_head_is_unavailable(self) -> None:
+        with tempfile.TemporaryDirectory(
+            prefix="nvt-package-missing-git-"
+        ) as temporary_directory:
+            repository_root = Path(temporary_directory)
+            script_path = repository_root / "scripts" / "package.ps1"
+            script_path.parent.mkdir(parents=True)
+            shutil.copy2(PACKAGE_SCRIPT, script_path)
+            (repository_root / "VERSION").write_text("1.0.0\n", encoding="utf-8")
+
+            result = self.run_powershell(
+                script_path,
+                "-Version",
+                "1.0.0",
+                "-Commit",
+                "1" * 40,
+                "-ExternalToolPolicyDryRun",
+            )
+
+        self.assertNotEqual(0, result.returncode, result.stdout + result.stderr)
+        self.assertIn(
+            "Repository HEAD could not be resolved",
+            normalize_console_output(result.stdout + result.stderr),
+        )
+
+    @unittest.skipUnless(
+        POWERSHELL, "PowerShell is required for Windows release-policy tests"
+    )
+    def test_packager_identity_mismatch_preserves_existing_artifacts(self) -> None:
+        with tempfile.TemporaryDirectory(
+            prefix="nvt-package-preserve-artifacts-"
+        ) as temporary_directory:
+            repository_root = Path(temporary_directory)
+            script_path = repository_root / "scripts" / "package.ps1"
+            script_path.parent.mkdir(parents=True)
+            shutil.copy2(PACKAGE_SCRIPT, script_path)
+            (repository_root / "VERSION").write_text("1.0.0\n", encoding="utf-8")
+            artifact_path = repository_root / "artifacts" / "release" / "existing.txt"
+            artifact_path.parent.mkdir(parents=True)
+            artifact_path.write_text("preserve\n", encoding="utf-8")
+
+            result = self.run_powershell(
+                script_path,
+                "-Version",
+                "1.0.1",
+                "-Commit",
+                "1" * 40,
+                "-ExternalToolPolicyDryRun",
+            )
+
+            self.assertNotEqual(0, result.returncode, result.stdout + result.stderr)
+            self.assertEqual("preserve\n", artifact_path.read_text(encoding="utf-8"))
+
+    @unittest.skipUnless(
+        POWERSHELL, "PowerShell is required for Windows release-policy tests"
+    )
+    def test_packager_uses_exact_snapshot_when_invocation_tree_changes_after_preflight(
+        self,
+    ) -> None:
+        with tempfile.TemporaryDirectory(
+            prefix=".nfc-package-race-", dir=ROOT.parent
+        ) as temporary_directory:
+            temporary_root = Path(temporary_directory)
+            invocation_root = temporary_root / "invocation"
+            runtime_temp = temporary_root / "runtime-temp"
+            runtime_temp.mkdir()
+            subprocess.run(
+                [
+                    "git",
+                    "-C",
+                    str(ROOT),
+                    "worktree",
+                    "add",
+                    "--detach",
+                    str(invocation_root),
+                    "HEAD",
+                ],
+                check=True,
+                capture_output=True,
+                text=True,
+            )
+
+            process: subprocess.Popen[str] | None = None
+            source_policy = invocation_root / CAPABILITY_POLICY_RELATIVE_PATH
+            source_policy_bytes = b""
+            snapshot_root: Path | None = None
+            try:
+                repository_version = (
+                    invocation_root / "VERSION"
+                ).read_text(encoding="utf-8").strip()
+                repository_head = subprocess.run(
+                    ["git", "rev-parse", "HEAD"],
+                    cwd=invocation_root,
+                    check=True,
+                    capture_output=True,
+                    text=True,
+                ).stdout.strip()
+                environment = os.environ.copy()
+                environment["TEMP"] = str(runtime_temp)
+                environment["TMP"] = str(runtime_temp)
+                process = subprocess.Popen(
+                    [
+                        str(POWERSHELL),
+                        "-NoProfile",
+                        "-ExecutionPolicy",
+                        "Bypass",
+                        "-File",
+                        str(invocation_root / "scripts" / "package.ps1"),
+                        "-Version",
+                        repository_version,
+                        "-Commit",
+                        repository_head,
+                        "-ExternalToolPolicyDryRun",
+                    ],
+                    cwd=invocation_root,
+                    stdout=subprocess.PIPE,
+                    stderr=subprocess.PIPE,
+                    text=True,
+                    encoding="utf-8",
+                    errors="replace",
+                    env=environment,
+                )
+
+                deadline = time.monotonic() + 90
+                while time.monotonic() < deadline and process.poll() is None:
+                    candidates = sorted(temporary_root.glob(".nfcps-*"))
+                    snapshot_root = next(
+                        (
+                            candidate
+                            for candidate in candidates
+                            if (candidate / "VERSION").is_file()
+                        ),
+                        None,
+                    )
+                    if snapshot_root is not None:
+                        break
+                    time.sleep(0.01)
+
+                self.assertIsNotNone(
+                    snapshot_root,
+                    "packager did not materialize an exact source snapshot",
+                )
+                source_policy_bytes = source_policy.read_bytes()
+                source_policy.write_text("{}\n", encoding="utf-8")
+
+                stdout, stderr = process.communicate(timeout=180)
+                self.assertEqual(0, process.returncode, stdout + stderr)
+                self.assertIn(
+                    "External-tool package policy dry-run passed",
+                    normalize_console_output(stdout + stderr),
+                )
+                self.assertFalse(
+                    snapshot_root.exists(),
+                    "packager did not remove its exact source snapshot",
+                )
+            finally:
+                if source_policy_bytes:
+                    source_policy.write_bytes(source_policy_bytes)
+                if process is not None and process.poll() is None:
+                    process.kill()
+                    process.communicate()
+                subprocess.run(
+                    [
+                        "git",
+                        "-C",
+                        str(ROOT),
+                        "worktree",
+                        "remove",
+                        "--force",
+                        str(invocation_root),
+                    ],
+                    check=False,
+                    capture_output=True,
+                    text=True,
+                )
+                subprocess.run(
+                    ["git", "-C", str(ROOT), "worktree", "prune"],
+                    check=False,
+                    capture_output=True,
+                    text=True,
+                )
 
     def test_release_workflows_smoke_package_before_distribution(self) -> None:
         for workflow_path in (

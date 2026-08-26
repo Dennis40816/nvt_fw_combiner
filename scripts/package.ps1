@@ -15,7 +15,10 @@ Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
 $ProgressPreference = 'SilentlyContinue'
 
-$RepoRoot = Split-Path -Parent $PSScriptRoot
+$InvocationRepoRoot = Split-Path -Parent $PSScriptRoot
+$RepoRoot = $InvocationRepoRoot
+$SourceSnapshotRoot = $null
+$SourceSnapshotAttached = $false
 $ReleaseManifestSchemaPath = Join-Path $RepoRoot 'docs/contracts/release-manifest-v1.schema.json'
 $DistributionOwner = 'MSP/FW3'
 $SourceIdentity = 'urn:msp-fw3:nvt-fw-combiner:source'
@@ -54,10 +57,45 @@ if ($Commit -notmatch '^[0-9a-f]{40}$') {
     throw "Commit must be a lowercase 40-character Git SHA; received '$Commit'."
 }
 
+$PolicyDryRunSentinel =
+    $ExternalToolPolicyDryRun -and
+    $SemanticVersion -ceq '0.0.0' -and
+    $Commit -ceq ('0' * 40)
+if (-not $PolicyDryRunSentinel) {
+    $RepositoryVersionPath = Join-Path $RepoRoot 'VERSION'
+    if (-not (Test-Path -LiteralPath $RepositoryVersionPath -PathType Leaf)) {
+        throw "Repository VERSION is missing: $RepositoryVersionPath"
+    }
+    $RepositoryVersion = (Get-Content -LiteralPath $RepositoryVersionPath -Raw).Trim()
+    if ($SemanticVersion -cne $RepositoryVersion) {
+        throw "Package version '$SemanticVersion' does not match repository VERSION '$RepositoryVersion'."
+    }
+
+    $RepositoryHeadOutput = & git -C $RepoRoot rev-parse --verify HEAD 2>&1
+    if ($LASTEXITCODE -ne 0) {
+        throw "Repository HEAD could not be resolved: $($RepositoryHeadOutput -join ' ')"
+    }
+    $RepositoryHead = ([string]($RepositoryHeadOutput -join '')).Trim()
+    if ($RepositoryHead -notmatch '^[0-9a-f]{40}$') {
+        throw "Repository HEAD is not a lowercase full Git SHA: '$RepositoryHead'."
+    }
+    if ($Commit -cne $RepositoryHead) {
+        throw "Package commit does not match repository HEAD: requested '$Commit', actual '$RepositoryHead'."
+    }
+
+    $RepositoryStatus = & git -C $RepoRoot status --porcelain=v1 --untracked-files=all 2>&1
+    if ($LASTEXITCODE -ne 0) {
+        throw "Repository status could not be read: $($RepositoryStatus -join ' ')"
+    }
+    if (@($RepositoryStatus).Count -ne 0) {
+        throw 'Release packaging requires a clean repository worktree and index.'
+    }
+}
+
 $DotNet = $null
 $Python = $null
-$ReleaseRoot = Join-Path $RepoRoot 'artifacts/release'
-$WorkRoot = Join-Path $RepoRoot 'artifacts/package-work'
+$ReleaseRoot = Join-Path $InvocationRepoRoot 'artifacts/release'
+$WorkRoot = Join-Path $InvocationRepoRoot 'artifacts/package-work'
 $PackageName = "NvtFwCombiner-$SourceTag-win-x64"
 $PackageRoot = Join-Path $WorkRoot $PackageName
 $AppPublish = Join-Path $WorkRoot 'app-publish'
@@ -68,6 +106,38 @@ $IdleBuildWorkerStopper = Join-Path $PSScriptRoot 'stop-idle-build-workers.ps1'
 $StandardMergeGoldenReleaseAllowlistPath = Join-Path $RepoRoot 'testdata/golden/release-standard-merge-v1.json'
 
 try {
+if (-not $PolicyDryRunSentinel) {
+    $SourceSnapshotParent = Split-Path -Parent $InvocationRepoRoot
+    $SourceSnapshotId = [guid]::NewGuid().ToString('N').Substring(0, 12)
+    $SourceSnapshotRoot = Join-Path $SourceSnapshotParent ".nfcps-$SourceSnapshotId"
+    $SnapshotAddOutput = & git -C $InvocationRepoRoot worktree add --detach $SourceSnapshotRoot $Commit 2>&1
+    if ($LASTEXITCODE -ne 0) {
+        throw "Exact source snapshot could not be materialized: $($SnapshotAddOutput -join ' ')"
+    }
+    $SourceSnapshotAttached = $true
+
+    $SnapshotHeadOutput = & git -C $SourceSnapshotRoot rev-parse --verify HEAD 2>&1
+    if ($LASTEXITCODE -ne 0) {
+        throw "Exact source snapshot HEAD could not be resolved: $($SnapshotHeadOutput -join ' ')"
+    }
+    $SnapshotHead = ([string]($SnapshotHeadOutput -join '')).Trim()
+    if ($SnapshotHead -cne $Commit) {
+        throw "Exact source snapshot resolved '$SnapshotHead' instead of requested commit '$Commit'."
+    }
+    $SnapshotStatus = & git -C $SourceSnapshotRoot status --porcelain=v1 --untracked-files=all 2>&1
+    if ($LASTEXITCODE -ne 0) {
+        throw "Exact source snapshot status could not be read: $($SnapshotStatus -join ' ')"
+    }
+    if (@($SnapshotStatus).Count -ne 0) {
+        throw 'Exact source snapshot is not clean.'
+    }
+
+    $RepoRoot = $SourceSnapshotRoot
+    $ReleaseManifestSchemaPath = Join-Path $RepoRoot 'docs/contracts/release-manifest-v1.schema.json'
+    $IdleBuildWorkerStopper = Join-Path $RepoRoot 'scripts/stop-idle-build-workers.ps1'
+    $StandardMergeGoldenReleaseAllowlistPath = Join-Path $RepoRoot 'testdata/golden/release-standard-merge-v1.json'
+}
+
 function Get-LowerSha256 {
     param([Parameter(Mandatory = $true)][string]$Path)
     return (Get-FileHash -LiteralPath $Path -Algorithm SHA256).Hash.ToLowerInvariant()
@@ -1363,6 +1433,19 @@ finally {
             & $IdleBuildWorkerStopper -RepositoryRoot $RepoRoot
             if ($LASTEXITCODE -ne 0) {
                 Write-Warning "idle Avalonia build worker cleanup returned exit code $LASTEXITCODE."
+            }
+        }
+    }
+
+    if ($SourceSnapshotAttached) {
+        $SnapshotRemoveOutput = & git -C $InvocationRepoRoot worktree remove --force $SourceSnapshotRoot 2>&1
+        if ($LASTEXITCODE -ne 0) {
+            Write-Warning "Exact source snapshot cleanup failed and was preserved for inspection: $($SnapshotRemoveOutput -join ' ')"
+        }
+        else {
+            & git -C $InvocationRepoRoot worktree prune
+            if ($LASTEXITCODE -ne 0) {
+                Write-Warning 'Git worktree prune failed after exact source snapshot cleanup.'
             }
         }
     }
