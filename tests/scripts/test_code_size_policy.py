@@ -429,6 +429,27 @@ class CodeSizePolicyTests(unittest.TestCase):
             ),
         )
 
+    def test_launcher_bootstrap_is_allocated_to_existing_host_slice(self) -> None:
+        self.write("src/NvtFwCombiner.LauncherBootstrap/Program.cs", "bootstrap-anchor\n")
+        snapshot = measure_code_size(self.root)
+
+        self.assertEqual(1, snapshot.bootstrap_cli_files)
+        self.assertEqual(1, snapshot.bootstrap_cli_nonblank)
+        self.assertEqual(
+            [],
+            validate_code_size_policy(
+                self.root,
+                self.limits(
+                    production=1,
+                    runtime_ratchet=1,
+                    domain_profiles_ratchet=0,
+                    application_ratchet=0,
+                    bootstrap_cli_ratchet=1,
+                    infrastructure_contracts_worker_ratchet=0,
+                ),
+            ),
+        )
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -209,13 +209,18 @@ def _application_files(root: Path) -> list[Path]:
 
 
 def _bootstrap_cli_files(root: Path) -> list[Path]:
-    """Return the fixed Bootstrap, CLI, and desktop composition-root slice."""
+    """Return the fixed Bootstrap, Launcher, CLI, and desktop host slice."""
 
     return [
         *_matching_files(root, "src/NvtFwCombiner.Bootstrap", frozenset({".cs"})),
         *_matching_files(root, "src/NvtFwCombiner.Cli", frozenset({".cs"})),
         *_matching_files(root, "src/NvtFwCombiner.Desktop", frozenset({".cs"})),
         *_matching_files(root, "src/NvtFwCombiner.Launcher", frozenset({".cs"})),
+        *_matching_files(
+            root,
+            "src/NvtFwCombiner.LauncherBootstrap",
+            frozenset({".cs"}),
+        ),
     ]
 
 
