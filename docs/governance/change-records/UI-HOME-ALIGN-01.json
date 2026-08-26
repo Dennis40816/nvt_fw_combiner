@@ -1,0 +1,32 @@
+{
+  "schemaVersion": 2,
+  "taskId": "UI-HOME-ALIGN-01",
+  "capability": "Keep Home workflow-card titles vertically aligned with the existing Open action without changing card geometry",
+  "integrationBase": "0bbcc1be35e534f631fbaf8418288e58f4240ef3",
+  "risk": "R1",
+  "kind": "ui",
+  "state": "design-active",
+  "mutablePaths": [
+    "src/NvtFwCombiner.Presentation.Avalonia/Styles/MainWindowVisualStyles.axaml"
+  ],
+  "implementationOwner": "root-implementer",
+  "searchEvidence": [
+    "rg -n 'workflowCard|workflowOpenPill|strongText' src/NvtFwCombiner.Presentation.Avalonia tests/NvtFwCombiner.UiSmoke.Tests"
+  ],
+  "semanticOwner": "Presentation HomePageTemplate and MainWindowVisualStyles",
+  "terminalContract": "Every visible Home workflow-card title shares the existing Open pill vertical center while the 50 px card geometry and navigation behavior remain unchanged",
+  "disposition": "extend-owner",
+  "designReview": {
+    "reviewer": null,
+    "outcome": "not-required",
+    "evidence": "R1 visual alignment reuses the existing workflowCard, strongText, and workflowOpenPill owners and adds no new layout container or navigation behavior."
+  },
+  "implementationHead": null,
+  "reviewedHead": null,
+  "pathStateDigest": null,
+  "finalReview": {
+    "reviewer": null,
+    "outcome": "pending",
+    "evidence": ""
+  }
+}

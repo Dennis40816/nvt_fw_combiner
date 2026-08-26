@@ -65,6 +65,9 @@
       </Transitions>
     </Setter>
   </Style>
+  <Style Selector="Border.workflowCard TextBlock.strongText">
+    <Setter Property="VerticalAlignment" Value="Center" />
+  </Style>
   <Style Selector="Button.command:pointerover Border.workflowCard">
     <Setter Property="Background" Value="{DynamicResource NfcSurfaceBrush}" />
     <Setter Property="BorderBrush" Value="{DynamicResource NfcAccentBorderStrongBrush}" />
