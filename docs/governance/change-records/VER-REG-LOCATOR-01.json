@@ -5,7 +5,7 @@
   "integrationBase": "d31faf5feab081c354a6aeb1613cad11c6a9d617",
   "risk": "R2",
   "kind": "behavior",
-  "state": "design-active",
+  "state": "final-complete",
   "mutablePaths": [
     "docs/adr/0053-fixed-update-source-registry.md",
     "docs/ci/release-package.md",
@@ -27,12 +27,12 @@
     "outcome": "approved",
     "evidence": "The bounded design closes the observed production wiring gap through the existing host seam. It adds no registry reader, search, persistent sidecar, writer or package field; explicit option precedence is deterministic and all invalid/unavailable inputs continue through the existing typed fail-closed Self-test path. Focused Bootstrap, Desktop source-boundary, launcher inheritance and local relocated Registry tests are required before final review."
   },
-  "implementationHead": null,
-  "reviewedHead": null,
-  "pathStateDigest": null,
+  "implementationHead": "c43a43ebd1a76b22fe4f6aad4102fc0a10f2c96c",
+  "reviewedHead": "c43a43ebd1a76b22fe4f6aad4102fc0a10f2c96c",
+  "pathStateDigest": "eda00d8dc932486e0712908ca174227f78a399416e0c4c1857bb14a37bb90ad0",
   "finalReview": {
-    "reviewer": null,
-    "outcome": "pending",
-    "evidence": ""
+    "reviewer": "audit_dirty_application + audit_dirty_ui + audit_dirty_governance",
+    "outcome": "approved",
+    "evidence": "Three independent exact-head reviews of 01ed3aa6004e254b4001a3ad8616cc06465a814d..c43a43ebd1a76b22fe4f6aad4102fc0a10f2c96c found no P0-P3 and Polytail PASS. Desktop preserves raw explicit-option precedence over the inherited environment; the Bootstrap resolver performs no path, file, JSON, hashing, persistence or logging work; FileSystemUpdateSourceRegistry remains the single locator/schema authority. Missing and invalid configuration retain typed non-blocking Self-test behavior, and no Version state, launcher activation, package identity, firmware or UI layout changed. Release build passed with 0 warnings/0 errors; Bootstrap 1130/1130, Version Application 253/253, Infrastructure Registry 20/20, Architecture 240/240, UI Version 24/24 and release-package policy 41/41 passed; diff check passed. External production locator provisioning and clean-machine/UNC Self-test remain release evidence, not a code finding or a new R3 gate for this R2 wiring task."
   }
 }
