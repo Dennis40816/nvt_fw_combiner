@@ -212,7 +212,7 @@ public sealed record VersionEnvironmentSelfTestAttempt
         IsVerified = isVerified;
     }
 
-    /// <summary>Gets the normalized automatic source root.</summary>
+    /// <summary>Gets the normalized automatic source root. Presentation must not expose it by default.</summary>
     public string SourceRoot { get; }
 
     /// <summary>Gets whether this was latest or an ordered available source.</summary>

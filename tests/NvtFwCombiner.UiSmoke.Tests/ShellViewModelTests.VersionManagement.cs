@@ -107,7 +107,7 @@ public sealed partial class VersionManagementSettingsTests
                 UpdateSourceRegistryLoadIssue.None,
                 [new(
                     privateSource,
-                    UpdateSourceRegistryEntryStatus.Available,
+                    UpdateSourceRegistryEntryStatus.Latest,
                     UpdateCatalogLoadIssue.None,
                     ManagedVersionInstallIssue.None,
                     ManagedAppVersion.Parse("0.10.6"),
@@ -146,7 +146,47 @@ public sealed partial class VersionManagementSettingsTests
 
         Assert.Equal(1, experience.SelfTests);
         Assert.Contains("failed", viewModel.Settings.VersionOperationStatus, StringComparison.OrdinalIgnoreCase);
-        Assert.Contains("NotConfigured", viewModel.Settings.VersionOperationStatus, StringComparison.Ordinal);
+        Assert.Contains("not configured", viewModel.Settings.VersionOperationStatus, StringComparison.OrdinalIgnoreCase);
+        Assert.DoesNotContain("NotConfigured", viewModel.Settings.VersionOperationStatus, StringComparison.Ordinal);
+        Assert.False(viewModel.Settings.IsVersionBusy);
+    }
+
+    /// <summary>A working fallback is visible as attention, never a false all-clear or a raw enum.</summary>
+    [Fact]
+    public async Task EnvironmentSelfTestReportsRecoveredFallbackAsFriendlyWarning()
+    {
+        var experience = new RecordingVersionExperience(Snapshot(retentionReviewDue: false))
+        {
+            SelfTestResult = new(
+                UpdateSourceRegistryLoadIssue.None,
+                [
+                    new(
+                        "private-latest",
+                        UpdateSourceRegistryEntryStatus.Latest,
+                        UpdateCatalogLoadIssue.SourceUnavailable,
+                        packageIssue: null,
+                        newestVersion: null,
+                        isVerified: false),
+                    new(
+                        "private-fallback",
+                        UpdateSourceRegistryEntryStatus.Available,
+                        UpdateCatalogLoadIssue.None,
+                        ManagedVersionInstallIssue.None,
+                        ManagedAppVersion.Parse("0.10.6"),
+                        isVerified: true),
+                ]),
+        };
+        MainWindowViewModel viewModel = MainWindow.CreateStartupViewModel(
+            PresentationTestHost.CreateServices("0.10.5", experience),
+            ShellPreferenceSnapshot.Default);
+
+        await viewModel.Settings.RunVersionSelfTestCommand.ExecuteAsync(null);
+
+        Assert.Contains("needs attention", viewModel.Settings.VersionOperationStatus, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("1/2", viewModel.Settings.VersionOperationStatus, StringComparison.Ordinal);
+        Assert.Contains("source folder is unavailable", viewModel.Settings.VersionOperationStatus, StringComparison.OrdinalIgnoreCase);
+        Assert.DoesNotContain("SourceUnavailable", viewModel.Settings.VersionOperationStatus, StringComparison.Ordinal);
+        Assert.DoesNotContain("private-latest", viewModel.Settings.VersionOperationStatus, StringComparison.Ordinal);
         Assert.False(viewModel.Settings.IsVersionBusy);
     }
 
