@@ -15,8 +15,8 @@ public static class UpdateCatalogValidator
     public const int MaximumReleaseNotesBytes = 64 * 1024;
     /// <summary>The maximum declared package length in bytes.</summary>
     public const long MaximumPackageBytes = 80_000_000;
-    /// <summary>The bounded v1.0.0 package length including its coupled managed Launcher.</summary>
-    public const long MaximumManaged100PackageBytes = 134_217_728;
+    /// <summary>The bounded v1.0.0/v1.0.1 package length including the coupled managed Launcher.</summary>
+    public const long MaximumManagedUpgradePairPackageBytes = 134_217_728;
     private const string Product = "NVT FW Combiner";
     private const string RuntimeIdentifier = "win-x64";
 
@@ -173,8 +173,8 @@ public static class UpdateCatalogValidator
 
     private static long GetMaximumPackageBytes(ManagedAppVersion version)
     {
-        return version is { Major: 1, Minor: 0, Patch: 0 }
-            ? MaximumManaged100PackageBytes
+        return version is { Major: 1, Minor: 0, Patch: 0 or 1 }
+            ? MaximumManagedUpgradePairPackageBytes
             : MaximumPackageBytes;
     }
 }

@@ -41,7 +41,7 @@ ENTRY_KEYS = {
 
 
 def _maximum_package_bytes(version: str) -> int:
-    return 134_217_728 if version == "1.0.0" else 80_000_000
+    return 134_217_728 if version in {"1.0.0", "1.0.1"} else 80_000_000
 
 
 def _sha256(data: bytes) -> str:
@@ -204,17 +204,7 @@ def _package_entry(
         raise ValueError(
             f"release ZIP size is outside the catalog bound: {package.name}"
         )
-    package_root = f"NvtFwCombiner-v{version}-win-x64/"
-    manifest_name = f"{package_root}RELEASE-MANIFEST.json"
-    with zipfile.ZipFile(io.BytesIO(package_bytes)) as archive:
-        files = [item.filename for item in archive.infolist() if not item.is_dir()]
-        if manifest_name not in files or any(
-            not name.startswith(package_root) for name in files
-        ):
-            raise ValueError(
-                f"release ZIP has an unexpected root or manifest path: {package.name}"
-            )
-        manifest = archive.read(manifest_name)
+    manifest = _read_release_manifest(package_bytes, package.name, version)
     manifest_document = _load_strict_json(manifest, "release manifest")
     if (
         not isinstance(manifest_document, dict)
@@ -236,6 +226,81 @@ def _package_entry(
         "releaseManifestSha256": _sha256(manifest),
         "releaseNotes": release_notes,
     }
+
+
+def _read_release_manifest(
+    package_bytes: bytes,
+    package_name: str,
+    version: str,
+) -> bytes:
+    package_root = f"NvtFwCombiner-v{version}-win-x64/"
+    manifest_name = f"{package_root}RELEASE-MANIFEST.json"
+    with zipfile.ZipFile(io.BytesIO(package_bytes)) as archive:
+        files = [item.filename for item in archive.infolist() if not item.is_dir()]
+        if manifest_name not in files or any(
+            not name.startswith(package_root) for name in files
+        ):
+            raise ValueError(
+                f"release ZIP has an unexpected root or manifest path: {package_name}"
+            )
+        return archive.read(manifest_name)
+
+
+def _validate_manifest_copy_destination(source_root: Path, destination: Path) -> Path:
+    source_root = source_root.absolute().resolve(strict=True)
+    destination = destination.absolute()
+    if destination.parent.resolve(strict=True) != source_root:
+        raise ValueError("release manifest copy must be a direct child of source root")
+    if destination.name != "RELEASE-MANIFEST.json":
+        raise ValueError("release manifest copy must be named RELEASE-MANIFEST.json")
+    if destination.exists():
+        raise FileExistsError(f"refusing to replace release manifest copy: {destination}")
+    return destination
+
+
+def copy_release_manifest(source_root: Path, version: str, destination: Path) -> Path:
+    """Copy one catalog-bound inner release manifest for operator inspection."""
+    source_root = source_root.absolute()
+    _reject_link(source_root, "update source root")
+    source_root = source_root.resolve(strict=True)
+    destination = _validate_manifest_copy_destination(source_root, destination)
+
+    entries = _existing_metadata(source_root)
+    entry = entries.get(version)
+    if entry is None:
+        raise ValueError(f"release manifest copy version is not in catalog: {version}")
+    packages_root = source_root / "packages"
+    if not packages_root.is_dir():
+        raise FileNotFoundError(
+            f"update source packages directory is missing: {packages_root}"
+        )
+    _reject_link(packages_root, "update source packages directory")
+    package = source_root / str(entry["packagePath"])
+    _reject_link(package, "release ZIP")
+    package_bytes = package.read_bytes()
+    if _sha256(package_bytes) != entry["packageSha256"]:
+        raise ValueError(f"release package changed after catalog generation: {version}")
+    manifest = _read_release_manifest(package_bytes, package.name, version)
+    if _sha256(manifest) != entry["releaseManifestSha256"]:
+        raise ValueError(f"release manifest changed after catalog generation: {version}")
+
+    descriptor = os.open(
+        destination,
+        os.O_WRONLY | os.O_CREAT | os.O_EXCL,
+        0o600,
+    )
+    try:
+        with os.fdopen(descriptor, "wb") as stream:
+            stream.write(manifest)
+            stream.flush()
+            os.fsync(stream.fileno())
+    except BaseException:
+        try:
+            os.unlink(destination)
+        except FileNotFoundError:
+            pass
+        raise
+    return destination
 
 
 def build_catalog(
@@ -363,14 +428,28 @@ def main() -> int:
         metavar="VERSION=PATH",
         help="UTF-8 notes file required for each package not already in the catalog.",
     )
+    parser.add_argument(
+        "--manifest-copy",
+        action="append",
+        default=[],
+        metavar="VERSION=PATH",
+        help="Copy one catalog-bound inner manifest to one direct source-root child.",
+    )
     args = parser.parse_args()
     published = _parse_assignments(args.published_at, "--published-at")
     note_paths = _parse_assignments(args.release_notes_file, "--release-notes-file")
+    if len(args.manifest_copy) > 1:
+        raise ValueError("--manifest-copy may be supplied at most once")
+    manifest_copies = _parse_assignments(args.manifest_copy, "--manifest-copy")
+    for manifest_path in manifest_copies.values():
+        _validate_manifest_copy_destination(args.source_root, Path(manifest_path))
     notes = {
         version: Path(path).read_text(encoding="utf-8")
         for version, path in note_paths.items()
     }
     destination = build_catalog(args.source_root, published, notes)
+    for version, manifest_path in manifest_copies.items():
+        copy_release_manifest(args.source_root, version, Path(manifest_path))
     print(destination)
     return 0
 

@@ -52,7 +52,7 @@
       "allOf": [
         {
           "if": {
-            "properties": { "version": { "const": "1.0.0" } },
+            "properties": { "version": { "enum": ["1.0.0", "1.0.1"] } },
             "required": ["version"]
           },
           "else": {

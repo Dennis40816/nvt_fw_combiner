@@ -52,10 +52,15 @@ while the source is invalid or offline.
 
 After package smoke and release-note rendering, `release.yml` uploads a separate
 30-day Actions artifact named `update-source-handoff-v<version>-<source-sha>`.
-It is a single-version seed containing the new canonical ZIP under `packages/`
-and a catalog that references only that ZIP. It is not the authoritative live
-multi-version catalog and must never overwrite an existing update source by
-itself. The five immutable GitHub Release assets remain unchanged.
+It is a single-version seed containing the new canonical ZIP under `packages/`,
+a catalog that references only that ZIP, an exact root-level copy of the ZIP's
+inner `RELEASE-MANIFEST.json`, and the reviewed
+`update-source-registry.v1.json` operator seed. The release manifest is the
+version profile; its copy is for operator inspection and is not a second
+runtime authority. It is not the authoritative live multi-version catalog and
+must never overwrite an existing update source by itself. The five immutable
+GitHub Release assets remain unchanged because the aggregate catalog is mutable
+network-source state and cannot be embedded in the ZIP whose digest it records.
 
 A complete update-source publication supplies the latest aggregate
 `update-catalog.v1.json` together with every ZIP referenced by it. Copying only
@@ -67,6 +72,8 @@ is incomplete publication.
 2. Download the matching single-version Actions handoff. In a staging copy of
    the live update-source root, retain the current catalog and every version
    that should remain available under `packages/`, then add the handoff ZIP.
+   Retain the handoff's manifest and registry JSON with the release record; do
+   not copy the single-version catalog over a multi-version live catalog.
 3. Render `RELEASE-NOTES.md` for the new version, then rebuild the root catalog
    from the actual ZIP bytes. Existing versions retain their previously
    published date and notes; every new version supplies both:
@@ -100,6 +107,45 @@ is incomplete publication.
    The Registry may later enumerate a bounded explicit root set; unbounded
    filesystem/share search remains forbidden.
 
+## Required 1.0.0 to 1.0.1 validation source
+
+The pre-release local lab uses the repository-independent root
+`C:\NvtFwCombiner-UpgradeLab` so moving or deleting a Git worktree cannot make
+the result pass accidentally. Populate it only with genuinely rebuilt packages:
+
+```text
+C:\NvtFwCombiner-UpgradeLab\
+├── RELEASE-MANIFEST.json
+├── update-catalog.v1.json
+├── update-source-registry.v1.json
+└── packages\
+    ├── NvtFwCombiner-v1.0.0-win-x64.zip
+    └── NvtFwCombiner-v1.0.1-win-x64.zip
+```
+
+The 1.0.0 and 1.0.1 ZIPs must name different reviewed source commits and carry
+their own matching executable, launcher, manifest, SBOM, provenance, and hash
+identities. After copying both ZIPs and preparing the two release-note files,
+build the aggregate catalog and expose the latest version profile:
+
+```powershell
+python .\scripts\create_update_catalog.py `
+  --source-root 'C:\NvtFwCombiner-UpgradeLab' `
+  --published-at '1.0.0=2026-08-26T00:00:00Z' `
+  --published-at '1.0.1=2026-08-26T00:01:00Z' `
+  --release-notes-file '1.0.0=.\artifacts\upgrade-validation\1.0.0-notes.md' `
+  --release-notes-file '1.0.1=.\artifacts\upgrade-validation\1.0.1-notes.md' `
+  --manifest-copy '1.0.1=C:\NvtFwCombiner-UpgradeLab\RELEASE-MANIFEST.json'
+```
+
+The local registry test profile points its sole `latest` entry at this root.
+The operator then runs Version **Self-test**, **Check now**, installs and
+activates 1.0.1, restarts through Bootstrap, switches back to 1.0.0, exercises
+rollback, damages a non-active copied version to confirm the damaged count,
+and deletes that version explicitly. Repeat the same sequence after copying the
+unchanged complete root to a test UNC share. A folder/ZIP rename is never a
+substitute for either package build.
+
 All fields are required and unknown fields are rejected. Versions are stable
 three-component SemVer values. Hashes are lowercase hexadecimal SHA-256.
 `publishedAt` is canonical UTC ISO-8601 using
@@ -123,7 +169,7 @@ payload have all been checked independently of this catalog parse.
 | Stable SemVer | exact three-component pattern | `ManagedAppVersion.TryParse` |
 | Publication time | canonical UTC pattern plus `date-time` | invariant `TryParseExact` with the same zero-to-seven fractional-second forms |
 | Package path | 5–512 characters, forward-slash ZIP pattern | the same minimum/maximum and extension plus Windows device/control/traversal guards |
-| Package length | 1–80,000,000 normally; v1.0.0 only: 1–134,217,728 | the same version-scoped inclusive bounds and stable-handle recheck |
+| Package length | 1–80,000,000 normally; the v1.0.0 release and v1.0.1 upgrade-validation pair: 1–134,217,728 | the same version-scoped inclusive bounds and stable-handle recheck |
 | SHA-256 | lowercase 64-character hex | the same ordinal lowercase grammar |
 | Release notes | required string, at most 65,536 characters | non-null plus the stricter 65,536 UTF-8-byte transport bound |
 | Version count | 1–128 | the same bounds; any invalid entry rejects the complete catalog |

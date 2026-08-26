@@ -185,10 +185,14 @@ The smoke extracts into a fresh temporary directory, checks the closed package s
 After the ZIP passes smoke and release notes render, `release.yml` uses the
 catalog helper copied from protected `main` to upload a separate 30-day
 `update-source-handoff-v<version>-<source-sha>` Actions artifact. That handoff
-contains one canonical ZIP and a one-version seed catalog. It is deliberately
-outside `artifacts/release/`, the candidate manifest, outer checksums,
-promotion, and the immutable GitHub Release. It is not a ready-to-overwrite
-multi-version network source.
+contains one canonical ZIP under `packages/`, its one-version
+`update-catalog.v1.json`, an exact root-level copy of the ZIP's catalog-bound
+`RELEASE-MANIFEST.json`, and the reviewed `update-source-registry.v1.json`
+operator seed. The ZIP itself also contains that same manifest at its canonical
+inner path. It is deliberately outside `artifacts/release/`, the candidate
+manifest, outer checksums, promotion, and the immutable GitHub Release. The
+catalog cannot be embedded in the ZIP whose digest it declares. The handoff is
+not a ready-to-overwrite multi-version network source.
 
 The operator stages the live source with every retained ZIP, adds the handoff
 ZIP, and reruns `scripts/create_update_catalog.py` across the complete staging
@@ -217,14 +221,14 @@ The byte ratchet does not authorize trimming, removal of the self-contained
 smoke coverage. A lower reproducible package result lowers the ratchet only
 after release review records the producing commit, environment, and artifact.
 
-`v1.0.0` is the one bounded exception for the release-coupled, self-contained
-managed Launcher required by ADR 0056. Its exact filename
-`NvtFwCombiner-v1.0.0-win-x64.zip` has a 128 MiB (134,217,728-byte) complete-ZIP
+`v1.0.0` and the genuine validation-only `v1.0.1` package are the exact bounded
+pair for the release-coupled, self-contained managed Launcher required by ADR
+0056. Their canonical filenames have a 128 MiB (134,217,728-byte) complete-ZIP
 ceiling. The Launcher-branch checkpoint produced from
 `20489c1e1d50e6ed99b51aedfbfa9e625faf83a3` was 112,326,125 bytes with SHA-256
 `0a1bcaee366a9264d22480d857848e404449fd671942f211e880c61dfa113208`; the exact
 frozen integrated release ZIP size and SHA-256 must still be recorded later.
-Other package names retain the 80,000,000-byte ceiling, and the separate
+Every other package name retains the 80,000,000-byte ceiling, and the separate
 80,000,000-byte `NvtFwCombiner.exe` ceiling is unchanged. This exception does
 not loosen the closed allowlist, file hashes, SBOM/provenance, or the rule that
 Bootstrap cannot appear in an update package.

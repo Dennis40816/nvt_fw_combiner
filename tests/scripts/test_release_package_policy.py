@@ -23,6 +23,9 @@ import validate_repository as repository_validation  # noqa: E402
 
 PACKAGE_SCRIPT = ROOT / "scripts" / "package.ps1"
 SMOKE_SCRIPT = ROOT / "scripts" / "smoke-release.ps1"
+UPDATE_SOURCE_REGISTRY_PROFILE = (
+    ROOT / "docs" / "ci" / "update-source-registry.v1.json"
+)
 PROBE_RELATIVE_PATH = Path("external-tools/release-package-policy-probe.txt")
 CAPABILITY_POLICY_RELATIVE_PATH = Path(
     "docs/contracts/canonical-capability-policy-v1.json"
@@ -51,7 +54,7 @@ PERSONAL_OWNER_IDENTIFIER = "Dennis40816"
 DISTRIBUTION_OWNER = "MSP/FW3"
 SOURCE_IDENTITY = "urn:msp-fw3:nvt-fw-combiner:source"
 MAXIMUM_PACKAGE_BYTES = 80_000_000
-MAXIMUM_MANAGED_100_PACKAGE_BYTES = 134_217_728
+MAXIMUM_MANAGED_UPGRADE_PAIR_PACKAGE_BYTES = 134_217_728
 MAXIMUM_APPLICATION_BYTES = 80_000_000
 ANSI_ESCAPE_PATTERN = re.compile(r"\x1b\[[0-?]*[ -/]*[@-~]")
 
@@ -509,6 +512,7 @@ class ReleasePackagePolicyTests(unittest.TestCase):
         self.assertLess(candidate_upload, handoff_upload)
 
         self.assertIn("NFC_UPDATE_CATALOG_TOOL", candidate)
+        self.assertIn("NFC_UPDATE_SOURCE_REGISTRY_PROFILE", candidate)
         self.assertIn("artifacts/update-source-handoff", candidate)
         self.assertIn("'artifacts/update-source-handoff'", candidate)
         self.assertIn("'packages'", candidate)
@@ -516,7 +520,14 @@ class ReleasePackagePolicyTests(unittest.TestCase):
         self.assertIn("'--source-root'", candidate)
         self.assertIn("'--published-at'", candidate)
         self.assertIn("'--release-notes-file'", candidate)
+        self.assertIn("'--manifest-copy'", candidate)
+        self.assertIn("'RELEASE-MANIFEST.json'", candidate)
         self.assertIn("update-catalog.v1.json", candidate)
+        self.assertIn("update-source-registry.v1.json", candidate)
+        self.assertIn(
+            "Copy-Item -LiteralPath ./docs/ci/update-source-registry.v1.json",
+            candidate,
+        )
 
         self.assertEqual(2, release.count("actions/upload-artifact@"))
         self.assertIn("path: artifacts/release/*", candidate)
@@ -527,6 +538,25 @@ class ReleasePackagePolicyTests(unittest.TestCase):
             "$expectedNames = @($manifest.assets.name) + "
             "@($env:NFC_MANIFEST_NAME, $checksumName)",
             promote,
+        )
+
+    def test_update_source_registry_seed_is_the_owner_approved_default_root(
+        self,
+    ) -> None:
+        registry = json.loads(
+            UPDATE_SOURCE_REGISTRY_PROFILE.read_text(encoding="utf-8")
+        )
+
+        self.assertEqual(1, registry["schemaVersion"])
+        self.assertEqual(1, registry["revision"])
+        self.assertEqual(
+            [
+                {
+                    "status": "latest",
+                    "path": "G:\\AUTO\\projects\\模組專案開發\\NVT_FW_Combiner",
+                }
+            ],
+            registry["entries"],
         )
 
     def test_write_token_job_never_checks_out_or_executes_maintenance_code(
@@ -652,51 +682,64 @@ class ReleasePackagePolicyTests(unittest.TestCase):
         POWERSHELL, "PowerShell is required for Windows release-policy tests"
     )
     def test_release_smoke_rejects_package_above_owner_approved_budget(self) -> None:
-        with tempfile.TemporaryDirectory(
-            prefix="nvt-release-size-policy-test-"
-        ) as temporary_directory:
-            package_path = Path(temporary_directory) / "oversized.zip"
-            with package_path.open("wb") as package:
-                package.truncate(MAXIMUM_PACKAGE_BYTES + 1)
+        for package_name in (
+            "oversized.zip",
+            "NvtFwCombiner-v1.0.2-win-x64.zip",
+        ):
+            with self.subTest(package_name=package_name), tempfile.TemporaryDirectory(
+                prefix="nvt-release-size-policy-test-"
+            ) as temporary_directory:
+                package_path = Path(temporary_directory) / package_name
+                with package_path.open("wb") as package:
+                    package.truncate(MAXIMUM_PACKAGE_BYTES + 1)
 
-            result = self.run_powershell(
-                SMOKE_SCRIPT,
-                "-PackagePath",
-                str(package_path),
-                "-SkipUiLaunch",
+                result = self.run_powershell(
+                    SMOKE_SCRIPT,
+                    "-PackagePath",
+                    str(package_path),
+                    "-SkipUiLaunch",
+                )
+
+            self.assertNotEqual(
+                0,
+                result.returncode,
+                result.stdout + result.stderr,
             )
-
-        self.assertNotEqual(0, result.returncode, result.stdout + result.stderr)
-        self.assertIn(
-            "exceeds the owner-approved maximum 80000000 bytes",
-            normalize_console_output(result.stdout + result.stderr),
-        )
+            self.assertIn(
+                "exceeds the owner-approved maximum 80000000 bytes",
+                normalize_console_output(result.stdout + result.stderr),
+            )
 
     @unittest.skipUnless(
         POWERSHELL, "PowerShell is required for Windows release-policy tests"
     )
-    def test_release_smoke_applies_bounded_managed_100_package_budget(self) -> None:
-        with tempfile.TemporaryDirectory(
-            prefix="nvt-release-managed-size-policy-test-"
-        ) as temporary_directory:
-            package_path = (
-                Path(temporary_directory) / "NvtFwCombiner-v1.0.0-win-x64.zip"
-            )
-            with package_path.open("wb") as package:
-                package.truncate(MAXIMUM_MANAGED_100_PACKAGE_BYTES + 1)
+    def test_release_smoke_applies_bounded_managed_upgrade_pair_budget(self) -> None:
+        for version in ("1.0.0", "1.0.1"):
+            with self.subTest(version=version), tempfile.TemporaryDirectory(
+                prefix="nvt-release-managed-size-policy-test-"
+            ) as temporary_directory:
+                package_path = Path(temporary_directory) / (
+                    f"NvtFwCombiner-v{version}-win-x64.zip"
+                )
+                with package_path.open("wb") as package:
+                    package.truncate(MAXIMUM_MANAGED_UPGRADE_PAIR_PACKAGE_BYTES + 1)
 
-            result = self.run_powershell(
-                SMOKE_SCRIPT,
-                "-PackagePath",
-                str(package_path),
-                "-SkipUiLaunch",
-            )
+                result = self.run_powershell(
+                    SMOKE_SCRIPT,
+                    "-PackagePath",
+                    str(package_path),
+                    "-SkipUiLaunch",
+                )
 
-        self.assertNotEqual(0, result.returncode, result.stdout + result.stderr)
-        self.assertIn(
-            "exceeds the owner-approved maximum 134217728 bytes",
-            normalize_console_output(result.stdout + result.stderr),
-        )
+            self.assertNotEqual(
+                0,
+                result.returncode,
+                result.stdout + result.stderr,
+            )
+            self.assertIn(
+                "exceeds the owner-approved maximum 134217728 bytes",
+                normalize_console_output(result.stdout + result.stderr),
+            )
 
     @unittest.skipUnless(
         POWERSHELL, "PowerShell is required for Windows release-policy tests"

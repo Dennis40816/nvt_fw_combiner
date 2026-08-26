@@ -59,6 +59,8 @@ def test_release_catalog_package_size_ceiling_is_version_scoped() -> None:
     catalog_builder = _load_catalog_module()
 
     assert catalog_builder._maximum_package_bytes("1.0.0") == 134_217_728
+    assert catalog_builder._maximum_package_bytes("1.0.1") == 134_217_728
+    assert catalog_builder._maximum_package_bytes("1.0.2") == 80_000_000
     assert catalog_builder._maximum_package_bytes("0.10.6") == 80_000_000
 
 
@@ -167,6 +169,97 @@ def test_release_catalog_is_rebuilt_from_two_exact_package_archives(
                 f"NvtFwCombiner-v{entry['version']}-win-x64/RELEASE-MANIFEST.json"
             )
         assert entry["releaseManifestSha256"] == hashlib.sha256(manifest).hexdigest()
+
+
+def test_release_manifest_copy_is_exact_catalog_bound_inner_manifest(
+    tmp_path: Path,
+) -> None:
+    source = _build_update_source(tmp_path)
+    catalog = json.loads(
+        (source / "update-catalog.v1.json").read_text(encoding="utf-8")
+    )
+    selected = catalog["versions"][1]
+    destination = source / "RELEASE-MANIFEST.json"
+
+    _load_catalog_module().copy_release_manifest(
+        source,
+        selected["version"],
+        destination,
+    )
+
+    copied = destination.read_bytes()
+    package = source / selected["packagePath"]
+    with zipfile.ZipFile(package) as archive:
+        expected = archive.read(
+            f"NvtFwCombiner-v{selected['version']}-win-x64/RELEASE-MANIFEST.json"
+        )
+    assert copied == expected
+    assert hashlib.sha256(copied).hexdigest() == selected["releaseManifestSha256"]
+
+
+def test_release_manifest_copy_refuses_existing_destination(tmp_path: Path) -> None:
+    source = _build_update_source(tmp_path)
+    destination = source / "RELEASE-MANIFEST.json"
+    destination.write_bytes(b"operator-owned")
+
+    with pytest.raises(FileExistsError, match="refusing to replace"):
+        _load_catalog_module().copy_release_manifest(
+            source,
+            "0.10.6",
+            destination,
+        )
+
+    assert destination.read_bytes() == b"operator-owned"
+
+
+def test_release_manifest_copy_never_overwrites_concurrent_destination(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    source = _build_update_source(tmp_path)
+    destination = source / "RELEASE-MANIFEST.json"
+    catalog_builder = _load_catalog_module()
+    real_open = catalog_builder.os.open
+
+    def open_after_competitor(path: Path, flags: int, mode: int) -> int:
+        competitor = real_open(
+            destination,
+            catalog_builder.os.O_WRONLY
+            | catalog_builder.os.O_CREAT
+            | catalog_builder.os.O_EXCL,
+            0o600,
+        )
+        try:
+            catalog_builder.os.write(competitor, b"competitor-owned")
+        finally:
+            catalog_builder.os.close(competitor)
+        return real_open(path, flags, mode)
+
+    monkeypatch.setattr(catalog_builder.os, "open", open_after_competitor)
+
+    with pytest.raises(FileExistsError):
+        catalog_builder.copy_release_manifest(source, "0.10.6", destination)
+
+    assert destination.read_bytes() == b"competitor-owned"
+
+
+def test_release_manifest_copy_rechecks_package_identity(tmp_path: Path) -> None:
+    source = _build_update_source(tmp_path)
+    catalog = json.loads(
+        (source / "update-catalog.v1.json").read_text(encoding="utf-8")
+    )
+    selected = catalog["versions"][1]
+    package = source / selected["packagePath"]
+    package.write_bytes(package.read_bytes() + b"changed")
+
+    with pytest.raises(ValueError, match="changed after catalog generation"):
+        _load_catalog_module().copy_release_manifest(
+            source,
+            selected["version"],
+            source / "RELEASE-MANIFEST.json",
+        )
+
+    assert not (source / "RELEASE-MANIFEST.json").exists()
 
 
 def test_release_catalog_rejects_changed_stable_package_without_rewriting_catalog(
@@ -284,6 +377,47 @@ def test_release_catalog_cli_missing_metadata_fails_without_creating_catalog(
     assert result.returncode != 0
     assert "requires --published-at and --release-notes-file" in result.stderr
     assert not catalog_path.exists()
+
+
+def test_release_catalog_cli_rejects_manifest_copy_before_catalog_write(
+    tmp_path: Path,
+) -> None:
+    source = _build_update_source(tmp_path)
+    catalog_path = source / "update-catalog.v1.json"
+    catalog_path.unlink()
+
+    result = _run_catalog_cli(
+        "--source-root",
+        source,
+        "--manifest-copy",
+        "malformed",
+    )
+
+    assert result.returncode != 0
+    assert "--manifest-copy requires VERSION=VALUE" in result.stderr
+    assert not catalog_path.exists()
+
+
+def test_release_catalog_cli_rejects_multiple_manifest_copies_before_catalog_write(
+    tmp_path: Path,
+) -> None:
+    source = _build_update_source(tmp_path)
+    catalog_path = source / "update-catalog.v1.json"
+    catalog_path.unlink()
+
+    result = _run_catalog_cli(
+        "--source-root",
+        source,
+        "--manifest-copy",
+        f"0.10.5={source / 'RELEASE-MANIFEST.json'}",
+        "--manifest-copy",
+        f"0.10.6={source / 'RELEASE-MANIFEST.json'}",
+    )
+
+    assert result.returncode != 0
+    assert "--manifest-copy may be supplied at most once" in result.stderr
+    assert not catalog_path.exists()
+    assert not (source / "RELEASE-MANIFEST.json").exists()
 
 
 def test_release_catalog_cli_metadata_drift_fails_without_rewriting_catalog(

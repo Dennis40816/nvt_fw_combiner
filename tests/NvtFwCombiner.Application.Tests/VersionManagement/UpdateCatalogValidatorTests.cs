@@ -46,10 +46,14 @@ public sealed class UpdateCatalogValidatorTests
         Assert.Contains(PackageHash, version.Identity, StringComparison.Ordinal);
     }
 
-    /// <summary>Only v1.0.0 receives the bounded managed-Launcher package allowance.</summary>
+    /// <summary>Only the v1.0.0 release and v1.0.1 upgrade-validation pair receive the bounded managed package allowance.</summary>
     [Theory]
     [InlineData("1.0.0", 134_217_728, true)]
     [InlineData("1.0.0", 134_217_729, false)]
+    [InlineData("1.0.1", 134_217_728, true)]
+    [InlineData("1.0.1", 134_217_729, false)]
+    [InlineData("1.0.2", 80_000_000, true)]
+    [InlineData("1.0.2", 80_000_001, false)]
     [InlineData("0.10.6", 80_000_000, true)]
     [InlineData("0.10.6", 80_000_001, false)]
     public void PackageSizeCeilingIsVersionScoped(

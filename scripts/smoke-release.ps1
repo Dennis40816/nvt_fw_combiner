@@ -16,7 +16,7 @@ Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
 
 $MaximumLegacyPackageBytes = 80000000
-$MaximumManaged100PackageBytes = 134217728
+$MaximumManagedUpgradePairPackageBytes = 134217728
 $MaximumApplicationBytes = 80000000
 $ApprovedExternalToolPackagePaths = @(
     'external-tools/README.md',
@@ -226,11 +226,12 @@ if (-not $fullPackagePath.EndsWith('.zip', [StringComparison]::OrdinalIgnoreCase
 }
 $packageBytes = (Get-Item -LiteralPath $fullPackagePath).Length
 $packageFileName = Split-Path -Leaf $fullPackagePath
-$MaximumPackageBytes = if ([string]::Equals(
-    $packageFileName,
+$ManagedUpgradePairPackageNames = @(
     'NvtFwCombiner-v1.0.0-win-x64.zip',
-    [StringComparison]::Ordinal)) {
-    $MaximumManaged100PackageBytes
+    'NvtFwCombiner-v1.0.1-win-x64.zip'
+)
+$MaximumPackageBytes = if ($packageFileName -cin $ManagedUpgradePairPackageNames) {
+    $MaximumManagedUpgradePairPackageBytes
 }
 else {
     $MaximumLegacyPackageBytes

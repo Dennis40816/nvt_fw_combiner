@@ -1,6 +1,6 @@
 # NFC Roadmap
 
-Status: active owner roadmap, implementation checkpoint 2026-08-13.
+Status: active owner roadmap, implementation checkpoint 2026-08-26.
 
 2026-08-09 planning amendment: the owner approved complete removal of the
 remaining legacy architecture, one production path per module, the
@@ -115,16 +115,43 @@ existing stable tag or asset.
 The later audit, performance, and update-experience releases do not reopen #197
 or weaken its retained gate.
 
-## `0.11.0`: AB certification and family evidence
+## `1.0.0`: supported release and `1.0.1` upgrade validation
 
-`0.11.0` starts only from the latest official reviewed `v0.10.x` predecessor;
-the current owner sequence places it after the reserved `v0.10.6` milestone.
-It keeps independent certification tracks
-for:
+`1.0.0` is the first owner-approved supported distribution. It must retain the
+fixed multi-path update-source registry, recoverable managed Launcher,
+CtrlRAM TP/full-base routes, and the exact Standard Merge, AB Merge, and
+CtrlRAM support evidence admitted by the release gate. Repository-wide analyzer
+cleanup is not part of this release and cannot be used to delay or weaken its
+firmware, update, package, or clean-Windows evidence.
 
-1. NT51950 AB `1 IC` and `Cascade`;
-2. selector-free NT51951 AB; and
-3. Perfect-family and `ldc-tp-only` evidence scope.
+Before publishing `1.0.0`, one isolated validation lineage produces a genuine
+`1.0.1` package from different reviewed source identity. The pair must prove
+catalog discovery, package and inner-manifest verification, install, READY
+activation, restart, switch-back, rollback, damaged-version reporting, and
+explicit deletion. Renaming the `1.0.0` ZIP, directory, executable, manifest,
+or catalog entry is not a valid `1.0.1` package. The validation package is not
+an official stable release unless the owner separately approves publication.
+
+## `1.1.0`: deferred product expansion and analyzer cleanup
+
+`1.1.0` starts only from the official reviewed `v1.0.0` predecessor. It owns:
+
+1. complete General Merge and General Replace authoring;
+2. saved/customized-rule authoring, persistence, import, and validation through
+   the existing typed operation model;
+3. new IC and new firmware capability intake under normal profile, Golden, and
+   firmware-owner gates;
+4. the owner decision to retire or reopen ordinary DP Replace authoring;
+5. NT51950 AB `1 IC`/`Cascade`, selector-free NT51951 AB, Perfect-family, and
+   `ldc-tp-only` evidence tracks; and
+6. repository-wide analyzer cleanup.
+
+The analyzer task starts from the measured 169 deferred style diagnostics:
+`IDE0007` 142, `IDE0002` 10, `IDE0001` 7, `JSON002` 5, `IDE0008` 4, and
+`IDE0003` 1. It is performed in project-bounded commits with narrow tests and
+zero new diagnostics in touched files. It must simplify the existing owners,
+not add suppressions, mass semantic rewrites, duplicate implementations, or
+firmware behavior.
 
 One topology, IC, workflow, or fact-scoped alias never certifies another beyond
 its owner-approved evidence scope.
@@ -133,10 +160,8 @@ its owner-approved evidence scope.
 
 Only work not already owned by the current ticket dependency plan remains here:
 
-- saved/customized-rule persistence and import after canonical typed mapping
-  authoring exists, without arbitrary scripts; and
-- IC family/rule authoring UI after the trusted-bundle and evidence models are
-  implemented and reviewed.
+- IC family/rule authoring UI beyond the `1.1.0` admitted capability set after
+  the trusted-bundle and evidence models are implemented and reviewed.
 
 ## Update rule
 

@@ -133,6 +133,9 @@ jobs:
           $catalogToolPath = Join-Path $env:RUNNER_TEMP 'create_update_catalog.py'
           Copy-Item -LiteralPath ./scripts/create_update_catalog.py -Destination $catalogToolPath
           "NFC_UPDATE_CATALOG_TOOL=$catalogToolPath" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+          $registryProfilePath = Join-Path $env:RUNNER_TEMP 'update-source-registry.v1.json'
+          Copy-Item -LiteralPath ./docs/ci/update-source-registry.v1.json -Destination $registryProfilePath
+          "NFC_UPDATE_SOURCE_REGISTRY_PROFILE=$registryProfilePath" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
           git checkout --detach $sourceSha
           if ($LASTEXITCODE -ne 0) { throw 'The exact release source could not be checked out.' }
           $version = (Get-Content -LiteralPath ./VERSION -Raw).Trim()
@@ -413,6 +416,8 @@ jobs:
           $notesPath = (Resolve-Path -LiteralPath './artifacts/release/RELEASE-NOTES.md').Path
           $publishedAssignment = '{0}={1}' -f $env:NFC_VERSION, $env:NFC_PUBLISHED_AT
           $notesAssignment = '{0}={1}' -f $env:NFC_VERSION, $notesPath
+          $manifestPath = Join-Path $handoffRoot 'RELEASE-MANIFEST.json'
+          $manifestAssignment = '{0}={1}' -f $env:NFC_VERSION, $manifestPath
           $catalogArguments = @(
             $env:NFC_UPDATE_CATALOG_TOOL
             '--source-root'
@@ -421,6 +426,8 @@ jobs:
             $publishedAssignment
             '--release-notes-file'
             $notesAssignment
+            '--manifest-copy'
+            $manifestAssignment
           )
           & python @catalogArguments
           if ($LASTEXITCODE -ne 0) {
@@ -430,6 +437,14 @@ jobs:
           $catalogPath = Join-Path $handoffRoot 'update-catalog.v1.json'
           if (-not (Test-Path -LiteralPath $catalogPath -PathType Leaf)) {
             throw 'Update-source handoff catalog was not produced.'
+          }
+          if (-not (Test-Path -LiteralPath $manifestPath -PathType Leaf)) {
+            throw 'Update-source handoff release manifest was not produced.'
+          }
+          $registryPath = Join-Path $handoffRoot 'update-source-registry.v1.json'
+          Copy-Item -LiteralPath $env:NFC_UPDATE_SOURCE_REGISTRY_PROFILE -Destination $registryPath
+          if (-not (Test-Path -LiteralPath $registryPath -PathType Leaf)) {
+            throw 'Update-source handoff registry profile was not produced.'
           }
       - name: Create closed candidate manifest and outer checksums
         id: manifest

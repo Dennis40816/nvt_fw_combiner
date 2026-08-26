@@ -200,6 +200,47 @@ public sealed class FileSystemUpdateCatalogSourceTests
         Assert.Null(result.Snapshot);
     }
 
+    /// <summary>The embedded schema and runtime share the exact managed-package exception pair.</summary>
+    [Theory]
+    [InlineData("1.0.0", 134_217_728, true)]
+    [InlineData("1.0.1", 134_217_728, true)]
+    [InlineData("1.0.1", 134_217_729, false)]
+    [InlineData("1.0.2", 80_000_001, false)]
+    public async Task ManagedPackageSizeExceptionIsVersionScoped(
+        string version,
+        long packageSize,
+        bool expectedSuccess)
+    {
+        using var workspace = TempWorkspace.Create();
+        string root = workspace.PathFor("source");
+        _ = Directory.CreateDirectory(root);
+        var document = new UpdateCatalogDocument(
+            1,
+            "NVT FW Combiner",
+            "win-x64",
+            [new(
+                version,
+                "2026-08-26T00:00:00Z",
+                $"packages/NvtFwCombiner-v{version}-win-x64.zip",
+                packageSize,
+                "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef",
+                "abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789",
+                $"Release {version}")]);
+        await File.WriteAllTextAsync(
+            Path.Combine(root, FileSystemUpdateCatalogSource.CatalogFileName),
+            JsonSerializer.Serialize(document, JsonOptions),
+            TestContext.Current.CancellationToken);
+
+        UpdateCatalogLoadResult result = await new FileSystemUpdateCatalogSource().LoadAsync(
+            root,
+            TestContext.Current.CancellationToken);
+
+        Assert.Equal(expectedSuccess, result.IsSuccess);
+        Assert.Equal(
+            expectedSuccess ? UpdateCatalogLoadIssue.None : UpdateCatalogLoadIssue.InvalidManifest,
+            result.Issue);
+    }
+
     private static async Task WriteCatalogAsync(string root)
     {
         const string packageHash =
