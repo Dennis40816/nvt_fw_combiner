@@ -282,7 +282,8 @@ internal sealed partial class ReplacePresentationViewModel
         Func<string, bool> isAuthorable)
     {
         ArgumentNullException.ThrowIfNull(isAuthorable);
-        return isAuthorable(_selectedReplaceMode)
+        return !string.IsNullOrWhiteSpace(_selectedReplaceMode) &&
+            isAuthorable(_selectedReplaceMode)
             ? _selectedReplaceMode
             : s_replaceModeOrder.FirstOrDefault(isAuthorable) ?? string.Empty;
     }
@@ -307,7 +308,10 @@ internal sealed partial class ReplacePresentationViewModel
 
     internal void CommitStagedWorkflowNavigationMode(string previousMode)
     {
-        InspectionLifecycles[previousMode].Invalidate();
+        if (!string.IsNullOrWhiteSpace(previousMode))
+        {
+            InspectionLifecycles[previousMode].Invalidate();
+        }
         PublishCatalogReconciledReplaceMode();
     }
 
@@ -315,7 +319,10 @@ internal sealed partial class ReplacePresentationViewModel
     {
         if (_catalogReconciliationPreviousMode is { } previousMode)
         {
-            InspectionLifecycles[previousMode].Invalidate();
+            if (previousMode.Length > 0)
+            {
+                InspectionLifecycles[previousMode].Invalidate();
+            }
             _catalogReconciliationPreviousMode = null;
         }
         OnPropertyChanged(nameof(SelectedReplaceMode));

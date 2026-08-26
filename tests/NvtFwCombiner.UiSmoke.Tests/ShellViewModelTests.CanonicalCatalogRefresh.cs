@@ -530,6 +530,12 @@ public sealed partial class ShellNavigationSystemTests
             _ = _disabledWorkflows.Add(workflowId);
         }
 
+        internal void EnableEveryWorkflow(string workflowId)
+        {
+            ArgumentException.ThrowIfNullOrWhiteSpace(workflowId);
+            _ = _disabledWorkflows.Remove(workflowId);
+        }
+
         internal void EnableEveryAbRoute()
         {
             _disableEveryAbRoute = false;

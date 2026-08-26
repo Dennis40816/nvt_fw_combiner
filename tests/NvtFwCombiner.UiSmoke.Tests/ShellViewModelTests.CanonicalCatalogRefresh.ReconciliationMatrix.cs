@@ -104,6 +104,54 @@ public sealed partial class ShellNavigationSystemTests
             viewModel.WorkflowSession.GetWorkflowPageNumber(WorkflowInspectionOwner.Merge));
     }
 
+    /// <summary>A catalog can restore a page after every mode was withdrawn without indexing an empty lifecycle key.</summary>
+    [Theory]
+    [InlineData("Merge")]
+    [InlineData("Replace")]
+    public async Task RestoredPageWorkflowsRecoverFromEmptySelectedMode(string pageName)
+    {
+        ShellPage page = Enum.Parse<ShellPage>(pageName);
+        var policy = new MutableAbCatalogPolicy();
+        (_, MainWindowViewModel viewModel) = CreateCatalogRefreshViewModel(policy);
+        ShowPage(viewModel, page);
+
+        foreach (string workflowId in PageWorkflowIds(page))
+        {
+            policy.DisableEveryWorkflow(workflowId);
+        }
+
+        await viewModel.MessageCenter.RefreshCommand.ExecuteAsync(null);
+
+        if (page == ShellPage.Merge)
+        {
+            Assert.Empty(viewModel.Merge.MergeModeChoices);
+            Assert.Equal(string.Empty, viewModel.Merge.SelectedMergeMode);
+        }
+        else
+        {
+            Assert.Empty(viewModel.Replace.ReplaceModeChoices);
+            Assert.Equal(string.Empty, viewModel.Replace.SelectedReplaceMode);
+        }
+
+        foreach (string workflowId in PageWorkflowIds(page))
+        {
+            policy.EnableEveryWorkflow(workflowId);
+        }
+
+        Exception? exception = await Record.ExceptionAsync(
+            () => viewModel.MessageCenter.RefreshCommand.ExecuteAsync(null));
+
+        Assert.Null(exception);
+        if (page == ShellPage.Merge)
+        {
+            Assert.Contains(viewModel.Merge.SelectedMergeMode, viewModel.Merge.MergeModeChoices);
+        }
+        else
+        {
+            Assert.Contains(viewModel.Replace.SelectedReplaceMode, viewModel.Replace.ReplaceModeChoices);
+        }
+    }
+
     /// <summary>A partial Replace withdrawal keeps the page IC and never queries the withdrawn authoring port.</summary>
     [Theory]
     [InlineData(ExperienceIds.DpReplace, ExperienceIds.CtrlRamReplace)]

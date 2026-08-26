@@ -288,7 +288,8 @@ internal sealed partial class MergePresentationViewModel
         Func<string, bool> isAuthorable)
     {
         ArgumentNullException.ThrowIfNull(isAuthorable);
-        return isAuthorable(_selectedMergeMode)
+        return !string.IsNullOrWhiteSpace(_selectedMergeMode) &&
+            isAuthorable(_selectedMergeMode)
             ? _selectedMergeMode
             : s_mergeModeOrder.FirstOrDefault(isAuthorable) ?? string.Empty;
     }
@@ -313,7 +314,10 @@ internal sealed partial class MergePresentationViewModel
 
     internal void CommitStagedWorkflowNavigationMode(string previousMode)
     {
-        InspectionLifecycles[previousMode].Invalidate();
+        if (!string.IsNullOrWhiteSpace(previousMode))
+        {
+            InspectionLifecycles[previousMode].Invalidate();
+        }
         PublishCatalogReconciledMergeMode();
     }
 
@@ -321,7 +325,10 @@ internal sealed partial class MergePresentationViewModel
     {
         if (_catalogReconciliationPreviousMode is { } previousMode)
         {
-            InspectionLifecycles[previousMode].Invalidate();
+            if (previousMode.Length > 0)
+            {
+                InspectionLifecycles[previousMode].Invalidate();
+            }
             _catalogReconciliationPreviousMode = null;
         }
         PublishMergeModeSelectionChanged();
