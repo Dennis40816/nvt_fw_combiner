@@ -90,20 +90,11 @@ public interface IVersionManagementExperience
         CancellationToken cancellationToken);
 
     /// <summary>Resumes automatic registry resolution without clearing a durable pin on failure.</summary>
-    ValueTask<VersionManagementSnapshot> ResumeRegistryAsync(CancellationToken cancellationToken)
-    {
-        return CheckAsync(isAutomatic: false, cancellationToken);
-    }
+    ValueTask<VersionManagementSnapshot> ResumeRegistryAsync(CancellationToken cancellationToken);
 
     /// <summary>Verifies the fixed registry and every automatic source without mutating session or durable state.</summary>
     ValueTask<VersionEnvironmentSelfTestResult> RunEnvironmentSelfTestAsync(
-        CancellationToken cancellationToken)
-    {
-        cancellationToken.ThrowIfCancellationRequested();
-        return ValueTask.FromResult(new VersionEnvironmentSelfTestResult(
-            UpdateSourceRegistryLoadIssue.NotConfigured,
-            []));
-    }
+        CancellationToken cancellationToken);
 
     /// <summary>Explicitly installs one catalog version after UI consent.</summary>
     /// <param name="version">Exact catalog version.</param>
@@ -356,6 +347,11 @@ public sealed partial class VersionManagementExperience : IVersionManagementExpe
             {
                 return RequirePublishedSnapshotUnderLock();
             }
+        }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
+            RestoreCancelledCheck(current, ownedCancellation);
+            throw;
         }
     }
 

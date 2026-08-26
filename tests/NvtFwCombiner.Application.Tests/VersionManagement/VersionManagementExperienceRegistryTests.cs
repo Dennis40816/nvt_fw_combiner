@@ -587,6 +587,84 @@ public sealed partial class VersionManagementExperienceTests
         Assert.Same(initial, stateStore.State);
     }
 
+    /// <summary>Caller cancellation restores the prior snapshot and releases the owned check.</summary>
+    [Fact]
+    public async Task RegistryCheckCallerCancellationAllowsCleanRetry()
+    {
+        string latest = SourcePath("latest");
+        VersionManagerState initial = State(
+            [Admission("0.10.5")],
+            active: "0.10.5",
+            lastKnownGood: "0.10.5",
+            source: latest);
+        var stateStore = new MemoryStateStore(initial);
+        var catalogs = new CancelFirstCatalogSource(Catalog("0.10.6"));
+        UpdateSourceRegistryLoadResult registry = Registry(
+            1,
+            FirstRegistryDigest,
+            (latest, UpdateSourceRegistryEntryStatus.Latest));
+        using var experience = new VersionManagementExperience(
+            ManagedAppVersion.Parse("0.10.5"),
+            "managed-root",
+            stateStore,
+            catalogs,
+            new HealthyRepository(),
+            new SequenceRegistrySource(registry, registry, registry));
+        _ = await experience.InitializeAsync(TestContext.Current.CancellationToken);
+        using var cancellation = new CancellationTokenSource();
+
+        Task<VersionManagementSnapshot> cancelled = experience.CheckAsync(
+            isAutomatic: false,
+            cancellation.Token).AsTask();
+        await catalogs.FirstLoadStarted.Task.WaitAsync(TestContext.Current.CancellationToken);
+        cancellation.Cancel();
+        _ = await Assert.ThrowsAnyAsync<OperationCanceledException>(() => cancelled);
+
+        VersionManagementSnapshot retried = await experience.CheckAsync(
+            isAutomatic: false,
+            TestContext.Current.CancellationToken);
+
+        Assert.Equal(VersionSourceStatus.Connected, retried.SourceStatus);
+        Assert.Equal(VersionRegistryStatus.LatestSelected, retried.RegistryStatus);
+        Assert.Equal(1, stateStore.SaveCount);
+    }
+
+    /// <summary>The legacy/manual source path uses the same caller-cancellation cleanup owner.</summary>
+    [Fact]
+    public async Task DirectSourceCheckCallerCancellationAllowsCleanRetry()
+    {
+        string source = SourcePath("manual");
+        VersionManagerState initial = State(
+            [Admission("0.10.5")],
+            active: "0.10.5",
+            lastKnownGood: "0.10.5",
+            source: source);
+        var stateStore = new MemoryStateStore(initial);
+        var catalogs = new CancelFirstCatalogSource(Catalog("0.10.6"));
+        using var experience = new VersionManagementExperience(
+            ManagedAppVersion.Parse("0.10.5"),
+            "managed-root",
+            stateStore,
+            catalogs,
+            new HealthyRepository());
+        _ = await experience.InitializeAsync(TestContext.Current.CancellationToken);
+        using var cancellation = new CancellationTokenSource();
+
+        Task<VersionManagementSnapshot> cancelled = experience.CheckAsync(
+            isAutomatic: false,
+            cancellation.Token).AsTask();
+        await catalogs.FirstLoadStarted.Task.WaitAsync(TestContext.Current.CancellationToken);
+        cancellation.Cancel();
+        _ = await Assert.ThrowsAnyAsync<OperationCanceledException>(() => cancelled);
+
+        VersionManagementSnapshot retried = await experience.CheckAsync(
+            isAutomatic: false,
+            TestContext.Current.CancellationToken);
+
+        Assert.Equal(VersionSourceStatus.Connected, retried.SourceStatus);
+        Assert.Equal(0, stateStore.SaveCount);
+    }
+
     /// <summary>Until the immutable locator is injected, self-test reports typed NotConfigured.</summary>
     [Fact]
     public async Task EnvironmentSelfTestWithoutInjectedRegistryIsTypedNotConfigured()
@@ -789,6 +867,27 @@ public sealed partial class VersionManagementExperienceTests
             return ValueTask.FromResult(new UpdateCatalogLoadResult(
                 snapshots[index],
                 UpdateCatalogLoadIssue.None));
+        }
+    }
+
+    private sealed class CancelFirstCatalogSource(UpdateCatalogSnapshot snapshot)
+        : IUpdateCatalogSource
+    {
+        private int _loadCount;
+
+        internal TaskCompletionSource FirstLoadStarted { get; } =
+            new(TaskCreationOptions.RunContinuationsAsynchronously);
+
+        public async ValueTask<UpdateCatalogLoadResult> LoadAsync(
+            string sourceRoot,
+            CancellationToken cancellationToken)
+        {
+            if (Interlocked.Increment(ref _loadCount) == 1)
+            {
+                _ = FirstLoadStarted.TrySetResult();
+                await Task.Delay(Timeout.InfiniteTimeSpan, cancellationToken);
+            }
+            return new(snapshot, UpdateCatalogLoadIssue.None);
         }
     }
 

@@ -269,6 +269,11 @@ public sealed partial class VersionManagementExperience
                 };
             }
         }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
+            RestoreCancelledCheck(initial, ownedCancellation);
+            throw;
+        }
     }
 
     /// <inheritdoc />
@@ -433,6 +438,20 @@ public sealed partial class VersionManagementExperience
         lock (_generationSync)
         {
             return ReferenceEquals(_checkCancellation, ownedCancellation);
+        }
+    }
+
+    private void RestoreCancelledCheck(
+        VersionManagementSnapshot prior,
+        CancellationTokenSource ownedCancellation)
+    {
+        lock (_generationSync)
+        {
+            if (ReferenceEquals(_checkCancellation, ownedCancellation))
+            {
+                _current = prior;
+                CompleteOwnedCheckUnderLock(ownedCancellation);
+            }
         }
     }
 

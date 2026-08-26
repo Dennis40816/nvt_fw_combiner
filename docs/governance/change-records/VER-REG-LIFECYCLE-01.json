@@ -1,0 +1,37 @@
+{
+  "schemaVersion": 2,
+  "taskId": "VER-REG-LIFECYCLE-01",
+  "capability": "Require explicit Registry lifecycle implementations and restore checks cancelled by their caller",
+  "integrationBase": "3c4fbd829e6b70c045e307db336204adbf01c29a",
+  "risk": "R2",
+  "kind": "behavior",
+  "state": "design-active",
+  "mutablePaths": [
+    "src/NvtFwCombiner.VersionManagement.Application/VersionManagement/VersionManagementExperience.cs",
+    "src/NvtFwCombiner.VersionManagement.Application/VersionManagement/VersionManagementExperience.Registry.cs",
+    "tests/NvtFwCombiner.Application.Tests/VersionManagement/ManagedApplicationStartupCoordinatorTests.cs",
+    "tests/NvtFwCombiner.Application.Tests/VersionManagement/VersionManagementExperienceRegistryTests.cs"
+  ],
+  "implementationOwner": "root",
+  "searchEvidence": [
+    "Independent R2 review found default interface bodies silently turned missing Registry implementations into ordinary CheckAsync or NotConfigured results",
+    "The same review found caller cancellation could leave the owned check and published snapshot in Checking state",
+    "Legacy/manual and fixed-Registry checks already share one generation and cancellation field, so cleanup belongs to one shared partial-class helper"
+  ],
+  "semanticOwner": "VersionManagementExperience explicitly implements every IVersionManagementExperience use case and RestoreCancelledCheck owns caller-cancellation cleanup for both direct-source and Registry checks",
+  "terminalContract": "Every implementation must declare Resume and self-test behavior. Caller cancellation propagates, restores the exact prior published snapshot, disposes only the caller-owned check, performs no durable write, and permits a clean subsequent check.",
+  "disposition": "reuse",
+  "designReview": {
+    "reviewer": "registry_final_review",
+    "outcome": "findings-incorporated",
+    "evidence": "The exact-head R2 and minimality review required removing two silent default semantic implementations and adding one shared cancellation cleanup path with direct and Registry regression evidence."
+  },
+  "implementationHead": null,
+  "reviewedHead": null,
+  "pathStateDigest": null,
+  "finalReview": {
+    "reviewer": null,
+    "outcome": "pending",
+    "evidence": ""
+  }
+}

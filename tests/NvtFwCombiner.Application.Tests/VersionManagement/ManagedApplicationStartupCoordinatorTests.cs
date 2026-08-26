@@ -191,6 +191,18 @@ public sealed class ManagedApplicationStartupCoordinatorTests
             throw new NotSupportedException();
         }
 
+        public ValueTask<VersionManagementSnapshot> ResumeRegistryAsync(
+            CancellationToken cancellationToken)
+        {
+            throw new NotSupportedException();
+        }
+
+        public ValueTask<VersionEnvironmentSelfTestResult> RunEnvironmentSelfTestAsync(
+            CancellationToken cancellationToken)
+        {
+            throw new NotSupportedException();
+        }
+
         public ValueTask<VersionInstallOperationResult> InstallAsync(
             ManagedAppVersion version,
             CancellationToken cancellationToken)
