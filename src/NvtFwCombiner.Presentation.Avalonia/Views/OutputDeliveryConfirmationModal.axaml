@@ -88,41 +88,48 @@
 
           <Border x:Name="CtrlRamVersionSettingSection" Padding="0,16" BorderBrush="{DynamicResource NfcBorderMutedBrush}"
                   BorderThickness="0,0,0,1" IsVisible="{Binding HasCtrlRamOptions}">
-            <Grid ColumnDefinitions="220,*" ColumnSpacing="{DynamicResource NfcSpace24}">
+            <Grid ColumnDefinitions="*,300" ColumnSpacing="{DynamicResource NfcSpace24}">
               <StackPanel Spacing="3">
-                <TextBlock Classes="fieldLabel" FontWeight="SemiBold" Text="{Binding CtrlRamOptions.Text.CtrlRamFirmwareVersionTitle}" />
-                <TextBlock Classes="technicalValue versionValue" Text="{Binding CtrlRamOptions.CtrlRamFirmwareVersionCurrentValue}" />
+                <TextBlock Classes="fieldLabel" FontWeight="Medium" Text="{Binding CtrlRamOptions.Text.CtrlRamFirmwareVersionTitle}" />
+                <TextBlock x:Name="CtrlRamBaseVersionValue" Classes="versionValue"
+                           FontFamily="{DynamicResource NfcUiFontFamily}" FontWeight="Medium"
+                           Text="{Binding CtrlRamOptions.CtrlRamFirmwareVersionCurrentValue}" />
                 <TextBlock Classes="detailText" Text="{Binding CtrlRamOptions.Text.CtrlRamFirmwareVersionDetail}" TextWrapping="Wrap" />
               </StackPanel>
-              <StackPanel Grid.Column="1" Spacing="{DynamicResource NfcSpace12}">
-                <Grid x:Name="CtrlRamVersionModeRow" ColumnDefinitions="Auto,Auto" ColumnSpacing="{DynamicResource NfcSpace4}"
-                      HorizontalAlignment="Left">
-                  <ToggleButton AutomationProperties.Name="{Binding CtrlRamOptions.Text.CtrlRamFirmwareVersionKeepLabel}"
+              <StackPanel x:Name="CtrlRamVersionControlGroup" Grid.Column="1" Width="300"
+                          Spacing="{DynamicResource NfcSpace12}">
+                <Grid x:Name="CtrlRamVersionModeRow" ColumnDefinitions="*,*" ColumnSpacing="{DynamicResource NfcSpace4}">
+                  <ToggleButton x:Name="CtrlRamVersionKeepChoice"
+                                AutomationProperties.Name="{Binding CtrlRamOptions.Text.CtrlRamFirmwareVersionKeepLabel}"
                                 Classes="segment versionChoice"
+                                FontFamily="{DynamicResource NfcUiFontFamily}" FontWeight="Medium"
                                 Command="{Binding CtrlRamOptions.SelectCtrlRamFirmwareVersionPreserveCommand}"
                                 IsChecked="{Binding CtrlRamOptions.IsCtrlRamFirmwareVersionPreserveSelected, Mode=OneWay}">
                     <TextBlock Text="{Binding CtrlRamOptions.Text.CtrlRamFirmwareVersionKeepLabel}" />
                   </ToggleButton>
-                  <ToggleButton Grid.Column="1"
+                  <ToggleButton x:Name="CtrlRamVersionEditChoice" Grid.Column="1"
                                 AutomationProperties.Name="{Binding CtrlRamOptions.Text.CtrlRamFirmwareVersionEditLabel}"
                                 Classes="segment versionChoice"
+                                FontFamily="{DynamicResource NfcUiFontFamily}" FontWeight="Medium"
                                 Command="{Binding CtrlRamOptions.SelectCtrlRamFirmwareVersionEditCommand}"
                                 IsChecked="{Binding CtrlRamOptions.IsCtrlRamFirmwareVersionEditSelected, Mode=OneWay}"
                                 IsEnabled="{Binding CtrlRamOptions.CanEditCtrlRamFirmwareVersion}">
                     <TextBlock Text="{Binding CtrlRamOptions.Text.CtrlRamFirmwareVersionEditLabel}" />
                   </ToggleButton>
                 </Grid>
-                <Grid x:Name="CtrlRamVersionFieldRow" ColumnDefinitions="120,120" ColumnSpacing="{DynamicResource NfcSpace12}"
+                <Grid x:Name="CtrlRamVersionFieldRow" ColumnDefinitions="*,*" ColumnSpacing="{DynamicResource NfcSpace12}"
                       IsVisible="{Binding CtrlRamOptions.IsCtrlRamFirmwareVersionEditSelected}">
                   <StackPanel Spacing="5">
-                    <TextBlock Classes="fieldLabel" Text="{Binding CtrlRamOptions.Text.CtrlRamFirmwareVersionByteLabel}" />
-                    <TextBox Classes="technicalCenteredInput hexByteInput"
+                    <TextBlock Classes="fieldLabel" FontWeight="Medium" Text="{Binding CtrlRamOptions.Text.CtrlRamFirmwareVersionByteLabel}" />
+                    <TextBox x:Name="CtrlRamFirmwareVersionInput" Classes="technicalCenteredInput hexByteInput"
+                             FontFamily="{DynamicResource NfcUiFontFamily}" FontWeight="Medium"
                              AutomationProperties.Name="{Binding CtrlRamOptions.Text.CtrlRamFirmwareVersionByteLabel}"
                              Text="{Binding CtrlRamOptions.CtrlRamFirmwareVersionText, Mode=TwoWay}" />
                   </StackPanel>
                   <StackPanel Grid.Column="1" Spacing="5">
-                    <TextBlock Classes="fieldLabel" Text="{Binding CtrlRamOptions.Text.CtrlRamFirmwareSubVersionByteLabel}" />
-                    <TextBox Classes="technicalCenteredInput hexByteInput"
+                    <TextBlock Classes="fieldLabel" FontWeight="Medium" Text="{Binding CtrlRamOptions.Text.CtrlRamFirmwareSubVersionByteLabel}" />
+                    <TextBox x:Name="CtrlRamFirmwareSubVersionInput" Classes="technicalCenteredInput hexByteInput"
+                             FontFamily="{DynamicResource NfcUiFontFamily}" FontWeight="Medium"
                              AutomationProperties.Name="{Binding CtrlRamOptions.Text.CtrlRamFirmwareSubVersionByteLabel}"
                              Text="{Binding CtrlRamOptions.CtrlRamFirmwareSubVersionText, Mode=TwoWay}" />
                   </StackPanel>
@@ -154,44 +161,51 @@
 
               <Border Classes="compactSubtleSurface" Padding="14" IsVisible="{Binding BundleEnabled}">
                 <StackPanel Spacing="{DynamicResource NfcSpace8}">
-                  <Grid x:Name="BundleReviewPanel" ColumnDefinitions="*,Auto" RowDefinitions="Auto,Auto"
-                        ColumnSpacing="{DynamicResource NfcSpace12}" RowSpacing="{DynamicResource NfcSpace8}"
-                        IsVisible="{Binding !IsBundleDestinationEditing}">
-                    <StackPanel Spacing="{DynamicResource NfcSpace2}">
+                  <Grid x:Name="BundleReviewPanel" ColumnDefinitions="*,34" RowDefinitions="Auto,Auto"
+                        ColumnSpacing="{DynamicResource NfcSpace12}" RowSpacing="{DynamicResource NfcSpace8}">
+                    <StackPanel MinWidth="0" Spacing="{DynamicResource NfcSpace2}">
                       <TextBlock Classes="fieldLabel" Text="{Binding Text.OutputDeliveryFolderNameLabel}" />
-                      <SelectableTextBlock Text="{Binding BundleFolderName}" TextWrapping="Wrap" />
+                      <SelectableTextBlock x:Name="BundleFolderNameDisplay" IsVisible="{Binding !IsBundleDestinationEditing}"
+                                           Text="{Binding BundleFolderName}" TextTrimming="CharacterEllipsis"
+                                           ToolTip.Tip="{Binding BundleFolderName}" />
+                      <TextBox x:Name="FolderNameInput" Classes="buildSettingInput editable"
+                               AutomationProperties.Name="{Binding Text.OutputDeliveryFolderNameLabel}"
+                               IsVisible="{Binding IsBundleDestinationEditing}"
+                               Text="{Binding BundleFolderName}" TextChanged="FolderNameInput_OnTextChanged" />
                     </StackPanel>
-                    <Button x:Name="EditBundleDestinationButton" Grid.Column="1" Grid.RowSpan="2"
+                    <Button x:Name="EditBundleDestinationButton" Grid.Column="1"
                             Classes="semanticAction inlineEdit outputNameEdit" VerticalAlignment="Center"
                             AutomationProperties.Name="{Binding Text.OutputDeliveryEditBundleDestinationLabel}"
                             Click="EditBundleDestinationButton_OnClick" IsEnabled="{Binding CanEditBundleDestination}"
+                            IsVisible="{Binding !IsBundleDestinationEditing}"
                             ToolTip.Tip="{Binding Text.OutputDeliveryEditBundleDestinationLabel}">
                       <Path Width="16" Height="16" Data="{StaticResource NfcEditIconGeometry}"
                             Fill="Transparent" StrokeThickness="1.5" Stretch="Uniform" />
                     </Button>
-                    <StackPanel Grid.Row="1" Spacing="{DynamicResource NfcSpace2}">
+                    <Button x:Name="CompleteBundleDestinationEditButton" Grid.Column="1"
+                            Classes="semanticAction inlineEdit outputNameEdit" VerticalAlignment="Center"
+                            AutomationProperties.Name="{Binding Text.OutputDeliveryDoneEditingLabel}"
+                            Click="CompleteBundleDestinationEditButton_OnClick"
+                            IsVisible="{Binding IsBundleDestinationEditing}"
+                            ToolTip.Tip="{Binding Text.OutputDeliveryDoneEditingLabel}">
+                      <Path Width="16" Height="16" Data="M2 8L6 12L14 3" Fill="Transparent"
+                            StrokeThickness="1.5" Stretch="Uniform" />
+                    </Button>
+                    <StackPanel Grid.Row="1" MinWidth="0" Spacing="{DynamicResource NfcSpace2}">
                       <TextBlock Classes="fieldLabel" Text="{Binding Text.OutputDeliveryParentLabel}" />
-                      <SelectableTextBlock Text="{Binding ParentDirectory}" TextWrapping="Wrap" />
+                      <SelectableTextBlock x:Name="ParentDirectoryDisplay" Text="{Binding ParentDirectory}"
+                                           TextTrimming="CharacterEllipsis" ToolTip.Tip="{Binding ParentDirectory}" />
                     </StackPanel>
-                  </Grid>
-
-                  <Grid x:Name="BundleEditPanel" ColumnDefinitions="*,Auto" RowDefinitions="Auto,Auto,Auto,Auto"
-                        ColumnSpacing="{DynamicResource NfcSpace8}" RowSpacing="6"
-                        IsVisible="{Binding IsBundleDestinationEditing}">
-                    <TextBlock Classes="fieldLabel" Grid.ColumnSpan="2" Text="{Binding Text.OutputDeliveryFolderNameLabel}" />
-                    <TextBox x:Name="FolderNameInput" Grid.Row="1" Grid.ColumnSpan="2" Classes="buildSettingInput editable"
-                             AutomationProperties.Name="{Binding Text.OutputDeliveryFolderNameLabel}"
-                             Text="{Binding BundleFolderName}" TextChanged="FolderNameInput_OnTextChanged" />
-                    <TextBlock Grid.Row="2" Grid.ColumnSpan="2" Classes="fieldLabel" Text="{Binding Text.OutputDeliveryParentLabel}" />
-                    <TextBox Grid.Row="3" Classes="buildSettingInput" IsReadOnly="True" Text="{Binding ParentDirectory}"
-                             AutomationProperties.Name="{Binding Text.OutputDeliveryParentLabel}" />
-                    <StackPanel Grid.Row="3" Grid.Column="1" Orientation="Horizontal" Spacing="{DynamicResource NfcSpace8}">
-                      <Button Classes="semanticAction secondary" Click="ChooseParentButton_OnClick"
-                              Content="{Binding Text.OutputDeliveryChooseParentLabel}" />
-                      <Button x:Name="CompleteBundleDestinationEditButton" Classes="semanticAction secondary"
-                              Click="CompleteBundleDestinationEditButton_OnClick"
-                              Content="{Binding Text.OutputDeliveryDoneEditingLabel}" />
-                    </StackPanel>
+                    <Button x:Name="ChooseParentButton" Grid.Row="1" Grid.Column="1"
+                            Classes="semanticAction inlineEdit outputNameEdit folderPickerAction"
+                            VerticalAlignment="Center" IsEnabled="{Binding CanEditBundleDestination}"
+                            AutomationProperties.Name="{Binding Text.OutputDeliveryChooseParentLabel}"
+                            Click="ChooseParentButton_OnClick"
+                            ToolTip.Tip="{Binding Text.OutputDeliveryChooseParentLabel}">
+                      <Path Width="18" Height="18"
+                            Data="M2 5H7L9 7H16V9H7.5L5.5 16H2Z M7.8 10H16L14.2 16H6Z"
+                            Fill="Transparent" StrokeThickness="1.7" Stretch="Uniform" />
+                    </Button>
                   </Grid>
                   <TextBlock Classes="warningText" AutomationProperties.LiveSetting="Assertive"
                              Text="{Binding ValidationMessage}" TextWrapping="Wrap" />

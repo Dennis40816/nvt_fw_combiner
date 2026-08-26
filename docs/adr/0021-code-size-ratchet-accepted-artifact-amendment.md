@@ -208,13 +208,24 @@ with narrow compiled contracts; it does not authorize later growth.
 The owner approved the A3 compact review layout and T2 two-row TP-version
 layout for the existing shared Build settings surface. The Presentation change
 keeps the canonical output name locked until the pencil action, collapses the
-already-typed source summaries behind one disclosure, keeps bundle destination
-values read-only until the pencil action, and uses the existing typed CtrlRAM
-preserve/edit state and bundle-destination validator. Header, scrolling body,
-footer, Light/Dark theme tokens, localization, focus return, and the existing
-shared confirmation remain within their current owners. No output naming,
-source acceptance, validation, planner, executor, firmware, report, or delivery
-semantics change, and no second semantic implementation is introduced.
+already-typed source summaries behind one disclosure, and uses the existing
+typed CtrlRAM preserve/edit state and bundle-destination validator. The output
+filename and bundle folder name remain read-only until their respective pencil
+actions. Parent-folder selection remains a direct folder-icon action whenever
+the existing bundle-destination admission permits editing; it is not part of
+the bundle-name pencil transaction. Header, scrolling body, footer, Light/Dark
+theme tokens, localization, focus return, and the existing shared confirmation
+remain within their current owners. No output naming, source acceptance,
+validation, planner, executor, firmware, report, or delivery semantics change,
+and no second semantic implementation is introduced.
+
+The owner's 2026-08-25 bundle/parent and Sources screenshots are retained only
+as before-state problem evidence, not final pixel authority: respectively
+742x151 / SHA-256 `079f07196faaa8c2ad59afbc50f8b7c88d535ab8904314ab7aa746bba57cf9e3`
+and 742x99 / SHA-256
+`63025016904f5ef66e0c265c590dbdbc227381eb8c6b7aff2d5ffea0f48533f9`.
+The collapsed Sources action therefore stays in its existing output-row
+placement; only the expanded source list uses the full existing content width.
 
 Relative to the `0.10.7` DP Replace exposure checkpoint, full production rises
 from 110,688 to 110,876 nonblank lines (+188), entirely under Presentation.
@@ -226,8 +237,9 @@ not close or fund the separate unused-module and repository-size investigation.
 
 Verification covers the shared ViewModel admission states, production-host
 focus and interaction, 980x720 Light/Dark geometry, the T2 mode-above-fields
-contract, collapsed source disclosure, two-line bundle review, pencil-only
-editing, and the canonical full repository gate.
+contract, unchanged collapsed Sources placement, full-width expanded source
+content, two-line bundle review, output-name and bundle-folder-name pencil
+locks, the direct parent-folder icon, and the canonical full repository gate.
 
 ## 2026-08-25 reviewed path-safety corrections
 

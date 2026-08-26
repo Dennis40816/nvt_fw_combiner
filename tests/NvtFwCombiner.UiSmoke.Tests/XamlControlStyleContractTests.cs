@@ -341,7 +341,7 @@ public sealed partial class XamlControlStyleContractTests
         Assert.Contains("Selector=\"TextBox.hexByteInput\"", styles, StringComparison.Ordinal);
         Assert.Contains("Selector=\"ToggleButton.versionChoice\"", styles, StringComparison.Ordinal);
         Assert.Contains("Classes=\"technicalCenteredInput hexByteInput\"", modal, StringComparison.Ordinal);
-        Assert.Contains("Classes=\"technicalValue versionValue\"", modal, StringComparison.Ordinal);
+        Assert.Contains("x:Name=\"CtrlRamBaseVersionValue\" Classes=\"versionValue\"", modal, StringComparison.Ordinal);
         Assert.Contains("x:Name=\"CtrlRamVersionModeRow\"", modal, StringComparison.Ordinal);
         Assert.Contains("x:Name=\"CtrlRamVersionFieldRow\"", modal, StringComparison.Ordinal);
         Assert.DoesNotContain("Classes=\"versionSummaryCard\"", modal, StringComparison.Ordinal);

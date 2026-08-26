@@ -5,6 +5,7 @@ using Avalonia.Controls.Primitives;
 using Avalonia.Headless;
 using Avalonia.Headless.XUnit;
 using Avalonia.Markup.Xaml.Styling;
+using Avalonia.Media;
 using Avalonia.Styling;
 using Avalonia.Threading;
 using NvtFwCombiner.Application.Authoring;
@@ -24,9 +25,13 @@ public sealed class OutputDeliveryReferenceTests(ShellViewModelTestHostFixture f
 {
     /// <summary>The approved A3/T2 Build settings geometry is identical in Light and Dark themes.</summary>
     [AvaloniaTheory]
-    [InlineData(false)]
-    [InlineData(true)]
-    public async Task CtrlRamBuildSettingsMatchesApprovedA3T2Reference(bool useDarkTheme)
+    [InlineData(false, false)]
+    [InlineData(true, false)]
+    [InlineData(false, true)]
+    [InlineData(true, true)]
+    public async Task CtrlRamBuildSettingsMatchesApprovedA3T2Reference(
+        bool useDarkTheme,
+        bool useTraditionalChinese)
     {
         using var golden = StandardMergeGoldenManifest.Load();
         using var workspace = TempWorkspace.Create("nvt-fw-combiner-ui-build-settings-reference");
@@ -35,6 +40,11 @@ public sealed class OutputDeliveryReferenceTests(ShellViewModelTestHostFixture f
             async () =>
             {
                 MainWindowViewModel ready = CreateCtrlRamVersionReadyViewModel(baseBytes, workspace);
+                if (useTraditionalChinese)
+                {
+                    ready.SelectedLanguage = "Traditional Chinese";
+                }
+
                 Assert.True(await ready.Replace.RequestCtrlRamBuildSettingsAsync());
                 ready.Replace.SelectCtrlRamFirmwareVersionEditCommand.Execute(null);
                 ready.OutputDelivery.SetBundleEnabled(true);
@@ -76,17 +86,34 @@ public sealed class OutputDeliveryReferenceTests(ShellViewModelTestHostFixture f
             AvaloniaHeadlessPlatform.ForceRenderTimerTick();
 
             Border surface = Assert.IsType<Border>(modal.FindControl<Control>("BuildSettingsSurface"));
+            Border outputSection = Assert.IsType<Border>(modal.FindControl<Control>("OutputSettingSection"));
             Button close = Assert.IsType<Button>(modal.FindControl<Control>("CloseButton"));
             Grid mode = Assert.IsType<Grid>(modal.FindControl<Control>("CtrlRamVersionModeRow"));
             Grid fields = Assert.IsType<Grid>(modal.FindControl<Control>("CtrlRamVersionFieldRow"));
+            StackPanel versionControls = Assert.IsType<StackPanel>(
+                modal.FindControl<Control>("CtrlRamVersionControlGroup"));
+            TextBlock baseVersion = Assert.IsType<TextBlock>(
+                modal.FindControl<Control>("CtrlRamBaseVersionValue"));
+            ToggleButton keepVersion = Assert.IsType<ToggleButton>(
+                modal.FindControl<Control>("CtrlRamVersionKeepChoice"));
+            ToggleButton editVersion = Assert.IsType<ToggleButton>(
+                modal.FindControl<Control>("CtrlRamVersionEditChoice"));
+            TextBox firmwareVersion = Assert.IsType<TextBox>(
+                modal.FindControl<Control>("CtrlRamFirmwareVersionInput"));
+            TextBox firmwareSubVersion = Assert.IsType<TextBox>(
+                modal.FindControl<Control>("CtrlRamFirmwareSubVersionInput"));
             Grid review = Assert.IsType<Grid>(modal.FindControl<Control>("BundleReviewPanel"));
-            Grid edit = Assert.IsType<Grid>(modal.FindControl<Control>("BundleEditPanel"));
             Border sources = Assert.IsType<Border>(modal.FindControl<Control>("SourcesListPanel"));
             ToggleButton sourcesToggle = Assert.IsType<ToggleButton>(
                 modal.FindControl<Control>("SourcesDisclosureToggle"));
             Button editBundle = Assert.IsType<Button>(modal.FindControl<Control>("EditBundleDestinationButton"));
             Button done = Assert.IsType<Button>(modal.FindControl<Control>("CompleteBundleDestinationEditButton"));
+            Button chooseParent = Assert.IsType<Button>(modal.FindControl<Control>("ChooseParentButton"));
             TextBox folder = Assert.IsType<TextBox>(modal.FindControl<Control>("FolderNameInput"));
+            SelectableTextBlock folderDisplay = Assert.IsType<SelectableTextBlock>(
+                modal.FindControl<Control>("BundleFolderNameDisplay"));
+            SelectableTextBlock parentDisplay = Assert.IsType<SelectableTextBlock>(
+                modal.FindControl<Control>("ParentDirectoryDisplay"));
 
             Assert.InRange(surface.Bounds.Width, 759.5, 760.5);
             Assert.True(surface.Bounds.Height <= 720);
@@ -94,12 +121,35 @@ public sealed class OutputDeliveryReferenceTests(ShellViewModelTestHostFixture f
             Assert.Equal(close.Bounds.Width, close.Bounds.Height);
             Assert.True(mode.IsVisible);
             Assert.True(fields.IsVisible);
+            Assert.InRange(versionControls.Bounds.Width, 299.5, 300.5);
+            Assert.True(Avalonia.Application.Current!.TryGetResource(
+                "NfcUiFontFamily",
+                useDarkTheme ? ThemeVariant.Dark : ThemeVariant.Light,
+                out object? fontResource));
+            FontFamily uiFont = Assert.IsType<FontFamily>(fontResource);
+            Assert.Equal(uiFont, baseVersion.FontFamily);
+            Assert.Equal(uiFont, keepVersion.FontFamily);
+            Assert.Equal(uiFont, editVersion.FontFamily);
+            Assert.Equal(uiFont, firmwareVersion.FontFamily);
+            Assert.Equal(uiFont, firmwareSubVersion.FontFamily);
+            Assert.Equal(FontWeight.Medium, baseVersion.FontWeight);
+            Assert.Equal(FontWeight.Medium, keepVersion.FontWeight);
+            Assert.Equal(FontWeight.Medium, editVersion.FontWeight);
+            Assert.Equal(FontWeight.Medium, firmwareVersion.FontWeight);
+            Assert.Equal(FontWeight.Medium, firmwareSubVersion.FontWeight);
             Point modeOrigin = Assert.IsType<Point>(mode.TranslatePoint(new Point(), surface));
             Point fieldOrigin = Assert.IsType<Point>(fields.TranslatePoint(new Point(), surface));
             Assert.True(fieldOrigin.Y >= modeOrigin.Y + mode.Bounds.Height);
             Assert.True(review.IsVisible);
-            Assert.False(edit.IsVisible);
+            Assert.True(folderDisplay.IsVisible);
+            Assert.False(folder.IsVisible);
+            Assert.True(parentDisplay.IsVisible);
+            Assert.True(chooseParent.IsVisible);
+            Assert.InRange(chooseParent.Bounds.Width, 33.5, 34.5);
             Assert.False(sources.IsVisible);
+            Point sourceToggleOrigin = Assert.IsType<Point>(
+                sourcesToggle.TranslatePoint(new Point(), outputSection));
+            Assert.True(sourceToggleOrigin.X > outputSection.Bounds.Width / 2);
 
             using Avalonia.Media.Imaging.Bitmap? frame = window.GetLastRenderedFrame();
             Assert.NotNull(frame);
@@ -108,26 +158,35 @@ public sealed class OutputDeliveryReferenceTests(ShellViewModelTestHostFixture f
             {
                 _ = Directory.CreateDirectory(outputDirectory);
                 string themeName = useDarkTheme ? "dark" : "light";
+                string languageName = useTraditionalChinese ? "zh-tw" : "en";
                 await using FileStream output = File.Create(Path.Combine(
                     outputDirectory,
-                    $"build-settings-a3-t2-980x720-{themeName}.png"));
+                    $"build-settings-a3-t2-980x720-{themeName}-{languageName}.png"));
                 frame.Save(output);
             }
 
             sourcesToggle.IsChecked = true;
             Dispatcher.UIThread.RunJobs();
             Assert.True(sources.IsVisible);
+            Assert.InRange(
+                Math.Abs(sources.Bounds.Width - outputSection.Bounds.Width),
+                0,
+                0.5);
 
             editBundle.RaiseEvent(new Avalonia.Interactivity.RoutedEventArgs(Button.ClickEvent));
             Dispatcher.UIThread.RunJobs();
-            Assert.False(review.IsVisible);
-            Assert.True(edit.IsVisible);
+            Assert.True(review.IsVisible);
+            Assert.False(folderDisplay.IsVisible);
+            Assert.True(folder.IsVisible);
+            Assert.True(parentDisplay.IsVisible);
+            Assert.True(chooseParent.IsVisible);
             Assert.Same(folder, window.FocusManager?.GetFocusedElement());
 
             done.RaiseEvent(new Avalonia.Interactivity.RoutedEventArgs(Button.ClickEvent));
             Dispatcher.UIThread.RunJobs();
             Assert.True(review.IsVisible);
-            Assert.False(edit.IsVisible);
+            Assert.True(folderDisplay.IsVisible);
+            Assert.False(folder.IsVisible);
             Assert.Same(editBundle, window.FocusManager?.GetFocusedElement());
         }
         finally

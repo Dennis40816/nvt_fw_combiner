@@ -1,0 +1,36 @@
+{
+  "schemaVersion": 2,
+  "taskId": "UI-BUILD-SETTINGS-A3-T2-01",
+  "capability": "Converge the approved A3/T2 Build Settings review layout while keeping output and delivery semantics unchanged",
+  "integrationBase": "31d21392ca7004974e2110657a97be9eadd34566",
+  "risk": "R2",
+  "kind": "ui",
+  "state": "design-active",
+  "mutablePaths": [
+    "docs/adr/0021-code-size-ratchet-accepted-artifact-amendment.md",
+    "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/ShellTextResources.Localized.cs",
+    "src/NvtFwCombiner.Presentation.Avalonia/Views/OutputDeliveryConfirmationModal.axaml"
+  ],
+  "implementationOwner": "root-implementer",
+  "searchEvidence": [
+    "rg -n 'OutputFileName|AreSourcesExpanded|CtrlRamFirmwareVersion|BundleFolderName|ParentDirectory|ChooseParentButton_OnClick|SetParentDirectory|ValidateBundleDestination' src/NvtFwCombiner.Presentation.Avalonia tests/NvtFwCombiner.UiSmoke.Tests",
+    "Owner before-state image SHA-256 079f07196faaa8c2ad59afbc50f8b7c88d535ab8904314ab7aa746bba57cf9e3 (742x151) records the bundle/parent problem state, not a normative pixel reference.",
+    "Owner before-state image SHA-256 63025016904f5ef66e0c265c590dbdbc227381eb8c6b7aff2d5ffea0f48533f9 (742x99) records the Sources problem state, not a normative pixel reference."
+  ],
+  "semanticOwner": "OutputDeliveryConfirmationViewModel typed state and the shared OutputDeliveryConfirmationModal Presentation surface",
+  "terminalContract": "Canonical output name remains display-only until its pencil. Collapsed Sources placement remains unchanged and the expanded list spans the existing full content width. CtrlRAM uses the approved T2 Base TP version summary with preserve/edit mode above two version fields. Bundle review remains two compact rows: only bundle folder name enters pencil edit mode, while the accessible parent-folder icon directly reuses ChooseParentButton_OnClick whenever existing bundle admission permits editing. Existing naming, source identities, validation, planner, executor, report, delivery, modal shell, scrolling, localization and focus-return behavior do not change.",
+  "disposition": "extend-owner",
+  "designReview": {
+    "reviewer": "audit_dirty_ui",
+    "outcome": "findings-incorporated",
+    "evidence": "Independent R2 admission found no P0/P1 and approved the existing typed owners. The record incorporates both P2 corrections: it supersedes the former all-destination pencil wording with bundle-name-only editing plus direct parent-folder selection, and it forbids moving the collapsed Sources action into an unapproved full-width row. The two temporary screenshots are recorded only by dimensions and SHA-256 as problem evidence; the normative geometry is this terminal contract and ADR 0021."
+  },
+  "implementationHead": null,
+  "reviewedHead": null,
+  "pathStateDigest": null,
+  "finalReview": {
+    "reviewer": null,
+    "outcome": "pending",
+    "evidence": ""
+  }
+}
