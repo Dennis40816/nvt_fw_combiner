@@ -1,3 +1,4 @@
+using System.Collections.ObjectModel;
 using NvtFwCombiner.Application.Authoring;
 using NvtFwCombiner.Application.Capabilities;
 using NvtFwCombiner.Domain.Composition;
@@ -10,6 +11,8 @@ internal sealed partial class MergePresentationViewModel
     private IReadOnlyList<string>? _preparedStandardMergeRequired;
     private IReadOnlyList<string>? _preparedStandardMergeAvailable;
     private CompiledAuthoringSelectionSnapshot? _preparedStandardMergeSnapshot;
+    private ReadOnlyCollection<string> _appliedStandardMergeRequired =
+        Array.AsReadOnly(Array.Empty<string>());
 
     internal void ValidateContextRefresh(
         string icId,
@@ -73,6 +76,7 @@ internal sealed partial class MergePresentationViewModel
     {
         if (!HasSelectedIc)
         {
+            _appliedStandardMergeRequired = Array.AsReadOnly(Array.Empty<string>());
             MergeSlots.Clear();
             AbMergeTopologyChoices.Clear();
             _abMergeTopologyChoicesIcId = null;
@@ -114,6 +118,7 @@ internal sealed partial class MergePresentationViewModel
             available = _compositionServices.StandardMergeAuthoring
                 .GetInputAddressSpaces(SelectedIc);
         }
+        _appliedStandardMergeRequired = Array.AsReadOnly([.. required]);
         foreach (FirmwareSlotViewModel slot in new[] { MergeDpSlot, MergeTpSlot, MergeLdcSlot })
         {
             slot.ApplyExperienceText(Text);
@@ -205,16 +210,9 @@ internal sealed partial class MergePresentationViewModel
 
     private string GetRequiredStandardMergeSlotLabels()
     {
-        if (!HasSelectedIc)
-        {
-            return "none";
-        }
-
-        IReadOnlyList<string> required =
-            _compositionServices.StandardMergeAuthoring.GetRequiredAddressSpaces(SelectedIc);
-        return required.Count == 0
+        return !HasSelectedIc || _appliedStandardMergeRequired.Count == 0
             ? "none"
-            : string.Join(", ", required.Select(AddressSpaceLabel));
+            : string.Join(", ", _appliedStandardMergeRequired.Select(AddressSpaceLabel));
     }
 
     private static string AddressSpaceLabel(string addressSpaceId)
