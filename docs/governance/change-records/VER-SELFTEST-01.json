@@ -1,0 +1,37 @@
+{
+  "schemaVersion": 2,
+  "taskId": "VER-SELFTEST-01",
+  "capability": "Read-only immutable Bootstrap observation and exact active managed-launcher admission self-test",
+  "integrationBase": "f0b9464f134e6be22480b1d818dd53e83fd7c37a",
+  "risk": "R1",
+  "kind": "behavior",
+  "state": "design-active",
+  "mutablePaths": [
+    "src/NvtFwCombiner.VersionManagement.Application/VersionManagement/LauncherInstallationSelfTest.cs",
+    "src/NvtFwCombiner.VersionManagement.Infrastructure/VersionManagement/FileSystemLauncherInstallationSelfTest.cs",
+    "tests/NvtFwCombiner.Infrastructure.Tests/VersionManagement/FileSystemLauncherInstallationSelfTestTests.cs"
+  ],
+  "implementationOwner": "implement_launcher100",
+  "searchEvidence": [
+    "JsonVersionManagerStateStore is the sole strict reader for committed application state and JsonLauncherBootstrapStateStore is the sole strict reader for launcher activation state.",
+    "FileSystemInstalledLauncherRepository is the sole verifier for release-manifest-pinned launcher bytes and exact owner admission; the self-test must consume that typed result rather than repeat manifest or hash policy.",
+    "No immutable-Bootstrap observation seam exists; its result must be explicitly observational because the version update payload has no authority to admit or rewrite the root trust anchor.",
+    "The query requires no writer lease, Save call, activation coordinator, process start, or UI projection."
+  ],
+  "semanticOwner": "VersionManagement Application exposes one typed read-only query contract; Infrastructure composes existing strict state readers and launcher verifier plus a bounded immutable-Bootstrap observation",
+  "terminalContract": "The query never writes state, launcher journal, activation, files, or a writer lease. It reports the immutable root Bootstrap only as a safe bounded SHA-256 observation, verifies the committed active launcher only through the exact existing app admission and FileSystemInstalledLauncherRepository typed result, rejects pending or mismatched state, and returns no partial successful admission on failure.",
+  "disposition": "extend-owner",
+  "designReview": {
+    "reviewer": null,
+    "outcome": "not-required",
+    "evidence": "Owner approved VER-SELFTEST-01 to report immutable Bootstrap and active Launcher admission without mutation; implementation must reuse existing typed verification and add no UI or duplicated package checks."
+  },
+  "implementationHead": null,
+  "reviewedHead": null,
+  "pathStateDigest": null,
+  "finalReview": {
+    "reviewer": null,
+    "outcome": "pending",
+    "evidence": ""
+  }
+}
