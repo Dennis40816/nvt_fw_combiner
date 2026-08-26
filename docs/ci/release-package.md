@@ -200,6 +200,16 @@ The byte ratchet does not authorize trimming, removal of the self-contained
 smoke coverage. A lower reproducible package result lowers the ratchet only
 after release review records the producing commit, environment, and artifact.
 
+`v1.0.0` is the one bounded exception for the release-coupled, self-contained
+managed Launcher required by ADR 0056. Its exact filename
+`NvtFwCombiner-v1.0.0-win-x64.zip` has a 128 MiB (134,217,728-byte) complete-ZIP
+ceiling. The measured Launcher integration checkpoint was 112,324,034 bytes;
+the exact frozen release ZIP size and SHA-256 must still be recorded later.
+Other package names retain the 80,000,000-byte ceiling, and the separate
+80,000,000-byte `NvtFwCombiner.exe` ceiling is unchanged. This exception does
+not loosen the closed allowlist, file hashes, SBOM/provenance, or the rule that
+Bootstrap cannot appear in an update package.
+
 Starting with the owner-approved `0.9.11.10` startup phase, release smoke also
 rejects a main `NvtFwCombiner.exe` above 80,000,000 bytes. This application
 budget is checked after fresh extraction and is separate from the existing ZIP

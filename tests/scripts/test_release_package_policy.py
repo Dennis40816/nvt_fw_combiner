@@ -51,6 +51,7 @@ PERSONAL_OWNER_IDENTIFIER = "Dennis40816"
 DISTRIBUTION_OWNER = "MSP/FW3"
 SOURCE_IDENTITY = "urn:msp-fw3:nvt-fw-combiner:source"
 MAXIMUM_PACKAGE_BYTES = 80_000_000
+MAXIMUM_MANAGED_100_PACKAGE_BYTES = 134_217_728
 MAXIMUM_APPLICATION_BYTES = 80_000_000
 ANSI_ESCAPE_PATTERN = re.compile(r"\x1b\[[0-?]*[ -/]*[@-~]")
 
@@ -668,6 +669,32 @@ class ReleasePackagePolicyTests(unittest.TestCase):
         self.assertNotEqual(0, result.returncode, result.stdout + result.stderr)
         self.assertIn(
             "exceeds the owner-approved maximum 80000000 bytes",
+            normalize_console_output(result.stdout + result.stderr),
+        )
+
+    @unittest.skipUnless(
+        POWERSHELL, "PowerShell is required for Windows release-policy tests"
+    )
+    def test_release_smoke_applies_bounded_managed_100_package_budget(self) -> None:
+        with tempfile.TemporaryDirectory(
+            prefix="nvt-release-managed-size-policy-test-"
+        ) as temporary_directory:
+            package_path = (
+                Path(temporary_directory) / "NvtFwCombiner-v1.0.0-win-x64.zip"
+            )
+            with package_path.open("wb") as package:
+                package.truncate(MAXIMUM_MANAGED_100_PACKAGE_BYTES + 1)
+
+            result = self.run_powershell(
+                SMOKE_SCRIPT,
+                "-PackagePath",
+                str(package_path),
+                "-SkipUiLaunch",
+            )
+
+        self.assertNotEqual(0, result.returncode, result.stdout + result.stderr)
+        self.assertIn(
+            "exceeds the owner-approved maximum 134217728 bytes",
             normalize_console_output(result.stdout + result.stderr),
         )
 

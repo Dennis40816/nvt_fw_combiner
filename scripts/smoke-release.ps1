@@ -15,7 +15,8 @@ param(
 Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
 
-$MaximumPackageBytes = 80000000
+$MaximumLegacyPackageBytes = 80000000
+$MaximumManaged100PackageBytes = 134217728
 $MaximumApplicationBytes = 80000000
 $ApprovedExternalToolPackagePaths = @(
     'external-tools/README.md',
@@ -224,6 +225,16 @@ if (-not $fullPackagePath.EndsWith('.zip', [StringComparison]::OrdinalIgnoreCase
     throw 'Release smoke requires a .zip package.'
 }
 $packageBytes = (Get-Item -LiteralPath $fullPackagePath).Length
+$packageFileName = Split-Path -Leaf $fullPackagePath
+$MaximumPackageBytes = if ([string]::Equals(
+    $packageFileName,
+    'NvtFwCombiner-v1.0.0-win-x64.zip',
+    [StringComparison]::Ordinal)) {
+    $MaximumManaged100PackageBytes
+}
+else {
+    $MaximumLegacyPackageBytes
+}
 if ($packageBytes -gt $MaximumPackageBytes) {
     throw "Release package size $packageBytes exceeds the owner-approved maximum $MaximumPackageBytes bytes."
 }
