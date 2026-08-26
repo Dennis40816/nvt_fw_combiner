@@ -4,6 +4,7 @@ using NvtFwCombiner.TestSupport;
 namespace NvtFwCombiner.Infrastructure.Tests.VersionManagement;
 
 /// <summary>Verifies immutable Bootstrap argument ownership and defaults.</summary>
+[Collection(nameof(ReadyProbeProcessSerialGroup))]
 public sealed class LauncherBootstrapLaunchOptionsTests
 {
     /// <summary>Explorer and zero-argument shortcuts use the existing canonical per-user state owner.</summary>
@@ -32,6 +33,28 @@ public sealed class LauncherBootstrapLaunchOptionsTests
 
         Assert.Equal(Path.GetFullPath(managedRoot), result.ManagedRoot);
         Assert.Equal(Path.GetFullPath(statePath), result.StatePath);
+    }
+
+    /// <summary>The canonical default honors the process-local application-data boundary used by clean smoke.</summary>
+    [Fact]
+    public void CanonicalDefaultUsesExactLocalApplicationDataEnvironment()
+    {
+        using TempWorkspace workspace = TempWorkspace.Create();
+        string? previous = Environment.GetEnvironmentVariable("LOCALAPPDATA");
+        try
+        {
+            Environment.SetEnvironmentVariable("LOCALAPPDATA", workspace.Root);
+
+            string result = JsonVersionManagerStateStore.GetDefaultPath();
+
+            Assert.Equal(
+                Path.Combine(Path.GetFullPath(workspace.Root), "NvtFwCombiner", "version-manager.v1.json"),
+                result);
+        }
+        finally
+        {
+            Environment.SetEnvironmentVariable("LOCALAPPDATA", previous);
+        }
     }
 
     /// <summary>Unknown options remain fail-closed.</summary>

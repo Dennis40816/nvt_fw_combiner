@@ -14,10 +14,11 @@ if (!string.IsNullOrWhiteSpace(argumentsPath))
 }
 string? launcherExpected = Environment.GetEnvironmentVariable(launcherExpectedKey);
 string? version = Environment.GetEnvironmentVariable(versionKey);
-string expected = launcherExpected ?? (version is null
-    ? throw new InvalidOperationException("Missing expected READY identity.")
-    : $"READY:{version}");
-if (launcherExpected is not null)
+bool isManagedApplication = version is not null;
+string expected = isManagedApplication
+    ? $"READY:{version}"
+    : launcherExpected ?? throw new InvalidOperationException("Missing expected READY identity.");
+if (!isManagedApplication && launcherExpected is not null)
 {
     string readyVersion = Environment.GetEnvironmentVariable("NVT_READY_PROBE_APP_VERSION") ??
         throw new InvalidOperationException("Missing test app version.");
@@ -34,6 +35,7 @@ if (launcherExpected is not null)
 }
 bool candidate = expected.Contains("0.10.6", StringComparison.Ordinal);
 if (string.Equals(behavior, "exit", StringComparison.Ordinal) ||
+    (!isManagedApplication && candidate && string.Equals(behavior, "exit-outer-candidate", StringComparison.Ordinal)) ||
     (candidate && string.Equals(behavior, "exit-candidate", StringComparison.Ordinal)))
 {
     return 7;
@@ -45,7 +47,7 @@ if (string.Equals(behavior, "timeout", StringComparison.Ordinal) ||
     return 0;
 }
 
-string handle = Environment.GetEnvironmentVariable(launcherExpected is null ? handleKey : launcherHandleKey) ??
+string handle = Environment.GetEnvironmentVariable(isManagedApplication ? handleKey : launcherHandleKey) ??
     throw new InvalidOperationException("Missing pipe handle.");
 await using var pipe = new AnonymousPipeClientStream(PipeDirection.Out, handle);
 byte[] message = string.Equals(behavior, "invalid-utf8", StringComparison.Ordinal)

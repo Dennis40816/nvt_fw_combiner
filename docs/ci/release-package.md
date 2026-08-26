@@ -17,12 +17,29 @@ contains one immutable `NvtFwCombiner.Bootstrap.exe` plus an admitted
 `versions/1.0.0` payload. The version payload's closed release manifest pins
 `versionManagementProtocolVersion: 1` and the exact coupled
 `launcher/NvtFwCombiner.Launcher.exe` identity. Bootstrap belongs only to the
-initial managed installer/lab and its outer installation evidence; it is never
-inside a version ZIP, release manifest, or update catalog payload. The
+separately assembled managed-distribution root and its outer installation
+evidence; this repository provides a deterministic assembly lab, not an
+installer. Bootstrap is never inside a version ZIP, release manifest, or update
+catalog payload. The
 production packager, smoke scripts, closed allowlist, size policy, and
 clean-machine evidence change together under release-owner review. Existing
 portable-package dry-run and smoke stay mandatory through the internal proving
 line as regression gates.
+
+The machine-verifiable outer-process gate is:
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File scripts/smoke-launcher-bootstrap.ps1 -Configuration Release -EvidencePath artifacts/launcher-process-smoke-evidence.json
+```
+
+It publishes the immutable Bootstrap, version Launcher, and READY probe from
+the reviewed source, constructs a closed two-version update source, proves a
+zero-argument clean-root start using an isolated canonical `LOCALAPPDATA`
+state, and then proves exact prior-launcher rollback after a candidate start
+failure. The generated root, packages, executables, state, and evidence JSON
+remain ignored artifacts. This deterministic lab does not replace the pending
+clean-machine, UNC, signing/legal, or release-owner acceptance of the exact
+frozen release candidate.
 
 ## Closed allowlist
 

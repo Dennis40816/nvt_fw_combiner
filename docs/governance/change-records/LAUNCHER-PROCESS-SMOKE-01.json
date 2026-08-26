@@ -1,0 +1,41 @@
+{
+  "schemaVersion": 2,
+  "taskId": "LAUNCHER-PROCESS-SMOKE-01",
+  "capability": "Published immutable Bootstrap, version Launcher, nested READY, and exact rollback process evidence",
+  "integrationBase": "053a79cfd5a9790fec41f5ac414e0adb1fbf9f68",
+  "risk": "R3",
+  "kind": "release",
+  "state": "design-active",
+  "mutablePaths": [
+    "docs/ci/release-package.md",
+    "scripts/create_launcher_process_smoke_source.py",
+    "scripts/smoke-launcher-bootstrap.ps1",
+    "src/NvtFwCombiner.VersionManagement.Infrastructure/VersionManagement/JsonVersionManagerStateStore.cs",
+    "tests/NvtFwCombiner.Infrastructure.Tests/VersionManagement/LauncherBootstrapLaunchOptionsTests.cs",
+    "tests/NvtFwCombiner.ReadyProbe/Program.cs",
+    "tests/scripts/test_release_smoke_policy.py"
+  ],
+  "implementationOwner": "implement_launcher100",
+  "searchEvidence": [
+    "create-managed-installation-lab is the existing strict package-to-managed-root assembler and remains the only process-smoke source of seed extraction and launcher admission.",
+    "JsonVersionManagerStateStore.GetDefaultPath is the existing canonical zero-argument state-path owner; no second default-path resolver is introduced.",
+    "Existing unit process tests prove READY protocol branches but do not execute the published immutable Bootstrap through the published version Launcher and nested application READY.",
+    "No committed process-smoke script currently proves candidate launcher start failure and exact previous-launcher rollback with generated state and payloads removed afterward."
+  ],
+  "semanticOwner": "Existing Bootstrap/Launcher coordinators and strict package/state adapters; the smoke script only assembles published test inputs and observes their typed process outcomes",
+  "terminalContract": "The deterministic Windows gate publishes the reviewed immutable Bootstrap, version Launcher, and READY probe, assembles closed schema-1.2 version packages through the existing managed-root owner, proves zero-argument canonical-state startup from a clean isolated LOCALAPPDATA, then fails a different candidate launcher and requires exact prior-launcher rollback with pending cleared. It commits no generated executable, package, state, or evidence artifact and does not replace clean-machine, UNC, or release-owner acceptance.",
+  "disposition": "extend-owner",
+  "designReview": {
+    "reviewer": "launcher_arch_admission and release owner",
+    "outcome": "approved",
+    "evidence": "Exact-HEAD review required machine-verifiable published Bootstrap to version Launcher to READY and candidate-failure rollback evidence while leaving human, UNC, and final release-owner gates pending; owner retained closed package, hash, SBOM/provenance, and Bootstrap exclusion rules."
+  },
+  "implementationHead": null,
+  "reviewedHead": null,
+  "pathStateDigest": null,
+  "finalReview": {
+    "reviewer": null,
+    "outcome": "pending",
+    "evidence": ""
+  }
+}

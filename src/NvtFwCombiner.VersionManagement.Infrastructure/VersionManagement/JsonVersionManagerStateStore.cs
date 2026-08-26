@@ -39,8 +39,11 @@ public sealed class JsonVersionManagerStateStore : IVersionManagerStateStore
     /// <returns>The full default state path.</returns>
     public static string GetDefaultPath()
     {
+        string localApplicationData = Environment.GetEnvironmentVariable("LOCALAPPDATA") ??
+            Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
+        ArgumentException.ThrowIfNullOrWhiteSpace(localApplicationData);
         return Path.Combine(
-            Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+            Path.GetFullPath(localApplicationData),
             "NvtFwCombiner",
             StateFileName);
     }

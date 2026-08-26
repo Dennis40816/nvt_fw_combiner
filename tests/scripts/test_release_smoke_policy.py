@@ -30,3 +30,18 @@ def test_managed_lab_publishes_only_the_immutable_bootstrap_at_root() -> None:
     assert "Move-Item -LiteralPath $PublishedBootstrap -Destination $Bootstrap" in lab
     assert "--bootstrap $Bootstrap" in lab
     assert "src/NvtFwCombiner.Launcher/NvtFwCombiner.Launcher.csproj" not in lab
+
+
+def test_process_smoke_runs_published_nested_ready_and_exact_rollback() -> None:
+    smoke = (ROOT / "scripts" / "smoke-launcher-bootstrap.ps1").read_text(
+        encoding="utf-8-sig"
+    )
+
+    assert "NvtFwCombiner.LauncherBootstrap.csproj" in smoke
+    assert "NvtFwCombiner.Launcher.csproj" in smoke
+    assert "NvtFwCombiner.ReadyProbe.csproj" in smoke
+    assert "$env:LOCALAPPDATA = $LocalAppData" in smoke
+    assert "cleanZeroArgumentExit" in smoke
+    assert "exit-outer-candidate" in smoke
+    assert "active.ownerAppVersion -ne '0.10.5'" in smoke
+    assert "failed.ownerAppVersion -ne '0.10.6'" in smoke
