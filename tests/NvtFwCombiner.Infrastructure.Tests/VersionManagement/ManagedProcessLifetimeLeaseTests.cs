@@ -55,23 +55,104 @@ public sealed class ManagedProcessLifetimeLeaseTests
         string? priorContext = Environment.GetEnvironmentVariable(ManagedProcessLifetimeLease.ContextEnvironment);
         string? priorHandle = Environment.GetEnvironmentVariable(ManagedProcessLifetimeLease.HandleEnvironment);
         string? priorJob = Environment.GetEnvironmentVariable(ManagedProcessLifetimeLease.JobEnvironment);
+        string? priorStatePath = Environment.GetEnvironmentVariable(ManagedProcessLifetimeLease.StatePathEnvironment);
+        string? priorKind = Environment.GetEnvironmentVariable(ManagedProcessLifetimeLease.KindEnvironment);
         try
         {
             Environment.SetEnvironmentVariable(ManagedProcessLifetimeLease.ContextEnvironment, context);
             Environment.SetEnvironmentVariable(ManagedProcessLifetimeLease.HandleEnvironment, handle);
             Environment.SetEnvironmentVariable(ManagedProcessLifetimeLease.JobEnvironment, job);
-            using IInheritedManagedProcessLifetimeCapture capture = InheritedManagedProcessLifetime.Capture();
+            Environment.SetEnvironmentVariable(ManagedProcessLifetimeLease.StatePathEnvironment, null);
+            Environment.SetEnvironmentVariable(ManagedProcessLifetimeLease.KindEnvironment, null);
+            using IInheritedManagedProcessLifetimeCapture capture = InheritedManagedProcessLifetime.Capture(
+                Path.GetFullPath("managed-state.json"),
+                ManagedProcessLifetimeKind.Application,
+                managedContextAdvertised: false);
             Assert.Equal(expected, capture.Outcome);
             Assert.Null(Environment.GetEnvironmentVariable(ManagedProcessLifetimeLease.ContextEnvironment));
             Assert.Null(Environment.GetEnvironmentVariable(ManagedProcessLifetimeLease.HandleEnvironment));
             Assert.Null(Environment.GetEnvironmentVariable(ManagedProcessLifetimeLease.JobEnvironment));
+            Assert.Null(Environment.GetEnvironmentVariable(ManagedProcessLifetimeLease.StatePathEnvironment));
+            Assert.Null(Environment.GetEnvironmentVariable(ManagedProcessLifetimeLease.KindEnvironment));
         }
         finally
         {
             Environment.SetEnvironmentVariable(ManagedProcessLifetimeLease.ContextEnvironment, priorContext);
             Environment.SetEnvironmentVariable(ManagedProcessLifetimeLease.HandleEnvironment, priorHandle);
             Environment.SetEnvironmentVariable(ManagedProcessLifetimeLease.JobEnvironment, priorJob);
+            Environment.SetEnvironmentVariable(ManagedProcessLifetimeLease.StatePathEnvironment, priorStatePath);
+            Environment.SetEnvironmentVariable(ManagedProcessLifetimeLease.KindEnvironment, priorKind);
         }
+    }
+
+    /// <summary>A managed invocation cannot downgrade missing lifetime authority to unmanaged startup.</summary>
+    [Fact]
+    public void ManagedInvocationWithoutLifetimeContextFailsClosed()
+    {
+        using IInheritedManagedProcessLifetimeCapture capture = InheritedManagedProcessLifetime.Capture(
+            Path.GetFullPath("managed-state.json"),
+            ManagedProcessLifetimeKind.Application,
+            managedContextAdvertised: true);
+
+        Assert.Equal(InheritedManagedProcessLifetimeOutcome.InvalidInheritedContext, capture.Outcome);
+    }
+
+    /// <summary>A real READY-advertised process with no lifetime authority exits before opening the channel.</summary>
+    [Fact]
+    public async Task ReadyAdvertisedProcessWithoutLifetimeExitsFailClosed()
+    {
+        using var workspace = TempWorkspace.Create();
+        string probe = Path.Combine(AppContext.BaseDirectory, "ready-probe", "NvtFwCombiner.ReadyProbe.exe");
+        var startInfo = new ProcessStartInfo
+        {
+            FileName = probe,
+            UseShellExecute = false,
+            CreateNoWindow = true,
+        };
+        startInfo.ArgumentList.Add("--state-path");
+        startInfo.ArgumentList.Add(workspace.PathFor("state/version-manager.v1.json"));
+        startInfo.Environment[AnonymousPipeManagedApplicationProcess.ExpectedVersionEnvironment] = "0.10.6";
+        using Process process = Process.Start(startInfo) ?? throw new InvalidOperationException("Probe did not start.");
+
+        await process.WaitForExitAsync(TestContext.Current.CancellationToken);
+
+        Assert.Equal(24, process.ExitCode);
+    }
+
+    /// <summary>A real managed entry rejects a lifetime inherited for another path or role.</summary>
+    [Theory]
+    [InlineData(true, false)]
+    [InlineData(false, true)]
+    public async Task ManagedEntryRejectsWrongPathOrSwappedRole(bool wrongPath, bool wrongRole)
+    {
+        if (!OperatingSystem.IsWindows())
+        {
+            return;
+        }
+        using var workspace = TempWorkspace.Create();
+        string statePath = workspace.PathFor("state/version-manager.v1.json");
+        ManagedProcessLifetimeKind inheritedKind = wrongRole
+            ? ManagedProcessLifetimeKind.Launcher
+            : ManagedProcessLifetimeKind.Application;
+        using ManagedProcessLifetimeLease? lease = ManagedProcessLifetimeLease.TryAcquire(
+            statePath,
+            inheritedKind);
+        Assert.NotNull(lease);
+        var startInfo = new ProcessStartInfo
+        {
+            FileName = Path.Combine(AppContext.BaseDirectory, "ready-probe", "NvtFwCombiner.ReadyProbe.exe"),
+            UseShellExecute = false,
+            CreateNoWindow = true,
+        };
+        startInfo.ArgumentList.Add("--state-path");
+        startInfo.ArgumentList.Add(wrongPath ? workspace.PathFor("state/other.json") : statePath);
+        startInfo.Environment[AnonymousPipeManagedApplicationProcess.ExpectedVersionEnvironment] = "0.10.6";
+        lease.ApplyInheritedContext(startInfo);
+        using Process process = Process.Start(startInfo) ?? throw new InvalidOperationException("Probe did not start.");
+
+        await process.WaitForExitAsync(TestContext.Current.CancellationToken);
+
+        Assert.Equal(24, process.ExitCode);
     }
 
     /// <summary>A root exit cannot clear recovery while a real grandchild remains in the managed job.</summary>
@@ -99,6 +180,9 @@ public sealed class ManagedProcessLifetimeLeaseTests
         };
         startInfo.Environment[BehaviorEnvironment] = "tree-root-exit";
         startInfo.Environment["NVT_READY_PROBE_TREE_MARKER"] = marker;
+        startInfo.ArgumentList.Add("--state-path");
+        startInfo.ArgumentList.Add(Path.GetFullPath(statePath));
+        startInfo.Environment[AnonymousPipeManagedApplicationProcess.ExpectedVersionEnvironment] = "0.10.6";
         lease.ApplyInheritedContext(startInfo);
 
         using Process root = Process.Start(startInfo) ?? throw new InvalidOperationException("Tree probe did not start.");

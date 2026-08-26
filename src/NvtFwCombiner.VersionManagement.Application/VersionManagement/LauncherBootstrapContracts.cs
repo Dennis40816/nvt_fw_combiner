@@ -398,12 +398,6 @@ internal interface IManagedLauncherProcess
         CancellationToken cancellationToken);
 }
 
-internal enum ManagedProcessLifetimeKind
-{
-    Application,
-    Launcher,
-}
-
 internal enum LauncherBootstrapOutcome
 {
     Ready,

@@ -35,6 +35,84 @@ public sealed class AnonymousPipeManagedLauncherProcessTests
             await File.ReadAllLinesAsync(argumentsPath, TestContext.Current.CancellationToken));
     }
 
+    /// <summary>Accepted outer READY releases cleanup authority so its real child and grandchild survive Launcher disposal.</summary>
+    [Fact]
+    public async Task AcceptedOuterReadyKeepsChildAndGrandchildAlive()
+    {
+        if (!OperatingSystem.IsWindows())
+        {
+            return;
+        }
+        using var workspace = TempWorkspace.Create();
+        ManagedLauncherIdentity identity = PrepareProbe(workspace.Root);
+        string marker = Path.Combine(workspace.Root, "accepted-tree");
+        string? previousMarker = Environment.GetEnvironmentVariable("NVT_READY_PROBE_TREE_MARKER");
+        int rootId = 0;
+        try
+        {
+            Environment.SetEnvironmentVariable("NVT_READY_PROBE_TREE_MARKER", marker);
+            LauncherProcessStartResult result = await RunAsync(
+                workspace.Root,
+                Path.Combine(workspace.Root, "state.json"),
+                identity,
+                "ready-tree-root",
+                argumentsPath: null,
+                TimeSpan.FromSeconds(5),
+                TestContext.Current.CancellationToken);
+            rootId = int.Parse(await File.ReadAllTextAsync(
+                marker + ".root",
+                TestContext.Current.CancellationToken), System.Globalization.CultureInfo.InvariantCulture);
+            int childId = int.Parse(await File.ReadAllTextAsync(
+                marker + ".child",
+                TestContext.Current.CancellationToken), System.Globalization.CultureInfo.InvariantCulture);
+
+            Assert.Equal(LauncherProcessStartOutcome.Ready, result.Outcome);
+            long exitDeadline = Environment.TickCount64 + 5_000;
+            while (IsRunning(rootId) && Environment.TickCount64 < exitDeadline)
+            {
+                await Task.Delay(10, TestContext.Current.CancellationToken);
+            }
+            Assert.False(IsRunning(rootId));
+            using Process acceptedDesktop = Process.GetProcessById(childId);
+            Assert.False(acceptedDesktop.HasExited);
+        }
+        finally
+        {
+            Environment.SetEnvironmentVariable("NVT_READY_PROBE_TREE_MARKER", previousMarker);
+            if (rootId != 0)
+            {
+                try
+                {
+                    using Process root = Process.GetProcessById(rootId);
+                    if (!root.HasExited)
+                    {
+                        root.Kill(entireProcessTree: true);
+                        _ = root.WaitForExit(5_000);
+                    }
+                }
+                catch (ArgumentException)
+                {
+                }
+            }
+            string childMarker = marker + ".child";
+            if (File.Exists(childMarker) && int.TryParse(File.ReadAllText(childMarker), out int childId))
+            {
+                try
+                {
+                    using Process child = Process.GetProcessById(childId);
+                    if (!child.HasExited)
+                    {
+                        child.Kill(entireProcessTree: true);
+                        _ = child.WaitForExit(5_000);
+                    }
+                }
+                catch (ArgumentException)
+                {
+                }
+            }
+        }
+    }
+
     /// <summary>A launcher that does not echo the exact identity is rejected.</summary>
     [Fact]
     public async Task InvalidOuterReadyIsRejected()
@@ -340,6 +418,19 @@ public sealed class AnonymousPipeManagedLauncherProcessTests
         return new TestExecutableLaunchLease(
             Path.Combine(workingDirectory, "NvtFwCombiner.Launcher.exe"),
             workingDirectory);
+    }
+
+    private static bool IsRunning(int processId)
+    {
+        try
+        {
+            using Process process = Process.GetProcessById(processId);
+            return !process.HasExited;
+        }
+        catch (ArgumentException)
+        {
+            return false;
+        }
     }
 
     private sealed record TestExecutableLaunchLease(

@@ -15,6 +15,8 @@ internal sealed partial class ManagedProcessLifetimeLease : IDisposable
     internal const string ContextEnvironment = "NVT_FW_COMBINER_PROCESS_LIFETIME_CONTEXT";
     internal const string HandleEnvironment = "NVT_FW_COMBINER_PROCESS_LIFETIME_HANDLE";
     internal const string JobEnvironment = "NVT_FW_COMBINER_PROCESS_LIFETIME_JOB";
+    internal const string StatePathEnvironment = "NVT_FW_COMBINER_PROCESS_LIFETIME_STATE_PATH";
+    internal const string KindEnvironment = "NVT_FW_COMBINER_PROCESS_LIFETIME_KIND";
     internal const string ApplicationSuffix = ".application-lifetime.v1.lock";
     internal const string LauncherSuffix = ".launcher-lifetime.v1.lock";
     private const string ContextVersion = "v1";
@@ -22,12 +24,21 @@ internal sealed partial class ManagedProcessLifetimeLease : IDisposable
 
     private readonly SafeFileHandle _job;
     private readonly FileStream _stream;
+    private readonly string _statePath;
+    private readonly ManagedProcessLifetimeKind _kind;
 
-    private ManagedProcessLifetimeLease(FileStream stream, SafeFileHandle job, string jobName)
+    private ManagedProcessLifetimeLease(
+        FileStream stream,
+        SafeFileHandle job,
+        string jobName,
+        string statePath,
+        ManagedProcessLifetimeKind kind)
     {
         _stream = stream;
         _job = job;
         JobName = jobName;
+        _statePath = statePath;
+        _kind = kind;
     }
 
     internal string InheritedHandle => _stream.SafeFileHandle.DangerousGetHandle()
@@ -41,6 +52,15 @@ internal sealed partial class ManagedProcessLifetimeLease : IDisposable
         startInfo.Environment[ContextEnvironment] = ContextVersion;
         startInfo.Environment[HandleEnvironment] = InheritedHandle;
         startInfo.Environment[JobEnvironment] = JobName;
+        startInfo.Environment[StatePathEnvironment] = _statePath;
+        startInfo.Environment[KindEnvironment] = _kind.ToString();
+    }
+
+    internal static ManagedProcessLifetimeLease? TryAcquire(
+        string statePath,
+        ManagedProcessLifetimeKind kind)
+    {
+        return TryAcquire(statePath, GetSuffix(kind));
     }
 
     internal static ManagedProcessLifetimeLease? TryAcquire(string statePath, string suffix)
@@ -55,7 +75,8 @@ internal sealed partial class ManagedProcessLifetimeLease : IDisposable
         SafeFileHandle? job = null;
         try
         {
-            string path = Path.GetFullPath(statePath) + suffix;
+            string normalizedStatePath = Path.GetFullPath(statePath);
+            string path = normalizedStatePath + suffix;
             _ = Directory.CreateDirectory(Path.GetDirectoryName(path) ??
                 throw new ArgumentException("Lifetime lease has no parent directory.", nameof(statePath)));
             stream = new FileStream(path, FileMode.OpenOrCreate, FileAccess.ReadWrite, FileShare.None);
@@ -71,7 +92,12 @@ internal sealed partial class ManagedProcessLifetimeLease : IDisposable
             {
                 return null;
             }
-            var result = new ManagedProcessLifetimeLease(stream, job, jobName);
+            var result = new ManagedProcessLifetimeLease(
+                stream,
+                job,
+                jobName,
+                normalizedStatePath,
+                GetKind(suffix));
             stream = null;
             job = null;
             return result;
@@ -103,6 +129,13 @@ internal sealed partial class ManagedProcessLifetimeLease : IDisposable
                 : ManagedProcessLifetimeStatus.Exited;
     }
 
+    internal static ManagedProcessLifetimeStatus GetStatus(
+        string statePath,
+        ManagedProcessLifetimeKind kind)
+    {
+        return GetStatus(statePath, GetSuffix(kind));
+    }
+
     internal bool TerminateTreeAndConfirmEmpty(TimeSpan timeout)
     {
         ArgumentOutOfRangeException.ThrowIfLessThanOrEqual(timeout, TimeSpan.Zero);
@@ -126,17 +159,41 @@ internal sealed partial class ManagedProcessLifetimeLease : IDisposable
         return false;
     }
 
-    internal static InheritedManagedProcessLifetimeCapture CaptureInherited()
+    /// <summary>Stops closing the accepted READY job from terminating its process tree.</summary>
+    internal bool TryReleaseAcceptedTree()
+    {
+        var limits = new JobExtendedLimitInformation();
+        return SetInformationJobObject(
+            _job.DangerousGetHandle(),
+            JobObjectExtendedLimitInformation,
+            in limits,
+            Marshal.SizeOf<JobExtendedLimitInformation>());
+    }
+
+    internal static InheritedManagedProcessLifetimeCapture CaptureInherited(
+        string? statePath,
+        ManagedProcessLifetimeKind kind,
+        bool managedContextAdvertised)
     {
         string? context = TakeEnvironment(ContextEnvironment);
         string? value = TakeEnvironment(HandleEnvironment);
         string? jobName = TakeEnvironment(JobEnvironment);
-        if (context is null && value is null && jobName is null)
+        string? advertisedStatePath = TakeEnvironment(StatePathEnvironment);
+        string? advertisedKind = TakeEnvironment(KindEnvironment);
+        if (context is null && value is null && jobName is null &&
+            advertisedStatePath is null && advertisedKind is null)
         {
-            return InheritedManagedProcessLifetimeCapture.NotInherited;
+            return managedContextAdvertised
+                ? InheritedManagedProcessLifetimeCapture.Invalid
+                : InheritedManagedProcessLifetimeCapture.NotInherited;
         }
+        string? normalizedStatePath = TryNormalizePath(statePath);
         if (!string.Equals(context, ContextVersion, StringComparison.Ordinal) ||
+            normalizedStatePath is null ||
+            !string.Equals(TryNormalizePath(advertisedStatePath), normalizedStatePath, PathComparison) ||
+            !string.Equals(advertisedKind, kind.ToString(), StringComparison.Ordinal) ||
             string.IsNullOrWhiteSpace(jobName) ||
+            !string.Equals(jobName, GetJobName(normalizedStatePath, GetSuffix(kind)), StringComparison.Ordinal) ||
             !long.TryParse(value, NumberStyles.None, CultureInfo.InvariantCulture, out long rawHandle) ||
             rawHandle is 0 or -1 ||
             !OperatingSystem.IsWindows())
@@ -154,6 +211,10 @@ internal sealed partial class ManagedProcessLifetimeLease : IDisposable
             _ = SetHandleInformation(handle.DangerousGetHandle(), HandleFlagInherit, flags: 0)
                 ? true
                 : throw new Win32Exception(Marshal.GetLastPInvokeError());
+            if (!IsExactLeaseHandle(handle, normalizedStatePath + GetSuffix(kind)))
+            {
+                throw new InvalidOperationException("Inherited lifetime lease does not match the managed state path.");
+            }
             job = OpenJob(jobName, JobObjectAssignProcess | JobObjectQuery);
             if (job is null || !AssignProcessToJobObject(job.DangerousGetHandle(), GetCurrentProcess()))
             {
@@ -163,7 +224,8 @@ internal sealed partial class ManagedProcessLifetimeLease : IDisposable
             return InheritedManagedProcessLifetimeCapture.Create(stream, job);
         }
         catch (Exception exception) when (exception is
-            IOException or UnauthorizedAccessException or ArgumentException or Win32Exception)
+            IOException or UnauthorizedAccessException or ArgumentException or
+            InvalidOperationException or Win32Exception)
         {
             stream?.Dispose();
             job?.Dispose();
@@ -270,6 +332,60 @@ internal sealed partial class ManagedProcessLifetimeLease : IDisposable
         return $"Local\\NvtFwCombiner.ManagedTree.{hash[..32]}";
     }
 
+    private static ManagedProcessLifetimeKind GetKind(string suffix)
+    {
+        return suffix switch
+        {
+            ApplicationSuffix => ManagedProcessLifetimeKind.Application,
+            LauncherSuffix => ManagedProcessLifetimeKind.Launcher,
+            _ => throw new ArgumentOutOfRangeException(nameof(suffix)),
+        };
+    }
+
+    private static string GetSuffix(ManagedProcessLifetimeKind kind)
+    {
+        return kind switch
+        {
+            ManagedProcessLifetimeKind.Application => ApplicationSuffix,
+            ManagedProcessLifetimeKind.Launcher => LauncherSuffix,
+            _ => throw new ArgumentOutOfRangeException(nameof(kind)),
+        };
+    }
+
+    private static string? TryNormalizePath(string? path)
+    {
+        try
+        {
+            return string.IsNullOrWhiteSpace(path) ? null : Path.GetFullPath(path);
+        }
+        catch (Exception exception) when (exception is ArgumentException or NotSupportedException)
+        {
+            return null;
+        }
+    }
+
+    private static unsafe bool IsExactLeaseHandle(SafeFileHandle handle, string expectedPath)
+    {
+        const int maximumPathLength = 32_768;
+        char* path = stackalloc char[maximumPathLength];
+        uint length = GetFinalPathNameByHandle(handle, path, maximumPathLength, 0);
+        if (length is 0 or >= maximumPathLength)
+        {
+            return false;
+        }
+        const string extendedPrefix = @"\\?\";
+        string actual = new(path, 0, checked((int)length));
+        if (actual.StartsWith(extendedPrefix, StringComparison.Ordinal))
+        {
+            actual = actual[extendedPrefix.Length..];
+        }
+        return string.Equals(Path.GetFullPath(actual), Path.GetFullPath(expectedPath), PathComparison);
+    }
+
+    private static StringComparison PathComparison => OperatingSystem.IsWindows()
+        ? StringComparison.OrdinalIgnoreCase
+        : StringComparison.Ordinal;
+
     private static string? TakeEnvironment(string key)
     {
         string? value = Environment.GetEnvironmentVariable(key);
@@ -375,6 +491,13 @@ internal sealed partial class ManagedProcessLifetimeLease : IDisposable
 
     [LibraryImport("kernel32.dll")]
     private static partial IntPtr GetCurrentProcess();
+
+    [LibraryImport("kernel32.dll", EntryPoint = "GetFinalPathNameByHandleW", SetLastError = true)]
+    private static unsafe partial uint GetFinalPathNameByHandle(
+        SafeFileHandle file,
+        char* path,
+        uint pathLength,
+        uint flags);
 }
 
 /// <summary>Typed inherited lifetime capture held until the managed process exits.</summary>
@@ -417,9 +540,21 @@ internal sealed class InheritedManagedProcessLifetimeCapture : IInheritedManaged
 /// <summary>Consumes inherited managed-tree lifetime context at process entry.</summary>
 public static class InheritedManagedProcessLifetime
 {
-    /// <summary>Captures and classifies the inherited lifetime context.</summary>
-    public static IInheritedManagedProcessLifetimeCapture Capture()
+    /// <summary>Reports whether the Desktop READY channel advertises managed startup.</summary>
+    public static bool IsApplicationReadyContextAdvertised()
     {
-        return ManagedProcessLifetimeLease.CaptureInherited();
+        return Environment.GetEnvironmentVariable(
+                   AnonymousPipeManagedApplicationProcess.ReadyPipeHandleEnvironment) is not null ||
+               Environment.GetEnvironmentVariable(
+                   AnonymousPipeManagedApplicationProcess.ExpectedVersionEnvironment) is not null;
+    }
+
+    /// <summary>Captures and classifies the inherited lifetime context.</summary>
+    public static IInheritedManagedProcessLifetimeCapture Capture(
+        string? statePath,
+        ManagedProcessLifetimeKind kind,
+        bool managedContextAdvertised)
+    {
+        return ManagedProcessLifetimeLease.CaptureInherited(statePath, kind, managedContextAdvertised);
     }
 }

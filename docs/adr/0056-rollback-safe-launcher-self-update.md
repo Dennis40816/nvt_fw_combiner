@@ -118,10 +118,16 @@ recovery rule from that durable phase.
 Ordinary active application and launcher starts additionally persist
 `activeLaunchRecorded` before process creation. The start owner holds an
 exclusive inheritable file lease and a named Windows Job configured to kill on
-last-handle close. Managed entry points require the complete typed inherited
-context, capture the file handle, join the Job before READY, and hold both for
-their lifetime. A partial or malformed advertised context is not an unmanaged
-start. Recovery uses Job active-process count as whole-tree authority; root
+last-handle close. Managed entry points parse the managed state path first,
+then require a complete typed inherited context bound to that normalized path
+and exact application/launcher role. They verify the inherited handle names the
+derived role-specific lease file, join the derived Job before READY, and hold
+both for their lifetime. A managed READY/options advertisement with missing,
+partial, malformed, wrong-path, or swapped-role context is not an unmanaged
+start. Before READY, last-handle close preserves whole-tree crash/timeout
+cleanup. Exact accepted READY releases that job's kill-on-close policy, which
+lets a successful Launcher exit while its accepted Desktop descendants remain
+alive. Recovery uses Job active-process count as whole-tree authority; root
 exit alone cannot prove unknown descendants exited. Only a confirmed empty Job
 may clear the active guard, so reboot/confirmed tree exit permits retry without
 leaving a permanent marker tombstone. Cleanup waits and Job-empty polling are

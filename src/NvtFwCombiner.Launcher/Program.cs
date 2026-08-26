@@ -10,17 +10,20 @@ internal static class Program
     {
         try
         {
-            using IInheritedManagedProcessLifetimeCapture lifetime =
-                InheritedManagedProcessLifetime.Capture();
-            if (lifetime.Outcome == InheritedManagedProcessLifetimeOutcome.InvalidInheritedContext)
-            {
-                return 22;
-            }
             (string managedRoot, string statePath) = Parse(args);
             LauncherReadyInheritance outerReady = LauncherBootstrapRuntime.CaptureNestedReadyContext();
             if (outerReady.Outcome == LauncherReadyInheritanceOutcome.InvalidInheritedContext)
             {
                 return 16;
+            }
+            using IInheritedManagedProcessLifetimeCapture lifetime =
+                InheritedManagedProcessLifetime.Capture(
+                    statePath,
+                    ManagedProcessLifetimeKind.Launcher,
+                    args.Length != 0 || outerReady.Outcome == LauncherReadyInheritanceOutcome.Inherited);
+            if (lifetime.Outcome == InheritedManagedProcessLifetimeOutcome.InvalidInheritedContext)
+            {
+                return 22;
             }
             var stateStore = new JsonVersionManagerStateStore(statePath);
             var repository = new FileSystemManagedVersionRepository();

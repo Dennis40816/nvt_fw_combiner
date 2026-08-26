@@ -9,17 +9,17 @@ internal static class Program
     [STAThread]
     public static int Main(string[] args)
     {
-        using IInheritedManagedProcessLifetimeCapture lifetime =
-            CompositionHostServices.CaptureInheritedManagedProcessLifetime();
-        if (lifetime.Outcome == InheritedManagedProcessLifetimeOutcome.InvalidInheritedContext)
-        {
-            return 22;
-        }
         (string? managedRoot, string? statePath, string[] remaining) = ParseManagedHostOptions(args);
-        return DesktopApplication.Run(
-            () => CreatePresentationHostServices(managedRoot, statePath),
-            CompositionHostServices.CreateLocalFileStore(),
-            remaining);
+        using IInheritedManagedProcessLifetimeCapture lifetime =
+            CompositionHostServices.CaptureInheritedManagedProcessLifetime(
+                statePath,
+                managedRoot is not null || statePath is not null);
+        return lifetime.Outcome == InheritedManagedProcessLifetimeOutcome.InvalidInheritedContext
+            ? 22
+            : DesktopApplication.Run(
+                () => CreatePresentationHostServices(managedRoot, statePath),
+                CompositionHostServices.CreateLocalFileStore(),
+                remaining);
     }
 
     private static PresentationHostServices CreatePresentationHostServices(

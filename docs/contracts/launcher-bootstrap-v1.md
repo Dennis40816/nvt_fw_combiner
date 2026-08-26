@@ -35,13 +35,19 @@ Rules:
   target attempt before process creation and prevents another start while the
   prior child-owned lifetime lease remains active or cannot be inspected.
 - Each managed Launcher and Desktop child inherits an exclusive OS-owned
-  lifetime context derived injectively from the exact version-state path. A
-  context marker, inheritable file handle, and named Windows Job identity must
-  all be absent for an unmanaged start or all be present and valid for a
-  managed start; any partial, blank, malformed, or unusable advertised context
-  fails closed at process entry. The child captures the file handle and joins
-  the Job before READY, then holds both. Job active-process count, not root PID
-  exit, is the authority for the complete managed tree. The OS releases the
+  lifetime context derived injectively from the exact version-state path and
+  process role. The context marker, inheritable file handle, normalized state
+  path, role, and named Windows Job identity must all be absent for an
+  unmanaged start or all be present and valid for the exact parsed managed
+  invocation; any managed READY/options advertisement with missing, partial,
+  blank, malformed, swapped-role, wrong-path, or unusable context fails closed
+  at process entry. Capture verifies that the inherited handle names the exact
+  role-specific lease file, then joins the derived Job before READY and holds
+  both. Job active-process count, not root PID exit, is the authority for the
+  complete managed tree. Before READY, last-handle close retains whole-tree
+  crash/timeout cleanup. Only exact accepted READY releases that job's
+  kill-on-close policy so a successful parent Launcher may exit without
+  terminating the accepted Desktop tree. The OS releases remaining lifetime
   authority on tree exit or reboot. A recorded ordinary attempt may be cleared
   and retried only after the lease adapter authoritatively observes the Job
   empty; unreadable or indeterminate state remains fail-closed.

@@ -68,16 +68,12 @@ try {
     Move-Item -LiteralPath $PublishedBootstrap -Destination $Bootstrap
     $Launcher = Join-Path $LauncherPublish 'NvtFwCombiner.Launcher.exe'
     $Probe = Join-Path $ProbePublish 'NvtFwCombiner.ReadyProbe.exe'
-    $InvalidLauncher = Join-Path $SmokeRoot 'invalid-launcher.exe'
-    [IO.File]::WriteAllBytes(
-        $InvalidLauncher,
-        [Text.Encoding]::ASCII.GetBytes('MZ-invalid-managed-launcher'))
 
     & python (Join-Path $RepositoryRoot 'scripts/create_launcher_process_smoke_source.py') create `
         --output $SourceRoot `
         --app $Probe `
         --stable-launcher $Launcher `
-        --failing-launcher $InvalidLauncher
+        --failing-launcher $Probe
     if ($LASTEXITCODE -ne 0) { throw 'Launcher process smoke source creation failed.' }
     & python (Join-Path $RepositoryRoot 'scripts/create_managed_installation_lab.py') `
         --source $SourceRoot `
@@ -138,12 +134,14 @@ try {
         --managed-root $ManagedRoot `
         --state-path $StatePath
     if ($LASTEXITCODE -ne 0) { throw 'Launcher process candidate installation failed.' }
+    $env:NVT_READY_PROBE_BEHAVIOR = 'exit-outer-candidate'
     $BootstrapProcess = Start-Process `
         -FilePath (Join-Path $ManagedRoot 'NvtFwCombiner.Bootstrap.exe') `
         -ArgumentList @('--managed-root', $ManagedRoot, '--state-path', $StatePath) `
         -WindowStyle Hidden `
         -Wait `
         -PassThru
+    Remove-Item Env:NVT_READY_PROBE_BEHAVIOR -ErrorAction SilentlyContinue
     $RollbackExit = $BootstrapProcess.ExitCode
     if ($RollbackExit -ne 1) {
         throw "Candidate failure did not return exact rollback outcome: $RollbackExit."
@@ -160,7 +158,7 @@ try {
         cleanZeroArgumentExit = $CleanExit
         rollbackExit = $RollbackExit
         missingOuterReadyExit = $MissingOuterReadyExit
-        candidateFailureKind = 'invalid-pe-start'
+        candidateFailureKind = 'exited-before-ready'
         activeLauncherOwner = [string]$RollbackLauncherState.active.ownerAppVersion
         failedLauncherOwner = [string]$RollbackLauncherState.failed.ownerAppVersion
         bootstrapSha256 = (Get-FileHash -LiteralPath (Join-Path $ManagedRoot 'NvtFwCombiner.Bootstrap.exe') -Algorithm SHA256).Hash.ToLowerInvariant()

@@ -68,12 +68,7 @@ internal sealed class AnonymousPipeManagedLauncherProcess : IManagedLauncherProc
         cancellationToken.ThrowIfCancellationRequested();
         return ValueTask.FromResult(ManagedProcessLifetimeLease.GetStatus(
             statePath,
-            kind switch
-            {
-                ManagedProcessLifetimeKind.Application => ManagedProcessLifetimeLease.ApplicationSuffix,
-                ManagedProcessLifetimeKind.Launcher => ManagedProcessLifetimeLease.LauncherSuffix,
-                _ => throw new ArgumentOutOfRangeException(nameof(kind)),
-            }));
+            kind));
     }
 
     public async ValueTask<LauncherProcessStartResult> StartUntilReadyAsync(
@@ -95,7 +90,7 @@ internal sealed class AnonymousPipeManagedLauncherProcess : IManagedLauncherProc
         {
             lifetime = ManagedProcessLifetimeLease.TryAcquire(
                 statePath,
-                ManagedProcessLifetimeLease.LauncherSuffix);
+                ManagedProcessLifetimeKind.Launcher);
             if (lifetime is null)
             {
                 return Failure(LauncherProcessStartOutcome.TerminationUnconfirmed);
@@ -141,7 +136,9 @@ internal sealed class AnonymousPipeManagedLauncherProcess : IManagedLauncherProc
                         expected,
                         out ManagedVersionAdmission? readyAdmission))
                 {
-                    return new(LauncherProcessStartOutcome.Ready, null, readyAdmission);
+                    return lifetime.TryReleaseAcceptedTree()
+                        ? new(LauncherProcessStartOutcome.Ready, null, readyAdmission)
+                        : Terminate(process, lifetime, LauncherProcessStartOutcome.StartFailed);
                 }
                 if (readyTask.Result is { Length: 0 })
                 {

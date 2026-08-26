@@ -42,8 +42,9 @@ def test_process_smoke_runs_published_nested_ready_and_exact_rollback() -> None:
     assert "NvtFwCombiner.ReadyProbe.csproj" in smoke
     assert "$env:LOCALAPPDATA = $LocalAppData" in smoke
     assert "cleanZeroArgumentExit" in smoke
-    assert "invalid-launcher.exe" in smoke
-    assert "candidateFailureKind = 'invalid-pe-start'" in smoke
+    assert "--failing-launcher $Probe" in smoke
+    assert "$env:NVT_READY_PROBE_BEHAVIOR = 'exit-outer-candidate'" in smoke
+    assert "candidateFailureKind = 'exited-before-ready'" in smoke
     assert "missingOuterReadyExit = $MissingOuterReadyExit" in smoke
     assert "$MissingOuterReadyExit -ne 16" in smoke
     assert "active.ownerAppVersion -ne '0.10.5'" in smoke

@@ -42,7 +42,7 @@ public sealed class AnonymousPipeManagedApplicationProcess : IManagedApplication
         cancellationToken.ThrowIfCancellationRequested();
         return ValueTask.FromResult(ManagedProcessLifetimeLease.GetStatus(
             _statePath,
-            ManagedProcessLifetimeLease.ApplicationSuffix));
+            ManagedProcessLifetimeKind.Application));
     }
 
     /// <inheritdoc />
@@ -62,7 +62,7 @@ public sealed class AnonymousPipeManagedApplicationProcess : IManagedApplication
         {
             lifetime = ManagedProcessLifetimeLease.TryAcquire(
                 _statePath,
-                ManagedProcessLifetimeLease.ApplicationSuffix);
+                ManagedProcessLifetimeKind.Application);
             if (lifetime is null)
             {
                 return new(ManagedProcessStartOutcome.TerminationUnconfirmed, null);
@@ -107,7 +107,9 @@ public sealed class AnonymousPipeManagedApplicationProcess : IManagedApplication
                 string expected = $"READY:{version}";
                 if (string.Equals(readyTask.Result, expected, StringComparison.Ordinal))
                 {
-                    return new(ManagedProcessStartOutcome.Ready, null);
+                    return lifetime.TryReleaseAcceptedTree()
+                        ? new(ManagedProcessStartOutcome.Ready, null)
+                        : Terminate(process, lifetime, ManagedProcessStartOutcome.StartFailed);
                 }
                 if (readyTask.Result is { Length: 0 })
                 {

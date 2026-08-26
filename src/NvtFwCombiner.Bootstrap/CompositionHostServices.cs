@@ -251,9 +251,14 @@ public sealed class CompositionHostServices
     }
 
     /// <summary>Captures the inherited managed-process lifetime at desktop entry.</summary>
-    public static IInheritedManagedProcessLifetimeCapture CaptureInheritedManagedProcessLifetime()
+    public static IInheritedManagedProcessLifetimeCapture CaptureInheritedManagedProcessLifetime(
+        string? statePath,
+        bool managedOptionsAdvertised)
     {
-        return InheritedManagedProcessLifetime.Capture();
+        return InheritedManagedProcessLifetime.Capture(
+            statePath,
+            ManagedProcessLifetimeKind.Application,
+            managedOptionsAdvertised || InheritedManagedProcessLifetime.IsApplicationReadyContextAdvertised());
     }
 
     /// <summary>Creates a focused current-session System Information lifecycle.</summary>

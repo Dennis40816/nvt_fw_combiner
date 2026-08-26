@@ -41,7 +41,8 @@ public sealed partial class RepositoryBoundaryTests
             "ManagedActivationCoordinator.DefaultWriterLeaseTimeout");
         AssertContainsAll(
             launcherProgram,
-            "InheritedManagedProcessLifetime.Capture()",
+            "InheritedManagedProcessLifetime.Capture(",
+            "ManagedProcessLifetimeKind.Launcher",
             "CaptureNestedReadyContext()",
             "InvalidInheritedContext",
             "AnonymousPipeManagedApplicationProcess(statePath)",
@@ -64,9 +65,12 @@ public sealed partial class RepositoryBoundaryTests
         Assert.DoesNotContain("ManagedVersionSeedBootstrapper", launcherProgram, StringComparison.Ordinal);
         AssertContainsAll(
             desktopProgram,
-            "CaptureInheritedManagedProcessLifetime()",
+            "CaptureInheritedManagedProcessLifetime(",
             "ParseManagedHostOptions(args)",
             "CreateVersionManagementExperience");
+        Assert.True(
+            desktopProgram.IndexOf("ParseManagedHostOptions(args)", StringComparison.Ordinal) <
+            desktopProgram.IndexOf("CaptureInheritedManagedProcessLifetime(", StringComparison.Ordinal));
         AssertContainsAll(contracts, "launcher/NvtFwCombiner.Launcher.exe", "SupportedProtocolVersion = 1");
     }
 
@@ -112,6 +116,10 @@ public sealed partial class RepositoryBoundaryTests
             lifetime,
             "SetHandleInformation",
             "AssignProcessToJobObject",
+            "GetFinalPathNameByHandle",
+            "StatePathEnvironment",
+            "KindEnvironment",
+            "TryReleaseAcceptedTree",
             "QueryInformationJobObject",
             "TerminateJobObject",
             "InvalidInheritedContext",
@@ -138,6 +146,8 @@ public sealed partial class RepositoryBoundaryTests
             "src/NvtFwCombiner.VersionManagement.Infrastructure/VersionManagement/AnonymousPipeManagedApplicationProcess.cs");
         string launcherProcess = ReadText(
             "src/NvtFwCombiner.VersionManagement.Infrastructure/VersionManagement/AnonymousPipeManagedLauncherProcess.cs");
+        string stableLeaseTest = ReadText(
+            "tests/NvtFwCombiner.Infrastructure.Tests/VersionManagement/FileSystemManagedVersionRepositoryLaunchLeaseTests.cs");
 
         Assert.True(
             coordinator.IndexOf("LoadRawStatesAsync", StringComparison.Ordinal) <
@@ -151,6 +161,11 @@ public sealed partial class RepositoryBoundaryTests
             "IManagedExecutableLaunchLease",
             "AcquireApplicationLaunchLeaseAsync");
         AssertContainsAll(stableLease, "FileShare.Read", "SHA256.HashDataAsync", "HasPortableExecutableHeader");
+        AssertContainsAll(
+            stableLeaseTest,
+            "AcquireApplicationLaunchLeaseAsync",
+            "StartUntilReadyAsync",
+            "Assert.Throws<IOException>(() => File.Move(executable, displaced))");
         AssertDoesNotContainAny(appProcess, "SHA256", "HasPortableExecutableHeader");
         AssertDoesNotContainAny(launcherProcess, "HasPortableExecutableHeader");
     }
