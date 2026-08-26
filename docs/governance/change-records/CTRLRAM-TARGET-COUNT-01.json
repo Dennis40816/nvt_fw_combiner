@@ -5,7 +5,7 @@
   "integrationBase": "898b36393606004481f03b52b5adb48cf337631a",
   "risk": "R2",
   "kind": "behavior",
-  "state": "design-active",
+  "state": "final-complete",
   "mutablePaths": [
     "src/NvtFwCombiner.Application/Composition/CompositionClientModels.cs",
     "src/NvtFwCombiner.Application/MemoryLayout/MemoryLayoutProjector.CtrlRam.cs",
@@ -26,12 +26,12 @@
     "outcome": "findings-incorporated",
     "evidence": "Independent R2 admission found no P0-P2 in the corrected design. It confirms Application as the sole count/validation owner, requires IsShared == TargetRegionCount > 1 without a DiffDLM exception, keeps DiffDLM semantics on typed artifact role, and expands tests to the existing all-built-in catalog loop, DTO transport, direct constructor caller, concise UI summary and full report offsets. No ADR or firmware authority changes are required."
   },
-  "implementationHead": null,
-  "reviewedHead": null,
-  "pathStateDigest": null,
+  "implementationHead": "67b6637dc40d6c38495ccfe773a5f1e3567fe71d",
+  "reviewedHead": "67b6637dc40d6c38495ccfe773a5f1e3567fe71d",
+  "pathStateDigest": "1c969da74d7b7f2b6d347e147f707e2278dd70eeab1b5835d51099656dd1c08c",
   "finalReview": {
-    "reviewer": null,
-    "outcome": "pending",
-    "evidence": ""
+    "reviewer": "audit_dirty_ui",
+    "outcome": "approved",
+    "evidence": "Independent exact-head reviews of 898b36393606004481f03b52b5adb48cf337631a..67b6637dc40d6c38495ccfe773a5f1e3567fe71d found no P0-P3 and Polytail PASS after one P2 test gap was closed. Application review confirmed one distinct physical-region authority, zero/duplicate fail-closed validation, block-count independence, multi-region DiffDLM title/group preservation, all built-in catalog coverage and DTO transport. UI review confirmed compact typed summaries and exact English/Traditional Chinese rendered Master/Slave R/Slave L lengths and offsets without Presentation inference or layout changes. Focused tests passed Application 20/20, Bootstrap 95/95 and UI 85/85; full suites passed Application 845/845, Bootstrap 1122/1122, UI 805/805 and Architecture 239/239; diff check passed. No firmware bytes, ranges, order, CRC/header, naming, support or release semantics changed."
   }
 }
