@@ -627,8 +627,31 @@ class ReleasePackagePolicyTests(unittest.TestCase):
         ) as temporary_directory:
             temporary_root = Path(temporary_directory)
             invocation_root = temporary_root / "invocation"
-            invocation_root.mkdir()
-            repository_head = initialize_minimal_package_repository(invocation_root)
+            subprocess.run(
+                [
+                    str(actual_git),
+                    "-C",
+                    str(ROOT),
+                    "worktree",
+                    "add",
+                    "--detach",
+                    str(invocation_root),
+                    "HEAD",
+                ],
+                check=True,
+                capture_output=True,
+                text=True,
+            )
+            repository_head = subprocess.run(
+                [str(actual_git), "rev-parse", "HEAD"],
+                cwd=invocation_root,
+                check=True,
+                capture_output=True,
+                text=True,
+            ).stdout.strip()
+            repository_version = (
+                invocation_root / "VERSION"
+            ).read_text(encoding="utf-8").strip()
             wrapper_root = temporary_root / "wrapper"
             wrapper_root.mkdir()
             git_wrapper = wrapper_root / "git.cmd"
@@ -656,7 +679,7 @@ class ReleasePackagePolicyTests(unittest.TestCase):
                         "-File",
                         str(invocation_root / "scripts" / "package.ps1"),
                         "-Version",
-                        "1.0.1",
+                        repository_version,
                         "-Commit",
                         repository_head,
                         "-ExternalToolPolicyDryRun",
@@ -673,6 +696,10 @@ class ReleasePackagePolicyTests(unittest.TestCase):
                 self.assertNotEqual(0, result.returncode, result.stdout + result.stderr)
                 normalized_output = normalize_console_output(
                     result.stdout + result.stderr
+                )
+                self.assertIn(
+                    "External-tool package policy dry-run passed",
+                    normalized_output,
                 )
                 self.assertIn("Exact source snapshot cleanup failed", normalized_output)
                 self.assertIn("preserved for inspection at", normalized_output)
@@ -695,7 +722,21 @@ class ReleasePackagePolicyTests(unittest.TestCase):
                         text=True,
                     )
                 subprocess.run(
-                    [str(actual_git), "-C", str(invocation_root), "worktree", "prune"],
+                    [
+                        str(actual_git),
+                        "-C",
+                        str(ROOT),
+                        "worktree",
+                        "remove",
+                        "--force",
+                        str(invocation_root),
+                    ],
+                    check=False,
+                    capture_output=True,
+                    text=True,
+                )
+                subprocess.run(
+                    [str(actual_git), "-C", str(ROOT), "worktree", "prune"],
                     check=False,
                     capture_output=True,
                     text=True,
