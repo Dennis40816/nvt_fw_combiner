@@ -18,6 +18,7 @@ public sealed partial class FileSystemManagedVersionRepositoryTests
         string missingLatest = workspace.PathFor("missing-latest");
         string registryPath = workspace.PathFor(FileSystemUpdateSourceRegistry.RegistryFileName);
         string statePath = workspace.PathFor("state/version-manager.v1.json");
+        string launcherStatePath = workspace.PathFor("state/launcher-bootstrap.v1.json");
         string stateDirectory = Path.GetDirectoryName(statePath)!;
         string writerLockPath = FileSystemVersionManagerWriteLease.GetLockPath(statePath);
         string managedRoot = workspace.PathFor("managed-root");
@@ -44,6 +45,7 @@ public sealed partial class FileSystemManagedVersionRepositoryTests
             new JsonVersionManagerStateStore(statePath),
             new FileSystemUpdateCatalogSource(),
             new FileSystemManagedVersionRepository(),
+            new JsonLauncherMutationFence(launcherStatePath),
             new FileSystemUpdateSourceRegistry(registryPath));
 
         VersionEnvironmentSelfTestResult result = await experience.RunEnvironmentSelfTestAsync(

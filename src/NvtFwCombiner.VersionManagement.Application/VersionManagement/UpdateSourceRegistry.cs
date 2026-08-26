@@ -173,13 +173,6 @@ public enum UpdateSourceRegistryIssue
     CurrentSourceDeprecated,
 }
 
-/// <summary>Logical mutation fence shared with launcher self-update state.</summary>
-public interface IVersionManagementMutationFence
-{
-    /// <summary>Returns whether one application-state mutation may commit now.</summary>
-    ValueTask<bool> CanMutateAsync(CancellationToken cancellationToken);
-}
-
 /// <summary>One read-only environment self-test attempt for an automatic source.</summary>
 public sealed record VersionEnvironmentSelfTestAttempt
 {
@@ -258,21 +251,6 @@ public sealed class VersionEnvironmentSelfTestResult
     /// <summary>Gets whether the registry loaded and at least one automatic source fully verified.</summary>
     public bool IsSuccess => RegistryIssue == UpdateSourceRegistryLoadIssue.None &&
         Attempts.Any(static attempt => attempt.IsVerified);
-}
-
-internal sealed class AllowVersionManagementMutationFence : IVersionManagementMutationFence
-{
-    internal static AllowVersionManagementMutationFence Instance { get; } = new();
-
-    private AllowVersionManagementMutationFence()
-    {
-    }
-
-    public ValueTask<bool> CanMutateAsync(CancellationToken cancellationToken)
-    {
-        cancellationToken.ThrowIfCancellationRequested();
-        return ValueTask.FromResult(true);
-    }
 }
 
 /// <summary>Durable anti-rollback and manual-pin state.</summary>

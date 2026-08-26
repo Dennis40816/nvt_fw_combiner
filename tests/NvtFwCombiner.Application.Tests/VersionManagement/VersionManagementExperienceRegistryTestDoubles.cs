@@ -267,11 +267,26 @@ public sealed partial class VersionManagementExperienceTests
         }
     }
 
-    private sealed class DenyingMutationFence : IVersionManagementMutationFence
+    private sealed class DenyingMutationFence : ILauncherMutationFence
     {
-        public ValueTask<bool> CanMutateAsync(CancellationToken cancellationToken)
+        public ValueTask<LauncherMutationProtection> LoadAsync(CancellationToken cancellationToken)
         {
-            return ValueTask.FromResult(false);
+            cancellationToken.ThrowIfCancellationRequested();
+            return ValueTask.FromResult(new LauncherMutationProtection(
+                LauncherMutationFenceIssue.None,
+                HasPendingActivation: true,
+                ActiveOwner: null,
+                LastKnownGoodOwner: null,
+                PendingOwners: []));
+        }
+
+        public ValueTask<LauncherMutationFenceIssue> RetireLastKnownGoodOwnerAsync(
+            ManagedVersionAdmission expectedOwner,
+            CancellationToken cancellationToken)
+        {
+            ArgumentNullException.ThrowIfNull(expectedOwner);
+            cancellationToken.ThrowIfCancellationRequested();
+            return ValueTask.FromResult(LauncherMutationFenceIssue.Invalid);
         }
     }
 

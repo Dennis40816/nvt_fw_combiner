@@ -10,6 +10,25 @@ internal static class VersionManagementExperienceTestFactory
         IVersionManagerStateStore stateStore,
         IUpdateCatalogSource catalogSource,
         IManagedVersionRepository repository,
+        ILauncherMutationFence launcherFence)
+    {
+        return Create(
+            currentAppVersion,
+            managedRoot,
+            stateStore,
+            catalogSource,
+            repository,
+            sourceRegistry: null,
+            launcherFence);
+    }
+
+    internal static VersionManagementExperience Create(
+        ManagedAppVersion currentAppVersion,
+        string managedRoot,
+        IVersionManagerStateStore stateStore,
+        IUpdateCatalogSource catalogSource,
+        IManagedVersionRepository repository,
+        IUpdateSourceRegistry? sourceRegistry = null,
         ILauncherMutationFence? launcherFence = null)
     {
         return new VersionManagementExperience(
@@ -18,7 +37,8 @@ internal static class VersionManagementExperienceTestFactory
             stateStore,
             catalogSource,
             repository,
-            launcherFence ?? ClearLauncherMutationFence.Instance);
+            launcherFence ?? ClearLauncherMutationFence.Instance,
+            sourceRegistry);
     }
 
     private sealed class ClearLauncherMutationFence : ILauncherMutationFence

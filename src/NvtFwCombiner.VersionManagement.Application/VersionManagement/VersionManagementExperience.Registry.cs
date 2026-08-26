@@ -157,7 +157,7 @@ public sealed partial class VersionManagementExperience
                     durable.State is null ||
                     !SameDurableState(initial.State, durable.State) ||
                     (durable.State.SourceRegistryState?.IsManualPin == true && !allowManualPin) ||
-                    !await _mutationFence.CanMutateAsync(ownedToken).ConfigureAwait(false))
+                    await LoadClearLauncherFenceAsync(ownedToken).ConfigureAwait(false) is null)
                 {
                     return PublishRegistryStateUnavailable(durable, ownedCancellation);
                 }
@@ -208,7 +208,7 @@ public sealed partial class VersionManagementExperience
                         VersionRegistryStatus.Rejected,
                         UpdateSourceRegistryIssue.RegistryChanged);
                 }
-                if (!await _mutationFence.CanMutateAsync(ownedToken).ConfigureAwait(false))
+                if (await LoadClearLauncherFenceAsync(ownedToken).ConfigureAwait(false) is null)
                 {
                     return PublishRegistryStateUnavailable(durable, ownedCancellation);
                 }

@@ -141,7 +141,6 @@ public sealed partial class VersionManagementExperience : IVersionManagementExpe
     private readonly string _managedRoot;
     private readonly IManagedVersionRepository _repository;
     private readonly IUpdateSourceRegistry? _sourceRegistry;
-    private readonly IVersionManagementMutationFence _mutationFence;
     private readonly ILauncherMutationFence _launcherFence;
     private readonly VersionDiscoverySession _session = new();
     private readonly IVersionManagerStateStore _stateStore;
@@ -158,9 +157,8 @@ public sealed partial class VersionManagementExperience : IVersionManagementExpe
     /// <param name="stateStore">Atomic launcher-state port.</param>
     /// <param name="catalogSource">Configured-folder catalog port.</param>
     /// <param name="repository">Managed payload repository port.</param>
-    /// <param name="sourceRegistry">Optional fixed-registry read port.</param>
-    /// <param name="mutationFence">Optional launcher logical mutation fence.</param>
     /// <param name="launcherFence">Logical launcher-activation fence sharing the caller-held app-state lease.</param>
+    /// <param name="sourceRegistry">Optional fixed-registry read port.</param>
     public VersionManagementExperience(
         ManagedAppVersion currentAppVersion,
         string managedRoot,
@@ -168,8 +166,7 @@ public sealed partial class VersionManagementExperience : IVersionManagementExpe
         IUpdateCatalogSource catalogSource,
         IManagedVersionRepository repository,
         ILauncherMutationFence launcherFence,
-        IUpdateSourceRegistry? sourceRegistry = null,
-        IVersionManagementMutationFence? mutationFence = null)
+        IUpdateSourceRegistry? sourceRegistry = null)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(managedRoot);
         _currentAppVersion = currentAppVersion;
@@ -178,7 +175,6 @@ public sealed partial class VersionManagementExperience : IVersionManagementExpe
         _catalogSource = catalogSource ?? throw new ArgumentNullException(nameof(catalogSource));
         _repository = repository ?? throw new ArgumentNullException(nameof(repository));
         _sourceRegistry = sourceRegistry;
-        _mutationFence = mutationFence ?? AllowVersionManagementMutationFence.Instance;
         _launcherFence = launcherFence ?? throw new ArgumentNullException(nameof(launcherFence));
     }
 
@@ -389,7 +385,7 @@ public sealed partial class VersionManagementExperience : IVersionManagementExpe
             }
             bool registryAware = _sourceRegistry is not null || state.SourceRegistryState is not null;
             if (registryAware &&
-                !await _mutationFence.CanMutateAsync(cancellationToken).ConfigureAwait(false))
+                await LoadClearLauncherFenceAsync(cancellationToken).ConfigureAwait(false) is null)
             {
                 return PublishRegistryStateUnavailable(current);
             }
