@@ -1,0 +1,428 @@
+using NvtFwCombiner.Application.VersionManagement;
+
+namespace NvtFwCombiner.Application.Tests.VersionManagement;
+
+public sealed partial class VersionManagementExperienceTests
+{
+    /// <summary>Self-test inspects every automatic source in order without consuming state or prompt generation.</summary>
+    [Fact]
+    public async Task EnvironmentSelfTestIsReadOnlyOrderedAndSkipsDeprecated()
+    {
+        string latest = SourcePath("latest");
+        string available = SourcePath("available");
+        string deprecated = SourcePath("deprecated");
+        VersionManagerState initial = State(
+            [Admission("0.10.5")],
+            active: "0.10.5",
+            lastKnownGood: "0.10.5");
+        var stateStore = new LeaseCountingStateStore(initial);
+        var catalogs = new PathCatalogSource(
+            (latest, new(null, UpdateCatalogLoadIssue.SourceUnavailable)),
+            (available, new(Catalog("0.10.6"), UpdateCatalogLoadIssue.None)));
+        var repository = new CountingRepository();
+        using var experience = new VersionManagementExperience(
+            ManagedAppVersion.Parse("0.10.5"),
+            "managed-root",
+            stateStore,
+            catalogs,
+            repository,
+            new SequenceRegistrySource(Registry(
+                12,
+                FirstRegistryDigest,
+                (latest, UpdateSourceRegistryEntryStatus.Latest),
+                (deprecated, UpdateSourceRegistryEntryStatus.Deprecated),
+                (available, UpdateSourceRegistryEntryStatus.Available))));
+        _ = await experience.InitializeAsync(TestContext.Current.CancellationToken);
+        int leaseRequestsBeforeSelfTest = stateStore.LeaseRequestCount;
+
+        VersionEnvironmentSelfTestResult result = await experience.RunEnvironmentSelfTestAsync(
+            TestContext.Current.CancellationToken);
+
+        Assert.True(result.IsSuccess);
+        Assert.Equal([latest, available], result.Attempts.Select(attempt => attempt.SourceRoot));
+        Assert.Equal(
+            [UpdateSourceRegistryEntryStatus.Latest, UpdateSourceRegistryEntryStatus.Available],
+            result.Attempts.Select(attempt => attempt.Status));
+        Assert.False(result.Attempts[0].IsVerified);
+        Assert.True(result.Attempts[1].IsVerified);
+        Assert.Equal([available], repository.VerifiedRoots);
+        Assert.DoesNotContain(deprecated, catalogs.LoadedRoots);
+        Assert.Equal(leaseRequestsBeforeSelfTest, stateStore.LeaseRequestCount);
+        Assert.Equal(0, stateStore.SaveCount);
+        Assert.Same(initial, stateStore.State);
+
+        VersionManagementSnapshot checkedResult = await experience.CheckAsync(
+            isAutomatic: true,
+            TestContext.Current.CancellationToken);
+        Assert.Equal(1, checkedResult.Generation);
+    }
+
+    /// <summary>Self-test reuses normal newest-package admission and never scans historical packages.</summary>
+    [Fact]
+    public async Task EnvironmentSelfTestReusesNewestPackageAdmission()
+    {
+        string latest = SourcePath("latest");
+        VersionManagerState initial = State(
+            [Admission("0.10.5")],
+            active: "0.10.5",
+            lastKnownGood: "0.10.5");
+        var stateStore = new LeaseCountingStateStore(initial);
+        var repository = new CountingRepository(ManagedAppVersion.Parse("0.10.5"));
+        using var experience = new VersionManagementExperience(
+            ManagedAppVersion.Parse("0.10.5"),
+            "managed-root",
+            stateStore,
+            new PathCatalogSource((latest, new(
+                CatalogWithOlderReleaseNote("Release 0.10.5"),
+                UpdateCatalogLoadIssue.None))),
+            repository,
+            new SequenceRegistrySource(Registry(
+                12,
+                FirstRegistryDigest,
+                (latest, UpdateSourceRegistryEntryStatus.Latest))));
+
+        VersionEnvironmentSelfTestResult result = await experience.RunEnvironmentSelfTestAsync(
+            TestContext.Current.CancellationToken);
+
+        VersionEnvironmentSelfTestAttempt attempt = Assert.Single(result.Attempts);
+        Assert.True(result.IsSuccess);
+        Assert.True(attempt.IsVerified);
+        Assert.Equal(ManagedAppVersion.Parse("0.10.6"), attempt.NewestVersion);
+        Assert.Equal(ManagedVersionInstallIssue.None, attempt.PackageIssue);
+        Assert.Equal([ManagedAppVersion.Parse("0.10.6")], repository.VerifiedVersions);
+        Assert.Equal(0, stateStore.LeaseRequestCount);
+        Assert.Equal(0, stateStore.SaveCount);
+        Assert.Same(initial, stateStore.State);
+    }
+
+    /// <summary>A maximum-size valid catalog still admits only its canonical newest package.</summary>
+    [Fact]
+    public async Task EnvironmentSelfTestAcceptsMaximumCatalogWithoutHistoricalPackageScan()
+    {
+        string latest = SourcePath("latest");
+        VersionManagerState initial = State(
+            [Admission("0.10.5")],
+            active: "0.10.5",
+            lastKnownGood: "0.10.5");
+        var stateStore = new LeaseCountingStateStore(initial);
+        var repository = new CountingRepository(ManagedAppVersion.Parse("0.10.1"));
+        using var experience = new VersionManagementExperience(
+            ManagedAppVersion.Parse("0.10.5"),
+            "managed-root",
+            stateStore,
+            new PathCatalogSource((latest, new(
+                CatalogWithVersionCount(UpdateCatalogValidator.MaximumVersionCount),
+                UpdateCatalogLoadIssue.None))),
+            repository,
+            new SequenceRegistrySource(Registry(
+                12,
+                FirstRegistryDigest,
+                (latest, UpdateSourceRegistryEntryStatus.Latest))));
+
+        VersionEnvironmentSelfTestResult result = await experience.RunEnvironmentSelfTestAsync(
+            TestContext.Current.CancellationToken);
+
+        VersionEnvironmentSelfTestAttempt attempt = Assert.Single(result.Attempts);
+        Assert.True(result.IsSuccess);
+        Assert.Equal(ManagedAppVersion.Parse("0.10.128"), attempt.NewestVersion);
+        Assert.Equal([ManagedAppVersion.Parse("0.10.128")], repository.VerifiedVersions);
+        Assert.Equal(0, stateStore.LeaseRequestCount);
+        Assert.Equal(0, stateStore.SaveCount);
+    }
+
+    /// <summary>Self-test and normal resolution reject the same mismatched typed candidate.</summary>
+    [Fact]
+    public async Task EnvironmentSelfTestAndCheckShareCandidateMismatchRejection()
+    {
+        string latest = SourcePath("latest");
+        VersionManagerState initial = State(
+            [Admission("0.10.5")],
+            active: "0.10.5",
+            lastKnownGood: "0.10.5");
+        var stateStore = new LeaseCountingStateStore(initial);
+        var repository = new HealthyRepository(verificationResult: new(
+            new(
+                ManagedAppVersion.Parse("0.10.7"),
+                "identity-0.10.7",
+                "Release 0.10.7"),
+            ManagedVersionInstallIssue.None));
+        UpdateSourceRegistryLoadResult registry = Registry(
+            12,
+            FirstRegistryDigest,
+            (latest, UpdateSourceRegistryEntryStatus.Latest));
+        using var experience = new VersionManagementExperience(
+            ManagedAppVersion.Parse("0.10.5"),
+            "managed-root",
+            stateStore,
+            new PathCatalogSource((latest, new(Catalog("0.10.6"), UpdateCatalogLoadIssue.None))),
+            repository,
+            new SequenceRegistrySource(registry, registry));
+
+        VersionEnvironmentSelfTestResult selfTest = await experience.RunEnvironmentSelfTestAsync(
+            TestContext.Current.CancellationToken);
+        VersionManagementSnapshot check = await experience.CheckAsync(
+            isAutomatic: false,
+            TestContext.Current.CancellationToken);
+
+        VersionEnvironmentSelfTestAttempt attempt = Assert.Single(selfTest.Attempts);
+        Assert.False(selfTest.IsSuccess);
+        Assert.False(attempt.IsVerified);
+        Assert.Equal(ManagedVersionInstallIssue.InvalidPayload, attempt.PackageIssue);
+        Assert.Equal(UpdateSourceRegistryIssue.CandidatesExhausted, check.RegistryIssue);
+        Assert.Equal(0, stateStore.SaveCount);
+        Assert.Same(initial, stateStore.State);
+    }
+
+    /// <summary>Cancellation during an actual source read propagates without touching durable state.</summary>
+    [Fact]
+    public async Task EnvironmentSelfTestMidReadCancellationPerformsZeroMutation()
+    {
+        string latest = SourcePath("latest");
+        VersionManagerState initial = State(
+            [Admission("0.10.5")],
+            active: "0.10.5",
+            lastKnownGood: "0.10.5");
+        var stateStore = new LeaseCountingStateStore(initial);
+        var catalogs = new CancelFirstCatalogSource(Catalog("0.10.6"));
+        using var experience = new VersionManagementExperience(
+            ManagedAppVersion.Parse("0.10.5"),
+            "managed-root",
+            stateStore,
+            catalogs,
+            new HealthyRepository(),
+            new SequenceRegistrySource(Registry(
+                12,
+                FirstRegistryDigest,
+                (latest, UpdateSourceRegistryEntryStatus.Latest))));
+        using var cancellation = new CancellationTokenSource();
+
+        Task<VersionEnvironmentSelfTestResult> checking = experience.RunEnvironmentSelfTestAsync(
+            cancellation.Token).AsTask();
+        await catalogs.FirstLoadStarted.Task.WaitAsync(TestContext.Current.CancellationToken);
+        cancellation.Cancel();
+
+        _ = await Assert.ThrowsAnyAsync<OperationCanceledException>(() => checking);
+        Assert.Equal(0, stateStore.LeaseRequestCount);
+        Assert.Equal(0, stateStore.SaveCount);
+        Assert.Same(initial, stateStore.State);
+    }
+
+    /// <summary>Self-test observes caller cancellation without performing any read or mutation.</summary>
+    [Fact]
+    public async Task EnvironmentSelfTestCancellationIsPropagatedWithoutMutation()
+    {
+        VersionManagerState initial = State(
+            [Admission("0.10.5")],
+            active: "0.10.5",
+            lastKnownGood: "0.10.5");
+        var stateStore = new LeaseCountingStateStore(initial);
+        var registry = new SequenceRegistrySource(Registry(
+            1,
+            FirstRegistryDigest,
+            (SourcePath("latest"), UpdateSourceRegistryEntryStatus.Latest)));
+        using var experience = new VersionManagementExperience(
+            ManagedAppVersion.Parse("0.10.5"),
+            "managed-root",
+            stateStore,
+            new PathCatalogSource(),
+            new HealthyRepository(),
+            registry);
+        using var cancellation = new CancellationTokenSource();
+        cancellation.Cancel();
+
+        _ = await Assert.ThrowsAsync<OperationCanceledException>(async () =>
+            await experience.RunEnvironmentSelfTestAsync(cancellation.Token));
+
+        Assert.Equal(0, registry.LoadCount);
+        Assert.Equal(0, stateStore.LeaseRequestCount);
+        Assert.Equal(0, stateStore.SaveCount);
+        Assert.Same(initial, stateStore.State);
+    }
+
+    /// <summary>Caller cancellation restores the prior snapshot and releases the owned check.</summary>
+    [Fact]
+    public async Task RegistryCheckCallerCancellationAllowsCleanRetry()
+    {
+        string latest = SourcePath("latest");
+        VersionManagerState initial = State(
+            [Admission("0.10.5")],
+            active: "0.10.5",
+            lastKnownGood: "0.10.5",
+            source: latest);
+        var stateStore = new MemoryStateStore(initial);
+        var catalogs = new CancelFirstCatalogSource(Catalog("0.10.6"));
+        UpdateSourceRegistryLoadResult registry = Registry(
+            1,
+            FirstRegistryDigest,
+            (latest, UpdateSourceRegistryEntryStatus.Latest));
+        using var experience = new VersionManagementExperience(
+            ManagedAppVersion.Parse("0.10.5"),
+            "managed-root",
+            stateStore,
+            catalogs,
+            new HealthyRepository(),
+            new SequenceRegistrySource(registry, registry, registry));
+        _ = await experience.InitializeAsync(TestContext.Current.CancellationToken);
+        using var cancellation = new CancellationTokenSource();
+
+        Task<VersionManagementSnapshot> cancelled = experience.CheckAsync(
+            isAutomatic: false,
+            cancellation.Token).AsTask();
+        await catalogs.FirstLoadStarted.Task.WaitAsync(TestContext.Current.CancellationToken);
+        cancellation.Cancel();
+        _ = await Assert.ThrowsAnyAsync<OperationCanceledException>(() => cancelled);
+
+        VersionManagementSnapshot retried = await experience.CheckAsync(
+            isAutomatic: false,
+            TestContext.Current.CancellationToken);
+
+        Assert.Equal(VersionSourceStatus.Connected, retried.SourceStatus);
+        Assert.Equal(VersionRegistryStatus.LatestSelected, retried.RegistryStatus);
+        Assert.Equal(1, stateStore.SaveCount);
+    }
+
+    /// <summary>The legacy/manual source path uses the same caller-cancellation cleanup owner.</summary>
+    [Fact]
+    public async Task DirectSourceCheckCallerCancellationAllowsCleanRetry()
+    {
+        string source = SourcePath("manual");
+        VersionManagerState initial = State(
+            [Admission("0.10.5")],
+            active: "0.10.5",
+            lastKnownGood: "0.10.5",
+            source: source);
+        var stateStore = new MemoryStateStore(initial);
+        var catalogs = new CancelFirstCatalogSource(Catalog("0.10.6"));
+        using var experience = new VersionManagementExperience(
+            ManagedAppVersion.Parse("0.10.5"),
+            "managed-root",
+            stateStore,
+            catalogs,
+            new HealthyRepository());
+        _ = await experience.InitializeAsync(TestContext.Current.CancellationToken);
+        using var cancellation = new CancellationTokenSource();
+
+        Task<VersionManagementSnapshot> cancelled = experience.CheckAsync(
+            isAutomatic: false,
+            cancellation.Token).AsTask();
+        await catalogs.FirstLoadStarted.Task.WaitAsync(TestContext.Current.CancellationToken);
+        cancellation.Cancel();
+        _ = await Assert.ThrowsAnyAsync<OperationCanceledException>(() => cancelled);
+
+        VersionManagementSnapshot retried = await experience.CheckAsync(
+            isAutomatic: false,
+            TestContext.Current.CancellationToken);
+
+        Assert.Equal(VersionSourceStatus.Connected, retried.SourceStatus);
+        Assert.Equal(0, stateStore.SaveCount);
+    }
+
+    /// <summary>Until the immutable locator is injected, self-test reports typed NotConfigured.</summary>
+    [Fact]
+    public async Task EnvironmentSelfTestWithoutInjectedRegistryIsTypedNotConfigured()
+    {
+        VersionManagerState initial = State(
+            [Admission("0.10.5")],
+            active: "0.10.5",
+            lastKnownGood: "0.10.5");
+        var stateStore = new MemoryStateStore(initial);
+        using var experience = new VersionManagementExperience(
+            ManagedAppVersion.Parse("0.10.5"),
+            "managed-root",
+            stateStore,
+            new PathCatalogSource(),
+            new HealthyRepository());
+
+        VersionEnvironmentSelfTestResult result = await experience.RunEnvironmentSelfTestAsync(
+            TestContext.Current.CancellationToken);
+
+        Assert.False(result.IsSuccess);
+        Assert.Equal(UpdateSourceRegistryLoadIssue.NotConfigured, result.RegistryIssue);
+        Assert.Empty(result.Attempts);
+        Assert.Equal(0, stateStore.SaveCount);
+        Assert.Same(initial, stateStore.State);
+    }
+
+    /// <summary>A retained automatic source cannot bypass its missing fixed Registry authority.</summary>
+    [Fact]
+    public async Task AutomaticRegistryStateWithoutInjectedLocatorFailsClosedWithoutSourceContact()
+    {
+        string automatic = SourcePath("automatic");
+        VersionManagerState initial = VersionManagerState.Create(
+            automatic,
+            ManagedAppVersion.Parse("0.10.5"),
+            ManagedAppVersion.Parse("0.10.5"),
+            [Admission("0.10.5")],
+            pendingActivation: null,
+            failedActivationVersion: null,
+            retentionReviewDue: false,
+            managedRootIdentity: "managed-root",
+            sourceRegistryState: new(4, FirstRegistryDigest, isManualPin: false));
+        var stateStore = new MemoryStateStore(initial);
+        var catalogs = new PathCatalogSource(
+            (automatic, new(Catalog("0.10.6"), UpdateCatalogLoadIssue.None)));
+        var repository = new CountingRepository();
+        using var experience = new VersionManagementExperience(
+            ManagedAppVersion.Parse("0.10.5"),
+            "managed-root",
+            stateStore,
+            catalogs,
+            repository);
+        _ = await experience.InitializeAsync(TestContext.Current.CancellationToken);
+
+        VersionManagementSnapshot result = await experience.CheckAsync(
+            isAutomatic: true,
+            TestContext.Current.CancellationToken);
+
+        Assert.Equal(VersionSourceStatus.NotConfigured, result.SourceStatus);
+        Assert.Equal(VersionRegistryStatus.NotConfigured, result.RegistryStatus);
+        Assert.Equal(UpdateSourceRegistryIssue.NotConfigured, result.RegistryIssue);
+        Assert.Null(result.Catalog);
+        Assert.Null(result.VerifiedCandidate);
+        Assert.False(result.ShouldPromptForUpdate);
+        Assert.Empty(catalogs.LoadedRoots);
+        Assert.Empty(repository.VerifiedRoots);
+        Assert.Equal(0, stateStore.SaveCount);
+        Assert.Same(initial, stateStore.State);
+    }
+
+    /// <summary>An explicit manual pin remains usable without the automatic Registry locator.</summary>
+    [Fact]
+    public async Task ManualPinWithoutInjectedLocatorChecksOnlyItsCommittedSource()
+    {
+        string manual = SourcePath("manual");
+        VersionManagerState initial = VersionManagerState.Create(
+            manual,
+            ManagedAppVersion.Parse("0.10.5"),
+            ManagedAppVersion.Parse("0.10.5"),
+            [Admission("0.10.5")],
+            pendingActivation: null,
+            failedActivationVersion: null,
+            retentionReviewDue: false,
+            managedRootIdentity: "managed-root",
+            sourceRegistryState: new(0, null, isManualPin: true));
+        var stateStore = new MemoryStateStore(initial);
+        var catalogs = new PathCatalogSource(
+            (manual, new(Catalog("0.10.6"), UpdateCatalogLoadIssue.None)));
+        var repository = new CountingRepository();
+        using var experience = new VersionManagementExperience(
+            ManagedAppVersion.Parse("0.10.5"),
+            "managed-root",
+            stateStore,
+            catalogs,
+            repository);
+        _ = await experience.InitializeAsync(TestContext.Current.CancellationToken);
+
+        VersionManagementSnapshot result = await experience.CheckAsync(
+            isAutomatic: false,
+            TestContext.Current.CancellationToken);
+
+        Assert.Equal(VersionSourceStatus.Connected, result.SourceStatus);
+        Assert.Equal(VersionRegistryStatus.ManualPin, result.RegistryStatus);
+        Assert.Equal(UpdateSourceRegistryIssue.None, result.RegistryIssue);
+        Assert.Equal([manual], catalogs.LoadedRoots);
+        Assert.Equal([manual], repository.VerifiedRoots);
+        Assert.Equal(0, stateStore.SaveCount);
+        Assert.Same(initial, stateStore.State);
+    }
+}
