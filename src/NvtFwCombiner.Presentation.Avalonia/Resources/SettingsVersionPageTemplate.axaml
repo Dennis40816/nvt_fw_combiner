@@ -20,7 +20,16 @@
             Command="{Binding Settings.RunVersionSelfTestCommand}"
             IsEnabled="{Binding !Settings.IsVersionBusy}">
           <StackPanel Orientation="Horizontal" Spacing="{DynamicResource NfcSpace8}">
-            <Path Width="16" Height="16" Data="{StaticResource NfcClockIconGeometry}" Stretch="Uniform" />
+            <Path
+                Width="16"
+                Height="16"
+                Data="{StaticResource NfcClockIconGeometry}"
+                Fill="Transparent"
+                Stroke="{Binding $parent[Button].Foreground}"
+                StrokeLineCap="Round"
+                StrokeJoin="Round"
+                StrokeThickness="1.8"
+                Stretch="Uniform" />
             <TextBlock VerticalAlignment="Center" Text="{Binding Settings.RunVersionSelfTestLabel}" />
           </StackPanel>
         </Button>

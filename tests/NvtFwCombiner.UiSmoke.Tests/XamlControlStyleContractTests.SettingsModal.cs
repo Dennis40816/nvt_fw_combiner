@@ -294,6 +294,11 @@ public sealed partial class XamlControlStyleContractTests
         System.Xml.Linq.XElement icon = Assert.Single(
             action.Descendants(), element => element.Name.LocalName == "Path");
         Assert.Equal("{StaticResource NfcClockIconGeometry}", (string?)icon.Attribute("Data"));
+        Assert.Equal("Transparent", (string?)icon.Attribute("Fill"));
+        Assert.Equal("{Binding $parent[Button].Foreground}", (string?)icon.Attribute("Stroke"));
+        Assert.Equal("1.8", (string?)icon.Attribute("StrokeThickness"));
+        Assert.Equal("Round", (string?)icon.Attribute("StrokeLineCap"));
+        Assert.Equal("Round", (string?)icon.Attribute("StrokeJoin"));
         System.Xml.Linq.XElement label = Assert.Single(
             action.Descendants(), element => element.Name.LocalName == "TextBlock");
         Assert.Equal("{Binding Settings.RunVersionSelfTestLabel}", (string?)label.Attribute("Text"));
