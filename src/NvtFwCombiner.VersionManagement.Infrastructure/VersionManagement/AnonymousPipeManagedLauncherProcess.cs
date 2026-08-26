@@ -22,6 +22,7 @@ public sealed record LauncherBootstrapLaunchOptions(string ManagedRoot, string S
             string value = index + 1 < args.Length
                 ? args[++index]
                 : throw new ArgumentException("Bootstrap option is missing its value.", nameof(args));
+            ArgumentException.ThrowIfNullOrWhiteSpace(value);
             switch (option)
             {
                 case "--managed-root":

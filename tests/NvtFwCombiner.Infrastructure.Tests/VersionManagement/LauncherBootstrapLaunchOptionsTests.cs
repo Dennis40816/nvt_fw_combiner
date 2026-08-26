@@ -65,4 +65,15 @@ public sealed class LauncherBootstrapLaunchOptionsTests
             ["--unknown", "value"],
             AppContext.BaseDirectory));
     }
+
+    /// <summary>An explicitly empty managed root or state path never falls back to the working directory.</summary>
+    [Theory]
+    [InlineData("--managed-root")]
+    [InlineData("--state-path")]
+    public void EmptyExplicitPathIsRejected(string option)
+    {
+        _ = Assert.Throws<ArgumentException>(() => LauncherBootstrapLaunchOptions.Parse(
+            [option, ""],
+            AppContext.BaseDirectory));
+    }
 }
