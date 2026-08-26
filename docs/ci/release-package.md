@@ -204,8 +204,8 @@ after release review records the producing commit, environment, and artifact.
 managed Launcher required by ADR 0056. Its exact filename
 `NvtFwCombiner-v1.0.0-win-x64.zip` has a 128 MiB (134,217,728-byte) complete-ZIP
 ceiling. The Launcher-branch checkpoint produced from
-`7a8464ab184f94fe59508ccf050027430385c22c` was 112,325,846 bytes with SHA-256
-`78c2fe22dd19d9605382466b28226b937e08deebe42d35536c244d59a406a0bc`; the exact
+`20489c1e1d50e6ed99b51aedfbfa9e625faf83a3` was 112,326,125 bytes with SHA-256
+`0a1bcaee366a9264d22480d857848e404449fd671942f211e880c61dfa113208`; the exact
 frozen integrated release ZIP size and SHA-256 must still be recorded later.
 Other package names retain the 80,000,000-byte ceiling, and the separate
 80,000,000-byte `NvtFwCombiner.exe` ceiling is unchanged. This exception does
