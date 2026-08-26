@@ -40,12 +40,22 @@ later batch binds that checkpoint exactly, including committed changes; the
 validator never substitutes a worktree-only `git diff HEAD`. Complete Git
 history is a prerequisite for this validation.
 
-An initial checkpoint is not self-authorized by a record. Until its existing
-owner authority accepts the trusted initial boundary, the validator reports a
-pending-checkpoint error and finalization is blocked. A `final-complete` record
-also cannot satisfy R3 firmware-owner, release-owner, golden/byte, exact-range,
-signing, permission, or protected-environment gates; those existing authorities
-remain mandatory.
+An initial checkpoint is not self-authorized by a record. ADR 0059 requires a
+reviewed governance implementation and then an explicitly owner-approved
+direct-child activation commit. That activation adds one immutable manifest,
+binds the reviewed head/tree and every legacy record blob, deletes exactly that
+inventory, and changes nothing else. Until it exists, the validator reports a
+pending-checkpoint error. Only the inventoried pre-activation lifecycle is
+retired; legacy task IDs remain reserved and every post-activation change uses
+the ordinary lifecycle above.
+
+A `final-complete` record and the activation manifest cannot satisfy R3
+firmware-owner, release-owner, golden/byte, exact-range, signing, permission, or
+protected-environment gates. One complete typed attestation batch must bind the
+exact final-evidence head and contain only its declared external-authority
+evidence. Each later R3 task uses a new task ID and attestation; prior immutable
+attestations remain auditable. Missing, extra, altered, or wrong-head evidence
+fails closed.
 
 ## Narrow test selection
 

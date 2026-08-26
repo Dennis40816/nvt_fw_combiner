@@ -1424,6 +1424,44 @@ CAPABILITY_REUSE_TASK_ID = re.compile(r"[A-Z][A-Z0-9]*(?:-[A-Z0-9]+)+")
 CAPABILITY_REUSE_CHANGE_RECORD_ROOT = PurePosixPath(
     "docs/governance/change-records"
 )
+CAPABILITY_REUSE_TRUSTED_CHECKPOINT_PATH = PurePosixPath(
+    "docs/governance/trusted-initial-capability-checkpoint.v1.json"
+)
+CAPABILITY_REUSE_EXTERNAL_AUTHORITY_ROOT = PurePosixPath(
+    "docs/governance/external-authority-attestations"
+)
+CAPABILITY_REUSE_TRUSTED_CHECKPOINT_FIELDS = {
+    "schemaVersion",
+    "checkpointId",
+    "reviewedHead",
+    "reviewedTree",
+    "ownerDecisionRef",
+    "legacyRecords",
+    "openR3Authorities",
+}
+CAPABILITY_REUSE_LEGACY_RECORD_FIELDS = {
+    "taskId",
+    "path",
+    "risk",
+    "state",
+    "contentSha256",
+}
+CAPABILITY_REUSE_OPEN_AUTHORITY_FIELDS = {
+    "taskId",
+    "authorityType",
+    "status",
+}
+CAPABILITY_REUSE_EXTERNAL_ATTESTATION_FIELDS = {
+    "schemaVersion",
+    "taskId",
+    "authorityType",
+    "reviewedHead",
+    "decision",
+    "reviewer",
+    "evidence",
+}
+CAPABILITY_REUSE_AUTHORITY_TYPES = {"firmware-owner", "release-owner"}
+CAPABILITY_REUSE_INITIAL_FIRMWARE_OWNER_TASKS = {"FORMAL-SUPPORT-01"}
 CAPABILITY_REUSE_RISK_LEVELS = {"R0": 0, "R1": 1, "R2": 2, "R3": 3}
 CAPABILITY_REUSE_FINALIZED_FIELDS = {
     "state",
@@ -1469,10 +1507,23 @@ class _CapabilityRecordHistory:
     admitted_field_violation: str | None
 
 
+@dataclass(frozen=True)
+class _TrustedCapabilityCheckpoint:
+    activation_commit: str
+    reviewed_head: str
+    retired_records: dict[str, str]
+    reserved_task_ids: frozenset[str]
+    open_r3_authorities: dict[str, str]
+
+
 def _is_capability_reuse_governed_path(relative: str) -> bool:
     path = PurePosixPath(relative)
     parts = path.parts
     if parts[:3] == CAPABILITY_REUSE_CHANGE_RECORD_ROOT.parts:
+        return False
+    if path == CAPABILITY_REUSE_TRUSTED_CHECKPOINT_PATH:
+        return False
+    if path.parent == CAPABILITY_REUSE_EXTERNAL_AUTHORITY_ROOT:
         return False
     if path.name == "AGENTS.md":
         return True
@@ -1840,6 +1891,380 @@ def _record_changed_in_commits_after(
     return False, None
 
 
+def _load_trusted_capability_checkpoint(
+    root: Path,
+    errors: list[str],
+) -> _TrustedCapabilityCheckpoint | None:
+    """Load and audit the one-time owner-approved legacy-record activation."""
+    relative = CAPABILITY_REUSE_TRUSTED_CHECKPOINT_PATH.as_posix()
+    additions, additions_error = _git_object(
+        root,
+        ["log", "--reverse", "--format=%H", "--diff-filter=A", "--", relative],
+    )
+    if additions_error is not None:
+        errors.append(f"trusted capability checkpoint history could not be read: {additions_error}")
+        return None
+    addition_commits = [value.decode("ascii") for value in additions.splitlines() if value]
+    if not addition_commits:
+        index_content, index_error = _git_index_blob(root, relative)
+        if index_content is not None or (root / CAPABILITY_REUSE_TRUSTED_CHECKPOINT_PATH).exists():
+            errors.append("trusted capability checkpoint activation manifest must be committed")
+        elif index_error not in {None, "record is not present in the Git index"}:
+            errors.append(f"trusted capability checkpoint index could not be read: {index_error}")
+        return None
+    if len(addition_commits) != 1:
+        errors.append("trusted capability checkpoint activation manifest must be added exactly once")
+        return None
+
+    activation_commit = addition_commits[0]
+    manifest_content, manifest_error = _git_object(
+        root,
+        ["show", f"{activation_commit}:{relative}"],
+    )
+    if manifest_error is not None:
+        errors.append(f"trusted capability checkpoint manifest could not be read: {manifest_error}")
+        return None
+    current_content, current_error = _git_index_blob(root, relative)
+    if current_error is not None or current_content is None:
+        errors.append("trusted capability checkpoint activation manifest was deleted")
+    elif current_content != manifest_content:
+        errors.append("trusted capability checkpoint activation manifest is immutable")
+    else:
+        try:
+            worktree_content = (root / CAPABILITY_REUSE_TRUSTED_CHECKPOINT_PATH).read_bytes()
+        except OSError as exc:
+            errors.append(f"trusted capability checkpoint index/worktree mismatch: {exc}")
+        else:
+            if worktree_content != manifest_content:
+                errors.append("trusted capability checkpoint index/worktree content differs")
+    changed, changed_error = _record_changed_in_commits_after(root, relative, activation_commit)
+    if changed_error is not None:
+        errors.append(f"trusted capability checkpoint history could not be audited: {changed_error}")
+    elif changed:
+        errors.append("trusted capability checkpoint activation manifest changed after activation")
+
+    try:
+        manifest = json.loads(manifest_content.decode("utf-8"))
+    except (UnicodeDecodeError, json.JSONDecodeError) as exc:
+        errors.append(f"invalid trusted capability checkpoint JSON: {exc}")
+        return None
+    if not isinstance(manifest, dict):
+        errors.append("trusted capability checkpoint manifest must be a JSON object")
+        return None
+    if set(manifest) != CAPABILITY_REUSE_TRUSTED_CHECKPOINT_FIELDS:
+        errors.append("trusted capability checkpoint fields differ from v1")
+        return None
+    if manifest.get("schemaVersion") != 1:
+        errors.append("trusted capability checkpoint requires schemaVersion 1")
+    if manifest.get("checkpointId") != "CAPABILITY-REUSE-INITIAL-100":
+        errors.append("trusted capability checkpoint has an unexpected checkpointId")
+    reviewed_head = manifest.get("reviewedHead")
+    reviewed_tree = manifest.get("reviewedTree")
+    if not isinstance(reviewed_head, str) or re.fullmatch(r"[0-9a-f]{40}", reviewed_head) is None:
+        errors.append("trusted capability checkpoint reviewedHead must be a full lowercase SHA")
+        return None
+    if not isinstance(reviewed_tree, str) or re.fullmatch(r"[0-9a-f]{40}", reviewed_tree) is None:
+        errors.append("trusted capability checkpoint reviewedTree must be a full lowercase SHA")
+        return None
+    owner_decision = manifest.get("ownerDecisionRef")
+    if not isinstance(owner_decision, str) or not owner_decision.strip():
+        errors.append("trusted capability checkpoint requires a non-empty ownerDecisionRef")
+
+    parents, parents_error = _git_object(
+        root,
+        ["rev-list", "--parents", "-n", "1", activation_commit],
+    )
+    parent_values = parents.decode("ascii").split() if parents_error is None else []
+    if parent_values != [activation_commit, reviewed_head]:
+        errors.append("trusted capability checkpoint activation must directly follow reviewedHead")
+    actual_tree, tree_error = _git_object(root, ["rev-parse", f"{reviewed_head}^{{tree}}"])
+    if tree_error is not None or actual_tree.decode("ascii").strip() != reviewed_tree:
+        errors.append("trusted capability checkpoint reviewedTree differs from reviewedHead")
+
+    legacy_records = manifest.get("legacyRecords")
+    if not isinstance(legacy_records, list) or not legacy_records:
+        errors.append("trusted capability checkpoint requires a non-empty legacyRecords list")
+        return None
+    retired_records: dict[str, str] = {}
+    legacy_values_by_task: dict[str, dict[str, Any]] = {}
+    listed_paths: list[str] = []
+    for entry in legacy_records:
+        if not isinstance(entry, dict) or set(entry) != CAPABILITY_REUSE_LEGACY_RECORD_FIELDS:
+            errors.append("trusted capability checkpoint legacy record fields differ from v1")
+            continue
+        task_id = entry.get("taskId")
+        record_path = entry.get("path")
+        risk = entry.get("risk")
+        state = entry.get("state")
+        content_sha = entry.get("contentSha256")
+        if not isinstance(task_id, str) or CAPABILITY_REUSE_TASK_ID.fullmatch(task_id) is None:
+            errors.append("trusted capability checkpoint contains an invalid legacy taskId")
+            continue
+        candidate = PurePosixPath(str(record_path))
+        if (
+            not isinstance(record_path, str)
+            or candidate.parent != CAPABILITY_REUSE_CHANGE_RECORD_ROOT
+            or candidate.suffix != ".json"
+            or candidate.stem != task_id
+        ):
+            errors.append(f"trusted capability checkpoint contains an invalid legacy path: {record_path}")
+            continue
+        if risk not in CAPABILITY_REUSE_RISKS or state not in CAPABILITY_REUSE_STATES:
+            errors.append(f"trusted capability checkpoint contains invalid legacy facts: {task_id}")
+            continue
+        if not isinstance(content_sha, str) or re.fullmatch(r"[0-9a-f]{64}", content_sha) is None:
+            errors.append(f"trusted capability checkpoint contains an invalid content SHA: {task_id}")
+            continue
+        if record_path in retired_records or task_id in legacy_values_by_task:
+            errors.append(f"trusted capability checkpoint legacy inventory contains a duplicate: {task_id}")
+            continue
+        content, content_error = _git_object(root, ["show", f"{reviewed_head}:{record_path}"])
+        if content_error is not None:
+            errors.append(f"trusted capability checkpoint legacy record is absent at reviewedHead: {task_id}")
+            continue
+        if hashlib.sha256(content).hexdigest() != content_sha:
+            errors.append(f"trusted capability checkpoint legacy content SHA differs: {task_id}")
+        try:
+            record = json.loads(content.decode("utf-8"))
+        except (UnicodeDecodeError, json.JSONDecodeError):
+            errors.append(f"trusted capability checkpoint legacy record is invalid JSON: {task_id}")
+            continue
+        if not isinstance(record, dict) or any(
+            record.get(field) != entry.get(field)
+            for field in ("taskId", "risk", "state")
+        ):
+            errors.append(f"trusted capability checkpoint legacy facts differ from reviewed bytes: {task_id}")
+            continue
+        retired_records[record_path] = task_id
+        legacy_values_by_task[task_id] = record
+        listed_paths.append(record_path)
+    if listed_paths != sorted(listed_paths):
+        errors.append("trusted capability checkpoint legacyRecords must be sorted by path")
+
+    tree_paths, tree_paths_error = _git_object(
+        root,
+        [
+            "ls-tree",
+            "-r",
+            "--name-only",
+            "-z",
+            reviewed_head,
+            "--",
+            CAPABILITY_REUSE_CHANGE_RECORD_ROOT.as_posix(),
+        ],
+    )
+    if tree_paths_error is not None:
+        errors.append(f"trusted capability checkpoint legacy inventory could not be read: {tree_paths_error}")
+    else:
+        exact_legacy_paths = {
+            value.decode("utf-8", errors="strict")
+            for value in tree_paths.split(b"\0")
+            if value
+            and PurePosixPath(value.decode("utf-8", errors="strict")).parent
+            == CAPABILITY_REUSE_CHANGE_RECORD_ROOT
+            and PurePosixPath(value.decode("utf-8", errors="strict")).suffix == ".json"
+        }
+        if set(retired_records) != exact_legacy_paths:
+            errors.append("trusted capability checkpoint does not exactly inventory reviewed legacy records")
+
+    open_authorities = manifest.get("openR3Authorities")
+    if not isinstance(open_authorities, list):
+        errors.append("trusted capability checkpoint openR3Authorities must be a list")
+        open_authorities = []
+    authority_by_task: dict[str, str] = {}
+    authority_order: list[str] = []
+    for entry in open_authorities:
+        if not isinstance(entry, dict) or set(entry) != CAPABILITY_REUSE_OPEN_AUTHORITY_FIELDS:
+            errors.append("trusted capability checkpoint R3 authority fields differ from v1")
+            continue
+        task_id = entry.get("taskId")
+        authority_type = entry.get("authorityType")
+        if (
+            not isinstance(task_id, str)
+            or authority_type not in CAPABILITY_REUSE_AUTHORITY_TYPES
+            or entry.get("status") != "pending"
+            or task_id in authority_by_task
+        ):
+            errors.append("trusted capability checkpoint contains an invalid R3 authority")
+            continue
+        authority_by_task[task_id] = authority_type
+        authority_order.append(task_id)
+    if authority_order != sorted(authority_order):
+        errors.append("trusted capability checkpoint openR3Authorities must be sorted by taskId")
+    expected_r3 = {
+        task_id
+        for task_id, record in legacy_values_by_task.items()
+        if record.get("risk") == "R3"
+    }
+    if set(authority_by_task) != expected_r3:
+        errors.append("trusted capability checkpoint does not exactly list every legacy R3 authority")
+    for task_id, authority_type in authority_by_task.items():
+        expected_type = (
+            "firmware-owner"
+            if task_id in CAPABILITY_REUSE_INITIAL_FIRMWARE_OWNER_TASKS
+            else "release-owner"
+        )
+        if authority_type != expected_type:
+            errors.append(f"trusted capability checkpoint R3 authority type differs: {task_id}")
+
+    expected_activation_paths = {relative, *retired_records}
+    activation_paths, activation_error = _git_revision_changed_paths(
+        root,
+        reviewed_head,
+        activation_commit,
+    )
+    if activation_error is not None or activation_paths != expected_activation_paths:
+        errors.append("trusted capability checkpoint activation changes paths outside its exact manifest and legacy deletions")
+    before_manifest, before_manifest_error = _git_object(root, ["show", f"{reviewed_head}:{relative}"])
+    if before_manifest_error is None or before_manifest:
+        errors.append("trusted capability checkpoint manifest already existed at reviewedHead")
+    for record_path, task_id in retired_records.items():
+        after_record, after_error = _git_object(root, ["show", f"{activation_commit}:{record_path}"])
+        if after_error is None or after_record:
+            errors.append(f"trusted capability checkpoint did not delete legacy record: {task_id}")
+        current_record, current_record_error = _git_object(root, ["show", f"HEAD:{record_path}"])
+        if current_record_error is None or current_record or (root / PurePosixPath(record_path)).exists():
+            errors.append(f"trusted capability checkpoint retired legacy record was restored: {task_id}")
+        record_changed, record_changed_error = _record_changed_in_commits_after(
+            root,
+            record_path,
+            activation_commit,
+        )
+        if record_changed_error is not None:
+            errors.append(f"trusted capability checkpoint retired history could not be read: {task_id}")
+        elif record_changed:
+            errors.append(f"trusted capability checkpoint retired legacy record changed after activation: {task_id}")
+
+    return _TrustedCapabilityCheckpoint(
+        activation_commit=activation_commit,
+        reviewed_head=reviewed_head,
+        retired_records=retired_records,
+        reserved_task_ids=frozenset(legacy_values_by_task),
+        open_r3_authorities=authority_by_task,
+    )
+
+
+def _validate_external_authority_attestations(
+    root: Path,
+    required: dict[str, str | None],
+    errors: list[str],
+) -> dict[str, str]:
+    """Validate immutable exact-head evidence commits for required R3 owners."""
+    root_relative = CAPABILITY_REUSE_EXTERNAL_AUTHORITY_ROOT.as_posix()
+    indexed_paths, index_error = _git_paths(root, ["ls-files", "-z", "--", root_relative])
+    if index_error is not None:
+        errors.append(f"external authority attestation index could not be read: {index_error}")
+        return {}
+    worktree_root = root / CAPABILITY_REUSE_EXTERNAL_AUTHORITY_ROOT
+    worktree_paths = {
+        path.relative_to(root).as_posix()
+        for path in worktree_root.rglob("*.json")
+    } if worktree_root.is_dir() else set()
+    paths = {
+        relative
+        for relative in indexed_paths | worktree_paths
+        if PurePosixPath(relative).suffix == ".json"
+    }
+    invalid_paths = {
+        relative
+        for relative in paths
+        if PurePosixPath(relative).parent != CAPABILITY_REUSE_EXTERNAL_AUTHORITY_ROOT
+    }
+    for relative in sorted(invalid_paths):
+        errors.append(f"external authority attestation must be a direct JSON child: {relative}")
+    paths -= invalid_paths
+    expected_paths = {
+        f"{root_relative}/{task_id}.json"
+        for task_id in required
+    }
+    for missing in sorted(expected_paths - paths):
+        errors.append(f"external R3 authority remains pending: {PurePosixPath(missing).stem}")
+    for extra in sorted(paths - expected_paths):
+        errors.append(f"external authority attestation has no current R3 requirement: {extra}")
+    if not paths:
+        return {}
+    if paths != expected_paths:
+        errors.append("external authority attestations must close the exact current R3 set in one batch")
+
+    approved: dict[str, str] = {}
+    evidence_batches: dict[tuple[str, str], set[str]] = {}
+    for relative in sorted(paths & expected_paths):
+        content, content_error = _git_index_blob(root, relative)
+        if content_error is not None or content is None:
+            errors.append(f"external authority attestation must have one committed indexed blob: {relative}")
+            continue
+        try:
+            worktree_content = (root / PurePosixPath(relative)).read_bytes()
+        except OSError as exc:
+            errors.append(f"external authority attestation index/worktree mismatch: {relative}: {exc}")
+            continue
+        if worktree_content != content:
+            errors.append(f"external authority attestation index/worktree content differs: {relative}")
+            continue
+        try:
+            value = json.loads(content.decode("utf-8"))
+        except (UnicodeDecodeError, json.JSONDecodeError) as exc:
+            errors.append(f"invalid external authority attestation JSON {relative}: {exc}")
+            continue
+        if not isinstance(value, dict) or set(value) != CAPABILITY_REUSE_EXTERNAL_ATTESTATION_FIELDS:
+            errors.append(f"external authority attestation fields differ from v1: {relative}")
+            continue
+        task_id = value.get("taskId")
+        authority_type = value.get("authorityType")
+        reviewed_head = value.get("reviewedHead")
+        if (
+            value.get("schemaVersion") != 1
+            or task_id != PurePosixPath(relative).stem
+            or task_id not in required
+            or authority_type not in CAPABILITY_REUSE_AUTHORITY_TYPES
+            or (required.get(str(task_id)) is not None and authority_type != required.get(str(task_id)))
+            or not isinstance(reviewed_head, str)
+            or re.fullmatch(r"[0-9a-f]{40}", reviewed_head) is None
+            or value.get("decision") != "approved"
+            or not isinstance(value.get("reviewer"), str)
+            or not value.get("reviewer", "").strip()
+            or not isinstance(value.get("evidence"), str)
+            or not value.get("evidence", "").strip()
+        ):
+            errors.append(f"external authority attestation has invalid typed evidence: {relative}")
+            continue
+        additions, additions_error = _git_object(
+            root,
+            ["log", "--reverse", "--format=%H", "--diff-filter=A", "--", relative],
+        )
+        candidates = [item.decode("ascii") for item in additions.splitlines() if item]
+        if additions_error is not None or len(candidates) != 1:
+            errors.append(f"external authority attestation must be added exactly once: {relative}")
+            continue
+        addition_commit = candidates[0]
+        committed, committed_error = _git_object(root, ["show", f"{addition_commit}:{relative}"])
+        changed, changed_error = _record_changed_in_commits_after(root, relative, addition_commit)
+        if committed_error is not None or committed != content or changed_error is not None or changed:
+            errors.append(f"external authority attestation is immutable after commit: {relative}")
+            continue
+        evidence_batches.setdefault((addition_commit, reviewed_head), set()).add(relative)
+        approved[str(task_id)] = reviewed_head
+
+    if approved and set(approved) != set(required):
+        errors.append("external authority attestation batch does not approve every required R3 task")
+    for (evidence_commit, reviewed_head), batch_paths in evidence_batches.items():
+        parents, parents_error = _git_object(
+            root,
+            ["rev-list", "--parents", "-n", "1", evidence_commit],
+        )
+        parent_values = parents.decode("ascii").split() if parents_error is None else []
+        if parent_values != [evidence_commit, reviewed_head]:
+            errors.append("external authority evidence commit must directly follow reviewedHead")
+        evidence_paths, evidence_error = _git_revision_changed_paths(
+            root,
+            reviewed_head,
+            evidence_commit,
+        )
+        if evidence_error is not None or evidence_paths != batch_paths:
+            errors.append("external authority evidence commit may add only its exact attestation batch")
+    return approved
+
+
 def _validate_capability_reuse_record(
     path: Path,
     record: object,
@@ -2011,11 +2436,6 @@ def _validate_capability_reuse_record(
             errors.append(f"final-complete capability-reuse record requires an admitted final review: {relative}")
         if not isinstance(final_evidence, str) or not final_evidence.strip():
             errors.append(f"final-complete capability-reuse record requires final-review evidence: {relative}")
-        if record["risk"] == "R3":
-            errors.append(
-                f"R3 final-complete capability-reuse record remains pending existing "
-                f"external owner authority; schema v2 evidence alone is insufficient: {relative}"
-            )
     else:
         for field in (*head_fields, "pathStateDigest"):
             if record[field] is not None:
@@ -2054,6 +2474,17 @@ def validate_capability_reuse_governance(
     if history_error is not None:
         errors.append(f"capability-reuse record history could not be read: {history_error}")
         return
+    trusted_checkpoint = _load_trusted_capability_checkpoint(root, errors)
+    retired_record_paths = (
+        set(trusted_checkpoint.retired_records)
+        if trusted_checkpoint is not None
+        else set()
+    )
+    reserved_task_ids = (
+        trusted_checkpoint.reserved_task_ids
+        if trusted_checkpoint is not None
+        else frozenset()
+    )
     records_root = root / "docs" / "governance" / "change-records"
     all_index_paths, index_paths_error = _git_paths(
         root,
@@ -2143,6 +2574,8 @@ def validate_capability_reuse_governance(
             records_by_relative[relative] = validated
 
     for relative, record_history in history.items():
+        if relative in retired_record_paths:
+            continue
         if record_history.admitted_field_violation is not None:
             errors.append(
                 f"committed capability-reuse record changed immutable admitted fields: "
@@ -2189,13 +2622,28 @@ def validate_capability_reuse_governance(
     }
     for task_id in sorted(duplicate_task_ids):
         errors.append(f"capability-reuse taskId must be unique: {task_id}")
+    for task_id in sorted(
+        value
+        for value in task_ids
+        if isinstance(value, str) and value in reserved_task_ids
+    ):
+        errors.append(f"retired capability-reuse taskId cannot be reused: {task_id}")
 
-    if trusted_initial_base is not None:
-        if re.fullmatch(r"[0-9a-f]{40}", trusted_initial_base) is None:
+    derived_initial_base = (
+        trusted_checkpoint.activation_commit
+        if trusted_checkpoint is not None
+        else trusted_initial_base
+    )
+    if trusted_checkpoint is not None and trusted_initial_base is not None:
+        if trusted_initial_base != trusted_checkpoint.activation_commit:
+            errors.append("supplied trusted initial base differs from the activated checkpoint")
+            return
+    if derived_initial_base is not None:
+        if re.fullmatch(r"[0-9a-f]{40}", derived_initial_base) is None:
             errors.append("trusted initial capability-reuse base must be a full lowercase SHA")
             return
         trusted_commit = subprocess.run(
-            ["git", "merge-base", "--is-ancestor", trusted_initial_base, "HEAD"],
+            ["git", "merge-base", "--is-ancestor", derived_initial_base, "HEAD"],
             cwd=root,
             check=False,
             capture_output=True,
@@ -2206,9 +2654,41 @@ def validate_capability_reuse_governance(
 
     final_groups: dict[str, list[tuple[str, dict[str, Any]]]] = {}
     for relative, record_history in history.items():
+        if relative in retired_record_paths:
+            continue
         if record_history.first_final is not None:
             final_groups.setdefault(record_history.first_final.revision, []).append(
                 (relative, record_history.first_final.value)
+            )
+    required_external_authorities: dict[str, str | None] = (
+        dict(trusted_checkpoint.open_r3_authorities)
+        if trusted_checkpoint is not None
+        else {}
+    )
+    for group in final_groups.values():
+        for _, record in group:
+            if record.get("risk") == "R3":
+                required_external_authorities.setdefault(str(record.get("taskId")), None)
+    current_r3_final_records = [
+        record
+        for record in records_by_relative.values()
+        if record.get("state") == "final-complete"
+        and record.get("risk") == "R3"
+        and str(record.get("taskId")) not in reserved_task_ids
+    ]
+    for record in current_r3_final_records:
+        required_external_authorities.setdefault(str(record.get("taskId")), None)
+    approved_external_authorities = _validate_external_authority_attestations(
+        root,
+        required_external_authorities,
+        errors,
+    )
+    for record in current_r3_final_records:
+        task_id = str(record.get("taskId"))
+        if task_id not in approved_external_authorities:
+            errors.append(
+                f"R3 final-complete capability-reuse record remains pending external "
+                f"owner authority: {task_id}"
             )
     revision_order, revision_order_error = _git_object(root, ["rev-list", "--reverse", "HEAD"])
     if revision_order_error is not None:
@@ -2219,7 +2699,7 @@ def validate_capability_reuse_governance(
         for value in revision_order.splitlines()
         if value.decode("ascii") in final_groups
     ]
-    checkpoint = trusted_initial_base
+    checkpoint = derived_initial_base
     if final_groups and checkpoint is None:
         errors.append(
             "capability-reuse trusted initial evidence checkpoint is pending owner authority"
@@ -2235,10 +2715,17 @@ def validate_capability_reuse_governance(
             errors.append(
                 f"final capability-reuse batch contains an invalid current record: {evidence_commit}"
             )
-        if any(record.get("risk") == "R3" for _, record in group):
+        missing_r3_authority = sorted(
+            str(record.get("taskId"))
+            for _, record in group
+            if record.get("risk") == "R3"
+            and approved_external_authorities.get(str(record.get("taskId")))
+            != evidence_commit
+        )
+        if missing_r3_authority:
             errors.append(
-                f"R3 final capability-reuse batch remains pending existing external owner authority: "
-                f"{evidence_commit}"
+                f"R3 final capability-reuse batch remains pending external owner authority: "
+                f"{evidence_commit}: {missing_r3_authority}"
             )
         reviewed_heads = {record.get("reviewedHead") for _, record in group}
         bases = {record.get("integrationBase") for _, record in group}

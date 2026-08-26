@@ -1,0 +1,38 @@
+{
+  "schemaVersion": 2,
+  "taskId": "TRUSTED-CHECKPOINT-MIGRATION-01",
+  "capability": "Activate one owner-approved trusted initial capability checkpoint without laundering legacy record history",
+  "integrationBase": "6779ca9035358a411c4f5d2ce316ec6933d5201e",
+  "risk": "R2",
+  "kind": "governance",
+  "state": "design-active",
+  "mutablePaths": [
+    "docs/adr/0059-trusted-initial-capability-checkpoint.md",
+    "docs/governance/capability-reuse-record.md",
+    "docs/governance/development-execution-workflow.md",
+    "scripts/validate_repository.py",
+    "tests/scripts/test_agent_governance.py"
+  ],
+  "implementationOwner": "root",
+  "searchEvidence": [
+    "The current integration history contains committed design-active migration records, no usable trusted checkpoint, and one immutable admitted-field violation; supplying an arbitrary SHA still produces an internally impossible legacy lifecycle.",
+    "The canonical validator already owns record history, exact Git blob identity, direct-child evidence commits, governed path coverage, and R3 fail-closed behavior; a second verifier or history rewrite is unnecessary.",
+    "Independent governance review required a two-commit boundary: a reviewed validator/contract candidate followed by an owner-approved direct-child activation commit that adds one immutable manifest and deletes exactly its audited legacy inventory."
+  ],
+  "semanticOwner": "scripts/validate_repository.py remains the only repository admission validator; the activation manifest records one owner-approved historical boundary and cannot authorize later changes",
+  "terminalContract": "Before activation, the existing pending-checkpoint failure remains. After explicit owner approval of the exact reviewed implementation head and tree, one direct-child activation commit may add the unique immutable trusted-checkpoint manifest and delete exactly every audited legacy record named by path, task, risk, state, and content SHA-256. Only those inventoried pre-activation lifecycle defects are retired; their task IDs remain reserved, every post-activation governed change uses the ordinary schema-v2 lifecycle, and all listed R3 firmware/release authorities remain independently pending.",
+  "disposition": "extend-owner",
+  "designReview": {
+    "reviewer": "review_trust_checkpoint",
+    "outcome": "approved",
+    "evidence": "Independent R2 governance review rejected a hard-coded SHA, silent record deletion, checkpoint..HEAD-only coverage, and history rewrite. It approved an immutable exact-inventory manifest, reviewed head/tree binding, direct-child activation, reserved legacy task IDs, and strict post-activation auditing with separate external R3 authority."
+  },
+  "implementationHead": null,
+  "reviewedHead": null,
+  "pathStateDigest": null,
+  "finalReview": {
+    "reviewer": null,
+    "outcome": "pending",
+    "evidence": ""
+  }
+}

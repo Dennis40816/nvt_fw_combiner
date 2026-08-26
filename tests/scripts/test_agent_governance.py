@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import hashlib
 import json
 import subprocess
 import sys
@@ -163,6 +164,113 @@ class AgentGovernanceTests(unittest.TestCase):
         self._commit_candidate_with_active_record()
         self._write_record(self._final_record())
         self._git("commit", "-q", "-m", "finalize capability evidence")
+        return self._git("rev-parse", "HEAD").stdout.strip()
+
+    def _validate_derived_checkpoint(self) -> list[str]:
+        errors: list[str] = []
+        validate_capability_reuse_governance(self.root, errors)
+        return errors
+
+    def _activate_trusted_checkpoint(
+        self,
+        *,
+        mutate_manifest: Any | None = None,
+        extra_activation_path: bool = False,
+    ) -> tuple[str, dict[str, Any]]:
+        reviewed_head = self._git("rev-parse", "HEAD").stdout.strip()
+        reviewed_tree = self._git("rev-parse", f"{reviewed_head}^{{tree}}").stdout.strip()
+        record_paths = sorted(
+            value
+            for value in self._git(
+                "ls-tree",
+                "-r",
+                "--name-only",
+                reviewed_head,
+                "--",
+                "docs/governance/change-records",
+            ).stdout.splitlines()
+            if Path(value).parent.as_posix() == "docs/governance/change-records"
+            and Path(value).suffix == ".json"
+        )
+        legacy_records: list[dict[str, Any]] = []
+        open_authorities: list[dict[str, Any]] = []
+        for relative in record_paths:
+            content = subprocess.run(
+                ["git", "show", f"{reviewed_head}:{relative}"],
+                cwd=self.root,
+                check=True,
+                capture_output=True,
+            ).stdout
+            value = json.loads(content.decode("utf-8"))
+            legacy_records.append(
+                {
+                    "taskId": value["taskId"],
+                    "path": relative,
+                    "risk": value["risk"],
+                    "state": value["state"],
+                    "contentSha256": hashlib.sha256(content).hexdigest(),
+                }
+            )
+            if value["risk"] == "R3":
+                open_authorities.append(
+                    {
+                        "taskId": value["taskId"],
+                        "authorityType": (
+                            "firmware-owner"
+                            if value["taskId"] == "FORMAL-SUPPORT-01"
+                            else "release-owner"
+                        ),
+                        "status": "pending",
+                    }
+                )
+        manifest: dict[str, Any] = {
+            "schemaVersion": 1,
+            "checkpointId": "CAPABILITY-REUSE-INITIAL-100",
+            "reviewedHead": reviewed_head,
+            "reviewedTree": reviewed_tree,
+            "ownerDecisionRef": "test repository owner approval",
+            "legacyRecords": legacy_records,
+            "openR3Authorities": sorted(open_authorities, key=lambda item: item["taskId"]),
+        }
+        if mutate_manifest is not None:
+            mutate_manifest(manifest)
+        relative = "docs/governance/trusted-initial-capability-checkpoint.v1.json"
+        self._write(relative, json.dumps(manifest, indent=2) + "\n")
+        self._git("add", "--", relative)
+        for record_path in record_paths:
+            self._git("rm", "-q", "--", record_path)
+        if extra_activation_path:
+            self._write("scratch/activation-extra.txt", "not allowed\n")
+            self._git("add", "--", "scratch/activation-extra.txt")
+        self._git("commit", "-q", "-m", "activate trusted checkpoint")
+        return self._git("rev-parse", "HEAD").stdout.strip(), manifest
+
+    def _write_external_authority_batch(
+        self,
+        manifest: dict[str, Any],
+    ) -> str:
+        reviewed_head = self._git("rev-parse", "HEAD").stdout.strip()
+        for authority in manifest["openR3Authorities"]:
+            task_id = authority["taskId"]
+            relative = f"docs/governance/external-authority-attestations/{task_id}.json"
+            self._write(
+                relative,
+                json.dumps(
+                    {
+                        "schemaVersion": 1,
+                        "taskId": task_id,
+                        "authorityType": authority["authorityType"],
+                        "reviewedHead": reviewed_head,
+                        "decision": "approved",
+                        "reviewer": f"test-{authority['authorityType']}",
+                        "evidence": "Exact-head test authority evidence.",
+                    },
+                    indent=2,
+                )
+                + "\n",
+            )
+            self._git("add", "--", relative)
+        self._git("commit", "-q", "-m", "record external authority evidence")
         return self._git("rev-parse", "HEAD").stdout.strip()
 
     def test_authority_classifier_covers_each_governed_surface_without_nearby_spill(self) -> None:
@@ -677,6 +785,137 @@ class AgentGovernanceTests(unittest.TestCase):
 
         self.assertTrue(any("trusted initial evidence checkpoint is pending" in error for error in errors))
 
+    def test_owner_approved_activation_retires_exact_legacy_inventory(self) -> None:
+        self._commit_candidate_with_active_record()
+
+        self._activate_trusted_checkpoint()
+
+        self.assertEqual([], self._validate_derived_checkpoint())
+
+    def test_activation_rejects_incomplete_legacy_inventory(self) -> None:
+        self._commit_candidate_with_active_record()
+
+        self._activate_trusted_checkpoint(
+            mutate_manifest=lambda value: value["legacyRecords"].clear(),
+        )
+
+        errors = self._validate_derived_checkpoint()
+        self.assertTrue(any("non-empty legacyRecords" in error for error in errors))
+
+    def test_activation_rejects_legacy_content_hash_drift(self) -> None:
+        self._commit_candidate_with_active_record()
+
+        self._activate_trusted_checkpoint(
+            mutate_manifest=lambda value: value["legacyRecords"][0].update(
+                {"contentSha256": "0" * 64}
+            ),
+        )
+
+        self.assertTrue(
+            any("legacy content SHA differs" in error for error in self._validate_derived_checkpoint())
+        )
+
+    def test_activation_binds_exact_reviewed_head_and_tree(self) -> None:
+        self._commit_candidate_with_active_record()
+
+        self._activate_trusted_checkpoint(
+            mutate_manifest=lambda value: value.update({"reviewedTree": "0" * 40}),
+        )
+
+        self.assertTrue(
+            any("reviewedTree differs" in error for error in self._validate_derived_checkpoint())
+        )
+
+    def test_activation_must_be_direct_child_of_reviewed_head(self) -> None:
+        self._commit_candidate_with_active_record()
+
+        self._activate_trusted_checkpoint(
+            mutate_manifest=lambda value: value.update(
+                {
+                    "reviewedHead": self.integration_base,
+                    "reviewedTree": self._git(
+                        "rev-parse",
+                        f"{self.integration_base}^{{tree}}",
+                    ).stdout.strip(),
+                }
+            ),
+        )
+
+        self.assertTrue(
+            any("must directly follow reviewedHead" in error for error in self._validate_derived_checkpoint())
+        )
+
+    def test_activation_rejects_any_extra_changed_path(self) -> None:
+        self._commit_candidate_with_active_record()
+
+        self._activate_trusted_checkpoint(extra_activation_path=True)
+
+        self.assertTrue(
+            any("outside its exact manifest" in error for error in self._validate_derived_checkpoint())
+        )
+
+    def test_retired_task_id_and_record_path_cannot_be_reused(self) -> None:
+        self._commit_candidate_with_active_record()
+        activation, _ = self._activate_trusted_checkpoint()
+        self.integration_base = activation
+        self._change("src/Product/Other.cs")
+        self._write_record(self._record("TEST-01", ["src/Product/Other.cs"]))
+
+        errors = self._validate_derived_checkpoint()
+
+        self.assertTrue(any("retired legacy record was restored" in error for error in errors))
+        self.assertTrue(any("retired capability-reuse taskId cannot be reused" in error for error in errors))
+
+    def test_post_activation_batch_uses_ordinary_strict_lifecycle(self) -> None:
+        self._commit_candidate_with_active_record()
+        activation, _ = self._activate_trusted_checkpoint()
+        self.integration_base = activation
+        self._change("src/Product/Other.cs")
+        self._write_record(self._record("TEST-02", ["src/Product/Other.cs"]))
+
+        self.assertEqual([], self._validate_derived_checkpoint())
+
+    def test_activation_manifest_is_immutable_after_commit(self) -> None:
+        self._commit_candidate_with_active_record()
+        self._activate_trusted_checkpoint()
+        relative = "docs/governance/trusted-initial-capability-checkpoint.v1.json"
+        value = json.loads((self.root / relative).read_text(encoding="utf-8"))
+        value["ownerDecisionRef"] = "worktree tamper"
+        self._write(relative, json.dumps(value, indent=2) + "\n")
+        self._git("add", "--", relative)
+
+        self.assertTrue(
+            any("activation manifest is immutable" in error for error in self._validate_derived_checkpoint())
+        )
+
+    def test_initial_r3_authority_requires_one_exact_head_attestation_batch(self) -> None:
+        self._change()
+        self._write_record(self._record("FORMAL-SUPPORT-01", risk="R3"))
+        self._git("add", "--", "src/Product/Owner.cs")
+        self._git("commit", "-q", "-m", "legacy R3 candidate")
+        _, manifest = self._activate_trusted_checkpoint()
+
+        self.assertTrue(
+            any("external R3 authority remains pending" in error for error in self._validate_derived_checkpoint())
+        )
+
+        self._write_external_authority_batch(manifest)
+
+        self.assertEqual([], self._validate_derived_checkpoint())
+
+    def test_external_authority_attestation_remains_bound_after_later_unrelated_commit(self) -> None:
+        self._change()
+        self._write_record(self._record("FORMAL-SUPPORT-01", risk="R3"))
+        self._git("add", "--", "src/Product/Owner.cs")
+        self._git("commit", "-q", "-m", "legacy R3 candidate")
+        _, manifest = self._activate_trusted_checkpoint()
+        self._write_external_authority_batch(manifest)
+        self._write("scratch/later.txt", "later\n")
+        self._git("add", "--", "scratch/later.txt")
+        self._git("commit", "-q", "-m", "later commit")
+
+        self.assertEqual([], self._validate_derived_checkpoint())
+
     def test_record_must_match_its_exact_index_blob(self) -> None:
         self._change()
         record = self._record()
@@ -792,6 +1031,27 @@ class AgentGovernanceTests(unittest.TestCase):
         self._write_record(self._final_record(risk="R3"))
 
         self.assertTrue(any("external owner authority" in error for error in self.validate()))
+
+    def test_r3_final_batch_accepts_only_exact_final_evidence_head_attestation(self) -> None:
+        self._change()
+        self._write_record(self._record(risk="R3"))
+        self._git("add", "--", "src/Product/Owner.cs")
+        self._git("commit", "-q", "-m", "R3 active candidate")
+        self._write_record(self._final_record(risk="R3"))
+        self._git("commit", "-q", "-m", "R3 final evidence")
+        self._write_external_authority_batch(
+            {
+                "openR3Authorities": [
+                    {
+                        "taskId": "TEST-01",
+                        "authorityType": "release-owner",
+                        "status": "pending",
+                    }
+                ]
+            }
+        )
+
+        self.assertEqual([], self.validate())
 
     def test_final_batch_must_exactly_cover_checkpoint_to_reviewed_head(self) -> None:
         self._change()

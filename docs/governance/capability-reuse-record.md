@@ -55,9 +55,20 @@ base, and a new `design-active` record.
 
 Validation requires complete Git history. Shallow repositories fail closed;
 CI checkout uses `fetch-depth: 0`. When no prior evidence checkpoint exists,
-the validator requires a separately authorized trusted initial boundary. That
-owner decision is currently pending; a record cannot establish its own initial
-base, and the gate fails closed until the authority is supplied.
+the validator requires the separately authorized trusted-initial activation
+defined by ADR 0059. A record cannot establish its own trust root. The reviewed
+governance implementation is followed by one owner-approved direct-child
+activation that adds the immutable
+`trusted-initial-capability-checkpoint.v1.json` manifest and deletes exactly its
+blob-hashed legacy-record inventory. Until that commit exists, the gate reports
+the pending-checkpoint error.
+
+The manifest records, but does not close, inherited R3 authorities. Typed
+firmware-owner and release-owner approvals live as exact-head JSON attestations
+under `docs/governance/external-authority-attestations/`. Each immutable
+attestation is added by its reviewed head's direct-child evidence commit; an R3
+final record requires an attestation for its exact final-evidence head. Passing
+tests, activation, or a repository reviewer cannot substitute for those owners.
 
 ## Schema v2 example
 
