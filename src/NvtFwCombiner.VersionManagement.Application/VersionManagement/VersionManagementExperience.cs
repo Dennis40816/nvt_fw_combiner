@@ -142,6 +142,7 @@ public sealed partial class VersionManagementExperience : IVersionManagementExpe
     private readonly IManagedVersionRepository _repository;
     private readonly IUpdateSourceRegistry? _sourceRegistry;
     private readonly IVersionManagementMutationFence _mutationFence;
+    private readonly ILauncherMutationFence _launcherFence;
     private readonly VersionDiscoverySession _session = new();
     private readonly IVersionManagerStateStore _stateStore;
     private readonly SemaphoreSlim _mutation = new(1, 1);
@@ -159,6 +160,7 @@ public sealed partial class VersionManagementExperience : IVersionManagementExpe
     /// <param name="repository">Managed payload repository port.</param>
     /// <param name="sourceRegistry">Optional fixed-registry read port.</param>
     /// <param name="mutationFence">Optional launcher logical mutation fence.</param>
+    /// <param name="launcherFence">Logical launcher-activation fence sharing the caller-held app-state lease.</param>
     public VersionManagementExperience(
         ManagedAppVersion currentAppVersion,
         string managedRoot,
@@ -166,7 +168,8 @@ public sealed partial class VersionManagementExperience : IVersionManagementExpe
         IUpdateCatalogSource catalogSource,
         IManagedVersionRepository repository,
         IUpdateSourceRegistry? sourceRegistry = null,
-        IVersionManagementMutationFence? mutationFence = null)
+        IVersionManagementMutationFence? mutationFence = null,
+        ILauncherMutationFence? launcherFence = null)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(managedRoot);
         _currentAppVersion = currentAppVersion;
@@ -176,6 +179,7 @@ public sealed partial class VersionManagementExperience : IVersionManagementExpe
         _repository = repository ?? throw new ArgumentNullException(nameof(repository));
         _sourceRegistry = sourceRegistry;
         _mutationFence = mutationFence ?? AllowVersionManagementMutationFence.Instance;
+        _launcherFence = launcherFence ?? NoLauncherMutationFence.Instance;
     }
 
     /// <inheritdoc />
@@ -373,6 +377,10 @@ public sealed partial class VersionManagementExperience : IVersionManagementExpe
             {
                 return PublishStateUnavailable();
             }
+            if (await LoadClearLauncherFenceAsync(cancellationToken).ConfigureAwait(false) is null)
+            {
+                return PublishStateUnavailable();
+            }
             VersionManagementSnapshot current = await ReloadDurableCurrentWithoutLockAsync(cancellationToken)
                 .ConfigureAwait(false);
             if (current.State is not { } state)
@@ -447,6 +455,17 @@ public sealed partial class VersionManagementExperience : IVersionManagementExpe
                     RepositoryIssue: null,
                     unavailable);
             }
+            LauncherMutationProtection? launcherProtection = await LoadLauncherProtectionAsync(cancellationToken)
+                .ConfigureAwait(false);
+            if (launcherProtection is null)
+            {
+                VersionManagementSnapshot unavailable = PublishStateUnavailable();
+                return new(
+                    new(ManagedVersionDeleteBlock.LauncherActivationPending, RequiresRollbackLossWarning: false),
+                    VersionDeleteOperationIssue.StateUnavailable,
+                    RepositoryIssue: null,
+                    unavailable);
+            }
             VersionManagementSnapshot current = await ReloadDurableCurrentWithoutLockAsync(cancellationToken)
                 .ConfigureAwait(false);
             if (current.State is not { } state)
@@ -503,7 +522,12 @@ public sealed partial class VersionManagementExperience : IVersionManagementExpe
                     unavailable);
             }
             ManagedVersionInventory inventory = inventoryResult.Inventory!;
-            ManagedVersionDeleteDecision decision = VersionManagementPolicy.DecideDelete(inventory, version);
+            ManagedVersionAdmission? admission = state.Admissions.SingleOrDefault(item => item.Version == version);
+            ManagedVersionDeleteDecision decision = VersionManagementPolicy.DecideDelete(
+                inventory,
+                version,
+                launcherProtection,
+                admission);
             if (!decision.IsAllowed)
             {
                 return new(
@@ -520,9 +544,24 @@ public sealed partial class VersionManagementExperience : IVersionManagementExpe
                     RepositoryIssue: null,
                     current with { Inventory = inventory });
             }
-            ManagedVersionAdmission admission = state.Admissions.Single(item => item.Version == version);
+            ManagedVersionAdmission exactAdmission = admission ??
+                throw new InvalidOperationException("Delete target admission is absent.");
+            if (launcherProtection.IsLastKnownGoodOnly(exactAdmission))
+            {
+                LauncherMutationFenceIssue retired = await _launcherFence.RetireLastKnownGoodOwnerAsync(
+                    exactAdmission,
+                    cancellationToken).ConfigureAwait(false);
+                if (retired != LauncherMutationFenceIssue.None)
+                {
+                    return new(
+                        decision,
+                        VersionDeleteOperationIssue.StateUnavailable,
+                        RepositoryIssue: null,
+                        current with { Inventory = inventory });
+                }
+            }
             VersionManagerState prepared = state.WithPendingMutation(
-                new(ManagedVersionMutationKind.Delete, admission));
+                new(ManagedVersionMutationKind.Delete, exactAdmission));
             if (!await TrySaveAsync(prepared, cancellationToken).ConfigureAwait(false))
             {
                 return new(
@@ -534,14 +573,14 @@ public sealed partial class VersionManagementExperience : IVersionManagementExpe
             state = prepared;
             ManagedVersionDeleteIssue deleteIssue = await _repository.DeleteAsync(
                 _managedRoot,
-                admission,
+                exactAdmission,
                 state.ActiveVersion,
                 cancellationToken).ConfigureAwait(false);
             bool filesystemDeleteCommitted = deleteIssue is
                 ManagedVersionDeleteIssue.None or ManagedVersionDeleteIssue.NotInstalled;
             if (filesystemDeleteCommitted)
             {
-                state = CommitDelete(state, admission);
+                state = CommitDelete(state, exactAdmission);
             }
             else
             {

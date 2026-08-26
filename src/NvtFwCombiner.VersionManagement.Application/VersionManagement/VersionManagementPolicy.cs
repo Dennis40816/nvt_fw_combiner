@@ -65,6 +65,10 @@ public enum ManagedVersionDeleteBlock
     NotInstalled,
     /// <summary>The directory is not admitted and requires a separate recovery action.</summary>
     RecoveryRequired,
+    /// <summary>A launcher activation transaction fences every managed-version mutation.</summary>
+    LauncherActivationPending,
+    /// <summary>The exact admission owns active or pending launcher authority.</summary>
+    LauncherOwner,
 }
 
 /// <summary>Application-owned delete decision before destructive confirmation.</summary>
@@ -154,16 +158,44 @@ public static class VersionManagementPolicy
         ManagedVersionInventory inventory,
         ManagedAppVersion version)
     {
+        return DecideDelete(
+            inventory,
+            version,
+            new LauncherMutationProtection(
+                LauncherMutationFenceIssue.None,
+                HasPendingActivation: false,
+                ActiveOwner: null,
+                LastKnownGoodOwner: null,
+                PendingOwners: []),
+            installedAdmission: null);
+    }
+
+    /// <summary>Decides deletion with exact launcher-owner protection.</summary>
+    public static ManagedVersionDeleteDecision DecideDelete(
+        ManagedVersionInventory inventory,
+        ManagedAppVersion version,
+        LauncherMutationProtection launcherProtection,
+        ManagedVersionAdmission? installedAdmission)
+    {
         ArgumentNullException.ThrowIfNull(inventory);
+        ArgumentNullException.ThrowIfNull(launcherProtection);
         InstalledVersionSnapshot? installed = inventory.Find(version);
-        return installed switch
-        {
-            null => new(ManagedVersionDeleteBlock.NotInstalled, RequiresRollbackLossWarning: false),
-            { AdmissionState: not ManagedVersionAdmissionState.Admitted } =>
-                new(ManagedVersionDeleteBlock.RecoveryRequired, RequiresRollbackLossWarning: false),
-            { IsActive: true } => new(ManagedVersionDeleteBlock.ActiveVersion, RequiresRollbackLossWarning: false),
-            _ => new(ManagedVersionDeleteBlock.None, installed.IsLastKnownGood),
-        };
+        return launcherProtection.Issue != LauncherMutationFenceIssue.None || launcherProtection.HasPendingActivation
+            ? new(ManagedVersionDeleteBlock.LauncherActivationPending, RequiresRollbackLossWarning: false)
+            : installedAdmission is not null && launcherProtection.IsHardProtected(installedAdmission)
+            ? new(ManagedVersionDeleteBlock.LauncherOwner, RequiresRollbackLossWarning: false)
+            : installed switch
+            {
+                null => new(ManagedVersionDeleteBlock.NotInstalled, RequiresRollbackLossWarning: false),
+                { AdmissionState: not ManagedVersionAdmissionState.Admitted } =>
+                    new(ManagedVersionDeleteBlock.RecoveryRequired, RequiresRollbackLossWarning: false),
+                { IsActive: true } =>
+                    new(ManagedVersionDeleteBlock.ActiveVersion, RequiresRollbackLossWarning: false),
+                _ => new(
+                    ManagedVersionDeleteBlock.None,
+                    installed.IsLastKnownGood ||
+                    (installedAdmission is not null && launcherProtection.IsLastKnownGoodOnly(installedAdmission))),
+            };
     }
 
     /// <summary>Determines whether a successful update should offer retention review.</summary>

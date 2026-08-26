@@ -32,7 +32,14 @@ public sealed partial class VersionManagementExperience
             : loaded.Issue == VersionManagerStateLoadIssue.Missing
                 ? EmptyState()
                 : null;
-        if (state?.PendingMutation is not null)
+        bool launcherFenceUnavailable = false;
+        if (state?.PendingMutation is not null &&
+            await LoadClearLauncherFenceAsync(cancellationToken).ConfigureAwait(false) is null)
+        {
+            state = null;
+            launcherFenceUnavailable = true;
+        }
+        else if (state?.PendingMutation is not null)
         {
             state = await ReconcilePendingMutationAsync(state, cancellationToken).ConfigureAwait(false);
         }
@@ -64,7 +71,9 @@ public sealed partial class VersionManagementExperience
                 : 0,
             sameCandidateContext && !isRecoveringSourceAuthority &&
                 sourcePrior?.ShouldPromptForUpdate == true,
-            managedRootMismatch
+            launcherFenceUnavailable
+                ? VersionManagerStateLoadIssue.Unavailable
+                : managedRootMismatch
                 ? VersionManagerStateLoadIssue.ManagedRootMismatch
                 : loaded.Issue == VersionManagerStateLoadIssue.Missing
                     ? VersionManagerStateLoadIssue.None

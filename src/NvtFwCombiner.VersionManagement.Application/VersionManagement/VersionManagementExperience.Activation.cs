@@ -18,6 +18,10 @@ public sealed partial class VersionManagementExperience
             {
                 return PublishStateUnavailable();
             }
+            if (await LoadClearLauncherFenceAsync(cancellationToken).ConfigureAwait(false) is null)
+            {
+                return PublishStateUnavailable();
+            }
             VersionManagementSnapshot current = await ReloadDurableCurrentWithoutLockAsync(cancellationToken)
                 .ConfigureAwait(false);
             if (current.InventoryIssue != ManagedVersionInventoryReadIssue.None ||
@@ -58,6 +62,10 @@ public sealed partial class VersionManagementExperience
             if (!lease.IsAcquired)
             {
                 throw new InvalidOperationException("Another version-management writer is active.");
+            }
+            if (await LoadClearLauncherFenceAsync(cancellationToken).ConfigureAwait(false) is null)
+            {
+                throw new InvalidOperationException("Launcher activation fences managed-version mutation.");
             }
             VersionManagementSnapshot current = await ReloadDurableCurrentWithoutLockAsync(cancellationToken)
                 .ConfigureAwait(false);
@@ -112,6 +120,10 @@ public sealed partial class VersionManagementExperience
             if (!lease.IsAcquired)
             {
                 throw new InvalidOperationException("Another version-management writer is active.");
+            }
+            if (await LoadClearLauncherFenceAsync(cancellationToken).ConfigureAwait(false) is null)
+            {
+                throw new InvalidOperationException("Launcher activation fences managed-version mutation.");
             }
             VersionManagementSnapshot current = await ReloadDurableCurrentWithoutLockAsync(cancellationToken)
                 .ConfigureAwait(false);

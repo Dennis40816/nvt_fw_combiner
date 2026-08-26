@@ -202,16 +202,19 @@ public sealed class CompositionHostServices
     {
         ManagedAppVersion version = ManagedAppVersion.Parse(applicationVersion);
         string root = managedRoot ?? ManagedInstallationLayout.ResolveManagedRoot(AppContext.BaseDirectory);
+        string exactStatePath = statePath ?? JsonVersionManagerStateStore.GetDefaultPath();
         IUpdateSourceRegistry? sourceRegistry = string.IsNullOrWhiteSpace(updateSourceRegistryPath)
             ? null
             : new FileSystemUpdateSourceRegistry(updateSourceRegistryPath);
         return new VersionManagementExperience(
             version,
             root,
-            new JsonVersionManagerStateStore(statePath ?? JsonVersionManagerStateStore.GetDefaultPath()),
+            new JsonVersionManagerStateStore(exactStatePath),
             new FileSystemUpdateCatalogSource(),
             new FileSystemManagedVersionRepository(),
-            sourceRegistry);
+            sourceRegistry,
+            mutationFence: null,
+            launcherFence: new JsonLauncherMutationFence(exactStatePath));
     }
 
     /// <summary>Creates the inherited one-use app-side ready signal.</summary>

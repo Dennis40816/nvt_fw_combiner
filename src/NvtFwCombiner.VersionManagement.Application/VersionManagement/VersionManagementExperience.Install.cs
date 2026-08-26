@@ -21,6 +21,12 @@ public sealed partial class VersionManagementExperience
                     new(null, ManagedVersionInstallIssue.StateUnavailable, WasAlreadyInstalled: false),
                     PublishStateUnavailable());
             }
+            if (await LoadClearLauncherFenceAsync(cancellationToken).ConfigureAwait(false) is null)
+            {
+                return new(
+                    new(null, ManagedVersionInstallIssue.StateUnavailable, WasAlreadyInstalled: false),
+                    PublishStateUnavailable());
+            }
             VersionManagementSnapshot current = await ReloadDurableCurrentWithoutLockAsync(cancellationToken)
                 .ConfigureAwait(false);
             if (current.State is not { } state)
