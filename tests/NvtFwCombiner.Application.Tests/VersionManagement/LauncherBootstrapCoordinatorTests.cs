@@ -346,6 +346,61 @@ public sealed class LauncherBootstrapCoordinatorTests
         Assert.Equal(1, repository.VerifyCount);
     }
 
+    /// <summary>Failure to persist the terminal first-launch failure leaves the recorded launch uncertain.</summary>
+    [Fact]
+    public async Task FirstLaunchFailureSaveFailureKeepsRecordedCandidate()
+    {
+        var launcherStore = new RecordingLauncherStateStore(load: null)
+        {
+            FailSaveAt = 3,
+        };
+
+        LauncherBootstrapResult result = await Create(
+            new RecordingAppStateStore(AppState(App100)),
+            launcherStore,
+            new RecordingLauncherRepository(Launcher100),
+            new RecordingLauncherProcess(LauncherProcessStartOutcome.StartFailed))
+            .RunAsync(TestContext.Current.CancellationToken);
+
+        Assert.Equal(LauncherBootstrapOutcome.StateUnavailable, result.Outcome);
+        Assert.Equal(LauncherActivationPhase.CandidateLaunchRecorded, launcherStore.Current!.Pending!.Phase);
+        Assert.Null(launcherStore.Current.Active);
+        Assert.Null(launcherStore.Current.Failed);
+    }
+
+    /// <summary>Rollback record and rollback commit save failures remain at their last durable phase.</summary>
+    [Theory]
+    [InlineData(3, 1)]
+    [InlineData(4, 2)]
+    public async Task EveryRollbackStateSaveFailureFailsClosed(
+        int failedSave,
+        int expectedStarts)
+    {
+        var launcherStore = new RecordingLauncherStateStore(
+            LauncherBootstrapState.Create(Root, Launcher100, Launcher100, pending: null, failed: null))
+        {
+            FailSaveAt = failedSave,
+        };
+        var process = new RecordingLauncherProcess(
+            LauncherProcessStartOutcome.StartFailed,
+            LauncherProcessStartOutcome.Ready);
+
+        LauncherBootstrapResult result = await Create(
+            new RecordingAppStateStore(AppState(App101, App100)),
+            launcherStore,
+            new RecordingLauncherRepository(Launcher101, Launcher100),
+            process).RunAsync(TestContext.Current.CancellationToken);
+
+        Assert.Equal(LauncherBootstrapOutcome.StateUnavailable, result.Outcome);
+        Assert.Equal(expectedStarts, process.Started.Count);
+        Assert.Equal(
+            failedSave == 3
+                ? LauncherActivationPhase.CandidateLaunchRecorded
+                : LauncherActivationPhase.RollbackLaunchRecorded,
+            launcherStore.Current!.Pending!.Phase);
+        Assert.Equal(Launcher100, launcherStore.Current.Active);
+    }
+
     /// <summary>A tampered exact fallback remains recorded and is never started.</summary>
     [Fact]
     public async Task TamperedRecordedFallbackIsNeverStarted()
