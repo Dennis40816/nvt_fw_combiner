@@ -87,7 +87,7 @@ internal sealed partial class WorkflowContextSetupViewModel : ObservableObject
         OnPropertyChanged(nameof(IcChoices));
         _ = SetProperty(ref _selectedIc, string.Empty, nameof(SelectedIc));
         NumberChoices = [];
-        SelectedNumber = IcNumberSelectionTokens.SingleChip;
+        SelectedNumber = string.Empty;
         OnPropertyChanged(nameof(SelectedNumberChoice));
     }
 
@@ -103,7 +103,7 @@ internal sealed partial class WorkflowContextSetupViewModel : ObservableObject
             : UiCompositionRunner.GetNumberSelectionChoices(_selectorPublication, SelectedIc);
         SelectedNumber = NumberChoices.FirstOrDefault(choice =>
             string.Equals(choice.Token, preferredToken, StringComparison.Ordinal))?.Token ??
-            (NumberChoices.Count > 0 ? NumberChoices[0].Token : IcNumberSelectionTokens.SingleChip);
+            (NumberChoices.Count > 0 ? NumberChoices[0].Token : string.Empty);
         OnPropertyChanged(nameof(SelectedNumberChoice));
     }
 }

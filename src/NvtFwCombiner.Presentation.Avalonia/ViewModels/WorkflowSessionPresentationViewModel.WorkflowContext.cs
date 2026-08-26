@@ -1,4 +1,3 @@
-using System.Collections.ObjectModel;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using NvtFwCombiner.Application.Capabilities;
@@ -63,21 +62,56 @@ internal sealed partial class WorkflowSessionPresentationViewModel
             return;
         }
 
-        IsWorkflowContextModalOpen = false;
-        _workflowContextTarget = null;
+        (string previousIc, string previousNumber) = GetWorkflowPageContext(target.Page);
+        bool previousNeedsRefresh = target.Page == ShellPage.Merge
+            ? _mergeWorkflowContextNeedsRefresh
+            : _replaceWorkflowContextNeedsRefresh;
+        string selectedIc = WorkflowContextSetup.SelectedIc;
+        string selectedNumber = target.ShowNumber
+            ? WorkflowContextSetup.SelectedNumber
+            : previousNumber;
+        selectedNumber = target.ShowNumber
+            ? ResolvePublishedNumber(
+                ResolveWorkflowContextIc(selectedIc, target.Page),
+                selectedNumber,
+                useAbTopology: StringComparer.Ordinal.Equals(target.Mode, ExperienceIds.AbMerge))
+            : selectedNumber;
         SetWorkflowPageContext(
             target.Page,
-            WorkflowContextSetup.SelectedIc,
-            target.ShowNumber
-                ? WorkflowContextSetup.SelectedNumber
-                : GetWorkflowPageContext(target.Page).Number);
-
-        _applyWorkflowContext(new WorkflowContextSelection(
+            selectedIc,
+            selectedNumber);
+        (selectedIc, selectedNumber) = GetWorkflowPageContext(target.Page);
+        var selection = new WorkflowContextSelection(
             target.Page,
             target.Mode,
             target.ShowNumber,
-            WorkflowContextSetup.SelectedIc,
-            WorkflowContextSetup.SelectedNumber));
+            selectedIc,
+            selectedNumber);
+        try
+        {
+            _applyWorkflowContext(selection);
+        }
+        catch
+        {
+            SetWorkflowPageContext(target.Page, previousIc, previousNumber);
+            if (target.Page == ShellPage.Merge)
+            {
+                _mergeWorkflowContextNeedsRefresh = previousNeedsRefresh;
+            }
+            else
+            {
+                _replaceWorkflowContextNeedsRefresh = previousNeedsRefresh;
+            }
+            throw;
+        }
+
+        _workflowContextTarget = null;
+        IsWorkflowContextModalOpen = false;
+        WorkflowNavigationTransaction.RecordConfirmedSelection(
+            _recordActivity,
+            selection,
+            previousIc,
+            previousNumber);
     }
 
     private void CancelWorkflowContext()
@@ -100,16 +134,24 @@ internal sealed partial class WorkflowSessionPresentationViewModel
             return;
         }
 
-        ReadOnlyCollection<string> choices = GetPublishedWorkflowIcChoices(
-            publication,
-            target.Mode);
+        System.Collections.ObjectModel.ReadOnlyCollection<string> choices =
+            WorkflowSelectorProjection.WorkflowIcChoices(publication, target.Mode);
         if (choices.Count == 0)
         {
             InvalidateWorkflowContextDraft();
             return;
         }
 
-        (string draftIc, string draftNumber) = GetWorkflowPageContext(target.Page);
+        (string committedIc, string committedNumber) = GetWorkflowPageContext(target.Page);
+        bool retainsModalIc = choices.Contains(
+            WorkflowContextSetup.SelectedIc,
+            StringComparer.Ordinal);
+        string draftIc = retainsModalIc
+            ? WorkflowContextSetup.SelectedIc
+            : committedIc;
+        string draftNumber = retainsModalIc
+            ? WorkflowContextSetup.SelectedNumber
+            : committedNumber;
         WorkflowContextSetup.Configure(
             publication,
             draftIc,
@@ -128,11 +170,16 @@ internal sealed partial class WorkflowSessionPresentationViewModel
 
     internal void InitializeWorkflowPageContexts(string? defaultIc)
     {
-        string resolvedIc = ResolveWorkflowContextIc(defaultIc);
-        _mergeWorkflowContextIc = resolvedIc;
-        _replaceWorkflowContextIc = resolvedIc;
-        _mergeWorkflowContextNumber = IcNumberSelectionTokens.SingleChip;
-        _replaceWorkflowContextNumber = IcNumberSelectionTokens.SingleChip;
+        _mergeWorkflowContextIc = ResolveWorkflowContextIc(defaultIc, ShellPage.Merge);
+        _replaceWorkflowContextIc = ResolveWorkflowContextIc(defaultIc, ShellPage.Replace);
+        _mergeWorkflowContextNumber = ResolvePublishedNumber(
+            _mergeWorkflowContextIc,
+            IcNumberSelectionTokens.SingleChip,
+            useAbTopology: false);
+        _replaceWorkflowContextNumber = ResolvePublishedNumber(
+            _replaceWorkflowContextIc,
+            IcNumberSelectionTokens.SingleChip,
+            useAbTopology: false);
         _mergeWorkflowContextNeedsRefresh = false;
         _replaceWorkflowContextNeedsRefresh = false;
     }
@@ -145,6 +192,35 @@ internal sealed partial class WorkflowSessionPresentationViewModel
         }
     }
 
+    internal PageActivationRollback CapturePageActivationRollback()
+    {
+        return new PageActivationRollback(SelectedIc, SelectedNumber, IsWorkflowLoaded);
+    }
+
+    internal void ValidatePageActivation(ShellPage page)
+    {
+        if (page is not (ShellPage.Merge or ShellPage.Replace) ||
+            _selectorPublication is not { } publication)
+        {
+            return;
+        }
+
+        ValidateWorkflowContextRefresh(publication, page);
+    }
+
+    internal void RestorePageActivation(
+        ShellPage page,
+        PageActivationRollback rollback,
+        bool restoreContext)
+    {
+        if (restoreContext)
+        {
+            RestoreNavigationContext(page, rollback.SelectedIc, rollback.SelectedNumber);
+        }
+
+        IsWorkflowLoaded = rollback.WorkflowLoaded;
+    }
+
     internal void ActivateWorkflowPageContext(ShellPage page)
     {
         if (page is not (ShellPage.Merge or ShellPage.Replace))
@@ -153,7 +229,7 @@ internal sealed partial class WorkflowSessionPresentationViewModel
         }
 
         (string ic, string number) = GetWorkflowPageContext(page);
-        ic = ResolveWorkflowContextIc(ic);
+        ic = ResolveWorkflowContextIc(ic, page);
         _isActivatingWorkflowPageContext = true;
         try
         {
@@ -171,6 +247,10 @@ internal sealed partial class WorkflowSessionPresentationViewModel
         }
 
         StoreWorkflowPageContext(ActiveWorkflowOwner, SelectedIc, SelectedNumber);
+        if (page == ShellPage.Merge && IsWorkflowLoaded)
+        {
+            RefreshGeneralMergeDefaults(SelectedIc);
+        }
         bool needsRefresh = page == ShellPage.Merge
             ? _mergeWorkflowContextNeedsRefresh
             : _replaceWorkflowContextNeedsRefresh;
@@ -205,21 +285,85 @@ internal sealed partial class WorkflowSessionPresentationViewModel
         }
     }
 
+    internal void RestoreNavigationContext(
+        ShellPage page,
+        string previousIc,
+        string previousNumber)
+    {
+        PublishActiveSelectorState(previousIc, previousNumber);
+        if (page is ShellPage.Merge or ShellPage.Replace)
+        {
+            StoreWorkflowPageContext(
+                page == ShellPage.Merge
+                    ? WorkflowInspectionOwner.Merge
+                    : WorkflowInspectionOwner.Replace,
+                previousIc,
+                previousNumber);
+        }
+    }
+
+    internal WorkflowModeNavigationStage StageWorkflowModeForNavigation(
+        ShellPage page,
+        string mode)
+    {
+        bool previousNeedsRefresh = page == ShellPage.Merge
+            ? _mergeWorkflowContextNeedsRefresh
+            : _replaceWorkflowContextNeedsRefresh;
+        var stage = WorkflowModeNavigationStage.Create(
+            page,
+            mode,
+            GetWorkflowPageContext(page).Ic,
+            previousNeedsRefresh,
+            _merge,
+            _replace,
+            IsPublishedWorkflowAuthorable);
+        SetWorkflowContextNeedsRefresh(page, previousNeedsRefresh || stage.Changed);
+        return stage;
+    }
+
+    internal void RestoreStagedWorkflowMode(WorkflowModeNavigationStage stage)
+    {
+        stage.Restore(_merge, _replace);
+        SetWorkflowContextNeedsRefresh(stage.Page, stage.PreviousNeedsRefresh);
+    }
+
+    internal void PublishStagedWorkflowMode(WorkflowModeNavigationStage stage)
+    {
+        stage.Publish(_merge, _replace);
+    }
+
+    private void SetWorkflowContextNeedsRefresh(ShellPage page, bool value)
+    {
+        if (page == ShellPage.Merge)
+        {
+            _mergeWorkflowContextNeedsRefresh = value;
+            return;
+        }
+        _replaceWorkflowContextNeedsRefresh = value;
+    }
+
     internal void StoreWorkflowPageContext(
         WorkflowInspectionOwner? owner,
         string ic,
         string number)
     {
-        ic = ResolveWorkflowContextIc(ic);
         if (owner is null or WorkflowInspectionOwner.Merge)
         {
-            _mergeWorkflowContextIc = ic;
-            _mergeWorkflowContextNumber = number;
+            string mergeIc = ResolveWorkflowContextIc(ic, ShellPage.Merge);
+            _mergeWorkflowContextIc = mergeIc;
+            _mergeWorkflowContextNumber = ResolvePublishedNumber(
+                mergeIc,
+                number,
+                useAbTopology: _merge.IsAbCodeMergeModeSelected);
         }
         if (owner is null or WorkflowInspectionOwner.Replace)
         {
-            _replaceWorkflowContextIc = ic;
-            _replaceWorkflowContextNumber = number;
+            string replaceIc = ResolveWorkflowContextIc(ic, ShellPage.Replace);
+            _replaceWorkflowContextIc = replaceIc;
+            _replaceWorkflowContextNumber = ResolvePublishedNumber(
+                replaceIc,
+                number,
+                useAbTopology: false);
         }
     }
 
@@ -257,7 +401,7 @@ internal sealed partial class WorkflowSessionPresentationViewModel
 
     private void SetWorkflowPageContext(ShellPage page, string ic, string number)
     {
-        ic = ResolveWorkflowContextIc(ic);
+        ic = ResolveWorkflowContextIc(ic, page);
         switch (page)
         {
             case ShellPage.Merge:
@@ -282,14 +426,12 @@ internal sealed partial class WorkflowSessionPresentationViewModel
         }
     }
 
-    private string ResolveWorkflowContextIc(string? candidate)
+    private string ResolveWorkflowContextIc(string? candidate, ShellPage page)
     {
-        IReadOnlyList<string> choices = _selectorPublication?.IcIds ?? [];
-        return !string.IsNullOrWhiteSpace(candidate) &&
-            choices.Contains(candidate, StringComparer.Ordinal)
-                ? candidate
-                : _selectorPublication?.DefaultIcId ?? string.Empty;
+        CapabilitySelectorPublication? publication = _selectorPublication;
+        return publication is null
+            ? string.Empty
+            : WorkflowSelectorProjection.ContextIc(publication, candidate, page);
     }
 
-    private sealed record WorkflowContextTarget(ShellPage Page, string Mode, bool ShowNumber);
 }

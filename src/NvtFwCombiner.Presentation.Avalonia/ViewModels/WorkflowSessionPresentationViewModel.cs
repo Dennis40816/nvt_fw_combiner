@@ -142,15 +142,4 @@ internal sealed partial class WorkflowSessionPresentationViewModel : ObservableO
         }
     }
 
-    internal sealed record WorkflowContextSelection(
-        ShellPage Page,
-        string Mode,
-        bool ShowNumber,
-        string IcId,
-        string Number);
-
-    internal sealed record AcceptedFirmwareMismatchSelection(
-        WorkflowInspectionContext Context,
-        string SlotId,
-        string Path);
 }

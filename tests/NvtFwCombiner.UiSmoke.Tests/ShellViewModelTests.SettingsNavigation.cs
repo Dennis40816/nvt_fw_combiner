@@ -166,9 +166,10 @@ public sealed partial class ShellNavigationSystemTests
     {
         using var workspace = TempWorkspace.Create("nvt-fw-combiner-ui-settings-replace-isolation");
         MainWindowViewModel viewModel = PresentationTestHost.CreateViewModel();
-        OpenReplace(viewModel, ExperienceIds.GeneralReplace);
-        viewModel.WorkflowSession.SelectedIc = "NT51927";
-        viewModel.WorkflowSession.SelectedNumber = "2";
+        viewModel.ShowReplaceCommand.Execute(null);
+        viewModel.WorkflowSession.SelectedIc = "NT51926";
+        viewModel.Replace.SelectedReplaceMode = ExperienceIds.GeneralReplace;
+        viewModel.WorkflowSession.SelectedNumber = IcNumberSelectionTokens.SingleChip;
         GeneralReplaceMappingViewModel mapping = Assert.Single(viewModel.Replace.GeneralReplaceMappings);
         mapping.TargetStartAddress = "0x120";
         mapping.Length = "0x2";
@@ -184,8 +185,8 @@ public sealed partial class ShellNavigationSystemTests
 
         Assert.True(viewModel.IsReplaceVisible);
         Assert.False(viewModel.Navigation.IsNavigationClearConfirmationOpen);
-        Assert.Equal("NT51927", viewModel.WorkflowSession.SelectedIc);
-        Assert.Equal("2", viewModel.WorkflowSession.SelectedNumber);
+        Assert.Equal("NT51926", viewModel.WorkflowSession.SelectedIc);
+        Assert.Equal(IcNumberSelectionTokens.SingleChip, viewModel.WorkflowSession.SelectedNumber);
         Assert.Equal(ExperienceIds.GeneralReplace, viewModel.Replace.SelectedReplaceMode);
         Assert.Equal(basePath, viewModel.Replace.ReplaceBaseSlot.FilePath);
         Assert.Equal(mappingPath, mapping.FilePath);

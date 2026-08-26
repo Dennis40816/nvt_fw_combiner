@@ -86,7 +86,7 @@ internal sealed partial class MainWindowViewModel
                 () => WorkflowSession!.RefreshRetainedMergeFirmwareInspectionsIfStaleAsync(),
                 (path, cancellationToken) => WorkflowSession!.SetAbSameTpFileAsync(path, cancellationToken),
                 ResetRunResultForContextChange,
-                RefreshCommandState,
+                () => RefreshCommandState(),
                 OutputDelivery));
         Merge.PropertyChanged += Merge_OnPropertyChanged;
         Replace = new ReplacePresentationViewModel(
@@ -107,7 +107,7 @@ internal sealed partial class MainWindowViewModel
                  ShowActionReadiness,
                  WorkflowReplaceModeChanged,
                 ResetRunResultForContextChange,
-                RefreshCommandState,
+                () => RefreshCommandState(),
                 OutputDelivery));
         Replace.PropertyChanged += Replace_OnPropertyChanged;
         SelectedLanguage = language == ShellLanguage.ChineseTraditional ? "Traditional Chinese" : "English";
@@ -129,7 +129,7 @@ internal sealed partial class MainWindowViewModel
                 GetDisplayedDeviceNumber,
                 GetDisplayedDeviceContextRefreshSummary,
                 ResetRunResultForContextChange,
-                RefreshCommandState,
+                () => RefreshCommandState(),
                 NotifyRunContextChanged));
         WorkflowSession.PropertyChanged += WorkflowSession_OnPropertyChanged;
         BuildResult = new BuildResultViewModel(_fileRevealService, () => Text.BuildCompletedOpenFolderError);
@@ -146,7 +146,7 @@ internal sealed partial class MainWindowViewModel
                 () => IsReducedMotionEnabled,
                 () => Reports,
                 TryShowBuildCompleted,
-                RefreshCommandState,
+                () => RefreshCommandState(),
                 NotifyShellRunStateChanged));
         RunSession.PropertyChanged += RunSession_OnPropertyChanged;
         MessageCenter = new MessageCenterViewModel(

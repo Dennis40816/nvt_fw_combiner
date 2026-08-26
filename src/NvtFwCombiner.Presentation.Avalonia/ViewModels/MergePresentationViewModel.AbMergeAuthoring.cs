@@ -5,6 +5,11 @@ namespace NvtFwCombiner.Presentation.Avalonia.ViewModels;
 
 internal sealed partial class MergePresentationViewModel
 {
+    private string? _preparedAbMergeIc;
+    private string? _preparedAbMergeTopology;
+    private bool _hasPreparedAbMergeSnapshot;
+    private CompiledAuthoringSelectionSnapshot? _preparedAbMergeSnapshot;
+
     private CapabilityActionReadinessSnapshot? _abMergeActionReadiness;
     private ActiveSessionSnapshot? _abMergeReadinessSession;
 
@@ -77,6 +82,35 @@ internal sealed partial class MergePresentationViewModel
 
     private CompiledAuthoringSelectionSnapshot ResolveAbMergeAuthoringSnapshot()
     {
+        return ResolveAbMergeAuthoringSnapshot(
+            SelectedIc,
+            GetSelectedAbMergeTopologyToken());
+    }
+
+    private CompiledAuthoringSelectionSnapshot ResolveAbMergeAuthoringSnapshot(
+        string icId,
+        string? topologyToken)
+    {
+        if (_hasPreparedAbMergeSnapshot &&
+            string.Equals(_preparedAbMergeIc, icId, StringComparison.Ordinal) &&
+            string.Equals(_preparedAbMergeTopology, topologyToken, StringComparison.Ordinal) &&
+            _preparedAbMergeSnapshot is not null)
+        {
+            CompiledAuthoringSelectionSnapshot prepared = _preparedAbMergeSnapshot;
+            _preparedAbMergeIc = null;
+            _preparedAbMergeTopology = null;
+            _hasPreparedAbMergeSnapshot = false;
+            _preparedAbMergeSnapshot = null;
+            return prepared;
+        }
+
+        return ResolveAbMergeAuthoringSnapshotCore(icId, topologyToken);
+    }
+
+    private CompiledAuthoringSelectionSnapshot ResolveAbMergeAuthoringSnapshotCore(
+        string icId,
+        string? topologyToken)
+    {
         string[] selectedSlotIds =
         [
             .. AbMergeSlots
@@ -88,8 +122,8 @@ internal sealed partial class MergePresentationViewModel
             AbMergeSlots,
             static slot => slot.SlotId);
         return _compositionServices.AbMergeAuthoring.GetAuthoringSnapshot(
-            SelectedIc,
-            GetSelectedAbMergeTopologyToken(),
+            icId,
+            topologyToken,
             selectedSlotIds,
             accepted,
             AbMergeAuthoringRevision,

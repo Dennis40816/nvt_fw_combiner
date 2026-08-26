@@ -234,6 +234,30 @@ internal sealed partial class ReplacePresentationViewModel
     private CompiledAuthoringSelectionSnapshot ResolveDpReplaceAuthoringSnapshot(
         IReadOnlyCollection<FirmwareSlotViewModel> selected)
     {
+        return ResolveDpReplaceAuthoringSnapshot(SelectedIc, selected);
+    }
+
+    private CompiledAuthoringSelectionSnapshot ResolveDpReplaceAuthoringSnapshot(
+        string icId,
+        IReadOnlyCollection<FirmwareSlotViewModel> selected)
+    {
+        if (selected.Count == 0 &&
+            string.Equals(_preparedDpReplaceIc, icId, StringComparison.Ordinal) &&
+            _preparedDpReplaceSnapshot is not null)
+        {
+            CompiledAuthoringSelectionSnapshot prepared = _preparedDpReplaceSnapshot;
+            _preparedDpReplaceIc = null;
+            _preparedDpReplaceSnapshot = null;
+            return prepared;
+        }
+
+        return ResolveDpReplaceAuthoringSnapshotCore(icId, selected);
+    }
+
+    private CompiledAuthoringSelectionSnapshot ResolveDpReplaceAuthoringSnapshotCore(
+        string icId,
+        IReadOnlyCollection<FirmwareSlotViewModel> selected)
+    {
         ActiveSessionSnapshot? current = _dpReplaceSession.CurrentSnapshot;
         Dictionary<string, FileStamp> accepted = current?.Slots.Where(slot =>
                 slot.FileStamp is not null && selected.Any(candidate =>
@@ -241,7 +265,7 @@ internal sealed partial class ReplacePresentationViewModel
             .ToDictionary(static slot => slot.DefinitionId, static slot => slot.FileStamp!.Value,
                 StringComparer.Ordinal) ?? [];
         return _compositionServices.DpReplaceAuthoring.GetAuthoringSnapshot(
-            SelectedIc,
+            icId,
             [.. selected.Select(ReplaceInputId)],
             accepted,
             current?.AuthoringRevision ?? new AuthoringRevision(1),

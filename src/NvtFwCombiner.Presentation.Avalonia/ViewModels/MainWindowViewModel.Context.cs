@@ -5,32 +5,37 @@ namespace NvtFwCombiner.Presentation.Avalonia.ViewModels;
 
 internal sealed partial class MainWindowViewModel
 {
-    private void SelectReplaceMode(string mode)
-    {
-        Navigation.NavigateToPage(ShellPage.Replace);
-        Replace.SelectReplaceMode(mode);
-    }
-
     private void ApplySelectedPage(ShellPage page)
     {
+        ShellPage previousPage = SelectedPage;
+        PageActivationRollback rollback =
+            WorkflowSession.CapturePageActivationRollback();
         bool pageChanged = SelectedPage != page;
-        if (pageChanged)
+        try
         {
-            WorkflowSession.RememberCurrentWorkflowContext();
-            SelectedPage = page;
-            WorkflowSession.ActivateWorkflowPageContext(page);
-        }
-
-        if (page is ShellPage.Merge or ShellPage.Replace)
-        {
-            // Destination publication and page-owned selection must be active
-            // before any profile-dependent lazy-load query observes the IC.
-            bool wasWorkflowLoaded = WorkflowSession.IsWorkflowLoaded;
-            WorkflowSession.EnsureWorkflowLoaded();
-            if (!wasWorkflowLoaded)
+            if (pageChanged)
             {
-                WorkflowSession.RefreshContextState();
+                WorkflowSession.ValidatePageActivation(page);
+                WorkflowSession.RememberCurrentWorkflowContext();
+                SelectedPage = page;
+                WorkflowSession.ActivateWorkflowPageContext(page);
             }
+
+            if (page is ShellPage.Merge or ShellPage.Replace)
+            {
+                bool wasWorkflowLoaded = WorkflowSession.IsWorkflowLoaded;
+                WorkflowSession.EnsureWorkflowLoaded();
+                if (!wasWorkflowLoaded)
+                {
+                    WorkflowSession.RefreshContextState();
+                }
+            }
+        }
+        catch
+        {
+            SelectedPage = previousPage;
+            WorkflowSession.RestorePageActivation(previousPage, rollback, pageChanged);
+            throw;
         }
 
         if (pageChanged)
@@ -129,10 +134,17 @@ internal sealed partial class MainWindowViewModel
         RequestHexEditorRedoCommand.NotifyCanExecuteChanged();
     }
 
-    private void RefreshCommandState()
+    private void RefreshCommandState(bool refreshReplaceReadiness = true)
     {
         Merge.NotifyCommandStateChanged();
-        Replace.NotifyCommandStateChanged();
+        if (refreshReplaceReadiness)
+        {
+            Replace.NotifyCommandStateChanged();
+        }
+        else
+        {
+            Replace.NotifyCommandAvailabilityChanged();
+        }
         RunSession.NotifyCommandStateChanged();
         Merge.PreviewMergeCommand.NotifyCanExecuteChanged();
         Merge.BuildMergeCommand.NotifyCanExecuteChanged();

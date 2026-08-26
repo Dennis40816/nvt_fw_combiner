@@ -143,12 +143,15 @@ firmware bytes, output naming, and evidence remain unchanged.
 Catalog apply and direct workflow-page activation form one Presentation
 transaction. Presentation captures one selector publication, repairs retained
 Merge and Replace drafts independently, stages an invalid-mode fallback without
-profile lookup, slot rebuild, readiness projection, or inspection admission,
-publishes selector ItemsSource before SelectedItem, publishes the reconciled
-mode, and then performs at most one active-page rebuild and successor
-inspection. A hidden page may update only its retained typed IC/count draft and
-pending-refresh marker; it cannot borrow or clear the active page's slots, AB
-link state, inspection lifecycle, readiness, plan, paths, or output state. A
+mutating selector, mode, or inspection state, and resolves every fallible
+Application projection required by the destination. It then publishes selector
+ItemsSource before SelectedItem, commits the reconciled mode and prior
+inspection invalidation, and consumes those exact staged results for at most
+one active-page rebuild and successor inspection. A hidden page may update only
+its retained typed IC/count draft and
+pending-refresh marker, including a repaired mode token; it cannot rebuild,
+borrow, or clear the active page's slots, AB link state, inspection lifecycle,
+readiness, plan, paths, or output state. A
 same-token last-known-good update is a no-op. A fresh token invalidates prior
 sessions and inspection projections, and delayed prior-token completion cannot
 publish. A zero-authorable publication clears selector state and disables

@@ -6,6 +6,69 @@ namespace NvtFwCombiner.Presentation.Avalonia.ViewModels;
 
 internal sealed partial class MergePresentationViewModel
 {
+    private string? _preparedStandardMergeIc;
+    private IReadOnlyList<string>? _preparedStandardMergeRequired;
+    private IReadOnlyList<string>? _preparedStandardMergeAvailable;
+    private CompiledAuthoringSelectionSnapshot? _preparedStandardMergeSnapshot;
+
+    internal void ValidateContextRefresh(
+        string icId,
+        string number,
+        string mode,
+        CapabilitySelectorPublication publication,
+        string? generalOutputLength,
+        string? generalOutputFillByte)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(icId);
+        ArgumentException.ThrowIfNullOrWhiteSpace(mode);
+        ArgumentNullException.ThrowIfNull(publication);
+        switch (mode)
+        {
+            case NormalMergeMode:
+                _preparedStandardMergeIc = null;
+                _preparedStandardMergeRequired = null;
+                _preparedStandardMergeAvailable = null;
+                _preparedStandardMergeSnapshot = null;
+                IReadOnlyList<string> required =
+                    _compositionServices.StandardMergeAuthoring.GetRequiredAddressSpaces(icId);
+                IReadOnlyList<string> available =
+                    _compositionServices.StandardMergeAuthoring.GetInputAddressSpaces(icId);
+                CompiledAuthoringSelectionSnapshot snapshot =
+                    ResolveStandardMergeAuthoringSnapshotCore(icId);
+                _preparedStandardMergeIc = icId;
+                _preparedStandardMergeRequired = required;
+                _preparedStandardMergeAvailable = available;
+                _preparedStandardMergeSnapshot = snapshot;
+                break;
+            case AbCodeMergeMode:
+                _preparedAbMergeIc = null;
+                _preparedAbMergeTopology = null;
+                _hasPreparedAbMergeSnapshot = false;
+                _preparedAbMergeSnapshot = null;
+                IReadOnlyList<CapabilityTopologyChoice> choices =
+                    publication.GetAbMergeTopologyChoices(icId);
+                string? topologyToken = choices.Any(choice =>
+                    StringComparer.Ordinal.Equals(choice.Token, number))
+                        ? number
+                        : null;
+                CompiledAuthoringSelectionSnapshot abSnapshot =
+                    ResolveAbMergeAuthoringSnapshotCore(icId, topologyToken);
+                _preparedAbMergeIc = icId;
+                _preparedAbMergeTopology = topologyToken;
+                _hasPreparedAbMergeSnapshot = true;
+                _preparedAbMergeSnapshot = abSnapshot;
+                break;
+            case GeneralMergeMode:
+                ValidateGeneralMergeContextRefresh(
+                    icId,
+                    generalOutputLength ?? string.Empty,
+                    generalOutputFillByte ?? string.Empty);
+                break;
+            default:
+                throw new InvalidOperationException("Unknown Merge workflow mode.");
+        }
+    }
+
     internal void RefreshMergeSlotRequirements()
     {
         if (!HasSelectedIc)
@@ -22,10 +85,35 @@ internal sealed partial class MergePresentationViewModel
             return;
         }
 
-        IReadOnlyList<string> required =
-            _compositionServices.StandardMergeAuthoring.GetRequiredAddressSpaces(SelectedIc);
-        IReadOnlyList<string> available =
-            _compositionServices.StandardMergeAuthoring.GetInputAddressSpaces(SelectedIc);
+        if (IsGeneralMergeModeSelected)
+        {
+            MergeSlots.Clear();
+            AbMergeTopologyChoices.Clear();
+            _abMergeTopologyChoicesIcId = null;
+            _abMergeAddressSpaceBySlotId.Clear();
+            _abMergeBindingsByAddressSpace.Clear();
+            RefreshGeneralMergeAuthoringState();
+            return;
+        }
+
+        IReadOnlyList<string> required;
+        IReadOnlyList<string> available;
+        if (string.Equals(_preparedStandardMergeIc, SelectedIc, StringComparison.Ordinal) &&
+            _preparedStandardMergeRequired is not null &&
+            _preparedStandardMergeAvailable is not null)
+        {
+            required = _preparedStandardMergeRequired;
+            available = _preparedStandardMergeAvailable;
+            _preparedStandardMergeRequired = null;
+            _preparedStandardMergeAvailable = null;
+        }
+        else
+        {
+            required = _compositionServices.StandardMergeAuthoring
+                .GetRequiredAddressSpaces(SelectedIc);
+            available = _compositionServices.StandardMergeAuthoring
+                .GetInputAddressSpaces(SelectedIc);
+        }
         foreach (FirmwareSlotViewModel slot in new[] { MergeDpSlot, MergeTpSlot, MergeLdcSlot })
         {
             slot.ApplyExperienceText(Text);

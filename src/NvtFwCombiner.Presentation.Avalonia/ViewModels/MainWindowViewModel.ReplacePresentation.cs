@@ -9,7 +9,8 @@ internal sealed partial class MainWindowViewModel
     private void Replace_OnPropertyChanged(object? sender, System.ComponentModel.PropertyChangedEventArgs e)
     {
         OnPropertyChanged(nameof(Replace));
-        if (e.PropertyName == nameof(ReplacePresentationViewModel.SelectedReplaceMode))
+        if (e.PropertyName == nameof(ReplacePresentationViewModel.SelectedReplaceMode) &&
+            !string.IsNullOrWhiteSpace(Replace.SelectedReplaceMode))
         {
             RecordDebugActivity(
                 SystemActivityCodes.ModeSelected,

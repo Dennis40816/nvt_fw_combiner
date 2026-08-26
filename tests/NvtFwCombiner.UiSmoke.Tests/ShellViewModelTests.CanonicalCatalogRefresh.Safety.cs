@@ -78,6 +78,112 @@ public sealed partial class ShellNavigationSystemTests
         Assert.True(viewModel.ShowReplaceCommand.CanExecute(null));
     }
 
+    /// <summary>General Merge keeps its typed default when Standard authoring policy is withdrawn.</summary>
+    [Fact]
+    public async Task StandardWithdrawalDoesNotRemoveGeneralMergeDefaultDefinition()
+    {
+        var policy = new MutableAbCatalogPolicy();
+        (PresentationHostServices services, MainWindowViewModel viewModel) =
+            CreateCatalogRefreshViewModel(policy);
+        const string icId = "NT51927";
+        CapabilitySelectorPublication original = services.Composition.Capabilities
+            .GetSelectorPublication();
+        Assert.True(original.IsWorkflowAuthorable(icId, ExperienceIds.StandardMerge));
+        Assert.True(original.IsWorkflowAuthorable(icId, ExperienceIds.GeneralMerge));
+
+        viewModel.ShowMergeCommand.Execute(null);
+        viewModel.WorkflowSession.SelectedIc = icId;
+        viewModel.Merge.SelectedMergeMode = ExperienceIds.GeneralMerge;
+        string expectedLength = viewModel.Merge.GeneralMergeOutputLength;
+        string expectedFill = viewModel.Merge.GeneralMergeOutputFillByte;
+        viewModel.ShowReplaceCommand.Execute(null);
+
+        policy.DisableWorkflowFor(ExperienceIds.StandardMerge, icId);
+        Exception? refresh = await Record.ExceptionAsync(
+            () => viewModel.MessageCenter.RefreshCommand.ExecuteAsync(null));
+        CapabilitySelectorPublication partial = services.Composition.Capabilities
+            .GetSelectorPublication();
+
+        Assert.Null(refresh);
+        Assert.False(partial.IsWorkflowAuthorable(icId, ExperienceIds.StandardMerge));
+        Assert.True(partial.IsWorkflowAuthorable(icId, ExperienceIds.GeneralMerge));
+        Assert.Contains(icId, viewModel.WorkflowSession.GetPublishedWorkflowIcChoices(
+            ExperienceIds.GeneralMerge));
+
+        viewModel.ShowMergeCommand.Execute(null);
+        Assert.Equal(icId, viewModel.WorkflowSession.SelectedIc);
+        Assert.Equal(ExperienceIds.GeneralMerge, viewModel.Merge.SelectedMergeMode);
+        Assert.Equal(expectedLength, viewModel.Merge.GeneralMergeOutputLength);
+        Assert.Equal(expectedFill, viewModel.Merge.GeneralMergeOutputFillByte);
+    }
+
+    /// <summary>CtrlRAM Home authoring exposes only the current CtrlRAM publication and closes when that workflow is withdrawn.</summary>
+    [Fact]
+    public async Task CtrlRamWorkflowWithdrawalFiltersItsHomeDraftAndDisablesItsEntry()
+    {
+        var policy = new MutableAbCatalogPolicy();
+        (PresentationHostServices services, MainWindowViewModel viewModel) =
+            CreateCatalogRefreshViewModel(policy);
+        CapabilitySelectorPublication original = services.Composition.Capabilities
+            .GetSelectorPublication();
+        string[] ctrlRamIcs =
+        [
+            .. original.IcIds.Where(icId =>
+                original.IsWorkflowAuthorable(icId, ExperienceIds.CtrlRamReplace)),
+        ];
+        Assert.True(ctrlRamIcs.Length > 1);
+        string withdrawnIc = ctrlRamIcs[0];
+
+        policy.DisableWorkflowFor(ExperienceIds.CtrlRamReplace, withdrawnIc);
+        await viewModel.MessageCenter.RefreshCommand.ExecuteAsync(null);
+        CapabilitySelectorPublication partial = services.Composition.Capabilities
+            .GetSelectorPublication();
+
+        Assert.True(viewModel.BeginCtrlRamReplaceFromHomeCommand.CanExecute(null));
+        viewModel.BeginCtrlRamReplaceFromHomeCommand.Execute(null);
+        Assert.True(viewModel.WorkflowSession.IsWorkflowContextModalOpen);
+        Assert.DoesNotContain(
+            withdrawnIc,
+            viewModel.WorkflowSession.WorkflowContextSetup.IcChoices);
+        Assert.All(
+            viewModel.WorkflowSession.WorkflowContextSetup.IcChoices,
+            icId => Assert.True(
+                partial.IsWorkflowAuthorable(icId, ExperienceIds.CtrlRamReplace)));
+
+        policy.DisableEveryWorkflow(ExperienceIds.CtrlRamReplace);
+        await viewModel.MessageCenter.RefreshCommand.ExecuteAsync(null);
+
+        Assert.False(viewModel.WorkflowSession.IsWorkflowContextModalOpen);
+        Assert.False(viewModel.BeginCtrlRamReplaceFromHomeCommand.CanExecute(null));
+        Assert.True(viewModel.ShowReplaceCommand.CanExecute(null));
+        Assert.True(viewModel.ShowMergeCommand.CanExecute(null));
+    }
+
+    /// <summary>Withdrawing every Replace workflow disables only the Replace aggregate while Merge stays available.</summary>
+    [Fact]
+    public async Task WithdrawingAllReplaceWorkflowsDisablesReplaceAggregateOnly()
+    {
+        var policy = new MutableAbCatalogPolicy();
+        (_, MainWindowViewModel viewModel) = CreateCatalogRefreshViewModel(policy);
+        Assert.True(viewModel.ShowReplaceCommand.CanExecute(null));
+        Assert.True(viewModel.ShowMergeCommand.CanExecute(null));
+
+        policy.DisableEveryWorkflow(ExperienceIds.DpReplace);
+        policy.DisableEveryWorkflow(ExperienceIds.CtrlRamReplace);
+        policy.DisableEveryWorkflow(ExperienceIds.GeneralReplace);
+        await viewModel.MessageCenter.RefreshCommand.ExecuteAsync(null);
+
+        Assert.False(viewModel.BeginDpReplaceFromHomeCommand.CanExecute(null));
+        Assert.False(viewModel.BeginCtrlRamReplaceFromHomeCommand.CanExecute(null));
+        Assert.False(viewModel.BeginGeneralReplaceFromHomeCommand.CanExecute(null));
+        Assert.False(viewModel.ShowReplaceCommand.CanExecute(null));
+        Assert.True(viewModel.BeginNormalMergeFromHomeCommand.CanExecute(null));
+        Assert.True(viewModel.BeginAbMergeFromHomeCommand.CanExecute(null));
+        Assert.True(viewModel.BeginGeneralMergeFromHomeCommand.CanExecute(null));
+        Assert.True(viewModel.ShowMergeCommand.CanExecute(null));
+        Assert.False(viewModel.WorkflowSession.IsWorkflowContextModalOpen);
+    }
+
     /// <summary>A terminal zero-authorable publication performs no profile-dependent authoring query.</summary>
     [Fact]
     public async Task ZeroGlobalAuthoringPublicationDispatchesExactlyZeroAuthoringPortCalls()
@@ -383,6 +489,18 @@ public sealed partial class ShellNavigationSystemTests
             _general.Arm();
             _ctrlRam.Arm();
         }
+
+        internal void ArmStandardFailure(string methodName)
+        {
+            Arm();
+            _standardMerge.ThrowOn(methodName);
+        }
+
+        internal void ArmGeneralFailure(string methodName)
+        {
+            Arm();
+            _general.ThrowOn(methodName);
+        }
     }
 
     /// <summary>Test-only forwarding proxy that counts calls after an explicit arm point.</summary>
@@ -392,6 +510,7 @@ public sealed partial class ShellNavigationSystemTests
         private TPort? _inner;
         private int _armed;
         private int _armedCallCount;
+        private string? _throwingMethodName;
 
         /// <summary>Creates an unconfigured proxy base for <see cref="DispatchProxy"/>.</summary>
         public CountingAuthoringProxy()
@@ -411,7 +530,14 @@ public sealed partial class ShellNavigationSystemTests
         internal void Arm()
         {
             _ = Interlocked.Exchange(ref _armedCallCount, 0);
+            _throwingMethodName = null;
             Volatile.Write(ref _armed, 1);
+        }
+
+        internal void ThrowOn(string methodName)
+        {
+            ArgumentException.ThrowIfNullOrWhiteSpace(methodName);
+            _throwingMethodName = methodName;
         }
 
         /// <summary>Forwards one interface call and records it only after the proxy is armed.</summary>
@@ -421,6 +547,13 @@ public sealed partial class ShellNavigationSystemTests
             if (Volatile.Read(ref _armed) == 1)
             {
                 _ = Interlocked.Increment(ref _armedCallCount);
+            }
+
+            if (Volatile.Read(ref _armed) == 1 &&
+                StringComparer.Ordinal.Equals(_throwingMethodName, targetMethod.Name))
+            {
+                throw new InvalidOperationException(
+                    $"Injected {targetMethod.Name} failure.");
             }
 
             try

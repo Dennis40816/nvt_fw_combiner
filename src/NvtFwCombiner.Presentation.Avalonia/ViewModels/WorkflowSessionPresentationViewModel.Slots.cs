@@ -61,6 +61,9 @@ internal sealed partial class WorkflowSessionPresentationViewModel
         InvalidateFirmwareIcMismatch();
         InvalidateFirmwareNumberMismatch();
 
+        bool clearsActivePage = ActiveWorkflowOwner == (page == ShellPage.Merge
+            ? WorkflowInspectionOwner.Merge
+            : WorkflowInspectionOwner.Replace);
         if (page == ShellPage.Merge)
         {
             _merge.ClearStandardMergeAuthoringSelections();
@@ -72,12 +75,15 @@ internal sealed partial class WorkflowSessionPresentationViewModel
                 ClearFirmwareSlot(slot);
             }
 
-            foreach (GeneralMergeMappingViewModel mapping in _merge.GeneralMergeMappings)
+            _merge.ClearGeneralMergeMappingFilesWithoutRefresh();
+            if (clearsActivePage)
             {
-                mapping.FilePath = null;
+                _merge.RefreshMergeMemoryMapState();
             }
-
-            _merge.RefreshMergeMemoryMapState();
+            else
+            {
+                _mergeWorkflowContextNeedsRefresh = true;
+            }
         }
         else if (page == ShellPage.Replace)
         {
@@ -88,16 +94,22 @@ internal sealed partial class WorkflowSessionPresentationViewModel
                 ClearFirmwareSlot(slot);
             }
 
-            foreach (GeneralReplaceMappingViewModel mapping in _replace.GeneralReplaceMappings)
-            {
-                mapping.FilePath = null;
-            }
-
+            _replace.ClearGeneralReplaceMappingFilesWithoutRefresh();
             _replace.ClearCtrlRamInspectionDisplay();
-            _replace.RefreshReplaceMemoryMapState();
+            if (clearsActivePage)
+            {
+                _replace.RefreshReplaceMemoryMapState();
+            }
+            else
+            {
+                _replaceWorkflowContextNeedsRefresh = true;
+            }
         }
 
-        NotifySlotFileOutputNames();
+        if (clearsActivePage)
+        {
+            NotifySlotFileOutputNames();
+        }
         _stateBindings.ResetRunResult();
         _stateBindings.RefreshCommandState();
     }

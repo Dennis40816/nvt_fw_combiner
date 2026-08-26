@@ -119,24 +119,18 @@ public sealed partial class GeneralWorkflowTests
     [Fact]
     public void GeneralReplaceWithoutExactRouteStaysBlocked()
     {
-        using var workspace = TempWorkspace.Create("nvt-fw-combiner-ui-general-replace");
-        byte[] baseBytes = CreatePattern(0x40000, 0x40);
-        string basePath = workspace.Write("base.bin", baseBytes);
-        string replacementPath = workspace.Write("replacement.bin", [0xA5, 0x5A]);
-
         MainWindowViewModel viewModel = PresentationTestHost.CreateViewModel();
+        viewModel.ShowReplaceCommand.Execute(null);
         viewModel.WorkflowSession.SelectedIc = "NT51950";
-        OpenReplace(viewModel, Domain.Composition.ExperienceIds.GeneralReplace);
-        viewModel.SetSlotFile("replace-base", basePath);
-        GeneralReplaceMappingViewModel mapping = Assert.Single(viewModel.Replace.GeneralReplaceMappings);
-        mapping.TargetStartAddress = "0x00100";
-        mapping.Length = "0x2";
-        viewModel.SetSlotFile(mapping.MappingId, replacementPath);
+        string retainedMode = viewModel.Replace.SelectedReplaceMode;
 
-        Assert.False(viewModel.Replace.PreviewReplaceCommand.CanExecute(null));
-        Assert.False(viewModel.Replace.CanBuildReplace);
-        Assert.Contains("Not available", viewModel.Replace.ReplaceReadinessStatus, StringComparison.Ordinal);
-        Assert.False(viewModel.Reports.HasLoadedReport);
+        viewModel.Replace.SelectedReplaceMode =
+            Domain.Composition.ExperienceIds.GeneralReplace;
+
+        Assert.DoesNotContain(
+            Domain.Composition.ExperienceIds.GeneralReplace,
+            viewModel.Replace.ReplaceModeChoices);
+        Assert.Equal(retainedMode, viewModel.Replace.SelectedReplaceMode);
     }
 
     /// <summary>Verifies the shared UI reaches the NT51926 single full-Flash DP-only V2 route.</summary>
@@ -254,29 +248,17 @@ public sealed partial class GeneralWorkflowTests
         Assert.Equal(0x3E030, currentOperation.GetProperty("TargetRange").GetProperty("Start").GetInt64());
     }
 
-    /// <summary>Verifies TP-touching General Replace remains fail-closed without an exact V2 route.</summary>
+    /// <summary>General Replace Home authoring excludes an IC without an exact V2 route.</summary>
     [Fact]
-    public void GeneralReplaceTpMappingWithoutExactRouteStaysBlocked()
+    public void GeneralReplaceHomeDraftExcludesIcWithoutExactRoute()
     {
-        using var golden = StandardMergeGoldenManifest.Load();
-        string basePath = golden.ExpectedOutputPath(golden.CaseByIc("51950"));
-        using var workspace = TempWorkspace.Create("nvt-fw-combiner-ui-general-replace-tp");
-        byte[] baseBytes = File.ReadAllBytes(basePath);
-        string replacementPath = workspace.Write("self-nf.bin", baseBytes[0x22C00..0x22C02]);
-
         MainWindowViewModel viewModel = PresentationTestHost.CreateViewModel();
-        viewModel.WorkflowSession.SelectedIc = "NT51950";
-        OpenReplace(viewModel, Domain.Composition.ExperienceIds.GeneralReplace);
-        viewModel.SetSlotFile("replace-base", basePath);
-        GeneralReplaceMappingViewModel mapping = Assert.Single(viewModel.Replace.GeneralReplaceMappings);
-        mapping.TargetStartAddress = "0x22C00";
-        mapping.Length = "0x2";
-        viewModel.SetSlotFile(mapping.MappingId, replacementPath);
+        viewModel.BeginGeneralReplaceFromHomeCommand.Execute(null);
 
-        Assert.False(viewModel.Replace.PreviewReplaceCommand.CanExecute(null));
-        Assert.False(viewModel.Replace.CanBuildReplace);
-        Assert.Contains("Not available", viewModel.Replace.ReplaceReadinessStatus, StringComparison.Ordinal);
-        Assert.False(viewModel.Reports.HasLoadedReport);
+        Assert.True(viewModel.WorkflowSession.IsWorkflowContextModalOpen);
+        Assert.DoesNotContain(
+            "NT51950",
+            viewModel.WorkflowSession.WorkflowContextSetup.IcChoices);
     }
 
 }

@@ -60,17 +60,21 @@ internal sealed partial class MainWindowViewModel
         WorkflowSession.ReplaceModeChanged();
     }
 
-    private void ApplyWorkflowContext(WorkflowSessionPresentationViewModel.WorkflowContextSelection selection)
+    private void ApplyWorkflowContext(WorkflowContextSelection selection)
     {
-        if (selection.Page == ShellPage.Replace)
+        WorkflowModeNavigationStage stage =
+            WorkflowSession.StageWorkflowModeForNavigation(selection.Page, selection.Mode);
+        try
         {
-            SelectReplaceMode(selection.Mode);
+            Navigation.NavigateToPage(selection.Page);
         }
-        else
+        catch
         {
-            Navigation.NavigateToPage(ShellPage.Merge);
-            Merge.SelectMergeMode(selection.Mode);
+            WorkflowSession.RestoreStagedWorkflowMode(stage);
+            throw;
         }
+
+        WorkflowSession.PublishStagedWorkflowMode(stage);
     }
 
     private void WorkflowSession_OnPropertyChanged(object? sender, PropertyChangedEventArgs e)

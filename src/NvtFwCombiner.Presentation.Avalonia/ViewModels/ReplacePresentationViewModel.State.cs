@@ -11,6 +11,8 @@ internal sealed partial class ReplacePresentationViewModel
     private const string DpReplaceMode = ExperienceIds.DpReplace;
     private const string CtrlRamReplaceMode = ExperienceIds.CtrlRamReplace;
     private const string GeneralReplaceMode = ExperienceIds.GeneralReplace;
+    private static readonly IReadOnlyList<string> s_replaceModeOrder =
+        Array.AsReadOnly([DpReplaceMode, CtrlRamReplaceMode, GeneralReplaceMode]);
     private readonly AuthoringSessionState _dpReplaceSession =
         new(ExperienceIds.DpReplace);
     private readonly AuthoringSessionState _ctrlRamReplaceSession =
@@ -19,19 +21,14 @@ internal sealed partial class ReplacePresentationViewModel
         new(ExperienceIds.GeneralReplace);
     private int _generalReplaceMappingCounter;
     private string _selectedReplaceMode = CtrlRamReplaceMode;
+    private string? _catalogReconciliationPreviousMode;
 
     public IReadOnlyList<string> ReplaceModeChoices =>
         string.IsNullOrWhiteSpace(SelectedIc)
             ? []
             : Array.AsReadOnly(
             [
-                .. new[]
-                {
-                    DpReplaceMode,
-                    CtrlRamReplaceMode,
-                    GeneralReplaceMode,
-                }.Where(mode =>
-                    !StringComparer.Ordinal.Equals(mode, DpReplaceMode) ||
+                .. s_replaceModeOrder.Where(mode =>
                     _stateBindings.IsWorkflowAuthorable(SelectedIc, mode)),
             ]);
 
@@ -266,6 +263,67 @@ internal sealed partial class ReplacePresentationViewModel
         }
     }
 
+    internal bool StageAuthorableModeForCatalogReconciliation(
+        Func<string, bool> isAuthorable)
+    {
+        ArgumentNullException.ThrowIfNull(isAuthorable);
+        string nextMode = ResolveAuthorableModeForCatalogReconciliation(isAuthorable);
+        if (string.Equals(_selectedReplaceMode, nextMode, StringComparison.Ordinal))
+        {
+            return false;
+        }
+
+        _catalogReconciliationPreviousMode = _selectedReplaceMode;
+        _selectedReplaceMode = nextMode;
+        return true;
+    }
+
+    internal string ResolveAuthorableModeForCatalogReconciliation(
+        Func<string, bool> isAuthorable)
+    {
+        ArgumentNullException.ThrowIfNull(isAuthorable);
+        return isAuthorable(_selectedReplaceMode)
+            ? _selectedReplaceMode
+            : s_replaceModeOrder.FirstOrDefault(isAuthorable) ?? string.Empty;
+    }
+
+    internal bool StageModeForWorkflowNavigation(string mode, bool isAuthorable)
+    {
+        if (!isAuthorable ||
+            !s_replaceModeOrder.Contains(mode, StringComparer.Ordinal) ||
+            string.Equals(_selectedReplaceMode, mode, StringComparison.Ordinal))
+        {
+            return false;
+        }
+
+        _selectedReplaceMode = mode;
+        return true;
+    }
+
+    internal void RestoreStagedWorkflowNavigationMode(string mode)
+    {
+        _selectedReplaceMode = mode;
+    }
+
+    internal void CommitStagedWorkflowNavigationMode(string previousMode)
+    {
+        InspectionLifecycles[previousMode].Invalidate();
+        PublishCatalogReconciledReplaceMode();
+    }
+
+    internal void PublishCatalogReconciledReplaceMode()
+    {
+        if (_catalogReconciliationPreviousMode is { } previousMode)
+        {
+            InspectionLifecycles[previousMode].Invalidate();
+            _catalogReconciliationPreviousMode = null;
+        }
+        OnPropertyChanged(nameof(SelectedReplaceMode));
+        OnPropertyChanged(nameof(Inspection));
+        NotifyModeChanged();
+        _stateBindings.ResetRunResult();
+    }
+
     internal void NotifyContextChanged()
     {
         OnPropertyChanged(nameof(ReplaceModeChoices));
@@ -311,6 +369,11 @@ internal sealed partial class ReplacePresentationViewModel
     internal void NotifyCommandStateChanged()
     {
         RefreshDpReplaceInputSelectionReadiness();
+        NotifyCommandAvailabilityChanged();
+    }
+
+    internal void NotifyCommandAvailabilityChanged()
+    {
         PreviewReplaceCommand.NotifyCanExecuteChanged();
         BuildReplaceCommand.NotifyCanExecuteChanged();
         OnPropertyChanged(nameof(CanBuildReplace));

@@ -9,7 +9,8 @@ internal sealed partial class MainWindowViewModel
     private void Merge_OnPropertyChanged(object? sender, System.ComponentModel.PropertyChangedEventArgs e)
     {
         OnPropertyChanged(nameof(Merge));
-        if (e.PropertyName == nameof(MergePresentationViewModel.SelectedMergeMode))
+        if (e.PropertyName == nameof(MergePresentationViewModel.SelectedMergeMode) &&
+            !string.IsNullOrWhiteSpace(Merge.SelectedMergeMode))
         {
             RecordDebugActivity(
                 SystemActivityCodes.ModeSelected,

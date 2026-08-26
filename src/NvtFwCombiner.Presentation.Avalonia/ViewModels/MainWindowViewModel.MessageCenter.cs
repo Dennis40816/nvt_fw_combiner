@@ -39,7 +39,7 @@ internal sealed partial class MainWindowViewModel
             NotifyCatalogWorkflowCommandStateChanged();
         }
 
-        PresentationObserver.Invoke(RefreshCommandState);
+        PresentationObserver.Invoke(() => RefreshCommandState(refreshReplaceReadiness: false));
         PresentationObserver.Invoke(() => OnPropertyChanged(nameof(HasMergeBuildBlocker)));
         PresentationObserver.Invoke(() => OnPropertyChanged(nameof(MergeBuildBlockerText)));
         PresentationObserver.Invoke(() => OnPropertyChanged(nameof(HasReplaceBuildBlocker)));

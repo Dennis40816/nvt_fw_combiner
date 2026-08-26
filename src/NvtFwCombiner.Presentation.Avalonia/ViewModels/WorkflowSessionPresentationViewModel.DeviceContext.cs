@@ -13,18 +13,31 @@ internal sealed partial class WorkflowSessionPresentationViewModel
         null);
     private string _selectedIc = string.Empty;
     private bool _isPublishingCanonicalCatalogChoices;
-    private CapabilitySelectorPublication? _selectorPublication;
+    private string? _generalMergeDefaultsIc;
+    private string _generalMergeDefaultLength = string.Empty;
+    private string _generalMergeDefaultFillByte = string.Empty;
+    private string? _preparedGeneralMergeDefaultsIc;
+    private string _preparedGeneralMergeDefaultLength = string.Empty;
+    private string _preparedGeneralMergeDefaultFillByte = string.Empty;
 
     internal string DeviceContextRefreshSummary { get; private set; } = string.Empty;
 
     public IReadOnlyList<string> IcChoices => _selectorPublication is null
         ? []
-        : IsAbMergeContextActive
-            ? _selectorPublication.AbMergeIcIds
-            : _selectorPublication.IcIds;
+        : ActiveWorkflowOwner switch
+        {
+            WorkflowInspectionOwner.Merge when IsAbMergeContextActive =>
+                GetPublishedWorkflowIcChoices(ExperienceIds.AbMerge),
+            WorkflowInspectionOwner.Merge => GetPublishedPageIcChoices(ShellPage.Merge),
+            WorkflowInspectionOwner.Replace => GetPublishedPageIcChoices(ShellPage.Replace),
+            null => _selectorPublication.IcIds,
+            _ => throw new InvalidOperationException("Unknown workflow inspection owner."),
+        };
 
     /// <summary>True after the canonical capability publication is ready for workflow authoring.</summary>
     public bool IsCanonicalCatalogReady => _selectorPublication is not null;
+
+    internal ResolutionToken? SelectorResolutionToken => _selectorPublication?.ResolutionToken;
 
     /// <summary>True when the current publication exposes any workflow-authorable IC.</summary>
     public bool HasWorkflowAuthoringChoices => _selectorPublication?.IcIds.Count > 0;
@@ -124,8 +137,8 @@ internal sealed partial class WorkflowSessionPresentationViewModel
 
     internal bool IsPublishedWorkflowAuthorable(string icId, string workflowId)
     {
-        return !string.IsNullOrWhiteSpace(icId) &&
-            _selectorPublication?.IsWorkflowAuthorable(icId, workflowId) == true;
+        return !string.IsNullOrWhiteSpace(icId) && _selectorPublication is { } publication &&
+            publication.IsWorkflowAuthorable(icId, workflowId);
     }
 
     internal IReadOnlyList<CapabilityTopologyChoice> GetPublishedAbMergeTopologyChoices(
@@ -229,12 +242,18 @@ internal sealed partial class WorkflowSessionPresentationViewModel
         try
         {
             RefreshNumberChoicesForSelectedIc();
-            _merge.GeneralMergeOutputLength =
-                _compositionServices.GeneralAuthoring.GetDefaultOutputLength(SelectedIc);
-            _merge.GeneralMergeOutputFillByte =
-                _compositionServices.GeneralAuthoring.GetDefaultOutputFillByte(SelectedIc);
-            _replace.AddGeneralReplaceMapping();
-            _merge.AddGeneralMergeMapping();
+            if (ActiveWorkflowOwner == WorkflowInspectionOwner.Merge)
+            {
+                RefreshGeneralMergeDefaults(GetWorkflowPageIc(WorkflowInspectionOwner.Merge));
+            }
+            if (_replace.GeneralReplaceMappings.Count == 0)
+            {
+                _replace.AddGeneralReplaceMapping();
+            }
+            if (_merge.GeneralMergeMappings.Count == 0)
+            {
+                _merge.AddGeneralMergeMapping();
+            }
             IsWorkflowLoaded = true;
         }
         finally
@@ -248,6 +267,7 @@ internal sealed partial class WorkflowSessionPresentationViewModel
         if (_selectorPublication is null)
         {
             NumberSelectionChoices = [];
+            ReconcilePublishedNumberChoice(string.Empty);
             OnPropertyChanged(nameof(SelectedNumberChoice));
             return;
         }
@@ -258,6 +278,7 @@ internal sealed partial class WorkflowSessionPresentationViewModel
         if (string.IsNullOrWhiteSpace(contextIc))
         {
             NumberSelectionChoices = [];
+            ReconcilePublishedNumberChoice(string.Empty);
             OnPropertyChanged(nameof(SelectedNumberChoice));
             return;
         }
@@ -267,15 +288,19 @@ internal sealed partial class WorkflowSessionPresentationViewModel
         NumberSelectionChoices = nextDisplayChoices;
         if (nextDisplayChoices.Count == 0)
         {
+            ReconcilePublishedNumberChoice(ResolvePublishedNumber(
+                contextIc,
+                SelectedNumber,
+                useAbTopology: IsAbMergeContextActive));
             OnPropertyChanged(nameof(SelectedNumberChoice));
             return;
         }
 
         if (!nextDisplayChoices.Any(choice => string.Equals(choice.Token, SelectedNumber, StringComparison.Ordinal)))
         {
-            SelectedNumber = nextDisplayChoices.FirstOrDefault(choice =>
+            ReconcilePublishedNumberChoice(nextDisplayChoices.FirstOrDefault(choice =>
                 string.Equals(choice.Token, IcNumberSelectionTokens.SingleChip, StringComparison.Ordinal))?.Token ??
-                nextDisplayChoices[0].Token;
+                nextDisplayChoices[0].Token);
         }
 
         OnPropertyChanged(nameof(SelectedNumberChoice));
@@ -297,6 +322,14 @@ internal sealed partial class WorkflowSessionPresentationViewModel
         EnsureWorkflowLoaded();
         if (!HasWorkflowAuthoringChoices || string.IsNullOrWhiteSpace(SelectedIc))
         {
+            if (owner is null or WorkflowInspectionOwner.Merge)
+            {
+                _merge.RefreshContextState();
+            }
+            if (owner is null or WorkflowInspectionOwner.Replace)
+            {
+                _replace.ClearUnavailableContextState();
+            }
             _stateBindings.RefreshCommandState();
             NotifyContextTextChanged(owner, notifyIcChoices: false);
             if (resetRunResult)
@@ -304,6 +337,12 @@ internal sealed partial class WorkflowSessionPresentationViewModel
                 _stateBindings.ResetRunResult();
             }
             return;
+        }
+
+        if (owner == WorkflowInspectionOwner.Merge ||
+            (owner is null && ActiveWorkflowOwner == WorkflowInspectionOwner.Merge))
+        {
+            RefreshGeneralMergeDefaults(GetWorkflowPageIc(WorkflowInspectionOwner.Merge));
         }
 
         if (owner is null or WorkflowInspectionOwner.Merge)
@@ -341,6 +380,15 @@ internal sealed partial class WorkflowSessionPresentationViewModel
         }
 
         bool workflowWasLoaded = IsWorkflowLoaded;
+        if (workflowWasLoaded && ActiveWorkflowOwner is { } validatingOwner)
+        {
+            ValidateWorkflowContextRefresh(
+                publication,
+                validatingOwner == WorkflowInspectionOwner.Merge
+                    ? ShellPage.Merge
+                    : ShellPage.Replace);
+        }
+        ApplySelectorPublication(publication);
         if (workflowWasLoaded)
         {
             _merge.InvalidateCanonicalCatalogSessions();
@@ -349,7 +397,6 @@ internal sealed partial class WorkflowSessionPresentationViewModel
             _replace.InvalidateCtrlRamFirmwareVersionContextState();
         }
 
-        ApplySelectorPublication(publication);
         if (workflowWasLoaded)
         {
             // A fresh token invalidates both page projections even when the
@@ -390,7 +437,9 @@ internal sealed partial class WorkflowSessionPresentationViewModel
     private void RefreshRetainedFirmwareInspections(WorkflowInspectionOwner owner)
     {
         WorkflowInspectionContext context = InspectionContext(owner);
-        if (!InspectionSlots(context).Any(static slot => slot.HasFile))
+        string icId = GetWorkflowPageIc(owner);
+        if (!IsPublishedWorkflowAuthorable(icId, context.Mode) ||
+            !InspectionSlots(context).Any(static slot => slot.HasFile))
         {
             return;
         }
@@ -398,91 +447,6 @@ internal sealed partial class WorkflowSessionPresentationViewModel
         _ = owner == WorkflowInspectionOwner.Merge
             ? RefreshSelectedMergeFirmwareInspectionsAsync()
             : RefreshSelectedReplaceFirmwareInspectionsAsync();
-    }
-
-    private void ApplySelectorPublication(CapabilitySelectorPublication publication)
-    {
-        ArgumentNullException.ThrowIfNull(publication);
-        string previousMergeIc = _mergeWorkflowContextIc;
-        string previousReplaceIc = _replaceWorkflowContextIc;
-        string previousMergeNumber = _mergeWorkflowContextNumber;
-        string previousReplaceNumber = _replaceWorkflowContextNumber;
-        _selectorPublication = publication;
-
-        if (publication.IcIds.Count == 0)
-        {
-            _mergeWorkflowContextIc = string.Empty;
-            _replaceWorkflowContextIc = string.Empty;
-            _mergeWorkflowContextNumber = IcNumberSelectionTokens.SingleChip;
-            _replaceWorkflowContextNumber = IcNumberSelectionTokens.SingleChip;
-            _mergeWorkflowContextNeedsRefresh = !string.IsNullOrEmpty(previousMergeIc);
-            _replaceWorkflowContextNeedsRefresh = !string.IsNullOrEmpty(previousReplaceIc);
-            InvalidateWorkflowContextDraft();
-            PublishActiveSelectorState(string.Empty, IcNumberSelectionTokens.SingleChip);
-            PublishCurrentCatalogChoices();
-            return;
-        }
-
-        string mergeIc = ResolveWorkflowContextIc(previousMergeIc);
-        string replaceIc = ResolveWorkflowContextIc(previousReplaceIc);
-        _mergeWorkflowContextIc = mergeIc;
-        _replaceWorkflowContextIc = replaceIc;
-
-        bool mergeModeReconciled = _merge.IsAbCodeMergeModeSelected &&
-            !publication.AbMergeIcIds.Contains(mergeIc, StringComparer.Ordinal) &&
-            _merge.StageStandardMergeForCatalogReconciliation();
-
-        _mergeWorkflowContextNumber = ResolvePublishedNumber(
-            mergeIc,
-            previousMergeNumber,
-            useAbTopology: _merge.IsAbCodeMergeModeSelected);
-        _replaceWorkflowContextNumber = ResolvePublishedNumber(
-            replaceIc,
-            previousReplaceNumber,
-            useAbTopology: false);
-        _mergeWorkflowContextNeedsRefresh =
-            !string.Equals(previousMergeIc, _mergeWorkflowContextIc, StringComparison.Ordinal) ||
-            !string.Equals(previousMergeNumber, _mergeWorkflowContextNumber, StringComparison.Ordinal);
-        _replaceWorkflowContextNeedsRefresh =
-            !string.Equals(previousReplaceIc, _replaceWorkflowContextIc, StringComparison.Ordinal) ||
-            !string.Equals(previousReplaceNumber, _replaceWorkflowContextNumber, StringComparison.Ordinal);
-
-        ReconcileOpenWorkflowContext(publication);
-        (string activeIc, string activeNumber) = ActiveWorkflowOwner switch
-        {
-            WorkflowInspectionOwner.Merge =>
-                (_mergeWorkflowContextIc, _mergeWorkflowContextNumber),
-            WorkflowInspectionOwner.Replace =>
-                (_replaceWorkflowContextIc, _replaceWorkflowContextNumber),
-            null => (publication.DefaultIcId!, IcNumberSelectionTokens.SingleChip),
-            _ => throw new InvalidOperationException("Unknown workflow inspection owner."),
-        };
-        PublishActiveSelectorState(activeIc, activeNumber);
-        if (mergeModeReconciled)
-        {
-            _merge.PublishCatalogReconciledMergeMode();
-        }
-        PublishCurrentCatalogChoices();
-    }
-
-    private string ResolvePublishedNumber(
-        string icId,
-        string preferredToken,
-        bool useAbTopology)
-    {
-        CapabilitySelectorPublication publication = _selectorPublication ??
-            throw new InvalidOperationException("Canonical selector publication is not ready.");
-        IReadOnlyList<string> tokens = useAbTopology
-            ? [.. publication.GetAbMergeTopologyChoices(icId).Select(static choice => choice.Token)]
-            : [.. publication.GetNumberSelectionChoices(icId).Select(static choice => choice.Token)];
-        return tokens.Count == 0
-            ? IcNumberSelectionTokens.SingleChip
-            : tokens.Contains(preferredToken, StringComparer.Ordinal)
-                ? preferredToken
-                : tokens.FirstOrDefault(token => string.Equals(
-                    token,
-                    IcNumberSelectionTokens.SingleChip,
-                    StringComparison.Ordinal)) ?? tokens[0];
     }
 
     private void PublishActiveSelectorState(string icId, string number)
@@ -504,6 +468,22 @@ internal sealed partial class WorkflowSessionPresentationViewModel
         {
             _isActivatingWorkflowPageContext = false;
         }
+    }
+
+    private void ReconcilePublishedNumberChoice(string number)
+    {
+        bool wasActivatingWorkflowPageContext = _isActivatingWorkflowPageContext;
+        _isActivatingWorkflowPageContext = true;
+        try
+        {
+            SelectedNumber = number;
+        }
+        finally
+        {
+            _isActivatingWorkflowPageContext = wasActivatingWorkflowPageContext;
+        }
+
+        StoreWorkflowPageContext(ActiveWorkflowOwner, SelectedIc, SelectedNumber);
     }
 
     private void PublishCurrentCatalogChoices()
@@ -558,24 +538,25 @@ internal sealed partial class WorkflowSessionPresentationViewModel
         {
             _replace.InvalidateCtrlRamFirmwareVersionContextState();
         }
-        if (owner is not WorkflowInspectionOwner.Replace &&
-            _merge.IsAbCodeMergeModeSelected &&
-            _selectorPublication?.IsWorkflowAuthorable(value, ExperienceIds.AbMerge) != true)
+        bool mergeModeReconciled = owner == WorkflowInspectionOwner.Merge &&
+            _merge.StageAuthorableModeForCatalogReconciliation(
+                workflowId => IsPublishedWorkflowAuthorable(value, workflowId));
+        bool replaceModeReconciled = owner == WorkflowInspectionOwner.Replace &&
+            _replace.StageAuthorableModeForCatalogReconciliation(
+                workflowId => IsPublishedWorkflowAuthorable(value, workflowId));
+        if (mergeModeReconciled)
         {
-            _merge.SelectMergeMode(ExperienceIds.StandardMerge);
+            _merge.PublishCatalogReconciledMergeMode();
+        }
+        if (replaceModeReconciled)
+        {
+            _replace.PublishCatalogReconciledReplaceMode();
         }
 
         IsRefreshingFirmwareInspectionContext = true;
         try
         {
             RefreshNumberChoicesForSelectedIc();
-            if (owner is not WorkflowInspectionOwner.Replace)
-            {
-                _merge.GeneralMergeOutputLength =
-                    _compositionServices.GeneralAuthoring.GetDefaultOutputLength(value);
-                _merge.GeneralMergeOutputFillByte =
-                    _compositionServices.GeneralAuthoring.GetDefaultOutputFillByte(value);
-            }
         }
         finally
         {
@@ -684,4 +665,5 @@ internal sealed partial class WorkflowSessionPresentationViewModel
             _ = RefreshSelectedMergeFirmwareInspectionsAsync();
         }
     }
+
 }

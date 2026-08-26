@@ -1,10 +1,48 @@
+using NvtFwCombiner.Application.Capabilities;
 using NvtFwCombiner.Domain.Composition;
+using NvtFwCombiner.Presentation.Avalonia;
 using NvtFwCombiner.Presentation.Avalonia.ViewModels;
 
 namespace NvtFwCombiner.UiSmoke.Tests;
 
 public sealed partial class ShellNavigationSystemTests
 {
+    /// <summary>An empty Application number disclosure stays empty instead of becoming a UI-authored topology.</summary>
+    [Fact]
+    public async Task EmptyPublishedNumberDisclosureFailsClosedWithoutUiFallback()
+    {
+        PresentationHostServices services =
+            PresentationTestHost.CreateServices("0.10.6-empty-number-test");
+        CapabilityCatalogReloadResult reload =
+            await PresentationTestHost.LoadCanonicalCatalogAsync(
+                services.CanonicalCatalogLoader,
+                TestContext.Current.CancellationToken);
+        CanonicalCapabilityCatalogSnapshot snapshot =
+            Assert.IsType<CanonicalCapabilityCatalogSnapshot>(reload.Snapshot);
+        CapabilitySelectorPublication publication = CapabilitySelectorPublication.Create(
+            snapshot.ResolutionToken,
+            snapshot.Capabilities,
+            snapshot.DynamicRoutes,
+            CanonicalCapabilityDisclosure.Empty);
+
+        Assert.True(publication.IsWorkflowAuthorable(
+            "NT51950",
+            ExperienceIds.StandardMerge));
+        Assert.Empty(publication.GetNumberSelectionChoices("NT51950"));
+        Assert.Empty(UiCompositionRunner.GetNumberSelectionChoices(publication, "NT51950"));
+
+        var setup = new WorkflowContextSetupViewModel();
+        setup.Configure(
+            publication,
+            "NT51950",
+            IcNumberSelectionTokens.SingleChip,
+            showNumber: true);
+
+        Assert.Empty(setup.NumberChoices);
+        Assert.Equal(string.Empty, setup.SelectedNumber);
+        Assert.Null(setup.SelectedNumberChoice);
+    }
+
     /// <summary>Verifies a numeric IC selection never leaves the displayed number selector blank after an IC switch.</summary>
     [Fact]
     public void SwitchingToAliasOnlyIcNumberChoicesFallsBackToSingleChip()

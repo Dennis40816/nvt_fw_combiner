@@ -2,7 +2,6 @@ using System.Text.Json;
 using NvtFwCombiner.Application.Capabilities;
 using NvtFwCombiner.Application.Diagnostics;
 using NvtFwCombiner.Application.ExternalTools;
-using NvtFwCombiner.Application.Ports;
 using NvtFwCombiner.Domain.Composition;
 using NvtFwCombiner.Infrastructure.ExternalTools;
 using NvtFwCombiner.Presentation.Avalonia;
@@ -203,6 +202,53 @@ public sealed partial class ShellNavigationSystemTests
         Assert.Contains(diagnostics.Activity, activity =>
             activity.Code == SystemActivityCodes.ModeSelected && activity.SubjectId == ExperienceIds.AbMerge);
         Assert.Contains(diagnostics.Activity, activity => activity.Code == SystemActivityCodes.SettingsOpened);
+    }
+
+    /// <summary>Home confirmation records only actual context changes; passive restoration stays silent.</summary>
+    [Fact]
+    public void HomeContextConfirmationRecordsEachActualSelectionExactlyOnce()
+    {
+        StubCatalog catalog = new();
+        SystemInformationService diagnostics = new(
+            "0.10.6-test",
+            catalog,
+            catalog,
+            CreateExternalEnvironmentLoader(),
+            new StubRuntimeProbe(),
+            new StubClock());
+        PresentationHostServices services = PresentationTestHost.CreateServices("0.10.6-test");
+        MainWindowViewModel viewModel = new(
+            "test",
+            "0.10.6-test",
+            ShellLanguage.English,
+            services,
+            new DelegatingFirmwareInspection(
+                TestHost.FirmwareInspectionExperience,
+                batchReader: static (_, _) => []),
+            systemInformationService: diagnostics,
+            systemDiagnosticsExporter: new CapturingDiagnosticsExporter());
+        _ = PresentationTestHost.PublishCanonicalCatalog(services, viewModel);
+
+        viewModel.BeginCtrlRamReplaceFromHomeCommand.Execute(null);
+        viewModel.WorkflowSession.WorkflowContextSetup.SelectedIc = "NT51927";
+        viewModel.WorkflowSession.WorkflowContextSetup.SelectedNumberChoice =
+            viewModel.WorkflowSession.WorkflowContextSetup.NumberChoices.Single(choice =>
+                choice.Token == "3");
+        viewModel.WorkflowSession.ConfirmWorkflowContextCommand.Execute(null);
+
+        viewModel.ShowHomeCommand.Execute(null);
+        viewModel.BeginCtrlRamReplaceFromHomeCommand.Execute(null);
+        viewModel.WorkflowSession.ConfirmWorkflowContextCommand.Execute(null);
+        viewModel.ShowMergeCommand.Execute(null);
+        viewModel.ShowReplaceCommand.Execute(null);
+
+        _ = Assert.Single(diagnostics.Activity, activity =>
+            activity.Code == SystemActivityCodes.IcSelected &&
+            activity.SubjectId == "NT51927");
+        _ = Assert.Single(diagnostics.Activity, activity =>
+            activity.Code == SystemActivityCodes.NumberSelected &&
+            activity.SubjectId == "3" &&
+            activity.ContextId == "NT51927");
     }
 
     /// <summary>Blocker navigation selects the exact localized System Information surface.</summary>
@@ -534,154 +580,4 @@ public sealed partial class ShellNavigationSystemTests
             []);
     }
 
-    private sealed class SequencedCatalog(params CanonicalSupportMatrixQueryResult[] results) :
-        ICanonicalSupportMatrixQuery,
-        ICanonicalCapabilityCatalogReloader
-    {
-        private int _index;
-
-        public CanonicalSupportMatrixQueryResult Query()
-        {
-            return results[Math.Min(_index, results.Length - 1)];
-        }
-
-        public void Reload(CancellationToken cancellationToken)
-        {
-            cancellationToken.ThrowIfCancellationRequested();
-            _index = Math.Min(_index + 1, results.Length - 1);
-        }
-    }
-
-    private sealed class UnusedReadinessProvider : IRuntimeDependencyReadinessProvider
-    {
-        internal static UnusedReadinessProvider Instance { get; } = new();
-
-        public ValueTask<RuntimeDependencyReadinessSnapshot> RefreshAsync(
-            RuntimeDependencyReadinessRequest request,
-            long generation,
-            CancellationToken cancellationToken)
-        {
-            throw new NotSupportedException();
-        }
-    }
-
-    private sealed class BlockingReloadCatalog :
-        ICanonicalSupportMatrixQuery,
-        ICanonicalCapabilityCatalogReloader
-    {
-        internal TaskCompletionSource ReloadEntered { get; } = new(
-            TaskCreationOptions.RunContinuationsAsynchronously);
-
-        internal TaskCompletionSource ReleaseReload { get; } = new(
-            TaskCreationOptions.RunContinuationsAsynchronously);
-
-        public CanonicalSupportMatrixQueryResult Query()
-        {
-            return Result(CanonicalSupportMatrixCatalogState.Current, Matrix("catalog:blocking"));
-        }
-
-        public void Reload(CancellationToken cancellationToken)
-        {
-            ReloadEntered.SetResult();
-            ReleaseReload.Task.Wait(cancellationToken);
-        }
-    }
-
-    private sealed class BlockingInspectionReader(BuiltInFirmwareInspection firmwareInspection)
-    {
-        private int _blockNextBatch;
-        private int _batchCount;
-        private IReadOnlyList<string> _lastInspectionIds = [];
-
-        internal int BatchCount => Volatile.Read(ref _batchCount);
-
-        internal IReadOnlyList<string> LastInspectionIds =>
-            Volatile.Read(ref _lastInspectionIds);
-
-        internal TaskCompletionSource InspectionEntered { get; } = new(
-            TaskCreationOptions.RunContinuationsAsynchronously);
-
-        internal TaskCompletionSource ReleaseInspection { get; } = new(
-            TaskCreationOptions.RunContinuationsAsynchronously);
-
-        internal void BlockNextBatch()
-        {
-            Volatile.Write(ref _blockNextBatch, 1);
-        }
-
-        internal IReadOnlyList<FirmwareInspectionSnapshotResult> Read(
-            string selectedIc,
-            IReadOnlyList<FirmwareInspectionSnapshotInput> inputs)
-        {
-            _ = Interlocked.Increment(ref _batchCount);
-            Volatile.Write(
-                ref _lastInspectionIds,
-                Array.AsReadOnly(inputs.Select(static input => input.InspectionId).ToArray()));
-            if (Interlocked.Exchange(ref _blockNextBatch, 0) == 1)
-            {
-                InspectionEntered.SetResult();
-                ReleaseInspection.Task.Wait(TestContext.Current.CancellationToken);
-            }
-
-            return BuiltInFirmwareInspection.InspectFirmwareBatch(firmwareInspection, selectedIc, inputs);
-        }
-    }
-
-    private sealed class StubCatalog :
-        ICanonicalSupportMatrixQuery,
-        ICanonicalCapabilityCatalogReloader
-    {
-        private bool _reloaded;
-
-        public CanonicalSupportMatrixQueryResult Query()
-        {
-            return _reloaded
-                ? new CanonicalSupportMatrixQueryResult(
-                    CanonicalSupportMatrixCatalogState.Current,
-                    new CanonicalSupportMatrixSnapshot(
-                        "canonical-capability-policy",
-                        "1.5.0",
-                        new string('a', 64),
-                        new ResolutionToken("catalog:ui-test"),
-                        []))
-                : new CanonicalSupportMatrixQueryResult(
-                    CanonicalSupportMatrixCatalogState.ColdStartBlocked,
-                    matrix: null,
-                    [new CapabilityCatalogIssue("catalog.invalid", "private detail", null)]);
-        }
-
-        public void Reload(CancellationToken cancellationToken)
-        {
-            cancellationToken.ThrowIfCancellationRequested();
-            _reloaded = true;
-        }
-    }
-
-    private sealed class StubRuntimeProbe : ISystemRuntimeProbe
-    {
-        public SystemRuntimeFacts Probe()
-        {
-            return new SystemRuntimeFacts(".NET test", "Windows test", "x64");
-        }
-    }
-
-    private sealed class StubClock : ISystemClock
-    {
-        public DateTimeOffset UtcNow => DateTimeOffset.UnixEpoch;
-    }
-
-    private sealed class CapturingDiagnosticsExporter : ISystemDiagnosticsExporter
-    {
-        internal SystemDiagnosticsBundle? Bundle { get; private set; }
-
-        public ValueTask ExportAsync(
-            SystemDiagnosticsBundle bundle,
-            string destinationPath,
-            CancellationToken cancellationToken)
-        {
-            cancellationToken.ThrowIfCancellationRequested();
-            Bundle = bundle;
-            return ValueTask.CompletedTask;
-        }
-    }
 }

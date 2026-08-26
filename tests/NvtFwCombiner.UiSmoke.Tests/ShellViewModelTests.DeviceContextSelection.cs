@@ -1,6 +1,7 @@
 using Avalonia.Controls;
 using Avalonia.Data;
 using Avalonia.Headless.XUnit;
+using Avalonia.Input;
 using Avalonia.Threading;
 using NvtFwCombiner.Domain.Composition;
 using NvtFwCombiner.Presentation.Avalonia.ViewModels;
@@ -139,5 +140,62 @@ public sealed partial class ShellNavigationSystemTests
         Assert.Equal("NT51950", viewModel.WorkflowSession.SelectedIc);
         Assert.DoesNotContain("NT51926", viewModel.WorkflowSession.IcChoices);
         Assert.Equal("NT51950", selector.SelectedItem);
+    }
+
+    /// <summary>Window refocus and Home modal cancel/confirm never synthesize a live IC selection.</summary>
+    [AvaloniaFact]
+    public async Task FocusedIcComboRefocusAndModalRoundTripPublishOnlyExplicitConfirmation()
+    {
+        MainWindowViewModel viewModel = await Task.Run(
+            () => PresentationTestHost.CreateViewModel(),
+            TestContext.Current.CancellationToken);
+        viewModel.ShowMergeCommand.Execute(null);
+        viewModel.WorkflowSession.SelectedIc = "NT51929";
+        var selector = new ComboBox
+        {
+            DataContext = viewModel,
+        };
+        _ = selector.Bind(
+            ItemsControl.ItemsSourceProperty,
+            new Binding("WorkflowSession.IcChoices"));
+        _ = selector.Bind(
+            ComboBox.SelectedItemProperty,
+            new Binding("WorkflowSession.SelectedIc") { Mode = BindingMode.TwoWay });
+        Dispatcher.UIThread.RunJobs();
+
+        selector.RaiseEvent(new FocusChangedEventArgs(InputElement.GotFocusEvent)
+        {
+            NavigationMethod = NavigationMethod.Tab,
+        });
+        selector.RaiseEvent(new FocusChangedEventArgs(InputElement.LostFocusEvent));
+        selector.RaiseEvent(new FocusChangedEventArgs(InputElement.GotFocusEvent)
+        {
+            NavigationMethod = NavigationMethod.Unspecified,
+        });
+
+        Assert.Equal("NT51929", selector.SelectedItem);
+        Assert.Equal("NT51929", viewModel.WorkflowSession.SelectedIc);
+
+        viewModel.ShowHomeCommand.Execute(null);
+        viewModel.BeginNormalMergeFromHomeCommand.Execute(null);
+        viewModel.WorkflowSession.WorkflowContextSetup.SelectedIc = "NT51932";
+        viewModel.WorkflowSession.CancelWorkflowContextCommand.Execute(null);
+
+        Assert.False(viewModel.WorkflowSession.IsWorkflowContextModalOpen);
+        Assert.Equal(
+            "NT51929",
+            viewModel.WorkflowSession.GetWorkflowPageIc(WorkflowInspectionOwner.Merge));
+
+        viewModel.BeginNormalMergeFromHomeCommand.Execute(null);
+        viewModel.WorkflowSession.WorkflowContextSetup.SelectedIc = "NT51932";
+        viewModel.WorkflowSession.ConfirmWorkflowContextCommand.Execute(null);
+        Dispatcher.UIThread.RunJobs();
+
+        Assert.True(viewModel.IsMergeVisible);
+        Assert.Equal("NT51932", viewModel.WorkflowSession.SelectedIc);
+        Assert.Equal("NT51932", selector.SelectedItem);
+        Assert.Equal(
+            "NT51932",
+            viewModel.WorkflowSession.GetWorkflowPageIc(WorkflowInspectionOwner.Merge));
     }
 }

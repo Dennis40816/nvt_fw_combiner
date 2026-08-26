@@ -1,0 +1,62 @@
+{
+  "schemaVersion": 2,
+  "taskId": "NAV-P1-REMEDIATION-01",
+  "capability": "Close the frozen NAV review P1 findings without changing firmware, profile, Application, or Infrastructure semantics",
+  "integrationBase": "0cad5c31817c823659f4557c6b885f316d80ba73",
+  "risk": "R2",
+  "kind": "behavior",
+  "state": "design-active",
+  "mutablePaths": [
+    "docs/adr/0049-unified-preload-lifecycle.md",
+    "src/NvtFwCombiner.Presentation.Avalonia/UiCompositionRunner.Catalog.cs",
+    "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/MainWindowViewModel.Construction.cs",
+    "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/MainWindowViewModel.Context.cs",
+    "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/MainWindowViewModel.MergePresentation.cs",
+    "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/MainWindowViewModel.MessageCenter.cs",
+    "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/MainWindowViewModel.ReplacePresentation.cs",
+    "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/MainWindowViewModel.WorkflowSession.cs",
+    "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/MergePresentationViewModel.AbMergeAuthoring.cs",
+    "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/MergePresentationViewModel.General.cs",
+    "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/MergePresentationViewModel.Requirements.cs",
+    "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/MergePresentationViewModel.StandardMergeAuthoring.cs",
+    "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/MergePresentationViewModel.State.cs",
+    "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/ReplacePresentationViewModel.Authoring.cs",
+    "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/ReplacePresentationViewModel.General.cs",
+    "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/ReplacePresentationViewModel.Memory.cs",
+    "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/ReplacePresentationViewModel.State.cs",
+    "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/ShellNavigationViewModel.cs",
+    "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/WorkflowContextSetupViewModel.cs",
+    "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/WorkflowNavigationTransaction.cs",
+    "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/WorkflowSelectorProjection.cs",
+    "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/WorkflowSessionPresentationViewModel.DeviceContext.cs",
+    "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/WorkflowSessionPresentationViewModel.FirmwareInspection.cs",
+    "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/WorkflowSessionPresentationViewModel.SelectorPublication.cs",
+    "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/WorkflowSessionPresentationViewModel.Slots.cs",
+    "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/WorkflowSessionPresentationViewModel.WorkflowContext.cs",
+    "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/WorkflowSessionPresentationViewModel.cs"
+  ],
+  "implementationOwner": "root",
+  "searchEvidence": [
+    "Frozen NAV review required one canonical ordered mode list per page, typed IsWorkflowAuthorable filtering, no withdrawn-mode setter dispatch, and no generic number fallback for an active AB route with empty typed topology",
+    "Frozen NAV review required atomic page activation and catalog reconciliation with fallible Application projections staged before selector publication or inspection invalidation, plus failure tests for General defaults, active rebuild, destination activation, and post-activation source clear",
+    "Frozen NAV review required synthetic ComboBox keyboard focus-loss/refocus coverage with modal cancel and explicit confirm, removal of the unrelated four-file General Application and Infrastructure semantic slice, and a separate real-Windows Alt+Tab manual acceptance gate",
+    "The retained Application and Infrastructure files are byte-identical to HEAD; this remediation changes Presentation routing only and consumes existing typed capability and authoring projections",
+    "Candidate project suites and repository size checks remain required; exact final test totals, reviewed head, tree, and post-fix line sizes belong only in independent final-review evidence"
+  ],
+  "semanticOwner": "CanonicalCapabilityCatalogSnapshot remains the sole immutable typed selector publication. Presentation owns only page-local context, deterministic navigation transaction staging, selector publication order, and consumption of existing typed Application projections. MergePresentationViewModel and ReplacePresentationViewModel own their respective mode and authoring session state.",
+  "terminalContract": "Merge and Replace each expose one canonical ordered mode list filtered by the current typed selector publication. A withdrawn mode is absent and direct setter input cannot dispatch it. An active AB route without a typed topology exposes no generic IC-number fallback. Direct activation and fresh-token reconciliation stage every fallible Standard, AB, DP, CtrlRAM, and General projection before visible selector or inspection mutation, then consume the exact staged result during one commit. Failure preserves the prior page, selector token, inspection generation, inputs, and retryable history. ItemsSource publishes before SelectedItem. Synthetic focus loss/refocus and modal cancellation cannot commit a selector value; only explicit confirmation can, while real Windows Alt+Tab remains a manual acceptance gate. Hidden source clear performs no authoring redispatch. No firmware bytes, profiles, ranges, processors, output naming, support, or evidence admission changes.",
+  "disposition": "extend-owner",
+  "designReview": {
+    "reviewer": "frozen-nav-final-review",
+    "outcome": "findings-incorporated",
+    "evidence": "The fixed FINAL review approved the bounded NAV P1 remediation and explicitly required canonical typed mode filtering, AB empty-topology fail-closed behavior, atomic staging before commit, synthetic focus-loss/refocus plus modal cancel/confirm coverage, a separate real-Windows Alt+Tab manual gate, restoration of the unrelated General semantic slice, and retained untracked regression tests."
+  },
+  "implementationHead": null,
+  "reviewedHead": null,
+  "pathStateDigest": null,
+  "finalReview": {
+    "reviewer": null,
+    "outcome": "pending",
+    "evidence": ""
+  }
+}

@@ -99,6 +99,8 @@ public sealed partial class RepositoryBoundaryTests
             "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/WorkflowSessionPresentationViewModel.cs");
         string deviceContext = ReadText(
             "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/WorkflowSessionPresentationViewModel.DeviceContext.cs");
+        string selectorPublication = ReadText(
+            "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/WorkflowSessionPresentationViewModel.SelectorPublication.cs");
         string slots = ReadText(
             "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/WorkflowSessionPresentationViewModel.Slots.cs");
         string mergeState = ReadText(
@@ -146,7 +148,7 @@ public sealed partial class RepositoryBoundaryTests
             StringComparison.Ordinal);
         Assert.Contains(
             "if (publication.IcIds.Count == 0)",
-            deviceContext,
+            selectorPublication,
             StringComparison.Ordinal);
         Assert.Contains("public partial string SelectedNumber", deviceContext, StringComparison.Ordinal);
         Assert.Contains("_compositionServices.Capabilities.GetIcFamilySummary", deviceContext, StringComparison.Ordinal);

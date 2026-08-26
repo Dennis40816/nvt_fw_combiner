@@ -21,7 +21,15 @@ internal sealed partial class WorkflowSessionPresentationViewModel
         {
             return;
         }
-
+        string contextIc = GetWorkflowPageIc(context.Owner);
+        if (!IsPublishedWorkflowAuthorable(contextIc, context.Mode))
+        {
+            InvalidateFirmwareInspection(
+                context.Owner,
+                clearBaseProjection: context.IsReplace,
+                clearSlotProjections: true);
+            return;
+        }
         GeneralMappingRowViewModel? mapping = context switch
         {
             { IsGeneralMerge: true } =>

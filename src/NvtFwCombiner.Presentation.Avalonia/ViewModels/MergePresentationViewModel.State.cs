@@ -12,9 +12,7 @@ internal sealed partial class MergePresentationViewModel
     private const string NormalMergeMode = ExperienceIds.StandardMerge;
     private const string AbCodeMergeMode = ExperienceIds.AbMerge;
     private const string GeneralMergeMode = ExperienceIds.GeneralMerge;
-    private static readonly IReadOnlyList<string> s_standardMergeModeChoices =
-        Array.AsReadOnly([NormalMergeMode, GeneralMergeMode]);
-    private static readonly IReadOnlyList<string> s_abMergeModeChoices =
+    private static readonly IReadOnlyList<string> s_mergeModeOrder =
         Array.AsReadOnly([NormalMergeMode, AbCodeMergeMode, GeneralMergeMode]);
     private readonly Dictionary<string, string> _abMergeAddressSpaceBySlotId = new(StringComparer.Ordinal);
     private readonly Dictionary<string, CompiledAuthoringInputBinding> _abMergeBindingsByAddressSpace = new(StringComparer.Ordinal);
@@ -65,10 +63,16 @@ internal sealed partial class MergePresentationViewModel
 
     private int _generalMergeMappingCounter;
     private string _selectedMergeMode = NormalMergeMode;
+    private bool _isApplyingGeneralMergeInitializer;
+    private string? _catalogReconciliationPreviousMode;
 
-    public IReadOnlyList<string> MergeModeChoices => IsAbMergeSupported
-        ? s_abMergeModeChoices
-        : s_standardMergeModeChoices;
+    public IReadOnlyList<string> MergeModeChoices => !HasSelectedIc
+        ? []
+        : Array.AsReadOnly(
+        [
+            .. s_mergeModeOrder.Where(mode =>
+                _stateBindings.IsWorkflowAuthorable(SelectedIc, mode)),
+        ]);
 
     public PlanningCardText MergePreview => Text.MergePreview;
 
@@ -236,16 +240,14 @@ internal sealed partial class MergePresentationViewModel
 
     internal void SelectMergeMode(string mode)
     {
-        string nextMode = MergeModeChoices.Contains(mode, StringComparer.Ordinal)
-            ? mode
-            : NormalMergeMode;
-        if (string.Equals(_selectedMergeMode, nextMode, StringComparison.Ordinal))
+        if (!MergeModeChoices.Contains(mode, StringComparer.Ordinal) ||
+            string.Equals(_selectedMergeMode, mode, StringComparison.Ordinal))
         {
             return;
         }
 
         InspectionLifecycles[_selectedMergeMode].Invalidate();
-        _selectedMergeMode = nextMode;
+        _selectedMergeMode = mode;
         PublishMergeModeSelectionChanged();
         _stateBindings.NotifySharedContextChanged();
         _stateBindings.ResetRunResult();
@@ -267,20 +269,61 @@ internal sealed partial class MergePresentationViewModel
         RefreshCommandState();
     }
 
-    internal bool StageStandardMergeForCatalogReconciliation()
+    internal bool StageAuthorableModeForCatalogReconciliation(
+        Func<string, bool> isAuthorable)
     {
-        if (string.Equals(_selectedMergeMode, NormalMergeMode, StringComparison.Ordinal))
+        ArgumentNullException.ThrowIfNull(isAuthorable);
+        string nextMode = ResolveAuthorableModeForCatalogReconciliation(isAuthorable);
+        if (string.Equals(_selectedMergeMode, nextMode, StringComparison.Ordinal))
         {
             return false;
         }
 
-        InspectionLifecycles[_selectedMergeMode].Invalidate();
-        _selectedMergeMode = NormalMergeMode;
+        _catalogReconciliationPreviousMode = _selectedMergeMode;
+        _selectedMergeMode = nextMode;
         return true;
+    }
+
+    internal string ResolveAuthorableModeForCatalogReconciliation(
+        Func<string, bool> isAuthorable)
+    {
+        ArgumentNullException.ThrowIfNull(isAuthorable);
+        return isAuthorable(_selectedMergeMode)
+            ? _selectedMergeMode
+            : s_mergeModeOrder.FirstOrDefault(isAuthorable) ?? string.Empty;
+    }
+
+    internal bool StageModeForWorkflowNavigation(string mode, bool isAuthorable)
+    {
+        if (!isAuthorable ||
+            !s_mergeModeOrder.Contains(mode, StringComparer.Ordinal) ||
+            string.Equals(_selectedMergeMode, mode, StringComparison.Ordinal))
+        {
+            return false;
+        }
+
+        _selectedMergeMode = mode;
+        return true;
+    }
+
+    internal void RestoreStagedWorkflowNavigationMode(string mode)
+    {
+        _selectedMergeMode = mode;
+    }
+
+    internal void CommitStagedWorkflowNavigationMode(string previousMode)
+    {
+        InspectionLifecycles[previousMode].Invalidate();
+        PublishCatalogReconciledMergeMode();
     }
 
     internal void PublishCatalogReconciledMergeMode()
     {
+        if (_catalogReconciliationPreviousMode is { } previousMode)
+        {
+            InspectionLifecycles[previousMode].Invalidate();
+            _catalogReconciliationPreviousMode = null;
+        }
         PublishMergeModeSelectionChanged();
         _stateBindings.ResetRunResult();
     }
@@ -339,6 +382,22 @@ internal sealed partial class MergePresentationViewModel
         OnPropertyChanged(nameof(MergeOutputFileName));
     }
 
+    internal void ApplyGeneralMergeOutputInitializer(string length, string fillByte)
+    {
+        _isApplyingGeneralMergeInitializer = true;
+        try
+        {
+            GeneralMergeOutputLength = length;
+            GeneralMergeOutputFillByte = fillByte;
+        }
+        finally
+        {
+            _isApplyingGeneralMergeInitializer = false;
+        }
+
+        GeneralInitializerChanged();
+    }
+
     partial void OnGeneralMergeOutputLengthChanged(string value)
     {
         GeneralInitializerChanged();
@@ -351,7 +410,9 @@ internal sealed partial class MergePresentationViewModel
 
     private void GeneralInitializerChanged()
     {
-        if (_stateBindings.IsWorkflowLoading() || !_stateBindings.IsWorkflowLoaded())
+        if (_isApplyingGeneralMergeInitializer ||
+            _stateBindings.IsWorkflowLoading() ||
+            !_stateBindings.IsWorkflowLoaded())
         {
             return;
         }

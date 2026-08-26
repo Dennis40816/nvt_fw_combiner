@@ -143,6 +143,15 @@ public sealed partial class MergeWorkflowTests
         Assert.False(viewModel.WorkflowSession.IsNumberSelectorVisible);
         Assert.True(viewModel.WorkflowSession.IsNumberSelectorPlaceholderVisible);
         Assert.Empty(viewModel.WorkflowSession.NumberSelectionChoices);
+        Assert.Equal(string.Empty, viewModel.WorkflowSession.SelectedNumber);
+        Assert.Null(viewModel.WorkflowSession.SelectedNumberChoice);
+        Assert.Equal(
+            [
+                CompositionAddressSpaceIds.DpAbInput,
+                CompositionAddressSpaceIds.TpAInput,
+                CompositionAddressSpaceIds.TpBInput,
+            ],
+            viewModel.Merge.MergeSlots.Select(static slot => slot.SlotId));
 
         viewModel.Merge.SelectedMergeMode = ExperienceIds.StandardMerge;
 

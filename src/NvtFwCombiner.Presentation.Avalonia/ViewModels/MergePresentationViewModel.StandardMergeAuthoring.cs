@@ -115,6 +115,27 @@ internal sealed partial class MergePresentationViewModel
 
     private CompiledAuthoringSelectionSnapshot ResolveStandardMergeAuthoringSnapshot()
     {
+        return ResolveStandardMergeAuthoringSnapshot(SelectedIc);
+    }
+
+    private CompiledAuthoringSelectionSnapshot ResolveStandardMergeAuthoringSnapshot(
+        string icId)
+    {
+        if (string.Equals(_preparedStandardMergeIc, icId, StringComparison.Ordinal) &&
+            _preparedStandardMergeSnapshot is not null)
+        {
+            CompiledAuthoringSelectionSnapshot prepared = _preparedStandardMergeSnapshot;
+            _preparedStandardMergeIc = null;
+            _preparedStandardMergeSnapshot = null;
+            return prepared;
+        }
+
+        return ResolveStandardMergeAuthoringSnapshotCore(icId);
+    }
+
+    private CompiledAuthoringSelectionSnapshot ResolveStandardMergeAuthoringSnapshotCore(
+        string icId)
+    {
         string[] selectedSlotIds =
         [
             .. StandardMergeSlots
@@ -128,7 +149,7 @@ internal sealed partial class MergePresentationViewModel
             StandardMergeSlots,
             static slot => slot.AddressSpaceId);
         return _compositionServices.StandardMergeAuthoring.GetAuthoringSnapshot(
-            SelectedIc,
+            icId,
             selectedSlotIds,
             accepted,
             StandardMergeAuthoringRevision,

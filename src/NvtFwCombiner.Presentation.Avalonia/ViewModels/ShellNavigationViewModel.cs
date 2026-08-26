@@ -106,10 +106,13 @@ internal sealed partial class ShellNavigationViewModel : ObservableObject
             return;
         }
 
+        ShellPage source = _bindings.SelectedPage();
         _pendingNavigation = null;
         IsNavigationClearConfirmationOpen = false;
-        _bindings.ClearSelectedInputs(_bindings.SelectedPage());
-        CompleteNavigation(pending.Target, pending.IsBack);
+        CompleteNavigation(
+            pending.Target,
+            pending.IsBack,
+            () => _bindings.ClearSelectedInputs(source));
     }
 
     [RelayCommand]
@@ -119,8 +122,13 @@ internal sealed partial class ShellNavigationViewModel : ObservableObject
         IsNavigationClearConfirmationOpen = false;
     }
 
-    private void CompleteNavigation(ShellPage target, bool isBack)
+    private void CompleteNavigation(
+        ShellPage target,
+        bool isBack,
+        Action? afterActivation = null)
     {
+        ShellPage source = _bindings.SelectedPage();
+        ShellPage[] previousHistory = [.. _pageHistory];
         if (isBack && _pageHistory.Count > 1)
         {
             _pageHistory.RemoveAt(_pageHistory.Count - 1);
@@ -130,7 +138,22 @@ internal sealed partial class ShellNavigationViewModel : ObservableObject
             _pageHistory.Add(target);
         }
 
-        _bindings.ApplySelectedPage(target);
+        try
+        {
+            _bindings.ApplySelectedPage(target);
+            afterActivation?.Invoke();
+        }
+        catch
+        {
+            if (_bindings.SelectedPage() != source)
+            {
+                _bindings.ApplySelectedPage(source);
+            }
+            _pageHistory.Clear();
+            _pageHistory.AddRange(previousHistory);
+            UpdateState();
+            throw;
+        }
     }
 
     private void RefreshNavigationTrail()

@@ -124,7 +124,7 @@ public sealed partial class ShellNavigationSystemTests
             changes.IndexOf(nameof(WorkflowSessionPresentationViewModel.SelectedIc)));
     }
 
-    /// <summary>AB fallback publishes the destination selector before one Standard authoring rebuild.</summary>
+    /// <summary>AB fallback stages one Standard rebuild before publishing the destination selector.</summary>
     [Fact]
     public async Task CatalogRefreshFallbackPublishesDestinationBeforeOneStandardRebuild()
     {
@@ -188,7 +188,7 @@ public sealed partial class ShellNavigationSystemTests
         Assert.NotEmpty(authoring.Calls);
         Assert.All(authoring.Calls, call =>
         {
-            Assert.True(call.DestinationPublished);
+            Assert.False(call.DestinationPublished);
             Assert.Equal(finalIc, call.IcId);
         });
         Assert.Equal(1, authoring.GetInputAddressSpacesCalls);
@@ -198,12 +198,12 @@ public sealed partial class ShellNavigationSystemTests
             call.Method == nameof(IStandardMergeAuthoring.GetRequiredAddressSpaces));
         Assert.Equal(
             [
-                nameof(WorkflowSessionPresentationViewModel.IcChoices),
-                nameof(WorkflowSessionPresentationViewModel.SelectedIc),
-                nameof(MergePresentationViewModel.SelectedMergeMode),
                 nameof(IStandardMergeAuthoring.GetRequiredAddressSpaces),
                 nameof(IStandardMergeAuthoring.GetInputAddressSpaces),
                 nameof(IStandardMergeAuthoring.GetAuthoringSnapshot),
+                nameof(WorkflowSessionPresentationViewModel.IcChoices),
+                nameof(WorkflowSessionPresentationViewModel.SelectedIc),
+                nameof(MergePresentationViewModel.SelectedMergeMode),
             ],
             timeline);
         Assert.Equal(1, modeChangeCount);

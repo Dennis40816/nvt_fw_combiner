@@ -132,6 +132,8 @@ public sealed partial class RepositoryBoundaryTests
             "src/NvtFwCombiner.Application/Capabilities/CanonicalCapabilityCompiler.AbMerge.cs");
         string deviceContext = ReadText(
             "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/WorkflowSessionPresentationViewModel.DeviceContext.cs");
+        string selectorProjection = ReadText(
+            "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/WorkflowSessionPresentationViewModel.SelectorPublication.cs");
         string workflowSetup = ReadText(
             "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/WorkflowContextSetupViewModel.cs");
         string mergeState = ReadText(
@@ -145,6 +147,7 @@ public sealed partial class RepositoryBoundaryTests
         string selectorConsumers = string.Join(
             Environment.NewLine,
             deviceContext,
+            selectorProjection,
             mergeState,
             mergeRequirements,
             replaceState,
@@ -187,7 +190,7 @@ public sealed partial class RepositoryBoundaryTests
             replaceState,
             StringComparison.Ordinal);
         int stageStart = mergeState.IndexOf(
-            "internal bool StageStandardMergeForCatalogReconciliation()",
+            "internal bool StageAuthorableModeForCatalogReconciliation(",
             StringComparison.Ordinal);
         int publishStart = mergeState.IndexOf(
             "internal void PublishCatalogReconciledMergeMode()",
@@ -200,25 +203,25 @@ public sealed partial class RepositoryBoundaryTests
         Assert.DoesNotContain("_compositionServices", stagedFallback, StringComparison.Ordinal);
         Assert.DoesNotContain("NotifyContextChanged", stagedFallback, StringComparison.Ordinal);
         Assert.True(
-            deviceContext.IndexOf(
+            selectorProjection.IndexOf(
                 "PublishActiveSelectorState(activeIc, activeNumber);",
                 StringComparison.Ordinal) <
-            deviceContext.IndexOf(
+            selectorProjection.IndexOf(
                 "_merge.PublishCatalogReconciledMergeMode();",
                 StringComparison.Ordinal));
         Assert.Contains(
             "_selectorPublication.ResolutionToken == publication.ResolutionToken",
             deviceContext,
             StringComparison.Ordinal);
-        int zeroStart = deviceContext.IndexOf(
+        int zeroStart = selectorProjection.IndexOf(
             "if (publication.IcIds.Count == 0)",
             StringComparison.Ordinal);
-        int nonZeroStart = deviceContext.IndexOf(
+        int nonZeroStart = selectorProjection.IndexOf(
             "string mergeIc = ResolveWorkflowContextIc",
             zeroStart,
             StringComparison.Ordinal);
         Assert.True(zeroStart >= 0 && nonZeroStart > zeroStart);
-        string zeroAuthorableBranch = deviceContext[zeroStart..nonZeroStart];
+        string zeroAuthorableBranch = selectorProjection[zeroStart..nonZeroStart];
         Assert.Contains("InvalidateWorkflowContextDraft();", zeroAuthorableBranch, StringComparison.Ordinal);
         Assert.Contains("PublishActiveSelectorState(string.Empty", zeroAuthorableBranch, StringComparison.Ordinal);
         Assert.Contains("return;", zeroAuthorableBranch, StringComparison.Ordinal);
