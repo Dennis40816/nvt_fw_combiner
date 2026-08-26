@@ -1,0 +1,34 @@
+{
+  "schemaVersion": 2,
+  "taskId": "VER-SELFTEST-LAB-01",
+  "capability": "Prove the Version environment self-test with relocated complete roots and real filesystem adapters",
+  "integrationBase": "fcaa7a7f23701e36a168839a9f16c548feb12da0",
+  "risk": "R2",
+  "kind": "release",
+  "state": "design-active",
+  "mutablePaths": [
+    "tests/NvtFwCombiner.Infrastructure.Tests/VersionManagement/FileSystemManagedVersionRepositoryRegistrySelfTestTests.cs"
+  ],
+  "implementationOwner": "root",
+  "searchEvidence": [
+    "Application self-test tests use deterministic ports while FileSystemUpdateSourceRegistry, FileSystemUpdateCatalogSource, and FileSystemManagedVersionRepository each have separate adapter tests",
+    "The owner requires a no-login local test proving a moved complete source root, latest-to-available fallback, deprecated exclusion, exact package admission, and zero state mutation",
+    "FileSystemManagedVersionRepositoryTests already owns closed test-package and catalog builders; the integration case reuses those helpers instead of creating another package format"
+  ],
+  "semanticOwner": "VersionManagementExperience.RunEnvironmentSelfTestAsync remains the sole use case; this test composes the three production filesystem adapters without adding runtime behavior",
+  "terminalContract": "A generated complete source root remains admissible after relocation; a missing latest falls back to the relocated available root, deprecated is not contacted, the real package is verified, and no state or managed-root file is created.",
+  "disposition": "reuse",
+  "designReview": {
+    "reviewer": "version_selftest_ui_contract",
+    "outcome": "approved",
+    "evidence": "Independent self-test contract review required a local real-adapter integration path with temporary roots and no Microsoft 365 authentication or UI path probing."
+  },
+  "implementationHead": null,
+  "reviewedHead": null,
+  "pathStateDigest": null,
+  "finalReview": {
+    "reviewer": null,
+    "outcome": "pending",
+    "evidence": ""
+  }
+}
