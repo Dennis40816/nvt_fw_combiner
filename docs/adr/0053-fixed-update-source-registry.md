@@ -56,8 +56,11 @@ firmware capabilities remain outside this ADR.
 5. Managed root remains inventory authority and does not create a second
    writer identity. No sidecar, second lease, second state writer, or adapter
    state write is permitted.
-6. Bootstrap injects the one registry source. The stable launcher remains
-   unaware of registry/catalog discovery.
+6. The Desktop host injects the one registry locator from an explicit
+   `--update-source-registry-path` option or, when absent, the inherited
+   `NFC_UPDATE_SOURCE_REGISTRY_PATH` environment value. The stable Bootstrap
+   and Launcher remain unaware of registry/catalog discovery and inherit the
+   environment without copying or persisting the locator.
 7. Presentation renders typed registry/effective-source status only. It never
    probes paths, parses the registry, or chooses fallback.
 
@@ -87,11 +90,18 @@ firmware capabilities remain outside this ADR.
    catalog identity, newest package identity, and package verification are
    repeated under the existing writer lease before commit. There is no
    catalog-only candidate admission.
-6. **Locator.** Bootstrap injects one exact absolute filesystem file locator.
+6. **Locator.** The Desktop host injects one exact filesystem file locator into
+   the existing Bootstrap composition seam.
    It may be local, UNC, or a locally synchronized Microsoft 365 path readable
    by `FileStream`; HTTPS and filesystem/share search are forbidden. The final
    production value is a release input. A missing locator or first source is a
    typed non-blocking unavailable state and ordinary/offline startup continues.
+   The deployment value remains outside package identity: direct Desktop
+   diagnostics may pass `--update-source-registry-path`, while normal stable
+   Bootstrap/Launcher startup inherits `NFC_UPDATE_SOURCE_REGISTRY_PATH`.
+   Explicit option precedence is deterministic; both values still pass through
+   the one strict Infrastructure adapter, and neither host performs path search
+   or normalization.
 7. **Status and issues.** Stable Application issues cover NotConfigured,
    Unavailable, PermissionDenied, Invalid, RevisionRollback,
    RevisionConflict, CandidatesExhausted, RegistryChanged, StateUnavailable,

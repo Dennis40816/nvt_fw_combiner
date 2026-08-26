@@ -26,6 +26,17 @@ clean-machine evidence change together under release-owner review. Existing
 portable-package dry-run and smoke stay mandatory through the internal proving
 line as regression gates.
 
+The fixed Registry locator is deployment configuration, not a packaged file.
+Normal stable Bootstrap/Launcher startup inherits
+`NFC_UPDATE_SOURCE_REGISTRY_PATH`; direct Desktop diagnostics may instead use
+`--update-source-registry-path`, which has precedence. The value and the live
+Registry JSON are excluded from version ZIPs, inner/outer manifests,
+SBOM/provenance, package/catalog hashes, and immutable GitHub Release assets.
+Release and clean-machine evidence must record the configured locator separately
+and run Version **Self-test**; missing or invalid configuration remains a typed
+non-blocking result and must not be hidden by copying a seed into a version
+payload.
+
 The machine-verifiable outer-process gate is:
 
 ```powershell

@@ -1,10 +1,22 @@
 # Fixed update-source registry v1 contract
 
 The fixed registry is one administrator-controlled UTF-8 JSON file whose wire
-shape is `update-source-registry-v1.schema.json`. Bootstrap supplies its exact
-absolute locator; the runtime never searches drives, shares, or Microsoft 365.
-The production locator is a release input and is intentionally not embedded
-until the owner supplies it.
+shape is `update-source-registry-v1.schema.json`. The Desktop host accepts its
+exact absolute locator from `--update-source-registry-path`; when that option is
+absent it reads `NFC_UPDATE_SOURCE_REGISTRY_PATH` from the inherited process
+environment. An explicit option always wins and neither host layer validates,
+normalizes, persists, logs, searches for, or hashes the value. The existing
+Registry adapter remains the only path and document validator. The runtime
+never searches drives, shares, or Microsoft 365.
+
+The locator is external deployment configuration. It is outside every version
+ZIP, release manifest, package/catalog checksum, SBOM/provenance document, and
+immutable release asset. Changing it therefore cannot change package identity.
+The stable Bootstrap/Launcher process chain inherits the environment unchanged;
+direct Desktop diagnostics may use the explicit option. When neither source is
+configured, ordinary startup and offline installed-version switching continue
+with typed `NotConfigured` state. The final production value remains an owner
+deployment input.
 
 The raw file is limited to 64 KiB and 16 entries. It has one positive monotonic
 `revision`, exactly one `latest` entry, zero or more ordered `available`
@@ -61,6 +73,19 @@ For the current operations layout, the source root is
 that root, and package ZIPs are under its exact `packages` child. This is not
 the fixed registry locator. The latter remains a separately supplied absolute
 synced-local or UNC file path.
+
+For a local deployment test, set the external locator for only the current
+process before starting the stable Bootstrap, then use Version **Self-test**:
+
+```powershell
+$env:NFC_UPDATE_SOURCE_REGISTRY_PATH = 'C:\NvtFwCombiner-UpgradeLab\update-source-registry.v1.json'
+.\NvtFwCombiner.Bootstrap.exe
+```
+
+Production administrators may provision the same variable at User or Machine
+scope. Removing, mistyping, or changing it never rewrites managed-version state;
+Self-test reports the existing typed missing, unsafe, permission, or invalid
+Registry result.
 
 ## Durable compatibility
 

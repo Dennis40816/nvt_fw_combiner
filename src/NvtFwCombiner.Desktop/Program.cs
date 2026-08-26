@@ -9,7 +9,16 @@ internal static class Program
     [STAThread]
     public static int Main(string[] args)
     {
-        (string? managedRoot, string? statePath, string[] remaining) = ParseManagedHostOptions(args);
+        (
+            string? managedRoot,
+            string? statePath,
+            bool registryLocatorSupplied,
+            string? registryLocator,
+            string[] remaining) = ParseManagedHostOptions(args);
+        string? updateSourceRegistryPath = UpdateSourceRegistryLocator.Resolve(
+            registryLocatorSupplied,
+            registryLocator,
+            Environment.GetEnvironmentVariable);
         using IInheritedManagedProcessLifetimeCapture lifetime =
             CompositionHostServices.CaptureInheritedManagedProcessLifetime(
                 statePath,
@@ -17,14 +26,18 @@ internal static class Program
         return lifetime.Outcome == InheritedManagedProcessLifetimeOutcome.InvalidInheritedContext
             ? 22
             : DesktopApplication.Run(
-                () => CreatePresentationHostServices(managedRoot, statePath),
+                () => CreatePresentationHostServices(
+                    managedRoot,
+                    statePath,
+                    updateSourceRegistryPath),
                 CompositionHostServices.CreateLocalFileStore(),
                 remaining);
     }
 
     private static PresentationHostServices CreatePresentationHostServices(
         string? managedRoot,
-        string? statePath)
+        string? statePath,
+        string? updateSourceRegistryPath)
     {
         var host = CompositionHostServices.Create();
         ManagedAppVersion appVersion = ManagedAppVersion.Parse(DesktopApplication.InformationalVersion);
@@ -32,7 +45,8 @@ internal static class Program
             CompositionHostServices.CreateVersionManagementExperience(
                 appVersion.ToString(),
                 managedRoot,
-                statePath);
+                statePath,
+                updateSourceRegistryPath);
         return new PresentationHostServices(
             new PresentationCompositionServices(
                 host.CompositionCapabilityExperience,
@@ -59,17 +73,27 @@ internal static class Program
             CompositionHostServices.CreateStableLauncherHandoff(managedRoot, statePath));
     }
 
-    private static (string? ManagedRoot, string? StatePath, string[] Remaining) ParseManagedHostOptions(
+    private static (
+        string? ManagedRoot,
+        string? StatePath,
+        bool RegistryLocatorSupplied,
+        string? RegistryLocator,
+        string[] Remaining) ParseManagedHostOptions(
         string[] args)
     {
         ArgumentNullException.ThrowIfNull(args);
         string? managedRoot = null;
         string? statePath = null;
+        bool registryLocatorSupplied = false;
+        string? registryLocator = null;
         var remaining = new List<string>();
         for (int index = 0; index < args.Length; index++)
         {
             string option = args[index];
-            if (option is not ("--managed-root" or "--state-path"))
+            if (option is not (
+                "--managed-root" or
+                "--state-path" or
+                "--update-source-registry-path"))
             {
                 remaining.Add(option);
                 continue;
@@ -81,11 +105,16 @@ internal static class Program
             {
                 managedRoot = Path.GetFullPath(value);
             }
-            else
+            else if (option == "--state-path")
             {
                 statePath = Path.GetFullPath(value);
             }
+            else
+            {
+                registryLocatorSupplied = true;
+                registryLocator = value;
+            }
         }
-        return (managedRoot, statePath, [.. remaining]);
+        return (managedRoot, statePath, registryLocatorSupplied, registryLocator, [.. remaining]);
     }
 }
