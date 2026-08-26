@@ -12,7 +12,7 @@ internal static class VersionManagementExperienceTestFactory
         IManagedVersionRepository repository,
         ILauncherMutationFence? launcherFence = null)
     {
-        return VersionManagementExperienceTestFactory.Create(
+        return new VersionManagementExperience(
             currentAppVersion,
             managedRoot,
             stateStore,
