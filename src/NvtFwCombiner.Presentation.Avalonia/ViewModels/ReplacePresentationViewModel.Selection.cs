@@ -109,8 +109,15 @@ internal sealed partial class ReplacePresentationViewModel
             .Select(slot => new ReportLineViewModel(
                 slot.Title,
                 slot.DisplayName,
-                slot.Description)),
+                GetStructuredReplaceSelectionMeta(slot))),
         ];
+    }
+
+    private string GetStructuredReplaceSelectionMeta(FirmwareSlotViewModel slot)
+    {
+        return slot.CtrlRamDescriptionFacts is { } facts
+            ? Text.FormatCtrlRamTechnicalDescription(facts)
+            : slot.Description;
     }
 
     private List<ReportLineViewModel> CreateGeneralReplaceSelectionRows()

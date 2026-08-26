@@ -523,7 +523,8 @@ public sealed partial class CtrlRamWorkflowTests
                 TitleStem: "NF CtrlRAM")],
             RequiresDiffNfMerge: true,
             TitleStem: "NF CtrlRAM",
-            IsShared: false);
+            IsShared: false,
+            TargetRegionCount: 1);
 
         (string englishTitle, _) = ShellTextResources.For(ShellLanguage.English).GetReplaceInputText(
             addressSpaceId: "replace-ctrlram-nf",
@@ -665,6 +666,8 @@ public sealed partial class CtrlRamWorkflowTests
         Assert.Equal("0/2", sharedGroup.CountLabel);
 
         FirmwareSlotViewModel vn = viewModel.Replace.ReplaceSlots.Single(slot => slot.Title == "VN CtrlRAM (Shared)");
+        Assert.Equal("VN_Ctrlram.bin · 3 regions", vn.Description);
+        Assert.Equal(3, vn.CtrlRamDescriptionFacts!.TargetRegionCount);
         viewModel.SetSlotFile(vn.SlotId, workspace.Write("vn.bin", [0x00]));
 
         Assert.Equal("Waiting for Base BIN", Assert.Single(viewModel.Replace.ReplaceCoverageSegments).SourceLabel);
@@ -681,7 +684,8 @@ public sealed partial class CtrlRamWorkflowTests
             row.Title == "VN CtrlRAM (Shared)" &&
             row.Detail == "vn.bin" &&
             row.Meta.Contains("VN_Ctrlram.bin", StringComparison.Ordinal) &&
-            row.Meta.Contains("VN CtrlRAM (Slave L)", StringComparison.Ordinal));
+            row.Meta.Contains("VN CtrlRAM (Slave L)", StringComparison.Ordinal) &&
+            row.Meta.Contains("0x", StringComparison.Ordinal));
         Assert.Contains("Complete the required inputs", viewModel.Replace.ReplaceSelectionRunHint, StringComparison.Ordinal);
 
         Assert.False(viewModel.Replace.IsReplaceSelectionModalOpen);

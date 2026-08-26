@@ -1,0 +1,37 @@
+{
+  "schemaVersion": 2,
+  "taskId": "CTRLRAM-TARGET-COUNT-01",
+  "capability": "Publish one typed CtrlRAM physical target-region count for concise shared selector cards and complete technical reports",
+  "integrationBase": "898b36393606004481f03b52b5adb48cf337631a",
+  "risk": "R2",
+  "kind": "behavior",
+  "state": "design-active",
+  "mutablePaths": [
+    "src/NvtFwCombiner.Application/Composition/CompositionClientModels.cs",
+    "src/NvtFwCombiner.Application/MemoryLayout/MemoryLayoutProjector.CtrlRam.cs",
+    "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/ReplacePresentationViewModel.Selection.cs",
+    "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/ShellTextResources.ReplaceGrouping.cs"
+  ],
+  "implementationOwner": "root-implementer",
+  "searchEvidence": [
+    "rg -n 'CtrlRamInputDescriptionFacts|TargetRegionCount|IsShared|CtrlRamDescriptionFacts' src tests",
+    "Application MemoryLayoutProjector.CtrlRam is the existing producer of topology-resolved CtrlRAM input facts; Presentation currently consumes its sections and must not count blocks or traverse flash maps.",
+    "BuiltInTpFlashMapCatalogTests already owns the all-built-in postbuild-selection inventory; WorkbenchFirmwareInspectionTests owns DTO transport equality."
+  ],
+  "semanticOwner": "Application.MemoryLayoutProjector.CtrlRam owns distinct topology-resolved physical region count and validation; Presentation only localizes the typed summary and report detail",
+  "terminalContract": "Every CtrlRAM input publishes a positive count of unique physical target region ids. IsShared equals TargetRegionCount > 1 for every artifact, including a future multi-region DiffDLM; DiffDLM title and Cascade group remain owned by ArtifactRole and RequiresDiffNfMerge. Selector cards show source file plus target-region count for shared inputs, while selection reports retain all typed section offsets. Zero or duplicate region ids fail closed. Compiled block count never changes the physical count, and no composition bytes, ranges, ordering, CRC, support or profile facts change.",
+  "disposition": "extend-owner",
+  "designReview": {
+    "reviewer": "audit_dirty_application",
+    "outcome": "findings-incorporated",
+    "evidence": "Independent R2 admission found no P0-P2 in the corrected design. It confirms Application as the sole count/validation owner, requires IsShared == TargetRegionCount > 1 without a DiffDLM exception, keeps DiffDLM semantics on typed artifact role, and expands tests to the existing all-built-in catalog loop, DTO transport, direct constructor caller, concise UI summary and full report offsets. No ADR or firmware authority changes are required."
+  },
+  "implementationHead": null,
+  "reviewedHead": null,
+  "pathStateDigest": null,
+  "finalReview": {
+    "reviewer": null,
+    "outcome": "pending",
+    "evidence": ""
+  }
+}

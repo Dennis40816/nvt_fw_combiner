@@ -52,22 +52,32 @@ internal sealed partial class ShellTextResources
         string declaredDescription,
         CtrlRamInputDescriptionFacts? facts)
     {
-        if (Language != ShellLanguage.ChineseTraditional || facts is null)
-        {
-            return declaredDescription;
-        }
+        return facts is null
+            ? declaredDescription
+            : facts.IsShared
+                ? SelectLanguage(
+                    $"{facts.SourceFileName} · {facts.TargetRegionCount} regions",
+                    $"{facts.SourceFileName} · {facts.TargetRegionCount} 個區域")
+                : Language != ShellLanguage.ChineseTraditional
+                    ? declaredDescription
+                    : FormatCtrlRamTechnicalDescription(facts);
+    }
 
-        string sections = string.Join("；", facts.Sections.Select(section =>
-            $"{FormatCtrlRamInputTitle(
-                section.TitleStem,
-                section.RegionGroup,
-                isShared: false,
-                isDiffNfMergeOutput: false)}" +
-            $"：上限 {section.MaximumLength} B → 0x{section.TargetStart:X}"));
+    /// <summary>Formats the full typed CtrlRAM mapping retained for technical details and reports.</summary>
+    public string FormatCtrlRamTechnicalDescription(CtrlRamInputDescriptionFacts facts)
+    {
+        ArgumentNullException.ThrowIfNull(facts);
+        bool isChinese = Language == ShellLanguage.ChineseTraditional;
+        string sections = string.Join(isChinese ? "；" : "; ", facts.Sections.Select(section =>
+            isChinese
+                ? $"{FormatCtrlRamInputTitle(section.TitleStem, section.RegionGroup, false, false)}：上限 {section.MaximumLength} B → 0x{section.TargetStart:X}"
+                : $"{section.DisplayName}: max {section.MaximumLength} B → 0x{section.TargetStart:X}"));
         string description = $"{facts.SourceFileName} · {sections}";
-        return facts.RequiresDiffNfMerge
-            ? $"{description} · 串接模式需要預先由 DiffNFMerge 產生的 NF_Ctrlram.bin；目前未整合產生流程。"
-            : description;
+        return !facts.RequiresDiffNfMerge
+            ? description
+            : isChinese
+                ? $"{description} · 串接模式需要預先由 DiffNFMerge 產生的 NF_Ctrlram.bin；目前未整合產生流程。"
+                : $"{description} · Cascade requires a DiffNFMerge-prebuilt NF_Ctrlram.bin; generation is not integrated.";
     }
 
     public string GetReplaceRegionGroupTitle(ReplaceRegionGroup group)

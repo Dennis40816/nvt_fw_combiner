@@ -563,11 +563,10 @@ public sealed partial class XamlControlStyleContractTests
         Assert.Equal("Normal CtrlRAM（左側從屬）", slaveLeft.Title);
         AssertCtrlRamDescriptionIsFullyLocalized(slaveLeft, "Normal CtrlRAM（左側從屬）：上限 ");
         Assert.Equal("NF CtrlRAM（共用）", shared.Title);
-        AssertCtrlRamDescriptionIsFullyLocalized(
-            shared,
-            "NF CtrlRAM（主控）：上限 ",
-            "NF CtrlRAM（右側從屬）：上限 ",
-            "NF CtrlRAM（左側從屬）：上限 ");
+        int sharedTargetCount = shared.CtrlRamDescriptionFacts!.TargetRegionCount;
+        Assert.True(sharedTargetCount > 0);
+        Assert.Equal($"NF_Ctrlram.bin · {sharedTargetCount} 個區域", shared.Description);
+        Assert.True(shared.CtrlRamDescriptionFacts.Sections.Count >= sharedTargetCount);
         Assert.Equal("DiffDLM", cascadeSlot.Title);
         AssertCtrlRamDescriptionIsFullyLocalized(cascadeSlot, "DiffDLM.bin");
         foreach (FirmwareSlotViewModel slot in topologySlots)

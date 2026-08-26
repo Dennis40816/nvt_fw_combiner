@@ -284,12 +284,48 @@ public sealed record CtrlRamInputDescriptionSection(
     string TitleStem);
 
 /// <summary>Structured CtrlRAM input facts retained independently from display text.</summary>
-public sealed record CtrlRamInputDescriptionFacts(
-    string SourceFileName,
-    IReadOnlyList<CtrlRamInputDescriptionSection> Sections,
-    bool RequiresDiffNfMerge,
-    string TitleStem,
-    bool IsShared);
+public sealed record CtrlRamInputDescriptionFacts
+{
+    public CtrlRamInputDescriptionFacts(
+        string SourceFileName,
+        IReadOnlyList<CtrlRamInputDescriptionSection> Sections,
+        bool RequiresDiffNfMerge,
+        string TitleStem,
+        bool IsShared,
+        int TargetRegionCount)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(SourceFileName);
+        ArgumentNullException.ThrowIfNull(Sections);
+        ArgumentException.ThrowIfNullOrWhiteSpace(TitleStem);
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(TargetRegionCount);
+        if (IsShared != (TargetRegionCount > 1))
+        {
+            throw new ArgumentException(
+                "CtrlRAM shared state must exactly match whether more than one physical region is targeted.",
+                nameof(IsShared));
+        }
+
+        this.SourceFileName = SourceFileName;
+        this.Sections = Sections;
+        this.RequiresDiffNfMerge = RequiresDiffNfMerge;
+        this.TitleStem = TitleStem;
+        this.IsShared = IsShared;
+        this.TargetRegionCount = TargetRegionCount;
+    }
+
+    public string SourceFileName { get; }
+
+    public IReadOnlyList<CtrlRamInputDescriptionSection> Sections { get; }
+
+    public bool RequiresDiffNfMerge { get; }
+
+    public string TitleStem { get; }
+
+    public bool IsShared { get; }
+
+    /// <summary>Positive count of distinct topology-resolved physical target region ids.</summary>
+    public int TargetRegionCount { get; }
+}
 
 /// <summary>Closed CtrlRAM family role used by detailed memory presentation.</summary>
 public enum CtrlRamRegionRole

@@ -60,15 +60,30 @@ public static partial class MemoryLayoutProjector
                 source.SourceFileName,
                 diffDlmPolicy.IndependentNfSourceFileName);
         bool isDiffDlm = source.ArtifactRole == TpCtrlRamPostbuildArtifactRole.DiffDlm;
-        bool isShared = !isDiffDlm && source.Regions.Count > 1;
+        int targetRegionCount = source.Regions
+            .Select(static region => region.RegionId)
+            .Distinct(StringComparer.Ordinal)
+            .Count();
+        if (targetRegionCount <= 0)
+        {
+            throw new InvalidDataException(
+                $"CtrlRAM source '{source.SourceId}' has no topology-resolved target regions.");
+        }
+        if (targetRegionCount != source.Regions.Count)
+        {
+            throw new InvalidDataException(
+                $"CtrlRAM source '{source.SourceId}' has duplicate target region ids.");
+        }
+
+        bool isShared = targetRegionCount > 1;
         string titleStem = isDiffDlm
             ? "DiffDLM"
             : DynamicCtrlRamReplacementIds.FormatRegionBaseDisplayLabel(source.SourceId);
         string title = isDiffDlm
             ? titleStem
-            : source.Regions.Count == 1
-                ? source.Regions[0].DisplayName
-                : $"{titleStem} (Shared)";
+            : isShared
+                ? $"{titleStem} (Shared)"
+                : source.Regions[0].DisplayName;
         CtrlRamInputDescriptionSection[] descriptionSections =
         [
             .. source.Blocks
@@ -101,26 +116,34 @@ public static partial class MemoryLayoutProjector
             source.SourceId,
             slotId,
             SelectionGroupId: null,
-            RegionGroup: ResolveCtrlRamSourceGroup(source, commandPlan?.Branch, selection),
+            RegionGroup: ResolveCtrlRamSourceGroup(
+                source.Regions[0],
+                isDiffDlm,
+                isShared,
+                commandPlan?.Branch,
+                selection),
             InputRole: ReplaceInputRole.CtrlRam,
             CtrlRamDescription: new CtrlRamInputDescriptionFacts(
                 source.SourceFileName,
                 Array.AsReadOnly(descriptionSections),
                 requiresDiffNfMerge,
                 titleStem,
-                isShared));
+                isShared,
+                targetRegionCount));
     }
 
     private static ReplaceRegionGroup ResolveCtrlRamSourceGroup(
-        TpCtrlRamPostbuildSource source,
+        TpFlashMapRegion firstTargetRegion,
+        bool isDiffDlm,
+        bool isShared,
         LegacyCombinerPostbuildBranch? branch,
         IcNumberSelection selection)
     {
-        return source.ArtifactRole == TpCtrlRamPostbuildArtifactRole.DiffDlm
+        return isDiffDlm
             ? ReplaceRegionGroup.Cascade
-            : source.Regions.Count == 1
-                ? ResolveCtrlRamRegionGroup(source.Regions[0], branch, selection)
-                : ReplaceRegionGroup.Common;
+            : isShared
+                ? ReplaceRegionGroup.Common
+                : ResolveCtrlRamRegionGroup(firstTargetRegion, branch, selection);
     }
 
     private static ReplaceRegionGroup ResolveCtrlRamRegionGroup(

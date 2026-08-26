@@ -71,6 +71,9 @@ public sealed partial class CtrlRamExternalGoldenTests
         await CurrentInspection(viewModel).ActiveTask;
         FirmwareSlotViewModel normalRight = viewModel.Replace.ReplaceSlots.Single(slot => slot.Title == "Normal CtrlRAM (Slave R)");
         FirmwareSlotViewModel vn = viewModel.Replace.ReplaceSlots.Single(slot => slot.Title == "VN CtrlRAM (Shared)");
+        Assert.Equal("VN_Ctrlram.bin · 3 regions", vn.Description);
+        Assert.Equal(3, vn.CtrlRamDescriptionFacts!.TargetRegionCount);
+        Assert.Equal(3, vn.CtrlRamDescriptionFacts.Sections.Count);
         viewModel.SetSlotFile(normalRight.SlotId, CanonicalCtrlRamTestData.ReplacementPathFor(fixtureCase, normalRight.SlotId));
         viewModel.SetSlotFile(vn.SlotId, CanonicalCtrlRamTestData.ReplacementPathFor(fixtureCase, vn.SlotId));
 
@@ -112,9 +115,13 @@ public sealed partial class CtrlRamExternalGoldenTests
         viewModel.WorkflowSession.SelectedNumber = "3";
         await CurrentInspection(viewModel).ActiveTask;
         FirmwareSlotViewModel vn = viewModel.Replace.ReplaceSlots.Single(slot => slot.Title == "VN CtrlRAM (Shared)");
-        Assert.Contains("VN_Ctrlram.bin", vn.Description, StringComparison.Ordinal);
-        Assert.Contains("VN CtrlRAM (Master): max 5728 B", vn.Description, StringComparison.Ordinal);
-        Assert.Contains("VN CtrlRAM (Slave L): max 5728 B", vn.Description, StringComparison.Ordinal);
+        Assert.Equal("VN_Ctrlram.bin · 3 regions", vn.Description);
+        Assert.Equal(3, vn.CtrlRamDescriptionFacts!.TargetRegionCount);
+        Assert.Equal(3, vn.CtrlRamDescriptionFacts.Sections.Count);
+        Assert.Contains(vn.CtrlRamDescriptionFacts.Sections, section =>
+            section.DisplayName == "VN CtrlRAM (Master)" && section.MaximumLength == 5728);
+        Assert.Contains(vn.CtrlRamDescriptionFacts.Sections, section =>
+            section.DisplayName == "VN CtrlRAM (Slave L)" && section.MaximumLength == 5728);
         viewModel.SetSlotFile(vn.SlotId, CanonicalCtrlRamTestData.ReplacementPathFor(fixtureCase, vn.SlotId));
 
         Assert.True(viewModel.Replace.PreviewReplaceCommand.CanExecute(null));

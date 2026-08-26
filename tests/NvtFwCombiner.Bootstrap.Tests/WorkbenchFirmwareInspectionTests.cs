@@ -385,6 +385,7 @@ public sealed partial class FirmwareInspectionSnapshotTests
             Assert.Equal(expectedFacts.RequiresDiffNfMerge, actualFacts.RequiresDiffNfMerge);
             Assert.Equal(expectedFacts.TitleStem, actualFacts.TitleStem);
             Assert.Equal(expectedFacts.IsShared, actualFacts.IsShared);
+            Assert.Equal(expectedFacts.TargetRegionCount, actualFacts.TargetRegionCount);
             Assert.Equal(expectedFacts.Sections, actualFacts.Sections);
         }
     }
