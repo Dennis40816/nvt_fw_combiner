@@ -283,6 +283,54 @@ try {
         throw 'Release manifest has no file entries.'
     }
 
+    if (Test-Path -LiteralPath (Join-Path $packageRoot 'NvtFwCombiner.Bootstrap.exe') -PathType Leaf) {
+        throw 'Immutable Bootstrap must remain outside every version update package.'
+    }
+    $LauncherEntries = @(
+        $manifest.files | Where-Object {
+            $_.path -eq 'launcher/NvtFwCombiner.Launcher.exe' -or $_.role -eq 'launcher'
+        }
+    )
+    $ManifestSchemaVersion = if ($manifest.PSObject.Properties.Name -contains 'schemaVersion') {
+        [string]$manifest.schemaVersion
+    }
+    else { $null }
+    $ManifestLauncher = if ($manifest.PSObject.Properties.Name -contains 'launcher') {
+        $manifest.launcher
+    }
+    else { $null }
+    $ManifestVersion = if ($manifest.PSObject.Properties.Name -contains 'version') {
+        [string]$manifest.version
+    }
+    else { $null }
+    $ManifestProtocolVersion = if ($manifest.PSObject.Properties.Name -contains 'versionManagementProtocolVersion') {
+        [int]$manifest.versionManagementProtocolVersion
+    }
+    else { 0 }
+    if ($ManifestSchemaVersion -eq '1.2') {
+        if ($ManifestProtocolVersion -ne 1 -or
+            $null -eq $ManifestLauncher -or
+            [int]$ManifestLauncher.protocolVersion -ne 1 -or
+            [string]$ManifestLauncher.launcherVersion -notmatch '^\d+\.\d+\.\d+$' -or
+            [string]$ManifestLauncher.executableRelativePath -ne 'launcher/NvtFwCombiner.Launcher.exe' -or
+            $LauncherEntries.Count -ne 1 -or
+            [string]$LauncherEntries[0].path -ne 'launcher/NvtFwCombiner.Launcher.exe' -or
+            [string]$LauncherEntries[0].role -ne 'launcher' -or
+            [long]$LauncherEntries[0].size -ne [long]$ManifestLauncher.size -or
+            [string]$LauncherEntries[0].sha256 -ne [string]$ManifestLauncher.sha256) {
+            throw 'Release manifest launcher identity is inconsistent.'
+        }
+    }
+    elseif ($null -ne $ManifestSchemaVersion -and
+        ($LauncherEntries.Count -ne 0 -or $null -ne $ManifestLauncher)) {
+        throw 'Legacy release manifest must not declare managed launcher identity.'
+    }
+    if ($ManifestVersion -match '^(\d+)\.\d+\.\d+$' -and
+        [int]$Matches[1] -ge 1 -and
+        $ManifestSchemaVersion -ne '1.2') {
+        throw 'Version 1.0.0 and newer require the managed launcher contract.'
+    }
+
     if (@($manifest.files |
             Where-Object {
                 $_.path -in $RetiredSupportPublicationPolicyPackagePaths -or

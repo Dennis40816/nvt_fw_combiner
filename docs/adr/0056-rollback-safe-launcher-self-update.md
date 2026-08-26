@@ -1,7 +1,7 @@
 # ADR 0056: Update the launcher through an immutable bootstrap trust anchor
 
-- Status: Accepted by product owner on 2026-08-26; independent R2 architecture
-  admission pending
+- Status: Accepted by product owner and admitted by independent R2 architecture
+  review on 2026-08-26; first release remains an R3 human gate
 - Date: 2026-08-26
 - Owners: Product owner, architecture owner, release owner
 - Risk: R2 process/state/contract architecture; R3 first `v1.0.0` package and

@@ -15,11 +15,11 @@ if ([string]::IsNullOrWhiteSpace($UpdateSource)) {
 if ([string]::IsNullOrWhiteSpace($Output)) {
     $Output = Join-Path $RepositoryRoot 'artifacts/managed-installation-lab'
 }
-$PublishRoot = Join-Path $RepositoryRoot "artifacts/managed-launcher-publish-$PID"
-$Launcher = Join-Path $PublishRoot 'NvtFwCombiner.Launcher.exe'
+$PublishRoot = Join-Path $RepositoryRoot "artifacts/immutable-bootstrap-publish-$PID"
+$Bootstrap = Join-Path $PublishRoot 'NvtFwCombiner.Bootstrap.exe'
 try {
     & dotnet publish `
-        (Join-Path $RepositoryRoot 'src/NvtFwCombiner.Launcher/NvtFwCombiner.Launcher.csproj') `
+        (Join-Path $RepositoryRoot 'src/NvtFwCombiner.LauncherBootstrap/NvtFwCombiner.LauncherBootstrap.csproj') `
         --configuration $Configuration `
         --runtime win-x64 `
         --self-contained true `
@@ -32,12 +32,12 @@ try {
         -p:DebugSymbols=false `
         --output $PublishRoot
     if ($LASTEXITCODE -ne 0) {
-        throw "Stable launcher publish failed with exit code $LASTEXITCODE."
+        throw "Immutable Bootstrap publish failed with exit code $LASTEXITCODE."
     }
     & python `
         (Join-Path $RepositoryRoot 'scripts/create_managed_installation_lab.py') `
         --source $UpdateSource `
-        --launcher $Launcher `
+        --bootstrap $Bootstrap `
         --output $Output
     if ($LASTEXITCODE -ne 0) {
         throw "Managed installation lab creation failed with exit code $LASTEXITCODE."

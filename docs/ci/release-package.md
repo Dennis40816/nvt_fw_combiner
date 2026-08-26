@@ -12,15 +12,17 @@ The generated folder contains the trimmed stable launcher,
 may import that seed only when per-user version-manager state is genuinely
 missing and the seed plus installed payload fully verify.
 
-The first end-user managed distribution is `v1.0.0`. It contains one immutable
-root `NvtFwCombiner.Bootstrap.exe` plus an admitted `versions/1.0.0` payload
-whose closed release manifest pins `versionManagementProtocolVersion: 1` and
-the exact coupled `launcher/NvtFwCombiner.Launcher.exe` identity. Bootstrap is
-listed independently in the outer managed-package manifest, hashes, SBOM, and
-provenance; it is never an update-catalog payload. The production packager,
-smoke scripts, closed allowlist, size policy, and clean-machine evidence change
-together under release-owner review. Existing portable-package dry-run and
-smoke stay mandatory through the internal proving line as regression gates.
+The first end-user managed distribution is `v1.0.0`. Its installation root
+contains one immutable `NvtFwCombiner.Bootstrap.exe` plus an admitted
+`versions/1.0.0` payload. The version payload's closed release manifest pins
+`versionManagementProtocolVersion: 1` and the exact coupled
+`launcher/NvtFwCombiner.Launcher.exe` identity. Bootstrap belongs only to the
+initial managed installer/lab and its outer installation evidence; it is never
+inside a version ZIP, release manifest, or update catalog payload. The
+production packager, smoke scripts, closed allowlist, size policy, and
+clean-machine evidence change together under release-owner review. Existing
+portable-package dry-run and smoke stay mandatory through the internal proving
+line as regression gates.
 
 ## Closed allowlist
 
@@ -29,6 +31,8 @@ The end-user ZIP contains one top-level directory with a closed file allowlist:
 ```text
 NvtFwCombiner-vX.Y.Z-win-x64/
 ├─ NvtFwCombiner.exe
+├─ launcher/
+│  └─ NvtFwCombiner.Launcher.exe
 ├─ profiles/
 │  └─ built-in/
 │     ├─ package-trust-index.json
@@ -96,6 +100,12 @@ authorize trimming, a separate runtime dependency, or any firmware/profile
 semantic change.
 
 `-ExternalToolPolicyDryRun` retains its compatibility name but exercises all closed package policies without publishing application or worker binaries. It creates a temporary extra file inside the source `external-tools/` directory, runs the same approved-file copy and external-tool manifest-entry code used by normal packaging, and proves the probe is absent from staging and the persisted manifest. It also builds a temporary materialized-profile fixture from the package trust index, includes the exact index and two fixed runtime-catalog files, runs the production allowlist/copy/manifest-entry functions, and proves unexpected bundle or runtime-catalog files are rejected. The same dry run copies the canonical capability policy only after its approved SHA-256 matches, proves the persisted manifest retains its exact path and `capabilityPolicy` role, and proves no retired `publicationPolicy` payload enters staging or the manifest. It resolves `release-standard-merge-v1.json`, requires every selected case/artifact path, size, and SHA-256 to match the canonical inventory, currently locks 25 direct BIN artifacts and 10 direct/alias cases, and rejects diagnostics or other workflows. The deterministic `tests/scripts/test_release_package_policy.py` regression invokes this mode through the canonical `python scripts/verify.py --all` flow and proves that release smoke rejects canonical capability-policy omission, repathing, role drift, self-consistent hash drift, a retired standalone publication-policy payload, an extra external-tool path, and a package with no built-in materialized profiles.
+
+Stable packages use release-manifest schema `1.2`, include exactly one coupled
+launcher file, and bind its independent stable three-part version, protocol,
+path, size, and SHA-256. Preview packages produced with `-AllowPrerelease`
+remain schema `1.1` and intentionally omit the managed launcher because they
+are not admissible update payloads. Bootstrap is rejected from both forms.
 
 `main-package.yml` is a manually dispatched preview path using `-AllowPrerelease` and the repository `VERSION`; ordinary `main` pushes do not package. It uploads only a short-retention Actions artifact and never creates a fallback tag or prerelease.
 

@@ -61,6 +61,7 @@ $WorkRoot = Join-Path $RepoRoot 'artifacts/package-work'
 $PackageName = "NvtFwCombiner-$SourceTag-win-x64"
 $PackageRoot = Join-Path $WorkRoot $PackageName
 $AppPublish = Join-Path $WorkRoot 'app-publish'
+$LauncherPublish = Join-Path $WorkRoot 'launcher-publish'
 $WorkerBuild = Join-Path $WorkRoot 'worker-build'
 $WorkerDist = Join-Path $WorkRoot 'worker-dist'
 $IdleBuildWorkerStopper = Join-Path $PSScriptRoot 'stop-idle-build-workers.ps1'
@@ -1006,9 +1007,11 @@ else {
 $Python = (Get-Command python -ErrorAction Stop).Source
 
 Remove-Item -LiteralPath $ReleaseRoot, $WorkRoot -Recurse -Force -ErrorAction SilentlyContinue
-New-Item -ItemType Directory -Force -Path $ReleaseRoot, $PackageRoot, $AppPublish, $WorkerBuild, $WorkerDist | Out-Null
+New-Item -ItemType Directory -Force -Path $ReleaseRoot, $PackageRoot, $AppPublish, $LauncherPublish, $WorkerBuild, $WorkerDist | Out-Null
 
 $AppProject = Join-Path $RepoRoot 'src/NvtFwCombiner.Desktop/NvtFwCombiner.Desktop.csproj'
+$LauncherProject = Join-Path $RepoRoot 'src/NvtFwCombiner.Launcher/NvtFwCombiner.Launcher.csproj'
+$IncludeManagedLauncher = -not $AllowPrerelease
 $SourcePackageLockSnapshots = Save-SourcePackageLocks
 try {
     & $DotNet restore $AppProject -r win-x64 -p:PublishReadyToRun=true
@@ -1029,11 +1032,26 @@ try {
         -p:DebugSymbols=false `
         -o $AppPublish
     $PublishExitCode = $LASTEXITCODE
+    if ($PublishExitCode -eq 0 -and $IncludeManagedLauncher) {
+        & $DotNet restore $LauncherProject -r win-x64
+        if ($LASTEXITCODE -ne 0) { throw 'dotnet restore failed before launcher publish.' }
+        & $DotNet publish $LauncherProject -c Release -r win-x64 --self-contained true --no-restore `
+            -p:Version=$SemanticVersion `
+            -p:PublishSingleFile=true `
+            -p:EnableCompressionInSingleFile=true `
+            -p:PublishTrimmed=false `
+            -p:IncludeNativeLibrariesForSelfExtract=true `
+            -p:DebugType=None `
+            -p:DebugSymbols=false `
+            -o $LauncherPublish
+        $LauncherPublishExitCode = $LASTEXITCODE
+    }
 }
 finally {
     Restore-SourcePackageLocks -Snapshots $SourcePackageLockSnapshots
 }
 if ($PublishExitCode -ne 0) { throw 'dotnet publish failed.' }
+if ($IncludeManagedLauncher -and $LauncherPublishExitCode -ne 0) { throw 'managed launcher publish failed.' }
 
 $PublishedApp = Join-Path $AppPublish 'NvtFwCombiner.Desktop.exe'
 if (-not (Test-Path -LiteralPath $PublishedApp -PathType Leaf)) {
@@ -1041,6 +1059,16 @@ if (-not (Test-Path -LiteralPath $PublishedApp -PathType Leaf)) {
 }
 $AppExe = Join-Path $PackageRoot 'NvtFwCombiner.exe'
 Copy-Item -LiteralPath $PublishedApp -Destination $AppExe
+$LauncherExe = $null
+if ($IncludeManagedLauncher) {
+    $PublishedLauncher = Join-Path $LauncherPublish 'NvtFwCombiner.Launcher.exe'
+    if (-not (Test-Path -LiteralPath $PublishedLauncher -PathType Leaf)) {
+        throw "Published managed launcher was not found at $PublishedLauncher"
+    }
+    $LauncherExe = Join-Path $PackageRoot 'launcher/NvtFwCombiner.Launcher.exe'
+    New-Item -ItemType Directory -Force -Path (Split-Path -Parent $LauncherExe) | Out-Null
+    Copy-Item -LiteralPath $PublishedLauncher -Destination $LauncherExe
+}
 $BuiltInProfilePackagePaths = @(Copy-BuiltInProfilePackageFiles `
     -PublishedRoot $AppPublish `
     -DestinationRoot $PackageRoot)
@@ -1137,6 +1165,7 @@ Distribution owner: $DistributionOwner
 
 Contents:
 - NvtFwCombiner.exe: self-contained Windows x64 desktop application
+- launcher/NvtFwCombiner.Launcher.exe: release-coupled managed launcher (stable packages only)
 - external-tools/crc-worker/0.1.0/Nfc.CrcWorker.exe: constrained external checksum/header worker
 - profiles/built-in/: exact package trust index plus its manifest-pinned materialized bundles; profile stage and support publication remain independently authoritative
 - external-tools/: generated CRC Worker and approved legacy Combiner runtime packages
@@ -1197,9 +1226,18 @@ $FileEntries = @(
     [ordered]@{ path = 'README.txt'; size = (Get-Item $ReadmePath).Length; sha256 = (Get-LowerSha256 $ReadmePath); role = 'readme' }
 ) + $BuiltInProfileEntries + @($CanonicalCapabilityPolicyEntry) +
     $ExternalToolEntries + $ReferencePayloadEntries
+if ($IncludeManagedLauncher) {
+    $LauncherEntry = [ordered]@{
+        path = 'launcher/NvtFwCombiner.Launcher.exe'
+        size = (Get-Item $LauncherExe).Length
+        sha256 = (Get-LowerSha256 $LauncherExe)
+        role = 'launcher'
+    }
+    $FileEntries = @($FileEntries) + @($LauncherEntry)
+}
 
 $Manifest = [ordered]@{
-    schemaVersion = '1.1'
+    schemaVersion = if ($IncludeManagedLauncher) { '1.2' } else { '1.1' }
     product = 'NVT FW Combiner'
     version = $SemanticVersion
     sourceCommit = $Commit
@@ -1214,6 +1252,16 @@ $Manifest = [ordered]@{
     files = $FileEntries
     sbomAsset = $SbomName
     provenanceAsset = $ProvenanceName
+}
+if ($IncludeManagedLauncher) {
+    $Manifest.versionManagementProtocolVersion = 1
+    $Manifest.launcher = [ordered]@{
+        launcherVersion = $SemanticVersion
+        protocolVersion = 1
+        executableRelativePath = 'launcher/NvtFwCombiner.Launcher.exe'
+        size = $LauncherEntry.size
+        sha256 = $LauncherEntry.sha256
+    }
 }
 $ManifestPath = Join-Path $PackageRoot 'RELEASE-MANIFEST.json'
 $Manifest | ConvertTo-Json -Depth 8 | Set-Content -LiteralPath $ManifestPath -Encoding utf8NoBOM
@@ -1282,7 +1330,8 @@ $Expected = (@(
     'RELEASE-MANIFEST.json',
     'SHA256SUMS.txt',
     'THIRD-PARTY-NOTICES.txt'
-) + @($BuiltInProfileEntries.path) + @($CanonicalCapabilityPolicyEntry.path) +
+) + $(if ($IncludeManagedLauncher) { @('launcher/NvtFwCombiner.Launcher.exe') } else { @() }) +
+    @($BuiltInProfileEntries.path) + @($CanonicalCapabilityPolicyEntry.path) +
     @($ExternalToolEntries.path) +
     @($ReferencePayloadEntries.path)) | Sort-Object
 $Actual = @(

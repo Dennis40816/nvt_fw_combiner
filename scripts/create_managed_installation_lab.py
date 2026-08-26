@@ -15,7 +15,8 @@ from pathlib import Path, PurePosixPath
 CATALOG_NAME = "update-catalog.v1.json"
 SEED_NAME = "version-manager.seed.v1.json"
 ADMISSION_NAME = ".managed-admission.v1.json"
-LAUNCHER_NAME = "NvtFwCombiner.Launcher.exe"
+BOOTSTRAP_NAME = "NvtFwCombiner.Bootstrap.exe"
+LAUNCHER_RELATIVE = PurePosixPath("launcher/NvtFwCombiner.Launcher.exe")
 
 
 def _sha256(data: bytes) -> str:
@@ -87,6 +88,33 @@ def _extract_seed(source_root: Path, staging: Path, entry: dict[str, object]) ->
     manifest_hash = _sha256(manifest)
     if manifest_hash != entry["releaseManifestSha256"]:
         raise ValueError("seed release manifest differs from catalog admission")
+    manifest_document = json.loads(manifest)
+    launcher = manifest_document.get("launcher")
+    launcher_path = version_root.joinpath(*LAUNCHER_RELATIVE.parts)
+    launcher_entries = [
+        item
+        for item in manifest_document.get("files", [])
+        if item.get("path") == str(LAUNCHER_RELATIVE) and item.get("role") == "launcher"
+    ]
+    if (
+        manifest_document.get("schemaVersion") != "1.2"
+        or manifest_document.get("versionManagementProtocolVersion") != 1
+        or not isinstance(launcher, dict)
+        or launcher.get("launcherVersion") != version
+        or launcher.get("protocolVersion") != 1
+        or launcher.get("executableRelativePath") != str(LAUNCHER_RELATIVE)
+        or len(launcher_entries) != 1
+        or not launcher_path.is_file()
+    ):
+        raise ValueError("seed release does not contain one protocol-1 coupled launcher")
+    launcher_bytes = launcher_path.read_bytes()
+    if (
+        launcher.get("size") != len(launcher_bytes)
+        or launcher.get("sha256") != _sha256(launcher_bytes)
+        or launcher_entries[0].get("size") != len(launcher_bytes)
+        or launcher_entries[0].get("sha256") != _sha256(launcher_bytes)
+    ):
+        raise ValueError("seed launcher differs from its release admission")
 
     identity = "|".join(
         (
@@ -109,23 +137,23 @@ def _extract_seed(source_root: Path, staging: Path, entry: dict[str, object]) ->
 def build_managed_root(
     output_root: Path,
     source_root: Path,
-    launcher_path: Path,
-    seed_version: str = "0.10.5",
+    bootstrap_path: Path,
+    seed_version: str = "1.0.0",
 ) -> None:
     """Atomically creates one managed-root folder and never overwrites a destination."""
     output_root = output_root.resolve()
     source_root = source_root.resolve()
-    launcher_path = launcher_path.resolve()
+    bootstrap_path = bootstrap_path.resolve()
     if output_root.exists():
         raise FileExistsError(f"refusing to overwrite existing managed lab: {output_root}")
-    if not launcher_path.is_file():
-        raise FileNotFoundError(f"stable launcher has not been published: {launcher_path}")
+    if not bootstrap_path.is_file():
+        raise FileNotFoundError(f"immutable Bootstrap has not been published: {bootstrap_path}")
     output_root.parent.mkdir(parents=True, exist_ok=True)
     staging = Path(tempfile.mkdtemp(prefix=f".{output_root.name}-", dir=output_root.parent))
     try:
         entry = _catalog_entry(source_root, seed_version)
         identity, manifest_hash = _extract_seed(source_root, staging, entry)
-        shutil.copyfile(launcher_path, staging / LAUNCHER_NAME)
+        shutil.copyfile(bootstrap_path, staging / BOOTSTRAP_NAME)
         seed = {
             "schemaVersion": 1,
             "updateSource": None,
@@ -153,11 +181,11 @@ def main() -> int:
     repository = Path(__file__).resolve().parents[1]
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--source", type=Path, default=repository / "artifacts" / "version-update-source-lab")
-    parser.add_argument("--launcher", type=Path, required=True)
+    parser.add_argument("--bootstrap", type=Path, required=True)
     parser.add_argument("--output", type=Path, default=repository / "artifacts" / "managed-installation-lab")
-    parser.add_argument("--seed-version", default="0.10.5")
+    parser.add_argument("--seed-version", default="1.0.0")
     args = parser.parse_args()
-    build_managed_root(args.output, args.source, args.launcher, args.seed_version)
+    build_managed_root(args.output, args.source, args.bootstrap, args.seed_version)
     print(args.output.resolve())
     return 0
 
