@@ -278,6 +278,39 @@ public sealed partial class XamlControlStyleContractTests
         Assert.Contains("NfcSurfaceBrush", primarySurface, StringComparison.Ordinal);
     }
 
+    /// <summary>The approved self-test adds one secondary heading action without moving source controls.</summary>
+    [Fact]
+    public void SettingsVersionSelfTestMatchesApprovedHeadingReference()
+    {
+        string versionPage = ReadPresentationFile("Resources/SettingsVersionPageTemplate.axaml");
+        var document = System.Xml.Linq.XDocument.Parse(versionPage);
+        System.Xml.Linq.XElement action = Assert.Single(
+            document.Descendants(),
+            element => element.Name.LocalName == "Button" &&
+                (string?)element.Attribute("Command") ==
+                    "{Binding Settings.RunVersionSelfTestCommand}");
+
+        Assert.Equal("semanticAction secondary", (string?)action.Attribute("Classes"));
+        Assert.Equal(
+            "{Binding Settings.RunVersionSelfTestLabel}",
+            (string?)action.Attribute("Content"));
+        Assert.Equal(
+            "{Binding Settings.RunVersionSelfTestLabel}",
+            (string?)action.Attribute("AutomationProperties.Name"));
+        Assert.Equal("{Binding !Settings.IsVersionBusy}", (string?)action.Attribute("IsEnabled"));
+        System.Xml.Linq.XElement heading = Assert.IsType<System.Xml.Linq.XElement>(action.Parent);
+        Assert.Equal("Grid", heading.Name.LocalName);
+        Assert.Equal("*,Auto", (string?)heading.Attribute("ColumnDefinitions"));
+        System.Xml.Linq.XElement status = Assert.Single(
+            document.Descendants(),
+            element => element.Name.LocalName == "TextBlock" &&
+                (string?)element.Attribute("Text") == "{Binding Settings.VersionOperationStatus}");
+        Assert.Contains(
+            status.Attributes(),
+            attribute => attribute.Name.LocalName == "AutomationProperties.LiveSetting" &&
+                attribute.Value == "Polite");
+    }
+
     /// <summary>Every upper-right Close/Exit entry uses the dedicated true-circle control contract.</summary>
     [Fact]
     public void UpperRightCloseEntriesUseDedicatedCircularControl()

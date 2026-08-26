@@ -7,8 +7,20 @@
 <DataTemplate x:Key="SettingsVersionPageTemplate" DataType="vm:MainWindowViewModel">
   <StackPanel x:Name="VersionPageRoot" Spacing="28">
     <StackPanel Spacing="{DynamicResource NfcSpace4}">
-      <TextBlock Classes="pageTitle versionPageTitle" Text="{Binding Settings.VersionPageTitle}" />
-      <TextBlock Classes="pageSubtitle versionPageSubtitle" Text="{Binding Settings.VersionPageSubtitle}" TextWrapping="Wrap" />
+      <Grid ColumnDefinitions="*,Auto" ColumnSpacing="{DynamicResource NfcSpace16}">
+        <StackPanel Spacing="{DynamicResource NfcSpace4}">
+          <TextBlock Classes="pageTitle versionPageTitle" Text="{Binding Settings.VersionPageTitle}" />
+          <TextBlock Classes="pageSubtitle versionPageSubtitle" Text="{Binding Settings.VersionPageSubtitle}" TextWrapping="Wrap" />
+        </StackPanel>
+        <Button
+            Grid.Column="1"
+            VerticalAlignment="Center"
+            AutomationProperties.Name="{Binding Settings.RunVersionSelfTestLabel}"
+            Classes="semanticAction secondary"
+            Command="{Binding Settings.RunVersionSelfTestCommand}"
+            Content="{Binding Settings.RunVersionSelfTestLabel}"
+            IsEnabled="{Binding !Settings.IsVersionBusy}" />
+      </Grid>
       <Border Margin="0,24,0,0" Classes="versionSectionDivider" />
     </StackPanel>
 
@@ -224,7 +236,11 @@
         </StackPanel>
       </Grid>
     </Border>
-    <TextBlock Classes="captionText" Text="{Binding Settings.VersionOperationStatus}" TextWrapping="Wrap" />
+    <TextBlock
+        AutomationProperties.LiveSetting="Polite"
+        Classes="captionText"
+        Text="{Binding Settings.VersionOperationStatus}"
+        TextWrapping="Wrap" />
   </StackPanel>
 </DataTemplate>
 

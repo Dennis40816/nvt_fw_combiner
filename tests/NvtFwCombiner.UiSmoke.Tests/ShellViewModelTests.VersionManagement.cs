@@ -96,6 +96,60 @@ public sealed partial class VersionManagementSettingsTests
         Assert.False(viewModel.Settings.IsVersionBusy);
     }
 
+    /// <summary>The Version heading action runs one typed self-test and exposes no source path.</summary>
+    [Fact]
+    public async Task EnvironmentSelfTestUsesApplicationResultAndClearsBusyState()
+    {
+        const string privateSource = @"C:\Users\operator\private-update-root";
+        var experience = new RecordingVersionExperience(Snapshot(retentionReviewDue: false))
+        {
+            SelfTestResult = new(
+                UpdateSourceRegistryLoadIssue.None,
+                [new(
+                    privateSource,
+                    UpdateSourceRegistryEntryStatus.Available,
+                    UpdateCatalogLoadIssue.None,
+                    ManagedVersionInstallIssue.None,
+                    ManagedAppVersion.Parse("0.10.6"),
+                    isVerified: true)]),
+        };
+        MainWindowViewModel viewModel = MainWindow.CreateStartupViewModel(
+            PresentationTestHost.CreateServices("0.10.5", experience),
+            ShellPreferenceSnapshot.Default);
+        viewModel.Settings.ApplyVersionSnapshot(experience.Current);
+
+        await viewModel.Settings.RunVersionSelfTestCommand.ExecuteAsync(null);
+
+        Assert.Equal(1, experience.SelfTests);
+        Assert.Contains("passed", viewModel.Settings.VersionOperationStatus, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("1/1", viewModel.Settings.VersionOperationStatus, StringComparison.Ordinal);
+        Assert.Contains("0.10.6", viewModel.Settings.VersionOperationStatus, StringComparison.Ordinal);
+        Assert.DoesNotContain(privateSource, viewModel.Settings.VersionOperationStatus, StringComparison.Ordinal);
+        Assert.False(viewModel.Settings.IsSourceChecking);
+        Assert.False(viewModel.Settings.IsVersionBusy);
+    }
+
+    /// <summary>A missing immutable locator is reported as a typed failure without throwing.</summary>
+    [Fact]
+    public async Task EnvironmentSelfTestReportsMissingRegistryLocator()
+    {
+        var experience = new RecordingVersionExperience(Snapshot(retentionReviewDue: false))
+        {
+            SelfTestResult = new(UpdateSourceRegistryLoadIssue.NotConfigured, []),
+        };
+        MainWindowViewModel viewModel = MainWindow.CreateStartupViewModel(
+            PresentationTestHost.CreateServices("0.10.5", experience),
+            ShellPreferenceSnapshot.Default);
+        viewModel.Settings.ApplyVersionSnapshot(experience.Current);
+
+        await viewModel.Settings.RunVersionSelfTestCommand.ExecuteAsync(null);
+
+        Assert.Equal(1, experience.SelfTests);
+        Assert.Contains("failed", viewModel.Settings.VersionOperationStatus, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("NotConfigured", viewModel.Settings.VersionOperationStatus, StringComparison.Ordinal);
+        Assert.False(viewModel.Settings.IsVersionBusy);
+    }
+
     /// <summary>The last-known-good trash action requires two confirmations and passes explicit consent.</summary>
     [Fact]
     public async Task LastKnownGoodTrashRequiresSecondRollbackWarning()
@@ -544,6 +598,11 @@ public sealed partial class VersionManagementSettingsTests
 
         internal VersionManagementSnapshot? UpdateSourceCommitResult { get; init; }
 
+        internal VersionEnvironmentSelfTestResult SelfTestResult { get; init; } =
+            new(UpdateSourceRegistryLoadIssue.NotConfigured, []);
+
+        internal int SelfTests { get; private set; }
+
         public ValueTask<VersionManagementSnapshot> InitializeAsync(CancellationToken cancellationToken)
         {
             return ValueTask.FromResult(Current);
@@ -560,6 +619,14 @@ public sealed partial class VersionManagementSettingsTests
             CancellationToken cancellationToken)
         {
             return ValueTask.FromResult(Current);
+        }
+
+        public ValueTask<VersionEnvironmentSelfTestResult> RunEnvironmentSelfTestAsync(
+            CancellationToken cancellationToken)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            SelfTests++;
+            return ValueTask.FromResult(SelfTestResult);
         }
 
         public ValueTask<VersionManagementSnapshot> CommitUpdateSourceAsync(

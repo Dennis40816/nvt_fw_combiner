@@ -88,6 +88,9 @@ internal sealed partial class SettingsViewModel
     public partial string CheckNowLabel { get; private set; } = "Check now";
 
     [ObservableProperty]
+    public partial string RunVersionSelfTestLabel { get; private set; } = "Run self-test";
+
+    [ObservableProperty]
     public partial string ConfirmLabel { get; private set; } = "Confirm";
 
     [ObservableProperty]
@@ -295,6 +298,7 @@ internal sealed partial class SettingsViewModel
         EditSourceLabel = Localize("Edit", "編輯");
         BrowseSourceLabel = Localize("Browse", "瀏覽");
         CheckNowLabel = Localize("Check now", "立即檢查");
+        RunVersionSelfTestLabel = Localize("Run self-test", "執行自我測試");
         ConfirmLabel = Localize("Confirm", "確認");
         CancelLabel = Localize("Cancel", "取消");
         AvailableVersionsHeading = Localize("Available versions", "可用版本");
@@ -377,6 +381,74 @@ internal sealed partial class SettingsViewModel
             IsSourceChecking = false;
             IsVersionBusy = false;
         }
+    }
+
+    [RelayCommand]
+    private async Task RunVersionSelfTestAsync()
+    {
+        if (_versionManagement is null)
+        {
+            return;
+        }
+
+        IsVersionBusy = true;
+        IsSourceChecking = true;
+        VersionOperationStatus = Localize(
+            "Running the update environment self-test…",
+            "正在執行更新環境自我測試…");
+        try
+        {
+            VersionEnvironmentSelfTestResult result =
+                await _versionManagement.RunEnvironmentSelfTestAsync(CancellationToken.None);
+            VersionOperationStatus = FormatEnvironmentSelfTestResult(result);
+        }
+        finally
+        {
+            IsSourceChecking = false;
+            IsVersionBusy = false;
+        }
+    }
+
+    private string FormatEnvironmentSelfTestResult(VersionEnvironmentSelfTestResult result)
+    {
+        ArgumentNullException.ThrowIfNull(result);
+        if (result.RegistryIssue != UpdateSourceRegistryLoadIssue.None)
+        {
+            return Localize(
+                $"Self-test failed: fixed Registry check failed ({result.RegistryIssue}).",
+                $"自我測試失敗：固定 Registry 檢查失敗（{result.RegistryIssue}）。");
+        }
+
+        int verified = result.Attempts.Count(static attempt => attempt.IsVerified);
+        string summary = result.IsSuccess
+            ? Localize(
+                $"Self-test passed: {verified}/{result.Attempts.Count} automatic sources verified.",
+                $"自我測試通過：{verified}/{result.Attempts.Count} 個自動來源驗證成功。")
+            : Localize(
+                $"Self-test failed: 0/{result.Attempts.Count} automatic sources verified.",
+                $"自我測試失敗：0/{result.Attempts.Count} 個自動來源驗證成功。");
+        string details = string.Join(
+            " · ",
+            result.Attempts.Select(FormatEnvironmentSelfTestAttempt));
+        return string.IsNullOrEmpty(details) ? summary : $"{summary} {details}";
+    }
+
+    private string FormatEnvironmentSelfTestAttempt(VersionEnvironmentSelfTestAttempt attempt)
+    {
+        string role = attempt.Status == UpdateSourceRegistryEntryStatus.Latest
+            ? Localize("Latest", "最新")
+            : Localize("Available", "可用");
+        return attempt.IsVerified
+            ? Localize(
+                $"{role}: version {attempt.NewestVersion} verified",
+                $"{role}：版本 {attempt.NewestVersion} 驗證成功")
+            : attempt.CatalogIssue != UpdateCatalogLoadIssue.None
+            ? Localize(
+                $"{role}: catalog check failed ({attempt.CatalogIssue})",
+                $"{role}：Catalog 檢查失敗（{attempt.CatalogIssue}）")
+            : Localize(
+                $"{role}: package check failed ({attempt.PackageIssue})",
+                $"{role}：套件檢查失敗（{attempt.PackageIssue}）");
     }
 
     internal void SetSourceChecking(bool isChecking)
