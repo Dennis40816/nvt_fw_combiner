@@ -323,6 +323,103 @@ public sealed class LauncherBootstrapCoordinatorTests
         Assert.Equal(0, launcherStore.SaveCount);
     }
 
+    /// <summary>An app activation and a requested launcher transaction cannot coexist or start either process.</summary>
+    [Fact]
+    public async Task PendingAppActivationWithLauncherTransactionIsRejectedBeforeStartOrSave()
+    {
+        PendingLauncherActivation pending = PendingLauncherActivation.Create(
+            Launcher101,
+            Launcher100,
+            Launcher100,
+            LauncherActivationPhase.Requested);
+        var launcherStore = new RecordingLauncherStateStore(
+            LauncherBootstrapState.Create(Root, Launcher100, Launcher100, pending, failed: null));
+        var process = new RecordingLauncherProcess(LauncherProcessStartOutcome.Ready);
+
+        LauncherBootstrapResult result = await Create(
+            new RecordingAppStateStore(AppStateWithPendingActivation()),
+            launcherStore,
+            new RecordingLauncherRepository(Launcher100, Launcher101),
+            process).RunAsync(TestContext.Current.CancellationToken);
+
+        Assert.Equal(LauncherBootstrapOutcome.AppMutationPending, result.Outcome);
+        Assert.Empty(process.Started);
+        Assert.Equal(0, launcherStore.SaveCount);
+    }
+
+    /// <summary>An app filesystem mutation and a requested launcher transaction cannot coexist.</summary>
+    [Fact]
+    public async Task PendingAppMutationWithLauncherTransactionIsRejectedBeforeStartOrSave()
+    {
+        PendingLauncherActivation pending = PendingLauncherActivation.Create(
+            Launcher101,
+            Launcher100,
+            Launcher100,
+            LauncherActivationPhase.Requested);
+        var launcherStore = new RecordingLauncherStateStore(
+            LauncherBootstrapState.Create(Root, Launcher100, Launcher100, pending, failed: null));
+        var process = new RecordingLauncherProcess(LauncherProcessStartOutcome.Ready);
+
+        LauncherBootstrapResult result = await Create(
+            new RecordingAppStateStore(AppStateWithPendingMutation()),
+            launcherStore,
+            new RecordingLauncherRepository(Launcher100, Launcher101),
+            process).RunAsync(TestContext.Current.CancellationToken);
+
+        Assert.Equal(LauncherBootstrapOutcome.AppMutationPending, result.Outcome);
+        Assert.Empty(process.Started);
+        Assert.Equal(0, launcherStore.SaveCount);
+    }
+
+    /// <summary>A new app activation after candidate READY aborts launcher commit at the durable reload.</summary>
+    [Fact]
+    public async Task AppActivationAfterCandidateReadyLeavesCandidateRecorded()
+    {
+        var appStore = new RecordingAppStateStore(AppState(App101, App100))
+        {
+            StateAfterFirstLoad = AppStateWithPendingActivation(),
+        };
+        var launcherStore = new RecordingLauncherStateStore(
+            LauncherBootstrapState.Create(Root, Launcher100, Launcher100, pending: null, failed: null));
+
+        LauncherBootstrapResult result = await Create(
+            appStore,
+            launcherStore,
+            new RecordingLauncherRepository(Launcher100, Launcher101),
+            new RecordingLauncherProcess(LauncherProcessStartOutcome.Ready))
+            .RunAsync(TestContext.Current.CancellationToken);
+
+        Assert.Equal(LauncherBootstrapOutcome.AppMutationPending, result.Outcome);
+        Assert.Equal(LauncherActivationPhase.CandidateLaunchRecorded, launcherStore.Current!.Pending!.Phase);
+        Assert.Equal(2, launcherStore.SaveCount);
+    }
+
+    /// <summary>A new app filesystem mutation after candidate failure blocks rollback journal mutation and start.</summary>
+    [Fact]
+    public async Task AppMutationAfterCandidateFailureLeavesCandidateRecordedWithoutRollbackStart()
+    {
+        var appStore = new RecordingAppStateStore(AppState(App101, App100))
+        {
+            StateAfterFirstLoad = AppStateWithPendingMutation(),
+        };
+        var launcherStore = new RecordingLauncherStateStore(
+            LauncherBootstrapState.Create(Root, Launcher100, Launcher100, pending: null, failed: null));
+        var process = new RecordingLauncherProcess(
+            LauncherProcessStartOutcome.StartFailed,
+            LauncherProcessStartOutcome.Ready);
+
+        LauncherBootstrapResult result = await Create(
+            appStore,
+            launcherStore,
+            new RecordingLauncherRepository(Launcher100, Launcher101),
+            process).RunAsync(TestContext.Current.CancellationToken);
+
+        Assert.Equal(LauncherBootstrapOutcome.AppMutationPending, result.Outcome);
+        Assert.Equal([Launcher101], process.Started);
+        Assert.Equal(LauncherActivationPhase.CandidateLaunchRecorded, launcherStore.Current!.Pending!.Phase);
+        Assert.Equal(2, launcherStore.SaveCount);
+    }
+
     /// <summary>First-launch failure without LKG never scans another directory.</summary>
     [Fact]
     public async Task FirstLaunchFailureWithoutLastKnownGoodNeverScansForFallback()

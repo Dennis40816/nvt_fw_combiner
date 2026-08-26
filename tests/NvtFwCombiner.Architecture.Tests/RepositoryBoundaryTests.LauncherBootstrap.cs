@@ -58,7 +58,15 @@ public sealed partial class RepositoryBoundaryTests
         string process = ReadText(
             "src/NvtFwCombiner.VersionManagement.Infrastructure/VersionManagement/AnonymousPipeManagedLauncherProcess.cs");
 
-        AssertContainsAll(application, "_appStateStore.TryAcquireWriteLeaseAsync", "PendingMutation");
+        AssertContainsAll(
+            application,
+            "_appStateStore.TryAcquireWriteLeaseAsync",
+            "LoadConsistentStatesAsync",
+            "HasCrossJournalConflict",
+            "TrySaveLauncherStateAsync");
+        Assert.Equal(1, CountOccurrences(application, "await LoadAppStateAsync("));
+        Assert.Equal(1, CountOccurrences(application, "await LoadLauncherStateAsync("));
+        Assert.DoesNotContain("SaveCoreAsync", application, StringComparison.Ordinal);
         Assert.DoesNotContain("TryAcquireWriteLease", store, StringComparison.Ordinal);
         Assert.DoesNotContain("Mutex", store, StringComparison.Ordinal);
         AssertContainsAll(process, "LauncherReadyProtocol.TryParse", "readyAdmission");

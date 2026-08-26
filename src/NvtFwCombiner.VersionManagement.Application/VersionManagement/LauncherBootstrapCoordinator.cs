@@ -45,11 +45,10 @@ internal sealed class LauncherBootstrapCoordinator
                 : LauncherBootstrapOutcome.StateUnavailable);
         }
 
-        VersionManagerState? appState;
-        LauncherBootstrapState? launcherState;
         try
         {
-            (LauncherBootstrapOutcome issue, appState) = await LoadAppStateAsync(cancellationToken).ConfigureAwait(false);
+            (LauncherBootstrapOutcome issue, VersionManagerState? appState, LauncherBootstrapState? launcherState) =
+                await LoadConsistentStatesAsync(cancellationToken).ConfigureAwait(false);
             if (issue != LauncherBootstrapOutcome.Ready)
             {
                 return Result(issue);
@@ -58,12 +57,6 @@ internal sealed class LauncherBootstrapCoordinator
             {
                 return Result(LauncherBootstrapOutcome.AppMutationPending);
             }
-            (issue, launcherState) = await LoadLauncherStateAsync(cancellationToken).ConfigureAwait(false);
-            if (issue != LauncherBootstrapOutcome.Ready)
-            {
-                return Result(issue);
-            }
-
             if (appState.PendingActivation is not null)
             {
                 ManagedLauncherIdentity? active = launcherState!.Active;
@@ -80,7 +73,8 @@ internal sealed class LauncherBootstrapCoordinator
                     return Result(MapVerification(verified.Issue), failed: active);
                 }
                 lease.Dispose();
-                return await LaunchExistingAsync(active, cancellationToken).ConfigureAwait(false);
+                return await LaunchExistingAsync(appState, launcherState!, active, cancellationToken)
+                    .ConfigureAwait(false);
             }
 
             if (launcherState!.Pending is { Phase: LauncherActivationPhase.RollbackLaunchRecorded })
@@ -92,7 +86,8 @@ internal sealed class LauncherBootstrapCoordinator
             if (launcherState.Pending is { Phase: LauncherActivationPhase.CandidateLaunchRecorded })
             {
                 LauncherBootstrapState rollbackRecorded = launcherState.RecordRollbackLaunch();
-                if (!await SaveAsync(rollbackRecorded, cancellationToken).ConfigureAwait(false))
+                if (!await TrySaveLauncherStateAsync(appState, rollbackRecorded, cancellationToken)
+                    .ConfigureAwait(false))
                 {
                     return Result(LauncherBootstrapOutcome.StateUnavailable);
                 }
@@ -130,24 +125,28 @@ internal sealed class LauncherBootstrapCoordinator
             else if (launcherState.Active == desired)
             {
                 lease.Dispose();
-                return await LaunchExistingAsync(desired, cancellationToken).ConfigureAwait(false);
+                return await LaunchExistingAsync(appState, launcherState, desired, cancellationToken)
+                    .ConfigureAwait(false);
             }
             else
             {
                 launcherState = launcherState.Begin(desired);
-                if (!await SaveAsync(launcherState, cancellationToken).ConfigureAwait(false))
+                if (!await TrySaveLauncherStateAsync(appState, launcherState, cancellationToken)
+                    .ConfigureAwait(false))
                 {
                     return Result(LauncherBootstrapOutcome.StateUnavailable);
                 }
             }
 
             launcherState = launcherState.RecordCandidateLaunch();
-            if (!await SaveAsync(launcherState, cancellationToken).ConfigureAwait(false))
+            if (!await TrySaveLauncherStateAsync(appState, launcherState, cancellationToken)
+                .ConfigureAwait(false))
             {
                 return Result(LauncherBootstrapOutcome.StateUnavailable);
             }
             lease.Dispose();
-            return await LaunchCandidateAsync(desired, cancellationToken).ConfigureAwait(false);
+            return await LaunchCandidateAsync(appState, launcherState, desired, cancellationToken)
+                .ConfigureAwait(false);
         }
         finally
         {
@@ -156,9 +155,15 @@ internal sealed class LauncherBootstrapCoordinator
     }
 
     private async ValueTask<LauncherBootstrapResult> LaunchExistingAsync(
+        VersionManagerState appState,
+        LauncherBootstrapState launcherState,
         ManagedLauncherIdentity launcher,
         CancellationToken cancellationToken)
     {
+        if (HasCrossJournalConflict(appState, launcherState))
+        {
+            return Result(LauncherBootstrapOutcome.AppMutationPending, failed: launcher);
+        }
         LauncherProcessStartResult start = await _process.StartUntilReadyAsync(
             _managedRoot,
             _statePath,
@@ -172,9 +177,15 @@ internal sealed class LauncherBootstrapCoordinator
     }
 
     private async ValueTask<LauncherBootstrapResult> LaunchCandidateAsync(
+        VersionManagerState appState,
+        LauncherBootstrapState launcherState,
         ManagedLauncherIdentity candidate,
         CancellationToken cancellationToken)
     {
+        if (HasCrossJournalConflict(appState, launcherState))
+        {
+            return Result(LauncherBootstrapOutcome.AppMutationPending, failed: candidate);
+        }
         LauncherProcessStartResult start = await _process.StartUntilReadyAsync(
             _managedRoot,
             _statePath,
@@ -198,13 +209,11 @@ internal sealed class LauncherBootstrapCoordinator
         {
             return Result(LauncherBootstrapOutcome.StateUnavailable, failed: candidate);
         }
-        (LauncherBootstrapOutcome appIssue, VersionManagerState? appState) =
-            await LoadAppStateAsync(cancellationToken).ConfigureAwait(false);
-        (LauncherBootstrapOutcome launcherIssue, LauncherBootstrapState? launcherState) =
-            await LoadLauncherStateAsync(cancellationToken).ConfigureAwait(false);
-        if (appIssue != LauncherBootstrapOutcome.Ready || launcherIssue != LauncherBootstrapOutcome.Ready)
+        (LauncherBootstrapOutcome issue, VersionManagerState? appState, LauncherBootstrapState? launcherState) =
+            await LoadConsistentStatesAsync(cancellationToken).ConfigureAwait(false);
+        if (issue != LauncherBootstrapOutcome.Ready)
         {
-            return Result(LauncherBootstrapOutcome.StateUnavailable, failed: candidate);
+            return Result(issue, failed: candidate);
         }
         if (appState!.PendingActivation is not null || appState.PendingMutation is not null ||
             !TryFindAdmission(appState, candidate, out ManagedVersionAdmission? candidateAdmission) ||
@@ -217,7 +226,7 @@ internal sealed class LauncherBootstrapCoordinator
             return Result(LauncherBootstrapOutcome.StateChanged, failed: candidate);
         }
         LauncherBootstrapState committed = launcherState.CommitReady();
-        return await SaveAsync(committed, cancellationToken).ConfigureAwait(false)
+        return await TrySaveLauncherStateAsync(appState, committed, cancellationToken).ConfigureAwait(false)
             ? new(LauncherBootstrapOutcome.Ready, candidate, null)
             : Result(LauncherBootstrapOutcome.StateUnavailable, failed: candidate);
     }
@@ -233,13 +242,11 @@ internal sealed class LauncherBootstrapCoordinator
         {
             return Result(LauncherBootstrapOutcome.StateUnavailable, failed: candidate);
         }
-        (LauncherBootstrapOutcome appIssue, VersionManagerState? appState) =
-            await LoadAppStateAsync(cancellationToken).ConfigureAwait(false);
-        (LauncherBootstrapOutcome launcherIssue, LauncherBootstrapState? launcherState) =
-            await LoadLauncherStateAsync(cancellationToken).ConfigureAwait(false);
-        if (appIssue != LauncherBootstrapOutcome.Ready || launcherIssue != LauncherBootstrapOutcome.Ready)
+        (LauncherBootstrapOutcome issue, VersionManagerState? appState, LauncherBootstrapState? launcherState) =
+            await LoadConsistentStatesAsync(cancellationToken).ConfigureAwait(false);
+        if (issue != LauncherBootstrapOutcome.Ready)
         {
-            return Result(LauncherBootstrapOutcome.StateUnavailable, failed: candidate);
+            return Result(issue, failed: candidate);
         }
         if (launcherState!.Pending is not
             { Phase: LauncherActivationPhase.CandidateLaunchRecorded, Candidate: var pendingCandidate } ||
@@ -250,12 +257,12 @@ internal sealed class LauncherBootstrapCoordinator
         if (launcherState.Pending.PreviousLastKnownGood is null)
         {
             LauncherBootstrapState failed = launcherState.FailCandidate();
-            return await SaveAsync(failed, cancellationToken).ConfigureAwait(false)
+            return await TrySaveLauncherStateAsync(appState!, failed, cancellationToken).ConfigureAwait(false)
                 ? Result(LauncherBootstrapOutcome.StartFailed, failed: candidate)
                 : Result(LauncherBootstrapOutcome.StateUnavailable, failed: candidate);
         }
         LauncherBootstrapState rollback = launcherState.RecordRollbackLaunch();
-        if (!await SaveAsync(rollback, cancellationToken).ConfigureAwait(false))
+        if (!await TrySaveLauncherStateAsync(appState!, rollback, cancellationToken).ConfigureAwait(false))
         {
             return Result(LauncherBootstrapOutcome.StateUnavailable, failed: candidate);
         }
@@ -285,6 +292,10 @@ internal sealed class LauncherBootstrapCoordinator
         {
             return Result(LauncherBootstrapOutcome.RollbackUnavailable, failed: pending.Candidate);
         }
+        if (HasCrossJournalConflict(appState, launcherState))
+        {
+            return Result(LauncherBootstrapOutcome.AppMutationPending, failed: pending.Candidate);
+        }
         LauncherProcessStartResult start = await _process.StartUntilReadyAsync(
             _managedRoot,
             _statePath,
@@ -302,13 +313,10 @@ internal sealed class LauncherBootstrapCoordinator
         {
             return Result(LauncherBootstrapOutcome.StateUnavailable, failed: pending.Candidate);
         }
-        (LauncherBootstrapOutcome issue, LauncherBootstrapState? reloaded) =
-            await LoadLauncherStateAsync(cancellationToken).ConfigureAwait(false);
-        (LauncherBootstrapOutcome appIssue, VersionManagerState? reloadedApp) =
-            await LoadAppStateAsync(cancellationToken).ConfigureAwait(false);
+        (LauncherBootstrapOutcome issue, VersionManagerState? reloadedApp, LauncherBootstrapState? reloaded) =
+            await LoadConsistentStatesAsync(cancellationToken).ConfigureAwait(false);
         ManagedVersionAdmission? activeAdmission = reloadedApp is null ? null : FindActiveAdmission(reloadedApp);
         if (issue != LauncherBootstrapOutcome.Ready ||
-            appIssue != LauncherBootstrapOutcome.Ready ||
             reloadedApp!.PendingActivation is not null ||
             reloadedApp.PendingMutation is not null ||
             start.ReadyAdmission != activeAdmission ||
@@ -317,7 +325,7 @@ internal sealed class LauncherBootstrapCoordinator
             return Result(LauncherBootstrapOutcome.StateChanged, failed: pending.Candidate);
         }
         LauncherBootstrapState committed = reloaded.CommitRollback();
-        return await SaveAsync(committed, cancellationToken).ConfigureAwait(false)
+        return await TrySaveLauncherStateAsync(reloadedApp, committed, cancellationToken).ConfigureAwait(false)
             ? new(LauncherBootstrapOutcome.RolledBack, rollback, pending.Candidate)
             : Result(LauncherBootstrapOutcome.StateUnavailable, failed: pending.Candidate);
     }
@@ -334,13 +342,10 @@ internal sealed class LauncherBootstrapCoordinator
         {
             return Result(LauncherBootstrapOutcome.StateUnavailable, failed: launcher);
         }
-        (LauncherBootstrapOutcome appIssue, VersionManagerState? appState) =
-            await LoadAppStateAsync(cancellationToken).ConfigureAwait(false);
-        (LauncherBootstrapOutcome launcherIssue, LauncherBootstrapState? launcherState) =
-            await LoadLauncherStateAsync(cancellationToken).ConfigureAwait(false);
+        (LauncherBootstrapOutcome issue, VersionManagerState? appState, LauncherBootstrapState? launcherState) =
+            await LoadConsistentStatesAsync(cancellationToken).ConfigureAwait(false);
         ManagedVersionAdmission? activeAdmission = appState is null ? null : FindActiveAdmission(appState);
-        return appIssue == LauncherBootstrapOutcome.Ready &&
-               launcherIssue == LauncherBootstrapOutcome.Ready &&
+        return issue == LauncherBootstrapOutcome.Ready &&
                appState!.PendingActivation is null &&
                appState.PendingMutation is null &&
                readyAdmission == activeAdmission &&
@@ -387,21 +392,47 @@ internal sealed class LauncherBootstrapCoordinator
             : (LauncherBootstrapOutcome.ManagedRootMismatch, null);
     }
 
-    private ValueTask<bool> SaveAsync(
-        LauncherBootstrapState state,
-        CancellationToken cancellationToken)
+    private async ValueTask<(LauncherBootstrapOutcome, VersionManagerState?, LauncherBootstrapState?)>
+        LoadConsistentStatesAsync(CancellationToken cancellationToken)
     {
-        return SaveCoreAsync(state, cancellationToken);
+        (LauncherBootstrapOutcome appIssue, VersionManagerState? appState) =
+            await LoadAppStateAsync(cancellationToken).ConfigureAwait(false);
+        if (appIssue != LauncherBootstrapOutcome.Ready)
+        {
+            return (appIssue, null, null);
+        }
+        (LauncherBootstrapOutcome launcherIssue, LauncherBootstrapState? launcherState) =
+            await LoadLauncherStateAsync(cancellationToken).ConfigureAwait(false);
+        if (launcherIssue != LauncherBootstrapOutcome.Ready)
+        {
+            return (launcherIssue, null, null);
+        }
+        return HasCrossJournalConflict(appState!, launcherState!)
+            ? (LauncherBootstrapOutcome.AppMutationPending, null, null)
+            : (LauncherBootstrapOutcome.Ready, appState, launcherState);
     }
 
-    private async ValueTask<bool> SaveCoreAsync(
+    private async ValueTask<bool> TrySaveLauncherStateAsync(
+        VersionManagerState appState,
         LauncherBootstrapState state,
         CancellationToken cancellationToken)
     {
+        if (HasCrossJournalConflict(appState, state))
+        {
+            return false;
+        }
         LauncherBootstrapStateSaveResult saved = await _launcherStateStore.TrySaveAsync(
             state,
             cancellationToken).ConfigureAwait(false);
         return saved.IsSuccess;
+    }
+
+    private static bool HasCrossJournalConflict(
+        VersionManagerState appState,
+        LauncherBootstrapState launcherState)
+    {
+        return launcherState.Pending is not null &&
+               (appState.PendingActivation is not null || appState.PendingMutation is not null);
     }
 
     private static ManagedVersionAdmission? FindActiveAdmission(VersionManagerState state)
