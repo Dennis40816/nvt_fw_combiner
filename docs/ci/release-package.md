@@ -12,11 +12,15 @@ The generated folder contains the trimmed stable launcher,
 may import that seed only when per-user version-manager state is genuinely
 missing and the seed plus installed payload fully verify.
 
-The first end-user managed distribution is `v1.0.0`. Before it ships, this
-document, the production packager/smoke scripts, closed allowlist,
-SBOM/provenance, size policy, and clean-machine evidence must be updated and
-approved together. Existing portable-package dry-run and smoke stay mandatory
-through the internal proving line as regression gates.
+The first end-user managed distribution is `v1.0.0`. It contains one immutable
+root `NvtFwCombiner.Bootstrap.exe` plus an admitted `versions/1.0.0` payload
+whose closed release manifest pins `versionManagementProtocolVersion: 1` and
+the exact coupled `launcher/NvtFwCombiner.Launcher.exe` identity. Bootstrap is
+listed independently in the outer managed-package manifest, hashes, SBOM, and
+provenance; it is never an update-catalog payload. The production packager,
+smoke scripts, closed allowlist, size policy, and clean-machine evidence change
+together under release-owner review. Existing portable-package dry-run and
+smoke stay mandatory through the internal proving line as regression gates.
 
 ## Closed allowlist
 

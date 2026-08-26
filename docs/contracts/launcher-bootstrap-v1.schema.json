@@ -1,0 +1,77 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schemas.example.invalid/nvt_fw_combiner/launcher-bootstrap-v1.schema.json",
+  "title": "NVT FW Combiner Launcher Bootstrap State v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "managedRootIdentity",
+    "active",
+    "lastKnownGood",
+    "pending",
+    "failed"
+  ],
+  "properties": {
+    "schemaVersion": { "const": 1 },
+    "managedRootIdentity": { "type": "string", "minLength": 1, "maxLength": 1024 },
+    "active": { "oneOf": [{ "$ref": "#/$defs/identity" }, { "type": "null" }] },
+    "lastKnownGood": { "oneOf": [{ "$ref": "#/$defs/identity" }, { "type": "null" }] },
+    "pending": { "oneOf": [{ "$ref": "#/$defs/pending" }, { "type": "null" }] },
+    "failed": { "oneOf": [{ "$ref": "#/$defs/identity" }, { "type": "null" }] }
+  },
+  "$defs": {
+    "semver": {
+      "type": "string",
+      "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+$"
+    },
+    "sha256": { "type": "string", "pattern": "^[0-9a-f]{64}$" },
+    "identity": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "ownerAppVersion",
+        "ownerAdmissionIdentity",
+        "ownerReleaseManifestSha256",
+        "launcherVersion",
+        "protocolVersion",
+        "executableRelativePath",
+        "size",
+        "sha256"
+      ],
+      "properties": {
+        "ownerAppVersion": { "$ref": "#/$defs/semver" },
+        "ownerAdmissionIdentity": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 2048,
+          "pattern": ".*\\S.*"
+        },
+        "ownerReleaseManifestSha256": { "$ref": "#/$defs/sha256" },
+        "launcherVersion": { "$ref": "#/$defs/semver" },
+        "protocolVersion": { "const": 1 },
+        "executableRelativePath": { "const": "launcher/NvtFwCombiner.Launcher.exe" },
+        "size": { "type": "integer", "minimum": 1, "maximum": 80000000 },
+        "sha256": { "$ref": "#/$defs/sha256" }
+      }
+    },
+    "pending": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "candidate",
+        "previousActive",
+        "previousLastKnownGood",
+        "phase"
+      ],
+      "properties": {
+        "candidate": { "$ref": "#/$defs/identity" },
+        "previousActive": { "oneOf": [{ "$ref": "#/$defs/identity" }, { "type": "null" }] },
+        "previousLastKnownGood": { "oneOf": [{ "$ref": "#/$defs/identity" }, { "type": "null" }] },
+        "phase": {
+          "enum": ["requested", "candidateLaunchRecorded", "rollbackLaunchRecorded"]
+        }
+      }
+    }
+  }
+}

@@ -117,7 +117,11 @@ self-admission with no matching prepared install remains unadmitted. Only
 state-admitted versions are healthy/damaged installed rows or ordinary delete/
 switch targets; other directories are shown as recovery-required and cannot
 enter normal actions. Damaged versions cannot launch. Every non-active admitted
-version can be explicitly deleted through a guarded destructive action. Three healthy versions
+version can normally be explicitly deleted through a guarded destructive action.
+For the `v1.0.0` launcher-self-update extension, ADR 0056 additionally protects
+an exact launcher active or pending owner. A last-known-good launcher owner may
+be deleted only after explicit rollback-loss confirmation first retires that
+launcher fallback under the same writer authority. Three healthy versions
 is a soft review threshold; exceeding it prompts review but never prunes
 automatically.
 
@@ -139,7 +143,9 @@ all firmware semantics outside Presentation.
 
 The `0.10.x` line is the internal managed-upgrade proving ground. `1.0.0` is the
 first initial managed package supplied to end users; there is no unmanaged
-`0.10.5` in-place adoption tool. Launcher self-update is not part of this ADR.
+`0.10.5` in-place adoption tool. ADR 0056 extends the `v1.0.0` distribution with
+an immutable Bootstrap and rollback-safe version-scoped launcher activation;
+the `v0.10.6` proving behavior remains unchanged.
 
 ## Rejected options
 
@@ -166,9 +172,11 @@ first initial managed package supplied to end users; there is no unmanaged
   changing the existing end-user portable ZIP contract. The first managed
   end-user `v1.0.0` package must update package layout, manifests, smoke tooling,
   SBOM/provenance, and size evidence together under release-owner review.
-- The stable launcher becomes a new critical executable/protocol boundary and
-  must remain small, deterministic, package-allowlisted, and independently
-  tested. Changing it later requires an explicit migration decision.
+- The launcher becomes a new critical executable/protocol boundary and must
+  remain small, deterministic, package-allowlisted, and independently tested.
+  `v1.0.0` places version-scoped launchers behind the immutable Bootstrap trust
+  anchor defined by ADR 0056; changing Bootstrap still requires an explicit
+  distribution/migration decision.
 - Offline switching and startup recovery remain available because installed
   identity and state do not depend on the update source.
 - A party able to replace both catalog and package in the configured trusted

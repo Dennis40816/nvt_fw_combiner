@@ -1,0 +1,47 @@
+{
+  "schemaVersion": 2,
+  "taskId": "LAUNCHER-PACKAGE-01",
+  "capability": "Closed v1.0.0 managed package containing immutable Bootstrap and one release-coupled launcher",
+  "integrationBase": "0cad5c31817c823659f4557c6b885f316d80ba73",
+  "risk": "R3",
+  "kind": "release",
+  "state": "design-active",
+  "mutablePaths": [
+    "docs/ci/release-package.md",
+    "docs/contracts/release-manifest-v1.md",
+    "docs/contracts/release-manifest-v1.schema.json",
+    "scripts/create-managed-installation-lab.ps1",
+    "scripts/create_managed_installation_lab.py",
+    "scripts/package.ps1",
+    "scripts/smoke-release.ps1",
+    "src/NvtFwCombiner.VersionManagement.Infrastructure/NvtFwCombiner.VersionManagement.Infrastructure.csproj",
+    "src/NvtFwCombiner.VersionManagement.Infrastructure/VersionManagement/ManagedPackageVerifier.cs",
+    "src/NvtFwCombiner.VersionManagement.Infrastructure/VersionManagement/ReleaseManifestSchema.cs",
+    "src/NvtFwCombiner.VersionManagement.Infrastructure/VersionManagement/VersionManagementJsonContext.cs",
+    "tests/scripts/test_create_managed_installation_lab.py",
+    "tests/scripts/test_release_package_policy.py",
+    "tests/scripts/test_release_smoke_policy.py"
+  ],
+  "implementationOwner": "implement_launcher100",
+  "searchEvidence": [
+    "release-manifest-v1 plus package.ps1/smoke-release.ps1 are the one closed Windows payload and SBOM/provenance authorities.",
+    "create-managed-installation-lab currently copies one mutable root launcher and therefore cannot satisfy the owner-approved immutable Bootstrap plus version-scoped launcher contract.",
+    "No launcher-only package, Bootstrap update payload, or second package verifier exists."
+  ],
+  "semanticOwner": "Release package contract and protected packager/smoke tooling, consumed by the existing ManagedPackageVerifier",
+  "terminalContract": "The v1.0.0 managed distribution pins one immutable root Bootstrap independently and each app package pins exactly one coupled stable-3-part protocol-1 launcher by path/size/SHA; update catalogs never carry Bootstrap or launcher-only packages; closed manifests, SHA lists, SBOM, provenance, local/UNC lab, and smoke reject omission, extra files, tamper, protocol drift, and mutable Bootstrap replacement.",
+  "disposition": "extend-owner",
+  "designReview": {
+    "reviewer": "launcher_arch_admission and product owner",
+    "outcome": "findings-incorporated",
+    "evidence": "Product owner required launcher self-update for v1.0.0. Independent architecture admission requires one immutable non-updatable Bootstrap, no launcher-only package, exact coupled launcher identity in the outer release authority, and unchanged R3 release-owner/package evidence gates."
+  },
+  "implementationHead": null,
+  "reviewedHead": null,
+  "pathStateDigest": null,
+  "finalReview": {
+    "reviewer": null,
+    "outcome": "pending",
+    "evidence": ""
+  }
+}
