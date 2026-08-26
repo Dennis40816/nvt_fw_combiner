@@ -291,9 +291,12 @@ public sealed partial class XamlControlStyleContractTests
                     "{Binding Settings.RunVersionSelfTestCommand}");
 
         Assert.Equal("semanticAction secondary", (string?)action.Attribute("Classes"));
-        Assert.Equal(
-            "{Binding Settings.RunVersionSelfTestLabel}",
-            (string?)action.Attribute("Content"));
+        System.Xml.Linq.XElement icon = Assert.Single(
+            action.Descendants(), element => element.Name.LocalName == "Path");
+        Assert.Equal("{StaticResource NfcClockIconGeometry}", (string?)icon.Attribute("Data"));
+        System.Xml.Linq.XElement label = Assert.Single(
+            action.Descendants(), element => element.Name.LocalName == "TextBlock");
+        Assert.Equal("{Binding Settings.RunVersionSelfTestLabel}", (string?)label.Attribute("Text"));
         Assert.Equal(
             "{Binding Settings.RunVersionSelfTestLabel}",
             (string?)action.Attribute("AutomationProperties.Name"));

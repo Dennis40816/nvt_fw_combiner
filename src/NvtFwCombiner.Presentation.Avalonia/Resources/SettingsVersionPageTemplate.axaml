@@ -18,8 +18,12 @@
             AutomationProperties.Name="{Binding Settings.RunVersionSelfTestLabel}"
             Classes="semanticAction secondary"
             Command="{Binding Settings.RunVersionSelfTestCommand}"
-            Content="{Binding Settings.RunVersionSelfTestLabel}"
-            IsEnabled="{Binding !Settings.IsVersionBusy}" />
+            IsEnabled="{Binding !Settings.IsVersionBusy}">
+          <StackPanel Orientation="Horizontal" Spacing="{DynamicResource NfcSpace8}">
+            <Path Width="16" Height="16" Data="{StaticResource NfcClockIconGeometry}" Stretch="Uniform" />
+            <TextBlock VerticalAlignment="Center" Text="{Binding Settings.RunVersionSelfTestLabel}" />
+          </StackPanel>
+        </Button>
       </Grid>
       <Border Margin="0,24,0,0" Classes="versionSectionDivider" />
     </StackPanel>

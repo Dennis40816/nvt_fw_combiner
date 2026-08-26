@@ -621,6 +621,12 @@ public sealed partial class VersionManagementSettingsTests
             return ValueTask.FromResult(Current);
         }
 
+        public ValueTask<VersionManagementSnapshot> ResumeRegistryAsync(
+            CancellationToken cancellationToken)
+        {
+            return CheckAsync(isAutomatic: false, cancellationToken);
+        }
+
         public ValueTask<VersionEnvironmentSelfTestResult> RunEnvironmentSelfTestAsync(
             CancellationToken cancellationToken)
         {
