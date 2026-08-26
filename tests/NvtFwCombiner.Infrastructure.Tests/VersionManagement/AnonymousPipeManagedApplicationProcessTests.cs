@@ -30,6 +30,41 @@ public sealed class AnonymousPipeManagedApplicationProcessTests
         Assert.Equal(ManagedProcessStartOutcome.Ready, result.Outcome);
     }
 
+    /// <summary>The launcher propagates the exact managed root and custom state path to Desktop.</summary>
+    [Fact]
+    public async Task ExactCustomStatePathReachesManagedDesktop()
+    {
+        using var workspace = TempWorkspace.Create();
+        ManagedAppVersion version = ManagedAppVersion.Parse("0.10.6");
+        PrepareProbe(workspace.Root, version);
+        string statePath = Path.Combine(workspace.Root, "state", "custom state.json");
+        string argumentsPath = Path.Combine(workspace.Root, "application-arguments.txt");
+        string? previousBehavior = Environment.GetEnvironmentVariable(BehaviorEnvironment);
+        string? previousArguments = Environment.GetEnvironmentVariable("NVT_READY_PROBE_ARGS_PATH");
+        try
+        {
+            Environment.SetEnvironmentVariable(BehaviorEnvironment, "ready");
+            Environment.SetEnvironmentVariable("NVT_READY_PROBE_ARGS_PATH", argumentsPath);
+            ManagedProcessStartResult result = await new AnonymousPipeManagedApplicationProcess(statePath)
+                .StartUntilReadyAsync(
+                    workspace.Root,
+                    version,
+                    TimeSpan.FromSeconds(5),
+                    TestContext.Current.CancellationToken);
+            await Task.Delay(500, TestContext.Current.CancellationToken);
+
+            Assert.Equal(ManagedProcessStartOutcome.Ready, result.Outcome);
+            Assert.Equal(
+                ["--managed-root", Path.GetFullPath(workspace.Root), "--state-path", Path.GetFullPath(statePath)],
+                await File.ReadAllLinesAsync(argumentsPath, TestContext.Current.CancellationToken));
+        }
+        finally
+        {
+            Environment.SetEnvironmentVariable(BehaviorEnvironment, previousBehavior);
+            Environment.SetEnvironmentVariable("NVT_READY_PROBE_ARGS_PATH", previousArguments);
+        }
+    }
+
     /// <summary>A missing ready signal reaches the deadline and the child is terminated.</summary>
     [Fact]
     public async Task ReadyTimeoutFailsBoundedly()
@@ -336,7 +371,7 @@ public sealed class AnonymousPipeManagedApplicationProcessTests
 
         bool missing = await handoff.TryStartLauncherAsync(TestContext.Current.CancellationToken);
         string probe = Path.Combine(AppContext.BaseDirectory, "ready-probe", "NvtFwCombiner.ReadyProbe.exe");
-        File.Copy(probe, Path.Combine(workspace.Root, "NvtFwCombiner.Launcher.exe"));
+        File.Copy(probe, Path.Combine(workspace.Root, "NvtFwCombiner.Bootstrap.exe"));
         bool started = await handoff.TryStartLauncherAsync(TestContext.Current.CancellationToken);
         await Task.Delay(500, TestContext.Current.CancellationToken);
 

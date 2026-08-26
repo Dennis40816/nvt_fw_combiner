@@ -144,3 +144,18 @@ internal static class UpdateSourceRegistrySchema
         return EmbeddedVersionManagementSchema.IsValid(Schema.Value, document);
     }
 }
+
+/// <summary>Canonical strict launcher-bootstrap state contract.</summary>
+internal static class LauncherBootstrapStateSchema
+{
+    private static readonly Lazy<JsonSchema> Schema = new(() => EmbeddedVersionManagementSchema.Load(
+        typeof(LauncherBootstrapStateSchema),
+        "NvtFwCombiner.VersionManagement.Infrastructure.Contracts.launcher-bootstrap-v1.schema.json",
+        "https://schemas.example.invalid/nvt_fw_combiner/launcher-bootstrap-v1.schema.json",
+        "Canonical launcher-bootstrap state schema is unavailable."));
+
+    internal static bool IsValid(JsonElement document)
+    {
+        return EmbeddedVersionManagementSchema.IsValid(Schema.Value, document);
+    }
+}

@@ -1,0 +1,138 @@
+using NvtFwCombiner.Application.VersionManagement;
+using NvtFwCombiner.Infrastructure.VersionManagement;
+using NvtFwCombiner.TestSupport;
+
+namespace NvtFwCombiner.Infrastructure.Tests.VersionManagement;
+
+/// <summary>Runs exact managed launcher identities through the outer READY channel.</summary>
+[Collection(nameof(ReadyProbeProcessSerialGroup))]
+public sealed class AnonymousPipeManagedLauncherProcessTests
+{
+    /// <summary>The exact identity and custom state path reach the candidate launcher.</summary>
+    [Fact]
+    public async Task ExactReadyCarriesCustomStatePathToCandidate()
+    {
+        using var workspace = TempWorkspace.Create();
+        ManagedLauncherIdentity identity = PrepareProbe(workspace.Root);
+        string statePath = Path.Combine(workspace.Root, "state", "custom state.json");
+        string argumentsPath = Path.Combine(workspace.Root, "arguments.txt");
+
+        LauncherProcessStartResult result = await RunAsync(
+            workspace.Root,
+            statePath,
+            identity,
+            "ready",
+            argumentsPath,
+            TimeSpan.FromSeconds(5),
+            TestContext.Current.CancellationToken);
+        await Task.Delay(500, TestContext.Current.CancellationToken);
+
+        Assert.Equal(LauncherProcessStartOutcome.Ready, result.Outcome);
+        Assert.Equal(
+            ["--managed-root", Path.GetFullPath(workspace.Root), "--state-path", Path.GetFullPath(statePath)],
+            await File.ReadAllLinesAsync(argumentsPath, TestContext.Current.CancellationToken));
+    }
+
+    /// <summary>A launcher that does not echo the exact identity is rejected.</summary>
+    [Fact]
+    public async Task InvalidOuterReadyIsRejected()
+    {
+        using var workspace = TempWorkspace.Create();
+        ManagedLauncherIdentity identity = PrepareProbe(workspace.Root);
+
+        LauncherProcessStartResult result = await RunAsync(
+            workspace.Root,
+            Path.Combine(workspace.Root, "state.json"),
+            identity,
+            "invalid",
+            argumentsPath: null,
+            TimeSpan.FromSeconds(5),
+            TestContext.Current.CancellationToken);
+
+        Assert.Equal(LauncherProcessStartOutcome.InvalidReadySignal, result.Outcome);
+    }
+
+    /// <summary>A silent launcher is killed at the bounded outer READY deadline.</summary>
+    [Fact]
+    public async Task OuterReadyTimeoutIsBounded()
+    {
+        using var workspace = TempWorkspace.Create();
+        ManagedLauncherIdentity identity = PrepareProbe(workspace.Root);
+
+        LauncherProcessStartResult result = await RunAsync(
+            workspace.Root,
+            Path.Combine(workspace.Root, "state.json"),
+            identity,
+            "timeout",
+            argumentsPath: null,
+            TimeSpan.FromMilliseconds(200),
+            TestContext.Current.CancellationToken);
+
+        Assert.Equal(LauncherProcessStartOutcome.ReadyTimeout, result.Outcome);
+    }
+
+    private static async ValueTask<LauncherProcessStartResult> RunAsync(
+        string managedRoot,
+        string statePath,
+        ManagedLauncherIdentity identity,
+        string behavior,
+        string? argumentsPath,
+        TimeSpan deadline,
+        CancellationToken cancellationToken)
+    {
+        string? previousBehavior = Environment.GetEnvironmentVariable("NVT_READY_PROBE_BEHAVIOR");
+        string? previousArguments = Environment.GetEnvironmentVariable("NVT_READY_PROBE_ARGS_PATH");
+        string? previousVersion = Environment.GetEnvironmentVariable("NVT_READY_PROBE_APP_VERSION");
+        string? previousAdmission = Environment.GetEnvironmentVariable("NVT_READY_PROBE_APP_ADMISSION");
+        string? previousManifest = Environment.GetEnvironmentVariable("NVT_READY_PROBE_APP_MANIFEST");
+        try
+        {
+            Environment.SetEnvironmentVariable("NVT_READY_PROBE_BEHAVIOR", behavior);
+            Environment.SetEnvironmentVariable("NVT_READY_PROBE_ARGS_PATH", argumentsPath);
+            Environment.SetEnvironmentVariable("NVT_READY_PROBE_APP_VERSION", identity.OwnerAppVersion.ToString());
+            Environment.SetEnvironmentVariable("NVT_READY_PROBE_APP_ADMISSION", identity.OwnerAdmissionIdentity);
+            Environment.SetEnvironmentVariable("NVT_READY_PROBE_APP_MANIFEST", identity.OwnerReleaseManifestSha256);
+            return await new AnonymousPipeManagedLauncherProcess().StartUntilReadyAsync(
+                managedRoot,
+                statePath,
+                identity,
+                deadline,
+                cancellationToken);
+        }
+        finally
+        {
+            Environment.SetEnvironmentVariable("NVT_READY_PROBE_BEHAVIOR", previousBehavior);
+            Environment.SetEnvironmentVariable("NVT_READY_PROBE_ARGS_PATH", previousArguments);
+            Environment.SetEnvironmentVariable("NVT_READY_PROBE_APP_VERSION", previousVersion);
+            Environment.SetEnvironmentVariable("NVT_READY_PROBE_APP_ADMISSION", previousAdmission);
+            Environment.SetEnvironmentVariable("NVT_READY_PROBE_APP_MANIFEST", previousManifest);
+        }
+    }
+
+    private static ManagedLauncherIdentity PrepareProbe(string managedRoot)
+    {
+        ManagedAppVersion owner = ManagedAppVersion.Parse("0.10.6");
+        string launcherRoot = Path.Combine(managedRoot, "versions", owner.ToString(), "launcher");
+        _ = Directory.CreateDirectory(launcherRoot);
+        string probeRoot = Path.Combine(AppContext.BaseDirectory, "ready-probe");
+        foreach (string source in Directory.EnumerateFiles(probeRoot))
+        {
+            string fileName = Path.GetFileName(source);
+            string targetName = string.Equals(fileName, "NvtFwCombiner.ReadyProbe.exe", StringComparison.OrdinalIgnoreCase)
+                ? "NvtFwCombiner.Launcher.exe"
+                : fileName;
+            File.Copy(source, Path.Combine(launcherRoot, targetName));
+        }
+        string executable = Path.Combine(launcherRoot, "NvtFwCombiner.Launcher.exe");
+        byte[] bytes = File.ReadAllBytes(executable);
+        return ManagedLauncherIdentity.Create(
+            owner,
+            "catalog-identity-0.10.6",
+            new string('a', 64),
+            ManagedAppVersion.Parse("1.0.0"),
+            ManagedLauncherIdentity.SupportedProtocolVersion,
+            ManagedLauncherIdentity.ExecutablePath,
+            bytes.LongLength,
+            Convert.ToHexStringLower(System.Security.Cryptography.SHA256.HashData(bytes)));
+    }
+}

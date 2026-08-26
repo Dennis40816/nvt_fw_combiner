@@ -1,7 +1,7 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://schemas.example.invalid/nvt_fw_combiner/release-manifest-v1.schema.json",
-  "title": "NVT FW Combiner Release Manifest 1.1",
+  "title": "NVT FW Combiner Release Manifest 1.x",
   "type": "object",
   "additionalProperties": false,
   "required": [
@@ -22,7 +22,7 @@
     "provenanceAsset"
   ],
   "properties": {
-    "schemaVersion": { "const": "1.1" },
+    "schemaVersion": { "enum": ["1.1", "1.2"] },
     "product": { "const": "NVT FW Combiner" },
     "version": {
       "type": "string",
@@ -61,8 +61,42 @@
       ]
     },
     "sbomAsset": { "$ref": "#/$defs/fileName" },
-    "provenanceAsset": { "$ref": "#/$defs/fileName" }
+    "provenanceAsset": { "$ref": "#/$defs/fileName" },
+    "versionManagementProtocolVersion": { "const": 1 },
+    "launcher": { "$ref": "#/$defs/launcher" }
   },
+  "allOf": [
+    {
+      "if": {
+        "properties": { "schemaVersion": { "const": "1.2" } },
+        "required": ["schemaVersion"]
+      },
+      "then": {
+        "required": ["versionManagementProtocolVersion", "launcher"],
+        "properties": {
+          "files": {
+            "contains": {
+              "properties": {
+                "path": { "const": "launcher/NvtFwCombiner.Launcher.exe" },
+                "role": { "const": "launcher" }
+              },
+              "required": ["path", "role"]
+            },
+            "minContains": 1,
+            "maxContains": 1
+          }
+        }
+      },
+      "else": {
+        "not": {
+          "anyOf": [
+            { "required": ["versionManagementProtocolVersion"] },
+            { "required": ["launcher"] }
+          ]
+        }
+      }
+    }
+  ],
   "$defs": {
     "sha256": { "type": "string", "pattern": "^[0-9a-f]{64}$" },
     "fileName": {
@@ -93,6 +127,27 @@
         ]
       }
     },
+    "launcher": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "launcherVersion",
+        "protocolVersion",
+        "executableRelativePath",
+        "size",
+        "sha256"
+      ],
+      "properties": {
+        "launcherVersion": {
+          "type": "string",
+          "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+$"
+        },
+        "protocolVersion": { "const": 1 },
+        "executableRelativePath": { "const": "launcher/NvtFwCombiner.Launcher.exe" },
+        "size": { "type": "integer", "minimum": 1, "maximum": 80000000 },
+        "sha256": { "$ref": "#/$defs/sha256" }
+      }
+    },
     "file": {
       "allOf": [
         { "$ref": "#/$defs/fileCommon" },
@@ -102,6 +157,13 @@
             { "properties": { "path": { "const": "THIRD-PARTY-NOTICES.txt" }, "role": { "const": "notices" } }, "required": ["path", "role"] },
             { "properties": { "path": { "const": "LICENSE.txt" }, "role": { "const": "license" } }, "required": ["path", "role"] },
             { "properties": { "path": { "const": "README.txt" }, "role": { "const": "readme" } }, "required": ["path", "role"] },
+            {
+              "properties": {
+                "path": { "const": "launcher/NvtFwCombiner.Launcher.exe" },
+                "role": { "const": "launcher" }
+              },
+              "required": ["path", "role"]
+            },
             {
               "properties": {
                 "path": {

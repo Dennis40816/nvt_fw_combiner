@@ -384,7 +384,7 @@ internal static class ManagedPackageVerifier
         ManagedAppVersion version,
         IEnumerable<string> archivePaths)
     {
-        if (!string.Equals(manifest.SchemaVersion, "1.1", StringComparison.Ordinal) ||
+        if (manifest.SchemaVersion is not ("1.1" or "1.2") ||
             !string.Equals(manifest.Product, "NVT FW Combiner", StringComparison.Ordinal) ||
             !string.Equals(manifest.Version, version.ToString(), StringComparison.Ordinal) ||
             !string.Equals(manifest.SourceTag, $"v{version}", StringComparison.Ordinal) ||
@@ -399,6 +399,11 @@ internal static class ManagedPackageVerifier
             manifest.Files is null ||
             !IsSafeFileName(manifest.SbomAsset) ||
             !IsSafeFileName(manifest.ProvenanceAsset))
+        {
+            return false;
+        }
+
+        if (!ValidateLauncherContract(manifest))
         {
             return false;
         }
@@ -421,6 +426,37 @@ internal static class ManagedPackageVerifier
             "SHA256SUMS.txt",
         };
         return expectedArchive.SetEquals(archivePaths);
+    }
+
+    private static bool ValidateLauncherContract(ReleaseManifestDocument manifest)
+    {
+        if (string.Equals(manifest.SchemaVersion, "1.1", StringComparison.Ordinal))
+        {
+            return manifest.VersionManagementProtocolVersion is null && manifest.Launcher is null;
+        }
+
+        LauncherReleaseIdentityDocument? launcher = manifest.Launcher;
+        if (manifest.VersionManagementProtocolVersion != ManagedLauncherIdentity.SupportedProtocolVersion ||
+            launcher?.ProtocolVersion != ManagedLauncherIdentity.SupportedProtocolVersion ||
+            !ManagedAppVersion.TryParse(launcher.LauncherVersion, out _) ||
+            !string.Equals(
+                launcher.ExecutableRelativePath,
+                ManagedLauncherIdentity.ExecutablePath,
+                StringComparison.Ordinal) ||
+            launcher.Size is null or <= 0 or > ManagedLauncherIdentity.MaximumExecutableBytes ||
+            !IsLowerHex(launcher.Sha256, 64))
+        {
+            return false;
+        }
+
+        ReleaseManifestFileDocument[] launcherFiles =
+        [.. manifest.Files!.Where(file => string.Equals(file.Role, "launcher", StringComparison.Ordinal))];
+        return launcherFiles is
+        [
+        { Path: ManagedLauncherIdentity.ExecutablePath } file,
+        ] &&
+        file.Size == launcher.Size &&
+        string.Equals(file.Sha256, launcher.Sha256, StringComparison.Ordinal);
     }
 
     private static async ValueTask<ArchiveContentVerification> VerifyArchiveContentAsync(
@@ -552,7 +588,16 @@ internal sealed record ReleaseManifestDocument(
     string? EmbeddedSchemaBundleSha256,
     IReadOnlyList<ReleaseManifestFileDocument>? Files,
     string? SbomAsset,
-    string? ProvenanceAsset);
+    string? ProvenanceAsset,
+    int? VersionManagementProtocolVersion = null,
+    LauncherReleaseIdentityDocument? Launcher = null);
+
+internal sealed record LauncherReleaseIdentityDocument(
+    string? LauncherVersion,
+    int? ProtocolVersion,
+    string? ExecutableRelativePath,
+    long? Size,
+    string? Sha256);
 
 internal sealed record ReleaseManifestFileDocument(
     string Path,

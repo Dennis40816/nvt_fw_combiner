@@ -15,6 +15,13 @@ public sealed class AnonymousPipeManagedApplicationProcess : IManagedApplication
     public const string ExpectedVersionEnvironment = "NVT_FW_COMBINER_EXPECTED_VERSION";
 
     private const int MaximumReadyLineCharacters = 128;
+    private readonly string? _statePath;
+
+    /// <summary>Creates a process adapter, optionally propagating an exact custom version-state path.</summary>
+    public AnonymousPipeManagedApplicationProcess(string? statePath = null)
+    {
+        _statePath = statePath is null ? null : Path.GetFullPath(statePath);
+    }
 
     /// <inheritdoc />
     public async ValueTask<ManagedProcessStartResult> StartUntilReadyAsync(
@@ -48,6 +55,13 @@ public sealed class AnonymousPipeManagedApplicationProcess : IManagedApplication
                 UseShellExecute = false,
                 CreateNoWindow = false,
             };
+            startInfo.ArgumentList.Add("--managed-root");
+            startInfo.ArgumentList.Add(Path.GetFullPath(managedRoot));
+            if (_statePath is not null)
+            {
+                startInfo.ArgumentList.Add("--state-path");
+                startInfo.ArgumentList.Add(_statePath);
+            }
             startInfo.Environment[ReadyPipeHandleEnvironment] = pipe.GetClientHandleAsString();
             startInfo.Environment[ExpectedVersionEnvironment] = version.ToString();
             process = Process.Start(startInfo);
@@ -215,13 +229,16 @@ public sealed class InheritedPipeApplicationReadySignal : IApplicationReadySigna
 public sealed class StableLauncherHandoff : IStableLauncherHandoff
 {
     private readonly string _managedRoot;
+    private readonly string _statePath;
 
     /// <summary>Creates a launcher handoff for one exact managed root.</summary>
     /// <param name="managedRoot">Stable launcher-owned root.</param>
-    public StableLauncherHandoff(string managedRoot)
+    /// <param name="statePath">Exact custom version-state path to propagate to Bootstrap.</param>
+    public StableLauncherHandoff(string managedRoot, string? statePath = null)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(managedRoot);
         _managedRoot = Path.GetFullPath(managedRoot);
+        _statePath = Path.GetFullPath(statePath ?? JsonVersionManagerStateStore.GetDefaultPath());
     }
 
     /// <inheritdoc />
@@ -230,19 +247,24 @@ public sealed class StableLauncherHandoff : IStableLauncherHandoff
         cancellationToken.ThrowIfCancellationRequested();
         try
         {
-            string launcher = Path.Combine(_managedRoot, "NvtFwCombiner.Launcher.exe");
+            string launcher = Path.Combine(_managedRoot, "NvtFwCombiner.Bootstrap.exe");
             if (!ManagedPathSafety.IsSafeExistingDirectory(_managedRoot) ||
                 !File.Exists(launcher) ||
                 ManagedPathSafety.IsReparsePoint(launcher))
             {
                 return ValueTask.FromResult(false);
             }
-            Process? process = Process.Start(new ProcessStartInfo
+            var startInfo = new ProcessStartInfo
             {
                 FileName = launcher,
                 WorkingDirectory = _managedRoot,
                 UseShellExecute = false,
-            });
+            };
+            startInfo.ArgumentList.Add("--managed-root");
+            startInfo.ArgumentList.Add(_managedRoot);
+            startInfo.ArgumentList.Add("--state-path");
+            startInfo.ArgumentList.Add(_statePath);
+            Process? process = Process.Start(startInfo);
             process?.Dispose();
             return ValueTask.FromResult(process is not null);
         }

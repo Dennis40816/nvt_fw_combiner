@@ -293,7 +293,10 @@ internal interface IInstalledLauncherRepository
 }
 
 internal enum LauncherProcessStartOutcome { Ready, StartFailed, ExitedBeforeReady, ReadyTimeout, InvalidReadySignal }
-internal sealed record LauncherProcessStartResult(LauncherProcessStartOutcome Outcome, int? ExitCode);
+internal sealed record LauncherProcessStartResult(
+    LauncherProcessStartOutcome Outcome,
+    int? ExitCode,
+    ManagedVersionAdmission? ReadyAdmission = null);
 
 internal interface IManagedLauncherProcess
 {

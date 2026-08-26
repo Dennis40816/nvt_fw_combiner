@@ -237,11 +237,15 @@ public sealed class CompositionHostServices
 
     /// <summary>Creates the exact stable-launcher shutdown handoff.</summary>
     /// <param name="managedRoot">Optional stable managed root override.</param>
+    /// <param name="statePath">Optional exact version-state path override.</param>
     /// <returns>The constrained launcher handoff.</returns>
-    public static IStableLauncherHandoff CreateStableLauncherHandoff(string? managedRoot = null)
+    public static IStableLauncherHandoff CreateStableLauncherHandoff(
+        string? managedRoot = null,
+        string? statePath = null)
     {
         return new StableLauncherHandoff(
-            managedRoot ?? ManagedInstallationLayout.ResolveManagedRoot(AppContext.BaseDirectory));
+            managedRoot ?? ManagedInstallationLayout.ResolveManagedRoot(AppContext.BaseDirectory),
+            statePath);
     }
 
     /// <summary>Creates a focused current-session System Information lifecycle.</summary>

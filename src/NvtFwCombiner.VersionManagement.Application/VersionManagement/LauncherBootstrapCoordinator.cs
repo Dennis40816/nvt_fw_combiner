@@ -166,7 +166,8 @@ internal sealed class LauncherBootstrapCoordinator
             _readyDeadline,
             cancellationToken).ConfigureAwait(false);
         return start.Outcome == LauncherProcessStartOutcome.Ready
-            ? new(LauncherBootstrapOutcome.Ready, launcher, null)
+            ? await ValidateExistingReadyAsync(launcher, start.ReadyAdmission, cancellationToken)
+                .ConfigureAwait(false)
             : Result(LauncherBootstrapOutcome.StartFailed, failed: launcher);
     }
 
@@ -181,12 +182,13 @@ internal sealed class LauncherBootstrapCoordinator
             _readyDeadline,
             cancellationToken).ConfigureAwait(false);
         return start.Outcome == LauncherProcessStartOutcome.Ready
-            ? await CommitCandidateReadyAsync(candidate, cancellationToken).ConfigureAwait(false)
+            ? await CommitCandidateReadyAsync(candidate, start.ReadyAdmission, cancellationToken).ConfigureAwait(false)
             : await RecordAndLaunchRollbackAsync(candidate, cancellationToken).ConfigureAwait(false);
     }
 
     private async ValueTask<LauncherBootstrapResult> CommitCandidateReadyAsync(
         ManagedLauncherIdentity candidate,
+        ManagedVersionAdmission? readyAdmission,
         CancellationToken cancellationToken)
     {
         using VersionManagerWriteLeaseResult lease = await _appStateStore.TryAcquireWriteLeaseAsync(
@@ -205,7 +207,8 @@ internal sealed class LauncherBootstrapCoordinator
             return Result(LauncherBootstrapOutcome.StateUnavailable, failed: candidate);
         }
         if (appState!.PendingActivation is not null || appState.PendingMutation is not null ||
-            !TryFindAdmission(appState, candidate, out _) ||
+            !TryFindAdmission(appState, candidate, out ManagedVersionAdmission? candidateAdmission) ||
+            readyAdmission != candidateAdmission ||
             appState.ActiveVersion != candidate.OwnerAppVersion ||
             launcherState!.Pending is not
             { Phase: LauncherActivationPhase.CandidateLaunchRecorded, Candidate: var pendingCandidate } ||
@@ -301,7 +304,15 @@ internal sealed class LauncherBootstrapCoordinator
         }
         (LauncherBootstrapOutcome issue, LauncherBootstrapState? reloaded) =
             await LoadLauncherStateAsync(cancellationToken).ConfigureAwait(false);
-        if (issue != LauncherBootstrapOutcome.Ready || reloaded!.Pending != pending)
+        (LauncherBootstrapOutcome appIssue, VersionManagerState? reloadedApp) =
+            await LoadAppStateAsync(cancellationToken).ConfigureAwait(false);
+        ManagedVersionAdmission? activeAdmission = reloadedApp is null ? null : FindActiveAdmission(reloadedApp);
+        if (issue != LauncherBootstrapOutcome.Ready ||
+            appIssue != LauncherBootstrapOutcome.Ready ||
+            reloadedApp!.PendingActivation is not null ||
+            reloadedApp.PendingMutation is not null ||
+            start.ReadyAdmission != activeAdmission ||
+            reloaded!.Pending != pending)
         {
             return Result(LauncherBootstrapOutcome.StateChanged, failed: pending.Candidate);
         }
@@ -309,6 +320,34 @@ internal sealed class LauncherBootstrapCoordinator
         return await SaveAsync(committed, cancellationToken).ConfigureAwait(false)
             ? new(LauncherBootstrapOutcome.RolledBack, rollback, pending.Candidate)
             : Result(LauncherBootstrapOutcome.StateUnavailable, failed: pending.Candidate);
+    }
+
+    private async ValueTask<LauncherBootstrapResult> ValidateExistingReadyAsync(
+        ManagedLauncherIdentity launcher,
+        ManagedVersionAdmission? readyAdmission,
+        CancellationToken cancellationToken)
+    {
+        using VersionManagerWriteLeaseResult lease = await _appStateStore.TryAcquireWriteLeaseAsync(
+            ManagedActivationCoordinator.DefaultWriterLeaseTimeout,
+            cancellationToken).ConfigureAwait(false);
+        if (!lease.IsAcquired)
+        {
+            return Result(LauncherBootstrapOutcome.StateUnavailable, failed: launcher);
+        }
+        (LauncherBootstrapOutcome appIssue, VersionManagerState? appState) =
+            await LoadAppStateAsync(cancellationToken).ConfigureAwait(false);
+        (LauncherBootstrapOutcome launcherIssue, LauncherBootstrapState? launcherState) =
+            await LoadLauncherStateAsync(cancellationToken).ConfigureAwait(false);
+        ManagedVersionAdmission? activeAdmission = appState is null ? null : FindActiveAdmission(appState);
+        return appIssue == LauncherBootstrapOutcome.Ready &&
+               launcherIssue == LauncherBootstrapOutcome.Ready &&
+               appState!.PendingActivation is null &&
+               appState.PendingMutation is null &&
+               readyAdmission == activeAdmission &&
+               launcherState!.Pending is null &&
+               launcherState.Active == launcher
+            ? new(LauncherBootstrapOutcome.Ready, launcher, null)
+            : Result(LauncherBootstrapOutcome.StateChanged, failed: launcher);
     }
 
     private async ValueTask<(LauncherBootstrapOutcome, VersionManagerState?)> LoadAppStateAsync(

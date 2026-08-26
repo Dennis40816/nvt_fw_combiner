@@ -21,6 +21,7 @@
   <Project Path="src/NvtFwCombiner.Cli/NvtFwCombiner.Cli.csproj" />
   <Project Path="src/NvtFwCombiner.Desktop/NvtFwCombiner.Desktop.csproj" />
   <Project Path="src/NvtFwCombiner.Launcher/NvtFwCombiner.Launcher.csproj" />
+  <Project Path="src/NvtFwCombiner.LauncherBootstrap/NvtFwCombiner.LauncherBootstrap.csproj" />
   <Project Path="src/NvtFwCombiner.Presentation.Avalonia/NvtFwCombiner.Presentation.Avalonia.csproj" />
   <Project Path="tests/NvtFwCombiner.Domain.Tests/NvtFwCombiner.Domain.Tests.csproj" />
   <Project Path="tests/NvtFwCombiner.TestSupport/NvtFwCombiner.TestSupport.csproj" />

@@ -33,11 +33,26 @@ internal static class Program
                 managedRoot,
                 stateStore,
                 repository,
-                new AnonymousPipeManagedApplicationProcess());
+                new AnonymousPipeManagedApplicationProcess(statePath));
             ManagedLauncherResult result = coordinator.RunAsync(CancellationToken.None)
                 .AsTask()
                 .GetAwaiter()
                 .GetResult();
+            if (result.Outcome is ManagedLauncherOutcome.Ready or ManagedLauncherOutcome.RolledBack)
+            {
+                bool reported = LauncherBootstrapRuntime.ReportNestedReadyAsync(
+                        managedRoot,
+                        statePath,
+                        CancellationToken.None)
+                    .AsTask()
+                    .GetAwaiter()
+                    .GetResult();
+                if (!reported && Environment.GetEnvironmentVariable(
+                        "NVT_FW_COMBINER_EXPECTED_LAUNCHER_READY") is not null)
+                {
+                    return 16;
+                }
+            }
             return result.Outcome switch
             {
                 ManagedLauncherOutcome.Ready => 0,

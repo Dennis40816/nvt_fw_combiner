@@ -15,6 +15,10 @@ Rules:
 - The release packager validates the actual generated `RELEASE-MANIFEST.json` against this schema immediately after writing it and again after the final closed-package allowlist comparison, before ZIP creation. Release smoke, managed installer, and installed-version verifier consume this same schema and closed inventory. Validation counts actual decompressed bytes, not only ZIP metadata.
 - `licenseSpdx` is `MIT`.
 - Signing fields may be omitted only for explicitly approved unsigned beta/smoke packages.
+- Schema `1.1` remains readable for already-installed pre-1.0 packages and must not contain launcher fields.
+- Schema `1.2` is mandatory for managed 1.0 releases. It requires `versionManagementProtocolVersion: 1`, one strict `launcher` identity, and exactly one matching `launcher/NvtFwCombiner.Launcher.exe` file with role `launcher`. The launcher version is a stable three-component version; prerelease/build suffixes are rejected. The launcher's path, size, and SHA-256 must match both declarations.
+- `NvtFwCombiner.Bootstrap.exe` is the immutable installation trust anchor. It is outside every version payload and therefore must not appear in a version release manifest, ZIP update payload, or version-scoped SBOM component list. Replacing Bootstrap requires an installer-level release, not managed self-update.
+- There is no launcher-only package. Each app release couples its launcher identity to the exact app release-manifest SHA and installed admission identity.
 
 Example:
 

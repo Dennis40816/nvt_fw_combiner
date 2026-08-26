@@ -284,12 +284,16 @@ public sealed class LauncherBootstrapCoordinatorTests
     public async Task PendingAppActivationRunsAlreadyAdmittedLauncherWithoutLauncherActivation()
     {
         VersionManagerState appState = AppStateWithPendingActivation();
+        var appStore = new RecordingAppStateStore(appState)
+        {
+            StateAfterFirstLoad = AppState(App101, App100),
+        };
         var launcherStore = new RecordingLauncherStateStore(
             LauncherBootstrapState.Create(Root, Launcher100, Launcher100, pending: null, failed: null));
         var process = new RecordingLauncherProcess(LauncherProcessStartOutcome.Ready);
 
         LauncherBootstrapResult result = await Create(
-            new RecordingAppStateStore(appState),
+            appStore,
             launcherStore,
             new RecordingLauncherRepository(Launcher100, Launcher101),
             process).RunAsync(TestContext.Current.CancellationToken);
@@ -377,6 +381,7 @@ public sealed class LauncherBootstrapCoordinatorTests
         RecordingLauncherRepository repository,
         RecordingLauncherProcess process)
     {
+        process.AppStateStore = appStore;
         return new(Root, StatePath, appStore, launcherStore, repository, process);
     }
 
@@ -456,6 +461,7 @@ public sealed class LauncherBootstrapCoordinatorTests
         public int FailLoadAfter { get; init; } = int.MaxValue;
         public VersionManagerState? StateAfterFirstLoad { get; init; }
         public int LoadCount { get; private set; }
+        public VersionManagerState ReadyState => StateAfterFirstLoad ?? state;
 
         public ValueTask<VersionManagerWriteLeaseResult> TryAcquireWriteLeaseAsync(
             TimeSpan waitTimeout,
@@ -552,6 +558,7 @@ public sealed class LauncherBootstrapCoordinatorTests
         : IManagedLauncherProcess
     {
         private int _index;
+        public RecordingAppStateStore? AppStateStore { get; set; }
         public List<ManagedLauncherIdentity> Started { get; } = [];
 
         public ValueTask<LauncherProcessStartResult> StartUntilReadyAsync(
@@ -564,7 +571,11 @@ public sealed class LauncherBootstrapCoordinatorTests
             cancellationToken.ThrowIfCancellationRequested();
             Started.Add(launcher);
             LauncherProcessStartOutcome outcome = outcomes[Math.Min(_index++, outcomes.Length - 1)];
-            return ValueTask.FromResult(new LauncherProcessStartResult(outcome, ExitCode: null));
+            ManagedVersionAdmission? admission = outcome == LauncherProcessStartOutcome.Ready
+                ? AppStateStore?.ReadyState.Admissions.SingleOrDefault(
+                    candidate => candidate.Version == AppStateStore.ReadyState.ActiveVersion)
+                : null;
+            return ValueTask.FromResult(new LauncherProcessStartResult(outcome, ExitCode: null, admission));
         }
     }
 
