@@ -205,9 +205,10 @@ internal sealed partial class WorkflowSessionPresentationViewModel
              _merge.HasAbMergeTopologyChoices);
     }
 
-    internal void EnsureWorkflowLoaded()
+    internal void EnsureWorkflowLoaded(
+        CapabilitySelectorPublication? selectorPublication = null)
     {
-        CapabilitySelectorPublication publication =
+        CapabilitySelectorPublication publication = selectorPublication ??
             _compositionServices.Capabilities.GetSelectorPublication();
         if (_selectorPublication is null ||
             _selectorPublication.ResolutionToken != publication.ResolutionToken)
@@ -311,9 +312,10 @@ internal sealed partial class WorkflowSessionPresentationViewModel
     }
 
     internal void RefreshContextState(WorkflowInspectionOwner? owner = null, bool resetRunResult = false,
-        bool preserveReplaceSlotFiles = false)
+        bool preserveReplaceSlotFiles = false,
+        CapabilitySelectorPublication? selectorPublication = null)
     {
-        EnsureWorkflowLoaded();
+        EnsureWorkflowLoaded(selectorPublication);
         if (!HasWorkflowAuthoringChoices || string.IsNullOrWhiteSpace(SelectedIc))
         {
             if (owner is null or WorkflowInspectionOwner.Merge)
@@ -418,7 +420,8 @@ internal sealed partial class WorkflowSessionPresentationViewModel
         {
             RefreshContextState(
                 activeOwner,
-                preserveReplaceSlotFiles: activeOwner == WorkflowInspectionOwner.Replace);
+                preserveReplaceSlotFiles: activeOwner == WorkflowInspectionOwner.Replace,
+                selectorPublication: publication);
             stagedDpProjection = _replace.TakeCatalogRefreshDpProjection();
         }
         catch

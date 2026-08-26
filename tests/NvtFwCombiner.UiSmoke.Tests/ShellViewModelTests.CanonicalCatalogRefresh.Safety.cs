@@ -11,6 +11,44 @@ namespace NvtFwCombiner.UiSmoke.Tests;
 
 public sealed partial class ShellNavigationSystemTests
 {
+    /// <summary>One catalog refresh consumes one immutable selector publication and never performs a prohibited second read.</summary>
+    [Fact]
+    public async Task FreshCatalogRefreshConsumesExactlyOneSelectorPublicationSnapshot()
+    {
+        var policy = new MutableAbCatalogPolicy();
+        PresentationHostServices originalServices =
+            PresentationTestHost.CreateServicesWithCatalogPolicy(
+                "0.10.6-single-publication-refresh-test",
+                policy.Load);
+        (ICompositionCapabilityExperience capabilities, SelectorPublicationSentinel sentinel) =
+            SelectorPublicationSentinel.Wrap(originalServices.Composition.Capabilities);
+        PresentationHostServices services = WithCapabilities(originalServices, capabilities);
+        MainWindowViewModel viewModel = ShellViewModelFactory.Create(
+            services,
+            ShellLanguage.English);
+        _ = PresentationTestHost.PublishCanonicalCatalog(services, viewModel);
+        ResolutionToken originalToken = originalServices.Composition.Capabilities
+            .GetSelectorPublication()
+            .ResolutionToken;
+
+        policy.DisableAbFor("NT51950");
+        CapabilityCatalogReloadResult reload =
+            await PresentationTestHost.LoadCanonicalCatalogAsync(
+                services.CanonicalCatalogLoader,
+                TestContext.Current.CancellationToken);
+        Assert.True(reload.Succeeded);
+        ResolutionToken freshToken = originalServices.Composition.Capabilities
+            .GetSelectorPublication()
+            .ResolutionToken;
+        Assert.NotEqual(originalToken, freshToken);
+
+        sentinel.Arm();
+        viewModel.WorkflowSession.RefreshCanonicalCatalogState();
+
+        Assert.Equal(1, sentinel.ArmedSelectorReadCount);
+        Assert.Equal(freshToken, viewModel.WorkflowSession.SelectorResolutionToken);
+    }
+
     /// <summary>A valid publication with no authorable route disables every workflow entry without querying a stale IC.</summary>
     [Fact]
     public async Task ZeroGlobalAuthoringPublicationFailsClosedWithoutOpeningAWorkflow()
