@@ -19,8 +19,12 @@ internal sealed partial class ReplacePresentationViewModel
             case DpReplaceMode:
                 _preparedDpReplaceIc = null;
                 _preparedDpReplaceSnapshot = null;
+                FirmwareSlotViewModel[] retainedDpSelections =
+                [
+                    .. CurrentReplaceInputSlots().DistinctBy(ReplaceInputId),
+                ];
                 CompiledAuthoringSelectionSnapshot dpSnapshot =
-                    ResolveDpReplaceAuthoringSnapshotCore(icId, []);
+                    ResolveDpReplaceAuthoringSnapshotCore(icId, retainedDpSelections);
                 _preparedDpReplaceIc = icId;
                 _preparedDpReplaceSnapshot = dpSnapshot;
                 break;
@@ -290,6 +294,10 @@ internal sealed partial class ReplacePresentationViewModel
                 .ToDictionary(slot => slot.SlotId, slot => slot.FilePath, StringComparer.Ordinal)
             : new Dictionary<string, string?>(StringComparer.Ordinal);
         ReplaceSlots.Clear();
+        CompiledAuthoringSelectionSnapshot? dpProjection = null;
+        bool usesPreparedDpProjection = SelectedReplaceMode == DpReplaceMode &&
+            string.Equals(_preparedDpReplaceIc, SelectedIc, StringComparison.Ordinal) &&
+            _preparedDpReplaceSnapshot is not null;
         if (IsSelectedReplaceModeSupported &&
             SelectedReplaceMode is DpReplaceMode or CtrlRamReplaceMode)
         {
@@ -299,13 +307,21 @@ internal sealed partial class ReplacePresentationViewModel
                     ? ctrlRamInputSlots
                     : SelectedReplaceMode == DpReplaceMode
                         ? UiCompositionRunner.GetDpReplaceInputSlots(
-                            ResolveDpReplaceAuthoringSnapshot([]))
+                            dpProjection = ResolveDpReplaceAuthoringSnapshot([]))
                         : ctrlRamInputSlots ?? throw new InvalidOperationException(
                             "CtrlRAM mode requires one coherent discovery publication.");
             foreach (FirmwareSlotViewModel slot in inputSlots)
             {
                 RestorePreservedSlotFile(slot, preservedSlotFiles);
                 ReplaceSlots.Add(slot);
+            }
+
+            if (dpProjection is not null)
+            {
+                _ = _dpReplaceSession.Activate(dpProjection);
+                _catalogRefreshDpProjection = usesPreparedDpProjection
+                    ? dpProjection
+                    : null;
             }
         }
 
@@ -324,7 +340,7 @@ internal sealed partial class ReplacePresentationViewModel
         OnPropertyChanged(nameof(IsStructuredReplaceModeSelected));
         OnPropertyChanged(nameof(IsNonCtrlRamStructuredReplaceModeSelected));
         OnPropertyChanged(nameof(ReplaceOutputFileName));
-        RefreshCommandState();
+        RefreshCommandState(dpProjection);
     }
 
     private CtrlRamInspectionDisplay ResolveCtrlRamDiscoveryDisplay(

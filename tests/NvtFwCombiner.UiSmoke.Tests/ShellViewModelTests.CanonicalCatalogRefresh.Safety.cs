@@ -501,6 +501,12 @@ public sealed partial class ShellNavigationSystemTests
             Arm();
             _general.ThrowOn(methodName);
         }
+
+        internal void ArmDpFailure(string methodName, int invocation = 1)
+        {
+            Arm();
+            _dpReplace.ThrowOn(methodName, invocation);
+        }
     }
 
     /// <summary>Test-only forwarding proxy that counts calls after an explicit arm point.</summary>
@@ -511,6 +517,8 @@ public sealed partial class ShellNavigationSystemTests
         private int _armed;
         private int _armedCallCount;
         private string? _throwingMethodName;
+        private int _throwingMethodInvocation = 1;
+        private int _throwingMethodCallCount;
 
         /// <summary>Creates an unconfigured proxy base for <see cref="DispatchProxy"/>.</summary>
         public CountingAuthoringProxy()
@@ -530,14 +538,18 @@ public sealed partial class ShellNavigationSystemTests
         internal void Arm()
         {
             _ = Interlocked.Exchange(ref _armedCallCount, 0);
+            _ = Interlocked.Exchange(ref _throwingMethodCallCount, 0);
             _throwingMethodName = null;
+            _throwingMethodInvocation = 1;
             Volatile.Write(ref _armed, 1);
         }
 
-        internal void ThrowOn(string methodName)
+        internal void ThrowOn(string methodName, int invocation = 1)
         {
             ArgumentException.ThrowIfNullOrWhiteSpace(methodName);
+            ArgumentOutOfRangeException.ThrowIfLessThan(invocation, 1);
             _throwingMethodName = methodName;
+            _throwingMethodInvocation = invocation;
         }
 
         /// <summary>Forwards one interface call and records it only after the proxy is armed.</summary>
@@ -549,8 +561,12 @@ public sealed partial class ShellNavigationSystemTests
                 _ = Interlocked.Increment(ref _armedCallCount);
             }
 
-            if (Volatile.Read(ref _armed) == 1 &&
-                StringComparer.Ordinal.Equals(_throwingMethodName, targetMethod.Name))
+            bool isThrowingMethod = Volatile.Read(ref _armed) == 1 &&
+                StringComparer.Ordinal.Equals(_throwingMethodName, targetMethod.Name);
+            int throwingMethodCall = isThrowingMethod
+                ? Interlocked.Increment(ref _throwingMethodCallCount)
+                : 0;
+            if (isThrowingMethod && throwingMethodCall == _throwingMethodInvocation)
             {
                 throw new InvalidOperationException(
                     $"Injected {targetMethod.Name} failure.");

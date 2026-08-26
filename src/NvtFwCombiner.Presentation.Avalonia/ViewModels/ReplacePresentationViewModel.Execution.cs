@@ -180,7 +180,8 @@ internal sealed partial class ReplacePresentationViewModel
         return CanRunCompiledReplaceSession(_dpReplaceSession);
     }
 
-    private void RefreshDpReplaceInputSelectionReadiness()
+    private void RefreshDpReplaceInputSelectionReadiness(
+        IReadOnlyList<InputSelectionMemberReadiness>? stagedReadiness = null)
     {
         if (!HasSelectedIc)
         {
@@ -200,6 +201,8 @@ internal sealed partial class ReplacePresentationViewModel
         IReadOnlyList<InputSelectionMemberReadiness>? readiness =
             SelectedReplaceMode != DpReplaceMode
                 ? null
+                : stagedReadiness is not null
+                    ? stagedReadiness
                 : currentSelection && session!.InputSelectionReadiness.Count != 0
                     ? session.InputSelectionReadiness
                     : ResolveDpReplaceAuthoringSnapshot(selected).Slots;

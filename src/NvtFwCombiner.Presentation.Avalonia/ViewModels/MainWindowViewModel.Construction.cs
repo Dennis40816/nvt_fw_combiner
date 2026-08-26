@@ -107,7 +107,7 @@ internal sealed partial class MainWindowViewModel
                  ShowActionReadiness,
                  WorkflowReplaceModeChanged,
                 ResetRunResultForContextChange,
-                () => RefreshCommandState(),
+                () => RefreshCommandState(refreshReplaceReadiness: false),
                 OutputDelivery));
         Replace.PropertyChanged += Replace_OnPropertyChanged;
         SelectedLanguage = language == ShellLanguage.ChineseTraditional ? "Traditional Chinese" : "English";
@@ -130,6 +130,7 @@ internal sealed partial class MainWindowViewModel
                 GetDisplayedDeviceContextRefreshSummary,
                 ResetRunResultForContextChange,
                 () => RefreshCommandState(),
+                () => RefreshCommandState(refreshReplaceReadiness: false),
                 NotifyRunContextChanged));
         WorkflowSession.PropertyChanged += WorkflowSession_OnPropertyChanged;
         BuildResult = new BuildResultViewModel(_fileRevealService, () => Text.BuildCompletedOpenFolderError);

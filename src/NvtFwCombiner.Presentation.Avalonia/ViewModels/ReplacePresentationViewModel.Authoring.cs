@@ -10,6 +10,7 @@ internal sealed partial class ReplacePresentationViewModel
     private ActiveSessionSnapshot? _ctrlRamReadinessSession;
     private string? _ctrlRamReadinessIc;
     private string? _ctrlRamReadinessNumber;
+    private CompiledAuthoringSelectionSnapshot? _catalogRefreshDpProjection;
 
     internal AuthoringRevision ReplaceInputAuthoringRevision =>
         CurrentReplaceInputSession?.CurrentSnapshot?.AuthoringRevision ?? new AuthoringRevision(1);
@@ -65,7 +66,8 @@ internal sealed partial class ReplacePresentationViewModel
             .. slots.Where(slot => slot.HasFile && requested.Contains(ReplaceInputId(slot))),
         ];
         CompiledAuthoringSelectionSnapshot dpProjection =
-            ResolveDpReplaceAuthoringSnapshot(selected);
+            _catalogRefreshDpProjection ?? ResolveDpReplaceAuthoringSnapshot(selected);
+        _catalogRefreshDpProjection = null;
         AuthoringSessionTransitionResult activated = session.Activate(dpProjection);
         if (!activated.Succeeded)
         {
@@ -235,6 +237,11 @@ internal sealed partial class ReplacePresentationViewModel
         IReadOnlyCollection<FirmwareSlotViewModel> selected)
     {
         return ResolveDpReplaceAuthoringSnapshot(SelectedIc, selected);
+    }
+
+    internal void CompleteCatalogRefreshProjection()
+    {
+        _catalogRefreshDpProjection = null;
     }
 
     private CompiledAuthoringSelectionSnapshot ResolveDpReplaceAuthoringSnapshot(

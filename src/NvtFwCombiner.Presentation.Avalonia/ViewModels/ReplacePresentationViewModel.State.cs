@@ -369,13 +369,25 @@ internal sealed partial class ReplacePresentationViewModel
 
     internal void RefreshCommandState()
     {
-        NotifyCommandStateChanged();
+        RefreshCommandState(null);
+    }
+
+    private void RefreshCommandState(
+        CompiledAuthoringSelectionSnapshot? stagedDpProjection)
+    {
+        NotifyCommandStateChanged(stagedDpProjection);
         _stateBindings.RefreshShellCommandState();
     }
 
     internal void NotifyCommandStateChanged()
     {
-        RefreshDpReplaceInputSelectionReadiness();
+        NotifyCommandStateChanged(null);
+    }
+
+    private void NotifyCommandStateChanged(
+        CompiledAuthoringSelectionSnapshot? stagedDpProjection)
+    {
+        RefreshDpReplaceInputSelectionReadiness(stagedDpProjection?.Slots);
         NotifyCommandAvailabilityChanged();
     }
 

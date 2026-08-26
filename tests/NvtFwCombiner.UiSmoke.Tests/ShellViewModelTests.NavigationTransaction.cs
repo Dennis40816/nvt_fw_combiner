@@ -201,6 +201,90 @@ public sealed partial class ShellNavigationSystemTests
         Assert.Equal(retainedState, retainedInspection.State);
     }
 
+    /// <summary>A failed first DP snapshot read cannot publish any part of the refreshed catalog state.</summary>
+    [Fact]
+    public async Task CatalogDpSnapshotFirstReadFailureKeepsCompleteReplaceState()
+    {
+        using var workspace = TempWorkspace.Create("nvt-fw-combiner-ui-dp-refresh-first-read");
+        var policy = new MutableAbCatalogPolicy();
+        (
+            PresentationHostServices services,
+            MainWindowViewModel viewModel,
+            AuthoringPortSentinel sentinel) = CreateCatalogRefreshSentinelViewModel(policy);
+        CapabilitySelectorPublication original = services.Composition.Capabilities
+            .GetSelectorPublication();
+        viewModel.ShowReplaceCommand.Execute(null);
+        viewModel.WorkflowSession.SelectedIc = "NT51928";
+        viewModel.Replace.SelectedReplaceMode = ExperienceIds.DpReplace;
+        viewModel.SetSlotFile(
+            CompositionSlotIds.ReplaceBase,
+            workspace.Write("reference.bin", new byte[0x40000]));
+        viewModel.SetSlotFile(
+            CompositionSlotIds.ReplaceDp,
+            workspace.Write("initial-code.bin", CreatePattern(0x40000, 0x41)));
+        await viewModel.Replace.Inspection.ActiveTask.WaitAsync(
+            TimeSpan.FromSeconds(10),
+            TestContext.Current.CancellationToken);
+        ResolutionToken? retainedToken = viewModel.WorkflowSession.SelectorResolutionToken;
+        string[] retainedPaths = [.. viewModel.Replace.ReplaceSlots
+            .Where(static slot => slot.HasFile)
+            .Select(static slot => slot.FilePath!)];
+        bool retainedCanBuild = viewModel.Replace.CanBuildReplace;
+        policy.DisableAbFor(original.AbMergeIcIds[0]);
+        sentinel.ArmDpFailure(nameof(IDpReplaceAuthoring.GetAuthoringSnapshot));
+
+        InvalidOperationException failure = await Assert.ThrowsAsync<InvalidOperationException>(
+            () => viewModel.MessageCenter.RefreshCommand.ExecuteAsync(null));
+
+        Assert.Equal("Injected GetAuthoringSnapshot failure.", failure.Message);
+        Assert.Equal(retainedToken, viewModel.WorkflowSession.SelectorResolutionToken);
+        Assert.Equal("NT51928", viewModel.WorkflowSession.SelectedIc);
+        Assert.Equal(ExperienceIds.DpReplace, viewModel.Replace.SelectedReplaceMode);
+        Assert.Equal(retainedPaths, viewModel.Replace.ReplaceSlots
+            .Where(static slot => slot.HasFile)
+            .Select(static slot => slot.FilePath));
+        Assert.Equal(retainedCanBuild, viewModel.Replace.CanBuildReplace);
+        Assert.Equal(1, sentinel.ArmedCallCounts[DpReplaceAuthoringPortIndex]);
+    }
+
+    /// <summary>Slot construction and readiness consume one staged DP snapshot; a second read is forbidden.</summary>
+    [Fact]
+    public async Task CatalogDpRefreshUsesExactlyOneSnapshotForRetainedSelections()
+    {
+        using var workspace = TempWorkspace.Create("nvt-fw-combiner-ui-dp-refresh-single-read");
+        var policy = new MutableAbCatalogPolicy();
+        (
+            PresentationHostServices services,
+            MainWindowViewModel viewModel,
+            AuthoringPortSentinel sentinel) = CreateCatalogRefreshSentinelViewModel(policy);
+        CapabilitySelectorPublication original = services.Composition.Capabilities
+            .GetSelectorPublication();
+        viewModel.ShowReplaceCommand.Execute(null);
+        viewModel.WorkflowSession.SelectedIc = "NT51928";
+        viewModel.Replace.SelectedReplaceMode = ExperienceIds.DpReplace;
+        viewModel.SetSlotFile(
+            CompositionSlotIds.ReplaceBase,
+            workspace.Write("reference.bin", new byte[0x40000]));
+        viewModel.SetSlotFile(
+            CompositionSlotIds.ReplaceDp,
+            workspace.Write("initial-code.bin", CreatePattern(0x40000, 0x51)));
+        await viewModel.Replace.Inspection.ActiveTask.WaitAsync(
+            TimeSpan.FromSeconds(10),
+            TestContext.Current.CancellationToken);
+        policy.DisableAbFor(original.AbMergeIcIds[0]);
+        sentinel.ArmDpFailure(nameof(IDpReplaceAuthoring.GetAuthoringSnapshot), invocation: 2);
+
+        await viewModel.MessageCenter.RefreshCommand.ExecuteAsync(null);
+
+        Assert.Equal(1, sentinel.ArmedCallCounts[DpReplaceAuthoringPortIndex]);
+        Assert.Equal("NT51928", viewModel.WorkflowSession.SelectedIc);
+        Assert.Equal(ExperienceIds.DpReplace, viewModel.Replace.SelectedReplaceMode);
+        Assert.Contains(viewModel.Replace.ReplaceSlots, static slot =>
+            slot.SlotId == CompositionSlotIds.ReplaceBase && slot.HasFile);
+        Assert.Contains(viewModel.Replace.ReplaceSlots, static slot =>
+            slot.SlotId == CompositionSlotIds.ReplaceDp && slot.HasFile);
+    }
+
     /// <summary>Clearing a hidden General Merge page performs no authoring call with the destination IC.</summary>
     [Fact]
     public async Task HiddenGeneralMergeBulkClearDoesNotRedispatchAuthoring()

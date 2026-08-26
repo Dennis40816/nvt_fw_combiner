@@ -356,7 +356,7 @@ internal sealed partial class WorkflowSessionPresentationViewModel
             _replace.RefreshContextState(preserveSlotFiles: preserveReplaceSlotFiles);
             _replace.ApplyFirmwareSlotText();
         }
-        _stateBindings.RefreshCommandState();
+        _stateBindings.RefreshCommandAvailability();
         NotifyContextTextChanged(owner, notifyIcChoices: false);
         if (resetRunResult)
         {
@@ -431,7 +431,14 @@ internal sealed partial class WorkflowSessionPresentationViewModel
             _replaceWorkflowContextNeedsRefresh = false;
         }
 
-        RefreshRetainedFirmwareInspections(activeOwner.Value);
+        try
+        {
+            RefreshRetainedFirmwareInspections(activeOwner.Value);
+        }
+        finally
+        {
+            _replace.CompleteCatalogRefreshProjection();
+        }
     }
 
     private void RefreshRetainedFirmwareInspections(WorkflowInspectionOwner owner)
