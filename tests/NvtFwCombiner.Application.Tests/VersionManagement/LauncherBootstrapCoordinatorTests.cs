@@ -587,8 +587,10 @@ public sealed partial class LauncherBootstrapCoordinatorTests
     private sealed class RecordingAppStateStore(VersionManagerState state) : IVersionManagerStateStore
     {
         public int FailLoadAfter { get; init; } = int.MaxValue;
+        public int FailSaveAt { get; init; } = int.MaxValue;
         public VersionManagerState? StateAfterFirstLoad { get; init; }
         public int LoadCount { get; private set; }
+        public int SaveCount { get; private set; }
         public VersionManagerState ReadyState => StateAfterFirstLoad ?? state;
 
         public ValueTask<VersionManagerWriteLeaseResult> TryAcquireWriteLeaseAsync(
@@ -619,6 +621,11 @@ public sealed partial class LauncherBootstrapCoordinatorTests
         public ValueTask SaveAsync(VersionManagerState value, CancellationToken cancellationToken)
         {
             cancellationToken.ThrowIfCancellationRequested();
+            SaveCount++;
+            if (SaveCount == FailSaveAt)
+            {
+                throw new IOException("Injected application-state power cut.");
+            }
             state = value;
             return ValueTask.CompletedTask;
         }
@@ -654,31 +661,6 @@ public sealed partial class LauncherBootstrapCoordinatorTests
             Current = state;
             return ValueTask.FromResult(new LauncherBootstrapStateSaveResult(
                 LauncherBootstrapStateSaveIssue.None));
-        }
-    }
-
-    private sealed class RecordingLauncherRepository(params ManagedLauncherIdentity[] identities)
-        : IInstalledLauncherRepository
-    {
-        public InstalledLauncherIssue ForcedIssue { get; init; }
-        public Dictionary<ManagedAppVersion, InstalledLauncherIssue> Issues { get; } = [];
-        public int VerifyCount { get; private set; }
-
-        public ValueTask<InstalledLauncherResult> VerifyAsync(
-            string managedRoot,
-            ManagedVersionAdmission admission,
-            CancellationToken cancellationToken)
-        {
-            cancellationToken.ThrowIfCancellationRequested();
-            VerifyCount++;
-            ManagedLauncherIdentity? identity = identities.SingleOrDefault(
-                candidate => candidate.OwnerAppVersion == admission.Version);
-            InstalledLauncherIssue issue = Issues.GetValueOrDefault(admission.Version, ForcedIssue);
-            return ValueTask.FromResult(issue == InstalledLauncherIssue.None && identity is not null
-                ? new InstalledLauncherResult(identity, InstalledLauncherIssue.None)
-                : new InstalledLauncherResult(null, issue == InstalledLauncherIssue.None
-                    ? InstalledLauncherIssue.Unavailable
-                    : issue));
         }
     }
 

@@ -10,7 +10,12 @@ internal static class Program
     {
         try
         {
-            using IDisposable? lifetime = InheritedManagedProcessLifetime.Capture();
+            using IInheritedManagedProcessLifetimeCapture lifetime =
+                InheritedManagedProcessLifetime.Capture();
+            if (lifetime.Outcome == InheritedManagedProcessLifetimeOutcome.InvalidInheritedContext)
+            {
+                return 22;
+            }
             (string managedRoot, string statePath) = Parse(args);
             LauncherReadyInheritance outerReady = LauncherBootstrapRuntime.CaptureNestedReadyContext();
             if (outerReady.Outcome == LauncherReadyInheritanceOutcome.InvalidInheritedContext)

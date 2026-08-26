@@ -48,7 +48,7 @@ internal sealed partial class LauncherBootstrapCoordinator
         try
         {
             (LauncherBootstrapOutcome issue, VersionManagerState? appState, LauncherBootstrapState? launcherState) =
-                await LoadConsistentStatesAsync(cancellationToken).ConfigureAwait(false);
+                await LoadRawStatesAsync(cancellationToken).ConfigureAwait(false);
             if (issue != LauncherBootstrapOutcome.Ready)
             {
                 return Result(issue);
@@ -63,6 +63,10 @@ internal sealed partial class LauncherBootstrapCoordinator
             }
             appState = recovery.AppState;
             launcherState = recovery.LauncherState;
+            if (HasCrossJournalConflict(appState, launcherState))
+            {
+                return Result(LauncherBootstrapOutcome.AppMutationPending);
+            }
             if (appState!.PendingMutation is not null)
             {
                 return Result(LauncherBootstrapOutcome.AppMutationPending);
@@ -74,14 +78,16 @@ internal sealed partial class LauncherBootstrapCoordinator
                 {
                     return Result(LauncherBootstrapOutcome.InvalidState);
                 }
-                InstalledLauncherResult verified = await _repository.VerifyAsync(
+                InstalledLauncherLaunchResult acquired = await _repository.AcquireLaunchLeaseAsync(
                     _managedRoot,
                     activeAdmission!,
                     cancellationToken).ConfigureAwait(false);
-                if (!Matches(verified, active))
+                if (!Matches(acquired, active))
                 {
-                    return Result(MapVerification(verified.Issue), failed: active);
+                    acquired.Lease?.Dispose();
+                    return Result(MapVerification(acquired.Issue), failed: active);
                 }
+                using IManagedExecutableLaunchLease executableLease = acquired.Lease!;
                 launcherState = launcherState.RecordActiveLaunch();
                 if (!await TrySaveLauncherStateAsync(appState, launcherState, cancellationToken)
                     .ConfigureAwait(false))
@@ -89,7 +95,12 @@ internal sealed partial class LauncherBootstrapCoordinator
                     return Result(LauncherBootstrapOutcome.StateUnavailable, failed: active);
                 }
                 lease.Dispose();
-                return await LaunchExistingAsync(appState, launcherState!, active, cancellationToken)
+                return await LaunchExistingAsync(
+                    appState,
+                    launcherState!,
+                    active,
+                    executableLease,
+                    cancellationToken)
                     .ConfigureAwait(false);
             }
 
@@ -117,14 +128,16 @@ internal sealed partial class LauncherBootstrapCoordinator
             {
                 return Result(LauncherBootstrapOutcome.InvalidState);
             }
-            InstalledLauncherResult desiredResult = await _repository.VerifyAsync(
+            InstalledLauncherLaunchResult desiredResult = await _repository.AcquireLaunchLeaseAsync(
                 _managedRoot,
                 desiredAdmission,
                 cancellationToken).ConfigureAwait(false);
-            if (!desiredResult.IsVerified)
+            if (!desiredResult.IsAcquired)
             {
+                desiredResult.Lease?.Dispose();
                 return Result(MapVerification(desiredResult.Issue));
             }
+            using IManagedExecutableLaunchLease desiredExecutableLease = desiredResult.Lease!;
             ManagedLauncherIdentity desired = desiredResult.Identity!;
             if (!desired.MatchesOwner(desiredAdmission))
             {
@@ -147,7 +160,12 @@ internal sealed partial class LauncherBootstrapCoordinator
                     return Result(LauncherBootstrapOutcome.StateUnavailable, failed: desired);
                 }
                 lease.Dispose();
-                return await LaunchExistingAsync(appState, launcherState, desired, cancellationToken)
+                return await LaunchExistingAsync(
+                    appState,
+                    launcherState,
+                    desired,
+                    desiredExecutableLease,
+                    cancellationToken)
                     .ConfigureAwait(false);
             }
             else
@@ -167,7 +185,12 @@ internal sealed partial class LauncherBootstrapCoordinator
                 return Result(LauncherBootstrapOutcome.StateUnavailable);
             }
             lease.Dispose();
-            return await LaunchCandidateAsync(appState, launcherState, desired, cancellationToken)
+            return await LaunchCandidateAsync(
+                appState,
+                launcherState,
+                desired,
+                desiredExecutableLease,
+                cancellationToken)
                 .ConfigureAwait(false);
         }
         finally
@@ -180,6 +203,7 @@ internal sealed partial class LauncherBootstrapCoordinator
         VersionManagerState appState,
         LauncherBootstrapState launcherState,
         ManagedLauncherIdentity launcher,
+        IManagedExecutableLaunchLease executableLease,
         CancellationToken cancellationToken)
     {
         if (HasCrossJournalConflict(appState, launcherState))
@@ -190,6 +214,7 @@ internal sealed partial class LauncherBootstrapCoordinator
             _managedRoot,
             _statePath,
             launcher,
+            executableLease,
             _readyDeadline,
             cancellationToken).ConfigureAwait(false);
         return start.Outcome switch
@@ -212,6 +237,7 @@ internal sealed partial class LauncherBootstrapCoordinator
         VersionManagerState appState,
         LauncherBootstrapState launcherState,
         ManagedLauncherIdentity candidate,
+        IManagedExecutableLaunchLease executableLease,
         CancellationToken cancellationToken)
     {
         if (HasCrossJournalConflict(appState, launcherState))
@@ -222,6 +248,7 @@ internal sealed partial class LauncherBootstrapCoordinator
             _managedRoot,
             _statePath,
             candidate,
+            executableLease,
             _readyDeadline,
             cancellationToken).ConfigureAwait(false);
         return start.Outcome switch
@@ -327,14 +354,16 @@ internal sealed partial class LauncherBootstrapCoordinator
         {
             return Result(LauncherBootstrapOutcome.RollbackUnavailable, failed: pending.Candidate);
         }
-        InstalledLauncherResult verified = await _repository.VerifyAsync(
+        InstalledLauncherLaunchResult verified = await _repository.AcquireLaunchLeaseAsync(
             _managedRoot,
             admission!,
             cancellationToken).ConfigureAwait(false);
         if (!Matches(verified, rollback))
         {
+            verified.Lease?.Dispose();
             return Result(LauncherBootstrapOutcome.RollbackUnavailable, failed: pending.Candidate);
         }
+        using IManagedExecutableLaunchLease executableLease = verified.Lease!;
         if (HasCrossJournalConflict(appState, launcherState))
         {
             return Result(LauncherBootstrapOutcome.AppMutationPending, failed: pending.Candidate);
@@ -343,6 +372,7 @@ internal sealed partial class LauncherBootstrapCoordinator
             _managedRoot,
             _statePath,
             rollback,
+            executableLease,
             _readyDeadline,
             cancellationToken).ConfigureAwait(false);
         if (start.Outcome != LauncherProcessStartOutcome.Ready)
@@ -470,7 +500,7 @@ internal sealed partial class LauncherBootstrapCoordinator
     }
 
     private async ValueTask<(LauncherBootstrapOutcome, VersionManagerState?, LauncherBootstrapState?)>
-        LoadConsistentStatesAsync(CancellationToken cancellationToken)
+        LoadRawStatesAsync(CancellationToken cancellationToken)
     {
         (LauncherBootstrapOutcome appIssue, VersionManagerState? appState) =
             await LoadAppStateAsync(cancellationToken).ConfigureAwait(false);
@@ -484,9 +514,17 @@ internal sealed partial class LauncherBootstrapCoordinator
         {
             return (launcherIssue, null, null);
         }
-        return HasCrossJournalConflict(appState!, launcherState!)
+        return (LauncherBootstrapOutcome.Ready, appState, launcherState);
+    }
+
+    private async ValueTask<(LauncherBootstrapOutcome, VersionManagerState?, LauncherBootstrapState?)>
+        LoadConsistentStatesAsync(CancellationToken cancellationToken)
+    {
+        (LauncherBootstrapOutcome issue, VersionManagerState? appState, LauncherBootstrapState? launcherState) =
+            await LoadRawStatesAsync(cancellationToken).ConfigureAwait(false);
+        return issue == LauncherBootstrapOutcome.Ready && HasCrossJournalConflict(appState!, launcherState!)
             ? (LauncherBootstrapOutcome.AppMutationPending, null, null)
-            : (LauncherBootstrapOutcome.Ready, appState, launcherState);
+            : (issue, appState, launcherState);
     }
 
     private async ValueTask<bool> TrySaveLauncherStateAsync(
@@ -528,9 +566,9 @@ internal sealed partial class LauncherBootstrapCoordinator
         return admission is not null && launcher.MatchesOwner(admission);
     }
 
-    private static bool Matches(InstalledLauncherResult result, ManagedLauncherIdentity expected)
+    private static bool Matches(InstalledLauncherLaunchResult result, ManagedLauncherIdentity expected)
     {
-        return result.IsVerified && result.Identity == expected;
+        return result.IsAcquired && result.Identity == expected;
     }
 
     private static LauncherBootstrapOutcome MapVerification(InstalledLauncherIssue issue)

@@ -137,6 +137,7 @@ public sealed partial class LauncherBootstrapCoordinatorTests
             string managedRoot,
             string statePath,
             ManagedLauncherIdentity launcher,
+            IManagedExecutableLaunchLease executableLease,
             TimeSpan readyDeadline,
             CancellationToken cancellationToken)
         {

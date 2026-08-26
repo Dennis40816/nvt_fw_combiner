@@ -60,6 +60,37 @@ public sealed partial class FileSystemManagedVersionRepositoryTests
                      Directory.EnumerateFileSystemEntries(Path.Combine(managedRoot, ".staging")).Any());
     }
 
+    /// <summary>The exact verified application cannot be swapped before Process.Start while its lease is held.</summary>
+    [Fact]
+    public async Task AcquiredApplicationLeaseDeniesExecutableSwapUntilReleased()
+    {
+        using var workspace = TempWorkspace.Create();
+        string sourceRoot = workspace.PathFor("source");
+        string managedRoot = workspace.PathFor("managed");
+        UpdateCatalogVersionSnapshot package = CreatePackage(sourceRoot, "0.10.6", useReadyProbe: true);
+        var repository = new FileSystemManagedVersionRepository();
+        ManagedVersionInstallResult installed = await repository.InstallAsync(
+            managedRoot,
+            sourceRoot,
+            package,
+            TestContext.Current.CancellationToken);
+
+        Assert.True(installed.IsSuccess, installed.Issue.ToString());
+        ManagedExecutableLaunchLeaseResult acquired = await repository.AcquireApplicationLaunchLeaseAsync(
+            managedRoot,
+            installed.Admission!,
+            TestContext.Current.CancellationToken);
+        Assert.True(acquired.IsAcquired, acquired.Issue.ToString());
+        string executable = Path.Combine(managedRoot, "versions", "0.10.6", "NvtFwCombiner.exe");
+        string displaced = executable + ".displaced";
+        _ = Assert.Throws<IOException>(() => File.Move(executable, displaced));
+
+        acquired.Lease!.Dispose();
+        File.Move(executable, displaced);
+        File.Move(displaced, executable);
+        Assert.True(File.Exists(executable));
+    }
+
     /// <summary>A healthy self-admission alone is observed evidence, not committed authority.</summary>
     [Fact]
     public async Task HealthySelfAdmissionWithoutCommittedStateIsOnlyObservedUnadmittedFact()

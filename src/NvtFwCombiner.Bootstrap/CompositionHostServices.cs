@@ -251,7 +251,7 @@ public sealed class CompositionHostServices
     }
 
     /// <summary>Captures the inherited managed-process lifetime at desktop entry.</summary>
-    public static IDisposable? CaptureInheritedManagedProcessLifetime()
+    public static IInheritedManagedProcessLifetimeCapture CaptureInheritedManagedProcessLifetime()
     {
         return InheritedManagedProcessLifetime.Capture();
     }

@@ -587,6 +587,7 @@ public sealed partial class ManagedActivationCoordinatorTests
         public ValueTask<ManagedProcessStartResult> StartUntilReadyAsync(
             string managedRoot,
             ManagedAppVersion version,
+            IManagedExecutableLaunchLease executableLease,
             TimeSpan readyDeadline,
             CancellationToken cancellationToken)
         {
@@ -599,6 +600,8 @@ public sealed partial class ManagedActivationCoordinatorTests
     {
         private readonly HashSet<ManagedAppVersion> _damaged =
             [.. damagedVersions.Select(ManagedAppVersion.Parse)];
+
+        public ManagedExecutableLaunchIssue LaunchLeaseIssue { get; init; }
 
         public ValueTask<ManagedPackageVerificationResult> VerifyPackageAsync(
             string sourceRoot,
@@ -654,6 +657,27 @@ public sealed partial class ManagedActivationCoordinatorTests
         {
             throw new NotSupportedException();
         }
+
+        public ValueTask<ManagedExecutableLaunchLeaseResult> AcquireApplicationLaunchLeaseAsync(
+            string managedRoot,
+            ManagedVersionAdmission admission,
+            CancellationToken cancellationToken)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            return ValueTask.FromResult(LaunchLeaseIssue != ManagedExecutableLaunchIssue.None
+                ? new ManagedExecutableLaunchLeaseResult(null, LaunchLeaseIssue)
+                : new ManagedExecutableLaunchLeaseResult(
+                    NoOpExecutableLease.Instance,
+                    ManagedExecutableLaunchIssue.None));
+        }
+    }
+
+    private sealed class NoOpExecutableLease : IManagedExecutableLaunchLease
+    {
+        internal static readonly NoOpExecutableLease Instance = new();
+        public string ExecutablePath => "NvtFwCombiner.exe";
+        public string WorkingDirectory => ".";
+        public void Dispose() { }
     }
 
 }

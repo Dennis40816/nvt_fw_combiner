@@ -80,29 +80,20 @@ internal sealed class AnonymousPipeManagedLauncherProcess : IManagedLauncherProc
         string managedRoot,
         string statePath,
         ManagedLauncherIdentity launcher,
+        IManagedExecutableLaunchLease executableLease,
         TimeSpan readyDeadline,
         CancellationToken cancellationToken)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(managedRoot);
         ArgumentException.ThrowIfNullOrWhiteSpace(statePath);
         ArgumentNullException.ThrowIfNull(launcher);
+        ArgumentNullException.ThrowIfNull(executableLease);
         ArgumentOutOfRangeException.ThrowIfLessThanOrEqual(readyDeadline, TimeSpan.Zero);
         Process? process = null;
+        ManagedProcessLifetimeLease? lifetime = null;
         try
         {
-            string versionRoot = ManagedPathSafety.GetExactVersionDirectory(
-                Path.Combine(Path.GetFullPath(managedRoot), FileSystemManagedVersionRepository.VersionsDirectoryName),
-                launcher.OwnerAppVersion);
-            string executable = ManagedPathSafety.ResolvePayloadPath(versionRoot, launcher.ExecutableRelativePath);
-            if (!ManagedPathSafety.IsSafeOwnedTree(versionRoot) ||
-                !File.Exists(executable) ||
-                ManagedPathSafety.IsReparsePoint(executable) ||
-                !ManagedProcessExecutable.HasPortableExecutableHeader(executable))
-            {
-                return Failure(LauncherProcessStartOutcome.StartFailed);
-            }
-
-            using ManagedProcessLifetimeLease? lifetime = ManagedProcessLifetimeLease.TryAcquire(
+            lifetime = ManagedProcessLifetimeLease.TryAcquire(
                 statePath,
                 ManagedProcessLifetimeLease.LauncherSuffix);
             if (lifetime is null)
@@ -112,8 +103,8 @@ internal sealed class AnonymousPipeManagedLauncherProcess : IManagedLauncherProc
             using var pipe = new AnonymousPipeServerStream(PipeDirection.In, HandleInheritability.Inheritable);
             var startInfo = new ProcessStartInfo
             {
-                FileName = executable,
-                WorkingDirectory = Path.GetDirectoryName(executable),
+                FileName = executableLease.ExecutablePath,
+                WorkingDirectory = executableLease.WorkingDirectory,
                 UseShellExecute = false,
                 CreateNoWindow = false,
             };
@@ -124,7 +115,7 @@ internal sealed class AnonymousPipeManagedLauncherProcess : IManagedLauncherProc
             string expected = LauncherReadyProtocol.CreateExpectedPrefix(launcher);
             startInfo.Environment[ReadyPipeHandleEnvironment] = pipe.GetClientHandleAsString();
             startInfo.Environment[ExpectedReadyEnvironment] = expected;
-            startInfo.Environment[ManagedProcessLifetimeLease.HandleEnvironment] = lifetime.InheritedHandle;
+            lifetime.ApplyInheritedContext(startInfo);
             try
             {
                 process = Process.Start(startInfo);
@@ -155,28 +146,29 @@ internal sealed class AnonymousPipeManagedLauncherProcess : IManagedLauncherProc
                 if (readyTask.Result is { Length: 0 })
                 {
                     await exitTask.ConfigureAwait(false);
-                    return Exited(process.ExitCode);
+                    return Exited(process, lifetime);
                 }
-                return Terminate(process, LauncherProcessStartOutcome.InvalidReadySignal);
+                return Terminate(process, lifetime, LauncherProcessStartOutcome.InvalidReadySignal);
             }
             if (completed == exitTask && exitTask.IsCompletedSuccessfully)
             {
-                return Exited(process.ExitCode);
+                return Exited(process, lifetime);
             }
             await completed.ConfigureAwait(false);
-            return Terminate(process, LauncherProcessStartOutcome.ReadyTimeout);
+            return Terminate(process, lifetime, LauncherProcessStartOutcome.ReadyTimeout);
         }
         catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested)
         {
             return process is null
                 ? new(LauncherProcessStartOutcome.ReadyTimeout, null)
-                : Terminate(process, LauncherProcessStartOutcome.ReadyTimeout);
+                : Terminate(process, lifetime!, LauncherProcessStartOutcome.ReadyTimeout);
         }
         catch (OperationCanceledException)
         {
             if (process is not null)
             {
                 _ = _termination.ConfirmExited(process);
+                _ = lifetime?.TerminateTreeAndConfirmEmpty(ManagedProcessTermination.DefaultWaitTimeout);
             }
             throw;
         }
@@ -186,11 +178,12 @@ internal sealed class AnonymousPipeManagedLauncherProcess : IManagedLauncherProc
         {
             return process is null
                 ? new(LauncherProcessStartOutcome.StartFailed, null)
-                : Terminate(process, LauncherProcessStartOutcome.StartFailed);
+                : Terminate(process, lifetime!, LauncherProcessStartOutcome.StartFailed);
         }
         finally
         {
             DisposeProcess(process);
+            lifetime?.Dispose();
         }
     }
 
@@ -221,19 +214,28 @@ internal sealed class AnonymousPipeManagedLauncherProcess : IManagedLauncherProc
         return new(outcome, null);
     }
 
-    private static LauncherProcessStartResult Exited(int exitCode)
+    private LauncherProcessStartResult Exited(
+        Process process,
+        ManagedProcessLifetimeLease lifetime)
     {
+        int exitCode = process.ExitCode;
+        LauncherProcessStartResult result = Terminate(
+            process,
+            lifetime,
+            LauncherProcessStartOutcome.ExitedBeforeReady);
         return exitCode == LauncherBootstrapRuntime.UnconfirmedTerminationExitCode
             ? new(LauncherProcessStartOutcome.TerminationUnconfirmed, exitCode)
-            : new(LauncherProcessStartOutcome.ExitedBeforeReady, exitCode);
+            : result;
     }
 
     private LauncherProcessStartResult Terminate(
         Process process,
+        ManagedProcessLifetimeLease lifetime,
         LauncherProcessStartOutcome confirmedOutcome)
     {
         ManagedProcessTerminationResult termination = _termination.ConfirmExited(process);
-        return termination.IsExitConfirmed
+        bool treeExited = lifetime.TerminateTreeAndConfirmEmpty(ManagedProcessTermination.DefaultWaitTimeout);
+        return termination.IsExitConfirmed && treeExited
             ? new(confirmedOutcome, termination.ExitCode)
             : new(LauncherProcessStartOutcome.TerminationUnconfirmed, null);
     }

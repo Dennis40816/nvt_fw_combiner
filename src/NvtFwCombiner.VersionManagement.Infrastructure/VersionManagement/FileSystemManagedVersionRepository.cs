@@ -28,6 +28,72 @@ public sealed class FileSystemManagedVersionRepository : IManagedVersionReposito
     private readonly Func<string, IEnumerable<string>> _enumerateDirectories;
     private readonly long _maximumExpandedBytes;
 
+    /// <inheritdoc />
+    public async ValueTask<ManagedExecutableLaunchLeaseResult> AcquireApplicationLaunchLeaseAsync(
+        string managedRoot,
+        ManagedVersionAdmission admission,
+        CancellationToken cancellationToken)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(managedRoot);
+        ArgumentNullException.ThrowIfNull(admission);
+        try
+        {
+            string versionsRoot = Path.Combine(Path.GetFullPath(managedRoot), VersionsDirectoryName);
+            string versionRoot = ManagedPathSafety.GetExactVersionDirectory(versionsRoot, admission.Version);
+            if (!ManagedPathSafety.IsSafeOwnedTree(versionRoot))
+            {
+                return new(null, ManagedExecutableLaunchIssue.UnsafePath);
+            }
+            ManagedVersionDamageReason? damage = await ManagedPackageVerifier.VerifyInstalledAsync(
+                versionRoot,
+                admission,
+                _maximumExpandedBytes,
+                cancellationToken).ConfigureAwait(false);
+            if (damage is not null)
+            {
+                return new(null, ManagedExecutableLaunchIssue.Tampered);
+            }
+            byte[]? manifestBytes = await ManagedPathSafety.ReadBoundedFileAsync(
+                Path.Combine(versionRoot, "RELEASE-MANIFEST.json"),
+                MaximumManifestBytes,
+                cancellationToken).ConfigureAwait(false);
+            if (manifestBytes is null ||
+                !string.Equals(
+                    Convert.ToHexStringLower(SHA256.HashData(manifestBytes)),
+                    admission.ReleaseManifestSha256,
+                    StringComparison.Ordinal))
+            {
+                return new(null, ManagedExecutableLaunchIssue.Tampered);
+            }
+            ReleaseManifestDocument? manifest = JsonSerializer.Deserialize(
+                manifestBytes,
+                AdmissionJsonContext.ReleaseManifestDocument);
+            ReleaseManifestFileDocument[] applications =
+            [.. manifest?.Files?.Where(file =>
+                string.Equals(file.Path, "NvtFwCombiner.exe", StringComparison.Ordinal) &&
+                string.Equals(file.Role, "application", StringComparison.Ordinal)) ?? []];
+            if (applications is not [var application])
+            {
+                return new(null, ManagedExecutableLaunchIssue.Tampered);
+            }
+            string executable = ManagedPathSafety.ResolvePayloadPath(versionRoot, application.Path);
+            return await StableManagedExecutableLaunchLease.TryAcquireAsync(
+                executable,
+                application.Size,
+                application.Sha256,
+                cancellationToken).ConfigureAwait(false);
+        }
+        catch (OperationCanceledException)
+        {
+            throw;
+        }
+        catch (Exception exception) when (exception is
+            IOException or UnauthorizedAccessException or JsonException or InvalidDataException)
+        {
+            return new(null, ManagedExecutableLaunchIssue.Unavailable);
+        }
+    }
+
     /// <summary>Creates the production repository with the owner-approved 512 MiB expanded-byte ceiling.</summary>
     public FileSystemManagedVersionRepository()
         : this(MaximumExpandedBytes, Directory.EnumerateDirectories, Directory.Exists)

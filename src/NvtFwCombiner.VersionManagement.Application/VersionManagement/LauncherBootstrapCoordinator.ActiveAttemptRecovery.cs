@@ -7,6 +7,29 @@ internal sealed partial class LauncherBootstrapCoordinator
         LauncherBootstrapState launcherState,
         CancellationToken cancellationToken)
     {
+        bool appActiveAttempt = appState.PendingActivation is
+        {
+            Phase: VersionActivationPhase.ActiveLaunchRecorded,
+        };
+        bool launcherActiveAttempt = launcherState.Pending is
+        {
+            Phase: LauncherActivationPhase.ActiveLaunchRecorded,
+        };
+        bool launcherActiveMayOverlapAppRecovery = appState.PendingActivation is null or
+        {
+            Phase: VersionActivationPhase.CandidateLaunchRecorded or
+                VersionActivationPhase.RollbackLaunchRecorded,
+        };
+        if ((appState.PendingMutation is not null && (appActiveAttempt || launcherActiveAttempt)) ||
+            (appActiveAttempt && launcherState.Pending is not null) ||
+            (launcherActiveAttempt && !launcherActiveMayOverlapAppRecovery))
+        {
+            return new(
+                LauncherBootstrapOutcome.AppMutationPending,
+                appState,
+                launcherState,
+                Failed: null);
+        }
         if (appState.PendingActivation is
             { Phase: VersionActivationPhase.ActiveLaunchRecorded } appGuard)
         {

@@ -44,12 +44,14 @@ public interface IManagedApplicationProcess
     /// <summary>Starts and supervises one exact managed payload.</summary>
     /// <param name="managedRoot">Stable launcher-owned managed root.</param>
     /// <param name="version">Exact verified target version.</param>
+    /// <param name="executableLease">Repository-owned exact executable held through process creation.</param>
     /// <param name="readyDeadline">Bounded ready deadline.</param>
     /// <param name="cancellationToken">Cancellation token.</param>
     /// <returns>The supervised start result.</returns>
     ValueTask<ManagedProcessStartResult> StartUntilReadyAsync(
         string managedRoot,
         ManagedAppVersion version,
+        IManagedExecutableLaunchLease executableLease,
         TimeSpan readyDeadline,
         CancellationToken cancellationToken);
 }
@@ -243,6 +245,20 @@ public sealed class ManagedActivationCoordinator
                 : new(ManagedLauncherOutcome.DamagedVersion, null, target);
         }
 
+        ManagedVersionAdmission? targetAdmission = state.Admissions.SingleOrDefault(
+            admission => admission.Version == target.Value);
+        ManagedExecutableLaunchLeaseResult launchLease = targetAdmission is null
+            ? new(null, ManagedExecutableLaunchIssue.Unavailable)
+            : await _repository.AcquireApplicationLaunchLeaseAsync(
+                _managedRoot,
+                targetAdmission,
+                cancellationToken).ConfigureAwait(false);
+        if (!launchLease.IsAcquired)
+        {
+            return new(ManagedLauncherOutcome.StateUnavailable, null, target);
+        }
+        using IManagedExecutableLaunchLease executableLease = launchLease.Lease!;
+
         if (pending?.CandidateVersion == target)
         {
             state = VersionActivationPolicy.RecordCandidateLaunch(state);
@@ -263,6 +279,7 @@ public sealed class ManagedActivationCoordinator
         ManagedProcessStartResult start = await _process.StartUntilReadyAsync(
             _managedRoot,
             target.Value,
+            executableLease,
             _readyDeadline,
             cancellationToken).ConfigureAwait(false);
         if (start.Outcome == ManagedProcessStartOutcome.Ready)
@@ -340,9 +357,23 @@ public sealed class ManagedActivationCoordinator
                 : new(ManagedLauncherOutcome.StateUnavailable, null, failedVersion);
         }
 
+        ManagedVersionAdmission? rollbackAdmission = state.Admissions.SingleOrDefault(
+            admission => admission.Version == rollback.Value);
+        ManagedExecutableLaunchLeaseResult launchLease = rollbackAdmission is null
+            ? new(null, ManagedExecutableLaunchIssue.Unavailable)
+            : await _repository.AcquireApplicationLaunchLeaseAsync(
+                _managedRoot,
+                rollbackAdmission,
+                cancellationToken).ConfigureAwait(false);
+        if (!launchLease.IsAcquired)
+        {
+            return new(ManagedLauncherOutcome.StateUnavailable, null, failedVersion);
+        }
+        using IManagedExecutableLaunchLease executableLease = launchLease.Lease!;
         ManagedProcessStartResult fallback = await _process.StartUntilReadyAsync(
             _managedRoot,
             rollback.Value,
+            executableLease,
             _readyDeadline,
             cancellationToken).ConfigureAwait(false);
         if (fallback.Outcome == ManagedProcessStartOutcome.Ready)

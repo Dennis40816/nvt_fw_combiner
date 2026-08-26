@@ -106,9 +106,53 @@ public enum ManagedVersionDeleteIssue
     DeleteFailed,
 }
 
+/// <summary>Stable result category for acquiring one verified executable launch lease.</summary>
+public enum ManagedExecutableLaunchIssue
+{
+    /// <summary>The exact verified executable is held against write/delete through start.</summary>
+    None,
+    /// <summary>The executable or its owning manifest could not be observed safely.</summary>
+    Unavailable,
+    /// <summary>The executable no longer matches its admitted manifest identity.</summary>
+    Tampered,
+    /// <summary>The executable path is unsafe or outside its admitted managed tree.</summary>
+    UnsafePath,
+}
+
+/// <summary>Repository-owned stable executable identity held through process creation.</summary>
+public interface IManagedExecutableLaunchLease : IDisposable
+{
+    /// <summary>Gets the exact stable executable path.</summary>
+    string ExecutablePath { get; }
+
+    /// <summary>Gets the exact stable working directory.</summary>
+    string WorkingDirectory { get; }
+}
+
+/// <summary>Typed fail-closed executable launch-lease result.</summary>
+public sealed record ManagedExecutableLaunchLeaseResult(
+    IManagedExecutableLaunchLease? Lease,
+    ManagedExecutableLaunchIssue Issue)
+{
+    /// <summary>Gets whether the exact verified executable is held for launch.</summary>
+    public bool IsAcquired => Lease is not null && Issue == ManagedExecutableLaunchIssue.None;
+}
+
 /// <summary>Filesystem/process-free Application port for managed payload storage.</summary>
 public interface IManagedVersionRepository
 {
+    /// <summary>Verifies and holds the exact admitted application executable against replacement.</summary>
+    ValueTask<ManagedExecutableLaunchLeaseResult> AcquireApplicationLaunchLeaseAsync(
+        string managedRoot,
+        ManagedVersionAdmission admission,
+        CancellationToken cancellationToken)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+        return ValueTask.FromResult(new ManagedExecutableLaunchLeaseResult(
+            null,
+            ManagedExecutableLaunchIssue.Unavailable));
+    }
+
     /// <summary>Fully verifies one catalog package without creating an installed version.</summary>
     /// <param name="sourceRoot">Committed update-source root.</param>
     /// <param name="package">Validated catalog entry.</param>

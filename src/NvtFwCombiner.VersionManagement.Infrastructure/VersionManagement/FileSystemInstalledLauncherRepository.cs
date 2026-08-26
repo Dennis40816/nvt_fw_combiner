@@ -16,6 +16,47 @@ internal sealed class FileSystemInstalledLauncherRepository : IInstalledLauncher
     };
     private static readonly VersionManagementJsonContext JsonContext = new(JsonOptions);
 
+    public async ValueTask<InstalledLauncherLaunchResult> AcquireLaunchLeaseAsync(
+        string managedRoot,
+        ManagedVersionAdmission admission,
+        CancellationToken cancellationToken)
+    {
+        InstalledLauncherResult verified = await VerifyAsync(
+            managedRoot,
+            admission,
+            cancellationToken).ConfigureAwait(false);
+        if (!verified.IsVerified)
+        {
+            return new(null, null, verified.Issue);
+        }
+        ManagedLauncherIdentity identity = verified.Identity!;
+        string versionRoot = ManagedPathSafety.GetExactVersionDirectory(
+            Path.Combine(
+                Path.GetFullPath(managedRoot),
+                FileSystemManagedVersionRepository.VersionsDirectoryName),
+            admission.Version);
+        string executable = ManagedPathSafety.ResolvePayloadPath(
+            versionRoot,
+            identity.ExecutableRelativePath);
+        ManagedExecutableLaunchLeaseResult acquired =
+            await StableManagedExecutableLaunchLease.TryAcquireAsync(
+                executable,
+                identity.Size,
+                identity.Sha256,
+                cancellationToken).ConfigureAwait(false);
+        InstalledLauncherIssue issue = acquired.Issue switch
+        {
+            ManagedExecutableLaunchIssue.None => InstalledLauncherIssue.None,
+            ManagedExecutableLaunchIssue.UnsafePath => InstalledLauncherIssue.UnsafePath,
+            ManagedExecutableLaunchIssue.Tampered => InstalledLauncherIssue.Tampered,
+            ManagedExecutableLaunchIssue.Unavailable => InstalledLauncherIssue.Unavailable,
+            _ => throw new InvalidOperationException("Managed executable lease returned an undefined issue."),
+        };
+        return acquired.IsAcquired
+            ? new(identity, acquired.Lease, issue)
+            : new(null, null, issue);
+    }
+
     public async ValueTask<InstalledLauncherResult> VerifyAsync(
         string managedRoot,
         ManagedVersionAdmission admission,

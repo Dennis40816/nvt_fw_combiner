@@ -111,11 +111,48 @@ public sealed partial class RepositoryBoundaryTests
         AssertContainsAll(
             lifetime,
             "SetHandleInformation",
+            "AssignProcessToJobObject",
+            "QueryInformationJobObject",
+            "TerminateJobObject",
+            "InvalidInheritedContext",
             "ManagedProcessLifetimeStatus.Active",
             "ManagedProcessLifetimeStatus.Unavailable");
         AssertContainsAll(appCoordinator, "ActiveLaunchRecorded", "GetLifetimeStatusAsync");
         AssertContainsAll(launcherCoordinator, "ActiveLaunchRecorded", "GetLifetimeStatusAsync");
         Assert.Contains("activeLaunchRecorded", schema, StringComparison.Ordinal);
+    }
+
+    /// <summary>Raw recovery, tree authority, and executable identity stay in their declared owners.</summary>
+    [Fact]
+    public void LauncherRecoveryAndStableExecutableLeaseRemainOwnedAndOrdered()
+    {
+        string coordinator = ReadText(
+            "src/NvtFwCombiner.VersionManagement.Application/VersionManagement/LauncherBootstrapCoordinator.cs");
+        string activeRecovery = ReadText(
+            "src/NvtFwCombiner.VersionManagement.Application/VersionManagement/LauncherBootstrapCoordinator.ActiveAttemptRecovery.cs");
+        string contracts = ReadText(
+            "src/NvtFwCombiner.VersionManagement.Application/VersionManagement/ManagedVersionRepository.cs");
+        string stableLease = ReadText(
+            "src/NvtFwCombiner.VersionManagement.Infrastructure/VersionManagement/StableManagedExecutableLaunchLease.cs");
+        string appProcess = ReadText(
+            "src/NvtFwCombiner.VersionManagement.Infrastructure/VersionManagement/AnonymousPipeManagedApplicationProcess.cs");
+        string launcherProcess = ReadText(
+            "src/NvtFwCombiner.VersionManagement.Infrastructure/VersionManagement/AnonymousPipeManagedLauncherProcess.cs");
+
+        Assert.True(
+            coordinator.IndexOf("LoadRawStatesAsync", StringComparison.Ordinal) <
+            coordinator.IndexOf("RecoverActiveAttemptsAsync", StringComparison.Ordinal));
+        Assert.True(
+            coordinator.IndexOf("RecoverActiveAttemptsAsync", StringComparison.Ordinal) <
+            coordinator.IndexOf("HasCrossJournalConflict", StringComparison.Ordinal));
+        AssertContainsAll(activeRecovery, "ActiveLaunchRecorded", "AppMutationPending");
+        AssertContainsAll(
+            contracts,
+            "IManagedExecutableLaunchLease",
+            "AcquireApplicationLaunchLeaseAsync");
+        AssertContainsAll(stableLease, "FileShare.Read", "SHA256.HashDataAsync", "HasPortableExecutableHeader");
+        AssertDoesNotContainAny(appProcess, "SHA256", "HasPortableExecutableHeader");
+        AssertDoesNotContainAny(launcherProcess, "HasPortableExecutableHeader");
     }
 
     /// <summary>Launcher activation shares the existing exact app-state lease and declares no second writer.</summary>

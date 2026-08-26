@@ -85,12 +85,14 @@ public sealed class AnonymousPipeManagedLauncherProcessTests
             Environment.SetEnvironmentVariable("NVT_READY_PROBE_BEHAVIOR", "timeout");
             var termination = new ManagedProcessTermination(
                 new FailingTerminationOperations());
+            using TestExecutableLaunchLease executableLease = ExecutableLease(workspace.Root, identity);
 
             LauncherProcessStartResult result = await new AnonymousPipeManagedLauncherProcess(termination)
                 .StartUntilReadyAsync(
                     workspace.Root,
                     Path.Combine(workspace.Root, "state.json"),
                     identity,
+                    executableLease,
                     TimeSpan.FromMilliseconds(200),
                     TestContext.Current.CancellationToken);
 
@@ -190,11 +192,13 @@ public sealed class AnonymousPipeManagedLauncherProcessTests
             ManagedLauncherIdentity.ExecutablePath,
             bytes.LongLength,
             Convert.ToHexStringLower(System.Security.Cryptography.SHA256.HashData(bytes)));
+        using TestExecutableLaunchLease executableLease = ExecutableLease(workspace.Root, identity);
 
         LauncherProcessStartResult result = await new AnonymousPipeManagedLauncherProcess().StartUntilReadyAsync(
             workspace.Root,
             Path.Combine(workspace.Root, "state.json"),
             identity,
+            executableLease,
             TimeSpan.FromSeconds(1),
             TestContext.Current.CancellationToken);
 
@@ -305,10 +309,12 @@ public sealed class AnonymousPipeManagedLauncherProcessTests
             Environment.SetEnvironmentVariable("NVT_READY_PROBE_APP_VERSION", identity.OwnerAppVersion.ToString());
             Environment.SetEnvironmentVariable("NVT_READY_PROBE_APP_ADMISSION", identity.OwnerAdmissionIdentity);
             Environment.SetEnvironmentVariable("NVT_READY_PROBE_APP_MANIFEST", identity.OwnerReleaseManifestSha256);
+            using TestExecutableLaunchLease executableLease = ExecutableLease(managedRoot, identity);
             return await new AnonymousPipeManagedLauncherProcess().StartUntilReadyAsync(
                 managedRoot,
                 statePath,
                 identity,
+                executableLease,
                 deadline,
                 cancellationToken);
         }
@@ -320,6 +326,27 @@ public sealed class AnonymousPipeManagedLauncherProcessTests
             Environment.SetEnvironmentVariable("NVT_READY_PROBE_APP_ADMISSION", previousAdmission);
             Environment.SetEnvironmentVariable("NVT_READY_PROBE_APP_MANIFEST", previousManifest);
         }
+    }
+
+    private static TestExecutableLaunchLease ExecutableLease(
+        string managedRoot,
+        ManagedLauncherIdentity identity)
+    {
+        string workingDirectory = Path.Combine(
+            managedRoot,
+            "versions",
+            identity.OwnerAppVersion.ToString(),
+            "launcher");
+        return new TestExecutableLaunchLease(
+            Path.Combine(workingDirectory, "NvtFwCombiner.Launcher.exe"),
+            workingDirectory);
+    }
+
+    private sealed record TestExecutableLaunchLease(
+        string ExecutablePath,
+        string WorkingDirectory) : IManagedExecutableLaunchLease
+    {
+        public void Dispose() { }
     }
 
     private static void WithOuterReadyEnvironment(string? handle, string? expected, Action action)

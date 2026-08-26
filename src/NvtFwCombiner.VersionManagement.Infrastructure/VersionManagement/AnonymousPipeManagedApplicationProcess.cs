@@ -1,4 +1,3 @@
-using System.Buffers.Binary;
 using System.ComponentModel;
 using System.Diagnostics;
 using System.IO.Pipes;
@@ -50,26 +49,18 @@ public sealed class AnonymousPipeManagedApplicationProcess : IManagedApplication
     public async ValueTask<ManagedProcessStartResult> StartUntilReadyAsync(
         string managedRoot,
         ManagedAppVersion version,
+        IManagedExecutableLaunchLease executableLease,
         TimeSpan readyDeadline,
         CancellationToken cancellationToken)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(managedRoot);
+        ArgumentNullException.ThrowIfNull(executableLease);
         ArgumentOutOfRangeException.ThrowIfLessThanOrEqual(readyDeadline, TimeSpan.Zero);
         Process? process = null;
+        ManagedProcessLifetimeLease? lifetime = null;
         try
         {
-            string versionsRoot = Path.Combine(Path.GetFullPath(managedRoot), FileSystemManagedVersionRepository.VersionsDirectoryName);
-            string versionRoot = ManagedPathSafety.GetExactVersionDirectory(versionsRoot, version);
-            string executable = Path.Combine(versionRoot, "NvtFwCombiner.exe");
-            if (!ManagedPathSafety.IsSafeOwnedTree(versionRoot) ||
-                !File.Exists(executable) ||
-                ManagedPathSafety.IsReparsePoint(executable) ||
-                !ManagedProcessExecutable.HasPortableExecutableHeader(executable))
-            {
-                return new(ManagedProcessStartOutcome.StartFailed, null);
-            }
-
-            using ManagedProcessLifetimeLease? lifetime = ManagedProcessLifetimeLease.TryAcquire(
+            lifetime = ManagedProcessLifetimeLease.TryAcquire(
                 _statePath,
                 ManagedProcessLifetimeLease.ApplicationSuffix);
             if (lifetime is null)
@@ -81,8 +72,8 @@ public sealed class AnonymousPipeManagedApplicationProcess : IManagedApplication
                 HandleInheritability.Inheritable);
             var startInfo = new ProcessStartInfo
             {
-                FileName = executable,
-                WorkingDirectory = versionRoot,
+                FileName = executableLease.ExecutablePath,
+                WorkingDirectory = executableLease.WorkingDirectory,
                 UseShellExecute = false,
                 CreateNoWindow = false,
             };
@@ -92,7 +83,7 @@ public sealed class AnonymousPipeManagedApplicationProcess : IManagedApplication
             startInfo.ArgumentList.Add(_statePath);
             startInfo.Environment[ReadyPipeHandleEnvironment] = pipe.GetClientHandleAsString();
             startInfo.Environment[ExpectedVersionEnvironment] = version.ToString();
-            startInfo.Environment[ManagedProcessLifetimeLease.HandleEnvironment] = lifetime.InheritedHandle;
+            lifetime.ApplyInheritedContext(startInfo);
             try
             {
                 process = Process.Start(startInfo);
@@ -121,48 +112,53 @@ public sealed class AnonymousPipeManagedApplicationProcess : IManagedApplication
                 if (readyTask.Result is { Length: 0 })
                 {
                     await exitTask.ConfigureAwait(false);
-                    return new(ManagedProcessStartOutcome.ExitedBeforeReady, process.ExitCode);
+                    return Terminate(
+                        process,
+                        lifetime,
+                        ManagedProcessStartOutcome.ExitedBeforeReady);
                 }
-                return Terminate(process, ManagedProcessStartOutcome.InvalidReadySignal);
+                return Terminate(process, lifetime, ManagedProcessStartOutcome.InvalidReadySignal);
             }
             if (completed == exitTask && exitTask.IsCompletedSuccessfully)
             {
-                return new(ManagedProcessStartOutcome.ExitedBeforeReady, process.ExitCode);
+                return Terminate(process, lifetime, ManagedProcessStartOutcome.ExitedBeforeReady);
             }
 
             await completed.ConfigureAwait(false);
-            return Terminate(process, ManagedProcessStartOutcome.ReadyTimeout);
+            return Terminate(process, lifetime, ManagedProcessStartOutcome.ReadyTimeout);
         }
         catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested)
         {
             return process is null
                 ? new(ManagedProcessStartOutcome.ReadyTimeout, null)
-                : Terminate(process, ManagedProcessStartOutcome.ReadyTimeout);
+                : Terminate(process, lifetime!, ManagedProcessStartOutcome.ReadyTimeout);
         }
         catch (OperationCanceledException)
         {
             if (process is not null)
             {
                 _ = _termination.ConfirmExited(process);
+                _ = lifetime?.TerminateTreeAndConfirmEmpty(ManagedProcessTermination.DefaultWaitTimeout);
             }
             throw;
         }
         catch (DecoderFallbackException)
         {
             return process is not null
-                ? Terminate(process, ManagedProcessStartOutcome.InvalidReadySignal)
+                ? Terminate(process, lifetime!, ManagedProcessStartOutcome.InvalidReadySignal)
                 : new(ManagedProcessStartOutcome.InvalidReadySignal, null);
         }
         catch (Exception exception) when (exception is
             IOException or UnauthorizedAccessException or InvalidOperationException or Win32Exception)
         {
             return process is not null
-                ? Terminate(process, ManagedProcessStartOutcome.StartFailed)
+                ? Terminate(process, lifetime!, ManagedProcessStartOutcome.StartFailed)
                 : new(ManagedProcessStartOutcome.StartFailed, null);
         }
         finally
         {
             DisposeProcess(process);
+            lifetime?.Dispose();
         }
     }
 
@@ -192,10 +188,12 @@ public sealed class AnonymousPipeManagedApplicationProcess : IManagedApplication
 
     private ManagedProcessStartResult Terminate(
         Process process,
+        ManagedProcessLifetimeLease lifetime,
         ManagedProcessStartOutcome confirmedOutcome)
     {
         ManagedProcessTerminationResult termination = _termination.ConfirmExited(process);
-        return termination.IsExitConfirmed
+        bool treeExited = lifetime.TerminateTreeAndConfirmEmpty(ManagedProcessTermination.DefaultWaitTimeout);
+        return termination.IsExitConfirmed && treeExited
             ? new(confirmedOutcome, termination.ExitCode)
             : new(ManagedProcessStartOutcome.TerminationUnconfirmed, null);
     }
@@ -323,47 +321,6 @@ internal sealed class ManagedProcessTermination : IManagedProcessTermination
         public int GetExitCode(Process process)
         {
             return process.ExitCode;
-        }
-    }
-}
-
-/// <summary>Rejects malformed PE payloads before Win32 launch; package identity remains repository-owned.</summary>
-internal static class ManagedProcessExecutable
-{
-    internal static bool HasPortableExecutableHeader(string path)
-    {
-        try
-        {
-            using var stream = new FileStream(
-                path,
-                FileMode.Open,
-                FileAccess.Read,
-                FileShare.Read,
-                bufferSize: 1,
-                FileOptions.RandomAccess);
-            if (stream.Length < 64)
-            {
-                return false;
-            }
-
-            Span<byte> dosHeader = stackalloc byte[64];
-            stream.ReadExactly(dosHeader);
-            int peHeaderOffset = BinaryPrimitives.ReadInt32LittleEndian(dosHeader[0x3C..]);
-            if (dosHeader[0] != (byte)'M' || dosHeader[1] != (byte)'Z' ||
-                peHeaderOffset < dosHeader.Length || peHeaderOffset > stream.Length - 4)
-            {
-                return false;
-            }
-
-            stream.Position = peHeaderOffset;
-            Span<byte> peSignature = stackalloc byte[4];
-            stream.ReadExactly(peSignature);
-            return peSignature.SequenceEqual("PE\0\0"u8);
-        }
-        catch (Exception exception) when (exception is
-            IOException or UnauthorizedAccessException or ArgumentException or NotSupportedException)
-        {
-            return false;
         }
     }
 }

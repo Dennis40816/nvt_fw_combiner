@@ -48,6 +48,27 @@ public sealed class FileSystemInstalledLauncherRepositoryTests
         Assert.Equal(InstalledLauncherIssue.Tampered, result.Issue);
     }
 
+    /// <summary>The exact verified launcher cannot be swapped before Process.Start while its lease is held.</summary>
+    [Fact]
+    public async Task AcquiredLauncherLeaseDeniesExecutableSwapUntilReleased()
+    {
+        await using LauncherFixture fixture = await LauncherFixture.CreateAsync();
+        InstalledLauncherLaunchResult acquired = await new FileSystemInstalledLauncherRepository()
+            .AcquireLaunchLeaseAsync(
+                fixture.ManagedRoot,
+                fixture.Admission,
+                TestContext.Current.CancellationToken);
+
+        Assert.True(acquired.IsAcquired);
+        string displaced = fixture.LauncherPath + ".displaced";
+        _ = Assert.Throws<IOException>(() => File.Move(fixture.LauncherPath, displaced));
+
+        acquired.Lease!.Dispose();
+        File.Move(fixture.LauncherPath, displaced);
+        File.Move(displaced, fixture.LauncherPath);
+        Assert.True(File.Exists(fixture.LauncherPath));
+    }
+
     /// <summary>The owner admission must pin the exact release manifest.</summary>
     [Fact]
     public async Task AdmissionPinsAnotherManifestReturnsInvalidManifest()
@@ -114,7 +135,7 @@ public sealed class FileSystemInstalledLauncherRepositoryTests
             Dictionary<string, byte[]> files = new(StringComparer.Ordinal)
             {
                 ["NvtFwCombiner.exe"] = [0x4d, 0x5a, 0x01],
-                [ManagedLauncherIdentity.ExecutablePath] = [0x4d, 0x5a, 0x02],
+                [ManagedLauncherIdentity.ExecutablePath] = PortableExecutable(0x02),
                 ["external-tools/crc-worker/0.1.0/Nfc.CrcWorker.exe"] = [0x4d, 0x5a, 0x03],
                 ["THIRD-PARTY-NOTICES.txt"] = Encoding.UTF8.GetBytes("notices"),
                 ["LICENSE.txt"] = Encoding.UTF8.GetBytes("license"),
@@ -195,5 +216,17 @@ public sealed class FileSystemInstalledLauncherRepositoryTests
         {
             return Convert.ToHexStringLower(SHA256.HashData(bytes));
         }
+    }
+
+    private static byte[] PortableExecutable(byte marker)
+    {
+        byte[] bytes = new byte[68];
+        bytes[0] = (byte)'M';
+        bytes[1] = (byte)'Z';
+        bytes[0x3c] = 64;
+        bytes[64] = (byte)'P';
+        bytes[65] = (byte)'E';
+        bytes[2] = marker;
+        return bytes;
     }
 }

@@ -13,36 +13,6 @@ public sealed class AnonymousPipeManagedApplicationProcessTests
 {
     private const string BehaviorEnvironment = "NVT_READY_PROBE_BEHAVIOR";
 
-    /// <summary>The OS-owned lifetime lease blocks overlap and releases authoritatively on exit.</summary>
-    [Fact]
-    public void ChildOwnedLifetimeLeaseTransitionsFromActiveToExited()
-    {
-        if (!OperatingSystem.IsWindows())
-        {
-            return;
-        }
-        using var workspace = TempWorkspace.Create();
-        string statePath = workspace.PathFor("state/version-manager.v1.json");
-        ManagedProcessLifetimeLease? lease = ManagedProcessLifetimeLease.TryAcquire(
-            statePath,
-            ManagedProcessLifetimeLease.ApplicationSuffix);
-
-        Assert.NotNull(lease);
-        Assert.Equal(
-            ManagedProcessLifetimeStatus.Active,
-            ManagedProcessLifetimeLease.GetStatus(
-                statePath,
-                ManagedProcessLifetimeLease.ApplicationSuffix));
-
-        lease.Dispose();
-
-        Assert.Equal(
-            ManagedProcessLifetimeStatus.Exited,
-            ManagedProcessLifetimeLease.GetStatus(
-                statePath,
-                ManagedProcessLifetimeLease.ApplicationSuffix));
-    }
-
     /// <summary>An exact ready message succeeds without exposing handshake material in arguments.</summary>
     [Fact]
     public async Task ExactReadySignalSucceeds()
@@ -77,10 +47,12 @@ public sealed class AnonymousPipeManagedApplicationProcessTests
         {
             Environment.SetEnvironmentVariable(BehaviorEnvironment, "ready");
             Environment.SetEnvironmentVariable("NVT_READY_PROBE_ARGS_PATH", argumentsPath);
+            using TestExecutableLaunchLease executableLease = ExecutableLease(workspace.Root, version);
             ManagedProcessStartResult result = await new AnonymousPipeManagedApplicationProcess(statePath)
                 .StartUntilReadyAsync(
                     workspace.Root,
                     version,
+                    executableLease,
                     TimeSpan.FromSeconds(5),
                     TestContext.Current.CancellationToken);
             await Task.Delay(500, TestContext.Current.CancellationToken);
@@ -128,12 +100,14 @@ public sealed class AnonymousPipeManagedApplicationProcessTests
             Environment.SetEnvironmentVariable(BehaviorEnvironment, "timeout");
             var termination = new ManagedProcessTermination(
                 new FailingTerminationOperations(failKill: true, failWait: false));
+            using TestExecutableLaunchLease executableLease = ExecutableLease(workspace.Root, version);
 
             ManagedProcessStartResult result = await new AnonymousPipeManagedApplicationProcess(
                 statePath: null,
                 termination).StartUntilReadyAsync(
                     workspace.Root,
                     version,
+                    executableLease,
                     TimeSpan.FromMilliseconds(200),
                     TestContext.Current.CancellationToken);
 
@@ -269,10 +243,13 @@ public sealed class AnonymousPipeManagedApplicationProcessTests
     public async Task MissingExecutableFailsBeforeProcessStart()
     {
         using var workspace = TempWorkspace.Create();
+        ManagedAppVersion version = ManagedAppVersion.Parse("0.10.6");
+        using TestExecutableLaunchLease executableLease = ExecutableLease(workspace.Root, version);
 
         ManagedProcessStartResult result = await new AnonymousPipeManagedApplicationProcess().StartUntilReadyAsync(
             workspace.Root,
-            ManagedAppVersion.Parse("0.10.6"),
+            version,
+            executableLease,
             TimeSpan.FromSeconds(1),
             TestContext.Current.CancellationToken);
 
@@ -292,10 +269,12 @@ public sealed class AnonymousPipeManagedApplicationProcessTests
             Path.Combine(versionRoot, "NvtFwCombiner.exe"),
             "MZ-invalid-managed-application"u8.ToArray(),
             TestContext.Current.CancellationToken);
+        using TestExecutableLaunchLease executableLease = ExecutableLease(workspace.Root, version);
 
         ManagedProcessStartResult result = await new AnonymousPipeManagedApplicationProcess().StartUntilReadyAsync(
             workspace.Root,
             version,
+            executableLease,
             TimeSpan.FromSeconds(1),
             TestContext.Current.CancellationToken);
 
@@ -546,9 +525,11 @@ public sealed class AnonymousPipeManagedApplicationProcessTests
         try
         {
             Environment.SetEnvironmentVariable(BehaviorEnvironment, behavior);
+            using TestExecutableLaunchLease executableLease = ExecutableLease(managedRoot, version);
             return await new AnonymousPipeManagedApplicationProcess().StartUntilReadyAsync(
                 managedRoot,
                 version,
+                executableLease,
                 deadline,
                 cancellationToken);
         }
@@ -571,6 +552,23 @@ public sealed class AnonymousPipeManagedApplicationProcessTests
                 : fileName;
             File.Copy(source, Path.Combine(versionRoot, targetName));
         }
+    }
+
+    private static TestExecutableLaunchLease ExecutableLease(
+        string managedRoot,
+        ManagedAppVersion version)
+    {
+        string workingDirectory = Path.Combine(managedRoot, "versions", version.ToString());
+        return new TestExecutableLaunchLease(
+            Path.Combine(workingDirectory, "NvtFwCombiner.exe"),
+            workingDirectory);
+    }
+
+    private sealed record TestExecutableLaunchLease(
+        string ExecutablePath,
+        string WorkingDirectory) : IManagedExecutableLaunchLease
+    {
+        public void Dispose() { }
     }
 
     private sealed class FailingTerminationOperations(bool failKill, bool failWait)

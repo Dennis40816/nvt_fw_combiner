@@ -1,5 +1,8 @@
+using System.Diagnostics;
 using System.IO.Pipes;
 using System.Text;
+using NvtFwCombiner.Application.VersionManagement;
+using NvtFwCombiner.Infrastructure.VersionManagement;
 
 const string handleKey = "NVT_FW_COMBINER_READY_PIPE_HANDLE";
 const string versionKey = "NVT_FW_COMBINER_EXPECTED_VERSION";
@@ -7,6 +10,39 @@ const string launcherHandleKey = "NVT_FW_COMBINER_LAUNCHER_READY_PIPE_HANDLE";
 const string launcherExpectedKey = "NVT_FW_COMBINER_EXPECTED_LAUNCHER_READY";
 const string behaviorKey = "NVT_READY_PROBE_BEHAVIOR";
 string behavior = Environment.GetEnvironmentVariable(behaviorKey) ?? "ready";
+using IInheritedManagedProcessLifetimeCapture lifetime = InheritedManagedProcessLifetime.Capture();
+if (!string.Equals(behavior, "tree-grandchild", StringComparison.Ordinal) &&
+    lifetime.Outcome != InheritedManagedProcessLifetimeOutcome.Captured)
+{
+    return 24;
+}
+if (string.Equals(behavior, "tree-grandchild", StringComparison.Ordinal))
+{
+    string marker = Environment.GetEnvironmentVariable("NVT_READY_PROBE_TREE_MARKER") ??
+        throw new InvalidOperationException("Missing tree marker.");
+    await File.WriteAllTextAsync(marker, Environment.ProcessId.ToString(System.Globalization.CultureInfo.InvariantCulture));
+    await Task.Delay(TimeSpan.FromSeconds(3));
+    return 0;
+}
+if (string.Equals(behavior, "tree-root-exit", StringComparison.Ordinal))
+{
+    string marker = Environment.GetEnvironmentVariable("NVT_READY_PROBE_TREE_MARKER") ??
+        throw new InvalidOperationException("Missing tree marker.");
+    var childInfo = new ProcessStartInfo
+    {
+        FileName = Environment.ProcessPath ?? throw new InvalidOperationException("Missing process path."),
+        UseShellExecute = false,
+    };
+    childInfo.Environment[behaviorKey] = "tree-grandchild";
+    childInfo.Environment["NVT_READY_PROBE_TREE_MARKER"] = marker;
+    using Process child = Process.Start(childInfo) ?? throw new InvalidOperationException("Grandchild did not start.");
+    long deadline = Environment.TickCount64 + 5_000;
+    while (!File.Exists(marker) && Environment.TickCount64 < deadline)
+    {
+        await Task.Delay(10);
+    }
+    return File.Exists(marker) ? 0 : 25;
+}
 string? argumentsPath = Environment.GetEnvironmentVariable("NVT_READY_PROBE_ARGS_PATH");
 if (!string.IsNullOrWhiteSpace(argumentsPath))
 {

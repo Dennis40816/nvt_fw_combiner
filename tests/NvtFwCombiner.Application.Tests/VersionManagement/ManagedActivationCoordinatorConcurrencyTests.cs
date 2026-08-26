@@ -119,6 +119,7 @@ public sealed partial class ManagedActivationCoordinatorTests
         public async ValueTask<ManagedProcessStartResult> StartUntilReadyAsync(
             string managedRoot,
             ManagedAppVersion version,
+            IManagedExecutableLaunchLease executableLease,
             TimeSpan readyDeadline,
             CancellationToken cancellationToken)
         {

@@ -352,6 +352,20 @@ internal interface IInstalledLauncherRepository
         string managedRoot,
         ManagedVersionAdmission admission,
         CancellationToken cancellationToken);
+
+    ValueTask<InstalledLauncherLaunchResult> AcquireLaunchLeaseAsync(
+        string managedRoot,
+        ManagedVersionAdmission admission,
+        CancellationToken cancellationToken);
+}
+
+internal sealed record InstalledLauncherLaunchResult(
+    ManagedLauncherIdentity? Identity,
+    IManagedExecutableLaunchLease? Lease,
+    InstalledLauncherIssue Issue)
+{
+    public bool IsAcquired =>
+        Identity is not null && Lease is not null && Issue == InstalledLauncherIssue.None;
 }
 
 internal enum LauncherProcessStartOutcome
@@ -379,6 +393,7 @@ internal interface IManagedLauncherProcess
         string managedRoot,
         string statePath,
         ManagedLauncherIdentity launcher,
+        IManagedExecutableLaunchLease executableLease,
         TimeSpan readyDeadline,
         CancellationToken cancellationToken);
 }

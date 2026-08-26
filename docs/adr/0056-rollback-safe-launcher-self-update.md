@@ -115,6 +115,35 @@ outcome, preserves the current recoverable launch-recorded phase, and starts no
 fallback. A later invocation continues to apply the existing power-loss
 recovery rule from that durable phase.
 
+Ordinary active application and launcher starts additionally persist
+`activeLaunchRecorded` before process creation. The start owner holds an
+exclusive inheritable file lease and a named Windows Job configured to kill on
+last-handle close. Managed entry points require the complete typed inherited
+context, capture the file handle, join the Job before READY, and hold both for
+their lifetime. A partial or malformed advertised context is not an unmanaged
+start. Recovery uses Job active-process count as whole-tree authority; root
+exit alone cannot prove unknown descendants exited. Only a confirmed empty Job
+may clear the active guard, so reboot/confirmed tree exit permits retry without
+leaving a permanent marker tombstone. Cleanup waits and Job-empty polling are
+bounded to five seconds and uncertainty remains fail-closed.
+
+Bootstrap loads both durable journals as a raw pair before applying the narrow
+active-attempt recovery exception to cross-journal exclusion. The legal
+overlap is a launcher active guard with no application pending phase or with an
+already recorded application candidate/rollback recovery phase. An
+application active guard requires no launcher pending phase. All other pending
+combinations, including dual active guards, remain unchanged and fail closed;
+a failed durable clear leaves the prior phase authoritative.
+
+Executable integrity is also held across the verification-to-start boundary.
+The installed repository opens the exact manifest-admitted application or
+launcher executable with write/delete sharing denied, verifies length, PE
+shape, and SHA-256 through that stable handle, and returns an Application-typed
+launch lease. Coordinators acquire it before recording a new launch phase and
+hold it through `Process.Start`; process adapters consume the lease path and do
+not duplicate package hash policy. Failure to acquire the lease records
+nothing and starts nothing.
+
 Application deletion policy protects every exact owner admission named by an
 active or pending launcher identity. Invalid or unavailable launcher state
 blocks deletion. A target named only by launcher last-known-good requires the

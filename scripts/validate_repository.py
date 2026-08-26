@@ -284,7 +284,10 @@ EXPECTED_PROJECT_REFERENCES = {
         "src/NvtFwCombiner.VersionManagement.Application/NvtFwCombiner.VersionManagement.Application.csproj",
         "tests/NvtFwCombiner.TestSupport/NvtFwCombiner.TestSupport.csproj",
     },
-    "tests/NvtFwCombiner.ReadyProbe/NvtFwCombiner.ReadyProbe.csproj": set(),
+    "tests/NvtFwCombiner.ReadyProbe/NvtFwCombiner.ReadyProbe.csproj": {
+        "src/NvtFwCombiner.VersionManagement.Application/NvtFwCombiner.VersionManagement.Application.csproj",
+        "src/NvtFwCombiner.VersionManagement.Infrastructure/NvtFwCombiner.VersionManagement.Infrastructure.csproj",
+    },
 }
 EXPECTED_REFCODE_SNAPSHOTS = {"gen_flash_bin_v2", "ab_code_combiner"}
 FORBIDDEN_SUFFIXES = {

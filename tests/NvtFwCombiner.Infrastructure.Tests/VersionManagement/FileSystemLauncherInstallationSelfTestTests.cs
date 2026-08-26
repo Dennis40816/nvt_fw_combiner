@@ -478,6 +478,14 @@ public sealed class FileSystemLauncherInstallationSelfTestTests
             cancellationToken.ThrowIfCancellationRequested();
             return ValueTask.FromResult(new InstalledLauncherResult(identity, InstalledLauncherIssue.None));
         }
+
+        public ValueTask<InstalledLauncherLaunchResult> AcquireLaunchLeaseAsync(
+            string managedRoot,
+            ManagedVersionAdmission admission,
+            CancellationToken cancellationToken)
+        {
+            throw new InvalidOperationException("Read-only self-test must not acquire an executable launch lease.");
+        }
     }
 
     private sealed class SequenceAppStateStore(params VersionManagerState?[] states) : IVersionManagerStateStore
