@@ -29,7 +29,11 @@ public sealed partial class RepositoryBoundaryTests
             "NvtFwCombiner.Desktop",
             "NvtFwCombiner.Launcher\\NvtFwCombiner.Launcher.csproj",
             "PackageReference");
-        AssertContainsAll(bootstrapProgram, "LauncherBootstrapRuntime.RunAsync", "--state-path");
+        AssertContainsAll(
+            bootstrapProgram,
+            "LauncherBootstrapLaunchOptions.Parse(args, AppContext.BaseDirectory)",
+            "LauncherBootstrapRuntime.RunAsync");
+        AssertContainsAll(bootstrapRuntime, "JsonVersionManagerStateStore.GetDefaultPath()", "--state-path");
         AssertContainsAll(launcherProgram, "AnonymousPipeManagedApplicationProcess(statePath)", "ReportNestedReadyAsync");
         AssertContainsAll(
             bootstrapRuntime,

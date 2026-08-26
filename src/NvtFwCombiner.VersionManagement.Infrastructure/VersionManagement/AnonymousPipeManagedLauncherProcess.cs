@@ -6,6 +6,38 @@ using NvtFwCombiner.Application.VersionManagement;
 
 namespace NvtFwCombiner.Infrastructure.VersionManagement;
 
+/// <summary>Strict immutable-Bootstrap launch arguments.</summary>
+public sealed record LauncherBootstrapLaunchOptions(string ManagedRoot, string StatePath)
+{
+    /// <summary>Parses host arguments, using the canonical per-user state path when none is supplied.</summary>
+    public static LauncherBootstrapLaunchOptions Parse(string[] args, string baseDirectory)
+    {
+        ArgumentNullException.ThrowIfNull(args);
+        ArgumentException.ThrowIfNullOrWhiteSpace(baseDirectory);
+        string managedRoot = baseDirectory;
+        string statePath = JsonVersionManagerStateStore.GetDefaultPath();
+        for (int index = 0; index < args.Length; index++)
+        {
+            string option = args[index];
+            string value = index + 1 < args.Length
+                ? args[++index]
+                : throw new ArgumentException("Bootstrap option is missing its value.", nameof(args));
+            switch (option)
+            {
+                case "--managed-root":
+                    managedRoot = value;
+                    break;
+                case "--state-path":
+                    statePath = value;
+                    break;
+                default:
+                    throw new ArgumentException("Unknown Bootstrap option.", nameof(args));
+            }
+        }
+        return new(Path.GetFullPath(managedRoot), Path.GetFullPath(statePath));
+    }
+}
+
 /// <summary>Starts one exact version-scoped launcher and accepts one identity-bound READY line.</summary>
 internal sealed class AnonymousPipeManagedLauncherProcess : IManagedLauncherProcess
 {

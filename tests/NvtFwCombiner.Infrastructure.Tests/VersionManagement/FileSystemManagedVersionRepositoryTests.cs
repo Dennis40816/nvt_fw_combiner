@@ -430,7 +430,8 @@ public sealed partial class FileSystemManagedVersionRepositoryTests
                 managedRoot,
                 new JsonVersionManagerStateStore(statePath),
                 new FileSystemUpdateCatalogSource(),
-                new FileSystemManagedVersionRepository());
+                new FileSystemManagedVersionRepository(),
+                new JsonLauncherMutationFence(statePath));
         }
 
         async ValueTask<ManagedLauncherResult> RunLauncherAsync()
