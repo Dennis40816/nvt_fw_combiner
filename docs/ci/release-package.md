@@ -203,8 +203,10 @@ after release review records the producing commit, environment, and artifact.
 `v1.0.0` is the one bounded exception for the release-coupled, self-contained
 managed Launcher required by ADR 0056. Its exact filename
 `NvtFwCombiner-v1.0.0-win-x64.zip` has a 128 MiB (134,217,728-byte) complete-ZIP
-ceiling. The measured Launcher integration checkpoint was 112,324,034 bytes;
-the exact frozen release ZIP size and SHA-256 must still be recorded later.
+ceiling. The Launcher-branch checkpoint produced from
+`7a8464ab184f94fe59508ccf050027430385c22c` was 112,325,846 bytes with SHA-256
+`78c2fe22dd19d9605382466b28226b937e08deebe42d35536c244d59a406a0bc`; the exact
+frozen integrated release ZIP size and SHA-256 must still be recorded later.
 Other package names retain the 80,000,000-byte ceiling, and the separate
 80,000,000-byte `NvtFwCombiner.exe` ceiling is unchanged. This exception does
 not loosen the closed allowlist, file hashes, SBOM/provenance, or the rule that
