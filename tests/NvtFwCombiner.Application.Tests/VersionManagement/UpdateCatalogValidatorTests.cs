@@ -46,6 +46,30 @@ public sealed class UpdateCatalogValidatorTests
         Assert.Contains(PackageHash, version.Identity, StringComparison.Ordinal);
     }
 
+    /// <summary>Only v1.0.0 receives the bounded managed-Launcher package allowance.</summary>
+    [Theory]
+    [InlineData("1.0.0", 134_217_728, true)]
+    [InlineData("1.0.0", 134_217_729, false)]
+    [InlineData("0.10.6", 80_000_000, true)]
+    [InlineData("0.10.6", 80_000_001, false)]
+    public void PackageSizeCeilingIsVersionScoped(
+        string version,
+        long packageSize,
+        bool expectedValid)
+    {
+        UpdateCatalogVersionDocument entry = Version(version, "2026-08-21T00:00:00Z") with
+        {
+            PackageSize = packageSize,
+        };
+
+        UpdateCatalogValidationResult result = UpdateCatalogValidator.Validate(Catalog(entry));
+
+        Assert.Equal(expectedValid, result.IsValid);
+        Assert.Equal(
+            !expectedValid,
+            result.Issues.Any(issue => issue.Code == UpdateCatalogIssueCode.InvalidPackageSize));
+    }
+
     /// <summary>Every invalid catalog shape fails closed with a stable issue.</summary>
     [Fact]
     public void InvalidCatalogFailsClosedWithStableIssue()

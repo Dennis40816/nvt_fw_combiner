@@ -55,6 +55,13 @@ def _run_catalog_cli(*arguments: object) -> subprocess.CompletedProcess[str]:
     )
 
 
+def test_release_catalog_package_size_ceiling_is_version_scoped() -> None:
+    catalog_builder = _load_catalog_module()
+
+    assert catalog_builder._maximum_package_bytes("1.0.0") == 134_217_728
+    assert catalog_builder._maximum_package_bytes("0.10.6") == 80_000_000
+
+
 def test_lab_catalog_and_packages_remain_valid_after_folder_move(
     tmp_path: Path,
 ) -> None:

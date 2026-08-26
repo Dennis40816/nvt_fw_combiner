@@ -40,6 +40,10 @@ ENTRY_KEYS = {
 }
 
 
+def _maximum_package_bytes(version: str) -> int:
+    return 134_217_728 if version == "1.0.0" else 80_000_000
+
+
 def _sha256(data: bytes) -> str:
     return hashlib.sha256(data).hexdigest()
 
@@ -138,7 +142,7 @@ def _existing_metadata(source_root: Path) -> dict[str, dict[str, object]]:
         if (
             isinstance(package_size, bool)
             or not isinstance(package_size, int)
-            or not 1 <= package_size <= 80_000_000
+            or not 1 <= package_size <= _maximum_package_bytes(version)
         ):
             raise ValueError(f"existing packageSize for {version} is invalid")
         if not isinstance(package_sha256, str) or not SHA256_PATTERN.fullmatch(
@@ -196,7 +200,7 @@ def _package_entry(
         raise ValueError(f"release notes for {version} exceed 65,536 UTF-8 bytes")
 
     package_bytes = package.read_bytes()
-    if not 1 <= len(package_bytes) <= 80_000_000:
+    if not 1 <= len(package_bytes) <= _maximum_package_bytes(version):
         raise ValueError(
             f"release ZIP size is outside the catalog bound: {package.name}"
         )

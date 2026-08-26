@@ -15,6 +15,8 @@ public static class UpdateCatalogValidator
     public const int MaximumReleaseNotesBytes = 64 * 1024;
     /// <summary>The maximum declared package length in bytes.</summary>
     public const long MaximumPackageBytes = 80_000_000;
+    /// <summary>The bounded v1.0.0 package length including its coupled managed Launcher.</summary>
+    public const long MaximumManaged100PackageBytes = 134_217_728;
     private const string Product = "NVT FW Combiner";
     private const string RuntimeIdentifier = "win-x64";
 
@@ -80,7 +82,8 @@ public static class UpdateCatalogValidator
                 issues.Add(new(UpdateCatalogIssueCode.UnsafePackagePath, versionText));
             }
 
-            bool sizeValid = entry.PackageSize is > 0 and <= MaximumPackageBytes;
+            bool sizeValid = entry.PackageSize > 0 &&
+                entry.PackageSize <= GetMaximumPackageBytes(version);
             if (!sizeValid)
             {
                 issues.Add(new(UpdateCatalogIssueCode.InvalidPackageSize, versionText));
@@ -166,5 +169,12 @@ public static class UpdateCatalogValidator
     {
         return value is { Length: 64 } &&
                value.All(static character => character is (>= '0' and <= '9') or (>= 'a' and <= 'f'));
+    }
+
+    private static long GetMaximumPackageBytes(ManagedAppVersion version)
+    {
+        return version is { Major: 1, Minor: 0, Patch: 0 }
+            ? MaximumManaged100PackageBytes
+            : MaximumPackageBytes;
     }
 }

@@ -123,7 +123,7 @@ payload have all been checked independently of this catalog parse.
 | Stable SemVer | exact three-component pattern | `ManagedAppVersion.TryParse` |
 | Publication time | canonical UTC pattern plus `date-time` | invariant `TryParseExact` with the same zero-to-seven fractional-second forms |
 | Package path | 5–512 characters, forward-slash ZIP pattern | the same minimum/maximum and extension plus Windows device/control/traversal guards |
-| Package length | 1–80,000,000 | the same inclusive bounds and stable-handle recheck |
+| Package length | 1–80,000,000 normally; v1.0.0 only: 1–134,217,728 | the same version-scoped inclusive bounds and stable-handle recheck |
 | SHA-256 | lowercase 64-character hex | the same ordinal lowercase grammar |
 | Release notes | required string, at most 65,536 characters | non-null plus the stricter 65,536 UTF-8-byte transport bound |
 | Version count | 1–128 | the same bounds; any invalid entry rejects the complete catalog |
