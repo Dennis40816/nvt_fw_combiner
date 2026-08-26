@@ -5,7 +5,7 @@
   "integrationBase": "0bbcc1be35e534f631fbaf8418288e58f4240ef3",
   "risk": "R1",
   "kind": "ui",
-  "state": "design-active",
+  "state": "final-complete",
   "mutablePaths": [
     "src/NvtFwCombiner.Presentation.Avalonia/Styles/MainWindowVisualStyles.axaml"
   ],
@@ -21,12 +21,12 @@
     "outcome": "not-required",
     "evidence": "R1 visual alignment reuses the existing workflowCard, strongText, and workflowOpenPill owners and adds no new layout container or navigation behavior."
   },
-  "implementationHead": null,
-  "reviewedHead": null,
-  "pathStateDigest": null,
+  "implementationHead": "576ea9459053e4725686295a46cdff9df73b85cc",
+  "reviewedHead": "576ea9459053e4725686295a46cdff9df73b85cc",
+  "pathStateDigest": "6815754943762042c7288eba09f89d0b9f534a5aa708a366fd548035c47a5f24",
   "finalReview": {
-    "reviewer": null,
-    "outcome": "pending",
-    "evidence": ""
+    "reviewer": "audit_dirty_ui",
+    "outcome": "approved",
+    "evidence": "Independent R1 review of exact diff 0bbcc1be35e534f631fbaf8418288e58f4240ef3..576ea9459053e4725686295a46cdff9df73b85cc found no P0-P3. The selector is confined to HomePageTemplate workflowCard titles, changes only VerticalAlignment, and the rendered production-template geometry test passed 1/1 while preserving the 50 px card and Open-pill center. git diff --check passed; repository validation reports no admission/path error for this task."
   }
 }
