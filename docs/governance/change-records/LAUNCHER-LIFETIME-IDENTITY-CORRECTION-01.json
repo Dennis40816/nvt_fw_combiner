@@ -1,0 +1,36 @@
+{
+  "schemaVersion": 2,
+  "taskId": "LAUNCHER-LIFETIME-IDENTITY-CORRECTION-01",
+  "capability": "Exact managed-process lifetime identity and physical inherited-handle validation",
+  "integrationBase": "b246379de2498e9f35b1d714344c32d745441f6c",
+  "risk": "R2",
+  "kind": "behavior",
+  "state": "design-active",
+  "mutablePaths": [
+    "src/NvtFwCombiner.VersionManagement.Application/VersionManagement/ManagedProcessLifetimeContracts.cs",
+    "src/NvtFwCombiner.VersionManagement.Infrastructure/VersionManagement/ManagedProcessLifetimeLease.cs",
+    "tests/NvtFwCombiner.Infrastructure.Tests/VersionManagement/ManagedProcessLifetimeHandleIdentityTests.cs"
+  ],
+  "implementationOwner": "implement_launcher100",
+  "searchEvidence": [
+    "ManagedProcessLifetimeContracts is the existing Application owner of typed Application/Launcher lifetime roles and terminal capture outcomes.",
+    "ManagedProcessLifetimeLease is the sole Infrastructure owner of the state-bound lease file, derived Windows Job, inherited handle capture, and process-tree lifetime authority.",
+    "The b246379d..6c80063a successor diff extended those two owners but omitted both production paths from its committed design-active records; this corrective record admits that omission retroactively and does not claim pre-implementation authorization."
+  ],
+  "semanticOwner": "Application typed managed-process lifetime identity contract, implemented by the single Infrastructure Windows lease and Job adapter",
+  "terminalContract": "A managed child accepts lifetime authority only when its normalized state path, Application/Launcher role, derived named Job, and physical inherited lease-file handle all identify the same lifetime owner; missing, swapped, arbitrary-file, or unreadable identity fails closed before READY, while exact accepted READY retains the reviewed process-tree ownership transfer contract.",
+  "disposition": "extend-owner",
+  "designReview": {
+    "reviewer": "independent_launcher_successor_review",
+    "outcome": "findings-incorporated",
+    "evidence": "Independent review of frozen 6c80063aa43f5c8f2e6c06cda517429d476264dd gave semantic/runtime GO and identified the undeclared ManagedProcessLifetimeContracts.cs and ManagedProcessLifetimeLease.cs paths plus the missing physical wrong-handle regression. This is deliberately recorded as retroactive formal admission for a new exact corrective review and the final trust-checkpoint decision, not as evidence that the capability-reuse gate ran before implementation."
+  },
+  "implementationHead": null,
+  "reviewedHead": null,
+  "pathStateDigest": null,
+  "finalReview": {
+    "reviewer": null,
+    "outcome": "pending",
+    "evidence": ""
+  }
+}
