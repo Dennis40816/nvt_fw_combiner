@@ -18,6 +18,8 @@ $LauncherStatePath = "$StatePath.launcher-bootstrap.v1.json"
 $SourcePackageLockSnapshots = @{}
 $PreviousLocalAppData = $env:LOCALAPPDATA
 $PreviousBehavior = $env:NVT_READY_PROBE_BEHAVIOR
+$PreviousLauncherReadyHandle = $env:NVT_FW_COMBINER_LAUNCHER_READY_PIPE_HANDLE
+$PreviousLauncherReadyExpected = $env:NVT_FW_COMBINER_EXPECTED_LAUNCHER_READY
 
 function Invoke-PublishSingleFile {
     param(
@@ -66,12 +68,16 @@ try {
     Move-Item -LiteralPath $PublishedBootstrap -Destination $Bootstrap
     $Launcher = Join-Path $LauncherPublish 'NvtFwCombiner.Launcher.exe'
     $Probe = Join-Path $ProbePublish 'NvtFwCombiner.ReadyProbe.exe'
+    $InvalidLauncher = Join-Path $SmokeRoot 'invalid-launcher.exe'
+    [IO.File]::WriteAllBytes(
+        $InvalidLauncher,
+        [Text.Encoding]::ASCII.GetBytes('MZ-invalid-managed-launcher'))
 
     & python (Join-Path $RepositoryRoot 'scripts/create_launcher_process_smoke_source.py') create `
         --output $SourceRoot `
         --app $Probe `
         --stable-launcher $Launcher `
-        --failing-launcher $Probe
+        --failing-launcher $InvalidLauncher
     if ($LASTEXITCODE -ne 0) { throw 'Launcher process smoke source creation failed.' }
     & python (Join-Path $RepositoryRoot 'scripts/create_managed_installation_lab.py') `
         --source $SourceRoot `
@@ -96,13 +102,42 @@ try {
         throw 'Clean Bootstrap chain did not commit the exact version-scoped launcher.'
     }
 
+    $OwnerAdmissionHasher = [Security.Cryptography.SHA256]::Create()
+    try {
+        $OwnerAdmissionDigestBytes = $OwnerAdmissionHasher.ComputeHash(
+            [Text.Encoding]::UTF8.GetBytes([string]$CleanLauncherState.active.ownerAdmissionIdentity))
+        $OwnerAdmissionDigest = ([BitConverter]::ToString($OwnerAdmissionDigestBytes)).Replace('-', '').ToLowerInvariant()
+    }
+    finally {
+        $OwnerAdmissionHasher.Dispose()
+    }
+    $env:NVT_FW_COMBINER_LAUNCHER_READY_PIPE_HANDLE = 'not-a-pipe-handle'
+    $env:NVT_FW_COMBINER_EXPECTED_LAUNCHER_READY = [string]::Join(':', @(
+        'READY-LAUNCHER',
+        [string]$CleanLauncherState.active.protocolVersion,
+        [string]$CleanLauncherState.active.ownerAppVersion,
+        $OwnerAdmissionDigest,
+        [string]$CleanLauncherState.active.ownerReleaseManifestSha256,
+        [string]$CleanLauncherState.active.sha256))
+    $LauncherProcess = Start-Process `
+        -FilePath (Join-Path $ManagedRoot 'versions/0.10.5/launcher/NvtFwCombiner.Launcher.exe') `
+        -ArgumentList @('--managed-root', $ManagedRoot, '--state-path', $StatePath) `
+        -WindowStyle Hidden `
+        -Wait `
+        -PassThru
+    $MissingOuterReadyExit = $LauncherProcess.ExitCode
+    if ($MissingOuterReadyExit -ne 16) {
+        throw "Launcher did not preserve the failed outer READY outcome: $MissingOuterReadyExit."
+    }
+    $env:NVT_FW_COMBINER_LAUNCHER_READY_PIPE_HANDLE = $null
+    $env:NVT_FW_COMBINER_EXPECTED_LAUNCHER_READY = $null
+
     & python (Join-Path $RepositoryRoot 'scripts/create_launcher_process_smoke_source.py') install-candidate `
         --repository $RepositoryRoot `
         --source $SourceRoot `
         --managed-root $ManagedRoot `
         --state-path $StatePath
     if ($LASTEXITCODE -ne 0) { throw 'Launcher process candidate installation failed.' }
-    $env:NVT_READY_PROBE_BEHAVIOR = 'exit-outer-candidate'
     $BootstrapProcess = Start-Process `
         -FilePath (Join-Path $ManagedRoot 'NvtFwCombiner.Bootstrap.exe') `
         -ArgumentList @('--managed-root', $ManagedRoot, '--state-path', $StatePath) `
@@ -124,6 +159,8 @@ try {
         schemaVersion = 1
         cleanZeroArgumentExit = $CleanExit
         rollbackExit = $RollbackExit
+        missingOuterReadyExit = $MissingOuterReadyExit
+        candidateFailureKind = 'invalid-pe-start'
         activeLauncherOwner = [string]$RollbackLauncherState.active.ownerAppVersion
         failedLauncherOwner = [string]$RollbackLauncherState.failed.ownerAppVersion
         bootstrapSha256 = (Get-FileHash -LiteralPath (Join-Path $ManagedRoot 'NvtFwCombiner.Bootstrap.exe') -Algorithm SHA256).Hash.ToLowerInvariant()
@@ -144,6 +181,8 @@ try {
 finally {
     $env:LOCALAPPDATA = $PreviousLocalAppData
     $env:NVT_READY_PROBE_BEHAVIOR = $PreviousBehavior
+    $env:NVT_FW_COMBINER_LAUNCHER_READY_PIPE_HANDLE = $PreviousLauncherReadyHandle
+    $env:NVT_FW_COMBINER_EXPECTED_LAUNCHER_READY = $PreviousLauncherReadyExpected
     foreach ($Snapshot in $SourcePackageLockSnapshots.GetEnumerator()) {
         [IO.File]::WriteAllBytes($Snapshot.Key, [byte[]]$Snapshot.Value)
     }

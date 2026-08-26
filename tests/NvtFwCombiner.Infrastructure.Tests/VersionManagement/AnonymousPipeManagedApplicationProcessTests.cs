@@ -175,6 +175,29 @@ public sealed class AnonymousPipeManagedApplicationProcessTests
         Assert.Null(result.ExitCode);
     }
 
+    /// <summary>A manifest-admitted path containing invalid PE bytes is a typed start failure.</summary>
+    [Fact]
+    public async Task InvalidPeExecutableIsTypedStartFailure()
+    {
+        using var workspace = TempWorkspace.Create();
+        ManagedAppVersion version = ManagedAppVersion.Parse("0.10.6");
+        string versionRoot = Path.Combine(workspace.Root, "versions", version.ToString());
+        _ = Directory.CreateDirectory(versionRoot);
+        await File.WriteAllBytesAsync(
+            Path.Combine(versionRoot, "NvtFwCombiner.exe"),
+            "MZ-invalid-managed-application"u8.ToArray(),
+            TestContext.Current.CancellationToken);
+
+        ManagedProcessStartResult result = await new AnonymousPipeManagedApplicationProcess().StartUntilReadyAsync(
+            workspace.Root,
+            version,
+            TimeSpan.FromSeconds(1),
+            TestContext.Current.CancellationToken);
+
+        Assert.Equal(ManagedProcessStartOutcome.StartFailed, result.Outcome);
+        Assert.Null(result.ExitCode);
+    }
+
     /// <summary>Caller cancellation propagates and terminates the supervised child rather than becoming a timeout.</summary>
     [Fact]
     public async Task CallerCancellationPropagates()

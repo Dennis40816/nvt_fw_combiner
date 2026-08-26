@@ -1,3 +1,4 @@
+using System.IO.Pipes;
 using NvtFwCombiner.Application.VersionManagement;
 using NvtFwCombiner.Infrastructure.VersionManagement;
 using NvtFwCombiner.TestSupport;
@@ -69,6 +70,118 @@ public sealed class AnonymousPipeManagedLauncherProcessTests
             TestContext.Current.CancellationToken);
 
         Assert.Equal(LauncherProcessStartOutcome.ReadyTimeout, result.Outcome);
+    }
+
+    /// <summary>Invalid PE bytes fail as a typed start outcome so Application can select exact rollback.</summary>
+    [Fact]
+    public async Task InvalidPeLauncherIsTypedStartFailure()
+    {
+        using var workspace = TempWorkspace.Create();
+        ManagedAppVersion owner = ManagedAppVersion.Parse("0.10.6");
+        string launcherRoot = Path.Combine(workspace.Root, "versions", owner.ToString(), "launcher");
+        _ = Directory.CreateDirectory(launcherRoot);
+        string executable = Path.Combine(launcherRoot, "NvtFwCombiner.Launcher.exe");
+        byte[] bytes = "MZ-invalid-managed-launcher"u8.ToArray();
+        await File.WriteAllBytesAsync(executable, bytes, TestContext.Current.CancellationToken);
+        ManagedLauncherIdentity identity = ManagedLauncherIdentity.Create(
+            owner,
+            "catalog-identity-0.10.6",
+            new string('a', 64),
+            ManagedAppVersion.Parse("1.0.0"),
+            ManagedLauncherIdentity.SupportedProtocolVersion,
+            ManagedLauncherIdentity.ExecutablePath,
+            bytes.LongLength,
+            Convert.ToHexStringLower(System.Security.Cryptography.SHA256.HashData(bytes)));
+
+        LauncherProcessStartResult result = await new AnonymousPipeManagedLauncherProcess().StartUntilReadyAsync(
+            workspace.Root,
+            Path.Combine(workspace.Root, "state.json"),
+            identity,
+            TimeSpan.FromSeconds(1),
+            TestContext.Current.CancellationToken);
+
+        Assert.Equal(LauncherProcessStartOutcome.StartFailed, result.Outcome);
+        Assert.Null(result.ExitCode);
+    }
+
+    /// <summary>A competing exact-path writer prevents nested READY from observing two journal generations.</summary>
+    [Fact]
+    public async Task CompetingWriterPreventsMixedNestedReadySnapshot()
+    {
+        using var workspace = TempWorkspace.Create();
+        string statePath = Path.Combine(workspace.Root, "state", "version-manager.v1.json");
+        ManagedAppVersion version = ManagedAppVersion.Parse("0.10.6");
+        var admission = new ManagedVersionAdmission(version, "catalog-identity-0.10.6", new string('a', 64));
+        var identity = ManagedLauncherIdentity.Create(
+            version,
+            admission.AdmissionIdentity,
+            admission.ReleaseManifestSha256,
+            ManagedAppVersion.Parse("1.0.0"),
+            ManagedLauncherIdentity.SupportedProtocolVersion,
+            ManagedLauncherIdentity.ExecutablePath,
+            123,
+            new string('b', 64));
+        var appStore = new JsonVersionManagerStateStore(statePath);
+        await appStore.SaveAsync(
+            VersionManagerState.Create(
+                updateSource: null,
+                activeVersion: version,
+                lastKnownGoodVersion: version,
+                admissions: [admission],
+                pendingActivation: null,
+                failedActivationVersion: null,
+                retentionReviewDue: false,
+                managedRootIdentity: workspace.Root),
+            TestContext.Current.CancellationToken);
+        LauncherBootstrapStateSaveResult launcherSaved = await new JsonLauncherBootstrapStateStore(statePath)
+            .TrySaveAsync(
+                LauncherBootstrapState.Create(workspace.Root, identity, identity, pending: null, failed: null),
+                TestContext.Current.CancellationToken);
+        Assert.True(launcherSaved.IsSuccess);
+
+        using var pipe = new AnonymousPipeServerStream(PipeDirection.In, HandleInheritability.Inheritable);
+        string? previousHandle = Environment.GetEnvironmentVariable(
+            AnonymousPipeManagedLauncherProcess.ReadyPipeHandleEnvironment);
+        string? previousExpected = Environment.GetEnvironmentVariable(
+            AnonymousPipeManagedLauncherProcess.ExpectedReadyEnvironment);
+        try
+        {
+            Environment.SetEnvironmentVariable(
+                AnonymousPipeManagedLauncherProcess.ReadyPipeHandleEnvironment,
+                pipe.GetClientHandleAsString());
+            Environment.SetEnvironmentVariable(
+                AnonymousPipeManagedLauncherProcess.ExpectedReadyEnvironment,
+                LauncherReadyProtocol.CreateExpectedPrefix(identity));
+            using VersionManagerWriteLeaseResult competing = await appStore.TryAcquireWriteLeaseAsync(
+                TimeSpan.Zero,
+                TestContext.Current.CancellationToken);
+            Assert.True(competing.IsAcquired);
+            using var cancellation = new CancellationTokenSource(TimeSpan.FromMilliseconds(200));
+
+            bool reported = await LauncherBootstrapRuntime.ReportNestedReadyAsync(
+                workspace.Root,
+                statePath,
+                cancellation.Token);
+            pipe.DisposeLocalCopyOfClientHandle();
+            using var reader = new StreamReader(pipe);
+            string? message = await reader.ReadLineAsync(TestContext.Current.CancellationToken);
+
+            Assert.False(reported);
+            Assert.Null(message);
+            Assert.Null(Environment.GetEnvironmentVariable(
+                AnonymousPipeManagedLauncherProcess.ReadyPipeHandleEnvironment));
+            Assert.Null(Environment.GetEnvironmentVariable(
+                AnonymousPipeManagedLauncherProcess.ExpectedReadyEnvironment));
+        }
+        finally
+        {
+            Environment.SetEnvironmentVariable(
+                AnonymousPipeManagedLauncherProcess.ReadyPipeHandleEnvironment,
+                previousHandle);
+            Environment.SetEnvironmentVariable(
+                AnonymousPipeManagedLauncherProcess.ExpectedReadyEnvironment,
+                previousExpected);
+        }
     }
 
     private static async ValueTask<LauncherProcessStartResult> RunAsync(

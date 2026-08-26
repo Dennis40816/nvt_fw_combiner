@@ -1,3 +1,4 @@
+using System.ComponentModel;
 using System.Diagnostics;
 using System.IO.Pipes;
 using System.Security.Cryptography;
@@ -66,7 +67,8 @@ internal sealed class AnonymousPipeManagedLauncherProcess : IManagedLauncherProc
             string executable = ManagedPathSafety.ResolvePayloadPath(versionRoot, launcher.ExecutableRelativePath);
             if (!ManagedPathSafety.IsSafeOwnedTree(versionRoot) ||
                 !File.Exists(executable) ||
-                ManagedPathSafety.IsReparsePoint(executable))
+                ManagedPathSafety.IsReparsePoint(executable) ||
+                !ManagedProcessExecutable.HasPortableExecutableHeader(executable))
             {
                 return Failure(LauncherProcessStartOutcome.StartFailed);
             }
@@ -86,12 +88,18 @@ internal sealed class AnonymousPipeManagedLauncherProcess : IManagedLauncherProc
             string expected = LauncherReadyProtocol.CreateExpectedPrefix(launcher);
             startInfo.Environment[ReadyPipeHandleEnvironment] = pipe.GetClientHandleAsString();
             startInfo.Environment[ExpectedReadyEnvironment] = expected;
-            process = Process.Start(startInfo);
+            try
+            {
+                process = Process.Start(startInfo);
+            }
+            finally
+            {
+                DisposeLocalClientHandle(pipe);
+            }
             if (process is null)
             {
                 return Failure(LauncherProcessStartOutcome.StartFailed);
             }
-            pipe.DisposeLocalCopyOfClientHandle();
 
             using var deadline = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
             deadline.CancelAfter(readyDeadline);
@@ -113,7 +121,7 @@ internal sealed class AnonymousPipeManagedLauncherProcess : IManagedLauncherProc
                     return new(LauncherProcessStartOutcome.ExitedBeforeReady, process.ExitCode);
                 }
                 KillIfRunning(process);
-                return new(LauncherProcessStartOutcome.InvalidReadySignal, process.HasExited ? process.ExitCode : null);
+                return new(LauncherProcessStartOutcome.InvalidReadySignal, TryGetExitCode(process));
             }
             if (completed == exitTask && exitTask.IsCompletedSuccessfully)
             {
@@ -121,12 +129,12 @@ internal sealed class AnonymousPipeManagedLauncherProcess : IManagedLauncherProc
             }
             await completed.ConfigureAwait(false);
             KillIfRunning(process);
-            return new(LauncherProcessStartOutcome.ReadyTimeout, process.HasExited ? process.ExitCode : null);
+            return new(LauncherProcessStartOutcome.ReadyTimeout, TryGetExitCode(process));
         }
         catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested)
         {
             KillIfRunning(process);
-            return new(LauncherProcessStartOutcome.ReadyTimeout, process?.HasExited == true ? process.ExitCode : null);
+            return new(LauncherProcessStartOutcome.ReadyTimeout, TryGetExitCode(process));
         }
         catch (OperationCanceledException)
         {
@@ -134,14 +142,15 @@ internal sealed class AnonymousPipeManagedLauncherProcess : IManagedLauncherProc
             throw;
         }
         catch (Exception exception) when (exception is
-            IOException or UnauthorizedAccessException or InvalidOperationException or DecoderFallbackException)
+            IOException or UnauthorizedAccessException or InvalidOperationException or
+            DecoderFallbackException or Win32Exception)
         {
             KillIfRunning(process);
-            return new(LauncherProcessStartOutcome.StartFailed, process?.HasExited == true ? process.ExitCode : null);
+            return new(LauncherProcessStartOutcome.StartFailed, TryGetExitCode(process));
         }
         finally
         {
-            process?.Dispose();
+            DisposeProcess(process);
         }
     }
 
@@ -182,7 +191,41 @@ internal sealed class AnonymousPipeManagedLauncherProcess : IManagedLauncherProc
                 process.WaitForExit();
             }
         }
-        catch (InvalidOperationException)
+        catch (Exception exception) when (exception is InvalidOperationException or Win32Exception)
+        {
+        }
+    }
+
+    private static int? TryGetExitCode(Process? process)
+    {
+        try
+        {
+            return process is not null && process.HasExited ? process.ExitCode : null;
+        }
+        catch (Exception exception) when (exception is InvalidOperationException or Win32Exception)
+        {
+            return null;
+        }
+    }
+
+    private static void DisposeLocalClientHandle(AnonymousPipeServerStream pipe)
+    {
+        try
+        {
+            pipe.DisposeLocalCopyOfClientHandle();
+        }
+        catch (Exception exception) when (exception is IOException or InvalidOperationException)
+        {
+        }
+    }
+
+    private static void DisposeProcess(Process? process)
+    {
+        try
+        {
+            process?.Dispose();
+        }
+        catch (Exception exception) when (exception is InvalidOperationException or Win32Exception)
         {
         }
     }
@@ -332,38 +375,52 @@ public static class LauncherBootstrapRuntime
             return false;
         }
 
-        VersionManagerStateLoadResult app = await new JsonVersionManagerStateStore(statePath)
-            .LoadAsync(cancellationToken).ConfigureAwait(false);
-        LauncherBootstrapStateLoadResult launcher = await new JsonLauncherBootstrapStateStore(statePath)
-            .LoadAsync(cancellationToken).ConfigureAwait(false);
-        ManagedLauncherIdentity? running = new[]
-        {
-            launcher.State?.Pending?.Candidate,
-            launcher.State?.Pending?.PreviousLastKnownGood,
-            launcher.State?.Active,
-        }.FirstOrDefault(identity =>
-            identity is not null &&
-            string.Equals(expected, LauncherReadyProtocol.CreateExpectedPrefix(identity), StringComparison.Ordinal));
-        ManagedVersionAdmission? admission = app.State?.Admissions.SingleOrDefault(
-            value => value.Version == app.State.ActiveVersion);
-        if (!app.IsSuccess || !launcher.IsSuccess ||
-            !app.State!.IsBoundToManagedRoot(managedRoot) ||
-            !launcher.State!.IsBoundToManagedRoot(managedRoot) ||
-            app.State!.PendingActivation is not null || app.State.PendingMutation is not null ||
-            running is null || admission is null)
-        {
-            return false;
-        }
-
         try
         {
+            var appStateStore = new JsonVersionManagerStateStore(statePath);
+            using VersionManagerWriteLeaseResult lease = await appStateStore.TryAcquireWriteLeaseAsync(
+                ManagedActivationCoordinator.DefaultWriterLeaseTimeout,
+                cancellationToken).ConfigureAwait(false);
+            if (!lease.IsAcquired)
+            {
+                return false;
+            }
+
+            VersionManagerStateLoadResult app = await appStateStore.LoadAsync(cancellationToken)
+                .ConfigureAwait(false);
+            LauncherBootstrapStateLoadResult launcher = await new JsonLauncherBootstrapStateStore(statePath)
+                .LoadAsync(cancellationToken).ConfigureAwait(false);
+            ManagedLauncherIdentity? running = new[]
+            {
+                launcher.State?.Pending?.Candidate,
+                launcher.State?.Pending?.PreviousLastKnownGood,
+                launcher.State?.Active,
+            }.FirstOrDefault(identity =>
+                identity is not null &&
+                string.Equals(expected, LauncherReadyProtocol.CreateExpectedPrefix(identity), StringComparison.Ordinal));
+            ManagedVersionAdmission? admission = app.State?.Admissions.SingleOrDefault(
+                value => value.Version == app.State.ActiveVersion);
+            if (!app.IsSuccess || !launcher.IsSuccess ||
+                !app.State!.IsBoundToManagedRoot(managedRoot) ||
+                !launcher.State!.IsBoundToManagedRoot(managedRoot) ||
+                app.State!.PendingActivation is not null || app.State.PendingMutation is not null ||
+                running is null || admission is null)
+            {
+                return false;
+            }
+
             await using var pipe = new AnonymousPipeClientStream(PipeDirection.Out, handle);
             byte[] message = Encoding.UTF8.GetBytes(LauncherReadyProtocol.Create(running, admission) + "\n");
             await pipe.WriteAsync(message, cancellationToken).ConfigureAwait(false);
             await pipe.FlushAsync(cancellationToken).ConfigureAwait(false);
             return true;
         }
-        catch (Exception exception) when (exception is IOException or UnauthorizedAccessException or ArgumentException)
+        catch (OperationCanceledException)
+        {
+            return false;
+        }
+        catch (Exception exception) when (exception is
+            IOException or UnauthorizedAccessException or ArgumentException or Win32Exception)
         {
             return false;
         }

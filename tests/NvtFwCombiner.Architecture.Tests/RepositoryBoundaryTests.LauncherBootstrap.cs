@@ -33,8 +33,17 @@ public sealed partial class RepositoryBoundaryTests
             bootstrapProgram,
             "LauncherBootstrapLaunchOptions.Parse(args, AppContext.BaseDirectory)",
             "LauncherBootstrapRuntime.RunAsync");
-        AssertContainsAll(bootstrapRuntime, "JsonVersionManagerStateStore.GetDefaultPath()", "--state-path");
+        AssertContainsAll(
+            bootstrapRuntime,
+            "JsonVersionManagerStateStore.GetDefaultPath()",
+            "--state-path",
+            "TryAcquireWriteLeaseAsync",
+            "ManagedActivationCoordinator.DefaultWriterLeaseTimeout");
         AssertContainsAll(launcherProgram, "AnonymousPipeManagedApplicationProcess(statePath)", "ReportNestedReadyAsync");
+        AssertContainsAll(launcherProgram, "bool outerReadyExpected", "!reported && outerReadyExpected", "return 16");
+        Assert.True(
+            launcherProgram.IndexOf("bool outerReadyExpected", StringComparison.Ordinal) <
+            launcherProgram.IndexOf("ReportNestedReadyAsync", StringComparison.Ordinal));
         AssertContainsAll(
             bootstrapRuntime,
             "new ManagedVersionSeedBootstrapper(",

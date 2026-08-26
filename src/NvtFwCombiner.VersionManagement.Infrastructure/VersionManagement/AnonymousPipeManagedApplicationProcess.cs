@@ -1,3 +1,5 @@
+using System.Buffers.Binary;
+using System.ComponentModel;
 using System.Diagnostics;
 using System.IO.Pipes;
 using System.Text;
@@ -40,7 +42,8 @@ public sealed class AnonymousPipeManagedApplicationProcess : IManagedApplication
             string executable = Path.Combine(versionRoot, "NvtFwCombiner.exe");
             if (!ManagedPathSafety.IsSafeOwnedTree(versionRoot) ||
                 !File.Exists(executable) ||
-                ManagedPathSafety.IsReparsePoint(executable))
+                ManagedPathSafety.IsReparsePoint(executable) ||
+                !ManagedProcessExecutable.HasPortableExecutableHeader(executable))
             {
                 return new(ManagedProcessStartOutcome.StartFailed, null);
             }
@@ -64,12 +67,18 @@ public sealed class AnonymousPipeManagedApplicationProcess : IManagedApplication
             }
             startInfo.Environment[ReadyPipeHandleEnvironment] = pipe.GetClientHandleAsString();
             startInfo.Environment[ExpectedVersionEnvironment] = version.ToString();
-            process = Process.Start(startInfo);
+            try
+            {
+                process = Process.Start(startInfo);
+            }
+            finally
+            {
+                DisposeLocalClientHandle(pipe);
+            }
             if (process is null)
             {
                 return new(ManagedProcessStartOutcome.StartFailed, null);
             }
-            pipe.DisposeLocalCopyOfClientHandle();
 
             using var deadline = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
             deadline.CancelAfter(readyDeadline);
@@ -89,7 +98,7 @@ public sealed class AnonymousPipeManagedApplicationProcess : IManagedApplication
                     return new(ManagedProcessStartOutcome.ExitedBeforeReady, process.ExitCode);
                 }
                 KillIfRunning(process);
-                return new(ManagedProcessStartOutcome.InvalidReadySignal, process.HasExited ? process.ExitCode : null);
+                return new(ManagedProcessStartOutcome.InvalidReadySignal, TryGetExitCode(process));
             }
             if (completed == exitTask && exitTask.IsCompletedSuccessfully)
             {
@@ -98,7 +107,7 @@ public sealed class AnonymousPipeManagedApplicationProcess : IManagedApplication
 
             await completed.ConfigureAwait(false);
             KillIfRunning(process);
-            return new(ManagedProcessStartOutcome.ReadyTimeout, process.HasExited ? process.ExitCode : null);
+            return new(ManagedProcessStartOutcome.ReadyTimeout, TryGetExitCode(process));
         }
         catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested)
         {
@@ -106,7 +115,7 @@ public sealed class AnonymousPipeManagedApplicationProcess : IManagedApplication
             {
                 KillIfRunning(process);
             }
-            return new(ManagedProcessStartOutcome.ReadyTimeout, process?.HasExited == true ? process.ExitCode : null);
+            return new(ManagedProcessStartOutcome.ReadyTimeout, TryGetExitCode(process));
         }
         catch (OperationCanceledException)
         {
@@ -122,19 +131,20 @@ public sealed class AnonymousPipeManagedApplicationProcess : IManagedApplication
             {
                 KillIfRunning(process);
             }
-            return new(ManagedProcessStartOutcome.InvalidReadySignal, process?.HasExited == true ? process.ExitCode : null);
+            return new(ManagedProcessStartOutcome.InvalidReadySignal, TryGetExitCode(process));
         }
-        catch (Exception exception) when (exception is IOException or UnauthorizedAccessException or InvalidOperationException)
+        catch (Exception exception) when (exception is
+            IOException or UnauthorizedAccessException or InvalidOperationException or Win32Exception)
         {
             if (process is not null)
             {
                 KillIfRunning(process);
             }
-            return new(ManagedProcessStartOutcome.StartFailed, process?.HasExited == true ? process.ExitCode : null);
+            return new(ManagedProcessStartOutcome.StartFailed, TryGetExitCode(process));
         }
         finally
         {
-            process?.Dispose();
+            DisposeProcess(process);
         }
     }
 
@@ -172,8 +182,83 @@ public sealed class AnonymousPipeManagedApplicationProcess : IManagedApplication
                 process.WaitForExit();
             }
         }
-        catch (InvalidOperationException)
+        catch (Exception exception) when (exception is InvalidOperationException or Win32Exception)
         {
+        }
+    }
+
+    private static int? TryGetExitCode(Process? process)
+    {
+        try
+        {
+            return process is not null && process.HasExited ? process.ExitCode : null;
+        }
+        catch (Exception exception) when (exception is InvalidOperationException or Win32Exception)
+        {
+            return null;
+        }
+    }
+
+    private static void DisposeLocalClientHandle(AnonymousPipeServerStream pipe)
+    {
+        try
+        {
+            pipe.DisposeLocalCopyOfClientHandle();
+        }
+        catch (Exception exception) when (exception is IOException or InvalidOperationException)
+        {
+        }
+    }
+
+    private static void DisposeProcess(Process? process)
+    {
+        try
+        {
+            process?.Dispose();
+        }
+        catch (Exception exception) when (exception is InvalidOperationException or Win32Exception)
+        {
+        }
+    }
+}
+
+/// <summary>Rejects malformed PE payloads before Win32 launch; package identity remains repository-owned.</summary>
+internal static class ManagedProcessExecutable
+{
+    internal static bool HasPortableExecutableHeader(string path)
+    {
+        try
+        {
+            using var stream = new FileStream(
+                path,
+                FileMode.Open,
+                FileAccess.Read,
+                FileShare.Read,
+                bufferSize: 1,
+                FileOptions.RandomAccess);
+            if (stream.Length < 64)
+            {
+                return false;
+            }
+
+            Span<byte> dosHeader = stackalloc byte[64];
+            stream.ReadExactly(dosHeader);
+            int peHeaderOffset = BinaryPrimitives.ReadInt32LittleEndian(dosHeader[0x3C..]);
+            if (dosHeader[0] != (byte)'M' || dosHeader[1] != (byte)'Z' ||
+                peHeaderOffset < dosHeader.Length || peHeaderOffset > stream.Length - 4)
+            {
+                return false;
+            }
+
+            stream.Position = peHeaderOffset;
+            Span<byte> peSignature = stackalloc byte[4];
+            stream.ReadExactly(peSignature);
+            return peSignature.SequenceEqual("PE\0\0"u8);
+        }
+        catch (Exception exception) when (exception is
+            IOException or UnauthorizedAccessException or ArgumentException or NotSupportedException)
+        {
+            return false;
         }
     }
 }

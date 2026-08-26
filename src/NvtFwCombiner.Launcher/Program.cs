@@ -24,6 +24,8 @@ internal static class Program
                 .GetResult();
             if (result.Outcome is ManagedLauncherOutcome.Ready or ManagedLauncherOutcome.RolledBack)
             {
+                bool outerReadyExpected = !string.IsNullOrWhiteSpace(Environment.GetEnvironmentVariable(
+                    "NVT_FW_COMBINER_EXPECTED_LAUNCHER_READY"));
                 bool reported = LauncherBootstrapRuntime.ReportNestedReadyAsync(
                         managedRoot,
                         statePath,
@@ -31,8 +33,7 @@ internal static class Program
                     .AsTask()
                     .GetAwaiter()
                     .GetResult();
-                if (!reported && Environment.GetEnvironmentVariable(
-                        "NVT_FW_COMBINER_EXPECTED_LAUNCHER_READY") is not null)
+                if (!reported && outerReadyExpected)
                 {
                     return 16;
                 }
