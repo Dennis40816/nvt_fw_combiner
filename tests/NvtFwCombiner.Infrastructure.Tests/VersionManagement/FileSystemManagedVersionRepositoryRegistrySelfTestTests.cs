@@ -18,6 +18,8 @@ public sealed partial class FileSystemManagedVersionRepositoryTests
         string missingLatest = workspace.PathFor("missing-latest");
         string registryPath = workspace.PathFor(FileSystemUpdateSourceRegistry.RegistryFileName);
         string statePath = workspace.PathFor("state/version-manager.v1.json");
+        string stateDirectory = Path.GetDirectoryName(statePath)!;
+        string writerLockPath = FileSystemVersionManagerWriteLease.GetLockPath(statePath);
         string managedRoot = workspace.PathFor("managed-root");
         UpdateCatalogVersionSnapshot package = CreatePackage(original, "0.10.6");
         await WriteCatalogAsync(original, [package]);
@@ -57,7 +59,9 @@ public sealed partial class FileSystemManagedVersionRepositoryTests
         Assert.True(result.Attempts[1].IsVerified);
         Assert.DoesNotContain(result.Attempts, attempt =>
             string.Equals(attempt.SourceRoot, original, StringComparison.Ordinal));
+        Assert.False(Directory.Exists(stateDirectory));
         Assert.False(File.Exists(statePath));
+        Assert.False(File.Exists(writerLockPath));
         Assert.False(Directory.Exists(managedRoot));
     }
 }

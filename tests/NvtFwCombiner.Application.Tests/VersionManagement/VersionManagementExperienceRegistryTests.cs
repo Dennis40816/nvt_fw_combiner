@@ -516,7 +516,7 @@ public sealed partial class VersionManagementExperienceTests
             [Admission("0.10.5")],
             active: "0.10.5",
             lastKnownGood: "0.10.5");
-        var stateStore = new MemoryStateStore(initial);
+        var stateStore = new LeaseCountingStateStore(initial);
         var catalogs = new PathCatalogSource(
             (latest, new(null, UpdateCatalogLoadIssue.SourceUnavailable)),
             (available, new(Catalog("0.10.6"), UpdateCatalogLoadIssue.None)));
@@ -534,6 +534,7 @@ public sealed partial class VersionManagementExperienceTests
                 (deprecated, UpdateSourceRegistryEntryStatus.Deprecated),
                 (available, UpdateSourceRegistryEntryStatus.Available))));
         _ = await experience.InitializeAsync(TestContext.Current.CancellationToken);
+        int leaseRequestsBeforeSelfTest = stateStore.LeaseRequestCount;
 
         VersionEnvironmentSelfTestResult result = await experience.RunEnvironmentSelfTestAsync(
             TestContext.Current.CancellationToken);
@@ -547,6 +548,7 @@ public sealed partial class VersionManagementExperienceTests
         Assert.True(result.Attempts[1].IsVerified);
         Assert.Equal([available], repository.VerifiedRoots);
         Assert.DoesNotContain(deprecated, catalogs.LoadedRoots);
+        Assert.Equal(leaseRequestsBeforeSelfTest, stateStore.LeaseRequestCount);
         Assert.Equal(0, stateStore.SaveCount);
         Assert.Same(initial, stateStore.State);
 
@@ -554,6 +556,156 @@ public sealed partial class VersionManagementExperienceTests
             isAutomatic: true,
             TestContext.Current.CancellationToken);
         Assert.Equal(1, checkedResult.Generation);
+    }
+
+    /// <summary>Self-test reuses normal newest-package admission and never scans historical packages.</summary>
+    [Fact]
+    public async Task EnvironmentSelfTestReusesNewestPackageAdmission()
+    {
+        string latest = SourcePath("latest");
+        VersionManagerState initial = State(
+            [Admission("0.10.5")],
+            active: "0.10.5",
+            lastKnownGood: "0.10.5");
+        var stateStore = new LeaseCountingStateStore(initial);
+        var repository = new CountingRepository(ManagedAppVersion.Parse("0.10.5"));
+        using var experience = new VersionManagementExperience(
+            ManagedAppVersion.Parse("0.10.5"),
+            "managed-root",
+            stateStore,
+            new PathCatalogSource((latest, new(
+                CatalogWithOlderReleaseNote("Release 0.10.5"),
+                UpdateCatalogLoadIssue.None))),
+            repository,
+            new SequenceRegistrySource(Registry(
+                12,
+                FirstRegistryDigest,
+                (latest, UpdateSourceRegistryEntryStatus.Latest))));
+
+        VersionEnvironmentSelfTestResult result = await experience.RunEnvironmentSelfTestAsync(
+            TestContext.Current.CancellationToken);
+
+        VersionEnvironmentSelfTestAttempt attempt = Assert.Single(result.Attempts);
+        Assert.True(result.IsSuccess);
+        Assert.True(attempt.IsVerified);
+        Assert.Equal(ManagedAppVersion.Parse("0.10.6"), attempt.NewestVersion);
+        Assert.Equal(ManagedVersionInstallIssue.None, attempt.PackageIssue);
+        Assert.Equal([ManagedAppVersion.Parse("0.10.6")], repository.VerifiedVersions);
+        Assert.Equal(0, stateStore.LeaseRequestCount);
+        Assert.Equal(0, stateStore.SaveCount);
+        Assert.Same(initial, stateStore.State);
+    }
+
+    /// <summary>A maximum-size valid catalog still admits only its canonical newest package.</summary>
+    [Fact]
+    public async Task EnvironmentSelfTestAcceptsMaximumCatalogWithoutHistoricalPackageScan()
+    {
+        string latest = SourcePath("latest");
+        VersionManagerState initial = State(
+            [Admission("0.10.5")],
+            active: "0.10.5",
+            lastKnownGood: "0.10.5");
+        var stateStore = new LeaseCountingStateStore(initial);
+        var repository = new CountingRepository(ManagedAppVersion.Parse("0.10.1"));
+        using var experience = new VersionManagementExperience(
+            ManagedAppVersion.Parse("0.10.5"),
+            "managed-root",
+            stateStore,
+            new PathCatalogSource((latest, new(
+                CatalogWithVersionCount(UpdateCatalogValidator.MaximumVersionCount),
+                UpdateCatalogLoadIssue.None))),
+            repository,
+            new SequenceRegistrySource(Registry(
+                12,
+                FirstRegistryDigest,
+                (latest, UpdateSourceRegistryEntryStatus.Latest))));
+
+        VersionEnvironmentSelfTestResult result = await experience.RunEnvironmentSelfTestAsync(
+            TestContext.Current.CancellationToken);
+
+        VersionEnvironmentSelfTestAttempt attempt = Assert.Single(result.Attempts);
+        Assert.True(result.IsSuccess);
+        Assert.Equal(ManagedAppVersion.Parse("0.10.128"), attempt.NewestVersion);
+        Assert.Equal([ManagedAppVersion.Parse("0.10.128")], repository.VerifiedVersions);
+        Assert.Equal(0, stateStore.LeaseRequestCount);
+        Assert.Equal(0, stateStore.SaveCount);
+    }
+
+    /// <summary>Self-test and normal resolution reject the same mismatched typed candidate.</summary>
+    [Fact]
+    public async Task EnvironmentSelfTestAndCheckShareCandidateMismatchRejection()
+    {
+        string latest = SourcePath("latest");
+        VersionManagerState initial = State(
+            [Admission("0.10.5")],
+            active: "0.10.5",
+            lastKnownGood: "0.10.5");
+        var stateStore = new LeaseCountingStateStore(initial);
+        var repository = new HealthyRepository(verificationResult: new(
+            new(
+                ManagedAppVersion.Parse("0.10.7"),
+                "identity-0.10.7",
+                "Release 0.10.7"),
+            ManagedVersionInstallIssue.None));
+        UpdateSourceRegistryLoadResult registry = Registry(
+            12,
+            FirstRegistryDigest,
+            (latest, UpdateSourceRegistryEntryStatus.Latest));
+        using var experience = new VersionManagementExperience(
+            ManagedAppVersion.Parse("0.10.5"),
+            "managed-root",
+            stateStore,
+            new PathCatalogSource((latest, new(Catalog("0.10.6"), UpdateCatalogLoadIssue.None))),
+            repository,
+            new SequenceRegistrySource(registry, registry));
+
+        VersionEnvironmentSelfTestResult selfTest = await experience.RunEnvironmentSelfTestAsync(
+            TestContext.Current.CancellationToken);
+        VersionManagementSnapshot check = await experience.CheckAsync(
+            isAutomatic: false,
+            TestContext.Current.CancellationToken);
+
+        VersionEnvironmentSelfTestAttempt attempt = Assert.Single(selfTest.Attempts);
+        Assert.False(selfTest.IsSuccess);
+        Assert.False(attempt.IsVerified);
+        Assert.Equal(ManagedVersionInstallIssue.InvalidPayload, attempt.PackageIssue);
+        Assert.Equal(UpdateSourceRegistryIssue.CandidatesExhausted, check.RegistryIssue);
+        Assert.Equal(0, stateStore.SaveCount);
+        Assert.Same(initial, stateStore.State);
+    }
+
+    /// <summary>Cancellation during an actual source read propagates without touching durable state.</summary>
+    [Fact]
+    public async Task EnvironmentSelfTestMidReadCancellationPerformsZeroMutation()
+    {
+        string latest = SourcePath("latest");
+        VersionManagerState initial = State(
+            [Admission("0.10.5")],
+            active: "0.10.5",
+            lastKnownGood: "0.10.5");
+        var stateStore = new LeaseCountingStateStore(initial);
+        var catalogs = new CancelFirstCatalogSource(Catalog("0.10.6"));
+        using var experience = new VersionManagementExperience(
+            ManagedAppVersion.Parse("0.10.5"),
+            "managed-root",
+            stateStore,
+            catalogs,
+            new HealthyRepository(),
+            new SequenceRegistrySource(Registry(
+                12,
+                FirstRegistryDigest,
+                (latest, UpdateSourceRegistryEntryStatus.Latest))));
+        using var cancellation = new CancellationTokenSource();
+
+        Task<VersionEnvironmentSelfTestResult> checking = experience.RunEnvironmentSelfTestAsync(
+            cancellation.Token).AsTask();
+        await catalogs.FirstLoadStarted.Task.WaitAsync(TestContext.Current.CancellationToken);
+        cancellation.Cancel();
+
+        _ = await Assert.ThrowsAnyAsync<OperationCanceledException>(() => checking);
+        Assert.Equal(0, stateStore.LeaseRequestCount);
+        Assert.Equal(0, stateStore.SaveCount);
+        Assert.Same(initial, stateStore.State);
     }
 
     /// <summary>Self-test observes caller cancellation without performing any read or mutation.</summary>
@@ -564,7 +716,7 @@ public sealed partial class VersionManagementExperienceTests
             [Admission("0.10.5")],
             active: "0.10.5",
             lastKnownGood: "0.10.5");
-        var stateStore = new MemoryStateStore(initial);
+        var stateStore = new LeaseCountingStateStore(initial);
         var registry = new SequenceRegistrySource(Registry(
             1,
             FirstRegistryDigest,
@@ -583,6 +735,7 @@ public sealed partial class VersionManagementExperienceTests
             await experience.RunEnvironmentSelfTestAsync(cancellation.Token));
 
         Assert.Equal(0, registry.LoadCount);
+        Assert.Equal(0, stateStore.LeaseRequestCount);
         Assert.Equal(0, stateStore.SaveCount);
         Assert.Same(initial, stateStore.State);
     }
@@ -819,6 +972,24 @@ public sealed partial class VersionManagementExperienceTests
         return Assert.IsType<UpdateCatalogSnapshot>(UpdateCatalogValidator.Validate(document).Snapshot);
     }
 
+    private static UpdateCatalogSnapshot CatalogWithVersionCount(int count)
+    {
+        var document = new NvtFwCombiner.Contracts.VersionManagement.UpdateCatalogDocument(
+            1,
+            "NVT FW Combiner",
+            "win-x64",
+            [.. Enumerable.Range(1, count)
+                .Select(index => new NvtFwCombiner.Contracts.VersionManagement.UpdateCatalogVersionDocument(
+                    $"0.10.{index}",
+                    "2026-08-21T00:00:00Z",
+                    $"packages/NvtFwCombiner-v0.10.{index}-win-x64.zip",
+                    42,
+                    Hash,
+                    Hash,
+                    $"Release 0.10.{index}"))]);
+        return Assert.IsType<UpdateCatalogSnapshot>(UpdateCatalogValidator.Validate(document).Snapshot);
+    }
+
     private sealed class SequenceRegistrySource(params UpdateSourceRegistryLoadResult[] results)
         : IUpdateSourceRegistry
     {
@@ -891,11 +1062,14 @@ public sealed partial class VersionManagementExperienceTests
         }
     }
 
-    private sealed class CountingRepository : IManagedVersionRepository
+    private sealed class CountingRepository(ManagedAppVersion? mismatchedVersion = null)
+        : IManagedVersionRepository
     {
         private readonly HealthyRepository _inner = new();
 
         internal List<string> VerifiedRoots { get; } = [];
+
+        internal List<ManagedAppVersion> VerifiedVersions { get; } = [];
 
         public ValueTask<ManagedPackageVerificationResult> VerifyPackageAsync(
             string sourceRoot,
@@ -903,7 +1077,12 @@ public sealed partial class VersionManagementExperienceTests
             CancellationToken cancellationToken)
         {
             VerifiedRoots.Add(sourceRoot);
-            return _inner.VerifyPackageAsync(sourceRoot, package, cancellationToken);
+            VerifiedVersions.Add(package.Version);
+            return package.Version == mismatchedVersion
+                ? ValueTask.FromResult(new ManagedPackageVerificationResult(
+                    Candidate: null,
+                    ManagedVersionInstallIssue.PackageMismatch))
+                : _inner.VerifyPackageAsync(sourceRoot, package, cancellationToken);
         }
 
         public ValueTask<ManagedVersionInstallResult> InstallAsync(
@@ -939,6 +1118,39 @@ public sealed partial class VersionManagementExperienceTests
             CancellationToken cancellationToken)
         {
             return _inner.DeleteAsync(managedRoot, admission, activeVersion, cancellationToken);
+        }
+    }
+
+    private sealed class LeaseCountingStateStore(VersionManagerState state) : IVersionManagerStateStore
+    {
+        internal int LeaseRequestCount { get; private set; }
+
+        internal int SaveCount { get; private set; }
+
+        internal VersionManagerState State { get; private set; } = state;
+
+        public ValueTask<VersionManagerWriteLeaseResult> TryAcquireWriteLeaseAsync(
+            TimeSpan waitTimeout,
+            CancellationToken cancellationToken)
+        {
+            LeaseRequestCount++;
+            return ValueTask.FromResult(VersionManagerWriteLeaseTestSupport.Acquired());
+        }
+
+        public ValueTask<VersionManagerStateLoadResult> LoadAsync(CancellationToken cancellationToken)
+        {
+            return ValueTask.FromResult(new VersionManagerStateLoadResult(
+                State,
+                VersionManagerStateLoadIssue.None));
+        }
+
+        public ValueTask SaveAsync(
+            VersionManagerState stateToSave,
+            CancellationToken cancellationToken)
+        {
+            State = stateToSave;
+            SaveCount++;
+            return ValueTask.CompletedTask;
         }
     }
 
