@@ -1,7 +1,7 @@
 namespace NvtFwCombiner.Application.VersionManagement;
 
 /// <summary>Single Application owner for Bootstrap launcher selection, readiness, and exact rollback.</summary>
-internal sealed class LauncherBootstrapCoordinator
+internal sealed partial class LauncherBootstrapCoordinator
 {
     public static readonly TimeSpan DefaultReadyDeadline = TimeSpan.FromSeconds(20);
     private readonly IVersionManagerStateStore _appStateStore;
@@ -53,6 +53,16 @@ internal sealed class LauncherBootstrapCoordinator
             {
                 return Result(issue);
             }
+            ActiveAttemptRecovery recovery = await RecoverActiveAttemptsAsync(
+                appState!,
+                launcherState!,
+                cancellationToken).ConfigureAwait(false);
+            if (recovery.Outcome != LauncherBootstrapOutcome.Ready)
+            {
+                return Result(recovery.Outcome, failed: recovery.Failed);
+            }
+            appState = recovery.AppState;
+            launcherState = recovery.LauncherState;
             if (appState!.PendingMutation is not null)
             {
                 return Result(LauncherBootstrapOutcome.AppMutationPending);
@@ -71,6 +81,12 @@ internal sealed class LauncherBootstrapCoordinator
                 if (!Matches(verified, active))
                 {
                     return Result(MapVerification(verified.Issue), failed: active);
+                }
+                launcherState = launcherState.RecordActiveLaunch();
+                if (!await TrySaveLauncherStateAsync(appState, launcherState, cancellationToken)
+                    .ConfigureAwait(false))
+                {
+                    return Result(LauncherBootstrapOutcome.StateUnavailable, failed: active);
                 }
                 lease.Dispose();
                 return await LaunchExistingAsync(appState, launcherState!, active, cancellationToken)
@@ -124,6 +140,12 @@ internal sealed class LauncherBootstrapCoordinator
             }
             else if (launcherState.Active == desired)
             {
+                launcherState = launcherState.RecordActiveLaunch();
+                if (!await TrySaveLauncherStateAsync(appState, launcherState, cancellationToken)
+                    .ConfigureAwait(false))
+                {
+                    return Result(LauncherBootstrapOutcome.StateUnavailable, failed: desired);
+                }
                 lease.Dispose();
                 return await LaunchExistingAsync(appState, launcherState, desired, cancellationToken)
                     .ConfigureAwait(false);
@@ -181,7 +203,7 @@ internal sealed class LauncherBootstrapCoordinator
             LauncherProcessStartOutcome.ExitedBeforeReady or
             LauncherProcessStartOutcome.ReadyTimeout or
             LauncherProcessStartOutcome.InvalidReadySignal =>
-                Result(LauncherBootstrapOutcome.StartFailed, failed: launcher),
+                await ClearActiveLaunchAsync(launcher, cancellationToken).ConfigureAwait(false),
             _ => throw new InvalidOperationException("Managed launcher returned an undefined process outcome."),
         };
     }
@@ -370,14 +392,44 @@ internal sealed class LauncherBootstrapCoordinator
         (LauncherBootstrapOutcome issue, VersionManagerState? appState, LauncherBootstrapState? launcherState) =
             await LoadConsistentStatesAsync(cancellationToken).ConfigureAwait(false);
         ManagedVersionAdmission? activeAdmission = appState is null ? null : FindActiveAdmission(appState);
-        return issue == LauncherBootstrapOutcome.Ready &&
-               appState!.PendingActivation is null &&
-               appState.PendingMutation is null &&
-               readyAdmission == activeAdmission &&
-               launcherState!.Pending is null &&
-               launcherState.Active == launcher
+        if (issue != LauncherBootstrapOutcome.Ready ||
+            appState!.PendingMutation is not null ||
+            readyAdmission != activeAdmission ||
+            launcherState!.Pending is not
+            { Candidate: var guarded, Phase: LauncherActivationPhase.ActiveLaunchRecorded } ||
+            guarded != launcher || launcherState.Active != launcher)
+        {
+            return Result(LauncherBootstrapOutcome.StateChanged, failed: launcher);
+        }
+        LauncherBootstrapState cleared = launcherState.ClearActiveLaunch(launcher);
+        return await TrySaveLauncherStateAsync(appState, cleared, cancellationToken).ConfigureAwait(false)
             ? new(LauncherBootstrapOutcome.Ready, launcher, null)
-            : Result(LauncherBootstrapOutcome.StateChanged, failed: launcher);
+            : Result(LauncherBootstrapOutcome.StateUnavailable, failed: launcher);
+    }
+
+    private async ValueTask<LauncherBootstrapResult> ClearActiveLaunchAsync(
+        ManagedLauncherIdentity launcher,
+        CancellationToken cancellationToken)
+    {
+        using VersionManagerWriteLeaseResult lease = await _appStateStore.TryAcquireWriteLeaseAsync(
+            ManagedActivationCoordinator.DefaultWriterLeaseTimeout,
+            cancellationToken).ConfigureAwait(false);
+        if (!lease.IsAcquired)
+        {
+            return Result(LauncherBootstrapOutcome.StateUnavailable, failed: launcher);
+        }
+        (LauncherBootstrapOutcome issue, VersionManagerState? appState, LauncherBootstrapState? state) =
+            await LoadConsistentStatesAsync(cancellationToken).ConfigureAwait(false);
+        if (issue != LauncherBootstrapOutcome.Ready || state!.Pending is not
+            { Candidate: var guarded, Phase: LauncherActivationPhase.ActiveLaunchRecorded } ||
+            guarded != launcher)
+        {
+            return Result(LauncherBootstrapOutcome.StateChanged, failed: launcher);
+        }
+        LauncherBootstrapState cleared = state.ClearActiveLaunch(launcher);
+        return await TrySaveLauncherStateAsync(appState!, cleared, cancellationToken).ConfigureAwait(false)
+            ? Result(LauncherBootstrapOutcome.StartFailed, failed: launcher)
+            : Result(LauncherBootstrapOutcome.StateUnavailable, failed: launcher);
     }
 
     private async ValueTask<(LauncherBootstrapOutcome, VersionManagerState?)> LoadAppStateAsync(
@@ -456,7 +508,7 @@ internal sealed class LauncherBootstrapCoordinator
         VersionManagerState appState,
         LauncherBootstrapState launcherState)
     {
-        return launcherState.Pending is not null &&
+        return launcherState.Pending is { Phase: not LauncherActivationPhase.ActiveLaunchRecorded } &&
                (appState.PendingActivation is not null || appState.PendingMutation is not null);
     }
 

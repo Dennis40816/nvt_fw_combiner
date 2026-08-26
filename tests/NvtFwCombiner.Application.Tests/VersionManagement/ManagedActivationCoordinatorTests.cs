@@ -571,6 +571,18 @@ public sealed partial class ManagedActivationCoordinatorTests
         private readonly Queue<ManagedProcessStartOutcome> _outcomes = new(outcomes);
 
         internal List<string> Starts { get; } = [];
+        internal Queue<ManagedProcessLifetimeStatus> LifetimeStatuses { get; } = [];
+
+        public ValueTask<ManagedProcessLifetimeStatus> GetLifetimeStatusAsync(
+            string managedRoot,
+            CancellationToken cancellationToken)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            return ValueTask.FromResult(
+                LifetimeStatuses.Count == 0
+                    ? ManagedProcessLifetimeStatus.Active
+                    : LifetimeStatuses.Dequeue());
+        }
 
         public ValueTask<ManagedProcessStartResult> StartUntilReadyAsync(
             string managedRoot,

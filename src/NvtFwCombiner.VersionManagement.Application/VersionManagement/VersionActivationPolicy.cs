@@ -29,6 +29,8 @@ public enum VersionActivationPhase
     CandidateLaunchRecorded,
     /// <summary>The launcher durably recorded fallback selection before starting it.</summary>
     RollbackLaunchRecorded,
+    /// <summary>The launcher durably recorded one ordinary active-version launch attempt.</summary>
+    ActiveLaunchRecorded,
 }
 
 /// <summary>Recoverable journal for one not-yet-ready activation.</summary>
@@ -173,6 +175,10 @@ public sealed class VersionManagerState
                  !versions.Contains(previousActive)) ||
                 (pendingActivation.PreviousLastKnownGoodVersion is { } previousLastKnownGood &&
                  !versions.Contains(previousLastKnownGood)) ||
+                (pendingActivation.Phase == VersionActivationPhase.ActiveLaunchRecorded &&
+                 (pendingActivation.CandidateVersion != activeVersion ||
+                  pendingActivation.PreviousActiveVersion != activeVersion ||
+                  pendingActivation.PreviousLastKnownGoodVersion != lastKnownGoodVersion)) ||
                 !string.Equals(
                     candidate.AdmissionIdentity,
                     pendingActivation.CandidateAdmissionIdentity,
@@ -394,6 +400,47 @@ public sealed record ActivationRecoveryDecision(
 /// <summary>Pure Application owner for ready commit and bounded rollback transitions.</summary>
 public static class VersionActivationPolicy
 {
+    /// <summary>Records one ordinary active-version launch before crossing the process boundary.</summary>
+    public static VersionManagerState RecordActiveLaunch(VersionManagerState state)
+    {
+        ArgumentNullException.ThrowIfNull(state);
+        if (state.PendingActivation is not null || state.PendingMutation is not null)
+        {
+            throw new InvalidOperationException("Another managed-version transaction is already pending.");
+        }
+        ManagedVersionAdmission active = state.ActiveVersion is { } activeVersion
+            ? state.Admissions.Single(admission => admission.Version == activeVersion)
+            : throw new InvalidOperationException("No admitted active version is available.");
+        return state.Rebuild(
+            state.ActiveVersion,
+            state.LastKnownGoodVersion,
+            new(
+                active.Version,
+                active.AdmissionIdentity,
+                state.ActiveVersion,
+                state.LastKnownGoodVersion,
+                VersionActivationPhase.ActiveLaunchRecorded),
+            state.FailedActivationVersion);
+    }
+
+    /// <summary>Clears an ordinary launch guard only after that exact attempt has a confirmed outcome.</summary>
+    public static VersionManagerState ClearActiveLaunch(
+        VersionManagerState state,
+        ManagedAppVersion version)
+    {
+        ArgumentNullException.ThrowIfNull(state);
+        _ = state.PendingActivation is
+        { CandidateVersion: var active, Phase: VersionActivationPhase.ActiveLaunchRecorded } &&
+            active == version && state.ActiveVersion == version
+                ? true
+                : throw new InvalidOperationException("Active launch guard does not match the confirmed process.");
+        return state.Rebuild(
+            state.ActiveVersion,
+            state.LastKnownGoodVersion,
+            pendingActivation: null,
+            state.FailedActivationVersion);
+    }
+
     /// <summary>Begins one recoverable activation for an admitted installed version.</summary>
     /// <param name="state">Current launcher state.</param>
     /// <param name="candidateVersion">Exact admitted candidate.</param>

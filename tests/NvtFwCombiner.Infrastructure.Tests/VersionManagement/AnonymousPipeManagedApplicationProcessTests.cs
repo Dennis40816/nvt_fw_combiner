@@ -13,6 +13,36 @@ public sealed class AnonymousPipeManagedApplicationProcessTests
 {
     private const string BehaviorEnvironment = "NVT_READY_PROBE_BEHAVIOR";
 
+    /// <summary>The OS-owned lifetime lease blocks overlap and releases authoritatively on exit.</summary>
+    [Fact]
+    public void ChildOwnedLifetimeLeaseTransitionsFromActiveToExited()
+    {
+        if (!OperatingSystem.IsWindows())
+        {
+            return;
+        }
+        using var workspace = TempWorkspace.Create();
+        string statePath = workspace.PathFor("state/version-manager.v1.json");
+        ManagedProcessLifetimeLease? lease = ManagedProcessLifetimeLease.TryAcquire(
+            statePath,
+            ManagedProcessLifetimeLease.ApplicationSuffix);
+
+        Assert.NotNull(lease);
+        Assert.Equal(
+            ManagedProcessLifetimeStatus.Active,
+            ManagedProcessLifetimeLease.GetStatus(
+                statePath,
+                ManagedProcessLifetimeLease.ApplicationSuffix));
+
+        lease.Dispose();
+
+        Assert.Equal(
+            ManagedProcessLifetimeStatus.Exited,
+            ManagedProcessLifetimeLease.GetStatus(
+                statePath,
+                ManagedProcessLifetimeLease.ApplicationSuffix));
+    }
+
     /// <summary>An exact ready message succeeds without exposing handshake material in arguments.</summary>
     [Fact]
     public async Task ExactReadySignalSucceeds()
@@ -113,6 +143,49 @@ public sealed class AnonymousPipeManagedApplicationProcessTests
         {
             Environment.SetEnvironmentVariable(BehaviorEnvironment, previous);
         }
+    }
+
+    /// <summary>An aggregate whole-tree kill failure is always unconfirmed.</summary>
+    [Fact]
+    public void AggregateTreeKillFailureReturnsUnconfirmedTermination()
+    {
+        using var process = new Process();
+        var operations = new AggregateKillFailureOperations(rootExitsDuringKill: false);
+
+        ManagedProcessTerminationResult result = new ManagedProcessTermination(operations)
+            .ConfirmExited(process);
+
+        Assert.False(result.IsExitConfirmed);
+        Assert.Equal(1, operations.HasExitedCalls);
+    }
+
+    /// <summary>A partial tree-kill failure cannot be reclassified from root exit alone.</summary>
+    [Fact]
+    public void PartialTreeKillFailureIgnoresSubsequentRootExit()
+    {
+        using var process = new Process();
+        var operations = new AggregateKillFailureOperations(rootExitsDuringKill: true);
+
+        ManagedProcessTerminationResult result = new ManagedProcessTermination(operations)
+            .ConfirmExited(process);
+
+        Assert.False(result.IsExitConfirmed);
+        Assert.Equal(1, operations.HasExitedCalls);
+    }
+
+    /// <summary>A nonreturning process wait expires under the cleanup policy and remains unconfirmed.</summary>
+    [Fact]
+    public void NonreturningWaitExpiresAsUnconfirmedTermination()
+    {
+        using var process = new Process();
+        var operations = new ExpiringWaitOperations();
+        TimeSpan timeout = TimeSpan.FromMilliseconds(25);
+
+        ManagedProcessTerminationResult result = new ManagedProcessTermination(operations, timeout)
+            .ConfirmExited(process);
+
+        Assert.False(result.IsExitConfirmed);
+        Assert.Equal(timeout, operations.ObservedTimeout);
     }
 
     /// <summary>A wrong one-use ready message is rejected.</summary>
@@ -517,18 +590,70 @@ public sealed class AnonymousPipeManagedApplicationProcessTests
             }
         }
 
-        public void WaitForExit(Process process)
+        public bool WaitForExit(Process process, TimeSpan timeout)
         {
-            if (failWait)
-            {
-                throw new InvalidOperationException("Injected wait failure.");
-            }
-            process.WaitForExit();
+            return !failWait
+                ? process.WaitForExit(checked((int)Math.Ceiling(timeout.TotalMilliseconds)))
+                : throw new InvalidOperationException("Injected wait failure.");
         }
 
         public int GetExitCode(Process process)
         {
             return process.ExitCode;
+        }
+    }
+
+    private sealed class AggregateKillFailureOperations(bool rootExitsDuringKill)
+        : IManagedProcessTerminationOperations
+    {
+        private bool _rootExited;
+        public int HasExitedCalls { get; private set; }
+
+        public bool HasExited(Process process)
+        {
+            HasExitedCalls++;
+            return _rootExited;
+        }
+
+        public void Kill(Process process)
+        {
+            _rootExited = rootExitsDuringKill;
+            throw new AggregateException("Injected partial tree-kill failure.");
+        }
+
+        public bool WaitForExit(Process process, TimeSpan timeout)
+        {
+            throw new InvalidOperationException("Wait must not follow a failed tree kill.");
+        }
+
+        public int GetExitCode(Process process)
+        {
+            return 0;
+        }
+    }
+
+    private sealed class ExpiringWaitOperations : IManagedProcessTerminationOperations
+    {
+        public TimeSpan? ObservedTimeout { get; private set; }
+
+        public bool HasExited(Process process)
+        {
+            return false;
+        }
+
+        public void Kill(Process process)
+        {
+        }
+
+        public bool WaitForExit(Process process, TimeSpan timeout)
+        {
+            ObservedTimeout = timeout;
+            return false;
+        }
+
+        public int GetExitCode(Process process)
+        {
+            return 0;
         }
     }
 }

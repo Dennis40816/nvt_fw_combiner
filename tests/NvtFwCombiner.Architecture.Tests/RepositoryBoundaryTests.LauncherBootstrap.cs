@@ -41,6 +41,7 @@ public sealed partial class RepositoryBoundaryTests
             "ManagedActivationCoordinator.DefaultWriterLeaseTimeout");
         AssertContainsAll(
             launcherProgram,
+            "InheritedManagedProcessLifetime.Capture()",
             "CaptureNestedReadyContext()",
             "InvalidInheritedContext",
             "AnonymousPipeManagedApplicationProcess(statePath)",
@@ -61,7 +62,11 @@ public sealed partial class RepositoryBoundaryTests
             bootstrapRuntime.IndexOf("new ManagedVersionSeedBootstrapper(", StringComparison.Ordinal) <
             bootstrapRuntime.IndexOf("new LauncherBootstrapCoordinator(", StringComparison.Ordinal));
         Assert.DoesNotContain("ManagedVersionSeedBootstrapper", launcherProgram, StringComparison.Ordinal);
-        AssertContainsAll(desktopProgram, "ParseManagedHostOptions(args)", "CreateVersionManagementExperience");
+        AssertContainsAll(
+            desktopProgram,
+            "CaptureInheritedManagedProcessLifetime()",
+            "ParseManagedHostOptions(args)",
+            "CreateVersionManagementExperience");
         AssertContainsAll(contracts, "launcher/NvtFwCombiner.Launcher.exe", "SupportedProtocolVersion = 1");
     }
 
@@ -81,6 +86,36 @@ public sealed partial class RepositoryBoundaryTests
         Assert.Equal(4, CountOccurrences(selfTest, "CreateDurableSnapshotToken()"));
         Assert.DoesNotContain("SameSnapshot", selfTest, StringComparison.Ordinal);
         Assert.DoesNotContain("TryAcquireWriteLease", selfTest, StringComparison.Ordinal);
+    }
+
+    /// <summary>Cleanup uncertainty and ordinary-attempt recovery remain one bounded fail-closed contract.</summary>
+    [Fact]
+    public void ManagedProcessCleanupAndLifetimeRecoveryStayFailClosed()
+    {
+        string process = ReadText(
+            "src/NvtFwCombiner.VersionManagement.Infrastructure/VersionManagement/AnonymousPipeManagedApplicationProcess.cs");
+        string lifetime = ReadText(
+            "src/NvtFwCombiner.VersionManagement.Infrastructure/VersionManagement/ManagedProcessLifetimeLease.cs");
+        string appCoordinator = ReadText(
+            "src/NvtFwCombiner.VersionManagement.Application/VersionManagement/ManagedActivationCoordinator.cs");
+        string launcherCoordinator = ReadText(
+            "src/NvtFwCombiner.VersionManagement.Application/VersionManagement/LauncherBootstrapCoordinator.ActiveAttemptRecovery.cs");
+        string schema = ReadText("docs/contracts/launcher-bootstrap-v1.schema.json");
+
+        AssertContainsAll(
+            process,
+            "AggregateException",
+            "WaitForExit(process, _waitTimeout)",
+            "ManagedProcessStartOutcome.TerminationUnconfirmed");
+        Assert.DoesNotContain("TryObserveConfirmedExit", process, StringComparison.Ordinal);
+        AssertContainsAll(
+            lifetime,
+            "SetHandleInformation",
+            "ManagedProcessLifetimeStatus.Active",
+            "ManagedProcessLifetimeStatus.Unavailable");
+        AssertContainsAll(appCoordinator, "ActiveLaunchRecorded", "GetLifetimeStatusAsync");
+        AssertContainsAll(launcherCoordinator, "ActiveLaunchRecorded", "GetLifetimeStatusAsync");
+        Assert.Contains("activeLaunchRecorded", schema, StringComparison.Ordinal);
     }
 
     /// <summary>Launcher activation shares the existing exact app-state lease and declares no second writer.</summary>

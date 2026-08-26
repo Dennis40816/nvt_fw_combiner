@@ -42,6 +42,33 @@ public sealed class JsonLauncherBootstrapStateStoreTests
         Assert.Null(loaded.State.Failed);
     }
 
+    /// <summary>An ordinary active-attempt guard survives process restart exactly.</summary>
+    [Fact]
+    public async Task ActiveLaunchGuardRoundTrips()
+    {
+        using var workspace = TempWorkspace.Create();
+        var store = new JsonLauncherBootstrapStateStore(
+            Path.Combine(workspace.Root, "custom-state.json"));
+        ManagedLauncherIdentity active = Identity("1.0.0", "1.0.0", 'a');
+        LauncherBootstrapState expected = LauncherBootstrapState.Create(
+            workspace.Root,
+            active,
+            active,
+            pending: null,
+            failed: null).RecordActiveLaunch();
+
+        LauncherBootstrapStateSaveResult saved = await store.TrySaveAsync(
+            expected,
+            TestContext.Current.CancellationToken);
+        LauncherBootstrapStateLoadResult loaded = await store.LoadAsync(
+            TestContext.Current.CancellationToken);
+
+        Assert.True(saved.IsSuccess);
+        Assert.True(loaded.IsSuccess);
+        Assert.Equal(LauncherActivationPhase.ActiveLaunchRecorded, loaded.State!.Pending?.Phase);
+        Assert.Equal(active, loaded.State.Pending?.Candidate);
+    }
+
     /// <summary>Distinct custom app-state paths always derive distinct launcher journals.</summary>
     [Fact]
     public void StatePathMappingIsInjective()

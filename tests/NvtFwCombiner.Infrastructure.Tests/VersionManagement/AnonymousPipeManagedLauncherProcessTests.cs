@@ -361,7 +361,7 @@ public sealed class AnonymousPipeManagedLauncherProcessTests
             process.Kill(entireProcessTree: true);
         }
 
-        public void WaitForExit(Process process)
+        public bool WaitForExit(Process process, TimeSpan timeout)
         {
             throw new InvalidOperationException("Injected wait failure.");
         }

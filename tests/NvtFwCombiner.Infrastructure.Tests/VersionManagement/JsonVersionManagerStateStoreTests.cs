@@ -283,6 +283,25 @@ public sealed class JsonVersionManagerStateStoreTests
             VersionActivationPhase.RollbackLaunchRecorded,
             loadedActivation.State!.PendingActivation?.Phase);
         Assert.Equal(candidate, loadedActivation.State.FailedActivationVersion);
+
+        VersionManagerState activeRecorded = VersionActivationPolicy.RecordActiveLaunch(
+            VersionManagerState.Create(
+                null,
+                active,
+                active,
+                [activeAdmission, candidateAdmission],
+                null,
+                null,
+                false,
+                managedRootIdentity: "X:\\managed-root"));
+        await store.SaveAsync(activeRecorded, TestContext.Current.CancellationToken);
+        VersionManagerStateLoadResult loadedActive = await store.LoadAsync(
+            TestContext.Current.CancellationToken);
+
+        Assert.Equal(
+            VersionActivationPhase.ActiveLaunchRecorded,
+            loadedActive.State!.PendingActivation?.Phase);
+        Assert.Equal(active, loadedActive.State.PendingActivation?.CandidateVersion);
     }
 
     /// <summary>Idle and requested state retain the pre-journal wire shape for older installed apps.</summary>

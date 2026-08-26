@@ -204,6 +204,9 @@ internal sealed class JsonLauncherBootstrapStateStore : ILauncherBootstrapStateS
             case "rollbackLaunchRecorded":
                 phase = LauncherActivationPhase.RollbackLaunchRecorded;
                 return true;
+            case "activeLaunchRecorded":
+                phase = LauncherActivationPhase.ActiveLaunchRecorded;
+                return true;
             default:
                 phase = default;
                 return false;
@@ -217,6 +220,7 @@ internal sealed class JsonLauncherBootstrapStateStore : ILauncherBootstrapStateS
             LauncherActivationPhase.Requested => "requested",
             LauncherActivationPhase.CandidateLaunchRecorded => "candidateLaunchRecorded",
             LauncherActivationPhase.RollbackLaunchRecorded => "rollbackLaunchRecorded",
+            LauncherActivationPhase.ActiveLaunchRecorded => "activeLaunchRecorded",
             _ => throw new InvalidOperationException("Unknown launcher activation phase."),
         };
     }

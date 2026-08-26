@@ -9,6 +9,7 @@ internal static class Program
     [STAThread]
     public static int Main(string[] args)
     {
+        using IDisposable? lifetime = CompositionHostServices.CaptureInheritedManagedProcessLifetime();
         (string? managedRoot, string? statePath, string[] remaining) = ParseManagedHostOptions(args);
         return DesktopApplication.Run(
             () => CreatePresentationHostServices(managedRoot, statePath),

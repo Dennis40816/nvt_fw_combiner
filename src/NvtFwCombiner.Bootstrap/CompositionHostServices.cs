@@ -250,6 +250,12 @@ public sealed class CompositionHostServices
             statePath);
     }
 
+    /// <summary>Captures the inherited managed-process lifetime at desktop entry.</summary>
+    public static IDisposable? CaptureInheritedManagedProcessLifetime()
+    {
+        return InheritedManagedProcessLifetime.Capture();
+    }
+
     /// <summary>Creates a focused current-session System Information lifecycle.</summary>
     public ISystemInformationService CreateSystemInformationService(
         string applicationVersion)

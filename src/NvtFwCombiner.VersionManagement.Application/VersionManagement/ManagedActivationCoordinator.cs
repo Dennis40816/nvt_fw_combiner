@@ -22,9 +22,25 @@ public sealed record ManagedProcessStartResult(
     ManagedProcessStartOutcome Outcome,
     int? ExitCode);
 
+/// <summary>Authoritative status of the child-owned managed-process lifetime.</summary>
+public enum ManagedProcessLifetimeStatus
+{
+    /// <summary>The prior managed child still owns its inherited lifetime lease.</summary>
+    Active,
+    /// <summary>No process owns the prior managed-child lifetime lease.</summary>
+    Exited,
+    /// <summary>The lifetime lease could not be inspected safely.</summary>
+    Unavailable,
+}
+
 /// <summary>Starts one exact managed version through an inherited one-use ready channel.</summary>
 public interface IManagedApplicationProcess
 {
+    /// <summary>Inspects the child-owned lifetime lease for a recoverable recorded attempt.</summary>
+    ValueTask<ManagedProcessLifetimeStatus> GetLifetimeStatusAsync(
+        string managedRoot,
+        CancellationToken cancellationToken);
+
     /// <summary>Starts and supervises one exact managed payload.</summary>
     /// <param name="managedRoot">Stable launcher-owned managed root.</param>
     /// <param name="version">Exact verified target version.</param>
@@ -172,6 +188,28 @@ public sealed class ManagedActivationCoordinator
             return new(ManagedLauncherOutcome.InvalidState, null, null);
         }
         PendingVersionActivation? pending = state.PendingActivation;
+        if (pending?.Phase == VersionActivationPhase.ActiveLaunchRecorded)
+        {
+            ManagedProcessLifetimeStatus lifetime = await _process.GetLifetimeStatusAsync(
+                _managedRoot,
+                cancellationToken).ConfigureAwait(false);
+            if (lifetime != ManagedProcessLifetimeStatus.Exited)
+            {
+                return new(
+                    ManagedLauncherOutcome.TerminationUnconfirmed,
+                    null,
+                    pending.CandidateVersion);
+            }
+            state = VersionActivationPolicy.ClearActiveLaunch(state, pending.CandidateVersion);
+            if (!await TrySaveAsync(state, cancellationToken).ConfigureAwait(false))
+            {
+                return new(
+                    ManagedLauncherOutcome.StateUnavailable,
+                    null,
+                    pending.CandidateVersion);
+            }
+            pending = null;
+        }
         if (pending?.Phase == VersionActivationPhase.RollbackLaunchRecorded)
         {
             return await LaunchRecordedRollbackAsync(state, cancellationToken).ConfigureAwait(false);
@@ -213,6 +251,14 @@ public sealed class ManagedActivationCoordinator
                 return new(ManagedLauncherOutcome.StateUnavailable, null, target);
             }
         }
+        else
+        {
+            state = VersionActivationPolicy.RecordActiveLaunch(state);
+            if (!await TrySaveAsync(state, cancellationToken).ConfigureAwait(false))
+            {
+                return new(ManagedLauncherOutcome.StateUnavailable, null, target);
+            }
+        }
 
         ManagedProcessStartResult start = await _process.StartUntilReadyAsync(
             _managedRoot,
@@ -221,22 +267,28 @@ public sealed class ManagedActivationCoordinator
             cancellationToken).ConfigureAwait(false);
         if (start.Outcome == ManagedProcessStartOutcome.Ready)
         {
-            if (state.PendingActivation?.CandidateVersion == target)
-            {
-                state = VersionActivationPolicy.CommitReady(state, target.Value);
-                if (!await TrySaveAsync(state, cancellationToken).ConfigureAwait(false))
-                {
-                    return new(ManagedLauncherOutcome.StateUnavailable, target, null);
-                }
-            }
-            return new(ManagedLauncherOutcome.Ready, target, null);
+            state = state.PendingActivation?.Phase == VersionActivationPhase.CandidateLaunchRecorded
+                ? VersionActivationPolicy.CommitReady(state, target.Value)
+                : state.PendingActivation?.Phase == VersionActivationPhase.ActiveLaunchRecorded
+                    ? VersionActivationPolicy.ClearActiveLaunch(state, target.Value)
+                    : throw new InvalidOperationException("Ready process has no matching durable launch phase.");
+            return await TrySaveAsync(state, cancellationToken).ConfigureAwait(false)
+                ? new(ManagedLauncherOutcome.Ready, target, null)
+                : new(ManagedLauncherOutcome.StateUnavailable, target, null);
         }
 
-        return start.Outcome == ManagedProcessStartOutcome.TerminationUnconfirmed
-            ? new(ManagedLauncherOutcome.TerminationUnconfirmed, null, target)
-            : state.PendingActivation?.CandidateVersion == target
-                ? await RecordAndLaunchRollbackAsync(state, target.Value, cancellationToken).ConfigureAwait(false)
-                : new(ManagedLauncherOutcome.StartFailed, null, target);
+        if (start.Outcome == ManagedProcessStartOutcome.TerminationUnconfirmed)
+        {
+            return new(ManagedLauncherOutcome.TerminationUnconfirmed, null, target);
+        }
+        if (state.PendingActivation?.Phase == VersionActivationPhase.ActiveLaunchRecorded)
+        {
+            VersionManagerState cleared = VersionActivationPolicy.ClearActiveLaunch(state, target.Value);
+            return await TrySaveAsync(cleared, cancellationToken).ConfigureAwait(false)
+                ? new(ManagedLauncherOutcome.StartFailed, null, target)
+                : new(ManagedLauncherOutcome.StateUnavailable, null, target);
+        }
+        return await RecordAndLaunchRollbackAsync(state, target.Value, cancellationToken).ConfigureAwait(false);
     }
 
     private async ValueTask<ManagedLauncherResult> RecordAndLaunchRollbackAsync(

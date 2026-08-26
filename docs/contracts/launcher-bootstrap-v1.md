@@ -31,15 +31,26 @@ Rules:
 - `requested` may start the exact candidate.
   `candidateLaunchRecorded` never starts it again after restart.
   `rollbackLaunchRecorded` may start only the recorded previous
-  last-known-good identity.
+  last-known-good identity. `activeLaunchRecorded` records one ordinary active
+  target attempt before process creation and prevents another start while the
+  prior child-owned lifetime lease remains active or cannot be inspected.
+- Each managed Launcher and Desktop child inherits an exclusive OS-owned
+  lifetime lease derived injectively from the exact version-state path. The
+  child captures that handle at process entry and holds it for its lifetime.
+  The OS releases it on confirmed exit or reboot. A recorded ordinary attempt
+  may be cleared and retried only after the lease adapter authoritatively
+  observes no owner; unreadable or indeterminate lease state remains
+  fail-closed.
 - A rejected or timed-out process permits automatic fallback in the same
   invocation only after the process adapter confirms exit. Unconfirmed
   termination returns a distinct fail-closed outcome and preserves the current
   recoverable journal phase without starting another process.
 - `failed` is diagnostic history and never a fallback selector.
 - Launcher activation is forbidden while application `pendingActivation` or
-  `pendingMutation` exists. A pending activation runs only the already admitted
-  active launcher; a pending mutation starts no process.
+  `pendingMutation` exists, except that the active-attempt phase is first
+  recovered through the child-owned application lifetime lease. A candidate
+  pending activation runs only the already admitted active launcher; a pending
+  mutation starts no process.
 - While launcher `pending` exists, protocol-aware application mutation policy
   blocks every app-state writer. Read-only state/inventory remains available.
 - Outer READY includes the complete expected launcher identity and exact

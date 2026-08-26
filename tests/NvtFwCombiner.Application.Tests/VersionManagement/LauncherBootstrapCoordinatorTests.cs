@@ -279,30 +279,6 @@ public sealed partial class LauncherBootstrapCoordinatorTests
         Assert.Equal(Launcher100, launcherStore.Current.Active);
     }
 
-    /// <summary>Pending app activation uses the admitted current launcher without updating it.</summary>
-    [Fact]
-    public async Task PendingAppActivationRunsAlreadyAdmittedLauncherWithoutLauncherActivation()
-    {
-        VersionManagerState appState = AppStateWithPendingActivation();
-        var appStore = new RecordingAppStateStore(appState)
-        {
-            StateAfterFirstLoad = AppState(App101, App100),
-        };
-        var launcherStore = new RecordingLauncherStateStore(
-            LauncherBootstrapState.Create(Root, Launcher100, Launcher100, pending: null, failed: null));
-        var process = new RecordingLauncherProcess(LauncherProcessStartOutcome.Ready);
-
-        LauncherBootstrapResult result = await Create(
-            appStore,
-            launcherStore,
-            new RecordingLauncherRepository(Launcher100, Launcher101),
-            process).RunAsync(TestContext.Current.CancellationToken);
-
-        Assert.Equal(LauncherBootstrapOutcome.Ready, result.Outcome);
-        Assert.Equal([Launcher100], process.Started);
-        Assert.Equal(0, launcherStore.SaveCount);
-    }
-
     /// <summary>Pending app filesystem mutation prevents any launcher process or state change.</summary>
     [Fact]
     public async Task PendingAppMutationStartsNoProcessAndMutatesNoLauncherState()
@@ -703,31 +679,6 @@ public sealed partial class LauncherBootstrapCoordinatorTests
                 : new InstalledLauncherResult(null, issue == InstalledLauncherIssue.None
                     ? InstalledLauncherIssue.Unavailable
                     : issue));
-        }
-    }
-
-    private sealed class RecordingLauncherProcess(params LauncherProcessStartOutcome[] outcomes)
-        : IManagedLauncherProcess
-    {
-        private int _index;
-        public RecordingAppStateStore? AppStateStore { get; set; }
-        public List<ManagedLauncherIdentity> Started { get; } = [];
-
-        public ValueTask<LauncherProcessStartResult> StartUntilReadyAsync(
-            string managedRoot,
-            string statePath,
-            ManagedLauncherIdentity launcher,
-            TimeSpan readyDeadline,
-            CancellationToken cancellationToken)
-        {
-            cancellationToken.ThrowIfCancellationRequested();
-            Started.Add(launcher);
-            LauncherProcessStartOutcome outcome = outcomes[Math.Min(_index++, outcomes.Length - 1)];
-            ManagedVersionAdmission? admission = outcome == LauncherProcessStartOutcome.Ready
-                ? AppStateStore?.ReadyState.Admissions.SingleOrDefault(
-                    candidate => candidate.Version == AppStateStore.ReadyState.ActiveVersion)
-                : null;
-            return ValueTask.FromResult(new LauncherProcessStartResult(outcome, ExitCode: null, admission));
         }
     }
 

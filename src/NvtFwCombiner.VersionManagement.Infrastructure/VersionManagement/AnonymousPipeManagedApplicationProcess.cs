@@ -17,7 +17,7 @@ public sealed class AnonymousPipeManagedApplicationProcess : IManagedApplication
     public const string ExpectedVersionEnvironment = "NVT_FW_COMBINER_EXPECTED_VERSION";
 
     private const int MaximumReadyLineCharacters = 128;
-    private readonly string? _statePath;
+    private readonly string _statePath;
     private readonly IManagedProcessTermination _termination;
 
     /// <summary>Creates a process adapter, optionally propagating an exact custom version-state path.</summary>
@@ -30,8 +30,20 @@ public sealed class AnonymousPipeManagedApplicationProcess : IManagedApplication
         string? statePath,
         IManagedProcessTermination termination)
     {
-        _statePath = statePath is null ? null : Path.GetFullPath(statePath);
+        _statePath = Path.GetFullPath(statePath ?? JsonVersionManagerStateStore.GetDefaultPath());
         _termination = termination ?? throw new ArgumentNullException(nameof(termination));
+    }
+
+    /// <inheritdoc />
+    public ValueTask<ManagedProcessLifetimeStatus> GetLifetimeStatusAsync(
+        string managedRoot,
+        CancellationToken cancellationToken)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(managedRoot);
+        cancellationToken.ThrowIfCancellationRequested();
+        return ValueTask.FromResult(ManagedProcessLifetimeLease.GetStatus(
+            _statePath,
+            ManagedProcessLifetimeLease.ApplicationSuffix));
     }
 
     /// <inheritdoc />
@@ -57,6 +69,13 @@ public sealed class AnonymousPipeManagedApplicationProcess : IManagedApplication
                 return new(ManagedProcessStartOutcome.StartFailed, null);
             }
 
+            using ManagedProcessLifetimeLease? lifetime = ManagedProcessLifetimeLease.TryAcquire(
+                _statePath,
+                ManagedProcessLifetimeLease.ApplicationSuffix);
+            if (lifetime is null)
+            {
+                return new(ManagedProcessStartOutcome.TerminationUnconfirmed, null);
+            }
             using var pipe = new AnonymousPipeServerStream(
                 PipeDirection.In,
                 HandleInheritability.Inheritable);
@@ -69,13 +88,11 @@ public sealed class AnonymousPipeManagedApplicationProcess : IManagedApplication
             };
             startInfo.ArgumentList.Add("--managed-root");
             startInfo.ArgumentList.Add(Path.GetFullPath(managedRoot));
-            if (_statePath is not null)
-            {
-                startInfo.ArgumentList.Add("--state-path");
-                startInfo.ArgumentList.Add(_statePath);
-            }
+            startInfo.ArgumentList.Add("--state-path");
+            startInfo.ArgumentList.Add(_statePath);
             startInfo.Environment[ReadyPipeHandleEnvironment] = pipe.GetClientHandleAsString();
             startInfo.Environment[ExpectedVersionEnvironment] = version.ToString();
+            startInfo.Environment[ManagedProcessLifetimeLease.HandleEnvironment] = lifetime.InheritedHandle;
             try
             {
                 process = Process.Start(startInfo);
@@ -220,19 +237,29 @@ internal interface IManagedProcessTerminationOperations
 {
     bool HasExited(Process process);
     void Kill(Process process);
-    void WaitForExit(Process process);
+    bool WaitForExit(Process process, TimeSpan timeout);
     int GetExitCode(Process process);
 }
 
 internal sealed class ManagedProcessTermination : IManagedProcessTermination
 {
+    internal static readonly TimeSpan DefaultWaitTimeout = TimeSpan.FromSeconds(5);
+
     private readonly IManagedProcessTerminationOperations _operations;
+    private readonly TimeSpan _waitTimeout;
 
     internal static ManagedProcessTermination Instance { get; } = new(new ProcessTerminationOperations());
 
-    internal ManagedProcessTermination(IManagedProcessTerminationOperations operations)
+    internal ManagedProcessTermination(
+        IManagedProcessTerminationOperations operations,
+        TimeSpan? waitTimeout = null)
     {
         _operations = operations ?? throw new ArgumentNullException(nameof(operations));
+        _waitTimeout = waitTimeout ?? DefaultWaitTimeout;
+        ArgumentOutOfRangeException.ThrowIfLessThanOrEqual(_waitTimeout, TimeSpan.Zero);
+        ArgumentOutOfRangeException.ThrowIfGreaterThan(
+            _waitTimeout,
+            TimeSpan.FromMilliseconds(int.MaxValue));
     }
 
     public ManagedProcessTerminationResult ConfirmExited(Process process)
@@ -240,33 +267,40 @@ internal sealed class ManagedProcessTermination : IManagedProcessTermination
         ArgumentNullException.ThrowIfNull(process);
         try
         {
-            if (!_operations.HasExited(process))
+            if (_operations.HasExited(process))
             {
-                _operations.Kill(process);
-                _operations.WaitForExit(process);
+                return new(true, _operations.GetExitCode(process));
             }
-            return _operations.HasExited(process)
-                ? new(true, _operations.GetExitCode(process))
-                : ManagedProcessTerminationResult.Unconfirmed;
         }
-        catch (Exception exception) when (exception is InvalidOperationException or Win32Exception)
-        {
-            return TryObserveConfirmedExit(process);
-        }
-    }
-
-    private ManagedProcessTerminationResult TryObserveConfirmedExit(Process process)
-    {
-        try
-        {
-            return _operations.HasExited(process)
-                ? new(true, _operations.GetExitCode(process))
-                : ManagedProcessTerminationResult.Unconfirmed;
-        }
-        catch (Exception exception) when (exception is InvalidOperationException or Win32Exception)
+        catch (Exception exception) when (IsTerminationUncertainty(exception))
         {
             return ManagedProcessTerminationResult.Unconfirmed;
         }
+
+        try
+        {
+            _operations.Kill(process);
+        }
+        catch (Exception exception) when (IsTerminationUncertainty(exception))
+        {
+            return ManagedProcessTerminationResult.Unconfirmed;
+        }
+
+        try
+        {
+            return _operations.WaitForExit(process, _waitTimeout) && _operations.HasExited(process)
+                ? new(true, _operations.GetExitCode(process))
+                : ManagedProcessTerminationResult.Unconfirmed;
+        }
+        catch (Exception exception) when (IsTerminationUncertainty(exception))
+        {
+            return ManagedProcessTerminationResult.Unconfirmed;
+        }
+    }
+
+    private static bool IsTerminationUncertainty(Exception exception)
+    {
+        return exception is AggregateException or InvalidOperationException or Win32Exception;
     }
 
     private sealed class ProcessTerminationOperations : IManagedProcessTerminationOperations
@@ -281,9 +315,9 @@ internal sealed class ManagedProcessTermination : IManagedProcessTermination
             process.Kill(entireProcessTree: true);
         }
 
-        public void WaitForExit(Process process)
+        public bool WaitForExit(Process process, TimeSpan timeout)
         {
-            process.WaitForExit();
+            return process.WaitForExit(checked((int)Math.Ceiling(timeout.TotalMilliseconds)));
         }
 
         public int GetExitCode(Process process)

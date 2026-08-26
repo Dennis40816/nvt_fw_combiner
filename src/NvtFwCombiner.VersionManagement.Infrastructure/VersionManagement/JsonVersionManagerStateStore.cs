@@ -279,6 +279,9 @@ public sealed class JsonVersionManagerStateStore : IVersionManagerStateStore
             case "rollbackLaunchRecorded":
                 phase = VersionActivationPhase.RollbackLaunchRecorded;
                 return true;
+            case "activeLaunchRecorded":
+                phase = VersionActivationPhase.ActiveLaunchRecorded;
+                return true;
             default:
                 phase = default;
                 return false;
@@ -292,6 +295,7 @@ public sealed class JsonVersionManagerStateStore : IVersionManagerStateStore
             VersionActivationPhase.Requested => null,
             VersionActivationPhase.CandidateLaunchRecorded => "candidateLaunchRecorded",
             VersionActivationPhase.RollbackLaunchRecorded => "rollbackLaunchRecorded",
+            VersionActivationPhase.ActiveLaunchRecorded => "activeLaunchRecorded",
             _ => throw new InvalidOperationException("Unknown activation transaction phase."),
         };
     }

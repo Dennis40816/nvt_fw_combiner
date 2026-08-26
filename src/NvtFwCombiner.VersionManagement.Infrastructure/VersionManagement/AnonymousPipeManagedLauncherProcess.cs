@@ -59,6 +59,23 @@ internal sealed class AnonymousPipeManagedLauncherProcess : IManagedLauncherProc
         _termination = termination ?? throw new ArgumentNullException(nameof(termination));
     }
 
+    public ValueTask<ManagedProcessLifetimeStatus> GetLifetimeStatusAsync(
+        string statePath,
+        ManagedProcessLifetimeKind kind,
+        CancellationToken cancellationToken)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(statePath);
+        cancellationToken.ThrowIfCancellationRequested();
+        return ValueTask.FromResult(ManagedProcessLifetimeLease.GetStatus(
+            statePath,
+            kind switch
+            {
+                ManagedProcessLifetimeKind.Application => ManagedProcessLifetimeLease.ApplicationSuffix,
+                ManagedProcessLifetimeKind.Launcher => ManagedProcessLifetimeLease.LauncherSuffix,
+                _ => throw new ArgumentOutOfRangeException(nameof(kind)),
+            }));
+    }
+
     public async ValueTask<LauncherProcessStartResult> StartUntilReadyAsync(
         string managedRoot,
         string statePath,
@@ -85,6 +102,13 @@ internal sealed class AnonymousPipeManagedLauncherProcess : IManagedLauncherProc
                 return Failure(LauncherProcessStartOutcome.StartFailed);
             }
 
+            using ManagedProcessLifetimeLease? lifetime = ManagedProcessLifetimeLease.TryAcquire(
+                statePath,
+                ManagedProcessLifetimeLease.LauncherSuffix);
+            if (lifetime is null)
+            {
+                return Failure(LauncherProcessStartOutcome.TerminationUnconfirmed);
+            }
             using var pipe = new AnonymousPipeServerStream(PipeDirection.In, HandleInheritability.Inheritable);
             var startInfo = new ProcessStartInfo
             {
@@ -100,6 +124,7 @@ internal sealed class AnonymousPipeManagedLauncherProcess : IManagedLauncherProc
             string expected = LauncherReadyProtocol.CreateExpectedPrefix(launcher);
             startInfo.Environment[ReadyPipeHandleEnvironment] = pipe.GetClientHandleAsString();
             startInfo.Environment[ExpectedReadyEnvironment] = expected;
+            startInfo.Environment[ManagedProcessLifetimeLease.HandleEnvironment] = lifetime.InheritedHandle;
             try
             {
                 process = Process.Start(startInfo);

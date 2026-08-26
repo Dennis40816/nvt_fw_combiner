@@ -69,7 +69,7 @@
         "previousActive": { "oneOf": [{ "$ref": "#/$defs/identity" }, { "type": "null" }] },
         "previousLastKnownGood": { "oneOf": [{ "$ref": "#/$defs/identity" }, { "type": "null" }] },
         "phase": {
-          "enum": ["requested", "candidateLaunchRecorded", "rollbackLaunchRecorded"]
+          "enum": ["requested", "candidateLaunchRecorded", "rollbackLaunchRecorded", "activeLaunchRecorded"]
         }
       }
     }

@@ -108,6 +108,14 @@ public sealed partial class ManagedActivationCoordinatorTests
 
         internal List<ManagedAppVersion> StartedVersions { get; } = [];
 
+        public ValueTask<ManagedProcessLifetimeStatus> GetLifetimeStatusAsync(
+            string managedRoot,
+            CancellationToken cancellationToken)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            return ValueTask.FromResult(ManagedProcessLifetimeStatus.Active);
+        }
+
         public async ValueTask<ManagedProcessStartResult> StartUntilReadyAsync(
             string managedRoot,
             ManagedAppVersion version,

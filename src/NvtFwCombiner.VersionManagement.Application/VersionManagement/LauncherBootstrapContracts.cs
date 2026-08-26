@@ -100,6 +100,7 @@ internal enum LauncherActivationPhase
     Requested,
     CandidateLaunchRecorded,
     RollbackLaunchRecorded,
+    ActiveLaunchRecorded,
 }
 
 internal sealed record PendingLauncherActivation
@@ -175,6 +176,9 @@ internal sealed class LauncherBootstrapState
             : pending is not null &&
             (pending.PreviousActive != active || pending.PreviousLastKnownGood != lastKnownGood)
             ? throw new ArgumentException("Launcher pending transaction does not preserve exact prior state.", nameof(pending))
+            : pending is { Phase: LauncherActivationPhase.ActiveLaunchRecorded } &&
+              pending.Candidate != active
+            ? throw new ArgumentException("Active launcher guard does not match current active state.", nameof(pending))
             : new(root, active, lastKnownGood, pending, failed);
     }
 
@@ -228,6 +232,33 @@ internal sealed class LauncherBootstrapState
                 LastKnownGood,
                 LauncherActivationPhase.Requested),
             Failed);
+    }
+
+    internal LauncherBootstrapState RecordActiveLaunch()
+    {
+        ManagedLauncherIdentity active = Pending is null && Active is { } value
+            ? value
+            : throw new InvalidOperationException("Active launcher attempt cannot begin from current state.");
+        return Create(
+            ManagedRootIdentity,
+            Active,
+            LastKnownGood,
+            PendingLauncherActivation.Create(
+                active,
+                Active,
+                LastKnownGood,
+                LauncherActivationPhase.ActiveLaunchRecorded),
+            Failed);
+    }
+
+    internal LauncherBootstrapState ClearActiveLaunch(ManagedLauncherIdentity launcher)
+    {
+        _ = Pending is
+        { Candidate: var active, Phase: LauncherActivationPhase.ActiveLaunchRecorded } &&
+            active == launcher && Active == launcher
+                ? true
+                : throw new InvalidOperationException("Active launcher guard does not match confirmed process.");
+        return Create(ManagedRootIdentity, Active, LastKnownGood, pending: null, Failed);
     }
 
     internal LauncherBootstrapState RecordCandidateLaunch()
@@ -339,12 +370,23 @@ internal sealed record LauncherProcessStartResult(
 
 internal interface IManagedLauncherProcess
 {
+    ValueTask<ManagedProcessLifetimeStatus> GetLifetimeStatusAsync(
+        string statePath,
+        ManagedProcessLifetimeKind kind,
+        CancellationToken cancellationToken);
+
     ValueTask<LauncherProcessStartResult> StartUntilReadyAsync(
         string managedRoot,
         string statePath,
         ManagedLauncherIdentity launcher,
         TimeSpan readyDeadline,
         CancellationToken cancellationToken);
+}
+
+internal enum ManagedProcessLifetimeKind
+{
+    Application,
+    Launcher,
 }
 
 internal enum LauncherBootstrapOutcome
