@@ -14,7 +14,7 @@ public sealed partial class VersionManagementExperienceTests
             package.Version,
             package.Identity,
             package.ReleaseNotes);
-        using var experience = new VersionManagementExperience(
+        using VersionManagementExperience experience = VersionManagementExperienceTestFactory.Create(
             ManagedAppVersion.Parse("0.10.5"),
             "managed-root",
             new MemoryStateStore(State(
@@ -41,7 +41,7 @@ public sealed partial class VersionManagementExperienceTests
     {
         UpdateCatalogSnapshot catalog = Catalog("0.10.6");
         UpdateCatalogVersionSnapshot package = Assert.Single(catalog.Versions);
-        using var experience = new VersionManagementExperience(
+        using VersionManagementExperience experience = VersionManagementExperienceTestFactory.Create(
             ManagedAppVersion.Parse("0.10.5"),
             "managed-root",
             new MemoryStateStore(State(
@@ -68,7 +68,7 @@ public sealed partial class VersionManagementExperienceTests
     {
         UpdateCatalogSnapshot catalog = Catalog("0.10.6");
         UpdateCatalogVersionSnapshot package = Assert.Single(catalog.Versions);
-        using var experience = new VersionManagementExperience(
+        using VersionManagementExperience experience = VersionManagementExperienceTestFactory.Create(
             ManagedAppVersion.Parse("0.10.5"),
             "managed-root",
             new MemoryStateStore(State(

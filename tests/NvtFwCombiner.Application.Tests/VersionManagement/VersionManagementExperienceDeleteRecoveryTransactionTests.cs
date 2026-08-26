@@ -18,7 +18,7 @@ public sealed partial class VersionManagementExperienceTests
             new(ManagedVersionMutationKind.Delete, pending));
         var stateStore = new MemoryStateStore(prepared);
         var repository = new TransactionRepository(initial.Admissions);
-        using var restarted = new VersionManagementExperience(
+        using VersionManagementExperience restarted = VersionManagementExperienceTestFactory.Create(
             ManagedAppVersion.Parse("0.10.5"),
             "managed-root",
             stateStore,
@@ -47,7 +47,7 @@ public sealed partial class VersionManagementExperienceTests
         {
             DeleteIssue = ManagedVersionDeleteIssue.DeleteFailed,
         };
-        using (var first = new VersionManagementExperience(
+        using (VersionManagementExperience first = VersionManagementExperienceTestFactory.Create(
             ManagedAppVersion.Parse("0.10.5"),
             "managed-root",
             stateStore,
@@ -64,7 +64,7 @@ public sealed partial class VersionManagementExperienceTests
         }
 
         repository.DeleteIssue = ManagedVersionDeleteIssue.None;
-        using var restarted = new VersionManagementExperience(
+        using VersionManagementExperience restarted = VersionManagementExperienceTestFactory.Create(
             ManagedAppVersion.Parse("0.10.5"),
             "managed-root",
             stateStore,
@@ -94,7 +94,7 @@ public sealed partial class VersionManagementExperienceTests
         var stateStore = new FailingStateStore(prepared, failOnSave: 1);
         var repository = new TransactionRepository(
             initial.Admissions.Where(item => item.Version != pending.Version));
-        using (var firstRestart = new VersionManagementExperience(
+        using (VersionManagementExperience firstRestart = VersionManagementExperienceTestFactory.Create(
             ManagedAppVersion.Parse("0.10.5"),
             "managed-root",
             stateStore,
@@ -106,7 +106,7 @@ public sealed partial class VersionManagementExperienceTests
             Assert.NotNull(stillPrepared.State!.PendingMutation);
         }
 
-        using var secondRestart = new VersionManagementExperience(
+        using VersionManagementExperience secondRestart = VersionManagementExperienceTestFactory.Create(
             ManagedAppVersion.Parse("0.10.5"),
             "managed-root",
             stateStore,
@@ -137,7 +137,7 @@ public sealed partial class VersionManagementExperienceTests
         {
             DeleteIssue = ManagedVersionDeleteIssue.DeleteFailed,
         };
-        using var restarted = new VersionManagementExperience(
+        using VersionManagementExperience restarted = VersionManagementExperienceTestFactory.Create(
             ManagedAppVersion.Parse("0.10.5"),
             "managed-root",
             stateStore,

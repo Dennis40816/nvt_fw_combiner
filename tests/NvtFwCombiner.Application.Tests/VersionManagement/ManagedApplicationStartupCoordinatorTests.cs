@@ -43,7 +43,7 @@ public sealed class ManagedApplicationStartupCoordinatorTests
     public async Task ManagedReadyInitializationWaitsThenReloadsDurableState()
     {
         var store = new DelayedLeaseStateStore(State("before-ready"));
-        using var experience = new VersionManagementExperience(
+        using VersionManagementExperience experience = VersionManagementExperienceTestFactory.Create(
             ManagedAppVersion.Parse("0.10.6"),
             "managed",
             store,
@@ -72,7 +72,7 @@ public sealed class ManagedApplicationStartupCoordinatorTests
     public async Task OrdinaryInitializationKeepsZeroWaitContentionBehavior()
     {
         var store = new DelayedLeaseStateStore(State("durable"));
-        using var experience = new VersionManagementExperience(
+        using VersionManagementExperience experience = VersionManagementExperienceTestFactory.Create(
             ManagedAppVersion.Parse("0.10.6"),
             "managed",
             store,
@@ -92,7 +92,7 @@ public sealed class ManagedApplicationStartupCoordinatorTests
     public async Task ManagedStartupReturnsTypedInventoryUnavailableSnapshot()
     {
         ManagedAppVersion version = ManagedAppVersion.Parse("0.10.6");
-        using var experience = new VersionManagementExperience(
+        using VersionManagementExperience experience = VersionManagementExperienceTestFactory.Create(
             version,
             "managed",
             new DelayedLeaseStateStore(State("durable")),

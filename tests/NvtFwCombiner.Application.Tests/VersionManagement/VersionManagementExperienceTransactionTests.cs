@@ -21,7 +21,7 @@ public sealed partial class VersionManagementExperienceTests
             sourceRegistryState: registryState);
         var stateStore = new FailingStateStore(initial, failOnSave: 2);
         var repository = new TransactionRepository(initial.Admissions);
-        using (var first = new VersionManagementExperience(
+        using (VersionManagementExperience first = VersionManagementExperienceTestFactory.Create(
             ManagedAppVersion.Parse("0.10.5"),
             "managed-root",
             stateStore,
@@ -37,7 +37,7 @@ public sealed partial class VersionManagementExperienceTests
             Assert.Equal(ManagedVersionMutationKind.Install, stateStore.State.PendingMutation?.Kind);
         }
 
-        using var restarted = new VersionManagementExperience(
+        using VersionManagementExperience restarted = VersionManagementExperienceTestFactory.Create(
             ManagedAppVersion.Parse("0.10.5"),
             "managed-root",
             stateStore,
@@ -63,7 +63,7 @@ public sealed partial class VersionManagementExperienceTests
             lastKnownGood: "0.10.5");
         var stateStore = new FailingStateStore(initial, failOnSave: 2);
         var repository = new TransactionRepository(initial.Admissions);
-        using (var first = new VersionManagementExperience(
+        using (VersionManagementExperience first = VersionManagementExperienceTestFactory.Create(
             ManagedAppVersion.Parse("0.10.5"),
             "managed-root",
             stateStore,
@@ -80,7 +80,7 @@ public sealed partial class VersionManagementExperienceTests
             Assert.Equal(0, repository.DeleteCalls);
         }
 
-        using var restarted = new VersionManagementExperience(
+        using VersionManagementExperience restarted = VersionManagementExperienceTestFactory.Create(
             ManagedAppVersion.Parse("0.10.5"),
             "managed-root",
             stateStore,
@@ -111,7 +111,7 @@ public sealed partial class VersionManagementExperienceTests
             sourceRegistryState: registryState);
         var stateStore = new FailingStateStore(initial, failOnSave: 2);
         var repository = new TransactionRepository(initial.Admissions);
-        using (var first = new VersionManagementExperience(
+        using (VersionManagementExperience first = VersionManagementExperienceTestFactory.Create(
             ManagedAppVersion.Parse("0.10.5"),
             "managed-root",
             stateStore,
@@ -126,7 +126,7 @@ public sealed partial class VersionManagementExperienceTests
             Assert.Equal(ManagedVersionMutationKind.Delete, stateStore.State.PendingMutation?.Kind);
         }
 
-        using var restarted = new VersionManagementExperience(
+        using VersionManagementExperience restarted = VersionManagementExperienceTestFactory.Create(
             ManagedAppVersion.Parse("0.10.5"),
             "managed-root",
             stateStore,
@@ -151,7 +151,7 @@ public sealed partial class VersionManagementExperienceTests
             active: "0.10.5",
             lastKnownGood: "0.10.5");
         var repository = new TransactionRepository(initial.Admissions, unadmittedVersion: "0.10.4");
-        using var experience = new VersionManagementExperience(
+        using VersionManagementExperience experience = VersionManagementExperienceTestFactory.Create(
             ManagedAppVersion.Parse("0.10.5"),
             "managed-root",
             new MemoryStateStore(initial),
@@ -178,7 +178,7 @@ public sealed partial class VersionManagementExperienceTests
             lastKnownGood: "0.10.5");
         var repository = new TransactionRepository(
             [.. initial.Admissions, Admission("0.10.6")]);
-        using var experience = new VersionManagementExperience(
+        using VersionManagementExperience experience = VersionManagementExperienceTestFactory.Create(
             ManagedAppVersion.Parse("0.10.5"),
             "managed-root",
             new MemoryStateStore(initial),
@@ -205,7 +205,7 @@ public sealed partial class VersionManagementExperienceTests
             lastKnownGood: "0.10.5");
         var stateStore = new FailingStateStore(initial, failOnSave: 1);
         var repository = new TransactionRepository(initial.Admissions);
-        using var experience = new VersionManagementExperience(
+        using VersionManagementExperience experience = VersionManagementExperienceTestFactory.Create(
             ManagedAppVersion.Parse("0.10.5"),
             "managed-root",
             stateStore,
@@ -232,7 +232,7 @@ public sealed partial class VersionManagementExperienceTests
             lastKnownGood: "0.10.5");
         var stateStore = new MemoryStateStore(initial);
         var repository = new TransactionRepository(initial.Admissions);
-        using var experience = new VersionManagementExperience(
+        using VersionManagementExperience experience = VersionManagementExperienceTestFactory.Create(
             ManagedAppVersion.Parse("0.10.5"),
             "managed-root",
             stateStore,
@@ -267,7 +267,7 @@ public sealed partial class VersionManagementExperienceTests
         var stateStore = new MemoryStateStore(initial);
         var repository = new TransactionRepository(initial.Admissions);
         var source = new MutableCatalogSource(Catalog("0.10.6"));
-        using var experience = new VersionManagementExperience(
+        using VersionManagementExperience experience = VersionManagementExperienceTestFactory.Create(
             ManagedAppVersion.Parse("0.10.5"),
             "managed-root",
             stateStore,
@@ -303,7 +303,7 @@ public sealed partial class VersionManagementExperienceTests
             lastKnownGood: "0.10.5");
         var stateStore = new MemoryStateStore(initial);
         var repository = new TransactionRepository(initial.Admissions);
-        using var experience = new VersionManagementExperience(
+        using VersionManagementExperience experience = VersionManagementExperienceTestFactory.Create(
             ManagedAppVersion.Parse("0.10.5"),
             "managed-root",
             stateStore,
@@ -332,7 +332,7 @@ public sealed partial class VersionManagementExperienceTests
             lastKnownGood: "0.10.5");
         var stateStore = new MemoryStateStore(initial);
         var repository = new TransactionRepository(initial.Admissions);
-        using var experience = new VersionManagementExperience(
+        using VersionManagementExperience experience = VersionManagementExperienceTestFactory.Create(
             ManagedAppVersion.Parse("0.10.5"),
             "managed-root",
             stateStore,
@@ -363,7 +363,7 @@ public sealed partial class VersionManagementExperienceTests
             new(ManagedVersionMutationKind.Install, pending));
         var stateStore = new MemoryStateStore(prepared);
         var repository = new TransactionRepository(initial.Admissions);
-        using var restarted = new VersionManagementExperience(
+        using VersionManagementExperience restarted = VersionManagementExperienceTestFactory.Create(
             ManagedAppVersion.Parse("0.10.5"),
             "managed-root",
             stateStore,
@@ -392,7 +392,7 @@ public sealed partial class VersionManagementExperienceTests
         {
             InstallIssue = ManagedVersionInstallIssue.PromotionFailed,
         };
-        using (var first = new VersionManagementExperience(
+        using (VersionManagementExperience first = VersionManagementExperienceTestFactory.Create(
             ManagedAppVersion.Parse("0.10.5"),
             "managed-root",
             stateStore,
@@ -409,7 +409,7 @@ public sealed partial class VersionManagementExperienceTests
             Assert.Equal(1, repository.InstallCalls);
         }
 
-        using var restarted = new VersionManagementExperience(
+        using VersionManagementExperience restarted = VersionManagementExperienceTestFactory.Create(
             ManagedAppVersion.Parse("0.10.5"),
             "managed-root",
             stateStore,
@@ -436,7 +436,7 @@ public sealed partial class VersionManagementExperienceTests
             new(ManagedVersionMutationKind.Install, pending));
         var stateStore = new FailingStateStore(prepared, failOnSave: 1);
         var repository = new TransactionRepository([.. initial.Admissions, pending]);
-        using (var firstRestart = new VersionManagementExperience(
+        using (VersionManagementExperience firstRestart = VersionManagementExperienceTestFactory.Create(
             ManagedAppVersion.Parse("0.10.5"),
             "managed-root",
             stateStore,
@@ -449,7 +449,7 @@ public sealed partial class VersionManagementExperienceTests
             Assert.DoesNotContain(stillPrepared.State.Admissions, item => item.Version == pending.Version);
         }
 
-        using var secondRestart = new VersionManagementExperience(
+        using VersionManagementExperience secondRestart = VersionManagementExperienceTestFactory.Create(
             ManagedAppVersion.Parse("0.10.5"),
             "managed-root",
             stateStore,
@@ -479,7 +479,7 @@ public sealed partial class VersionManagementExperienceTests
             new(ManagedVersionMutationKind.Install, pending));
         var stateStore = new MemoryStateStore(prepared);
         var repository = new TransactionRepository([.. initial.Admissions, observed]);
-        using var restarted = new VersionManagementExperience(
+        using VersionManagementExperience restarted = VersionManagementExperienceTestFactory.Create(
             ManagedAppVersion.Parse("0.10.5"),
             "managed-root",
             stateStore,
@@ -505,7 +505,7 @@ public sealed partial class VersionManagementExperienceTests
             lastKnownGood: "0.10.5");
         var stateStore = new FailingStateStore(initial, failOnSave: 1);
         var repository = new TransactionRepository(initial.Admissions);
-        using var experience = new VersionManagementExperience(
+        using VersionManagementExperience experience = VersionManagementExperienceTestFactory.Create(
             ManagedAppVersion.Parse("0.10.5"),
             "managed-root",
             stateStore,
@@ -535,7 +535,7 @@ public sealed partial class VersionManagementExperienceTests
         {
             DeleteIssue = ManagedVersionDeleteIssue.NotInstalled,
         };
-        using var experience = new VersionManagementExperience(
+        using VersionManagementExperience experience = VersionManagementExperienceTestFactory.Create(
             ManagedAppVersion.Parse("0.10.5"),
             "managed-root",
             stateStore,
@@ -568,7 +568,7 @@ public sealed partial class VersionManagementExperienceTests
         {
             DeleteIssue = ManagedVersionDeleteIssue.NotInstalled,
         };
-        using (var first = new VersionManagementExperience(
+        using (VersionManagementExperience first = VersionManagementExperienceTestFactory.Create(
                    ManagedAppVersion.Parse("0.10.5"),
                    "managed-root",
                    stateStore,
@@ -583,7 +583,7 @@ public sealed partial class VersionManagementExperienceTests
             Assert.Equal(ManagedVersionMutationKind.Delete, stateStore.State.PendingMutation?.Kind);
         }
 
-        using var restarted = new VersionManagementExperience(
+        using VersionManagementExperience restarted = VersionManagementExperienceTestFactory.Create(
             ManagedAppVersion.Parse("0.10.5"),
             "managed-root",
             stateStore,

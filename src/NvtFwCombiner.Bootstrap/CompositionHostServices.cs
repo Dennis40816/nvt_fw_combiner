@@ -212,9 +212,8 @@ public sealed class CompositionHostServices
             new JsonVersionManagerStateStore(exactStatePath),
             new FileSystemUpdateCatalogSource(),
             new FileSystemManagedVersionRepository(),
-            sourceRegistry,
-            mutationFence: null,
-            launcherFence: new JsonLauncherMutationFence(exactStatePath));
+            new JsonLauncherMutationFence(exactStatePath),
+            sourceRegistry);
     }
 
     /// <summary>Creates the inherited one-use app-side ready signal.</summary>

@@ -177,7 +177,7 @@ public sealed partial class VersionManagementExperienceTests
         MemoryStateStore stateStore,
         TransactionRepository repository)
     {
-        return new(
+        return VersionManagementExperienceTestFactory.Create(
             active.Version,
             "managed-root",
             stateStore,

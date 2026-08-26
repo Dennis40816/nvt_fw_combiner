@@ -15,7 +15,7 @@ public sealed partial class VersionManagementExperienceTests
         var stateStore = new MemoryStateStore(state);
         var repository = new HealthyRepository();
         var fence = new RecordingLauncherFence(PendingProtection());
-        using var experience = new VersionManagementExperience(
+        using VersionManagementExperience experience = VersionManagementExperienceTestFactory.Create(
             active.Version,
             "managed-root",
             stateStore,

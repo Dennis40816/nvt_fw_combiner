@@ -20,13 +20,13 @@ public sealed partial class VersionManagementExperienceTests
             managedRootIdentity: "managed-a");
         var stateStore = new SharedLeaseStateStore(initial);
         var repository = new FirstInstallBlockingRepository();
-        using var first = new VersionManagementExperience(
+        using VersionManagementExperience first = VersionManagementExperienceTestFactory.Create(
             ManagedAppVersion.Parse("0.10.5"),
             "managed-a",
             stateStore,
             new FixedCatalogSource(Catalog("0.10.6")),
             repository);
-        using var second = new VersionManagementExperience(
+        using VersionManagementExperience second = VersionManagementExperienceTestFactory.Create(
             ManagedAppVersion.Parse("0.10.5"),
             "managed-a",
             stateStore,
@@ -81,7 +81,7 @@ public sealed partial class VersionManagementExperienceTests
             managedRootIdentity: "managed-a");
         var stateStore = new SharedLeaseStateStore(initial);
         var repository = new FirstInstallBlockingRepository();
-        using var experience = new VersionManagementExperience(
+        using VersionManagementExperience experience = VersionManagementExperienceTestFactory.Create(
             ManagedAppVersion.Parse(runningVersion),
             "managed-b",
             stateStore,
@@ -140,7 +140,7 @@ public sealed partial class VersionManagementExperienceTests
             OmitInventory = omitPayload,
             InventoryIntegrity = integrity,
         };
-        using var experience = new VersionManagementExperience(
+        using VersionManagementExperience experience = VersionManagementExperienceTestFactory.Create(
             ManagedAppVersion.Parse("0.10.5"),
             "managed-a",
             new SharedLeaseStateStore(initial),

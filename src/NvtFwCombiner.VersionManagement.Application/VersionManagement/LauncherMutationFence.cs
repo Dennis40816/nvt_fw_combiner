@@ -50,35 +50,6 @@ public interface ILauncherMutationFence
         CancellationToken cancellationToken);
 }
 
-internal sealed class NoLauncherMutationFence : ILauncherMutationFence
-{
-    internal static NoLauncherMutationFence Instance { get; } = new();
-
-    private NoLauncherMutationFence()
-    {
-    }
-
-    public ValueTask<LauncherMutationProtection> LoadAsync(CancellationToken cancellationToken)
-    {
-        cancellationToken.ThrowIfCancellationRequested();
-        return ValueTask.FromResult(new LauncherMutationProtection(
-            LauncherMutationFenceIssue.None,
-            HasPendingActivation: false,
-            ActiveOwner: null,
-            LastKnownGoodOwner: null,
-            PendingOwners: []));
-    }
-
-    public ValueTask<LauncherMutationFenceIssue> RetireLastKnownGoodOwnerAsync(
-        ManagedVersionAdmission expectedOwner,
-        CancellationToken cancellationToken)
-    {
-        ArgumentNullException.ThrowIfNull(expectedOwner);
-        cancellationToken.ThrowIfCancellationRequested();
-        return ValueTask.FromResult(LauncherMutationFenceIssue.None);
-    }
-}
-
 public sealed partial class VersionManagementExperience
 {
     private async ValueTask<LauncherMutationProtection?> LoadClearLauncherFenceAsync(

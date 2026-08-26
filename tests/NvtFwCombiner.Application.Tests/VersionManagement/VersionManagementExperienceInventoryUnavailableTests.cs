@@ -13,7 +13,7 @@ public sealed partial class VersionManagementExperienceTests
         VersionManagerStateLoadIssue stateIssue)
     {
         var repository = new TransactionRepository([]);
-        using var experience = new VersionManagementExperience(
+        using VersionManagementExperience experience = VersionManagementExperienceTestFactory.Create(
             ManagedAppVersion.Parse("0.10.5"),
             "managed-root",
             new LoadResultStateStore(new(null, stateIssue)),
@@ -43,7 +43,7 @@ public sealed partial class VersionManagementExperienceTests
             retentionReviewDue: false,
             managedRootIdentity: "foreign-root");
         var repository = new TransactionRepository([]);
-        using var experience = new VersionManagementExperience(
+        using VersionManagementExperience experience = VersionManagementExperienceTestFactory.Create(
             ManagedAppVersion.Parse("0.10.5"),
             "managed-root",
             new LoadResultStateStore(new(foreign, VersionManagerStateLoadIssue.None)),
@@ -73,7 +73,7 @@ public sealed partial class VersionManagementExperienceTests
         var stateStore = new LoadResultStateStore(new(
             initial,
             VersionManagerStateLoadIssue.None));
-        using var experience = new VersionManagementExperience(
+        using VersionManagementExperience experience = VersionManagementExperienceTestFactory.Create(
             ManagedAppVersion.Parse("0.10.5"),
             "managed-root",
             stateStore,
@@ -110,7 +110,7 @@ public sealed partial class VersionManagementExperienceTests
             VersionManagerStateLoadIssue.None));
         var catalogSource = new RecordingCatalogSource(Catalog("0.10.6"));
         var repository = new TransactionRepository([active]);
-        using var experience = new VersionManagementExperience(
+        using VersionManagementExperience experience = VersionManagementExperienceTestFactory.Create(
             active.Version,
             "managed-root",
             stateStore,
@@ -163,7 +163,7 @@ public sealed partial class VersionManagementExperienceTests
             VersionManagerStateLoadIssue.None));
         var catalogSource = new RecordingCatalogSource(Catalog("0.10.6"));
         var repository = new TransactionRepository([priorActive, newActive]);
-        using var experience = new VersionManagementExperience(
+        using VersionManagementExperience experience = VersionManagementExperienceTestFactory.Create(
             priorActive.Version,
             "managed-root",
             stateStore,
@@ -204,7 +204,7 @@ public sealed partial class VersionManagementExperienceTests
     public async Task MissingStateBootstrapsObservedEmptyInventory()
     {
         var repository = new TransactionRepository([]);
-        using var experience = new VersionManagementExperience(
+        using VersionManagementExperience experience = VersionManagementExperienceTestFactory.Create(
             ManagedAppVersion.Parse("0.10.5"),
             "managed-root",
             new LoadResultStateStore(new(null, VersionManagerStateLoadIssue.Missing)),
@@ -231,7 +231,7 @@ public sealed partial class VersionManagementExperienceTests
             InventoryResultOverride = ManagedVersionInventoryReadResult.Unavailable(),
         };
         var catalogSource = new RecordingCatalogSource(Catalog("0.10.6"));
-        using var experience = new VersionManagementExperience(
+        using VersionManagementExperience experience = VersionManagementExperienceTestFactory.Create(
             active.Version,
             "managed-root",
             new MemoryStateStore(State(
@@ -279,7 +279,7 @@ public sealed partial class VersionManagementExperienceTests
         {
             InventoryResultOverride = ManagedVersionInventoryReadResult.Unavailable(),
         };
-        using var experience = new VersionManagementExperience(
+        using VersionManagementExperience experience = VersionManagementExperienceTestFactory.Create(
             active.Version,
             "managed-root",
             stateStore,
@@ -316,7 +316,7 @@ public sealed partial class VersionManagementExperienceTests
         {
             InventoryResultOverride = ManagedVersionInventoryReadResult.Unavailable(),
         };
-        using var experience = new VersionManagementExperience(
+        using VersionManagementExperience experience = VersionManagementExperienceTestFactory.Create(
             active.Version,
             "managed-root",
             stateStore,

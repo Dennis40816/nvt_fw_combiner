@@ -26,7 +26,7 @@ public sealed partial class VersionManagementExperienceTests
             managedRootIdentity: "managed-root");
         var stateStore = new MemoryStateStore(initial);
         var repository = new TransactionRepository(initial.Admissions);
-        using var experience = new VersionManagementExperience(
+        using VersionManagementExperience experience = VersionManagementExperienceTestFactory.Create(
             active.Version,
             "managed-root",
             stateStore,
@@ -68,7 +68,7 @@ public sealed partial class VersionManagementExperienceTests
             managedRootIdentity: "managed-root");
         var stateStore = new MemoryStateStore(initial);
         var repository = new TransactionRepository(initial.Admissions);
-        using var experience = new VersionManagementExperience(
+        using VersionManagementExperience experience = VersionManagementExperienceTestFactory.Create(
             active.Version,
             "managed-root",
             stateStore,
@@ -105,7 +105,7 @@ public sealed partial class VersionManagementExperienceTests
             managedRootIdentity: "managed-root");
         var stateStore = new FailingStateStore(initial, failOnSave: 2);
         var repository = new TransactionRepository(initial.Admissions);
-        using (var first = new VersionManagementExperience(
+        using (VersionManagementExperience first = VersionManagementExperienceTestFactory.Create(
             active.Version,
             "managed-root",
             stateStore,
@@ -121,7 +121,7 @@ public sealed partial class VersionManagementExperienceTests
             Assert.Equal(ManagedVersionMutationKind.Install, stateStore.State.PendingMutation?.Kind);
         }
 
-        using var restarted = new VersionManagementExperience(
+        using VersionManagementExperience restarted = VersionManagementExperienceTestFactory.Create(
             active.Version,
             "managed-root",
             stateStore,
@@ -153,7 +153,7 @@ public sealed partial class VersionManagementExperienceTests
             managedRootIdentity: "managed-root");
         var stateStore = new MemoryStateStore(initial);
         var repository = new TransactionRepository(initial.Admissions);
-        using var experience = new VersionManagementExperience(
+        using VersionManagementExperience experience = VersionManagementExperienceTestFactory.Create(
             active.Version,
             "managed-root",
             stateStore,
@@ -188,7 +188,7 @@ public sealed partial class VersionManagementExperienceTests
             managedRootIdentity: "managed-root");
         var stateStore = new MemoryStateStore(initial);
         var repository = new TransactionRepository(initial.Admissions);
-        using var experience = new VersionManagementExperience(
+        using VersionManagementExperience experience = VersionManagementExperienceTestFactory.Create(
             active.Version,
             "managed-root",
             stateStore,
@@ -229,7 +229,7 @@ public sealed partial class VersionManagementExperienceTests
             managedRootIdentity: "managed-root");
         var stateStore = new MemoryStateStore(initial);
         var repository = new TransactionRepository(initial.Admissions);
-        using var experience = new VersionManagementExperience(
+        using VersionManagementExperience experience = VersionManagementExperienceTestFactory.Create(
             active.Version,
             "managed-root",
             stateStore,
@@ -266,7 +266,7 @@ public sealed partial class VersionManagementExperienceTests
             managedRootIdentity: "managed-root");
         var stateStore = new FailingStateStore(initial, failOnSave: 2);
         var repository = new TransactionRepository(initial.Admissions);
-        using (var first = new VersionManagementExperience(
+        using (VersionManagementExperience first = VersionManagementExperienceTestFactory.Create(
             active.Version,
             "managed-root",
             stateStore,
@@ -283,7 +283,7 @@ public sealed partial class VersionManagementExperienceTests
             Assert.True(stateStore.State.RetentionReviewDue);
         }
 
-        using var restarted = new VersionManagementExperience(
+        using VersionManagementExperience restarted = VersionManagementExperienceTestFactory.Create(
             active.Version,
             "managed-root",
             stateStore,

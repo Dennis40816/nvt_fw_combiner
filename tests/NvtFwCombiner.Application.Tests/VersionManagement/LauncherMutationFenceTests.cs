@@ -10,7 +10,7 @@ public sealed partial class VersionManagementExperienceTests
     {
         var stateStore = new MemoryStateStore(State([Admission("0.10.6")], "0.10.6", "0.10.6"));
         var fence = new RecordingLauncherFence(PendingProtection());
-        using var experience = new VersionManagementExperience(
+        using VersionManagementExperience experience = VersionManagementExperienceTestFactory.Create(
             ManagedAppVersion.Parse("0.10.6"),
             "managed-root",
             stateStore,
@@ -44,7 +44,7 @@ public sealed partial class VersionManagementExperienceTests
             launcherOwner,
             launcherOwner,
             PendingOwners: []));
-        using var experience = new VersionManagementExperience(
+        using VersionManagementExperience experience = VersionManagementExperienceTestFactory.Create(
             activeApp.Version,
             "managed-root",
             stateStore,
@@ -80,7 +80,7 @@ public sealed partial class VersionManagementExperienceTests
             activeApp,
             rollbackOwner,
             PendingOwners: []));
-        using var experience = new VersionManagementExperience(
+        using VersionManagementExperience experience = VersionManagementExperienceTestFactory.Create(
             activeApp.Version,
             "managed-root",
             stateStore,

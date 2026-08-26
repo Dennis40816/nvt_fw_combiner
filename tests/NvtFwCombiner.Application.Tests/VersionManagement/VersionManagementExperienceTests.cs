@@ -20,7 +20,7 @@ public sealed partial class VersionManagementExperienceTests
             lastKnownGood: "0.10.5");
         var stateStore = new MemoryStateStore(initial);
         var repository = new HealthyRepository();
-        using var experience = new VersionManagementExperience(
+        using VersionManagementExperience experience = VersionManagementExperienceTestFactory.Create(
             ManagedAppVersion.Parse("0.10.5"),
             "managed-root",
             stateStore,
@@ -57,7 +57,7 @@ public sealed partial class VersionManagementExperienceTests
             lastKnownGood: "0.10.5")
             .WithRetentionReviewDue(retentionReviewDue: true);
         var stateStore = new FailingStateStore(initial, failOnSave: 1);
-        using var experience = new VersionManagementExperience(
+        using VersionManagementExperience experience = VersionManagementExperienceTestFactory.Create(
             ManagedAppVersion.Parse("0.10.5"),
             "managed-root",
             stateStore,
@@ -83,7 +83,7 @@ public sealed partial class VersionManagementExperienceTests
             lastKnownGood: "0.10.4");
         var stateStore = new MemoryStateStore(initial);
         var repository = new HealthyRepository();
-        using var experience = new VersionManagementExperience(
+        using VersionManagementExperience experience = VersionManagementExperienceTestFactory.Create(
             ManagedAppVersion.Parse("0.10.5"),
             "managed-root",
             stateStore,
@@ -122,7 +122,7 @@ public sealed partial class VersionManagementExperienceTests
             [Admission("0.10.5")],
             active: "0.10.5",
             lastKnownGood: "0.10.5");
-        using var experience = new VersionManagementExperience(
+        using VersionManagementExperience experience = VersionManagementExperienceTestFactory.Create(
             ManagedAppVersion.Parse("0.10.5"),
             "managed-root",
             new MemoryStateStore(initial),
@@ -158,7 +158,7 @@ public sealed partial class VersionManagementExperienceTests
             [Admission("0.10.5")],
             active: "0.10.5",
             lastKnownGood: "0.10.5");
-        using var experience = new VersionManagementExperience(
+        using VersionManagementExperience experience = VersionManagementExperienceTestFactory.Create(
             ManagedAppVersion.Parse("0.10.5"),
             "managed-root",
             new MemoryStateStore(initial),
@@ -181,7 +181,7 @@ public sealed partial class VersionManagementExperienceTests
             [Admission("0.10.5")],
             active: "0.10.5",
             lastKnownGood: "0.10.5");
-        using var experience = new VersionManagementExperience(
+        using VersionManagementExperience experience = VersionManagementExperienceTestFactory.Create(
             ManagedAppVersion.Parse("0.10.5"),
             "managed-root",
             new MemoryStateStore(initial),
@@ -212,7 +212,7 @@ public sealed partial class VersionManagementExperienceTests
             false,
             managedRootIdentity: "managed-root");
         var source = new CountingCatalogSource();
-        using var experience = new VersionManagementExperience(
+        using VersionManagementExperience experience = VersionManagementExperienceTestFactory.Create(
             version,
             "managed-root",
             new MemoryStateStore(initial),
@@ -236,7 +236,7 @@ public sealed partial class VersionManagementExperienceTests
             active: "0.10.5",
             lastKnownGood: "0.10.5");
         var repository = new HealthyRepository(deleteIssue: ManagedVersionDeleteIssue.DeleteFailed);
-        using var experience = new VersionManagementExperience(
+        using VersionManagementExperience experience = VersionManagementExperienceTestFactory.Create(
             ManagedAppVersion.Parse("0.10.5"),
             "managed-root",
             new MemoryStateStore(initial),
@@ -261,7 +261,7 @@ public sealed partial class VersionManagementExperienceTests
             [Admission("0.10.5")],
             active: "0.10.5",
             lastKnownGood: "0.10.5");
-        var experience = new VersionManagementExperience(
+        VersionManagementExperience experience = VersionManagementExperienceTestFactory.Create(
             ManagedAppVersion.Parse("0.10.5"),
             "managed-root",
             new MemoryStateStore(initial),
@@ -284,7 +284,7 @@ public sealed partial class VersionManagementExperienceTests
             active: "0.10.5",
             lastKnownGood: "0.10.5");
         var source = new SupersedingCatalogSource(Catalog("0.10.7"));
-        using var experience = new VersionManagementExperience(
+        using VersionManagementExperience experience = VersionManagementExperienceTestFactory.Create(
             ManagedAppVersion.Parse("0.10.5"),
             "managed-root",
             new MemoryStateStore(initial),
@@ -317,7 +317,7 @@ public sealed partial class VersionManagementExperienceTests
             lastKnownGood: "0.10.5");
         var stateStore = new FailingStateStore(initial, failOnSave: 1);
         var source = new CountingCatalogSource();
-        using var experience = new VersionManagementExperience(
+        using VersionManagementExperience experience = VersionManagementExperienceTestFactory.Create(
             ManagedAppVersion.Parse("0.10.5"),
             "managed-root",
             stateStore,
@@ -361,7 +361,7 @@ public sealed partial class VersionManagementExperienceTests
             ? new(Catalog("0.10.6"), UpdateCatalogLoadIssue.None)
             : new(null, issue);
         var source = new CompletedThenBlockingCatalogSource(firstResult);
-        using var experience = new VersionManagementExperience(
+        using VersionManagementExperience experience = VersionManagementExperienceTestFactory.Create(
             ManagedAppVersion.Parse("0.10.5"),
             "managed-root",
             new MemoryStateStore(initial),

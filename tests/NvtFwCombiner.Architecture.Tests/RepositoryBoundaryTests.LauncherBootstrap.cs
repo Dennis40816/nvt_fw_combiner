@@ -60,6 +60,22 @@ public sealed partial class RepositoryBoundaryTests
         AssertContainsAll(process, "LauncherReadyProtocol.TryParse", "readyAdmission");
     }
 
+    /// <summary>Every production version-management graph receives the single JSON launcher fence explicitly.</summary>
+    [Fact]
+    public void VersionManagementProductionCompositionRequiresOneLauncherFence()
+    {
+        string experience = ReadText(
+            "src/NvtFwCombiner.VersionManagement.Application/VersionManagement/VersionManagementExperience.cs");
+        string fence = ReadText(
+            "src/NvtFwCombiner.VersionManagement.Application/VersionManagement/LauncherMutationFence.cs");
+        string composition = ReadText("src/NvtFwCombiner.Bootstrap/CompositionHostServices.cs");
+
+        AssertContainsAll(experience, "ILauncherMutationFence launcherFence", "throw new ArgumentNullException(nameof(launcherFence))");
+        Assert.DoesNotContain("ILauncherMutationFence?", experience, StringComparison.Ordinal);
+        Assert.DoesNotContain("NoLauncherMutationFence", fence, StringComparison.Ordinal);
+        Assert.Equal(1, CountOccurrences(composition, "new JsonLauncherMutationFence("));
+    }
+
     /// <summary>The outer release contract pins exactly one version-scoped launcher identity.</summary>
     [Fact]
     public void ReleaseManifestPinsVersionScopedLauncherContract()

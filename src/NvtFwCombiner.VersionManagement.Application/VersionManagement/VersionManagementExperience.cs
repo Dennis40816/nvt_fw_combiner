@@ -167,9 +167,9 @@ public sealed partial class VersionManagementExperience : IVersionManagementExpe
         IVersionManagerStateStore stateStore,
         IUpdateCatalogSource catalogSource,
         IManagedVersionRepository repository,
+        ILauncherMutationFence launcherFence,
         IUpdateSourceRegistry? sourceRegistry = null,
-        IVersionManagementMutationFence? mutationFence = null,
-        ILauncherMutationFence? launcherFence = null)
+        IVersionManagementMutationFence? mutationFence = null)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(managedRoot);
         _currentAppVersion = currentAppVersion;
@@ -179,7 +179,7 @@ public sealed partial class VersionManagementExperience : IVersionManagementExpe
         _repository = repository ?? throw new ArgumentNullException(nameof(repository));
         _sourceRegistry = sourceRegistry;
         _mutationFence = mutationFence ?? AllowVersionManagementMutationFence.Instance;
-        _launcherFence = launcherFence ?? NoLauncherMutationFence.Instance;
+        _launcherFence = launcherFence ?? throw new ArgumentNullException(nameof(launcherFence));
     }
 
     /// <inheritdoc />
