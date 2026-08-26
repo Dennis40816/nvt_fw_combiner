@@ -270,11 +270,11 @@ public sealed partial class XamlControlStyleContractTests
             MemoryCoverageSegmentViewModel active = useReplace
                 ? viewModel.Replace.ReplaceCoverageSegments[0]
                 : viewModel.Merge.MergeCoverageSegments[0];
-            object activeRowContext = useReplace
+            MemoryCoverageSegmentViewModel activeRowContext = useReplace
                 ? active
                 : Assert.Single(
-                    viewModel.Merge.MergeCoverageItems,
-                    item => item.Segments.Contains(active));
+                    viewModel.Merge.MergeCoverageRows,
+                    row => ReferenceEquals(row.Interaction, active.Interaction));
             var pointerOwner = new object();
             active.Interaction.SetPointerActive(pointerOwner, true);
             Dispatcher.UIThread.RunJobs();
@@ -319,11 +319,7 @@ public sealed partial class XamlControlStyleContractTests
             });
             Dispatcher.UIThread.RunJobs();
             Assert.True(ToolTip.GetIsOpen(activeRow));
-            Assert.Same(
-                activeRowContext is MemoryCoverageLogicalItemViewModel logicalItem
-                    ? logicalItem.PrimaryRange
-                    : active,
-                rowCard.Content);
+            Assert.Same(activeRowContext, rowCard.Content);
             Assert.NotNull(rowCard.ContentTemplate);
             activeRow.RaiseEvent(new FocusChangedEventArgs(InputElement.LostFocusEvent));
             Assert.False(ToolTip.GetIsOpen(activeRow));

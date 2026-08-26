@@ -42,8 +42,9 @@ internal sealed partial class MergePresentationViewModel
             ReplaceRows(MergeMemoryRows, rows);
             ReplaceRows(MergeCoverageSegments, coverageSegments);
             ReplaceRows(
-                MergeCoverageItems,
-                ReplaceRegionGroupBuilder.CreateLogicalItems(coverageSegments, Text));
+                MergeCoverageRows,
+                ReplaceRegionGroupBuilder.CreateLogicalItems(coverageSegments, Text)
+                    .SelectMany(static item => item.Ranges));
 
             OnPropertyChanged(nameof(MergeMemoryRangeLabel));
             OnPropertyChanged(nameof(MergeMemorySummary));

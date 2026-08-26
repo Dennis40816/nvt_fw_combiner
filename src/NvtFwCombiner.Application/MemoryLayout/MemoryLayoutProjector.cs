@@ -436,7 +436,7 @@ public static partial class MemoryLayoutProjector
             .. plan.OrderedOperations.Where(operation =>
                 StringComparer.Ordinal.Equals(operation.TargetSpaceId, plan.OutputSpaceId)),
         ];
-        Dictionary<string, string> retainedCompanionSlots = ResolveRetainedCompanionSlots(
+        Dictionary<ProjectionRegion, string> retainedCompanionSlots = ResolveRetainedCompanionSlots(
             primaryRegions,
             planned,
             plan.OutputSpaceId,
@@ -496,7 +496,7 @@ public static partial class MemoryLayoutProjector
                         processorEffect: MemoryProcessorEffect.None,
                         retainedCompanionSlotId: referenceSlotId is not null &&
                             retainedCompanionSlots.TryGetValue(
-                                canonicalRegion.RegionId,
+                                canonicalRegion,
                                 out string? companionSlotId)
                                 ? companionSlotId
                                 : null));

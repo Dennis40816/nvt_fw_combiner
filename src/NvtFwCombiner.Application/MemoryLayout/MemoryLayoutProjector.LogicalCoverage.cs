@@ -47,7 +47,7 @@ public static partial class MemoryLayoutProjector
         return $"region:{resolved.RegionId}";
     }
 
-    private static Dictionary<string, string> ResolveRetainedCompanionSlots(
+    private static Dictionary<ProjectionRegion, string> ResolveRetainedCompanionSlots(
         IReadOnlyList<ProjectionRegion> primaryRegions,
         IReadOnlyList<CompositionOperation> plannedOperations,
         string outputSpaceId,
@@ -58,15 +58,14 @@ public static partial class MemoryLayoutProjector
         return compositionKind != CompositionKind.Replace
             ? []
             : primaryRegions
-            .GroupBy(static region => region.RegionId, StringComparer.Ordinal)
-            .Select(group => (
-                RegionId: group.Key,
+            .Select(region => (
+                Region: region,
                 CandidateSlots: plannedOperations
                     .Where(operation => StringComparer.Ordinal.Equals(
                         operation.TargetSpaceId,
                         outputSpaceId))
                     .Where(operation => operation.DeclaredWriteRanges.Any(writeRange =>
-                        group.Any(region => region.Range.Overlaps(writeRange))))
+                        region.Range.Overlaps(writeRange)))
                     .Where(static operation => operation.SourceSpaceId is not null)
                     .Select(operation => slotsBySpace.TryGetValue(
                         operation.SourceSpaceId!,
@@ -81,8 +80,7 @@ public static partial class MemoryLayoutProjector
                     .ToArray()))
             .Where(static candidate => candidate.CandidateSlots.Length == 1)
             .ToDictionary(
-                static candidate => candidate.RegionId,
-                static candidate => candidate.CandidateSlots[0]!,
-                StringComparer.Ordinal);
+                static candidate => candidate.Region,
+                static candidate => candidate.CandidateSlots[0]!);
     }
 }

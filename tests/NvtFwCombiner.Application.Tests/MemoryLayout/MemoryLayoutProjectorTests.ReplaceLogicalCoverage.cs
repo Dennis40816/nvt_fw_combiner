@@ -1,4 +1,5 @@
 using NvtFwCombiner.Application.Authoring;
+using NvtFwCombiner.Application.Composition;
 using NvtFwCombiner.Application.MemoryLayout;
 using NvtFwCombiner.Domain.Composition;
 using NvtFwCombiner.Domain.Firmware;
@@ -111,6 +112,47 @@ public sealed partial class MemoryLayoutProjectorTests
             snapshot.AfterSegments.Select(static segment => segment.Range));
     }
 
+    /// <summary>A write binds only the exact projected slice it overlaps when one parent is split.</summary>
+    [Fact]
+    public void ReplaceRetainedCompanionDoesNotLeakAcrossSplitCanonicalRegion()
+    {
+        ProjectionFixture fixture = CreateFixture(
+            CompositionKind.Replace,
+            SingleSlicePlan(),
+            customRegions: SplitPhysicalRegions());
+        ActiveSessionSnapshot session = CreateSession(
+            fixture,
+            Slot("reference-base", AuthoringSlotLifecycle.Verified, Capacity),
+            Slot("dp-replacement", AuthoringSlotLifecycle.Verified, Capacity));
+        var nestedDisplay = new CtrlRamRegion(
+            "nested-display",
+            "Nested CtrlRAM",
+            2,
+            2,
+            IsMultiChipOnly: false,
+            ReplaceRegionGroup.Master,
+            CtrlRamRegionRole.Nf);
+
+        MemoryLayoutSnapshot snapshot = MemoryLayoutProjector.Project(
+            fixture.Capability,
+            session,
+            fixture.Composition,
+            [nestedDisplay]);
+
+        MemoryLayoutSegment[] parentSlices =
+        [
+            .. snapshot.AfterSegments.Where(static segment => segment.RegionId == "dp-code"),
+        ];
+        Assert.Equal([new ByteRange(0, 1), new ByteRange(1, 1), new ByteRange(4, 4)],
+            parentSlices.Select(static segment => segment.Range));
+        Assert.Equal(
+            ["slot:dp-replacement", "slot:dp-replacement", "slot:reference-base"],
+            parentSlices.Select(static segment => segment.LogicalCoverageGroupId));
+        Assert.All(
+            snapshot.AfterSegments.Where(static segment => segment.RegionId == "nested-ctrlram"),
+            static segment => Assert.Equal("slot:reference-base", segment.LogicalCoverageGroupId));
+    }
+
     /// <summary>Source-less physical fragments resolve the unique smallest containing canonical region.</summary>
     [Fact]
     public void PhysicalFallbackUsesSmallestContainingCanonicalRegion()
@@ -203,6 +245,28 @@ public sealed partial class MemoryLayoutProjectorTests
                     new ByteRange(2, 2),
                     OverlapPolicy.Reject,
                     "replace second range"),
+            ]);
+    }
+
+    private static CompositionPlan SingleSlicePlan()
+    {
+        return new CompositionPlan(
+            ImageInitialization.Reference("output-image", "reference-base", Capacity),
+            [
+                new AddressSpace("reference-base", Capacity, AddressSpaceMutability.Immutable),
+                new AddressSpace("dp-replacement", Capacity, AddressSpaceMutability.Immutable),
+                new AddressSpace("output-image", Capacity, AddressSpaceMutability.Mutable),
+            ],
+            [
+                CompositionOperation.ReplaceRange(
+                    "replace-first-parent-slice",
+                    100,
+                    "dp-replacement",
+                    new ByteRange(0, 1),
+                    "output-image",
+                    new ByteRange(0, 1),
+                    OverlapPolicy.Reject,
+                    "replace only the first projected parent slice"),
             ]);
     }
 
@@ -327,6 +391,62 @@ public sealed partial class MemoryLayoutProjectorTests
                 FirmwareRegionKind.Code,
                 new ByteRange(0, 8),
                 FirmwareWriteConstraint.ExplicitRange),
+            new(
+                "reserved-gap",
+                "flash-image",
+                FirmwareRegionOwner.Reserved,
+                FirmwareRegionKind.Reserved,
+                new ByteRange(8, 4),
+                FirmwareWriteConstraint.Forbidden),
+            new(
+                "tp-code",
+                "flash-image",
+                FirmwareRegionOwner.Tp,
+                FirmwareRegionKind.Code,
+                new ByteRange(12, 4),
+                FirmwareWriteConstraint.WholeRegion),
+        ];
+    }
+
+    private static IReadOnlyList<FirmwareRegion> SplitPhysicalRegions()
+    {
+        return
+        [
+            new(
+                "flash-image",
+                parentRegionId: null,
+                FirmwareRegionOwner.System,
+                FirmwareRegionKind.Image,
+                new ByteRange(0, Capacity),
+                FirmwareWriteConstraint.Forbidden),
+            new(
+                "dp-code",
+                "flash-image",
+                FirmwareRegionOwner.Dp,
+                FirmwareRegionKind.Code,
+                new ByteRange(0, 8),
+                FirmwareWriteConstraint.ExplicitRange),
+            new(
+                "nested-ctrlram",
+                "dp-code",
+                FirmwareRegionOwner.Tp,
+                FirmwareRegionKind.CtrlRam,
+                new ByteRange(2, 2),
+                FirmwareWriteConstraint.WholeRegion),
+            new(
+                "dp-before-ctrlram",
+                "dp-code",
+                FirmwareRegionOwner.Dp,
+                FirmwareRegionKind.Code,
+                new ByteRange(0, 2),
+                FirmwareWriteConstraint.WholeRegion),
+            new(
+                "dp-after-ctrlram",
+                "dp-code",
+                FirmwareRegionOwner.Dp,
+                FirmwareRegionKind.Code,
+                new ByteRange(4, 4),
+                FirmwareWriteConstraint.WholeRegion),
             new(
                 "reserved-gap",
                 "flash-image",
