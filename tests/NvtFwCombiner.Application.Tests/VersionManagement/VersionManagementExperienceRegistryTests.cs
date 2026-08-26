@@ -613,6 +613,89 @@ public sealed partial class VersionManagementExperienceTests
         Assert.Same(initial, stateStore.State);
     }
 
+    /// <summary>A retained automatic source cannot bypass its missing fixed Registry authority.</summary>
+    [Fact]
+    public async Task AutomaticRegistryStateWithoutInjectedLocatorFailsClosedWithoutSourceContact()
+    {
+        string automatic = SourcePath("automatic");
+        VersionManagerState initial = VersionManagerState.Create(
+            automatic,
+            ManagedAppVersion.Parse("0.10.5"),
+            ManagedAppVersion.Parse("0.10.5"),
+            [Admission("0.10.5")],
+            pendingActivation: null,
+            failedActivationVersion: null,
+            retentionReviewDue: false,
+            managedRootIdentity: "managed-root",
+            sourceRegistryState: new(4, FirstRegistryDigest, isManualPin: false));
+        var stateStore = new MemoryStateStore(initial);
+        var catalogs = new PathCatalogSource(
+            (automatic, new(Catalog("0.10.6"), UpdateCatalogLoadIssue.None)));
+        var repository = new CountingRepository();
+        using var experience = new VersionManagementExperience(
+            ManagedAppVersion.Parse("0.10.5"),
+            "managed-root",
+            stateStore,
+            catalogs,
+            repository);
+        _ = await experience.InitializeAsync(TestContext.Current.CancellationToken);
+
+        VersionManagementSnapshot result = await experience.CheckAsync(
+            isAutomatic: true,
+            TestContext.Current.CancellationToken);
+
+        Assert.Equal(VersionSourceStatus.NotConfigured, result.SourceStatus);
+        Assert.Equal(VersionRegistryStatus.NotConfigured, result.RegistryStatus);
+        Assert.Equal(UpdateSourceRegistryIssue.NotConfigured, result.RegistryIssue);
+        Assert.Null(result.Catalog);
+        Assert.Null(result.VerifiedCandidate);
+        Assert.False(result.ShouldPromptForUpdate);
+        Assert.Empty(catalogs.LoadedRoots);
+        Assert.Empty(repository.VerifiedRoots);
+        Assert.Equal(0, stateStore.SaveCount);
+        Assert.Same(initial, stateStore.State);
+    }
+
+    /// <summary>An explicit manual pin remains usable without the automatic Registry locator.</summary>
+    [Fact]
+    public async Task ManualPinWithoutInjectedLocatorChecksOnlyItsCommittedSource()
+    {
+        string manual = SourcePath("manual");
+        VersionManagerState initial = VersionManagerState.Create(
+            manual,
+            ManagedAppVersion.Parse("0.10.5"),
+            ManagedAppVersion.Parse("0.10.5"),
+            [Admission("0.10.5")],
+            pendingActivation: null,
+            failedActivationVersion: null,
+            retentionReviewDue: false,
+            managedRootIdentity: "managed-root",
+            sourceRegistryState: new(0, null, isManualPin: true));
+        var stateStore = new MemoryStateStore(initial);
+        var catalogs = new PathCatalogSource(
+            (manual, new(Catalog("0.10.6"), UpdateCatalogLoadIssue.None)));
+        var repository = new CountingRepository();
+        using var experience = new VersionManagementExperience(
+            ManagedAppVersion.Parse("0.10.5"),
+            "managed-root",
+            stateStore,
+            catalogs,
+            repository);
+        _ = await experience.InitializeAsync(TestContext.Current.CancellationToken);
+
+        VersionManagementSnapshot result = await experience.CheckAsync(
+            isAutomatic: false,
+            TestContext.Current.CancellationToken);
+
+        Assert.Equal(VersionSourceStatus.Connected, result.SourceStatus);
+        Assert.Equal(VersionRegistryStatus.ManualPin, result.RegistryStatus);
+        Assert.Equal(UpdateSourceRegistryIssue.None, result.RegistryIssue);
+        Assert.Equal([manual], catalogs.LoadedRoots);
+        Assert.Equal([manual], repository.VerifiedRoots);
+        Assert.Equal(0, stateStore.SaveCount);
+        Assert.Same(initial, stateStore.State);
+    }
+
     private static UpdateSourceRegistryLoadResult Registry(
         long revision,
         string digest,

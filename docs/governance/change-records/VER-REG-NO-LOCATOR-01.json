@@ -1,0 +1,35 @@
+{
+  "schemaVersion": 2,
+  "taskId": "VER-REG-NO-LOCATOR-01",
+  "capability": "Fail closed without contacting a retained automatic update source when the fixed Registry locator is absent",
+  "integrationBase": "35ba9f4a250fde29d097e869a6e13a04902682eb",
+  "risk": "R2",
+  "kind": "behavior",
+  "state": "design-active",
+  "mutablePaths": [
+    "src/NvtFwCombiner.VersionManagement.Application/VersionManagement/VersionManagementExperience.cs",
+    "tests/NvtFwCombiner.Application.Tests/VersionManagement/VersionManagementExperienceRegistryTests.cs"
+  ],
+  "implementationOwner": "root",
+  "searchEvidence": [
+    "Polytail of 35ba9f4a traced CheckAsync and found that a durable non-manual SourceRegistryState could enter the legacy direct-source path when Bootstrap supplied no IUpdateSourceRegistry",
+    "ADR 0053 decision 6 requires a missing locator to publish typed NotConfigured/unavailable state while ordinary offline startup continues",
+    "Manual pins remain explicit user authority and may continue checking their exact committed source; legacy schema-v1 state with null SourceRegistryState remains compatible"
+  ],
+  "semanticOwner": "VersionManagementExperience.CheckAsync owns the single decision between configured Registry resolution, an explicit manual pin, legacy schema-v1 direct-source compatibility, and fail-closed missing automatic Registry authority",
+  "terminalContract": "When durable SourceRegistryState is automatic and no fixed Registry port is injected, CheckAsync publishes typed NotConfigured state without catalog/package access, generation/prompt change, or durable mutation. Explicit manual pins and legacy null-registry state retain their existing direct-source behavior.",
+  "disposition": "extend-owner",
+  "designReview": {
+    "reviewer": "implement_registry100",
+    "outcome": "findings-incorporated",
+    "evidence": "Independent post-implementation Polytail of 35ba9f4a identified the unsafe legacy fallthrough and required typed NotConfigured/no-contact behavior with a regression test; no firmware or package semantics change."
+  },
+  "implementationHead": null,
+  "reviewedHead": null,
+  "pathStateDigest": null,
+  "finalReview": {
+    "reviewer": null,
+    "outcome": "pending",
+    "evidence": ""
+  }
+}

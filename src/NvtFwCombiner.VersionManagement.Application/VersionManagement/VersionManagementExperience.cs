@@ -251,6 +251,25 @@ public sealed partial class VersionManagementExperience : IVersionManagementExpe
         try
         {
             current = await RequireCurrentWithoutLockAsync(cancellationToken).ConfigureAwait(false);
+            if (_sourceRegistry is null &&
+                current.State?.SourceRegistryState is { IsManualPin: false })
+            {
+                lock (_generationSync)
+                {
+                    CancelRunningCheckUnderLock();
+                    _current = current with
+                    {
+                        Catalog = null,
+                        VerifiedCandidate = null,
+                        SourceStatus = VersionSourceStatus.NotConfigured,
+                        CatalogIssue = null,
+                        ShouldPromptForUpdate = false,
+                        RegistryStatus = VersionRegistryStatus.NotConfigured,
+                        RegistryIssue = UpdateSourceRegistryIssue.NotConfigured,
+                    };
+                    return _current;
+                }
+            }
             if (current.StateIssue != VersionManagerStateLoadIssue.None ||
                 current.InventoryIssue != ManagedVersionInventoryReadIssue.None ||
                 current.State?.UpdateSource is not { } configuredSource)
