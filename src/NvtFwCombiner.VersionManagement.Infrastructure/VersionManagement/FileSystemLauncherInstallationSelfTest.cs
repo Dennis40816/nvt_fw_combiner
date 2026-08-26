@@ -9,8 +9,8 @@ public sealed class FileSystemLauncherInstallationSelfTest : ILauncherInstallati
     private const string BootstrapFileName = "NvtFwCombiner.Bootstrap.exe";
     private const int MaximumBootstrapBytes = 80_000_000;
     private readonly string _managedRoot;
-    private readonly JsonVersionManagerStateStore _appStateStore;
-    private readonly JsonLauncherBootstrapStateStore _launcherStateStore;
+    private readonly IVersionManagerStateStore _appStateStore;
+    private readonly ILauncherBootstrapStateStore _launcherStateStore;
     private readonly IInstalledLauncherRepository _launcherRepository;
 
     /// <summary>Creates a query for one exact managed root and version-state identity.</summary>
@@ -25,8 +25,8 @@ public sealed class FileSystemLauncherInstallationSelfTest : ILauncherInstallati
 
     internal FileSystemLauncherInstallationSelfTest(
         string managedRoot,
-        JsonVersionManagerStateStore appStateStore,
-        JsonLauncherBootstrapStateStore launcherStateStore,
+        IVersionManagerStateStore appStateStore,
+        ILauncherBootstrapStateStore launcherStateStore,
         IInstalledLauncherRepository launcherRepository)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(managedRoot);
@@ -99,9 +99,25 @@ public sealed class FileSystemLauncherInstallationSelfTest : ILauncherInstallati
 
         (ImmutableBootstrapObservation? bootstrap, LauncherInstallationSelfTestIssue bootstrapIssue) =
             await ObserveBootstrapAsync(cancellationToken).ConfigureAwait(false);
-        return bootstrap is null
-            ? Failure(bootstrapIssue)
-            : new(
+        if (bootstrap is null)
+        {
+            return Failure(bootstrapIssue);
+        }
+
+        VersionManagerStateLoadResult terminalApp = await _appStateStore.LoadAsync(cancellationToken)
+            .ConfigureAwait(false);
+        if (!terminalApp.IsSuccess || terminalApp.State is not { } terminalAppState)
+        {
+            return Failure(LauncherInstallationSelfTestIssue.StateChanged);
+        }
+        LauncherBootstrapStateLoadResult terminalLauncher = await _launcherStateStore.LoadAsync(
+            cancellationToken).ConfigureAwait(false);
+        bool snapshotStable = terminalLauncher.IsSuccess &&
+            terminalLauncher.State is { } terminalLauncherState &&
+            SameSnapshot(appState, terminalAppState) &&
+            SameSnapshot(launcherState, terminalLauncherState);
+        return snapshotStable
+            ? new(
                 LauncherInstallationSelfTestIssue.None,
                 bootstrap,
                 new ActiveLauncherAdmission(
@@ -110,7 +126,8 @@ public sealed class FileSystemLauncherInstallationSelfTest : ILauncherInstallati
                     verifiedLauncher.ProtocolVersion,
                     verifiedLauncher.ExecutableRelativePath,
                     verifiedLauncher.Size,
-                    verifiedLauncher.Sha256));
+                    verifiedLauncher.Sha256))
+            : Failure(LauncherInstallationSelfTestIssue.StateChanged);
     }
 
     private async ValueTask<(ImmutableBootstrapObservation?, LauncherInstallationSelfTestIssue)>
@@ -151,6 +168,28 @@ public sealed class FileSystemLauncherInstallationSelfTest : ILauncherInstallati
         LauncherInstallationSelfTestIssue issue)
     {
         return new(issue, bootstrap: null, activeLauncher: null);
+    }
+
+    private static bool SameSnapshot(VersionManagerState left, VersionManagerState right)
+    {
+        return string.Equals(left.ManagedRootIdentity, right.ManagedRootIdentity, StringComparison.Ordinal) &&
+               string.Equals(left.UpdateSource, right.UpdateSource, StringComparison.Ordinal) &&
+               left.ActiveVersion == right.ActiveVersion &&
+               left.LastKnownGoodVersion == right.LastKnownGoodVersion &&
+               left.Admissions.SequenceEqual(right.Admissions) &&
+               left.PendingActivation == right.PendingActivation &&
+               left.FailedActivationVersion == right.FailedActivationVersion &&
+               left.RetentionReviewDue == right.RetentionReviewDue &&
+               left.PendingMutation == right.PendingMutation;
+    }
+
+    private static bool SameSnapshot(LauncherBootstrapState left, LauncherBootstrapState right)
+    {
+        return string.Equals(left.ManagedRootIdentity, right.ManagedRootIdentity, StringComparison.Ordinal) &&
+               left.Active == right.Active &&
+               left.LastKnownGood == right.LastKnownGood &&
+               left.Pending == right.Pending &&
+               left.Failed == right.Failed;
     }
 
     private static LauncherInstallationSelfTestIssue Map(VersionManagerStateLoadIssue issue)

@@ -43,6 +43,8 @@ public enum LauncherInstallationSelfTestIssue
     ActiveLauncherProtocolMismatch,
     /// <summary>The active launcher path is unsafe.</summary>
     ActiveLauncherUnsafePath,
+    /// <summary>An application or launcher authority changed or became unreadable during the query.</summary>
+    StateChanged,
 }
 
 /// <summary>Bounded observation of the immutable root Bootstrap, not an update admission.</summary>

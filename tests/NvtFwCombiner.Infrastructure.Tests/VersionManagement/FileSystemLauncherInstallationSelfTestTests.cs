@@ -48,6 +48,191 @@ public sealed class FileSystemLauncherInstallationSelfTestTests
         AssertFileSnapshotsEqual(before, await fixture.ReadAllFilesAsync());
     }
 
+    /// <summary>A state generation changed during hashing never produces a mixed healthy result.</summary>
+    [Fact]
+    public async Task ConcurrentStateChangeReturnsNoPartialSuccess()
+    {
+        await using SelfTestFixture fixture = await SelfTestFixture.CreateAsync();
+        var appStore = new SequenceAppStateStore(
+            fixture.CreateAppState(),
+            fixture.CreateAppState(retentionReviewDue: true));
+        var launcherStore = new SequenceLauncherStateStore(
+            fixture.CreateLauncherState(),
+            fixture.CreateLauncherState());
+        var selfTest = new FileSystemLauncherInstallationSelfTest(
+            fixture.ManagedRoot,
+            appStore,
+            launcherStore,
+            new FixedLauncherRepository(fixture.ActiveLauncher));
+
+        LauncherInstallationSelfTestResult result = await selfTest.QueryAsync(
+            TestContext.Current.CancellationToken);
+
+        AssertFailure(result, LauncherInstallationSelfTestIssue.StateChanged);
+        Assert.Equal(2, appStore.LoadCount);
+        Assert.Equal(2, launcherStore.LoadCount);
+    }
+
+    /// <summary>A launcher-journal generation changed during hashing also fails the complete snapshot.</summary>
+    [Fact]
+    public async Task ConcurrentLauncherStateChangeReturnsNoPartialSuccess()
+    {
+        await using SelfTestFixture fixture = await SelfTestFixture.CreateAsync();
+        LauncherBootstrapState initial = fixture.CreateLauncherState();
+        LauncherBootstrapState changed = LauncherBootstrapState.Create(
+            fixture.ManagedRoot,
+            fixture.ActiveLauncher,
+            fixture.ActiveLauncher,
+            pending: null,
+            failed: fixture.ActiveLauncher);
+        var selfTest = new FileSystemLauncherInstallationSelfTest(
+            fixture.ManagedRoot,
+            new SequenceAppStateStore(fixture.CreateAppState(), fixture.CreateAppState()),
+            new SequenceLauncherStateStore(initial, changed),
+            new FixedLauncherRepository(fixture.ActiveLauncher));
+
+        LauncherInstallationSelfTestResult result = await selfTest.QueryAsync(
+            TestContext.Current.CancellationToken);
+
+        AssertFailure(result, LauncherInstallationSelfTestIssue.StateChanged);
+    }
+
+    /// <summary>A terminal authority read failure is a changed snapshot, not a stale healthy result.</summary>
+    [Fact]
+    public async Task TerminalAppStateReadFailureReturnsStateChanged()
+    {
+        await using SelfTestFixture fixture = await SelfTestFixture.CreateAsync();
+        var selfTest = new FileSystemLauncherInstallationSelfTest(
+            fixture.ManagedRoot,
+            new SequenceAppStateStore(fixture.CreateAppState(), null),
+            new SequenceLauncherStateStore(fixture.CreateLauncherState(), fixture.CreateLauncherState()),
+            new FixedLauncherRepository(fixture.ActiveLauncher));
+
+        LauncherInstallationSelfTestResult result = await selfTest.QueryAsync(
+            TestContext.Current.CancellationToken);
+
+        AssertFailure(result, LauncherInstallationSelfTestIssue.StateChanged);
+    }
+
+    /// <summary>A terminal launcher-authority read failure also rejects the complete observation.</summary>
+    [Fact]
+    public async Task TerminalLauncherStateReadFailureReturnsStateChanged()
+    {
+        await using SelfTestFixture fixture = await SelfTestFixture.CreateAsync();
+        var selfTest = new FileSystemLauncherInstallationSelfTest(
+            fixture.ManagedRoot,
+            new SequenceAppStateStore(fixture.CreateAppState(), fixture.CreateAppState()),
+            new SequenceLauncherStateStore(fixture.CreateLauncherState(), null),
+            new FixedLauncherRepository(fixture.ActiveLauncher));
+
+        LauncherInstallationSelfTestResult result = await selfTest.QueryAsync(
+            TestContext.Current.CancellationToken);
+
+        AssertFailure(result, LauncherInstallationSelfTestIssue.StateChanged);
+    }
+
+    /// <summary>A missing application authority returns one typed result and no observations.</summary>
+    [Fact]
+    public async Task MissingAppStateReturnsNoPartialSuccess()
+    {
+        await using SelfTestFixture fixture = await SelfTestFixture.CreateAsync();
+        File.Delete(fixture.StatePath);
+
+        LauncherInstallationSelfTestResult result = await new FileSystemLauncherInstallationSelfTest(
+            fixture.ManagedRoot,
+            fixture.StatePath).QueryAsync(TestContext.Current.CancellationToken);
+
+        AssertFailure(result, LauncherInstallationSelfTestIssue.AppStateMissing);
+    }
+
+    /// <summary>An invalid launcher authority returns one typed result and no observations.</summary>
+    [Fact]
+    public async Task InvalidLauncherStateReturnsNoPartialSuccess()
+    {
+        await using SelfTestFixture fixture = await SelfTestFixture.CreateAsync();
+        await File.WriteAllTextAsync(
+            JsonLauncherBootstrapStateStore.DerivePath(fixture.StatePath),
+            "{}",
+            TestContext.Current.CancellationToken);
+
+        LauncherInstallationSelfTestResult result = await new FileSystemLauncherInstallationSelfTest(
+            fixture.ManagedRoot,
+            fixture.StatePath).QueryAsync(TestContext.Current.CancellationToken);
+
+        AssertFailure(result, LauncherInstallationSelfTestIssue.LauncherStateInvalid);
+    }
+
+    /// <summary>A pending application mutation is never presented as installation health.</summary>
+    [Fact]
+    public async Task PendingAppMutationReturnsNoPartialSuccess()
+    {
+        await using SelfTestFixture fixture = await SelfTestFixture.CreateAsync();
+        await new JsonVersionManagerStateStore(fixture.StatePath).SaveAsync(
+            fixture.CreateAppState(
+                pendingMutation: new PendingManagedVersionMutation(
+                    ManagedVersionMutationKind.Delete,
+                    fixture.Admission)),
+            TestContext.Current.CancellationToken);
+
+        LauncherInstallationSelfTestResult result = await new FileSystemLauncherInstallationSelfTest(
+            fixture.ManagedRoot,
+            fixture.StatePath).QueryAsync(TestContext.Current.CancellationToken);
+
+        AssertFailure(result, LauncherInstallationSelfTestIssue.AppTransactionPending);
+    }
+
+    /// <summary>A launcher bound to another exact admission fails before payload observation is published.</summary>
+    [Fact]
+    public async Task MismatchedLauncherAdmissionReturnsNoPartialSuccess()
+    {
+        await using SelfTestFixture fixture = await SelfTestFixture.CreateAsync();
+        ManagedLauncherIdentity mismatch = ManagedLauncherIdentity.Create(
+            fixture.Admission.Version,
+            "different-admission",
+            fixture.Admission.ReleaseManifestSha256,
+            ManagedAppVersion.Parse("1.0.0"),
+            1,
+            ManagedLauncherIdentity.ExecutablePath,
+            3,
+            fixture.LauncherSha256);
+        Assert.True((await new JsonLauncherBootstrapStateStore(fixture.StatePath).TrySaveAsync(
+            LauncherBootstrapState.Create(fixture.ManagedRoot, mismatch, mismatch, pending: null, failed: null),
+            TestContext.Current.CancellationToken)).IsSuccess);
+
+        LauncherInstallationSelfTestResult result = await new FileSystemLauncherInstallationSelfTest(
+            fixture.ManagedRoot,
+            fixture.StatePath).QueryAsync(TestContext.Current.CancellationToken);
+
+        AssertFailure(result, LauncherInstallationSelfTestIssue.ActiveLauncherMismatch);
+    }
+
+    /// <summary>Launcher bytes changed after admission return the existing typed tamper result.</summary>
+    [Fact]
+    public async Task TamperedLauncherReturnsNoPartialSuccess()
+    {
+        await using SelfTestFixture fixture = await SelfTestFixture.CreateAsync();
+        await File.AppendAllTextAsync(
+            fixture.LauncherPath,
+            "tampered",
+            TestContext.Current.CancellationToken);
+
+        LauncherInstallationSelfTestResult result = await new FileSystemLauncherInstallationSelfTest(
+            fixture.ManagedRoot,
+            fixture.StatePath).QueryAsync(TestContext.Current.CancellationToken);
+
+        AssertFailure(result, LauncherInstallationSelfTestIssue.ActiveLauncherTampered);
+    }
+
+    private static void AssertFailure(
+        LauncherInstallationSelfTestResult result,
+        LauncherInstallationSelfTestIssue expected)
+    {
+        Assert.False(result.IsHealthy);
+        Assert.Equal(expected, result.Issue);
+        Assert.Null(result.Bootstrap);
+        Assert.Null(result.ActiveLauncher);
+    }
+
     private static void AssertFileSnapshotsEqual(
         IReadOnlyDictionary<string, byte[]> expected,
         IReadOnlyDictionary<string, byte[]> actual)
@@ -87,7 +272,47 @@ public sealed class FileSystemLauncherInstallationSelfTestTests
         public string BootstrapPath { get; }
         public string BootstrapSha256 { get; }
         public string LauncherSha256 { get; }
+        public string LauncherPath => Path.Combine(
+            ManagedRoot,
+            "versions",
+            Admission.Version.ToString(),
+            ManagedLauncherIdentity.ExecutablePath.Replace('/', Path.DirectorySeparatorChar));
         public ManagedVersionAdmission Admission { get; }
+        public ManagedLauncherIdentity ActiveLauncher => ManagedLauncherIdentity.Create(
+            Admission.Version,
+            Admission.AdmissionIdentity,
+            Admission.ReleaseManifestSha256,
+            ManagedAppVersion.Parse("1.0.0"),
+            1,
+            ManagedLauncherIdentity.ExecutablePath,
+            3,
+            LauncherSha256);
+
+        public VersionManagerState CreateAppState(
+            bool retentionReviewDue = false,
+            PendingManagedVersionMutation? pendingMutation = null)
+        {
+            return VersionManagerState.Create(
+                updateSource: null,
+                activeVersion: Admission.Version,
+                lastKnownGoodVersion: Admission.Version,
+                admissions: [Admission],
+                pendingActivation: null,
+                failedActivationVersion: null,
+                retentionReviewDue: retentionReviewDue,
+                pendingMutation: pendingMutation,
+                managedRootIdentity: ManagedRoot);
+        }
+
+        public LauncherBootstrapState CreateLauncherState()
+        {
+            return LauncherBootstrapState.Create(
+                ManagedRoot,
+                ActiveLauncher,
+                ActiveLauncher,
+                pending: null,
+                failed: null);
+        }
 
         public static async Task<SelfTestFixture> CreateAsync(bool pendingLauncher = false)
         {
@@ -240,6 +465,72 @@ public sealed class FileSystemLauncherInstallationSelfTestTests
         private static string Hash(byte[] bytes)
         {
             return Convert.ToHexStringLower(SHA256.HashData(bytes));
+        }
+    }
+
+    private sealed class FixedLauncherRepository(ManagedLauncherIdentity identity) : IInstalledLauncherRepository
+    {
+        public ValueTask<InstalledLauncherResult> VerifyAsync(
+            string managedRoot,
+            ManagedVersionAdmission admission,
+            CancellationToken cancellationToken)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            return ValueTask.FromResult(new InstalledLauncherResult(identity, InstalledLauncherIssue.None));
+        }
+    }
+
+    private sealed class SequenceAppStateStore(params VersionManagerState?[] states) : IVersionManagerStateStore
+    {
+        private readonly Queue<VersionManagerState?> _states = new(states);
+
+        public int LoadCount { get; private set; }
+
+        public ValueTask<VersionManagerWriteLeaseResult> TryAcquireWriteLeaseAsync(
+            TimeSpan waitTimeout,
+            CancellationToken cancellationToken)
+        {
+            throw new InvalidOperationException("Read-only self-test must not acquire a writer lease.");
+        }
+
+        public ValueTask<VersionManagerStateLoadResult> LoadAsync(CancellationToken cancellationToken)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            LoadCount++;
+            VersionManagerState? state = _states.Dequeue();
+            return ValueTask.FromResult(state is null
+                ? new VersionManagerStateLoadResult(null, VersionManagerStateLoadIssue.Unavailable)
+                : new VersionManagerStateLoadResult(state, VersionManagerStateLoadIssue.None));
+        }
+
+        public ValueTask SaveAsync(VersionManagerState state, CancellationToken cancellationToken)
+        {
+            throw new InvalidOperationException("Read-only self-test must not save app state.");
+        }
+    }
+
+    private sealed class SequenceLauncherStateStore(params LauncherBootstrapState?[] states)
+        : ILauncherBootstrapStateStore
+    {
+        private readonly Queue<LauncherBootstrapState?> _states = new(states);
+
+        public int LoadCount { get; private set; }
+
+        public ValueTask<LauncherBootstrapStateLoadResult> LoadAsync(CancellationToken cancellationToken)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            LoadCount++;
+            LauncherBootstrapState? state = _states.Dequeue();
+            return ValueTask.FromResult(state is null
+                ? new LauncherBootstrapStateLoadResult(null, LauncherBootstrapStateLoadIssue.Unavailable)
+                : new LauncherBootstrapStateLoadResult(state, LauncherBootstrapStateLoadIssue.None));
+        }
+
+        public ValueTask<LauncherBootstrapStateSaveResult> TrySaveAsync(
+            LauncherBootstrapState state,
+            CancellationToken cancellationToken)
+        {
+            throw new InvalidOperationException("Read-only self-test must not save launcher state.");
         }
     }
 }
