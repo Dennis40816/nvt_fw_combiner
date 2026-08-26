@@ -217,7 +217,7 @@ public sealed partial class RepositoryBoundaryTests
             "if (publication.IcIds.Count == 0)",
             StringComparison.Ordinal);
         int nonZeroStart = selectorProjection.IndexOf(
-            "string mergeIc = ResolveWorkflowContextIc",
+            "WorkflowPageCatalogReconciliation mergeReconciliation",
             zeroStart,
             StringComparison.Ordinal);
         Assert.True(zeroStart >= 0 && nonZeroStart > zeroStart);

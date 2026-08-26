@@ -18,13 +18,12 @@ internal sealed partial class MergePresentationViewModel
         string icId,
         string number,
         string mode,
-        CapabilitySelectorPublication publication,
-        string? generalOutputLength,
-        string? generalOutputFillByte)
+        CapabilitySelectorPublication publication)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(icId);
         ArgumentException.ThrowIfNullOrWhiteSpace(mode);
         ArgumentNullException.ThrowIfNull(publication);
+        _preparedGeneralMergeDefaultsIc = null;
         switch (mode)
         {
             case NormalMergeMode:
@@ -62,10 +61,23 @@ internal sealed partial class MergePresentationViewModel
                 _preparedAbMergeSnapshot = abSnapshot;
                 break;
             case GeneralMergeMode:
+                bool defaultsAreCurrent = string.Equals(
+                    _generalMergeDefaultsIc,
+                    icId,
+                    StringComparison.Ordinal);
+                (string length, string fillByte) = defaultsAreCurrent
+                    ? (_generalMergeDefaultLength, _generalMergeDefaultFillByte)
+                    : ResolveGeneralMergeDefaults(icId);
                 ValidateGeneralMergeContextRefresh(
                     icId,
-                    generalOutputLength ?? string.Empty,
-                    generalOutputFillByte ?? string.Empty);
+                    length,
+                    fillByte);
+                if (!defaultsAreCurrent)
+                {
+                    _preparedGeneralMergeDefaultsIc = icId;
+                    _preparedGeneralMergeDefaultLength = length;
+                    _preparedGeneralMergeDefaultFillByte = fillByte;
+                }
                 break;
             default:
                 throw new InvalidOperationException("Unknown Merge workflow mode.");

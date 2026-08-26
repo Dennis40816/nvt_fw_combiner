@@ -18,17 +18,49 @@ internal sealed record WorkflowContextTarget(
 
 internal static class WorkflowNavigationTransaction
 {
-    internal static PreparedGeneralMergeDefaults? PrepareContextRefresh(
+    internal static WorkflowPageCatalogReconciliation ReconcileCatalogPage(
+        CapabilitySelectorPublication publication,
+        ShellPage page,
+        string previousIc,
+        string previousNumber,
+        MergePresentationViewModel merge,
+        ReplacePresentationViewModel replace)
+    {
+        string icId = WorkflowSelectorProjection.ContextIc(publication, previousIc, page);
+        bool modeChanged = page switch
+        {
+            ShellPage.Merge => merge.StageAuthorableModeForCatalogReconciliation(
+                workflowId => !string.IsNullOrWhiteSpace(icId) &&
+                    publication.IsWorkflowAuthorable(icId, workflowId)),
+            ShellPage.Replace => replace.StageAuthorableModeForCatalogReconciliation(
+                workflowId => !string.IsNullOrWhiteSpace(icId) &&
+                    publication.IsWorkflowAuthorable(icId, workflowId)),
+            ShellPage.Home or ShellPage.HexEditor => throw new ArgumentException(
+                "Workflow page expected.",
+                nameof(page)),
+            _ => throw new InvalidOperationException("Unknown shell page."),
+        };
+        string number = WorkflowSelectorProjection.Number(
+            publication,
+            icId,
+            previousNumber,
+            page == ShellPage.Merge && merge.IsAbCodeMergeModeSelected);
+        return new(
+            icId,
+            number,
+            !string.Equals(previousIc, icId, StringComparison.Ordinal) ||
+                !string.Equals(previousNumber, number, StringComparison.Ordinal) ||
+                modeChanged,
+            modeChanged);
+    }
+
+    internal static void PrepareContextRefresh(
         CapabilitySelectorPublication publication,
         ShellPage page,
         string retainedIc,
         string retainedNumber,
         MergePresentationViewModel merge,
-        ReplacePresentationViewModel replace,
-        string? currentGeneralDefaultsIc,
-        string currentGeneralLength,
-        string currentGeneralFillByte,
-        Func<string, (string Length, string FillByte)> resolveGeneralDefaults)
+        ReplacePresentationViewModel replace)
     {
         ArgumentNullException.ThrowIfNull(publication);
         WorkflowInspectionOwner owner = page switch
@@ -43,7 +75,7 @@ internal static class WorkflowNavigationTransaction
         string icId = WorkflowSelectorProjection.ContextIc(publication, retainedIc, page);
         if (string.IsNullOrWhiteSpace(icId))
         {
-            return null;
+            return;
         }
 
         string mode = owner == WorkflowInspectionOwner.Merge
@@ -53,7 +85,7 @@ internal static class WorkflowNavigationTransaction
                 workflowId => publication.IsWorkflowAuthorable(icId, workflowId));
         if (string.IsNullOrWhiteSpace(mode))
         {
-            return null;
+            return;
         }
 
         string number = WorkflowSelectorProjection.Number(
@@ -64,27 +96,10 @@ internal static class WorkflowNavigationTransaction
         if (owner == WorkflowInspectionOwner.Replace)
         {
             replace.ValidateContextRefresh(icId, number, mode);
-            return null;
+            return;
         }
 
-        string? length = null;
-        string? fillByte = null;
-        PreparedGeneralMergeDefaults? prepared = null;
-        if (StringComparer.Ordinal.Equals(mode, ExperienceIds.GeneralMerge))
-        {
-            if (string.Equals(currentGeneralDefaultsIc, icId, StringComparison.Ordinal))
-            {
-                length = currentGeneralLength;
-                fillByte = currentGeneralFillByte;
-            }
-            else
-            {
-                (length, fillByte) = resolveGeneralDefaults(icId);
-                prepared = new(icId, length, fillByte);
-            }
-        }
-        merge.ValidateContextRefresh(icId, number, mode, publication, length, fillByte);
-        return prepared;
+        merge.ValidateContextRefresh(icId, number, mode, publication);
     }
 
     internal static void RecordConfirmedSelection(
@@ -116,10 +131,11 @@ internal static class WorkflowNavigationTransaction
     }
 }
 
-internal sealed record PreparedGeneralMergeDefaults(
+internal sealed record WorkflowPageCatalogReconciliation(
     string IcId,
-    string Length,
-    string FillByte);
+    string Number,
+    bool NeedsRefresh,
+    bool ModeChanged);
 
 internal readonly record struct PageActivationRollback(
     string SelectedIc,

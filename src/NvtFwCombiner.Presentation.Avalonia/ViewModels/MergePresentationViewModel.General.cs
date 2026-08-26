@@ -13,6 +13,64 @@ internal sealed partial class MergePresentationViewModel
     private GeneralAuthoringAdmissionResult? _preparedGeneralMergeAdmission;
     private CapabilityActionReadinessSnapshot? _generalMergeActionReadiness;
     private bool _isApplyingGeneralMergePreparation;
+    private string? _generalMergeDefaultsIc;
+    private string _generalMergeDefaultLength = string.Empty;
+    private string _generalMergeDefaultFillByte = string.Empty;
+    private string? _preparedGeneralMergeDefaultsIc;
+    private string _preparedGeneralMergeDefaultLength = string.Empty;
+    private string _preparedGeneralMergeDefaultFillByte = string.Empty;
+
+    internal void RefreshGeneralMergeDefaults(string icId, bool isAuthorable)
+    {
+        if (!isAuthorable ||
+            string.Equals(_generalMergeDefaultsIc, icId, StringComparison.Ordinal))
+        {
+            return;
+        }
+
+        bool canReplaceCurrentValues = _generalMergeDefaultsIc is null ||
+            (string.Equals(
+                GeneralMergeOutputLength,
+                _generalMergeDefaultLength,
+                StringComparison.Ordinal) &&
+            string.Equals(
+                GeneralMergeOutputFillByte,
+                _generalMergeDefaultFillByte,
+                StringComparison.Ordinal));
+        if (!canReplaceCurrentValues)
+        {
+            return;
+        }
+
+        (string length, string fillByte) = GetGeneralMergeDefaults(icId);
+        _generalMergeDefaultsIc = icId;
+        _generalMergeDefaultLength = length;
+        _generalMergeDefaultFillByte = fillByte;
+        ApplyGeneralMergeOutputInitializer(length, fillByte);
+    }
+
+    private (string Length, string FillByte) GetGeneralMergeDefaults(string icId)
+    {
+        if (string.Equals(_preparedGeneralMergeDefaultsIc, icId, StringComparison.Ordinal))
+        {
+            (string Length, string FillByte) prepared = (
+                _preparedGeneralMergeDefaultLength,
+                _preparedGeneralMergeDefaultFillByte);
+            _preparedGeneralMergeDefaultsIc = null;
+            _preparedGeneralMergeDefaultLength = string.Empty;
+            _preparedGeneralMergeDefaultFillByte = string.Empty;
+            return prepared;
+        }
+
+        return ResolveGeneralMergeDefaults(icId);
+    }
+
+    private (string Length, string FillByte) ResolveGeneralMergeDefaults(string icId)
+    {
+        string length = _compositionServices.GeneralAuthoring.GetDefaultOutputLength(icId);
+        string fillByte = _compositionServices.GeneralAuthoring.GetDefaultOutputFillByte(icId);
+        return (length, fillByte);
+    }
 
     internal void AddGeneralMergeMapping()
     {

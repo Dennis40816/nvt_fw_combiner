@@ -53,34 +53,28 @@ internal sealed partial class WorkflowSessionPresentationViewModel
             return;
         }
 
-        string mergeIc = ResolveWorkflowContextIc(previousMergeIc, ShellPage.Merge);
-        string replaceIc = ResolveWorkflowContextIc(previousReplaceIc, ShellPage.Replace);
-        _mergeWorkflowContextIc = mergeIc;
-        _replaceWorkflowContextIc = replaceIc;
-
-        bool mergeModeReconciled = _merge.StageAuthorableModeForCatalogReconciliation(
-            workflowId => !string.IsNullOrWhiteSpace(mergeIc) &&
-                publication.IsWorkflowAuthorable(mergeIc, workflowId));
-        bool replaceModeReconciled = _replace.StageAuthorableModeForCatalogReconciliation(
-            workflowId => !string.IsNullOrWhiteSpace(replaceIc) &&
-                publication.IsWorkflowAuthorable(replaceIc, workflowId));
-
-        _mergeWorkflowContextNumber = ResolvePublishedNumber(
-            mergeIc,
-            previousMergeNumber,
-            useAbTopology: _merge.IsAbCodeMergeModeSelected);
-        _replaceWorkflowContextNumber = ResolvePublishedNumber(
-            replaceIc,
-            previousReplaceNumber,
-            useAbTopology: false);
-        _mergeWorkflowContextNeedsRefresh =
-            !string.Equals(previousMergeIc, _mergeWorkflowContextIc, StringComparison.Ordinal) ||
-            !string.Equals(previousMergeNumber, _mergeWorkflowContextNumber, StringComparison.Ordinal) ||
-            mergeModeReconciled;
-        _replaceWorkflowContextNeedsRefresh =
-            !string.Equals(previousReplaceIc, _replaceWorkflowContextIc, StringComparison.Ordinal) ||
-            !string.Equals(previousReplaceNumber, _replaceWorkflowContextNumber, StringComparison.Ordinal) ||
-            replaceModeReconciled;
+        WorkflowPageCatalogReconciliation mergeReconciliation =
+            WorkflowNavigationTransaction.ReconcileCatalogPage(
+                publication,
+                ShellPage.Merge,
+                previousMergeIc,
+                previousMergeNumber,
+                _merge,
+                _replace);
+        WorkflowPageCatalogReconciliation replaceReconciliation =
+            WorkflowNavigationTransaction.ReconcileCatalogPage(
+                publication,
+                ShellPage.Replace,
+                previousReplaceIc,
+                previousReplaceNumber,
+                _merge,
+                _replace);
+        _mergeWorkflowContextIc = mergeReconciliation.IcId;
+        _replaceWorkflowContextIc = replaceReconciliation.IcId;
+        _mergeWorkflowContextNumber = mergeReconciliation.Number;
+        _replaceWorkflowContextNumber = replaceReconciliation.Number;
+        _mergeWorkflowContextNeedsRefresh = mergeReconciliation.NeedsRefresh;
+        _replaceWorkflowContextNeedsRefresh = replaceReconciliation.NeedsRefresh;
 
         ReconcileOpenWorkflowContext(publication);
         (string activeIc, string activeNumber) = ActiveWorkflowOwner switch
@@ -98,11 +92,11 @@ internal sealed partial class WorkflowSessionPresentationViewModel
             _ => throw new InvalidOperationException("Unknown workflow inspection owner."),
         };
         PublishActiveSelectorState(activeIc, activeNumber);
-        if (mergeModeReconciled)
+        if (mergeReconciliation.ModeChanged)
         {
             _merge.PublishCatalogReconciledMergeMode();
         }
-        if (replaceModeReconciled)
+        if (replaceReconciliation.ModeChanged)
         {
             _replace.PublishCatalogReconciledReplaceMode();
         }
@@ -124,54 +118,9 @@ internal sealed partial class WorkflowSessionPresentationViewModel
 
     private void RefreshGeneralMergeDefaults(string icId)
     {
-        if (!IsPublishedWorkflowAuthorable(icId, ExperienceIds.GeneralMerge) ||
-            string.Equals(_generalMergeDefaultsIc, icId, StringComparison.Ordinal))
-        {
-            return;
-        }
-
-        bool canReplaceCurrentValues = _generalMergeDefaultsIc is null ||
-            (string.Equals(
-                _merge.GeneralMergeOutputLength,
-                _generalMergeDefaultLength,
-                StringComparison.Ordinal) &&
-            string.Equals(
-                _merge.GeneralMergeOutputFillByte,
-                _generalMergeDefaultFillByte,
-                StringComparison.Ordinal));
-        if (!canReplaceCurrentValues)
-        {
-            return;
-        }
-
-        (string length, string fillByte) = GetGeneralMergeDefaults(icId);
-        _generalMergeDefaultsIc = icId;
-        _generalMergeDefaultLength = length;
-        _generalMergeDefaultFillByte = fillByte;
-        _merge.ApplyGeneralMergeOutputInitializer(length, fillByte);
-    }
-
-    private (string Length, string FillByte) GetGeneralMergeDefaults(string icId)
-    {
-        if (string.Equals(_preparedGeneralMergeDefaultsIc, icId, StringComparison.Ordinal))
-        {
-            (string Length, string FillByte) prepared = (
-                _preparedGeneralMergeDefaultLength,
-                _preparedGeneralMergeDefaultFillByte);
-            _preparedGeneralMergeDefaultsIc = null;
-            _preparedGeneralMergeDefaultLength = string.Empty;
-            _preparedGeneralMergeDefaultFillByte = string.Empty;
-            return prepared;
-        }
-
-        return ResolveGeneralMergeDefaults(icId);
-    }
-
-    private (string Length, string FillByte) ResolveGeneralMergeDefaults(string icId)
-    {
-        string length = _compositionServices.GeneralAuthoring.GetDefaultOutputLength(icId);
-        string fillByte = _compositionServices.GeneralAuthoring.GetDefaultOutputFillByte(icId);
-        return (length, fillByte);
+        _merge.RefreshGeneralMergeDefaults(
+            icId,
+            IsPublishedWorkflowAuthorable(icId, ExperienceIds.GeneralMerge));
     }
 
     private void ValidateWorkflowContextRefresh(
@@ -184,24 +133,12 @@ internal sealed partial class WorkflowSessionPresentationViewModel
         string retainedNumber = page == ShellPage.Merge
             ? _mergeWorkflowContextNumber
             : _replaceWorkflowContextNumber;
-        _preparedGeneralMergeDefaultsIc = null;
-        PreparedGeneralMergeDefaults? prepared =
-            WorkflowNavigationTransaction.PrepareContextRefresh(
-                publication,
-                page,
-                retainedIc,
-                retainedNumber,
-                _merge,
-                _replace,
-                _generalMergeDefaultsIc,
-                _generalMergeDefaultLength,
-                _generalMergeDefaultFillByte,
-                ResolveGeneralMergeDefaults);
-        if (prepared is not null)
-        {
-            _preparedGeneralMergeDefaultsIc = prepared.IcId;
-            _preparedGeneralMergeDefaultLength = prepared.Length;
-            _preparedGeneralMergeDefaultFillByte = prepared.FillByte;
-        }
+        WorkflowNavigationTransaction.PrepareContextRefresh(
+            publication,
+            page,
+            retainedIc,
+            retainedNumber,
+            _merge,
+            _replace);
     }
 }

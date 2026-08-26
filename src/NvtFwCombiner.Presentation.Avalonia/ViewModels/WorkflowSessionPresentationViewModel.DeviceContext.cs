@@ -14,13 +14,6 @@ internal sealed partial class WorkflowSessionPresentationViewModel
         null);
     private string _selectedIc = string.Empty;
     private bool _isPublishingCanonicalCatalogChoices;
-    private string? _generalMergeDefaultsIc;
-    private string _generalMergeDefaultLength = string.Empty;
-    private string _generalMergeDefaultFillByte = string.Empty;
-    private string? _preparedGeneralMergeDefaultsIc;
-    private string _preparedGeneralMergeDefaultLength = string.Empty;
-    private string _preparedGeneralMergeDefaultFillByte = string.Empty;
-
     internal string DeviceContextRefreshSummary { get; private set; } = string.Empty;
 
     public IReadOnlyList<string> IcChoices => _selectorPublication is null

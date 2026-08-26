@@ -284,14 +284,14 @@ CI_DOTNET_SHARDS: dict[str, tuple[CiDotnetProject, ...]] = {
     "bootstrap": (
         CiDotnetProject(
             "tests/NvtFwCombiner.Bootstrap.Tests/NvtFwCombiner.Bootstrap.Tests.csproj",
-            1050,
+            1121,
             0 if os.name == "nt" else 5,
         ),
     ),
     "ui": (
         CiDotnetProject(
             "tests/NvtFwCombiner.UiSmoke.Tests/NvtFwCombiner.UiSmoke.Tests.csproj",
-            711,
+            797,
             requires_exclusive_local_coverage=True,
         ),
     ),
@@ -303,18 +303,18 @@ CI_DOTNET_SHARDS: dict[str, tuple[CiDotnetProject, ...]] = {
         CiDotnetProject(
             "tests/NvtFwCombiner.Application.Tests/"
             "NvtFwCombiner.Application.Tests.csproj",
-            707,
+            754,
         ),
         CiDotnetProject(
             "tests/NvtFwCombiner.Infrastructure.Tests/"
             "NvtFwCombiner.Infrastructure.Tests.csproj",
-            561,
+            571,
             2,
         ),
         CiDotnetProject(
             "tests/NvtFwCombiner.ProfileContract.Tests/"
             "NvtFwCombiner.ProfileContract.Tests.csproj",
-            387,
+            389,
         ),
         CiDotnetProject(
             "tests/NvtFwCombiner.GoldenRegression.Tests/"
@@ -324,7 +324,7 @@ CI_DOTNET_SHARDS: dict[str, tuple[CiDotnetProject, ...]] = {
         CiDotnetProject(
             "tests/NvtFwCombiner.Architecture.Tests/"
             "NvtFwCombiner.Architecture.Tests.csproj",
-            228,
+            231,
         ),
     ),
 }

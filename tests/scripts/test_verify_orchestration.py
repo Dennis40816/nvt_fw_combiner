@@ -2815,7 +2815,7 @@ class VerifyOrchestrationTests(unittest.TestCase):
                 (
                     "tests/NvtFwCombiner.Bootstrap.Tests/"
                     "NvtFwCombiner.Bootstrap.Tests.csproj",
-                    1050,
+                    1121,
                     0 if MODULE.os.name == "nt" else 5,
                 ),
             ),
@@ -2823,7 +2823,7 @@ class VerifyOrchestrationTests(unittest.TestCase):
                 (
                     "tests/NvtFwCombiner.UiSmoke.Tests/"
                     "NvtFwCombiner.UiSmoke.Tests.csproj",
-                    711,
+                    797,
                     0,
                 ),
             ),
@@ -2837,19 +2837,19 @@ class VerifyOrchestrationTests(unittest.TestCase):
                 (
                     "tests/NvtFwCombiner.Application.Tests/"
                     "NvtFwCombiner.Application.Tests.csproj",
-                    707,
+                    754,
                     0,
                 ),
                 (
                     "tests/NvtFwCombiner.Infrastructure.Tests/"
                     "NvtFwCombiner.Infrastructure.Tests.csproj",
-                    561,
+                    571,
                     2,
                 ),
                 (
                     "tests/NvtFwCombiner.ProfileContract.Tests/"
                     "NvtFwCombiner.ProfileContract.Tests.csproj",
-                    387,
+                    389,
                     0,
                 ),
                 (
@@ -2861,7 +2861,7 @@ class VerifyOrchestrationTests(unittest.TestCase):
                 (
                     "tests/NvtFwCombiner.Architecture.Tests/"
                     "NvtFwCombiner.Architecture.Tests.csproj",
-                    228,
+                    231,
                     0,
                 ),
             ),
@@ -2902,7 +2902,7 @@ class VerifyOrchestrationTests(unittest.TestCase):
         self.assertEqual(8, len(set(flattened)))
         self.assertEqual(solution_test_projects, set(flattened))
         self.assertEqual(
-            4073, sum(total for projects in actual.values() for _, total, _ in projects)
+            4292, sum(total for projects in actual.values() for _, total, _ in projects)
         )
         self.assertEqual(
             2 + (0 if MODULE.os.name == "nt" else 5),
