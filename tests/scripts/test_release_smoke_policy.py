@@ -27,5 +27,6 @@ def test_managed_lab_publishes_only_the_immutable_bootstrap_at_root() -> None:
     lab = (ROOT / "scripts" / "create-managed-installation-lab.ps1").read_text(encoding="utf-8-sig")
 
     assert "src/NvtFwCombiner.LauncherBootstrap/NvtFwCombiner.LauncherBootstrap.csproj" in lab
+    assert "Move-Item -LiteralPath $PublishedBootstrap -Destination $Bootstrap" in lab
     assert "--bootstrap $Bootstrap" in lab
     assert "src/NvtFwCombiner.Launcher/NvtFwCombiner.Launcher.csproj" not in lab

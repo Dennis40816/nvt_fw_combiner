@@ -22,7 +22,7 @@ public sealed partial class RepositoryBoundaryTests
             "src/NvtFwCombiner.LauncherBootstrap/NvtFwCombiner.LauncherBootstrap.csproj");
         AssertContainsAll(
             bootstrapProject,
-            "<AssemblyName>NvtFwCombiner.Bootstrap</AssemblyName>",
+            "<AssemblyName>NvtFwCombiner.LauncherBootstrap</AssemblyName>",
             "NvtFwCombiner.VersionManagement.Infrastructure");
         AssertDoesNotContainAny(
             bootstrapProject,

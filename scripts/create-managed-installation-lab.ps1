@@ -17,6 +17,7 @@ if ([string]::IsNullOrWhiteSpace($Output)) {
 }
 $PublishRoot = Join-Path $RepositoryRoot "artifacts/immutable-bootstrap-publish-$PID"
 $Bootstrap = Join-Path $PublishRoot 'NvtFwCombiner.Bootstrap.exe'
+$PublishedBootstrap = Join-Path $PublishRoot 'NvtFwCombiner.LauncherBootstrap.exe'
 $SourcePackageLockSnapshots = @{}
 Get-ChildItem -LiteralPath (Join-Path $RepositoryRoot 'src') -Filter 'packages.lock.json' -File -Recurse |
     ForEach-Object { $SourcePackageLockSnapshots[$_.FullName] = [IO.File]::ReadAllBytes($_.FullName) }
@@ -37,6 +38,7 @@ try {
     if ($LASTEXITCODE -ne 0) {
         throw "Immutable Bootstrap publish failed with exit code $LASTEXITCODE."
     }
+    Move-Item -LiteralPath $PublishedBootstrap -Destination $Bootstrap
     & python `
         (Join-Path $RepositoryRoot 'scripts/create_managed_installation_lab.py') `
         --source $UpdateSource `

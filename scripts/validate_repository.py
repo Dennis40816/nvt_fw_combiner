@@ -174,6 +174,7 @@ EXPECTED_PROJECTS = {
     "src/NvtFwCombiner.Cli/NvtFwCombiner.Cli.csproj",
     "src/NvtFwCombiner.Desktop/NvtFwCombiner.Desktop.csproj",
     "src/NvtFwCombiner.Launcher/NvtFwCombiner.Launcher.csproj",
+    "src/NvtFwCombiner.LauncherBootstrap/NvtFwCombiner.LauncherBootstrap.csproj",
     "src/NvtFwCombiner.Presentation.Avalonia/NvtFwCombiner.Presentation.Avalonia.csproj",
     "tests/NvtFwCombiner.Domain.Tests/NvtFwCombiner.Domain.Tests.csproj",
     "tests/NvtFwCombiner.Application.Tests/NvtFwCombiner.Application.Tests.csproj",
@@ -227,6 +228,9 @@ EXPECTED_PROJECT_REFERENCES = {
     },
     "src/NvtFwCombiner.Launcher/NvtFwCombiner.Launcher.csproj": {
         "src/NvtFwCombiner.VersionManagement.Application/NvtFwCombiner.VersionManagement.Application.csproj",
+        "src/NvtFwCombiner.VersionManagement.Infrastructure/NvtFwCombiner.VersionManagement.Infrastructure.csproj",
+    },
+    "src/NvtFwCombiner.LauncherBootstrap/NvtFwCombiner.LauncherBootstrap.csproj": {
         "src/NvtFwCombiner.VersionManagement.Infrastructure/NvtFwCombiner.VersionManagement.Infrastructure.csproj",
     },
     "src/NvtFwCombiner.Presentation.Avalonia/NvtFwCombiner.Presentation.Avalonia.csproj": {
