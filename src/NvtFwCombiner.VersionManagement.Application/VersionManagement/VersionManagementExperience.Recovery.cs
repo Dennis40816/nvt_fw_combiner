@@ -83,16 +83,10 @@ public sealed partial class VersionManagementExperience
             pendingAdmission == admission
                 ? true
                 : throw new InvalidOperationException("Install commit differs from its durable journal.");
-        return VersionManagerState.Create(
-            state.UpdateSource,
-            state.ActiveVersion,
-            state.LastKnownGoodVersion,
+        return state.CompletePendingMutation(
             [.. state.Admissions, admission],
-            state.PendingActivation,
-            state.FailedActivationVersion,
-            state.RetentionReviewDue,
-            pendingMutation: null,
-            managedRootIdentity: state.ManagedRootIdentity);
+            state.LastKnownGoodVersion,
+            state.FailedActivationVersion);
     }
 
     private static VersionManagerState MarkRetentionReviewDue(
@@ -125,16 +119,10 @@ public sealed partial class VersionManagementExperience
             pendingAdmission == admission
                 ? true
                 : throw new InvalidOperationException("Delete commit differs from its durable journal.");
-        return VersionManagerState.Create(
-            state.UpdateSource,
-            state.ActiveVersion,
-            state.LastKnownGoodVersion == admission.Version ? null : state.LastKnownGoodVersion,
+        return state.CompletePendingMutation(
             state.Admissions.Where(item => item.Version != admission.Version),
-            state.PendingActivation,
-            state.FailedActivationVersion == admission.Version ? null : state.FailedActivationVersion,
-            state.RetentionReviewDue,
-            pendingMutation: null,
-            managedRootIdentity: state.ManagedRootIdentity);
+            state.LastKnownGoodVersion == admission.Version ? null : state.LastKnownGoodVersion,
+            state.FailedActivationVersion == admission.Version ? null : state.FailedActivationVersion);
     }
 
     private async ValueTask<bool> TrySaveAsync(

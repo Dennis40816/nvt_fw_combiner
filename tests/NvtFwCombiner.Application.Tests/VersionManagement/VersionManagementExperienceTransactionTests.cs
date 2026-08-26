@@ -8,10 +8,17 @@ public sealed partial class VersionManagementExperienceTests
     [Fact]
     public async Task InstallCommitSaveFailureConvergesFromDurableJournalAfterRestart()
     {
+        string source = Path.GetFullPath("source-root");
+        var registryState = new VersionSourceRegistryState(7, Hash, isManualPin: false);
+        var sourceRegistry = new SequenceRegistrySource(
+            Registry(7, Hash, (source, UpdateSourceRegistryEntryStatus.Latest)),
+            Registry(7, Hash, (source, UpdateSourceRegistryEntryStatus.Latest)));
         VersionManagerState initial = State(
             [Admission("0.10.5")],
             active: "0.10.5",
-            lastKnownGood: "0.10.5");
+            lastKnownGood: "0.10.5",
+            source: source,
+            sourceRegistryState: registryState);
         var stateStore = new FailingStateStore(initial, failOnSave: 2);
         var repository = new TransactionRepository(initial.Admissions);
         using (var first = new VersionManagementExperience(
@@ -19,7 +26,8 @@ public sealed partial class VersionManagementExperienceTests
             "managed-root",
             stateStore,
             new FixedCatalogSource(Catalog("0.10.6")),
-            repository))
+            repository,
+            sourceRegistry))
         {
             _ = await first.CheckAsync(isAutomatic: false, TestContext.Current.CancellationToken);
             VersionInstallOperationResult interrupted = await first.InstallAsync(
@@ -41,6 +49,7 @@ public sealed partial class VersionManagementExperienceTests
         Assert.Null(recovered.State!.PendingMutation);
         Assert.Contains(recovered.State.Admissions, admission =>
             admission.Version == ManagedAppVersion.Parse("0.10.6"));
+        Assert.Equal(registryState, recovered.State.SourceRegistryState);
         Assert.Equal(2, recovered.Inventory.HealthyCount);
     }
 
@@ -93,10 +102,13 @@ public sealed partial class VersionManagementExperienceTests
     [Fact]
     public async Task DeleteCommitSaveFailureConvergesFromDurableJournalAfterRestart()
     {
+        var registryState = new VersionSourceRegistryState(7, Hash, isManualPin: false);
         VersionManagerState initial = State(
             [Admission("0.10.5"), Admission("0.10.4")],
             active: "0.10.5",
-            lastKnownGood: "0.10.5");
+            lastKnownGood: "0.10.5",
+            source: Path.GetFullPath("source-root"),
+            sourceRegistryState: registryState);
         var stateStore = new FailingStateStore(initial, failOnSave: 2);
         var repository = new TransactionRepository(initial.Admissions);
         using (var first = new VersionManagementExperience(
@@ -126,6 +138,7 @@ public sealed partial class VersionManagementExperienceTests
         Assert.Null(recovered.State!.PendingMutation);
         Assert.DoesNotContain(recovered.State.Admissions, admission =>
             admission.Version == ManagedAppVersion.Parse("0.10.4"));
+        Assert.Equal(registryState, recovered.State.SourceRegistryState);
         Assert.Null(recovered.Inventory.Find(ManagedAppVersion.Parse("0.10.4")));
     }
 

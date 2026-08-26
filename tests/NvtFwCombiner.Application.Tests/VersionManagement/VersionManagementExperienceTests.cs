@@ -390,7 +390,8 @@ public sealed partial class VersionManagementExperienceTests
         IReadOnlyList<ManagedVersionAdmission> admissions,
         string active,
         string lastKnownGood,
-        string source = "source-root")
+        string source = "source-root",
+        VersionSourceRegistryState? sourceRegistryState = null)
     {
         return VersionManagerState.Create(
             source,
@@ -400,7 +401,8 @@ public sealed partial class VersionManagementExperienceTests
             pendingActivation: null,
             failedActivationVersion: null,
             retentionReviewDue: false,
-            managedRootIdentity: "managed-root");
+            managedRootIdentity: "managed-root",
+            sourceRegistryState: sourceRegistryState);
     }
 
     private static ManagedVersionAdmission Admission(string version)

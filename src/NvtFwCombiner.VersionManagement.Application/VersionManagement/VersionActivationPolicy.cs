@@ -312,6 +312,27 @@ public sealed class VersionManagerState
             SourceRegistryState);
     }
 
+    internal VersionManagerState CompletePendingMutation(
+        IEnumerable<ManagedVersionAdmission> admissions,
+        ManagedAppVersion? lastKnownGoodVersion,
+        ManagedAppVersion? failedActivationVersion)
+    {
+        _ = PendingMutation is not null
+            ? true
+            : throw new InvalidOperationException("No managed-version mutation is pending.");
+        return Create(
+            UpdateSource,
+            ActiveVersion,
+            lastKnownGoodVersion,
+            admissions,
+            PendingActivation,
+            failedActivationVersion,
+            RetentionReviewDue,
+            pendingMutation: null,
+            ManagedRootIdentity,
+            SourceRegistryState);
+    }
+
     internal VersionManagerState WithUpdateSource(
         string? updateSource,
         VersionSourceRegistryState? sourceRegistryState)
