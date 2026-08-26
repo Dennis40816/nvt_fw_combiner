@@ -101,17 +101,19 @@ No production source tree, editable source profile tree, Python runtime installa
 ```
 
 Normal packaging is source-identity closed before staging is cleared or any
-build tool runs: the requested semantic version must equal root `VERSION`, the
-requested lowercase full commit must equal the current Git `HEAD`, and the
-repository worktree and index must be clean. It then creates a private detached
-worktree at that exact commit. All program, profile, contract, and golden reads
-come from the private snapshot; only release and package-work outputs are
-written to the invocation repository. The snapshot is removed in the final
-cleanup path. This closes the race in which the invocation checkout or a
-tracked file changes after preflight but before a later package read.
+build tool runs: the requested lowercase full commit must equal the current Git
+`HEAD`, and the repository worktree and index must be clean. It then creates a
+private detached worktree at that exact commit. The requested semantic version
+must equal `VERSION` inside that snapshot; the invocation checkout is never the
+final version authority. All program, profile, contract, and golden reads come
+from the private snapshot; only release and package-work outputs are written to
+the invocation repository. The snapshot is removed in the final cleanup path,
+and a removal failure fails packaging while preserving the exact path for
+inspection. This closes the race in which the invocation checkout or a tracked
+file changes after preflight but before a later package read.
 
-The second command above is the sole exception: the exact `0.0.0` plus all-zero
-SHA sentinel runs only the deterministic external-tool/profile allowlist
+The second command above is the sole exception: the raw, exact `0.0.0` plus
+all-zero SHA sentinel runs only the deterministic external-tool/profile allowlist
 dry-run and cannot create a release package. Other dry-run version or commit
 values receive the same source-identity and private-snapshot checks as normal
 packaging.

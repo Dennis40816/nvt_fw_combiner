@@ -59,18 +59,9 @@ if ($Commit -notmatch '^[0-9a-f]{40}$') {
 
 $PolicyDryRunSentinel =
     $ExternalToolPolicyDryRun -and
-    $SemanticVersion -ceq '0.0.0' -and
+    $Version -ceq '0.0.0' -and
     $Commit -ceq ('0' * 40)
 if (-not $PolicyDryRunSentinel) {
-    $RepositoryVersionPath = Join-Path $RepoRoot 'VERSION'
-    if (-not (Test-Path -LiteralPath $RepositoryVersionPath -PathType Leaf)) {
-        throw "Repository VERSION is missing: $RepositoryVersionPath"
-    }
-    $RepositoryVersion = (Get-Content -LiteralPath $RepositoryVersionPath -Raw).Trim()
-    if ($SemanticVersion -cne $RepositoryVersion) {
-        throw "Package version '$SemanticVersion' does not match repository VERSION '$RepositoryVersion'."
-    }
-
     $RepositoryHeadOutput = & git -C $RepoRoot rev-parse --verify HEAD 2>&1
     if ($LASTEXITCODE -ne 0) {
         throw "Repository HEAD could not be resolved: $($RepositoryHeadOutput -join ' ')"
@@ -130,6 +121,15 @@ if (-not $PolicyDryRunSentinel) {
     }
     if (@($SnapshotStatus).Count -ne 0) {
         throw 'Exact source snapshot is not clean.'
+    }
+
+    $SnapshotVersionPath = Join-Path $SourceSnapshotRoot 'VERSION'
+    if (-not (Test-Path -LiteralPath $SnapshotVersionPath -PathType Leaf)) {
+        throw "Exact source snapshot VERSION is missing: $SnapshotVersionPath"
+    }
+    $SnapshotVersion = (Get-Content -LiteralPath $SnapshotVersionPath -Raw).Trim()
+    if ($SemanticVersion -cne $SnapshotVersion) {
+        throw "Package version '$SemanticVersion' does not match exact source snapshot VERSION '$SnapshotVersion'."
     }
 
     $RepoRoot = $SourceSnapshotRoot
@@ -1440,7 +1440,7 @@ finally {
     if ($SourceSnapshotAttached) {
         $SnapshotRemoveOutput = & git -C $InvocationRepoRoot worktree remove --force $SourceSnapshotRoot 2>&1
         if ($LASTEXITCODE -ne 0) {
-            Write-Warning "Exact source snapshot cleanup failed and was preserved for inspection: $($SnapshotRemoveOutput -join ' ')"
+            throw "Exact source snapshot cleanup failed and was preserved for inspection at '$SourceSnapshotRoot': $($SnapshotRemoveOutput -join ' ')"
         }
         else {
             & git -C $InvocationRepoRoot worktree prune

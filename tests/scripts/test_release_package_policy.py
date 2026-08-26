@@ -67,6 +67,37 @@ def normalize_console_output(output: str) -> str:
     return " ".join(unstyled_output.replace("|", " ").split())
 
 
+def initialize_minimal_package_repository(repository_root: Path) -> str:
+    """Create the smallest committed source that reaches snapshot identity checks."""
+
+    script_path = repository_root / "scripts" / "package.ps1"
+    script_path.parent.mkdir(parents=True)
+    shutil.copy2(PACKAGE_SCRIPT, script_path)
+    (repository_root / "VERSION").write_text("1.0.0\n", encoding="utf-8")
+    for arguments in (
+        ("init", "-q"),
+        ("config", "user.name", "Package Identity Test"),
+        ("config", "user.email", "package-identity@example.invalid"),
+        ("config", "commit.gpgsign", "false"),
+        ("add", "."),
+        ("commit", "-q", "-m", "baseline"),
+    ):
+        subprocess.run(
+            ["git", *arguments],
+            cwd=repository_root,
+            check=True,
+            capture_output=True,
+            text=True,
+        )
+    return subprocess.run(
+        ["git", "rev-parse", "HEAD"],
+        cwd=repository_root,
+        check=True,
+        capture_output=True,
+        text=True,
+    ).stdout.strip()
+
+
 def literal_run_blocks(workflow: str) -> tuple[str, ...]:
     """Extract literal workflow run bodies for injection-policy assertions."""
 
@@ -358,8 +389,27 @@ class ReleasePackagePolicyTests(unittest.TestCase):
 
         self.assertNotEqual(0, result.returncode, result.stdout + result.stderr)
         self.assertIn(
-            f"Package version '{mismatched_version}' does not match repository "
-            f"VERSION '{repository_version}'",
+            f"Package version '{mismatched_version}' does not match exact source "
+            f"snapshot VERSION '{repository_version}'",
+            normalize_console_output(result.stdout + result.stderr),
+        )
+
+    @unittest.skipUnless(
+        POWERSHELL, "PowerShell is required for Windows release-policy tests"
+    )
+    def test_v_prefixed_zero_version_is_not_the_policy_dry_run_sentinel(self) -> None:
+        result = self.run_powershell(
+            PACKAGE_SCRIPT,
+            "-Version",
+            "v0.0.0",
+            "-Commit",
+            "0" * 40,
+            "-ExternalToolPolicyDryRun",
+        )
+
+        self.assertNotEqual(0, result.returncode, result.stdout + result.stderr)
+        self.assertNotIn(
+            "External-tool package policy dry-run passed",
             normalize_console_output(result.stdout + result.stderr),
         )
 
@@ -510,6 +560,146 @@ class ReleasePackagePolicyTests(unittest.TestCase):
 
             self.assertNotEqual(0, result.returncode, result.stdout + result.stderr)
             self.assertEqual("preserve\n", artifact_path.read_text(encoding="utf-8"))
+
+    @unittest.skipUnless(
+        POWERSHELL, "PowerShell is required for Windows release-policy tests"
+    )
+    def test_snapshot_version_mismatch_cleans_attached_worktree(self) -> None:
+        with tempfile.TemporaryDirectory(
+            prefix=".nfc-package-mismatch-", dir=ROOT.parent
+        ) as temporary_directory:
+            temporary_root = Path(temporary_directory)
+            invocation_root = temporary_root / "invocation"
+            invocation_root.mkdir()
+            repository_head = initialize_minimal_package_repository(invocation_root)
+            environment = os.environ.copy()
+            environment["TEMP"] = str(temporary_root / "runtime-temp")
+            environment["TMP"] = environment["TEMP"]
+            Path(environment["TEMP"]).mkdir()
+
+            result = subprocess.run(
+                [
+                    str(POWERSHELL),
+                    "-NoProfile",
+                    "-ExecutionPolicy",
+                    "Bypass",
+                    "-File",
+                    str(invocation_root / "scripts" / "package.ps1"),
+                    "-Version",
+                    "1.0.1",
+                    "-Commit",
+                    repository_head,
+                    "-ExternalToolPolicyDryRun",
+                ],
+                cwd=invocation_root,
+                check=False,
+                capture_output=True,
+                text=True,
+                encoding="utf-8",
+                errors="replace",
+                env=environment,
+            )
+
+            self.assertNotEqual(0, result.returncode, result.stdout + result.stderr)
+            self.assertIn(
+                "does not match exact source snapshot VERSION '1.0.0'",
+                normalize_console_output(result.stdout + result.stderr),
+            )
+            self.assertEqual([], list(temporary_root.glob(".nfcps-*")))
+            worktree_list = subprocess.run(
+                ["git", "worktree", "list", "--porcelain"],
+                cwd=invocation_root,
+                check=True,
+                capture_output=True,
+                text=True,
+            ).stdout
+            self.assertNotIn(".nfcps-", worktree_list)
+
+    @unittest.skipUnless(
+        POWERSHELL and os.name == "nt",
+        "Windows PowerShell and command-wrapper semantics are required",
+    )
+    def test_snapshot_remove_failure_fails_package_and_preserves_evidence(self) -> None:
+        actual_git = shutil.which("git")
+        self.assertIsNotNone(actual_git)
+        with tempfile.TemporaryDirectory(
+            prefix=".nfc-package-remove-", dir=ROOT.parent
+        ) as temporary_directory:
+            temporary_root = Path(temporary_directory)
+            invocation_root = temporary_root / "invocation"
+            invocation_root.mkdir()
+            repository_head = initialize_minimal_package_repository(invocation_root)
+            wrapper_root = temporary_root / "wrapper"
+            wrapper_root.mkdir()
+            git_wrapper = wrapper_root / "git.cmd"
+            git_wrapper.write_text(
+                "@echo off\r\n"
+                'if /I "%~3"=="worktree" if /I "%~4"=="remove" exit /b 42\r\n'
+                f'"{actual_git}" %*\r\n'
+                "exit /b %ERRORLEVEL%\r\n",
+                encoding="ascii",
+            )
+            runtime_temp = temporary_root / "runtime-temp"
+            runtime_temp.mkdir()
+            environment = os.environ.copy()
+            environment["PATH"] = str(wrapper_root) + os.pathsep + environment["PATH"]
+            environment["TEMP"] = str(runtime_temp)
+            environment["TMP"] = str(runtime_temp)
+            snapshot_roots: list[Path] = []
+            try:
+                result = subprocess.run(
+                    [
+                        str(POWERSHELL),
+                        "-NoProfile",
+                        "-ExecutionPolicy",
+                        "Bypass",
+                        "-File",
+                        str(invocation_root / "scripts" / "package.ps1"),
+                        "-Version",
+                        "1.0.1",
+                        "-Commit",
+                        repository_head,
+                        "-ExternalToolPolicyDryRun",
+                    ],
+                    cwd=invocation_root,
+                    check=False,
+                    capture_output=True,
+                    text=True,
+                    encoding="utf-8",
+                    errors="replace",
+                    env=environment,
+                )
+
+                self.assertNotEqual(0, result.returncode, result.stdout + result.stderr)
+                normalized_output = normalize_console_output(
+                    result.stdout + result.stderr
+                )
+                self.assertIn("Exact source snapshot cleanup failed", normalized_output)
+                self.assertIn("preserved for inspection at", normalized_output)
+                snapshot_roots = list(temporary_root.glob(".nfcps-*"))
+                self.assertEqual(1, len(snapshot_roots))
+            finally:
+                for snapshot_root in snapshot_roots:
+                    subprocess.run(
+                        [
+                            str(actual_git),
+                            "-C",
+                            str(invocation_root),
+                            "worktree",
+                            "remove",
+                            "--force",
+                            str(snapshot_root),
+                        ],
+                        check=False,
+                        capture_output=True,
+                        text=True,
+                    )
+                subprocess.run(
+                    [str(actual_git), "-C", str(invocation_root), "worktree", "prune"],
+                    check=False,
+                    capture_output=True,
+                    text=True,
+                )
 
     @unittest.skipUnless(
         POWERSHELL, "PowerShell is required for Windows release-policy tests"
