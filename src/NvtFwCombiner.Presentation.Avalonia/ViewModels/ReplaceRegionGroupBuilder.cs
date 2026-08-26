@@ -23,41 +23,8 @@ internal static class ReplaceRegionGroupBuilder
         IEnumerable<MemoryCoverageSegmentViewModel> segments,
         ShellTextResources text)
     {
-        MemoryCoverageSegmentViewModel[] allSegments =
-        [
-            .. segments.OrderBy(static segment => segment.RangeStart ?? long.MaxValue),
-        ];
-        IReadOnlyDictionary<string, string> selectedSlotsByRegion = allSegments
-            .Where(static segment => segment is
-            {
-                IsSelectedForWrite: true,
-                RegionId: not null,
-                SourceSlotId: not null,
-            })
-            .GroupBy(static segment => segment.RegionId!, StringComparer.Ordinal)
-            .Select(static group => (
-                RegionId: group.Key,
-                SourceSlots: group.Select(segment => segment.SourceSlotId!)
-                    .Distinct(StringComparer.Ordinal)
-                    .Take(2)
-                    .ToArray()))
-            .Where(static entry => entry.SourceSlots.Length == 1)
-            .ToDictionary(
-                static entry => entry.RegionId,
-                static entry => entry.SourceSlots[0],
-                StringComparer.Ordinal);
-        MemoryCoverageLogicalItemViewModel[] logicalItems =
-        [
-            .. allSegments
-                .Select((segment, index) => (
-                    Key: ResolveDisplayId(segment, index, selectedSlotsByRegion),
-                    Segment: segment))
-                .GroupBy(static entry => entry.Key, StringComparer.Ordinal)
-                .Select(group => new MemoryCoverageLogicalItemViewModel(
-                    group.Key,
-                    group.Select(static entry => entry.Segment),
-                    text)),
-        ];
+        IReadOnlyList<MemoryCoverageLogicalItemViewModel> logicalItems =
+            CreateLogicalItems(segments, text);
 
         return logicalItems
             .GroupBy(ResolveDisplayGroup)
@@ -74,6 +41,29 @@ internal static class ReplaceRegionGroupBuilder
                     group.Key,
                     text);
             });
+    }
+
+    public static IReadOnlyList<MemoryCoverageLogicalItemViewModel> CreateLogicalItems(
+        IEnumerable<MemoryCoverageSegmentViewModel> segments,
+        ShellTextResources text)
+    {
+        ArgumentNullException.ThrowIfNull(segments);
+        ArgumentNullException.ThrowIfNull(text);
+        return Array.AsReadOnly(
+        [
+            .. segments
+                .OrderBy(static segment => segment.RangeStart ?? long.MaxValue)
+                .Select(segment => (
+                    Key: segment.LogicalCoverageGroupId ??
+                        throw new InvalidOperationException(
+                            "Application memory projection must publish one logical coverage group id."),
+                    Segment: segment))
+                .GroupBy(static entry => entry.Key, StringComparer.Ordinal)
+                .Select(group => new MemoryCoverageLogicalItemViewModel(
+                    group.Key,
+                    group.Select(static entry => entry.Segment),
+                    text)),
+        ]);
     }
 
     private static ReplaceRegionGroup ResolveDisplayGroup(MemoryCoverageLogicalItemViewModel item)
@@ -94,23 +84,6 @@ internal static class ReplaceRegionGroupBuilder
             ? selectedGroups
             : [.. item.Segments.Select(static segment => segment.RegionGroup).Distinct()];
         return groups.Length == 1 ? groups[0] : ReplaceRegionGroup.Common;
-    }
-
-    private static string ResolveDisplayId(
-        MemoryCoverageSegmentViewModel segment,
-        int index,
-        IReadOnlyDictionary<string, string> selectedSlotsByRegion)
-    {
-        return !segment.IsSelectedForWrite &&
-            segment.UsesKeptPattern &&
-            segment.RegionId is { } regionId &&
-            selectedSlotsByRegion.TryGetValue(regionId, out string? selectedSlot)
-            ? $"slot:{selectedSlot}"
-            : segment.SourceSlotId is { } sourceSlotId
-            ? $"slot:{sourceSlotId}"
-            : segment.RegionId is { } remainingRegionId
-            ? $"region:{remainingRegionId}"
-            : $"segment:{index}";
     }
 
     private static bool RegionGroupDefaultExpanded(ReplaceRegionGroup group)

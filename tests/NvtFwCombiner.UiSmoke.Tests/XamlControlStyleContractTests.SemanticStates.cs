@@ -478,7 +478,8 @@ public sealed partial class XamlControlStyleContractTests
             20,
             disposition: Application.MemoryLayout.MemoryWorkflowDisposition.Kept,
             usesBaseFirmwarePattern: true,
-            regionGroup: ReplaceRegionGroup.Common);
+            regionGroup: ReplaceRegionGroup.Common,
+            logicalCoverageGroupId: "slot:reference-base");
         MemoryCoverageSegmentViewModel changed = new(
             "0x0010-0x0020",
             "TP input",
@@ -495,7 +496,8 @@ public sealed partial class XamlControlStyleContractTests
             20,
             disposition: Application.MemoryLayout.MemoryWorkflowDisposition.WillReplace,
             text: ShellTextResources.For(ShellLanguage.ChineseTraditional),
-            regionGroup: ReplaceRegionGroup.SlaveLeft);
+            regionGroup: ReplaceRegionGroup.SlaveLeft,
+            logicalCoverageGroupId: "slot:planned");
         MemoryCoverageSegmentViewModel unchanged = new(
             "0x0010-0x0020",
             "TP input",
@@ -512,7 +514,8 @@ public sealed partial class XamlControlStyleContractTests
             MemoryCoverageFillRole.CtrlRam,
             20,
             diagnosticSeverity: Application.MemoryLayout.MemoryDiagnosticSeverity.Warning,
-            regionGroup: ReplaceRegionGroup.SlaveRight);
+            regionGroup: ReplaceRegionGroup.SlaveRight,
+            logicalCoverageGroupId: "slot:warning");
         MemoryCoverageSegmentViewModel reserved = new(
             "0x0020-0x0030",
             "Reserved",

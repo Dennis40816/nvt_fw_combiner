@@ -16,6 +16,7 @@ public sealed partial class ReportReviewHistoryTests(ShellViewModelTestHostFixtu
 
 /// <summary>Firmware inspection and slot readiness coverage.</summary>
 /// <param name="fixture">The group-local Bootstrap graph.</param>
+[Collection(UiAvaloniaRuntimeCollection.Name)]
 public sealed partial class FirmwareInspectionSlotTests(ShellViewModelTestHostFixture fixture)
     : ShellViewModelTestBase(fixture), IClassFixture<ShellViewModelTestHostFixture>
 {
@@ -58,6 +59,7 @@ public sealed partial class BuildOutcomeTests(ShellViewModelTestHostFixture fixt
 
 /// <summary>Shell navigation, settings, and system-surface coverage.</summary>
 /// <param name="fixture">The group-local Bootstrap graph.</param>
+[Collection(UiAvaloniaRuntimeCollection.Name)]
 public sealed partial class ShellNavigationSystemTests(ShellViewModelTestHostFixture fixture)
     : ShellViewModelTestBase(fixture), IClassFixture<ShellViewModelTestHostFixture>
 {

@@ -306,6 +306,10 @@ groups, slot requirements, retained coverage, or compiled selection. Bootstrap
 `WorkbenchMemory*`, and workflow slot mirrors are removed without changing the
 visible layout or compiled geometry.
 
+Logical coverage grouping is part of that same Application projection. Every exact `MemoryLayoutSegment` publishes one final collision-free typed identity. Direct writes use their input slot. In reference-initialized Replace, retained fragments join a replacement slot only when Domain-declared write ranges yield exactly one distinct admitted source slot for the same physical projection region; zero or multiple candidates retain reference identity.
+Source-less physical output uses the unique smallest containing canonical map region, and source-less logical output retains stable segment identity. Presentation may group by the complete typed identity but cannot infer fallback precedence from labels, filenames, IC ids, addresses, or collection order.
+Grouping never changes exact half-open ranges, segment order, contributors, operations, or bytes.
+
 The complete-retirement invariant is one production semantic owner and one
 executable path for every module. It covers catalog resolution, session state,
 inspection, readiness, compilation/planning, memory projection, naming,

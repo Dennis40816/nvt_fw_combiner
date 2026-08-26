@@ -103,6 +103,15 @@ public sealed partial class MemoryLayoutProjectorTests
         Assert.Equal(
             ["source-a", null, "source-b"],
             snapshot.AfterSegments.Select(static segment => segment.SourceSlotId));
+        Assert.Equal(
+            ["slot:source-a", "segment:output-image:2-4", "slot:source-b"],
+            snapshot.AfterSegments.Select(static segment => segment.LogicalCoverageGroupId));
+        Assert.Equal(
+            snapshot.AfterSegments.Count,
+            snapshot.AfterSegments
+                .Select(static segment => segment.LogicalCoverageGroupId)
+                .Distinct(StringComparer.Ordinal)
+                .Count());
     }
 
     private static CompiledComposition CreateLogicalGeneralMergeComposition()

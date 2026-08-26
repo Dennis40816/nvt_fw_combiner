@@ -83,10 +83,13 @@ public sealed partial class VersionManagementSettingsTests
             StateIssue = VersionManagerStateLoadIssue.Unavailable,
         };
         var experience = new RecordingVersionExperience(unavailable);
+        PresentationHostServices services = await Task.Run(
+            () => PresentationTestHost.CreateServices("0.10.5", experience),
+            TestContext.Current.CancellationToken);
         using var window = new MainWindow(
             UiLaunchOptions.Empty,
             StartupTraceSession.Disabled,
-            PresentationTestHost.CreateServices("0.10.5", experience),
+            services,
             ShellPreferenceSnapshot.Default);
 
         await window.RunVersionDiscoveryAfterReadyAsync(TestContext.Current.CancellationToken);

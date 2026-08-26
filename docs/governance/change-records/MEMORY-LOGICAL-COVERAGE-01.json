@@ -1,0 +1,46 @@
+{
+  "schemaVersion": 2,
+  "taskId": "MEMORY-LOGICAL-COVERAGE-01",
+  "capability": "Project one typed logical coverage identity so exact memory-map segments render as concise source-aligned information rows",
+  "integrationBase": "c4b3fc70f26a9347958691e21798b182b3b6e9bc",
+  "risk": "R2",
+  "kind": "behavior",
+  "state": "design-active",
+  "mutablePaths": [
+    "docs/adr/0015-canonical-firmware-map-and-compiled-composition.md",
+    "src/NvtFwCombiner.Domain/Composition/CompositionOperation.cs",
+    "src/NvtFwCombiner.Application/MemoryLayout/MemoryLayoutModels.cs",
+    "src/NvtFwCombiner.Application/MemoryLayout/MemoryLayoutProjector.cs",
+    "src/NvtFwCombiner.Application/MemoryLayout/MemoryLayoutProjector.LogicalCoverage.cs",
+    "src/NvtFwCombiner.Presentation.Avalonia/UiCompositionRunner.Common.cs",
+    "src/NvtFwCombiner.Presentation.Avalonia/Resources/MainWindowSharedTemplates.axaml",
+    "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/MemoryCoverageGroupViewModel.cs",
+    "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/MemoryCoverageSegmentViewModel.cs",
+    "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/MergePresentationViewModel.Memory.cs",
+    "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/MergePresentationViewModel.State.cs",
+    "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/ReplaceRegionGroupBuilder.cs"
+  ],
+  "implementationOwner": "root-implementer",
+  "searchEvidence": [
+    "rg -n 'ResolveDisplayId|selectedSlotsByRegion|MemoryCoverageLogicalItemViewModel|ProjectRanges|DeclaredWriteRanges|OperationWritesRange' src tests",
+    "Application MemoryLayoutProjector already owns exact segment geometry; ReplaceRegionGroupBuilder currently re-derives retained-companion identity from RegionId and SourceSlotId, while Merge renders every exact segment as a separate information row.",
+    "The frozen dirty prototype was inspected only as evidence. Its duplicate operation-range branch and removal of shared logical interaction are explicitly rejected.",
+    "Independent R2 design review requires canonical Domain DeclaredWriteRanges, distinct admitted slot candidates, collision-free typed-id namespaces, ambiguous fail-closed behavior and exact geometry/interaction regressions."
+  ],
+  "semanticOwner": "Domain CompositionOperation owns declared write ranges; Application MemoryLayoutProjector owns final logical coverage identity; Presentation only coalesces adjacent typed members and renders the existing shared pointer-hover/card-focus state",
+  "terminalContract": "Every projected MemoryLayoutSegment publishes one non-empty collision-free typed LogicalCoverageGroupId namespace: slot:<stable slot id>, region:<stable canonical region id>, or segment:<stable SegmentId>; display labels and collection indexes are forbidden. SegmentId, canonical RegionId, address space, exact half-open range, contributors, compiled operations and bytes never change. A directly bound write uses its typed source slot. For reference-initialized Replace, retained-companion candidates are the DISTINCT admitted SlotIds obtained only from planned output-targeting operations whose TargetSpaceId is the output, whose SourceSpaceId resolves to that slot, and whose Domain-owned DeclaredWriteRanges have ANY overlap with the exact physical ProjectionRegion.Range. Exactly one candidate joins that slot; zero or more than one keep the reference identity. Repeated operations from one slot remain one candidate and cross-boundary or external-processor writes use the same overlap rule. Source-less physical output resolves the unique deepest/smallest containing canonical map region and fails closed if the minimum is ambiguous; source-less logical output uses segment:<SegmentId>. Presentation groups only by complete typed id equality and never parses the namespace or uses filename, label, IC, region fallback, address literal or collection index. General conflicts use conflict:<typed ConflictId>; pending/blocked synthetic coverage uses pending:<stable slot id or fallback prerequisite>; neither namespace may coalesce with resolved segments. The proportional bar retains every exact segment in identical order and width, remains Focusable=false, hover-only, and has no command, click or pin semantics. Pointer hover on any exact bar segment highlights its logical information card when that card is visible; a collapsed Base disclosure does not auto-expand. Keyboard focus stays on the information card and highlights every exact bar segment in that logical item. Supporting rows coalesce only adjacent members of the same typed item and compatible typed content role, region group and CtrlRAM role; changed plus retained portions become one partial row. No selector, build, planner, executor, CRC/header, support, naming, disclosure geometry or firmware mutation behavior changes.",
+  "disposition": "extend-owner",
+  "designReview": {
+    "reviewer": "audit_dirty_application",
+    "outcome": "findings-incorporated",
+    "evidence": "Independent R2 Application and UI architecture admission findings are incorporated. Retained-companion selection is an exact distinct admitted-slot query using canonical Domain DeclaredWriteRanges overlap against the physical ProjectionRegion, and every group identity uses collision-free typed namespaces with stable ids plus ambiguous fail-closed nested-map resolution. Existing Option B remains hover-only: bars are not focus targets and cannot click/pin; visible cards share pointer state, card focus highlights bars, and collapsed Base disclosure never auto-expands. Conflict and pending synthetic namespaces are explicitly isolated. Required evidence covers Domain, Application, all-route, Architecture, Merge/Replace grouping, exact bar geometry, bilingual partial rows and interaction cleanup. ADR 0015 remains the correct durable owner."
+  },
+  "implementationHead": null,
+  "reviewedHead": null,
+  "pathStateDigest": null,
+  "finalReview": {
+    "reviewer": null,
+    "outcome": "pending",
+    "evidence": ""
+  }
+}

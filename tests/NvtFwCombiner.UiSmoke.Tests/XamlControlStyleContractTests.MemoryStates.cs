@@ -57,10 +57,10 @@ public sealed partial class XamlControlStyleContractTests
             [plannedRange, changedRange],
             ShellTextResources.For(ShellLanguage.English));
 
-        Assert.Equal(2, logicalItem.Ranges.Count);
+        Assert.True(Assert.Single(logicalItem.Ranges).IsChanged);
         Assert.Collection(
-            logicalItem.Ranges,
-            range => Assert.False(range.IsChanged),
-            range => Assert.True(range.IsChanged));
+            logicalItem.Segments,
+            segment => Assert.False(segment.IsChanged),
+            segment => Assert.True(segment.IsChanged));
     }
 }

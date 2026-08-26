@@ -82,6 +82,8 @@ internal sealed partial class MergePresentationViewModel
 
     public ObservableCollection<MemoryCoverageSegmentViewModel> MergeCoverageSegments { get; } = [];
 
+    public ObservableCollection<MemoryCoverageLogicalItemViewModel> MergeCoverageItems { get; } = [];
+
     public ObservableCollection<GeneralMergeMappingViewModel> GeneralMergeMappings { get; } = [];
 
     public string MergeMemoryRangeLabel { get; private set; } = string.Empty;

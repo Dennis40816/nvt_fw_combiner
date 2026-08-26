@@ -201,7 +201,7 @@ public sealed partial class MemoryLayoutProjectorTests
             "diffdlm-input",
             new ByteRange(0x0B90, 0x0870),
             new ByteRange(2, 2));
-        var segment = MemoryLayoutSegment.Create(
+        MemoryLayoutSegment segment = MemoryLayoutSegment.Create(
             "dp-code:0-8",
             "flash",
             new ByteRange(0, 8),
@@ -218,7 +218,8 @@ public sealed partial class MemoryLayoutProjectorTests
             "diffdlm-input",
             "diffdlm",
             fixture.Composition.Plan.OrderedOperations,
-            [detail]);
+            [detail],
+            "slot:diffdlm-input");
 
         MemoryLayoutPreservationDetail actual = Assert.Single(segment.PreservationDetails);
         Assert.Same(detail, actual);
@@ -285,6 +286,7 @@ public sealed partial class MemoryLayoutProjectorTests
                 "diffdlm-input",
                 "diffdlm",
                 fixture.Composition.Plan.OrderedOperations,
-                [first, overlapping]));
+                [first, overlapping],
+                "slot:diffdlm-input"));
     }
 }

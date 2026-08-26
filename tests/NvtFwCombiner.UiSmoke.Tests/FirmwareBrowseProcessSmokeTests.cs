@@ -16,6 +16,7 @@ using NvtFwCombiner.TestSupport;
 namespace NvtFwCombiner.UiSmoke.Tests;
 
 /// <summary>Exercises firmware Browse actions through the real Avalonia event boundary.</summary>
+[Collection(UiAvaloniaRuntimeCollection.Name)]
 public sealed class FirmwareBrowseProcessSmokeTests
 {
     private const string ExpectedDiagnostic =

@@ -5,6 +5,7 @@ using NvtFwCombiner.Presentation.Avalonia.ViewModels;
 namespace NvtFwCombiner.UiSmoke.Tests;
 
 /// <summary>Exercises the Settings projection and consent flow for managed versions.</summary>
+[Collection(UiAvaloniaRuntimeCollection.Name)]
 public sealed partial class VersionManagementSettingsTests
 {
     private const string Hash =

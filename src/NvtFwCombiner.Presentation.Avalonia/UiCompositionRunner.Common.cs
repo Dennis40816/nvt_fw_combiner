@@ -91,7 +91,8 @@ internal static partial class UiCompositionRunner
                 text: text,
                 addressRangeLabel: unavailableLabel,
                 lengthLabel: string.Empty,
-                compactDetail: detail)]);
+                compactDetail: detail,
+                logicalCoverageGroupId: $"pending:{pending?.SlotId ?? fallbackPrerequisite.ToString()}")]);
     }
 
     private static MemoryMapRowViewModel ToMemoryMapRow(
@@ -153,7 +154,10 @@ internal static partial class UiCompositionRunner
             rangeEndExclusive: segment.Range.EndExclusive,
             addressRangeLabel: FormatMemoryAddressRange(segment.Range),
             lengthLabel: FormatMemoryLength(segment.Range),
-            compactDetail: MemoryCompactDetail(segment, sourceLabel, text));
+            compactDetail: MemoryCompactDetail(segment, sourceLabel, text),
+            logicalCoverageGroupId: segment.LogicalCoverageGroupId,
+            contentRole: segment.ContentRole,
+            ctrlRamRegionRole: segment.CtrlRamRegionRole);
     }
 
     private static MemoryCoverageSegmentViewModel ToMemoryCoverageSegment(
@@ -172,7 +176,8 @@ internal static partial class UiCompositionRunner
             text: text,
             addressRangeLabel: FormatMemoryAddressRange(conflict.Range),
             lengthLabel: FormatMemoryLength(conflict.Range),
-            compactDetail: detail);
+            compactDetail: detail,
+            logicalCoverageGroupId: $"conflict:{conflict.ConflictId}");
     }
 
     private static MemoryPlanActionKind MemoryAction(MemoryLayoutSegment segment)

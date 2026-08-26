@@ -45,13 +45,18 @@ public sealed class CanonicalCapabilityProjectionPolicyTests
     [Fact]
     public void OtherIcReplaceExposureIsCanonicalPublicationDriven()
     {
-        Assert.True(BootstrapTestHost.Canonical.Projection.IsReplaceWorkflowAvailable("NT51932", ExperienceIds.CtrlRamReplace));
-        Assert.False(BootstrapTestHost.Canonical.Projection.IsReplaceWorkflowAvailable("NT51932", ExperienceIds.GeneralReplace));
+        var host = new IsolatedBootstrapTestHost();
+        CapabilityCatalogReloadResult reload = host.Catalog.Reload(
+            TestContext.Current.CancellationToken);
+        Assert.True(reload.Succeeded);
+
+        Assert.True(host.Canonical.Projection.IsReplaceWorkflowAvailable("NT51932", ExperienceIds.CtrlRamReplace));
+        Assert.False(host.Canonical.Projection.IsReplaceWorkflowAvailable("NT51932", ExperienceIds.GeneralReplace));
         Assert.False(BootstrapTestHost.ProductCanonical.Projection.IsReplaceWorkflowAvailable("NT51932", ExperienceIds.DpReplace));
-        Assert.True(BootstrapTestHost.Canonical.Projection.IsReplaceWorkflowAvailable("NT51926", ExperienceIds.GeneralReplace));
-        Assert.False(BootstrapTestHost.Canonical.Projection.GetReplaceWorkflowReadiness("NT51932", ExperienceIds.GeneralReplace)
+        Assert.True(host.Canonical.Projection.IsReplaceWorkflowAvailable("NT51926", ExperienceIds.GeneralReplace));
+        Assert.False(host.Canonical.Projection.GetReplaceWorkflowReadiness("NT51932", ExperienceIds.GeneralReplace)
             .HasExactRoute);
-        Assert.True(BootstrapTestHost.Canonical.Projection.GetReplaceWorkflowReadiness("NT51926", ExperienceIds.GeneralReplace)
+        Assert.True(host.Canonical.Projection.GetReplaceWorkflowReadiness("NT51926", ExperienceIds.GeneralReplace)
             .HasExactRoute);
     }
 

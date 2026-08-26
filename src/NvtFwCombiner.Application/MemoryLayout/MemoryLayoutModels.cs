@@ -94,6 +94,7 @@ public sealed class MemoryLayoutSegment
         string addressSpaceId,
         ByteRange range,
         string regionId,
+        string logicalCoverageGroupId,
         FirmwareRegion? canonicalRegion,
         MemoryContentRole contentRole,
         MemoryWorkflowDisposition disposition,
@@ -114,6 +115,7 @@ public sealed class MemoryLayoutSegment
         ArgumentException.ThrowIfNullOrWhiteSpace(segmentId);
         ArgumentException.ThrowIfNullOrWhiteSpace(addressSpaceId);
         ArgumentException.ThrowIfNullOrWhiteSpace(regionId);
+        ArgumentException.ThrowIfNullOrWhiteSpace(logicalCoverageGroupId);
         if (canonicalRegion is not null &&
             (!StringComparer.Ordinal.Equals(canonicalRegion.RegionId, regionId) ||
              !canonicalRegion.Range.Contains(range)))
@@ -156,6 +158,7 @@ public sealed class MemoryLayoutSegment
         AddressSpaceId = addressSpaceId;
         Range = range;
         RegionId = regionId;
+        LogicalCoverageGroupId = logicalCoverageGroupId;
         CanonicalRegion = canonicalRegion;
         ContentRole = contentRole;
         Disposition = disposition;
@@ -182,6 +185,8 @@ public sealed class MemoryLayoutSegment
     public ByteRange Range { get; }
     /// <summary>Stable physical-region or logical-output identity.</summary>
     public string RegionId { get; }
+    /// <summary>Application-owned final identity for logical information grouping.</summary>
+    public string LogicalCoverageGroupId { get; }
     /// <summary>Exact canonical physical-region reference, or null for logical output.</summary>
     public FirmwareRegion? CanonicalRegion { get; }
     /// <summary>Primary content role.</summary>
@@ -233,6 +238,7 @@ public sealed class MemoryLayoutSegment
         string? sourceSlotId,
         IEnumerable<CompositionOperation> contributingOperations,
         IEnumerable<MemoryLayoutPreservationDetail> preservationDetails,
+        string logicalCoverageGroupId,
         ReplaceRegionGroup regionGroup = ReplaceRegionGroup.Common,
         CtrlRamRegionRole ctrlRamRegionRole = CtrlRamRegionRole.Other)
     {
@@ -241,6 +247,7 @@ public sealed class MemoryLayoutSegment
             addressSpaceId,
             range,
             canonicalRegion.RegionId,
+            logicalCoverageGroupId,
             canonicalRegion,
             contentRole,
             disposition,
@@ -277,6 +284,7 @@ public sealed class MemoryLayoutSegment
         string? sourceSlotId,
         IEnumerable<CompositionOperation> contributingOperations,
         IEnumerable<MemoryLayoutPreservationDetail> preservationDetails,
+        string logicalCoverageGroupId,
         ReplaceRegionGroup regionGroup = ReplaceRegionGroup.Common,
         CtrlRamRegionRole ctrlRamRegionRole = CtrlRamRegionRole.Other)
     {
@@ -285,6 +293,7 @@ public sealed class MemoryLayoutSegment
             addressSpaceId,
             range,
             logicalRegionId,
+            logicalCoverageGroupId,
             canonicalRegion: null,
             contentRole,
             disposition,

@@ -104,6 +104,10 @@ internal sealed class MemoryCoverageLogicalItemViewModel
         }
         DisplayId = displayId;
         Ranges = ProjectRanges(projectedSegments, text);
+        foreach (MemoryCoverageSegmentViewModel range in Ranges)
+        {
+            range.Interaction = Interaction;
+        }
         Segments = Array.AsReadOnly(projectedSegments);
         SourceLabel = primary.LogicalSourceLabel;
         long? totalLength = Ranges.All(static range => range.RangeStart.HasValue)
@@ -160,8 +164,8 @@ internal sealed class MemoryCoverageLogicalItemViewModel
                 current[^1].RangeEndExclusive is not { } currentEnd ||
                 segment.RangeStart != currentEnd ||
                 current[^1].RegionGroup != segment.RegionGroup ||
-                current[^1].FillRole != segment.FillRole ||
-                current[^1].ObservedChange != segment.ObservedChange ||
+                current[^1].ContentRole != segment.ContentRole ||
+                current[^1].CtrlRamRegionRole != segment.CtrlRamRegionRole ||
                 current[^1].HasPreservationDetails ||
                 segment.HasPreservationDetails)
             {
@@ -221,6 +225,9 @@ internal sealed class MemoryCoverageLogicalItemViewModel
             addressRangeLabel: addressRange,
             lengthLabel: length,
             compactDetail: detail,
-            changeLabel: isPartial ? text.GetMemoryCoveragePartialReplaceLabel() : null);
+            changeLabel: isPartial ? text.GetMemoryCoveragePartialReplaceLabel() : null,
+            logicalCoverageGroupId: primary.LogicalCoverageGroupId,
+            contentRole: primary.ContentRole,
+            ctrlRamRegionRole: primary.CtrlRamRegionRole);
     }
 }

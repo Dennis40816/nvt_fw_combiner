@@ -14,6 +14,7 @@ using NvtFwCombiner.TestSupport;
 namespace NvtFwCombiner.UiSmoke.Tests;
 
 /// <summary>Exercises firmware Drop actions through the real Avalonia event boundary.</summary>
+[Collection(UiAvaloniaRuntimeCollection.Name)]
 public sealed class FirmwareDropProcessSmokeTests
 {
     /// <summary>Zero or multiple dropped files preserve the accepted immutable slot session.</summary>
@@ -94,10 +95,14 @@ public sealed class FirmwareDropProcessSmokeTests
         string sourcePath = golden.ManifestPath(goldenCase.GetProperty("inputs").GetProperty("dp-input"));
         string droppedPath = workspace.PathFor("dp-input.bin");
         File.Copy(sourcePath, droppedPath);
-        MainWindowViewModel viewModel = PresentationTestHost.CreateViewModel();
-        viewModel.WorkflowSession.SelectedIc = "NT51926";
-        viewModel.ShowMergeCommand.Execute(null);
-        viewModel.Merge.SelectedMergeMode = ExperienceIds.StandardMerge;
+        MainWindowViewModel viewModel = await Task.Run(() =>
+        {
+            MainWindowViewModel prepared = PresentationTestHost.CreateViewModel();
+            prepared.WorkflowSession.SelectedIc = "NT51926";
+            prepared.ShowMergeCommand.Execute(null);
+            prepared.Merge.SelectedMergeMode = ExperienceIds.StandardMerge;
+            return prepared;
+        }, TestContext.Current.CancellationToken);
         FirmwareSlotViewModel slot = viewModel.Merge.MergeDpSlot;
         var card = new FirmwareSlotCard { BrowseLabel = "Browse", DataContext = slot };
         var window = new Window { DataContext = viewModel, Content = card };

@@ -4,6 +4,7 @@ using NvtFwCombiner.Application.Capabilities;
 using NvtFwCombiner.Application.ExternalTools;
 using NvtFwCombiner.Application.FlashMaps;
 using NvtFwCombiner.Application.Metadata;
+using NvtFwCombiner.Application.MemoryLayout;
 using NvtFwCombiner.Application.Ports;
 using NvtFwCombiner.Domain.Composition;
 using NvtFwCombiner.TestSupport;
@@ -105,6 +106,7 @@ public sealed class CanonicalFormalRouteRuntimeClosureTests
         ResolvedCapability capability = Assert.IsType<ResolvedCapability>(
             accepted.GetAcceptedCapability(AuthoringDerivedResultKind.Inspection));
         AssertExactIdentity(runtimeCase, accepted, capability);
+        AssertCanonicalMemoryProjection(capability, accepted);
         CapabilityActionReadinessSnapshot? readiness = await ResolveReadinessAsync(
             accepted,
             capability,
@@ -170,6 +172,42 @@ public sealed class CanonicalFormalRouteRuntimeClosureTests
             }
         }
         Assert.All(originalInputHashes, pair => Assert.Equal(pair.Value, HashFile(pair.Key)));
+    }
+
+    private static void AssertCanonicalMemoryProjection(
+        ResolvedCapability capability,
+        ActiveSessionSnapshot accepted)
+    {
+        MemoryLayoutSnapshot layout = MemoryLayoutProjector.Project(
+            capability,
+            accepted,
+            capability.CompiledComposition);
+        Assert.NotEmpty(layout.AfterSegments);
+        Assert.All(layout.AfterSegments, static segment =>
+            Assert.Matches("^(slot|region|segment):.+", segment.LogicalCoverageGroupId));
+        Assert.Equal(0, layout.AfterSegments[0].Range.Start);
+        Assert.Equal(layout.Capacity, layout.AfterSegments[^1].Range.EndExclusive);
+        Assert.All(
+            layout.AfterSegments.Zip(layout.AfterSegments.Skip(1)),
+            static pair => Assert.Equal(pair.First.Range.EndExclusive, pair.Second.Range.Start));
+        foreach (CompositionOperation processor in capability.CompiledComposition.Plan.OrderedOperations.Where(
+                     operation => operation.Kind == CompositionOperationKind.RunExternalProcessor &&
+                         StringComparer.Ordinal.Equals(
+                             operation.TargetSpaceId,
+                             capability.CompiledComposition.Plan.OutputSpaceId)))
+        {
+            Assert.All(
+                layout.AfterSegments.Where(segment => segment.ContributingOperations.Contains(processor)),
+                segment => Assert.Contains(
+                    processor.DeclaredWriteRanges,
+                    writeRange => writeRange.Overlaps(segment.Range)));
+            Assert.All(
+                processor.DeclaredWriteRanges,
+                writeRange => Assert.Contains(
+                    layout.AfterSegments,
+                    segment => segment.ContributingOperations.Contains(processor) &&
+                        writeRange.Overlaps(segment.Range)));
+        }
     }
 
     private static void AssertExpectedFirmwareConfigChipCount(

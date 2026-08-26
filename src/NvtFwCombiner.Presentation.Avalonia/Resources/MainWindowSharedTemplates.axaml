@@ -546,7 +546,7 @@
         </ItemsControl>
       </Border>
 
-      <ItemsControl ItemTemplate="{StaticResource MemoryCoveragePlainSegmentListTemplate}" ItemsSource="{Binding MergeCoverageSegments}" />
+      <ItemsControl ItemTemplate="{StaticResource MemoryCoverageLogicalItemTemplate}" ItemsSource="{Binding MergeCoverageItems}" />
 
       <TextBlock Classes="sectionLabel" Text="{Binding Text.PlanTitle}" />
       <ItemsControl ItemTemplate="{StaticResource MergeMemoryMapRowTemplate}" ItemsSource="{Binding MergeMemoryRows}" />

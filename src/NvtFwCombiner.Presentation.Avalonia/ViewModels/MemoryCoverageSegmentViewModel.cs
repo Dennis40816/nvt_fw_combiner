@@ -55,7 +55,10 @@ internal sealed class MemoryCoverageSegmentViewModel
         string? addressRangeLabel = null,
         string? lengthLabel = null,
         string? compactDetail = null,
-        string? changeLabel = null)
+        string? changeLabel = null,
+        string? logicalCoverageGroupId = null,
+        MemoryContentRole contentRole = MemoryContentRole.General,
+        CtrlRamRegionRole ctrlRamRegionRole = CtrlRamRegionRole.Other)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(rangeLabel);
         ArgumentException.ThrowIfNullOrWhiteSpace(sourceLabel);
@@ -67,6 +70,14 @@ internal sealed class MemoryCoverageSegmentViewModel
         if (!Enum.IsDefined(diagnosticSeverity))
         {
             throw new ArgumentOutOfRangeException(nameof(diagnosticSeverity));
+        }
+        if (!Enum.IsDefined(contentRole))
+        {
+            throw new ArgumentOutOfRangeException(nameof(contentRole));
+        }
+        if (!Enum.IsDefined(ctrlRamRegionRole))
+        {
+            throw new ArgumentOutOfRangeException(nameof(ctrlRamRegionRole));
         }
 
         if (addressRangeLabel is not null)
@@ -80,6 +91,10 @@ internal sealed class MemoryCoverageSegmentViewModel
         if (logicalSourceLabel is not null)
         {
             ArgumentException.ThrowIfNullOrWhiteSpace(logicalSourceLabel);
+        }
+        if (logicalCoverageGroupId is not null)
+        {
+            ArgumentException.ThrowIfNullOrWhiteSpace(logicalCoverageGroupId);
         }
         if (rangeStart.HasValue != rangeEndExclusive.HasValue ||
             (rangeStart is { } start && rangeEndExclusive <= start))
@@ -102,7 +117,10 @@ internal sealed class MemoryCoverageSegmentViewModel
         ObservedChange = observedChange;
         DiagnosticSeverity = diagnosticSeverity;
         RegionId = string.IsNullOrWhiteSpace(regionId) ? null : regionId;
+        LogicalCoverageGroupId = logicalCoverageGroupId;
         SourceSlotId = string.IsNullOrWhiteSpace(sourceSlotId) ? null : sourceSlotId;
+        ContentRole = contentRole;
+        CtrlRamRegionRole = ctrlRamRegionRole;
         UsesKeptPattern = usesBaseFirmwarePattern;
         text ??= ShellTextResources.For(ShellLanguage.English);
         ChangeLabel = changeLabel ?? text.GetOutputLayoutStateLabel(disposition, observedChange);
@@ -181,8 +199,17 @@ internal sealed class MemoryCoverageSegmentViewModel
     /// <summary>Profile-owned selection identity for a replaceable physical region, when present.</summary>
     public string? RegionId { get; }
 
+    /// <summary>Application-owned final identity for logical information grouping.</summary>
+    public string? LogicalCoverageGroupId { get; }
+
     /// <summary>Typed canonical input slot supplying this range, when one exists.</summary>
     public string? SourceSlotId { get; }
+
+    /// <summary>Application-owned physical/logical content role used only for compatible row coalescing.</summary>
+    public MemoryContentRole ContentRole { get; }
+
+    /// <summary>Application-owned CtrlRAM subtype used only for compatible row coalescing.</summary>
+    public CtrlRamRegionRole CtrlRamRegionRole { get; }
 
     public string ChangeLabel { get; }
 

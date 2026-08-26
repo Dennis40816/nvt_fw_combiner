@@ -81,7 +81,12 @@ public sealed class CompositionOperation
     /// <summary>Traceable origin for this operation.</summary>
     public OperationProvenance Provenance { get; }
 
-    internal IReadOnlyList<ByteRange> DeclaredWriteRanges =>
+    /// <summary>
+    /// Exact half-open target ranges this operation is authorized to write.
+    /// External processors expose their constrained allowed ranges; every
+    /// other primitive exposes its single target range.
+    /// </summary>
+    public IReadOnlyList<ByteRange> DeclaredWriteRanges =>
         Kind == CompositionOperationKind.RunExternalProcessor
             ? ExternalProcessorInvocation!.AllowedWriteRanges
             : [TargetRange];

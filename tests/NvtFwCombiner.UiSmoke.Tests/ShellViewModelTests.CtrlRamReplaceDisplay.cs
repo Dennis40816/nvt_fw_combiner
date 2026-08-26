@@ -44,7 +44,6 @@ public sealed partial class CtrlRamWorkflowTests
                     TestContext.Current.CancellationToken);
             }
         }
-
         MemoryCoverageGroupViewModel common = Assert.Single(
             viewModel.Replace.ReplaceCoverageGroups,
             group => group.RegionGroup == ReplaceRegionGroup.Common);
@@ -93,7 +92,6 @@ public sealed partial class CtrlRamWorkflowTests
                     .GroupBy(entry => entry.RegionId, StringComparer.Ordinal),
                 logicalRegion => Assert.Single(logicalRegion.Select(entry => entry.DisplayId).Distinct()));
         }
-
         MemoryCoverageLogicalItemViewModel[] multiSourceRegionItems =
         [
             .. ReplaceRegionGroupBuilder.CreateCoverageGroups(
@@ -108,7 +106,7 @@ public sealed partial class CtrlRamWorkflowTests
                             regionId: "shared-region",
                             sourceSlotId: "slot-a",
                             rangeStart: 0x600,
-                            rangeEndExclusive: 0x610),
+                            rangeEndExclusive: 0x610, logicalCoverageGroupId: "slot:slot-a"),
                         new MemoryCoverageSegmentViewModel(
                             "0x610-0x61F",
                             "Base flash",
@@ -120,7 +118,7 @@ public sealed partial class CtrlRamWorkflowTests
                             regionId: "shared-region",
                             sourceSlotId: "reference-base",
                             rangeStart: 0x610,
-                            rangeEndExclusive: 0x620),
+                            rangeEndExclusive: 0x620, logicalCoverageGroupId: "slot:reference-base"),
                         new MemoryCoverageSegmentViewModel(
                             "0x620-0x62F",
                             "Source B",
@@ -131,7 +129,7 @@ public sealed partial class CtrlRamWorkflowTests
                             regionId: "shared-region",
                             sourceSlotId: "slot-b",
                             rangeStart: 0x620,
-                            rangeEndExclusive: 0x630),
+                            rangeEndExclusive: 0x630, logicalCoverageGroupId: "slot:slot-b"),
                     ],
                     ShellTextResources.For(ShellLanguage.English))
                 .SelectMany(static group => group.Items),
@@ -141,7 +139,6 @@ public sealed partial class CtrlRamWorkflowTests
             multiSourceRegionItems
                 .Select(static item => item.DisplayId)
                 .Order(StringComparer.Ordinal));
-
         MemoryCoverageLogicalItemViewModel[] sourceAndOutputItems =
         [
             .. ReplaceRegionGroupBuilder.CreateCoverageGroups(
@@ -156,7 +153,7 @@ public sealed partial class CtrlRamWorkflowTests
                             regionId: "single-source-region",
                             sourceSlotId: "slot-a",
                             rangeStart: 0x700,
-                            rangeEndExclusive: 0x710),
+                            rangeEndExclusive: 0x710, logicalCoverageGroupId: "slot:slot-a"),
                         new MemoryCoverageSegmentViewModel(
                             "0x710-0x71F",
                             "Base flash",
@@ -168,7 +165,7 @@ public sealed partial class CtrlRamWorkflowTests
                             regionId: "single-source-region",
                             sourceSlotId: "reference-base",
                             rangeStart: 0x710,
-                            rangeEndExclusive: 0x720),
+                            rangeEndExclusive: 0x720, logicalCoverageGroupId: "slot:slot-a"),
                         new MemoryCoverageSegmentViewModel(
                             "0x720-0x72F",
                             "Output",
@@ -178,7 +175,7 @@ public sealed partial class CtrlRamWorkflowTests
                             disposition: Application.MemoryLayout.MemoryWorkflowDisposition.WillReplace,
                             regionId: "single-source-region",
                             rangeStart: 0x720,
-                            rangeEndExclusive: 0x730),
+                            rangeEndExclusive: 0x730, logicalCoverageGroupId: "region:single-source-region"),
                     ],
                     ShellTextResources.For(ShellLanguage.English))
                 .SelectMany(static group => group.Items),
@@ -188,7 +185,6 @@ public sealed partial class CtrlRamWorkflowTests
             sourceAndOutputItems
                 .Select(static item => item.DisplayId)
                 .Order(StringComparer.Ordinal));
-
         MemoryCoverageFillRole[] sourceRoles =
         [
             MemoryCoverageFillRole.Dp,
@@ -220,7 +216,7 @@ public sealed partial class CtrlRamWorkflowTests
                         regionId: $"{role}-left",
                         sourceSlotId: sourceSlotId,
                         rangeStart: 0x100,
-                        rangeEndExclusive: 0x110),
+                        rangeEndExclusive: 0x110, logicalCoverageGroupId: $"slot:{sourceSlotId}"),
                     new MemoryCoverageSegmentViewModel(
                         "0x200-0x20F",
                         role.ToString(),
@@ -231,11 +227,10 @@ public sealed partial class CtrlRamWorkflowTests
                         regionId: $"{role}-right",
                         sourceSlotId: sourceSlotId,
                         rangeStart: 0x200,
-                        rangeEndExclusive: 0x210),
+                        rangeEndExclusive: 0x210, logicalCoverageGroupId: $"slot:{sourceSlotId}"),
                 ],
                 ShellTextResources.For(ShellLanguage.English)));
             Assert.Equal(2, Assert.Single(noncontiguous.Items).Ranges.Count);
-
             MemoryCoverageGroupViewModel contiguous = Assert.Single(
                 ReplaceRegionGroupBuilder.CreateCoverageGroups(
                 [
@@ -249,7 +244,7 @@ public sealed partial class CtrlRamWorkflowTests
                         regionId: $"{role}-first",
                         sourceSlotId: sourceSlotId,
                         rangeStart: 0x300,
-                        rangeEndExclusive: 0x310),
+                        rangeEndExclusive: 0x310, logicalCoverageGroupId: $"slot:{sourceSlotId}"),
                     new MemoryCoverageSegmentViewModel(
                         "0x310-0x31F",
                         role.ToString(),
@@ -260,11 +255,10 @@ public sealed partial class CtrlRamWorkflowTests
                         regionId: $"{role}-second",
                         sourceSlotId: sourceSlotId,
                         rangeStart: 0x310,
-                        rangeEndExclusive: 0x320),
+                        rangeEndExclusive: 0x320, logicalCoverageGroupId: $"slot:{sourceSlotId}"),
                 ],
                 ShellTextResources.For(ShellLanguage.English)));
             Assert.Equal("0x00300-0x0031F", Assert.Single(Assert.Single(contiguous.Items).Ranges).AddressRangeLabel);
-
             MemoryCoverageGroupViewModel[] crossGroup =
             [
                 .. ReplaceRegionGroupBuilder.CreateCoverageGroups(
@@ -280,7 +274,7 @@ public sealed partial class CtrlRamWorkflowTests
                         sourceSlotId: sourceSlotId,
                         regionGroup: ReplaceRegionGroup.Common,
                         rangeStart: 0x400,
-                        rangeEndExclusive: 0x410),
+                        rangeEndExclusive: 0x410, logicalCoverageGroupId: $"slot:{sourceSlotId}"),
                     new MemoryCoverageSegmentViewModel(
                         "0x500-0x50F",
                         role.ToString(),
@@ -292,7 +286,7 @@ public sealed partial class CtrlRamWorkflowTests
                         sourceSlotId: sourceSlotId,
                         regionGroup: ReplaceRegionGroup.Master,
                         rangeStart: 0x500,
-                        rangeEndExclusive: 0x510),
+                        rangeEndExclusive: 0x510, logicalCoverageGroupId: $"slot:{sourceSlotId}"),
                 ],
                 ShellTextResources.For(ShellLanguage.English)),
             ];
@@ -308,7 +302,6 @@ public sealed partial class CtrlRamWorkflowTests
                 range => Assert.Equal("Master", range.RegionGroupLabel));
         }
     }
-
     /// <summary>Partial NT51923 replacement keeps subtype hue and base-owned customer information.</summary>
     [Fact]
     public async Task Nt51923CtrlRamCustomerInformationUsesBaseFirmwarePresentation()

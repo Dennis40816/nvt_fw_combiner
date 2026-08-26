@@ -270,6 +270,11 @@ public sealed partial class XamlControlStyleContractTests
             MemoryCoverageSegmentViewModel active = useReplace
                 ? viewModel.Replace.ReplaceCoverageSegments[0]
                 : viewModel.Merge.MergeCoverageSegments[0];
+            object activeRowContext = useReplace
+                ? active
+                : Assert.Single(
+                    viewModel.Merge.MergeCoverageItems,
+                    item => item.Segments.Contains(active));
             var pointerOwner = new object();
             active.Interaction.SetPointerActive(pointerOwner, true);
             Dispatcher.UIThread.RunJobs();
@@ -296,7 +301,7 @@ public sealed partial class XamlControlStyleContractTests
 
             Border activeRow = Assert.Single(
                 panel.GetVisualDescendants().OfType<Border>(),
-                candidate => ReferenceEquals(candidate.DataContext, active) &&
+                candidate => ReferenceEquals(candidate.DataContext, activeRowContext) &&
                     candidate.Classes.Contains("memoryCoverageLinkedRow"));
             Assert.Contains("linked", activeRow.Classes);
             Assert.True(FocusToolTipBehavior.GetIsEnabled(activeRow));
@@ -314,7 +319,11 @@ public sealed partial class XamlControlStyleContractTests
             });
             Dispatcher.UIThread.RunJobs();
             Assert.True(ToolTip.GetIsOpen(activeRow));
-            Assert.Same(active, rowCard.Content);
+            Assert.Same(
+                activeRowContext is MemoryCoverageLogicalItemViewModel logicalItem
+                    ? logicalItem.PrimaryRange
+                    : active,
+                rowCard.Content);
             Assert.NotNull(rowCard.ContentTemplate);
             activeRow.RaiseEvent(new FocusChangedEventArgs(InputElement.LostFocusEvent));
             Assert.False(ToolTip.GetIsOpen(activeRow));
@@ -393,26 +402,36 @@ public sealed partial class XamlControlStyleContractTests
     [Fact]
     public void MemoryCoverageInteractionLinksLogicalRowsAndEverySegment()
     {
-        var first = new MemoryCoverageSegmentViewModel(
+        MemoryCoverageSegmentViewModel first = new(
             "0x00000-0x0000F",
             "NF CtrlRAM",
             "Selected bytes",
             MemoryCoverageFillRole.CtrlRamNf,
             10,
+            disposition: Application.MemoryLayout.MemoryWorkflowDisposition.WillReplace,
+            sourceSlotId: "replace-ctrlram-nf",
             rangeStart: 0,
-            rangeEndExclusive: 0x10);
-        var second = new MemoryCoverageSegmentViewModel(
+            rangeEndExclusive: 0x10,
+            logicalCoverageGroupId: "slot:replace-ctrlram-nf");
+        MemoryCoverageSegmentViewModel second = new(
             "0x00010-0x0001F",
             "NF CtrlRAM",
             "Retained bytes",
             MemoryCoverageFillRole.CtrlRamNf,
             10,
+            disposition: Application.MemoryLayout.MemoryWorkflowDisposition.Kept,
+            usesBaseFirmwarePattern: true,
+            sourceSlotId: "reference-base",
             rangeStart: 0x10,
-            rangeEndExclusive: 0x20);
-        var item = new MemoryCoverageLogicalItemViewModel(
+            rangeEndExclusive: 0x20,
+            logicalCoverageGroupId: "slot:replace-ctrlram-nf");
+        MemoryCoverageLogicalItemViewModel item = new(
             "slot:replace-ctrlram-nf",
             [first, second],
             ShellTextResources.For(ShellLanguage.English));
+        MemoryCoverageSegmentViewModel projectedRange = Assert.Single(item.Ranges);
+        Assert.Equal("Partially replaced", projectedRange.ChangeLabel);
+        Assert.Same(item.Interaction, projectedRange.Interaction);
         var pointerOwner = new object();
         var focusOwner = new object();
 
