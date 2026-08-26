@@ -1,4 +1,5 @@
 using CommunityToolkit.Mvvm.ComponentModel;
+using NvtFwCombiner.Application.Authoring;
 using NvtFwCombiner.Application.Capabilities;
 using NvtFwCombiner.Application.Diagnostics;
 using NvtFwCombiner.Domain.Composition;
@@ -419,9 +420,19 @@ internal sealed partial class WorkflowSessionPresentationViewModel
             return;
         }
 
-        RefreshContextState(
-            activeOwner,
-            preserveReplaceSlotFiles: activeOwner == WorkflowInspectionOwner.Replace);
+        CompiledAuthoringSelectionSnapshot? stagedDpProjection;
+        try
+        {
+            RefreshContextState(
+                activeOwner,
+                preserveReplaceSlotFiles: activeOwner == WorkflowInspectionOwner.Replace);
+            stagedDpProjection = _replace.TakeCatalogRefreshDpProjection();
+        }
+        catch
+        {
+            _replace.CompleteCatalogRefreshProjection();
+            throw;
+        }
         if (activeOwner == WorkflowInspectionOwner.Merge)
         {
             _mergeWorkflowContextNeedsRefresh = false;
@@ -433,7 +444,7 @@ internal sealed partial class WorkflowSessionPresentationViewModel
 
         try
         {
-            RefreshRetainedFirmwareInspections(activeOwner.Value);
+            RefreshRetainedFirmwareInspections(activeOwner.Value, stagedDpProjection);
         }
         finally
         {
@@ -441,7 +452,9 @@ internal sealed partial class WorkflowSessionPresentationViewModel
         }
     }
 
-    private void RefreshRetainedFirmwareInspections(WorkflowInspectionOwner owner)
+    private void RefreshRetainedFirmwareInspections(
+        WorkflowInspectionOwner owner,
+        CompiledAuthoringSelectionSnapshot? stagedDpProjection = null)
     {
         WorkflowInspectionContext context = InspectionContext(owner);
         string icId = GetWorkflowPageIc(owner);
@@ -453,7 +466,12 @@ internal sealed partial class WorkflowSessionPresentationViewModel
 
         _ = owner == WorkflowInspectionOwner.Merge
             ? RefreshSelectedMergeFirmwareInspectionsAsync()
-            : RefreshSelectedReplaceFirmwareInspectionsAsync();
+            : RefreshSelectedFirmwareInspectionsAsync(
+                context,
+                InspectionSlots(context),
+                applyVerifiedContextSlotId: null,
+                CancellationToken.None,
+                stagedDpProjection);
     }
 
     private void PublishActiveSelectorState(string icId, string number)

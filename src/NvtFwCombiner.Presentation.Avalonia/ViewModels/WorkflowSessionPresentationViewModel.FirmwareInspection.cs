@@ -483,7 +483,8 @@ internal sealed partial class WorkflowSessionPresentationViewModel
         WorkflowInspectionContext context,
         IEnumerable<FirmwareSlotViewModel> candidateSlots,
         string? applyVerifiedContextSlotId,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken,
+        CompiledAuthoringSelectionSnapshot? stagedDpProjection = null)
     {
         var slots = candidateSlots
             .Where(static slot => slot.HasFile)
@@ -532,7 +533,10 @@ internal sealed partial class WorkflowSessionPresentationViewModel
         items = AttachAbMergeInspectionLeases(context, items);
         if (context.IsReplace)
         {
-            items = _replace.AttachReplaceInspectionLeases(items, slots.Values);
+            items = _replace.AttachReplaceInspectionLeases(
+                items,
+                slots.Values,
+                stagedDpProjection);
         }
         foreach (FirmwareSlotViewModel slot in slots.Values)
         {

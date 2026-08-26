@@ -38,7 +38,8 @@ internal sealed partial class ReplacePresentationViewModel
 
     internal IReadOnlyList<FirmwareInspectionItemRequest> AttachReplaceInspectionLeases(
         IReadOnlyList<FirmwareInspectionItemRequest> items,
-        IEnumerable<FirmwareSlotViewModel> slots)
+        IEnumerable<FirmwareSlotViewModel> slots,
+        CompiledAuthoringSelectionSnapshot? stagedDpProjection = null)
     {
         AuthoringSessionState? session = CurrentReplaceInputSession;
         if (session is null)
@@ -66,8 +67,7 @@ internal sealed partial class ReplacePresentationViewModel
             .. slots.Where(slot => slot.HasFile && requested.Contains(ReplaceInputId(slot))),
         ];
         CompiledAuthoringSelectionSnapshot dpProjection =
-            _catalogRefreshDpProjection ?? ResolveDpReplaceAuthoringSnapshot(selected);
-        _catalogRefreshDpProjection = null;
+            stagedDpProjection ?? ResolveDpReplaceAuthoringSnapshot(selected);
         AuthoringSessionTransitionResult activated = session.Activate(dpProjection);
         if (!activated.Succeeded)
         {
@@ -237,6 +237,13 @@ internal sealed partial class ReplacePresentationViewModel
         IReadOnlyCollection<FirmwareSlotViewModel> selected)
     {
         return ResolveDpReplaceAuthoringSnapshot(SelectedIc, selected);
+    }
+
+    internal CompiledAuthoringSelectionSnapshot? TakeCatalogRefreshDpProjection()
+    {
+        CompiledAuthoringSelectionSnapshot? projection = _catalogRefreshDpProjection;
+        _catalogRefreshDpProjection = null;
+        return projection;
     }
 
     internal void CompleteCatalogRefreshProjection()
