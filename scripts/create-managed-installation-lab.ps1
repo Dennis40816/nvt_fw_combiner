@@ -17,6 +17,9 @@ if ([string]::IsNullOrWhiteSpace($Output)) {
 }
 $PublishRoot = Join-Path $RepositoryRoot "artifacts/immutable-bootstrap-publish-$PID"
 $Bootstrap = Join-Path $PublishRoot 'NvtFwCombiner.Bootstrap.exe'
+$SourcePackageLockSnapshots = @{}
+Get-ChildItem -LiteralPath (Join-Path $RepositoryRoot 'src') -Filter 'packages.lock.json' -File -Recurse |
+    ForEach-Object { $SourcePackageLockSnapshots[$_.FullName] = [IO.File]::ReadAllBytes($_.FullName) }
 try {
     & dotnet publish `
         (Join-Path $RepositoryRoot 'src/NvtFwCombiner.LauncherBootstrap/NvtFwCombiner.LauncherBootstrap.csproj') `
@@ -44,6 +47,9 @@ try {
     }
 }
 finally {
+    foreach ($Snapshot in $SourcePackageLockSnapshots.GetEnumerator()) {
+        [IO.File]::WriteAllBytes($Snapshot.Key, [byte[]]$Snapshot.Value)
+    }
     if (Test-Path -LiteralPath $PublishRoot -PathType Container) {
         Remove-Item -LiteralPath $PublishRoot -Recurse -Force
     }

@@ -14,6 +14,8 @@ public sealed partial class RepositoryBoundaryTests
         string desktopProgram = ReadText("src/NvtFwCombiner.Desktop/Program.cs");
         string contracts = ReadText(
             "src/NvtFwCombiner.VersionManagement.Application/VersionManagement/LauncherBootstrapContracts.cs");
+        string bootstrapRuntime = ReadText(
+            "src/NvtFwCombiner.VersionManagement.Infrastructure/VersionManagement/AnonymousPipeManagedLauncherProcess.cs");
 
         AssertContainsAll(
             solution,
@@ -29,6 +31,14 @@ public sealed partial class RepositoryBoundaryTests
             "PackageReference");
         AssertContainsAll(bootstrapProgram, "LauncherBootstrapRuntime.RunAsync", "--state-path");
         AssertContainsAll(launcherProgram, "AnonymousPipeManagedApplicationProcess(statePath)", "ReportNestedReadyAsync");
+        AssertContainsAll(
+            bootstrapRuntime,
+            "new ManagedVersionSeedBootstrapper(",
+            "new LauncherBootstrapCoordinator(");
+        Assert.True(
+            bootstrapRuntime.IndexOf("new ManagedVersionSeedBootstrapper(", StringComparison.Ordinal) <
+            bootstrapRuntime.IndexOf("new LauncherBootstrapCoordinator(", StringComparison.Ordinal));
+        Assert.DoesNotContain("ManagedVersionSeedBootstrapper", launcherProgram, StringComparison.Ordinal);
         AssertContainsAll(desktopProgram, "ParseManagedHostOptions(args)", "CreateVersionManagementExperience");
         AssertContainsAll(contracts, "launcher/NvtFwCombiner.Launcher.exe", "SupportedProtocolVersion = 1");
     }

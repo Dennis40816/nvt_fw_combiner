@@ -228,6 +228,8 @@ internal static class LauncherReadyProtocol
 /// <summary>Public host seam used only by the immutable Bootstrap executable.</summary>
 public static class LauncherBootstrapRuntime
 {
+    private const string SeedStateFileName = "version-manager.seed.v1.json";
+
     /// <summary>Runs exact launcher selection and rollback under the existing app-state writer lease.</summary>
     public static async ValueTask<int> RunAsync(
         string managedRoot,
@@ -238,10 +240,26 @@ public static class LauncherBootstrapRuntime
         ArgumentException.ThrowIfNullOrWhiteSpace(statePath);
         string root = Path.GetFullPath(managedRoot);
         string state = Path.GetFullPath(statePath);
+        var stateStore = new JsonVersionManagerStateStore(state);
+        ManagedVersionSeedOutcome seedOutcome = await new ManagedVersionSeedBootstrapper(
+                root,
+                stateStore,
+                new JsonVersionManagerStateStore(Path.Combine(root, SeedStateFileName)),
+                new FileSystemManagedVersionRepository())
+            .EnsureInitializedAsync(cancellationToken).ConfigureAwait(false);
+        if (seedOutcome is not ManagedVersionSeedOutcome.ExistingState and
+            not ManagedVersionSeedOutcome.Seeded)
+        {
+            return seedOutcome is ManagedVersionSeedOutcome.StateUnavailable
+                ? 18
+                : seedOutcome is ManagedVersionSeedOutcome.ManagedRootMismatch
+                    ? 11
+                    : 10;
+        }
         var coordinator = new LauncherBootstrapCoordinator(
             root,
             state,
-            new JsonVersionManagerStateStore(state),
+            stateStore,
             new JsonLauncherBootstrapStateStore(state),
             new FileSystemInstalledLauncherRepository(),
             new AnonymousPipeManagedLauncherProcess());

@@ -5,8 +5,6 @@ namespace NvtFwCombiner.Launcher;
 
 internal static class Program
 {
-    private const string SeedStateFileName = "version-manager.seed.v1.json";
-
     [STAThread]
     private static int Main(string[] args)
     {
@@ -15,20 +13,6 @@ internal static class Program
             (string managedRoot, string statePath) = Parse(args);
             var stateStore = new JsonVersionManagerStateStore(statePath);
             var repository = new FileSystemManagedVersionRepository();
-            ManagedVersionSeedOutcome seedOutcome = new ManagedVersionSeedBootstrapper(
-                    managedRoot,
-                    stateStore,
-                    new JsonVersionManagerStateStore(Path.Combine(managedRoot, SeedStateFileName)),
-                    repository)
-                .EnsureInitializedAsync(CancellationToken.None)
-                .AsTask()
-                .GetAwaiter()
-                .GetResult();
-            if (seedOutcome is not ManagedVersionSeedOutcome.ExistingState and
-                not ManagedVersionSeedOutcome.Seeded)
-            {
-                return 9;
-            }
             var coordinator = new ManagedActivationCoordinator(
                 managedRoot,
                 stateStore,
