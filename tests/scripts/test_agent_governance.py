@@ -308,6 +308,26 @@ class AgentGovernanceTests(unittest.TestCase):
         self.assertFalse(_is_capability_reuse_governed_path("tools/crc-worker/cache/state"))
         self.assertFalse(_is_capability_reuse_governed_path("tools/crc-worker/.cache/state"))
         self.assertFalse(_is_capability_reuse_governed_path("scripts/README.md"))
+        self.assertFalse(
+            _is_capability_reuse_governed_path(
+                "docs/governance/external-authority-attestations/TEST-01.json"
+            )
+        )
+        self.assertTrue(
+            _is_capability_reuse_governed_path(
+                "docs/governance/external-authority-attestations/UNDECLARED.txt"
+            )
+        )
+        self.assertTrue(
+            _is_capability_reuse_governed_path(
+                "docs/governance/external-authority-attestations/TEST-01.JSON"
+            )
+        )
+        self.assertTrue(
+            _is_capability_reuse_governed_path(
+                "docs/governance/external-authority-attestations/nested/TEST-01.json"
+            )
+        )
 
     def test_name_status_parser_preserves_both_rename_and_copy_sides(self) -> None:
         payload = (
@@ -915,6 +935,59 @@ class AgentGovernanceTests(unittest.TestCase):
         self._git("commit", "-q", "-m", "later commit")
 
         self.assertEqual([], self._validate_derived_checkpoint())
+
+    def test_tracked_non_json_child_cannot_enter_attestation_directory_later(self) -> None:
+        self._change()
+        self._write_record(self._record("FORMAL-SUPPORT-01", risk="R3"))
+        self._git("add", "--", "src/Product/Owner.cs")
+        self._git("commit", "-q", "-m", "legacy R3 candidate")
+        _, manifest = self._activate_trusted_checkpoint()
+        self._write_external_authority_batch(manifest)
+        relative = "docs/governance/external-authority-attestations/UNDECLARED.txt"
+        self._write(relative, "not typed evidence\n")
+        self._git("add", "--", relative)
+        self._git("commit", "-q", "-m", "add undeclared evidence")
+
+        self.assertTrue(
+            any("must be a direct JSON child" in error for error in self._validate_derived_checkpoint())
+        )
+
+    def test_untracked_non_json_child_cannot_enter_attestation_directory(self) -> None:
+        self._change()
+        self._write_record(self._record("FORMAL-SUPPORT-01", risk="R3"))
+        self._git("add", "--", "src/Product/Owner.cs")
+        self._git("commit", "-q", "-m", "legacy R3 candidate")
+        _, manifest = self._activate_trusted_checkpoint()
+        self._write_external_authority_batch(manifest)
+        self._write(
+            "docs/governance/external-authority-attestations/UNDECLARED.txt",
+            "untracked evidence\n",
+        )
+
+        self.assertTrue(
+            any("must be a direct JSON child" in error for error in self._validate_derived_checkpoint())
+        )
+
+    def test_noncanonical_or_nested_json_attestation_paths_are_rejected(self) -> None:
+        self._change()
+        self._write_record(self._record("FORMAL-SUPPORT-01", risk="R3"))
+        self._git("add", "--", "src/Product/Owner.cs")
+        self._git("commit", "-q", "-m", "legacy R3 candidate")
+        _, manifest = self._activate_trusted_checkpoint()
+        self._write_external_authority_batch(manifest)
+        for relative in (
+            "docs/governance/external-authority-attestations/UNDECLARED.JSON",
+            "docs/governance/external-authority-attestations/nested/UNDECLARED.json",
+        ):
+            self._write(relative, "{}\n")
+            self._git("add", "--", relative)
+        self._git("commit", "-q", "-m", "add noncanonical evidence")
+
+        errors = self._validate_derived_checkpoint()
+        self.assertEqual(
+            2,
+            sum("must be a direct JSON child" in error for error in errors),
+        )
 
     def test_record_must_match_its_exact_index_blob(self) -> None:
         self._change()

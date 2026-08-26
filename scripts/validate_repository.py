@@ -1523,7 +1523,10 @@ def _is_capability_reuse_governed_path(relative: str) -> bool:
         return False
     if path == CAPABILITY_REUSE_TRUSTED_CHECKPOINT_PATH:
         return False
-    if path.parent == CAPABILITY_REUSE_EXTERNAL_AUTHORITY_ROOT:
+    if (
+        path.parent == CAPABILITY_REUSE_EXTERNAL_AUTHORITY_ROOT
+        and path.suffix == ".json"
+    ):
         return False
     if path.name == "AGENTS.md":
         return True
@@ -2152,27 +2155,28 @@ def _validate_external_authority_attestations(
     """Validate immutable exact-head evidence commits for required R3 owners."""
     root_relative = CAPABILITY_REUSE_EXTERNAL_AUTHORITY_ROOT.as_posix()
     indexed_paths, index_error = _git_paths(root, ["ls-files", "-z", "--", root_relative])
-    if index_error is not None:
-        errors.append(f"external authority attestation index could not be read: {index_error}")
+    untracked_paths, untracked_error = _git_paths(
+        root,
+        ["ls-files", "--others", "--exclude-standard", "-z", "--", root_relative],
+    )
+    if index_error is not None or untracked_error is not None:
+        errors.append(
+            "external authority attestation inventory could not be read: "
+            f"{index_error or untracked_error}"
+        )
         return {}
-    worktree_root = root / CAPABILITY_REUSE_EXTERNAL_AUTHORITY_ROOT
-    worktree_paths = {
-        path.relative_to(root).as_posix()
-        for path in worktree_root.rglob("*.json")
-    } if worktree_root.is_dir() else set()
-    paths = {
-        relative
-        for relative in indexed_paths | worktree_paths
-        if PurePosixPath(relative).suffix == ".json"
-    }
+    inventory = indexed_paths | untracked_paths
     invalid_paths = {
         relative
-        for relative in paths
-        if PurePosixPath(relative).parent != CAPABILITY_REUSE_EXTERNAL_AUTHORITY_ROOT
+        for relative in inventory
+        if not (
+            PurePosixPath(relative).parent == CAPABILITY_REUSE_EXTERNAL_AUTHORITY_ROOT
+            and PurePosixPath(relative).suffix == ".json"
+        )
     }
     for relative in sorted(invalid_paths):
         errors.append(f"external authority attestation must be a direct JSON child: {relative}")
-    paths -= invalid_paths
+    paths = inventory - invalid_paths
     expected_paths = {
         f"{root_relative}/{task_id}.json"
         for task_id in required
