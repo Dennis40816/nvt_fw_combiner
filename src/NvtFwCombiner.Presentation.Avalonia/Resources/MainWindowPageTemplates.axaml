@@ -327,9 +327,9 @@
               CommandParameter="{x:Static vm:SettingsSection.Overview}"
               GroupName="SettingsSections"
               IsChecked="{Binding Settings.IsOverviewSelected, Mode=OneWay}">
-            <Grid ColumnDefinitions="32,*" ColumnSpacing="{DynamicResource NfcSpace8}">
+            <Grid ColumnDefinitions="32,*,32" ColumnSpacing="{DynamicResource NfcSpace8}">
               <Path Width="24" Height="24" Data="M11 2L13 3L15 2L18 5L17 7L18 9V13L17 15L18 17L15 20L13 19L11 20L8 19L6 20L3 17L4 15L3 13V9L4 7L3 5L6 2L8 3L11 2Z M11 7A4 4 0 1 0 11 15A4 4 0 1 0 11 7Z" Stretch="Uniform" />
-              <TextBlock Grid.Column="1" Text="{Binding Text.SettingsOverviewNavigationLabel}" />
+              <TextBlock Grid.Column="1" HorizontalAlignment="Center" TextAlignment="Center" Text="{Binding Text.SettingsOverviewNavigationLabel}" />
             </Grid>
           </RadioButton>
           <RadioButton
@@ -340,9 +340,9 @@
               CommandParameter="{x:Static vm:SettingsSection.Preferences}"
               GroupName="SettingsSections"
               IsChecked="{Binding Settings.IsPreferencesSelected, Mode=OneWay}">
-            <Grid ColumnDefinitions="32,*" ColumnSpacing="{DynamicResource NfcSpace8}">
+            <Grid ColumnDefinitions="32,*,32" ColumnSpacing="{DynamicResource NfcSpace8}">
               <Path Width="24" Height="24" Data="M12 3A9 9 0 1 0 12 21H14A2 2 0 0 0 14 17H13A2 2 0 0 1 13 13H18A3 3 0 0 0 21 10A9 9 0 0 0 12 3Z M7 11V11.2 M10 7V7.2 M15 7V7.2" Stretch="Uniform" />
-              <TextBlock Grid.Column="1" Text="{Binding Text.SettingsPreferencesNavigationLabel}" />
+              <TextBlock Grid.Column="1" HorizontalAlignment="Center" TextAlignment="Center" Text="{Binding Text.SettingsPreferencesNavigationLabel}" />
             </Grid>
           </RadioButton>
           <RadioButton
@@ -353,9 +353,9 @@
               CommandParameter="{x:Static vm:SettingsSection.Version}"
               GroupName="SettingsSections"
               IsChecked="{Binding Settings.IsVersionSelected, Mode=OneWay}">
-            <Grid ColumnDefinitions="32,*" ColumnSpacing="{DynamicResource NfcSpace8}">
+            <Grid ColumnDefinitions="32,*,32" ColumnSpacing="{DynamicResource NfcSpace8}">
               <Path Width="24" Height="24" Data="M12 3A9 9 0 1 0 12 21A9 9 0 1 0 12 3Z M12 10V17 M12 7V7.2" Stretch="Uniform" />
-              <TextBlock Grid.Column="1" Text="{Binding Settings.VersionNavigationLabel}" />
+              <TextBlock Grid.Column="1" HorizontalAlignment="Center" TextAlignment="Center" Text="{Binding Settings.VersionNavigationLabel}" />
             </Grid>
           </RadioButton>
           <RadioButton
@@ -366,9 +366,9 @@
               CommandParameter="{x:Static vm:SettingsSection.SupportMatrix}"
               GroupName="SettingsSections"
               IsChecked="{Binding Settings.IsSupportMatrixOpen, Mode=OneWay}">
-            <Grid ColumnDefinitions="32,*" ColumnSpacing="{DynamicResource NfcSpace8}">
+            <Grid ColumnDefinitions="32,*,32" ColumnSpacing="{DynamicResource NfcSpace8}">
               <Path Width="24" Height="24" Data="M3 3H9V9H3Z M15 3H21V9H15Z M3 15H9V21H3Z M15 15H21V21H15Z" Stretch="Uniform" />
-              <TextBlock Grid.Column="1" Text="{Binding Text.SupportMatrixTitle}" />
+              <TextBlock Grid.Column="1" HorizontalAlignment="Center" TextAlignment="Center" Text="{Binding Text.SupportMatrixTitle}" />
             </Grid>
           </RadioButton>
         </StackPanel>

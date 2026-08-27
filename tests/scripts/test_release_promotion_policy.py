@@ -3,10 +3,14 @@
 from __future__ import annotations
 
 import importlib.util
+import hashlib
 import json
+import subprocess
 import tempfile
 import unittest
+import zipfile
 from pathlib import Path
+from unittest import mock
 
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -45,6 +49,108 @@ def valid_snapshot() -> dict[str, object]:
 
 class ReleasePromotionPolicyTests(unittest.TestCase):
     @staticmethod
+    def git(repository: Path, *arguments: str) -> str:
+        result = subprocess.run(
+            ["git", "-C", str(repository), *arguments],
+            check=True,
+            capture_output=True,
+            text=True,
+            encoding="utf-8",
+        )
+        return result.stdout.strip()
+
+    def create_version_only_repository(
+        self,
+        root: Path,
+        *,
+        base_version: str = "1.0.0",
+        extra_path: bool = False,
+        rename_path: bool = False,
+        mode_change: bool = False,
+    ) -> None:
+        self.git(root, "init", "--initial-branch=main")
+        self.git(root, "config", "user.name", "Release Test")
+        self.git(root, "config", "user.email", "release-test@example.invalid")
+        (root / "VERSION").write_text(f"{base_version}\n", encoding="utf-8")
+        (root / "note.txt").write_text("stable\n", encoding="utf-8")
+        self.git(root, "add", "VERSION", "note.txt")
+        self.git(root, "commit", "-m", "release 1.0.0")
+        self.git(root, "tag", "-a", "v1.0.0", "-m", "NVT FW Combiner v1.0.0")
+        (root / "VERSION").write_text("1.0.1\n", encoding="utf-8")
+        if extra_path:
+            (root / "extra.txt").write_text("not version-only\n", encoding="utf-8")
+            self.git(root, "add", "extra.txt")
+        if rename_path:
+            self.git(root, "mv", "note.txt", "renamed.txt")
+        self.git(root, "add", "VERSION")
+        if mode_change:
+            self.git(root, "update-index", "--chmod=+x", "VERSION")
+        self.git(root, "commit", "-m", "release 1.0.1 version only")
+
+    @staticmethod
+    def write_version_package(
+        path: Path,
+        *,
+        version: str,
+        source_sha: str,
+        stable_payload: bytes = b"stable-payload",
+        extra_path: bool = False,
+        product: str = "NVT FW Combiner",
+        package_root: str = "",
+    ) -> None:
+        payloads = {
+            "NvtFwCombiner.exe": f"application-{version}".encode(),
+            "launcher/NvtFwCombiner.Launcher.exe": f"launcher-{version}".encode(),
+            "external-tools/crc-worker/0.1.0/Nfc.CrcWorker.exe": stable_payload,
+            "README.txt": f"NVT FW Combiner {version}\nstable instructions\n".encode(),
+            "LICENSE.txt": stable_payload,
+        }
+        files = [
+            {
+                "path": name,
+                "size": len(content),
+                "sha256": hashlib.sha256(content).hexdigest(),
+                "role": "launcher"
+                if name.startswith("launcher/")
+                else "application"
+                if name.endswith("Combiner.exe")
+                else "document",
+            }
+            for name, content in payloads.items()
+        ]
+        manifest = {
+            "schemaVersion": "1.2",
+            "product": product,
+            "version": version,
+            "sourceCommit": source_sha,
+            "sourceTag": f"v{version}",
+            "provenanceAsset": f"NvtFwCombiner-v{version}-win-x64.provenance.json",
+            "sbomAsset": f"NvtFwCombiner-v{version}-win-x64.spdx.json",
+            "runtimeIdentifier": "win-x64",
+            "files": files,
+            "launcher": {
+                "launcherVersion": version,
+                "protocolVersion": 1,
+                "executableRelativePath": "launcher/NvtFwCombiner.Launcher.exe",
+                "size": len(payloads["launcher/NvtFwCombiner.Launcher.exe"]),
+                "sha256": hashlib.sha256(
+                    payloads["launcher/NvtFwCombiner.Launcher.exe"]
+                ).hexdigest(),
+            },
+        }
+        manifest_bytes = (json.dumps(manifest, indent=2) + "\n").encode()
+        payloads["RELEASE-MANIFEST.json"] = manifest_bytes
+        payloads["SHA256SUMS.txt"] = "".join(
+            f"{hashlib.sha256(content).hexdigest()}  {name}\n"
+            for name, content in payloads.items()
+        ).encode()
+        if extra_path:
+            payloads["unexpected.txt"] = b"extra"
+        with zipfile.ZipFile(path, "w", compression=zipfile.ZIP_DEFLATED) as archive:
+            for name, content in payloads.items():
+                archive.writestr(f"{package_root}{name}", content)
+
+    @staticmethod
     def candidate_arguments() -> dict[str, object]:
         return {
             "requested_sha": SHA,
@@ -59,6 +165,312 @@ class ReleasePromotionPolicyTests(unittest.TestCase):
             "workflow_actor": "release-owner",
             "owner_self_approval_exception": False,
         }
+
+    @staticmethod
+    def version_only_snapshot() -> dict[str, object]:
+        return {
+            "sourceVersion": "1.0.1",
+            "sourceSha": SHA,
+            "baseTag": "v1.0.0",
+            "baseTagCommit": "5" * 40,
+            "baseVersion": "1.0.0",
+            "parentShas": ["5" * 40],
+            "changedPaths": ["VERSION"],
+            "modeChanges": [],
+        }
+
+    def test_101_accepts_only_direct_version_file_content_change(self) -> None:
+        MODULE.validate_version_only_upgrade(self.version_only_snapshot())
+
+    def test_101_rejects_identity_lineage_and_diff_drift(self) -> None:
+        cases = (
+            ("sourceVersion", "1.0.2", "source VERSION"),
+            ("sourceSha", "invalid", "source SHA"),
+            ("baseTag", "v0.10.7", "base tag"),
+            ("baseTagCommit", "invalid", "peeled commit SHA"),
+            ("baseVersion", "0.10.7", "VERSION 1.0.0"),
+            ("parentShas", [], "direct single-parent child"),
+            ("parentShas", ["5" * 40, "6" * 40], "direct single-parent child"),
+            ("parentShas", ["6" * 40], "direct single-parent child"),
+            ("changedPaths", [], "canonical VERSION"),
+            ("changedPaths", ["VERSION", "README.md"], "canonical VERSION"),
+            ("changedPaths", ["RENAMED_VERSION"], "canonical VERSION"),
+            ("modeChanges", ["mode change 100644 => 100755 VERSION"], "file modes"),
+        )
+        for key, value, message in cases:
+            with self.subTest(key=key, value=value):
+                with self.assertRaisesRegex(ValueError, message):
+                    MODULE.validate_version_only_upgrade(
+                        {**self.version_only_snapshot(), key: value}
+                    )
+
+    def test_101_behavioral_git_lineage_accepts_only_version_file(self) -> None:
+        with tempfile.TemporaryDirectory(
+            prefix="nfc-version-only-lineage-"
+        ) as temporary:
+            repository = Path(temporary)
+            self.create_version_only_repository(repository)
+
+            MODULE.validate_version_only_lineage(repository)
+
+    def test_101_behavioral_git_lineage_rejects_tag_and_diff_drift(self) -> None:
+        scenarios = (
+            ("wrong-base-version", {"base_version": "0.10.7"}, None),
+            ("extra-path", {"extra_path": True}, None),
+            ("renamed-path", {"rename_path": True}, None),
+            ("mode-change", {"mode_change": True}, None),
+            ("missing-tag", {}, "missing-tag"),
+            ("lightweight-tag", {}, "lightweight-tag"),
+            ("retargeted-tag", {}, "retargeted-tag"),
+            ("non-direct-child", {}, "non-direct-child"),
+        )
+        for name, options, mutation in scenarios:
+            with (
+                self.subTest(name=name),
+                tempfile.TemporaryDirectory(
+                    prefix=f"nfc-version-only-{name}-"
+                ) as temporary,
+            ):
+                repository = Path(temporary)
+                self.create_version_only_repository(repository, **options)
+                if mutation == "missing-tag":
+                    self.git(repository, "tag", "-d", "v1.0.0")
+                elif mutation == "lightweight-tag":
+                    base = self.git(repository, "rev-parse", "HEAD^")
+                    self.git(repository, "tag", "-d", "v1.0.0")
+                    self.git(repository, "tag", "v1.0.0", base)
+                elif mutation == "retargeted-tag":
+                    self.git(repository, "tag", "-d", "v1.0.0")
+                    self.git(
+                        repository,
+                        "tag",
+                        "-a",
+                        "v1.0.0",
+                        "-m",
+                        "retargeted",
+                        "HEAD",
+                    )
+                elif mutation == "non-direct-child":
+                    self.git(repository, "commit", "--allow-empty", "-m", "extra child")
+
+                with self.assertRaises(ValueError):
+                    MODULE.validate_version_only_lineage(repository)
+
+    def test_101_behavioral_git_lineage_rejects_merge_parent(self) -> None:
+        with tempfile.TemporaryDirectory(prefix="nfc-version-only-merge-") as temporary:
+            repository = Path(temporary)
+            self.create_version_only_repository(repository)
+            base = self.git(repository, "rev-parse", "v1.0.0^{commit}")
+            self.git(repository, "branch", "side", base)
+            self.git(repository, "checkout", "side")
+            (repository / "side.txt").write_text("side\n", encoding="utf-8")
+            self.git(repository, "add", "side.txt")
+            self.git(repository, "commit", "-m", "side")
+            self.git(repository, "checkout", "main")
+            self.git(repository, "merge", "--no-ff", "side", "-m", "merge")
+
+            with self.assertRaisesRegex(ValueError, "single-parent"):
+                MODULE.validate_version_only_lineage(repository)
+
+    def test_101_package_equivalence_allows_declared_version_identity_only(
+        self,
+    ) -> None:
+        with tempfile.TemporaryDirectory(
+            prefix="nfc-version-only-package-test-"
+        ) as temporary:
+            repository = Path(temporary) / "repository"
+            repository.mkdir()
+            self.create_version_only_repository(repository)
+            base_sha = self.git(repository, "rev-parse", "v1.0.0^{commit}")
+            candidate_sha = self.git(repository, "rev-parse", "HEAD")
+            base_package = Path(temporary) / "base.zip"
+            candidate_package = Path(temporary) / "candidate.zip"
+            self.write_version_package(
+                base_package,
+                version="1.0.0",
+                source_sha=base_sha,
+            )
+            self.write_version_package(
+                candidate_package,
+                version="1.0.1",
+                source_sha=candidate_sha,
+            )
+
+            def version_reader(path: Path) -> tuple[str, str]:
+                version = "1.0.1" if b"1.0.1" in path.read_bytes() else "1.0.0"
+                return f"{version}.0", version
+
+            with mock.patch.object(
+                MODULE, "_read_windows_file_version", version_reader
+            ):
+                MODULE.validate_version_only_packages(
+                    repository,
+                    base_package,
+                    candidate_package,
+                    MODULE._sha256(base_package),
+                )
+
+    def test_101_package_equivalence_normalizes_versioned_archive_roots(self) -> None:
+        with tempfile.TemporaryDirectory(
+            prefix="nfc-version-only-root-test-"
+        ) as temporary:
+            repository = Path(temporary) / "repository"
+            repository.mkdir()
+            self.create_version_only_repository(repository)
+            base_sha = self.git(repository, "rev-parse", "v1.0.0^{commit}")
+            candidate_sha = self.git(repository, "rev-parse", "HEAD")
+            base_package = Path(temporary) / "base.zip"
+            candidate_package = Path(temporary) / "candidate.zip"
+            self.write_version_package(
+                base_package,
+                version="1.0.0",
+                source_sha=base_sha,
+                package_root="NvtFwCombiner-v1.0.0-win-x64/",
+            )
+            self.write_version_package(
+                candidate_package,
+                version="1.0.1",
+                source_sha=candidate_sha,
+                package_root="NvtFwCombiner-v1.0.1-win-x64/",
+            )
+
+            def version_reader(path: Path) -> tuple[str, str]:
+                version = "1.0.1" if b"1.0.1" in path.read_bytes() else "1.0.0"
+                return f"{version}.0", version
+
+            with mock.patch.object(
+                MODULE, "_read_windows_file_version", version_reader
+            ):
+                MODULE.validate_version_only_packages(
+                    repository,
+                    base_package,
+                    candidate_package,
+                    MODULE._sha256(base_package),
+                )
+
+    def test_101_reuses_only_manifest_bound_stable_worker(self) -> None:
+        with tempfile.TemporaryDirectory(
+            prefix="nfc-version-only-worker-test-"
+        ) as temporary:
+            repository = Path(temporary) / "repository"
+            repository.mkdir()
+            self.create_version_only_repository(repository)
+            base_sha = self.git(repository, "rev-parse", "v1.0.0^{commit}")
+            base_package = Path(temporary) / "base.zip"
+            destination = Path(temporary) / "out" / "Nfc.CrcWorker.exe"
+            self.write_version_package(
+                base_package,
+                version="1.0.0",
+                source_sha=base_sha,
+                package_root="NvtFwCombiner-v1.0.0-win-x64/",
+            )
+
+            MODULE.extract_version_only_stable_payload(
+                repository,
+                base_package,
+                destination,
+                "external-tools/crc-worker/0.1.0/Nfc.CrcWorker.exe",
+                MODULE._sha256(base_package),
+            )
+
+            self.assertEqual(destination.read_bytes(), b"stable-payload")
+
+    def test_101_rejects_self_consistent_base_zip_with_wrong_external_digest(self) -> None:
+        with tempfile.TemporaryDirectory(
+            prefix="nfc-version-only-worker-digest-reject-"
+        ) as temporary:
+            repository = Path(temporary) / "repository"
+            repository.mkdir()
+            self.create_version_only_repository(repository)
+            base_sha = self.git(repository, "rev-parse", "v1.0.0^{commit}")
+            base_package = Path(temporary) / "counterfeit.zip"
+            self.write_version_package(
+                base_package,
+                version="1.0.0",
+                source_sha=base_sha,
+            )
+
+            with self.assertRaisesRegex(ValueError, "independently supplied"):
+                MODULE.extract_version_only_stable_payload(
+                    repository,
+                    base_package,
+                    Path(temporary) / "out" / "Nfc.CrcWorker.exe",
+                    "external-tools/crc-worker/0.1.0/Nfc.CrcWorker.exe",
+                    "0" * 64,
+                )
+
+    def test_101_reuse_rejects_unapproved_payload(self) -> None:
+        with tempfile.TemporaryDirectory(
+            prefix="nfc-version-only-worker-reject-"
+        ) as temporary:
+            repository = Path(temporary) / "repository"
+            repository.mkdir()
+            self.create_version_only_repository(repository)
+            base_sha = self.git(repository, "rev-parse", "v1.0.0^{commit}")
+            base_package = Path(temporary) / "base.zip"
+            self.write_version_package(
+                base_package,
+                version="1.0.0",
+                source_sha=base_sha,
+            )
+
+            with self.assertRaisesRegex(ValueError, "not approved"):
+                MODULE.extract_version_only_stable_payload(
+                    repository,
+                    base_package,
+                    Path(temporary) / "out.bin",
+                    "LICENSE.txt",
+                    MODULE._sha256(base_package),
+                )
+
+    def test_101_package_equivalence_rejects_inventory_and_stable_payload_drift(
+        self,
+    ) -> None:
+        cases = (
+            ("inventory", {"extra_path": True}),
+            ("stable-payload", {"stable_payload": b"changed"}),
+            ("manifest", {"product": "Different Product"}),
+        )
+        for name, options in cases:
+            with (
+                self.subTest(name=name),
+                tempfile.TemporaryDirectory(
+                    prefix=f"nfc-version-only-package-{name}-"
+                ) as temporary,
+            ):
+                repository = Path(temporary) / "repository"
+                repository.mkdir()
+                self.create_version_only_repository(repository)
+                base_sha = self.git(repository, "rev-parse", "v1.0.0^{commit}")
+                candidate_sha = self.git(repository, "rev-parse", "HEAD")
+                base_package = Path(temporary) / "base.zip"
+                candidate_package = Path(temporary) / "candidate.zip"
+                self.write_version_package(
+                    base_package,
+                    version="1.0.0",
+                    source_sha=base_sha,
+                )
+                self.write_version_package(
+                    candidate_package,
+                    version="1.0.1",
+                    source_sha=candidate_sha,
+                    **options,
+                )
+
+                with (
+                    mock.patch.object(
+                        MODULE,
+                        "_read_windows_file_version",
+                        return_value=("1.0.1.0", "1.0.1"),
+                    ),
+                    self.assertRaises(ValueError),
+                ):
+                    MODULE.validate_version_only_packages(
+                        repository,
+                        base_package,
+                        candidate_package,
+                        MODULE._sha256(base_package),
+                    )
 
     def test_accepts_only_exact_reviewed_main_identity(self) -> None:
         MODULE.validate_candidate_context(

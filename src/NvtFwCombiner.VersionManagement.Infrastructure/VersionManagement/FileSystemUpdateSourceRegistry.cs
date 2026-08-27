@@ -1,8 +1,4 @@
-using System.Security.Cryptography;
-using System.Text.Json;
-using System.Text.Json.Serialization;
 using NvtFwCombiner.Application.VersionManagement;
-using NvtFwCombiner.Contracts.VersionManagement;
 
 namespace NvtFwCombiner.Infrastructure.VersionManagement;
 
@@ -10,21 +6,14 @@ namespace NvtFwCombiner.Infrastructure.VersionManagement;
 public sealed class FileSystemUpdateSourceRegistry : IUpdateSourceRegistry
 {
     /// <summary>Recommended fixed registry file name.</summary>
-    public const string RegistryFileName = "update-source-registry.v1.json";
+    public const string RegistryFileName = "update-source-registry.json";
 
     /// <summary>Maximum raw registry bytes.</summary>
-    public const int MaximumRegistryBytes = 64 * 1024;
+    public const int MaximumRegistryBytes =
+        UpdateSourceRegistryDocumentParser.MaximumRegistryBytes;
 
     /// <summary>Maximum declared source entries.</summary>
-    public const int MaximumEntries = 16;
-
-    private static readonly JsonSerializerOptions JsonOptions = new(JsonSerializerDefaults.Web)
-    {
-        MaxDepth = 16,
-        PropertyNameCaseInsensitive = false,
-        UnmappedMemberHandling = JsonUnmappedMemberHandling.Disallow,
-    };
-    private static readonly VersionManagementJsonContext JsonContext = new(JsonOptions);
+    public const int MaximumEntries = UpdateSourceRegistryDocumentParser.MaximumEntries;
     private readonly string? _locator;
 
     /// <summary>Creates one reader for an injected absolute file locator.</summary>
@@ -45,15 +34,11 @@ public sealed class FileSystemUpdateSourceRegistry : IUpdateSourceRegistry
 
         try
         {
-            if (!TryNormalizeAbsoluteFile(_locator, out string path))
+            if (!ManagedPathSafety.TryNormalizeExactAbsolutePath(_locator, out string path))
             {
                 return Failure(UpdateSourceRegistryLoadIssue.UnsafeLocator);
             }
-            if (!File.Exists(path))
-            {
-                return Failure(UpdateSourceRegistryLoadIssue.RegistryMissing);
-            }
-            if (HasReparseComponent(path))
+            if (ManagedPathSafety.HasReparseComponent(path))
             {
                 return Failure(UpdateSourceRegistryLoadIssue.UnsafeLocator);
             }
@@ -74,50 +59,9 @@ public sealed class FileSystemUpdateSourceRegistry : IUpdateSourceRegistry
             }
             byte[] bytes = new byte[checked((int)admittedLength)];
             await stream.ReadExactlyAsync(bytes, cancellationToken).ConfigureAwait(false);
-            if (stream.Length != admittedLength || stream.Position != admittedLength)
-            {
-                return Failure(UpdateSourceRegistryLoadIssue.UnstableRead);
-            }
-
-            using JsonDocument json = EmbeddedVersionManagementSchema.ParseStrict(bytes, maximumDepth: 16);
-            if (!UpdateSourceRegistrySchema.IsValid(json.RootElement))
-            {
-                return Failure(UpdateSourceRegistryLoadIssue.InvalidManifest);
-            }
-            UpdateSourceRegistryDocument? document = JsonSerializer.Deserialize(
-                bytes,
-                JsonContext.UpdateSourceRegistryDocument);
-            if (document?.Entries is not { Count: >= 1 and <= MaximumEntries } entries ||
-                document.SchemaVersion != 1 ||
-                document.Revision <= 0)
-            {
-                return Failure(UpdateSourceRegistryLoadIssue.InvalidManifest);
-            }
-
-            var projected = new List<UpdateSourceRegistryEntry>(entries.Count);
-            var unique = new HashSet<string>(PathComparer);
-            foreach (UpdateSourceRegistryEntryDocument? entry in entries)
-            {
-                if (entry is null ||
-                    !TryParseStatus(entry.Status, out UpdateSourceRegistryEntryStatus status) ||
-                    !TryNormalizeAbsoluteRoot(entry.Path, out string normalized) ||
-                    !unique.Add(normalized))
-                {
-                    return Failure(UpdateSourceRegistryLoadIssue.InvalidManifest);
-                }
-                projected.Add(new(normalized, status));
-            }
-
-            try
-            {
-                return new(
-                    new(document.Revision, Convert.ToHexString(SHA256.HashData(bytes)).ToLowerInvariant(), projected),
-                    UpdateSourceRegistryLoadIssue.None);
-            }
-            catch (ArgumentException)
-            {
-                return Failure(UpdateSourceRegistryLoadIssue.InvalidManifest);
-            }
+            return stream.Length != admittedLength || stream.Position != admittedLength
+                ? Failure(UpdateSourceRegistryLoadIssue.UnstableRead)
+                : UpdateSourceRegistryDocumentParser.Parse(bytes);
         }
         catch (OperationCanceledException)
         {
@@ -126,10 +70,6 @@ public sealed class FileSystemUpdateSourceRegistry : IUpdateSourceRegistry
         catch (UnauthorizedAccessException exception)
         {
             return Failure(ClassifyReadFailure(exception));
-        }
-        catch (JsonException)
-        {
-            return Failure(UpdateSourceRegistryLoadIssue.InvalidManifest);
         }
         catch (IOException exception)
         {
@@ -141,96 +81,16 @@ public sealed class FileSystemUpdateSourceRegistry : IUpdateSourceRegistry
         }
     }
 
-    private static bool TryNormalizeAbsoluteRoot(string? value, out string normalized)
-    {
-        normalized = string.Empty;
-        if (string.IsNullOrWhiteSpace(value) ||
-            !Path.IsPathFullyQualified(value) ||
-            IsDeviceExtendedOrAlternateStream(value))
-        {
-            return false;
-        }
-        try
-        {
-            normalized = Path.TrimEndingDirectorySeparator(Path.GetFullPath(value));
-            return normalized.Length > 0 && PathComparer.Equals(normalized, value);
-        }
-        catch (Exception exception) when (exception is ArgumentException or NotSupportedException)
-        {
-            return false;
-        }
-    }
-
-    private static bool TryNormalizeAbsoluteFile(string value, out string normalized)
-    {
-        normalized = string.Empty;
-        if (!Path.IsPathFullyQualified(value) || IsDeviceExtendedOrAlternateStream(value))
-        {
-            return false;
-        }
-        try
-        {
-            normalized = Path.GetFullPath(value);
-            return PathComparer.Equals(normalized, value);
-        }
-        catch (Exception exception) when (exception is ArgumentException or NotSupportedException)
-        {
-            return false;
-        }
-    }
-
-    private static bool HasReparseComponent(string filePath)
-    {
-        string? current = filePath;
-        while (!string.IsNullOrEmpty(current))
-        {
-            if ((File.GetAttributes(current) & FileAttributes.ReparsePoint) != 0)
-            {
-                return true;
-            }
-            current = Path.GetDirectoryName(current);
-        }
-        return false;
-    }
-
-    private static bool IsDeviceExtendedOrAlternateStream(string path)
-    {
-        if (path.StartsWith("\\\\?\\", StringComparison.Ordinal) ||
-            path.StartsWith("\\\\.\\", StringComparison.Ordinal))
-        {
-            return true;
-        }
-        string? root = Path.GetPathRoot(path);
-        return root is null || path.AsSpan(root.Length).Contains(':');
-    }
-
     internal static UpdateSourceRegistryLoadIssue ClassifyReadFailure(Exception exception)
     {
         ArgumentNullException.ThrowIfNull(exception);
-        return exception is UnauthorizedAccessException
-            ? UpdateSourceRegistryLoadIssue.PermissionDenied
-            : UpdateSourceRegistryLoadIssue.RegistryUnavailable;
-    }
-
-    private static bool TryParseStatus(
-        string? value,
-        out UpdateSourceRegistryEntryStatus status)
-    {
-        switch (value)
+        return exception switch
         {
-            case "latest":
-                status = UpdateSourceRegistryEntryStatus.Latest;
-                return true;
-            case "available":
-                status = UpdateSourceRegistryEntryStatus.Available;
-                return true;
-            case "deprecated":
-                status = UpdateSourceRegistryEntryStatus.Deprecated;
-                return true;
-            default:
-                status = default;
-                return false;
-        }
+            FileNotFoundException or DirectoryNotFoundException =>
+                UpdateSourceRegistryLoadIssue.RegistryMissing,
+            UnauthorizedAccessException => UpdateSourceRegistryLoadIssue.PermissionDenied,
+            _ => UpdateSourceRegistryLoadIssue.RegistryUnavailable,
+        };
     }
 
     private static UpdateSourceRegistryLoadResult Failure(UpdateSourceRegistryLoadIssue issue)
@@ -238,7 +98,4 @@ public sealed class FileSystemUpdateSourceRegistry : IUpdateSourceRegistry
         return new(null, issue);
     }
 
-    private static StringComparer PathComparer => OperatingSystem.IsWindows()
-        ? StringComparer.OrdinalIgnoreCase
-        : StringComparer.Ordinal;
 }

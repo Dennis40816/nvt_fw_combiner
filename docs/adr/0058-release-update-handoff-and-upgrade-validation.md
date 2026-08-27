@@ -14,7 +14,7 @@ configured network update source without reconstructing JSON by hand. The
 product owner's term **version profile** means the package's closed
 `RELEASE-MANIFEST.json`; the mutable version list is
 `update-catalog.v1.json`; and fixed-source recovery uses
-`update-source-registry.v1.json`.
+`update-source-registry.json`.
 
 The catalog declares the complete ZIP's size and SHA-256. Embedding that
 catalog into the same ZIP would create a circular identity. Renaming a 1.0.0
@@ -31,7 +31,7 @@ handoff with this closed layout:
 update-source-handoff-v<version>-<source-sha>/
   RELEASE-MANIFEST.json
   update-catalog.v1.json
-  update-source-registry.v1.json
+  update-source-registry.json
   packages/
     NvtFwCombiner-v<version>-win-x64.zip
 ```
@@ -49,16 +49,17 @@ operators publish immutable ZIPs first and replace the validated aggregate
 catalog last. A one-version handoff manifest copy never changes multi-version
 catalog semantics.
 
-Before 1.0.0 publication, an isolated validation lineage builds a genuine
-1.0.1 package from a distinct reviewed commit. All version-bearing authority,
+After immutable `v1.0.0` publication, a direct single-parent child changes only
+the canonical `VERSION` file from `1.0.0` to `1.0.1` and is itself reviewed and
+published as formal stable `v1.0.1`. All version-bearing authority,
 including `VERSION`, assembly metadata, executable identity, package root and
 name, release manifest, launcher owner identity, catalog row, hashes, SBOM,
 and provenance, must say 1.0.1. Renaming 1.0.0 bytes is rejected.
 
 The pair proves discovery, verification, install, READY activation, restart,
 switch-back, rollback, damaged-version reporting, and explicit deletion. The
-1.0.1 validation package is not an official stable publication unless the
-owner separately approves it.
+1.0.1 package is a formal stable publication whose only purpose is genuine
+managed-upgrade validation; it adds no feature or firmware-semantic change.
 
 Because the coupled self-contained launcher makes the measured package about
 112 MiB, only canonical 1.0.0 and validation 1.0.1 ZIPs receive the 128 MiB
@@ -79,8 +80,10 @@ Because the coupled self-contained launcher makes the measured package about
 
 ## Consequences
 
-- Each release run gives operators the exact package, manifest, catalog seed,
-  and registry seed needed for network-source staging.
+- Each release run gives operators the exact package, manifest, Catalog, and a
+  rendered Registry bound to that Catalog's exact bytes for network-source
+  staging. The repository's `.json.in` file is deliberately non-admissible and
+  is never itself a deployable Registry.
 - The network source remains relocatable because catalog package paths are
   relative; registry recovery remains independently rooted at the fixed
   locator contract.

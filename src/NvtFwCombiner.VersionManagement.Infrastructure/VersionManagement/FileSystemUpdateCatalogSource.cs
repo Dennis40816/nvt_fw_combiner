@@ -1,3 +1,4 @@
+using System.Security.Cryptography;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using NvtFwCombiner.Application.VersionManagement;
@@ -32,21 +33,69 @@ public sealed class FileSystemUpdateCatalogSource : IUpdateCatalogSource
         try
         {
             string fullRoot = Path.GetFullPath(sourceRoot);
-            if (!Directory.Exists(fullRoot))
-            {
-                return Failure(UpdateCatalogLoadIssue.SourceMissing);
-            }
-            if (IsReparsePoint(fullRoot))
+            return ManagedPathSafety.HasReparseComponent(fullRoot)
+                    ? Failure(UpdateCatalogLoadIssue.UnsafeSource)
+                    : await LoadValidatedPathAsync(
+                    Path.Combine(fullRoot, CatalogFileName),
+                    cancellationToken).ConfigureAwait(false);
+        }
+        catch (UnauthorizedAccessException exception)
+        {
+            return Failure(ClassifyReadFailure(exception));
+        }
+        catch (IOException exception)
+        {
+            return Failure(ClassifyReadFailure(exception));
+        }
+        catch (Exception exception) when (exception is NotSupportedException or ArgumentException)
+        {
+            return Failure(UpdateCatalogLoadIssue.UnsafeSource);
+        }
+    }
+
+    /// <inheritdoc />
+    public async ValueTask<UpdateCatalogLoadResult> LoadCatalogAsync(
+        string catalogPath,
+        CancellationToken cancellationToken)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(catalogPath);
+        cancellationToken.ThrowIfCancellationRequested();
+        try
+        {
+            if (!ManagedPathSafety.TryNormalizeExactAbsolutePath(
+                    catalogPath,
+                    out string fullPath))
             {
                 return Failure(UpdateCatalogLoadIssue.UnsafeSource);
             }
+            string? parent = Path.GetDirectoryName(fullPath);
+            return string.IsNullOrWhiteSpace(parent)
+                ? Failure(UpdateCatalogLoadIssue.SourceMissing)
+                : ManagedPathSafety.HasReparseComponent(parent)
+                    ? Failure(UpdateCatalogLoadIssue.UnsafeSource)
+                    : await LoadValidatedPathAsync(fullPath, cancellationToken).ConfigureAwait(false);
+        }
+        catch (UnauthorizedAccessException exception)
+        {
+            return Failure(ClassifyReadFailure(exception));
+        }
+        catch (IOException exception)
+        {
+            return Failure(ClassifyReadFailure(exception));
+        }
+        catch (Exception exception) when (exception is NotSupportedException or ArgumentException)
+        {
+            return Failure(UpdateCatalogLoadIssue.UnsafeSource);
+        }
+    }
 
-            string catalogPath = Path.Combine(fullRoot, CatalogFileName);
-            if (!File.Exists(catalogPath))
-            {
-                return Failure(UpdateCatalogLoadIssue.SourceMissing);
-            }
-            if (IsReparsePoint(catalogPath))
+    private static async ValueTask<UpdateCatalogLoadResult> LoadValidatedPathAsync(
+        string catalogPath,
+        CancellationToken cancellationToken)
+    {
+        try
+        {
+            if (ManagedPathSafety.HasReparseComponent(catalogPath))
             {
                 return Failure(UpdateCatalogLoadIssue.UnsafeSource);
             }
@@ -88,7 +137,12 @@ public sealed class FileSystemUpdateCatalogSource : IUpdateCatalogSource
 
             UpdateCatalogValidationResult validation = UpdateCatalogValidator.Validate(document);
             return validation.IsValid
-                ? new(validation.Snapshot, UpdateCatalogLoadIssue.None)
+                ? new(
+                    validation.Snapshot,
+                    UpdateCatalogLoadIssue.None,
+                    new(
+                        document.SchemaVersion,
+                        Convert.ToHexString(SHA256.HashData(bytes)).ToLowerInvariant()))
                 : Failure(UpdateCatalogLoadIssue.InvalidManifest);
         }
         catch (UnauthorizedAccessException exception)
@@ -103,31 +157,27 @@ public sealed class FileSystemUpdateCatalogSource : IUpdateCatalogSource
         {
             return Failure(ClassifyReadFailure(exception));
         }
-        catch (NotSupportedException)
+        catch (Exception exception) when (exception is NotSupportedException or ArgumentException)
         {
             return Failure(UpdateCatalogLoadIssue.UnsafeSource);
         }
-        catch (ArgumentException)
-        {
-            return Failure(UpdateCatalogLoadIssue.UnsafeSource);
-        }
-    }
-
-    private static bool IsReparsePoint(string path)
-    {
-        return (File.GetAttributes(path) & FileAttributes.ReparsePoint) != 0;
     }
 
     internal static UpdateCatalogLoadIssue ClassifyReadFailure(Exception exception)
     {
         ArgumentNullException.ThrowIfNull(exception);
-        return exception is UnauthorizedAccessException
-            ? UpdateCatalogLoadIssue.PermissionDenied
-            : UpdateCatalogLoadIssue.SourceUnavailable;
+        return exception switch
+        {
+            FileNotFoundException or DirectoryNotFoundException =>
+                UpdateCatalogLoadIssue.SourceMissing,
+            UnauthorizedAccessException => UpdateCatalogLoadIssue.PermissionDenied,
+            _ => UpdateCatalogLoadIssue.SourceUnavailable,
+        };
     }
 
     private static UpdateCatalogLoadResult Failure(UpdateCatalogLoadIssue issue)
     {
         return new(null, issue);
     }
+
 }

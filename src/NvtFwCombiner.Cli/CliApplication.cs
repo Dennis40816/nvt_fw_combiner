@@ -22,13 +22,6 @@ public static partial class CliApplication
         ArgumentNullException.ThrowIfNull(args);
         ArgumentNullException.ThrowIfNull(output);
         ArgumentNullException.ThrowIfNull(error);
-        var host = CompositionHostServices.Create();
-        var services = new CliCompositionServices(
-            host.CompositionCapabilityExperience, host.SavedRuleAuthoring,
-            host.StandardMergeAuthoring, host.AbMergeAuthoring,
-            host.DpReplaceAuthoring, host.CtrlRamAuthoring,
-            host.GeneralAuthoring, host.CompositionOutputNaming, host.CompositionExecution);
-
         if (args is ["--version"] or ["version"])
         {
             await output.WriteLineAsync(Version).ConfigureAwait(false);
@@ -43,6 +36,27 @@ public static partial class CliApplication
 
         try
         {
+            if (args[0] == "version-self-test")
+            {
+                return await RunVersionSelfTestCommandAsync(
+                    args[1..],
+                    output,
+                    error,
+                    locators => CompositionHostServices.CreateVersionManagementExperience(
+                        Version,
+                        managedRoot: null,
+                        statePath: null,
+                        updateSourceRegistryPaths: locators),
+                    cancellationToken).ConfigureAwait(false);
+            }
+
+            var host = CompositionHostServices.Create();
+            var services = new CliCompositionServices(
+                host.CompositionCapabilityExperience, host.SavedRuleAuthoring,
+                host.StandardMergeAuthoring, host.AbMergeAuthoring,
+                host.DpReplaceAuthoring, host.CtrlRamAuthoring,
+                host.GeneralAuthoring, host.CompositionOutputNaming, host.CompositionExecution);
+
             _ = await host.ExternalEnvironmentLoader.LoadToCompletionAsync(
                 progress: null,
                 cancellationToken).ConfigureAwait(false);

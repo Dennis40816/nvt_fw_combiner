@@ -33,7 +33,7 @@ internal static class WorkflowSelectorProjection
         CapabilitySelectorPublication publication,
         string icId,
         string preferredToken,
-        bool useAbTopology)
+        string? workflowId)
     {
         ArgumentNullException.ThrowIfNull(publication);
         if (string.IsNullOrWhiteSpace(icId))
@@ -41,9 +41,15 @@ internal static class WorkflowSelectorProjection
             return string.Empty;
         }
 
-        IReadOnlyList<string> tokens = useAbTopology
+        string? scopedWorkflowId = NumberWorkflowScope(workflowId);
+        IReadOnlyList<string> tokens = StringComparer.Ordinal.Equals(
+                scopedWorkflowId,
+                ExperienceIds.AbMerge)
             ? [.. publication.GetAbMergeTopologyChoices(icId).Select(static choice => choice.Token)]
-            : [.. publication.GetNumberSelectionChoices(icId).Select(static choice => choice.Token)];
+            : [.. (scopedWorkflowId is null
+                    ? publication.GetNumberSelectionChoices(icId)
+                    : publication.GetNumberSelectionChoices(icId, scopedWorkflowId))
+                .Select(static choice => choice.Token)];
         return tokens.Count == 0
             ? string.Empty
             : tokens.Contains(preferredToken, StringComparer.Ordinal)
@@ -52,6 +58,15 @@ internal static class WorkflowSelectorProjection
                     token,
                     IcNumberSelectionTokens.SingleChip,
                     StringComparison.Ordinal)) ?? tokens[0];
+    }
+
+    internal static string? NumberWorkflowScope(string? workflowId)
+    {
+        return workflowId is ExperienceIds.AbMerge or
+            ExperienceIds.CtrlRamReplace or
+            ExperienceIds.GeneralReplace
+                ? workflowId
+                : null;
     }
 
     internal static string ContextIc(

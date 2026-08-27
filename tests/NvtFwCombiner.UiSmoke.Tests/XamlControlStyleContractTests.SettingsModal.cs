@@ -155,17 +155,17 @@ public sealed partial class XamlControlStyleContractTests
             AssertControlGeometry(bannerOrigin, updateBanner.Bounds.Size, 363, 247, 1121, 84);
             AssertControlGeometry(sourceOrigin, sourceSection.Bounds.Size, 363, 359, 1121, 132);
             AssertControlGeometry(tableOrigin, versionTable.Bounds.Size, 363, 555, 1121, 207);
-            Assert.Equal(30, pageTitle.FontSize);
+            Assert.Equal(24, pageTitle.FontSize);
             Assert.Equal(FontWeight.SemiBold, pageTitle.FontWeight);
-            Assert.Equal(18, pageSubtitle.FontSize);
-            Assert.Equal(18, updateMessage.FontSize);
+            Assert.Equal(13, pageSubtitle.FontSize);
+            Assert.Equal(14, updateMessage.FontSize);
             Assert.Equal(new Thickness(2), updateBanner.BorderThickness);
             Assert.Equal(new CornerRadius(6), updateBanner.CornerRadius);
             Assert.Equal(new Thickness(2), sourceEditor.BorderThickness);
             Assert.Equal(new CornerRadius(6), sourceEditor.CornerRadius);
             Assert.Equal(new Thickness(2), Assert.IsType<Border>(versionTable).BorderThickness);
             Assert.Equal(64, selectedNavigation.Bounds.Height);
-            Assert.Equal(18, selectedNavigation.FontSize);
+            Assert.Equal(14, selectedNavigation.FontSize);
             Assert.Equal(180, installUpdate.Bounds.Width);
             Assert.Equal(52, installUpdate.Bounds.Height);
 
@@ -207,6 +207,19 @@ public sealed partial class XamlControlStyleContractTests
 
         Assert.Equal(4, entries.Length);
         Assert.All(entries, entry => Assert.Equal("RadioButton", entry.Name.LocalName));
+        Assert.All(entries, entry =>
+        {
+            System.Xml.Linq.XElement contentGrid = Assert.Single(
+                entry.Elements(),
+                element => element.Name.LocalName == "Grid");
+            Assert.Equal("32,*,32", (string?)contentGrid.Attribute("ColumnDefinitions"));
+            System.Xml.Linq.XElement label = Assert.Single(
+                contentGrid.Elements(),
+                element => element.Name.LocalName == "TextBlock");
+            Assert.Equal("1", (string?)label.Attribute("Grid.Column"));
+            Assert.Equal("Center", (string?)label.Attribute("HorizontalAlignment"));
+            Assert.Equal("Center", (string?)label.Attribute("TextAlignment"));
+        });
         System.Xml.Linq.XElement generalIcon = Assert.Single(
             entries[0].Descendants(),
             element => element.Name.LocalName == "Path");
@@ -229,13 +242,14 @@ public sealed partial class XamlControlStyleContractTests
         Assert.Contains("ColumnDefinitions=\"*,Auto,Auto\" ColumnSpacing=\"32\"", versionPage, StringComparison.Ordinal);
         Assert.Contains("ColumnDefinitions=\"86,*,Auto,Auto\"", versionPage, StringComparison.Ordinal);
         Assert.Equal(2, CountOccurrences(pageTemplates + versionPage, "ColumnDefinitions=\"1.1*,1.4*,1*,Auto,38\""));
-        Assert.Contains("FontSize\" Value=\"30", ExtractStyle(versionStyles, "TextBlock.versionPageTitle"), StringComparison.Ordinal);
-        Assert.Contains("FontSize\" Value=\"18", ExtractStyle(versionStyles, "TextBlock.versionPageSubtitle"), StringComparison.Ordinal);
-        Assert.Contains("FontSize\" Value=\"22", ExtractStyle(versionStyles, "TextBlock.versionSectionTitle"), StringComparison.Ordinal);
+        Assert.Contains("FontSize\" Value=\"24", ExtractStyle(versionStyles, "TextBlock.versionPageTitle"), StringComparison.Ordinal);
+        Assert.Contains("NfcFontSize13", ExtractStyle(versionStyles, "TextBlock.versionPageSubtitle"), StringComparison.Ordinal);
+        Assert.Contains("FontSize\" Value=\"18", ExtractStyle(versionStyles, "TextBlock.versionSectionTitle"), StringComparison.Ordinal);
         Assert.Contains("BorderThickness\" Value=\"2", ExtractStyle(versionStyles, "Border.versionSourceEditor"), StringComparison.Ordinal);
         Assert.Contains("NfcCompactCornerRadius", ExtractStyle(versionStyles, "Border.versionSourceEditor"), StringComparison.Ordinal);
         Assert.Contains("MinHeight\" Value=\"84", ExtractStyle(versionStyles, "Border.versionUpdateBanner"), StringComparison.Ordinal);
         Assert.Contains("Height\" Value=\"64", ExtractStyle(buttonStyles, "Button.settingsNavItem"), StringComparison.Ordinal);
+        Assert.Contains("NfcFontSize14", ExtractStyle(buttonStyles, "Button.settingsNavItem"), StringComparison.Ordinal);
         Assert.Contains("NfcCompactCornerRadius", ExtractStyle(buttonStyles, "Button.settingsNavItem /template/ ContentPresenter#PART_ContentPresenter"), StringComparison.Ordinal);
         Assert.Contains("MinWidth\" Value=\"180", ExtractStyle(buttonStyles, "Button.versionInstallAction"), StringComparison.Ordinal);
         Assert.Contains("MinHeight\" Value=\"52", ExtractStyle(buttonStyles, "Button.versionInstallAction"), StringComparison.Ordinal);
@@ -299,6 +313,18 @@ public sealed partial class XamlControlStyleContractTests
         Assert.Equal("1.8", (string?)icon.Attribute("StrokeThickness"));
         Assert.Equal("Round", (string?)icon.Attribute("StrokeLineCap"));
         Assert.Equal("Round", (string?)icon.Attribute("StrokeJoin"));
+        Assert.Equal(
+            "{Binding !Settings.IsVersionSelfTestRunning}",
+            (string?)icon.Attribute("IsVisible"));
+        System.Xml.Linq.XElement progress = Assert.Single(
+            action.Descendants(),
+            element => element.Name.LocalName == "VersionCheckingIndicator");
+        Assert.Equal(
+            "{Binding Settings.IsVersionSelfTestRunning}",
+            (string?)progress.Attribute("IsVisible"));
+        Assert.Equal(
+            "{ReflectionBinding $parent[Window].DataContext.IsReducedMotionEnabled}",
+            (string?)progress.Attribute("IsReducedMotionEnabled"));
         System.Xml.Linq.XElement label = Assert.Single(
             action.Descendants(), element => element.Name.LocalName == "TextBlock");
         Assert.Equal("{Binding Settings.RunVersionSelfTestLabel}", (string?)label.Attribute("Text"));

@@ -1,4 +1,5 @@
 using NvtFwCombiner.Application.Capabilities;
+using NvtFwCombiner.Domain.Composition;
 using NvtFwCombiner.Presentation.Avalonia.ViewModels;
 
 namespace NvtFwCombiner.UiSmoke.Tests;
@@ -16,11 +17,17 @@ public sealed partial class ShellNavigationSystemTests
 
         Assert.True(viewModel.Settings.IsSupportMatrixOpen);
         Assert.False(viewModel.Settings.IsOverviewSelected);
-        Assert.Equal(89, viewModel.Settings.SupportMatrix.Rows.Count);
-        Assert.Equal("89 routes", viewModel.Settings.SupportMatrix.RouteCountLabel);
+        Assert.Equal(75, viewModel.Settings.SupportMatrix.Rows.Count);
+        Assert.Equal("75 routes", viewModel.Settings.SupportMatrix.RouteCountLabel);
         Assert.Equal("Current", viewModel.Settings.SupportMatrix.CatalogStateLabel);
         Assert.False(viewModel.Settings.SupportMatrix.HasStatusNotice);
-        Assert.Equal(6, viewModel.Settings.SupportMatrix.WorkflowColumns.Count);
+        Assert.Equal(5, viewModel.Settings.SupportMatrix.WorkflowColumns.Count);
+        Assert.DoesNotContain(
+            viewModel.Settings.SupportMatrix.WorkflowColumns,
+            static column => column.WorkflowId == ExperienceIds.DpReplace);
+        Assert.DoesNotContain(
+            viewModel.Settings.SupportMatrix.Rows,
+            static row => row.WorkflowId == ExperienceIds.DpReplace);
         Assert.Equal(10, viewModel.Settings.SupportMatrix.IcRows.Count);
         SupportMatrixIcRowViewModel nt51929 = Assert.Single(
             viewModel.Settings.SupportMatrix.IcRows,
@@ -88,7 +95,6 @@ public sealed partial class ShellNavigationSystemTests
         Assert.Equal(
             [
                 SupportMatrixCellStatus.ReviewedEvidence,
-                SupportMatrixCellStatus.ContractOnly,
                 SupportMatrixCellStatus.Blocked,
                 SupportMatrixCellStatus.ReviewRequired,
             ],
@@ -104,7 +110,7 @@ public sealed partial class ShellNavigationSystemTests
 
         settings.Refresh(ShellTextResources.For(ShellLanguage.ChineseTraditional));
 
-        Assert.Equal("僅有定義", settings.SupportMatrix.IcRows[0].Cells[1].StatusLabel);
+        Assert.Equal("已阻擋", settings.SupportMatrix.IcRows[0].Cells[1].StatusLabel);
     }
 
     /// <summary>The matrix displays Available and Unavailable as independent typed policy facts.</summary>

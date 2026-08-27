@@ -30,7 +30,8 @@ public sealed record CanonicalCompiledRoute(
 /// <summary>Exact compiler contract for one authoring-bound dynamic route.</summary>
 public sealed record CanonicalDynamicRoute(
     string CapabilityFingerprint,
-    CanonicalCapabilityCompilationContract CompilationContract);
+    CanonicalCapabilityCompilationContract CompilationContract,
+    CapabilityNumberChoice? NumberChoice = null);
 
 /// <summary>Joins one trusted policy snapshot to exact compiler outputs before publication.</summary>
 internal sealed class CanonicalCapabilityCatalogSource(
@@ -122,7 +123,8 @@ internal sealed class CanonicalCapabilityCatalogSource(
                 route.CompilationContract,
                 policy.Authoring,
                 policy.Publication,
-                policy.Evidence);
+                policy.Evidence,
+                route.NumberChoice);
     }
 
     private CanonicalCapabilityDefinition Materialize(

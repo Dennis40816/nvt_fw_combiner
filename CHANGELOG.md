@@ -4,9 +4,168 @@ All notable changes to NVT FW Combiner are documented here. The project follows 
 
 ## [Unreleased]
 
-The repository identity has advanced to the internal `0.10.7` candidate for
-final owner-visible effect confirmation. No `v0.10.7` package or tag has been
-published.
+The repository identity is the formal `1.0.0` release candidate. No stable
+`v1.0.0` package or tag is published until every technical and external R3
+gate is complete.
+
+The complete release notes for `1.0.0` and its version-only `1.0.1` upgrade
+probe are intentionally frozen here before the `1.0.0` tag. The `1.0.1`
+source commit may change only `VERSION`.
+
+## [1.0.1] - Unreleased
+
+### Summary
+
+This stable version-only probe validates discovery, installation, activation,
+restart, rollback, switch-back, damage reporting, and deletion against the
+formal `1.0.0` package without adding product behavior.
+
+### Product changes
+
+#### Version-only managed-upgrade probe
+
+- Before → After: the first stable package has no later immutable package with
+  which to exercise the complete updater. A direct child changes only
+  `VERSION` from `1.0.0` to `1.0.1` and rebuilds every declared version-bearing
+  package identity.
+- Affected: application and assembly version metadata, package and release
+  identity, managed-version discovery, installation, activation, rollback,
+  and switching. Firmware composition behavior and UI layout are unchanged.
+- Support status: unchanged/support-neutral; no IC, route, range, processor,
+  integrity, output naming, or firmware evidence is promoted or removed.
+- Compatibility: the package installs side by side with `1.0.0`; the stable
+  launcher can switch between the two verified installations without
+  overwriting either one.
+- Verification: release policy requires an annotated immutable `v1.0.0`, one
+  direct parent, exact `VERSION`-only source change, closed package identity,
+  and the local plus UNC managed-upgrade smoke sequence.
+- Limitations: this release exists only to prove the updater with a real newer
+  identity; it contains no feature or firmware-semantic change.
+
+### Security
+
+The same closed package inventory, SHA-256, manifest, SBOM, provenance,
+Registry, Catalog, and launcher admission checks used for `1.0.0` apply.
+
+### Known issues
+
+The update source still depends on administrator-published Registry replicas
+and a reachable Catalog root. Offline switching remains limited to healthy,
+already installed, verified versions.
+
+### Upgrade and rollback
+
+Install `1.0.1` through Settings Version or the managed update flow. The
+launcher activates it only after the exact READY handshake; users may switch
+back to verified `1.0.0`, and pre-READY failure attempts the recorded healthy
+rollback target.
+
+### Downloads and integrity
+
+Use only the immutable versioned Windows x64 ZIP and its matching candidate
+manifest, asset checksum list, SBOM, and provenance. A renamed `1.0.0` ZIP is
+not `1.0.1` and must fail verification.
+
+## [1.0.0] - Unreleased
+
+### Summary
+
+The first stable NVT FW Combiner release delivers deterministic Standard
+Merge, AB Merge, and CtrlRAM Replace authoring together with a managed,
+relocatable Windows application update system.
+
+### Product changes
+
+#### Deterministic firmware composition
+
+- Before → After: internal 0.10.x candidates required engineering validation.
+  The stable package exposes the reviewed Standard Merge, AB Merge, and
+  CtrlRAM Replace routes through one typed planner/executor and fail-closed
+  profile authority.
+- Affected: Merge and Replace workbenches, selectors, Build Settings, memory
+  layout, reports, CLI composition, output naming, and supported IC matrix.
+- Support status: the published matrix remains the source of truth; hidden DP
+  Replace and later General workflow expansion are not promoted by this
+  release.
+- Compatibility: accepted 0.9.16 parity routes retain their reviewed output
+  behavior. Typed validation rejects mismatched IC count, subtype, unsafe
+  ranges, invalid integrity, and incompatible CtrlRAM inputs before mutation.
+- Verification: canonical and parity regressions, exact write-range review,
+  CRC worker tests, architecture gates, and declared firmware-owner evidence
+  are required for the frozen release commit.
+- Limitations: support publication, authoring availability, and release
+  certification are separate. The canonical matrix declares all 64
+  Standard/AB/CtrlRAM routes `Supported + Available`; that declaration is not
+  inferred from a fixture. Twenty-seven routes still lack independent private
+  v0.9.16 parity fixtures, and the four NT51950/NT51951 TP-only CtrlRAM variants
+  remain `Pending Test`. Those evidence debts block final certification without
+  silently revoking the declared support state. Future IC and General workflow
+  capability is deferred.
+
+#### Managed application versions
+
+- Before → After: users manually replaced portable folders. Settings Version
+  now discovers a Catalog through two fixed Registry replicas, verifies closed
+  packages, installs versions side by side, switches safely, reports damaged
+  installations, and deletes non-active versions by explicit choice.
+- Affected: Settings Version, startup update check, stable launcher, update
+  source Self-test, portable package, release handoff, and local diagnostics.
+- Support status: support-neutral for firmware; this is application lifecycle
+  and release infrastructure.
+- Compatibility: update roots and installed roots are relocatable; accepted
+  Registry revision and package identities are durable and anti-rollback.
+- Verification: Registry replica failover, Catalog binding, archive safety,
+  install/READY/rollback behavior, formal package smoke, clean Windows x64,
+  and local plus UNC upgrade labs are required.
+- Limitations: the administrator must keep both Registry replicas synchronized;
+  a stale replica remains integrity-safe but cannot provide failover after a
+  newer revision has been accepted.
+
+#### Stable desktop experience and evidence
+
+- Before → After: internal screens accumulated inconsistent detail and focus
+  behavior. The stable UI uses shared selectors, Build Settings, hover-only
+  memory graphics, report history, system information, Settings, bilingual
+  resources, and Light/Dark styling with typed Application projections.
+- Affected: Home, Merge, Replace, Settings, Version, Support Matrix, reports,
+  memory layout, and responsive selector presentation.
+- Support status: unchanged/support-neutral; Presentation does not infer
+  firmware classification, support, range, or readiness.
+- Compatibility: keyboard, focus, screen-reader labels, High Contrast policy,
+  and small-window layouts retain the same commands and typed workflow state.
+- Verification: UI smoke, XAML contract, routed navigation, Light/Dark visual
+  review, small-window checks, and Windows accessibility review apply.
+- Limitations: final owner visual acceptance and clean-machine interaction are
+  human release gates.
+
+### Security
+
+The package excludes non-allowlisted private owner-handoff firmware and all
+credentials. It intentionally includes only the release-selected,
+manifest/hash-bound Standard Merge golden fixtures used by packaged self-tests.
+All other update payloads are closed and hashed; external processors remain
+confined to host-created staging copies and declared write ranges, and malformed
+Registry, Catalog, archive, state, or firmware input fails closed.
+
+### Known issues
+
+Signing and administrator-controlled network publication remain release-owner
+operations. Firmware routes lacking mandatory independent evidence remain
+gated, and online update availability depends on at least one current Registry
+replica and its bound Catalog.
+
+### Upgrade and rollback
+
+Extract the portable ZIP into a new managed root and start through the stable
+launcher. Later verified versions install beside `1.0.0`; activation is atomic
+after READY, verified installed versions remain available for explicit switch,
+and failed pre-READY activation attempts one healthy rollback.
+
+### Downloads and integrity
+
+The formal release provides the versioned Windows x64 ZIP, candidate manifest,
+asset checksum list, SPDX SBOM, provenance, and complete release notes. Verify
+the published SHA-256 values and provenance source/tag identity before use.
 
 ## [0.10.7] - Unreleased
 

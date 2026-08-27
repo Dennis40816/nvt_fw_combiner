@@ -98,7 +98,7 @@
     <Setter Property="Padding" Value="16,12" />
     <Setter Property="BorderThickness" Value="2" />
     <Setter Property="Foreground" Value="{DynamicResource NfcTextSecondaryBrush}" />
-    <Setter Property="FontSize" Value="18" />
+    <Setter Property="FontSize" Value="{DynamicResource NfcFontSize14}" />
   </Style>
   <Style Selector="Button.settingsNavItem /template/ ContentPresenter#PART_ContentPresenter, RadioButton.settingsNavItem /template/ ContentPresenter#PART_ContentPresenter">
     <Setter Property="CornerRadius" Value="{DynamicResource NfcCompactCornerRadius}" />

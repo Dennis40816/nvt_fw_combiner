@@ -188,6 +188,9 @@ internal static class CanonicalDynamicRouteInventory
             ? true
             : throw new InvalidDataException(
                 $"General Replace route '{identity.RouteId}' has invalid IC Count axes.");
+        CapabilityNumberChoice numberChoice = ProjectGeneralReplaceNumberChoice(
+            map.Applicability.TopologyRequirement,
+            inputMode);
 
         return Create(
             identity,
@@ -196,7 +199,8 @@ internal static class CanonicalDynamicRouteInventory
             registration.BundleContentHash,
             [map.MapId],
             CapabilityDefinitionFingerprint.RuntimeReferenceReplaceCompilerSemanticId,
-            []);
+            [],
+            numberChoice);
     }
 
     private static CanonicalDynamicRoute ResolveCtrlRam(
@@ -324,7 +328,8 @@ internal static class CanonicalDynamicRouteInventory
         string trustedDefinitionSha256,
         IReadOnlyList<string> allowedMapIds,
         string compilerSemanticId,
-        IReadOnlyList<string> semanticBindingIds)
+        IReadOnlyList<string> semanticBindingIds,
+        CapabilityNumberChoice? numberChoice = null)
     {
         string fingerprint = CapabilityDefinitionFingerprint.Compute(
             identity,
@@ -345,7 +350,39 @@ internal static class CanonicalDynamicRouteInventory
                 semanticBindingIds,
                 allowsLogicalOutput: StringComparer.Ordinal.Equals(
                     compilerSemanticId,
-                    CapabilityDefinitionFingerprint.LogicalOutputCompilerSemanticId)));
+                    CapabilityDefinitionFingerprint.LogicalOutputCompilerSemanticId)),
+            numberChoice);
+    }
+
+    internal static CapabilityNumberChoice ProjectGeneralReplaceNumberChoice(
+        TopologyRequirement requirement,
+        IcNumberInputMode? inputMode)
+    {
+        ArgumentNullException.ThrowIfNull(requirement);
+        return requirement.Kind switch
+        {
+            TopologyRequirementKind.SingleChip =>
+                new CapabilityNumberChoice(IcNumberSelectionTokens.SingleChip, "1 IC"),
+            TopologyRequirementKind.ExactCount => new CapabilityNumberChoice(
+                requirement.ExactChipCount!.Value.ToString(
+                    System.Globalization.CultureInfo.InvariantCulture),
+                FormattableString.Invariant($"{requirement.ExactChipCount.Value} IC")),
+            TopologyRequirementKind.Cascade
+                when requirement.MaximumChipCount is { } maximum =>
+                new CapabilityNumberChoice(
+                    FormattableString.Invariant(
+                        $"cascade_{requirement.MinimumChipCount}to{maximum}"),
+                    FormattableString.Invariant(
+                        $"{requirement.MinimumChipCount}–{maximum} IC")),
+            TopologyRequirementKind.Cascade =>
+                new CapabilityNumberChoice(IcNumberSelectionTokens.Cascade, "Cascade"),
+            TopologyRequirementKind.None when inputMode == IcNumberInputMode.SingleSelector =>
+                new CapabilityNumberChoice(IcNumberSelectionTokens.SingleChip, "1 IC"),
+            TopologyRequirementKind.None when inputMode == IcNumberInputMode.CascadeSelector =>
+                new CapabilityNumberChoice(IcNumberSelectionTokens.Cascade, "Cascade"),
+            _ => throw new InvalidDataException(
+                "General Replace requires one typed, fixed IC-number choice."),
+        };
     }
 
     private static InvalidDataException InvalidDefinition(

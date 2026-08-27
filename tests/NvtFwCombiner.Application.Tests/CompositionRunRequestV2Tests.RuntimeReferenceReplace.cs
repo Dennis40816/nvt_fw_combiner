@@ -11,6 +11,55 @@ namespace NvtFwCombiner.Application.Tests;
 
 public sealed partial class CompositionRunRequestV2Tests
 {
+    /// <summary>A typed General Replace choice cannot bind a differently shaped compiler result.</summary>
+    [Fact]
+    public void DynamicGeneralReplaceCompilationRejectsRouteSelectorModeDrift()
+    {
+        CompiledComposition composition = CreateRuntimeReferenceCandidate();
+        var choice = new CapabilityNumberChoice(
+            IcNumberSelectionTokens.Cascade,
+            "Cascade");
+
+        ArgumentException exception = Assert.Throws<ArgumentException>(() =>
+            WorkflowIcNumberChoiceProjection.ValidateCompilation(choice, composition));
+
+        Assert.Equal("composition", exception.ParamName);
+        Assert.Contains("IC-number mode", exception.Message, StringComparison.Ordinal);
+    }
+
+    /// <summary>The final run-request boundary rejects a stale selector mode independently of UI reconciliation.</summary>
+    [Fact]
+    public void RuntimeReferenceCandidateRejectsIncompatibleIcNumberMode()
+    {
+        CompiledComposition composition = CreateRuntimeReferenceCandidate();
+
+        ArgumentException exception = Assert.Throws<ArgumentException>(() =>
+            new CompositionRunRequest(
+                "runtime-reference-stale-selector",
+                composition,
+                [
+                    new InputArtifactBinding(
+                        "reference",
+                        "reference",
+                        "reference-artifact",
+                        "base.bin",
+                        CompiledInputArtifactClass.ReferenceImage),
+                    new InputArtifactBinding(
+                        "source-a",
+                        "source-a",
+                        "source-artifact",
+                        "patch.bin",
+                        CompiledInputArtifactClass.Auxiliary),
+                ],
+                "runtime-reference.bin",
+                icNumberSelection: new IcNumberSelection(
+                    IcNumberInputMode.CascadeSelector,
+                    ["cascade"])));
+
+        Assert.Equal("selection", exception.ParamName);
+        Assert.Contains("mode must match", exception.Message, StringComparison.Ordinal);
+    }
+
     /// <summary>Runtime-reference publication requires independently derived processor, metadata, and typed plan proof.</summary>
     [Fact]
     public void DynamicRuntimeReferenceCapabilityRequiresTypedOwnerBindings()

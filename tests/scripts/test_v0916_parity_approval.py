@@ -1,0 +1,746 @@
+"""Red tests for the fail-closed external firmware-owner approval boundary."""
+
+from __future__ import annotations
+
+import copy
+import base64
+import hashlib
+import io
+import json
+import tempfile
+import unittest
+import zipfile
+from pathlib import Path
+
+import yaml
+
+from tests.scripts.v0916_parity_test_support import (
+    MODULE,
+    ROOT,
+    RecordingProtectedApprovalReader,
+    UnavailableProtectedApprovalReader,
+    V0916ParityTestBase,
+    parity_workflow_fixture_from_contract,
+)
+
+
+class UnavailableFirmwareOwnerVerifier:
+    def verify(self, attestation: dict[str, object], record: bytes) -> object:
+        raise OSError("external firmware-owner verifier is unavailable")
+
+
+class RecordingFirmwareOwnerVerifier:
+    def __init__(self, result: dict[str, object]) -> None:
+        self.result = copy.deepcopy(result)
+        self.calls: list[tuple[dict[str, object], bytes]] = []
+
+    def verify(self, attestation: dict[str, object], record: bytes) -> dict[str, object]:
+        self.calls.append((copy.deepcopy(attestation), bytes(record)))
+        return copy.deepcopy(self.result)
+
+
+class V0916ParityApprovalTests(V0916ParityTestBase):
+    def test_workflow_semantic_contract_raw_identity_and_schema_without_production(self) -> None:
+        plan = json.loads(self.plan_path.read_text(encoding="utf-8"))
+        reference = plan["candidateAuthority"]["protectedBuild"][
+            "workflowSemanticContract"
+        ]
+        contract_path = ROOT / reference["path"]
+        contract_bytes = contract_path.read_bytes()
+        self.assertEqual(reference["size"], len(contract_bytes))
+        self.assertEqual(reference["sha256"], hashlib.sha256(contract_bytes).hexdigest())
+        contract = json.loads(contract_bytes)
+        schema = json.loads(
+            (ROOT / "docs/contracts/v0916-parity-workflow-v1.schema.json").read_text(
+                encoding="utf-8"
+            )
+        )
+        self.assertEqual(
+            "https://json-schema.org/draft/2020-12/schema", schema["$schema"]
+        )
+        self.assertEqual(set(schema["required"]), set(contract))
+        self.assertEqual(
+            {"v0916-parity-compare", "v0916-parity-attestation"},
+            set(contract["jobs"]),
+        )
+
+    def test_release_workflow_yaml_has_exact_protected_job_graph(self) -> None:
+        contract = json.loads(
+            (ROOT / "docs/contracts/v0916-parity-workflow-v1.json").read_text(
+                encoding="utf-8"
+            )
+        )
+        workflow_path = ROOT / ".github/workflows/release.yml"
+        MODULE.validate_protected_workflow_semantics(
+            workflow_path.read_bytes(), contract
+        )
+
+    def test_workflow_semantics_reject_every_bypass_or_authority_drift(self) -> None:
+        contract = json.loads(
+            (ROOT / "docs/contracts/v0916-parity-workflow-v1.json").read_text(
+                encoding="utf-8"
+            )
+        )
+        valid = parity_workflow_fixture_from_contract(contract)
+        MODULE.validate_protected_workflow_semantics(valid, contract)
+        for mutation in (
+            "job-swap",
+            "top-trigger",
+            "top-permissions",
+            "unpinned-action",
+            "action-map-swap",
+            "command-argv",
+            "artifact-name",
+            "artifact-path",
+            "needs-order",
+            "condition-bypass",
+            "write-permission",
+            "timeout",
+            "environment",
+            "job-name",
+            "runs-on",
+            "checkout-ref",
+            "checkout-option",
+            "continue-on-error",
+            "step-order",
+            "extra-job",
+        ):
+            invalid = copy.deepcopy(valid)
+            compare = invalid["jobs"]["v0916-parity-compare"]
+            attestation = invalid["jobs"]["v0916-parity-attestation"]
+            if mutation == "job-swap":
+                invalid["jobs"]["v0916-parity-compare"], invalid["jobs"]["v0916-parity-attestation"] = (
+                    attestation,
+                    compare,
+                )
+            elif mutation == "top-trigger":
+                invalid["on"] = {"push": {}}
+            elif mutation == "top-permissions":
+                invalid["permissions"]["contents"] = "write"
+            elif mutation == "unpinned-action":
+                compare["steps"][0]["uses"] = "actions/checkout@v7"
+            elif mutation == "action-map-swap":
+                compare["steps"][0]["uses"] = contract["actionPins"]["downloadArtifact"]
+            elif mutation == "command-argv":
+                compare["steps"][2]["run"] += " --allow-mismatch"
+            elif mutation == "artifact-name":
+                compare["steps"][3]["with"]["name"] = "other"
+            elif mutation == "artifact-path":
+                attestation["steps"][1]["with"]["path"] = "artifacts/other"
+            elif mutation == "needs-order":
+                attestation["needs"].reverse()
+            elif mutation == "condition-bypass":
+                compare["if"] = "${{ always() }}"
+            elif mutation == "write-permission":
+                attestation["permissions"]["contents"] = "write"
+            elif mutation == "timeout":
+                compare["timeout-minutes"] = 61
+            elif mutation == "environment":
+                attestation.pop("environment")
+            elif mutation == "job-name":
+                compare["name"] = "release / parity maybe"
+            elif mutation == "runs-on":
+                compare["runs-on"] = "ubuntu-latest"
+            elif mutation == "checkout-ref":
+                compare["steps"][0]["with"]["ref"] = "${{ github.sha }}"
+            elif mutation == "checkout-option":
+                compare["steps"][0]["with"]["persist-credentials"] = True
+            elif mutation == "continue-on-error":
+                compare["steps"][2]["continue-on-error"] = True
+            elif mutation == "step-order":
+                compare["steps"][1], compare["steps"][2] = (
+                    compare["steps"][2],
+                    compare["steps"][1],
+                )
+            else:
+                invalid["jobs"]["v0916-parity-bypass"] = copy.deepcopy(compare)
+            with self.subTest(workflow_mutation=mutation):
+                with self.assertRaises(MODULE.ParityError) as captured:
+                    MODULE.validate_protected_workflow_semantics(invalid, contract)
+                self.assertEqual("PARITY_WORKFLOW_MISMATCH", captured.exception.code)
+
+    def test_deployment_status_creator_is_never_treated_as_firmware_owner(self) -> None:
+        observed_github = {
+            "run": {"id": 123, "head_sha": "1" * 40, "conclusion": "success"},
+            "job": {"id": 500, "run_id": 123, "conclusion": "success"},
+            "deployment": {"id": 600, "sha": "1" * 40, "environment": "firmware-parity"},
+            "deploymentStatuses": [{
+                "id": 601,
+                "state": "success",
+                "creator": {"login": "someone-who-is-not-provably-the-reviewer"},
+                "created_at": "2026-08-26T00:02:00Z",
+            }],
+        }
+        with self.assertRaises(MODULE.ParityError) as captured:
+            MODULE.infer_firmware_owner_from_github(observed_github)
+        self.assertEqual("PARITY_OWNER_APPROVAL_REQUIRED", captured.exception.code)
+
+    def test_local_attestation_cannot_pass_without_external_verifier(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            fixture = self._finalize_fixture(Path(temporary))
+            for verifier in (None, UnavailableFirmwareOwnerVerifier()):
+                with self.subTest(verifier=type(verifier).__name__ if verifier else "none"):
+                    with self.assertRaises(MODULE.ParityError) as captured:
+                        MODULE.finalize_evidence(
+                            fixture["finalizePath"],
+                            github_reader=fixture["githubReader"],
+                            firmware_owner_verifier=verifier,
+                        )
+                    self.assertEqual("PARITY_OWNER_APPROVAL_REQUIRED", captured.exception.code)
+
+    def test_verified_external_result_must_bind_every_attestation_fact(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            fixture = self._finalize_fixture(Path(temporary))
+            expected = fixture["expectedVerification"]
+            keys = {
+                "attestation-id": "attestationId", "owner-id": "firmwareOwnerId",
+                "attestation-sha": "attestationSha256", "record-sha": "verificationRecordSha256",
+                "comparison-sha": "comparisonSha256",
+                "comparison-artifact-id": "comparisonArtifactId",
+                "comparison-artifact-digest": "comparisonArtifactDigest",
+                "plan": "planSha256", "policy": "policySha256",
+                "head": "implementationHead", "tree": "implementationTree",
+                "package": "candidatePackageSha256", "routes": "routeEvidenceSha256",
+                "manifest": "candidateManifestSha256",
+                "candidate-artifact": "candidateArtifactDigest",
+                "receipts": "receiptSetSha256", "operators": "authorizedOperators",
+            }
+            for mutation, key in keys.items():
+                result = copy.deepcopy(expected)
+                if key == "comparisonArtifactId":
+                    result[key] = 999
+                elif key == "authorizedOperators":
+                    result[key] = ["other-operator"]
+                elif key in {"comparisonArtifactDigest", "candidateArtifactDigest"}:
+                    result[key] = "sha256:" + "0" * 64
+                else:
+                    result[key] = "0" * (40 if key in {"implementationHead", "implementationTree"} else 64)
+                with self.subTest(verification_mutation=mutation):
+                    with self.assertRaises(MODULE.ParityError) as captured:
+                        MODULE.finalize_evidence(
+                            fixture["finalizePath"],
+                            github_reader=fixture["githubReader"],
+                            firmware_owner_verifier=RecordingFirmwareOwnerVerifier(result),
+                        )
+                    self.assertEqual("PARITY_OWNER_APPROVAL_REQUIRED", captured.exception.code)
+
+    def test_complete_comparison_can_finalize_only_with_exact_external_owner_verification(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            fixture = self._finalize_fixture(Path(temporary))
+            verifier = RecordingFirmwareOwnerVerifier(
+                fixture["expectedVerification"]
+            )
+            comparison = json.loads(Path(fixture["finalizePath"]).read_text(encoding="utf-8"))
+            comparison_payload = json.loads(
+                Path(comparison["comparison"]["path"]).read_text(encoding="utf-8")
+            )
+            self.assertNotEqual(
+                fixture["protectedRun"]["workflowCommitSha"],
+                comparison_payload["candidateAuthority"]["implementationHead"],
+            )
+            evidence = MODULE.finalize_evidence(
+                fixture["finalizePath"],
+                github_reader=fixture["githubReader"],
+                firmware_owner_verifier=verifier,
+            )
+            self.assertEqual("pass", evidence["verdict"])
+            self.assertEqual(64, len(evidence["routes"]))
+            self.assertEqual(1, len(verifier.calls))
+            self.assertEqual(fixture["protectedRun"], evidence["protectedRun"])
+
+    def test_finalization_requires_independently_queried_same_run_job_and_artifact_owners(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            fixture = self._finalize_fixture(Path(temporary))
+            for mutation in (
+                "workflow-blob", "workflow-bytes", "run-id", "run-head", "run-branch", "run-repository-id",
+                "run-repository-name", "run-head-repository-id",
+                "run-head-repository-name", "run-status", "run-conclusion", "job-id",
+                "job-run", "job-attempt", "job-head", "job-branch",
+                "job-status", "job-conclusion", "deployment-head", "deployment-ref",
+                "deployment-environment", "status-state", "status-cross-job",
+                "comparison-after-deployment", "deployment-after-job",
+                "attestation-after-job", "status-before-job",
+                "comparison-artifact-run", "comparison-artifact-head",
+                "comparison-artifact-branch", "comparison-artifact-repository-id",
+                "comparison-artifact-head-repository-id", "attestation-artifact-run",
+                "attestation-artifact-head", "attestation-artifact-branch",
+                "attestation-artifact-repository-id",
+                "attestation-artifact-head-repository-id",
+                "comparison-artifact-bytes", "attestation-artifact-bytes",
+                "comparison-artifact-name", "attestation-artifact-name",
+                "comparison-artifact-digest", "attestation-artifact-digest",
+                "comparison-artifact-expired", "attestation-artifact-expired",
+            ):
+                reader = copy.deepcopy(fixture["githubReader"])
+                if mutation == "workflow-blob":
+                    reader.workflow_content["sha"] = "0" * 40
+                elif mutation == "workflow-bytes":
+                    reader.workflow_content["content"] = base64.b64encode(
+                        b"name: substituted\n"
+                    ).decode("ascii")
+                elif mutation == "run-id":
+                    reader.run["id"] = 999
+                elif mutation == "run-head":
+                    reader.run["head_sha"] = "0" * 40
+                elif mutation == "run-branch":
+                    reader.run["head_branch"] = "other"
+                elif mutation == "run-repository-id":
+                    reader.run["repository"]["id"] = 999
+                elif mutation == "run-repository-name":
+                    reader.run["repository"]["full_name"] = "other/repository"
+                elif mutation == "run-head-repository-id":
+                    reader.run["head_repository"]["id"] = 999
+                elif mutation == "run-head-repository-name":
+                    reader.run["head_repository"]["full_name"] = "other/repository"
+                elif mutation == "run-status":
+                    reader.run["status"] = "in_progress"
+                elif mutation == "run-conclusion":
+                    reader.run["conclusion"] = "failure"
+                elif mutation == "job-id":
+                    reader.job["id"] = 999
+                elif mutation == "job-run":
+                    reader.job["run_id"] = 999
+                elif mutation == "job-attempt":
+                    reader.job["run_attempt"] = 2
+                elif mutation == "job-head":
+                    reader.job["head_sha"] = "0" * 40
+                elif mutation == "job-branch":
+                    reader.job["head_branch"] = "other"
+                elif mutation == "job-status":
+                    reader.job["status"] = "in_progress"
+                elif mutation == "job-conclusion":
+                    reader.job["conclusion"] = "failure"
+                elif mutation == "deployment-head":
+                    reader.deployment["sha"] = "0" * 40
+                elif mutation == "deployment-ref":
+                    reader.deployment["ref"] = "other"
+                elif mutation == "deployment-environment":
+                    reader.deployment["environment"] = "release"
+                elif mutation == "status-state":
+                    reader.deployment_statuses[0]["state"] = "failure"
+                elif mutation == "status-cross-job":
+                    reader.deployment_statuses[0]["log_url"] = (
+                        "https://github.com/Dennis40816/nvt_fw_combiner/actions/runs/123/job/999"
+                    )
+                elif mutation == "comparison-after-deployment":
+                    reader.artifacts[700][0]["created_at"] = "2026-08-26T00:02:30Z"
+                elif mutation == "deployment-after-job":
+                    reader.deployment["created_at"] = "2026-08-26T00:03:30Z"
+                elif mutation == "attestation-after-job":
+                    reader.artifacts[701][0]["created_at"] = "2026-08-26T00:05:30Z"
+                elif mutation == "status-before-job":
+                    reader.deployment_statuses[0]["created_at"] = "2026-08-26T00:02:30Z"
+                elif mutation in {"comparison-artifact-bytes", "attestation-artifact-bytes"}:
+                    artifact_id = 700 if mutation.startswith("comparison") else 701
+                    metadata, archive = reader.artifacts[artifact_id]
+                    reader.artifacts[artifact_id] = (metadata, archive + b"drift")
+                elif mutation.endswith("artifact-name"):
+                    artifact_id = 700 if mutation.startswith("comparison") else 701
+                    reader.artifacts[artifact_id][0]["name"] = "substituted"
+                elif mutation.endswith("artifact-digest"):
+                    artifact_id = 700 if mutation.startswith("comparison") else 701
+                    reader.artifacts[artifact_id][0]["digest"] = "sha256:" + "0" * 64
+                elif mutation.endswith("artifact-expired"):
+                    artifact_id = 700 if mutation.startswith("comparison") else 701
+                    reader.artifacts[artifact_id][0]["expired"] = True
+                else:
+                    artifact_id = 700 if mutation.startswith("comparison") else 701
+                    owner = reader.artifacts[artifact_id][0]["workflow_run"]
+                    field = mutation.rsplit("-", 1)[-1]
+                    if field == "run":
+                        owner["id"] = 999
+                    elif field == "head":
+                        owner["head_sha"] = "0" * 40
+                    elif field == "branch":
+                        owner["head_branch"] = "other"
+                    elif mutation.endswith("repository-id") and not mutation.endswith("head-repository-id"):
+                        owner["repository_id"] = 999
+                    else:
+                        owner["head_repository_id"] = 999
+                with self.subTest(github_mutation=mutation):
+                    with self.assertRaises(MODULE.ParityError) as captured:
+                        MODULE.finalize_evidence(
+                            fixture["finalizePath"],
+                            github_reader=reader,
+                            firmware_owner_verifier=RecordingFirmwareOwnerVerifier(
+                                fixture["expectedVerification"]
+                            ),
+                        )
+                    self.assertEqual("PARITY_AUTHORITY_MISMATCH", captured.exception.code)
+
+    def test_finalization_fails_closed_when_github_authority_is_unavailable(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            fixture = self._finalize_fixture(Path(temporary))
+            with self.assertRaises(MODULE.ParityError) as captured:
+                MODULE.finalize_evidence(
+                    fixture["finalizePath"],
+                    github_reader=UnavailableProtectedApprovalReader(),
+                    firmware_owner_verifier=RecordingFirmwareOwnerVerifier(
+                        fixture["expectedVerification"]
+                    ),
+                )
+            self.assertEqual("PARITY_AUTHORITY_MISMATCH", captured.exception.code)
+
+    def _finalize_fixture(self, root: Path) -> dict[str, object]:
+        comparison = self._schema_complete_comparison_fixture()
+        comparison_path = root / "comparison.json"
+        comparison_path.write_text(json.dumps(comparison), encoding="utf-8")
+        attestation = {
+            "schemaVersion": "1.0",
+            "authority": {
+                "kind": "external-firmware-owner-attestation",
+                "attestationId": "FW-OWNER-1.0.0-001", "firmwareOwnerId": "fw-owner",
+                "issuedAtUtc": "2026-08-26T00:03:00Z", "verificationRequired": True,
+            },
+            "binding": {
+                "comparisonSha256": hashlib.sha256(comparison_path.read_bytes()).hexdigest(),
+                "comparisonArtifactId": 700, "comparisonArtifactDigest": "sha256:" + "8" * 64,
+                "planSha256": "1" * 64, "policySha256": "2" * 64,
+                "implementationHead": "e712842d61c560193ff9f7e2321daa47401a52d0",
+                "implementationTree": "1c2bd7ede4013b000ef4228605c83f07a904de76",
+                "candidatePackageSha256": "5" * 64, "candidateManifestSha256": "9" * 64,
+                "candidateArtifactDigest": "sha256:" + "a" * 64,
+                "routeEvidenceSha256": comparison["routeEvidenceSha256"],
+                "receiptSetSha256": comparison["receiptSetSha256"],
+            },
+            "authorizedOperators": ["dennis40816"],
+            "issuedAtUtc": "2026-08-26T00:03:00Z", "verdict": "approved",
+        }
+        attestation_path = root / "owner-attestation.json"
+        attestation_path.write_text(json.dumps(attestation), encoding="utf-8")
+        verification_path = root / "external-verification.json"
+        verification_path.write_text("{\"status\":\"externally-verified\"}", encoding="utf-8")
+        workflow_contract = json.loads(
+            (ROOT / "docs/contracts/v0916-parity-workflow-v1.json").read_text(
+                encoding="utf-8"
+            )
+        )
+        workflow_bytes = yaml.safe_dump(
+            parity_workflow_fixture_from_contract(workflow_contract),
+            sort_keys=False,
+        ).encode("utf-8")
+        workflow_blob_sha = hashlib.sha1(
+            f"blob {len(workflow_bytes)}\0".encode("ascii") + workflow_bytes
+        ).hexdigest()
+        candidate_head = "e712842d61c560193ff9f7e2321daa47401a52d0"
+        workflow_head = "b" * 40
+        self.assertNotEqual(candidate_head, workflow_head)
+        comparison_archive = self._single_file_archive(
+            "comparison.json", comparison_path.read_bytes()
+        )
+        attestation_archive = self._single_file_archive(
+            "owner-attestation.json", attestation_path.read_bytes()
+        )
+        artifact_owner = {
+            "id": 123, "repository_id": 40816, "head_repository_id": 40816,
+            "head_branch": "main", "head_sha": workflow_head,
+        }
+        comparison_digest = "sha256:" + hashlib.sha256(comparison_archive).hexdigest()
+        attestation_digest = "sha256:" + hashlib.sha256(attestation_archive).hexdigest()
+        protected_run = {
+            "repository": "Dennis40816/nvt_fw_combiner",
+            "repositoryId": 40816, "headRepositoryId": 40816,
+            "workflowPath": ".github/workflows/release.yml",
+            "workflowRef": "refs/heads/main", "workflowCommitSha": workflow_head,
+            "workflowBlobSha": workflow_blob_sha,
+            "workflowRawSha256": hashlib.sha256(workflow_bytes).hexdigest(),
+            "workflowSemanticContractSha256": "1bb4a0694664f3eed05c63204892ff90df1f4bfdd9277ba06e07240c165f68bf",
+            "workflowRun": {
+                "id": 123, "runAttempt": 1, "headSha": workflow_head,
+                "headBranch": "main", "event": "workflow_dispatch", "status": "completed",
+                "conclusion": "success", "repositoryId": 40816,
+                "headRepositoryId": 40816,
+                "createdAtUtc": "2026-08-26T00:00:00Z",
+                "updatedAtUtc": "2026-08-26T00:06:00Z",
+            },
+            "attestationJob": {
+                "id": 500, "runId": 123, "runAttempt": 1, "headSha": workflow_head,
+                "headBranch": "main",
+                "name": "release / v0.9.16 parity attestation", "status": "completed",
+                "conclusion": "success",
+                "startedAtUtc": "2026-08-26T00:03:00Z",
+                "completedAtUtc": "2026-08-26T00:05:00Z",
+                "htmlUrl": "https://github.com/Dennis40816/nvt_fw_combiner/actions/runs/123/job/500",
+            },
+            "deployment": {
+                "id": 600, "sha": workflow_head, "ref": "main",
+                "environment": "firmware-parity",
+                "createdAtUtc": "2026-08-26T00:02:00Z",
+            },
+            "deploymentStatus": {
+                "id": 601, "state": "success",
+                "createdAtUtc": "2026-08-26T00:05:00Z",
+                "updatedAtUtc": "2026-08-26T00:05:00Z",
+                "logUrl": "https://github.com/Dennis40816/nvt_fw_combiner/actions/runs/123/job/500",
+            },
+            "comparisonArtifact": {
+                "id": 700, "name": "v0916-parity-comparison-123",
+                "digest": comparison_digest, "memberName": "comparison.json",
+                "createdAtUtc": "2026-08-26T00:01:30Z",
+                "workflowRun": {
+                    "id": 123, "repositoryId": 40816, "headRepositoryId": 40816,
+                    "headBranch": "main", "headSha": workflow_head,
+                },
+            },
+            "attestationArtifact": {
+                "id": 701, "name": "v0916-parity-attestation-123",
+                "digest": attestation_digest, "memberName": "owner-attestation.json",
+                "createdAtUtc": "2026-08-26T00:04:30Z",
+                "workflowRun": {
+                    "id": 123, "repositoryId": 40816, "headRepositoryId": 40816,
+                    "headBranch": "main", "headSha": workflow_head,
+                },
+            },
+        }
+        attestation["binding"]["comparisonArtifactDigest"] = comparison_digest
+        attestation["binding"]["comparisonArtifactId"] = 700
+        attestation_path.write_text(json.dumps(attestation), encoding="utf-8")
+        attestation_archive = self._single_file_archive(
+            "owner-attestation.json", attestation_path.read_bytes()
+        )
+        attestation_digest = "sha256:" + hashlib.sha256(attestation_archive).hexdigest()
+        protected_run["attestationArtifact"]["digest"] = attestation_digest
+        github_reader = RecordingProtectedApprovalReader(
+            workflow_content={
+                "sha": workflow_blob_sha, "encoding": "base64",
+                "content": base64.b64encode(workflow_bytes).decode("ascii"),
+            },
+            run={
+                "id": 123, "run_attempt": 1, "head_sha": workflow_head,
+                "head_branch": "main", "event": "workflow_dispatch",
+                "status": "completed", "conclusion": "success",
+                "repository": {"id": 40816, "full_name": "Dennis40816/nvt_fw_combiner"},
+                "head_repository": {"id": 40816, "full_name": "Dennis40816/nvt_fw_combiner"},
+                "created_at": "2026-08-26T00:00:00Z",
+                "updated_at": "2026-08-26T00:06:00Z",
+            },
+            job={
+                "id": 500, "run_id": 123, "run_attempt": 1, "head_sha": workflow_head,
+                "head_branch": "main", "name": "release / v0.9.16 parity attestation",
+                "status": "completed", "conclusion": "success",
+                "started_at": "2026-08-26T00:03:00Z",
+                "completed_at": "2026-08-26T00:05:00Z",
+                "html_url": "https://github.com/Dennis40816/nvt_fw_combiner/actions/runs/123/job/500",
+            },
+            deployment={
+                "id": 600, "sha": workflow_head, "ref": "main",
+                "environment": "firmware-parity",
+                "created_at": "2026-08-26T00:02:00Z",
+            },
+            deployment_statuses=[{
+                "id": 601, "state": "success",
+                "created_at": "2026-08-26T00:05:00Z",
+                "updated_at": "2026-08-26T00:05:00Z",
+                "log_url": "https://github.com/Dennis40816/nvt_fw_combiner/actions/runs/123/job/500",
+                "creator": {"login": "github-actions[bot]"},
+            }],
+            artifacts={
+                700: ({
+                    "id": 700, "name": "v0916-parity-comparison-123",
+                    "expired": False, "digest": comparison_digest,
+                    "created_at": "2026-08-26T00:01:30Z",
+                    "workflow_run": copy.deepcopy(artifact_owner),
+                }, comparison_archive),
+                701: ({
+                    "id": 701, "name": "v0916-parity-attestation-123",
+                    "expired": False, "digest": attestation_digest,
+                    "created_at": "2026-08-26T00:04:30Z",
+                    "workflow_run": copy.deepcopy(artifact_owner),
+                }, attestation_archive),
+            },
+        )
+        finalize = {
+            "schemaVersion": "1.0", "comparison": self.artifact(comparison_path),
+            "firmwareOwnerAttestation": self.artifact(attestation_path),
+            "protectedRun": protected_run,
+            "approvalAuthority": {
+                "kind": "external-firmware-owner-verification",
+                "verifierId": "firmware-owner-verifier-v1",
+                "verificationRecord": self.artifact(verification_path),
+            },
+        }
+        finalize_path = root / "finalize.json"
+        finalize_path.write_text(json.dumps(finalize), encoding="utf-8")
+        return {
+            "finalizePath": finalize_path,
+            "githubReader": github_reader,
+            "protectedRun": protected_run,
+            "expectedVerification": {
+                "attestationId": "FW-OWNER-1.0.0-001", "firmwareOwnerId": "fw-owner",
+                "attestationSha256": hashlib.sha256(attestation_path.read_bytes()).hexdigest(),
+                "verificationRecordSha256": hashlib.sha256(verification_path.read_bytes()).hexdigest(),
+                "comparisonSha256": hashlib.sha256(comparison_path.read_bytes()).hexdigest(),
+                "comparisonArtifactId": 700,
+                "comparisonArtifactDigest": comparison_digest,
+                "planSha256": "1" * 64, "policySha256": "2" * 64,
+                "implementationHead": "e712842d61c560193ff9f7e2321daa47401a52d0",
+                "implementationTree": "1c2bd7ede4013b000ef4228605c83f07a904de76",
+                "candidatePackageSha256": "5" * 64,
+                "candidateManifestSha256": "9" * 64,
+                "candidateArtifactDigest": "sha256:" + "a" * 64,
+                "routeEvidenceSha256": comparison["routeEvidenceSha256"],
+                "receiptSetSha256": comparison["receiptSetSha256"],
+                "verifiedAtUtc": "2026-08-26T00:04:00Z",
+                "authorizedOperators": ["dennis40816"],
+            },
+        }
+
+    @staticmethod
+    def _single_file_archive(name: str, payload: bytes) -> bytes:
+        stream = io.BytesIO()
+        with zipfile.ZipFile(stream, "w", zipfile.ZIP_STORED) as archive:
+            archive.writestr(name, payload)
+        return stream.getvalue()
+
+    def _schema_complete_comparison_fixture(self) -> dict[str, object]:
+        """Payload-free schema fixture only; it is not firmware parity evidence."""
+
+        def digest(label: str) -> str:
+            return hashlib.sha256(label.encode("utf-8")).hexdigest()
+
+        candidate_executor = (
+            "f9d9c7f998c1a162ecc1a29693e37ebbf1dab9d0392098cab081c754f99e854c"
+        )
+        exact_rows: list[dict[str, object]] = []
+        for index in range(53):
+            row = copy.deepcopy(self.schema_exact_evidence_row())
+            row["routeId"] = f"route-fixture-exact-{index:03d}"
+            row["capabilityFingerprint"] = digest(f"capability-exact-{index}")
+            for receipt_index, receipt in enumerate(row["receipts"]):
+                receipt["receiptSha256"] = digest(
+                    f"receipt-exact-{index}-{receipt_index}"
+                )
+                receipt["invocationSha256"] = digest(
+                    f"invocation-exact-{index}-{receipt_index}"
+                )
+                receipt["report"]["sha256"] = digest(
+                    f"report-exact-{index}-{receipt_index}"
+                )
+            row["receipts"][1]["executorIdentitySha256"] = candidate_executor
+            exact_rows.append(row)
+
+        transitive_rows: list[dict[str, object]] = []
+        for index in range(11):
+            full = exact_rows[index]
+            row = copy.deepcopy(
+                self.schema_transitive_evidence_row(
+                    MODULE.canonical_route_row_sha256(full)
+                )
+            )
+            row["routeId"] = f"route-fixture-transitive-{index:03d}"
+            row["capabilityFingerprint"] = digest(
+                f"capability-transitive-{index}"
+            )
+            row["fullEvidence"]["routeId"] = full["routeId"]
+            row["fullEvidence"]["capabilityFingerprint"] = full[
+                "capabilityFingerprint"
+            ]
+            row["receipts"][0]["executorIdentitySha256"] = candidate_executor
+            row["receipts"][0]["receiptSha256"] = digest(
+                f"receipt-transitive-{index}"
+            )
+            row["receipts"][0]["invocationSha256"] = digest(
+                f"invocation-transitive-{index}"
+            )
+            row["receipts"][0]["report"]["sha256"] = digest(
+                f"report-transitive-{index}"
+            )
+            transitive_rows.append(row)
+
+        routes = [*exact_rows, *transitive_rows]
+        receipts = [
+            {
+                "routeId": route["routeId"],
+                "role": receipt["role"],
+                "receiptSha256": receipt["receiptSha256"],
+            }
+            for route in routes
+            for receipt in route["receipts"]
+        ]
+        comparison = {
+            "schemaVersion": "1.0",
+            "planSha256": "1" * 64,
+            "policySha256": "2" * 64,
+            "comparator": {"contractVersion": "1.0", "scriptSha256": "0" * 64},
+            "candidateAuthority": {
+                "implementationHead": "e712842d61c560193ff9f7e2321daa47401a52d0",
+                "implementationTree": "1c2bd7ede4013b000ef4228605c83f07a904de76",
+                "authorityTrees": {
+                    "src": "2fb1430651eb5d94f3feaafe9f15a970f549e41d",
+                    "profiles": "7f8bd06e23ee78954e2e2c222f7b44a315049330",
+                    "external-tools": "8d83e508ec3b48e000e1bef39b4b215c81b886ad",
+                    "tools/crc-worker": "bba57c51cab02ddf89fefdf449eb585de7b34ae5",
+                },
+                "policySha256": "2" * 64,
+                "sourceExecutorContract": {"size": 4219, "sha256": candidate_executor},
+                "allowedEvidenceChildPaths": [
+                    "docs/governance/change-records/RELEASE-100-FINAL-01.json",
+                    "docs/release-evidence/v1.0.0-v0916-parity.json",
+                ],
+            },
+            "baselineExecutor": {
+                "kind": "exact-tag-source-built-cli",
+                "tagObject": "578b2614632d6c2affdf2000324b134b5d1a16c1",
+                "peeledCommit": "462590e8b993b8e42d088bc07377571a4bb9f25d",
+                "sourceTree": "dc46c9aa9ecf00cb898ba3bc287e1b15acdab735",
+                "resolvedSdkVersion": "10.0.303",
+                "contract": {
+                    "size": 3351,
+                    "sha256": "861fa0fae7bf5904cac88a4bcb6ed6e0aef1a54518e0903914f2121fbc411bfb",
+                },
+                "cliAssembly": {
+                    "size": 14848,
+                    "sha256": "e889668cf092fab4877aeea84642d3b48a9969a6184f1c128500673fa136f9db",
+                },
+            },
+            "baselineReleaseReference": {
+                "name": "NvtFwCombiner-v0.9.16-win-x64.zip",
+                "size": 75556385,
+                "sha256": "e55687f9d98ca3a2b02eac5789f4443697a249dcc60b261e3e6cfeae7dc03c84",
+                "purpose": "release-provenance-reference-only",
+            },
+            "candidatePackage": {
+                "name": "NvtFwCombiner-v1.0.0-win-x64.zip",
+                "size": 100,
+                "sha256": "5" * 64,
+                "version": "1.0.0",
+                "sourceCommit": "e712842d61c560193ff9f7e2321daa47401a52d0",
+            },
+            "candidateBuild": {
+                "repository": "Dennis40816/nvt_fw_combiner",
+                "workflowPath": ".github/workflows/release.yml",
+                "workflowRef": "refs/heads/main",
+                "workflowCommitSha": "e712842d61c560193ff9f7e2321daa47401a52d0",
+                "workflowBlobSha": "e" * 40,
+                "workflowRawSha256": "f" * 64,
+                "workflowSemanticContractSha256": "1bb4a0694664f3eed05c63204892ff90df1f4bfdd9277ba06e07240c165f68bf",
+                "runId": 123,
+                "artifactId": 456,
+                "artifactName": "stable-candidate-123-e712842d61c560193ff9f7e2321daa47401a52d0",
+                "artifactDigest": "sha256:" + "a" * 64,
+                "artifactWorkflowRun": {
+                    "id": 123,
+                    "headSha": "e712842d61c560193ff9f7e2321daa47401a52d0",
+                    "headBranch": "main",
+                    "repository": "Dennis40816/nvt_fw_combiner",
+                    "repositoryId": 40816,
+                    "headRepositoryId": 40816,
+                },
+                "candidateManifest": {"size": 10, "sha256": "9" * 64},
+                "candidateSourceExecutorIdentitySha256": candidate_executor,
+                "provenanceSubjectsSha256": "8" * 64,
+                "candidateVerifierSha256": "7" * 64,
+                "packageVerifierSha256": "6" * 64,
+            },
+            "routeEvidenceSha256": MODULE.canonical_route_evidence_sha256(routes),
+            "receiptSetSha256": MODULE.canonical_receipt_set_sha256(receipts),
+            "executedAtUtc": "2026-08-26T00:01:00Z",
+            "routes": routes,
+            "verdict": "provisional",
+        }
+        MODULE.validate_comparison_schema(comparison)
+        return comparison
+
+
+if __name__ == "__main__":
+    unittest.main()

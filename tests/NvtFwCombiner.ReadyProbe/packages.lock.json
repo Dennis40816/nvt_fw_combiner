@@ -27,15 +27,15 @@
       "nvtfwcombiner.versionmanagement.application": {
         "type": "Project",
         "dependencies": {
-          "NvtFwCombiner.Contracts": "[0.10.7, )"
+          "NvtFwCombiner.Contracts": "[1.0.0, )"
         }
       },
       "nvtfwcombiner.versionmanagement.infrastructure": {
         "type": "Project",
         "dependencies": {
           "JsonSchema.Net": "[8.0.5, )",
-          "NvtFwCombiner.Contracts": "[0.10.7, )",
-          "NvtFwCombiner.VersionManagement.Application": "[0.10.7, )"
+          "NvtFwCombiner.Contracts": "[1.0.0, )",
+          "NvtFwCombiner.VersionManagement.Application": "[1.0.0, )"
         }
       },
       "JsonSchema.Net": {

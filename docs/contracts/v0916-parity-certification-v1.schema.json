@@ -1,0 +1,370 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://nvt.local/contracts/v0916-parity-certification-v1.schema.json",
+  "title": "NVT FW Combiner v0.9.16 parity certification plan",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "baseline",
+    "policyBinding",
+    "canonicalInputAuthority",
+    "selection",
+    "expectedCounts",
+    "workflowReportBindings",
+    "candidateAuthority",
+    "inputIdentityAliases",
+    "knownBlockedExactRoutes",
+    "transitiveRoutes"
+  ],
+  "properties": {
+    "schemaVersion": { "const": "1.0" },
+    "baseline": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["tag", "tagObject", "peeledCommit", "sourceTree", "executorContract", "releaseReference"],
+      "properties": {
+        "tag": { "const": "v0.9.16" },
+        "tagObject": { "$ref": "#/$defs/gitSha" },
+        "peeledCommit": { "$ref": "#/$defs/gitSha" },
+        "sourceTree": { "$ref": "#/$defs/gitSha" },
+        "executorContract": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["path", "size", "sha256"],
+          "properties": {
+            "path": { "const": "docs/contracts/v0916-baseline-executor-v1.json" },
+            "size": { "const": 3351 },
+            "sha256": { "const": "861fa0fae7bf5904cac88a4bcb6ed6e0aef1a54518e0903914f2121fbc411bfb" }
+          }
+        },
+        "releaseReference": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["packageName", "packageSize", "packageSha256", "purpose"],
+          "properties": {
+            "packageName": { "const": "NvtFwCombiner-v0.9.16-win-x64.zip" },
+            "packageSize": { "const": 75556385 },
+            "packageSha256": { "const": "e55687f9d98ca3a2b02eac5789f4443697a249dcc60b261e3e6cfeae7dc03c84" },
+            "purpose": { "const": "release-provenance-reference-only" }
+          }
+        }
+      }
+    },
+    "policyBinding": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["path", "catalogId", "catalogVersion", "sha256"],
+      "properties": {
+        "path": { "const": "docs/contracts/canonical-capability-policy-v1.json" },
+        "catalogId": { "const": "canonical-capability-policy" },
+        "catalogVersion": { "type": "string", "minLength": 1 },
+        "sha256": { "$ref": "#/$defs/sha256" }
+      }
+    },
+    "canonicalInputAuthority": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "manifestPath",
+        "repositoryCommit",
+        "canonicalRootTree",
+        "manifestBlob",
+        "manifestSize",
+        "manifestRawSha256",
+        "routeBindingRule",
+        "requiredRouteCount",
+        "currentlyBoundRouteCount",
+        "currentlyMissingRouteCount",
+        "missingApplicableFixtureFailureCode",
+        "currentlyMissingRouteIds"
+      ],
+      "properties": {
+        "repositoryCommit": { "const": "e712842d61c560193ff9f7e2321daa47401a52d0" },
+        "canonicalRootTree": { "const": "0bd5df0fef830fab9c4d2a94098f14d6f0728936" },
+        "manifestPath": { "const": "testdata/golden/canonical/manifest.json" },
+        "manifestBlob": { "const": "d0dcae9043915429e70daf508002e3d5088b20dd" },
+        "manifestSize": { "const": 67750 },
+        "manifestRawSha256": { "const": "eb2c894dc4d97ed696ade451027934a427f5249f6578aed4bb639940f5d591ac" },
+        "routeBindingRule": { "const": "exact-route-evidence-case-manifest-artifacts" },
+        "requiredRouteCount": { "const": 64 },
+        "currentlyBoundRouteCount": { "const": 37 },
+        "currentlyMissingRouteCount": { "const": 27 },
+        "missingApplicableFixtureFailureCode": { "const": "PARITY_FIXTURE_MISSING" },
+        "currentlyMissingRouteIds": {
+          "type": "array",
+          "minItems": 27,
+          "maxItems": 27,
+          "uniqueItems": true,
+          "items": { "type": "string", "minLength": 1 }
+        }
+      }
+    },
+    "selection": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["authoring", "publication", "includedWorkflows"],
+      "properties": {
+        "authoring": { "const": "available" },
+        "publication": { "const": "supported" },
+        "includedWorkflows": {
+          "type": "array",
+          "prefixItems": [
+            { "const": "standard-merge" },
+            { "const": "ab-merge" },
+            { "const": "ctrlram-replace" }
+          ],
+          "items": false
+        }
+      }
+    },
+    "expectedCounts": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["total", "exactOutput", "transitiveTpPrefix", "byWorkflow"],
+      "properties": {
+        "total": { "const": 64 },
+        "exactOutput": { "const": 53 },
+        "transitiveTpPrefix": { "const": 11 },
+        "byWorkflow": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["standard-merge", "ab-merge", "ctrlram-replace"],
+          "properties": {
+            "standard-merge": { "const": 14 },
+            "ab-merge": { "const": 6 },
+            "ctrlram-replace": { "const": 44 }
+          }
+        }
+      }
+    },
+    "workflowReportBindings": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["standard-merge", "ab-merge", "ctrlram-replace"],
+      "properties": {
+        "standard-merge": { "$ref": "#/$defs/mergeReportBinding" },
+        "ab-merge": { "$ref": "#/$defs/abReportBinding" },
+        "ctrlram-replace": { "$ref": "#/$defs/ctrlRamReportBinding" }
+      }
+    },
+    "candidateAuthority": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["requiredTreePaths", "candidateSourceExecutorSchemaPath", "sourceExecutorContract", "protectedBuild", "allowedEvidenceChildPaths"],
+      "properties": {
+        "candidateSourceExecutorSchemaPath": { "const": "docs/contracts/v0916-candidate-source-executor-v1.schema.json" },
+        "sourceExecutorContract": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["path", "size", "sha256"],
+          "properties": {
+            "path": { "const": "docs/contracts/v100-candidate-source-executor-v1.json" },
+            "size": { "const": 4219 },
+            "sha256": { "const": "f9d9c7f998c1a162ecc1a29693e37ebbf1dab9d0392098cab081c754f99e854c" }
+          }
+        },
+        "requiredTreePaths": {
+          "type": "array",
+          "prefixItems": [
+            { "const": "src" },
+            { "const": "profiles" },
+            { "const": "external-tools" },
+            { "const": "tools/crc-worker" }
+          ],
+          "items": false
+        },
+        "protectedBuild": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["repository", "workflowPath", "workflowRef", "workflowSemanticContract", "candidateVerifierPath", "packageVerifierPath", "firmwareApprovalEnvironment", "firmwareApprovalJobName"],
+          "properties": {
+            "repository": { "const": "Dennis40816/nvt_fw_combiner" },
+            "workflowPath": { "const": ".github/workflows/release.yml" },
+            "workflowRef": { "const": "refs/heads/main" },
+            "workflowSemanticContract": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["path", "size", "sha256"],
+              "properties": {
+                "path": { "const": "docs/contracts/v0916-parity-workflow-v1.json" },
+                "size": { "const": 4559 },
+                "sha256": { "const": "1bb4a0694664f3eed05c63204892ff90df1f4bfdd9277ba06e07240c165f68bf" }
+              }
+            },
+            "candidateVerifierPath": { "const": "scripts/release_promotion_policy.py" },
+            "packageVerifierPath": { "const": "scripts/smoke-release.ps1" },
+            "firmwareApprovalEnvironment": { "const": "firmware-parity" },
+            "firmwareApprovalJobName": { "const": "release / v0.9.16 parity attestation" }
+          }
+        },
+        "allowedEvidenceChildPaths": {
+          "type": "array",
+          "prefixItems": [
+            { "const": "docs/governance/change-records/RELEASE-100-FINAL-01.json" },
+            { "const": "docs/release-evidence/v1.0.0-v0916-parity.json" }
+          ],
+          "items": false
+        }
+      }
+    },
+    "inputIdentityAliases": {
+      "type": "array",
+      "prefixItems": [{ "$ref": "#/$defs/nt51928LdcInputAlias" }],
+      "items": false
+    },
+    "knownBlockedExactRoutes": {
+      "type": "array",
+      "prefixItems": [{ "$ref": "#/$defs/nt51951Cascade2Mismatch" }],
+      "items": false
+    },
+    "transitiveRoutes": {
+      "type": "array",
+      "minItems": 11,
+      "maxItems": 11,
+      "items": { "$ref": "#/$defs/transitiveRoute" }
+    }
+  },
+  "$defs": {
+    "gitSha": { "type": "string", "pattern": "^[0-9a-f]{40}$" },
+    "sha256": { "type": "string", "pattern": "^[0-9a-f]{64}$" },
+    "routeId": { "type": "string", "pattern": "^route-[a-z0-9-]+$" },
+    "mergeReportBinding": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["modeId", "experienceId", "compositionKind"],
+      "properties": {
+        "modeId": { "const": "standard-merge" },
+        "experienceId": { "const": "standard-merge" },
+        "compositionKind": { "const": "Merge" }
+      }
+    },
+    "abReportBinding": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["modeId", "experienceId", "compositionKind"],
+      "properties": {
+        "modeId": { "const": "ab-merge" },
+        "experienceId": { "const": "ab-merge" },
+        "compositionKind": { "const": "Merge" }
+      }
+    },
+    "ctrlRamReportBinding": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["modeId", "experienceId", "compositionKind"],
+      "properties": {
+        "modeId": { "const": "ctrlram-replace" },
+        "experienceId": { "const": "ctrlram-replace" },
+        "compositionKind": { "const": "Replace" }
+      }
+    },
+    "nt51928LdcInputAlias": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["routeId", "capabilityFingerprint", "kind", "logicalInputId", "baselineInvocationOption", "candidateInvocationOption", "baselineInputSlotId", "candidateInputSlotId"],
+      "properties": {
+        "routeId": { "const": "route-7-nt51928-14-standard-merge-13-selector-free-31-nt51928-dual-capacity-256k-512k" },
+        "capabilityFingerprint": { "const": "3b21585c95eb934e2cd2465489b64ac6ede33c5745c049f3f1d6e114fccc0104" },
+        "kind": { "const": "version-specific-input-identity-alias" },
+        "logicalInputId": { "const": "ldc" },
+        "baselineInvocationOption": { "const": "--ld" },
+        "candidateInvocationOption": { "const": "--ldc" },
+        "baselineInputSlotId": { "const": "ld-input" },
+        "candidateInputSlotId": { "const": "ldc-input" }
+      }
+    },
+    "nt51951Cascade2Mismatch": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["routeId", "capabilityFingerprint", "kind", "baselineOutput", "candidateOutput", "differentByteCount", "differentRanges", "baselineProvenance", "candidateProvenance", "diagnosticRecord", "requiredFailureCode"],
+      "properties": {
+        "routeId": { "const": "route-7-nt51951-15-ctrlram-replace-4-2-ic-39-nt51951-ctrlram-fw1x-cascade-full-flash" },
+        "capabilityFingerprint": { "const": "6a8dfcce871d0aa5586a8bd2a393093776b687055e546d7dce37fb2e9f35909f" },
+        "kind": { "const": "reported-exact-output-mismatch-blocked" },
+        "baselineOutput": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["size", "sha256"],
+          "properties": { "size": { "const": 524288 }, "sha256": { "const": "7d657a3d0abc2cc6779e759c17567b40740de95235bf6d1e71c147d815edcca2" } }
+        },
+        "candidateOutput": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["size", "sha256"],
+          "properties": { "size": { "const": 524288 }, "sha256": { "const": "1536d344af83aafd29e5884d9d2d904f1efa03c8fdcc4e913832253814644ebd" } }
+        },
+        "differentByteCount": { "const": 2816 },
+        "differentRanges": {
+          "type": "array",
+          "prefixItems": [
+            { "$ref": "#/$defs/rangeA11c" },
+            { "$ref": "#/$defs/rangeA130" },
+            { "$ref": "#/$defs/range2d428" },
+            { "$ref": "#/$defs/range2d43c" },
+            { "$ref": "#/$defs/range33b10" }
+          ],
+          "items": false
+        },
+        "baselineProvenance": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["executorContractSha256", "tagObject", "peeledCommit"],
+          "properties": {
+            "executorContractSha256": { "const": "861fa0fae7bf5904cac88a4bcb6ed6e0aef1a54518e0903914f2121fbc411bfb" },
+            "tagObject": { "const": "578b2614632d6c2affdf2000324b134b5d1a16c1" },
+            "peeledCommit": { "const": "462590e8b993b8e42d088bc07377571a4bb9f25d" }
+          }
+        },
+        "candidateProvenance": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["canonicalCaseId", "sourceReference", "canonicalCaseManifest"],
+          "properties": {
+            "canonicalCaseId": { "const": "nt51951-fw200-cascade2-auto-prj-599-20260731" },
+            "sourceReference": { "const": "canonical-golden:nt51951-fw200-cascade2-auto-prj-599-20260731" },
+            "canonicalCaseManifest": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["path", "size", "sha256"],
+              "properties": {
+                "path": { "const": "testdata/golden/canonical/NT51951/ctrlram-replace/fw2.0.0/cascade-2/nt51951-fw200-cascade2-auto-prj-599-20260731/provenance/case.json" },
+                "size": { "const": 12502 },
+                "sha256": { "const": "04b38a6bbf20918b98d259e0b6486b7724036c69a0d30017a314406958ce8c24" }
+              }
+            }
+          }
+        },
+        "diagnosticRecord": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["path", "size", "sha256", "status"],
+          "properties": {
+            "path": { "const": "docs/contracts/v0916-nt51951-c2-diagnostic-v1.json" },
+            "size": { "const": 3952 },
+            "sha256": { "const": "54bc2c8005e18a9b495e4d25e02b8dd3b85551506d0d10aa7b30051ff4988e3c" },
+            "status": { "const": "blocked-incomplete-independent-observation" }
+          }
+        },
+        "requiredFailureCode": { "const": "PARITY_EXACT_MISMATCH" }
+      }
+    },
+    "rangeA11c": { "type": "object", "additionalProperties": false, "required": ["start", "endExclusive"], "properties": { "start": { "const": 41244 }, "endExclusive": { "const": 41248 } } },
+    "rangeA130": { "type": "object", "additionalProperties": false, "required": ["start", "endExclusive"], "properties": { "start": { "const": 41264 }, "endExclusive": { "const": 41268 } } },
+    "range2d428": { "type": "object", "additionalProperties": false, "required": ["start", "endExclusive"], "properties": { "start": { "const": 185384 }, "endExclusive": { "const": 185388 } } },
+    "range2d43c": { "type": "object", "additionalProperties": false, "required": ["start", "endExclusive"], "properties": { "start": { "const": 185404 }, "endExclusive": { "const": 185408 } } },
+    "range33b10": { "type": "object", "additionalProperties": false, "required": ["start", "endExclusive"], "properties": { "start": { "const": 211728 }, "endExclusive": { "const": 214528 } } },
+    "transitiveRoute": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["routeId", "capabilityFingerprint", "fullRouteId", "fullCapabilityFingerprint", "tpLength"],
+      "properties": {
+        "routeId": { "$ref": "#/$defs/routeId" },
+        "capabilityFingerprint": { "$ref": "#/$defs/sha256" },
+        "fullRouteId": { "$ref": "#/$defs/routeId" },
+        "fullCapabilityFingerprint": { "$ref": "#/$defs/sha256" },
+        "tpLength": { "type": "integer", "minimum": 1 }
+      }
+    }
+  }
+}

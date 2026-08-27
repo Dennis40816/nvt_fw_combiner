@@ -15,7 +15,7 @@ internal static class Program
             bool registryLocatorSupplied,
             string? registryLocator,
             string[] remaining) = ParseManagedHostOptions(args);
-        string? updateSourceRegistryPath = UpdateSourceRegistryLocator.Resolve(
+        IReadOnlyList<string> updateSourceRegistryPaths = UpdateSourceRegistryLocator.ResolveAll(
             registryLocatorSupplied,
             registryLocator,
             Environment.GetEnvironmentVariable);
@@ -29,7 +29,7 @@ internal static class Program
                 () => CreatePresentationHostServices(
                     managedRoot,
                     statePath,
-                    updateSourceRegistryPath),
+                    updateSourceRegistryPaths),
                 CompositionHostServices.CreateLocalFileStore(),
                 remaining);
     }
@@ -37,7 +37,7 @@ internal static class Program
     private static PresentationHostServices CreatePresentationHostServices(
         string? managedRoot,
         string? statePath,
-        string? updateSourceRegistryPath)
+        IReadOnlyList<string> updateSourceRegistryPaths)
     {
         var host = CompositionHostServices.Create();
         ManagedAppVersion appVersion = ManagedAppVersion.Parse(DesktopApplication.InformationalVersion);
@@ -46,7 +46,7 @@ internal static class Program
                 appVersion.ToString(),
                 managedRoot,
                 statePath,
-                updateSourceRegistryPath);
+                updateSourceRegistryPaths);
         return new PresentationHostServices(
             new PresentationCompositionServices(
                 host.CompositionCapabilityExperience,

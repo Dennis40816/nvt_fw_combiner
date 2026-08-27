@@ -6,6 +6,7 @@ public static partial class CliApplication
     {
         await output.WriteLineAsync("Usage:").ConfigureAwait(false);
         await output.WriteLineAsync("  nvt_fw_combiner [--version|version|doctor]").ConfigureAwait(false);
+        await output.WriteLineAsync("  nvt_fw_combiner version-self-test [--registry <https-uri-or-absolute-path>]").ConfigureAwait(false);
         await output.WriteLineAsync("  nvt_fw_combiner profiles list").ConfigureAwait(false);
         await output.WriteLineAsync("  nvt_fw_combiner standard-merge preview --profile <id|ic> --dp <path> --tp <path> [--ldc <path>] [--output <path>] [--report <path>]").ConfigureAwait(false);
         await output.WriteLineAsync("  nvt_fw_combiner standard-merge build --profile <id|ic> --dp <path> --tp <path> [--ldc <path>] [--output <path> | --bundle-parent <existing-directory> [--bundle-name <plain-folder-name>]] [--report <path>]").ConfigureAwait(false);

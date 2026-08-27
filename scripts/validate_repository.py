@@ -219,7 +219,8 @@ EXPECTED_PROJECT_REFERENCES = {
         "src/NvtFwCombiner.VersionManagement.Infrastructure/NvtFwCombiner.VersionManagement.Infrastructure.csproj",
     },
     "src/NvtFwCombiner.Cli/NvtFwCombiner.Cli.csproj": {
-        "src/NvtFwCombiner.Bootstrap/NvtFwCombiner.Bootstrap.csproj"
+        "src/NvtFwCombiner.Bootstrap/NvtFwCombiner.Bootstrap.csproj",
+        "src/NvtFwCombiner.VersionManagement.Application/NvtFwCombiner.VersionManagement.Application.csproj",
     },
     "src/NvtFwCombiner.Desktop/NvtFwCombiner.Desktop.csproj": {
         "src/NvtFwCombiner.Bootstrap/NvtFwCombiner.Bootstrap.csproj",
@@ -270,6 +271,7 @@ EXPECTED_PROJECT_REFERENCES = {
     "tests/NvtFwCombiner.Bootstrap.Tests/NvtFwCombiner.Bootstrap.Tests.csproj": {
         "src/NvtFwCombiner.Bootstrap/NvtFwCombiner.Bootstrap.csproj",
         "src/NvtFwCombiner.Cli/NvtFwCombiner.Cli.csproj",
+        "src/NvtFwCombiner.VersionManagement.Application/NvtFwCombiner.VersionManagement.Application.csproj",
         "tests/NvtFwCombiner.TestSupport/NvtFwCombiner.TestSupport.csproj",
     },
     "tests/NvtFwCombiner.Architecture.Tests/NvtFwCombiner.Architecture.Tests.csproj": set(),
@@ -849,11 +851,52 @@ def validate_version_license_and_sdk(errors: list[str]) -> None:
         "<RepositoryVersionFile>$(MSBuildThisFileDirectory)VERSION</RepositoryVersionFile>"
         in build_props
     )
-    has_version_file_read = "ReadAllText('$(RepositoryVersionFile)')" in build_props
-    if not has_repository_version_file or not has_version_file_read:
-        errors.append(
-            "Directory.Build.props must derive product version metadata from VERSION"
+    has_product_version_read = (
+        "<ProductVersion>$([System.IO.File]::ReadAllText('$(RepositoryVersionFile)').Trim())</ProductVersion>"
+        in build_props
+    )
+    has_stable_project_version = all(
+        marker in build_props
+        for marker in (
+            "<InternalProjectVersion>1.0.0</InternalProjectVersion>",
+            "<VersionPrefix>$(InternalProjectVersion)</VersionPrefix>",
+            "<Version>$(InternalProjectVersion)</Version>",
+            "<PackageVersion>$(InternalProjectVersion)</PackageVersion>",
+            "<VersionCore>$([System.Text.RegularExpressions.Regex]::Replace('$(ProductVersion)'",
+            "<InformationalVersion>$(ProductVersion)</InformationalVersion>",
         )
+    )
+    if (
+        not has_repository_version_file
+        or not has_product_version_read
+        or not has_stable_project_version
+    ):
+        errors.append(
+            "Directory.Build.props must derive product metadata from VERSION while "
+            "keeping the internal project-reference version stable at 1.0.0"
+        )
+    for lock_path in sorted((ROOT / "src").rglob("packages.lock.json")) + sorted(
+        (ROOT / "tests").rglob("packages.lock.json")
+    ):
+        lock = load_json(lock_path, errors)
+        dependency_targets = lock.get("dependencies") if isinstance(lock, dict) else None
+        if not isinstance(dependency_targets, dict):
+            continue
+        for target in dependency_targets.values():
+            if not isinstance(target, dict):
+                continue
+            for dependency in target.values():
+                if not isinstance(dependency, dict) or dependency.get("type") != "Project":
+                    continue
+                project_dependencies = dependency.get("dependencies", {})
+                if not isinstance(project_dependencies, dict):
+                    continue
+                for name, constraint in project_dependencies.items():
+                    if name.startswith("NvtFwCombiner.") and constraint != "[1.0.0, )":
+                        errors.append(
+                            f"{lock_path.relative_to(ROOT).as_posix()} has unstable "
+                            f"project-reference constraint {name}={constraint!r}"
+                        )
     if not (ROOT / "LICENSE").read_text(encoding="utf-8").startswith("MIT License"):
         errors.append("root LICENSE is not the MIT License")
     global_json = load_json(ROOT / "global.json", errors)
@@ -1476,7 +1519,9 @@ CAPABILITY_REUSE_R3_SCRIPTS = {
     "scripts/create_candidate_ic_intake.py",
     "scripts/create_ctrlram_universal_sentinel.py",
     "scripts/create_update_catalog.py",
+    "scripts/update_source_registry_policy.py",
     "scripts/diagnostic_golden_validation.py",
+    "scripts/edit_update_source_registry.py",
     "scripts/external_tool_policy.py",
     "scripts/intake_ic_reference.py",
     "scripts/package.ps1",

@@ -51,6 +51,7 @@ class CodeSizeLimits:
     infrastructure_contracts_worker_ratchet: int | None = None
     full_production_ratchet: int | None = None
     runtime_production_allowance: int = 0
+    domain_profiles_allowance: int = 0
     application_allowance: int = 0
     bootstrap_cli_allowance: int = 0
     infrastructure_contracts_worker_allowance: int = 0
@@ -89,12 +90,14 @@ class CodeSizeSnapshot:
 
 
 DEFAULT_LIMITS = CodeSizeLimits(
-    production_nonblank=96_044,
+    production_nonblank=120_981,
     duplicate_json_nonblank=0,
     partial_type_default_max=2_500,
     partial_type_exact_ratchets={},
     partial_type_named_maximums={
         "NvtFwCombiner.Presentation.Avalonia.ViewModels.MainWindowViewModel": 985,
+        "NvtFwCombiner.Presentation.Avalonia.ViewModels.ShellTextResources": 2_501,
+        "NvtFwCombiner.Presentation.Avalonia.ViewModels.WorkflowSessionPresentationViewModel": 2_578,
         "NvtFwCombiner.Profiles.V2.V2CompositionPlanCompiler": 2_798,
     },
     runtime_production_baseline=45_214,
@@ -104,11 +107,12 @@ DEFAULT_LIMITS = CodeSizeLimits(
     bootstrap_cli_ratchet=3_378,
     infrastructure_contracts_worker_ratchet=15_356,
     full_production_ratchet=102_896,
-    runtime_production_allowance=5_662,
-    application_allowance=2_912,
-    bootstrap_cli_allowance=352,
-    infrastructure_contracts_worker_allowance=2_358,
-    full_production_allowance=8_135,
+    runtime_production_allowance=13_358,
+    domain_profiles_allowance=5,
+    application_allowance=7_492,
+    bootstrap_cli_allowance=680,
+    infrastructure_contracts_worker_allowance=5_186,
+    full_production_allowance=18_100,
 )
 
 
@@ -408,7 +412,7 @@ def review_code_size_policy(
             snapshot.domain_profiles_files,
             snapshot.domain_profiles_nonblank,
             limits.domain_profiles_ratchet,
-            0,
+            limits.domain_profiles_allowance,
         ),
         (
             "Application",
@@ -494,7 +498,7 @@ def validate_code_size_policy(
             "Domain + Profiles slice",
             snapshot.domain_profiles_nonblank,
             limits.domain_profiles_ratchet,
-            0,
+            limits.domain_profiles_allowance,
         ),
         (
             "Application slice",

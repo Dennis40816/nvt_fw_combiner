@@ -1,12 +1,17 @@
 namespace NvtFwCombiner.Bootstrap;
 
-/// <summary>Resolves external host configuration for the one fixed Registry adapter.</summary>
+/// <summary>Resolves ordered external host configuration for fixed Registry replicas.</summary>
 public static class UpdateSourceRegistryLocator
 {
     internal const string EnvironmentVariableName = "NFC_UPDATE_SOURCE_REGISTRY_PATH";
+    internal static IReadOnlyList<string> ProductionDefaults { get; } = Array.AsReadOnly(
+    [
+        @"G:\AUTO\projects\模組專案開發\NVT_FW_Combiner\update-source-registry.json",
+        @"G:\AUTO\Tool\NVT_FW_Combiner\update-source-registry.json",
+    ]);
 
-    /// <summary>Returns the explicit locator when supplied, otherwise the external environment value.</summary>
-    public static string? Resolve(
+    /// <summary>Returns explicit, external override, or the release-owned ordered replica pair.</summary>
+    public static IReadOnlyList<string> ResolveAll(
         bool explicitLocatorSupplied,
         string? explicitLocator,
         Func<string, string?> readEnvironment)
@@ -14,10 +19,10 @@ public static class UpdateSourceRegistryLocator
         ArgumentNullException.ThrowIfNull(readEnvironment);
         if (explicitLocatorSupplied)
         {
-            return explicitLocator ?? throw new ArgumentNullException(nameof(explicitLocator));
+            return [explicitLocator ?? throw new ArgumentNullException(nameof(explicitLocator))];
         }
 
         string? configured = readEnvironment(EnvironmentVariableName);
-        return string.IsNullOrWhiteSpace(configured) ? null : configured;
+        return string.IsNullOrWhiteSpace(configured) ? ProductionDefaults : [configured];
     }
 }

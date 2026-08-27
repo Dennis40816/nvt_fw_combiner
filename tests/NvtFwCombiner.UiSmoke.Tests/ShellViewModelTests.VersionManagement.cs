@@ -448,6 +448,12 @@ public sealed partial class VersionManagementSettingsTests
         internal VersionEnvironmentSelfTestResult SelfTestResult { get; init; } =
             new(UpdateSourceRegistryLoadIssue.NotConfigured, []);
 
+        internal TaskCompletionSource? SelfTestGate { get; init; }
+
+        internal TaskCompletionSource? SelfTestStarted { get; init; }
+
+        internal SynchronizationContext? SelfTestSynchronizationContext { get; private set; }
+
         internal int SelfTests { get; private set; }
 
         public ValueTask<VersionManagementSnapshot> InitializeAsync(CancellationToken cancellationToken)
@@ -474,12 +480,18 @@ public sealed partial class VersionManagementSettingsTests
             return CheckAsync(isAutomatic: false, cancellationToken);
         }
 
-        public ValueTask<VersionEnvironmentSelfTestResult> RunEnvironmentSelfTestAsync(
+        public async ValueTask<VersionEnvironmentSelfTestResult> RunEnvironmentSelfTestAsync(
             CancellationToken cancellationToken)
         {
             cancellationToken.ThrowIfCancellationRequested();
             SelfTests++;
-            return ValueTask.FromResult(SelfTestResult);
+            SelfTestSynchronizationContext = SynchronizationContext.Current;
+            _ = SelfTestStarted?.TrySetResult();
+            if (SelfTestGate is not null)
+            {
+                await SelfTestGate.Task.WaitAsync(cancellationToken);
+            }
+            return SelfTestResult;
         }
 
         public ValueTask<VersionManagementSnapshot> CommitUpdateSourceAsync(

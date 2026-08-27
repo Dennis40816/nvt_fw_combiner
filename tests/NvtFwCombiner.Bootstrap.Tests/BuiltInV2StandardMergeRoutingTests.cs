@@ -11,6 +11,54 @@ namespace NvtFwCombiner.Bootstrap.Tests;
 /// <summary>Runtime-routing evidence for hash-anchored built-in V2 Standard Merge bundles.</summary>
 public sealed class BuiltInV2StandardMergeRoutingTests
 {
+    /// <summary>
+    /// Every released Standard Merge route can read the TP source view from a complete
+    /// canonical FlashCode without changing the independently approved final bytes.
+    /// </summary>
+    [Theory]
+    [InlineData("NT51917", "51927")]
+    [InlineData("NT51919", "51929")]
+    [InlineData("NT51923", "51923")]
+    [InlineData("NT51926", "51926")]
+    [InlineData("NT51927", "51927")]
+    [InlineData("NT51928", "51928")]
+    [InlineData("NT51929", "51929")]
+    [InlineData("NT51932", "51929")]
+    [InlineData("NT51950", "51950")]
+    [InlineData("NT51951", "51951")]
+    public async Task ReleasedStandardMergeAcceptsCanonicalFlashCodeInTpSlot(
+        string icId,
+        string canonicalReferenceIc)
+    {
+        System.Text.Json.JsonElement goldenCase =
+            V2StandardMergeGoldenTestSupport.ReadGoldenCase(canonicalReferenceIc);
+        Dictionary<string, byte[]> inputs =
+            V2StandardMergeGoldenTestSupport.ReadInputs(goldenCase.GetProperty("inputs"));
+        byte[] expectedOutput =
+            V2StandardMergeGoldenTestSupport.ReadManifestFile(goldenCase.GetProperty("expectedOutput"));
+        inputs[CompositionAddressSpaceIds.TpInput] = expectedOutput;
+        bool compiled = BootstrapTestHost.Canonical.Compiler.TryCompileStandardMerge(
+            icId,
+            icId is "NT51950" or "NT51951"
+                ? inputs[CompositionAddressSpaceIds.DpInput].LongLength
+                : null,
+            inputs.Keys,
+            out CompiledComposition? composition,
+            out IReadOnlyList<CompositionIssue> issues);
+
+        Assert.True(compiled, string.Join(Environment.NewLine, issues.Select(static issue => issue.Message)));
+        Assert.Empty(issues);
+        CompiledComposition artifact = Assert.IsType<CompiledComposition>(composition);
+        CompositionRunResult result = await V2StandardMergeGoldenTestSupport.PreviewAsync(
+            artifact,
+            inputs);
+
+        V2StandardMergeGoldenTestSupport.AssertSuccessfulGoldenOutput(
+            result,
+            artifact,
+            expectedOutput);
+    }
+
     /// <summary>The complete built-in publication remains loadable after Standard Merge naming changes.</summary>
     [Fact]
     public async Task BuiltInCatalogLoadsAfterStandardMergeNamingUpgrade()

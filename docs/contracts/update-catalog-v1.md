@@ -55,7 +55,7 @@ After package smoke and release-note rendering, `release.yml` uploads a separate
 It is a single-version seed containing the new canonical ZIP under `packages/`,
 a catalog that references only that ZIP, an exact root-level copy of the ZIP's
 inner `RELEASE-MANIFEST.json`, and the reviewed
-`update-source-registry.v1.json` operator seed. The release manifest is the
+`update-source-registry.json` operator seed. The release manifest is the
 version profile; its copy is for operator inspection and is not a second
 runtime authority. It is not the authoritative live multi-version catalog and
 must never overwrite an existing update source by itself. The five immutable
@@ -73,8 +73,10 @@ is incomplete publication.
    the live update-source root, retain the current catalog and every version
    that should remain available under `packages/`, then add the handoff ZIP.
    Retain the handoff's manifest and registry JSON with the release record; do
-   not copy the single-version catalog over a multi-version live catalog.
-3. Render `RELEASE-NOTES.md` for the new version, then rebuild the root catalog
+   not copy the single-version catalog over a multi-version live catalog. The
+   Registry is an editable operator seed outside all release/package checksum
+   sets. Do not run the editor against the live Registry at this stage.
+3. Render `RELEASE-NOTES.md` for the new version, then rebuild the staged root catalog
    from the actual ZIP bytes. Existing versions retain their previously
    published date and notes; every new version supplies both:
 
@@ -93,18 +95,28 @@ is incomplete publication.
    package SHA-256, or inner-manifest SHA-256 differs, generation fails and the
    previous catalog bytes remain unchanged; publish a new version instead of
    replacing stable package identity.
-4. Open the staging root in Settings and run **Check now**. Verify both rows,
-   install the newer package, and confirm there is no damaged/staging entry.
+4. Copy the live Registry into a separate operator staging directory. Use the
+   repository editor first with `--dry-run` and then without `--dry-run`
+   against that **staged Registry only**, with the proposed roots/statuses.
+   Start the diagnostic Desktop with
+   `--update-source-registry-path <staged-registry>` and run Version
+   **Self-test**. Open the staged root in Settings, run **Check now**, verify
+   both rows, install the newer package, and confirm there is no damaged or
+   staging entry. Any failure stops publication and leaves the live Registry
+   untouched.
 5. Publish immutable ZIPs first and atomically replace the root catalog last;
    the catalog is the publication commit point. Retain every old ZIP referenced
    by the prior or current published catalog. Give ordinary users read-only
    access. Prefer a stable UNC namespace/DFS or share alias such as
    `\\novatek\firmware-tools\NvtFwCombiner`, so moving the backing server or
    volume does not change every client's configured path.
-6. If the complete root must move to another local/UNC path, browse and confirm
-   the new root in Settings, then run **Check now**. Until the separate fixed
-   Registry contract ships, that confirmed folder remains the only source.
-   The Registry may later enumerate a bounded explicit root set; unbounded
+6. After the complete proposed root and staged Registry pass step 4, run the
+   same full editor arguments against the **live Registry** with `--dry-run`.
+   Reconfirm its exact current `--expected-revision`, then run once without
+   `--dry-run`. That atomic replacement is the route-publication commit point:
+   promote the verified root to `latest`, retain bounded fallbacks as
+   `available`, and move retired roots to `deprecated`. This hotfix changes
+   neither ZIP identity nor any package/catalog checksum. Unbounded
    filesystem/share search remains forbidden.
 
 ## Required 1.0.0 to 1.0.1 validation source
@@ -117,7 +129,7 @@ the result pass accidentally. Populate it only with genuinely rebuilt packages:
 C:\NvtFwCombiner-UpgradeLab\
 ├── RELEASE-MANIFEST.json
 ├── update-catalog.v1.json
-├── update-source-registry.v1.json
+├── update-source-registry.json
 └── packages\
     ├── NvtFwCombiner-v1.0.0-win-x64.zip
     └── NvtFwCombiner-v1.0.1-win-x64.zip
@@ -135,11 +147,17 @@ python .\scripts\create_update_catalog.py `
   --published-at '1.0.1=2026-08-26T00:01:00Z' `
   --release-notes-file '1.0.0=.\artifacts\upgrade-validation\1.0.0-notes.md' `
   --release-notes-file '1.0.1=.\artifacts\upgrade-validation\1.0.1-notes.md' `
-  --manifest-copy '1.0.1=C:\NvtFwCombiner-UpgradeLab\RELEASE-MANIFEST.json'
+  --manifest-copy '1.0.1=C:\NvtFwCombiner-UpgradeLab\RELEASE-MANIFEST.json' `
+  --registry-template '.\docs\ci\update-source-registry.json.in' `
+  --registry-output 'C:\NvtFwCombiner-UpgradeLab\update-source-registry.json' `
+  --registry-revision 1 `
+  --registry-published-at '2026-08-26T00:01:00Z'
 ```
 
-The local registry test profile points its sole `latest` entry at this root.
-The operator then runs Version **Self-test**, **Check now**, installs and
+The rendered local Registry points its sole `latest` entry at the exact
+`C:\NvtFwCombiner-UpgradeLab\update-catalog.v1.json` file. Start the packaged
+Desktop with `--update-source-registry-path` set to that rendered Registry,
+then run Version **Self-test** and **Check now**, install and
 activates 1.0.1, restarts through Bootstrap, switches back to 1.0.0, exercises
 rollback, damages a non-active copied version to confirm the damaged count,
 and deletes that version explicitly. Repeat the same sequence after copying the

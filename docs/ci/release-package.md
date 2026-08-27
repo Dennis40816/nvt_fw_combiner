@@ -26,14 +26,17 @@ clean-machine evidence change together under release-owner review. Existing
 portable-package dry-run and smoke stay mandatory through the internal proving
 line as regression gates.
 
-The fixed Registry locator is deployment configuration, not a packaged file.
+The live Registry JSON and runtime option/environment overrides are deployment
+configuration, not packaged files. The owner-approved production locator is a
+compiled Bootstrap default and is therefore covered by package identity and
+checksums. Changing that compiled default requires a rebuilt package.
 Normal stable Bootstrap/Launcher startup inherits
 `NFC_UPDATE_SOURCE_REGISTRY_PATH`; direct Desktop diagnostics may instead use
-`--update-source-registry-path`, which has precedence. The value and the live
-Registry JSON are excluded from version ZIPs, inner/outer manifests,
+`--update-source-registry-path`, which has precedence. Runtime override values
+and the live Registry JSON are excluded from version ZIPs, inner/outer manifests,
 SBOM/provenance, package/catalog hashes, and immutable GitHub Release assets.
 Release and clean-machine evidence must record the configured locator separately
-and run Version **Self-test**; missing or invalid configuration remains a typed
+and run Version **Self-test**; an explicitly empty or invalid composition remains a typed
 non-blocking result and must not be hidden by copying a seed into a version
 payload.
 
@@ -102,7 +105,7 @@ NvtFwCombiner-vX.Y.Z-win-x64/
 └─ SHA256SUMS.txt
 ```
 
-No production source tree, editable source profile tree, Python runtime installation, .NET runtime installation, test projects, non-allowlisted private firmware, unmanifested firmware BINs, generated firmware outputs, PDBs, diagnostics, owner-handoff records, or Codex configuration is shipped. `profiles/built-in/` contains the exact reviewed `package-trust-index.json`, only the bundles declared by that index, and the fixed `ctrlram-postbuild-v2/catalog.json` and `flash-map.json` runtime catalogs. Each bundle is limited to `profile-bundle.json` and that manifest's pinned entries; the runtime catalog is a separate closed allowlist and is not a V2 profile bundle. Shipping a candidate bundle does not change its declared stage, blockers, runtime eligibility, or owner-review requirement. The packager rejects an index that differs from reviewed source material and rejects extra bundle, runtime-catalog directory, or file content. The canonical capability policy ships at `docs/contracts/canonical-capability-policy-v1.json`; its `capabilityPolicy` role and approved SHA-256 must match the runtime loader. The retired standalone `publicationPolicy` payload is forbidden because publication and evidence now bind each exact canonical route and expected capability fingerprint in that one policy. Shipped external executables are confined to `external-tools/`: the generated CRC Worker 0.1.0 payload and the owner-approved Legacy Combiner package. Packaging uses a fixed allowlist, so repository-only packages such as `diff-nf-merge/1.0.0/`, untracked files, or extra files cannot enter a release package. Release-selected Standard Merge golden fixture BINs and fact-scoped alias manifests may ship under `reference/testdata/golden/canonical/` only when selected by `release-standard-merge-v1.json` for future packaged self-tests. Every shipped file under `profiles/built-in/`, `external-tools/`, `docs/contracts/`, and `reference/` is listed in `RELEASE-MANIFEST.json` and `SHA256SUMS.txt`.
+No production source tree, editable source profile tree, Python runtime installation, .NET runtime installation, test projects, non-allowlisted private owner-handoff firmware, unmanifested firmware BINs, generated firmware outputs, PDBs, diagnostics, owner-handoff records, credentials, or Codex configuration is shipped. The package intentionally retains only release-selected Standard Merge golden fixture BINs and fact-scoped alias manifests under `reference/testdata/golden/canonical/`, selected by `release-standard-merge-v1.json` for packaged self-tests and bound by `RELEASE-MANIFEST.json` plus `SHA256SUMS.txt`. `profiles/built-in/` contains the exact reviewed `package-trust-index.json`, only the bundles declared by that index, and the fixed `ctrlram-postbuild-v2/catalog.json` and `flash-map.json` runtime catalogs. Each bundle is limited to `profile-bundle.json` and that manifest's pinned entries; the runtime catalog is a separate closed allowlist and is not a V2 profile bundle. Shipping a candidate bundle does not change its declared stage, blockers, runtime eligibility, or owner-review requirement. The packager rejects an index that differs from reviewed source material and rejects extra bundle, runtime-catalog directory, or file content. The canonical capability policy ships at `docs/contracts/canonical-capability-policy-v1.json`; its `capabilityPolicy` role and approved SHA-256 must match the runtime loader. The retired standalone `publicationPolicy` payload is forbidden because publication and evidence now bind each exact canonical route and expected capability fingerprint in that one policy. Shipped external executables are confined to `external-tools/`: the generated CRC Worker 0.1.0 payload and the owner-approved Legacy Combiner package. Packaging uses a fixed allowlist, so repository-only packages such as `diff-nf-merge/1.0.0/`, untracked files, or extra files cannot enter a release package. Every shipped file under `profiles/built-in/`, `external-tools/`, `docs/contracts/`, and `reference/` is listed in both closed hash inventories.
 
 ## Implemented commands
 
@@ -216,12 +219,26 @@ catalog helper copied from protected `main` to upload a separate 30-day
 `update-source-handoff-v<version>-<source-sha>` Actions artifact. That handoff
 contains one canonical ZIP under `packages/`, its one-version
 `update-catalog.v1.json`, an exact root-level copy of the ZIP's catalog-bound
-`RELEASE-MANIFEST.json`, and the reviewed `update-source-registry.v1.json`
-operator seed. The ZIP itself also contains that same manifest at its canonical
+`RELEASE-MANIFEST.json`, and a rendered `update-source-registry.json`. The
+repository stores only the deliberately non-admissible
+`docs/ci/update-source-registry.json.in` template; the release workflow
+binds that Registry handoff to the generated Catalog's exact SHA-256, schema,
+newest version, canonical publication time, and monotonic GitHub run ID; it does
+not rely on file timestamps. The ZIP itself also contains that same manifest at its canonical
 inner path. It is deliberately outside `artifacts/release/`, the candidate
 manifest, outer checksums, promotion, and the immutable GitHub Release. The
 catalog cannot be embedded in the ZIP whose digest it declares. The handoff is
-not a ready-to-overwrite multi-version network source.
+not a ready-to-overwrite multi-version network source: after retained releases
+are added and the complete production Catalog is regenerated, its new exact
+SHA-256/latest-version assertions must be published to both Registry replicas
+at one higher revision. The Registry is
+editable external routing state and has no publisher-authored checksum field;
+use `scripts/edit_update_source_registry.py` to modify release/hotfix routes,
+automatically advance its anti-rollback revision, and atomically replace only
+that file. Registry edits never rewrite a package, catalog, manifest, SBOM,
+provenance record, or release checksum. A write requires the exact expected
+revision and the sole publisher lock; it preserves and verifies the Registry's
+Windows security descriptor and rejects any reparse component in its locator.
 
 The operator stages the live source with every retained ZIP, adds the handoff
 ZIP, and reruns `scripts/create_update_catalog.py` across the complete staging
@@ -261,6 +278,23 @@ Every other package name retains the 80,000,000-byte ceiling, and the separate
 80,000,000-byte `NvtFwCombiner.exe` ceiling is unchanged. This exception does
 not loosen the closed allowlist, file hashes, SBOM/provenance, or the rule that
 Bootstrap cannot appear in an update package.
+
+`v1.0.1` is not a product-fix release. Its source commit must be the direct
+child of the immutable `v1.0.0` tag commit, that base must contain canonical
+`VERSION` `1.0.0`, and the complete Git diff may change exactly one path:
+`VERSION`, to `1.0.1`. The stable workflow enforces this before executing the
+candidate. Assembly identity, package filename, inner/outer manifests,
+Catalog/Registry publication binding, SBOM, provenance, checksums, and release
+notes are mechanically regenerated release artifacts; no product/runtime,
+firmware, UI, configuration, dependency, refactor, or repository metadata
+change is admitted into the `1.0.1` source tree.
+
+Before the `v1.0.1` workflow reads or reuses any byte from the published
+`v1.0.0` ZIP, it obtains that exact asset's SHA-256 from authenticated GitHub
+Release metadata and compares the downloaded ZIP against it. The inner package
+manifest is then validated independently. A counterfeit ZIP with internally
+self-consistent files and manifests therefore cannot become the trusted base
+for the version-only equivalence proof.
 
 Starting with the owner-approved `0.9.11.10` startup phase, release smoke also
 rejects a main `NvtFwCombiner.exe` above 80,000,000 bytes. This application

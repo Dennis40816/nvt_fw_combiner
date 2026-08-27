@@ -4,6 +4,30 @@ namespace NvtFwCombiner.UiSmoke.Tests;
 
 public sealed partial class XamlControlStyleContractTests
 {
+    /// <summary>Multi-line Report history metadata cannot stretch its header actions.</summary>
+    [Fact]
+    public void ReportHistoryHeaderActionsRemainCompactAndVerticallyCentered()
+    {
+        var document = System.Xml.Linq.XDocument.Parse(
+            ReadPresentationFile("Resources/MainWindowReportPanels.axaml"));
+        System.Xml.Linq.XElement actions = Assert.Single(
+            document.Descendants(),
+            element => element.Name.LocalName == "StackPanel" &&
+                (string?)element.Attribute("Grid.Column") == "1" &&
+                element.Elements().Count(child => child.Name.LocalName == "Button") == 2 &&
+                element.Elements().Any(child =>
+                    (string?)child.Attribute("Command") ==
+                    "{Binding CloseReportHistoryCommand}"));
+
+        Assert.Equal("Center", (string?)actions.Attribute("VerticalAlignment"));
+        Assert.All(
+            actions.Elements().Where(child => child.Name.LocalName == "Button"),
+            button => Assert.Contains(
+                "semanticAction",
+                ((string?)button.Attribute("Classes") ?? string.Empty)
+                    .Split(' ', StringSplitOptions.RemoveEmptyEntries)));
+    }
+
     /// <summary>Blocking reports expose the exact reason, failed step, output impact, and next action without another click.</summary>
     [Fact]
     public void ReportBlockingIssueSummaryIsExpandedAndConcrete()

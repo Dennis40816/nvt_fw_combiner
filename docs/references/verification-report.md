@@ -3,12 +3,13 @@
 Status: historical seed-preparation report for the 2026-06-25 bootstrap
 baseline, updated through the stable 0.10.4 post-refactor simplification,
 0.10.5 startup-performance work, the 0.10.6 internal managed-version
-implementation, and the active 0.10.7 final-effect candidate. Current
+implementation, the 0.10.7 final-effect checkpoint, and the active 1.0.0
+formal release candidate. Current
 verification evidence is produced by the canonical
 `python scripts/verify.py --structure-only` and `python scripts/verify.py --all`
 commands.
 
-Specification package version: `0.10.7`
+Specification package version: `1.0.0`
 
 ## 2026-08-25 formal-support policy checkpoint
 

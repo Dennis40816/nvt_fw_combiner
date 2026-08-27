@@ -12,6 +12,9 @@ internal sealed partial class WorkflowSessionPresentationViewModel
     private string _mergeWorkflowContextNumber = IcNumberSelectionTokens.SingleChip;
     private string _replaceWorkflowContextIc = string.Empty;
     private string _replaceWorkflowContextNumber = IcNumberSelectionTokens.SingleChip;
+    private string _replaceWorkflowContextMode = string.Empty;
+    private readonly Dictionary<string, string> _replaceWorkflowNumbersByMode =
+        new(StringComparer.Ordinal);
     private bool _mergeWorkflowContextNeedsRefresh;
     private bool _replaceWorkflowContextNeedsRefresh;
     private bool _isActivatingWorkflowPageContext;
@@ -46,7 +49,18 @@ internal sealed partial class WorkflowSessionPresentationViewModel
         }
         _workflowContextTarget = new WorkflowContextTarget(page, mode, showNumber);
         (string draftIc, string draftNumber) = GetWorkflowPageContext(page);
-        WorkflowContextSetup.Configure(publication, draftIc, draftNumber, showNumber, icChoices);
+        if (page == ShellPage.Replace &&
+            _replaceWorkflowNumbersByMode.TryGetValue(mode, out string? retainedNumber))
+        {
+            draftNumber = retainedNumber;
+        }
+        WorkflowContextSetup.Configure(
+            publication,
+            draftIc,
+            draftNumber,
+            showNumber,
+            mode,
+            icChoices);
         WorkflowContextDetail = page == ShellPage.Replace
             ? Text.WorkflowContextReplaceDetail
             : Text.WorkflowContextMergeDetail;
@@ -74,7 +88,7 @@ internal sealed partial class WorkflowSessionPresentationViewModel
             ? ResolvePublishedNumber(
                 ResolveWorkflowContextIc(selectedIc, target.Page),
                 selectedNumber,
-                useAbTopology: StringComparer.Ordinal.Equals(target.Mode, ExperienceIds.AbMerge))
+                target.Mode)
             : selectedNumber;
         SetWorkflowPageContext(
             target.Page,
@@ -157,6 +171,7 @@ internal sealed partial class WorkflowSessionPresentationViewModel
             draftIc,
             draftNumber,
             target.ShowNumber,
+            target.Mode,
             choices);
     }
 
@@ -175,11 +190,17 @@ internal sealed partial class WorkflowSessionPresentationViewModel
         _mergeWorkflowContextNumber = ResolvePublishedNumber(
             _mergeWorkflowContextIc,
             IcNumberSelectionTokens.SingleChip,
-            useAbTopology: false);
+            workflowId: null);
         _replaceWorkflowContextNumber = ResolvePublishedNumber(
             _replaceWorkflowContextIc,
             IcNumberSelectionTokens.SingleChip,
-            useAbTopology: false);
+            _replace.SelectedReplaceMode);
+        _replaceWorkflowContextMode = _replace.SelectedReplaceMode;
+        if (!string.IsNullOrWhiteSpace(_replaceWorkflowContextMode))
+        {
+            _replaceWorkflowNumbersByMode[_replaceWorkflowContextMode] =
+                _replaceWorkflowContextNumber;
+        }
         _mergeWorkflowContextNeedsRefresh = false;
         _replaceWorkflowContextNeedsRefresh = false;
     }
@@ -303,9 +324,10 @@ internal sealed partial class WorkflowSessionPresentationViewModel
     }
 
     internal WorkflowModeNavigationStage StageWorkflowModeForNavigation(
-        ShellPage page,
-        string mode)
+        WorkflowContextSelection selection)
     {
+        ShellPage page = selection.Page;
+        string mode = selection.Mode;
         bool previousNeedsRefresh = page == ShellPage.Merge
             ? _mergeWorkflowContextNeedsRefresh
             : _replaceWorkflowContextNeedsRefresh;
@@ -317,6 +339,16 @@ internal sealed partial class WorkflowSessionPresentationViewModel
             _merge,
             _replace,
             IsPublishedWorkflowAuthorable);
+        if (stage.Changed && page == ShellPage.Replace)
+        {
+            _replaceWorkflowNumbersByMode[mode] = selection.Number;
+            ActivateReplaceModeNumberContext(persistCurrentMode: false);
+        }
+        else if (page == ShellPage.Replace && !string.IsNullOrWhiteSpace(mode))
+        {
+            _replaceWorkflowContextMode = mode;
+            _replaceWorkflowNumbersByMode[mode] = selection.Number;
+        }
         SetWorkflowContextNeedsRefresh(page, previousNeedsRefresh || stage.Changed);
         return stage;
     }
@@ -324,6 +356,10 @@ internal sealed partial class WorkflowSessionPresentationViewModel
     internal void RestoreStagedWorkflowMode(WorkflowModeNavigationStage stage)
     {
         stage.Restore(_merge, _replace);
+        if (stage.Changed && stage.Page == ShellPage.Replace)
+        {
+            ActivateReplaceModeNumberContext();
+        }
         SetWorkflowContextNeedsRefresh(stage.Page, stage.PreviousNeedsRefresh);
     }
 
@@ -354,7 +390,7 @@ internal sealed partial class WorkflowSessionPresentationViewModel
             _mergeWorkflowContextNumber = ResolvePublishedNumber(
                 mergeIc,
                 number,
-                useAbTopology: _merge.IsAbCodeMergeModeSelected);
+                _merge.IsAbCodeMergeModeSelected ? ExperienceIds.AbMerge : null);
         }
         if (owner is null or WorkflowInspectionOwner.Replace)
         {
@@ -363,7 +399,42 @@ internal sealed partial class WorkflowSessionPresentationViewModel
             _replaceWorkflowContextNumber = ResolvePublishedNumber(
                 replaceIc,
                 number,
-                useAbTopology: false);
+                _replace.SelectedReplaceMode);
+            _replaceWorkflowContextMode = _replace.SelectedReplaceMode;
+            if (!string.IsNullOrWhiteSpace(_replaceWorkflowContextMode))
+            {
+                _replaceWorkflowNumbersByMode[_replaceWorkflowContextMode] =
+                    _replaceWorkflowContextNumber;
+            }
+        }
+    }
+
+    private void ActivateReplaceModeNumberContext(bool persistCurrentMode = true)
+    {
+        string nextMode = _replace.SelectedReplaceMode;
+        if (persistCurrentMode && !string.IsNullOrWhiteSpace(_replaceWorkflowContextMode))
+        {
+            _replaceWorkflowNumbersByMode[_replaceWorkflowContextMode] =
+                _replaceWorkflowContextNumber;
+        }
+
+        _replaceWorkflowContextMode = nextMode;
+        if (string.IsNullOrWhiteSpace(nextMode) ||
+            !_replaceWorkflowNumbersByMode.TryGetValue(nextMode, out string? retainedNumber))
+        {
+            return;
+        }
+
+        _replaceWorkflowContextNumber = retainedNumber;
+        bool wasActivating = _isActivatingWorkflowPageContext;
+        _isActivatingWorkflowPageContext = true;
+        try
+        {
+            SelectedNumber = retainedNumber;
+        }
+        finally
+        {
+            _isActivatingWorkflowPageContext = wasActivating;
         }
     }
 

@@ -57,6 +57,119 @@ public sealed partial class VersionManagementExperienceTests
         Assert.Equal(1, checkedResult.Generation);
     }
 
+    /// <summary>A concurrent Check that advances authority makes the older in-flight Self-test stale.</summary>
+    [Fact]
+    public async Task EnvironmentSelfTestRechecksAuthorityAfterConcurrentCheckCommit()
+    {
+        string latest = SourcePath("latest-concurrent-authority");
+        VersionManagerState initial = State(
+            [Admission("0.10.5")],
+            active: "0.10.5",
+            lastKnownGood: "0.10.5");
+        var stateStore = new LeaseCountingStateStore(initial);
+        var repository = new BlockingFirstVerificationRepository();
+        UpdateSourceRegistryLoadResult stale = Registry(
+            7,
+            FirstRegistryDigest,
+            (latest, UpdateSourceRegistryEntryStatus.Latest));
+        UpdateSourceRegistryLoadResult current = Registry(
+            8,
+            SecondRegistryDigest,
+            (latest, UpdateSourceRegistryEntryStatus.Latest));
+        using VersionManagementExperience experience = VersionManagementExperienceTestFactory.Create(
+            ManagedAppVersion.Parse("0.10.5"),
+            "managed-root",
+            stateStore,
+            new PathCatalogSource((latest, new(Catalog("0.10.6"), UpdateCatalogLoadIssue.None))),
+            repository,
+            new SequenceRegistrySource(stale, current));
+
+        Task<VersionEnvironmentSelfTestResult> selfTest = experience.RunEnvironmentSelfTestAsync(
+            TestContext.Current.CancellationToken).AsTask();
+        await repository.FirstVerificationStarted.Task.WaitAsync(
+            TestContext.Current.CancellationToken);
+        VersionManagementSnapshot check = await experience.CheckAsync(
+            isAutomatic: false,
+            TestContext.Current.CancellationToken);
+        _ = repository.ReleaseFirstVerification.TrySetResult();
+        VersionEnvironmentSelfTestResult result = await selfTest;
+
+        Assert.Equal(UpdateSourceRegistryIssue.None, check.RegistryIssue);
+        Assert.Equal(8, stateStore.State.SourceRegistryState!.AcceptedRevision);
+        Assert.False(result.IsSuccess);
+        Assert.Equal(UpdateSourceRegistryIssue.RevisionRollback, result.AuthorityIssue);
+        Assert.Equal(8, result.AcceptedRegistryRevision);
+        Assert.Empty(result.Attempts);
+        Assert.Equal(1, stateStore.SaveCount);
+    }
+
+    /// <summary>Unreadable durable authority blocks Self-test before package inspection.</summary>
+    [Fact]
+    public async Task EnvironmentSelfTestStateUnavailableBeforeInspectionFailsWithoutVerification()
+    {
+        string latest = SourcePath("state-unavailable-before");
+        var stateStore = new SequenceLoadStateStore(
+            new VersionManagerStateLoadResult(null, VersionManagerStateLoadIssue.Unavailable));
+        var repository = new CountingRepository();
+        using VersionManagementExperience experience = VersionManagementExperienceTestFactory.Create(
+            ManagedAppVersion.Parse("0.10.5"),
+            "managed-root",
+            stateStore,
+            new PathCatalogSource((latest, new(Catalog("0.10.6"), UpdateCatalogLoadIssue.None))),
+            repository,
+            new SequenceRegistrySource(Registry(
+                12,
+                FirstRegistryDigest,
+                (latest, UpdateSourceRegistryEntryStatus.Latest))));
+
+        VersionEnvironmentSelfTestResult result = await experience.RunEnvironmentSelfTestAsync(
+            TestContext.Current.CancellationToken);
+
+        Assert.False(result.IsSuccess);
+        Assert.Equal(UpdateSourceRegistryIssue.StateUnavailable, result.AuthorityIssue);
+        Assert.Empty(result.Attempts);
+        Assert.Empty(repository.VerifiedRoots);
+        Assert.Equal(1, stateStore.LoadCount);
+        Assert.Equal(0, stateStore.LeaseRequestCount);
+        Assert.Equal(0, stateStore.SaveCount);
+    }
+
+    /// <summary>Authority that becomes unreadable discards verified attempts and performs no mutation.</summary>
+    [Fact]
+    public async Task EnvironmentSelfTestStateUnavailableAfterInspectionDiscardsAttempts()
+    {
+        string latest = SourcePath("state-unavailable-after");
+        VersionManagerState initial = State(
+            [Admission("0.10.5")],
+            active: "0.10.5",
+            lastKnownGood: "0.10.5");
+        var stateStore = new SequenceLoadStateStore(
+            new VersionManagerStateLoadResult(initial, VersionManagerStateLoadIssue.None),
+            new VersionManagerStateLoadResult(null, VersionManagerStateLoadIssue.ManagedRootMismatch));
+        var repository = new CountingRepository();
+        using VersionManagementExperience experience = VersionManagementExperienceTestFactory.Create(
+            ManagedAppVersion.Parse("0.10.5"),
+            "managed-root",
+            stateStore,
+            new PathCatalogSource((latest, new(Catalog("0.10.6"), UpdateCatalogLoadIssue.None))),
+            repository,
+            new SequenceRegistrySource(Registry(
+                12,
+                FirstRegistryDigest,
+                (latest, UpdateSourceRegistryEntryStatus.Latest))));
+
+        VersionEnvironmentSelfTestResult result = await experience.RunEnvironmentSelfTestAsync(
+            TestContext.Current.CancellationToken);
+
+        Assert.False(result.IsSuccess);
+        Assert.Equal(UpdateSourceRegistryIssue.StateUnavailable, result.AuthorityIssue);
+        Assert.Empty(result.Attempts);
+        Assert.Equal([latest], repository.VerifiedRoots);
+        Assert.Equal(2, stateStore.LoadCount);
+        Assert.Equal(0, stateStore.LeaseRequestCount);
+        Assert.Equal(0, stateStore.SaveCount);
+    }
+
     /// <summary>Self-test reuses normal newest-package admission and never scans historical packages.</summary>
     [Fact]
     public async Task EnvironmentSelfTestReusesNewestPackageAdmission()
@@ -114,7 +227,10 @@ public sealed partial class VersionManagementExperienceTests
                 CatalogWithVersionCount(UpdateCatalogValidator.MaximumVersionCount),
                 UpdateCatalogLoadIssue.None))),
             repository,
-            new SequenceRegistrySource(Registry(
+            new SequenceRegistrySource(RegistryWithPublication(
+                "0.10.128",
+                1,
+                CatalogContentDigest,
                 12,
                 FirstRegistryDigest,
                 (latest, UpdateSourceRegistryEntryStatus.Latest))));
@@ -128,6 +244,49 @@ public sealed partial class VersionManagementExperienceTests
         Assert.Equal([ManagedAppVersion.Parse("0.10.128")], repository.VerifiedVersions);
         Assert.Equal(0, stateStore.LeaseRequestCount);
         Assert.Equal(0, stateStore.SaveCount);
+    }
+
+    /// <summary>Every Catalog identity assertion is enforced before package verification.</summary>
+    [Theory]
+    [InlineData("sha256")]
+    [InlineData("schema")]
+    [InlineData("latest-version")]
+    public async Task EnvironmentSelfTestRejectsCatalogAssertionMismatchBeforePackageVerification(
+        string mismatch)
+    {
+        string latest = SourcePath("latest-assertion-mismatch");
+        var repository = new CountingRepository();
+        string expectedLatest = mismatch == "latest-version" ? "0.10.7" : "0.10.6";
+        int expectedSchema = mismatch == "schema" ? 2 : 1;
+        string actualDigest = mismatch == "sha256" ? new string('d', 64) : CatalogContentDigest;
+        var mismatched = new UpdateCatalogLoadResult(
+            Catalog("0.10.6"),
+            UpdateCatalogLoadIssue.None,
+            new UpdateCatalogContentIdentity(1, actualDigest));
+        using VersionManagementExperience experience = VersionManagementExperienceTestFactory.Create(
+            ManagedAppVersion.Parse("0.10.5"),
+            "managed-root",
+            new LeaseCountingStateStore(State(
+                [Admission("0.10.5")],
+                active: "0.10.5",
+                lastKnownGood: "0.10.5")),
+            new PathCatalogSource((latest, mismatched)),
+            repository,
+            new SequenceRegistrySource(RegistryWithPublication(
+                expectedLatest,
+                expectedSchema,
+                CatalogContentDigest,
+                12,
+                FirstRegistryDigest,
+                (latest, UpdateSourceRegistryEntryStatus.Latest))));
+
+        VersionEnvironmentSelfTestResult result = await experience.RunEnvironmentSelfTestAsync(
+            TestContext.Current.CancellationToken);
+
+        VersionEnvironmentSelfTestAttempt attempt = Assert.Single(result.Attempts);
+        Assert.False(result.IsSuccess);
+        Assert.Equal(UpdateCatalogLoadIssue.InvalidManifest, attempt.CatalogIssue);
+        Assert.Empty(repository.VerifiedRoots);
     }
 
     /// <summary>Self-test and normal resolution reject the same mismatched typed candidate.</summary>

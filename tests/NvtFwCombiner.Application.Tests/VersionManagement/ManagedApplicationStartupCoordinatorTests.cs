@@ -334,7 +334,7 @@ public sealed class ManagedApplicationStartupCoordinatorTests
         }
     }
 
-    private sealed class EmptyCatalogSource : IUpdateCatalogSource
+    private sealed class EmptyCatalogSource : IRootCatalogSourceTestDouble
     {
         public ValueTask<UpdateCatalogLoadResult> LoadAsync(
             string sourceRoot,

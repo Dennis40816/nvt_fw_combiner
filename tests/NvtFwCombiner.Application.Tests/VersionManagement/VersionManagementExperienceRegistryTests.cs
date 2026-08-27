@@ -130,6 +130,120 @@ public sealed partial class VersionManagementExperienceTests
         Assert.Equal(expectedIssue, result.RegistryIssue);
     }
 
+    /// <summary>A stale backup remains visible but cannot roll back accepted primary authority.</summary>
+    [Fact]
+    public async Task MissingPrimaryAndStaleBackupFailAntiRollbackWithReplicaHealth()
+    {
+        string latest = SourcePath("latest");
+        UpdateSourceRegistryLoadResult primary = Registry(
+            8,
+            SecondRegistryDigest,
+            (latest, UpdateSourceRegistryEntryStatus.Latest));
+        UpdateSourceRegistryLoadResult backup = Registry(
+            7,
+            FirstRegistryDigest,
+            (latest, UpdateSourceRegistryEntryStatus.Latest));
+        var stateStore = new MemoryStateStore(State(
+            [Admission("0.10.5")],
+            active: "0.10.5",
+            lastKnownGood: "0.10.5"));
+        var replicated = new ReplicatedUpdateSourceRegistry(
+            [
+                new SequenceRegistrySource(
+                    primary,
+                    primary,
+                    new(null, UpdateSourceRegistryLoadIssue.RegistryMissing),
+                    new(null, UpdateSourceRegistryLoadIssue.RegistryMissing)),
+                new SequenceRegistrySource(backup, backup, backup, backup),
+            ]);
+        using VersionManagementExperience experience = VersionManagementExperienceTestFactory.Create(
+            ManagedAppVersion.Parse("0.10.5"),
+            "managed-root",
+            stateStore,
+            new PathCatalogSource((latest, new(Catalog("0.10.6"), UpdateCatalogLoadIssue.None))),
+            new HealthyRepository(),
+            replicated);
+
+        VersionManagementSnapshot accepted = await experience.CheckAsync(
+            isAutomatic: false,
+            TestContext.Current.CancellationToken);
+        VersionManagerState acceptedState = stateStore.State;
+        int savesAfterAcceptance = stateStore.SaveCount;
+
+        VersionManagementSnapshot rejected = await experience.CheckAsync(
+            isAutomatic: false,
+            TestContext.Current.CancellationToken);
+        VersionEnvironmentSelfTestResult selfTest = await experience.RunEnvironmentSelfTestAsync(
+            TestContext.Current.CancellationToken);
+
+        Assert.Equal(UpdateSourceRegistryIssue.None, accepted.RegistryIssue);
+        Assert.Equal(new VersionSourceRegistryState(8, SecondRegistryDigest, isManualPin: false),
+            acceptedState.SourceRegistryState);
+        Assert.Equal(VersionRegistryStatus.Rejected, rejected.RegistryStatus);
+        Assert.Equal(UpdateSourceRegistryIssue.RevisionRollback, rejected.RegistryIssue);
+        Assert.Same(acceptedState, stateStore.State);
+        Assert.Equal(savesAfterAcceptance, stateStore.SaveCount);
+        Assert.False(selfTest.IsSuccess);
+        Assert.Equal(UpdateSourceRegistryLoadIssue.None, selfTest.RegistryIssue);
+        Assert.Equal(UpdateSourceRegistryIssue.RevisionRollback, selfTest.AuthorityIssue);
+        Assert.Equal(8, selfTest.AcceptedRegistryRevision);
+        Assert.Empty(selfTest.Attempts);
+        Assert.Collection(
+            selfTest.Replicas,
+            replica =>
+            {
+                Assert.Equal(UpdateSourceRegistryLoadIssue.RegistryMissing, replica.Issue);
+                Assert.False(replica.IsSelected);
+            },
+            replica =>
+            {
+                Assert.Equal(7, replica.RegistryRevision);
+                Assert.True(replica.IsSelected);
+            });
+    }
+
+    /// <summary>A route hotfix is admitted when the changed bytes carry a higher revision.</summary>
+    [Fact]
+    public async Task HigherRevisionRouteHotfixCommitsChangedRegistryAuthority()
+    {
+        string priorSource = SourcePath("prior-source");
+        string latest = SourcePath("hotfix-latest");
+        VersionManagerState initial = VersionManagerState.Create(
+            priorSource,
+            ManagedAppVersion.Parse("0.10.5"),
+            ManagedAppVersion.Parse("0.10.5"),
+            [Admission("0.10.5")],
+            pendingActivation: null,
+            failedActivationVersion: null,
+            retentionReviewDue: false,
+            managedRootIdentity: "managed-root",
+            sourceRegistryState: new(5, FirstRegistryDigest, isManualPin: false));
+        var stateStore = new MemoryStateStore(initial);
+        UpdateSourceRegistryLoadResult hotfix = Registry(
+            6,
+            SecondRegistryDigest,
+            (latest, UpdateSourceRegistryEntryStatus.Latest));
+        using VersionManagementExperience experience = VersionManagementExperienceTestFactory.Create(
+            ManagedAppVersion.Parse("0.10.5"),
+            "managed-root",
+            stateStore,
+            new PathCatalogSource((latest, new(Catalog("0.10.6"), UpdateCatalogLoadIssue.None))),
+            new HealthyRepository(),
+            new SequenceRegistrySource(hotfix, hotfix));
+
+        VersionManagementSnapshot result = await experience.CheckAsync(
+            isAutomatic: false,
+            TestContext.Current.CancellationToken);
+
+        Assert.Equal(1, stateStore.SaveCount);
+        Assert.Equal(latest, stateStore.State.UpdateSource);
+        Assert.Equal(
+            new VersionSourceRegistryState(6, SecondRegistryDigest, isManualPin: false),
+            stateStore.State.SourceRegistryState);
+        Assert.Equal(VersionRegistryStatus.LatestSelected, result.RegistryStatus);
+        Assert.Equal(UpdateSourceRegistryIssue.None, result.RegistryIssue);
+    }
+
     /// <summary>Manual source confirmation pins until an explicit successful resume.</summary>
     [Fact]
     public async Task ManualSourceIsDurablyPinnedUntilExplicitResume()
@@ -141,7 +255,10 @@ public sealed partial class VersionManagementExperienceTests
             active: "0.10.5",
             lastKnownGood: "0.10.5");
         var stateStore = new MemoryStateStore(initial);
-        var registry = new SequenceRegistrySource(Registry(
+        var registry = new SequenceRegistrySource(RegistryWithPublication(
+            "0.10.7",
+            1,
+            CatalogContentDigest,
             revision: 8,
             FirstRegistryDigest,
             (registryLatest, UpdateSourceRegistryEntryStatus.Latest)));
@@ -414,8 +531,13 @@ public sealed partial class VersionManagementExperienceTests
     }
 
     /// <summary>Registry read failure is typed and leaves the prior source intact.</summary>
-    [Fact]
-    public async Task RegistryReadFailureIsTypedAndPreservesPriorSource()
+    [Theory]
+    [InlineData(UpdateSourceRegistryLoadIssue.PermissionDenied, UpdateSourceRegistryIssue.PermissionDenied)]
+    [InlineData(UpdateSourceRegistryLoadIssue.AuthenticationRequired, UpdateSourceRegistryIssue.AuthenticationRequired)]
+    [InlineData(UpdateSourceRegistryLoadIssue.RegistryTimedOut, UpdateSourceRegistryIssue.TimedOut)]
+    public async Task RegistryReadFailureIsTypedAndPreservesPriorSource(
+        UpdateSourceRegistryLoadIssue loadIssue,
+        UpdateSourceRegistryIssue expectedIssue)
     {
         VersionManagerState initial = State(
             [Admission("0.10.5")],
@@ -430,7 +552,7 @@ public sealed partial class VersionManagementExperienceTests
             new HealthyRepository(),
             new SequenceRegistrySource(new UpdateSourceRegistryLoadResult(
                 Snapshot: null,
-                UpdateSourceRegistryLoadIssue.PermissionDenied)));
+                loadIssue)));
 
         VersionManagementSnapshot result = await experience.CheckAsync(
             isAutomatic: false,
@@ -439,7 +561,7 @@ public sealed partial class VersionManagementExperienceTests
         Assert.Equal(0, stateStore.SaveCount);
         Assert.Same(initial, stateStore.State);
         Assert.Equal(VersionRegistryStatus.Unavailable, result.RegistryStatus);
-        Assert.Equal(UpdateSourceRegistryIssue.PermissionDenied, result.RegistryIssue);
+        Assert.Equal(expectedIssue, result.RegistryIssue);
     }
 
     /// <summary>Writer contention after read-only admission performs no mutation.</summary>

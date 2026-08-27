@@ -313,7 +313,8 @@ public sealed record CanonicalDynamicCapabilityDefinition
         CanonicalCapabilityCompilationContract compilationContract,
         PinnedCapabilityDecision<CapabilityAuthoringAvailability> authoring,
         PinnedCapabilityDecision<CapabilityPublicationStatus> publication,
-        PinnedCapabilityDecision<CapabilityEvidenceStatus> evidence)
+        PinnedCapabilityDecision<CapabilityEvidenceStatus> evidence,
+        CapabilityNumberChoice? numberChoice = null)
     {
         ArgumentNullException.ThrowIfNull(identity);
         ArgumentNullException.ThrowIfNull(compilationContract);
@@ -338,12 +339,30 @@ public sealed record CanonicalDynamicCapabilityDefinition
         ValidateDecision(identity, capabilityFingerprint, authoring);
         ValidateDecision(identity, capabilityFingerprint, publication);
         ValidateDecision(identity, capabilityFingerprint, evidence);
+        bool requiresNumberChoice = StringComparer.Ordinal.Equals(
+            identity.WorkflowId,
+            ExperienceIds.GeneralReplace);
+        if (requiresNumberChoice != (numberChoice is not null))
+        {
+            throw new ArgumentException(
+                "Only General Replace dynamic routes require one typed IC-number choice.",
+                nameof(numberChoice));
+        }
+        if (numberChoice is not null &&
+            (string.IsNullOrWhiteSpace(numberChoice.Token) ||
+             string.IsNullOrWhiteSpace(numberChoice.DisplayLabel)))
+        {
+            throw new ArgumentException(
+                "A dynamic route IC-number choice requires a token and display label.",
+                nameof(numberChoice));
+        }
         Identity = identity;
         CapabilityFingerprint = capabilityFingerprint;
         CompilationContract = compilationContract;
         Authoring = authoring;
         Publication = publication;
         Evidence = evidence;
+        NumberChoice = numberChoice;
     }
 
     /// <summary>Stable exact route identity.</summary>
@@ -363,6 +382,9 @@ public sealed record CanonicalDynamicCapabilityDefinition
 
     /// <summary>Independent evidence decision.</summary>
     public PinnedCapabilityDecision<CapabilityEvidenceStatus> Evidence { get; }
+
+    /// <summary>Typed workflow-scoped count choice, when the route requires one.</summary>
+    public CapabilityNumberChoice? NumberChoice { get; }
 
     private static void ValidateFingerprint(string fingerprint)
     {
@@ -407,6 +429,7 @@ public sealed record ResolvedCapabilityRoute
         Authoring = definition.Authoring;
         Publication = definition.Publication;
         Evidence = definition.Evidence;
+        NumberChoice = definition.NumberChoice;
         ResolutionToken = resolutionToken;
     }
 
@@ -428,6 +451,9 @@ public sealed record ResolvedCapabilityRoute
     /// <summary>Independent evidence decision.</summary>
     public PinnedCapabilityDecision<CapabilityEvidenceStatus> Evidence { get; }
 
+    /// <summary>Typed workflow-scoped count choice, when the route requires one.</summary>
+    public CapabilityNumberChoice? NumberChoice { get; }
+
     /// <summary>Publication identity shared by the resulting capability.</summary>
     public ResolutionToken ResolutionToken { get; }
 
@@ -442,6 +468,7 @@ public sealed record ResolvedCapabilityRoute
             metadataPlan ?? MetadataPlanDefinition.Empty;
         CompiledComposition bound = composition.BindCapabilityFingerprint(
             CapabilityFingerprint);
+        WorkflowIcNumberChoiceProjection.ValidateCompilation(NumberChoice, bound);
         RuntimeReferenceCompilationProof? boundRuntimeReferenceProof =
             runtimeReferenceProof?.BindCapabilityCompilation(
                 composition,

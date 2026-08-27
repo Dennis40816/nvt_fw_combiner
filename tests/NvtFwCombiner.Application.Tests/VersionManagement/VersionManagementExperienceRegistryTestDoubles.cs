@@ -5,16 +5,44 @@ namespace NvtFwCombiner.Application.Tests.VersionManagement;
 
 public sealed partial class VersionManagementExperienceTests
 {
+    private const string CatalogContentDigest =
+        "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc";
+
     private static UpdateSourceRegistryLoadResult Registry(
+        long revision,
+        string digest,
+        params (string Path, UpdateSourceRegistryEntryStatus Status)[] entries)
+    {
+        return RegistryWithPublication(
+            "0.10.6",
+            1,
+            CatalogContentDigest,
+            revision,
+            digest,
+            entries);
+    }
+
+    private static UpdateSourceRegistryLoadResult RegistryWithPublication(
+        string latestVersion,
+        int catalogSchemaVersion,
+        string catalogDigest,
         long revision,
         string digest,
         params (string Path, UpdateSourceRegistryEntryStatus Status)[] entries)
     {
         return new(
             new UpdateSourceRegistrySnapshot(
+                "nvt-fw-combiner-production",
                 revision,
+                new DateTimeOffset(2026, 8, 27, 0, 0, 0, TimeSpan.Zero),
+                new UpdateCatalogPublicationAssertion(
+                    latestVersion,
+                    catalogSchemaVersion,
+                    catalogDigest),
                 digest,
-                [.. entries.Select(entry => new UpdateSourceRegistryEntry(entry.Path, entry.Status))]),
+                [.. entries.Select(entry => new UpdateSourceRegistryEntry(
+                    Path.Combine(entry.Path, "update-catalog.v1.json"),
+                    entry.Status))]),
             UpdateSourceRegistryLoadIssue.None);
     }
 
@@ -83,7 +111,7 @@ public sealed partial class VersionManagementExperienceTests
     }
 
     private sealed class PathCatalogSource(
-        params (string Path, UpdateCatalogLoadResult Result)[] results) : IUpdateCatalogSource
+        params (string Path, UpdateCatalogLoadResult Result)[] results) : IRootCatalogSourceTestDouble
     {
         private readonly Dictionary<string, UpdateCatalogLoadResult> _results =
             results.ToDictionary(entry => entry.Path, entry => entry.Result, StringComparer.Ordinal);
@@ -96,14 +124,14 @@ public sealed partial class VersionManagementExperienceTests
         {
             LoadedRoots.Add(sourceRoot);
             return ValueTask.FromResult(_results.TryGetValue(sourceRoot, out UpdateCatalogLoadResult? result)
-                ? result
+                ? WithDefaultContentIdentity(result)
                 : new UpdateCatalogLoadResult(null, UpdateCatalogLoadIssue.SourceMissing));
         }
     }
 
     private sealed class SequencePathCatalogSource(
         string path,
-        params UpdateCatalogSnapshot[] snapshots) : IUpdateCatalogSource
+        params UpdateCatalogSnapshot[] snapshots) : IRootCatalogSourceTestDouble
     {
         private int _next;
 
@@ -115,12 +143,13 @@ public sealed partial class VersionManagementExperienceTests
             int index = Math.Min(Interlocked.Increment(ref _next) - 1, snapshots.Length - 1);
             return ValueTask.FromResult(new UpdateCatalogLoadResult(
                 snapshots[index],
-                UpdateCatalogLoadIssue.None));
+                UpdateCatalogLoadIssue.None,
+                DefaultCatalogContentIdentity));
         }
     }
 
     private sealed class CancelFirstCatalogSource(UpdateCatalogSnapshot snapshot)
-        : IUpdateCatalogSource
+        : IRootCatalogSourceTestDouble
     {
         private int _loadCount;
 
@@ -136,8 +165,18 @@ public sealed partial class VersionManagementExperienceTests
                 _ = FirstLoadStarted.TrySetResult();
                 await Task.Delay(Timeout.InfiniteTimeSpan, cancellationToken);
             }
-            return new(snapshot, UpdateCatalogLoadIssue.None);
+            return new(snapshot, UpdateCatalogLoadIssue.None, DefaultCatalogContentIdentity);
         }
+    }
+
+    private static UpdateCatalogContentIdentity DefaultCatalogContentIdentity =>
+        new(1, CatalogContentDigest);
+
+    private static UpdateCatalogLoadResult WithDefaultContentIdentity(UpdateCatalogLoadResult result)
+    {
+        return result.IsSuccess && result.ContentIdentity is null
+            ? result with { ContentIdentity = DefaultCatalogContentIdentity }
+            : result;
     }
 
     private sealed class CountingRepository(ManagedAppVersion? mismatchedVersion = null)
@@ -199,6 +238,70 @@ public sealed partial class VersionManagementExperienceTests
         }
     }
 
+    private sealed class BlockingFirstVerificationRepository : IManagedVersionRepository
+    {
+        private readonly HealthyRepository _inner = new();
+        private int _verifyCount;
+
+        internal TaskCompletionSource FirstVerificationStarted { get; } =
+            new(TaskCreationOptions.RunContinuationsAsynchronously);
+
+        internal TaskCompletionSource ReleaseFirstVerification { get; } =
+            new(TaskCreationOptions.RunContinuationsAsynchronously);
+
+        public async ValueTask<ManagedPackageVerificationResult> VerifyPackageAsync(
+            string sourceRoot,
+            UpdateCatalogVersionSnapshot package,
+            CancellationToken cancellationToken)
+        {
+            if (Interlocked.Increment(ref _verifyCount) == 1)
+            {
+                _ = FirstVerificationStarted.TrySetResult();
+                await ReleaseFirstVerification.Task.WaitAsync(cancellationToken);
+            }
+            return await _inner.VerifyPackageAsync(sourceRoot, package, cancellationToken);
+        }
+
+        public ValueTask<ManagedVersionInstallResult> InstallAsync(
+            string managedRoot,
+            string sourceRoot,
+            UpdateCatalogVersionSnapshot package,
+            CancellationToken cancellationToken)
+        {
+            return _inner.InstallAsync(managedRoot, sourceRoot, package, cancellationToken);
+        }
+
+        public ValueTask<ManagedVersionInventoryReadResult> InventoryAsync(
+            string managedRoot,
+            IReadOnlyList<ManagedVersionAdmission> admissions,
+            ManagedAppVersion? activeVersion,
+            ManagedAppVersion? lastKnownGoodVersion,
+            ManagedAppVersion? failedActivationVersion,
+            CancellationToken cancellationToken)
+        {
+            return _inner.InventoryAsync(
+                managedRoot,
+                admissions,
+                activeVersion,
+                lastKnownGoodVersion,
+                failedActivationVersion,
+                cancellationToken);
+        }
+
+        public ValueTask<ManagedVersionDeleteIssue> DeleteAsync(
+            string managedRoot,
+            ManagedVersionAdmission admission,
+            ManagedAppVersion? activeVersion,
+            CancellationToken cancellationToken)
+        {
+            return _inner.DeleteAsync(
+                managedRoot,
+                admission,
+                activeVersion,
+                cancellationToken);
+        }
+    }
+
     private sealed class LeaseCountingStateStore(VersionManagerState state) : IVersionManagerStateStore
     {
         internal int LeaseRequestCount { get; private set; }
@@ -227,6 +330,42 @@ public sealed partial class VersionManagementExperienceTests
             CancellationToken cancellationToken)
         {
             State = stateToSave;
+            SaveCount++;
+            return ValueTask.CompletedTask;
+        }
+    }
+
+    private sealed class SequenceLoadStateStore(
+        params VersionManagerStateLoadResult[] results) : IVersionManagerStateStore
+    {
+        private int _loadCount;
+
+        internal int LoadCount => Volatile.Read(ref _loadCount);
+
+        internal int LeaseRequestCount { get; private set; }
+
+        internal int SaveCount { get; private set; }
+
+        public ValueTask<VersionManagerWriteLeaseResult> TryAcquireWriteLeaseAsync(
+            TimeSpan waitTimeout,
+            CancellationToken cancellationToken)
+        {
+            LeaseRequestCount++;
+            return ValueTask.FromResult(VersionManagerWriteLeaseTestSupport.Acquired());
+        }
+
+        public ValueTask<VersionManagerStateLoadResult> LoadAsync(
+            CancellationToken cancellationToken)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            int index = Math.Min(Interlocked.Increment(ref _loadCount) - 1, results.Length - 1);
+            return ValueTask.FromResult(results[index]);
+        }
+
+        public ValueTask SaveAsync(
+            VersionManagerState state,
+            CancellationToken cancellationToken)
+        {
             SaveCount++;
             return ValueTask.CompletedTask;
         }

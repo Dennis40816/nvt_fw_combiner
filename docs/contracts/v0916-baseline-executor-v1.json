@@ -1,0 +1,50 @@
+{
+  "schemaVersion": "1.0",
+  "kind": "exact-tag-source-built-cli",
+  "source": {
+    "tag": "v0.9.16",
+    "tagObject": "578b2614632d6c2affdf2000324b134b5d1a16c1",
+    "peeledCommit": "462590e8b993b8e42d088bc07377571a4bb9f25d",
+    "sourceTree": "dc46c9aa9ecf00cb898ba3bc287e1b15acdab735",
+    "cleanTreeRequired": true
+  },
+  "toolchain": {
+    "resolvedSdkVersion": "10.0.303",
+    "globalJson": {
+      "path": "global.json",
+      "size": 109,
+      "sha256": "1497bda77ac26a91600f9eaa9d733be95a970961816c63738a4aafe1dc9c14e3"
+    }
+  },
+  "lockFiles": [
+    { "path": "src/NvtFwCombiner.Application/packages.lock.json", "size": 202, "sha256": "7caeed41b3bad2407a3ff34c212f80966b35b7294d94db6cb52953c29950d617" },
+    { "path": "src/NvtFwCombiner.Bootstrap/packages.lock.json", "size": 1966, "sha256": "9499cca47f49315eecc1cccb75d6a27d518493d7d9d9d96a345504b4e93adf0e" },
+    { "path": "src/NvtFwCombiner.Cli/packages.lock.json", "size": 2228, "sha256": "0f0d6f03bf7552650a042f4dbdaec23d35d5adca7625f441d05072dde7c58be8" },
+    { "path": "src/NvtFwCombiner.Contracts/packages.lock.json", "size": 61, "sha256": "03eeadc5ef377c17f787ab65f41fb4c8a9c936bb7f7f4171111fdeec8a81cb46" },
+    { "path": "src/NvtFwCombiner.Domain/packages.lock.json", "size": 61, "sha256": "03eeadc5ef377c17f787ab65f41fb4c8a9c936bb7f7f4171111fdeec8a81cb46" },
+    { "path": "src/NvtFwCombiner.Infrastructure/packages.lock.json", "size": 1452, "sha256": "877f798d9e3e82e893b1825766912dd5e63cbbf4198bf9c47daadfbeaef115a5" },
+    { "path": "src/NvtFwCombiner.Profiles/packages.lock.json", "size": 202, "sha256": "7caeed41b3bad2407a3ff34c212f80966b35b7294d94db6cb52953c29950d617" }
+  ],
+  "externalTools": [
+    { "path": "external-tools/catalog.json", "size": 4530, "sha256": "0c9079ba73ffd35d8c91fd89c40f3b0d89a79e31035b9e3b5b2781e16bc5dac9" },
+    { "path": "external-tools/diff-nf-merge/1.0.0/CommandLine.dll", "size": 225280, "sha256": "e7d67580a8999d0e5534039f62e0dbc423b2d6dac51c2f5ff6ef199e4a53138d" },
+    { "path": "external-tools/diff-nf-merge/1.0.0/DiffNFMerge.exe", "size": 9728, "sha256": "f611af7e315d46341e15cd7140eb3962f6ac05d337121e5554022ef5e69a2bbe" },
+    { "path": "external-tools/diff-nf-merge/1.0.0/DiffNFMerge.exe.config", "size": 174, "sha256": "e2f8febf28b49915d142e4b698435d53b7eb3443853bd2892b86fe20e8895620" },
+    { "path": "external-tools/diff-nf-merge/1.0.0/package-manifest.json", "size": 1466, "sha256": "de0c2c879842cc01e4ea03e3631c7fd455cb67a6a5bb3e6e9a818782f046b114" },
+    { "path": "external-tools/legacy-combiner/1.13.0/Combiner.exe", "size": 41472, "sha256": "ed6b58289cc780f73d36b831f5424cef44ad93187ba7518d36df6a77ad0c76bf" },
+    { "path": "external-tools/legacy-combiner/1.13.0/manifest.json", "size": 559, "sha256": "1c60badcc23fc5f3708d7cfb171a9a2e94c708a1aa257d0dac3efb7a20d96442" }
+  ],
+  "restore": {
+    "workingDirectory": ".",
+    "arguments": ["dotnet", "restore", "src/NvtFwCombiner.Cli/NvtFwCombiner.Cli.csproj", "--locked-mode"]
+  },
+  "build": {
+    "workingDirectory": ".",
+    "arguments": ["dotnet", "build", "src/NvtFwCombiner.Cli/NvtFwCombiner.Cli.csproj", "--configuration", "Release", "--no-restore"]
+  },
+  "cliAssembly": {
+    "path": "src/NvtFwCombiner.Cli/bin/Release/net10.0/NvtFwCombiner.Cli.dll",
+    "size": 14848,
+    "sha256": "e889668cf092fab4877aeea84642d3b48a9969a6184f1c128500673fa136f9db"
+  }
+}

@@ -36,7 +36,7 @@
       "nvtfwcombiner.versionmanagement.application": {
         "type": "Project",
         "dependencies": {
-          "NvtFwCombiner.Contracts": "[0.10.7, )"
+          "NvtFwCombiner.Contracts": "[1.0.0, )"
         }
       }
     }

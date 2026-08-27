@@ -6,6 +6,10 @@ param(
     [Parameter(Mandatory = $true)]
     [string]$Commit,
 
+    [string]$VersionOnlyBasePackage,
+
+    [string]$VersionOnlyBasePackageSha256,
+
     [switch]$AllowPrerelease,
 
     [switch]$ExternalToolPolicyDryRun
@@ -61,7 +65,29 @@ $PolicyDryRunSentinel =
     $ExternalToolPolicyDryRun -and
     $Version -ceq '0.0.0' -and
     $Commit -ceq ('0' * 40)
+$ResolvedVersionOnlyBasePackage = $null
+if (-not [string]::IsNullOrWhiteSpace($VersionOnlyBasePackage)) {
+    if ($SemanticVersion -cne '1.0.1') {
+        throw 'A version-only base package may be used only for 1.0.1.'
+    }
+    $ResolvedVersionOnlyBasePackage = (
+        Get-Item -LiteralPath $VersionOnlyBasePackage -ErrorAction Stop).FullName
+    if ($VersionOnlyBasePackageSha256 -cnotmatch '^[0-9a-f]{64}$') {
+        throw 'A version-only base package requires its independently authenticated lowercase SHA-256.'
+    }
+}
+elseif (-not [string]::IsNullOrWhiteSpace($VersionOnlyBasePackageSha256)) {
+    throw 'A version-only base package SHA-256 cannot be supplied without the package.'
+}
 if (-not $PolicyDryRunSentinel) {
+    $InvocationVersionPath = Join-Path $RepoRoot 'VERSION'
+    if (-not (Test-Path -LiteralPath $InvocationVersionPath -PathType Leaf)) {
+        throw "Repository VERSION is missing: $InvocationVersionPath"
+    }
+    $InvocationVersion = (Get-Content -LiteralPath $InvocationVersionPath -Raw).Trim()
+    if ($SemanticVersion -cne $InvocationVersion) {
+        throw "Package version '$SemanticVersion' does not match repository VERSION '$InvocationVersion'."
+    }
     $RepositoryHeadOutput = & git -C $RepoRoot rev-parse --verify HEAD 2>&1
     if ($LASTEXITCODE -ne 0) {
         throw "Repository HEAD could not be resolved: $($RepositoryHeadOutput -join ' ')"
@@ -81,6 +107,13 @@ if (-not $PolicyDryRunSentinel) {
     if (@($RepositoryStatus).Count -ne 0) {
         throw 'Release packaging requires a clean repository worktree and index.'
     }
+}
+if (
+    -not $PolicyDryRunSentinel -and
+    $SemanticVersion -ceq '1.0.1' -and
+    $null -eq $ResolvedVersionOnlyBasePackage
+) {
+    throw 'Stable 1.0.1 packaging requires the published 1.0.0 base package.'
 }
 
 $DotNet = $null
@@ -1146,30 +1179,44 @@ Copy-CanonicalCapabilityPolicyPackageFile `
     -PublishedRoot $AppPublish `
     -DestinationRoot $PackageRoot
 
-$WorkerEntry = Join-Path $WorkRoot 'crc_worker_entry.py'
-@'
+$WorkerExe = Join-Path $PackageRoot $CrcWorkerPackagePath.Replace('/', [IO.Path]::DirectorySeparatorChar)
+if ($null -ne $ResolvedVersionOnlyBasePackage) {
+    $ReleasePolicy = Join-Path $RepoRoot 'scripts/release_promotion_policy.py'
+    & $Python $ReleasePolicy extract-version-only-stable-payload `
+        --repository $RepoRoot `
+        --base-package $ResolvedVersionOnlyBasePackage `
+        --base-package-sha256 $VersionOnlyBasePackageSha256 `
+        --destination $WorkerExe `
+        --path $CrcWorkerPackagePath
+    if ($LASTEXITCODE -ne 0) {
+        throw 'Published 1.0.0 CRC worker could not be reused for 1.0.1.'
+    }
+}
+else {
+    $WorkerEntry = Join-Path $WorkRoot 'crc_worker_entry.py'
+    @'
 from nfc_crc_worker.__main__ import main
 
 raise SystemExit(main())
 '@ | Set-Content -LiteralPath $WorkerEntry -Encoding utf8NoBOM
 
-$WorkerSource = Join-Path $RepoRoot 'tools/crc-worker/src'
-& $Python -m PyInstaller --onefile --clean --noconfirm --noupx `
-    --name Nfc.CrcWorker `
-    --paths $WorkerSource `
-    --workpath $WorkerBuild `
-    --distpath $WorkerDist `
-    --specpath $WorkRoot `
-    $WorkerEntry
-if ($LASTEXITCODE -ne 0) { throw 'PyInstaller worker packaging failed.' }
+    $WorkerSource = Join-Path $RepoRoot 'tools/crc-worker/src'
+    & $Python -m PyInstaller --onefile --clean --noconfirm --noupx `
+        --name Nfc.CrcWorker `
+        --paths $WorkerSource `
+        --workpath $WorkerBuild `
+        --distpath $WorkerDist `
+        --specpath $WorkRoot `
+        $WorkerEntry
+    if ($LASTEXITCODE -ne 0) { throw 'PyInstaller worker packaging failed.' }
 
-$BuiltWorker = Join-Path $WorkerDist 'Nfc.CrcWorker.exe'
-if (-not (Test-Path -LiteralPath $BuiltWorker -PathType Leaf)) {
-    throw "Packaged CRC worker was not found at $BuiltWorker"
+    $BuiltWorker = Join-Path $WorkerDist 'Nfc.CrcWorker.exe'
+    if (-not (Test-Path -LiteralPath $BuiltWorker -PathType Leaf)) {
+        throw "Packaged CRC worker was not found at $BuiltWorker"
+    }
+    New-Item -ItemType Directory -Force -Path (Split-Path -Parent $WorkerExe) | Out-Null
+    Copy-Item -LiteralPath $BuiltWorker -Destination $WorkerExe
 }
-$WorkerExe = Join-Path $PackageRoot $CrcWorkerPackagePath.Replace('/', [IO.Path]::DirectorySeparatorChar)
-New-Item -ItemType Directory -Force -Path (Split-Path -Parent $WorkerExe) | Out-Null
-Copy-Item -LiteralPath $BuiltWorker -Destination $WorkerExe
 
 $ExternalToolsDestination = Join-Path $PackageRoot 'external-tools'
 Copy-ApprovedExternalToolPackageFiles -DestinationRoot $PackageRoot

@@ -144,15 +144,6 @@ internal sealed partial class SettingsViewModel : ObservableObject
                         ? "至少有一條 Standard Merge 路徑可出現在一般編輯選擇器中的 IC。"
                         : "ICs with at least one Standard Merge route available to ordinary authoring selectors.",
                     CatalogStatus(chinese ? "可編輯" : "Authoring available")),
-                new SettingSummaryViewModel(
-                    "DP Replace",
-                    CatalogIcValue(CountAvailableIcs(
-                        authoringAvailableRows,
-                        ExperienceIds.DpReplace)),
-                    chinese
-                        ? "至少有一條 DP Replace 路徑可出現在一般編輯選擇器中的 IC。"
-                        : "ICs with at least one DP Replace route available to ordinary authoring selectors.",
-                    CatalogStatus(chinese ? "可編輯" : "Authoring available")),
             ]);
 
         ReplaceRows(

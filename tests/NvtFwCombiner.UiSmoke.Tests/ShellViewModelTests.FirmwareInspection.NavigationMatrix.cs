@@ -5,6 +5,22 @@ namespace NvtFwCombiner.UiSmoke.Tests;
 
 public sealed partial class FirmwareInspectionSlotTests
 {
+    /// <summary>A first-entry mode choice commits once without waiting for another page/context gesture.</summary>
+    [Fact]
+    public void FirstMergePageEntryCommitsModeImmediately()
+    {
+        MainWindowViewModel viewModel = CreateBatchInspectionViewModel((_, _) => []);
+        viewModel.ShowMergeCommand.Execute(null);
+        viewModel.WorkflowSession.SelectedIc = "NT51932";
+        Assert.True(viewModel.IsMergeVisible);
+        Assert.Contains(ExperienceIds.AbMerge, viewModel.Merge.MergeModeChoices);
+
+        viewModel.Merge.SelectedMergeMode = ExperienceIds.AbMerge;
+
+        Assert.Equal(ExperienceIds.AbMerge, viewModel.Merge.SelectedMergeMode);
+        Assert.True(viewModel.Merge.IsAbCodeMergeModeSelected);
+    }
+
     /// <summary>Standard and AB mode drafts survive a round trip without sharing their authoring state.</summary>
     [Fact]
     public async Task PairwiseNavigationStandardAndAbMergePreservesEachModeDraft()

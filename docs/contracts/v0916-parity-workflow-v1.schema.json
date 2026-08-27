@@ -1,0 +1,120 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://nvt.local/contracts/v0916-parity-workflow-v1.schema.json",
+  "title": "Closed v0.9.16 parity workflow semantics",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "workflowPath",
+    "workflowRef",
+    "workflowHeadRelation",
+    "candidateImplementationHead",
+    "trigger",
+    "topLevelPermissions",
+    "actionPins",
+    "jobs",
+    "forbidden"
+  ],
+  "properties": {
+    "schemaVersion": { "const": "1.0" },
+    "workflowPath": { "const": ".github/workflows/release.yml" },
+    "workflowRef": { "const": "refs/heads/main" },
+    "workflowHeadRelation": { "const": "authenticated-protected-main-independent-of-candidate-source" },
+    "candidateImplementationHead": { "const": "e712842d61c560193ff9f7e2321daa47401a52d0" },
+    "trigger": { "const": "workflow_dispatch" },
+    "topLevelPermissions": { "$ref": "#/$defs/readPermissions" },
+    "actionPins": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["checkout", "downloadArtifact", "uploadArtifact"],
+      "properties": {
+        "checkout": { "const": "actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0" },
+        "downloadArtifact": { "const": "actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131" },
+        "uploadArtifact": { "const": "actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a" }
+      }
+    },
+    "jobs": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["v0916-parity-compare", "v0916-parity-attestation"],
+      "properties": {
+        "v0916-parity-compare": { "$ref": "#/$defs/job" },
+        "v0916-parity-attestation": { "$ref": "#/$defs/job" }
+      }
+    },
+    "forbidden": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "continueOnError",
+        "unprotectedEnvironment",
+        "unpinnedAction",
+        "writePermissions",
+        "alternateComparatorCommand",
+        "artifactNameOrPathDrift",
+        "conditionalBypass"
+      ],
+      "properties": {
+        "continueOnError": { "const": true },
+        "unprotectedEnvironment": { "const": true },
+        "unpinnedAction": { "const": true },
+        "writePermissions": { "const": true },
+        "alternateComparatorCommand": { "const": true },
+        "artifactNameOrPathDrift": { "const": true },
+        "conditionalBypass": { "const": true }
+      }
+    }
+  },
+  "$defs": {
+    "readPermissions": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["actions", "contents"],
+      "properties": {
+        "actions": { "const": "read" },
+        "contents": { "const": "read" }
+      }
+    },
+    "job": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "name",
+        "needs",
+        "if",
+        "runsOn",
+        "timeoutMinutes",
+        "environment",
+        "permissions",
+        "steps"
+      ],
+      "properties": {
+        "name": { "type": "string", "minLength": 1 },
+        "needs": { "type": "array", "minItems": 1, "uniqueItems": true, "items": { "type": "string", "minLength": 1 } },
+        "if": { "const": "${{ success() }}" },
+        "runsOn": { "const": "windows-latest" },
+        "timeoutMinutes": { "type": "integer", "minimum": 1, "maximum": 60 },
+        "environment": { "type": ["string", "null"] },
+        "permissions": { "$ref": "#/$defs/readPermissions" },
+        "steps": { "type": "array", "minItems": 4, "maxItems": 4, "items": { "$ref": "#/$defs/step" } }
+      }
+    },
+    "step": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["name"],
+      "properties": {
+        "name": { "type": "string", "minLength": 1 },
+        "uses": { "type": "string", "pattern": "^[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+@[0-9a-f]{40}$" },
+        "with": { "type": "object" },
+        "shell": { "const": "pwsh" },
+        "run": { "type": "string", "minLength": 1 }
+      },
+      "oneOf": [
+        { "required": ["uses", "with"] },
+        { "required": ["shell", "run"] }
+      ]
+    }
+  }
+}

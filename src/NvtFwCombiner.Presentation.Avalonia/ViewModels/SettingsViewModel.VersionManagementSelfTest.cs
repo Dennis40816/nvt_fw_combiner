@@ -14,19 +14,21 @@ internal sealed partial class SettingsViewModel
         }
 
         IsVersionBusy = true;
+        IsVersionSelfTestRunning = true;
         IsSourceChecking = true;
         VersionOperationStatus = Localize(
             "Running the update environment self-test…",
             "正在執行更新環境自我測試…");
         try
         {
-            VersionEnvironmentSelfTestResult result =
-                await _versionManagement.RunEnvironmentSelfTestAsync(cancellationToken);
+            VersionEnvironmentSelfTestResult result = await Task.Run(
+                () => _versionManagement.RunEnvironmentSelfTestAsync(cancellationToken).AsTask(), cancellationToken);
             VersionOperationStatus = FormatEnvironmentSelfTestResult(result);
         }
         finally
         {
             IsSourceChecking = false;
+            IsVersionSelfTestRunning = false;
             IsVersionBusy = false;
         }
     }
@@ -34,11 +36,20 @@ internal sealed partial class SettingsViewModel
     private string FormatEnvironmentSelfTestResult(VersionEnvironmentSelfTestResult result)
     {
         ArgumentNullException.ThrowIfNull(result);
+        string replicas = FormatRegistryReplicaHealth(result);
         if (result.RegistryIssue != UpdateSourceRegistryLoadIssue.None)
         {
-            return Localize(
+            string failure = Localize(
                 $"Self-test failed: {FormatRegistrySelfTestIssue(result.RegistryIssue)}.",
                 $"自我測試失敗：{FormatRegistrySelfTestIssue(result.RegistryIssue)}。");
+            return string.IsNullOrEmpty(replicas) ? failure : $"{failure} {replicas}";
+        }
+        if (result.AuthorityIssue != UpdateSourceRegistryIssue.None)
+        {
+            string failure = Localize(
+                $"Self-test failed: {FormatRegistryAuthorityIssue(result.AuthorityIssue)}.",
+                $"自我測試失敗：{FormatRegistryAuthorityIssue(result.AuthorityIssue)}。");
+            return string.IsNullOrEmpty(replicas) ? failure : $"{failure} {replicas}";
         }
 
         int verified = result.Attempts.Count(static attempt => attempt.IsVerified);
@@ -56,7 +67,40 @@ internal sealed partial class SettingsViewModel
         string details = string.Join(
             " · ",
             result.Attempts.Select(FormatEnvironmentSelfTestAttempt));
-        return string.IsNullOrEmpty(details) ? summary : $"{summary} {details}";
+        string suffix = string.Join(" · ", new[] { replicas, details }.Where(static value => value.Length > 0));
+        return string.IsNullOrEmpty(suffix) ? summary : $"{summary} {suffix}";
+    }
+
+    private string FormatRegistryReplicaHealth(VersionEnvironmentSelfTestResult result)
+    {
+        long? selectedRevision = result.Replicas.SingleOrDefault(static replica => replica.IsSelected)
+            ?.RegistryRevision;
+        return string.Join(
+            " · ",
+            result.Replicas.Select(replica =>
+            {
+                string role = replica.Position == 1
+                    ? Localize("Primary", "主要")
+                    : Localize($"Backup {replica.Position - 1}", $"備援 {replica.Position - 1}");
+                return replica.Issue != UpdateSourceRegistryLoadIssue.None
+                    ? $"{role}: {FormatRegistrySelfTestIssue(replica.Issue)}"
+                    : result.AcceptedRegistryRevision is { } accepted &&
+                      replica.RegistryRevision < accepted
+                    ? Localize(
+                        $"{role}: stale revision {replica.RegistryRevision} (accepted {accepted})",
+                        $"{role}：版本 {replica.RegistryRevision} 已過期（已接受 {accepted}）")
+                    : replica.IsSelected
+                    ? Localize(
+                        $"{role}: revision {replica.RegistryRevision} selected",
+                        $"{role}：已選用版本 {replica.RegistryRevision}")
+                    : replica.RegistryRevision == selectedRevision
+                    ? Localize(
+                        $"{role}: revision {replica.RegistryRevision} synchronized",
+                        $"{role}：版本 {replica.RegistryRevision} 已同步")
+                    : Localize(
+                        $"{role}: stale revision {replica.RegistryRevision}",
+                        $"{role}：版本 {replica.RegistryRevision} 已過期");
+            }));
     }
 
     private string FormatEnvironmentSelfTestAttempt(VersionEnvironmentSelfTestAttempt attempt)
@@ -94,6 +138,12 @@ internal sealed partial class SettingsViewModel
             UpdateSourceRegistryLoadIssue.PermissionDenied => Localize(
                 "permission to read the fixed Registry was denied",
                 "沒有權限讀取固定 Registry"),
+            UpdateSourceRegistryLoadIssue.AuthenticationRequired => Localize(
+                "Registry JSON was not retrieved; sign in to the configured HTTPS source, confirm access, then run the self-test again",
+                "未取得 Registry JSON；請先登入設定的 HTTPS 來源並確認可存取，再重新執行自我測試"),
+            UpdateSourceRegistryLoadIssue.RegistryTimedOut => Localize(
+                "the fixed Registry request timed out",
+                "固定 Registry 請求逾時"),
             UpdateSourceRegistryLoadIssue.UnsafeLocator => Localize(
                 "the fixed Registry location is unsafe",
                 "固定 Registry 位置不安全"),
@@ -106,7 +156,60 @@ internal sealed partial class SettingsViewModel
             UpdateSourceRegistryLoadIssue.UnstableRead => Localize(
                 "the fixed Registry changed while it was being read",
                 "讀取固定 Registry 時檔案發生變更"),
+            UpdateSourceRegistryLoadIssue.ReplicaConflict => Localize(
+                "Registry replicas conflict at the same publication authority",
+                "Registry 副本的發布權限或相同版本內容互相衝突"),
             _ => throw new ArgumentOutOfRangeException(nameof(issue)),
+        };
+    }
+
+    private string FormatRegistryAuthorityIssue(UpdateSourceRegistryIssue issue)
+    {
+        return issue switch
+        {
+            UpdateSourceRegistryIssue.None => Localize(
+                "no Registry authority issue",
+                "Registry 發布權限沒有問題"),
+            UpdateSourceRegistryIssue.NotConfigured => Localize(
+                "Registry authority is not configured",
+                "尚未設定 Registry 發布權限"),
+            UpdateSourceRegistryIssue.Unavailable => Localize(
+                "Registry authority is unavailable",
+                "Registry 發布權限無法使用"),
+            UpdateSourceRegistryIssue.PermissionDenied => Localize(
+                "Registry authority access was denied",
+                "沒有權限讀取 Registry 發布權限"),
+            UpdateSourceRegistryIssue.AuthenticationRequired => Localize(
+                "Registry authority requires authentication",
+                "Registry 發布權限需要登入驗證"),
+            UpdateSourceRegistryIssue.TimedOut => Localize(
+                "Registry authority timed out",
+                "Registry 發布權限讀取逾時"),
+            UpdateSourceRegistryIssue.Invalid => Localize(
+                "Registry authority is invalid",
+                "Registry 發布權限無效"),
+            UpdateSourceRegistryIssue.RevisionRollback => Localize(
+                "the selected Registry revision is older than the last accepted revision",
+                "選取的 Registry 版本低於上次已接受版本"),
+            UpdateSourceRegistryIssue.RevisionConflict => Localize(
+                "the selected Registry reuses an accepted revision with different bytes",
+                "選取的 Registry 以不同內容重複使用已接受版本"),
+            UpdateSourceRegistryIssue.StateUnavailable => Localize(
+                "the durable version state is unavailable",
+                "無法讀取持久版本狀態"),
+            UpdateSourceRegistryIssue.CandidatesExhausted => Localize(
+                "all Registry candidates were rejected",
+                "所有 Registry 候選來源均遭拒絕"),
+            UpdateSourceRegistryIssue.RegistryChanged => Localize(
+                "the Registry changed before source selection completed",
+                "來源選取完成前 Registry 已變更"),
+            UpdateSourceRegistryIssue.Superseded => Localize(
+                "a newer Registry check superseded this result",
+                "較新的 Registry 檢查已取代本次結果"),
+            UpdateSourceRegistryIssue.CurrentSourceDeprecated => Localize(
+                "the retained source is deprecated",
+                "目前保留的來源已被標示為停用"),
+            _ => throw new ArgumentOutOfRangeException(nameof(issue), issue, null),
         };
     }
 

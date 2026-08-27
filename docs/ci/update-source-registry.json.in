@@ -1,0 +1,17 @@
+{
+  "schemaVersion": 1,
+  "registryId": "nvt-fw-combiner-production",
+  "registryRevision": 0,
+  "publishedAtUtc": "__PUBLISHED_AT_UTC__",
+  "catalogPublication": {
+    "latestVersion": "__LATEST_VERSION__",
+    "catalogSchemaVersion": 1,
+    "catalogSha256": "__CATALOG_SHA256__"
+  },
+  "entries": [
+    {
+      "status": "latest",
+      "catalogPath": "G:\\AUTO\\projects\\模組專案開發\\NVT_FW_Combiner\\update-catalog.v1.json"
+    }
+  ]
+}

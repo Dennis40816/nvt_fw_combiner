@@ -286,7 +286,7 @@ internal sealed partial class WorkflowSessionPresentationViewModel
             ReconcilePublishedNumberChoice(ResolvePublishedNumber(
                 contextIc,
                 SelectedNumber,
-                useAbTopology: IsAbMergeContextActive));
+                ResolveNumberWorkflowId()));
             OnPropertyChanged(nameof(SelectedNumberChoice));
             return;
         }
@@ -308,7 +308,10 @@ internal sealed partial class WorkflowSessionPresentationViewModel
         return IsAbMergeContextActive
             ? [.. publication.GetAbMergeTopologyChoices(icId)
                 .Select(static choice => new IcNumberChoiceViewModel(choice.Token, choice.DisplayLabel))]
-            : UiCompositionRunner.GetNumberSelectionChoices(publication, icId);
+            : UiCompositionRunner.GetNumberSelectionChoices(
+                publication,
+                icId,
+                ResolveNumberWorkflowId());
     }
 
     internal void RefreshContextState(WorkflowInspectionOwner? owner = null, bool resetRunResult = false,
@@ -528,9 +531,11 @@ internal sealed partial class WorkflowSessionPresentationViewModel
 
     internal void ReplaceModeChanged()
     {
+        ActivateReplaceModeNumberContext();
         InvalidateFirmwareNumberMismatch();
         InvalidateFirmwareInspection(WorkflowInspectionOwner.Replace);
         _replace.InvalidateCtrlRamFirmwareVersionContextState();
+        RefreshNumberChoicesForSelectedIc();
         RefreshContextState(WorkflowInspectionOwner.Replace, resetRunResult: true);
         if (!TryRefreshRetainedReplaceFirmwareInspectionsIfStale())
         {
@@ -571,6 +576,7 @@ internal sealed partial class WorkflowSessionPresentationViewModel
         }
         if (replaceModeReconciled)
         {
+            ActivateReplaceModeNumberContext();
             _replace.PublishCatalogReconciledReplaceMode();
         }
 

@@ -1,0 +1,120 @@
+{
+  "schemaVersion": "1.0",
+  "workflowPath": ".github/workflows/release.yml",
+  "workflowRef": "refs/heads/main",
+  "workflowHeadRelation": "authenticated-protected-main-independent-of-candidate-source",
+  "candidateImplementationHead": "e712842d61c560193ff9f7e2321daa47401a52d0",
+  "trigger": "workflow_dispatch",
+  "topLevelPermissions": {
+    "actions": "read",
+    "contents": "read"
+  },
+  "actionPins": {
+    "checkout": "actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0",
+    "downloadArtifact": "actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131",
+    "uploadArtifact": "actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a"
+  },
+  "jobs": {
+    "v0916-parity-compare": {
+      "name": "release / v0.9.16 parity compare",
+      "needs": ["candidate"],
+      "if": "${{ success() }}",
+      "runsOn": "windows-latest",
+      "timeoutMinutes": 60,
+      "environment": null,
+      "permissions": {
+        "actions": "read",
+        "contents": "read"
+      },
+      "steps": [
+        {
+          "name": "Checkout authenticated parity workflow authority",
+          "uses": "actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0",
+          "with": {
+            "fetch-depth": 0,
+            "persist-credentials": false,
+            "ref": "${{ github.workflow_sha }}"
+          }
+        },
+        {
+          "name": "Download exact candidate assets",
+          "uses": "actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131",
+          "with": {
+            "name": "${{ needs.candidate.outputs.artifact-name }}",
+            "path": "artifacts/release"
+          }
+        },
+        {
+          "name": "Execute v0.9.16 parity comparison",
+          "shell": "pwsh",
+          "run": "python ./scripts/v0916_parity_certification.py compare --plan ./docs/contracts/v0916-parity-certification-v1.json --candidate-artifact-dir ./artifacts/release --output-root ./artifacts/v0916-parity"
+        },
+        {
+          "name": "Upload immutable parity comparison",
+          "uses": "actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a",
+          "with": {
+            "if-no-files-found": "error",
+            "name": "v0916-parity-comparison-${{ github.run_id }}",
+            "path": "artifacts/v0916-parity/comparison.json",
+            "retention-days": 30
+          }
+        }
+      ]
+    },
+    "v0916-parity-attestation": {
+      "name": "release / v0.9.16 parity attestation",
+      "needs": ["candidate", "v0916-parity-compare"],
+      "if": "${{ success() }}",
+      "runsOn": "windows-latest",
+      "timeoutMinutes": 30,
+      "environment": "firmware-parity",
+      "permissions": {
+        "actions": "read",
+        "contents": "read"
+      },
+      "steps": [
+        {
+          "name": "Checkout authenticated parity workflow authority",
+          "uses": "actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0",
+          "with": {
+            "fetch-depth": 0,
+            "persist-credentials": false,
+            "ref": "${{ github.workflow_sha }}"
+          }
+        },
+        {
+          "name": "Download same-run parity comparison",
+          "uses": "actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131",
+          "with": {
+            "name": "v0916-parity-comparison-${{ github.run_id }}",
+            "path": "artifacts/v0916-parity"
+          }
+        },
+        {
+          "name": "Record protected parity approval",
+          "shell": "pwsh",
+          "run": "python ./scripts/v0916_parity_certification.py record-protected-approval --comparison ./artifacts/v0916-parity/comparison.json --repository ${{ github.repository }} --run-id ${{ github.run_id }} --run-attempt ${{ github.run_attempt }} --job-name ${{ github.job }} --workflow-sha ${{ github.workflow_sha }} --output ./artifacts/v0916-parity/protected-approval.json"
+        },
+        {
+          "name": "Upload immutable protected approval",
+          "uses": "actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a",
+          "with": {
+            "if-no-files-found": "error",
+            "name": "v0916-parity-attestation-${{ github.run_id }}",
+            "path": "artifacts/v0916-parity/protected-approval.json",
+            "retention-days": 30
+          }
+        }
+      ]
+    }
+  },
+  "forbidden": {
+    "continueOnError": true,
+    "unprotectedEnvironment": true,
+    "unpinnedAction": true,
+    "writePermissions": true,
+    "alternateComparatorCommand": true,
+    "artifactNameOrPathDrift": true,
+    "conditionalBypass": true
+  }
+}

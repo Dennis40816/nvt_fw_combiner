@@ -24,10 +24,33 @@ public enum UpdateCatalogLoadIssue
 /// <summary>Fail-closed result from one configured-folder catalog read.</summary>
 public sealed record UpdateCatalogLoadResult(
     UpdateCatalogSnapshot? Snapshot,
-    UpdateCatalogLoadIssue Issue)
+    UpdateCatalogLoadIssue Issue,
+    UpdateCatalogContentIdentity? ContentIdentity = null)
 {
     /// <summary>Gets whether a complete immutable catalog was published.</summary>
     public bool IsSuccess => Snapshot is not null && Issue == UpdateCatalogLoadIssue.None;
+}
+
+/// <summary>Exact wire identity of one validated Catalog publication.</summary>
+public sealed record UpdateCatalogContentIdentity
+{
+    /// <summary>Creates a validated exact Catalog identity.</summary>
+    public UpdateCatalogContentIdentity(int schemaVersion, string sha256)
+    {
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(schemaVersion);
+        if (!UpdateSourceRegistrySnapshot.IsLowerSha256(sha256))
+        {
+            throw new ArgumentException("Catalog SHA-256 is invalid.", nameof(sha256));
+        }
+        SchemaVersion = schemaVersion;
+        Sha256 = sha256;
+    }
+
+    /// <summary>Gets the validated Catalog schema version.</summary>
+    public int SchemaVersion { get; }
+
+    /// <summary>Gets the lowercase SHA-256 of the exact Catalog bytes.</summary>
+    public string Sha256 { get; }
 }
 
 /// <summary>Reads one immutable update-catalog snapshot from a configured root.</summary>
@@ -39,5 +62,13 @@ public interface IUpdateCatalogSource
     /// <returns>A fail-closed catalog result.</returns>
     ValueTask<UpdateCatalogLoadResult> LoadAsync(
         string sourceRoot,
+        CancellationToken cancellationToken);
+
+    /// <summary>Loads one exact Catalog JSON file selected by a Registry publication.</summary>
+    /// <param name="catalogPath">Normalized absolute Catalog JSON path.</param>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    /// <returns>A fail-closed Catalog result including exact wire identity.</returns>
+    ValueTask<UpdateCatalogLoadResult> LoadCatalogAsync(
+        string catalogPath,
         CancellationToken cancellationToken);
 }

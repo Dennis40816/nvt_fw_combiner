@@ -24,8 +24,8 @@ import validate_repository as repository_validation  # noqa: E402
 
 PACKAGE_SCRIPT = ROOT / "scripts" / "package.ps1"
 SMOKE_SCRIPT = ROOT / "scripts" / "smoke-release.ps1"
-UPDATE_SOURCE_REGISTRY_PROFILE = (
-    ROOT / "docs" / "ci" / "update-source-registry.v1.json"
+UPDATE_SOURCE_REGISTRY_TEMPLATE = (
+    ROOT / "docs" / "ci" / "update-source-registry.json.in"
 )
 PROBE_RELATIVE_PATH = Path("external-tools/release-package-policy-probe.txt")
 CAPABILITY_POLICY_RELATIVE_PATH = Path(
@@ -147,7 +147,9 @@ class ReleasePackagePolicyTests(unittest.TestCase):
             match.start()
             for match in re.finditer(re.escape(validation_literal), package_script)
         ]
-        archive_index = package_script.index("Compress-Archive -LiteralPath $PackageRoot")
+        archive_index = package_script.index(
+            "Compress-Archive -LiteralPath $PackageRoot"
+        )
 
         self.assertLess(schema_path_index, manifest_write_index)
         self.assertEqual(2, len(validation_indexes))
@@ -365,7 +367,9 @@ class ReleasePackagePolicyTests(unittest.TestCase):
     @unittest.skipUnless(
         POWERSHELL, "PowerShell is required for Windows release-policy tests"
     )
-    def test_packager_rejects_version_that_differs_from_repository_identity(self) -> None:
+    def test_packager_rejects_version_that_differs_from_repository_identity(
+        self,
+    ) -> None:
         repository_version = (ROOT / "VERSION").read_text(encoding="utf-8").strip()
         major, minor, patch = (int(value) for value in repository_version.split("."))
         mismatched_version = f"{major}.{minor}.{patch + 1}"
@@ -389,8 +393,8 @@ class ReleasePackagePolicyTests(unittest.TestCase):
 
         self.assertNotEqual(0, result.returncode, result.stdout + result.stderr)
         self.assertIn(
-            f"Package version '{mismatched_version}' does not match exact source "
-            f"snapshot VERSION '{repository_version}'",
+            f"Package version '{mismatched_version}' does not match repository "
+            f"VERSION '{repository_version}'",
             normalize_console_output(result.stdout + result.stderr),
         )
 
@@ -439,9 +443,12 @@ class ReleasePackagePolicyTests(unittest.TestCase):
     )
     def test_packager_rejects_dirty_repository_before_policy_dry_run(self) -> None:
         for dirty_kind in ("staged", "unstaged", "untracked"):
-            with self.subTest(dirty_kind=dirty_kind), tempfile.TemporaryDirectory(
-                prefix="nvt-package-source-identity-"
-            ) as temporary_directory:
+            with (
+                self.subTest(dirty_kind=dirty_kind),
+                tempfile.TemporaryDirectory(
+                    prefix="nvt-package-source-identity-"
+                ) as temporary_directory,
+            ):
                 repository_root = Path(temporary_directory)
                 script_path = repository_root / "scripts" / "package.ps1"
                 script_path.parent.mkdir(parents=True)
@@ -497,9 +504,7 @@ class ReleasePackagePolicyTests(unittest.TestCase):
                     "-ExternalToolPolicyDryRun",
                 )
 
-                self.assertNotEqual(
-                    0, result.returncode, result.stdout + result.stderr
-                )
+                self.assertNotEqual(0, result.returncode, result.stdout + result.stderr)
                 self.assertIn(
                     "Release packaging requires a clean repository worktree and index",
                     normalize_console_output(result.stdout + result.stderr),
@@ -564,7 +569,9 @@ class ReleasePackagePolicyTests(unittest.TestCase):
     @unittest.skipUnless(
         POWERSHELL, "PowerShell is required for Windows release-policy tests"
     )
-    def test_snapshot_version_mismatch_cleans_attached_worktree(self) -> None:
+    def test_repository_version_mismatch_does_not_attach_snapshot_worktree(
+        self,
+    ) -> None:
         with tempfile.TemporaryDirectory(
             prefix=".nfc-package-mismatch-", dir=ROOT.parent
         ) as temporary_directory:
@@ -602,7 +609,7 @@ class ReleasePackagePolicyTests(unittest.TestCase):
 
             self.assertNotEqual(0, result.returncode, result.stdout + result.stderr)
             self.assertIn(
-                "does not match exact source snapshot VERSION '1.0.0'",
+                "does not match repository VERSION '1.0.0'",
                 normalize_console_output(result.stdout + result.stderr),
             )
             self.assertEqual([], list(temporary_root.glob(".nfcps-*")))
@@ -650,8 +657,8 @@ class ReleasePackagePolicyTests(unittest.TestCase):
                 text=True,
             ).stdout.strip()
             repository_version = (
-                invocation_root / "VERSION"
-            ).read_text(encoding="utf-8").strip()
+                (invocation_root / "VERSION").read_text(encoding="utf-8").strip()
+            )
             wrapper_root = temporary_root / "wrapper"
             wrapper_root.mkdir()
             git_wrapper = wrapper_root / "git.cmd"
@@ -777,8 +784,8 @@ class ReleasePackagePolicyTests(unittest.TestCase):
             snapshot_root: Path | None = None
             try:
                 repository_version = (
-                    invocation_root / "VERSION"
-                ).read_text(encoding="utf-8").strip()
+                    (invocation_root / "VERSION").read_text(encoding="utf-8").strip()
+                )
                 repository_head = subprocess.run(
                     ["git", "rev-parse", "HEAD"],
                     cwd=invocation_root,
@@ -914,7 +921,10 @@ class ReleasePackagePolicyTests(unittest.TestCase):
             "$approvedMaintenanceVersions[$env:NFC_SOURCE_BRANCH] -ne $version",
             release_workflow,
         )
-        self.assertIn("permissions:\n  contents: read", release_workflow)
+        self.assertIn(
+            "permissions:\n  actions: read\n  contents: read",
+            release_workflow,
+        )
         self.assertIn(
             "candidate:\n"
             "    name: release / candidate\n"
@@ -1010,9 +1020,7 @@ class ReleasePackagePolicyTests(unittest.TestCase):
         )
 
     def test_stable_release_emits_separate_update_source_handoff(self) -> None:
-        release = (ROOT / ".github/workflows/release.yml").read_text(
-            encoding="utf-8"
-        )
+        release = (ROOT / ".github/workflows/release.yml").read_text(encoding="utf-8")
         candidate_start = release.index("\n  candidate:")
         promote_start = release.index("\n  promote:")
         smoke_start = release.index("\n  published-smoke:")
@@ -1020,17 +1028,16 @@ class ReleasePackagePolicyTests(unittest.TestCase):
         promote = release[promote_start:smoke_start]
 
         self.assertIn("published_at:", release)
-        self.assertIn(
-            "NFC_RELEASE_PUBLISHED_AT: ${{ inputs.published_at }}", release
-        )
+        self.assertIn("NFC_RELEASE_PUBLISHED_AT: ${{ inputs.published_at }}", release)
         self.assertIn("-cnotmatch", candidate)
-        self.assertIn(
-            "published-at=$env:NFC_RELEASE_PUBLISHED_AT", candidate
-        )
+        self.assertIn("published-at=$env:NFC_RELEASE_PUBLISHED_AT", candidate)
 
         setup_python = candidate.index("Setup pinned Python for release policy")
         helper_copy = candidate.index(
             "Copy-Item -LiteralPath ./scripts/create_update_catalog.py"
+        )
+        registry_policy_copy = candidate.index(
+            "Copy-Item -LiteralPath ./scripts/update_source_registry_policy.py"
         )
         detach = candidate.index("git checkout --detach")
         package = candidate.index("Build closed-allowlist release package")
@@ -1044,6 +1051,8 @@ class ReleasePackagePolicyTests(unittest.TestCase):
         handoff_upload = candidate.index("Upload update-source handoff")
 
         self.assertLess(setup_python, helper_copy)
+        self.assertLess(helper_copy, registry_policy_copy)
+        self.assertLess(registry_policy_copy, detach)
         self.assertLess(helper_copy, detach)
         self.assertLess(package, smoke)
         self.assertLess(smoke, notes)
@@ -1053,7 +1062,7 @@ class ReleasePackagePolicyTests(unittest.TestCase):
         self.assertLess(candidate_upload, handoff_upload)
 
         self.assertIn("NFC_UPDATE_CATALOG_TOOL", candidate)
-        self.assertIn("NFC_UPDATE_SOURCE_REGISTRY_PROFILE", candidate)
+        self.assertIn("NFC_UPDATE_SOURCE_REGISTRY_TEMPLATE", candidate)
         self.assertIn("artifacts/update-source-handoff", candidate)
         self.assertIn("'artifacts/update-source-handoff'", candidate)
         self.assertIn("'packages'", candidate)
@@ -1064,17 +1073,30 @@ class ReleasePackagePolicyTests(unittest.TestCase):
         self.assertIn("'--manifest-copy'", candidate)
         self.assertIn("'RELEASE-MANIFEST.json'", candidate)
         self.assertIn("update-catalog.v1.json", candidate)
-        self.assertIn("update-source-registry.v1.json", candidate)
+        self.assertIn("update-source-registry.json", candidate)
         self.assertIn(
-            "Copy-Item -LiteralPath ./docs/ci/update-source-registry.v1.json",
+            "Copy-Item -LiteralPath ./docs/ci/update-source-registry.json.in",
             candidate,
         )
+        self.assertIn("--registry-template", candidate)
+        self.assertIn("--registry-revision", candidate)
+        self.assertIn("$env:GITHUB_RUN_ID", candidate)
 
-        self.assertEqual(2, release.count("actions/upload-artifact@"))
+        self.assertEqual(2, candidate.count("actions/upload-artifact@"))
+        self.assertEqual(4, release.count("actions/upload-artifact@"))
         self.assertIn("path: artifacts/release/*", candidate)
         self.assertIn("path: artifacts/update-source-handoff/*", candidate)
         self.assertNotIn("update-source-handoff", promote)
         self.assertNotIn("update-catalog.v1.json", promote)
+        self.assertNotIn("update-source-registry.json", promote)
+        self.assertIn(
+            "$registryPath = Join-Path $handoffRoot 'update-source-registry.json'",
+            candidate,
+        )
+        self.assertNotIn(
+            "update-source-registry.json",
+            candidate[manifest:],
+        )
         self.assertIn(
             "$expectedNames = @($manifest.assets.name) + "
             "@($env:NFC_MANIFEST_NAME, $checksumName)",
@@ -1085,16 +1107,29 @@ class ReleasePackagePolicyTests(unittest.TestCase):
         self,
     ) -> None:
         registry = json.loads(
-            UPDATE_SOURCE_REGISTRY_PROFILE.read_text(encoding="utf-8")
+            UPDATE_SOURCE_REGISTRY_TEMPLATE.read_text(encoding="utf-8")
         )
 
         self.assertEqual(1, registry["schemaVersion"])
-        self.assertEqual(1, registry["revision"])
+        self.assertEqual("nvt-fw-combiner-production", registry["registryId"])
+        self.assertEqual(0, registry["registryRevision"])
+        self.assertEqual(
+            {
+                "latestVersion": "__LATEST_VERSION__",
+                "catalogSchemaVersion": 1,
+                "catalogSha256": "__CATALOG_SHA256__",
+            },
+            registry["catalogPublication"],
+        )
+        self.assertEqual("__PUBLISHED_AT_UTC__", registry["publishedAtUtc"])
         self.assertEqual(
             [
                 {
                     "status": "latest",
-                    "path": "G:\\AUTO\\projects\\模組專案開發\\NVT_FW_Combiner",
+                    "catalogPath": (
+                        "G:\\AUTO\\projects\\模組專案開發\\NVT_FW_Combiner\\"
+                        "update-catalog.v1.json"
+                    ),
                 }
             ],
             registry["entries"],
@@ -1163,6 +1198,40 @@ class ReleasePackagePolicyTests(unittest.TestCase):
         self.assertIn("validate-tag", release_workflow)
         self.assertIn("validate-release", release_workflow)
 
+    def test_101_release_source_is_strictly_version_only_from_v100(self) -> None:
+        release = (ROOT / ".github/workflows/release.yml").read_text(encoding="utf-8")
+
+        self.assertIn("if ($version -eq '1.0.1')", release)
+        self.assertIn("validate-version-only-lineage", release)
+        self.assertIn("--repository '${{ github.workspace }}'", release)
+        self.assertIn("validate-version-only-package", release)
+        self.assertIn("gh release download v1.0.0", release)
+        self.assertIn("NvtFwCombiner-v1.0.0-win-x64.zip", release)
+        self.assertIn("NvtFwCombiner-v1.0.1-win-x64.zip", release)
+        self.assertIn("VersionOnlyBasePackage", release)
+        self.assertIn("VersionOnlyBasePackageSha256", release)
+        self.assertIn("matches[0].digest", release)
+        self.assertIn("^sha256:[0-9a-f]{64}$", release)
+        self.assertIn("--base-package-sha256", release)
+        self.assertLess(
+            release.index("Download published 1.0.0 base package"),
+            release.index("Build closed-allowlist release package"),
+        )
+        self.assertNotIn("git diff --name-only --no-renames", release)
+        self.assertNotIn("$changedPaths.Count -ne 1", release)
+        self.assertNotIn("$changedPaths[0] -ne 'VERSION'", release)
+
+    def test_stable_promotion_waits_for_parity_attestation(self) -> None:
+        release = (ROOT / ".github/workflows/release.yml").read_text(encoding="utf-8")
+        promote = release[
+            release.index("  promote:") : release.index(
+                "    steps:", release.index("  promote:")
+            )
+        ]
+
+        self.assertIn("- candidate", promote)
+        self.assertIn("- v0916-parity-attestation", promote)
+
     def test_review_ready_event_and_closed_release_candidate_are_explicit(self) -> None:
         ci = (ROOT / ".github/workflows/ci.yml").read_text(encoding="utf-8")
         release = (ROOT / ".github/workflows/release.yml").read_text(encoding="utf-8")
@@ -1227,9 +1296,12 @@ class ReleasePackagePolicyTests(unittest.TestCase):
             "oversized.zip",
             "NvtFwCombiner-v1.0.2-win-x64.zip",
         ):
-            with self.subTest(package_name=package_name), tempfile.TemporaryDirectory(
-                prefix="nvt-release-size-policy-test-"
-            ) as temporary_directory:
+            with (
+                self.subTest(package_name=package_name),
+                tempfile.TemporaryDirectory(
+                    prefix="nvt-release-size-policy-test-"
+                ) as temporary_directory,
+            ):
                 package_path = Path(temporary_directory) / package_name
                 with package_path.open("wb") as package:
                     package.truncate(MAXIMUM_PACKAGE_BYTES + 1)
@@ -1256,9 +1328,12 @@ class ReleasePackagePolicyTests(unittest.TestCase):
     )
     def test_release_smoke_applies_bounded_managed_upgrade_pair_budget(self) -> None:
         for version in ("1.0.0", "1.0.1"):
-            with self.subTest(version=version), tempfile.TemporaryDirectory(
-                prefix="nvt-release-managed-size-policy-test-"
-            ) as temporary_directory:
+            with (
+                self.subTest(version=version),
+                tempfile.TemporaryDirectory(
+                    prefix="nvt-release-managed-size-policy-test-"
+                ) as temporary_directory,
+            ):
                 package_path = Path(temporary_directory) / (
                     f"NvtFwCombiner-v{version}-win-x64.zip"
                 )
@@ -1683,9 +1758,7 @@ class ReleasePackagePolicyTests(unittest.TestCase):
             manifest_path = bundle_root / "profile-bundle.json"
             manifest_path.write_bytes(source_manifest_path.read_bytes())
             staged.append(manifest_path)
-            canonical = trust_entry["materialization"].get(
-                "canonicalFirmwareFamily"
-            )
+            canonical = trust_entry["materialization"].get("canonicalFirmwareFamily")
             for entry in manifest["entries"]:
                 relative_path = Path(entry["path"])
                 if entry["path"] == "schemas/composition-profile-v2.schema.json":
@@ -1782,9 +1855,7 @@ class ReleasePackagePolicyTests(unittest.TestCase):
     def run_smoke_with_retired_support_policy(
         self,
         *,
-        relative_path: Path = Path(
-            "docs/contracts/support-publication-policy-v1.json"
-        ),
+        relative_path: Path = Path("docs/contracts/support-publication-policy-v1.json"),
         role: str = "publicationPolicy",
     ) -> subprocess.CompletedProcess[str]:
         with tempfile.TemporaryDirectory(

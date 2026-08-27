@@ -337,7 +337,9 @@ public sealed partial class MemoryLayoutProjectorTests
         var route = new CapabilityRouteIdentity(
             "NT-SYNTHETIC",
             workflowId,
-            "selector-free",
+            StringComparer.Ordinal.Equals(workflowId, ExperienceIds.GeneralReplace)
+                ? "1-ic"
+                : "selector-free",
             resolvedMap.ImageMap.MapId);
         ResolvedCapability capability = Capability(route, composition);
         return new ProjectionFixture(

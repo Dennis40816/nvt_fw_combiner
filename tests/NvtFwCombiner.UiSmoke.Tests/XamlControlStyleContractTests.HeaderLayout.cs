@@ -30,6 +30,13 @@ public sealed partial class XamlControlStyleContractTests
                 "SelectedMergeMode",
                 StringComparison.Ordinal) == true);
 
+        Assert.Equal(
+            "{Binding SelectedReplaceMode, Mode=TwoWay}",
+            (string?)replaceMode.Attribute("SelectedItem"));
+        Assert.Equal(
+            "{Binding SelectedMergeMode, Mode=TwoWay}",
+            (string?)mergeMode.Attribute("SelectedItem"));
+
         AssertModeContainerOccupiesHeaderRightColumn(replaceMode, replaceHeader);
         AssertModeContainerOccupiesHeaderRightColumn(mergeMode, mergeHeader);
     }

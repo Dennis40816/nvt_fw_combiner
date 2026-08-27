@@ -69,10 +69,31 @@ internal sealed partial class WorkflowSessionPresentationViewModel
                 previousReplaceNumber,
                 _merge,
                 _replace);
+        if (replaceReconciliation.ModeChanged &&
+            _replaceWorkflowNumbersByMode.TryGetValue(
+                _replace.SelectedReplaceMode,
+                out string? retainedReplaceNumber))
+        {
+            replaceReconciliation = replaceReconciliation with
+            {
+                Number = WorkflowSelectorProjection.Number(
+                    publication,
+                    replaceReconciliation.IcId,
+                    retainedReplaceNumber,
+                    _replace.SelectedReplaceMode),
+                NeedsRefresh = true,
+            };
+        }
         _mergeWorkflowContextIc = mergeReconciliation.IcId;
         _replaceWorkflowContextIc = replaceReconciliation.IcId;
         _mergeWorkflowContextNumber = mergeReconciliation.Number;
         _replaceWorkflowContextNumber = replaceReconciliation.Number;
+        _replaceWorkflowContextMode = _replace.SelectedReplaceMode;
+        if (!string.IsNullOrWhiteSpace(_replaceWorkflowContextMode))
+        {
+            _replaceWorkflowNumbersByMode[_replaceWorkflowContextMode] =
+                _replaceWorkflowContextNumber;
+        }
         _mergeWorkflowContextNeedsRefresh = mergeReconciliation.NeedsRefresh;
         _replaceWorkflowContextNeedsRefresh = replaceReconciliation.NeedsRefresh;
 
@@ -88,7 +109,7 @@ internal sealed partial class WorkflowSessionPresentationViewModel
                 ResolvePublishedNumber(
                     publication.DefaultIcId!,
                     SelectedNumber,
-                    useAbTopology: false)),
+                    workflowId: null)),
             _ => throw new InvalidOperationException("Unknown workflow inspection owner."),
         };
         PublishActiveSelectorState(activeIc, activeNumber);
@@ -106,14 +127,24 @@ internal sealed partial class WorkflowSessionPresentationViewModel
     private string ResolvePublishedNumber(
         string icId,
         string preferredToken,
-        bool useAbTopology)
+        string? workflowId)
     {
         return WorkflowSelectorProjection.Number(
             _selectorPublication ?? throw new InvalidOperationException(
                 "Canonical selector publication is not ready."),
             icId,
             preferredToken,
-            useAbTopology);
+            workflowId);
+    }
+
+    private string? ResolveNumberWorkflowId()
+    {
+        string? workflowId = IsAbMergeContextActive
+            ? ExperienceIds.AbMerge
+            : ActiveWorkflowOwner == WorkflowInspectionOwner.Replace
+                ? _replace.SelectedReplaceMode
+                : null;
+        return WorkflowSelectorProjection.NumberWorkflowScope(workflowId);
     }
 
     private void RefreshGeneralMergeDefaults(string icId)

@@ -13,7 +13,6 @@ internal sealed class SupportMatrixPresentationViewModel(
     [
         ExperienceIds.StandardMerge,
         ExperienceIds.AbMerge,
-        ExperienceIds.DpReplace,
         ExperienceIds.CtrlRamReplace,
         ExperienceIds.GeneralMerge,
         ExperienceIds.GeneralReplace,
@@ -58,7 +57,7 @@ internal sealed class SupportMatrixPresentationViewModel(
         CanonicalSupportMatrixQueryResult result = _query.Query();
         ReplaceItems(
             Rows,
-            result.Matrix?.Rows.Select(row =>
+            result.Matrix?.Rows.Where(static row => row.Identity.WorkflowId != ExperienceIds.DpReplace).Select(row =>
                 SupportMatrixRowViewModel.Create(row, text)) ?? []);
         RebuildGrid(text);
         IsStale = result.IsStale;

@@ -5,6 +5,41 @@ namespace NvtFwCombiner.Infrastructure.VersionManagement;
 
 internal static class ManagedPathSafety
 {
+    internal static bool TryNormalizeExactAbsolutePath(string? value, out string normalized)
+    {
+        normalized = string.Empty;
+        if (string.IsNullOrWhiteSpace(value) ||
+            !Path.IsPathFullyQualified(value) ||
+            IsDeviceExtendedOrAlternateStream(value))
+        {
+            return false;
+        }
+
+        try
+        {
+            normalized = Path.GetFullPath(value);
+            return PathComparer.Equals(normalized, value);
+        }
+        catch (Exception exception) when (exception is ArgumentException or NotSupportedException)
+        {
+            return false;
+        }
+    }
+
+    internal static bool HasReparseComponent(string path)
+    {
+        string? current = path;
+        while (!string.IsNullOrEmpty(current))
+        {
+            if (IsReparsePoint(current))
+            {
+                return true;
+            }
+            current = Path.GetDirectoryName(current);
+        }
+        return false;
+    }
+
     internal static bool TryResolveRelativeFile(string root, string relativePath, out string resolved)
     {
         resolved = string.Empty;
@@ -134,4 +169,19 @@ internal static class ManagedPathSafety
     {
         return Path.EndsInDirectorySeparator(path) ? path : path + Path.DirectorySeparatorChar;
     }
+
+    private static bool IsDeviceExtendedOrAlternateStream(string path)
+    {
+        if (path.StartsWith("\\\\?\\", StringComparison.Ordinal) ||
+            path.StartsWith("\\\\.\\", StringComparison.Ordinal))
+        {
+            return true;
+        }
+        string? root = Path.GetPathRoot(path);
+        return root is null || path.AsSpan(root.Length).Contains(':');
+    }
+
+    internal static StringComparer PathComparer => OperatingSystem.IsWindows()
+        ? StringComparer.OrdinalIgnoreCase
+        : StringComparer.Ordinal;
 }

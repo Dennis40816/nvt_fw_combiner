@@ -360,7 +360,7 @@ public sealed partial class VersionManagementExperienceTests
     }
 
     private sealed class RecordingCatalogSource(UpdateCatalogSnapshot snapshot)
-        : IUpdateCatalogSource
+        : IRootCatalogSourceTestDouble
     {
         internal int LoadCalls { get; private set; }
 

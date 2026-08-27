@@ -68,11 +68,11 @@ public sealed partial class RepositoryBoundaryTests
             "CaptureInheritedManagedProcessLifetime(",
             "ParseManagedHostOptions(args)",
             "--update-source-registry-path",
-            "UpdateSourceRegistryLocator.Resolve(",
+            "UpdateSourceRegistryLocator.ResolveAll(",
             "Environment.GetEnvironmentVariable",
             "CreateVersionManagementExperience");
         Assert.True(
-            desktopProgram.IndexOf("UpdateSourceRegistryLocator.Resolve(", StringComparison.Ordinal) <
+            desktopProgram.IndexOf("UpdateSourceRegistryLocator.ResolveAll(", StringComparison.Ordinal) <
             desktopProgram.IndexOf("CreateVersionManagementExperience(", StringComparison.Ordinal));
         Assert.DoesNotContain("SetEnvironmentVariable", desktopProgram, StringComparison.Ordinal);
         Assert.True(

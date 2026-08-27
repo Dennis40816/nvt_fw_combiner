@@ -11,8 +11,29 @@ import os
 import re
 import tempfile
 import zipfile
+from contextlib import contextmanager
+from collections.abc import Iterator
 from datetime import datetime
 from pathlib import Path
+
+try:
+    from update_source_registry_policy import (
+        load_strict_registry_json as _load_strict_registry_json,
+        validate_canonical_utc as _validate_registry_published_at,
+        validate_registry_document as _validate_registry_document,
+        validate_registry_entries as _shared_validate_registry_entries,
+        validate_registry_revision as _validate_registry_revision,
+        validate_registry_template as _shared_validate_registry_template,
+    )
+except ModuleNotFoundError:  # importlib-based repository tests load through scripts.*
+    from scripts.update_source_registry_policy import (
+        load_strict_registry_json as _load_strict_registry_json,
+        validate_canonical_utc as _validate_registry_published_at,
+        validate_registry_document as _validate_registry_document,
+        validate_registry_entries as _shared_validate_registry_entries,
+        validate_registry_revision as _validate_registry_revision,
+        validate_registry_template as _shared_validate_registry_template,
+    )
 
 
 CATALOG_NAME = "update-catalog.v1.json"
@@ -38,6 +59,7 @@ ENTRY_KEYS = {
     "releaseManifestSha256",
     "releaseNotes",
 }
+PUBLICATION_LOCK_NAME = ".update-source.publisher.lock"
 
 
 def _maximum_package_bytes(version: str) -> int:
@@ -106,9 +128,16 @@ def _existing_metadata(source_root: Path) -> dict[str, dict[str, object]]:
     if not catalog_path.is_file():
         return {}
     raw = catalog_path.read_bytes()
+    return _validated_catalog_entries(raw, "existing")
+
+
+def _validated_catalog_entries(
+    raw: bytes,
+    label: str,
+) -> dict[str, dict[str, object]]:
     if len(raw) > 1_048_576:
-        raise ValueError("existing update catalog exceeds 1 MiB")
-    document = _load_strict_json(raw, "existing update catalog")
+        raise ValueError(f"{label} update catalog exceeds 1 MiB")
+    document = _load_strict_json(raw, f"{label} update catalog")
     if (
         not isinstance(document, dict)
         or set(document) != ROOT_KEYS
@@ -117,14 +146,16 @@ def _existing_metadata(source_root: Path) -> dict[str, dict[str, object]]:
         or document.get("runtimeIdentifier") != RID
         or not isinstance(document.get("versions"), list)
     ):
-        raise ValueError("existing update catalog identity is invalid")
+        raise ValueError(f"{label} update catalog identity is invalid")
     versions = document["versions"]
     if not 1 <= len(versions) <= 128:
-        raise ValueError("existing update catalog must contain 1 through 128 versions")
+        raise ValueError(
+            f"{label} update catalog must contain 1 through 128 versions"
+        )
     entries: dict[str, dict[str, object]] = {}
     for entry in versions:
         if not isinstance(entry, dict) or set(entry) != ENTRY_KEYS:
-            raise ValueError("existing update catalog entry shape is invalid")
+            raise ValueError(f"{label} update catalog entry shape is invalid")
         version = entry["version"]
         published_at = entry["publishedAt"]
         package_path = entry["packagePath"]
@@ -133,33 +164,35 @@ def _existing_metadata(source_root: Path) -> dict[str, dict[str, object]]:
         manifest_sha256 = entry["releaseManifestSha256"]
         release_notes = entry["releaseNotes"]
         if not isinstance(version, str) or not SEMVER_PATTERN.fullmatch(version):
-            raise ValueError("existing update catalog version is invalid")
+            raise ValueError(f"{label} update catalog version is invalid")
         if not isinstance(published_at, str):
-            raise ValueError(f"existing publishedAt for {version} is invalid")
+            raise ValueError(f"{label} publishedAt for {version} is invalid")
         _validate_published_at(published_at, version)
         if package_path != f"packages/NvtFwCombiner-v{version}-win-x64.zip":
-            raise ValueError(f"existing packagePath for {version} is not canonical")
+            raise ValueError(f"{label} packagePath for {version} is not canonical")
         if (
             isinstance(package_size, bool)
             or not isinstance(package_size, int)
             or not 1 <= package_size <= _maximum_package_bytes(version)
         ):
-            raise ValueError(f"existing packageSize for {version} is invalid")
+            raise ValueError(f"{label} packageSize for {version} is invalid")
         if not isinstance(package_sha256, str) or not SHA256_PATTERN.fullmatch(
             package_sha256
         ):
-            raise ValueError(f"existing packageSha256 for {version} is invalid")
+            raise ValueError(f"{label} packageSha256 for {version} is invalid")
         if not isinstance(manifest_sha256, str) or not SHA256_PATTERN.fullmatch(
             manifest_sha256
         ):
-            raise ValueError(f"existing releaseManifestSha256 for {version} is invalid")
+            raise ValueError(
+                f"{label} releaseManifestSha256 for {version} is invalid"
+            )
         if (
             not isinstance(release_notes, str)
             or len(release_notes.encode("utf-8")) > 65_536
         ):
-            raise ValueError(f"existing releaseNotes for {version} are invalid")
+            raise ValueError(f"{label} releaseNotes for {version} are invalid")
         if version in entries:
-            raise ValueError(f"existing update catalog repeats version {version}")
+            raise ValueError(f"{label} update catalog repeats version {version}")
         entries[version] = entry
     return entries
 
@@ -258,8 +291,30 @@ def _validate_manifest_copy_destination(source_root: Path, destination: Path) ->
     return destination
 
 
-def copy_release_manifest(source_root: Path, version: str, destination: Path) -> Path:
-    """Copy one catalog-bound inner release manifest for operator inspection."""
+def _remove_owned_publication(
+    destination: Path,
+    published: bytes,
+    description: str,
+) -> None:
+    try:
+        current = destination.read_bytes()
+    except FileNotFoundError as exception:
+        raise RuntimeError(
+            f"{description} disappeared before rollback cleanup"
+        ) from exception
+    if current != published:
+        raise RuntimeError(
+            f"{description} changed before rollback cleanup; preserving current bytes"
+        )
+    destination.unlink()
+
+
+def _publish_release_manifest(
+    source_root: Path,
+    version: str,
+    destination: Path,
+) -> tuple[Path, bytes]:
+    """Publish one Catalog-bound manifest and return its exact owned bytes."""
     source_root = source_root.absolute()
     _reject_link(source_root, "update source root")
     source_root = source_root.resolve(strict=True)
@@ -296,19 +351,53 @@ def copy_release_manifest(source_root: Path, version: str, destination: Path) ->
             os.fsync(stream.fileno())
     except BaseException:
         try:
-            os.unlink(destination)
-        except FileNotFoundError:
+            _remove_owned_publication(
+                destination,
+                manifest,
+                "published release manifest",
+            )
+        except (FileNotFoundError, RuntimeError):
             pass
         raise
-    return destination
+    return destination, manifest
 
 
-def build_catalog(
+def copy_release_manifest(source_root: Path, version: str, destination: Path) -> Path:
+    """Copy one catalog-bound inner release manifest for operator inspection."""
+    published, _ = _publish_release_manifest(source_root, version, destination)
+    return published
+
+
+@contextmanager
+def _publication_lock(source_root: Path) -> Iterator[None]:
+    lock_path = source_root / PUBLICATION_LOCK_NAME
+    temporary_flag = getattr(os, "O_TEMPORARY", 0)
+    flags = os.O_WRONLY | os.O_CREAT | os.O_EXCL
+    flags |= getattr(os, "O_NOINHERIT", 0)
+    flags |= temporary_flag
+    try:
+        descriptor = os.open(lock_path, flags, 0o600)
+    except FileExistsError as exception:
+        raise RuntimeError(
+            f"another update-source publisher owns {lock_path}"
+        ) from exception
+    try:
+        with os.fdopen(descriptor, "w", encoding="ascii", newline="\n") as stream:
+            stream.write(f"pid={os.getpid()}\n")
+            stream.flush()
+            os.fsync(stream.fileno())
+            yield
+    finally:
+        if temporary_flag == 0:
+            lock_path.unlink(missing_ok=True)
+
+
+def _build_catalog_unlocked(
     source_root: Path,
     published_at_overrides: dict[str, str],
     release_notes_overrides: dict[str, str],
 ) -> Path:
-    """Atomically rebuild the catalog from every canonical ZIP directly under packages/."""
+    """Build a Catalog while the caller owns the update-source publication lock."""
     source_root = source_root.absolute()
     _reject_link(source_root, "update source root")
     source_root = source_root.resolve(strict=True)
@@ -411,6 +500,155 @@ def build_catalog(
     return destination
 
 
+def build_catalog(
+    source_root: Path,
+    published_at_overrides: dict[str, str],
+    release_notes_overrides: dict[str, str],
+) -> Path:
+    """Atomically rebuild the Catalog under the sole publisher lock."""
+    source_root_argument = source_root.absolute()
+    _reject_link(source_root_argument, "update source root")
+    resolved_source_root = source_root_argument.resolve(strict=True)
+    with _publication_lock(resolved_source_root):
+        return _build_catalog_unlocked(
+            resolved_source_root,
+            published_at_overrides,
+            release_notes_overrides,
+        )
+
+
+def _validate_registry_entries(entries: object, label: str) -> None:
+    _shared_validate_registry_entries(entries, label)
+
+
+def _validate_registry_template(template: object) -> dict[str, object]:
+    return _shared_validate_registry_template(template)
+
+
+def _validate_rendered_registry(document: object) -> dict[str, object]:
+    _validate_registry_document(document, "rendered")
+    assert isinstance(document, dict)
+    return document
+
+
+def _preflight_registry_render(
+    template_path: Path,
+    destination: Path,
+    revision: int,
+    published_at: str,
+) -> dict[str, object]:
+    template_bytes = template_path.read_bytes()
+    template = _validate_registry_template(
+        _load_strict_registry_json(template_bytes)
+    )
+    _validate_registry_revision(revision)
+    _validate_registry_published_at(published_at, "Registry publishedAtUtc")
+    if destination.exists():
+        raise FileExistsError(f"refusing to replace rendered Registry: {destination}")
+    return template
+
+
+def render_registry(
+    template_path: Path,
+    catalog_path: Path,
+    destination: Path,
+    revision: int,
+    published_at: str,
+) -> Path:
+    """Render one deployable Registry bound to exact validated Catalog bytes."""
+    template = _preflight_registry_render(
+        template_path,
+        destination,
+        revision,
+        published_at,
+    )
+
+    catalog_bytes = catalog_path.read_bytes()
+    catalog_entries = _validated_catalog_entries(catalog_bytes, "rendered")
+    latest = max(
+        catalog_entries,
+        key=lambda version: tuple(int(part) for part in version.split(".")),
+    )
+
+    rendered = dict(template)
+    rendered["registryRevision"] = revision
+    rendered["publishedAtUtc"] = published_at
+    rendered["catalogPublication"] = {
+        "latestVersion": latest,
+        "catalogSchemaVersion": 1,
+        "catalogSha256": _sha256(catalog_bytes),
+    }
+    _validate_rendered_registry(rendered)
+    encoded = json.dumps(rendered, ensure_ascii=False, separators=(",", ":")).encode(
+        "utf-8"
+    )
+    _validate_rendered_registry(_load_strict_registry_json(encoded))
+    descriptor = os.open(destination, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600)
+    try:
+        with os.fdopen(descriptor, "wb") as stream:
+            stream.write(encoded)
+            stream.flush()
+            os.fsync(stream.fileno())
+    except BaseException:
+        try:
+            _remove_owned_publication(destination, encoded, "rendered Registry")
+        except (FileNotFoundError, RuntimeError):
+            pass
+        raise
+    try:
+        written = destination.read_bytes()
+        if written != encoded:
+            raise ValueError("rendered Registry changed during publication")
+        _validate_rendered_registry(
+            _load_strict_registry_json(written)
+        )
+    except BaseException:
+        try:
+            _remove_owned_publication(destination, encoded, "rendered Registry")
+        except (FileNotFoundError, RuntimeError):
+            pass
+        raise
+    return destination
+
+
+def _restore_catalog_after_combined_failure(
+    source_root: Path,
+    original: bytes | None,
+    published: bytes,
+) -> None:
+    destination = source_root / CATALOG_NAME
+    try:
+        current = destination.read_bytes()
+    except FileNotFoundError as exception:
+        raise RuntimeError(
+            "generated Catalog disappeared before combined rollback"
+        ) from exception
+    if current != published:
+        raise RuntimeError(
+            "generated Catalog changed before combined rollback; preserving current bytes"
+        )
+    if original is None:
+        destination.unlink()
+        return
+    descriptor, temporary_name = tempfile.mkstemp(
+        prefix=f".{CATALOG_NAME}.restore.",
+        suffix=".tmp",
+        dir=source_root,
+    )
+    try:
+        with os.fdopen(descriptor, "wb") as stream:
+            stream.write(original)
+            stream.flush()
+            os.fsync(stream.fileno())
+        os.replace(temporary_name, destination)
+    except BaseException:
+        try:
+            os.unlink(temporary_name)
+        except FileNotFoundError:
+            pass
+        raise
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--source-root", type=Path, required=True)
@@ -435,6 +673,10 @@ def main() -> int:
         metavar="VERSION=PATH",
         help="Copy one catalog-bound inner manifest to one direct source-root child.",
     )
+    parser.add_argument("--registry-template", type=Path)
+    parser.add_argument("--registry-output", type=Path)
+    parser.add_argument("--registry-revision", type=int)
+    parser.add_argument("--registry-published-at")
     args = parser.parse_args()
     published = _parse_assignments(args.published_at, "--published-at")
     note_paths = _parse_assignments(args.release_notes_file, "--release-notes-file")
@@ -447,9 +689,83 @@ def main() -> int:
         version: Path(path).read_text(encoding="utf-8")
         for version, path in note_paths.items()
     }
-    destination = build_catalog(args.source_root, published, notes)
-    for version, manifest_path in manifest_copies.items():
-        copy_release_manifest(args.source_root, version, Path(manifest_path))
+    registry_arguments = (
+        args.registry_template,
+        args.registry_output,
+        args.registry_revision,
+        args.registry_published_at,
+    )
+    if any(value is not None for value in registry_arguments):
+        if any(value is None for value in registry_arguments):
+            raise ValueError("all Registry rendering options must be supplied together")
+        _preflight_registry_render(
+            args.registry_template,
+            args.registry_output,
+            args.registry_revision,
+            args.registry_published_at,
+        )
+    source_root_argument = args.source_root.absolute()
+    _reject_link(source_root_argument, "update source root")
+    source_root = source_root_argument.resolve(strict=True)
+    combined_handoff = bool(
+        manifest_copies or any(value is not None for value in registry_arguments)
+    )
+    if not combined_handoff:
+        destination = build_catalog(source_root, published, notes)
+        print(destination)
+        return 0
+
+    with _publication_lock(source_root):
+        catalog_path = source_root / CATALOG_NAME
+        original_catalog = (
+            catalog_path.read_bytes() if catalog_path.is_file() else None
+        )
+        created_manifest_copies: dict[Path, bytes] = {}
+        published_catalog: bytes | None = None
+        try:
+            destination = _build_catalog_unlocked(source_root, published, notes)
+            published_catalog = destination.read_bytes()
+            for version, manifest_path in manifest_copies.items():
+                published_manifest, manifest_bytes = _publish_release_manifest(
+                    source_root,
+                    version,
+                    Path(manifest_path),
+                )
+                created_manifest_copies[published_manifest] = manifest_bytes
+            if all(value is not None for value in registry_arguments):
+                render_registry(
+                    args.registry_template,
+                    destination,
+                    args.registry_output,
+                    args.registry_revision,
+                    args.registry_published_at,
+                )
+        except BaseException as failure:
+            rollback_failures: list[str] = []
+            for manifest_path, manifest_bytes in created_manifest_copies.items():
+                try:
+                    _remove_owned_publication(
+                        manifest_path,
+                        manifest_bytes,
+                        "published release manifest",
+                    )
+                except BaseException as rollback_failure:
+                    rollback_failures.append(str(rollback_failure))
+            if published_catalog is not None:
+                try:
+                    _restore_catalog_after_combined_failure(
+                        source_root,
+                        original_catalog,
+                        published_catalog,
+                    )
+                except BaseException as rollback_failure:
+                    rollback_failures.append(str(rollback_failure))
+            if rollback_failures:
+                raise RuntimeError(
+                    "combined update-source rollback failed: "
+                    + "; ".join(rollback_failures)
+                ) from failure
+            raise
     print(destination)
     return 0
 

@@ -36,7 +36,7 @@
           <TextBlock Classes="mutedText" Text="{Binding ReportHistorySummary}" />
           <TextBlock Classes="captionText" Text="{Binding ReportHistoryStorageSummary}" />
         </StackPanel>
-        <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="{DynamicResource NfcSpace8}">
+        <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="{DynamicResource NfcSpace8}" VerticalAlignment="Center">
           <Button Classes="semanticAction secondary" Command="{Binding CloseReportHistoryCommand}" Content="{Binding Text.BackToReportLabel}" />
           <Button
               Classes="semanticAction danger"

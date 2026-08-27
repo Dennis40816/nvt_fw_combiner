@@ -6,7 +6,7 @@
 
 <DataTemplate x:Key="SettingsVersionPageTemplate" DataType="vm:MainWindowViewModel">
   <StackPanel x:Name="VersionPageRoot" Spacing="28">
-    <StackPanel Spacing="{DynamicResource NfcSpace4}">
+    <StackPanel MinHeight="97" Spacing="{DynamicResource NfcSpace4}">
       <Grid ColumnDefinitions="*,Auto" ColumnSpacing="{DynamicResource NfcSpace16}">
         <StackPanel Spacing="{DynamicResource NfcSpace4}">
           <TextBlock Classes="pageTitle versionPageTitle" Text="{Binding Settings.VersionPageTitle}" />
@@ -20,16 +20,26 @@
             Command="{Binding Settings.RunVersionSelfTestCommand}"
             IsEnabled="{Binding !Settings.IsVersionBusy}">
           <StackPanel Orientation="Horizontal" Spacing="{DynamicResource NfcSpace8}">
-            <Path
-                Width="16"
-                Height="16"
-                Data="{StaticResource NfcClockIconGeometry}"
-                Fill="Transparent"
-                Stroke="{Binding $parent[Button].Foreground}"
-                StrokeLineCap="Round"
-                StrokeJoin="Round"
-                StrokeThickness="1.8"
-                Stretch="Uniform" />
+            <Grid Width="16" Height="16">
+              <Path
+                  Width="16"
+                  Height="16"
+                  Data="{StaticResource NfcClockIconGeometry}"
+                  Fill="Transparent"
+                  IsVisible="{Binding !Settings.IsVersionSelfTestRunning}"
+                  Stroke="{Binding $parent[Button].Foreground}"
+                  StrokeLineCap="Round"
+                  StrokeJoin="Round"
+                  StrokeThickness="1.8"
+                  Stretch="Uniform" />
+              <views:VersionCheckingIndicator
+                  Width="16"
+                  Height="16"
+                  IndicatorBrush="{Binding $parent[Button].Foreground}"
+                  IsReducedMotionEnabled="{ReflectionBinding $parent[Window].DataContext.IsReducedMotionEnabled}"
+                  IsVisible="{Binding Settings.IsVersionSelfTestRunning}"
+                  TrackBrush="{DynamicResource NfcAccentBorderBrush}" />
+            </Grid>
             <TextBlock VerticalAlignment="Center" Text="{Binding Settings.RunVersionSelfTestLabel}" />
           </StackPanel>
         </Button>
@@ -37,7 +47,7 @@
       <Border Margin="0,24,0,0" Classes="versionSectionDivider" />
     </StackPanel>
 
-    <StackPanel x:Name="CurrentVersionSection" Spacing="{DynamicResource NfcSpace12}">
+    <StackPanel x:Name="CurrentVersionSection" MinHeight="74" Spacing="{DynamicResource NfcSpace12}">
       <TextBlock Classes="sectionTitle versionSectionTitle" Text="{Binding Settings.CurrentVersionHeading}" />
       <StackPanel Orientation="Horizontal" Spacing="{DynamicResource NfcSpace12}">
         <TextBlock VerticalAlignment="Center" Classes="versionCurrentText" Text="{Binding Settings.CurrentVersionLabel}" />
@@ -102,7 +112,7 @@
       </Grid>
     </Border>
 
-    <StackPanel x:Name="UpdateSourceSection" Spacing="{DynamicResource NfcSpace8}">
+    <StackPanel x:Name="UpdateSourceSection" MinHeight="132" Spacing="{DynamicResource NfcSpace8}">
       <TextBlock Classes="sectionTitle versionSectionTitle" Text="{Binding Settings.UpdateSourceHeading}" />
       <Grid ColumnDefinitions="*,Auto,Auto" ColumnSpacing="32">
         <Border Classes="versionSourceEditor">
@@ -149,7 +159,7 @@
                 Grid.Column="1"
                 MinHeight="50"
                 Padding="12,8"
-                FontSize="16"
+                FontSize="{DynamicResource NfcFontSize14}"
                 VerticalContentAlignment="Center"
                 AutomationProperties.Name="{Binding Settings.UpdateSourceHeading}"
                 Background="Transparent"

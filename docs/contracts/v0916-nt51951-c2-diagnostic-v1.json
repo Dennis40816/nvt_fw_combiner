@@ -1,0 +1,110 @@
+{
+  "schemaVersion": "1.0",
+  "kind": "payload-free-incomplete-parity-diagnostic",
+  "routeId": "route-7-nt51951-15-ctrlram-replace-4-2-ic-39-nt51951-ctrlram-fw1x-cascade-full-flash",
+  "capabilityFingerprint": "6a8dfcce871d0aa5586a8bd2a393093776b687055e546d7dce37fb2e9f35909f",
+  "scenario": {
+    "ic": "NT51951",
+    "workflow": "ctrlram-replace",
+    "topology": "cascade-2",
+    "mapVariant": "nt51951-ctrlram-fw1x-cascade-full-flash",
+    "canonicalCaseId": "nt51951-fw200-cascade2-auto-prj-599-20260731",
+    "canonicalCaseManifest": {
+      "path": "testdata/golden/canonical/NT51951/ctrlram-replace/fw2.0.0/cascade-2/nt51951-fw200-cascade2-auto-prj-599-20260731/provenance/case.json",
+      "size": 12502,
+      "sha256": "04b38a6bbf20918b98d259e0b6486b7724036c69a0d30017a314406958ce8c24"
+    }
+  },
+  "orderedInputs": [
+    {
+      "slotId": "full-base-input",
+      "order": 0,
+      "size": 524288,
+      "sha256": "ff9ad012454cab3d9d76d7270dfde7b402d23c2d0376ba6776cd1a242144aa32"
+    },
+    {
+      "slotId": "normal-ctrlram-input",
+      "order": 1,
+      "size": 655360,
+      "sha256": "e7dbfeb2f34c2dbb4f4e9531f3858b15f673b179b4118ad5f564f28976cf7129"
+    },
+    {
+      "slotId": "vn-ctrlram-input",
+      "order": 2,
+      "size": 4120,
+      "sha256": "066815c150f47318ba255cf5d84b7b2116267b5adc6bbcf771a7c50f78bc289b"
+    },
+    {
+      "slotId": "diffdlm-input",
+      "order": 3,
+      "size": 10240,
+      "sha256": "d5b2a200645dc83c9cdf2988276915dfcfde656d2cfacb8a759ce0c5dd88eb00"
+    }
+  ],
+  "baseRecipeSources": [
+    {
+      "artifactId": "initial-code-input",
+      "order": 0,
+      "size": 524288,
+      "sha256": "3fdcc5d7380d3b3dcbddd47d000e4bdafc1462497c3f49267fa1228590d35c40"
+    },
+    {
+      "artifactId": "tp-firmware-input",
+      "order": 1,
+      "size": 225280,
+      "sha256": "1397cfed395d937826d6e6378b030c80f7a0d6322102d028b1907e66d5a4a31a"
+    }
+  ],
+  "executors": {
+    "baseline": {
+      "contractPath": "docs/contracts/v0916-baseline-executor-v1.json",
+      "contractRawSha256": "861fa0fae7bf5904cac88a4bcb6ed6e0aef1a54518e0903914f2121fbc411bfb",
+      "head": "462590e8b993b8e42d088bc07377571a4bb9f25d",
+      "tree": "dc46c9aa9ecf00cb898ba3bc287e1b15acdab735",
+      "cliAssemblySize": 14848,
+      "cliAssemblySha256": "e889668cf092fab4877aeea84642d3b48a9969a6184f1c128500673fa136f9db"
+    },
+    "candidate": {
+      "contractPath": "docs/contracts/v100-candidate-source-executor-v1.json",
+      "contractRawSha256": "f9d9c7f998c1a162ecc1a29693e37ebbf1dab9d0392098cab081c754f99e854c",
+      "head": "e712842d61c560193ff9f7e2321daa47401a52d0",
+      "tree": "1c2bd7ede4013b000ef4228605c83f07a904de76",
+      "cliAssemblySize": 171520,
+      "cliAssemblySha256": "ac51674851ca9732cd4ecba4e132bac021b77b2e657606516704946b66dd2d7b"
+    }
+  },
+  "reportedObservation": {
+    "baselineOutput": {
+      "size": 524288,
+      "sha256": "7d657a3d0abc2cc6779e759c17567b40740de95235bf6d1e71c147d815edcca2"
+    },
+    "candidateOutput": {
+      "size": 524288,
+      "sha256": "1536d344af83aafd29e5884d9d2d904f1efa03c8fdcc4e913832253814644ebd"
+    },
+    "differentByteCount": 2816,
+    "differentRanges": [
+      { "start": 41244, "endExclusive": 41248 },
+      { "start": 41264, "endExclusive": 41268 },
+      { "start": 185384, "endExclusive": 185388 },
+      { "start": 185404, "endExclusive": 185408 },
+      { "start": 211728, "endExclusive": 214528 }
+    ]
+  },
+  "evidenceState": {
+    "status": "blocked-incomplete-independent-observation",
+    "claimQuality": "diagnostic-only-not-admitted",
+    "missingRequiredArtifacts": [
+      "baseline-preview-receipt",
+      "baseline-preview-report",
+      "baseline-build-receipt",
+      "baseline-build-report",
+      "candidate-preview-receipt",
+      "candidate-preview-report",
+      "candidate-build-receipt",
+      "candidate-build-report",
+      "independent-comparison-record"
+    ],
+    "requiredFailureCode": "PARITY_EXACT_MISMATCH"
+  }
+}

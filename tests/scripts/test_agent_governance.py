@@ -553,6 +553,19 @@ class AgentGovernanceTests(unittest.TestCase):
 
         self.assertTrue(any("risk is below path minimum R3" in error for error in self.validate()))
 
+    def test_r2_record_cannot_cover_live_registry_publisher(self) -> None:
+        self._write(
+            "scripts/edit_update_source_registry.py",
+            "def publish():\n    return 0\n",
+        )
+        self._write_record(
+            self._record(paths=["scripts/edit_update_source_registry.py"])
+        )
+
+        self.assertTrue(
+            any("risk is below path minimum R3" in error for error in self.validate())
+        )
+
     def test_r2_record_cannot_cover_same_family_golden_helpers(self) -> None:
         paths = [
             "scripts/ab_merge_fixture_validation.py",

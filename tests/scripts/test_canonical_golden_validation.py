@@ -450,6 +450,62 @@ class CanonicalGoldenValidationTests(unittest.TestCase):
 
         self.assertTrue(any("same routeId" in error for error in errors))
 
+    def test_rejects_alias_case_cycle_or_alias_chain(self) -> None:
+        alias_manifest = self.add_alias("nt51927-standard-merge-gen-flash")
+        alias_case = json.loads(alias_manifest.read_text(encoding="utf-8"))
+        alias_case["alias"]["sourceCaseId"] = alias_case["caseId"]
+        self.write_json(alias_manifest, alias_case)
+
+        cycle_errors = self.validate()
+
+        self.assertTrue(
+            any("must reference a direct canonical evidence case" in error for error in cycle_errors)
+        )
+
+        second_id = "nt51926-standard-merge-gen-flash-alias"
+        second_path = (
+            self.canonical
+            / "NT51926/standard-merge/gen-flash/topology-unscoped"
+            / second_id
+            / "provenance/case.json"
+        )
+        second_path.parent.mkdir(parents=True)
+        second_case = json.loads(json.dumps(alias_case))
+        second_case["caseId"] = second_id
+        second_case["ic"] = "NT51926"
+        second_case["alias"]["sourceCaseId"] = alias_case["caseId"]
+        self.write_json(second_path, second_case)
+        alias_case["alias"]["sourceCaseId"] = second_id
+        self.write_json(alias_manifest, alias_case)
+        self.root_manifest["cases"].append(
+            {
+                "caseId": second_id,
+                "manifestPath": second_path.relative_to(self.canonical).as_posix(),
+            }
+        )
+        self.rewrite_root()
+
+        chain_errors = self.validate()
+
+        self.assertGreaterEqual(
+            sum(
+                "must reference a direct canonical evidence case" in error
+                for error in chain_errors
+            ),
+            2,
+        )
+
+    def test_rejects_route_evidence_case_substitution(self) -> None:
+        alias = self.add_route_evidence_alias()
+        alias["caseId"] = "nt51927-standard-merge-gen-flash"
+        self.rewrite_root()
+
+        errors = self.validate()
+
+        self.assertTrue(
+            any("caseId must identify a canonical alias case" in error for error in errors)
+        )
+
     def test_rejects_duplicate_alias_fact_scope_ids(self) -> None:
         alias_fact_id = "nt51917-standard-merge-gen-flash-alias:fact-1"
         self.add_route_evidence_alias(fact_scope_ids=[alias_fact_id, alias_fact_id])

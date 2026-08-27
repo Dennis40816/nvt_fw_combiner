@@ -112,6 +112,7 @@ public sealed partial class VersionManagementExperience
             {
                 RegistryCandidateInspection inspection = await InspectCandidateAsync(
                     entry,
+                    registrySnapshot.CatalogPublication,
                     ownedToken).ConfigureAwait(false);
                 selected = inspection.Admission;
                 if (selected is not null)
@@ -165,7 +166,7 @@ public sealed partial class VersionManagementExperience
                 UpdateSourceRegistryLoadResult reloadedRegistry = await registry.LoadAsync(ownedToken)
                     .ConfigureAwait(false);
                 if (!reloadedRegistry.IsSuccess ||
-                    reloadedRegistry.Snapshot!.Revision != registrySnapshot.Revision ||
+                    reloadedRegistry.Snapshot!.RegistryRevision != registrySnapshot.RegistryRevision ||
                     !string.Equals(
                         reloadedRegistry.Snapshot.ContentDigest,
                         registrySnapshot.ContentDigest,
@@ -192,10 +193,13 @@ public sealed partial class VersionManagementExperience
                     .AutomaticCandidates()
                     .SingleOrDefault(entry =>
                         entry.Status == selected.Entry.Status &&
-                        SourcePathEquals(entry.SourceRoot, selected.Entry.SourceRoot));
+                        SourcePathEquals(entry.CatalogPath, selected.Entry.CatalogPath));
                 RegistryCandidateAdmission? readmitted = reloadedEntry is null
                     ? null
-                    : (await InspectCandidateAsync(reloadedEntry, ownedToken).ConfigureAwait(false)).Admission;
+                    : (await InspectCandidateAsync(
+                        reloadedEntry,
+                        reloadedRegistry.Snapshot.CatalogPublication,
+                        ownedToken).ConfigureAwait(false)).Admission;
                 if (readmitted is null ||
                     !CatalogPublicationEquals(selected.Catalog, readmitted.Catalog) ||
                     selected.NewestPackage.Identity != readmitted.NewestPackage.Identity ||
@@ -214,7 +218,7 @@ public sealed partial class VersionManagementExperience
                 }
 
                 var acceptedRegistry = new VersionSourceRegistryState(
-                    registrySnapshot.Revision,
+                    registrySnapshot.RegistryRevision,
                     registrySnapshot.ContentDigest,
                     isManualPin: false);
                 VersionManagerState acceptedState = durable.State.WithUpdateSource(
@@ -291,7 +295,21 @@ public sealed partial class VersionManagementExperience
             .ConfigureAwait(false);
         if (!registry.IsSuccess)
         {
-            return new(registry.Issue, []);
+            return new(registry.Issue, [], registry.Replicas);
+        }
+
+        (VersionSourceRegistryState? acceptedAuthority, UpdateSourceRegistryIssue? authorityIssue) =
+            await ReadAndValidateRegistryAuthorityAsync(
+                registry.Snapshot!,
+                cancellationToken).ConfigureAwait(false);
+        if (authorityIssue is { } rejected)
+        {
+            return new(
+                UpdateSourceRegistryLoadIssue.None,
+                [],
+                registry.Replicas,
+                rejected,
+                acceptedAuthority?.AcceptedRevision);
         }
 
         var attempts = new List<VersionEnvironmentSelfTestAttempt>(
@@ -300,20 +318,65 @@ public sealed partial class VersionManagementExperience
         {
             RegistryCandidateInspection inspection = await InspectCandidateAsync(
                 entry,
+                registry.Snapshot.CatalogPublication,
                 cancellationToken).ConfigureAwait(false);
             attempts.Add(inspection.Attempt);
         }
-        return new(UpdateSourceRegistryLoadIssue.None, attempts);
+        (acceptedAuthority, authorityIssue) = await ReadAndValidateRegistryAuthorityAsync(
+            registry.Snapshot,
+            cancellationToken).ConfigureAwait(false);
+        return authorityIssue is { } changedAuthority
+            ? new(
+                UpdateSourceRegistryLoadIssue.None,
+                [],
+                registry.Replicas,
+                changedAuthority,
+                acceptedAuthority?.AcceptedRevision)
+            : new(
+                UpdateSourceRegistryLoadIssue.None,
+                attempts,
+                registry.Replicas,
+                acceptedRegistryRevision: acceptedAuthority?.AcceptedRevision);
+    }
+
+    private async ValueTask<(
+        VersionSourceRegistryState? Accepted,
+        UpdateSourceRegistryIssue? Issue)> ReadAndValidateRegistryAuthorityAsync(
+        UpdateSourceRegistrySnapshot candidate,
+        CancellationToken cancellationToken)
+    {
+        VersionManagerStateLoadResult durable = await _stateStore.LoadAsync(cancellationToken)
+            .ConfigureAwait(false);
+        VersionSourceRegistryState? accepted = durable.IsSuccess
+            ? durable.State!.SourceRegistryState
+            : null;
+        return durable.Issue is not (
+                VersionManagerStateLoadIssue.None or VersionManagerStateLoadIssue.Missing)
+            ? (accepted, UpdateSourceRegistryIssue.StateUnavailable)
+            : (accepted, ValidateAntiRollback(accepted, candidate));
     }
 
     private async ValueTask<RegistryCandidateInspection> InspectCandidateAsync(
         UpdateSourceRegistryEntry entry,
+        UpdateCatalogPublicationAssertion expectedPublication,
         CancellationToken cancellationToken)
     {
-        UpdateCatalogLoadResult loaded = await _catalogSource.LoadAsync(
-            entry.SourceRoot,
+        UpdateCatalogLoadResult loaded = await _catalogSource.LoadCatalogAsync(
+            entry.CatalogPath,
             cancellationToken).ConfigureAwait(false);
-        if (!loaded.IsSuccess || loaded.Snapshot!.Versions.Count == 0)
+        bool publicationMatches = loaded is
+        {
+            IsSuccess: true,
+            Snapshot.Versions.Count: > 0,
+            ContentIdentity: { } identity,
+        } &&
+            identity.SchemaVersion == expectedPublication.CatalogSchemaVersion &&
+            string.Equals(
+                identity.Sha256,
+                expectedPublication.CatalogSha256,
+                StringComparison.Ordinal) &&
+            loaded.Snapshot.Versions[0].Version == expectedPublication.LatestVersion;
+        if (!publicationMatches)
         {
             return new(
                 new(
@@ -325,7 +388,9 @@ public sealed partial class VersionManagementExperience
                     isVerified: false),
                 Admission: null);
         }
-        UpdateCatalogVersionSnapshot newest = loaded.Snapshot.Versions[0];
+        UpdateCatalogSnapshot admittedCatalog = loaded.Snapshot ??
+            throw new InvalidOperationException("Matched Catalog publication has no snapshot.");
+        UpdateCatalogVersionSnapshot newest = admittedCatalog.Versions[0];
         ManagedPackageVerificationResult verification = await _repository.VerifyPackageAsync(
             entry.SourceRoot,
             newest,
@@ -340,7 +405,7 @@ public sealed partial class VersionManagementExperience
                 : verification.Issue;
         RegistryCandidateAdmission? admission = !verified
             ? null
-            : new(entry, loaded.Snapshot, newest, verification.Candidate!);
+            : new(entry, admittedCatalog, newest, verification.Candidate!);
         return new(
             new(
                 entry.SourceRoot,
@@ -461,9 +526,9 @@ public sealed partial class VersionManagementExperience
     {
         return accepted is null || accepted.AcceptedRevision == 0
             ? null
-            : candidate.Revision < accepted.AcceptedRevision
+            : candidate.RegistryRevision < accepted.AcceptedRevision
                 ? UpdateSourceRegistryIssue.RevisionRollback
-                : candidate.Revision == accepted.AcceptedRevision &&
+                : candidate.RegistryRevision == accepted.AcceptedRevision &&
                   !string.Equals(candidate.ContentDigest, accepted.AcceptedDigest, StringComparison.Ordinal)
                     ? UpdateSourceRegistryIssue.RevisionConflict
                     : null;
@@ -517,7 +582,8 @@ public sealed partial class VersionManagementExperience
         return issue is UpdateSourceRegistryLoadIssue.InvalidManifest or
             UpdateSourceRegistryLoadIssue.UnsafeLocator or
             UpdateSourceRegistryLoadIssue.RegistryTooLarge or
-            UpdateSourceRegistryLoadIssue.UnstableRead
+            UpdateSourceRegistryLoadIssue.UnstableRead or
+            UpdateSourceRegistryLoadIssue.ReplicaConflict
                 ? VersionRegistryStatus.Rejected
                 : VersionRegistryStatus.Unavailable;
     }
@@ -528,10 +594,14 @@ public sealed partial class VersionManagementExperience
         {
             UpdateSourceRegistryLoadIssue.NotConfigured => UpdateSourceRegistryIssue.NotConfigured,
             UpdateSourceRegistryLoadIssue.PermissionDenied => UpdateSourceRegistryIssue.PermissionDenied,
+            UpdateSourceRegistryLoadIssue.AuthenticationRequired =>
+                UpdateSourceRegistryIssue.AuthenticationRequired,
+            UpdateSourceRegistryLoadIssue.RegistryTimedOut => UpdateSourceRegistryIssue.TimedOut,
             UpdateSourceRegistryLoadIssue.InvalidManifest or
             UpdateSourceRegistryLoadIssue.UnsafeLocator or
             UpdateSourceRegistryLoadIssue.RegistryTooLarge or
-            UpdateSourceRegistryLoadIssue.UnstableRead => UpdateSourceRegistryIssue.Invalid,
+            UpdateSourceRegistryLoadIssue.UnstableRead or
+            UpdateSourceRegistryLoadIssue.ReplicaConflict => UpdateSourceRegistryIssue.Invalid,
             UpdateSourceRegistryLoadIssue.RegistryMissing or
             UpdateSourceRegistryLoadIssue.RegistryUnavailable => UpdateSourceRegistryIssue.Unavailable,
             UpdateSourceRegistryLoadIssue.None => UpdateSourceRegistryIssue.Invalid,

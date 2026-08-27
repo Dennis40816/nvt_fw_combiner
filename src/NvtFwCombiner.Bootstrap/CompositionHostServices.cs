@@ -192,7 +192,7 @@ public sealed class CompositionHostServices
     /// <param name="applicationVersion">Running canonical stable version.</param>
     /// <param name="managedRoot">Optional stable managed root override.</param>
     /// <param name="statePath">Optional launcher-state path override.</param>
-    /// <param name="updateSourceRegistryPath">Optional absolute fixed-registry file locator.</param>
+    /// <param name="updateSourceRegistryPath">Optional absolute filesystem or HTTPS Registry locator.</param>
     /// <returns>One session-scoped version-management experience.</returns>
     public static IVersionManagementExperience CreateVersionManagementExperience(
         string applicationVersion,
@@ -200,12 +200,35 @@ public sealed class CompositionHostServices
         string? statePath = null,
         string? updateSourceRegistryPath = null)
     {
+        return CreateVersionManagementExperience(
+            applicationVersion,
+            managedRoot,
+            statePath,
+            string.IsNullOrWhiteSpace(updateSourceRegistryPath)
+                ? []
+                : [updateSourceRegistryPath]);
+    }
+
+    /// <summary>Creates the typed desktop managed-version graph over ordered Registry replicas.</summary>
+    public static IVersionManagementExperience CreateVersionManagementExperience(
+        string applicationVersion,
+        string? managedRoot,
+        string? statePath,
+        IReadOnlyList<string> updateSourceRegistryPaths)
+    {
+        ArgumentNullException.ThrowIfNull(updateSourceRegistryPaths);
         ManagedAppVersion version = ManagedAppVersion.Parse(applicationVersion);
         string root = managedRoot ?? ManagedInstallationLayout.ResolveManagedRoot(AppContext.BaseDirectory);
         string exactStatePath = statePath ?? JsonVersionManagerStateStore.GetDefaultPath();
-        IUpdateSourceRegistry? sourceRegistry = string.IsNullOrWhiteSpace(updateSourceRegistryPath)
-            ? null
-            : new FileSystemUpdateSourceRegistry(updateSourceRegistryPath);
+        IUpdateSourceRegistry[] registries =
+        [.. updateSourceRegistryPaths.Select(static path => string.IsNullOrWhiteSpace(path)
+            ? new FileSystemUpdateSourceRegistry(path)
+            : UpdateSourceRegistryAdapterFactory.Create(path))];
+        IUpdateSourceRegistry? sourceRegistry = registries.Length switch
+        {
+            0 => null,
+            _ => new ReplicatedUpdateSourceRegistry(registries),
+        };
         return new VersionManagementExperience(
             version,
             root,

@@ -11,6 +11,33 @@ public sealed class FileSystemUpdateCatalogSourceTests
 {
     private static readonly JsonSerializerOptions JsonOptions = new(JsonSerializerDefaults.Web);
 
+    /// <summary>A Registry may select an exact Catalog filename without rebuilding the App.</summary>
+    [Fact]
+    public async Task ExactRenamedCatalogPathPublishesItsByteIdentity()
+    {
+        using var workspace = TempWorkspace.Create();
+        string root = workspace.PathFor("source");
+        _ = Directory.CreateDirectory(root);
+        await WriteCatalogAsync(root);
+        string original = Path.Combine(root, FileSystemUpdateCatalogSource.CatalogFileName);
+        string renamed = Path.Combine(root, "catalog-publication-42.json");
+        File.Move(original, renamed);
+        byte[] expectedBytes = await File.ReadAllBytesAsync(
+            renamed,
+            TestContext.Current.CancellationToken);
+
+        UpdateCatalogLoadResult result = await new FileSystemUpdateCatalogSource().LoadCatalogAsync(
+            renamed,
+            TestContext.Current.CancellationToken);
+
+        Assert.True(result.IsSuccess);
+        Assert.Equal(1, result.ContentIdentity!.SchemaVersion);
+        Assert.Equal(
+            Convert.ToHexString(System.Security.Cryptography.SHA256.HashData(expectedBytes))
+                .ToLowerInvariant(),
+            result.ContentIdentity.Sha256);
+    }
+
     /// <summary>Moving identical source content preserves every admitted package identity.</summary>
     [Fact]
     public async Task IdenticalCatalogMovedToAnotherFolderKeepsIdentity()
@@ -119,6 +146,12 @@ public sealed class FileSystemUpdateCatalogSourceTests
         Assert.Equal(
             UpdateCatalogLoadIssue.SourceUnavailable,
             FileSystemUpdateCatalogSource.ClassifyReadFailure(new IOException()));
+        Assert.Equal(
+            UpdateCatalogLoadIssue.SourceMissing,
+            FileSystemUpdateCatalogSource.ClassifyReadFailure(new FileNotFoundException()));
+        Assert.Equal(
+            UpdateCatalogLoadIssue.SourceMissing,
+            FileSystemUpdateCatalogSource.ClassifyReadFailure(new DirectoryNotFoundException()));
     }
 
     /// <summary>An invalid confirmed path is a visible unsafe-source result, not an escaped exception.</summary>
@@ -198,6 +231,37 @@ public sealed class FileSystemUpdateCatalogSourceTests
         Assert.False(result.IsSuccess);
         Assert.Equal(UpdateCatalogLoadIssue.UnsafeSource, result.Issue);
         Assert.Null(result.Snapshot);
+    }
+
+    /// <summary>An exact Catalog path cannot cross a reparse ancestor below its apparent parent.</summary>
+    [Fact]
+    public async Task ExactCatalogPathRejectsIntermediateReparseAncestor()
+    {
+        using var workspace = TempWorkspace.Create();
+        string target = workspace.PathFor("real-source");
+        string child = Path.Combine(target, "child");
+        string link = workspace.PathFor("linked-source");
+        _ = Directory.CreateDirectory(child);
+        await WriteCatalogAsync(child);
+        _ = Directory.CreateSymbolicLink(link, target);
+
+        UpdateCatalogLoadResult result = await new FileSystemUpdateCatalogSource().LoadCatalogAsync(
+            Path.Combine(link, "child", FileSystemUpdateCatalogSource.CatalogFileName),
+            TestContext.Current.CancellationToken);
+
+        Assert.Equal(UpdateCatalogLoadIssue.UnsafeSource, result.Issue);
+        Assert.Null(result.Snapshot);
+    }
+
+    /// <summary>The Registry-only exact-file API never resolves a relative Catalog path.</summary>
+    [Fact]
+    public async Task ExactCatalogPathRejectsRelativeLocator()
+    {
+        UpdateCatalogLoadResult result = await new FileSystemUpdateCatalogSource().LoadCatalogAsync(
+            "update-catalog.v1.json",
+            TestContext.Current.CancellationToken);
+
+        Assert.Equal(UpdateCatalogLoadIssue.UnsafeSource, result.Issue);
     }
 
     /// <summary>The embedded schema and runtime share the exact managed-package exception pair.</summary>

@@ -60,6 +60,9 @@ internal sealed partial class SettingsViewModel
     public partial bool IsVersionBusy { get; private set; }
 
     [ObservableProperty]
+    public partial bool IsVersionSelfTestRunning { get; private set; }
+
+    [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(IsSourceStatusIconVisible))]
     [NotifyPropertyChangedFor(nameof(IsSourceConnectedIndicator))]
     public partial bool IsSourceChecking { get; private set; }

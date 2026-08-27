@@ -65,7 +65,7 @@ public sealed partial class ShellNavigationSystemTests
         Assert.Contains(viewModel.Settings.OverviewRows, row => row.Title == "App version" && row.Value == expectedVersion);
         Assert.Contains(viewModel.Settings.OverviewRows, row => row.Title == "IC catalog" && row.Value == "10");
         Assert.Contains(viewModel.Settings.OverviewRows, row => row.Title == "Standard Merge" && row.Value == "10 ICs");
-        Assert.Contains(viewModel.Settings.OverviewRows, row => row.Title == "DP Replace" && row.Value == "10 ICs");
+        Assert.DoesNotContain(viewModel.Settings.OverviewRows, row => row.Title == "DP Replace");
         SettingSummaryViewModel capability = Assert.Single(viewModel.Settings.CapabilityRows);
         Assert.Equal("CtrlRAM Replace available ICs", capability.Title);
         Assert.Equal("10 ICs", capability.Value);
@@ -137,9 +137,9 @@ public sealed partial class ShellNavigationSystemTests
         Assert.Contains(
             viewModel.Settings.OverviewRows,
             row => row.Title == "Standard Merge" && row.Value == "10 ICs");
-        Assert.Contains(
+        Assert.DoesNotContain(
             viewModel.Settings.OverviewRows,
-            row => row.Title == "DP Replace" && row.Value == "0 ICs");
+            row => row.Title == "DP Replace");
         Assert.Contains(
             viewModel.Settings.CapabilityRows,
             row => row.Title == "CtrlRAM Replace available ICs" && row.Value == "10 ICs");

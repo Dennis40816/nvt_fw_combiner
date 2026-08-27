@@ -427,17 +427,20 @@ public sealed partial class VersionManagementExperienceTests
         return Assert.IsType<UpdateCatalogSnapshot>(UpdateCatalogValidator.Validate(document).Snapshot);
     }
 
-    private sealed class FixedCatalogSource(UpdateCatalogSnapshot snapshot) : IUpdateCatalogSource
+    private sealed class FixedCatalogSource(UpdateCatalogSnapshot snapshot) : IRootCatalogSourceTestDouble
     {
         public ValueTask<UpdateCatalogLoadResult> LoadAsync(
             string sourceRoot,
             CancellationToken cancellationToken)
         {
-            return ValueTask.FromResult(new UpdateCatalogLoadResult(snapshot, UpdateCatalogLoadIssue.None));
+            return ValueTask.FromResult(new UpdateCatalogLoadResult(
+                snapshot,
+                UpdateCatalogLoadIssue.None,
+                new(1, CatalogContentDigest)));
         }
     }
 
-    private sealed class MutableCatalogSource(UpdateCatalogSnapshot snapshot) : IUpdateCatalogSource
+    private sealed class MutableCatalogSource(UpdateCatalogSnapshot snapshot) : IRootCatalogSourceTestDouble
     {
         internal UpdateCatalogSnapshot Snapshot { get; set; } = snapshot;
 
@@ -449,7 +452,7 @@ public sealed partial class VersionManagementExperienceTests
         }
     }
 
-    private sealed class IssueCatalogSource(UpdateCatalogLoadIssue issue) : IUpdateCatalogSource
+    private sealed class IssueCatalogSource(UpdateCatalogLoadIssue issue) : IRootCatalogSourceTestDouble
     {
         public ValueTask<UpdateCatalogLoadResult> LoadAsync(
             string sourceRoot,
@@ -459,7 +462,7 @@ public sealed partial class VersionManagementExperienceTests
         }
     }
 
-    private sealed class CountingCatalogSource : IUpdateCatalogSource
+    private sealed class CountingCatalogSource : IRootCatalogSourceTestDouble
     {
         internal int LoadCount { get; private set; }
 
@@ -472,7 +475,8 @@ public sealed partial class VersionManagementExperienceTests
         }
     }
 
-    private sealed class SupersedingCatalogSource(UpdateCatalogSnapshot newSourceSnapshot) : IUpdateCatalogSource
+    private sealed class SupersedingCatalogSource(UpdateCatalogSnapshot newSourceSnapshot)
+        : IRootCatalogSourceTestDouble
     {
         private int _firstCheckWasCancelled;
 
@@ -503,7 +507,7 @@ public sealed partial class VersionManagementExperienceTests
     }
 
     private sealed class CompletedThenBlockingCatalogSource(UpdateCatalogLoadResult firstResult)
-        : IUpdateCatalogSource
+        : IRootCatalogSourceTestDouble
     {
         private int _loadCount;
         private int _secondCheckWasCancelled;

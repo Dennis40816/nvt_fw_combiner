@@ -44,7 +44,9 @@ internal static class WorkflowNavigationTransaction
             publication,
             icId,
             previousNumber,
-            page == ShellPage.Merge && merge.IsAbCodeMergeModeSelected);
+            page == ShellPage.Merge
+                ? merge.IsAbCodeMergeModeSelected ? ExperienceIds.AbMerge : null
+                : replace.SelectedReplaceMode);
         return new(
             icId,
             number,
@@ -92,7 +94,7 @@ internal static class WorkflowNavigationTransaction
             publication,
             icId,
             retainedNumber,
-            StringComparer.Ordinal.Equals(mode, ExperienceIds.AbMerge));
+            mode);
         if (owner == WorkflowInspectionOwner.Replace)
         {
             replace.ValidateContextRefresh(icId, number, mode);

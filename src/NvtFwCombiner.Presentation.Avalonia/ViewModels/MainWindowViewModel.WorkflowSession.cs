@@ -63,7 +63,7 @@ internal sealed partial class MainWindowViewModel
     private void ApplyWorkflowContext(WorkflowContextSelection selection)
     {
         WorkflowModeNavigationStage stage =
-            WorkflowSession.StageWorkflowModeForNavigation(selection.Page, selection.Mode);
+            WorkflowSession.StageWorkflowModeForNavigation(selection);
         try
         {
             Navigation.NavigateToPage(selection.Page);

@@ -18,6 +18,9 @@ public sealed class CapabilitySelectorPublication
         ReadOnlyCollection<CapabilityNumberChoice>> _numberChoicesByIc;
     private readonly ReadOnlyDictionary<
         string,
+        ReadOnlyCollection<CapabilityNumberChoice>> _numberChoicesByWorkflowAndIc;
+    private readonly ReadOnlyDictionary<
+        string,
         ReadOnlyCollection<CapabilityTopologyChoice>> _abTopologyChoicesByIc;
 
     private CapabilitySelectorPublication(
@@ -29,6 +32,8 @@ public sealed class CapabilitySelectorPublication
             authorableWorkflowIdsByIc,
         IReadOnlyDictionary<string, IReadOnlyList<CapabilityNumberChoice>>
             numberChoicesByIc,
+        IReadOnlyDictionary<string, IReadOnlyList<CapabilityNumberChoice>>
+            numberChoicesByWorkflowAndIc,
         IReadOnlyDictionary<string, IReadOnlyList<CapabilityTopologyChoice>>
             abTopologyChoicesByIc)
     {
@@ -37,6 +42,7 @@ public sealed class CapabilitySelectorPublication
         ArgumentNullException.ThrowIfNull(abMergeIcIds);
         ArgumentNullException.ThrowIfNull(authorableWorkflowIdsByIc);
         ArgumentNullException.ThrowIfNull(numberChoicesByIc);
+        ArgumentNullException.ThrowIfNull(numberChoicesByWorkflowAndIc);
         ArgumentNullException.ThrowIfNull(abTopologyChoicesByIc);
 
         ResolutionToken = resolutionToken;
@@ -68,6 +74,8 @@ public sealed class CapabilitySelectorPublication
         _numberChoicesByIc = CreateReadOnlyMap(
             numberChoicesByIc,
             static values => [.. values]);
+        _numberChoicesByWorkflowAndIc = CreateReadOnlyWorkflowMap(
+            numberChoicesByWorkflowAndIc);
         _abTopologyChoicesByIc = CreateReadOnlyMap(
             abTopologyChoicesByIc,
             static values =>
@@ -98,6 +106,19 @@ public sealed class CapabilitySelectorPublication
         string icId)
     {
         return GetValues(_numberChoicesByIc, icId);
+    }
+
+    /// <summary>Gets workflow-scoped IC-number choices from this publication.</summary>
+    public IReadOnlyList<CapabilityNumberChoice> GetNumberSelectionChoices(
+        string icId,
+        string workflowId)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(workflowId);
+        return _numberChoicesByWorkflowAndIc.TryGetValue(
+            CreateWorkflowKey(icId, workflowId),
+            out ReadOnlyCollection<CapabilityNumberChoice>? values)
+                ? values
+                : Array.AsReadOnly(Array.Empty<CapabilityNumberChoice>());
     }
 
     /// <summary>Gets compiler-derived AB topology choices from this publication.</summary>
@@ -185,6 +206,31 @@ public sealed class CapabilitySelectorPublication
                 static icId => icId,
                 disclosure.GetNumberChoices,
                 StringComparer.Ordinal);
+        var workflowNumberChoices = new Dictionary<
+            string,
+            IReadOnlyList<CapabilityNumberChoice>>(StringComparer.Ordinal);
+        foreach (string icId in icIds)
+        {
+            if (workflowsByIc[icId].Contains(
+                    ExperienceIds.CtrlRamReplace,
+                    StringComparer.Ordinal))
+            {
+                workflowNumberChoices.Add(
+                    CreateWorkflowKey(icId, ExperienceIds.CtrlRamReplace),
+                    numberChoices[icId]);
+            }
+
+            const string workflowId = ExperienceIds.GeneralReplace;
+            if (workflowsByIc[icId].Contains(workflowId, StringComparer.Ordinal))
+            {
+                workflowNumberChoices.Add(
+                    CreateWorkflowKey(icId, workflowId),
+                    ProjectWorkflowNumberChoices(
+                        dynamicRoutes,
+                        icId,
+                        workflowId));
+            }
+        }
         Dictionary<string, IReadOnlyList<CapabilityTopologyChoice>> topologyChoices =
             abMergeIcIds.ToDictionary(
                 static icId => icId,
@@ -200,6 +246,7 @@ public sealed class CapabilitySelectorPublication
             abMergeIcIds,
             workflowsByIc,
             numberChoices,
+            workflowNumberChoices,
             topologyChoices);
     }
 
@@ -237,5 +284,42 @@ public sealed class CapabilitySelectorPublication
         }
 
         return new ReadOnlyDictionary<string, ReadOnlyCollection<TValue>>(copy);
+    }
+
+    private static ReadOnlyDictionary<string, ReadOnlyCollection<CapabilityNumberChoice>>
+        CreateReadOnlyWorkflowMap(
+            IReadOnlyDictionary<string, IReadOnlyList<CapabilityNumberChoice>> source)
+    {
+        return new ReadOnlyDictionary<string, ReadOnlyCollection<CapabilityNumberChoice>>(
+            source.ToDictionary(
+                static pair => pair.Key,
+                static pair => Array.AsReadOnly(pair.Value.ToArray()),
+                StringComparer.Ordinal));
+    }
+
+    private static ReadOnlyCollection<CapabilityNumberChoice> ProjectWorkflowNumberChoices(
+        IReadOnlyList<ResolvedCapabilityRoute> dynamicRoutes,
+        string icId,
+        string workflowId)
+    {
+        CapabilityNumberChoice[] choices =
+        [
+            .. dynamicRoutes
+                .Where(route =>
+                    StringComparer.Ordinal.Equals(route.Identity.IcId, icId) &&
+                    StringComparer.Ordinal.Equals(route.Identity.WorkflowId, workflowId) &&
+                    IsAuthorable(route.Authoring))
+                .Select(static route => route.NumberChoice)
+                .Where(static choice => choice is not null)
+                .Select(static choice => choice!)
+                .DistinctBy(static choice => choice.Token, StringComparer.Ordinal)
+                .OrderBy(static choice => choice.Token, StringComparer.Ordinal),
+        ];
+        return Array.AsReadOnly(choices);
+    }
+
+    private static string CreateWorkflowKey(string icId, string workflowId)
+    {
+        return $"{IcIdentifier.Normalize(icId)}\n{workflowId}";
     }
 }

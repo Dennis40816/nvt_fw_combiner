@@ -8,6 +8,7 @@ namespace NvtFwCombiner.Presentation.Avalonia.ViewModels;
 internal sealed partial class WorkflowContextSetupViewModel : ObservableObject
 {
     private CapabilitySelectorPublication? _selectorPublication;
+    private string? _workflowId;
     private string _selectedIc = string.Empty;
 
     public IReadOnlyList<string> IcChoices { get; private set; } = [];
@@ -60,10 +61,12 @@ internal sealed partial class WorkflowContextSetupViewModel : ObservableObject
         string icId,
         string number,
         bool showNumber,
+        string? workflowId = null,
         IReadOnlyList<string>? icChoices = null)
     {
         ArgumentNullException.ThrowIfNull(publication);
         _selectorPublication = publication;
+        _workflowId = WorkflowSelectorProjection.NumberWorkflowScope(workflowId);
         IReadOnlyList<string> nextChoices = icChoices ?? publication.IcIds;
         if (nextChoices.Count == 0)
         {
@@ -83,6 +86,7 @@ internal sealed partial class WorkflowContextSetupViewModel : ObservableObject
     internal void Clear()
     {
         _selectorPublication = null;
+        _workflowId = null;
         IcChoices = [];
         OnPropertyChanged(nameof(IcChoices));
         _ = SetProperty(ref _selectedIc, string.Empty, nameof(SelectedIc));
@@ -100,7 +104,10 @@ internal sealed partial class WorkflowContextSetupViewModel : ObservableObject
     {
         NumberChoices = _selectorPublication is null || string.IsNullOrWhiteSpace(SelectedIc)
             ? []
-            : UiCompositionRunner.GetNumberSelectionChoices(_selectorPublication, SelectedIc);
+            : UiCompositionRunner.GetNumberSelectionChoices(
+                _selectorPublication,
+                SelectedIc,
+                _workflowId);
         SelectedNumber = NumberChoices.FirstOrDefault(choice =>
             string.Equals(choice.Token, preferredToken, StringComparison.Ordinal))?.Token ??
             (NumberChoices.Count > 0 ? NumberChoices[0].Token : string.Empty);

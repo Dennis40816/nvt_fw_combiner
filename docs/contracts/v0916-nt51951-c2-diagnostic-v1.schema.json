@@ -1,0 +1,180 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://novatek.example/contracts/v0916-nt51951-c2-diagnostic-v1.schema.json",
+  "title": "NT51951 cascade-2 parity diagnostic v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schemaVersion", "kind", "routeId", "capabilityFingerprint", "scenario", "orderedInputs", "baseRecipeSources", "executors", "reportedObservation", "evidenceState"],
+  "properties": {
+    "schemaVersion": { "const": "1.0" },
+    "kind": { "const": "payload-free-incomplete-parity-diagnostic" },
+    "routeId": { "const": "route-7-nt51951-15-ctrlram-replace-4-2-ic-39-nt51951-ctrlram-fw1x-cascade-full-flash" },
+    "capabilityFingerprint": { "const": "6a8dfcce871d0aa5586a8bd2a393093776b687055e546d7dce37fb2e9f35909f" },
+    "scenario": { "$ref": "#/$defs/scenario" },
+    "orderedInputs": {
+      "type": "array",
+      "prefixItems": [
+        { "$ref": "#/$defs/baseInput" },
+        { "$ref": "#/$defs/normalInput" },
+        { "$ref": "#/$defs/vnInput" },
+        { "$ref": "#/$defs/diffDlmInput" }
+      ],
+      "items": false
+    },
+    "baseRecipeSources": {
+      "type": "array",
+      "prefixItems": [
+        { "$ref": "#/$defs/initialRecipeSource" },
+        { "$ref": "#/$defs/tpRecipeSource" }
+      ],
+      "items": false
+    },
+    "executors": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["baseline", "candidate"],
+      "properties": {
+        "baseline": { "$ref": "#/$defs/baselineExecutor" },
+        "candidate": { "$ref": "#/$defs/candidateExecutor" }
+      }
+    },
+    "reportedObservation": { "$ref": "#/$defs/observation" },
+    "evidenceState": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["status", "claimQuality", "missingRequiredArtifacts", "requiredFailureCode"],
+      "properties": {
+        "status": { "const": "blocked-incomplete-independent-observation" },
+        "claimQuality": { "const": "diagnostic-only-not-admitted" },
+        "missingRequiredArtifacts": {
+          "type": "array",
+          "prefixItems": [
+            { "const": "baseline-preview-receipt" },
+            { "const": "baseline-preview-report" },
+            { "const": "baseline-build-receipt" },
+            { "const": "baseline-build-report" },
+            { "const": "candidate-preview-receipt" },
+            { "const": "candidate-preview-report" },
+            { "const": "candidate-build-receipt" },
+            { "const": "candidate-build-report" },
+            { "const": "independent-comparison-record" }
+          ],
+          "items": false
+        },
+        "requiredFailureCode": { "const": "PARITY_EXACT_MISMATCH" }
+      }
+    }
+  },
+  "$defs": {
+    "artifact": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["path", "size", "sha256"],
+      "properties": {
+        "path": { "type": "string", "minLength": 1 },
+        "size": { "type": "integer", "minimum": 1 },
+        "sha256": { "type": "string", "pattern": "^[0-9a-f]{64}$" }
+      }
+    },
+    "scenario": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["ic", "workflow", "topology", "mapVariant", "canonicalCaseId", "canonicalCaseManifest"],
+      "properties": {
+        "ic": { "const": "NT51951" },
+        "workflow": { "const": "ctrlram-replace" },
+        "topology": { "const": "cascade-2" },
+        "mapVariant": { "const": "nt51951-ctrlram-fw1x-cascade-full-flash" },
+        "canonicalCaseId": { "const": "nt51951-fw200-cascade2-auto-prj-599-20260731" },
+        "canonicalCaseManifest": {
+          "allOf": [
+            { "$ref": "#/$defs/artifact" },
+            {
+              "properties": {
+                "path": { "const": "testdata/golden/canonical/NT51951/ctrlram-replace/fw2.0.0/cascade-2/nt51951-fw200-cascade2-auto-prj-599-20260731/provenance/case.json" },
+                "size": { "const": 12502 },
+                "sha256": { "const": "04b38a6bbf20918b98d259e0b6486b7724036c69a0d30017a314406958ce8c24" }
+              }
+            }
+          ]
+        }
+      }
+    },
+    "input": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["slotId", "order", "size", "sha256"],
+      "properties": {
+        "slotId": { "type": "string", "minLength": 1 },
+        "order": { "type": "integer", "minimum": 0 },
+        "size": { "type": "integer", "minimum": 1 },
+        "sha256": { "type": "string", "pattern": "^[0-9a-f]{64}$" }
+      }
+    },
+    "baseInput": { "allOf": [{ "$ref": "#/$defs/input" }, { "properties": { "slotId": { "const": "full-base-input" }, "order": { "const": 0 }, "size": { "const": 524288 }, "sha256": { "const": "ff9ad012454cab3d9d76d7270dfde7b402d23c2d0376ba6776cd1a242144aa32" } } }] },
+    "normalInput": { "allOf": [{ "$ref": "#/$defs/input" }, { "properties": { "slotId": { "const": "normal-ctrlram-input" }, "order": { "const": 1 }, "size": { "const": 655360 }, "sha256": { "const": "e7dbfeb2f34c2dbb4f4e9531f3858b15f673b179b4118ad5f564f28976cf7129" } } }] },
+    "vnInput": { "allOf": [{ "$ref": "#/$defs/input" }, { "properties": { "slotId": { "const": "vn-ctrlram-input" }, "order": { "const": 2 }, "size": { "const": 4120 }, "sha256": { "const": "066815c150f47318ba255cf5d84b7b2116267b5adc6bbcf771a7c50f78bc289b" } } }] },
+    "diffDlmInput": { "allOf": [{ "$ref": "#/$defs/input" }, { "properties": { "slotId": { "const": "diffdlm-input" }, "order": { "const": 3 }, "size": { "const": 10240 }, "sha256": { "const": "d5b2a200645dc83c9cdf2988276915dfcfde656d2cfacb8a759ce0c5dd88eb00" } } }] },
+    "recipeSource": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["artifactId", "order", "size", "sha256"],
+      "properties": {
+        "artifactId": { "type": "string", "minLength": 1 },
+        "order": { "type": "integer", "minimum": 0 },
+        "size": { "type": "integer", "minimum": 1 },
+        "sha256": { "type": "string", "pattern": "^[0-9a-f]{64}$" }
+      }
+    },
+    "initialRecipeSource": { "allOf": [{ "$ref": "#/$defs/recipeSource" }, { "properties": { "artifactId": { "const": "initial-code-input" }, "order": { "const": 0 }, "size": { "const": 524288 }, "sha256": { "const": "3fdcc5d7380d3b3dcbddd47d000e4bdafc1462497c3f49267fa1228590d35c40" } } }] },
+    "tpRecipeSource": { "allOf": [{ "$ref": "#/$defs/recipeSource" }, { "properties": { "artifactId": { "const": "tp-firmware-input" }, "order": { "const": 1 }, "size": { "const": 225280 }, "sha256": { "const": "1397cfed395d937826d6e6378b030c80f7a0d6322102d028b1907e66d5a4a31a" } } }] },
+    "executor": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["contractPath", "contractRawSha256", "head", "tree", "cliAssemblySize", "cliAssemblySha256"],
+      "properties": {
+        "contractPath": { "type": "string", "minLength": 1 },
+        "contractRawSha256": { "type": "string", "pattern": "^[0-9a-f]{64}$" },
+        "head": { "type": "string", "pattern": "^[0-9a-f]{40}$" },
+        "tree": { "type": "string", "pattern": "^[0-9a-f]{40}$" },
+        "cliAssemblySize": { "type": "integer", "minimum": 1 },
+        "cliAssemblySha256": { "type": "string", "pattern": "^[0-9a-f]{64}$" }
+      }
+    },
+    "baselineExecutor": { "allOf": [{ "$ref": "#/$defs/executor" }, { "properties": { "contractPath": { "const": "docs/contracts/v0916-baseline-executor-v1.json" }, "contractRawSha256": { "const": "861fa0fae7bf5904cac88a4bcb6ed6e0aef1a54518e0903914f2121fbc411bfb" }, "head": { "const": "462590e8b993b8e42d088bc07377571a4bb9f25d" }, "tree": { "const": "dc46c9aa9ecf00cb898ba3bc287e1b15acdab735" }, "cliAssemblySize": { "const": 14848 }, "cliAssemblySha256": { "const": "e889668cf092fab4877aeea84642d3b48a9969a6184f1c128500673fa136f9db" } } }] },
+    "candidateExecutor": { "allOf": [{ "$ref": "#/$defs/executor" }, { "properties": { "contractPath": { "const": "docs/contracts/v100-candidate-source-executor-v1.json" }, "contractRawSha256": { "const": "f9d9c7f998c1a162ecc1a29693e37ebbf1dab9d0392098cab081c754f99e854c" }, "head": { "const": "e712842d61c560193ff9f7e2321daa47401a52d0" }, "tree": { "const": "1c2bd7ede4013b000ef4228605c83f07a904de76" }, "cliAssemblySize": { "const": 171520 }, "cliAssemblySha256": { "const": "ac51674851ca9732cd4ecba4e132bac021b77b2e657606516704946b66dd2d7b" } } }] },
+    "output": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["size", "sha256"],
+      "properties": { "size": { "const": 524288 }, "sha256": { "type": "string", "pattern": "^[0-9a-f]{64}$" } }
+    },
+    "range": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["start", "endExclusive"],
+      "properties": { "start": { "type": "integer", "minimum": 0 }, "endExclusive": { "type": "integer", "minimum": 1 } }
+    },
+    "observation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["baselineOutput", "candidateOutput", "differentByteCount", "differentRanges"],
+      "properties": {
+        "baselineOutput": { "allOf": [{ "$ref": "#/$defs/output" }, { "properties": { "sha256": { "const": "7d657a3d0abc2cc6779e759c17567b40740de95235bf6d1e71c147d815edcca2" } } }] },
+        "candidateOutput": { "allOf": [{ "$ref": "#/$defs/output" }, { "properties": { "sha256": { "const": "1536d344af83aafd29e5884d9d2d904f1efa03c8fdcc4e913832253814644ebd" } } }] },
+        "differentByteCount": { "const": 2816 },
+        "differentRanges": {
+          "type": "array",
+          "prefixItems": [
+            { "allOf": [{ "$ref": "#/$defs/range" }, { "properties": { "start": { "const": 41244 }, "endExclusive": { "const": 41248 } } }] },
+            { "allOf": [{ "$ref": "#/$defs/range" }, { "properties": { "start": { "const": 41264 }, "endExclusive": { "const": 41268 } } }] },
+            { "allOf": [{ "$ref": "#/$defs/range" }, { "properties": { "start": { "const": 185384 }, "endExclusive": { "const": 185388 } } }] },
+            { "allOf": [{ "$ref": "#/$defs/range" }, { "properties": { "start": { "const": 185404 }, "endExclusive": { "const": 185408 } } }] },
+            { "allOf": [{ "$ref": "#/$defs/range" }, { "properties": { "start": { "const": 211728 }, "endExclusive": { "const": 214528 } } }] }
+          ],
+          "items": false
+        }
+      }
+    }
+  }
+}
