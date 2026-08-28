@@ -1,0 +1,39 @@
+{
+  "schemaVersion": 2,
+  "taskId": "UI-MODE-102-01",
+  "capability": "Merge and Replace mode selectors retain the first user choice across live Avalonia TwoWay binding",
+  "integrationBase": "7a94879b3ce945b224b97917934de26a06d588b9",
+  "risk": "R1",
+  "kind": "ui",
+  "state": "design-active",
+  "mutablePaths": [
+    "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/MainWindowViewModel.Construction.cs",
+    "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/MergePresentationViewModel.State.cs",
+    "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/ReplacePresentationViewModel.Memory.cs",
+    "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/ReplacePresentationViewModel.State.cs",
+    "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/WorkflowSessionPresentationViewModel.DeviceContext.cs",
+    "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/WorkflowSessionPresentationViewModel.DeviceContextNotifications.cs"
+  ],
+  "implementationOwner": "primary-agent",
+  "searchEvidence": [
+    "codegraph explore: ShellNavigationViewModel, MainWindowViewModel.ApplySelectedPage, WorkflowSessionPresentationViewModel, MergePresentationViewModel.SelectMergeMode, ReplacePresentationViewModel.SetSelectedReplaceMode",
+    "rg -n 'MergeModeChoices|ReplaceModeChoices|SelectMergeMode|SetSelectedReplaceMode|NotifyContextTextChanged|NotifyContextChanged' src/NvtFwCombiner.Presentation.Avalonia tests/NvtFwCombiner.UiSmoke.Tests",
+    "real Avalonia ComboBox diagnostic: Merge AB selection reverted to Standard and Replace General selection reverted to CtrlRAM when ItemsSource was republished during TwoWay selection"
+  ],
+  "semanticOwner": "Presentation workflow page session and Merge/Replace mode ViewModels",
+  "terminalContract": "A direct mode selection publishes the selected mode and dependent active-page state without replacing that selector's authorable choices collection; IC and catalog reconciliation retain choices-first publication",
+  "disposition": "extend-owner",
+  "designReview": {
+    "reviewer": null,
+    "outcome": "not-required",
+    "evidence": "R1 owner-approved UI hotfix; no XAML, firmware, profile, schema, byte, output naming, or release contract change."
+  },
+  "implementationHead": null,
+  "reviewedHead": null,
+  "pathStateDigest": null,
+  "finalReview": {
+    "reviewer": null,
+    "outcome": "pending",
+    "evidence": ""
+  }
+}

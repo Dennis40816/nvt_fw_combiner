@@ -11,12 +11,9 @@ internal sealed partial class ReplacePresentationViewModel
     private const string DpReplaceMode = ExperienceIds.DpReplace;
     private const string CtrlRamReplaceMode = ExperienceIds.CtrlRamReplace;
     private const string GeneralReplaceMode = ExperienceIds.GeneralReplace;
-    private readonly AuthoringSessionState _dpReplaceSession =
-        new(ExperienceIds.DpReplace);
-    private readonly AuthoringSessionState _ctrlRamReplaceSession =
-        new(ExperienceIds.CtrlRamReplace);
-    private readonly AuthoringSessionState _generalReplaceSession =
-        new(ExperienceIds.GeneralReplace);
+    private readonly AuthoringSessionState _dpReplaceSession = new(ExperienceIds.DpReplace);
+    private readonly AuthoringSessionState _ctrlRamReplaceSession = new(ExperienceIds.CtrlRamReplace);
+    private readonly AuthoringSessionState _generalReplaceSession = new(ExperienceIds.GeneralReplace);
     private int _generalReplaceMappingCounter;
     private string _selectedReplaceMode = CtrlRamReplaceMode;
     private string? _catalogReconciliationPreviousMode;
@@ -249,7 +246,7 @@ internal sealed partial class ReplacePresentationViewModel
         _selectedReplaceMode = value;
         OnPropertyChanged(nameof(SelectedReplaceMode));
         OnPropertyChanged(nameof(Inspection));
-        NotifyModeChanged();
+        NotifyModeChanged(notifyModeChoices: false);
         _stateBindings.ReplaceModeChanged();
     }
 
@@ -331,9 +328,12 @@ internal sealed partial class ReplacePresentationViewModel
         _stateBindings.ResetRunResult();
     }
 
-    internal void NotifyContextChanged()
+    internal void NotifyContextChanged(bool notifyModeChoices = true)
     {
-        OnPropertyChanged(nameof(ReplaceModeChoices));
+        if (notifyModeChoices)
+        {
+            OnPropertyChanged(nameof(ReplaceModeChoices));
+        }
         OnPropertyChanged(nameof(ReplacePreview));
         OnPropertyChanged(nameof(SelectedReplaceModeDescription));
         OnPropertyChanged(nameof(SelectedReplaceWorkflowReadiness));
@@ -356,7 +356,7 @@ internal sealed partial class ReplacePresentationViewModel
         OnPropertyChanged(nameof(ReplaceOutputFileName));
     }
 
-    private void NotifyModeChanged()
+    private void NotifyModeChanged(bool notifyModeChoices = true)
     {
         OnPropertyChanged(nameof(IsCtrlRamReplaceModeSelected));
         OnPropertyChanged(nameof(IsGeneralReplaceModeSelected));
@@ -364,7 +364,7 @@ internal sealed partial class ReplacePresentationViewModel
         OnPropertyChanged(nameof(IsNonCtrlRamStructuredReplaceModeSelected));
         OnPropertyChanged(nameof(IsReplaceCoverageGrouped));
         OnPropertyChanged(nameof(IsReplaceCoverageFlat));
-        NotifyContextChanged();
+        NotifyContextChanged(notifyModeChoices);
     }
 
     internal void RefreshCommandState()

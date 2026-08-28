@@ -4,13 +4,54 @@ All notable changes to NVT FW Combiner are documented here. The project follows 
 
 ## [Unreleased]
 
-The repository identity is the formal `1.0.0` release candidate. No stable
-`v1.0.0` package or tag is published until every technical and external R3
-gate is complete.
+The repository identity is the unpublished `1.0.2` mode-selector hotfix
+candidate. Stable `v1.0.0` and the version-only `v1.0.1` upgrade probe remain
+its immutable predecessors.
 
-The complete release notes for `1.0.0` and its version-only `1.0.1` upgrade
-probe are intentionally frozen here before the `1.0.0` tag. The `1.0.1`
-source commit may change only `VERSION`.
+## [1.0.2] - Unreleased
+
+### Summary
+
+This support-neutral hotfix keeps the first user-selected mode active when
+entering either the Merge or Replace page.
+
+### Product changes
+
+#### Stable workflow mode selection
+
+- Before → After: the first Merge or Replace mode choice could revert when the
+  live TwoWay selector rebuilt its own ItemsSource during the selection event.
+  Direct mode selection now keeps that selector source stable while IC and
+  catalog reconciliation retain their existing choices-first publication.
+- Affected: Merge and Replace mode selectors for every declared mode and IC.
+- Support status: unchanged/support-neutral; no route, IC, range, processor,
+  integrity, naming, firmware evidence, or output byte is promoted or changed.
+- Compatibility: no migration, saved-data, package-layout, update-system, or
+  automation contract changes.
+- Verification: real Avalonia ComboBox binding coverage exercises first-choice
+  Merge and Replace selection plus 100 repeated page transitions; the complete
+  UI smoke suite remains required before publication.
+- Limitations: broader page-publication hardening remains scheduled for the
+  later 1.0.x train; this patch does not unload pages or redesign the UI.
+
+### Security
+
+No security boundary or dependency changes.
+
+### Known issues
+
+None introduced by this hotfix.
+
+### Upgrade and rollback
+
+Install the verified portable package through the existing version-management
+flow. Rollback to verified `1.0.1` remains available; firmware output is
+unchanged in either version.
+
+### Downloads and integrity
+
+Publication, hashes, SBOM, provenance, signing, and the immutable `v1.0.2` tag
+remain separate release-gate work and are not created by this candidate change.
 
 ## [1.0.1] - Unreleased
 
