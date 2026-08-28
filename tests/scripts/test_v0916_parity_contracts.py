@@ -88,10 +88,10 @@ class V0916ParityContractTests(V0916ParityTestBase):
         reference = raw_plan["approvedSemanticCorrections"][0]["diagnosticRecord"]
         diagnostic_path = ROOT / reference["path"]
         diagnostic_bytes = diagnostic_path.read_bytes()
-        self.assertEqual(3953, len(diagnostic_bytes))
+        self.assertEqual(3952, len(diagnostic_bytes))
         self.assertEqual(reference["size"], len(diagnostic_bytes))
         self.assertEqual(
-            "74e925cc20a3336659ec1ab427adcb18d6aa62fdfec3343af98f48c2579ec8a1",
+            "3c53c257201ef2e1014ed1b13e4d4f9eda7b19306d52a3d7e89f373dd68fec8f",
             hashlib.sha256(diagnostic_bytes).hexdigest(),
         )
         self.assertEqual(reference["sha256"], hashlib.sha256(diagnostic_bytes).hexdigest())
@@ -1179,8 +1179,17 @@ class V0916ParityContractTests(V0916ParityTestBase):
             [item["artifactId"] for item in diagnostic["baseRecipeSources"]],
         )
         self.assertEqual(
-            "92e400212b5cdbb5e164b4d1401d59cdd1adbb0aef9a490be4777554d5b1e659",
+            "861fa0fae7bf5904cac88a4bcb6ed6e0aef1a54518e0903914f2121fbc411bfb",
             diagnostic["executors"]["baseline"]["contractRawSha256"],
+        )
+        self.assertNotEqual(
+            json.loads(
+                (
+                    ROOT / "docs/contracts/v0916-baseline-executor-v1.json"
+                ).read_text(encoding="utf-8")
+            )["cliAssembly"]["sha256"],
+            diagnostic["executors"]["baseline"]["cliAssemblySha256"],
+            "historical observations must not be rebound to a new baseline executor",
         )
         self.assertEqual(
             "bb78da481040a368890743ea6b35b228ef44675988b9b78086d9350dc42525f6",

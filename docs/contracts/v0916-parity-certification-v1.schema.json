@@ -428,8 +428,8 @@
           "required": ["path", "size", "sha256", "status"],
           "properties": {
             "path": { "const": "docs/contracts/v0916-nt51951-c2-diagnostic-v1.json" },
-            "size": { "const": 3953 },
-            "sha256": { "const": "74e925cc20a3336659ec1ab427adcb18d6aa62fdfec3343af98f48c2579ec8a1" },
+            "size": { "const": 3952 },
+            "sha256": { "const": "3c53c257201ef2e1014ed1b13e4d4f9eda7b19306d52a3d7e89f373dd68fec8f" },
             "status": { "const": "blocked-incomplete-independent-observation" }
           }
         },

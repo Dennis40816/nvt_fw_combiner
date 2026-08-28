@@ -308,11 +308,14 @@ held handle and retains it until
 cleanup. There is no separate check-then-create window. Extraction and capture
 destinations must not already exist, escape the allowed root, or have a reparse
 ancestor. Each process uses a new read-only staged copy of every ordered input;
-the comparator reopens and hashes the admitted-source copy before copying, then
-hashes the staged copy immediately before launch. Mutation of the admitted
-original after Preview therefore fails before Build with
-`PARITY_INPUT_MUTATED`. The repository Golden source remains read-only and is
-never the mutation target. Metadata/report publication uses exclusive create and
+the comparator captures each admitted source exactly once, validates that
+capture against the declared size/hash, and reuses those immutable bytes for
+both Preview and Build. After acquiring no-share read handles over the staged
+runtime closure and staged inputs, it re-hashes both inside custody immediately
+before launch. Mutation of the admitted path after its capture cannot change
+either invocation; mutation of a staged runtime/input fails closed before it is
+consumed. The repository Golden source remains read-only and is never the
+mutation target. Metadata/report publication uses exclusive create and
 atomic replacement; an existing final path is a conflict, not an overwrite.
 Partial metadata and staging files are cleaned after process or extraction
 failure. The comparator never writes or edits firmware input bytes; only the

@@ -2003,6 +2003,17 @@ def _execute_cli_pair(
         argv.extend(("--output", str(output), "--report", str(report)))
         custody = [*execution_hashes, *(path for _, path in staged_inputs)]
         with hold_read_only_file_custody(custody):
+            # The handles close the swap window only after they are acquired.
+            # Re-validate the exact bytes while those no-share handles are
+            # already held, before any executable code consumes them.
+            _assert_staged_artifacts_unchanged(execution_hashes)
+            for input_index, (row, staged) in enumerate(staged_inputs):
+                staged_payload = staged.read_bytes()
+                if (
+                    staged_payload != input_payloads[input_index]
+                    or _sha256(staged_payload) != row["sha256"]
+                ):
+                    _fail("PARITY_INPUT_MUTATED")
             result = _runner_call(process_runner, argv, verified_executor.source_root)
             _assert_staged_artifacts_unchanged(execution_hashes)
             report_capture = capture_local_artifact(report, "report")
@@ -2896,7 +2907,13 @@ def _valid_mutation(mutation: Mapping[str, Any], operations: Sequence[Mapping[st
     changed = mutation.get("changedByteCount")
     if not all(isinstance(x, int) for x in (start, end, changed)) or start < 0 or end <= start or changed < 0 or changed > end - start:
         return False
-    if not SHA256_RE.fullmatch(str(mutation.get("beforeSha256", ""))) or not SHA256_RE.fullmatch(str(mutation.get("afterSha256", ""))):
+    before_sha = str(mutation.get("beforeSha256", ""))
+    after_sha = str(mutation.get("afterSha256", ""))
+    if (
+        not SHA256_RE.fullmatch(before_sha)
+        or not SHA256_RE.fullmatch(after_sha)
+        or (changed > 0 and before_sha == after_sha)
+    ):
         return False
     operation_range = operation.get("targetRange", {})
     if not (operation_range.get("start", -1) <= start and end <= operation_range.get("endExclusive", -1)):
@@ -3551,6 +3568,9 @@ def _validate_ctrlram_replacement_effect(receipt: Mapping[str, Any]) -> None:
             isinstance(mutation, Mapping)
             and isinstance(mutation.get("changedByteCount"), int)
             and mutation["changedByteCount"] > 0
+            and SHA256_RE.fullmatch(str(mutation.get("beforeSha256", "")))
+            and SHA256_RE.fullmatch(str(mutation.get("afterSha256", "")))
+            and mutation["beforeSha256"] != mutation["afterSha256"]
             and isinstance(mutation.get("targetRange"), Mapping)
             and any(
                 mutation.get("operationId") == target.get("operationId")

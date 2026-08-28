@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import contextlib
 import copy
 from dataclasses import dataclass
 import hashlib
@@ -831,6 +832,42 @@ class V0916ParityPipelineTests(V0916ParityTestBase):
                 )
             self.assertEqual("PARITY_AUTHORITY_MISMATCH", captured.exception.code)
 
+            original_custody = MODULE.hold_read_only_file_custody
+
+            @contextlib.contextmanager
+            def swap_before_custody(paths: object):
+                captured_paths = list(paths)
+                staged_dependency = next(
+                    path
+                    for path in captured_paths
+                    if Path(path).name == dependency.name
+                )
+                Path(staged_dependency).chmod(stat.S_IWRITE)
+                Path(staged_dependency).write_bytes(b"swap-before-custody")
+                with original_custody(captured_paths):
+                    yield
+
+            with (
+                patch.object(
+                    MODULE,
+                    "hold_read_only_file_custody",
+                    side_effect=swap_before_custody,
+                ),
+                self.assertRaises(MODULE.ParityError) as before_custody,
+            ):
+                MODULE.execute_cli_capture(
+                    verified,
+                    verified_executor=executor,
+                    output_root=root / "before-custody-swap",
+                    process_runner=RecordingCliRunner(
+                        expected_cwd=source_root,
+                        sources=sources,
+                    ),
+                )
+            self.assertEqual(
+                "PARITY_AUTHORITY_MISMATCH", before_custody.exception.code
+            )
+
     def test_ctrlram_evidence_requires_each_selected_replacement_to_change_its_range(
         self,
     ) -> None:
@@ -856,6 +893,8 @@ class V0916ParityPipelineTests(V0916ParityTestBase):
                     {
                         "operationId": "copy-nf",
                         "changedByteCount": 1,
+                        "beforeSha256": "1" * 64,
+                        "afterSha256": "2" * 64,
                         "targetRange": {
                             "addressSpace": "output-image",
                             "start": 12,
@@ -866,14 +905,18 @@ class V0916ParityPipelineTests(V0916ParityTestBase):
             },
         }
         MODULE._validate_ctrlram_replacement_effect(receipt)
-        for mutation in ("no-mutation", "wrong-source"):
+        for mutation in ("no-mutation", "wrong-source", "same-hash"):
             forged = copy.deepcopy(receipt)
             if mutation == "no-mutation":
                 forged["__projection"]["compiledMutations"] = []
-            else:
+            elif mutation == "wrong-source":
                 forged["__projection"]["compiledOperations"][0][
                     "sourceSpaceId"
                 ] = "other-slot"
+            else:
+                forged["__projection"]["compiledMutations"][0][
+                    "afterSha256"
+                ] = "1" * 64
             with self.subTest(mutation=mutation):
                 with self.assertRaises(MODULE.ParityError) as captured:
                     MODULE._validate_ctrlram_replacement_effect(forged)
