@@ -85,7 +85,10 @@ def test_protected_catalog_tool_loads_its_sibling_registry_policy(
     assert "candidate policy executed" not in result.stdout + result.stderr
 
 
-def test_release_catalog_package_size_ceiling_is_version_independent() -> None:
+def test_release_catalog_package_size_ceiling_is_version_independent(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     catalog_builder = _load_catalog_module()
     assert catalog_builder.MAXIMUM_PACKAGE_BYTES == 134_217_728
 
@@ -116,6 +119,27 @@ def test_release_catalog_package_size_ceiling_is_version_independent() -> None:
             else:
                 with pytest.raises(ValueError, match="packageSize"):
                     catalog_builder._validated_catalog_entries(encoded, "test")
+
+    source = _build_update_source(tmp_path)
+    package = source / "packages/NvtFwCombiner-v0.10.5-win-x64.zip"
+    actual_size = package.stat().st_size
+    monkeypatch.setattr(catalog_builder, "MAXIMUM_PACKAGE_BYTES", actual_size)
+    entry = catalog_builder._package_entry(
+        source,
+        package,
+        "2026-08-21T00:00:00Z",
+        "Release 0.10.5",
+    )
+    assert entry["packageSize"] == actual_size
+
+    monkeypatch.setattr(catalog_builder, "MAXIMUM_PACKAGE_BYTES", actual_size - 1)
+    with pytest.raises(ValueError, match="outside the catalog bound"):
+        catalog_builder._package_entry(
+            source,
+            package,
+            "2026-08-21T00:00:00Z",
+            "Release 0.10.5",
+        )
 
 
 def test_release_registry_is_rendered_from_exact_catalog_identity(

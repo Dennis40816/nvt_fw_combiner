@@ -1450,6 +1450,28 @@ class ReleasePackagePolicyTests(unittest.TestCase):
         POWERSHELL, "PowerShell is required for Windows release-policy tests"
     )
     def test_release_smoke_applies_temporary_complete_package_budget(self) -> None:
+        with tempfile.TemporaryDirectory(
+            prefix="nvt-release-exact-size-policy-test-"
+        ) as temporary_directory:
+            package_path = Path(temporary_directory) / (
+                "NvtFwCombiner-v1.0.2-win-x64.zip"
+            )
+            with package_path.open("wb") as package:
+                package.truncate(MAXIMUM_PACKAGE_BYTES)
+
+            exact_result = self.run_powershell(
+                SMOKE_SCRIPT,
+                "-PackagePath",
+                str(package_path),
+                "-SkipUiLaunch",
+            )
+
+        exact_output = normalize_console_output(
+            exact_result.stdout + exact_result.stderr
+        )
+        self.assertNotEqual(0, exact_result.returncode, exact_output)
+        self.assertNotIn("exceeds the owner-approved maximum", exact_output)
+
         for version in ("0.10.6", "1.0.2", "2.0.0"):
             with (
                 self.subTest(version=version),
