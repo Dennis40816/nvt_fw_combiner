@@ -685,7 +685,7 @@ class V0916ParityContractTests(V0916ParityTestBase):
                     workflowId=route.workflow_id,
                     icCountVariant=route.ic_count_variant,
                     mapVariant=route.map_variant,
-                    selectionToken="fixture",
+                    selectionToken=MODULE._cli_selection_token(route) or "selector-free",
                 )
                 correction = next(
                     (
@@ -764,7 +764,7 @@ class V0916ParityContractTests(V0916ParityTestBase):
                     workflowId=route.workflow_id,
                     icCountVariant=route.ic_count_variant,
                     mapVariant=route.map_variant,
-                    selectionToken="fixture-tp",
+                    selectionToken=MODULE._cli_selection_token(route) or "selector-free",
                     outputCapacity=route.tp_length,
                 )
                 row["candidateCompilationFingerprint"] = route.capability_fingerprint
