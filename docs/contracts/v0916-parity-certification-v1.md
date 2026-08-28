@@ -114,9 +114,9 @@ exact `candidateAuthority` implementation head/tree, not the portable release
 ZIP. The plan pins
 `docs/contracts/v100-candidate-source-executor-v1.json` at 4525 raw bytes and
 SHA-256
-`e7de45c21c535b021e785cb994d0b90e078bd6f5fc79da9b44bc8cebc2a958b2`.
-That contract pins head `087be7d298c12ca08de236ec3fb41b82ddf42db6`, tree
-`4c2b716a96054c87bad3c98e56db1c7907a30fe3`, SDK `10.0.303`, the complete
+`a9009d3c299c3a072653960aa8b63efc1525c6705a79fa9ecc2606342670500d`.
+That contract pins head `d08d2e952be50de759e5a2f0f06e25697072765a`, tree
+`0699478b5c7ec51c66e456a120646beccfaed6a4`, SDK `10.0.303`, the complete
 lock/tool inventory, and CLI SHA-256
 `be33bf8ad050fa5e9ba24d464910ac09e24944ba97ca56a27c7f57001b8521e9`.
 The build command pins `ContinuousIntegrationBuild=true` and maps the detached
@@ -425,7 +425,7 @@ Contents query, the Git blob SHA returned for that path at that commit, and the
 SHA-256 of decoded raw workflow bytes. None may substitute for another.
 The authenticated protected-main workflow commit is independent of the pinned
 candidate implementation/package head
-`087be7d298c12ca08de236ec3fb41b82ddf42db6`; equality is neither required
+`d08d2e952be50de759e5a2f0f06e25697072765a`; equality is neither required
 nor authority. The blob and raw digests independently prove which workflow
 bytes occupied `.github/workflows/release.yml` at the workflow commit, while
 the candidate manifest/provenance and source-executor contract continue to bind
