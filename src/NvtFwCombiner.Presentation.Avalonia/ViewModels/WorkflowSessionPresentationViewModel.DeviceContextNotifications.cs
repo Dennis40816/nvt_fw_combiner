@@ -4,15 +4,15 @@ internal sealed partial class WorkflowSessionPresentationViewModel
 {
     internal void NotifyContextTextChanged(
         WorkflowInspectionOwner? owner = null,
-        bool notifyIcChoices = true)
+        bool notifyIcChoices = true, bool notifyModeChoices = true)
     {
         if (owner is null or WorkflowInspectionOwner.Merge)
         {
-            _merge.NotifyContextChanged();
+            _merge.NotifyContextChanged(notifyModeChoices);
         }
         if (owner is null or WorkflowInspectionOwner.Replace)
         {
-            _replace.NotifyContextChanged();
+            _replace.NotifyContextChanged(notifyModeChoices);
         }
         if (notifyIcChoices)
         {

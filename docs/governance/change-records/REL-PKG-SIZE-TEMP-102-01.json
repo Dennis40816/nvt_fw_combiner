@@ -1,0 +1,43 @@
+{
+  "schemaVersion": 2,
+  "taskId": "REL-PKG-SIZE-TEMP-102-01",
+  "capability": "Apply one temporary bounded complete-release-ZIP ceiling until measured package-size reduction is accepted",
+  "integrationBase": "041d0a659ccb337387083fb9adaa29129722e46b",
+  "risk": "R3",
+  "kind": "release",
+  "state": "final-complete",
+  "mutablePaths": [
+    "src/NvtFwCombiner.VersionManagement.Application/VersionManagement/UpdateCatalogValidator.cs",
+    "docs/contracts/update-catalog-v1.schema.json",
+    "docs/contracts/update-catalog-v1.md",
+    "scripts/create_update_catalog.py",
+    "scripts/smoke-release.ps1",
+    "docs/ci/release-package.md",
+    "docs/adr/0058-release-update-handoff-and-upgrade-validation.md",
+    "docs/adr/0060-temporary-release-package-size-ceiling.md",
+    "docs/specs/v0.10.6-version-management.md"
+  ],
+  "implementationOwner": "primary-agent",
+  "searchEvidence": [
+    "UpdateCatalogValidator is the Application runtime owner of Catalog package-size admission; its only version branch grants 1.0.0 and 1.0.1 the larger complete-ZIP ceiling.",
+    "The normative update-catalog JSON Schema, create_update_catalog.py, and smoke-release.ps1 repeat the same version-scoped package-size projection.",
+    "LauncherBootstrapContracts, release-manifest schema, and FileSystemLauncherInstallationSelfTest separately retain their 80,000,000-byte executable ceilings and require no change.",
+    "A no-ReadyToRun Desktop evaluation still estimated the complete package at about 91,911,907 bytes, and Launcher trimming did not reduce its compressed entry, so no low-risk 80,000,000-byte package bridge exists for this hotfix."
+  ],
+  "semanticOwner": "Application update-catalog package admission and release package policy",
+  "terminalContract": "Every complete release ZIP is admitted up to an inclusive temporary 134,217,728-byte ceiling while each application, managed Launcher, and Bootstrap executable retains its independent 80,000,000-byte ceiling; 1.0.2 is a one-time fresh/manual installation with no 1.0.0/1.0.1 managed auto-upgrade claim, all closed-inventory and integrity gates remain unchanged, and accepted measured size-reduction work must replace this temporary ceiling",
+  "disposition": "extend-owner",
+  "designReview": {
+    "reviewer": "final_architecture_review",
+    "outcome": "findings-incorporated",
+    "evidence": "Independent R3 architecture review approved extending the existing Application-owned complete-release-ZIP admission policy to one temporary inclusive 134,217,728-byte ceiling, with schema, catalog-builder, release-smoke, contract, and ADR projections limited to the exact nine governed paths. The owner explicitly classified 1.0.2 as a one-time fresh/manual-install boundary with no 1.0.0/1.0.1 managed auto-upgrade claim; executable ceilings, closed inventory, hashes, SBOM/provenance, stable-handle verification, composition, and firmware semantics remain unchanged, and ADR 0060 must retire the temporary ceiling after PKG-SIZE-108-01 and ZIP-SIZE-108-02 receive measured release-owner acceptance."
+  },
+  "implementationHead": "b5d6d5bdcd42848c92badaded25260d45dcd0419",
+  "reviewedHead": "b5d6d5bdcd42848c92badaded25260d45dcd0419",
+  "pathStateDigest": "f71287885061c7f741cd10c024380238b6c17d8c1f4a72dc5a1474310f20d54e",
+  "finalReview": {
+    "reviewer": "final_evidence_review",
+    "outcome": "approved",
+    "evidence": "Independent exact-head review at b5d6d5bdcd42848c92badaded25260d45dcd0419 preserved the approved package-policy result from 9acfe64c: Application remains the single owner of a temporary version-independent inclusive 134,217,728-byte complete-release-ZIP ceiling, with matching Schema, Catalog-builder, and release-smoke projections. Exact-bound and over-bound regressions remain present, while the independent 80,000,000-byte application, Launcher, and Bootstrap executable limits remain unchanged. Version 1.0.2 remains a fresh/manual installation boundary with no managed-upgrade claim from immutable 1.0.0 or 1.0.1. The follow-up introduces no runtime, workflow, schema, firmware, profile, golden, integrity, inventory, or package-admission drift. No P0, P1, or P2 findings remain."
+  }
+}

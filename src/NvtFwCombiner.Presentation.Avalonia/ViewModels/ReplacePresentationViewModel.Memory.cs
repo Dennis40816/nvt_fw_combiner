@@ -51,11 +51,11 @@ internal sealed partial class ReplacePresentationViewModel
 
     public bool ShowsGenericCoverageStateLegend => !IsCtrlRamReplaceModeSelected;
 
-    internal void RefreshContextState(bool preserveSlotFiles = false)
+    internal void RefreshContextState(bool preserveSlotFiles = false, bool notifyModeChoices = true)
     {
         RefreshReplaceModeState(preserveSlotFiles: preserveSlotFiles);
         RefreshReplaceMemoryMapState();
-        NotifyContextChanged();
+        NotifyContextChanged(notifyModeChoices);
     }
 
     internal void ClearUnavailableContextState()

@@ -315,7 +315,7 @@ internal sealed partial class WorkflowSessionPresentationViewModel
     }
 
     internal void RefreshContextState(WorkflowInspectionOwner? owner = null, bool resetRunResult = false,
-        bool preserveReplaceSlotFiles = false,
+        bool preserveReplaceSlotFiles = false, bool notifyModeChoices = true,
         CapabilitySelectorPublication? selectorPublication = null)
     {
         EnsureWorkflowLoaded(selectorPublication);
@@ -330,7 +330,7 @@ internal sealed partial class WorkflowSessionPresentationViewModel
                 _replace.ClearUnavailableContextState();
             }
             _stateBindings.RefreshCommandState();
-            NotifyContextTextChanged(owner, notifyIcChoices: false);
+            NotifyContextTextChanged(owner, notifyIcChoices: false, notifyModeChoices: notifyModeChoices);
             if (resetRunResult)
             {
                 _stateBindings.ResetRunResult();
@@ -352,11 +352,11 @@ internal sealed partial class WorkflowSessionPresentationViewModel
         }
         if (owner is null or WorkflowInspectionOwner.Replace)
         {
-            _replace.RefreshContextState(preserveSlotFiles: preserveReplaceSlotFiles);
+            _replace.RefreshContextState(preserveSlotFiles: preserveReplaceSlotFiles, notifyModeChoices: notifyModeChoices);
             _replace.ApplyFirmwareSlotText();
         }
         _refreshCommandAvailability();
-        NotifyContextTextChanged(owner, notifyIcChoices: false);
+        NotifyContextTextChanged(owner, notifyIcChoices: false, notifyModeChoices: notifyModeChoices);
         if (resetRunResult)
         {
             _stateBindings.ResetRunResult();
@@ -536,7 +536,7 @@ internal sealed partial class WorkflowSessionPresentationViewModel
         InvalidateFirmwareInspection(WorkflowInspectionOwner.Replace);
         _replace.InvalidateCtrlRamFirmwareVersionContextState();
         RefreshNumberChoicesForSelectedIc();
-        RefreshContextState(WorkflowInspectionOwner.Replace, resetRunResult: true);
+        RefreshContextState(WorkflowInspectionOwner.Replace, resetRunResult: true, notifyModeChoices: false);
         if (!TryRefreshRetainedReplaceFirmwareInspectionsIfStale())
         {
             RefreshCtrlRamDisplayFromInspection();

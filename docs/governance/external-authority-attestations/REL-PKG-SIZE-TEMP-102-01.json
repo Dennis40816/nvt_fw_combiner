@@ -1,0 +1,9 @@
+{
+  "schemaVersion": 1,
+  "taskId": "REL-PKG-SIZE-TEMP-102-01",
+  "authorityType": "release-owner",
+  "reviewedHead": "8f06f518a456cc872e29a77d1637fad45aa70955",
+  "decision": "approved",
+  "reviewer": "Dennis Liu (release owner)",
+  "evidence": "Approved one temporary inclusive 134,217,728-byte ceiling for every complete release ZIP until the measured package-size reduction work is accepted. The application, managed Launcher, and Bootstrap remain independently limited to 80,000,000 bytes; closed inventory, SHA-256, manifest, SBOM, provenance, archive safety, package smoke, and stable-handle verification remain mandatory. Version 1.0.2 is approved only as a one-time fresh/manual installation and makes no managed-upgrade claim from immutable 1.0.0 or 1.0.1."
+}

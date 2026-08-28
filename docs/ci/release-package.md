@@ -267,17 +267,23 @@ The byte ratchet does not authorize trimming, removal of the self-contained
 smoke coverage. A lower reproducible package result lowers the ratchet only
 after release review records the producing commit, environment, and artifact.
 
-`v1.0.0` and the genuine validation-only `v1.0.1` package are the exact bounded
-pair for the release-coupled, self-contained managed Launcher required by ADR
-0056. Their canonical filenames have a 128 MiB (134,217,728-byte) complete-ZIP
-ceiling. The Launcher-branch checkpoint produced from
+The release-coupled, self-contained managed Launcher required by ADR 0056
+makes the measured package exceed the former 80,000,000-byte ZIP ceiling. ADR
+0060 therefore gives every complete release ZIP one temporary inclusive 128
+MiB (134,217,728-byte) ceiling until the reviewed size-reduction work replaces
+it with an accepted measured limit. The Launcher-branch checkpoint produced from
 `20489c1e1d50e6ed99b51aedfbfa9e625faf83a3` was 112,326,125 bytes with SHA-256
 `0a1bcaee366a9264d22480d857848e404449fd671942f211e880c61dfa113208`; the exact
 frozen integrated release ZIP size and SHA-256 must still be recorded later.
-Every other package name retains the 80,000,000-byte ceiling, and the separate
-80,000,000-byte `NvtFwCombiner.exe` ceiling is unchanged. This exception does
-not loosen the closed allowlist, file hashes, SBOM/provenance, or the rule that
-Bootstrap cannot appear in an update package.
+The separate 80,000,000-byte `NvtFwCombiner.exe` ceiling is unchanged. The
+temporary ZIP ceiling does not loosen the closed allowlist, file hashes,
+SBOM/provenance, or the rule that Bootstrap cannot appear in an update package.
+
+Version 1.0.2 is a one-time fresh/manual installation boundary because immutable
+1.0.0 and 1.0.1 clients reject its greater-than-80,000,000-byte Catalog row.
+Release notes and operator handoff must not claim managed auto-upgrade from
+those predecessors. Ordinary verified Catalog updates resume after 1.0.2 is
+running.
 
 `v1.0.1` is not a product-fix release. Its source commit must be the direct
 child of the immutable `v1.0.0` tag commit, that base must contain canonical

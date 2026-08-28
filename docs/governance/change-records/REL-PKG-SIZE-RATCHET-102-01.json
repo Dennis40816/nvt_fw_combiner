@@ -1,0 +1,35 @@
+{
+  "schemaVersion": 2,
+  "taskId": "REL-PKG-SIZE-RATCHET-102-01",
+  "capability": "Lower exact code-size ratchets after removing the obsolete version-specific package-size branch",
+  "integrationBase": "041d0a659ccb337387083fb9adaa29129722e46b",
+  "risk": "R2",
+  "kind": "governance",
+  "state": "final-complete",
+  "mutablePaths": [
+    "scripts/code_size_policy.py",
+    "docs/governance/v1.0.0-code-size-review.md"
+  ],
+  "implementationOwner": "primary-agent",
+  "searchEvidence": [
+    "validate_repository measured 829 files and 120,998 full-production nonblank lines after the staged package-policy simplification.",
+    "The same measurement reports 569 files and 83,416 runtime-production lines plus 234 files and 38,184 Application lines.",
+    "UpdateCatalogValidator removes one obsolete version-specific branch with 3 added and 12 removed nonblank lines; all other slice measurements and file inventories are unchanged."
+  ],
+  "semanticOwner": "Canonical code-size policy and v1.0.0 single-owner review",
+  "terminalContract": "The full-production, runtime-production, and Application effective ratchets decrease by exactly nine with no allowance expansion, measurement-definition change, path-set change, slice reallocation, firmware behavior change, release behavior change, or test-execution change",
+  "disposition": "extend-owner",
+  "designReview": {
+    "reviewer": "final_architecture_review",
+    "outcome": "approved",
+    "evidence": "Independent R2 review reproduced the staged package-policy candidate at 829 files / 120,998 full-production nonblank lines, 569 / 83,416 runtime lines, and 234 / 38,184 Application lines. The exact nine-line reduction comes solely from removing the obsolete version-specific UpdateCatalogValidator branch; lowering only the full, runtime, and Application effective ratchets by nine preserves all measurement definitions, inclusion/exclusion rules, slice allocations, other ratchets, firmware semantics, release behavior, and test execution."
+  },
+  "implementationHead": "b5d6d5bdcd42848c92badaded25260d45dcd0419",
+  "reviewedHead": "b5d6d5bdcd42848c92badaded25260d45dcd0419",
+  "pathStateDigest": "799f85c9e9213fad0914053b26ee9b1f77c8b32dce0144f19ab2f9f8ec5096a9",
+  "finalReview": {
+    "reviewer": "final_evidence_review",
+    "outcome": "approved",
+    "evidence": "Independent exact-head review at b5d6d5bdcd42848c92badaded25260d45dcd0419 preserved the exact nine-line code-size reduction reviewed at 9acfe64c. Full-production, runtime-production, and Application ratchets remain lowered by exactly nine without measurement-definition, file-inventory, slice-allocation, allowance, execution, release-behavior, or firmware-semantic expansion. The unsigned-release documentation follow-up changes no production source or code-size measurement. No P0, P1, or P2 findings remain."
+  }
+}

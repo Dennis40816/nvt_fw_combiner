@@ -1,0 +1,34 @@
+{
+  "schemaVersion": 2,
+  "taskId": "REL-HOTFIX-102-BASE-01",
+  "capability": "Represent the unpublished mode-selector hotfix with the stable 1.0.2 application identity required by the existing managed-version contract",
+  "integrationBase": "7a94879b3ce945b224b97917934de26a06d588b9",
+  "risk": "R2",
+  "kind": "release",
+  "state": "final-complete",
+  "mutablePaths": [
+    "docs/governance/development-tags.md"
+  ],
+  "implementationOwner": "primary-agent",
+  "searchEvidence": [
+    "ManagedAppVersion.Parse accepts stable major.minor.patch only and Desktop passes AssemblyInformationalVersion through that parser at startup.",
+    "render_release_notes.py and its tests accept stable SemVer only.",
+    "VERSION, SPEC.md, CHANGELOG.md, verification-report.md, and development-tags.md were the existing candidate-identity authorities requiring alignment."
+  ],
+  "semanticOwner": "Branch, version, and release governance",
+  "terminalContract": "VERSION, SPEC status, verification report, changelog, and the development milestone agree on an unpublished stable-format 1.0.2 hotfix candidate; this change creates no Git tag, package, publication, support promotion, or firmware behavior change",
+  "disposition": "extend-owner",
+  "designReview": {
+    "reviewer": "final_architecture_review",
+    "outcome": "findings-incorporated",
+    "evidence": "Independent R2 review rejected 1.0.2-dev.0 because the Desktop managed-version parser and release-note renderer require stable SemVer, and approved stable 1.0.2 with only the existing candidate identity authorities updated. No ADR or managed-version contract expansion is required."
+  },
+  "implementationHead": "56daf2ff33c2fb66700adab4afacc9abd3cdc96f",
+  "reviewedHead": "56daf2ff33c2fb66700adab4afacc9abd3cdc96f",
+  "pathStateDigest": "33abc123f1f5b99b0874208e740c3cd09514dce2e85f3a9ca548257eb71d3dab",
+  "finalReview": {
+    "reviewer": "final_evidence_review",
+    "outcome": "approved",
+    "evidence": "Independent exact-head review approved the unpublished stable-format 1.0.2 candidate identity at 56daf2ff33c2fb66700adab4afacc9abd3cdc96f. ManagedAppVersion accepts 1.0.2, release-note rendering produced the v1.0.2 heading, v1.0.0/v1.0.1 history records their real 2026-08-28 tag date, and this candidate created no tag, package, publication, support promotion, firmware behavior, or update-policy expansion."
+  }
+}

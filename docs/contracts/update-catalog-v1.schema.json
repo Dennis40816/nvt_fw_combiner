@@ -48,18 +48,7 @@
         "packageSha256": { "$ref": "#/$defs/sha256" },
         "releaseManifestSha256": { "$ref": "#/$defs/sha256" },
         "releaseNotes": { "type": "string", "maxLength": 65536 }
-      },
-      "allOf": [
-        {
-          "if": {
-            "properties": { "version": { "enum": ["1.0.0", "1.0.1"] } },
-            "required": ["version"]
-          },
-          "else": {
-            "properties": { "packageSize": { "maximum": 80000000 } }
-          }
-        }
-      ]
+      }
     }
   }
 }

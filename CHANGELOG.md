@@ -4,15 +4,65 @@ All notable changes to NVT FW Combiner are documented here. The project follows 
 
 ## [Unreleased]
 
-The repository identity is the formal `1.0.0` release candidate. No stable
-`v1.0.0` package or tag is published until every technical and external R3
-gate is complete.
+The repository identity is the unpublished `1.0.2` mode-selector hotfix
+candidate. Stable `v1.0.0` and the version-only `v1.0.1` upgrade probe remain
+its immutable predecessors.
 
-The complete release notes for `1.0.0` and its version-only `1.0.1` upgrade
-probe are intentionally frozen here before the `1.0.0` tag. The `1.0.1`
-source commit may change only `VERSION`.
+## [1.0.2] - Unreleased
 
-## [1.0.1] - Unreleased
+### Summary
+
+This support-neutral hotfix keeps the first user-selected mode active when
+entering either the Merge or Replace page.
+
+### Product changes
+
+#### Stable workflow mode selection
+
+- Before → After: the first Merge or Replace mode choice could revert when the
+  live TwoWay selector rebuilt its own ItemsSource during the selection event.
+  Direct mode selection now keeps that selector source stable while IC and
+  catalog reconciliation retain their existing choices-first publication.
+- Affected: Merge and Replace mode selectors for every declared mode and IC.
+- Support status: unchanged/support-neutral; no route, IC, range, processor,
+  integrity, naming, firmware evidence, or output byte is promoted or changed.
+- Compatibility: firmware and saved-data contracts do not change. Because the
+  immutable 1.0.0 and 1.0.1 clients cannot admit the 1.0.2 package size, 1.0.2
+  is a one-time manual replacement/fresh installation; automatic managed
+  upgrade from those two versions is not supported.
+- Verification: real Avalonia ComboBox binding coverage exercises first-choice
+  Merge and Replace selection plus 100 repeated page transitions; the complete
+  UI smoke suite remains required before publication.
+- Limitations: broader page-publication hardening remains scheduled for the
+  later 1.0.x train; this patch does not unload pages or redesign the UI.
+
+### Security
+
+The complete release ZIP uses a temporary inclusive 134,217,728-byte ceiling
+until reviewed package-size reduction is accepted. The separate 80,000,000-byte
+application, Launcher, and Bootstrap limits plus closed inventory, hashes,
+manifest, SBOM, provenance, archive safety, and stable-handle checks remain
+unchanged.
+
+### Known issues
+
+None introduced by this hotfix.
+
+### Upgrade and rollback
+
+Manually replace or freshly install the verified 1.0.2 portable package. Do not
+use the 1.0.0/1.0.1 Version page to install 1.0.2. After 1.0.2 is running, later
+verified Catalog updates use the normal Version flow. Keep the prior verified
+package separately if manual rollback is required; firmware output is unchanged.
+
+### Downloads and integrity
+
+Package signing is not required for `v1.0.2` under the release-owner-approved
+unsigned disposition. Publication, hashes, SBOM, provenance, exact package
+smoke, legal/redistribution review, and the immutable `v1.0.2` tag remain
+separate release gates and are not created by this candidate change.
+
+## [1.0.1] - 2026-08-28
 
 ### Summary
 
@@ -66,7 +116,7 @@ Use only the immutable versioned Windows x64 ZIP and its matching candidate
 manifest, asset checksum list, SBOM, and provenance. A renamed `1.0.0` ZIP is
 not `1.0.1` and must fail verification.
 
-## [1.0.0] - Unreleased
+## [1.0.0] - 2026-08-28
 
 ### Summary
 

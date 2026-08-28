@@ -89,6 +89,9 @@ commit.
 - `v0.10.7` — final-effect candidate: hide ordinary DP Replace authoring through
   canonical policy while retaining its executable and Golden regression
   semantics; decide retirement or reopening at `1.1.0`.
+- `v1.0.2` — mode-selector hotfix milestone: keep the first user-selected Merge
+  or Replace mode active under live TwoWay binding without changing page
+  layout, firmware support, composition bytes, output naming, or evidence.
 
 ### Recorded `v0.10.2` pre-deletion comparison point
 

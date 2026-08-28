@@ -2816,14 +2816,14 @@ class VerifyOrchestrationTests(unittest.TestCase):
                     "tests/NvtFwCombiner.Bootstrap.Tests/"
                     "NvtFwCombiner.Bootstrap.Tests.csproj",
                     1147,
-                    0 if MODULE.os.name == "nt" else 5,
+                    0,
                 ),
             ),
             "ui": (
                 (
                     "tests/NvtFwCombiner.UiSmoke.Tests/"
                     "NvtFwCombiner.UiSmoke.Tests.csproj",
-                    822,
+                    825,
                     0,
                 ),
             ),
@@ -2902,10 +2902,10 @@ class VerifyOrchestrationTests(unittest.TestCase):
         self.assertEqual(8, len(set(flattened)))
         self.assertEqual(solution_test_projects, set(flattened))
         self.assertEqual(
-            4664, sum(total for projects in actual.values() for _, total, _ in projects)
+            4667, sum(total for projects in actual.values() for _, total, _ in projects)
         )
         self.assertEqual(
-            2 + (0 if MODULE.os.name == "nt" else 5),
+            2,
             sum(skipped for projects in actual.values() for _, _, skipped in projects),
         )
 

@@ -1,0 +1,9 @@
+{
+  "schemaVersion": 1,
+  "taskId": "REL-UNSIGNED-STABLE-102-01",
+  "authorityType": "release-owner",
+  "reviewedHead": "8f06f518a456cc872e29a77d1637fad45aa70955",
+  "decision": "approved",
+  "reviewer": "Dennis Liu (release owner)",
+  "evidence": "Approved the 1.0.2 source policy for an unsigned stable release without adding code-signing or key-management infrastructure. SHA-256, closed manifest, SBOM, provenance, package smoke, archive safety, legal/redistribution review, protected publication, and immutable release identity remain mandatory. This source-policy approval does not replace release-owner acceptance of the final exact ZIP, its hashes and size, or its unsigned-distribution disposition before publication."
+}

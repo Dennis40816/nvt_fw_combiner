@@ -6,6 +6,8 @@
 - Owners: Product owner, architecture owner, release owner
 - Risk: R2 update-source and package contract; R3 first public release evidence
 - Builds on: ADR 0051, ADR 0053, and ADR 0056
+- Amended by: ADR 0060 for the temporary complete-release-ZIP ceiling and the
+  one-time manual 1.0.2 installation boundary
 
 ## Context
 
@@ -65,7 +67,9 @@ Because the coupled self-contained launcher makes the measured package about
 112 MiB, only canonical 1.0.0 and validation 1.0.1 ZIPs receive the 128 MiB
 (134,217,728-byte) complete-package ceiling. Every other package retains the
 80,000,000-byte ceiling. The separate application-executable ceiling remains
-80,000,000 bytes.
+80,000,000 bytes. ADR 0060 later replaces only this exact-pair package-size
+decision; the remaining handoff, identity, integrity, and 1.0.1 decisions stay
+current.
 
 ## Rejected options
 
@@ -95,10 +99,10 @@ Because the coupled self-contained launcher makes the measured package about
 ## Verification
 
 - Python tests bind the root manifest copy to the inner manifest and catalog
-  hashes, reject tamper/overwrite/path drift, and verify version-scoped size
-  ceilings.
-- Application and schema tests admit exactly 1.0.0/1.0.1 at 128 MiB and keep
-  all other versions at 80,000,000 bytes.
+  hashes and reject tamper, overwrite, and path drift. ADR 0060 replaces the
+  historical exact-pair size cases with one temporary complete-ZIP ceiling.
+- Application and schema tests retain boundary parity under ADR 0060; this
+  ADR's original exact 1.0.0/1.0.1 size pair is historical evidence only.
 - Workflow-policy tests require all four handoff entries while preserving the
   exact five immutable GitHub Release assets.
 - The final isolated lab must exercise 1.0.0 to 1.0.1 and back on local and UNC

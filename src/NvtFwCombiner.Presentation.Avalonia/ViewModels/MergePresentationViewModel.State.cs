@@ -15,12 +15,9 @@ internal sealed partial class MergePresentationViewModel
     private readonly Dictionary<string, string> _abMergeAddressSpaceBySlotId = new(StringComparer.Ordinal);
     private readonly Dictionary<string, CompiledAuthoringInputBinding> _abMergeBindingsByAddressSpace = new(StringComparer.Ordinal);
     private readonly Dictionary<string, FirmwareSlotViewModel> _abMergeSlotsByAddressSpace = new(StringComparer.Ordinal);
-    private readonly AuthoringSessionState _standardMergeSession =
-        new(ExperienceIds.StandardMerge);
-    private readonly AuthoringSessionState _abMergeSession =
-        new(ExperienceIds.AbMerge);
-    private readonly AuthoringSessionState _generalMergeSession =
-        new(ExperienceIds.GeneralMerge);
+    private readonly AuthoringSessionState _standardMergeSession = new(ExperienceIds.StandardMerge);
+    private readonly AuthoringSessionState _abMergeSession = new(ExperienceIds.AbMerge);
+    private readonly AuthoringSessionState _generalMergeSession = new(ExperienceIds.GeneralMerge);
     private string? _abMergeTopologyChoicesIcId;
     private readonly MergeStateBindings _stateBindings;
     internal FirmwareSlotViewModel MergeDpSlot { get; } = new(
@@ -356,11 +353,14 @@ internal sealed partial class MergePresentationViewModel
         NotifyContextChanged();
     }
 
-    internal void NotifyContextChanged()
+    internal void NotifyContextChanged(bool notifyModeChoices = true)
     {
         OnPropertyChanged(nameof(IsStandardMergeSupported));
         OnPropertyChanged(nameof(IsAbMergeSupported));
-        OnPropertyChanged(nameof(MergeModeChoices));
+        if (notifyModeChoices)
+        {
+            OnPropertyChanged(nameof(MergeModeChoices));
+        }
         OnPropertyChanged(nameof(StandardMergeSupportSummary));
         OnPropertyChanged(nameof(MergePreview));
         OnPropertyChanged(nameof(StandardMergeOutputFileName));
