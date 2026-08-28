@@ -2,13 +2,13 @@
   "schemaVersion": "1.0",
   "kind": "candidate-source-built-cli",
   "source": {
-    "implementationHead": "67aceb8d79fae16751031c507e7072aa60704d9e",
-    "implementationTree": "88e20566b69a4d2fff227e5fc4af3d41e4d7f59d",
+    "implementationHead": "3b73792e605fb1ce48f51d1aae004f8fec6434b4",
+    "implementationTree": "3fac0994d2a7150ff1ea4a3be91c89f95da7811c",
     "authorityTrees": {
-      "src": "9070bd3cd85773dd7844069841ceb4043edd2f57",
+      "src": "4e3aad813828c147985775f190b5895ed6965886",
       "profiles": "7f8bd06e23ee78954e2e2c222f7b44a315049330",
       "external-tools": "8d83e508ec3b48e000e1bef39b4b215c81b886ad",
-      "tools/crc-worker": "bba57c51cab02ddf89fefdf449eb585de7b34ae5"
+      "tools/crc-worker": "88d21840f7caac0b57b79db0ffb6f1332349b817"
     },
     "cleanTreeRequired": true
   },
@@ -23,15 +23,15 @@
     "globalJson": { "path": "global.json", "size": 109, "sha256": "1497bda77ac26a91600f9eaa9d733be95a970961816c63738a4aafe1dc9c14e3" }
   },
   "lockFiles": [
-    { "path": "src/NvtFwCombiner.Application/packages.lock.json", "size": 202, "sha256": "7caeed41b3bad2407a3ff34c212f80966b35b7294d94db6cb52953c29950d617" },
-    { "path": "src/NvtFwCombiner.Bootstrap/packages.lock.json", "size": 2481, "sha256": "14991273997ad3449a59203a12581eb7d58b460d2e1387ceb0f760ca4f27a258" },
-    { "path": "src/NvtFwCombiner.Cli/packages.lock.json", "size": 2837, "sha256": "d28b5a3dfbf82157ce1c6061da955478f29fc5c1722054a342f3d39cf3569123" },
-    { "path": "src/NvtFwCombiner.Contracts/packages.lock.json", "size": 61, "sha256": "03eeadc5ef377c17f787ab65f41fb4c8a9c936bb7f7f4171111fdeec8a81cb46" },
-    { "path": "src/NvtFwCombiner.Domain/packages.lock.json", "size": 61, "sha256": "03eeadc5ef377c17f787ab65f41fb4c8a9c936bb7f7f4171111fdeec8a81cb46" },
-    { "path": "src/NvtFwCombiner.Infrastructure/packages.lock.json", "size": 1654, "sha256": "671a7562d6e49956024a1530b6d3989a895ce4d3cc4c98c062294ac589d6d991" },
-    { "path": "src/NvtFwCombiner.Profiles/packages.lock.json", "size": 202, "sha256": "7caeed41b3bad2407a3ff34c212f80966b35b7294d94db6cb52953c29950d617" },
-    { "path": "src/NvtFwCombiner.VersionManagement.Application/packages.lock.json", "size": 135, "sha256": "29dec3bc0547357d693e94a65cfc976d7dbc7cae3f7023ca5ab1492663df2493" },
-    { "path": "src/NvtFwCombiner.VersionManagement.Infrastructure/packages.lock.json", "size": 1356, "sha256": "cbc0002d9813bcc078a84f78400f37cfdff1c6804a752aa500811b7bb56bfd34" }
+    { "path": "src/NvtFwCombiner.Application/packages.lock.json", "size": 229, "sha256": "add20ebe1f6c2ffdaf47ec228238757f1982323e1c214fefdbbb5160a613a206" },
+    { "path": "src/NvtFwCombiner.Bootstrap/packages.lock.json", "size": 2508, "sha256": "890b75acebcec5a11e084a148fc645eaa823959122625a47b483b17332c0dfaa" },
+    { "path": "src/NvtFwCombiner.Cli/packages.lock.json", "size": 2864, "sha256": "073af215789f331782387c0a27c3d1e4b1455473d9f5c9b9ade743eb233fbd2c" },
+    { "path": "src/NvtFwCombiner.Contracts/packages.lock.json", "size": 88, "sha256": "8d84b21d9bedd16f93b526ec5aa5d9b49b034646d5463195d58ba4617420bc1f" },
+    { "path": "src/NvtFwCombiner.Domain/packages.lock.json", "size": 88, "sha256": "8d84b21d9bedd16f93b526ec5aa5d9b49b034646d5463195d58ba4617420bc1f" },
+    { "path": "src/NvtFwCombiner.Infrastructure/packages.lock.json", "size": 1681, "sha256": "4884bc837d56416681a74039ae84717fe5997db263c9f8692fef2db04086c0ad" },
+    { "path": "src/NvtFwCombiner.Profiles/packages.lock.json", "size": 229, "sha256": "add20ebe1f6c2ffdaf47ec228238757f1982323e1c214fefdbbb5160a613a206" },
+    { "path": "src/NvtFwCombiner.VersionManagement.Application/packages.lock.json", "size": 162, "sha256": "16aaaf3d24645a1d49736136b7fd78dd2697588bfc56aea57f07aac9d0a993ab" },
+    { "path": "src/NvtFwCombiner.VersionManagement.Infrastructure/packages.lock.json", "size": 1383, "sha256": "fff0339e53190203b51bb46420062233c730fa1eb1a446bb1d0729829b0ca001" }
   ],
   "externalTools": [
     { "path": "external-tools/catalog.json", "size": 4530, "sha256": "0c9079ba73ffd35d8c91fd89c40f3b0d89a79e31035b9e3b5b2781e16bc5dac9" },
@@ -59,6 +59,6 @@
     "root": "src/NvtFwCombiner.Cli/bin/Release/net10.0/win-x64",
     "fileCount": 382,
     "totalSize": 91412711,
-    "sha256": "858e21e77c25078808effc6cf68d926614505bf2a9db3b4e84051f76762a2216"
+    "sha256": "f16ed40d9048f07a097e9a2fd98a41521385c7ec7d95e37d2e152e1277b48b21"
   }
 }

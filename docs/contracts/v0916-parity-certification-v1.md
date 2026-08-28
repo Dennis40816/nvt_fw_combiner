@@ -114,15 +114,20 @@ exact `candidateAuthority` implementation head/tree, not the portable release
 ZIP. The plan pins
 `docs/contracts/v100-candidate-source-executor-v1.json` at 4525 raw bytes and
 SHA-256
-`14d6bdaddf3cf72fe89dd5269d95fc5bc9ba543fc034a2ee14fd1412904c7c95`.
-That contract pins head `67aceb8d79fae16751031c507e7072aa60704d9e`, tree
-`88e20566b69a4d2fff227e5fc4af3d41e4d7f59d`, SDK `10.0.303`, the complete
+`035bfacbae7e66436b3fb57179694e5e6642a30b67e3653fcdb00f83bbbb6ae7`.
+That contract pins head `3b73792e605fb1ce48f51d1aae004f8fec6434b4`, tree
+`3fac0994d2a7150ff1ea4a3be91c89f95da7811c`, SDK `10.0.303`, the complete
 lock/tool inventory, and CLI SHA-256
 `be33bf8ad050fa5e9ba24d464910ac09e24944ba97ca56a27c7f57001b8521e9`.
 The build command pins `ContinuousIntegrationBuild=true` and maps the detached
 worktree root to `/_/src`; two independent detached worktrees produced the same
-178688-byte assembly and SHA above. Omitting either deterministic-build input
-is authority drift.
+162304-byte executable and SHA above, plus an identical 382-file,
+91412711-byte runtime closure with SHA-256
+`f16ed40d9048f07a097e9a2fd98a41521385c7ec7d95e37d2e152e1277b48b21`.
+The previously recorded closure `858e21e7...` was superseded because its nine
+first-party managed DLLs embedded SourceLink for binding head `b13f0e4d`, not
+the implementation head declared by that contract. It is not an accepted
+alternate. Omitting either deterministic-build input is authority drift.
 The comparator requires a fresh detached Git worktree at the pinned head, rejects
 dirty or ignored/stale `bin`/`obj` content before restore, uses locked restore
 and Release build, and records the resulting CLI identity as
@@ -425,7 +430,7 @@ Contents query, the Git blob SHA returned for that path at that commit, and the
 SHA-256 of decoded raw workflow bytes. None may substitute for another.
 The authenticated protected-main workflow commit is independent of the pinned
 candidate implementation/package head
-`67aceb8d79fae16751031c507e7072aa60704d9e`; equality is neither required
+`3b73792e605fb1ce48f51d1aae004f8fec6434b4`; equality is neither required
 nor authority. The blob and raw digests independently prove which workflow
 bytes occupied `.github/workflows/release.yml` at the workflow commit, while
 the candidate manifest/provenance and source-executor contract continue to bind

@@ -57,7 +57,7 @@
         "workflowCommitSha": { "$ref": "v0916-parity-evidence-v1.schema.json#/$defs/gitSha" },
         "workflowBlobSha": { "$ref": "v0916-parity-evidence-v1.schema.json#/$defs/gitSha" },
         "workflowRawSha256": { "$ref": "v0916-parity-evidence-v1.schema.json#/$defs/sha256" },
-          "workflowSemanticContractSha256": { "const": "076a13639d94e8a326d4124fb98c959dbe3a306fafb8cc332f4f595d6d50d515" },
+          "workflowSemanticContractSha256": { "const": "faa1be61a2072a8d7b7b0ebb57589cd4e20080f61d9a57533ee47c26ceddbb4d" },
         "runId": { "type": "integer", "minimum": 1 },
         "artifactId": { "type": "integer", "minimum": 1 },
         "artifactName": { "type": "string", "pattern": "^stable-candidate-[1-9][0-9]*-[0-9a-f]{40}$" },
