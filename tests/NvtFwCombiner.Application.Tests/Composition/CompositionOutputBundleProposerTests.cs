@@ -27,7 +27,7 @@ public sealed class CompositionOutputBundleProposerTests
             ExperienceIds.StandardMerge,
             output);
 
-        Assert.Equal("NT51950_DCC00T0400_20260820_bundle", actual);
+        Assert.Equal("NT51950_DCC00T0400_20260820", actual);
     }
 
     /// <summary>Other routes use the canonical automatic output basename and ignore an operator override.</summary>
@@ -47,7 +47,7 @@ public sealed class CompositionOutputBundleProposerTests
             ExperienceIds.CtrlRamReplace,
             output);
 
-        Assert.Equal("NT51950_TPFW_T0400_20260820_bundle", actual);
+        Assert.Equal("NT51950_TPFW_T0400_20260820", actual);
     }
 
     /// <summary>A Standard Merge date cannot drift from the one injected UTC naming instant.</summary>
@@ -86,7 +86,7 @@ public sealed class CompositionOutputBundleProposerTests
             ExperienceIds.StandardMerge,
             output);
 
-        Assert.Equal("NT51950_DxxxxTxxxx_20260820_bundle", actual);
+        Assert.Equal("NT51950_DxxxxTxxxx_20260820", actual);
     }
 
     private static CompositionOutputPreparation Preparation(

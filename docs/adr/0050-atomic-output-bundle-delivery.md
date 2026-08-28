@@ -28,8 +28,10 @@ Application accepts one optional typed bundle-delivery intent with the parent
 destination and one validated plain folder name. It derives the proposed
 Standard Merge name from the accepted canonical IC, typed DP/TP naming tokens,
 and the same injected UTC run clock as primary output naming. Other routes use
-an explicitly owned template or the canonical output basename plus `_bundle`.
-Presentation never parses firmware facts from paths, filenames, or labels.
+an explicitly owned template or the canonical output basename. The default
+folder name does not add a redundant `_bundle` suffix; destination collisions
+still receive the next numeric suffix. Presentation never parses firmware facts
+from paths, filenames, or labels.
 
 Bundle mode commits the canonical output only inside the bundle directory. The
 Application destination request carries the exact accepted source identities,

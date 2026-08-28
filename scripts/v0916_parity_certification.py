@@ -73,7 +73,10 @@ def _sha256(data: bytes) -> str:
 
 def _artifact(path: Path) -> dict[str, Any]:
     require_local_artifact(path, "artifact")
-    payload = path.read_bytes()
+    return _artifact_payload(path.read_bytes())
+
+
+def _artifact_payload(payload: bytes) -> dict[str, Any]:
     return {"size": len(payload), "sha256": _sha256(payload)}
 
 
@@ -600,6 +603,56 @@ def validate_baseline_executor_identity(authority: BaselineAuthority, supplied: 
         _fail("PARITY_AUTHORITY_MISMATCH")
 
 
+def _validate_ctrlram_base_routes(
+    raw: Mapping[str, Any], routes: Sequence[Route]
+) -> None:
+    authority = raw.get("canonicalInputAuthority", {})
+    rows = authority.get("ctrlRamBaseRoutes")
+    missing = set(authority.get("currentlyMissingRouteIds", []))
+    expected = {
+        route.route_id: route
+        for route in routes
+        if route.workflow_id == "ctrlram-replace" and route.route_id not in missing
+    }
+    if (
+        not isinstance(rows, list)
+        or len(rows) != len(expected)
+        or any(not isinstance(row, dict) for row in rows)
+        or len({row.get("routeId") for row in rows}) != len(rows)
+        or {row.get("routeId") for row in rows} != set(expected)
+    ):
+        _fail("PARITY_PLAN_INVALID")
+    by_id = {route.route_id: route for route in routes}
+    for row in rows:
+        route = expected[row["routeId"]]
+        if row.get("capabilityFingerprint") != route.capability_fingerprint:
+            _fail("PARITY_PLAN_INVALID")
+        kind = row.get("kind")
+        if kind == "tp-input":
+            if set(row) != {"routeId", "capabilityFingerprint", "kind"}:
+                _fail("PARITY_PLAN_INVALID")
+            continue
+        if kind != "standard-merge" or set(row) != {
+            "routeId",
+            "capabilityFingerprint",
+            "kind",
+            "standardMergeRouteId",
+            "standardMergeCapabilityFingerprint",
+            "standardMergeMapVariant",
+        }:
+            _fail("PARITY_PLAN_INVALID")
+        standard = by_id.get(row["standardMergeRouteId"])
+        if (
+            standard is None
+            or standard.workflow_id != "standard-merge"
+            or standard.ic_id != route.ic_id
+            or standard.capability_fingerprint
+            != row["standardMergeCapabilityFingerprint"]
+            or standard.map_variant != row["standardMergeMapVariant"]
+        ):
+            _fail("PARITY_PLAN_INVALID")
+
+
 def load_and_validate_plan(plan_path: Path, policy_path: Path) -> Plan:
     raw = _read_json_file(plan_path)
     try:
@@ -677,6 +730,7 @@ def load_and_validate_plan(plan_path: Path, policy_path: Path) -> Plan:
             if not full or full["capabilityFingerprint"] != route.full_capability_fingerprint or proof.get("capabilityFingerprint") != route.capability_fingerprint or not isinstance(route.tp_length, int) or route.tp_length <= 0:
                 _fail("PARITY_PLAN_INVALID")
         routes.append(route)
+    _validate_ctrlram_base_routes(raw, routes)
     counts = {workflow: sum(route.workflow_id == workflow for route in routes) for workflow in raw["selection"]["includedWorkflows"]}
     expected = raw.get("expectedCounts", {})
     if expected.get("total") != 64 or expected.get("exactOutput") != 53 or expected.get("transitiveTpPrefix") != 11 or counts != expected.get("byWorkflow"):
@@ -699,7 +753,10 @@ def load_and_validate_plan(plan_path: Path, policy_path: Path) -> Plan:
 def compare_exact_files(baseline: Path, candidate: Path) -> dict[str, Any]:
     require_local_artifact(baseline, "baseline-output")
     require_local_artifact(candidate, "candidate-output")
-    before, after = baseline.read_bytes(), candidate.read_bytes()
+    return compare_exact_payloads(baseline.read_bytes(), candidate.read_bytes())
+
+
+def compare_exact_payloads(before: bytes, after: bytes) -> dict[str, Any]:
     result = {"baselineOutput": {"size": len(before), "sha256": _sha256(before)}, "candidateOutput": {"size": len(after), "sha256": _sha256(after)}, "equal": before == after}
     if before != after:
         _fail("PARITY_EXACT_MISMATCH", details=result)
@@ -711,7 +768,14 @@ def compare_approved_semantic_correction(
 ) -> dict[str, Any]:
     require_local_artifact(baseline, "baseline-output")
     require_local_artifact(candidate, "candidate-output")
-    before, after = baseline.read_bytes(), candidate.read_bytes()
+    return compare_approved_semantic_correction_payloads(
+        baseline.read_bytes(), candidate.read_bytes(), correction
+    )
+
+
+def compare_approved_semantic_correction_payloads(
+    before: bytes, after: bytes, correction: Mapping[str, Any]
+) -> dict[str, Any]:
     ranges: list[dict[str, int]] = []
     start: int | None = None
     for index, (left, right) in enumerate(zip(before, after, strict=False)):
@@ -751,6 +815,12 @@ def compare_transitive_files(baseline_full: Path, candidate_full: Path, candidat
     for path in (baseline_full, candidate_full, candidate_tp, candidate_base):
         require_local_artifact(path, "transitive-artifact")
     baseline, current, tp, base = (path.read_bytes() for path in (baseline_full, candidate_full, candidate_tp, candidate_base))
+    return compare_transitive_payloads(baseline, current, tp, base, tp_length)
+
+
+def compare_transitive_payloads(
+    baseline: bytes, current: bytes, tp: bytes, base: bytes, tp_length: int
+) -> dict[str, Any]:
     if not isinstance(tp_length, int) or tp_length <= 0 or tp_length != len(tp) or tp_length >= len(current) or tp_length > len(baseline) or tp_length > len(base):
         _fail("PARITY_PLAN_INVALID")
     if tp != current[:tp_length] or tp != baseline[:tp_length]:
@@ -1222,14 +1292,34 @@ def _ctrlram_artifact_bindings(
     replacements = [
         (row["artifactId"], row["slotId"]) for row in binding["replacements"]
     ]
-    if "tp-work" in route.map_variant:
+    base_route = next(
+        (
+            row
+            for row in plan.raw["canonicalInputAuthority"]["ctrlRamBaseRoutes"]
+            if row["routeId"] == route.route_id
+            and row["capabilityFingerprint"] == route.capability_fingerprint
+        ),
+        None,
+    )
+    if base_route is None:
+        _fail("PARITY_PLAN_INVALID")
+    if base_route["kind"] == "tp-input":
         return [(binding["tpBaseArtifactId"], "replace-base"), *replacements], None
     recipe = binding["fullBaseRecipe"]
     return [
         (recipe["dpArtifactId"], "dp-input"),
         (recipe["tpArtifactId"], "tp-input"),
         *replacements,
-    ], copy.deepcopy(recipe)
+    ], {
+        "workflowId": "standard-merge",
+        "routeId": base_route["standardMergeRouteId"],
+        "capabilityFingerprint": base_route[
+            "standardMergeCapabilityFingerprint"
+        ],
+        "mapVariant": base_route["standardMergeMapVariant"],
+        "dpArtifactId": recipe["dpArtifactId"],
+        "tpArtifactId": recipe["tpArtifactId"],
+    }
 
 
 def resolve_canonical_route_input(plan: Plan, manifest_path: Path, *, admitted_input_root: Path, route_id: str, execution_role: str) -> VerifiedCanonicalInputs:
@@ -1455,11 +1545,21 @@ def execute_cli_capture(verified_inputs: VerifiedCanonicalInputs | Mapping[str, 
                 recipe = admitted_request["baseRecipe"]
                 source_inputs = admitted_request["orderedInputs"][:2]
                 if (
-                    recipe != {
-                        "workflowId": "standard-merge",
-                        "dpArtifactId": recipe.get("dpArtifactId"),
-                        "tpArtifactId": recipe.get("tpArtifactId"),
+                    set(recipe) != {
+                        "workflowId",
+                        "routeId",
+                        "capabilityFingerprint",
+                        "mapVariant",
+                        "dpArtifactId",
+                        "tpArtifactId",
                     }
+                    or recipe.get("workflowId") != "standard-merge"
+                    or not isinstance(recipe.get("routeId"), str)
+                    or not SHA256_RE.fullmatch(
+                        str(recipe.get("capabilityFingerprint", ""))
+                    )
+                    or not isinstance(recipe.get("mapVariant"), str)
+                    or not recipe["mapVariant"]
                     or [row.get("slotId") for row in source_inputs]
                     != ["dp-input", "tp-input"]
                 ):
@@ -1470,7 +1570,12 @@ def execute_cli_capture(verified_inputs: VerifiedCanonicalInputs | Mapping[str, 
                         for key, value in admitted_request.items()
                         if key not in {"baseRecipe", "orderedInputs"}
                     },
-                    "workflowId": "standard-merge",
+                    "routeId": recipe["routeId"],
+                    "capabilityFingerprint": recipe["capabilityFingerprint"],
+                    "workflowId": recipe["workflowId"],
+                    "icCountVariant": "selector-free",
+                    "mapVariant": recipe["mapVariant"],
+                    "selectionToken": "selector-free",
                     "cliSelectionToken": None,
                     "orderedInputs": copy.deepcopy(source_inputs),
                 }
@@ -1502,6 +1607,18 @@ def execute_cli_capture(verified_inputs: VerifiedCanonicalInputs | Mapping[str, 
                 effective_request.pop("baseRecipe", None)
                 effective_request["orderedInputs"] = [base_row, *replacements]
                 precursor = {
+                    "scenario": {
+                        key: copy.deepcopy(precursor_request[key])
+                        for key in (
+                            "routeId",
+                            "capabilityFingerprint",
+                            "icId",
+                            "workflowId",
+                            "icCountVariant",
+                            "mapVariant",
+                            "selectionToken",
+                        )
+                    },
                     "sourceInputs": copy.deepcopy(source_inputs),
                     "authorityReport": _local_artifact(
                         precursor_observed[0]["report"]
@@ -1570,10 +1687,21 @@ def _validate_base_precursor(
         for key, value in effective_request.items()
         if key != "orderedInputs"
     }
+    recipe = admitted_request.get("baseRecipe", {})
+    precursor_scenario = precursor.get("scenario")
+    expected_precursor_scenario = {
+        "routeId": recipe.get("routeId"),
+        "capabilityFingerprint": recipe.get("capabilityFingerprint"),
+        "icId": admitted_request.get("icId"),
+        "workflowId": "standard-merge",
+        "icCountVariant": "selector-free",
+        "mapVariant": recipe.get("mapVariant"),
+        "selectionToken": "selector-free",
+    }
     if (
         effective_metadata != admitted_metadata
-        or admitted_request.get("baseRecipe", {}).get("workflowId")
-        != "standard-merge"
+        or recipe.get("workflowId") != "standard-merge"
+        or precursor_scenario != expected_precursor_scenario
         or precursor.get("sourceInputs") != source_inputs
         or len(effective_inputs) < 2
         or effective_inputs[0].get("slotId") != "replace-base"
@@ -1616,6 +1744,7 @@ def _validate_base_precursor(
         "scenario": {
             "icId": admitted_request["icId"],
             "workflowId": "standard-merge",
+            "mapVariant": recipe["mapVariant"],
             "resolvedProfileId": resolved_profile_id,
             "outputCapacity": output_artifact["size"],
             "compilationFingerprint": compilation_fingerprint,
@@ -1662,11 +1791,27 @@ def _validate_base_precursor(
     return {
         "schemaVersion": "1.0",
         "kind": "typed-standard-merge-base-precursor",
-        "resolvedProfileId": resolved_profile_id,
-        "compilationFingerprint": compilation_fingerprint,
-        "sourceInputs": [
-            _portable_input_identity(row) for row in precursor_receipt["inputs"]
-        ],
+        "scenario": {
+            **expected_precursor_scenario,
+            "resolvedProfileId": resolved_profile_id,
+            "outputCapacity": output_artifact["size"],
+            "compilationFingerprint": compilation_fingerprint,
+        },
+        "authorityInvocation": {
+            "interface": interface,
+            "operation": "preview",
+            "startedAtUtc": precursor_receipt["authorityInvocation"]["startedAtUtc"],
+            "completedAtUtc": precursor_receipt["authorityInvocation"]["completedAtUtc"],
+            "result": "success",
+        },
+        "invocation": {
+            "interface": interface,
+            "operation": "build",
+            "startedAtUtc": precursor_receipt["invocation"]["startedAtUtc"],
+            "completedAtUtc": precursor_receipt["invocation"]["completedAtUtc"],
+            "result": "success",
+        },
+        "sourceInputs": copy.deepcopy(precursor_receipt["inputs"]),
         "applicationAuthorityReport": _local_artifact(authority_path),
         "applicationReport": _local_artifact(application_path),
         "output": output_artifact,
@@ -1939,6 +2084,8 @@ def build_exact_route_evidence(
 ) -> dict[str, Any]:
     """Build one exact-output row from two already validated process receipts."""
 
+    baseline_receipt = _reload_receipt_for_evidence(baseline_receipt)
+    candidate_receipt = _reload_receipt_for_evidence(candidate_receipt)
     validate_receipt_roles(
         route.proof_kind,
         [baseline_receipt.get("role"), candidate_receipt.get("role")],
@@ -1978,8 +2125,6 @@ def build_exact_route_evidence(
         baseline_inputs=baseline_receipt["inputs"],
         candidate_inputs=candidate_receipt["inputs"],
     )
-    baseline_output = Path(baseline_receipt["output"]["path"])
-    candidate_output = Path(candidate_receipt["output"]["path"])
     correction = next(
         (
             row
@@ -1990,18 +2135,19 @@ def build_exact_route_evidence(
         None,
     )
     comparison = (
-        compare_approved_semantic_correction(
-            baseline_output, candidate_output, correction
+        compare_approved_semantic_correction_payloads(
+            baseline_receipt["__outputBytes"],
+            candidate_receipt["__outputBytes"],
+            correction,
         )
         if correction
-        else compare_exact_files(baseline_output, candidate_output)
+        else compare_exact_payloads(
+            baseline_receipt["__outputBytes"],
+            candidate_receipt["__outputBytes"],
+        )
     )
-    baseline_report = _read_json_file(
-        Path(baseline_receipt["report"]["path"]), "PARITY_PROVENANCE_INVALID"
-    )
-    candidate_report = _read_json_file(
-        Path(candidate_receipt["report"]["path"]), "PARITY_PROVENANCE_INVALID"
-    )
+    baseline_report = baseline_receipt["__report"]
+    candidate_report = candidate_receipt["__report"]
     report_validation = build_independent_report_validation(
         route_id=route.route_id,
         capability_fingerprint=route.capability_fingerprint,
@@ -2048,6 +2194,9 @@ def build_transitive_route_evidence(
 
     if route.tp_length is None:
         _fail("PARITY_PLAN_INVALID")
+    baseline_full_receipt = _reload_receipt_for_evidence(baseline_full_receipt)
+    candidate_full_receipt = _reload_receipt_for_evidence(candidate_full_receipt)
+    candidate_tp_receipt = _reload_receipt_for_evidence(candidate_tp_receipt)
     validate_receipt_roles(route.proof_kind, [candidate_tp_receipt.get("role")])
     validate_transitive_inputs(
         {
@@ -2061,17 +2210,16 @@ def build_transitive_route_evidence(
         candidate_tp_receipt,
         route.tp_length,
     )
-    result = compare_transitive_files(
-        Path(baseline_full_receipt["output"]["path"]),
-        Path(candidate_full_receipt["output"]["path"]),
-        Path(candidate_tp_receipt["output"]["path"]),
-        Path(candidate_full_receipt["inputs"][0]["path"]),
+    result = compare_transitive_payloads(
+        baseline_full_receipt["__outputBytes"],
+        candidate_full_receipt["__outputBytes"],
+        candidate_tp_receipt["__outputBytes"],
+        candidate_full_receipt["__inputBytes"][0],
         route.tp_length,
     )
     ordered_inputs = [
         _portable_input_identity(row) for row in candidate_tp_receipt["inputs"]
     ]
-    full_input_path = Path(candidate_full_receipt["inputs"][0]["path"])
     row = {
         "routeId": route.route_id,
         "capabilityFingerprint": route.capability_fingerprint,
@@ -2087,10 +2235,12 @@ def build_transitive_route_evidence(
             "compilationFingerprint"
         ],
         "receipts": [_receipt_evidence_summary(candidate_tp_receipt)],
-        "candidateTpOutput": _artifact(
-            Path(candidate_tp_receipt["output"]["path"])
+        "candidateTpOutput": _artifact_payload(
+            candidate_tp_receipt["__outputBytes"]
         ),
-        "candidateFullInput": _artifact(full_input_path),
+        "candidateFullInput": _artifact_payload(
+            candidate_full_receipt["__inputBytes"][0]
+        ),
         **result,
     }
     validate_transitive_evidence_reference(full_evidence, row)
@@ -2303,15 +2453,21 @@ def validate_semantic_report_ranges(projection: Mapping[str, Any], capacities: M
         _fail("PARITY_REPORT_RANGE_INVALID")
 
 
-def _require_artifact_reference(reference: Mapping[str, Any], role: str) -> Path:
+def _read_artifact_reference(
+    reference: Mapping[str, Any], role: str
+) -> tuple[Path, bytes]:
     try:
         path = require_local_artifact(Path(reference["path"]), role)
         payload = path.read_bytes()
         if reference.get("size") != len(payload) or reference.get("sha256") != _sha256(payload):
             _fail("PARITY_PROVENANCE_INVALID")
-        return path
+        return path, payload
     except KeyError:
         _fail("PARITY_PROVENANCE_INVALID")
+
+
+def _require_artifact_reference(reference: Mapping[str, Any], role: str) -> Path:
+    return _read_artifact_reference(reference, role)[0]
 
 
 def _pascal_range(raw: Mapping[str, Any], space: str | None) -> dict[str, Any] | None:
@@ -2459,6 +2615,162 @@ def load_and_validate_receipt(path: Path) -> dict[str, Any]:
     return _read_json_file(path, "PARITY_PROVENANCE_INVALID")
 
 
+def _validate_persisted_base_precursor(
+    receipt: Mapping[str, Any], report: Mapping[str, Any]
+) -> None:
+    reference = receipt.get("basePrecursor")
+    if reference is None:
+        if "basePrecursor" in report:
+            _fail("PARITY_PROVENANCE_INVALID")
+        return
+    if report.get("basePrecursor") != reference:
+        _fail("PARITY_PROVENANCE_INVALID")
+    proof_path = _require_artifact_reference(reference, "base-precursor-proof")
+    proof = _read_json_file(proof_path, "PARITY_PROVENANCE_INVALID")
+    if set(proof) != {
+        "schemaVersion",
+        "kind",
+        "scenario",
+        "authorityInvocation",
+        "invocation",
+        "sourceInputs",
+        "applicationAuthorityReport",
+        "applicationReport",
+        "output",
+    } or proof.get("schemaVersion") != "1.0" or proof.get("kind") != (
+        "typed-standard-merge-base-precursor"
+    ):
+        _fail("PARITY_PROVENANCE_INVALID")
+    scenario = proof.get("scenario")
+    authority_invocation = proof.get("authorityInvocation")
+    invocation = proof.get("invocation")
+    source_inputs = proof.get("sourceInputs")
+    if (
+        not isinstance(scenario, dict)
+        or set(scenario) != {
+            "routeId",
+            "capabilityFingerprint",
+            "icId",
+            "workflowId",
+            "icCountVariant",
+            "mapVariant",
+            "selectionToken",
+            "resolvedProfileId",
+            "outputCapacity",
+            "compilationFingerprint",
+        }
+        or scenario.get("workflowId") != "standard-merge"
+        or scenario.get("icCountVariant") != "selector-free"
+        or scenario.get("selectionToken") != "selector-free"
+        or scenario.get("icId") != receipt.get("scenario", {}).get("icId")
+        or not SHA256_RE.fullmatch(str(scenario.get("capabilityFingerprint", "")))
+        or not SHA256_RE.fullmatch(str(scenario.get("compilationFingerprint", "")))
+        or not isinstance(source_inputs, list)
+        or len(source_inputs) != 2
+        or [row.get("slotId") for row in source_inputs]
+        != ["dp-input", "tp-input"]
+        or any(row.get("role") != "source" for row in source_inputs)
+    ):
+        _fail("PARITY_PROVENANCE_INVALID")
+    invocation_shape = {
+        "interface",
+        "operation",
+        "startedAtUtc",
+        "completedAtUtc",
+        "result",
+    }
+    if (
+        not isinstance(authority_invocation, dict)
+        or not isinstance(invocation, dict)
+        or set(authority_invocation) != invocation_shape
+        or set(invocation) != invocation_shape
+        or authority_invocation.get("operation") != "preview"
+        or invocation.get("operation") != "build"
+        or authority_invocation.get("interface") != invocation.get("interface")
+        or authority_invocation.get("result") != "success"
+        or invocation.get("result") != "success"
+    ):
+        _fail("PARITY_PROVENANCE_INVALID")
+    validate_time_order(
+        authority_invocation["startedAtUtc"],
+        authority_invocation["completedAtUtc"],
+        error_code="PARITY_PROVENANCE_INVALID",
+    )
+    validate_time_order(
+        invocation["startedAtUtc"],
+        invocation["completedAtUtc"],
+        error_code="PARITY_PROVENANCE_INVALID",
+    )
+    for source in source_inputs:
+        _require_artifact_reference(source, "base-precursor-source")
+    output_path = _require_artifact_reference(
+        proof["output"], "base-precursor-output"
+    )
+    inputs = receipt.get("inputs", [])
+    if (
+        not inputs
+        or inputs[0].get("path") != proof["output"].get("path")
+        or _portable_input_identity(inputs[0])
+        != {
+            "slotId": "replace-base",
+            "role": "base",
+            "size": proof["output"]["size"],
+            "sha256": proof["output"]["sha256"],
+        }
+    ):
+        _fail("PARITY_PROVENANCE_INVALID")
+    authority_path = _require_artifact_reference(
+        proof["applicationAuthorityReport"], "base-precursor-authority-report"
+    )
+    application_path = _require_artifact_reference(
+        proof["applicationReport"], "base-precursor-application-report"
+    )
+    precursor_receipt = {
+        "scenario": {
+            key: scenario[key]
+            for key in (
+                "icId",
+                "workflowId",
+                "mapVariant",
+                "resolvedProfileId",
+                "outputCapacity",
+                "compilationFingerprint",
+            )
+        },
+        "authorityInvocation": authority_invocation,
+        "invocation": invocation,
+        "inputs": source_inputs,
+        "output": proof["output"],
+    }
+    authority_raw = _read_json_file(
+        authority_path, "PARITY_PROVENANCE_INVALID"
+    )
+    application_raw = _read_json_file(
+        application_path, "PARITY_PROVENANCE_INVALID"
+    )
+    authority_operations, authority_mutations, _ = _validate_raw_report(
+        authority_raw,
+        precursor_receipt,
+        committed=False,
+        invocation_field="authorityInvocation",
+    )
+    operations, mutations, _ = _validate_raw_report(
+        application_raw,
+        precursor_receipt,
+        committed=True,
+        invocation_field="invocation",
+    )
+    if authority_mutations or _sha256(output_path.read_bytes()) != (
+        application_raw["Output"]["Sha256"]
+    ):
+        _fail("PARITY_PROVENANCE_INVALID")
+    validate_report_sequence(
+        authority_operations=authority_operations,
+        observed_operations=operations,
+        observed_mutations=mutations,
+    )
+
+
 def validate_receipt(receipt: Mapping[str, Any], *, expected_execution_artifact_sha256: str, expected_executor_identity_sha256: str, authorized_operators: set[str]) -> None:
     validate_invocation_authority(
         receipt,
@@ -2498,6 +2810,7 @@ def validate_receipt(receipt: Mapping[str, Any], *, expected_execution_artifact_
         or report.get("terminal", {}).get("completedAtUtc") != receipt["invocation"]["completedAtUtc"]
     ):
         _fail("PARITY_PROVENANCE_INVALID")
+    _validate_persisted_base_precursor(receipt, report)
     raw_path = _require_artifact_reference(report["applicationReport"], "application-report")
     authority_path = _require_artifact_reference(report["applicationAuthorityReport"], "application-authority-report")
     raw = _read_json_file(raw_path, "PARITY_PROVENANCE_INVALID")
@@ -2512,6 +2825,95 @@ def validate_receipt(receipt: Mapping[str, Any], *, expected_execution_artifact_
     )
     if _sha256(output_path.read_bytes()) != raw["Output"]["Sha256"]:
         _fail("PARITY_PROVENANCE_INVALID")
+
+
+def _reload_receipt_for_evidence(
+    receipt: Mapping[str, Any]
+) -> dict[str, Any]:
+    try:
+        artifact = receipt["__receiptArtifact"]
+        public_receipt = {
+            key: copy.deepcopy(value)
+            for key, value in receipt.items()
+            if not key.startswith("__")
+        }
+        _, receipt_payload = _read_artifact_reference(artifact, "receipt")
+        persisted = json.loads(receipt_payload)
+        if not isinstance(persisted, dict) or persisted != public_receipt:
+            raise ValueError
+        operator_login = persisted["invocation"]["operatorLogin"]
+    except (KeyError, TypeError, ValueError, json.JSONDecodeError):
+        _fail("PARITY_PROVENANCE_INVALID")
+    validate_receipt(
+        persisted,
+        expected_execution_artifact_sha256=persisted["executionArtifactSha256"],
+        expected_executor_identity_sha256=persisted["executorIdentitySha256"],
+        authorized_operators={operator_login},
+    )
+    _, report_payload = _read_artifact_reference(persisted["report"], "report")
+    try:
+        report = json.loads(report_payload)
+        if not isinstance(report, dict):
+            raise ValueError
+    except (TypeError, ValueError, json.JSONDecodeError):
+        _fail("PARITY_PROVENANCE_INVALID")
+    _, authority_payload = _read_artifact_reference(
+        report["applicationAuthorityReport"], "application-authority-report"
+    )
+    _, raw_payload = _read_artifact_reference(
+        report["applicationReport"], "application-report"
+    )
+    try:
+        authority_raw = json.loads(authority_payload)
+        raw = json.loads(raw_payload)
+        if not isinstance(authority_raw, dict) or not isinstance(raw, dict):
+            raise ValueError
+    except (TypeError, ValueError, json.JSONDecodeError):
+        _fail("PARITY_PROVENANCE_INVALID")
+    authority_operations, authority_mutations, _ = _validate_raw_report(
+        authority_raw,
+        persisted,
+        committed=False,
+        invocation_field="authorityInvocation",
+    )
+    operations, mutations, _ = _validate_raw_report(
+        raw,
+        persisted,
+        committed=True,
+        invocation_field="invocation",
+    )
+    if authority_mutations:
+        _fail("PARITY_PROVENANCE_INVALID")
+    _, output_payload = _read_artifact_reference(persisted["output"], "output")
+    input_payloads = [
+        _read_artifact_reference(row, "input")[1]
+        for row in persisted["inputs"]
+    ]
+    return {
+        **persisted,
+        "__receiptArtifact": copy.deepcopy(artifact),
+        "__projection": {
+            "compilationFingerprint": persisted["scenario"][
+                "compilationFingerprint"
+            ],
+            "compiledOperations": operations,
+            "compiledMutations": mutations,
+        },
+        "__compiledAuthority": {
+            "compilationFingerprint": persisted["scenario"][
+                "compilationFingerprint"
+            ],
+            "compiledOperations": authority_operations,
+            "compiledMutations": [],
+        },
+        "__outputBytes": output_payload,
+        "__inputBytes": input_payloads,
+        "__report": report,
+        "__rawReportArtifacts": {
+            "authority": copy.deepcopy(report["applicationAuthorityReport"]),
+            "application": copy.deepcopy(report["applicationReport"]),
+        },
+    }
 
 
 def _verify_declared_file(root: Path, reference: Mapping[str, Any]) -> Path:

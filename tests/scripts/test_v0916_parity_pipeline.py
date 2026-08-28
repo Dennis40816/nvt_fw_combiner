@@ -194,6 +194,30 @@ class SyntheticTypedInputPort:
 
 
 class V0916ParityPipelineTests(V0916ParityTestBase):
+    def test_ctrlram_base_kind_is_declared_independently_of_map_name(self) -> None:
+        plan = MODULE.load_and_validate_plan(self.plan_path, self.policy_path)
+        route_id = (
+            "route-7-nt51926-15-ctrlram-replace-4-1-ic-34-"
+            "nt51926-ctrlram-fw141-tp-work-240k"
+        )
+        route = next(row for row in plan.routes if row.route_id == route_id)
+        manifest_path = ROOT / "testdata/golden/canonical/manifest.json"
+        manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+        manifest["__manifestPath"] = str(manifest_path)
+        evidence = next(
+            row for row in manifest["routeEvidence"] if row["routeId"] == route_id
+        )
+        case = MODULE._resolve_case(manifest, evidence["caseId"])
+
+        bindings, recipe = MODULE._ctrlram_artifact_bindings(
+            plan,
+            route._replace(map_variant="renamed-without-base-kind-signal"),
+            case,
+        )
+
+        self.assertIsNone(recipe)
+        self.assertEqual("replace-base", bindings[0][1])
+
     def test_required_execution_matrix_is_exactly_53_baseline_and_64_candidate_pairs(self) -> None:
         plan = MODULE.load_and_validate_plan(self.plan_path, self.policy_path)
         matrix = MODULE.build_required_execution_matrix(plan)
@@ -383,6 +407,28 @@ class V0916ParityPipelineTests(V0916ParityTestBase):
             self.assertEqual("build", projected["invocation"]["operation"])
             self.assertTrue(Path(projected["report"]["path"]).is_file())
             self.assertTrue(Path(projected["__receiptArtifact"]["path"]).is_file())
+            for role, reference in (
+                ("output", projected["output"]),
+                ("report", projected["report"]),
+                ("input", projected["inputs"][0]),
+            ):
+                artifact_path = Path(reference["path"])
+                original_payload = artifact_path.read_bytes()
+                artifact_path.write_bytes(original_payload + b"post-receipt-tamper")
+                with self.subTest(post_receipt_tamper=role):
+                    with self.assertRaises(MODULE.ParityError) as tampered:
+                        MODULE._reload_receipt_for_evidence(projected)
+                    self.assertEqual(
+                        "PARITY_PROVENANCE_INVALID", tampered.exception.code
+                    )
+                artifact_path.write_bytes(original_payload)
+            swapped = copy.deepcopy(projected)
+            swapped["output"]["path"] = projected["inputs"][0]["path"]
+            with self.assertRaises(MODULE.ParityError) as swapped_output:
+                MODULE._reload_receipt_for_evidence(swapped)
+            self.assertEqual(
+                "PARITY_PROVENANCE_INVALID", swapped_output.exception.code
+            )
 
             baseline_inputs = MODULE.resolve_canonical_route_input(
                 plan,
@@ -580,6 +626,11 @@ class V0916ParityPipelineTests(V0916ParityTestBase):
                         for route in plan.routes
                         if route.route_id == route_id
                     ),
+                    standard_merge_map_id=(
+                        verified.request["baseRecipe"]["mapVariant"]
+                        if "baseRecipe" in verified.request
+                        else "standard-merge-precursor-map"
+                    ),
                 )
                 capture = MODULE.execute_cli_capture(
                     verified,
@@ -613,6 +664,75 @@ class V0916ParityPipelineTests(V0916ParityTestBase):
                     standard_profile_id is not None,
                     "basePrecursor" in projected,
                 )
+                if "basePrecursor" in projected:
+                    proof_path = Path(projected["basePrecursor"]["path"])
+                    proof = json.loads(proof_path.read_text(encoding="utf-8"))
+                    tamper_paths = [
+                        proof_path,
+                        Path(proof["sourceInputs"][0]["path"]),
+                        Path(proof["sourceInputs"][1]["path"]),
+                        Path(proof["applicationReport"]["path"]),
+                        Path(proof["output"]["path"]),
+                    ]
+                    for tamper_index, tamper_path in enumerate(tamper_paths):
+                        original_payload = tamper_path.read_bytes()
+                        tamper_path.write_bytes(
+                            original_payload + b"post-receipt-precursor-tamper"
+                        )
+                        with self.subTest(base_precursor_tamper=tamper_index):
+                            with self.assertRaises(MODULE.ParityError) as tampered:
+                                MODULE._reload_receipt_for_evidence(projected)
+                            self.assertEqual(
+                                "PARITY_PROVENANCE_INVALID",
+                                tampered.exception.code,
+                            )
+                        tamper_path.write_bytes(original_payload)
+
+            precursor_route_id = cases[1][0]
+            precursor_verified = MODULE.resolve_canonical_route_input(
+                plan,
+                ROOT / "testdata/golden/canonical/manifest.json",
+                admitted_input_root=root / "admitted-precursor-map-mismatch",
+                route_id=precursor_route_id,
+                execution_role="candidate-exact",
+            )
+            precursor_mismatch_runner = RecordingCliRunner(
+                expected_cwd=source_root,
+                sources=[
+                    (row["slotId"], Path(row["path"]))
+                    for row in precursor_verified.request["orderedInputs"]
+                ],
+                profile_id="nt51917-ctrlram-replace-fw141-single",
+                standard_merge_profile_id=(
+                    "nt51917-standard-merge-gen-flash-alias"
+                ),
+                ic_id="NT51917",
+                workflow_id="ctrlram-replace",
+                map_id=next(
+                    route.map_variant
+                    for route in plan.routes
+                    if route.route_id == precursor_route_id
+                ),
+                standard_merge_map_id="wrong-standard-merge-map",
+            )
+            precursor_mismatch_capture = MODULE.execute_cli_capture(
+                precursor_verified,
+                verified_executor=executor,
+                output_root=root / "outputs-precursor-map-mismatch",
+                process_runner=precursor_mismatch_runner,
+            )
+            with self.assertRaises(MODULE.ParityError) as precursor_mismatch:
+                MODULE.build_process_receipt(
+                    capture=precursor_mismatch_capture,
+                    verified_inputs=precursor_verified,
+                    verified_executor=executor,
+                    operator_login="dennis40816",
+                    receipt_root=root / "receipts-precursor-map-mismatch",
+                    comparator_path=ROOT / "scripts/v0916_parity_certification.py",
+                )
+            self.assertEqual(
+                "PARITY_PROVENANCE_INVALID", precursor_mismatch.exception.code
+            )
 
             verified = MODULE.resolve_canonical_route_input(
                 plan,

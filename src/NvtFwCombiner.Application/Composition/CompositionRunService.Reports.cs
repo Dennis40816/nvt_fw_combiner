@@ -83,7 +83,10 @@ public sealed partial class CompositionRunService
                         request.CompiledComposition.Plan.OutputInitialization)
                     : null,
             bundleDelivery: bundleDelivery,
-            resolvedMapId: request.CompiledComposition.V2Details.Provenance.ResolvedMap.ImageMap.MapId);
+            resolvedMapId: request.CompiledComposition.V2Details.Provenance.Context
+                is MapBoundV2CompilationContext mapContext
+                    ? mapContext.ResolvedMap.ImageMap.MapId
+                    : null);
     }
 
     private static MutationRunSummary ToMutationSummary(MutationRecord mutation)

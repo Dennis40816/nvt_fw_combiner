@@ -88,8 +88,8 @@ internal static class CompositionOutputBundleProposer
         return StringComparer.Ordinal.Equals(workflowId, ExperienceIds.StandardMerge)
             ? CreateStandardMergeFolderName(naming ?? throw new InvalidOperationException(
                 "Standard Merge bundle naming requires accepted typed output-naming facts."))
-            : $"{GetCanonicalOutputBasename(
-                naming?.AutomaticFileName ?? outputPreparation.OutputName.FileName)}_bundle";
+            : GetCanonicalOutputBasename(
+                naming?.AutomaticFileName ?? outputPreparation.OutputName.FileName);
     }
 
     private static string CreateStandardMergeFolderName(OutputNamingSummary naming)
@@ -100,7 +100,7 @@ internal static class CompositionOutputBundleProposer
             CultureInfo.InvariantCulture);
         return StringComparer.Ordinal.Equals(date, expectedDate)
             ? $"{GetToken(naming, "ic")}_D{GetToken(naming, "dp-version")}" +
-                $"T{GetToken(naming, "tp-version")}_{date}_bundle"
+                $"T{GetToken(naming, "tp-version")}_{date}"
             : throw new InvalidOperationException(
                 "Standard Merge bundle date must come from the accepted output-naming UTC instant.");
     }

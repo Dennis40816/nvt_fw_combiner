@@ -179,6 +179,8 @@ public sealed partial class CompositionRunRequestV2Tests
             CancellationToken.None);
 
         Assert.Equal(CompositionExecutionStatus.Succeeded, preview.Status);
+        Assert.Null(preview.Report.MapId);
+        Assert.Null(build.Report.MapId);
         Assert.Equal([0xA1, 0xA2, 0x00, 0x00, 0xB1, 0xB2], preview.OutputBytes.ToArray());
         Assert.Equal(preview.OutputBytes.ToArray(), build.OutputBytes.ToArray());
         Assert.True(writer.WasCalled);

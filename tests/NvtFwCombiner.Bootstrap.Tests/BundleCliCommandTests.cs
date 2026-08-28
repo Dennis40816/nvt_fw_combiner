@@ -136,7 +136,7 @@ public sealed partial class BundleCliCommandTests
         string secondDirectory = secondBundle.GetProperty("ResolvedDirectory").GetString()!;
         string editedDirectory = Path.Combine(workspace.Root, "edited_bundle");
         Assert.Matches(
-            "^NT51923_DB60DTA7C9_[0-9]{8}_bundle$",
+            "^NT51923_DB60DTA7C9_[0-9]{8}$",
             Path.GetFileName(firstDirectory));
         Assert.Equal(firstDirectory + " (2)", secondDirectory);
         Assert.Equal(editedDirectory, editedBundle.GetProperty("ResolvedDirectory").GetString());

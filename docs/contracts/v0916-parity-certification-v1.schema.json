@@ -78,6 +78,7 @@
         "currentlyMissingRouteCount",
         "missingApplicableFixtureFailureCode",
         "currentlyMissingRouteIds",
+        "ctrlRamBaseRoutes",
         "ctrlRamExecutionBindings"
       ],
       "properties": {
@@ -104,6 +105,12 @@
           "minItems": 12,
           "maxItems": 12,
           "items": { "$ref": "#/$defs/ctrlRamExecutionBinding" }
+        },
+        "ctrlRamBaseRoutes": {
+          "type": "array",
+          "minItems": 24,
+          "maxItems": 24,
+          "items": { "$ref": "#/$defs/ctrlRamBaseRoute" }
         }
       }
     },
@@ -241,6 +248,40 @@
     "gitSha": { "type": "string", "pattern": "^[0-9a-f]{40}$" },
     "sha256": { "type": "string", "pattern": "^[0-9a-f]{64}$" },
     "routeId": { "type": "string", "pattern": "^route-[a-z0-9-]+$" },
+    "ctrlRamBaseRoute": {
+      "oneOf": [
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["routeId", "capabilityFingerprint", "kind"],
+          "properties": {
+            "routeId": { "$ref": "#/$defs/routeId" },
+            "capabilityFingerprint": { "$ref": "#/$defs/sha256" },
+            "kind": { "const": "tp-input" }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "routeId",
+            "capabilityFingerprint",
+            "kind",
+            "standardMergeRouteId",
+            "standardMergeCapabilityFingerprint",
+            "standardMergeMapVariant"
+          ],
+          "properties": {
+            "routeId": { "$ref": "#/$defs/routeId" },
+            "capabilityFingerprint": { "$ref": "#/$defs/sha256" },
+            "kind": { "const": "standard-merge" },
+            "standardMergeRouteId": { "$ref": "#/$defs/routeId" },
+            "standardMergeCapabilityFingerprint": { "$ref": "#/$defs/sha256" },
+            "standardMergeMapVariant": { "type": "string", "minLength": 1 }
+          }
+        }
+      ]
+    },
     "ctrlRamExecutionBinding": {
       "type": "object",
       "additionalProperties": false,

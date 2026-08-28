@@ -221,7 +221,12 @@ TP artifacts. Its two raw reports, resolved profile, compilation fingerprint,
 source hashes, and output hash are written as a separately hashed base-precursor
 proof. Only that staged output may become `replace-base`; an `expected-output`
 artifact is never admitted as a base. TP-work cases continue to use their
-governed TP input directly.
+governed TP input directly. Base kind is never inferred from a map/profile
+name. `ctrlRamBaseRoutes` explicitly binds every currently fixture-backed
+CtrlRAM route and current capability fingerprint either to `tp-input` or to
+one exact same-IC Standard Merge route, capability fingerprint, and map
+variant. The precursor Preview and Build must report that exact map; a
+same-capacity or similarly named route is not interchangeable.
 The comparator recomputes both argument digests from JCS bytes containing
 execution-artifact and executor-identity SHA-256 values, route/fingerprint,
 full scenario, and ordered path-free input
@@ -247,6 +252,16 @@ capture after normalizing the serializer's UTC `+00:00` spelling to canonical
 contract `Z` without changing the instant. Every field is parsed from the
 actual Pascal-case report; a parallel
 caller-supplied root summary is not authority.
+
+Before exact or transitive comparison, the comparator reopens the separately
+hashed receipt artifact, requires it to equal the public in-memory receipt,
+and reruns complete receipt/report/raw-report/input/output/base-precursor
+validation. Its comparison consumes only the bytes captured by that final
+hash check and reconstructs projection/compiled authority from the persisted
+raw reports. A post-receipt output, input, report, precursor proof, precursor
+source, or precursor report modification or path swap therefore fails
+`PARITY_PROVENANCE_INVALID`; comparison never trusts stale private fields or
+reopens an unverified path after validation.
 
 The raw report is the actual `CompositionRunReportJson`/v0.9.16
 `CliRunReportWriter` projection, not a comparator-shaped substitute. The parser

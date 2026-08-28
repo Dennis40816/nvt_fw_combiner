@@ -204,6 +204,32 @@ class V0916ParityContractTests(V0916ParityTestBase):
                     binding["tpBaseArtifactId"],
                 },
             )
+        base_routes = raw_plan["canonicalInputAuthority"]["ctrlRamBaseRoutes"]
+        self.assertEqual(24, len(base_routes))
+        self.assertEqual(24, len({row["routeId"] for row in base_routes}))
+        self.assertEqual(
+            {"tp-input", "standard-merge"},
+            {row["kind"] for row in base_routes},
+        )
+        by_id = {route.route_id: route for route in plan.routes}
+        for base_route in base_routes:
+            route = by_id[base_route["routeId"]]
+            self.assertEqual(
+                route.capability_fingerprint,
+                base_route["capabilityFingerprint"],
+            )
+            if base_route["kind"] == "standard-merge":
+                standard = by_id[base_route["standardMergeRouteId"]]
+                self.assertEqual("standard-merge", standard.workflow_id)
+                self.assertEqual(route.ic_id, standard.ic_id)
+                self.assertEqual(
+                    standard.capability_fingerprint,
+                    base_route["standardMergeCapabilityFingerprint"],
+                )
+                self.assertEqual(
+                    standard.map_variant,
+                    base_route["standardMergeMapVariant"],
+                )
         alias = raw_plan["inputIdentityAliases"][0]
         self.assertEqual(
             "route-7-nt51928-14-standard-merge-13-selector-free-31-nt51928-dual-capacity-256k-512k",

@@ -227,6 +227,8 @@ public sealed partial class CompositionRunRequestV2Tests
         Assert.Equal(preview.OutputBytes.ToArray(), build.OutputBytes.ToArray());
         Assert.Equal(composition.CompilationFingerprint, preview.Report.CompilationFingerprint);
         Assert.Equal(composition.CompilationFingerprint, build.Report.CompilationFingerprint);
+        Assert.Equal("map", preview.Report.MapId);
+        Assert.Equal("map", build.Report.MapId);
         Assert.Equal("input.bin", Assert.Single(preview.Report.Inputs).OriginalFileName);
         Assert.True(writer.WasCalled);
         Assert.Equal("caller-output.bin", writer.FileName);
