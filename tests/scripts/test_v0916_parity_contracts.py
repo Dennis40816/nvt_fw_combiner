@@ -1352,12 +1352,13 @@ class V0916ParityContractTests(V0916ParityTestBase):
     def test_repository_authority_transfer_enforces_exact_direct_binding_head(self) -> None:
         plan = json.loads(self.plan_path.read_text(encoding="utf-8"))
         transfer = plan["candidateAuthority"]["authorityTransfer"]
-        source = json.loads(
-            (
-                ROOT
-                / plan["candidateAuthority"]["sourceExecutorContract"]["path"]
-            ).read_text(encoding="utf-8")
-        )["source"]
+        source_contract_path = plan["candidateAuthority"][
+            "sourceExecutorContract"
+        ]["path"]
+        source_contract = json.loads(
+            (ROOT / source_contract_path).read_text(encoding="utf-8")
+        )
+        source = source_contract["source"]
         policy_bytes = (ROOT / plan["policyBinding"]["path"]).read_bytes()
         implementation = source["implementationHead"]
         binding = "b" * 40
@@ -1376,6 +1377,8 @@ class V0916ParityContractTests(V0916ParityTestBase):
                 self.trees = dict(source["authorityTrees"])
                 self.drift_commit: str | None = None
                 self.resolved_head = binding
+                self.binding_plan = copy.deepcopy(plan)
+                self.implementation_plan = copy.deepcopy(plan)
 
             def resolve_commit(self, commit: str) -> str:
                 del commit
@@ -1393,13 +1396,18 @@ class V0916ParityContractTests(V0916ParityTestBase):
                 return self.trees[path]
 
             def file_bytes(self, commit: str, path: str) -> bytes:
-                self.assert_path(path)
-                return policy_bytes
-
-            @staticmethod
-            def assert_path(path: str) -> None:
-                if path != "docs/contracts/canonical-capability-policy-v1.json":
-                    raise AssertionError(path)
+                if path == "docs/contracts/v0916-parity-certification-v1.json":
+                    selected = (
+                        self.binding_plan
+                        if commit == binding
+                        else self.implementation_plan
+                    )
+                    return json.dumps(selected, sort_keys=True).encode("utf-8")
+                if commit == binding and path == source_contract_path:
+                    return json.dumps(source_contract, sort_keys=True).encode("utf-8")
+                if path == "docs/contracts/canonical-capability-policy-v1.json":
+                    return policy_bytes
+                raise AssertionError((commit, path))
 
             def last_change(
                 self, head: str, path: str, *, required: bool = True
@@ -1434,6 +1442,20 @@ class V0916ParityContractTests(V0916ParityTestBase):
             ),
             "authority-tree-drift": lambda reader: setattr(
                 reader, "drift_commit", binding
+            ),
+            "self-authorized-binding-path": lambda reader: (
+                reader.binding_plan["candidateAuthority"]["authorityTransfer"].__setitem__(
+                    "allowedBindingChildPaths",
+                    sorted(
+                        [
+                            *reader.binding_plan["candidateAuthority"]["authorityTransfer"]["allowedBindingChildPaths"],
+                            "docs/contracts/unreviewed.json",
+                        ]
+                    ),
+                ),
+                reader.path_changes[(implementation, binding)].append(
+                    "docs/contracts/unreviewed.json"
+                ),
             ),
         }
         for name, mutate in mutations.items():

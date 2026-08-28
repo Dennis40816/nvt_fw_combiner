@@ -921,32 +921,42 @@ def validate_repository_parity_authority_transfer(
 
     repository = repository.resolve(strict=True)
     plan_path = "docs/contracts/v0916-parity-certification-v1.json"
-    plan = _read_json_file(repository / plan_path, "PARITY_AUTHORITY_MISMATCH")
+    git = reader or GitAuthorityReader(repository)
+    binding_head = git.last_change(head, plan_path)
+    if binding_head is None or git.resolve_commit(head) != binding_head:
+        _fail("PARITY_AUTHORITY_MISMATCH")
+
+    def read_git_contract(commit: str, relative: str) -> dict[str, Any]:
+        try:
+            value = load_json_reject_duplicates(git.file_bytes(commit, relative))
+        except (KeyError, TypeError, ParityError):
+            _fail("PARITY_AUTHORITY_MISMATCH")
+        if not isinstance(value, dict):
+            _fail("PARITY_AUTHORITY_MISMATCH")
+        return value
+
+    plan = read_git_contract(binding_head, plan_path)
     transfer = plan.get("candidateAuthority", {}).get("authorityTransfer", {})
     expected_transfer_keys = {"allowedBindingChildPaths"}
     if set(transfer) != expected_transfer_keys:
         _fail("PARITY_AUTHORITY_MISMATCH")
-    binding_paths = transfer["allowedBindingChildPaths"]
-    if (
-        not isinstance(binding_paths, list)
-        or binding_paths != sorted(set(binding_paths))
-    ):
-        _fail("PARITY_AUTHORITY_MISMATCH")
 
     source_ref = plan["candidateAuthority"]["sourceExecutorContract"]
-    source_contract = _read_json_file(
-        repository / source_ref["path"], "PARITY_AUTHORITY_MISMATCH"
-    )
+    source_contract = read_git_contract(binding_head, source_ref["path"])
     source = source_contract["source"]
     implementation_head = source["implementationHead"]
+    implementation_plan = read_git_contract(implementation_head, plan_path)
+    implementation_transfer = implementation_plan.get(
+        "candidateAuthority", {}
+    ).get("authorityTransfer", {})
+    if implementation_transfer != transfer:
+        _fail("PARITY_AUTHORITY_MISMATCH")
+    binding_paths = implementation_transfer.get("allowedBindingChildPaths")
+    if not isinstance(binding_paths, list) or binding_paths != sorted(set(binding_paths)):
+        _fail("PARITY_AUTHORITY_MISMATCH")
     expected_trees = source["authorityTrees"]
     expected_policy_sha256 = plan["policyBinding"]["sha256"]
     policy_path = plan["policyBinding"]["path"]
-    git = reader or GitAuthorityReader(repository)
-
-    binding_head = git.last_change(head, plan_path)
-    if binding_head is None or git.resolve_commit(head) != binding_head:
-        _fail("PARITY_AUTHORITY_MISMATCH")
     validate_evidence_child_transfer(
         implementation_head=implementation_head,
         release_parent=git.parent(binding_head),
@@ -2466,6 +2476,16 @@ def _read_artifact_reference(
         _fail("PARITY_PROVENANCE_INVALID")
 
 
+def _decode_json_object(payload: bytes, code: str) -> dict[str, Any]:
+    try:
+        value = load_json_reject_duplicates(payload)
+    except ParityError:
+        _fail(code)
+    if not isinstance(value, dict):
+        _fail(code)
+    return value
+
+
 def _require_artifact_reference(reference: Mapping[str, Any], role: str) -> Path:
     return _read_artifact_reference(reference, role)[0]
 
@@ -2625,8 +2645,8 @@ def _validate_persisted_base_precursor(
         return
     if report.get("basePrecursor") != reference:
         _fail("PARITY_PROVENANCE_INVALID")
-    proof_path = _require_artifact_reference(reference, "base-precursor-proof")
-    proof = _read_json_file(proof_path, "PARITY_PROVENANCE_INVALID")
+    _, proof_payload = _read_artifact_reference(reference, "base-precursor-proof")
+    proof = _decode_json_object(proof_payload, "PARITY_PROVENANCE_INVALID")
     if set(proof) != {
         "schemaVersion",
         "kind",
@@ -2702,8 +2722,8 @@ def _validate_persisted_base_precursor(
         error_code="PARITY_PROVENANCE_INVALID",
     )
     for source in source_inputs:
-        _require_artifact_reference(source, "base-precursor-source")
-    output_path = _require_artifact_reference(
+        _read_artifact_reference(source, "base-precursor-source")
+    _, output_payload = _read_artifact_reference(
         proof["output"], "base-precursor-output"
     )
     inputs = receipt.get("inputs", [])
@@ -2719,10 +2739,10 @@ def _validate_persisted_base_precursor(
         }
     ):
         _fail("PARITY_PROVENANCE_INVALID")
-    authority_path = _require_artifact_reference(
+    _, authority_payload = _read_artifact_reference(
         proof["applicationAuthorityReport"], "base-precursor-authority-report"
     )
-    application_path = _require_artifact_reference(
+    _, application_payload = _read_artifact_reference(
         proof["applicationReport"], "base-precursor-application-report"
     )
     precursor_receipt = {
@@ -2742,11 +2762,11 @@ def _validate_persisted_base_precursor(
         "inputs": source_inputs,
         "output": proof["output"],
     }
-    authority_raw = _read_json_file(
-        authority_path, "PARITY_PROVENANCE_INVALID"
+    authority_raw = _decode_json_object(
+        authority_payload, "PARITY_PROVENANCE_INVALID"
     )
-    application_raw = _read_json_file(
-        application_path, "PARITY_PROVENANCE_INVALID"
+    application_raw = _decode_json_object(
+        application_payload, "PARITY_PROVENANCE_INVALID"
     )
     authority_operations, authority_mutations, _ = _validate_raw_report(
         authority_raw,
@@ -2760,7 +2780,7 @@ def _validate_persisted_base_precursor(
         committed=True,
         invocation_field="invocation",
     )
-    if authority_mutations or _sha256(output_path.read_bytes()) != (
+    if authority_mutations or _sha256(output_payload) != (
         application_raw["Output"]["Sha256"]
     ):
         _fail("PARITY_PROVENANCE_INVALID")
@@ -2771,7 +2791,13 @@ def _validate_persisted_base_precursor(
     )
 
 
-def validate_receipt(receipt: Mapping[str, Any], *, expected_execution_artifact_sha256: str, expected_executor_identity_sha256: str, authorized_operators: set[str]) -> None:
+def validate_receipt(
+    receipt: Mapping[str, Any],
+    *,
+    expected_execution_artifact_sha256: str,
+    expected_executor_identity_sha256: str,
+    authorized_operators: set[str],
+) -> dict[str, Any]:
     validate_invocation_authority(
         receipt,
         comparator_sha256=receipt.get("captureAdapter", {}).get("scriptSha256", ""),
@@ -2793,11 +2819,13 @@ def validate_receipt(receipt: Mapping[str, Any], *, expected_execution_artifact_
     validate_time_order(receipt["invocation"]["startedAtUtc"], receipt["invocation"]["completedAtUtc"], error_code="PARITY_PROVENANCE_INVALID")
     if parse_canonical_utc(authority_invocation["completedAtUtc"]) >= parse_canonical_utc(receipt["invocation"]["completedAtUtc"]):
         _fail("PARITY_PROVENANCE_INVALID")
-    for row in receipt.get("inputs", []):
-        _require_artifact_reference(row, "input")
-    output_path = _require_artifact_reference(receipt["output"], "output")
-    report_path = _require_artifact_reference(receipt["report"], "report")
-    report = _read_json_file(report_path, "PARITY_PROVENANCE_INVALID")
+    input_payloads = [
+        _read_artifact_reference(row, "input")[1]
+        for row in receipt.get("inputs", [])
+    ]
+    _, output_payload = _read_artifact_reference(receipt["output"], "output")
+    _, report_payload = _read_artifact_reference(receipt["report"], "report")
+    report = _decode_json_object(report_payload, "PARITY_PROVENANCE_INVALID")
     if (
         report.get("executionArtifactSha256") != receipt["executionArtifactSha256"]
         or report.get("routeId") != receipt["routeId"] or report.get("capabilityFingerprint") != receipt["capabilityFingerprint"]
@@ -2811,10 +2839,16 @@ def validate_receipt(receipt: Mapping[str, Any], *, expected_execution_artifact_
     ):
         _fail("PARITY_PROVENANCE_INVALID")
     _validate_persisted_base_precursor(receipt, report)
-    raw_path = _require_artifact_reference(report["applicationReport"], "application-report")
-    authority_path = _require_artifact_reference(report["applicationAuthorityReport"], "application-authority-report")
-    raw = _read_json_file(raw_path, "PARITY_PROVENANCE_INVALID")
-    authority_raw = _read_json_file(authority_path, "PARITY_PROVENANCE_INVALID")
+    _, raw_payload = _read_artifact_reference(
+        report["applicationReport"], "application-report"
+    )
+    _, authority_payload = _read_artifact_reference(
+        report["applicationAuthorityReport"], "application-authority-report"
+    )
+    raw = _decode_json_object(raw_payload, "PARITY_PROVENANCE_INVALID")
+    authority_raw = _decode_json_object(
+        authority_payload, "PARITY_PROVENANCE_INVALID"
+    )
     operations, mutations, context = _validate_raw_report(raw, receipt, committed=True, invocation_field="invocation")
     authority_operations, authority_mutations, _ = _validate_raw_report(authority_raw, receipt, committed=False, invocation_field="authorityInvocation")
     if context != report.get("applicationContext") or operations != report.get("compiledOperations") or mutations != report.get("compiledMutations") or authority_mutations:
@@ -2823,8 +2857,16 @@ def validate_receipt(receipt: Mapping[str, Any], *, expected_execution_artifact_
         {"compilationFingerprint": report.get("compilationFingerprint"), "compiledOperations": operations, "compiledMutations": mutations},
         {"compilationFingerprint": receipt["scenario"]["compilationFingerprint"], "compiledOperations": authority_operations, "compiledMutations": []},
     )
-    if _sha256(output_path.read_bytes()) != raw["Output"]["Sha256"]:
+    if _sha256(output_payload) != raw["Output"]["Sha256"]:
         _fail("PARITY_PROVENANCE_INVALID")
+    return {
+        "report": report,
+        "authorityOperations": authority_operations,
+        "operations": operations,
+        "mutations": mutations,
+        "outputBytes": output_payload,
+        "inputBytes": input_payloads,
+    }
 
 
 def _reload_receipt_for_evidence(
@@ -2838,57 +2880,21 @@ def _reload_receipt_for_evidence(
             if not key.startswith("__")
         }
         _, receipt_payload = _read_artifact_reference(artifact, "receipt")
-        persisted = json.loads(receipt_payload)
-        if not isinstance(persisted, dict) or persisted != public_receipt:
+        persisted = _decode_json_object(
+            receipt_payload, "PARITY_PROVENANCE_INVALID"
+        )
+        if persisted != public_receipt:
             raise ValueError
         operator_login = persisted["invocation"]["operatorLogin"]
-    except (KeyError, TypeError, ValueError, json.JSONDecodeError):
+    except (KeyError, TypeError, ValueError):
         _fail("PARITY_PROVENANCE_INVALID")
-    validate_receipt(
+    capture = validate_receipt(
         persisted,
         expected_execution_artifact_sha256=persisted["executionArtifactSha256"],
         expected_executor_identity_sha256=persisted["executorIdentitySha256"],
         authorized_operators={operator_login},
     )
-    _, report_payload = _read_artifact_reference(persisted["report"], "report")
-    try:
-        report = json.loads(report_payload)
-        if not isinstance(report, dict):
-            raise ValueError
-    except (TypeError, ValueError, json.JSONDecodeError):
-        _fail("PARITY_PROVENANCE_INVALID")
-    _, authority_payload = _read_artifact_reference(
-        report["applicationAuthorityReport"], "application-authority-report"
-    )
-    _, raw_payload = _read_artifact_reference(
-        report["applicationReport"], "application-report"
-    )
-    try:
-        authority_raw = json.loads(authority_payload)
-        raw = json.loads(raw_payload)
-        if not isinstance(authority_raw, dict) or not isinstance(raw, dict):
-            raise ValueError
-    except (TypeError, ValueError, json.JSONDecodeError):
-        _fail("PARITY_PROVENANCE_INVALID")
-    authority_operations, authority_mutations, _ = _validate_raw_report(
-        authority_raw,
-        persisted,
-        committed=False,
-        invocation_field="authorityInvocation",
-    )
-    operations, mutations, _ = _validate_raw_report(
-        raw,
-        persisted,
-        committed=True,
-        invocation_field="invocation",
-    )
-    if authority_mutations:
-        _fail("PARITY_PROVENANCE_INVALID")
-    _, output_payload = _read_artifact_reference(persisted["output"], "output")
-    input_payloads = [
-        _read_artifact_reference(row, "input")[1]
-        for row in persisted["inputs"]
-    ]
+    report = capture["report"]
     return {
         **persisted,
         "__receiptArtifact": copy.deepcopy(artifact),
@@ -2896,18 +2902,18 @@ def _reload_receipt_for_evidence(
             "compilationFingerprint": persisted["scenario"][
                 "compilationFingerprint"
             ],
-            "compiledOperations": operations,
-            "compiledMutations": mutations,
+            "compiledOperations": capture["operations"],
+            "compiledMutations": capture["mutations"],
         },
         "__compiledAuthority": {
             "compilationFingerprint": persisted["scenario"][
                 "compilationFingerprint"
             ],
-            "compiledOperations": authority_operations,
+            "compiledOperations": capture["authorityOperations"],
             "compiledMutations": [],
         },
-        "__outputBytes": output_payload,
-        "__inputBytes": input_payloads,
+        "__outputBytes": capture["outputBytes"],
+        "__inputBytes": capture["inputBytes"],
         "__report": report,
         "__rawReportArtifacts": {
             "authority": copy.deepcopy(report["applicationAuthorityReport"]),

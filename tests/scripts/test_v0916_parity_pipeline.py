@@ -10,9 +10,37 @@ import stat
 import subprocess
 import tempfile
 import unittest
+from unittest.mock import patch
 from pathlib import Path
 
 from tests.scripts.v0916_parity_test_support import MODULE, ROOT, V0916ParityTestBase
+
+
+def reload_with_post_capture_swap(
+    receipt: dict[str, object], target_roles: set[str]
+) -> tuple[dict[str, object], set[str]]:
+    """Replace paths after their final hash capture and prove no semantic reopen occurs."""
+    original_reader = MODULE._read_artifact_reference
+    originals: dict[Path, bytes] = {}
+    captured_roles: set[str] = set()
+
+    def capture_then_swap(reference: dict[str, object], role: str) -> tuple[Path, bytes]:
+        path, payload = original_reader(reference, role)
+        if role in target_roles and path not in originals:
+            originals[path] = payload
+            captured_roles.add(role)
+            path.write_bytes(b"post-capture-second-read-swap")
+        return path, payload
+
+    try:
+        with patch.object(
+            MODULE, "_read_artifact_reference", side_effect=capture_then_swap
+        ):
+            reloaded = MODULE._reload_receipt_for_evidence(receipt)
+    finally:
+        for path, payload in originals.items():
+            path.write_bytes(payload)
+    return reloaded, captured_roles
 
 
 class RecordingCliRunner:
@@ -429,6 +457,22 @@ class V0916ParityPipelineTests(V0916ParityTestBase):
             self.assertEqual(
                 "PARITY_PROVENANCE_INVALID", swapped_output.exception.code
             )
+            target_roles = {
+                "receipt",
+                "input",
+                "output",
+                "report",
+                "application-report",
+                "application-authority-report",
+            }
+            reloaded, captured_roles = reload_with_post_capture_swap(
+                projected, target_roles
+            )
+            self.assertEqual(target_roles, captured_roles)
+            self.assertEqual(
+                projected["output"]["sha256"],
+                hashlib.sha256(reloaded["__outputBytes"]).hexdigest(),
+            )
 
             baseline_inputs = MODULE.resolve_canonical_route_input(
                 plan,
@@ -687,6 +731,22 @@ class V0916ParityPipelineTests(V0916ParityTestBase):
                                 tampered.exception.code,
                             )
                         tamper_path.write_bytes(original_payload)
+                    if index == 1:
+                        precursor_roles = {
+                            "base-precursor-proof",
+                            "base-precursor-source",
+                            "base-precursor-output",
+                            "base-precursor-authority-report",
+                            "base-precursor-application-report",
+                        }
+                        reloaded, captured_roles = reload_with_post_capture_swap(
+                            projected, precursor_roles
+                        )
+                        self.assertEqual(precursor_roles, captured_roles)
+                        self.assertEqual(
+                            projected["output"]["sha256"],
+                            hashlib.sha256(reloaded["__outputBytes"]).hexdigest(),
+                        )
 
             precursor_route_id = cases[1][0]
             precursor_verified = MODULE.resolve_canonical_route_input(
