@@ -3,7 +3,7 @@
   "workflowPath": ".github/workflows/release.yml",
   "workflowRef": "refs/heads/main",
   "workflowHeadRelation": "authenticated-protected-main-independent-of-candidate-source",
-  "candidateImplementationHead": "3b73792e605fb1ce48f51d1aae004f8fec6434b4",
+  "candidateImplementationHead": "f7977831ed05123198d9122d05f1c16df61ccb33",
   "trigger": "workflow_dispatch",
   "topLevelPermissions": {
     "actions": "read",
@@ -18,11 +18,11 @@
   },
   "jobInventorySha256": {
     "candidate": "4c2bc0a1d5dbeef28b1745cac67c773c0ade88b78698a300550f76968908922a",
-    "promote": "14d6c697fc5f94c0eb3e5fc9cec24e8f8484020c94db51f6573f6f8f87b13692",
+    "promote": "95e10369dda9b57a6db50c50272b3a61a4370118d60ea0f76e7bb7c1ee1ea726",
     "published-smoke": "60d865fcd4c539dbc1bcbcd4617e645e94f2ce4c00e5ece2dbff08d01b8e9332",
-    "v0916-parity-compare": "1b43eaa571ac865b9e46b4cdc9c184bbf7e3bd302ef11e1a2f678f15d158f813",
-    "v0916-parity-attestation": "fe649bd7ce97d646737884000db41782d1f9e54d31a4aa6dac0148c51f1c60d1",
-    "v0916-parity-finalize": "f4fef0876da45849c59bf52a323e655fe75b31d4910aa0cc25b758e485325e67"
+    "v0916-parity-compare": "46ca215a211cb99d27a893e5046e645551af9c9e4ecd6f0d8c4ca2ee3eed3248",
+    "v0916-parity-attestation": "0061d6320ee6c50c94727f030c1d75a597ee063b4da1c35ec0f86ecf5ab95f44",
+    "v0916-parity-finalize": "7fb39d8d2162b304135d082feed08aa7c955ae47c27d3193b383b48c82c2ab8e"
   },
   "jobs": {
     "v0916-parity-compare": {
@@ -57,6 +57,7 @@
         },
         {
           "name": "Install parity verification dependency",
+          "shell": "pwsh",
           "run": "python -m pip install --disable-pip-version-check --only-binary=:all: PyYAML==6.0.3"
         },
         {
@@ -117,6 +118,7 @@
         },
         {
           "name": "Install parity verification dependency",
+          "shell": "pwsh",
           "run": "python -m pip install --disable-pip-version-check --only-binary=:all: PyYAML==6.0.3"
         },
         {
@@ -193,6 +195,7 @@
         },
         {
           "name": "Install parity verification dependency",
+          "shell": "pwsh",
           "run": "python -m pip install --disable-pip-version-check --only-binary=:all: PyYAML==6.0.3"
         },
         {
@@ -267,7 +270,7 @@
       "Publish or recover immutable GitHub Release",
       "Verify published assets and source downloads"
     ],
-    "stepsSha256": "72fcbf2e083e62ce99bf87a2fb199978accd90abd5142f20790a6c3ed15fc74e",
+    "stepsSha256": "74f58c840bab6d31d19f32a87f31d2e1d0063175a6e6d18c35aeb599254b66dc",
     "steps": [
       {
         "name": "Checkout protected release authority",
@@ -288,6 +291,7 @@
       {
         "name": "Install parity verification dependency",
         "if": "${{ needs.candidate.outputs.version == '1.0.0' }}",
+        "shell": "pwsh",
         "run": "python -m pip install --disable-pip-version-check --only-binary=:all: PyYAML==6.0.3"
       },
       {

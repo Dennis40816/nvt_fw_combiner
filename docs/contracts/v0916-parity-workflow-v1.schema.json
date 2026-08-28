@@ -24,7 +24,7 @@
     "workflowPath": { "const": ".github/workflows/release.yml" },
     "workflowRef": { "const": "refs/heads/main" },
     "workflowHeadRelation": { "const": "authenticated-protected-main-independent-of-candidate-source" },
-    "candidateImplementationHead": { "const": "3b73792e605fb1ce48f51d1aae004f8fec6434b4" },
+    "candidateImplementationHead": { "const": "f7977831ed05123198d9122d05f1c16df61ccb33" },
     "trigger": { "const": "workflow_dispatch" },
     "topLevelPermissions": { "$ref": "#/$defs/readPermissions" },
     "topLevelSha256": { "$ref": "#/$defs/sha256" },
@@ -80,6 +80,7 @@
           "prefixItems": [
             { "const": "Checkout protected release authority" },
             { "const": "Setup pinned Python for release policy" },
+            { "const": "Install parity verification dependency" },
             { "const": "Download terminal v0.9.16 parity evidence" },
             { "const": "Require terminal parity pass before promotion" }
           ],
@@ -87,15 +88,15 @@
         },
         "stepNames": {
           "type": "array",
-          "minItems": 10,
-          "maxItems": 10,
+          "minItems": 11,
+          "maxItems": 11,
           "items": { "type": "string", "minLength": 1 }
         },
         "stepsSha256": { "type": "string", "pattern": "^[0-9a-f]{64}$" },
         "steps": {
           "type": "array",
-          "minItems": 4,
-          "maxItems": 4,
+          "minItems": 5,
+          "maxItems": 5,
           "items": { "$ref": "#/$defs/step" }
         }
       }
@@ -169,7 +170,7 @@
             }
           ]
         },
-        "steps": { "type": "array", "minItems": 4, "maxItems": 7, "items": { "$ref": "#/$defs/step" } }
+        "steps": { "type": "array", "minItems": 4, "maxItems": 8, "items": { "$ref": "#/$defs/step" } }
       }
     },
     "step": {

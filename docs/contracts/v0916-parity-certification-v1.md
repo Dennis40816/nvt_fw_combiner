@@ -114,16 +114,16 @@ exact `candidateAuthority` implementation head/tree, not the portable release
 ZIP. The plan pins
 `docs/contracts/v100-candidate-source-executor-v1.json` at 4525 raw bytes and
 SHA-256
-`035bfacbae7e66436b3fb57179694e5e6642a30b67e3653fcdb00f83bbbb6ae7`.
-That contract pins head `3b73792e605fb1ce48f51d1aae004f8fec6434b4`, tree
-`3fac0994d2a7150ff1ea4a3be91c89f95da7811c`, SDK `10.0.303`, the complete
+`b8a13a5584ec95f60508fb15e33dc3423cbfc8eb28566291f5c7a425f46e2917`.
+That contract pins head `f7977831ed05123198d9122d05f1c16df61ccb33`, tree
+`2b7255f71cd60bfc36f446fb53511e8fe15a42e8`, SDK `10.0.303`, the complete
 lock/tool inventory, and CLI SHA-256
 `be33bf8ad050fa5e9ba24d464910ac09e24944ba97ca56a27c7f57001b8521e9`.
 The build command pins `ContinuousIntegrationBuild=true` and maps the detached
 worktree root to `/_/src`; two independent detached worktrees produced the same
 162304-byte executable and SHA above, plus an identical 382-file,
 91412711-byte runtime closure with SHA-256
-`f16ed40d9048f07a097e9a2fd98a41521385c7ec7d95e37d2e152e1277b48b21`.
+`dd09b08d9e4873e6ae0946a69bf0dd3aac97b10bbbd9a3b46e56bdbb37873adc`.
 The previously recorded closure `858e21e7...` was superseded because its nine
 first-party managed DLLs embedded SourceLink for binding head `b13f0e4d`, not
 the implementation head declared by that contract. It is not an accepted
@@ -430,7 +430,7 @@ Contents query, the Git blob SHA returned for that path at that commit, and the
 SHA-256 of decoded raw workflow bytes. None may substitute for another.
 The authenticated protected-main workflow commit is independent of the pinned
 candidate implementation/package head
-`3b73792e605fb1ce48f51d1aae004f8fec6434b4`; equality is neither required
+`f7977831ed05123198d9122d05f1c16df61ccb33`; equality is neither required
 nor authority. The blob and raw digests independently prove which workflow
 bytes occupied `.github/workflows/release.yml` at the workflow commit, while
 the candidate manifest/provenance and source-executor contract continue to bind
