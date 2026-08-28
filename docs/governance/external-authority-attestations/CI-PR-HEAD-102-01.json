@@ -1,0 +1,9 @@
+{
+  "schemaVersion": 1,
+  "taskId": "CI-PR-HEAD-102-01",
+  "authorityType": "release-owner",
+  "reviewedHead": "f67703d2e193750e494f01abc975a9ee32e04efc",
+  "decision": "approved",
+  "reviewer": "Dennis Liu (release owner)",
+  "evidence": "Approved the minimal formal-release blocker repair for v1.0.2: every existing CI job uses the immutable event head, and the required pull-request gate proves the exact event base is its ancestor. The change keeps read-only permissions, pinned actions, non-persisted credentials, complete history, repository validation, release policy, and product semantics unchanged. Protected PR checks and the protected-main push remain mandatory external proof before release."
+}
