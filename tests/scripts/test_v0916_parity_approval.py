@@ -799,7 +799,7 @@ class V0916ParityApprovalTests(V0916ParityTestBase):
                 workflowId=route.workflow_id,
                 icCountVariant=route.ic_count_variant,
                 mapVariant=route.map_variant,
-                selectionToken="fixture",
+                selectionToken=MODULE._cli_selection_token(route) or "selector-free",
             )
             minimum_full_capacity = 1 + max(
                 (
@@ -883,7 +883,7 @@ class V0916ParityApprovalTests(V0916ParityTestBase):
                 workflowId=route.workflow_id,
                 icCountVariant=route.ic_count_variant,
                 mapVariant=route.map_variant,
-                selectionToken="fixture-tp",
+                selectionToken=MODULE._cli_selection_token(route) or "selector-free",
                 outputCapacity=route.tp_length,
             )
             row["candidateTpOutput"]["size"] = route.tp_length
@@ -1012,6 +1012,8 @@ class V0916ParityApprovalTests(V0916ParityTestBase):
             "forged-baseline-executor",
             "forged-candidate-executor",
             "transitive-full-input-unbound",
+            "exact-selection-token-forgery",
+            "transitive-selection-token-forgery",
             "transitive-scenario-drift",
             "forged-route-inventory",
             "top-level-shape-forgery",
@@ -1058,6 +1060,12 @@ class V0916ParityApprovalTests(V0916ParityTestBase):
                 exact["receipts"][1]["executorIdentitySha256"] = "a" * 64
             elif mutation == "transitive-full-input-unbound":
                 transitive["candidateFullInput"]["sha256"] = "a" * 64
+            elif mutation == "exact-selection-token-forgery":
+                exact["scenario"]["selectionToken"] = "forged-but-well-shaped"
+            elif mutation == "transitive-selection-token-forgery":
+                transitive["tpScenario"]["selectionToken"] = (
+                    "forged-but-well-shaped"
+                )
             elif mutation == "transitive-scenario-drift":
                 transitive["tpScenario"]["icId"] = "NT00000"
             elif mutation == "forged-route-inventory":

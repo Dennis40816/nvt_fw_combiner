@@ -4268,6 +4268,11 @@ def validate_comparison_schema(
                 or (route is not None and scenario["workflowId"] != route.workflow_id)
                 or (route is not None and scenario["icCountVariant"] != route.ic_count_variant)
                 or (route is not None and scenario["mapVariant"] != route.map_variant)
+                or (
+                    route is not None
+                    and scenario["selectionToken"]
+                    != (_cli_selection_token(route) or "selector-free")
+                )
                 or len({item["slotId"] for item in scenario["orderedInputs"]})
                 != len(scenario["orderedInputs"])
                 or row["baselineOutput"]["size"] != scenario["outputCapacity"]
@@ -4301,6 +4306,11 @@ def validate_comparison_schema(
                 or (route is not None and scenario["workflowId"] != route.workflow_id)
                 or (route is not None and scenario["icCountVariant"] != route.ic_count_variant)
                 or (route is not None and scenario["mapVariant"] != route.map_variant)
+                or (
+                    route is not None
+                    and scenario["selectionToken"]
+                    != (_cli_selection_token(route) or "selector-free")
+                )
                 or (route is not None and row["tpLength"] != route.tp_length)
                 or (
                     route is not None
