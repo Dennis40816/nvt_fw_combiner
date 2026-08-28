@@ -53,7 +53,7 @@ unchanged in either version.
 Publication, hashes, SBOM, provenance, signing, and the immutable `v1.0.2` tag
 remain separate release-gate work and are not created by this candidate change.
 
-## [1.0.1] - Unreleased
+## [1.0.1] - 2026-08-28
 
 ### Summary
 
@@ -107,7 +107,7 @@ Use only the immutable versioned Windows x64 ZIP and its matching candidate
 manifest, asset checksum list, SBOM, and provenance. A renamed `1.0.0` ZIP is
 not `1.0.1` and must fail verification.
 
-## [1.0.0] - Unreleased
+## [1.0.0] - 2026-08-28
 
 ### Summary
 
