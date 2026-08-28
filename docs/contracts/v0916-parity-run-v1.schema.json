@@ -33,7 +33,7 @@
         "workflowCommitSha": { "$ref": "#/$defs/gitSha" },
         "workflowBlobSha": { "$ref": "#/$defs/gitSha" },
         "workflowRawSha256": { "$ref": "#/$defs/sha256" },
-          "workflowSemanticContractSha256": { "const": "0608b7588ece567a17f6b67486dab5f8f8945707066e43fc4dbeb11a4deb7b1a" },
+          "workflowSemanticContractSha256": { "const": "076a13639d94e8a326d4124fb98c959dbe3a306fafb8cc332f4f595d6d50d515" },
         "runId": { "type": "integer", "minimum": 1 },
         "artifactId": { "type": "integer", "minimum": 1 },
         "artifactName": { "type": "string", "pattern": "^stable-candidate-[1-9][0-9]*-[0-9a-f]{40}$" },
