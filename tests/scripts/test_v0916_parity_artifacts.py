@@ -71,20 +71,20 @@ class V0916ParityArtifactTests(V0916ParityTestBase):
         )
         self.assertEqual(4219, declared["size"])
         self.assertEqual(
-            "a60408bac63783c95a0bc60d1603fabc6308256d8beca1e417464c6234f20b04",
+            "c7cabf1bb4dd6e1cd3a28a648f6b76c0ab4fa02134ab6bdf74a5c19dcb17dc22",
             declared["sha256"],
         )
         self.assertEqual(4219, path.stat().st_size)
         self.assertEqual(
-            "a60408bac63783c95a0bc60d1603fabc6308256d8beca1e417464c6234f20b04",
+            "c7cabf1bb4dd6e1cd3a28a648f6b76c0ab4fa02134ab6bdf74a5c19dcb17dc22",
             hashlib.sha256(path.read_bytes()).hexdigest(),
         )
         contract = json.loads(path.read_text(encoding="utf-8"))
-        self.assertEqual("208f5aba424098c7c1f4bc872d9bc3ee7d04e685", contract["source"]["implementationHead"])
-        self.assertEqual("f54f5100eb661387375aa6cf2f3abb34bc9f1a51", contract["source"]["implementationTree"])
+        self.assertEqual("854549d3fca0e0e0351863179298e331894ccb50", contract["source"]["implementationHead"])
+        self.assertEqual("2f14b7f20d36b06dd9f85f490245b20411d0a515", contract["source"]["implementationTree"])
         self.assertEqual(
             {
-                "src": "aab6fe7e9fb56354a016021222f4c6cbb35c341d",
+                "src": "9070bd3cd85773dd7844069841ceb4043edd2f57",
                 "profiles": "7f8bd06e23ee78954e2e2c222f7b44a315049330",
                 "external-tools": "8d83e508ec3b48e000e1bef39b4b215c81b886ad",
                 "tools/crc-worker": "bba57c51cab02ddf89fefdf449eb585de7b34ae5",
@@ -94,7 +94,7 @@ class V0916ParityArtifactTests(V0916ParityTestBase):
         self.assertEqual("10.0.303", contract["toolchain"]["resolvedSdkVersion"])
         self.assertEqual("detached-git-worktree", contract["freshBuild"]["sourceMaterialization"])
         self.assertEqual(178688, contract["cliAssembly"]["size"])
-        self.assertEqual("a096b587910eb00987d92c97d97735d1b70b4bc4071daa55190d4b010f7a1cfd", contract["cliAssembly"]["sha256"])
+        self.assertEqual("b567f0b1fc02f325fe3383738eb06f0bea7b5027dec703afd3e92751ec98fa12", contract["cliAssembly"]["sha256"])
         self.assertTrue(contract["freshBuild"]["emptyDestinationRequired"])
         self.assertTrue(contract["freshBuild"]["rejectIgnoredBuildOutputsBeforeRestore"])
         head = contract["source"]["implementationHead"]
@@ -633,7 +633,7 @@ class V0916ParityArtifactTests(V0916ParityTestBase):
                 "workflowCommitSha": workflow_sha,
                 "workflowBlobSha": workflow_blob_sha,
                 "workflowRawSha256": workflow_raw_sha256,
-                "workflowSemanticContractSha256": "c86693c00fbd29a6fe7b486032e41332b22feb78389f46600e14fa3fd8c5d73c",
+                "workflowSemanticContractSha256": "f3fcf8b0ad258184b6180e61cd6b940c2e6c24f75cf414f1db5454463774bf65",
                 "runId": 123,
                 "artifactId": 456,
                 "artifactName": f"stable-candidate-123-{head}",
