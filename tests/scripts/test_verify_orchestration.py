@@ -2816,7 +2816,7 @@ class VerifyOrchestrationTests(unittest.TestCase):
                     "tests/NvtFwCombiner.Bootstrap.Tests/"
                     "NvtFwCombiner.Bootstrap.Tests.csproj",
                     1147,
-                    0 if MODULE.os.name == "nt" else 5,
+                    0,
                 ),
             ),
             "ui": (
@@ -2905,7 +2905,7 @@ class VerifyOrchestrationTests(unittest.TestCase):
             4667, sum(total for projects in actual.values() for _, total, _ in projects)
         )
         self.assertEqual(
-            2 + (0 if MODULE.os.name == "nt" else 5),
+            2,
             sum(skipped for projects in actual.values() for _, _, skipped in projects),
         )
 

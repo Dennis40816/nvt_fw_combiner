@@ -1,0 +1,34 @@
+{
+  "schemaVersion": 2,
+  "taskId": "TEST-CI-SKIP-102-01",
+  "capability": "Bind canonical .NET evidence counters to the Windows producer instead of the Linux finalizer host",
+  "integrationBase": "f67703d2e193750e494f01abc975a9ee32e04efc",
+  "risk": "R2",
+  "kind": "governance",
+  "state": "design-active",
+  "mutablePaths": [
+    "scripts/verify.py"
+  ],
+  "implementationOwner": "primary-agent",
+  "searchEvidence": [
+    "PR 401 run 33182324146 executed the Bootstrap shard on windows-latest and produced 1,147 passed, 0 failed, 0 skipped, while the ubuntu-latest finalizer incorrectly selected five expected skips from its own os.name.",
+    "All producer lanes passed and only dotnet / build-test rejected the stale expected counter; re-finalizing the exact downloaded artifacts with a producer-owned zero-skip expectation passed 4,667 tests, 2 unchanged Infrastructure skips, and Golden 18/18.",
+    "CI_DOTNET_SHARDS in scripts/verify.py is the existing single owner of exact per-project counters, and tests/scripts/test_verify_orchestration.py freezes that inventory and aggregate."
+  ],
+  "semanticOwner": "scripts/verify.py CI_DOTNET_SHARDS exact producer test counters",
+  "terminalContract": "Canonical CI evidence requires the Windows Bootstrap producer to report exactly 1,147 passed, 0 failed, and 0 skipped regardless of the finalizer operating system; unexplained project, pass, fail, skip, evidence, coverage, or Golden drift continues to fail closed",
+  "disposition": "extend-owner",
+  "designReview": {
+    "reviewer": "final_evidence_review",
+    "outcome": "approved",
+    "evidence": "Independent bounded R2 review confirmed all .NET test shards run on windows-latest while only the evidence finalizer runs on ubuntu-latest. A constant zero Bootstrap skip count therefore describes the producer and removes finalizer-host confusion without changing test commands, inventory, execution, coverage, production runtime, firmware semantics, or generic mismatch rejection. The matching regression freezes 1,147 Bootstrap passes and two unchanged aggregate Infrastructure skips."
+  },
+  "implementationHead": null,
+  "reviewedHead": null,
+  "pathStateDigest": null,
+  "finalReview": {
+    "reviewer": null,
+    "outcome": "pending",
+    "evidence": ""
+  }
+}

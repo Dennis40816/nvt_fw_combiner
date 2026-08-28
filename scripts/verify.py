@@ -285,7 +285,7 @@ CI_DOTNET_SHARDS: dict[str, tuple[CiDotnetProject, ...]] = {
         CiDotnetProject(
             "tests/NvtFwCombiner.Bootstrap.Tests/NvtFwCombiner.Bootstrap.Tests.csproj",
             1147,
-            0 if os.name == "nt" else 5,
+            0,
         ),
     ),
     "ui": (
