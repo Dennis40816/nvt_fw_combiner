@@ -1618,11 +1618,16 @@ class V0916ParityContractTests(V0916ParityTestBase):
                 self.binding_plan = copy.deepcopy(plan)
                 self.implementation_plan = copy.deepcopy(plan)
                 self.drift_commit: str | None = None
+                self.policy_drift_commit: str | None = None
+                self.mode_overrides: dict[tuple[str, str], str] = {}
+                self.parent_error_commit: str | None = None
 
             def resolve_commit(self, commit: str) -> str:
                 return self.current if commit in {"HEAD", package_source, descendant} else commit
 
             def parent(self, commit: str) -> str:
+                if commit == self.parent_error_commit:
+                    raise MODULE.ParityError("PARITY_AUTHORITY_MISMATCH")
                 return self.parents[commit]
 
             def changed_paths(self, parent: str, child: str) -> list[str]:
@@ -1632,8 +1637,7 @@ class V0916ParityContractTests(V0916ParityTestBase):
                 return self.entry_changes[(parent, child)]
 
             def path_mode(self, commit: str, path: str) -> str:
-                del commit, path
-                return "100644"
+                return self.mode_overrides.get((commit, path), "100644")
 
             def tree_for_path(self, commit: str, path: str) -> str:
                 if commit == self.drift_commit and path == "src":
@@ -1651,6 +1655,8 @@ class V0916ParityContractTests(V0916ParityTestBase):
                 if commit == binding and path == source_contract_path:
                     return json.dumps(source_contract, sort_keys=True).encode("utf-8")
                 if path == policy_path:
+                    if commit == self.policy_drift_commit:
+                        return b"drift"
                     return policy_bytes
                 raise AssertionError((commit, path))
 
@@ -1712,6 +1718,35 @@ class V0916ParityContractTests(V0916ParityTestBase):
         def authority_drift(reader: Reader) -> None:
             reader.drift_commit = package_source
 
+        def extra_attestation_path(reader: Reader) -> None:
+            reader.entry_changes[(final_record, package_source)].append(
+                ("A", "docs/governance/external-authority-attestations/EXTRA-01.json")
+            )
+
+        def missing_attestation_path(reader: Reader) -> None:
+            reader.entry_changes[(final_record, package_source)].clear()
+
+        def wrong_attestation_status(reader: Reader) -> None:
+            _, path = reader.entry_changes[(final_record, package_source)][0]
+            reader.entry_changes[(final_record, package_source)][0] = ("M", path)
+
+        def non_regular_final_record(reader: Reader) -> None:
+            _, path = final_entries[0]
+            reader.mode_overrides[(final_record, path)] = "100755"
+
+        def non_regular_attestation(reader: Reader) -> None:
+            _, path = attestation_entries[0]
+            reader.mode_overrides[(package_source, path)] = "120000"
+
+        def policy_drift(reader: Reader) -> None:
+            reader.policy_drift_commit = package_source
+
+        def multiple_parent_tail(reader: Reader) -> None:
+            reader.parent_error_commit = package_source
+
+        def wrong_tail_parent(reader: Reader) -> None:
+            reader.parents[package_source] = binding
+
         mutations = {
             "binding-only": incomplete_binding,
             "final-record-only": incomplete_final_record,
@@ -1719,6 +1754,14 @@ class V0916ParityContractTests(V0916ParityTestBase):
             "extra-final-path": extra_final_path,
             "tail-self-authorization": tail_self_authorization,
             "authority-drift": authority_drift,
+            "extra-attestation-path": extra_attestation_path,
+            "missing-attestation-path": missing_attestation_path,
+            "wrong-attestation-status": wrong_attestation_status,
+            "non-regular-final-record": non_regular_final_record,
+            "non-regular-attestation": non_regular_attestation,
+            "policy-drift": policy_drift,
+            "multiple-parent-tail": multiple_parent_tail,
+            "wrong-tail-parent": wrong_tail_parent,
         }
         for name, mutate in mutations.items():
             selected = Reader()
@@ -1734,6 +1777,44 @@ class V0916ParityContractTests(V0916ParityTestBase):
                 self.assertEqual(
                     "PARITY_AUTHORITY_MISMATCH", captured.exception.code
                 )
+
+        rejected = Reader()
+        with self.assertRaises(MODULE.ParityError) as captured:
+            MODULE.validate_repository_parity_package_source(
+                ROOT,
+                head=rejected.current,
+                reader=rejected,
+                governance_validator=lambda repository, head: (_ for _ in ()).throw(
+                    MODULE.ParityError("PARITY_AUTHORITY_MISMATCH")
+                ),
+            )
+        self.assertEqual("PARITY_AUTHORITY_MISMATCH", captured.exception.code)
+
+    def test_validate_package_source_cli_invokes_exact_repository_validator(self) -> None:
+        expected = {
+            "implementationHead": "a" * 40,
+            "bindingHead": "b" * 40,
+            "finalRecordHead": "c" * 40,
+            "packageSourceHead": "d" * 40,
+        }
+        output = io.StringIO()
+        with mock.patch.object(
+            MODULE,
+            "validate_repository_parity_package_source",
+            return_value=expected,
+        ) as validate, contextlib.redirect_stdout(output):
+            self.assertEqual(
+                0,
+                MODULE.main(
+                    [
+                        "validate-package-source",
+                        "--repository",
+                        str(ROOT),
+                    ]
+                ),
+            )
+        validate.assert_called_once_with(ROOT.resolve())
+        self.assertIn(expected["packageSourceHead"], output.getvalue())
 
     def test_same_scenario_requires_topology_capacity_and_ordered_inputs(self) -> None:
         receipt = {

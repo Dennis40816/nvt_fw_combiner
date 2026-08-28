@@ -6343,6 +6343,16 @@ def _validate_terminal_command(args: argparse.Namespace) -> int:
     return 0
 
 
+def _validate_package_source_command(args: argparse.Namespace) -> int:
+    repository = Path(args.repository).resolve(strict=True)
+    authority = validate_repository_parity_package_source(repository)
+    print(
+        "exact v1.0.0 package source validated: "
+        f"{authority['packageSourceHead']}"
+    )
+    return 0
+
+
 def main(argv: Sequence[str] | None = None) -> int:
     parser = argparse.ArgumentParser()
     subparsers = parser.add_subparsers(dest="command", required=True)
@@ -6373,6 +6383,9 @@ def main(argv: Sequence[str] | None = None) -> int:
     terminal = subparsers.add_parser("validate-terminal")
     terminal.add_argument("--evidence", required=True)
     terminal.set_defaults(handler=_validate_terminal_command)
+    package_source = subparsers.add_parser("validate-package-source")
+    package_source.add_argument("--repository", required=True)
+    package_source.set_defaults(handler=_validate_package_source_command)
     args = parser.parse_args(argv)
     handler = getattr(args, "handler", None)
     if handler is None:

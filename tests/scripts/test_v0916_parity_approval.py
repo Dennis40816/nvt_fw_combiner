@@ -80,6 +80,43 @@ class V0916ParityApprovalTests(V0916ParityTestBase):
             workflow_path.read_bytes(), contract
         )
 
+    def test_release_owner_deferral_skips_parity_for_1x_and_requires_it_for_200(self) -> None:
+        contract = json.loads(
+            (ROOT / "docs/contracts/v0916-parity-workflow-v1.json").read_text(
+                encoding="utf-8"
+            )
+        )
+        for job in contract["jobs"].values():
+            self.assertIn("version == '2.0.0'", job["if"])
+            self.assertNotIn("version == '1.0.0'", job["if"])
+        promotion = contract["promotionGate"]
+        self.assertIn("startsWith(needs.candidate.outputs.version, '1.')", promotion["if"])
+        self.assertIn("version == '2.0.0'", promotion["if"])
+        for step in promotion["steps"][2:]:
+            self.assertEqual(
+                "${{ needs.candidate.outputs.version == '2.0.0' }}",
+                step["if"],
+            )
+
+    def test_candidate_validates_exact_h4_before_packaging_only_for_100(self) -> None:
+        workflow = yaml.safe_load(
+            (ROOT / ".github/workflows/release.yml").read_bytes()
+        )
+        steps = workflow["jobs"]["candidate"]["steps"]
+        names = [step["name"] for step in steps]
+        authority_name = "Require exact v1.0.0 package-source authority"
+        package_name = "Build closed-allowlist release package"
+        self.assertLess(names.index(authority_name), names.index(package_name))
+        authority = steps[names.index(authority_name)]
+        self.assertEqual(
+            "steps.identity.outputs.version == '1.0.0'", authority["if"]
+        )
+        self.assertIn(
+            "v0916_parity_certification.py validate-package-source",
+            authority["run"],
+        )
+        self.assertIn("--repository '${{ github.workspace }}'", authority["run"])
+
     def test_workflow_semantics_reject_every_bypass_or_authority_drift(self) -> None:
         contract = json.loads(
             (ROOT / "docs/contracts/v0916-parity-workflow-v1.json").read_text(

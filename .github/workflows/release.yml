@@ -388,6 +388,15 @@ jobs:
         run: python -m pip install --disable-pip-version-check -e './tools/crc-worker[dev,package]'
       - name: Verify release source
         run: python ./scripts/verify.py --all
+      - name: Require exact v1.0.0 package-source authority
+        if: steps.identity.outputs.version == '1.0.0'
+        shell: pwsh
+        run: |
+          python ./scripts/v0916_parity_certification.py validate-package-source `
+            --repository '${{ github.workspace }}'
+          if ($LASTEXITCODE -ne 0) {
+            throw 'Version 1.0.0 is not the exact admitted H4 package source.'
+          }
       - name: Download published 1.0.0 base package
         if: steps.identity.outputs.version == '1.0.1'
         shell: pwsh
