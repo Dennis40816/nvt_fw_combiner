@@ -375,6 +375,75 @@ class ReleasePromotionPolicyTests(unittest.TestCase):
 
             self.assertEqual(destination.read_bytes(), b"stable-payload")
 
+    def test_101_package_validation_uses_the_single_captured_base_zip(self) -> None:
+        with tempfile.TemporaryDirectory(prefix="nfc-version-only-capture-") as temporary:
+            repository = Path(temporary) / "repository"
+            repository.mkdir()
+            self.create_version_only_repository(repository)
+            base_sha = self.git(repository, "rev-parse", "v1.0.0^{commit}")
+            candidate_sha = self.git(repository, "rev-parse", "HEAD")
+            base_package = Path(temporary) / "base.zip"
+            candidate_package = Path(temporary) / "candidate.zip"
+            self.write_version_package(base_package, version="1.0.0", source_sha=base_sha)
+            self.write_version_package(candidate_package, version="1.0.1", source_sha=candidate_sha)
+            expected_sha = MODULE._sha256(base_package)
+            original_read_bytes = Path.read_bytes
+            swapped = False
+
+            def read_then_swap(path: Path) -> bytes:
+                nonlocal swapped
+                payload = original_read_bytes(path)
+                if path.resolve() == base_package.resolve() and not swapped:
+                    swapped = True
+                    path.write_bytes(b"post-capture-counterfeit")
+                return payload
+
+            def version_reader(path: Path) -> tuple[str, str]:
+                version = "1.0.1" if b"1.0.1" in original_read_bytes(path) else "1.0.0"
+                return f"{version}.0", version
+
+            with (
+                mock.patch.object(Path, "read_bytes", read_then_swap),
+                mock.patch.object(MODULE, "_read_windows_file_version", version_reader),
+            ):
+                MODULE.validate_version_only_packages(
+                    repository, base_package, candidate_package, expected_sha
+                )
+            self.assertTrue(swapped)
+            self.assertEqual(b"post-capture-counterfeit", base_package.read_bytes())
+
+    def test_101_stable_payload_uses_the_single_captured_base_zip(self) -> None:
+        with tempfile.TemporaryDirectory(prefix="nfc-version-only-reuse-capture-") as temporary:
+            repository = Path(temporary) / "repository"
+            repository.mkdir()
+            self.create_version_only_repository(repository)
+            base_sha = self.git(repository, "rev-parse", "v1.0.0^{commit}")
+            base_package = Path(temporary) / "base.zip"
+            destination = Path(temporary) / "out/Nfc.CrcWorker.exe"
+            self.write_version_package(base_package, version="1.0.0", source_sha=base_sha)
+            expected_sha = MODULE._sha256(base_package)
+            original_read_bytes = Path.read_bytes
+            swapped = False
+
+            def read_then_swap(path: Path) -> bytes:
+                nonlocal swapped
+                payload = original_read_bytes(path)
+                if path.resolve() == base_package.resolve() and not swapped:
+                    swapped = True
+                    path.write_bytes(b"post-capture-counterfeit")
+                return payload
+
+            with mock.patch.object(Path, "read_bytes", read_then_swap):
+                MODULE.extract_version_only_stable_payload(
+                    repository,
+                    base_package,
+                    destination,
+                    "external-tools/crc-worker/0.1.0/Nfc.CrcWorker.exe",
+                    expected_sha,
+                )
+            self.assertTrue(swapped)
+            self.assertEqual(b"stable-payload", destination.read_bytes())
+
     def test_101_rejects_self_consistent_base_zip_with_wrong_external_digest(self) -> None:
         with tempfile.TemporaryDirectory(
             prefix="nfc-version-only-worker-digest-reject-"

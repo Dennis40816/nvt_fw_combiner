@@ -5,6 +5,7 @@ from __future__ import annotations
 
 import argparse
 import hashlib
+import io
 import json
 import shutil
 import tempfile
@@ -66,7 +67,7 @@ def _extract_seed(source_root: Path, staging: Path, entry: dict[str, object]) ->
     version_root = staging / "versions" / version
     version_root.mkdir(parents=True)
     manifest: bytes | None = None
-    with zipfile.ZipFile(package) as archive:
+    with zipfile.ZipFile(io.BytesIO(package_bytes)) as archive:
         seen: set[str] = set()
         for info in archive.infolist():
             if info.is_dir():

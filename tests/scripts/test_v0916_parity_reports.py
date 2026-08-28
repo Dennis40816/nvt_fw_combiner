@@ -453,8 +453,8 @@ class V0916ParityReportTests(V0916ParityTestBase):
             receipt = {
                 "schemaVersion": "1.0",
                 "role": "baseline-exact",
-                "executionArtifactSha256": "e889668cf092fab4877aeea84642d3b48a9969a6184f1c128500673fa136f9db",
-                "executorIdentitySha256": "861fa0fae7bf5904cac88a4bcb6ed6e0aef1a54518e0903914f2121fbc411bfb",
+                "executionArtifactSha256": "093212528d1048acdb43563ba795353e1ac872f8b6a3aa99251782e958ad1a30",
+                "executorIdentitySha256": "92e400212b5cdbb5e164b4d1401d59cdd1adbb0aef9a490be4777554d5b1e659",
                 "routeId": "route-test",
                 "capabilityFingerprint": "b" * 64,
                 "scenario": {

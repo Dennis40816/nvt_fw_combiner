@@ -7,8 +7,8 @@
     "sourceTree": "dc46c9aa9ecf00cb898ba3bc287e1b15acdab735",
     "executorContract": {
       "path": "docs/contracts/v0916-baseline-executor-v1.json",
-      "size": 3351,
-      "sha256": "861fa0fae7bf5904cac88a4bcb6ed6e0aef1a54518e0903914f2121fbc411bfb"
+      "size": 3730,
+      "sha256": "92e400212b5cdbb5e164b4d1401d59cdd1adbb0aef9a490be4777554d5b1e659"
     },
     "releaseReference": {
       "packageName": "NvtFwCombiner-v0.9.16-win-x64.zip",
@@ -307,8 +307,8 @@
     "candidateSourceExecutorSchemaPath": "docs/contracts/v0916-candidate-source-executor-v1.schema.json",
     "sourceExecutorContract": {
       "path": "docs/contracts/v100-candidate-source-executor-v1.json",
-      "size": 4219,
-      "sha256": "0b443d1cd1f61a1410d8fee843d01ec5d6839457011cc4f57954cf7b4c57eb65"
+      "size": 4525,
+      "sha256": "adc67766f2506f5ba62206cae6157b9b9ce6c6c04552af2a37deb6c1ced779a8"
     },
     "requiredTreePaths": ["src", "profiles", "external-tools", "tools/crc-worker"],
     "protectedBuild": {
@@ -317,8 +317,8 @@
       "workflowRef": "refs/heads/main",
       "workflowSemanticContract": {
         "path": "docs/contracts/v0916-parity-workflow-v1.json",
-        "size": 11248,
-        "sha256": "daf70404996d3f520e866bac104eac1d40389c9f6feaa7920cac5681c0dda6fa"
+        "size": 12542,
+        "sha256": "9f0b79013165e8b216cfa5d57d6ca65d8b040642bae3d996378487d4cc9be7ac"
       },
       "candidateVerifierPath": "scripts/release_promotion_policy.py",
       "packageVerifierPath": "scripts/smoke-release.ps1",
@@ -372,7 +372,7 @@
         { "start": 211728, "endExclusive": 214528 }
       ],
       "baselineProvenance": {
-        "executorContractSha256": "861fa0fae7bf5904cac88a4bcb6ed6e0aef1a54518e0903914f2121fbc411bfb",
+        "executorContractSha256": "92e400212b5cdbb5e164b4d1401d59cdd1adbb0aef9a490be4777554d5b1e659",
         "tagObject": "578b2614632d6c2affdf2000324b134b5d1a16c1",
         "peeledCommit": "462590e8b993b8e42d088bc07377571a4bb9f25d"
       },
@@ -387,8 +387,8 @@
       },
       "diagnosticRecord": {
         "path": "docs/contracts/v0916-nt51951-c2-diagnostic-v1.json",
-        "size": 3952,
-        "sha256": "3c53c257201ef2e1014ed1b13e4d4f9eda7b19306d52a3d7e89f373dd68fec8f",
+        "size": 3953,
+        "sha256": "74e925cc20a3336659ec1ab427adcb18d6aa62fdfec3343af98f48c2579ec8a1",
         "status": "blocked-incomplete-independent-observation"
       },
       "requiredProofKind": "exact-output-with-approved-semantic-correction"

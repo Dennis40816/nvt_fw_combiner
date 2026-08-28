@@ -11,6 +11,8 @@ import subprocess
 import unittest
 from pathlib import Path
 
+import yaml
+
 
 ROOT = Path(__file__).resolve().parents[2]
 MODULE_PATH = ROOT / "scripts" / "v0916_parity_certification.py"
@@ -22,12 +24,12 @@ def parity_workflow_fixture_from_contract(
     contract: dict[str, object],
 ) -> dict[str, object]:
     """Materialize the one YAML-native graph declared by the workflow contract."""
+    production_workflow = yaml.safe_load(
+        (ROOT / ".github/workflows/release.yml").read_text(encoding="utf-8")
+    )
     jobs: dict[str, object] = {
-        "candidate": {
-            "name": "release / candidate",
-            "runs-on": "windows-latest",
-            "steps": [],
-        }
+        job_id: copy.deepcopy(production_workflow["jobs"][job_id])
+        for job_id in ("candidate", "promote", "published-smoke")
     }
     for job_id, declared in contract["jobs"].items():
         job = {
@@ -42,18 +44,9 @@ def parity_workflow_fixture_from_contract(
         if declared["environment"] is not None:
             job["environment"] = declared["environment"]
         jobs[job_id] = job
-    promotion = contract["promotionGate"]
-    jobs[promotion["jobId"]] = {
-        "needs": copy.deepcopy(promotion["needs"]),
-        "if": promotion["if"],
-        "steps": copy.deepcopy(promotion["steps"]),
-    }
-    return {
-        "name": "release",
-        "on": {contract["trigger"]: {}},
-        "permissions": copy.deepcopy(contract["topLevelPermissions"]),
-        "jobs": jobs,
-    }
+    fixture = copy.deepcopy(production_workflow)
+    fixture["jobs"] = jobs
+    return fixture
 
 
 class MissingProductionParityError(RuntimeError):
@@ -81,6 +74,25 @@ else:
     PRODUCTION_AVAILABLE = False
 
 
+def runtime_closure_facts(root: Path) -> tuple[str, int, int]:
+    files = [
+        (path.relative_to(root).as_posix(), path.read_bytes())
+        for path in sorted(root.rglob("*"), key=lambda item: item.as_posix())
+        if path.is_file()
+    ]
+    inventory = [
+        {
+            "path": relative,
+            "size": len(payload),
+            "sha256": hashlib.sha256(payload).hexdigest(),
+        }
+        for relative, payload in files
+    ]
+    return (
+        MODULE.canonical_json_sha256(inventory),
+        len(files),
+        sum(len(payload) for _, payload in files),
+    )
 class RecordingProcessRunner:
     def __init__(self, results: list[subprocess.CompletedProcess[str]]) -> None:
         self.results = list(results)
@@ -634,7 +646,7 @@ class V0916ParityTestBase(unittest.TestCase):
                 {
                     "role": "baseline-exact",
                     "operatorLogin": "dennis40816",
-                    "executorIdentitySha256": "861fa0fae7bf5904cac88a4bcb6ed6e0aef1a54518e0903914f2121fbc411bfb",
+                    "executorIdentitySha256": "92e400212b5cdbb5e164b4d1401d59cdd1adbb0aef9a490be4777554d5b1e659",
                     "receiptSha256": "3" * 64,
                     "invocationSha256": "4" * 64,
                     "report": {"size": 10, "sha256": "5" * 64},

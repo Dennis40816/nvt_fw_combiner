@@ -194,10 +194,10 @@ as containing a CLI. Candidate receipts use `candidate-source-cli`, built from
 the exact clean `candidateAuthority` head/tree with the repository-pinned SDK
 and locked dependencies. The plan pins
 `docs/contracts/v100-candidate-source-executor-v1.json` at raw SHA-256
-`0b443d1cd1f61a1410d8fee843d01ec5d6839457011cc4f57954cf7b4c57eb65`,
+`adc67766f2506f5ba62206cae6157b9b9ce6c6c04552af2a37deb6c1ced779a8`,
 head `b13f0e4d4a609fa3d55af01861623ce9ef05862b`, tree
 `edff8bcc4537a29e46ccf83d05df255b48f3843c`, and CLI assembly SHA-256
-`779de265624f1ba88ed108f39b996549455b8d26fa456ac3904f30b98b1d2088`.
+`be33bf8ad050fa5e9ba24d464910ac09e24944ba97ca56a27c7f57001b8521e9`.
 The source is materialized into a fresh detached Git worktree at that exact
 head; dirty,
 ignored, or pre-existing `bin`/`obj` output fails before restore. Candidate

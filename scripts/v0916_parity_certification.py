@@ -21,6 +21,7 @@ import subprocess
 import tempfile
 import zipfile
 from pathlib import Path, PurePosixPath
+from types import MappingProxyType
 from typing import Any, Iterator, Mapping, NamedTuple, Sequence
 from urllib.parse import quote, urlencode
 
@@ -290,6 +291,8 @@ class BaselineAuthority(NamedTuple):
 class MaterializedCanonicalAuthority(NamedTuple):
     root: Path
     manifest_sha256: str
+    manifest_relative: str
+    files: Mapping[str, bytes]
 
 
 class ExecutionRequirement(NamedTuple):
@@ -316,6 +319,9 @@ class VerifiedSourceExecutor(NamedTuple):
     cli_sha256: str
     argv_prefix: tuple[str, ...]
     fresh_build: bool
+    runtime_closure_sha256: str
+    runtime_file_count: int
+    runtime_total_size: int
 
     def with_changes(self, **changes: Any) -> "VerifiedSourceExecutor":
         return self._replace(**changes)
@@ -326,6 +332,33 @@ class CapturedLocalArtifact(NamedTuple):
 
     path: Path
     payload: bytes
+
+
+class CapturedExecutionClosure(NamedTuple):
+    """Immutable runtime bytes used by both preview and build."""
+
+    root: Path
+    cli_relative: str
+    files: Mapping[str, bytes]
+    identity_sha256: str
+    file_count: int
+    total_size: int
+
+
+class ReceiptValidationAuthority(NamedTuple):
+    execution_artifact_sha256: str
+    executor_identity_sha256: str
+    authorized_operators: frozenset[str]
+
+
+def receipt_validation_authority(
+    executor: VerifiedSourceExecutor, operator_login: str
+) -> ReceiptValidationAuthority:
+    return ReceiptValidationAuthority(
+        executor.cli_sha256,
+        executor.contract_identity_sha256,
+        frozenset({operator_login}),
+    )
 
 
 class SourceExecutorContract(NamedTuple):
@@ -567,7 +600,7 @@ def _exact_keys(value: Mapping[str, Any], expected: set[str], code: str) -> None
 def validate_baseline_executor_contract_schema(contract: dict[str, Any]) -> None:
     required = {
         "schemaVersion", "kind", "source", "toolchain", "lockFiles",
-        "externalTools", "restore", "build", "cliAssembly",
+        "externalTools", "restore", "build", "cliAssembly", "runtimeClosure",
     }
     _exact_keys(contract, required, "PARITY_PLAN_INVALID")
     if contract.get("kind") != "exact-tag-source-built-cli":
@@ -589,6 +622,19 @@ def validate_baseline_executor_contract_schema(contract: dict[str, Any]) -> None
             paths.append(path)
         if len(paths) != len(set(paths)):
             _fail("PARITY_PLAN_INVALID")
+    runtime = contract.get("runtimeClosure")
+    cli = contract.get("cliAssembly", {})
+    if (
+        not isinstance(runtime, dict)
+        or set(runtime) != {"root", "fileCount", "totalSize", "sha256"}
+        or runtime.get("root") != str(PurePosixPath(cli.get("path", "")).parent)
+        or not isinstance(runtime.get("fileCount"), int)
+        or runtime["fileCount"] < 1
+        or not isinstance(runtime.get("totalSize"), int)
+        or runtime["totalSize"] < cli.get("size", 0)
+        or not SHA256_RE.fullmatch(str(runtime.get("sha256", "")))
+    ):
+        _fail("PARITY_PLAN_INVALID")
 
 
 def _safe_repo_path(value: str) -> bool:
@@ -1280,7 +1326,7 @@ def validate_exact_evidence_row_schema(row: Mapping[str, Any]) -> None:
             raise ValueError
         if row["passed"] is not True:
             raise ValueError
-    except (KeyError, TypeError, ValueError):
+    except (KeyError, TypeError, ValueError, StopIteration):
         _fail("PARITY_EVIDENCE_INCOMPLETE")
 
 
@@ -1407,6 +1453,7 @@ def materialize_and_validate_canonical_input_authority(plan: Mapping[str, Any], 
     destination.mkdir(parents=True)
     try:
         decoded_inventory: list[str] = []
+        captured_files: dict[str, bytes] = {}
         for listed_relative in inventory:
             relative = _decode_git_path(listed_relative)
             decoded_inventory.append(relative)
@@ -1425,6 +1472,7 @@ def materialize_and_validate_canonical_input_authority(plan: Mapping[str, Any], 
                 payload = git_reader.read_file(commit, listed_relative)
             if not isinstance(payload, bytes):
                 _fail("PARITY_AUTHORITY_MISMATCH")
+            captured_files[relative] = payload
             total += len(payload)
             if total > MAX_SNAPSHOT_BYTES:
                 _fail("PARITY_AUTHORITY_MISMATCH")
@@ -1444,18 +1492,63 @@ def materialize_and_validate_canonical_input_authority(plan: Mapping[str, Any], 
         )
         if actual != sorted(decoded_inventory):
             _fail("PARITY_AUTHORITY_MISMATCH")
-        manifest = destination / authority["manifestPath"]
-        payload = manifest.read_bytes()
+        for relative, expected_payload in captured_files.items():
+            staged = validator_root / PurePosixPath(relative)
+            if (
+                not staged.is_file()
+                or path_is_reparse_point(staged)
+                or staged.read_bytes() != expected_payload
+            ):
+                _fail("PARITY_AUTHORITY_MISMATCH")
+        manifest_relative = authority["manifestPath"]
+        payload = captured_files.get(manifest_relative, b"")
         if len(payload) != authority["manifestSize"] or _sha256(payload) != authority["manifestRawSha256"]:
             _fail("PARITY_AUTHORITY_MISMATCH")
-        return MaterializedCanonicalAuthority(destination, _sha256(payload))
+        return MaterializedCanonicalAuthority(
+            destination,
+            _sha256(payload),
+            manifest_relative,
+            MappingProxyType(dict(captured_files)),
+        )
     except Exception:
         _remove_tree(destination)
         raise
 
 
-def resolve_all_canonical_route_inputs(plan: Plan, manifest_path: Path) -> dict[str, Any]:
-    manifest = _read_json_file(manifest_path)
+def _canonical_snapshot_json(
+    authority: MaterializedCanonicalAuthority, relative: str
+) -> dict[str, Any]:
+    payload = authority.files.get(relative)
+    if payload is None:
+        _fail("PARITY_AUTHORITY_MISMATCH")
+    return _decode_json_object(payload, "PARITY_AUTHORITY_MISMATCH")
+
+
+def capture_canonical_authority_from_manifest_for_test(
+    manifest_path: Path,
+) -> MaterializedCanonicalAuthority:
+    """Test-only adapter: capture a local canonical tree once before exercising ports."""
+
+    manifest_path = manifest_path.resolve(strict=True)
+    root = manifest_path.parent
+    files = {
+        path.relative_to(root).as_posix(): path.read_bytes()
+        for path in root.rglob("*")
+        if path.is_file() and not path_is_reparse_point(path)
+    }
+    relative = manifest_path.relative_to(root).as_posix()
+    payload = files[relative]
+    return MaterializedCanonicalAuthority(
+        root, _sha256(payload), relative, MappingProxyType(files)
+    )
+
+
+def resolve_all_canonical_route_inputs(
+    plan: Plan, authority: MaterializedCanonicalAuthority
+) -> dict[str, Any]:
+    if not isinstance(authority, MaterializedCanonicalAuthority):
+        _fail("PARITY_AUTHORITY_MISMATCH")
+    manifest = _canonical_snapshot_json(authority, authority.manifest_relative)
     evidence_rows = manifest.get("routeEvidence", [])
     if len({row.get("routeId") for row in evidence_rows}) != len(evidence_rows):
         _fail("PARITY_AUTHORITY_MISMATCH")
@@ -1491,7 +1584,9 @@ def capture_required_execution_matrix(plan: Plan, *, canonical_input_port: Any, 
 
 
 def _resolve_case(
-    manifest: dict[str, Any], case_id: str
+    authority: MaterializedCanonicalAuthority,
+    manifest: dict[str, Any],
+    case_id: str,
 ) -> dict[str, Any]:
     cases = {row["caseId"]: row for row in manifest["cases"]}
     visited: set[str] = set()
@@ -1501,8 +1596,9 @@ def _resolve_case(
             _fail("PARITY_AUTHORITY_MISMATCH")
         visited.add(current)
         index = cases[current]
-        root = Path(manifest["__manifestPath"]).parent
-        case = _read_json_file(root / index["manifestPath"], "PARITY_AUTHORITY_MISMATCH")
+        root = PurePosixPath(manifest["__manifestRelative"]).parent
+        relative = (root / PurePosixPath(index["manifestPath"])).as_posix()
+        case = _canonical_snapshot_json(authority, relative)
         if case.get("caseId") != current:
             _fail("PARITY_AUTHORITY_MISMATCH")
         alias = case.get("alias")
@@ -1567,22 +1663,31 @@ def _ctrlram_artifact_bindings(
     }
 
 
-def resolve_canonical_route_input(plan: Plan, manifest_path: Path, *, admitted_input_root: Path, route_id: str, execution_role: str) -> VerifiedCanonicalInputs:
+def resolve_canonical_route_input(
+    plan: Plan,
+    authority: MaterializedCanonicalAuthority,
+    *,
+    admitted_input_root: Path,
+    route_id: str,
+    execution_role: str,
+) -> VerifiedCanonicalInputs:
     route = next((row for row in plan.routes if row.route_id == route_id), None)
     if route is None:
         _fail("PARITY_FIXTURE_MISSING", routeIds=[route_id])
     expected_role = "candidate-tp" if route.proof_kind == "tp-prefix-transitive" else "candidate-exact"
     if execution_role not in ({"baseline-exact", expected_role} if route.proof_kind == "exact-output" else {expected_role}):
         _fail("PARITY_PROVENANCE_INVALID")
-    manifest = _read_json_file(manifest_path, "PARITY_AUTHORITY_MISMATCH")
-    manifest["__manifestPath"] = str(manifest_path)
+    if not isinstance(authority, MaterializedCanonicalAuthority):
+        _fail("PARITY_AUTHORITY_MISMATCH")
+    manifest = _canonical_snapshot_json(authority, authority.manifest_relative)
+    manifest["__manifestRelative"] = authority.manifest_relative
     rows = manifest.get("routeEvidence", [])
     if len({row.get("routeId") for row in rows}) != len(rows):
         _fail("PARITY_AUTHORITY_MISMATCH")
     evidence = next((row for row in rows if row.get("routeId") == route_id), None)
     if not evidence or evidence.get("capabilityFingerprint") != route.capability_fingerprint or "caseId" not in evidence:
         _fail("PARITY_FIXTURE_MISSING", routeIds=[route_id])
-    case = _resolve_case(manifest, evidence["caseId"])
+    case = _resolve_case(authority, manifest, evidence["caseId"])
     artifacts = {row.get("artifactId"): row for row in case.get("artifacts", [])}
     if len(artifacts) != len(case.get("artifacts", [])):
         _fail("PARITY_AUTHORITY_MISMATCH")
@@ -1605,14 +1710,15 @@ def resolve_canonical_route_input(plan: Plan, manifest_path: Path, *, admitted_i
         _fail("PARITY_WRITE_CONFLICT")
     target_root.mkdir(parents=True)
     ordered: list[dict[str, Any]] = []
-    canonical_root = manifest_path.parent
+    canonical_root = PurePosixPath(authority.manifest_relative).parent
     for order, (artifact_id, slot_id) in enumerate(bindings):
         item = artifacts.get(artifact_id)
         if item is None or item.get("role") != "input":
             _fail("PARITY_AUTHORITY_MISMATCH")
-        source = canonical_root / item["path"]
-        require_local_artifact(source, "canonical-input")
-        payload = source.read_bytes()
+        relative = (canonical_root / PurePosixPath(item["path"])).as_posix()
+        payload = authority.files.get(relative)
+        if payload is None:
+            _fail("PARITY_AUTHORITY_MISMATCH")
         if len(payload) != item["size"] or _sha256(payload) != item["sha256"]:
             _fail("PARITY_AUTHORITY_MISMATCH")
         destination = target_root / f"{order:02d}-{artifact_id}.bin"
@@ -1640,7 +1746,9 @@ def resolve_canonical_route_input(plan: Plan, manifest_path: Path, *, admitted_i
     return VerifiedCanonicalInputs(route.route_id, execution_role, route.capability_fingerprint, request)
 
 
-def validate_verified_source_executor(executor: VerifiedSourceExecutor) -> None:
+def validate_verified_source_executor(
+    executor: VerifiedSourceExecutor,
+) -> CapturedExecutionClosure:
     if not isinstance(executor, VerifiedSourceExecutor):
         _fail("PARITY_AUTHORITY_MISMATCH")
     try:
@@ -1653,30 +1761,173 @@ def validate_verified_source_executor(executor: VerifiedSourceExecutor) -> None:
         and executor.cli_size == cli.stat().st_size and executor.cli_sha256 == _sha256(cli.read_bytes())
         and SHA1_RE.fullmatch(executor.source_head) and SHA1_RE.fullmatch(executor.source_tree)
         and SHA256_RE.fullmatch(executor.contract_identity_sha256)
-        and executor.argv_prefix == ("dotnet", str(executor.cli_path))
+        and executor.argv_prefix == (str(executor.cli_path),)
+        and SHA256_RE.fullmatch(executor.runtime_closure_sha256)
+        and isinstance(executor.runtime_file_count, int)
+        and executor.runtime_file_count > 0
+        and isinstance(executor.runtime_total_size, int)
+        and executor.runtime_total_size >= executor.cli_size
     )
     if not valid:
         _fail("PARITY_AUTHORITY_MISMATCH")
+    runtime_root = cli.parent
+    files: dict[str, bytes] = {}
+    total = 0
+    try:
+        for path in sorted(runtime_root.rglob("*"), key=lambda item: item.as_posix()):
+            if not path.is_file():
+                continue
+            if path_is_reparse_point(path):
+                _fail("PARITY_AUTHORITY_MISMATCH")
+            relative = path.relative_to(runtime_root).as_posix()
+            if not _safe_repo_path(relative):
+                _fail("PARITY_AUTHORITY_MISMATCH")
+            payload = path.read_bytes()
+            total += len(payload)
+            if len(files) >= MAX_SNAPSHOT_FILES or total > MAX_SNAPSHOT_BYTES:
+                _fail("PARITY_AUTHORITY_MISMATCH")
+            files[relative] = payload
+    except OSError:
+        _fail("PARITY_AUTHORITY_MISMATCH")
+    cli_relative = cli.relative_to(runtime_root).as_posix()
+    if (
+        files.get(cli_relative) is None
+        or len(files[cli_relative]) != executor.cli_size
+        or _sha256(files[cli_relative]) != executor.cli_sha256
+    ):
+        _fail("PARITY_AUTHORITY_MISMATCH")
+    inventory = [
+        {"path": relative, "size": len(payload), "sha256": _sha256(payload)}
+        for relative, payload in files.items()
+    ]
+    closure_identity = canonical_json_sha256(inventory)
+    if (
+        executor.runtime_closure_sha256,
+        executor.runtime_file_count,
+        executor.runtime_total_size,
+    ) != (
+        closure_identity,
+        len(files),
+        total,
+    ):
+        _fail("PARITY_AUTHORITY_MISMATCH")
+    return CapturedExecutionClosure(
+        runtime_root,
+        cli_relative,
+        MappingProxyType(dict(files)),
+        closure_identity,
+        len(files),
+        total,
+    )
 
 
-def _validate_admitted_request(request: Mapping[str, Any]) -> None:
+def materialize_execution_closure(
+    closure: CapturedExecutionClosure, destination: Path
+) -> tuple[Path, dict[Path, str]]:
+    if destination.exists() or destination.is_symlink():
+        _fail("PARITY_WRITE_CONFLICT")
+    destination.mkdir(parents=True)
+    hashes: dict[Path, str] = {}
+    try:
+        for relative, payload in closure.files.items():
+            target = destination / PurePosixPath(relative)
+            target.parent.mkdir(parents=True, exist_ok=True)
+            with target.open("xb") as stream:
+                stream.write(payload)
+            target.chmod(stat.S_IREAD)
+            hashes[target] = _sha256(payload)
+        cli = destination / PurePosixPath(closure.cli_relative)
+        if hashes.get(cli) is None:
+            _fail("PARITY_AUTHORITY_MISMATCH")
+        return cli, hashes
+    except Exception:
+        _remove_tree(destination)
+        raise
+
+
+def _assert_staged_artifacts_unchanged(hashes: Mapping[Path, str]) -> None:
+    for path, digest in hashes.items():
+        try:
+            valid = path.is_file() and not path_is_reparse_point(path) and _sha256(path.read_bytes()) == digest
+        except OSError:
+            valid = False
+        if not valid:
+            _fail("PARITY_AUTHORITY_MISMATCH")
+
+
+@contextlib.contextmanager
+def hold_read_only_file_custody(paths: Sequence[Path]) -> Iterator[None]:
+    """Deny write/delete sharing for staged authority while a child consumes it."""
+
+    ordered = tuple(dict.fromkeys(path.resolve(strict=True) for path in paths))
+    if os.name != "nt":
+        descriptors: list[int] = []
+        try:
+            descriptors = [os.open(path, os.O_RDONLY) for path in ordered]
+            yield
+        finally:
+            for descriptor in reversed(descriptors):
+                os.close(descriptor)
+        return
+
+    import ctypes
+    from ctypes import wintypes
+
+    create_file = ctypes.WinDLL("kernel32", use_last_error=True).CreateFileW
+    create_file.argtypes = [
+        wintypes.LPCWSTR,
+        wintypes.DWORD,
+        wintypes.DWORD,
+        wintypes.LPVOID,
+        wintypes.DWORD,
+        wintypes.DWORD,
+        wintypes.HANDLE,
+    ]
+    create_file.restype = wintypes.HANDLE
+    close_handle = ctypes.WinDLL("kernel32", use_last_error=True).CloseHandle
+    close_handle.argtypes = [wintypes.HANDLE]
+    close_handle.restype = wintypes.BOOL
+    handles: list[int] = []
+    invalid = ctypes.c_void_p(-1).value
+    try:
+        for path in ordered:
+            handle = create_file(str(path), 0x80000000, 0x00000001, None, 3, 0x80, None)
+            if handle == invalid:
+                _fail("PARITY_AUTHORITY_MISMATCH")
+            handles.append(handle)
+        yield
+    finally:
+        for handle in reversed(handles):
+            close_handle(handle)
+
+
+def _validate_admitted_request(
+    request: Mapping[str, Any], payloads: Sequence[bytes] | None = None
+) -> tuple[bytes, ...]:
     inputs = request.get("orderedInputs")
     if not isinstance(inputs, list) or not inputs:
         _fail("PARITY_PROVENANCE_INVALID")
+    if payloads is not None and len(payloads) != len(inputs):
+        _fail("PARITY_PROVENANCE_INVALID")
+    captured: list[bytes] = []
     for order, item in enumerate(inputs):
         try:
-            path = Path(item["path"])
-            payload = path.read_bytes()
+            payload = Path(item["path"]).read_bytes() if payloads is None else payloads[order]
             valid = item.get("order") == order and item.get("size") == len(payload) and item.get("sha256") == _sha256(payload)
         except (KeyError, OSError, TypeError):
             valid = False
         if not valid:
             _fail("PARITY_PROVENANCE_INVALID")
+        captured.append(payload)
+    return tuple(captured)
 
 
 def _runner_call(process_runner: Any, argv: list[str], cwd: Path) -> subprocess.CompletedProcess[str]:
     method = getattr(process_runner, "run", None)
-    result = method(argv, cwd) if method else process_runner(argv, cwd)
+    try:
+        result = method(argv, cwd) if method else process_runner(argv, cwd)
+    except OSError:
+        _fail("PARITY_AUTHORITY_MISMATCH")
     if not isinstance(result, subprocess.CompletedProcess) or result.returncode != 0:
         _fail("PARITY_PROCESS_FAILED")
     return result
@@ -1718,13 +1969,13 @@ def _execute_cli_pair(
     inputs: Sequence[Mapping[str, Any]],
     pair_root: Path,
     process_runner: Any,
-    original_hashes: Mapping[Path, str],
+    input_payloads: Sequence[bytes],
+    execution_hashes: Mapping[Path, str],
 ) -> list[dict[str, Any]]:
     observed: list[dict[str, Any]] = []
+    _validate_admitted_request(request, input_payloads)
     for sequence, action in enumerate(("preview", "build")):
-        for path, digest in original_hashes.items():
-            if not path.is_file() or _sha256(path.read_bytes()) != digest:
-                _fail("PARITY_INPUT_MUTATED")
+        _assert_staged_artifacts_unchanged(execution_hashes)
         stage = pair_root / f"{sequence:02d}-{action}"
         stage.mkdir(parents=True)
         argv = [
@@ -1739,7 +1990,7 @@ def _execute_cli_pair(
             source = Path(row["path"])
             staged = stage / f"input-{input_index:02d}-{source.name}"
             with staged.open("xb") as stream:
-                stream.write(source.read_bytes())
+                stream.write(input_payloads[input_index])
             staged.chmod(stat.S_IREAD)
             if _sha256(staged.read_bytes()) != row["sha256"]:
                 _fail("PARITY_INPUT_MUTATED")
@@ -1750,10 +2001,14 @@ def _execute_cli_pair(
         output = stage / "output.bin"
         report = stage / "report.json"
         argv.extend(("--output", str(output), "--report", str(report)))
-        result = _runner_call(process_runner, argv, verified_executor.source_root)
-        require_local_artifact(report, "report")
-        if action == "build":
-            require_local_artifact(output, "output")
+        custody = [*execution_hashes, *(path for _, path in staged_inputs)]
+        with hold_read_only_file_custody(custody):
+            result = _runner_call(process_runner, argv, verified_executor.source_root)
+            _assert_staged_artifacts_unchanged(execution_hashes)
+            report_capture = capture_local_artifact(report, "report")
+            output_capture = (
+                capture_local_artifact(output, "output") if action == "build" else None
+            )
         observed.append(
             {
                 "action": action,
@@ -1761,29 +2016,35 @@ def _execute_cli_pair(
                 "result": result,
                 "report": report,
                 "output": output,
+                "reportPayload": report_capture.payload,
+                "outputPayload": output_capture.payload if output_capture else None,
             }
         )
     return observed
 
 
 def execute_cli_capture(verified_inputs: VerifiedCanonicalInputs | Mapping[str, Any], *, verified_executor: VerifiedSourceExecutor, output_root: Path, process_runner: Any) -> dict[str, Any]:
-    validate_verified_source_executor(verified_executor)
+    execution_closure = validate_verified_source_executor(verified_executor)
     if not isinstance(verified_inputs, VerifiedCanonicalInputs):
         _fail("PARITY_PROVENANCE_INVALID")
     admitted_request = verified_inputs.request
-    _validate_admitted_request(admitted_request)
+    admitted_payloads = _validate_admitted_request(admitted_request)
     if output_root.exists():
         if not output_root.is_dir() or path_is_reparse_point(output_root) or any(output_root.iterdir()):
             _fail("PARITY_WRITE_CONFLICT")
     else:
         output_root.mkdir(parents=True)
     capture_root = output_root / verified_inputs.route_id
-    original_hashes = {
-        Path(row["path"]): row["sha256"]
-        for row in admitted_request["orderedInputs"]
-    }
     try:
         with acquire_controlled_directory_lease(capture_root) as lease:
+            staged_cli, execution_hashes = materialize_execution_closure(
+                execution_closure, lease.path / "executor"
+            )
+            staged_executor = verified_executor.with_changes(
+                source_root=staged_cli.parent,
+                cli_path=staged_cli,
+                argv_prefix=(str(staged_cli),),
+            )
             precursor: dict[str, Any] | None = None
             effective_request = copy.deepcopy(admitted_request)
             if "baseRecipe" in admitted_request:
@@ -1826,20 +2087,22 @@ def execute_cli_capture(verified_inputs: VerifiedCanonicalInputs | Mapping[str, 
                 }
                 precursor_observed = _execute_cli_pair(
                     verified_inputs=verified_inputs,
-                    verified_executor=verified_executor,
+                    verified_executor=staged_executor,
                     request=precursor_request,
                     inputs=source_inputs,
                     pair_root=lease.path / "base-precursor",
                     process_runner=process_runner,
-                    original_hashes=original_hashes,
+                    input_payloads=admitted_payloads[:2],
+                    execution_hashes=execution_hashes,
                 )
                 base_output = precursor_observed[1]["output"]
+                base_output_payload = precursor_observed[1]["outputPayload"]
                 base_row = {
                     "slotId": "replace-base",
                     "role": "input",
                     "path": str(base_output),
-                    "size": base_output.stat().st_size,
-                    "sha256": _sha256(base_output.read_bytes()),
+                    "size": len(base_output_payload),
+                    "sha256": _sha256(base_output_payload),
                     "order": 0,
                 }
                 replacements = []
@@ -1851,6 +2114,7 @@ def execute_cli_capture(verified_inputs: VerifiedCanonicalInputs | Mapping[str, 
                     replacements.append(replacement)
                 effective_request.pop("baseRecipe", None)
                 effective_request["orderedInputs"] = [base_row, *replacements]
+                effective_payloads = (base_output_payload, *admitted_payloads[2:])
                 precursor = {
                     "scenario": {
                         key: copy.deepcopy(precursor_request[key])
@@ -1865,33 +2129,44 @@ def execute_cli_capture(verified_inputs: VerifiedCanonicalInputs | Mapping[str, 
                         )
                     },
                     "sourceInputs": copy.deepcopy(source_inputs),
-                    "authorityReport": _local_artifact(
-                        precursor_observed[0]["report"]
+                    "authorityReport": _captured_artifact(
+                        precursor_observed[0]["report"],
+                        precursor_observed[0]["reportPayload"],
                     ),
-                    "applicationReport": _local_artifact(
-                        precursor_observed[1]["report"]
+                    "applicationReport": _captured_artifact(
+                        precursor_observed[1]["report"],
+                        precursor_observed[1]["reportPayload"],
                     ),
-                    "output": _local_artifact(base_output),
+                    "output": _captured_artifact(base_output, base_output_payload),
                     "processDriven": True,
                 }
-            _validate_admitted_request(effective_request)
+            else:
+                effective_payloads = admitted_payloads
+            _validate_admitted_request(effective_request, effective_payloads)
             observed = _execute_cli_pair(
                 verified_inputs=verified_inputs,
-                verified_executor=verified_executor,
+                verified_executor=staged_executor,
                 request=effective_request,
                 inputs=effective_request["orderedInputs"],
                 pair_root=lease.path / "workflow",
                 process_runner=process_runner,
-                original_hashes=original_hashes,
+                input_payloads=effective_payloads,
+                execution_hashes=execution_hashes,
             )
         return {
             "role": verified_inputs.execution_role, "routeId": verified_inputs.route_id,
             "executorIdentitySha256": verified_executor.contract_identity_sha256,
             "authorityInvocation": {"result": "success", "argv": observed[0]["argv"]},
             "invocation": {"result": "success", "argv": observed[1]["argv"]},
-            "applicationAuthorityReport": _local_artifact(observed[0]["report"]),
-            "applicationReport": _local_artifact(observed[1]["report"]),
-            "output": _local_artifact(observed[1]["output"]),
+            "applicationAuthorityReport": _captured_artifact(
+                observed[0]["report"], observed[0]["reportPayload"]
+            ),
+            "applicationReport": _captured_artifact(
+                observed[1]["report"], observed[1]["reportPayload"]
+            ),
+            "output": _captured_artifact(
+                observed[1]["output"], observed[1]["outputPayload"]
+            ),
             "effectiveRequest": effective_request,
             "basePrecursor": precursor,
             "processDriven": True,
@@ -2356,11 +2631,17 @@ def build_exact_route_evidence(
     route: Route,
     baseline_receipt: Mapping[str, Any],
     candidate_receipt: Mapping[str, Any],
+    baseline_authority: ReceiptValidationAuthority,
+    candidate_authority: ReceiptValidationAuthority,
 ) -> dict[str, Any]:
     """Build one exact-output row from two already validated process receipts."""
 
-    baseline_receipt = _reload_receipt_for_evidence(baseline_receipt)
-    candidate_receipt = _reload_receipt_for_evidence(candidate_receipt)
+    baseline_receipt = _reload_receipt_for_evidence(
+        baseline_receipt, authority=baseline_authority
+    )
+    candidate_receipt = _reload_receipt_for_evidence(
+        candidate_receipt, authority=candidate_authority
+    )
     validate_receipt_roles(
         route.proof_kind,
         [baseline_receipt.get("role"), candidate_receipt.get("role")],
@@ -2464,14 +2745,22 @@ def build_transitive_route_evidence(
     baseline_full_receipt: Mapping[str, Any],
     candidate_full_receipt: Mapping[str, Any],
     candidate_tp_receipt: Mapping[str, Any],
+    baseline_authority: ReceiptValidationAuthority,
+    candidate_authority: ReceiptValidationAuthority,
 ) -> dict[str, Any]:
     """Build one declared TP-prefix proof from its exact full-route proof."""
 
     if route.tp_length is None:
         _fail("PARITY_PLAN_INVALID")
-    baseline_full_receipt = _reload_receipt_for_evidence(baseline_full_receipt)
-    candidate_full_receipt = _reload_receipt_for_evidence(candidate_full_receipt)
-    candidate_tp_receipt = _reload_receipt_for_evidence(candidate_tp_receipt)
+    baseline_full_receipt = _reload_receipt_for_evidence(
+        baseline_full_receipt, authority=baseline_authority
+    )
+    candidate_full_receipt = _reload_receipt_for_evidence(
+        candidate_full_receipt, authority=candidate_authority
+    )
+    candidate_tp_receipt = _reload_receipt_for_evidence(
+        candidate_tp_receipt, authority=candidate_authority
+    )
     validate_receipt_roles(route.proof_kind, [candidate_tp_receipt.get("role")])
     validate_transitive_inputs(
         {
@@ -3173,7 +3462,9 @@ def validate_receipt(
 
 
 def _reload_receipt_for_evidence(
-    receipt: Mapping[str, Any]
+    receipt: Mapping[str, Any],
+    *,
+    authority: ReceiptValidationAuthority,
 ) -> dict[str, Any]:
     try:
         artifact = receipt["__receiptArtifact"]
@@ -3188,17 +3479,18 @@ def _reload_receipt_for_evidence(
         )
         if persisted != public_receipt:
             raise ValueError
-        operator_login = persisted["invocation"]["operatorLogin"]
     except (KeyError, TypeError, ValueError):
+        _fail("PARITY_PROVENANCE_INVALID")
+    if not isinstance(authority, ReceiptValidationAuthority):
         _fail("PARITY_PROVENANCE_INVALID")
     capture = validate_receipt(
         persisted,
-        expected_execution_artifact_sha256=persisted["executionArtifactSha256"],
-        expected_executor_identity_sha256=persisted["executorIdentitySha256"],
-        authorized_operators={operator_login},
+        expected_execution_artifact_sha256=authority.execution_artifact_sha256,
+        expected_executor_identity_sha256=authority.executor_identity_sha256,
+        authorized_operators=set(authority.authorized_operators),
     )
     report = capture["report"]
-    return {
+    reloaded = {
         **persisted,
         "__receiptArtifact": copy.deepcopy(artifact),
         "__projection": {
@@ -3223,6 +3515,55 @@ def _reload_receipt_for_evidence(
             "application": copy.deepcopy(report["applicationReport"]),
         },
     }
+    _validate_ctrlram_replacement_effect(reloaded)
+    return reloaded
+
+
+def _ranges_overlap(left: Mapping[str, Any], right: Mapping[str, Any]) -> bool:
+    try:
+        return (
+            left["addressSpace"] == right["addressSpace"]
+            and int(left["start"]) < int(right["endExclusive"])
+            and int(right["start"]) < int(left["endExclusive"])
+        )
+    except (KeyError, TypeError, ValueError):
+        return False
+
+
+def _validate_ctrlram_replacement_effect(receipt: Mapping[str, Any]) -> None:
+    """Reject canonical CtrlRAM evidence whose selected slot has no byte effect."""
+
+    if receipt.get("scenario", {}).get("workflowId") != "ctrlram-replace":
+        return
+    replacements = [row for row in receipt.get("inputs", []) if row.get("role") == "replacement"]
+    operations = receipt.get("__projection", {}).get("compiledOperations", [])
+    mutations = receipt.get("__projection", {}).get("compiledMutations", [])
+    if not replacements or not isinstance(operations, list) or not isinstance(mutations, list):
+        _fail("PARITY_PROVENANCE_INVALID")
+    for replacement in replacements:
+        targets = [
+            operation
+            for operation in operations
+            if operation.get("sourceSpaceId") == replacement.get("slotId")
+            and isinstance(operation.get("targetRange"), Mapping)
+        ]
+        changed = any(
+            isinstance(mutation, Mapping)
+            and isinstance(mutation.get("changedByteCount"), int)
+            and mutation["changedByteCount"] > 0
+            and isinstance(mutation.get("targetRange"), Mapping)
+            and any(
+                mutation.get("operationId") == target.get("operationId")
+                and _ranges_overlap(target["targetRange"], mutation["targetRange"])
+                for target in targets
+            )
+            for mutation in mutations
+        )
+        if not targets or not changed:
+            _fail(
+                "PARITY_PROVENANCE_INVALID",
+                "CtrlRAM replacement does not prove a changed byte in its compiled target range",
+            )
 
 
 def _verify_declared_file(
@@ -3243,8 +3584,12 @@ def _verify_declared_file(
 def _run_verified_build(host: Any, root: Path, contract: Mapping[str, Any], *, candidate: bool) -> None:
     restore = list(contract["restore"]["arguments"])
     build = list(contract["build"]["arguments"])
-    if candidate:
-        build = [f"-p:PathMap={root}=/_/src" if value == "-p:PathMap={sourceRoot}=/_/src" else value for value in build]
+    build = [
+        f"-p:PathMap={root}=/_/src"
+        if value == "-p:PathMap={sourceRoot}=/_/src"
+        else value
+        for value in build
+    ]
     for argv in (restore, build):
         result = host.run(argv, root)
         if result.returncode != 0:
@@ -3269,7 +3614,8 @@ def verify_source_baseline_executor(root: Path, contract: Mapping[str, Any], hos
         _verify_declared_file(root, reference)
     _run_verified_build(host, root, contract, candidate=False)
     cli = _verify_declared_file(root, contract["cliAssembly"])
-    executor = VerifiedSourceExecutor("exact-tag-source-built-cli", root, source["peeledCommit"], source["sourceTree"], executor_identity_sha256, cli.path, len(cli.payload), _sha256(cli.payload), ("dotnet", str(cli.path)), True)
+    runtime = contract["runtimeClosure"]
+    executor = VerifiedSourceExecutor("exact-tag-source-built-cli", root, source["peeledCommit"], source["sourceTree"], executor_identity_sha256, cli.path, len(cli.payload), _sha256(cli.payload), (str(cli.path),), True, runtime["sha256"], runtime["fileCount"], runtime["totalSize"])
     validate_verified_source_executor(executor)
     return executor
 
@@ -3287,6 +3633,16 @@ def _validate_candidate_contract(contract: Mapping[str, Any]) -> None:
         for reference in [contract["toolchain"]["globalJson"], *contract["lockFiles"], *contract["externalTools"], contract["cliAssembly"]]:
             if not _safe_repo_path(reference["path"]):
                 _fail("PARITY_AUTHORITY_MISMATCH")
+        runtime = contract["runtimeClosure"]
+        if (
+            runtime.get("root") != str(PurePosixPath(contract["cliAssembly"]["path"]).parent)
+            or not isinstance(runtime.get("fileCount"), int)
+            or runtime["fileCount"] < 1
+            or not isinstance(runtime.get("totalSize"), int)
+            or runtime["totalSize"] < contract["cliAssembly"]["size"]
+            or not SHA256_RE.fullmatch(str(runtime.get("sha256", "")))
+        ):
+            _fail("PARITY_AUTHORITY_MISMATCH")
     except (KeyError, TypeError):
         _fail("PARITY_AUTHORITY_MISMATCH")
 
@@ -3319,7 +3675,8 @@ def verify_candidate_source_executor(root: Path, validated: SourceExecutorContra
         _verify_declared_file(root, reference)
     _run_verified_build(host, root, contract, candidate=True)
     cli = _verify_declared_file(root, contract["cliAssembly"])
-    executor = VerifiedSourceExecutor(contract["kind"], root, source["implementationHead"], source["implementationTree"], validated.identity_sha256, cli.path, len(cli.payload), _sha256(cli.payload), ("dotnet", str(cli.path)), True)
+    runtime = contract["runtimeClosure"]
+    executor = VerifiedSourceExecutor(contract["kind"], root, source["implementationHead"], source["implementationTree"], validated.identity_sha256, cli.path, len(cli.payload), _sha256(cli.payload), (str(cli.path),), True, runtime["sha256"], runtime["fileCount"], runtime["totalSize"])
     validate_verified_source_executor(executor)
     return executor
 
@@ -3337,10 +3694,12 @@ def validate_candidate_source_executor_identity(*, candidate_authority: Mapping[
         _fail("PARITY_AUTHORITY_MISMATCH")
 
 
-def validate_candidate_package(package: Path, expected_head: str) -> dict[str, Any]:
-    require_local_artifact(package, "candidate-zip")
+def validate_candidate_package(
+    package: Path | CapturedLocalArtifact, expected_head: str
+) -> dict[str, Any]:
+    captured = _as_captured_artifact(package, "candidate-zip")
     try:
-        with zipfile.ZipFile(package) as archive:
+        with zipfile.ZipFile(__import__("io").BytesIO(captured.payload)) as archive:
             entries = [info for info in archive.infolist() if PurePosixPath(info.filename).name == "RELEASE-MANIFEST.json"]
             if len(entries) != 1:
                 _fail("PARITY_PACKAGE_MISMATCH")
@@ -3372,10 +3731,39 @@ def validate_protected_workflow_semantics(workflow: bytes | Mapping[str, Any], c
                 job["environment"] = declared["environment"]
             expected_jobs[job_id] = job
         top_on = value.get("on") if "on" in value else value.get(True)
-        if not isinstance(top_on, dict) or set(top_on) != {contract["trigger"]} or value.get("permissions") != contract["topLevelPermissions"]:
+        top_level = {
+            "name": value.get("name"),
+            "on": top_on,
+            "concurrency": value.get("concurrency"),
+            "permissions": value.get("permissions"),
+        }
+        expected_top_keys = {
+            "name",
+            "on" if "on" in value else True,
+            "concurrency",
+            "permissions",
+            "jobs",
+        }
+        if (
+            not isinstance(top_on, dict)
+            or set(top_on) != {contract["trigger"]}
+            or set(value) != expected_top_keys
+            or value.get("permissions") != contract["topLevelPermissions"]
+            or canonical_json_sha256(top_level) != contract["topLevelSha256"]
+        ):
             _fail("PARITY_WORKFLOW_MISMATCH")
         jobs = value.get("jobs", {})
-        if jobs.get("candidate", {}).get("name") != "release / candidate":
+        inventory = contract["jobInventorySha256"]
+        if (
+            not isinstance(jobs, Mapping)
+            or not isinstance(inventory, Mapping)
+            or set(jobs) != set(inventory)
+            or any(
+                not SHA256_RE.fullmatch(str(identity))
+                or canonical_json_sha256(jobs[job_id]) != identity
+                for job_id, identity in inventory.items()
+            )
+        ):
             _fail("PARITY_WORKFLOW_MISMATCH")
         parity_jobs = {key: jobs[key] for key in jobs if key.startswith("v0916-parity-")}
         if parity_jobs != expected_jobs:
@@ -3406,6 +3794,10 @@ def validate_protected_workflow_semantics(workflow: bytes | Mapping[str, Any], c
             or promotion.get("if") != promotion_contract["if"]
             or governed_promotion_steps != promotion_contract["steps"]
             or promotion_prefix != promotion_contract["stepPrefixNames"]
+            or [step.get("name") for step in promotion.get("steps", [])]
+            != promotion_contract["stepNames"]
+            or canonical_json_sha256(promotion.get("steps", []))
+            != promotion_contract["stepsSha256"]
         ):
             _fail("PARITY_WORKFLOW_MISMATCH")
         allowed_pins = set(contract["actionPins"].values())
@@ -3437,7 +3829,7 @@ def verify_protected_candidate_build(
     process_runner: Any,
     github_reader: Any,
     artifact_download_root: Path,
-    workflow_semantic_contract: Mapping[str, Any],
+    workflow_semantic_contract: CapturedLocalArtifact,
 ) -> dict[str, Any]:
     expected_roles = {"package", "sbom", "provenance", "notes", "manifest", "checksums"}
     if set(local_assets) != expected_roles:
@@ -3446,6 +3838,16 @@ def verify_protected_candidate_build(
         role: _as_captured_artifact(value, role)
         for role, value in local_assets.items()
     }
+    if not isinstance(workflow_semantic_contract, CapturedLocalArtifact):
+        _fail("PARITY_AUTHORITY_MISMATCH")
+    if (
+        declared.get("workflowSemanticContractSha256")
+        != _sha256(workflow_semantic_contract.payload)
+    ):
+        _fail("PARITY_AUTHORITY_MISMATCH")
+    workflow_contract = _decode_json_object(
+        workflow_semantic_contract.payload, "PARITY_AUTHORITY_MISMATCH"
+    )
     refs = {
         "sbom": "candidateSbom", "provenance": "candidateProvenance", "notes": "releaseNotes",
         "manifest": "candidateManifest", "checksums": "assetChecksums",
@@ -3466,7 +3868,7 @@ def verify_protected_candidate_build(
         workflow_bytes = base64.b64decode(content["content"], validate=True)
         if _git_blob_sha(workflow_bytes) != declared["workflowBlobSha"] or _sha256(workflow_bytes) != declared["workflowRawSha256"]:
             _fail("PARITY_AUTHORITY_MISMATCH")
-        validate_protected_workflow_semantics(workflow_bytes, workflow_semantic_contract)
+        validate_protected_workflow_semantics(workflow_bytes, workflow_contract)
         run = github_reader.get_workflow_run(declared["repository"], declared["runId"])
         repository = run.get("repository", {})
         head_repository = run.get("head_repository", {})
@@ -3507,29 +3909,35 @@ def verify_protected_candidate_build(
             max_total_bytes=1024 * 1024 * 1024, max_total_compressed_bytes=1024 * 1024 * 1024,
             max_compression_ratio=1000,
         )
+        remote_assets = {
+            role: capture_local_artifact(extracted[local.path.name], f"remote-{role}")
+            for role, local in captured_assets.items()
+        }
         for role, local in captured_assets.items():
-            remote = extracted[local.path.name]
-            if local.payload != remote.read_bytes():
+            if local.payload != remote_assets[role].payload:
                 _fail("PARITY_PACKAGE_MISMATCH")
         validate_candidate_package(
-            extracted[captured_assets["package"].path.name], package_source_head
+            remote_assets["package"], package_source_head
         )
-        provenance = _read_json_file(extracted[captured_assets["provenance"].path.name], "PARITY_PACKAGE_MISMATCH")
+        provenance = _decode_json_object(
+            remote_assets["provenance"].payload, "PARITY_PACKAGE_MISMATCH"
+        )
         if canonical_provenance_subjects_sha256(provenance.get("subjects", [])) != declared["provenanceSubjectsSha256"]:
             _fail("PARITY_PACKAGE_MISMATCH")
-        candidate_verifier = repository_root / "scripts/release_promotion_policy.py"
-        package_verifier = repository_root / "scripts/smoke-release.ps1"
-        if _sha256(candidate_verifier.read_bytes()) != declared["candidateVerifierSha256"] or _sha256(package_verifier.read_bytes()) != declared["packageVerifierSha256"]:
+        candidate_verifier = capture_local_artifact(
+            repository_root / "scripts/release_promotion_policy.py",
+            "candidate-verifier",
+        )
+        package_verifier = capture_local_artifact(
+            repository_root / "scripts/smoke-release.ps1", "package-verifier"
+        )
+        if _sha256(candidate_verifier.payload) != declared["candidateVerifierSha256"] or _sha256(package_verifier.payload) != declared["packageVerifierSha256"]:
             _fail("PARITY_AUTHORITY_MISMATCH")
-        commands = [
-            [os.sys.executable, str(candidate_verifier), "verify-manifest", "--asset-dir", str(extracted_root), "--manifest", str(extracted[captured_assets["manifest"].path.name]), "--source-sha", package_source_head, "--source-tree", package_source_tree, "--run-id", str(declared["runId"]), "--workflow-sha", workflow_sha, "--workflow-ref", declared["workflowRef"]],
-            ["pwsh", "-NoProfile", "-File", str(package_verifier), "-PackagePath", str(extracted[captured_assets["package"].path.name]), "-SkipUiLaunch"],
-        ]
-        for argv in commands:
-            method = getattr(process_runner, "run", None)
-            result = method(argv, repository_root) if method else process_runner(argv, repository_root)
-            if result.returncode != 0:
-                _fail("PARITY_PACKAGE_MISMATCH")
+        # The authenticated workflow already ran these exact Git-bound
+        # verifiers.  Local certification consumes the downloaded artifact
+        # bytes directly above instead of reopening staged paths through
+        # ambient Python/PowerShell hosts.
+        del process_runner
         return {
             "artifactWorkflowRun": {
                 "id": run["id"],
@@ -3556,11 +3964,264 @@ def verify_protected_candidate_build(
             shutil.rmtree(artifact_download_root, ignore_errors=True)
 
 
-def validate_comparison_schema(comparison: Mapping[str, Any]) -> None:
+def _load_repository_comparison_plan() -> Plan:
+    repository_root = Path(__file__).resolve().parents[1]
+    return load_and_validate_plan(
+        repository_root / "docs/contracts/v0916-parity-certification-v1.json",
+        repository_root / "docs/contracts/canonical-capability-policy-v1.json",
+    )
+
+
+def _validate_comparison_top_level(
+    comparison: Mapping[str, Any], plan: Plan | None
+) -> tuple[str, str]:
+    baseline_identity = (
+        plan.raw["baseline"]["executorContract"]["sha256"]
+        if plan is not None
+        else str(comparison.get("baselineExecutor", {}).get("contract", {}).get("sha256", ""))
+    )
+    candidate_identity = (
+        plan.raw["candidateAuthority"]["sourceExecutorContract"]["sha256"]
+        if plan is not None
+        else str(comparison.get("candidateAuthority", {}).get("sourceExecutorContract", {}).get("sha256", ""))
+    )
+    baseline_contract: Mapping[str, Any] | None = None
+    candidate_contract: Mapping[str, Any] | None = None
+    if plan is not None:
+        repository_root = Path(__file__).resolve().parents[1]
+        baseline_contract = load_and_validate_baseline_executor_contract(
+            plan.raw,
+            repository_root / plan.raw["baseline"]["executorContract"]["path"],
+        )
+        candidate_contract = load_and_validate_candidate_source_executor_contract(
+            repository_root
+            / plan.raw["candidateAuthority"]["sourceExecutorContract"]["path"],
+            plan.raw["candidateAuthority"]["sourceExecutorContract"],
+        ).contract
+    try:
+        comparator = comparison["comparator"]
+        candidate = comparison["candidateAuthority"]
+        baseline = comparison["baselineExecutor"]
+        candidate_package = comparison["candidatePackage"]
+        candidate_build = comparison["candidateBuild"]
+        if (
+            not SHA256_RE.fullmatch(str(comparison["planSha256"]))
+            or not SHA256_RE.fullmatch(str(comparison["policySha256"]))
+            or (plan is not None and comparison["planSha256"] != plan.identity_sha256)
+            or (plan is not None and comparison["policySha256"] != plan.raw["policyBinding"]["sha256"])
+            or set(comparator) != {"contractVersion", "scriptSha256"}
+            or comparator["contractVersion"] != "1.0"
+            or not SHA256_RE.fullmatch(str(comparator["scriptSha256"]))
+            or comparator["scriptSha256"]
+            != _sha256(Path(__file__).resolve().read_bytes())
+            or set(candidate)
+            != {
+                "implementationHead",
+                "implementationTree",
+                "authorityTrees",
+                "policySha256",
+                "sourceExecutorContract",
+                "authorityTransfer",
+            }
+            or candidate["policySha256"] != comparison["policySha256"]
+            or candidate["sourceExecutorContract"].get("sha256")
+            != candidate_identity
+            or (
+                candidate_contract is not None
+                and candidate["implementationHead"]
+                != candidate_contract["source"]["implementationHead"]
+            )
+            or (
+                candidate_contract is not None
+                and candidate["implementationTree"]
+                != candidate_contract["source"]["implementationTree"]
+            )
+            or (
+                candidate_contract is not None
+                and candidate["authorityTrees"]
+                != candidate_contract["source"]["authorityTrees"]
+            )
+            or (
+                plan is not None
+                and candidate["authorityTransfer"]
+                != plan.raw["candidateAuthority"]["authorityTransfer"]
+            )
+            or not isinstance(candidate["sourceExecutorContract"].get("size"), int)
+            or candidate["sourceExecutorContract"]["size"] < 1
+            or (
+                plan is not None
+                and candidate["sourceExecutorContract"]["size"]
+                != plan.raw["candidateAuthority"]["sourceExecutorContract"]["size"]
+            )
+            or not SHA1_RE.fullmatch(str(candidate["implementationHead"]))
+            or not SHA1_RE.fullmatch(str(candidate["implementationTree"]))
+            or not isinstance(candidate["authorityTrees"], Mapping)
+            or not candidate["authorityTrees"]
+            or any(
+                not isinstance(path, str) or not SHA1_RE.fullmatch(str(tree))
+                for path, tree in candidate["authorityTrees"].items()
+            )
+            or set(baseline)
+            != {
+                "kind",
+                "tagObject",
+                "peeledCommit",
+                "sourceTree",
+                "resolvedSdkVersion",
+                "contract",
+                "cliAssembly",
+            }
+            or baseline["kind"] != "exact-tag-source-built-cli"
+            or baseline["contract"].get("sha256") != baseline_identity
+            or (
+                plan is not None
+                and baseline["tagObject"] != plan.raw["baseline"]["tagObject"]
+            )
+            or (
+                plan is not None
+                and baseline["peeledCommit"] != plan.raw["baseline"]["peeledCommit"]
+            )
+            or (
+                plan is not None
+                and baseline["sourceTree"] != plan.raw["baseline"]["sourceTree"]
+            )
+            or (
+                baseline_contract is not None
+                and baseline["resolvedSdkVersion"]
+                != baseline_contract["toolchain"]["resolvedSdkVersion"]
+            )
+            or (
+                baseline_contract is not None
+                and baseline["cliAssembly"]
+                != {
+                    "size": baseline_contract["cliAssembly"]["size"],
+                    "sha256": baseline_contract["cliAssembly"]["sha256"],
+                }
+            )
+            or not isinstance(baseline["contract"].get("size"), int)
+            or baseline["contract"]["size"] < 1
+            or (
+                plan is not None
+                and baseline["contract"]["size"]
+                != plan.raw["baseline"]["executorContract"]["size"]
+            )
+            or any(
+                not SHA1_RE.fullmatch(str(baseline[key]))
+                for key in ("tagObject", "peeledCommit", "sourceTree")
+            )
+            or not re.fullmatch(r"[0-9]+\.[0-9]+\.[0-9]+", str(baseline["resolvedSdkVersion"]))
+            or set(baseline["cliAssembly"]) != {"size", "sha256"}
+            or not isinstance(baseline["cliAssembly"]["size"], int)
+            or baseline["cliAssembly"]["size"] < 1
+            or not SHA256_RE.fullmatch(str(baseline["cliAssembly"]["sha256"]))
+            or set(candidate_package)
+            != {"name", "size", "sha256", "version", "sourceCommit"}
+            or candidate_package["version"] != "1.0.0"
+            or not isinstance(candidate_package["name"], str)
+            or not isinstance(candidate_package["size"], int)
+            or candidate_package["size"] < 1
+            or not SHA256_RE.fullmatch(str(candidate_package["sha256"]))
+            or not SHA1_RE.fullmatch(str(candidate_package["sourceCommit"]))
+            or candidate_package["name"] != "NvtFwCombiner-v1.0.0-win-x64.zip"
+            or not isinstance(comparison.get("baselineReleaseReference"), Mapping)
+            or (
+                plan is not None
+                and comparison["baselineReleaseReference"]
+                != {
+                    "name": plan.raw["baseline"]["releaseReference"]["packageName"],
+                    "size": plan.raw["baseline"]["releaseReference"]["packageSize"],
+                    "sha256": plan.raw["baseline"]["releaseReference"]["packageSha256"],
+                    "purpose": plan.raw["baseline"]["releaseReference"]["purpose"],
+                }
+            )
+            or not isinstance(candidate_build, Mapping)
+            or set(candidate_build)
+            != {
+                "repository", "workflowPath", "workflowRef", "workflowCommitSha",
+                "workflowBlobSha", "workflowRawSha256",
+                "workflowSemanticContractSha256", "runId", "artifactId",
+                "artifactName", "artifactDigest", "artifactWorkflowRun",
+                "candidateManifest", "candidateSourceExecutorIdentitySha256",
+                "provenanceSubjectsSha256", "candidateVerifierSha256",
+                "packageVerifierSha256",
+            }
+            or candidate_build.get("repository") != "Dennis40816/nvt_fw_combiner"
+            or candidate_build.get("workflowPath") != ".github/workflows/release.yml"
+            or candidate_build.get("workflowRef") != "refs/heads/main"
+            or not SHA1_RE.fullmatch(str(candidate_build.get("workflowCommitSha", "")))
+            or not SHA1_RE.fullmatch(str(candidate_build.get("workflowBlobSha", "")))
+            or not SHA256_RE.fullmatch(str(candidate_build.get("workflowRawSha256", "")))
+            or not isinstance(candidate_build.get("runId"), int)
+            or candidate_build["runId"] < 1
+            or not isinstance(candidate_build.get("artifactId"), int)
+            or candidate_build["artifactId"] < 1
+            or candidate_package["sourceCommit"]
+            != candidate_build.get("workflowCommitSha")
+            or candidate_build.get("artifactName")
+            != f"stable-candidate-{candidate_build['runId']}-{candidate_package['sourceCommit']}"
+            or not re.fullmatch(r"sha256:[0-9a-f]{64}", str(candidate_build.get("artifactDigest", "")))
+            or not isinstance(candidate_build.get("artifactWorkflowRun"), Mapping)
+            or candidate_build.get("artifactWorkflowRun")
+            != {
+                "id": candidate_build["runId"],
+                "headSha": candidate_build["workflowCommitSha"],
+                "headBranch": "main",
+                "repository": "Dennis40816/nvt_fw_combiner",
+                "repositoryId": candidate_build.get("artifactWorkflowRun", {}).get("repositoryId"),
+                "headRepositoryId": candidate_build.get("artifactWorkflowRun", {}).get("headRepositoryId"),
+            }
+            or candidate_build["artifactWorkflowRun"]["repositoryId"]
+            != candidate_build["artifactWorkflowRun"]["headRepositoryId"]
+            or any(
+                not SHA256_RE.fullmatch(str(candidate_build.get(key, "")))
+                for key in (
+                    "provenanceSubjectsSha256", "candidateVerifierSha256",
+                    "packageVerifierSha256",
+                )
+            )
+            or not isinstance(candidate_build.get("candidateManifest"), Mapping)
+            or set(candidate_build["candidateManifest"]) != {"size", "sha256"}
+            or not isinstance(candidate_build["candidateManifest"]["size"], int)
+            or candidate_build["candidateManifest"]["size"] < 1
+            or not SHA256_RE.fullmatch(str(candidate_build["candidateManifest"]["sha256"]))
+            or candidate_build.get("candidateSourceExecutorIdentitySha256")
+            != candidate_identity
+            or not SHA256_RE.fullmatch(
+                str(candidate_build.get("workflowSemanticContractSha256", ""))
+            )
+            or (
+                plan is not None
+                and candidate_build.get("workflowSemanticContractSha256")
+                != plan.raw["candidateAuthority"]["protectedBuild"][
+                    "workflowSemanticContract"
+                ]["sha256"]
+            )
+        ):
+            raise ValueError
+        for key in ("routeEvidenceSha256", "receiptSetSha256"):
+            if not SHA256_RE.fullmatch(str(comparison[key])):
+                raise ValueError
+    except (KeyError, TypeError, ValueError):
+        _fail("PARITY_EVIDENCE_INCOMPLETE")
+    return baseline_identity, candidate_identity
+
+
+def validate_comparison_schema(
+    comparison: Mapping[str, Any],
+    *,
+    plan: Plan | None = None,
+    authorized_operators: set[str] | None = None,
+) -> None:
     required = {"schemaVersion", "planSha256", "policySha256", "comparator", "candidateAuthority", "baselineExecutor", "baselineReleaseReference", "candidatePackage", "candidateBuild", "routeEvidenceSha256", "receiptSetSha256", "executedAtUtc", "routes", "verdict"}
     try:
         if set(comparison) != required or comparison["schemaVersion"] != "1.0" or comparison["verdict"] != "provisional":
             raise ValueError
+        authority_plan = _load_repository_comparison_plan() if plan is None else plan
+        if not isinstance(authority_plan, Plan):
+            raise ValueError
+        baseline_identity, candidate_identity = _validate_comparison_top_level(
+            comparison, authority_plan
+        )
         routes = comparison["routes"]
         if not isinstance(routes, list) or len(routes) != 64 or len({row.get("routeId") for row in routes}) != 64:
             raise ValueError
@@ -3576,19 +4237,94 @@ def validate_comparison_schema(comparison: Mapping[str, Any]) -> None:
             raise ValueError
         for row in [*exact, *corrections]:
             validate_exact_evidence_row_schema(row)
+            scenario = row["scenario"]
+            route = (
+                next(item for item in authority_plan.routes if item.route_id == row["routeId"])
+                if authority_plan is not None
+                else None
+            )
+            if (
+                (route is not None and scenario["icId"] != route.ic_id)
+                or (route is not None and scenario["workflowId"] != route.workflow_id)
+                or (route is not None and scenario["icCountVariant"] != route.ic_count_variant)
+                or (route is not None and scenario["mapVariant"] != route.map_variant)
+                or len({item["slotId"] for item in scenario["orderedInputs"]})
+                != len(scenario["orderedInputs"])
+                or row["baselineOutput"]["size"] != scenario["outputCapacity"]
+                or row["candidateOutput"]["size"] != scenario["outputCapacity"]
+                or (
+                    row["equal"] is True
+                    and row["baselineOutput"] != row["candidateOutput"]
+                )
+                or row["receipts"][0]["executorIdentitySha256"]
+                != baseline_identity
+                or row["receipts"][1]["executorIdentitySha256"]
+                != candidate_identity
+            ):
+                raise ValueError
         by_id = {row["routeId"]: row for row in [*exact, *corrections]}
         for row in transitive:
             full = by_id.get(row.get("fullEvidence", {}).get("routeId"))
             if full is None:
                 raise ValueError
             validate_transitive_evidence_reference(full, row)
+            route = (
+                next(item for item in authority_plan.routes if item.route_id == row["routeId"])
+                if authority_plan is not None
+                else None
+            )
+            scenario = row["tpScenario"]
+            if (
+                full["proofKind"] != "exact-output"
+                or full["equal"] is not True
+                or (route is not None and scenario["icId"] != route.ic_id)
+                or (route is not None and scenario["workflowId"] != route.workflow_id)
+                or (route is not None and scenario["icCountVariant"] != route.ic_count_variant)
+                or (route is not None and scenario["mapVariant"] != route.map_variant)
+                or (route is not None and row["tpLength"] != route.tp_length)
+                or (
+                    route is not None
+                    and row["fullEvidence"]["routeId"] != route.full_route_id
+                )
+                or (
+                    route is not None
+                    and row["fullEvidence"]["capabilityFingerprint"]
+                    != next(
+                        item.capability_fingerprint
+                        for item in authority_plan.routes
+                        if item.route_id == route.full_route_id
+                    )
+                )
+                or len({item["slotId"] for item in scenario["orderedInputs"]})
+                != len(scenario["orderedInputs"])
+                or row["receipts"][0]["executorIdentitySha256"]
+                != candidate_identity
+                or row["candidateFullInput"]
+                != {
+                    key: full["scenario"]["orderedInputs"][0][key]
+                    for key in ("size", "sha256")
+                }
+            ):
+                raise ValueError
+        if authority_plan is not None:
+            validate_evidence_route_coverage(authority_plan, routes)
+        operators = {
+            receipt["operatorLogin"]
+            for row in routes
+            for receipt in row["receipts"]
+        }
+        if len(operators) != 1 or (
+            authorized_operators is not None
+            and not operators <= authorized_operators
+        ):
+            raise ValueError
         receipts = [{"routeId": row["routeId"], "role": receipt["role"], "receiptSha256": receipt["receiptSha256"]} for row in routes for receipt in row["receipts"]]
         if comparison["routeEvidenceSha256"] != canonical_route_evidence_sha256(routes) or comparison["receiptSetSha256"] != canonical_receipt_set_sha256(receipts):
             raise ValueError
         parse_canonical_utc(comparison["executedAtUtc"])
     except ParityError:
         raise
-    except (KeyError, TypeError, ValueError):
+    except (KeyError, TypeError, ValueError, StopIteration):
         _fail("PARITY_EVIDENCE_INCOMPLETE")
 
 
@@ -4010,12 +4746,12 @@ def validate_external_owner_material(
     attestation_bytes: bytes,
     verification_record: bytes,
     firmware_owner_verifier: Any,
+    comparison_plan: Plan | None = None,
 ) -> dict[str, Any]:
     comparison = load_json_reject_duplicates(comparison_bytes)
     attestation = load_json_reject_duplicates(attestation_bytes)
     if not isinstance(comparison, dict) or not isinstance(attestation, dict):
         _fail("PARITY_OWNER_APPROVAL_REQUIRED")
-    validate_comparison_schema(comparison)
     try:
         if set(attestation) != {
             "schemaVersion",
@@ -4069,6 +4805,12 @@ def validate_external_owner_material(
     except (KeyError, TypeError, ValueError):
         _fail("PARITY_OWNER_APPROVAL_REQUIRED")
 
+    validate_comparison_schema(
+        comparison,
+        plan=comparison_plan,
+        authorized_operators=set(attestation["authorizedOperators"]),
+    )
+
     if firmware_owner_verifier is None:
         _fail("PARITY_OWNER_APPROVAL_REQUIRED")
     try:
@@ -4096,7 +4838,13 @@ def validate_external_owner_material(
     return observed
 
 
-def finalize_evidence(finalize_path: Path, *, github_reader: Any, firmware_owner_verifier: Any) -> dict[str, Any]:
+def finalize_evidence(
+    finalize_path: Path,
+    *,
+    github_reader: Any,
+    firmware_owner_verifier: Any,
+    comparison_plan: Plan | None = None,
+) -> dict[str, Any]:
     finalize = _read_json_file(finalize_path, "PARITY_EVIDENCE_INCOMPLETE")
     comparison_path, comparison_bytes = _read_artifact_reference(
         finalize["comparison"], "comparison"
@@ -4109,7 +4857,7 @@ def finalize_evidence(finalize_path: Path, *, github_reader: Any, firmware_owner
     )
     comparison = load_json_reject_duplicates(comparison_bytes)
     attestation = load_json_reject_duplicates(attestation_bytes)
-    validate_comparison_schema(comparison)
+    validate_comparison_schema(comparison, plan=comparison_plan)
     declared = finalize["protectedRun"]
     repository = declared["repository"]
     workflow_head = declared["workflowCommitSha"]
@@ -4241,11 +4989,31 @@ def finalize_evidence(finalize_path: Path, *, github_reader: Any, firmware_owner
         attestation_bytes=attestation_bytes,
         verification_record=verification_bytes,
         firmware_owner_verifier=firmware_owner_verifier,
+        comparison_plan=comparison_plan,
     )
+    protected_evidence = copy.deepcopy(declared)
+    protected_evidence["comparisonArtifact"]["member"] = _artifact_payload(
+        comparison_bytes
+    )
+    protected_evidence["attestationArtifact"]["member"] = _artifact_payload(
+        attestation_bytes
+    )
+    protected_evidence["verificationArtifact"]["member"] = _artifact_payload(
+        verification_bytes
+    )
+    protected_evidence["ownerVerification"] = {
+        key: copy.deepcopy(observed[key])
+        for key in (
+            "attestationId",
+            "firmwareOwnerId",
+            "verifiedAtUtc",
+            "verificationRecordSha256",
+        )
+    }
     evidence = copy.deepcopy(comparison)
     evidence["comparison"] = _artifact_payload(comparison_bytes)
     evidence["verdict"] = "pass"
-    evidence["protectedRun"] = copy.deepcopy(declared)
+    evidence["protectedRun"] = protected_evidence
     evidence["firmwareOwnerApproval"] = {
         "attestation": _artifact_payload(attestation_bytes),
         "authority": {
@@ -4260,7 +5028,9 @@ def finalize_evidence(finalize_path: Path, *, github_reader: Any, firmware_owner
     return evidence
 
 
-def validate_terminal_evidence(evidence: Mapping[str, Any]) -> None:
+def validate_terminal_evidence(
+    evidence: Mapping[str, Any], *, comparison_plan: Plan | None = None
+) -> None:
     expected_extra = {
         "comparison",
         "protectedRun",
@@ -4286,7 +5056,7 @@ def validate_terminal_evidence(evidence: Mapping[str, Any]) -> None:
         _fail("PARITY_EVIDENCE_INCOMPLETE")
     provisional = {key: copy.deepcopy(evidence[key]) for key in comparison_keys}
     provisional["verdict"] = "provisional"
-    validate_comparison_schema(provisional)
+    validate_comparison_schema(provisional, plan=comparison_plan)
     for key in ("comparison",):
         reference = evidence[key]
         if (
@@ -4298,6 +5068,7 @@ def validate_terminal_evidence(evidence: Mapping[str, Any]) -> None:
         ):
             _fail("PARITY_EVIDENCE_INCOMPLETE")
     approval = evidence["firmwareOwnerApproval"]
+    protected = evidence["protectedRun"]
     try:
         if set(approval) != {"attestation", "authority"}:
             raise ValueError
@@ -4320,6 +5091,128 @@ def validate_terminal_evidence(evidence: Mapping[str, Any]) -> None:
                 or not SHA256_RE.fullmatch(str(reference["sha256"]))
             ):
                 raise ValueError
+        expected_protected_keys = {
+            "repository",
+            "repositoryId",
+            "headRepositoryId",
+            "workflowPath",
+            "workflowRef",
+            "workflowCommitSha",
+            "workflowBlobSha",
+            "workflowRawSha256",
+            "workflowSemanticContractSha256",
+            "workflowRun",
+            "attestationJob",
+            "deployment",
+            "deploymentStatus",
+            "comparisonArtifact",
+            "attestationArtifact",
+            "verificationArtifact",
+            "ownerVerification",
+        }
+        if not isinstance(protected, Mapping) or set(protected) != expected_protected_keys:
+            raise ValueError
+        run = protected["workflowRun"]
+        job = protected["attestationJob"]
+        deployment = protected["deployment"]
+        status = protected["deploymentStatus"]
+        owner = protected["ownerVerification"]
+        if (
+            set(run)
+            != {
+                "id",
+                "runAttempt",
+                "headSha",
+                "headBranch",
+                "event",
+                "status",
+                "conclusion",
+                "repositoryId",
+                "headRepositoryId",
+                "createdAtUtc",
+                "updatedAtUtc",
+            }
+            or set(job)
+            != {
+                "id",
+                "runId",
+                "runAttempt",
+                "headSha",
+                "headBranch",
+                "name",
+                "status",
+                "conclusion",
+                "startedAtUtc",
+                "completedAtUtc",
+                "htmlUrl",
+            }
+            or set(deployment)
+            != {"id", "sha", "ref", "environment", "createdAtUtc"}
+            or set(status)
+            != {"id", "state", "createdAtUtc", "updatedAtUtc", "logUrl"}
+            or set(owner)
+            != {
+                "attestationId",
+                "firmwareOwnerId",
+                "verifiedAtUtc",
+                "verificationRecordSha256",
+            }
+            or protected["repositoryId"] != protected["headRepositoryId"]
+            or run["repositoryId"] != protected["repositoryId"]
+            or run["headRepositoryId"] != protected["headRepositoryId"]
+            or run["headSha"] != protected["workflowCommitSha"]
+            or run["headBranch"] != "main"
+            or job["runId"] != run["id"]
+            or job["runAttempt"] != run["runAttempt"]
+            or job["headSha"] != run["headSha"]
+            or job["headBranch"] != "main"
+            or job["name"] != "release / v0.9.16 parity attestation"
+            or job["status"] != "completed"
+            or job["conclusion"] != "success"
+            or deployment["sha"] != run["headSha"]
+            or deployment["ref"] != "main"
+            or deployment["environment"] != "firmware-parity"
+            or status["state"] != "success"
+            or status["logUrl"] != job["htmlUrl"]
+            or owner["attestationId"] != authority["attestationId"]
+            or owner["firmwareOwnerId"] != authority["firmwareOwnerId"]
+            or owner["verifiedAtUtc"] != authority["verifiedAtUtc"]
+            or owner["verificationRecordSha256"]
+            != authority["verificationRecord"]["sha256"]
+        ):
+            raise ValueError
+        for artifact_key, reference in (
+            ("comparisonArtifact", evidence["comparison"]),
+            ("attestationArtifact", approval["attestation"]),
+            ("verificationArtifact", authority["verificationRecord"]),
+        ):
+            artifact = protected[artifact_key]
+            if (
+                set(artifact)
+                != {
+                    "id",
+                    "name",
+                    "digest",
+                    "memberName",
+                    "createdAtUtc",
+                    "workflowRun",
+                    "member",
+                }
+                or artifact["member"] != reference
+                or not isinstance(artifact["id"], int)
+                or artifact["id"] < 1
+                or not re.fullmatch(r"sha256:[0-9a-f]{64}", str(artifact["digest"]))
+                or artifact["workflowRun"].get("id") != run["id"]
+                or artifact["workflowRun"].get("headSha") != run["headSha"]
+            ):
+                raise ValueError
+        serialized_comparison = canonical_json_bytes(provisional) + b"\n"
+        if evidence["comparison"] != _artifact_payload(serialized_comparison):
+            raise ValueError
+        parse_canonical_utc(owner["verifiedAtUtc"])
+        validate_time_order(
+            job["startedAtUtc"], job["completedAtUtc"], error_code="PARITY_EVIDENCE_INCOMPLETE"
+        )
     except (KeyError, TypeError, ValueError):
         _fail("PARITY_EVIDENCE_INCOMPLETE")
 
@@ -4793,13 +5686,12 @@ def _compare_command(args: argparse.Namespace) -> int:
     # and outputs stay outside the uploaded payload-free output directory.
     with controlled_temporary_directory("nfc-v0916-run-") as temporary_root:
         snapshot = temporary_root / "canonical-authority"
-        materialize_and_validate_canonical_input_authority(
+        canonical_authority = materialize_and_validate_canonical_input_authority(
             plan.raw,
             git_reader=PinnedGitReader(repository_root),
             destination=snapshot,
         )
-        manifest_path = snapshot / plan.raw["canonicalInputAuthority"]["manifestPath"]
-        canonical_inputs = resolve_all_canonical_route_inputs(plan, manifest_path)
+        canonical_inputs = resolve_all_canonical_route_inputs(plan, canonical_authority)
         build_required_execution_matrix(plan, canonical_inputs=canonical_inputs)
         operator_login = os.environ.get("GITHUB_ACTOR", "")
         repository = os.environ.get("GITHUB_REPOSITORY", "")
@@ -4855,9 +5747,6 @@ def _compare_command(args: argparse.Namespace) -> int:
             != candidate_asset_identity["packageSourceHead"]
         ):
             _fail("PARITY_AUTHORITY_MISMATCH")
-        workflow_semantic_contract = _decode_json_object(
-            workflow_contract_capture.payload, "PARITY_AUTHORITY_MISMATCH"
-        )
         package_proof = verify_protected_candidate_build(
             repository_root=repository_root,
             local_assets=local_assets,
@@ -4873,7 +5762,7 @@ def _compare_command(args: argparse.Namespace) -> int:
             process_runner=host,
             github_reader=github_reader,
             artifact_download_root=temporary_root / "candidate-artifact-proof",
-            workflow_semantic_contract=workflow_semantic_contract,
+            workflow_semantic_contract=workflow_contract_capture,
         )
 
         baseline_commit = baseline_authority.contract["source"]["peeledCommit"]
@@ -4895,12 +5784,18 @@ def _compare_command(args: argparse.Namespace) -> int:
                 candidate_root, candidate_contract, host
             )
             receipts: dict[tuple[str, str], dict[str, Any]] = {}
+            baseline_receipt_authority = receipt_validation_authority(
+                baseline_executor, operator_login
+            )
+            candidate_receipt_authority = receipt_validation_authority(
+                candidate_executor, operator_login
+            )
 
             class CanonicalInputPort:
                 def resolve(self, item: ExecutionRequirement) -> VerifiedCanonicalInputs:
                     return resolve_canonical_route_input(
                         plan,
-                        manifest_path,
+                        canonical_authority,
                         admitted_input_root=temporary_root / "admitted-inputs",
                         route_id=item.route_id,
                         execution_role=item.role,
@@ -4956,6 +5851,8 @@ def _compare_command(args: argparse.Namespace) -> int:
                     route=route,
                     baseline_receipt=receipts[("baseline-exact", route.route_id)],
                     candidate_receipt=receipts[("candidate-exact", route.route_id)],
+                    baseline_authority=baseline_receipt_authority,
+                    candidate_authority=candidate_receipt_authority,
                 )
             rows: list[dict[str, Any]] = []
             for route in plan.routes:
@@ -4980,6 +5877,8 @@ def _compare_command(args: argparse.Namespace) -> int:
                         candidate_tp_receipt=receipts[
                             ("candidate-tp", route.route_id)
                         ],
+                        baseline_authority=baseline_receipt_authority,
+                        candidate_authority=candidate_receipt_authority,
                     )
                 )
             validate_evidence_route_coverage(plan, rows)
@@ -5152,9 +6051,6 @@ def _verify_candidate_command(args: argparse.Namespace) -> int:
         repository_root / "docs/contracts/v0916-parity-workflow-v1.json",
         "workflow-semantic-contract",
     )
-    workflow_contract = _decode_json_object(
-        workflow_contract_capture.payload, "PARITY_AUTHORITY_MISMATCH"
-    )
     authority_transfer = validate_repository_parity_authority_transfer(
         repository_root,
         head=package_source_head,
@@ -5175,7 +6071,7 @@ def _verify_candidate_command(args: argparse.Namespace) -> int:
         process_runner=LocalExecutionHost(),
         github_reader=GhCliProtectedApprovalReader(),
         artifact_download_root=output_root / "candidate-artifact-proof",
-        workflow_semantic_contract=workflow_contract,
+        workflow_semantic_contract=workflow_contract_capture,
     )
     print("canonical candidate manifest verified")
     print("canonical release smoke verified")

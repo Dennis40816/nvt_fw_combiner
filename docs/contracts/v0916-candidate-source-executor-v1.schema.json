@@ -4,7 +4,7 @@
   "title": "Candidate source-built CLI executor authority",
   "type": "object",
   "additionalProperties": false,
-  "required": ["schemaVersion", "kind", "source", "freshBuild", "toolchain", "lockFiles", "externalTools", "restore", "build", "cliAssembly"],
+  "required": ["schemaVersion", "kind", "source", "freshBuild", "toolchain", "lockFiles", "externalTools", "restore", "build", "cliAssembly", "runtimeClosure"],
   "properties": {
     "schemaVersion": { "const": "1.0" },
     "kind": { "const": "candidate-source-built-cli" },
@@ -94,7 +94,8 @@
         }
       }
     },
-    "cliAssembly": { "$ref": "#/$defs/buildArtifact" }
+    "cliAssembly": { "$ref": "#/$defs/buildArtifact" },
+    "runtimeClosure": { "$ref": "#/$defs/runtimeClosure" }
   },
   "$defs": {
     "gitSha": { "type": "string", "pattern": "^[0-9a-f]{40}$" },
@@ -114,8 +115,19 @@
       "additionalProperties": false,
       "required": ["path", "size", "sha256"],
       "properties": {
-        "path": { "const": "src/NvtFwCombiner.Cli/bin/Release/net10.0/NvtFwCombiner.Cli.dll" },
+        "path": { "const": "src/NvtFwCombiner.Cli/bin/Release/net10.0/win-x64/NvtFwCombiner.Cli.exe" },
         "size": { "type": "integer", "minimum": 1 },
+        "sha256": { "$ref": "#/$defs/sha256" }
+      }
+    },
+    "runtimeClosure": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["root", "fileCount", "totalSize", "sha256"],
+      "properties": {
+        "root": { "const": "src/NvtFwCombiner.Cli/bin/Release/net10.0/win-x64" },
+        "fileCount": { "type": "integer", "minimum": 1 },
+        "totalSize": { "type": "integer", "minimum": 1 },
         "sha256": { "$ref": "#/$defs/sha256" }
       }
     }

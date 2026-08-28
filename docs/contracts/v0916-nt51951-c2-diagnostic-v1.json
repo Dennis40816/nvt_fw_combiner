@@ -58,11 +58,11 @@
   "executors": {
     "baseline": {
       "contractPath": "docs/contracts/v0916-baseline-executor-v1.json",
-      "contractRawSha256": "861fa0fae7bf5904cac88a4bcb6ed6e0aef1a54518e0903914f2121fbc411bfb",
+      "contractRawSha256": "92e400212b5cdbb5e164b4d1401d59cdd1adbb0aef9a490be4777554d5b1e659",
       "head": "462590e8b993b8e42d088bc07377571a4bb9f25d",
       "tree": "dc46c9aa9ecf00cb898ba3bc287e1b15acdab735",
-      "cliAssemblySize": 14848,
-      "cliAssemblySha256": "e889668cf092fab4877aeea84642d3b48a9969a6184f1c128500673fa136f9db"
+      "cliAssemblySize": 162304,
+      "cliAssemblySha256": "093212528d1048acdb43563ba795353e1ac872f8b6a3aa99251782e958ad1a30"
     },
     "candidate": {
       "contractPath": "docs/contracts/v100-candidate-source-executor-v1.json",

@@ -18,6 +18,7 @@ from tests.scripts.v0916_parity_test_support import (
     PRODUCTION_AVAILABLE,
     ROOT,
     V0916ParityTestBase,
+    runtime_closure_facts,
 )
 from scripts.canonical_golden_validation import validate_canonical_golden
 
@@ -87,10 +88,10 @@ class V0916ParityContractTests(V0916ParityTestBase):
         reference = raw_plan["approvedSemanticCorrections"][0]["diagnosticRecord"]
         diagnostic_path = ROOT / reference["path"]
         diagnostic_bytes = diagnostic_path.read_bytes()
-        self.assertEqual(3952, len(diagnostic_bytes))
+        self.assertEqual(3953, len(diagnostic_bytes))
         self.assertEqual(reference["size"], len(diagnostic_bytes))
         self.assertEqual(
-            "3c53c257201ef2e1014ed1b13e4d4f9eda7b19306d52a3d7e89f373dd68fec8f",
+            "74e925cc20a3336659ec1ab427adcb18d6aa62fdfec3343af98f48c2579ec8a1",
             hashlib.sha256(diagnostic_bytes).hexdigest(),
         )
         self.assertEqual(reference["sha256"], hashlib.sha256(diagnostic_bytes).hexdigest())
@@ -102,7 +103,7 @@ class V0916ParityContractTests(V0916ParityTestBase):
         self.assertEqual("exact-tag-source-built-cli", loaded["kind"])
         self.assertEqual("10.0.303", loaded["toolchain"]["resolvedSdkVersion"])
         self.assertEqual(
-            "e889668cf092fab4877aeea84642d3b48a9969a6184f1c128500673fa136f9db",
+            "093212528d1048acdb43563ba795353e1ac872f8b6a3aa99251782e958ad1a30",
             loaded["cliAssembly"]["sha256"],
         )
         raw_identity = hashlib.sha256(executor_path.read_bytes()).hexdigest()
@@ -554,7 +555,9 @@ class V0916ParityContractTests(V0916ParityTestBase):
         with self.assertRaises(MODULE.ParityError) as captured:
             MODULE.resolve_all_canonical_route_inputs(
                 plan,
-                ROOT / "testdata/golden/canonical/manifest.json",
+                MODULE.capture_canonical_authority_from_manifest_for_test(
+                    ROOT / "testdata/golden/canonical/manifest.json"
+                ),
             )
         self.assertEqual("PARITY_FIXTURE_MISSING", captured.exception.code)
         self.assertEqual(
@@ -603,19 +606,23 @@ class V0916ParityContractTests(V0916ParityTestBase):
 
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary)
-            cli = root / "cli.dll"
+            cli = root / "cli.exe"
             cli.write_bytes(b"cli")
+            runtime_sha, runtime_count, runtime_size = runtime_closure_facts(root)
             baseline_executor = MODULE.VerifiedSourceExecutor(
                 "exact-tag-source-built-cli",
                 root,
                 plan.raw["baseline"]["peeledCommit"],
                 plan.raw["baseline"]["sourceTree"],
-                "861fa0fae7bf5904cac88a4bcb6ed6e0aef1a54518e0903914f2121fbc411bfb",
+                "92e400212b5cdbb5e164b4d1401d59cdd1adbb0aef9a490be4777554d5b1e659",
                 cli,
-                3,
-                hashlib.sha256(b"cli").hexdigest(),
-                ("dotnet", str(cli)),
+                162304,
+                "093212528d1048acdb43563ba795353e1ac872f8b6a3aa99251782e958ad1a30",
+                (str(cli),),
                 True,
+                runtime_sha,
+                runtime_count,
+                runtime_size,
             )
             candidate_executor = baseline_executor.with_changes(
                 kind="candidate-source-built-cli",
@@ -625,7 +632,7 @@ class V0916ParityContractTests(V0916ParityTestBase):
             )
             workflow_contract = ROOT / "docs/contracts/v0916-parity-workflow-v1.json"
             workflow_contract_sha = hashlib.sha256(workflow_contract.read_bytes()).hexdigest()
-            package_source_head = "3" * 40
+            package_source_head = "5" * 40
             package_source_tree = "4" * 40
             declared = {
                 "repository": "Dennis40816/nvt_fw_combiner",
@@ -705,6 +712,24 @@ class V0916ParityContractTests(V0916ParityTestBase):
                             correction["differentRanges"]
                         ),
                     }
+                minimum_full_capacity = 1 + max(
+                    (
+                        item.tp_length
+                        for item in plan.routes
+                        if item.full_route_id == route.route_id
+                        and item.tp_length is not None
+                    ),
+                    default=0,
+                )
+                if correction is None:
+                    row["baselineOutput"]["size"] = max(
+                        row["baselineOutput"]["size"], minimum_full_capacity
+                    )
+                    row["candidateOutput"]["size"] = row["baselineOutput"]["size"]
+                row["scenario"]["outputCapacity"] = row["baselineOutput"]["size"]
+                row["scenario"]["orderedInputs"][0]["size"] = row[
+                    "scenario"
+                ]["outputCapacity"]
                 for receipt_index, receipt in enumerate(row["receipts"]):
                     receipt["receiptSha256"] = hashlib.sha256(
                         f"exact-receipt-{exact_index}-{receipt_index}".encode()
@@ -744,7 +769,10 @@ class V0916ParityContractTests(V0916ParityTestBase):
                 )
                 row["candidateCompilationFingerprint"] = route.capability_fingerprint
                 row["candidateTpOutput"]["size"] = route.tp_length
-                row["candidateFullInput"]["size"] = route.tp_length + 1
+                row["candidateFullInput"] = {
+                    key: full_evidence["scenario"]["orderedInputs"][0][key]
+                    for key in ("size", "sha256")
+                }
                 row["receipts"][0]["executorIdentitySha256"] = candidate_identity
                 row["receipts"][0]["receiptSha256"] = hashlib.sha256(
                     f"tp-receipt-{transitive_index}".encode()
@@ -1041,7 +1069,7 @@ class V0916ParityContractTests(V0916ParityTestBase):
             correction["requiredProofKind"],
         )
         self.assertEqual(
-            "861fa0fae7bf5904cac88a4bcb6ed6e0aef1a54518e0903914f2121fbc411bfb",
+            "92e400212b5cdbb5e164b4d1401d59cdd1adbb0aef9a490be4777554d5b1e659",
             correction["baselineProvenance"]["executorContractSha256"],
         )
         case_manifest = correction["candidateProvenance"]["canonicalCaseManifest"]
@@ -1151,7 +1179,7 @@ class V0916ParityContractTests(V0916ParityTestBase):
             [item["artifactId"] for item in diagnostic["baseRecipeSources"]],
         )
         self.assertEqual(
-            "861fa0fae7bf5904cac88a4bcb6ed6e0aef1a54518e0903914f2121fbc411bfb",
+            "92e400212b5cdbb5e164b4d1401d59cdd1adbb0aef9a490be4777554d5b1e659",
             diagnostic["executors"]["baseline"]["contractRawSha256"],
         )
         self.assertEqual(
@@ -1702,7 +1730,7 @@ class V0916ParityContractTests(V0916ParityTestBase):
         ]
         exact = self.schema_exact_evidence_row()
         exact_digest = (
-            "020e447dcf39250600d35e2f2305e7aa886be674f78b2833a5bd6e740f1025b8"
+            "5e64d7e13d9d83736b5741a2c1d9123a8579f7080422417f7ed355680e15d2cf"
         )
         routes = [exact, self.schema_transitive_evidence_row(exact_digest)]
         self.assertEqual(
@@ -1714,7 +1742,7 @@ class V0916ParityContractTests(V0916ParityTestBase):
             MODULE.canonical_provenance_subjects_sha256(list(reversed(subjects))),
         )
         self.assertEqual(
-            "12c95f88f5454f8b730bf92821d661b49ae34b859b1d960132624afb9f1bc697",
+            "4148fe4e0b98176438b87bd08d507780bd0810e62724ce31cba05eb47334b6a8",
             MODULE.canonical_route_evidence_sha256(list(reversed(routes))),
         )
         self.assertEqual(
@@ -1741,7 +1769,7 @@ class V0916ParityContractTests(V0916ParityTestBase):
     def test_transitive_row_must_consume_the_passing_exact_full_evidence(self) -> None:
         exact = self.schema_exact_evidence_row()
         exact_digest = (
-            "020e447dcf39250600d35e2f2305e7aa886be674f78b2833a5bd6e740f1025b8"
+            "5e64d7e13d9d83736b5741a2c1d9123a8579f7080422417f7ed355680e15d2cf"
         )
         self.assertEqual(exact_digest, MODULE.canonical_route_row_sha256(exact))
         MODULE.validate_exact_evidence_row_schema(exact)

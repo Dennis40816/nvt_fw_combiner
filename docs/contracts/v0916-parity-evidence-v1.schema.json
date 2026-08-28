@@ -58,7 +58,7 @@
         "workflowCommitSha": { "$ref": "#/$defs/gitSha" },
         "workflowBlobSha": { "$ref": "#/$defs/gitSha" },
         "workflowRawSha256": { "$ref": "#/$defs/sha256" },
-        "workflowSemanticContractSha256": { "const": "daf70404996d3f520e866bac104eac1d40389c9f6feaa7920cac5681c0dda6fa" },
+          "workflowSemanticContractSha256": { "const": "9f0b79013165e8b216cfa5d57d6ca65d8b040642bae3d996378487d4cc9be7ac" },
         "runId": { "type": "integer", "minimum": 1 },
         "artifactId": { "type": "integer", "minimum": 1 },
         "artifactName": { "type": "string", "pattern": "^stable-candidate-[1-9][0-9]*-[0-9a-f]{40}$" },
@@ -141,13 +141,14 @@
     "remoteArtifact": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["id", "name", "digest", "memberName", "createdAtUtc", "workflowRun"],
+      "required": ["id", "name", "digest", "memberName", "createdAtUtc", "workflowRun", "member"],
       "properties": {
         "id": { "type": "integer", "minimum": 1 },
         "name": { "type": "string", "minLength": 1 },
         "digest": { "$ref": "#/$defs/sha256Digest" },
         "memberName": { "type": "string", "pattern": "^[A-Za-z0-9][A-Za-z0-9._-]*\\.json$" },
         "createdAtUtc": { "$ref": "#/$defs/canonicalUtc" },
+        "member": { "$ref": "#/$defs/artifact" },
         "workflowRun": {
           "type": "object",
           "additionalProperties": false,
@@ -165,7 +166,7 @@
     "protectedRun": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["repository", "repositoryId", "headRepositoryId", "workflowPath", "workflowRef", "workflowCommitSha", "workflowBlobSha", "workflowRawSha256", "workflowSemanticContractSha256", "workflowRun", "attestationJob", "deployment", "deploymentStatus", "comparisonArtifact", "attestationArtifact", "verificationArtifact"],
+      "required": ["repository", "repositoryId", "headRepositoryId", "workflowPath", "workflowRef", "workflowCommitSha", "workflowBlobSha", "workflowRawSha256", "workflowSemanticContractSha256", "workflowRun", "attestationJob", "deployment", "deploymentStatus", "comparisonArtifact", "attestationArtifact", "verificationArtifact", "ownerVerification"],
       "properties": {
         "repository": { "const": "Dennis40816/nvt_fw_combiner" },
         "repositoryId": { "type": "integer", "minimum": 1 },
@@ -175,14 +176,26 @@
         "workflowCommitSha": { "$ref": "#/$defs/gitSha" },
         "workflowBlobSha": { "$ref": "#/$defs/gitSha" },
         "workflowRawSha256": { "$ref": "#/$defs/sha256" },
-        "workflowSemanticContractSha256": { "const": "daf70404996d3f520e866bac104eac1d40389c9f6feaa7920cac5681c0dda6fa" },
+        "workflowSemanticContractSha256": { "const": "9f0b79013165e8b216cfa5d57d6ca65d8b040642bae3d996378487d4cc9be7ac" },
         "workflowRun": { "$ref": "#/$defs/protectedWorkflowRun" },
         "attestationJob": { "$ref": "#/$defs/protectedJob" },
         "deployment": { "$ref": "#/$defs/protectedDeployment" },
         "deploymentStatus": { "$ref": "#/$defs/protectedDeploymentStatus" },
         "comparisonArtifact": { "$ref": "#/$defs/remoteArtifact" },
         "attestationArtifact": { "$ref": "#/$defs/remoteArtifact" },
-        "verificationArtifact": { "$ref": "#/$defs/remoteArtifact" }
+        "verificationArtifact": { "$ref": "#/$defs/remoteArtifact" },
+        "ownerVerification": { "$ref": "#/$defs/ownerVerification" }
+      }
+    },
+    "ownerVerification": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["attestationId", "firmwareOwnerId", "verifiedAtUtc", "verificationRecordSha256"],
+      "properties": {
+        "attestationId": { "type": "string", "minLength": 1 },
+        "firmwareOwnerId": { "type": "string", "minLength": 1 },
+        "verifiedAtUtc": { "$ref": "#/$defs/canonicalUtc" },
+        "verificationRecordSha256": { "$ref": "#/$defs/sha256" }
       }
     },
     "protectedWorkflowRun": {
@@ -294,8 +307,8 @@
           "additionalProperties": false,
           "required": ["size", "sha256"],
           "properties": {
-            "size": { "const": 3351 },
-            "sha256": { "const": "861fa0fae7bf5904cac88a4bcb6ed6e0aef1a54518e0903914f2121fbc411bfb" }
+            "size": { "const": 3730 },
+            "sha256": { "const": "92e400212b5cdbb5e164b4d1401d59cdd1adbb0aef9a490be4777554d5b1e659" }
           }
         },
         "cliAssembly": {
@@ -304,7 +317,7 @@
           "required": ["size", "sha256"],
           "properties": {
             "size": { "const": 14848 },
-            "sha256": { "const": "e889668cf092fab4877aeea84642d3b48a9969a6184f1c128500673fa136f9db" }
+            "sha256": { "const": "093212528d1048acdb43563ba795353e1ac872f8b6a3aa99251782e958ad1a30" }
           }
         }
       }
@@ -363,7 +376,7 @@
       "allOf": [
         {
           "if": { "properties": { "role": { "const": "baseline-exact" } }, "required": ["role"] },
-          "then": { "properties": { "executorIdentitySha256": { "const": "861fa0fae7bf5904cac88a4bcb6ed6e0aef1a54518e0903914f2121fbc411bfb" } } }
+          "then": { "properties": { "executorIdentitySha256": { "const": "92e400212b5cdbb5e164b4d1401d59cdd1adbb0aef9a490be4777554d5b1e659" } } }
         }
       ]
     },

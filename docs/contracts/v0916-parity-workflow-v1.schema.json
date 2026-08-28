@@ -12,7 +12,9 @@
     "candidateImplementationHead",
     "trigger",
     "topLevelPermissions",
+    "topLevelSha256",
     "actionPins",
+    "jobInventorySha256",
     "jobs",
     "promotionGate",
     "forbidden"
@@ -25,6 +27,7 @@
     "candidateImplementationHead": { "const": "b13f0e4d4a609fa3d55af01861623ce9ef05862b" },
     "trigger": { "const": "workflow_dispatch" },
     "topLevelPermissions": { "$ref": "#/$defs/readPermissions" },
+    "topLevelSha256": { "$ref": "#/$defs/sha256" },
     "actionPins": {
       "type": "object",
       "additionalProperties": false,
@@ -34,6 +37,19 @@
         "setupPython": { "const": "actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1" },
         "downloadArtifact": { "const": "actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131" },
         "uploadArtifact": { "const": "actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a" }
+      }
+    },
+    "jobInventorySha256": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["candidate", "promote", "published-smoke", "v0916-parity-compare", "v0916-parity-attestation", "v0916-parity-finalize"],
+      "properties": {
+        "candidate": { "$ref": "#/$defs/sha256" },
+        "promote": { "$ref": "#/$defs/sha256" },
+        "published-smoke": { "$ref": "#/$defs/sha256" },
+        "v0916-parity-compare": { "$ref": "#/$defs/sha256" },
+        "v0916-parity-attestation": { "$ref": "#/$defs/sha256" },
+        "v0916-parity-finalize": { "$ref": "#/$defs/sha256" }
       }
     },
     "jobs": {
@@ -49,7 +65,7 @@
     "promotionGate": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["jobId", "needs", "if", "stepPrefixNames", "steps"],
+      "required": ["jobId", "needs", "if", "stepPrefixNames", "stepNames", "stepsSha256", "steps"],
       "properties": {
         "jobId": { "const": "promote" },
         "needs": {
@@ -69,6 +85,13 @@
           ],
           "items": false
         },
+        "stepNames": {
+          "type": "array",
+          "minItems": 10,
+          "maxItems": 10,
+          "items": { "type": "string", "minLength": 1 }
+        },
+        "stepsSha256": { "type": "string", "pattern": "^[0-9a-f]{64}$" },
         "steps": {
           "type": "array",
           "minItems": 4,

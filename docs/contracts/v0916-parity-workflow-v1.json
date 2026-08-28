@@ -9,11 +9,20 @@
     "actions": "read",
     "contents": "read"
   },
+  "topLevelSha256": "d961b41d1f5c8d489c1f5289a0b8b5ecf4b4a8416036b72e18cfd1f782b5b799",
   "actionPins": {
     "checkout": "actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0",
     "setupPython": "actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1",
     "downloadArtifact": "actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131",
     "uploadArtifact": "actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a"
+  },
+  "jobInventorySha256": {
+    "candidate": "4c2bc0a1d5dbeef28b1745cac67c773c0ade88b78698a300550f76968908922a",
+    "promote": "0e258bc9d7ebb9fbea19c8a30cbfcdc9b981d7995934488af7e44e496e2020f7",
+    "published-smoke": "60d865fcd4c539dbc1bcbcd4617e645e94f2ce4c00e5ece2dbff08d01b8e9332",
+    "v0916-parity-compare": "0620aec73138d4514dff5c4392646a1d81d0d8c387d4ffa807182c535c158543",
+    "v0916-parity-attestation": "1b647179e8c1393284bc555bbd4e579017d20b8c7eecd21f292c6b5969a82746",
+    "v0916-parity-finalize": "bb17a8850c7d95526a43b96211b5adc8fcc9ef3f8c208d03ffd1bd192ebfdace"
   },
   "jobs": {
     "v0916-parity-compare": {
@@ -211,6 +220,19 @@
       "Download terminal v0.9.16 parity evidence",
       "Require terminal parity pass before promotion"
     ],
+    "stepNames": [
+      "Checkout protected release authority",
+      "Setup pinned Python for release policy",
+      "Download terminal v0.9.16 parity evidence",
+      "Require terminal parity pass before promotion",
+      "Reconfirm release authority and source identity",
+      "Download prepared candidate assets",
+      "Verify closed candidate identity and digests",
+      "Create or verify immutable annotated tag",
+      "Publish or recover immutable GitHub Release",
+      "Verify published assets and source downloads"
+    ],
+    "stepsSha256": "cbf679017a74f5301f7601b2239d840512a5211980bf48ccf3183b4e0c81e41c",
     "steps": [
       {
         "name": "Checkout protected release authority",

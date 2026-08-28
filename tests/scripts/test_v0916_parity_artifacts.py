@@ -15,7 +15,7 @@ import sys
 import tempfile
 import unittest
 import zipfile
-from pathlib import Path
+from pathlib import Path, PurePosixPath
 from unittest import mock
 
 import yaml
@@ -45,6 +45,29 @@ RELEASE_POLICY_SPEC.loader.exec_module(RELEASE_POLICY)
 
 
 class V0916ParityArtifactTests(V0916ParityTestBase):
+    def test_promotion_gate_binds_every_step_through_the_publication_tail(self) -> None:
+        contract = json.loads(
+            (ROOT / "docs/contracts/v0916-parity-workflow-v1.json").read_text(
+                encoding="utf-8"
+            )
+        )
+        workflow = parity_workflow_fixture_from_contract(contract)
+        MODULE.validate_protected_workflow_semantics(workflow, contract)
+        promotion = workflow["jobs"][contract["promotionGate"]["jobId"]]
+        self.assertEqual(
+            contract["promotionGate"]["stepNames"],
+            [step["name"] for step in promotion["steps"]],
+        )
+        for index in range(len(promotion["steps"])):
+            forged = copy.deepcopy(workflow)
+            forged["jobs"][contract["promotionGate"]["jobId"]]["steps"][index][
+                "name"
+            ] += " (forged)"
+            with self.subTest(step=index):
+                with self.assertRaises(MODULE.ParityError) as captured:
+                    MODULE.validate_protected_workflow_semantics(forged, contract)
+                self.assertEqual("PARITY_WORKFLOW_MISMATCH", captured.exception.code)
+
     def test_normative_parity_documents_name_the_exact_candidate_head(self) -> None:
         plan = json.loads(self.plan_path.read_text(encoding="utf-8"))
         contract_path = ROOT / plan["candidateAuthority"]["sourceExecutorContract"]["path"]
@@ -69,14 +92,14 @@ class V0916ParityArtifactTests(V0916ParityTestBase):
             "docs/contracts/v100-candidate-source-executor-v1.json",
             declared["path"],
         )
-        self.assertEqual(4219, declared["size"])
+        self.assertEqual(4525, declared["size"])
         self.assertEqual(
-            "0b443d1cd1f61a1410d8fee843d01ec5d6839457011cc4f57954cf7b4c57eb65",
+            "adc67766f2506f5ba62206cae6157b9b9ce6c6c04552af2a37deb6c1ced779a8",
             declared["sha256"],
         )
-        self.assertEqual(4219, path.stat().st_size)
+        self.assertEqual(4525, path.stat().st_size)
         self.assertEqual(
-            "0b443d1cd1f61a1410d8fee843d01ec5d6839457011cc4f57954cf7b4c57eb65",
+            "adc67766f2506f5ba62206cae6157b9b9ce6c6c04552af2a37deb6c1ced779a8",
             hashlib.sha256(path.read_bytes()).hexdigest(),
         )
         contract = json.loads(path.read_text(encoding="utf-8"))
@@ -93,8 +116,8 @@ class V0916ParityArtifactTests(V0916ParityTestBase):
         )
         self.assertEqual("10.0.303", contract["toolchain"]["resolvedSdkVersion"])
         self.assertEqual("detached-git-worktree", contract["freshBuild"]["sourceMaterialization"])
-        self.assertEqual(178688, contract["cliAssembly"]["size"])
-        self.assertEqual("779de265624f1ba88ed108f39b996549455b8d26fa456ac3904f30b98b1d2088", contract["cliAssembly"]["sha256"])
+        self.assertEqual(162304, contract["cliAssembly"]["size"])
+        self.assertEqual("be33bf8ad050fa5e9ba24d464910ac09e24944ba97ca56a27c7f57001b8521e9", contract["cliAssembly"]["sha256"])
         self.assertTrue(contract["freshBuild"]["emptyDestinationRequired"])
         self.assertTrue(contract["freshBuild"]["rejectIgnoredBuildOutputsBeforeRestore"])
         head = contract["source"]["implementationHead"]
@@ -134,6 +157,21 @@ class V0916ParityArtifactTests(V0916ParityTestBase):
                 path.write_bytes(f"synthetic-authority-{index}".encode())
                 item["size"] = path.stat().st_size
                 item["sha256"] = hashlib.sha256(path.read_bytes()).hexdigest()
+            cli_reference = contract["cliAssembly"]
+            contract["runtimeClosure"] = {
+                "root": str(PurePosixPath(cli_reference["path"]).parent),
+                "fileCount": 1,
+                "totalSize": cli_reference["size"],
+                "sha256": MODULE.canonical_json_sha256(
+                    [
+                        {
+                            "path": Path(cli_reference["path"]).name,
+                            "size": cli_reference["size"],
+                            "sha256": cli_reference["sha256"],
+                        }
+                    ]
+                ),
+            }
             host = RecordingBaselineExecutorHost(
                 head=contract["source"]["peeledCommit"],
                 tree=contract["source"]["sourceTree"],
@@ -166,7 +204,18 @@ class V0916ParityArtifactTests(V0916ParityTestBase):
             self.assertEqual(
                 [
                     ("process", (contract["restore"]["arguments"], root)),
-                    ("process", (contract["build"]["arguments"], root)),
+                    (
+                        "process",
+                        (
+                            [
+                                f"-p:PathMap={root}=/_/src"
+                                if value == "-p:PathMap={sourceRoot}=/_/src"
+                                else value
+                                for value in contract["build"]["arguments"]
+                            ],
+                            root,
+                        ),
+                    ),
                 ],
                 [call for call in host.calls if call[0] == "process"],
             )
@@ -298,6 +347,20 @@ class V0916ParityArtifactTests(V0916ParityTestBase):
                     ],
                 },
                 "cliAssembly": files[3],
+                "runtimeClosure": {
+                    "root": "src/NvtFwCombiner.Cli/bin/Release/net10.0",
+                    "fileCount": 1,
+                    "totalSize": files[3]["size"],
+                    "sha256": MODULE.canonical_json_sha256(
+                        [
+                            {
+                                "path": "NvtFwCombiner.Cli.dll",
+                                "size": files[3]["size"],
+                                "sha256": files[3]["sha256"],
+                            }
+                        ]
+                    ),
+                },
             }
             contract_path = root / "candidate-source-executor.json"
             contract_path.write_text(
@@ -399,7 +462,7 @@ class V0916ParityArtifactTests(V0916ParityTestBase):
             self.assertEqual(raw_identity, observed.contract_identity_sha256)
             self.assertEqual(root / contract["cliAssembly"]["path"], observed.cli_path)
             self.assertEqual(contract["cliAssembly"]["sha256"], observed.cli_sha256)
-            self.assertEqual(("dotnet", str(observed.cli_path)), observed.argv_prefix)
+            self.assertEqual((str(observed.cli_path),), observed.argv_prefix)
             self.assertTrue(observed.fresh_build)
             original_verifier = MODULE._verify_declared_file
             cli_path = root / contract["cliAssembly"]["path"]
@@ -662,10 +725,11 @@ class V0916ParityArtifactTests(V0916ParityTestBase):
         tree = "8" * 40
         workflow_sha = "b" * 40
         self.assertNotEqual(head, workflow_sha)
-        workflow_contract = json.loads(
-            (ROOT / "docs/contracts/v0916-parity-workflow-v1.json").read_text(
-                encoding="utf-8"
-            )
+        workflow_contract_path = ROOT / "docs/contracts/v0916-parity-workflow-v1.json"
+        workflow_contract_payload = workflow_contract_path.read_bytes()
+        workflow_contract = json.loads(workflow_contract_payload)
+        workflow_contract_capture = MODULE.CapturedLocalArtifact(
+            workflow_contract_path, workflow_contract_payload
         )
         workflow_fixture = parity_workflow_fixture_from_contract(workflow_contract)
         workflow_bytes = yaml.safe_dump(workflow_fixture, sort_keys=False).encode("utf-8")
@@ -692,7 +756,7 @@ class V0916ParityArtifactTests(V0916ParityTestBase):
                 "workflowCommitSha": workflow_sha,
                 "workflowBlobSha": workflow_blob_sha,
                 "workflowRawSha256": workflow_raw_sha256,
-                "workflowSemanticContractSha256": "daf70404996d3f520e866bac104eac1d40389c9f6feaa7920cac5681c0dda6fa",
+                "workflowSemanticContractSha256": hashlib.sha256(workflow_contract_payload).hexdigest(),
                 "runId": 123,
                 "artifactId": 456,
                 "artifactName": f"stable-candidate-123-{head}",
@@ -729,7 +793,7 @@ class V0916ParityArtifactTests(V0916ParityTestBase):
                 process_runner=runner,
                 github_reader=github,
                 artifact_download_root=artifact_download_root,
-                workflow_semantic_contract=workflow_contract,
+                workflow_semantic_contract=workflow_contract_capture,
             )
             self.assertEqual(
                 {"head": "f" * 40, "tree": "e" * 40},
@@ -747,45 +811,7 @@ class V0916ParityArtifactTests(V0916ParityTestBase):
                 },
                 validated["artifactWorkflowRun"],
             )
-            self.assertEqual(
-                [
-                    (
-                        [
-                            sys.executable,
-                            str(candidate_verifier),
-                            "verify-manifest",
-                            "--asset-dir",
-                            str(extracted_root),
-                            "--manifest",
-                            str(extracted_root / assets["manifest"].name),
-                            "--source-sha",
-                            head,
-                            "--source-tree",
-                            tree,
-                            "--run-id",
-                            "123",
-                            "--workflow-sha",
-                            workflow_sha,
-                            "--workflow-ref",
-                            "refs/heads/main",
-                        ],
-                        ROOT,
-                    ),
-                    (
-                        [
-                            "pwsh",
-                            "-NoProfile",
-                            "-File",
-                            str(package_verifier),
-                            "-PackagePath",
-                            str(extracted_root / assets["package"].name),
-                            "-SkipUiLaunch",
-                        ],
-                        ROOT,
-                    ),
-                ],
-                runner.calls,
-            )
+            self.assertEqual([], runner.calls)
             self.assertEqual(
                 [
                     ("Dennis40816/nvt_fw_combiner/contents/.github/workflows/release.yml", workflow_sha),
@@ -795,6 +821,53 @@ class V0916ParityArtifactTests(V0916ParityTestBase):
                 ],
                 github.calls,
             )
+
+            original_capture = MODULE.capture_local_artifact
+            for role, target in assets.items():
+                original = target.read_bytes()
+                swapped = False
+
+                def capture_then_swap(path: Path, capture_role: str):
+                    nonlocal swapped
+                    captured = original_capture(path, capture_role)
+                    if path.resolve() == target.resolve() and not swapped:
+                        swapped = True
+                        path.write_bytes(b"post-capture-local-asset-swap")
+                    return captured
+
+                with (
+                    self.subTest(post_capture_local_asset_swap=role),
+                    mock.patch.object(
+                        MODULE,
+                        "capture_local_artifact",
+                        side_effect=capture_then_swap,
+                    ),
+                ):
+                    MODULE.verify_protected_candidate_build(
+                        repository_root=ROOT,
+                        local_assets=assets,
+                        declared=declared,
+                        firmware_executor_head="f" * 40,
+                        firmware_executor_tree="e" * 40,
+                        package_source_head=head,
+                        package_source_tree=tree,
+                        process_runner=RecordingProcessRunner(
+                            [
+                                subprocess.CompletedProcess([], 0, "manifest verified", ""),
+                                subprocess.CompletedProcess([], 0, "Release smoke passed", ""),
+                            ]
+                        ),
+                        github_reader=self._github_reader(
+                            declared,
+                            head=workflow_sha,
+                            workflow_bytes=workflow_bytes,
+                            archive=artifact_archive,
+                        ),
+                        artifact_download_root=root / f"post-capture-{role}",
+                        workflow_semantic_contract=workflow_contract_capture,
+                    )
+                self.assertTrue(swapped)
+                target.write_bytes(original)
 
             for role, path in assets.items():
                 original = path.read_bytes()
@@ -817,7 +890,7 @@ class V0916ParityArtifactTests(V0916ParityTestBase):
                                 archive=artifact_archive,
                             ),
                             artifact_download_root=root / f"drift-{role}",
-                            workflow_semantic_contract=workflow_contract,
+                            workflow_semantic_contract=workflow_contract_capture,
                         )
                     self.assertEqual("PARITY_PACKAGE_MISMATCH", captured.exception.code)
                 path.write_bytes(original)
@@ -843,8 +916,6 @@ class V0916ParityArtifactTests(V0916ParityTestBase):
                 "artifact-expired",
                 "unsupported-digest",
                 "github-unavailable",
-                "manifest-verifier-failed",
-                "smoke-verifier-failed",
             ):
                 candidate_github = self._github_reader(
                     declared, head=workflow_sha, workflow_bytes=workflow_bytes, archive=artifact_archive
@@ -917,19 +988,6 @@ class V0916ParityArtifactTests(V0916ParityTestBase):
                     candidate_declared["artifactDigest"] = invalid_digest
                 elif mutation == "github-unavailable":
                     candidate_github = UnavailableGithubReader()
-                elif mutation == "manifest-verifier-failed":
-                    candidate_runner = RecordingProcessRunner(
-                        [subprocess.CompletedProcess([], 1, "", "manifest rejected")]
-                    )
-                    expected_code = "PARITY_PACKAGE_MISMATCH"
-                else:
-                    candidate_runner = RecordingProcessRunner(
-                        [
-                            subprocess.CompletedProcess([], 0, "manifest verified", ""),
-                            subprocess.CompletedProcess([], 1, "", "smoke rejected"),
-                        ]
-                    )
-                    expected_code = "PARITY_PACKAGE_MISMATCH"
                 with self.subTest(mutation=mutation):
                     with self.assertRaises(MODULE.ParityError) as captured:
                         MODULE.verify_protected_candidate_build(
@@ -943,7 +1001,7 @@ class V0916ParityArtifactTests(V0916ParityTestBase):
                             process_runner=candidate_runner,
                             github_reader=candidate_github,
                             artifact_download_root=root / f"negative-{mutation}",
-                            workflow_semantic_contract=workflow_contract,
+                            workflow_semantic_contract=workflow_contract_capture,
                         )
                     self.assertEqual(expected_code, captured.exception.code)
 

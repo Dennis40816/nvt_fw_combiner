@@ -36,15 +36,21 @@
   ],
   "restore": {
     "workingDirectory": ".",
-    "arguments": ["dotnet", "restore", "src/NvtFwCombiner.Cli/NvtFwCombiner.Cli.csproj", "--locked-mode"]
+    "arguments": ["dotnet", "restore", "src/NvtFwCombiner.Cli/NvtFwCombiner.Cli.csproj", "--locked-mode", "--runtime", "win-x64"]
   },
   "build": {
     "workingDirectory": ".",
-    "arguments": ["dotnet", "build", "src/NvtFwCombiner.Cli/NvtFwCombiner.Cli.csproj", "--configuration", "Release", "--no-restore"]
+    "arguments": ["dotnet", "build", "src/NvtFwCombiner.Cli/NvtFwCombiner.Cli.csproj", "--configuration", "Release", "--runtime", "win-x64", "--self-contained", "true", "--no-restore", "-p:ContinuousIntegrationBuild=true", "-p:PathMap={sourceRoot}=/_/src"]
   },
   "cliAssembly": {
-    "path": "src/NvtFwCombiner.Cli/bin/Release/net10.0/NvtFwCombiner.Cli.dll",
-    "size": 14848,
-    "sha256": "e889668cf092fab4877aeea84642d3b48a9969a6184f1c128500673fa136f9db"
+    "path": "src/NvtFwCombiner.Cli/bin/Release/net10.0/win-x64/NvtFwCombiner.Cli.exe",
+    "size": 162304,
+    "sha256": "093212528d1048acdb43563ba795353e1ac872f8b6a3aa99251782e958ad1a30"
+  },
+  "runtimeClosure": {
+    "root": "src/NvtFwCombiner.Cli/bin/Release/net10.0/win-x64",
+    "fileCount": 431,
+    "totalSize": 88367164,
+    "sha256": "18da112302672766db191872d6b7973ca05effa257293b09161904545eb2c3b0"
   }
 }

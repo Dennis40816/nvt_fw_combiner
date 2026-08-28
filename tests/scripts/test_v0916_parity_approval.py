@@ -113,6 +113,8 @@ class V0916ParityApprovalTests(V0916ParityTestBase):
             "promotion-step-condition",
             "promotion-step-before-gate",
             "extra-job",
+            "top-defaults",
+            "top-env",
         ):
             invalid = copy.deepcopy(valid)
             compare = invalid["jobs"]["v0916-parity-compare"]
@@ -177,8 +179,12 @@ class V0916ParityApprovalTests(V0916ParityTestBase):
                         "run": "gh release create v1.0.0",
                     },
                 )
-            else:
+            elif mutation == "extra-job":
                 invalid["jobs"]["v0916-parity-bypass"] = copy.deepcopy(compare)
+            elif mutation == "top-defaults":
+                invalid["defaults"] = {"run": {"shell": "malicious-wrapper"}}
+            else:
+                invalid["env"] = {"PATH": "malicious"}
             with self.subTest(workflow_mutation=mutation):
                 with self.assertRaises(MODULE.ParityError) as captured:
                     MODULE.validate_protected_workflow_semantics(invalid, contract)
@@ -271,7 +277,53 @@ class V0916ParityApprovalTests(V0916ParityTestBase):
             self.assertEqual("pass", evidence["verdict"])
             self.assertEqual(64, len(evidence["routes"]))
             self.assertEqual(1, len(verifier.calls))
-            self.assertEqual(fixture["protectedRun"], evidence["protectedRun"])
+            for key, value in fixture["protectedRun"].items():
+                if key.endswith("Artifact"):
+                    for artifact_key, artifact_value in value.items():
+                        self.assertEqual(
+                            artifact_value,
+                            evidence["protectedRun"][key][artifact_key],
+                        )
+                else:
+                    self.assertEqual(value, evidence["protectedRun"][key])
+            self.assertIn("member", evidence["protectedRun"]["comparisonArtifact"])
+            self.assertEqual(
+                fixture["expectedVerification"]["attestationId"],
+                evidence["protectedRun"]["ownerVerification"]["attestationId"],
+            )
+
+            for mutation in (
+                "owner-attestation-id",
+                "owner-record-sha",
+                "comparison-member",
+                "comparison-canonical-bytes",
+            ):
+                forged = copy.deepcopy(evidence)
+                if mutation == "owner-attestation-id":
+                    forged["protectedRun"]["ownerVerification"][
+                        "attestationId"
+                    ] = "forged-attestation"
+                elif mutation == "owner-record-sha":
+                    forged["protectedRun"]["ownerVerification"][
+                        "verificationRecordSha256"
+                    ] = "0" * 64
+                elif mutation == "comparison-member":
+                    forged["protectedRun"]["comparisonArtifact"]["member"][
+                        "sha256"
+                    ] = "0" * 64
+                else:
+                    forged["comparison"]["sha256"] = "0" * 64
+                    forged["protectedRun"]["comparisonArtifact"]["member"][
+                        "sha256"
+                    ] = "0" * 64
+                with self.subTest(terminal_mutation=mutation):
+                    with self.assertRaises(MODULE.ParityError) as captured:
+                        MODULE.validate_terminal_evidence(
+                            forged
+                        )
+                    self.assertEqual(
+                        "PARITY_EVIDENCE_INCOMPLETE", captured.exception.code
+                    )
 
     def test_finalization_uses_each_verified_local_artifact_capture_once(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
@@ -491,11 +543,13 @@ class V0916ParityApprovalTests(V0916ParityTestBase):
             "binding": {
                 "comparisonSha256": hashlib.sha256(comparison_path.read_bytes()).hexdigest(),
                 "comparisonArtifactId": 700, "comparisonArtifactDigest": "sha256:" + "8" * 64,
-                "planSha256": "1" * 64, "policySha256": "2" * 64,
-                "implementationHead": "1d1d1cfcad7f0963dd3ed1e3e920d9a3425d6220",
-                "implementationTree": "1bc350cd3217f826ba841dfe098e919390f23546",
-                "candidatePackageSha256": "5" * 64, "candidateManifestSha256": "9" * 64,
-                "candidateArtifactDigest": "sha256:" + "a" * 64,
+                "planSha256": comparison["planSha256"],
+                "policySha256": comparison["policySha256"],
+                "implementationHead": comparison["candidateAuthority"]["implementationHead"],
+                "implementationTree": comparison["candidateAuthority"]["implementationTree"],
+                "candidatePackageSha256": comparison["candidatePackage"]["sha256"],
+                "candidateManifestSha256": comparison["candidateBuild"]["candidateManifest"]["sha256"],
+                "candidateArtifactDigest": comparison["candidateBuild"]["artifactDigest"],
                 "routeEvidenceSha256": comparison["routeEvidenceSha256"],
                 "receiptSetSha256": comparison["receiptSetSha256"],
             },
@@ -544,7 +598,7 @@ class V0916ParityApprovalTests(V0916ParityTestBase):
             "workflowRef": "refs/heads/main", "workflowCommitSha": workflow_head,
             "workflowBlobSha": workflow_blob_sha,
             "workflowRawSha256": hashlib.sha256(workflow_bytes).hexdigest(),
-            "workflowSemanticContractSha256": "daf70404996d3f520e866bac104eac1d40389c9f6feaa7920cac5681c0dda6fa",
+            "workflowSemanticContractSha256": "9f0b79013165e8b216cfa5d57d6ca65d8b040642bae3d996378487d4cc9be7ac",
             "workflowRun": {
                 "id": 123, "runAttempt": 1, "headSha": workflow_head,
                 "headBranch": "main", "event": "workflow_dispatch", "status": "completed",
@@ -689,12 +743,13 @@ class V0916ParityApprovalTests(V0916ParityTestBase):
                 "comparisonSha256": hashlib.sha256(comparison_path.read_bytes()).hexdigest(),
                 "comparisonArtifactId": 700,
                 "comparisonArtifactDigest": comparison_digest,
-                "planSha256": "1" * 64, "policySha256": "2" * 64,
-                "implementationHead": "1d1d1cfcad7f0963dd3ed1e3e920d9a3425d6220",
-                "implementationTree": "1bc350cd3217f826ba841dfe098e919390f23546",
-                "candidatePackageSha256": "5" * 64,
-                "candidateManifestSha256": "9" * 64,
-                "candidateArtifactDigest": "sha256:" + "a" * 64,
+                "planSha256": comparison["planSha256"],
+                "policySha256": comparison["policySha256"],
+                "implementationHead": comparison["candidateAuthority"]["implementationHead"],
+                "implementationTree": comparison["candidateAuthority"]["implementationTree"],
+                "candidatePackageSha256": comparison["candidatePackage"]["sha256"],
+                "candidateManifestSha256": comparison["candidateBuild"]["candidateManifest"]["sha256"],
+                "candidateArtifactDigest": comparison["candidateBuild"]["artifactDigest"],
                 "routeEvidenceSha256": comparison["routeEvidenceSha256"],
                 "receiptSetSha256": comparison["receiptSetSha256"],
                 "verifiedAtUtc": "2026-08-26T00:04:00Z",
@@ -715,14 +770,51 @@ class V0916ParityApprovalTests(V0916ParityTestBase):
         def digest(label: str) -> str:
             return hashlib.sha256(label.encode("utf-8")).hexdigest()
 
-        candidate_executor = (
-            "0b443d1cd1f61a1410d8fee843d01ec5d6839457011cc4f57954cf7b4c57eb65"
+        plan = MODULE.load_and_validate_plan(self.plan_path, self.policy_path)
+        candidate_executor = plan.raw["candidateAuthority"][
+            "sourceExecutorContract"
+        ]["sha256"]
+        baseline_executor = plan.raw["baseline"]["executorContract"]["sha256"]
+        candidate_contract = json.loads(
+            (
+                ROOT
+                / plan.raw["candidateAuthority"]["sourceExecutorContract"]["path"]
+            ).read_text(encoding="utf-8")
         )
+        baseline_contract = json.loads(
+            (ROOT / plan.raw["baseline"]["executorContract"]["path"]).read_text(
+                encoding="utf-8"
+            )
+        )
+        exact_routes = [
+            route for route in plan.routes if route.proof_kind == "exact-output"
+        ]
         exact_rows: list[dict[str, object]] = []
-        for index in range(53):
+        for index, route in enumerate(exact_routes):
             row = copy.deepcopy(self.schema_exact_evidence_row())
-            row["routeId"] = f"route-fixture-exact-{index:03d}"
-            row["capabilityFingerprint"] = digest(f"capability-exact-{index}")
+            row["routeId"] = route.route_id
+            row["capabilityFingerprint"] = route.capability_fingerprint
+            row["scenario"].update(
+                icId=route.ic_id,
+                workflowId=route.workflow_id,
+                icCountVariant=route.ic_count_variant,
+                mapVariant=route.map_variant,
+                selectionToken="fixture",
+            )
+            minimum_full_capacity = 1 + max(
+                (
+                    item.tp_length
+                    for item in plan.routes
+                    if item.full_route_id == route.route_id
+                    and item.tp_length is not None
+                ),
+                default=0,
+            )
+            capacity = max(8, minimum_full_capacity)
+            row["scenario"]["outputCapacity"] = capacity
+            row["scenario"]["orderedInputs"][0]["size"] = capacity
+            row["baselineOutput"]["size"] = capacity
+            row["candidateOutput"]["size"] = capacity
             for receipt_index, receipt in enumerate(row["receipts"]):
                 receipt["receiptSha256"] = digest(
                     f"receipt-exact-{index}-{receipt_index}"
@@ -733,13 +825,16 @@ class V0916ParityApprovalTests(V0916ParityTestBase):
                 receipt["report"]["sha256"] = digest(
                     f"report-exact-{index}-{receipt_index}"
                 )
+            row["receipts"][0]["executorIdentitySha256"] = baseline_executor
             row["receipts"][1]["executorIdentitySha256"] = candidate_executor
             exact_rows.append(row)
 
         correction = json.loads(self.plan_path.read_text(encoding="utf-8"))[
             "approvedSemanticCorrections"
         ][0]
-        correction_row = exact_rows[-1]
+        correction_row = next(
+            row for row in exact_rows if row["routeId"] == correction["routeId"]
+        )
         correction_row["routeId"] = correction["routeId"]
         correction_row["capabilityFingerprint"] = correction[
             "capabilityFingerprint"
@@ -751,6 +846,9 @@ class V0916ParityApprovalTests(V0916ParityTestBase):
         correction_row["candidateOutput"] = copy.deepcopy(
             correction["candidateOutput"]
         )
+        correction_row["scenario"]["outputCapacity"] = correction["candidateOutput"][
+            "size"
+        ]
         correction_row["differenceValidation"] = {
             "kind": correction["kind"],
             "ownerDecision": correction["ownerDecision"],
@@ -760,21 +858,39 @@ class V0916ParityApprovalTests(V0916ParityTestBase):
         correction_row["equal"] = False
 
         transitive_rows: list[dict[str, object]] = []
-        for index in range(11):
-            full = exact_rows[index]
+        transitive_routes = [
+            route
+            for route in plan.routes
+            if route.proof_kind == "tp-prefix-transitive"
+        ]
+        exact_by_id = {row["routeId"]: row for row in exact_rows}
+        for index, route in enumerate(transitive_routes):
+            full = exact_by_id[route.full_route_id]
             row = copy.deepcopy(
                 self.schema_transitive_evidence_row(
                     MODULE.canonical_route_row_sha256(full)
                 )
             )
-            row["routeId"] = f"route-fixture-transitive-{index:03d}"
-            row["capabilityFingerprint"] = digest(
-                f"capability-transitive-{index}"
-            )
+            row["routeId"] = route.route_id
+            row["capabilityFingerprint"] = route.capability_fingerprint
             row["fullEvidence"]["routeId"] = full["routeId"]
             row["fullEvidence"]["capabilityFingerprint"] = full[
                 "capabilityFingerprint"
             ]
+            row["tpLength"] = route.tp_length
+            row["tpScenario"].update(
+                icId=route.ic_id,
+                workflowId=route.workflow_id,
+                icCountVariant=route.ic_count_variant,
+                mapVariant=route.map_variant,
+                selectionToken="fixture-tp",
+                outputCapacity=route.tp_length,
+            )
+            row["candidateTpOutput"]["size"] = route.tp_length
+            row["candidateFullInput"] = {
+                key: full["scenario"]["orderedInputs"][0][key]
+                for key in ("size", "sha256")
+            }
             row["receipts"][0]["executorIdentitySha256"] = candidate_executor
             row["receipts"][0]["receiptSha256"] = digest(
                 f"receipt-transitive-{index}"
@@ -799,25 +915,24 @@ class V0916ParityApprovalTests(V0916ParityTestBase):
         ]
         comparison = {
             "schemaVersion": "1.0",
-            "planSha256": "1" * 64,
-            "policySha256": "2" * 64,
-            "comparator": {"contractVersion": "1.0", "scriptSha256": "0" * 64},
+            "planSha256": plan.identity_sha256,
+            "policySha256": plan.raw["policyBinding"]["sha256"],
+            "comparator": {
+                "contractVersion": "1.0",
+                "scriptSha256": hashlib.sha256(
+                    (ROOT / "scripts/v0916_parity_certification.py").read_bytes()
+                ).hexdigest(),
+            },
             "candidateAuthority": {
-                "implementationHead": "1d1d1cfcad7f0963dd3ed1e3e920d9a3425d6220",
-                "implementationTree": "1bc350cd3217f826ba841dfe098e919390f23546",
-                "authorityTrees": {
-                    "src": "e98ac8df13a64a53e34c4c6fc08bcde39a3c35f5",
-                    "profiles": "7f8bd06e23ee78954e2e2c222f7b44a315049330",
-                    "external-tools": "8d83e508ec3b48e000e1bef39b4b215c81b886ad",
-                    "tools/crc-worker": "bba57c51cab02ddf89fefdf449eb585de7b34ae5",
+                "implementationHead": candidate_contract["source"]["implementationHead"],
+                "implementationTree": candidate_contract["source"]["implementationTree"],
+                "authorityTrees": candidate_contract["source"]["authorityTrees"],
+                "policySha256": plan.raw["policyBinding"]["sha256"],
+                "sourceExecutorContract": {
+                    "size": plan.raw["candidateAuthority"]["sourceExecutorContract"]["size"],
+                    "sha256": candidate_executor,
                 },
-                "policySha256": "2" * 64,
-                "sourceExecutorContract": {"size": 4219, "sha256": candidate_executor},
-                "authorityTransfer": {
-                    "allowedBindingChildPaths": [
-                        "docs/contracts/v0916-parity-certification-v1.json"
-                    ],
-                },
+                "authorityTransfer": plan.raw["candidateAuthority"]["authorityTransfer"],
             },
             "baselineExecutor": {
                 "kind": "exact-tag-source-built-cli",
@@ -826,12 +941,12 @@ class V0916ParityApprovalTests(V0916ParityTestBase):
                 "sourceTree": "dc46c9aa9ecf00cb898ba3bc287e1b15acdab735",
                 "resolvedSdkVersion": "10.0.303",
                 "contract": {
-                    "size": 3351,
-                    "sha256": "861fa0fae7bf5904cac88a4bcb6ed6e0aef1a54518e0903914f2121fbc411bfb",
+                    "size": 3730,
+                    "sha256": baseline_executor,
                 },
                 "cliAssembly": {
-                    "size": 14848,
-                    "sha256": "e889668cf092fab4877aeea84642d3b48a9969a6184f1c128500673fa136f9db",
+                    "size": baseline_contract["cliAssembly"]["size"],
+                    "sha256": baseline_contract["cliAssembly"]["sha256"],
                 },
             },
             "baselineReleaseReference": {
@@ -854,7 +969,7 @@ class V0916ParityApprovalTests(V0916ParityTestBase):
                 "workflowCommitSha": "1d1d1cfcad7f0963dd3ed1e3e920d9a3425d6220",
                 "workflowBlobSha": "e" * 40,
                 "workflowRawSha256": "f" * 64,
-                "workflowSemanticContractSha256": "daf70404996d3f520e866bac104eac1d40389c9f6feaa7920cac5681c0dda6fa",
+                "workflowSemanticContractSha256": "9f0b79013165e8b216cfa5d57d6ca65d8b040642bae3d996378487d4cc9be7ac",
                 "runId": 123,
                 "artifactId": 456,
                 "artifactName": "stable-candidate-123-1d1d1cfcad7f0963dd3ed1e3e920d9a3425d6220",
@@ -879,7 +994,7 @@ class V0916ParityApprovalTests(V0916ParityTestBase):
             "routes": routes,
             "verdict": "provisional",
         }
-        MODULE.validate_comparison_schema(comparison)
+        MODULE.validate_comparison_schema(comparison, plan=plan)
         return comparison
 
     def test_comparison_rejects_forged_rows_even_after_aggregate_rehash(self) -> None:
@@ -892,6 +1007,17 @@ class V0916ParityApprovalTests(V0916ParityTestBase):
             "exact-invalid-receipt-report",
             "exact-invalid-output-sha",
             "exact-invalid-scenario-input",
+            "exact-equal-but-different-output",
+            "exact-output-capacity-mismatch",
+            "forged-baseline-executor",
+            "forged-candidate-executor",
+            "transitive-full-input-unbound",
+            "transitive-scenario-drift",
+            "forged-route-inventory",
+            "top-level-shape-forgery",
+            "duplicate-input-slot",
+            "transitive-references-correction",
+            "unauthorized-operator",
         ):
             comparison = self._schema_complete_comparison_fixture()
             transitive = next(
@@ -918,8 +1044,50 @@ class V0916ParityApprovalTests(V0916ParityTestBase):
                 exact["receipts"][0]["report"]["sha256"] = "invalid"
             elif mutation == "exact-invalid-output-sha":
                 exact["candidateOutput"]["sha256"] = "invalid"
-            else:
+            elif mutation == "exact-invalid-scenario-input":
                 exact["scenario"]["orderedInputs"][0]["size"] = 0
+            elif mutation == "exact-equal-but-different-output":
+                exact["candidateOutput"]["sha256"] = "a" * 64
+                if exact["candidateOutput"] == exact["baselineOutput"]:
+                    exact["candidateOutput"]["sha256"] = "b" * 64
+            elif mutation == "exact-output-capacity-mismatch":
+                exact["candidateOutput"]["size"] += 1
+            elif mutation == "forged-baseline-executor":
+                exact["receipts"][0]["executorIdentitySha256"] = "a" * 64
+            elif mutation == "forged-candidate-executor":
+                exact["receipts"][1]["executorIdentitySha256"] = "a" * 64
+            elif mutation == "transitive-full-input-unbound":
+                transitive["candidateFullInput"]["sha256"] = "a" * 64
+            elif mutation == "transitive-scenario-drift":
+                transitive["tpScenario"]["icId"] = "NT00000"
+            elif mutation == "forged-route-inventory":
+                exact["routeId"] = "route-forged-but-well-shaped"
+            elif mutation == "top-level-shape-forgery":
+                comparison["candidateAuthority"] = []
+            elif mutation == "duplicate-input-slot":
+                exact["scenario"]["orderedInputs"][1]["slotId"] = exact[
+                    "scenario"
+                ]["orderedInputs"][0]["slotId"]
+            elif mutation == "transitive-references-correction":
+                correction = next(
+                    row
+                    for row in comparison["routes"]
+                    if row["proofKind"]
+                    == "exact-output-with-approved-semantic-correction"
+                )
+                transitive["fullEvidence"] = {
+                    "routeId": correction["routeId"],
+                    "capabilityFingerprint": correction["capabilityFingerprint"],
+                    "evidenceSha256": MODULE.canonical_route_row_sha256(correction),
+                }
+                transitive["candidateFullInput"] = {
+                    key: correction["scenario"]["orderedInputs"][0][key]
+                    for key in ("size", "sha256")
+                }
+            else:
+                for route in comparison["routes"]:
+                    for receipt in route["receipts"]:
+                        receipt["operatorLogin"] = "unauthorized-user"
             comparison["routeEvidenceSha256"] = (
                 MODULE.canonical_route_evidence_sha256(comparison["routes"])
             )
@@ -937,7 +1105,9 @@ class V0916ParityApprovalTests(V0916ParityTestBase):
             )
             with self.subTest(mutation=mutation):
                 with self.assertRaises(MODULE.ParityError) as captured:
-                    MODULE.validate_comparison_schema(comparison)
+                    MODULE.validate_comparison_schema(
+                        comparison, authorized_operators={"dennis40816"}
+                    )
                 self.assertEqual(
                     "PARITY_EVIDENCE_INCOMPLETE", captured.exception.code
                 )

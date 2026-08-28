@@ -13,7 +13,20 @@ import unittest
 from unittest.mock import patch
 from pathlib import Path
 
-from tests.scripts.v0916_parity_test_support import MODULE, ROOT, V0916ParityTestBase
+from tests.scripts.v0916_parity_test_support import (
+    MODULE,
+    ROOT,
+    V0916ParityTestBase,
+    runtime_closure_facts,
+)
+
+
+def receipt_authority(receipt: dict[str, object]):
+    return MODULE.ReceiptValidationAuthority(
+        receipt["executionArtifactSha256"],
+        receipt["executorIdentitySha256"],
+        frozenset({receipt["invocation"]["operatorLogin"]}),
+    )
 
 
 def reload_with_post_capture_swap(
@@ -36,7 +49,9 @@ def reload_with_post_capture_swap(
         with patch.object(
             MODULE, "_read_artifact_reference", side_effect=capture_then_swap
         ):
-            reloaded = MODULE._reload_receipt_for_evidence(receipt)
+            reloaded = MODULE._reload_receipt_for_evidence(
+                receipt, authority=receipt_authority(receipt)
+            )
     finally:
         for path, payload in originals.items():
             path.write_bytes(payload)
@@ -85,6 +100,8 @@ class RecordingCliRunner:
         map_id: str = "nt51927-standard-merge-256k",
         standard_merge_map_id: str = "standard-merge-precursor-map",
         admitted_original_to_mutate_after_preview: Path | None = None,
+        original_runtime_to_mutate_after_preview: Path | None = None,
+        staged_runtime_relative_to_mutate_after_preview: str | None = None,
     ) -> None:
         self.expected_cwd = expected_cwd
         self.sources = sources
@@ -98,15 +115,21 @@ class RecordingCliRunner:
         self.admitted_original_to_mutate_after_preview = (
             admitted_original_to_mutate_after_preview
         )
+        self.original_runtime_to_mutate_after_preview = (
+            original_runtime_to_mutate_after_preview
+        )
+        self.staged_runtime_relative_to_mutate_after_preview = (
+            staged_runtime_relative_to_mutate_after_preview
+        )
         self.calls: list[tuple[list[str], Path]] = []
         self.input_observations: list[dict[str, tuple[Path, str, bool]]] = []
 
     def run(self, argv: list[str], cwd: Path) -> subprocess.CompletedProcess[str]:
         self.calls.append((list(argv), cwd))
-        if cwd != self.expected_cwd:
-            raise AssertionError("CLI must run from its verified source root")
-        action = argv[3]
-        workflow_id = argv[2]
+        if cwd != Path(argv[0]).parent or cwd == self.expected_cwd:
+            raise AssertionError("CLI must run from its immutable staged runtime closure")
+        action = argv[2]
+        workflow_id = argv[1]
         sources = self._sources_from_argv(argv, workflow_id)
         self.input_observations.append({
             {"dp-input": "--dp", "tp-input": "--tp", "dp-ab-input": "--dp-ab", "tp-a-input": "--tp-a", "tp-b-input": "--tp-b"}.get(slot, slot): (
@@ -150,6 +173,16 @@ class RecordingCliRunner:
         if self.admitted_original_to_mutate_after_preview is not None and action == "preview":
             original = self.admitted_original_to_mutate_after_preview
             original.write_bytes(original.read_bytes() + b"malicious-original-mutation")
+        if self.original_runtime_to_mutate_after_preview is not None and action == "preview":
+            original = self.original_runtime_to_mutate_after_preview
+            original.write_bytes(original.read_bytes() + b"post-capture-runtime-swap")
+        if (
+            self.staged_runtime_relative_to_mutate_after_preview is not None
+            and action == "preview"
+        ):
+            staged = cwd / self.staged_runtime_relative_to_mutate_after_preview
+            staged.chmod(stat.S_IWRITE)
+            staged.write_bytes(staged.read_bytes() + b"staged-runtime-mutation")
         return subprocess.CompletedProcess(argv, 0, "ok", "")
 
     def _sources_from_argv(
@@ -182,22 +215,36 @@ class RecordingCliRunner:
     ) -> dict[str, object]:
         digest = hashlib.sha256(payload).hexdigest()
         byte_range = {"Start": 0, "Length": len(payload), "EndExclusive": len(payload)}
-        operation = {
-            "OperationId": "copy-dp", "Sequence": 0, "Kind": "CopyRange",
-            "Status": "Succeeded", "SourceSpaceId": sources[0][0],
-            "SourceRange": byte_range, "TargetSpaceId": "output-image",
-            "TargetRange": byte_range, "OverlapPolicy": "Reject",
-            "ProcessorId": None, "ToolBindingId": None,
-            "ProcessorAllowedReadRanges": [], "ProcessorAllowedWriteRanges": [],
-            "ExecutedCommands": [], "Reason": "typed test operation",
-            "Provenance": {"Kind": "built-in-profile", "SourceId": None, "SourceVersion": None},
-        }
-        mutations = [] if not committed else [{
-            "OperationId": "copy-dp", "Kind": "CopyRange",
-            "TargetSpaceId": "output-image", "TargetRange": byte_range,
-            "ChangedByteCount": len(payload), "BeforeSha256": "0" * 64,
-            "AfterSha256": digest, "Reason": "typed test mutation",
-        }]
+        operations = []
+        operation_sources = sources[1:] if workflow_id == "ctrlram-replace" else sources
+        for sequence, (slot, source) in enumerate(operation_sources):
+            # This runner proves typed source/target binding, not production map
+            # geometry. Give each synthetic operation one distinct byte so the
+            # report remains a valid non-overlapping compiled plan for every
+            # workflow shape exercised here.
+            start = sequence
+            length = 1
+            target_range = {"Start": start, "Length": length, "EndExclusive": start + length}
+            source_range = {"Start": 0, "Length": length, "EndExclusive": length}
+            operations.append({
+                "OperationId": f"copy-{sequence}", "Sequence": sequence, "Kind": "CopyRange",
+                "Status": "Succeeded", "SourceSpaceId": slot,
+                "SourceRange": source_range, "TargetSpaceId": "output-image",
+                "TargetRange": target_range, "OverlapPolicy": "Reject",
+                "ProcessorId": None, "ToolBindingId": None,
+                "ProcessorAllowedReadRanges": [], "ProcessorAllowedWriteRanges": [],
+                "ExecutedCommands": [], "Reason": "typed test operation",
+                "Provenance": {"Kind": "built-in-profile", "SourceId": None, "SourceVersion": None},
+            })
+        mutations = [] if not committed else [
+            {
+                "OperationId": operation["OperationId"], "Kind": "CopyRange",
+                "TargetSpaceId": "output-image", "TargetRange": operation["TargetRange"],
+                "ChangedByteCount": operation["TargetRange"]["Length"], "BeforeSha256": "0" * 64,
+                "AfterSha256": digest, "Reason": "typed test mutation",
+            }
+            for operation in operations
+        ]
         return {
             "RunId": "test-run", "ProfileId": profile_id, "MapId": map_id,
             "ProfileVersion": "1.0.0", "IcId": self.ic_id,
@@ -213,7 +260,7 @@ class RecordingCliRunner:
                 }
                 for slot, path in sources
             ],
-            "Operations": [operation], "Mutations": mutations, "Issues": [],
+            "Operations": operations, "Mutations": mutations, "Issues": [],
             "Output": {"FileName": output.name, "Size": len(payload), "Sha256": digest, "Committed": committed},
             "OutputDifferences": [], "CompilationFingerprint": "a" * 64,
             "Validations": [], "OutputNaming": None,
@@ -258,12 +305,17 @@ class V0916ParityPipelineTests(V0916ParityTestBase):
         )
         route = next(row for row in plan.routes if row.route_id == route_id)
         manifest_path = ROOT / "testdata/golden/canonical/manifest.json"
-        manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
-        manifest["__manifestPath"] = str(manifest_path)
+        authority = MODULE.capture_canonical_authority_from_manifest_for_test(
+            manifest_path
+        )
+        manifest = MODULE._canonical_snapshot_json(
+            authority, authority.manifest_relative
+        )
+        manifest["__manifestRelative"] = authority.manifest_relative
         evidence = next(
             row for row in manifest["routeEvidence"] if row["routeId"] == route_id
         )
-        case = MODULE._resolve_case(manifest, evidence["caseId"])
+        case = MODULE._resolve_case(authority, manifest, evidence["caseId"])
 
         bindings, recipe = MODULE._ctrlram_artifact_bindings(
             plan,
@@ -273,6 +325,40 @@ class V0916ParityPipelineTests(V0916ParityTestBase):
 
         self.assertIsNone(recipe)
         self.assertEqual("replace-base", bindings[0][1])
+
+    def test_canonical_resolution_uses_the_captured_git_snapshot_after_path_swap(
+        self,
+    ) -> None:
+        plan = MODULE.load_and_validate_plan(self.plan_path, self.policy_path)
+        captured = MODULE.capture_canonical_authority_from_manifest_for_test(
+            ROOT / "testdata/golden/canonical/manifest.json"
+        )
+        route_id = (
+            "route-7-nt51927-14-standard-merge-13-selector-free-27-"
+            "nt51927-standard-merge-256k"
+        )
+        with tempfile.TemporaryDirectory() as temporary:
+            fake_root = Path(temporary) / "mutable-materialization"
+            fake_root.mkdir()
+            (fake_root / captured.manifest_relative).parent.mkdir(
+                parents=True, exist_ok=True
+            )
+            (fake_root / captured.manifest_relative).write_bytes(
+                b'{"forged":"post-capture"}'
+            )
+            swapped = captured._replace(root=fake_root)
+            verified = MODULE.resolve_canonical_route_input(
+                plan,
+                swapped,
+                admitted_input_root=Path(temporary) / "admitted",
+                route_id=route_id,
+                execution_role="candidate-exact",
+            )
+            self.assertEqual(route_id, verified.route_id)
+            for item in verified.request["orderedInputs"]:
+                payload = Path(item["path"]).read_bytes()
+                self.assertEqual(item["size"], len(payload))
+                self.assertEqual(item["sha256"], hashlib.sha256(payload).hexdigest())
 
     def test_required_execution_matrix_is_exactly_53_baseline_and_64_candidate_pairs(self) -> None:
         plan = MODULE.load_and_validate_plan(self.plan_path, self.policy_path)
@@ -332,7 +418,9 @@ class V0916ParityPipelineTests(V0916ParityTestBase):
                 plan,
                 canonical_inputs=MODULE.resolve_all_canonical_route_inputs(
                     plan,
-                    ROOT / "testdata/golden/canonical/manifest.json",
+                    MODULE.capture_canonical_authority_from_manifest_for_test(
+                        ROOT / "testdata/golden/canonical/manifest.json"
+                    ),
                 ),
             )
         self.assertEqual("PARITY_FIXTURE_MISSING", missing.exception.code)
@@ -348,13 +436,15 @@ class V0916ParityPipelineTests(V0916ParityTestBase):
             root = Path(temporary)
             source_root = root / "verified-source"
             source_root.mkdir()
-            cli = source_root / "src/NvtFwCombiner.Cli/bin/Release/net10.0/NvtFwCombiner.Cli.dll"
+            cli = source_root / "src/NvtFwCombiner.Cli/bin/Release/net10.0/win-x64/NvtFwCombiner.Cli.exe"
             cli.parent.mkdir(parents=True)
             cli.write_bytes(b"cli")
             plan = MODULE.load_and_validate_plan(self.plan_path, self.policy_path)
             verified_inputs = MODULE.resolve_canonical_route_input(
                 plan,
-                ROOT / "testdata/golden/canonical/manifest.json",
+                MODULE.capture_canonical_authority_from_manifest_for_test(
+                    ROOT / "testdata/golden/canonical/manifest.json"
+                ),
                 admitted_input_root=root / "admitted-inputs",
                 route_id=(
                     "route-7-nt51927-14-standard-merge-13-selector-free-27-"
@@ -380,6 +470,7 @@ class V0916ParityPipelineTests(V0916ParityTestBase):
                 path: hashlib.sha256(path.read_bytes()).hexdigest()
                 for path in (input_path, tp_path)
             }
+            runtime_sha, runtime_count, runtime_size = runtime_closure_facts(cli.parent)
             verified_executor = MODULE.VerifiedSourceExecutor(
                 kind="candidate-source-built-cli",
                 source_root=source_root,
@@ -389,8 +480,11 @@ class V0916ParityPipelineTests(V0916ParityTestBase):
                 cli_path=cli,
                 cli_size=cli.stat().st_size,
                 cli_sha256=hashlib.sha256(cli.read_bytes()).hexdigest(),
-                argv_prefix=("dotnet", str(cli)),
+                argv_prefix=(str(cli),),
                 fresh_build=True,
+                runtime_closure_sha256=runtime_sha,
+                runtime_file_count=runtime_count,
+                runtime_total_size=runtime_size,
             )
             forged_tiny_request = copy.deepcopy(request)
             forged_tiny_request["orderedInputs"][0].update(size=1, sha256="0" * 64)
@@ -412,10 +506,19 @@ class V0916ParityPipelineTests(V0916ParityTestBase):
             self.assertEqual("c" * 64, receipt["executorIdentitySha256"])
             self.assertEqual(2, len(runner.calls))
             preview, build = runner.calls
-            self.assertEqual(["dotnet", str(cli), "standard-merge", "preview"], preview[0][:4])
-            self.assertEqual(["dotnet", str(cli), "standard-merge", "build"], build[0][:4])
+            staged_cli = Path(preview[0][0])
+            self.assertEqual(
+                [str(staged_cli), "standard-merge", "preview"],
+                preview[0][:3],
+            )
+            self.assertEqual(
+                [str(staged_cli), "standard-merge", "build"],
+                build[0][:3],
+            )
+            self.assertNotEqual(cli, staged_cli)
+            self.assertTrue(staged_cli.is_relative_to(output_root))
             for call_index, (argv, cwd) in enumerate(runner.calls):
-                self.assertEqual(source_root, cwd)
+                self.assertEqual(staged_cli.parent, cwd)
                 self.assertEqual("NT51927", argv[argv.index("--profile") + 1])
                 staged_dp, staged_dp_hash, staged_dp_read_only = runner.input_observations[call_index]["--dp"]
                 staged_tp, staged_tp_hash, staged_tp_read_only = runner.input_observations[call_index]["--tp"]
@@ -496,7 +599,9 @@ class V0916ParityPipelineTests(V0916ParityTestBase):
                 artifact_path.write_bytes(original_payload + b"post-receipt-tamper")
                 with self.subTest(post_receipt_tamper=role):
                     with self.assertRaises(MODULE.ParityError) as tampered:
-                        MODULE._reload_receipt_for_evidence(projected)
+                        MODULE._reload_receipt_for_evidence(
+                            projected, authority=receipt_authority(projected)
+                        )
                     self.assertEqual(
                         "PARITY_PROVENANCE_INVALID", tampered.exception.code
                     )
@@ -504,10 +609,35 @@ class V0916ParityPipelineTests(V0916ParityTestBase):
             swapped = copy.deepcopy(projected)
             swapped["output"]["path"] = projected["inputs"][0]["path"]
             with self.assertRaises(MODULE.ParityError) as swapped_output:
-                MODULE._reload_receipt_for_evidence(swapped)
+                MODULE._reload_receipt_for_evidence(
+                    swapped, authority=receipt_authority(projected)
+                )
             self.assertEqual(
                 "PARITY_PROVENANCE_INVALID", swapped_output.exception.code
             )
+            authority = receipt_authority(projected)
+            for name, forged_authority in (
+                (
+                    "execution-artifact",
+                    authority._replace(execution_artifact_sha256="0" * 64),
+                ),
+                (
+                    "executor",
+                    authority._replace(executor_identity_sha256="0" * 64),
+                ),
+                (
+                    "operator",
+                    authority._replace(authorized_operators=frozenset({"other"})),
+                ),
+            ):
+                with self.subTest(external_receipt_authority=name):
+                    with self.assertRaises(MODULE.ParityError) as forged:
+                        MODULE._reload_receipt_for_evidence(
+                            projected, authority=forged_authority
+                        )
+                    self.assertEqual(
+                        "PARITY_PROVENANCE_INVALID", forged.exception.code
+                    )
             target_roles = {
                 "receipt",
                 "input",
@@ -527,7 +657,9 @@ class V0916ParityPipelineTests(V0916ParityTestBase):
 
             baseline_inputs = MODULE.resolve_canonical_route_input(
                 plan,
-                ROOT / "testdata/golden/canonical/manifest.json",
+                MODULE.capture_canonical_authority_from_manifest_for_test(
+                    ROOT / "testdata/golden/canonical/manifest.json"
+                ),
                 admitted_input_root=root / "baseline-admitted-inputs",
                 route_id=verified_inputs.route_id,
                 execution_role="baseline-exact",
@@ -542,7 +674,7 @@ class V0916ParityPipelineTests(V0916ParityTestBase):
             baseline_executor = verified_executor.with_changes(
                 kind="exact-tag-source-built-cli",
                 contract_identity_sha256=(
-                    "861fa0fae7bf5904cac88a4bcb6ed6e0aef1a54518e0903914f2121fbc411bfb"
+                    "92e400212b5cdbb5e164b4d1401d59cdd1adbb0aef9a490be4777554d5b1e659"
                 ),
             )
             baseline_capture = MODULE.execute_cli_capture(
@@ -565,6 +697,8 @@ class V0916ParityPipelineTests(V0916ParityTestBase):
                 route=route,
                 baseline_receipt=baseline_projected,
                 candidate_receipt=projected,
+                baseline_authority=receipt_authority(baseline_projected),
+                candidate_authority=receipt_authority(projected),
             )
             self.assertTrue(evidence["equal"])
             self.assertTrue(evidence["passed"])
@@ -605,31 +739,154 @@ class V0916ParityPipelineTests(V0916ParityTestBase):
                 admitted_original_to_mutate_after_preview=input_path,
             )
             admitted_hash = request["orderedInputs"][0]["sha256"]
-            with self.assertRaises(MODULE.ParityError) as mutated:
-                MODULE.execute_cli_capture(
-                    verified_inputs,
-                    verified_executor=verified_executor,
-                    output_root=output_root / "malicious",
-                    process_runner=malicious_runner,
-                )
-            self.assertEqual("PARITY_INPUT_MUTATED", mutated.exception.code)
-            self.assertEqual(1, len(malicious_runner.calls))
-            self.assertFalse(
-                (output_root / "malicious" / verified_inputs.route_id).exists()
+            isolated = MODULE.execute_cli_capture(
+                verified_inputs,
+                verified_executor=verified_executor,
+                output_root=output_root / "malicious",
+                process_runner=malicious_runner,
             )
+            self.assertEqual(2, len(malicious_runner.calls))
+            self.assertEqual(admitted_hash, isolated["output"]["sha256"])
             self.assertNotEqual(
                 admitted_hash,
                 hashlib.sha256(input_path.read_bytes()).hexdigest(),
             )
-            self.assertEqual(1, len(malicious_runner.input_observations))
+            self.assertEqual(2, len(malicious_runner.input_observations))
+
+    def test_runtime_closure_uses_one_capture_and_rejects_staged_dependency_mutation(
+        self,
+    ) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            source_root = root / "verified-source"
+            cli = (
+                source_root
+                / "src/NvtFwCombiner.Cli/bin/Release/net10.0/win-x64/NvtFwCombiner.Cli.exe"
+            )
+            cli.parent.mkdir(parents=True)
+            cli.write_bytes(b"cli")
+            dependency = cli.parent / "Runtime.Dependency.dll"
+            dependency.write_bytes(b"captured-dependency")
+            runtime_sha, runtime_count, runtime_size = runtime_closure_facts(cli.parent)
+            executor = MODULE.VerifiedSourceExecutor(
+                "candidate-source-built-cli",
+                source_root,
+                "1" * 40,
+                "2" * 40,
+                "c" * 64,
+                cli,
+                cli.stat().st_size,
+                hashlib.sha256(cli.read_bytes()).hexdigest(),
+                (str(cli),),
+                True,
+                runtime_sha,
+                runtime_count,
+                runtime_size,
+            )
+            plan = MODULE.load_and_validate_plan(self.plan_path, self.policy_path)
+            verified = MODULE.resolve_canonical_route_input(
+                plan,
+                MODULE.capture_canonical_authority_from_manifest_for_test(
+                    ROOT / "testdata/golden/canonical/manifest.json"
+                ),
+                admitted_input_root=root / "admitted",
+                route_id=(
+                    "route-7-nt51927-14-standard-merge-13-selector-free-27-"
+                    "nt51927-standard-merge-256k"
+                ),
+                execution_role="candidate-exact",
+            )
+            sources = [
+                (row["slotId"], Path(row["path"]))
+                for row in verified.request["orderedInputs"]
+            ]
+            original_swap_runner = RecordingCliRunner(
+                expected_cwd=source_root,
+                sources=sources,
+                original_runtime_to_mutate_after_preview=dependency,
+            )
+            MODULE.execute_cli_capture(
+                verified,
+                verified_executor=executor,
+                output_root=root / "original-swap",
+                process_runner=original_swap_runner,
+            )
+            self.assertEqual(
+                b"captured-dependencypost-capture-runtime-swap",
+                dependency.read_bytes(),
+            )
+
+            dependency.write_bytes(b"captured-dependency")
+            staged_swap_runner = RecordingCliRunner(
+                expected_cwd=source_root,
+                sources=sources,
+                staged_runtime_relative_to_mutate_after_preview=dependency.name,
+            )
+            with self.assertRaises(MODULE.ParityError) as captured:
+                MODULE.execute_cli_capture(
+                    verified,
+                    verified_executor=executor,
+                    output_root=root / "staged-swap",
+                    process_runner=staged_swap_runner,
+                )
+            self.assertEqual("PARITY_AUTHORITY_MISMATCH", captured.exception.code)
+
+    def test_ctrlram_evidence_requires_each_selected_replacement_to_change_its_range(
+        self,
+    ) -> None:
+        receipt = {
+            "scenario": {"workflowId": "ctrlram-replace"},
+            "inputs": [
+                {"slotId": "replace-base", "role": "base"},
+                {"slotId": "replace-ctrlram-nf", "role": "replacement"},
+            ],
+            "__projection": {
+                "compiledOperations": [
+                    {
+                        "operationId": "copy-nf",
+                        "sourceSpaceId": "replace-ctrlram-nf",
+                        "targetRange": {
+                            "addressSpace": "output-image",
+                            "start": 10,
+                            "endExclusive": 20,
+                        },
+                    }
+                ],
+                "compiledMutations": [
+                    {
+                        "operationId": "copy-nf",
+                        "changedByteCount": 1,
+                        "targetRange": {
+                            "addressSpace": "output-image",
+                            "start": 12,
+                            "endExclusive": 13,
+                        },
+                    }
+                ],
+            },
+        }
+        MODULE._validate_ctrlram_replacement_effect(receipt)
+        for mutation in ("no-mutation", "wrong-source"):
+            forged = copy.deepcopy(receipt)
+            if mutation == "no-mutation":
+                forged["__projection"]["compiledMutations"] = []
+            else:
+                forged["__projection"]["compiledOperations"][0][
+                    "sourceSpaceId"
+                ] = "other-slot"
+            with self.subTest(mutation=mutation):
+                with self.assertRaises(MODULE.ParityError) as captured:
+                    MODULE._validate_ctrlram_replacement_effect(forged)
+                self.assertEqual("PARITY_PROVENANCE_INVALID", captured.exception.code)
 
     def test_comparator_invokes_ab_and_ctrlram_with_typed_cli_arguments_and_profile_binding(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary)
             source_root = root / "verified-source"
-            cli = source_root / "src/NvtFwCombiner.Cli/bin/Release/net10.0/NvtFwCombiner.Cli.dll"
+            cli = source_root / "src/NvtFwCombiner.Cli/bin/Release/net10.0/win-x64/NvtFwCombiner.Cli.exe"
             cli.parent.mkdir(parents=True)
             cli.write_bytes(b"cli")
+            runtime_sha, runtime_count, runtime_size = runtime_closure_facts(cli.parent)
             executor = MODULE.VerifiedSourceExecutor(
                 kind="candidate-source-built-cli",
                 source_root=source_root,
@@ -639,8 +896,11 @@ class V0916ParityPipelineTests(V0916ParityTestBase):
                 cli_path=cli,
                 cli_size=cli.stat().st_size,
                 cli_sha256=hashlib.sha256(cli.read_bytes()).hexdigest(),
-                argv_prefix=("dotnet", str(cli)),
+                argv_prefix=(str(cli),),
                 fresh_build=True,
+                runtime_closure_sha256=runtime_sha,
+                runtime_file_count=runtime_count,
+                runtime_total_size=runtime_size,
             )
             plan = MODULE.load_and_validate_plan(self.plan_path, self.policy_path)
             cases = [
@@ -722,7 +982,9 @@ class V0916ParityPipelineTests(V0916ParityTestBase):
             ) in enumerate(cases):
                 verified = MODULE.resolve_canonical_route_input(
                     plan,
-                    ROOT / "testdata/golden/canonical/manifest.json",
+                    MODULE.capture_canonical_authority_from_manifest_for_test(
+                        ROOT / "testdata/golden/canonical/manifest.json"
+                    ),
                     admitted_input_root=root / f"admitted-{index}",
                     route_id=route_id,
                     execution_role=execution_role,
@@ -752,7 +1014,7 @@ class V0916ParityPipelineTests(V0916ParityTestBase):
                     executor.with_changes(
                         kind="exact-tag-source-built-cli",
                         contract_identity_sha256=(
-                            "861fa0fae7bf5904cac88a4bcb6ed6e0aef1a54518e0903914f2121fbc411bfb"
+                            "92e400212b5cdbb5e164b4d1401d59cdd1adbb0aef9a490be4777554d5b1e659"
                         ),
                     )
                     if execution_role == "baseline-exact"
@@ -769,11 +1031,11 @@ class V0916ParityPipelineTests(V0916ParityTestBase):
                 workflow_calls = [
                     (argv, cwd)
                     for argv, cwd in runner.calls
-                    if argv[2] == workflow
+                    if argv[1] == workflow
                 ]
                 self.assertEqual(2, len(workflow_calls))
                 for argv, _ in workflow_calls:
-                    self.assertEqual(workflow, argv[2])
+                    self.assertEqual(workflow, argv[1])
                     for value in required:
                         self.assertIn(value, argv)
                 projected = MODULE.build_process_receipt(
@@ -808,7 +1070,10 @@ class V0916ParityPipelineTests(V0916ParityTestBase):
                         )
                         with self.subTest(base_precursor_tamper=tamper_index):
                             with self.assertRaises(MODULE.ParityError) as tampered:
-                                MODULE._reload_receipt_for_evidence(projected)
+                                MODULE._reload_receipt_for_evidence(
+                                    projected,
+                                    authority=receipt_authority(projected),
+                                )
                             self.assertEqual(
                                 "PARITY_PROVENANCE_INVALID",
                                 tampered.exception.code,
@@ -886,12 +1151,20 @@ class V0916ParityPipelineTests(V0916ParityTestBase):
                 route=full_route,
                 baseline_receipt=baseline_full,
                 candidate_receipt=candidate_full,
+                baseline_authority=receipt_authority(baseline_full),
+                candidate_authority=receipt_authority(candidate_full),
             )
             full_base_path = Path(candidate_full["inputs"][0]["path"])
             tp_base_path = Path(candidate_tp["inputs"][0]["path"])
-            baseline_capture = MODULE._reload_receipt_for_evidence(baseline_full)
-            candidate_capture = MODULE._reload_receipt_for_evidence(candidate_full)
-            tp_capture = MODULE._reload_receipt_for_evidence(candidate_tp)
+            baseline_capture = MODULE._reload_receipt_for_evidence(
+                baseline_full, authority=receipt_authority(baseline_full)
+            )
+            candidate_capture = MODULE._reload_receipt_for_evidence(
+                candidate_full, authority=receipt_authority(candidate_full)
+            )
+            tp_capture = MODULE._reload_receipt_for_evidence(
+                candidate_tp, authority=receipt_authority(candidate_tp)
+            )
             full_payload = b"F" * (tp_route.tp_length + 32)
             tp_payload = full_payload[: tp_route.tp_length]
             baseline_capture["__outputBytes"] = full_payload
@@ -915,7 +1188,7 @@ class V0916ParityPipelineTests(V0916ParityTestBase):
                 with patch.object(
                     MODULE,
                     "_reload_receipt_for_evidence",
-                    side_effect=lambda receipt: copy.deepcopy(captures[id(receipt)]),
+                    side_effect=lambda receipt, **_: copy.deepcopy(captures[id(receipt)]),
                 ):
                     transitive = MODULE.build_transitive_route_evidence(
                         route=tp_route,
@@ -924,6 +1197,8 @@ class V0916ParityPipelineTests(V0916ParityTestBase):
                         baseline_full_receipt=baseline_full,
                         candidate_full_receipt=candidate_full,
                         candidate_tp_receipt=candidate_tp,
+                        baseline_authority=receipt_authority(baseline_full),
+                        candidate_authority=receipt_authority(candidate_full),
                     )
             finally:
                 for path, payload in originals.items():
@@ -933,7 +1208,9 @@ class V0916ParityPipelineTests(V0916ParityTestBase):
             precursor_route_id = cases[1][0]
             precursor_verified = MODULE.resolve_canonical_route_input(
                 plan,
-                ROOT / "testdata/golden/canonical/manifest.json",
+                MODULE.capture_canonical_authority_from_manifest_for_test(
+                    ROOT / "testdata/golden/canonical/manifest.json"
+                ),
                 admitted_input_root=root / "admitted-precursor-map-mismatch",
                 route_id=precursor_route_id,
                 execution_role="candidate-exact",
@@ -978,7 +1255,9 @@ class V0916ParityPipelineTests(V0916ParityTestBase):
 
             verified = MODULE.resolve_canonical_route_input(
                 plan,
-                ROOT / "testdata/golden/canonical/manifest.json",
+                MODULE.capture_canonical_authority_from_manifest_for_test(
+                    ROOT / "testdata/golden/canonical/manifest.json"
+                ),
                 admitted_input_root=root / "admitted-profile-mismatch",
                 route_id=cases[0][0],
                 execution_role="candidate-exact",

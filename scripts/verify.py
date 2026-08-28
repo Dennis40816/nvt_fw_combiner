@@ -303,7 +303,7 @@ CI_DOTNET_SHARDS: dict[str, tuple[CiDotnetProject, ...]] = {
         CiDotnetProject(
             "tests/NvtFwCombiner.Application.Tests/"
             "NvtFwCombiner.Application.Tests.csproj",
-            895,
+            896,
         ),
         CiDotnetProject(
             "tests/NvtFwCombiner.Infrastructure.Tests/"

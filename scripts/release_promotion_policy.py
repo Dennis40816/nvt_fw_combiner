@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import argparse
 import hashlib
+import io
 import json
 import os
 import re
@@ -552,12 +553,12 @@ def validate_version_only_lineage(repository: Path) -> None:
     )
 
 
-def _read_closed_zip(path: Path) -> dict[str, bytes]:
-    _require(path.is_file(), f"release package is missing: {path}")
+def _read_closed_zip(path: Path, captured: bytes | None = None) -> dict[str, bytes]:
+    _require(captured is not None or path.is_file(), f"release package is missing: {path}")
     entries: dict[str, bytes] = {}
     identities: set[str] = set()
     try:
-        with zipfile.ZipFile(path) as archive:
+        with zipfile.ZipFile(io.BytesIO(captured) if captured is not None else path) as archive:
             for entry in archive.infolist():
                 if entry.is_dir():
                     continue
@@ -712,12 +713,13 @@ def validate_version_only_packages(
     base_sha = _git(repository, "rev-parse", "--verify", "refs/tags/v1.0.0^{commit}")
     candidate_sha = _git(repository, "rev-parse", "--verify", "HEAD^{commit}")
     resolved_base_package = base_package.resolve(strict=True)
+    base_package_bytes = resolved_base_package.read_bytes()
     _require_sha256(base_package_sha256, "published 1.0.0 package SHA-256")
     _require(
-        _sha256(resolved_base_package) == base_package_sha256,
+        hashlib.sha256(base_package_bytes).hexdigest() == base_package_sha256,
         "published 1.0.0 package does not match its independently supplied asset digest",
     )
-    base_entries = _read_closed_zip(resolved_base_package)
+    base_entries = _read_closed_zip(resolved_base_package, base_package_bytes)
     candidate_entries = _read_closed_zip(candidate_package.resolve())
     _require(
         set(base_entries) == set(candidate_entries),
@@ -782,12 +784,13 @@ def extract_version_only_stable_payload(
     validate_version_only_lineage(repository)
     base_sha = _git(repository, "rev-parse", "--verify", "refs/tags/v1.0.0^{commit}")
     resolved_base_package = base_package.resolve(strict=True)
+    base_package_bytes = resolved_base_package.read_bytes()
     _require_sha256(base_package_sha256, "published 1.0.0 package SHA-256")
     _require(
-        _sha256(resolved_base_package) == base_package_sha256,
+        hashlib.sha256(base_package_bytes).hexdigest() == base_package_sha256,
         "published 1.0.0 package does not match its independently supplied asset digest",
     )
-    entries = _read_closed_zip(resolved_base_package)
+    entries = _read_closed_zip(resolved_base_package, base_package_bytes)
     _require(relative_path in entries, "published 1.0.0 package payload is missing")
     manifest = _manifest_from_package(entries)
     _normalize_version_manifest(manifest, version="1.0.0", source_sha=base_sha)
