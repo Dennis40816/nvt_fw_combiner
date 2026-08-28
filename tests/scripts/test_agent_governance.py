@@ -10,6 +10,7 @@ import tempfile
 import unittest
 from pathlib import Path
 from typing import Any
+from unittest import mock
 
 import yaml
 
@@ -22,6 +23,7 @@ from validate_repository import (  # noqa: E402
     _parse_git_name_status,
     validate_capability_reuse_governance,
 )
+import validate_repository as repository_validator  # noqa: E402
 
 
 class AgentGovernanceTests(unittest.TestCase):
@@ -31,6 +33,7 @@ class AgentGovernanceTests(unittest.TestCase):
         self._git("init", "-q")
         self._git("config", "user.name", "Governance Test")
         self._git("config", "user.email", "governance@example.invalid")
+        self._git("config", "core.autocrlf", "false")
         self._write(".gitignore", "artifacts/\n")
         self._write("AGENTS.md", "# Baseline instructions\n")
         self._write("src/Product/Owner.cs", "internal sealed class Owner {}\n")
@@ -273,6 +276,27 @@ class AgentGovernanceTests(unittest.TestCase):
             )
             self._git("add", "--", relative)
         self._git("commit", "-q", "-m", "record external authority evidence")
+        return self._git("rev-parse", "HEAD").stdout.strip()
+
+    def _merge_descendant_as_redundant_second_parent(
+        self,
+        descendant: str,
+        ancestor: str,
+        *,
+        mutate_merge_tree: bool = False,
+    ) -> str:
+        branch = f"reviewed-{descendant[:12]}"
+        self._git("branch", branch, descendant)
+        self._git("checkout", "-q", "--detach", ancestor)
+        merge_arguments = ["merge", "--no-ff", "-q", "-m", "redundant containment merge"]
+        if mutate_merge_tree:
+            merge_arguments.extend(["--no-commit"])
+        merge_arguments.append(branch)
+        self._git(*merge_arguments)
+        if mutate_merge_tree:
+            self._write("scratch/merge-only.txt", "merge-only tree mutation\n")
+            self._git("add", "--", "scratch/merge-only.txt")
+            self._git("commit", "-q", "-m", "distinct merge tree")
         return self._git("rev-parse", "HEAD").stdout.strip()
 
     def test_authority_classifier_covers_each_governed_surface_without_nearby_spill(self) -> None:
@@ -803,6 +827,124 @@ class AgentGovernanceTests(unittest.TestCase):
 
         self.assertTrue(any("immutable after commit" in error for error in self.validate()))
 
+    def test_final_record_remains_valid_after_redundant_containment_merge(self) -> None:
+        evidence_commit = self._finalize_first_batch()
+        reviewed_head = self._git("rev-parse", f"{evidence_commit}^").stdout.strip()
+        self._merge_descendant_as_redundant_second_parent(evidence_commit, reviewed_head)
+
+        self.assertEqual([], self.validate())
+
+    def test_distinct_merge_tree_does_not_bypass_final_record_immutability(self) -> None:
+        evidence_commit = self._finalize_first_batch()
+        reviewed_head = self._git("rev-parse", f"{evidence_commit}^").stdout.strip()
+        self._merge_descendant_as_redundant_second_parent(
+            evidence_commit,
+            reviewed_head,
+            mutate_merge_tree=True,
+        )
+
+        self.assertTrue(any("changed in commit history" in error for error in self.validate()))
+
+    def test_noncontained_parent_does_not_bypass_final_record_immutability(self) -> None:
+        evidence_commit = self._finalize_first_batch()
+        evidence_branch = f"reviewed-{evidence_commit[:12]}"
+        self._git("branch", evidence_branch, evidence_commit)
+        self._git("checkout", "-q", "--detach", self.integration_base)
+        self._write("scratch/noncontained.txt", "independent side branch\n")
+        self._git("add", "--", "scratch/noncontained.txt")
+        self._git("commit", "-q", "-m", "independent side branch")
+        self._git("merge", "--no-ff", "--no-commit", "-q", evidence_branch)
+        self._git("read-tree", "--reset", "-u", evidence_branch)
+        self._git("commit", "-q", "-m", "select reviewed tree from noncontained branch")
+
+        self.assertTrue(any("changed in commit history" in error for error in self.validate()))
+
+    def test_underlying_record_mutation_is_detected_through_redundant_merge(self) -> None:
+        evidence_commit = self._finalize_first_batch()
+        relative = "docs/governance/change-records/TEST-01.json"
+        original = self._git("show", f"{evidence_commit}:{relative}").stdout
+        record = json.loads(original)
+        record["capability"] = "Temporary branch tamper"
+        self._write_record(record)
+        self._git("commit", "-q", "-m", "tamper on reviewed ancestry")
+        self._write(relative, original)
+        self._git("add", "--", relative)
+        self._git("commit", "-q", "-m", "restore reviewed ancestry")
+        descendant = self._git("rev-parse", "HEAD").stdout.strip()
+        self._merge_descendant_as_redundant_second_parent(descendant, evidence_commit)
+
+        self.assertTrue(any("changed in commit history" in error for error in self.validate()))
+
+    def test_equal_parent_trees_do_not_hide_underlying_record_mutation(self) -> None:
+        evidence_commit = self._finalize_first_batch()
+        relative = "docs/governance/change-records/TEST-01.json"
+        original = self._git("show", f"{evidence_commit}:{relative}").stdout
+        self._git("checkout", "-q", "--detach", evidence_commit)
+        record = json.loads(original)
+        record["capability"] = "Temporary equal-tree branch tamper"
+        self._write_record(record)
+        self._git("commit", "-q", "-m", "tamper first equal-tree ancestry")
+        self._write(relative, original)
+        self._git("add", "--", relative)
+        self._git("commit", "-q", "-m", "restore first equal-tree ancestry")
+        first_parent = self._git("rev-parse", "HEAD").stdout.strip()
+        self._git("checkout", "-q", "--detach", evidence_commit)
+        self._git("commit", "--allow-empty", "-q", "-m", "second equal-tree ancestry")
+        second_parent = self._git("rev-parse", "HEAD").stdout.strip()
+        self._git("branch", f"equal-{second_parent[:12]}", second_parent)
+        self._git("checkout", "-q", "--detach", first_parent)
+        self._git("merge", "--no-ff", "-q", "-m", "equal parent tree merge", second_parent)
+
+        self.assertTrue(any("changed in commit history" in error for error in self.validate()))
+
+    def test_octopus_merge_does_not_bypass_final_record_immutability(self) -> None:
+        evidence_commit = self._finalize_first_batch()
+        reviewed_branch = f"reviewed-{evidence_commit[:12]}"
+        self._git("branch", reviewed_branch, evidence_commit)
+        side_heads: list[str] = []
+        for number in (1, 2):
+            self._git("checkout", "-q", "--detach", self.integration_base)
+            self._write(f"scratch/side-{number}.txt", f"side {number}\n")
+            self._git("add", "--", f"scratch/side-{number}.txt")
+            self._git("commit", "-q", "-m", f"octopus side {number}")
+            side_heads.append(self._git("rev-parse", "HEAD").stdout.strip())
+        self._git("checkout", "-q", "--detach", self.integration_base)
+        self._git(
+            "merge",
+            "--no-ff",
+            "-q",
+            "-m",
+            "octopus merge",
+            reviewed_branch,
+            *side_heads,
+        )
+
+        self.assertTrue(any("changed in commit history" in error for error in self.validate()))
+
+    def test_merge_topology_inspection_error_fails_closed(self) -> None:
+        evidence_commit = self._finalize_first_batch()
+        reviewed_head = self._git("rev-parse", f"{evidence_commit}^").stdout.strip()
+        merge_head = self._merge_descendant_as_redundant_second_parent(
+            evidence_commit,
+            reviewed_head,
+        )
+        real_run = subprocess.run
+
+        def fail_parent_lookup(arguments: list[str], **kwargs: Any) -> subprocess.CompletedProcess[Any]:
+            if arguments == ["git", "rev-list", "--parents", "-n", "1", merge_head]:
+                return subprocess.CompletedProcess(
+                    arguments,
+                    128,
+                    stdout=b"",
+                    stderr=b"synthetic topology read failure",
+                )
+            return real_run(arguments, **kwargs)
+
+        with mock.patch.object(repository_validator.subprocess, "run", side_effect=fail_parent_lookup):
+            errors = self.validate()
+
+        self.assertTrue(any("history could not be audited" in error for error in errors))
+
     def test_committed_final_record_cannot_be_deleted(self) -> None:
         self._commit_candidate_with_active_record()
         self._write_record(self._final_record())
@@ -950,6 +1092,38 @@ class AgentGovernanceTests(unittest.TestCase):
         self._git("commit", "-q", "-m", "later commit")
 
         self.assertEqual([], self._validate_derived_checkpoint())
+
+    def test_external_authority_attestation_remains_bound_after_redundant_containment_merge(
+        self,
+    ) -> None:
+        self._change()
+        self._write_record(self._record("FORMAL-SUPPORT-01", risk="R3"))
+        self._git("add", "--", "src/Product/Owner.cs")
+        self._git("commit", "-q", "-m", "legacy R3 candidate")
+        _, manifest = self._activate_trusted_checkpoint()
+        evidence_commit = self._write_external_authority_batch(manifest)
+        reviewed_head = self._git("rev-parse", f"{evidence_commit}^").stdout.strip()
+        self._merge_descendant_as_redundant_second_parent(evidence_commit, reviewed_head)
+
+        self.assertEqual([], self._validate_derived_checkpoint())
+
+    def test_external_authority_attestation_change_after_commit_remains_rejected(self) -> None:
+        self._change()
+        self._write_record(self._record("FORMAL-SUPPORT-01", risk="R3"))
+        self._git("add", "--", "src/Product/Owner.cs")
+        self._git("commit", "-q", "-m", "legacy R3 candidate")
+        _, manifest = self._activate_trusted_checkpoint()
+        self._write_external_authority_batch(manifest)
+        relative = "docs/governance/external-authority-attestations/FORMAL-SUPPORT-01.json"
+        value = json.loads((self.root / relative).read_text(encoding="utf-8"))
+        value["evidence"] = "Tampered after approval."
+        self._write(relative, json.dumps(value, indent=2) + "\n")
+        self._git("add", "--", relative)
+        self._git("commit", "-q", "-m", "tamper authority evidence")
+
+        self.assertTrue(
+            any("attestation is immutable after commit" in error for error in self._validate_derived_checkpoint())
+        )
 
     def test_tracked_non_json_child_cannot_enter_attestation_directory_later(self) -> None:
         self._change()

@@ -57,6 +57,14 @@ evidence. Each later R3 task uses a new task ID and attestation; prior immutable
 attestations remain auditable. Missing, extra, altered, or wrong-head evidence
 fails closed.
 
+Do not repair a redundant containment merge by rewriting history, replacing
+records, adding a trusted SHA, or creating another checkpoint. Under ADR 0061,
+the canonical validator alone may normalize a candidate merge node after
+proving it has exactly two parents, its full tree equals exactly one parent,
+and the other parent is already contained in that tree-equivalent parent. It
+continues auditing both ancestries, and any lookup error or different topology
+fails closed.
+
 ## Narrow test selection
 
 | Changed surface | First test |

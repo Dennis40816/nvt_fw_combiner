@@ -1938,10 +1938,74 @@ def _record_changed_in_commits_after(
             return False, changed_error
         try:
             if relative in _parse_git_name_status(changed):
+                redundant, redundant_error = _is_tree_transparent_containment_merge(
+                    root,
+                    candidate.decode("ascii"),
+                )
+                if redundant_error is not None:
+                    return False, redundant_error
+                if redundant:
+                    continue
                 return True, None
         except (UnicodeDecodeError, ValueError) as exc:
             return False, str(exc)
     return False, None
+
+
+def _is_tree_transparent_containment_merge(
+    root: Path,
+    candidate: str,
+) -> tuple[bool, str | None]:
+    """Recognize one redundant merge edge without trusting or pruning its ancestry."""
+    parent_output, parent_error = _git_object(
+        root,
+        ["rev-list", "--parents", "-n", "1", candidate],
+    )
+    if parent_error is not None:
+        return False, parent_error
+    try:
+        revisions = parent_output.decode("ascii").split()
+    except UnicodeDecodeError as exc:
+        return False, str(exc)
+    if len(revisions) != 3 or revisions[0] != candidate:
+        return False, None
+    first_parent, second_parent = revisions[1:]
+    tree_output, tree_error = _git_object(
+        root,
+        [
+            "rev-parse",
+            f"{candidate}^{{tree}}",
+            f"{first_parent}^{{tree}}",
+            f"{second_parent}^{{tree}}",
+        ],
+    )
+    if tree_error is not None:
+        return False, tree_error
+    try:
+        trees = tree_output.decode("ascii").split()
+    except UnicodeDecodeError as exc:
+        return False, str(exc)
+    if len(trees) != 3:
+        return False, "git returned an incomplete merge-tree identity"
+    candidate_tree, first_tree, second_tree = trees
+    matches_first = candidate_tree == first_tree
+    matches_second = candidate_tree == second_tree
+    if matches_first == matches_second:
+        return False, None
+    equivalent_parent = first_parent if matches_first else second_parent
+    other_parent = second_parent if matches_first else first_parent
+    ancestry = subprocess.run(
+        ["git", "merge-base", "--is-ancestor", other_parent, equivalent_parent],
+        cwd=root,
+        check=False,
+        capture_output=True,
+    )
+    if ancestry.returncode == 0:
+        return True, None
+    if ancestry.returncode == 1:
+        return False, None
+    detail = ancestry.stderr.decode("utf-8", errors="replace").strip()
+    return False, detail or f"git exited {ancestry.returncode}"
 
 
 def _load_trusted_capability_checkpoint(

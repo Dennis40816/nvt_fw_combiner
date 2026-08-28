@@ -63,6 +63,15 @@ activation that adds the immutable
 blob-hashed legacy-record inventory. Until that commit exists, the gate reports
 the pending-checkpoint error.
 
+Commit-level immutability auditing follows every ancestry commit and every
+merge-parent edge. ADR 0061 permits only one normalization: a two-parent merge
+whose complete tree equals exactly one parent while the other parent is already
+an ancestor of that tree-equivalent parent is a duplicate observation of the
+reviewed ancestry. The merge node itself is skipped, but every ancestral commit
+is still audited. Distinct or ambiguous trees, octopus or non-contained merges,
+real mutations, restoration commits, and Git inspection errors remain
+fail-closed.
+
 The manifest records, but does not close, inherited R3 authorities. Typed
 firmware-owner and release-owner approvals live as exact-head JSON attestations
 under `docs/governance/external-authority-attestations/`. Each immutable
