@@ -215,6 +215,13 @@ run. Their complete version-specific argv are committed by separate
 before build starts. Except for the operation token and output/report
 destinations, their logical input facts must be identical. A preview report
 cannot be supplied by a different executable, scenario, input set, or run.
+For every full-image CtrlRAM case, the same verified source-built CLI first
+executes a typed Standard Merge Preview/Build from the case's governed DP and
+TP artifacts. Its two raw reports, resolved profile, compilation fingerprint,
+source hashes, and output hash are written as a separately hashed base-precursor
+proof. Only that staged output may become `replace-base`; an `expected-output`
+artifact is never admitted as a base. TP-work cases continue to use their
+governed TP input directly.
 The comparator recomputes both argument digests from JCS bytes containing
 execution-artifact and executor-identity SHA-256 values, route/fingerprint,
 full scenario, and ordered path-free input
@@ -229,7 +236,10 @@ terminal success, and output hash/size must agree with the capture record.
 
 The raw report root is also authoritative. `IcId` must equal the selected
 policy route; `ModeId`, `ExperienceId`, and `CompositionKind` must equal the
-plan's closed workflow report binding. Ordered `Inputs` must equal the
+plan's closed workflow report binding. Current typed reports must also disclose
+the exact resolved `MapId`, which must equal the route's declared `mapVariant`;
+the immutable v0.9.16 report format predates this field and is accepted only on
+the baseline side. Ordered `Inputs` must equal the
 receipt's ordered slots by address-space id, size, and SHA-256. `Output` must
 be committed and match the receipt artifact, `Issues` must be empty, and raw
 start/completion times must equal the successful invocation and terminal

@@ -195,8 +195,8 @@
               "required": ["path", "size", "sha256"],
               "properties": {
                 "path": { "const": "docs/contracts/v0916-parity-workflow-v1.json" },
-                "size": { "const": 8561 },
-                "sha256": { "const": "b4c91eb8b74a0f9b1e26784f4cb98b99e1720208a7128107cc3bcddfbfdbf029" }
+                "size": { "const": 11248 },
+                "sha256": { "const": "43ebb8ac75c47283c1432612d549c9294c29b582fd5f678f30da6a4f00197c5f" }
               }
             },
             "candidateVerifierPath": { "const": "scripts/release_promotion_policy.py" },
@@ -244,10 +244,19 @@
     "ctrlRamExecutionBinding": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["caseId", "fullBaseArtifactId", "tpBaseArtifactId", "replacements"],
+      "required": ["caseId", "fullBaseRecipe", "tpBaseArtifactId", "replacements"],
       "properties": {
         "caseId": { "type": "string", "minLength": 1 },
-        "fullBaseArtifactId": { "type": "string", "minLength": 1 },
+        "fullBaseRecipe": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["workflowId", "dpArtifactId", "tpArtifactId"],
+          "properties": {
+            "workflowId": { "const": "standard-merge" },
+            "dpArtifactId": { "type": "string", "minLength": 1 },
+            "tpArtifactId": { "type": "string", "minLength": 1 }
+          }
+        },
         "tpBaseArtifactId": { "type": "string", "minLength": 1 },
         "replacements": {
           "type": "array",

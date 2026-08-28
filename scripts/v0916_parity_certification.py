@@ -641,7 +641,17 @@ def load_and_validate_plan(plan_path: Path, policy_path: Path) -> Plan:
         or len(ctrlram_bindings) != 12
         or len({row.get("caseId") for row in ctrlram_bindings}) != 12
         or any(
-            len({item.get("artifactId") for item in row.get("replacements", [])})
+            set(row) != {"caseId", "fullBaseRecipe", "tpBaseArtifactId", "replacements"}
+            or set(row.get("fullBaseRecipe", {}))
+            != {"workflowId", "dpArtifactId", "tpArtifactId"}
+            or row.get("fullBaseRecipe", {}).get("workflowId") != "standard-merge"
+            or "expected-output"
+            in {
+                row.get("fullBaseRecipe", {}).get("dpArtifactId"),
+                row.get("fullBaseRecipe", {}).get("tpArtifactId"),
+                row.get("tpBaseArtifactId"),
+            }
+            or len({item.get("artifactId") for item in row.get("replacements", [])})
             != len(row.get("replacements", []))
             or len({item.get("slotId") for item in row.get("replacements", [])})
             != len(row.get("replacements", []))
@@ -905,7 +915,7 @@ def _stable_scenario(receipt: Mapping[str, Any]) -> tuple[Any, ...]:
             _portable_input_identity(item) for item in receipt.get("inputs", [])
         )
     )
-    return (scenario.get("icId"), scenario.get("workflowId"), scenario.get("icCountVariant"), scenario.get("mapVariant"), scenario.get("selectionToken"), scenario.get("expectedProfileId"), scenario.get("outputCapacity"), inputs)
+    return (scenario.get("icId"), scenario.get("workflowId"), scenario.get("icCountVariant"), scenario.get("mapVariant"), scenario.get("selectionToken"), scenario.get("resolvedProfileId"), scenario.get("outputCapacity"), inputs)
 
 
 def validate_same_scenario(baseline: Mapping[str, Any], candidate: Mapping[str, Any]) -> None:
@@ -1167,11 +1177,10 @@ def capture_required_execution_matrix(plan: Plan, *, canonical_input_port: Any, 
 
 def _resolve_case(
     manifest: dict[str, Any], case_id: str
-) -> tuple[dict[str, Any], dict[str, Any]]:
+) -> dict[str, Any]:
     cases = {row["caseId"]: row for row in manifest["cases"]}
     visited: set[str] = set()
     current = case_id
-    requested_case: dict[str, Any] | None = None
     while True:
         if current in visited or current not in cases:
             _fail("PARITY_AUTHORITY_MISMATCH")
@@ -1181,34 +1190,10 @@ def _resolve_case(
         case = _read_json_file(root / index["manifestPath"], "PARITY_AUTHORITY_MISMATCH")
         if case.get("caseId") != current:
             _fail("PARITY_AUTHORITY_MISMATCH")
-        if requested_case is None:
-            requested_case = case
         alias = case.get("alias")
         if not alias:
-            return case, requested_case
+            return case
         current = alias.get("sourceCaseId")
-
-
-def _expected_profile_id(
-    route: Route, case: Mapping[str, Any], requested_case: Mapping[str, Any]
-) -> str:
-    source_ic = case.get("ic")
-    requested_ic = requested_case.get("ic")
-    source_profile = case.get("profileId")
-    if (
-        not isinstance(source_ic, str)
-        or not isinstance(requested_ic, str)
-        or requested_ic != route.ic_id
-        or not isinstance(source_profile, str)
-        or not source_profile
-    ):
-        _fail("PARITY_AUTHORITY_MISMATCH")
-    if source_ic == requested_ic:
-        return source_profile
-    source_prefix = source_ic.lower()
-    if not source_profile.startswith(source_prefix):
-        _fail("PARITY_AUTHORITY_MISMATCH")
-    return requested_ic.lower() + source_profile[len(source_prefix) :]
 
 
 def _cli_selection_token(route: Route) -> str | None:
@@ -1229,19 +1214,22 @@ def _cli_selection_token(route: Route) -> str | None:
 
 def _ctrlram_artifact_bindings(
     plan: Plan, route: Route, case: Mapping[str, Any]
-) -> list[tuple[str, str]]:
+) -> tuple[list[tuple[str, str]], dict[str, Any] | None]:
     rows = plan.raw["canonicalInputAuthority"].get("ctrlRamExecutionBindings", [])
     binding = next((row for row in rows if row.get("caseId") == case.get("caseId")), None)
     if binding is None:
         _fail("PARITY_FIXTURE_MISSING", routeIds=[route.route_id])
-    base_artifact = (
-        binding["tpBaseArtifactId"]
-        if "tp-work" in route.map_variant
-        else binding["fullBaseArtifactId"]
-    )
-    return [(base_artifact, "replace-base"), *[
+    replacements = [
         (row["artifactId"], row["slotId"]) for row in binding["replacements"]
-    ]]
+    ]
+    if "tp-work" in route.map_variant:
+        return [(binding["tpBaseArtifactId"], "replace-base"), *replacements], None
+    recipe = binding["fullBaseRecipe"]
+    return [
+        (recipe["dpArtifactId"], "dp-input"),
+        (recipe["tpArtifactId"], "tp-input"),
+        *replacements,
+    ], copy.deepcopy(recipe)
 
 
 def resolve_canonical_route_input(plan: Plan, manifest_path: Path, *, admitted_input_root: Path, route_id: str, execution_role: str) -> VerifiedCanonicalInputs:
@@ -1259,18 +1247,21 @@ def resolve_canonical_route_input(plan: Plan, manifest_path: Path, *, admitted_i
     evidence = next((row for row in rows if row.get("routeId") == route_id), None)
     if not evidence or evidence.get("capabilityFingerprint") != route.capability_fingerprint or "caseId" not in evidence:
         _fail("PARITY_FIXTURE_MISSING", routeIds=[route_id])
-    case, requested_case = _resolve_case(manifest, evidence["caseId"])
+    case = _resolve_case(manifest, evidence["caseId"])
     artifacts = {row.get("artifactId"): row for row in case.get("artifacts", [])}
     if len(artifacts) != len(case.get("artifacts", [])):
         _fail("PARITY_AUTHORITY_MISMATCH")
-    bindings = (
+    bindings, base_recipe = (
         _ctrlram_artifact_bindings(plan, route, case)
         if route.workflow_id == "ctrlram-replace"
-        else [
-            (row["artifactId"], row["artifactId"])
-            for row in case.get("artifacts", [])
-            if row.get("role") == "input"
-        ]
+        else (
+            [
+                (row["artifactId"], row["artifactId"])
+                for row in case.get("artifacts", [])
+                if row.get("role") == "input"
+            ],
+            None,
+        )
     )
     if not bindings:
         _fail("PARITY_FIXTURE_MISSING", routeIds=[route_id])
@@ -1282,7 +1273,7 @@ def resolve_canonical_route_input(plan: Plan, manifest_path: Path, *, admitted_i
     canonical_root = manifest_path.parent
     for order, (artifact_id, slot_id) in enumerate(bindings):
         item = artifacts.get(artifact_id)
-        if item is None or item.get("role") not in {"input", "expected"}:
+        if item is None or item.get("role") != "input":
             _fail("PARITY_AUTHORITY_MISMATCH")
         source = canonical_root / item["path"]
         require_local_artifact(source, "canonical-input")
@@ -1302,7 +1293,6 @@ def resolve_canonical_route_input(plan: Plan, manifest_path: Path, *, admitted_i
         "capabilityFingerprint": route.capability_fingerprint,
         "workflowId": route.workflow_id,
         "profileId": route.ic_id,
-        "expectedProfileId": _expected_profile_id(route, case, requested_case),
         "icId": route.ic_id,
         "icCountVariant": route.ic_count_variant,
         "mapVariant": route.map_variant,
@@ -1310,6 +1300,8 @@ def resolve_canonical_route_input(plan: Plan, manifest_path: Path, *, admitted_i
         "cliSelectionToken": cli_selection_token,
         "orderedInputs": ordered,
     }
+    if base_recipe is not None:
+        request["baseRecipe"] = base_recipe
     return VerifiedCanonicalInputs(route.route_id, execution_role, route.capability_fingerprint, request)
 
 
@@ -1383,48 +1375,153 @@ def _cli_arguments(
     return arguments
 
 
+def _execute_cli_pair(
+    *,
+    verified_inputs: VerifiedCanonicalInputs,
+    verified_executor: VerifiedSourceExecutor,
+    request: Mapping[str, Any],
+    inputs: Sequence[Mapping[str, Any]],
+    pair_root: Path,
+    process_runner: Any,
+    original_hashes: Mapping[Path, str],
+) -> list[dict[str, Any]]:
+    observed: list[dict[str, Any]] = []
+    for sequence, action in enumerate(("preview", "build")):
+        for path, digest in original_hashes.items():
+            if not path.is_file() or _sha256(path.read_bytes()) != digest:
+                _fail("PARITY_INPUT_MUTATED")
+        stage = pair_root / f"{sequence:02d}-{action}"
+        stage.mkdir(parents=True)
+        argv = [
+            *verified_executor.argv_prefix,
+            request["workflowId"],
+            action,
+            "--profile",
+            request["profileId"],
+        ]
+        staged_inputs: list[tuple[Mapping[str, Any], Path]] = []
+        for input_index, row in enumerate(inputs):
+            source = Path(row["path"])
+            staged = stage / f"input-{input_index:02d}-{source.name}"
+            with staged.open("xb") as stream:
+                stream.write(source.read_bytes())
+            staged.chmod(stat.S_IREAD)
+            if _sha256(staged.read_bytes()) != row["sha256"]:
+                _fail("PARITY_INPUT_MUTATED")
+            staged_inputs.append((row, staged))
+        argv.extend(
+            _cli_arguments(request, verified_inputs.execution_role, staged_inputs)
+        )
+        output = stage / "output.bin"
+        report = stage / "report.json"
+        argv.extend(("--output", str(output), "--report", str(report)))
+        result = _runner_call(process_runner, argv, verified_executor.source_root)
+        require_local_artifact(report, "report")
+        if action == "build":
+            require_local_artifact(output, "output")
+        observed.append(
+            {
+                "action": action,
+                "argv": argv,
+                "result": result,
+                "report": report,
+                "output": output,
+            }
+        )
+    return observed
+
+
 def execute_cli_capture(verified_inputs: VerifiedCanonicalInputs | Mapping[str, Any], *, verified_executor: VerifiedSourceExecutor, output_root: Path, process_runner: Any) -> dict[str, Any]:
     validate_verified_source_executor(verified_executor)
     if not isinstance(verified_inputs, VerifiedCanonicalInputs):
         _fail("PARITY_PROVENANCE_INVALID")
-    request = verified_inputs.request
-    _validate_admitted_request(request)
+    admitted_request = verified_inputs.request
+    _validate_admitted_request(admitted_request)
     if output_root.exists():
         if not output_root.is_dir() or path_is_reparse_point(output_root) or any(output_root.iterdir()):
             _fail("PARITY_WRITE_CONFLICT")
     else:
         output_root.mkdir(parents=True)
     capture_root = output_root / verified_inputs.route_id
-    observed: list[dict[str, Any]] = []
-    original_hashes = {Path(row["path"]): row["sha256"] for row in request["orderedInputs"]}
+    original_hashes = {
+        Path(row["path"]): row["sha256"]
+        for row in admitted_request["orderedInputs"]
+    }
     try:
         with acquire_controlled_directory_lease(capture_root) as lease:
-            for sequence, action in enumerate(("preview", "build")):
-                for path, digest in original_hashes.items():
-                    if not path.is_file() or _sha256(path.read_bytes()) != digest:
-                        _fail("PARITY_INPUT_MUTATED")
-                stage = lease.path / f"{sequence:02d}-{action}"
-                stage.mkdir()
-                argv = [*verified_executor.argv_prefix, request["workflowId"], action, "--profile", request["profileId"]]
-                staged_inputs: list[tuple[Mapping[str, Any], Path]] = []
-                for row in request["orderedInputs"]:
-                    source = Path(row["path"])
-                    staged = stage / source.name
-                    with staged.open("xb") as stream:
-                        stream.write(source.read_bytes())
-                    staged.chmod(stat.S_IREAD)
-                    if _sha256(staged.read_bytes()) != row["sha256"]:
-                        _fail("PARITY_INPUT_MUTATED")
-                    staged_inputs.append((row, staged))
-                argv.extend(_cli_arguments(request, verified_inputs.execution_role, staged_inputs))
-                output = stage / "output.bin"
-                report = stage / "report.json"
-                argv.extend(("--output", str(output), "--report", str(report)))
-                result = _runner_call(process_runner, argv, verified_executor.source_root)
-                require_local_artifact(report, "report")
-                if action == "build":
-                    require_local_artifact(output, "output")
-                observed.append({"action": action, "argv": argv, "result": result, "report": report, "output": output})
+            precursor: dict[str, Any] | None = None
+            effective_request = copy.deepcopy(admitted_request)
+            if "baseRecipe" in admitted_request:
+                recipe = admitted_request["baseRecipe"]
+                source_inputs = admitted_request["orderedInputs"][:2]
+                if (
+                    recipe != {
+                        "workflowId": "standard-merge",
+                        "dpArtifactId": recipe.get("dpArtifactId"),
+                        "tpArtifactId": recipe.get("tpArtifactId"),
+                    }
+                    or [row.get("slotId") for row in source_inputs]
+                    != ["dp-input", "tp-input"]
+                ):
+                    _fail("PARITY_PROVENANCE_INVALID")
+                precursor_request = {
+                    **{
+                        key: copy.deepcopy(value)
+                        for key, value in admitted_request.items()
+                        if key not in {"baseRecipe", "orderedInputs"}
+                    },
+                    "workflowId": "standard-merge",
+                    "cliSelectionToken": None,
+                    "orderedInputs": copy.deepcopy(source_inputs),
+                }
+                precursor_observed = _execute_cli_pair(
+                    verified_inputs=verified_inputs,
+                    verified_executor=verified_executor,
+                    request=precursor_request,
+                    inputs=source_inputs,
+                    pair_root=lease.path / "base-precursor",
+                    process_runner=process_runner,
+                    original_hashes=original_hashes,
+                )
+                base_output = precursor_observed[1]["output"]
+                base_row = {
+                    "slotId": "replace-base",
+                    "role": "input",
+                    "path": str(base_output),
+                    "size": base_output.stat().st_size,
+                    "sha256": _sha256(base_output.read_bytes()),
+                    "order": 0,
+                }
+                replacements = []
+                for order, row in enumerate(
+                    admitted_request["orderedInputs"][2:], start=1
+                ):
+                    replacement = copy.deepcopy(row)
+                    replacement["order"] = order
+                    replacements.append(replacement)
+                effective_request.pop("baseRecipe", None)
+                effective_request["orderedInputs"] = [base_row, *replacements]
+                precursor = {
+                    "sourceInputs": copy.deepcopy(source_inputs),
+                    "authorityReport": _local_artifact(
+                        precursor_observed[0]["report"]
+                    ),
+                    "applicationReport": _local_artifact(
+                        precursor_observed[1]["report"]
+                    ),
+                    "output": _local_artifact(base_output),
+                    "processDriven": True,
+                }
+            _validate_admitted_request(effective_request)
+            observed = _execute_cli_pair(
+                verified_inputs=verified_inputs,
+                verified_executor=verified_executor,
+                request=effective_request,
+                inputs=effective_request["orderedInputs"],
+                pair_root=lease.path / "workflow",
+                process_runner=process_runner,
+                original_hashes=original_hashes,
+            )
         return {
             "role": verified_inputs.execution_role, "routeId": verified_inputs.route_id,
             "executorIdentitySha256": verified_executor.contract_identity_sha256,
@@ -1433,6 +1530,8 @@ def execute_cli_capture(verified_inputs: VerifiedCanonicalInputs | Mapping[str, 
             "applicationAuthorityReport": _local_artifact(observed[0]["report"]),
             "applicationReport": _local_artifact(observed[1]["report"]),
             "output": _local_artifact(observed[1]["output"]),
+            "effectiveRequest": effective_request,
+            "basePrecursor": precursor,
             "processDriven": True,
         }
     except Exception:
@@ -1443,6 +1542,135 @@ def execute_cli_capture(verified_inputs: VerifiedCanonicalInputs | Mapping[str, 
 def validate_process_driven_receipt(receipt: Mapping[str, Any]) -> None:
     if receipt.get("processDriven") is not True or receipt.get("invocation", {}).get("result") != "success" or receipt.get("authorityInvocation", {}).get("result") != "success":
         _fail("PARITY_PROVENANCE_INVALID")
+
+
+def _validate_base_precursor(
+    *,
+    capture: Mapping[str, Any],
+    admitted_request: Mapping[str, Any],
+    effective_request: Mapping[str, Any],
+    interface: str,
+) -> dict[str, Any] | None:
+    precursor = capture.get("basePrecursor")
+    if "baseRecipe" not in admitted_request:
+        if precursor is not None or effective_request != admitted_request:
+            _fail("PARITY_PROVENANCE_INVALID")
+        return None
+    if not isinstance(precursor, dict) or precursor.get("processDriven") is not True:
+        _fail("PARITY_PROVENANCE_INVALID")
+    source_inputs = admitted_request.get("orderedInputs", [])[:2]
+    effective_inputs = effective_request.get("orderedInputs", [])
+    admitted_metadata = {
+        key: copy.deepcopy(value)
+        for key, value in admitted_request.items()
+        if key not in {"baseRecipe", "orderedInputs"}
+    }
+    effective_metadata = {
+        key: copy.deepcopy(value)
+        for key, value in effective_request.items()
+        if key != "orderedInputs"
+    }
+    if (
+        effective_metadata != admitted_metadata
+        or admitted_request.get("baseRecipe", {}).get("workflowId")
+        != "standard-merge"
+        or precursor.get("sourceInputs") != source_inputs
+        or len(effective_inputs) < 2
+        or effective_inputs[0].get("slotId") != "replace-base"
+        or [
+            _portable_input_identity(row)
+            for row in effective_inputs[1:]
+        ]
+        != [
+            _portable_input_identity(row)
+            for row in admitted_request.get("orderedInputs", [])[2:]
+        ]
+    ):
+        _fail("PARITY_PROVENANCE_INVALID")
+    output = _require_artifact_reference(precursor.get("output"), "base-precursor-output")
+    output_artifact = _local_artifact(output)
+    if _portable_input_identity(effective_inputs[0]) != {
+        "slotId": "replace-base",
+        "role": "input",
+        "size": output_artifact["size"],
+        "sha256": output_artifact["sha256"],
+    }:
+        _fail("PARITY_PROVENANCE_INVALID")
+    authority_path = _require_artifact_reference(
+        precursor.get("authorityReport"), "base-precursor-authority-report"
+    )
+    application_path = _require_artifact_reference(
+        precursor.get("applicationReport"), "base-precursor-application-report"
+    )
+    authority_raw = _read_json_file(authority_path, "PARITY_PROVENANCE_INVALID")
+    application_raw = _read_json_file(application_path, "PARITY_PROVENANCE_INVALID")
+    resolved_profile_id = authority_raw.get("ProfileId")
+    compilation_fingerprint = authority_raw.get("CompilationFingerprint")
+    if (
+        not isinstance(resolved_profile_id, str)
+        or not resolved_profile_id
+        or not SHA256_RE.fullmatch(str(compilation_fingerprint))
+    ):
+        _fail("PARITY_PROVENANCE_INVALID")
+    precursor_receipt = {
+        "scenario": {
+            "icId": admitted_request["icId"],
+            "workflowId": "standard-merge",
+            "resolvedProfileId": resolved_profile_id,
+            "outputCapacity": output_artifact["size"],
+            "compilationFingerprint": compilation_fingerprint,
+        },
+        "authorityInvocation": {
+            "interface": interface,
+            "startedAtUtc": _canonicalize_raw_utc(authority_raw["StartedAtUtc"]),
+            "completedAtUtc": _canonicalize_raw_utc(authority_raw["CompletedAtUtc"]),
+        },
+        "invocation": {
+            "interface": interface,
+            "startedAtUtc": _canonicalize_raw_utc(application_raw["StartedAtUtc"]),
+            "completedAtUtc": _canonicalize_raw_utc(application_raw["CompletedAtUtc"]),
+        },
+        "inputs": [
+            {
+                "slotId": row["slotId"],
+                "role": "source",
+                "path": row["path"],
+                "size": row["size"],
+                "sha256": row["sha256"],
+            }
+            for row in source_inputs
+        ],
+        "output": output_artifact,
+    }
+    authority_operations, authority_mutations, _ = _validate_raw_report(
+        authority_raw,
+        precursor_receipt,
+        committed=False,
+        invocation_field="authorityInvocation",
+    )
+    operations, mutations, _ = _validate_raw_report(
+        application_raw,
+        precursor_receipt,
+        committed=True,
+        invocation_field="invocation",
+    )
+    validate_report_sequence(
+        authority_operations=authority_operations,
+        observed_operations=operations,
+        observed_mutations=mutations,
+    )
+    return {
+        "schemaVersion": "1.0",
+        "kind": "typed-standard-merge-base-precursor",
+        "resolvedProfileId": resolved_profile_id,
+        "compilationFingerprint": compilation_fingerprint,
+        "sourceInputs": [
+            _portable_input_identity(row) for row in precursor_receipt["inputs"]
+        ],
+        "applicationAuthorityReport": _local_artifact(authority_path),
+        "applicationReport": _local_artifact(application_path),
+        "output": output_artifact,
+    }
 
 
 def build_process_receipt(
@@ -1459,7 +1687,10 @@ def build_process_receipt(
     validate_process_driven_receipt(capture)
     if not re.fullmatch(r"[A-Za-z0-9](?:[A-Za-z0-9-]{0,37}[A-Za-z0-9])?", operator_login):
         _fail("PARITY_PROVENANCE_INVALID")
-    request = verified_inputs.request
+    admitted_request = verified_inputs.request
+    request = capture.get("effectiveRequest")
+    if not isinstance(request, dict):
+        _fail("PARITY_PROVENANCE_INVALID")
     authority_path = _require_artifact_reference(
         capture["applicationAuthorityReport"], "application-authority-report"
     )
@@ -1515,6 +1746,22 @@ def build_process_receipt(
         if verified_inputs.execution_role == "baseline-exact"
         else "candidate-source-cli"
     )
+    precursor_proof = _validate_base_precursor(
+        capture=capture,
+        admitted_request=admitted_request,
+        effective_request=request,
+        interface=interface,
+    )
+    route_root = receipt_root / verified_inputs.route_id
+    route_root.mkdir(parents=True, exist_ok=True)
+    precursor_artifact: dict[str, Any] | None = None
+    if precursor_proof is not None:
+        precursor_path = (
+            route_root
+            / f"{verified_inputs.execution_role}-base-precursor.json"
+        )
+        write_json_exclusive_atomic(precursor_path, precursor_proof)
+        precursor_artifact = _local_artifact(precursor_path)
     try:
         compilation_fingerprint = application_raw["CompilationFingerprint"]
         output_capacity = application_raw["Output"]["Size"]
@@ -1528,13 +1775,16 @@ def build_process_receipt(
             raise ValueError
     except (KeyError, TypeError, ValueError):
         _fail("PARITY_PROVENANCE_INVALID")
+    resolved_profile_id = authority_raw.get("ProfileId")
+    if not isinstance(resolved_profile_id, str) or not resolved_profile_id:
+        _fail("PARITY_PROVENANCE_INVALID")
     scenario = {
         "icId": request["icId"],
         "workflowId": request["workflowId"],
         "icCountVariant": request["icCountVariant"],
         "mapVariant": request["mapVariant"],
         "selectionToken": request["selectionToken"],
-        "expectedProfileId": request["expectedProfileId"],
+        "resolvedProfileId": resolved_profile_id,
         "outputCapacity": output_capacity,
         "compilationFingerprint": compilation_fingerprint,
     }
@@ -1572,6 +1822,8 @@ def build_process_receipt(
         "inputs": inputs,
         "output": _local_artifact(output_path),
     }
+    if precursor_artifact is not None:
+        receipt["basePrecursor"] = precursor_artifact
     receipt["authorityInvocation"]["argumentsSha256"] = (
         canonical_authority_arguments_sha256(receipt)
     )
@@ -1605,8 +1857,6 @@ def build_process_receipt(
     capacities.update({row["slotId"]: row["size"] for row in inputs})
     validate_semantic_report_ranges(projection, capacities)
 
-    route_root = receipt_root / verified_inputs.route_id
-    route_root.mkdir(parents=True, exist_ok=True)
     report_path = route_root / f"{verified_inputs.execution_role}-report.json"
     report = {
         "schemaVersion": "1.0",
@@ -1629,6 +1879,8 @@ def build_process_receipt(
             "completedAtUtc": receipt["invocation"]["completedAtUtc"],
         },
     }
+    if precursor_artifact is not None:
+        report["basePrecursor"] = precursor_artifact
     write_json_exclusive_atomic(report_path, report)
     receipt["report"] = _local_artifact(report_path)
     validate_receipt(
@@ -1697,7 +1949,7 @@ def build_exact_route_evidence(
         "icCountVariant",
         "mapVariant",
         "selectionToken",
-        "expectedProfileId",
+        "resolvedProfileId",
         "outputCapacity",
     ):
         if baseline_receipt["scenario"].get(key) != candidate_receipt["scenario"].get(key):
@@ -2152,21 +2404,38 @@ def _canonicalize_raw_utc(value: str) -> str:
 
 def _validate_raw_report(raw: Mapping[str, Any], receipt: Mapping[str, Any], *, committed: bool, invocation_field: str) -> tuple[list[dict[str, Any]], list[dict[str, Any]], dict[str, Any]]:
     required = {"RunId", "ProfileId", "ProfileVersion", "IcId", "ModeId", "ExperienceId", "CompositionKind", "StartedAtUtc", "CompletedAtUtc", "Inputs", "Operations", "Mutations", "Issues", "Output", "OutputDifferences", "CompilationFingerprint", "Validations", "OutputNaming"}
-    if set(raw) != required:
-        _fail("PARITY_PROVENANCE_INVALID")
     scenario, invocation = receipt["scenario"], receipt[invocation_field]
+    candidate_report = invocation.get("interface") == "candidate-source-cli"
+    raw_fields = set(raw)
+    if (
+        candidate_report
+        and raw_fields != required | {"MapId"}
+        or not candidate_report
+        and raw_fields not in {frozenset(required), frozenset(required | {"MapId"})}
+    ):
+        _fail("PARITY_PROVENANCE_INVALID")
     workflow = scenario["workflowId"]
     expected_kind = "Replace" if workflow == "ctrlram-replace" else "Merge"
     inputs = [{"addressSpaceId": row["AddressSpaceId"], "artifactId": row["ArtifactId"], "size": row["Size"], "sha256": row["Sha256"]} for row in raw["Inputs"]]
     expected_inputs = [{"addressSpaceId": row["slotId"], "artifactId": row["slotId"], "size": row["size"], "sha256": row["sha256"]} for row in receipt["inputs"]]
     context = {
         "icId": raw["IcId"], "modeId": raw["ModeId"], "experienceId": raw["ExperienceId"],
+        "mapId": raw.get("MapId"),
         "compositionKind": raw["CompositionKind"], "startedAtUtc": _canonicalize_raw_utc(raw["StartedAtUtc"]),
         "completedAtUtc": _canonicalize_raw_utc(raw["CompletedAtUtc"]), "orderedInputs": inputs,
         "outputCommitted": raw["Output"]["Committed"], "issueCount": len(raw["Issues"]),
     }
     valid = (
-        raw["ProfileId"] == scenario["expectedProfileId"]
+        raw["ProfileId"] == scenario["resolvedProfileId"]
+        and (
+            "MapId" not in raw
+            or isinstance(raw["MapId"], str)
+            and bool(raw["MapId"])
+            and (
+                "mapVariant" not in scenario
+                or raw["MapId"] == scenario["mapVariant"]
+            )
+        )
         and isinstance(raw["ProfileVersion"], str) and bool(raw["ProfileVersion"])
         and raw["IcId"] == scenario["icId"] and raw["ModeId"] == workflow and raw["ExperienceId"] == workflow
         and raw["CompositionKind"] == expected_kind and context["startedAtUtc"] == invocation["startedAtUtc"]
@@ -2404,10 +2673,22 @@ def validate_protected_workflow_semantics(workflow: bytes | Mapping[str, Any], c
             for step in promotion.get("steps", [])
             if step.get("name") in governed_promotion_names
         ]
+        validation_name = promotion_contract["steps"][-1]["name"]
+        validation_indices = [
+            index
+            for index, step in enumerate(promotion.get("steps", []))
+            if step.get("name") == validation_name
+        ]
+        promotion_prefix = (
+            [step.get("name") for step in promotion.get("steps", [])[: validation_indices[0] + 1]]
+            if len(validation_indices) == 1
+            else []
+        )
         if (
             promotion.get("needs") != promotion_contract["needs"]
             or promotion.get("if") != promotion_contract["if"]
             or governed_promotion_steps != promotion_contract["steps"]
+            or promotion_prefix != promotion_contract["stepPrefixNames"]
         ):
             _fail("PARITY_WORKFLOW_MISMATCH")
         allowed_pins = set(contract["actionPins"].values())

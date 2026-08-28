@@ -82,7 +82,8 @@ public sealed partial class CompositionRunService
                     ? ImageInitializationSummary.FromCompiled(
                         request.CompiledComposition.Plan.OutputInitialization)
                     : null,
-            bundleDelivery: bundleDelivery);
+            bundleDelivery: bundleDelivery,
+            resolvedMapId: request.CompiledComposition.V2Details.Provenance.ResolvedMap.ImageMap.MapId);
     }
 
     private static MutationRunSummary ToMutationSummary(MutationRecord mutation)

@@ -96,7 +96,9 @@ relocatable Windows application update system.
   ranges, invalid integrity, and incompatible CtrlRAM inputs before mutation.
 - Verification: canonical and parity regressions, exact write-range review,
   CRC worker tests, architecture gates, and declared firmware-owner evidence
-  are required for the frozen release commit.
+  are required for the frozen release commit. CtrlRAM full bases are rebuilt
+  from governed DP+TP inputs by each verified CLI and retained as typed
+  precursor evidence; current reports also bind the executor-observed map id.
 - Limitations: support publication, authoring availability, and release
   certification are separate. The canonical matrix declares all 64
   Standard/AB/CtrlRAM routes `Supported + Available`; that declaration is not

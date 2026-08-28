@@ -18,14 +18,21 @@
     "applicationAuthorityReport": { "$ref": "#/$defs/localArtifact" },
     "applicationReportKind": { "enum": ["v0.9.16-typed-application", "current-typed-application"] },
     "applicationReport": { "$ref": "#/$defs/localArtifact" },
+    "basePrecursor": { "$ref": "#/$defs/localArtifact" },
     "applicationContext": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["icId", "modeId", "experienceId", "compositionKind", "startedAtUtc", "completedAtUtc", "orderedInputs", "outputCommitted", "issueCount"],
+      "required": ["icId", "modeId", "experienceId", "mapId", "compositionKind", "startedAtUtc", "completedAtUtc", "orderedInputs", "outputCommitted", "issueCount"],
       "properties": {
         "icId": { "type": "string", "pattern": "^NT[0-9]{5}$" },
         "modeId": { "enum": ["standard-merge", "ab-merge", "ctrlram-replace"] },
         "experienceId": { "enum": ["standard-merge", "ab-merge", "ctrlram-replace"] },
+        "mapId": {
+          "oneOf": [
+            { "type": "null" },
+            { "type": "string", "minLength": 1 }
+          ]
+        },
         "compositionKind": { "enum": ["Merge", "Replace"] },
         "startedAtUtc": { "$ref": "#/$defs/canonicalUtc" },
         "completedAtUtc": { "$ref": "#/$defs/canonicalUtc" },

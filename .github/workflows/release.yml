@@ -565,8 +565,8 @@ jobs:
     name: release / promote
     needs:
       - candidate
-      - v0916-parity-attestation
-    if: ${{ !cancelled() && needs.candidate.result == 'success' && ((needs.candidate.outputs.version == '1.0.0' && needs.v0916-parity-attestation.result == 'success') || (needs.candidate.outputs.version == '1.0.1' && needs.v0916-parity-attestation.result == 'skipped')) }}
+      - v0916-parity-finalize
+    if: ${{ !cancelled() && needs.candidate.result == 'success' && ((needs.candidate.outputs.version == '1.0.0' && needs.v0916-parity-finalize.result == 'success') || (needs.candidate.outputs.version == '1.0.1' && needs.v0916-parity-finalize.result == 'skipped')) }}
     runs-on: windows-latest
     timeout-minutes: 30
     environment: release
@@ -922,7 +922,6 @@ jobs:
     permissions:
       actions: read
       contents: read
-      deployments: read
     steps:
       - name: Checkout authenticated parity workflow authority
         uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0
@@ -959,22 +958,6 @@ jobs:
             --verification-record ./artifacts/v0916-parity/external-verification.json `
             --verifier-id $env:NFC_OWNER_VERIFIER_ID
           if ($LASTEXITCODE -ne 0) { throw 'Independent firmware-owner material failed validation.' }
-      - name: Finalize exact v1.0.0 parity evidence
-        shell: pwsh
-        env:
-          GH_TOKEN: ${{ github.token }}
-          NFC_OWNER_VERIFIER_ID: ${{ secrets.NFC_FIRMWARE_OWNER_VERIFIER_ID }}
-        run: |
-          python ./scripts/v0916_parity_certification.py finalize-protected `
-            --comparison ./artifacts/v0916-parity/comparison.json `
-            --attestation ./artifacts/v0916-parity/owner-attestation.json `
-            --verification-record ./artifacts/v0916-parity/external-verification.json `
-            --verifier-id $env:NFC_OWNER_VERIFIER_ID `
-            --repository ${{ github.repository }} `
-            --run-id ${{ github.run_id }} `
-            --workflow-sha ${{ github.workflow_sha }} `
-            --output ./artifacts/v0916-parity/terminal-evidence.json
-          if ($LASTEXITCODE -ne 0) { throw 'Terminal v1.0.0 parity finalization failed.' }
       - name: Upload immutable owner attestation
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
         with:
@@ -989,6 +972,61 @@ jobs:
           name: v0916-parity-verification-${{ github.run_id }}
           path: artifacts/v0916-parity/external-verification.json
           retention-days: 30
+  v0916-parity-finalize:
+    name: release / v0.9.16 parity finalize
+    needs:
+      - candidate
+      - v0916-parity-attestation
+    if: ${{ success() && needs.candidate.outputs.version == '1.0.0' }}
+    runs-on: windows-latest
+    timeout-minutes: 30
+    permissions:
+      actions: read
+      contents: read
+      deployments: read
+    steps:
+      - name: Checkout authenticated parity workflow authority
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+          ref: ${{ github.workflow_sha }}
+      - name: Download same-run parity comparison
+        uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131
+        with:
+          name: v0916-parity-comparison-${{ github.run_id }}
+          path: artifacts/v0916-parity
+      - name: Download same-run owner attestation
+        uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131
+        with:
+          name: v0916-parity-attestation-${{ github.run_id }}
+          path: artifacts/v0916-parity
+      - name: Download same-run external verification
+        uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131
+        with:
+          name: v0916-parity-verification-${{ github.run_id }}
+          path: artifacts/v0916-parity
+      - name: Finalize exact v1.0.0 parity evidence
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          $verification = Get-Content -LiteralPath `
+            ./artifacts/v0916-parity/external-verification.json -Raw | ConvertFrom-Json
+          $verifierId = [string]$verification.verifierId
+          if ([string]::IsNullOrWhiteSpace($verifierId)) {
+            throw 'External firmware-owner verifier id is missing.'
+          }
+          python ./scripts/v0916_parity_certification.py finalize-protected `
+            --comparison ./artifacts/v0916-parity/comparison.json `
+            --attestation ./artifacts/v0916-parity/owner-attestation.json `
+            --verification-record ./artifacts/v0916-parity/external-verification.json `
+            --verifier-id $verifierId `
+            --repository ${{ github.repository }} `
+            --run-id ${{ github.run_id }} `
+            --workflow-sha ${{ github.workflow_sha }} `
+            --output ./artifacts/v0916-parity/terminal-evidence.json
+          if ($LASTEXITCODE -ne 0) { throw 'Terminal v1.0.0 parity finalization failed.' }
       - name: Upload terminal parity evidence
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
         with:

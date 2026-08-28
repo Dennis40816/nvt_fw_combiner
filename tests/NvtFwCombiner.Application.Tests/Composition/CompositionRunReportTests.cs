@@ -110,6 +110,35 @@ public sealed class CompositionRunReportTests
         Assert.DoesNotContain("\"BundleDelivery\"", looseJson, StringComparison.Ordinal);
     }
 
+    /// <summary>The durable typed report discloses the exact compiled firmware map.</summary>
+    [Fact]
+    public void ResolvedMapIdIsSerializedWithoutInference()
+    {
+        CompositionRunReport report = new(
+            "run",
+            "profile",
+            "1.0.0",
+            "NT51929",
+            "mode",
+            "experience",
+            CompositionKind.Merge,
+            DateTimeOffset.UnixEpoch,
+            DateTimeOffset.UnixEpoch,
+            [],
+            [],
+            [],
+            [],
+            new OutputArtifactSummary("output.bin", 1, "output-hash", committed: true),
+            resolvedMapId: "nt51929-standard-merge-256k");
+
+        string json = JsonSerializer.Serialize(report);
+
+        Assert.Contains(
+            "\"MapId\":\"nt51929-standard-merge-256k\"",
+            json,
+            StringComparison.Ordinal);
+    }
+
     private static CompositionRunReport CreateReport(
         CompositionOutputBundleDeliverySummary? bundleDelivery)
     {

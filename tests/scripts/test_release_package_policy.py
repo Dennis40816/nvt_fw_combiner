@@ -1265,9 +1265,9 @@ class ReleasePackagePolicyTests(unittest.TestCase):
         ]
 
         self.assertIn("- candidate", promote)
-        self.assertIn("- v0916-parity-attestation", promote)
-        self.assertNotIn("- v0916-parity-finalize", promote)
-        self.assertIn("needs.v0916-parity-attestation.result == 'skipped'", promote)
+        self.assertIn("- v0916-parity-finalize", promote)
+        self.assertNotIn("- v0916-parity-attestation", promote)
+        self.assertIn("needs.v0916-parity-finalize.result == 'skipped'", promote)
 
         steps = release[
             release.index("    steps:", release.index("  promote:")) :

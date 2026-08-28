@@ -191,6 +191,7 @@ public static class GeneralReplaceDiagnosticPreviewReportProjector
             generalAdmission: admission.ToSummary(),
             imageInitialization: ImageInitializationSummary.FromCompiled(
                 composition.Plan.OutputInitialization),
-            diagnosticPreview: diagnostic);
+            diagnosticPreview: diagnostic,
+            resolvedMapId: composition.V2Details.Provenance.ResolvedMap.ImageMap.MapId);
     }
 }

@@ -15,14 +15,14 @@
     "scenario": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["icId", "workflowId", "icCountVariant", "mapVariant", "selectionToken", "expectedProfileId", "outputCapacity", "compilationFingerprint"],
+      "required": ["icId", "workflowId", "icCountVariant", "mapVariant", "selectionToken", "resolvedProfileId", "outputCapacity", "compilationFingerprint"],
       "properties": {
         "icId": { "type": "string", "pattern": "^NT[0-9]{5}$" },
         "workflowId": { "enum": ["standard-merge", "ab-merge", "ctrlram-replace"] },
         "icCountVariant": { "type": "string", "minLength": 1 },
         "mapVariant": { "type": "string", "minLength": 1 },
         "selectionToken": { "type": "string", "minLength": 1 },
-        "expectedProfileId": { "type": "string", "minLength": 1 },
+        "resolvedProfileId": { "type": "string", "minLength": 1 },
         "outputCapacity": { "type": "integer", "minimum": 1 },
         "compilationFingerprint": { "$ref": "#/$defs/sha256" }
       }
@@ -66,6 +66,7 @@
     },
     "reportContractVersion": { "const": "1.0" },
     "report": { "$ref": "#/$defs/localArtifact" },
+    "basePrecursor": { "$ref": "#/$defs/localArtifact" },
     "inputs": {
       "type": "array",
       "minItems": 1,

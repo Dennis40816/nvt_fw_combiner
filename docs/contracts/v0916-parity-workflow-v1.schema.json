@@ -28,9 +28,10 @@
     "actionPins": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["checkout", "downloadArtifact", "uploadArtifact"],
+      "required": ["checkout", "setupPython", "downloadArtifact", "uploadArtifact"],
       "properties": {
         "checkout": { "const": "actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0" },
+        "setupPython": { "const": "actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1" },
         "downloadArtifact": { "const": "actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131" },
         "uploadArtifact": { "const": "actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a" }
       }
@@ -38,30 +39,40 @@
     "jobs": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["v0916-parity-compare", "v0916-parity-attestation"],
+      "required": ["v0916-parity-compare", "v0916-parity-attestation", "v0916-parity-finalize"],
       "properties": {
         "v0916-parity-compare": { "$ref": "#/$defs/job" },
-        "v0916-parity-attestation": { "$ref": "#/$defs/job" }
+        "v0916-parity-attestation": { "$ref": "#/$defs/job" },
+        "v0916-parity-finalize": { "$ref": "#/$defs/job" }
       }
     },
     "promotionGate": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["jobId", "needs", "if", "steps"],
+      "required": ["jobId", "needs", "if", "stepPrefixNames", "steps"],
       "properties": {
         "jobId": { "const": "promote" },
         "needs": {
           "prefixItems": [
             { "const": "candidate" },
-            { "const": "v0916-parity-attestation" }
+            { "const": "v0916-parity-finalize" }
           ],
           "items": false
         },
         "if": { "type": "string", "pattern": "^\\$\\{\\{ .+ \\}\\}$" },
+        "stepPrefixNames": {
+          "prefixItems": [
+            { "const": "Checkout protected release authority" },
+            { "const": "Setup pinned Python for release policy" },
+            { "const": "Download terminal v0.9.16 parity evidence" },
+            { "const": "Require terminal parity pass before promotion" }
+          ],
+          "items": false
+        },
         "steps": {
           "type": "array",
-          "minItems": 2,
-          "maxItems": 2,
+          "minItems": 4,
+          "maxItems": 4,
           "items": { "$ref": "#/$defs/step" }
         }
       }

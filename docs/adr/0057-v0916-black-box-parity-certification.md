@@ -94,6 +94,13 @@ selected routes and leaves 27 exact route ids without case input authority;
 those routes remain in the denominator but block all execution with
 `PARITY_FIXTURE_MISSING` until canonical evidence supplies them.
 
+CtrlRAM full-image evidence may not reuse a case's final `expected-output` as
+its reference. Each verified baseline/candidate CLI independently builds the
+immutable base from the case's DP+TP Standard Merge recipe, and the comparator
+binds that typed precursor report and hash before CtrlRAM execution. Current
+reports also disclose the resolved map id, so the declared route map is checked
+against executor-observed authority instead of being copied back from policy.
+
 Every selected route uses complete-output equality except the eleven exact
 route identities declared by the plan. Complete-output equality compares
 size, every byte, and SHA-256. A mismatch, missing artifact, changed route

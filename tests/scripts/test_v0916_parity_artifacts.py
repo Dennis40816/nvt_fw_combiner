@@ -633,7 +633,7 @@ class V0916ParityArtifactTests(V0916ParityTestBase):
                 "workflowCommitSha": workflow_sha,
                 "workflowBlobSha": workflow_blob_sha,
                 "workflowRawSha256": workflow_raw_sha256,
-                "workflowSemanticContractSha256": "b4c91eb8b74a0f9b1e26784f4cb98b99e1720208a7128107cc3bcddfbfdbf029",
+                "workflowSemanticContractSha256": "43ebb8ac75c47283c1432612d549c9294c29b582fd5f678f30da6a4f00197c5f",
                 "runId": 123,
                 "artifactId": 456,
                 "artifactName": f"stable-candidate-123-{head}",

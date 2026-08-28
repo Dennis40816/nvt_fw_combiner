@@ -564,6 +564,7 @@ class V0916ParityTestBase(unittest.TestCase):
             "icId": raw["IcId"],
             "modeId": raw["ModeId"],
             "experienceId": raw["ExperienceId"],
+            "mapId": raw.get("MapId"),
             "compositionKind": raw["CompositionKind"],
             "startedAtUtc": canonical_utc(raw["StartedAtUtc"]),
             "completedAtUtc": canonical_utc(raw["CompletedAtUtc"]),

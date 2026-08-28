@@ -63,6 +63,7 @@ class V0916ParityApprovalTests(V0916ParityTestBase):
             {
                 "v0916-parity-compare",
                 "v0916-parity-attestation",
+                "v0916-parity-finalize",
             },
             set(contract["jobs"]),
         )
@@ -109,6 +110,7 @@ class V0916ParityApprovalTests(V0916ParityTestBase):
             "promotion-needs",
             "promotion-condition",
             "promotion-step-condition",
+            "promotion-step-before-gate",
             "extra-job",
         ):
             invalid = copy.deepcopy(valid)
@@ -164,7 +166,16 @@ class V0916ParityApprovalTests(V0916ParityTestBase):
             elif mutation == "promotion-condition":
                 promotion["if"] = "${{ always() }}"
             elif mutation == "promotion-step-condition":
-                promotion["steps"][0]["if"] = "${{ always() }}"
+                promotion["steps"][2]["if"] = "${{ always() }}"
+            elif mutation == "promotion-step-before-gate":
+                promotion["steps"].insert(
+                    3,
+                    {
+                        "name": "Create release before terminal validation",
+                        "shell": "pwsh",
+                        "run": "gh release create v1.0.0",
+                    },
+                )
             else:
                 invalid["jobs"]["v0916-parity-bypass"] = copy.deepcopy(compare)
             with self.subTest(workflow_mutation=mutation):
@@ -479,7 +490,7 @@ class V0916ParityApprovalTests(V0916ParityTestBase):
             "workflowRef": "refs/heads/main", "workflowCommitSha": workflow_head,
             "workflowBlobSha": workflow_blob_sha,
             "workflowRawSha256": hashlib.sha256(workflow_bytes).hexdigest(),
-            "workflowSemanticContractSha256": "b4c91eb8b74a0f9b1e26784f4cb98b99e1720208a7128107cc3bcddfbfdbf029",
+            "workflowSemanticContractSha256": "43ebb8ac75c47283c1432612d549c9294c29b582fd5f678f30da6a4f00197c5f",
             "workflowRun": {
                 "id": 123, "runAttempt": 1, "headSha": workflow_head,
                 "headBranch": "main", "event": "workflow_dispatch", "status": "completed",
@@ -789,7 +800,7 @@ class V0916ParityApprovalTests(V0916ParityTestBase):
                 "workflowCommitSha": "1d1d1cfcad7f0963dd3ed1e3e920d9a3425d6220",
                 "workflowBlobSha": "e" * 40,
                 "workflowRawSha256": "f" * 64,
-                "workflowSemanticContractSha256": "b4c91eb8b74a0f9b1e26784f4cb98b99e1720208a7128107cc3bcddfbfdbf029",
+                "workflowSemanticContractSha256": "43ebb8ac75c47283c1432612d549c9294c29b582fd5f678f30da6a4f00197c5f",
                 "runId": 123,
                 "artifactId": 456,
                 "artifactName": "stable-candidate-123-1d1d1cfcad7f0963dd3ed1e3e920d9a3425d6220",

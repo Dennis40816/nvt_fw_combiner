@@ -193,6 +193,17 @@ class V0916ParityContractTests(V0916ParityTestBase):
             ],
         )
         self.assertNotIn("reportComparisonExceptions", raw_plan)
+        for binding in raw_plan["canonicalInputAuthority"]["ctrlRamExecutionBindings"]:
+            self.assertNotIn("fullBaseArtifactId", binding)
+            self.assertEqual("standard-merge", binding["fullBaseRecipe"]["workflowId"])
+            self.assertNotIn(
+                "expected-output",
+                {
+                    binding["fullBaseRecipe"]["dpArtifactId"],
+                    binding["fullBaseRecipe"]["tpArtifactId"],
+                    binding["tpBaseArtifactId"],
+                },
+            )
         alias = raw_plan["inputIdentityAliases"][0]
         self.assertEqual(
             "route-7-nt51928-14-standard-merge-13-selector-free-31-nt51928-dual-capacity-256k-512k",
@@ -1211,7 +1222,7 @@ class V0916ParityContractTests(V0916ParityTestBase):
                         "icCountVariant": "1-ic",
                         "mapVariant": "full-map",
                         "selectionToken": "single",
-                        "expectedProfileId": "profile-route-full",
+                        "resolvedProfileId": "profile-route-full",
                         "outputCapacity": output_capacity,
                         "compilationFingerprint": "c" * 64,
                     },
@@ -1419,7 +1430,7 @@ class V0916ParityContractTests(V0916ParityTestBase):
                 "icCountVariant": "1-ic",
                 "mapVariant": "full-map",
                 "selectionToken": "single",
-                "expectedProfileId": "profile-route-full",
+                "resolvedProfileId": "profile-route-full",
                 "outputCapacity": 8,
                 "compilationFingerprint": "a" * 64,
             },
