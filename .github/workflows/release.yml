@@ -566,7 +566,7 @@ jobs:
     needs:
       - candidate
       - v0916-parity-finalize
-    if: ${{ !cancelled() && needs.candidate.result == 'success' && ((needs.candidate.outputs.version == '1.0.0' && needs.v0916-parity-finalize.result == 'success') || (needs.candidate.outputs.version == '1.0.1' && needs.v0916-parity-finalize.result == 'skipped')) }}
+    if: ${{ !cancelled() && needs.candidate.result == 'success' && ((needs.candidate.outputs.version == '2.0.0' && needs.v0916-parity-finalize.result == 'success') || (startsWith(needs.candidate.outputs.version, '1.') && needs.v0916-parity-finalize.result == 'skipped')) }}
     runs-on: windows-latest
     timeout-minutes: 30
     environment: release
@@ -586,17 +586,17 @@ jobs:
         with:
           python-version: '3.13'
       - name: Install parity verification dependency
-        if: ${{ needs.candidate.outputs.version == '1.0.0' }}
+        if: ${{ needs.candidate.outputs.version == '2.0.0' }}
         shell: pwsh
         run: 'python -m pip install --disable-pip-version-check --only-binary=:all: PyYAML==6.0.3'
       - name: Download terminal v0.9.16 parity evidence
-        if: ${{ needs.candidate.outputs.version == '1.0.0' }}
+        if: ${{ needs.candidate.outputs.version == '2.0.0' }}
         uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131
         with:
           name: v0916-parity-terminal-${{ github.run_id }}
           path: artifacts/v0916-parity
       - name: Require terminal parity pass before promotion
-        if: ${{ needs.candidate.outputs.version == '1.0.0' }}
+        if: ${{ needs.candidate.outputs.version == '2.0.0' }}
         shell: pwsh
         run: python ./scripts/v0916_parity_certification.py validate-terminal --evidence ./artifacts/v0916-parity/terminal-evidence.json
       - name: Reconfirm release authority and source identity
@@ -885,7 +885,7 @@ jobs:
     name: release / v0.9.16 parity compare
     needs:
       - candidate
-    if: ${{ success() && needs.candidate.outputs.version == '1.0.0' }}
+    if: ${{ success() && needs.candidate.outputs.version == '2.0.0' }}
     runs-on: windows-latest
     timeout-minutes: 60
     permissions:
@@ -926,7 +926,7 @@ jobs:
     needs:
       - candidate
       - v0916-parity-compare
-    if: ${{ success() && needs.candidate.outputs.version == '1.0.0' }}
+    if: ${{ success() && needs.candidate.outputs.version == '2.0.0' }}
     runs-on: windows-latest
     timeout-minutes: 30
     environment: firmware-parity
@@ -995,7 +995,7 @@ jobs:
     needs:
       - candidate
       - v0916-parity-attestation
-    if: ${{ success() && needs.candidate.outputs.version == '1.0.0' }}
+    if: ${{ success() && needs.candidate.outputs.version == '2.0.0' }}
     runs-on: windows-latest
     timeout-minutes: 30
     permissions:
@@ -1031,7 +1031,7 @@ jobs:
         with:
           name: v0916-parity-verification-${{ github.run_id }}
           path: artifacts/v0916-parity
-      - name: Finalize exact v1.0.0 parity evidence
+      - name: Finalize exact v2.0.0 parity evidence
         shell: pwsh
         env:
           GH_TOKEN: ${{ github.token }}
@@ -1051,7 +1051,7 @@ jobs:
             --run-id ${{ github.run_id }} `
             --workflow-sha ${{ github.workflow_sha }} `
             --output ./artifacts/v0916-parity/terminal-evidence.json
-          if ($LASTEXITCODE -ne 0) { throw 'Terminal v1.0.0 parity finalization failed.' }
+          if ($LASTEXITCODE -ne 0) { throw 'Terminal v2.0.0 parity finalization failed.' }
       - name: Upload terminal parity evidence
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
         with:
