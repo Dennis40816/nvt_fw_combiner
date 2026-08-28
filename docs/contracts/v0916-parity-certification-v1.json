@@ -282,7 +282,7 @@
     "sourceExecutorContract": {
       "path": "docs/contracts/v100-candidate-source-executor-v1.json",
       "size": 4219,
-      "sha256": "e3bd602a82281be782bef5140bd3c54c242b1bbf26b15fb83dfb0d81346c4ac2"
+      "sha256": "a60408bac63783c95a0bc60d1603fabc6308256d8beca1e417464c6234f20b04"
     },
     "requiredTreePaths": ["src", "profiles", "external-tools", "tools/crc-worker"],
     "protectedBuild": {
@@ -292,7 +292,7 @@
       "workflowSemanticContract": {
         "path": "docs/contracts/v0916-parity-workflow-v1.json",
         "size": 11248,
-        "sha256": "43ebb8ac75c47283c1432612d549c9294c29b582fd5f678f30da6a4f00197c5f"
+        "sha256": "c86693c00fbd29a6fe7b486032e41332b22feb78389f46600e14fa3fd8c5d73c"
       },
       "candidateVerifierPath": "scripts/release_promotion_policy.py",
       "packageVerifierPath": "scripts/smoke-release.ps1",
@@ -301,40 +301,19 @@
     },
     "authorityTransfer": {
       "allowedBindingChildPaths": [
-        ".github/workflows/release.yml",
-        "CHANGELOG.md",
         "docs/adr/0057-v0916-black-box-parity-certification.md",
-        "docs/contracts/v0916-nt51951-c2-diagnostic-v1.json",
-        "docs/contracts/v0916-nt51951-c2-diagnostic-v1.schema.json",
         "docs/contracts/v0916-parity-certification-v1.json",
         "docs/contracts/v0916-parity-certification-v1.md",
         "docs/contracts/v0916-parity-certification-v1.schema.json",
         "docs/contracts/v0916-parity-comparison-v1.schema.json",
         "docs/contracts/v0916-parity-evidence-v1.schema.json",
         "docs/contracts/v0916-parity-finalize-v1.schema.json",
-        "docs/contracts/v0916-parity-owner-verification-v1.schema.json",
-        "docs/contracts/v0916-parity-receipt-v1.schema.json",
         "docs/contracts/v0916-parity-run-v1.schema.json",
         "docs/contracts/v0916-parity-workflow-v1.json",
         "docs/contracts/v0916-parity-workflow-v1.schema.json",
         "docs/contracts/v100-candidate-source-executor-v1.json",
-        "docs/governance/change-records/RELEASE-100-FINAL-01.json",
-        "docs/governance/change-records/SELECTOR-TYPED-CHOICE-01.json",
-        "scripts/code_size_policy.py",
-        "scripts/package.ps1",
-        "scripts/v0916_parity_certification.py",
-        "scripts/validate_repository.py",
-        "scripts/verify.py",
-        "tests/scripts/test_code_size_policy.py",
-        "tests/scripts/test_release_package_policy.py",
         "tests/scripts/test_v0916_parity_approval.py",
-        "tests/scripts/test_v0916_parity_artifacts.py",
-        "tests/scripts/test_v0916_parity_contracts.py",
-        "tests/scripts/test_v0916_parity_harness.py",
-        "tests/scripts/test_v0916_parity_pipeline.py",
-        "tests/scripts/test_v0916_parity_reports.py",
-        "tests/scripts/test_verify_orchestration.py",
-        "tests/scripts/v0916_parity_test_support.py"
+        "tests/scripts/test_v0916_parity_artifacts.py"
       ]
     }
   },

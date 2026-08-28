@@ -490,7 +490,7 @@ class V0916ParityApprovalTests(V0916ParityTestBase):
             "workflowRef": "refs/heads/main", "workflowCommitSha": workflow_head,
             "workflowBlobSha": workflow_blob_sha,
             "workflowRawSha256": hashlib.sha256(workflow_bytes).hexdigest(),
-            "workflowSemanticContractSha256": "43ebb8ac75c47283c1432612d549c9294c29b582fd5f678f30da6a4f00197c5f",
+            "workflowSemanticContractSha256": "c86693c00fbd29a6fe7b486032e41332b22feb78389f46600e14fa3fd8c5d73c",
             "workflowRun": {
                 "id": 123, "runAttempt": 1, "headSha": workflow_head,
                 "headBranch": "main", "event": "workflow_dispatch", "status": "completed",
@@ -662,7 +662,7 @@ class V0916ParityApprovalTests(V0916ParityTestBase):
             return hashlib.sha256(label.encode("utf-8")).hexdigest()
 
         candidate_executor = (
-            "e3bd602a82281be782bef5140bd3c54c242b1bbf26b15fb83dfb0d81346c4ac2"
+            "a60408bac63783c95a0bc60d1603fabc6308256d8beca1e417464c6234f20b04"
         )
         exact_rows: list[dict[str, object]] = []
         for index in range(53):
@@ -800,7 +800,7 @@ class V0916ParityApprovalTests(V0916ParityTestBase):
                 "workflowCommitSha": "1d1d1cfcad7f0963dd3ed1e3e920d9a3425d6220",
                 "workflowBlobSha": "e" * 40,
                 "workflowRawSha256": "f" * 64,
-                "workflowSemanticContractSha256": "43ebb8ac75c47283c1432612d549c9294c29b582fd5f678f30da6a4f00197c5f",
+                "workflowSemanticContractSha256": "c86693c00fbd29a6fe7b486032e41332b22feb78389f46600e14fa3fd8c5d73c",
                 "runId": 123,
                 "artifactId": 456,
                 "artifactName": "stable-candidate-123-1d1d1cfcad7f0963dd3ed1e3e920d9a3425d6220",

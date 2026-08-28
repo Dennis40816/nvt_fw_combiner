@@ -2,10 +2,10 @@
   "schemaVersion": "1.0",
   "kind": "candidate-source-built-cli",
   "source": {
-    "implementationHead": "1d1d1cfcad7f0963dd3ed1e3e920d9a3425d6220",
-    "implementationTree": "1bc350cd3217f826ba841dfe098e919390f23546",
+    "implementationHead": "208f5aba424098c7c1f4bc872d9bc3ee7d04e685",
+    "implementationTree": "f54f5100eb661387375aa6cf2f3abb34bc9f1a51",
     "authorityTrees": {
-      "src": "e98ac8df13a64a53e34c4c6fc08bcde39a3c35f5",
+      "src": "aab6fe7e9fb56354a016021222f4c6cbb35c341d",
       "profiles": "7f8bd06e23ee78954e2e2c222f7b44a315049330",
       "external-tools": "8d83e508ec3b48e000e1bef39b4b215c81b886ad",
       "tools/crc-worker": "bba57c51cab02ddf89fefdf449eb585de7b34ae5"
@@ -53,6 +53,6 @@
   "cliAssembly": {
     "path": "src/NvtFwCombiner.Cli/bin/Release/net10.0/NvtFwCombiner.Cli.dll",
     "size": 178688,
-    "sha256": "81f050116e563800240c95d800f410e2084a5c78ee8089e774fd7536e966fe73"
+    "sha256": "a096b587910eb00987d92c97d97735d1b70b4bc4071daa55190d4b010f7a1cfd"
   }
 }
