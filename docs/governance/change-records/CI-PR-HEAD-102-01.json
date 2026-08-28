@@ -1,0 +1,34 @@
+{
+  "schemaVersion": 2,
+  "taskId": "CI-PR-HEAD-102-01",
+  "capability": "Bind every CI job to one immutable event source while retaining exact-base integration safety",
+  "integrationBase": "8f06f518a456cc872e29a77d1637fad45aa70955",
+  "risk": "R3",
+  "kind": "release",
+  "state": "design-active",
+  "mutablePaths": [
+    ".github/workflows/ci.yml"
+  ],
+  "implementationOwner": "primary-agent",
+  "searchEvidence": [
+    "Formal PR 401 checked out GitHub's synthetic merge ref 7c481e6c even though capability records and release promotion bind exact PR head a2add540; local exact-head verification passed while CI history audit failed.",
+    "All five existing actions/checkout steps omit ref in both the executable CI workflow and its canonical template, so every producer, validator, shard, and finalizer inherits the synthetic pull-request checkout.",
+    "The release workflow queries required github-actions check runs against the exact reviewed PR head, and repository capability evidence intentionally rejects mutation through an unreviewed merge identity."
+  ],
+  "semanticOwner": "CI event source identity and protected release check-run evidence",
+  "terminalContract": "For pull_request, every CI producer, validator, and finalizer checks out immutable github.event.pull_request.head.sha; for push, every job checks out immutable github.sha. The required structure gate also proves the exact event base SHA is an ancestor of that head, so head-only verification cannot admit stale integration. Read-only permissions, non-persisted credentials, full history, one evidence SHA, protected-main revalidation, repository validation, release policy, and immutable-record semantics remain unchanged",
+  "disposition": "extend-owner",
+  "designReview": {
+    "reviewer": "final_release_review",
+    "outcome": "findings-incorporated",
+    "evidence": "Independent bounded R3 review approved replacing GitHub's synthetic pull-request merge checkout with one explicit immutable source identity across all five jobs in the governed executable CI workflow and its reviewed ungoverned template projection after requiring an exact-base ancestry gate. Pull requests bind to github.event.pull_request.head.sha, pushes bind to github.sha, and the required exact-base gate prevents a stale head from replacing merge-integration coverage. Permissions, action pins, full history, artifact source identity, repository validation, release/promotion policy, firmware behavior, and package semantics remain unchanged; workflow regressions and protected PR/main runs must prove the exact identities before finalization."
+  },
+  "implementationHead": null,
+  "reviewedHead": null,
+  "pathStateDigest": null,
+  "finalReview": {
+    "reviewer": null,
+    "outcome": "pending",
+    "evidence": ""
+  }
+}

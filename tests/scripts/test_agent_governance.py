@@ -11,6 +11,8 @@ import unittest
 from pathlib import Path
 from typing import Any
 
+import yaml
+
 ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT / "scripts"))
 
@@ -1238,6 +1240,52 @@ class AgentGovernanceTests(unittest.TestCase):
         structure_job = workflow.split("  python-worker:", 1)[0]
 
         self.assertIn("fetch-depth: 0", structure_job)
+
+    def test_ci_jobs_bind_one_exact_event_source_and_current_base(self) -> None:
+        expected_ref = "${{ github.event.pull_request.head.sha || github.sha }}"
+        expected_base = "${{ github.event.pull_request.base.sha }}"
+        expected_head = "${{ github.event.pull_request.head.sha }}"
+
+        for relative in (
+            ".github/workflows/ci.yml",
+            "docs/ci/workflow-templates/ci.yml",
+        ):
+            with self.subTest(workflow=relative):
+                workflow = yaml.safe_load((ROOT / relative).read_text(encoding="utf-8"))
+                jobs = workflow["jobs"]
+                checkout_steps = [
+                    step
+                    for job in jobs.values()
+                    for step in job["steps"]
+                    if str(step.get("uses", "")).startswith("actions/checkout@")
+                ]
+
+                self.assertEqual(5, len(checkout_steps))
+                for step in checkout_steps:
+                    checkout_with = step["with"]
+                    self.assertEqual(expected_ref, checkout_with["ref"])
+                    self.assertIs(False, checkout_with["persist-credentials"])
+                    self.assertEqual(0, checkout_with["fetch-depth"])
+                    self.assertNotIn("github.ref", checkout_with["ref"])
+                    self.assertNotIn("refs/pull/", checkout_with["ref"])
+
+                freshness = next(
+                    step
+                    for step in jobs["structure"]["steps"]
+                    if step.get("name")
+                    == "Require PR head to contain the exact reviewed base"
+                )
+                self.assertEqual("github.event_name == 'pull_request'", freshness["if"])
+                self.assertEqual(expected_base, freshness["env"]["NFC_PR_BASE_SHA"])
+                self.assertEqual(expected_head, freshness["env"]["NFC_PR_HEAD_SHA"])
+                self.assertIn(
+                    'test "$(git rev-parse HEAD)" = "$NFC_PR_HEAD_SHA"',
+                    freshness["run"],
+                )
+                self.assertIn(
+                    'git merge-base --is-ancestor "$NFC_PR_BASE_SHA" HEAD',
+                    freshness["run"],
+                )
 
 
 if __name__ == "__main__":
