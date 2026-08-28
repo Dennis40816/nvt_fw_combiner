@@ -67,7 +67,9 @@
             { "const": "dotnet" }, { "const": "restore" },
             { "const": "src/NvtFwCombiner.Cli/NvtFwCombiner.Cli.csproj" },
             { "const": "--locked-mode" },
-            { "const": "--disable-parallel" }
+            { "const": "--disable-parallel" },
+            { "const": "--runtime" },
+            { "const": "win-x64" }
           ],
           "items": false
         }
@@ -85,6 +87,8 @@
             { "const": "dotnet" }, { "const": "build" },
             { "const": "src/NvtFwCombiner.Cli/NvtFwCombiner.Cli.csproj" },
             { "const": "--configuration" }, { "const": "Release" },
+            { "const": "--runtime" }, { "const": "win-x64" },
+            { "const": "--self-contained" }, { "const": "true" },
             { "const": "--no-restore" },
             { "const": "-m:1" },
             { "const": "-p:ContinuousIntegrationBuild=true" },

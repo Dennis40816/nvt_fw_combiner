@@ -46,13 +46,13 @@
     "restore": {
       "allOf": [
         { "$ref": "#/$defs/command" },
-        { "properties": { "arguments": { "const": ["dotnet", "restore", "src/NvtFwCombiner.Cli/NvtFwCombiner.Cli.csproj", "--locked-mode"] } } }
+        { "properties": { "arguments": { "const": ["dotnet", "restore", "src/NvtFwCombiner.Cli/NvtFwCombiner.Cli.csproj", "--locked-mode", "--runtime", "win-x64"] } } }
       ]
     },
     "build": {
       "allOf": [
         { "$ref": "#/$defs/command" },
-        { "properties": { "arguments": { "const": ["dotnet", "build", "src/NvtFwCombiner.Cli/NvtFwCombiner.Cli.csproj", "--configuration", "Release", "--no-restore", "-p:ContinuousIntegrationBuild=true", "-p:PathMap={sourceRoot}=/_/src"] } } }
+        { "properties": { "arguments": { "const": ["dotnet", "build", "src/NvtFwCombiner.Cli/NvtFwCombiner.Cli.csproj", "--configuration", "Release", "--runtime", "win-x64", "--self-contained", "true", "--no-restore", "-p:ContinuousIntegrationBuild=true", "-p:PathMap={sourceRoot}=/_/src"] } } }
       ]
     },
     "cliAssembly": { "$ref": "#/$defs/artifact" },
