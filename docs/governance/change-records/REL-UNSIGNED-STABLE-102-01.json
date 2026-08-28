@@ -1,0 +1,34 @@
+{
+  "schemaVersion": 2,
+  "taskId": "REL-UNSIGNED-STABLE-102-01",
+  "capability": "Align the stable release-manifest contract with an explicitly owner-approved unsigned 1.0.2 release",
+  "integrationBase": "041d0a659ccb337387083fb9adaa29129722e46b",
+  "risk": "R3",
+  "kind": "release",
+  "state": "design-active",
+  "mutablePaths": [
+    "docs/contracts/release-manifest-v1.md"
+  ],
+  "implementationOwner": "primary-agent",
+  "searchEvidence": [
+    "The protected package workflow and docs/ci/release-package.md already permit an unsigned stable package while retaining closed manifest, SHA-256, SBOM, provenance, smoke, legal, and release-owner gates.",
+    "The release-manifest JSON Schema already makes signingIdentity optional, so no schema or executable behavior change is required.",
+    "The existing release-manifest prose incorrectly says generation follows publishing/signing and limits omitted signing fields to beta/smoke packages; CHANGELOG separately lists signing as unfinished for 1.0.2."
+  ],
+  "semanticOwner": "Release manifest contract and release-owner unsigned-package disposition",
+  "terminalContract": "A stable package may omit signing fields only when the release owner explicitly approves that exact package for unsigned distribution; the approval changes no package bytes or executable admission rules and waives none of the closed-inventory, SHA-256, manifest, SBOM, provenance, archive-safety, package-smoke, legal/redistribution, protected-publication, or immutable-tag gates",
+  "disposition": "extend-owner",
+  "designReview": {
+    "reviewer": "final_release_review",
+    "outcome": "findings-incorporated",
+    "evidence": "Independent bounded R3 review approved the one governed manifest-contract path after requiring both contradictory statements to be corrected, positive owner-approved unsigned wording in CHANGELOG, retention of every integrity/publication gate, and exact-package release-owner evidence. No schema, workflow, packaging code, signing system, key custody, firmware, or runtime change is admitted."
+  },
+  "implementationHead": null,
+  "reviewedHead": null,
+  "pathStateDigest": null,
+  "finalReview": {
+    "reviewer": null,
+    "outcome": "pending",
+    "evidence": ""
+  }
+}

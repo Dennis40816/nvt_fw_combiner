@@ -57,8 +57,10 @@ package separately if manual rollback is required; firmware output is unchanged.
 
 ### Downloads and integrity
 
-Publication, hashes, SBOM, provenance, signing, and the immutable `v1.0.2` tag
-remain separate release-gate work and are not created by this candidate change.
+Package signing is not required for `v1.0.2` under the release-owner-approved
+unsigned disposition. Publication, hashes, SBOM, provenance, exact package
+smoke, legal/redistribution review, and the immutable `v1.0.2` tag remain
+separate release gates and are not created by this candidate change.
 
 ## [1.0.1] - 2026-08-28
 
