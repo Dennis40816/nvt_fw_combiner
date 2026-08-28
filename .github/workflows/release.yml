@@ -898,7 +898,7 @@ jobs:
           persist-credentials: false
           ref: ${{ github.workflow_sha }}
       - name: Setup pinned Python for parity verification
-        uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1
+        uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6.3.0
         with:
           python-version: '3.13'
       - name: Install parity verification dependency
@@ -939,7 +939,7 @@ jobs:
           persist-credentials: false
           ref: ${{ github.workflow_sha }}
       - name: Setup pinned Python for parity verification
-        uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1
+        uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6.3.0
         with:
           python-version: '3.13'
       - name: Install parity verification dependency
@@ -1007,7 +1007,7 @@ jobs:
           persist-credentials: false
           ref: ${{ github.workflow_sha }}
       - name: Setup pinned Python for parity verification
-        uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1
+        uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6.3.0
         with:
           python-version: '3.13'
       - name: Install parity verification dependency
