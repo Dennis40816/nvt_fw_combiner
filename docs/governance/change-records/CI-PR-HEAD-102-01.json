@@ -5,7 +5,7 @@
   "integrationBase": "8f06f518a456cc872e29a77d1637fad45aa70955",
   "risk": "R3",
   "kind": "release",
-  "state": "design-active",
+  "state": "final-complete",
   "mutablePaths": [
     ".github/workflows/ci.yml"
   ],
@@ -23,12 +23,12 @@
     "outcome": "findings-incorporated",
     "evidence": "Independent bounded R3 review approved replacing GitHub's synthetic pull-request merge checkout with one explicit immutable source identity across all five jobs in the governed executable CI workflow and its reviewed ungoverned template projection after requiring an exact-base ancestry gate. Pull requests bind to github.event.pull_request.head.sha, pushes bind to github.sha, and the required exact-base gate prevents a stale head from replacing merge-integration coverage. Permissions, action pins, full history, artifact source identity, repository validation, release/promotion policy, firmware behavior, and package semantics remain unchanged; workflow regressions and protected PR/main runs must prove the exact identities before finalization."
   },
-  "implementationHead": null,
-  "reviewedHead": null,
-  "pathStateDigest": null,
+  "implementationHead": "07f1af8084cc6af19cd71dafedc6008551a3172d",
+  "reviewedHead": "07f1af8084cc6af19cd71dafedc6008551a3172d",
+  "pathStateDigest": "2abccda905ef546de7920732a1a2bfcdd3559f9bf8fc8b1f328c151b72a02b9d",
   "finalReview": {
-    "reviewer": null,
-    "outcome": "pending",
-    "evidence": ""
+    "reviewer": "final_release_review",
+    "outcome": "approved",
+    "evidence": "Independent bounded R3 exact-head review confirmed that the governed executable CI workflow and its reviewed template projection each contain exactly five checkout steps, all binding pull requests to github.event.pull_request.head.sha and pushes to github.sha. The required structure gate proves checked-out HEAD equals the event head and that the exact event base SHA is its ancestor, preserving integration freshness without synthetic merge identity. Read-only permissions, pinned actions, non-persisted credentials, full history, and one producer/finalizer source SHA remain intact. Parsed workflow regressions passed, no validator or release-policy relaxation occurred, and no firmware, runtime, package, range, CRC, or output semantics changed."
   }
 }
