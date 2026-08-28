@@ -71,17 +71,17 @@ class V0916ParityArtifactTests(V0916ParityTestBase):
         )
         self.assertEqual(4219, declared["size"])
         self.assertEqual(
-            "7c26ff1a6ae10d4e738d1369335ab57a014b491c124487d1ee5a062e337311ef",
+            "c7c9ac6bba6b5be118db2c4cadc48787e628ca591d98c959b511e8ab637dde65",
             declared["sha256"],
         )
         self.assertEqual(4219, path.stat().st_size)
         self.assertEqual(
-            "7c26ff1a6ae10d4e738d1369335ab57a014b491c124487d1ee5a062e337311ef",
+            "c7c9ac6bba6b5be118db2c4cadc48787e628ca591d98c959b511e8ab637dde65",
             hashlib.sha256(path.read_bytes()).hexdigest(),
         )
         contract = json.loads(path.read_text(encoding="utf-8"))
-        self.assertEqual("4ec9ef7179002d767f50fca7f09e016a11e3d000", contract["source"]["implementationHead"])
-        self.assertEqual("9dcf244eea2c725a9ddb70c98f201a0e2871f145", contract["source"]["implementationTree"])
+        self.assertEqual("c8104f74de4af9d5131125eec54f402f20f9cd9f", contract["source"]["implementationHead"])
+        self.assertEqual("5ee37c4a4b85e98a0007d17a407eeb29f0108e75", contract["source"]["implementationTree"])
         self.assertEqual(
             {
                 "src": "9070bd3cd85773dd7844069841ceb4043edd2f57",
@@ -94,7 +94,7 @@ class V0916ParityArtifactTests(V0916ParityTestBase):
         self.assertEqual("10.0.303", contract["toolchain"]["resolvedSdkVersion"])
         self.assertEqual("detached-git-worktree", contract["freshBuild"]["sourceMaterialization"])
         self.assertEqual(178688, contract["cliAssembly"]["size"])
-        self.assertEqual("baa21c379bc29e99c032b354afad722bb932a95e803fd00f4b0a6eb2070004c9", contract["cliAssembly"]["sha256"])
+        self.assertEqual("221d2d158b594c3d614aad50b14557dde88d7be5a3c2010f5629974d5374a139", contract["cliAssembly"]["sha256"])
         self.assertTrue(contract["freshBuild"]["emptyDestinationRequired"])
         self.assertTrue(contract["freshBuild"]["rejectIgnoredBuildOutputsBeforeRestore"])
         head = contract["source"]["implementationHead"]
@@ -633,7 +633,7 @@ class V0916ParityArtifactTests(V0916ParityTestBase):
                 "workflowCommitSha": workflow_sha,
                 "workflowBlobSha": workflow_blob_sha,
                 "workflowRawSha256": workflow_raw_sha256,
-                "workflowSemanticContractSha256": "eb0e20dc82bb466d938dbf426afa25cd0c93a63082f15c9bc4632b764b882e3b",
+                "workflowSemanticContractSha256": "f08ee2d3564decad1da8c5130f00ec9e1fdba0a5dad69f1ad29ab1d5efdefda5",
                 "runId": 123,
                 "artifactId": 456,
                 "artifactName": f"stable-candidate-123-{head}",
