@@ -11,6 +11,7 @@ import tempfile
 import unittest
 import zipfile
 from pathlib import Path
+from unittest.mock import patch
 
 import yaml
 
@@ -271,6 +272,59 @@ class V0916ParityApprovalTests(V0916ParityTestBase):
             self.assertEqual(64, len(evidence["routes"]))
             self.assertEqual(1, len(verifier.calls))
             self.assertEqual(fixture["protectedRun"], evidence["protectedRun"])
+
+    def test_finalization_uses_each_verified_local_artifact_capture_once(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            fixture = self._finalize_fixture(Path(temporary))
+            original_reader = MODULE._read_artifact_reference
+            originals: dict[Path, bytes] = {}
+            captured_roles: set[str] = set()
+
+            def capture_then_swap(
+                reference: dict[str, object], role: str
+            ) -> tuple[Path, bytes]:
+                path, payload = original_reader(reference, role)
+                if role in {
+                    "comparison",
+                    "firmware-owner-attestation",
+                    "verification-record",
+                }:
+                    originals[path] = payload
+                    captured_roles.add(role)
+                    path.write_bytes(b"post-capture-finalization-swap")
+                return path, payload
+
+            try:
+                with patch.object(
+                    MODULE,
+                    "_read_artifact_reference",
+                    side_effect=capture_then_swap,
+                ):
+                    evidence = MODULE.finalize_evidence(
+                        fixture["finalizePath"],
+                        github_reader=fixture["githubReader"],
+                        firmware_owner_verifier=RecordingFirmwareOwnerVerifier(
+                            fixture["expectedVerification"]
+                        ),
+                    )
+            finally:
+                for path, payload in originals.items():
+                    path.write_bytes(payload)
+            self.assertEqual(
+                {
+                    "comparison",
+                    "firmware-owner-attestation",
+                    "verification-record",
+                },
+                captured_roles,
+            )
+            self.assertEqual("pass", evidence["verdict"])
+            self.assertEqual(
+                hashlib.sha256(originals[next(
+                    path for path in originals if path.name == "comparison.json"
+                )]).hexdigest(),
+                evidence["comparison"]["sha256"],
+            )
 
     def test_finalization_accepts_same_run_while_finalizer_job_is_still_running(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
@@ -827,6 +881,66 @@ class V0916ParityApprovalTests(V0916ParityTestBase):
         }
         MODULE.validate_comparison_schema(comparison)
         return comparison
+
+    def test_comparison_rejects_forged_rows_even_after_aggregate_rehash(self) -> None:
+        for mutation in (
+            "transitive-zero-length",
+            "transitive-size-mismatch",
+            "transitive-false-proof",
+            "transitive-invalid-sha",
+            "exact-invalid-compilation",
+            "exact-invalid-receipt-report",
+            "exact-invalid-output-sha",
+            "exact-invalid-scenario-input",
+        ):
+            comparison = self._schema_complete_comparison_fixture()
+            transitive = next(
+                row
+                for row in comparison["routes"]
+                if row["proofKind"] == "tp-prefix-transitive"
+            )
+            exact = next(
+                row
+                for row in comparison["routes"]
+                if row["proofKind"] == "exact-output"
+            )
+            if mutation == "transitive-zero-length":
+                transitive["tpLength"] = 0
+            elif mutation == "transitive-size-mismatch":
+                transitive["candidateTpOutput"]["size"] += 1
+            elif mutation == "transitive-false-proof":
+                transitive["candidateFullTailImmutable"] = False
+            elif mutation == "transitive-invalid-sha":
+                transitive["candidateFullInput"]["sha256"] = "invalid"
+            elif mutation == "exact-invalid-compilation":
+                exact["compilationFingerprints"]["candidate"] = "invalid"
+            elif mutation == "exact-invalid-receipt-report":
+                exact["receipts"][0]["report"]["sha256"] = "invalid"
+            elif mutation == "exact-invalid-output-sha":
+                exact["candidateOutput"]["sha256"] = "invalid"
+            else:
+                exact["scenario"]["orderedInputs"][0]["size"] = 0
+            comparison["routeEvidenceSha256"] = (
+                MODULE.canonical_route_evidence_sha256(comparison["routes"])
+            )
+            receipts = [
+                {
+                    "routeId": route["routeId"],
+                    "role": receipt["role"],
+                    "receiptSha256": receipt["receiptSha256"],
+                }
+                for route in comparison["routes"]
+                for receipt in route["receipts"]
+            ]
+            comparison["receiptSetSha256"] = MODULE.canonical_receipt_set_sha256(
+                receipts
+            )
+            with self.subTest(mutation=mutation):
+                with self.assertRaises(MODULE.ParityError) as captured:
+                    MODULE.validate_comparison_schema(comparison)
+                self.assertEqual(
+                    "PARITY_EVIDENCE_INCOMPLETE", captured.exception.code
+                )
 
 
 if __name__ == "__main__":

@@ -311,6 +311,35 @@ class V0916ParityArtifactTests(V0916ParityTestBase):
                 {"path": str(contract_path), "size": contract_path.stat().st_size, "sha256": raw_identity},
             )
             self.assertEqual(raw_identity, validated.identity_sha256)
+            original_capture = MODULE.capture_local_artifact
+            original_contract_payload = contract_path.read_bytes()
+
+            def capture_contract_then_swap(path: Path, role: str):
+                captured = original_capture(path, role)
+                if role == "candidate-source-executor-contract":
+                    path.write_bytes(b"post-capture-contract-swap")
+                return captured
+
+            try:
+                with mock.patch.object(
+                    MODULE,
+                    "capture_local_artifact",
+                    side_effect=capture_contract_then_swap,
+                ):
+                    captured_contract = (
+                        MODULE.load_and_validate_candidate_source_executor_contract(
+                            contract_path,
+                            {
+                                "path": str(contract_path),
+                                "size": len(original_contract_payload),
+                                "sha256": raw_identity,
+                            },
+                        )
+                    )
+            finally:
+                contract_path.write_bytes(original_contract_payload)
+            self.assertEqual(raw_identity, captured_contract.identity_sha256)
+            self.assertEqual(contract, captured_contract.contract)
             for mutation in ("materialization", "ci-build", "path-map"):
                 invalid_contract = copy.deepcopy(contract)
                 if mutation == "materialization":
@@ -372,6 +401,36 @@ class V0916ParityArtifactTests(V0916ParityTestBase):
             self.assertEqual(contract["cliAssembly"]["sha256"], observed.cli_sha256)
             self.assertEqual(("dotnet", str(observed.cli_path)), observed.argv_prefix)
             self.assertTrue(observed.fresh_build)
+            original_verifier = MODULE._verify_declared_file
+            cli_path = root / contract["cliAssembly"]["path"]
+            cli_payload = cli_path.read_bytes()
+
+            def verify_cli_then_swap(root_path: Path, reference: dict[str, object]):
+                captured = original_verifier(root_path, reference)
+                if reference.get("path") == contract["cliAssembly"]["path"]:
+                    captured.path.write_bytes(b"post-capture-cli-swap")
+                return captured
+
+            try:
+                with mock.patch.object(
+                    MODULE,
+                    "_verify_declared_file",
+                    side_effect=verify_cli_then_swap,
+                ):
+                    with self.assertRaises(MODULE.ParityError) as cli_swap:
+                        MODULE.verify_candidate_source_executor(
+                            root,
+                            validated,
+                            RecordingBaselineExecutorHost(
+                                head="1" * 40,
+                                tree="2" * 40,
+                                authority_trees=contract["source"]["authorityTrees"],
+                                sdk_version="10.0.303",
+                            ),
+                        )
+            finally:
+                cli_path.write_bytes(cli_payload)
+            self.assertEqual("PARITY_AUTHORITY_MISMATCH", cli_swap.exception.code)
             expected_build_arguments = [
                 f"-p:PathMap={root}=/_/src"
                 if argument == "-p:PathMap={sourceRoot}=/_/src"
@@ -1075,7 +1134,13 @@ class V0916ParityArtifactTests(V0916ParityTestBase):
             call = verifier.call_args.kwargs
             self.assertEqual(source["implementationHead"], call["firmware_executor_head"])
             self.assertEqual(source["implementationTree"], call["firmware_executor_tree"])
-            self.assertEqual(assets, call["local_assets"])
+            self.assertEqual(
+                assets,
+                {
+                    role: captured.path
+                    for role, captured in call["local_assets"].items()
+                },
+            )
             self.assertEqual(
                 output_root / "candidate-artifact-proof",
                 call["artifact_download_root"],

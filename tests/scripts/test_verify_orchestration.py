@@ -1877,7 +1877,7 @@ class VerifyOrchestrationTests(unittest.TestCase):
             cancellation_handoffs.append("cancel")
             cancellation.set()
 
-        with tempfile.TemporaryDirectory(dir=MODULE.ROOT / "artifacts") as temporary:
+        with tempfile.TemporaryDirectory(dir=MODULE.ROOT) as temporary:
             root = Path(temporary)
             coverage = root / "coverage"
             coverage.mkdir()

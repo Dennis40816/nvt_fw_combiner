@@ -43,6 +43,34 @@ def reload_with_post_capture_swap(
     return reloaded, captured_roles
 
 
+def build_with_post_capture_swap(
+    *, target_roles: set[str], **kwargs: object
+) -> tuple[dict[str, object], set[str]]:
+    """Swap source paths after capture; receipt construction must use captured bytes."""
+
+    original_reader = MODULE._read_artifact_reference
+    originals: dict[Path, bytes] = {}
+    captured_roles: set[str] = set()
+
+    def capture_then_swap(reference: dict[str, object], role: str) -> tuple[Path, bytes]:
+        path, payload = original_reader(reference, role)
+        if role in target_roles and path not in originals:
+            originals[path] = payload
+            captured_roles.add(role)
+            path.write_bytes(b"post-capture-receipt-construction-swap")
+        return path, payload
+
+    try:
+        with patch.object(
+            MODULE, "_read_artifact_reference", side_effect=capture_then_swap
+        ):
+            receipt = MODULE.build_process_receipt(**kwargs)
+    finally:
+        for path, payload in originals.items():
+            path.write_bytes(payload)
+    return receipt, captured_roles
+
+
 class RecordingCliRunner:
     def __init__(
         self,
@@ -422,6 +450,29 @@ class V0916ParityPipelineTests(V0916ParityTestBase):
                 },
             )
 
+            swapped_projection, captured_roles = build_with_post_capture_swap(
+                target_roles={
+                    "application-authority-report",
+                    "application-report",
+                    "output",
+                },
+                capture=receipt,
+                verified_inputs=verified_inputs,
+                verified_executor=verified_executor,
+                operator_login="dennis40816",
+                receipt_root=root / "receipts-post-capture-swap",
+                comparator_path=ROOT / "scripts/v0916_parity_certification.py",
+            )
+            self.assertEqual(
+                {
+                    "application-authority-report",
+                    "application-report",
+                    "output",
+                },
+                captured_roles,
+            )
+            self.assertEqual(receipt["output"]["sha256"], swapped_projection["output"]["sha256"])
+
             projected = MODULE.build_process_receipt(
                 capture=receipt,
                 verified_inputs=verified_inputs,
@@ -764,6 +815,41 @@ class V0916ParityPipelineTests(V0916ParityTestBase):
                             )
                         tamper_path.write_bytes(original_payload)
                     if index == 1:
+                        swapped_projection, build_captured_roles = (
+                            build_with_post_capture_swap(
+                                target_roles={
+                                    "application-authority-report",
+                                    "application-report",
+                                    "output",
+                                    "base-precursor-output",
+                                    "base-precursor-authority-report",
+                                    "base-precursor-application-report",
+                                },
+                                capture=capture,
+                                verified_inputs=verified,
+                                verified_executor=route_executor,
+                                operator_login="dennis40816",
+                                receipt_root=root
+                                / "receipts-precursor-post-capture-swap",
+                                comparator_path=ROOT
+                                / "scripts/v0916_parity_certification.py",
+                            )
+                        )
+                        self.assertEqual(
+                            {
+                                "application-authority-report",
+                                "application-report",
+                                "output",
+                                "base-precursor-output",
+                                "base-precursor-authority-report",
+                                "base-precursor-application-report",
+                            },
+                            build_captured_roles,
+                        )
+                        self.assertEqual(
+                            projected["output"]["sha256"],
+                            swapped_projection["output"]["sha256"],
+                        )
                         precursor_roles = {
                             "base-precursor-proof",
                             "base-precursor-source",

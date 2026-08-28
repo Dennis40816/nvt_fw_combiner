@@ -113,6 +113,28 @@ class V0916ParityContractTests(V0916ParityTestBase):
         authority = MODULE.load_baseline_executor_authority(plan, executor_path)
         self.assertEqual(raw_identity, authority.identity_sha256)
         self.assertEqual(loaded, authority.contract)
+        original_capture = MODULE.capture_local_artifact
+        original_payload = executor_path.read_bytes()
+
+        def capture_executor_then_swap(path: Path, role: str):
+            captured = original_capture(path, role)
+            if role == "baseline-executor-contract":
+                path.write_bytes(b"post-capture-baseline-contract-swap")
+            return captured
+
+        try:
+            with mock.patch.object(
+                MODULE,
+                "capture_local_artifact",
+                side_effect=capture_executor_then_swap,
+            ):
+                captured_authority = MODULE.load_baseline_executor_authority(
+                    plan, executor_path
+                )
+        finally:
+            executor_path.write_bytes(original_payload)
+        self.assertEqual(raw_identity, captured_authority.identity_sha256)
+        self.assertEqual(loaded, captured_authority.contract)
         for supplied in (MODULE.canonical_json_sha256(loaded), "0" * 64):
             with self.subTest(non_raw_identity=supplied):
                 with self.assertRaises(MODULE.ParityError) as identity_error:
@@ -721,6 +743,8 @@ class V0916ParityContractTests(V0916ParityTestBase):
                     outputCapacity=route.tp_length,
                 )
                 row["candidateCompilationFingerprint"] = route.capability_fingerprint
+                row["candidateTpOutput"]["size"] = route.tp_length
+                row["candidateFullInput"]["size"] = route.tp_length + 1
                 row["receipts"][0]["executorIdentitySha256"] = candidate_identity
                 row["receipts"][0]["receiptSha256"] = hashlib.sha256(
                     f"tp-receipt-{transitive_index}".encode()
@@ -875,6 +899,29 @@ class V0916ParityContractTests(V0916ParityTestBase):
                 MODULE.load_and_validate_plan(self.plan_path, policy)
 
         self.assertEqual("PARITY_POLICY_DRIFT", captured.exception.code)
+
+    def test_policy_parse_uses_the_same_bytes_as_its_hash_binding(self) -> None:
+        original_capture = MODULE.capture_local_artifact
+        original_policy = self.policy_path.read_bytes()
+
+        def capture_policy_then_swap(path: Path, role: str):
+            captured = original_capture(path, role)
+            if role == "capability-policy":
+                path.write_bytes(b"post-capture-policy-swap")
+            return captured
+
+        try:
+            with mock.patch.object(
+                MODULE,
+                "capture_local_artifact",
+                side_effect=capture_policy_then_swap,
+            ):
+                plan = MODULE.load_and_validate_plan(
+                    self.plan_path, self.policy_path
+                )
+        finally:
+            self.policy_path.write_bytes(original_policy)
+        self.assertEqual(64, len(plan.routes))
 
     def test_missing_or_reclassified_transitive_route_fails_closed(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
@@ -1710,6 +1757,13 @@ class V0916ParityContractTests(V0916ParityTestBase):
             "missing-passed",
             "wrong-route",
             "input-array-order",
+            "zero-tp-length",
+            "tp-output-size",
+            "full-input-size",
+            "false-prefix-proof",
+            "invalid-output-sha",
+            "duplicate-receipt",
+            "extra-transitive-property",
         ):
             candidate_exact = copy.deepcopy(exact)
             candidate_transitive = copy.deepcopy(transitive)
@@ -1727,6 +1781,22 @@ class V0916ParityContractTests(V0916ParityTestBase):
                 candidate_exact.pop("passed")
             elif mutation == "wrong-route":
                 candidate_transitive["fullEvidence"]["routeId"] = "route-other"
+            elif mutation == "zero-tp-length":
+                candidate_transitive["tpLength"] = 0
+            elif mutation == "tp-output-size":
+                candidate_transitive["candidateTpOutput"]["size"] = 3
+            elif mutation == "full-input-size":
+                candidate_transitive["candidateFullInput"]["size"] = 4
+            elif mutation == "false-prefix-proof":
+                candidate_transitive["candidateTpEqualsCandidateFullPrefix"] = False
+            elif mutation == "invalid-output-sha":
+                candidate_transitive["candidateTpOutput"]["sha256"] = "not-a-sha"
+            elif mutation == "duplicate-receipt":
+                candidate_transitive["receipts"].append(
+                    copy.deepcopy(candidate_transitive["receipts"][0])
+                )
+            elif mutation == "extra-transitive-property":
+                candidate_transitive["unexpected"] = True
             else:
                 candidate_exact["scenario"]["orderedInputs"].reverse()
             with self.subTest(mutation=mutation):
