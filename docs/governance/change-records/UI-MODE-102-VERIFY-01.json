@@ -5,7 +5,7 @@
   "integrationBase": "7a94879b3ce945b224b97917934de26a06d588b9",
   "risk": "R2",
   "kind": "governance",
-  "state": "design-active",
+  "state": "final-complete",
   "mutablePaths": [
     "scripts/verify.py"
   ],
@@ -23,12 +23,12 @@
     "outcome": "approved",
     "evidence": "Independent R2 review confirmed the UiSmoke project contains exactly 825 discoverable tests after three real mode-selector regressions, and approved updating only the canonical verifier cardinality plus its ungoverned exact expectation test under a separate bookkeeping record; no execution, release, or firmware authority changes."
   },
-  "implementationHead": null,
-  "reviewedHead": null,
-  "pathStateDigest": null,
+  "implementationHead": "56daf2ff33c2fb66700adab4afacc9abd3cdc96f",
+  "reviewedHead": "56daf2ff33c2fb66700adab4afacc9abd3cdc96f",
+  "pathStateDigest": "8c4865c7ad84baab6fcf6c9262ad9634dceb427df2868e86e8c34319b70b25e2",
   "finalReview": {
-    "reviewer": null,
-    "outcome": "pending",
-    "evidence": ""
+    "reviewer": "final_evidence_review",
+    "outcome": "approved",
+    "evidence": "Independent exact-head review confirmed the canonical verifier contains exactly 825 UiSmoke tests after the three real mode-selector regressions and 4,667 total .NET tests. The focused orchestration expectation passed, test selection and execution were unchanged, transient restore lockfile differences were absent, and no release, package, firmware, route, CRC, or I/O semantics changed."
   }
 }

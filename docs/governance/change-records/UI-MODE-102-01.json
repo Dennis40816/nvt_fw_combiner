@@ -5,7 +5,7 @@
   "integrationBase": "7a94879b3ce945b224b97917934de26a06d588b9",
   "risk": "R1",
   "kind": "ui",
-  "state": "design-active",
+  "state": "final-complete",
   "mutablePaths": [
     "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/MainWindowViewModel.Construction.cs",
     "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/MergePresentationViewModel.State.cs",
@@ -28,12 +28,12 @@
     "outcome": "not-required",
     "evidence": "R1 owner-approved UI hotfix; no XAML, firmware, profile, schema, byte, output naming, or release contract change."
   },
-  "implementationHead": null,
-  "reviewedHead": null,
-  "pathStateDigest": null,
+  "implementationHead": "56daf2ff33c2fb66700adab4afacc9abd3cdc96f",
+  "reviewedHead": "56daf2ff33c2fb66700adab4afacc9abd3cdc96f",
+  "pathStateDigest": "3040a2d1bd2b5f99182f1313822019f747f5609450f4059ca00b54c8817b047d",
   "finalReview": {
-    "reviewer": null,
-    "outcome": "pending",
-    "evidence": ""
+    "reviewer": "final_evidence_review",
+    "outcome": "approved",
+    "evidence": "Independent exact-head review approved candidate 56daf2ff33c2fb66700adab4afacc9abd3cdc96f with no P0/P1/P2 findings in scope. Real Avalonia ComboBox regressions proved first Merge and Replace selections retain both the selected mode and the same ItemsSource during TwoWay binding; 100 repeated page transitions preserved independent modes, the complete UI suite passed 825/825, IC/catalog choices-first reconciliation remained intact, and no firmware/profile/schema/range/CRC/header/output-naming authority changed."
   }
 }
