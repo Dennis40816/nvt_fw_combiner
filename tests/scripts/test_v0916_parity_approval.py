@@ -87,11 +87,19 @@ class V0916ParityApprovalTests(V0916ParityTestBase):
             )
         )
         for job in contract["jobs"].values():
-            self.assertIn("version == '2.0.0'", job["if"])
-            self.assertNotIn("version == '1.0.0'", job["if"])
+            self.assertEqual(
+                "${{ success() && needs.candidate.outputs.version == '2.0.0' }}",
+                job["if"],
+            )
         promotion = contract["promotionGate"]
-        self.assertIn("startsWith(needs.candidate.outputs.version, '1.')", promotion["if"])
-        self.assertIn("version == '2.0.0'", promotion["if"])
+        self.assertEqual(
+            "${{ !cancelled() && needs.candidate.result == 'success' && "
+            "((needs.candidate.outputs.version == '2.0.0' && "
+            "needs.v0916-parity-finalize.result == 'success') || "
+            "(startsWith(needs.candidate.outputs.version, '1.') && "
+            "needs.v0916-parity-finalize.result == 'skipped')) }}",
+            promotion["if"],
+        )
         for step in promotion["steps"][2:]:
             self.assertEqual(
                 "${{ needs.candidate.outputs.version == '2.0.0' }}",

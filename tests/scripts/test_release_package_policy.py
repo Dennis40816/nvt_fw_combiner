@@ -1278,6 +1278,10 @@ class ReleasePackagePolicyTests(unittest.TestCase):
         self.assertIn("validate-terminal --evidence", steps)
         self.assertEqual(
             3,
+            steps.count("needs.candidate.outputs.version == '2.0.0'"),
+        )
+        self.assertEqual(
+            0,
             steps.count("needs.candidate.outputs.version == '1.0.0'"),
         )
         self.assertNotIn("Reuse only committed v1.0.0 firmware evidence", release)
@@ -1370,7 +1374,7 @@ class ReleasePackagePolicyTests(unittest.TestCase):
         self.assertIn(install, install_step)
         self.assertIn("shell: pwsh", install_step)
         self.assertIn(
-            "if: ${{ needs.candidate.outputs.version == '1.0.0' }}",
+            "if: ${{ needs.candidate.outputs.version == '2.0.0' }}",
             install_step,
         )
 
