@@ -5,7 +5,7 @@
   "integrationBase": "08c9b4bb20813dfe2660a8bbc504d34d8f9d6d8a",
   "risk": "R2",
   "kind": "refactor",
-  "state": "design-active",
+  "state": "final-complete",
   "mutablePaths": [
     "src/NvtFwCombiner.Application/Capabilities/CanonicalCapabilityCatalogSource.cs",
     "src/NvtFwCombiner.Application/Capabilities/CanonicalDynamicCapabilityModels.cs",
@@ -26,12 +26,12 @@
     "outcome": "findings-incorporated",
     "evidence": "Independent exact-head review of 08c9b4bb..7c477c65 identified the reverse parser as P2 duplicate semantic ownership and required the canonical profile/compiler/disclosure boundary to publish one typed workflow-scoped choice consumed unchanged by Application."
   },
-  "implementationHead": null,
-  "reviewedHead": null,
-  "pathStateDigest": null,
+  "implementationHead": "7510f467ef67c4e216601cc37c17319b52100315",
+  "reviewedHead": "7510f467ef67c4e216601cc37c17319b52100315",
+  "pathStateDigest": "c30153fe7051670de0cf59692ef342d79e92e6b918847f424a6d956553dafc33",
   "finalReview": {
-    "reviewer": null,
-    "outcome": "pending",
-    "evidence": ""
+    "reviewer": "final_architecture_review",
+    "outcome": "approved",
+    "evidence": "Independent exact-head architecture review verified IC-count choices are projected once from typed canonical topology facts through the existing Application capability publication path, no UI or Infrastructure reverse parsing became semantic authority, and no profile, route, firmware range, planner, executor, or validation behavior changed."
   }
 }

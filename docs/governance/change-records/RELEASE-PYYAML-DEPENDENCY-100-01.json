@@ -5,7 +5,7 @@
   "integrationBase": "08c9b4bb20813dfe2660a8bbc504d34d8f9d6d8a",
   "risk": "R3",
   "kind": "release",
-  "state": "design-active",
+  "state": "final-complete",
   "mutablePaths": [
     ".github/workflows/ci.yml",
     "tools/crc-worker/pyproject.toml"
@@ -25,12 +25,12 @@
     "outcome": "findings-incorporated",
     "evidence": "The independent bounded R3 design review found no P0 or firmware/runtime semantic change and approved the exact PyYAML 6.0.3 dev-only dependency after requiring binary-only direct installs, a 1.0.0-only promote condition, both canonical workflow templates, job-scoped regressions, package exclusion evidence, a new immutable R3 record, and complete protected-workflow plus deterministic candidate-source direct-child rebinding."
   },
-  "implementationHead": null,
-  "reviewedHead": null,
-  "pathStateDigest": null,
+  "implementationHead": "7510f467ef67c4e216601cc37c17319b52100315",
+  "reviewedHead": "7510f467ef67c4e216601cc37c17319b52100315",
+  "pathStateDigest": "04b98c2cb47e93ad30c67aef4a7b302c444fd28a2e878133f923be484f5b457a",
   "finalReview": {
-    "reviewer": null,
-    "outcome": "pending",
-    "evidence": ""
+    "reviewer": "final_release_review",
+    "outcome": "approved",
+    "evidence": "Independent exact-pair R3 review of f7977831ed05123198d9122d05f1c16df61ccb33 and 7510f467ef67c4e216601cc37c17319b52100315 verified PyYAML 6.0.3 remains verification-only with empty runtime dependencies; all four protected installs are binary-only explicit PowerShell steps, the three parity Python setups retain full-SHA v6.3.0 provenance, 1.0.1 skips the parity install, portable packaging remains closed, and the protected workflow contract and focused regressions passed without firmware-semantic drift."
   }
 }

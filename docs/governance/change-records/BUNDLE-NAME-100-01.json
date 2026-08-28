@@ -5,7 +5,7 @@
   "integrationBase": "08c9b4bb20813dfe2660a8bbc504d34d8f9d6d8a",
   "risk": "R2",
   "kind": "behavior",
-  "state": "design-active",
+  "state": "final-complete",
   "mutablePaths": [
     "docs/adr/0050-atomic-output-bundle-delivery.md",
     "src/NvtFwCombiner.Application/Composition/CompositionOutputBundleProposal.cs"
@@ -23,12 +23,12 @@
     "outcome": "approved",
     "evidence": "Independent R2 design admission found the two-line naming change extends the existing proposer, preserves the unchanged collision allocator and output identity, changes no firmware semantics, and needs no new ADR."
   },
-  "implementationHead": null,
-  "reviewedHead": null,
-  "pathStateDigest": null,
+  "implementationHead": "7510f467ef67c4e216601cc37c17319b52100315",
+  "reviewedHead": "7510f467ef67c4e216601cc37c17319b52100315",
+  "pathStateDigest": "e791d188ff4f09f3dd39b4a4f29d619bdcec8434a87736c30b91dc203ef82971",
   "finalReview": {
-    "reviewer": null,
-    "outcome": "pending",
-    "evidence": ""
+    "reviewer": "final_architecture_review",
+    "outcome": "approved",
+    "evidence": "Independent exact-head review of 7510f467ef67c4e216601cc37c17319b52100315 verified the existing Application proposal owner removes only the redundant bundle suffix, the unchanged Infrastructure collision allocator retains deterministic numeric suffixes, and no firmware bytes, output BIN naming, source delivery, path safety, or atomic promotion semantics changed."
   }
 }

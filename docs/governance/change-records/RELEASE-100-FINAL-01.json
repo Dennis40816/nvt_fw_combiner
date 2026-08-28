@@ -5,7 +5,7 @@
   "integrationBase": "08c9b4bb20813dfe2660a8bbc504d34d8f9d6d8a",
   "risk": "R3",
   "kind": "release",
-  "state": "design-active",
+  "state": "final-complete",
   "mutablePaths": [
     ".github/workflows/release.yml",
     "docs/adr/0053-fixed-update-source-registry.md",
@@ -104,12 +104,12 @@
     "outcome": "findings-incorporated",
     "evidence": "The independent Registry R2 review approved the shared Python wire policy and 64 Registry/editor/lab plus 42 package-policy cases with no finding. The independent minimality review found one P2 duplicate path-safety owner and no firmware-semantic drift; this admission makes ManagedPathSafety the single owner and requires focused Infrastructure, architecture, release-policy, full build/test, scoped Polytail, and exact-head review before finalization. External firmware-owner and release-owner authority remains unsatisfied by this record."
   },
-  "implementationHead": null,
-  "reviewedHead": null,
-  "pathStateDigest": null,
+  "implementationHead": "7510f467ef67c4e216601cc37c17319b52100315",
+  "reviewedHead": "7510f467ef67c4e216601cc37c17319b52100315",
+  "pathStateDigest": "dd7c0c7ad0a47cc2ac3c58129e3e9b7e97ff3e7e2e29e4b59e195c4c97a789ab",
   "finalReview": {
-    "reviewer": null,
-    "outcome": "pending",
-    "evidence": ""
+    "reviewer": "final_release_review",
+    "outcome": "approved",
+    "evidence": "Independent exact-pair release review approved implementation f7977831ed05123198d9122d05f1c16df61ccb33 and direct binding child 7510f467ef67c4e216601cc37c17319b52100315 with no P0/P1/P2 findings. The review verified the exact candidate and workflow contracts, protected parity job graph, VERSION-only 1.0.1 policy, portable-package closure, deterministic two-build identity, and absence of firmware/profile/golden/range/CRC/header/naming drift; external release and firmware-owner attestations remain separate mandatory gates."
   }
 }

@@ -5,7 +5,7 @@
   "integrationBase": "08c9b4bb20813dfe2660a8bbc504d34d8f9d6d8a",
   "risk": "R3",
   "kind": "release",
-  "state": "design-active",
+  "state": "final-complete",
   "mutablePaths": [
     "src/NvtFwCombiner.Application/packages.lock.json",
     "src/NvtFwCombiner.Contracts/packages.lock.json",
@@ -29,12 +29,12 @@
     "outcome": "findings-incorporated",
     "evidence": "Independent R3 release/supply-chain review rejected removing --runtime, weakening --locked-mode, or adding a second lock owner. It approved only project-targeted RID lock regeneration after requiring a nine-file-only diff, no dependency identity/version drift, two independent detached locked builds, complete candidate-source/direct-child rebinding, and investigation of any prior closure difference. Its follow-up review proved the old closure was captured from binding-head SourceLink rather than its declared implementation head and approved only the two-build exact-head closure as the replacement authority."
   },
-  "implementationHead": null,
-  "reviewedHead": null,
-  "pathStateDigest": null,
+  "implementationHead": "7510f467ef67c4e216601cc37c17319b52100315",
+  "reviewedHead": "7510f467ef67c4e216601cc37c17319b52100315",
+  "pathStateDigest": "08a0f0322f91350630fc18e9be9b04f95286bf06b8c519621f320300e130ec10",
   "finalReview": {
-    "reviewer": null,
-    "outcome": "pending",
-    "evidence": ""
+    "reviewer": "final_release_review",
+    "outcome": "approved",
+    "evidence": "Independent exact-pair R3 review verified all nine CLI-graph lockfiles add only an empty net10.0/win-x64 target with no package identity or version drift. Two clean detached locked builds reproduced CLI 162304 bytes with SHA-256 be33bf8ad050fa5e9ba24d464910ac09e24944ba97ca56a27c7f57001b8521e9 and runtime closure 382 files, 91412711 bytes, SHA-256 dd09b08d9e4873e6ae0946a69bf0dd3aac97b10bbbd9a3b46e56bdbb37873adc; the exact candidate contract and production source verifier passed."
   }
 }
