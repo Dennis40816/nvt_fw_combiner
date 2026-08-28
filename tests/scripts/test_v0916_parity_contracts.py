@@ -1284,11 +1284,23 @@ class V0916ParityContractTests(V0916ParityTestBase):
                 "baselineReceipt": baseline,
                 "candidateReceipt": current,
             }
-            MODULE.validate_transitive_inputs(full_evidence, tp, 9)
+            MODULE.validate_transitive_inputs(
+                full_evidence,
+                tp,
+                full_base.read_bytes(),
+                tp_base.read_bytes(),
+                9,
+            )
 
             tp["inputs"][1]["sha256"] = "f" * 64
             with self.assertRaises(MODULE.ParityError) as captured:
-                MODULE.validate_transitive_inputs(full_evidence, tp, 9)
+                MODULE.validate_transitive_inputs(
+                    full_evidence,
+                    tp,
+                    full_base.read_bytes(),
+                    tp_base.read_bytes(),
+                    9,
+                )
 
         self.assertEqual("PARITY_INPUT_SCENARIO_MISMATCH", captured.exception.code)
 

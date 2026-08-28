@@ -1003,7 +1003,13 @@ def validate_same_scenario(baseline: Mapping[str, Any], candidate: Mapping[str, 
         _fail("PARITY_INPUT_SCENARIO_MISMATCH")
 
 
-def validate_transitive_inputs(full_evidence: Mapping[str, Any], tp_receipt: Mapping[str, Any], tp_length: int) -> None:
+def validate_transitive_inputs(
+    full_evidence: Mapping[str, Any],
+    tp_receipt: Mapping[str, Any],
+    full_base_payload: bytes,
+    tp_base_payload: bytes,
+    tp_length: int,
+) -> None:
     baseline = full_evidence.get("baselineReceipt")
     candidate = full_evidence.get("candidateReceipt")
     if not full_evidence.get("equal") or not isinstance(baseline, dict) or not isinstance(candidate, dict):
@@ -1016,8 +1022,10 @@ def validate_transitive_inputs(full_evidence: Mapping[str, Any], tp_receipt: Map
         _portable_input_identity(row) for row in full_inputs[1:]
     ] != [_portable_input_identity(row) for row in tp_inputs[1:]]:
         _fail("PARITY_INPUT_SCENARIO_MISMATCH")
-    full_base, tp_base = Path(full_inputs[0]["path"]), Path(tp_inputs[0]["path"])
-    if full_base.read_bytes()[:tp_length] != tp_base.read_bytes() or len(tp_base.read_bytes()) != tp_length:
+    if (
+        full_base_payload[:tp_length] != tp_base_payload
+        or len(tp_base_payload) != tp_length
+    ):
         _fail("PARITY_INPUT_SCENARIO_MISMATCH")
 
 
@@ -2218,6 +2226,8 @@ def build_transitive_route_evidence(
             "candidateReceipt": candidate_full_receipt,
         },
         candidate_tp_receipt,
+        candidate_full_receipt["__inputBytes"][0],
+        candidate_tp_receipt["__inputBytes"][0],
         route.tp_length,
     )
     result = compare_transitive_payloads(

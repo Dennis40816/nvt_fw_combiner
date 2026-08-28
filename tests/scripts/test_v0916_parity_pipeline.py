@@ -638,7 +638,28 @@ class V0916ParityPipelineTests(V0916ParityTestBase):
                     None,
                     ["--ic-num", "single", "--base", "--ctrlram"],
                 ),
+                (
+                    "route-7-nt51917-15-ctrlram-replace-4-1-ic-39-nt51927-ctrlram-fw141-single-full-flash",
+                    "baseline-exact",
+                    "ctrlram-replace",
+                    "NT51917",
+                    "nt51917-ctrlram-replace-fw141-single",
+                    "nt51917-standard-merge-gen-flash-alias",
+                    ["--ic-num", "single", "--base", "--ctrlram"],
+                ),
+                (
+                    "route-7-nt51917-15-ctrlram-replace-4-1-ic-41-nt51927-ctrlram-fw141-single-tp-work-212k",
+                    "candidate-tp",
+                    "ctrlram-replace",
+                    "NT51917",
+                    "nt51917-ctrlram-replace-fw141-single",
+                    None,
+                    ["--ic-num", "single", "--base", "--ctrlram"],
+                ),
             ]
+            projected_by_execution: dict[
+                tuple[str, str], dict[str, object]
+            ] = {}
             for index, (
                 route_id,
                 execution_role,
@@ -676,9 +697,19 @@ class V0916ParityPipelineTests(V0916ParityTestBase):
                         else "standard-merge-precursor-map"
                     ),
                 )
+                route_executor = (
+                    executor.with_changes(
+                        kind="exact-tag-source-built-cli",
+                        contract_identity_sha256=(
+                            "861fa0fae7bf5904cac88a4bcb6ed6e0aef1a54518e0903914f2121fbc411bfb"
+                        ),
+                    )
+                    if execution_role == "baseline-exact"
+                    else executor
+                )
                 capture = MODULE.execute_cli_capture(
                     verified,
-                    verified_executor=executor,
+                    verified_executor=route_executor,
                     output_root=root / f"outputs-{index}",
                     process_runner=runner,
                 )
@@ -697,12 +728,13 @@ class V0916ParityPipelineTests(V0916ParityTestBase):
                 projected = MODULE.build_process_receipt(
                     capture=capture,
                     verified_inputs=verified,
-                    verified_executor=executor,
+                    verified_executor=route_executor,
                     operator_login="dennis40816",
                     receipt_root=root / f"receipts-{index}",
                     comparator_path=ROOT / "scripts/v0916_parity_certification.py",
                 )
                 self.assertEqual(profile_id, projected["scenario"]["resolvedProfileId"])
+                projected_by_execution[(route_id, execution_role)] = projected
                 self.assertNotIn("expectedProfileId", verified.request)
                 self.assertEqual(
                     standard_profile_id is not None,
@@ -747,6 +779,70 @@ class V0916ParityPipelineTests(V0916ParityTestBase):
                             projected["output"]["sha256"],
                             hashlib.sha256(reloaded["__outputBytes"]).hexdigest(),
                         )
+
+            full_route_id = cases[1][0]
+            tp_route_id = cases[6][0]
+            baseline_full = projected_by_execution[
+                (full_route_id, "baseline-exact")
+            ]
+            candidate_full = projected_by_execution[
+                (full_route_id, "candidate-exact")
+            ]
+            candidate_tp = projected_by_execution[(tp_route_id, "candidate-tp")]
+            full_route = next(
+                route for route in plan.routes if route.route_id == full_route_id
+            )
+            tp_route = next(
+                route for route in plan.routes if route.route_id == tp_route_id
+            )
+            full_evidence = MODULE.build_exact_route_evidence(
+                plan=plan,
+                route=full_route,
+                baseline_receipt=baseline_full,
+                candidate_receipt=candidate_full,
+            )
+            full_base_path = Path(candidate_full["inputs"][0]["path"])
+            tp_base_path = Path(candidate_tp["inputs"][0]["path"])
+            baseline_capture = MODULE._reload_receipt_for_evidence(baseline_full)
+            candidate_capture = MODULE._reload_receipt_for_evidence(candidate_full)
+            tp_capture = MODULE._reload_receipt_for_evidence(candidate_tp)
+            full_payload = b"F" * (tp_route.tp_length + 32)
+            tp_payload = full_payload[: tp_route.tp_length]
+            baseline_capture["__outputBytes"] = full_payload
+            candidate_capture["__outputBytes"] = full_payload
+            candidate_capture["__inputBytes"][0] = full_payload
+            tp_capture["__outputBytes"] = tp_payload
+            tp_capture["__inputBytes"][0] = tp_payload
+            captures = {
+                id(baseline_full): baseline_capture,
+                id(candidate_full): candidate_capture,
+                id(candidate_tp): tp_capture,
+            }
+            originals = {
+                full_base_path: full_base_path.read_bytes(),
+                tp_base_path: tp_base_path.read_bytes(),
+            }
+            for path in originals:
+                path.write_bytes(b"post-capture-transitive-input-swap")
+
+            try:
+                with patch.object(
+                    MODULE,
+                    "_reload_receipt_for_evidence",
+                    side_effect=lambda receipt: copy.deepcopy(captures[id(receipt)]),
+                ):
+                    transitive = MODULE.build_transitive_route_evidence(
+                        route=tp_route,
+                        full_route=full_route,
+                        full_evidence=full_evidence,
+                        baseline_full_receipt=baseline_full,
+                        candidate_full_receipt=candidate_full,
+                        candidate_tp_receipt=candidate_tp,
+                    )
+            finally:
+                for path, payload in originals.items():
+                    path.write_bytes(payload)
+            self.assertTrue(transitive["passed"])
 
             precursor_route_id = cases[1][0]
             precursor_verified = MODULE.resolve_canonical_route_input(
