@@ -3,7 +3,7 @@
   "workflowPath": ".github/workflows/release.yml",
   "workflowRef": "refs/heads/main",
   "workflowHeadRelation": "authenticated-protected-main-independent-of-candidate-source",
-  "candidateImplementationHead": "b13f0e4d4a609fa3d55af01861623ce9ef05862b",
+  "candidateImplementationHead": "423c8869e7a88c2504582e54e185b39be692ac85",
   "trigger": "workflow_dispatch",
   "topLevelPermissions": {
     "actions": "read",

@@ -94,17 +94,17 @@ class V0916ParityArtifactTests(V0916ParityTestBase):
         )
         self.assertEqual(4525, declared["size"])
         self.assertEqual(
-            "adc67766f2506f5ba62206cae6157b9b9ce6c6c04552af2a37deb6c1ced779a8",
+            "f32b627a6323e63564bfdaa58724bcb8a378c6a86d1d1bef9135c7aff136c0f4",
             declared["sha256"],
         )
         self.assertEqual(4525, path.stat().st_size)
         self.assertEqual(
-            "adc67766f2506f5ba62206cae6157b9b9ce6c6c04552af2a37deb6c1ced779a8",
+            "f32b627a6323e63564bfdaa58724bcb8a378c6a86d1d1bef9135c7aff136c0f4",
             hashlib.sha256(path.read_bytes()).hexdigest(),
         )
         contract = json.loads(path.read_text(encoding="utf-8"))
-        self.assertEqual("b13f0e4d4a609fa3d55af01861623ce9ef05862b", contract["source"]["implementationHead"])
-        self.assertEqual("edff8bcc4537a29e46ccf83d05df255b48f3843c", contract["source"]["implementationTree"])
+        self.assertEqual("423c8869e7a88c2504582e54e185b39be692ac85", contract["source"]["implementationHead"])
+        self.assertEqual("9c6c13dd819b025f78412590a025e8cc9615628a", contract["source"]["implementationTree"])
         self.assertEqual(
             {
                 "src": "9070bd3cd85773dd7844069841ceb4043edd2f57",

@@ -308,7 +308,7 @@
     "sourceExecutorContract": {
       "path": "docs/contracts/v100-candidate-source-executor-v1.json",
       "size": 4525,
-      "sha256": "adc67766f2506f5ba62206cae6157b9b9ce6c6c04552af2a37deb6c1ced779a8"
+      "sha256": "f32b627a6323e63564bfdaa58724bcb8a378c6a86d1d1bef9135c7aff136c0f4"
     },
     "requiredTreePaths": ["src", "profiles", "external-tools", "tools/crc-worker"],
     "protectedBuild": {
@@ -318,7 +318,7 @@
       "workflowSemanticContract": {
         "path": "docs/contracts/v0916-parity-workflow-v1.json",
         "size": 12542,
-        "sha256": "9f0b79013165e8b216cfa5d57d6ca65d8b040642bae3d996378487d4cc9be7ac"
+        "sha256": "64a7372ce16ee615f9c754fdd127219a2dd54f8562aefc9586891e67a65e2d9e"
       },
       "candidateVerifierPath": "scripts/release_promotion_policy.py",
       "packageVerifierPath": "scripts/smoke-release.ps1",
