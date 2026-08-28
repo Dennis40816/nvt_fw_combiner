@@ -5,7 +5,7 @@
   "integrationBase": "041d0a659ccb337387083fb9adaa29129722e46b",
   "risk": "R3",
   "kind": "release",
-  "state": "design-active",
+  "state": "final-complete",
   "mutablePaths": [
     "docs/contracts/release-manifest-v1.md"
   ],
@@ -23,12 +23,12 @@
     "outcome": "findings-incorporated",
     "evidence": "Independent bounded R3 review approved the one governed manifest-contract path after requiring both contradictory statements to be corrected, positive owner-approved unsigned wording in CHANGELOG, retention of every integrity/publication gate, and exact-package release-owner evidence. No schema, workflow, packaging code, signing system, key custody, firmware, or runtime change is admitted."
   },
-  "implementationHead": null,
-  "reviewedHead": null,
-  "pathStateDigest": null,
+  "implementationHead": "b5d6d5bdcd42848c92badaded25260d45dcd0419",
+  "reviewedHead": "b5d6d5bdcd42848c92badaded25260d45dcd0419",
+  "pathStateDigest": "5307b377379f60b6f72da5e2221b34102ea5cf0d655106c4d82b165857b14f7c",
   "finalReview": {
-    "reviewer": null,
-    "outcome": "pending",
-    "evidence": ""
+    "reviewer": "final_evidence_review",
+    "outcome": "approved",
+    "evidence": "Independent bounded R3 review at b5d6d5bdcd42848c92badaded25260d45dcd0419 confirmed that the stable release-manifest contract permits omitted signing fields only after release-owner approval of the exact package for unsigned distribution. The contract and CHANGELOG retain closed inventory, SHA-256 manifests, SBOM, provenance, archive safety, exact-package smoke, legal/redistribution review, protected publication, and immutable-tag gates. The existing Schema already makes signingIdentity optional; no schema, workflow, packager, runtime, signing implementation, key-custody, firmware, profile, golden, or byte behavior changed. Governed mutable-path coverage is exact. No P0, P1, or P2 findings remain."
   }
 }
