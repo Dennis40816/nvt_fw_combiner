@@ -194,10 +194,10 @@ as containing a CLI. Candidate receipts use `candidate-source-cli`, built from
 the exact clean `candidateAuthority` head/tree with the repository-pinned SDK
 and locked dependencies. The plan pins
 `docs/contracts/v100-candidate-source-executor-v1.json` at raw SHA-256
-`c7cabf1bb4dd6e1cd3a28a648f6b76c0ab4fa02134ab6bdf74a5c19dcb17dc22`,
-head `854549d3fca0e0e0351863179298e331894ccb50`, tree
-`2f14b7f20d36b06dd9f85f490245b20411d0a515`, and CLI assembly SHA-256
-`b567f0b1fc02f325fe3383738eb06f0bea7b5027dec703afd3e92751ec98fa12`.
+`7c26ff1a6ae10d4e738d1369335ab57a014b491c124487d1ee5a062e337311ef`,
+head `4ec9ef7179002d767f50fca7f09e016a11e3d000`, tree
+`9dcf244eea2c725a9ddb70c98f201a0e2871f145`, and CLI assembly SHA-256
+`baa21c379bc29e99c032b354afad722bb932a95e803fd00f4b0a6eb2070004c9`.
 The source is materialized into a fresh detached Git worktree at that exact
 head; dirty,
 ignored, or pre-existing `bin`/`obj` output fails before restore. Candidate
@@ -225,7 +225,7 @@ subjects, source commit, and source tree to agree. A forged ZIP with a copied
 match the independently queried run, repository, branch, and head SHA.
 The authenticated protected-main workflow commit is intentionally independent
 of candidate implementation/package head
-`854549d3fca0e0e0351863179298e331894ccb50`; each retains its own
+`4ec9ef7179002d767f50fca7f09e016a11e3d000`; each retains its own
 identity and neither may substitute for the other. The decoded workflow is
 validated against the raw-pinned closed semantic workflow contract, including
 trigger, read-only permissions, exact parity jobs/dependencies/conditions,
