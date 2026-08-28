@@ -5,7 +5,7 @@
   "integrationBase": "08c9b4bb20813dfe2660a8bbc504d34d8f9d6d8a",
   "risk": "R2",
   "kind": "behavior",
-  "state": "design-active",
+  "state": "final-complete",
   "mutablePaths": [
     "src/NvtFwCombiner.Application/Composition/CompositionRunReport.cs",
     "src/NvtFwCombiner.Application/Composition/CompositionRunService.Reports.cs",
@@ -24,12 +24,12 @@
     "outcome": "approved",
     "evidence": "Independent R2 repository-wide tracing found exactly two production report projection sites, both source MapId exclusively from compiled typed provenance, logical-output emits null, and no firmware execution semantics are touched."
   },
-  "implementationHead": null,
-  "reviewedHead": null,
-  "pathStateDigest": null,
+  "implementationHead": "8ee021c0f23ba0d7bf6cba5d65cf7e1a2bfe9c53",
+  "reviewedHead": "8ee021c0f23ba0d7bf6cba5d65cf7e1a2bfe9c53",
+  "pathStateDigest": "8090b3376a8a7d25d689ea739279475b39ed09ff6db5d3adbeee88e691286295",
   "finalReview": {
-    "reviewer": null,
-    "outcome": "pending",
-    "evidence": ""
+    "reviewer": "final_architecture_review",
+    "outcome": "approved",
+    "evidence": "Independent exact-head architecture and Polytail review of 8ee021c0f23ba0d7bf6cba5d65cf7e1a2bfe9c53 verified that durable MapId is projected exclusively from compiled typed map-bound provenance, logical-output reports remain null, General Replace diagnostics use their existing map-bound provenance, and no profile, planner, executor, range, CRC/header, naming, or firmware-byte semantics changed."
   }
 }

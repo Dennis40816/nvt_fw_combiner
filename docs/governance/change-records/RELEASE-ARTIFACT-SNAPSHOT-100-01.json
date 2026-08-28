@@ -5,7 +5,7 @@
   "integrationBase": "08c9b4bb20813dfe2660a8bbc504d34d8f9d6d8a",
   "risk": "R3",
   "kind": "release",
-  "state": "design-active",
+  "state": "final-complete",
   "mutablePaths": [
     "scripts/create_managed_installation_lab.py"
   ],
@@ -22,12 +22,12 @@
     "outcome": "findings-incorporated",
     "evidence": "The independent exhaustive release review of 2c97ed19 identified the hash-then-reopen ZIP race as a P1 supply-chain gap and required one captured payload for both validation and extraction; the bounded correction and an adversarial post-capture replacement regression implement that finding."
   },
-  "implementationHead": null,
-  "reviewedHead": null,
-  "pathStateDigest": null,
+  "implementationHead": "8ee021c0f23ba0d7bf6cba5d65cf7e1a2bfe9c53",
+  "reviewedHead": "8ee021c0f23ba0d7bf6cba5d65cf7e1a2bfe9c53",
+  "pathStateDigest": "a1bf1c4b31038e827f05578419130a34e151e3d00b40a8f27208fce03e5c31a4",
   "finalReview": {
-    "reviewer": null,
-    "outcome": "pending",
-    "evidence": ""
+    "reviewer": "final_release_review",
+    "outcome": "approved",
+    "evidence": "Independent exact-head release/security review at 8ee021c0f23ba0d7bf6cba5d65cf7e1a2bfe9c53 verified that the sole managed-installation owner captures the admitted seed ZIP once and uses that same byte snapshot for catalog size/SHA-256 admission and extraction; adversarial post-capture replacement coverage passed within 230 release-focused tests, Polytail fast checks passed, and no package schema, path-safety, launcher, firmware, naming, or release-version behavior drift was found."
   }
 }

@@ -5,7 +5,7 @@
   "integrationBase": "08c9b4bb20813dfe2660a8bbc504d34d8f9d6d8a",
   "risk": "R3",
   "kind": "release",
-  "state": "design-active",
+  "state": "final-complete",
   "mutablePaths": [
     ".github/workflows/release.yml",
     "docs/adr/0053-fixed-update-source-registry.md",
@@ -104,12 +104,12 @@
     "outcome": "findings-incorporated",
     "evidence": "The independent Registry R2 review approved the shared Python wire policy and 64 Registry/editor/lab plus 42 package-policy cases with no finding. The independent minimality review found one P2 duplicate path-safety owner and no firmware-semantic drift; this admission makes ManagedPathSafety the single owner and requires focused Infrastructure, architecture, release-policy, full build/test, scoped Polytail, and exact-head review before finalization. External firmware-owner and release-owner authority remains unsatisfied by this record."
   },
-  "implementationHead": null,
-  "reviewedHead": null,
-  "pathStateDigest": null,
+  "implementationHead": "8ee021c0f23ba0d7bf6cba5d65cf7e1a2bfe9c53",
+  "reviewedHead": "8ee021c0f23ba0d7bf6cba5d65cf7e1a2bfe9c53",
+  "pathStateDigest": "0c9fd9af4f1df1fae29eac085f063eb7d1bc164137896765f37fa97d4b46964b",
   "finalReview": {
-    "reviewer": null,
-    "outcome": "pending",
-    "evidence": ""
+    "reviewer": "final_release_review + final_architecture_review + final_evidence_review",
+    "outcome": "approved",
+    "evidence": "Independent exact-head technical review of 08c9b4bb20813dfe2660a8bbc504d34d8f9d6d8a..8ee021c0f23ba0d7bf6cba5d65cf7e1a2bfe9c53 verified corrected closed schema instances, route-bound exact and transitive selection tokens, the direct-child 13-path parity authority transfer, exact baseline/candidate/workflow hash chain, full workflow top-level and job inventory binding, separate firmware-executor and package-source identities, terminal v1.0.0 promotion gate, exact VERSION-only v1.0.1 lineage, production-tree equivalence, single Registry/path-safety ownership, and no firmware range/order/CRC/naming or private-data drift. Release-focused tests and Polytail passed with no P0-P2 technical findings. The six declared external R3 authorities and missing private canonical evidence remain explicitly pending and are not asserted by this record."
   }
 }
