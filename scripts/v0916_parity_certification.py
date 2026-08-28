@@ -952,6 +952,25 @@ class GitAuthorityReader:
             if line
         )
 
+    def changed_entries(self, parent: str, child: str) -> list[tuple[str, str]]:
+        entries: list[tuple[str, str]] = []
+        for line in str(
+            self._run("diff", "--name-status", "--no-renames", parent, child)
+        ).splitlines():
+            if not line:
+                continue
+            parts = line.split("\t")
+            if len(parts) != 2 or parts[0] not in {"A", "M", "D"}:
+                _fail("PARITY_AUTHORITY_MISMATCH")
+            entries.append((parts[0], parts[1]))
+        return sorted(entries, key=lambda entry: entry[1])
+
+    def path_mode(self, commit: str, path: str) -> str:
+        value = str(self._run("ls-tree", commit, "--", path)).strip().split()
+        if len(value) < 4 or value[1] != "blob":
+            _fail("PARITY_AUTHORITY_MISMATCH")
+        return value[0]
+
     def tree_for_path(self, commit: str, path: str) -> str:
         return str(self._run("rev-parse", f"{commit}:{path}")).strip()
 
@@ -1050,6 +1069,147 @@ def validate_repository_parity_authority_transfer(
     return {
         "implementationHead": implementation_head,
         "bindingHead": binding_head,
+    }
+
+
+def _declared_final_evidence_entries(
+    tail: Mapping[str, Any], field: str, expected_status: str
+) -> list[tuple[str, str]]:
+    values = tail.get(field)
+    if not isinstance(values, list) or not values:
+        _fail("PARITY_AUTHORITY_MISMATCH")
+    entries: list[tuple[str, str]] = []
+    for value in values:
+        if (
+            not isinstance(value, Mapping)
+            or set(value) != {"path", "status"}
+            or value.get("status") != expected_status
+            or not isinstance(value.get("path"), str)
+            or not _safe_repo_path(str(value["path"]))
+        ):
+            _fail("PARITY_AUTHORITY_MISMATCH")
+        entries.append((expected_status, str(value["path"])))
+    if entries != sorted(set(entries), key=lambda entry: entry[1]):
+        _fail("PARITY_AUTHORITY_MISMATCH")
+    return entries
+
+
+def _validate_current_capability_governance(
+    repository: Path, package_source_head: str
+) -> None:
+    del package_source_head
+    try:
+        try:
+            from scripts.validate_repository import validate_capability_reuse_governance
+        except ModuleNotFoundError as error:
+            if error.name != "scripts":
+                raise
+            from validate_repository import validate_capability_reuse_governance  # type: ignore[no-redef]
+        errors: list[str] = []
+        validate_capability_reuse_governance(repository, errors)
+    except (ImportError, OSError, subprocess.SubprocessError):
+        _fail("PARITY_AUTHORITY_MISMATCH")
+    if errors:
+        _fail("PARITY_AUTHORITY_MISMATCH")
+
+
+def validate_repository_parity_package_source(
+    repository: Path,
+    *,
+    head: str = "HEAD",
+    reader: Any | None = None,
+    governance_validator: Any | None = None,
+) -> dict[str, str]:
+    """Prove the exact H1 -> H2 -> H3 -> H4 package-source authority."""
+
+    repository = repository.resolve(strict=True)
+    plan_path = "docs/contracts/v0916-parity-certification-v1.json"
+    git = reader or GitAuthorityReader(repository)
+    package_source_head = git.resolve_commit(head)
+    if git.resolve_commit("HEAD") != package_source_head:
+        _fail("PARITY_AUTHORITY_MISMATCH")
+    binding_head = git.last_change(package_source_head, plan_path)
+    if binding_head is None:
+        _fail("PARITY_AUTHORITY_MISMATCH")
+    transfer = validate_repository_parity_authority_transfer(
+        repository,
+        head=binding_head,
+        reader=git,
+    )
+    implementation_head = transfer["implementationHead"]
+
+    def read_git_contract(commit: str, relative: str) -> dict[str, Any]:
+        try:
+            value = load_json_reject_duplicates(git.file_bytes(commit, relative))
+        except (KeyError, TypeError, ParityError):
+            _fail("PARITY_AUTHORITY_MISMATCH")
+        if not isinstance(value, dict):
+            _fail("PARITY_AUTHORITY_MISMATCH")
+        return value
+
+    plan = read_git_contract(binding_head, plan_path)
+    implementation_plan = read_git_contract(implementation_head, plan_path)
+    tail = plan.get("candidateAuthority", {}).get("finalEvidenceTail")
+    if (
+        not isinstance(tail, Mapping)
+        or set(tail) != {"finalRecordChanges", "externalAttestationChanges"}
+        or implementation_plan.get("candidateAuthority", {}).get("finalEvidenceTail")
+        != tail
+    ):
+        _fail("PARITY_AUTHORITY_MISMATCH")
+    final_record_entries = _declared_final_evidence_entries(
+        tail, "finalRecordChanges", "M"
+    )
+    attestation_entries = _declared_final_evidence_entries(
+        tail, "externalAttestationChanges", "A"
+    )
+    if {path for _, path in final_record_entries} & {
+        path for _, path in attestation_entries
+    }:
+        _fail("PARITY_AUTHORITY_MISMATCH")
+
+    attestation_head = package_source_head
+    final_record_head = git.parent(attestation_head)
+    if git.parent(final_record_head) != binding_head:
+        _fail("PARITY_AUTHORITY_MISMATCH")
+    if git.changed_entries(binding_head, final_record_head) != final_record_entries:
+        _fail("PARITY_AUTHORITY_MISMATCH")
+    if git.changed_entries(final_record_head, attestation_head) != attestation_entries:
+        _fail("PARITY_AUTHORITY_MISMATCH")
+    if any(
+        git.path_mode(binding_head, path) != git.path_mode(final_record_head, path)
+        for _, path in final_record_entries
+    ) or any(
+        git.path_mode(attestation_head, path) != "100644"
+        for _, path in attestation_entries
+    ):
+        _fail("PARITY_AUTHORITY_MISMATCH")
+
+    source_ref = plan["candidateAuthority"]["sourceExecutorContract"]
+    source_contract = read_git_contract(binding_head, source_ref["path"])
+    source = source_contract["source"]
+    expected_trees = source["authorityTrees"]
+    policy_path = plan["policyBinding"]["path"]
+    expected_policy_sha256 = plan["policyBinding"]["sha256"]
+    for commit in (
+        implementation_head,
+        binding_head,
+        final_record_head,
+        attestation_head,
+    ):
+        if any(
+            git.tree_for_path(commit, path) != expected_tree
+            for path, expected_tree in expected_trees.items()
+        ) or _sha256(git.file_bytes(commit, policy_path)) != expected_policy_sha256:
+            _fail("PARITY_AUTHORITY_MISMATCH")
+
+    validator = governance_validator or _validate_current_capability_governance
+    validator(repository, package_source_head)
+    return {
+        "implementationHead": implementation_head,
+        "bindingHead": binding_head,
+        "finalRecordHead": final_record_head,
+        "packageSourceHead": package_source_head,
     }
 
 
@@ -4042,6 +4202,7 @@ def _validate_comparison_top_level(
                 "policySha256",
                 "sourceExecutorContract",
                 "authorityTransfer",
+                "finalEvidenceTail",
             }
             or candidate["policySha256"] != comparison["policySha256"]
             or candidate["sourceExecutorContract"].get("sha256")
@@ -4065,6 +4226,11 @@ def _validate_comparison_top_level(
                 plan is not None
                 and candidate["authorityTransfer"]
                 != plan.raw["candidateAuthority"]["authorityTransfer"]
+            )
+            or (
+                plan is not None
+                and candidate["finalEvidenceTail"]
+                != plan.raw["candidateAuthority"]["finalEvidenceTail"]
             )
             or not isinstance(candidate["sourceExecutorContract"].get("size"), int)
             or candidate["sourceExecutorContract"]["size"] < 1
@@ -5766,14 +5932,14 @@ def _compare_command(args: argparse.Namespace) -> int:
                 workflow_semantic_contract=workflow_contract_capture,
             )
         )
-        authority_transfer = validate_repository_parity_authority_transfer(
+        authority_transfer = validate_repository_parity_package_source(
             repository_root,
             head=candidate_asset_identity["packageSourceHead"],
         )
         if (
             authority_transfer["implementationHead"]
             != candidate_contract.contract["source"]["implementationHead"]
-            or authority_transfer["bindingHead"]
+            or authority_transfer["packageSourceHead"]
             != candidate_asset_identity["packageSourceHead"]
         ):
             _fail("PARITY_AUTHORITY_MISMATCH")
@@ -5985,6 +6151,9 @@ def _compare_command(args: argparse.Namespace) -> int:
                     "authorityTransfer": copy.deepcopy(
                         plan.raw["candidateAuthority"]["authorityTransfer"]
                     ),
+                    "finalEvidenceTail": copy.deepcopy(
+                        plan.raw["candidateAuthority"]["finalEvidenceTail"]
+                    ),
                 },
                 "baselineExecutor": {
                     "kind": baseline_executor.kind,
@@ -6081,13 +6250,13 @@ def _verify_candidate_command(args: argparse.Namespace) -> int:
         repository_root / "docs/contracts/v0916-parity-workflow-v1.json",
         "workflow-semantic-contract",
     )
-    authority_transfer = validate_repository_parity_authority_transfer(
+    authority_transfer = validate_repository_parity_package_source(
         repository_root,
         head=package_source_head,
     )
     if (
         authority_transfer["implementationHead"] != source["implementationHead"]
-        or authority_transfer["bindingHead"] != package_source_head
+        or authority_transfer["packageSourceHead"] != package_source_head
     ):
         _fail("PARITY_AUTHORITY_MISMATCH")
     verify_protected_candidate_build(

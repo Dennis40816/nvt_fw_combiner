@@ -851,10 +851,12 @@ class V0916ParityContractTests(V0916ParityTestBase):
                 ),
                 mock.patch.object(
                     MODULE,
-                    "validate_repository_parity_authority_transfer",
+                    "validate_repository_parity_package_source",
                     return_value={
                         "implementationHead": source["implementationHead"],
                         "bindingHead": package_source_head,
+                        "finalRecordHead": "4" * 40,
+                        "packageSourceHead": package_source_head,
                     },
                 ),
                 mock.patch.object(
@@ -1561,6 +1563,173 @@ class V0916ParityContractTests(V0916ParityTestBase):
                 with self.assertRaises(MODULE.ParityError) as captured:
                     MODULE.validate_repository_parity_authority_transfer(
                         ROOT, reader=reader
+                    )
+                self.assertEqual(
+                    "PARITY_AUTHORITY_MISMATCH", captured.exception.code
+                )
+
+    def test_repository_package_source_requires_exact_closed_evidence_tail(self) -> None:
+        plan = json.loads(self.plan_path.read_text(encoding="utf-8"))
+        source_contract_path = plan["candidateAuthority"][
+            "sourceExecutorContract"
+        ]["path"]
+        source_contract = json.loads(
+            (ROOT / source_contract_path).read_text(encoding="utf-8")
+        )
+        source = source_contract["source"]
+        policy_path = plan["policyBinding"]["path"]
+        policy_bytes = (ROOT / policy_path).read_bytes()
+        implementation = source["implementationHead"]
+        binding = "b" * 40
+        final_record = "c" * 40
+        package_source = "d" * 40
+        descendant = "e" * 40
+        tail = plan["candidateAuthority"]["finalEvidenceTail"]
+        final_entries = [
+            (value["status"], value["path"])
+            for value in tail["finalRecordChanges"]
+        ]
+        attestation_entries = [
+            (value["status"], value["path"])
+            for value in tail["externalAttestationChanges"]
+        ]
+
+        class Reader:
+            def __init__(self) -> None:
+                self.current = package_source
+                self.parents = {
+                    binding: implementation,
+                    final_record: binding,
+                    package_source: final_record,
+                    descendant: package_source,
+                    implementation: "0" * 40,
+                }
+                self.path_changes = {
+                    (implementation, binding): list(
+                        plan["candidateAuthority"]["authorityTransfer"][
+                            "allowedBindingChildPaths"
+                        ]
+                    )
+                }
+                self.entry_changes = {
+                    (binding, final_record): list(final_entries),
+                    (final_record, package_source): list(attestation_entries),
+                }
+                self.binding_plan = copy.deepcopy(plan)
+                self.implementation_plan = copy.deepcopy(plan)
+                self.drift_commit: str | None = None
+
+            def resolve_commit(self, commit: str) -> str:
+                return self.current if commit in {"HEAD", package_source, descendant} else commit
+
+            def parent(self, commit: str) -> str:
+                return self.parents[commit]
+
+            def changed_paths(self, parent: str, child: str) -> list[str]:
+                return self.path_changes[(parent, child)]
+
+            def changed_entries(self, parent: str, child: str) -> list[tuple[str, str]]:
+                return self.entry_changes[(parent, child)]
+
+            def path_mode(self, commit: str, path: str) -> str:
+                del commit, path
+                return "100644"
+
+            def tree_for_path(self, commit: str, path: str) -> str:
+                if commit == self.drift_commit and path == "src":
+                    return "0" * 40
+                return source["authorityTrees"][path]
+
+            def file_bytes(self, commit: str, path: str) -> bytes:
+                if path == "docs/contracts/v0916-parity-certification-v1.json":
+                    selected = (
+                        self.binding_plan
+                        if commit == binding
+                        else self.implementation_plan
+                    )
+                    return json.dumps(selected, sort_keys=True).encode("utf-8")
+                if commit == binding and path == source_contract_path:
+                    return json.dumps(source_contract, sort_keys=True).encode("utf-8")
+                if path == policy_path:
+                    return policy_bytes
+                raise AssertionError((commit, path))
+
+            def last_change(
+                self, head: str, path: str, *, required: bool = True
+            ) -> str | None:
+                del head, required
+                return (
+                    binding
+                    if path == "docs/contracts/v0916-parity-certification-v1.json"
+                    else None
+                )
+
+        observed_governance: list[tuple[Path, str]] = []
+        reader = Reader()
+        result = MODULE.validate_repository_parity_package_source(
+            ROOT,
+            head=package_source,
+            reader=reader,
+            governance_validator=lambda repository, head: observed_governance.append(
+                (repository, head)
+            ),
+        )
+        self.assertEqual(
+            {
+                "implementationHead": implementation,
+                "bindingHead": binding,
+                "finalRecordHead": final_record,
+                "packageSourceHead": package_source,
+            },
+            result,
+        )
+        self.assertEqual([(ROOT.resolve(), package_source)], observed_governance)
+
+        def incomplete_binding(reader: Reader) -> None:
+            reader.current = binding
+
+        def incomplete_final_record(reader: Reader) -> None:
+            reader.current = final_record
+
+        def later_descendant(reader: Reader) -> None:
+            reader.current = descendant
+
+        def extra_final_path(reader: Reader) -> None:
+            reader.entry_changes[(binding, final_record)].append(
+                ("M", "docs/contracts/unreviewed.json")
+            )
+
+        def tail_self_authorization(reader: Reader) -> None:
+            reader.binding_plan["candidateAuthority"]["finalEvidenceTail"][
+                "finalRecordChanges"
+            ].append(
+                {
+                    "path": "docs/governance/change-records/EXTRA-01.json",
+                    "status": "M",
+                }
+            )
+
+        def authority_drift(reader: Reader) -> None:
+            reader.drift_commit = package_source
+
+        mutations = {
+            "binding-only": incomplete_binding,
+            "final-record-only": incomplete_final_record,
+            "later-descendant": later_descendant,
+            "extra-final-path": extra_final_path,
+            "tail-self-authorization": tail_self_authorization,
+            "authority-drift": authority_drift,
+        }
+        for name, mutate in mutations.items():
+            selected = Reader()
+            mutate(selected)
+            with self.subTest(mutation=name):
+                with self.assertRaises(MODULE.ParityError) as captured:
+                    MODULE.validate_repository_parity_package_source(
+                        ROOT,
+                        head=selected.current,
+                        reader=selected,
+                        governance_validator=lambda repository, head: None,
                     )
                 self.assertEqual(
                     "PARITY_AUTHORITY_MISMATCH", captured.exception.code

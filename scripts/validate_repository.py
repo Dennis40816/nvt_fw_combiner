@@ -48,6 +48,7 @@ from skill_metadata_validation import (
     validate_skill_metadata_fields,
 )
 from v0916_parity_certification import (
+    GitAuthorityReader,
     ParityError,
     validate_repository_parity_authority_transfer,
 )
@@ -3098,7 +3099,17 @@ def validate() -> list[str]:
     validate_agent_files(errors)
     if (ROOT / "docs/contracts/v0916-parity-certification-v1.json").is_file():
         try:
-            validate_repository_parity_authority_transfer(ROOT)
+            git = GitAuthorityReader(ROOT)
+            binding_head = git.last_change(
+                "HEAD", "docs/contracts/v0916-parity-certification-v1.json"
+            )
+            if binding_head is None:
+                raise ParityError("PARITY_AUTHORITY_MISMATCH")
+            validate_repository_parity_authority_transfer(
+                ROOT,
+                head=binding_head,
+                reader=git,
+            )
         except ParityError as exc:
             errors.append(
                 "v0.9.16 parity Git authority transfer failed: " f"{exc.code}"

@@ -22,14 +22,15 @@
     "candidateAuthority": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["implementationHead", "implementationTree", "authorityTrees", "policySha256", "sourceExecutorContract", "authorityTransfer"],
+      "required": ["implementationHead", "implementationTree", "authorityTrees", "policySha256", "sourceExecutorContract", "authorityTransfer", "finalEvidenceTail"],
       "properties": {
         "implementationHead": { "$ref": "#/$defs/gitSha" },
         "implementationTree": { "$ref": "#/$defs/gitSha" },
         "authorityTrees": { "$ref": "#/$defs/authorityTrees" },
         "policySha256": { "$ref": "#/$defs/sha256" },
         "sourceExecutorContract": { "$ref": "#/$defs/artifact" },
-        "authorityTransfer": { "$ref": "#/$defs/authorityTransfer" }
+        "authorityTransfer": { "$ref": "#/$defs/authorityTransfer" },
+        "finalEvidenceTail": { "$ref": "#/$defs/finalEvidenceTail" }
       }
     },
     "baselineExecutor": { "$ref": "#/$defs/baselineExecutor" },
@@ -289,6 +290,41 @@
           "minItems": 1,
           "uniqueItems": true,
           "items": { "type": "string", "pattern": "^[A-Za-z0-9._/-]+$" }
+        }
+      }
+    },
+    "finalEvidenceTail": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["finalRecordChanges", "externalAttestationChanges"],
+      "properties": {
+        "finalRecordChanges": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["path", "status"],
+            "properties": {
+              "path": { "type": "string", "pattern": "^docs/governance/change-records/[A-Z0-9-]+\\.json$" },
+              "status": { "const": "M" }
+            }
+          }
+        },
+        "externalAttestationChanges": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["path", "status"],
+            "properties": {
+              "path": { "type": "string", "pattern": "^docs/governance/external-authority-attestations/[A-Z0-9-]+\\.json$" },
+              "status": { "const": "A" }
+            }
+          }
         }
       }
     },

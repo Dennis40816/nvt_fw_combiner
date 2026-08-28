@@ -21,14 +21,15 @@
     "candidateAuthority": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["implementationHead", "implementationTree", "authorityTrees", "policySha256", "sourceExecutorContract", "authorityTransfer"],
+      "required": ["implementationHead", "implementationTree", "authorityTrees", "policySha256", "sourceExecutorContract", "authorityTransfer", "finalEvidenceTail"],
       "properties": {
         "implementationHead": { "$ref": "v0916-parity-evidence-v1.schema.json#/$defs/gitSha" },
         "implementationTree": { "$ref": "v0916-parity-evidence-v1.schema.json#/$defs/gitSha" },
         "authorityTrees": { "$ref": "v0916-parity-evidence-v1.schema.json#/$defs/authorityTrees" },
         "policySha256": { "$ref": "v0916-parity-evidence-v1.schema.json#/$defs/sha256" },
         "sourceExecutorContract": { "$ref": "v0916-parity-evidence-v1.schema.json#/$defs/artifact" },
-        "authorityTransfer": { "$ref": "v0916-parity-evidence-v1.schema.json#/$defs/authorityTransfer" }
+        "authorityTransfer": { "$ref": "v0916-parity-evidence-v1.schema.json#/$defs/authorityTransfer" },
+        "finalEvidenceTail": { "$ref": "v0916-parity-evidence-v1.schema.json#/$defs/finalEvidenceTail" }
       }
     },
     "baselineExecutor": { "$ref": "v0916-parity-evidence-v1.schema.json#/$defs/baselineExecutor" },

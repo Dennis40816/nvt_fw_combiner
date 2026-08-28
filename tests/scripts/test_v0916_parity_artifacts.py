@@ -1181,10 +1181,12 @@ class V0916ParityArtifactTests(V0916ParityTestBase):
             with (
                 mock.patch.object(
                     MODULE,
-                    "validate_repository_parity_authority_transfer",
+                    "validate_repository_parity_package_source",
                     return_value={
                         "implementationHead": source["implementationHead"],
                         "bindingHead": source["implementationHead"],
+                        "finalRecordHead": "4" * 40,
+                        "packageSourceHead": source["implementationHead"],
                     },
                 ),
                 mock.patch.object(

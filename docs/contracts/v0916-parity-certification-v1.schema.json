@@ -165,7 +165,7 @@
     "candidateAuthority": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["requiredTreePaths", "candidateSourceExecutorSchemaPath", "sourceExecutorContract", "protectedBuild", "authorityTransfer"],
+      "required": ["requiredTreePaths", "candidateSourceExecutorSchemaPath", "sourceExecutorContract", "protectedBuild", "authorityTransfer", "finalEvidenceTail"],
       "properties": {
         "candidateSourceExecutorSchemaPath": { "const": "docs/contracts/v0916-candidate-source-executor-v1.schema.json" },
         "sourceExecutorContract": {
@@ -222,6 +222,41 @@
               "minItems": 1,
               "uniqueItems": true,
               "items": { "type": "string", "pattern": "^[A-Za-z0-9._/-]+$" }
+            }
+          }
+        },
+        "finalEvidenceTail": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["finalRecordChanges", "externalAttestationChanges"],
+          "properties": {
+            "finalRecordChanges": {
+              "type": "array",
+              "minItems": 1,
+              "uniqueItems": true,
+              "items": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": ["path", "status"],
+                "properties": {
+                  "path": { "type": "string", "pattern": "^docs/governance/change-records/[A-Z0-9-]+\\.json$" },
+                  "status": { "const": "M" }
+                }
+              }
+            },
+            "externalAttestationChanges": {
+              "type": "array",
+              "minItems": 1,
+              "uniqueItems": true,
+              "items": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": ["path", "status"],
+                "properties": {
+                  "path": { "type": "string", "pattern": "^docs/governance/external-authority-attestations/[A-Z0-9-]+\\.json$" },
+                  "status": { "const": "A" }
+                }
+              }
             }
           }
         }
