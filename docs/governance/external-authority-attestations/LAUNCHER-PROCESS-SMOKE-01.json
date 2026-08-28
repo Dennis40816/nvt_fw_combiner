@@ -1,0 +1,9 @@
+{
+  "schemaVersion": 1,
+  "taskId": "LAUNCHER-PROCESS-SMOKE-01",
+  "authorityType": "release-owner",
+  "reviewedHead": "69a0d7cac1506a2ccb56433a7077c3bc0905e28f",
+  "decision": "approved",
+  "reviewer": "Dennis Liu (release owner)",
+  "evidence": "The canonical launcher/bootstrap process smoke passed at the exact reviewed head. Evidence SHA-256 61903cc4a80ecc2a919a1ec124a1683a41d1555b0403912fc6113c1ad6487c34 records clean zero-argument exit 0, candidate rollback exit 1, missing outer READY exit 16, exited-before-ready classification, exact stable launcher rollback ownership, and canonical default state-path identity. Generated executables, state, and smoke roots remained temporary artifacts."
+}

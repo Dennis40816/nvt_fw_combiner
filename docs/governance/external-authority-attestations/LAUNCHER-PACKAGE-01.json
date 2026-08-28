@@ -1,0 +1,9 @@
+{
+  "schemaVersion": 1,
+  "taskId": "LAUNCHER-PACKAGE-01",
+  "authorityType": "release-owner",
+  "reviewedHead": "69a0d7cac1506a2ccb56433a7077c3bc0905e28f",
+  "decision": "approved",
+  "reviewer": "Dennis Liu (release owner)",
+  "evidence": "The exact reviewed head produced the closed NvtFwCombiner-v1.0.0-win-x64.zip at 112638475 bytes with SHA-256 5800638a79c8fe53d238bdf4f05dead3cbd0a9b569e7cdea4226e40dcebd5fd1. Visible-window package smoke passed; the adjacent SPDX SBOM and provenance hashes are c742ee6d31e2e8401b47bd978d5b1bdc80e4e2d703e8180c206c2deefd1864cd and e1e392740f4340d7b4fbda6699c4caefe388fdcd5a0c2cf721659e2474c2c2dc. A verified managed root was assembled with immutable Bootstrap outside the version payload and one admitted 1.0.0 launcher/application payload."
+}

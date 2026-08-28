@@ -1,0 +1,9 @@
+{
+  "schemaVersion": 1,
+  "taskId": "FORMAL-SUPPORT-01",
+  "authorityType": "firmware-owner",
+  "reviewedHead": "69a0d7cac1506a2ccb56433a7077c3bc0905e28f",
+  "decision": "approved",
+  "reviewer": "Dennis Liu (firmware owner)",
+  "evidence": "The owner approved NVT FW Combiner 1.0.0 and 1.0.1 as formal releases after confirming the canonical Standard Merge, AB Merge, and CtrlRAM Replace publication policy and the intentional NT51951 FW2.0 cascade-2 Diff NF preservation correction. The published 64-route matrix retains exact route and capability-fingerprint declarations; 37 routes have governed canonical inputs while 27 private parity fixtures remain explicitly tracked evidence debt. This approval does not convert ContractOnly evidence to Golden or claim terminal 64/64 v0.9.16 parity."
+}

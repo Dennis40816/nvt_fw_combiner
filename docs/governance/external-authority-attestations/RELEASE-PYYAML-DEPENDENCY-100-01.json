@@ -1,0 +1,9 @@
+{
+  "schemaVersion": 1,
+  "taskId": "RELEASE-PYYAML-DEPENDENCY-100-01",
+  "authorityType": "release-owner",
+  "reviewedHead": "69a0d7cac1506a2ccb56433a7077c3bc0905e28f",
+  "decision": "approved",
+  "reviewer": "Dennis Liu (release owner)",
+  "evidence": "Independent exact-pair review verified pinned PyYAML 6.0.3 is verification-only, all four protected installs are binary-only explicit PowerShell steps, all three parity Python setups retain full-SHA v6.3.0 provenance, 1.0.1 skips the parity dependency install, and portable runtime dependencies remain empty. Closed workflow validation, focused regressions, two deterministic builds, and the exact 1.0.0 package passed without adding PyYAML to runtime or changing firmware semantics."
+}

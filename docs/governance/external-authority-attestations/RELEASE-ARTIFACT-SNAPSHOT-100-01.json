@@ -1,0 +1,9 @@
+{
+  "schemaVersion": 1,
+  "taskId": "RELEASE-ARTIFACT-SNAPSHOT-100-01",
+  "authorityType": "release-owner",
+  "reviewedHead": "69a0d7cac1506a2ccb56433a7077c3bc0905e28f",
+  "decision": "approved",
+  "reviewer": "Dennis Liu (release owner)",
+  "evidence": "The exact reviewed head produced one immutable 112638475-byte package snapshot with SHA-256 5800638a79c8fe53d238bdf4f05dead3cbd0a9b569e7cdea4226e40dcebd5fd1. Package smoke, Catalog generation, Version Self-test, and managed-root assembly all consumed and admitted that same snapshot; the package source was not re-read into a competing identity during verification or extraction."
+}

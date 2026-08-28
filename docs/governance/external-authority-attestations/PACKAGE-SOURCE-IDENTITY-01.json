@@ -1,0 +1,9 @@
+{
+  "schemaVersion": 1,
+  "taskId": "PACKAGE-SOURCE-IDENTITY-01",
+  "authorityType": "release-owner",
+  "reviewedHead": "69a0d7cac1506a2ccb56433a7077c3bc0905e28f",
+  "decision": "approved",
+  "reviewer": "Dennis Liu (release owner)",
+  "evidence": "The production packager accepted exact clean HEAD 69a0d7cac1506a2ccb56433a7077c3bc0905e28f with VERSION 1.0.0, materialized a private detached snapshot, built only from that snapshot, removed it after success, and emitted a release manifest whose version, sourceCommit, sourceTag, and runtime are 1.0.0, 69a0d7cac1506a2ccb56433a7077c3bc0905e28f, v1.0.0, and win-x64. Package SHA-256 is 5800638a79c8fe53d238bdf4f05dead3cbd0a9b569e7cdea4226e40dcebd5fd1."
+}

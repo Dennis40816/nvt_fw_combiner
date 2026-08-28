@@ -1,0 +1,9 @@
+{
+  "schemaVersion": 1,
+  "taskId": "RELEASE-RID-LOCK-100-01",
+  "authorityType": "release-owner",
+  "reviewedHead": "69a0d7cac1506a2ccb56433a7077c3bc0905e28f",
+  "decision": "approved",
+  "reviewer": "Dennis Liu (release owner)",
+  "evidence": "Independent exact-pair review verified all nine CLI-graph package locks add only the admitted empty net10.0/win-x64 target without package identity or version drift. Two clean detached locked builds reproduced CLI 162304 bytes with SHA-256 be33bf8ad050fa5e9ba24d464910ac09e24944ba97ca56a27c7f57001b8521e9 and runtime closure 382 files, 91412711 bytes, SHA-256 dd09b08d9e4873e6ae0946a69bf0dd3aac97b10bbbd9a3b46e56bdbb37873adc; exact source packaging then succeeded."
+}

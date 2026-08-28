@@ -1,0 +1,9 @@
+{
+  "schemaVersion": 1,
+  "taskId": "UPDATE-HANDOFF-101-01",
+  "authorityType": "release-owner",
+  "reviewedHead": "69a0d7cac1506a2ccb56433a7077c3bc0905e28f",
+  "decision": "approved",
+  "reviewer": "Dennis Liu (release owner)",
+  "evidence": "An isolated non-publishable lab created a direct-child 1.0.1 source changing only VERSION and passed the production version-only package validator against the exact 1.0.0 ZIP. Both packages passed visible release smoke; the 1.0.1 lab ZIP is 112638856 bytes with SHA-256 af368bb7c9f67ef0e5523521019939dca2844a6e3397ecefa8014bad9b6b2b99. A two-version Catalog admitted 1.0.0 and newest 1.0.1, Version Self-test returned Verified=True, and a managed root was seeded from the real 1.0.0 package. Seventy-four Infrastructure and 204 Application install, switch, restart, rollback, damage, transaction, and delete tests passed. Formal 1.0.1 must still be regenerated from the published v1.0.0 tag."
+}

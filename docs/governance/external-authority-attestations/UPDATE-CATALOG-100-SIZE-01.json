@@ -1,0 +1,9 @@
+{
+  "schemaVersion": 1,
+  "taskId": "UPDATE-CATALOG-100-SIZE-01",
+  "authorityType": "release-owner",
+  "reviewedHead": "69a0d7cac1506a2ccb56433a7077c3bc0905e28f",
+  "decision": "approved",
+  "reviewer": "Dennis Liu (release owner)",
+  "evidence": "The exact 1.0.0 package measured 112638475 bytes, below the owner-approved 134217728-byte 1.0.0 ceiling while every unrelated version retains the 80000000-byte rule. Catalog SHA-256 cfb665f35ab86fe4f8042cf301062a95bea019be01bef785feb13de5e8c70601 binds package SHA-256 5800638a79c8fe53d238bdf4f05dead3cbd0a9b569e7cdea4226e40dcebd5fd1 and size; production Version Self-test retrieved Registry and Catalog JSON, verified the newest package, and returned Verified=True."
+}

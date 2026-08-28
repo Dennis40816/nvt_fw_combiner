@@ -1,0 +1,9 @@
+{
+  "schemaVersion": 1,
+  "taskId": "RELEASE-100-FINAL-01",
+  "authorityType": "release-owner",
+  "reviewedHead": "69a0d7cac1506a2ccb56433a7077c3bc0905e28f",
+  "decision": "approved",
+  "reviewer": "Dennis Liu (release owner)",
+  "evidence": "The owner approved 1.0.0 and VERSION-only 1.0.1 as formal releases and directed that 1.1.0 feature work remain frozen while an isolated 1.0.x hotfix line is preserved. Three independent exact-head reviews reported no P0, P1, or P2 findings. The candidate passed exact workflow/source binding, deterministic builds, closed schemas, release/parity tests, visible package smoke, launcher READY/rollback smoke, Catalog and Registry JSON admission, and bounded 1.0.1 upgrade evidence without firmware-semantic drift."
+}
