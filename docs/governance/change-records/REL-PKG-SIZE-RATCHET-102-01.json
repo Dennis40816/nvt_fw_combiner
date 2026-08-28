@@ -1,0 +1,35 @@
+{
+  "schemaVersion": 2,
+  "taskId": "REL-PKG-SIZE-RATCHET-102-01",
+  "capability": "Lower exact code-size ratchets after removing the obsolete version-specific package-size branch",
+  "integrationBase": "041d0a659ccb337387083fb9adaa29129722e46b",
+  "risk": "R2",
+  "kind": "governance",
+  "state": "design-active",
+  "mutablePaths": [
+    "scripts/code_size_policy.py",
+    "docs/governance/v1.0.0-code-size-review.md"
+  ],
+  "implementationOwner": "primary-agent",
+  "searchEvidence": [
+    "validate_repository measured 829 files and 120,998 full-production nonblank lines after the staged package-policy simplification.",
+    "The same measurement reports 569 files and 83,416 runtime-production lines plus 234 files and 38,184 Application lines.",
+    "UpdateCatalogValidator removes one obsolete version-specific branch with 3 added and 12 removed nonblank lines; all other slice measurements and file inventories are unchanged."
+  ],
+  "semanticOwner": "Canonical code-size policy and v1.0.0 single-owner review",
+  "terminalContract": "The full-production, runtime-production, and Application effective ratchets decrease by exactly nine with no allowance expansion, measurement-definition change, path-set change, slice reallocation, firmware behavior change, release behavior change, or test-execution change",
+  "disposition": "extend-owner",
+  "designReview": {
+    "reviewer": "final_architecture_review",
+    "outcome": "approved",
+    "evidence": "Independent R2 review reproduced the staged package-policy candidate at 829 files / 120,998 full-production nonblank lines, 569 / 83,416 runtime lines, and 234 / 38,184 Application lines. The exact nine-line reduction comes solely from removing the obsolete version-specific UpdateCatalogValidator branch; lowering only the full, runtime, and Application effective ratchets by nine preserves all measurement definitions, inclusion/exclusion rules, slice allocations, other ratchets, firmware semantics, release behavior, and test execution."
+  },
+  "implementationHead": null,
+  "reviewedHead": null,
+  "pathStateDigest": null,
+  "finalReview": {
+    "reviewer": null,
+    "outcome": "pending",
+    "evidence": ""
+  }
+}

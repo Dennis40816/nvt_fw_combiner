@@ -26,8 +26,10 @@ entering either the Merge or Replace page.
 - Affected: Merge and Replace mode selectors for every declared mode and IC.
 - Support status: unchanged/support-neutral; no route, IC, range, processor,
   integrity, naming, firmware evidence, or output byte is promoted or changed.
-- Compatibility: no migration, saved-data, package-layout, update-system, or
-  automation contract changes.
+- Compatibility: firmware and saved-data contracts do not change. Because the
+  immutable 1.0.0 and 1.0.1 clients cannot admit the 1.0.2 package size, 1.0.2
+  is a one-time manual replacement/fresh installation; automatic managed
+  upgrade from those two versions is not supported.
 - Verification: real Avalonia ComboBox binding coverage exercises first-choice
   Merge and Replace selection plus 100 repeated page transitions; the complete
   UI smoke suite remains required before publication.
@@ -36,7 +38,11 @@ entering either the Merge or Replace page.
 
 ### Security
 
-No security boundary or dependency changes.
+The complete release ZIP uses a temporary inclusive 134,217,728-byte ceiling
+until reviewed package-size reduction is accepted. The separate 80,000,000-byte
+application, Launcher, and Bootstrap limits plus closed inventory, hashes,
+manifest, SBOM, provenance, archive safety, and stable-handle checks remain
+unchanged.
 
 ### Known issues
 
@@ -44,9 +50,10 @@ None introduced by this hotfix.
 
 ### Upgrade and rollback
 
-Install the verified portable package through the existing version-management
-flow. Rollback to verified `1.0.1` remains available; firmware output is
-unchanged in either version.
+Manually replace or freshly install the verified 1.0.2 portable package. Do not
+use the 1.0.0/1.0.1 Version page to install 1.0.2. After 1.0.2 is running, later
+verified Catalog updates use the normal Version flow. Keep the prior verified
+package separately if manual rollback is required; firmware output is unchanged.
 
 ### Downloads and integrity
 

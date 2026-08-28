@@ -60,10 +60,7 @@ ENTRY_KEYS = {
     "releaseNotes",
 }
 PUBLICATION_LOCK_NAME = ".update-source.publisher.lock"
-
-
-def _maximum_package_bytes(version: str) -> int:
-    return 134_217_728 if version in {"1.0.0", "1.0.1"} else 80_000_000
+MAXIMUM_PACKAGE_BYTES = 134_217_728
 
 
 def _sha256(data: bytes) -> str:
@@ -173,7 +170,7 @@ def _validated_catalog_entries(
         if (
             isinstance(package_size, bool)
             or not isinstance(package_size, int)
-            or not 1 <= package_size <= _maximum_package_bytes(version)
+            or not 1 <= package_size <= MAXIMUM_PACKAGE_BYTES
         ):
             raise ValueError(f"{label} packageSize for {version} is invalid")
         if not isinstance(package_sha256, str) or not SHA256_PATTERN.fullmatch(
@@ -233,7 +230,7 @@ def _package_entry(
         raise ValueError(f"release notes for {version} exceed 65,536 UTF-8 bytes")
 
     package_bytes = package.read_bytes()
-    if not 1 <= len(package_bytes) <= _maximum_package_bytes(version):
+    if not 1 <= len(package_bytes) <= MAXIMUM_PACKAGE_BYTES:
         raise ValueError(
             f"release ZIP size is outside the catalog bound: {package.name}"
         )
