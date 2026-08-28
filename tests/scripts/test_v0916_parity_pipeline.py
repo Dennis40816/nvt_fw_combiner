@@ -842,7 +842,7 @@ class V0916ParityPipelineTests(V0916ParityTestBase):
                     for path in captured_paths
                     if Path(path).name == dependency.name
                 )
-                Path(staged_dependency).chmod(stat.S_IWRITE)
+                Path(staged_dependency).chmod(stat.S_IREAD | stat.S_IWRITE)
                 Path(staged_dependency).write_bytes(b"swap-before-custody")
                 with original_custody(captured_paths):
                     yield
