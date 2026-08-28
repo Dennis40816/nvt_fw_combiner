@@ -5,7 +5,7 @@
   "integrationBase": "f67703d2e193750e494f01abc975a9ee32e04efc",
   "risk": "R2",
   "kind": "governance",
-  "state": "design-active",
+  "state": "final-complete",
   "mutablePaths": [
     "scripts/verify.py"
   ],
@@ -23,12 +23,12 @@
     "outcome": "approved",
     "evidence": "Independent bounded R2 review confirmed all .NET test shards run on windows-latest while only the evidence finalizer runs on ubuntu-latest. A constant zero Bootstrap skip count therefore describes the producer and removes finalizer-host confusion without changing test commands, inventory, execution, coverage, production runtime, firmware semantics, or generic mismatch rejection. The matching regression freezes 1,147 Bootstrap passes and two unchanged aggregate Infrastructure skips."
   },
-  "implementationHead": null,
-  "reviewedHead": null,
-  "pathStateDigest": null,
+  "implementationHead": "a0cdc27b5331299162257a01c0ec413f331768ca",
+  "reviewedHead": "a0cdc27b5331299162257a01c0ec413f331768ca",
+  "pathStateDigest": "225ce1ccc24c0b2e9c49aef55531b9110a7536235fbc4223ca5231bd618182b5",
   "finalReview": {
-    "reviewer": null,
-    "outcome": "pending",
-    "evidence": ""
+    "reviewer": "final_evidence_review",
+    "outcome": "approved",
+    "evidence": "Independent exact-head review of a0cdc27b5331299162257a01c0ec413f331768ca confirmed parent 30438e41 and a three-file diff containing only the admitted design record, one producer-owned Bootstrap skip counter, and matching orchestration assertions. Windows CI producers report exactly 1,147 Bootstrap passes and zero skips; the Ubuntu finalizer no longer substitutes its own operating system. The full orchestration suite passed 109 tests with four unrelated local skips, exact live-run artifacts re-finalized as 4,667 tests with two unchanged Infrastructure skips and Golden 18/18, and generic counter/evidence mismatch rejection remains fail closed. No test command, inventory, execution, coverage, production, firmware, profile, range, CRC, naming, or support behavior changed."
   }
 }
