@@ -1355,11 +1355,20 @@ class ReleasePackagePolicyTests(unittest.TestCase):
             self.assertIn("Setup pinned Python for parity verification", parity_job)
             self.assertIn("python-version: '3.13'", parity_job)
             self.assertIn(install, parity_job)
+            dependency_step = parity_job[
+                parity_job.index("- name: Install parity verification dependency") :
+                parity_job.index(
+                    "\n      - name:",
+                    parity_job.index("- name: Install parity verification dependency") + 1,
+                )
+            ]
+            self.assertIn("shell: pwsh", dependency_step)
         install_step = promote[
             promote.index("- name: Install parity verification dependency") :
             promote.index("- name: Download terminal v0.9.16 parity evidence")
         ]
         self.assertIn(install, install_step)
+        self.assertIn("shell: pwsh", install_step)
         self.assertIn(
             "if: ${{ needs.candidate.outputs.version == '1.0.0' }}",
             install_step,
