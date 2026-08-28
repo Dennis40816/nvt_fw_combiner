@@ -5,7 +5,7 @@
   "integrationBase": "69a0d7cac1506a2ccb56433a7077c3bc0905e28f",
   "risk": "R3",
   "kind": "release",
-  "state": "design-active",
+  "state": "final-complete",
   "mutablePaths": [
     ".github/workflows/release.yml",
     "docs/adr/0057-v0916-black-box-parity-certification.md",
@@ -37,12 +37,12 @@
     "outcome": "findings-incorporated",
     "evidence": "Three independent reviews approved the closed topology and owner deferral after requiring an exact 1.0.0 H4 pre-package gate, complete negative topology coverage, an admitted design record at the latest checkpoint, and regression tests that bind parity execution to exact 2.0.0."
   },
-  "implementationHead": null,
-  "reviewedHead": null,
-  "pathStateDigest": null,
+  "implementationHead": "088d0943a5559cf3b9b6f1e3e0a65b37a9599c68",
+  "reviewedHead": "088d0943a5559cf3b9b6f1e3e0a65b37a9599c68",
+  "pathStateDigest": "80d80b17d19931c0c9135bc4c35a30be5baeeaa8643271b95dbc37c856cf1730",
   "finalReview": {
-    "reviewer": null,
-    "outcome": "pending",
-    "evidence": ""
+    "reviewer": "final_architecture_review + final_evidence_review + final_release_review",
+    "outcome": "approved",
+    "evidence": "Exact-head R3 review confirmed 088d0943 is the unique direct binding child of d1f62db5 with an exact 14-path allowlist, v1.0.0 validates exact package source before packaging, v1.0.1 remains VERSION-only, and v2.0.0 parity stays fail-closed. Two deterministic builds matched, 71 parity/release contract tests and 79 release-policy tests passed after findings were incorporated, and no firmware/profile authority tree changed."
   }
 }
