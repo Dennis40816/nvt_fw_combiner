@@ -1,0 +1,9 @@
+{
+  "schemaVersion": 1,
+  "taskId": "PARITY-FINAL-EVIDENCE-TAIL-100-01",
+  "authorityType": "release-owner",
+  "reviewedHead": "7a94879b3ce945b224b97917934de26a06d588b9",
+  "decision": "approved",
+  "reviewer": "Dennis Liu (release owner)",
+  "evidence": "The release owner explicitly approved formal 1.0.0 and VERSION-only 1.0.1, directed that the 27 routes without runner-available private parity fixtures remain parity evidence debt without blocking selector, Build, or output, and deferred the complete 64-route v0.9.16 terminal parity promotion gate to 2.0.0. This approval is a version-specific release deferral, not a parity pass: no missing route becomes Verified and no terminal pass artifact is manufactured. Exact 1.0.0 H4 package-source validation, normal package/security gates, and the isolated 1.0.x hotfix line remain mandatory."
+}
