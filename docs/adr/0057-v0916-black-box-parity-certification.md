@@ -94,6 +94,14 @@ selected routes and leaves 27 exact route ids without case input authority;
 those routes remain in the denominator but block all execution with
 `PARITY_FIXTURE_MISSING` until canonical evidence supplies them.
 
+The release owner explicitly deferred this terminal 64-route promotion gate
+from 1.x to 2.0.0. For 1.x the protected parity jobs are skipped; the 27 routes
+remain parity evidence debt and do not block selector, Build, or output, but
+they are not relabelled Verified and no terminal-pass evidence is manufactured.
+Before a 2.0.0 promotion, the plan must be rebound to the exact 2.0.0 candidate
+and the complete fail-closed comparator, independent firmware-owner
+verification, and terminal finalize chain must pass.
+
 CtrlRAM full-image evidence may not reuse a case's final `expected-output` as
 its reference. Each verified baseline/candidate CLI independently builds the
 immutable base from the case's DP+TP Standard Merge recipe, and the comparator
@@ -194,9 +202,9 @@ as containing a CLI. Candidate receipts use `candidate-source-cli`, built from
 the exact clean `candidateAuthority` head/tree with the repository-pinned SDK
 and locked dependencies. The plan pins
 `docs/contracts/v100-candidate-source-executor-v1.json` at raw SHA-256
-`b8a13a5584ec95f60508fb15e33dc3423cbfc8eb28566291f5c7a425f46e2917`,
-head `f7977831ed05123198d9122d05f1c16df61ccb33`, tree
-`2b7255f71cd60bfc36f446fb53511e8fe15a42e8`, and CLI executable SHA-256
+`09da82aa351d800757bdc612a39fed6aae8ce3929ca1213b556573f9620932f4`,
+head `d1f62db542cffe3190f679e2526a5733de9e9011`, tree
+`f1147208d2ddbb5a35bbd1a3bb76698c5113fb07`, and CLI executable SHA-256
 `be33bf8ad050fa5e9ba24d464910ac09e24944ba97ca56a27c7f57001b8521e9`.
 The source is materialized into a fresh detached Git worktree at that exact
 head; dirty,
@@ -225,7 +233,7 @@ subjects, source commit, and source tree to agree. A forged ZIP with a copied
 match the independently queried run, repository, branch, and head SHA.
 The authenticated protected-main workflow commit is intentionally independent
 of candidate implementation/package head
-`f7977831ed05123198d9122d05f1c16df61ccb33`; each retains its own
+`d1f62db542cffe3190f679e2526a5733de9e9011`; each retains its own
 identity and neither may substitute for the other. The decoded workflow is
 validated against the raw-pinned closed semantic workflow contract, including
 trigger, read-only permissions, exact parity jobs/dependencies/conditions,
@@ -248,23 +256,23 @@ for its declared `fullRouteId`; it cannot provide another baseline/candidate
 full receipt pair. The transitive row binds the canonical digest of that exact
 row and uses its exact receipts and outputs for both prefix comparisons.
 
-Authority transfer has one closed binding commit. It is the direct child of the
-firmware-executor implementation head and may change only
-`allowedBindingChildPaths`. The production verifier requires the package source
-to be that exact binding commit and reads its Git parent, exact path diff, all
-four authority-tree ids, and canonical policy bytes. An extra path, later
-descendant, wrong parent, authority drift, or policy drift is
-`PARITY_AUTHORITY_MISMATCH`. Terminal evidence is produced and retained by the
-protected v1.0.0 workflow; it is not committed through a second source commit.
-This chain transfers the byte-parity conclusion only when all four authority
-tree ids and the canonical policy digest remain identical. It does not
+Authority transfer is one closed H1→H2→H3→H4 chain. H2 is the direct child of
+the firmware-executor implementation head and may change only
+`allowedBindingChildPaths`. H3 may modify only the predeclared final record;
+H4 may add only the predeclared external release-owner attestation and is the
+exact v1.0.0 package/tag source. The production verifier reads every parent,
+exact name-status diff, regular-file mode, all four authority-tree ids, and
+canonical policy bytes. An extra path, later descendant, merge, reorder,
+authority drift, or policy drift is `PARITY_AUTHORITY_MISMATCH`. This chain
+transfers the byte-parity authority only when all four authority-tree ids and
+the canonical policy digest remain identical. It does not
 transfer package certification: the final release ZIP retains its independent
 closed-package, hash, SBOM, provenance, smoke, and release-owner gates.
 
-Firmware executor authority and package source authority are separate facts.
-The v1.0.0 package uses the exact binding commit while its firmware executor is
-the immutable implementation parent. The v1.0.1 upgrade-test package uses the direct
-single-parent child of the immutable v1.0.0 tag and that commit changes only
+Firmware executor, binding, and package source authority are separate facts.
+The v1.0.0 candidate validates exact H4 before packaging while its firmware
+executor is immutable H1. The v1.0.1 upgrade-test package uses the direct
+single-parent child of the immutable v1.0.0 H4 tag and that commit changes only
 `VERSION`; the normal version-only lineage, package, startup, and upgrade gates
 are sufficient. It never reruns or relabels the v1.0.0 parity executor.
 

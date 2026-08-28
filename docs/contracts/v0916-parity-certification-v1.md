@@ -107,23 +107,28 @@ are recorded in the plan and currently block execution with
 `PARITY_FIXTURE_MISSING`. They are not filled from a representative case.
 Terminal certification remains impossible until independently governed
 canonical case/input records cover all 64 routes; the denominator is not
-reduced.
+reduced. By explicit release-owner version deferral, the 1.x protected workflow
+does not invoke this terminal comparator. Those 27 routes remain parity
+evidence debt, do not become `Verified`, and do not block selector, Build, or
+output. The complete 64-route terminal promotion gate is deferred to 2.0.0,
+where the candidate authority must first be rebound to the exact 2.0.0
+implementation and then pass this unchanged fail-closed evidence contract.
 
 The candidate execution surface is likewise the CLI source-built from the
 exact `candidateAuthority` implementation head/tree, not the portable release
 ZIP. The plan pins
 `docs/contracts/v100-candidate-source-executor-v1.json` at 4525 raw bytes and
 SHA-256
-`b8a13a5584ec95f60508fb15e33dc3423cbfc8eb28566291f5c7a425f46e2917`.
-That contract pins head `f7977831ed05123198d9122d05f1c16df61ccb33`, tree
-`2b7255f71cd60bfc36f446fb53511e8fe15a42e8`, SDK `10.0.303`, the complete
+`09da82aa351d800757bdc612a39fed6aae8ce3929ca1213b556573f9620932f4`.
+That contract pins head `d1f62db542cffe3190f679e2526a5733de9e9011`, tree
+`f1147208d2ddbb5a35bbd1a3bb76698c5113fb07`, SDK `10.0.303`, the complete
 lock/tool inventory, and CLI SHA-256
 `be33bf8ad050fa5e9ba24d464910ac09e24944ba97ca56a27c7f57001b8521e9`.
 The build command pins `ContinuousIntegrationBuild=true` and maps the detached
 worktree root to `/_/src`; two independent detached worktrees produced the same
 162304-byte executable and SHA above, plus an identical 382-file,
 91412711-byte runtime closure with SHA-256
-`dd09b08d9e4873e6ae0946a69bf0dd3aac97b10bbbd9a3b46e56bdbb37873adc`.
+`75bf4ddd7f637a6729490724321b083366cbc1fef1355bc86d7b397d9b244fb7`.
 The previously recorded closure `858e21e7...` was superseded because its nine
 first-party managed DLLs embedded SourceLink for binding head `b13f0e4d`, not
 the implementation head declared by that contract. It is not an accepted
@@ -370,23 +375,29 @@ verifier and release smoke verifier. It verifies the GitHub-observed
 protected-main workflow run and artifact id/digest, candidate manifest and ZIP
 digests, sidecar provenance subjects, source commit, and source tree. The
 candidate ZIP's inner `RELEASE-MANIFEST.json` is necessary but never sufficient.
-The plan's `authorityTransfer` owns one closed exact list. The binding commit
-must be the direct child of the firmware-executor head and change precisely
-`allowedBindingChildPaths`, and the v1.0.0 package source must be that exact
-commit. The production verifier checks Git parentage, exact path diffs,
-authority trees, and policy bytes; it rejects extra paths, later descendants,
-wrong parents, and authority drift. Protected same-run terminal evidence is a
-workflow artifact, not a second source commit. This transfers parity authority,
-never package certification.
+The plan's `authorityTransfer` owns one closed exact list. H2 must be the direct
+child of firmware-executor H1 and change precisely `allowedBindingChildPaths`.
+`finalEvidenceTail` separately predeclares one exact `M` final-record path set
+and one exact `A` external-attestation path set. Package admission requires the
+sole ordered H1→H2→H3→H4 chain, canonical governance semantics for H3/H4,
+identical authority trees/policy bytes at all four heads, and
+`packageSourceHead == H4`. H2-only, H3-only, a merge, squash, reorder, extra
+path, or later H4 descendant fails. This transfers parity authority, never
+package certification.
 The final ZIP still passes the normal release package gates independently.
 
-Firmware executor authority and package source authority are separate inputs
-to package admission. v1.0.0 binds the immutable executor parent to the exact
-release-binding child. v1.0.1 is only an upgrade-test package: it must be the direct
-single-parent child of the immutable v1.0.0 tag, its repository diff must be
-exactly `VERSION`, and its package may differ only at the closed
-version-bearing paths. It uses the normal package/startup/upgrade gates and
-does not rerun the v0.9.16 parity executor under a false v1.0.1 source identity.
+Firmware executor, binding, and package source authority are separate inputs
+to package admission. v1.0.0 binds immutable H1, exact H2, and terminal H4;
+the candidate workflow validates exact H4 before packaging. v1.0.1 is only an
+upgrade-test package and must be the direct single-parent child of the
+immutable v1.0.0 H4 tag, while its repository diff remains exactly `VERSION`,
+and its package may differ only at the closed version-bearing paths. It uses
+the normal package/startup/upgrade gates and does not rerun the v0.9.16 parity
+executor under a false v1.0.1 source identity. This is an explicit release-owner
+version deferral, not terminal parity evidence. Parity jobs and parity-specific
+promotion steps run only for 2.0.0; all 1.x versions require them to be skipped.
+No skipped job may create a pass artifact or promote parity evidence debt to
+Verified.
 
 The output conforms to `v0916-parity-evidence-v1.schema.json`. It contains
 only package, Git authority, policy, comparator, scenario, input, receipt,
@@ -430,7 +441,7 @@ Contents query, the Git blob SHA returned for that path at that commit, and the
 SHA-256 of decoded raw workflow bytes. None may substitute for another.
 The authenticated protected-main workflow commit is independent of the pinned
 candidate implementation/package head
-`f7977831ed05123198d9122d05f1c16df61ccb33`; equality is neither required
+`d1f62db542cffe3190f679e2526a5733de9e9011`; equality is neither required
 nor authority. The blob and raw digests independently prove which workflow
 bytes occupied `.github/workflows/release.yml` at the workflow commit, while
 the candidate manifest/provenance and source-executor contract continue to bind
