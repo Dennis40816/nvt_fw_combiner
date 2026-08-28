@@ -6,9 +6,8 @@ using NvtFwCombiner.Presentation.Avalonia.HexViewport;
 namespace NvtFwCombiner.Presentation.Avalonia.ViewModels;
 
 /// <summary>Read-only semantic structure and field navigation for resolved BIN metadata.</summary>
-public sealed partial class BinInspectorViewModel : ObservableObject
+internal sealed partial class BinInspectorViewModel : ObservableObject
 {
-    private readonly FirmwareBinInspectionStructure[] _structures;
     private readonly RelayCommand<FirmwareBinInspectionStructure> _selectStructureCommand;
     private readonly RelayCommand<FormattedMetadataField> _selectFieldCommand;
     private readonly RelayCommand<HexViewportInteractionIntent> _viewportInteractionCommand;
@@ -24,8 +23,7 @@ public sealed partial class BinInspectorViewModel : ObservableObject
         ArgumentNullException.ThrowIfNull(inspection);
         Inspection = inspection;
         Text = ShellTextResources.For(language);
-        _structures = [.. inspection.Structures];
-        Structures = Array.AsReadOnly(_structures);
+        Structures = Array.AsReadOnly([.. inspection.Structures]);
         _selectStructureCommand = new RelayCommand<FirmwareBinInspectionStructure>(
             SelectStructure,
             CanSelectStructure);
@@ -33,28 +31,23 @@ public sealed partial class BinInspectorViewModel : ObservableObject
         _viewportInteractionCommand = new RelayCommand<HexViewportInteractionIntent>(HandleViewportIntent);
         ViewportSnapshot = HexViewportSnapshot.Empty(
             HexViewportCapabilityProfile.BinInspector,
-            _structures[0].Metadata.AddressedRange!.AddressSpaceId);
-        SelectedStructure = _structures[0];
+            Structures[0].Metadata.AddressedRange!.AddressSpaceId);
+        SelectedStructure = Structures[0];
     }
 
     /// <summary>One formatter-rooted, revision-bound Application inspection snapshot.</summary>
     public FirmwareBinInspectionSnapshot Inspection { get; }
 
-    /// <summary>Localized labels for the reusable desktop host.</summary>
     public ShellTextResources Text { get; }
 
-    /// <summary>Resolved structures in canonical Application metadata-plan order.</summary>
     public IReadOnlyList<FirmwareBinInspectionStructure> Structures { get; }
 
-    /// <summary>The exact resolved structure controlling the current viewport.</summary>
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(Fields))]
     public partial FirmwareBinInspectionStructure SelectedStructure { get; set; }
 
-    /// <summary>Application-formatted fields for the selected structure.</summary>
     public IReadOnlyList<FormattedMetadataField> Fields => SelectedStructure.Metadata.Fields;
 
-    /// <summary>The semantic field currently synchronized with the byte selection.</summary>
     [ObservableProperty]
     public partial FormattedMetadataField? SelectedField { get; set; }
 
@@ -152,7 +145,7 @@ public sealed partial class BinInspectorViewModel : ObservableObject
 
     private bool CanSelectStructure(FirmwareBinInspectionStructure? source)
     {
-        return source is not null && _structures.Any(candidate => ReferenceEquals(candidate, source));
+        return source is not null && Structures.Any(candidate => ReferenceEquals(candidate, source));
     }
 
     private void SelectStructure(FirmwareBinInspectionStructure? source)

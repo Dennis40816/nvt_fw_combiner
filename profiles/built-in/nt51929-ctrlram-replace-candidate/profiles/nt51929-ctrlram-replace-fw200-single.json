@@ -1,18 +1,8 @@
 {
   "schemaVersion": "2.9",
   "profileId": "nt51929-ctrlram-replace-fw200-single",
-  "profileVersion": "0.2.0",
-  "promotion": {
-    "stage": "executable-candidate",
-    "blockers": [
-      {
-        "blockerId": "support-neutral-no-promotion",
-        "kind": "release",
-        "reason": "The exact route is evidence-complete and intentionally remains support-neutral; this no-promotion policy is not a missing owner input or decision.",
-        "evidenceRefs": [ "nt51929-fw200-single-auto-prj-594-owner-golden-20260717" ]
-      }
-    ]
-  },
+  "profileVersion": "0.3.0",
+  "promotion": { "stage": "supported", "blockers": [] },
   "compositionKind": "replace",
   "icNumberInputMode": "single-selector",
   "experience": {

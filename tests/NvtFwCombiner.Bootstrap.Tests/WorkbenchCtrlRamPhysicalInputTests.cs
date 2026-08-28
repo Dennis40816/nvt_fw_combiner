@@ -47,14 +47,24 @@ public sealed class WorkbenchCtrlRamPhysicalInputTests
         string number,
         int expectedCount)
     {
-        IReadOnlyList<ReplaceInputSlot> slots = BootstrapTestHost.Services.CtrlRamAuthoring
-            .GetDiscoveryDisplay(icId, number, basePath: null).InputSlots;
+        CtrlRamInspectionDisplay display = BootstrapTestHost.Services.CtrlRamAuthoring
+            .GetDiscoveryDisplay(icId, number);
+        CtrlRamInspectionDisplay acceptedBaseDisplay = BootstrapTestHost.Services.CtrlRamAuthoring
+            .GetDiscoveryDisplayFromAcceptedBase(icId, number, new byte[1]);
+        IReadOnlyList<ReplaceInputSlot> slots = display.InputSlots;
 
         Assert.Equal(expectedCount, slots.Count);
+        Assert.Equal(
+            slots.Select(static slot => slot.SlotId),
+            acceptedBaseDisplay.InputSlots.Select(static slot => slot.SlotId));
         Assert.Contains(slots, slot => slot.SlotId == "replace-ctrlram-nf");
         Assert.Contains(slots, slot => slot.SlotId == "replace-ctrlram-vn");
         Assert.DoesNotContain(slots, slot => slot.SlotId.StartsWith("replace-ctrlram-nf-", StringComparison.Ordinal));
         Assert.DoesNotContain(slots, slot => slot.SlotId.StartsWith("replace-ctrlram-vn-", StringComparison.Ordinal));
+        Assert.Contains(display.Regions, region => region.Role == CtrlRamRegionRole.Nf);
+        Assert.Contains(display.Regions, region => region.Role == CtrlRamRegionRole.Normal);
+        Assert.Contains(display.Regions, region => region.Role == CtrlRamRegionRole.Mp);
+        Assert.Contains(display.Regions, region => region.Role == CtrlRamRegionRole.Vn);
     }
 
     /// <summary>Masked NT51929-family Cascade authoring exposes DiffDLM but never an independent NF selector.</summary>
@@ -64,11 +74,11 @@ public sealed class WorkbenchCtrlRamPhysicalInputTests
     [InlineData("NT51932")]
     public void DynamicDiffDlmCascadeHidesIndependentNfSelector(string icId)
     {
-        IReadOnlyList<ReplaceInputSlot> slots =
+        CtrlRamInspectionDisplay display =
             BootstrapTestHost.Services.CtrlRamAuthoring.GetDiscoveryDisplay(
                 icId,
-                IcNumberSelectionTokens.CascadeTwoToEight,
-                basePath: null).InputSlots;
+                IcNumberSelectionTokens.CascadeTwoToEight);
+        IReadOnlyList<ReplaceInputSlot> slots = display.InputSlots;
 
         Assert.Contains(
             slots,
@@ -77,6 +87,7 @@ public sealed class WorkbenchCtrlRamPhysicalInputTests
         Assert.DoesNotContain(
             slots,
             slot => slot.SlotId == "replace-ctrlram-nf");
+        Assert.Contains(display.Regions, region => region.Role == CtrlRamRegionRole.DiffDlm);
     }
 
     /// <summary>950-family cascade exposes DiffDLM while its preserved DiffNF never becomes an independent input.</summary>
@@ -90,8 +101,7 @@ public sealed class WorkbenchCtrlRamPhysicalInputTests
         IReadOnlyList<ReplaceInputSlot> slots =
             BootstrapTestHost.Services.CtrlRamAuthoring.GetDiscoveryDisplay(
                 icId,
-                number,
-                basePath: null).InputSlots;
+                number).InputSlots;
 
         Assert.Contains(
             slots,
@@ -112,8 +122,7 @@ public sealed class WorkbenchCtrlRamPhysicalInputTests
     {
         ReplaceInputSlot nf = BootstrapTestHost.Services.CtrlRamAuthoring.GetDiscoveryDisplay(
             icId,
-            "single",
-            basePath: null).InputSlots.Single(slot => slot.SlotId == "replace-ctrlram-nf");
+            "single").InputSlots.Single(slot => slot.SlotId == "replace-ctrlram-nf");
 
         Assert.DoesNotContain("DiffNFMerge.exe", nf.Description, StringComparison.Ordinal);
         Assert.DoesNotContain("DiffNFMerge output", nf.Title, StringComparison.Ordinal);
@@ -125,8 +134,7 @@ public sealed class WorkbenchCtrlRamPhysicalInputTests
     {
         ReplaceInputSlot nf = BootstrapTestHost.Services.CtrlRamAuthoring.GetDiscoveryDisplay(
             "NT51950",
-            "single",
-            basePath: null).InputSlots.Single(slot => slot.SlotId == "replace-ctrlram-nf");
+            "single").InputSlots.Single(slot => slot.SlotId == "replace-ctrlram-nf");
 
         Assert.Equal("NF_Ctrlram.bin · NF CtrlRAM: max 10768 B → 0x22C00", nf.Description);
     }

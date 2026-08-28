@@ -26,9 +26,14 @@ public sealed class StartupTraceSessionTests
             timestamps.Dequeue,
             utcValues.Dequeue,
             allocations.Dequeue);
+        ShellPreloadStageSnapshot[] preloadStages =
+        [
+            Stage("canonical-catalog", 1, 2, true),
+            Stage("deferred-views", 2, 2, false, 5, 5),
+        ];
 
         trace.Mark("options.ready");
-        bool written = trace.Complete("window.opened");
+        bool written = trace.Complete("window.opened", preloadStages);
 
         Assert.True(written);
         using var document = JsonDocument.Parse(File.ReadAllBytes(outputPath));
@@ -45,8 +50,31 @@ public sealed class StartupTraceSessionTests
         Assert.Equal(160, stages[1].GetProperty("allocatedBytesSinceManagedEntry").GetInt64());
         Assert.Equal(400, stages[2].GetProperty("allocatedBytesSinceManagedEntry").GetInt64());
         Assert.Equal(240, stages[2].GetProperty("allocationDeltaBytes").GetInt64());
+        JsonElement[] lifecycle = [.. root.GetProperty("preloadStages").EnumerateArray()];
+        Assert.Equal(["canonical-catalog", "deferred-views"],
+            lifecycle.Select(stage => stage.GetProperty("id").GetString()));
+        Assert.Equal("Succeeded", lifecycle[0].GetProperty("state").GetString());
+        Assert.Equal(JsonValueKind.Null, lifecycle[0].GetProperty("completedWork").ValueKind);
+        Assert.Equal(JsonValueKind.Null, lifecycle[0].GetProperty("totalWork").ValueKind);
+        Assert.Equal(5, lifecycle[1].GetProperty("completedWork").GetInt64());
+        Assert.Equal(5, lifecycle[1].GetProperty("totalWork").GetInt64());
         Assert.Equal(started, root.GetProperty("startedUtc").GetDateTimeOffset());
         Assert.Equal(started.AddSeconds(3), root.GetProperty("completedUtc").GetDateTimeOffset());
+    }
+
+    private static ShellPreloadStageSnapshot Stage(
+        string id,
+        int index,
+        int count,
+        bool isRequired,
+        long? completedWork = null,
+        long? totalWork = null)
+    {
+        var identity = new ShellPreloadAttemptIdentity(1, id, 1);
+        var attempt = new ShellPreloadAttemptSnapshot(
+            identity, ShellPreloadStageState.Succeeded, 1, completedWork, totalWork);
+        return new(id, index, count, isRequired, id, "", "", "", false,
+            ShellPreloadStageState.Succeeded, attempt, null);
     }
 
     /// <summary>An existing destination remains byte-for-byte unchanged.</summary>
@@ -76,6 +104,27 @@ public sealed class StartupTraceSessionTests
         trace.Mark("ignored");
 
         Assert.False(trace.IsEnabled);
+        Assert.False(trace.Complete("ignored"));
+    }
+
+    /// <summary>A normal launch measures managed-entry-to-ready time without enabling trace output.</summary>
+    [Fact]
+    public void NormalLaunchKeepsOneMonotonicDurationWithoutTraceOutput()
+    {
+        long origin = 4321;
+        var timestamps = new Queue<long>(
+            [origin, origin + (3 * Stopwatch.Frequency / 2)]);
+        StartupTraceSession trace = StartupTraceSession.Create(
+            outputPath: null,
+            timestamps.Dequeue,
+            static () => DateTimeOffset.UnixEpoch,
+            static () => 0,
+            measureWithoutOutput: true);
+
+        TimeSpan elapsed = Assert.IsType<TimeSpan>(trace.ElapsedSinceManagedEntry);
+
+        Assert.False(trace.IsEnabled);
+        Assert.Equal(1500, elapsed.TotalMilliseconds);
         Assert.False(trace.Complete("ignored"));
     }
 }

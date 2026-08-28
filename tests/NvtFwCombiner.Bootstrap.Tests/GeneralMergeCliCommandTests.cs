@@ -393,24 +393,29 @@ public sealed partial class GeneralMergeCliCommandTests
 
         string baseImage = workspace.Write("replace-base.bin", new byte[0x40000]);
         string replacementDp = workspace.Write("replace-dp.bin", new byte[0x40000]);
-        CliRunResult replace = await RunCliAsync([
-            "dp-replace",
-            "preview",
-            "--profile",
-            "NT51950",
-            "--ic-num",
-            "single",
-            "--base",
-            baseImage,
-            "--dp",
-            replacementDp,
-        ]);
+        CliRunResult replace = await CliTestHarness.RunRetainedReplaceAsync(
+            [
+                "dp-replace",
+                "preview",
+                "--profile",
+                "NT51950",
+                "--ic-num",
+                "single",
+                "--base",
+                baseImage,
+                "--dp",
+                replacementDp,
+            ],
+            TestContext.Current.CancellationToken);
 
         Assert.Equal(0, replace.ExitCode);
         Assert.Contains("Status: Succeeded", replace.Output, StringComparison.Ordinal);
     }
 
-    /// <summary>Locks the reviewed legacy General Merge bytes through the default V2 route for every built-in IC.</summary>
+    /// <summary>
+    /// Uses synthetic sources and a hand-authored full-output mapping oracle for every currently
+    /// admitted built-in IC; this is not direct firmware Golden evidence.
+    /// </summary>
     [Theory]
     [InlineData("NT51917", "nt51917-general-merge-logical-candidate")]
     [InlineData("NT51919", "nt51919-general-merge-logical-candidate")]
@@ -422,7 +427,7 @@ public sealed partial class GeneralMergeCliCommandTests
     [InlineData("NT51928", "nt51928-general-merge-logical-candidate")]
     [InlineData("NT51950", "nt51950-general-merge-logical-candidate")]
     [InlineData("NT51951", "nt51951-general-merge-logical-candidate")]
-    public async Task GeneralMergeV2DefaultRoutePreservesReviewedLegacyBytes(
+    public async Task GeneralMergeV2DefaultRouteAppliesDeclaredSyntheticMappings(
         string icId,
         string candidateProfileId)
     {

@@ -6,6 +6,12 @@
   "variantOrVersion": "boe-d82t80",
   "topology": "topology-unscoped",
   "directGolden": true,
+  "testDisposition": {
+    "kind": "direct-full-output",
+    "evidenceRefs": [
+      "tests/NvtFwCombiner.Bootstrap.Tests/AbMergeGoldenRegressionTests.cs#Nt51950CandidateMatchesOwnerApprovedAbGoldenWithCombinerAsync"
+    ]
+  },
   "sourceClassification": "private-owner-approved-golden",
   "ownerApproval": "Repository owner supplied the AB archive and directed these golden BIN fixtures to be tracked on 2026-07-14.",
   "profileId": "nt51950-ab-merge",

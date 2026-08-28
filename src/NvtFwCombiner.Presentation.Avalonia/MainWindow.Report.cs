@@ -1,11 +1,14 @@
 using Avalonia.Interactivity;
 using Avalonia.Platform.Storage;
+using Avalonia.Threading;
+using NvtFwCombiner.Application.Ports;
 using NvtFwCombiner.Presentation.Avalonia.ViewModels;
 
 namespace NvtFwCombiner.Presentation.Avalonia;
 
 public sealed partial class MainWindow
 {
+    private const long MaximumStandaloneReportBytes = 10L * 1024 * 1024;
     private const double ReportToastFadeStep = 0.12;
 
     private async void LoadReportJsonButton_OnClick(object? sender, RoutedEventArgs e)
@@ -29,69 +32,110 @@ public sealed partial class MainWindow
             return;
         }
 
-        await using Stream stream = await files[0].OpenReadAsync();
-        using var reader = new StreamReader(stream);
-        string json = await reader.ReadToEndAsync();
-        await viewModel.Reports.LoadReportJsonAsync(json, files[0].Name);
+        IStorageFile file = files[0];
+        _ = await viewModel.Reports.LoadReportFileAsync(
+            token => _hostServices.LocalFiles.ReadTextAsync(
+                _ => new ValueTask<Stream>(file.OpenReadAsync()),
+                MaximumStandaloneReportBytes,
+                token),
+            file.Name,
+            _startupLoadCancellation.Token);
     }
 
-    private static async Task ApplyDeferredLaunchOptionsAsync(
+    private static bool HasStartupReportStage(UiLaunchOptions launchOptions)
+    {
+        return launchOptions.Issues.Count > 0 ||
+            !string.IsNullOrWhiteSpace(launchOptions.ReportPath) ||
+            launchOptions.OpenReport;
+    }
+
+    internal static async Task ApplyStartupReportAsync(
         MainWindowViewModel viewModel,
+        ILocalFileStore reportFiles,
         UiLaunchOptions launchOptions,
+        Action<long, long> progress,
         CancellationToken cancellationToken)
     {
-        bool historyPublished = await viewModel.Reports.LoadReportHistoryAsync(
-            ReportHistoryFileStore.LoadAsync,
-            cancellationToken);
-        if (!historyPublished)
-        {
-            return;
-        }
-
+        string? terminalDiagnostic = null;
         if (launchOptions.Issues.Count > 0)
         {
-            viewModel.Reports.LoadReportError("Startup arguments", string.Join(Environment.NewLine, launchOptions.Issues));
+            terminalDiagnostic = string.Join(Environment.NewLine, launchOptions.Issues);
+            viewModel.Reports.LoadReportError("Startup arguments", terminalDiagnostic);
         }
 
         if (!string.IsNullOrWhiteSpace(launchOptions.ReportPath))
         {
-            bool reportPublished = await LoadStartupReportAsync(
-                viewModel,
-                launchOptions.ReportPath,
+            ReportPublicationResult result = await viewModel.Reports.LoadReportFileAsync(
+                token => reportFiles.ReadTextAsync(
+                    launchOptions.ReportPath,
+                    MaximumStandaloneReportBytes,
+                    token,
+                    update => ReportStartupFileProgress(progress, update, token)),
+                Path.GetFileName(launchOptions.ReportPath),
                 cancellationToken);
-            if (!reportPublished)
+            if (result.Outcome != ReportPublicationOutcome.Published)
             {
-                return;
+                RequireStartupPublication(result);
             }
         }
 
-        if (!launchOptions.OpenReport)
-        {
-            return;
-        }
-
-        if (!viewModel.Reports.ShowReportCommand.CanExecute(null))
-        {
-            viewModel.Reports.LoadReportError(
-                "Startup report",
-                "--open-report requires a loaded report. Pass --load-report <path> or --report <path>.");
-        }
-
-        if (viewModel.Reports.ShowReportCommand.CanExecute(null))
+        if (launchOptions.OpenReport && viewModel.Reports.ShowReportCommand.CanExecute(null))
         {
             viewModel.Reports.ShowReportCommand.Execute(null);
         }
+        else if (launchOptions.OpenReport)
+        {
+            terminalDiagnostic =
+                "--open-report requires a loaded report. Pass --load-report <path> or --report <path>.";
+            viewModel.Reports.LoadReportError("Startup report", terminalDiagnostic);
+        }
+
+        if (terminalDiagnostic is not null)
+        {
+            throw new InvalidOperationException(terminalDiagnostic);
+        }
     }
 
-    private static void ApplyLaunchPage(MainWindowViewModel viewModel, ShellPage? page)
+    internal static void RequireStartupPublication(ReportPublicationResult result)
     {
-        switch (page)
+        switch (result.Outcome)
+        {
+            case ReportPublicationOutcome.Published:
+                return;
+            case ReportPublicationOutcome.Superseded:
+                throw new ShellPreloadSupersededException();
+            case ReportPublicationOutcome.Failed:
+                throw new InvalidOperationException(string.IsNullOrWhiteSpace(result.Diagnostic)
+                    ? "Report publication returned an empty failure diagnostic."
+                    : result.Diagnostic);
+            case ReportPublicationOutcome.Unknown:
+            default:
+                throw new InvalidOperationException("Report publication returned an invalid terminal result.");
+        }
+    }
+
+    private static void ReportStartupFileProgress(
+        Action<long, long> progress,
+        LocalFileReadProgress update,
+        CancellationToken cancellationToken)
+    {
+        if (Dispatcher.UIThread.CheckAccess())
+        {
+            progress(update.BytesRead, update.TotalBytes);
+            return;
+        }
+        Dispatcher.UIThread.InvokeAsync(
+            () => progress(update.BytesRead, update.TotalBytes),
+            DispatcherPriority.Background,
+            cancellationToken).GetAwaiter().GetResult();
+    }
+
+    private static void ApplyLaunchPage(MainWindowViewModel viewModel, UiLaunchOptions launchOptions)
+    {
+        switch (launchOptions.Page)
         {
             case ShellPage.Home:
                 viewModel.ShowHomeCommand.Execute(null);
-                break;
-            case ShellPage.Settings:
-                viewModel.ShowSettingsCommand.Execute(null);
                 break;
             case ShellPage.Merge:
                 viewModel.ShowMergeCommand.Execute(null);
@@ -105,19 +149,11 @@ public sealed partial class MainWindow
             default:
                 break;
         }
-    }
 
-    private static Task<bool> LoadStartupReportAsync(
-        MainWindowViewModel viewModel,
-        string reportPath,
-        CancellationToken cancellationToken)
-    {
-        return viewModel.Reports.LoadReportJsonAsync(
-            token => Task.Run(
-                () => File.ReadAllText(Path.GetFullPath(reportPath)),
-                token),
-            Path.GetFileName(reportPath),
-            cancellationToken);
+        if (launchOptions.OpenSettings)
+        {
+            viewModel.OpenSettingsCommand.Execute(null);
+        }
     }
 
     private void ReportToastHoldTimer_OnTick(object? sender, EventArgs e)

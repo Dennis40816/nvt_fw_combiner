@@ -1,7 +1,9 @@
 using System.Security.Cryptography;
 using System.Text.Json;
+using NvtFwCombiner.Application.Capabilities;
 using NvtFwCombiner.Domain.Composition;
 using NvtFwCombiner.Infrastructure.Bundles;
+using NvtFwCombiner.Infrastructure.Capabilities;
 using NvtFwCombiner.TestSupport;
 
 namespace NvtFwCombiner.Bootstrap.Tests;
@@ -9,16 +11,102 @@ namespace NvtFwCombiner.Bootstrap.Tests;
 /// <summary>Runtime-routing evidence for hash-anchored built-in V2 Standard Merge bundles.</summary>
 public sealed class BuiltInV2StandardMergeRoutingTests
 {
+    /// <summary>
+    /// Every released Standard Merge route can read the TP source view from a complete
+    /// canonical FlashCode without changing the independently approved final bytes.
+    /// </summary>
+    [Theory]
+    [InlineData("NT51917", "51927")]
+    [InlineData("NT51919", "51929")]
+    [InlineData("NT51923", "51923")]
+    [InlineData("NT51926", "51926")]
+    [InlineData("NT51927", "51927")]
+    [InlineData("NT51928", "51928")]
+    [InlineData("NT51929", "51929")]
+    [InlineData("NT51932", "51929")]
+    [InlineData("NT51950", "51950")]
+    [InlineData("NT51951", "51951")]
+    public async Task ReleasedStandardMergeAcceptsCanonicalFlashCodeInTpSlot(
+        string icId,
+        string canonicalReferenceIc)
+    {
+        System.Text.Json.JsonElement goldenCase =
+            V2StandardMergeGoldenTestSupport.ReadGoldenCase(canonicalReferenceIc);
+        Dictionary<string, byte[]> inputs =
+            V2StandardMergeGoldenTestSupport.ReadInputs(goldenCase.GetProperty("inputs"));
+        byte[] expectedOutput =
+            V2StandardMergeGoldenTestSupport.ReadManifestFile(goldenCase.GetProperty("expectedOutput"));
+        inputs[CompositionAddressSpaceIds.TpInput] = expectedOutput;
+        bool compiled = BootstrapTestHost.Canonical.Compiler.TryCompileStandardMerge(
+            icId,
+            icId is "NT51950" or "NT51951"
+                ? inputs[CompositionAddressSpaceIds.DpInput].LongLength
+                : null,
+            inputs.Keys,
+            out CompiledComposition? composition,
+            out IReadOnlyList<CompositionIssue> issues);
+
+        Assert.True(compiled, string.Join(Environment.NewLine, issues.Select(static issue => issue.Message)));
+        Assert.Empty(issues);
+        CompiledComposition artifact = Assert.IsType<CompiledComposition>(composition);
+        CompositionRunResult result = await V2StandardMergeGoldenTestSupport.PreviewAsync(
+            artifact,
+            inputs);
+
+        V2StandardMergeGoldenTestSupport.AssertSuccessfulGoldenOutput(
+            result,
+            artifact,
+            expectedOutput);
+    }
+
+    /// <summary>The complete built-in publication remains loadable after Standard Merge naming changes.</summary>
+    [Fact]
+    public async Task BuiltInCatalogLoadsAfterStandardMergeNamingUpgrade()
+    {
+        CanonicalCapabilityPolicySnapshot policy = BuiltInCanonicalCapabilityPolicy.Load();
+        string[] drift =
+        [
+            .. policy.Routes.Select(route =>
+            {
+                string current = CanonicalDynamicRouteInventory.IsDynamic(route.Identity)
+                    ? CanonicalDynamicRouteInventory.Resolve(route.Identity).CapabilityFingerprint
+                    : CanonicalCompiledRouteInventory.Resolve(route.Identity).CapabilityFingerprint;
+                return (route, current);
+            })
+            .Where(static item => !StringComparer.Ordinal.Equals(
+                item.route.CapabilityFingerprint,
+                item.current))
+            .Select(static item =>
+                $"{item.route.Identity.RouteId}|{item.route.CapabilityFingerprint}|{item.current}"),
+        ];
+        Assert.True(drift.Length == 0, string.Join(Environment.NewLine, drift));
+
+        var host = new IsolatedBootstrapTestHost();
+        CapabilityCatalogReloadResult? result = null;
+        await foreach (CanonicalCapabilityCatalogLoadUpdate update in
+            host.Services.CanonicalCatalogLoader.LoadAsync(
+                TestContext.Current.CancellationToken))
+        {
+            result = update.Result ?? result;
+        }
+
+        CapabilityCatalogReloadResult terminal = Assert.IsType<CapabilityCatalogReloadResult>(result);
+        Assert.True(
+            terminal.Succeeded,
+            string.Join(Environment.NewLine, terminal.Issues.Select(static issue =>
+                $"{issue.Code}: {issue.Message} [{issue.Subject}]")));
+    }
+
     /// <summary>Verifies every registered IC selects one deployed V2 artifact without legacy fallback.</summary>
     [Theory]
-    [InlineData("NT51917", "nt51917-standard-merge-gen-flash-alias", "nt51927-standard-merge", "48511d6e386f295c75bb7bd05a69ce60a4d20f3954d750959e7e31a018c6c6d8", "dp-input,tp-input", "DpFirmware,TpFirmware")]
-    [InlineData("NT51919", "nt51919-standard-merge-gen-flash-alias", "nt51929-standard-merge", "c67e8ee68cd06f4e1a169abab7c900dc457bbd03f29da770fb7feefb848be380", "dp-input,tp-input", "DpFirmware,TpFirmware")]
-    [InlineData("NT51923", "nt51923-standard-merge-gen-flash", "nt51923-standard-merge", "a0a7ad684887b4071dceb66b9ca28b11d97cd9108c8d518e6846773892cc02c2", "dp-input,tp-input", "DpFirmware,TpFirmware")]
-    [InlineData("NT51926", "nt51926-standard-merge-gen-flash", "nt51923-standard-merge", "a0a7ad684887b4071dceb66b9ca28b11d97cd9108c8d518e6846773892cc02c2", "dp-input,tp-input", "DpFirmware,TpFirmware")]
-    [InlineData("NT51927", "nt51927-standard-merge-gen-flash", "nt51927-standard-merge", "48511d6e386f295c75bb7bd05a69ce60a4d20f3954d750959e7e31a018c6c6d8", "dp-input,tp-input", "DpFirmware,TpFirmware")]
-    [InlineData("NT51928", "nt51928-standard-merge-gen-flash", "nt51928-standard-merge", "895ccc579907874af31e5a9f132e0ffb4c10e150f1ca8aad23a0f4f8bac317ca", "dp-input,tp-input", "DpFirmware,TpFirmware")]
-    [InlineData("NT51929", "nt51929-standard-merge-gen-flash", "nt51929-standard-merge", "c67e8ee68cd06f4e1a169abab7c900dc457bbd03f29da770fb7feefb848be380", "dp-input,tp-input", "DpFirmware,TpFirmware")]
-    [InlineData("NT51932", "nt51932-standard-merge-gen-flash", "nt51929-standard-merge", "c67e8ee68cd06f4e1a169abab7c900dc457bbd03f29da770fb7feefb848be380", "dp-input,tp-input", "DpFirmware,TpFirmware")]
+    [InlineData("NT51917", "nt51917-standard-merge-gen-flash-alias", "nt51927-standard-merge", "b1c9234e76ff6995ac362ee66a22eb3423024d116a858a93d2b733c0c380eafa", "dp-input,tp-input", "DpFirmware,TpFirmware")]
+    [InlineData("NT51919", "nt51919-standard-merge-gen-flash-alias", "nt51929-standard-merge", "f28c1010e178720db508d9de8e95b01c4ee8030d66327a55fc2eb5180353e0ca", "dp-input,tp-input", "DpFirmware,TpFirmware")]
+    [InlineData("NT51923", "nt51923-standard-merge-gen-flash", "nt51923-standard-merge", "9661f30be8b114cd679d08af8177d44bd372973943f2293228f85ff25ecf608c", "dp-input,tp-input", "DpFirmware,TpFirmware")]
+    [InlineData("NT51926", "nt51926-standard-merge-gen-flash", "nt51923-standard-merge", "9661f30be8b114cd679d08af8177d44bd372973943f2293228f85ff25ecf608c", "dp-input,tp-input", "DpFirmware,TpFirmware")]
+    [InlineData("NT51927", "nt51927-standard-merge-gen-flash", "nt51927-standard-merge", "b1c9234e76ff6995ac362ee66a22eb3423024d116a858a93d2b733c0c380eafa", "dp-input,tp-input", "DpFirmware,TpFirmware")]
+    [InlineData("NT51928", "nt51928-standard-merge-gen-flash", "nt51928-standard-merge", "20ccd90376bee9a67832b3a808940017f3cab202ae5d9dfad7cb2dc4b9774c4e", "dp-input,tp-input", "DpFirmware,TpFirmware")]
+    [InlineData("NT51929", "nt51929-standard-merge-gen-flash", "nt51929-standard-merge", "f28c1010e178720db508d9de8e95b01c4ee8030d66327a55fc2eb5180353e0ca", "dp-input,tp-input", "DpFirmware,TpFirmware")]
+    [InlineData("NT51932", "nt51932-standard-merge-gen-flash", "nt51929-standard-merge", "f28c1010e178720db508d9de8e95b01c4ee8030d66327a55fc2eb5180353e0ca", "dp-input,tp-input", "DpFirmware,TpFirmware")]
     public void RegisteredStandardMergeUsesDeployedTrustedV2Artifact(
         string icId,
         string profileId,
@@ -50,6 +138,12 @@ public sealed class BuiltInV2StandardMergeRoutingTests
         Assert.Equal(bundleContentHash, details.Provenance.Bundle.ContentHash);
         Assert.Equal(profileId, artifact.V2Details.ProfileId);
         Assert.Equal(icId, artifact.V2Details.Provenance.Context.MemberId);
+        Assert.Equal(
+            CompiledOutputNameRendererKind.NormalFlashCodeV1,
+            details.OutputNamingRequirement.RendererKind);
+        Assert.Equal(
+            CompiledOutputNamingRequirement.NormalFlashCodeV1Template,
+            details.OutputNamingRequirement.FileNameTemplate);
         Assert.Equal(
             expectedInputAddressSpaceIds.Split(','),
             artifact.Plan.RequiredInputAddressSpaceIds.Order(StringComparer.Ordinal));
@@ -153,10 +247,16 @@ public sealed class BuiltInV2StandardMergeRoutingTests
         CompiledComposition artifact = Assert.IsType<CompiledComposition>(composition);
         Assert.Equal(CompiledCompositionEligibility.V2RuntimeExecutable, artifact.Eligibility);
         V2CompiledCompositionDetails details = Assert.IsType<V2CompiledCompositionDetails>(artifact.V2Details);
-        Assert.Equal("56e39af41aaed8abad5da0f49274053ad2fb619949b53efd9497ed31a10ee99b", details.Provenance.Bundle.ContentHash);
+        Assert.Equal("d62b6b3f83a2350724de476d582d3a8de3483366134c39d94f144b77ae1402d7", details.Provenance.Bundle.ContentHash);
         Assert.Equal(profileId, artifact.V2Details.ProfileId);
         Assert.Equal(icId, artifact.V2Details.Provenance.Context.MemberId);
         Assert.Equal(dpInputLength, artifact.Plan.OutputInitialization.Capacity);
+        Assert.Equal(
+            CompiledOutputNameRendererKind.NormalFlashCodeV1,
+            details.OutputNamingRequirement.RendererKind);
+        Assert.Equal(
+            CompiledOutputNamingRequirement.NormalFlashCodeV1Template,
+            details.OutputNamingRequirement.FileNameTemplate);
     }
 
     /// <summary>Verifies every production-materialized bundle is sourced from its manifest-pinned entries.</summary>

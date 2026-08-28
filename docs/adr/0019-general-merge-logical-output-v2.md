@@ -80,18 +80,19 @@ image map. A dummy logical-only family is forbidden; a cross-family candidate re
 family binding to be registered explicitly. Logical-output admission must not
 bypass map-backed region access, metadata, processor, or promotion controls. General Merge does not
 fall back to legacy after V2 compile selection. On 2026-07-15, the product owner accepted completed
-legacy/V2 byte-parity evidence for every built-in General Merge IC. The default General Merge route
-therefore selects the registered logical-output V2 profile. An invalid registered V2 request fails
+synthetic full-output legacy/V2 mapping-algebra differential evidence for every then-admitted General
+Merge IC. This is not direct firmware Golden evidence or an IC-specific support claim. The default
+General Merge route therefore selects the registered logical-output V2 profile. An invalid registered V2 request fails
 only that General Merge run; it does not alter Standard Merge, Replace, CLI routing, or UI routing
 for any other workflow. Persisted 0.9.2 General Merge saved-rule profile ids remain compatibility
 aliases during the cutover.
 
 ## Consequences
 
-- Existing callers that omit the blank fill retain the current `0x00`
-  behavior. The configurable-fill target requires a versioned request/schema
-  migration; until that migration lands, the current fixed-`0x00` runtime
-  remains the compatibility implementation.
+- Existing callers that omit the blank fill retain the canonical `0x00`
+  default. The versioned request/schema migration is complete: an explicit
+  General Merge fill may be any byte in `0x00..0xFF`, and only otherwise
+  unmapped output bytes retain that fill.
 - Pending candidate intake remains scoped to the requested member and cannot
   globally reject General Merge or other supported workflows.
 - The V2 compiler gains one typed request overlay, not a second compiler or dynamic scripting API.

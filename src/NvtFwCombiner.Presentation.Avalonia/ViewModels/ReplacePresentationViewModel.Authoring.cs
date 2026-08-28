@@ -4,12 +4,13 @@ using NvtFwCombiner.Domain.Composition;
 
 namespace NvtFwCombiner.Presentation.Avalonia.ViewModels;
 
-public sealed partial class ReplacePresentationViewModel
+internal sealed partial class ReplacePresentationViewModel
 {
     private CapabilityActionReadinessSnapshot? _ctrlRamActionReadiness;
     private ActiveSessionSnapshot? _ctrlRamReadinessSession;
     private string? _ctrlRamReadinessIc;
     private string? _ctrlRamReadinessNumber;
+    private CompiledAuthoringSelectionSnapshot? _catalogRefreshDpProjection;
 
     internal AuthoringRevision ReplaceInputAuthoringRevision =>
         CurrentReplaceInputSession?.CurrentSnapshot?.AuthoringRevision ?? new AuthoringRevision(1);
@@ -18,7 +19,14 @@ public sealed partial class ReplacePresentationViewModel
     {
         _dpReplaceSession.InvalidateCanonicalPublication();
         _ctrlRamReplaceSession.InvalidateCanonicalPublication();
+        _generalReplaceSession.InvalidateCanonicalPublication();
         ClearCtrlRamActionReadiness();
+        _generalReplaceAdmission = null;
+        _generalReplaceActionReadiness = null;
+        _generalReplaceDiagnosticPreviewReport = null;
+        InspectionLifecycles[DpReplaceMode].Invalidate();
+        InspectionLifecycles[CtrlRamReplaceMode].Invalidate();
+        InspectionLifecycles[GeneralReplaceMode].Invalidate();
     }
 
     private AuthoringSessionState? CurrentReplaceInputSession => SelectedReplaceMode switch
@@ -30,7 +38,8 @@ public sealed partial class ReplacePresentationViewModel
 
     internal IReadOnlyList<FirmwareInspectionItemRequest> AttachReplaceInspectionLeases(
         IReadOnlyList<FirmwareInspectionItemRequest> items,
-        IEnumerable<FirmwareSlotViewModel> slots)
+        IEnumerable<FirmwareSlotViewModel> slots,
+        CompiledAuthoringSelectionSnapshot? stagedDpProjection = null)
     {
         AuthoringSessionState? session = CurrentReplaceInputSession;
         if (session is null)
@@ -46,36 +55,20 @@ public sealed partial class ReplacePresentationViewModel
         {
             return items;
         }
+
+        if (SelectedReplaceMode == CtrlRamReplaceMode)
+        {
+            ClearCtrlRamActionReadiness();
+            return items;
+        }
+
         FirmwareSlotViewModel[] selected =
         [
             .. slots.Where(slot => slot.HasFile && requested.Contains(ReplaceInputId(slot))),
         ];
-        if (SelectedReplaceMode == CtrlRamReplaceMode)
-        {
-            ClearCtrlRamActionReadiness();
-        }
-        CompiledAuthoringSelectionSnapshot? dpProjection = SelectedReplaceMode == DpReplaceMode
-            ? ResolveDpReplaceAuthoringSnapshot(selected)
-            : null;
-        AuthoringCapabilityCatalogSnapshot? catalog = dpProjection is not null
-            ? dpProjection.Catalog
-            : _compositionServices.CtrlRamAuthoring.GetAuthoringCatalog(
-                SelectedIc,
-                SelectedNumber,
-                selected.ToDictionary(
-                    slot => ReplaceInputId(slot) == CompositionAddressSpaceIds.ReferenceBase
-                        ? CompositionSlotIds.ReplaceBase
-                        : ReplaceInputId(slot),
-                    static slot => slot.FilePath!,
-                    StringComparer.Ordinal),
-                _ctrlRamReplaceSession.CurrentSnapshot);
-        if (catalog is null)
-        {
-            return items;
-        }
-        AuthoringSessionTransitionResult activated = dpProjection is null
-            ? session.Activate(catalog)
-            : session.Activate(dpProjection);
+        CompiledAuthoringSelectionSnapshot dpProjection =
+            stagedDpProjection ?? ResolveDpReplaceAuthoringSnapshot(selected);
+        AuthoringSessionTransitionResult activated = session.Activate(dpProjection);
         if (!activated.Succeeded)
         {
             return items;
@@ -106,7 +99,7 @@ public sealed partial class ReplacePresentationViewModel
                 leasesByInputId.TryGetValue(
                     ReplaceInspectionInputId(item),
                     out AuthoringSlotInspectionLease? lease)
-                    ? item with { ReplaceInspectionLease = lease }
+                    ? item with { InspectionLease = lease }
                     : item),
         ];
     }
@@ -129,14 +122,27 @@ public sealed partial class ReplacePresentationViewModel
         AuthoringCapabilityCatalogSnapshot? catalog = results[0].InputSlotCatalog;
         AuthoringSessionState? session = CurrentReplaceInputSession;
         if (catalog is null || session is null || results.Any(static result =>
-                result.InputSlotCatalog is null || result.InputSlotStatus is null) ||
-            selected.Any(static item => item.ReplaceInspectionLease is null))
+                result.InputSlotCatalog is null || result.InputSlotStatus is null))
         {
             return false;
         }
+
+        if (SelectedReplaceMode == CtrlRamReplaceMode)
+        {
+            return _compositionServices.CtrlRamAuthoring.AdoptInspectedBatch(
+                session,
+                catalog,
+                [.. results.Select(static result => result.InputSlotStatus!)]).Succeeded;
+        }
+
+        if (selected.Any(static item => item.InspectionLease is null))
+        {
+            return false;
+        }
+
         AuthoringSessionTransitionResult completed = session.TryCompleteSlotFileInspectionBatch(
             catalog,
-            [.. selected.Select(static item => item.ReplaceInspectionLease!)],
+            [.. selected.Select(static item => item.InspectionLease!)],
             results.ToDictionary(
                 static result => result.InputSlotStatus!.SlotId,
                 static result => result.InputSlotStatus!,
@@ -230,6 +236,41 @@ public sealed partial class ReplacePresentationViewModel
     private CompiledAuthoringSelectionSnapshot ResolveDpReplaceAuthoringSnapshot(
         IReadOnlyCollection<FirmwareSlotViewModel> selected)
     {
+        return ResolveDpReplaceAuthoringSnapshot(SelectedIc, selected);
+    }
+
+    internal CompiledAuthoringSelectionSnapshot? TakeCatalogRefreshDpProjection()
+    {
+        CompiledAuthoringSelectionSnapshot? projection = _catalogRefreshDpProjection;
+        _catalogRefreshDpProjection = null;
+        return projection;
+    }
+
+    internal void CompleteCatalogRefreshProjection()
+    {
+        _catalogRefreshDpProjection = null;
+    }
+
+    private CompiledAuthoringSelectionSnapshot ResolveDpReplaceAuthoringSnapshot(
+        string icId,
+        IReadOnlyCollection<FirmwareSlotViewModel> selected)
+    {
+        if (string.Equals(_preparedDpReplaceIc, icId, StringComparison.Ordinal) &&
+            _preparedDpReplaceSnapshot is not null)
+        {
+            CompiledAuthoringSelectionSnapshot prepared = _preparedDpReplaceSnapshot;
+            _preparedDpReplaceIc = null;
+            _preparedDpReplaceSnapshot = null;
+            return prepared;
+        }
+
+        return ResolveDpReplaceAuthoringSnapshotCore(icId, selected);
+    }
+
+    private CompiledAuthoringSelectionSnapshot ResolveDpReplaceAuthoringSnapshotCore(
+        string icId,
+        IReadOnlyCollection<FirmwareSlotViewModel> selected)
+    {
         ActiveSessionSnapshot? current = _dpReplaceSession.CurrentSnapshot;
         Dictionary<string, FileStamp> accepted = current?.Slots.Where(slot =>
                 slot.FileStamp is not null && selected.Any(candidate =>
@@ -237,7 +278,7 @@ public sealed partial class ReplacePresentationViewModel
             .ToDictionary(static slot => slot.DefinitionId, static slot => slot.FileStamp!.Value,
                 StringComparer.Ordinal) ?? [];
         return _compositionServices.DpReplaceAuthoring.GetAuthoringSnapshot(
-            SelectedIc,
+            icId,
             [.. selected.Select(ReplaceInputId)],
             accepted,
             current?.AuthoringRevision ?? new AuthoringRevision(1),

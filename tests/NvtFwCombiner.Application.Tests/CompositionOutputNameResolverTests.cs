@@ -681,7 +681,7 @@ public sealed partial class CompositionOutputNameResolverTests
 
         internal string? FileName { get; private set; }
 
-        public ValueTask<string> CommitAsync(
+        public ValueTask<CompositionOutputCommitReceipt> CommitAsync(
             string fileName,
             ReadOnlyMemory<byte> outputBytes,
             CancellationToken cancellationToken)
@@ -689,7 +689,8 @@ public sealed partial class CompositionOutputNameResolverTests
             cancellationToken.ThrowIfCancellationRequested();
             WasCalled = true;
             FileName = fileName;
-            return ValueTask.FromResult($"committed:{fileName}");
+            return ValueTask.FromResult(CompositionOutputCommitReceipt.CreateLoose(
+                $"committed:{fileName}", fileName, outputBytes.Span));
         }
     }
 }

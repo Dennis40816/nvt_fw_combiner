@@ -8,9 +8,12 @@ description: Review or design changes that affect NVT FW Combiner layers, depend
 1. Read root `AGENTS.md`, the nearest nested instructions, the implementation spec, and existing ADRs.
 2. Identify the use case, owning layer, input/output contracts, and dependency direction.
 3. List invariants: range semantics, deterministic output, mutation ownership, offline behavior, and traceability.
-4. Inventory the current semantic producers and check whether the change can
-   consume an existing profile/compiler result, inspector/normalizer, session
-   lease, operation, port, or adapter before adding logic or an abstraction.
+4. Complete and review the fail-closed
+   [capability-reuse gate](../../../docs/governance/development-execution-workflow.md#capability-reuse-gate-fail-closed).
+   Confirm the current producer, caller path, port/adapter, tests, proposed
+   owner, and dependency direction before adding, changing, moving, wrapping,
+   splitting, replacing, or refactoring production behavior, a semantic branch,
+   or an owner contract.
    Cross-layer projections may translate typed results but cannot re-derive
    their facts.
 5. Reject UI-owned firmware logic, infrastructure-owned business rules, and production dependencies on `refcode/`.

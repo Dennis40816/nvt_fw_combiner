@@ -4,6 +4,30 @@ namespace NvtFwCombiner.Bootstrap.Tests;
 
 public sealed partial class ReplaceCliCommandTests
 {
+    /// <summary>Hidden DP Replace is absent from help and rejects before file option validation.</summary>
+    [Fact]
+    public async Task DpReplaceIsHiddenAndFailsClosedBeforeReadingInputs()
+    {
+        CliRunResult help = await CliTestHarness.RunAsync(
+            ["--help"],
+            TestContext.Current.CancellationToken);
+        CliRunResult direct = await CliTestHarness.RunAsync([
+            "dp-replace",
+            "preview",
+            "--profile",
+            "NT51950",
+        ], TestContext.Current.CancellationToken);
+
+        Assert.DoesNotContain("dp-replace", help.Output, StringComparison.Ordinal);
+        Assert.Equal(1, direct.ExitCode);
+        Assert.Contains(
+            CompositionPlanningIssueCodes.ReplaceWorkflowNotSupported,
+            direct.Error,
+            StringComparison.Ordinal);
+        Assert.DoesNotContain("--ic-num is required", direct.Error, StringComparison.Ordinal);
+        Assert.DoesNotContain("--base is required", direct.Error, StringComparison.Ordinal);
+    }
+
     /// <summary>Atomically replaces an unrelated existing Replace output.</summary>
     [Fact]
     public async Task DpReplaceBuildReplacesExistingOutputWithoutOverwrite()
@@ -32,7 +56,14 @@ public sealed partial class ReplaceCliCommandTests
         ]);
 
         Assert.Equal(0, result.ExitCode);
-        Assert.Empty(result.Error);
+        Assert.Contains(
+            "output-naming.metadata-unknown",
+            result.Error,
+            StringComparison.Ordinal);
+        Assert.DoesNotContain(
+            "output-naming.metadata-required",
+            result.Error,
+            StringComparison.Ordinal);
         byte[] outputBytes = await File.ReadAllBytesAsync(output, TestContext.Current.CancellationToken);
         Assert.Equal(0x40000, outputBytes.Length);
         Assert.Equal(0x3C, outputBytes[0]);

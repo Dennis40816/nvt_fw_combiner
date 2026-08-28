@@ -2,61 +2,86 @@ using System.Collections.ObjectModel;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using NvtFwCombiner.Application.Capabilities;
+using NvtFwCombiner.Application.VersionManagement;
 using NvtFwCombiner.Domain.Composition;
 
 namespace NvtFwCombiner.Presentation.Avalonia.ViewModels;
 
-/// <summary>Focused Settings catalog/status presentation.</summary>
-public sealed partial class SettingsViewModel : ObservableObject
+internal enum SettingsSection
+{
+    Overview,
+    Preferences,
+    Version,
+    SupportMatrix,
+}
+
+internal sealed partial class SettingChoiceViewModel(string value, string label) : ObservableObject
+{
+    public string Value { get; } = value;
+
+    [ObservableProperty]
+    public partial string Label { get; internal set; } = label;
+}
+
+internal sealed partial class SettingsViewModel : ObservableObject
 {
     private readonly string _appVersion;
     private readonly Func<ShellTextResources> _textProvider;
+    private readonly IVersionManagementExperience? _versionManagement;
 
     internal SettingsViewModel(
         string appVersion,
         ICanonicalSupportMatrixQuery supportMatrixQuery,
-        Func<ShellTextResources> textProvider)
+        Func<ShellTextResources> textProvider,
+        IVersionManagementExperience? versionManagement = null)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(appVersion);
         _appVersion = appVersion;
         _textProvider = textProvider ?? throw new ArgumentNullException(nameof(textProvider));
+        _versionManagement = versionManagement;
         SupportMatrix = new SupportMatrixPresentationViewModel(supportMatrixQuery);
-        OpenSupportMatrixCommand = new RelayCommand(OpenSupportMatrix);
-        CloseSupportMatrixCommand = new RelayCommand(CloseSupportMatrix);
     }
 
-    /// <summary>Version and supported-workflow facts shown on Settings.</summary>
     public ObservableCollection<SettingSummaryViewModel> OverviewRows { get; } = [];
 
-    /// <summary>Catalog capability and external-tool facts shown on Settings.</summary>
     public ObservableCollection<SettingSummaryViewModel> CapabilityRows { get; } = [];
 
-    /// <summary>Theme choices rendered by the global shell preference selector.</summary>
-    public IReadOnlyList<string> ThemeChoices { get; } = ["System", "Light", "Dark"];
+    public IReadOnlyList<SettingChoiceViewModel> ThemeChoices { get; } =
+    [
+        new("System", "System"),
+        new("Light", "Light"),
+        new("Dark", "Dark"),
+    ];
 
-    /// <summary>Language choices rendered by the global shell preference selector.</summary>
-    public IReadOnlyList<string> LanguageChoices { get; } = ["English", "Traditional Chinese"];
+    public IReadOnlyList<SettingChoiceViewModel> LanguageChoices { get; } =
+    [
+        new("English", "English"),
+        new("Traditional Chinese", "Traditional Chinese"),
+    ];
 
     /// <summary>Focused immutable Support Matrix disclosure.</summary>
     public SupportMatrixPresentationViewModel SupportMatrix { get; }
 
-    /// <summary>Opens the focused Support Matrix child.</summary>
-    public IRelayCommand OpenSupportMatrixCommand { get; }
-
-    /// <summary>Returns to the Settings overview.</summary>
-    public IRelayCommand CloseSupportMatrixCommand { get; }
-
-    /// <summary>Whether the focused Support Matrix child is visible.</summary>
     [ObservableProperty]
-    [NotifyPropertyChangedFor(nameof(IsOverviewVisible))]
-    public partial bool IsSupportMatrixOpen { get; private set; }
+    [NotifyPropertyChangedFor(nameof(IsOverviewSelected))]
+    [NotifyPropertyChangedFor(nameof(IsPreferencesSelected))]
+    [NotifyPropertyChangedFor(nameof(IsVersionSelected))]
+    [NotifyPropertyChangedFor(nameof(IsSupportMatrixOpen))]
+    public partial SettingsSection SelectedSection { get; private set; }
 
-    /// <summary>Whether the Settings overview is visible.</summary>
-    public bool IsOverviewVisible => !IsSupportMatrixOpen;
+    public bool IsOverviewSelected => SelectedSection == SettingsSection.Overview;
+
+    public bool IsPreferencesSelected => SelectedSection == SettingsSection.Preferences;
+
+    public bool IsVersionSelected => SelectedSection == SettingsSection.Version;
+
+    public bool IsSupportMatrixOpen => SelectedSection == SettingsSection.SupportMatrix;
 
     internal void Refresh(ShellTextResources text)
     {
         ArgumentNullException.ThrowIfNull(text);
+        ApplyChoiceLabels(text);
+        RefreshVersionLabels();
         SupportMatrix.Refresh(text);
         bool chinese = text.Language == ShellLanguage.ChineseTraditional;
         SupportMatrixRowViewModel[] authoringAvailableRows =
@@ -90,14 +115,16 @@ public sealed partial class SettingsViewModel : ObservableObject
 
         string CatalogIcValue(int value)
         {
-            return CatalogValue(value, value == 1 ? " IC" : " ICs");
+            return hasPublication
+                ? chinese ? $"{value} 個 IC" : $"{value} {(value == 1 ? "IC" : "ICs")}"
+                : pendingValue;
         }
 
         ReplaceRows(
             OverviewRows,
             [
                 new SettingSummaryViewModel(
-                    chinese ? "App 版本" : "App version",
+                    chinese ? "應用程式版本" : "App version",
                     _appVersion,
                     chinese ? "目前安裝套件的應用程式版本。" : "Application version in the installed package.",
                     chinese ? "目前版本" : "Current"),
@@ -105,26 +132,17 @@ public sealed partial class SettingsViewModel : ObservableObject
                     chinese ? "IC 目錄" : "IC catalog",
                     CatalogValue(catalogIcCount),
                     chinese
-                        ? "至少有一條 authoring-available 路徑的 IC；各 workflow 仍分開判定。"
+                        ? "至少有一條可編輯路徑的 IC；每個工作流程仍分開判定。"
                         : "ICs with at least one authoring-available route; workflows remain independent.",
-                    CatalogStatus("Catalog")),
+                    CatalogStatus(chinese ? "目錄" : "Catalog")),
                 new SettingSummaryViewModel(
                     "Standard Merge",
                     CatalogIcValue(CountAvailableIcs(
                         authoringAvailableRows,
                         ExperienceIds.StandardMerge)),
                     chinese
-                        ? "至少有一條 Standard Merge 路徑可出現在一般 authoring 選擇器的 IC。"
+                        ? "至少有一條 Standard Merge 路徑可出現在一般編輯選擇器中的 IC。"
                         : "ICs with at least one Standard Merge route available to ordinary authoring selectors.",
-                    CatalogStatus(chinese ? "可編輯" : "Authoring available")),
-                new SettingSummaryViewModel(
-                    "DP Replace",
-                    CatalogIcValue(CountAvailableIcs(
-                        authoringAvailableRows,
-                        ExperienceIds.DpReplace)),
-                    chinese
-                        ? "至少有一條 DP Replace 路徑可出現在一般 authoring 選擇器的 IC。"
-                        : "ICs with at least one DP Replace route available to ordinary authoring selectors.",
                     CatalogStatus(chinese ? "可編輯" : "Authoring available")),
             ]);
 
@@ -132,12 +150,12 @@ public sealed partial class SettingsViewModel : ObservableObject
             CapabilityRows,
             [
                 new SettingSummaryViewModel(
-                    chinese ? "CtrlRAM Replace 可用 IC" : "CtrlRAM Replace available ICs",
+                    chinese ? "CtrlRAM Replace 可用的 IC" : "CtrlRAM Replace available ICs",
                     CatalogIcValue(CountAvailableIcs(
                         authoringAvailableRows,
                         ExperienceIds.CtrlRamReplace)),
                     chinese
-                        ? "可出現在一般 authoring 選擇器；execution、publication 與 evidence 狀態請見支援矩陣。"
+                        ? "可出現在一般編輯選擇器中；執行、發布與證據狀態請見支援矩陣。"
                         : "Available to ordinary authoring selectors; see the matrix for execution, publication, and evidence.",
                     CatalogStatus(chinese ? "可用" : "Available")),
             ]);
@@ -154,15 +172,29 @@ public sealed partial class SettingsViewModel : ObservableObject
             .Count();
     }
 
-    private void OpenSupportMatrix()
+    private void ApplyChoiceLabels(ShellTextResources text)
     {
-        SupportMatrix.Refresh(_textProvider());
-        IsSupportMatrixOpen = true;
+        ThemeChoices[0].Label = text.SystemThemeChoiceLabel;
+        ThemeChoices[1].Label = text.LightThemeChoiceLabel;
+        ThemeChoices[2].Label = text.DarkThemeChoiceLabel;
+        LanguageChoices[0].Label = text.EnglishLanguageChoiceLabel;
+        LanguageChoices[1].Label = text.ChineseTraditionalLanguageChoiceLabel;
     }
 
-    private void CloseSupportMatrix()
+    [RelayCommand]
+    private void SelectSection(SettingsSection section)
     {
-        IsSupportMatrixOpen = false;
+        if (section == SettingsSection.SupportMatrix)
+        {
+            SupportMatrix.Refresh(_textProvider());
+        }
+
+        if (section == SettingsSection.Version)
+        {
+            _ = RefreshVersionAsync(isAutomatic: false);
+        }
+
+        SelectedSection = section;
     }
 
     private static void ReplaceRows<T>(ObservableCollection<T> target, IEnumerable<T> rows)

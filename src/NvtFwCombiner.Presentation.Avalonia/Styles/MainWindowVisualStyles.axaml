@@ -4,7 +4,7 @@
     <Setter Property="Height" Value="30" />
     <Setter Property="HorizontalAlignment" Value="Center" />
     <Setter Property="VerticalAlignment" Value="Center" />
-    <Setter Property="BorderThickness" Value="1" />
+    <Setter Property="BorderThickness" Value="2" />
     <Setter Property="CornerRadius" Value="{DynamicResource NfcSurfaceCornerRadius}" />
   </Style>
   <Style Selector="Border.slotTypeIcon Path">
@@ -53,7 +53,7 @@
   </Style>
   <Style Selector="Border.workflowCard">
     <Setter Property="Padding" Value="12,9" />
-    <Setter Property="BorderThickness" Value="1" />
+    <Setter Property="BorderThickness" Value="2" />
     <Setter Property="CornerRadius" Value="10" />
     <Setter Property="Background" Value="{DynamicResource NfcSurfaceSubtleBrush}" />
     <Setter Property="BorderBrush" Value="{DynamicResource NfcBorderSoftBrush}" />
@@ -64,6 +64,9 @@
         <BrushTransition Property="BorderBrush" Duration="0:0:0.12" />
       </Transitions>
     </Setter>
+  </Style>
+  <Style Selector="Border.workflowCard TextBlock.strongText">
+    <Setter Property="VerticalAlignment" Value="Center" />
   </Style>
   <Style Selector="Button.command:pointerover Border.workflowCard">
     <Setter Property="Background" Value="{DynamicResource NfcSurfaceBrush}" />
@@ -77,7 +80,7 @@
   </Style>
   <Style Selector="Border.workflowOpenPill">
     <Setter Property="Padding" Value="10,4" />
-    <Setter Property="BorderThickness" Value="1" />
+    <Setter Property="BorderThickness" Value="2" />
     <Setter Property="CornerRadius" Value="{DynamicResource NfcPillCornerRadius}" />
     <Setter Property="Background" Value="{DynamicResource NfcAccentSurfaceBrush}" />
     <Setter Property="BorderBrush" Value="{DynamicResource NfcAccentBorderLightBrush}" />

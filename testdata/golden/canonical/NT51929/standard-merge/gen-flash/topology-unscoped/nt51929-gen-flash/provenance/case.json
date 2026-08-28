@@ -6,6 +6,12 @@
   "variantOrVersion": "gen-flash",
   "topology": "topology-unscoped",
   "directGolden": true,
+  "testDisposition": {
+    "kind": "direct-full-output",
+    "evidenceRefs": [
+      "tests/NvtFwCombiner.GoldenRegression.Tests/StandardMergeWorkbenchGoldenTests.cs#WorkbenchBuildStandardMergeMatchesGoldenBytes"
+    ]
+  },
   "sourceClassification": "private-owner-approved-golden",
   "ownerApproval": "Repository owner requested gen_flash_bin_v2 test BIN files be tracked as golden fixtures on 2026-06-30.",
   "profileId": "nt51929-standard-merge-gen-flash",
@@ -13,7 +19,7 @@
     {
       "artifactId": "dp-input",
       "role": "input",
-      "path": "NT51929/standard-merge/gen-flash/topology-unscoped/nt51929-gen-flash/inputs/dp-input.bin",
+      "path": "NT51929/standard-merge/gen-flash/topology-unscoped/nt51929-gen-flash/inputs/nt51929-dp-input.bin",
       "size": 262144,
       "sha256": "e9626d1230bb117a91e7cd365b060991b48bf555bda065a84f8a62edd8c95095",
       "legacyPaths": [
@@ -25,7 +31,7 @@
     {
       "artifactId": "tp-input",
       "role": "input",
-      "path": "NT51929/standard-merge/gen-flash/topology-unscoped/nt51929-gen-flash/inputs/tp-input.bin",
+      "path": "NT51929/standard-merge/gen-flash/topology-unscoped/nt51929-gen-flash/inputs/nt51929-tp-input.bin",
       "size": 262144,
       "sha256": "a5631c8c05dd1e29b216b3cc00a84ef416db41e04c9d1e7c3d211a44bf7bc458",
       "legacyPaths": [
@@ -37,7 +43,7 @@
     {
       "artifactId": "expected-output",
       "role": "expected",
-      "path": "NT51929/standard-merge/gen-flash/topology-unscoped/nt51929-gen-flash/expected/flash.bin",
+      "path": "NT51929/standard-merge/gen-flash/topology-unscoped/nt51929-gen-flash/expected/nt51929-expected-output.bin",
       "size": 262144,
       "sha256": "fdba72984d662c4d652c56d909cf27756193f3766875b42d55207bccfca6867e",
       "legacyPaths": [

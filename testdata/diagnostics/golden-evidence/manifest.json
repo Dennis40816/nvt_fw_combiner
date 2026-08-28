@@ -20,14 +20,14 @@
   "ctrlRamLegacyQuarantine": {
     "artifactRoot": "testdata/golden/ctrlram-replace/fixtures/20260717",
     "inventoryManifest": "testdata/golden/ctrlram-replace/manifest.20260717.json",
-    "payloadCount": 57,
-    "supportingFileCount": 6,
+    "payloadCount": 31,
+    "supportingFileCount": 2,
     "sourceArchiveSha256": "9027e9038f51c5421f922afdf73d1f16fc5f7dd582e23e25547727fda585205c"
   },
   "ownerHandoff": {
     "root": "testdata/golden/owner-handoff",
-    "fileCount": 77,
-    "treeSha256": "603bf1cc562acec79c399bf0255d12357a9d0d059831a87d4a4ab526771c7f8b",
+    "fileCount": 64,
+    "treeSha256": "e3e3053be7d4cdd9d3f1f3a81b698fd012f64a2efc1a87b99c41daa7ccf90845",
     "binaryPayloadsIncluded": false
   },
   "exclusions": [

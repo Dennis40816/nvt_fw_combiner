@@ -2,6 +2,12 @@
 
 Status: architecture reference; evidence dates are recorded by the cited manifests and review history.
 
+> `0.10.7` exposure amendment (owner, 2026-08-24): every DP Replace route
+> described below remains executable regression/profile authority but is hidden
+> from ordinary UI/CLI authoring through the initial `1.0.0`. Retirement or
+> renewed exposure is decided at `1.1.0`; the per-IC byte contracts below are
+> not deleted or weakened by this presentation decision.
+
 This document is an index for the current Merge and Replace flows by IC. It is not a production support claim. A profile is production-ready only after profile validation, golden regression, processor diff review, and owner sign-off. The implementation runbook for adding a new IC workflow is [`adding-ic-merge-replace-workflow.md`](adding-ic-merge-replace-workflow.md).
 
 > **0.10.x target scope:** NT51920, NT51925, NT51930, and NT51931 are retired

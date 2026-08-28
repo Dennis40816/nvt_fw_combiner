@@ -5,6 +5,7 @@
   <ItemGroup>
     <ProjectReference Include="..\..\src\NvtFwCombiner.Application\NvtFwCombiner.Application.csproj" />
     <ProjectReference Include="..\..\src\NvtFwCombiner.Infrastructure\NvtFwCombiner.Infrastructure.csproj" />
+    <ProjectReference Include="..\..\src\NvtFwCombiner.VersionManagement.Application\NvtFwCombiner.VersionManagement.Application.csproj" />
   </ItemGroup>
   <ItemGroup>
     <Compile Remove="LegacyCombinerPostbuildCatalogAlias.cs" />

@@ -5,22 +5,18 @@ using NvtFwCombiner.Application.Capabilities;
 namespace NvtFwCombiner.Presentation.Avalonia.ViewModels;
 
 /// <summary>Owns one active Preview/Build lifetime and its immutable context projection.</summary>
-public sealed class CompositionRunPresentationViewModel : ObservableObject
+internal sealed class CompositionRunPresentationViewModel : ObservableObject
 {
     private readonly CompositionRunStateBindings _stateBindings;
     private CancellationTokenSource? _activeRunCancellationSource;
     private bool _activeRunIsBuild;
-    /// <summary>True when the active run captured an IC Number selector context.</summary>
     public bool ActiveRunShowsNumberSelector { get; private set; }
     private string ActiveRunDeviceContextRefreshSummary { get; set; } = string.Empty;
 
-    /// <summary>Gets the IC captured for the active run.</summary>
     public string ActiveRunIc { get; private set; } = string.Empty;
 
-    /// <summary>Gets the IC Number token captured for the active run.</summary>
     public string ActiveRunNumber { get; private set; } = string.Empty;
 
-    /// <summary>Gets the workflow mode captured for the active run.</summary>
     public string ActiveRunMode { get; private set; } = string.Empty;
 
     /// <summary>Gets the IC identity that the device-context surface must display.</summary>
@@ -29,7 +25,6 @@ public sealed class CompositionRunPresentationViewModel : ObservableObject
     /// <summary>Gets the Number identity that the device-context surface must display.</summary>
     public string DisplayedDeviceNumber => IsRunInProgress ? ActiveRunNumber : _stateBindings.SelectedNumber();
 
-    /// <summary>Gets the context summary captured for a run or the current idle summary.</summary>
     public string DisplayedDeviceContextRefreshSummary => IsRunInProgress
         ? ActiveRunDeviceContextRefreshSummary
         : _stateBindings.DeviceContextRefreshSummary();
@@ -42,7 +37,6 @@ public sealed class CompositionRunPresentationViewModel : ObservableObject
     /// <summary>Gets the localized projection of Application-owned composition phases.</summary>
     public CompositionRunProgressViewModel CompositionProgress { get; }
 
-    /// <summary>Gets the latest UI-triggered run summary.</summary>
     public UiRunResultViewModel LastRunResult { get; private set; } = new(
         "No run yet",
         "Drop required BIN files, then run Build.",
@@ -52,7 +46,6 @@ public sealed class CompositionRunPresentationViewModel : ObservableObject
     /// <summary>True while one composition Preview or Build owns the external processing lifetime.</summary>
     public bool IsRunInProgress => _activeRunCancellationSource is not null;
 
-    /// <summary>Gets the localized screen-reader label for the active composition action.</summary>
     public string RunProgressAccessibleLabel => _activeRunIsBuild
         ? _stateBindings.Text().BuildRunProgressAccessibleLabel
         : _stateBindings.Text().PreviewRunProgressAccessibleLabel;
@@ -62,7 +55,6 @@ public sealed class CompositionRunPresentationViewModel : ObservableObject
         ? CompositionProgress.AccessibleStatus
         : RunProgressAccessibleLabel;
 
-    /// <summary>Gets the concise current phase label shown beside the separate lifecycle ordinal.</summary>
     public string RunProgressDisplayLabel => CompositionProgress.HasTypedProgress
         ? CompositionProgress.CurrentStepLabel
         : RunProgressAccessibleLabel;
@@ -70,7 +62,6 @@ public sealed class CompositionRunPresentationViewModel : ObservableObject
     /// <summary>True while an active run has supplied its Application-owned phase sequence.</summary>
     public bool HasTypedRunProgress => IsRunInProgress && CompositionProgress.HasTypedProgress;
 
-    /// <summary>True when the active progress surface may use restrained indeterminate motion.</summary>
     public bool ShouldAnimateRunProgress => IsRunInProgress &&
         !_stateBindings.IsReducedMotionEnabled() &&
         (!CompositionProgress.HasTypedProgress || CompositionProgress.ShouldAnimateActiveStep);
@@ -287,12 +278,6 @@ public sealed class CompositionRunPresentationViewModel : ObservableObject
         CancellationToken cancellationToken)
     {
         ReportPresentationViewModel reports = _stateBindings.Reports();
-        if (!result.HasRunReport)
-        {
-            ApplyReadinessOnlyResult(result, build);
-            return;
-        }
-
         long reportProjectionGeneration = reports.BeginReportProjection();
         string action = build ? "Build" : "Preview";
         Task<string> reportJsonTask = Task.Run(
@@ -354,20 +339,6 @@ public sealed class CompositionRunPresentationViewModel : ObservableObject
             reportJson,
             action,
             show: build && (!deliveryComplete || string.IsNullOrWhiteSpace(result.CommittedOutputId)));
-    }
-
-    private void ApplyReadinessOnlyResult(CompositionRunResult result, bool build)
-    {
-        string action = build ? "Build" : "Preview";
-        CapabilityActionBlocker? blocker = build
-            ? result.ActionReadiness?.Build.PrimaryBlocker
-            : result.ActionReadiness?.Preview.PrimaryBlocker;
-        LastRunResult = new UiRunResultViewModel(
-            $"{action} blocked",
-            blocker?.Message ?? result.OutcomeStatus,
-            "No output",
-            succeeded: false);
-        OnPropertyChanged(nameof(LastRunResult));
     }
 
     private async Task ObserveRunProgressAsync(

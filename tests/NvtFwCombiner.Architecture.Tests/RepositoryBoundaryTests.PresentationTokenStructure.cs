@@ -137,9 +137,9 @@ public sealed partial class RepositoryBoundaryTests
         }
     }
 
-    /// <summary>Verifies CtrlRAM grouping reaches Presentation as typed Application data.</summary>
+    /// <summary>Verifies CtrlRAM grouping consumes the Application-owned logical identity.</summary>
     [Fact]
-    public void ReplaceRegionGroupsDoNotDependOnLocalizedLabels()
+    public void ReplaceRegionGroupsUseTypedGroupsAndStableSourceIdentity()
     {
         string models = ReadText(
             "src/NvtFwCombiner.Application/Composition/CompositionClientModels.cs");
@@ -148,9 +148,31 @@ public sealed partial class RepositoryBoundaryTests
 
         Assert.Contains("public enum ReplaceRegionGroup", models, StringComparison.Ordinal);
         Assert.Contains("GroupBy(static slot => slot.RegionGroup)", builder, StringComparison.Ordinal);
-        Assert.Contains("GroupBy(static segment => segment.RegionGroup)", builder, StringComparison.Ordinal);
-        Assert.DoesNotContain("SourceLabel", builder, StringComparison.Ordinal);
+        Assert.Contains("segment.LogicalCoverageGroupId", builder, StringComparison.Ordinal);
+        Assert.Contains("GroupBy(static entry => entry.Key, StringComparer.Ordinal)", builder, StringComparison.Ordinal);
+        Assert.Contains("GroupBy(ResolveDisplayGroup)", builder, StringComparison.Ordinal);
+        Assert.DoesNotContain("ResolveDisplayId", builder, StringComparison.Ordinal);
+        Assert.DoesNotContain("selectedSlotsByRegion", builder, StringComparison.Ordinal);
+        Assert.DoesNotContain("segment.SourceSlotId", builder, StringComparison.Ordinal);
+        Assert.DoesNotContain("segment.RegionId", builder, StringComparison.Ordinal);
+        Assert.DoesNotContain("GroupBy(static segment => segment.RegionGroup)", builder, StringComparison.Ordinal);
+        Assert.DoesNotContain("GroupBy(static segment => segment.SourceLabel", builder, StringComparison.Ordinal);
         Assert.DoesNotContain("Title.Contains", builder, StringComparison.Ordinal);
+    }
+
+    /// <summary>Verifies memory projection consumes the Domain write-range contract without primitive branching.</summary>
+    [Fact]
+    public void MemoryProjectionUsesOneDeclaredWriteRangeContract()
+    {
+        string projector = ReadText(
+            "src/NvtFwCombiner.Application/MemoryLayout/MemoryLayoutProjector.cs");
+        string logicalCoverage = ReadText(
+            "src/NvtFwCombiner.Application/MemoryLayout/MemoryLayoutProjector.LogicalCoverage.cs");
+
+        Assert.Contains("operation.DeclaredWriteRanges", projector, StringComparison.Ordinal);
+        Assert.Contains("operation.DeclaredWriteRanges", logicalCoverage, StringComparison.Ordinal);
+        Assert.DoesNotContain("AllowedWriteRanges", projector, StringComparison.Ordinal);
+        Assert.DoesNotContain("TargetRange.Contains(range)", projector, StringComparison.Ordinal);
     }
 
     /// <summary>Verifies Presentation reads report output-difference classifications from Contracts directly.</summary>

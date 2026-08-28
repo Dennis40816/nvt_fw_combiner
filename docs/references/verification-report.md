@@ -1,13 +1,111 @@
 # Repository Verification Report
 
 Status: historical seed-preparation report for the 2026-06-25 bootstrap
-baseline, updated through the stable 0.10.4 post-refactor simplification and
-startup-performance release. Current
+baseline, updated through the stable 0.10.4 post-refactor simplification,
+0.10.5 startup-performance work, the 0.10.6 internal managed-version
+implementation, the 0.10.7 final-effect checkpoint, and the active 1.0.0
+formal release candidate. Current
 verification evidence is produced by the canonical
 `python scripts/verify.py --structure-only` and `python scripts/verify.py --all`
 commands.
 
-Specification package version: `0.10.4`
+Specification package version: `1.0.0`
+
+## 2026-08-25 formal-support policy checkpoint
+
+Commit `ed834f9c` reconciles canonical policy catalog `1.10.0` against an
+independently frozen 89-route denominator and the current executable route
+fingerprints. The 2026-08-25 owner decision publishes all 64 exact Standard
+Merge, AB Merge, and CtrlRAM Replace routes as `Supported` and makes ordinary
+authoring `Available`. All 14 DP Replace routes remain `Internal` and
+`Unavailable` until the `1.1.0` decision; General retains its existing ten
+internal and one test-only routes.
+
+Evidence remains a separate fact. The complete catalog contains 28 Direct
+Golden, nine Approved Alias, five Synthetic Oracle, and 47 Contract Only
+routes. This includes 11 exact TP-prefix CtrlRAM base routes. Original-TP
+execution now proves NT51950 single, NT51951 single, and NT51951 two-IC can
+build, but those outputs do not match the owner full-Flash expected prefixes;
+the full prefixes contain DP-origin bytes and cannot stand in for independent
+TP-only expected outputs. Those three routes therefore remain Supported while
+their evidence is honestly Contract Only. Input-only multi-IC cases remain
+Contract Only, and NT51929 DP is Contract Only because its retained direct
+Golden case belongs to Standard Merge. No evidence type is inferred from a
+filename.
+
+The exact LF policy hash is
+`bf818a4c9aa4d539882e4bc4a0a662ef70ece67a44e78ae83356430365828f50`.
+The 26-bundle package trust index is `0.10.6.2` with SHA-256
+`e365b73e53aff65faa107347400aac82546a3dc700160914b1412f6858fe276d`.
+Focused local checks passed: policy loader 20/20, canonical host/route
+convergence 7/7, Support Matrix projection 8/8, package-trust architecture
+17/17, release-package policy 30/30, and the previously blocked CtrlRAM
+ProductServices paths 3/3.
+
+Follow-up commit `851ffad7` adds one strict route-evidence cross-link for every
+exact policy route. The later TP execution reconciliation preserves that exact
+89-route join while correcting the three evidence ranks above. Policy/manifest
+comparison has zero missing, extra, kind, route-id, or fingerprint mismatches.
+
+This remains neither full verification nor release authorization. Full
+frozen-tree verification, independent R3/firmware review,
+packaged/clean-machine smoke, signing, provenance, protected CI, and
+release-owner approval remain open.
+
+## 0.10.7 internal final-effect candidate
+
+The owner approved hiding ordinary DP Replace authoring in `0.10.7` and the
+initial `1.0.0`, while retaining its profiles, execution semantics, publication
+and evidence decisions, fingerprints, and Golden regressions. Product UI/CLI
+discovery is fail-closed through canonical policy catalog `1.10.0`; retirement
+or reopening is deferred to `1.1.0`. This is not a firmware-byte or support
+promotion change, and no package or tag is authorized by this report.
+
+## 0.10.6 internal managed-version candidate
+
+The internal candidate adds a stable launcher, content-verified side-by-side
+versions, atomic activation state, one-use ready supervision, bounded rollback,
+and the Settings Version experience defined by ADR 0051. Focused automated
+evidence covers closed package/catalog/path validation, staged install and
+failure cleanup, exact inventory damage, state corruption and atomic saves,
+real process ready/exit/timeout behavior, update-source relocation, managed-root
+mismatch rejection, offline switching,
+rollback, explicit update consent, and non-stacking confirmations.
+
+The owner explicitly approved advancing this internal identity on 2026-08-21
+after the original independent reviewer could not be scheduled. A later
+independent R2 review failed the original candidate and two correction
+checkpoints. All reported findings, including the final ZIP64 arithmetic bound
+and seed-import lease regressions, are corrected. Fresh independent R2 review
+of exact HEAD `248ab804` passed on 2026-08-22 with no P0/P1/P2/P3 findings.
+No 0.10.6 tag or public package is authorized; production signing, provenance
+migration, clean-Windows smoke, and release/security approval remain gates for
+the first public `1.0.0`.
+
+The latest frozen correction tree passes `python scripts/verify.py --all`:
+Python 391 with four platform skips; CRC worker 30/30 with 100% line/branch
+coverage; and .NET 3,834 total with 3,832 passing plus two platform skips,
+including Application 673, Infrastructure 550 plus two skips, Bootstrap 974, UI
+smoke 604, Architecture 216, and all 17 Golden regressions. The exact reviewed-
+HEAD rerun measured aggregate .NET coverage at 88.82% lines and 79.06%
+branches. Fresh local-folder evidence passes
+catalog/package install, update-source relocation, 0.10.6 activation, offline
+switching, rollback/deletion guards, and the freshly published stable launcher.
+An installed managed-root relocation now fails closed; adopting a new root
+requires a future explicit verified rebind transaction.
+
+## 0.10.5 unified preload lifecycle release candidate
+
+The `0.10.5` integration identity starts from stable `v0.10.4` and implements
+the owner-approved bounded lifecycle specification in ADR 0049. PL-01 through
+PL-07 are complete. PL-00 retains the frozen-tree verifier, Golden, package,
+performance, accessibility, CI, provenance, protected-workflow, and release-
+owner gates; no tag or stable asset is admitted before those gates close.
+
+The implementation is support-neutral and changes no profile, schema, report
+wire, processor protocol, Golden fixture, expected BIN byte/hash/name, or stable
+`v0.10.4` asset. Exact release evidence is appended only after the corresponding
+frozen-tree and external human gates pass.
 
 ## 0.10.4 post-refactor simplification and startup-performance stable release
 

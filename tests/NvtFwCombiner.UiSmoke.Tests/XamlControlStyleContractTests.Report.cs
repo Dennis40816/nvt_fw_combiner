@@ -4,6 +4,30 @@ namespace NvtFwCombiner.UiSmoke.Tests;
 
 public sealed partial class XamlControlStyleContractTests
 {
+    /// <summary>Multi-line Report history metadata cannot stretch its header actions.</summary>
+    [Fact]
+    public void ReportHistoryHeaderActionsRemainCompactAndVerticallyCentered()
+    {
+        var document = System.Xml.Linq.XDocument.Parse(
+            ReadPresentationFile("Resources/MainWindowReportPanels.axaml"));
+        System.Xml.Linq.XElement actions = Assert.Single(
+            document.Descendants(),
+            element => element.Name.LocalName == "StackPanel" &&
+                (string?)element.Attribute("Grid.Column") == "1" &&
+                element.Elements().Count(child => child.Name.LocalName == "Button") == 2 &&
+                element.Elements().Any(child =>
+                    (string?)child.Attribute("Command") ==
+                    "{Binding CloseReportHistoryCommand}"));
+
+        Assert.Equal("Center", (string?)actions.Attribute("VerticalAlignment"));
+        Assert.All(
+            actions.Elements().Where(child => child.Name.LocalName == "Button"),
+            button => Assert.Contains(
+                "semanticAction",
+                ((string?)button.Attribute("Classes") ?? string.Empty)
+                    .Split(' ', StringSplitOptions.RemoveEmptyEntries)));
+    }
+
     /// <summary>Blocking reports expose the exact reason, failed step, output impact, and next action without another click.</summary>
     [Fact]
     public void ReportBlockingIssueSummaryIsExpandedAndConcrete()
@@ -47,7 +71,7 @@ public sealed partial class XamlControlStyleContractTests
         Assert.Contains("<ItemsControl Classes=\"spaciousList\" ItemsSource=\"{Binding Rows}\">", inputs, StringComparison.Ordinal);
         Assert.Contains("<views:SpaciousPanel Classes=\"compactSurface\" IsVisible=\"{Binding LoadedReport.HasInputGroups}\">", audit, StringComparison.Ordinal);
         Assert.DoesNotContain("Classes=\"compactSurface contentPanel\" IsVisible=\"{Binding LoadedReport.HasInputGroups}\"", audit, StringComparison.Ordinal);
-        Assert.Contains("<TabControl Grid.Row=\"1\" MinHeight=\"0\"", audit, StringComparison.Ordinal);
+        Assert.Contains("<TabControl Grid.Row=\"2\" MinHeight=\"0\"", audit, StringComparison.Ordinal);
         Assert.Contains("HorizontalScrollBarVisibility=\"Disabled\"", audit, StringComparison.Ordinal);
         Assert.Contains("VerticalAlignment=\"Stretch\"", audit, StringComparison.Ordinal);
         Assert.Contains("VerticalScrollBarVisibility=\"Auto\"", audit, StringComparison.Ordinal);
@@ -75,13 +99,11 @@ public sealed partial class XamlControlStyleContractTests
         string reportUi = string.Join(Environment.NewLine, changes, panels, audit);
 
         Assert.Contains("x:Key=\"ReportPagerTemplate\"", templates, StringComparison.Ordinal);
-        Assert.Contains("x:Key=\"ReportWindowedPagerTemplate\"", templates, StringComparison.Ordinal);
+        Assert.DoesNotContain("ReportWindowedPagerTemplate", templates, StringComparison.Ordinal);
         Assert.DoesNotContain("IsVisible=\"{Binding HasMoreItems}\"", templates, StringComparison.Ordinal);
         Assert.Contains("AutomationProperties.Name=\"{Binding PageStatus}\"", templates, StringComparison.Ordinal);
         Assert.Contains("AutomationProperties.LiveSetting=\"Polite\"", templates, StringComparison.Ordinal);
         Assert.Contains("AutomationProperties.Name=\"{Binding LoadMoreLabel}\"", templates, StringComparison.Ordinal);
-        Assert.Contains("Command=\"{Binding PreviousPageCommand}\"", templates, StringComparison.Ordinal);
-        Assert.Contains("Command=\"{Binding NextPageCommand}\"", templates, StringComparison.Ordinal);
         Assert.DoesNotContain("RowsPage.Items", changes, StringComparison.Ordinal);
         Assert.Contains("OutputDifferenceSummaryPage.Items", panels, StringComparison.Ordinal);
         Assert.DoesNotContain("OutputDifferenceGroupPage.Items", audit, StringComparison.Ordinal);
@@ -168,7 +190,7 @@ public sealed partial class XamlControlStyleContractTests
         Assert.DoesNotContain("SelectedRange.Detail.BeforeLabel", audit, StringComparison.Ordinal);
         Assert.DoesNotContain("SelectedRange.Detail.AfterLabel", audit, StringComparison.Ordinal);
         Assert.DoesNotContain("Border.reportHexDiffRow.changed", styles, StringComparison.Ordinal);
-        Assert.Contains("Selector=\"ToggleSwitch.reportHexDiffOriginalToggle\"", styles, StringComparison.Ordinal);
+        _ = ExtractStyle(styles, "ToggleSwitch.reportHexDiffOriginalToggle");
         Assert.Contains("x:Key=\"ReportHexDiffRangeCardTheme\"", changes, StringComparison.Ordinal);
         Assert.Contains("ResourceKey=\"ReportHexDiffRangeCardTheme\"", audit, StringComparison.Ordinal);
         Assert.Contains("Property=\"CornerRadius\" Value=\"{DynamicResource NfcSurfaceCornerRadius}\"", changes, StringComparison.Ordinal);

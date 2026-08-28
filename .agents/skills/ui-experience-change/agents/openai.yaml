@@ -1,4 +1,4 @@
 interface:
   display_name: "UI Experience Change"
-  short_description: "Change NFC Avalonia UI and experience presentation"
-  default_prompt: "Use $ui-experience-change to review this NFC UI, ViewModel, localization, accessibility, or smoke-test change."
+  short_description: "Change NFC UI with approved-reference fidelity"
+  default_prompt: "Use $ui-experience-change to implement and verify this NFC Avalonia UI change against its approved reference."

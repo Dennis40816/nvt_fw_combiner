@@ -1,26 +1,78 @@
 namespace NvtFwCombiner.Presentation.Avalonia.ViewModels;
 
-/// <summary>One readable before/after memory-map row shown on Merge and Replace pages.</summary>
-public sealed class MemoryMapRowViewModel
+internal enum MemoryPlanSourceKind
 {
-    /// <summary>Creates a memory-map display row.</summary>
+    NoOutput,
+    Reserved,
+    Unmapped,
+    BaseFirmware,
+    Output,
+    DpBin,
+    DpReplacementBin,
+    TpBin,
+    Tpb,
+    LdcBin,
+    LdcReplacementBin,
+    CtrlRamBin,
+    DpAb,
+    Tpa,
+    OverlapError,
+    Technical,
+    Localized,
+}
+
+internal readonly record struct MemoryPlanSource(
+    MemoryPlanSourceKind Kind,
+    string? DisplayText = null);
+
+internal enum MemoryPlanActionKind
+{
+    Browse,
+    Blocked,
+    Restore,
+    TransformAndOverlay,
+    Postbuild,
+    Copy,
+    ReplaceAndCrc,
+    Replace,
+    Preserve,
+    Initialize,
+    Overlay,
+    Project,
+}
+
+internal enum MemoryPlanDetailKind
+{
+    ProtectedCustomerInformationFromDp,
+    ProtectedCustomerInformationFromDpReplacement,
+    ReservedUnwritten,
+    Unmapped,
+    CopiedFromDp,
+    OverlaidFromTp,
+}
+
+/// <summary>One readable before/after memory-map row shown on Merge and Replace pages.</summary>
+internal sealed class MemoryMapRowViewModel
+{
     public MemoryMapRowViewModel(
         string rangeLabel,
-        string beforeSource,
-        string actionLabel,
-        string afterSource,
-        string detail)
+        MemoryPlanSource beforeSource,
+        MemoryPlanActionKind action,
+        MemoryPlanSource afterSource,
+        string detail,
+        ShellTextResources text)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(rangeLabel);
-        ArgumentException.ThrowIfNullOrWhiteSpace(beforeSource);
-        ArgumentException.ThrowIfNullOrWhiteSpace(actionLabel);
-        ArgumentException.ThrowIfNullOrWhiteSpace(afterSource);
         ArgumentException.ThrowIfNullOrWhiteSpace(detail);
+        ArgumentNullException.ThrowIfNull(text);
 
         RangeLabel = rangeLabel;
-        BeforeSource = NormalizeSource(beforeSource);
-        ActionLabel = actionLabel;
-        AfterSource = NormalizeSource(afterSource);
+        BeforeSourceFact = beforeSource;
+        Action = action;
+        AfterSourceFact = afterSource;
+        BeforeSource = text.GetMemoryPlanSourceLabel(beforeSource);
+        ActionLabel = text.GetMemoryPlanActionLabel(action);
+        AfterSource = text.GetMemoryPlanSourceLabel(afterSource);
         PrimaryLabel = ToPrimaryLabel(AfterSource);
         Detail = detail;
     }
@@ -31,13 +83,18 @@ public sealed class MemoryMapRowViewModel
     /// <summary>Source or state before the workflow operation.</summary>
     public string BeforeSource { get; }
 
+    public MemoryPlanSource BeforeSourceFact { get; }
+
     /// <summary>Short operation label such as Copy, Replace, or Preserve.</summary>
     public string ActionLabel { get; }
+
+    public MemoryPlanActionKind Action { get; }
 
     /// <summary>Source or state after the workflow operation.</summary>
     public string AfterSource { get; }
 
-    /// <summary>Readable primary label for dense plan rows.</summary>
+    public MemoryPlanSource AfterSourceFact { get; }
+
     public string PrimaryLabel { get; }
 
     /// <summary>Compact before/after source summary.</summary>
@@ -45,13 +102,6 @@ public sealed class MemoryMapRowViewModel
 
     /// <summary>Short evidence or policy note.</summary>
     public string Detail { get; }
-
-    private static string NormalizeSource(string source)
-    {
-        return source.StartsWith("Blank", StringComparison.OrdinalIgnoreCase)
-            ? "Reserved"
-            : source;
-    }
 
     private static string ToPrimaryLabel(string source)
     {

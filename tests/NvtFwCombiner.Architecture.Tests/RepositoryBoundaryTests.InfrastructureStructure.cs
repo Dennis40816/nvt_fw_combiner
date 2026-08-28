@@ -117,6 +117,9 @@ public sealed partial class RepositoryBoundaryTests
         Assert.Equal(1, CountOccurrences(legacyStaging, "private static StagingTreePolicy CreateStagingTreePolicy("));
         Assert.DoesNotContain("SHA256", legacyRoot, StringComparison.Ordinal);
         Assert.Contains("GetLowerSha256", toolResolution, StringComparison.Ordinal);
-        Assert.Contains("SHA256.HashData", toolResolution, StringComparison.Ordinal);
+        Assert.Contains("RegularFileGuard.RequireOpenHandle", toolResolution, StringComparison.Ordinal);
+        Assert.Contains("IncrementalHash.CreateHash(HashAlgorithmName.SHA256)", toolResolution, StringComparison.Ordinal);
+        Assert.Contains("cancellationToken.ThrowIfCancellationRequested()", toolResolution, StringComparison.Ordinal);
+        Assert.Contains("stream.Length == length", toolResolution, StringComparison.Ordinal);
     }
 }

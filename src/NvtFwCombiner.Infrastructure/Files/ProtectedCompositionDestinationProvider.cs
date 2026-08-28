@@ -20,7 +20,7 @@ internal sealed class ProtectedCompositionDestinationProvider :
             ProtectedPathGuard.CreateProtectedPaths(request.Bindings, outputPath: null);
         protectedPaths.AddRange(request.AdditionalProtectedPaths.Select(static path =>
             new ProtectedPathGuard.ProtectedPath(path.Path, path.Description)));
-        if (!request.OutputPathUsesAutomaticName)
+        if (request.BundleDelivery is null && !request.OutputPathUsesAutomaticName)
         {
             ProtectedPathGuard.EnsureDoesNotAlias(
                 ProtectedPathGuard.CombineFullPath(
@@ -31,12 +31,30 @@ internal sealed class ProtectedCompositionDestinationProvider :
                 nameof(request.OutputFileName));
         }
 
-        ICompositionOutputWriter outputWriter = new ProtectedCompositionOutputWriter(
-            new AtomicFileCompositionOutputWriter(
+        ICompositionOutputWriter outputWriter = request.BundleDelivery is { } bundle
+            ? new AtomicBundleCompositionOutputWriter(
+                bundle.ParentDirectory,
+                bundle.FolderName,
+                bundle.Sources.Select(static source => new AtomicBundleArtifact(
+                    source.Summary.BindingId,
+                    source.Summary.OriginalFileName,
+                    source.AcceptedIdentity,
+                    source.Bytes.Span)),
+                additionalArtifacts: bundle.AdditionalDelivery is null
+                    ? []
+                    :
+                    [
+                        new AtomicBundlePlannedArtifact(
+                            "additional-delivery",
+                            bundle.AdditionalDelivery.DeliveryKind,
+                            bundle.AdditionalDelivery.SuggestedFileName),
+                    ])
+            : new ProtectedCompositionOutputWriter(
+                new AtomicFileCompositionOutputWriter(
+                    request.OutputDirectory,
+                    overwrite: true),
                 request.OutputDirectory,
-                overwrite: true),
-            request.OutputDirectory,
-            protectedPaths);
+                protectedPaths);
         ICompositionDeliveryWriter? deliveryWriter = request.AdditionalDelivery is null
             ? null
             : new ProtectedCompositionDeliveryWriter(
@@ -74,7 +92,7 @@ internal sealed class ProtectedCompositionDestinationProvider :
             _ = EnsurePrimaryOutputPath(fileName);
         }
 
-        public ValueTask<string> CommitAsync(
+        public ValueTask<CompositionOutputCommitReceipt> CommitAsync(
             string fileName,
             ReadOnlyMemory<byte> outputBytes,
             CancellationToken cancellationToken)
@@ -187,10 +205,21 @@ internal sealed class ProtectedCompositionDestinationProvider :
             var writer = new AtomicFileCompositionOutputWriter(
                 Path.GetDirectoryName(outputPath)!,
                 overwrite: true);
-            return writer.CommitAsync(
-                deliveryFileName,
-                outputBytes,
-                cancellationToken);
+            return CommitDeliveryAsync(writer, deliveryFileName, outputBytes, cancellationToken);
+        }
+
+        private static async ValueTask<string> CommitDeliveryAsync(
+            AtomicFileCompositionOutputWriter writer,
+            string deliveryFileName,
+            ReadOnlyMemory<byte> outputBytes,
+            CancellationToken cancellationToken)
+        {
+            CompositionOutputCommitReceipt receipt = await writer.CommitAsync(
+                    deliveryFileName,
+                    outputBytes,
+                    cancellationToken)
+                .ConfigureAwait(false);
+            return receipt.OutputId;
         }
     }
 }

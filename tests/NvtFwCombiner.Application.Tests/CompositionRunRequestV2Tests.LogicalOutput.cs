@@ -179,6 +179,8 @@ public sealed partial class CompositionRunRequestV2Tests
             CancellationToken.None);
 
         Assert.Equal(CompositionExecutionStatus.Succeeded, preview.Status);
+        Assert.Null(preview.Report.MapId);
+        Assert.Null(build.Report.MapId);
         Assert.Equal([0xA1, 0xA2, 0x00, 0x00, 0xB1, 0xB2], preview.OutputBytes.ToArray());
         Assert.Equal(preview.OutputBytes.ToArray(), build.OutputBytes.ToArray());
         Assert.True(writer.WasCalled);
@@ -307,13 +309,14 @@ public sealed partial class CompositionRunRequestV2Tests
     {
         internal bool WasCalled { get; private set; }
 
-        public ValueTask<string> CommitAsync(
+        public ValueTask<CompositionOutputCommitReceipt> CommitAsync(
             string fileName,
             ReadOnlyMemory<byte> outputBytes,
             CancellationToken cancellationToken)
         {
             WasCalled = true;
-            return ValueTask.FromResult($"committed:{fileName}");
+            return ValueTask.FromResult(CompositionOutputCommitReceipt.CreateLoose(
+                $"committed:{fileName}", fileName, outputBytes.Span));
         }
     }
 }

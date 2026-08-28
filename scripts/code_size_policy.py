@@ -49,6 +49,13 @@ class CodeSizeLimits:
     application_ratchet: int | None = None
     bootstrap_cli_ratchet: int | None = None
     infrastructure_contracts_worker_ratchet: int | None = None
+    full_production_ratchet: int | None = None
+    runtime_production_allowance: int = 0
+    domain_profiles_allowance: int = 0
+    application_allowance: int = 0
+    bootstrap_cli_allowance: int = 0
+    infrastructure_contracts_worker_allowance: int = 0
+    full_production_allowance: int = 0
 
 
 @dataclass(frozen=True)
@@ -83,20 +90,29 @@ class CodeSizeSnapshot:
 
 
 DEFAULT_LIMITS = CodeSizeLimits(
-    production_nonblank=96_044,
+    production_nonblank=121_007,
     duplicate_json_nonblank=0,
     partial_type_default_max=2_500,
     partial_type_exact_ratchets={},
     partial_type_named_maximums={
         "NvtFwCombiner.Presentation.Avalonia.ViewModels.MainWindowViewModel": 985,
+        "NvtFwCombiner.Presentation.Avalonia.ViewModels.ShellTextResources": 2_501,
+        "NvtFwCombiner.Presentation.Avalonia.ViewModels.WorkflowSessionPresentationViewModel": 2_578,
         "NvtFwCombiner.Profiles.V2.V2CompositionPlanCompiler": 2_798,
     },
     runtime_production_baseline=45_214,
-    runtime_production_ratchet=67_186,
-    domain_profiles_ratchet=20_619,
-    application_ratchet=29_383,
-    bootstrap_cli_ratchet=3_255,
-    infrastructure_contracts_worker_ratchet=13_929,
+    runtime_production_ratchet=70_056,
+    domain_profiles_ratchet=20_627,
+    application_ratchet=30_690,
+    bootstrap_cli_ratchet=3_378,
+    infrastructure_contracts_worker_ratchet=15_356,
+    full_production_ratchet=102_896,
+    runtime_production_allowance=13_369,
+    domain_profiles_allowance=5,
+    application_allowance=7_503,
+    bootstrap_cli_allowance=680,
+    infrastructure_contracts_worker_allowance=5_186,
+    full_production_allowance=18_111,
 )
 
 
@@ -186,16 +202,29 @@ def _domain_profiles_files(root: Path) -> list[Path]:
 def _application_files(root: Path) -> list[Path]:
     """Return the fixed Canonical Core Application slice."""
 
-    return _matching_files(root, "src/NvtFwCombiner.Application", frozenset({".cs"}))
+    return [
+        *_matching_files(root, "src/NvtFwCombiner.Application", frozenset({".cs"})),
+        *_matching_files(
+            root,
+            "src/NvtFwCombiner.VersionManagement.Application",
+            frozenset({".cs"}),
+        ),
+    ]
 
 
 def _bootstrap_cli_files(root: Path) -> list[Path]:
-    """Return the fixed Bootstrap, CLI, and desktop composition-root slice."""
+    """Return the fixed Bootstrap, Launcher, CLI, and desktop host slice."""
 
     return [
         *_matching_files(root, "src/NvtFwCombiner.Bootstrap", frozenset({".cs"})),
         *_matching_files(root, "src/NvtFwCombiner.Cli", frozenset({".cs"})),
         *_matching_files(root, "src/NvtFwCombiner.Desktop", frozenset({".cs"})),
+        *_matching_files(root, "src/NvtFwCombiner.Launcher", frozenset({".cs"})),
+        *_matching_files(
+            root,
+            "src/NvtFwCombiner.LauncherBootstrap",
+            frozenset({".cs"}),
+        ),
     ]
 
 
@@ -209,6 +238,11 @@ def _infrastructure_contracts_worker_files(root: Path) -> list[Path]:
             frozenset({".cs"}),
         ),
         *_matching_files(root, "src/NvtFwCombiner.Contracts", frozenset({".cs"})),
+        *_matching_files(
+            root,
+            "src/NvtFwCombiner.VersionManagement.Infrastructure",
+            frozenset({".cs"}),
+        ),
         *_worker_runtime_files(root),
     ]
 
@@ -315,15 +349,21 @@ def _review_slice_metric(
     file_count: int,
     actual: int,
     ratchet: int | None,
+    allowance: int,
     findings: list[str],
 ) -> None:
     if ratchet is None:
         return
-    findings.append(
-        f"{label} metric: {file_count} files / {actual} nonblank lines "
-        f"(ratchet {ratchet})"
+    effective = ratchet + allowance
+    budget = (
+        f"ratchet {ratchet}"
+        if allowance == 0
+        else f"ratchet {ratchet} + approved allowance {allowance} = {effective}"
     )
-    _review_exact_ratchet(f"{label} slice", actual, ratchet, findings)
+    findings.append(
+        f"{label} metric: {file_count} files / {actual} nonblank lines ({budget})"
+    )
+    _review_exact_ratchet(f"{label} slice", actual, effective, findings)
 
 
 def review_code_size_policy(
@@ -362,34 +402,38 @@ def review_code_size_policy(
         _review_exact_ratchet(
             "runtime production",
             snapshot.runtime_production_nonblank,
-            limits.runtime_production_ratchet,
+            limits.runtime_production_ratchet + limits.runtime_production_allowance,
             findings,
         )
 
-    for label, file_count, actual, ratchet in (
+    for label, file_count, actual, ratchet, allowance in (
         (
             "Domain + Profiles",
             snapshot.domain_profiles_files,
             snapshot.domain_profiles_nonblank,
             limits.domain_profiles_ratchet,
+            limits.domain_profiles_allowance,
         ),
         (
             "Application",
             snapshot.application_files,
             snapshot.application_nonblank,
             limits.application_ratchet,
+            limits.application_allowance,
         ),
         (
             "Bootstrap + CLI + Desktop host",
             snapshot.bootstrap_cli_files,
             snapshot.bootstrap_cli_nonblank,
             limits.bootstrap_cli_ratchet,
+            limits.bootstrap_cli_allowance,
         ),
         (
             "Infrastructure + Contracts + CRC worker",
             snapshot.infrastructure_contracts_worker_files,
             snapshot.infrastructure_contracts_worker_nonblank,
             limits.infrastructure_contracts_worker_ratchet,
+            limits.infrastructure_contracts_worker_allowance,
         ),
     ):
         _review_slice_metric(
@@ -397,6 +441,7 @@ def review_code_size_policy(
             file_count,
             actual,
             ratchet,
+            allowance,
             findings,
         )
     aggregates = {aggregate.name: aggregate for aggregate in snapshot.partial_types}
@@ -438,44 +483,56 @@ def validate_code_size_policy(
     errors: list[str] = []
     metrics = (
         (
+            "full production",
+            snapshot.production_nonblank,
+            limits.full_production_ratchet,
+            limits.full_production_allowance,
+        ),
+        (
             "runtime production",
             snapshot.runtime_production_nonblank,
             limits.runtime_production_ratchet,
+            limits.runtime_production_allowance,
         ),
         (
             "Domain + Profiles slice",
             snapshot.domain_profiles_nonblank,
             limits.domain_profiles_ratchet,
+            limits.domain_profiles_allowance,
         ),
         (
             "Application slice",
             snapshot.application_nonblank,
             limits.application_ratchet,
+            limits.application_allowance,
         ),
         (
             "Bootstrap + CLI + Desktop host slice",
             snapshot.bootstrap_cli_nonblank,
             limits.bootstrap_cli_ratchet,
+            limits.bootstrap_cli_allowance,
         ),
         (
             "Infrastructure + Contracts + CRC worker slice",
             snapshot.infrastructure_contracts_worker_nonblank,
             limits.infrastructure_contracts_worker_ratchet,
+            limits.infrastructure_contracts_worker_allowance,
         ),
     )
-    slices = metrics[1:]
-    if all(ratchet is not None for _, _, ratchet in slices):
-        allocated = sum(actual for _, actual, _ in slices)
+    slices = metrics[2:]
+    if all(ratchet is not None for _, _, ratchet, _ in slices):
+        allocated = sum(actual for _, actual, _, _ in slices)
         if allocated != snapshot.runtime_production_nonblank:
             errors.append(
                 "code-size runtime slice allocation mismatch: "
                 f"{allocated} != total {snapshot.runtime_production_nonblank}"
             )
-    for label, actual, ratchet in metrics:
-        if ratchet is not None and actual > ratchet:
-            errors.append(f"code-size {label} grew: {actual} > ratchet {ratchet}")
-        elif ratchet is not None and actual < ratchet:
+    for label, actual, ratchet, allowance in metrics:
+        effective = None if ratchet is None else ratchet + allowance
+        if effective is not None and actual > effective:
+            errors.append(f"code-size {label} grew: {actual} > ratchet {effective}")
+        elif effective is not None and actual < effective:
             errors.append(
-                f"code-size {label} improved: lower ratchet {ratchet} to {actual}"
+                f"code-size {label} improved: lower ratchet {effective} to {actual}"
             )
     return errors

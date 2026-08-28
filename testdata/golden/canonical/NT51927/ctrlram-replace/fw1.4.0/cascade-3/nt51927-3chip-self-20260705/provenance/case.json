@@ -6,6 +6,12 @@
   "variantOrVersion": "fw1.4.0",
   "topology": "cascade-3",
   "directGolden": false,
+  "testDisposition": {
+    "kind": "input-only-evidence",
+    "evidenceRefs": [
+      "tests/scripts/test_ctrlram_canonical_20260705.py#test_two_nt51927_cases_are_input_only_direct_evidence"
+    ]
+  },
   "directEvidence": true,
   "sourceClassification": "owner-approved-golden-firmware",
   "ownerApproval": "Repository owner explicitly approved committing this golden firmware fixture to Git on 2026-07-05.",
@@ -31,7 +37,7 @@
     {
       "artifactId": "replace-ctrlram-nf",
       "role": "input",
-      "path": "NT51927/ctrlram-replace/fw1.4.0/cascade-3/nt51927-3chip-self-20260705/inputs/replacements/nf.bin",
+      "path": "NT51927/ctrlram-replace/fw1.4.0/cascade-3/nt51927-3chip-self-20260705/inputs/replacements/nt51927-replace-ctrlram-nf.bin",
       "size": 12112,
       "sha256": "1da3b789fd593a9c9d226aa1deab11a6108b52cacb5eb8166487bf0cbfd01bd7",
       "legacyPaths": [
@@ -46,7 +52,7 @@
     {
       "artifactId": "replace-ctrlram-normal-master",
       "role": "input",
-      "path": "NT51927/ctrlram-replace/fw1.4.0/cascade-3/nt51927-3chip-self-20260705/inputs/replacements/normal-master.bin",
+      "path": "NT51927/ctrlram-replace/fw1.4.0/cascade-3/nt51927-3chip-self-20260705/inputs/replacements/nt51927-replace-ctrlram-normal-master.bin",
       "size": 12288,
       "sha256": "8df98e023232e33e303fbb8a3b8569d8bf0e135c46012488016077e28360c4b9",
       "legacyPaths": [
@@ -60,7 +66,7 @@
     {
       "artifactId": "replace-ctrlram-mp-master",
       "role": "input",
-      "path": "NT51927/ctrlram-replace/fw1.4.0/cascade-3/nt51927-3chip-self-20260705/inputs/replacements/mp-master.bin",
+      "path": "NT51927/ctrlram-replace/fw1.4.0/cascade-3/nt51927-3chip-self-20260705/inputs/replacements/nt51927-replace-ctrlram-mp-master.bin",
       "size": 9216,
       "sha256": "fd5319c5281812fbb7ac6dacb624c572bdd0d52eb71de8402b989da048d0815b",
       "legacyPaths": [
@@ -74,7 +80,7 @@
     {
       "artifactId": "replace-ctrlram-vn",
       "role": "input",
-      "path": "NT51927/ctrlram-replace/fw1.4.0/cascade-3/nt51927-3chip-self-20260705/inputs/replacements/vn.bin",
+      "path": "NT51927/ctrlram-replace/fw1.4.0/cascade-3/nt51927-3chip-self-20260705/inputs/replacements/nt51927-replace-ctrlram-vn.bin",
       "size": 5728,
       "sha256": "aacd153b8d41c0e85e148654ff0feeefb42b51945c41b4a17f30fc393a25e533",
       "legacyPaths": [
@@ -89,7 +95,7 @@
     {
       "artifactId": "replace-ctrlram-normal-slave-r",
       "role": "input",
-      "path": "NT51927/ctrlram-replace/fw1.4.0/cascade-3/nt51927-3chip-self-20260705/inputs/replacements/normal-slave-r.bin",
+      "path": "NT51927/ctrlram-replace/fw1.4.0/cascade-3/nt51927-3chip-self-20260705/inputs/replacements/nt51927-replace-ctrlram-normal-slave-r.bin",
       "size": 12288,
       "sha256": "9a9a0b34edd1de2a9ee9d04b169abdfe8ebbe0a7da18dac0bccdc2d82a64a9f8",
       "legacyPaths": [
@@ -103,7 +109,7 @@
     {
       "artifactId": "replace-ctrlram-mp-slave-r",
       "role": "input",
-      "path": "NT51927/ctrlram-replace/fw1.4.0/cascade-3/nt51927-3chip-self-20260705/inputs/replacements/mp-slave-r.bin",
+      "path": "NT51927/ctrlram-replace/fw1.4.0/cascade-3/nt51927-3chip-self-20260705/inputs/replacements/nt51927-replace-ctrlram-mp-slave-r.bin",
       "size": 9216,
       "sha256": "8bb57729e40b279b437a368d501e00edaebf8bc68823e5ae01ac0fbc3d90de48",
       "legacyPaths": [
@@ -117,7 +123,7 @@
     {
       "artifactId": "replace-ctrlram-normal-slave-l",
       "role": "input",
-      "path": "NT51927/ctrlram-replace/fw1.4.0/cascade-3/nt51927-3chip-self-20260705/inputs/replacements/normal-slave-l.bin",
+      "path": "NT51927/ctrlram-replace/fw1.4.0/cascade-3/nt51927-3chip-self-20260705/inputs/replacements/nt51927-replace-ctrlram-normal-slave-l.bin",
       "size": 12288,
       "sha256": "42ee3488353a642c801d18516cc455333fc3edee4d41b50a5ec24d45898a7565",
       "legacyPaths": [
@@ -131,7 +137,7 @@
     {
       "artifactId": "replace-ctrlram-mp-slave-l",
       "role": "input",
-      "path": "NT51927/ctrlram-replace/fw1.4.0/cascade-3/nt51927-3chip-self-20260705/inputs/replacements/mp-slave-l.bin",
+      "path": "NT51927/ctrlram-replace/fw1.4.0/cascade-3/nt51927-3chip-self-20260705/inputs/replacements/nt51927-replace-ctrlram-mp-slave-l.bin",
       "size": 9216,
       "sha256": "d4504418c5be595117e9093e8210ce254f553328b466f9f612e91d9ca8b5eca7",
       "legacyPaths": [

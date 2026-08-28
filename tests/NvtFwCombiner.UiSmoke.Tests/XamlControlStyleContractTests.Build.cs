@@ -11,7 +11,6 @@ public sealed partial class XamlControlStyleContractTests
     public void CompositionModeSelectorsUseDisplayOnlyProductNames()
     {
         string shell = ReadPresentationFile("MainWindow.axaml");
-
         Assert.Equal("standard-merge", ExperienceIds.StandardMerge);
         Assert.Equal("general-merge", ExperienceIds.GeneralMerge);
         Assert.Equal("Standard", WorkflowModeDisplayConverters.GetDisplayName(ExperienceIds.StandardMerge));
@@ -39,8 +38,8 @@ public sealed partial class XamlControlStyleContractTests
                 (string?)element.Attribute("Command"),
                 "{Binding AcceptFirmwareNumberMismatchCommand}",
                 StringComparison.Ordinal));
-        Assert.Equal("secondary", (string?)cancel.Attribute("Classes"));
-        Assert.Equal("primary", (string?)accept.Attribute("Classes"));
+        Assert.Equal("semanticAction secondary", (string?)cancel.Attribute("Classes"));
+        Assert.Equal("semanticAction primary", (string?)accept.Attribute("Classes"));
         Assert.NotNull(cancel.Attribute("AutomationProperties.Name"));
         Assert.NotNull(accept.Attribute("AutomationProperties.Name"));
         Assert.Null(cancel.Attribute("ToolTip.Tip"));
@@ -85,6 +84,18 @@ public sealed partial class XamlControlStyleContractTests
         string railIcon = ExtractStyle(styles, "Path.railActionIcon");
         string outputRailIcon = ExtractStyle(styles, "Button.outputRailAction Path.railActionIcon");
         string primaryRailIcon = ExtractStyle(styles, "Button.primaryRailAction Path.railActionIcon");
+        string primaryRailPressed = ExtractStyle(
+            styles,
+            "Button.primaryRailAction:pressed /template/ ContentPresenter#PART_ContentPresenter");
+        string primaryRailHoverIcon = ExtractStyle(
+            styles,
+            "Button.primaryRailAction:pointerover Path.railActionIcon");
+        string primaryRailPressedIcon = ExtractStyle(
+            styles,
+            "Button.primaryRailAction:pressed Path.railActionIcon");
+        string primaryRailFocus = ExtractStyle(
+            styles,
+            "Button.primaryRailAction:focus-visible /template/ ContentPresenter#PART_ContentPresenter");
 
         Assert.Contains("Width\" Value=\"44\"", railAction, StringComparison.Ordinal);
         Assert.Contains("Height\" Value=\"44\"", railAction, StringComparison.Ordinal);
@@ -92,7 +103,9 @@ public sealed partial class XamlControlStyleContractTests
         Assert.Contains("HorizontalAlignment\" Value=\"Right\"", railAction, StringComparison.Ordinal);
         Assert.Contains("HorizontalContentAlignment\" Value=\"Stretch\"", railAction, StringComparison.Ordinal);
         Assert.Contains("DoubleTransition Property=\"Width\" Duration=\"0:0:0.16\"", railAction, StringComparison.Ordinal);
-        Assert.Contains("NfcAccentBrush", primaryAction, StringComparison.Ordinal);
+        Assert.Contains("NfcAccentSurfaceBrush", primaryAction, StringComparison.Ordinal);
+        Assert.Contains("NfcAccentBorderLightBrush", primaryAction, StringComparison.Ordinal);
+        Assert.Contains("NfcAccentStrongBrush", primaryAction, StringComparison.Ordinal);
         Assert.Contains("BrushTransition Property=\"Background\" Duration=\"0:0:0.12\"", railPresenter, StringComparison.Ordinal);
         Assert.Contains("BrushTransition Property=\"BorderBrush\" Duration=\"0:0:0.12\"", railPresenter, StringComparison.Ordinal);
         Assert.Contains("Opacity\" Value=\"0\"", actionLabel, StringComparison.Ordinal);
@@ -103,18 +116,18 @@ public sealed partial class XamlControlStyleContractTests
         Assert.Contains("Width\" Value=\"136\"", focusedRailAction, StringComparison.Ordinal);
         Assert.DoesNotContain("Selector=\"Button.outputRailAction:pointerover\"", styles, StringComparison.Ordinal);
         Assert.DoesNotContain("Selector=\"Button.buildRailAction:pointerover\"", styles, StringComparison.Ordinal);
-        Assert.Contains("Selector=\"Button.railAction:pointerover TextBlock.railActionLabel\"", styles, StringComparison.Ordinal);
-        Assert.Contains("Selector=\"Button.railAction:focus-visible TextBlock.railActionLabel\"", styles, StringComparison.Ordinal);
+        _ = ExtractStyle(styles, "Button.railAction:pointerover TextBlock.railActionLabel");
+        _ = ExtractStyle(styles, "Button.railAction:focus-visible TextBlock.railActionLabel");
         Assert.Contains("BorderThickness\" Value=\"2\"", focusPresenter, StringComparison.Ordinal);
         Assert.Contains("Transitions\" Value=\"{x:Null}\"", reducedMotionAction, StringComparison.Ordinal);
         Assert.Contains("Transitions\" Value=\"{x:Null}\"", reducedMotionPresenter, StringComparison.Ordinal);
         Assert.Contains("Transitions\" Value=\"{x:Null}\"", reducedMotionLabel, StringComparison.Ordinal);
         Assert.Contains("NfcSurfaceBrush", primaryHover, StringComparison.Ordinal);
-        Assert.Contains("NfcAccentStrongBrush", primaryHoverPresenter, StringComparison.Ordinal);
-        Assert.Contains("TextElement.Foreground\" Value=\"{DynamicResource NfcSurfaceBrush}", primaryPresenter, StringComparison.Ordinal);
+        Assert.Contains("NfcAccentBrush", primaryHoverPresenter, StringComparison.Ordinal);
+        Assert.Contains("TextElement.Foreground\" Value=\"{DynamicResource NfcAccentStrongBrush}", primaryPresenter, StringComparison.Ordinal);
         Assert.Contains("TextElement.Foreground\" Value=\"{DynamicResource NfcSurfaceBrush}", primaryHoverPresenter, StringComparison.Ordinal);
-        Assert.Contains("NfcSurfaceBrush", primaryText, StringComparison.Ordinal);
-        Assert.Contains("NfcSurfaceBrush", primaryRailText, StringComparison.Ordinal);
+        Assert.Contains("NfcAccentStrongBrush", primaryText, StringComparison.Ordinal);
+        Assert.Contains("NfcAccentStrongBrush", primaryRailText, StringComparison.Ordinal);
         Assert.Contains("Width\" Value=\"44\"", railIconSlot, StringComparison.Ordinal);
         Assert.Contains("Height\" Value=\"44\"", railIconSlot, StringComparison.Ordinal);
         Assert.Contains("HorizontalAlignment\" Value=\"Center\"", railIconSlot, StringComparison.Ordinal);
@@ -126,10 +139,15 @@ public sealed partial class XamlControlStyleContractTests
         Assert.Contains("StrokeThickness\" Value=\"1.8\"", railIcon, StringComparison.Ordinal);
         Assert.Contains("Fill\" Value=\"{DynamicResource NfcTextBrush}\"", outputRailIcon, StringComparison.Ordinal);
         Assert.Contains("Stroke\" Value=\"Transparent\"", outputRailIcon, StringComparison.Ordinal);
-        Assert.Contains("Fill\" Value=\"{DynamicResource NfcSurfaceBrush}\"", primaryRailIcon, StringComparison.Ordinal);
+        Assert.Contains("Fill\" Value=\"{DynamicResource NfcAccentStrongBrush}\"", primaryRailIcon, StringComparison.Ordinal);
         Assert.Contains("Stroke\" Value=\"Transparent\"", primaryRailIcon, StringComparison.Ordinal);
-        Assert.Contains("Selector=\"Button.railAction:pointerover", styles, StringComparison.Ordinal);
-        Assert.Contains("Selector=\"Button.railAction:pressed", styles, StringComparison.Ordinal);
+        Assert.Contains("Fill\" Value=\"{DynamicResource NfcSurfaceBrush}\"", primaryRailHoverIcon, StringComparison.Ordinal);
+        Assert.Contains("Fill\" Value=\"{DynamicResource NfcSurfaceBrush}\"", primaryRailPressedIcon, StringComparison.Ordinal);
+        Assert.Contains("BorderBrush\" Value=\"{DynamicResource NfcAccentStrongBrush}\"", primaryRailPressed, StringComparison.Ordinal);
+        Assert.Contains("TextElement.Foreground\" Value=\"{DynamicResource NfcSurfaceBrush}\"", primaryRailPressed, StringComparison.Ordinal);
+        Assert.Contains("BorderBrush\" Value=\"{DynamicResource NfcAccentStrongBrush}\"", primaryRailFocus, StringComparison.Ordinal);
+        _ = ExtractStyle(styles, "Button.railAction:pointerover /template/ ContentPresenter#PART_ContentPresenter");
+        _ = ExtractStyle(styles, "Button.railAction:pressed /template/ ContentPresenter#PART_ContentPresenter");
         Assert.Equal(2, shell.Split("Classes=\"railAction primaryRailAction buildRailAction\"", StringSplitOptions.None).Length - 1);
         Assert.Equal(3, shell.Split("Classes.reducedMotion=\"{Binding IsReducedMotionEnabled}\"", StringSplitOptions.None).Length - 1);
         Assert.DoesNotContain("BuildActionTip", shell, StringComparison.Ordinal);

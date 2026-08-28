@@ -1,4 +1,6 @@
 using System.Text.Json;
+using Avalonia.Headless.XUnit;
+using NvtFwCombiner.Domain.Composition;
 using NvtFwCombiner.Presentation.Avalonia;
 using NvtFwCombiner.Presentation.Avalonia.ViewModels;
 using NvtFwCombiner.TestSupport;
@@ -13,7 +15,8 @@ public sealed partial class FirmwareInspectionSlotTests
     {
         using var golden = StandardMergeGoldenManifest.Load();
         JsonElement goldenCase = golden.CaseByIc("51926");
-        MainWindowViewModel viewModel = PresentationTestHost.CreateViewModel();
+        MainWindowViewModel viewModel = await PresentationTestHost.CreateViewModelAsync(
+            TestContext.Current.CancellationToken);
         viewModel.ShowMergeCommand.Execute(null);
         viewModel.WorkflowSession.SelectedIc = "NT51926";
 
@@ -47,15 +50,190 @@ public sealed partial class FirmwareInspectionSlotTests
         Assert.True(viewModel.Merge.CanBuildMerge);
     }
 
-    /// <summary>A multi-map Standard Merge route exposes the compiler-required DP prerequisite without IC rules in UI.</summary>
+    /// <summary>A route without a compiled DP prerequisite accepts TP first and still requires every peer.</summary>
     [Fact]
+    public async Task StandardMergeWithoutDpPrerequisiteAcceptsTpFirst()
+    {
+        using var golden = StandardMergeGoldenManifest.Load();
+        JsonElement goldenCase = golden.CaseByIc("51926");
+        MainWindowViewModel viewModel = await PresentationTestHost.CreateViewModelAsync(
+            TestContext.Current.CancellationToken);
+        viewModel.ShowMergeCommand.Execute(null);
+        viewModel.WorkflowSession.SelectedIc = "NT51926";
+        FirmwareSlotViewModel dp = viewModel.Merge.MergeSlots.Single(static slot =>
+            slot.SlotId == CompositionSlotIds.MergeDp);
+        FirmwareSlotViewModel tp = viewModel.Merge.MergeSlots.Single(static slot =>
+            slot.SlotId == CompositionSlotIds.MergeTp);
+
+        Assert.True(dp.CanSelectFile);
+        Assert.True(tp.CanSelectFile);
+        await viewModel.WorkflowSession.SetSlotFileAsync(
+            CompositionSlotIds.MergeTp,
+            golden.ManifestPath(goldenCase.GetProperty("inputs").GetProperty("tp-input")),
+            TestContext.Current.CancellationToken);
+
+        Assert.Contains(
+            tp.SemanticState,
+            new[] { FirmwareSlotSemanticState.Verified, FirmwareSlotSemanticState.Warning });
+        Assert.False(tp.BlocksBuild);
+        Assert.True(dp.CanSelectFile);
+        Assert.False(viewModel.Merge.CanBuildMerge);
+
+        await viewModel.WorkflowSession.SetSlotFileAsync(
+            CompositionSlotIds.MergeDp,
+            golden.ManifestPath(goldenCase.GetProperty("inputs").GetProperty("dp-input")),
+            TestContext.Current.CancellationToken);
+
+        Assert.True(viewModel.Merge.CanBuildMerge);
+    }
+
+    /// <summary>A new selection replaces accepted identity immediately and blocks Build until its successor is terminal.</summary>
+    [Fact]
+    public async Task StandardMergeNewFileReplacementInvalidatesAcceptedSelectionWhileChecking()
+    {
+        using var golden = StandardMergeGoldenManifest.Load();
+        using var workspace = TempWorkspace.Create("nvt-fw-combiner-ui-selection-replacement");
+        JsonElement goldenCase = golden.CaseByIc("51926");
+        byte[] dpBytes = File.ReadAllBytes(
+            golden.ManifestPath(goldenCase.GetProperty("inputs").GetProperty("dp-input")));
+        string originalDpPath = workspace.Write("original-dp.bin", dpBytes);
+        string replacementDpPath = workspace.Write("replacement-dp.bin", dpBytes);
+        string tpPath = workspace.Write(
+            "tp.bin",
+            File.ReadAllBytes(golden.ManifestPath(
+                goldenCase.GetProperty("inputs").GetProperty("tp-input"))));
+        var readerEntered = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var releaseReader = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        MainWindowViewModel viewModel = CreateBatchInspectionViewModel((icId, inputs) =>
+        {
+            if (inputs.Any(input => StringComparer.Ordinal.Equals(input.Path, replacementDpPath)))
+            {
+                _ = readerEntered.TrySetResult();
+                releaseReader.Task.GetAwaiter().GetResult();
+            }
+
+            return BuiltInFirmwareInspection.InspectFirmwareBatch(
+                (BuiltInFirmwareInspection)TestHost.FirmwareInspectionExperience,
+                icId,
+                inputs);
+        });
+        viewModel.WorkflowSession.SelectedIc = "NT51926";
+        await viewModel.WorkflowSession.SetSlotFileAsync(
+            CompositionSlotIds.MergeDp,
+            originalDpPath,
+            TestContext.Current.CancellationToken);
+        await viewModel.WorkflowSession.SetSlotFileAsync(
+            CompositionSlotIds.MergeTp,
+            tpPath,
+            TestContext.Current.CancellationToken);
+        FirmwareSlotViewModel dp = viewModel.Merge.MergeDpSlot;
+        FirmwareInspectionSnapshot originalProjection =
+            Assert.IsType<FirmwareInspectionSnapshot>(dp.CurrentInspectionProjection);
+        Assert.True(viewModel.Merge.CanBuildMerge);
+
+        Task replacement = viewModel.WorkflowSession.SetSlotFileAsync(
+            CompositionSlotIds.MergeDp,
+            replacementDpPath,
+            TestContext.Current.CancellationToken);
+        try
+        {
+            await readerEntered.Task.WaitAsync(
+                TimeSpan.FromSeconds(10),
+                TestContext.Current.CancellationToken);
+            Assert.Equal(replacementDpPath, dp.FilePath);
+            Assert.Equal(FirmwareSlotSemanticState.Checking, dp.SemanticState);
+            Assert.Empty(dp.FirmwareFacts);
+            Assert.NotSame(originalProjection, dp.CurrentInspectionProjection);
+            Assert.False(viewModel.Merge.CanBuildMerge);
+        }
+        finally
+        {
+            _ = releaseReader.TrySetResult();
+        }
+
+        await replacement;
+        Assert.Equal(replacementDpPath, dp.FilePath);
+        Assert.Contains(
+            dp.SemanticState,
+            new[] { FirmwareSlotSemanticState.Verified, FirmwareSlotSemanticState.Warning });
+        Assert.True(viewModel.Merge.CanBuildMerge);
+    }
+
+    /// <summary>A failed replacement discards prior acceptance, remains visible Error, and later recovers.</summary>
+    [Fact]
+    public async Task StandardMergeExtensionErrorIsRetainedUntilAcceptedSelectionRecovers()
+    {
+        using var golden = StandardMergeGoldenManifest.Load();
+        JsonElement goldenCase = golden.CaseByIc("51926");
+        string sourcePath = golden.ManifestPath(goldenCase.GetProperty("inputs").GetProperty("dp-input"));
+        using var workspace = TempWorkspace.Create("nvt-fw-combiner-ui-extension-admission");
+        byte[] source = File.ReadAllBytes(sourcePath);
+        string rejectedPath = workspace.Write("dp-input.txt", source);
+        string recoveredPath = workspace.Write("dp-input.BIN", source);
+        string tpPath = golden.ManifestPath(goldenCase.GetProperty("inputs").GetProperty("tp-input"));
+        MainWindowViewModel viewModel = await PresentationTestHost.CreateViewModelAsync(
+            TestContext.Current.CancellationToken);
+        viewModel.ShowMergeCommand.Execute(null);
+        viewModel.WorkflowSession.SelectedIc = "NT51926";
+
+        await viewModel.WorkflowSession.SetSlotFileAsync(
+            CompositionSlotIds.MergeDp,
+            recoveredPath,
+            TestContext.Current.CancellationToken);
+        await viewModel.WorkflowSession.SetSlotFileAsync(
+            CompositionSlotIds.MergeTp,
+            tpPath,
+            TestContext.Current.CancellationToken);
+        FirmwareSlotViewModel dp = viewModel.Merge.MergeSlots.Single(static slot =>
+            slot.SlotId == CompositionSlotIds.MergeDp);
+        FirmwareInspectionSnapshot acceptedProjection =
+            Assert.IsType<FirmwareInspectionSnapshot>(dp.CurrentInspectionProjection);
+        Assert.True(viewModel.Merge.CanBuildMerge);
+
+        await viewModel.WorkflowSession.SetSlotFileAsync(
+            CompositionSlotIds.MergeDp,
+            rejectedPath,
+            TestContext.Current.CancellationToken);
+
+        Assert.Equal(rejectedPath, dp.FilePath);
+        Assert.Equal(FirmwareSlotSemanticState.Error, dp.SemanticState);
+        Assert.NotSame(acceptedProjection, dp.CurrentInspectionProjection);
+        Assert.Empty(dp.FirmwareFacts);
+        Assert.Equal(FirmwareInputInspectionSeverity.Blocking, dp.InputInspectionSeverity);
+        Assert.Contains("extension", dp.InputInspectionStatus, StringComparison.OrdinalIgnoreCase);
+        Assert.False(viewModel.Merge.CanBuildMerge);
+
+        viewModel.SelectedLanguage = "Traditional Chinese";
+        Assert.Empty(dp.FirmwareFacts);
+        Assert.Contains("副檔名", dp.InputInspectionStatus, StringComparison.Ordinal);
+        Assert.Contains("副檔名", dp.SemanticStateAutomationText, StringComparison.Ordinal);
+        viewModel.SelectedLanguage = "English";
+        Assert.Empty(dp.FirmwareFacts);
+
+        await viewModel.WorkflowSession.SetSlotFileAsync(
+            CompositionSlotIds.MergeDp,
+            recoveredPath,
+            TestContext.Current.CancellationToken);
+
+        Assert.Equal(recoveredPath, dp.FilePath);
+        Assert.Contains(
+            dp.SemanticState,
+            new[] { FirmwareSlotSemanticState.Verified, FirmwareSlotSemanticState.Warning });
+        Assert.DoesNotContain("extension", dp.InputInspectionStatus, StringComparison.OrdinalIgnoreCase);
+        Assert.True(viewModel.Merge.CanBuildMerge);
+    }
+
+    /// <summary>A multi-map Standard Merge route exposes the compiler-required DP prerequisite without IC rules in UI.</summary>
+    [AvaloniaFact]
     public async Task MultiMapStandardMergeDefersOtherInputsUntilDpResolves()
     {
         using var golden = StandardMergeGoldenManifest.Load();
         JsonElement goldenCase = golden.CaseByIc("51950");
-        MainWindowViewModel viewModel = PresentationTestHost.CreateViewModel();
+        MainWindowViewModel viewModel = await PresentationTestHost.CreateViewModelAsync(
+            TestContext.Current.CancellationToken);
         viewModel.ShowMergeCommand.Execute(null);
         viewModel.WorkflowSession.SelectedIc = "NT51950";
+        string dpPath = golden.ManifestPath(goldenCase.GetProperty("inputs").GetProperty("dp-input"));
 
         FirmwareSlotViewModel dp = viewModel.Merge.MergeSlots.Single(static slot =>
             slot.SlotId == CompositionSlotIds.MergeDp);
@@ -64,14 +242,29 @@ public sealed partial class FirmwareInspectionSlotTests
         Assert.True(dp.CanSelectFile);
         Assert.False(tp.CanSelectFile);
         Assert.True(tp.IsSemanticStatePendingInput);
+        Assert.Equal("Waiting for DP BIN", tp.SelectionReadinessLabel);
         Assert.Contains("DP", tp.SelectionReadinessDetail, StringComparison.Ordinal);
 
-        string dpPath = golden.ManifestPath(goldenCase.GetProperty("inputs").GetProperty("dp-input"));
-        await viewModel.WorkflowSession.SetSlotFileAsync(
+        Task selection = viewModel.WorkflowSession.SetSlotFileAsync(
             CompositionSlotIds.MergeDp,
             dpPath,
             TestContext.Current.CancellationToken);
+        WorkflowInspectionLifecycle lifecycle = viewModel.Merge.InspectionLifecycles[
+            ExperienceIds.StandardMerge];
+        Task completed = await Task.WhenAny(
+            selection,
+            Task.Delay(TimeSpan.FromSeconds(10), TestContext.Current.CancellationToken));
+        Assert.True(
+            ReferenceEquals(selection, completed),
+            $"Lifecycle={lifecycle.State}; Progress={lifecycle.Progress}; " +
+            $"DP={dp.SemanticState}/{dp.InputInspectionStatus}; " +
+            $"TP={tp.SemanticState}/{tp.SelectionReadinessDetail}");
+        await selection;
 
+        dp = viewModel.Merge.MergeSlots.Single(static slot =>
+            slot.SlotId == CompositionSlotIds.MergeDp);
+        tp = viewModel.Merge.MergeSlots.Single(static slot =>
+            slot.SlotId == CompositionSlotIds.MergeTp);
         Assert.True(
             tp.CanSelectFile,
             $"DP={dp.SemanticState}/{dp.InputInspectionStatus}; " +
@@ -80,6 +273,81 @@ public sealed partial class FirmwareInspectionSlotTests
         Assert.Contains(
             dp.SemanticState,
             new[] { FirmwareSlotSemanticState.Verified, FirmwareSlotSemanticState.Warning });
+    }
+
+    /// <summary>Visiting CtrlRAM Replace cannot prevent a later Standard Merge DP inspection from starting.</summary>
+    [Fact]
+    public async Task StandardMergeDpInspectionStartsAfterVisitingCtrlRamReplace()
+    {
+        using var standard = StandardMergeGoldenManifest.Load();
+        JsonElement standardCase = standard.CaseByIc("51950");
+        MainWindowViewModel viewModel = CreateBatchInspectionViewModel((icId, inputs) =>
+            BuiltInFirmwareInspection.InspectFirmwareBatch(
+                (BuiltInFirmwareInspection)TestHost.FirmwareInspectionExperience,
+                icId,
+                inputs));
+        string dpPath = standard.ManifestPath(
+            standardCase.GetProperty("inputs").GetProperty("dp-input"));
+        viewModel.WorkflowSession.SelectedIc = "NT51950";
+        OpenReplace(viewModel, ExperienceIds.CtrlRamReplace);
+
+        viewModel.ShowMergeCommand.Execute(null);
+        await viewModel.WorkflowSession.SetSlotFileAsync(
+            CompositionSlotIds.MergeDp,
+            dpPath,
+            TestContext.Current.CancellationToken);
+
+        WorkflowInspectionLifecycle lifecycle = viewModel.Merge.InspectionLifecycles[
+            ExperienceIds.StandardMerge];
+        FirmwareSlotViewModel dp = viewModel.Merge.MergeSlots.Single(static slot =>
+            slot.SlotId == CompositionSlotIds.MergeDp);
+        FirmwareSlotViewModel tp = viewModel.Merge.MergeSlots.Single(static slot =>
+            slot.SlotId == CompositionSlotIds.MergeTp);
+        Assert.False(lifecycle.IsRunning);
+        Assert.False(dp.IsInputInspectionPending);
+        Assert.Contains(
+            dp.SemanticState,
+            new[] { FirmwareSlotSemanticState.Verified, FirmwareSlotSemanticState.Warning });
+        Assert.True(
+            tp.CanSelectFile,
+            $"Lifecycle={lifecycle.State}; DP={dp.SemanticState}/{dp.InputInspectionStatus}; " +
+            $"TP={tp.SemanticState}/{tp.SelectionReadinessDetail}");
+    }
+
+    /// <summary>An accepted Standard Merge prerequisite cannot poison a later CtrlRAM context confirmation.</summary>
+    [AvaloniaFact]
+    public async Task AcceptedStandardMergeDpDoesNotPoisonCtrlRamHomeNavigation()
+    {
+        using var golden = StandardMergeGoldenManifest.Load();
+        JsonElement goldenCase = golden.CaseByIc("51950");
+        MainWindowViewModel viewModel = await PresentationTestHost.CreateViewModelAsync(
+            TestContext.Current.CancellationToken);
+        viewModel.ShowMergeCommand.Execute(null);
+        viewModel.WorkflowSession.SelectedIc = "NT51950";
+        string dpPath = golden.ManifestPath(goldenCase.GetProperty("inputs").GetProperty("dp-input"));
+
+        await viewModel.WorkflowSession.SetSlotFileAsync(
+            CompositionSlotIds.MergeDp,
+            dpPath,
+            TestContext.Current.CancellationToken);
+
+        viewModel.ShowHomeCommand.Execute(null);
+        Assert.True(viewModel.Navigation.IsNavigationClearConfirmationOpen);
+        viewModel.Navigation.ConfirmNavigationAndClearCommand.Execute(null);
+        Assert.True(viewModel.IsHomeVisible);
+        viewModel.BeginCtrlRamReplaceFromHomeCommand.Execute(null);
+        Assert.True(viewModel.WorkflowSession.IsWorkflowContextModalOpen);
+        viewModel.WorkflowSession.WorkflowContextSetup.SelectedIc = "NT51950";
+        viewModel.WorkflowSession.WorkflowContextSetup.SelectedNumberChoice =
+            viewModel.WorkflowSession.WorkflowContextSetup.NumberChoices.Single(
+                static choice => choice.Token == IcNumberSelectionTokens.SingleChip);
+
+        Exception? error = Record.Exception(
+            () => viewModel.WorkflowSession.ConfirmWorkflowContextCommand.Execute(null));
+
+        Assert.Null(error);
+        Assert.True(viewModel.IsReplaceVisible);
+        Assert.True(viewModel.Replace.IsCtrlRamReplaceModeSelected);
     }
 
     /// <summary>Dependent inputs remain disabled throughout the DP Checking interval.</summary>
@@ -135,6 +403,10 @@ public sealed partial class FirmwareInspectionSlotTests
         }
 
         await selection;
+        dp = viewModel.Merge.MergeSlots.Single(static slot =>
+            slot.SlotId == CompositionSlotIds.MergeDp);
+        tp = viewModel.Merge.MergeSlots.Single(static slot =>
+            slot.SlotId == CompositionSlotIds.MergeTp);
         Assert.True(tp.CanSelectFile);
         Assert.Contains(
             dp.SemanticState,
@@ -218,10 +490,12 @@ public sealed partial class FirmwareInspectionSlotTests
         string englishLabel = tp.SelectionReadinessLabel;
         string englishDetail = tp.SelectionReadinessDetail;
         string englishAutomation = tp.SelectionReadinessAutomationText;
+        Assert.Equal("Waiting for DP BIN", englishLabel);
 
         viewModel.SelectedLanguage = "Traditional Chinese";
 
         Assert.True(tp.IsSemanticStatePendingInput);
+        Assert.Equal("等待 DP BIN", tp.SelectionReadinessLabel);
         Assert.NotEqual(englishLabel, tp.SelectionReadinessLabel);
         Assert.NotEqual(englishDetail, tp.SelectionReadinessDetail);
         Assert.NotEqual(englishAutomation, tp.SelectionReadinessAutomationText);

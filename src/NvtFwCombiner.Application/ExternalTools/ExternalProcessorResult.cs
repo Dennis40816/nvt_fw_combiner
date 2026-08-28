@@ -6,11 +6,6 @@ namespace NvtFwCombiner.Application.ExternalTools;
 /// <summary>Structured result from a staged external processor transform.</summary>
 public sealed class ExternalProcessorResult
 {
-    private readonly byte[] _outputBytes;
-    private readonly CompositionIssue[] _issues;
-    private readonly ByteRange[] _changedRanges;
-    private readonly ExternalProcessInvocation[] _executedCommands;
-
     private ExternalProcessorResult(
         bool succeeded,
         byte[] ownedOutputBytes,
@@ -19,26 +14,26 @@ public sealed class ExternalProcessorResult
         IReadOnlyList<ExternalProcessInvocation>? executedCommands)
     {
         Succeeded = succeeded;
-        _outputBytes = ownedOutputBytes;
-        _changedRanges = [.. changedRanges];
-        _issues = [.. issues];
-        _executedCommands = executedCommands is null ? [] : [.. executedCommands];
+        OutputBytes = ownedOutputBytes;
+        ChangedRanges = [.. changedRanges];
+        Issues = [.. issues];
+        ExecutedCommands = executedCommands is null ? [] : [.. executedCommands];
     }
 
     /// <summary>True when the transform completed and every changed byte was authorized.</summary>
     public bool Succeeded { get; }
 
     /// <summary>Transformed bytes when the request succeeded; empty on failure.</summary>
-    public ReadOnlyMemory<byte> OutputBytes => _outputBytes;
+    public ReadOnlyMemory<byte> OutputBytes { get; }
 
     /// <summary>Changed ranges observed by host-side independent diffing.</summary>
-    public IReadOnlyList<ByteRange> ChangedRanges => _changedRanges;
+    public IReadOnlyList<ByteRange> ChangedRanges { get; }
 
     /// <summary>Structured issues explaining a failed transform.</summary>
-    public IReadOnlyList<CompositionIssue> Issues => _issues;
+    public IReadOnlyList<CompositionIssue> Issues { get; }
 
     /// <summary>Completed external process calls with the exact expanded argv passed to the runner.</summary>
-    public IReadOnlyList<ExternalProcessInvocation> ExecutedCommands => _executedCommands;
+    public IReadOnlyList<ExternalProcessInvocation> ExecutedCommands { get; }
 
     /// <summary>Creates a successful transform result with completed process audit evidence.</summary>
     public static ExternalProcessorResult Success(

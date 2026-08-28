@@ -7,7 +7,7 @@ using NvtFwCombiner.Application.Capabilities;
 namespace NvtFwCombiner.Presentation.Avalonia.ViewModels;
 
 /// <summary>Conservative visual summary of all exact routes in one IC/workflow cell.</summary>
-public enum SupportMatrixCellStatus
+internal enum SupportMatrixCellStatus
 {
     ReviewedEvidence,
     ContractOnly,
@@ -16,13 +16,11 @@ public enum SupportMatrixCellStatus
     NotDeclared,
 }
 
-/// <summary>One workflow column in the pivoted Support Matrix.</summary>
-public sealed record SupportMatrixWorkflowColumnViewModel(
+internal sealed record SupportMatrixWorkflowColumnViewModel(
     string WorkflowId,
     string Label);
 
-/// <summary>One IC row and its workflow-aligned cells.</summary>
-public sealed class SupportMatrixIcRowViewModel(
+internal sealed class SupportMatrixIcRowViewModel(
     string icId,
     IEnumerable<SupportMatrixCellViewModel> cells)
 {
@@ -33,7 +31,7 @@ public sealed class SupportMatrixIcRowViewModel(
 }
 
 /// <summary>Hover/focus disclosure for all exact routes at one matrix intersection.</summary>
-public sealed class SupportMatrixCellViewModel
+internal sealed class SupportMatrixCellViewModel
 {
     internal SupportMatrixCellViewModel(
         string icId,

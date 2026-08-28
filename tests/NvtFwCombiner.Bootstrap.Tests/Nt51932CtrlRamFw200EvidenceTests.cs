@@ -83,7 +83,7 @@ public sealed class Nt51932CtrlRamFw200EvidenceTests
             out FirmwareConfigMetadata referenceMetadata));
         Assert.Equal(3, referenceMetadata.ChipNumber);
         FirmwareConfigMetadataSnapshot workbenchReferenceMetadata = Assert.IsType<FirmwareConfigMetadataSnapshot>(
-            BuiltInFirmwareInspection.TryReadFirmwareConfigMetadata(BootstrapTestHost.Canonical, "NT51932", evidence.Expected.Path));
+            BuiltInFirmwareInspection.TryReadFirmwareConfigMetadata(BootstrapTestHost.Canonical.Projection, "NT51932", evidence.Expected.Path));
         Assert.Equal(3, workbenchReferenceMetadata.ChipNumber);
         using var workspace = TempWorkspace.Create("nfc-nt51932-fw200-parity");
         IReadOnlyDictionary<string, string> slots = CreateSlotPaths(evidence, evidence.Expected.Path);
@@ -95,6 +95,13 @@ public sealed class Nt51932CtrlRamFw200EvidenceTests
         Assert.True(v2.Succeeded, CompositionRunReportJson.Serialize(v2));
         byte[] v2Bytes = File.ReadAllBytes(v2Path);
         Assert.Equal(CurrentOutputSha256, Hash(v2Bytes));
+        JsonElement goldenCase = CanonicalGoldenTestData.LoadDirectCase("ctrlram-replace", CaseId);
+        CanonicalGoldenDifferenceResult manifestDifferences =
+            CanonicalGoldenTestData.AssertAllowedByteDifferences(
+                goldenCase,
+                evidence.Expected.Bytes,
+                v2Bytes);
+        Assert.Equal(16, manifestDifferences.DifferenceCount);
         AssertOwnerDifferenceClassification(evidence.Expected.Bytes, v2Bytes);
         AssertPhysicalInputProjection(evidence, v2Bytes);
 

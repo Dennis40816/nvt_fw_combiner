@@ -255,8 +255,11 @@ history and every anti-gaming invariant.
 The same amendment freezes exact descending ratchets at the five measured
 values above: total 74,325, Domain + Profiles 24,953, Application 23,671,
 Bootstrap + CLI 18,670, and Infrastructure + Contracts + CRC worker 7,031.
-Every Core PR must lower each affected ratchet in the same commit; therefore an
-equivalent cross-slice relocation fails on the receiving slice. The four slice
+Every Core PR must lower each affected ratchet in the same commit except for a
+dated, named, non-transferable owner amendment such as PL-02 or PL-04; therefore
+an equivalent cross-slice relocation fails on the receiving slice. Each named
+exception freezes its exact replacement ratchets immediately and cannot fund a
+later PR. The four slice
 measurements must also sum exactly to the runtime total, so a new unallocated
 runtime project fails rather than becoming a fifth ownership bucket.
 
@@ -276,7 +279,8 @@ acceptance or release gates.
 The completion contract is now:
 
 - exact total and four-slice descending ratchets remain mandatory, and every
-  Core PR lowers each affected slice and the total in the same commit;
+  Core PR lowers each affected slice and the total in the same commit except
+  for an explicitly named, dated, non-transferable owner amendment;
 - each slice maintains a line-addressed, non-overlapping candidate ledger;
 - every mutually compatible, evidence-backed, in-scope candidate with a
   proportionate implementation, verification, and evidence cost and a
@@ -386,12 +390,124 @@ slice-sum integrity, completed candidate dispositions, and existing behavioral
 and release gates. These checks remain modules invoked by `scripts/verify.py`;
 no second code-size command, validator, or CI entry point is introduced.
 
+### 2026-08-13 PL-02 ownership-accounting amendment
+
+PL-02 (#374) deletes the 216-line Presentation-local filesystem/JSON I/O owner
+and moves bounded stable reading plus atomic writing to an Application port and
+Infrastructure adapter. Presentation is included in full-production
+measurement but excluded from the four-slice runtime metric, so requiring both
+measurements to descend would forbid the approved dependency correction by
+construction.
+
+The owner therefore accepts one non-transferable rebaseline: full production
+falls from 97,306 to 97,303 nonblank lines, while runtime changes from 67,186 to
+67,371. The affected slice values become Application 29,404, Bootstrap plus CLI
+plus Desktop 3,267, and Infrastructure plus Contracts plus CRC worker 14,081;
+Domain plus Profiles remains 20,619. The deleted Presentation owner and all
+three report/history input callers migrate in the same PR.
+
+This is not temporary deletion debt or a reusable allowance. The new runtime
+and slice values are exact descending ratchets immediately after PL-02. Later
+work cannot reclaim the 190-line classification increase, repeat an
+excluded-to-counted relocation without a new owner decision, or satisfy the
+full-production reduction through minification, test/evidence deletion, or
+hidden code. All architecture, report-wire, coverage, firmware, Golden, and
+release gates remain intact.
+
+### 2026-08-13 PL-04 truthful-progress amendment
+
+PL-04 (#376) must show startup-report bytes over the bounded local-file read's
+stable admitted total. The PL-02 port and adapter owned the read but exposed no
+progress contract, so satisfying ADR 0049 requires a focused typed observer in
+the counted Application and Infrastructure slices rather than a duplicate
+Presentation reader.
+
+The owner accepts this one non-transferable rebaseline: preserving the complete
+lifecycle implementation and the non-obvious contract documentation required
+by Decision 31 changes full production from 97,297 to 97,426, while runtime
+changes from 67,371 to 67,404.
+Application becomes 29,410 and Infrastructure plus Contracts plus CRC worker
+becomes 14,108; Domain plus Profiles remains 20,619 and Bootstrap plus CLI plus
+Desktop remains 3,267. The added contract also keeps observer exceptions
+distinct from source failures. These values are exact descending ratchets after
+PL-04. The +129 full-production and +33 runtime deltas create no reusable
+allowance, authorize no cross-slice relocation, and do not weaken firmware,
+report-wire, Golden, coverage, or release gates. Every later PR resumes from
+these exact descending ratchets.
+
+### 2026-08-13 PL-05 external-environment lifecycle amendment
+
+PL-05 (#377) deletes Bootstrap's synchronous lazy external-processor factory
+and moves discovery behind one bounded Infrastructure loader and one typed
+Application lifecycle. The original 170/145 planning envelope did not include
+the required filesystem depth/entry/count/byte bounds, stable regular-file
+identity and cancellable SHA validation, separate request/publication
+generations, last-known-good publication, generation-zero blocked readiness,
+or the shared shell, Message Center, and CLI adoption.
+
+The owner accepts one named, non-transferable rebaseline. The fixed
+implementation removes 250 and adds 984 physical nonblank production lines,
+net +734. Full production changes from 97,426 to 98,160 and runtime from
+67,404 to 68,018. Runtime is exactly 20,619 Domain plus Profiles + 29,585
+Application + 3,074 Bootstrap plus CLI plus Desktop + 14,740 Infrastructure
+plus Contracts plus CRC worker. These values become descending ratchets
+immediately. This exception is PL-05-only, cannot offset PL-06/07/00, and does
+not authorize minification, cross-slice relocation, process/protocol changes,
+or weaker firmware, Golden, report-wire, coverage, or release evidence.
+
+### 2026-08-13 Message Center readability amendment
+
+The owner separately requested a visual-only readability pass for Message
+Center. Presentation XAML now renders System Information as four aligned
+two-column fact cards and separates Current Report from Report History into two
+equal action cards. The exact physical nonblank production delta is 67 added
+and 38 removed, net +29. Full production changes from 98,160 to 98,189;
+runtime remains 68,018 and every counted runtime slice remains unchanged.
+
+This named exception is non-transferable and cannot fund PL-06, PL-07, PL-00,
+or later work. It changes no report or diagnostics data, firmware behavior,
+profile/schema/processor contract, Golden evidence, persistence, or release
+gate. The new 98,189 value immediately becomes the descending full-production
+ratchet.
+
+### 2026-08-13 PL-06 coherent-inspection convergence
+
+PL-06 (#378) resumes ordinary descending enforcement. It deletes the separate
+before/after file-stamp probe, Presentation path/base caches, and the unbounded
+IC-only compiled-classification cache, while adding one coherent cancellable
+content identity and typed selective-dispatch path. The exact physical nonblank
+ledger is 403 removed and 289 added, net -114.
+
+Full production changes from 98,189 to 98,075 and runtime changes from 68,018
+to 68,016. Runtime is exactly 20,619 Domain plus Profiles + 29,584 Application +
+3,074 Bootstrap plus CLI plus Desktop + 14,739 Infrastructure plus Contracts
+plus CRC worker. These values become descending ratchets immediately; no
+accounting exception, excluded-path relocation, minification, firmware semantic
+change, or evidence reduction is accepted.
+
 Documentation consolidation is legitimate only when it removes boilerplate or
 moves repeated information to its canonical owner. XML summaries that merely
 repeat a member/type name, forwarding properties/constructors, migration DTO
 mirrors, and accidental-public implementation surfaces need no duplicated
 comment. Canonical persisted contracts and reusable public boundaries retain
 their useful documentation.
+
+### 2026-08-14 PL-07 six-workflow inspection lifecycle
+
+PL-07 (#379) removes the Presentation firmware-reader wrapper, global loading
+flag, separate General preparation queues/tasks, and duplicated workflow
+lifecycle traversal while adding one request-scoped observable lifecycle used by
+all six Merge/Replace workflows. Application and Infrastructure continue to own
+typed inspection facts and report exact work through `IProgress<T>`; Presentation
+owns only generation, cancellation/drain, stale rejection, and loading projection.
+
+The exact physical nonblank ledger is 950 removed and 949 added, net -1. Full
+production changes from 98,075 to 98,074 and runtime changes from 68,016 to
+67,997. Runtime is exactly 20,619 Domain plus Profiles + 29,571 Application +
+3,074 Bootstrap plus CLI plus Desktop + 14,733 Infrastructure plus Contracts
+plus CRC worker. These values become descending ratchets immediately. No
+firmware semantic change, excluded-path relocation, physical-line compression,
+or weakened behavioral evidence is accepted.
 
 Firmware ranges/coordinates, CRC/Header and mutation authority, owner evidence,
 known limitations, fail-closed rationale, non-obvious algorithms, security,
@@ -403,6 +519,165 @@ convergence.
 `scripts/verify.py` remains the only canonical verification entry point. Code
 size measurement modules have no independent command-line entry point and are
 invoked by the existing repository structure validator.
+
+### 2026-08-14 PL-00 semantic-control amendment
+
+The owner explicitly requires the startup Cancel control, adjacent semantic
+buttons, and shell navigation to use only project-owned normal, hover, pressed,
+keyboard-focus, and disabled visuals. The shared semantic style had disabled
+Avalonia's default focus adorner while only the secondary role supplied a
+replacement, several other roles still relied on framework pointer-state
+rendering, and the startup-completion Home focus exposed Avalonia's default
+navigation focus rectangle. Closing those accessibility and visual-consistency
+gaps is required release work, not a reusable size allowance.
+
+PL-00 therefore removes 295 and adds 358 physical nonblank production lines,
+net +63. Full production changes from 98,074 to 98,137; runtime still descends
+from 67,997 to 67,981 = 20,619 Domain plus Profiles + 29,555 Application + 3,074
+Bootstrap plus CLI plus Desktop + 14,733 Infrastructure plus Contracts plus CRC
+worker. The same fixed diff preserves the current CtrlRAM inspection projection
+while relocalizing its memory state instead of reconstructing input slots.
+
+This named Presentation exception is non-transferable, changes no firmware,
+profile, schema, report wire, persistence, processor, CLI, Golden, or support
+semantics, and cannot fund later work. Full 98,137 and the unchanged runtime
+slice values become descending ratchets immediately.
+
+### 2026-08-18 Settings, input, button, and memory-readability amendment
+
+The owner approved completing the current Settings and workflow-readability
+surface without deleting localization, accessibility, truthful memory facts, or
+responsive-layout evidence to preserve the preceding numeric ratchet. The
+change makes every Button use the project theme with pointer/keyboard focus
+semantics, keeps input facts visible at narrow widths, localizes real typed slot
+titles and actions, and renders memory source, range, length, pending, conflict,
+and protected-region facts in aligned English and Traditional Chinese views.
+
+The exact physical nonblank ledger is 673 removed and 2,103 added, net +1,430.
+Full production changes from 98,133 to 99,563. Runtime changes from 67,981 to
+68,109 through typed canonical CtrlRAM family roles and Application memory
+projection facts. Domain plus Profiles changes from 20,619 to 20,634, and
+Application changes from 29,555 to 29,668. Bootstrap plus CLI
+plus Desktop remains 3,074, and Infrastructure plus Contracts plus CRC worker
+remains 14,733.
+
+These exact values become descending ratchets immediately. This named R2
+presentation/readability amendment includes one-item-per-source range grouping,
+is non-transferable, and cannot fund later
+work. It changes no profile, range, firmware byte, operation order, support
+truth, Golden evidence, report wire/history, processor protocol, CLI, or release
+gate. Later work resumes ordinary descending enforcement from these values.
+
+### 2026-08-20 remaining-TODO reliability and Build Settings amendment
+
+The owner directed completion of the remaining authorized TODOs for review and
+then consolidated every mode-specific pre-Build choice into one shared Build
+Settings surface. The same fixed work adds an exact accepted-session output
+bundle admission, atomic primary/additional/source promotion, typed commit
+receipts and additive bundle provenance, the six-profile DP Replace naming-safe
+frontier, a route-independent Settings modal, and lifecycle-safe Memory Layout
+interaction. Bundle intent commits plan-selected AB A-only output atomically; GUI loose
+primary-plus-A-only delivery and its typed partial-failure report remain under ADR 0037, while CLI A-only delivery remains bundle-only.
+
+The exact frozen measurement changes full production from 100,157 to 102,977
+and runtime from 68,174 to 70,057 nonblank lines. Domain plus Profiles remains
+20,632; Application becomes 30,691; Bootstrap plus CLI plus Desktop becomes
+3,378; and Infrastructure plus Contracts plus CRC worker becomes 15,356. The
+remaining 937-line delta is Presentation. These values become descending
+ratchets immediately.
+
+This named amendment is non-transferable and cannot fund later work. It is
+limited to accepted-session identity, host delivery/receipt/report provenance,
+mode-aware pre-Build UI, localization/accessibility, and fail-closed regression
+evidence. It changes no firmware range, operation order, output byte,
+CRC/header behavior, processor protocol, support claim, or Golden expected
+bytes. DP Replace naming changes only the six recorded safe typed publications;
+all unresolved provider, NT51928, CtrlRAM, and General naming gates remain
+fail-closed under their recorded authority.
+
+### 2026-08-22 v0.10.6 independent-R2 correction amendment
+
+The fixed independent review of `e1212c11..67a83a23` found four P1 and three P2
+cross-boundary defects in the internal managed-version candidate. The required
+correction converges the managed verifier with the production release manifest,
+adds actual-byte decompression limits, durable install/delete/activation
+recovery, admitted versus recovery inventory, launcher-handoff failure
+retention, exact runtime catalog schema admission, and the approved reduced-
+motion checking ring. These are corrections to the already approved v0.10.6
+scope, not a reusable feature-growth budget.
+
+Relative to reviewed HEAD `67a83a23`, the exact physical production ledger is
+1,655 nonblank lines added and 318 removed, net +1,337. Full production changes
+from 107,237 to 108,574 and runtime changes from 73,555 to 74,635. Domain plus
+Profiles remains 20,632; Application changes from 32,493 to 33,041 (+548);
+Bootstrap plus CLI plus Desktop host changes from 3,501 to 3,502 (+1);
+Infrastructure plus Contracts plus CRC worker changes from 16,929 to 17,460
+(+531); Presentation accounts for the remaining +257.
+
+The executable allowances therefore become exactly 5,677 full production,
+4,578 runtime, 2,350 Application, 124 Bootstrap/CLI/Desktop host, and 2,104
+Infrastructure/Contracts/worker above the frozen pre-v0.10.6 base ratchets.
+They are non-transferable and become exact descending ceilings immediately.
+This amendment changes no firmware profile, range, output byte, CRC/header,
+processor, support, or Golden authority. It also does not close the separate
+repository-wide unused-module and code-size investigation TODO; that audit must
+still identify removable ownership and lower these ratchets in its own reviewed
+change.
+
+### 2026-08-22 v0.10.6 second independent-R2 correction amendment
+
+The independent review of the first correction boundary
+`67a83a23..6ca27508` confirmed the original seven findings but exposed one P1
+cross-process writer race plus four P2 convergence/evidence gaps. Closing that
+fixed review scope adds the exact state-path plus managed-root OS writer lease,
+durable reload after lease acquisition, idempotent already-absent delete,
+Application-owned recovery classification, production packager schema
+evaluation, and real-adapter underreported-ZIP/installed aggregate-byte tests.
+
+Relative to first-correction HEAD `6ca27508`, the exact physical production
+ledger grows by 302 nonblank lines. Full production changes from 108,574 to
+108,876 and runtime changes from 74,635 to 74,937. Domain plus Profiles remains
+20,632; Application changes from 33,041 to 33,225 (+184); Bootstrap plus CLI plus
+Desktop host changes from 3,502 to 3,503 (+1); and Infrastructure plus Contracts
+plus CRC worker changes from 17,460 to 17,577 (+117). Presentation is unchanged.
+
+The executable allowances therefore become exactly 5,979 full production,
+4,880 runtime, 2,534 Application, 125 Bootstrap/CLI/Desktop host, and 2,221
+Infrastructure/Contracts/worker above the frozen pre-v0.10.6 base ratchets.
+They are non-transferable exact descending ceilings. This correction changes no
+firmware/profile/range/output/CRC/processor/support/Golden authority and does not
+close the separate unused-module and repository-size investigation.
+
+### 2026-08-22 Settings reference-fidelity and circular Close-control amendment
+
+The owner then approved two bounded Presentation corrections: the Settings
+Version surface must match the accepted 1,584 by 997 reference geometry in both
+Light and Dark themes, and every upper-right Close/Exit entry must use one shared
+40 by 40 true-circle control with a centered vector glyph. The implementation
+also replaces the source-status font glyph with an accessible vector icon and
+retains the existing typed version-management commands, offline policy,
+localization, reduced-motion checking indicator, and explicit install/delete
+consent flows.
+
+Relative to the second-correction HEAD, the exact physical production ledger is
+515 nonblank lines added and 176 removed, net +339, entirely under Presentation.
+Full production changes from 108,876 to 109,215. Runtime remains 74,937; Domain
+plus Profiles remains 20,632; Application remains 33,225; Bootstrap plus CLI plus
+Desktop host remains 3,503; and Infrastructure plus Contracts plus CRC worker
+remains 17,577.
+
+The executable full-production allowance therefore becomes exactly 6,318 above
+the frozen pre-v0.10.6 base ratchet; every runtime and slice allowance remains
+unchanged. This owner-requested visual correction is non-transferable and becomes
+an exact descending ceiling immediately. It changes no firmware/profile/range,
+output byte, CRC/header, processor, support, Golden, update-package verification,
+installation, activation, or deletion authority. It also does not close or fund
+the separate unused-module and repository-size investigation.
+
+Later exact-ledger amendments continue in the normative appendices
+`0021-code-size-ratchet-system-activity-amendment.md` and
+`0021-code-size-ratchet-accepted-artifact-amendment.md`; neither creates a
+second code-size policy owner.
 
 ## Consequences
 

@@ -2,7 +2,7 @@ using System.Globalization;
 
 namespace NvtFwCombiner.Presentation.Avalonia.ViewModels;
 
-public sealed partial class ReportReviewViewModel
+internal sealed partial class ReportReviewViewModel
 {
     private static string CreateByteDifferenceTitle(
         string compositionKind,
@@ -42,25 +42,6 @@ public sealed partial class ReportReviewViewModel
                 language,
                 string.Create(CultureInfo.InvariantCulture, $"{outputDifferences.AcceptedCount}/{outputDifferences.Count} expected"),
                 string.Create(CultureInfo.InvariantCulture, $"{outputDifferences.AcceptedCount}/{outputDifferences.Count} 預期"));
-    }
-
-    private static string CreateAuditSummary(
-        IReadOnlyList<ReportLineViewModel> inputs,
-        IReadOnlyList<ReportLineViewModel> operations,
-        IReadOnlyList<ReportLineViewModel> mutations,
-        int outputDifferenceCount,
-        IReadOnlyList<ReportLineViewModel> issues,
-        ShellLanguage language)
-    {
-        int commandCount = CountRuntimeInvocations(operations);
-        return T(
-            language,
-            string.Create(
-                CultureInfo.InvariantCulture,
-                $"{inputs.Count} input(s), {operations.Count} step(s), {commandCount} refresh command(s), {mutations.Count} changed range(s), {outputDifferenceCount} diff row(s), {issues.Count} issue row(s)"),
-            string.Create(
-                CultureInfo.InvariantCulture,
-                $"{inputs.Count} 個輸入、{operations.Count} 個步驟、{commandCount} 個 refresh command、{mutations.Count} 個 changed range、{outputDifferenceCount} 筆 diff、{issues.Count} 筆問題"));
     }
 
     private static bool IsReplaceComposition(string compositionKind)

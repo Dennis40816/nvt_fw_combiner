@@ -5,7 +5,9 @@
     xmlns:vm="using:NvtFwCombiner.Presentation.Avalonia.ViewModels">
 
 <DataTemplate x:Key="FirmwareSlotCardTemplate" DataType="vm:FirmwareSlotViewModel">
-  <views:FirmwareSlotCard BrowseLabel="{ReflectionBinding $parent[Window].DataContext.Text.BrowseLabel}" />
+  <views:FirmwareSlotCard BrowseLabel="{ReflectionBinding $parent[Window].DataContext.Text.BrowseLabel}"
+                          ClearSelectionLabel="{ReflectionBinding $parent[Window].DataContext.Text.ClearFirmwareSelectionLabel}"
+                          ClearSelectionCommand="{ReflectionBinding $parent[Window].DataContext.WorkflowSession.ClearSlotFileCommand}" />
 </DataTemplate>
 
 <DataTemplate x:Key="ReplaceModeContentTemplate" DataType="vm:ReplacePresentationViewModel">
@@ -115,7 +117,7 @@
               </StackPanel>
               <Button
                   Grid.Column="1"
-                  Classes="action"
+                  Classes="semanticAction action"
                   VerticalAlignment="Bottom"
                   Command="{Binding AddGeneralReplaceMappingCommand}"
                   Content="{Binding Text.AddRangeLabel}" />
@@ -161,12 +163,6 @@
             <StaticResource ResourceKey="FirmwareSlotCardTemplate" />
           </ItemsControl.ItemTemplate>
         </ItemsControl>
-        <Border Classes="subtleSurface" Padding="10,8">
-          <TextBlock Classes="readinessText"
-                     AutomationProperties.LiveSetting="Polite"
-                     Text="{Binding MergeReadinessStatus}"
-                     TextWrapping="Wrap" />
-        </Border>
       </StackPanel>
     </Border>
 
@@ -205,7 +201,7 @@
             </StackPanel>
             <Button
                 Grid.Column="1"
-                Classes="action"
+                Classes="semanticAction action"
                 VerticalAlignment="Bottom"
                 Command="{Binding AddGeneralMergeMappingCommand}"
                 Content="{Binding Text.AddMappingLabel}" />
@@ -247,6 +243,11 @@
           <TextBlock Classes="sectionTitle" Text="{Binding Text.AbCodeMergeTitle}" />
           <TextBlock Classes="mutedText" Text="{Binding Text.AbCodeMergeDetail}" TextWrapping="Wrap" />
         </StackPanel>
+        <CheckBox
+            AutomationProperties.Name="{Binding Text.AbSameTpOptionLabel}"
+            Command="{Binding ToggleAbSameTpCommand}"
+            Content="{Binding Text.AbSameTpOptionLabel}"
+            IsChecked="{Binding UseSameTpForAbMerge, Mode=OneWay}" />
         <ItemsControl ItemContainerTheme="{StaticResource StretchContentPresenterTheme}" ItemsSource="{Binding MergeSlots}">
           <ItemsControl.ItemTemplate>
             <StaticResource ResourceKey="FirmwareSlotCardTemplate" />
@@ -262,6 +263,103 @@
       </StackPanel>
     </Border>
   </StackPanel>
+</DataTemplate>
+
+<DataTemplate x:Key="ReplaceOutputLayoutPanelTemplate" DataType="vm:ReplacePresentationViewModel">
+  <Border Classes="panelSurface memoryInfoPanel">
+    <views:SpaciousPanel>
+      <StackPanel Spacing="{DynamicResource NfcSpace16}">
+      <StackPanel Spacing="{DynamicResource NfcSpace8}">
+        <StackPanel Spacing="3">
+          <TextBlock Classes="sectionTitle" Text="{Binding Text.OutputLayoutTitle}" />
+          <TextBlock Classes="mutedText memoryInfoDescription" Text="{Binding ReplaceMemorySummary}" TextWrapping="Wrap" />
+        </StackPanel>
+        <Border Classes="compactSubtleSurface memoryInfoAddress" Padding="8,4">
+          <TextBlock Classes="monoText detailText memoryInfoAddressText" Text="{Binding ReplaceMemoryRangeLabel}" TextWrapping="Wrap" />
+        </Border>
+      </StackPanel>
+
+      <StackPanel
+          x:Name="ReplaceCoverageStateLegend"
+          HorizontalAlignment="Right"
+          IsVisible="{Binding ShowsGenericCoverageStateLegend}"
+          Orientation="Horizontal"
+          Spacing="14">
+        <StackPanel
+            IsVisible="{Binding HasObservedMemoryChanges}"
+            Orientation="Horizontal"
+            Spacing="5">
+          <Border
+              Classes="memoryCoverageMarker changed"
+              Width="18"
+              Height="10"
+              VerticalAlignment="Center"
+              Background="{DynamicResource NfcAccentBrush}"
+              CornerRadius="2" />
+          <TextBlock Classes="microInfoText" Text="{Binding Text.OutputLayoutChangedStateLabel}" />
+        </StackPanel>
+        <StackPanel Orientation="Horizontal" Spacing="5">
+          <Border
+              Classes="memoryCoverageMarker"
+              Width="18"
+              Height="10"
+              VerticalAlignment="Center"
+              Background="{DynamicResource NfcBorderMutedBrush}"
+              CornerRadius="2">
+            <Border Background="{StaticResource KeptDiagonalStripeBrush}" CornerRadius="2" />
+          </Border>
+          <TextBlock Classes="microInfoText" Text="{Binding Text.OutputLayoutKeptStateLabel}" />
+        </StackPanel>
+      </StackPanel>
+
+      <Border Height="34" Background="{DynamicResource NfcMemoryTrackBrush}" ClipToBounds="False" CornerRadius="{DynamicResource NfcCompactCornerRadius}">
+        <ItemsControl Height="34" HorizontalAlignment="Stretch" ClipToBounds="False" ItemContainerTheme="{StaticResource ProportionalContentPresenterTheme}" ItemTemplate="{StaticResource MemoryCoverageSegmentBarTemplate}" ItemsSource="{Binding ReplaceCoverageSegments}">
+          <ItemsControl.ItemsPanel>
+            <ItemsPanelTemplate>
+              <views:ProportionalStackPanel />
+            </ItemsPanelTemplate>
+          </ItemsControl.ItemsPanel>
+        </ItemsControl>
+      </Border>
+
+      <Grid>
+          <ItemsControl ItemTemplate="{StaticResource MemoryCoverageSegmentListTemplate}" ItemsSource="{Binding ReplaceCoverageSegments}"
+              IsVisible="{Binding IsReplaceCoverageFlat}" />
+
+          <StackPanel IsVisible="{Binding IsReplaceCoverageGrouped}">
+            <TextBlock Classes="sectionLabel" Text="{Binding ReplaceSelectedCoverageSummary}" />
+            <ItemsControl
+                HorizontalAlignment="Stretch"
+                ItemContainerTheme="{StaticResource StretchContentPresenterTheme}"
+                ItemTemplate="{StaticResource MemoryCoverageLogicalItemTemplate}"
+                ItemsSource="{Binding ReplaceSelectedCoverageItems}" />
+            <Border Classes="memorySupportingRow" IsVisible="{Binding HasReplaceBaseCoverage}">
+              <Expander
+                  Classes="inlineDisclosure"
+                  AutomationProperties.Name="{Binding ReplaceBaseCoverageSummary}"
+                  Background="Transparent"
+                  HorizontalAlignment="Stretch"
+                  IsExpanded="{Binding ReplaceBaseCoverageGroup.IsExpanded, Mode=TwoWay}">
+                <Expander.Header>
+                  <TextBlock Classes="bodyEmphasisText" Text="{Binding ReplaceBaseCoverageSummary}" TextWrapping="Wrap" />
+                </Expander.Header>
+                <ItemsControl
+                    HorizontalAlignment="Stretch"
+                    ItemContainerTheme="{StaticResource StretchContentPresenterTheme}"
+                    ItemTemplate="{StaticResource MemoryCoverageLogicalItemTemplate}"
+                    ItemsSource="{Binding ReplaceBaseCoverageItems}" />
+              </Expander>
+            </Border>
+          </StackPanel>
+      </Grid>
+
+      <StackPanel IsVisible="{Binding IsReplaceCoverageFlat}" Spacing="{DynamicResource NfcSpace8}">
+        <TextBlock Classes="sectionLabel" Text="{Binding Text.PlanTitle}" />
+        <ItemsControl ItemTemplate="{StaticResource ReplaceMemoryMapRowTemplate}" ItemsSource="{Binding ReplaceMemoryRows}" />
+      </StackPanel>
+      </StackPanel>
+    </views:SpaciousPanel>
+  </Border>
 </DataTemplate>
 
 </ResourceDictionary>

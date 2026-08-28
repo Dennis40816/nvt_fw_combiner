@@ -1,141 +1,141 @@
+using System.Text;
+using System.Text.Json;
+using NvtFwCombiner.Application.Ports;
 using NvtFwCombiner.Presentation.Avalonia.ViewModels;
 
 namespace NvtFwCombiner.Presentation.Avalonia;
 
-/// <summary>Local UI report history persistence. This does not alter the machine-readable run report JSON.</summary>
-public static class ReportHistoryFileStore
+/// <summary>Schema-v1 projection over the bounded platform file adapter.</summary>
+internal static class ReportHistoryFileStore
 {
     private const int SchemaVersion = 1;
     private const string HistoryFileName = "report-history.v1.json";
     internal const long MaximumHistoryFileBytes = 64L * 1024 * 1024;
 
-    /// <summary>Gets the default local report history path for the current user.</summary>
-    public static string DefaultHistoryPath => BestEffortLocalJsonFileStore.GetDefaultPath(HistoryFileName);
+    internal static string DefaultHistoryPath => LocalJsonDocument.GetDefaultPath(HistoryFileName);
 
-    /// <summary>Loads persisted history into the view model from the default path.</summary>
-    public static void LoadInto(ReportPresentationViewModel viewModel)
-    {
-        ArgumentNullException.ThrowIfNull(viewModel);
-        viewModel.LoadReportHistory(Load(DefaultHistoryPath));
-    }
-
-    /// <summary>Saves the view model history to the default path.</summary>
-    public static void Save(ReportPresentationViewModel viewModel)
-    {
-        ArgumentNullException.ThrowIfNull(viewModel);
-        Save(DefaultHistoryPath, viewModel.ExportReportHistory());
-    }
-
-    internal static Task SaveAsync(
-        IReadOnlyList<ReportHistorySnapshot> snapshots,
+    internal static async Task<IReadOnlyList<ReportHistorySnapshot>> LoadAsync(
+        ILocalFileStore files,
+        string path,
         CancellationToken cancellationToken)
     {
-        return SaveAsync(DefaultHistoryPath, snapshots, cancellationToken);
+        ArgumentNullException.ThrowIfNull(files);
+        try
+        {
+            ReportHistoryFile? file = await files.ReadAsync(
+                    path,
+                    MaximumHistoryFileBytes,
+                    LocalJsonDocument.DeserializeAsync<ReportHistoryFile>,
+                    cancellationToken)
+                .ConfigureAwait(false);
+            return file?.SchemaVersion == SchemaVersion
+                ? [.. (file.Entries ?? []).Select(ToSnapshot).OfType<ReportHistorySnapshot>()]
+                : [];
+        }
+        catch (Exception exception) when (exception is LocalFileReadException or JsonException or NotSupportedException)
+        {
+            return [];
+        }
     }
 
-    /// <summary>Loads persisted report history snapshots from a specific path.</summary>
-    public static IReadOnlyList<ReportHistorySnapshot> Load(string path)
-    {
-        return BestEffortLocalJsonFileStore.Load<ReportHistoryFile, IReadOnlyList<ReportHistorySnapshot>>(
-            path,
-            [],
-            file => file?.SchemaVersion == SchemaVersion
-                ? [.. file.Entries.Select(entry => entry.ToSnapshot()).OfType<ReportHistorySnapshot>()]
-                : [],
-            MaximumHistoryFileBytes);
-    }
-
-    /// <summary>Loads the default history on a worker so local storage cannot delay the UI dispatcher.</summary>
-    internal static Task<IReadOnlyList<ReportHistorySnapshot>> LoadAsync(CancellationToken cancellationToken)
-    {
-        return Task.Run(() => Load(DefaultHistoryPath), cancellationToken);
-    }
-
-    /// <summary>Saves report history snapshots to a specific path.</summary>
-    public static void Save(string path, IEnumerable<ReportHistorySnapshot> snapshots)
-    {
-        ArgumentException.ThrowIfNullOrWhiteSpace(path);
-        ArgumentNullException.ThrowIfNull(snapshots);
-
-        BestEffortLocalJsonFileStore.Save(path, CreateHistoryFile(snapshots));
-    }
-
-    internal static Task SaveAsync(
+    internal static async Task SaveAsync(
+        ILocalFileStore files,
         string path,
         IEnumerable<ReportHistorySnapshot> snapshots,
         CancellationToken cancellationToken)
     {
-        ArgumentException.ThrowIfNullOrWhiteSpace(path);
+        ArgumentNullException.ThrowIfNull(files);
         ArgumentNullException.ThrowIfNull(snapshots);
+        List<ReportHistorySnapshot> retained = RetainPayloadBudget(snapshots);
+        byte[] encoded = Serialize(retained);
+        if (encoded.LongLength > MaximumHistoryFileBytes)
+        {
+            retained = [.. retained.Select(ReportPresentationViewModel.OmitDerivableReportHistoryMetadata)];
+            encoded = Serialize(retained);
+        }
 
-        return BestEffortLocalJsonFileStore.SaveAsync(
-            path,
-            CreateHistoryFile(snapshots),
-            cancellationToken);
+        while (encoded.LongLength > MaximumHistoryFileBytes && retained.Count > 1)
+        {
+            retained.RemoveAt(retained.Count - 1);
+            encoded = Serialize(retained);
+        }
+
+        if (encoded.LongLength > MaximumHistoryFileBytes)
+        {
+            throw new ReportHistoryPersistenceException(
+                ReportHistoryPersistenceFailure.EntryTooLargeToPersist,
+                "The newest report cannot fit the 64 MiB report-history envelope.");
+        }
+
+        await files.WriteAsync(path, encoded, cancellationToken).ConfigureAwait(false);
     }
 
-    private static ReportHistoryFile CreateHistoryFile(IEnumerable<ReportHistorySnapshot> snapshots)
+    private static List<ReportHistorySnapshot> RetainPayloadBudget(IEnumerable<ReportHistorySnapshot> snapshots)
     {
-        return new ReportHistoryFile(
-            SchemaVersion,
-            [.. snapshots
-                .Where(snapshot => !string.IsNullOrWhiteSpace(snapshot.ReportJson))
-                .Select(ReportHistoryFileEntry.FromSnapshot)]);
+        var retained = new List<ReportHistorySnapshot>(ReportPresentationViewModel.MaxReportHistoryEntries);
+        long bytes = 0;
+        long budget = ReportPresentationViewModel.MaximumReportHistoryStorageBytes;
+        foreach (ReportHistorySnapshot snapshot in snapshots
+                     .Where(snapshot => !string.IsNullOrWhiteSpace(snapshot.ReportJson))
+                     .Take(ReportPresentationViewModel.MaxReportHistoryEntries))
+        {
+            long candidate = Encoding.UTF8.GetByteCount(snapshot.ReportJson) +
+                Encoding.UTF8.GetByteCount(snapshot.OutputArtifactPath);
+            if (retained.Count > 0 && (candidate > budget || bytes > budget - candidate))
+            {
+                continue;
+            }
+
+            retained.Add(snapshot);
+            bytes += candidate;
+        }
+
+        return retained;
     }
 
-    private sealed class ReportHistoryFile
+    private static byte[] Serialize(IReadOnlyList<ReportHistorySnapshot> snapshots)
     {
-        public ReportHistoryFile(int schemaVersion, IReadOnlyList<ReportHistoryFileEntry> entries)
-        {
-            SchemaVersion = schemaVersion;
-            Entries = entries ?? [];
-        }
-
-        public int SchemaVersion { get; }
-
-        public IReadOnlyList<ReportHistoryFileEntry> Entries { get; }
+        return JsonSerializer.SerializeToUtf8Bytes(
+            new ReportHistoryFile(
+                SchemaVersion,
+                [.. snapshots.Select(snapshot => new ReportHistoryFileEntry(
+                    snapshot.SourceName,
+                    snapshot.ReportJson,
+                    snapshot.OutputArtifactPath,
+                    snapshot.Metadata))]),
+            LocalJsonDocument.Options);
     }
 
-    private sealed class ReportHistoryFileEntry
+    private static ReportHistorySnapshot? ToSnapshot(ReportHistoryFileEntry entry)
     {
-        public ReportHistoryFileEntry(
-            string sourceName,
-            string reportJson,
-            string outputArtifactPath,
-            ReportHistoryMetadataSnapshot? metadata = null)
-        {
-            SourceName = sourceName ?? string.Empty;
-            ReportJson = reportJson ?? string.Empty;
-            OutputArtifactPath = outputArtifactPath ?? string.Empty;
-            Metadata = metadata ?? ReportHistoryMetadataSnapshot.Empty;
-        }
-
-        public string SourceName { get; }
-
-        public string ReportJson { get; }
-
-        public string OutputArtifactPath { get; }
-
-        public ReportHistoryMetadataSnapshot Metadata { get; }
-
-        public static ReportHistoryFileEntry FromSnapshot(ReportHistorySnapshot snapshot)
-        {
-            return new ReportHistoryFileEntry(
-                snapshot.SourceName,
-                snapshot.ReportJson,
-                snapshot.OutputArtifactPath,
-                snapshot.Metadata);
-        }
-
-        public ReportHistorySnapshot? ToSnapshot()
-        {
-            return string.IsNullOrWhiteSpace(ReportJson)
-                ? null
-                : new ReportHistorySnapshot(
-                    SourceName ?? string.Empty,
-                    ReportJson,
-                    OutputArtifactPath ?? string.Empty,
-                    Metadata);
-        }
+        return string.IsNullOrWhiteSpace(entry.ReportJson)
+            ? null
+            : new(
+                entry.SourceName ?? string.Empty,
+                entry.ReportJson,
+                entry.OutputArtifactPath ?? string.Empty,
+                entry.Metadata ?? ReportHistoryMetadataSnapshot.Empty);
     }
+
+    private sealed record ReportHistoryFile(
+        int SchemaVersion,
+        IReadOnlyList<ReportHistoryFileEntry>? Entries);
+
+    private sealed record ReportHistoryFileEntry(
+        string? SourceName,
+        string? ReportJson,
+        string? OutputArtifactPath,
+        ReportHistoryMetadataSnapshot? Metadata = null);
+}
+
+internal enum ReportHistoryPersistenceFailure
+{
+    EntryTooLargeToPersist,
+}
+
+internal sealed class ReportHistoryPersistenceException(
+    ReportHistoryPersistenceFailure failure,
+    string message) : IOException(message)
+{
+    internal ReportHistoryPersistenceFailure Failure { get; } = failure;
 }

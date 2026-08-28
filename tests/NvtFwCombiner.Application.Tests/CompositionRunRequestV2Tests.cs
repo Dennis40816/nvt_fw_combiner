@@ -42,6 +42,21 @@ public sealed partial class CompositionRunRequestV2Tests
         Assert.Equal("input.bin", Assert.Single(request.ArtifactBindings.Values).OriginalFileName);
     }
 
+    /// <summary>Runtime defense-in-depth uses the same case-insensitive compiled extension policy.</summary>
+    [Fact]
+    public void RequestAcceptsUppercaseCompiledExtension()
+    {
+        CompiledComposition composition = CreateV2RuntimeExecutable();
+
+        var request = new CompositionRunRequest(
+            "v2-runtime-uppercase-extension",
+            composition,
+            [CreateBinding("input.BIN")],
+            "v2-output.bin");
+
+        Assert.Equal("input.BIN", Assert.Single(request.ArtifactBindings.Values).OriginalFileName);
+    }
+
     /// <summary>Verifies V2 Replace artifacts enforce their compiled IC-number selector at the shared Application boundary.</summary>
     [Fact]
     public void RequestAcceptsV2ReplaceRuntimeArtifactWithMatchingIcNumberSelection()
@@ -212,6 +227,8 @@ public sealed partial class CompositionRunRequestV2Tests
         Assert.Equal(preview.OutputBytes.ToArray(), build.OutputBytes.ToArray());
         Assert.Equal(composition.CompilationFingerprint, preview.Report.CompilationFingerprint);
         Assert.Equal(composition.CompilationFingerprint, build.Report.CompilationFingerprint);
+        Assert.Equal("map", preview.Report.MapId);
+        Assert.Equal("map", build.Report.MapId);
         Assert.Equal("input.bin", Assert.Single(preview.Report.Inputs).OriginalFileName);
         Assert.True(writer.WasCalled);
         Assert.Equal("caller-output.bin", writer.FileName);
@@ -617,14 +634,15 @@ public sealed partial class CompositionRunRequestV2Tests
 
         internal string? FileName { get; private set; }
 
-        public ValueTask<string> CommitAsync(
+        public ValueTask<CompositionOutputCommitReceipt> CommitAsync(
             string fileName,
             ReadOnlyMemory<byte> outputBytes,
             CancellationToken cancellationToken)
         {
             WasCalled = true;
             FileName = fileName;
-            return ValueTask.FromResult($"committed:{fileName}");
+            return ValueTask.FromResult(CompositionOutputCommitReceipt.CreateLoose(
+                $"committed:{fileName}", fileName, outputBytes.Span));
         }
     }
 }

@@ -1,0 +1,34 @@
+{
+  "schemaVersion": 2,
+  "taskId": "BUNDLE-NAME-100-01",
+  "capability": "Remove the redundant bundle suffix from automatic 1.0.0 bundle-folder proposals while retaining existing collision numbering",
+  "integrationBase": "08c9b4bb20813dfe2660a8bbc504d34d8f9d6d8a",
+  "risk": "R2",
+  "kind": "behavior",
+  "state": "final-complete",
+  "mutablePaths": [
+    "docs/adr/0050-atomic-output-bundle-delivery.md",
+    "src/NvtFwCombiner.Application/Composition/CompositionOutputBundleProposal.cs"
+  ],
+  "implementationOwner": "root-implementer",
+  "searchEvidence": [
+    "CompositionOutputBundleProposer is the existing Application owner for automatic bundle-folder proposals; no second naming path is introduced.",
+    "AtomicBundleCompositionOutputWriter.ResolveCandidatePath remains the unchanged Infrastructure owner for deterministic name, name (2), name (3) collision allocation."
+  ],
+  "semanticOwner": "Application CompositionOutputBundleProposer owns the default folder proposal; Infrastructure AtomicBundleCompositionOutputWriter owns destination collision allocation",
+  "terminalContract": "Automatic bundle folder names equal the canonical automatic output basename without a redundant _bundle suffix. An existing destination still allocates the next numeric suffix, while output BIN names, firmware bytes, source delivery, path safety, and atomic promotion remain unchanged.",
+  "disposition": "extend-owner",
+  "designReview": {
+    "reviewer": "final_architecture_review",
+    "outcome": "approved",
+    "evidence": "Independent R2 design admission found the two-line naming change extends the existing proposer, preserves the unchanged collision allocator and output identity, changes no firmware semantics, and needs no new ADR."
+  },
+  "implementationHead": "8ee021c0f23ba0d7bf6cba5d65cf7e1a2bfe9c53",
+  "reviewedHead": "8ee021c0f23ba0d7bf6cba5d65cf7e1a2bfe9c53",
+  "pathStateDigest": "e791d188ff4f09f3dd39b4a4f29d619bdcec8434a87736c30b91dc203ef82971",
+  "finalReview": {
+    "reviewer": "final_architecture_review",
+    "outcome": "approved",
+    "evidence": "Independent exact-head architecture and Polytail review of 8ee021c0f23ba0d7bf6cba5d65cf7e1a2bfe9c53 verified that the existing Application bundle proposer removes only the redundant _bundle suffix, the unchanged Infrastructure collision allocator retains deterministic (n) allocation, and production trees are byte-identical to the previously reviewed candidate with no firmware, output-BIN, source-delivery, or atomic-promotion semantic change."
+  }
+}

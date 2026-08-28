@@ -1,18 +1,8 @@
 {
   "schemaVersion": "2.9",
   "profileId": "nt51926-ctrlram-replace-fw141-runtime-cascade",
-  "profileVersion": "0.3.0",
-  "promotion": {
-    "stage": "executable-candidate",
-    "blockers": [
-      {
-        "blockerId": "firmware-owner-review",
-        "kind": "human-review",
-        "reason": "Firmware owner must approve short-source prefix authority and the exact Legacy Combiner write ranges before support promotion.",
-        "evidenceRefs": [ "nt51926-common-fw141-postbuild" ]
-      }
-    ]
-  },
+  "profileVersion": "0.4.0",
+  "promotion": { "stage": "supported", "blockers": [] },
   "compositionKind": "replace",
   "icNumberInputMode": "cascade-selector",
   "experience": {

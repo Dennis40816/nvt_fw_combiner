@@ -1,0 +1,139 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://nvt.local/contracts/v0916-candidate-source-executor-v1.schema.json",
+  "title": "Candidate source-built CLI executor authority",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schemaVersion", "kind", "source", "freshBuild", "toolchain", "lockFiles", "externalTools", "restore", "build", "cliAssembly", "runtimeClosure"],
+  "properties": {
+    "schemaVersion": { "const": "1.0" },
+    "kind": { "const": "candidate-source-built-cli" },
+    "source": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["implementationHead", "implementationTree", "authorityTrees", "cleanTreeRequired"],
+      "properties": {
+        "implementationHead": { "$ref": "#/$defs/gitSha" },
+        "implementationTree": { "$ref": "#/$defs/gitSha" },
+        "authorityTrees": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["src", "profiles", "external-tools", "tools/crc-worker"],
+          "properties": {
+            "src": { "$ref": "#/$defs/gitSha" },
+            "profiles": { "$ref": "#/$defs/gitSha" },
+            "external-tools": { "$ref": "#/$defs/gitSha" },
+            "tools/crc-worker": { "$ref": "#/$defs/gitSha" }
+          }
+        },
+        "cleanTreeRequired": { "const": true }
+      }
+    },
+    "freshBuild": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["sourceMaterialization", "emptyDestinationRequired", "rejectIgnoredBuildOutputsBeforeRestore", "forbiddenPathSegments"],
+      "properties": {
+        "sourceMaterialization": { "const": "detached-git-worktree" },
+        "emptyDestinationRequired": { "const": true },
+        "rejectIgnoredBuildOutputsBeforeRestore": { "const": true },
+        "forbiddenPathSegments": {
+          "type": "array",
+          "prefixItems": [{ "const": "bin" }, { "const": "obj" }],
+          "items": false
+        }
+      }
+    },
+    "toolchain": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["resolvedSdkVersion", "globalJson"],
+      "properties": {
+        "resolvedSdkVersion": { "type": "string", "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+$" },
+        "globalJson": { "$ref": "#/$defs/sourceArtifact" }
+      }
+    },
+    "lockFiles": { "type": "array", "minItems": 1, "uniqueItems": true, "items": { "$ref": "#/$defs/sourceArtifact" } },
+    "externalTools": { "type": "array", "minItems": 1, "uniqueItems": true, "items": { "$ref": "#/$defs/sourceArtifact" } },
+    "restore": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["workingDirectory", "arguments"],
+      "properties": {
+        "workingDirectory": { "const": "." },
+        "arguments": {
+          "type": "array",
+          "prefixItems": [
+            { "const": "dotnet" }, { "const": "restore" },
+            { "const": "src/NvtFwCombiner.Cli/NvtFwCombiner.Cli.csproj" },
+            { "const": "--locked-mode" },
+            { "const": "--disable-parallel" },
+            { "const": "--runtime" },
+            { "const": "win-x64" }
+          ],
+          "items": false
+        }
+      }
+    },
+    "build": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["workingDirectory", "arguments"],
+      "properties": {
+        "workingDirectory": { "const": "." },
+        "arguments": {
+          "type": "array",
+          "prefixItems": [
+            { "const": "dotnet" }, { "const": "build" },
+            { "const": "src/NvtFwCombiner.Cli/NvtFwCombiner.Cli.csproj" },
+            { "const": "--configuration" }, { "const": "Release" },
+            { "const": "--runtime" }, { "const": "win-x64" },
+            { "const": "--self-contained" }, { "const": "true" },
+            { "const": "--no-restore" },
+            { "const": "-m:1" },
+            { "const": "-p:ContinuousIntegrationBuild=true" },
+            { "const": "-p:PathMap={sourceRoot}=/_/src" }
+          ],
+          "items": false
+        }
+      }
+    },
+    "cliAssembly": { "$ref": "#/$defs/buildArtifact" },
+    "runtimeClosure": { "$ref": "#/$defs/runtimeClosure" }
+  },
+  "$defs": {
+    "gitSha": { "type": "string", "pattern": "^[0-9a-f]{40}$" },
+    "sha256": { "type": "string", "pattern": "^[0-9a-f]{64}$" },
+    "sourceArtifact": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["path", "size", "sha256"],
+      "properties": {
+        "path": { "type": "string", "pattern": "^(?![A-Za-z]:|/|\\\\)(?!.*(?:^|/)\\.\\.(?:/|$))(?!.*(?:^|/)(?:bin|obj)(?:/|$))[A-Za-z0-9._/-]+$" },
+        "size": { "type": "integer", "minimum": 1 },
+        "sha256": { "$ref": "#/$defs/sha256" }
+      }
+    },
+    "buildArtifact": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["path", "size", "sha256"],
+      "properties": {
+        "path": { "const": "src/NvtFwCombiner.Cli/bin/Release/net10.0/win-x64/NvtFwCombiner.Cli.exe" },
+        "size": { "type": "integer", "minimum": 1 },
+        "sha256": { "$ref": "#/$defs/sha256" }
+      }
+    },
+    "runtimeClosure": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["root", "fileCount", "totalSize", "sha256"],
+      "properties": {
+        "root": { "const": "src/NvtFwCombiner.Cli/bin/Release/net10.0/win-x64" },
+        "fileCount": { "type": "integer", "minimum": 1 },
+        "totalSize": { "type": "integer", "minimum": 1 },
+        "sha256": { "$ref": "#/$defs/sha256" }
+      }
+    }
+  }
+}

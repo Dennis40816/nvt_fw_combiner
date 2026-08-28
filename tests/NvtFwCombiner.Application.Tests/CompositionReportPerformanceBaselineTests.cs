@@ -14,9 +14,9 @@ namespace NvtFwCombiner.Application.Tests;
 public sealed class CompositionReportPerformanceBaselineTests
 {
     private const int DifferenceCount = 10_000;
-    private const int BaselineJsonCharacterCount = 17_718_142;
+    private const int BaselineJsonCharacterCount = 17_718_178;
     private const string BaselineOutputSha256 = "e7b39a736b02c1793f1c22ab4c21e29bc478bd94465614c27bd70c4ac42c25b4";
-    private const string BaselineReportJsonSha256 = "38213499fc54f31f0eea54a091124234296fbf065c208b202e581d6015d46d0f";
+    private const string BaselineReportJsonSha256 = "71d6801f051ceb33660b6e6ede7d53dcfcce84a3a8f41d862c9aa737f653b36f";
     private static readonly DateTimeOffset StartedAtUtc = new(2026, 7, 18, 12, 0, 0, TimeSpan.Zero);
     private static readonly DateTimeOffset CompletedAtUtc = StartedAtUtc.AddSeconds(1);
     private static readonly JsonSerializerOptions ReportJsonOptions = new()

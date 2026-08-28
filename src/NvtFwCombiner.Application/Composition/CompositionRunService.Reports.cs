@@ -19,7 +19,8 @@ public sealed partial class CompositionRunService
         IReadOnlyList<DeliveryArtifactSummary>? deliveryArtifacts = null,
         IReadOnlyList<CompositionIssue>? additionalIssues = null,
         IReadOnlyList<ValidationRunSummary>? validations = null,
-        Dictionary<string, IReadOnlyList<ExternalProcessInvocation>>? executedCommandsByOperationId = null)
+        Dictionary<string, IReadOnlyList<ExternalProcessInvocation>>? executedCommandsByOperationId = null,
+        CompositionOutputBundleDeliverySummary? bundleDelivery = null)
     {
         OperationRunSummary[] operations = [
             .. request.CompiledComposition.Plan.OrderedOperations.Select(operation =>
@@ -80,6 +81,11 @@ public sealed partial class CompositionRunService
                 ExperienceIds.GeneralMerge)
                     ? ImageInitializationSummary.FromCompiled(
                         request.CompiledComposition.Plan.OutputInitialization)
+                    : null,
+            bundleDelivery: bundleDelivery,
+            resolvedMapId: request.CompiledComposition.V2Details.Provenance.Context
+                is MapBoundV2CompilationContext mapContext
+                    ? mapContext.ResolvedMap.ImageMap.MapId
                     : null);
     }
 

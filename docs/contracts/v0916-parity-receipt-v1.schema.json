@@ -1,0 +1,128 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://nvt.local/contracts/v0916-parity-receipt-v1.schema.json",
+  "title": "Canonical source-baseline or candidate CLI invocation record",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schemaVersion", "role", "executionArtifactSha256", "executorIdentitySha256", "routeId", "capabilityFingerprint", "scenario", "captureAdapter", "authorityInvocation", "invocation", "reportContractVersion", "report", "inputs", "output"],
+  "properties": {
+    "schemaVersion": { "const": "1.0" },
+    "role": { "enum": ["baseline-exact", "candidate-exact", "candidate-tp"] },
+    "executionArtifactSha256": { "$ref": "#/$defs/sha256" },
+    "executorIdentitySha256": { "$ref": "#/$defs/sha256" },
+    "routeId": { "$ref": "#/$defs/routeId" },
+    "capabilityFingerprint": { "$ref": "#/$defs/sha256" },
+    "scenario": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["icId", "workflowId", "icCountVariant", "mapVariant", "selectionToken", "resolvedProfileId", "outputCapacity", "compilationFingerprint"],
+      "properties": {
+        "icId": { "type": "string", "pattern": "^NT[0-9]{5}$" },
+        "workflowId": { "enum": ["standard-merge", "ab-merge", "ctrlram-replace"] },
+        "icCountVariant": { "type": "string", "minLength": 1 },
+        "mapVariant": { "type": "string", "minLength": 1 },
+        "selectionToken": { "type": "string", "minLength": 1 },
+        "resolvedProfileId": { "type": "string", "minLength": 1 },
+        "outputCapacity": { "type": "integer", "minimum": 1 },
+        "compilationFingerprint": { "$ref": "#/$defs/sha256" }
+      }
+    },
+    "captureAdapter": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["contractVersion", "scriptSha256"],
+      "properties": {
+        "contractVersion": { "const": "1.0" },
+        "scriptSha256": { "$ref": "#/$defs/sha256" }
+      }
+    },
+    "authorityInvocation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["interface", "operatorLogin", "operation", "argumentsSha256", "startedAtUtc", "completedAtUtc", "result"],
+      "properties": {
+        "interface": { "enum": ["source-baseline-cli", "candidate-source-cli"] },
+        "operatorLogin": { "$ref": "#/$defs/githubLogin" },
+        "operation": { "const": "preview" },
+        "argumentsSha256": { "$ref": "#/$defs/sha256" },
+        "startedAtUtc": { "$ref": "#/$defs/canonicalUtc" },
+        "completedAtUtc": { "$ref": "#/$defs/canonicalUtc" },
+        "result": { "const": "success" }
+      }
+    },
+    "invocation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["interface", "operatorLogin", "operation", "argumentsSha256", "startedAtUtc", "completedAtUtc", "result"],
+      "properties": {
+        "interface": { "enum": ["source-baseline-cli", "candidate-source-cli"] },
+        "operatorLogin": { "$ref": "#/$defs/githubLogin" },
+        "operation": { "const": "build" },
+        "argumentsSha256": { "$ref": "#/$defs/sha256" },
+        "startedAtUtc": { "$ref": "#/$defs/canonicalUtc" },
+        "completedAtUtc": { "$ref": "#/$defs/canonicalUtc" },
+        "result": { "const": "success" }
+      }
+    },
+    "reportContractVersion": { "const": "1.0" },
+    "report": { "$ref": "#/$defs/localArtifact" },
+    "basePrecursor": { "$ref": "#/$defs/localArtifact" },
+    "inputs": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["slotId", "role", "path", "size", "sha256"],
+        "properties": {
+          "slotId": { "type": "string", "minLength": 1 },
+          "role": { "enum": ["base", "replacement", "source"] },
+          "path": { "$ref": "#/$defs/filePath" },
+          "size": { "type": "integer", "minimum": 1 },
+          "sha256": { "$ref": "#/$defs/sha256" }
+        }
+      }
+    },
+    "output": { "$ref": "#/$defs/localArtifact" }
+  },
+  "allOf": [
+    {
+      "if": { "properties": { "role": { "const": "baseline-exact" } }, "required": ["role"] },
+      "then": {
+        "properties": {
+          "executionArtifactSha256": { "const": "093212528d1048acdb43563ba795353e1ac872f8b6a3aa99251782e958ad1a30" },
+          "executorIdentitySha256": { "const": "92e400212b5cdbb5e164b4d1401d59cdd1adbb0aef9a490be4777554d5b1e659" },
+          "authorityInvocation": { "properties": { "interface": { "const": "source-baseline-cli" } } },
+          "invocation": { "properties": { "interface": { "const": "source-baseline-cli" } } }
+        }
+      },
+      "else": {
+        "properties": {
+          "authorityInvocation": { "properties": { "interface": { "const": "candidate-source-cli" } } },
+          "invocation": { "properties": { "interface": { "const": "candidate-source-cli" } } }
+        }
+      }
+    }
+  ],
+  "$defs": {
+    "sha256": { "type": "string", "pattern": "^[0-9a-f]{64}$" },
+    "githubLogin": { "type": "string", "pattern": "^[A-Za-z0-9](?:[A-Za-z0-9-]{0,37}[A-Za-z0-9])?$" },
+    "routeId": { "type": "string", "pattern": "^route-[a-z0-9-]+$" },
+    "filePath": { "type": "string", "minLength": 1 },
+    "canonicalUtc": {
+      "type": "string",
+      "format": "date-time",
+      "pattern": "^[0-9]{4}-(0[1-9]|1[0-2])-([0-2][0-9]|3[01])T([01][0-9]|2[0-3]):[0-5][0-9]:[0-5][0-9](\\.[0-9]{1,7})?Z$"
+    },
+    "localArtifact": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["path", "size", "sha256"],
+      "properties": {
+        "path": { "$ref": "#/$defs/filePath" },
+        "size": { "type": "integer", "minimum": 1 },
+        "sha256": { "$ref": "#/$defs/sha256" }
+      }
+    }
+  }
+}

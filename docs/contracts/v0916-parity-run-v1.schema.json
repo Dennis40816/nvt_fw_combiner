@@ -1,0 +1,109 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://nvt.local/contracts/v0916-parity-run-v1.schema.json",
+  "title": "Local v0.9.16 parity run inputs",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schemaVersion", "baselineExecutorRepository", "candidatePackage", "candidateAuthority", "candidateBuild", "outputRoot", "routes"],
+  "properties": {
+    "schemaVersion": { "const": "1.0" },
+    "baselineExecutorRepository": { "$ref": "#/$defs/filePath" },
+    "candidatePackage": { "$ref": "#/$defs/filePath" },
+    "candidateAuthority": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["repositoryPath", "implementationHead", "implementationTree", "authorityTrees", "policySha256", "sourceExecutorContract"],
+      "properties": {
+        "repositoryPath": { "$ref": "#/$defs/filePath" },
+        "implementationHead": { "$ref": "#/$defs/gitSha" },
+        "implementationTree": { "$ref": "#/$defs/gitSha" },
+        "authorityTrees": { "$ref": "#/$defs/authorityTrees" },
+        "policySha256": { "$ref": "#/$defs/sha256" },
+        "sourceExecutorContract": { "$ref": "#/$defs/localArtifact" }
+      }
+    },
+    "candidateBuild": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["repository", "workflowPath", "workflowRef", "workflowCommitSha", "workflowBlobSha", "workflowRawSha256", "workflowSemanticContractSha256", "runId", "artifactId", "artifactName", "artifactDigest", "candidateManifest", "candidateSbom", "candidateProvenance", "releaseNotes", "assetChecksums", "candidateSourceExecutorIdentitySha256", "provenanceSubjectsSha256", "candidateVerifierSha256", "packageVerifierSha256"],
+      "properties": {
+        "repository": { "const": "Dennis40816/nvt_fw_combiner" },
+        "workflowPath": { "const": ".github/workflows/release.yml" },
+        "workflowRef": { "const": "refs/heads/main" },
+        "workflowCommitSha": { "$ref": "#/$defs/gitSha" },
+        "workflowBlobSha": { "$ref": "#/$defs/gitSha" },
+        "workflowRawSha256": { "$ref": "#/$defs/sha256" },
+          "workflowSemanticContractSha256": { "const": "076a13639d94e8a326d4124fb98c959dbe3a306fafb8cc332f4f595d6d50d515" },
+        "runId": { "type": "integer", "minimum": 1 },
+        "artifactId": { "type": "integer", "minimum": 1 },
+        "artifactName": { "type": "string", "pattern": "^stable-candidate-[1-9][0-9]*-[0-9a-f]{40}$" },
+        "artifactDigest": { "$ref": "#/$defs/sha256Digest" },
+        "candidateManifest": { "$ref": "#/$defs/localArtifact" },
+        "candidateSbom": { "$ref": "#/$defs/localArtifact" },
+        "candidateProvenance": { "$ref": "#/$defs/localArtifact" },
+        "releaseNotes": { "$ref": "#/$defs/localArtifact" },
+        "assetChecksums": { "$ref": "#/$defs/localArtifact" },
+        "candidateSourceExecutorIdentitySha256": { "$ref": "#/$defs/sha256" },
+        "provenanceSubjectsSha256": { "$ref": "#/$defs/sha256" },
+        "candidateVerifierSha256": { "$ref": "#/$defs/sha256" },
+        "packageVerifierSha256": { "$ref": "#/$defs/sha256" }
+      }
+    },
+    "outputRoot": { "$ref": "#/$defs/filePath" },
+    "routes": {
+      "type": "array",
+      "minItems": 64,
+      "maxItems": 64,
+      "items": { "oneOf": [{ "$ref": "#/$defs/exactRoute" }, { "$ref": "#/$defs/transitiveRoute" }] }
+    }
+  },
+  "$defs": {
+    "gitSha": { "type": "string", "pattern": "^[0-9a-f]{40}$" },
+    "sha256": { "type": "string", "pattern": "^[0-9a-f]{64}$" },
+    "sha256Digest": { "type": "string", "pattern": "^sha256:[0-9a-f]{64}$" },
+    "routeId": { "type": "string", "pattern": "^route-[a-z0-9-]+$" },
+    "filePath": { "type": "string", "minLength": 1 },
+    "authorityTrees": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["src", "profiles", "external-tools", "tools/crc-worker"],
+      "properties": {
+        "src": { "$ref": "#/$defs/gitSha" },
+        "profiles": { "$ref": "#/$defs/gitSha" },
+        "external-tools": { "$ref": "#/$defs/gitSha" },
+        "tools/crc-worker": { "$ref": "#/$defs/gitSha" }
+      }
+    },
+    "exactRoute": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["routeId", "capabilityFingerprint", "proofKind"],
+      "properties": {
+        "routeId": { "$ref": "#/$defs/routeId" },
+        "capabilityFingerprint": { "$ref": "#/$defs/sha256" },
+        "proofKind": { "const": "exact-output" }
+      }
+    },
+    "transitiveRoute": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["routeId", "capabilityFingerprint", "proofKind", "fullRouteId"],
+      "properties": {
+        "routeId": { "$ref": "#/$defs/routeId" },
+        "capabilityFingerprint": { "$ref": "#/$defs/sha256" },
+        "proofKind": { "const": "tp-prefix-transitive" },
+        "fullRouteId": { "$ref": "#/$defs/routeId" }
+      }
+    },
+    "localArtifact": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["path", "size", "sha256"],
+      "properties": {
+        "path": { "$ref": "#/$defs/filePath" },
+        "size": { "type": "integer", "minimum": 1 },
+        "sha256": { "$ref": "#/$defs/sha256" }
+      }
+    }
+  }
+}

@@ -50,11 +50,11 @@
 
       <StackPanel Grid.Row="4" Margin="16,14,16,14" HorizontalAlignment="Right" Orientation="Horizontal" Spacing="{DynamicResource NfcSpace8}">
         <Button
-            Classes="secondary"
+            Classes="semanticAction secondary"
             Command="{Binding CloseReportCommand}"
             Content="{Binding Text.CloseLabel}" />
         <Button
-            Classes="primary"
+            Classes="semanticAction primary"
             Click="SaveReportButton_OnClick"
             Content="{Binding Text.SaveReportLabel}" />
       </StackPanel>

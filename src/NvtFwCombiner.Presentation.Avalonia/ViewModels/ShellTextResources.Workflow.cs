@@ -3,10 +3,8 @@
 
 namespace NvtFwCombiner.Presentation.Avalonia.ViewModels;
 
-public sealed partial class ShellTextResources
+internal sealed partial class ShellTextResources
 {
-    public string InitialCodeAndLdcSlotHint { get; private init; } = string.Empty;
-
     public string ReviewReplacementInputsTooltip { get; private init; } = string.Empty;
 
     public string InputFilesTitle { get; private init; } = string.Empty;
@@ -43,8 +41,6 @@ public sealed partial class ShellTextResources
 
     public string SourceBinLabel { get; private init; } = string.Empty;
 
-    public string ReplacementBinLabel { get; private init; } = string.Empty;
-
     public string OutputLengthLabel { get; private init; } = string.Empty;
 
     public string OutputLengthPlaceholder { get; private init; } = string.Empty;
@@ -55,6 +51,8 @@ public sealed partial class ShellTextResources
 
     public string BrowseLabel { get; private init; } = string.Empty;
 
+    public string ClearFirmwareSelectionLabel { get; private init; } = string.Empty;
+
     public string RequiredLabel { get; private init; } = string.Empty;
 
     public string OptionalLabel { get; private init; } = string.Empty;
@@ -64,6 +62,10 @@ public sealed partial class ShellTextResources
     public string FirmwareSlotCheckingLabel { get; private init; } = string.Empty;
 
     public string FirmwareSlotVerifiedLabel { get; private init; } = string.Empty;
+
+    public string CtrlRamBaseInspectedLabel { get; private init; } = string.Empty;
+
+    public string CtrlRamBaseInspectedDetail { get; private init; } = string.Empty;
 
     public string FirmwareSlotWarningLabel { get; private init; } = string.Empty;
 
@@ -78,12 +80,6 @@ public sealed partial class ShellTextResources
     public string FirmwareSlotPendingFactDetail { get; private init; } = string.Empty;
 
     public string FirmwareSlotWarningFactDetail { get; private init; } = string.Empty;
-
-    public string FirmwareSlotErrorFactDetail { get; private init; } = string.Empty;
-
-    public string FirmwareSlotShowDetailsLabel { get; private init; } = string.Empty;
-
-    public string FirmwareSlotHideDetailsLabel { get; private init; } = string.Empty;
 
     public string FirmwareSlotShowMoreFactsTemplate { get; private init; } = string.Empty;
 
@@ -135,16 +131,12 @@ public sealed partial class ShellTextResources
 
     public string GeneralInlineHexGuidance { get; private init; } = string.Empty;
 
-    /// <summary>Label for choosing a new output path in the raw-BIN Hex Editor.</summary>
     public string HexEditorSaveAsLabel { get; private init; } = string.Empty;
 
-    /// <summary>Title for the safe Hex Editor export confirmation.</summary>
     public string HexEditorSaveConfirmationTitle { get; private init; } = string.Empty;
 
-    /// <summary>Explanation for the safe Hex Editor export confirmation.</summary>
     public string HexEditorSaveConfirmationDetail { get; private init; } = string.Empty;
 
-    /// <summary>Confirmation action label for the safe Hex Editor export dialog.</summary>
     public string HexEditorSaveConfirmationActionLabel { get; private init; } = string.Empty;
 
     public string GeneralMergeMappingDetail { get; private init; } = string.Empty;
@@ -161,8 +153,6 @@ public sealed partial class ShellTextResources
 
     public string CtrlRamFirmwareVersionEditLabel { get; private init; } = string.Empty;
 
-    public string CtrlRamFirmwareVersionCurrentLabel { get; private init; } = string.Empty;
-
     public string CtrlRamFirmwareVersionByteLabel { get; private init; } = string.Empty;
 
     public string CtrlRamFirmwareSubVersionByteLabel { get; private init; } = string.Empty;
@@ -173,11 +163,21 @@ public sealed partial class ShellTextResources
 
     public string CtrlRamFirmwareVersionInvalidByteDetail { get; private init; } = string.Empty;
 
-    public string CtrlRamFirmwareVersionChooseOutputLabel { get; private init; } = string.Empty;
-
     public string AbCodeMergeTitle { get; private init; } = string.Empty;
 
     public string AbCodeMergeDetail { get; private init; } = string.Empty;
+
+    public string AbSameTpOptionLabel { get; private init; } = string.Empty;
+
+    public string AbSameTpLinkedLabel { get; private init; } = string.Empty;
+
+    public string AbSameTpConflictTitle { get; private init; } = string.Empty;
+
+    public string AbSameTpConflictDetail { get; private init; } = string.Empty;
+
+    public string AbSameTpKeepALabel { get; private init; } = string.Empty;
+
+    public string AbSameTpKeepBLabel { get; private init; } = string.Empty;
 
     public string IcDetailTitle { get; private init; } = string.Empty;
 
@@ -225,9 +225,33 @@ public sealed partial class ShellTextResources
 
     public string ContextUpdatedToastTitle { get; private init; } = string.Empty;
 
+    public string FileDropRejectedTitle { get; private init; } = string.Empty;
+
+    public string FileDropRejectedDetail { get; private init; } = string.Empty;
+
     public string FirmwareInspectionLoadingStatus { get; private init; } = string.Empty;
 
+    public string FirmwareInspectionLoadingTitle { get; private init; } = string.Empty;
+
+    public string FirmwareInspectionFailedTitle { get; private init; } = string.Empty;
+
+    public string FirmwareInspectionCancelLabel { get; private init; } = string.Empty;
+
     public string FirmwareInspectionStaleFileStatus { get; private init; } = string.Empty;
+
+    public string GetFirmwareInspectionProgressDetail(int completed, int total)
+    {
+        return Language == ShellLanguage.ChineseTraditional
+            ? $"已檢查 {completed} / {total} 個檔案"
+            : $"Inspected {completed} / {total} files";
+    }
+
+    public string GetFirmwareInspectionFailureDetail(string failureType)
+    {
+        return Language == ShellLanguage.ChineseTraditional
+            ? $"檢查未完成（{failureType}）。可安全重試目前選取內容。"
+            : $"Inspection did not complete ({failureType}). The current selection can be retried safely.";
+    }
 
     public string UtilToolsLabel { get; private init; } = string.Empty;
 

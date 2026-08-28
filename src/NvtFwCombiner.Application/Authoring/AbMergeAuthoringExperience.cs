@@ -5,23 +5,30 @@ using NvtFwCombiner.Domain.Firmware;
 
 namespace NvtFwCombiner.Application.Authoring;
 
-internal sealed partial class AbMergeAuthoringExperience : IAbMergeAuthoring
+internal sealed partial class AbMergeAuthoringExperience :
+    IAbMergeAuthoring,
+    ICompiledInputSlotInspector<AbMergeInspectionBatch>
 {
     private readonly CanonicalCapabilityCompilerAdapter _compiler;
     private readonly ICanonicalCapabilityQuery _catalog;
+    private readonly IRuntimeDependencyReadinessLeaseProvider _runtimeLeases;
 
     internal AbMergeAuthoringExperience(
         CanonicalCapabilityCompilerAdapter compiler,
-        ICanonicalCapabilityQuery catalog)
+        ICanonicalCapabilityQuery catalog,
+        IRuntimeDependencyReadinessLeaseProvider runtimeLeases)
     {
         _compiler = compiler ?? throw new ArgumentNullException(nameof(compiler));
         _catalog = catalog ?? throw new ArgumentNullException(nameof(catalog));
+        _runtimeLeases = runtimeLeases ?? throw new ArgumentNullException(nameof(runtimeLeases));
     }
 
     /// <summary>Returns whether the selected IC owns an authorable AB Merge route.</summary>
     public bool IsAvailable(string icId)
     {
-        return _compiler.IsAbMergeSupported(icId);
+        return _catalog.HasAuthorableCapability(
+            IcIdentifier.Normalize(icId),
+            ExperienceIds.AbMerge);
     }
 
     /// <summary>Gets the explicit topology choices for one AB Merge route.</summary>

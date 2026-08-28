@@ -17,39 +17,24 @@ public sealed partial class RepositoryBoundaryTests
                 .OrderBy(static path => path, StringComparer.Ordinal)
                 .Select(File.ReadAllText));
 
-        Assert.DoesNotContain("RequireList(", normalizer, StringComparison.Ordinal);
-        Assert.DoesNotContain("Require(", normalizer, StringComparison.Ordinal);
-        Assert.DoesNotContain("ValidateDistinctFactIds(", normalizer, StringComparison.Ordinal);
-        Assert.DoesNotContain(".ValueKind", normalizer, StringComparison.Ordinal);
-        Assert.DoesNotContain("document.SchemaVersion", normalizer, StringComparison.Ordinal);
-        Assert.DoesNotContain("Required array is missing.", normalizer, StringComparison.Ordinal);
-        Assert.DoesNotContain("must be declared together.", normalizer, StringComparison.Ordinal);
+        AssertDoesNotContainAny(normalizer, "RequireList(", "Require(", "ValidateDistinctFactIds(",
+            ".ValueKind", "document.SchemaVersion", "Required array is missing.",
+            "must be declared together.");
         Assert.DoesNotContain(
             "require firmware-family schema version",
             normalizer,
             StringComparison.OrdinalIgnoreCase);
-        Assert.DoesNotContain(
-            "Expected firmware-family schema version",
-            normalizer,
-            StringComparison.Ordinal);
-        Assert.DoesNotContain("perfectFamilyMembers", normalizer, StringComparison.Ordinal);
-        Assert.DoesNotContain("SharedBindingKey", normalizer, StringComparison.Ordinal);
-        Assert.DoesNotContain("member-specific map", normalizer, StringComparison.Ordinal);
-        Assert.DoesNotContain("more than one shared relationship", normalizer, StringComparison.Ordinal);
-        Assert.DoesNotContain("NormalizeCoveragePolicy", normalizer, StringComparison.Ordinal);
-        Assert.DoesNotContain("RequireFactId", normalizer, StringComparison.Ordinal);
-        Assert.DoesNotContain(
-            "public static partial class FirmwareFamilyResolutionNormalizer",
-            normalizer,
-            StringComparison.Ordinal);
+        AssertDoesNotContainAny(normalizer, "Expected firmware-family schema version",
+            "perfectFamilyMembers", "SharedBindingKey", "member-specific map",
+            "more than one shared relationship", "NormalizeCoveragePolicy", "RequireFactId",
+            "public static partial class FirmwareFamilyResolutionNormalizer");
         Assert.Equal(1, CountOccurrences(
             normalizer,
             "ArgumentNullException.ThrowIfNull(document);"));
 
         string definition = ReadText(
             "src/NvtFwCombiner.Domain/Firmware/FirmwareFamilyResolutionDefinition.cs");
-        Assert.Contains("ValidateFamilyRelationships(", definition, StringComparison.Ordinal);
-        Assert.Contains("HasMemberAlias(", definition, StringComparison.Ordinal);
+        AssertContainsAll(definition, "ValidateFamilyRelationships(", "HasMemberAlias(");
     }
 
     /// <summary>Profiles consumes only schema-validated DTO shape and retains only semantic token lowering.</summary>
@@ -78,24 +63,16 @@ public sealed partial class RepositoryBoundaryTests
             StringComparison.Ordinal);
 
         Assert.True(schemaValidation >= 0 && schemaValidation < trustedBundle);
-        Assert.Contains("ValidateAndClone(", projection, StringComparison.Ordinal);
+        AssertContainsAll(projection, "ValidateAndClone(");
         Assert.False(File.Exists(Path.Combine(
             Root.FullName,
             "src/NvtFwCombiner.Profiles/V2/CompositionProfileValueRules.cs")));
-        Assert.DoesNotContain("RequireConstant(", normalizer, StringComparison.Ordinal);
-        Assert.DoesNotContain("RequireList(", normalizer, StringComparison.Ordinal);
-        Assert.DoesNotContain("RequireObject(", normalizer, StringComparison.Ordinal);
-        Assert.DoesNotContain("RequireText(", normalizer, StringComparison.Ordinal);
-        Assert.DoesNotContain("private static JsonElement Require(", normalizer, StringComparison.Ordinal);
-        Assert.DoesNotContain("?? throw Error(", normalizer, StringComparison.Ordinal);
-        Assert.DoesNotContain(" is missing.", normalizer, StringComparison.Ordinal);
+        AssertDoesNotContainAny(normalizer, "RequireConstant(", "RequireList(", "RequireObject(",
+            "RequireText(", "private static JsonElement Require(", "?? throw Error(", " is missing.");
         Assert.DoesNotContain(
             "requires composition-profile schema version",
             normalizer,
             StringComparison.OrdinalIgnoreCase);
-        Assert.DoesNotContain(
-            "Expected composition-profile schema version",
-            normalizer,
-            StringComparison.Ordinal);
+        AssertDoesNotContainAny(normalizer, "Expected composition-profile schema version");
     }
 }

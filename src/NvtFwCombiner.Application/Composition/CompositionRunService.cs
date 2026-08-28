@@ -67,13 +67,14 @@ public sealed partial class CompositionRunService
 
         DateTimeOffset startedAtUtc = _clock.UtcNow;
         BoundInputs boundInputs = await ReadInputsAsync(request, cancellationToken).ConfigureAwait(false);
-        OutputNameResolution outputName = boundInputs.Issues.Count == 0
+        OutputNameResolution outputName = request.PreparedOutputName ??
+            (boundInputs.Issues.Count == 0
             ? CompiledOutputNameResolver.Resolve(
                 request,
                 boundInputs.InputBytes,
                 boundInputs.InputSummaries,
                 startedAtUtc)
-            : OutputNameResolution.Static(request.OutputFileName);
+            : OutputNameResolution.Static(request.OutputFileName));
         return new CompositionOutputNamePreview(
             outputName.FileName,
             outputName.Summary,
@@ -248,18 +249,21 @@ public sealed partial class CompositionRunService
                 inspectionOutputSpaceId: null,
                 inspectionReferenceSpaceId: null,
                 inspectionReferenceBytes: null,
-                inspectionOutputBytes: null);
+                inspectionOutputBytes: null,
+                acceptedGeneralMappingDraft: request.AcceptedGeneralMappingDraft,
+                resolvedCapability: request.ResolvedCapability);
         }
 
         progressPublisher.Report(CompositionRunPhase.ReadingInputs);
         BoundInputs boundInputs = await ReadInputsAsync(request, cancellationToken).ConfigureAwait(false);
-        OutputNameResolution outputName = boundInputs.Issues.Count == 0
+        OutputNameResolution outputName = request.PreparedOutputName ??
+            (boundInputs.Issues.Count == 0
             ? CompiledOutputNameResolver.Resolve(
                 request,
                 boundInputs.InputBytes,
                 boundInputs.InputSummaries,
                 startedAtUtc)
-            : OutputNameResolution.Static(request.OutputFileName);
+            : OutputNameResolution.Static(request.OutputFileName));
         CompositionIssue[] outputNameBlockingIssues =
         [
             .. outputName.Issues.Where(static issue =>
@@ -357,6 +361,11 @@ public sealed partial class CompositionRunService
             : null;
 
         string? committedOutputId = null;
+        CompositionOutputCommitReceipt? commitReceipt = null;
+        CompositionOutputBundleDeliverySummary? bundleDeliverySummary = null;
+        CompositionAdditionalDeliveryPlan? bundledDeliveryPlan =
+            request.BundleDelivery?.AdditionalDelivery;
+        ReadOnlyMemory<byte>? bundledDeliveryBytes = null;
         if (commitOutput && runStatus == CompositionExecutionStatus.Succeeded)
         {
             if (requireApprovedPreviewToken &&
@@ -370,9 +379,44 @@ public sealed partial class CompositionRunService
             else
             {
                 progressPublisher.Report(CompositionRunPhase.CommittingOutput);
-                committedOutputId = await _outputWriter!
-                    .CommitAsync(outputName.FileName, execution.OutputBytes, cancellationToken)
-                    .ConfigureAwait(false);
+                CompositionOutputCommitReceipt receipt;
+                if (bundledDeliveryPlan is not null)
+                {
+                    ReadOnlyMemory<byte> deliveryBytes = SliceDeliveryBytes(
+                        execution.OutputBytes,
+                        bundledDeliveryPlan.SourceRange,
+                        bundledDeliveryPlan.DeliveryKind);
+                    bundledDeliveryBytes = deliveryBytes;
+                    ICompositionOutputBundleWriter bundleWriter = _outputWriter as ICompositionOutputBundleWriter ??
+                        throw new InvalidOperationException(
+                            "A prepared bundle additional delivery requires an atomic bundle writer.");
+                    receipt = await bundleWriter.CommitBundleAsync(
+                            outputName.FileName,
+                            execution.OutputBytes,
+                            [
+                                new CompositionOutputBundleCommitArtifact(
+                                    "additional-delivery",
+                                    bundledDeliveryPlan.DeliveryKind,
+                                    bundledDeliveryPlan.SuggestedFileName,
+                                    deliveryBytes),
+                            ],
+                            cancellationToken)
+                        .ConfigureAwait(false);
+                }
+                else
+                {
+                    receipt = await _outputWriter!
+                        .CommitAsync(outputName.FileName, execution.OutputBytes, cancellationToken)
+                        .ConfigureAwait(false);
+                }
+
+                bundleDeliverySummary = ValidateCommitReceipt(
+                    request,
+                    receipt,
+                    outputName.FileName,
+                    execution.OutputBytes);
+                commitReceipt = receipt;
+                committedOutputId = receipt.OutputId;
             }
         }
 
@@ -380,6 +424,31 @@ public sealed partial class CompositionRunService
         List<CompositionDeliveryArtifact> deliveredArtifacts = [];
         bool isDeliveryComplete = true;
         string? deliveryFailureMessage = null;
+        if (committedOutputId is not null &&
+            bundledDeliveryPlan is not null &&
+            bundledDeliveryBytes is { } committedDeliveryBytes &&
+            commitReceipt?.Bundle is { } committedBundle)
+        {
+            CompositionOutputBundleArtifactReceipt artifact = committedBundle.Artifacts[1];
+            string deliveryOutputId = Path.Combine(
+                committedBundle.ResolvedDirectory,
+                artifact.DeliveredFileName);
+            deliverySummaries.Add(new DeliveryArtifactSummary(
+                bundledDeliveryPlan.DeliveryKind,
+                artifact.DeliveredFileName,
+                committedDeliveryBytes.Length,
+                artifact.Sha256,
+                committed: true,
+                bundledDeliveryPlan.SourceRange));
+            deliveredArtifacts.Add(new CompositionDeliveryArtifact(
+                bundledDeliveryPlan.DeliveryKind,
+                deliveryOutputId,
+                artifact.DeliveredFileName,
+                committedDeliveryBytes.Length,
+                bundledDeliveryPlan.SourceRange,
+                artifact.Sha256));
+        }
+
         if (committedOutputId is not null &&
             deliveryPlan is not null &&
             deliveryFileName is not null &&
@@ -450,7 +519,8 @@ public sealed partial class CompositionRunService
                 .. boundInputs.InputLoadValidations.Select(static evaluation => evaluation.Summary),
                 .. finalOutputValidations.Select(static evaluation => evaluation.Summary),
             ],
-            executedCommandsByOperationId: executedCommandsByOperationId);
+            executedCommandsByOperationId: executedCommandsByOperationId,
+            bundleDelivery: bundleDeliverySummary);
 
         (string? inspectionOutputSpaceId, string? inspectionReferenceSpaceId, byte[]? inspectionReferenceBytes) = GetInspectionReference(
             request,
@@ -468,12 +538,126 @@ public sealed partial class CompositionRunService
             inspectionReferenceBytes,
             inspectionReferenceBytes is null
                 ? default(ReadOnlyMemory<byte>?)
-                : execution.OutputBytes)
+                : execution.OutputBytes,
+            acceptedGeneralMappingDraft: request.AcceptedGeneralMappingDraft,
+            resolvedCapability: request.ResolvedCapability,
+            deliveryArtifacts: deliveredArtifacts,
+            isDeliveryComplete: isDeliveryComplete,
+            deliveryFailureMessage: deliveryFailureMessage);
+    }
+
+    private static CompositionOutputBundleDeliverySummary? ValidateCommitReceipt(
+        CompositionRunRequest request,
+        CompositionOutputCommitReceipt receipt,
+        string outputFileName,
+        ReadOnlyMemory<byte> outputBytes)
+    {
+        ArgumentNullException.ThrowIfNull(receipt);
+        string outputSha256 = ToSha256Hex(outputBytes.Span);
+        if (!StringComparer.Ordinal.Equals(receipt.OutputFileName, outputFileName) ||
+            receipt.OutputSize != outputBytes.Length ||
+            !StringComparer.Ordinal.Equals(receipt.OutputSha256, outputSha256))
         {
-            DeliveryArtifacts = deliveredArtifacts.AsReadOnly(),
-            IsDeliveryComplete = isDeliveryComplete,
-            DeliveryFailureMessage = deliveryFailureMessage,
-        };
+            throw new InvalidOperationException(
+                "Output writer receipt does not match the canonical committed output.");
+        }
+
+        if (request.BundleDelivery is null)
+        {
+            return receipt.Bundle is null
+                ? null
+                : throw new InvalidOperationException(
+                    "Loose output writer returned unexpected bundle delivery evidence.");
+        }
+
+        CompositionOutputBundleCommitReceipt bundle = receipt.Bundle ??
+            throw new InvalidOperationException(
+                "Bundle output writer did not return promoted-directory evidence.");
+        return ValidateBundleReceipt(
+            bundle,
+            request.BundleDelivery.Sources,
+            request.BundleDelivery.AdditionalDelivery,
+            outputFileName,
+            outputBytes);
+    }
+
+    internal static CompositionOutputBundleDeliverySummary ValidateBundleReceipt(
+        CompositionOutputBundleCommitReceipt bundle,
+        IReadOnlyList<CompositionExecutionBundleSource> sources,
+        CompositionAdditionalDeliveryPlan? additionalDelivery,
+        string outputFileName,
+        ReadOnlyMemory<byte> outputBytes)
+    {
+        ArgumentNullException.ThrowIfNull(bundle);
+        ArgumentNullException.ThrowIfNull(sources);
+        ArgumentException.ThrowIfNullOrWhiteSpace(outputFileName);
+        string outputSha256 = ToSha256Hex(outputBytes.Span);
+        IReadOnlyList<CompositionOutputBundleArtifactReceipt> artifacts = bundle.Artifacts;
+        int additionalArtifactCount = additionalDelivery is null ? 0 : 1;
+        if (artifacts.Count != sources.Count + 1 + additionalArtifactCount)
+        {
+            throw new InvalidOperationException(
+                "Bundle output writer receipt has an unexpected artifact count.");
+        }
+
+        ValidateBundleArtifact(
+            artifacts[0],
+            expectedRole: "output",
+            expectedBindingId: null,
+            outputFileName,
+            outputBytes.Length,
+            outputSha256);
+        int sourceOffset = 1;
+        if (additionalDelivery is not null)
+        {
+            ReadOnlyMemory<byte> additionalBytes = SliceDeliveryBytes(
+                outputBytes,
+                additionalDelivery.SourceRange,
+                additionalDelivery.DeliveryKind);
+            ValidateBundleArtifact(
+                artifacts[1],
+                expectedRole: "additional-delivery",
+                additionalDelivery.DeliveryKind,
+                expectedFileName: null,
+                additionalBytes.Length,
+                ToSha256Hex(additionalBytes.Span));
+            sourceOffset++;
+        }
+
+        for (int index = 0; index < sources.Count; index++)
+        {
+            CompositionExecutionBundleSource source = sources[index];
+            ValidateBundleArtifact(
+                artifacts[index + sourceOffset],
+                expectedRole: "source",
+                source.Summary.BindingId,
+                expectedFileName: null,
+                source.Summary.Size,
+                source.Summary.Sha256);
+        }
+
+        return CompositionOutputBundleDeliverySummary.FromReceipt(bundle);
+    }
+
+    private static void ValidateBundleArtifact(
+        CompositionOutputBundleArtifactReceipt actual,
+        string expectedRole,
+        string? expectedBindingId,
+        string? expectedFileName,
+        long expectedSize,
+        string expectedSha256)
+    {
+        bool fileNameMatches = expectedFileName is null ||
+            StringComparer.Ordinal.Equals(actual.DeliveredFileName, expectedFileName);
+        if (!StringComparer.Ordinal.Equals(actual.Role, expectedRole) ||
+            !StringComparer.Ordinal.Equals(actual.BindingId, expectedBindingId) ||
+            !fileNameMatches ||
+            actual.Size != expectedSize ||
+            !StringComparer.Ordinal.Equals(actual.Sha256, expectedSha256))
+        {
+            throw new InvalidOperationException(
+                "Bundle output writer receipt does not match its prepared artifact plan.");
+        }
     }
 
     private static ReadOnlyMemory<byte> SliceDeliveryBytes(

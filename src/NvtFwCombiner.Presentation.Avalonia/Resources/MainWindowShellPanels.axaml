@@ -4,14 +4,14 @@
     xmlns:behaviors="using:NvtFwCombiner.Presentation.Avalonia.Behaviors"
     xmlns:vm="using:NvtFwCombiner.Presentation.Avalonia.ViewModels">
 
-<DataTemplate x:Key="NavigationTrailPanelTemplate" DataType="vm:MainWindowViewModel">
+<DataTemplate x:Key="NavigationTrailPanelTemplate" DataType="vm:ShellNavigationViewModel">
   <Border Classes="shellBar" Padding="28,6">
     <StackPanel
         VerticalAlignment="Center"
         Orientation="Horizontal"
         Spacing="{DynamicResource NfcSpace8}">
       <Button
-          Classes="iconButton"
+          Classes="semanticAction iconButton"
           Command="{Binding GoBackCommand}"
           ToolTip.Tip="{Binding Text.BackTooltip}">
         <TextBlock Text="←" />

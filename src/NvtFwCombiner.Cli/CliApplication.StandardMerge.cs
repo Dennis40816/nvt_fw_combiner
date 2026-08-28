@@ -16,7 +16,8 @@ public static partial class CliApplication
         };
 
     private static async Task<int> RunStandardMergeAsync(
-        CompositionHostServices host,
+        CliCompositionServices services,
+        ILocalFileStore localFiles,
         string[] args,
         TextWriter output,
         TextWriter error,
@@ -35,7 +36,7 @@ public static partial class CliApplication
             return UsageError;
         }
 
-        string[] valueOptions = ["--profile", "--dp", "--tp", "--ldc", "--output", "--report"];
+        string[] valueOptions = ["--profile", "--dp", "--tp", "--ldc", "--output", "--report", CliBundleOptions.ParentOption, CliBundleOptions.NameOption];
         if (!CliOptionParser.TryParse(
                 args[1..],
                 valueOptions,
@@ -47,6 +48,11 @@ public static partial class CliApplication
             return UsageError;
         }
 
+        if (!CliBundleOptions.TryValidateCombination(action, options.Values, error))
+        {
+            return UsageError;
+        }
+
         if (!options.Values.TryGetValue("--profile", out string? profileSelector))
         {
             await error.WriteLineAsync("error: --profile is required").ConfigureAwait(false);
@@ -54,7 +60,7 @@ public static partial class CliApplication
         }
 
         if (!TryFindStandardMergeProfileSummary(
-                host.CompositionCapabilityExperience,
+                services.Capabilities,
                 profileSelector,
                 out CapabilityProfileSummary? selectedProfile))
         {
@@ -65,7 +71,7 @@ public static partial class CliApplication
         if (!selectedProfile.CompileSucceeded)
         {
             CompiledAuthoringSelectionSnapshot unavailable =
-                host.StandardMergeAuthoring.GetAuthoringSnapshot(
+                services.StandardMergeAuthoring.GetAuthoringSnapshot(
                 selectedProfile.IcId,
                 [],
                 new Dictionary<string, FileStamp>(StringComparer.Ordinal),
@@ -76,7 +82,7 @@ public static partial class CliApplication
         }
 
         IReadOnlyList<string> availableInputAddressSpaces =
-            host.StandardMergeAuthoring.GetInputAddressSpaces(
+            services.StandardMergeAuthoring.GetInputAddressSpaces(
                 selectedProfile.IcId);
         foreach ((string addressSpaceId, string optionName) in InputOptionsByAddressSpace)
         {
@@ -103,37 +109,116 @@ public static partial class CliApplication
             return UsageError;
         }
 
-        List<CompiledAuthoringSelectedInput> inputs = [];
-        foreach ((string slotId, string path) in slotPaths)
+        IReadOnlyList<CompiledAuthoringSelectedInput> inputs;
+        try
         {
-            try
+            CompiledAuthoringSelectionSnapshot exactSelection =
+                services.StandardMergeAuthoring.GetAuthoringSnapshot(
+                    selectedProfile.IcId,
+                    [.. slotPaths.Keys],
+                    new Dictionary<string, FileStamp>(StringComparer.Ordinal),
+                    new AuthoringRevision(1));
+            ResolvedCapability? exactCapability = exactSelection.Catalog.Routes
+                .SingleOrDefault()?.ExactCapability;
+            if (exactCapability is null)
             {
-                inputs.Add(new CompiledAuthoringSelectedInput(
-                    slotId,
-                    path,
-                    File.ReadAllBytes(path)));
+                string prerequisiteId = CompositionAddressSpaceIds.DpInput;
+                string prerequisitePath = slotPaths[prerequisiteId];
+                byte[] prerequisiteBytes;
+                try
+                {
+                    prerequisiteBytes = await CliFixedWorkflowInputReader.ReadBytesAsync(
+                            localFiles,
+                            prerequisitePath,
+                            CompiledInputArtifactInspectionService.MaximumContentReadBytes,
+                            cancellationToken)
+                        .ConfigureAwait(false);
+                }
+                catch (LocalFileReadException exception)
+                {
+                    throw new CliFixedWorkflowInputReadException(
+                        prerequisiteId,
+                        prerequisitePath,
+                        exception);
+                }
+
+                exactSelection = services.StandardMergeAuthoring.GetAuthoringSnapshot(
+                    selectedProfile.IcId,
+                    [.. slotPaths.Keys],
+                    new Dictionary<string, FileStamp>(StringComparer.Ordinal)
+                    {
+                        [prerequisiteId] = FileStamp.FromBytes(prerequisiteBytes),
+                    },
+                    new AuthoringRevision(1));
+                exactCapability = exactSelection.Catalog.Routes
+                    .SingleOrDefault()?.ExactCapability;
+                if (exactCapability is null)
+                {
+                    await CliCompositionRunSupport.PrintIssuesAsync(
+                            error,
+                            exactSelection.Issues)
+                        .ConfigureAwait(false);
+                    return SoftwareError;
+                }
+
+                long prerequisiteMaximum = CompiledInputArtifactInspectionService
+                    .ResolveMaximumContentReadBytes(
+                        exactCapability.CompiledComposition,
+                        prerequisiteId);
+                if (prerequisiteBytes.LongLength > prerequisiteMaximum)
+                {
+                    throw new CliFixedWorkflowInputReadException(
+                        prerequisiteId,
+                        prerequisitePath,
+                        new LocalFileTooLargeException(
+                            $"File length {prerequisiteBytes.LongLength} exceeds the {prerequisiteMaximum}-byte limit."));
+                }
+
+                var remainingPaths = slotPaths
+                    .Where(pair => !StringComparer.Ordinal.Equals(pair.Key, prerequisiteId))
+                    .ToDictionary(static pair => pair.Key, static pair => pair.Value, StringComparer.Ordinal);
+                inputs =
+                [
+                    new CompiledAuthoringSelectedInput(
+                        prerequisiteId,
+                        prerequisitePath,
+                        prerequisiteBytes),
+                    .. await CliFixedWorkflowInputReader.ReadAsync(
+                        localFiles,
+                        exactCapability.CompiledComposition,
+                        remainingPaths,
+                        cancellationToken).ConfigureAwait(false),
+                ];
             }
-            catch (Exception exception) when (
-                exception is IOException or UnauthorizedAccessException)
+            else
             {
-                await CliCompositionRunSupport.PrintIssuesAsync(
-                        error,
-                        [new CompositionIssue(
-                            CompositionPlanningIssueCodes.InputArtifactReadFailed,
-                            StringComparer.Ordinal.Equals(
-                                    slotId,
-                                    CompositionAddressSpaceIds.DpInput) &&
-                                !File.Exists(path)
-                                    ? $"Selected DP BIN path does not exist for {selectedProfile.IcId} Standard Merge."
-                                    : exception.Message,
-                            slotId)])
+                inputs = await CliFixedWorkflowInputReader.ReadAsync(
+                        localFiles,
+                        exactCapability.CompiledComposition,
+                        slotPaths,
+                        cancellationToken)
                     .ConfigureAwait(false);
-                return SoftwareError;
             }
+        }
+        catch (CliFixedWorkflowInputReadException exception)
+        {
+            await CliCompositionRunSupport.PrintIssuesAsync(
+                    error,
+                    [new CompositionIssue(
+                        CompositionPlanningIssueCodes.InputArtifactReadFailed,
+                        StringComparer.Ordinal.Equals(
+                                exception.AddressSpaceId,
+                                CompositionAddressSpaceIds.DpInput) &&
+                            exception.IsMissing
+                                ? $"Selected DP BIN path does not exist for {selectedProfile.IcId} Standard Merge."
+                                : exception.Message,
+                        exception.AddressSpaceId)])
+                .ConfigureAwait(false);
+            return SoftwareError;
         }
         var session = new AuthoringSessionState(ExperienceIds.StandardMerge);
         CompiledAuthoringSessionPreparation prepared =
-            host.StandardMergeAuthoring.PrepareSession(
+            services.StandardMergeAuthoring.PrepareSession(
                 session,
                 selectedProfile.IcId,
                 inputs);
@@ -168,35 +253,79 @@ public static partial class CliApplication
                 pair.Value)),
         ];
 
+        bool build = action == "build";
+        bool bundleBuild = CliBundleOptions.IsEnabled(options.Values);
+        if (!CliBundleOptions.TryCreateIntent(
+                services.OutputNaming,
+                prepared.Snapshot!,
+                options.Values,
+                error,
+                out CompositionOutputBundleIntent? outputBundle))
+        {
+            return UsageError;
+        }
+
+        bool hasExplicitOutput = options.Values.ContainsKey("--output");
         CliOutputTarget outputTarget = CliCompositionRunSupport.ResolveOutputTarget(
             options.Values.GetValueOrDefault("--output"),
             compiledComposition.V2Details.OutputNamingRequirement.FileNameTemplate);
-        if (action == "build")
+        if (build && !hasExplicitOutput && !bundleBuild)
+        {
+            try
+            {
+                CompositionOutputPreparation preparation = await services.OutputNaming
+                    .PrepareAutomaticOutputAsync(
+                        prepared.Snapshot!,
+                        cancellationToken)
+                    .ConfigureAwait(false);
+                outputTarget = new CliOutputTarget(
+                    outputTarget.OutputDirectory,
+                    preparation.OutputName.FileName);
+            }
+            catch (InvalidOperationException)
+            {
+                // Execution repeats the same admission and returns the typed failure
+                // without committing the unresolved automatic output.
+            }
+        }
+
+        if (build && !bundleBuild)
         {
             CliCompositionRunSupport.EnsureOutputDoesNotAliasInputs(outputTarget, bindings);
         }
 
+        string? reportPath = options.Values.GetValueOrDefault("--report");
         CliCompositionRunSupport.EnsureReportDoesNotAliasProtectedPaths(
-            options.Values.GetValueOrDefault("--report"),
+            reportPath,
             bindings,
             outputTarget,
-            action == "build");
+            build && !bundleBuild);
 
-        bool build = action == "build";
-        CompositionRunResult result = await host.CompositionExecution
+        CompositionRunResult result = await services.Execution
             .ExecuteAsync(
                 new AcceptedCompositionExecutionRequest(
                     prepared.Snapshot!,
                     slotPaths,
                     build,
-                    outputPath: build ? outputTarget.FullPath : null,
-                    previewOutputFileName: !build && options.Values.ContainsKey("--output")
+                    outputPath: build && hasExplicitOutput && !bundleBuild
+                        ? outputTarget.FullPath
+                        : null,
+                    previewOutputFileName: !build && hasExplicitOutput
                         ? outputTarget.FileName
-                        : null),
+                        : null,
+                    automaticOutputDirectory: build && !hasExplicitOutput && !bundleBuild
+                        ? outputTarget.OutputDirectory
+                        : null,
+                    reportPath: build ? reportPath : null,
+                    outputBundle: outputBundle),
                 new CompositionRunProgressFeed(),
                 cancellationToken)
             .ConfigureAwait(false);
-        string? reportPath = options.Values.GetValueOrDefault("--report");
+        CliCompositionRunSupport.EnsureReportDoesNotAliasProtectedPaths(
+            reportPath,
+            bindings,
+            new CliOutputTarget(outputTarget.OutputDirectory, result.OutputFileName),
+            build && !bundleBuild);
         if (!string.IsNullOrWhiteSpace(reportPath))
         {
             await CliCompositionRunSupport.WriteReportJsonAsync(
@@ -208,6 +337,7 @@ public static partial class CliApplication
         }
         await PrintRunResultAsync(result, selectedProfile.IcId, output, error)
             .ConfigureAwait(false);
+        await CliBundleOptions.PrintReceiptAsync(result, output).ConfigureAwait(false);
         return result.Succeeded ? Success : CompositionFailed;
     }
 

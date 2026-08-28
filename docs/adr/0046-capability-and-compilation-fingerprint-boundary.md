@@ -6,6 +6,9 @@
 - Owners: Product owner + architecture owner
 - Risk: R2 architecture and policy contract; existing R3 firmware evidence gates remain unchanged
 - Amends: ADR 0015, ADR 0038, and ADR 0043
+- Amended by: ADR 0052 for exact CtrlRAM report-metadata map counterparts
+- Amended: 2026-08-25 by the repository owner to keep support publication
+  independent from evidence rank while preserving every R3 release gate
 
 ## Context
 
@@ -59,7 +62,11 @@ and runtime-reference routes retain their declared processor plus independently
 derived typed selector, plan-template, and report-metadata bindings. Processor
 authority comes only from the compiled invocation, report projection and source
 identity come only from report-classification entries in the metadata plan, and
-the postbuild proof is bound to the exact compilation. The proof also verifies
+CtrlRAM report metadata additionally binds the exact Standard-profile map id
+declared and admitted under ADR 0052. Capacity, IC identity, or input length
+cannot select or substitute that map. The actual materialized report entries
+must retain the same map id or compilation admission fails. The postbuild proof
+is bound to the exact compilation. The proof also verifies
 that compiled write ranges are the closed union of exact planner sections,
 complete compiler mappings, processor-authorized resolved write views, typed
 postbuild validation authority, and metadata-located firmware-version backup
@@ -135,10 +142,18 @@ compilation state. Adding or removing a member of the set changes
 No current project supplies an owner-approved complete golden for the NT51928
 dual-capacity Standard Merge or DP Replace capability. Those routes remain
 `ContractOnly`, not `DirectGolden`. Existing byte, changed-input, and
-source-projection regression tests are contract/oracle evidence only; they do
-not promote publication or support. A future complete project golden requires
-the normal firmware-owner review and an exact current capability/compilation
-binding before evidence can be upgraded.
+source-projection regression tests are contract/oracle evidence only and cannot
+upgrade the evidence rank. A future complete project golden requires the normal
+firmware-owner review and an exact current capability/compilation binding before
+evidence can be upgraded.
+
+The 2026-08-25 owner decision separately publishes the exact NT51928 Standard
+Merge route as `Supported + Available`; its evidence remains honestly
+`ContractOnly`. The NT51928 DP Replace route remains `Internal + Unavailable`.
+`Supported + ContractOnly` is a product-publication decision, not a claim of
+independent byte parity and not release certification. It does not waive the
+firmware-owner, exact write-range, packaged Windows processor, clean-machine,
+signing, or release-owner R3 gates.
 
 ## Consequences
 
@@ -156,8 +171,9 @@ binding before evidence can be upgraded.
   evaluated for that compilation. A target with no canonical General Replace
   route or golden evidence fails route admission before any runtime probe and
   cannot fabricate a plan-only report.
-- This decision does not change firmware ranges, output bytes, processor write
-  authority, evidence rank, publication status, or support.
+- This decision and its 2026-08-25 amendment do not change firmware ranges,
+  output bytes, processor write authority, or evidence rank. Publication is an
+  independent exact-route policy decision and cannot rewrite evidence.
 
 ## Verification
 
@@ -180,7 +196,8 @@ binding before evidence can be upgraded.
   by the accepted `ResolvedCapability`, not another instance with matching
   fingerprint strings.
 - NT51928 Support Matrix evidence remains `ContractOnly` until an approved
-  complete project golden exists.
+  complete project golden exists, even while the exact Standard Merge route is
+  published as supported.
 
 ## Non-goals
 

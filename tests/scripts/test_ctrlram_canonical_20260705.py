@@ -112,30 +112,13 @@ class CtrlRamCanonical20260705Tests(unittest.TestCase):
         self.assertIn("512 KiB", scope)
         self.assertIn("NB is explicitly excluded", case["ownerApproval"])
 
-    def test_legacy_manifest_retains_only_nt51926_controls(self) -> None:
-        legacy = json.loads((LEGACY_ROOT / "manifest.json").read_text(encoding="utf-8"))
-        self.assertEqual(set(DIRECT_CASES), set(legacy["canonicalDirectEvidenceCases"]))
-        self.assertEqual(
-            {
-                "nt51926-cascade-self-20260705",
-                "nt51926-cascade-tp-base-self-regression-20260717",
-            },
-            {case["id"] for case in legacy["cases"]},
-        )
-        migrated = {
-            path
-            for case_id in DIRECT_CASES
-            for artifact in self.cases[case_id]["artifacts"]
-            for path in artifact["legacyPaths"]
-        }
-        remaining = {
-            "testdata/golden/ctrlram-replace/" + path.relative_to(LEGACY_ROOT).as_posix()
-            for path in LEGACY_ROOT.rglob("*.bin")
-            if not path.is_relative_to(LEGACY_ROOT / "fixtures/20260717")
-            and not path.is_relative_to(LEGACY_ROOT / "fixtures/20260718")
-        }
-        self.assertTrue(migrated.isdisjoint(remaining))
-        self.assertEqual(8, len(remaining))
+    def test_active_legacy_fixture_authority_is_retired(self) -> None:
+        self.assertFalse((LEGACY_ROOT / "manifest.json").exists())
+        self.assertFalse((LEGACY_ROOT / "manifest.template.json").exists())
+        self.assertFalse((LEGACY_ROOT / "fixtures/20260705").exists())
+        self.assertFalse((LEGACY_ROOT / "fixtures/derived").exists())
+        self.assertTrue((LEGACY_ROOT / "manifest.20260717.json").is_file())
+        self.assertTrue((LEGACY_ROOT / "fixtures/20260717").is_dir())
 
     def test_source_archive_identity_is_pinned(self) -> None:
         collection = next(

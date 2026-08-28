@@ -32,17 +32,22 @@ public sealed class GeneralSelectedFileExecutionLifecycleTests
 
         var session = new AuthoringSessionState(
             ExperienceIds.GeneralMerge);
+        var progress = new RecordingAuthoringInspectionProgress();
         GeneralAuthoringSessionPreparation prepared =
             await BootstrapTestHost.Services.GeneralAuthoring
                 .PrepareMergeSessionAsync(
                 session,
-                "NT51950",
-                GeneralMergeAuthoringUseCase.CreateDraft(
-                    ResolveGeneralMergeInitializer("0x10"),
-                    unboundDraft),
-                TestContext.Current.CancellationToken);
+                    "NT51950",
+                    GeneralMergeAuthoringUseCase.CreateDraft(
+                        ResolveGeneralMergeInitializer("0x10"),
+                        unboundDraft),
+                    TestContext.Current.CancellationToken,
+                    progress);
 
         Assert.False(prepared.Succeeded);
+        Assert.Equal(
+            [new AuthoringInspectionProgress(0, 1), new AuthoringInspectionProgress(1, 1)],
+            progress.Updates);
         Assert.Null(prepared.AcceptedSession);
         Assert.False(File.Exists(@"C:\does-not-exist\source.bin"));
     }
@@ -150,6 +155,7 @@ public sealed class GeneralSelectedFileExecutionLifecycleTests
                 "0x2"),
         ]);
         var session = new AuthoringSessionState(ExperienceIds.GeneralReplace);
+        var progress = new RecordingAuthoringInspectionProgress();
 
         GeneralAuthoringSessionPreparation prepared =
             await BootstrapTestHost.Services.GeneralAuthoring
@@ -159,11 +165,19 @@ public sealed class GeneralSelectedFileExecutionLifecycleTests
                 IcNumberSelectionTokens.SingleChip,
                 basePath,
                 draft,
-                TestContext.Current.CancellationToken);
+                TestContext.Current.CancellationToken,
+                progress);
 
         Assert.True(
             prepared.Succeeded,
             string.Join(" | ", prepared.Issues.Select(static issue => issue.Message)));
+        Assert.Equal(
+            [
+                new AuthoringInspectionProgress(0, 2),
+                new AuthoringInspectionProgress(1, 2),
+                new AuthoringInspectionProgress(2, 2),
+            ],
+            progress.Updates);
         ResolvedCapability initialCapability = Assert.IsType<ResolvedCapability>(
             prepared.AcceptedSession!.GetAcceptedCapability(
                 AuthoringDerivedResultKind.Validation));

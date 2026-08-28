@@ -47,6 +47,8 @@ public sealed partial class AbMergeRuntimeAdmissionTests
         Assert.Equal(
             new CompiledInputVersionObservation(CompiledInputVersionKind.TpB, 0x82, 0x03),
             Assert.Single(b.AbMergeFacts!.Versions));
+        Assert.Null(dp.DpVersion);
+        Assert.Null(dp.CmiDpCode);
         Assert.False(dp.InputSlotStatus.BlocksBuild);
         Assert.False(a.InputSlotStatus!.BlocksBuild);
         Assert.False(b.InputSlotStatus!.BlocksBuild);
@@ -96,6 +98,8 @@ public sealed partial class AbMergeRuntimeAdmissionTests
                 new CompiledInputVersionObservation(CompiledInputVersionKind.DpB, 0x83, 0x04, 0x456),
             ],
             inspection.AbMergeFacts!.Versions);
+        Assert.Null(inspection.DpVersion);
+        Assert.Null(inspection.CmiDpCode);
     }
 
     /// <summary>Metadata stays bounded to the canonical accepted source view.</summary>

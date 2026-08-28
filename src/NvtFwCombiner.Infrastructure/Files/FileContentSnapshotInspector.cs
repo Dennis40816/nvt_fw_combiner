@@ -11,7 +11,11 @@ namespace NvtFwCombiner.Infrastructure.Files;
 public sealed class FileContentSnapshotInspector
     : ISelectedFileContentInspector
 {
-    private readonly string[] _allowedRoots;
+    private readonly string[]? _allowedRoots;
+
+    internal FileContentSnapshotInspector()
+    {
+    }
 
     /// <summary>Creates a selected-file inspector constrained to allowed roots.</summary>
     public FileContentSnapshotInspector(IEnumerable<string> allowedRoots)
@@ -36,9 +40,10 @@ public sealed class FileContentSnapshotInspector
         CancellationToken cancellationToken)
     {
         ArgumentOutOfRangeException.ThrowIfNegativeOrZero(maximumBytes);
+        string fullPath = Path.GetFullPath(selectedPath);
         string path = FileSystemPathGuard.ResolveExistingFileUnderRoots(
-            selectedPath,
-            _allowedRoots);
+            fullPath,
+            _allowedRoots ?? [FileSystemPathGuard.ResolveExistingRoot(Path.GetDirectoryName(fullPath)!)]);
         await using var stream = new FileStream(
             path,
             new FileStreamOptions
@@ -69,8 +74,7 @@ public sealed class FileContentSnapshotInspector
                     Convert.ToHexStringLower(sha256)),
                 Path.GetFileName(path),
                 acceptedBytes: acceptedBytes)
-            : throw new IOException(
-                "Selected file length changed during complete-content inspection.");
+            : throw new SelectedFileChangedDuringInspectionException();
     }
 
     /// <summary>
@@ -112,8 +116,7 @@ public sealed class FileContentSnapshotInspector
                 .ConfigureAwait(false);
             if (read == 0)
             {
-                throw new IOException(
-                    "Selected file length changed during complete-content inspection.");
+                throw new SelectedFileChangedDuringInspectionException();
             }
 
             hash.AppendData(acceptedBytes, offset, read);
@@ -127,7 +130,6 @@ public sealed class FileContentSnapshotInspector
             .ConfigureAwait(false);
         return trailingRead == 0
             ? (acceptedBytes, hash.GetHashAndReset())
-            : throw new IOException(
-                "Selected file length changed during complete-content inspection.");
+            : throw new SelectedFileChangedDuringInspectionException();
     }
 }

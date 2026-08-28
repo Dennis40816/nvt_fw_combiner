@@ -1,9 +1,9 @@
 {
   "schemaVersion": "1.0",
   "bundleId": "nt51950-ctrlram-replace-candidate",
-  "bundleVersion": "0.10.0-candidate.2",
+  "bundleVersion": "0.10.0-candidate.3",
   "hashAlgorithm": "sha256-rfc8785-entry-array-v1",
-  "contentHash": "793e521f1015569ed57cb01033bf6e501abcc55c16b5fd890c7525af3e169926",
+  "contentHash": "86c06344e50856d590dc58bb0485de06ec9dcef825076a92a83574a3a0d6b554",
   "trustAnchorBindingId": "built-in-profile-bundle-v2",
   "entries": [
     {
@@ -32,14 +32,14 @@
       "kind": "composition-profile",
       "path": "profiles/nt51950-ctrlram-replace-fw200-single.json",
       "schemaId": "https://example.invalid/nfc/schemas/composition-profile-v2.schema.json",
-      "contentHash": "b3f96c02f496c2e67774873c01af7e9a77c203e6f303bc19c13c6c382c2f8149"
+      "contentHash": "39b9904b7114caf6dbc81bd2ac33e599c724424940ca841032d85e3fc9032e5d"
     },
     {
       "entryId": "nt51950-ctrlram-replace-fw1x-cascade-profile",
       "kind": "composition-profile",
       "path": "profiles/nt51950-ctrlram-replace-fw1x-cascade.json",
       "schemaId": "https://example.invalid/nfc/schemas/composition-profile-v2.schema.json",
-      "contentHash": "f48dc448b13e41d6c57f0b9c747d8bddf04b9d71a88aa8a915d9e24348a281d8"
+      "contentHash": "9a30fd2366a38364ec2ade5c59912b7e0f9201f3bb8d052afbda30399d8e2aed"
     }
   ]
 }

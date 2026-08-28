@@ -3,9 +3,8 @@ using NvtFwCombiner.Application.HexEditor;
 
 namespace NvtFwCombiner.Presentation.Avalonia.ViewModels;
 
-public sealed partial class HexEditorWorkspaceViewModel
+internal sealed partial class HexEditorWorkspaceViewModel
 {
-    /// <summary>Loads one BIN once through the Bootstrap adapter into the editor-owned memory buffer.</summary>
     public async Task LoadAsync(string path, CancellationToken cancellationToken = default)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(path);

@@ -3,7 +3,10 @@ namespace NvtFwCombiner.Presentation.Avalonia.ViewModels;
 /// <summary>Formats local firmware paths consistently for display without changing the selected artifact path.</summary>
 internal static class FirmwarePathDisplay
 {
-    /// <summary>Returns an absolute local path using the platform display separator.</summary>
+    private static readonly StringComparer PathComparer = OperatingSystem.IsWindows()
+        ? StringComparer.OrdinalIgnoreCase
+        : StringComparer.Ordinal;
+
     internal static string Normalize(string path)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(path);
@@ -16,5 +19,12 @@ internal static class FirmwarePathDisplay
         {
             return path.Replace(Path.AltDirectorySeparatorChar, Path.DirectorySeparatorChar);
         }
+    }
+
+    internal static bool AreSame(string first, string second)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(first);
+        ArgumentException.ThrowIfNullOrWhiteSpace(second);
+        return PathComparer.Equals(Normalize(first), Normalize(second));
     }
 }

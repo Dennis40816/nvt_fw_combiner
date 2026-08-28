@@ -10,6 +10,7 @@ internal sealed class StartupTraceSession
     private readonly Func<long> _allocatedBytesProvider;
     private readonly Func<long> _timestampProvider;
     private readonly Func<DateTimeOffset> _utcNowProvider;
+    private readonly bool _isTimingEnabled;
     private readonly long _originAllocatedBytes;
     private readonly long _originTimestamp;
     private readonly DateTimeOffset _startedUtc;
@@ -23,7 +24,8 @@ internal sealed class StartupTraceSession
         Func<long> allocatedBytesProvider,
         long originTimestamp,
         long originAllocatedBytes,
-        DateTimeOffset startedUtc)
+        DateTimeOffset startedUtc,
+        bool isTimingEnabled)
     {
         _outputPath = outputPath;
         _timestampProvider = timestampProvider;
@@ -32,6 +34,7 @@ internal sealed class StartupTraceSession
         _originTimestamp = originTimestamp;
         _originAllocatedBytes = originAllocatedBytes;
         _startedUtc = startedUtc;
+        _isTimingEnabled = isTimingEnabled;
         if (outputPath is not null)
         {
             _points = [new StartupTracePoint("managed-entry", 0, 0, 0)];
@@ -39,23 +42,30 @@ internal sealed class StartupTraceSession
     }
 
     internal static StartupTraceSession Disabled { get; } =
-        new(null, Stopwatch.GetTimestamp, GetUtcNow, static () => 0, 0, 0, default);
+        new(null, Stopwatch.GetTimestamp, GetUtcNow, static () => 0, 0, 0, default, false);
 
     internal bool IsEnabled => _points is not null;
 
+    internal TimeSpan? ElapsedSinceManagedEntry => _isTimingEnabled
+        ? Stopwatch.GetElapsedTime(_originTimestamp, _timestampProvider())
+        : null;
+
     internal static StartupTraceSession StartFromEnvironment()
     {
-        return Create(Environment.GetEnvironmentVariable(OutputPathEnvironmentVariable));
+        return Create(
+            Environment.GetEnvironmentVariable(OutputPathEnvironmentVariable),
+            measureWithoutOutput: true);
     }
 
     internal static StartupTraceSession Create(
         string? outputPath,
         Func<long>? timestampProvider = null,
         Func<DateTimeOffset>? utcNowProvider = null,
-        Func<long>? allocatedBytesProvider = null)
+        Func<long>? allocatedBytesProvider = null,
+        bool measureWithoutOutput = false)
     {
         string? normalizedPath = string.IsNullOrWhiteSpace(outputPath) ? null : outputPath.Trim();
-        if (normalizedPath is null)
+        if (normalizedPath is null && !measureWithoutOutput)
         {
             return Disabled;
         }
@@ -70,7 +80,8 @@ internal sealed class StartupTraceSession
             allocatedBytes,
             timestamps(),
             allocatedBytes(),
-            utcNow());
+            utcNow(),
+            true);
     }
 
     internal void Mark(string stage)
@@ -93,7 +104,9 @@ internal sealed class StartupTraceSession
             Math.Max(0, allocatedBytes - previousAllocatedBytes)));
     }
 
-    internal bool Complete(string finalStage)
+    internal bool Complete(
+        string finalStage,
+        IReadOnlyList<ShellPreloadStageSnapshot>? preloadStages = null)
     {
         if (_points is null || _outputPath is null || _isComplete)
         {
@@ -106,7 +119,8 @@ internal sealed class StartupTraceSession
             _outputPath,
             _startedUtc,
             _utcNowProvider(),
-            _points);
+            _points,
+            preloadStages ?? []);
     }
 
     private static DateTimeOffset GetUtcNow()

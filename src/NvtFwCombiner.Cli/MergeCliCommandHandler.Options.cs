@@ -14,8 +14,8 @@ internal static partial class MergeCliCommandHandler
             new Dictionary<string, string>(StringComparer.Ordinal),
             new Dictionary<string, List<string>>(StringComparer.Ordinal));
         string[] valueOptions = build
-            ? ["--profile", "--size", "--fill", "--mapping", "--rule", "--slot", "--output", "--report"]
-            : ["--profile", "--size", "--fill", "--mapping", "--rule", "--slot", "--report"];
+            ? ["--profile", "--size", "--fill", "--mapping", "--rule", "--slot", "--output", "--report", CliBundleOptions.ParentOption, CliBundleOptions.NameOption]
+            : ["--profile", "--size", "--fill", "--mapping", "--rule", "--slot", "--report", CliBundleOptions.ParentOption, CliBundleOptions.NameOption];
         string[] repeatableOptions = ["--mapping", "--slot"];
         for (int index = 0; index < args.Length; index++)
         {

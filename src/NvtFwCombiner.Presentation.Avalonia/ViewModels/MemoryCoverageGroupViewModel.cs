@@ -1,28 +1,53 @@
 using System.Collections.ObjectModel;
 using CommunityToolkit.Mvvm.ComponentModel;
+using NvtFwCombiner.Application.MemoryLayout;
 
 namespace NvtFwCombiner.Presentation.Avalonia.ViewModels;
 
-/// <summary>Collapsible memory coverage group for repeated region families.</summary>
-public sealed partial class MemoryCoverageGroupViewModel : ObservableObject
+internal sealed partial class MemoryCoverageInteractionState : ObservableObject
+{
+    private readonly HashSet<object> _focusOwners = [];
+    private readonly HashSet<object> _pointerOwners = [];
+
+    [ObservableProperty]
+    public partial bool IsActive { get; private set; }
+
+    internal void SetPointerActive(object owner, bool active)
+    {
+        SetActivity(_pointerOwners, owner, active);
+    }
+
+    internal void SetFocusActive(object owner, bool active)
+    {
+        SetActivity(_focusOwners, owner, active);
+    }
+
+    private void SetActivity(HashSet<object> owners, object owner, bool active)
+    {
+        ArgumentNullException.ThrowIfNull(owner);
+        bool changed = active ? owners.Add(owner) : owners.Remove(owner);
+        if (changed)
+        {
+            IsActive = _pointerOwners.Count > 0 || _focusOwners.Count > 0;
+        }
+    }
+}
+
+internal sealed partial class MemoryCoverageGroupViewModel : ObservableObject
 {
     private readonly ShellTextResources _text;
-    /// <summary>Creates a memory coverage group.</summary>
     public MemoryCoverageGroupViewModel(
         string title,
-        string summary,
-        IEnumerable<MemoryCoverageSegmentViewModel> segments,
+        IEnumerable<MemoryCoverageLogicalItemViewModel> items,
         bool isExpanded,
         ReplaceRegionGroup regionGroup,
         ShellTextResources text)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(title);
-        ArgumentException.ThrowIfNullOrWhiteSpace(summary);
-        ArgumentNullException.ThrowIfNull(segments);
+        ArgumentNullException.ThrowIfNull(items);
 
         Title = title;
-        Summary = summary;
-        Segments = [.. segments];
+        Items = [.. items];
         IsExpanded = isExpanded;
         RegionGroup = regionGroup;
         _text = text ?? throw new ArgumentNullException(nameof(text));
@@ -31,33 +56,178 @@ public sealed partial class MemoryCoverageGroupViewModel : ObservableObject
     /// <summary>Group label shown in the expander header.</summary>
     public string Title { get; }
 
-    /// <summary>Plain-language group summary.</summary>
-    public string Summary { get; }
+    public ObservableCollection<MemoryCoverageLogicalItemViewModel> Items { get; }
 
-    /// <summary>Segments inside this group.</summary>
-    public ObservableCollection<MemoryCoverageSegmentViewModel> Segments { get; }
+    public int SegmentCount => Items.Count;
 
-    /// <summary>Number of memory segments in this group.</summary>
-    public int SegmentCount => Segments.Count;
-
-    /// <summary>Typed grouping independent of localized title text.</summary>
     public ReplaceRegionGroup RegionGroup { get; }
 
-    /// <summary>Number of coverage segments written by the active operation type.</summary>
-    public int ChangedCount => Segments.Count(segment => segment.IsChanged);
+    public int SelectedCount => Items.Count(item => item.IsSelectedForWrite);
 
-    /// <summary>Compact changed/total count shown in collapsed headers.</summary>
-    public string CountLabel => IsBaseFirmwareGroup ? $"{SegmentCount}" : $"{ChangedCount}/{SegmentCount}";
+    /// <summary>Compact selected/total count shown in collapsed headers.</summary>
+    public string CountLabel => IsBaseFirmwareGroup ? $"{SegmentCount}" : $"{SelectedCount}/{SegmentCount}";
 
-    /// <summary>Plain-language group summary that is quick to scan.</summary>
-    public string ChangeSummary => _text.FormatCoverageChangeSummary(
+    public string SelectionSummary => _text.FormatCoverageSelectionSummary(
         IsBaseFirmwareGroup,
-        ChangedCount,
+        SelectedCount,
         SegmentCount);
 
-    /// <summary>True when the group is expanded in the UI.</summary>
     [ObservableProperty]
     public partial bool IsExpanded { get; set; }
 
-    private bool IsBaseFirmwareGroup => RegionGroup == ReplaceRegionGroup.Base;
+    public bool IsBaseFirmwareGroup => RegionGroup == ReplaceRegionGroup.Base;
+}
+
+internal sealed class MemoryCoverageLogicalItemViewModel
+{
+    public MemoryCoverageLogicalItemViewModel(
+        string displayId,
+        IEnumerable<MemoryCoverageSegmentViewModel> ranges,
+        ShellTextResources text)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(displayId);
+        ArgumentNullException.ThrowIfNull(ranges);
+        ArgumentNullException.ThrowIfNull(text);
+
+        MemoryCoverageSegmentViewModel[] projectedSegments = [.. ranges];
+        if (projectedSegments.Length == 0)
+        {
+            throw new ArgumentException("A logical memory item requires at least one range.", nameof(ranges));
+        }
+
+        MemoryCoverageSegmentViewModel primary =
+            projectedSegments.FirstOrDefault(static range => range.IsSelectedForWrite) ?? projectedSegments[0];
+        Interaction = new MemoryCoverageInteractionState();
+        foreach (MemoryCoverageSegmentViewModel segment in projectedSegments)
+        {
+            segment.Interaction = Interaction;
+        }
+        DisplayId = displayId;
+        Ranges = ProjectRanges(projectedSegments, text);
+        foreach (MemoryCoverageSegmentViewModel range in Ranges)
+        {
+            range.Interaction = Interaction;
+        }
+        Segments = Array.AsReadOnly(projectedSegments);
+        SourceLabel = primary.LogicalSourceLabel;
+        long? totalLength = Ranges.All(static range => range.RangeStart.HasValue)
+            ? Ranges.Sum(static range => range.RangeEndExclusive!.Value - range.RangeStart!.Value)
+            : null;
+        RangeSummaryLabel = text.FormatMemoryCoverageRangeSummary(Ranges.Count, totalLength);
+        string rangeDetails = string.Join(" ", Ranges.Select(static range => range.AccessibleDetail));
+        AccessibleDetail = HasMultipleRanges
+            ? $"{SourceLabel}. {RangeSummaryLabel}. {rangeDetails}"
+            : $"{SourceLabel}. {rangeDetails}";
+    }
+
+    /// <summary>Stable typed projection identity used to prevent duplicate top-level entries.</summary>
+    public string DisplayId { get; }
+
+    public string SourceLabel { get; }
+
+    /// <summary>Correlated pointer/focus state shared with every rendered segment.</summary>
+    public MemoryCoverageInteractionState Interaction { get; }
+
+    public IReadOnlyList<MemoryCoverageSegmentViewModel> Ranges { get; }
+
+    public MemoryCoverageSegmentViewModel PrimaryRange => Ranges[0];
+
+    public IReadOnlyList<MemoryCoverageSegmentViewModel> Segments { get; }
+
+    public bool UsesKeptPattern => Segments.All(static range => range.UsesKeptPattern);
+
+    public bool IsSelectedForWrite => Segments.Any(static range => range.IsSelectedForWrite);
+
+    public bool HasAttentionDiagnostic => Segments.Any(static range => range.HasAttentionDiagnostic);
+
+    public bool HasMultipleRanges => Ranges.Count > 1;
+
+    public bool HasSingleRange => Ranges.Count == 1;
+
+    public string RangeSummaryLabel { get; }
+
+    public string AccessibleDetail { get; }
+
+    private static IReadOnlyList<MemoryCoverageSegmentViewModel> ProjectRanges(
+        IEnumerable<MemoryCoverageSegmentViewModel> segments,
+        ShellTextResources text)
+    {
+        MemoryCoverageSegmentViewModel[] ordered =
+        [
+            .. segments.OrderBy(static segment => segment.RangeStart ?? long.MaxValue),
+        ];
+        var bundles = new List<List<MemoryCoverageSegmentViewModel>>();
+        foreach (MemoryCoverageSegmentViewModel segment in ordered)
+        {
+            List<MemoryCoverageSegmentViewModel>? current = bundles.LastOrDefault();
+            if (current is null ||
+                current[^1].RangeEndExclusive is not { } currentEnd ||
+                segment.RangeStart != currentEnd ||
+                current[^1].RegionGroup != segment.RegionGroup ||
+                current[^1].ContentRole != segment.ContentRole ||
+                current[^1].CtrlRamRegionRole != segment.CtrlRamRegionRole ||
+                current[^1].HasPreservationDetails ||
+                segment.HasPreservationDetails)
+            {
+                current = [];
+                bundles.Add(current);
+            }
+            current.Add(segment);
+        }
+
+        return
+        [
+            .. bundles.Select(bundle => ProjectRange(bundle, text)),
+        ];
+    }
+
+    private static MemoryCoverageSegmentViewModel ProjectRange(
+        List<MemoryCoverageSegmentViewModel> projected,
+        ShellTextResources text)
+    {
+        if (projected.Count == 1)
+        {
+            return projected[0];
+        }
+
+        MemoryCoverageSegmentViewModel primary =
+            projected.FirstOrDefault(static segment => segment.IsSelectedForWrite) ?? projected[0];
+        long start = projected[0].RangeStart!.Value;
+        long endExclusive = projected[^1].RangeEndExclusive!.Value;
+        bool isPartial = projected.Any(static segment => segment.IsSelectedForWrite) &&
+            projected.Any(static segment => segment.UsesKeptPattern);
+        string detail = isPartial
+            ? text.FormatMemoryCoveragePartialReplaceDetail(primary.SourceLabel)
+            : string.Join(
+                " ",
+                projected.Select(static segment => segment.CompactDetail).Distinct(StringComparer.Ordinal));
+        string addressRange = FormattableString.Invariant($"0x{start:X5}-0x{endExclusive - 1:X5}");
+        string length = FormattableString.Invariant($"len 0x{endExclusive - start:X}");
+        return new MemoryCoverageSegmentViewModel(
+            $"{addressRange} ({length})",
+            primary.SourceLabel,
+            detail,
+            primary.FillRole,
+            projected.Sum(static segment => segment.BarWidth),
+            disposition: primary.Disposition,
+            observedChange: projected.Any(static segment => segment.IsChanged)
+                ? MemoryObservedChange.Changed
+                : MemoryObservedChange.NotObserved,
+            diagnosticSeverity: projected.Max(static segment => segment.DiagnosticSeverity),
+            usesBaseFirmwarePattern: projected.All(static segment => segment.UsesKeptPattern),
+            regionId: primary.RegionId,
+            sourceSlotId: primary.SourceSlotId,
+            logicalSourceLabel: primary.LogicalSourceLabel,
+            text: text,
+            regionGroup: primary.RegionGroup,
+            rangeStart: start,
+            rangeEndExclusive: endExclusive,
+            addressRangeLabel: addressRange,
+            lengthLabel: length,
+            compactDetail: detail,
+            changeLabel: isPartial ? text.GetMemoryCoveragePartialReplaceLabel() : null,
+            logicalCoverageGroupId: primary.LogicalCoverageGroupId,
+            contentRole: primary.ContentRole,
+            ctrlRamRegionRole: primary.CtrlRamRegionRole);
+    }
 }

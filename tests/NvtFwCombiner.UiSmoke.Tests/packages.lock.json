@@ -2,6 +2,16 @@
   "version": 2,
   "dependencies": {
     "net10.0": {
+      "Avalonia.Headless.XUnit": {
+        "type": "Direct",
+        "requested": "[12.0.5, )",
+        "resolved": "12.0.5",
+        "contentHash": "4YGiNANFsv4Cac2BU02YWE4jKth5ROZJ9TkGueJ4vDYS0lvX9aoBBO8nvlryWU7y2h5GsNFRjkwgkcRmRbtZ+Q==",
+        "dependencies": {
+          "Avalonia.Headless": "12.0.5",
+          "xunit.v3.extensibility.core": "3.2.2"
+        }
+      },
       "coverlet.collector": {
         "type": "Direct",
         "requested": "[6.0.4, )",
@@ -69,6 +79,16 @@
           "HarfBuzzSharp": "8.3.1.3",
           "HarfBuzzSharp.NativeAssets.Linux": "8.3.1.3",
           "HarfBuzzSharp.NativeAssets.WebAssembly": "8.3.1.3"
+        }
+      },
+      "Avalonia.Headless": {
+        "type": "Transitive",
+        "resolved": "12.0.5",
+        "contentHash": "F+o+kxHts+hhpUVtzeCe4U7ZLDWbpeVIX8LhoHSw/3oUQHlh+OrO9MGZSMae72hKFRE+r4AJh0kuhzIeWDFgdQ==",
+        "dependencies": {
+          "Avalonia": "12.0.5",
+          "Avalonia.Fonts.Inter": "12.0.5",
+          "Avalonia.HarfBuzz": "12.0.5"
         }
       },
       "Avalonia.Native": {
@@ -344,15 +364,17 @@
       "nvtfwcombiner.application": {
         "type": "Project",
         "dependencies": {
-          "NvtFwCombiner.Contracts": "[0.10.3, )",
-          "NvtFwCombiner.Domain": "[0.10.3, )"
+          "NvtFwCombiner.Contracts": "[1.0.0, )",
+          "NvtFwCombiner.Domain": "[1.0.0, )"
         }
       },
       "nvtfwcombiner.bootstrap": {
         "type": "Project",
         "dependencies": {
-          "NvtFwCombiner.Application": "[0.10.3, )",
-          "NvtFwCombiner.Infrastructure": "[0.10.3, )"
+          "NvtFwCombiner.Application": "[1.0.0, )",
+          "NvtFwCombiner.Infrastructure": "[1.0.0, )",
+          "NvtFwCombiner.VersionManagement.Application": "[1.0.0, )",
+          "NvtFwCombiner.VersionManagement.Infrastructure": "[1.0.0, )"
         }
       },
       "nvtfwcombiner.contracts": {
@@ -365,10 +387,10 @@
         "type": "Project",
         "dependencies": {
           "JsonSchema.Net": "[8.0.5, )",
-          "NvtFwCombiner.Application": "[0.10.3, )",
-          "NvtFwCombiner.Contracts": "[0.10.3, )",
-          "NvtFwCombiner.Domain": "[0.10.3, )",
-          "NvtFwCombiner.Profiles": "[0.10.3, )"
+          "NvtFwCombiner.Application": "[1.0.0, )",
+          "NvtFwCombiner.Contracts": "[1.0.0, )",
+          "NvtFwCombiner.Domain": "[1.0.0, )",
+          "NvtFwCombiner.Profiles": "[1.0.0, )"
         }
       },
       "nvtfwcombiner.presentation.avalonia": {
@@ -379,21 +401,37 @@
           "Avalonia.Fonts.Inter": "[12.0.5, )",
           "Avalonia.Themes.Fluent": "[12.0.5, )",
           "CommunityToolkit.Mvvm": "[8.4.2, )",
-          "NvtFwCombiner.Application": "[0.10.3, )"
+          "NvtFwCombiner.Application": "[1.0.0, )",
+          "NvtFwCombiner.VersionManagement.Application": "[1.0.0, )"
         }
       },
       "nvtfwcombiner.profiles": {
         "type": "Project",
         "dependencies": {
-          "NvtFwCombiner.Contracts": "[0.10.3, )",
-          "NvtFwCombiner.Domain": "[0.10.3, )"
+          "NvtFwCombiner.Contracts": "[1.0.0, )",
+          "NvtFwCombiner.Domain": "[1.0.0, )"
         }
       },
       "nvtfwcombiner.testsupport": {
         "type": "Project",
         "dependencies": {
-          "NvtFwCombiner.Application": "[0.10.3, )",
-          "NvtFwCombiner.Infrastructure": "[0.10.3, )"
+          "NvtFwCombiner.Application": "[1.0.0, )",
+          "NvtFwCombiner.Infrastructure": "[1.0.0, )",
+          "NvtFwCombiner.VersionManagement.Application": "[1.0.0, )"
+        }
+      },
+      "nvtfwcombiner.versionmanagement.application": {
+        "type": "Project",
+        "dependencies": {
+          "NvtFwCombiner.Contracts": "[1.0.0, )"
+        }
+      },
+      "nvtfwcombiner.versionmanagement.infrastructure": {
+        "type": "Project",
+        "dependencies": {
+          "JsonSchema.Net": "[8.0.5, )",
+          "NvtFwCombiner.Contracts": "[1.0.0, )",
+          "NvtFwCombiner.VersionManagement.Application": "[1.0.0, )"
         }
       },
       "Avalonia": {

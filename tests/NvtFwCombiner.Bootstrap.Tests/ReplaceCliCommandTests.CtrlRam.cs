@@ -1,5 +1,6 @@
 using System.Security.Cryptography;
 using System.Text.Json;
+using NvtFwCombiner.Application.Authoring;
 using NvtFwCombiner.Domain.Composition;
 using NvtFwCombiner.TestSupport;
 
@@ -7,20 +8,19 @@ namespace NvtFwCombiner.Bootstrap.Tests;
 
 public sealed partial class ReplaceCliCommandTests
 {
-    private const string Nt51926TpBaseCaseId = "nt51926-cascade-tp-base-self-regression-20260717";
+    private const string Nt51926CtrlRamCaseId =
+        "nt51926-fw141-cascade2-auto-prj-597-20260717";
 
     /// <summary>Verifies malformed CtrlRAM arguments demonstrate a currently accepted physical slot id.</summary>
     [Fact]
     public async Task CtrlRamReplaceMalformedSlotUsesPhysicalVnExample()
     {
-        string basePath = RepositoryPaths.FromRepositoryRoot(
-            "testdata",
-            "golden",
+        using var workspace = TempWorkspace.Create();
+        JsonElement fixtureCase = CanonicalGoldenTestData.LoadDirectCase(
             "ctrlram-replace",
-            "fixtures",
-            "20260705",
-            "base",
-            "nt51926-2ic-csot-toyota-d02t06-jira0597-20260622.bin");
+            Nt51926CtrlRamCaseId);
+        string basePath = CanonicalGoldenTestData.ArtifactPath(
+            CanonicalGoldenTestData.Artifact(fixtureCase, "expected-output"));
 
         CliRunResult result = await RunCliAsync([
             "ctrlram-replace",
@@ -38,6 +38,29 @@ public sealed partial class ReplaceCliCommandTests
         Assert.NotEqual(0, result.ExitCode);
         Assert.Contains("--ctrlram replace-ctrlram-vn=C:\\path\\vn.bin", result.Error, StringComparison.Ordinal);
         Assert.DoesNotContain("vn-master", result.Error, StringComparison.Ordinal);
+
+        foreach (string whitespaceArgument in new[] { " =value.bin", "vn= " })
+        {
+            CliRunResult whitespace = await RunCliAsync([
+                "ctrlram-replace",
+                "preview",
+                "--profile",
+                "NT51926",
+                "--ic-num",
+                "cascade",
+                "--base",
+                workspace.PathFor("missing-base.bin"),
+                "--ctrlram",
+                whitespaceArgument,
+            ]);
+
+            Assert.Equal(64, whitespace.ExitCode);
+            Assert.Contains(
+                "real IC CtrlRAM Replace expects --ctrlram <slot-id=path>",
+                whitespace.Error,
+                StringComparison.Ordinal);
+            Assert.DoesNotContain("input.artifact.read-failed", whitespace.Error, StringComparison.Ordinal);
+        }
     }
 
     /// <summary>Locks NT51926 CtrlRAM Replace admission and postbuild when TP FW is the base image.</summary>
@@ -45,14 +68,10 @@ public sealed partial class ReplaceCliCommandTests
     public async Task Nt51926CtrlRamReplaceAcceptsTpFirmwareBase()
     {
         using var workspace = TempWorkspace.Create();
-        string fixtureRoot = RepositoryPaths.FromRepositoryRoot("testdata", "golden", "ctrlram-replace");
-        using var manifest = JsonDocument.Parse(File.ReadAllText(Path.Combine(fixtureRoot, "manifest.json")));
-        JsonElement fixtureCase = manifest.RootElement.GetProperty("cases").EnumerateArray()
-            .Single(item => item.GetProperty("id").GetString() == Nt51926TpBaseCaseId);
-        string basePath = RepositoryPaths.ManifestPath(fixtureRoot, fixtureCase.GetProperty("base"));
-        JsonElement replacement = Assert.Single(fixtureCase.GetProperty("replacementInputs").EnumerateArray());
-        string vnPath = RepositoryPaths.ManifestPath(fixtureRoot, replacement.GetProperty("file"));
-        string expectedPath = RepositoryPaths.ManifestPath(fixtureRoot, fixtureCase.GetProperty("expectedOutput"));
+        Nt51926SelectiveVnRegression fixture = LoadNt51926SelectiveVnRegression();
+        string basePath = CanonicalGoldenTestData.ArtifactPath(fixture.BaseArtifact);
+        string vnPath = CanonicalGoldenTestData.ArtifactPath(fixture.VnArtifact);
+        string expectedPath = CanonicalGoldenTestData.ArtifactPath(fixture.ExpectedArtifact);
         string previewReport = workspace.PathFor("preview-report.json");
 
         CliRunResult preview = await RunCliAsync([
@@ -77,7 +96,11 @@ public sealed partial class ReplaceCliCommandTests
         Assert.Contains("Size: 245760 bytes", preview.Output, StringComparison.Ordinal);
         Assert.Contains("postbuild-cascade", preview.Output, StringComparison.Ordinal);
         Assert.Contains("changed=16", preview.Output, StringComparison.Ordinal);
-        AssertProcessorTrace(previewReport, fixtureCase);
+        AssertProcessorTrace(
+            previewReport,
+            fixture.Regression,
+            fixture.BaseArtifact,
+            fixture.ExpectedArtifact);
 
         string outputPath = workspace.PathFor("nt51926-tp-base.bin");
         string buildReport = workspace.PathFor("build-report.json");
@@ -108,9 +131,9 @@ public sealed partial class ReplaceCliCommandTests
         Assert.Equal(0x3C000, outputBytes.Length);
         Assert.Equal(expectedBytes, outputBytes);
         Assert.Equal(
-            fixtureCase.GetProperty("expectedOutput").GetProperty("sha256").GetString(),
+            fixture.ExpectedArtifact.GetProperty("sha256").GetString(),
             Convert.ToHexString(SHA256.HashData(outputBytes)).ToLowerInvariant());
-        AssertExactChangedRanges(baseBytes, outputBytes, ReadManifestRanges(fixtureCase));
+        AssertExactChangedRanges(baseBytes, outputBytes, ReadManifestRanges(fixture.Regression));
         using (var report = JsonDocument.Parse(File.ReadAllText(buildReport)))
         {
             Assert.Equal(
@@ -121,7 +144,11 @@ public sealed partial class ReplaceCliCommandTests
                 operation => operation.GetProperty("OperationId").GetString() == "replace-vn-00");
         }
 
-        AssertProcessorTrace(buildReport, fixtureCase);
+        AssertProcessorTrace(
+            buildReport,
+            fixture.Regression,
+            fixture.BaseArtifact,
+            fixture.ExpectedArtifact);
     }
 
     /// <summary>Locks one CtrlRAM Replace result across TP-only and full-Flash base containers.</summary>
@@ -129,14 +156,13 @@ public sealed partial class ReplaceCliCommandTests
     public async Task Nt51926CtrlRamReplaceAcceptsTpAndFullFlashBasesWithTheSameTpResult()
     {
         using var workspace = TempWorkspace.Create();
-        string fixtureRoot = RepositoryPaths.FromRepositoryRoot("testdata", "golden", "ctrlram-replace");
-        using var manifest = JsonDocument.Parse(File.ReadAllText(Path.Combine(fixtureRoot, "manifest.json")));
-        JsonElement fixtureCase = manifest.RootElement.GetProperty("cases").EnumerateArray()
-            .Single(item => item.GetProperty("id").GetString() == "nt51926-cascade-self-20260705");
-        string fullFlashPath = RepositoryPaths.ManifestPath(fixtureRoot, fixtureCase.GetProperty("base"));
-        JsonElement replacement = fixtureCase.GetProperty("replacementInputs").EnumerateArray()
-            .Single(item => item.GetProperty("slotId").GetString() == "replace-ctrlram-vn");
-        string vnPath = RepositoryPaths.ManifestPath(fixtureRoot, replacement.GetProperty("file"));
+        JsonElement fixtureCase = CanonicalGoldenTestData.LoadDirectCase(
+            "ctrlram-replace",
+            Nt51926CtrlRamCaseId);
+        string fullFlashPath = CanonicalGoldenTestData.ArtifactPath(
+            CanonicalGoldenTestData.Artifact(fixtureCase, "expected-output"));
+        string vnPath = CanonicalGoldenTestData.ArtifactPath(
+            CanonicalGoldenTestData.Artifact(fixtureCase, "postbuild-vn-ctrlram"));
         byte[] fullFlashBase = File.ReadAllBytes(fullFlashPath);
         Assert.Equal(0x40000, fullFlashBase.Length);
         string tpBasePath = workspace.Write("base-tp.bin", fullFlashBase[..0x3C000]);
@@ -185,15 +211,13 @@ public sealed partial class ReplaceCliCommandTests
     {
         using var workspace = TempWorkspace.Create();
         string reportPath = workspace.PathFor("missing-base-report.json");
-        string vnPath = RepositoryPaths.FromRepositoryRoot(
-            "testdata",
-            "golden",
+        JsonElement fixtureCase = CanonicalGoldenTestData.LoadDirectCase(
             "ctrlram-replace",
-            "fixtures",
-            "20260705",
-            "inputs",
-            "nt51926-cascade-self-20260705",
-            "vn.bin");
+            Nt51926CtrlRamCaseId);
+        string vnPath = CanonicalGoldenTestData.ArtifactPath(
+            CanonicalGoldenTestData.Artifact(fixtureCase, "postbuild-vn-ctrlram"));
+        string validBasePath = CanonicalGoldenTestData.ArtifactPath(
+            CanonicalGoldenTestData.Artifact(fixtureCase, "expected-output"));
 
         CliRunResult result = await RunCliAsync([
             "ctrlram-replace",
@@ -214,6 +238,120 @@ public sealed partial class ReplaceCliCommandTests
         Assert.Contains("Base firmware BIN path does not exist.", result.Error, StringComparison.Ordinal);
         Assert.DoesNotContain("Base flash", result.Error, StringComparison.Ordinal);
         Assert.False(File.Exists(reportPath));
+
+        CliRunResult unreadableBase = await RunCliAsync([
+            "ctrlram-replace",
+            "preview",
+            "--profile",
+            "NT51926",
+            "--ic-num",
+            "cascade",
+            "--base",
+            workspace.Root,
+            "--ctrlram",
+            $"replace-ctrlram-vn={vnPath}",
+        ]);
+
+        Assert.Equal(1, unreadableBase.ExitCode);
+        Assert.Contains("input.artifact.read-failed [replace-base]", unreadableBase.Error, StringComparison.Ordinal);
+        Assert.DoesNotContain("Base firmware BIN path does not exist.", unreadableBase.Error, StringComparison.Ordinal);
+
+        string missingReplacement = workspace.PathFor("missing-vn.bin");
+        CliRunResult missingRegion = await RunCliAsync([
+            "ctrlram-replace",
+            "preview",
+            "--profile",
+            "NT51926",
+            "--ic-num",
+            "cascade",
+            "--base",
+            validBasePath,
+            "--ctrlram",
+            $"replace-ctrlram-vn={missingReplacement}",
+        ]);
+
+        Assert.Equal(1, missingRegion.ExitCode);
+        Assert.Contains("input.artifact.read-failed [replace-ctrlram-vn]", missingRegion.Error, StringComparison.Ordinal);
+        Assert.DoesNotContain("Base firmware BIN path does not exist.", missingRegion.Error, StringComparison.Ordinal);
+
+        string oversizedBase = workspace.PathFor("oversized-base.bin");
+        await CreateSparseCtrlRamFileAsync(oversizedBase, 100_000_001);
+        CliRunResult oversizedBaseResult = await RunCliAsync([
+            "ctrlram-replace",
+            "preview",
+            "--profile",
+            "NT51926",
+            "--ic-num",
+            "cascade",
+            "--base",
+            oversizedBase,
+            "--ctrlram",
+            $"replace-ctrlram-vn={vnPath}",
+        ]);
+
+        Assert.Equal(1, oversizedBaseResult.ExitCode);
+        Assert.Contains("input.artifact.read-failed [replace-base]", oversizedBaseResult.Error, StringComparison.Ordinal);
+        Assert.Contains("100000001", oversizedBaseResult.Error, StringComparison.Ordinal);
+        Assert.Contains("100000000-byte limit", oversizedBaseResult.Error, StringComparison.Ordinal);
+
+        string oversizedReplacement = workspace.PathFor("oversized-vn.bin");
+        await CreateSparseCtrlRamFileAsync(oversizedReplacement, 100_000_001);
+        CliRunResult oversizedRegion = await RunCliAsync([
+            "ctrlram-replace",
+            "preview",
+            "--profile",
+            "NT51926",
+            "--ic-num",
+            "cascade",
+            "--base",
+            validBasePath,
+            "--ctrlram",
+            $"replace-ctrlram-vn={oversizedReplacement}",
+        ]);
+
+        Assert.Equal(1, oversizedRegion.ExitCode);
+        Assert.Contains("input.artifact.read-failed [replace-ctrlram-vn]", oversizedRegion.Error, StringComparison.Ordinal);
+        Assert.Contains("100000001", oversizedRegion.Error, StringComparison.Ordinal);
+        Assert.Contains("byte limit", oversizedRegion.Error, StringComparison.Ordinal);
+
+        string replacementDirectory = workspace.PathFor("replacement-directory");
+        _ = Directory.CreateDirectory(replacementDirectory);
+        string replacementDirectoryReport = workspace.PathFor("replacement-directory-report.json");
+        CliRunResult unreadableReplacement = await RunCliAsync([
+            "ctrlram-replace",
+            "preview",
+            "--profile",
+            "NT51926",
+            "--ic-num",
+            "cascade",
+            "--base",
+            validBasePath,
+            "--ctrlram",
+            $"replace-ctrlram-vn={replacementDirectory}",
+            "--report",
+            replacementDirectoryReport,
+        ]);
+
+        Assert.Equal(1, unreadableReplacement.ExitCode);
+        Assert.Contains(
+            "input.artifact.read-failed [replace-ctrlram-vn]",
+            unreadableReplacement.Error,
+            StringComparison.Ordinal);
+        Assert.Empty(unreadableReplacement.Output);
+        Assert.False(File.Exists(replacementDirectoryReport));
+    }
+
+    private static async Task CreateSparseCtrlRamFileAsync(string path, long length)
+    {
+        await using var sparse = new FileStream(
+            path,
+            FileMode.CreateNew,
+            FileAccess.Write,
+            FileShare.None,
+            bufferSize: 1,
+            FileOptions.Asynchronous);
+        sparse.SetLength(length);
+        await sparse.FlushAsync(TestContext.Current.CancellationToken);
     }
 
     /// <summary>Verifies real IC CtrlRAM Replace accepts multiple slot-specific replacement inputs in one CLI run.</summary>
@@ -276,12 +414,136 @@ public sealed partial class ReplaceCliCommandTests
             operations,
             operation => operation.GetProperty("Kind").GetString() == "RunExternalProcessor");
         Assert.Equal("RunExternalProcessor", operation.GetProperty("Kind").GetString());
+
+        var fw200Cases = new[]
+        {
+            new
+            {
+                CaseId = "nt51926-fw200-single-auto-prj-597-20260718",
+                IcNumber = "single",
+                ExpectedProfileId = "nt51926-ctrlram-replace-fw200-runtime-single",
+                ReplacementArtifacts = new[]
+                {
+                    (ArtifactId: "normal-ctrlram-input", SlotId: "replace-ctrlram-normal"),
+                    (ArtifactId: "mp-ctrlram-input", SlotId: "replace-ctrlram-mp"),
+                    (ArtifactId: "vn-ctrlram-input", SlotId: "replace-ctrlram-vn"),
+                    (ArtifactId: "nf-ctrlram-input", SlotId: "replace-ctrlram-nf"),
+                },
+            },
+            new
+            {
+                CaseId = "nt51926-fw200-cascade3-auto-prj-597-20260718",
+                IcNumber = "cascade",
+                ExpectedProfileId = "nt51926-ctrlram-replace-fw200-runtime-cascade",
+                ReplacementArtifacts = new[]
+                {
+                    (ArtifactId: "normal-ctrlram-input", SlotId: "replace-ctrlram-normal"),
+                    (ArtifactId: "diffdlm-input", SlotId: "replace-ctrlram-diff"),
+                    (ArtifactId: "mp-ctrlram-input", SlotId: "replace-ctrlram-mp"),
+                    (ArtifactId: "vn-ctrlram-input", SlotId: "replace-ctrlram-vn"),
+                    (ArtifactId: "nf-ctrlram-input", SlotId: "replace-ctrlram-nf"),
+                },
+            },
+        };
+
+        foreach (var fw200Case in fw200Cases)
+        {
+            JsonElement canonicalCase = CanonicalGoldenTestData.LoadDirectCase(
+                "ctrlram-replace",
+                fw200Case.CaseId);
+            Assert.Equal(
+                fw200Case.ExpectedProfileId,
+                canonicalCase.GetProperty("profileId").GetString());
+            string canonicalBasePath = CanonicalGoldenTestData.ArtifactPath(
+                CanonicalGoldenTestData.Artifact(canonicalCase, "expected-output"));
+            var canonicalSlotPaths = new Dictionary<string, string>(StringComparer.Ordinal)
+            {
+                [CompositionSlotIds.ReplaceBase] = canonicalBasePath,
+            };
+            var arguments = new List<string>
+            {
+                "ctrlram-replace",
+                "preview",
+                "--profile",
+                "NT51926",
+                "--ic-num",
+                fw200Case.IcNumber,
+                "--base",
+                canonicalBasePath,
+            };
+            foreach ((string artifactId, string slotId) in fw200Case.ReplacementArtifacts)
+            {
+                string replacementPath = CanonicalGoldenTestData.ArtifactPath(
+                    CanonicalGoldenTestData.Artifact(canonicalCase, artifactId));
+                canonicalSlotPaths[slotId] = replacementPath;
+                arguments.Add("--ctrlram");
+                arguments.Add($"{slotId}={replacementPath}");
+            }
+
+            string canonicalReport = workspace.PathFor($"nt51926-fw200-{fw200Case.IcNumber}-preview.json");
+            arguments.Add("--report");
+            arguments.Add(canonicalReport);
+            CliRunResult canonicalPreview = await RunCliAsync([.. arguments]);
+
+            Assert.True(
+                canonicalPreview.ExitCode == 0,
+                $"stdout:{Environment.NewLine}{canonicalPreview.Output}{Environment.NewLine}" +
+                $"stderr:{Environment.NewLine}{canonicalPreview.Error}");
+            Assert.Contains(
+                $"Profile: {fw200Case.ExpectedProfileId} (NT51926)",
+                canonicalPreview.Output,
+                StringComparison.Ordinal);
+            Assert.True(File.Exists(canonicalReport), canonicalReport);
+
+            using var canonicalReportDocument = JsonDocument.Parse(await File.ReadAllTextAsync(
+                canonicalReport,
+                TestContext.Current.CancellationToken));
+            JsonElement canonicalReportRoot = canonicalReportDocument.RootElement;
+            Assert.Equal(
+                fw200Case.ExpectedProfileId,
+                canonicalReportRoot.GetProperty("ProfileId").GetString());
+            Assert.Contains(
+                canonicalReportRoot.GetProperty("Inputs").EnumerateArray(),
+                input => input.GetProperty("AddressSpaceId").GetString() == "replace-ctrlram-normal");
+            JsonElement[] canonicalOperations =
+                [.. canonicalReportRoot.GetProperty("Operations").EnumerateArray()];
+            Assert.Contains(canonicalOperations, candidate =>
+                candidate.GetProperty("Kind").GetString() == "ReplaceRange" &&
+                candidate.GetProperty("SourceSpaceId").GetString() == "replace-ctrlram-normal");
+            Assert.Contains(canonicalOperations, candidate =>
+                candidate.GetProperty("Kind").GetString() == "RunExternalProcessor");
+
+            (ActiveSessionSnapshot? acceptedSession, IReadOnlyList<CompositionIssue> preparationIssues) =
+                CtrlRamReplaceTestSupport.Prepare(
+                    BootstrapTestHost.Canonical,
+                    "NT51926",
+                    fw200Case.IcNumber,
+                    canonicalSlotPaths,
+                    firmwareVersionEdit: null);
+            Assert.Empty(preparationIssues);
+            Assert.NotNull(acceptedSession);
+            Assert.Equal(
+                fw200Case.ExpectedProfileId,
+                acceptedSession.ExactCapability!.CompiledComposition.V2Details.ProfileId);
+            Assert.Equal(
+                acceptedSession.CompilationFingerprint,
+                canonicalReportRoot.GetProperty("CompilationFingerprint").GetString());
+            Assert.Equal(
+                acceptedSession.ExactCapability.CompiledComposition.Plan.OrderedOperations
+                    .Select(static acceptedOperation => acceptedOperation.OperationId),
+                canonicalOperations.Select(static reportedOperation =>
+                    reportedOperation.GetProperty("OperationId").GetString()));
+        }
     }
 
-    private static void AssertProcessorTrace(string reportPath, JsonElement fixtureCase)
+    private static void AssertProcessorTrace(
+        string reportPath,
+        JsonElement regression,
+        JsonElement baseArtifact,
+        JsonElement expectedArtifact)
     {
         using var reportDocument = JsonDocument.Parse(File.ReadAllText(reportPath));
-        JsonElement trace = fixtureCase.GetProperty("processorTrace");
+        JsonElement trace = regression.GetProperty("processorTrace");
         JsonElement operation = reportDocument.RootElement.GetProperty("Operations").EnumerateArray()
             .Single(candidate => candidate.TryGetProperty("ProcessorId", out JsonElement processorId) &&
                 processorId.GetString() == trace.GetProperty("processorId").GetString());
@@ -325,8 +587,8 @@ public sealed partial class ReplaceCliCommandTests
             .Single(candidate => candidate.GetProperty("OperationId").GetString() == "postbuild-cascade");
         Assert.Equal(16, mutation.GetProperty("ChangedByteCount").GetInt64());
         Assert.Equal(0x3C000, mutation.GetProperty("TargetRange").GetProperty("Length").GetInt64());
-        Assert.Equal(fixtureCase.GetProperty("base").GetProperty("sha256").GetString(), mutation.GetProperty("BeforeSha256").GetString());
-        Assert.Equal(fixtureCase.GetProperty("expectedOutput").GetProperty("sha256").GetString(), mutation.GetProperty("AfterSha256").GetString());
+        Assert.Equal(baseArtifact.GetProperty("sha256").GetString(), mutation.GetProperty("BeforeSha256").GetString());
+        Assert.Equal(expectedArtifact.GetProperty("sha256").GetString(), mutation.GetProperty("AfterSha256").GetString());
     }
 
     private static (int Start, int EndExclusive)[] ReadManifestRanges(JsonElement fixtureCase)
@@ -371,4 +633,25 @@ public sealed partial class ReplaceCliCommandTests
             Assert.Equal(4, actualRanges[index].EndExclusive - actualRanges[index].Start);
         }
     }
+
+    internal static Nt51926SelectiveVnRegression LoadNt51926SelectiveVnRegression()
+    {
+        JsonElement standardMergeCase = CanonicalGoldenTestData.LoadDirectCase(
+            "standard-merge",
+            "nt51926-gen-flash");
+        JsonElement ctrlRamCase = CanonicalGoldenTestData.LoadDirectCase(
+            "ctrlram-replace",
+            Nt51926CtrlRamCaseId);
+        return new Nt51926SelectiveVnRegression(
+            ctrlRamCase.GetProperty("selectiveVnRegression"),
+            CanonicalGoldenTestData.Artifact(standardMergeCase, "tp-input"),
+            CanonicalGoldenTestData.Artifact(ctrlRamCase, "postbuild-vn-ctrlram"),
+            CanonicalGoldenTestData.Artifact(ctrlRamCase, "selective-vn-regression-output"));
+    }
+
+    internal sealed record Nt51926SelectiveVnRegression(
+        JsonElement Regression,
+        JsonElement BaseArtifact,
+        JsonElement VnArtifact,
+        JsonElement ExpectedArtifact);
 }

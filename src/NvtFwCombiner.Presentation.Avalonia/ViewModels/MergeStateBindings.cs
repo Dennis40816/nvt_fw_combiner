@@ -1,11 +1,13 @@
+using NvtFwCombiner.Application.Capabilities;
+
 namespace NvtFwCombiner.Presentation.Avalonia.ViewModels;
 
-/// <summary>Explicit shared-session callbacks consumed by the focused Merge child.</summary>
 internal sealed record MergeStateBindings(
     Func<string> SelectedIc,
     Func<string> SelectedNumber,
+    Func<string, string, bool> IsWorkflowAuthorable,
+    Func<string, IReadOnlyList<CapabilityTopologyChoice>> GetAbMergeTopologyChoices,
     Func<bool> IsRunInProgress,
-    Func<bool> IsFirmwareInspectionLoading,
     Func<bool> IsGlobalBuildBlocked,
     Func<bool> IsWorkflowLoaded,
     Func<bool> IsWorkflowLoading,
@@ -16,5 +18,7 @@ internal sealed record MergeStateBindings(
     Action RefreshNumberChoices,
     Action NotifySharedContextChanged,
     Func<Task> RefreshSelectedFirmwareInspections,
+    Func<string, CancellationToken, Task> SetAbSameTpFileAsync,
     Action ResetRunResult,
-    Action RefreshShellCommandState);
+    Action RefreshShellCommandState,
+    OutputDeliveryConfirmationViewModel OutputDelivery);

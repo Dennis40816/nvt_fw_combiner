@@ -1,0 +1,38 @@
+{
+  "schemaVersion": 2,
+  "taskId": "VER-REG-LOCATOR-01",
+  "capability": "Inject one external fixed update-source Registry locator into the production Desktop host without binding operator configuration to package identity",
+  "integrationBase": "d31faf5feab081c354a6aeb1613cad11c6a9d617",
+  "risk": "R2",
+  "kind": "behavior",
+  "state": "final-complete",
+  "mutablePaths": [
+    "docs/adr/0053-fixed-update-source-registry.md",
+    "docs/ci/release-package.md",
+    "docs/contracts/update-source-registry-v1.md",
+    "src/NvtFwCombiner.Bootstrap/UpdateSourceRegistryLocator.cs",
+    "src/NvtFwCombiner.Desktop/Program.cs"
+  ],
+  "implementationOwner": "root-implementer",
+  "searchEvidence": [
+    "rg -n 'CreateVersionManagementExperience|updateSourceRegistryPath|NFC_UPDATE_SOURCE_REGISTRY' src tests scripts .github",
+    "CompositionHostServices already accepts one optional exact locator and the strict FileSystemUpdateSourceRegistry remains the only locator/schema verifier, but Desktop Program never supplies that argument.",
+    "The stable Launcher inherits its parent process environment and already forwards managed-root/state-path; no second Registry parser, state store, or package identity is required."
+  ],
+  "semanticOwner": "Desktop owns external host-option/environment acquisition; Bootstrap owns deterministic precedence only; the existing Infrastructure Registry adapter owns path and document validation; Application owns fallback/admission/state",
+  "terminalContract": "Production Desktop accepts one optional --update-source-registry-path value. An explicitly supplied value wins over NFC_UPDATE_SOURCE_REGISTRY_PATH, including an invalid explicit value; when neither is configured, ordinary startup and offline installed-version switching remain available with the existing typed NotConfigured status. Locator bytes are never normalized into authority by Desktop or Bootstrap: the existing FileSystemUpdateSourceRegistry alone rejects relative, unsafe, missing, unreadable, reparse, unstable, oversized or invalid Registry inputs and Version Self-test renders that typed result. The external option/environment is deployment configuration outside every version ZIP, inner/outer manifest, SBOM/provenance, package/catalog checksum and immutable release asset, so changing it never changes package identity. Launcher and Bootstrap do not copy, persist, log or checksum the locator and inherit the environment unchanged. No Registry precedence, anti-rollback, candidate verification, source commit, launcher activation, firmware, naming or UI layout behavior changes.",
+  "disposition": "extend-owner",
+  "designReview": {
+    "reviewer": "root-architecture-preflight",
+    "outcome": "approved",
+    "evidence": "The bounded design closes the observed production wiring gap through the existing host seam. It adds no registry reader, search, persistent sidecar, writer or package field; explicit option precedence is deterministic and all invalid/unavailable inputs continue through the existing typed fail-closed Self-test path. Focused Bootstrap, Desktop source-boundary, launcher inheritance and local relocated Registry tests are required before final review."
+  },
+  "implementationHead": "c43a43ebd1a76b22fe4f6aad4102fc0a10f2c96c",
+  "reviewedHead": "c43a43ebd1a76b22fe4f6aad4102fc0a10f2c96c",
+  "pathStateDigest": "eda00d8dc932486e0712908ca174227f78a399416e0c4c1857bb14a37bb90ad0",
+  "finalReview": {
+    "reviewer": "audit_dirty_application + audit_dirty_ui + audit_dirty_governance",
+    "outcome": "approved",
+    "evidence": "Three independent exact-head reviews of 01ed3aa6004e254b4001a3ad8616cc06465a814d..c43a43ebd1a76b22fe4f6aad4102fc0a10f2c96c found no P0-P3 and Polytail PASS. Desktop preserves raw explicit-option precedence over the inherited environment; the Bootstrap resolver performs no path, file, JSON, hashing, persistence or logging work; FileSystemUpdateSourceRegistry remains the single locator/schema authority. Missing and invalid configuration retain typed non-blocking Self-test behavior, and no Version state, launcher activation, package identity, firmware or UI layout changed. Release build passed with 0 warnings/0 errors; Bootstrap 1130/1130, Version Application 253/253, Infrastructure Registry 20/20, Architecture 240/240, UI Version 24/24 and release-package policy 41/41 passed; diff check passed. External production locator provisioning and clean-machine/UNC Self-test remain release evidence, not a code finding or a new R3 gate for this R2 wiring task."
+  }
+}

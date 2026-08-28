@@ -9,10 +9,11 @@ public sealed partial class GeneralWorkflowTests
 {
     /// <summary>Verifies immutable language bundles are reused instead of rebuilt by each shell projection.</summary>
     [Theory]
-    [InlineData(ShellLanguage.English)]
-    [InlineData(ShellLanguage.ChineseTraditional)]
-    public void LocalizedShellBundlesAreCached(ShellLanguage language)
+    [InlineData("English")]
+    [InlineData("ChineseTraditional")]
+    public void LocalizedShellBundlesAreCached(string languageName)
     {
+        ShellLanguage language = Enum.Parse<ShellLanguage>(languageName);
         Assert.Same(ShellTextResources.For(language), ShellTextResources.For(language));
     }
 
@@ -31,10 +32,11 @@ public sealed partial class GeneralWorkflowTests
 
     /// <summary>Verifies every bindable string is populated in both supported language bundles.</summary>
     [Theory]
-    [InlineData(ShellLanguage.English)]
-    [InlineData(ShellLanguage.ChineseTraditional)]
-    public void LocalizedShellBundlesPopulateEveryString(ShellLanguage language)
+    [InlineData("English")]
+    [InlineData("ChineseTraditional")]
+    public void LocalizedShellBundlesPopulateEveryString(string languageName)
     {
+        ShellLanguage language = Enum.Parse<ShellLanguage>(languageName);
         var resources = ShellTextResources.For(language);
         IEnumerable<string> emptyProperties = typeof(ShellTextResources)
             .GetProperties()
@@ -59,7 +61,7 @@ public sealed partial class GeneralWorkflowTests
         Assert.Empty(viewModel.Replace.ReplaceSlots);
         Assert.Equal("replace-base", viewModel.Replace.ReplaceBaseSlot.SlotId);
         Assert.NotEmpty(viewModel.Replace.ReplaceCoverageSegments);
-        Assert.Equal("Memory layout pending", viewModel.Replace.ReplaceMemoryRangeLabel);
+        Assert.Equal("Waiting for Base BIN", viewModel.Replace.ReplaceMemoryRangeLabel);
         Assert.Contains("explicit profile-approved", viewModel.Replace.SelectedReplaceModeDescription, StringComparison.Ordinal);
         Assert.False(viewModel.Replace.PreviewReplaceCommand.CanExecute(null));
         Assert.Equal(
@@ -68,6 +70,11 @@ public sealed partial class GeneralWorkflowTests
         GeneralReplaceMappingViewModel initial = Assert.Single(viewModel.Replace.GeneralReplaceMappings);
         Assert.False(initial.CanSelectFile);
         Assert.True(initial.IsFileSelectionPending);
+        Assert.Equal("Load the prerequisite input, then inspect again.", initial.FileSelectionAvailabilityMessage);
+
+        viewModel.SelectedLanguage = "Traditional Chinese";
+
+        Assert.Equal("請載入必要的前置輸入後重新檢查。", initial.FileSelectionAvailabilityMessage);
 
         viewModel.Replace.AddGeneralReplaceMappingCommand.Execute(null);
         Assert.Equal(2, viewModel.Replace.GeneralReplaceMappings.Count);
@@ -112,24 +119,18 @@ public sealed partial class GeneralWorkflowTests
     [Fact]
     public void GeneralReplaceWithoutExactRouteStaysBlocked()
     {
-        using var workspace = TempWorkspace.Create("nvt-fw-combiner-ui-general-replace");
-        byte[] baseBytes = CreatePattern(0x40000, 0x40);
-        string basePath = workspace.Write("base.bin", baseBytes);
-        string replacementPath = workspace.Write("replacement.bin", [0xA5, 0x5A]);
-
         MainWindowViewModel viewModel = PresentationTestHost.CreateViewModel();
+        viewModel.ShowReplaceCommand.Execute(null);
         viewModel.WorkflowSession.SelectedIc = "NT51950";
-        OpenReplace(viewModel, Domain.Composition.ExperienceIds.GeneralReplace);
-        viewModel.SetSlotFile("replace-base", basePath);
-        GeneralReplaceMappingViewModel mapping = Assert.Single(viewModel.Replace.GeneralReplaceMappings);
-        mapping.TargetStartAddress = "0x00100";
-        mapping.Length = "0x2";
-        viewModel.SetSlotFile(mapping.MappingId, replacementPath);
+        string retainedMode = viewModel.Replace.SelectedReplaceMode;
 
-        Assert.False(viewModel.Replace.PreviewReplaceCommand.CanExecute(null));
-        Assert.False(viewModel.Replace.CanBuildReplace);
-        Assert.Contains("Not available", viewModel.Replace.ReplaceReadinessStatus, StringComparison.Ordinal);
-        Assert.False(viewModel.Reports.HasLoadedReport);
+        viewModel.Replace.SelectedReplaceMode =
+            Domain.Composition.ExperienceIds.GeneralReplace;
+
+        Assert.DoesNotContain(
+            Domain.Composition.ExperienceIds.GeneralReplace,
+            viewModel.Replace.ReplaceModeChoices);
+        Assert.Equal(retainedMode, viewModel.Replace.SelectedReplaceMode);
     }
 
     /// <summary>Verifies the shared UI reaches the NT51926 single full-Flash DP-only V2 route.</summary>
@@ -154,6 +155,7 @@ public sealed partial class GeneralWorkflowTests
         await viewModel.Replace.PreviewReplaceCommand.ExecuteAsync(null);
         Assert.True(viewModel.RunSession.LastRunResult.Succeeded, viewModel.RunSession.LastRunResult.Detail);
         Assert.Equal("nt51926-general-replace-dp-single-candidate", viewModel.Reports.LoadedReport.ProfileId);
+        AssertInspectionTerminal(viewModel.Replace.Inspection);
 
         await File.WriteAllBytesAsync(
             replacementPath,
@@ -231,7 +233,7 @@ public sealed partial class GeneralWorkflowTests
         Task previewTask = viewModel.Replace.PreviewReplaceCommand.ExecuteAsync(null);
         mapping.TargetStartAddress = "0x3E030";
         await previewTask;
-        await viewModel.Replace.GeneralReplaceReadinessRefreshTask;
+        await viewModel.Replace.Inspection.ActiveTask;
 
         using var report = JsonDocument.Parse(viewModel.Reports.LoadedReportJson);
         JsonElement operation = Assert.Single(report.RootElement.GetProperty("Operations").EnumerateArray());
@@ -246,29 +248,17 @@ public sealed partial class GeneralWorkflowTests
         Assert.Equal(0x3E030, currentOperation.GetProperty("TargetRange").GetProperty("Start").GetInt64());
     }
 
-    /// <summary>Verifies TP-touching General Replace remains fail-closed without an exact V2 route.</summary>
+    /// <summary>General Replace Home authoring excludes an IC without an exact V2 route.</summary>
     [Fact]
-    public void GeneralReplaceTpMappingWithoutExactRouteStaysBlocked()
+    public void GeneralReplaceHomeDraftExcludesIcWithoutExactRoute()
     {
-        using var golden = StandardMergeGoldenManifest.Load();
-        string basePath = golden.ExpectedOutputPath(golden.CaseByIc("51950"));
-        using var workspace = TempWorkspace.Create("nvt-fw-combiner-ui-general-replace-tp");
-        byte[] baseBytes = File.ReadAllBytes(basePath);
-        string replacementPath = workspace.Write("self-nf.bin", baseBytes[0x22C00..0x22C02]);
-
         MainWindowViewModel viewModel = PresentationTestHost.CreateViewModel();
-        viewModel.WorkflowSession.SelectedIc = "NT51950";
-        OpenReplace(viewModel, Domain.Composition.ExperienceIds.GeneralReplace);
-        viewModel.SetSlotFile("replace-base", basePath);
-        GeneralReplaceMappingViewModel mapping = Assert.Single(viewModel.Replace.GeneralReplaceMappings);
-        mapping.TargetStartAddress = "0x22C00";
-        mapping.Length = "0x2";
-        viewModel.SetSlotFile(mapping.MappingId, replacementPath);
+        viewModel.BeginGeneralReplaceFromHomeCommand.Execute(null);
 
-        Assert.False(viewModel.Replace.PreviewReplaceCommand.CanExecute(null));
-        Assert.False(viewModel.Replace.CanBuildReplace);
-        Assert.Contains("Not available", viewModel.Replace.ReplaceReadinessStatus, StringComparison.Ordinal);
-        Assert.False(viewModel.Reports.HasLoadedReport);
+        Assert.True(viewModel.WorkflowSession.IsWorkflowContextModalOpen);
+        Assert.DoesNotContain(
+            "NT51950",
+            viewModel.WorkflowSession.WorkflowContextSetup.IcChoices);
     }
 
 }

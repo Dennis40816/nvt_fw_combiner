@@ -1,0 +1,35 @@
+{
+  "schemaVersion": 2,
+  "taskId": "TYPED-REPORT-MAPID-100-01",
+  "capability": "Project the exact compiled physical firmware MapId into durable reports without inferring a map for logical-output compositions",
+  "integrationBase": "08c9b4bb20813dfe2660a8bbc504d34d8f9d6d8a",
+  "risk": "R2",
+  "kind": "behavior",
+  "state": "final-complete",
+  "mutablePaths": [
+    "src/NvtFwCombiner.Application/Composition/CompositionRunReport.cs",
+    "src/NvtFwCombiner.Application/Composition/CompositionRunService.Reports.cs",
+    "src/NvtFwCombiner.Application/Composition/GeneralReplaceDiagnosticPreview.cs"
+  ],
+  "implementationOwner": "root-implementer",
+  "searchEvidence": [
+    "Repository-wide constructor tracing found exactly two production CompositionRunReport projection sites: the shared run service and General Replace diagnostic projection.",
+    "Both sites already receive compiled V2 provenance; no filename, PID, profile-id, route-id, label, or map-name parser is needed or added."
+  ],
+  "semanticOwner": "Application CompositionRunReport transports optional report metadata; compiled V2 provenance remains the sole owner of physical map resolution",
+  "terminalContract": "Map-bound Preview, Build, and General Replace diagnostic reports expose the exact MapId from compiled typed provenance. Logical-output reports expose null and never claim or dereference a physical resolved map. Planner, executor, profiles, operations, ranges, output bytes, integrity processing, and naming are unchanged.",
+  "disposition": "extend-owner",
+  "designReview": {
+    "reviewer": "final_architecture_review",
+    "outcome": "approved",
+    "evidence": "Independent R2 repository-wide tracing found exactly two production report projection sites, both source MapId exclusively from compiled typed provenance, logical-output emits null, and no firmware execution semantics are touched."
+  },
+  "implementationHead": "8ee021c0f23ba0d7bf6cba5d65cf7e1a2bfe9c53",
+  "reviewedHead": "8ee021c0f23ba0d7bf6cba5d65cf7e1a2bfe9c53",
+  "pathStateDigest": "8090b3376a8a7d25d689ea739279475b39ed09ff6db5d3adbeee88e691286295",
+  "finalReview": {
+    "reviewer": "final_architecture_review",
+    "outcome": "approved",
+    "evidence": "Independent exact-head architecture and Polytail review of 8ee021c0f23ba0d7bf6cba5d65cf7e1a2bfe9c53 verified that durable MapId is projected exclusively from compiled typed map-bound provenance, logical-output reports remain null, General Replace diagnostics use their existing map-bound provenance, and no profile, planner, executor, range, CRC/header, naming, or firmware-byte semantics changed."
+  }
+}

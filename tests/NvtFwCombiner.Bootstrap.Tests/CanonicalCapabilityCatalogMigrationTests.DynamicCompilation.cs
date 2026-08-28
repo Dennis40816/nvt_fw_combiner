@@ -1,5 +1,6 @@
 using NvtFwCombiner.Application.Capabilities;
 using NvtFwCombiner.Domain.Composition;
+using NvtFwCombiner.Infrastructure.Capabilities;
 using NvtFwCombiner.Profiles.V2;
 
 namespace NvtFwCombiner.Bootstrap.Tests;
@@ -69,33 +70,100 @@ public sealed partial class CanonicalCapabilityCatalogMigrationTests
             CompositionHostServices.CreateCanonicalCapabilityCatalogSource());
         CapabilityCatalogReloadResult reload = catalog.Reload(
             TestContext.Current.CancellationToken);
+        ResolvedCapabilityRoute[] ctrlRamRoutes =
+        [
+            .. reload.Snapshot!.DynamicRoutes.Where(static route =>
+                route.Identity.WorkflowId == ExperienceIds.CtrlRamReplace),
+        ];
         ResolvedCapabilityRoute[] reportless =
         [
-            .. reload.Snapshot!.DynamicRoutes.Where(route =>
-                route.Identity.WorkflowId == ExperienceIds.CtrlRamReplace &&
+            .. ctrlRamRoutes.Where(route =>
                 route.Identity.IcId is "NT51919" or "NT51950" or "NT51951"),
         ];
         ResolvedCapabilityRoute[] reportful =
         [
-            .. reload.Snapshot.DynamicRoutes.Where(route =>
-                route.Identity.WorkflowId == ExperienceIds.CtrlRamReplace &&
-                route.Identity.IcId == "NT51929"),
+            .. ctrlRamRoutes.Except(reportless),
         ];
+        CanonicalCapabilityPolicySnapshot policy =
+            BuiltInCanonicalCapabilityPolicy.Load();
+        CanonicalCapabilityPolicyRoute[] policyRoutes =
+        [
+            .. policy.Routes.Where(static route =>
+                route.Identity.WorkflowId == ExperienceIds.CtrlRamReplace),
+        ];
+        string[] tpRoutesAwaitingIndependentExpectedOutput =
+        [
+            "route-7-nt51950-15-ctrlram-replace-4-1-ic-36-nt51950-ctrlram-fw200-single-tp-work",
+            "route-7-nt51951-15-ctrlram-replace-4-1-ic-36-nt51951-ctrlram-fw200-single-tp-work",
+            "route-7-nt51951-15-ctrlram-replace-4-2-ic-36-nt51951-ctrlram-fw1x-cascade-tp-work",
+        ];
+        var expectedMaps = new Dictionary<string, string>(StringComparer.Ordinal)
+        {
+            ["NT51917"] = "nt51927-standard-merge-256k",
+            ["NT51923"] = "nt51923-standard-merge-256k",
+            ["NT51926"] = "nt51926-standard-merge-256k",
+            ["NT51927"] = "nt51927-standard-merge-256k",
+            ["NT51928"] = "nt51928-standard-merge-512k",
+            ["NT51929"] = "nt51929-standard-merge-256k",
+            ["NT51932"] = "nt51932-standard-merge-256k",
+        };
 
         Assert.True(reload.Succeeded);
-        Assert.NotEmpty(reportless);
-        Assert.NotEmpty(reportful);
+        Assert.Equal(44, ctrlRamRoutes.Length);
+        Assert.Equal(10, reportless.Length);
+        Assert.Equal(34, reportful.Length);
+        Assert.Equal(
+            ctrlRamRoutes.Select(static route => route.Identity.RouteId)
+                .Order(StringComparer.Ordinal),
+            policyRoutes.Select(static route => route.Identity.RouteId)
+                .Order(StringComparer.Ordinal));
+        Assert.All(policyRoutes, route =>
+        {
+            Assert.EndsWith("-authoring-v3", route.Authoring.DecisionId, StringComparison.Ordinal);
+            Assert.EndsWith("-publication-v5", route.Publication.DecisionId, StringComparison.Ordinal);
+            string expectedEvidenceRevision = tpRoutesAwaitingIndependentExpectedOutput.Contains(
+                route.Identity.RouteId,
+                StringComparer.Ordinal)
+                ? "-evidence-v4"
+                : "-evidence-v3";
+            Assert.EndsWith(
+                expectedEvidenceRevision,
+                route.Evidence.DecisionId,
+                StringComparison.Ordinal);
+        });
         Assert.All(reportless, route => Assert.DoesNotContain(
             route.CompilationContract.SemanticBindingIds,
             static binding => binding.StartsWith(
                 "report-metadata-",
                 StringComparison.Ordinal)));
-        Assert.All(reportful, route => Assert.Equal(
-            3,
-            route.CompilationContract.SemanticBindingIds.Count(binding =>
-                binding.StartsWith(
-                    "report-metadata-",
-                    StringComparison.Ordinal))));
+        Assert.All(reportful, route =>
+        {
+            string[] reportBindings =
+            [
+                .. route.CompilationContract.SemanticBindingIds.Where(
+                    static binding => binding.StartsWith(
+                        "report-metadata-",
+                        StringComparison.Ordinal)),
+            ];
+            Assert.Equal(4, reportBindings.Length);
+            Assert.Contains(
+                $"report-metadata-map:{expectedMaps[route.Identity.IcId]}",
+                reportBindings,
+                StringComparer.Ordinal);
+            Assert.Equal(
+                CtrlRamV2RouteRegistry.All
+                    .Where(candidate => candidate.Key.IcId == route.Identity.IcId)
+                    .SelectMany(static candidate =>
+                        candidate.ReportMetadataPlan.ReportProjections)
+                    .Select(static projection =>
+                        $"report-metadata-slot:{projection.SpaceId}<-{projection.SlotId}")
+                    .Distinct(StringComparer.Ordinal)
+                    .Order(StringComparer.Ordinal),
+                reportBindings.Where(static binding => binding.StartsWith(
+                        "report-metadata-slot:",
+                        StringComparison.Ordinal))
+                    .Order(StringComparer.Ordinal));
+        });
     }
 
     /// <summary>Map, compiler, and selection-group drift are independent admission failures.</summary>

@@ -13,22 +13,6 @@ ROOT = Path(__file__).resolve().parents[2]
 CANONICAL_ROOT = ROOT / "testdata/golden/canonical"
 LEGACY_MANIFEST = ROOT / "testdata/golden/ctrlram-replace/manifest.20260717.json"
 DIRECT_CASES = {
-    "nt51920-fw120-single-auto-prj-72-20260717": (
-        "NT51920",
-        "fw1.2.0",
-        "single",
-        "AUTO_PRJ-72",
-        8,
-        "b9965def2946fd6e28165af5929ede885e1d0e3c0ab29266a737ac458225920d",
-    ),
-    "nt51920-fw120-cascade2-auto-prj-55-20260717": (
-        "NT51920",
-        "fw1.2.0",
-        "cascade-2",
-        "AUTO_PRJ-55",
-        11,
-        "681f904ecdf5785ca26f94eabb8191ddaa8976e0e6f750145475568c6cde4d43",
-    ),
     "nt51923-fw141-single-auto-prj-662-20260717": (
         "NT51923",
         "fw1.4.1",
@@ -58,7 +42,7 @@ DIRECT_CASES = {
         "fw1.4.1",
         "cascade-2",
         "AUTO_PRJ-597",
-        8,
+        9,
         "acdfb0a03c41d6b6e40d1e8f0f6ed72f7b82d5330aa3c13cc6269c930f7d016c",
     ),
     "nt51927-fw141-single-auto-prj-529-20260717": (
@@ -135,9 +119,9 @@ class CtrlRamCanonical20260717Tests(unittest.TestCase):
         artifacts = [
             artifact for case in self.cases.values() for artifact in case["artifacts"]
         ]
-        self.assertEqual(75, len(artifacts))
-        self.assertEqual(67, sum(artifact["path"].endswith(".bin") for artifact in artifacts))
-        self.assertEqual(16_664_916, sum(artifact["size"] for artifact in artifacts))
+        self.assertEqual(57, len(artifacts))
+        self.assertEqual(51, sum(artifact["path"].endswith(".bin") for artifact in artifacts))
+        self.assertEqual(13_871_204, sum(artifact["size"] for artifact in artifacts))
         collection = next(
             item
             for item in self.root_manifest["sourceCollections"]
@@ -151,8 +135,8 @@ class CtrlRamCanonical20260717Tests(unittest.TestCase):
     def test_legacy_manifest_now_contains_only_remaining_diagnostics(self) -> None:
         legacy = json.loads(LEGACY_MANIFEST.read_text(encoding="utf-8"))
         self.assertEqual(set(DIRECT_CASES), set(legacy["canonicalDirectCases"]))
-        self.assertEqual(57, len(legacy["payloads"]))
-        self.assertEqual(6, len(legacy["supportingFiles"]))
+        self.assertEqual(31, len(legacy["payloads"]))
+        self.assertEqual(2, len(legacy["supportingFiles"]))
         migrated_paths = {
             path
             for case in self.cases.values()
@@ -192,10 +176,10 @@ class CtrlRamCanonical20260717Tests(unittest.TestCase):
             artifact["path"].rsplit("/", 1)[-1]: artifact["originalFileName"]
             for artifact in case["artifacts"]
         }
-        self.assertIn("expected-output.bin", shortened)
-        self.assertIn("dp-input.bin", shortened)
-        self.assertIn("WhitePoint", shortened["expected-output.bin"])
-        self.assertIn("WhitePoint", shortened["dp-input.bin"])
+        self.assertIn("nt51923-expected-output.bin", shortened)
+        self.assertIn("nt51923-dp-input.bin", shortened)
+        self.assertIn("WhitePoint", shortened["nt51923-expected-output.bin"])
+        self.assertIn("WhitePoint", shortened["nt51923-dp-input.bin"])
 
 
 if __name__ == "__main__":

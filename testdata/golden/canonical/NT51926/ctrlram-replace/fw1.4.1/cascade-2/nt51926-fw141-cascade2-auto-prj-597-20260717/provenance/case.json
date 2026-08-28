@@ -6,6 +6,13 @@
   "variantOrVersion": "fw1.4.1",
   "topology": "cascade-2",
   "directGolden": true,
+  "testDisposition": {
+    "kind": "allowed-byte-difference",
+    "evidenceRefs": [
+      "tests/NvtFwCombiner.Bootstrap.Tests/Nt51926CtrlRamReplaceCandidateProfileTests.cs#RoutedV2MatchesCompiledCandidateForOwnerApprovedSelfReplacementAsync"
+    ],
+    "differenceContractProperty": "allowedByteDifferenceContract"
+  },
   "sourceClassification": "private-owner-approved-golden",
   "ownerApproval": "Repository owner explicitly approved committing all supplied golden sample payloads to public Git on 2026-07-17. Technical project/AUTO_PRJ data is retained; personal data is excluded.",
   "project": "AUTO_PRJ-597",
@@ -52,7 +59,7 @@
     {
       "artifactId": "postbuild-diffdlm",
       "role": "input",
-      "path": "NT51926/ctrlram-replace/fw1.4.1/cascade-2/nt51926-fw141-cascade2-auto-prj-597-20260717/inputs/postbuild/DiffDLM.bin",
+      "path": "NT51926/ctrlram-replace/fw1.4.1/cascade-2/nt51926-fw141-cascade2-auto-prj-597-20260717/inputs/postbuild/nt51926-postbuild-diffdlm.bin",
       "size": 10240,
       "sha256": "72851fa78ce61d199b3765c5e1b392400e00b8f8ffaebe732b600238846039e3",
       "legacyPaths": [
@@ -64,7 +71,7 @@
     {
       "artifactId": "postbuild-mp-ctrlram",
       "role": "input",
-      "path": "NT51926/ctrlram-replace/fw1.4.1/cascade-2/nt51926-fw141-cascade2-auto-prj-597-20260717/inputs/postbuild/MP_Ctrlram.bin",
+      "path": "NT51926/ctrlram-replace/fw1.4.1/cascade-2/nt51926-fw141-cascade2-auto-prj-597-20260717/inputs/postbuild/nt51926-postbuild-mp-ctrlram.bin",
       "size": 655360,
       "sha256": "3a7d407ef8426de2080056e35080cc73cd5b4a27e52f55d3ae89e1d1709153f7",
       "legacyPaths": [
@@ -76,7 +83,7 @@
     {
       "artifactId": "postbuild-nf-ctrlram",
       "role": "input",
-      "path": "NT51926/ctrlram-replace/fw1.4.1/cascade-2/nt51926-fw141-cascade2-auto-prj-597-20260717/inputs/postbuild/NF_Ctrlram.bin",
+      "path": "NT51926/ctrlram-replace/fw1.4.1/cascade-2/nt51926-fw141-cascade2-auto-prj-597-20260717/inputs/postbuild/nt51926-postbuild-nf-ctrlram.bin",
       "size": 11728,
       "sha256": "65d1f8742422b26a6162639882d29883b3372b3583e7bd4cb1c68d0fa1df7241",
       "legacyPaths": [
@@ -88,7 +95,7 @@
     {
       "artifactId": "postbuild-normal-ctrlram",
       "role": "input",
-      "path": "NT51926/ctrlram-replace/fw1.4.1/cascade-2/nt51926-fw141-cascade2-auto-prj-597-20260717/inputs/postbuild/Normal_Ctrlram.bin",
+      "path": "NT51926/ctrlram-replace/fw1.4.1/cascade-2/nt51926-fw141-cascade2-auto-prj-597-20260717/inputs/postbuild/nt51926-postbuild-normal-ctrlram.bin",
       "size": 655360,
       "sha256": "7e9039509a5c0efe4eaa32ba77b2947e4ab883ebadb94497c0aec797fc25b5b6",
       "legacyPaths": [
@@ -100,7 +107,7 @@
     {
       "artifactId": "postbuild-vn-ctrlram",
       "role": "input",
-      "path": "NT51926/ctrlram-replace/fw1.4.1/cascade-2/nt51926-fw141-cascade2-auto-prj-597-20260717/inputs/postbuild/VN_Ctrlram.bin",
+      "path": "NT51926/ctrlram-replace/fw1.4.1/cascade-2/nt51926-fw141-cascade2-auto-prj-597-20260717/inputs/postbuild/nt51926-postbuild-vn-ctrlram.bin",
       "size": 5728,
       "sha256": "b855cbc3ce8f9b57e83ee16ce4c902a8089689dfc951e9138dc4294acbf6c5c7",
       "legacyPaths": [
@@ -108,6 +115,18 @@
       ],
       "originalFileName": "VN_Ctrlram.bin",
       "sourceRole": "ctrlram-postbuild-input"
+    },
+    {
+      "artifactId": "selective-vn-regression-output",
+      "role": "provenance",
+      "path": "NT51926/ctrlram-replace/fw1.4.1/cascade-2/nt51926-fw141-cascade2-auto-prj-597-20260717/provenance/nt51926-selective-vn-regression-output.bin",
+      "size": 245760,
+      "sha256": "f26b6366bc858a751bd0b7bc3be1b6a1ac6edfb4fa25b92b57bea140e193e13a",
+      "legacyPaths": [
+        "testdata/golden/ctrlram-replace/fixtures/derived/20260717/expected/nt51926-cascade-tp-base-self-regression.bin"
+      ],
+      "originalFileName": "nt51926-cascade-tp-base-self-regression.bin",
+      "sourceRole": "owner-authorized-derived-regression-output"
     }
   ],
   "sourceIntake": {
@@ -123,5 +142,140 @@
     "runtimeSupportPromotion": false,
     "releaseRedistributionApproved": false
   },
-  "evidenceStatus": "direct-owner-golden-without-standalone-phase-b-result"
+  "evidenceStatus": "direct-owner-golden-without-standalone-phase-b-result",
+  "allowedByteDifferenceContract": {
+    "addressSpaceId": "output-image",
+    "allowedDifferenceRanges": [
+      {
+        "start": "0x1C",
+        "endExclusive": "0x20",
+        "classification": "header-crc-word"
+      },
+      {
+        "start": "0xFC",
+        "endExclusive": "0x100",
+        "classification": "header-copy-crc-word"
+      },
+      {
+        "start": "0x32F6C",
+        "endExclusive": "0x32F70",
+        "classification": "copied-header-crc-word"
+      },
+      {
+        "start": "0x3304C",
+        "endExclusive": "0x33050",
+        "classification": "copied-header-copy-crc-word"
+      }
+    ]
+  },
+  "selectiveVnRegression": {
+    "sourceClassification": "owner-approved-golden-firmware-derived-self-test",
+    "ownerApproval": "Repository owner explicitly authorized the existing committed NT51926 TP golden plus self-test CtrlRAM input as sufficient for this scoped regression on 2026-07-17.",
+    "evidenceScope": "owner-authorized-self-test-regression",
+    "baseArtifactRef": {
+      "caseId": "nt51926-gen-flash",
+      "artifactId": "tp-input"
+    },
+    "replacementArtifactRef": {
+      "caseId": "nt51926-fw141-cascade2-auto-prj-597-20260717",
+      "artifactId": "postbuild-vn-ctrlram"
+    },
+    "resultArtifactRef": {
+      "caseId": "nt51926-fw141-cascade2-auto-prj-597-20260717",
+      "artifactId": "selective-vn-regression-output"
+    },
+    "changedRanges": [
+      {
+        "addressSpaceId": "output-image",
+        "start": "0x1C",
+        "endExclusive": "0x20"
+      },
+      {
+        "addressSpaceId": "output-image",
+        "start": "0xFC",
+        "endExclusive": "0x100"
+      },
+      {
+        "addressSpaceId": "output-image",
+        "start": "0x32F6C",
+        "endExclusive": "0x32F70"
+      },
+      {
+        "addressSpaceId": "output-image",
+        "start": "0x3304C",
+        "endExclusive": "0x33050"
+      }
+    ],
+    "processorTrace": {
+      "processorId": "nfc.nt51926.ctrlram-postbuild-fw1.4.1",
+      "toolBindingId": "legacy-combiner-1.13.0",
+      "toolVersion": "1.13.0",
+      "executableName": "Combiner.exe",
+      "executableSha256": "ed6b58289cc780f73d36b831f5424cef44ad93187ba7518d36df6a77ad0c76bf",
+      "workingDirectoryPolicy": "staging-directory",
+      "catalogReference": "src/NvtFwCombiner.Application/ExternalTools/LegacyCombinerPostbuildCatalog.Profiles.cs#Nt51926CommonFw141",
+      "referenceBatch": "docs/architecture/ctrlram-postbuild-original-pasteback.md",
+      "commands": [
+        {
+          "commandId": "nt51926-fw141-cascade-merge-crc",
+          "arguments": [
+            "CRC_Enable",
+            "output/nt51926_fw.bin",
+            "BIN/Normal_Ctrlram.bin",
+            "0x0",
+            "0x22800",
+            "11264",
+            "BIN/DiffDLM.bin",
+            "0x0",
+            "0x27800",
+            "10240",
+            "BIN/MP_Ctrlram.bin",
+            "0x0",
+            "0x25400",
+            "9216",
+            "BIN/VN_Ctrlram.bin",
+            "0x0",
+            "0x315D0",
+            "5728",
+            "BIN/NF_Ctrlram.bin",
+            "0x0",
+            "0x2C800",
+            "11728",
+            "output/nt51926_fw.bin",
+            "0x22000",
+            "0x3B000",
+            "2048",
+            "output/nt51926_fw.bin",
+            "0x0",
+            "0x32F50",
+            "256"
+          ]
+        },
+        {
+          "commandId": "nt51926-fw141-cascade-header-crc",
+          "arguments": [
+            "CRC_Enable",
+            "output/nt51926_fw.bin",
+            "output/nt51926_fw.bin",
+            "0x0",
+            "0x32F50",
+            "256"
+          ]
+        }
+      ]
+    },
+    "claims": {
+      "established": "NT51926 Common FW 1.4.1 cascade TP-base V2 candidate full-output parity with the archived Legacy Combiner 1.13.0 result.",
+      "notEstablished": [
+        "all-IC CtrlRAM Replace golden parity",
+        "independent pre-replacement product-base parity",
+        "V2 production routing or support promotion"
+      ]
+    },
+    "residualGates": [
+      "Other CtrlRAM IC/mode expected-output parity remains pending.",
+      "The exact full-Flash owner-intake self-replacement has V1/V2 byte parity and tail preservation, but no independent pre-replacement base.",
+      "Firmware-owner and independent reviewer approval remain required before support promotion."
+    ]
+  }
 }

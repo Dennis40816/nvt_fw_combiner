@@ -15,7 +15,8 @@ param(
 Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
 
-$MaximumPackageBytes = 80000000
+$MaximumLegacyPackageBytes = 80000000
+$MaximumManagedUpgradePairPackageBytes = 134217728
 $MaximumApplicationBytes = 80000000
 $ApprovedExternalToolPackagePaths = @(
     'external-tools/README.md',
@@ -30,11 +31,11 @@ $ApprovedRuntimeCatalogPackagePaths = @(
     'profiles/built-in/ctrlram-postbuild-v2/flash-map.json'
 ) | Sort-Object
 $PackageTrustIndexPackagePath = 'profiles/built-in/package-trust-index.json'
-$ApprovedPackageTrustIndexSha256 = 'ab70ce23bb3d8b8c5e12ea4d1662431c1ca4e9a429e7563ecf75e82015e80530'
+$ApprovedPackageTrustIndexSha256 = 'e365b73e53aff65faa107347400aac82546a3dc700160914b1412f6858fe276d'
 $ApprovedCanonicalCapabilityPolicyPackageContract = [pscustomobject]@{
     path = 'docs/contracts/canonical-capability-policy-v1.json'
     role = 'capabilityPolicy'
-    sha256 = '026fd116bb8380c373148953935cde01ceb5532f60bb3848dbab7d17fabd69e4'
+    sha256 = 'bf818a4c9aa4d539882e4bc4a0a662ef70ece67a44e78ae83356430365828f50'
 }
 $RetiredSupportPublicationPolicyPackagePaths = @(
     'docs/contracts/support-publication-policy-v1.0.0.json',
@@ -224,6 +225,17 @@ if (-not $fullPackagePath.EndsWith('.zip', [StringComparison]::OrdinalIgnoreCase
     throw 'Release smoke requires a .zip package.'
 }
 $packageBytes = (Get-Item -LiteralPath $fullPackagePath).Length
+$packageFileName = Split-Path -Leaf $fullPackagePath
+$ManagedUpgradePairPackageNames = @(
+    'NvtFwCombiner-v1.0.0-win-x64.zip',
+    'NvtFwCombiner-v1.0.1-win-x64.zip'
+)
+$MaximumPackageBytes = if ($packageFileName -cin $ManagedUpgradePairPackageNames) {
+    $MaximumManagedUpgradePairPackageBytes
+}
+else {
+    $MaximumLegacyPackageBytes
+}
 if ($packageBytes -gt $MaximumPackageBytes) {
     throw "Release package size $packageBytes exceeds the owner-approved maximum $MaximumPackageBytes bytes."
 }
@@ -281,6 +293,54 @@ try {
     $manifest = Get-Content -LiteralPath $manifestPath -Raw | ConvertFrom-Json
     if ($null -eq $manifest.files -or $manifest.files.Count -eq 0) {
         throw 'Release manifest has no file entries.'
+    }
+
+    if (Test-Path -LiteralPath (Join-Path $packageRoot 'NvtFwCombiner.Bootstrap.exe') -PathType Leaf) {
+        throw 'Immutable Bootstrap must remain outside every version update package.'
+    }
+    $LauncherEntries = @(
+        $manifest.files | Where-Object {
+            $_.path -eq 'launcher/NvtFwCombiner.Launcher.exe' -or $_.role -eq 'launcher'
+        }
+    )
+    $ManifestSchemaVersion = if ($manifest.PSObject.Properties.Name -contains 'schemaVersion') {
+        [string]$manifest.schemaVersion
+    }
+    else { $null }
+    $ManifestLauncher = if ($manifest.PSObject.Properties.Name -contains 'launcher') {
+        $manifest.launcher
+    }
+    else { $null }
+    $ManifestVersion = if ($manifest.PSObject.Properties.Name -contains 'version') {
+        [string]$manifest.version
+    }
+    else { $null }
+    $ManifestProtocolVersion = if ($manifest.PSObject.Properties.Name -contains 'versionManagementProtocolVersion') {
+        [int]$manifest.versionManagementProtocolVersion
+    }
+    else { 0 }
+    if ($ManifestSchemaVersion -eq '1.2') {
+        if ($ManifestProtocolVersion -ne 1 -or
+            $null -eq $ManifestLauncher -or
+            [int]$ManifestLauncher.protocolVersion -ne 1 -or
+            [string]$ManifestLauncher.launcherVersion -notmatch '^\d+\.\d+\.\d+$' -or
+            [string]$ManifestLauncher.executableRelativePath -ne 'launcher/NvtFwCombiner.Launcher.exe' -or
+            $LauncherEntries.Count -ne 1 -or
+            [string]$LauncherEntries[0].path -ne 'launcher/NvtFwCombiner.Launcher.exe' -or
+            [string]$LauncherEntries[0].role -ne 'launcher' -or
+            [long]$LauncherEntries[0].size -ne [long]$ManifestLauncher.size -or
+            [string]$LauncherEntries[0].sha256 -ne [string]$ManifestLauncher.sha256) {
+            throw 'Release manifest launcher identity is inconsistent.'
+        }
+    }
+    elseif ($null -ne $ManifestSchemaVersion -and
+        ($LauncherEntries.Count -ne 0 -or $null -ne $ManifestLauncher)) {
+        throw 'Legacy release manifest must not declare managed launcher identity.'
+    }
+    if ($ManifestVersion -match '^(\d+)\.\d+\.\d+$' -and
+        [int]$Matches[1] -ge 1 -and
+        $ManifestSchemaVersion -ne '1.2') {
+        throw 'Version 1.0.0 and newer require the managed launcher contract.'
     }
 
     if (@($manifest.files |
@@ -369,7 +429,7 @@ try {
     }
     $PackageTrustIndex = Get-Content -LiteralPath $PackageTrustIndexPath -Raw |
         ConvertFrom-Json -Depth 32
-    if ([string]$PackageTrustIndex.schemaVersion -ne '1.0' -or
+    if ([string]$PackageTrustIndex.schemaVersion -ne '1.1' -or
         [string]$PackageTrustIndex.trustAnchorBindingId -ne 'built-in-profile-bundle-v2') {
         throw 'Release package trust index has an unsupported schema or trust anchor.'
     }

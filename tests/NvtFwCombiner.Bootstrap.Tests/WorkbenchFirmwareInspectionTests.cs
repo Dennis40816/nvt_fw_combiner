@@ -1,8 +1,13 @@
 using System.Text;
+using System.Text.Json;
 using System.Text.RegularExpressions;
+using NvtFwCombiner.Application.Capabilities;
 using NvtFwCombiner.Application.FlashMaps;
 using NvtFwCombiner.Application.InputInspection;
+using NvtFwCombiner.Application.Ports;
 using NvtFwCombiner.Domain.Composition;
+using NvtFwCombiner.Domain.Firmware;
+using NvtFwCombiner.TestSupport;
 using static NvtFwCombiner.Bootstrap.Tests.BootstrapTestData;
 
 namespace NvtFwCombiner.Bootstrap.Tests;
@@ -10,6 +15,61 @@ namespace NvtFwCombiner.Bootstrap.Tests;
 /// <summary>Parity and read-count evidence for the shell firmware inspection facade.</summary>
 public sealed partial class FirmwareInspectionSnapshotTests
 {
+    /// <summary>
+    /// Direct CtrlRAM fixture roles project display classification only; they do not admit a route,
+    /// support state, or CtrlRAM subtype.
+    /// </summary>
+    [Theory]
+    [InlineData("nt51923-fw141-single-auto-prj-662-20260717", "NT51923", "tp-input", BaseFirmwareArtifactKind.TpFirmware, CompiledFirmwareArtifactKind.TpFirmware, false)]
+    [InlineData("nt51923-fw141-single-auto-prj-662-20260717", "NT51923", "expected-output", BaseFirmwareArtifactKind.FlashCode, CompiledFirmwareArtifactKind.FlashCode, true)]
+    [InlineData("nt51926-fw200-single-auto-prj-597-20260718", "NT51926", "tp-input", BaseFirmwareArtifactKind.TpFirmware, CompiledFirmwareArtifactKind.TpFirmware, false)]
+    [InlineData("nt51926-fw200-single-auto-prj-597-20260718", "NT51926", "expected-output", BaseFirmwareArtifactKind.FlashCode, CompiledFirmwareArtifactKind.FlashCode, true)]
+    [InlineData("nt51927-fw141-single-auto-prj-529-20260717", "NT51927", "tp-input", BaseFirmwareArtifactKind.TpFirmware, CompiledFirmwareArtifactKind.TpFirmware, false)]
+    [InlineData("nt51927-fw141-single-auto-prj-529-20260717", "NT51927", "expected-output", BaseFirmwareArtifactKind.FlashCode, CompiledFirmwareArtifactKind.FlashCode, true)]
+    [InlineData("nt51929-fw200-single-auto-prj-594-20260717", "NT51929", "tp-input", BaseFirmwareArtifactKind.TpFirmware, CompiledFirmwareArtifactKind.TpFirmware, false)]
+    [InlineData("nt51929-fw200-single-auto-prj-594-20260717", "NT51929", "expected-output", BaseFirmwareArtifactKind.FlashCode, CompiledFirmwareArtifactKind.FlashCode, true)]
+    [InlineData("nt51932-fw200-cascade3-auto-prj-525-20260718", "NT51932", "tp-input", BaseFirmwareArtifactKind.TpFirmware, CompiledFirmwareArtifactKind.TpFirmware, false)]
+    [InlineData("nt51932-fw200-cascade3-auto-prj-525-20260718", "NT51932", "expected-output", BaseFirmwareArtifactKind.FlashCode, CompiledFirmwareArtifactKind.FlashCode, true)]
+    [InlineData("nt51950-fw200-single-auto-prj-676-20260717", "NT51950", "tp-input", BaseFirmwareArtifactKind.TpFirmware, CompiledFirmwareArtifactKind.TpFirmware, false)]
+    [InlineData("nt51950-fw200-single-auto-prj-676-20260717", "NT51950", "expected-output", BaseFirmwareArtifactKind.FlashCode, CompiledFirmwareArtifactKind.FlashCode, true)]
+    [InlineData("nt51951-fw200-single-auto-prj-695-20260718", "NT51951", "tp-input", BaseFirmwareArtifactKind.TpFirmware, CompiledFirmwareArtifactKind.TpFirmware, false)]
+    [InlineData("nt51951-fw200-single-auto-prj-695-20260718", "NT51951", "expected-output", BaseFirmwareArtifactKind.FlashCode, CompiledFirmwareArtifactKind.FlashCode, true)]
+    public void DirectCtrlRamFixtureRolesClassifyDisplayWithoutAdmittingRouteSupportOrSubtype(
+        string caseId,
+        string icId,
+        string artifactId,
+        BaseFirmwareArtifactKind expectedBaseKind,
+        CompiledFirmwareArtifactKind expectedCompiledKind,
+        bool expectedDpMetadataApplicability)
+    {
+        JsonElement fixtureCase = CanonicalGoldenTestData.LoadDirectCase(
+            "ctrlram-replace",
+            caseId);
+        JsonElement artifact = fixtureCase.GetProperty("artifacts")
+            .EnumerateArray()
+            .Single(candidate => StringComparer.Ordinal.Equals(
+                candidate.GetProperty("artifactId").GetString(),
+                artifactId));
+        string path = CanonicalGoldenTestData.ArtifactPath(artifact);
+
+        FirmwareInspectionSnapshot inspection = FirmwareInspectionTestSupport.InspectFirmware(
+            icId,
+            path,
+            tpPath: null,
+            ctrlRamRequest: null);
+
+        CompiledFirmwareArtifactClassification classification = Assert.IsType<
+            CompiledFirmwareArtifactClassification>(inspection.ArtifactClassification);
+        Assert.Equal(expectedBaseKind, inspection.BaseFirmwareArtifactKind);
+        Assert.Equal(expectedCompiledKind, classification.Kind);
+        Assert.Equal(expectedDpMetadataApplicability, classification.IsDpMetadataApplicable);
+        if (expectedCompiledKind == CompiledFirmwareArtifactKind.TpFirmware)
+        {
+            Assert.Null(inspection.DpVersion);
+            Assert.Null(inspection.CmiDpCode);
+        }
+    }
+
     /// <summary>NT51950/NT51951 recognize a plausible TP overlay in their standalone 0x37000 TP FW shape.</summary>
     [Theory]
     [InlineData("NT51950")]
@@ -115,16 +175,156 @@ public sealed partial class FirmwareInspectionSnapshotTests
         string dpPath = GoldenArtifactPath("51926", "dp-input");
         string tpPath = GoldenArtifactPath("51926", "tp-input");
 
+        BuiltInFirmwareInspection exactInspection = CreateInspection(
+            new InterceptingMetadataPlanQuery(
+                BootstrapTestHost.Canonical.Catalog,
+                static (_, _, _, _) =>
+                {
+                    throw new InvalidOperationException(
+                        "An exact typed inspection must not re-resolve its metadata plan.");
+                }),
+            new DelegatingContentInspector(static (_, _, _) =>
+                ValueTask.FromException<SelectedFileContentInspection>(
+                    new InvalidOperationException("The synchronous test reader owns bytes."))));
+
         FirmwareInspectionSnapshot inspection = FirmwareInspectionTestSupport.InspectFirmware(
             "NT51926",
             dpPath,
             tpPath);
 
+        IReadOnlyList<FirmwareInspectionSnapshotResult> typedResults =
+            BuiltInFirmwareInspection.InspectFirmwareBatch(
+                exactInspection,
+                "NT51926",
+                [
+                    new FirmwareInspectionSnapshotInput(
+                        "merge-dp",
+                        dpPath,
+                        tpPath,
+                        StandardMergeAddressSpaceId: CompositionAddressSpaceIds.DpInput),
+                    new FirmwareInspectionSnapshotInput(
+                        "merge-tp",
+                        tpPath,
+                        StandardMergeAddressSpaceId: CompositionAddressSpaceIds.TpInput),
+                ],
+                static path => File.ReadAllBytes(path));
+        FirmwareInspectionSnapshot typedInspection = typedResults
+            .Single(static result => result.InspectionId == "merge-dp")
+            .Inspection;
+
         Assert.Equal("0100", Assert.IsType<DpVersionMetadata>(inspection.DpVersion).VersionToken);
+        Assert.Equal("0100", Assert.IsType<DpVersionMetadata>(typedInspection.DpVersion).VersionToken);
         CmiDpCodeMetadata cmi = Assert.IsType<CmiDpCodeMetadata>(inspection.CmiDpCode);
+        CmiDpCodeMetadata typedCmi = Assert.IsType<CmiDpCodeMetadata>(
+            typedInspection.CmiDpCode);
         Assert.Equal((byte)0x01, cmi.MajorVersionByte);
         Assert.Equal((byte)0x00, cmi.MinorVersionNibble);
         Assert.Equal((ushort)597, cmi.JiraNumber);
+        Assert.Equal(cmi, typedCmi);
+        Assert.Null(typedInspection.DpMetadataPrerequisite);
+    }
+
+    /// <summary>A Standard Merge DP inspection preserves its exact TP prerequisite until TP arrives.</summary>
+    [Fact]
+    public void Nt51950StandardMergeDpPublishesTypedTpPrerequisite()
+    {
+        string dpPath = GoldenArtifactPath("51950", "dp-input");
+        string tpPath = GoldenArtifactPath("51950", "tp-input");
+
+        FirmwareInspectionSnapshot dpOnly = Assert.Single(
+            BuiltInFirmwareInspection.InspectFirmwareBatch(
+                BootstrapTestHost.ProductCanonical,
+                "NT51950",
+                [new FirmwareInspectionSnapshotInput(
+                    "merge-dp",
+                    dpPath,
+                    StandardMergeAddressSpaceId: CompositionAddressSpaceIds.DpInput)]))
+            .Inspection;
+
+        Assert.Null(dpOnly.DpVersion);
+        Assert.Null(dpOnly.CmiDpCode);
+        Assert.Equal(
+            CompositionAddressSpaceIds.TpInput,
+            Assert.IsType<FirmwareMetadataPrerequisite>(
+                dpOnly.DpMetadataPrerequisite).ArtifactBindingId);
+
+        FirmwareInspectionSnapshot paired = Assert.Single(
+            BuiltInFirmwareInspection.InspectFirmwareBatch(
+                BootstrapTestHost.ProductCanonical,
+                "NT51950",
+                [new FirmwareInspectionSnapshotInput(
+                    "merge-dp",
+                    dpPath,
+                    tpPath,
+                    StandardMergeAddressSpaceId: CompositionAddressSpaceIds.DpInput)]))
+            .Inspection;
+
+        Assert.Null(paired.DpMetadataPrerequisite);
+        Assert.Equal("CC00", Assert.IsType<DpVersionMetadata>(paired.DpVersion).VersionToken);
+        Assert.Equal((ushort)576, Assert.IsType<CmiDpCodeMetadata>(paired.CmiDpCode).JiraNumber);
+    }
+
+    /// <summary>Hidden DP authoring cannot erase full-Flash DPCMI inspection facts.</summary>
+    [Fact]
+    public void ProductPolicyFullFlashRetainsReadOnlyDpcmiMetadata()
+    {
+        string basePath = GoldenArtifactPath("51926", "expected-output");
+
+        List<(string IcId, string WorkflowId, string IcCountVariant, long? Capacity)> calls = [];
+        ICanonicalCapabilityQuery inner = BootstrapTestHost.ProductCanonical.Catalog;
+        BuiltInFirmwareInspection genericInspection = CreateInspection(
+            new InterceptingMetadataPlanQuery(
+                inner,
+                (icId, workflowId, icCountVariant, outputCapacity) =>
+                {
+                    calls.Add((icId, workflowId, icCountVariant, outputCapacity));
+                    return inner.ResolveUniqueMetadataPlan(
+                        icId,
+                        workflowId,
+                        icCountVariant,
+                        outputCapacity);
+                }),
+            new DelegatingContentInspector(static (_, _, _) =>
+                ValueTask.FromException<SelectedFileContentInspection>(
+                    new InvalidOperationException("The synchronous test reader owns bytes."))));
+
+        FirmwareInspectionSnapshot inspection = Assert.Single(
+            BuiltInFirmwareInspection.InspectFirmwareBatch(
+                genericInspection,
+                "NT51926",
+                [new FirmwareInspectionSnapshotInput(
+                    "replace-base",
+                    basePath,
+                    CtrlRamRequest: new CtrlRamInspectionRequest(
+                        IcNumberSelectionTokens.Cascade),
+                    CtrlRamReplaceAddressSpaceId:
+                        CompositionAddressSpaceIds.ReferenceBase)],
+                static path => File.ReadAllBytes(path)))
+            .Inspection;
+        CapabilityResolutionResult authoring =
+            BootstrapTestHost.ProductCanonical.Catalog.ResolveUniqueRoute(
+                "NT51926",
+                ExperienceIds.DpReplace,
+                "1-ic",
+                outputCapacity: 0x40000);
+
+        Assert.False(authoring.Succeeded);
+        Assert.Equal(
+            CapabilityCatalogIssueCodes.AuthoringUnavailable,
+            authoring.Issue!.Code);
+        Assert.Empty(inspection.AuthoringCompilationIssues);
+        Assert.Equal(
+            CtrlRamBaseDiscoveryReadiness.Inspected,
+            inspection.CtrlRamBaseDiscoveryReadiness);
+        Assert.Equal(
+            [("NT51926", ExperienceIds.DpReplace, "1-ic", 0x40000L)],
+            calls);
+        Assert.Equal(
+            "0100",
+            Assert.IsType<DpVersionMetadata>(inspection.DpVersion).VersionToken);
+        Assert.Equal(
+            (ushort)597,
+            Assert.IsType<CmiDpCodeMetadata>(inspection.CmiDpCode).JiraNumber);
     }
 
     /// <summary>The consolidated snapshot preserves existing metadata and CtrlRAM display projections.</summary>
@@ -141,7 +341,7 @@ public sealed partial class FirmwareInspectionSnapshotTests
             ctrlRamRequest);
 
         Assert.Equal(
-            BuiltInFirmwareInspection.TryReadFirmwareConfigMetadata(BootstrapTestHost.Canonical, "NT51926", basePath),
+            BuiltInFirmwareInspection.TryReadFirmwareConfigMetadata(BootstrapTestHost.Canonical.Projection, "NT51926", basePath),
             inspection.FirmwareConfig);
         Assert.Equal(
             FirmwareInspectionTestSupport.TryReadDpVersionMetadata("NT51926", basePath),
@@ -155,13 +355,39 @@ public sealed partial class FirmwareInspectionSnapshotTests
 
         CtrlRamInspectionDisplay display = Assert.IsType<CtrlRamInspectionDisplay>(inspection.CtrlRamDisplay);
         CtrlRamInspectionDisplay expectedDisplay =
-            BootstrapTestHost.Services.CtrlRamAuthoring.GetDiscoveryDisplay(
+            BootstrapTestHost.Services.CtrlRamAuthoring.GetDiscoveryDisplayFromAcceptedBase(
                 "NT51926",
                 ctrlRamRequest.NumberToken,
-                basePath);
+                File.ReadAllBytes(basePath));
         Assert.Equal(ctrlRamRequest.NumberToken, display.NumberToken);
         Assert.Equal(expectedDisplay.Regions, display.Regions);
-        Assert.Equal(expectedDisplay.InputSlots, display.InputSlots);
+        AssertCtrlRamInputSlotsEqual(expectedDisplay.InputSlots, display.InputSlots);
+    }
+
+    private static void AssertCtrlRamInputSlotsEqual(
+        IReadOnlyList<ReplaceInputSlot> expected,
+        IReadOnlyList<ReplaceInputSlot> actual)
+    {
+        Assert.Equal(expected.Count, actual.Count);
+        for (int index = 0; index < expected.Count; index++)
+        {
+            ReplaceInputSlot expectedSlot = expected[index];
+            ReplaceInputSlot actualSlot = actual[index];
+            Assert.Equal(
+                expectedSlot with { CtrlRamDescription = null },
+                actualSlot with { CtrlRamDescription = null });
+
+            CtrlRamInputDescriptionFacts expectedFacts = Assert.IsType<CtrlRamInputDescriptionFacts>(
+                expectedSlot.CtrlRamDescription);
+            CtrlRamInputDescriptionFacts actualFacts = Assert.IsType<CtrlRamInputDescriptionFacts>(
+                actualSlot.CtrlRamDescription);
+            Assert.Equal(expectedFacts.SourceFileName, actualFacts.SourceFileName);
+            Assert.Equal(expectedFacts.RequiresDiffNfMerge, actualFacts.RequiresDiffNfMerge);
+            Assert.Equal(expectedFacts.TitleStem, actualFacts.TitleStem);
+            Assert.Equal(expectedFacts.IsShared, actualFacts.IsShared);
+            Assert.Equal(expectedFacts.TargetRegionCount, actualFacts.TargetRegionCount);
+            Assert.Equal(expectedFacts.Sections, actualFacts.Sections);
+        }
     }
 
     /// <summary>Each distinct path is read once; a missing primary prevents any secondary read.</summary>
@@ -309,15 +535,16 @@ public sealed partial class FirmwareInspectionSnapshotTests
         }
     }
 
-    /// <summary>A full 256 KiB probe plus its canonical snapshot does not allocate a decoded text copy.</summary>
+    /// <summary>A route-neutral 256 KiB probe does not allocate a decoded text copy.</summary>
     [Fact]
     public void InspectionHeaderHintAvoidsWholeProbeTextAllocation()
     {
         const int probeLength = 256 * 1024;
+        const string routeNeutralIcId = "NT00000";
         byte[] headerBytes = new byte[probeLength];
         Encoding.ASCII.GetBytes("NT51926").CopyTo(headerBytes, probeLength - "NT51926".Length);
         _ = FirmwareInspectionTestSupport.InspectFirmware(
-            "NT51926",
+            routeNeutralIcId,
             "payload.bin",
             tpPath: null,
             ctrlRamRequest: null,
@@ -325,7 +552,7 @@ public sealed partial class FirmwareInspectionSnapshotTests
 
         long before = GC.GetAllocatedBytesForCurrentThread();
         FirmwareInspectionSnapshot inspection = FirmwareInspectionTestSupport.InspectFirmware(
-            "NT51926",
+            routeNeutralIcId,
             "payload.bin",
             tpPath: null,
             ctrlRamRequest: null,

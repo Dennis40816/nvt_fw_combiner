@@ -211,14 +211,11 @@ public sealed class FirmwareConfigMetadataReaderTests
     public static TheoryData<string, string, string, byte, byte, byte, byte, ushort> GoldenFirmwareConfigCases()
     {
         TheoryData<string, string, string, byte, byte, byte, byte, ushort> data = [];
-        data.Add("51920", "51920/flash.bin", "1.2.0", 0x01, 0xFE, 0x00, 0x02, 0x1404);
         data.Add("51923", "51923/flash.bin", "1.3.0", 0x06, 0xF9, 0x00, 0x01, 0x1606);
         data.Add("51926", "51926/flash.bin", "1.4.1", 0x01, 0xFE, 0x00, 0x02, 0x5102);
         data.Add("51927", "51927/flash.bin", "1.4.1", 0x02, 0xFD, 0x00, 0x01, 0x1348);
         data.Add("51928", "51928/flash.bin", "1.3.2", 0x84, 0x7B, 0x00, 0x02, 0xF206);
         data.Add("51929", "51929/flash.bin", "2.0.0", 0x01, 0xFE, 0x00, 0x01, 0x1707);
-        data.Add("51930", "51930/flash.bin", "1.3.0", 0x04, 0xFB, 0x00, 0x03, 0x110D);
-        data.Add("51931", "51931/flash.bin", "1.3.0", 0x82, 0x7D, 0x00, 0x06, 0x131B);
         data.Add("51932", "51932/flash.bin", "2.0.0", 0x80, 0x7F, 0x00, 0x05, 0x4801);
         data.Add("51950", "51950/dp-256k/flash.bin", "2.0.0", 0x04, 0xFB, 0x00, 0x01, 0x135E);
         data.Add("51951", "51951/dp-512k/flash.bin", "2.0.0", 0x03, 0xFC, 0x00, 0x01, 0x5901);

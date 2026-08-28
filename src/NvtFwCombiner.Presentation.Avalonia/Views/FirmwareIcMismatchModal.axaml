@@ -28,8 +28,8 @@
       </Grid>
 
       <StackPanel Grid.Row="2" HorizontalAlignment="Right" Orientation="Horizontal" Spacing="{DynamicResource NfcSpace8}">
-        <Button Classes="secondary" Command="{Binding DismissFirmwareIcMismatchCommand}" Content="{Binding Text.FirmwareIcMismatchKeepLabel}" />
-        <Button Classes="primary" Command="{Binding AcceptFirmwareIcMismatchCommand}" Content="{Binding Text.FirmwareIcMismatchUseDetectedLabel}" />
+        <Button Classes="semanticAction secondary" Command="{Binding DismissFirmwareIcMismatchCommand}" Content="{Binding Text.FirmwareIcMismatchKeepLabel}" />
+        <Button Classes="semanticAction primary" Command="{Binding AcceptFirmwareIcMismatchCommand}" Content="{Binding Text.FirmwareIcMismatchUseDetectedLabel}" />
       </StackPanel>
     </Grid>
   </Border>

@@ -72,9 +72,10 @@ profiles omit `icNumberInputMode`; `Replace` profiles must declare exactly one o
 not an experience, UI, or member-id inference. The
 `V2PlanCompiled` eligibility remains non-executable except for the closed request-scoped candidate
 contexts in ADR 0019 and ADR 0020. The separate `V2RuntimeExecutable` eligibility is minted only by
-the Profiles compiler for the closed blank-output Merge or reference-clone DP Replace subset when
-promotion is exactly `supported`, blockers are empty, each input slot has exactly one immutable
-singleton space, and output naming is one of: a token-free legacy-schema
+the Profiles compiler for the closed blank-output Merge, reference-clone DP Replace, or structurally
+safe runtime-reference Replace subset when
+promotion is exactly `supported`, blockers are empty, every input space is immutable with its closed
+singleton or per-binding instance policy, and output naming is one of: a token-free legacy-schema
 template, the exact closed AB Code v1 compatibility template, or a complete
 schema-2.15 typed normal naming rule, all with the `reject` invalid-character
 policy. The AB exception is admitted only for Merge composition with the exact
@@ -84,7 +85,8 @@ type, typed token sources, and missing-value policies remains non-executable.
 Arbitrary token templates remain non-executable.
 An `executable-candidate` never creates generic runtime authority, production routing, or support;
 ADR 0019 logical-output and ADR 0020 runtime-reference-replace are the only explicit Application
-admission shapes.
+candidate-admission shapes. ADR 0055 permits a structurally safe supported runtime-reference profile
+to use ordinary runtime admission without weakening those candidate rules.
 `supported` is profile-level V2 runtime admission, not a global IC or product-support claim; the
 support matrix and its firmware-owner release gate remain separate authority.
 Its `CompiledInputContract` retains each slot's id, role, artifact class, required/cardinality policy,
@@ -207,7 +209,8 @@ mappings. Only the unique singleton `reference-image` binding selects map capaci
 never select a map, and zero or multiple exact-capacity map candidates reject the request. The request
 has no caller-selected capacity override, and every compiled binding id must match the Application
 binding identity retained in reports and preview approval. This context remains candidate-only until
-its runtime routing and firmware evidence gates are closed.
+its runtime routing and firmware evidence gates are closed; ADR 0055 records closure for the exact
+owner-approved CtrlRAM routes while General Replace remains independently gated.
 
 Schema 2.7 retains every 2.6 declaration and permits a `legacy-combiner-v1` stage to declare zero
 `stagedArtifactBindings` when it uses only `stagedSourceBindings`. This does not grant an implicit
@@ -244,8 +247,9 @@ and an explicit IC-number topology may disambiguate same-capacity single and
 cascade maps when the canonical map applicability declares typed topology requirements. Workflow
 identity remains trusted selection/provenance data and does not select this behavior. Only supplied source bytes are
 mapped, so a short input preserves the cloned target tail and an oversized input
-cannot expand section authority. This is candidate compilation, not built-in
-runtime registration or support promotion.
+cannot expand section authority. The declaration alone is candidate compilation, not built-in
+runtime registration or support promotion. ADR 0055 separately permits exact supported CtrlRAM
+profiles to mint runtime eligibility after their routing and evidence authorities are complete.
 
 For this typed CtrlRAM source shape, the compiler intersects each profile-declared TP CtrlRAM
 processor write view with the concrete mapping targets. Only those intersections

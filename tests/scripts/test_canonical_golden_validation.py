@@ -34,12 +34,21 @@ class CanonicalGoldenValidationTests(unittest.TestCase):
         self.temporary_directory = tempfile.TemporaryDirectory()
         self.root = Path(self.temporary_directory.name)
         self.canonical = self.root / "testdata/golden/canonical"
+        self.disposition_test = self.root / "tests/golden_runner.py"
+        self.disposition_test.parent.mkdir(parents=True)
+        self.disposition_test.write_text(
+            "def direct_full_output():\n    pass\n", encoding="utf-8"
+        )
         self.case_directory = self.canonical / (
             "NT51927/standard-merge/gen-flash/topology-unscoped/"
             "nt51927-standard-merge-gen-flash"
         )
-        input_path = self.case_directory / "inputs/dp.bin"
-        expected_path = self.case_directory / "expected/flash.bin"
+        input_path = self.case_directory / (
+            "inputs/nt51927-standard-merge-gen-flash-dp-input.bin"
+        )
+        expected_path = self.case_directory / (
+            "expected/nt51927-standard-merge-gen-flash-expected-output.bin"
+        )
         input_path.parent.mkdir(parents=True)
         expected_path.parent.mkdir(parents=True)
         input_path.write_bytes(b"dp input")
@@ -59,6 +68,10 @@ class CanonicalGoldenValidationTests(unittest.TestCase):
             "variantOrVersion": "gen-flash",
             "topology": "topology-unscoped",
             "directGolden": True,
+            "testDisposition": {
+                "kind": "direct-full-output",
+                "evidenceRefs": ["tests/golden_runner.py#direct_full_output"],
+            },
             "sourceClassification": "owner-approved",
             "ownerApproval": "test fixture",
             "artifacts": [
@@ -77,14 +90,38 @@ class CanonicalGoldenValidationTests(unittest.TestCase):
             ],
         }
         self.write_json(provenance / "case.json", self.case_manifest)
+        self.route_id = "test-standard-merge-route"
+        self.route_fingerprint = "1" * 64
+        expected_payload = expected_path.read_bytes()
         self.root_manifest = {
-            "schemaVersion": "1.0",
+            "schemaVersion": "1.1",
             "payloadClass": "owner-approved-golden",
             "binaryPayloadsIncluded": True,
             "diagnosticsRoot": "testdata/diagnostics/golden-evidence",
             "cases": [{"caseId": case_id, "manifestPath": case_manifest_path}],
+            "routeEvidence": [
+                {
+                    "evidenceId": "test-direct-golden",
+                    "kind": "direct-golden",
+                    "routeId": self.route_id,
+                    "capabilityFingerprint": self.route_fingerprint,
+                    "caseId": case_id,
+                    "testReference": ("tests/golden_runner.py#direct_full_output"),
+                    "expectedView": {
+                        "artifactId": "expected-output",
+                        "start": 0,
+                        "length": len(expected_payload),
+                        "sha256": hashlib.sha256(expected_payload).hexdigest(),
+                    },
+                }
+            ],
         }
         self.write_json(self.canonical / "manifest.json", self.root_manifest)
+        self.policy_path = (
+            self.root / "docs/contracts/canonical-capability-policy-v1.json"
+        )
+        self.policy_path.parent.mkdir(parents=True)
+        self.rewrite_policy_from_route_evidence()
         (self.canonical / "README.md").write_text(
             "canonical fixture\n", encoding="utf-8"
         )
@@ -152,33 +189,57 @@ class CanonicalGoldenValidationTests(unittest.TestCase):
     def rewrite_root(self) -> None:
         self.write_json(self.canonical / "manifest.json", self.root_manifest)
 
+    def rewrite_policy(self) -> None:
+        self.write_json(self.policy_path, self.policy)
+
+    def rewrite_policy_from_route_evidence(self) -> None:
+        self.policy = {
+            "schemaVersion": "1.0",
+            "catalogId": "canonical-capability-policy",
+            "catalogVersion": "test",
+            "issuedOn": "2026-08-25",
+            "routes": [
+                {
+                    "routeId": evidence["routeId"],
+                    "capabilityFingerprint": evidence["capabilityFingerprint"],
+                    "evidence": {
+                        "decisionId": evidence["evidenceId"],
+                        "routeId": evidence["routeId"],
+                        "capabilityFingerprint": evidence["capabilityFingerprint"],
+                        "value": evidence["kind"],
+                        "sourceReference": "test fixture",
+                    },
+                }
+                for evidence in self.root_manifest["routeEvidence"]
+            ],
+        }
+        self.rewrite_policy()
+
     def convert_direct_golden_to_input_evidence(self) -> None:
-        expected_path = self.case_directory / "expected/flash.bin"
+        expected_path = self.case_directory / (
+            "expected/nt51927-standard-merge-gen-flash-expected-output.bin"
+        )
         expected_path.unlink()
         expected_path.parent.rmdir()
         self.case_manifest["directGolden"] = False
         self.case_manifest["directEvidence"] = True
         self.case_manifest["artifacts"] = [self.case_manifest["artifacts"][0]]
+        self.case_manifest["testDisposition"] = {
+            "kind": "input-only-evidence",
+            "evidenceRefs": ["tests/golden_runner.py#direct_full_output"],
+        }
         self.rewrite_case()
-
-    def add_diagnostic_legacy_artifact(self) -> Path:
-        path = self.root / (
-            "testdata/golden/ctrlram-replace/fixtures/20260718/"
-            "NT51927/historical.bin"
-        )
-        path.parent.mkdir(parents=True, exist_ok=True)
-        payload = b"historical diagnostic"
-        path.write_bytes(payload)
-        self.case_manifest["diagnosticLegacyPaths"] = [
+        self.root_manifest["routeEvidence"] = [
             {
-                "path": path.relative_to(self.root).as_posix(),
-                "size": len(payload),
-                "sha256": hashlib.sha256(payload).hexdigest(),
-                "classification": "historical-non-same-build-flashcode",
+                "evidenceId": "test-contract-only",
+                "kind": "contract-only",
+                "routeId": self.route_id,
+                "capabilityFingerprint": self.route_fingerprint,
+                "testReference": "tests/golden_runner.py#direct_full_output",
             }
         ]
-        self.rewrite_case()
-        return path
+        self.rewrite_root()
+        self.rewrite_policy_from_route_evidence()
 
     def add_alias(
         self,
@@ -206,6 +267,10 @@ class CanonicalGoldenValidationTests(unittest.TestCase):
                 "variantOrVersion": "gen-flash",
                 "topology": "topology-unscoped",
                 "directGolden": False,
+                "testDisposition": {
+                    "kind": "fact-scoped-alias",
+                    "evidenceRefs": ["tests/golden_runner.py#direct_full_output"],
+                },
                 "sourceClassification": "owner-approved-fact-alias",
                 "ownerApproval": "test fixture",
                 "alias": {
@@ -221,76 +286,396 @@ class CanonicalGoldenValidationTests(unittest.TestCase):
         self.rewrite_root()
         return alias_provenance / "case.json"
 
+    def add_route_evidence_alias(
+        self,
+        *,
+        source_route_id: str | None = None,
+        source_fingerprint: str | None = None,
+        fact_scope_ids: list[str] | None = None,
+    ) -> dict[str, object]:
+        alias_manifest = self.add_alias("nt51927-standard-merge-gen-flash")
+        alias_case = json.loads(alias_manifest.read_text(encoding="utf-8"))
+        evidence: dict[str, object] = {
+            "evidenceId": "test-approved-alias",
+            "kind": "approved-alias",
+            "routeId": "test-standard-merge-alias-route",
+            "capabilityFingerprint": "2" * 64,
+            "sourceRouteId": source_route_id or self.route_id,
+            "sourceCapabilityFingerprint": (
+                source_fingerprint or self.route_fingerprint
+            ),
+            "caseId": alias_case["caseId"],
+            "factScopeIds": fact_scope_ids or [f"{alias_case['caseId']}:fact-1"],
+            "testReference": "tests/golden_runner.py#direct_full_output",
+        }
+        self.root_manifest["routeEvidence"].append(evidence)
+        self.rewrite_root()
+        self.rewrite_policy_from_route_evidence()
+        return evidence
+
+    def use_synthetic_route_evidence(self) -> None:
+        oracle = self.root / "testdata/public-synthetic/oracle.json"
+        oracle.parent.mkdir(parents=True)
+        oracle.write_text('{"oracle":"test"}\n', encoding="utf-8")
+        expected_sha256 = "3" * 64
+        self.disposition_test.write_text(
+            f"def direct_full_output():\n    expected_sha256 = '{expected_sha256}'\n",
+            encoding="utf-8",
+        )
+        self.root_manifest["routeEvidence"] = [
+            {
+                "evidenceId": "test-synthetic-oracle",
+                "kind": "synthetic-oracle",
+                "routeId": self.route_id,
+                "capabilityFingerprint": self.route_fingerprint,
+                "oracleReference": "testdata/public-synthetic/oracle.json",
+                "expectedSha256": expected_sha256,
+                "testReference": "tests/golden_runner.py#direct_full_output",
+            }
+        ]
+        self.rewrite_root()
+        self.rewrite_policy_from_route_evidence()
+
     def test_accepts_hash_pinned_direct_case(self) -> None:
         self.assertEqual([], self.validate())
 
-    def test_accepts_closed_hash_pinned_diagnostic_legacy_artifact(self) -> None:
-        self.add_diagnostic_legacy_artifact()
+    def test_accepts_direct_route_evidence_without_an_expected_view(self) -> None:
+        del self.root_manifest["routeEvidence"][0]["expectedView"]
+        self.rewrite_root()
 
         self.assertEqual([], self.validate())
 
-    def test_rejects_diagnostic_legacy_artifact_hash_drift(self) -> None:
-        path = self.add_diagnostic_legacy_artifact()
-        path.write_bytes(b"historical diagnostic drift")
+    def test_accepts_contract_only_route_evidence_with_contract_reference(
+        self,
+    ) -> None:
+        contract = self.root / "docs/contracts/test-route-contract.md"
+        contract.parent.mkdir(parents=True, exist_ok=True)
+        contract.write_text("# Exact route contract\n", encoding="utf-8")
+        self.root_manifest["routeEvidence"] = [
+            {
+                "evidenceId": "test-contract-only",
+                "kind": "contract-only",
+                "routeId": self.route_id,
+                "capabilityFingerprint": self.route_fingerprint,
+                "contractReference": (
+                    "docs/contracts/test-route-contract.md#exact-route-contract"
+                ),
+            }
+        ]
+        self.rewrite_root()
+        self.rewrite_policy_from_route_evidence()
+
+        self.assertEqual([], self.validate())
+
+    def test_accepts_synthetic_oracle_route_evidence(self) -> None:
+        self.use_synthetic_route_evidence()
+
+        self.assertEqual([], self.validate())
+
+    def test_rejects_synthetic_hash_not_pinned_by_referenced_test(self) -> None:
+        self.use_synthetic_route_evidence()
+        self.root_manifest["routeEvidence"][0]["expectedSha256"] = "4" * 64
+        self.rewrite_root()
+
+        errors = self.validate()
+
+        self.assertTrue(
+            any("must appear as an exact literal" in error for error in errors)
+        )
+
+    def test_accepts_exact_route_approved_alias(self) -> None:
+        self.add_route_evidence_alias()
+
+        self.assertEqual([], self.validate())
+
+    def test_rejects_stale_expected_view_hash(self) -> None:
+        self.root_manifest["routeEvidence"][0]["expectedView"]["sha256"] = "0" * 64
+        self.rewrite_root()
+
+        errors = self.validate()
+
+        self.assertTrue(
+            any("expectedView SHA-256 mismatch" in error for error in errors)
+        )
+
+    def test_rejects_expected_view_length_outside_payload(self) -> None:
+        self.root_manifest["routeEvidence"][0]["expectedView"]["length"] += 1
+        self.rewrite_root()
+
+        errors = self.validate()
+
+        self.assertTrue(any("exceeds artifact size" in error for error in errors))
+
+    def test_rejects_direct_route_evidence_with_unknown_case(self) -> None:
+        self.root_manifest["routeEvidence"][0]["caseId"] = "missing-case"
+        self.rewrite_root()
+
+        errors = self.validate()
+
+        self.assertTrue(
+            any("does not identify a canonical case" in error for error in errors)
+        )
+
+    def test_rejects_expected_view_with_unknown_artifact(self) -> None:
+        self.root_manifest["routeEvidence"][0]["expectedView"]["artifactId"] = (
+            "missing-artifact"
+        )
+        self.rewrite_root()
+
+        errors = self.validate()
+
+        self.assertTrue(
+            any("must identify exactly one artifact" in error for error in errors)
+        )
+
+    def test_rejects_alias_with_stale_source_fingerprint(self) -> None:
+        self.add_route_evidence_alias(source_fingerprint="f" * 64)
+
+        errors = self.validate()
 
         self.assertTrue(
             any(
-                "diagnostic legacy artifact SHA-256 mismatch" in error
-                for error in self.validate()
+                "source route evidence is missing or stale" in error for error in errors
             )
         )
 
-    def test_rejects_unlisted_diagnostic_legacy_artifact(self) -> None:
-        path = self.add_diagnostic_legacy_artifact()
-        (path.parent / "extra.bin").write_bytes(b"extra")
+    def test_rejects_alias_of_the_same_route_id(self) -> None:
+        self.add_route_evidence_alias(source_route_id=self.route_id)
+        alias = self.root_manifest["routeEvidence"][-1]
+        alias["routeId"] = self.route_id
+        alias["capabilityFingerprint"] = "2" * 64
+        self.rewrite_root()
+
+        errors = self.validate()
+
+        self.assertTrue(any("same routeId" in error for error in errors))
+
+    def test_rejects_alias_case_cycle_or_alias_chain(self) -> None:
+        alias_manifest = self.add_alias("nt51927-standard-merge-gen-flash")
+        alias_case = json.loads(alias_manifest.read_text(encoding="utf-8"))
+        alias_case["alias"]["sourceCaseId"] = alias_case["caseId"]
+        self.write_json(alias_manifest, alias_case)
+
+        cycle_errors = self.validate()
+
+        self.assertTrue(
+            any("must reference a direct canonical evidence case" in error for error in cycle_errors)
+        )
+
+        second_id = "nt51926-standard-merge-gen-flash-alias"
+        second_path = (
+            self.canonical
+            / "NT51926/standard-merge/gen-flash/topology-unscoped"
+            / second_id
+            / "provenance/case.json"
+        )
+        second_path.parent.mkdir(parents=True)
+        second_case = json.loads(json.dumps(alias_case))
+        second_case["caseId"] = second_id
+        second_case["ic"] = "NT51926"
+        second_case["alias"]["sourceCaseId"] = alias_case["caseId"]
+        self.write_json(second_path, second_case)
+        alias_case["alias"]["sourceCaseId"] = second_id
+        self.write_json(alias_manifest, alias_case)
+        self.root_manifest["cases"].append(
+            {
+                "caseId": second_id,
+                "manifestPath": second_path.relative_to(self.canonical).as_posix(),
+            }
+        )
+        self.rewrite_root()
+
+        chain_errors = self.validate()
+
+        self.assertGreaterEqual(
+            sum(
+                "must reference a direct canonical evidence case" in error
+                for error in chain_errors
+            ),
+            2,
+        )
+
+    def test_rejects_route_evidence_case_substitution(self) -> None:
+        alias = self.add_route_evidence_alias()
+        alias["caseId"] = "nt51927-standard-merge-gen-flash"
+        self.rewrite_root()
+
+        errors = self.validate()
+
+        self.assertTrue(
+            any("caseId must identify a canonical alias case" in error for error in errors)
+        )
+
+    def test_rejects_duplicate_alias_fact_scope_ids(self) -> None:
+        alias_fact_id = "nt51917-standard-merge-gen-flash-alias:fact-1"
+        self.add_route_evidence_alias(fact_scope_ids=[alias_fact_id, alias_fact_id])
+
+        errors = self.validate()
+
+        self.assertTrue(
+            any("factScopeIds cannot contain duplicates" in error for error in errors)
+        )
+
+    def test_rejects_unknown_alias_fact_scope_id(self) -> None:
+        self.add_route_evidence_alias(
+            fact_scope_ids=["nt51917-standard-merge-gen-flash-alias:fact-99"]
+        )
+
+        errors = self.validate()
+
+        self.assertTrue(
+            any("unknown or wrong-case fact id" in error for error in errors)
+        )
+
+    def test_rejects_wrong_case_alias_fact_scope_id(self) -> None:
+        self.add_route_evidence_alias(fact_scope_ids=["another-alias-case:fact-1"])
+
+        errors = self.validate()
+
+        self.assertTrue(
+            any("unknown or wrong-case fact id" in error for error in errors)
+        )
+
+    def test_rejects_missing_capability_policy_route_evidence(self) -> None:
+        self.add_route_evidence_alias()
+        self.root_manifest["routeEvidence"].pop()
+        self.rewrite_root()
+
+        errors = self.validate()
+
+        self.assertTrue(
+            any("missing capability-policy evidenceIds" in error for error in errors)
+        )
+
+    def test_rejects_extra_route_evidence_not_in_capability_policy(self) -> None:
+        self.root_manifest["routeEvidence"].append(
+            {
+                "evidenceId": "extra-evidence",
+                "kind": "contract-only",
+                "routeId": "extra-route",
+                "capabilityFingerprint": "4" * 64,
+                "testReference": "tests/golden_runner.py#direct_full_output",
+            }
+        )
+        self.rewrite_root()
+
+        errors = self.validate()
+
+        self.assertTrue(
+            any("extra or has an unknown evidenceId" in error for error in errors)
+        )
+
+    def test_rejects_route_id_that_differs_from_capability_policy(self) -> None:
+        self.root_manifest["routeEvidence"][0]["routeId"] = "wrong-route"
+        self.rewrite_root()
+
+        errors = self.validate()
+
+        self.assertTrue(
+            any("routeId does not match capability policy" in error for error in errors)
+        )
+
+    def test_rejects_stale_fingerprint_against_capability_policy(self) -> None:
+        self.root_manifest["routeEvidence"][0]["capabilityFingerprint"] = "f" * 64
+        self.rewrite_root()
+
+        errors = self.validate()
 
         self.assertTrue(
             any(
-                "diagnostic legacy root differs from its closed inventory" in error
-                for error in self.validate()
+                "capabilityFingerprint does not match capability policy" in error
+                for error in errors
             )
         )
 
-    def test_rejects_symlinked_diagnostic_legacy_root_ancestor(self) -> None:
-        fixtures = self.root / "testdata/golden/ctrlram-replace/fixtures"
-        fixtures.parent.mkdir(parents=True, exist_ok=True)
-        with tempfile.TemporaryDirectory() as external_directory:
-            try:
-                fixtures.symlink_to(external_directory, target_is_directory=True)
-            except OSError as error:
-                self.skipTest(f"directory symlinks are unavailable: {error}")
-            self.add_diagnostic_legacy_artifact()
+    def test_rejects_kind_that_differs_from_capability_policy(self) -> None:
+        self.policy["routes"][0]["evidence"]["value"] = "contract-only"
+        self.rewrite_policy()
 
-            errors = self.validate()
+        errors = self.validate()
 
         self.assertTrue(
-            any("diagnostic legacy root escaped the repository" in error for error in errors)
+            any("kind does not match capability policy" in error for error in errors)
         )
 
-    @unittest.skipUnless(
-        os.name == "nt" and hasattr(Path, "is_junction"),
-        "Windows junctions are required",
-    )
-    def test_rejects_empty_junction_below_diagnostic_legacy_root(self) -> None:
-        path = self.add_diagnostic_legacy_artifact()
-        junction = path.parent / "empty-junction"
-        with tempfile.TemporaryDirectory() as external_directory:
-            completed = subprocess.run(
-                ["cmd.exe", "/d", "/c", "mklink", "/J", str(junction), external_directory],
-                check=False,
-                capture_output=True,
-                text=True,
+    def test_rejects_evidence_id_that_differs_from_capability_policy(self) -> None:
+        self.root_manifest["routeEvidence"][0]["evidenceId"] = "wrong-evidence-id"
+        self.rewrite_root()
+
+        errors = self.validate()
+
+        self.assertTrue(any("unknown evidenceId" in error for error in errors))
+
+    def test_rejects_duplicate_route_evidence_ids(self) -> None:
+        duplicate = {
+            "evidenceId": "test-direct-golden",
+            "kind": "contract-only",
+            "routeId": "another-route",
+            "capabilityFingerprint": "4" * 64,
+            "testReference": "tests/golden_runner.py#direct_full_output",
+        }
+        self.root_manifest["routeEvidence"].append(duplicate)
+        self.rewrite_root()
+
+        errors = self.validate()
+
+        self.assertTrue(
+            any("duplicate canonical route evidenceId" in error for error in errors)
+        )
+
+    def test_rejects_duplicate_exact_route_evidence_identity(self) -> None:
+        duplicate = {
+            "evidenceId": "another-evidence-id",
+            "kind": "contract-only",
+            "routeId": self.route_id,
+            "capabilityFingerprint": self.route_fingerprint,
+            "testReference": "tests/golden_runner.py#direct_full_output",
+        }
+        self.root_manifest["routeEvidence"].append(duplicate)
+        self.rewrite_root()
+
+        errors = self.validate()
+
+        self.assertTrue(
+            any(
+                "duplicate canonical route evidence identity" in error
+                for error in errors
             )
-            if completed.returncode != 0:
-                self.skipTest(f"cannot create directory junction: {completed.stderr}")
-            try:
-                errors = self.validate()
-            finally:
-                junction.rmdir()
+        )
+
+    def test_rejects_unknown_route_evidence_field(self) -> None:
+        self.root_manifest["routeEvidence"][0]["supportStatus"] = "supported"
+        self.rewrite_root()
+
+        errors = self.validate()
 
         self.assertTrue(
-            any("diagnostic legacy root cannot contain symlinks" in error for error in errors)
+            any("direct-golden keys must be exactly" in error for error in errors)
         )
+
+    def test_rejects_unknown_route_evidence_kind(self) -> None:
+        self.root_manifest["routeEvidence"][0]["kind"] = "observed-output"
+        self.rewrite_root()
+
+        errors = self.validate()
+
+        self.assertTrue(any("unsupported kind" in error for error in errors))
+
+    def test_rejects_malformed_capability_fingerprint(self) -> None:
+        self.root_manifest["routeEvidence"][0]["capabilityFingerprint"] = "ABC123"
+        self.rewrite_root()
+
+        errors = self.validate()
+
+        self.assertTrue(any("must be a lowercase SHA-256" in error for error in errors))
+
+    def test_rejects_root_manifest_without_route_evidence(self) -> None:
+        del self.root_manifest["routeEvidence"]
+        self.rewrite_root()
+
+        errors = self.validate()
+
+        self.assertTrue(any("non-empty routeEvidence" in error for error in errors))
 
     def test_accepts_hash_pinned_direct_input_evidence_without_expected(self) -> None:
         self.convert_direct_golden_to_input_evidence()
@@ -314,7 +699,9 @@ class CanonicalGoldenValidationTests(unittest.TestCase):
 
         self.assertTrue(any("workflow must match" in error for error in errors))
 
-    def test_accepts_one_case_binding_one_payload_to_multiple_logical_roles(self) -> None:
+    def test_accepts_one_case_binding_one_payload_to_multiple_logical_roles(
+        self,
+    ) -> None:
         shared_input = dict(self.case_manifest["artifacts"][0])
         shared_input["artifactId"] = "tp-b-input"
         self.case_manifest["artifacts"].append(shared_input)
@@ -325,8 +712,7 @@ class CanonicalGoldenValidationTests(unittest.TestCase):
     def test_rejects_a_second_case_reaching_into_the_first_case_payload(self) -> None:
         case_id = "nt51950-ab-cross-case-reference"
         manifest_path = (
-            "NT51950/ab-merge/test/topology-unscoped/"
-            f"{case_id}/provenance/case.json"
+            f"NT51950/ab-merge/test/topology-unscoped/{case_id}/provenance/case.json"
         )
         foreign_input = dict(self.case_manifest["artifacts"][0])
         foreign_expected = dict(foreign_input)
@@ -416,7 +802,10 @@ class CanonicalGoldenValidationTests(unittest.TestCase):
                 )
 
     def test_rejects_payload_hash_drift(self) -> None:
-        (self.case_directory / "expected/flash.bin").write_bytes(b"changed")
+        (
+            self.case_directory
+            / ("expected/nt51927-standard-merge-gen-flash-expected-output.bin")
+        ).write_bytes(b"changed")
 
         errors = self.validate()
 
@@ -424,7 +813,9 @@ class CanonicalGoldenValidationTests(unittest.TestCase):
         self.assertTrue(any("SHA-256 mismatch" in error for error in errors))
 
     def test_rejects_same_size_payload_hash_drift(self) -> None:
-        path = self.case_directory / "expected/flash.bin"
+        path = self.case_directory / (
+            "expected/nt51927-standard-merge-gen-flash-expected-output.bin"
+        )
         payload = bytearray(path.read_bytes())
         payload[0] ^= 0xFF
         path.write_bytes(payload)
@@ -478,7 +869,9 @@ class CanonicalGoldenValidationTests(unittest.TestCase):
         )
 
     def test_rejects_symlinked_artifact(self) -> None:
-        path = self.case_directory / "expected/flash.bin"
+        path = self.case_directory / (
+            "expected/nt51927-standard-merge-gen-flash-expected-output.bin"
+        )
         outside = self.root / "outside.bin"
         outside.write_bytes(path.read_bytes())
         path.unlink()
@@ -492,7 +885,10 @@ class CanonicalGoldenValidationTests(unittest.TestCase):
         self.assertTrue(any("cannot contain a symlink" in error for error in errors))
 
     def test_rejects_missing_declared_file(self) -> None:
-        (self.case_directory / "expected/flash.bin").unlink()
+        (
+            self.case_directory
+            / ("expected/nt51927-standard-merge-gen-flash-expected-output.bin")
+        ).unlink()
 
         errors = self.validate()
 
@@ -517,9 +913,12 @@ class CanonicalGoldenValidationTests(unittest.TestCase):
         self.assertTrue(any("requires input artifacts" in error for error in errors))
 
     def test_rejects_direct_case_with_multiple_expected_roles(self) -> None:
-        duplicate_path = self.case_directory / "expected/flash-copy.bin"
+        duplicate_path = self.case_directory / "expected/nt51927-flash-copy.bin"
         duplicate_path.write_bytes(
-            (self.case_directory / "expected/flash.bin").read_bytes()
+            (
+                self.case_directory
+                / ("expected/nt51927-standard-merge-gen-flash-expected-output.bin")
+            ).read_bytes()
         )
         duplicate = dict(self.case_manifest["artifacts"][1])
         duplicate["artifactId"] = "expected-output-copy"
@@ -530,6 +929,20 @@ class CanonicalGoldenValidationTests(unittest.TestCase):
         errors = self.validate()
 
         self.assertTrue(any("exactly one expected" in error for error in errors))
+
+    def test_rejects_canonical_bin_filename_without_case_ic(self) -> None:
+        artifact = self.case_manifest["artifacts"][0]
+        original_path = self.canonical / artifact["path"]
+        ambiguous_path = original_path.with_name("tp_bin.bin")
+        original_path.rename(ambiguous_path)
+        artifact["path"] = ambiguous_path.relative_to(self.canonical).as_posix()
+        self.rewrite_case()
+
+        errors = self.validate()
+
+        self.assertTrue(
+            any("filename must identify case IC NT51927" in error for error in errors)
+        )
 
     def test_rejects_direct_input_evidence_with_expected_role(self) -> None:
         self.case_manifest["directGolden"] = False
@@ -568,6 +981,89 @@ class CanonicalGoldenValidationTests(unittest.TestCase):
         errors = self.validate()
 
         self.assertTrue(any("must be a boolean" in error for error in errors))
+
+    def test_rejects_case_without_test_disposition(self) -> None:
+        del self.case_manifest["testDisposition"]
+        self.rewrite_case()
+
+        errors = self.validate()
+
+        self.assertTrue(
+            any("must declare exactly one testDisposition" in error for error in errors)
+        )
+
+    def test_rejects_unknown_test_disposition_kind(self) -> None:
+        self.case_manifest["testDisposition"]["kind"] = "runner-decides"
+        self.rewrite_case()
+
+        errors = self.validate()
+
+        self.assertTrue(any("unsupported kind" in error for error in errors))
+
+    def test_rejects_overlapping_allowed_difference_ranges(self) -> None:
+        self.case_manifest["allowedByteDifferenceContract"] = {
+            "addressSpaceId": "output-image",
+            "allowedDifferenceRanges": [
+                {"start": "0x0", "endExclusive": "0x2", "classification": "first"},
+                {"start": "0x1", "endExclusive": "0x3", "classification": "overlap"},
+            ],
+        }
+        self.case_manifest["testDisposition"] = {
+            "kind": "allowed-byte-difference",
+            "evidenceRefs": ["tests/golden_runner.py#direct_full_output"],
+            "differenceContractProperty": "allowedByteDifferenceContract",
+        }
+        self.rewrite_case()
+
+        errors = self.validate()
+
+        self.assertTrue(any("sorted and non-overlapping" in error for error in errors))
+
+    def test_rejects_allowed_difference_runner_that_does_not_consume_manifest_ranges(
+        self,
+    ) -> None:
+        self.case_manifest["allowedByteDifferenceContract"] = {
+            "addressSpaceId": "output-image",
+            "allowedDifferenceRanges": [
+                {"start": "0x0", "endExclusive": "0x1", "classification": "crc"},
+            ],
+        }
+        self.case_manifest["testDisposition"] = {
+            "kind": "allowed-byte-difference",
+            "evidenceRefs": ["tests/golden_runner.py#direct_full_output"],
+            "differenceContractProperty": "allowedByteDifferenceContract",
+        }
+        self.rewrite_case()
+
+        errors = self.validate()
+
+        self.assertTrue(
+            any("must consume the case-local typed ranges" in error for error in errors)
+        )
+
+    def test_rejects_test_evidence_outside_tests_tree(self) -> None:
+        self.case_manifest["testDisposition"]["evidenceRefs"] = [
+            "scripts/golden_runner.py#direct_full_output"
+        ]
+        self.rewrite_case()
+
+        errors = self.validate()
+
+        self.assertTrue(any("below tests/" in error for error in errors))
+
+    def test_rejects_retired_active_ctrlram_fixture_authority(self) -> None:
+        retired_manifest = self.root / "testdata/golden/ctrlram-replace/manifest.json"
+        retired_manifest.parent.mkdir(parents=True)
+        retired_manifest.write_text("{}\n", encoding="utf-8")
+
+        errors = self.validate()
+
+        self.assertTrue(
+            any(
+                "retired active CtrlRAM fixture authority must stay absent" in error
+                for error in errors
+            )
+        )
 
     def test_rejects_diagnostic_path_as_canonical_artifact(self) -> None:
         self.case_manifest["artifacts"][0]["path"] = (

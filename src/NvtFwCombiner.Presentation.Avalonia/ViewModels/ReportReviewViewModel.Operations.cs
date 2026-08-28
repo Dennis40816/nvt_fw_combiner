@@ -4,7 +4,7 @@ using NvtFwCombiner.Domain.Composition;
 
 namespace NvtFwCombiner.Presentation.Avalonia.ViewModels;
 
-public sealed partial class ReportReviewViewModel
+internal sealed partial class ReportReviewViewModel
 {
     internal static IReadOnlyList<ReportLineViewModel> ProjectOperations(
         IReadOnlyList<OperationRunSummary> operations,

@@ -45,34 +45,59 @@ public sealed class CanonicalCapabilityProjectionPolicyTests
     [Fact]
     public void OtherIcReplaceExposureIsCanonicalPublicationDriven()
     {
-        Assert.True(BootstrapTestHost.Canonical.Projection.IsReplaceWorkflowAvailable("NT51932", ExperienceIds.CtrlRamReplace));
-        Assert.False(BootstrapTestHost.Canonical.Projection.IsReplaceWorkflowAvailable("NT51932", ExperienceIds.GeneralReplace));
-        Assert.True(BootstrapTestHost.Canonical.Projection.IsReplaceWorkflowAvailable("NT51932", ExperienceIds.DpReplace));
-        Assert.True(BootstrapTestHost.Canonical.Projection.IsReplaceWorkflowAvailable("NT51926", ExperienceIds.GeneralReplace));
-        Assert.False(BootstrapTestHost.Canonical.Projection.GetReplaceWorkflowReadiness("NT51932", ExperienceIds.GeneralReplace)
+        var host = new IsolatedBootstrapTestHost();
+        CapabilityCatalogReloadResult reload = host.Catalog.Reload(
+            TestContext.Current.CancellationToken);
+        Assert.True(reload.Succeeded);
+
+        Assert.True(host.Canonical.Projection.IsReplaceWorkflowAvailable("NT51932", ExperienceIds.CtrlRamReplace));
+        Assert.False(host.Canonical.Projection.IsReplaceWorkflowAvailable("NT51932", ExperienceIds.GeneralReplace));
+        Assert.False(BootstrapTestHost.ProductCanonical.Projection.IsReplaceWorkflowAvailable("NT51932", ExperienceIds.DpReplace));
+        Assert.True(host.Canonical.Projection.IsReplaceWorkflowAvailable("NT51926", ExperienceIds.GeneralReplace));
+        Assert.False(host.Canonical.Projection.GetReplaceWorkflowReadiness("NT51932", ExperienceIds.GeneralReplace)
             .HasExactRoute);
-        Assert.True(BootstrapTestHost.Canonical.Projection.GetReplaceWorkflowReadiness("NT51926", ExperienceIds.GeneralReplace)
+        Assert.True(host.Canonical.Projection.GetReplaceWorkflowReadiness("NT51926", ExperienceIds.GeneralReplace)
             .HasExactRoute);
     }
 
-    /// <summary>Golden readiness reports verification without banning an evidence-gated workflow.</summary>
+    /// <summary>DP evidence remains visible after the independent authoring gate is closed.</summary>
     [Fact]
     public void ReplaceReadinessSeparatesGoldenEvidenceFromAvailability()
     {
-        CapabilityWorkflowReadiness verified = BootstrapTestHost.Canonical.Projection.GetReplaceWorkflowReadiness(
+        CapabilityWorkflowReadiness verified = BootstrapTestHost.ProductCanonical.Projection.GetReplaceWorkflowReadiness(
             "NT51929",
             ExperienceIds.DpReplace);
-        CapabilityWorkflowReadiness gated = BootstrapTestHost.Canonical.Projection.GetReplaceWorkflowReadiness(
+        CapabilityWorkflowReadiness gated = BootstrapTestHost.ProductCanonical.Projection.GetReplaceWorkflowReadiness(
             "NT51932",
             ExperienceIds.DpReplace);
 
-        Assert.True(verified.IsAvailable);
-        Assert.Equal(CapabilityEvidenceStatus.DirectGolden, verified.EvidenceStatus);
-        Assert.True(verified.HasReviewedEvidence);
-        Assert.True(gated.IsAvailable);
+        Assert.False(verified.IsAvailable);
+        Assert.Equal(CapabilityEvidenceStatus.ContractOnly, verified.EvidenceStatus);
+        Assert.False(verified.HasReviewedEvidence);
+        Assert.False(gated.IsAvailable);
         Assert.Equal(CapabilityEvidenceStatus.ContractOnly, gated.EvidenceStatus);
-        Assert.True(gated.IsEvidencePending);
-        Assert.Contains("does not ban authoring", gated.OpenCondition, StringComparison.Ordinal);
+        Assert.False(gated.IsEvidencePending);
+        Assert.Contains("1.1.0", gated.OpenCondition, StringComparison.Ordinal);
+    }
+
+    /// <summary>Direct DP authoring fails closed with a typed issue before reading any input.</summary>
+    [Fact]
+    public void DpReplaceDirectAuthoringReturnsTypedUnavailableIssue()
+    {
+        CompiledAuthoringSelectionSnapshot selection =
+            BootstrapTestHost.ProductServices.DpReplaceAuthoring.GetAuthoringSnapshot(
+                "NT51950",
+                [],
+                new Dictionary<string, FileStamp>(StringComparer.Ordinal),
+                new AuthoringRevision(1));
+
+        Assert.Empty(selection.Catalog.Routes);
+        Assert.Empty(selection.InputBindings);
+        CompositionIssue issue = Assert.Single(selection.Issues);
+        Assert.Equal(
+            CompositionPlanningIssueCodes.ReplaceWorkflowNotSupported,
+            issue.Code);
+        Assert.Contains("Not available", issue.Message, StringComparison.Ordinal);
     }
 
     /// <summary>Workbench exposes owner-declared symmetric perfect/partial family facts.</summary>

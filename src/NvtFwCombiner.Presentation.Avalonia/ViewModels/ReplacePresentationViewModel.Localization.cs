@@ -1,6 +1,6 @@
 namespace NvtFwCombiner.Presentation.Avalonia.ViewModels;
 
-public sealed partial class ReplacePresentationViewModel
+internal sealed partial class ReplacePresentationViewModel
 {
     internal void ApplyFirmwareSlotText()
     {
@@ -8,7 +8,7 @@ public sealed partial class ReplacePresentationViewModel
             Text.GetReplaceBaseTitle(SelectedReplaceMode),
             Text.GetReplaceBaseDescription(
                 SelectedReplaceMode,
-                _stateBindings.IsWorkflowLoaded()
+                _stateBindings.IsWorkflowLoaded() && HasSelectedIc
                     ? _compositionServices.Capabilities.GetDpReplaceReferenceCapacityLabel(SelectedIc)
                     : null),
             Text.RequiredLabel,
@@ -28,20 +28,16 @@ public sealed partial class ReplacePresentationViewModel
 
     private void ApplyReplaceSlotText(FirmwareSlotViewModel slot)
     {
-        if (string.Equals(slot.SlotId, CompositionSlotIds.ReplaceDp, StringComparison.Ordinal))
-        {
-            slot.ApplyDisplayText(
-                Text.DpReplacementBinTitle,
-                slot.Description,
-                Text.RequiredLabel,
-                Text.OptionalLabel,
-                Text.NoBinSelectedLabel);
-            return;
-        }
-
+        (string title, string description) = Text.GetReplaceInputText(
+            slot.AddressSpaceId,
+            slot.ReplaceInputRole,
+            slot.RegionGroup,
+            slot.DeclaredTitle,
+            slot.DeclaredDescription,
+            slot.CtrlRamDescriptionFacts);
         slot.ApplyDisplayText(
-            slot.Title,
-            slot.Description,
+            title,
+            description,
             Text.RequiredLabel,
             Text.OptionalLabel,
             Text.NoBinSelectedLabel);

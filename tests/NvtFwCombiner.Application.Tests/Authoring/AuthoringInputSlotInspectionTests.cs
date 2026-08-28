@@ -67,60 +67,6 @@ public sealed partial class AuthoringInputSlotInspectionTests
         Assert.Null(result.Inspection);
     }
 
-    /// <summary>Checking is an explicit transient projection without fabricated terminal health.</summary>
-    [Fact]
-    public void SelectedReadyArtifactBeginsInChecking()
-    {
-        ResolvedCapability capability = CreateCapability(ExperienceIds.StandardMerge);
-
-        AuthoringInputSlotStatus result = AuthoringInputSlotInspectionService.BeginInspection(
-            capability,
-            new AuthoringRevision(5),
-            ReadySelection(),
-            SourceSpace);
-
-        Assert.Equal(AuthoringSlotLifecycle.Checking, result.InspectionLifecycle);
-        Assert.Null(result.Inspection);
-        Assert.Null(result.FileStamp);
-        AuthoringInputSlotPublicationResult publication =
-            AuthoringInputSlotInspectionService.TryCreatePublication(
-                result,
-                InspectionLease(
-                    capability,
-                    new AuthoringRevision(5),
-                    FileStamp.FromBytes([])),
-                "checking");
-        Assert.False(publication.Succeeded);
-        Assert.Equal(AuthoringSessionIssueCodes.InvalidPublication, publication.Issue!.Code);
-    }
-
-    /// <summary>Per-slot health cannot be published through another derived-result channel.</summary>
-    [Fact]
-    public void TerminalInspectionRejectsNonInspectionPublicationLease()
-    {
-        ResolvedCapability capability = CreateCapability(ExperienceIds.StandardMerge);
-        byte[] source = [1, 2, 3, 4];
-        AuthoringInputSlotStatus inspected = AuthoringInputSlotInspectionService.Inspect(
-            capability,
-            new AuthoringRevision(6),
-            ReadySelection(),
-            SourceSpace,
-            source);
-
-        AuthoringInputSlotPublicationResult publication =
-            AuthoringInputSlotInspectionService.TryCreatePublication(
-                inspected,
-                InspectionLease(
-                    capability,
-                    new AuthoringRevision(6),
-                    FileStamp.FromBytes(source),
-                    kind: AuthoringDerivedResultKind.Preview),
-                "wrong-channel");
-
-        Assert.False(publication.Succeeded);
-        Assert.Equal(AuthoringSessionIssueCodes.InvalidPublication, publication.Issue!.Code);
-    }
-
     /// <summary>Inspection admission requires one ready selection bound by the compiler.</summary>
     [Fact]
     public void InspectionRejectsUnreadySelectionAndMismatchedBinding()
@@ -136,11 +82,12 @@ public sealed partial class AuthoringInputSlotInspectionTests
         };
 
         _ = Assert.Throws<ArgumentException>(() =>
-            AuthoringInputSlotInspectionService.BeginInspection(
+            AuthoringInputSlotInspectionService.Inspect(
                 capability,
                 new AuthoringRevision(6),
                 unselected,
-                SourceSpace));
+                SourceSpace,
+                sourceBytes: ReadOnlyMemory<byte>.Empty));
         _ = Assert.Throws<ArgumentException>(() =>
             AuthoringInputSlotInspectionService.ProjectReadiness(
                 capability,
@@ -304,94 +251,6 @@ public sealed partial class AuthoringInputSlotInspectionTests
         Assert.NotSame(source, result.AcceptedByteArray);
     }
 
-    /// <summary>An unreadable terminal error publishes against the captured null stamp and exact compilation.</summary>
-    [Fact]
-    public void UnreadableSelectedSourcePublishesWithoutFabricatedFileStamp()
-    {
-        ResolvedCapability capability = CreateCapability(ExperienceIds.DpReplace);
-        var revision = new AuthoringRevision(7);
-        AuthoringInputSlotStatus status = AuthoringInputSlotInspectionService.Inspect(
-            capability,
-            revision,
-            ReadySelection(),
-            SourceSpace,
-            sourceBytes: null,
-            selectedPathHint: "selected.bin");
-
-        AuthoringInputSlotPublicationResult publication =
-            AuthoringInputSlotInspectionService.TryCreatePublication(
-                status,
-                InspectionLease(capability, revision, fileStamp: null),
-                "unreadable-source");
-
-        Assert.True(publication.Succeeded);
-        Assert.Equal(status.CompilationFingerprint, publication.Publication!.CompilationFingerprint);
-    }
-
-    /// <summary>An unreadable result is bound to the exact selected path even without a content stamp.</summary>
-    [Fact]
-    public void UnreadableSelectedSourceRejectsAnotherPathLease()
-    {
-        ResolvedCapability capability = CreateCapability(ExperienceIds.DpReplace);
-        var revision = new AuthoringRevision(7);
-        AuthoringInputSlotStatus status = AuthoringInputSlotInspectionService.Inspect(
-            capability,
-            revision,
-            ReadySelection(),
-            SourceSpace,
-            sourceBytes: null,
-            selectedPathHint: "selected.bin");
-
-        AuthoringInputSlotPublicationResult publication =
-            AuthoringInputSlotInspectionService.TryCreatePublication(
-                status,
-                InspectionLease(capability, revision, fileStamp: null, selectedPath: "other.bin"),
-                "unreadable-source");
-
-        Assert.False(publication.Succeeded);
-        Assert.Equal(AuthoringSessionIssueCodes.StaleInspection, publication.Issue!.Code);
-    }
-
-    /// <summary>The canonical session publishes an unreadable terminal result for its current path and compilation.</summary>
-    [Fact]
-    public void CanonicalSessionPublishesUnreadableSelectedSource()
-    {
-        ResolvedCapability capability = CreateCapability(ExperienceIds.DpReplace);
-        var route = new AuthoringCapabilityRoute(
-            capability.Identity,
-            capability.CapabilityFingerprint,
-            executionAdmitted: true,
-            [new AuthoringSlotDefinitionReference(SourceSlot)]);
-        var session = new AuthoringSessionState(ExperienceIds.DpReplace);
-        Assert.True(session.Activate(new AuthoringCapabilityCatalogSnapshot(
-            ExperienceIds.DpReplace,
-            capability.ResolutionToken,
-            [route])).Succeeded);
-        AuthoringSlotInspectionStartResult start = session.BeginSlotFileInspection(
-            SourceSlot,
-            "selected.bin");
-        Assert.True(start.Succeeded);
-        AuthoringInputSlotStatus status = AuthoringInputSlotInspectionService.Inspect(
-            capability,
-            start.Snapshot!.AuthoringRevision,
-            ReadySelection(),
-            SourceSpace,
-            sourceBytes: null,
-            selectedPathHint: "selected.bin");
-        AuthoringPublicationLease lease = session.CapturePublicationLease(
-            AuthoringDerivedResultKind.Inspection,
-            capability.CompiledComposition.CompilationFingerprint);
-
-        AuthoringInputSlotPublicationResult created =
-            AuthoringInputSlotInspectionService.TryCreatePublication(
-                status,
-                lease,
-                "unreadable-source");
-
-        Assert.True(created.Succeeded, created.Issue?.Message);
-        Assert.True(session.TryPublish(lease, created.Publication!).Succeeded);
-    }
-
     /// <summary>A short concrete CtrlRAM source is terminal Error rather than endless Checking.</summary>
     [Fact]
     public void ShortCtrlRamSourcePublishesBlockingError()
@@ -410,131 +269,6 @@ public sealed partial class AuthoringInputSlotInspectionTests
         Assert.Equal(CompositionIssueCodes.InputAddressSpaceLengthMismatch, result.Inspection.IssueCode);
     }
 
-    /// <summary>Terminal publication rejects a different exact compilation in the same capability.</summary>
-    [Fact]
-    public void PublicationRejectsCompilationFingerprintDrift()
-    {
-        ResolvedCapability inspectedCapability = CreateCapability(
-            ExperienceIds.StandardMerge,
-            targetStart: 0);
-        ResolvedCapability currentCapability = CreateCapability(
-            ExperienceIds.StandardMerge,
-            targetStart: 1);
-        var revision = new AuthoringRevision(8);
-        byte[] source = [1, 2, 3, 4];
-        AuthoringInputSlotStatus inspected = AuthoringInputSlotInspectionService.Inspect(
-            inspectedCapability,
-            revision,
-            ReadySelection(),
-            SourceSpace,
-            source);
-
-        AuthoringInputSlotPublicationResult stale =
-            AuthoringInputSlotInspectionService.TryCreatePublication(
-                inspected,
-                InspectionLease(
-                    currentCapability,
-                    revision,
-                    FileStamp.FromBytes(source)),
-                "stale-compilation");
-        AuthoringInputSlotPublicationResult accepted =
-            AuthoringInputSlotInspectionService.TryCreatePublication(
-                inspected,
-                InspectionLease(
-                    inspectedCapability,
-                    revision,
-                    FileStamp.FromBytes(source)),
-                "current-compilation");
-
-        Assert.NotEqual(
-            inspectedCapability.CompiledComposition.CompilationFingerprint,
-            currentCapability.CompiledComposition.CompilationFingerprint);
-        Assert.False(stale.Succeeded);
-        Assert.Equal(AuthoringSessionIssueCodes.StaleInspection, stale.Issue!.Code);
-        Assert.True(accepted.Succeeded);
-        Assert.Equal(
-            inspected.CompilationFingerprint,
-            accepted.Publication!.CompilationFingerprint);
-    }
-
-    /// <summary>Content and revision changes also invalidate terminal publication.</summary>
-    [Fact]
-    public void PublicationRejectsRevisionAndFileIdentityDrift()
-    {
-        ResolvedCapability capability = CreateCapability(ExperienceIds.StandardMerge);
-        byte[] source = [1, 2, 3, 4];
-        var revision = new AuthoringRevision(9);
-        AuthoringInputSlotStatus inspected = AuthoringInputSlotInspectionService.Inspect(
-            capability,
-            revision,
-            ReadySelection(),
-            SourceSpace,
-            source);
-
-        AuthoringInputSlotPublicationResult staleRevision =
-            AuthoringInputSlotInspectionService.TryCreatePublication(
-                inspected,
-                InspectionLease(
-                    capability,
-                    revision.Next(),
-                    FileStamp.FromBytes(source)),
-                "stale-revision");
-        AuthoringInputSlotPublicationResult staleFile =
-            AuthoringInputSlotInspectionService.TryCreatePublication(
-                inspected,
-                InspectionLease(
-                    capability,
-                    revision,
-                    FileStamp.FromBytes([4, 3, 2, 1])),
-                "stale-file");
-
-        Assert.False(staleRevision.Succeeded);
-        Assert.False(staleFile.Succeeded);
-        Assert.Equal(AuthoringSessionIssueCodes.StaleInspection, staleRevision.Issue!.Code);
-        Assert.Equal(AuthoringSessionIssueCodes.StaleInspection, staleFile.Issue!.Code);
-    }
-
-    /// <summary>Slot definition and catalog publication are independent stale-result guards.</summary>
-    [Fact]
-    public void PublicationRejectsSlotAndResolutionTokenDrift()
-    {
-        ResolvedCapability inspectedCapability = CreateCapability(ExperienceIds.StandardMerge);
-        ResolvedCapability reloadedCapability = CreateCapability(
-            ExperienceIds.StandardMerge,
-            publicationToken: "reloaded-publication");
-        var revision = new AuthoringRevision(10);
-        byte[] source = [1, 2, 3, 4];
-        AuthoringInputSlotStatus inspected = AuthoringInputSlotInspectionService.Inspect(
-            inspectedCapability,
-            revision,
-            ReadySelection(),
-            SourceSpace,
-            source);
-
-        AuthoringInputSlotPublicationResult staleSlot =
-            AuthoringInputSlotInspectionService.TryCreatePublication(
-                inspected,
-                InspectionLease(
-                    inspectedCapability,
-                    revision,
-                    FileStamp.FromBytes(source),
-                    slotId: "different-slot"),
-                "stale-slot");
-        AuthoringInputSlotPublicationResult staleResolution =
-            AuthoringInputSlotInspectionService.TryCreatePublication(
-                inspected,
-                InspectionLease(
-                    reloadedCapability,
-                    revision,
-                    FileStamp.FromBytes(source)),
-                "stale-resolution");
-
-        Assert.False(staleSlot.Succeeded);
-        Assert.False(staleResolution.Succeeded);
-        Assert.Equal(AuthoringSessionIssueCodes.StaleInspection, staleSlot.Issue!.Code);
-        Assert.Equal(AuthoringSessionIssueCodes.StaleInspection, staleResolution.Issue!.Code);
-    }
-
     private static InputSelectionMemberReadiness ReadySelection()
     {
         return new InputSelectionMemberReadiness(
@@ -544,25 +278,6 @@ public sealed partial class AuthoringInputSlotInspectionTests
             CanSelect: true,
             Reason: null,
             NextAction: null);
-    }
-
-    private static AuthoringPublicationLease InspectionLease(
-        ResolvedCapability capability,
-        AuthoringRevision authoringRevision,
-        FileStamp? fileStamp,
-        string slotId = SourceSlot,
-        AuthoringDerivedResultKind kind = AuthoringDerivedResultKind.Inspection,
-        string selectedPath = "selected.bin")
-    {
-        return new AuthoringPublicationLease(
-            new object(),
-            kind,
-            capability.ResolutionToken,
-            authoringRevision,
-            capability.Identity.RouteId,
-            capability.CapabilityFingerprint,
-            [new AuthoringSlotPublicationIdentity(slotId, selectedPath, fileStamp)],
-            capability.CompiledComposition.CompilationFingerprint);
     }
 
     private static ResolvedCapability CreateCapability(

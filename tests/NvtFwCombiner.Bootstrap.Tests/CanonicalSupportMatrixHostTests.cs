@@ -113,7 +113,7 @@ public sealed class CanonicalSupportMatrixHostTests
         Assert.True(reload.Succeeded);
         Assert.Equal(CanonicalSupportMatrixCatalogState.Current, result.State);
         Assert.Equal(reload.Snapshot!.ResolutionToken, result.Matrix!.ResolutionToken);
-        Assert.Equal(78, result.Matrix.Rows.Count);
+        Assert.Equal(89, result.Matrix.Rows.Count);
         Assert.Equal(
             reload.Snapshot.Capabilities.Count + reload.Snapshot.DynamicRoutes.Count,
             result.Matrix.Rows.Count);

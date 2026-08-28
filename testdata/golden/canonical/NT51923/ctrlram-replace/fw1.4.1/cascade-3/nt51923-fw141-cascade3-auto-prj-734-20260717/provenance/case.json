@@ -6,6 +6,13 @@
   "variantOrVersion": "fw1.4.1",
   "topology": "cascade-3",
   "directGolden": true,
+  "testDisposition": {
+    "kind": "allowed-byte-difference",
+    "evidenceRefs": [
+      "tests/NvtFwCombiner.Bootstrap.Tests/Nt51923CtrlRamFw141EvidenceTests.cs#ExactOwnerCasesRunThroughV2WithLockedProcessEvidenceAsync"
+    ],
+    "differenceContractProperty": "phaseBResult"
+  },
   "sourceClassification": "private-owner-approved-golden",
   "ownerApproval": "Repository owner explicitly approved committing all supplied golden sample payloads to public Git on 2026-07-17. Technical project/AUTO_PRJ data is retained; personal data is excluded.",
   "project": "AUTO_PRJ-734",
@@ -16,7 +23,7 @@
     {
       "artifactId": "expected-output",
       "role": "expected",
-      "path": "NT51923/ctrlram-replace/fw1.4.1/cascade-3/nt51923-fw141-cascade3-auto-prj-734-20260717/expected/expected-output.bin",
+      "path": "NT51923/ctrlram-replace/fw1.4.1/cascade-3/nt51923-fw141-cascade3-auto-prj-734-20260717/expected/nt51923-expected-output.bin",
       "size": 262144,
       "sha256": "06dda13a592c151a767d47fff60da993f33d7bda37666794dd9ea5cf92094d18",
       "legacyPaths": [
@@ -40,7 +47,7 @@
     {
       "artifactId": "dp-input",
       "role": "input",
-      "path": "NT51923/ctrlram-replace/fw1.4.1/cascade-3/nt51923-fw141-cascade3-auto-prj-734-20260717/inputs/dp-input.bin",
+      "path": "NT51923/ctrlram-replace/fw1.4.1/cascade-3/nt51923-fw141-cascade3-auto-prj-734-20260717/inputs/nt51923-dp-input.bin",
       "size": 262144,
       "sha256": "0a79f8f7b13b72c02861f34c7f6b73978f06c719a004bfef500d0c30228c345f",
       "legacyPaths": [
@@ -52,7 +59,7 @@
     {
       "artifactId": "postbuild-diffdlm",
       "role": "input",
-      "path": "NT51923/ctrlram-replace/fw1.4.1/cascade-3/nt51923-fw141-cascade3-auto-prj-734-20260717/inputs/postbuild/DiffDLM.bin",
+      "path": "NT51923/ctrlram-replace/fw1.4.1/cascade-3/nt51923-fw141-cascade3-auto-prj-734-20260717/inputs/postbuild/nt51923-postbuild-diffdlm.bin",
       "size": 10240,
       "sha256": "09ebdf84a16f7f0ece24ccaf9c4c74e73002ffd1a57a7801bfec5c4c78c7f700",
       "legacyPaths": [
@@ -64,7 +71,7 @@
     {
       "artifactId": "postbuild-mp-ctrlram",
       "role": "input",
-      "path": "NT51923/ctrlram-replace/fw1.4.1/cascade-3/nt51923-fw141-cascade3-auto-prj-734-20260717/inputs/postbuild/MP_Ctrlram.bin",
+      "path": "NT51923/ctrlram-replace/fw1.4.1/cascade-3/nt51923-fw141-cascade3-auto-prj-734-20260717/inputs/postbuild/nt51923-postbuild-mp-ctrlram.bin",
       "size": 655360,
       "sha256": "363c9439b555ab8f2ff9f92a8d1002ea3eaf71a8e2f7da3bd624070f8164bc2e",
       "legacyPaths": [
@@ -76,7 +83,7 @@
     {
       "artifactId": "postbuild-nf-ctrlram",
       "role": "input",
-      "path": "NT51923/ctrlram-replace/fw1.4.1/cascade-3/nt51923-fw141-cascade3-auto-prj-734-20260717/inputs/postbuild/NF_Ctrlram.bin",
+      "path": "NT51923/ctrlram-replace/fw1.4.1/cascade-3/nt51923-fw141-cascade3-auto-prj-734-20260717/inputs/postbuild/nt51923-postbuild-nf-ctrlram.bin",
       "size": 17584,
       "sha256": "56b1a73b0e9b68ab074819d68cf4571678b82a8d8bff69c1652390d3e35be304",
       "legacyPaths": [
@@ -88,7 +95,7 @@
     {
       "artifactId": "postbuild-normal-ctrlram",
       "role": "input",
-      "path": "NT51923/ctrlram-replace/fw1.4.1/cascade-3/nt51923-fw141-cascade3-auto-prj-734-20260717/inputs/postbuild/Normal_Ctrlram.bin",
+      "path": "NT51923/ctrlram-replace/fw1.4.1/cascade-3/nt51923-fw141-cascade3-auto-prj-734-20260717/inputs/postbuild/nt51923-postbuild-normal-ctrlram.bin",
       "size": 655360,
       "sha256": "08c9dc02ac4d9c3feae9711311d84e9ca1a72928816a56a9acc4f78a98e13613",
       "legacyPaths": [
@@ -100,7 +107,7 @@
     {
       "artifactId": "postbuild-vn-ctrlram",
       "role": "input",
-      "path": "NT51923/ctrlram-replace/fw1.4.1/cascade-3/nt51923-fw141-cascade3-auto-prj-734-20260717/inputs/postbuild/VN_Ctrlram.bin",
+      "path": "NT51923/ctrlram-replace/fw1.4.1/cascade-3/nt51923-fw141-cascade3-auto-prj-734-20260717/inputs/postbuild/nt51923-postbuild-vn-ctrlram.bin",
       "size": 5728,
       "sha256": "18a26e8e2a0bd06f0d37945f2c3b38d5927bf86513da600463b91b625faed88c",
       "legacyPaths": [
@@ -137,6 +144,7 @@
   },
   "pid": "0x4C03",
   "phaseBResult": {
+    "addressSpaceId": "output-image",
     "caseId": "nt51923-fw141-cascade3-auto-prj-734-20260717",
     "ic": "NT51923",
     "workflow": "ctrlram-replace",

@@ -121,19 +121,17 @@ internal static partial class CompositionProfileNormalizer
         {
             CompositionProfileMetadataBinding? binding = metadataBindings.FirstOrDefault(candidate =>
                 StringComparer.Ordinal.Equals(candidate.BindingId, metadataBindingId));
-            string expectedStructureId =
-                sourceKind == CompiledOutputTokenSourceKind.DpcmiVersion
-                    ? "dpcmi"
-                    : "firmware-config-general-parameters";
             if (binding is null ||
-                !binding.Purposes.Contains(CompositionProfileMetadataPurpose.OutputNaming) ||
-                !StringComparer.Ordinal.Equals(binding.StructureId, expectedStructureId))
+                !binding.Purposes.Contains(CompositionProfileMetadataPurpose.OutputNaming))
             {
                 throw Error(
                     $"{path}.source.metadataBindingId",
-                    $"Expected one output-naming metadata binding for canonical structure '{expectedStructureId}'.");
+                    "Expected one metadata binding with output-naming purpose.");
             }
 
+            // A family-local structure id may reference the canonical definition.
+            // Exact canonical identity is therefore checked after map resolution by
+            // CapabilityPublicationCoherence, not inferred from this local alias.
             metadataSpaceId = binding.SpaceId;
         }
 

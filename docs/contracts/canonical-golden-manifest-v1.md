@@ -1,4 +1,4 @@
-# Canonical Golden Manifest v1
+# Canonical Golden Manifest v1.1
 
 ## Purpose
 
@@ -11,17 +11,74 @@ alias without copying payloads or presenting an alias as a direct product golden
 
 `testdata/golden/canonical/manifest.json` declares:
 
-- `schemaVersion`: exactly `1.0`;
+- `schemaVersion`: exactly `1.1` (case manifests remain version `1.0`);
 - `payloadClass`: exactly `owner-approved-golden`;
 - `binaryPayloadsIncluded`: exactly `true`;
 - `diagnosticsRoot`: exactly `testdata/diagnostics/golden-evidence`;
 - `cases`: the closed case inventory, each with a globally unique `caseId` and confined
-  `manifestPath`.
+  `manifestPath`; and
+- `routeEvidence`: the closed exact-route evidence inventory described below.
 
 The root, every case manifest, and every declared artifact form a closed file inventory. Extra files,
 missing files, duplicate declarations, path escapes, symlinked files or directories, and sibling-path
 discovery fail validation. Containment is checked on resolved paths before any manifest or payload is
 read.
+
+## Exact-route evidence inventory
+
+`routeEvidence` contains exactly one selected evidence declaration for every admitted capability
+route. A declaration never admits execution, changes publication, or alters a case or payload. It
+only binds the evidence classification to the exact current capability identity. Every declaration
+therefore contains these common fields:
+
+- `evidenceId`: a stable identifier, unique across the inventory;
+- `kind`: exactly `direct-golden`, `approved-alias`, `synthetic-oracle`, or
+  `contract-only`;
+- `routeId`: the exact, opaque canonical route id; and
+- `capabilityFingerprint`: the exact lowercase 64-hex capability fingerprint.
+
+The pair `(routeId, capabilityFingerprint)` is also unique. A changed fingerprint makes the old
+declaration stale; it cannot inherit evidence by retaining the same route id. Kind-specific objects
+are closed: undeclared fields fail validation. The validator loads
+`docs/contracts/canonical-capability-policy-v1.json` and requires exactly one manifest declaration
+for every policy route and no extras. The manifest `evidenceId`, `routeId`,
+`capabilityFingerprint`, and `kind` must respectively equal that route's evidence `decisionId`,
+route identity, fingerprint, and `value`. Missing, extra, renamed, stale, or reclassified evidence
+therefore fails the same structure gate; the two inventories cannot drift independently.
+
+A `direct-golden` declaration adds `caseId` and `testReference`. The case must be a physical direct
+golden with its owner expected artifact. It may also add one `expectedView` object containing exactly
+`artifactId`, non-negative integer `start`, positive integer `length`, and lowercase `sha256`.
+`artifactId` must select the case's expected artifact. The half-open byte view
+`[start, start + length)` must remain inside that immutable payload, and `sha256` must equal the hash
+of those exact bytes. Omitting `expectedView` means the declaration relies on the case's complete
+expected output and its full-output runner; it does not authorize a partial comparison.
+
+An `approved-alias` declaration adds `caseId`, `sourceRouteId`,
+`sourceCapabilityFingerprint`, a non-empty duplicate-free `factScopeIds` array, and
+`testReference`. `caseId` must select a canonical artifact-free alias case. The exact source identity
+must be present as `direct-golden`, and that declaration's `caseId` must match the alias case's
+`sourceCaseId`. Alias chains, a missing or stale source fingerprint, and aliasing another fingerprint
+of the same route id fail validation. Each `factScopeIds` item uses the closed
+`<alias-case-id>:fact-<one-based-index>` form and resolves to the corresponding entry in that alias
+case's declared `alias.factScope` array. Unknown indexes, another case's prefix, and duplicates fail
+validation. These IDs grant only the named reviewed facts; they never grant whole-family or
+whole-workflow equivalence.
+
+A `synthetic-oracle` declaration adds `oracleReference`, `expectedSha256`, and `testReference`.
+`oracleReference` is a normalized, confined, existing repository file; `expectedSha256` is the
+lowercase 64-hex oracle result pinned by the referenced test. Structure validation does not execute
+.NET, but it requires that exact lowercase hash literal to remain present in the referenced test
+source; a manifest-only hash edit therefore fails closed. The normal executable test gate remains
+responsible for proving that the named test actually produces and compares that value. The
+declaration does not turn a synthetic result into owner-supplied expected firmware.
+
+A `contract-only` declaration contains exactly one of `testReference` or `contractReference`.
+`testReference` uses `tests/<path>.cs#<test-symbol>` or
+`tests/<path>.py#<test-symbol>` and must resolve to an existing symbol. `contractReference` is the
+honest fallback when there is no route-specific executable oracle; it is a normalized, confined,
+existing repository file with an optional non-empty `#locator`. A contract-only row cannot carry a
+case, expected hash, oracle, alias source, or fact scope.
 
 ## Case path and manifest
 
@@ -42,6 +99,13 @@ and one or more pre-migration `legacyPaths`. Input, expected, and provenance art
 the corresponding case subtree; nested source groups such as `inputs/NF/` remain confined there.
 Expected bytes are never regenerated during layout migration.
 
+Every canonical `.bin` filename must itself contain the case IC number (for example `51950`). A
+generic basename such as `tp_bin.bin`, `dp-input.bin`, `flash.bin`, or `expected-output.bin` is not
+canonical even when its parent directories identify the IC. Existing descriptive owner filenames
+may remain when they already identify the same case IC; otherwise the preferred bounded form is
+`<ic>-<artifact-id>.bin`. The original supplied filename remains evidence in `originalFileName`
+and/or `legacyPaths`; renaming a canonical path never authorizes payload or hash changes.
+
 A direct input-evidence case declares `directGolden: false` and `directEvidence: true`. It contains
 one or more immutable input artifacts but cannot declare an expected artifact. This represents
 owner-approved base, replacement, or processor inputs whose execution facts are useful without
@@ -53,12 +117,45 @@ physical artifacts, and declares a direct `sourceCaseId`, non-empty `factScope`,
 direct golden or direct input-evidence case in the same workflow. The alias directory contains only
 its provenance manifest, so consumers cannot mistake alias evidence for a second expected BIN.
 
+## Test disposition
+
+Every case declares exactly one case-local `testDisposition`. Test runners parse this as a closed,
+typed contract rather than interpreting a free-form status string. `evidenceRefs` is a non-empty,
+duplicate-free list of `tests/<path>.cs#<test-symbol>` or `tests/<path>.py#<test-symbol>` references;
+each referenced file and symbol must exist.
+
+The only disposition kinds are:
+
+- `direct-full-output`: a direct golden whose runner compares the complete produced output with its
+  single expected artifact;
+- `allowed-byte-difference`: a direct golden whose runner compares the complete output and permits
+  differences only in the case-local object named by `differenceContractProperty`;
+- `artifact-integrity-route-blocked`: a direct golden whose artifacts are fully hash-validated but
+  whose route cannot run; `routeBlockingEvidenceRefs` must independently prove the typed blocker;
+- `input-only-evidence`: a direct input-evidence case with no expected artifact;
+- `fact-scoped-alias`: an artifact-free alias whose exact fact binding is tested.
+
+An allowed-difference object declares `addressSpaceId: output-image` and one or more sorted,
+non-overlapping, non-empty, half-open ranges using hexadecimal `start` and `endExclusive` values.
+Every range has a non-empty `classification` and stays within the expected output size. This contract
+authorizes only the named output-byte deviations; it does not weaken artifact SHA-256 checks or turn
+a repository-derived output into an owner expected golden.
+
+A derived regression output may be retained as a `provenance` artifact when its owner authorization,
+input artifact references, processor trace, allowed changed ranges, and residual claims are recorded
+in the same direct case. It remains supporting evidence and never becomes a second `expected` role.
+
 ## Diagnostics and release boundary
 
 Diagnostics live outside the canonical root. They cannot be declared as expected artifacts or read by
 canonical golden regression tests. Release packaging may include only artifacts selected from this
 inventory by an explicit release allowlist; a canonical path alone does not authorize shipment or
 support promotion.
+
+The retired active CtrlRAM fixture authority (`ctrlram-replace/manifest.json`, its template,
+`fixtures/20260705`, and `fixtures/derived`) must stay absent. Historical `legacyPaths` remain
+provenance. The separately indexed `fixtures/20260717` tree remains diagnostic quarantine and is not
+an executable golden source.
 
 `testdata/golden/release-standard-merge-v1.json` is the current human-gated release selection. It
 pins every selected `caseId`, case-manifest path, `artifactId`, artifact path, byte size, and SHA-256.
@@ -67,4 +164,5 @@ allowlist is an R3 release/security action and still requires firmware-owner and
 
 `scripts/canonical_golden_validation.py` is the executable repository validator for this contract.
 It uses only the Python standard library and verifies path confinement, exact inventory, hash/size,
-direct-case completeness, and fact-scoped alias integrity.
+direct-case completeness, typed dispositions, reviewed difference ranges, evidence references,
+retired active authority, and fact-scoped alias integrity.

@@ -10,27 +10,20 @@ internal sealed class V2CompositionPlanCompileResult
 
     private V2CompositionPlanCompileResult(CompiledComposition? compiledComposition, IEnumerable<CompositionIssue> issues)
     {
-        _issues = ImmutableReferenceSnapshot.Create(
-            issues,
-            "V2 plan compilation requires either one artifact or one or more issues.");
+        _issues =
+        [
+            .. ImmutableReferenceSnapshot.Create(
+                    issues,
+                    "V2 plan compilation requires either one artifact or one or more issues.")
+                .OrderBy(static issue => issue.Code, StringComparer.Ordinal)
+                .ThenBy(static issue => issue.Message, StringComparer.Ordinal)
+                .ThenBy(static issue => issue.OperationId, StringComparer.Ordinal),
+        ];
         if ((compiledComposition is null) != (_issues.Length != 0))
         {
             throw new ArgumentException("V2 plan compilation requires either one artifact or one or more issues.", nameof(issues));
         }
 
-        Array.Sort(_issues, static (left, right) =>
-        {
-            int code = StringComparer.Ordinal.Compare(left.Code, right.Code);
-            if (code != 0)
-            {
-                return code;
-            }
-
-            int message = StringComparer.Ordinal.Compare(left.Message, right.Message);
-            return message != 0
-                ? message
-                : StringComparer.Ordinal.Compare(left.OperationId, right.OperationId);
-        });
         CompiledComposition = compiledComposition;
         Issues = Array.AsReadOnly(_issues);
     }
@@ -101,116 +94,18 @@ internal static partial class V2CompositionPlanCompiler
             AddUnsupported(issues, "only warning-only non-uniform-region validations are lowered in this slice");
         }
 
-        MutableCompositionProfileSpace output = AssertOutputSpace(profile);
-        if (output.Capacity is RuntimeRequestProfileCapacity)
-        {
-            AddUnsupported(issues, "runtime-request output capacity requires logical-output V2 lowering");
-        }
-        else if (output.Capacity is not ResolvedMapProfileCapacity)
-        {
-            AddUnsupported(issues, "map-bound output images require resolved-map capacity");
-        }
-
-        if (issues.Count != 0)
-        {
-            return V2CompositionPlanCompileResult.Failed(issues);
-        }
-
-        ResolvedInputSelection inputSelection = ResolveInputSelection(
-            profile,
-            resolvedMap,
-            selectedInputSlotIds,
-            issues);
-        if (issues.Count != 0)
-        {
-            return V2CompositionPlanCompileResult.Failed(issues);
-        }
-
-        Dictionary<string, AddressSpace> spaces = LowerAddressSpaces(
-            profile,
-            profileEntry.Family.Family,
-            resolvedMap,
-            issues,
-            inputSelection.ActiveSlotIds);
-        if (issues.Count != 0)
-        {
-            return V2CompositionPlanCompileResult.Failed(issues);
-        }
-
-        Dictionary<string, ResolvedView> views = LowerViews(
-            profile,
-            resolvedMap,
-            spaces,
-            issues,
-            inputSelection.ActiveViewIds);
-        if (issues.Count != 0)
-        {
-            return V2CompositionPlanCompileResult.Failed(issues);
-        }
-
-        LoweredRegionAccess regionAccess = LowerRegionAccess(
-            profile,
-            resolvedMap,
-            views,
-            issues,
-            inputSelection.ActiveRegionIds);
-        if (issues.Count != 0)
-        {
-            return V2CompositionPlanCompileResult.Failed(issues);
-        }
-
-        CompositionOperation[] operations = LowerOperations(
-            profile,
-            resolvedMap,
-            spaces,
-            views,
-            regionAccess,
-            issues,
-            activeOperationIds: inputSelection.ActiveOperationIds);
-        ValidateOperationOverlaps(operations, issues);
-        if (issues.Count != 0)
-        {
-            return V2CompositionPlanCompileResult.Failed(issues);
-        }
-
-        ImageInitialization[] initializations = LowerInitializations(profile, spaces, issues);
-        if (issues.Count != 0)
-        {
-            return V2CompositionPlanCompileResult.Failed(issues);
-        }
-
-        var plan = new CompositionPlan(
-            initializations,
-            output.SpaceId,
-            spaces.Values,
-            operations);
-        return Succeed(
-            profile,
-            bundleIdentity,
-            profileEntry.EntryIdentity,
-            new ResolvedMapV2CompilationContext(resolvedMap),
-            plan,
-            profile.InputSlots
-                .Where(slot => inputSelection.ActiveSlotIds.Contains(slot.SlotId))
-                .Select(slot => MapInputSlot(
-                    slot,
-                    resolvedMap,
-                    forceRequired: !slot.Required)),
-            profile.Spaces
-                .OfType<InputArtifactProfileSpace>()
-                .Where(space => inputSelection.ActiveSlotIds.Contains(space.SlotId))
-                .Select(MapInputSpaceBinding),
-            regionAccess.Contract,
-            capabilityAdmissions,
-            runtimeExecutable: profile.Promotion.Stage == CompiledProfilePromotionStage.Supported,
-            additionalValidationRequirements: LowerInputValidations(profile, views),
-            inputSelectionGroups: inputSelection.Groups);
+        return ResolvedMapCompilationPhase.Compile(
+                bundleIdentity,
+                profileEntry,
+                resolvedMap,
+                capabilityAdmissions,
+                selectedInputSlotIds,
+                issues);
     }
 
-    private static string ResolveCloneReferenceSourceSpaceId(
-        CompositionProfileDefinition profile,
-        CloneProfileInitializer clone)
+    private static string ResolveCloneReferenceSourceSpaceId(CompositionProfileDefinition profile)
     {
+        var clone = (CloneProfileInitializer)AssertOutputSpace(profile).Initializer;
         return profile.Spaces.OfType<InputArtifactProfileSpace>().Single(space =>
             StringComparer.Ordinal.Equals(space.SlotId, clone.SourceSlotId))
             .SpaceId;

@@ -1,0 +1,228 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://nvt.local/contracts/v0916-parity-build-report-v1.schema.json",
+  "title": "Black-box capture record derived from a typed Application report",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schemaVersion", "executionArtifactSha256", "routeId", "capabilityFingerprint", "scenarioSha256", "authorityArgumentsSha256", "argumentsSha256", "orderedInputsSha256", "applicationAuthorityKind", "applicationAuthorityReport", "applicationReportKind", "applicationReport", "applicationContext", "compilationFingerprint", "compiledOperations", "compiledMutations", "output", "terminal"],
+  "properties": {
+    "schemaVersion": { "const": "1.0" },
+    "executionArtifactSha256": { "$ref": "#/$defs/sha256" },
+    "routeId": { "$ref": "#/$defs/routeId" },
+    "capabilityFingerprint": { "$ref": "#/$defs/sha256" },
+    "scenarioSha256": { "$ref": "#/$defs/sha256" },
+    "authorityArgumentsSha256": { "$ref": "#/$defs/sha256" },
+    "argumentsSha256": { "$ref": "#/$defs/sha256" },
+    "orderedInputsSha256": { "$ref": "#/$defs/sha256" },
+    "applicationAuthorityKind": { "enum": ["v0.9.16-typed-preview", "current-typed-preview"] },
+    "applicationAuthorityReport": { "$ref": "#/$defs/localArtifact" },
+    "applicationReportKind": { "enum": ["v0.9.16-typed-application", "current-typed-application"] },
+    "applicationReport": { "$ref": "#/$defs/localArtifact" },
+    "basePrecursor": { "$ref": "#/$defs/localArtifact" },
+    "applicationContext": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["icId", "modeId", "experienceId", "mapId", "compositionKind", "startedAtUtc", "completedAtUtc", "orderedInputs", "outputCommitted", "issueCount"],
+      "properties": {
+        "icId": { "type": "string", "pattern": "^NT[0-9]{5}$" },
+        "modeId": { "enum": ["standard-merge", "ab-merge", "ctrlram-replace"] },
+        "experienceId": { "enum": ["standard-merge", "ab-merge", "ctrlram-replace"] },
+        "mapId": {
+          "oneOf": [
+            { "type": "null" },
+            { "type": "string", "minLength": 1 }
+          ]
+        },
+        "compositionKind": { "enum": ["Merge", "Replace"] },
+        "startedAtUtc": { "$ref": "#/$defs/canonicalUtc" },
+        "completedAtUtc": { "$ref": "#/$defs/canonicalUtc" },
+        "orderedInputs": {
+          "type": "array",
+          "minItems": 1,
+          "items": { "$ref": "#/$defs/applicationInput" }
+        },
+        "outputCommitted": { "const": true },
+        "issueCount": { "const": 0 }
+      }
+    },
+    "compilationFingerprint": { "$ref": "#/$defs/sha256" },
+    "compiledOperations": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["operationId", "sequence", "kind", "status", "sourceSpaceId", "sourceRange", "targetSpaceId", "targetRange", "overlapPolicy", "processor", "executedCommands", "reason", "provenance"],
+        "properties": {
+          "operationId": { "type": "string", "minLength": 1 },
+          "sequence": { "type": "integer", "minimum": 0 },
+          "kind": { "type": "string", "minLength": 1 },
+          "status": { "const": "succeeded" },
+          "sourceSpaceId": {
+            "oneOf": [
+              { "type": "null" },
+              { "type": "string", "minLength": 1 }
+            ]
+          },
+          "sourceRange": {
+            "oneOf": [
+              { "type": "null" },
+              { "$ref": "#/$defs/byteRange" }
+            ]
+          },
+          "targetSpaceId": { "type": "string", "minLength": 1 },
+          "targetRange": { "$ref": "#/$defs/byteRange" },
+          "overlapPolicy": { "type": "string", "minLength": 1 },
+          "processor": {
+            "oneOf": [
+              { "type": "null" },
+              {
+                "type": "object",
+                "additionalProperties": false,
+                "required": ["processorId", "toolBindingId", "allowedReadRanges", "allowedWriteRanges"],
+                "properties": {
+                  "processorId": { "type": "string", "minLength": 1 },
+                  "toolBindingId": { "type": "string", "minLength": 1 },
+                  "allowedReadRanges": {
+                    "type": "array",
+                    "minItems": 1,
+                    "items": { "$ref": "#/$defs/byteRange" }
+                  },
+                  "allowedWriteRanges": {
+                    "type": "array",
+                    "minItems": 1,
+                    "items": { "$ref": "#/$defs/byteRange" }
+                  }
+                }
+              }
+            ]
+          },
+          "executedCommands": {
+            "type": "array",
+            "items": { "$ref": "#/$defs/runtimeCommand" }
+          },
+          "reason": { "type": "string", "minLength": 1 },
+          "provenance": { "$ref": "#/$defs/operationProvenance" }
+        },
+        "allOf": [
+          {
+            "if": { "properties": { "processor": { "type": "null" } } },
+            "then": { "properties": { "executedCommands": { "maxItems": 0 } } },
+            "else": { "properties": { "executedCommands": { "minItems": 1 } } }
+          },
+          {
+            "if": { "properties": { "sourceSpaceId": { "type": "null" } } },
+            "then": { "properties": { "sourceRange": { "type": "null" } } },
+            "else": { "properties": { "sourceRange": { "$ref": "#/$defs/byteRange" } } }
+          }
+        ]
+      }
+    },
+    "compiledMutations": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["operationId", "kind", "targetSpaceId", "targetRange", "changedByteCount", "beforeSha256", "afterSha256", "reason"],
+        "properties": {
+          "operationId": { "type": "string", "minLength": 1 },
+          "kind": { "type": "string", "minLength": 1 },
+          "targetSpaceId": { "type": "string", "minLength": 1 },
+          "targetRange": { "$ref": "#/$defs/byteRange" },
+          "changedByteCount": { "type": "integer", "minimum": 0, "maximum": 9223372036854775807 },
+          "beforeSha256": { "$ref": "#/$defs/sha256" },
+          "afterSha256": { "$ref": "#/$defs/sha256" },
+          "reason": { "type": "string", "minLength": 1 }
+        }
+      }
+    },
+    "output": { "$ref": "#/$defs/localArtifact" },
+    "terminal": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["result", "completedAtUtc"],
+      "properties": {
+        "result": { "const": "success" },
+        "completedAtUtc": { "$ref": "#/$defs/canonicalUtc" }
+      }
+    }
+  },
+  "$defs": {
+    "sha256": { "type": "string", "pattern": "^[0-9a-f]{64}$" },
+    "routeId": { "type": "string", "pattern": "^route-[a-z0-9-]+$" },
+    "filePath": { "type": "string", "minLength": 1 },
+    "canonicalUtc": {
+      "type": "string",
+      "format": "date-time",
+      "pattern": "^[0-9]{4}-(0[1-9]|1[0-2])-([0-2][0-9]|3[01])T([01][0-9]|2[0-3]):[0-5][0-9]:[0-5][0-9](\\.[0-9]{1,7})?Z$"
+    },
+    "applicationInput": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["addressSpaceId", "artifactId", "size", "sha256"],
+      "properties": {
+        "addressSpaceId": { "type": "string", "minLength": 1 },
+        "artifactId": { "type": "string", "minLength": 1 },
+        "size": { "type": "integer", "minimum": 1 },
+        "sha256": { "$ref": "#/$defs/sha256" }
+      }
+    },
+    "byteRange": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["addressSpace", "start", "endExclusive"],
+      "properties": {
+        "addressSpace": { "type": "string", "minLength": 1 },
+        "start": { "type": "integer", "minimum": 0, "maximum": 9223372036854775806 },
+        "endExclusive": { "type": "integer", "minimum": 1, "maximum": 9223372036854775807 }
+      }
+    },
+    "operationProvenance": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["kind", "sourceId", "sourceVersion"],
+      "properties": {
+        "kind": { "enum": ["built-in-profile", "runtime-general-mapping", "saved-rule"] },
+        "sourceId": { "oneOf": [{ "type": "null" }, { "type": "string", "minLength": 1 }] },
+        "sourceVersion": { "oneOf": [{ "type": "null" }, { "type": "string", "minLength": 1 }] }
+      },
+      "allOf": [
+        {
+          "if": { "properties": { "kind": { "const": "built-in-profile" } } },
+          "then": { "properties": { "sourceId": { "type": "null" }, "sourceVersion": { "type": "null" } } }
+        },
+        {
+          "if": { "properties": { "kind": { "const": "runtime-general-mapping" } } },
+          "then": { "properties": { "sourceId": { "type": "string", "minLength": 1 }, "sourceVersion": { "type": "null" } } }
+        },
+        {
+          "if": { "properties": { "kind": { "const": "saved-rule" } } },
+          "then": { "properties": { "sourceId": { "type": "string", "minLength": 1 }, "sourceVersion": { "type": "string", "minLength": 1 } } }
+        }
+      ]
+    },
+    "runtimeCommand": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["sequence", "executablePackagePath", "workingDirectoryKind", "argumentCount", "canonicalArgumentsSha256"],
+      "properties": {
+        "sequence": { "type": "integer", "minimum": 0 },
+        "executablePackagePath": { "type": "string", "pattern": "^(?![A-Za-z]:|/|.*(?:^|/)\\.\\.(?:/|$)).+$" },
+        "workingDirectoryKind": { "const": "host-created-staging" },
+        "argumentCount": { "type": "integer", "minimum": 1 },
+        "canonicalArgumentsSha256": { "$ref": "#/$defs/sha256" }
+      }
+    },
+    "localArtifact": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["path", "size", "sha256"],
+      "properties": {
+        "path": { "$ref": "#/$defs/filePath" },
+        "size": { "type": "integer", "minimum": 1 },
+        "sha256": { "$ref": "#/$defs/sha256" }
+      }
+    }
+  }
+}

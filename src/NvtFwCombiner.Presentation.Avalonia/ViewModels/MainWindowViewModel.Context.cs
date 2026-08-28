@@ -1,50 +1,63 @@
 using System.ComponentModel;
+using NvtFwCombiner.Application.Diagnostics;
 
 namespace NvtFwCombiner.Presentation.Avalonia.ViewModels;
 
-public sealed partial class MainWindowViewModel
+internal sealed partial class MainWindowViewModel
 {
-    private void SelectReplaceMode(string mode)
-    {
-        Replace.SelectReplaceMode(mode);
-        NavigateToPage(ShellPage.Replace);
-    }
-
     private void ApplySelectedPage(ShellPage page)
     {
-        if (page == ShellPage.Settings)
+        ShellPage previousPage = SelectedPage;
+        PageActivationRollback rollback =
+            WorkflowSession.CapturePageActivationRollback();
+        bool pageChanged = SelectedPage != page;
+        try
         {
-            _deferredState.EnsureSettings(RefreshSettingsState);
-        }
-        else if (page is ShellPage.Merge or ShellPage.Replace)
-        {
-            bool wasWorkflowLoaded = WorkflowSession.IsWorkflowLoaded;
-            WorkflowSession.EnsureWorkflowLoaded();
-            if (!wasWorkflowLoaded)
+            if (pageChanged)
             {
-                WorkflowSession.RefreshContextState();
+                WorkflowSession.ValidatePageActivation(page);
+                WorkflowSession.RememberCurrentWorkflowContext();
+                SelectedPage = page;
+                WorkflowSession.ActivateWorkflowPageContext(page);
+            }
+
+            if (page is ShellPage.Merge or ShellPage.Replace)
+            {
+                bool wasWorkflowLoaded = WorkflowSession.IsWorkflowLoaded;
+                WorkflowSession.EnsureWorkflowLoaded();
+                if (!wasWorkflowLoaded)
+                {
+                    WorkflowSession.RefreshContextState();
+                }
             }
         }
-
-        if (SelectedPage == page)
+        catch
         {
-            UpdateNavigationState();
-            return;
+            SelectedPage = previousPage;
+            WorkflowSession.RestorePageActivation(previousPage, rollback, pageChanged);
+            throw;
         }
 
-        SelectedPage = page;
-        WorkflowSession.RefreshNumberChoicesForSelectedIc();
-        OnPropertyChanged(nameof(SelectedPage));
-        OnPropertyChanged(nameof(IsHomeVisible));
-        OnPropertyChanged(nameof(IsSettingsVisible));
-        OnPropertyChanged(nameof(IsMergeVisible));
-        OnPropertyChanged(nameof(IsReplaceVisible));
-        OnPropertyChanged(nameof(IsHexEditorVisible));
-        OnPropertyChanged(nameof(IsDeviceContextVisible));
-        OnPropertyChanged(nameof(IsCompositionActionRailVisible));
-        OnPropertyChanged(nameof(IsLatestOutputActionVisible));
-        WorkflowSession.NotifyContextTextChanged();
-        UpdateNavigationState();
+        if (pageChanged)
+        {
+            OnPropertyChanged(nameof(SelectedPage));
+            OnPropertyChanged(nameof(IsHomeVisible));
+            OnPropertyChanged(nameof(IsMergeVisible));
+            OnPropertyChanged(nameof(IsReplaceVisible));
+            OnPropertyChanged(nameof(IsHexEditorVisible));
+            OnPropertyChanged(nameof(IsDeviceContextVisible));
+            OnPropertyChanged(nameof(IsCompositionActionRailVisible));
+            OnPropertyChanged(nameof(IsLatestOutputActionVisible));
+            WorkflowSession.NotifyContextTextChanged();
+        }
+
+        Navigation.UpdateState();
+        NotifyHexEditorCommandStateChanged();
+        if (pageChanged)
+        {
+            RecordDebugActivity(SystemActivityCodes.UserNavigated,
+                SystemActivityCategory.Navigation, page.ToString());
+        }
     }
 
     private bool CanRequestHexEditorSave()
@@ -111,15 +124,27 @@ public sealed partial class MainWindowViewModel
             return;
         }
 
+        NotifyHexEditorCommandStateChanged();
+    }
+
+    private void NotifyHexEditorCommandStateChanged()
+    {
         RequestHexEditorSaveCommand.NotifyCanExecuteChanged();
         RequestHexEditorUndoCommand.NotifyCanExecuteChanged();
         RequestHexEditorRedoCommand.NotifyCanExecuteChanged();
     }
 
-    private void RefreshCommandState()
+    private void RefreshCommandState(bool refreshReplaceReadiness = true)
     {
         Merge.NotifyCommandStateChanged();
-        Replace.NotifyCommandStateChanged();
+        if (refreshReplaceReadiness)
+        {
+            Replace.NotifyCommandStateChanged();
+        }
+        else
+        {
+            Replace.NotifyCommandAvailabilityChanged();
+        }
         RunSession.NotifyCommandStateChanged();
         Merge.PreviewMergeCommand.NotifyCanExecuteChanged();
         Merge.BuildMergeCommand.NotifyCanExecuteChanged();

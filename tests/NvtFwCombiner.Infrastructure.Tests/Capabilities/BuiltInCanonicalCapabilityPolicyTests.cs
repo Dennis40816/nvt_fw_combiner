@@ -29,7 +29,7 @@ public sealed class BuiltInCanonicalCapabilityPolicyTests
                     "nt51929-standard-merge-256k"));
 
         Assert.Equal("canonical-capability-policy", policy.CatalogId);
-        Assert.Equal("1.6.0", policy.CatalogVersion);
+        Assert.Equal("1.10.0", policy.CatalogVersion);
         Assert.Equal(
             BuiltInCanonicalCapabilityPolicy.ExpectedSha256,
             policy.SourceSha256);
@@ -38,60 +38,155 @@ public sealed class BuiltInCanonicalCapabilityPolicyTests
         Assert.Equal("selector-free", route.Identity.IcCountVariant);
         Assert.Equal("nt51929-standard-merge-256k", route.Identity.MapVariant);
         Assert.Equal(
-            "c8f1268a871cfd571ff41694a71c85e6364bbe1fca6f3a7264cce77103b214a9",
+            "7241e513c36122a60f2535836fd3b5625dc4cafe304d002e713a1525a949ac68",
             route.CapabilityFingerprint);
         Assert.Equal(CapabilityAuthoringAvailability.Available, route.Authoring.Value);
         Assert.Equal(CapabilityPublicationStatus.Supported, route.Publication.Value);
         Assert.Equal(CapabilityEvidenceStatus.DirectGolden, route.Evidence.Value);
-        Assert.Equal("nt51929-standard-merge-authoring-v2", route.Authoring.DecisionId);
         Assert.Equal(
-            "owner-approved:github-issue-186",
+            "nt51929-standard-merge-selector-free-nt51929-standard-merge-256k-authoring-v3",
+            route.Authoring.DecisionId);
+        Assert.Equal(
+            "owner-decision:2026-08-25:standard-ab-ctrlram-formal-support",
             route.Authoring.SourceReference);
-        Assert.Equal("nt51929-standard-merge-publication-v2", route.Publication.DecisionId);
         Assert.Equal(
-            "owner-approved:github-issue-186",
+            "nt51929-standard-merge-selector-free-nt51929-standard-merge-256k-publication-v5",
+            route.Publication.DecisionId);
+        Assert.Equal(
+            "owner-decision:2026-08-25:standard-ab-ctrlram-formal-support",
             route.Publication.SourceReference);
-        Assert.Equal("nt51929-standard-merge-evidence-v2", route.Evidence.DecisionId);
+        Assert.Equal(
+            "nt51929-standard-merge-selector-free-nt51929-standard-merge-256k-evidence-v3",
+            route.Evidence.DecisionId);
     }
 
-    /// <summary>The retired unclassified state migrates only its 72 exact routes to explicit internal decisions.</summary>
+    /// <summary>All retained DP Replace routes remain hidden, internal, and honestly non-Golden.</summary>
     [Fact]
-    public void UnclassifiedRetirementPreservesReviewedPublicationDecisions()
+    public void DpReplaceAuthoringIsUnavailableWithoutChangingRetainedEvidence()
     {
         CanonicalCapabilityPolicySnapshot policy =
             BuiltInCanonicalCapabilityPolicy.Load();
-        CanonicalCapabilityPolicyRoute[] internalRoutes =
+        CanonicalCapabilityPolicyRoute[] routes =
         [
             .. policy.Routes.Where(static route =>
-                route.Publication.Value == CapabilityPublicationStatus.Internal),
+                StringComparer.Ordinal.Equals(
+                    route.Identity.WorkflowId,
+                    "dp-replace")),
         ];
 
-        Assert.Equal(78, policy.Routes.Count);
-        Assert.Equal(72, internalRoutes.Length);
-        Assert.All(
-            internalRoutes,
-            static route =>
-            {
-                Assert.EndsWith(
-                    "-publication-v3",
-                    route.Publication.DecisionId,
-                    StringComparison.Ordinal);
-                Assert.Equal(
-                    "owner-approved:github-issue-195",
-                    route.Publication.SourceReference);
-            });
+        Assert.Equal(14, routes.Length);
+        Assert.All(routes, static route =>
+        {
+            Assert.Equal(
+                CapabilityAuthoringAvailability.Unavailable,
+                route.Authoring.Value);
+            Assert.Equal(
+                "owner-decision:2026-08-24:dp-replace-hidden-until-1.1.0",
+                route.Authoring.SourceReference);
+            Assert.Equal(
+                CapabilityPublicationStatus.Internal,
+                route.Publication.Value);
+            Assert.Equal(
+                "owner-decision:2026-08-25:dp-replace-internal-until-1.1.0",
+                route.Publication.SourceReference);
+            Assert.Equal(
+                CapabilityEvidenceStatus.ContractOnly,
+                route.Evidence.Value);
+            Assert.Equal(
+                route.CapabilityFingerprint,
+                route.Evidence.CapabilityFingerprint);
+        });
+    }
+
+    /// <summary>The reviewed catalog fixes the exact formal-support and evidence denominators.</summary>
+    [Fact]
+    public void FormalSupportInventoryMatchesReviewedDecisions()
+    {
+        CanonicalCapabilityPolicySnapshot policy =
+            BuiltInCanonicalCapabilityPolicy.Load();
+        CanonicalCapabilityPolicyRoute[] formalRoutes =
+        [
+            .. policy.Routes.Where(static route =>
+                route.Identity.WorkflowId is
+                    "standard-merge" or "ab-merge" or "ctrlram-replace"),
+        ];
+
+        Assert.Equal(89, policy.Routes.Count);
+        Assert.Equal(64, formalRoutes.Length);
+        Assert.All(formalRoutes, static route =>
+        {
+            Assert.Equal(
+                CapabilityAuthoringAvailability.Available,
+                route.Authoring.Value);
+            Assert.Equal(
+                CapabilityPublicationStatus.Supported,
+                route.Publication.Value);
+        });
         Assert.Equal(
-            2,
+            75,
+            policy.Routes.Count(static route =>
+                route.Authoring.Value == CapabilityAuthoringAvailability.Available));
+        Assert.Equal(
+            14,
+            policy.Routes.Count(static route =>
+                route.Authoring.Value == CapabilityAuthoringAvailability.Unavailable));
+        Assert.Equal(
+            64,
             policy.Routes.Count(static route =>
                 route.Publication.Value == CapabilityPublicationStatus.Supported));
         Assert.Equal(
-            3,
+            24,
             policy.Routes.Count(static route =>
-                route.Publication.Value == CapabilityPublicationStatus.Candidate));
+                route.Publication.Value == CapabilityPublicationStatus.Internal));
         _ = Assert.Single(
             policy.Routes,
             static route =>
                 route.Publication.Value == CapabilityPublicationStatus.TestOnly);
+        Assert.DoesNotContain(
+            policy.Routes,
+            static route =>
+                route.Publication.Value == CapabilityPublicationStatus.Candidate);
+        Assert.Equal(
+            28,
+            policy.Routes.Count(static route =>
+                route.Evidence.Value == CapabilityEvidenceStatus.DirectGolden));
+        Assert.Equal(
+            9,
+            policy.Routes.Count(static route =>
+                route.Evidence.Value == CapabilityEvidenceStatus.ApprovedAlias));
+        Assert.Equal(
+            5,
+            policy.Routes.Count(static route =>
+                route.Evidence.Value == CapabilityEvidenceStatus.SyntheticOracle));
+        Assert.Equal(
+            47,
+            policy.Routes.Count(static route =>
+                route.Evidence.Value == CapabilityEvidenceStatus.ContractOnly));
+        string[] tpRoutesAwaitingIndependentExpectedOutput =
+        [
+            "route-7-nt51950-15-ctrlram-replace-4-1-ic-36-nt51950-ctrlram-fw200-single-tp-work",
+            "route-7-nt51951-15-ctrlram-replace-4-1-ic-36-nt51951-ctrlram-fw200-single-tp-work",
+            "route-7-nt51951-15-ctrlram-replace-4-2-ic-36-nt51951-ctrlram-fw1x-cascade-tp-work",
+        ];
+        foreach (string routeId in tpRoutesAwaitingIndependentExpectedOutput)
+        {
+            CanonicalCapabilityPolicyRoute route = Assert.Single(
+                policy.Routes,
+                candidate => StringComparer.Ordinal.Equals(
+                    candidate.Identity.RouteId,
+                    routeId));
+            Assert.Equal(CapabilityAuthoringAvailability.Available, route.Authoring.Value);
+            Assert.Equal(CapabilityPublicationStatus.Supported, route.Publication.Value);
+            Assert.Equal(CapabilityEvidenceStatus.ContractOnly, route.Evidence.Value);
+            Assert.EndsWith("-evidence-v4", route.Evidence.DecisionId, StringComparison.Ordinal);
+            Assert.Equal(
+                "evidence-gap:2026-08-25:independent-tp-only-expected-output-missing",
+                route.Evidence.SourceReference);
+        }
+        Assert.DoesNotContain(
+            policy.Routes,
+            static route =>
+                route.Evidence.Value == CapabilityEvidenceStatus.Missing);
     }
 
     /// <summary>The reviewed policy is copied to both build and publish outputs.</summary>

@@ -1,12 +1,26 @@
 using NvtFwCombiner.Application.Authoring;
 using NvtFwCombiner.Application.Capabilities;
+using NvtFwCombiner.Application.InputInspection;
 using NvtFwCombiner.Domain.Composition;
 
 namespace NvtFwCombiner.Application.Composition;
 
+/// <summary>Focused host-facing projection of one workflow's compiled input-slot inspection.</summary>
+public interface ICompiledInputSlotInspector<out TBatch>
+{
+    /// <summary>Inspects the applicable inputs through one caller-owned distinct-path reader.</summary>
+    TBatch InspectInputSlots(
+        string icId,
+        IReadOnlyList<FirmwareInspectionSnapshotInput> inputs,
+        Func<string, byte[]?> readFirmwareImage);
+}
+
 /// <summary>Read-only capability and workflow disclosure consumed by UI and CLI surfaces.</summary>
 public interface ICompositionCapabilityExperience
 {
+    /// <summary>Gets one immutable selector projection from the current publication.</summary>
+    CapabilitySelectorPublication GetSelectorPublication();
+
     /// <summary>Default IC selected before explicit user input.</summary>
     string DefaultIcId { get; }
 
@@ -28,6 +42,12 @@ public interface ICompositionCapabilityExperience
     /// <summary>Gets authorable Standard Merge profiles.</summary>
     IReadOnlyList<CapabilityProfileSummary> GetStandardMergeProfileSummaries();
 
+    /// <summary>Gets one authorable Standard Merge profile when declared.</summary>
+    CapabilityProfileSummary? FindStandardMergeProfileSummary(string icId);
+
+    /// <summary>Returns whether the current publication declares the IC.</summary>
+    bool IsKnownIcId(string icId);
+
     /// <summary>Gets authorable DP Replace profiles.</summary>
     IReadOnlyList<CapabilityProfileSummary> GetDpReplaceProfileSummaries();
 
@@ -47,7 +67,6 @@ public interface ICompositionCapabilityExperience
 
     /// <summary>Returns whether the IC uses a DP-perspective composition.</summary>
     bool IsDpPerspectiveIc(string icId);
-
 }
 
 /// <summary>Focused Standard Merge authoring operations over one canonical workflow owner.</summary>
@@ -104,6 +123,11 @@ public interface IAbMergeAuthoring
         string icId,
         string? topologyToken,
         IReadOnlyCollection<CompiledAuthoringSelectedInput> inputs);
+
+    /// <summary>Refreshes action readiness for one exact accepted AB Merge session.</summary>
+    ValueTask<CapabilityActionReadinessSnapshot?> GetActionReadinessAsync(
+        ActiveSessionSnapshot acceptedSession,
+        CancellationToken cancellationToken);
 }
 
 /// <summary>Focused DP Replace authoring operations over one canonical workflow owner.</summary>
@@ -149,7 +173,8 @@ public interface IGeneralAuthoring
         AuthoringSessionState session,
         string icId,
         GeneralMergeDraftState draft,
-        CancellationToken cancellationToken);
+        CancellationToken cancellationToken,
+        IProgress<AuthoringInspectionProgress>? progress = null);
 
     /// <summary>Prepares one exact General Replace accepted session.</summary>
     ValueTask<GeneralAuthoringSessionPreparation> PrepareReplaceSessionAsync(
@@ -158,7 +183,8 @@ public interface IGeneralAuthoring
         string number,
         string referencePath,
         GeneralMappingDraftState draft,
-        CancellationToken cancellationToken);
+        CancellationToken cancellationToken,
+        IProgress<AuthoringInspectionProgress>? progress = null);
 }
 
 /// <summary>Focused trusted Saved Rule v2 authoring operations.</summary>
@@ -186,11 +212,16 @@ public interface ISavedRuleAuthoring
 /// <summary>Focused CtrlRAM Replace authoring owner.</summary>
 public interface ICtrlRamAuthoring
 {
-    /// <summary>Gets one coherent CtrlRAM region and input-slot discovery publication.</summary>
+    /// <summary>Gets the declared CtrlRAM regions and input slots before a base is accepted.</summary>
     CtrlRamInspectionDisplay GetDiscoveryDisplay(
         string icId,
+        string number);
+
+    /// <summary>Gets CtrlRAM discovery from one already admitted immutable base snapshot.</summary>
+    CtrlRamInspectionDisplay GetDiscoveryDisplayFromAcceptedBase(
+        string icId,
         string number,
-        string? basePath);
+        ReadOnlyMemory<byte> acceptedBaseBytes);
 
     /// <summary>Prepares one exact CtrlRAM Replace session from immutable inputs.</summary>
     CtrlRamAuthoringSessionPreparation PrepareSession(
@@ -201,12 +232,11 @@ public interface ICtrlRamAuthoring
         IReadOnlyDictionary<string, byte[]> inputBytes,
         CtrlRamFirmwareVersionDraftState? firmwareVersionEdit = null);
 
-    /// <summary>Gets CtrlRAM authoring catalog for selected paths.</summary>
-    AuthoringCapabilityCatalogSnapshot? GetAuthoringCatalog(
-        string icId,
-        string number,
-        IReadOnlyDictionary<string, string> slotPaths,
-        ActiveSessionSnapshot? retainedSession = null);
+    /// <summary>Adopts one already-inspected exact batch without resolving or reading it again.</summary>
+    AuthoringSessionTransitionResult AdoptInspectedBatch(
+        AuthoringSessionState session,
+        AuthoringCapabilityCatalogSnapshot catalog,
+        IReadOnlyCollection<AuthoringInputSlotStatus> statuses);
 
     /// <summary>Gets CtrlRAM action readiness.</summary>
     ValueTask<CapabilityActionReadinessSnapshot?> GetActionReadinessAsync(
@@ -223,6 +253,13 @@ public interface ICtrlRamAuthoring
         string number,
         IReadOnlyDictionary<string, string> slotPaths,
         CtrlRamFirmwareVersionDraftState? firmwareVersionEdit);
+
+    /// <summary>Projects path-free confirmation facts from one exact accepted session lease.</summary>
+    CompiledInputVersionObservation? ProjectFirmwareVersionConfirmationLease(ActiveSessionSnapshot session);
+
+    /// <summary>Checks whether the exact accepted session lease is still current.</summary>
+    bool IsFirmwareVersionConfirmationLeaseCurrent(ActiveSessionSnapshot current, ActiveSessionSnapshot lease);
+
 }
 
 /// <summary>Authoring-session lifecycle and per-slot readiness operations.</summary>
@@ -260,19 +297,18 @@ public sealed record CtrlRamAuthoringSessionPreparation(
     public bool Succeeded => AcceptedSession is not null && Issues.Count == 0;
 }
 
+/// <summary>Truthful completed and total work reported by selected-file inspection.</summary>
+public readonly record struct AuthoringInspectionProgress(int CompletedWork, int TotalWork);
+
 /// <summary>Immutable firmware inspection operations.</summary>
 public interface IFirmwareInspection
 {
-    /// <summary>Reads FWConfig metadata and the adapter-owned file identity from one stable observation.</summary>
-    FirmwareConfigMetadataReadResult ReadFirmwareConfigMetadata(string icId, string path);
-
-    /// <summary>Inspects a distinct-path batch once and reports adapter-owned path stability.</summary>
-    FirmwareInspectionBatchResult InspectFirmwareBatch(
+    /// <summary>Inspects every distinct path once and reports content-authoritative stability.</summary>
+    ValueTask<FirmwareInspectionBatchResult> InspectFirmwareBatchAsync(
         string icId,
-        IReadOnlyList<FirmwareInspectionSnapshotInput> inputs);
-
-    /// <summary>Checks whether a path still has the identity retained by an accepted UI lease.</summary>
-    bool IsFirmwareFileIdentityCurrent(string path, FirmwareFileIdentity identity);
+        IReadOnlyList<FirmwareInspectionSnapshotInput> inputs,
+        CancellationToken cancellationToken,
+        IProgress<AuthoringInspectionProgress>? progress = null);
 
     /// <summary>Projects CtrlRAM display from an already-inspected base.</summary>
     CtrlRamInspectionDisplay ProjectCtrlRamInspectionDisplay(
@@ -288,6 +324,15 @@ public interface ICompositionOutputNaming
     CompositionOutputPreparation ResolveAcceptedOutput(
         ActiveSessionSnapshot acceptedSession,
         CtrlRamFirmwareVersionDraftState? ctrlRamVersionEdit = null);
+
+    /// <summary>Resolves one editable bundle default from the same accepted output-name facts and UTC instant.</summary>
+    CompositionOutputBundleProposal ResolveAcceptedBundleProposal(
+        ActiveSessionSnapshot acceptedSession,
+        CtrlRamFirmwareVersionDraftState? ctrlRamVersionEdit = null);
+
+    /// <summary>Validates one edited prepared destination through the shared platform policy.</summary>
+    CompositionOutputBundleDestinationValidation ValidateBundleDestination(
+        CompositionOutputBundleIntent intent);
 
     /// <summary>Resolves one AB automatic output name and its compiled optional deliveries without execution.</summary>
     ValueTask<CompositionOutputPreparation> PrepareAutomaticOutputAsync(

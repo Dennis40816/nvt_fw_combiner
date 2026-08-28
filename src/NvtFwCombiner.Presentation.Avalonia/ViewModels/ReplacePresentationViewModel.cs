@@ -4,7 +4,7 @@ using CommunityToolkit.Mvvm.Input;
 namespace NvtFwCombiner.Presentation.Avalonia.ViewModels;
 
 /// <summary>Owns Replace-page presentation state, commands, and workflow-specific lifetime.</summary>
-public sealed partial class ReplacePresentationViewModel : ObservableObject
+internal sealed partial class ReplacePresentationViewModel : ObservableObject
 {
     private readonly PresentationCompositionServices _compositionServices;
     private readonly ReplaceStateBindings _stateBindings;
@@ -17,6 +17,7 @@ public sealed partial class ReplacePresentationViewModel : ObservableObject
             throw new ArgumentNullException(nameof(compositionServices));
         _stateBindings = stateBindings ?? throw new ArgumentNullException(nameof(stateBindings));
         _firmwareInspection = _compositionServices.FirmwareInspection;
+        InspectionLifecycles = new(NotifyCommandStateChanged, CtrlRamReplaceMode, GeneralReplaceMode);
         ShowReplaceSelectionCommand = new RelayCommand(ShowReplaceSelection);
         CloseReplaceSelectionCommand = new RelayCommand(CloseReplaceSelection);
         AddGeneralReplaceMappingCommand = new RelayCommand(AddGeneralReplaceMapping);
@@ -24,7 +25,7 @@ public sealed partial class ReplacePresentationViewModel : ObservableObject
             PreviewReplaceAsync,
             CanRunReplace);
         BuildReplaceCommand = new AsyncRelayCommand(
-            () => RunBuildReplaceAsync(outputPath: null, ctrlRamFirmwareVersionEdit: null),
+            RequestBuildFromCommandAsync,
             () => CanBuildReplace);
         SelectCtrlRamFirmwareVersionPreserveCommand = new RelayCommand(SelectCtrlRamFirmwareVersionPreserve);
         SelectCtrlRamFirmwareVersionEditCommand = new RelayCommand(SelectCtrlRamFirmwareVersionEdit);
@@ -34,15 +35,26 @@ public sealed partial class ReplacePresentationViewModel : ObservableObject
     /// <summary>Gets the current localized text used by Replace-only presentation.</summary>
     public ShellTextResources Text => _stateBindings.Text();
 
-    /// <summary>Command that opens the compact Replace input selection overview.</summary>
     public IRelayCommand ShowReplaceSelectionCommand { get; }
 
-    /// <summary>Command that closes the compact Replace input selection overview.</summary>
     public IRelayCommand CloseReplaceSelectionCommand { get; }
 
     internal void ApplyLanguageChanged()
     {
         ApplyFirmwareSlotText();
+        foreach (FirmwareSlotGroupViewModel group in ReplaceSlotGroups)
+        {
+            group.ApplyText(Text);
+        }
+        InspectionLifecycles.ForEach(lifecycle => lifecycle.ApplyText(Text));
+        RefreshDpReplaceInputSelectionReadiness();
+        foreach (GeneralReplaceMappingViewModel mapping in GeneralReplaceMappings)
+        {
+            mapping.SetFileSelectionAvailability(
+                mapping.CanSelectFile,
+                Text.FirmwareSlotPendingFactDetail);
+        }
+        RelocalizeReplaceMemoryMapState();
         OnPropertyChanged(nameof(Text));
         NotifyContextChanged();
         RefreshSelectionState();

@@ -13,24 +13,16 @@ public sealed partial class RepositoryBoundaryTests
         string lowering = ReadText(
             "src/NvtFwCombiner.Profiles/V2/V2CompositionPlanCompiler.ContractLowering.cs");
 
-        Assert.DoesNotContain("class CompositionProfileMapAdmissionResult", profiles, StringComparison.Ordinal);
-        Assert.DoesNotContain("sealed class CompositionProfileMapAdmission", profiles, StringComparison.Ordinal);
-        Assert.DoesNotContain("class AdmittedCapabilityEvidence", profiles, StringComparison.Ordinal);
-        Assert.DoesNotContain("CompositionProfileMapAdmissionValidator", profiles, StringComparison.Ordinal);
-        Assert.Contains("AdmitRequiredCapabilities", domain, StringComparison.Ordinal);
+        AssertDoesNotContainAny(profiles, "class CompositionProfileMapAdmissionResult",
+            "sealed class CompositionProfileMapAdmission", "class AdmittedCapabilityEvidence",
+            "CompositionProfileMapAdmissionValidator");
+        AssertContainsAll(domain, "AdmitRequiredCapabilities");
         const string canonicalCapabilityBindingList =
             "IReadOnlyList<FirmwareMapFactBinding<FirmwareCapabilityFact>>";
-        Assert.Contains(
-            $"internal {canonicalCapabilityBindingList} CapabilityAdmissions",
-            preparation,
-            StringComparison.Ordinal);
-        Assert.Contains(
-            $"out {canonicalCapabilityBindingList} admittedCapabilities",
-            preparation,
-            StringComparison.Ordinal);
-        Assert.Contains(".AdmitRequiredCapabilities(", preparation, StringComparison.Ordinal);
-        Assert.DoesNotContain("CompiledCapabilityAdmission", preparation, StringComparison.Ordinal);
-        Assert.DoesNotContain("CompiledCapabilityAdmission", lowering, StringComparison.Ordinal);
+        AssertContainsAll(preparation, $"internal {canonicalCapabilityBindingList} CapabilityAdmissions",
+            $"out {canonicalCapabilityBindingList} admittedCapabilities", ".AdmitRequiredCapabilities(");
+        AssertDoesNotContainAny(preparation, "CompiledCapabilityAdmission");
+        AssertDoesNotContainAny(lowering, "CompiledCapabilityAdmission");
     }
 
     /// <summary>Static trusted profile/map facts are admitted once by the catalog, not re-derived per compilation.</summary>
@@ -41,12 +33,9 @@ public sealed partial class RepositoryBoundaryTests
         string catalog = ReadText(
             "src/NvtFwCombiner.Profiles/V2/TrustedProfileBundleCatalogFactory.cs");
 
-        Assert.DoesNotContain("ProfileFamilyIdMismatch", domain, StringComparison.Ordinal);
-        Assert.DoesNotContain("ResolvedMapNotOwned", domain, StringComparison.Ordinal);
-        Assert.DoesNotContain("RequiredRegionMissing", domain, StringComparison.Ordinal);
-        Assert.DoesNotContain("RequiredMetadataStructureMissing", domain, StringComparison.Ordinal);
-        Assert.DoesNotContain("MetadataTargetMissing", domain, StringComparison.Ordinal);
-        Assert.Contains("ValidateStaticMapContract", catalog, StringComparison.Ordinal);
+        AssertDoesNotContainAny(domain, "ProfileFamilyIdMismatch", "ResolvedMapNotOwned",
+            "RequiredRegionMissing", "RequiredMetadataStructureMissing", "MetadataTargetMissing");
+        AssertContainsAll(catalog, "ValidateStaticMapContract");
     }
 
     /// <summary>Runtime lowering selects the declared context but does not repeat immutable profile-shape validation.</summary>
@@ -60,11 +49,9 @@ public sealed partial class RepositoryBoundaryTests
         string runtimeReplace = ReadText(
             "src/NvtFwCombiner.Profiles/V2/V2CompositionPlanCompiler.RuntimeReferenceReplace.cs");
 
-        Assert.Contains("ValidateLogicalOutputShape", definition, StringComparison.Ordinal);
-        Assert.Contains("ValidateRuntimeReferenceReplaceShape", definition, StringComparison.Ordinal);
-        Assert.DoesNotContain("IsLogicalOutputProfile", logical, StringComparison.Ordinal);
-        Assert.DoesNotContain("IsRuntimeReferenceReplaceProfile", runtimeReplace, StringComparison.Ordinal);
-        Assert.DoesNotContain("expectedSourceClass", runtimeReplace, StringComparison.Ordinal);
+        AssertContainsAll(definition, "ValidateLogicalOutputShape", "ValidateRuntimeReferenceReplaceShape");
+        AssertDoesNotContainAny(logical, "IsLogicalOutputProfile");
+        AssertDoesNotContainAny(runtimeReplace, "IsRuntimeReferenceReplaceProfile", "expectedSourceClass");
     }
 
     /// <summary>Metadata read envelopes are derived by the canonical family, not revalidated by the compiler.</summary>
@@ -74,8 +61,8 @@ public sealed partial class RepositoryBoundaryTests
         string profiles = ReadProfileSources();
         string domain = ReadDomainSources();
 
-        Assert.DoesNotContain("TryResolveMetadataReadEnd", profiles, StringComparison.Ordinal);
-        Assert.Contains("GetMaximumMetadataReadEnd", domain, StringComparison.Ordinal);
+        AssertDoesNotContainAny(profiles, "TryResolveMetadataReadEnd");
+        AssertContainsAll(domain, "GetMaximumMetadataReadEnd");
     }
 
     /// <summary>Canonical graph validation owns cycle traversal for Domain facts and Profiles alias normalization.</summary>
@@ -85,11 +72,9 @@ public sealed partial class RepositoryBoundaryTests
         string profiles = ReadProfileSources();
         string domain = ReadDomainSources();
 
-        Assert.Contains("AcyclicDependencyGraph.Sort", domain, StringComparison.Ordinal);
-        Assert.Contains("AcyclicDependencyGraph.Sort", profiles, StringComparison.Ordinal);
-        Assert.DoesNotContain("DependencyVisitState", profiles, StringComparison.Ordinal);
-        Assert.DoesNotContain("DependencyFrame", profiles, StringComparison.Ordinal);
-        Assert.DoesNotContain("CapabilityDirect", profiles, StringComparison.Ordinal);
-        Assert.DoesNotContain("ParentVisitState", domain, StringComparison.Ordinal);
+        AssertContainsAll(domain, "AcyclicDependencyGraph.Sort");
+        AssertContainsAll(profiles, "AcyclicDependencyGraph.Sort");
+        AssertDoesNotContainAny(profiles, "DependencyVisitState", "DependencyFrame", "CapabilityDirect");
+        AssertDoesNotContainAny(domain, "ParentVisitState");
     }
 }

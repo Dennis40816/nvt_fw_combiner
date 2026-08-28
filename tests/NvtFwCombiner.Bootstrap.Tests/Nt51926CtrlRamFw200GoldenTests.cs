@@ -102,6 +102,13 @@ public sealed class Nt51926CtrlRamFw200GoldenTests
         byte[] v2Bytes = File.ReadAllBytes(v2OutputPath);
         Assert.Equal(currentOutputSha256, Hash(v2Bytes));
         Assert.Equal(currentOutputSha256, v2.OutputSha256);
+        JsonElement goldenCase = CanonicalGoldenTestData.LoadDirectCase("ctrlram-replace", caseId);
+        CanonicalGoldenDifferenceResult manifestDifferences =
+            CanonicalGoldenTestData.AssertAllowedByteDifferences(
+                goldenCase,
+                evidence.Expected.Bytes,
+                v2Bytes);
+        Assert.Equal(16, manifestDifferences.DifferenceCount);
 
         (long ownerDifferenceCount, ByteRange[] ownerDifferenceRanges) = FindDifferences(
             evidence.Expected.Bytes,

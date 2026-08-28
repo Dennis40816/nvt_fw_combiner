@@ -10,8 +10,8 @@ namespace NvtFwCombiner.Bootstrap.Tests;
 /// <summary>Migration evidence for the supported NT51950/NT51951 V2 DP Replace plans.</summary>
 public sealed class Nt51950Nt51951V2DpReplaceProfileTests
 {
-    private const string BundleDirectory = "nt51950-nt51951-standard-merge";
-    private const string BundleContentHash = "56e39af41aaed8abad5da0f49274053ad2fb619949b53efd9497ed31a10ee99b";
+    private const string BundleDirectory = "nt51950-nt51951-dp-replace";
+    private const string BundleContentHash = "efc155288c2c470c0cac15e51142ebd357eff6151259b9b8164560f2a105ec6d";
     private const int TpOverlayStart = 0x0A000;
     private const int TpOverlayLength = 0x2D000;
     private const int CustomerInfoStart = 0x37000;
@@ -34,7 +34,20 @@ public sealed class Nt51950Nt51951V2DpReplaceProfileTests
         Assert.Equal(CompiledProfilePromotionStage.Supported, details.Provenance.Promotion.Stage);
         Assert.Empty(details.Provenance.Promotion.Blockers);
         Assert.Equal(IcNumberInputMode.SingleSelector, candidate.V2Details.IcNumberInputMode);
-        Assert.Equal($"nt{icId[2..]}-dp-replace.bin", candidate.V2Details.OutputNamingRequirement.FileNameTemplate);
+        Assert.Equal(
+            CompiledOutputNameRendererKind.NormalFlashCodeV1,
+            candidate.V2Details.OutputNamingRequirement.RendererKind);
+        Assert.Equal(
+            CompiledOutputNamingRequirement.NormalFlashCodeV1Template,
+            candidate.V2Details.OutputNamingRequirement.FileNameTemplate);
+        Assert.Equal(
+            CompositionAddressSpaceIds.DpReplacement,
+            candidate.V2Details.OutputNamingRequirement.TokenRequirements.Single(
+                static requirement => requirement.TokenId == "dp-version").MetadataSpaceId);
+        Assert.Equal(
+            CompositionAddressSpaceIds.ReferenceBase,
+            candidate.V2Details.OutputNamingRequirement.TokenRequirements.Single(
+                static requirement => requirement.TokenId == "tp-version").MetadataSpaceId);
         AssertMapProtection(candidate);
         AssertPlanContract(candidate.Plan, capacity);
 
@@ -159,7 +172,7 @@ public sealed class Nt51950Nt51951V2DpReplaceProfileTests
     {
         V2CompositionPlanCompileResult compilation = V2StandardMergeGoldenTestSupport.LoadDeployedCatalog(BundleDirectory, BundleContentHash).Compile(
             $"nt{icId[2..]}-dp-replace-dp-perspective",
-            "0.8.0",
+            "0.10.0",
             icId,
             ExperienceIds.DpReplace,
             capacity);

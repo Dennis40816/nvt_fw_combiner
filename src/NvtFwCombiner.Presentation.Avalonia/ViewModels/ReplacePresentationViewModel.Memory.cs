@@ -2,12 +2,80 @@ using NvtFwCombiner.Application.Authoring;
 
 namespace NvtFwCombiner.Presentation.Avalonia.ViewModels;
 
-public sealed partial class ReplacePresentationViewModel
+internal sealed partial class ReplacePresentationViewModel
 {
+    private string? _preparedDpReplaceIc;
+    private CompiledAuthoringSelectionSnapshot? _preparedDpReplaceSnapshot;
+    private string? _preparedCtrlRamIc;
+    private string? _preparedCtrlRamNumber;
+    private CtrlRamInspectionDisplay? _preparedCtrlRamDisplay;
+
+    internal void ValidateContextRefresh(string icId, string number, string mode)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(icId);
+        ArgumentException.ThrowIfNullOrWhiteSpace(mode);
+        switch (mode)
+        {
+            case DpReplaceMode:
+                _preparedDpReplaceIc = null;
+                _preparedDpReplaceSnapshot = null;
+                FirmwareSlotViewModel[] retainedDpSelections =
+                [
+                    .. CurrentReplaceInputSlots().DistinctBy(ReplaceInputId),
+                ];
+                CompiledAuthoringSelectionSnapshot dpSnapshot =
+                    ResolveDpReplaceAuthoringSnapshotCore(icId, retainedDpSelections);
+                _preparedDpReplaceIc = icId;
+                _preparedDpReplaceSnapshot = dpSnapshot;
+                break;
+            case CtrlRamReplaceMode:
+                _preparedCtrlRamIc = null;
+                _preparedCtrlRamNumber = null;
+                _preparedCtrlRamDisplay = null;
+                CtrlRamInspectionDisplay display = _compositionServices.CtrlRamAuthoring
+                    .GetDiscoveryDisplay(icId, number);
+                _preparedCtrlRamIc = icId;
+                _preparedCtrlRamNumber = number;
+                _preparedCtrlRamDisplay = display;
+                break;
+            case GeneralReplaceMode:
+                ValidateGeneralReplaceContextRefresh(icId);
+                break;
+            default:
+                throw new InvalidOperationException("Unknown Replace workflow mode.");
+        }
+    }
+
+    public bool HasObservedMemoryChanges =>
+        ReplaceCoverageSegments.Any(static segment => segment.IsChanged);
+
+    public bool ShowsGenericCoverageStateLegend => !IsCtrlRamReplaceModeSelected;
+
     internal void RefreshContextState(bool preserveSlotFiles = false)
     {
         RefreshReplaceModeState(preserveSlotFiles: preserveSlotFiles);
         RefreshReplaceMemoryMapState();
+        NotifyContextChanged();
+    }
+
+    internal void ClearUnavailableContextState()
+    {
+        ClearCtrlRamInspectionDisplay();
+        ReplaceSlots.Clear();
+        ReplaceSlotGroups.Clear();
+        _generalReplaceAuthoringStates = [];
+        _generalReplaceDraft = null;
+        _generalReplaceAdmission = null;
+        _generalReplaceActionReadiness = null;
+        _generalReplaceDiagnosticPreviewReport = null;
+        foreach (GeneralReplaceMappingViewModel mapping in GeneralReplaceMappings)
+        {
+            mapping.ApplyAuthoringIssue(null);
+            mapping.SetFileSelectionAvailability(
+                canSelect: false,
+                Text.FirmwareSlotPendingFactDetail);
+        }
+        InspectionLifecycles[GeneralReplaceMode].Invalidate();
         NotifyContextChanged();
     }
 
@@ -52,8 +120,15 @@ public sealed partial class ReplacePresentationViewModel
         ReplaceCoverageSegments.Clear();
         ReplaceCoverageGroups.Clear();
         OnPropertyChanged(nameof(ReplaceMemoryRangeLabel));
-        OnPropertyChanged(nameof(IsReplaceCoverageGrouped));
-        OnPropertyChanged(nameof(IsReplaceCoverageFlat));
+        OnPropertyChanged(nameof(HasObservedMemoryChanges));
+        NotifyCoverageGroupingChanged();
+    }
+
+    /// <summary>Returns dynamic CtrlRAM inputs to discovery state after their Base identity is cleared.</summary>
+    internal void ClearCtrlRamBaseSelectionState()
+    {
+        ClearCtrlRamInspectionDisplay();
+        RefreshReplaceModeState();
     }
 
     internal void ApplyCtrlRamInspectionDisplay(CtrlRamInspectionDisplay display)
@@ -64,6 +139,11 @@ public sealed partial class ReplacePresentationViewModel
         RefreshReplaceModeState(
             preserveSlotFiles: true,
             ctrlRamInputSlots: UiCompositionRunner.GetCtrlRamReplaceInputSlots(display.InputSlots));
+        ApplyCtrlRamMemoryDisplay(display);
+    }
+
+    private void ApplyCtrlRamMemoryDisplay(CtrlRamInspectionDisplay display)
+    {
         ActiveSessionSnapshot? acceptedSession =
             _ctrlRamReplaceSession.CurrentSnapshot;
         (
@@ -72,13 +152,31 @@ public sealed partial class ReplacePresentationViewModel
             IReadOnlyList<MemoryCoverageSegmentViewModel> coverageSegments) =
             acceptedSession?.ExactCapability is null
                 ? UiCompositionRunner.GetPendingMemoryDisplay(
-                    "Select and inspect the required inputs to resolve the compiled memory layout.")
+                    Text,
+                    ReplaceSlots,
+                    GetPendingReplaceMemoryPrerequisite())
                 : UiCompositionRunner.GetMemoryDisplay(
                     _compositionServices,
                     acceptedSession,
                     Text,
                     ctrlRamRegions: display.Regions);
         ApplyReplaceMemoryDisplay(rangeLabel, rows, coverageSegments);
+    }
+
+    private void RelocalizeReplaceMemoryMapState()
+    {
+        if (IsCtrlRamReplaceModeSelected &&
+            ReplaceBaseSlot.CurrentInspectionProjection is { } inspection)
+        {
+            ApplyCtrlRamMemoryDisplay(FirmwareInspectionProjection.ResolveCtrlRamDisplay(
+                _firmwareInspection,
+                inspection,
+                SelectedIc,
+                SelectedNumber));
+            return;
+        }
+
+        RefreshReplaceMemoryMapState(refreshAuthoring: false);
     }
 
     internal void RefreshReplaceMemoryMapState(bool refreshAuthoring = true)
@@ -127,8 +225,20 @@ public sealed partial class ReplacePresentationViewModel
         RefreshReplaceCoverageGroups();
         OnPropertyChanged(nameof(ReplaceMemoryRangeLabel));
         OnPropertyChanged(nameof(ReplaceMemorySummary));
+        OnPropertyChanged(nameof(HasObservedMemoryChanges));
+        NotifyCoverageGroupingChanged();
+    }
+
+    private void NotifyCoverageGroupingChanged()
+    {
         OnPropertyChanged(nameof(IsReplaceCoverageGrouped));
         OnPropertyChanged(nameof(IsReplaceCoverageFlat));
+        OnPropertyChanged(nameof(ReplaceSelectedCoverageItems));
+        OnPropertyChanged(nameof(ReplaceBaseCoverageItems));
+        OnPropertyChanged(nameof(ReplaceBaseCoverageGroup));
+        OnPropertyChanged(nameof(HasReplaceBaseCoverage));
+        OnPropertyChanged(nameof(ReplaceSelectedCoverageSummary));
+        OnPropertyChanged(nameof(ReplaceBaseCoverageSummary));
     }
 
     private (
@@ -145,8 +255,20 @@ public sealed partial class ReplacePresentationViewModel
         };
         return acceptedSession?.ExactCapability is null
             ? UiCompositionRunner.GetPendingMemoryDisplay(
-                "Select and inspect the required inputs to resolve the compiled memory layout.")
+                Text,
+                ReplaceSlots,
+                GetPendingReplaceMemoryPrerequisite())
             : UiCompositionRunner.GetMemoryDisplay(_compositionServices, acceptedSession, Text);
+    }
+
+    private MemoryPendingPrerequisite GetPendingReplaceMemoryPrerequisite()
+    {
+        return SelectedReplaceMode switch
+        {
+            DpReplaceMode => MemoryPendingPrerequisite.DpBin,
+            CtrlRamReplaceMode => MemoryPendingPrerequisite.CtrlRamReplacement,
+            _ => MemoryPendingPrerequisite.BaseBin,
+        };
     }
 
     private void RefreshReplaceModeState(
@@ -155,11 +277,9 @@ public sealed partial class ReplacePresentationViewModel
     {
         if (IsCtrlRamReplaceModeSelected && ctrlRamInputSlots is null)
         {
-            CtrlRamInspectionDisplay display =
-                _compositionServices.CtrlRamAuthoring.GetDiscoveryDisplay(
-                    SelectedIc,
-                    SelectedNumber,
-                    basePath: null);
+            CtrlRamInspectionDisplay display = ResolveCtrlRamDiscoveryDisplay(
+                SelectedIc,
+                SelectedNumber);
             ReplaceRows(CtrlRamRegions, UiCompositionRunner.GetCtrlRamRegions(display.Regions));
             ctrlRamInputSlots = UiCompositionRunner.GetCtrlRamReplaceInputSlots(display.InputSlots);
         }
@@ -174,6 +294,10 @@ public sealed partial class ReplacePresentationViewModel
                 .ToDictionary(slot => slot.SlotId, slot => slot.FilePath, StringComparer.Ordinal)
             : new Dictionary<string, string?>(StringComparer.Ordinal);
         ReplaceSlots.Clear();
+        CompiledAuthoringSelectionSnapshot? dpProjection = null;
+        bool usesPreparedDpProjection = SelectedReplaceMode == DpReplaceMode &&
+            string.Equals(_preparedDpReplaceIc, SelectedIc, StringComparison.Ordinal) &&
+            _preparedDpReplaceSnapshot is not null;
         if (IsSelectedReplaceModeSupported &&
             SelectedReplaceMode is DpReplaceMode or CtrlRamReplaceMode)
         {
@@ -183,13 +307,21 @@ public sealed partial class ReplacePresentationViewModel
                     ? ctrlRamInputSlots
                     : SelectedReplaceMode == DpReplaceMode
                         ? UiCompositionRunner.GetDpReplaceInputSlots(
-                            ResolveDpReplaceAuthoringSnapshot([]))
+                            dpProjection = ResolveDpReplaceAuthoringSnapshot([]))
                         : ctrlRamInputSlots ?? throw new InvalidOperationException(
                             "CtrlRAM mode requires one coherent discovery publication.");
             foreach (FirmwareSlotViewModel slot in inputSlots)
             {
                 RestorePreservedSlotFile(slot, preservedSlotFiles);
                 ReplaceSlots.Add(slot);
+            }
+
+            if (dpProjection is not null)
+            {
+                _ = _dpReplaceSession.Activate(dpProjection);
+                _catalogRefreshDpProjection = usesPreparedDpProjection
+                    ? dpProjection
+                    : null;
             }
         }
 
@@ -203,11 +335,35 @@ public sealed partial class ReplacePresentationViewModel
         OnPropertyChanged(nameof(IsSelectedReplaceModeEvidenceGated));
         OnPropertyChanged(nameof(IsSelectedReplaceModeUnavailable));
         OnPropertyChanged(nameof(IsCtrlRamReplaceModeSelected));
+        OnPropertyChanged(nameof(ShowsGenericCoverageStateLegend));
         OnPropertyChanged(nameof(IsGeneralReplaceModeSelected));
         OnPropertyChanged(nameof(IsStructuredReplaceModeSelected));
         OnPropertyChanged(nameof(IsNonCtrlRamStructuredReplaceModeSelected));
         OnPropertyChanged(nameof(ReplaceOutputFileName));
+        if (usesPreparedDpProjection && dpProjection is not null)
+        {
+            _preparedDpReplaceIc = SelectedIc;
+            _preparedDpReplaceSnapshot = dpProjection;
+        }
         RefreshCommandState();
+    }
+
+    private CtrlRamInspectionDisplay ResolveCtrlRamDiscoveryDisplay(
+        string icId,
+        string number)
+    {
+        if (string.Equals(_preparedCtrlRamIc, icId, StringComparison.Ordinal) &&
+            string.Equals(_preparedCtrlRamNumber, number, StringComparison.Ordinal) &&
+            _preparedCtrlRamDisplay is not null)
+        {
+            CtrlRamInspectionDisplay prepared = _preparedCtrlRamDisplay;
+            _preparedCtrlRamIc = null;
+            _preparedCtrlRamNumber = null;
+            _preparedCtrlRamDisplay = null;
+            return prepared;
+        }
+
+        return _compositionServices.CtrlRamAuthoring.GetDiscoveryDisplay(icId, number);
     }
 
     private static void RestorePreservedSlotFile(

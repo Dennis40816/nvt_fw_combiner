@@ -628,8 +628,8 @@ public sealed partial class ReplaceCliCommandTests
               "sourceExperienceId": "general-replace",
               "parentBinding": {
                 "bundleId": "nt51926-ctrlram-replace-candidate",
-                "bundleVersion": "0.9.16-candidate.1",
-                "bundleContentHash": "25d5adc9697eacedcf238835da197b0359c41f8cc6d82110c181496038469529",
+                "bundleVersion": "0.9.16-candidate.2",
+                "bundleContentHash": "8a6dc717feeb109ee265122b5796606297f1bbe14e11ec1e8da31d26678c26a7",
                 "profileId": "nt51926-general-replace-dp-single-candidate",
                 "profileVersion": "0.1.0",
                 "profileContentHash": "14fa7a02f86a2b7d8702fc2ff66e01c8857c7a909f7389c28f5f04d1e41c6ccc",

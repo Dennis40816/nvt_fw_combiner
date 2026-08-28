@@ -8,8 +8,8 @@ public sealed partial class RepositoryBoundaryTests
     [Fact]
     public void RepositoryTextFilesStayBelowLargeFileThreshold()
     {
-        string[] checkedRoots = ["src", "tests", "docs"];
-        string[] checkedExtensions = [".cs", ".axaml", ".md"];
+        string[] checkedRoots = ["src", "tests", "docs", "eng"];
+        string[] checkedExtensions = [".cs", ".axaml", ".md", ".targets"];
 
         string[] oversizedFiles =
         [

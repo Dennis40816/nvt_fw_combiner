@@ -1,0 +1,33 @@
+{
+  "schemaVersion": 2,
+  "taskId": "RELEASE-ARTIFACT-SNAPSHOT-100-01",
+  "capability": "Consume one immutable package-byte snapshot for managed-installation identity validation and extraction",
+  "integrationBase": "08c9b4bb20813dfe2660a8bbc504d34d8f9d6d8a",
+  "risk": "R3",
+  "kind": "release",
+  "state": "final-complete",
+  "mutablePaths": [
+    "scripts/create_managed_installation_lab.py"
+  ],
+  "implementationOwner": "root-implementer",
+  "searchEvidence": [
+    "The exact-head release review found that create_managed_installation_lab.py hashed a package path and later reopened that path for extraction, permitting an admitted ZIP to be replaced between those operations.",
+    "The script is the existing sole managed-installation lab owner; the correction captures package bytes once, validates that capture, and extracts only from the same in-memory capture without adding another installation path."
+  ],
+  "semanticOwner": "scripts/create_managed_installation_lab.py owns local managed-installation package admission and extraction",
+  "terminalContract": "Managed-installation creation reads the selected ZIP exactly once. SHA-256 identity validation and archive extraction consume that same immutable byte capture, so replacing or mutating the on-disk path after capture cannot alter installed bytes. Existing package schema, path-safety, overwrite, retention, launcher, firmware, naming, and release-version behavior remain unchanged.",
+  "disposition": "extend-owner",
+  "designReview": {
+    "reviewer": "final_release_review",
+    "outcome": "findings-incorporated",
+    "evidence": "The independent exhaustive release review of 2c97ed19 identified the hash-then-reopen ZIP race as a P1 supply-chain gap and required one captured payload for both validation and extraction; the bounded correction and an adversarial post-capture replacement regression implement that finding."
+  },
+  "implementationHead": "8ee021c0f23ba0d7bf6cba5d65cf7e1a2bfe9c53",
+  "reviewedHead": "8ee021c0f23ba0d7bf6cba5d65cf7e1a2bfe9c53",
+  "pathStateDigest": "a1bf1c4b31038e827f05578419130a34e151e3d00b40a8f27208fce03e5c31a4",
+  "finalReview": {
+    "reviewer": "final_release_review",
+    "outcome": "approved",
+    "evidence": "Independent exact-head release/security review at 8ee021c0f23ba0d7bf6cba5d65cf7e1a2bfe9c53 verified that the sole managed-installation owner captures the admitted seed ZIP once and uses that same byte snapshot for catalog size/SHA-256 admission and extraction; adversarial post-capture replacement coverage passed within 230 release-focused tests, Polytail fast checks passed, and no package schema, path-safety, launcher, firmware, naming, or release-version behavior drift was found."
+  }
+}

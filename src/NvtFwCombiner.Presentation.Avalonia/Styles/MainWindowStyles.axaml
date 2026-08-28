@@ -1,5 +1,6 @@
 <Styles
     xmlns="https://github.com/avaloniaui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     xmlns:behaviors="using:NvtFwCombiner.Presentation.Avalonia.Behaviors"
     xmlns:input="using:Avalonia.Input">
   <Style Selector="Border.runProgressNode">
@@ -7,7 +8,7 @@
     <Setter Property="CornerRadius" Value="4" />
     <Setter Property="Background" Value="{DynamicResource NfcSurfaceBrush}" />
     <Setter Property="BorderBrush" Value="{DynamicResource NfcBorderBrush}" />
-    <Setter Property="BorderThickness" Value="1" />
+    <Setter Property="BorderThickness" Value="2" />
   </Style>
   <Style Selector="Border.runProgressNode.completed">
     <Setter Property="Background" Value="{DynamicResource NfcSuccessEmphasisBrush}" />
@@ -25,10 +26,7 @@
     <Setter Property="FontWeight" Value="Bold" />
     <Setter Property="Foreground" Value="{DynamicResource NfcTextStrongBrush}" />
   </Style>
-  <Style Selector="Border.runProgressNode.completed TextBlock.runProgressMarker">
-    <Setter Property="Foreground" Value="{DynamicResource NfcSurfaceBrush}" />
-  </Style>
-  <Style Selector="Border.runProgressNode.active TextBlock.runProgressMarker">
+  <Style Selector="Border.runProgressNode.completed TextBlock.runProgressMarker, Border.runProgressNode.active TextBlock.runProgressMarker">
     <Setter Property="Foreground" Value="{DynamicResource NfcSurfaceBrush}" />
   </Style>
   <Style Selector="TabControl.reportTabs">
@@ -45,7 +43,7 @@
     <Setter Property="FontWeight" Value="SemiBold" />
     <Setter Property="Foreground" Value="{DynamicResource NfcTextSecondaryBrush}" />
   </Style>
-  <Style Selector="TabControl.reportTabs TabItem:selected TextBlock">
+  <Style Selector="TabControl.reportTabs TabItem:selected TextBlock, ToggleButton.segment:checked TextBlock">
     <Setter Property="Foreground" Value="{DynamicResource NfcTextStrongBrush}" />
   </Style>
   <Style Selector="Expander">
@@ -56,9 +54,65 @@
     <Setter Property="HorizontalAlignment" Value="Stretch" />
     <Setter Property="HorizontalContentAlignment" Value="Stretch" />
   </Style>
+  <Style Selector="Expander#OptionalPreloadFocusTarget /template/ ToggleButton">
+    <Setter Property="AutomationProperties.Name" Value="{ReflectionBinding $parent[Expander].(AutomationProperties.Name)}" />
+  </Style>
   <Style Selector="Expander /template/ ContentPresenter">
     <Setter Property="HorizontalAlignment" Value="Stretch" />
     <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+  </Style>
+  <Style Selector="ScrollViewer.contentScrollSurface">
+    <Setter Property="AllowAutoHide" Value="False" />
+  </Style>
+  <Style Selector="ScrollViewer.contentScrollSurface /template/ ScrollBar:vertical">
+    <Setter Property="Width" Value="14" />
+    <Setter Property="MinWidth" Value="14" />
+    <Setter Property="MaxWidth" Value="14" />
+    <Setter Property="Background" Value="Transparent" />
+  </Style>
+  <Style Selector="ScrollViewer.contentScrollSurface /template/ ScrollBar:vertical /template/ Thumb">
+    <Setter Property="Width" Value="6" />
+    <Setter Property="MinWidth" Value="6" />
+    <Setter Property="MaxWidth" Value="6" />
+    <Setter Property="HorizontalAlignment" Value="Center" />
+    <Setter Property="Background" Value="{DynamicResource NfcTextDisabledBrush}" />
+    <Setter Property="CornerRadius" Value="{DynamicResource NfcPillCornerRadius}" />
+    <Setter Property="RenderTransform" Value="none" />
+  </Style>
+  <Style Selector="ScrollViewer.contentScrollSurface /template/ ScrollBar:vertical /template/ Rectangle#TrackRect">
+    <Setter Property="Opacity" Value="0" />
+  </Style>
+  <Style Selector="ScrollViewer.contentScrollSurface /template/ ScrollBar:vertical /template/ RepeatButton">
+    <Setter Property="Opacity" Value="0" />
+  </Style>
+  <Style Selector="ScrollViewer.contentScrollSurface /template/ ScrollBar:vertical:pointerover /template/ Thumb">
+    <Setter Property="Width" Value="6" />
+    <Setter Property="MinWidth" Value="6" />
+    <Setter Property="MaxWidth" Value="6" />
+    <Setter Property="Background" Value="{DynamicResource NfcTextMutedBrush}" />
+    <Setter Property="RenderTransform" Value="none" />
+  </Style>
+  <Style Selector="ScrollViewer.contentScrollSurface /template/ ScrollBar:vertical /template/ Thumb:pointerover /template/ Border">
+    <Setter Property="Background" Value="{DynamicResource NfcTextMutedBrush}" />
+  </Style>
+  <Style Selector="Expander.inlineDisclosure">
+    <Setter Property="Background" Value="Transparent" />
+  </Style>
+  <Style Selector="Expander.inlineDisclosure /template/ ToggleButton, Expander.inlineDisclosure /template/ ToggleButton:checked">
+    <Setter Property="Background" Value="Transparent" />
+    <Setter Property="BorderBrush" Value="Transparent" />
+  </Style>
+  <Style Selector="Expander.inlineDisclosure /template/ ToggleButton:pointerover, Expander.inlineDisclosure /template/ ToggleButton:checked:pointerover">
+    <Setter Property="Background" Value="{DynamicResource NfcAccentSurfaceSubtleBrush}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource NfcAccentBorderBrush}" />
+  </Style>
+  <Style Selector="Expander.inlineDisclosure /template/ ToggleButton:pressed">
+    <Setter Property="Background" Value="{DynamicResource NfcAccentSurfaceBrush}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource NfcAccentBorderStrongBrush}" />
+  </Style>
+  <Style Selector="Expander.inlineDisclosure /template/ ToggleButton:focus-visible">
+    <Setter Property="BorderBrush" Value="{DynamicResource NfcAccentStrongBrush}" />
+    <Setter Property="BorderThickness" Value="2" />
   </Style>
   <Style Selector="ToggleButton.nav">
     <Setter Property="MinHeight" Value="30" />
@@ -67,20 +121,56 @@
     <Setter Property="BorderBrush" Value="Transparent" />
     <Setter Property="Foreground" Value="{DynamicResource NfcTextSecondaryBrush}" />
     <Setter Property="FontSize" Value="{DynamicResource NfcFontSize13}" />
+    <Setter Property="Cursor" Value="Hand" />
+    <Setter Property="FocusAdorner" Value="{x:Null}" />
   </Style>
   <Style Selector="ToggleButton.nav /template/ ContentPresenter#PART_ContentPresenter">
     <Setter Property="Background" Value="Transparent" />
     <Setter Property="BorderBrush" Value="Transparent" />
+    <Setter Property="BorderThickness" Value="0,0,0,2" />
+    <Setter Property="CornerRadius" Value="0" />
+    <Setter Property="TextElement.Foreground" Value="{DynamicResource NfcTextSecondaryBrush}" />
+  </Style>
+  <Style Selector="ToggleButton.nav:pointerover /template/ ContentPresenter#PART_ContentPresenter">
+    <Setter Property="Background" Value="Transparent" />
+    <Setter Property="BorderBrush" Value="Transparent" />
+    <Setter Property="TextElement.Foreground" Value="{DynamicResource NfcTextStrongBrush}" />
+  </Style>
+  <Style Selector="ToggleButton.nav:pressed /template/ ContentPresenter#PART_ContentPresenter">
+    <Setter Property="Background" Value="Transparent" />
+    <Setter Property="BorderBrush" Value="Transparent" />
+    <Setter Property="TextElement.Foreground" Value="{DynamicResource NfcAccentStrongBrush}" />
   </Style>
   <Style Selector="ToggleButton.nav:checked">
-    <Setter Property="Background" Value="{DynamicResource NfcSelectionSurfaceBrush}" />
-    <Setter Property="BorderBrush" Value="{DynamicResource NfcBorderBrush}" />
+    <Setter Property="Background" Value="Transparent" />
+    <Setter Property="BorderBrush" Value="{DynamicResource NfcAccentBrush}" />
     <Setter Property="Foreground" Value="{DynamicResource NfcTextStrongBrush}" />
     <Setter Property="FontWeight" Value="SemiBold" />
   </Style>
   <Style Selector="ToggleButton.nav:checked /template/ ContentPresenter#PART_ContentPresenter">
-    <Setter Property="Background" Value="{DynamicResource NfcSelectionSurfaceBrush}" />
-    <Setter Property="BorderBrush" Value="{DynamicResource NfcBorderBrush}" />
+    <Setter Property="Background" Value="Transparent" />
+    <Setter Property="BorderBrush" Value="{DynamicResource NfcAccentBrush}" />
+    <Setter Property="TextElement.Foreground" Value="{DynamicResource NfcTextStrongBrush}" />
+  </Style>
+  <Style Selector="ToggleButton.nav:checked:pointerover /template/ ContentPresenter#PART_ContentPresenter">
+    <Setter Property="Background" Value="Transparent" />
+    <Setter Property="BorderBrush" Value="{DynamicResource NfcAccentBrush}" />
+  </Style>
+  <Style Selector="ToggleButton.nav:checked:pressed /template/ ContentPresenter#PART_ContentPresenter">
+    <Setter Property="Background" Value="Transparent" />
+    <Setter Property="BorderBrush" Value="{DynamicResource NfcAccentBorderStrongBrush}" />
+  </Style>
+  <Style Selector="ToggleButton.nav:disabled">
+    <Setter Property="Opacity" Value="1" />
+  </Style>
+  <Style Selector="ToggleButton.nav:disabled /template/ ContentPresenter#PART_ContentPresenter">
+    <Setter Property="Background" Value="Transparent" />
+    <Setter Property="BorderBrush" Value="Transparent" />
+    <Setter Property="TextElement.Foreground" Value="{DynamicResource NfcTextDisabledBrush}" />
+  </Style>
+  <Style Selector="ToggleButton.nav:focus-visible /template/ ContentPresenter#PART_ContentPresenter">
+    <Setter Property="BorderBrush" Value="{DynamicResource NfcAccentBorderStrongBrush}" />
+    <Setter Property="BorderThickness" Value="0,0,0,2" />
   </Style>
   <Style Selector="ToggleButton.segment">
     <Setter Property="MinHeight" Value="44" />
@@ -89,14 +179,14 @@
     <Setter Property="Padding" Value="18,10" />
     <Setter Property="Background" Value="{DynamicResource NfcSurfaceBrush}" />
     <Setter Property="BorderBrush" Value="{DynamicResource NfcBorderBrush}" />
-    <Setter Property="BorderThickness" Value="1" />
+    <Setter Property="BorderThickness" Value="2" />
     <Setter Property="Foreground" Value="{DynamicResource NfcTextBrush}" />
     <Setter Property="FontSize" Value="{DynamicResource NfcFontSize13}" />
   </Style>
   <Style Selector="ToggleButton.segment /template/ ContentPresenter#PART_ContentPresenter">
     <Setter Property="Background" Value="{DynamicResource NfcSurfaceBrush}" />
     <Setter Property="BorderBrush" Value="{DynamicResource NfcBorderBrush}" />
-    <Setter Property="BorderThickness" Value="1" />
+    <Setter Property="BorderThickness" Value="2" />
     <Setter Property="CornerRadius" Value="{DynamicResource NfcPillCornerRadius}" />
   </Style>
   <Style Selector="ToggleButton.segment TextBlock">
@@ -111,15 +201,12 @@
   <Style Selector="ToggleButton.segment:checked /template/ ContentPresenter#PART_ContentPresenter">
     <Setter Property="Background" Value="{DynamicResource NfcAccentSurfaceBrush}" />
     <Setter Property="BorderBrush" Value="{DynamicResource NfcAccentBorderStrongBrush}" />
-    <Setter Property="BorderThickness" Value="1" />
+    <Setter Property="BorderThickness" Value="2" />
     <Setter Property="CornerRadius" Value="{DynamicResource NfcPillCornerRadius}" />
   </Style>
-  <Style Selector="ToggleButton.segment:checked TextBlock">
-    <Setter Property="Foreground" Value="{DynamicResource NfcTextStrongBrush}" />
-  </Style>
   <Style Selector="ToggleButton.versionChoice">
-    <Setter Property="MinHeight" Value="54" />
-    <Setter Property="Padding" Value="14,10" />
+    <Setter Property="MinHeight" Value="34" />
+    <Setter Property="Padding" Value="12,6" />
   </Style>
   <Style Selector="ToggleButton.versionChoice /template/ ContentPresenter#PART_ContentPresenter">
     <Setter Property="CornerRadius" Value="{DynamicResource NfcSurfaceCornerRadius}" />
@@ -136,18 +223,11 @@
   <Style Selector="ToggleButton.versionChoice:checked Path">
     <Setter Property="Stroke" Value="{DynamicResource NfcAccentStrongBrush}" />
   </Style>
-  <Style Selector="Border.versionSummaryCard">
-    <Setter Property="Padding" Value="14" />
-    <Setter Property="Background" Value="{DynamicResource NfcSurfaceSubtleBrush}" />
-    <Setter Property="BorderBrush" Value="{DynamicResource NfcBorderBrush}" />
-    <Setter Property="BorderThickness" Value="1" />
-    <Setter Property="CornerRadius" Value="{DynamicResource NfcSurfaceCornerRadius}" />
-  </Style>
   <Style Selector="Border.versionValueBadge">
     <Setter Property="Padding" Value="12,7" />
     <Setter Property="Background" Value="{DynamicResource NfcSurfaceBrush}" />
     <Setter Property="BorderBrush" Value="{DynamicResource NfcAccentBorderLightBrush}" />
-    <Setter Property="BorderThickness" Value="1" />
+    <Setter Property="BorderThickness" Value="2" />
     <Setter Property="CornerRadius" Value="{DynamicResource NfcCompactCornerRadius}" />
   </Style>
   <Style Selector="TextBlock.versionValue">
@@ -158,17 +238,33 @@
     <Setter Property="MinHeight" Value="32" />
     <Setter Property="Background" Value="{DynamicResource NfcSurfaceSubtleBrush}" />
     <Setter Property="BorderBrush" Value="{DynamicResource NfcBorderBrush}" />
+    <Setter Property="BorderThickness" Value="2" />
     <Setter Property="FontFamily" Value="{DynamicResource NfcUiFontFamily}" />
     <Setter Property="FontSize" Value="{DynamicResource NfcFontSize13}" />
+  </Style>
+  <Style Selector="ComboBox:focus-visible">
+    <Setter Property="BorderBrush" Value="{DynamicResource NfcAccentStrongBrush}" />
   </Style>
   <Style Selector="ComboBoxItem">
     <Setter Property="FontFamily" Value="{DynamicResource NfcUiFontFamily}" />
     <Setter Property="FontSize" Value="{DynamicResource NfcFontSize13}" />
   </Style>
-  <Style Selector="ComboBox.technicalSelect">
-    <Setter Property="FontFamily" Value="{DynamicResource NfcTechnicalFontFamily}" />
+  <Style Selector="ComboBoxItem:pointerover /template/ ContentPresenter#PART_ContentPresenter">
+    <Setter Property="Background" Value="{DynamicResource NfcAccentSurfaceBrush}" />
+    <Setter Property="BorderBrush" Value="Transparent" />
+    <Setter Property="Foreground" Value="{DynamicResource NfcAccentStrongBrush}" />
   </Style>
-  <Style Selector="ComboBox.technicalSelect ComboBoxItem">
+  <Style Selector="ComboBoxItem:selected /template/ ContentPresenter#PART_ContentPresenter">
+    <Setter Property="Background" Value="Transparent" />
+    <Setter Property="BorderBrush" Value="Transparent" />
+    <Setter Property="Foreground" Value="{DynamicResource NfcAccentStrongBrush}" />
+  </Style>
+  <Style Selector="ComboBoxItem:selected:pointerover /template/ ContentPresenter#PART_ContentPresenter">
+    <Setter Property="Background" Value="{DynamicResource NfcAccentSurfaceSubtleBrush}" />
+    <Setter Property="BorderBrush" Value="Transparent" />
+    <Setter Property="Foreground" Value="{DynamicResource NfcAccentStrongBrush}" />
+  </Style>
+  <Style Selector="ComboBox.technicalSelect, ComboBox.technicalSelect ComboBoxItem">
     <Setter Property="FontFamily" Value="{DynamicResource NfcTechnicalFontFamily}" />
   </Style>
   <Style Selector="ComboBox.settingsSelect">
@@ -189,7 +285,7 @@
   <Style Selector="TextBox.addressInput">
     <Setter Property="Background" Value="{DynamicResource NfcSurfaceBrush}" />
     <Setter Property="BorderBrush" Value="{DynamicResource NfcBorderBrush}" />
-    <Setter Property="BorderThickness" Value="1" />
+    <Setter Property="BorderThickness" Value="2" />
     <Setter Property="CornerRadius" Value="{DynamicResource NfcCompactCornerRadius}" />
     <Setter Property="behaviors:HexTextInputBehavior.Mode" Value="Address" />
   </Style>

@@ -3,8 +3,32 @@ using NvtFwCombiner.Domain.Composition;
 
 namespace NvtFwCombiner.Application.Capabilities;
 
+/// <summary>Focused compilation seam required by host-backed General authoring defaults.</summary>
+public interface IStandardMergeCompilationPort
+{
+    /// <summary>Compiles the exact Standard Merge composition for one optional DP length.</summary>
+    bool TryCompileStandardMerge(
+        string icId,
+        long? dpInputLength,
+        [NotNullWhen(true)] out CompiledComposition? composition,
+        out IReadOnlyList<CompositionIssue> issues);
+}
+
 internal sealed partial class CanonicalCapabilityCompilerAdapter
 {
+    bool IStandardMergeCompilationPort.TryCompileStandardMerge(
+        string icId,
+        long? dpInputLength,
+        [NotNullWhen(true)] out CompiledComposition? composition,
+        out IReadOnlyList<CompositionIssue> issues)
+    {
+        return TryCompileStandardMerge(
+            icId,
+            dpInputLength,
+            out composition,
+            out issues);
+    }
+
     internal bool TryCompileStandardMerge(
         string icId,
         long? dpInputLength,

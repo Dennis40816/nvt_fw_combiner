@@ -1,31 +1,41 @@
 using CommunityToolkit.Mvvm.ComponentModel;
+using NvtFwCombiner.Application.Capabilities;
 using NvtFwCombiner.Domain.Composition;
 
 namespace NvtFwCombiner.Presentation.Avalonia.ViewModels;
 
 /// <summary>Cancelable device-context draft used before a Home workflow entry is opened.</summary>
-public sealed partial class WorkflowContextSetupViewModel : ObservableObject
+internal sealed partial class WorkflowContextSetupViewModel : ObservableObject
 {
-    private readonly PresentationCompositionServices _compositionServices;
+    private CapabilitySelectorPublication? _selectorPublication;
+    private string? _workflowId;
+    private string _selectedIc = string.Empty;
 
-    internal WorkflowContextSetupViewModel(PresentationCompositionServices compositionServices)
-    {
-        _compositionServices = compositionServices ??
-            throw new ArgumentNullException(nameof(compositionServices));
-    }
-
-    /// <summary>Gets available IC identifiers.</summary>
     public IReadOnlyList<string> IcChoices { get; private set; } = [];
 
-    /// <summary>Gets whether this workflow requires an IC-count choice.</summary>
     [ObservableProperty]
     public partial bool IsNumberVisible { get; set; }
 
-    /// <summary>Gets or sets the draft IC identifier.</summary>
-    [ObservableProperty]
-    public partial string SelectedIc { get; set; } = string.Empty;
+    public string SelectedIc
+    {
+        get => _selectedIc;
+        set
+        {
+            if (string.IsNullOrWhiteSpace(value))
+            {
+                OnPropertyChanged(nameof(SelectedIc));
+                return;
+            }
 
-    /// <summary>Gets selectable grouped IC-count choices for the draft IC.</summary>
+            if (!SetProperty(ref _selectedIc, value))
+            {
+                return;
+            }
+
+            RefreshNumberChoices(SelectedNumber);
+        }
+    }
+
     [ObservableProperty]
     public partial IReadOnlyList<IcNumberChoiceViewModel> NumberChoices { get; set; } = [];
 
@@ -33,7 +43,6 @@ public sealed partial class WorkflowContextSetupViewModel : ObservableObject
     [ObservableProperty]
     public partial string SelectedNumber { get; set; } = IcNumberSelectionTokens.SingleChip;
 
-    /// <summary>Gets or sets the selected grouped IC-count choice.</summary>
     public IcNumberChoiceViewModel? SelectedNumberChoice
     {
         get => NumberChoices.FirstOrDefault(choice =>
@@ -47,14 +56,18 @@ public sealed partial class WorkflowContextSetupViewModel : ObservableObject
         }
     }
 
-    /// <summary>Resets the independent draft from the active shell context.</summary>
     public void Configure(
+        CapabilitySelectorPublication publication,
         string icId,
         string number,
         bool showNumber,
+        string? workflowId = null,
         IReadOnlyList<string>? icChoices = null)
     {
-        IReadOnlyList<string> nextChoices = icChoices ?? _compositionServices.Capabilities.GetIcIds();
+        ArgumentNullException.ThrowIfNull(publication);
+        _selectorPublication = publication;
+        _workflowId = WorkflowSelectorProjection.NumberWorkflowScope(workflowId);
+        IReadOnlyList<string> nextChoices = icChoices ?? publication.IcIds;
         if (nextChoices.Count == 0)
         {
             throw new ArgumentException("Workflow context requires at least one IC choice.", nameof(icChoices));
@@ -63,15 +76,23 @@ public sealed partial class WorkflowContextSetupViewModel : ObservableObject
         IcChoices = nextChoices;
         OnPropertyChanged(nameof(IcChoices));
         IsNumberVisible = showNumber;
-        SelectedIc = IcChoices.Contains(icId, StringComparer.Ordinal)
+        string selectedIc = IcChoices.Contains(icId, StringComparer.Ordinal)
             ? icId
             : IcChoices[0];
+        _ = SetProperty(ref _selectedIc, selectedIc, nameof(SelectedIc));
         RefreshNumberChoices(number);
     }
 
-    partial void OnSelectedIcChanged(string value)
+    internal void Clear()
     {
-        RefreshNumberChoices(SelectedNumber);
+        _selectorPublication = null;
+        _workflowId = null;
+        IcChoices = [];
+        OnPropertyChanged(nameof(IcChoices));
+        _ = SetProperty(ref _selectedIc, string.Empty, nameof(SelectedIc));
+        NumberChoices = [];
+        SelectedNumber = string.Empty;
+        OnPropertyChanged(nameof(SelectedNumberChoice));
     }
 
     partial void OnSelectedNumberChanged(string value)
@@ -81,12 +102,15 @@ public sealed partial class WorkflowContextSetupViewModel : ObservableObject
 
     private void RefreshNumberChoices(string preferredToken)
     {
-        NumberChoices = UiCompositionRunner.GetNumberSelectionChoices(
-            _compositionServices,
-            SelectedIc);
+        NumberChoices = _selectorPublication is null || string.IsNullOrWhiteSpace(SelectedIc)
+            ? []
+            : UiCompositionRunner.GetNumberSelectionChoices(
+                _selectorPublication,
+                SelectedIc,
+                _workflowId);
         SelectedNumber = NumberChoices.FirstOrDefault(choice =>
             string.Equals(choice.Token, preferredToken, StringComparison.Ordinal))?.Token ??
-            (NumberChoices.Count > 0 ? NumberChoices[0].Token : IcNumberSelectionTokens.SingleChip);
+            (NumberChoices.Count > 0 ? NumberChoices[0].Token : string.Empty);
         OnPropertyChanged(nameof(SelectedNumberChoice));
     }
 }

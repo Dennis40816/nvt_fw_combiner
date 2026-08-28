@@ -99,7 +99,8 @@ public static partial class MemoryLayoutProjector
                         new ByteRange(0, capacity),
                         MemoryContentRole.General,
                         CanonicalRegion: null,
-                        ReplaceRegionGroup.Common),
+                        ReplaceRegionGroup.Common,
+                        CtrlRamRegionRole.Other),
                 ];
                 break;
             default:
@@ -131,6 +132,7 @@ public static partial class MemoryLayoutProjector
         MemoryLayoutSegment[] before =
             CreateInitialCoverage(
                 primaryRegions,
+                map,
                 map?.AddressSpaceId ?? plan.OutputSpaceId,
                 initialization,
                 slotsBySpace,
@@ -139,6 +141,7 @@ public static partial class MemoryLayoutProjector
             ? before
             : ApplyOperations(
                 primaryRegions,
+                map,
                 map?.AddressSpaceId ?? plan.OutputSpaceId,
                 composition,
                 slotsBySpace,
@@ -275,7 +278,8 @@ public static partial class MemoryLayoutProjector
                     ? ctrlRam.RegionGroup
                     : ctrlRamRegions is null
                         ? ReplaceRegionGroup.Common
-                        : ReplaceRegionGroup.Base));
+                        : ReplaceRegionGroup.Base,
+                ctrlRam?.Role ?? CtrlRamRegionRole.Other));
         }
 
         return [.. primary];
@@ -388,27 +392,29 @@ public static partial class MemoryLayoutProjector
 
     private static MemoryLayoutSegment[] CreateInitialCoverage(
         ProjectionRegion[] primaryRegions,
+        FirmwareImageMap? map,
         string addressSpaceId,
         ImageInitialization initialization,
         Dictionary<string, string> slotsBySpace,
         Dictionary<string, AuthoringSlotState> statesById)
     {
-        bool referenceAdmitted =
-            initialization.Kind == ImageInitializationKind.Reference &&
-            initialization.ReferenceSpaceId is not null &&
-            slotsBySpace.TryGetValue(initialization.ReferenceSpaceId, out string? slotId) &&
-            IsAdmitted(statesById[slotId]);
+        string? referenceSlotId = GetAdmittedReferenceSlot(
+            initialization,
+            slotsBySpace,
+            statesById);
+        bool referenceAdmitted = referenceSlotId is not null;
 
         return
         [
             .. primaryRegions.Select(region =>
                 CreateSegment(
                     region,
+                    map,
                     region.Range,
                     addressSpaceId,
                     InitialDisposition(region, initialization.Kind, referenceAdmitted),
-                    sourceSpaceId: null,
-                    sourceSlotId: null,
+                    referenceAdmitted ? initialization.ReferenceSpaceId : null,
+                    referenceSlotId,
                     contributingOperations: [],
                     diagnosticSeverity: MemoryDiagnosticSeverity.None,
                     selection: MemorySelectionState.NotSelected,
@@ -418,6 +424,7 @@ public static partial class MemoryLayoutProjector
 
     private static MemoryLayoutSegment[] ApplyOperations(
         ProjectionRegion[] primaryRegions,
+        FirmwareImageMap? map,
         string addressSpaceId,
         CompiledComposition composition,
         Dictionary<string, string> slotsBySpace,
@@ -429,6 +436,17 @@ public static partial class MemoryLayoutProjector
             .. plan.OrderedOperations.Where(operation =>
                 StringComparer.Ordinal.Equals(operation.TargetSpaceId, plan.OutputSpaceId)),
         ];
+        Dictionary<ProjectionRegion, string> retainedCompanionSlots = ResolveRetainedCompanionSlots(
+            primaryRegions,
+            planned,
+            plan.OutputSpaceId,
+            slotsBySpace,
+            statesById,
+            composition.V2Details.CompositionKind);
+        string? referenceSlotId = GetAdmittedReferenceSlot(
+            plan.OutputInitialization,
+            slotsBySpace,
+            statesById);
         SortedSet<long> boundaries = [0, plan.OutputInitialization.Capacity];
         foreach (ProjectionRegion region in primaryRegions)
         {
@@ -438,8 +456,11 @@ public static partial class MemoryLayoutProjector
 
         foreach (CompositionOperation operation in planned)
         {
-            _ = boundaries.Add(operation.TargetRange.Start);
-            _ = boundaries.Add(operation.TargetRange.EndExclusive);
+            foreach (ByteRange range in operation.DeclaredWriteRanges)
+            {
+                _ = boundaries.Add(range.Start);
+                _ = boundaries.Add(range.EndExclusive);
+            }
         }
 
         long[] points = [.. boundaries];
@@ -451,28 +472,34 @@ public static partial class MemoryLayoutProjector
                 region => region.Range.Contains(range));
             CompositionOperation[] contributors =
             [
-                .. planned.Where(operation => operation.TargetRange.Contains(range)),
+                .. planned.Where(operation => OperationWritesRange(operation, range)),
             ];
             if (contributors.Length == 0)
             {
                 segments.Add(
                     CreateSegment(
                         canonicalRegion,
+                        map,
                         range,
                         addressSpaceId,
                         InitialDisposition(
                             canonicalRegion,
                             plan.OutputInitialization.Kind,
-                            IsReferenceAdmitted(
-                                plan.OutputInitialization,
-                                slotsBySpace,
-                                statesById)),
-                        sourceSpaceId: null,
-                        sourceSlotId: null,
+                            referenceSlotId is not null),
+                        referenceSlotId is null
+                            ? null
+                            : plan.OutputInitialization.ReferenceSpaceId,
+                        referenceSlotId,
                         contributingOperations: [],
                         diagnosticSeverity: MemoryDiagnosticSeverity.None,
                         selection: MemorySelectionState.NotSelected,
-                        processorEffect: MemoryProcessorEffect.None));
+                        processorEffect: MemoryProcessorEffect.None,
+                        retainedCompanionSlotId: referenceSlotId is not null &&
+                            retainedCompanionSlots.TryGetValue(
+                                canonicalRegion,
+                                out string? companionSlotId)
+                                ? companionSlotId
+                                : null));
                 continue;
             }
 
@@ -491,6 +518,7 @@ public static partial class MemoryLayoutProjector
             segments.Add(
                 CreateSegment(
                     canonicalRegion,
+                    map,
                     range,
                     addressSpaceId,
                     composition.V2Details.CompositionKind == CompositionKind.Merge
@@ -512,7 +540,14 @@ public static partial class MemoryLayoutProjector
         return [.. segments];
     }
 
-    private static bool IsReferenceAdmitted(
+    private static bool OperationWritesRange(
+        CompositionOperation operation,
+        ByteRange range)
+    {
+        return operation.DeclaredWriteRanges.Any(candidate => candidate.Contains(range));
+    }
+
+    private static string? GetAdmittedReferenceSlot(
         ImageInitialization initialization,
         Dictionary<string, string> slotsBySpace,
         Dictionary<string, AuthoringSlotState> statesById)
@@ -520,7 +555,9 @@ public static partial class MemoryLayoutProjector
         return initialization.Kind == ImageInitializationKind.Reference &&
             initialization.ReferenceSpaceId is not null &&
             slotsBySpace.TryGetValue(initialization.ReferenceSpaceId, out string? slotId) &&
-            IsAdmitted(statesById[slotId]);
+            IsAdmitted(statesById[slotId])
+                ? slotId
+                : null;
     }
 
     private static bool IsAdmitted(AuthoringSlotState state)
@@ -538,13 +575,17 @@ public static partial class MemoryLayoutProjector
             ? referenceAdmitted
                 ? MemoryWorkflowDisposition.Kept
                 : MemoryWorkflowDisposition.Resolved
-            : region.ContentRole == MemoryContentRole.Reserved
+            : region.ContentRole is
+                MemoryContentRole.CustomerInformation or
+                MemoryContentRole.Reserved or
+                MemoryContentRole.Unmapped
                 ? MemoryWorkflowDisposition.Resolved
                 : MemoryWorkflowDisposition.Blank;
     }
 
     private static MemoryLayoutSegment CreateSegment(
         ProjectionRegion canonicalRegion,
+        FirmwareImageMap? map,
         ByteRange range,
         string addressSpaceId,
         MemoryWorkflowDisposition disposition,
@@ -553,7 +594,8 @@ public static partial class MemoryLayoutProjector
         IReadOnlyList<CompositionOperation> contributingOperations,
         MemoryDiagnosticSeverity diagnosticSeverity,
         MemorySelectionState selection,
-        MemoryProcessorEffect processorEffect)
+        MemoryProcessorEffect processorEffect,
+        string? retainedCompanionSlotId = null)
     {
         string segmentId = FormattableString.Invariant(
             $"{canonicalRegion.RegionId}:{range.Start:x}-{range.EndExclusive:x}");
@@ -576,7 +618,14 @@ public static partial class MemoryLayoutProjector
                 sourceSlotId,
                 contributingOperations,
                 [],
-                canonicalRegion.RegionGroup)
+                ResolveLogicalCoverageGroupId(
+                    map,
+                    range,
+                    sourceSlotId,
+                    segmentId,
+                    retainedCompanionSlotId),
+                canonicalRegion.RegionGroup,
+                canonicalRegion.CtrlRamRegionRole)
             : MemoryLayoutSegment.CreateLogical(
                 segmentId,
                 addressSpaceId,
@@ -595,7 +644,14 @@ public static partial class MemoryLayoutProjector
                 sourceSlotId,
                 contributingOperations,
                 [],
-                canonicalRegion.RegionGroup);
+                ResolveLogicalCoverageGroupId(
+                    map,
+                    range,
+                    sourceSlotId,
+                    segmentId,
+                    retainedCompanionSlotId),
+                canonicalRegion.RegionGroup,
+                canonicalRegion.CtrlRamRegionRole);
     }
 
     private static MemoryContentRole ClassifyContent(FirmwareRegion region)
@@ -607,12 +663,14 @@ public static partial class MemoryLayoutProjector
                 FirmwareRegionOwner.Dp => MemoryContentRole.Dp,
                 FirmwareRegionOwner.Tp => MemoryContentRole.Tp,
                 FirmwareRegionOwner.Ldc => MemoryContentRole.Ldc,
+                FirmwareRegionOwner.Customer => MemoryContentRole.CustomerInformation,
                 FirmwareRegionOwner.Reserved => MemoryContentRole.Reserved,
-                _ when region.Kind is FirmwareRegionKind.Reserved or FirmwareRegionKind.Unmapped =>
+                _ when region.Kind == FirmwareRegionKind.Reserved =>
                     MemoryContentRole.Reserved,
+                _ when region.Kind == FirmwareRegionKind.Unmapped =>
+                    MemoryContentRole.Unmapped,
                 FirmwareRegionOwner.System or
                 FirmwareRegionOwner.Register or
-                FirmwareRegionOwner.Customer or
                 FirmwareRegionOwner.Shared or
                 FirmwareRegionOwner.Unknown => MemoryContentRole.General,
                 _ => throw new InvalidOperationException("Unknown canonical firmware-region owner."),
@@ -624,5 +682,6 @@ public static partial class MemoryLayoutProjector
         ByteRange Range,
         MemoryContentRole ContentRole,
         FirmwareRegion? CanonicalRegion,
-        ReplaceRegionGroup RegionGroup);
+        ReplaceRegionGroup RegionGroup,
+        CtrlRamRegionRole CtrlRamRegionRole);
 }

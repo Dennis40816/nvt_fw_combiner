@@ -6,8 +6,7 @@ using CommunityToolkit.Mvvm.Input;
 
 namespace NvtFwCombiner.Presentation.Avalonia.ViewModels;
 
-/// <summary>Fixed-size replace-on-page navigator for large Presentation collections.</summary>
-public sealed class ReportWindowedListViewModel : ObservableObject
+internal sealed class ReportWindowedListViewModel : ObservableObject
 {
     private readonly IReadOnlyList<object> _allItems;
     private readonly ResettableObjectCollection _items = [];
@@ -36,31 +35,22 @@ public sealed class ReportWindowedListViewModel : ObservableObject
         }
     }
 
-    /// <summary>Rows in the current fixed-size window.</summary>
     public ReadOnlyObservableCollection<object> Items { get; }
 
-    /// <summary>Total rows available from the indexed report projection.</summary>
     public int TotalCount => _allItems.Count;
 
-    /// <summary>Rows retained by controls in the current window.</summary>
     public int VisibleCount => Items.Count;
 
-    /// <summary>Zero-based current page.</summary>
     public int PageIndex { get; private set; }
 
-    /// <summary>Number of fixed-size pages.</summary>
     public int PageCount => TotalCount == 0 ? 0 : checked(((TotalCount - 1) / _pageSize) + 1);
 
-    /// <summary>True when a prior fixed-size window exists.</summary>
     public bool HasPreviousPage => PageIndex > 0;
 
-    /// <summary>True when a following fixed-size window exists.</summary>
     public bool HasNextPage => VisibleCount == 0 ? PageCount > 0 : PageIndex + 1 < PageCount;
 
-    /// <summary>True when the complete collection requires more than one fixed-size window.</summary>
     public bool HasMultiplePages => PageCount > 1;
 
-    /// <summary>Localized current-window status.</summary>
     public string PageStatus
     {
         get
@@ -78,16 +68,12 @@ public sealed class ReportWindowedListViewModel : ObservableObject
         }
     }
 
-    /// <summary>Localized previous-window action.</summary>
     public string PreviousPageLabel => _language == ShellLanguage.ChineseTraditional ? "上一頁" : "Previous page";
 
-    /// <summary>Localized next-window action.</summary>
     public string NextPageLabel => _language == ShellLanguage.ChineseTraditional ? "下一頁" : "Next page";
 
-    /// <summary>Shows the prior fixed-size window.</summary>
     public IRelayCommand PreviousPageCommand => _previousPageCommand;
 
-    /// <summary>Shows the following fixed-size window.</summary>
     public IRelayCommand NextPageCommand => _nextPageCommand;
 
     internal static ReportWindowedListViewModel Create<T>(
@@ -104,7 +90,6 @@ public sealed class ReportWindowedListViewModel : ObservableObject
             loadInitialPage);
     }
 
-    /// <summary>Shows the fixed-size page containing one checked collection index.</summary>
     internal void ShowItemAt(int index)
     {
         if ((uint)index >= (uint)TotalCount)

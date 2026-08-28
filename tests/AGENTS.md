@@ -1,6 +1,6 @@
 # Test Instructions
 
-These rules apply to `tests/` and `testdata/`.
+These rules apply to `tests/`; `testdata/` has separate nearest instructions.
 
 - Test names describe behavior and invariant, not implementation method names only.
 - Domain range math needs boundary and property coverage.

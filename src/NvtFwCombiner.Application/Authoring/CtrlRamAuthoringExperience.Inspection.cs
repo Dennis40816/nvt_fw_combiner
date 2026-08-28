@@ -62,44 +62,7 @@ internal sealed partial class CtrlRamAuthoringExperience
             readiness);
     }
 
-    /// <summary>Resolves the exact CtrlRAM Replace authoring catalog for selected paths.</summary>
-    public AuthoringCapabilityCatalogSnapshot? GetAuthoringCatalog(
-        string icId,
-        string number,
-        IReadOnlyDictionary<string, string> slotPaths,
-        ActiveSessionSnapshot? retainedSession = null)
-    {
-        ArgumentNullException.ThrowIfNull(slotPaths);
-        ResolvedCapability? retained = retainedSession?.ExactCapability;
-        if (retainedSession is not null && retained is not null &&
-            StringComparer.Ordinal.Equals(
-                retainedSession.WorkflowId,
-                ExperienceIds.CtrlRamReplace) &&
-            _adapter.IsAcceptedCapability(
-                icId,
-                number,
-                slotPaths,
-                firmwareVersionEdit: null,
-                selectedInputBytes: null,
-                retained,
-                out IReadOnlyDictionary<string, string> expectedPaths,
-                out _) &&
-            HasExpectedPaths(retainedSession, expectedPaths))
-        {
-            return AuthoringCapabilityCatalogSnapshot.FromResolvedCapability(retained);
-        }
-
-        CtrlRamAuthoringCompilation compilation = _adapter.Resolve(
-            icId,
-            number,
-            slotPaths,
-            firmwareVersionEdit: null);
-        return compilation.Capability is { } capability
-            ? AuthoringCapabilityCatalogSnapshot.FromResolvedCapability(capability)
-            : null;
-    }
-
-    internal FirmwareInspectionStatusBatch InspectInputSlots(
+    public FirmwareInspectionStatusBatch InspectInputSlots(
         string icId,
         IReadOnlyList<FirmwareInspectionSnapshotInput> inputs,
         Func<string, byte[]?> readFirmwareImage)
@@ -160,7 +123,25 @@ internal sealed partial class CtrlRamAuthoringExperience
             capability = compilation.Capability;
             if (capability is null)
             {
-                return FirmwareInspectionStatusBatch.Empty;
+                CompositionIssue[] remainingIssues =
+                [
+                    .. compilation.Issues.Where(issue => selected.Length > 1 ||
+                        issue.Code != CompositionPlanningIssueCodes.ReplaceCtrlRamNoRegionInput),
+                ];
+                bool baseOnlyDiscovery = selected.Length == 1 &&
+                    selectedInputBytes.ContainsKey(CompositionSlotIds.ReplaceBase) &&
+                    compilation.Issues.Count == 1 &&
+                    compilation.Issues[0].Code ==
+                        CompositionPlanningIssueCodes.ReplaceCtrlRamNoRegionInput;
+                return FirmwareInspectionStatusBatch.Empty with
+                {
+                    Issues = remainingIssues,
+                    CtrlRamBaseDiscovery = baseOnlyDiscovery
+                        ? new CtrlRamBaseDiscoveryResult(
+                            reference.InspectionId,
+                            CtrlRamBaseDiscoveryReadiness.Inspected)
+                        : null,
+                };
             }
         }
 

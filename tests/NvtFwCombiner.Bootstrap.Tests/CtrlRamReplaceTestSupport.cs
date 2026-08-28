@@ -4,6 +4,7 @@ using NvtFwCombiner.Application.ExternalTools;
 using NvtFwCombiner.Application.Metadata;
 using NvtFwCombiner.Application.Ports;
 using NvtFwCombiner.Domain.Composition;
+using NvtFwCombiner.Infrastructure.ExternalTools;
 
 namespace NvtFwCombiner.Bootstrap.Tests;
 
@@ -36,12 +37,13 @@ internal static class CtrlRamReplaceTestSupport
         (ActiveSessionSnapshot? snapshot, IReadOnlyList<CompositionIssue> issues) =
             Prepare(canonical, icId, number, slotPaths, ctrlRamFirmwareVersionEdit);
         ActiveSessionSnapshot accepted = RequireSnapshot(snapshot, issues);
-        ExternalProcessorGenerationLease runtime = ExternalProcessorFactory.AcquireCurrent();
+        ExternalProcessorEnvironmentLease runtime =
+            ExternalProcessorEnvironmentTestSupport.AcquireCurrent();
         CapabilityActionReadinessSnapshot readiness = await ResolveReadinessAsync(
             accepted,
             runtime.ReadinessProvider,
             runtime.Generation,
-            ExternalProcessorFactory.IsCurrent,
+            ExternalProcessorEnvironmentTestSupport.IsCurrent,
             cancellationToken);
         ICompositionExecution adapter = CompositionExecutionTestSupport.Create(canonical);
         return await adapter.ExecuteAsync(
@@ -70,6 +72,27 @@ internal static class CtrlRamReplaceTestSupport
         (ActiveSessionSnapshot? snapshot, IReadOnlyList<CompositionIssue> issues) =
             Prepare(canonical, icId, number, slotPaths, firmwareVersionEdit);
         ActiveSessionSnapshot accepted = RequireSnapshot(snapshot, issues);
+        return await ExecuteAcceptedWithProcessorAsync(
+                canonical,
+                accepted,
+                slotPaths,
+                build,
+                outputPath,
+                externalProcessor,
+                cancellationToken)
+            .ConfigureAwait(false);
+    }
+
+    internal static async ValueTask<CompositionRunResult> ExecuteAcceptedWithProcessorAsync(
+        CanonicalTestContext canonical,
+        ActiveSessionSnapshot accepted,
+        IReadOnlyDictionary<string, string> slotPaths,
+        bool build,
+        string? outputPath,
+        IExternalProcessor? externalProcessor,
+        CancellationToken cancellationToken,
+        CompositionOutputBundleIntent? outputBundle = null)
+    {
         CapabilityActionReadinessSnapshot readiness = await ResolveReadinessAsync(
             accepted,
             ReadyRuntimeDependencyReadinessProvider.Instance,
@@ -88,7 +111,8 @@ internal static class CtrlRamReplaceTestSupport
                     slotPaths,
                     build,
                     outputPath: outputPath,
-                    actionReadiness: readiness),
+                    actionReadiness: readiness,
+                    outputBundle: outputBundle),
                 new CompositionRunProgressFeed(),
                 cancellationToken)
             .ConfigureAwait(false);

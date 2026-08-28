@@ -21,6 +21,7 @@
     <ResourceDictionary>
       <ResourceDictionary.MergedDictionaries>
         <ResourceInclude Source="avares://NvtFwCombiner.Presentation.Avalonia/Resources/MainWindowSharedTemplates.axaml" />
+        <ResourceInclude Source="avares://NvtFwCombiner.Presentation.Avalonia/Resources/SettingsVersionPageTemplate.axaml" />
         <ResourceInclude Source="avares://NvtFwCombiner.Presentation.Avalonia/Resources/MainWindowPageTemplates.axaml" />
         <ResourceInclude Source="avares://NvtFwCombiner.Presentation.Avalonia/Resources/MainWindowWorkflowTemplates.axaml" />
         <ResourceInclude Source="avares://NvtFwCombiner.Presentation.Avalonia/Resources/MainWindowShellPanels.axaml" />
@@ -68,25 +69,19 @@
               Classes="nav"
               Command="{Binding ShowHomeCommand}"
               IsChecked="{Binding IsHomeVisible, Mode=OneWay}">
-            <TextBlock Foreground="{DynamicResource NfcTextBrush}" Text="{Binding Text.HomeLabel}" />
-          </ToggleButton>
-          <ToggleButton
-              Classes="nav"
-              Command="{Binding ShowSettingsCommand}"
-              IsChecked="{Binding IsSettingsVisible, Mode=OneWay}">
-            <TextBlock Foreground="{DynamicResource NfcTextBrush}" Text="{Binding SettingsPreview.Title}" />
+            <TextBlock Text="{Binding Text.HomeLabel}" />
           </ToggleButton>
           <ToggleButton
               Classes="nav"
               Command="{Binding ShowReplaceCommand}"
               IsChecked="{Binding IsReplaceVisible, Mode=OneWay}">
-            <TextBlock Foreground="{DynamicResource NfcTextBrush}" Text="{Binding Replace.ReplacePreview.Title}" />
+            <TextBlock Text="{Binding Replace.ReplacePreview.Title}" />
           </ToggleButton>
           <ToggleButton
               Classes="nav"
               Command="{Binding ShowMergeCommand}"
               IsChecked="{Binding IsMergeVisible, Mode=OneWay}">
-            <TextBlock Foreground="{DynamicResource NfcTextBrush}" Text="{Binding Merge.MergePreview.Title}" />
+            <TextBlock Text="{Binding Merge.MergePreview.Title}" />
           </ToggleButton>
         </StackPanel>
 
@@ -96,7 +91,16 @@
             Orientation="Horizontal"
             Spacing="{DynamicResource NfcSpace8}">
           <Button
-              Classes="secondary"
+              x:Name="SettingsUtilityButton"
+              Classes="semanticAction secondary"
+              AutomationProperties.Name="{Binding SettingsPreview.Title}" Command="{Binding OpenSettingsCommand}" ToolTip.Tip="{Binding SettingsPreview.Subtitle}">
+            <StackPanel Orientation="Horizontal" Spacing="7">
+              <TextBlock VerticalAlignment="Center" FontSize="16" Text="⚙" />
+              <TextBlock VerticalAlignment="Center" FontSize="{DynamicResource NfcFontSize12}" FontWeight="SemiBold" Text="{Binding SettingsPreview.Title}" />
+            </StackPanel>
+          </Button>
+          <Button
+              Classes="semanticAction secondary"
               Click="LoadReportJsonButton_OnClick"
               ToolTip.Tip="{Binding Text.LoadJsonTooltip}">
             <StackPanel Orientation="Horizontal" Spacing="7">
@@ -105,7 +109,7 @@
             </StackPanel>
           </Button>
           <Button
-              Classes="iconButton"
+              Classes="semanticAction iconButton"
               AutomationProperties.LiveSetting="Polite"
               AutomationProperties.Name="{Binding MessageCenter.MessageCenterAccessibleName}"
               Command="{Binding MessageCenter.OpenCommand}"
@@ -138,7 +142,7 @@
       </Grid>
     </Border>
 
-    <ContentControl Grid.Row="1" Content="{Binding}" ContentTemplate="{StaticResource NavigationTrailPanelTemplate}" />
+    <ContentControl Grid.Row="1" Content="{Binding Navigation}" ContentTemplate="{StaticResource NavigationTrailPanelTemplate}" />
 
     <ContentControl
         x:Name="DeviceContextHost"
@@ -146,19 +150,13 @@
         ContentTemplate="{StaticResource DeviceContextPanelTemplate}"
         IsVisible="{Binding IsDeviceContextVisible}" />
 
-    <ScrollViewer Grid.Row="3">
+    <ScrollViewer Grid.Row="3" Classes="contentScrollSurface">
       <Grid Margin="28,24,28,132" RowDefinitions="*" RowSpacing="0">
         <ContentControl
             x:Name="HomePageHost"
             Grid.Row="0"
             IsVisible="{Binding IsHomeVisible}"
             ContentTemplate="{StaticResource HomePageTemplate}" />
-
-        <ContentControl
-            x:Name="SettingsPageHost"
-            Grid.Row="0"
-            IsVisible="{Binding IsSettingsVisible}"
-            ContentTemplate="{StaticResource SettingsPageTemplate}" />
 
         <ContentControl
             x:Name="HexEditorPageHost"
@@ -174,10 +172,13 @@
             <DataTemplate DataType="vm:ReplacePresentationViewModel">
               <Grid ColumnDefinitions="1.15*,430" ColumnSpacing="18">
           <StackPanel Spacing="{DynamicResource NfcSpace16}">
-            <Grid ColumnDefinitions="*,Auto" ColumnSpacing="{DynamicResource NfcSpace16}">
+            <Grid
+                x:Name="ReplacePageHeader"
+                ColumnDefinitions="*,Auto"
+                ColumnSpacing="{DynamicResource NfcSpace16}">
               <StackPanel Spacing="{DynamicResource NfcSpace4}">
                 <TextBlock Classes="pageTitle" Text="{Binding ReplacePreview.Title}" />
-                <TextBlock Classes="pageSubtitle" Text="{Binding ReplacePreview.Subtitle}" />
+                <TextBlock Classes="pageSubtitle" Text="{Binding ReplacePreview.Subtitle}" TextWrapping="Wrap" />
               </StackPanel>
               <Grid
                   Grid.Column="1"
@@ -239,6 +240,7 @@
 
           <ContentControl
               Grid.Column="1"
+              VerticalAlignment="Top"
               Content="{Binding}"
               ContentTemplate="{StaticResource ReplaceOutputLayoutPanelTemplate}" />
               </Grid>
@@ -254,12 +256,18 @@
             <DataTemplate DataType="vm:MergePresentationViewModel">
               <Grid ColumnDefinitions="1.15*,430" ColumnSpacing="18">
           <StackPanel Spacing="{DynamicResource NfcSpace16}">
-            <Grid ColumnDefinitions="*,Auto" ColumnSpacing="{DynamicResource NfcSpace16}">
+            <Grid
+                x:Name="MergePageHeader"
+                ColumnDefinitions="*,Auto"
+                ColumnSpacing="{DynamicResource NfcSpace16}">
               <StackPanel Spacing="{DynamicResource NfcSpace4}">
                 <TextBlock Classes="pageTitle" Text="{Binding MergePreview.Title}" />
-                <TextBlock Classes="pageSubtitle" Text="{Binding MergePreview.Subtitle}" />
+                <TextBlock Classes="pageSubtitle" Text="{Binding MergePreview.Subtitle}" TextWrapping="Wrap" />
               </StackPanel>
-              <Grid Grid.Column="1" ColumnDefinitions="170" ColumnSpacing="{DynamicResource NfcSpace12}" VerticalAlignment="Center">
+              <Grid
+                  Grid.Column="1"
+                  ColumnDefinitions="170"
+                  VerticalAlignment="Center">
                 <StackPanel Spacing="3" ToolTip.Tip="{Binding Text.MergeModeTooltip}">
                   <TextBlock Classes="fieldLabel" Text="{Binding Text.ModeLabel}" />
                   <ComboBox
@@ -283,6 +291,7 @@
 
           <ContentControl
               Grid.Column="1"
+              VerticalAlignment="Top"
               Content="{Binding}"
               ContentTemplate="{StaticResource MergeOutputLayoutPanelTemplate}" />
               </Grid>
@@ -302,6 +311,18 @@
         IsVisible="{Binding IsCompositionActionRailVisible}"
         Orientation="Vertical"
         Spacing="{DynamicResource NfcSpace8}">
+        <ContentControl
+            Width="310"
+            Padding="12,10"
+            Content="{Binding Merge.Inspection.Loading}"
+            ContentTemplate="{StaticResource ForegroundLoadingStatusTemplate}"
+            IsVisible="{Binding Merge.Inspection.Loading.IsVisible}" />
+        <ContentControl
+            Width="310"
+            Padding="12,10"
+            Content="{Binding Replace.Inspection.Loading}"
+            ContentTemplate="{StaticResource ForegroundLoadingStatusTemplate}"
+            IsVisible="{Binding Replace.Inspection.Loading.IsVisible}" />
         <Button
             Classes="railAction outputRailAction"
             Classes.reducedMotion="{Binding IsReducedMotionEnabled}"
@@ -333,6 +354,7 @@
               Classes.reducedMotion="{Binding IsReducedMotionEnabled}"
               AutomationProperties.HelpText="{Binding Merge.MergeReadinessStatus}"
               AutomationProperties.Name="{Binding Text.BuildActionLabel}"
+              x:Name="MergeBuildButton"
               Click="BuildMergeButton_OnClick"
               IsEnabled="{Binding Merge.CanBuildMerge}">
             <Grid ColumnDefinitions="*,44">
@@ -372,6 +394,7 @@
               Classes.reducedMotion="{Binding IsReducedMotionEnabled}"
               AutomationProperties.HelpText="{Binding Replace.ReplaceReadinessStatus}"
               AutomationProperties.Name="{Binding Text.BuildActionLabel}"
+              x:Name="ReplaceBuildButton"
               Click="BuildReplaceButton_OnClick"
               IsEnabled="{Binding Replace.CanBuildReplace}">
             <Grid ColumnDefinitions="*,44">
@@ -407,6 +430,122 @@
         </Grid>
     </StackPanel>
 
+    <Border
+        x:Name="OptionalPreloadStatusHost"
+        Grid.Row="4"
+        Margin="28,0,28,12"
+        Padding="14,10"
+        Background="{DynamicResource NfcSurfaceBrush}"
+        BorderBrush="{DynamicResource NfcBorderSoftBrush}"
+        BorderThickness="2"
+        CornerRadius="{DynamicResource NfcCompactCornerRadius}"
+        IsVisible="{ReflectionBinding HasOptionalStatus}">
+            <Expander
+                x:Name="OptionalPreloadFocusTarget"
+                AutomationProperties.LiveSetting="Polite"
+                AutomationProperties.Name="{ReflectionBinding AccessibleStatus}"
+                Focusable="True"
+                KeyboardNavigation.IsTabStop="False">
+              <Expander.Header>
+                <Grid
+                    ColumnDefinitions="Auto,Auto,*,Auto,Auto"
+                    ColumnSpacing="{DynamicResource NfcSpace8}">
+                  <TextBlock
+                      VerticalAlignment="Center"
+                      FontWeight="SemiBold"
+                      Foreground="{DynamicResource NfcTextStrongBrush}"
+                      Text="{ReflectionBinding $parent[Window].DataContext.Text.PreloadStatusTitle}" />
+                  <TextBlock
+                      Grid.Column="1"
+                      VerticalAlignment="Center"
+                      Foreground="{DynamicResource NfcTextMutedBrush}"
+                      Text="{ReflectionBinding SummaryStage.PositionLabel}" />
+                  <StackPanel
+                      Grid.Column="2"
+                      VerticalAlignment="Center"
+                      Orientation="Horizontal"
+                      Spacing="{DynamicResource NfcSpace4}">
+                    <TextBlock Foreground="{DynamicResource NfcTextBrush}" Text="{ReflectionBinding SummaryStage.Title}" />
+                    <TextBlock Foreground="{DynamicResource NfcTextMutedBrush}" Text="·" />
+                    <TextBlock Foreground="{DynamicResource NfcTextMutedBrush}" Text="{ReflectionBinding SummaryStage.Detail}" />
+                  </StackPanel>
+                  <TextBlock
+                      Grid.Column="3"
+                      MinWidth="44"
+                      VerticalAlignment="Center"
+                      FontWeight="SemiBold"
+                      Foreground="{DynamicResource NfcAccentStrongBrush}"
+                      IsVisible="{ReflectionBinding SummaryStage.HasProgress}"
+                      Text="{ReflectionBinding SummaryStage.ProgressLabel}"
+                      TextAlignment="Right" />
+                  <Button
+                      Grid.Column="4"
+                      Classes="semanticAction secondary"
+                      Click="OptionalPreloadCancelButton_OnClick"
+                      Content="{ReflectionBinding $parent[Window].DataContext.Text.CancelPreloadLabel}"
+                      IsVisible="{ReflectionBinding CanCancelOptionals}" />
+                </Grid>
+              </Expander.Header>
+              <ItemsControl Margin="0,10,0,0" ItemsSource="{ReflectionBinding Stages}">
+                <ItemsControl.ItemTemplate>
+                  <DataTemplate>
+                    <Grid Margin="0,3" ColumnDefinitions="44,180,*,90,Auto,Auto" ColumnSpacing="{DynamicResource NfcSpace8}">
+                      <TextBlock
+                          VerticalAlignment="Center"
+                          Foreground="{DynamicResource NfcTextMutedBrush}"
+                          Text="{ReflectionBinding PositionLabel}" />
+                      <TextBlock
+                          Grid.Column="1"
+                          VerticalAlignment="Center"
+                          FontWeight="SemiBold"
+                          Foreground="{DynamicResource NfcTextBrush}"
+                          Text="{ReflectionBinding Title}" />
+                      <StackPanel Grid.Column="2">
+                        <TextBlock Foreground="{DynamicResource NfcTextMutedBrush}" Text="{ReflectionBinding Detail}" />
+                        <TextBlock
+                            FontSize="{DynamicResource NfcFontSize11}"
+                            Foreground="{DynamicResource NfcDangerTextBrush}"
+                            IsVisible="{ReflectionBinding HasDiagnostic}"
+                            Text="{ReflectionBinding CurrentAttempt.Diagnostic}"
+                            TextTrimming="CharacterEllipsis" />
+                      </StackPanel>
+                      <StackPanel Grid.Column="3" Spacing="{DynamicResource NfcSpace2}">
+                        <ProgressBar
+                            Height="4"
+                            Maximum="1"
+                            IsIndeterminate="{ReflectionBinding IsIndeterminate}"
+                            IsVisible="{ReflectionBinding IsRunning}"
+                            Value="{ReflectionBinding Progress}" />
+                        <TextBlock
+                            FontSize="{DynamicResource NfcFontSize11}"
+                            Foreground="{DynamicResource NfcTextMutedBrush}"
+                            IsVisible="{ReflectionBinding HasWork}"
+                            Text="{ReflectionBinding WorkLabel}" />
+                      </StackPanel>
+                      <Button
+                          Grid.Column="4"
+                          Classes="semanticAction secondary"
+                          AutomationProperties.Name="{ReflectionBinding RetryAccessibleLabel}"
+                          Click="OptionalPreloadRetryButton_OnClick"
+                          Content="{ReflectionBinding $parent[Window].DataContext.Text.RetryLabel}"
+                          IsVisible="{ReflectionBinding CanRetry}"
+                          Tag="{ReflectionBinding Id}" />
+                      <Button
+                          Grid.Column="5"
+                          Classes="semanticAction secondary"
+                          AutomationProperties.Name="{ReflectionBinding SkipAccessibleLabel}"
+                          Click="OptionalPreloadSkipButton_OnClick"
+                          Content="{ReflectionBinding $parent[Window].DataContext.Text.SkipPreloadLabel}"
+                          IsVisible="{ReflectionBinding CanSkip}"
+                          Tag="{ReflectionBinding Id}" />
+                    </Grid>
+                  </DataTemplate>
+                </ItemsControl.ItemTemplate>
+              </ItemsControl>
+            </Expander>
+    </Border>
+    </Grid>
+
     <ContentControl
         x:Name="ReportToastHost"
         Grid.Row="1"
@@ -416,34 +555,23 @@
         Opacity="{Binding Reports.ReportToastOpacity}" />
 
     <ContentControl
+        x:Name="OutputDeliveryConfirmationModalHost"
+        Grid.RowSpan="5"
+        IsVisible="{Binding OutputDelivery.IsOpen}">
+      <ContentControl.ContentTemplate>
+        <DataTemplate DataType="vm:OutputDeliveryConfirmationViewModel">
+          <views:OutputDeliveryConfirmationModal IsOpen="{Binding IsOpen}" />
+        </DataTemplate>
+      </ContentControl.ContentTemplate>
+    </ContentControl>
+
+    <ContentControl
         x:Name="ReplaceSelectionModalHost"
         Grid.RowSpan="5"
         IsVisible="{Binding Replace.IsReplaceSelectionModalOpen}">
       <ContentControl.ContentTemplate>
         <DataTemplate DataType="vm:ReplacePresentationViewModel">
           <views:ReplaceSelectionModal />
-        </DataTemplate>
-      </ContentControl.ContentTemplate>
-    </ContentControl>
-
-    <ContentControl
-        x:Name="CtrlRamFirmwareVersionModalHost"
-        Grid.RowSpan="5"
-        IsVisible="{Binding Replace.IsCtrlRamFirmwareVersionModalOpen}">
-      <ContentControl.ContentTemplate>
-        <DataTemplate DataType="vm:ReplacePresentationViewModel">
-          <views:CtrlRamFirmwareVersionModal />
-        </DataTemplate>
-      </ContentControl.ContentTemplate>
-    </ContentControl>
-
-    <ContentControl
-        x:Name="AbAFlashCodeDeliveryPromptModalHost"
-        Grid.RowSpan="5"
-        IsVisible="{Binding Merge.IsAbAFlashCodeDeliveryPromptOpen}">
-      <ContentControl.ContentTemplate>
-        <DataTemplate DataType="vm:MergePresentationViewModel">
-          <views:AbAFlashCodeDeliveryPromptModal />
         </DataTemplate>
       </ContentControl.ContentTemplate>
     </ContentControl>
@@ -484,10 +612,19 @@
     <ContentControl
         x:Name="NavigationClearConfirmationModalHost"
         Grid.RowSpan="5"
-        IsVisible="{Binding IsNavigationClearConfirmationOpen}">
+        IsVisible="{Binding Navigation.IsNavigationClearConfirmationOpen}">
       <ContentControl.ContentTemplate>
-        <DataTemplate DataType="vm:MainWindowViewModel">
+        <DataTemplate DataType="vm:ShellNavigationViewModel">
           <views:NavigationClearConfirmationModal />
+        </DataTemplate>
+      </ContentControl.ContentTemplate>
+    </ContentControl>
+
+    <ContentControl x:Name="AbSameTpConflictModalHost" Grid.RowSpan="5"
+        IsVisible="{Binding Merge.IsAbSameTpConflictPromptOpen}">
+      <ContentControl.ContentTemplate>
+        <DataTemplate DataType="vm:MergePresentationViewModel">
+          <views:AbSameTpConflictModal />
         </DataTemplate>
       </ContentControl.ContentTemplate>
     </ContentControl>
@@ -540,7 +677,14 @@
         </DataTemplate>
       </ContentControl.ContentTemplate>
     </ContentControl>
-    </Grid>
+
+    <ContentControl x:Name="SettingsModalHost" IsHitTestVisible="{Binding IsSettingsModalOpen}" IsVisible="{Binding IsSettingsModalOpen}">
+      <ContentControl.ContentTemplate>
+        <DataTemplate DataType="vm:MainWindowViewModel">
+          <views:SettingsModal IsOpen="{Binding IsSettingsModalOpen}" />
+        </DataTemplate>
+      </ContentControl.ContentTemplate>
+    </ContentControl>
 
     <ContentControl
         x:Name="CatalogLoadingSurfaceHost"
@@ -548,7 +692,7 @@
         IsVisible="{ReflectionBinding IsVisible}">
       <ContentControl.ContentTemplate>
         <DataTemplate DataType="vm:ForegroundLoadingState">
-          <views:ForegroundLoadingSurface RetryRequested="CatalogLoadingSurface_OnRetryRequested" />
+          <views:ForegroundLoadingSurface />
         </DataTemplate>
       </ContentControl.ContentTemplate>
     </ContentControl>

@@ -1,0 +1,59 @@
+<UserControl
+    x:Class="NvtFwCombiner.Presentation.Avalonia.Views.SettingsModal"
+    xmlns="https://github.com/avaloniaui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:vm="using:NvtFwCombiner.Presentation.Avalonia.ViewModels"
+    x:DataType="vm:MainWindowViewModel"
+    AutomationProperties.Name="{Binding SettingsPreview.Title}"
+    Focusable="True"
+    KeyboardNavigation.TabNavigation="Cycle"
+    KeyDown="SettingsModal_OnKeyDown"
+    Background="{DynamicResource NfcModalScrimBrush}">
+  <Border
+      x:Name="SettingsSurface"
+      Classes="modalSurface"
+      Margin="14,10,14,12"
+      Padding="0"
+      HorizontalAlignment="Stretch"
+      VerticalAlignment="Stretch">
+    <Grid RowDefinitions="60,*">
+      <Grid
+          x:Name="SettingsHeader"
+          Margin="20,0,14,0"
+          ColumnDefinitions="22,*,Auto"
+          ColumnSpacing="{DynamicResource NfcSpace16}">
+        <Path
+            Width="22"
+            Height="22"
+            VerticalAlignment="Center"
+            Data="M11 2L13 3L15 2L18 5L17 7L18 9V13L17 15L18 17L15 20L13 19L11 20L8 19L6 20L3 17L4 15L3 13V9L4 7L3 5L6 2L8 3L11 2Z M11 7A4 4 0 1 0 11 15A4 4 0 1 0 11 7Z"
+            Fill="{DynamicResource NfcAccentBrush}"
+            Stretch="Uniform" />
+        <TextBlock
+            Grid.Column="1"
+            VerticalAlignment="Center"
+            FontSize="22"
+            FontWeight="SemiBold"
+            Foreground="{DynamicResource NfcTextStrongBrush}"
+            Text="{Binding SettingsPreview.Title}" />
+        <Button
+            x:Name="CloseButton"
+            Grid.Column="2"
+            Classes="semanticAction closeButton"
+            AutomationProperties.Name="{Binding Text.CloseLabel}"
+            Command="{Binding CloseSettingsCommand}"
+            ToolTip.Tip="{Binding Text.CloseLabel}">
+          <Path Width="16" Height="16" Data="{StaticResource NfcCloseIconGeometry}" Stretch="Uniform" />
+        </Button>
+      </Grid>
+
+      <Border
+          x:Name="SettingsBody"
+          Grid.Row="1"
+          Margin="12,0,12,14"
+          Classes="settingsBodySurface">
+        <ContentControl Content="{Binding}" ContentTemplate="{DynamicResource SettingsModalContentTemplate}" />
+      </Border>
+    </Grid>
+  </Border>
+</UserControl>

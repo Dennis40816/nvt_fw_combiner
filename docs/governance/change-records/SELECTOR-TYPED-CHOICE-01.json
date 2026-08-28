@@ -1,0 +1,37 @@
+{
+  "schemaVersion": 2,
+  "taskId": "SELECTOR-TYPED-CHOICE-01",
+  "capability": "Publish General Replace IC-count choices once from typed canonical topology facts without reverse-parsing route identity strings",
+  "integrationBase": "08c9b4bb20813dfe2660a8bbc504d34d8f9d6d8a",
+  "risk": "R2",
+  "kind": "refactor",
+  "state": "final-complete",
+  "mutablePaths": [
+    "src/NvtFwCombiner.Application/Capabilities/CanonicalCapabilityCatalogSource.cs",
+    "src/NvtFwCombiner.Application/Capabilities/CanonicalDynamicCapabilityModels.cs",
+    "src/NvtFwCombiner.Application/Capabilities/CapabilitySelectorPublication.cs",
+    "src/NvtFwCombiner.Application/Capabilities/WorkflowIcNumberChoiceProjection.cs",
+    "src/NvtFwCombiner.Infrastructure/Composition/CanonicalDynamicRouteInventory.cs"
+  ],
+  "implementationOwner": "root-implementer",
+  "searchEvidence": [
+    "rg located the route-axis formatter in CanonicalDynamicRouteInventory and the duplicate reverse parser in WorkflowIcNumberChoiceProjection; no other General Replace workflow-scoped choice producer exists.",
+    "The fixed-head architecture review found that Application reconstructed TopologyRequirement and IcNumberInputMode semantics from IcCountVariant strings instead of transporting the canonical compiler/disclosure result."
+  ],
+  "semanticOwner": "Infrastructure canonical route inventory projects typed TopologyRequirement and IcNumberInputMode into one CapabilityNumberChoice; Application catalog and selector publication transport and validate that typed fact",
+  "terminalContract": "Every authorable General Replace dynamic route carries exactly one typed workflow-scoped CapabilityNumberChoice produced from its admitted map topology and input mode. Application never parses IcCountVariant to choose a token, label, topology, or input mode. Static and dynamic selector validation consume the same typed choice, and unsupported or inconsistent typed topology fails catalog admission.",
+  "disposition": "extend-owner",
+  "designReview": {
+    "reviewer": "formal_architecture_review",
+    "outcome": "findings-incorporated",
+    "evidence": "Independent exact-head review of 08c9b4bb..7c477c65 identified the reverse parser as P2 duplicate semantic ownership and required the canonical profile/compiler/disclosure boundary to publish one typed workflow-scoped choice consumed unchanged by Application."
+  },
+  "implementationHead": "8ee021c0f23ba0d7bf6cba5d65cf7e1a2bfe9c53",
+  "reviewedHead": "8ee021c0f23ba0d7bf6cba5d65cf7e1a2bfe9c53",
+  "pathStateDigest": "c30153fe7051670de0cf59692ef342d79e92e6b918847f424a6d956553dafc33",
+  "finalReview": {
+    "reviewer": "final_architecture_review",
+    "outcome": "approved",
+    "evidence": "Independent exact-head architecture and Polytail review of 8ee021c0f23ba0d7bf6cba5d65cf7e1a2bfe9c53 verified that the corrected immutable admission owns all five selector semantic paths exactly once, RELEASE-100-FINAL-01 owns none of them, canonical typed topology/IC-number choice is transported without reverse parsing, and the rebuilt production trees are byte-identical to the previously reviewed candidate."
+  }
+}

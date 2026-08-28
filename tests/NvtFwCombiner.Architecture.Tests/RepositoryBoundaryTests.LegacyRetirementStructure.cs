@@ -70,6 +70,7 @@ public sealed partial class RepositoryBoundaryTests
         AssertNoProductionText("SetStartupOptions");
         AssertNoProductionText("ResolveMergeOutputFileNameForSaveAsync");
         AssertNoProductionText("TryCreateAbAFlashCodeDeliveryPlanAsync");
+        AssertNoProductionText("AbAFlashCodeDeliveryPrompt");
         Assert.DoesNotContain("FindContaining", reportHexDiffRanges, StringComparison.Ordinal);
         AssertNoProductionText("TryGetBuiltInV2StandardMergeContainerPolicy");
         AssertNoProductionText("TryGetDefaultProfile");

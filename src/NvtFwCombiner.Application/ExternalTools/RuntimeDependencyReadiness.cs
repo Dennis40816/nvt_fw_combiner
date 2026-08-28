@@ -222,7 +222,7 @@ public sealed class RuntimeDependencyReadinessSnapshot
         ArgumentException.ThrowIfNullOrWhiteSpace(routeId);
         ArgumentException.ThrowIfNullOrWhiteSpace(capabilityFingerprint);
         ArgumentException.ThrowIfNullOrWhiteSpace(compilationFingerprint);
-        ArgumentOutOfRangeException.ThrowIfLessThan(generation, 1);
+        ArgumentOutOfRangeException.ThrowIfNegative(generation);
         ArgumentNullException.ThrowIfNull(entries);
         if (!CapabilityRouteIdentity.IsSha256(capabilityFingerprint))
         {

@@ -1,0 +1,101 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://nvt.local/contracts/v0916-parity-comparison-v1.schema.json",
+  "title": "Payload-free provisional v0.9.16 parity comparison",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schemaVersion", "planSha256", "policySha256", "comparator", "candidateAuthority", "baselineExecutor", "baselineReleaseReference", "candidatePackage", "candidateBuild", "routeEvidenceSha256", "receiptSetSha256", "executedAtUtc", "routes", "verdict"],
+  "properties": {
+    "schemaVersion": { "const": "1.0" },
+    "planSha256": { "$ref": "v0916-parity-evidence-v1.schema.json#/$defs/sha256" },
+    "policySha256": { "$ref": "v0916-parity-evidence-v1.schema.json#/$defs/sha256" },
+    "comparator": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["contractVersion", "scriptSha256"],
+      "properties": {
+        "contractVersion": { "const": "1.0" },
+        "scriptSha256": { "$ref": "v0916-parity-evidence-v1.schema.json#/$defs/sha256" }
+      }
+    },
+    "candidateAuthority": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["implementationHead", "implementationTree", "authorityTrees", "policySha256", "sourceExecutorContract", "authorityTransfer"],
+      "properties": {
+        "implementationHead": { "$ref": "v0916-parity-evidence-v1.schema.json#/$defs/gitSha" },
+        "implementationTree": { "$ref": "v0916-parity-evidence-v1.schema.json#/$defs/gitSha" },
+        "authorityTrees": { "$ref": "v0916-parity-evidence-v1.schema.json#/$defs/authorityTrees" },
+        "policySha256": { "$ref": "v0916-parity-evidence-v1.schema.json#/$defs/sha256" },
+        "sourceExecutorContract": { "$ref": "v0916-parity-evidence-v1.schema.json#/$defs/artifact" },
+        "authorityTransfer": { "$ref": "v0916-parity-evidence-v1.schema.json#/$defs/authorityTransfer" }
+      }
+    },
+    "baselineExecutor": { "$ref": "v0916-parity-evidence-v1.schema.json#/$defs/baselineExecutor" },
+    "baselineReleaseReference": { "$ref": "v0916-parity-evidence-v1.schema.json#/$defs/releaseReference" },
+    "candidatePackage": {
+      "allOf": [
+        { "$ref": "v0916-parity-evidence-v1.schema.json#/$defs/package" },
+        {
+          "type": "object",
+          "required": ["version", "sourceCommit"],
+          "properties": {
+            "version": { "type": "string", "minLength": 1 },
+            "sourceCommit": { "$ref": "v0916-parity-evidence-v1.schema.json#/$defs/gitSha" }
+          }
+        }
+      ]
+    },
+    "candidateBuild": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["repository", "workflowPath", "workflowRef", "workflowCommitSha", "workflowBlobSha", "workflowRawSha256", "workflowSemanticContractSha256", "runId", "artifactId", "artifactName", "artifactDigest", "artifactWorkflowRun", "candidateManifest", "candidateSourceExecutorIdentitySha256", "provenanceSubjectsSha256", "candidateVerifierSha256", "packageVerifierSha256"],
+      "properties": {
+        "repository": { "const": "Dennis40816/nvt_fw_combiner" },
+        "workflowPath": { "const": ".github/workflows/release.yml" },
+        "workflowRef": { "const": "refs/heads/main" },
+        "workflowCommitSha": { "$ref": "v0916-parity-evidence-v1.schema.json#/$defs/gitSha" },
+        "workflowBlobSha": { "$ref": "v0916-parity-evidence-v1.schema.json#/$defs/gitSha" },
+        "workflowRawSha256": { "$ref": "v0916-parity-evidence-v1.schema.json#/$defs/sha256" },
+          "workflowSemanticContractSha256": { "const": "076a13639d94e8a326d4124fb98c959dbe3a306fafb8cc332f4f595d6d50d515" },
+        "runId": { "type": "integer", "minimum": 1 },
+        "artifactId": { "type": "integer", "minimum": 1 },
+        "artifactName": { "type": "string", "pattern": "^stable-candidate-[1-9][0-9]*-[0-9a-f]{40}$" },
+        "artifactDigest": { "$ref": "v0916-parity-evidence-v1.schema.json#/$defs/sha256Digest" },
+        "artifactWorkflowRun": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["id", "headSha", "headBranch", "repository", "repositoryId", "headRepositoryId"],
+          "properties": {
+            "id": { "type": "integer", "minimum": 1 },
+            "headSha": { "$ref": "v0916-parity-evidence-v1.schema.json#/$defs/gitSha" },
+            "headBranch": { "const": "main" },
+            "repository": { "const": "Dennis40816/nvt_fw_combiner" },
+            "repositoryId": { "type": "integer", "minimum": 1 },
+            "headRepositoryId": { "type": "integer", "minimum": 1 }
+          }
+        },
+        "candidateManifest": { "$ref": "v0916-parity-evidence-v1.schema.json#/$defs/artifact" },
+        "candidateSourceExecutorIdentitySha256": { "$ref": "v0916-parity-evidence-v1.schema.json#/$defs/sha256" },
+        "provenanceSubjectsSha256": { "$ref": "v0916-parity-evidence-v1.schema.json#/$defs/sha256" },
+        "candidateVerifierSha256": { "$ref": "v0916-parity-evidence-v1.schema.json#/$defs/sha256" },
+        "packageVerifierSha256": { "$ref": "v0916-parity-evidence-v1.schema.json#/$defs/sha256" }
+      }
+    },
+    "routeEvidenceSha256": { "$ref": "v0916-parity-evidence-v1.schema.json#/$defs/sha256" },
+    "receiptSetSha256": { "$ref": "v0916-parity-evidence-v1.schema.json#/$defs/sha256" },
+    "executedAtUtc": { "$ref": "v0916-parity-evidence-v1.schema.json#/$defs/canonicalUtc" },
+    "routes": {
+      "type": "array",
+      "minItems": 64,
+      "maxItems": 64,
+      "items": {
+        "oneOf": [
+          { "$ref": "v0916-parity-evidence-v1.schema.json#/$defs/exactEvidence" },
+          { "$ref": "v0916-parity-evidence-v1.schema.json#/$defs/transitiveEvidence" }
+        ]
+      }
+    },
+    "verdict": { "const": "provisional" }
+  }
+}

@@ -4,7 +4,9 @@ using NvtFwCombiner.Domain.Composition;
 
 namespace NvtFwCombiner.Application.Authoring;
 
-internal sealed class DpReplaceAuthoringExperience : IDpReplaceAuthoring
+internal sealed class DpReplaceAuthoringExperience :
+    IDpReplaceAuthoring,
+    ICompiledInputSlotInspector<FirmwareInspectionStatusBatch>
 {
     private readonly CanonicalCapabilityCompilerAdapter _compiler;
     private readonly ICanonicalCapabilityQuery _catalog;
@@ -25,8 +27,13 @@ internal sealed class DpReplaceAuthoringExperience : IDpReplaceAuthoring
         AuthoringRevision authoringRevision,
         ActiveSessionSnapshot? retainedSession = null)
     {
-        return CreateAuthoringService().ProjectSelection(
-            icId, authoringRevision, selectedSlotIds, acceptedFileStamps, retainedSession);
+        return CreateUnavailableSelection(icId) ??
+            CreateAuthoringService().ProjectSelection(
+                icId,
+                authoringRevision,
+                selectedSlotIds,
+                acceptedFileStamps,
+                retainedSession);
     }
 
     /// <summary>Atomically prepares one exact DP Replace session from already-read immutable inputs.</summary>
@@ -35,11 +42,38 @@ internal sealed class DpReplaceAuthoringExperience : IDpReplaceAuthoring
         string icId,
         IReadOnlyCollection<CompiledAuthoringSelectedInput> inputs)
     {
-        return CreateAuthoringService()
-            .PrepareExactSession(icId, session, inputs);
+        ArgumentNullException.ThrowIfNull(session);
+        return CreateUnavailableSelection(icId) is { } unavailable
+            ? new CompiledAuthoringSessionPreparation(
+                session.CurrentSnapshot,
+                unavailable,
+                Inspection: null,
+                SessionIssue: null)
+            : CreateAuthoringService()
+                .PrepareExactSession(icId, session, inputs);
     }
 
-    internal FirmwareInspectionStatusBatch InspectInputSlots(
+    private CompiledAuthoringSelectionSnapshot? CreateUnavailableSelection(
+        string icId)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(icId);
+        string normalizedIcId = IcIdentifier.Normalize(icId);
+        return _catalog.HasAuthorableCapability(
+                normalizedIcId,
+                ExperienceIds.DpReplace)
+            ? null
+            : new CompiledAuthoringSelectionSnapshot(
+                AuthoringCapabilityCatalogSnapshot.FromCanonical(
+                    _catalog.GetCurrentSnapshot(),
+                    ExperienceIds.DpReplace),
+                [],
+                [],
+                [new CompositionIssue(
+                    CompositionPlanningIssueCodes.ReplaceWorkflowNotSupported,
+                    $"Not available: {normalizedIcId} DP Replace authoring is hidden until the 1.1.0 retirement decision.")]);
+    }
+
+    public FirmwareInspectionStatusBatch InspectInputSlots(
         string icId,
         IReadOnlyList<FirmwareInspectionSnapshotInput> inputs,
         Func<string, byte[]?> readFirmwareImage)

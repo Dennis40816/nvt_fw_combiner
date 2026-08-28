@@ -3,7 +3,7 @@ using NvtFwCombiner.Presentation.Avalonia.HexViewport;
 
 namespace NvtFwCombiner.Presentation.Avalonia.ViewModels;
 
-public sealed partial class ReportReviewViewModel
+internal sealed partial class ReportReviewViewModel
 {
     private static ReportHexDiffRangeViewModel ParseHexDiffRange(
         string reportJson,

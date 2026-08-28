@@ -18,9 +18,7 @@ internal static partial class V2CompositionPlanCompiler
     {
         var operations = new List<CompositionOperation>();
         string? replaceReferenceSourceSpaceId = profile.CompositionKind == CompositionKind.Replace
-            ? ResolveCloneReferenceSourceSpaceId(
-                profile,
-                (CloneProfileInitializer)AssertOutputSpace(profile).Initializer)
+            ? ResolveCloneReferenceSourceSpaceId(profile)
             : null;
         foreach (CompositionOperationDefinition operation in profile.Operations)
         {

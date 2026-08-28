@@ -41,13 +41,30 @@ public static class DynamicCtrlRamReplacementIds
     /// <summary>Formats a CtrlRAM region id into a human-readable report label.</summary>
     public static string FormatRegionDisplayLabel(string regionId)
     {
+        string[] parts = SplitRegionId(regionId);
+        string region = $"{FormatRegionToken(parts[0])} CtrlRAM";
+        string side = FormatSide(parts);
+        return string.IsNullOrWhiteSpace(side) ? region : $"{region} ({side})";
+    }
+
+    /// <summary>Formats the stable CtrlRAM family token without topology decoration.</summary>
+    public static string FormatRegionBaseDisplayLabel(string regionId)
+    {
+        return $"{FormatRegionToken(GetRegionFamilyToken(regionId))} CtrlRAM";
+    }
+
+    /// <summary>Returns the stable uppercase family token from one canonical CtrlRAM region id.</summary>
+    public static string GetRegionFamilyToken(string regionId)
+    {
+        return SplitRegionId(regionId)[0].ToUpperInvariant();
+    }
+
+    private static string[] SplitRegionId(string regionId)
+    {
         ArgumentException.ThrowIfNullOrWhiteSpace(regionId);
         string[] parts = regionId.Split('-', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
         DomainInvariant.Reject(parts.Length == 0, "CtrlRAM region id must include a region token.", nameof(regionId));
-
-        string region = FormatRegionToken(parts[0]);
-        string side = FormatSide(parts);
-        return string.IsNullOrWhiteSpace(side) ? $"{region} CtrlRAM" : $"{region} CtrlRAM ({side})";
+        return parts;
     }
 
     private static string FormatRegionToken(string token)

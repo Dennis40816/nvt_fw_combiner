@@ -210,7 +210,6 @@ public sealed record AuthoringCapabilityRoute
 public sealed class AuthoringCapabilityCatalogSnapshot
 {
     private readonly AuthoringCapabilityRoute[] _routes;
-    private readonly string[] _icChoices;
 
     internal AuthoringCapabilityCatalogSnapshot(
         string workflowId,
@@ -234,7 +233,7 @@ public sealed class AuthoringCapabilityCatalogSnapshot
         }
 
         Array.Sort(_routes, CompareRoutes);
-        _icChoices =
+        string[] icChoices =
         [
             .. _routes.Select(static route => route.Identity.IcId)
                 .Distinct(StringComparer.Ordinal)
@@ -243,7 +242,7 @@ public sealed class AuthoringCapabilityCatalogSnapshot
         WorkflowId = workflowId;
         ResolutionToken = resolutionToken;
         Routes = Array.AsReadOnly(_routes);
-        IcChoices = Array.AsReadOnly(_icChoices);
+        IcChoices = Array.AsReadOnly(icChoices);
     }
 
     /// <summary>Workflow owned by this catalog projection.</summary>

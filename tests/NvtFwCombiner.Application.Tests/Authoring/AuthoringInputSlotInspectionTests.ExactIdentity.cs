@@ -88,6 +88,13 @@ public sealed partial class AuthoringInputSlotInspectionTests
                 AuthoringDerivedResultKind.Validation,
                 "validation-result")).Succeeded);
         Assert.Same(metadata, session.CurrentSnapshot!.MetadataInspection);
+        AuthoringSessionTransitionResult readinessRefresh = session.Activate(prepared.Selection);
+        Assert.True(readinessRefresh.Succeeded);
+        Assert.Same(metadata, readinessRefresh.Snapshot!.MetadataInspection);
+        Assert.True(readinessRefresh.Snapshot.HasCurrentInputInspection);
+        Assert.Same(
+            metadata,
+            AcceptedOutputNamingInspection.Accept(readinessRefresh.Snapshot).Snapshot);
 
         Array.Fill(sourceBytes, (byte)0x00);
         Assert.All(snapshot.InputSlotStatuses, static status =>

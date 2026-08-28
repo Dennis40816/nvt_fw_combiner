@@ -5,9 +5,9 @@ using CommunityToolkit.Mvvm.Input;
 
 namespace NvtFwCombiner.Presentation.Avalonia.ViewModels;
 
-public sealed partial class ReportPresentationViewModel
+internal sealed partial class ReportPresentationViewModel
 {
-    private const int MaxReportHistoryEntries = 12;
+    internal const int MaxReportHistoryEntries = 12;
     private const int ReportHistoryStorageWarningBytes = 1024 * 1024;
     internal const long MaximumReportHistoryStorageBytes = 16L * 1024 * 1024;
     private int _reportHistorySequence;
@@ -15,60 +15,44 @@ public sealed partial class ReportPresentationViewModel
     /// <summary>Gets session-local reports that can be reopened without re-running firmware workflows.</summary>
     public ObservableCollection<ReportHistoryEntryViewModel> ReportHistoryEntries { get; } = [];
 
-    /// <summary>True when the session has at least one report.</summary>
     public bool HasReportHistory => ReportHistoryEntries.Count > 0;
 
-    /// <summary>True when the report history list is empty.</summary>
     public bool IsReportHistoryEmpty => !HasReportHistory;
 
-    /// <summary>Number of reports captured in this UI session.</summary>
     public int ReportHistoryCount => ReportHistoryEntries.Count;
 
-    /// <summary>Compact report history summary.</summary>
     public string ReportHistorySummary => Text.GetReportHistorySummary(ReportHistoryCount);
 
     /// <summary>Total in-memory persisted history payload size.</summary>
     public long ReportHistoryTotalBytes => ReportHistoryEntries.Sum(static entry => entry.StoredByteCount);
 
-    /// <summary>Human-readable local report history storage summary.</summary>
     public string ReportHistoryStorageSummary => Text.GetReportHistoryStorageSummary(FormatByteCount(ReportHistoryTotalBytes));
 
-    /// <summary>True when local report history has crossed the cleanup warning size.</summary>
     public bool HasReportHistoryStorageWarning => ReportHistoryTotalBytes >= ReportHistoryStorageWarningBytes;
 
-    /// <summary>Cleanup warning for oversized local report history.</summary>
     public string ReportHistoryStorageWarning => Text.GetReportHistoryStorageWarning(
         FormatByteCount(ReportHistoryTotalBytes),
         FormatByteCount(ReportHistoryStorageWarningBytes));
 
-    /// <summary>True when the report modal shows the dedicated history view.</summary>
     public bool IsReportHistoryViewOpen { get; private set; }
 
-    /// <summary>True when the report modal shows the current report review.</summary>
     public bool IsReportReviewViewOpen => !IsReportHistoryViewOpen;
 
-    /// <summary>True when a report history view can be opened.</summary>
     public bool CanOpenReportHistory => HasReportHistory;
 
-    /// <summary>True when local report history can be cleared.</summary>
     public bool CanClearReportHistory => HasReportHistory;
 
-    /// <summary>Command that opens the dedicated report history view.</summary>
     public IRelayCommand ShowReportHistoryCommand { get; }
 
-    /// <summary>Command that returns from report history to the current report review.</summary>
     public IRelayCommand CloseReportHistoryCommand { get; }
 
-    /// <summary>Command that clears local report history entries.</summary>
     public IRelayCommand ClearReportHistoryCommand { get; }
 
-    /// <summary>Command that reopens a report history entry.</summary>
     public IRelayCommand<ReportHistoryEntryViewModel> OpenReportHistoryEntryCommand { get; }
 
     /// <summary>Cancellable command used by the UI to reopen a report without blocking the dispatcher.</summary>
     public IAsyncRelayCommand<ReportHistoryEntryViewModel> OpenReportHistoryEntryAsyncCommand { get; }
 
-    /// <summary>Command that removes one local report history entry.</summary>
     public IRelayCommand<ReportHistoryEntryViewModel> RemoveReportHistoryEntryCommand { get; }
 
     /// <summary>Exports persistable report history snapshots, newest first.</summary>
@@ -82,17 +66,8 @@ public sealed partial class ReportPresentationViewModel
         ];
     }
 
-    /// <summary>Restores report history snapshots without showing a toast or re-running firmware workflows.</summary>
-    public void LoadReportHistory(IEnumerable<ReportHistorySnapshot> snapshots)
-    {
-        ArgumentNullException.ThrowIfNull(snapshots);
-        _ = BeginReportProjection();
-
-        ApplyPreparedReportHistory(PrepareReportHistory(snapshots, Text.Language, CancellationToken.None));
-    }
-
     /// <summary>Loads and prepares persisted history away from the dispatcher, unless a newer report wins.</summary>
-    internal async Task<bool> LoadReportHistoryAsync(
+    internal async Task<ReportPublicationResult> LoadReportHistoryAsync(
         Func<CancellationToken, Task<IReadOnlyList<ReportHistorySnapshot>>> loadSnapshots,
         CancellationToken cancellationToken)
     {
@@ -102,7 +77,7 @@ public sealed partial class ReportPresentationViewModel
         cancellationToken.ThrowIfCancellationRequested();
         if (!IsCurrentReportProjection(generation))
         {
-            return false;
+            return new(ReportPublicationOutcome.Superseded);
         }
 
         while (true)
@@ -114,7 +89,7 @@ public sealed partial class ReportPresentationViewModel
             cancellationToken.ThrowIfCancellationRequested();
             if (!IsCurrentReportProjection(generation))
             {
-                return false;
+                return new(ReportPublicationOutcome.Superseded);
             }
 
             if (language != Text.Language)
@@ -123,7 +98,7 @@ public sealed partial class ReportPresentationViewModel
             }
 
             ApplyPreparedReportHistory(prepared);
-            return true;
+            return new(ReportPublicationOutcome.Published);
         }
     }
 
@@ -245,11 +220,11 @@ public sealed partial class ReportPresentationViewModel
     {
         ArgumentNullException.ThrowIfNull(prepared);
 
-        ReportHistoryEntries.Clear();
+        PresentationObserver.Invoke(ReportHistoryEntries.Clear);
         _reportHistorySequence = prepared.Sequence;
         foreach (ReportHistoryEntryViewModel entry in prepared.Entries)
         {
-            ReportHistoryEntries.Add(entry);
+            PresentationObserver.Invoke(() => ReportHistoryEntries.Add(entry));
         }
 
         if (ReportHistoryEntries.Count == 0)
@@ -379,16 +354,15 @@ public sealed partial class ReportPresentationViewModel
             return;
         }
 
-        ReportHistoryEntries.Insert(
-            0,
-            new ReportHistoryEntryViewModel(
-                ++_reportHistorySequence,
-                CreateReportHistorySnapshot(LoadedReport, LoadedReportJson),
-                LoadedReport.ReportJsonUtf8ByteCount));
+        var entry = new ReportHistoryEntryViewModel(
+            ++_reportHistorySequence,
+            CreateReportHistorySnapshot(LoadedReport, LoadedReportJson),
+            LoadedReport.ReportJsonUtf8ByteCount);
+        PresentationObserver.Invoke(() => ReportHistoryEntries.Insert(0, entry));
         while (ReportHistoryEntries.Count > MaxReportHistoryEntries ||
                (ReportHistoryEntries.Count > 1 && ReportHistoryTotalBytes > MaximumReportHistoryStorageBytes))
         {
-            ReportHistoryEntries.RemoveAt(ReportHistoryEntries.Count - 1);
+            PresentationObserver.Invoke(() => ReportHistoryEntries.RemoveAt(ReportHistoryEntries.Count - 1));
         }
 
         NotifyReportHistoryChanged();
@@ -396,21 +370,21 @@ public sealed partial class ReportPresentationViewModel
 
     private void NotifyReportHistoryChanged()
     {
-        OnPropertyChanged(nameof(ReportHistoryEntries));
-        OnPropertyChanged(nameof(HasReportHistory));
-        OnPropertyChanged(nameof(IsReportHistoryEmpty));
-        OnPropertyChanged(nameof(ReportHistoryCount));
-        OnPropertyChanged(nameof(ReportHistorySummary));
-        OnPropertyChanged(nameof(ReportHistoryTotalBytes));
-        OnPropertyChanged(nameof(ReportHistoryStorageSummary));
-        OnPropertyChanged(nameof(HasReportHistoryStorageWarning));
-        OnPropertyChanged(nameof(ReportHistoryStorageWarning));
-        OnPropertyChanged(nameof(CanOpenReportHistory));
-        OnPropertyChanged(nameof(CanClearReportHistory));
-        ShowReportHistoryCommand.NotifyCanExecuteChanged();
-        ClearReportHistoryCommand.NotifyCanExecuteChanged();
-        OpenReportHistoryEntryAsyncCommand.NotifyCanExecuteChanged();
-        RemoveReportHistoryEntryCommand.NotifyCanExecuteChanged();
+        PresentationObserver.Invoke(() => OnPropertyChanged(nameof(ReportHistoryEntries)));
+        PresentationObserver.Invoke(() => OnPropertyChanged(nameof(HasReportHistory)));
+        PresentationObserver.Invoke(() => OnPropertyChanged(nameof(IsReportHistoryEmpty)));
+        PresentationObserver.Invoke(() => OnPropertyChanged(nameof(ReportHistoryCount)));
+        PresentationObserver.Invoke(() => OnPropertyChanged(nameof(ReportHistorySummary)));
+        PresentationObserver.Invoke(() => OnPropertyChanged(nameof(ReportHistoryTotalBytes)));
+        PresentationObserver.Invoke(() => OnPropertyChanged(nameof(ReportHistoryStorageSummary)));
+        PresentationObserver.Invoke(() => OnPropertyChanged(nameof(HasReportHistoryStorageWarning)));
+        PresentationObserver.Invoke(() => OnPropertyChanged(nameof(ReportHistoryStorageWarning)));
+        PresentationObserver.Invoke(() => OnPropertyChanged(nameof(CanOpenReportHistory)));
+        PresentationObserver.Invoke(() => OnPropertyChanged(nameof(CanClearReportHistory)));
+        PresentationObserver.Invoke(ShowReportHistoryCommand.NotifyCanExecuteChanged);
+        PresentationObserver.Invoke(ClearReportHistoryCommand.NotifyCanExecuteChanged);
+        PresentationObserver.Invoke(OpenReportHistoryEntryAsyncCommand.NotifyCanExecuteChanged);
+        PresentationObserver.Invoke(RemoveReportHistoryEntryCommand.NotifyCanExecuteChanged);
     }
 
     private void OpenReportHistoryEntryAsyncCommand_CanExecuteChanged(object? sender, EventArgs e)
@@ -548,6 +522,24 @@ public sealed partial class ReportPresentationViewModel
                 report.ModeId,
                 report.ExperienceId,
                 report.CompositionKind));
+    }
+
+    internal static ReportHistorySnapshot OmitDerivableReportHistoryMetadata(
+        ReportHistorySnapshot snapshot)
+    {
+        var withoutMetadata = new ReportHistorySnapshot(
+            snapshot.SourceName, snapshot.ReportJson, snapshot.OutputArtifactPath);
+        return Enum.GetValues<ShellLanguage>().Any(language =>
+                TryPrepareReportHistoryEntry(
+                    withoutMetadata,
+                    language,
+                    materializeAsCurrent: true,
+                    CancellationToken.None,
+                    out ReportHistorySnapshot? normalized,
+                    out _) &&
+                normalized!.Metadata == snapshot.Metadata)
+            ? withoutMetadata
+            : snapshot;
     }
 
     private static string CreateReportHistoryContext(ReportReviewViewModel report)

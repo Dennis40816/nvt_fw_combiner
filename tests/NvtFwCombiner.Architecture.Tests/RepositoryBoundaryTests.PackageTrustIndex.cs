@@ -7,6 +7,78 @@ namespace NvtFwCombiner.Architecture.Tests;
 
 public sealed partial class RepositoryBoundaryTests
 {
+    /// <summary>CtrlRAM report metadata uses one declared Standard map counterpart, never runtime shape inference.</summary>
+    [Fact]
+    public void CtrlRamReportMetadataCounterpartsAreExplicitAndHeuristicFree()
+    {
+        string trustIndexPath = Path.Combine(
+            Root.FullName,
+            "profiles",
+            "built-in",
+            "package-trust-index.json");
+        using JsonDocument document = JsonDocument.Parse(File.ReadAllText(trustIndexPath));
+        JsonElement root = document.RootElement;
+        Assert.Equal("1.1", root.GetProperty("schemaVersion").GetString());
+        Assert.Equal("0.10.6.2", root.GetProperty("trustIndexVersion").GetString());
+
+        JsonElement[] ctrlRamRegistrations =
+        [
+            .. root.GetProperty("bundles").EnumerateArray()
+                .SelectMany(static bundle =>
+                    bundle.GetProperty("runtimeRegistrations").EnumerateArray())
+                .Where(static registration =>
+                    registration.GetProperty("workflowId").GetString() == "ctrlram-replace"),
+        ];
+        Assert.Equal(25, ctrlRamRegistrations.Length);
+
+        var expectedByIc = new Dictionary<string, string>(StringComparer.Ordinal)
+        {
+            ["NT51917"] = "nt51927-standard-merge-256k",
+            ["NT51923"] = "nt51923-standard-merge-256k",
+            ["NT51926"] = "nt51926-standard-merge-256k",
+            ["NT51927"] = "nt51927-standard-merge-256k",
+            ["NT51928"] = "nt51928-standard-merge-512k",
+            ["NT51929"] = "nt51929-standard-merge-256k",
+            ["NT51932"] = "nt51932-standard-merge-256k",
+        };
+        string[] reportlessIcIds = ["NT51919", "NT51950", "NT51951"];
+        foreach (JsonElement registration in ctrlRamRegistrations)
+        {
+            string icId = registration.GetProperty("icId").GetString()!;
+            if (expectedByIc.TryGetValue(icId, out string? expectedMapId))
+            {
+                Assert.Equal(
+                    expectedMapId,
+                    registration.GetProperty("reportMetadataMapId").GetString());
+            }
+            else
+            {
+                Assert.Contains(icId, reportlessIcIds, StringComparer.Ordinal);
+                Assert.False(registration.TryGetProperty("reportMetadataMapId", out _));
+            }
+        }
+        Assert.Equal(
+            19,
+            ctrlRamRegistrations.Count(static registration =>
+                registration.TryGetProperty("reportMetadataMapId", out _)));
+        Assert.Equal(
+            6,
+            ctrlRamRegistrations.Count(static registration =>
+                !registration.TryGetProperty("reportMetadataMapId", out _)));
+
+        string adapter = ReadText(
+            "src/NvtFwCombiner.Infrastructure/Composition/BuiltInCtrlRamAuthoringAdapter.V2.cs");
+        string routes = ReadText(
+            "src/NvtFwCombiner.Infrastructure/Composition/CtrlRamV2RouteRegistry.cs");
+        string application = ReadText(
+            "src/NvtFwCombiner.Application/Capabilities/CanonicalDynamicCapabilityModels.cs");
+        Assert.Contains("ReportMetadataMapId", routes, StringComparison.Ordinal);
+        Assert.Contains("report-metadata-map:", application, StringComparison.Ordinal);
+        Assert.DoesNotContain("referenceCapacity", adapter, StringComparison.Ordinal);
+        Assert.DoesNotContain("DistinctBy", adapter, StringComparison.Ordinal);
+        Assert.DoesNotContain("TpInput)).Length <=", adapter, StringComparison.Ordinal);
+    }
+
     /// <summary>MSBuild materialization rejects authority fields and paths outside the normative index.</summary>
     [Theory]
     [InlineData("unknown-field")]
@@ -129,13 +201,13 @@ public sealed partial class RepositoryBoundaryTests
 
         using var document = JsonDocument.Parse(File.ReadAllText(trustIndexPath));
         JsonElement root = document.RootElement;
-        Assert.Equal("1.0", root.GetProperty("schemaVersion").GetString());
+        Assert.Equal("1.1", root.GetProperty("schemaVersion").GetString());
         Assert.Equal("built-in-profile-bundles", root.GetProperty("trustIndexId").GetString());
         Assert.False(string.IsNullOrWhiteSpace(root.GetProperty("trustIndexVersion").GetString()));
         Assert.Equal("built-in-profile-bundle-v2", root.GetProperty("trustAnchorBindingId").GetString());
 
         JsonElement[] bundles = [.. root.GetProperty("bundles").EnumerateArray()];
-        Assert.Equal(25, bundles.Length);
+        Assert.Equal(26, bundles.Length);
         Assert.Equal(
             bundles.Length,
             bundles.Select(static bundle => bundle.GetProperty("bundleDirectory").GetString())
@@ -186,7 +258,9 @@ public sealed partial class RepositoryBoundaryTests
             "src/NvtFwCombiner.Infrastructure/Composition/BuiltInGeneralAuthoringPlanner.GeneralMerge.V2.cs");
         string generalMergePlanning = ReadText(
             "src/NvtFwCombiner.Infrastructure/Composition/BuiltInGeneralAuthoringPlanner.GeneralMerge.V2.cs");
-        string project = ReadText("src/NvtFwCombiner.Bootstrap/NvtFwCombiner.Bootstrap.csproj");
+        string project = string.Concat(
+            ReadText("src/NvtFwCombiner.Bootstrap/NvtFwCombiner.Bootstrap.csproj"),
+            ReadText("eng/profile-bundle-materializer/NvtFwCombiner.ProfileBundleMaterializer.targets"));
         string packager = ReadText("scripts/package.ps1");
         string releaseSmoke = ReadText("scripts/smoke-release.ps1");
         string metadataResolver = ReadText(

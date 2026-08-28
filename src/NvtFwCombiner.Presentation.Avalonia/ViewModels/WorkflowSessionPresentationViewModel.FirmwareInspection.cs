@@ -1,15 +1,11 @@
 using NvtFwCombiner.Application.Authoring;
+using NvtFwCombiner.Application.Diagnostics;
 using NvtFwCombiner.Domain.Composition;
 
 namespace NvtFwCombiner.Presentation.Avalonia.ViewModels;
 
-public sealed partial class WorkflowSessionPresentationViewModel
+internal sealed partial class WorkflowSessionPresentationViewModel
 {
-    /// <summary>True while the latest selected-file inspection is executing outside the dispatcher.</summary>
-    public bool IsFirmwareInspectionLoading { get; private set; }
-
-    internal Task FirmwareInspectionRefreshTask { get; private set; } = Task.CompletedTask;
-
     /// <summary>Selects a slot file, then projects all affected firmware facts outside the UI dispatcher.</summary>
     public async Task SetSlotFileAsync(
         string slotId,
@@ -21,11 +17,28 @@ public sealed partial class WorkflowSessionPresentationViewModel
             EnsureWorkflowLoaded();
             RefreshContextState();
         }
-
-        GeneralMappingRowViewModel? mapping = _merge.GeneralMergeMappings
-            .Cast<GeneralMappingRowViewModel>()
-            .Concat(_replace.GeneralReplaceMappings)
-            .FirstOrDefault(row => StringComparer.Ordinal.Equals(row.MappingId, slotId));
+        if (ActiveInspectionContext is not { } context)
+        {
+            return;
+        }
+        string contextIc = GetWorkflowPageIc(context.Owner);
+        if (!IsPublishedWorkflowAuthorable(contextIc, context.Mode))
+        {
+            InvalidateFirmwareInspection(
+                context.Owner,
+                clearBaseProjection: context.IsReplace,
+                clearSlotProjections: true);
+            return;
+        }
+        GeneralMappingRowViewModel? mapping = context switch
+        {
+            { IsGeneralMerge: true } =>
+                _merge.GeneralMergeMappings.FirstOrDefault(
+                row => StringComparer.Ordinal.Equals(row.MappingId, slotId)),
+            { IsGeneralReplace: true } => _replace.GeneralReplaceMappings.FirstOrDefault(
+                row => StringComparer.Ordinal.Equals(row.MappingId, slotId)),
+            _ => null,
+        };
         if (mapping is not null)
         {
             if (!mapping.CanSelectFile)
@@ -52,87 +65,159 @@ public sealed partial class WorkflowSessionPresentationViewModel
             }
             Task preparation = mapping switch
             {
-                GeneralMergeMappingViewModel => _merge.GeneralMergeReadinessRefreshTask,
-                GeneralReplaceMappingViewModel => _replace.GeneralReplaceReadinessRefreshTask,
+                GeneralMergeMappingViewModel => _merge.InspectionLifecycles[ExperienceIds.GeneralMerge].ActiveTask,
+                GeneralReplaceMappingViewModel => _replace.InspectionLifecycles[ExperienceIds.GeneralReplace].ActiveTask,
                 _ => throw new InvalidOperationException("Unknown General mapping row."),
             };
             await preparation.WaitAsync(cancellationToken);
+            RecordInputSelected(context, mapping.MappingId);
             return;
         }
 
-        FirmwareSlotViewModel? slot = SelectSlotFile(slotId, path);
+        if (context.IsAbMerge && _merge.MirrorsAbTpSelection(slotId))
+        {
+            await SetAbSameTpFileAsync(path, cancellationToken);
+            return;
+        }
+
+        if (context.IsAbMerge && _merge.BlocksIndependentAbTpSelection(slotId))
+        {
+            return;
+        }
+
+        FirmwareSlotViewModel? slot = SelectSlotFile(context, slotId, path);
         if (slot is null)
         {
             return;
         }
 
-        FirmwareInspectionRequestContext context = CreateFirmwareInspectionRequestContext();
-        if (context.IsDpReplace || context.IsCtrlRamReplace)
+        if (context.IsReplace)
         {
-            await RefreshSelectedReplaceFirmwareInspectionsAsync(slot.SlotId);
+            await RefreshSelectedReplaceFirmwareInspectionsAsync(slot.SlotId, cancellationToken);
+            RecordInputSelected(context, slot.SlotId);
             return;
         }
 
         if ((context.IsStandardMerge && _merge.IsStandardMergeSlot(slot)) ||
-            (context.IsAbMerge && context.AbAddressSpaceBySlotId.ContainsKey(slot.SlotId)))
+            (context.IsAbMerge && AbMergeAddressSpaceBySlotId.ContainsKey(slot.SlotId)))
         {
-            await RefreshSelectedMergeFirmwareInspectionsAsync(IsAbMergeContextActive ? slot.SlotId : null);
+            await RefreshSelectedMergeFirmwareInspectionsAsync(slot.SlotId, cancellationToken);
+            RecordInputSelected(context, slot.SlotId);
             return;
         }
 
-        IReadOnlyList<FirmwareInspectionItemRequest> items = FirmwareInspectionRequestFactory.CreateSelectionItems(
-            slot,
-            context);
-        FirmwareInspectionRefreshTask = RunFirmwareInspectionAsync(items, cancellationToken);
-        await FirmwareInspectionRefreshTask;
+        List<FirmwareInspectionItemRequest> items =
+        [
+            CreateFirmwareInspectionItem(
+                context,
+                slot,
+                FirmwareInspectionProjection.SupportsFacts(slot),
+                promptForMismatch: true,
+                applyVerifiedContext: slot.SlotKind is FirmwareSlotKind.Tp or FirmwareSlotKind.Base),
+        ];
+        if (slot.SlotId == CompositionSlotIds.MergeTp && MergeDpSlot.HasFile)
+        {
+            items.Add(CreateFirmwareInspectionItem(
+                context,
+                MergeDpSlot,
+                publishFacts: true,
+                promptForMismatch: false,
+                applyVerifiedContext: false,
+                slot.FilePath));
+        }
+        await RunFirmwareInspectionAsync(context, items, cancellationToken);
+        RecordInputSelected(context, slot.SlotId);
+    }
+
+    private void RecordInputSelected(WorkflowInspectionContext context, string slotId)
+    {
+        _recordActivity(new SystemActivityDraft(
+            SystemActivityCodes.InputSelected,
+            SystemActivityImportance.Debug,
+            SystemActivityCategory.Input,
+            SystemActivitySeverity.Information,
+            slotId,
+            context.Mode));
+    }
+
+    private IEnumerable<FirmwareSlotViewModel> InspectionSlots(WorkflowInspectionContext context)
+    {
+        return context switch
+        {
+            { IsStandardMerge: true } or { IsAbMerge: true } => MergeSlots,
+            { IsDpReplace: true } or { IsCtrlRamReplace: true } =>
+                ReplaceSlots.Append(ReplaceBaseSlot).Distinct(),
+            { IsGeneralMerge: true } => [],
+            { IsGeneralReplace: true } => [ReplaceBaseSlot],
+            _ => [],
+        };
+    }
+
+    private IEnumerable<FirmwareSlotViewModel> AllInspectionSlots(WorkflowInspectionOwner owner)
+    {
+        return owner == WorkflowInspectionOwner.Merge
+            ? _merge.StandardMergeSlots.Concat(AbMergeSlots).Distinct()
+            : ReplaceSlots.Append(ReplaceBaseSlot).Distinct();
+    }
+
+    private FirmwareSlotViewModel? FindInspectionSlot(
+        WorkflowInspectionContext context,
+        string slotId)
+    {
+        return InspectionSlots(context).FirstOrDefault(slot =>
+            string.Equals(slot.SlotId, slotId, StringComparison.Ordinal));
     }
 
     private FirmwareInspectionItemRequest CreateFirmwareInspectionItem(
+        WorkflowInspectionContext context,
         FirmwareSlotViewModel slot,
         bool publishFacts,
         bool promptForMismatch,
         bool applyVerifiedContext,
         string? tpPath = null)
     {
-        return FirmwareInspectionRequestFactory.CreateItem(
-            slot,
-            CreateFirmwareInspectionRequestContext(),
+        string path = slot.FilePath!;
+        return new FirmwareInspectionItemRequest(
+            slot.SlotId,
+            slot.SlotKind,
+            path,
+            slot.SlotId == CompositionSlotIds.MergeDp ? tpPath ?? MergeTpSlot.FilePath : null,
+            slot.SlotId == CompositionSlotIds.ReplaceBase && context.IsCtrlRamReplace
+                ? new CtrlRamInspectionRequest(SelectedNumber)
+                : null,
             publishFacts,
             promptForMismatch,
-            applyVerifiedContext,
-            tpPath);
+            applyVerifiedContext && IsNumberSelectorVisible,
+            context.IsAbMerge ? AbMergeAddressSpaceBySlotId.GetValueOrDefault(slot.SlotId) : null,
+            context.IsAbMerge ? _merge.GetSelectedAbMergeTopologyToken() : null,
+            context.IsDpReplace
+                ? ReferenceEquals(slot, ReplaceBaseSlot)
+                    ? CompositionAddressSpaceIds.ReferenceBase
+                    : slot.AddressSpaceId ?? throw new InvalidOperationException(
+                        $"DP Replace slot '{slot.SlotId}' has no canonical address-space id.")
+                : null,
+            context.IsStandardMerge && _merge.IsStandardMergeSlot(slot) ? slot.AddressSpaceId : null,
+            context.IsCtrlRamReplace && (ReferenceEquals(slot, ReplaceBaseSlot) ||
+                slot.ReplaceInputRole == ReplaceInputRole.CtrlRam)
+                ? ReferenceEquals(slot, ReplaceBaseSlot)
+                    ? CompositionAddressSpaceIds.ReferenceBase
+                    : slot.AddressSpaceId
+                : null);
     }
 
-    private FirmwareInspectionRequestContext CreateFirmwareInspectionRequestContext()
-    {
-        return new FirmwareInspectionRequestContext(
-            MergeDpSlot,
-            MergeTpSlot,
-            ReplaceBaseSlot,
-            IsCtrlRamReplaceModeSelected,
-            IsReplaceVisible && SelectedReplaceMode == ExperienceIds.DpReplace,
-            IsNumberSelectorVisible,
-            SelectedNumber,
-            IsAbCodeMergeModeSelected,
-            AbMergeAddressSpaceBySlotId,
-            GetSelectedAbMergeTopologyToken(),
-            CompositionSlotIds.MergeDp,
-            CompositionSlotIds.MergeTp,
-            CompositionSlotIds.ReplaceBase,
-            IsStandardMergeModeSelected,
-            [.. _merge.StandardMergeSlots.Select(static slot => slot.SlotId)]);
-    }
-
-    private async Task RunFirmwareInspectionAsync(
+    private Task RunFirmwareInspectionAsync(
+        WorkflowInspectionContext context,
         IReadOnlyList<FirmwareInspectionItemRequest> items,
         CancellationToken cancellationToken)
     {
         if (items.Count == 0)
         {
-            return;
+            return Task.CompletedTask;
         }
 
-        long generation = InspectionSession.NextGeneration();
+        WorkflowInspectionLifecycle lifecycle = context.IsMerge
+            ? _merge.InspectionLifecycles[context.Mode]
+            : _replace.InspectionLifecycles[context.Mode];
         AuthoringRevision authoringRevision = items.Any(static item =>
             item.StandardMergeAddressSpaceId is not null)
                 ? _merge.StandardMergeAuthoringRevision
@@ -142,74 +227,120 @@ public sealed partial class WorkflowSessionPresentationViewModel
                     item.CtrlRamReplaceAddressSpaceId is not null)
                     ? _replace.ReplaceInputAuthoringRevision
                     : new AuthoringRevision(1);
-        var request = new FirmwareInspectionBatchRequest(
-            generation,
-            authoringRevision,
-            SelectedIc,
-            SelectedNumber,
-            SelectedMergeMode,
-            SelectedReplaceMode,
-            items);
-        foreach (FirmwareInspectionItemRequest item in items.Where(static item =>
-                     item.AbMergeAddressSpaceId is not null ||
-                     item.DpReplaceAddressSpaceId is not null ||
-                     item.CtrlRamReplaceAddressSpaceId is not null ||
-                     item.StandardMergeAddressSpaceId is not null))
-        {
-            FindSlot(item.SlotId)?.SetInputInspectionPending(Text.FirmwareInspectionLoadingStatus);
-        }
-
-        SetFirmwareInspectionLoading(true);
-        try
-        {
-            await Task.Yield();
-            cancellationToken.ThrowIfCancellationRequested();
-            FirmwareInspectionBatchResult result = await Task.Run(
-                () => InspectionSession.ReadBatch(request),
-                cancellationToken);
-            cancellationToken.ThrowIfCancellationRequested();
-            if (FirmwareInspectionProjection.IsCurrent(
-                    request, result, InspectionSession.CurrentGeneration,
-                    SelectedIc, SelectedNumber, SelectedMergeMode, SelectedReplaceMode,
-                    FindSlot, MergeTpSlot.FilePath))
+        string icId = SelectedIc;
+        string number = SelectedNumber;
+        return lifecycle.StartAsync(
+            Text,
+            async (progress, isCurrent, cancellationToken) =>
             {
-                ApplyFirmwareInspectionBatch(request, result);
-                if (request.Items.Any(static item =>
-                        item.CtrlRamReplaceAddressSpaceId is not null))
+                var request = new FirmwareInspectionBatchRequest(
+                    authoringRevision,
+                    icId,
+                    number,
+                    context,
+                    items);
+                foreach (FirmwareInspectionItemRequest item in items.Where(static item =>
+                             item.AbMergeAddressSpaceId is not null ||
+                             item.DpReplaceAddressSpaceId is not null ||
+                             item.CtrlRamReplaceAddressSpaceId is not null ||
+                             item.StandardMergeAddressSpaceId is not null))
                 {
-                    await _replace.RefreshCtrlRamActionReadinessAsync(
-                        cancellationToken);
+                    FindInspectionSlot(context, item.SlotId)?
+                        .SetInputInspectionPending(Text.FirmwareInspectionLoadingStatus);
                 }
-            }
-            else if (generation == InspectionSession.CurrentGeneration &&
-                !result.IsFileIdentityStable &&
-                FirmwareInspectionProjection.ApplyStaleInputInspection(
-                    MergeSlots.Concat(ReplaceSlots).Append(ReplaceBaseSlot),
-                    request,
-                    result,
-                    Text))
-            {
-                RefreshCommandState();
-            }
-        }
-        finally
-        {
-            if (generation == InspectionSession.CurrentGeneration)
-            {
-                foreach (FirmwareInspectionItemRequest item in items)
+                try
                 {
-                    if (FindSlot(item.SlotId) is { IsInputInspectionPending: true } pending)
+                    await Task.Yield();
+                    cancellationToken.ThrowIfCancellationRequested();
+                    FirmwareInspectionSnapshotInput[] inputs =
+                    [
+                        .. request.Items.Select(item => new FirmwareInspectionSnapshotInput(
+                            item.SlotId,
+                            item.Path,
+                            item.TpPath,
+                            item.CtrlRamRequest,
+                            item.AbMergeAddressSpaceId,
+                            item.AbMergeTopologyToken,
+                            item.DpReplaceAddressSpaceId,
+                            request.AuthoringRevision.Value,
+                            item.StandardMergeAddressSpaceId,
+                            item.CtrlRamReplaceAddressSpaceId,
+                            item.InspectionLease?.ExactCapability)),
+                    ];
+                    FirmwareInspectionBatchResult result = await _compositionServices.FirmwareInspection
+                        .InspectFirmwareBatchAsync(
+                            request.IcId, inputs, cancellationToken, progress);
+                    cancellationToken.ThrowIfCancellationRequested();
+                    if (result.InspectionsById.Count != request.Items.Count ||
+                        request.Items.Any(item => !result.InspectionsById.ContainsKey(item.SlotId)))
                     {
-                        pending.ClearInputInspection();
+                        throw new InvalidDataException("Firmware inspection returned an incomplete or unexpected result set.");
+                    }
+                    bool sourceFailed = result.FileStamps.Values.Any(static stamp => stamp is null);
+                    if (isCurrent() && FirmwareInspectionProjection.IsCurrent(
+                            request, result,
+                            SelectedIc, SelectedNumber, InspectionContext(request.Context.Owner),
+                            slotId => FindInspectionSlot(request.Context, slotId),
+                            MergeTpSlot.FilePath))
+                    {
+                        if (sourceFailed)
+                        {
+                            return new(false, "input.artifact.read-failed");
+                        }
+                        bool inputBatchAccepted = ApplyFirmwareInspectionBatch(request, result);
+                        if (!inputBatchAccepted)
+                        {
+                            return new(false, "input.inspection.result-unavailable");
+                        }
+                        if (request.Items.Any(static item =>
+                                item.CtrlRamReplaceAddressSpaceId is not null))
+                        {
+                            await _replace.RefreshCtrlRamActionReadinessAsync(
+                                cancellationToken);
+                        }
+                        if (request.Items.Any(static item =>
+                                item.AbMergeAddressSpaceId is not null))
+                        {
+                            await _merge.RefreshAbMergeActionReadinessAsync(
+                                cancellationToken);
+                        }
+                        return new(true);
+                    }
+                    else if (isCurrent() && !result.IsContentStable &&
+                        FirmwareInspectionProjection.ApplyStaleInputInspection(
+                            InspectionSlots(request.Context),
+                            request,
+                            result,
+                            Text))
+                    {
+                        _stateBindings.RefreshCommandState();
+                        return new(false, "input.artifact.changed-during-inspection");
+                    }
+                    throw new OperationCanceledException(cancellationToken);
+                }
+                finally
+                {
+                    if (isCurrent())
+                    {
+                        foreach (FirmwareInspectionItemRequest item in items)
+                        {
+                            if (FindInspectionSlot(context, item.SlotId) is
+                                { IsInputInspectionPending: true } pending)
+                            {
+                                pending.SetInputInspection(
+                                    FirmwareInputInspectionSeverity.Blocking,
+                                    Text.FirmwareInspectionFailedTitle);
+                            }
+                        }
+                        NotifySlotFileOutputNames();
+                        _stateBindings.RefreshCommandState();
                     }
                 }
-                NotifySlotFileOutputNames();
-                SetFirmwareInspectionLoading(false);
-            }
-        }
+            },
+            cancellationToken);
     }
 
-    private void ApplyFirmwareInspectionBatch(
+    private bool ApplyFirmwareInspectionBatch(
         FirmwareInspectionBatchRequest request,
         FirmwareInspectionBatchResult result)
     {
@@ -223,11 +354,20 @@ public sealed partial class WorkflowSessionPresentationViewModel
             _merge.TryCompleteAbMergeInputBatch(
                 request.Items,
                 result.InspectionsById);
-        bool replaceAccepted = _replace.TryCompleteReplaceInputBatch(
+        FirmwareInspectionItemRequest[] replaceItems =
+        [
+            .. request.Items.Where(static item => item.DpReplaceAddressSpaceId is not null ||
+                item.CtrlRamReplaceAddressSpaceId is not null),
+        ];
+        bool replaceDiscoveryOnly = replaceItems.Length > 0 && replaceItems.All(item =>
+            result.InspectionsById[item.SlotId].CtrlRamBaseDiscoveryReadiness ==
+                CtrlRamBaseDiscoveryReadiness.Inspected);
+        bool replaceAccepted = replaceDiscoveryOnly || _replace.TryCompleteReplaceInputBatch(
             request.Items,
             result.InspectionsById);
-        FirmwareInspectionItemRequest ctrlRamBase = request.Items.FirstOrDefault(item =>
-            item.SlotId == CompositionSlotIds.ReplaceBase && IsCtrlRamReplaceModeSelected);
+        FirmwareInspectionItemRequest ctrlRamBase = request.Items.FirstOrDefault(static item =>
+            item.SlotId == CompositionSlotIds.ReplaceBase &&
+            item.CtrlRamReplaceAddressSpaceId == CompositionAddressSpaceIds.ReferenceBase);
         if (ctrlRamBase.SlotId == CompositionSlotIds.ReplaceBase)
         {
             ApplyCtrlRamDisplayFromInspection(result.InspectionsById[ctrlRamBase.SlotId]);
@@ -235,30 +375,18 @@ public sealed partial class WorkflowSessionPresentationViewModel
         foreach (FirmwareInspectionItemRequest item in request.Items)
         {
             FirmwareInspectionSnapshot inspection = result.InspectionsById[item.SlotId];
-            FirmwareFileIdentity identity = result.FileIdentities[item.Path];
-            InspectionSession.StoreProjection(
-                item.SlotId,
-                item.Path,
-                identity,
-                inspection);
-            if (item.SlotId == CompositionSlotIds.ReplaceBase)
-            {
-                InspectionSession.StoreBase(
-                    request.IcId,
-                    item.Path,
-                    inspection);
-            }
-
-            if (FindSlot(item.SlotId) is not { } slot)
+            if (FindInspectionSlot(request.Context, item.SlotId) is not { } slot)
             {
                 continue;
             }
 
-            if (inspection.AbMergeFacts is not null)
+            slot.SetCurrentInspectionProjection(inspection);
+
+            if (inspection.AbMergeFacts is not null && FirmwareInspectionProjection.SupportsFacts(slot, inspection))
             {
                 FirmwareInspectionProjection.ApplyAbInputFacts(slot, inspection, Text);
             }
-            else if (item.PublishFacts)
+            else if (item.PublishFacts && FirmwareInspectionProjection.SupportsFacts(slot, inspection))
             {
                 slot.SetFirmwareFacts(item.SlotKind == FirmwareSlotKind.Dp
                     ? UiCompositionRunner.GetDpFirmwareSlotFacts(inspection, Text)
@@ -268,7 +396,13 @@ public sealed partial class WorkflowSessionPresentationViewModel
                         text: Text));
             }
 
-            if (inspection.InputSlotStatus is { } inputSlotStatus)
+            if (inspection.AuthoringCompilationIssues.Count > 0)
+            {
+                FirmwareInspectionProjection.ApplyAuthoringIssues(
+                    slot,
+                    inspection.AuthoringCompilationIssues);
+            }
+            else if (inspection.InputSlotStatus is { } inputSlotStatus)
             {
                 if ((item.StandardMergeAddressSpaceId is not null &&
                         !standardMergeAccepted) ||
@@ -287,12 +421,17 @@ public sealed partial class WorkflowSessionPresentationViewModel
                     FirmwareInspectionProjection.ApplyInputSlotInspection(slot, inputSlotStatus, Text);
                 }
             }
+            else if (inspection.CtrlRamBaseDiscoveryReadiness ==
+                CtrlRamBaseDiscoveryReadiness.Inspected)
+            {
+                slot.SetBaseDiscoveryInspected(Text.CtrlRamBaseInspectedDetail);
+            }
 
             if (item.PromptForMismatch)
             {
-                if (ReconcileFirmwareIcMismatch(slot, inspection.DetectedIcId))
+                if (ReconcileFirmwareIcMismatch(request.Context, slot, inspection.DetectedIcId))
                 {
-                    return;
+                    return standardMergeAccepted && abMergeAccepted && replaceAccepted;
                 }
             }
 
@@ -307,7 +446,7 @@ public sealed partial class WorkflowSessionPresentationViewModel
                 item.SlotId == CompositionSlotIds.MergeDp ||
                 item.AbMergeAddressSpaceId is not null))
         {
-            RefreshMergeMemoryMapState();
+            _merge.RefreshMergeMemoryMapState();
         }
 
         if (request.Items.Any(static item => item.StandardMergeAddressSpaceId is not null))
@@ -320,70 +459,43 @@ public sealed partial class WorkflowSessionPresentationViewModel
             _merge.RefreshAbMergeAuthoringState();
         }
 
-        if (request.Items.Any(static item =>
+        if (ctrlRamBase.SlotId != CompositionSlotIds.ReplaceBase &&
+            request.Items.Any(static item =>
                 item.SlotId == CompositionSlotIds.ReplaceBase))
         {
-            RefreshReplaceMemoryMapState();
+            _replace.RefreshReplaceMemoryMapState();
         }
 
-        RefreshCommandState();
+        _stateBindings.RefreshCommandState();
+        return standardMergeAccepted && abMergeAccepted && replaceAccepted;
     }
 
     internal void ApplyCtrlRamDisplayFromInspection(FirmwareInspectionSnapshot inspection)
     {
-        ApplyCtrlRamInspectionDisplay(FirmwareInspectionProjection.ResolveCtrlRamDisplay(
+        _replace.ApplyCtrlRamInspectionDisplay(FirmwareInspectionProjection.ResolveCtrlRamDisplay(
             _compositionServices.FirmwareInspection,
             inspection,
             SelectedIc,
             SelectedNumber));
     }
 
-    internal Task RefreshSelectedMergeFirmwareInspectionsAsync(
-        string? applyVerifiedContextSlotId = null)
-    {
-        return RefreshSelectedFirmwareInspectionsAsync(
-            IsStandardMergeModeSelected
-                ? _merge.CurrentStandardMergeInspectionSlots()
-                : MergeSlots,
-            includeEverySelectedSlot: true,
-            applyVerifiedContextSlotId);
-    }
-
-    internal Task RefreshSelectedReplaceFirmwareInspectionsAsync(
-        string? applyVerifiedContextSlotId = null)
-    {
-        return RefreshSelectedFirmwareInspectionsAsync(
-            ReplaceSlots.Concat([ReplaceBaseSlot]),
-            includeEverySelectedSlot: true,
-            applyVerifiedContextSlotId);
-    }
-
-    internal Task RefreshAllSelectedFirmwareInspectionsAsync(string? applyVerifiedContextSlotId = null)
-    {
-        return RefreshSelectedFirmwareInspectionsAsync(
-            MergeSlots.Concat(ReplaceSlots).Concat([ReplaceBaseSlot]),
-            includeEverySelectedSlot: false,
-            applyVerifiedContextSlotId);
-    }
-
     private Task RefreshSelectedFirmwareInspectionsAsync(
+        WorkflowInspectionContext context,
         IEnumerable<FirmwareSlotViewModel> candidateSlots,
-        bool includeEverySelectedSlot,
-        string? applyVerifiedContextSlotId = null)
+        string? applyVerifiedContextSlotId,
+        CancellationToken cancellationToken,
+        CompiledAuthoringSelectionSnapshot? stagedDpProjection = null)
     {
         var slots = candidateSlots
-            .Where(slot => slot.HasFile &&
-                (includeEverySelectedSlot ||
-                    FirmwareInspectionRequestFactory.SupportsFacts(slot) ||
-                    string.Equals(slot.SlotId, applyVerifiedContextSlotId, StringComparison.Ordinal)))
+            .Where(static slot => slot.HasFile)
             .DistinctBy(static slot => slot.SlotId, StringComparer.Ordinal)
             .ToDictionary(static slot => slot.SlotId, StringComparer.Ordinal);
         IReadOnlyDictionary<string, AuthoringSlotInspectionLease> standardMergeLeases =
-            IsStandardMergeModeSelected
+            context.IsStandardMerge
                 ? _merge.BeginStandardMergeSlotInspections(
                     slots.Values.Where(_merge.IsStandardMergeSlot))
                 : new Dictionary<string, AuthoringSlotInspectionLease>(StringComparer.Ordinal);
-        if (IsStandardMergeModeSelected)
+        if (context.IsStandardMerge)
         {
             foreach (string slotId in slots.Values
                          .Where(_merge.IsStandardMergeSlot)
@@ -405,49 +517,56 @@ public sealed partial class WorkflowSessionPresentationViewModel
                     applyVerifiedContextSlotId,
                     StringComparison.Ordinal);
                 FirmwareInspectionItemRequest item = CreateFirmwareInspectionItem(
+                    context,
                     slot,
-                    FirmwareInspectionRequestFactory.SupportsFacts(slot),
+                    FirmwareInspectionProjection.SupportsFacts(slot),
                     applyVerified,
                     applyVerified && slot.SlotKind is FirmwareSlotKind.Tp or FirmwareSlotKind.Base);
                 return item.StandardMergeAddressSpaceId is not null &&
                     standardMergeLeases.TryGetValue(
                         item.StandardMergeAddressSpaceId,
                         out AuthoringSlotInspectionLease? lease)
-                            ? item with { StandardMergeInspectionLease = lease }
+                            ? item with { InspectionLease = lease }
                             : item;
             }),
         ];
-        items = AttachAbMergeInspectionLeases(items);
-        items = _replace.AttachReplaceInspectionLeases(items, slots.Values);
+        items = AttachAbMergeInspectionLeases(context, items);
+        if (context.IsReplace)
+        {
+            items = _replace.AttachReplaceInspectionLeases(
+                items,
+                slots.Values,
+                stagedDpProjection);
+        }
         foreach (FirmwareSlotViewModel slot in slots.Values)
         {
-            InspectionSession.RemoveProjection(slot.SlotId);
-        }
-
-        if (slots.ContainsKey(CompositionSlotIds.ReplaceBase))
-        {
-            InspectionSession.ClearBase();
+            slot.ClearCurrentInspectionProjection();
         }
 
         NotifySlotFileOutputNames();
-        if (slots.ContainsKey(CompositionSlotIds.MergeDp) ||
-            (IsAbCodeMergeModeSelected && slots.Keys.Any(AbMergeAddressSpaceBySlotId.ContainsKey)))
+        if (context.IsMerge &&
+            (slots.ContainsKey(CompositionSlotIds.MergeDp) ||
+                (context.IsAbMerge &&
+                    slots.Keys.Any(AbMergeAddressSpaceBySlotId.ContainsKey))))
         {
-            RefreshMergeMemoryMapState();
+            _merge.RefreshMergeMemoryMapState();
         }
 
-        if (slots.ContainsKey(CompositionSlotIds.ReplaceBase) && SelectedReplaceMode == ExperienceIds.DpReplace)
+        if (context.IsReplace &&
+            slots.ContainsKey(CompositionSlotIds.ReplaceBase) &&
+            context.IsDpReplace)
         {
-            RefreshReplaceMemoryMapState();
+            _replace.RefreshReplaceMemoryMapState();
         }
 
-        return FirmwareInspectionRefreshTask = RunFirmwareInspectionAsync(items, CancellationToken.None);
+        return RunFirmwareInspectionAsync(context, items, cancellationToken);
     }
 
     private IReadOnlyList<FirmwareInspectionItemRequest> AttachAbMergeInspectionLeases(
+        WorkflowInspectionContext context,
         IReadOnlyList<FirmwareInspectionItemRequest> items)
     {
-        if (!IsAbCodeMergeModeSelected)
+        if (!context.IsAbMerge)
         {
             return items;
         }
@@ -456,7 +575,7 @@ public sealed partial class WorkflowSessionPresentationViewModel
         [
             .. items
                 .Where(static item => item.AbMergeAddressSpaceId is not null)
-                .Select(item => FindSlot(item.SlotId))
+                .Select(item => FindInspectionSlot(context, item.SlotId))
                 .OfType<FirmwareSlotViewModel>(),
         ];
         if (slots.Length == 0)
@@ -471,69 +590,69 @@ public sealed partial class WorkflowSessionPresentationViewModel
             .. items.Select(item =>
                 item.AbMergeAddressSpaceId is not null &&
                 leases.TryGetValue(item.SlotId, out AuthoringSlotInspectionLease? lease)
-                    ? item with { AbMergeInspectionLease = lease }
+                    ? item with { InspectionLease = lease }
                     : item),
         ];
     }
 
     internal void RefreshCtrlRamDisplayFromInspection()
     {
-        if (!IsCtrlRamReplaceModeSelected || !ReplaceBaseSlot.HasFile)
+        if (ActiveInspectionContext is not { IsCtrlRamReplace: true } context ||
+            !ReplaceBaseSlot.HasFile)
         {
             return;
         }
 
-        if (InspectionSession.TryGetBase(
-                SelectedIc,
-                ReplaceBaseSlot.FilePath,
-                out FirmwareInspectionSnapshot inspection))
+        if (ReplaceBaseSlot.CurrentInspectionProjection is { } inspection)
         {
             ApplyCtrlRamDisplayFromInspection(inspection);
-            RefreshCommandState();
+            _stateBindings.RefreshCommandState();
             return;
         }
 
         IReadOnlyList<FirmwareInspectionItemRequest> items =
         [
             CreateFirmwareInspectionItem(
+                context,
                 ReplaceBaseSlot,
                 publishFacts: false,
                 promptForMismatch: false,
                 applyVerifiedContext: false),
         ];
-        FirmwareInspectionRefreshTask = RunFirmwareInspectionAsync(items, CancellationToken.None);
+        _ = RunFirmwareInspectionAsync(context, items, CancellationToken.None);
     }
 
     internal void InvalidateFirmwareInspection(
-        bool clearBaseCache = false,
-        bool clearFileProjections = false)
+        WorkflowInspectionOwner? owner = null,
+        bool clearBaseProjection = false,
+        bool clearSlotProjections = false)
     {
-        InspectionSession.Invalidate(clearBaseCache, clearFileProjections);
-        if (clearFileProjections)
+        if (owner is null or WorkflowInspectionOwner.Merge)
         {
-            foreach (FirmwareSlotViewModel slot in MergeSlots
-                         .Concat(ReplaceSlots)
-                         .Concat([ReplaceBaseSlot])
-                         .Concat(AbMergeSlots)
-                         .Distinct())
+            _merge.InspectionLifecycles.ForEach(static lifecycle => lifecycle.Invalidate());
+        }
+        if (owner is null or WorkflowInspectionOwner.Replace)
+        {
+            _replace.InspectionLifecycles.ForEach(static lifecycle => lifecycle.Invalidate());
+        }
+
+        if (owner != WorkflowInspectionOwner.Merge && clearBaseProjection)
+        {
+            ReplaceBaseSlot.ClearCurrentInspectionProjection();
+        }
+
+        if (clearSlotProjections)
+        {
+            IEnumerable<FirmwareSlotViewModel> slots = owner is { } pageOwner
+                ? AllInspectionSlots(pageOwner)
+                : AllInspectionSlots(WorkflowInspectionOwner.Merge)
+                    .Concat(AllInspectionSlots(WorkflowInspectionOwner.Replace));
+            foreach (FirmwareSlotViewModel slot in slots)
             {
+                slot.ClearCurrentInspectionProjection();
                 slot.ClearInputInspection();
             }
         }
-
-        SetFirmwareInspectionLoading(false);
-    }
-
-    private void SetFirmwareInspectionLoading(bool isLoading)
-    {
-        if (IsFirmwareInspectionLoading == isLoading)
-        {
-            return;
-        }
-
-        IsFirmwareInspectionLoading = isLoading;
-        OnPropertyChanged(nameof(IsFirmwareInspectionLoading));
-        RefreshCommandState();
     }
 
 }

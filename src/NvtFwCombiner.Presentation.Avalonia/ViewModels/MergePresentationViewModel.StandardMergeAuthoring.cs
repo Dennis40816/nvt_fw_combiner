@@ -3,7 +3,7 @@ using NvtFwCombiner.Application.Capabilities;
 
 namespace NvtFwCombiner.Presentation.Avalonia.ViewModels;
 
-public sealed partial class MergePresentationViewModel
+internal sealed partial class MergePresentationViewModel
 {
     internal AuthoringRevision StandardMergeAuthoringRevision =>
         _standardMergeSession.CurrentSnapshot?.AuthoringRevision ?? new AuthoringRevision(1);
@@ -12,6 +12,13 @@ public sealed partial class MergePresentationViewModel
     {
         _standardMergeSession.InvalidateCanonicalPublication();
         _abMergeSession.InvalidateCanonicalPublication();
+        _generalMergeSession.InvalidateCanonicalPublication();
+        ClearAbMergeActionReadiness();
+        _generalMergeAdmission = null;
+        _generalMergeActionReadiness = null;
+        InspectionLifecycles[NormalMergeMode].Invalidate();
+        InspectionLifecycles[AbCodeMergeMode].Invalidate();
+        InspectionLifecycles[GeneralMergeMode].Invalidate();
     }
 
     internal IReadOnlyDictionary<string, AuthoringSlotInspectionLease>
@@ -50,7 +57,7 @@ public sealed partial class MergePresentationViewModel
             _standardMergeSession,
             selected,
             inspections,
-            static item => item.StandardMergeInspectionLease,
+            static item => item.InspectionLease,
             out ActiveSessionSnapshot? snapshot);
         if (completed && selected.Length > 0)
         {
@@ -75,8 +82,15 @@ public sealed partial class MergePresentationViewModel
 
     internal void RefreshStandardMergeAuthoringState()
     {
-        if (!IsNormalMergeModeSelected)
+        if (!IsNormalMergeModeSelected || !HasSelectedIc)
         {
+            if (!HasSelectedIc)
+            {
+                foreach (FirmwareSlotViewModel slot in StandardMergeSlots)
+                {
+                    slot.ClearSelectionReadiness();
+                }
+            }
             return;
         }
 
@@ -88,14 +102,39 @@ public sealed partial class MergePresentationViewModel
         SyncStandardMergeMembership(activated.Snapshot);
     }
 
-    internal IEnumerable<FirmwareSlotViewModel> CurrentStandardMergeInspectionSlots()
+    internal void RelocalizeStandardMergeReadiness()
     {
-        return StandardMergeSlots.Where(slot =>
-            slot.HasFile &&
-            slot.AddressSpaceId is not null);
+        if (IsNormalMergeModeSelected && _standardMergeSession.CurrentSnapshot is { } snapshot)
+        {
+            ApplyInputReadiness(
+                StandardMergeSlots,
+                snapshot.InputSelectionReadiness,
+                static slot => slot.AddressSpaceId);
+        }
     }
 
     private CompiledAuthoringSelectionSnapshot ResolveStandardMergeAuthoringSnapshot()
+    {
+        return ResolveStandardMergeAuthoringSnapshot(SelectedIc);
+    }
+
+    private CompiledAuthoringSelectionSnapshot ResolveStandardMergeAuthoringSnapshot(
+        string icId)
+    {
+        if (string.Equals(_preparedStandardMergeIc, icId, StringComparison.Ordinal) &&
+            _preparedStandardMergeSnapshot is not null)
+        {
+            CompiledAuthoringSelectionSnapshot prepared = _preparedStandardMergeSnapshot;
+            _preparedStandardMergeIc = null;
+            _preparedStandardMergeSnapshot = null;
+            return prepared;
+        }
+
+        return ResolveStandardMergeAuthoringSnapshotCore(icId);
+    }
+
+    private CompiledAuthoringSelectionSnapshot ResolveStandardMergeAuthoringSnapshotCore(
+        string icId)
     {
         string[] selectedSlotIds =
         [
@@ -110,7 +149,7 @@ public sealed partial class MergePresentationViewModel
             StandardMergeSlots,
             static slot => slot.AddressSpaceId);
         return _compositionServices.StandardMergeAuthoring.GetAuthoringSnapshot(
-            SelectedIc,
+            icId,
             selectedSlotIds,
             accepted,
             StandardMergeAuthoringRevision,
@@ -208,7 +247,7 @@ public sealed partial class MergePresentationViewModel
                 continue;
             }
 
-            string label = Text.GetDpInputSelectionReadinessLabel(member.Readiness);
+            string label = Text.GetDpInputSelectionReadinessLabel(member);
             string detail = Text.GetStandardMergeInputSelectionReadinessDetail(member);
             slot.SetSelectionReadiness(member.Readiness, label, detail,
                 Text.GetInputSelectionReadinessAutomationText(label, detail), member.CanSelect);

@@ -123,6 +123,7 @@ public sealed partial class AbMergeRuntimeAdmissionTests
                 CompiledInputVersionKind.DpB => "dp-b",
                 CompiledInputVersionKind.TpA => "tp-a",
                 CompiledInputVersionKind.TpB => "tp-b",
+                CompiledInputVersionKind.TpReferenceFirmwareConfig => throw new InvalidOperationException(),
                 _ => throw new ArgumentOutOfRangeException(nameof(version), version.Kind, null),
             };
             string expected = version.IsKnown
@@ -138,6 +139,7 @@ public sealed partial class AbMergeRuntimeAdmissionTests
                     CompositionAddressSpaceIds.DpAbInput,
                 CompiledInputVersionKind.TpA => CompositionAddressSpaceIds.TpAInput,
                 CompiledInputVersionKind.TpB => CompositionAddressSpaceIds.TpBInput,
+                CompiledInputVersionKind.TpReferenceFirmwareConfig => throw new InvalidOperationException(),
                 _ => throw new ArgumentOutOfRangeException(nameof(version), version.Kind, null),
             };
             string parserId = version.Kind is CompiledInputVersionKind.DpA or CompiledInputVersionKind.DpB

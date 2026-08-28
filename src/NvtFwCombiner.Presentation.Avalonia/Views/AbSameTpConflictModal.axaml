@@ -1,0 +1,44 @@
+<UserControl
+    x:Class="NvtFwCombiner.Presentation.Avalonia.Views.AbSameTpConflictModal"
+    xmlns="https://github.com/avaloniaui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:vm="using:NvtFwCombiner.Presentation.Avalonia.ViewModels"
+    x:DataType="vm:MergePresentationViewModel"
+    AutomationProperties.Name="{Binding Text.AbSameTpConflictTitle}"
+    Focusable="True"
+    KeyboardNavigation.TabNavigation="Cycle"
+    KeyDown="AbSameTpConflictModal_OnKeyDown"
+    Background="{DynamicResource NfcModalScrimBrush}">
+  <Border
+      Classes="modalSurface"
+      Width="540"
+      Padding="22"
+      HorizontalAlignment="Center"
+      VerticalAlignment="Center">
+    <Grid RowDefinitions="Auto,Auto" RowSpacing="{DynamicResource NfcSpace16}">
+      <StackPanel Spacing="5">
+        <TextBlock Classes="modalTitle" Text="{Binding Text.AbSameTpConflictTitle}" />
+        <TextBlock Classes="mutedText" Text="{Binding Text.AbSameTpConflictDetail}" TextWrapping="Wrap" />
+      </StackPanel>
+
+      <StackPanel Grid.Row="1" HorizontalAlignment="Right" Orientation="Horizontal" Spacing="{DynamicResource NfcSpace8}">
+        <Button
+            x:Name="CancelButton"
+            Classes="semanticAction secondary"
+            AutomationProperties.Name="{Binding Text.OutputDeliveryCancelLabel}"
+            Command="{Binding CancelAbSameTpConflictCommand}"
+            Content="{Binding Text.OutputDeliveryCancelLabel}" />
+        <Button
+            Classes="semanticAction action"
+            AutomationProperties.Name="{Binding Text.AbSameTpKeepBLabel}"
+            Command="{Binding KeepTpBForAbSameTpCommand}"
+            Content="{Binding Text.AbSameTpKeepBLabel}" />
+        <Button
+            Classes="semanticAction primary"
+            AutomationProperties.Name="{Binding Text.AbSameTpKeepALabel}"
+            Command="{Binding KeepTpAForAbSameTpCommand}"
+            Content="{Binding Text.AbSameTpKeepALabel}" />
+      </StackPanel>
+    </Grid>
+  </Border>
+</UserControl>

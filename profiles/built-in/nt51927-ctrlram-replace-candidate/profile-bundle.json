@@ -1,9 +1,9 @@
 {
   "schemaVersion": "1.0",
   "bundleId": "nt51927-ctrlram-replace-candidate",
-  "bundleVersion": "0.9.12-candidate.1",
+  "bundleVersion": "0.9.12-candidate.2",
   "hashAlgorithm": "sha256-rfc8785-entry-array-v1",
-  "contentHash": "d0c8a8775a35a01b52b8d8f32a93af0ac798067e2577d2420ab0dd65dd815d0f",
+  "contentHash": "f44c1b82f3fc38905dee222a60be5b884f717b37cb3d8fafe8affd7c48353714",
   "trustAnchorBindingId": "built-in-profile-bundle-v2",
   "entries": [
     {
@@ -25,28 +25,28 @@
       "kind": "firmware-family",
       "path": "families/nt51927-ctrlram-replace.json",
       "schemaId": "https://example.invalid/nfc/schemas/firmware-family-v1.schema.json",
-      "contentHash": "3b72d1b2788463c2def4d57e1318fc392dad4a79990d03c59e1d8abe072ae4e1"
+      "contentHash": "2a37bf2c7c9dd0c4123a2c19da3e7600b9f3ec55d9a12f9da9cad0cdc25a2dbb"
     },
     {
       "entryId": "nt51927-ctrlram-replace-fw141-single-profile",
       "kind": "composition-profile",
       "path": "profiles/nt51927-ctrlram-replace-fw141-single.json",
       "schemaId": "https://example.invalid/nfc/schemas/composition-profile-v2.schema.json",
-      "contentHash": "b971a47addd37d2e66e2bee9ea980e4fd7ecdf7a05f804a8857d6e5b1676e9df"
+      "contentHash": "0ae8dcc2c88de52bbaa4dacac76f63d01062756330207bccd3b78f98d9e3d31a"
     },
     {
       "entryId": "nt51927-ctrlram-replace-fw132-twochip-profile",
       "kind": "composition-profile",
       "path": "profiles/nt51927-ctrlram-replace-fw132-twochip.json",
       "schemaId": "https://example.invalid/nfc/schemas/composition-profile-v2.schema.json",
-      "contentHash": "ecb874960492984b97bc4da8ddfe54d6dfbc0e7cb1ea11f45c72f3ea94f49998"
+      "contentHash": "496c0a845b1527e5df6b8dbb91e0cd6cd3cd3c8419819b533b2b49ba95c90ea0"
     },
     {
       "entryId": "nt51927-ctrlram-replace-fw140-threechip-profile",
       "kind": "composition-profile",
       "path": "profiles/nt51927-ctrlram-replace-fw140-threechip.json",
       "schemaId": "https://example.invalid/nfc/schemas/composition-profile-v2.schema.json",
-      "contentHash": "aeaac378954d59eecf47a64be4b4fe58a5feb050de848c9dc39b88ea97663e75"
+      "contentHash": "81ac70019dada64609c8e153b6916e6bf6e15392faafd266865f8a544c1d83d8"
     }
   ]
 }

@@ -174,12 +174,18 @@ public sealed partial class CanonicalCapabilityCatalogTests
         CapabilityCatalogReloadResult reload =
             catalog.Reload(TestContext.Current.CancellationToken);
         CapabilityResolutionResult resolution = catalog.Resolve(Route.RouteId);
+        MetadataPlanResolutionResult metadata = catalog.ResolveUniqueMetadataPlan(
+            "NT51929",
+            "standard-merge",
+            "selector-free");
 
         Assert.False(reload.Succeeded);
         Assert.False(reload.RetainedLastKnownGood);
         Assert.Null(reload.Snapshot);
         Assert.False(resolution.Succeeded);
         Assert.Equal(CapabilityCatalogIssueCodes.CatalogUnavailable, resolution.Issue!.Code);
+        Assert.False(metadata.Succeeded);
+        Assert.Equal(CapabilityCatalogIssueCodes.CatalogUnavailable, metadata.Issue!.Code);
     }
 
     /// <summary>An explicit retry bypasses the cached cold-start failure and can publish a repaired source.</summary>
@@ -414,14 +420,16 @@ public sealed partial class CanonicalCapabilityCatalogTests
             Assert.Single(reload.Issues).Code);
     }
 
-    private static CanonicalCapabilityCatalogCandidate CreateCandidate()
+    private static CanonicalCapabilityCatalogCandidate CreateCandidate(
+        params CanonicalCapabilityDefinition[] definitions)
     {
-        CanonicalCapabilityDefinition definition = CreateDefinition(CreateCompiledComposition());
         return new CanonicalCapabilityCatalogCandidate(
             "canonical-capability-catalog",
             "1.0.0",
             new string('a', 64),
-            [definition]);
+            definitions.Length == 0
+                ? [CreateDefinition(CreateCompiledComposition())]
+                : definitions);
     }
 
     private static CanonicalCapabilityDefinition CreateDefinition(
@@ -462,16 +470,19 @@ public sealed partial class CanonicalCapabilityCatalogTests
     }
 
     private static CompiledComposition CreateCompiledComposition(
-        string? mapId = null)
+        string? mapId = null,
+        long outputCapacity = 8,
+        CapabilityRouteIdentity? route = null)
     {
+        CapabilityRouteIdentity effectiveRoute = route ?? Route;
         AddressSpace[] addressSpaces =
         [
             new("dp-input", 4, AddressSpaceMutability.Immutable),
             new("tp-input", 4, AddressSpaceMutability.Immutable),
-            new("output-image", 8, AddressSpaceMutability.Mutable),
+            new("output-image", outputCapacity, AddressSpaceMutability.Mutable),
         ];
         var plan = new CompositionPlan(
-            ImageInitialization.Blank("output-image", 8, 0),
+            ImageInitialization.Blank("output-image", outputCapacity, 0),
             addressSpaces,
             [
                 CompositionOperation.CopyRange(
@@ -496,15 +507,28 @@ public sealed partial class CanonicalCapabilityCatalogTests
         return CompiledCompositionTestFactory.Create(
             plan,
             new TestCompiledCompositionIdentity(
-                "synthetic-nt51929-standard-merge",
+                $"synthetic-{effectiveRoute.IcId.ToLowerInvariant()}-{effectiveRoute.WorkflowId}",
                 "1.0.0",
-                "NT51929",
-                "standard-merge",
-                "standard-merge",
+                effectiveRoute.IcId,
+                effectiveRoute.WorkflowId,
+                effectiveRoute.WorkflowId,
                 CompositionKind.Merge),
-            "synthetic-nt51929-standard-merge.bin",
+            $"synthetic-{effectiveRoute.IcId.ToLowerInvariant()}-{effectiveRoute.WorkflowId}.bin",
             null,
-            mapId: mapId ?? Route.MapVariant);
+            mapId: mapId ?? effectiveRoute.MapVariant);
+    }
+
+    private static CanonicalCapabilityDisclosure CreateDisclosure(
+        IReadOnlyDictionary<string, IReadOnlyList<CapabilityNumberChoice>>
+            numberChoicesByIc)
+    {
+        return new CanonicalCapabilityDisclosure(
+            new Dictionary<string, IReadOnlyList<CapabilityProfileSummary>>(
+                StringComparer.Ordinal),
+            numberChoicesByIc,
+            new Dictionary<string, IReadOnlyList<long>>(StringComparer.Ordinal),
+            new Dictionary<string, CapabilityFamilySummary>(StringComparer.Ordinal),
+            []);
     }
 
     private static CompiledComposition CreateCompiledCompositionWithExternalProcessor()
@@ -551,10 +575,14 @@ public sealed partial class CanonicalCapabilityCatalogTests
     {
         private readonly Queue<CapabilityCatalogLoadResult> _results = new(results);
 
+        public int LoadCount { get; private set; }
+
         public CapabilityCatalogLoadResult Load(CancellationToken cancellationToken)
         {
             cancellationToken.ThrowIfCancellationRequested();
+            LoadCount++;
             return _results.Dequeue();
         }
     }
+
 }

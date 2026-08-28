@@ -6,6 +6,12 @@
   "variantOrVersion": "gen-flash",
   "topology": "topology-unscoped",
   "directGolden": true,
+  "testDisposition": {
+    "kind": "direct-full-output",
+    "evidenceRefs": [
+      "tests/NvtFwCombiner.GoldenRegression.Tests/StandardMergeWorkbenchGoldenTests.cs#WorkbenchBuildStandardMergeMatchesGoldenBytes"
+    ]
+  },
   "sourceClassification": "private-owner-approved-golden",
   "ownerApproval": "Repository owner requested gen_flash_bin_v2 test BIN files be tracked as golden fixtures on 2026-06-30.",
   "profileId": "nt51928-standard-merge-gen-flash",
@@ -13,7 +19,7 @@
     {
       "artifactId": "dp-input",
       "role": "input",
-      "path": "NT51928/standard-merge/gen-flash/topology-unscoped/nt51928-gen-flash/inputs/dp-input.bin",
+      "path": "NT51928/standard-merge/gen-flash/topology-unscoped/nt51928-gen-flash/inputs/nt51928-dp-input.bin",
       "size": 524288,
       "sha256": "a77fe6a40e4feebf100b7ef72addb4308f28579e4d8b291e3b555eb4b98886c3",
       "legacyPaths": [
@@ -25,7 +31,7 @@
     {
       "artifactId": "tp-input",
       "role": "input",
-      "path": "NT51928/standard-merge/gen-flash/topology-unscoped/nt51928-gen-flash/inputs/tp-input.bin",
+      "path": "NT51928/standard-merge/gen-flash/topology-unscoped/nt51928-gen-flash/inputs/nt51928-tp-input.bin",
       "size": 217088,
       "sha256": "01e385aa60dcdbeeea343e8755af76cd0b282555494c8796e9ff687cd254ad6a",
       "legacyPaths": [
@@ -37,7 +43,7 @@
     {
       "artifactId": "ldc-input",
       "role": "input",
-      "path": "NT51928/standard-merge/gen-flash/topology-unscoped/nt51928-gen-flash/inputs/ld-input.bin",
+      "path": "NT51928/standard-merge/gen-flash/topology-unscoped/nt51928-gen-flash/inputs/nt51928-ldc-input.bin",
       "size": 524288,
       "sha256": "a77fe6a40e4feebf100b7ef72addb4308f28579e4d8b291e3b555eb4b98886c3",
       "legacyPaths": [
@@ -49,7 +55,7 @@
     {
       "artifactId": "expected-output",
       "role": "expected",
-      "path": "NT51928/standard-merge/gen-flash/topology-unscoped/nt51928-gen-flash/expected/flash.bin",
+      "path": "NT51928/standard-merge/gen-flash/topology-unscoped/nt51928-gen-flash/expected/nt51928-expected-output.bin",
       "size": 524288,
       "sha256": "5064b3134031adbd7ae292c9038d728da116d5a013a2463ae809694a07f87e0e",
       "legacyPaths": [

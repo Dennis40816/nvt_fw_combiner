@@ -1,4 +1,3 @@
-
 using System.Security.Cryptography;
 using System.Text.Json;
 
@@ -391,7 +390,9 @@ public sealed partial class RepositoryBoundaryTests
     [Fact]
     public void BuiltInBundleMaterializationUsesPackageTrustIndex()
     {
-        string project = ReadText("src/NvtFwCombiner.Bootstrap/NvtFwCombiner.Bootstrap.csproj");
+        string project = string.Concat(
+            ReadText("src/NvtFwCombiner.Bootstrap/NvtFwCombiner.Bootstrap.csproj"),
+            ReadText("eng/profile-bundle-materializer/NvtFwCombiner.ProfileBundleMaterializer.targets"));
         string builtInRoot = Path.Combine(Root.FullName, "profiles", "built-in");
         using var index = JsonDocument.Parse(
             ReadText("profiles/built-in/package-trust-index.json"));
@@ -410,7 +411,7 @@ public sealed partial class RepositoryBoundaryTests
                 .Order(StringComparer.Ordinal)!,
         ];
 
-        Assert.Equal("1.0", index.RootElement.GetProperty("schemaVersion").GetString());
+        Assert.Equal("1.1", index.RootElement.GetProperty("schemaVersion").GetString());
         Assert.Equal(sourceDirectories, indexedDirectories);
         Assert.All(bundles, bundle =>
         {
@@ -459,64 +460,6 @@ public sealed partial class RepositoryBoundaryTests
         Assert.DoesNotContain("ProfileSchemaSourceRoot", project, StringComparison.Ordinal);
     }
 
-    /// <summary>Retired ICs have no production profile, route, processor, package, or catalog owner.</summary>
-    [Fact]
-    public void RetiredIcCapabilitiesStayOutsideProductionOwners()
-    {
-        string[] retiredIds = ["51920", "51925", "51930", "51931"];
-        string[] productionOwners =
-        [
-            "src/NvtFwCombiner.Domain/Composition/ExperienceIds.cs",
-            "src/NvtFwCombiner.Infrastructure/Composition/BuiltInV2Bundle.cs",
-            "src/NvtFwCombiner.Infrastructure/Composition/BuiltInV2RegistrationRegistry.cs",
-            "src/NvtFwCombiner.Infrastructure/Composition/CtrlRamV2RouteRegistry.cs",
-            "src/NvtFwCombiner.Bootstrap/NvtFwCombiner.Bootstrap.csproj",
-            "src/NvtFwCombiner.Application/ExternalTools/PostbuildWriteSections.cs",
-            "src/NvtFwCombiner.Application/Composition/CompositionRunService.ReportMetadata.cs",
-            "src/NvtFwCombiner.Application/ExternalTools/LegacyCombinerPostbuildPlanCompiler.IntegrityRanges.cs",
-            "src/NvtFwCombiner.Infrastructure/ExternalTools/BuiltInPostbuildProfileCatalog.cs",
-            "src/NvtFwCombiner.Infrastructure/FlashMaps/BuiltInTpFlashMapCatalog.Loader.cs",
-            "profiles/built-in/ctrlram-postbuild-v2/catalog.json",
-            "profiles/built-in/ctrlram-postbuild-v2/flash-map.json",
-        ];
-
-        foreach (string owner in productionOwners)
-        {
-            string source = ReadText(owner);
-            Assert.All(retiredIds, retiredId =>
-                Assert.DoesNotContain(retiredId, source, StringComparison.Ordinal));
-        }
-
-        Assert.False(File.Exists(Path.Combine(
-            Root.FullName,
-            "src",
-            "NvtFwCombiner.Application",
-            "FlashMaps",
-            "TpHeaderCatalog.Layouts.cs")));
-        Assert.False(File.Exists(Path.Combine(
-            Root.FullName,
-            "src",
-            "NvtFwCombiner.Application",
-            "FlashMaps",
-            "GenFlashVersionCatalog.cs")));
-
-        string builtInRoot = Path.Combine(Root.FullName, "profiles", "built-in");
-        Assert.DoesNotContain(
-            Directory.EnumerateFiles(builtInRoot, "*", SearchOption.AllDirectories),
-            path => retiredIds.Any(retiredId =>
-                Path.GetRelativePath(builtInRoot, path)
-                    .StartsWith($"nt{retiredId}-", StringComparison.Ordinal)));
-
-        Assert.True(Directory.Exists(Path.Combine(builtInRoot, "nt51923-ctrlram-replace-candidate")));
-        Assert.True(Directory.Exists(Path.Combine(builtInRoot, "nt51926-ctrlram-replace-candidate")));
-
-        string packagePolicy = ReadText("scripts/package.ps1");
-        Assert.Contains("$RetiredIcTokens", packagePolicy, StringComparison.Ordinal);
-        Assert.Contains("cannot publish retired IC", packagePolicy, StringComparison.Ordinal);
-        Assert.All(retiredIds, retiredId =>
-            Assert.Contains($"'{retiredId}'", packagePolicy, StringComparison.Ordinal));
-    }
-
     /// <summary>Verifies each approved canonical family reuse is explicit and hash-closed.</summary>
     [Fact]
     public void CandidateBundlesMaterializeOnlyApprovedCanonicalFirmwareFamilies()
@@ -532,6 +475,7 @@ public sealed partial class RepositoryBoundaryTests
             ("nt51928-dp-replace", "nt51928-standard-merge/families/nt51927-nt51928-v1.5.json", "families/nt51927-nt51928-v1.5.json"),
             ("nt51950-nt51951-general-merge-logical-candidate", "nt51950-nt51951-standard-merge/families/nt51950-nt51951-dp-perspective.json", "families/nt51950-nt51951-dp-perspective.json"),
             ("nt51917-ctrlram-replace-alias-candidate", "nt51927-ctrlram-replace-candidate/families/nt51927-ctrlram-replace.json", "families/nt51927-ctrlram-replace.json"),
+            ("nt51950-nt51951-dp-replace", "nt51950-nt51951-standard-merge/families/nt51950-nt51951-dp-perspective.json", "families/nt51950-nt51951-dp-perspective.json"),
         ];
         JsonElement[] canonicalEntries =
         [
@@ -580,7 +524,8 @@ public sealed partial class RepositoryBoundaryTests
                 Convert.ToHexString(SHA256.HashData(File.ReadAllBytes(sourcePath))).ToLowerInvariant());
         }
 
-        string project = ReadText("src/NvtFwCombiner.Bootstrap/NvtFwCombiner.Bootstrap.csproj");
+        string project = ReadText(
+            "eng/profile-bundle-materializer/NvtFwCombiner.ProfileBundleMaterializer.targets");
         Assert.Contains("Built-in profile canonical firmware-family metadata must declare both source and destination", project, StringComparison.Ordinal);
         Assert.Contains("Built-in profile canonical firmware-family source escapes the approved source root", project, StringComparison.Ordinal);
         Assert.Contains("Built-in profile canonical firmware-family destination escapes the bundle families root", project, StringComparison.Ordinal);

@@ -1,7 +1,7 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://schemas.example.invalid/nvt_fw_combiner/release-manifest-v1.schema.json",
-  "title": "NVT FW Combiner Release Manifest 1.1",
+  "title": "NVT FW Combiner Release Manifest 1.x",
   "type": "object",
   "additionalProperties": false,
   "required": [
@@ -22,7 +22,7 @@
     "provenanceAsset"
   ],
   "properties": {
-    "schemaVersion": { "const": "1.1" },
+    "schemaVersion": { "enum": ["1.1", "1.2"] },
     "product": { "const": "NVT FW Combiner" },
     "version": {
       "type": "string",
@@ -48,19 +48,55 @@
     "embeddedSchemaBundleSha256": { "$ref": "#/$defs/sha256" },
     "files": {
       "type": "array",
-      "minItems": 5,
+      "minItems": 7,
       "items": { "$ref": "#/$defs/file" },
       "allOf": [
         { "contains": { "properties": { "path": { "const": "NvtFwCombiner.exe" } }, "required": ["path"] }, "minContains": 1, "maxContains": 1 },
         { "contains": { "properties": { "path": { "const": "external-tools/crc-worker/0.1.0/Nfc.CrcWorker.exe" } }, "required": ["path"] }, "minContains": 1, "maxContains": 1 },
         { "contains": { "properties": { "path": { "const": "THIRD-PARTY-NOTICES.txt" } }, "required": ["path"] }, "minContains": 1, "maxContains": 1 },
         { "contains": { "properties": { "path": { "const": "LICENSE.txt" } }, "required": ["path"] }, "minContains": 1, "maxContains": 1 },
-        { "contains": { "properties": { "path": { "const": "README.txt" } }, "required": ["path"] }, "minContains": 1, "maxContains": 1 }
+        { "contains": { "properties": { "path": { "const": "README.txt" } }, "required": ["path"] }, "minContains": 1, "maxContains": 1 },
+        { "contains": { "properties": { "path": { "const": "docs/contracts/canonical-capability-policy-v1.json" } }, "required": ["path"] }, "minContains": 1, "maxContains": 1 },
+        { "contains": { "properties": { "role": { "const": "builtInProfile" } }, "required": ["role"] }, "minContains": 1 }
       ]
     },
     "sbomAsset": { "$ref": "#/$defs/fileName" },
-    "provenanceAsset": { "$ref": "#/$defs/fileName" }
+    "provenanceAsset": { "$ref": "#/$defs/fileName" },
+    "versionManagementProtocolVersion": { "const": 1 },
+    "launcher": { "$ref": "#/$defs/launcher" }
   },
+  "allOf": [
+    {
+      "if": {
+        "properties": { "schemaVersion": { "const": "1.2" } },
+        "required": ["schemaVersion"]
+      },
+      "then": {
+        "required": ["versionManagementProtocolVersion", "launcher"],
+        "properties": {
+          "files": {
+            "contains": {
+              "properties": {
+                "path": { "const": "launcher/NvtFwCombiner.Launcher.exe" },
+                "role": { "const": "launcher" }
+              },
+              "required": ["path", "role"]
+            },
+            "minContains": 1,
+            "maxContains": 1
+          }
+        }
+      },
+      "else": {
+        "not": {
+          "anyOf": [
+            { "required": ["versionManagementProtocolVersion"] },
+            { "required": ["launcher"] }
+          ]
+        }
+      }
+    }
+  ],
   "$defs": {
     "sha256": { "type": "string", "pattern": "^[0-9a-f]{64}$" },
     "fileName": {
@@ -69,50 +105,131 @@
       "maxLength": 200,
       "pattern": "^[^/\\\\]+$"
     },
-    "file": {
+    "fileCommon": {
       "type": "object",
       "additionalProperties": false,
       "required": ["path", "size", "sha256", "role"],
       "properties": {
-        "path": {
-          "oneOf": [
-            {
-              "enum": [
-                "NvtFwCombiner.exe",
-                "THIRD-PARTY-NOTICES.txt",
-                "LICENSE.txt",
-                "README.txt"
-              ]
-            },
-            {
-              "type": "string",
-              "pattern": "^external-tools/[A-Za-z0-9._/-]+$",
-              "not": {
-                "anyOf": [
-                  { "pattern": "\\.\\." },
-                  { "pattern": "//" },
-                  { "pattern": "/$" }
-                ]
-              }
-            },
-            {
-              "type": "string",
-              "pattern": "^reference/[^\\\\]+$",
-              "not": {
-                "anyOf": [
-                  { "pattern": "\\.\\." },
-                  { "pattern": "//" },
-                  { "pattern": "/$" }
-                ]
-              }
-            }
-          ]
-        },
+        "path": { "type": "string" },
         "size": { "type": "integer", "minimum": 1 },
         "sha256": { "$ref": "#/$defs/sha256" },
-        "role": { "enum": ["application", "crcWorker", "notices", "license", "readme", "externalTool", "reference", "goldenFixture"] },
+        "role": { "type": "string" },
         "signingIdentity": { "type": "string", "minLength": 1, "maxLength": 512 }
       }
+    },
+    "safeNestedPath": {
+      "type": "string",
+      "not": {
+        "anyOf": [
+          { "pattern": "\\.\\." },
+          { "pattern": "//" },
+          { "pattern": "/$" }
+        ]
+      }
+    },
+    "launcher": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "launcherVersion",
+        "protocolVersion",
+        "executableRelativePath",
+        "size",
+        "sha256"
+      ],
+      "properties": {
+        "launcherVersion": {
+          "type": "string",
+          "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+$"
+        },
+        "protocolVersion": { "const": 1 },
+        "executableRelativePath": { "const": "launcher/NvtFwCombiner.Launcher.exe" },
+        "size": { "type": "integer", "minimum": 1, "maximum": 80000000 },
+        "sha256": { "$ref": "#/$defs/sha256" }
+      }
+    },
+    "file": {
+      "allOf": [
+        { "$ref": "#/$defs/fileCommon" },
+        {
+          "oneOf": [
+            { "properties": { "path": { "const": "NvtFwCombiner.exe" }, "role": { "const": "application" } }, "required": ["path", "role"] },
+            { "properties": { "path": { "const": "THIRD-PARTY-NOTICES.txt" }, "role": { "const": "notices" } }, "required": ["path", "role"] },
+            { "properties": { "path": { "const": "LICENSE.txt" }, "role": { "const": "license" } }, "required": ["path", "role"] },
+            { "properties": { "path": { "const": "README.txt" }, "role": { "const": "readme" } }, "required": ["path", "role"] },
+            {
+              "properties": {
+                "path": { "const": "launcher/NvtFwCombiner.Launcher.exe" },
+                "role": { "const": "launcher" }
+              },
+              "required": ["path", "role"]
+            },
+            {
+              "properties": {
+                "path": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 200,
+                  "pattern": "^[^/\\\\]+$",
+                  "not": {
+                    "enum": [
+                      "NvtFwCombiner.exe",
+                      "THIRD-PARTY-NOTICES.txt",
+                      "LICENSE.txt",
+                      "README.txt"
+                    ]
+                  }
+                },
+                "role": { "const": "application" }
+              },
+              "required": ["path", "role"]
+            },
+            {
+              "properties": {
+                "path": { "const": "docs/contracts/canonical-capability-policy-v1.json" },
+                "role": { "const": "capabilityPolicy" }
+              },
+              "required": ["path", "role"]
+            },
+            {
+              "properties": {
+                "path": {
+                  "allOf": [
+                    { "$ref": "#/$defs/safeNestedPath" },
+                    { "pattern": "^profiles/built-in/[A-Za-z0-9._/-]+$" }
+                  ]
+                },
+                "role": { "const": "builtInProfile" }
+              },
+              "required": ["path", "role"]
+            },
+            {
+              "properties": {
+                "path": {
+                  "allOf": [
+                    { "$ref": "#/$defs/safeNestedPath" },
+                    { "pattern": "^external-tools/[A-Za-z0-9._/-]+$" }
+                  ]
+                },
+                "role": { "const": "externalTool" }
+              },
+              "required": ["path", "role"]
+            },
+            {
+              "properties": {
+                "path": {
+                  "allOf": [
+                    { "$ref": "#/$defs/safeNestedPath" },
+                    { "pattern": "^reference/[^\\\\]+$" }
+                  ]
+                },
+                "role": { "enum": ["reference", "goldenFixture"] }
+              },
+              "required": ["path", "role"]
+            }
+          ]
+        }
+      ]
     }
   }
 }

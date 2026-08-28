@@ -297,6 +297,13 @@ public sealed class Nt51950Nt51951DiffDlmMaskCascade2GoldenTests
 
         Assert.True(result.Succeeded, CompositionRunReportJson.Serialize(result));
         byte[] output = File.ReadAllBytes(outputPath);
+        JsonElement goldenCase = CanonicalGoldenTestData.LoadDirectCase("ctrlram-replace", CaseId);
+        CanonicalGoldenDifferenceResult manifestDifferences =
+            CanonicalGoldenTestData.AssertAllowedByteDifferences(
+                goldenCase,
+                evidence.Expected.Bytes,
+                output);
+        Assert.Equal(16, manifestDifferences.DifferenceCount);
         (long differenceCount, ByteRange[] differenceRanges) = FindDifferences(
             evidence.Expected.Bytes,
             output);

@@ -8,7 +8,26 @@ and branch counts, not test counts.
 
 - .NET is collected from every solution test project by the test-only,
   centrally pinned `coverlet.collector` 6.0.4 package as paired Cobertura and
-  Coverlet JSON reports. Cobertura supplies physical line evidence; JSON branch
+  Coverlet JSON reports. The canonical local verifier performs one Release
+  build, validates the closed local/CI project-and-counter inventory, and
+  snapshots each complete `bin/Release/<target-framework>` test output into a
+  distinct ignored verifier-owned directory. It rejects links, junctions,
+  non-regular files, path escapes, inventory/hash changes, and any referenced
+  production DLL that is not byte-identical to its canonical Release output.
+  The repository uses embedded PDBs, so the DLL hash also owns current symbol
+  identity; if a future reviewed build emits a standalone production PDB, the
+  verifier requires the copied DLL/PDB pair and both hashes to match.
+  The collector adapter is resolved only from this baseline's version below the
+  repository-pinned `.packages` root. One unfiltered `dotnet vstest` producer
+  per exact project runs with unique log, TRX, result, and shadow paths. The
+  Avalonia UI Smoke producer runs alone; after it completes, the other seven
+  projects run with at most three workers. VSTest's hash-identical duplicate
+  attachments are collapsed
+  to one retained JSON/Cobertura pair per project; divergent attachments fail.
+  All eight exact TRX counters and pairs must pass before the unchanged coverage
+  policy unions reports. CI retains its separate-checkout shard execution and
+  consumes the same project-and-counter inventory.
+  Cobertura supplies physical line evidence; JSON branch
   outcome identities are unioned across test assemblies so complementary hits
   remain distinguishable. Each pair is reconciled before union: every JSON
   branch must belong to a real Cobertura source/class and an owned physical

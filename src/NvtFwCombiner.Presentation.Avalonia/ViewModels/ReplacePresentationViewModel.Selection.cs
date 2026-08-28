@@ -1,11 +1,9 @@
 namespace NvtFwCombiner.Presentation.Avalonia.ViewModels;
 
-public sealed partial class ReplacePresentationViewModel
+internal sealed partial class ReplacePresentationViewModel
 {
-    /// <summary>True when the compact Replace input selection overview is open.</summary>
     public bool IsReplaceSelectionModalOpen { get; private set; }
 
-    /// <summary>Gets compact selected replacement count text for the Replace title row.</summary>
     public string ReplaceSelectionCountLabel
     {
         get
@@ -19,15 +17,12 @@ public sealed partial class ReplacePresentationViewModel
         }
     }
 
-    /// <summary>Gets the Replace selection modal subtitle.</summary>
     public string ReplaceSelectionSubtitle => $"{SelectedIc} / {SelectedNumber} / {SelectedReplaceMode}";
 
-    /// <summary>Gets the Replace selection readiness label.</summary>
     public string ReplaceSelectionStatusLabel => CanRunReplace()
         ? "Ready for Build"
         : ReplaceReadinessStatus;
 
-    /// <summary>Gets a concise explanation of how selection review feeds Build.</summary>
     public string ReplaceSelectionRunHint => CanRunReplace()
         ? "Build will validate selected inputs, ask for an output BIN path, then record the report details."
         : "Complete the required inputs before Build can validate the operation trace.";
@@ -55,7 +50,6 @@ public sealed partial class ReplacePresentationViewModel
     /// <summary>Gets required Replace inputs that are still missing before Build can run.</summary>
     public IReadOnlyList<ReportLineViewModel> ReplaceSelectionMissingRows => CreateReplaceSelectionMissingRows();
 
-    /// <summary>True when the Replace selection overview has missing required inputs.</summary>
     public bool HasReplaceSelectionMissingRows => ReplaceSelectionMissingRows.Count > 0;
 
     private void ShowReplaceSelection()
@@ -115,8 +109,15 @@ public sealed partial class ReplacePresentationViewModel
             .Select(slot => new ReportLineViewModel(
                 slot.Title,
                 slot.DisplayName,
-                slot.Description)),
+                GetStructuredReplaceSelectionMeta(slot))),
         ];
+    }
+
+    private string GetStructuredReplaceSelectionMeta(FirmwareSlotViewModel slot)
+    {
+        return slot.CtrlRamDescriptionFacts is { } facts
+            ? Text.FormatCtrlRamTechnicalDescription(facts)
+            : slot.Description;
     }
 
     private List<ReportLineViewModel> CreateGeneralReplaceSelectionRows()

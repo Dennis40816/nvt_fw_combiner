@@ -5,119 +5,17 @@
     xmlns:behaviors="using:NvtFwCombiner.Presentation.Avalonia.Behaviors"
     xmlns:vm="using:NvtFwCombiner.Presentation.Avalonia.ViewModels"
     x:DataType="vm:ForegroundLoadingState"
-    AutomationProperties.LiveSetting="Polite"
     AutomationProperties.Name="{Binding AccessibleStatus}"
     behaviors:FocusOnRevealBehavior.IsEnabled="True"
     Focusable="True"
-    IsHitTestVisible="{Binding IsVisible}"
     IsVisible="{Binding IsVisible}">
   <Grid Background="{DynamicResource NfcModalScrimBrush}">
-    <Border
+    <ContentControl
         Width="430"
         Padding="28,26"
+        Content="{Binding}"
+        ContentTemplate="{DynamicResource ForegroundLoadingStatusTemplate}"
         HorizontalAlignment="Center"
-        VerticalAlignment="Center"
-        Background="{DynamicResource NfcSurfaceBrush}"
-        BorderBrush="{DynamicResource NfcBorderSoftBrush}"
-        BorderThickness="1"
-        BoxShadow="{DynamicResource NfcWorkflowCardHoverShadow}"
-        CornerRadius="{DynamicResource NfcSurfaceCornerRadius}">
-      <StackPanel Spacing="{DynamicResource NfcSpace16}">
-        <Grid ColumnDefinitions="44,*" ColumnSpacing="14">
-          <Border
-              Width="44"
-              Height="44"
-              Background="{DynamicResource NfcAccentSurfaceBrush}"
-              BorderBrush="{DynamicResource NfcAccentBorderBrush}"
-              BorderThickness="1"
-              CornerRadius="{DynamicResource NfcPillCornerRadius}">
-            <Grid>
-              <Path
-                  Width="24"
-                  Height="24"
-                  HorizontalAlignment="Center"
-                  VerticalAlignment="Center"
-                  Data="M12 2 A10 10 0 0 1 22 12 M12 22 A10 10 0 0 1 2 12"
-                  Stroke="{DynamicResource NfcAccentStrongBrush}"
-                  StrokeLineCap="Round"
-                  StrokeThickness="2.4" />
-              <Ellipse
-                  Width="6"
-                  Height="6"
-                  Fill="{DynamicResource NfcAccentBrush}" />
-            </Grid>
-          </Border>
-
-          <StackPanel Grid.Column="1" VerticalAlignment="Center" Spacing="{DynamicResource NfcSpace4}">
-            <Grid ColumnDefinitions="*,Auto" ColumnSpacing="{DynamicResource NfcSpace12}">
-              <TextBlock
-                  FontSize="18"
-                  FontWeight="SemiBold"
-                  Foreground="{DynamicResource NfcTextStrongBrush}"
-                  Text="{Binding Title}"
-                  TextWrapping="Wrap" />
-              <TextBlock
-                  Grid.Column="1"
-                  VerticalAlignment="Center"
-                  FontSize="{DynamicResource NfcFontSize13}"
-                  FontWeight="SemiBold"
-                  Foreground="{DynamicResource NfcAccentStrongBrush}"
-                  IsVisible="{Binding HasDeterminateProgress}"
-                  Text="{Binding ProgressPercentLabel}" />
-            </Grid>
-            <TextBlock
-                 FontSize="{DynamicResource NfcFontSize13}"
-                 Foreground="{DynamicResource NfcTextMutedBrush}"
-                 IsVisible="{Binding IsRunning}"
-                 Text="{Binding Detail}"
-                TextWrapping="Wrap" />
-          </StackPanel>
-        </Grid>
-
-        <ProgressBar
-            Height="5"
-            Maximum="1"
-            Foreground="{DynamicResource NfcAccentBrush}"
-            IsIndeterminate="{Binding ShouldAnimate}"
-            IsVisible="{Binding IsRunning}"
-            Value="{Binding Progress}" />
-
-        <Border
-            Padding="12,10"
-            Background="{DynamicResource NfcDangerSurfaceBrush}"
-            BorderBrush="{DynamicResource NfcDangerBorderBrush}"
-            BorderThickness="1"
-            CornerRadius="{DynamicResource NfcCompactCornerRadius}"
-            IsVisible="{Binding HasFailed}">
-          <Grid ColumnDefinitions="Auto,*" ColumnSpacing="{DynamicResource NfcSpace8}">
-            <TextBlock
-                Width="20"
-                Height="20"
-                HorizontalAlignment="Center"
-                VerticalAlignment="Center"
-                FontWeight="Bold"
-                Foreground="{DynamicResource NfcDangerTextBrush}"
-                Text="!" />
-            <TextBlock
-                Grid.Column="1"
-                VerticalAlignment="Center"
-                FontSize="{DynamicResource NfcFontSize12}"
-                Foreground="{DynamicResource NfcDangerTextBrush}"
-                Text="{Binding Detail}"
-                TextWrapping="Wrap" />
-          </Grid>
-        </Border>
-
-        <Button
-            x:Name="RetryButton"
-            Classes="primary"
-            HorizontalAlignment="Right"
-             AutomationProperties.Name="{Binding RetryLabel}"
-             behaviors:FocusOnRevealBehavior.IsEnabled="True"
-             Click="RetryButton_OnClick"
-            Content="{Binding RetryLabel}"
-            IsVisible="{Binding CanRetry}" />
-      </StackPanel>
-    </Border>
+        VerticalAlignment="Center" />
   </Grid>
 </UserControl>

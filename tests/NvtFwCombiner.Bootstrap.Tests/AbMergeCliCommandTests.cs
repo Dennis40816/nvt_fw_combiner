@@ -1,5 +1,6 @@
 using System.Buffers.Binary;
 using System.Text.Json;
+using NvtFwCombiner.Application.Capabilities;
 using NvtFwCombiner.Application.FlashMaps;
 using NvtFwCombiner.Domain.Composition;
 using NvtFwCombiner.TestSupport;
@@ -165,6 +166,10 @@ public sealed class AbMergeCliCommandTests
             TestContext.Current.CancellationToken);
 
         Assert.True(result.ExitCode == 0, result.Error + Environment.NewLine + result.Output);
+        Assert.DoesNotContain(
+            CapabilityActionReadinessIssueCodes.RuntimeSnapshotStale,
+            result.Error,
+            StringComparison.Ordinal);
         using var report = JsonDocument.Parse(await File.ReadAllTextAsync(
             reportPath,
             TestContext.Current.CancellationToken));
@@ -328,6 +333,54 @@ public sealed class AbMergeCliCommandTests
         Assert.False(File.Exists(reportPath));
         Assert.Contains("Issues:", result.Error, StringComparison.Ordinal);
         Assert.DoesNotContain("Status:", result.Output, StringComparison.Ordinal);
+    }
+
+    /// <summary>An oversized sparse AB source is rejected by the compiled slot ceiling before any output is created.</summary>
+    [Fact]
+    public async Task BuildRejectsOversizedSparseInputBeforeMaterializationAsync()
+    {
+        using var workspace = TempWorkspace.Create("nfc-ab-cli-bounded-read");
+        string dpPath = workspace.PathFor("oversized-dp-ab.bin");
+        await using (var stream = new FileStream(
+            dpPath,
+            FileMode.CreateNew,
+            FileAccess.Write,
+            FileShare.None,
+            bufferSize: 1,
+            FileOptions.Asynchronous))
+        {
+            stream.SetLength(100_000_001);
+            await stream.FlushAsync(TestContext.Current.CancellationToken);
+        }
+        string outputPath = workspace.PathFor("must-not-exist.bin");
+        string reportPath = workspace.PathFor("must-not-exist.json");
+
+        CliRunResult result = await CliTestHarness.RunAsync(
+            [
+                "ab-merge",
+                "build",
+                "--profile",
+                "NT51929",
+                "--dp-ab",
+                dpPath,
+                "--tp-a",
+                workspace.Write("tp-a.bin", new byte[0x40000]),
+                "--tp-b",
+                workspace.Write("tp-b.bin", new byte[0x40000]),
+                "--output",
+                outputPath,
+                "--report",
+                reportPath,
+            ],
+            TestContext.Current.CancellationToken);
+
+        Assert.Equal(70, result.ExitCode);
+        Assert.Contains("input.artifact.read-failed [dp-ab-input]", result.Error, StringComparison.Ordinal);
+        Assert.Contains("100000001", result.Error, StringComparison.Ordinal);
+        Assert.Contains("524288-byte limit", result.Error, StringComparison.Ordinal);
+        Assert.Empty(result.Output);
+        Assert.False(File.Exists(outputPath));
+        Assert.False(File.Exists(reportPath));
     }
 
     private static void SetCmiDpVersion(byte[] image, int bankStart, byte major, byte minor)

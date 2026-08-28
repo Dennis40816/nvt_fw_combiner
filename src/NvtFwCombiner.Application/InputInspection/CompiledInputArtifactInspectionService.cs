@@ -13,6 +13,9 @@ public static class InputArtifactInspectionIssueCodes
     /// <summary>The selected source could not be materialized for inspection.</summary>
     public const string SourceUnreadable = "input.inspection.source-unreadable";
 
+    /// <summary>The selected file name does not satisfy the compiler-owned extension contract.</summary>
+    public const string ExtensionNotAccepted = "input.inspection.extension-not-accepted";
+
     /// <summary>An accepted AB input has no readable informational version metadata.</summary>
     public const string AbVersionMetadataUnknown = "ab.input.version-unknown";
 }
@@ -54,7 +57,7 @@ public enum CompiledInputArtifactInspectionNextAction
 
 /// <summary>
 /// Path-free diagnostic for one immutable source inspected against one compiled input-space binding.
-/// A prior inspection is display evidence only; Build re-reads and revalidates its own binding.
+/// Fixed-workflow Build revalidates this accepted immutable snapshot through its exact compiled binding.
 /// </summary>
 public sealed record CompiledInputArtifactInspectionResult(
     string AddressSpaceId,
@@ -81,6 +84,57 @@ public sealed record CompiledInputArtifactInspectionResult(
 /// </summary>
 public static class CompiledInputArtifactInspectionService
 {
+    /// <summary>Inclusive fixed-workflow complete-file read ceiling (decimal 100 MB).</summary>
+    public const long MaximumContentReadBytes = 100_000_000;
+
+    /// <summary>
+    /// Resolves the inclusive complete-file read ceiling from one compiler-owned input binding.
+    /// Resource admission remains distinct from firmware geometry and normalization.
+    /// </summary>
+    public static long ResolveMaximumContentReadBytes(
+        CompiledComposition composition,
+        string addressSpaceId)
+    {
+        ArgumentNullException.ThrowIfNull(composition);
+        (CompiledInputSpaceBinding _, CompiledInputSlotRequirement slot) = ResolveBinding(
+            composition.V2Details.InputContract,
+            addressSpaceId);
+        if (slot.Normalization is CompiledTruncateCtrlRamInputNormalization)
+        {
+            return MaximumContentReadBytes;
+        }
+
+        long declaredMaximum = slot.LengthRequirement switch
+        {
+            CompiledExactBytesInputLengthRequirement exact => exact.Bytes,
+            CompiledExactResolvedMapCapacityInputLengthRequirement exact => exact.Bytes,
+            CompiledBoundedInputLengthRequirement bounded => bounded.MaximumBytes,
+            CompiledSourceViewCoverageInputLengthRequirement { MaximumBytes: { } maximum } => maximum,
+            CompiledSourceViewCoverageInputLengthRequirement => MaximumContentReadBytes,
+            _ => throw new InvalidOperationException(
+                "Unknown compiled input length requirement for content-read admission."),
+        };
+        return Math.Min(MaximumContentReadBytes, declaredMaximum);
+    }
+
+    /// <summary>
+    /// Returns whether one original file name satisfies the compiled slot's extension contract.
+    /// This is admission policy; picker filters remain presentation-only guidance.
+    /// </summary>
+    internal static bool AcceptsOriginalFileName(
+        CompiledComposition composition,
+        string addressSpaceId,
+        string originalFileName)
+    {
+        ArgumentNullException.ThrowIfNull(composition);
+        ArgumentException.ThrowIfNullOrWhiteSpace(originalFileName);
+        (_, CompiledInputSlotRequirement slot) = ResolveBinding(
+            composition.V2Details.InputContract,
+            addressSpaceId);
+        string extension = Path.GetExtension(originalFileName);
+        return slot.AcceptedExtensions.Contains(extension, StringComparer.OrdinalIgnoreCase);
+    }
+
     /// <summary>
     /// Inspects one immutable source using its complete compiled contract and compiler-derived
     /// address-space projection.

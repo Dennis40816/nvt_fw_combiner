@@ -103,6 +103,13 @@ public sealed partial class Nt51929CtrlRamFw200SingleEvidenceTests
         Assert.True(v2.Succeeded, CompositionRunReportJson.Serialize(v2));
         byte[] v2Bytes = File.ReadAllBytes(v2Path);
         Assert.Equal(CurrentOutputSha256, Hash(v2Bytes));
+        JsonElement goldenCase = CanonicalGoldenTestData.LoadDirectCase("ctrlram-replace", CaseId);
+        CanonicalGoldenDifferenceResult manifestDifferences =
+            CanonicalGoldenTestData.AssertAllowedByteDifferences(
+                goldenCase,
+                evidence.Expected.Bytes,
+                v2Bytes);
+        Assert.Equal(15, manifestDifferences.DifferenceCount);
         AssertGoldenDifferenceClassification(evidence.Expected.Bytes, v2Bytes);
         AssertPhysicalInputProjection(evidence, v2Bytes);
 

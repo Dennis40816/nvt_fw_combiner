@@ -94,6 +94,16 @@ public sealed class Nt51923CtrlRamFw141EvidenceTests
         byte[] v2Bytes = File.ReadAllBytes(v2OutputPath);
         Assert.Equal(outputSha256, Hash(v2Bytes));
         Assert.Equal(outputSha256, v2.OutputSha256);
+        string caseId = StringComparer.Ordinal.Equals(topology, "single")
+            ? "nt51923-fw141-single-auto-prj-662-20260717"
+            : "nt51923-fw141-cascade3-auto-prj-734-20260717";
+        JsonElement goldenCase = CanonicalGoldenTestData.LoadDirectCase("ctrlram-replace", caseId);
+        CanonicalGoldenDifferenceResult manifestDifferences =
+            CanonicalGoldenTestData.AssertAllowedByteDifferences(
+                goldenCase,
+                ownerCase.Expected.Bytes,
+                v2Bytes);
+        Assert.Equal(16, manifestDifferences.DifferenceCount);
         AssertOwnerCrcOnlyDifference(ownerCase.Expected.Bytes, v2Bytes);
 
         using var v2Report = JsonDocument.Parse(CompositionRunReportJson.Serialize(v2));
@@ -199,7 +209,7 @@ public sealed class Nt51923CtrlRamFw141EvidenceTests
         Assert.Equal("nfc.nt51923.ctrlram-postbuild-v1", session.GetProperty("ProcessorId").GetString());
         Assert.Equal("legacy-combiner-1.13.0", session.GetProperty("ToolBindingId").GetString());
         Assert.Equal("Succeeded", session.GetProperty("Status").GetString());
-        Assert.Equal([new ByteRange(0, 0x40000)], ReadRanges(session, "ProcessorAllowedReadRanges"));
+        Assert.Equal([new ByteRange(0, 0x3C000)], ReadRanges(session, "ProcessorAllowedReadRanges"));
         ByteRange[] expectedWrites = StringComparer.Ordinal.Equals(topology, "cascade")
             ? [
                 new(0x18, 4), new(0x1C, 4), new(0x3C, 4),

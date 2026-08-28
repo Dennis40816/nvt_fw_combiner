@@ -2,6 +2,7 @@ using System.Globalization;
 using System.Collections.ObjectModel;
 using NvtFwCombiner.Application.Authoring;
 using NvtFwCombiner.Application.Capabilities;
+using NvtFwCombiner.Application.InputInspection;
 using NvtFwCombiner.Domain.Composition;
 using NvtFwCombiner.Domain.Firmware;
 
@@ -104,6 +105,15 @@ public sealed class CompositionRunRequest
 
     /// <summary>Publication-bound capability that owns report metadata for this exact compilation.</summary>
     public ResolvedCapability? ResolvedCapability { get; }
+
+    /// <summary>Prepared canonical bundle name captured from the exact accepted naming publication.</summary>
+    internal OutputNameResolution? PreparedOutputName { get; set; }
+
+    /// <summary>Exact prepared bundle source and receipt expectation.</summary>
+    internal CompositionExecutionBundleDelivery? BundleDelivery { get; set; }
+
+    /// <summary>Exact accepted General draft captured before execution begins.</summary>
+    internal GeneralMappingDraftState? AcceptedGeneralMappingDraft { get; init; }
 
     /// <summary>Returns a copy of this request with a preview token approved for build.</summary>
     public CompositionRunRequest WithApprovedPreviewToken(string previewToken)
@@ -370,8 +380,10 @@ public sealed class CompositionRunRequest
 
             string originalFileName = binding.OriginalFileName ?? throw new InvalidOperationException(
                 "A contract-matching V2 binding must retain its original file name.");
-            string extension = Path.GetExtension(originalFileName);
-            if (!slot.AcceptedExtensions.Contains(extension, StringComparer.OrdinalIgnoreCase))
+            if (!CompiledInputArtifactInspectionService.AcceptsOriginalFileName(
+                    compiledComposition,
+                    expected.AddressSpaceId,
+                    originalFileName))
             {
                 throw new ArgumentException(
                     $"V2 runtime binding '{expected.AddressSpaceId}' has an unaccepted original file extension.",

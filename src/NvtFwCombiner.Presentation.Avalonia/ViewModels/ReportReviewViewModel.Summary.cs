@@ -3,7 +3,7 @@ using NvtFwCombiner.Domain.Composition;
 
 namespace NvtFwCombiner.Presentation.Avalonia.ViewModels;
 
-public sealed partial class ReportReviewViewModel
+internal sealed partial class ReportReviewViewModel
 {
     internal static string CreateStatus(IReadOnlyList<ReportLineViewModel> issues, ShellLanguage language)
     {

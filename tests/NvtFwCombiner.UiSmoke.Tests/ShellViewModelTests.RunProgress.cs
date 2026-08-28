@@ -1,6 +1,7 @@
 using System.Text.Json;
 using NvtFwCombiner.Application.Authoring;
 using NvtFwCombiner.Domain.Composition;
+using NvtFwCombiner.Presentation.Avalonia;
 using NvtFwCombiner.Presentation.Avalonia.ViewModels;
 using NvtFwCombiner.TestSupport;
 
@@ -166,8 +167,35 @@ public sealed partial class RunAndHexEditorTests
                 TimeSpan.FromSeconds(5),
                 TestContext.Current.CancellationToken);
             usedStaticProgress = viewModel.RunSession.IsRunInProgress && !viewModel.RunSession.ShouldAnimateRunProgress;
+            bool materialized = false;
+            Assert.False(MainWindow.TryApplyWarmupStep(
+                () => materialized = true,
+                viewModel.RunSession,
+                static () => true));
+            Assert.False(materialized);
+            using var preloadCancellation = new CancellationTokenSource();
+            Task cancelledPreload = MainWindow.WaitForRunIdleAsync(
+                viewModel.RunSession,
+                preloadCancellation.Token);
+            preloadCancellation.Cancel();
+            _ = await Assert.ThrowsAnyAsync<OperationCanceledException>(async () => await cancelledPreload);
+            Assert.True(viewModel.RunSession.IsRunInProgress);
+            Task operatorPriorityWait = MainWindow.WaitForRunIdleAsync(
+                viewModel.RunSession,
+                TestContext.Current.CancellationToken);
             viewModel.RunSession.CancelActiveRun();
             await runTask;
+            await operatorPriorityWait;
+            Assert.False(MainWindow.TryApplyWarmupStep(
+                () => materialized = true,
+                viewModel.RunSession,
+                static () => false));
+            Assert.False(materialized);
+            Assert.True(MainWindow.TryApplyWarmupStep(
+                () => materialized = true,
+                viewModel.RunSession,
+                static () => true));
+            Assert.True(materialized);
         });
 
         Assert.False(viewModel.RunSession.IsRunInProgress);
@@ -232,6 +260,7 @@ public sealed partial class RunAndHexEditorTests
         viewModel.ShowReplaceCommand.Execute(null);
         viewModel.WorkflowSession.SelectedIc = "NT51926";
         viewModel.WorkflowSession.SelectedNumber = IcNumberSelectionTokens.Cascade;
+        viewModel.Replace.SelectedReplaceMode = ExperienceIds.DpReplace;
         var workerStarted = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
         var releaseWorker = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
         string activeContextLabel = string.Empty;
@@ -393,60 +422,70 @@ public sealed partial class RunAndHexEditorTests
         using var workspace = TempWorkspace.Create("nvt-fw-combiner-ui-run-snapshot");
         string sourcePath = workspace.Write("source.bin", [0x10, 0x11, 0x12, 0x13]);
         MainWindowViewModel viewModel = PresentationTestHost.CreateViewModel();
-        viewModel.ShowMergeCommand.Execute(null);
-        viewModel.WorkflowSession.SelectedIc = "NT51926";
-        viewModel.Merge.SelectedMergeMode = ExperienceIds.GeneralMerge;
-        viewModel.Merge.GeneralMergeOutputLength = "0x10";
-        GeneralMergeMappingViewModel mapping = Assert.Single(viewModel.Merge.GeneralMergeMappings);
-        mapping.SourceStartAddress = "0x0";
-        mapping.TargetStartAddress = "0x4";
-        mapping.Length = "0x4";
-        viewModel.SetSlotFile(mapping.MappingId, sourcePath);
+        using var uiThread = new UiThreadTestContext();
 
-        Task previewTask = viewModel.Merge.PreviewMergeCommand.ExecuteAsync(null);
-        viewModel.WorkflowSession.SelectedIc = "NT51927";
-        GeneralMergeMappingViewModel currentMapping = Assert.Single(
-            viewModel.Merge.GeneralMergeMappings);
-        currentMapping.TargetStartAddress = "0x8";
-        await viewModel.WorkflowSession.SetSlotFileAsync(
-            currentMapping.MappingId,
-            sourcePath,
-            TestContext.Current.CancellationToken);
-        await previewTask;
-        await viewModel.Merge.GeneralMergeReadinessRefreshTask;
+        await uiThread.InvokeAsync(async () =>
+        {
+            viewModel.ShowMergeCommand.Execute(null);
+            viewModel.WorkflowSession.SelectedIc = "NT51926";
+            viewModel.Merge.SelectedMergeMode = ExperienceIds.GeneralMerge;
+            viewModel.Merge.GeneralMergeOutputLength = "0x10";
+            GeneralMergeMappingViewModel mapping = Assert.Single(viewModel.Merge.GeneralMergeMappings);
+            mapping.SourceStartAddress = "0x0";
+            mapping.TargetStartAddress = "0x4";
+            mapping.Length = "0x4";
+            await viewModel.WorkflowSession.SetSlotFileAsync(
+                mapping.MappingId,
+                sourcePath,
+                TestContext.Current.CancellationToken);
 
-        Assert.Equal("NT51926", viewModel.Reports.LoadedReport.IcId);
-        using var report = JsonDocument.Parse(viewModel.Reports.LoadedReportJson);
-        JsonElement operation = Assert.Single(report.RootElement.GetProperty("Operations").EnumerateArray());
-        Assert.Equal(4, operation.GetProperty("TargetRange").GetProperty("Start").GetInt64());
-        Assert.False(viewModel.RunSession.IsRunInProgress);
+            Task previewTask = viewModel.Merge.PreviewMergeCommand.ExecuteAsync(null);
+            viewModel.WorkflowSession.SelectedIc = "NT51927";
+            GeneralMergeMappingViewModel currentMapping = Assert.Single(
+                viewModel.Merge.GeneralMergeMappings);
+            currentMapping.TargetStartAddress = "0x8";
+            await viewModel.WorkflowSession.SetSlotFileAsync(
+                currentMapping.MappingId,
+                sourcePath,
+                TestContext.Current.CancellationToken);
+            await previewTask;
+            await viewModel.Merge.Inspection.ActiveTask;
 
-        Assert.True(
-            viewModel.Merge.PreviewMergeCommand.CanExecute(null),
-            $"Readiness: {viewModel.Merge.MergeReadinessStatus}; " +
-            $"row issue: {currentMapping.IssueMessage}; " +
-            $"stamp: {currentMapping.AcceptedFileStamp}");
-        await viewModel.Merge.PreviewMergeCommand.ExecuteAsync(null);
-        Assert.Equal("NT51927", viewModel.Reports.LoadedReport.IcId);
-        using var currentReport = JsonDocument.Parse(viewModel.Reports.LoadedReportJson);
-        JsonElement currentOperation = Assert.Single(
-            currentReport.RootElement.GetProperty("Operations").EnumerateArray());
-        Assert.Equal(8, currentOperation.GetProperty("TargetRange").GetProperty("Start").GetInt64());
+            Assert.Equal("NT51926", viewModel.Reports.LoadedReport.IcId);
+            using var report = JsonDocument.Parse(viewModel.Reports.LoadedReportJson);
+            JsonElement operation = Assert.Single(report.RootElement.GetProperty("Operations").EnumerateArray());
+            Assert.Equal(4, operation.GetProperty("TargetRange").GetProperty("Start").GetInt64());
+            Assert.False(viewModel.RunSession.IsRunInProgress);
+
+            Assert.True(
+                viewModel.Merge.PreviewMergeCommand.CanExecute(null),
+                $"Readiness: {viewModel.Merge.MergeReadinessStatus}; " +
+                $"row issue: {currentMapping.IssueMessage}; " +
+                $"stamp: {currentMapping.AcceptedFileStamp}");
+            await viewModel.Merge.PreviewMergeCommand.ExecuteAsync(null);
+            Assert.Equal("NT51927", viewModel.Reports.LoadedReport.IcId);
+            using var currentReport = JsonDocument.Parse(viewModel.Reports.LoadedReportJson);
+            JsonElement currentOperation = Assert.Single(
+                currentReport.RootElement.GetProperty("Operations").EnumerateArray());
+            Assert.Equal(8, currentOperation.GetProperty("TargetRange").GetProperty("Start").GetInt64());
+        });
     }
 
     /// <summary>The global progress surface names the active Preview or Build in the selected language.</summary>
     [Theory]
-    [InlineData(ShellLanguage.English, "Preview in progress", "Build in progress")]
-    [InlineData(ShellLanguage.ChineseTraditional, "正在預覽", "正在建立")]
+    [InlineData("English", "Preview in progress", "Build in progress")]
+    [InlineData("ChineseTraditional", "正在預覽", "正在建立")]
     public async Task CompositionProgressNamesTheActiveAction(
-        ShellLanguage language,
+        string languageName,
         string previewLabel,
         string buildLabel)
     {
+        ShellLanguage language = Enum.Parse<ShellLanguage>(languageName);
         using var golden = StandardMergeGoldenManifest.Load();
         JsonElement goldenCase = golden.CaseByIc("51926");
         using var workspace = TempWorkspace.Create("nvt-fw-combiner-ui-run-progress");
         MainWindowViewModel viewModel = PresentationTestHost.CreateViewModel(language);
+        viewModel.ShowMergeCommand.Execute(null);
         viewModel.WorkflowSession.SelectedIc = "NT51926";
         golden.CopyInputFilesToMergeSlots(viewModel, workspace, goldenCase);
         List<string> activeLabels = [];

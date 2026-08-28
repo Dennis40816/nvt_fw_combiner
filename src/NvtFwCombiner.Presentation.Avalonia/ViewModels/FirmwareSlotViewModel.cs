@@ -5,11 +5,13 @@ using System.Collections.ObjectModel;
 namespace NvtFwCombiner.Presentation.Avalonia.ViewModels;
 
 /// <summary>UI file slot for one firmware input artifact.</summary>
-public sealed partial class FirmwareSlotViewModel : ObservableObject
+internal sealed partial class FirmwareSlotViewModel : ObservableObject
 {
     private string RequiredText { get; set; } = "Required";
     private string OptionalText { get; set; } = "Optional";
     private string EmptyDisplayName { get; set; } = "No BIN selected";
+    private bool _isSelectionLinked;
+    private string _selectionLinkLabel = string.Empty;
 
     /// <summary>Creates a firmware slot.</summary>
     public FirmwareSlotViewModel(
@@ -22,13 +24,16 @@ public sealed partial class FirmwareSlotViewModel : ObservableObject
         string? addressSpaceId = null,
         ReplaceRegionGroup regionGroup = ReplaceRegionGroup.Common,
         ReplaceInputRole replaceInputRole = ReplaceInputRole.None,
-        string? compiledSlotId = null)
+        string? compiledSlotId = null,
+        CtrlRamInputDescriptionFacts? ctrlRamDescriptionFacts = null)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(slotId);
         ArgumentException.ThrowIfNullOrWhiteSpace(title);
         ArgumentException.ThrowIfNullOrWhiteSpace(description);
 
         SlotId = slotId;
+        DeclaredTitle = title;
+        DeclaredDescription = description;
         Title = title;
         Description = description;
         SlotKind = kind;
@@ -39,21 +44,25 @@ public sealed partial class FirmwareSlotViewModel : ObservableObject
         CompiledSlotId = string.IsNullOrWhiteSpace(compiledSlotId) ? null : compiledSlotId;
         RegionGroup = regionGroup;
         ReplaceInputRole = replaceInputRole;
+        CtrlRamDescriptionFacts = ctrlRamDescriptionFacts;
     }
 
-    /// <summary>Stable slot id used by drag/drop handlers.</summary>
     public string SlotId { get; }
 
-    /// <summary>Canonical fixed Replace workflow role projected by Bootstrap.</summary>
+    /// <summary>Invariant producer text retained so language changes never translate a prior projection.</summary>
+    internal string DeclaredTitle { get; }
+
+    /// <summary>Invariant producer detail retained for deterministic relocalization.</summary>
+    internal string DeclaredDescription { get; }
+
     public ReplaceInputRole ReplaceInputRole { get; }
 
-    /// <summary>Typed Replace grouping supplied by the Bootstrap projection.</summary>
     public ReplaceRegionGroup RegionGroup { get; }
 
-    /// <summary>Displayed slot title.</summary>
+    internal CtrlRamInputDescriptionFacts? CtrlRamDescriptionFacts { get; }
+
     public string Title { get; private set; }
 
-    /// <summary>Short slot description.</summary>
     public string Description { get; private set; }
 
     /// <summary>Display-only slot kind used by the slot card icon.</summary>
@@ -68,28 +77,32 @@ public sealed partial class FirmwareSlotViewModel : ObservableObject
     /// <summary>Compiler-owned slot identity used by Application authoring sessions.</summary>
     public string? CompiledSlotId { get; }
 
-    /// <summary>Profile projection used when no compiled selection-group cardinality is available.</summary>
     public bool DeclaredIsOptional { get; }
 
-    /// <summary>Requirement label for the active workflow.</summary>
     public string RequirementLabel => IsOptional ? OptionalText : RequiredText;
 
-    /// <summary>True when a local file is selected.</summary>
     public bool HasFile => !string.IsNullOrWhiteSpace(FilePath);
 
-    /// <summary>True while the empty slot still needs its selection guidance.</summary>
     public bool IsGuidanceVisible => !HasFile;
 
-    /// <summary>Displayed file name or empty-slot state.</summary>
     public string DisplayName => HasFile ? Path.GetFileName(FilePath!) : EmptyDisplayName;
 
-    /// <summary>Displayed selected file path.</summary>
+    /// <summary>Filename plus a Presentation-owned linked-selection marker when the picker is delegated.</summary>
+    public string DisplayNameWithSelectionContext => _isSelectionLinked
+        ? $"{DisplayName} · {_selectionLinkLabel}"
+        : DisplayName;
+
     public string DisplayDetail => HasFile ? FirmwarePathDisplay.Normalize(FilePath!) : string.Empty;
+
+    /// <summary>Current immutable Application inspection used only by this selected slot projection.</summary>
+    internal FirmwareInspectionSnapshot? CurrentInspectionProjection { get; private set; }
+
+    internal long? InspectedFileLength =>
+        CurrentInspectionProjection?.FileStamp?.AcceptedLength;
 
     /// <summary>Firmware facts decoded from the selected file, when the active IC has a FWConfig map.</summary>
     public ObservableCollection<FirmwareSlotFactViewModel> FirmwareFacts { get; } = [];
 
-    /// <summary>At most four facts kept immediately visible for scanability.</summary>
     public IReadOnlyList<FirmwareSlotFactViewModel> PrimaryFirmwareFacts => [.. FirmwareFacts.Take(4)];
 
     /// <summary>Facts disclosed on demand after the four primary facts.</summary>
@@ -101,24 +114,23 @@ public sealed partial class FirmwareSlotViewModel : ObservableObject
     /// <summary>True when decoded firmware facts exceed the four-card primary limit.</summary>
     public bool HasAdditionalFirmwareFacts => FirmwareFacts.Count > 4;
 
-    /// <summary>True when the selected source has a current health or pending inspection state.</summary>
-    public bool HasInputInspectionStatus => IsInputInspectionPending || InputInspectionSeverity is not null;
+    public bool HasInputInspectionStatus =>
+        IsInputInspectionPending || InputInspectionSeverity is not null || IsBaseDiscoveryInspected;
 
-    /// <summary>True when the latest completed input inspection blocks Build.</summary>
     public bool BlocksBuild =>
         InputInspectionSeverity == FirmwareInputInspectionSeverity.Blocking ||
         SelectionReadinessState == ResolvedChildReadiness.Blocked;
 
-    /// <summary>True while the selected source awaits a current inspection.</summary>
     public bool IsInputInspectionPending { get; private set; }
+
+    /// <summary>True only for Application-owned non-terminal CtrlRAM Base discovery.</summary>
+    public bool IsBaseDiscoveryInspected { get; private set; }
 
     /// <summary>Highest completed typed input health, or null before inspection.</summary>
     public FirmwareInputInspectionSeverity? InputInspectionSeverity { get; private set; }
 
-    /// <summary>Concise localized health and next-action line.</summary>
     public string InputInspectionStatus { get; private set; } = string.Empty;
 
-    /// <summary>True when Application selection readiness is available for this slot.</summary>
     public bool HasSelectionReadinessStatus => SelectionReadinessState is not null;
 
     /// <summary>Application-owned applicability state projected for display.</summary>
@@ -127,36 +139,28 @@ public sealed partial class FirmwareSlotViewModel : ObservableObject
     /// <summary>Application-owned admission for an independent picker transition.</summary>
     public bool? SelectionReadinessCanSelect { get; private set; }
 
-    /// <summary>True when this slot's picker and file drop are currently admitted.</summary>
-    public bool CanSelectFile => SelectionReadinessCanSelect ?? true;
+    public bool CanSelectFile => !_isSelectionLinked && (SelectionReadinessCanSelect ?? true);
 
-    /// <summary>Localized short label for the projected selection state.</summary>
     public string SelectionReadinessLabel { get; private set; } = string.Empty;
 
-    /// <summary>Localized reason or next action for the projected selection state.</summary>
     public string SelectionReadinessDetail { get; private set; } = string.Empty;
 
-    /// <summary>Screen-reader equivalent of the complete visible selection state.</summary>
     public string SelectionReadinessAutomationText { get; private set; } = string.Empty;
 
-    /// <summary>True when the highest completed input health is blocking.</summary>
     public bool IsInputInspectionBlocking => InputInspectionSeverity == FirmwareInputInspectionSeverity.Blocking;
 
-    /// <summary>True when the highest completed input health is warning.</summary>
     public bool IsInputInspectionWarning => InputInspectionSeverity == FirmwareInputInspectionSeverity.Warning;
 
-    /// <summary>True when the highest completed input health is valid.</summary>
     public bool IsInputInspectionValid => InputInspectionSeverity == FirmwareInputInspectionSeverity.Valid;
 
-    /// <summary>Selected local file path.</summary>
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(HasFile))]
     [NotifyPropertyChangedFor(nameof(IsGuidanceVisible))]
     [NotifyPropertyChangedFor(nameof(DisplayName))]
+    [NotifyPropertyChangedFor(nameof(DisplayNameWithSelectionContext))]
     [NotifyPropertyChangedFor(nameof(DisplayDetail))]
     public partial string? FilePath { get; set; }
 
-    /// <summary>True when this input is optional for the active workflow.</summary>
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(RequirementLabel))]
     public partial bool IsOptional { get; set; }
@@ -185,7 +189,29 @@ public sealed partial class FirmwareSlotViewModel : ObservableObject
         OnPropertyChanged(nameof(Description));
         OnPropertyChanged(nameof(RequirementLabel));
         OnPropertyChanged(nameof(DisplayName));
+        OnPropertyChanged(nameof(DisplayNameWithSelectionContext));
         NotifySemanticStateChanged();
+    }
+
+    /// <summary>Delegates this card's picker to a peer while retaining its independent logical slot.</summary>
+    internal void SetLinkedSelection(bool isLinked, string label)
+    {
+        if (isLinked)
+        {
+            ArgumentException.ThrowIfNullOrWhiteSpace(label);
+        }
+
+        string nextLabel = isLinked ? label : string.Empty;
+        if (_isSelectionLinked == isLinked &&
+            string.Equals(_selectionLinkLabel, nextLabel, StringComparison.Ordinal))
+        {
+            return;
+        }
+
+        _isSelectionLinked = isLinked;
+        _selectionLinkLabel = nextLabel;
+        OnPropertyChanged(nameof(CanSelectFile));
+        OnPropertyChanged(nameof(DisplayNameWithSelectionContext));
     }
 
     /// <summary>Replaces decoded firmware facts for this slot.</summary>
@@ -202,7 +228,6 @@ public sealed partial class FirmwareSlotViewModel : ObservableObject
             }
         }
 
-        IsFirmwareFactsExpanded = false;
         IsAdditionalFirmwareFactsExpanded = false;
         OnPropertyChanged(nameof(HasFirmwareFacts));
         OnPropertyChanged(nameof(PrimaryFirmwareFacts));
@@ -211,13 +236,28 @@ public sealed partial class FirmwareSlotViewModel : ObservableObject
         OnPropertyChanged(nameof(AdditionalFirmwareFactsLabel));
     }
 
-    /// <summary>Reprojects cached facts after a language change without collapsing disclosure state.</summary>
+    internal void SetCurrentInspectionProjection(FirmwareInspectionSnapshot inspection)
+    {
+        ArgumentNullException.ThrowIfNull(inspection);
+        if (!HasFile)
+        {
+            throw new InvalidOperationException(
+                "A firmware inspection projection requires one current selected file.");
+        }
+
+        CurrentInspectionProjection = inspection;
+    }
+
+    internal void ClearCurrentInspectionProjection()
+    {
+        CurrentInspectionProjection = null;
+    }
+
+    /// <summary>Reprojects cached facts after a language change without collapsing overflow disclosure state.</summary>
     internal void RelocalizeFirmwareFacts(IEnumerable<FirmwareSlotFactViewModel> facts)
     {
-        bool isExpanded = IsFirmwareFactsExpanded;
         bool areAdditionalFactsExpanded = IsAdditionalFirmwareFactsExpanded;
         SetFirmwareFacts(facts);
-        IsFirmwareFactsExpanded = isExpanded;
         IsAdditionalFirmwareFactsExpanded = areAdditionalFactsExpanded;
     }
 
@@ -226,12 +266,12 @@ public sealed partial class FirmwareSlotViewModel : ObservableObject
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(status);
         IsInputInspectionPending = true;
+        IsBaseDiscoveryInspected = false;
         InputInspectionSeverity = null;
         InputInspectionStatus = status;
         NotifyInputInspectionChanged();
     }
 
-    /// <summary>Applies one completed highest-severity typed input diagnostic.</summary>
     public void SetInputInspection(
         FirmwareInputInspectionSeverity severity,
         string status)
@@ -243,8 +283,20 @@ public sealed partial class FirmwareSlotViewModel : ObservableObject
         }
 
         IsInputInspectionPending = false;
+        IsBaseDiscoveryInspected = false;
         InputInspectionSeverity = severity;
         InputInspectionStatus = status;
+        NotifyInputInspectionChanged();
+    }
+
+    /// <summary>Projects a typed base-only discovery without claiming terminal input health.</summary>
+    public void SetBaseDiscoveryInspected(string detail)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(detail);
+        IsInputInspectionPending = false;
+        IsBaseDiscoveryInspected = true;
+        InputInspectionSeverity = null;
+        InputInspectionStatus = detail;
         NotifyInputInspectionChanged();
     }
 
@@ -252,6 +304,7 @@ public sealed partial class FirmwareSlotViewModel : ObservableObject
     public void ClearInputInspection()
     {
         IsInputInspectionPending = false;
+        IsBaseDiscoveryInspected = false;
         InputInspectionSeverity = null;
         InputInspectionStatus = string.Empty;
         NotifyInputInspectionChanged();
@@ -315,6 +368,7 @@ public sealed partial class FirmwareSlotViewModel : ObservableObject
         OnPropertyChanged(nameof(HasInputInspectionStatus));
         OnPropertyChanged(nameof(BlocksBuild));
         OnPropertyChanged(nameof(IsInputInspectionPending));
+        OnPropertyChanged(nameof(IsBaseDiscoveryInspected));
         OnPropertyChanged(nameof(InputInspectionSeverity));
         OnPropertyChanged(nameof(InputInspectionStatus));
         OnPropertyChanged(nameof(IsInputInspectionBlocking));

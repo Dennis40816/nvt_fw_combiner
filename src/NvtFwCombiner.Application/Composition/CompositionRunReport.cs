@@ -28,7 +28,9 @@ public sealed class CompositionRunReport(
     IReadOnlyList<DeliveryArtifactSummary>? deliveryArtifacts = null,
     GeneralAuthoringAdmissionSummary? generalAdmission = null,
     ImageInitializationSummary? imageInitialization = null,
-    GeneralReplaceDiagnosticPreviewSummary? diagnosticPreview = null)
+    GeneralReplaceDiagnosticPreviewSummary? diagnosticPreview = null,
+    CompositionOutputBundleDeliverySummary? bundleDelivery = null,
+    string? resolvedMapId = null)
 {
     /// <summary>Stable run id.</summary>
     public string RunId { get; } = CompositionSummaryValue.NotBlank(runId, nameof(runId));
@@ -92,6 +94,12 @@ public sealed class CompositionRunReport(
     /// <summary>Compiled artifact fingerprint that binds V2 bundle, profile, map, and execution facts when available.</summary>
     public string? CompilationFingerprint { get; } = RequireCompilationFingerprint(compilationFingerprint);
 
+    /// <summary>Exact firmware map selected by the compiled typed route.</summary>
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public string? MapId { get; } = resolvedMapId is null
+        ? null
+        : CompositionSummaryValue.NotBlank(resolvedMapId, nameof(resolvedMapId));
+
     /// <summary>Compiled validation outcomes retained independently from operation execution.</summary>
     public IReadOnlyList<ValidationRunSummary> Validations { get; } = Array.AsReadOnly(
         validations is null ? Array.Empty<ValidationRunSummary>() : [.. validations]);
@@ -116,6 +124,10 @@ public sealed class CompositionRunReport(
     /// <summary>Plan-only General Replace marker when POSTBUILD cannot execute.</summary>
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public GeneralReplaceDiagnosticPreviewSummary? DiagnosticPreview { get; } = diagnosticPreview;
+
+    /// <summary>Actual atomic output bundle delivery, omitted for Preview and loose output.</summary>
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public CompositionOutputBundleDeliverySummary? BundleDelivery { get; } = bundleDelivery;
 
     private static string? RequireCompilationFingerprint(string? compilationFingerprint)
     {

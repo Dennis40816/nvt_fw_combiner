@@ -1,154 +1,140 @@
-<UserControl
-    x:Class="NvtFwCombiner.Presentation.Avalonia.Views.FirmwareSlotCard"
-    xmlns="https://github.com/avaloniaui"
-    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-    xmlns:behaviors="using:NvtFwCombiner.Presentation.Avalonia.Behaviors"
-    xmlns:converters="clr-namespace:Avalonia.Data.Converters;assembly=Avalonia.Base"
-    xmlns:vm="using:NvtFwCombiner.Presentation.Avalonia.ViewModels"
-    x:Name="Root"
-    x:DataType="vm:FirmwareSlotViewModel">
-  <Border
-      Classes="fileDropZone firmwareSlot compactExperience"
-      Classes.hasFile="{Binding HasFile}"
-      Classes.optional="{Binding IsOptional}"
-      HorizontalAlignment="Stretch"
-      Margin="0,0,0,10"
-      Padding="0"
-      CornerRadius="{DynamicResource NfcSurfaceCornerRadius}"
-      DragDrop.AllowDrop="{Binding CanSelectFile}"
-      DragDrop.DragEnter="SlotDragOver_OnDragOver"
-      DragDrop.DragOver="SlotDragOver_OnDragOver"
-      DragDrop.DragLeave="DropZone_OnDragLeave"
-      DragDrop.Drop="SlotDrop_OnDrop"
-      Tag="{Binding SlotId}">
+<UserControl x:Class="NvtFwCombiner.Presentation.Avalonia.Views.FirmwareSlotCard"
+             xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:behaviors="using:NvtFwCombiner.Presentation.Avalonia.Behaviors"
+             xmlns:converters="clr-namespace:Avalonia.Data.Converters;assembly=Avalonia.Base"
+             xmlns:vm="using:NvtFwCombiner.Presentation.Avalonia.ViewModels"
+             xmlns:views="using:NvtFwCombiner.Presentation.Avalonia.Views"
+             x:Name="Root" x:DataType="vm:FirmwareSlotViewModel">
+  <Border Classes="fileDropZone firmwareSlot compactExperience"
+          Classes.hasFile="{Binding HasFile}" Classes.optional="{Binding IsOptional}"
+          HorizontalAlignment="Stretch" Margin="0,0,0,12" Padding="0"
+          CornerRadius="{DynamicResource NfcSurfaceCornerRadius}"
+          DragDrop.AllowDrop="{Binding CanSelectFile}" DragDrop.DragEnter="SlotDragOver_OnDragOver"
+          DragDrop.DragOver="SlotDragOver_OnDragOver" DragDrop.DragLeave="DropZone_OnDragLeave"
+          DragDrop.Drop="SlotDrop_OnDrop" Tag="{Binding SlotId}">
     <Grid>
       <Border Classes="dropZoneOverlay" />
-      <Grid Margin="14" ColumnDefinitions="*,Auto" ColumnSpacing="14">
-        <StackPanel Spacing="{DynamicResource NfcSpace4}">
-          <StackPanel Orientation="Horizontal" Spacing="{DynamicResource NfcSpace8}">
-            <Border
-                Classes="slotTypeIcon"
-                Classes.base="{Binding SlotKind, Converter={x:Static converters:ObjectConverters.Equal}, ConverterParameter={x:Static vm:FirmwareSlotKind.Base}}"
-                Classes.bin="{Binding SlotKind, Converter={x:Static converters:ObjectConverters.Equal}, ConverterParameter={x:Static vm:FirmwareSlotKind.Unknown}}"
-                Classes.ctrlRam="{Binding SlotKind, Converter={x:Static converters:ObjectConverters.Equal}, ConverterParameter={x:Static vm:FirmwareSlotKind.CtrlRam}}"
-                Classes.dp="{Binding SlotKind, Converter={x:Static converters:ObjectConverters.Equal}, ConverterParameter={x:Static vm:FirmwareSlotKind.Dp}}"
-                Classes.tp="{Binding SlotKind, Converter={x:Static converters:ObjectConverters.Equal}, ConverterParameter={x:Static vm:FirmwareSlotKind.Tp}}"
-                ToolTip.Tip="{Binding SlotIconTooltip}">
-              <Path
-                  Data="{Binding SlotIconPathData}" />
+      <Grid x:Name="SlotLayout" Margin="16,12" MinHeight="72" ColumnDefinitions="280,*,Auto"
+            ColumnSpacing="{DynamicResource NfcSpace24}" RowDefinitions="*">
+        <StackPanel x:Name="SlotIdentity" Grid.Column="0" VerticalAlignment="Center"
+                    Spacing="{DynamicResource NfcSpace8}">
+          <Grid x:Name="SlotHeaderContent" ColumnDefinitions="Auto,*" ColumnSpacing="{DynamicResource NfcSpace12}">
+            <Border VerticalAlignment="Center" Classes="slotTypeIcon"
+                    Classes.base="{Binding SlotKind, Converter={x:Static converters:ObjectConverters.Equal}, ConverterParameter={x:Static vm:FirmwareSlotKind.Base}}"
+                    Classes.bin="{Binding SlotKind, Converter={x:Static converters:ObjectConverters.Equal}, ConverterParameter={x:Static vm:FirmwareSlotKind.Unknown}}"
+                    Classes.ctrlRam="{Binding SlotKind, Converter={x:Static converters:ObjectConverters.Equal}, ConverterParameter={x:Static vm:FirmwareSlotKind.CtrlRam}}"
+                    Classes.dp="{Binding SlotKind, Converter={x:Static converters:ObjectConverters.Equal}, ConverterParameter={x:Static vm:FirmwareSlotKind.Dp}}"
+                    Classes.tp="{Binding SlotKind, Converter={x:Static converters:ObjectConverters.Equal}, ConverterParameter={x:Static vm:FirmwareSlotKind.Tp}}"
+                    ToolTip.Tip="{Binding SlotIconTooltip}">
+              <Path Data="{Binding SlotIconPathData}" />
             </Border>
-            <TextBlock VerticalAlignment="Center" FontSize="{DynamicResource NfcFontSize14}" FontWeight="SemiBold" Foreground="{DynamicResource NfcTextStrongBrush}" Text="{Binding Title}" />
-            <StackPanel Orientation="Horizontal">
-              <Label
-                  Classes="compactBadge slotBadge firmwareSlotRequirement availableInput"
-                  Classes.optional="{Binding IsOptional}"
-                  Content="{Binding RequirementLabel}"
-                  IsVisible="{Binding IsRequirementLabelVisible}" />
-              <ToggleButton
-                  AutomationProperties.LiveSetting="Polite"
-                  AutomationProperties.Name="{Binding SemanticStateAutomationText}"
-                  behaviors:FocusToolTipBehavior.IsEnabled="True"
-                  Classes="slotStateAction"
-                  Classes.checking="{Binding IsSemanticStateChecking}"
-                  Classes.error="{Binding IsSemanticStateError}"
-                  Classes.notApplicable="{Binding IsSemanticStateNotApplicable}"
-                  Classes.pendingInput="{Binding IsSemanticStatePendingInput}"
-                  Classes.verified="{Binding IsSemanticStateVerified}"
-                  Classes.warning="{Binding IsSemanticStateWarning}"
-                  Focusable="True"
-                  IsChecked="{Binding IsSemanticStateDetailExpanded}"
-                  IsVisible="{Binding HasSemanticState}"
-                  ToolTip.Tip="{Binding SemanticStateAutomationText}"
-                  VerticalContentAlignment="Center">
-                <StackPanel Orientation="Horizontal" Spacing="6">
-                  <Path
-                      Width="16"
-                      Height="16"
-                      Classes="slotStateIcon"
-                      Data="{Binding SemanticStateIconPathData}"
-                      Stretch="Uniform" />
-                  <TextBlock
-                      VerticalAlignment="Center"
-                      FontSize="{DynamicResource NfcFontSize11}"
-                      FontWeight="SemiBold"
-                      Text="{Binding SemanticStateLabel}" />
-                </StackPanel>
-              </ToggleButton>
-            </StackPanel>
-          </StackPanel>
+            <WrapPanel Grid.Column="1" VerticalAlignment="Center">
+              <TextBlock x:Name="SlotTitle" Margin="0,0,10,0" VerticalAlignment="Center"
+                         Classes="firmwareSlotTitle" Text="{Binding Title}" TextWrapping="Wrap" />
+              <WrapPanel VerticalAlignment="Center">
+                <Label Classes="compactBadge slotBadge firmwareSlotRequirement availableInput"
+                       Classes.optional="{Binding IsOptional}" Content="{Binding RequirementLabel}"
+                       IsVisible="{Binding IsRequirementLabelVisible}" />
+                <ToggleButton AutomationProperties.LiveSetting="Polite"
+                              AutomationProperties.Name="{Binding SemanticStateAutomationText}"
+                              behaviors:FocusToolTipBehavior.IsEnabled="True" Classes="slotStateAction"
+                              Classes.checking="{Binding IsSemanticStateChecking}" Classes.error="{Binding IsSemanticStateError}"
+                              Classes.notApplicable="{Binding IsSemanticStateNotApplicable}"
+                              Classes.inspected="{Binding IsSemanticStateInspected}"
+                              Classes.pendingInput="{Binding IsSemanticStatePendingInput}"
+                              Classes.verified="{Binding IsSemanticStateVerified}" Classes.warning="{Binding IsSemanticStateWarning}"
+                              Focusable="True" IsChecked="{Binding IsSemanticStateDetailExpanded}"
+                              IsVisible="{Binding HasSemanticState}" ToolTip.Tip="{Binding SemanticStateAutomationText}"
+                              VerticalContentAlignment="Center">
+                  <StackPanel Orientation="Horizontal" Spacing="6">
+                    <Path Width="16" Height="16" Classes="slotStateIcon"
+                          Data="{Binding SemanticStateIconPathData}" Stretch="Uniform" />
+                    <TextBlock VerticalAlignment="Center" Classes="firmwareSlotStatus" Text="{Binding SemanticStateLabel}" />
+                  </StackPanel>
+                </ToggleButton>
+              </WrapPanel>
+            </WrapPanel>
+          </Grid>
           <TextBlock Classes="mutedText" IsVisible="{Binding IsGuidanceVisible}" Text="{Binding Description}" TextWrapping="Wrap" />
-          <TextBlock
-              IsVisible="{Binding IsGuidanceVisible}"
-              FontSize="{DynamicResource NfcFontSize13}"
-              FontWeight="SemiBold"
-              Foreground="{DynamicResource NfcTextBrush}"
-              Text="{Binding DisplayName}"
-              TextWrapping="Wrap" />
-          <Button
-              AutomationProperties.HelpText="{Binding DisplayDetail}"
-              AutomationProperties.Name="{Binding DisplayName}"
-              Classes="fileRevealAction"
-              Command="{ReflectionBinding $parent[Window].DataContext.RevealFileCommand}"
-              CommandParameter="{Binding FilePath}"
-              Content="{Binding DisplayName}"
-              HorizontalAlignment="Left"
-              IsVisible="{Binding HasFile}"
-              ToolTip.BetweenShowDelay="-1"
-              ToolTip.Placement="BottomEdgeAlignedLeft"
-              ToolTip.ShowDelay="300"
-              ToolTip.Tip="{Binding DisplayDetail}"
-              ToolTip.VerticalOffset="8" />
-          <StackPanel Spacing="{DynamicResource NfcSpace4}">
-            <ToggleButton
-                AutomationProperties.Name="{Binding FirmwareFactsDisclosureLabel}"
-                Classes="quietDisclosure"
-                Content="{Binding FirmwareFactsDisclosureLabel}"
-                HorizontalAlignment="Left"
-                IsChecked="{Binding IsFirmwareFactsExpanded}"
-                IsVisible="{Binding HasFirmwareFacts}" />
-            <StackPanel IsVisible="{Binding IsFirmwareFactsExpanded}" Spacing="{DynamicResource NfcSpace4}">
-              <ItemsControl HorizontalAlignment="Left" MaxWidth="430" ItemsSource="{Binding PrimaryFirmwareFacts}">
-                <ItemsControl.ItemsPanel>
-                  <ItemsPanelTemplate>
-                    <WrapPanel Orientation="Horizontal" />
-                  </ItemsPanelTemplate>
-                </ItemsControl.ItemsPanel>
-                <ItemsControl.ItemTemplate>
-                  <StaticResource ResourceKey="FirmwareSlotInformationFactTemplate" />
-                </ItemsControl.ItemTemplate>
-              </ItemsControl>
-              <ToggleButton
-                  Classes="quietDisclosure"
-                  Content="{Binding AdditionalFirmwareFactsLabel}"
-                  HorizontalAlignment="Left"
-                  IsChecked="{Binding IsAdditionalFirmwareFactsExpanded}"
-                  IsVisible="{Binding HasAdditionalFirmwareFacts}" />
-              <ItemsControl HorizontalAlignment="Left" IsVisible="{Binding IsAdditionalFirmwareFactsExpanded}" MaxWidth="430" ItemsSource="{Binding AdditionalFirmwareFacts}">
-                <ItemsControl.ItemsPanel>
-                  <ItemsPanelTemplate>
-                    <WrapPanel Orientation="Horizontal" />
-                  </ItemsPanelTemplate>
-                </ItemsControl.ItemsPanel>
-                <ItemsControl.ItemTemplate>
-                  <StaticResource ResourceKey="FirmwareSlotInformationFactTemplate" />
-                </ItemsControl.ItemTemplate>
-              </ItemsControl>
-            </StackPanel>
-            <TextBlock
-                AutomationProperties.LiveSetting="Polite"
-                Classes="slotStateDetail"
-                IsVisible="{Binding IsSemanticStateDetailExpanded}"
-                Text="{Binding SemanticStateAutomationText}"
-                TextWrapping="Wrap" />
-          </StackPanel>
+          <TextBlock IsVisible="{Binding IsGuidanceVisible}" Classes="firmwareSlotGuidance"
+                     Text="{Binding DisplayName}" TextWrapping="Wrap" />
+          <Button AutomationProperties.HelpText="{Binding DisplayDetail}" AutomationProperties.Name="{Binding DisplayNameWithSelectionContext}"
+                  Classes="fileRevealAction" Command="{ReflectionBinding $parent[Window].DataContext.RevealFileCommand}"
+                  CommandParameter="{Binding FilePath}" HorizontalAlignment="Stretch" HorizontalContentAlignment="Left"
+                  IsVisible="{Binding HasFile}" ToolTip.BetweenShowDelay="-1" ToolTip.Placement="BottomEdgeAlignedLeft"
+                  ToolTip.ShowDelay="300" ToolTip.Tip="{Binding DisplayDetail}" ToolTip.VerticalOffset="8">
+            <TextBlock Text="{Binding DisplayNameWithSelectionContext}" TextTrimming="CharacterEllipsis" />
+          </Button>
+          <TextBlock AutomationProperties.LiveSetting="Polite" Classes="slotStateDetail"
+                     IsVisible="{Binding IsSemanticStateDetailExpanded}"
+                     Text="{Binding SemanticStateAutomationText}" TextWrapping="Wrap" />
         </StackPanel>
-        <Button
-            Grid.Column="1"
-            Classes="action browseAction"
-            Click="BrowseButton_OnClick"
-            Content="{Binding BrowseLabel, ElementName=Root}"
-            IsEnabled="{Binding CanSelectFile}"
-            Tag="{Binding SlotId}" />
+        <StackPanel x:Name="SlotFactsRegion" Grid.Column="1" VerticalAlignment="Center"
+                    Spacing="{DynamicResource NfcSpace8}">
+          <ItemsControl x:Name="PrimaryFirmwareFactsHost" HorizontalAlignment="Stretch"
+                        IsVisible="{Binding HasFirmwareFacts}" ItemsSource="{Binding PrimaryFirmwareFacts}">
+            <ItemsControl.ItemsPanel>
+              <ItemsPanelTemplate>
+                <UniformGrid Columns="{Binding FactColumnCount, ElementName=Root}" />
+              </ItemsPanelTemplate>
+            </ItemsControl.ItemsPanel>
+            <ItemsControl.ItemTemplate>
+              <StaticResource ResourceKey="FirmwareSlotInformationFactTemplate" />
+            </ItemsControl.ItemTemplate>
+          </ItemsControl>
+          <ToggleButton AutomationProperties.Name="{Binding AdditionalFirmwareFactsLabel}" Classes="quietDisclosure"
+                        Content="{Binding AdditionalFirmwareFactsLabel}" HorizontalAlignment="Left"
+                        IsChecked="{Binding IsAdditionalFirmwareFactsExpanded}" IsVisible="{Binding HasAdditionalFirmwareFacts}" />
+          <ItemsControl x:Name="AdditionalFirmwareFactsHost" HorizontalAlignment="Stretch"
+                        IsVisible="{Binding IsAdditionalFirmwareFactsExpanded}"
+                        ItemsSource="{Binding AdditionalFirmwareFacts}">
+            <ItemsControl.ItemsPanel>
+              <ItemsPanelTemplate>
+                <UniformGrid Columns="{Binding FactColumnCount, ElementName=Root}" />
+              </ItemsPanelTemplate>
+            </ItemsControl.ItemsPanel>
+            <ItemsControl.ItemTemplate>
+              <StaticResource ResourceKey="FirmwareSlotInformationFactTemplate" />
+            </ItemsControl.ItemTemplate>
+          </ItemsControl>
+        </StackPanel>
+        <StackPanel x:Name="SlotActions" Grid.Column="2" HorizontalAlignment="Right"
+                    Orientation="Horizontal" Spacing="10" VerticalAlignment="Center">
+          <Button x:Name="BrowseButton" Classes="semanticAction action browseAction"
+                  Click="BrowseButton_OnClick" Content="{Binding BrowseLabel, ElementName=Root}"
+                  IsEnabled="{Binding CanSelectFile}" Tag="{Binding SlotId}" VerticalAlignment="Center">
+            <AutomationProperties.Name>
+              <MultiBinding StringFormat="{x:Static views:FirmwareSlotCard.BrowseActionFormat}">
+                <Binding ElementName="Root" Path="BrowseLabel" />
+                <Binding Path="Title" />
+              </MultiBinding>
+            </AutomationProperties.Name>
+            <ToolTip.Tip>
+              <MultiBinding StringFormat="{x:Static views:FirmwareSlotCard.BrowseActionFormat}">
+                <Binding ElementName="Root" Path="BrowseLabel" />
+                <Binding Path="Title" />
+              </MultiBinding>
+            </ToolTip.Tip>
+          </Button>
+          <Button x:Name="ClearButton" Classes="semanticAction iconButton danger slotClearAction"
+                  Command="{Binding ClearSelectionCommand, ElementName=Root}"
+                  CommandParameter="{Binding SlotId}" IsEnabled="{Binding HasFile}" Tag="{Binding SlotId}">
+            <AutomationProperties.Name>
+              <MultiBinding StringFormat="{x:Static views:FirmwareSlotCard.ClearActionFormat}">
+                <Binding ElementName="Root" Path="ClearSelectionLabel" />
+                <Binding Path="Title" />
+              </MultiBinding>
+            </AutomationProperties.Name>
+            <ToolTip.Tip>
+              <MultiBinding StringFormat="{x:Static views:FirmwareSlotCard.ClearActionFormat}">
+                <Binding ElementName="Root" Path="ClearSelectionLabel" />
+                <Binding Path="Title" />
+              </MultiBinding>
+            </ToolTip.Tip>
+            <TextBlock FontFamily="Segoe Fluent Icons, Segoe MDL2 Assets"
+                       FontSize="17" Text="&#xE74D;" />
+          </Button>
+        </StackPanel>
       </Grid>
     </Grid>
   </Border>

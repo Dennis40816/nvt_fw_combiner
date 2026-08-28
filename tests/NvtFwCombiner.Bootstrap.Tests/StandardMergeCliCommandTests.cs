@@ -1,4 +1,5 @@
 using System.Text.Json;
+using NvtFwCombiner.Application.InputInspection;
 using NvtFwCombiner.TestSupport;
 
 namespace NvtFwCombiner.Bootstrap.Tests;
@@ -61,6 +62,7 @@ public sealed class StandardMergeCliCommandTests
         string dpPath = workspace.Write("dp.bin", dp);
         string tpPath = workspace.Write("tp.bin", tp);
         string outputPath = workspace.PathFor("caller-output.bin");
+        string reportPath = workspace.PathFor("caller-output-report.json");
 
         CliRunResult result = await RunCliAsync(
         [
@@ -74,6 +76,8 @@ public sealed class StandardMergeCliCommandTests
             tpPath,
             "--output",
             outputPath,
+            "--report",
+            reportPath,
         ]);
 
         Assert.Equal(0, result.ExitCode);
@@ -82,6 +86,79 @@ public sealed class StandardMergeCliCommandTests
         Assert.Equal(0x40000, output.Length);
         Assert.Equal(0x22, output[0]);
         Assert.Equal(0x11, output[0x3E000]);
+        using JsonDocument report = JsonDocument.Parse(
+            await File.ReadAllTextAsync(
+                reportPath,
+                TestContext.Current.CancellationToken));
+        JsonElement naming = report.RootElement.GetProperty("OutputNaming");
+        Assert.Equal("caller-output.bin", naming.GetProperty("ActualFileName").GetString());
+        Assert.True(naming.GetProperty("IsExplicitOverride").GetBoolean());
+    }
+
+    /// <summary>
+    /// Omitting --output commits the profile-rendered v0.9.15-compatible name
+    /// and records the same non-override name in the typed report.
+    /// </summary>
+    [Fact]
+    public async Task StandardMergeBuildWithoutOutputUsesCanonicalAutomaticNameAndReport()
+    {
+        using var workspace = TempWorkspace.Create();
+        byte[] dp = new byte[0x40000];
+        byte[] tp = new byte[0x3C000];
+        const int dpcmiStart = 0x3E000 + 20;
+        dp[dpcmiStart + 1] = 0xB6;
+        dp[dpcmiStart + 2] = 0xD4;
+        tp[0] = 0xA7;
+        tp[1] = 0x58;
+        tp[17] = 0xC9;
+        tp[4092] = 0x00;
+        tp[4093] = 0x4E;
+        tp[4094] = 0x56;
+        tp[4095] = 0x54;
+        string dpPath = workspace.Write("dp.bin", dp);
+        string tpPath = workspace.Write("tp.bin", tp);
+        string reportPath = workspace.PathFor("automatic-name-report.json");
+        string expectedFileName =
+            $"NT51923_FlashCode_DB60DTA7C9_{DateTime.UtcNow:yyyyMMdd}.bin";
+        string expectedPath = Path.GetFullPath(expectedFileName);
+        Assert.False(File.Exists(expectedPath));
+
+        try
+        {
+            CliRunResult result = await RunCliAsync(
+            [
+                "standard-merge",
+                "build",
+                "--profile",
+                "NT51923",
+                "--dp",
+                dpPath,
+                "--tp",
+                tpPath,
+                "--report",
+                reportPath,
+            ]);
+
+            Assert.Equal(0, result.ExitCode);
+            Assert.Contains($"Output: {expectedFileName}", result.Output, StringComparison.Ordinal);
+            Assert.True(File.Exists(expectedPath));
+            using JsonDocument report = JsonDocument.Parse(
+                await File.ReadAllTextAsync(
+                    reportPath,
+                    TestContext.Current.CancellationToken));
+            JsonElement root = report.RootElement;
+            JsonElement naming = root.GetProperty("OutputNaming");
+            Assert.Equal(expectedFileName, naming.GetProperty("AutomaticFileName").GetString());
+            Assert.Equal(expectedFileName, naming.GetProperty("ActualFileName").GetString());
+            Assert.False(naming.GetProperty("IsExplicitOverride").GetBoolean());
+        }
+        finally
+        {
+            if (File.Exists(expectedPath))
+            {
+                File.Delete(expectedPath);
+            }
+        }
     }
 
     /// <summary>Verifies the packaged NT51929 V2 profile accepts a caller-selected plain output path through the Standard Merge CLI.</summary>
@@ -260,11 +337,11 @@ public sealed class StandardMergeCliCommandTests
         Assert.Contains("--tp is required for address space 'tp-input'", result.Error, StringComparison.Ordinal);
     }
 
-    /// <summary>Missing DP Perspective files report a stable input issue instead of an empty compilation failure.</summary>
+    /// <summary>DP Perspective read failures retain the adapter's missing-versus-unreadable classification.</summary>
     [Theory]
     [InlineData("51950")]
     [InlineData("51951")]
-    public async Task StandardMergePreviewReportsMissingDpPerspectiveFile(string profileSelector)
+    public async Task StandardMergePreviewClassifiesDpPerspectiveReadFailure(string profileSelector)
     {
         using var workspace = TempWorkspace.Create();
         string missingDpPath = workspace.PathFor("missing-dp.bin");
@@ -284,6 +361,21 @@ public sealed class StandardMergeCliCommandTests
         Assert.Equal(70, result.ExitCode);
         Assert.Contains("input.artifact.read-failed [dp-input]", result.Error, StringComparison.Ordinal);
         Assert.Contains("Selected DP BIN path does not exist", result.Error, StringComparison.Ordinal);
+
+        CliRunResult unreadable = await RunCliAsync([
+            "standard-merge",
+            "preview",
+            "--profile",
+            profileSelector,
+            "--dp",
+            workspace.Root,
+            "--tp",
+            tpPath,
+        ]);
+
+        Assert.Equal(70, unreadable.ExitCode);
+        Assert.Contains("input.artifact.read-failed [dp-input]", unreadable.Error, StringComparison.Ordinal);
+        Assert.DoesNotContain("Selected DP BIN path does not exist", unreadable.Error, StringComparison.Ordinal);
     }
 
     /// <summary>Workbench DP Perspective runs surface the same stable missing-input issue as the CLI.</summary>
@@ -504,6 +596,73 @@ public sealed class StandardMergeCliCommandTests
 
         Assert.Equal(70, result.ExitCode);
         Assert.Contains("accepts DP input lengths", result.Error, StringComparison.Ordinal);
+    }
+
+    /// <summary>An oversized sparse source is rejected from file metadata before the CLI can allocate its payload or create outputs.</summary>
+    [Fact]
+    public async Task StandardMergeRejectsOversizedSparseInputBeforeMaterialization()
+    {
+        using var workspace = TempWorkspace.Create();
+        string dpPath = workspace.PathFor("oversized-dp.bin");
+        await CreateSparseFileAsync(dpPath, 100_000_001);
+        string tpPath = workspace.Write("tp.bin", new byte[0x3C000]);
+        string outputPath = workspace.PathFor("must-not-exist.bin");
+        string reportPath = workspace.PathFor("must-not-exist.json");
+
+        CliRunResult result = await RunCliAsync([
+            "standard-merge",
+            "build",
+            "--profile",
+            "NT51923",
+            "--dp",
+            dpPath,
+            "--tp",
+            tpPath,
+            "--output",
+            outputPath,
+            "--report",
+            reportPath,
+        ]);
+
+        Assert.Equal(70, result.ExitCode);
+        Assert.Contains("input.artifact.read-failed [dp-input]", result.Error, StringComparison.Ordinal);
+        Assert.Contains("100000001", result.Error, StringComparison.Ordinal);
+        Assert.Contains("100000000-byte limit", result.Error, StringComparison.Ordinal);
+        Assert.Empty(result.Output);
+        Assert.False(File.Exists(outputPath));
+        Assert.False(File.Exists(reportPath));
+    }
+
+    /// <summary>The shared stable reader treats the decimal 100 MB resource ceiling as inclusive.</summary>
+    [Fact]
+    public async Task FixedWorkflowReaderAcceptsInclusiveDecimalHundredMegabyteBoundary()
+    {
+        using var workspace = TempWorkspace.Create();
+        string path = workspace.PathFor("inclusive-boundary.bin");
+        await CreateSparseFileAsync(path, 100_000_000);
+
+        byte[] bytes = await CliFixedWorkflowInputReader.ReadBytesAsync(
+            CompositionHostServices.CreateLocalFileStore(),
+            path,
+            CompiledInputArtifactInspectionService.MaximumContentReadBytes,
+            TestContext.Current.CancellationToken);
+
+        Assert.Equal(100_000_000, bytes.LongLength);
+        Assert.Equal(0, bytes[0]);
+        Assert.Equal(0, bytes[^1]);
+    }
+
+    private static async Task CreateSparseFileAsync(string path, long length)
+    {
+        await using var stream = new FileStream(
+            path,
+            FileMode.CreateNew,
+            FileAccess.Write,
+            FileShare.None,
+            bufferSize: 1,
+            FileOptions.Asynchronous);
+        stream.SetLength(length);
+        await stream.FlushAsync(TestContext.Current.CancellationToken);
     }
 
     private static GoldenCasePaths LoadGoldenCase(string caseId)

@@ -6,6 +6,13 @@
   "variantOrVersion": "fw1.4.1",
   "topology": "single",
   "directGolden": true,
+  "testDisposition": {
+    "kind": "allowed-byte-difference",
+    "evidenceRefs": [
+      "tests/NvtFwCombiner.Bootstrap.Tests/Nt51927CtrlRamFw141SingleEvidenceTests.cs#ExactOwnerCaseProducesLockedV2EvidenceAsync"
+    ],
+    "differenceContractProperty": "phaseBResult"
+  },
   "sourceClassification": "private-owner-approved-golden",
   "ownerApproval": "Repository owner explicitly approved committing all supplied golden sample payloads to public Git on 2026-07-17. Technical project/AUTO_PRJ data is retained; personal data is excluded.",
   "project": "AUTO_PRJ-529",
@@ -52,7 +59,7 @@
     {
       "artifactId": "postbuild-mp-ctrlram",
       "role": "input",
-      "path": "NT51927/ctrlram-replace/fw1.4.1/single/nt51927-fw141-single-auto-prj-529-20260717/inputs/postbuild/MP_Ctrlram.bin",
+      "path": "NT51927/ctrlram-replace/fw1.4.1/single/nt51927-fw141-single-auto-prj-529-20260717/inputs/postbuild/nt51927-postbuild-mp-ctrlram.bin",
       "size": 655360,
       "sha256": "ae8bea2d4fe1c0c3a182febbe8e258eb0908c3f99dcbbaee9ce2af167614aba2",
       "legacyPaths": [
@@ -64,7 +71,7 @@
     {
       "artifactId": "postbuild-nf-ctrlram",
       "role": "input",
-      "path": "NT51927/ctrlram-replace/fw1.4.1/single/nt51927-fw141-single-auto-prj-529-20260717/inputs/postbuild/NF_Ctrlram.bin",
+      "path": "NT51927/ctrlram-replace/fw1.4.1/single/nt51927-fw141-single-auto-prj-529-20260717/inputs/postbuild/nt51927-postbuild-nf-ctrlram.bin",
       "size": 4048,
       "sha256": "a26e62e920df297423d478a2a0c2d2ce07053e091e4bada1f6eeb542d0e1d797",
       "legacyPaths": [
@@ -76,7 +83,7 @@
     {
       "artifactId": "postbuild-normal-ctrlram",
       "role": "input",
-      "path": "NT51927/ctrlram-replace/fw1.4.1/single/nt51927-fw141-single-auto-prj-529-20260717/inputs/postbuild/Normal_Ctrlram.bin",
+      "path": "NT51927/ctrlram-replace/fw1.4.1/single/nt51927-fw141-single-auto-prj-529-20260717/inputs/postbuild/nt51927-postbuild-normal-ctrlram.bin",
       "size": 655360,
       "sha256": "de73cded3235c24f517c815427cea8ec44678fa132fdf30e418381cd4b25e7d5",
       "legacyPaths": [
@@ -88,7 +95,7 @@
     {
       "artifactId": "postbuild-vn-ctrlram",
       "role": "input",
-      "path": "NT51927/ctrlram-replace/fw1.4.1/single/nt51927-fw141-single-auto-prj-529-20260717/inputs/postbuild/VN_Ctrlram.bin",
+      "path": "NT51927/ctrlram-replace/fw1.4.1/single/nt51927-fw141-single-auto-prj-529-20260717/inputs/postbuild/nt51927-postbuild-vn-ctrlram.bin",
       "size": 5728,
       "sha256": "4847b6950b49b8dc9ed022924ea64ae43ac3c9dc7f8dbaad108755200522d709",
       "legacyPaths": [
@@ -125,6 +132,7 @@
   },
   "pid": "0x5709",
   "phaseBResult": {
+    "addressSpaceId": "output-image",
     "caseId": "nt51927-fw141-single-auto-prj-529-20260717",
     "ic": "NT51927",
     "workflow": "ctrlram-replace",

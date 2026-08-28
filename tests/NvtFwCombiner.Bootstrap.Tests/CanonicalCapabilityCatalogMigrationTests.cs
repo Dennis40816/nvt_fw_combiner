@@ -1,3 +1,4 @@
+using NvtFwCombiner.Application.Authoring;
 using NvtFwCombiner.Application.Capabilities;
 using NvtFwCombiner.Application.Metadata;
 using NvtFwCombiner.Domain.Composition;
@@ -68,7 +69,7 @@ public sealed partial class CanonicalCapabilityCatalogMigrationTests
         Assert.Equal("NT51929", definition.Identity.IcId);
         Assert.Equal("nt51929-standard-merge-256k", definition.Identity.MapVariant);
         Assert.Equal(
-            "c8f1268a871cfd571ff41694a71c85e6364bbe1fca6f3a7264cce77103b214a9",
+            "7241e513c36122a60f2535836fd3b5625dc4cafe304d002e713a1525a949ac68",
             definition.CapabilityFingerprint);
         Assert.NotEqual(
             definition.CapabilityFingerprint,
@@ -473,14 +474,29 @@ public sealed partial class CanonicalCapabilityCatalogMigrationTests
         dp[0x401C] = 0xA4;
         using var workspace = TempWorkspace.Create(
             "nvt-fw-combiner-canonical-dpcmi");
+        string referencePath = workspace.Write("reference.bin", new byte[0x40000]);
         string dpPath = workspace.Write("replacement-dp.bin", dp);
 
-        FirmwareInspectionSnapshot inspection = Assert.Single(
+        IReadOnlyList<FirmwareInspectionSnapshotResult> inspections =
             BuiltInFirmwareInspection.InspectFirmwareBatch(
                 host.Canonical,
                 "NT51929",
-                [new FirmwareInspectionSnapshotInput("dp", dpPath, null, null)]))
-            .Inspection;
+                [
+                    new FirmwareInspectionSnapshotInput(
+                        "reference",
+                        referencePath,
+                        DpReplaceAddressSpaceId: CompositionAddressSpaceIds.ReferenceBase),
+                    new FirmwareInspectionSnapshotInput(
+                        "dp",
+                        dpPath,
+                        DpReplaceAddressSpaceId: CompositionAddressSpaceIds.DpReplacement),
+                ]);
+        FirmwareInspectionSnapshot inspection = inspections.Single(static result =>
+            result.InspectionId == "dp").Inspection;
+        AuthoringCapabilityCatalogSnapshot inspectionCatalog = Assert.IsType<
+            AuthoringCapabilityCatalogSnapshot>(inspection.InputSlotCatalog);
+        ResolvedCapability inspectedCapability = Assert.IsType<ResolvedCapability>(
+            Assert.Single(inspectionCatalog.Routes).ExactCapability);
         DpVersionMetadata? version = inspection.DpVersion;
         CmiDpCodeMetadata? cmi = inspection.CmiDpCode;
         Assert.True(reload.Succeeded);
@@ -488,6 +504,12 @@ public sealed partial class CanonicalCapabilityCatalogMigrationTests
         Assert.True(recognized);
         Assert.Empty(issues);
         Assert.Same(resolution.Capability!.CompiledComposition, composition);
+        Assert.Equal(resolution.Capability.Identity, inspectedCapability.Identity);
+        Assert.Equal(
+            resolution.Capability.CapabilityFingerprint,
+            inspectedCapability.CapabilityFingerprint);
+        Assert.Equal(resolution.Capability.ResolutionToken, inspectedCapability.ResolutionToken);
+        Assert.Same(resolution.Capability.MetadataPlan, inspectedCapability.MetadataPlan);
         Assert.Equal(resolution.Capability.ResolutionToken, resolution.Capability.MetadataPlan.ResolutionToken);
         Assert.Equal("030A", version!.Value.VersionToken);
         Assert.Equal((byte)0x03, cmi!.Value.MajorVersionByte);

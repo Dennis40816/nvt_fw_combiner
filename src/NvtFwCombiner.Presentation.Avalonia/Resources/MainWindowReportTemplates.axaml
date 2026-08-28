@@ -17,34 +17,10 @@
         AutomationProperties.LiveSetting="Polite" />
     <Button
         Grid.Column="1"
-        Classes="secondary"
+        Classes="semanticAction secondary"
         Command="{Binding LoadMoreCommand}"
         Content="{Binding LoadMoreLabel}"
         AutomationProperties.Name="{Binding LoadMoreLabel}" />
-  </Grid>
-</DataTemplate>
-
-<DataTemplate x:Key="ReportWindowedPagerTemplate" DataType="vm:ReportWindowedListViewModel">
-  <Grid Margin="0,8,0,0" ColumnDefinitions="Auto,*,Auto" ColumnSpacing="{DynamicResource NfcSpace8}">
-    <Button
-        Classes="secondary"
-        Command="{Binding PreviousPageCommand}"
-        Content="{Binding PreviousPageLabel}"
-        AutomationProperties.Name="{Binding PreviousPageLabel}" />
-    <TextBlock
-        Grid.Column="1"
-        HorizontalAlignment="Center"
-        VerticalAlignment="Center"
-        Classes="captionText"
-        Text="{Binding PageStatus}"
-        AutomationProperties.Name="{Binding PageStatus}"
-        AutomationProperties.LiveSetting="Polite" />
-    <Button
-        Grid.Column="2"
-        Classes="secondary"
-        Command="{Binding NextPageCommand}"
-        Content="{Binding NextPageLabel}"
-        AutomationProperties.Name="{Binding NextPageLabel}" />
   </Grid>
 </DataTemplate>
 
@@ -90,7 +66,7 @@
 </DataTemplate>
 
 <DataTemplate x:Key="ReportIssueRowTemplate" DataType="vm:ReportLineViewModel">
-  <Border Padding="10,8" Background="{DynamicResource NfcWarningSurfaceBrush}" BorderBrush="{DynamicResource NfcWarningBorderBrush}" BorderThickness="1" CornerRadius="{DynamicResource NfcCompactCornerRadius}" Margin="0,8,0,0">
+  <Border Padding="10,8" Background="{DynamicResource NfcWarningSurfaceBrush}" BorderBrush="{DynamicResource NfcWarningBorderBrush}" BorderThickness="2" CornerRadius="{DynamicResource NfcCompactCornerRadius}" Margin="0,8,0,0">
     <StackPanel Spacing="{DynamicResource NfcSpace2}">
       <TextBlock FontSize="{DynamicResource NfcFontSize12}" FontWeight="SemiBold" Foreground="{DynamicResource NfcWarningTextBrush}" Text="{Binding Title}" TextWrapping="Wrap" />
       <TextBlock FontSize="{DynamicResource NfcFontSize12}" Foreground="{DynamicResource NfcWarningTextSubtleBrush}" Text="{Binding Detail}" TextWrapping="Wrap" />

@@ -8,7 +8,8 @@ namespace NvtFwCombiner.Application.Capabilities;
 /// Resolves and binds canonical capabilities through the current publication.
 /// Profile compilation is delegated to one injected canonical adapter.
 /// </summary>
-internal sealed partial class CanonicalCapabilityCompilerAdapter
+internal sealed partial class CanonicalCapabilityCompilerAdapter :
+    IStandardMergeCompilationPort
 {
     private const string SelectorFreeIcCountVariant = "selector-free";
     private readonly ICanonicalCapabilityQuery _catalog;
@@ -195,25 +196,13 @@ internal sealed partial class CanonicalCapabilityCompilerAdapter
             return true;
         }
 
-        _dynamicCompiler.Compile(
-            normalizedIcId,
-            workflowId,
+        CompileAndBindDynamicRoute(
+            resolution.Route!,
             requestedMapCapacity,
             selectedInputSlotIds,
-            out CompiledComposition? compiled,
-            out MetadataPlanDefinition? metadataPlan,
+            out composition,
+            out resolvedCapability,
             out issues);
-        if (compiled is null || issues.Count != 0)
-        {
-            composition = null;
-            return true;
-        }
-
-        resolvedCapability = resolution.Route!.BindCompilation(
-            compiled,
-            metadataPlan ?? throw new InvalidOperationException(
-                "Canonical dynamic compilation omitted its metadata plan."));
-        composition = resolvedCapability.CompiledComposition;
         return true;
     }
 
@@ -270,6 +259,100 @@ internal sealed partial class CanonicalCapabilityCompilerAdapter
                 CapabilityDefinitionFingerprint.MapBoundCompilerSemanticId)
             ? route.CompilationContract.SemanticBindingIds
             : [];
+    }
+
+    /// <summary>
+    /// Compiles and binds one read-only classification candidate from an exact
+    /// current publication without applying authoring availability.
+    /// </summary>
+    internal bool TryCompilePublishedClassificationCandidate(
+        ResolvedCapabilityRoute publishedRoute,
+        IReadOnlyCollection<string> selectedInputSlotIds,
+        out ResolvedCapability? capability)
+    {
+        ArgumentNullException.ThrowIfNull(publishedRoute);
+        ArgumentNullException.ThrowIfNull(selectedInputSlotIds);
+        capability = null;
+        CanonicalCapabilityCatalogSnapshot? snapshot = _catalog.TryGetCurrentSnapshot();
+        if (snapshot is null ||
+            !snapshot.DynamicRoutes.Any(route => ReferenceEquals(route, publishedRoute)) ||
+            !StringComparer.Ordinal.Equals(
+                publishedRoute.CompilationContract.CompilerSemanticId,
+                CapabilityDefinitionFingerprint.MapBoundCompilerSemanticId))
+        {
+            return false;
+        }
+
+        try
+        {
+            CompileAndBindDynamicRoute(
+                publishedRoute,
+                requestedMapCapacity: null,
+                selectedInputSlotIds,
+                out _,
+                out ResolvedCapability? bound,
+                out IReadOnlyList<CompositionIssue> issues);
+            if (bound is null || issues.Count != 0)
+            {
+                return false;
+            }
+
+            CanonicalCapabilityCatalogSnapshot? current = _catalog.TryGetCurrentSnapshot();
+            if (current?.ResolutionToken != snapshot.ResolutionToken ||
+                !current.DynamicRoutes.Any(route => ReferenceEquals(route, publishedRoute)))
+            {
+                return false;
+            }
+
+            capability = bound;
+            return true;
+        }
+        catch (ArgumentException)
+        {
+            return false;
+        }
+        catch (InvalidOperationException)
+        {
+            return false;
+        }
+        catch (KeyNotFoundException)
+        {
+            return false;
+        }
+        catch (InvalidDataException)
+        {
+            return false;
+        }
+    }
+
+    private void CompileAndBindDynamicRoute(
+        ResolvedCapabilityRoute route,
+        long? requestedMapCapacity,
+        IReadOnlyCollection<string>? selectedInputSlotIds,
+        out CompiledComposition? composition,
+        out ResolvedCapability? resolvedCapability,
+        out IReadOnlyList<CompositionIssue> issues)
+    {
+        _dynamicCompiler.Compile(
+            route.Identity.IcId,
+            route.Identity.WorkflowId,
+            requestedMapCapacity,
+            selectedInputSlotIds,
+            out CompiledComposition? compiled,
+            out MetadataPlanDefinition? metadataPlan,
+            out issues);
+        if (compiled is null || issues.Count != 0)
+        {
+            composition = null;
+            resolvedCapability = null;
+            return;
+        }
+
+        resolvedCapability = route.BindCompilation(
+            compiled,
+            metadataPlan ?? throw new InvalidOperationException(
+                "Canonical dynamic compilation omitted its metadata plan."));
+        composition = resolvedCapability.CompiledComposition;
     }
 
     internal void CompileDynamicDefinition(

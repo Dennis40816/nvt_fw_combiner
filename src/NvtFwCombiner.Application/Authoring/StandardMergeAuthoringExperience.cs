@@ -4,7 +4,9 @@ using NvtFwCombiner.Domain.Composition;
 
 namespace NvtFwCombiner.Application.Authoring;
 
-internal sealed partial class StandardMergeAuthoringExperience : IStandardMergeAuthoring
+internal sealed partial class StandardMergeAuthoringExperience :
+    IStandardMergeAuthoring,
+    ICompiledInputSlotInspector<FirmwareInspectionStatusBatch>
 {
     private readonly CanonicalCapabilityCompilerAdapter _compiler;
     private readonly ICanonicalCapabilityQuery _catalog;

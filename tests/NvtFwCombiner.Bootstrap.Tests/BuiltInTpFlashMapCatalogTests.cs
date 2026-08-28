@@ -1,6 +1,7 @@
 using NvtFwCombiner.Application.Capabilities;
 using NvtFwCombiner.Application.ExternalTools;
 using NvtFwCombiner.Application.FlashMaps;
+using NvtFwCombiner.Application.MemoryLayout;
 using NvtFwCombiner.Domain.Composition;
 
 namespace NvtFwCombiner.Bootstrap.Tests;
@@ -119,6 +120,44 @@ public sealed class BuiltInTpFlashMapCatalogTests
                 profile);
 
             Assert.Equal(expectedFileNames, sources.Select(source => source.SourceFileName).Order(StringComparer.Ordinal));
+        }
+    }
+
+    /// <summary>Every built-in postbuild selector publishes the exact distinct physical target count.</summary>
+    [Fact]
+    public void PostbuildPhysicalSourcesPublishUniquePositiveTargetCounts()
+    {
+        foreach ((LegacyCombinerPostbuildProfile profile, IcNumberSelection selection) in AllPostbuildSelections())
+        {
+            LegacyCombinerPostbuildCommandPlan plan = profile.ResolvePlan(selection);
+            IReadOnlyList<TpFlashMapRegion> regions = BuiltInTpFlashMapCatalog.GetRegions(
+                profile.IcId,
+                selection,
+                profile,
+                TpFlashMapRegionKind.CtrlRam);
+            IReadOnlyList<TpCtrlRamPostbuildSource> sources = BuiltInTpFlashMapCatalog.GetPostbuildCtrlRamSources(
+                profile.IcId,
+                selection,
+                profile);
+            CtrlRamInspectionDisplay display = MemoryLayoutProjector.ProjectCtrlRamDiscovery(
+                selection.Parts[0],
+                plan,
+                regions,
+                sources,
+                hasReadableBase: false);
+
+            Assert.Equal(sources.Count, display.InputSlots.Count);
+            foreach (TpCtrlRamPostbuildSource source in sources)
+            {
+                Assert.NotEmpty(source.Regions);
+                Assert.Equal(
+                    source.Regions.Count,
+                    source.Regions.Select(static region => region.RegionId).Distinct(StringComparer.Ordinal).Count());
+                CtrlRamInputDescriptionFacts facts = Assert.IsType<CtrlRamInputDescriptionFacts>(
+                    display.InputSlots.Single(slot => slot.RegionId == source.SourceId).CtrlRamDescription);
+                Assert.Equal(source.Regions.Count, facts.TargetRegionCount);
+                Assert.Equal(source.Regions.Count > 1, facts.IsShared);
+            }
         }
     }
 

@@ -1,0 +1,32 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <RootNamespace>NvtFwCombiner.Infrastructure</RootNamespace>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\NvtFwCombiner.Contracts\NvtFwCombiner.Contracts.csproj" />
+    <ProjectReference Include="..\NvtFwCombiner.VersionManagement.Application\NvtFwCombiner.VersionManagement.Application.csproj" />
+  </ItemGroup>
+  <ItemGroup>
+    <PackageReference Include="JsonSchema.Net" />
+  </ItemGroup>
+  <ItemGroup>
+    <EmbeddedResource
+      Include="..\..\docs\contracts\release-manifest-v1.schema.json"
+      LogicalName="NvtFwCombiner.VersionManagement.Infrastructure.Contracts.release-manifest-v1.schema.json" />
+    <EmbeddedResource
+      Include="..\..\docs\contracts\update-catalog-v1.schema.json"
+      LogicalName="NvtFwCombiner.VersionManagement.Infrastructure.Contracts.update-catalog-v1.schema.json" />
+    <EmbeddedResource
+      Include="..\..\docs\contracts\update-source-registry-v1.schema.json"
+      LogicalName="NvtFwCombiner.VersionManagement.Infrastructure.Contracts.update-source-registry-v1.schema.json" />
+    <EmbeddedResource
+      Include="..\..\docs\contracts\launcher-bootstrap-v1.schema.json"
+      LogicalName="NvtFwCombiner.VersionManagement.Infrastructure.Contracts.launcher-bootstrap-v1.schema.json" />
+  </ItemGroup>
+  <ItemGroup>
+    <InternalsVisibleTo Include="NvtFwCombiner.Bootstrap" />
+    <InternalsVisibleTo Include="NvtFwCombiner.Infrastructure.Tests" />
+    <InternalsVisibleTo Include="NvtFwCombiner.UiSmoke.Tests" />
+  </ItemGroup>
+</Project>

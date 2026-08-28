@@ -1,5 +1,6 @@
 using Avalonia.Controls;
 using Avalonia.Threading;
+using System.ComponentModel;
 using NvtFwCombiner.Presentation.Avalonia.ViewModels;
 
 namespace NvtFwCombiner.Presentation.Avalonia;
@@ -8,45 +9,34 @@ public sealed partial class MainWindow
 {
     private async Task WarmDeferredShellAsync(
         MainWindowViewModel viewModel,
+        Action<int, int> progress,
+        Func<bool> isCurrent,
         CancellationToken cancellationToken)
     {
-        await WarmContentAsync(
-            DeviceContextHost,
-            viewModel,
-            "startup-warmup.device-context",
-            cancellationToken);
-        await WarmContentAsync(
-            ReplacePageHost,
-            viewModel.Replace,
-            "startup-warmup.replace-view",
-            cancellationToken);
-        await WarmContentAsync(
-            MergePageHost,
-            viewModel.Merge,
-            "startup-warmup.merge-view",
-            cancellationToken);
-        await WarmContentAsync(
-            SettingsPageHost,
-            viewModel,
-            "startup-warmup.settings-view",
-            cancellationToken);
-        await WarmContentAsync(
-            HexEditorPageHost,
-            viewModel,
-            "startup-warmup.hex-editor-view",
-            cancellationToken);
-    }
-
-    private async Task WarmContentAsync(
-        ContentControl host,
-        object dataContext,
-        string traceStage,
-        CancellationToken cancellationToken)
-    {
-        await RunWarmupStepAsync(
-            () => MaterializeContent(host, dataContext),
-            traceStage,
-            cancellationToken);
+        (ContentControl Host, object Context, string Trace)[] views =
+        [
+            (DeviceContextHost, viewModel, "startup-warmup.device-context"),
+            (ReplacePageHost, viewModel.Replace, "startup-warmup.replace-view"),
+            (MergePageHost, viewModel.Merge, "startup-warmup.merge-view"),
+            (SettingsModalHost, viewModel, "startup-warmup.settings-view"),
+            (HexEditorPageHost, viewModel, "startup-warmup.hex-editor-view"),
+        ];
+        progress(0, views.Length);
+        for (int index = 0; index < views.Length; index++)
+        {
+            (ContentControl host, object context, string trace) = views[index];
+            do
+            {
+                await WaitForRunIdleAsync(viewModel.RunSession, cancellationToken);
+            }
+            while (!await TryRunWarmupStepAsync(
+                () => MaterializeContent(host, context),
+                viewModel.RunSession,
+                isCurrent,
+                trace,
+                cancellationToken));
+            progress(index + 1, views.Length);
+        }
     }
 
     private static void MaterializeContent(ContentControl host, object dataContext)
@@ -68,26 +58,85 @@ public sealed partial class MainWindow
         host.Content = content;
     }
 
-    private async Task RunWarmupStepAsync(
+    private async Task<bool> TryRunWarmupStepAsync(
         Action action,
+        CompositionRunPresentationViewModel runSession,
+        Func<bool> isCurrent,
         string traceStage,
         CancellationToken cancellationToken)
     {
         cancellationToken.ThrowIfCancellationRequested();
-        if (DataContext is MainWindowViewModel { RunSession.IsRunInProgress: true })
+        return await Dispatcher.UIThread.InvokeAsync(
+            () =>
+            {
+                cancellationToken.ThrowIfCancellationRequested();
+                return TryApplyWarmupStep(
+                    () =>
+                    {
+                        _startupTrace.Mark($"{traceStage}.started");
+                        action();
+                        _startupTrace.Mark($"{traceStage}.ready");
+                    },
+                    runSession,
+                    isCurrent);
+            },
+            DispatcherPriority.Background,
+            cancellationToken);
+    }
+
+    internal static bool TryApplyWarmupStep(
+        Action action,
+        CompositionRunPresentationViewModel runSession,
+        Func<bool> isCurrent)
+    {
+        if (!isCurrent() || runSession.IsRunInProgress)
+        {
+            return false;
+        }
+        action();
+        return true;
+    }
+
+    internal static async Task WaitForRunIdleAsync(
+        CompositionRunPresentationViewModel runSession,
+        CancellationToken cancellationToken)
+    {
+        if (!runSession.IsRunInProgress)
         {
             return;
         }
 
-        await Dispatcher.UIThread.InvokeAsync(
-            () =>
+        var idle = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        void handler(object? _, PropertyChangedEventArgs args)
+        {
+            if (args.PropertyName == nameof(CompositionRunPresentationViewModel.IsRunInProgress) &&
+                !runSession.IsRunInProgress)
             {
-                _startupTrace.Mark($"{traceStage}.started");
-                action();
-                _startupTrace.Mark($"{traceStage}.ready");
-            },
-            DispatcherPriority.Background,
-            cancellationToken);
-        cancellationToken.ThrowIfCancellationRequested();
+                _ = idle.TrySetResult();
+            }
+        }
+        runSession.PropertyChanged += handler;
+        try
+        {
+            if (runSession.IsRunInProgress)
+            {
+                await idle.Task.WaitAsync(cancellationToken);
+            }
+        }
+        finally
+        {
+            runSession.PropertyChanged -= handler;
+        }
+    }
+
+    private void ReportStartupDuration(MainWindowViewModel viewModel)
+    {
+        if (_isStartupDurationReported || _startupTrace.ElapsedSinceManagedEntry is not { } elapsed)
+        {
+            return;
+        }
+
+        _isStartupDurationReported = true;
+        viewModel.RecordStartupDuration(elapsed);
     }
 }

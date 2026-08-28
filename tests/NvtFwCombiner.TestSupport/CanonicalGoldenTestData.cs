@@ -1,3 +1,4 @@
+using System.Globalization;
 using System.Security.Cryptography;
 using System.Text.Json;
 using System.Text.Json.Nodes;
@@ -6,6 +7,49 @@ namespace NvtFwCombiner.TestSupport;
 
 /// <summary>One fact-scoped alias resolved against its direct source case.</summary>
 public sealed record CanonicalGoldenAlias(string CaseId, string Ic, string SourceCaseId, string SourceIc);
+
+/// <summary>Closed test behavior attached to one canonical evidence case.</summary>
+public enum CanonicalGoldenTestDispositionKind
+{
+    /// <summary>Compares the complete built output with the owner expected artifact.</summary>
+    DirectFullOutput,
+    /// <summary>Allows only case-local reviewed output byte ranges to differ.</summary>
+    AllowedByteDifference,
+    /// <summary>Validates artifacts and records independent typed route-blocking evidence.</summary>
+    ArtifactIntegrityRouteBlocked,
+    /// <summary>Validates immutable input evidence without claiming an expected output.</summary>
+    InputOnlyEvidence,
+    /// <summary>Tests a declared fact binding without copying physical payloads.</summary>
+    FactScopedAlias,
+}
+
+/// <summary>Typed projection of a canonical case's fail-closed test disposition.</summary>
+public sealed record CanonicalGoldenTestDisposition(
+    CanonicalGoldenTestDispositionKind Kind,
+    IReadOnlyList<string> EvidenceRefs,
+    IReadOnlyList<CanonicalGoldenDifferenceRange> AllowedDifferenceRanges,
+    IReadOnlyList<string> RouteBlockingEvidenceRefs);
+
+/// <summary>One reviewed half-open output-image range in an allowed-difference contract.</summary>
+public sealed record CanonicalGoldenDifferenceRange(
+    long Start,
+    long EndExclusive,
+    string Classification)
+{
+    /// <summary>Gets the range length.</summary>
+    public long Length => checked(EndExclusive - Start);
+
+    /// <summary>Returns whether one output-image offset is inside this range.</summary>
+    public bool Contains(long offset)
+    {
+        return offset >= Start && offset < EndExclusive;
+    }
+}
+
+/// <summary>Result of comparing complete output images under one case-local contract.</summary>
+public sealed record CanonicalGoldenDifferenceResult(
+    long DifferenceCount,
+    IReadOnlyList<long> DifferenceCountByAllowedRange);
 
 /// <summary>Projects direct cases from the closed canonical golden inventory for test execution.</summary>
 public static class CanonicalGoldenTestData
@@ -41,6 +85,8 @@ public static class CanonicalGoldenTestData
             {
                 continue;
             }
+
+            _ = RequireDisposition(goldenCase, CanonicalGoldenTestDispositionKind.DirectFullOutput);
 
             cases.Add(ProjectDirectCase(goldenCase, root));
         }
@@ -116,6 +162,10 @@ public static class CanonicalGoldenTestData
                 _ = ValidatedArtifactPath(artifact, root);
             }
 
+            _ = directEvidence
+                ? RequireDisposition(goldenCase, CanonicalGoldenTestDispositionKind.InputOnlyEvidence)
+                : TestDisposition(goldenCase);
+
             return goldenCase.Clone();
         }
 
@@ -148,6 +198,8 @@ public static class CanonicalGoldenTestData
                 continue;
             }
 
+            CanonicalGoldenTestDisposition disposition = TestDisposition(goldenCase);
+
             string caseId = goldenCase.GetProperty("caseId").GetString()!;
             string ic = goldenCase.GetProperty("ic").GetString()!;
             if (goldenCase.GetProperty("directGolden").GetBoolean() ||
@@ -158,6 +210,12 @@ public static class CanonicalGoldenTestData
             }
             else
             {
+                if (disposition.Kind != CanonicalGoldenTestDispositionKind.FactScopedAlias)
+                {
+                    throw new InvalidDataException(
+                        $"Canonical alias '{caseId}' must use the fact-scoped-alias disposition.");
+                }
+
                 aliases.Add((caseId, ic, goldenCase.GetProperty("alias").GetProperty("sourceCaseId").GetString()!));
             }
         }
@@ -173,6 +231,136 @@ public static class CanonicalGoldenTestData
                     : throw new InvalidDataException(
                         $"Canonical alias '{alias.CaseId}' has no direct source '{alias.SourceCaseId}'."))),
         ];
+    }
+
+    /// <summary>Finds one named artifact in a raw canonical case.</summary>
+    public static JsonElement Artifact(JsonElement goldenCase, string artifactId)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(artifactId);
+        return goldenCase.GetProperty("artifacts")
+            .EnumerateArray()
+            .Single(artifact => StringComparer.Ordinal.Equals(
+                artifact.GetProperty("artifactId").GetString(),
+                artifactId));
+    }
+
+    /// <summary>Parses the closed disposition vocabulary; unknown or incomplete values fail.</summary>
+    public static CanonicalGoldenTestDisposition TestDisposition(JsonElement goldenCase)
+    {
+        JsonElement disposition = goldenCase.GetProperty("testDisposition");
+        CanonicalGoldenTestDispositionKind kind = disposition.GetProperty("kind").GetString() switch
+        {
+            "direct-full-output" => CanonicalGoldenTestDispositionKind.DirectFullOutput,
+            "allowed-byte-difference" => CanonicalGoldenTestDispositionKind.AllowedByteDifference,
+            "artifact-integrity-route-blocked" => CanonicalGoldenTestDispositionKind.ArtifactIntegrityRouteBlocked,
+            "input-only-evidence" => CanonicalGoldenTestDispositionKind.InputOnlyEvidence,
+            "fact-scoped-alias" => CanonicalGoldenTestDispositionKind.FactScopedAlias,
+            string value => throw new InvalidDataException(
+                $"Canonical test disposition kind is unsupported: {value}"),
+            null => throw new InvalidDataException("Canonical test disposition kind is required."),
+        };
+        string[] evidenceRefs =
+        [
+            .. disposition.GetProperty("evidenceRefs")
+                .EnumerateArray()
+                .Select(reference => reference.GetString() ?? throw new InvalidDataException(
+                    "Canonical test disposition evidence reference is required.")),
+        ];
+        if (evidenceRefs.Length == 0)
+        {
+            throw new InvalidDataException("Canonical test disposition requires evidence references.");
+        }
+
+        string? differenceContractProperty = disposition.TryGetProperty(
+            "differenceContractProperty",
+            out JsonElement contractProperty)
+            ? contractProperty.GetString()
+            : null;
+        IReadOnlyList<CanonicalGoldenDifferenceRange> allowedDifferenceRanges =
+            kind == CanonicalGoldenTestDispositionKind.AllowedByteDifference
+                ? ParseAllowedDifferenceRanges(goldenCase, differenceContractProperty)
+                : [];
+        string[] routeBlockingEvidenceRefs = disposition.TryGetProperty(
+            "routeBlockingEvidenceRefs",
+            out JsonElement routeRefs)
+            ? [.. routeRefs.EnumerateArray().Select(reference => reference.GetString()!)]
+            : [];
+        return new CanonicalGoldenTestDisposition(
+            kind,
+            evidenceRefs,
+            allowedDifferenceRanges,
+            routeBlockingEvidenceRefs);
+    }
+
+    /// <summary>Fails unless the case declares the expected closed disposition kind.</summary>
+    public static CanonicalGoldenTestDisposition RequireDisposition(
+        JsonElement goldenCase,
+        CanonicalGoldenTestDispositionKind expectedKind)
+    {
+        CanonicalGoldenTestDisposition disposition = TestDisposition(goldenCase);
+        return disposition.Kind == expectedKind
+            ? disposition
+            : throw new InvalidDataException(
+                $"Canonical case '{goldenCase.GetProperty("caseId").GetString()}' uses " +
+                $"'{disposition.Kind}' but '{expectedKind}' is required by this runner.");
+    }
+
+    /// <summary>
+    /// Compares complete output images and rejects every byte difference outside the
+    /// case-local reviewed output-image ranges.
+    /// </summary>
+    public static CanonicalGoldenDifferenceResult AssertAllowedByteDifferences(
+        JsonElement goldenCase,
+        ReadOnlySpan<byte> expected,
+        ReadOnlySpan<byte> actual)
+    {
+        CanonicalGoldenTestDisposition disposition = RequireDisposition(
+            goldenCase,
+            CanonicalGoldenTestDispositionKind.AllowedByteDifference);
+        JsonElement expectedArtifact = goldenCase.GetProperty("artifacts")
+            .EnumerateArray()
+            .Single(artifact => StringComparer.Ordinal.Equals(
+                artifact.GetProperty("role").GetString(),
+                "expected"));
+        long declaredSize = expectedArtifact.GetProperty("size").GetInt64();
+        if (expected.Length != declaredSize || actual.Length != declaredSize)
+        {
+            throw new InvalidDataException(
+                $"Canonical case '{goldenCase.GetProperty("caseId").GetString()}' output length " +
+                $"must match the declared expected artifact size {declaredSize}.");
+        }
+
+        long[] differenceCountByRange = new long[disposition.AllowedDifferenceRanges.Count];
+        long differenceCount = 0;
+        for (int index = 0; index < expected.Length; index++)
+        {
+            if (expected[index] == actual[index])
+            {
+                continue;
+            }
+
+            int containingRange = -1;
+            for (int rangeIndex = 0; rangeIndex < disposition.AllowedDifferenceRanges.Count; rangeIndex++)
+            {
+                if (disposition.AllowedDifferenceRanges[rangeIndex].Contains(index))
+                {
+                    containingRange = rangeIndex;
+                    break;
+                }
+            }
+
+            if (containingRange < 0)
+            {
+                throw new InvalidDataException(
+                    $"Canonical case '{goldenCase.GetProperty("caseId").GetString()}' has an " +
+                    $"unapproved output difference at 0x{index:X}.");
+            }
+
+            differenceCount++;
+            differenceCountByRange[containingRange]++;
+        }
+
+        return new CanonicalGoldenDifferenceResult(differenceCount, differenceCountByRange);
     }
 
     /// <summary>Finds a direct canonical artifact path by workflow, IC, artifact id, and optional variant.</summary>
@@ -202,6 +390,73 @@ public static class CanonicalGoldenTestData
     private static string ValidatedArtifactPath(JsonElement artifact)
     {
         return ValidatedArtifactPath(artifact, Root);
+    }
+
+    private static List<CanonicalGoldenDifferenceRange> ParseAllowedDifferenceRanges(
+        JsonElement goldenCase,
+        string? differenceContractProperty)
+    {
+        if (string.IsNullOrWhiteSpace(differenceContractProperty) ||
+            !goldenCase.TryGetProperty(differenceContractProperty, out JsonElement contract))
+        {
+            throw new InvalidDataException(
+                "Allowed-byte-difference disposition requires its case-local difference contract.");
+        }
+
+        if (!StringComparer.Ordinal.Equals(
+                contract.GetProperty("addressSpaceId").GetString(),
+                "output-image"))
+        {
+            throw new InvalidDataException(
+                "Allowed byte differences must name the output-image address space.");
+        }
+
+        long outputSize = goldenCase.GetProperty("artifacts")
+            .EnumerateArray()
+            .Single(artifact => StringComparer.Ordinal.Equals(
+                artifact.GetProperty("role").GetString(),
+                "expected"))
+            .GetProperty("size")
+            .GetInt64();
+        var ranges = new List<CanonicalGoldenDifferenceRange>();
+        long previousEnd = 0;
+        foreach (JsonElement range in contract.GetProperty("allowedDifferenceRanges").EnumerateArray())
+        {
+            long start = ParseHexOffset(range.GetProperty("start").GetString(), "start");
+            long endExclusive = ParseHexOffset(
+                range.GetProperty("endExclusive").GetString(),
+                "endExclusive");
+            string classification = range.GetProperty("classification").GetString()
+                ?? throw new InvalidDataException("Allowed difference classification is required.");
+            if (start < previousEnd || endExclusive <= start || endExclusive > outputSize)
+            {
+                throw new InvalidDataException(
+                    "Allowed difference ranges must be sorted, non-overlapping, non-empty, and bounded by the expected output.");
+            }
+
+            ranges.Add(new CanonicalGoldenDifferenceRange(start, endExclusive, classification));
+            previousEnd = endExclusive;
+        }
+
+        return ranges.Count > 0
+            ? ranges
+            : throw new InvalidDataException(
+                "Allowed-byte-difference contract requires at least one range.");
+    }
+
+    private static long ParseHexOffset(string? value, string propertyName)
+    {
+        long result = 0;
+        bool isValid = value is not null && value.StartsWith("0x", StringComparison.Ordinal) &&
+            long.TryParse(
+                value.AsSpan(2),
+                NumberStyles.AllowHexSpecifier,
+                CultureInfo.InvariantCulture,
+                out result);
+        return isValid
+            ? result
+            : throw new InvalidDataException(
+                $"Allowed difference {propertyName} must be a non-negative hexadecimal offset.");
     }
 
     private static string ValidatedArtifactPath(JsonElement artifact, string root)

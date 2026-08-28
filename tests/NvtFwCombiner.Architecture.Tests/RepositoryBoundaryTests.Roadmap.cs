@@ -4,7 +4,7 @@ public sealed partial class RepositoryBoundaryTests
 {
     /// <summary>Keeps future scope in the single NFC roadmap while preserving the 0.9.x hot-fix record.</summary>
     [Fact]
-    public void NfcRoadmapRecordsV0916AndDependencyAllocatesV010xBeforeV011()
+    public void NfcRoadmapRecordsV0916AndSequencesV010xV100AndV110()
     {
         string roadmap = ReadText("docs/architecture/0.9.x-completion-roadmap.md");
         string tags = ReadText("docs/governance/development-tags.md");
@@ -40,12 +40,30 @@ public sealed partial class RepositoryBoundaryTests
             StringComparison.Ordinal);
         Assert.Contains("#207, #214, #219, and #221", nfcRoadmap, StringComparison.Ordinal);
         Assert.Contains("Dependency depth is not a release version.", normalizedNfcRoadmap, StringComparison.Ordinal);
-        Assert.Contains("## `0.11.0`: AB certification and family evidence", nfcRoadmap, StringComparison.Ordinal);
-        Assert.Contains("NT51950 AB `1 IC` and `Cascade`", nfcRoadmap, StringComparison.Ordinal);
-        Assert.Contains("selector-free NT51951 AB", nfcRoadmap, StringComparison.Ordinal);
-        Assert.Contains("Perfect-family and `ldc-tp-only` evidence scope", nfcRoadmap, StringComparison.Ordinal);
-        Assert.Contains("saved/customized-rule persistence and import", nfcRoadmap, StringComparison.Ordinal);
-        Assert.Contains("IC family/rule authoring UI", nfcRoadmap, StringComparison.Ordinal);
+        Assert.Contains(
+            "## `1.1.0`: deferred product expansion and analyzer cleanup",
+            nfcRoadmap,
+            StringComparison.Ordinal);
+        Assert.Contains(
+            "`1.1.0` starts only from the official reviewed `v1.0.0` predecessor. It owns:",
+            nfcRoadmap,
+            StringComparison.Ordinal);
+        Assert.Contains(
+            "NT51950 AB `1 IC`/`Cascade`, selector-free NT51951 AB, Perfect-family, and",
+            nfcRoadmap,
+            StringComparison.Ordinal);
+        Assert.Contains(
+            "`ldc-tp-only` evidence tracks",
+            nfcRoadmap,
+            StringComparison.Ordinal);
+        Assert.Contains(
+            "saved/customized-rule authoring, persistence, import, and validation through",
+            nfcRoadmap,
+            StringComparison.Ordinal);
+        Assert.Contains(
+            "IC family/rule authoring UI beyond the `1.1.0` admitted capability set",
+            nfcRoadmap,
+            StringComparison.Ordinal);
         Assert.Contains("agent-skill-inventory.md", nfcRoadmap, StringComparison.Ordinal);
         Assert.Contains("0.10.x-ticket-dependency-plan.md", nfcRoadmap, StringComparison.Ordinal);
         Assert.Contains("verification-report.md", nfcRoadmap, StringComparison.Ordinal);
@@ -139,13 +157,13 @@ public sealed partial class RepositoryBoundaryTests
     {
         string matrix = ReadText("docs/architecture/supported-ic-matrix.md");
 
-        Assert.Contains("## AB function availability, direct-golden debt, and progress", matrix, StringComparison.Ordinal);
-        Assert.Contains("A missing direct golden is an evidence debt, not a", matrix, StringComparison.Ordinal);
+        Assert.Contains("## AB support, direct-golden debt, and release progress", matrix, StringComparison.Ordinal);
+        Assert.Contains("A missing direct Golden remains an", matrix, StringComparison.Ordinal);
         Assert.Contains("**33.3%**; **4 missing**", matrix, StringComparison.Ordinal);
         Assert.Contains("NT51950 `Cascade`, and selector-free NT51951", matrix, StringComparison.Ordinal);
         Assert.Contains("**66.7%**", matrix, StringComparison.Ordinal);
         Assert.Contains("**100.0%**; external golden, firmware-owner, independent-review, packaging, and release-owner gates remain open.", matrix, StringComparison.Ordinal);
-        Assert.Contains("**0.0%**; function availability must not be presented as certification.", matrix, StringComparison.Ordinal);
+        Assert.Contains("**0.0%**; local support policy does not self-approve firmware, package, signing, or release-owner gates.", matrix, StringComparison.Ordinal);
     }
 
     /// <summary>Locks the historical v0.9.13 AB gate and the current function-open but certification-neutral re-admission state.</summary>

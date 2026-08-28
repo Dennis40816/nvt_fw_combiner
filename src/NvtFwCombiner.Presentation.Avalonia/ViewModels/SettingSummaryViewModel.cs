@@ -1,9 +1,7 @@
 namespace NvtFwCombiner.Presentation.Avalonia.ViewModels;
 
-/// <summary>One compact settings status row.</summary>
-public sealed class SettingSummaryViewModel
+internal sealed class SettingSummaryViewModel
 {
-    /// <summary>Initializes a settings status row.</summary>
     public SettingSummaryViewModel(
         string title,
         string value,
@@ -21,15 +19,11 @@ public sealed class SettingSummaryViewModel
         Status = status;
     }
 
-    /// <summary>Gets the row title.</summary>
     public string Title { get; }
 
-    /// <summary>Gets the primary value.</summary>
     public string Value { get; }
 
-    /// <summary>Gets the short supporting description.</summary>
     public string Description { get; }
 
-    /// <summary>Gets the row status.</summary>
     public string Status { get; }
 }

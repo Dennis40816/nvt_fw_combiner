@@ -1,18 +1,8 @@
 {
   "schemaVersion": "2.9",
   "profileId": "nt51950-ctrlram-replace-fw1x-cascade",
-  "profileVersion": "0.6.0",
-  "promotion": {
-    "stage": "executable-candidate",
-    "blockers": [
-      {
-        "blockerId": "support-neutral-no-promotion",
-        "kind": "release",
-        "reason": "The owner-approved cascade route uses the same TP layout, offsets, and postbuild command contract as the verified single route while remaining support-neutral.",
-        "evidenceRefs": [ "nt51950-cascade2-geometry-nt51951-auto-prj-599-alias" ]
-      }
-    ]
-  },
+  "profileVersion": "0.7.0",
+  "promotion": { "stage": "supported", "blockers": [] },
   "compositionKind": "replace",
   "icNumberInputMode": "cascade-selector",
   "experience": {

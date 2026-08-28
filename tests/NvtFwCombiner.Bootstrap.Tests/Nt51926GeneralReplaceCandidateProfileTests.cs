@@ -30,6 +30,14 @@ public sealed class Nt51926GeneralReplaceCandidateProfileTests
         Assert.Equal("nt51926-general-replace-dp-single-candidate", composition.V2Details.ProfileId);
         Assert.Equal("0.1.0", composition.V2Details.ProfileVersion);
         Assert.Equal(CompiledProfilePromotionStage.ExecutableCandidate, composition.V2Details.Provenance.Promotion.Stage);
+        Assert.Equal(
+            CompiledOutputNameRendererKind.Static,
+            composition.V2Details.OutputNamingRequirement.RendererKind);
+        Assert.Null(composition.V2Details.OutputNamingRequirement.RuleId);
+        Assert.Equal(
+            CompiledOutputArtifactType.Unspecified,
+            composition.V2Details.OutputNamingRequirement.OutputArtifactType);
+        Assert.Empty(composition.V2Details.OutputNamingRequirement.TokenRequirements);
         Assert.Equal(2, composition.V2Details.Provenance.Promotion.Blockers.Count);
         Assert.Equal(
             "nt51926-general-replace-full-flash-256k",

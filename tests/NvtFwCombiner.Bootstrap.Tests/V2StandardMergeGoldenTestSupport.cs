@@ -1,5 +1,7 @@
 using System.Security.Cryptography;
 using System.Text.Json;
+using NvtFwCombiner.Application.Authoring;
+using NvtFwCombiner.Application.Capabilities;
 using NvtFwCombiner.Domain.Composition;
 using NvtFwCombiner.Infrastructure.Bundles;
 using NvtFwCombiner.Profiles.V2;
@@ -104,6 +106,31 @@ internal static class V2StandardMergeGoldenTestSupport
         CompiledComposition compiledComposition,
         IReadOnlyDictionary<string, byte[]> inputs)
     {
+        CompiledAuthoringSelectedInput[] selectedInputs =
+        [
+            .. inputs.OrderBy(static item => item.Key, StringComparer.Ordinal)
+                .Select(static item => new CompiledAuthoringSelectedInput(
+                    item.Key,
+                    $"{item.Key}.bin",
+                    item.Value)),
+        ];
+        var session = new AuthoringSessionState(ExperienceIds.StandardMerge);
+        CompiledAuthoringSessionPreparation prepared =
+            BootstrapTestHost.Services.StandardMergeAuthoring.PrepareSession(
+                session,
+                compiledComposition.V2Details.Provenance.Context.MemberId,
+                selectedInputs);
+        Assert.True(prepared.Succeeded, FormatIssues(prepared.Issues));
+        ActiveSessionSnapshot acceptedSession = Assert.IsType<ActiveSessionSnapshot>(prepared.Snapshot);
+        ResolvedCapability acceptedCapability = Assert.IsType<ResolvedCapability>(acceptedSession.ExactCapability);
+        CompiledComposition executionComposition = acceptedCapability.CompiledComposition;
+        AssertPublishedCompositionMatchesBundle(compiledComposition, executionComposition);
+        AcceptedOutputNamingInspection acceptedNaming =
+            AcceptedOutputNamingInspection.Accept(acceptedSession);
+        OutputNamingAdmissionIdentity namingAdmission = OutputNamingAdmissionIdentity.Capture(
+            acceptedCapability,
+            acceptedSession.AuthoringRevision.Value);
+
         var reader = new FakeArtifactReader(inputs.ToDictionary(
             item => $"{compiledComposition.V2Details.ProfileId}:{item.Key}",
             static item => item.Value,
@@ -116,9 +143,12 @@ internal static class V2StandardMergeGoldenTestSupport
         var service = new CompositionRunService(reader, new FakeClock([StartedAtUtc, CompletedAtUtc]));
         var request = new CompositionRunRequest(
             $"golden-{compiledComposition.V2Details.Provenance.Context.MemberId.ToLowerInvariant()}",
-            compiledComposition,
+            executionComposition,
             bindings,
-            compiledComposition.V2Details.OutputNamingRequirement.FileNameTemplate);
+            executionComposition.V2Details.OutputNamingRequirement.FileNameTemplate,
+            outputNamingInspection: acceptedNaming,
+            outputNamingAdmission: namingAdmission,
+            resolvedCapability: acceptedCapability);
         return await service.PreviewAsync(request, CancellationToken.None).ConfigureAwait(false);
     }
 
@@ -134,7 +164,12 @@ internal static class V2StandardMergeGoldenTestSupport
             result.Report.Issues.Select(static issue => issue.Code));
         Assert.Equal(expectedOutput, result.OutputBytes.ToArray());
         Assert.Equal(Hash(expectedOutput), result.Report.Output.Sha256);
-        Assert.Equal(compiledComposition.CompilationFingerprint, result.Report.CompilationFingerprint);
+        Assert.Equal(compiledComposition.V2Details.ProfileId, result.Report.ProfileId);
+        Assert.Equal(compiledComposition.V2Details.ProfileVersion, result.Report.ProfileVersion);
+        Assert.Equal(compiledComposition.V2Details.Provenance.Context.MemberId, result.Report.IcId);
+        Assert.Equal(compiledComposition.V2Details.Provenance.Context.ModeId, result.Report.ModeId);
+        Assert.Equal(compiledComposition.V2Details.ExperienceId, result.Report.ExperienceId);
+        Assert.Equal(64, Assert.IsType<string>(result.Report.CompilationFingerprint).Length);
     }
 
     internal static string GoldenRoot => CanonicalGoldenTestData.Root;
@@ -174,6 +209,32 @@ internal static class V2StandardMergeGoldenTestSupport
     private static string FormatIssues(IEnumerable<CompositionIssue> issues)
     {
         return string.Join(Environment.NewLine, issues.Select(static issue => $"{issue.Code}: {issue.Message}"));
+    }
+
+    private static void AssertPublishedCompositionMatchesBundle(
+        CompiledComposition bundleComposition,
+        CompiledComposition publishedComposition)
+    {
+        Assert.Equal(bundleComposition.V2Details.ProfileId, publishedComposition.V2Details.ProfileId);
+        Assert.Equal(bundleComposition.V2Details.ProfileVersion, publishedComposition.V2Details.ProfileVersion);
+        Assert.Equal(
+            bundleComposition.V2Details.Provenance.Context.MemberId,
+            publishedComposition.V2Details.Provenance.Context.MemberId);
+        Assert.Equal(
+            bundleComposition.V2Details.Provenance.Context.ModeId,
+            publishedComposition.V2Details.Provenance.Context.ModeId);
+        Assert.Equal(bundleComposition.V2Details.ExperienceId, publishedComposition.V2Details.ExperienceId);
+        Assert.Equal(bundleComposition.V2Details.CompositionKind, publishedComposition.V2Details.CompositionKind);
+        Assert.Equal(
+            bundleComposition.V2Details.OutputNamingRequirement.FileNameTemplate,
+            publishedComposition.V2Details.OutputNamingRequirement.FileNameTemplate);
+        Assert.Equal(bundleComposition.Plan.OutputSpaceId, publishedComposition.Plan.OutputSpaceId);
+        Assert.Equal(
+            bundleComposition.Plan.OutputInitialization.Capacity,
+            publishedComposition.Plan.OutputInitialization.Capacity);
+        Assert.Equal(
+            bundleComposition.Plan.OrderedOperations.Select(static operation => operation.OperationId),
+            publishedComposition.Plan.OrderedOperations.Select(static operation => operation.OperationId));
     }
 
     private static InputArtifactBinding CreateInputBinding(string profileId, string addressSpaceId)

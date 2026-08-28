@@ -27,7 +27,7 @@ public sealed partial class NavigationClearConfirmationModal : UserControl
 
     private void NavigationClearConfirmationModal_OnKeyDown(object? sender, KeyEventArgs e)
     {
-        if (e.Key != Key.Escape || DataContext is not MainWindowViewModel viewModel)
+        if (e.Key != Key.Escape || DataContext is not ShellNavigationViewModel viewModel)
         {
             return;
         }

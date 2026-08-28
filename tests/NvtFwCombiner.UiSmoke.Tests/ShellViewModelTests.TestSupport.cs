@@ -9,29 +9,11 @@ namespace NvtFwCombiner.UiSmoke.Tests;
 
 public abstract partial class ShellViewModelTestBase
 {
-    private protected MainWindowViewModel CreateCtrlRamVersionReadyViewModel(
+    private protected static MainWindowViewModel CreateCtrlRamVersionReadyViewModel(
         byte[] baseBytes,
-        TempWorkspace workspace,
-        Func<string, string, FirmwareConfigMetadataSnapshot?>? firmwareConfigMetadataReader = null)
+        TempWorkspace workspace)
     {
-        MainWindowViewModel viewModel;
-        if (firmwareConfigMetadataReader is null)
-        {
-            viewModel = PresentationTestHost.CreateViewModel();
-        }
-        else
-        {
-            PresentationHostServices services = PresentationTestHost.CreateServices("test-app");
-            viewModel = new MainWindowViewModel(
-                "test-shell",
-                "test-app",
-                ShellLanguage.English,
-                services,
-                new DelegatingFirmwareInspection(
-                    TestHost.FirmwareInspectionExperience,
-                    metadataReader: firmwareConfigMetadataReader));
-            _ = PresentationTestHost.PublishCanonicalCatalog(services, viewModel);
-        }
+        MainWindowViewModel viewModel = PresentationTestHost.CreateViewModel();
         viewModel.WorkflowSession.SelectedIc = "NT51926";
         viewModel.WorkflowSession.SelectedNumber = "cascade";
         OpenReplace(viewModel, ExperienceIds.CtrlRamReplace);
@@ -65,7 +47,9 @@ public abstract partial class ShellViewModelTestBase
             new DelegatingFirmwareInspection(
                 TestHost.FirmwareInspectionExperience,
                 batchReader: reader));
-        return PresentationTestHost.PublishCanonicalCatalog(services, viewModel);
+        _ = PresentationTestHost.PublishCanonicalCatalog(services, viewModel);
+        viewModel.ShowMergeCommand.Execute(null);
+        return viewModel;
     }
 
     private protected static void AssertStandardMergeInputsReady(
@@ -114,6 +98,20 @@ public abstract partial class ShellViewModelTestBase
         ArgumentNullException.ThrowIfNull(slot);
         return slot.SlotIconPathData.StartsWith('M') &&
             slot.SlotIconPathData.Contains('L');
+    }
+
+    private protected static WorkflowInspectionLifecycle CurrentInspection(MainWindowViewModel viewModel)
+    {
+        return viewModel.IsReplaceVisible ? viewModel.Replace.Inspection : viewModel.Merge.Inspection;
+    }
+
+    private protected static void AssertInspectionTerminal(WorkflowInspectionLifecycle lifecycle)
+    {
+        Assert.Equal(WorkflowInspectionAttemptState.Succeeded, lifecycle.State);
+        AuthoringInspectionProgress progress = Assert.IsType<AuthoringInspectionProgress>(
+            lifecycle.Progress,
+            exactMatch: false);
+        Assert.Equal(progress.TotalWork, progress.CompletedWork);
     }
 
 }

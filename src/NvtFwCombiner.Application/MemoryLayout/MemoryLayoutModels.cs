@@ -20,10 +20,10 @@ public sealed record MemoryLayoutBlockedIssueReference
     {
         ArgumentNullException.ThrowIfNull(slotIdentity);
         ArgumentNullException.ThrowIfNull(issue);
-        if (slotIdentity.SelectedPath is null || slotIdentity.FileStamp is null)
+        if (slotIdentity.SelectedPath is null)
         {
             throw new ArgumentException(
-                "A blocked issue requires the exact selected-file identity.",
+                "A blocked issue requires the exact selected-path identity.",
                 nameof(slotIdentity));
         }
 
@@ -39,7 +39,7 @@ public sealed record MemoryLayoutBlockedIssueReference
     /// <summary>Exact authoring-input revision.</summary>
     public AuthoringRevision AuthoringRevision { get; }
 
-    /// <summary>Exact slot, path, and host-captured file identity.</summary>
+    /// <summary>Exact slot and path; content identity is null before bytes are accepted.</summary>
     public AuthoringSlotPublicationIdentity SlotIdentity { get; }
 
     /// <summary>Reference to the actual separately owned diagnostic issue.</summary>
@@ -94,6 +94,7 @@ public sealed class MemoryLayoutSegment
         string addressSpaceId,
         ByteRange range,
         string regionId,
+        string logicalCoverageGroupId,
         FirmwareRegion? canonicalRegion,
         MemoryContentRole contentRole,
         MemoryWorkflowDisposition disposition,
@@ -108,11 +109,13 @@ public sealed class MemoryLayoutSegment
         string? sourceSlotId,
         IEnumerable<CompositionOperation> contributingOperations,
         IEnumerable<MemoryLayoutPreservationDetail> preservationDetails,
-        ReplaceRegionGroup regionGroup)
+        ReplaceRegionGroup regionGroup,
+        CtrlRamRegionRole ctrlRamRegionRole)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(segmentId);
         ArgumentException.ThrowIfNullOrWhiteSpace(addressSpaceId);
         ArgumentException.ThrowIfNullOrWhiteSpace(regionId);
+        ArgumentException.ThrowIfNullOrWhiteSpace(logicalCoverageGroupId);
         if (canonicalRegion is not null &&
             (!StringComparer.Ordinal.Equals(canonicalRegion.RegionId, regionId) ||
              !canonicalRegion.Range.Contains(range)))
@@ -132,6 +135,7 @@ public sealed class MemoryLayoutSegment
         MemoryLayoutGuard.Defined(selection, nameof(selection));
         MemoryLayoutGuard.Defined(focus, nameof(focus));
         MemoryLayoutGuard.Defined(regionGroup, nameof(regionGroup));
+        MemoryLayoutGuard.Defined(ctrlRamRegionRole, nameof(ctrlRamRegionRole));
         if (sourceSlotId is not null && sourceSpaceId is null)
         {
             throw new ArgumentException(
@@ -154,6 +158,7 @@ public sealed class MemoryLayoutSegment
         AddressSpaceId = addressSpaceId;
         Range = range;
         RegionId = regionId;
+        LogicalCoverageGroupId = logicalCoverageGroupId;
         CanonicalRegion = canonicalRegion;
         ContentRole = contentRole;
         Disposition = disposition;
@@ -169,6 +174,7 @@ public sealed class MemoryLayoutSegment
         ContributingOperations = Array.AsReadOnly(operations);
         PreservationDetails = Array.AsReadOnly(details);
         RegionGroup = regionGroup;
+        CtrlRamRegionRole = ctrlRamRegionRole;
     }
 
     /// <summary>Stable projection-local identity.</summary>
@@ -179,6 +185,8 @@ public sealed class MemoryLayoutSegment
     public ByteRange Range { get; }
     /// <summary>Stable physical-region or logical-output identity.</summary>
     public string RegionId { get; }
+    /// <summary>Application-owned final identity for logical information grouping.</summary>
+    public string LogicalCoverageGroupId { get; }
     /// <summary>Exact canonical physical-region reference, or null for logical output.</summary>
     public FirmwareRegion? CanonicalRegion { get; }
     /// <summary>Primary content role.</summary>
@@ -209,6 +217,8 @@ public sealed class MemoryLayoutSegment
     public IReadOnlyList<MemoryLayoutPreservationDetail> PreservationDetails { get; }
     /// <summary>Application-owned CtrlRAM grouping, or Common for ungrouped geometry.</summary>
     public ReplaceRegionGroup RegionGroup { get; }
+    /// <summary>Closed detailed CtrlRAM family role; Other outside detailed CtrlRAM geometry.</summary>
+    public CtrlRamRegionRole CtrlRamRegionRole { get; }
 
     internal static MemoryLayoutSegment Create(
         string segmentId,
@@ -228,13 +238,16 @@ public sealed class MemoryLayoutSegment
         string? sourceSlotId,
         IEnumerable<CompositionOperation> contributingOperations,
         IEnumerable<MemoryLayoutPreservationDetail> preservationDetails,
-        ReplaceRegionGroup regionGroup = ReplaceRegionGroup.Common)
+        string logicalCoverageGroupId,
+        ReplaceRegionGroup regionGroup = ReplaceRegionGroup.Common,
+        CtrlRamRegionRole ctrlRamRegionRole = CtrlRamRegionRole.Other)
     {
         return new(
             segmentId,
             addressSpaceId,
             range,
             canonicalRegion.RegionId,
+            logicalCoverageGroupId,
             canonicalRegion,
             contentRole,
             disposition,
@@ -249,7 +262,8 @@ public sealed class MemoryLayoutSegment
             sourceSlotId,
             contributingOperations,
             preservationDetails,
-            regionGroup);
+            regionGroup,
+            ctrlRamRegionRole);
     }
 
     internal static MemoryLayoutSegment CreateLogical(
@@ -270,13 +284,16 @@ public sealed class MemoryLayoutSegment
         string? sourceSlotId,
         IEnumerable<CompositionOperation> contributingOperations,
         IEnumerable<MemoryLayoutPreservationDetail> preservationDetails,
-        ReplaceRegionGroup regionGroup = ReplaceRegionGroup.Common)
+        string logicalCoverageGroupId,
+        ReplaceRegionGroup regionGroup = ReplaceRegionGroup.Common,
+        CtrlRamRegionRole ctrlRamRegionRole = CtrlRamRegionRole.Other)
     {
         return new(
             segmentId,
             addressSpaceId,
             range,
             logicalRegionId,
+            logicalCoverageGroupId,
             canonicalRegion: null,
             contentRole,
             disposition,
@@ -291,7 +308,8 @@ public sealed class MemoryLayoutSegment
             sourceSlotId,
             contributingOperations,
             preservationDetails,
-            regionGroup);
+            regionGroup,
+            ctrlRamRegionRole);
     }
 }
 

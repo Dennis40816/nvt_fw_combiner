@@ -1,7 +1,8 @@
-using NvtFwCombiner.Application.Capabilities;
 using NvtFwCombiner.Application.ExternalTools;
 using NvtFwCombiner.Application.FlashMaps;
+using NvtFwCombiner.Application.Metadata;
 using NvtFwCombiner.Domain.Composition;
+using NvtFwCombiner.Domain.Firmware;
 using NvtFwCombiner.Infrastructure.ExternalTools;
 
 namespace NvtFwCombiner.Infrastructure.Composition;
@@ -10,7 +11,7 @@ internal sealed partial class BuiltInFirmwareInspection
 {
     /// <summary>Reads FWConfig display metadata from the canonical NVT-located Backup in a selected firmware image.</summary>
     internal static FirmwareConfigMetadataSnapshot? TryReadFirmwareConfigMetadata(
-        CanonicalCapabilityExperience projection,
+        ICompositionCapabilityExperience projection,
         string icId,
         string path)
     {
@@ -24,7 +25,7 @@ internal sealed partial class BuiltInFirmwareInspection
     }
 
     internal static bool TryReadBaseCommonFwVersion(
-        CanonicalCapabilityExperience projection,
+        ICompositionCapabilityExperience projection,
         string icId,
         string basePath,
         out string? commonFwVersion)
@@ -44,7 +45,7 @@ internal sealed partial class BuiltInFirmwareInspection
     }
 
     private static bool TryResolveNumberTokenForFirmwareConfig(
-        CanonicalCapabilityExperience projection,
+        ICompositionCapabilityExperience projection,
         string icId,
         FirmwareConfigMetadata firmwareConfig,
         out string? numberToken)
@@ -76,7 +77,7 @@ internal sealed partial class BuiltInFirmwareInspection
     }
 
     internal static bool TryReadFirmwareConfigBackupMetadata(
-        CanonicalCapabilityExperience projection,
+        ICompositionCapabilityExperience projection,
         string icId,
         string path,
         out FirmwareConfigMetadata metadata)
@@ -108,7 +109,7 @@ internal sealed partial class BuiltInFirmwareInspection
     }
 
     internal static bool TryReadFirmwareConfigBackupMetadata(
-        CanonicalCapabilityExperience projection,
+        ICompositionCapabilityExperience projection,
         string icId,
         ReadOnlySpan<byte> image,
         out FirmwareConfigMetadata metadata)
@@ -124,43 +125,146 @@ internal sealed partial class BuiltInFirmwareInspection
         return true;
     }
 
-    internal static bool TryResolvePostbuildProfileFromBasePathForDisplay(
-        CanonicalCapabilityExperience projection,
+    internal static LegacyCombinerPostbuildProfile? ResolveDeclaredPostbuildProfileForDisplay(
+        string icId)
+    {
+        IReadOnlyList<LegacyCombinerPostbuildProfile> profiles =
+            BuiltInPostbuildProfileCatalog.GetProfiles(IcIdentifier.Normalize(icId));
+        return profiles.Count == 0 ? null : profiles[0];
+    }
+
+    internal static bool TryResolvePostbuildProfileFromAcceptedBaseForDisplay(
+        ICompositionCapabilityExperience projection,
         string icId,
-        string? basePath,
+        ReadOnlySpan<byte> acceptedBaseBytes,
         out LegacyCombinerPostbuildProfile? postbuildProfile)
     {
-        postbuildProfile = null;
-        IReadOnlyList<LegacyCombinerPostbuildProfile> profiles =
-            BuiltInPostbuildProfileCatalog.GetProfiles(
-                IcIdentifier.Normalize(icId));
-        if (profiles.Count == 0)
+        FirmwareConfigMetadata? metadata =
+            TryReadFirmwareConfigBackupMetadata(
+                projection,
+                icId,
+                acceptedBaseBytes,
+                out FirmwareConfigMetadata parsed)
+                    ? parsed
+                    : null;
+        return TryResolvePostbuildProfileForDisplay(
+            projection,
+            icId,
+            metadata,
+            out postbuildProfile);
+    }
+
+    private static (
+        DpVersionMetadata? Version,
+        CmiDpCodeMetadata? Cmi,
+        FirmwareMetadataPrerequisite? Prerequisite)
+        ReadDpMetadata(
+            byte[] image,
+            byte[]? tpImage,
+            string? standardMergeAddressSpaceId,
+            FirmwareMetadataPlanAuthority metadataAuthority)
+    {
+        if (TryReadCanonicalDpcmi(
+                image,
+                tpImage,
+                standardMergeAddressSpaceId,
+                metadataAuthority,
+                out DpcmiMetadataFacts? dpcmi,
+                out FirmwareMetadataPrerequisite? prerequisite))
+        {
+            return dpcmi is null
+                ? (null, null, prerequisite)
+                : (
+                    new DpVersionMetadata(dpcmi.VersionToken),
+                    new CmiDpCodeMetadata(
+                        dpcmi.MajorVersion,
+                        dpcmi.MinorVersion,
+                        dpcmi.JiraNumber,
+                        checked((int)dpcmi.ResolvedRange.Start)),
+                    null);
+        }
+
+        return (null, null, null);
+    }
+
+    private static bool TryReadCanonicalDpcmi(
+        byte[] image,
+        byte[]? tpImage,
+        string? standardMergeAddressSpaceId,
+        FirmwareMetadataPlanAuthority metadataAuthority,
+        out DpcmiMetadataFacts? facts,
+        out FirmwareMetadataPrerequisite? prerequisite)
+    {
+        facts = null;
+        prerequisite = null;
+        ArgumentNullException.ThrowIfNull(metadataAuthority);
+        if (!metadataAuthority.IsApplicable)
         {
             return false;
         }
 
-        if (profiles.Count == 1)
+        bool isStandardMergeDpInput = StringComparer.Ordinal.Equals(
+            standardMergeAddressSpaceId,
+            CompositionAddressSpaceIds.DpInput);
+        ResolvedMetadataPlan? plan = metadataAuthority.Plan;
+
+        if (!DeclaresDpcmi(plan))
         {
-            postbuildProfile = profiles[0];
+            return false;
+        }
+
+        if (image.Length == 0)
+        {
             return true;
         }
 
-        bool hasReadableBase = !string.IsNullOrWhiteSpace(basePath) && File.Exists(basePath);
-        bool matchedBaseProfile = hasReadableBase &&
-            TryReadBaseCommonFwVersion(
-                projection,
-                icId,
-                basePath!,
-                out string? commonFwVersion) &&
-            BuiltInPostbuildProfileCatalog.TrySelectProfileForCommonFwVersion(
-                IcIdentifier.Normalize(icId),
-                commonFwVersion,
-                out postbuildProfile,
-                out _);
+        FirmwareArtifactPayload[] artifacts =
+        [
+            .. plan!.Entries
+                .Select(static entry => entry.Definition.SpaceId)
+                .Distinct(StringComparer.Ordinal)
+                .Where(spaceId =>
+                    !isStandardMergeDpInput ||
+                    tpImage is not null ||
+                    !StringComparer.Ordinal.Equals(
+                        spaceId,
+                        CompositionAddressSpaceIds.TpInput))
+                .Select(spaceId => new FirmwareArtifactPayload(
+                    spaceId,
+                    StringComparer.Ordinal.Equals(
+                            spaceId,
+                            CompositionAddressSpaceIds.TpInput) &&
+                        tpImage is not null
+                            ? tpImage
+                            : image)),
+        ];
+        MetadataInspectionSnapshot snapshot = FirmwareMetadataInspector.Inspect(
+            plan,
+            artifacts);
+        if (DpcmiMetadataProjector.TryProject(snapshot, out DpcmiMetadataFacts projected))
+        {
+            facts = projected;
+        }
+        else
+        {
+            prerequisite = snapshot.Results
+                .Single(result => StringComparer.Ordinal.Equals(
+                    result.PlanEntry.Definition.StructureDefinition.Definition.DefinitionId,
+                    DpcmiMetadataContract.StructureId))
+                .Resolution?
+                .Prerequisite;
+        }
 
-        postbuildProfile ??= !hasReadableBase && profiles.Count != 0
-            ? profiles[0]
-            : null;
-        return matchedBaseProfile || postbuildProfile is not null;
+        // A declared canonical DPCMI route owns both success and failure. Never
+        // fall back to a second physical-offset interpretation for that route.
+        return true;
+    }
+
+    private static bool DeclaresDpcmi(ResolvedMetadataPlan? plan)
+    {
+        return plan?.Entries.Any(entry =>
+            StringComparer.Ordinal.Equals(
+                entry.Definition.StructureDefinition.Definition.DefinitionId,
+                DpcmiMetadataContract.StructureId)) == true;
     }
 }

@@ -1,0 +1,57 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schemas.example.invalid/nvt_fw_combiner/update-source-registry-v1.schema.json",
+  "title": "NVT FW Combiner fixed update-source registry v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "registryId",
+    "registryRevision",
+    "publishedAtUtc",
+    "catalogPublication",
+    "entries"
+  ],
+  "properties": {
+    "schemaVersion": { "const": 1 },
+    "registryId": {
+      "const": "nvt-fw-combiner-production"
+    },
+    "registryRevision": { "type": "integer", "minimum": 1, "maximum": 9223372036854775807 },
+    "publishedAtUtc": { "type": "string", "format": "date-time" },
+    "catalogPublication": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["latestVersion", "catalogSchemaVersion", "catalogSha256"],
+      "properties": {
+        "latestVersion": {
+          "type": "string",
+          "pattern": "^(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)$"
+        },
+        "catalogSchemaVersion": { "type": "integer", "minimum": 1 },
+        "catalogSha256": { "type": "string", "pattern": "^[0-9a-f]{64}$" }
+      }
+    },
+    "entries": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 16,
+      "contains": {
+        "type": "object",
+        "required": ["status"],
+        "properties": { "status": { "const": "latest" } }
+      },
+      "minContains": 1,
+      "maxContains": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["status", "catalogPath"],
+        "properties": {
+          "status": { "enum": ["latest", "available", "deprecated"] },
+          "catalogPath": { "type": "string", "minLength": 3, "maxLength": 1024 }
+        }
+      }
+    }
+  }
+}

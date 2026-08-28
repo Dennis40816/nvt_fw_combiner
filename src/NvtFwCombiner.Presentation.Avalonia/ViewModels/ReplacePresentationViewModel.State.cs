@@ -6,7 +6,7 @@ using NvtFwCombiner.Domain.Composition;
 
 namespace NvtFwCombiner.Presentation.Avalonia.ViewModels;
 
-public sealed partial class ReplacePresentationViewModel
+internal sealed partial class ReplacePresentationViewModel
 {
     private const string DpReplaceMode = ExperienceIds.DpReplace;
     private const string CtrlRamReplaceMode = ExperienceIds.CtrlRamReplace;
@@ -18,17 +18,18 @@ public sealed partial class ReplacePresentationViewModel
     private readonly AuthoringSessionState _generalReplaceSession =
         new(ExperienceIds.GeneralReplace);
     private int _generalReplaceMappingCounter;
-    private string _selectedReplaceMode = DpReplaceMode;
+    private string _selectedReplaceMode = CtrlRamReplaceMode;
+    private string? _catalogReconciliationPreviousMode;
 
-    /// <summary>Gets replace mode choices.</summary>
-    public IReadOnlyList<string> ReplaceModeChoices { get; } =
-    [
-        DpReplaceMode,
-        CtrlRamReplaceMode,
-        GeneralReplaceMode,
-    ];
+    public IReadOnlyList<string> ReplaceModeChoices =>
+        string.IsNullOrWhiteSpace(SelectedIc)
+            ? []
+            : Array.AsReadOnly(
+            [
+                .. WorkflowPageModeCatalog.ForPage(ShellPage.Replace).Where(mode =>
+                    _stateBindings.IsWorkflowAuthorable(SelectedIc, mode)),
+            ]);
 
-    /// <summary>Gets localized Replace planning-card content.</summary>
     public PlanningCardText ReplacePreview => Text.ReplacePreview;
 
     /// <summary>Gets the independent General Replace base firmware slot.</summary>
@@ -36,51 +37,67 @@ public sealed partial class ReplacePresentationViewModel
         CompositionSlotIds.ReplaceBase,
         "Reference firmware",
         "Complete source image cloned before replacement",
-        FirmwareSlotKind.Base);
+        FirmwareSlotKind.Base,
+        addressSpaceId: CompositionAddressSpaceIds.ReferenceBase);
 
-    /// <summary>Gets replace input slots for the selected replace mode.</summary>
     public ObservableCollection<FirmwareSlotViewModel> ReplaceSlots { get; } = [];
 
-    /// <summary>Gets grouped CtrlRAM replacement slots for dense multi-chip layouts.</summary>
     public ObservableCollection<FirmwareSlotGroupViewModel> ReplaceSlotGroups { get; } = [];
 
-    /// <summary>Gets CtrlRAM region rows for the selected IC and Number.</summary>
     public ObservableCollection<CtrlRamRegionViewModel> CtrlRamRegions { get; } = [];
 
-    /// <summary>Gets visual coverage segments for the selected Replace workflow.</summary>
     public ObservableCollection<MemoryCoverageSegmentViewModel> ReplaceCoverageSegments { get; } = [];
 
-    /// <summary>Gets grouped Replace coverage segments for dense CtrlRAM layouts.</summary>
     public ObservableCollection<MemoryCoverageGroupViewModel> ReplaceCoverageGroups { get; } = [];
 
-    /// <summary>Gets readable memory-map rows for the selected Replace workflow.</summary>
+    public IReadOnlyList<MemoryCoverageLogicalItemViewModel> ReplaceSelectedCoverageItems =>
+    [
+        .. ReplaceCoverageGroups
+            .Where(static group => !group.IsBaseFirmwareGroup)
+            .SelectMany(static group => group.Items),
+    ];
+
+    public IReadOnlyList<MemoryCoverageLogicalItemViewModel> ReplaceBaseCoverageItems =>
+    [
+        .. ReplaceCoverageGroups
+            .Where(static group => group.IsBaseFirmwareGroup)
+            .SelectMany(static group => group.Items),
+    ];
+
+    public MemoryCoverageGroupViewModel? ReplaceBaseCoverageGroup =>
+        ReplaceCoverageGroups.FirstOrDefault(static group => group.IsBaseFirmwareGroup);
+
+    public bool HasReplaceBaseCoverage => ReplaceBaseCoverageItems.Count > 0;
+
+    public string ReplaceSelectedCoverageSummary =>
+        Text.FormatSelectedCtrlRamCoverageSummary(ReplaceSelectedCoverageItems.Count);
+
+    public string ReplaceBaseCoverageSummary => Text.FormatBaseFirmwareCoverageSummary();
+
     public ObservableCollection<MemoryMapRowViewModel> ReplaceMemoryRows { get; } = [];
 
-    /// <summary>Gets editable General Replace mapping rows.</summary>
     public ObservableCollection<GeneralReplaceMappingViewModel> GeneralReplaceMappings { get; } = [];
 
-    /// <summary>Gets Replace memory coverage text for the selected IC and Number.</summary>
     public string ReplaceMemoryRangeLabel { get; private set; } = string.Empty;
 
-    /// <summary>Gets or sets the selected Replace mode.</summary>
     public string SelectedReplaceMode
     {
         get => _selectedReplaceMode;
         set => SetSelectedReplaceMode(value);
     }
 
-    /// <summary>Gets the default Replace output file name for the active mode.</summary>
-    public string ReplaceOutputFileName => ResolveAcceptedOutputFileName(
-        SelectedReplaceMode switch
-        {
-            DpReplaceMode => _dpReplaceSession.CurrentSnapshot,
-            CtrlRamReplaceMode => _ctrlRamReplaceSession.CurrentSnapshot,
-            GeneralReplaceMode => _generalReplaceSession.CurrentSnapshot,
-            _ => null,
-        },
-        $"{SelectedIc.ToLowerInvariant()}-{SelectedReplaceMode}.bin");
+    public string ReplaceOutputFileName => HasSelectedIc
+        ? ResolveAcceptedOutputFileName(
+            SelectedReplaceMode switch
+            {
+                DpReplaceMode => _dpReplaceSession.CurrentSnapshot,
+                CtrlRamReplaceMode => _ctrlRamReplaceSession.CurrentSnapshot,
+                GeneralReplaceMode => _generalReplaceSession.CurrentSnapshot,
+                _ => null,
+            },
+            $"{SelectedIc.ToLowerInvariant()}-{SelectedReplaceMode}.bin")
+        : string.Empty;
 
-    /// <summary>Creates the CtrlRAM Replace output name from the confirmed version choice.</summary>
     public string CreateCtrlRamReplaceOutputFileName(CtrlRamFirmwareVersionDraftState? edit)
     {
         CtrlRamAuthoringTransitionResult transition =
@@ -110,62 +127,63 @@ public sealed partial class ReplacePresentationViewModel
                 .OutputNamingRequirement.FileNameTemplate ?? fallback;
     }
 
-    /// <summary>True when CtrlRAM Replace is selected.</summary>
     public bool IsCtrlRamReplaceModeSelected => IsSelectedReplaceModeSupported &&
         string.Equals(SelectedReplaceMode, CtrlRamReplaceMode, StringComparison.Ordinal);
 
-    /// <summary>True when General Replace is selected.</summary>
     public bool IsGeneralReplaceModeSelected => IsSelectedReplaceModeSupported &&
         string.Equals(SelectedReplaceMode, GeneralReplaceMode, StringComparison.Ordinal);
 
-    /// <summary>True when the selected Replace mode uses the fixed slot-card input layout.</summary>
     public bool IsStructuredReplaceModeSelected => IsSelectedReplaceModeSupported &&
         !string.Equals(SelectedReplaceMode, GeneralReplaceMode, StringComparison.Ordinal);
 
-    /// <summary>True when the selected Replace mode uses the flat structured slot-card input layout.</summary>
     public bool IsNonCtrlRamStructuredReplaceModeSelected => IsStructuredReplaceModeSelected &&
         !IsCtrlRamReplaceModeSelected;
 
-    /// <summary>True when Replace coverage should use grouped segment details.</summary>
     public bool IsReplaceCoverageGrouped => IsCtrlRamReplaceModeSelected && ReplaceCoverageGroups.Count > 0;
 
-    /// <summary>True when Replace coverage should use the flat segment details list.</summary>
     public bool IsReplaceCoverageFlat => !IsReplaceCoverageGrouped;
 
-    /// <summary>Description shown under the selected replace mode.</summary>
     public string SelectedReplaceModeDescription => Text.GetReplaceModeDescription(SelectedReplaceMode);
 
-    /// <summary>Selected Replace workflow availability and golden-evidence state.</summary>
-    public CapabilityWorkflowReadiness SelectedReplaceWorkflowReadiness =>
-        _compositionServices.Capabilities.GetReplaceWorkflowReadiness(SelectedIc, SelectedReplaceMode);
+    /// <summary>
+    /// Selected Replace workflow availability and golden-evidence state, or
+    /// null when no IC is selected.
+    /// </summary>
+    public CapabilityWorkflowReadiness? SelectedReplaceWorkflowReadiness =>
+        HasSelectedIc
+            ? _compositionServices.Capabilities.GetReplaceWorkflowReadiness(SelectedIc, SelectedReplaceMode)
+            : null;
 
     /// <summary>Localized evidence badge for the selected Replace workflow.</summary>
     public string SelectedReplaceModeEvidenceLabel =>
-        Text.GetWorkflowEvidenceLabel(SelectedReplaceWorkflowReadiness);
+        SelectedReplaceWorkflowReadiness is { } readiness
+            ? Text.GetWorkflowEvidenceLabel(readiness)
+            : string.Empty;
 
     /// <summary>Localized evidence reason and opening condition for the selected Replace workflow.</summary>
     public string SelectedReplaceModeEvidenceTooltip =>
-        Text.GetWorkflowEvidenceTooltip(SelectedReplaceWorkflowReadiness);
+        SelectedReplaceWorkflowReadiness is { } readiness
+            ? Text.GetWorkflowEvidenceTooltip(readiness)
+            : string.Empty;
 
     /// <summary>True when selected Replace has golden parity evidence.</summary>
     public bool IsSelectedReplaceModeGoldenVerified =>
-        SelectedReplaceWorkflowReadiness.HasReviewedEvidence;
+        SelectedReplaceWorkflowReadiness?.HasReviewedEvidence == true;
 
     /// <summary>True when selected Replace is available with evidence still open.</summary>
     public bool IsSelectedReplaceModeEvidenceGated =>
-        SelectedReplaceWorkflowReadiness.IsEvidencePending;
+        SelectedReplaceWorkflowReadiness?.IsEvidencePending == true;
 
-    /// <summary>True when selected Replace has no approved executable/safety contract.</summary>
     public bool IsSelectedReplaceModeUnavailable =>
-        !SelectedReplaceWorkflowReadiness.IsAvailable;
+        SelectedReplaceWorkflowReadiness is { IsAvailable: false };
 
-    /// <summary>True when Replace build can run for the active mode.</summary>
+    public WorkflowInspectionLifecycle Inspection => InspectionLifecycles[SelectedReplaceMode];
+    internal WorkflowInspectionSet InspectionLifecycles { get; }
+
     public bool CanBuildReplace => CanRunReplace() &&
-        !IsCtrlRamFirmwareVersionMetadataLoading &&
         (!IsCtrlRamReplaceModeSelected || HasCurrentCtrlRamActionReadiness(build: true)) &&
         (!IsGeneralReplaceModeSelected || _generalReplaceActionReadiness?.Build.IsAvailable == true);
 
-    /// <summary>Highest-priority typed pre-run blocker for the active Replace workflow.</summary>
     public CapabilityActionBlocker? PrimaryBuildBlocker => SelectedReplaceMode switch
     {
         CtrlRamReplaceMode => ActiveSessionBuildBlockerResolver.Resolve(
@@ -181,13 +199,10 @@ public sealed partial class ReplacePresentationViewModel
             DpReplaceMode),
     };
 
-    /// <summary>Command that adds a General Replace mapping row.</summary>
     public IRelayCommand AddGeneralReplaceMappingCommand { get; }
 
-    /// <summary>Command that previews Replace through the typed Application use case.</summary>
     public IAsyncRelayCommand PreviewReplaceCommand { get; }
 
-    /// <summary>Command that builds Replace output through the typed Application use case.</summary>
     public IAsyncRelayCommand BuildReplaceCommand { get; }
 
     /// <summary>Command that keeps the source TP firmware version for the current CtrlRAM build.</summary>
@@ -201,12 +216,15 @@ public sealed partial class ReplacePresentationViewModel
 
     private string SelectedIc => _stateBindings.SelectedIc();
 
+    private bool HasSelectedIc => !string.IsNullOrWhiteSpace(SelectedIc);
+
     private string SelectedNumber => _stateBindings.SelectedNumber();
 
     private ReportPresentationViewModel Reports => _stateBindings.Reports();
 
     private bool IsSelectedReplaceModeSupported =>
-        _compositionServices.Capabilities.IsReplaceWorkflowAvailable(SelectedIc, SelectedReplaceMode);
+        HasSelectedIc &&
+        _stateBindings.IsWorkflowAuthorable(SelectedIc, SelectedReplaceMode);
 
     private Task RunCompositionAsync(
         bool build,
@@ -218,6 +236,11 @@ public sealed partial class ReplacePresentationViewModel
 
     private void SetSelectedReplaceMode(string value)
     {
+        if (!ReplaceModeChoices.Contains(value, StringComparer.Ordinal))
+        {
+            return;
+        }
+
         if (string.Equals(_selectedReplaceMode, value, StringComparison.Ordinal))
         {
             return;
@@ -225,6 +248,7 @@ public sealed partial class ReplacePresentationViewModel
 
         _selectedReplaceMode = value;
         OnPropertyChanged(nameof(SelectedReplaceMode));
+        OnPropertyChanged(nameof(Inspection));
         NotifyModeChanged();
         _stateBindings.ReplaceModeChanged();
     }
@@ -237,8 +261,79 @@ public sealed partial class ReplacePresentationViewModel
         }
     }
 
+    internal bool StageAuthorableModeForCatalogReconciliation(
+        Func<string, bool> isAuthorable)
+    {
+        ArgumentNullException.ThrowIfNull(isAuthorable);
+        string nextMode = ResolveAuthorableModeForCatalogReconciliation(isAuthorable);
+        if (string.Equals(_selectedReplaceMode, nextMode, StringComparison.Ordinal))
+        {
+            return false;
+        }
+
+        _catalogReconciliationPreviousMode = _selectedReplaceMode;
+        _selectedReplaceMode = nextMode;
+        return true;
+    }
+
+    internal string ResolveAuthorableModeForCatalogReconciliation(
+        Func<string, bool> isAuthorable)
+    {
+        ArgumentNullException.ThrowIfNull(isAuthorable);
+        return !string.IsNullOrWhiteSpace(_selectedReplaceMode) &&
+            isAuthorable(_selectedReplaceMode)
+            ? _selectedReplaceMode
+            : WorkflowPageModeCatalog.ForPage(ShellPage.Replace)
+                .FirstOrDefault(isAuthorable) ?? string.Empty;
+    }
+
+    internal bool StageModeForWorkflowNavigation(string mode, bool isAuthorable)
+    {
+        if (!isAuthorable ||
+            !WorkflowPageModeCatalog.ForPage(ShellPage.Replace)
+                .Contains(mode, StringComparer.Ordinal) ||
+            string.Equals(_selectedReplaceMode, mode, StringComparison.Ordinal))
+        {
+            return false;
+        }
+
+        _selectedReplaceMode = mode;
+        return true;
+    }
+
+    internal void RestoreStagedWorkflowNavigationMode(string mode)
+    {
+        _selectedReplaceMode = mode;
+    }
+
+    internal void CommitStagedWorkflowNavigationMode(string previousMode)
+    {
+        if (!string.IsNullOrWhiteSpace(previousMode))
+        {
+            InspectionLifecycles[previousMode].Invalidate();
+        }
+        PublishCatalogReconciledReplaceMode();
+    }
+
+    internal void PublishCatalogReconciledReplaceMode()
+    {
+        if (_catalogReconciliationPreviousMode is { } previousMode)
+        {
+            if (previousMode.Length > 0)
+            {
+                InspectionLifecycles[previousMode].Invalidate();
+            }
+            _catalogReconciliationPreviousMode = null;
+        }
+        OnPropertyChanged(nameof(SelectedReplaceMode));
+        OnPropertyChanged(nameof(Inspection));
+        NotifyModeChanged();
+        _stateBindings.ResetRunResult();
+    }
+
     internal void NotifyContextChanged()
     {
+        OnPropertyChanged(nameof(ReplaceModeChoices));
         OnPropertyChanged(nameof(ReplacePreview));
         OnPropertyChanged(nameof(SelectedReplaceModeDescription));
         OnPropertyChanged(nameof(SelectedReplaceWorkflowReadiness));
@@ -281,17 +376,17 @@ public sealed partial class ReplacePresentationViewModel
     internal void NotifyCommandStateChanged()
     {
         RefreshDpReplaceInputSelectionReadiness();
+        NotifyCommandAvailabilityChanged();
+    }
+
+    internal void NotifyCommandAvailabilityChanged()
+    {
         PreviewReplaceCommand.NotifyCanExecuteChanged();
         BuildReplaceCommand.NotifyCanExecuteChanged();
         OnPropertyChanged(nameof(CanBuildReplace));
         OnPropertyChanged(nameof(PrimaryBuildBlocker));
         OnPropertyChanged(nameof(ReplaceReadinessStatus));
         RefreshSelectionState();
-    }
-
-    internal Task RefreshSelectedFirmwareInspectionsAsync()
-    {
-        return _stateBindings.RefreshSelectedFirmwareInspections();
     }
 
     internal void InvalidateCtrlRamFirmwareVersionContextState()

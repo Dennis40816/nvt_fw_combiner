@@ -8,8 +8,8 @@ public sealed record CapabilityWorkflowReadiness(
     string Reason,
     string OpenCondition)
 {
-    /// <summary>True when the available workflow has reviewed golden, alias, or synthetic evidence.</summary>
-    public bool HasReviewedEvidence => IsAvailable && EvidenceStatus is
+    /// <summary>True when the exact route has reviewed golden, alias, or synthetic evidence.</summary>
+    public bool HasReviewedEvidence => EvidenceStatus is
         CapabilityEvidenceStatus.DirectGolden or
         CapabilityEvidenceStatus.ApprovedAlias or
         CapabilityEvidenceStatus.SyntheticOracle;
@@ -33,18 +33,35 @@ public static class CapabilityWorkflowReadinessProjector
         ArgumentException.ThrowIfNullOrWhiteSpace(icId);
         ArgumentException.ThrowIfNullOrWhiteSpace(unsupportedReason);
         ArgumentException.ThrowIfNullOrWhiteSpace(openCondition);
-        if (workflowId is null || matrix is null || !authoringExposed)
+        if (workflowId is null || matrix is null)
         {
             return Unavailable(unsupportedReason, openCondition);
         }
 
+        CanonicalSupportMatrixRow[] exactRows =
+        [
+            .. matrix.Rows.Where(row =>
+                StringComparer.Ordinal.Equals(row.Identity.IcId, icId) &&
+                StringComparer.Ordinal.Equals(row.Identity.WorkflowId, workflowId)),
+        ];
+        if (!authoringExposed)
+        {
+            return new CapabilityWorkflowReadiness(
+                false,
+                exactRows.Length != 0,
+                exactRows.Length == 0
+                    ? CapabilityEvidenceStatus.Missing
+                    : SummarizeEvidence(
+                        [.. exactRows.Select(static row => row.Evidence.Value)]),
+                unsupportedReason,
+                openCondition);
+        }
+
         CapabilityEvidenceStatus[] availableEvidence =
         [
-            .. matrix.Rows
-                .Where(row =>
-                    StringComparer.Ordinal.Equals(row.Identity.IcId, icId) &&
-                    StringComparer.Ordinal.Equals(row.Identity.WorkflowId, workflowId) &&
-                    row.Authoring.Value == CapabilityAuthoringAvailability.Available)
+            .. exactRows
+                .Where(static row => row.Authoring.Value ==
+                    CapabilityAuthoringAvailability.Available)
                 .Select(static row => row.Evidence.Value),
         ];
         if (availableEvidence.Length == 0)

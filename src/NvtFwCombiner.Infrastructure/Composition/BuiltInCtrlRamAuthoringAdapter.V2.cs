@@ -80,7 +80,7 @@ internal sealed partial class BuiltInCtrlRamAuthoringAdapter
         CompiledComposition composition = compile.CompiledComposition!;
         capability = resolution.Route!.BindCompilation(
                 composition,
-                CreateCtrlRamReportMetadataPlan(route.Key.IcId, reference.LengthBytes),
+                CreateCtrlRamReportMetadataPlan(route),
                 RuntimeReferenceCompilationProof.CreateLegacyPostbuild(
                     composition,
                     context.CommandPlan))
@@ -95,87 +95,10 @@ internal sealed partial class BuiltInCtrlRamAuthoringAdapter
     }
 
     internal static MetadataPlanDefinition CreateCtrlRamReportMetadataPlan(
-        string icId,
-        long referenceCapacity)
+        CtrlRamV2Route route)
     {
-        BuiltInV2Registration registration =
-            BuiltInV2RegistrationRegistry.StandardMergeByIc.GetValueOrDefault(icId) ??
-            throw new InvalidDataException(
-                $"CtrlRAM report metadata requires the reviewed {icId} Standard Merge definition.");
-        CompiledComposition[] candidates =
-        [
-            .. CreateStandardMergeMetadataSelectionCandidates(registration)
-                .Select(selectedSlots =>
-                {
-                    registration.TryCompile(
-                        referenceCapacity,
-                        selectedSlots,
-                        out CompiledComposition? composition,
-                        out IReadOnlyList<CompositionIssue> issues);
-                    return (Composition: composition, Issues: issues);
-                })
-                .Where(static candidate =>
-                    candidate.Composition is not null &&
-                    candidate.Issues.Count == 0)
-                .Select(static candidate => candidate.Composition!)
-                .DistinctBy(static composition =>
-                    composition.V2Details.Provenance.ResolvedMap.ImageMap.MapId),
-        ];
-        CompiledComposition[] matches =
-        [
-            .. candidates.Where(composition =>
-                composition.Plan.OutputInitialization.Capacity == referenceCapacity),
-        ];
-        if (matches.Length == 0)
-        {
-            matches =
-            [
-                .. candidates.Where(composition =>
-                    composition.Plan.AddressSpaces.Single(space =>
-                        StringComparer.Ordinal.Equals(
-                            space.AddressSpaceId,
-                            CompositionAddressSpaceIds.TpInput)).Length <=
-                    referenceCapacity),
-            ];
-        }
-
-        CompiledComposition metadataComposition = matches.Length == 1
-            ? matches[0]
-            : throw new InvalidDataException(
-                $"CtrlRAM report metadata resolved {matches.Length} reviewed {icId} Standard Merge maps for capacity 0x{referenceCapacity:X}.");
-        MetadataPlanDefinition sourceMetadataPlan =
-            registration.CreateMetadataPlan(metadataComposition);
-        MetadataPlanEntry[] entries =
-        [
-            .. sourceMetadataPlan.Entries
-                .Where(static entry => entry.Purposes.Contains(
-                    MetadataReferencePurpose.ReportClassification))
-                .Select(static entry => new MetadataPlanEntry(
-                    entry.BindingId,
-                    entry.SpaceId,
-                    CompositionAddressSpaceIds.ReferenceBase,
-                    entry.FamilyDefinition,
-                    entry.ResolvedMap,
-                    entry.MetadataSetBinding,
-                    entry.StructureDefinition,
-                    entry.TargetReferences,
-                    entry.Purposes,
-                    entry.EvidenceRefs)),
-        ];
-        return new MetadataPlanDefinition(
-            entries,
-            sourceMetadataPlan.SourceIdentity);
-    }
-
-    private static IEnumerable<IReadOnlyCollection<string>>
-        CreateStandardMergeMetadataSelectionCandidates(
-            BuiltInV2Registration registration)
-    {
-        yield return [];
-        if (registration.InputSelectionGroupMemberSlotIds.Count != 0)
-        {
-            yield return registration.InputSelectionGroupMemberSlotIds;
-        }
+        ArgumentNullException.ThrowIfNull(route);
+        return route.ReportMetadataPlan;
     }
 
     private static V2CompositionPlanCompileResult CompileCtrlRamV2(

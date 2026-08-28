@@ -59,6 +59,10 @@ public sealed class TempWorkspace : IDisposable
             {
                 Thread.Sleep(TimeSpan.FromMilliseconds(50));
             }
+            catch (UnauthorizedAccessException) when (OperatingSystem.IsWindows() && attempt < 9)
+            {
+                Thread.Sleep(TimeSpan.FromMilliseconds(50));
+            }
         }
     }
 }

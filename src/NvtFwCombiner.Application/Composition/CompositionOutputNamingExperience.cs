@@ -9,14 +9,22 @@ namespace NvtFwCombiner.Application.Composition;
 internal sealed class CompositionOutputNamingExperience : ICompositionOutputNaming
 {
     private readonly ICanonicalCapabilityQuery _catalog;
+    private readonly ICompositionArtifactIdentityPolicy _artifactIdentityPolicy;
+    private readonly ICompositionOutputBundleDestinationValidator _bundleDestinationValidator;
     private readonly ISystemClock _clock;
 
     internal CompositionOutputNamingExperience(
         ICanonicalCapabilityQuery catalog,
-        ISystemClock clock)
+        ISystemClock clock,
+        ICompositionArtifactIdentityPolicy artifactIdentityPolicy,
+        ICompositionOutputBundleDestinationValidator bundleDestinationValidator)
     {
         _catalog = catalog ?? throw new ArgumentNullException(nameof(catalog));
         _clock = clock ?? throw new ArgumentNullException(nameof(clock));
+        _artifactIdentityPolicy = artifactIdentityPolicy ??
+            throw new ArgumentNullException(nameof(artifactIdentityPolicy));
+        _bundleDestinationValidator = bundleDestinationValidator ??
+            throw new ArgumentNullException(nameof(bundleDestinationValidator));
     }
 
     public CompositionOutputPreparation ResolveAcceptedOutput(
@@ -44,6 +52,26 @@ internal sealed class CompositionOutputNamingExperience : ICompositionOutputNami
             _clock.UtcNow,
             topology,
             ctrlRamVersionEdit);
+    }
+
+    public CompositionOutputBundleProposal ResolveAcceptedBundleProposal(
+        ActiveSessionSnapshot acceptedSession,
+        CtrlRamFirmwareVersionDraftState? ctrlRamVersionEdit = null)
+    {
+        CompositionOutputPreparation outputPreparation = ResolveAcceptedOutput(
+            acceptedSession,
+            ctrlRamVersionEdit);
+        return CompositionOutputBundleProposer.Create(
+            acceptedSession,
+            outputPreparation,
+            _artifactIdentityPolicy);
+    }
+
+    public CompositionOutputBundleDestinationValidation ValidateBundleDestination(
+        CompositionOutputBundleIntent intent)
+    {
+        ArgumentNullException.ThrowIfNull(intent);
+        return _bundleDestinationValidator.Validate(intent);
     }
 
     public ValueTask<CompositionOutputPreparation> PrepareAutomaticOutputAsync(

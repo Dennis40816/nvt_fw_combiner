@@ -4,7 +4,7 @@ using NvtFwCombiner.Presentation.Avalonia.HexViewport;
 
 namespace NvtFwCombiner.Presentation.Avalonia.ViewModels;
 
-public sealed partial class HexEditorWorkspaceViewModel
+internal sealed partial class HexEditorWorkspaceViewModel
 {
     private HexViewportRow CreateViewportRow(RawBinaryEditorViewportRow row)
     {

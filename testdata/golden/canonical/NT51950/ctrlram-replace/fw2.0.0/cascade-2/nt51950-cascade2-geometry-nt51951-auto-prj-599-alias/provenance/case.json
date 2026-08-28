@@ -6,6 +6,12 @@
   "variantOrVersion": "fw2.0.0",
   "topology": "cascade-2",
   "directGolden": false,
+  "testDisposition": {
+    "kind": "fact-scoped-alias",
+    "evidenceRefs": [
+      "tests/scripts/test_ctrlram_canonical_final_intake.py#test_nt51950_geometry_alias_is_explicitly_bound"
+    ]
+  },
   "sourceClassification": "owner-approved-fact-alias",
   "ownerApproval": "Repository owner supplied the AUTO_PRJ-599 folder as 950 Cascade expected evidence and approved its use to resolve issue #188 on 2026-07-31.",
   "alias": {

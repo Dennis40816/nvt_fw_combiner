@@ -8,10 +8,14 @@ from pathlib import Path
 
 from scripts.code_size_policy import (
     CodeSizeLimits,
+    DEFAULT_LIMITS,
     measure_code_size,
     review_code_size_policy,
     validate_code_size_policy,
 )
+
+
+REPOSITORY_ROOT = Path(__file__).resolve().parents[2]
 
 
 class CodeSizePolicyTests(unittest.TestCase):
@@ -30,11 +34,27 @@ class CodeSizePolicyTests(unittest.TestCase):
         path.parent.mkdir(parents=True, exist_ok=True)
         path.write_text(content, encoding="utf-8")
 
+    def test_frozen_release_baseline_emits_no_full_production_warning(self) -> None:
+        snapshot = measure_code_size(REPOSITORY_ROOT)
+
+        self.assertEqual(121_007, snapshot.production_nonblank)
+        self.assertEqual(snapshot.production_nonblank, DEFAULT_LIMITS.production_nonblank)
+        self.assertFalse(
+            any(
+                "production source nonblank lines exceeded threshold" in finding
+                for finding in review_code_size_policy(REPOSITORY_ROOT)
+            )
+        )
+
     def test_default_policy_reports_ratchets_without_final_targets(self) -> None:
         findings = review_code_size_policy(self.root)
 
-        self.assertTrue(any("runtime production metric" in finding for finding in findings))
-        self.assertTrue(any("Domain + Profiles metric" in finding for finding in findings))
+        self.assertTrue(
+            any("runtime production metric" in finding for finding in findings)
+        )
+        self.assertTrue(
+            any("Domain + Profiles metric" in finding for finding in findings)
+        )
         self.assertTrue(any("Application metric" in finding for finding in findings))
         self.assertTrue(
             any(
@@ -64,6 +84,12 @@ class CodeSizePolicyTests(unittest.TestCase):
         application_ratchet: int | None = None,
         bootstrap_cli_ratchet: int | None = None,
         infrastructure_contracts_worker_ratchet: int | None = None,
+        full_production_ratchet: int | None = None,
+        runtime_production_allowance: int = 0,
+        application_allowance: int = 0,
+        bootstrap_cli_allowance: int = 0,
+        infrastructure_contracts_worker_allowance: int = 0,
+        full_production_allowance: int = 0,
     ) -> CodeSizeLimits:
         return CodeSizeLimits(
             production_nonblank=production,
@@ -79,6 +105,14 @@ class CodeSizePolicyTests(unittest.TestCase):
             infrastructure_contracts_worker_ratchet=(
                 infrastructure_contracts_worker_ratchet
             ),
+            full_production_ratchet=full_production_ratchet,
+            runtime_production_allowance=runtime_production_allowance,
+            application_allowance=application_allowance,
+            bootstrap_cli_allowance=bootstrap_cli_allowance,
+            infrastructure_contracts_worker_allowance=(
+                infrastructure_contracts_worker_allowance
+            ),
+            full_production_allowance=full_production_allowance,
         )
 
     def review(self, limits: CodeSizeLimits) -> list[str]:
@@ -318,6 +352,43 @@ class CodeSizePolicyTests(unittest.TestCase):
             )
         )
 
+    def test_full_production_ratchet_fails_growth_and_requires_lower_ratchet(
+        self,
+    ) -> None:
+        self.write("src/Product/Program.cs", "one\ntwo\n")
+
+        self.assertEqual(
+            ["code-size full production grew: 2 > ratchet 1"],
+            validate_code_size_policy(
+                self.root,
+                self.limits(production=2, full_production_ratchet=1),
+            ),
+        )
+        self.assertEqual(
+            ["code-size full production improved: lower ratchet 3 to 2"],
+            validate_code_size_policy(
+                self.root,
+                self.limits(production=2, full_production_ratchet=3),
+            ),
+        )
+
+    def test_approved_allowance_preserves_historical_ratchet_and_fails_new_growth(
+        self,
+    ) -> None:
+        self.write("src/Product/Program.cs", "one\ntwo\nthree\n")
+        limits = self.limits(
+            production=3,
+            full_production_ratchet=2,
+            full_production_allowance=1,
+        )
+
+        self.assertEqual([], validate_code_size_policy(self.root, limits))
+        self.write("src/Product/Program.cs", "one\ntwo\nthree\nfour\n")
+        self.assertEqual(
+            ["code-size full production grew: 4 > ratchet 3"],
+            validate_code_size_policy(self.root, limits),
+        )
+
     def test_all_slice_ratchets_reject_cross_slice_relocation(self) -> None:
         self.write("src/NvtFwCombiner.Domain/Domain.cs", "domain\n")
         self.write("src/NvtFwCombiner.Application/App.cs", "application\n")
@@ -370,6 +441,27 @@ class CodeSizePolicyTests(unittest.TestCase):
                     application_ratchet=1,
                     bootstrap_cli_ratchet=1,
                     infrastructure_contracts_worker_ratchet=1,
+                ),
+            ),
+        )
+
+    def test_launcher_bootstrap_is_allocated_to_existing_host_slice(self) -> None:
+        self.write("src/NvtFwCombiner.LauncherBootstrap/Program.cs", "bootstrap-anchor\n")
+        snapshot = measure_code_size(self.root)
+
+        self.assertEqual(1, snapshot.bootstrap_cli_files)
+        self.assertEqual(1, snapshot.bootstrap_cli_nonblank)
+        self.assertEqual(
+            [],
+            validate_code_size_policy(
+                self.root,
+                self.limits(
+                    production=1,
+                    runtime_ratchet=1,
+                    domain_profiles_ratchet=0,
+                    application_ratchet=0,
+                    bootstrap_cli_ratchet=1,
+                    infrastructure_contracts_worker_ratchet=0,
                 ),
             ),
         )

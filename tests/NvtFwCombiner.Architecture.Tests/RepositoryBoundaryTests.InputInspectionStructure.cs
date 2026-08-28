@@ -2,6 +2,48 @@ namespace NvtFwCombiner.Architecture.Tests;
 
 public sealed partial class RepositoryBoundaryTests
 {
+    /// <summary>Only Application may interpret lower-level artifact-classification evidence.</summary>
+    [Fact]
+    public void PresentationCannotReclassifyTerminalFirmwareFacts()
+    {
+        string nonApplication = ReadNonApplicationProductionSources();
+        Assert.DoesNotContain("ArtifactClassification?.Signals", nonApplication, StringComparison.Ordinal);
+        Assert.DoesNotContain("ArtifactClassification.Signals", nonApplication, StringComparison.Ordinal);
+        Assert.DoesNotContain("CompiledFirmwareArtifactSignalKind", nonApplication, StringComparison.Ordinal);
+        Assert.DoesNotContain("CompiledFirmwareArtifactSignalStatus", nonApplication, StringComparison.Ordinal);
+    }
+
+    /// <summary>Infrastructure consumes one terminal Application classification without route ranking.</summary>
+    [Fact]
+    public void FirmwareInspectionKeepsArtifactCandidateAuthorityInApplication()
+    {
+        string inspection = ReadText(
+            "src/NvtFwCombiner.Infrastructure/Composition/BuiltInFirmwareInspection.cs");
+        string applicationRoot = Path.Combine(
+            Root.FullName,
+            "src",
+            "NvtFwCombiner.Application");
+        string[] resolverOwners =
+        [
+            .. Directory.EnumerateFiles(applicationRoot, "*.cs", SearchOption.AllDirectories)
+                .Where(path => File.ReadAllText(path).Contains(
+                    ": IFirmwareArtifactClassificationResolver",
+                    StringComparison.Ordinal)),
+        ];
+
+        _ = Assert.Single(resolverOwners);
+        Assert.Contains("_artifactClassification.Resolve(", inspection, StringComparison.Ordinal);
+        Assert.DoesNotContain("ICanonicalCapabilityQuery", inspection, StringComparison.Ordinal);
+        Assert.DoesNotContain("TryGetCurrentSnapshot(", inspection, StringComparison.Ordinal);
+        Assert.DoesNotContain("ResolveDynamicRoute(", inspection, StringComparison.Ordinal);
+        Assert.DoesNotContain(".DynamicRoutes", inspection, StringComparison.Ordinal);
+        Assert.DoesNotContain(
+            "CompiledFirmwareArtifactClassifier.Classify(",
+            inspection,
+            StringComparison.Ordinal);
+        Assert.DoesNotContain("ClassifyBaseFirmwareArtifact", inspection, StringComparison.Ordinal);
+    }
+
     /// <summary>One Application inspector owns input admission while adapters only project its result.</summary>
     [Fact]
     public void HeadlessSlotHealthKeepsOneApplicationInspectionAuthority()
@@ -17,8 +59,19 @@ public sealed partial class RepositoryBoundaryTests
                     "public static class CompiledInputArtifactInspectionService",
                     StringComparison.Ordinal)),
         ];
+        string[] extensionAdmissionOwners =
+        [
+            .. Directory.EnumerateFiles(applicationRoot, "*.cs", SearchOption.AllDirectories)
+                .Where(path => File.ReadAllText(path).Contains(
+                    "AcceptedExtensions.Contains",
+                    StringComparison.Ordinal)),
+        ];
         string headless = ReadText(
             "src/NvtFwCombiner.Application/Authoring/AuthoringInputSlotInspection.cs");
+        string runtimeRequest = ReadText(
+            "src/NvtFwCombiner.Application/Composition/CompositionRunRequest.cs");
+        string inspectionOwner = ReadText(
+            "src/NvtFwCombiner.Application/InputInspection/CompiledInputArtifactInspectionService.cs");
         string abOutputNaming = ReadText(
             "src/NvtFwCombiner.Application/Composition/AbCodeOutputNameResolver.cs");
         string abProjection = ReadText(
@@ -32,10 +85,25 @@ public sealed partial class RepositoryBoundaryTests
         string presentation = ReadPresentationSources();
 
         _ = Assert.Single(inspectorOwners);
+        Assert.Equal(inspectorOwners, extensionAdmissionOwners);
         Assert.Contains(
             "CompiledInputArtifactInspectionService.Inspect(",
             headless,
             StringComparison.Ordinal);
+        Assert.Contains(
+            "CompiledInputArtifactInspectionService.AcceptsOriginalFileName(",
+            headless,
+            StringComparison.Ordinal);
+        Assert.Contains(
+            "CompiledInputArtifactInspectionService.AcceptsOriginalFileName(",
+            runtimeRequest,
+            StringComparison.Ordinal);
+        Assert.DoesNotContain("AcceptedExtensions.Contains", headless, StringComparison.Ordinal);
+        Assert.DoesNotContain("AcceptedExtensions.Contains", runtimeRequest, StringComparison.Ordinal);
+        Assert.Equal(1, CountOccurrences(inspectionOwner, "AcceptedExtensions.Contains"));
+        Assert.DoesNotContain("TryCreatePublication", headless, StringComparison.Ordinal);
+        Assert.DoesNotContain("AuthoringInputSlotPublicationResult", headless, StringComparison.Ordinal);
+        Assert.DoesNotContain("BeginInspection(", headless, StringComparison.Ordinal);
         Assert.Contains(
             "CompiledInputArtifactObservationService.Observe(",
             headless,
@@ -148,7 +216,13 @@ public sealed partial class RepositoryBoundaryTests
         Assert.DoesNotContain("record IcNumberChoice", numberPolicy, StringComparison.Ordinal);
         Assert.DoesNotContain("public bool IsReady", runtimeReadiness, StringComparison.Ordinal);
         Assert.DoesNotContain("public long Length", fileStamp, StringComparison.Ordinal);
-        Assert.Contains("acceptedFileStamps[prerequisiteSlot].AcceptedLength", workflow, StringComparison.Ordinal);
+        Assert.Contains(
+            "acceptedFileStamps.TryGetValue(prerequisite, out FileStamp acceptedPrerequisite)",
+            workflow,
+            StringComparison.Ordinal);
+        Assert.Contains("ProjectPendingPrerequisite(discovery, selectedSlotIds, prerequisite)", workflow, StringComparison.Ordinal);
+        Assert.Contains("prerequisiteStamp?.AcceptedLength", workflow, StringComparison.Ordinal);
+        Assert.DoesNotContain("acceptedFileStamps[prerequisite].AcceptedLength", workflow, StringComparison.Ordinal);
         Assert.Contains("state.FileStamp?.AcceptedLength", memoryLayout, StringComparison.Ordinal);
         Assert.DoesNotContain("SourceFirmwareVersionAndBarBytes", versionPlan, StringComparison.Ordinal);
         Assert.DoesNotContain("SourceFirmwareSubVersionBytes", versionPlan, StringComparison.Ordinal);

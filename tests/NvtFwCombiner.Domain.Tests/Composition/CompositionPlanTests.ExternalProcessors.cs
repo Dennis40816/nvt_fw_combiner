@@ -234,4 +234,39 @@ public sealed partial class CompositionPlanTests
                     "run crc"),
             ]));
     }
+
+    /// <summary>Exposes one authoritative write-range contract for primitive and processor operations.</summary>
+    [Fact]
+    public void OperationsExposeExactDeclaredWriteRanges()
+    {
+        CompositionOperation copy = CompositionOperation.CopyRange(
+            "copy",
+            10,
+            "source",
+            new ByteRange(0, 2),
+            "output-image",
+            new ByteRange(4, 2),
+            OverlapPolicy.Reject,
+            "copy exact range");
+        CompositionOperation processor = CompositionOperation.RunExternalProcessor(
+            "processor",
+            20,
+            "output-image",
+            new ByteRange(0, 8),
+            new ExternalProcessorInvocation(
+                "processor-v1",
+                "tool-v1",
+                [new ByteRange(0, 8)],
+                [new ByteRange(1, 1), new ByteRange(6, 2)]),
+            OverlapPolicy.Reject,
+            "process constrained ranges");
+
+        Assert.Equal([new ByteRange(4, 2)], copy.DeclaredWriteRanges);
+        Assert.Equal(
+            [new ByteRange(1, 1), new ByteRange(6, 2)],
+            processor.DeclaredWriteRanges);
+        Assert.Same(
+            processor.ExternalProcessorInvocation!.AllowedWriteRanges,
+            processor.DeclaredWriteRanges);
+    }
 }

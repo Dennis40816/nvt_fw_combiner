@@ -24,9 +24,9 @@ public sealed partial class CtrlRamWorkflowTests
                 icId,
                 inputs);
         });
+        OpenReplace(viewModel, ExperienceIds.CtrlRamReplace);
         viewModel.WorkflowSession.SelectedIc = "NT51926";
         viewModel.WorkflowSession.SelectedNumber = IcNumberSelectionTokens.SingleChip;
-        OpenReplace(viewModel, ExperienceIds.CtrlRamReplace);
         FirmwareSlotViewModel replacement = viewModel.Replace.ReplaceSlots.First(slot =>
             !ReferenceEquals(slot, viewModel.Replace.ReplaceBaseSlot) &&
             slot.Title.Contains("VN CtrlRAM", StringComparison.Ordinal));
@@ -46,7 +46,7 @@ public sealed partial class CtrlRamWorkflowTests
         Assert.Equal("Cascade", viewModel.WorkflowSession.FirmwareNumberMismatchDetectedNumber);
 
         viewModel.WorkflowSession.AcceptFirmwareNumberMismatchCommand.Execute(null);
-        await viewModel.WorkflowSession.FirmwareInspectionRefreshTask;
+        await CurrentInspection(viewModel).ActiveTask;
 
         Assert.Equal(IcNumberSelectionTokens.Cascade, viewModel.WorkflowSession.SelectedNumber);
         Assert.False(viewModel.WorkflowSession.IsFirmwareNumberMismatchModalOpen);
@@ -88,9 +88,9 @@ public sealed partial class CtrlRamWorkflowTests
                     new FirmwareContextSuggestion("NT51926", "cascade", 3, "2.1.0", 0x5192),
                     null))),
         ]);
+        OpenReplace(viewModel, ExperienceIds.CtrlRamReplace);
         viewModel.WorkflowSession.SelectedIc = "NT51926";
         viewModel.WorkflowSession.SelectedNumber = IcNumberSelectionTokens.SingleChip;
-        OpenReplace(viewModel, ExperienceIds.CtrlRamReplace);
 
         await viewModel.WorkflowSession.SetSlotFileAsync("replace-base", basePath, TestContext.Current.CancellationToken);
 
@@ -217,9 +217,9 @@ public sealed partial class CtrlRamWorkflowTests
                 }),
             ];
         });
+        OpenReplace(viewModel, ExperienceIds.CtrlRamReplace);
         viewModel.WorkflowSession.SelectedIc = "NT51927";
         viewModel.WorkflowSession.SelectedNumber = IcNumberSelectionTokens.SingleChip;
-        OpenReplace(viewModel, ExperienceIds.CtrlRamReplace);
 
         Task firstSelection = viewModel.WorkflowSession.SetSlotFileAsync(
             "replace-base",
@@ -228,14 +228,18 @@ public sealed partial class CtrlRamWorkflowTests
         try
         {
             Assert.True(firstInspectionStarted.Wait(TimeSpan.FromSeconds(5), TestContext.Current.CancellationToken));
-            await viewModel.WorkflowSession.SetSlotFileAsync("replace-base", secondPath, TestContext.Current.CancellationToken);
+            Task secondSelection = viewModel.WorkflowSession.SetSlotFileAsync(
+                "replace-base",
+                secondPath,
+                TestContext.Current.CancellationToken);
+            Assert.Equal(1, batchCount);
+            releaseFirstInspection.Set();
+            await Task.WhenAll(firstSelection, secondSelection);
         }
         finally
         {
             releaseFirstInspection.Set();
         }
-
-        await firstSelection;
 
         Assert.True(viewModel.WorkflowSession.IsFirmwareNumberMismatchModalOpen);
         Assert.Equal("second.bin", viewModel.WorkflowSession.FirmwareNumberMismatchFileName);
@@ -263,9 +267,9 @@ public sealed partial class CtrlRamWorkflowTests
                     new FirmwareContextSuggestion("NT51927", "2", 2, "1.0.0", 0x5192),
                     null))),
         ]);
+        OpenReplace(viewModel, ExperienceIds.CtrlRamReplace);
         viewModel.WorkflowSession.SelectedIc = "NT51927";
         viewModel.WorkflowSession.SelectedNumber = IcNumberSelectionTokens.SingleChip;
-        OpenReplace(viewModel, ExperienceIds.CtrlRamReplace);
         await viewModel.WorkflowSession.SetSlotFileAsync("replace-base", basePath, TestContext.Current.CancellationToken);
         Assert.True(viewModel.WorkflowSession.IsFirmwareNumberMismatchModalOpen);
 
@@ -282,7 +286,7 @@ public sealed partial class CtrlRamWorkflowTests
             }
         };
 
-        await viewModel.WorkflowSession.RefreshAllSelectedFirmwareInspectionsAsync("replace-base");
+        await viewModel.WorkflowSession.RefreshSelectedReplaceFirmwareInspectionsAsync("replace-base");
 
         Assert.Empty(promptPublications);
         Assert.True(viewModel.WorkflowSession.IsFirmwareNumberMismatchModalOpen);
@@ -295,8 +299,6 @@ public sealed partial class CtrlRamWorkflowTests
     [Fact]
     public async Task FirmwareNumberMismatchCancelThenBuildRemainsFailClosed()
     {
-        using var fixtures = CtrlRamReplaceFixtureManifest.LoadIfPresent();
-        Assert.NotNull(fixtures);
         JsonElement fixtureCase = CanonicalGoldenTestData.LoadDirectEvidenceCase(
             "ctrlram-replace",
             "nt51927-3chip-self-20260705");
@@ -306,14 +308,14 @@ public sealed partial class CtrlRamWorkflowTests
         viewModel.WorkflowSession.SelectedNumber = IcNumberSelectionTokens.SingleChip;
         OpenReplace(viewModel, ExperienceIds.CtrlRamReplace);
 
-        fixtures.SetBaseSlot(viewModel, fixtureCase);
-        await viewModel.WorkflowSession.FirmwareInspectionRefreshTask;
+        CanonicalCtrlRamTestData.SetBaseSlot(viewModel, fixtureCase);
+        await CurrentInspection(viewModel).ActiveTask;
         Assert.True(viewModel.WorkflowSession.IsFirmwareNumberMismatchModalOpen);
         Assert.Equal("3 IC", viewModel.WorkflowSession.FirmwareNumberMismatchDetectedNumber);
         string basePath = Assert.IsType<string>(viewModel.Replace.ReplaceBaseSlot.FilePath);
         byte[] immutableBase = File.ReadAllBytes(basePath);
         FirmwareSlotViewModel nf = viewModel.Replace.ReplaceSlots.Single(slot => slot.SlotId == "replace-ctrlram-nf");
-        viewModel.SetSlotFile(nf.SlotId, fixtures.ReplacementPathFor(fixtureCase, nf.SlotId));
+        viewModel.SetSlotFile(nf.SlotId, CanonicalCtrlRamTestData.ReplacementPathFor(fixtureCase, nf.SlotId));
 
         viewModel.WorkflowSession.DismissFirmwareNumberMismatchCommand.Execute(null);
         string outputPath = workspace.PathFor("must-not-exist.bin");

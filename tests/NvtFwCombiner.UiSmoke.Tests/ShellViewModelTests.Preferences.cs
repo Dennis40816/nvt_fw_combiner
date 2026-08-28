@@ -27,48 +27,67 @@ public sealed partial class ShellNavigationSystemTests
     public async Task DesktopStartupUsesOneOverlappedPreferenceSnapshot()
     {
         PresentationHostServices services = PresentationTestHost.CreateServices("startup-test");
+        var preferenceLoaderStarted = new TaskCompletionSource(
+            TaskCreationOptions.RunContinuationsAsynchronously);
+        var allowPreferenceLoader = new TaskCompletionSource(
+            TaskCreationOptions.RunContinuationsAsynchronously);
         var preferenceCompletion = new TaskCompletionSource<ShellPreferenceSnapshot>(
             TaskCreationOptions.RunContinuationsAsynchronously);
-        bool preferenceReadStarted = false;
         int preferenceLoads = 0;
         int hostConstructions = 0;
 
-        (PresentationHostServices preparedHost, Task<ShellPreferenceSnapshot> preparedPreferences) =
-            DesktopApplication.PrepareStartup(
-                () =>
-                {
-                    hostConstructions++;
-                    Assert.True(preferenceReadStarted);
-                    Assert.False(preferenceCompletion.Task.IsCompleted);
-                    return services;
-                },
-                () =>
-                {
-                    preferenceLoads++;
-                    preferenceReadStarted = true;
-                    return preferenceCompletion.Task;
-                },
-                StartupTraceSession.Disabled);
+        Task<(PresentationHostServices HostServices, Task<ShellPreferenceSnapshot> ShellPreferences)> preparation =
+            Task.Run(() =>
+                DesktopApplication.PrepareStartup(
+                    () =>
+                    {
+                        hostConstructions++;
+                        return services;
+                    },
+                    () =>
+                    {
+                        preferenceLoads++;
+                        _ = preferenceLoaderStarted.TrySetResult();
+                        allowPreferenceLoader.Task.GetAwaiter().GetResult();
+                        return preferenceCompletion.Task;
+                    },
+                    StartupTraceSession.Disabled));
 
-        Assert.Same(services, preparedHost);
-        Assert.Same(preferenceCompletion.Task, preparedPreferences);
-        Assert.Equal(1, preferenceLoads);
-        Assert.Equal(1, hostConstructions);
+        try
+        {
+            await preferenceLoaderStarted.Task.WaitAsync(
+                TimeSpan.FromSeconds(5),
+                TestContext.Current.CancellationToken);
+            (PresentationHostServices preparedHost, Task<ShellPreferenceSnapshot> preparedPreferences) =
+                await preparation.WaitAsync(
+                    TimeSpan.FromSeconds(5),
+                    TestContext.Current.CancellationToken);
 
-        var preferences = new ShellPreferenceSnapshot(
-            "Dark",
-            "Traditional Chinese",
-            IsReducedMotionEnabled: true);
-        _ = preferenceCompletion.TrySetResult(preferences);
-        Assert.Same(preferences, await preparedPreferences);
+            Assert.Same(services, preparedHost);
+            Assert.False(preparedPreferences.IsCompleted);
+            Assert.Equal(1, preferenceLoads);
+            Assert.Equal(1, hostConstructions);
 
-        MainWindowViewModel viewModel = MainWindow.CreateStartupViewModel(
-            preparedHost,
-            await preparedPreferences);
-        Assert.Equal("Dark", viewModel.SelectedTheme);
-        Assert.Equal("Traditional Chinese", viewModel.SelectedLanguage);
-        Assert.True(viewModel.IsReducedMotionEnabled);
-        Assert.Equal("設定", viewModel.SettingsPreview.Title);
+            _ = allowPreferenceLoader.TrySetResult();
+            var preferences = new ShellPreferenceSnapshot(
+                "Dark",
+                "Traditional Chinese",
+                IsReducedMotionEnabled: true);
+            _ = preferenceCompletion.TrySetResult(preferences);
+            Assert.Same(preferences, await preparedPreferences);
+
+            MainWindowViewModel viewModel = MainWindow.CreateStartupViewModel(
+                preparedHost,
+                await preparedPreferences);
+            Assert.Equal("Dark", viewModel.SelectedTheme);
+            Assert.Equal("Traditional Chinese", viewModel.SelectedLanguage);
+            Assert.True(viewModel.IsReducedMotionEnabled);
+            Assert.Equal("設定", viewModel.SettingsPreview.Title);
+        }
+        finally
+        {
+            _ = allowPreferenceLoader.TrySetResult();
+        }
     }
 
     /// <summary>Verifies local shell preferences round-trip and invalid values keep fail-closed defaults.</summary>
@@ -79,9 +98,9 @@ public sealed partial class ShellNavigationSystemTests
         string preferencesPath = workspace.PathFor(Path.Combine("state", "preferences.v1.json"));
         var preferences = new ShellPreferenceSnapshot("Dark", "Traditional Chinese", true);
 
-        Assert.Equal(ShellPreferenceSnapshot.Default, ShellPreferenceFileStore.Load(preferencesPath));
+        Assert.Equal(ShellPreferenceSnapshot.Default, LoadPreferences(preferencesPath));
 
-        ShellPreferenceFileStore.Save(preferencesPath, preferences);
+        SavePreferences(preferencesPath, preferences);
 
         using (var document = JsonDocument.Parse(File.ReadAllText(preferencesPath)))
         {
@@ -96,13 +115,13 @@ public sealed partial class ShellNavigationSystemTests
             Assert.Equal(4, entry.EnumerateObject().Count());
         }
 
-        ShellPreferenceSnapshot loaded = ShellPreferenceFileStore.Load(preferencesPath);
+        ShellPreferenceSnapshot loaded = LoadPreferences(preferencesPath);
         Assert.Equal(preferences, loaded);
-        Assert.Equal(preferences, await ShellPreferenceFileStore.LoadAsync(preferencesPath));
+        Assert.Equal(preferences, await ShellPreferenceFileStore.LoadAsync(TestHost.LocalFiles, preferencesPath));
 
         var updatedPreferences = new ShellPreferenceSnapshot("Light", "English");
-        ShellPreferenceFileStore.Save(preferencesPath, updatedPreferences);
-        Assert.Equal(updatedPreferences, ShellPreferenceFileStore.Load(preferencesPath));
+        SavePreferences(preferencesPath, updatedPreferences);
+        Assert.Equal(updatedPreferences, LoadPreferences(preferencesPath));
 
         MainWindowViewModel restoredViewModel = PresentationTestHost.CreateViewModel();
         restoredViewModel.LoadShellPreferences(loaded);
@@ -117,21 +136,21 @@ public sealed partial class ShellNavigationSystemTests
 
         File.WriteAllText(preferencesPath, "{not valid json");
 
-        Assert.Equal(ShellPreferenceSnapshot.Default, ShellPreferenceFileStore.Load(preferencesPath));
+        Assert.Equal(ShellPreferenceSnapshot.Default, LoadPreferences(preferencesPath));
 
         File.WriteAllText(preferencesPath, /*lang=json,strict*/ """{"SchemaVersion":1,"Preferences":null}""");
 
-        Assert.Equal(ShellPreferenceSnapshot.Default, ShellPreferenceFileStore.Load(preferencesPath));
+        Assert.Equal(ShellPreferenceSnapshot.Default, LoadPreferences(preferencesPath));
 
         File.WriteAllText(preferencesPath, /*lang=json,strict*/ """{"SchemaVersion":1}""");
 
-        Assert.Equal(ShellPreferenceSnapshot.Default, ShellPreferenceFileStore.Load(preferencesPath));
+        Assert.Equal(ShellPreferenceSnapshot.Default, LoadPreferences(preferencesPath));
 
         File.WriteAllText(
             preferencesPath,
             /*lang=json,strict*/ """{"SchemaVersion":2,"Preferences":{"Theme":"Dark","Strictness":"Strict","Language":"Traditional Chinese"}}""");
 
-        Assert.Equal(ShellPreferenceSnapshot.Default, ShellPreferenceFileStore.Load(preferencesPath));
+        Assert.Equal(ShellPreferenceSnapshot.Default, LoadPreferences(preferencesPath));
 
         MainWindowViewModel defaultViewModel = PresentationTestHost.CreateViewModel();
         defaultViewModel.LoadShellPreferences(new ShellPreferenceSnapshot("Blue", "Klingon"));
@@ -149,7 +168,7 @@ public sealed partial class ShellNavigationSystemTests
         string preferencesPath = workspace.PathFor(Path.Combine("state", "preferences.v1.json"));
         var preferences = new ShellPreferenceSnapshot("Dark", "Traditional Chinese", true);
         var utf8 = new UTF8Encoding(encoderShouldEmitUTF8Identifier: false, throwOnInvalidBytes: true);
-        ShellPreferenceFileStore.Save(preferencesPath, preferences);
+        SavePreferences(preferencesPath, preferences);
         string json = File.ReadAllText(preferencesPath);
         int paddingLength = checked((int)(
             ShellPreferenceFileStore.MaximumPreferencesFileBytes - utf8.GetByteCount(json)));
@@ -157,12 +176,12 @@ public sealed partial class ShellNavigationSystemTests
         File.WriteAllText(preferencesPath, json + new string(' ', paddingLength), utf8);
 
         Assert.Equal(ShellPreferenceFileStore.MaximumPreferencesFileBytes, new FileInfo(preferencesPath).Length);
-        Assert.Equal(preferences, ShellPreferenceFileStore.Load(preferencesPath));
+        Assert.Equal(preferences, LoadPreferences(preferencesPath));
 
         File.AppendAllText(preferencesPath, " ", utf8);
 
         Assert.Equal(ShellPreferenceFileStore.MaximumPreferencesFileBytes + 1, new FileInfo(preferencesPath).Length);
-        Assert.Equal(ShellPreferenceSnapshot.Default, ShellPreferenceFileStore.Load(preferencesPath));
+        Assert.Equal(ShellPreferenceSnapshot.Default, LoadPreferences(preferencesPath));
     }
 
     /// <summary>Local preferences written with supported BOM encodings remain readable.</summary>
@@ -197,7 +216,7 @@ public sealed partial class ShellNavigationSystemTests
             _ = Directory.CreateDirectory(Path.GetDirectoryName(preferencesPath)!);
             File.WriteAllText(preferencesPath, json, encodings[index]);
 
-            Assert.Equal(expected, ShellPreferenceFileStore.Load(preferencesPath));
+            Assert.Equal(expected, LoadPreferences(preferencesPath));
         }
     }
 
@@ -221,7 +240,7 @@ public sealed partial class ShellNavigationSystemTests
             """;
         File.WriteAllText(preferencesPath, json, Encoding.Unicode);
 
-        Assert.Equal(ShellPreferenceSnapshot.Default, ShellPreferenceFileStore.Load(preferencesPath));
+        Assert.Equal(ShellPreferenceSnapshot.Default, LoadPreferences(preferencesPath));
     }
 
     /// <summary>Async preference persistence keeps the previous file when cancelled and atomically publishes the latest snapshot.</summary>
@@ -233,20 +252,33 @@ public sealed partial class ShellNavigationSystemTests
         var original = new ShellPreferenceSnapshot("Dark", "English");
         var cancelled = new ShellPreferenceSnapshot("Light", "Traditional Chinese", true);
         var latest = new ShellPreferenceSnapshot("System", "Traditional Chinese", true);
-        ShellPreferenceFileStore.Save(preferencesPath, original);
+        SavePreferences(preferencesPath, original);
         using var cancellation = new CancellationTokenSource();
         cancellation.Cancel();
 
-        await ShellPreferenceFileStore.SaveAsync(preferencesPath, cancelled, cancellation.Token);
+        await ShellPreferenceFileStore.SaveAsync(TestHost.LocalFiles, preferencesPath, cancelled, cancellation.Token);
 
-        Assert.Equal(original, ShellPreferenceFileStore.Load(preferencesPath));
+        Assert.Equal(original, LoadPreferences(preferencesPath));
 
         await ShellPreferenceFileStore.SaveAsync(
+            TestHost.LocalFiles,
             preferencesPath,
             latest,
             TestContext.Current.CancellationToken);
 
-        Assert.Equal(latest, ShellPreferenceFileStore.Load(preferencesPath));
+        Assert.Equal(latest, LoadPreferences(preferencesPath));
         Assert.Empty(Directory.GetFiles(Path.GetDirectoryName(preferencesPath)!, "*.tmp"));
+    }
+
+    private ShellPreferenceSnapshot LoadPreferences(string path)
+    {
+        return ShellPreferenceFileStore.LoadAsync(TestHost.LocalFiles, path).GetAwaiter().GetResult();
+    }
+
+    private void SavePreferences(string path, ShellPreferenceSnapshot preferences)
+    {
+        ShellPreferenceFileStore.SaveAsync(TestHost.LocalFiles, path, preferences, CancellationToken.None)
+            .GetAwaiter()
+            .GetResult();
     }
 }

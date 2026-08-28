@@ -21,6 +21,10 @@ on:
         description: Final reviewed pull request merged as this release-branch commit
         required: true
         type: string
+      published_at:
+        description: Canonical UTC package publication timestamp (for example 2026-08-24T00:00:00Z)
+        required: true
+        type: string
       owner_self_approval_exception:
         description: Sole repository-owner exception when GitHub forbids author approval; protected release approval still applies
         required: true
@@ -28,6 +32,7 @@ on:
         type: boolean
 
 permissions:
+  actions: read
   contents: read
 
 concurrency:
@@ -64,6 +69,7 @@ jobs:
         env:
           NFC_RELEASE_COMMIT: ${{ inputs.commit }}
           NFC_RELEASE_PR: ${{ inputs.pull_request }}
+          NFC_RELEASE_PUBLISHED_AT: ${{ inputs.published_at }}
           NFC_RELEASE_SOURCE_BRANCH: ${{ inputs.source_branch }}
           NFC_OWNER_SELF_APPROVAL_EXCEPTION: ${{ inputs.owner_self_approval_exception }}
           NFC_WORKFLOW_REF: ${{ github.ref }}
@@ -74,6 +80,9 @@ jobs:
           }
           if ($env:NFC_RELEASE_PR -notmatch '^[1-9][0-9]*$') {
             throw 'Release requires one positive final pull-request number.'
+          }
+          if ($env:NFC_RELEASE_PUBLISHED_AT -cnotmatch '^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}(?:\.[0-9]{1,7})?Z$') {
+            throw 'Release published_at must be canonical UTC.'
           }
           if ($env:NFC_OWNER_SELF_APPROVAL_EXCEPTION -notin @('true', 'false')) {
             throw 'The owner self-approval exception input is invalid.'
@@ -89,6 +98,7 @@ jobs:
           }
           "requested-sha=$env:NFC_RELEASE_COMMIT" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
           "pull-request=$env:NFC_RELEASE_PR" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+          "published-at=$env:NFC_RELEASE_PUBLISHED_AT" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
       - name: Checkout protected main
         uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
         with:
@@ -121,6 +131,14 @@ jobs:
           $policyPath = Join-Path $env:RUNNER_TEMP 'release_promotion_policy.py'
           Copy-Item -LiteralPath ./scripts/release_promotion_policy.py -Destination $policyPath
           "NFC_RELEASE_POLICY=$policyPath" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+          $catalogToolPath = Join-Path $env:RUNNER_TEMP 'create_update_catalog.py'
+          Copy-Item -LiteralPath ./scripts/create_update_catalog.py -Destination $catalogToolPath
+          $registryPolicyPath = Join-Path $env:RUNNER_TEMP 'update_source_registry_policy.py'
+          Copy-Item -LiteralPath ./scripts/update_source_registry_policy.py -Destination $registryPolicyPath
+          "NFC_UPDATE_CATALOG_TOOL=$catalogToolPath" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+          $registryTemplatePath = Join-Path $env:RUNNER_TEMP 'update-source-registry.json.in'
+          Copy-Item -LiteralPath ./docs/ci/update-source-registry.json.in -Destination $registryTemplatePath
+          "NFC_UPDATE_SOURCE_REGISTRY_TEMPLATE=$registryTemplatePath" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
           git checkout --detach $sourceSha
           if ($LASTEXITCODE -ne 0) { throw 'The exact release source could not be checked out.' }
           $version = (Get-Content -LiteralPath ./VERSION -Raw).Trim()
@@ -135,6 +153,13 @@ jobs:
           if ($env:NFC_SOURCE_BRANCH -ne 'main' -and
               $approvedMaintenanceVersions[$env:NFC_SOURCE_BRANCH] -ne $version) {
             throw 'The maintenance branch and VERSION are not an approved release pair.'
+          }
+          if ($version -eq '1.0.1') {
+            python $env:NFC_RELEASE_POLICY validate-version-only-lineage `
+              --repository '${{ github.workspace }}'
+            if ($LASTEXITCODE -ne 0) {
+              throw 'Version 1.0.1 is not an exact version-only child of v1.0.0.'
+            }
           }
           $tag = "v$version"
           $sourceTree = git rev-parse 'HEAD^{tree}'
@@ -363,12 +388,63 @@ jobs:
         run: python -m pip install --disable-pip-version-check -e './tools/crc-worker[dev,package]'
       - name: Verify release source
         run: python ./scripts/verify.py --all
+      - name: Download published 1.0.0 base package
+        if: steps.identity.outputs.version == '1.0.1'
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+          NFC_REPOSITORY: ${{ github.repository }}
+        run: |
+          $baseRoot = Join-Path $env:RUNNER_TEMP 'nfc-v1.0.0-package'
+          New-Item -ItemType Directory -Force -Path $baseRoot | Out-Null
+          gh release download v1.0.0 `
+            --repo $env:NFC_REPOSITORY `
+            --pattern 'NvtFwCombiner-v1.0.0-win-x64.zip' `
+            --dir $baseRoot
+          if ($LASTEXITCODE -ne 0) { throw 'Published v1.0.0 package could not be downloaded.' }
+          $assetName = 'NvtFwCombiner-v1.0.0-win-x64.zip'
+          $releaseText = gh api "repos/$env:NFC_REPOSITORY/releases/tags/v1.0.0"
+          if ($LASTEXITCODE -ne 0) { throw 'Published v1.0.0 release metadata could not be read.' }
+          $release = $releaseText | ConvertFrom-Json
+          $matches = @($release.assets | Where-Object { $_.name -ceq $assetName })
+          if ($matches.Count -ne 1) { throw 'Published v1.0.0 package asset identity is ambiguous.' }
+          $assetDigest = [string]$matches[0].digest
+          if ($assetDigest -cnotmatch '^sha256:[0-9a-f]{64}$') {
+            throw 'Published v1.0.0 package has no authenticated GitHub SHA-256 digest.'
+          }
+          "NFC_BASE_PACKAGE_SHA256=$($assetDigest.Substring(7))" | `
+            Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
       - name: Build closed-allowlist release package
         shell: pwsh
         env:
           NFC_VERSION: ${{ steps.identity.outputs.version }}
           NFC_SOURCE_SHA: ${{ steps.identity.outputs.source-sha }}
-        run: ./scripts/package.ps1 -Version $env:NFC_VERSION -Commit $env:NFC_SOURCE_SHA
+        run: |
+          $packageArguments = @{
+            Version = $env:NFC_VERSION
+            Commit = $env:NFC_SOURCE_SHA
+          }
+          if ($env:NFC_VERSION -ceq '1.0.1') {
+            $packageArguments.VersionOnlyBasePackage = Join-Path `
+              $env:RUNNER_TEMP 'nfc-v1.0.0-package/NvtFwCombiner-v1.0.0-win-x64.zip'
+            $packageArguments.VersionOnlyBasePackageSha256 = $env:NFC_BASE_PACKAGE_SHA256
+          }
+          ./scripts/package.ps1 @packageArguments
+      - name: Prove 1.0.1 package is version-only from published 1.0.0
+        if: steps.identity.outputs.version == '1.0.1'
+        shell: pwsh
+        env:
+          NFC_REPOSITORY: ${{ github.repository }}
+        run: |
+          $baseRoot = Join-Path $env:RUNNER_TEMP 'nfc-v1.0.0-package'
+          python $env:NFC_RELEASE_POLICY validate-version-only-package `
+            --repository '${{ github.workspace }}' `
+            --base-package (Join-Path $baseRoot 'NvtFwCombiner-v1.0.0-win-x64.zip') `
+            --base-package-sha256 $env:NFC_BASE_PACKAGE_SHA256 `
+            --candidate-package './artifacts/release/NvtFwCombiner-v1.0.1-win-x64.zip'
+          if ($LASTEXITCODE -ne 0) {
+            throw 'The v1.0.1 package differs from v1.0.0 beyond declared version identity.'
+          }
       - name: Smoke candidate package
         shell: pwsh
         env:
@@ -379,6 +455,70 @@ jobs:
         env:
           NFC_VERSION: ${{ steps.identity.outputs.version }}
         run: python ./scripts/render_release_notes.py --version $env:NFC_VERSION --output ./artifacts/release/RELEASE-NOTES.md
+      - name: Create single-version update-source handoff
+        shell: pwsh
+        env:
+          NFC_VERSION: ${{ steps.identity.outputs.version }}
+          NFC_TAG: ${{ steps.identity.outputs.tag }}
+          NFC_PUBLISHED_AT: ${{ steps.request.outputs.published-at }}
+        run: |
+          $handoffRoot = Join-Path (Get-Location).Path 'artifacts/update-source-handoff'
+          $packagesRoot = Join-Path $handoffRoot 'packages'
+          if (Test-Path -LiteralPath $handoffRoot) {
+            throw 'Update-source handoff directory must not already exist.'
+          }
+          New-Item -ItemType Directory -Path $packagesRoot | Out-Null
+
+          $packageName = "NvtFwCombiner-$env:NFC_TAG-win-x64.zip"
+          $packageSource = (Resolve-Path -LiteralPath (Join-Path './artifacts/release' $packageName)).Path
+          $packageDestination = Join-Path $packagesRoot $packageName
+          Copy-Item -LiteralPath $packageSource -Destination $packageDestination
+
+          $notesPath = (Resolve-Path -LiteralPath './artifacts/release/RELEASE-NOTES.md').Path
+          $publishedAssignment = '{0}={1}' -f $env:NFC_VERSION, $env:NFC_PUBLISHED_AT
+          $notesAssignment = '{0}={1}' -f $env:NFC_VERSION, $notesPath
+          $manifestPath = Join-Path $handoffRoot 'RELEASE-MANIFEST.json'
+          $manifestAssignment = '{0}={1}' -f $env:NFC_VERSION, $manifestPath
+          $registryPath = Join-Path $handoffRoot 'update-source-registry.json'
+          $catalogArguments = @(
+            $env:NFC_UPDATE_CATALOG_TOOL
+            '--source-root'
+            $handoffRoot
+            '--published-at'
+            $publishedAssignment
+            '--release-notes-file'
+            $notesAssignment
+            '--manifest-copy'
+            $manifestAssignment
+            '--registry-template'
+            $env:NFC_UPDATE_SOURCE_REGISTRY_TEMPLATE
+            '--registry-output'
+            $registryPath
+            '--registry-revision'
+            $env:GITHUB_RUN_ID
+            '--registry-published-at'
+            $env:NFC_PUBLISHED_AT
+          )
+          & python @catalogArguments
+          if ($LASTEXITCODE -ne 0) {
+            throw 'Update-source handoff catalog generation failed.'
+          }
+
+          $catalogPath = Join-Path $handoffRoot 'update-catalog.v1.json'
+          if (-not (Test-Path -LiteralPath $catalogPath -PathType Leaf)) {
+            throw 'Update-source handoff catalog was not produced.'
+          }
+          if (-not (Test-Path -LiteralPath $manifestPath -PathType Leaf)) {
+            throw 'Update-source handoff release manifest was not produced.'
+          }
+          if (-not (Test-Path -LiteralPath $registryPath -PathType Leaf)) {
+            throw 'Update-source handoff Registry was not rendered.'
+          }
+          $catalog = Get-Content -LiteralPath $catalogPath -Raw | ConvertFrom-Json
+          if ($catalog.schemaVersion -ne 1 -or $catalog.versions.Count -lt 1 -or
+              $catalog.versions[0].version -ne $env:NFC_VERSION) {
+            throw 'Generated Catalog identity does not match the release.'
+          }
       - name: Create closed candidate manifest and outer checksums
         id: manifest
         shell: pwsh
@@ -412,10 +552,21 @@ jobs:
           path: artifacts/release/*
           if-no-files-found: error
           retention-days: 3
+      - name: Upload update-source handoff
+        id: update-source-upload
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: update-source-handoff-v${{ steps.identity.outputs.version }}-${{ steps.identity.outputs.source-sha }}
+          path: artifacts/update-source-handoff/*
+          if-no-files-found: error
+          retention-days: 30
 
   promote:
     name: release / promote
-    needs: candidate
+    needs:
+      - candidate
+      - v0916-parity-finalize
+    if: ${{ !cancelled() && needs.candidate.result == 'success' && ((needs.candidate.outputs.version == '1.0.0' && needs.v0916-parity-finalize.result == 'success') || (needs.candidate.outputs.version == '1.0.1' && needs.v0916-parity-finalize.result == 'skipped')) }}
     runs-on: windows-latest
     timeout-minutes: 30
     environment: release
@@ -434,6 +585,16 @@ jobs:
         uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6.3.0
         with:
           python-version: '3.13'
+      - name: Download terminal v0.9.16 parity evidence
+        if: ${{ needs.candidate.outputs.version == '1.0.0' }}
+        uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131
+        with:
+          name: v0916-parity-terminal-${{ github.run_id }}
+          path: artifacts/v0916-parity
+      - name: Require terminal parity pass before promotion
+        if: ${{ needs.candidate.outputs.version == '1.0.0' }}
+        shell: pwsh
+        run: python ./scripts/v0916_parity_certification.py validate-terminal --evidence ./artifacts/v0916-parity/terminal-evidence.json
       - name: Reconfirm release authority and source identity
         shell: pwsh
         env:
@@ -715,3 +876,161 @@ jobs:
           $package = Join-Path $env:RUNNER_TEMP `
             "published-package-smoke/NvtFwCombiner-$env:NFC_TAG-win-x64.zip"
           ./scripts/smoke-release.ps1 -PackagePath $package -SkipUiLaunch
+
+  v0916-parity-compare:
+    name: release / v0.9.16 parity compare
+    needs:
+      - candidate
+    if: ${{ success() && needs.candidate.outputs.version == '1.0.0' }}
+    runs-on: windows-latest
+    timeout-minutes: 60
+    permissions:
+      actions: read
+      contents: read
+    steps:
+      - name: Checkout authenticated parity workflow authority
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+          ref: ${{ github.workflow_sha }}
+      - name: Download exact candidate assets
+        uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131
+        with:
+          name: ${{ needs.candidate.outputs.artifact-name }}
+          path: artifacts/release
+      - name: Execute v0.9.16 parity comparison
+        shell: pwsh
+        run: python ./scripts/v0916_parity_certification.py compare --plan ./docs/contracts/v0916-parity-certification-v1.json --candidate-artifact-dir ./artifacts/release --output-root ./artifacts/v0916-parity
+      - name: Upload immutable parity comparison
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
+        with:
+          if-no-files-found: error
+          name: v0916-parity-comparison-${{ github.run_id }}
+          path: artifacts/v0916-parity/comparison.json
+          retention-days: 30
+
+  v0916-parity-attestation:
+    name: release / v0.9.16 parity attestation
+    needs:
+      - candidate
+      - v0916-parity-compare
+    if: ${{ success() && needs.candidate.outputs.version == '1.0.0' }}
+    runs-on: windows-latest
+    timeout-minutes: 30
+    environment: firmware-parity
+    permissions:
+      actions: read
+      contents: read
+    steps:
+      - name: Checkout authenticated parity workflow authority
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+          ref: ${{ github.workflow_sha }}
+      - name: Download same-run parity comparison
+        uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131
+        with:
+          name: v0916-parity-comparison-${{ github.run_id }}
+          path: artifacts/v0916-parity
+      - name: Decode independently produced firmware-owner material
+        shell: pwsh
+        env:
+          NFC_OWNER_ATTESTATION_B64: ${{ secrets.NFC_FIRMWARE_OWNER_ATTESTATION_B64 }}
+          NFC_OWNER_VERIFICATION_B64: ${{ secrets.NFC_FIRMWARE_OWNER_VERIFICATION_B64 }}
+          NFC_OWNER_VERIFIER_ID: ${{ secrets.NFC_FIRMWARE_OWNER_VERIFIER_ID }}
+        run: |
+          if ([string]::IsNullOrWhiteSpace($env:NFC_OWNER_ATTESTATION_B64) -or
+              [string]::IsNullOrWhiteSpace($env:NFC_OWNER_VERIFICATION_B64) -or
+              [string]::IsNullOrWhiteSpace($env:NFC_OWNER_VERIFIER_ID)) {
+            throw 'Independent firmware-owner attestation, verification record, and verifier id are required.'
+          }
+          [IO.File]::WriteAllBytes(
+            (Join-Path (Resolve-Path ./artifacts/v0916-parity) 'owner-attestation.json'),
+            [Convert]::FromBase64String($env:NFC_OWNER_ATTESTATION_B64))
+          [IO.File]::WriteAllBytes(
+            (Join-Path (Resolve-Path ./artifacts/v0916-parity) 'external-verification.json'),
+            [Convert]::FromBase64String($env:NFC_OWNER_VERIFICATION_B64))
+          python ./scripts/v0916_parity_certification.py validate-owner-material `
+            --comparison ./artifacts/v0916-parity/comparison.json `
+            --attestation ./artifacts/v0916-parity/owner-attestation.json `
+            --verification-record ./artifacts/v0916-parity/external-verification.json `
+            --verifier-id $env:NFC_OWNER_VERIFIER_ID
+          if ($LASTEXITCODE -ne 0) { throw 'Independent firmware-owner material failed validation.' }
+      - name: Upload immutable owner attestation
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
+        with:
+          if-no-files-found: error
+          name: v0916-parity-attestation-${{ github.run_id }}
+          path: artifacts/v0916-parity/owner-attestation.json
+          retention-days: 30
+      - name: Upload immutable external verification
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
+        with:
+          if-no-files-found: error
+          name: v0916-parity-verification-${{ github.run_id }}
+          path: artifacts/v0916-parity/external-verification.json
+          retention-days: 30
+  v0916-parity-finalize:
+    name: release / v0.9.16 parity finalize
+    needs:
+      - candidate
+      - v0916-parity-attestation
+    if: ${{ success() && needs.candidate.outputs.version == '1.0.0' }}
+    runs-on: windows-latest
+    timeout-minutes: 30
+    permissions:
+      actions: read
+      contents: read
+      deployments: read
+    steps:
+      - name: Checkout authenticated parity workflow authority
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+          ref: ${{ github.workflow_sha }}
+      - name: Download same-run parity comparison
+        uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131
+        with:
+          name: v0916-parity-comparison-${{ github.run_id }}
+          path: artifacts/v0916-parity
+      - name: Download same-run owner attestation
+        uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131
+        with:
+          name: v0916-parity-attestation-${{ github.run_id }}
+          path: artifacts/v0916-parity
+      - name: Download same-run external verification
+        uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131
+        with:
+          name: v0916-parity-verification-${{ github.run_id }}
+          path: artifacts/v0916-parity
+      - name: Finalize exact v1.0.0 parity evidence
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          $verification = Get-Content -LiteralPath `
+            ./artifacts/v0916-parity/external-verification.json -Raw | ConvertFrom-Json
+          $verifierId = [string]$verification.verifierId
+          if ([string]::IsNullOrWhiteSpace($verifierId)) {
+            throw 'External firmware-owner verifier id is missing.'
+          }
+          python ./scripts/v0916_parity_certification.py finalize-protected `
+            --comparison ./artifacts/v0916-parity/comparison.json `
+            --attestation ./artifacts/v0916-parity/owner-attestation.json `
+            --verification-record ./artifacts/v0916-parity/external-verification.json `
+            --verifier-id $verifierId `
+            --repository ${{ github.repository }} `
+            --run-id ${{ github.run_id }} `
+            --workflow-sha ${{ github.workflow_sha }} `
+            --output ./artifacts/v0916-parity/terminal-evidence.json
+          if ($LASTEXITCODE -ne 0) { throw 'Terminal v1.0.0 parity finalization failed.' }
+      - name: Upload terminal parity evidence
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
+        with:
+          if-no-files-found: error
+          name: v0916-parity-terminal-${{ github.run_id }}
+          path: artifacts/v0916-parity/terminal-evidence.json
+          retention-days: 30

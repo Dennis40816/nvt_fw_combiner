@@ -15,4 +15,20 @@ public sealed partial class RepositoryBoundaryTests
         AssertUiRuntimeControlConstructionIsSerialized();
     }
 
+    private static void AssertContainsAll(string source, params string[] expected)
+    {
+        foreach (string value in expected)
+        {
+            Assert.Contains(value, source, StringComparison.Ordinal);
+        }
+    }
+
+    private static void AssertDoesNotContainAny(string source, params string[] forbidden)
+    {
+        foreach (string value in forbidden)
+        {
+            Assert.DoesNotContain(value, source, StringComparison.Ordinal);
+        }
+    }
+
 }

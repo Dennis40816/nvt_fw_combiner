@@ -77,9 +77,17 @@ its compiler-owned length/source-view policy:
 - `Blocking` maps to `Error`.
 
 No second length, range, truncation, FlashCode, or input-admission validator is
-introduced. Build reopens and revalidates its immutable run-bound source; an
-authoring-time inspection is display and action-readiness evidence, not a
-substitute for Build validation.
+introduced. For Standard Merge, AB Merge, DP Replace, and CtrlRAM Replace,
+Build validates and executes the immutable bytes retained by the exact accepted
+session; it does not reopen a mutable selected path. The accepted-session
+compiler and execution boundary still revalidates every binding, range,
+normalization, operation, and action-readiness contract before execution.
+
+**Supersession note (2026-08-23):** the earlier wording in this section said
+that fixed-workflow Build reopened its run-bound source. The accepted immutable
+session contract in `SPEC.md` and the owner-approved selector architecture
+standard supersede that statement. ADR 0044 remains the distinct authority for
+General Merge/Replace run-bound path reopening and is not changed here.
 
 ### Terminal health binds ADR 0046 compilation identity
 

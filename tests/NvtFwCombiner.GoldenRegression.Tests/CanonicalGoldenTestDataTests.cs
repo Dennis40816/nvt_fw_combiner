@@ -47,6 +47,11 @@ public sealed class CanonicalGoldenTestDataTests
                 topology = "cascade-2",
                 directGolden = false,
                 directEvidence = true,
+                testDisposition = new
+                {
+                    kind = "input-only-evidence",
+                    evidenceRefs = AliasEvidenceRefs,
+                },
                 sourceClassification = "owner-approved-input-evidence",
                 ownerApproval = "focused test",
                 artifacts = new[]
@@ -73,6 +78,11 @@ public sealed class CanonicalGoldenTestDataTests
                 variantOrVersion = "1.3.2",
                 topology = "cascade-2",
                 directGolden = false,
+                testDisposition = new
+                {
+                    kind = "fact-scoped-alias",
+                    evidenceRefs = AliasEvidenceRefs,
+                },
                 sourceClassification = "owner-approved-fact-alias",
                 ownerApproval = "focused test",
                 alias = new
@@ -113,6 +123,9 @@ public sealed class CanonicalGoldenTestDataTests
             sourceCaseId,
             root);
         Assert.Equal(sourceCaseId, directEvidence.GetProperty("caseId").GetString());
+        Assert.Equal(
+            CanonicalGoldenTestDispositionKind.InputOnlyEvidence,
+            CanonicalGoldenTestData.TestDisposition(directEvidence).Kind);
         _ = Assert.Throws<InvalidDataException>(
             () => CanonicalGoldenTestData.LoadDirectCase("ctrlram-replace", sourceCaseId, root));
     }
@@ -150,6 +163,11 @@ public sealed class CanonicalGoldenTestDataTests
                 topology = "topology-unscoped",
                 profileId = "nt51923-explicit-root-test",
                 directGolden = true,
+                testDisposition = new
+                {
+                    kind = "direct-full-output",
+                    evidenceRefs = AliasEvidenceRefs,
+                },
                 sourceClassification = "owner-approved",
                 ownerApproval = "focused test",
                 artifacts = new[]
@@ -179,6 +197,56 @@ public sealed class CanonicalGoldenTestDataTests
         Assert.Equal(inputBytes.Length, goldenCase.GetProperty("inputs").GetProperty("dp-input").GetProperty("size").GetInt64());
         Assert.Equal(expectedBytes.Length, goldenCase.GetProperty("expectedOutput").GetProperty("size").GetInt64());
         Assert.Equal(caseId, rawCase.GetProperty("caseId").GetString());
+        Assert.Equal(
+            CanonicalGoldenTestDispositionKind.DirectFullOutput,
+            CanonicalGoldenTestData.TestDisposition(rawCase).Kind);
+    }
+
+    /// <summary>Allowed-difference runners consume the case-local ranges and reject every outside byte.</summary>
+    [Fact]
+    public void AllowedDifferenceComparisonUsesOnlyManifestDeclaredOutputRanges()
+    {
+        using JsonDocument document = JsonDocument.Parse(JsonSerializer.Serialize(new
+        {
+            caseId = "typed-allowed-difference",
+            testDisposition = new
+            {
+                kind = "allowed-byte-difference",
+                evidenceRefs = AliasEvidenceRefs,
+                differenceContractProperty = "allowedByteDifferenceContract",
+            },
+            artifacts = new[]
+            {
+                Artifact("expected-output", "expected", "expected/output.bin", [0x00, 0x01, 0x02, 0x03]),
+            },
+            allowedByteDifferenceContract = new
+            {
+                addressSpaceId = "output-image",
+                allowedDifferenceRanges = new[]
+                {
+                    new { start = "0x1", endExclusive = "0x3", classification = "reviewed-word" },
+                },
+            },
+        }));
+        JsonElement goldenCase = document.RootElement;
+        byte[] expected = [0x00, 0x01, 0x02, 0x03];
+        byte[] accepted = [0x00, 0x11, 0x12, 0x03];
+
+        CanonicalGoldenDifferenceResult result =
+            CanonicalGoldenTestData.AssertAllowedByteDifferences(
+                goldenCase,
+                expected,
+                accepted);
+
+        Assert.Equal(2, result.DifferenceCount);
+        Assert.Equal([2], result.DifferenceCountByAllowedRange);
+        byte[] rejected = [0x10, 0x01, 0x02, 0x03];
+        InvalidDataException error = Assert.Throws<InvalidDataException>(
+            () => CanonicalGoldenTestData.AssertAllowedByteDifferences(
+                goldenCase,
+                expected,
+                rejected));
+        Assert.Contains("0x0", error.Message, StringComparison.Ordinal);
     }
 
     private static string CaseManifestPath(string ic, string caseId)

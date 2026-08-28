@@ -2,6 +2,7 @@ using System.Buffers.Binary;
 using System.Security.Cryptography;
 using System.Text.Json;
 using NvtFwCombiner.Application.Authoring;
+using NvtFwCombiner.Application.Capabilities;
 using NvtFwCombiner.Application.FlashMaps;
 using NvtFwCombiner.Domain.Composition;
 using NvtFwCombiner.TestSupport;
@@ -16,7 +17,7 @@ public sealed partial class AbMergeRuntimeAdmissionTests
 
     /// <summary>Function-open AB profiles are exposed even while 950/951 certification evidence remains pending.</summary>
     [Fact]
-    public void RuntimeCatalogContainsOnlyTheApprovedPilot()
+    public void RuntimeCatalogContainsFunctionOpenProfiles()
     {
         Assert.Equal(
             ["NT51919", "NT51929", "NT51932", "NT51950", "NT51951"],
@@ -25,9 +26,9 @@ public sealed partial class AbMergeRuntimeAdmissionTests
         Assert.All(
             BootstrapTestHost.Canonical.Projection.GetAbMergeProfileSummaries(),
             static profile => Assert.True(profile.CompileSucceeded, string.Join(',', profile.IssueCodes)));
-        Assert.True(BootstrapTestHost.Canonical.Compiler.IsAbMergeSupported("51929"));
-        Assert.True(BootstrapTestHost.Canonical.Compiler.IsAbMergeSupported("NT51950"));
-        Assert.True(BootstrapTestHost.Canonical.Compiler.IsAbMergeSupported("NT51951"));
+        Assert.True(BootstrapTestHost.Services.AbMergeAuthoring.IsAvailable("51929"));
+        Assert.True(BootstrapTestHost.Services.AbMergeAuthoring.IsAvailable("NT51950"));
+        Assert.True(BootstrapTestHost.Services.AbMergeAuthoring.IsAvailable("NT51951"));
     }
 
     /// <summary>The desktop adapter exposes compiler-owned exact-container and source-view authority.</summary>
@@ -75,10 +76,23 @@ public sealed partial class AbMergeRuntimeAdmissionTests
     [Fact]
     public void TopologyChoicesAreProfileMapOwned()
     {
+        IReadOnlyList<CapabilityTopologyChoice> choices =
+            BootstrapTestHost.Canonical.Compiler.GetAbMergeTopologyChoices("NT51950");
         Assert.Equal(
             ["single", "cascade"],
-            BootstrapTestHost.Canonical.Compiler.GetAbMergeTopologyChoices("NT51950")
-                .Select(static choice => choice.Token));
+            choices.Select(static choice => choice.Token));
+        Assert.Collection(
+            choices,
+            choice =>
+            {
+                Assert.Equal(1, choice.Selection.ChipCount);
+                Assert.Equal("1 IC", choice.DisplayLabel);
+            },
+            choice =>
+            {
+                Assert.Equal(2, choice.Selection.ChipCount);
+                Assert.Equal("2 IC", choice.DisplayLabel);
+            });
         Assert.Empty(BootstrapTestHost.Canonical.Compiler.GetAbMergeTopologyChoices("NT51951"));
         Assert.Empty(BootstrapTestHost.Canonical.Compiler.GetAbMergeTopologyChoices("NT51929"));
     }

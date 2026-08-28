@@ -98,22 +98,16 @@ internal static class CanonicalCapabilityDisclosureInventory
     {
         var compositions = new List<CompiledComposition>(definitions
             .Where(definition =>
-                definition.Authoring.Value ==
-                    CapabilityAuthoringAvailability.Available &&
                 StringComparer.Ordinal.Equals(definition.Identity.IcId, icId))
             .Select(static definition => definition.CompiledComposition));
         BuiltInV2Registration registration =
             BuiltInV2RegistrationRegistry.StandardMergeByIc[icId];
         bool hasStandardRoute = definitions.Any(definition =>
-                definition.Authoring.Value ==
-                    CapabilityAuthoringAvailability.Available &&
                 StringComparer.Ordinal.Equals(definition.Identity.IcId, icId) &&
                 StringComparer.Ordinal.Equals(
                     definition.Identity.WorkflowId,
                     ExperienceIds.StandardMerge)) ||
             dynamicDefinitions.Any(definition =>
-                definition.Authoring.Value ==
-                    CapabilityAuthoringAvailability.Available &&
                 StringComparer.Ordinal.Equals(definition.Identity.IcId, icId) &&
                 StringComparer.Ordinal.Equals(
                     definition.Identity.WorkflowId,

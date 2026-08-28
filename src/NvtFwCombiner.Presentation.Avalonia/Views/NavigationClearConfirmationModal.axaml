@@ -3,7 +3,7 @@
     xmlns="https://github.com/avaloniaui"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     xmlns:vm="using:NvtFwCombiner.Presentation.Avalonia.ViewModels"
-    x:DataType="vm:MainWindowViewModel"
+    x:DataType="vm:ShellNavigationViewModel"
     Focusable="True"
     KeyboardNavigation.TabNavigation="Cycle"
     KeyDown="NavigationClearConfirmationModal_OnKeyDown"
@@ -32,11 +32,11 @@
       <StackPanel Grid.Row="2" HorizontalAlignment="Right" Orientation="Horizontal" Spacing="{DynamicResource NfcSpace8}">
         <Button
             x:Name="CancelButton"
-            Classes="secondary"
+            Classes="semanticAction secondary"
             Command="{Binding CancelNavigationClearCommand}"
             Content="{Binding Text.NavigationClearCancelLabel}" />
         <Button
-            Classes="primary"
+            Classes="semanticAction primary"
             Command="{Binding ConfirmNavigationAndClearCommand}"
             Content="{Binding Text.NavigationClearConfirmLabel}" />
       </StackPanel>

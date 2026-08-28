@@ -13,6 +13,7 @@ internal static class AbMergeCliCommandHandler
     private const int CompositionFailed = 1;
     private const int UsageError = 64;
     private const int SoftwareError = 70;
+    private const string IncludeAFlashCodeOption = "--include-a-flashcode";
 
     private static readonly Dictionary<string, string> InputOptionsByAddressSpace =
         new(StringComparer.Ordinal)
@@ -23,7 +24,8 @@ internal static class AbMergeCliCommandHandler
         };
 
     internal static async Task<int> RunAsync(
-        CompositionHostServices host,
+        CliCompositionServices services,
+        ILocalFileStore localFiles,
         string[] args,
         TextWriter output,
         TextWriter error,
@@ -42,9 +44,37 @@ internal static class AbMergeCliCommandHandler
             return UsageError;
         }
 
-        string[] valueOptions = ["--profile", "--dp-ab", "--tp-a", "--tp-b", "--ab-topology", "--output", "--report"];
-        if (!CliOptionParser.TryParse(args[1..], valueOptions, [], [], error, out ParsedCliOptions options))
+        string[] valueOptions = ["--profile", "--dp-ab", "--tp-a", "--tp-b", "--ab-topology", "--output", "--report", CliBundleOptions.ParentOption, CliBundleOptions.NameOption];
+        if (!CliOptionParser.TryParse(
+                args[1..],
+                valueOptions,
+                [],
+                [IncludeAFlashCodeOption],
+                error,
+                out ParsedCliOptions options))
         {
+            return UsageError;
+        }
+
+        if (!CliBundleOptions.TryValidateCombination(action, options.Values, error))
+        {
+            return UsageError;
+        }
+
+        bool includeAFlashCode = options.Flags.Contains(IncludeAFlashCodeOption);
+        if (includeAFlashCode && action != "build")
+        {
+            await error.WriteLineAsync(
+                    $"error: {IncludeAFlashCodeOption} is available only for build")
+                .ConfigureAwait(false);
+            return UsageError;
+        }
+
+        if (includeAFlashCode && !CliBundleOptions.IsEnabled(options.Values))
+        {
+            await error.WriteLineAsync(
+                    $"error: {IncludeAFlashCodeOption} requires {CliBundleOptions.ParentOption}")
+                .ConfigureAwait(false);
             return UsageError;
         }
 
@@ -55,7 +85,7 @@ internal static class AbMergeCliCommandHandler
         }
 
         if (!TryFindProfile(
-                host.CompositionCapabilityExperience,
+                services.Capabilities,
                 profileSelector,
                 out CapabilityProfileSummary? profile))
         {
@@ -66,7 +96,7 @@ internal static class AbMergeCliCommandHandler
         if (!profile.CompileSucceeded)
         {
             CompiledAuthoringSelectionSnapshot unavailable =
-                host.AbMergeAuthoring.GetAuthoringSnapshot(
+                services.AbMergeAuthoring.GetAuthoringSnapshot(
                 profile.IcId,
                 topologyToken: null,
                 [],
@@ -83,7 +113,7 @@ internal static class AbMergeCliCommandHandler
         }
 
         IReadOnlyList<CapabilityTopologyChoice> topologyChoices =
-            host.AbMergeAuthoring.GetTopologyChoices(profile.IcId);
+            services.AbMergeAuthoring.GetTopologyChoices(profile.IcId);
         if (!TryCreateTopologySelection(
                 topologyChoices,
                 options,
@@ -93,33 +123,49 @@ internal static class AbMergeCliCommandHandler
             return UsageError;
         }
 
-        List<CompiledAuthoringSelectedInput> inputs = [];
-        foreach ((string slotId, string path) in slotPaths)
+        IReadOnlyList<CompiledAuthoringSelectedInput> inputs;
+        try
         {
-            try
-            {
-                inputs.Add(new CompiledAuthoringSelectedInput(
-                    slotId,
-                    path,
-                    File.ReadAllBytes(path)));
-            }
-            catch (Exception exception) when (
-                exception is IOException or UnauthorizedAccessException)
+            CompiledAuthoringSelectionSnapshot exactSelection =
+                services.AbMergeAuthoring.GetAuthoringSnapshot(
+                    profile.IcId,
+                    options.Values.GetValueOrDefault("--ab-topology"),
+                    [.. slotPaths.Keys],
+                    new Dictionary<string, FileStamp>(StringComparer.Ordinal),
+                    new AuthoringRevision(1));
+            ResolvedCapability? exactCapability = exactSelection.Catalog.Routes
+                .SingleOrDefault()?.ExactCapability;
+            if (exactCapability is null)
             {
                 await CliCompositionRunSupport.PrintIssuesAsync(
                         error,
-                        [new CompositionIssue(
-                            CompositionPlanningIssueCodes.InputArtifactReadFailed,
-                            exception.Message,
-                            slotId)])
+                        exactSelection.Issues)
                     .ConfigureAwait(false);
                 return SoftwareError;
             }
+
+            inputs = await CliFixedWorkflowInputReader.ReadAsync(
+                    localFiles,
+                    exactCapability.CompiledComposition,
+                    slotPaths,
+                    cancellationToken)
+                .ConfigureAwait(false);
+        }
+        catch (CliFixedWorkflowInputReadException exception)
+        {
+            await CliCompositionRunSupport.PrintIssuesAsync(
+                    error,
+                    [new CompositionIssue(
+                        CompositionPlanningIssueCodes.InputArtifactReadFailed,
+                        exception.Message,
+                        exception.AddressSpaceId)])
+                .ConfigureAwait(false);
+            return SoftwareError;
         }
 
         var session = new AuthoringSessionState(ExperienceIds.AbMerge);
         CompiledAuthoringSessionPreparation prepared =
-            host.AbMergeAuthoring.PrepareSession(
+            services.AbMergeAuthoring.PrepareSession(
                 session,
                 profile.IcId,
                 options.Values.GetValueOrDefault("--ab-topology"),
@@ -129,16 +175,17 @@ internal static class AbMergeCliCommandHandler
             .. slotPaths.Select(pair => new InputArtifactBinding(pair.Key, pair.Key, pair.Value)),
         ];
         bool build = action == "build";
+        bool bundleBuild = CliBundleOptions.IsEnabled(options.Values);
         bool hasExplicitOutput = options.Values.ContainsKey("--output");
         CliOutputTarget outputTarget = CliCompositionRunSupport.ResolveOutputTarget(
             options.Values.GetValueOrDefault("--output"),
             profile.DefaultOutputFileName);
         string? reportPath = options.Values.GetValueOrDefault("--report");
-        if (build && !hasExplicitOutput)
+        if (build && !hasExplicitOutput && !bundleBuild)
         {
             try
             {
-                CompositionOutputPreparation preparation = await host.CompositionOutputNaming
+                CompositionOutputPreparation preparation = await services.OutputNaming
                     .PrepareAutomaticOutputAsync(
                         prepared.Snapshot!,
                         cancellationToken)
@@ -153,7 +200,7 @@ internal static class AbMergeCliCommandHandler
             }
         }
 
-        if (build)
+        if (build && !bundleBuild)
         {
             CliCompositionRunSupport.EnsureOutputDoesNotAliasInputs(outputTarget, bindings);
         }
@@ -162,7 +209,7 @@ internal static class AbMergeCliCommandHandler
             reportPath,
             bindings,
             outputTarget,
-            build);
+            build && !bundleBuild);
 
         if (!prepared.Succeeded)
         {
@@ -173,20 +220,58 @@ internal static class AbMergeCliCommandHandler
             return CompositionFailed;
         }
 
-        CompositionRunResult result = await host.CompositionExecution
+        ActiveSessionSnapshot acceptedSession = prepared.Snapshot!;
+        CapabilityActionReadinessSnapshot? readiness =
+            await services.AbMergeAuthoring.GetActionReadinessAsync(
+                    acceptedSession,
+                    cancellationToken)
+                .ConfigureAwait(false);
+        CapabilityActionAvailability? selectedAction = build
+            ? readiness?.Build
+            : readiness?.Preview;
+        if (selectedAction?.IsAvailable != true)
+        {
+            CapabilityActionBlocker? blocker = selectedAction?.PrimaryBlocker;
+            await CliCompositionRunSupport.PrintIssuesAsync(
+                    error,
+                    [new CompositionIssue(
+                        blocker?.Code ?? CapabilityActionReadinessIssueCodes.RuntimeSnapshotStale,
+                        blocker?.Message ??
+                            "AB Merge action readiness is unavailable for the accepted publication.",
+                        blocker?.SubjectId ?? ExperienceIds.AbMerge)])
+                .ConfigureAwait(false);
+            return CompositionFailed;
+        }
+
+        if (!CliBundleOptions.TryCreateIntent(
+                services.OutputNaming,
+                acceptedSession,
+                options.Values,
+                error,
+                out CompositionOutputBundleIntent? outputBundle,
+                additionalDeliveryKind: includeAFlashCode
+                    ? CompiledAdditionalDelivery.AbAFlashCodeKind
+                    : null))
+        {
+            return UsageError;
+        }
+
+        CompositionRunResult result = await services.Execution
             .ExecuteAsync(
                 new AcceptedCompositionExecutionRequest(
-                    prepared.Snapshot!,
+                    acceptedSession,
                     slotPaths,
                     build,
-                    outputPath: build && hasExplicitOutput ? outputTarget.FullPath : null,
+                    outputPath: build && hasExplicitOutput && !bundleBuild ? outputTarget.FullPath : null,
                     previewOutputFileName: !build && hasExplicitOutput
                         ? outputTarget.FileName
                         : null,
-                    automaticOutputDirectory: build && !hasExplicitOutput
+                    automaticOutputDirectory: build && !hasExplicitOutput && !bundleBuild
                         ? outputTarget.OutputDirectory
                         : null,
-                    reportPath: build ? reportPath : null),
+                    reportPath: build ? reportPath : null,
+                    actionReadiness: readiness,
+                    outputBundle: outputBundle),
                 new CompositionRunProgressFeed(),
                 cancellationToken)
             .ConfigureAwait(false);
@@ -194,7 +279,7 @@ internal static class AbMergeCliCommandHandler
             reportPath,
             bindings,
             new CliOutputTarget(outputTarget.OutputDirectory, result.OutputFileName),
-            build);
+            build && !bundleBuild);
         if (!string.IsNullOrWhiteSpace(reportPath))
         {
             await CliCompositionRunSupport.WriteReportJsonAsync(
@@ -206,6 +291,7 @@ internal static class AbMergeCliCommandHandler
         }
 
         await PrintResultAsync(result, profile.IcId, output, error).ConfigureAwait(false);
+        await CliBundleOptions.PrintReceiptAsync(result, output).ConfigureAwait(false);
         return result.Succeeded ? Success : CompositionFailed;
     }
 
@@ -351,6 +437,6 @@ internal static class AbMergeCliCommandHandler
     {
         await output.WriteLineAsync("Usage:").ConfigureAwait(false);
         await output.WriteLineAsync("  nvt_fw_combiner ab-merge preview --profile <id|ic> --dp-ab <path> --tp-a <path> --tp-b <path> [--ab-topology <single|cascade>] [--output <path>] [--report <path>]").ConfigureAwait(false);
-        await output.WriteLineAsync("  nvt_fw_combiner ab-merge build --profile <id|ic> --dp-ab <path> --tp-a <path> --tp-b <path> [--ab-topology <single|cascade>] [--output <path>] [--report <path>]").ConfigureAwait(false);
+        await output.WriteLineAsync("  nvt_fw_combiner ab-merge build --profile <id|ic> --dp-ab <path> --tp-a <path> --tp-b <path> [--ab-topology <single|cascade>] [--output <path> | --bundle-parent <existing-directory> [--bundle-name <plain-folder-name>] [--include-a-flashcode]] [--report <path>]").ConfigureAwait(false);
     }
 }

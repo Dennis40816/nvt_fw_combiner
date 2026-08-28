@@ -51,14 +51,14 @@ public sealed partial class SavedRuleCliCommandTests
               },
               "parentBinding": {
                 "bundleId": "nt51950-nt51951-general-merge-logical-candidate",
-                "bundleVersion": "0.10.1-tp-header-closure.1",
-                "bundleContentHash": "5ed0646fba9c0f01994222f6a7860c8d9c8fc97be415f0771042cf886977f6f0",
+                "bundleVersion": "0.10.5-family-reference.1",
+                "bundleContentHash": "2891a94e01bf07d68bc751599038ae88eeb95c9d1f705722912fbd55bf8806ec",
                 "profileId": "nt51950-general-merge-logical-candidate",
                 "profileVersion": "0.1.0",
-                "profileContentHash": "fe68c0fc0b6a8d60d72e95133ea10975d68a20dd4b03f9c383769f3376ce1c1d",
+                "profileContentHash": "5b431b9498b534945ee15fbc56095a87f30cbc7da0cabe10554d678a2ce48c0c",
                 "familyId": "nt51950-nt51951-dp-perspective",
-                "familyVersion": "1.3.0",
-                "familyContentHash": "c9bc25ffe2137c58754f9aa425b63c34ad1f90b946f03a6ffe6e15f2077d5fec",
+                "familyVersion": "1.4.0",
+                "familyContentHash": "02597d709affd69adfbd92fac4a9a75f245385fb7c0954a5de1c86035e7babf6",
                 "mapId": "logical-output"
               },
               "promotion": {

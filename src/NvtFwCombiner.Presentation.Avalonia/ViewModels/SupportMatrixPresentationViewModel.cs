@@ -6,14 +6,13 @@ using NvtFwCombiner.Domain.Composition;
 namespace NvtFwCombiner.Presentation.Avalonia.ViewModels;
 
 /// <summary>Focused read-only Settings child for canonical capability disclosure.</summary>
-public sealed class SupportMatrixPresentationViewModel(
+internal sealed class SupportMatrixPresentationViewModel(
     ICanonicalSupportMatrixQuery query) : ObservableObject
 {
     private static readonly string[] s_preferredWorkflowOrder =
     [
         ExperienceIds.StandardMerge,
         ExperienceIds.AbMerge,
-        ExperienceIds.DpReplace,
         ExperienceIds.CtrlRamReplace,
         ExperienceIds.GeneralMerge,
         ExperienceIds.GeneralReplace,
@@ -22,41 +21,31 @@ public sealed class SupportMatrixPresentationViewModel(
     private readonly ICanonicalSupportMatrixQuery _query =
         query ?? throw new ArgumentNullException(nameof(query));
 
-    /// <summary>Localized exact-route rows in canonical stable order.</summary>
     public ObservableCollection<SupportMatrixRowViewModel> Rows { get; } = [];
 
     /// <summary>Stable workflow headers for the pivoted matrix.</summary>
     public ObservableCollection<SupportMatrixWorkflowColumnViewModel> WorkflowColumns { get; } = [];
 
-    /// <summary>IC rows aligned to <see cref="WorkflowColumns"/>.</summary>
     public ObservableCollection<SupportMatrixIcRowViewModel> IcRows { get; } = [];
 
-    /// <summary>Current loading, empty, retained, or blocking disclosure.</summary>
     public DisclosureStatusViewModel? StatusNotice { get; private set; }
 
-    /// <summary>Localized route count.</summary>
     public string RouteCountLabel { get; private set; } = string.Empty;
 
-    /// <summary>Localized catalog lifecycle.</summary>
     public string CatalogStateLabel { get; private set; } = string.Empty;
 
-    /// <summary>Typed lifecycle of the publication represented by the current rows.</summary>
     public CanonicalSupportMatrixCatalogState CatalogState { get; private set; } =
         CanonicalSupportMatrixCatalogState.Loading;
 
-    /// <summary>Published catalog version.</summary>
     public string CatalogVersion { get; private set; } = string.Empty;
 
-    /// <summary>Compact exact-source digest.</summary>
     public string SourceHash { get; private set; } = string.Empty;
 
     /// <summary>Opaque current publication token.</summary>
     public string ResolutionToken { get; private set; } = string.Empty;
 
-    /// <summary>True when exact routes are available for disclosure.</summary>
     public bool HasRows => Rows.Count != 0;
 
-    /// <summary>True when an accessible state notice is visible.</summary>
     public bool HasStatusNotice => StatusNotice is not null;
 
     /// <summary>True when a failed reload retained an older coherent publication.</summary>
@@ -68,7 +57,7 @@ public sealed class SupportMatrixPresentationViewModel(
         CanonicalSupportMatrixQueryResult result = _query.Query();
         ReplaceItems(
             Rows,
-            result.Matrix?.Rows.Select(row =>
+            result.Matrix?.Rows.Where(static row => row.Identity.WorkflowId != ExperienceIds.DpReplace).Select(row =>
                 SupportMatrixRowViewModel.Create(row, text)) ?? []);
         RebuildGrid(text);
         IsStale = result.IsStale;

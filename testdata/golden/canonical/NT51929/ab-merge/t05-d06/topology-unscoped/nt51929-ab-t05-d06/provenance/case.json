@@ -6,6 +6,12 @@
   "variantOrVersion": "t05-d06",
   "topology": "topology-unscoped",
   "directGolden": true,
+  "testDisposition": {
+    "kind": "direct-full-output",
+    "evidenceRefs": [
+      "tests/NvtFwCombiner.Bootstrap.Tests/AbMergeGoldenRegressionTests.cs#Nt51929SupportedProfileMatchesOwnerApprovedAbGolden"
+    ]
+  },
   "sourceClassification": "private-owner-approved-golden",
   "ownerApproval": "Repository owner supplied and approved the direct AB golden on 2026-07-14, approved NT51919/NT51932 fact-scoped family applicability on 2026-07-18, and approved the version-independent NT51919/NT51929/NT51932 runtime pilot on 2026-07-22.",
   "profileId": "nt51929-ab-merge",

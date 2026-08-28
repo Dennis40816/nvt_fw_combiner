@@ -18,12 +18,15 @@
     <Company>Novatek</Company>
     <Product>NVT FW Combiner</Product>
     <RepositoryVersionFile>$(MSBuildThisFileDirectory)VERSION</RepositoryVersionFile>
-    <VersionPrefix>$([System.IO.File]::ReadAllText('$(RepositoryVersionFile)').Trim())</VersionPrefix>
-    <Version>$(VersionPrefix)</Version>
-    <VersionCore>$([System.Text.RegularExpressions.Regex]::Replace('$(Version)', '^([0-9]+)\.([0-9]+)\.([0-9]+).*$','$1.$2.$3'))</VersionCore>
+    <ProductVersion>$([System.IO.File]::ReadAllText('$(RepositoryVersionFile)').Trim())</ProductVersion>
+    <InternalProjectVersion>1.0.0</InternalProjectVersion>
+    <VersionPrefix>$(InternalProjectVersion)</VersionPrefix>
+    <Version>$(InternalProjectVersion)</Version>
+    <PackageVersion>$(InternalProjectVersion)</PackageVersion>
+    <VersionCore>$([System.Text.RegularExpressions.Regex]::Replace('$(ProductVersion)', '^([0-9]+)\.([0-9]+)\.([0-9]+).*$','$1.$2.$3'))</VersionCore>
     <AssemblyVersion>$(VersionCore).0</AssemblyVersion>
     <FileVersion>$(VersionCore).0</FileVersion>
-    <InformationalVersion>$(Version)</InformationalVersion>
+    <InformationalVersion>$(ProductVersion)</InformationalVersion>
     <IncludeSourceRevisionInInformationalVersion>false</IncludeSourceRevisionInInformationalVersion>
     <Copyright>Copyright © 2026 MSP/FW3</Copyright>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>

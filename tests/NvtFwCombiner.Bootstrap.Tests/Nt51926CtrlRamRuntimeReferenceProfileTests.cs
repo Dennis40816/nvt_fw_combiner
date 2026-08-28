@@ -6,7 +6,7 @@ using NvtFwCombiner.Profiles.V2;
 
 namespace NvtFwCombiner.Bootstrap.Tests;
 
-/// <summary>Non-routed V2 runtime-reference evidence for NT51926 Common FW 1.4.1 CtrlRAM Replace.</summary>
+/// <summary>V2 runtime-reference evidence for supported NT51926 Common FW 1.4.1 CtrlRAM Replace.</summary>
 public sealed class Nt51926CtrlRamRuntimeReferenceProfileTests
 {
     private const int TpWorkCapacity = 0x3C000;
@@ -16,7 +16,7 @@ public sealed class Nt51926CtrlRamRuntimeReferenceProfileTests
 
     /// <summary>Verifies the owner-modeled Common FW 1.x single plan has a trusted runtime profile.</summary>
     [Fact]
-    public void SingleCandidateCompilesWithTheSameReviewedMapAndProcessorAuthority()
+    public void SingleSupportedProfileCompilesWithTheSameReviewedMapAndProcessorAuthority()
     {
         const string profileId = "nt51926-ctrlram-replace-fw141-runtime-single";
         V2CompositionPlanCompileResult result = Compile(profileId, chipCount: 1, TpWorkCapacity, sourceLength: 1);
@@ -70,7 +70,7 @@ public sealed class Nt51926CtrlRamRuntimeReferenceProfileTests
 
     /// <summary>Verifies the cascade candidate compiles a short-source prefix without full-region authority.</summary>
     [Fact]
-    public void CandidateCompilesShortCtrlRamPrefixWithNarrowProcessorAuthority()
+    public void SupportedProfileCompilesShortCtrlRamPrefixWithNarrowProcessorAuthority()
     {
         const int sourceLength = 0x120;
         const string profileId = "nt51926-ctrlram-replace-fw141-runtime-cascade";
@@ -78,9 +78,9 @@ public sealed class Nt51926CtrlRamRuntimeReferenceProfileTests
 
         Assert.True(result.IsCompiled, FormatIssues(result.Issues));
         CompiledComposition composition = Assert.IsType<CompiledComposition>(result.CompiledComposition);
-        Assert.Equal(CompiledCompositionEligibility.V2PlanCompiled, composition.Eligibility);
+        Assert.Equal(CompiledCompositionEligibility.V2RuntimeExecutable, composition.Eligibility);
         Assert.Equal(profileId, composition.V2Details.ProfileId);
-        Assert.Equal(CompiledProfilePromotionStage.ExecutableCandidate, composition.V2Details.Provenance.Promotion.Stage);
+        Assert.Equal(CompiledProfilePromotionStage.Supported, composition.V2Details.Provenance.Promotion.Stage);
         Assert.Equal(
             "nt51926-ctrlram-fw141-tp-work-240k",
             composition.V2Details.Provenance.ResolvedMap.ImageMap.MapId);
@@ -112,7 +112,7 @@ public sealed class Nt51926CtrlRamRuntimeReferenceProfileTests
 
     /// <summary>Verifies the full Flash reference selects the canonical map while the processor remains confined to the TP prefix.</summary>
     [Fact]
-    public void CandidateKeepsFullFlashTailOutsideProcessorAuthority()
+    public void SupportedProfileKeepsFullFlashTailOutsideProcessorAuthority()
     {
         V2CompositionPlanCompileResult result = Compile(
             "nt51926-ctrlram-replace-fw141-runtime-cascade",
@@ -135,7 +135,7 @@ public sealed class Nt51926CtrlRamRuntimeReferenceProfileTests
 
     /// <summary>Verifies a source mapping cannot cross the declared VN maximum into the following physical gap.</summary>
     [Fact]
-    public void CandidateRejectsCtrlRamMappingBeyondDeclaredMaximum()
+    public void SupportedProfileRejectsCtrlRamMappingBeyondDeclaredMaximum()
     {
         V2CompositionPlanCompileResult result = Compile(
             "nt51926-ctrlram-replace-fw141-runtime-cascade",
@@ -151,7 +151,7 @@ public sealed class Nt51926CtrlRamRuntimeReferenceProfileTests
 
     /// <summary>Confirms typed TP-version fields execute before the CtrlRAM mapping and final postbuild.</summary>
     [Fact]
-    public void CandidateLowersFirmwareVersionEditBeforePostbuild()
+    public void SupportedProfileLowersFirmwareVersionEditBeforePostbuild()
     {
         V2CompositionPlanCompileResult result = Compile(
             "nt51926-ctrlram-replace-fw141-runtime-cascade",
@@ -191,7 +191,7 @@ public sealed class Nt51926CtrlRamRuntimeReferenceProfileTests
 
     /// <summary>Rejects a typed TP-version request when its fields are not in the canonical FWConfig source.</summary>
     [Fact]
-    public void CandidateRejectsFirmwareVersionEditOutsideFirmwareConfigSource()
+    public void SupportedProfileRejectsFirmwareVersionEditOutsideFirmwareConfigSource()
     {
         var edit = new V2RuntimeReferenceReplaceFirmwareVersionEdit(
             new ByteRange(VnStart, 2),
@@ -228,7 +228,7 @@ public sealed class Nt51926CtrlRamRuntimeReferenceProfileTests
         new byte[] { 0x00, 0x4E, 0x56, 0x54 }.CopyTo(reference, 0x3BFFC);
         return BuiltInV2BundleRegistry.All["nt51926-ctrlram-replace-candidate"].CompileRuntimeReferenceReplace(
             profileId,
-            "0.3.0",
+            "0.4.0",
             "NT51926",
             ExperienceIds.CtrlRamReplace,
             new TopologySelection(

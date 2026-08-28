@@ -59,12 +59,12 @@
 
       <StackPanel Grid.Row="4" HorizontalAlignment="Right" Orientation="Horizontal" Spacing="{DynamicResource NfcSpace8}">
         <Button
-            Classes="secondary"
+            Classes="semanticAction secondary"
             AutomationProperties.Name="{Binding Text.BuildCompletedOpenFolderLabel}"
             Command="{Binding BuildResult.RevealOutputCommand}"
             Content="{Binding Text.BuildCompletedOpenFolderLabel}" />
         <Button
-            Classes="primary"
+            Classes="semanticAction primary"
             AutomationProperties.Name="{Binding Text.BuildCompletedOkLabel}"
             Command="{Binding BuildResult.CloseCommand}"
             Content="{Binding Text.BuildCompletedOkLabel}" />

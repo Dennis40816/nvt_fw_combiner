@@ -1,5 +1,4 @@
 using System.Buffers.Binary;
-using System.Diagnostics;
 using System.Security.Cryptography;
 using System.Text.Json;
 using NvtFwCombiner.Application.ExternalTools;
@@ -13,10 +12,10 @@ using NvtFwCombiner.TestSupport;
 namespace NvtFwCombiner.Bootstrap.Tests;
 
 /// <summary>Owner-approved AB fixture evidence for supported and retained candidate profiles.</summary>
-public sealed class AbMergeGoldenRegressionTests
+public sealed partial class AbMergeGoldenRegressionTests
 {
     private const string Nt51929BundleDirectory = "nt51919-nt51929-nt51932-ab-merge";
-    private const string Nt51929BundleContentHash = "2c54c025d2afd3c8c15de6587894fb166a2a8cb7879f90fa241cba8dddeb5544";
+    private const string Nt51929BundleContentHash = "dda53555eefe4ee5e92ea54717a125833e76275058679409eb3da0d3fd0e9272";
     private const string Nt51950BundleDirectory = "nt51950-ab-merge";
     private const string Nt51950BundleContentHash = "775c42fba1fbbf1c4c8869656c83c86ce34d612dda3ceed92a93cb4e82f7cd67";
 
@@ -100,6 +99,25 @@ public sealed class AbMergeGoldenRegressionTests
         Assert.Equal("c7e1e263ac8ca70f83a6f66fa268da4aa9be37c2c822a39d58fa9c153d66abe2", Hash(result.OutputBytes.Span));
     }
 
+    /// <summary>Every AB alias is explicitly bound to one direct canonical case.</summary>
+    [Fact]
+    public void EveryAbFactScopedAliasResolvesItsDeclaredDirectCase()
+    {
+        var expected = new Dictionary<string, string>(StringComparer.Ordinal)
+        {
+            ["nt51919-ab-t05-d06-alias"] = "nt51929-ab-t05-d06",
+            ["nt51932-ab-t05-d06-alias"] = "nt51929-ab-t05-d06",
+            ["nt51951-ab-boe-d82t80-workflow-alias"] = "nt51950-ab-boe-d82t80",
+            ["nt51951-ab-hiway-d82t80-workflow-alias"] = "nt51950-ab-hiway-d82t80",
+        };
+
+        IReadOnlyList<CanonicalGoldenAlias> aliases =
+            CanonicalGoldenTestData.LoadWorkflowAliases("ab-merge");
+
+        Assert.Equal(expected.Count, aliases.Count);
+        Assert.All(aliases, alias => Assert.Equal(expected[alias.CaseId], alias.SourceCaseId));
+    }
+
     /// <summary>
     /// Verifies each directly named 51929/51932 candidate configuration against the immutable Python snapshot.
     /// This synthetic parity is migration evidence and is not a direct owner product golden.
@@ -154,16 +172,13 @@ public sealed class AbMergeGoldenRegressionTests
     }
 
     /// <summary>Verifies the approved 51950 Combiner command reproduces each owner-approved AB output byte-for-byte.</summary>
-    [Theory]
+    [Theory(
+        Skip = "Requires the packaged Windows legacy Combiner processor.",
+        SkipUnless = nameof(IsWindows))]
     [InlineData("nt51950-ab-boe-d82t80")]
     [InlineData("nt51950-ab-hiway-d82t80")]
     public async Task Nt51950CandidateMatchesOwnerApprovedAbGoldenWithCombinerAsync(string caseId)
     {
-        if (!OperatingSystem.IsWindows())
-        {
-            return;
-        }
-
         JsonElement goldenCase = ReadGoldenCase(caseId);
         JsonElement applicability = goldenCase.GetProperty("evidenceApplicability");
         Assert.Equal(
@@ -279,14 +294,11 @@ public sealed class AbMergeGoldenRegressionTests
     /// <summary>
     /// Verifies the compiled NT51951 candidate and Combiner match the immutable Python snapshot byte-for-byte.
     /// </summary>
-    [Fact]
+    [Fact(
+        Skip = "Requires the packaged Windows legacy Combiner processor.",
+        SkipUnless = nameof(IsWindows))]
     public async Task Nt51951CandidatePlanWithCombinerMatchesPythonReferenceAsync()
     {
-        if (!OperatingSystem.IsWindows())
-        {
-            return;
-        }
-
         const int outputLength = 0x100000;
         const int tpLength = 0x37000;
         const string expectedSha256 = "e1524ba52b41d5a49eb58fcdb75326d5f0c78a6df7af2fcfdaa632a12e628c71";
@@ -442,7 +454,11 @@ public sealed class AbMergeGoldenRegressionTests
 
     private static JsonElement ReadGoldenCase(string caseId)
     {
-        return CanonicalGoldenTestData.LoadDirectCase("ab-merge", caseId);
+        JsonElement goldenCase = CanonicalGoldenTestData.LoadDirectCase("ab-merge", caseId);
+        _ = CanonicalGoldenTestData.RequireDisposition(
+            goldenCase,
+            CanonicalGoldenTestDispositionKind.DirectFullOutput);
+        return goldenCase;
     }
 
     private static Dictionary<string, byte[]> ReadInputs(JsonElement goldenCase)
@@ -495,88 +511,6 @@ public sealed class AbMergeGoldenRegressionTests
             root.GetProperty("workingDirectoryPolicy").GetString()!,
             root.GetProperty("timeoutSeconds").GetInt32(),
             [.. root.GetProperty("allowedExtraOutputFiles").EnumerateArray().Select(static item => item.GetString()!)]);
-    }
-
-    private static async Task<byte[]> RunPythonReferenceAsync(
-        TempWorkspace workspace,
-        string icId,
-        byte[] dp,
-        byte[] tpA,
-        byte[] tpB,
-        CancellationToken cancellationToken)
-    {
-        ArgumentNullException.ThrowIfNull(workspace);
-        ArgumentException.ThrowIfNullOrWhiteSpace(icId);
-        ArgumentNullException.ThrowIfNull(dp);
-        ArgumentNullException.ThrowIfNull(tpA);
-        ArgumentNullException.ThrowIfNull(tpB);
-
-        // This test-only process invokes the immutable reference snapshot; production never loads it.
-        string dpPath = workspace.Write("DP_AB/input.bin", dp);
-        string tpAPath = workspace.Write("TPA/input.bin", tpA);
-        string tpBPath = workspace.Write("TPB/input.bin", tpB);
-        string outputPath = workspace.PathFor("python-reference-output.bin");
-        string referenceRoot = RepositoryPaths.FromRepositoryRoot("refcode", "ab_code_combiner");
-        const string script = """
-            import pathlib
-            import sys
-
-            reference_root = pathlib.Path(sys.argv[1])
-            sys.path.insert(0, str(reference_root))
-
-            from combine import combine
-            from ic_config import IC_CONFIGS
-
-            dp = bytearray(pathlib.Path(sys.argv[2]).read_bytes())
-            tpa = bytearray(pathlib.Path(sys.argv[3]).read_bytes())
-            tpb = bytearray(pathlib.Path(sys.argv[4]).read_bytes())
-            output = combine(IC_CONFIGS[sys.argv[5]], dp, tpa, tpb, debug=0)
-            pathlib.Path(sys.argv[6]).write_bytes(output)
-            """;
-        var startInfo = new ProcessStartInfo
-        {
-            FileName = "python",
-            WorkingDirectory = workspace.Root,
-            UseShellExecute = false,
-            RedirectStandardOutput = true,
-            RedirectStandardError = true,
-        };
-        startInfo.ArgumentList.Add("-c");
-        startInfo.ArgumentList.Add(script);
-        startInfo.ArgumentList.Add(referenceRoot);
-        startInfo.ArgumentList.Add(dpPath);
-        startInfo.ArgumentList.Add(tpAPath);
-        startInfo.ArgumentList.Add(tpBPath);
-        startInfo.ArgumentList.Add(icId);
-        startInfo.ArgumentList.Add(outputPath);
-
-        using Process process = Process.Start(startInfo)
-            ?? throw new InvalidOperationException("Could not start the Python AB reference snapshot.");
-        Task<string> standardOutput = process.StandardOutput.ReadToEndAsync(cancellationToken);
-        Task<string> standardError = process.StandardError.ReadToEndAsync(cancellationToken);
-        try
-        {
-            await process.WaitForExitAsync(cancellationToken);
-        }
-        catch
-        {
-            if (!process.HasExited)
-            {
-                process.Kill(entireProcessTree: true);
-            }
-
-            throw;
-        }
-
-        string output = await standardOutput;
-        string error = await standardError;
-        Assert.True(
-            process.ExitCode == 0,
-            $"Python AB reference failed for NT{icId}. Exit={process.ExitCode}{Environment.NewLine}" +
-            $"stdout:{Environment.NewLine}{output}{Environment.NewLine}" +
-            $"stderr:{Environment.NewLine}{error}");
-        Assert.True(File.Exists(outputPath), $"Python AB reference did not produce {outputPath}.");
-        return File.ReadAllBytes(outputPath);
     }
 
     private static byte[] CreatePattern(int length, int multiplier, int addend)

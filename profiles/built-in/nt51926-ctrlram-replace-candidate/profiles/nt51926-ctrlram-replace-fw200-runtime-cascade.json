@@ -1,18 +1,8 @@
 {
   "schemaVersion": "2.9",
   "profileId": "nt51926-ctrlram-replace-fw200-runtime-cascade",
-  "profileVersion": "0.3.0",
-  "promotion": {
-    "stage": "executable-candidate",
-    "blockers": [
-      {
-        "blockerId": "release-support-review",
-        "kind": "human-review",
-        "reason": "The exact owner-golden route remains support-neutral until independent release review approves a support claim.",
-        "evidenceRefs": [ "nt51926-fw200-cascade-owner-golden-20260718" ]
-      }
-    ]
-  },
+  "profileVersion": "0.4.0",
+  "promotion": { "stage": "supported", "blockers": [] },
   "compositionKind": "replace",
   "icNumberInputMode": "cascade-selector",
   "experience": {

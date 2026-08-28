@@ -1,10 +1,48 @@
+using NvtFwCombiner.Application.Capabilities;
 using NvtFwCombiner.Domain.Composition;
+using NvtFwCombiner.Presentation.Avalonia;
 using NvtFwCombiner.Presentation.Avalonia.ViewModels;
 
 namespace NvtFwCombiner.UiSmoke.Tests;
 
 public sealed partial class ShellNavigationSystemTests
 {
+    /// <summary>An empty Application number disclosure stays empty instead of becoming a UI-authored topology.</summary>
+    [Fact]
+    public async Task EmptyPublishedNumberDisclosureFailsClosedWithoutUiFallback()
+    {
+        PresentationHostServices services =
+            PresentationTestHost.CreateServices("0.10.6-empty-number-test");
+        CapabilityCatalogReloadResult reload =
+            await PresentationTestHost.LoadCanonicalCatalogAsync(
+                services.CanonicalCatalogLoader,
+                TestContext.Current.CancellationToken);
+        CanonicalCapabilityCatalogSnapshot snapshot =
+            Assert.IsType<CanonicalCapabilityCatalogSnapshot>(reload.Snapshot);
+        CapabilitySelectorPublication publication = CapabilitySelectorPublication.Create(
+            snapshot.ResolutionToken,
+            snapshot.Capabilities,
+            snapshot.DynamicRoutes,
+            CanonicalCapabilityDisclosure.Empty);
+
+        Assert.True(publication.IsWorkflowAuthorable(
+            "NT51950",
+            ExperienceIds.StandardMerge));
+        Assert.Empty(publication.GetNumberSelectionChoices("NT51950"));
+        Assert.Empty(UiCompositionRunner.GetNumberSelectionChoices(publication, "NT51950"));
+
+        var setup = new WorkflowContextSetupViewModel();
+        setup.Configure(
+            publication,
+            "NT51950",
+            IcNumberSelectionTokens.SingleChip,
+            showNumber: true);
+
+        Assert.Empty(setup.NumberChoices);
+        Assert.Equal(string.Empty, setup.SelectedNumber);
+        Assert.Null(setup.SelectedNumberChoice);
+    }
+
     /// <summary>Verifies a numeric IC selection never leaves the displayed number selector blank after an IC switch.</summary>
     [Fact]
     public void SwitchingToAliasOnlyIcNumberChoicesFallsBackToSingleChip()
@@ -88,7 +126,7 @@ public sealed partial class ShellNavigationSystemTests
 
         Assert.Contains("Perfect IC Family", viewModel.WorkflowSession.SelectedIcDetailFamily, StringComparison.Ordinal);
         Assert.Contains("AB", viewModel.WorkflowSession.SelectedIcDetailRuntime, StringComparison.Ordinal);
-        Assert.Equal("✓ Verified: DP · ! Open: CtrlRAM · — Unavailable: Customized", viewModel.WorkflowSession.SelectedIcDetailEvidence);
+        Assert.Equal("✓ Verified: CtrlRAM · ! Open: DP · — Unavailable: Customized", viewModel.WorkflowSession.SelectedIcDetailEvidence);
         Assert.DoesNotContain("golden", viewModel.WorkflowSession.SelectedIcDetailEvidence, StringComparison.OrdinalIgnoreCase);
         Assert.Contains("NT51929", viewModel.WorkflowSession.SelectedIcDetailAutomationText, StringComparison.Ordinal);
         Assert.Contains(viewModel.WorkflowSession.SelectedIcDetailEvidence, viewModel.WorkflowSession.SelectedIcDetailAutomationText, StringComparison.Ordinal);
@@ -97,7 +135,7 @@ public sealed partial class ShellNavigationSystemTests
         viewModel.WorkflowSession.SelectedIc = "NT51950";
 
         Assert.Contains("AB", viewModel.WorkflowSession.SelectedIcDetailRuntime, StringComparison.Ordinal);
-        Assert.Equal("! Open: DP, CtrlRAM · — Unavailable: Customized", viewModel.WorkflowSession.SelectedIcDetailEvidence);
+        Assert.Equal("✓ Verified: CtrlRAM · ! Open: DP · — Unavailable: Customized", viewModel.WorkflowSession.SelectedIcDetailEvidence);
         Assert.Contains("compiled profile contracts", viewModel.WorkflowSession.SelectedIcDetailSupport, StringComparison.Ordinal);
 
     }

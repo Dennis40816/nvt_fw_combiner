@@ -2,23 +2,21 @@ using NvtFwCombiner.Application.Authoring;
 using NvtFwCombiner.Application.Capabilities;
 using NvtFwCombiner.Application.ExternalTools;
 using NvtFwCombiner.Application.FlashMaps;
-using NvtFwCombiner.Application.Ports;
 using NvtFwCombiner.Domain.Composition;
 using NvtFwCombiner.Infrastructure.ExternalTools;
-using NvtFwCombiner.Infrastructure.Files;
 
 namespace NvtFwCombiner.Infrastructure.Composition;
 
 internal sealed partial class BuiltInGeneralAuthoringPlanner(
     ICanonicalCapabilityQuery catalog,
-    CanonicalCapabilityCompilerAdapter compiler,
-    CanonicalCapabilityExperience projection) : IGeneralAuthoringPlanner
+    IStandardMergeCompilationPort compiler,
+    ICompositionCapabilityExperience projection) : IGeneralAuthoringPlanner
 {
     private readonly ICanonicalCapabilityQuery _catalog =
         catalog ?? throw new ArgumentNullException(nameof(catalog));
-    private readonly CanonicalCapabilityCompilerAdapter _compiler =
+    private readonly IStandardMergeCompilationPort _compiler =
         compiler ?? throw new ArgumentNullException(nameof(compiler));
-    private readonly CanonicalCapabilityExperience _projection =
+    private readonly ICompositionCapabilityExperience _projection =
         projection ?? throw new ArgumentNullException(nameof(projection));
 
     public bool CanPlanGeneralReplace(string icId)
@@ -282,20 +280,5 @@ internal sealed partial class BuiltInGeneralAuthoringPlanner(
         return string.Join(
             Environment.NewLine,
             issues.Select(static issue => $"{issue.Code}: {issue.Message}"));
-    }
-}
-
-internal sealed class BuiltInGeneralSelectedFileContentInspector :
-    ISelectedFileContentInspector
-{
-    public ValueTask<SelectedFileContentInspection> InspectAsync(
-        string selectedPath,
-        long maximumBytes,
-        CancellationToken cancellationToken)
-    {
-        string fullPath = Path.GetFullPath(selectedPath);
-        var inspector = new FileContentSnapshotInspector(
-            [Path.GetDirectoryName(fullPath)!]);
-        return inspector.InspectAsync(fullPath, maximumBytes, cancellationToken);
     }
 }

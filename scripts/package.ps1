@@ -6,6 +6,10 @@ param(
     [Parameter(Mandatory = $true)]
     [string]$Commit,
 
+    [string]$VersionOnlyBasePackage,
+
+    [string]$VersionOnlyBasePackageSha256,
+
     [switch]$AllowPrerelease,
 
     [switch]$ExternalToolPolicyDryRun
@@ -15,7 +19,11 @@ Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
 $ProgressPreference = 'SilentlyContinue'
 
-$RepoRoot = Split-Path -Parent $PSScriptRoot
+$InvocationRepoRoot = Split-Path -Parent $PSScriptRoot
+$RepoRoot = $InvocationRepoRoot
+$SourceSnapshotRoot = $null
+$SourceSnapshotAttached = $false
+$ReleaseManifestSchemaPath = Join-Path $RepoRoot 'docs/contracts/release-manifest-v1.schema.json'
 $DistributionOwner = 'MSP/FW3'
 $SourceIdentity = 'urn:msp-fw3:nvt-fw-combiner:source'
 $ReleaseNamespace = 'urn:msp-fw3:nvt-fw-combiner:release'
@@ -23,6 +31,24 @@ $SourceTag = if ($Version.StartsWith('v', [StringComparison]::Ordinal)) { $Versi
 $SemanticVersion = $SourceTag.Substring(1)
 $StableSemVerPattern = '^[0-9]+\.[0-9]+\.[0-9]+$'
 $PackageSemVerPattern = '^[0-9]+\.[0-9]+\.[0-9]+(?:-[0-9A-Za-z.-]+)?$'
+
+function Assert-CanonicalJsonSchema {
+    param(
+        [Parameter(Mandatory = $true)]
+        [string]$JsonPath,
+
+        [Parameter(Mandatory = $true)]
+        [string]$SchemaPath
+    )
+
+    if (-not (Test-Path -LiteralPath $SchemaPath -PathType Leaf)) {
+        throw "Canonical JSON schema is missing: $SchemaPath"
+    }
+    $Json = Get-Content -LiteralPath $JsonPath -Raw
+    if (-not ($Json | Test-Json -SchemaFile $SchemaPath -ErrorAction Stop)) {
+        throw "JSON document does not satisfy canonical schema: $JsonPath"
+    }
+}
 if ($AllowPrerelease) {
     if ($SemanticVersion -notmatch $PackageSemVerPattern) {
         throw "Package version must be SemVer without build metadata; received '$Version'."
@@ -35,19 +61,116 @@ if ($Commit -notmatch '^[0-9a-f]{40}$') {
     throw "Commit must be a lowercase 40-character Git SHA; received '$Commit'."
 }
 
+$PolicyDryRunSentinel =
+    $ExternalToolPolicyDryRun -and
+    $Version -ceq '0.0.0' -and
+    $Commit -ceq ('0' * 40)
+$ResolvedVersionOnlyBasePackage = $null
+if (-not [string]::IsNullOrWhiteSpace($VersionOnlyBasePackage)) {
+    if ($SemanticVersion -cne '1.0.1') {
+        throw 'A version-only base package may be used only for 1.0.1.'
+    }
+    $ResolvedVersionOnlyBasePackage = (
+        Get-Item -LiteralPath $VersionOnlyBasePackage -ErrorAction Stop).FullName
+    if ($VersionOnlyBasePackageSha256 -cnotmatch '^[0-9a-f]{64}$') {
+        throw 'A version-only base package requires its independently authenticated lowercase SHA-256.'
+    }
+}
+elseif (-not [string]::IsNullOrWhiteSpace($VersionOnlyBasePackageSha256)) {
+    throw 'A version-only base package SHA-256 cannot be supplied without the package.'
+}
+if (-not $PolicyDryRunSentinel) {
+    $InvocationVersionPath = Join-Path $RepoRoot 'VERSION'
+    if (-not (Test-Path -LiteralPath $InvocationVersionPath -PathType Leaf)) {
+        throw "Repository VERSION is missing: $InvocationVersionPath"
+    }
+    $InvocationVersion = (Get-Content -LiteralPath $InvocationVersionPath -Raw).Trim()
+    if ($SemanticVersion -cne $InvocationVersion) {
+        throw "Package version '$SemanticVersion' does not match repository VERSION '$InvocationVersion'."
+    }
+    $RepositoryHeadOutput = & git -C $RepoRoot rev-parse --verify HEAD 2>&1
+    if ($LASTEXITCODE -ne 0) {
+        throw "Repository HEAD could not be resolved: $($RepositoryHeadOutput -join ' ')"
+    }
+    $RepositoryHead = ([string]($RepositoryHeadOutput -join '')).Trim()
+    if ($RepositoryHead -notmatch '^[0-9a-f]{40}$') {
+        throw "Repository HEAD is not a lowercase full Git SHA: '$RepositoryHead'."
+    }
+    if ($Commit -cne $RepositoryHead) {
+        throw "Package commit does not match repository HEAD: requested '$Commit', actual '$RepositoryHead'."
+    }
+
+    $RepositoryStatus = & git -C $RepoRoot status --porcelain=v1 --untracked-files=all 2>&1
+    if ($LASTEXITCODE -ne 0) {
+        throw "Repository status could not be read: $($RepositoryStatus -join ' ')"
+    }
+    if (@($RepositoryStatus).Count -ne 0) {
+        throw 'Release packaging requires a clean repository worktree and index.'
+    }
+}
+if (
+    -not $PolicyDryRunSentinel -and
+    $SemanticVersion -ceq '1.0.1' -and
+    $null -eq $ResolvedVersionOnlyBasePackage
+) {
+    throw 'Stable 1.0.1 packaging requires the published 1.0.0 base package.'
+}
+
 $DotNet = $null
 $Python = $null
-$ReleaseRoot = Join-Path $RepoRoot 'artifacts/release'
-$WorkRoot = Join-Path $RepoRoot 'artifacts/package-work'
+$ReleaseRoot = Join-Path $InvocationRepoRoot 'artifacts/release'
+$WorkRoot = Join-Path $InvocationRepoRoot 'artifacts/package-work'
 $PackageName = "NvtFwCombiner-$SourceTag-win-x64"
 $PackageRoot = Join-Path $WorkRoot $PackageName
 $AppPublish = Join-Path $WorkRoot 'app-publish'
+$LauncherPublish = Join-Path $WorkRoot 'launcher-publish'
 $WorkerBuild = Join-Path $WorkRoot 'worker-build'
 $WorkerDist = Join-Path $WorkRoot 'worker-dist'
 $IdleBuildWorkerStopper = Join-Path $PSScriptRoot 'stop-idle-build-workers.ps1'
 $StandardMergeGoldenReleaseAllowlistPath = Join-Path $RepoRoot 'testdata/golden/release-standard-merge-v1.json'
 
 try {
+if (-not $PolicyDryRunSentinel) {
+    $SourceSnapshotParent = Split-Path -Parent $InvocationRepoRoot
+    $SourceSnapshotId = [guid]::NewGuid().ToString('N').Substring(0, 12)
+    $SourceSnapshotRoot = Join-Path $SourceSnapshotParent ".nfcps-$SourceSnapshotId"
+    $SnapshotAddOutput = & git -C $InvocationRepoRoot worktree add --detach $SourceSnapshotRoot $Commit 2>&1
+    if ($LASTEXITCODE -ne 0) {
+        throw "Exact source snapshot could not be materialized: $($SnapshotAddOutput -join ' ')"
+    }
+    $SourceSnapshotAttached = $true
+
+    $SnapshotHeadOutput = & git -C $SourceSnapshotRoot rev-parse --verify HEAD 2>&1
+    if ($LASTEXITCODE -ne 0) {
+        throw "Exact source snapshot HEAD could not be resolved: $($SnapshotHeadOutput -join ' ')"
+    }
+    $SnapshotHead = ([string]($SnapshotHeadOutput -join '')).Trim()
+    if ($SnapshotHead -cne $Commit) {
+        throw "Exact source snapshot resolved '$SnapshotHead' instead of requested commit '$Commit'."
+    }
+    $SnapshotStatus = & git -C $SourceSnapshotRoot status --porcelain=v1 --untracked-files=all 2>&1
+    if ($LASTEXITCODE -ne 0) {
+        throw "Exact source snapshot status could not be read: $($SnapshotStatus -join ' ')"
+    }
+    if (@($SnapshotStatus).Count -ne 0) {
+        throw 'Exact source snapshot is not clean.'
+    }
+
+    $SnapshotVersionPath = Join-Path $SourceSnapshotRoot 'VERSION'
+    if (-not (Test-Path -LiteralPath $SnapshotVersionPath -PathType Leaf)) {
+        throw "Exact source snapshot VERSION is missing: $SnapshotVersionPath"
+    }
+    $SnapshotVersion = (Get-Content -LiteralPath $SnapshotVersionPath -Raw).Trim()
+    if ($SemanticVersion -cne $SnapshotVersion) {
+        throw "Package version '$SemanticVersion' does not match exact source snapshot VERSION '$SnapshotVersion'."
+    }
+
+    $RepoRoot = $SourceSnapshotRoot
+    $ReleaseManifestSchemaPath = Join-Path $RepoRoot 'docs/contracts/release-manifest-v1.schema.json'
+    $IdleBuildWorkerStopper = Join-Path $RepoRoot 'scripts/stop-idle-build-workers.ps1'
+    $StandardMergeGoldenReleaseAllowlistPath = Join-Path $RepoRoot 'testdata/golden/release-standard-merge-v1.json'
+}
+
 function Get-LowerSha256 {
     param([Parameter(Mandatory = $true)][string]$Path)
     return (Get-FileHash -LiteralPath $Path -Algorithm SHA256).Hash.ToLowerInvariant()
@@ -138,7 +261,7 @@ $PackageTrustIndexPackagePath = 'profiles/built-in/package-trust-index.json'
 $ApprovedCanonicalCapabilityPolicyPackageContract = [pscustomobject]@{
     path = 'docs/contracts/canonical-capability-policy-v1.json'
     role = 'capabilityPolicy'
-    sha256 = '026fd116bb8380c373148953935cde01ceb5532f60bb3848dbab7d17fabd69e4'
+    sha256 = 'bf818a4c9aa4d539882e4bc4a0a662ef70ece67a44e78ae83356430365828f50'
 }
 
 $ApprovedCanonicalCapabilityPolicyPackagePath =
@@ -282,7 +405,7 @@ function Get-BuiltInProfilePackagePaths {
     }
     $PublishedTrustIndex = Get-Content -LiteralPath $PublishedTrustIndexPath -Raw |
         ConvertFrom-Json -Depth 32
-    if ([string]$PublishedTrustIndex.schemaVersion -ne '1.0' -or
+    if ([string]$PublishedTrustIndex.schemaVersion -ne '1.1' -or
         [string]$PublishedTrustIndex.trustAnchorBindingId -ne 'built-in-profile-bundle-v2') {
         throw 'Published package trust index has an unsupported schema or trust anchor.'
     }
@@ -500,11 +623,8 @@ function New-BuiltInProfilePolicyDryRunFixture {
 }
 
 function Invoke-ExternalToolPolicyDryRun {
-    $ProbeRelativePath = 'external-tools/release-package-policy-probe.txt'
+    $ProbeRelativePath = "external-tools/release-package-policy-probe-$([guid]::NewGuid().ToString('N')).txt"
     $ProbeSourcePath = Join-Path $RepoRoot $ProbeRelativePath
-    if (Test-Path -LiteralPath $ProbeSourcePath) {
-        throw "External-tool policy probe already exists: $ProbeSourcePath"
-    }
 
     $DryRunRoot = Join-Path ([IO.Path]::GetTempPath()) "nvt-fw-combiner-package-policy-$([guid]::NewGuid().ToString('N'))"
     $DryRunPackageRoot = Join-Path $DryRunRoot 'package'
@@ -833,10 +953,10 @@ function Get-DeclaredStandardMergeGoldenPaths {
     }
 
     $Manifest = Get-Content -LiteralPath $ManifestPath -Raw | ConvertFrom-Json
-    if ($Manifest.schemaVersion -ne '1.0' -or
+    if ($Manifest.schemaVersion -ne '1.1' -or
         $Manifest.payloadClass -ne 'owner-approved-golden' -or
         $Manifest.binaryPayloadsIncluded -ne $true) {
-        throw 'Canonical golden inventory must declare schemaVersion=1.0, owner-approved-golden, and binaryPayloadsIncluded=true.'
+        throw 'Canonical golden inventory must declare schemaVersion=1.1, owner-approved-golden, and binaryPayloadsIncluded=true.'
     }
     if (-not (Test-Path -LiteralPath $ReleaseAllowlistPath -PathType Leaf)) {
         throw "Standard Merge golden release allowlist was not found at $ReleaseAllowlistPath"
@@ -987,9 +1107,11 @@ else {
 $Python = (Get-Command python -ErrorAction Stop).Source
 
 Remove-Item -LiteralPath $ReleaseRoot, $WorkRoot -Recurse -Force -ErrorAction SilentlyContinue
-New-Item -ItemType Directory -Force -Path $ReleaseRoot, $PackageRoot, $AppPublish, $WorkerBuild, $WorkerDist | Out-Null
+New-Item -ItemType Directory -Force -Path $ReleaseRoot, $PackageRoot, $AppPublish, $LauncherPublish, $WorkerBuild, $WorkerDist | Out-Null
 
 $AppProject = Join-Path $RepoRoot 'src/NvtFwCombiner.Desktop/NvtFwCombiner.Desktop.csproj'
+$LauncherProject = Join-Path $RepoRoot 'src/NvtFwCombiner.Launcher/NvtFwCombiner.Launcher.csproj'
+$IncludeManagedLauncher = -not $AllowPrerelease
 $SourcePackageLockSnapshots = Save-SourcePackageLocks
 try {
     & $DotNet restore $AppProject -r win-x64 -p:PublishReadyToRun=true
@@ -1010,11 +1132,26 @@ try {
         -p:DebugSymbols=false `
         -o $AppPublish
     $PublishExitCode = $LASTEXITCODE
+    if ($PublishExitCode -eq 0 -and $IncludeManagedLauncher) {
+        & $DotNet restore $LauncherProject -r win-x64
+        if ($LASTEXITCODE -ne 0) { throw 'dotnet restore failed before launcher publish.' }
+        & $DotNet publish $LauncherProject -c Release -r win-x64 --self-contained true --no-restore `
+            -p:Version=$SemanticVersion `
+            -p:PublishSingleFile=true `
+            -p:EnableCompressionInSingleFile=true `
+            -p:PublishTrimmed=false `
+            -p:IncludeNativeLibrariesForSelfExtract=true `
+            -p:DebugType=None `
+            -p:DebugSymbols=false `
+            -o $LauncherPublish
+        $LauncherPublishExitCode = $LASTEXITCODE
+    }
 }
 finally {
     Restore-SourcePackageLocks -Snapshots $SourcePackageLockSnapshots
 }
 if ($PublishExitCode -ne 0) { throw 'dotnet publish failed.' }
+if ($IncludeManagedLauncher -and $LauncherPublishExitCode -ne 0) { throw 'managed launcher publish failed.' }
 
 $PublishedApp = Join-Path $AppPublish 'NvtFwCombiner.Desktop.exe'
 if (-not (Test-Path -LiteralPath $PublishedApp -PathType Leaf)) {
@@ -1022,6 +1159,16 @@ if (-not (Test-Path -LiteralPath $PublishedApp -PathType Leaf)) {
 }
 $AppExe = Join-Path $PackageRoot 'NvtFwCombiner.exe'
 Copy-Item -LiteralPath $PublishedApp -Destination $AppExe
+$LauncherExe = $null
+if ($IncludeManagedLauncher) {
+    $PublishedLauncher = Join-Path $LauncherPublish 'NvtFwCombiner.Launcher.exe'
+    if (-not (Test-Path -LiteralPath $PublishedLauncher -PathType Leaf)) {
+        throw "Published managed launcher was not found at $PublishedLauncher"
+    }
+    $LauncherExe = Join-Path $PackageRoot 'launcher/NvtFwCombiner.Launcher.exe'
+    New-Item -ItemType Directory -Force -Path (Split-Path -Parent $LauncherExe) | Out-Null
+    Copy-Item -LiteralPath $PublishedLauncher -Destination $LauncherExe
+}
 $BuiltInProfilePackagePaths = @(Copy-BuiltInProfilePackageFiles `
     -PublishedRoot $AppPublish `
     -DestinationRoot $PackageRoot)
@@ -1029,30 +1176,44 @@ Copy-CanonicalCapabilityPolicyPackageFile `
     -PublishedRoot $AppPublish `
     -DestinationRoot $PackageRoot
 
-$WorkerEntry = Join-Path $WorkRoot 'crc_worker_entry.py'
-@'
+$WorkerExe = Join-Path $PackageRoot $CrcWorkerPackagePath.Replace('/', [IO.Path]::DirectorySeparatorChar)
+if ($null -ne $ResolvedVersionOnlyBasePackage) {
+    $ReleasePolicy = Join-Path $RepoRoot 'scripts/release_promotion_policy.py'
+    & $Python $ReleasePolicy extract-version-only-stable-payload `
+        --repository $RepoRoot `
+        --base-package $ResolvedVersionOnlyBasePackage `
+        --base-package-sha256 $VersionOnlyBasePackageSha256 `
+        --destination $WorkerExe `
+        --path $CrcWorkerPackagePath
+    if ($LASTEXITCODE -ne 0) {
+        throw 'Published 1.0.0 CRC worker could not be reused for 1.0.1.'
+    }
+}
+else {
+    $WorkerEntry = Join-Path $WorkRoot 'crc_worker_entry.py'
+    @'
 from nfc_crc_worker.__main__ import main
 
 raise SystemExit(main())
 '@ | Set-Content -LiteralPath $WorkerEntry -Encoding utf8NoBOM
 
-$WorkerSource = Join-Path $RepoRoot 'tools/crc-worker/src'
-& $Python -m PyInstaller --onefile --clean --noconfirm --noupx `
-    --name Nfc.CrcWorker `
-    --paths $WorkerSource `
-    --workpath $WorkerBuild `
-    --distpath $WorkerDist `
-    --specpath $WorkRoot `
-    $WorkerEntry
-if ($LASTEXITCODE -ne 0) { throw 'PyInstaller worker packaging failed.' }
+    $WorkerSource = Join-Path $RepoRoot 'tools/crc-worker/src'
+    & $Python -m PyInstaller --onefile --clean --noconfirm --noupx `
+        --name Nfc.CrcWorker `
+        --paths $WorkerSource `
+        --workpath $WorkerBuild `
+        --distpath $WorkerDist `
+        --specpath $WorkRoot `
+        $WorkerEntry
+    if ($LASTEXITCODE -ne 0) { throw 'PyInstaller worker packaging failed.' }
 
-$BuiltWorker = Join-Path $WorkerDist 'Nfc.CrcWorker.exe'
-if (-not (Test-Path -LiteralPath $BuiltWorker -PathType Leaf)) {
-    throw "Packaged CRC worker was not found at $BuiltWorker"
+    $BuiltWorker = Join-Path $WorkerDist 'Nfc.CrcWorker.exe'
+    if (-not (Test-Path -LiteralPath $BuiltWorker -PathType Leaf)) {
+        throw "Packaged CRC worker was not found at $BuiltWorker"
+    }
+    New-Item -ItemType Directory -Force -Path (Split-Path -Parent $WorkerExe) | Out-Null
+    Copy-Item -LiteralPath $BuiltWorker -Destination $WorkerExe
 }
-$WorkerExe = Join-Path $PackageRoot $CrcWorkerPackagePath.Replace('/', [IO.Path]::DirectorySeparatorChar)
-New-Item -ItemType Directory -Force -Path (Split-Path -Parent $WorkerExe) | Out-Null
-Copy-Item -LiteralPath $BuiltWorker -Destination $WorkerExe
 
 $ExternalToolsDestination = Join-Path $PackageRoot 'external-tools'
 Copy-ApprovedExternalToolPackageFiles -DestinationRoot $PackageRoot
@@ -1118,6 +1279,7 @@ Distribution owner: $DistributionOwner
 
 Contents:
 - NvtFwCombiner.exe: self-contained Windows x64 desktop application
+- launcher/NvtFwCombiner.Launcher.exe: release-coupled managed launcher (stable packages only)
 - external-tools/crc-worker/0.1.0/Nfc.CrcWorker.exe: constrained external checksum/header worker
 - profiles/built-in/: exact package trust index plus its manifest-pinned materialized bundles; profile stage and support publication remain independently authoritative
 - external-tools/: generated CRC Worker and approved legacy Combiner runtime packages
@@ -1178,9 +1340,18 @@ $FileEntries = @(
     [ordered]@{ path = 'README.txt'; size = (Get-Item $ReadmePath).Length; sha256 = (Get-LowerSha256 $ReadmePath); role = 'readme' }
 ) + $BuiltInProfileEntries + @($CanonicalCapabilityPolicyEntry) +
     $ExternalToolEntries + $ReferencePayloadEntries
+if ($IncludeManagedLauncher) {
+    $LauncherEntry = [ordered]@{
+        path = 'launcher/NvtFwCombiner.Launcher.exe'
+        size = (Get-Item $LauncherExe).Length
+        sha256 = (Get-LowerSha256 $LauncherExe)
+        role = 'launcher'
+    }
+    $FileEntries = @($FileEntries) + @($LauncherEntry)
+}
 
 $Manifest = [ordered]@{
-    schemaVersion = '1.1'
+    schemaVersion = if ($IncludeManagedLauncher) { '1.2' } else { '1.1' }
     product = 'NVT FW Combiner'
     version = $SemanticVersion
     sourceCommit = $Commit
@@ -1196,8 +1367,19 @@ $Manifest = [ordered]@{
     sbomAsset = $SbomName
     provenanceAsset = $ProvenanceName
 }
+if ($IncludeManagedLauncher) {
+    $Manifest.versionManagementProtocolVersion = 1
+    $Manifest.launcher = [ordered]@{
+        launcherVersion = $SemanticVersion
+        protocolVersion = 1
+        executableRelativePath = 'launcher/NvtFwCombiner.Launcher.exe'
+        size = $LauncherEntry.size
+        sha256 = $LauncherEntry.sha256
+    }
+}
 $ManifestPath = Join-Path $PackageRoot 'RELEASE-MANIFEST.json'
 $Manifest | ConvertTo-Json -Depth 8 | Set-Content -LiteralPath $ManifestPath -Encoding utf8NoBOM
+Assert-CanonicalJsonSchema -JsonPath $ManifestPath -SchemaPath $ReleaseManifestSchemaPath
 
 $Sbom = [ordered]@{
     spdxVersion = 'SPDX-2.3'
@@ -1262,7 +1444,8 @@ $Expected = (@(
     'RELEASE-MANIFEST.json',
     'SHA256SUMS.txt',
     'THIRD-PARTY-NOTICES.txt'
-) + @($BuiltInProfileEntries.path) + @($CanonicalCapabilityPolicyEntry.path) +
+) + $(if ($IncludeManagedLauncher) { @('launcher/NvtFwCombiner.Launcher.exe') } else { @() }) +
+    @($BuiltInProfileEntries.path) + @($CanonicalCapabilityPolicyEntry.path) +
     @($ExternalToolEntries.path) +
     @($ReferencePayloadEntries.path)) | Sort-Object
 $Actual = @(
@@ -1273,6 +1456,7 @@ $Actual = @(
 if (Compare-Object -ReferenceObject $Expected -DifferenceObject $Actual) {
     throw "Release package contents differ from the closed allowlist: $($Actual -join ', ')"
 }
+Assert-CanonicalJsonSchema -JsonPath $ManifestPath -SchemaPath $ReleaseManifestSchemaPath
 
 $ZipPath = Join-Path $ReleaseRoot "$PackageName.zip"
 Compress-Archive -LiteralPath $PackageRoot -DestinationPath $ZipPath -CompressionLevel Optimal
@@ -1293,6 +1477,19 @@ finally {
             & $IdleBuildWorkerStopper -RepositoryRoot $RepoRoot
             if ($LASTEXITCODE -ne 0) {
                 Write-Warning "idle Avalonia build worker cleanup returned exit code $LASTEXITCODE."
+            }
+        }
+    }
+
+    if ($SourceSnapshotAttached) {
+        $SnapshotRemoveOutput = & git -C $InvocationRepoRoot worktree remove --force $SourceSnapshotRoot 2>&1
+        if ($LASTEXITCODE -ne 0) {
+            throw "Exact source snapshot cleanup failed and was preserved for inspection at '$SourceSnapshotRoot': $($SnapshotRemoveOutput -join ' ')"
+        }
+        else {
+            & git -C $InvocationRepoRoot worktree prune
+            if ($LASTEXITCODE -ne 0) {
+                Write-Warning 'Git worktree prune failed after exact source snapshot cleanup.'
             }
         }
     }

@@ -1,5 +1,6 @@
 using NvtFwCombiner.Application.Capabilities;
 using NvtFwCombiner.Application.ExternalTools;
+using NvtFwCombiner.Application.Metadata;
 using NvtFwCombiner.Domain.Composition;
 using NvtFwCombiner.Domain.Firmware;
 using NvtFwCombiner.Infrastructure.ExternalTools;
@@ -187,6 +188,9 @@ internal static class CanonicalDynamicRouteInventory
             ? true
             : throw new InvalidDataException(
                 $"General Replace route '{identity.RouteId}' has invalid IC Count axes.");
+        CapabilityNumberChoice numberChoice = ProjectGeneralReplaceNumberChoice(
+            map.Applicability.TopologyRequirement,
+            inputMode);
 
         return Create(
             identity,
@@ -195,7 +199,8 @@ internal static class CanonicalDynamicRouteInventory
             registration.BundleContentHash,
             [map.MapId],
             CapabilityDefinitionFingerprint.RuntimeReferenceReplaceCompilerSemanticId,
-            []);
+            [],
+            numberChoice);
     }
 
     private static CanonicalDynamicRoute ResolveCtrlRam(
@@ -214,25 +219,25 @@ internal static class CanonicalDynamicRouteInventory
             : throw new InvalidDataException(
                 $"CtrlRAM route '{identity.RouteId}' matched {matches.Length} reviewed definitions.");
         BuiltInV2Bundle bundle = BuiltInV2BundleRegistry.All[match.Route.BundleId];
-        BuiltInV2Registration reportMetadataRegistration =
-            BuiltInV2RegistrationRegistry.StandardMergeByIc.GetValueOrDefault(
-                match.Route.Key.IcId) ??
-            throw new InvalidDataException(
-                $"CtrlRAM route '{identity.RouteId}' has no reviewed Standard Merge metadata definition.");
         var semanticBindings = new List<string>
         {
             $"postbuild-processor:{match.Route.Key.PostbuildProcessorId}",
             $"postbuild-selector:{match.Selector.Token}",
             $"postbuild-plan:{match.PlanFingerprint}",
         };
-        if (reportMetadataRegistration.HasReportClassificationMetadata)
+        if (match.Route.ReportMetadataMapId is { } reportMetadataMapId)
         {
+            MetadataPlanSourceIdentity sourceIdentity =
+                match.Route.ReportMetadataPlan.SourceIdentity ??
+                throw new InvalidDataException(
+                    $"CtrlRAM route '{identity.RouteId}' has no report metadata source identity.");
             semanticBindings.Add(
-                $"report-metadata-profile:{reportMetadataRegistration.ProfileId}@{reportMetadataRegistration.ProfileVersion}");
+                $"report-metadata-profile:{sourceIdentity.ProfileId}@{sourceIdentity.ProfileVersion}");
             semanticBindings.Add(
-                $"report-metadata-bundle:{reportMetadataRegistration.BundleContentHash}");
-            semanticBindings.Add(
-                $"report-metadata-slot:{CompositionAddressSpaceIds.TpInput}<-{CompositionAddressSpaceIds.ReferenceBase}");
+                $"report-metadata-bundle:{sourceIdentity.TrustedDefinitionSha256}");
+            semanticBindings.AddRange(match.Route.ReportMetadataPlan.ReportProjections.Select(
+                static projection => $"report-metadata-slot:{projection.SpaceId}<-{projection.SlotId}"));
+            semanticBindings.Add($"report-metadata-map:{reportMetadataMapId}");
         }
 
         return Create(
@@ -323,7 +328,8 @@ internal static class CanonicalDynamicRouteInventory
         string trustedDefinitionSha256,
         IReadOnlyList<string> allowedMapIds,
         string compilerSemanticId,
-        IReadOnlyList<string> semanticBindingIds)
+        IReadOnlyList<string> semanticBindingIds,
+        CapabilityNumberChoice? numberChoice = null)
     {
         string fingerprint = CapabilityDefinitionFingerprint.Compute(
             identity,
@@ -344,7 +350,39 @@ internal static class CanonicalDynamicRouteInventory
                 semanticBindingIds,
                 allowsLogicalOutput: StringComparer.Ordinal.Equals(
                     compilerSemanticId,
-                    CapabilityDefinitionFingerprint.LogicalOutputCompilerSemanticId)));
+                    CapabilityDefinitionFingerprint.LogicalOutputCompilerSemanticId)),
+            numberChoice);
+    }
+
+    internal static CapabilityNumberChoice ProjectGeneralReplaceNumberChoice(
+        TopologyRequirement requirement,
+        IcNumberInputMode? inputMode)
+    {
+        ArgumentNullException.ThrowIfNull(requirement);
+        return requirement.Kind switch
+        {
+            TopologyRequirementKind.SingleChip =>
+                new CapabilityNumberChoice(IcNumberSelectionTokens.SingleChip, "1 IC"),
+            TopologyRequirementKind.ExactCount => new CapabilityNumberChoice(
+                requirement.ExactChipCount!.Value.ToString(
+                    System.Globalization.CultureInfo.InvariantCulture),
+                FormattableString.Invariant($"{requirement.ExactChipCount.Value} IC")),
+            TopologyRequirementKind.Cascade
+                when requirement.MaximumChipCount is { } maximum =>
+                new CapabilityNumberChoice(
+                    FormattableString.Invariant(
+                        $"cascade_{requirement.MinimumChipCount}to{maximum}"),
+                    FormattableString.Invariant(
+                        $"{requirement.MinimumChipCount}–{maximum} IC")),
+            TopologyRequirementKind.Cascade =>
+                new CapabilityNumberChoice(IcNumberSelectionTokens.Cascade, "Cascade"),
+            TopologyRequirementKind.None when inputMode == IcNumberInputMode.SingleSelector =>
+                new CapabilityNumberChoice(IcNumberSelectionTokens.SingleChip, "1 IC"),
+            TopologyRequirementKind.None when inputMode == IcNumberInputMode.CascadeSelector =>
+                new CapabilityNumberChoice(IcNumberSelectionTokens.Cascade, "Cascade"),
+            _ => throw new InvalidDataException(
+                "General Replace requires one typed, fixed IC-number choice."),
+        };
     }
 
     private static InvalidDataException InvalidDefinition(

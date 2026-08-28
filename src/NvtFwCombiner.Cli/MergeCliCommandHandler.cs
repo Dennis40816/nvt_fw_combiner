@@ -8,13 +8,13 @@ internal static partial class MergeCliCommandHandler
     private const int CompositionFailed = 1;
     private const int UsageError = 64;
     internal static async Task<int> RunAsync(
-        CompositionHostServices host,
+        CliCompositionServices services,
         string[] args,
         TextWriter output,
         TextWriter error,
         CancellationToken cancellationToken)
     {
-        ArgumentNullException.ThrowIfNull(host);
+        ArgumentNullException.ThrowIfNull(services);
         if (args.Length == 0 || args[0] is "--help")
         {
             await WriteUsageAsync(output).ConfigureAwait(false);
@@ -33,13 +33,18 @@ internal static partial class MergeCliCommandHandler
             return UsageError;
         }
 
+        if (!CliBundleOptions.TryValidateCombination(action, options.Values, error))
+        {
+            return UsageError;
+        }
+
         if (!RequireOption(options, "--profile", error, out string? profileSelector))
         {
             return UsageError;
         }
 
         if (!TryResolveIc(
-                host.CompositionCapabilityExperience,
+                services.Capabilities,
                 profileSelector,
                 out string? icId))
         {
@@ -66,7 +71,7 @@ internal static partial class MergeCliCommandHandler
 
         if (!TryCreateGeneralMergeDraft(
                 options,
-                host.SavedRuleAuthoring,
+                services.SavedRuleAuthoring,
                 icId,
                 error,
                 out GeneralMergeDraftState? draft,
@@ -81,10 +86,14 @@ internal static partial class MergeCliCommandHandler
                 draft.Mappings.WithSavedRuleResourcePolicy(savedRulePolicy));
         }
 
+        bool bundleBuild = CliBundleOptions.IsEnabled(options.Values);
+        bool hasExplicitOutput = options.Values.ContainsKey("--output");
         CliOutputTarget outputTarget = CliCompositionRunSupport.ResolveOutputTarget(
             options.Values.GetValueOrDefault("--output"),
             GeneralMergeAuthoringUseCase.GetDefaultOutputFileName(icId));
-        string? outputPath = action == "build" ? outputTarget.FullPath : null;
+        string? outputPath = action == "build" && hasExplicitOutput
+            ? outputTarget.FullPath
+            : null;
         List<ProtectedPathGuard.ProtectedPath> protectedPaths =
         [
             .. draft.Mappings.Rows.Select(mapping => new ProtectedPathGuard.ProtectedPath(
@@ -98,7 +107,7 @@ internal static partial class MergeCliCommandHandler
                 "saved-rule input"));
         }
 
-        if (action == "build")
+        if (action == "build" && !bundleBuild)
         {
             ProtectedPathGuard.EnsureDoesNotAlias(
                 outputTarget.FullPath,
@@ -112,7 +121,7 @@ internal static partial class MergeCliCommandHandler
             ProtectedPathGuard.EnsureDoesNotAlias(
                 reportPath,
                 "Report path",
-                action == "build"
+                action == "build" && !bundleBuild
                     ? [.. protectedPaths, new ProtectedPathGuard.ProtectedPath(outputTarget.FullPath, "built firmware output")]
                     : protectedPaths,
                 "--report");
@@ -120,7 +129,7 @@ internal static partial class MergeCliCommandHandler
 
         var session = new AuthoringSessionState(ExperienceIds.GeneralMerge);
         GeneralAuthoringSessionPreparation prepared =
-            await host.GeneralAuthoring.PrepareMergeSessionAsync(
+            await services.GeneralAuthoring.PrepareMergeSessionAsync(
                     session,
                     icId,
                     draft!,
@@ -132,12 +141,30 @@ internal static partial class MergeCliCommandHandler
             return CompositionFailed;
         }
 
-        CompositionRunResult result = await host.CompositionExecution.ExecuteAsync(
+        if (!CliBundleOptions.TryCreateIntent(
+                services.OutputNaming,
+                prepared.AcceptedSession!,
+                options.Values,
+                error,
+                out CompositionOutputBundleIntent? outputBundle))
+        {
+            return UsageError;
+        }
+
+        CompositionRunResult result = await services.Execution.ExecuteAsync(
             new AcceptedCompositionExecutionRequest(
                 prepared.AcceptedSession!,
                 new Dictionary<string, string>(StringComparer.Ordinal),
                 action == "build",
-                outputPath: outputPath),
+                outputPath: bundleBuild ? null : outputPath,
+                automaticOutputDirectory:
+                    action == "build" && !hasExplicitOutput && !bundleBuild
+                        ? outputTarget.OutputDirectory
+                        : null,
+                reportPath: action == "build"
+                    ? options.Values.GetValueOrDefault("--report")
+                    : null,
+                outputBundle: outputBundle),
             new CompositionRunProgressFeed(),
             cancellationToken).ConfigureAwait(false);
         bool reportWritten = options.Values.TryGetValue("--report", out string? requestedReportPath);
@@ -152,6 +179,7 @@ internal static partial class MergeCliCommandHandler
         }
 
         await PrintResultAsync(result, icId, output, error, reportWritten).ConfigureAwait(false);
+        await CliBundleOptions.PrintReceiptAsync(result, output).ConfigureAwait(false);
         return result.Succeeded ? Success : CompositionFailed;
     }
 }

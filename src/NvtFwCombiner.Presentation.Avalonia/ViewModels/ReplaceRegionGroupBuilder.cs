@@ -13,8 +13,6 @@ internal static class ReplaceRegionGroupBuilder
             {
                 FirmwareSlotViewModel[] groupSlots = [.. group.OrderBy(slot => slot.Title, StringComparer.Ordinal)];
                 return new FirmwareSlotGroupViewModel(
-                    text.GetReplaceRegionGroupTitle(group.Key),
-                    text.FormatReplaceSlotGroupSummary(group.Key, groupSlots.Length),
                     groupSlots,
                     RegionGroupDefaultExpanded(group.Key),
                     text);
@@ -25,21 +23,67 @@ internal static class ReplaceRegionGroupBuilder
         IEnumerable<MemoryCoverageSegmentViewModel> segments,
         ShellTextResources text)
     {
-        return segments
-            .GroupBy(static segment => segment.RegionGroup)
+        IReadOnlyList<MemoryCoverageLogicalItemViewModel> logicalItems =
+            CreateLogicalItems(segments, text);
+
+        return logicalItems
+            .GroupBy(ResolveDisplayGroup)
             .OrderBy(static group => group.Key)
             .Select(group =>
             {
-                MemoryCoverageSegmentViewModel[] groupSegments =
-                    [.. group.OrderBy(segment => segment.RangeLabel, StringComparer.Ordinal)];
+                MemoryCoverageLogicalItemViewModel[] groupItems =
+                    [.. group.OrderBy(item => item.SourceLabel, StringComparer.Ordinal)];
                 return new MemoryCoverageGroupViewModel(
                     text.GetReplaceRegionGroupTitle(group.Key),
-                    text.FormatReplaceCoverageGroupSummary(group.Key, groupSegments.Length),
-                    groupSegments,
-                    RegionGroupDefaultExpanded(group.Key),
+                    groupItems,
+                    group.Key != ReplaceRegionGroup.Base && groupItems.Any(static item =>
+                        item.IsSelectedForWrite || item.HasAttentionDiagnostic),
                     group.Key,
                     text);
             });
+    }
+
+    public static IReadOnlyList<MemoryCoverageLogicalItemViewModel> CreateLogicalItems(
+        IEnumerable<MemoryCoverageSegmentViewModel> segments,
+        ShellTextResources text)
+    {
+        ArgumentNullException.ThrowIfNull(segments);
+        ArgumentNullException.ThrowIfNull(text);
+        return Array.AsReadOnly(
+        [
+            .. segments
+                .OrderBy(static segment => segment.RangeStart ?? long.MaxValue)
+                .Select(segment => (
+                    Key: segment.LogicalCoverageGroupId ??
+                        throw new InvalidOperationException(
+                            "Application memory projection must publish one logical coverage group id."),
+                    Segment: segment))
+                .GroupBy(static entry => entry.Key, StringComparer.Ordinal)
+                .Select(group => new MemoryCoverageLogicalItemViewModel(
+                    group.Key,
+                    group.Select(static entry => entry.Segment),
+                    text)),
+        ]);
+    }
+
+    private static ReplaceRegionGroup ResolveDisplayGroup(MemoryCoverageLogicalItemViewModel item)
+    {
+        if (!item.IsSelectedForWrite && item.UsesKeptPattern)
+        {
+            return ReplaceRegionGroup.Base;
+        }
+
+        ReplaceRegionGroup[] selectedGroups =
+        [
+            .. item.Segments
+                .Where(static segment => segment.IsSelectedForWrite)
+                .Select(static segment => segment.RegionGroup)
+                .Distinct(),
+        ];
+        ReplaceRegionGroup[] groups = selectedGroups.Length > 0
+            ? selectedGroups
+            : [.. item.Segments.Select(static segment => segment.RegionGroup).Distinct()];
+        return groups.Length == 1 ? groups[0] : ReplaceRegionGroup.Common;
     }
 
     private static bool RegionGroupDefaultExpanded(ReplaceRegionGroup group)

@@ -2,6 +2,8 @@ using NvtFwCombiner.Application.Metadata;
 using NvtFwCombiner.Domain.Composition;
 using System.Threading.Channels;
 
+#pragma warning disable CS1591 // Infrastructure adapter contracts are not end-user API.
+
 namespace NvtFwCombiner.Application.Capabilities;
 
 /// <summary>Typed trusted-policy facts ready to join exact compiler results.</summary>
@@ -20,15 +22,16 @@ public sealed record CanonicalCapabilityPolicyRoute(
     PinnedCapabilityDecision<CapabilityEvidenceStatus> Evidence);
 
 /// <summary>Exact compiler-owned artifacts for one static catalog route.</summary>
-internal sealed record CanonicalCompiledRoute(
+public sealed record CanonicalCompiledRoute(
     string CapabilityFingerprint,
     CompiledComposition Composition,
     MetadataPlanDefinition MetadataPlan);
 
 /// <summary>Exact compiler contract for one authoring-bound dynamic route.</summary>
-internal sealed record CanonicalDynamicRoute(
+public sealed record CanonicalDynamicRoute(
     string CapabilityFingerprint,
-    CanonicalCapabilityCompilationContract CompilationContract);
+    CanonicalCapabilityCompilationContract CompilationContract,
+    CapabilityNumberChoice? NumberChoice = null);
 
 /// <summary>Joins one trusted policy snapshot to exact compiler outputs before publication.</summary>
 internal sealed class CanonicalCapabilityCatalogSource(
@@ -68,16 +71,16 @@ internal sealed class CanonicalCapabilityCatalogSource(
             _ = progress?.TryWrite(new(0, Result: null));
             List<CanonicalCapabilityDefinition> definitions = [];
             List<CanonicalDynamicCapabilityDefinition> dynamicDefinitions = [];
-            foreach (CanonicalCapabilityPolicyRoute route in
-                     policy.Routes.Where(route => !isDynamicRoute(route.Identity)))
+            ILookup<bool, CanonicalCapabilityPolicyRoute> classifiedRoutes =
+                policy.Routes.ToLookup(route => isDynamicRoute(route.Identity));
+            foreach (CanonicalCapabilityPolicyRoute route in classifiedRoutes[false])
             {
                 cancellationToken.ThrowIfCancellationRequested();
                 definitions.Add(Materialize(route));
                 cancellationToken.ThrowIfCancellationRequested();
                 _ = progress?.TryWrite(new((double)++completedRoutes / (totalRoutes + 1), Result: null));
             }
-            foreach (CanonicalCapabilityPolicyRoute route in
-                     policy.Routes.Where(route => isDynamicRoute(route.Identity)))
+            foreach (CanonicalCapabilityPolicyRoute route in classifiedRoutes[true])
             {
                 cancellationToken.ThrowIfCancellationRequested();
                 dynamicDefinitions.Add(MaterializeDynamic(route));
@@ -120,7 +123,8 @@ internal sealed class CanonicalCapabilityCatalogSource(
                 route.CompilationContract,
                 policy.Authoring,
                 policy.Publication,
-                policy.Evidence);
+                policy.Evidence,
+                route.NumberChoice);
     }
 
     private CanonicalCapabilityDefinition Materialize(

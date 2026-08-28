@@ -306,6 +306,10 @@ groups, slot requirements, retained coverage, or compiled selection. Bootstrap
 `WorkbenchMemory*`, and workflow slot mirrors are removed without changing the
 visible layout or compiled geometry.
 
+Logical coverage grouping is part of that same Application projection. Every exact `MemoryLayoutSegment` publishes one final collision-free typed identity. Direct writes use their input slot. In reference-initialized Replace, retained fragments join a replacement slot only when Domain-declared write ranges yield exactly one distinct admitted source slot for the same physical projection region; zero or multiple candidates retain reference identity.
+Source-less physical output uses the unique smallest containing canonical map region, and source-less logical output retains stable segment identity. Presentation may group by the complete typed identity but cannot infer fallback precedence from labels, filenames, IC ids, addresses, or collection order.
+Grouping never changes exact half-open ranges, segment order, contributors, operations, or bytes.
+
 The complete-retirement invariant is one production semantic owner and one
 executable path for every module. It covers catalog resolution, session state,
 inspection, readiness, compilation/planning, memory projection, naming,
@@ -328,17 +332,17 @@ be accepted into the typed session before naming. Bootstrap and client
 path-backed naming projections and workflow-specific auto-name preflights are
 removed without changing displayed or golden names.
 
-Catalog publication has one dependency-inverted chain. Infrastructure loads
-and trust-validates immutable bundle source; Profiles is the only normalizer,
-map/profile semantic resolver, and compiler; Application's
-`CanonicalCapabilityCatalog` is the only publication, reload, cache,
-fixed/dynamic route-resolution, and `ResolutionToken` owner. Narrow ports allow
-the outer loader/compiler implementations to be registered without moving
-orchestration into Bootstrap. Bootstrap performs registration only and retains
-no projection, materialization, fallback lookup, or second cache. UI and CLI
-query the Application snapshot. The migration source and Bootstrap
-`CanonicalCapabilityResolution*`/`CanonicalCapabilityProjection*` graph is
-deleted rather than renamed.
+Catalog publication has one dependency-inverted chain. Infrastructure loads and trust-validates immutable bundle source;
+Profiles is the only normalizer, map/profile semantic resolver, and compiler; Application's `CanonicalCapabilityCatalog`
+is the only publication, reload, cache, fixed/dynamic route-resolution, and `ResolutionToken` owner. Every snapshot eagerly
+constructs one immutable `CapabilitySelectorPublication` before atomic publication. That child carries the identical token
+and solely owns the nullable default IC, globally authorable ICs, per-workflow authorability, per-IC number choices,
+AB-authorable ICs, and compiler-derived AB topology choices. Legacy focused getters may remain only by delegating to it;
+UI and CLI cannot join independent live getters, infer selector facts, or own a second selector cache. A valid publication
+with no authorable route has `DefaultIcId == null` and empty selector collections; authoring clients fail closed before any
+profile-dependent query. Narrow ports register outer loader/compiler implementations without moving orchestration into
+Bootstrap, which retains no projection, materialization, fallback lookup, or second cache. UI and CLI query the Application
+snapshot; the migration `CanonicalCapabilityResolution*`/`CanonicalCapabilityProjection*` graph is deleted, not renamed.
 
 Authoring mutation has one state machine. `AuthoringSessionState` and
 `CompiledAuthoringWorkflowService` own all typed IC, IC Count, slot, draft, and

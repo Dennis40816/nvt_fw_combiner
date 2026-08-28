@@ -10,31 +10,36 @@ namespace NvtFwCombiner.Infrastructure.Composition;
 /// <summary>Adapts trusted CtrlRAM profiles and maps to the Application authoring use case.</summary>
 internal sealed partial class BuiltInCtrlRamAuthoringAdapter(
     ICanonicalCapabilityQuery catalog,
-    CanonicalCapabilityExperience projection) : ICtrlRamAuthoringAdapter
+    ICompositionCapabilityExperience projection) : ICtrlRamAuthoringAdapter
 {
     private readonly ICanonicalCapabilityQuery _catalog =
         catalog ?? throw new ArgumentNullException(nameof(catalog));
-    private readonly CanonicalCapabilityExperience _projection =
+    private readonly ICompositionCapabilityExperience _projection =
         projection ?? throw new ArgumentNullException(nameof(projection));
 
     public CtrlRamInspectionDisplay GetDiscoveryDisplay(
         string icId,
-        string number,
-        string? basePath)
+        string number)
     {
-        return ResolveDisplay(icId, number, basePath);
+        LegacyCombinerPostbuildProfile? declaredProfile =
+            BuiltInFirmwareInspection.ResolveDeclaredPostbuildProfileForDisplay(icId);
+        return CreateDisplay(
+            icId,
+            number,
+            declaredProfile,
+            hasReadableBase: false);
     }
 
-    private CtrlRamInspectionDisplay ResolveDisplay(
+    public CtrlRamInspectionDisplay GetDiscoveryDisplayFromAcceptedBase(
         string icId,
         string number,
-        string? basePath)
+        ReadOnlyMemory<byte> acceptedBaseBytes)
     {
         LegacyCombinerPostbuildProfile? postbuildProfile =
-            BuiltInFirmwareInspection.TryResolvePostbuildProfileFromBasePathForDisplay(
+            BuiltInFirmwareInspection.TryResolvePostbuildProfileFromAcceptedBaseForDisplay(
                 _projection,
                 icId,
-                basePath,
+                acceptedBaseBytes.Span,
                 out LegacyCombinerPostbuildProfile? profile)
                     ? profile
                     : null;
@@ -42,7 +47,7 @@ internal sealed partial class BuiltInCtrlRamAuthoringAdapter(
             icId,
             number,
             postbuildProfile,
-            !string.IsNullOrWhiteSpace(basePath) && File.Exists(basePath));
+            hasReadableBase: true);
     }
 
     internal static CtrlRamInspectionDisplay CreateDisplay(

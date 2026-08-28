@@ -1,17 +1,19 @@
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
-using NvtFwCombiner.Domain.Composition;
+using NvtFwCombiner.Application.Diagnostics;
 
 namespace NvtFwCombiner.Presentation.Avalonia.ViewModels;
 
 /// <summary>Owns shared workflow-context and selected-firmware prompt presentation.</summary>
-public sealed partial class WorkflowSessionPresentationViewModel : ObservableObject
+internal sealed partial class WorkflowSessionPresentationViewModel : ObservableObject
 {
     private readonly PresentationCompositionServices _compositionServices;
     private readonly Action<WorkflowContextSelection> _applyWorkflowContext;
     private readonly MergePresentationViewModel _merge;
     private readonly ReplacePresentationViewModel _replace;
     private readonly Action<string, string> _showToast;
+    private readonly Action<SystemActivityDraft> _recordActivity;
+    private readonly Action _refreshCommandAvailability;
     private readonly WorkflowSessionStateBindings _stateBindings;
     private readonly Func<ShellTextResources> _textProvider;
 
@@ -22,6 +24,8 @@ public sealed partial class WorkflowSessionPresentationViewModel : ObservableObj
         ReplacePresentationViewModel replace,
         Action<WorkflowContextSelection> applyWorkflowContext,
         Action<string, string> showToast,
+        Action<SystemActivityDraft> recordActivity,
+        Action refreshCommandAvailability,
         WorkflowSessionStateBindings stateBindings)
     {
         _compositionServices = compositionServices ??
@@ -31,39 +35,43 @@ public sealed partial class WorkflowSessionPresentationViewModel : ObservableObj
         _replace = replace ?? throw new ArgumentNullException(nameof(replace));
         _applyWorkflowContext = applyWorkflowContext ?? throw new ArgumentNullException(nameof(applyWorkflowContext));
         _showToast = showToast ?? throw new ArgumentNullException(nameof(showToast));
+        _recordActivity = recordActivity ?? throw new ArgumentNullException(nameof(recordActivity));
+        _refreshCommandAvailability = refreshCommandAvailability ??
+            throw new ArgumentNullException(nameof(refreshCommandAvailability));
         _stateBindings = stateBindings ?? throw new ArgumentNullException(nameof(stateBindings));
-        InspectionSession = new FirmwareInspectionSession(_compositionServices.FirmwareInspection);
-        WorkflowContextSetup = new WorkflowContextSetupViewModel(_compositionServices);
+        WorkflowContextSetup = new WorkflowContextSetupViewModel();
         ConfirmWorkflowContextCommand = new RelayCommand(ConfirmWorkflowContext);
         CancelWorkflowContextCommand = new RelayCommand(CancelWorkflowContext);
         AcceptFirmwareIcMismatchCommand = new RelayCommand(AcceptFirmwareIcMismatch);
         DismissFirmwareIcMismatchCommand = new RelayCommand(DismissFirmwareIcMismatch);
         AcceptFirmwareNumberMismatchCommand = new RelayCommand(AcceptFirmwareNumberMismatch);
         DismissFirmwareNumberMismatchCommand = new RelayCommand(DismissFirmwareNumberMismatch);
+        ClearSlotFileCommand = new AsyncRelayCommand<string>(ClearSlotFileFromCommandAsync);
     }
 
-    /// <summary>Gets current localized shell text used by workflow-session prompts.</summary>
     public ShellTextResources Text => _textProvider();
 
-    internal FirmwareInspectionSession InspectionSession { get; }
+    public IAsyncRelayCommand<string> ClearSlotFileCommand { get; }
 
     internal bool IsApplyingFirmwareInspectionContext { get; set; }
 
     internal bool IsRefreshingFirmwareInspectionContext { get; set; }
 
-    private bool IsCtrlRamReplaceModeSelected => _replace.IsCtrlRamReplaceModeSelected;
+    private WorkflowInspectionContext? ActiveInspectionContext =>
+        _stateBindings.SelectedPage() switch
+        {
+            ShellPage.Merge => InspectionContext(WorkflowInspectionOwner.Merge),
+            ShellPage.Replace => InspectionContext(WorkflowInspectionOwner.Replace),
+            ShellPage.Home or ShellPage.HexEditor => null,
+            _ => throw new InvalidOperationException("Unknown shell page."),
+        };
 
-    private bool IsReplaceVisible =>
-        _stateBindings.SelectedPage() == ShellPage.Replace &&
-        string.Equals(_replace.SelectedReplaceMode, ExperienceIds.DpReplace, StringComparison.Ordinal);
-
-    private bool IsAbCodeMergeModeSelected => _merge.IsAbCodeMergeModeSelected;
-
-    private bool IsStandardMergeModeSelected => _merge.IsNormalMergeModeSelected;
-
-    private string SelectedMergeMode => _merge.SelectedMergeMode;
-
-    private string SelectedReplaceMode => _replace.SelectedReplaceMode;
+    private WorkflowInspectionContext InspectionContext(WorkflowInspectionOwner owner)
+    {
+        return new(owner, owner == WorkflowInspectionOwner.Merge
+            ? _merge.SelectedMergeMode
+            : _replace.SelectedReplaceMode);
+    }
 
     private FirmwareSlotViewModel MergeDpSlot => _merge.MergeDpSlot;
 
@@ -80,38 +88,13 @@ public sealed partial class WorkflowSessionPresentationViewModel : ObservableObj
     private IReadOnlyDictionary<string, string> AbMergeAddressSpaceBySlotId =>
         _merge.AbMergeAddressSpaceBySlotId;
 
-    private string? GetSelectedAbMergeTopologyToken()
-    {
-        return _merge.GetSelectedAbMergeTopologyToken();
-    }
-
-    private void ApplyCtrlRamInspectionDisplay(CtrlRamInspectionDisplay display)
-    {
-        _replace.ApplyCtrlRamInspectionDisplay(display);
-    }
-
-    private void RefreshMergeMemoryMapState()
-    {
-        _merge.RefreshMergeMemoryMapState();
-    }
-
-    private void RefreshReplaceMemoryMapState()
-    {
-        _replace.RefreshReplaceMemoryMapState();
-    }
-
-    private void RefreshCommandState()
-    {
-        _stateBindings.RefreshCommandState();
-    }
-
     internal void ApplyLanguageChanged()
     {
         DeviceContextRefreshSummary = Text.DeviceContextStatus;
         RelocalizeFirmwareFacts();
         RelocalizeInputInspection();
-        OnPropertyChanged(nameof(Text));
-        NotifyContextTextChanged();
+        PresentationObserver.Invoke(() => OnPropertyChanged(nameof(Text)));
+        PresentationObserver.Invoke(() => NotifyContextTextChanged());
     }
 
     private void RelocalizeFirmwareFacts()
@@ -121,11 +104,8 @@ public sealed partial class WorkflowSessionPresentationViewModel : ObservableObj
                      .Append(_replace.ReplaceBaseSlot)
                      .Distinct())
         {
-            if (!FirmwareInspectionRequestFactory.SupportsFacts(slot) ||
-                !InspectionSession.TryGetInspection(
-                    slot.SlotId,
-                    slot.FilePath,
-                    out FirmwareInspectionSnapshot inspection))
+            if (slot.CurrentInspectionProjection is not { } inspection ||
+                !FirmwareInspectionProjection.SupportsFacts(slot, inspection))
             {
                 continue;
             }
@@ -154,10 +134,7 @@ public sealed partial class WorkflowSessionPresentationViewModel : ObservableObj
                      .Concat([_replace.ReplaceBaseSlot])
                      .Distinct())
         {
-            if (!InspectionSession.TryGetInspection(
-                    slot.SlotId,
-                    slot.FilePath,
-                    out FirmwareInspectionSnapshot projected))
+            if (slot.CurrentInspectionProjection is not { } projected)
             {
                 continue;
             }
@@ -169,12 +146,4 @@ public sealed partial class WorkflowSessionPresentationViewModel : ObservableObj
         }
     }
 
-    internal sealed record WorkflowContextSelection(
-        ShellPage Page,
-        string Mode,
-        bool ShowNumber,
-        string IcId,
-        string Number);
-
-    internal sealed record AcceptedFirmwareMismatchSelection(string SlotId, string Path);
 }

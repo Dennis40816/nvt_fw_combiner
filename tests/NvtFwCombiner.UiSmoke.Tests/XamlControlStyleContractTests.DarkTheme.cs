@@ -36,6 +36,8 @@ public sealed partial class XamlControlStyleContractTests
             AssertContrast(app, theme, "NfcReferenceInputTextBrush", "NfcReferenceInputSurfaceBrush", 4.5);
             AssertContrast(app, theme, "NfcControllerInputTextBrush", "NfcControllerInputSurfaceBrush", 4.5);
             AssertContrast(app, theme, "NfcControllerInputTextBrush", "NfcReferenceInputSurfaceBrush", 4.5);
+            AssertContrast(app, theme, "NfcSurfaceBrush", "NfcAccentBrush", 4.5);
+            AssertContrast(app, theme, "NfcSurfaceBrush", "NfcAccentStrongBrush", 4.5);
         }
     }
 

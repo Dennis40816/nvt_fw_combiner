@@ -82,7 +82,10 @@ internal static class ShellViewModelTestData
     internal static CompositionRunResult CloneRunResult(
         CompositionRunResult source,
         string? committedOutputId,
-        CompositionRunReport report)
+        CompositionRunReport report,
+        IReadOnlyList<CompositionDeliveryArtifact>? deliveryArtifacts = null,
+        bool? isDeliveryComplete = null,
+        string? deliveryFailureMessage = null)
     {
         CompositionRunInspectionSnapshot? inspection = source.InspectionSnapshot;
         var clone = new CompositionRunResult(
@@ -96,16 +99,11 @@ internal static class ShellViewModelTestData
             inspection?.ReferenceBytes.ToArray(),
             inspection?.OutputBytes,
             source.OutcomeStatus,
-            source.SuppressOutputInExternalReport,
-            source.HasRunReport)
-        {
-            AcceptedGeneralMappingDraft = source.AcceptedGeneralMappingDraft,
-            ResolvedCapability = source.ResolvedCapability,
-            ActionReadiness = source.ActionReadiness,
-            DeliveryArtifacts = [.. source.DeliveryArtifacts],
-            IsDeliveryComplete = source.IsDeliveryComplete,
-            DeliveryFailureMessage = source.DeliveryFailureMessage,
-        };
+            source.AcceptedGeneralMappingDraft,
+            source.ResolvedCapability,
+            deliveryArtifacts ?? source.DeliveryArtifacts,
+            isDeliveryComplete ?? source.IsDeliveryComplete,
+            deliveryFailureMessage ?? source.DeliveryFailureMessage);
         return clone;
     }
 

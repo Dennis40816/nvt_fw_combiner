@@ -47,7 +47,8 @@ public sealed partial class ExternalCombinerProcessor : IExternalProcessor
                 request.ToolBindingId,
                 out ExternalCombinerToolManifest? manifest,
                 out string? executablePath,
-                out CompositionIssue? toolIssue))
+                out CompositionIssue? toolIssue,
+                cancellationToken))
         {
             return ExternalProcessorResult.Failed([toolIssue!]);
         }

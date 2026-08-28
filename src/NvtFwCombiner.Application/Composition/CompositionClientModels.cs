@@ -3,7 +3,11 @@ using NvtFwCombiner.Application.Authoring;
 using NvtFwCombiner.Application.Capabilities;
 using NvtFwCombiner.Application.FlashMaps;
 using NvtFwCombiner.Application.InputInspection;
+using NvtFwCombiner.Application.Metadata;
 using NvtFwCombiner.Domain.Composition;
+using NvtFwCombiner.Domain.Firmware;
+
+#pragma warning disable CS1591 // Infrastructure adapter contracts are not end-user API.
 
 namespace NvtFwCombiner.Application.Composition;
 
@@ -79,7 +83,7 @@ public sealed record FirmwareContextSuggestion(
     string CommonFwVersion,
     ushort ProjectId);
 
-/// <summary>Read-only base-image shape classification used only for CtrlRAM Replace output naming.</summary>
+/// <summary>Compatibility shape for CtrlRAM naming; terminal artifact classification alone owns DP metadata applicability.</summary>
 public enum BaseFirmwareArtifactKind
 {
     /// <summary>The available bytes do not establish a declared TP-only or FlashCode shape.</summary>
@@ -90,6 +94,16 @@ public enum BaseFirmwareArtifactKind
 
     /// <summary>A declared full Flash container containing programmed DP bytes.</summary>
     FlashCode,
+}
+
+/// <summary>Non-terminal CtrlRAM Base discovery state before an exact replacement compilation exists.</summary>
+public enum CtrlRamBaseDiscoveryReadiness
+{
+    /// <summary>The inspection did not establish a valid base-only discovery result.</summary>
+    NotApplicable,
+
+    /// <summary>The base was inspected and may declare replacement inputs, but no replacement is compiled yet.</summary>
+    Inspected,
 }
 
 /// <summary>One read-only client projection decoded from one immutable firmware image read.</summary>
@@ -116,6 +130,15 @@ public sealed record FirmwareInspectionSnapshot(
 
     /// <summary>Canonical catalog owning the attached coherent input-inspection batch.</summary>
     public AuthoringCapabilityCatalogSnapshot? InputSlotCatalog { get; init; }
+
+    /// <summary>Exact canonical prerequisite blocking DP metadata projection, when one is pending.</summary>
+    public FirmwareMetadataPrerequisite? DpMetadataPrerequisite { get; init; }
+
+    /// <summary>Exact typed authoring issues that prevented this input batch from compiling.</summary>
+    public IReadOnlyList<CompositionIssue> AuthoringCompilationIssues { get; init; } = [];
+
+    /// <summary>Typed non-terminal CtrlRAM Base discovery result.</summary>
+    public CtrlRamBaseDiscoveryReadiness CtrlRamBaseDiscoveryReadiness { get; init; }
 }
 
 /// <summary>Optional CtrlRAM display context projected during firmware inspection.</summary>
@@ -142,23 +165,38 @@ public sealed record FirmwareInspectionSnapshotInput(
     ResolvedCapability? ExactCapability = null);
 
 /// <summary>One coherent compiled input-inspection batch mapped to client inspection ids.</summary>
-internal sealed record FirmwareInspectionStatusBatch(
+public sealed record FirmwareInspectionStatusBatch(
     AuthoringCapabilityCatalogSnapshot? Catalog,
     IReadOnlyDictionary<string, AuthoringInputSlotStatus> Statuses,
-    IReadOnlyList<CompositionIssue> Issues)
+    IReadOnlyList<CompositionIssue> Issues,
+    CtrlRamBaseDiscoveryResult? CtrlRamBaseDiscovery = null)
 {
-    internal static FirmwareInspectionStatusBatch Empty { get; } =
+    public static FirmwareInspectionStatusBatch Empty { get; } =
         new(null, new Dictionary<string, AuthoringInputSlotStatus>(StringComparer.Ordinal), []);
+
+    /// <summary>
+    /// Gets the sole publication-bound metadata plan returned by a completed
+    /// exact authoring inspection; discovery-only catalogs return null.
+    /// </summary>
+    public ResolvedMetadataPlan? ExactMetadataPlan =>
+        Catalog?.Routes.Count == 1
+            ? Catalog.Routes[0].ExactCapability?.MetadataPlan
+            : null;
 }
 
+/// <summary>One Application-owned base-only discovery result keyed to the caller inspection identity.</summary>
+public sealed record CtrlRamBaseDiscoveryResult(
+    string InspectionId,
+    CtrlRamBaseDiscoveryReadiness Readiness);
+
 /// <summary>One coherent AB Merge inspection batch mapped to client inspection ids.</summary>
-internal sealed record AbMergeInspectionBatch(
+public sealed record AbMergeInspectionBatch(
     AuthoringCapabilityCatalogSnapshot? Catalog,
     IReadOnlyDictionary<string, AuthoringInputSlotStatus> Statuses,
     IReadOnlyDictionary<string, AbMergeInputFacts> Facts,
     IReadOnlyList<CompositionIssue> Issues)
 {
-    internal static AbMergeInspectionBatch Empty { get; } =
+    public static AbMergeInspectionBatch Empty { get; } =
         new(
             null,
             new Dictionary<string, AuthoringInputSlotStatus>(StringComparer.Ordinal),
@@ -171,42 +209,21 @@ public sealed record FirmwareInspectionSnapshotResult(
     string InspectionId,
     FirmwareInspectionSnapshot Inspection);
 
-/// <summary>Filesystem identity captured by the Infrastructure firmware-inspection adapter.</summary>
-public readonly record struct FirmwareFileIdentity
-{
-    internal FirmwareFileIdentity(bool exists, long length, DateTime lastWriteTimeUtc)
-    {
-        ArgumentOutOfRangeException.ThrowIfNegative(length);
-        Exists = exists;
-        Length = length;
-        LastWriteTimeUtc = lastWriteTimeUtc;
-    }
-
-    /// <summary>True when the path named an existing file at capture time.</summary>
-    public bool Exists { get; }
-
-    /// <summary>Observed file length, or zero when the file did not exist.</summary>
-    public long Length { get; }
-
-    /// <summary>Observed UTC write timestamp, or the default value when the file did not exist.</summary>
-    public DateTime LastWriteTimeUtc { get; }
-}
-
-/// <summary>One stable distinct-path inspection batch with adapter-owned path identities.</summary>
+/// <summary>One distinct-path inspection batch over coherent content reads.</summary>
 public sealed class FirmwareInspectionBatchResult
 {
-    internal FirmwareInspectionBatchResult(
+    public FirmwareInspectionBatchResult(
         IReadOnlyDictionary<string, FirmwareInspectionSnapshot> inspectionsById,
-        IReadOnlyDictionary<string, FirmwareFileIdentity> fileIdentities,
+        IReadOnlyDictionary<string, FileStamp?> fileStamps,
         IEnumerable<string> unstableFilePaths)
     {
         ArgumentNullException.ThrowIfNull(inspectionsById);
-        ArgumentNullException.ThrowIfNull(fileIdentities);
+        ArgumentNullException.ThrowIfNull(fileStamps);
         ArgumentNullException.ThrowIfNull(unstableFilePaths);
         InspectionsById = new ReadOnlyDictionary<string, FirmwareInspectionSnapshot>(
             new Dictionary<string, FirmwareInspectionSnapshot>(inspectionsById, StringComparer.Ordinal));
-        FileIdentities = new ReadOnlyDictionary<string, FirmwareFileIdentity>(
-            new Dictionary<string, FirmwareFileIdentity>(fileIdentities, StringComparer.Ordinal));
+        FileStamps = new ReadOnlyDictionary<string, FileStamp?>(
+            new Dictionary<string, FileStamp?>(fileStamps, StringComparer.Ordinal));
         UnstableFilePaths = Array.AsReadOnly(
         [
             .. unstableFilePaths
@@ -218,37 +235,14 @@ public sealed class FirmwareInspectionBatchResult
     /// <summary>Inspection projections keyed by the caller-supplied inspection id.</summary>
     public IReadOnlyDictionary<string, FirmwareInspectionSnapshot> InspectionsById { get; }
 
-    /// <summary>Post-read file identities keyed by every distinct requested path.</summary>
-    public IReadOnlyDictionary<string, FirmwareFileIdentity> FileIdentities { get; }
+    /// <summary>Accepted content identities keyed by path; unreadable or changing sources have null.</summary>
+    public IReadOnlyDictionary<string, FileStamp?> FileStamps { get; }
 
-    /// <summary>Paths whose adapter identity changed while the batch was being inspected.</summary>
+    /// <summary>Paths whose content changed during their coherent read.</summary>
     public IReadOnlyList<string> UnstableFilePaths { get; }
 
-    /// <summary>True only when every distinct path retained one identity for the whole read.</summary>
-    public bool IsFileIdentityStable => UnstableFilePaths.Count == 0;
-}
-
-/// <summary>FWConfig metadata and file identity observed by one adapter-owned read.</summary>
-public sealed class FirmwareConfigMetadataReadResult
-{
-    internal FirmwareConfigMetadataReadResult(
-        FirmwareConfigMetadataSnapshot? metadata,
-        FirmwareFileIdentity fileIdentity,
-        bool isFileIdentityStable)
-    {
-        Metadata = metadata;
-        FileIdentity = fileIdentity;
-        IsFileIdentityStable = isFileIdentityStable;
-    }
-
-    /// <summary>Decoded FWConfig metadata when the selected image declares it.</summary>
-    public FirmwareConfigMetadataSnapshot? Metadata { get; }
-
-    /// <summary>Identity captured before the metadata read and retained when the read was stable.</summary>
-    public FirmwareFileIdentity FileIdentity { get; }
-
-    /// <summary>True when the path identity did not change during the metadata read.</summary>
-    public bool IsFileIdentityStable { get; }
+    /// <summary>True when no source changed during its read; unreadable paths retain null stamps.</summary>
+    public bool IsContentStable => UnstableFilePaths.Count == 0;
 }
 
 /// <summary>Typed Replace presentation group derived before the UI boundary.</summary>
@@ -281,6 +275,77 @@ public enum ReplaceInputRole
     CtrlRam,
 }
 
+/// <summary>One typed CtrlRAM section retained with an input discovery projection.</summary>
+public sealed record CtrlRamInputDescriptionSection(
+    string DisplayName,
+    ReplaceRegionGroup RegionGroup,
+    long MaximumLength,
+    long TargetStart,
+    string TitleStem);
+
+/// <summary>Structured CtrlRAM input facts retained independently from display text.</summary>
+public sealed record CtrlRamInputDescriptionFacts
+{
+    public CtrlRamInputDescriptionFacts(
+        string SourceFileName,
+        IReadOnlyList<CtrlRamInputDescriptionSection> Sections,
+        bool RequiresDiffNfMerge,
+        string TitleStem,
+        bool IsShared,
+        int TargetRegionCount)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(SourceFileName);
+        ArgumentNullException.ThrowIfNull(Sections);
+        ArgumentException.ThrowIfNullOrWhiteSpace(TitleStem);
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(TargetRegionCount);
+        if (IsShared != (TargetRegionCount > 1))
+        {
+            throw new ArgumentException(
+                "CtrlRAM shared state must exactly match whether more than one physical region is targeted.",
+                nameof(IsShared));
+        }
+
+        this.SourceFileName = SourceFileName;
+        this.Sections = Sections;
+        this.RequiresDiffNfMerge = RequiresDiffNfMerge;
+        this.TitleStem = TitleStem;
+        this.IsShared = IsShared;
+        this.TargetRegionCount = TargetRegionCount;
+    }
+
+    public string SourceFileName { get; }
+
+    public IReadOnlyList<CtrlRamInputDescriptionSection> Sections { get; }
+
+    public bool RequiresDiffNfMerge { get; }
+
+    public string TitleStem { get; }
+
+    public bool IsShared { get; }
+
+    /// <summary>Positive count of distinct topology-resolved physical target region ids.</summary>
+    public int TargetRegionCount { get; }
+}
+
+/// <summary>Closed CtrlRAM family role used by detailed memory presentation.</summary>
+public enum CtrlRamRegionRole
+{
+    /// <summary>NF CtrlRAM.</summary>
+    Nf,
+    /// <summary>Normal CtrlRAM.</summary>
+    Normal,
+    /// <summary>MP CtrlRAM.</summary>
+    Mp,
+    /// <summary>VN CtrlRAM.</summary>
+    Vn,
+    /// <summary>Vector CtrlRAM.</summary>
+    Vector,
+    /// <summary>DiffDLM or DIFF CtrlRAM.</summary>
+    DiffDlm,
+    /// <summary>CtrlRAM outside the approved detailed family vocabulary.</summary>
+    Other,
+}
+
 /// <summary>One file slot declared by the selected Replace workflow.</summary>
 public sealed record ReplaceInputSlot(
     string SlotId,
@@ -292,7 +357,8 @@ public sealed record ReplaceInputSlot(
     string CompiledSlotId,
     string? SelectionGroupId = null,
     ReplaceRegionGroup RegionGroup = ReplaceRegionGroup.Common,
-    ReplaceInputRole InputRole = ReplaceInputRole.None);
+    ReplaceInputRole InputRole = ReplaceInputRole.None,
+    CtrlRamInputDescriptionFacts? CtrlRamDescription = null);
 
 /// <summary>One CtrlRAM region row for shell display.</summary>
 public sealed record CtrlRamRegion(
@@ -301,7 +367,8 @@ public sealed record CtrlRamRegion(
     long Start,
     long Length,
     bool IsMultiChipOnly,
-    ReplaceRegionGroup RegionGroup);
+    ReplaceRegionGroup RegionGroup,
+    CtrlRamRegionRole Role);
 
 /// <summary>Typed General Merge initializer resolved before Presentation creates a draft.</summary>
 public sealed class GeneralMergeInitializer

@@ -51,6 +51,54 @@ public sealed partial class CompositionOutputNameResolverTests
         Assert.NotNull(result.Report.OutputNaming);
     }
 
+    /// <summary>A prepared bundle name retains its original UTC date across midnight execution.</summary>
+    [Fact]
+    public async Task PreparedBundleNameDoesNotRerenderAtBuildTime()
+    {
+        InspectionFixture fixture = CreateInspectionFixture(includeDpcmi: true);
+        CompiledComposition composition = CreateRuntimeComposition(fixture);
+        var accepted = new AcceptedOutputNamingInspection(
+            OutputNamingRouteId,
+            composition.CompilationFingerprint,
+            fixture.Plan,
+            fixture.Snapshot);
+        OutputNameResolution prepared = CompiledOutputNameResolver.ResolveNormal(
+            "NT51929",
+            composition.V2Details.OutputNamingRequirement,
+            CompiledOutputNamingRequirement.NormalFlashCodeV1Template,
+            isExplicitOverride: false,
+            accepted,
+            [fixture.InputSummary],
+            RunTime);
+        var writer = new RecordingOutputWriter();
+        var service = new CompositionRunService(
+            new FakeArtifactReader(new Dictionary<string, byte[]>
+            {
+                ["input-artifact"] = fixture.Bytes,
+            }),
+            new FakeClock([RunTime.AddDays(1), RunTime.AddDays(1).AddSeconds(1)]),
+            writer);
+        var request = new CompositionRunRequest(
+            "prepared-output-after-midnight",
+            composition,
+            [CreateInputBinding()],
+            CompiledOutputNamingRequirement.NormalFlashCodeV1Template,
+            outputNamingInspection: accepted,
+            outputNamingAdmission: CreateAdmission(composition, fixture))
+        {
+            PreparedOutputName = prepared,
+        };
+
+        CompositionRunResult result = await service.PreviewOrBuildAsync(
+            request,
+            build: true,
+            CancellationToken.None);
+
+        Assert.Equal(CompositionExecutionStatus.Succeeded, result.Status);
+        Assert.Equal("NT51929_FlashCode_D8205T8004_20260728.bin", writer.FileName);
+        Assert.Equal(RunTime, result.Report.OutputNaming?.ResolvedAtUtc);
+    }
+
     /// <summary>A stale inspection blocks execution and output publication instead of naming different bytes.</summary>
     [Fact]
     public async Task StaleInspectionCannotExecuteOrCommit()

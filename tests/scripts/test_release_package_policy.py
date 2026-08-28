@@ -10,6 +10,7 @@ import shutil
 import subprocess
 import sys
 import tempfile
+import time
 import unittest
 import zipfile
 from pathlib import Path
@@ -23,13 +24,16 @@ import validate_repository as repository_validation  # noqa: E402
 
 PACKAGE_SCRIPT = ROOT / "scripts" / "package.ps1"
 SMOKE_SCRIPT = ROOT / "scripts" / "smoke-release.ps1"
+UPDATE_SOURCE_REGISTRY_TEMPLATE = (
+    ROOT / "docs" / "ci" / "update-source-registry.json.in"
+)
 PROBE_RELATIVE_PATH = Path("external-tools/release-package-policy-probe.txt")
 CAPABILITY_POLICY_RELATIVE_PATH = Path(
     "docs/contracts/canonical-capability-policy-v1.json"
 )
 CAPABILITY_POLICY_ROLE = "capabilityPolicy"
 CAPABILITY_POLICY_SHA256 = (
-    "026fd116bb8380c373148953935cde01ceb5532f60bb3848dbab7d17fabd69e4"
+    "bf818a4c9aa4d539882e4bc4a0a662ef70ece67a44e78ae83356430365828f50"
 )
 RUNTIME_CAPABILITY_POLICY = (
     ROOT
@@ -51,6 +55,7 @@ PERSONAL_OWNER_IDENTIFIER = "Dennis40816"
 DISTRIBUTION_OWNER = "MSP/FW3"
 SOURCE_IDENTITY = "urn:msp-fw3:nvt-fw-combiner:source"
 MAXIMUM_PACKAGE_BYTES = 80_000_000
+MAXIMUM_MANAGED_UPGRADE_PAIR_PACKAGE_BYTES = 134_217_728
 MAXIMUM_APPLICATION_BYTES = 80_000_000
 ANSI_ESCAPE_PATTERN = re.compile(r"\x1b\[[0-?]*[ -/]*[@-~]")
 
@@ -60,6 +65,37 @@ def normalize_console_output(output: str) -> str:
 
     unstyled_output = ANSI_ESCAPE_PATTERN.sub("", output)
     return " ".join(unstyled_output.replace("|", " ").split())
+
+
+def initialize_minimal_package_repository(repository_root: Path) -> str:
+    """Create the smallest committed source that reaches snapshot identity checks."""
+
+    script_path = repository_root / "scripts" / "package.ps1"
+    script_path.parent.mkdir(parents=True)
+    shutil.copy2(PACKAGE_SCRIPT, script_path)
+    (repository_root / "VERSION").write_text("1.0.0\n", encoding="utf-8")
+    for arguments in (
+        ("init", "-q"),
+        ("config", "user.name", "Package Identity Test"),
+        ("config", "user.email", "package-identity@example.invalid"),
+        ("config", "commit.gpgsign", "false"),
+        ("add", "."),
+        ("commit", "-q", "-m", "baseline"),
+    ):
+        subprocess.run(
+            ["git", *arguments],
+            cwd=repository_root,
+            check=True,
+            capture_output=True,
+            text=True,
+        )
+    return subprocess.run(
+        ["git", "rev-parse", "HEAD"],
+        cwd=repository_root,
+        check=True,
+        capture_output=True,
+        text=True,
+    ).stdout.strip()
 
 
 def literal_run_blocks(workflow: str) -> tuple[str, ...]:
@@ -91,6 +127,35 @@ def literal_run_blocks(workflow: str) -> tuple[str, ...]:
 
 class ReleasePackagePolicyTests(unittest.TestCase):
     """Exercises the packager and smoke policy without building release binaries."""
+
+    def test_packager_validates_the_generated_manifest_against_canonical_schema(
+        self,
+    ) -> None:
+        package_script = PACKAGE_SCRIPT.read_text(encoding="utf-8")
+
+        schema_path_index = package_script.index(
+            "docs/contracts/release-manifest-v1.schema.json"
+        )
+        manifest_write_index = package_script.index(
+            "$Manifest | ConvertTo-Json -Depth 8 | Set-Content"
+        )
+        validation_literal = (
+            "Assert-CanonicalJsonSchema -JsonPath $ManifestPath "
+            "-SchemaPath $ReleaseManifestSchemaPath"
+        )
+        validation_indexes = [
+            match.start()
+            for match in re.finditer(re.escape(validation_literal), package_script)
+        ]
+        archive_index = package_script.index(
+            "Compress-Archive -LiteralPath $PackageRoot"
+        )
+
+        self.assertLess(schema_path_index, manifest_write_index)
+        self.assertEqual(2, len(validation_indexes))
+        self.assertLess(manifest_write_index, validation_indexes[0])
+        self.assertLess(validation_indexes[0], validation_indexes[1])
+        self.assertLess(validation_indexes[1], archive_index)
 
     def test_packager_restores_then_cleans_and_smoke_requires_window(self) -> None:
         package_script = PACKAGE_SCRIPT.read_text(encoding="utf-8")
@@ -299,6 +364,555 @@ class ReleasePackagePolicyTests(unittest.TestCase):
             probe_path.exists(), "packager did not clean its source policy probe"
         )
 
+    @unittest.skipUnless(
+        POWERSHELL, "PowerShell is required for Windows release-policy tests"
+    )
+    def test_packager_policy_dry_run_is_parallel_safe(self) -> None:
+        command = [
+            str(POWERSHELL),
+            "-NoProfile",
+            "-ExecutionPolicy",
+            "Bypass",
+            "-File",
+            str(PACKAGE_SCRIPT),
+            "-Version",
+            "0.0.0",
+            "-Commit",
+            "0" * 40,
+            "-ExternalToolPolicyDryRun",
+        ]
+        processes = [
+            subprocess.Popen(
+                command,
+                cwd=ROOT,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+                text=True,
+                encoding="utf-8",
+                errors="replace",
+            )
+            for _ in range(2)
+        ]
+
+        results = [process.communicate(timeout=120) for process in processes]
+        for process, (stdout, stderr) in zip(processes, results, strict=True):
+            self.assertEqual(0, process.returncode, stdout + stderr)
+        self.assertEqual([], list((ROOT / "external-tools").glob("release-package-policy-probe-*.txt")))
+
+    @unittest.skipUnless(
+        POWERSHELL, "PowerShell is required for Windows release-policy tests"
+    )
+    def test_packager_rejects_version_that_differs_from_repository_identity(
+        self,
+    ) -> None:
+        repository_version = (ROOT / "VERSION").read_text(encoding="utf-8").strip()
+        major, minor, patch = (int(value) for value in repository_version.split("."))
+        mismatched_version = f"{major}.{minor}.{patch + 1}"
+        repository_head = subprocess.run(
+            ["git", "rev-parse", "HEAD"],
+            cwd=ROOT,
+            check=True,
+            capture_output=True,
+            text=True,
+        ).stdout.strip()
+
+        result = self.run_powershell(
+            PACKAGE_SCRIPT,
+            "-Version",
+            mismatched_version,
+            "-Commit",
+            repository_head,
+            "-AllowPrerelease",
+            "-ExternalToolPolicyDryRun",
+        )
+
+        self.assertNotEqual(0, result.returncode, result.stdout + result.stderr)
+        self.assertIn(
+            f"Package version '{mismatched_version}' does not match repository "
+            f"VERSION '{repository_version}'",
+            normalize_console_output(result.stdout + result.stderr),
+        )
+
+    @unittest.skipUnless(
+        POWERSHELL, "PowerShell is required for Windows release-policy tests"
+    )
+    def test_v_prefixed_zero_version_is_not_the_policy_dry_run_sentinel(self) -> None:
+        result = self.run_powershell(
+            PACKAGE_SCRIPT,
+            "-Version",
+            "v0.0.0",
+            "-Commit",
+            "0" * 40,
+            "-ExternalToolPolicyDryRun",
+        )
+
+        self.assertNotEqual(0, result.returncode, result.stdout + result.stderr)
+        self.assertNotIn(
+            "External-tool package policy dry-run passed",
+            normalize_console_output(result.stdout + result.stderr),
+        )
+
+    @unittest.skipUnless(
+        POWERSHELL, "PowerShell is required for Windows release-policy tests"
+    )
+    def test_packager_rejects_commit_that_differs_from_repository_head(self) -> None:
+        repository_version = (ROOT / "VERSION").read_text(encoding="utf-8").strip()
+
+        result = self.run_powershell(
+            PACKAGE_SCRIPT,
+            "-Version",
+            repository_version,
+            "-Commit",
+            "1" * 40,
+            "-ExternalToolPolicyDryRun",
+        )
+
+        self.assertNotEqual(0, result.returncode, result.stdout + result.stderr)
+        self.assertIn(
+            "Package commit does not match repository HEAD",
+            normalize_console_output(result.stdout + result.stderr),
+        )
+
+    @unittest.skipUnless(
+        POWERSHELL, "PowerShell is required for Windows release-policy tests"
+    )
+    def test_packager_rejects_dirty_repository_before_policy_dry_run(self) -> None:
+        for dirty_kind in ("staged", "unstaged", "untracked"):
+            with (
+                self.subTest(dirty_kind=dirty_kind),
+                tempfile.TemporaryDirectory(
+                    prefix="nvt-package-source-identity-"
+                ) as temporary_directory,
+            ):
+                repository_root = Path(temporary_directory)
+                script_path = repository_root / "scripts" / "package.ps1"
+                script_path.parent.mkdir(parents=True)
+                shutil.copy2(PACKAGE_SCRIPT, script_path)
+                (repository_root / "VERSION").write_text("1.0.0\n", encoding="utf-8")
+                tracked_path = repository_root / "tracked.txt"
+                tracked_path.write_text("clean\n", encoding="utf-8")
+                for arguments in (
+                    ("init", "-q"),
+                    ("config", "user.name", "Package Identity Test"),
+                    ("config", "user.email", "package-identity@example.invalid"),
+                    ("config", "commit.gpgsign", "false"),
+                    ("add", "."),
+                    ("commit", "-q", "-m", "baseline"),
+                ):
+                    subprocess.run(
+                        ["git", *arguments],
+                        cwd=repository_root,
+                        check=True,
+                        capture_output=True,
+                        text=True,
+                    )
+                repository_head = subprocess.run(
+                    ["git", "rev-parse", "HEAD"],
+                    cwd=repository_root,
+                    check=True,
+                    capture_output=True,
+                    text=True,
+                ).stdout.strip()
+
+                if dirty_kind == "staged":
+                    (repository_root / "staged.cs").write_text(
+                        "internal sealed class Staged {}\n", encoding="utf-8"
+                    )
+                    subprocess.run(
+                        ["git", "add", "staged.cs"],
+                        cwd=repository_root,
+                        check=True,
+                    )
+                elif dirty_kind == "unstaged":
+                    tracked_path.write_text("changed\n", encoding="utf-8")
+                else:
+                    (repository_root / "untracked.cs").write_text(
+                        "internal sealed class Untracked {}\n", encoding="utf-8"
+                    )
+
+                result = self.run_powershell(
+                    script_path,
+                    "-Version",
+                    "1.0.0",
+                    "-Commit",
+                    repository_head,
+                    "-ExternalToolPolicyDryRun",
+                )
+
+                self.assertNotEqual(0, result.returncode, result.stdout + result.stderr)
+                self.assertIn(
+                    "Release packaging requires a clean repository worktree and index",
+                    normalize_console_output(result.stdout + result.stderr),
+                )
+
+    @unittest.skipUnless(
+        POWERSHELL, "PowerShell is required for Windows release-policy tests"
+    )
+    def test_packager_fails_closed_when_repository_head_is_unavailable(self) -> None:
+        with tempfile.TemporaryDirectory(
+            prefix="nvt-package-missing-git-"
+        ) as temporary_directory:
+            repository_root = Path(temporary_directory)
+            script_path = repository_root / "scripts" / "package.ps1"
+            script_path.parent.mkdir(parents=True)
+            shutil.copy2(PACKAGE_SCRIPT, script_path)
+            (repository_root / "VERSION").write_text("1.0.0\n", encoding="utf-8")
+
+            result = self.run_powershell(
+                script_path,
+                "-Version",
+                "1.0.0",
+                "-Commit",
+                "1" * 40,
+                "-ExternalToolPolicyDryRun",
+            )
+
+        self.assertNotEqual(0, result.returncode, result.stdout + result.stderr)
+        self.assertIn(
+            "Repository HEAD could not be resolved",
+            normalize_console_output(result.stdout + result.stderr),
+        )
+
+    @unittest.skipUnless(
+        POWERSHELL, "PowerShell is required for Windows release-policy tests"
+    )
+    def test_packager_identity_mismatch_preserves_existing_artifacts(self) -> None:
+        with tempfile.TemporaryDirectory(
+            prefix="nvt-package-preserve-artifacts-"
+        ) as temporary_directory:
+            repository_root = Path(temporary_directory)
+            script_path = repository_root / "scripts" / "package.ps1"
+            script_path.parent.mkdir(parents=True)
+            shutil.copy2(PACKAGE_SCRIPT, script_path)
+            (repository_root / "VERSION").write_text("1.0.0\n", encoding="utf-8")
+            artifact_path = repository_root / "artifacts" / "release" / "existing.txt"
+            artifact_path.parent.mkdir(parents=True)
+            artifact_path.write_text("preserve\n", encoding="utf-8")
+
+            result = self.run_powershell(
+                script_path,
+                "-Version",
+                "1.0.1",
+                "-Commit",
+                "1" * 40,
+                "-ExternalToolPolicyDryRun",
+            )
+
+            self.assertNotEqual(0, result.returncode, result.stdout + result.stderr)
+            self.assertEqual("preserve\n", artifact_path.read_text(encoding="utf-8"))
+
+    @unittest.skipUnless(
+        POWERSHELL, "PowerShell is required for Windows release-policy tests"
+    )
+    def test_repository_version_mismatch_does_not_attach_snapshot_worktree(
+        self,
+    ) -> None:
+        with tempfile.TemporaryDirectory(
+            prefix=".nfc-package-mismatch-", dir=ROOT.parent
+        ) as temporary_directory:
+            temporary_root = Path(temporary_directory)
+            invocation_root = temporary_root / "invocation"
+            invocation_root.mkdir()
+            repository_head = initialize_minimal_package_repository(invocation_root)
+            environment = os.environ.copy()
+            environment["TEMP"] = str(temporary_root / "runtime-temp")
+            environment["TMP"] = environment["TEMP"]
+            Path(environment["TEMP"]).mkdir()
+
+            result = subprocess.run(
+                [
+                    str(POWERSHELL),
+                    "-NoProfile",
+                    "-ExecutionPolicy",
+                    "Bypass",
+                    "-File",
+                    str(invocation_root / "scripts" / "package.ps1"),
+                    "-Version",
+                    "1.0.1",
+                    "-Commit",
+                    repository_head,
+                    "-ExternalToolPolicyDryRun",
+                ],
+                cwd=invocation_root,
+                check=False,
+                capture_output=True,
+                text=True,
+                encoding="utf-8",
+                errors="replace",
+                env=environment,
+            )
+
+            self.assertNotEqual(0, result.returncode, result.stdout + result.stderr)
+            self.assertIn(
+                "does not match repository VERSION '1.0.0'",
+                normalize_console_output(result.stdout + result.stderr),
+            )
+            self.assertEqual([], list(temporary_root.glob(".nfcps-*")))
+            worktree_list = subprocess.run(
+                ["git", "worktree", "list", "--porcelain"],
+                cwd=invocation_root,
+                check=True,
+                capture_output=True,
+                text=True,
+            ).stdout
+            self.assertNotIn(".nfcps-", worktree_list)
+
+    @unittest.skipUnless(
+        POWERSHELL and os.name == "nt",
+        "Windows PowerShell and command-wrapper semantics are required",
+    )
+    def test_snapshot_remove_failure_fails_package_and_preserves_evidence(self) -> None:
+        actual_git = shutil.which("git")
+        self.assertIsNotNone(actual_git)
+        with tempfile.TemporaryDirectory(
+            prefix=".nfc-package-remove-", dir=ROOT.parent
+        ) as temporary_directory:
+            temporary_root = Path(temporary_directory)
+            invocation_root = temporary_root / "invocation"
+            subprocess.run(
+                [
+                    str(actual_git),
+                    "-C",
+                    str(ROOT),
+                    "worktree",
+                    "add",
+                    "--detach",
+                    str(invocation_root),
+                    "HEAD",
+                ],
+                check=True,
+                capture_output=True,
+                text=True,
+            )
+            repository_head = subprocess.run(
+                [str(actual_git), "rev-parse", "HEAD"],
+                cwd=invocation_root,
+                check=True,
+                capture_output=True,
+                text=True,
+            ).stdout.strip()
+            repository_version = (
+                (invocation_root / "VERSION").read_text(encoding="utf-8").strip()
+            )
+            wrapper_root = temporary_root / "wrapper"
+            wrapper_root.mkdir()
+            git_wrapper = wrapper_root / "git.cmd"
+            git_wrapper.write_text(
+                "@echo off\r\n"
+                'if /I "%~3"=="worktree" if /I "%~4"=="remove" exit /b 42\r\n'
+                f'"{actual_git}" %*\r\n'
+                "exit /b %ERRORLEVEL%\r\n",
+                encoding="ascii",
+            )
+            runtime_temp = temporary_root / "runtime-temp"
+            runtime_temp.mkdir()
+            environment = os.environ.copy()
+            environment["PATH"] = str(wrapper_root) + os.pathsep + environment["PATH"]
+            environment["TEMP"] = str(runtime_temp)
+            environment["TMP"] = str(runtime_temp)
+            snapshot_roots: list[Path] = []
+            try:
+                result = subprocess.run(
+                    [
+                        str(POWERSHELL),
+                        "-NoProfile",
+                        "-ExecutionPolicy",
+                        "Bypass",
+                        "-File",
+                        str(invocation_root / "scripts" / "package.ps1"),
+                        "-Version",
+                        repository_version,
+                        "-Commit",
+                        repository_head,
+                        "-ExternalToolPolicyDryRun",
+                    ],
+                    cwd=invocation_root,
+                    check=False,
+                    capture_output=True,
+                    text=True,
+                    encoding="utf-8",
+                    errors="replace",
+                    env=environment,
+                )
+
+                self.assertNotEqual(0, result.returncode, result.stdout + result.stderr)
+                normalized_output = normalize_console_output(
+                    result.stdout + result.stderr
+                )
+                self.assertIn(
+                    "External-tool package policy dry-run passed",
+                    normalized_output,
+                )
+                self.assertIn("Exact source snapshot cleanup failed", normalized_output)
+                self.assertIn("preserved for inspection at", normalized_output)
+                snapshot_roots = list(temporary_root.glob(".nfcps-*"))
+                self.assertEqual(1, len(snapshot_roots))
+            finally:
+                for snapshot_root in snapshot_roots:
+                    subprocess.run(
+                        [
+                            str(actual_git),
+                            "-C",
+                            str(invocation_root),
+                            "worktree",
+                            "remove",
+                            "--force",
+                            str(snapshot_root),
+                        ],
+                        check=False,
+                        capture_output=True,
+                        text=True,
+                    )
+                subprocess.run(
+                    [
+                        str(actual_git),
+                        "-C",
+                        str(ROOT),
+                        "worktree",
+                        "remove",
+                        "--force",
+                        str(invocation_root),
+                    ],
+                    check=False,
+                    capture_output=True,
+                    text=True,
+                )
+                subprocess.run(
+                    [str(actual_git), "-C", str(ROOT), "worktree", "prune"],
+                    check=False,
+                    capture_output=True,
+                    text=True,
+                )
+
+    @unittest.skipUnless(
+        POWERSHELL, "PowerShell is required for Windows release-policy tests"
+    )
+    def test_packager_uses_exact_snapshot_when_invocation_tree_changes_after_preflight(
+        self,
+    ) -> None:
+        with tempfile.TemporaryDirectory(
+            prefix=".nfc-package-race-", dir=ROOT.parent
+        ) as temporary_directory:
+            temporary_root = Path(temporary_directory)
+            invocation_root = temporary_root / "invocation"
+            runtime_temp = temporary_root / "runtime-temp"
+            runtime_temp.mkdir()
+            subprocess.run(
+                [
+                    "git",
+                    "-C",
+                    str(ROOT),
+                    "worktree",
+                    "add",
+                    "--detach",
+                    str(invocation_root),
+                    "HEAD",
+                ],
+                check=True,
+                capture_output=True,
+                text=True,
+            )
+
+            process: subprocess.Popen[str] | None = None
+            source_policy = invocation_root / CAPABILITY_POLICY_RELATIVE_PATH
+            source_policy_bytes = b""
+            snapshot_root: Path | None = None
+            try:
+                repository_version = (
+                    (invocation_root / "VERSION").read_text(encoding="utf-8").strip()
+                )
+                repository_head = subprocess.run(
+                    ["git", "rev-parse", "HEAD"],
+                    cwd=invocation_root,
+                    check=True,
+                    capture_output=True,
+                    text=True,
+                ).stdout.strip()
+                environment = os.environ.copy()
+                environment["TEMP"] = str(runtime_temp)
+                environment["TMP"] = str(runtime_temp)
+                process = subprocess.Popen(
+                    [
+                        str(POWERSHELL),
+                        "-NoProfile",
+                        "-ExecutionPolicy",
+                        "Bypass",
+                        "-File",
+                        str(invocation_root / "scripts" / "package.ps1"),
+                        "-Version",
+                        repository_version,
+                        "-Commit",
+                        repository_head,
+                        "-ExternalToolPolicyDryRun",
+                    ],
+                    cwd=invocation_root,
+                    stdout=subprocess.PIPE,
+                    stderr=subprocess.PIPE,
+                    text=True,
+                    encoding="utf-8",
+                    errors="replace",
+                    env=environment,
+                )
+
+                deadline = time.monotonic() + 90
+                while time.monotonic() < deadline and process.poll() is None:
+                    candidates = sorted(temporary_root.glob(".nfcps-*"))
+                    snapshot_root = next(
+                        (
+                            candidate
+                            for candidate in candidates
+                            if (candidate / "VERSION").is_file()
+                        ),
+                        None,
+                    )
+                    if snapshot_root is not None:
+                        break
+                    time.sleep(0.01)
+
+                self.assertIsNotNone(
+                    snapshot_root,
+                    "packager did not materialize an exact source snapshot",
+                )
+                source_policy_bytes = source_policy.read_bytes()
+                source_policy.write_text("{}\n", encoding="utf-8")
+
+                stdout, stderr = process.communicate(timeout=180)
+                self.assertEqual(0, process.returncode, stdout + stderr)
+                self.assertIn(
+                    "External-tool package policy dry-run passed",
+                    normalize_console_output(stdout + stderr),
+                )
+                self.assertFalse(
+                    snapshot_root.exists(),
+                    "packager did not remove its exact source snapshot",
+                )
+            finally:
+                if source_policy_bytes:
+                    source_policy.write_bytes(source_policy_bytes)
+                if process is not None and process.poll() is None:
+                    process.kill()
+                    process.communicate()
+                subprocess.run(
+                    [
+                        "git",
+                        "-C",
+                        str(ROOT),
+                        "worktree",
+                        "remove",
+                        "--force",
+                        str(invocation_root),
+                    ],
+                    check=False,
+                    capture_output=True,
+                    text=True,
+                )
+                subprocess.run(
+                    ["git", "-C", str(ROOT), "worktree", "prune"],
+                    check=False,
+                    capture_output=True,
+                    text=True,
+                )
+
     def test_release_workflows_smoke_package_before_distribution(self) -> None:
         for workflow_path in (
             ROOT / ".github/workflows/release.yml",
@@ -342,7 +956,10 @@ class ReleasePackagePolicyTests(unittest.TestCase):
             "$approvedMaintenanceVersions[$env:NFC_SOURCE_BRANCH] -ne $version",
             release_workflow,
         )
-        self.assertIn("permissions:\n  contents: read", release_workflow)
+        self.assertIn(
+            "permissions:\n  actions: read\n  contents: read",
+            release_workflow,
+        )
         self.assertIn(
             "candidate:\n"
             "    name: release / candidate\n"
@@ -437,6 +1054,122 @@ class ReleasePackagePolicyTests(unittest.TestCase):
             "release-authoritative Python policy must use the pinned interpreter",
         )
 
+    def test_stable_release_emits_separate_update_source_handoff(self) -> None:
+        release = (ROOT / ".github/workflows/release.yml").read_text(encoding="utf-8")
+        candidate_start = release.index("\n  candidate:")
+        promote_start = release.index("\n  promote:")
+        smoke_start = release.index("\n  published-smoke:")
+        candidate = release[candidate_start:promote_start]
+        promote = release[promote_start:smoke_start]
+
+        self.assertIn("published_at:", release)
+        self.assertIn("NFC_RELEASE_PUBLISHED_AT: ${{ inputs.published_at }}", release)
+        self.assertIn("-cnotmatch", candidate)
+        self.assertIn("published-at=$env:NFC_RELEASE_PUBLISHED_AT", candidate)
+
+        setup_python = candidate.index("Setup pinned Python for release policy")
+        helper_copy = candidate.index(
+            "Copy-Item -LiteralPath ./scripts/create_update_catalog.py"
+        )
+        registry_policy_copy = candidate.index(
+            "Copy-Item -LiteralPath ./scripts/update_source_registry_policy.py"
+        )
+        detach = candidate.index("git checkout --detach")
+        package = candidate.index("Build closed-allowlist release package")
+        smoke = candidate.index("Smoke candidate package")
+        notes = candidate.index("Render complete release notes from CHANGELOG")
+        handoff = candidate.index("Create single-version update-source handoff")
+        manifest = candidate.index(
+            "Create closed candidate manifest and outer checksums"
+        )
+        candidate_upload = candidate.index("Upload immutable candidate assets")
+        handoff_upload = candidate.index("Upload update-source handoff")
+
+        self.assertLess(setup_python, helper_copy)
+        self.assertLess(helper_copy, registry_policy_copy)
+        self.assertLess(registry_policy_copy, detach)
+        self.assertLess(helper_copy, detach)
+        self.assertLess(package, smoke)
+        self.assertLess(smoke, notes)
+        self.assertLess(notes, handoff)
+        self.assertLess(handoff, manifest)
+        self.assertLess(manifest, candidate_upload)
+        self.assertLess(candidate_upload, handoff_upload)
+
+        self.assertIn("NFC_UPDATE_CATALOG_TOOL", candidate)
+        self.assertIn("NFC_UPDATE_SOURCE_REGISTRY_TEMPLATE", candidate)
+        self.assertIn("artifacts/update-source-handoff", candidate)
+        self.assertIn("'artifacts/update-source-handoff'", candidate)
+        self.assertIn("'packages'", candidate)
+        self.assertIn("NvtFwCombiner-$env:NFC_TAG-win-x64.zip", candidate)
+        self.assertIn("'--source-root'", candidate)
+        self.assertIn("'--published-at'", candidate)
+        self.assertIn("'--release-notes-file'", candidate)
+        self.assertIn("'--manifest-copy'", candidate)
+        self.assertIn("'RELEASE-MANIFEST.json'", candidate)
+        self.assertIn("update-catalog.v1.json", candidate)
+        self.assertIn("update-source-registry.json", candidate)
+        self.assertIn(
+            "Copy-Item -LiteralPath ./docs/ci/update-source-registry.json.in",
+            candidate,
+        )
+        self.assertIn("--registry-template", candidate)
+        self.assertIn("--registry-revision", candidate)
+        self.assertIn("$env:GITHUB_RUN_ID", candidate)
+
+        self.assertEqual(2, candidate.count("actions/upload-artifact@"))
+        self.assertEqual(6, release.count("actions/upload-artifact@"))
+        self.assertIn("path: artifacts/release/*", candidate)
+        self.assertIn("path: artifacts/update-source-handoff/*", candidate)
+        self.assertNotIn("update-source-handoff", promote)
+        self.assertNotIn("update-catalog.v1.json", promote)
+        self.assertNotIn("update-source-registry.json", promote)
+        self.assertIn(
+            "$registryPath = Join-Path $handoffRoot 'update-source-registry.json'",
+            candidate,
+        )
+        self.assertNotIn(
+            "update-source-registry.json",
+            candidate[manifest:],
+        )
+        self.assertIn(
+            "$expectedNames = @($manifest.assets.name) + "
+            "@($env:NFC_MANIFEST_NAME, $checksumName)",
+            promote,
+        )
+
+    def test_update_source_registry_seed_is_the_owner_approved_default_root(
+        self,
+    ) -> None:
+        registry = json.loads(
+            UPDATE_SOURCE_REGISTRY_TEMPLATE.read_text(encoding="utf-8")
+        )
+
+        self.assertEqual(1, registry["schemaVersion"])
+        self.assertEqual("nvt-fw-combiner-production", registry["registryId"])
+        self.assertEqual(0, registry["registryRevision"])
+        self.assertEqual(
+            {
+                "latestVersion": "__LATEST_VERSION__",
+                "catalogSchemaVersion": 1,
+                "catalogSha256": "__CATALOG_SHA256__",
+            },
+            registry["catalogPublication"],
+        )
+        self.assertEqual("__PUBLISHED_AT_UTC__", registry["publishedAtUtc"])
+        self.assertEqual(
+            [
+                {
+                    "status": "latest",
+                    "catalogPath": (
+                        "G:\\AUTO\\projects\\模組專案開發\\NVT_FW_Combiner\\"
+                        "update-catalog.v1.json"
+                    ),
+                }
+            ],
+            registry["entries"],
+        )
+
     def test_write_token_job_never_checks_out_or_executes_maintenance_code(
         self,
     ) -> None:
@@ -500,6 +1233,55 @@ class ReleasePackagePolicyTests(unittest.TestCase):
         self.assertIn("validate-tag", release_workflow)
         self.assertIn("validate-release", release_workflow)
 
+    def test_101_release_source_is_strictly_version_only_from_v100(self) -> None:
+        release = (ROOT / ".github/workflows/release.yml").read_text(encoding="utf-8")
+
+        self.assertIn("if ($version -eq '1.0.1')", release)
+        self.assertIn("validate-version-only-lineage", release)
+        self.assertIn("--repository '${{ github.workspace }}'", release)
+        self.assertIn("validate-version-only-package", release)
+        self.assertIn("gh release download v1.0.0", release)
+        self.assertIn("NvtFwCombiner-v1.0.0-win-x64.zip", release)
+        self.assertIn("NvtFwCombiner-v1.0.1-win-x64.zip", release)
+        self.assertIn("VersionOnlyBasePackage", release)
+        self.assertIn("VersionOnlyBasePackageSha256", release)
+        self.assertIn("matches[0].digest", release)
+        self.assertIn("^sha256:[0-9a-f]{64}$", release)
+        self.assertIn("--base-package-sha256", release)
+        self.assertLess(
+            release.index("Download published 1.0.0 base package"),
+            release.index("Build closed-allowlist release package"),
+        )
+        self.assertNotIn("git diff --name-only --no-renames", release)
+        self.assertNotIn("$changedPaths.Count -ne 1", release)
+        self.assertNotIn("$changedPaths[0] -ne 'VERSION'", release)
+
+    def test_stable_promotion_waits_for_terminal_parity_evidence(self) -> None:
+        release = (ROOT / ".github/workflows/release.yml").read_text(encoding="utf-8")
+        promote = release[
+            release.index("  promote:") : release.index(
+                "    steps:", release.index("  promote:")
+            )
+        ]
+
+        self.assertIn("- candidate", promote)
+        self.assertIn("- v0916-parity-finalize", promote)
+        self.assertNotIn("- v0916-parity-attestation", promote)
+        self.assertIn("needs.v0916-parity-finalize.result == 'skipped'", promote)
+
+        steps = release[
+            release.index("    steps:", release.index("  promote:")) :
+            release.index("\n  published-smoke:")
+        ]
+        self.assertIn("Download terminal v0.9.16 parity evidence", steps)
+        self.assertIn("validate-terminal --evidence", steps)
+        self.assertEqual(
+            2,
+            steps.count("needs.candidate.outputs.version == '1.0.0'"),
+        )
+        self.assertNotIn("Reuse only committed v1.0.0 firmware evidence", release)
+        self.assertNotIn("--require-committed-transfer", release)
+
     def test_review_ready_event_and_closed_release_candidate_are_explicit(self) -> None:
         ci = (ROOT / ".github/workflows/ci.yml").read_text(encoding="utf-8")
         release = (ROOT / ".github/workflows/release.yml").read_text(encoding="utf-8")
@@ -560,25 +1342,70 @@ class ReleasePackagePolicyTests(unittest.TestCase):
         POWERSHELL, "PowerShell is required for Windows release-policy tests"
     )
     def test_release_smoke_rejects_package_above_owner_approved_budget(self) -> None:
-        with tempfile.TemporaryDirectory(
-            prefix="nvt-release-size-policy-test-"
-        ) as temporary_directory:
-            package_path = Path(temporary_directory) / "oversized.zip"
-            with package_path.open("wb") as package:
-                package.truncate(MAXIMUM_PACKAGE_BYTES + 1)
+        for package_name in (
+            "oversized.zip",
+            "NvtFwCombiner-v1.0.2-win-x64.zip",
+        ):
+            with (
+                self.subTest(package_name=package_name),
+                tempfile.TemporaryDirectory(
+                    prefix="nvt-release-size-policy-test-"
+                ) as temporary_directory,
+            ):
+                package_path = Path(temporary_directory) / package_name
+                with package_path.open("wb") as package:
+                    package.truncate(MAXIMUM_PACKAGE_BYTES + 1)
 
-            result = self.run_powershell(
-                SMOKE_SCRIPT,
-                "-PackagePath",
-                str(package_path),
-                "-SkipUiLaunch",
+                result = self.run_powershell(
+                    SMOKE_SCRIPT,
+                    "-PackagePath",
+                    str(package_path),
+                    "-SkipUiLaunch",
+                )
+
+            self.assertNotEqual(
+                0,
+                result.returncode,
+                result.stdout + result.stderr,
+            )
+            self.assertIn(
+                "exceeds the owner-approved maximum 80000000 bytes",
+                normalize_console_output(result.stdout + result.stderr),
             )
 
-        self.assertNotEqual(0, result.returncode, result.stdout + result.stderr)
-        self.assertIn(
-            "exceeds the owner-approved maximum 80000000 bytes",
-            normalize_console_output(result.stdout + result.stderr),
-        )
+    @unittest.skipUnless(
+        POWERSHELL, "PowerShell is required for Windows release-policy tests"
+    )
+    def test_release_smoke_applies_bounded_managed_upgrade_pair_budget(self) -> None:
+        for version in ("1.0.0", "1.0.1"):
+            with (
+                self.subTest(version=version),
+                tempfile.TemporaryDirectory(
+                    prefix="nvt-release-managed-size-policy-test-"
+                ) as temporary_directory,
+            ):
+                package_path = Path(temporary_directory) / (
+                    f"NvtFwCombiner-v{version}-win-x64.zip"
+                )
+                with package_path.open("wb") as package:
+                    package.truncate(MAXIMUM_MANAGED_UPGRADE_PAIR_PACKAGE_BYTES + 1)
+
+                result = self.run_powershell(
+                    SMOKE_SCRIPT,
+                    "-PackagePath",
+                    str(package_path),
+                    "-SkipUiLaunch",
+                )
+
+            self.assertNotEqual(
+                0,
+                result.returncode,
+                result.stdout + result.stderr,
+            )
+            self.assertIn(
+                "exceeds the owner-approved maximum 134217728 bytes",
+                normalize_console_output(result.stdout + result.stderr),
+            )
 
     @unittest.skipUnless(
         POWERSHELL, "PowerShell is required for Windows release-policy tests"
@@ -981,9 +1808,7 @@ class ReleasePackagePolicyTests(unittest.TestCase):
             manifest_path = bundle_root / "profile-bundle.json"
             manifest_path.write_bytes(source_manifest_path.read_bytes())
             staged.append(manifest_path)
-            canonical = trust_entry["materialization"].get(
-                "canonicalFirmwareFamily"
-            )
+            canonical = trust_entry["materialization"].get("canonicalFirmwareFamily")
             for entry in manifest["entries"]:
                 relative_path = Path(entry["path"])
                 if entry["path"] == "schemas/composition-profile-v2.schema.json":
@@ -1080,9 +1905,7 @@ class ReleasePackagePolicyTests(unittest.TestCase):
     def run_smoke_with_retired_support_policy(
         self,
         *,
-        relative_path: Path = Path(
-            "docs/contracts/support-publication-policy-v1.json"
-        ),
+        relative_path: Path = Path("docs/contracts/support-publication-policy-v1.json"),
         role: str = "publicationPolicy",
     ) -> subprocess.CompletedProcess[str]:
         with tempfile.TemporaryDirectory(

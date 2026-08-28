@@ -1,10 +1,13 @@
 using NvtFwCombiner.Application.Capabilities;
 using NvtFwCombiner.Application.Composition;
+using NvtFwCombiner.Application.InputInspection;
 using NvtFwCombiner.Domain.Composition;
 
 namespace NvtFwCombiner.Application.Authoring;
 
-internal sealed partial class CtrlRamAuthoringExperience : ICtrlRamAuthoring
+internal sealed partial class CtrlRamAuthoringExperience :
+    ICtrlRamAuthoring,
+    ICompiledInputSlotInspector<FirmwareInspectionStatusBatch>
 {
     private readonly ICtrlRamAuthoringAdapter _adapter;
     private readonly IRuntimeDependencyReadinessLeaseProvider _runtimeLeases;
@@ -17,13 +20,41 @@ internal sealed partial class CtrlRamAuthoringExperience : ICtrlRamAuthoring
         _runtimeLeases = runtimeLeases ?? throw new ArgumentNullException(nameof(runtimeLeases));
     }
 
-    /// <summary>Gets one coherent CtrlRAM region and input-slot discovery publication.</summary>
+    /// <summary>Gets the declared CtrlRAM regions and input slots before a base is accepted.</summary>
     public CtrlRamInspectionDisplay GetDiscoveryDisplay(
         string icId,
-        string number,
-        string? basePath = null)
+        string number)
     {
-        return _adapter.GetDiscoveryDisplay(icId, number, basePath);
+        return _adapter.GetDiscoveryDisplay(icId, number);
+    }
+
+    /// <inheritdoc />
+    public CtrlRamInspectionDisplay GetDiscoveryDisplayFromAcceptedBase(
+        string icId,
+        string number,
+        ReadOnlyMemory<byte> acceptedBaseBytes)
+    {
+        return _adapter.GetDiscoveryDisplayFromAcceptedBase(
+            icId,
+            number,
+            acceptedBaseBytes);
+    }
+
+    /// <inheritdoc />
+    public CompiledInputVersionObservation? ProjectFirmwareVersionConfirmationLease(ActiveSessionSnapshot session)
+    {
+        ArgumentNullException.ThrowIfNull(session);
+        return session.WorkflowId == ExperienceIds.CtrlRamReplace && session.HasCurrentInputInspection
+                ? session.InputSlotStatuses.SingleOrDefault(static status => status.AddressSpaceId == CompositionAddressSpaceIds.ReferenceBase)?
+                    .Observation.Versions.SingleOrDefault(static version =>
+                        version.Kind == CompiledInputVersionKind.TpReferenceFirmwareConfig)
+                : null;
+    }
+
+    /// <inheritdoc />
+    public bool IsFirmwareVersionConfirmationLeaseCurrent(ActiveSessionSnapshot current, ActiveSessionSnapshot lease)
+    {
+        return ReferenceEquals(current, lease);
     }
 
     /// <summary>Atomically prepares one exact CtrlRAM Replace session from host-read immutable inputs.</summary>
@@ -45,6 +76,16 @@ internal sealed partial class CtrlRamAuthoringExperience : ICtrlRamAuthoring
             out ActiveSessionSnapshot? acceptedSession,
             out IReadOnlyList<CompositionIssue> issues);
         return new CtrlRamAuthoringSessionPreparation(acceptedSession, issues);
+    }
+
+    /// <inheritdoc />
+    public AuthoringSessionTransitionResult AdoptInspectedBatch(
+        AuthoringSessionState session,
+        AuthoringCapabilityCatalogSnapshot catalog,
+        IReadOnlyCollection<AuthoringInputSlotStatus> statuses)
+    {
+        ArgumentNullException.ThrowIfNull(session);
+        return session.TryAdoptExactSlotFileInspectionBatch(catalog, statuses);
     }
 
     private bool TryPrepareSession(

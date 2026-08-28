@@ -20,32 +20,6 @@ public sealed partial class ReplaceSelectionModal : UserControl
             return;
         }
 
-        await viewModel.RefreshSelectedFirmwareInspectionsAsync();
-        if (!viewModel.CanBuildReplace)
-        {
-            return;
-        }
-
-        if (viewModel.IsCtrlRamReplaceModeSelected)
-        {
-            _ = await viewModel.TryOpenCtrlRamFirmwareVersionModalAsync();
-            return;
-        }
-
-        var topLevel = TopLevel.GetTopLevel(this);
-        if (topLevel is null)
-        {
-            return;
-        }
-
-        string? outputPath = await FirmwareFilePickerDialogs.PickReplacedFirmwareOutputPathAsync(
-            topLevel.StorageProvider,
-            viewModel.ReplaceOutputFileName);
-        if (string.IsNullOrWhiteSpace(outputPath))
-        {
-            return;
-        }
-
-        await viewModel.BuildReplaceAsync(outputPath);
+        _ = await MainWindow.OpenReplaceBuildSettingsAsync(viewModel);
     }
 }

@@ -1,0 +1,279 @@
+{
+  "schemaVersion": "1.0",
+  "workflowPath": ".github/workflows/release.yml",
+  "workflowRef": "refs/heads/main",
+  "workflowHeadRelation": "authenticated-protected-main-independent-of-candidate-source",
+  "candidateImplementationHead": "67aceb8d79fae16751031c507e7072aa60704d9e",
+  "trigger": "workflow_dispatch",
+  "topLevelPermissions": {
+    "actions": "read",
+    "contents": "read"
+  },
+  "topLevelSha256": "d961b41d1f5c8d489c1f5289a0b8b5ecf4b4a8416036b72e18cfd1f782b5b799",
+  "actionPins": {
+    "checkout": "actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0",
+    "setupPython": "actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1",
+    "downloadArtifact": "actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131",
+    "uploadArtifact": "actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a"
+  },
+  "jobInventorySha256": {
+    "candidate": "4c2bc0a1d5dbeef28b1745cac67c773c0ade88b78698a300550f76968908922a",
+    "promote": "0e258bc9d7ebb9fbea19c8a30cbfcdc9b981d7995934488af7e44e496e2020f7",
+    "published-smoke": "60d865fcd4c539dbc1bcbcd4617e645e94f2ce4c00e5ece2dbff08d01b8e9332",
+    "v0916-parity-compare": "0620aec73138d4514dff5c4392646a1d81d0d8c387d4ffa807182c535c158543",
+    "v0916-parity-attestation": "1b647179e8c1393284bc555bbd4e579017d20b8c7eecd21f292c6b5969a82746",
+    "v0916-parity-finalize": "bb17a8850c7d95526a43b96211b5adc8fcc9ef3f8c208d03ffd1bd192ebfdace"
+  },
+  "jobs": {
+    "v0916-parity-compare": {
+      "name": "release / v0.9.16 parity compare",
+      "needs": [
+        "candidate"
+      ],
+      "if": "${{ success() && needs.candidate.outputs.version == '1.0.0' }}",
+      "runsOn": "windows-latest",
+      "timeoutMinutes": 60,
+      "environment": null,
+      "permissions": {
+        "actions": "read",
+        "contents": "read"
+      },
+      "steps": [
+        {
+          "name": "Checkout authenticated parity workflow authority",
+          "uses": "actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0",
+          "with": {
+            "fetch-depth": 0,
+            "persist-credentials": false,
+            "ref": "${{ github.workflow_sha }}"
+          }
+        },
+        {
+          "name": "Download exact candidate assets",
+          "uses": "actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131",
+          "with": {
+            "name": "${{ needs.candidate.outputs.artifact-name }}",
+            "path": "artifacts/release"
+          }
+        },
+        {
+          "name": "Execute v0.9.16 parity comparison",
+          "shell": "pwsh",
+          "run": "python ./scripts/v0916_parity_certification.py compare --plan ./docs/contracts/v0916-parity-certification-v1.json --candidate-artifact-dir ./artifacts/release --output-root ./artifacts/v0916-parity"
+        },
+        {
+          "name": "Upload immutable parity comparison",
+          "uses": "actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a",
+          "with": {
+            "if-no-files-found": "error",
+            "name": "v0916-parity-comparison-${{ github.run_id }}",
+            "path": "artifacts/v0916-parity/comparison.json",
+            "retention-days": 30
+          }
+        }
+      ]
+    },
+    "v0916-parity-attestation": {
+      "name": "release / v0.9.16 parity attestation",
+      "needs": [
+        "candidate",
+        "v0916-parity-compare"
+      ],
+      "if": "${{ success() && needs.candidate.outputs.version == '1.0.0' }}",
+      "runsOn": "windows-latest",
+      "timeoutMinutes": 30,
+      "environment": "firmware-parity",
+      "permissions": {
+        "actions": "read",
+        "contents": "read"
+      },
+      "steps": [
+        {
+          "name": "Checkout authenticated parity workflow authority",
+          "uses": "actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0",
+          "with": {
+            "fetch-depth": 0,
+            "persist-credentials": false,
+            "ref": "${{ github.workflow_sha }}"
+          }
+        },
+        {
+          "name": "Download same-run parity comparison",
+          "uses": "actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131",
+          "with": {
+            "name": "v0916-parity-comparison-${{ github.run_id }}",
+            "path": "artifacts/v0916-parity"
+          }
+        },
+        {
+          "name": "Decode independently produced firmware-owner material",
+          "shell": "pwsh",
+          "env": {
+            "NFC_OWNER_ATTESTATION_B64": "${{ secrets.NFC_FIRMWARE_OWNER_ATTESTATION_B64 }}",
+            "NFC_OWNER_VERIFICATION_B64": "${{ secrets.NFC_FIRMWARE_OWNER_VERIFICATION_B64 }}",
+            "NFC_OWNER_VERIFIER_ID": "${{ secrets.NFC_FIRMWARE_OWNER_VERIFIER_ID }}"
+          },
+          "run": "if ([string]::IsNullOrWhiteSpace($env:NFC_OWNER_ATTESTATION_B64) -or\n    [string]::IsNullOrWhiteSpace($env:NFC_OWNER_VERIFICATION_B64) -or\n    [string]::IsNullOrWhiteSpace($env:NFC_OWNER_VERIFIER_ID)) {\n  throw 'Independent firmware-owner attestation, verification record, and verifier id are required.'\n}\n[IO.File]::WriteAllBytes(\n  (Join-Path (Resolve-Path ./artifacts/v0916-parity) 'owner-attestation.json'),\n  [Convert]::FromBase64String($env:NFC_OWNER_ATTESTATION_B64))\n[IO.File]::WriteAllBytes(\n  (Join-Path (Resolve-Path ./artifacts/v0916-parity) 'external-verification.json'),\n  [Convert]::FromBase64String($env:NFC_OWNER_VERIFICATION_B64))\npython ./scripts/v0916_parity_certification.py validate-owner-material `\n  --comparison ./artifacts/v0916-parity/comparison.json `\n  --attestation ./artifacts/v0916-parity/owner-attestation.json `\n  --verification-record ./artifacts/v0916-parity/external-verification.json `\n  --verifier-id $env:NFC_OWNER_VERIFIER_ID\nif ($LASTEXITCODE -ne 0) { throw 'Independent firmware-owner material failed validation.' }\n"
+        },
+        {
+          "name": "Upload immutable owner attestation",
+          "uses": "actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a",
+          "with": {
+            "if-no-files-found": "error",
+            "name": "v0916-parity-attestation-${{ github.run_id }}",
+            "path": "artifacts/v0916-parity/owner-attestation.json",
+            "retention-days": 30
+          }
+        },
+        {
+          "name": "Upload immutable external verification",
+          "uses": "actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a",
+          "with": {
+            "if-no-files-found": "error",
+            "name": "v0916-parity-verification-${{ github.run_id }}",
+            "path": "artifacts/v0916-parity/external-verification.json",
+            "retention-days": 30
+          }
+        }
+      ]
+    },
+    "v0916-parity-finalize": {
+      "name": "release / v0.9.16 parity finalize",
+      "needs": [
+        "candidate",
+        "v0916-parity-attestation"
+      ],
+      "if": "${{ success() && needs.candidate.outputs.version == '1.0.0' }}",
+      "runsOn": "windows-latest",
+      "timeoutMinutes": 30,
+      "environment": null,
+      "permissions": {
+        "actions": "read",
+        "contents": "read",
+        "deployments": "read"
+      },
+      "steps": [
+        {
+          "name": "Checkout authenticated parity workflow authority",
+          "uses": "actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0",
+          "with": {
+            "fetch-depth": 0,
+            "persist-credentials": false,
+            "ref": "${{ github.workflow_sha }}"
+          }
+        },
+        {
+          "name": "Download same-run parity comparison",
+          "uses": "actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131",
+          "with": {
+            "name": "v0916-parity-comparison-${{ github.run_id }}",
+            "path": "artifacts/v0916-parity"
+          }
+        },
+        {
+          "name": "Download same-run owner attestation",
+          "uses": "actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131",
+          "with": {
+            "name": "v0916-parity-attestation-${{ github.run_id }}",
+            "path": "artifacts/v0916-parity"
+          }
+        },
+        {
+          "name": "Download same-run external verification",
+          "uses": "actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131",
+          "with": {
+            "name": "v0916-parity-verification-${{ github.run_id }}",
+            "path": "artifacts/v0916-parity"
+          }
+        },
+        {
+          "name": "Finalize exact v1.0.0 parity evidence",
+          "shell": "pwsh",
+          "env": {
+            "GH_TOKEN": "${{ github.token }}"
+          },
+          "run": "$verification = Get-Content -LiteralPath `\n  ./artifacts/v0916-parity/external-verification.json -Raw | ConvertFrom-Json\n$verifierId = [string]$verification.verifierId\nif ([string]::IsNullOrWhiteSpace($verifierId)) {\n  throw 'External firmware-owner verifier id is missing.'\n}\npython ./scripts/v0916_parity_certification.py finalize-protected `\n  --comparison ./artifacts/v0916-parity/comparison.json `\n  --attestation ./artifacts/v0916-parity/owner-attestation.json `\n  --verification-record ./artifacts/v0916-parity/external-verification.json `\n  --verifier-id $verifierId `\n  --repository ${{ github.repository }} `\n  --run-id ${{ github.run_id }} `\n  --workflow-sha ${{ github.workflow_sha }} `\n  --output ./artifacts/v0916-parity/terminal-evidence.json\nif ($LASTEXITCODE -ne 0) { throw 'Terminal v1.0.0 parity finalization failed.' }\n"
+        },
+        {
+          "name": "Upload terminal parity evidence",
+          "uses": "actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a",
+          "with": {
+            "if-no-files-found": "error",
+            "name": "v0916-parity-terminal-${{ github.run_id }}",
+            "path": "artifacts/v0916-parity/terminal-evidence.json",
+            "retention-days": 30
+          }
+        }
+      ]
+    }
+  },
+  "promotionGate": {
+    "jobId": "promote",
+    "needs": [
+      "candidate",
+      "v0916-parity-finalize"
+    ],
+    "if": "${{ !cancelled() && needs.candidate.result == 'success' && ((needs.candidate.outputs.version == '1.0.0' && needs.v0916-parity-finalize.result == 'success') || (needs.candidate.outputs.version == '1.0.1' && needs.v0916-parity-finalize.result == 'skipped')) }}",
+    "stepPrefixNames": [
+      "Checkout protected release authority",
+      "Setup pinned Python for release policy",
+      "Download terminal v0.9.16 parity evidence",
+      "Require terminal parity pass before promotion"
+    ],
+    "stepNames": [
+      "Checkout protected release authority",
+      "Setup pinned Python for release policy",
+      "Download terminal v0.9.16 parity evidence",
+      "Require terminal parity pass before promotion",
+      "Reconfirm release authority and source identity",
+      "Download prepared candidate assets",
+      "Verify closed candidate identity and digests",
+      "Create or verify immutable annotated tag",
+      "Publish or recover immutable GitHub Release",
+      "Verify published assets and source downloads"
+    ],
+    "stepsSha256": "cbf679017a74f5301f7601b2239d840512a5211980bf48ccf3183b4e0c81e41c",
+    "steps": [
+      {
+        "name": "Checkout protected release authority",
+        "uses": "actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0",
+        "with": {
+          "ref": "main",
+          "fetch-depth": 0,
+          "persist-credentials": false
+        }
+      },
+      {
+        "name": "Setup pinned Python for release policy",
+        "uses": "actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1",
+        "with": {
+          "python-version": "3.13"
+        }
+      },
+      {
+        "name": "Download terminal v0.9.16 parity evidence",
+        "if": "${{ needs.candidate.outputs.version == '1.0.0' }}",
+        "uses": "actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131",
+        "with": {
+          "name": "v0916-parity-terminal-${{ github.run_id }}",
+          "path": "artifacts/v0916-parity"
+        }
+      },
+      {
+        "name": "Require terminal parity pass before promotion",
+        "if": "${{ needs.candidate.outputs.version == '1.0.0' }}",
+        "shell": "pwsh",
+        "run": "python ./scripts/v0916_parity_certification.py validate-terminal --evidence ./artifacts/v0916-parity/terminal-evidence.json"
+      }
+    ]
+  },
+  "forbidden": {
+    "continueOnError": true,
+    "unprotectedEnvironment": true,
+    "unpinnedAction": true,
+    "writePermissions": true,
+    "alternateComparatorCommand": true,
+    "artifactNameOrPathDrift": true,
+    "conditionalBypass": true
+  }
+}

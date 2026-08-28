@@ -4,6 +4,7 @@
 - Owners: Product owner, architecture owner, firmware owner
 - Risk: R3
 - Depends on: [ADR 0035](0035-ab-topology-operator-selection.md) and [ADR 0036](0036-output-destination-and-ab-naming-v2.md)
+- Bundle-mode public delivery additionally governed by: [ADR 0050](0050-atomic-output-bundle-delivery.md) on 2026-08-20
 
 ## Context
 
@@ -36,13 +37,23 @@ the existing NT51919/NT51929/NT51932 perfect-family maps.  NT51950 and NT51951
 do not satisfy this region contract and show no A-only option; their distinct
 layouts remain outside this feature.
 
-Choosing **Yes** opens two native Save dialogs in sequence: first the primary AB
-FlashCode name, then the A FlashCode name.  Cancelling either dialog commits no
-output.  Choosing **No** opens only the primary AB Save dialog.  The A artifact
-is a direct immutable slice of the one completed AB output.  It does not invoke
-Standard Merge, re-read or modify any selected input, alter the primary AB
-output, calculate CRC, execute postbuild, or infer a route from a golden
-artifact.
+The desktop keeps the A-only and bundle choices independent.  With bundle mode
+off, choosing the optional A FlashCode opens two native Save dialogs in
+sequence: first the primary AB FlashCode name, then the A FlashCode name.
+Cancelling either dialog commits no output.  Omitting A-only opens only the
+primary AB Save dialog.
+
+With bundle mode on, ADR 0050 applies: the canonical AB output, an enabled
+A-only artifact, and the accepted immutable sources are staged and promoted as
+one directory transaction.  Bundle mode has no independent A-only Save
+destination, and cancellation or failure publishes no visible partial bundle.
+The CLI exposes A-only delivery only through this bundle mode;
+`--include-a-flashcode` requires `--bundle-parent`.
+
+In both delivery modes, the A artifact is a direct immutable slice of the one
+completed AB output.  It does not invoke Standard Merge, re-read or modify any
+selected input, alter the primary AB output, calculate CRC, execute postbuild,
+or infer a route from a golden artifact.
 
 The automatic suggested A FlashCode name is:
 
@@ -52,19 +63,25 @@ NT{ic}_FlashCode_{dp-a}{tp-a}_{date}.bin
 
 `ic`, `dp-a`, `tp-a`, and the UTC `date` are the already recorded typed tokens
 from the authoritative AB execution.  Display formatting such as `D06-05` is
-not used in the filename.  An operator-selected destination is the effective
-secondary-output identity.  It may atomically replace an unrelated file, but
-it must not alias any selected AB input or the primary AB output.
+not used in the filename.  In loose desktop delivery, the operator-selected
+destination is the effective secondary-output identity.  It may atomically
+replace an unrelated file, but it must not alias a selected AB input or the
+primary AB output.  In bundle mode, the same typed name identifies the artifact
+inside the allocated bundle rather than an independent destination.
 
 The primary AB report and its effective override name remain unchanged under
 ADR 0036.  The report records the A artifact in `DeliveryArtifacts`, including
-its exact selected filename, size, SHA-256, source range, and commit status.
-It is not a second composition run and cannot alter the primary report's
-`Output` identity.  Both destinations are checked against all selected inputs
-and against each other before the primary output is committed.  If an
-unexpected secondary I/O failure occurs after primary commit, the report records
-the primary output plus an uncommitted A delivery artifact and an error; the UI
-opens that report rather than showing the all-success completion page.
+its exact filename, size, SHA-256, source range, and commit status.  It is not a
+second composition run and cannot alter the primary report's `Output` identity.
+
+For loose desktop delivery, both destinations are checked against all selected
+inputs and against each other before the primary output is committed.  If an
+unexpected secondary I/O failure occurs after primary commit, the report
+records the primary output plus an uncommitted A delivery artifact and an
+error; the UI opens that report rather than showing the all-success completion
+page.  For bundle delivery, one successful atomic receipt records every
+committed artifact; a failed promotion publishes no visible partial bundle and
+cannot show the all-success completion page.
 
 ## Consequences
 
@@ -83,7 +100,10 @@ opens that report rather than showing the all-success completion page.
 - Test that the exported bytes exactly equal the successful AB output prefix.
 - Test the typed FlashCode name, selected delivery filename/report provenance,
   and the absence of a candidate for NT51950/NT51951.
-- Test rejection when the secondary destination aliases the AB output or an
-  input before the primary commit, while preserving the selected sources.
-- Test that an A-only delivery I/O failure remains visible as partial delivery
-  and cannot show a successful completion confirmation.
+- Test loose desktop destination alias rejection before primary commit, plus a
+  post-primary A-only I/O failure that remains visible as partial delivery and
+  cannot show a successful completion.
+- Test that CLI A-only delivery requires bundle intent and cannot create a
+  loose secondary artifact.
+- Test bundle cancellation and injected I/O failure before promotion, with no
+  visible partial folder and all selected sources preserved.

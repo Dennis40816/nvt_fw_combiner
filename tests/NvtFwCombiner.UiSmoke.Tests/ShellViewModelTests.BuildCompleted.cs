@@ -115,26 +115,6 @@ public sealed partial class BuildOutcomeTests
         Assert.True(viewModel.BuildResult.HasLatestCommittedOutput);
     }
 
-    /// <summary>The A FlashCode choice resolves before output selection and cannot leave the prompt open after either answer.</summary>
-    [Fact]
-    public async Task AbAFlashCodeDeliveryPromptResolvesBeforeBuild()
-    {
-        MainWindowViewModel viewModel = PresentationTestHost.CreateViewModel();
-
-        Task<bool> yes = viewModel.Merge.PromptForAbAFlashCodeDeliveryAsync();
-        Assert.True(viewModel.Merge.IsAbAFlashCodeDeliveryPromptOpen);
-        viewModel.Merge.AcceptAbAFlashCodeDeliveryPromptCommand.Execute(null);
-
-        Assert.True(await yes);
-        Assert.False(viewModel.Merge.IsAbAFlashCodeDeliveryPromptOpen);
-
-        Task<bool> no = viewModel.Merge.PromptForAbAFlashCodeDeliveryAsync();
-        viewModel.Merge.DeclineAbAFlashCodeDeliveryPromptCommand.Execute(null);
-
-        Assert.False(await no);
-        Assert.False(viewModel.Merge.IsAbAFlashCodeDeliveryPromptOpen);
-    }
-
     /// <summary>Completion shows the already-delivered A FlashCode rather than offering a second post-Build export action.</summary>
     [Fact]
     public void CompletedBuildShowsAlreadyDeliveredAFlashCode()
@@ -224,7 +204,6 @@ public sealed partial class BuildOutcomeTests
     [InlineData("firmware-number-mismatch")]
     [InlineData("navigation-clear")]
     [InlineData("report")]
-    [InlineData("ab-a-flashcode-delivery")]
     [InlineData("build-completed")]
     [InlineData("hex-insert")]
     [InlineData("hex-save")]
@@ -300,7 +279,7 @@ public sealed partial class BuildOutcomeTests
                 viewModel.WorkflowSession.IsFirmwareNumberMismatchModalOpen = true;
                 break;
             case "navigation-clear":
-                viewModel.IsNavigationClearConfirmationOpen = true;
+                viewModel.Navigation.IsNavigationClearConfirmationOpen = true;
                 break;
             case "report":
                 viewModel.Reports.LoadReportJson(ReportJsonSamples.Succeeded(runId: "rail-blocking-surface"), "report.json");
@@ -310,9 +289,6 @@ public sealed partial class BuildOutcomeTests
                 Assert.True(viewModel.TryShowBuildCompleted(
                     CreateRunResult(succeeded: true, outputPath: "output.bin"),
                     build: true));
-                break;
-            case "ab-a-flashcode-delivery":
-                _ = viewModel.Merge.PromptForAbAFlashCodeDeliveryAsync();
                 break;
             case "hex-insert":
                 viewModel.HexEditorWorkspace.IsInsertBytesPromptOpen = true;
@@ -345,16 +321,13 @@ public sealed partial class BuildOutcomeTests
                 viewModel.WorkflowSession.DismissFirmwareNumberMismatchCommand.Execute(null);
                 break;
             case "navigation-clear":
-                viewModel.CancelNavigationClearCommand.Execute(null);
+                viewModel.Navigation.CancelNavigationClearCommand.Execute(null);
                 break;
             case "report":
                 viewModel.Reports.CloseReportCommand.Execute(null);
                 break;
             case "build-completed":
                 viewModel.BuildResult.Close();
-                break;
-            case "ab-a-flashcode-delivery":
-                viewModel.Merge.DeclineAbAFlashCodeDeliveryPromptCommand.Execute(null);
                 break;
             case "hex-insert":
                 viewModel.HexEditorWorkspace.CancelInsertBytesCommand.Execute(null);
@@ -376,9 +349,8 @@ public sealed partial class BuildOutcomeTests
             "workflow-context" => viewModel.WorkflowSession.IsWorkflowContextModalOpen,
             "firmware-ic-mismatch" => viewModel.WorkflowSession.IsFirmwareIcMismatchModalOpen,
             "firmware-number-mismatch" => viewModel.WorkflowSession.IsFirmwareNumberMismatchModalOpen,
-            "navigation-clear" => viewModel.IsNavigationClearConfirmationOpen,
+            "navigation-clear" => viewModel.Navigation.IsNavigationClearConfirmationOpen,
             "report" => viewModel.Reports.IsReportModalOpen,
-            "ab-a-flashcode-delivery" => viewModel.Merge.IsAbAFlashCodeDeliveryPromptOpen,
             "build-completed" => viewModel.BuildResult.IsOpen,
             "hex-insert" => viewModel.HexEditorWorkspace.IsInsertBytesPromptOpen,
             "hex-save" => viewModel.HexEditorWorkspace.IsSaveConfirmationOpen,
@@ -502,11 +474,13 @@ public sealed partial class BuildOutcomeTests
         bool isDeliveryComplete = true,
         string? deliveryFailureMessage = null)
     {
-        CompositionRunResult clone = CloneRunResult(source, source.CommittedOutputId, source.Report);
-        clone.DeliveryArtifacts = [.. deliveryArtifacts];
-        clone.IsDeliveryComplete = isDeliveryComplete;
-        clone.DeliveryFailureMessage = deliveryFailureMessage;
-        return clone;
+        return CloneRunResult(
+            source,
+            source.CommittedOutputId,
+            source.Report,
+            deliveryArtifacts,
+            isDeliveryComplete,
+            deliveryFailureMessage);
     }
 
     private sealed class RecordingFileRevealService(bool result) : IFileRevealService

@@ -207,6 +207,7 @@ internal static partial class V2CompositionPlanCompiler
                     : CompiledInputInstancePolicy.PerBinding)),
             regionAccess.Contract,
             capabilityAdmissions,
+            runtimeExecutable: profile.Promotion.Stage == CompiledProfilePromotionStage.Supported,
             additionalValidationRequirements:
             [
                 .. inputValidations,

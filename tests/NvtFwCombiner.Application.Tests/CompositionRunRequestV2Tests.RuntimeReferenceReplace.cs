@@ -11,6 +11,55 @@ namespace NvtFwCombiner.Application.Tests;
 
 public sealed partial class CompositionRunRequestV2Tests
 {
+    /// <summary>A typed General Replace choice cannot bind a differently shaped compiler result.</summary>
+    [Fact]
+    public void DynamicGeneralReplaceCompilationRejectsRouteSelectorModeDrift()
+    {
+        CompiledComposition composition = CreateRuntimeReferenceCandidate();
+        var choice = new CapabilityNumberChoice(
+            IcNumberSelectionTokens.Cascade,
+            "Cascade");
+
+        ArgumentException exception = Assert.Throws<ArgumentException>(() =>
+            WorkflowIcNumberChoiceProjection.ValidateCompilation(choice, composition));
+
+        Assert.Equal("composition", exception.ParamName);
+        Assert.Contains("IC-number mode", exception.Message, StringComparison.Ordinal);
+    }
+
+    /// <summary>The final run-request boundary rejects a stale selector mode independently of UI reconciliation.</summary>
+    [Fact]
+    public void RuntimeReferenceCandidateRejectsIncompatibleIcNumberMode()
+    {
+        CompiledComposition composition = CreateRuntimeReferenceCandidate();
+
+        ArgumentException exception = Assert.Throws<ArgumentException>(() =>
+            new CompositionRunRequest(
+                "runtime-reference-stale-selector",
+                composition,
+                [
+                    new InputArtifactBinding(
+                        "reference",
+                        "reference",
+                        "reference-artifact",
+                        "base.bin",
+                        CompiledInputArtifactClass.ReferenceImage),
+                    new InputArtifactBinding(
+                        "source-a",
+                        "source-a",
+                        "source-artifact",
+                        "patch.bin",
+                        CompiledInputArtifactClass.Auxiliary),
+                ],
+                "runtime-reference.bin",
+                icNumberSelection: new IcNumberSelection(
+                    IcNumberInputMode.CascadeSelector,
+                    ["cascade"])));
+
+        Assert.Equal("selection", exception.ParamName);
+        Assert.Contains("mode must match", exception.Message, StringComparison.Ordinal);
+    }
+
     /// <summary>Runtime-reference publication requires independently derived processor, metadata, and typed plan proof.</summary>
     [Fact]
     public void DynamicRuntimeReferenceCapabilityRequiresTypedOwnerBindings()
@@ -278,6 +327,36 @@ public sealed partial class CompositionRunRequestV2Tests
             composition.V2Details.Provenance.Context);
     }
 
+    /// <summary>A supported runtime-reference artifact uses ordinary runtime admission without the candidate exception.</summary>
+    [Fact]
+    public void RuntimeReferenceSupportedArtifactUsesOrdinaryRuntimeAdmission()
+    {
+        CompiledComposition composition = CreateRuntimeReferenceCandidate(runtimeExecutable: true);
+
+        var request = new CompositionRunRequest(
+            "runtime-reference-supported",
+            composition,
+            [
+                new InputArtifactBinding(
+                    "reference",
+                    "reference",
+                    "reference-artifact",
+                    "base.bin",
+                    CompiledInputArtifactClass.ReferenceImage),
+                new InputArtifactBinding(
+                    "source-a",
+                    "source-a",
+                    "source-artifact",
+                    "patch.bin",
+                    CompiledInputArtifactClass.Auxiliary),
+            ],
+            "runtime-reference.bin",
+            icNumberSelection: new IcNumberSelection(IcNumberInputMode.SingleSelector, ["single"]));
+
+        Assert.Equal(CompiledCompositionEligibility.V2RuntimeExecutable, composition.Eligibility);
+        Assert.Same(composition, request.CompiledComposition);
+    }
+
     /// <summary>Verifies the runtime-reference context has an explicit compilation-fingerprint vector.</summary>
     [Fact]
     public void RuntimeReferenceCandidateHasStableCompilationFingerprint()
@@ -346,7 +425,8 @@ public sealed partial class CompositionRunRequestV2Tests
         IReadOnlyList<ByteRange>? processorAdditionalWriteRanges = null,
         bool useNestedCtrlRamMap = false,
         TopologyRequirement? topologyRequirement = null,
-        TopologySelection? requestedTopology = null)
+        TopologySelection? requestedTopology = null,
+        bool runtimeExecutable = false)
     {
         FirmwareFamilyResolutionDefinition.ResolvedFirmwareImageMap resolvedMap = CreateResolvedMap(
             modeId,
@@ -383,7 +463,11 @@ public sealed partial class CompositionRunRequestV2Tests
                 resolvedMap,
                 allowsConditionalProcessor || processorId is not null,
                 processorId is null ? [] : ["processor-write"]),
-            new CompiledProfilePromotion(CompiledProfilePromotionStage.ExecutableCandidate, []),
+            new CompiledProfilePromotion(
+                runtimeExecutable
+                    ? CompiledProfilePromotionStage.Supported
+                    : CompiledProfilePromotionStage.ExecutableCandidate,
+                []),
             ["runtime-reference-evidence"],
             [],
             []);
@@ -513,7 +597,9 @@ public sealed partial class CompositionRunRequestV2Tests
             ImageInitialization.Reference("output-image", "reference", 4),
             spaces,
             [.. mappingOperations, .. processorOperations]);
-        return CompiledComposition.CreateV2(plan, details);
+        return runtimeExecutable
+            ? CompiledComposition.CreateV2RuntimeExecutable(plan, details)
+            : CompiledComposition.CreateV2(plan, details);
 
         static IReadOnlyList<ExternalProcessorWriteRangeSection>
             CreateSyntheticPostbuildWriteSections(

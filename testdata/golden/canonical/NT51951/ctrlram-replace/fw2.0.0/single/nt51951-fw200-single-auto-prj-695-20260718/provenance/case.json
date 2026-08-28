@@ -6,6 +6,13 @@
   "variantOrVersion": "fw2.0.0",
   "topology": "single",
   "directGolden": true,
+  "testDisposition": {
+    "kind": "allowed-byte-difference",
+    "evidenceRefs": [
+      "tests/NvtFwCombiner.Bootstrap.Tests/Nt51951CtrlRamFw200EvidenceTests.cs#V2ProducesLockedOutputWithCrcOnlyCombinerVersionDeviationAsync"
+    ],
+    "differenceContractProperty": "phaseBResult"
+  },
   "sourceClassification": "private-owner-approved-golden",
   "ownerApproval": "Repository owner explicitly approved committing all golden payloads to Git on 2026-07-18. Technical project and AUTO_PRJ data is retained; personal data, placeholders, PDBs, and unapproved executable copies are excluded.",
   "project": "AUTO_PRJ-695",
@@ -44,7 +51,7 @@
     {
       "artifactId": "expected-output",
       "role": "expected",
-      "path": "NT51951/ctrlram-replace/fw2.0.0/single/nt51951-fw200-single-auto-prj-695-20260718/expected/NT51950TT_FW_D06T03.bin",
+      "path": "NT51951/ctrlram-replace/fw2.0.0/single/nt51951-fw200-single-auto-prj-695-20260718/expected/nt51951-expected-output.bin",
       "size": 524288,
       "sha256": "c1cd54d93af431727220adc37fec2488765909dc09cb917d1ff69f6087bb6b69",
       "legacyPaths": [
@@ -56,7 +63,7 @@
     {
       "artifactId": "nf-ctrlram-input",
       "role": "input",
-      "path": "NT51951/ctrlram-replace/fw2.0.0/single/nt51951-fw200-single-auto-prj-695-20260718/inputs/postbuild/NF_Ctrlram.bin",
+      "path": "NT51951/ctrlram-replace/fw2.0.0/single/nt51951-fw200-single-auto-prj-695-20260718/inputs/postbuild/nt51951-nf-ctrlram-input.bin",
       "size": 2284,
       "sha256": "7cb1a116876a13bb24bebc66ce36800f9c9117eacadb352cdbd5640720117d86",
       "legacyPaths": [
@@ -68,7 +75,7 @@
     {
       "artifactId": "normal-ctrlram-input",
       "role": "input",
-      "path": "NT51951/ctrlram-replace/fw2.0.0/single/nt51951-fw200-single-auto-prj-695-20260718/inputs/postbuild/Normal_Ctrlram.bin",
+      "path": "NT51951/ctrlram-replace/fw2.0.0/single/nt51951-fw200-single-auto-prj-695-20260718/inputs/postbuild/nt51951-normal-ctrlram-input.bin",
       "size": 655360,
       "sha256": "31669cd9413b7a7bd463eaa5d6b40a72e3c34ff67238f6e72d13e073397621e7",
       "legacyPaths": [
@@ -80,7 +87,7 @@
     {
       "artifactId": "vn-ctrlram-input",
       "role": "input",
-      "path": "NT51951/ctrlram-replace/fw2.0.0/single/nt51951-fw200-single-auto-prj-695-20260718/inputs/postbuild/VN_Ctrlram.bin",
+      "path": "NT51951/ctrlram-replace/fw2.0.0/single/nt51951-fw200-single-auto-prj-695-20260718/inputs/postbuild/nt51951-vn-ctrlram-input.bin",
       "size": 8444,
       "sha256": "553fb914d6e38b0aadfd47e68ecdf167958f301e59661e379f484324e9f28946",
       "legacyPaths": [
@@ -92,6 +99,7 @@
   ],
   "phaseBResult": {
     "status": "v1-v2-parity-routed-combiner-version-crc-delta-classified",
+    "addressSpaceId": "output-image",
     "routeProfileId": "nt51951-ctrlram-replace-fw200-single",
     "routeProfileVersion": "0.1.0",
     "ownerExpectedSha256": "c1cd54d93af431727220adc37fec2488765909dc09cb917d1ff69f6087bb6b69",

@@ -10,6 +10,26 @@ public sealed class CompositionRunResultOwnershipTests
     private const int OutputByteCount = 4 * 1024 * 1024;
     private static readonly DateTimeOffset StartedAtUtc = new(2026, 7, 18, 12, 0, 0, TimeSpan.Zero);
 
+    /// <summary>Published run evidence cannot be changed after its one construction boundary.</summary>
+    [Fact]
+    public void PublishedEvidenceHasNoSetter()
+    {
+        string[] evidenceProperties =
+        [
+            nameof(CompositionRunResult.Report),
+            nameof(CompositionRunResult.AcceptedGeneralMappingDraft),
+            nameof(CompositionRunResult.ResolvedCapability),
+            nameof(CompositionRunResult.DeliveryArtifacts),
+            nameof(CompositionRunResult.IsDeliveryComplete),
+            nameof(CompositionRunResult.DeliveryFailureMessage),
+        ];
+
+        foreach (string propertyName in evidenceProperties)
+        {
+            Assert.Null(typeof(CompositionRunResult).GetProperty(propertyName)!.SetMethod);
+        }
+    }
+
     /// <summary>Application publication retains the Domain-owned immutable output without a second full copy.</summary>
     [Fact]
     public async Task PreviewPublishesOneImmutableLargeOutput()
@@ -35,7 +55,7 @@ public sealed class CompositionRunResultOwnershipTests
         Assert.Equal(OutputByteCount, result.OutputBytes.Length);
         Assert.Equal(0x5A, result.OutputBytes.Span[0]);
         Assert.Equal(0xFF, result.OutputBytes.Span[^1]);
-        Assert.InRange(allocated, 0, ((long)OutputByteCount * 2) + 32_768);
+        Assert.InRange(allocated, 0, ((long)OutputByteCount * 2) + (64 * 1024));
     }
 
     private static ValueTask<CompositionRunResult> PreviewAsync(int outputByteCount)

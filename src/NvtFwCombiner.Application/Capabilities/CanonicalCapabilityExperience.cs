@@ -25,64 +25,39 @@ public sealed class CanonicalCapabilityExperience : ICompositionCapabilityExperi
     }
 
     /// <inheritdoc />
-    public string DefaultIcId
+    public CapabilitySelectorPublication GetSelectorPublication()
     {
-        get
-        {
-            CanonicalCapabilityCatalogSnapshot snapshot =
-                _catalog.GetCurrentSnapshot();
-            return snapshot.Capabilities
-                .Where(static capability => IsAuthorable(capability.Authoring))
-                .Select(static capability => capability.Identity)
-                .Concat(snapshot.DynamicRoutes
-                    .Where(static route => IsAuthorable(route.Authoring))
-                    .Select(static route => route.Identity))
-                .DistinctBy(static identity => identity.RouteId, StringComparer.Ordinal)
-                .GroupBy(static identity => identity.IcId, StringComparer.Ordinal)
-                .OrderByDescending(static group => group.Count())
-                .ThenByDescending(static group => group
-                    .Select(static identity => identity.WorkflowId)
-                    .Distinct(StringComparer.Ordinal)
-                    .Count())
-                .ThenBy(static group => group.Key, StringComparer.Ordinal)
-                .Select(static group => group.Key)
-                .FirstOrDefault() ?? throw new InvalidOperationException(
-                    "The canonical capability publication has no authorable IC route.");
-        }
+        return _catalog.GetCurrentSnapshot().SelectorPublication;
     }
+
+    /// <inheritdoc />
+    public string DefaultIcId => GetSelectorPublication().DefaultIcId ??
+        throw new InvalidOperationException(
+            "The canonical capability publication has no authorable IC route.");
 
     /// <inheritdoc />
     public IReadOnlyList<string> GetIcIds()
     {
-        CanonicalCapabilityCatalogSnapshot snapshot = _catalog.GetCurrentSnapshot();
-        return Array.AsReadOnly(
-            snapshot.Capabilities
-                .Where(static capability => IsAuthorable(capability.Authoring))
-                .Select(static capability => capability.Identity.IcId)
-                .Concat(snapshot.DynamicRoutes
-                    .Where(static route => IsAuthorable(route.Authoring))
-                    .Select(static route => route.Identity.IcId))
-                .Distinct(StringComparer.Ordinal)
-                .Order(StringComparer.Ordinal)
-                .ToArray());
+        return GetSelectorPublication().IcIds;
     }
 
     /// <inheritdoc />
     public IReadOnlyList<CapabilityNumberChoice> GetNumberSelectionChoices(
         string icId)
     {
-        return _catalog.GetCurrentSnapshot().Disclosure.GetNumberChoices(icId);
+        return GetSelectorPublication().GetNumberSelectionChoices(icId);
     }
 
     /// <inheritdoc />
     public CapabilityCatalogSummary GetCatalogSummary()
     {
-        IReadOnlyList<string> icIds = GetIcIds();
+        CanonicalCapabilityCatalogSnapshot snapshot = _catalog.GetCurrentSnapshot();
+        CapabilitySelectorPublication selector = snapshot.SelectorPublication;
         return new CapabilityCatalogSummary(
-            icIds.Count,
-            GetStandardMergeProfileSummaries().Count,
-            GetDpReplaceProfileSummaries().Count,
-            CountAuthorableIcs(ExperienceIds.CtrlRamReplace));
+            selector.IcIds.Count,
+            GetProfileSummaries(snapshot, ExperienceIds.StandardMerge).Count,
+            GetProfileSummaries(snapshot, ExperienceIds.DpReplace).Count,
+            CountAuthorableIcs(selector, ExperienceIds.CtrlRamReplace));
     }
 
     /// <inheritdoc />
@@ -137,12 +112,12 @@ public sealed class CanonicalCapabilityExperience : ICompositionCapabilityExperi
         string unsupportedReason = workflowId is null
             ? "The selected Replace mode is not declared by the canonical capability contract."
             : isDpReplace
-                ? "No owner-approved DP Replace profile/map is registered for this IC."
+                ? "DP Replace authoring is hidden until the 1.1.0 retirement decision."
                 : "No owner-approved executable and safety contract is registered for this IC and Replace mode.";
         string openCondition = workflowId is null
             ? "Add an owner-reviewed capability definition, profile/safety contract, and full-byte evidence."
             : isDpReplace
-                ? "Add the IC-specific DP map/profile, full-byte golden parity, and firmware-owner review."
+                ? "At 1.1.0, owner must retire the route or re-enable authoring after approved AB/non-AB admission evidence."
                 : "Owner must reactivate the scope with a safe executable contract, direct evidence, and firmware-owner review.";
         return CapabilityWorkflowReadinessProjector.Project(
             _supportMatrix.Query().Matrix,
@@ -184,7 +159,8 @@ public sealed class CanonicalCapabilityExperience : ICompositionCapabilityExperi
         return _catalog.GetCurrentSnapshot().Disclosure.IsDpPerspectiveIc(icId);
     }
 
-    internal CapabilityProfileSummary? FindStandardMergeProfileSummary(
+    /// <inheritdoc />
+    public CapabilityProfileSummary? FindStandardMergeProfileSummary(
         string icId)
     {
         string normalizedIcId = IcIdentifier.Normalize(icId);
@@ -192,7 +168,8 @@ public sealed class CanonicalCapabilityExperience : ICompositionCapabilityExperi
             StringComparer.Ordinal.Equals(summary.IcId, normalizedIcId));
     }
 
-    internal bool IsKnownIcId(string icId)
+    /// <inheritdoc />
+    public bool IsKnownIcId(string icId)
     {
         return GetIcIds().Contains(
             IcIdentifier.Normalize(icId),
@@ -202,53 +179,28 @@ public sealed class CanonicalCapabilityExperience : ICompositionCapabilityExperi
     private ReadOnlyCollection<CapabilityProfileSummary> GetProfileSummaries(
         string workflowId)
     {
-        CanonicalCapabilityCatalogSnapshot snapshot = _catalog.GetCurrentSnapshot();
-        var authorableIcs = snapshot.Capabilities
-            .Where(capability =>
-                IsAuthorable(capability.Authoring) &&
-                StringComparer.Ordinal.Equals(
-                    capability.Identity.WorkflowId,
-                    workflowId))
-            .Select(static capability => capability.Identity.IcId)
-            .Concat(snapshot.DynamicRoutes
-                .Where(route =>
-                    IsAuthorable(route.Authoring) &&
-                    StringComparer.Ordinal.Equals(
-                        route.Identity.WorkflowId,
-                        workflowId))
-                .Select(static route => route.Identity.IcId))
-            .ToHashSet(StringComparer.Ordinal);
+        return GetProfileSummaries(_catalog.GetCurrentSnapshot(), workflowId);
+    }
+
+    private static ReadOnlyCollection<CapabilityProfileSummary> GetProfileSummaries(
+        CanonicalCapabilityCatalogSnapshot snapshot,
+        string workflowId)
+    {
         return Array.AsReadOnly(
         [
             .. snapshot.Disclosure.GetProfileSummaries(workflowId)
-                .Where(summary => authorableIcs.Contains(summary.IcId))
+                .Where(summary => snapshot.SelectorPublication
+                    .IsWorkflowAuthorable(summary.IcId, workflowId))
                 .OrderBy(static summary => summary.IcId, StringComparer.Ordinal)
                 .ThenBy(static summary => summary.ProfileId, StringComparer.Ordinal),
         ]);
     }
 
-    private int CountAuthorableIcs(string workflowId)
+    private static int CountAuthorableIcs(
+        CapabilitySelectorPublication selector,
+        string workflowId)
     {
-        CanonicalCapabilityCatalogSnapshot snapshot = _catalog.GetCurrentSnapshot();
-        return snapshot.Capabilities
-            .Where(capability => IsAuthorable(capability.Authoring) &&
-                StringComparer.Ordinal.Equals(
-                    capability.Identity.WorkflowId,
-                    workflowId))
-            .Select(static capability => capability.Identity.IcId)
-            .Concat(snapshot.DynamicRoutes
-                .Where(route => IsAuthorable(route.Authoring) &&
-                    StringComparer.Ordinal.Equals(
-                        route.Identity.WorkflowId,
-                        workflowId))
-                .Select(static route => route.Identity.IcId))
-            .Distinct(StringComparer.Ordinal)
-            .Count();
-    }
-
-    private static bool IsAuthorable(
-        PinnedCapabilityDecision<CapabilityAuthoringAvailability> decision)
-    {
-        return decision.Value == CapabilityAuthoringAvailability.Available;
+        return selector.IcIds.Count(icId =>
+            selector.IsWorkflowAuthorable(icId, workflowId));
     }
 }

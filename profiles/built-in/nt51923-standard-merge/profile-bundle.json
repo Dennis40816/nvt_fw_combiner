@@ -1,9 +1,9 @@
 {
   "schemaVersion": "1.0",
   "bundleId": "nt51923-standard-merge-family",
-  "bundleVersion": "0.10.1-tp-header.1",
+  "bundleVersion": "0.10.5-output-naming.1",
   "hashAlgorithm": "sha256-rfc8785-entry-array-v1",
-  "contentHash": "a0a7ad684887b4071dceb66b9ca28b11d97cd9108c8d518e6846773892cc02c2",
+  "contentHash": "9661f30be8b114cd679d08af8177d44bd372973943f2293228f85ff25ecf608c",
   "trustAnchorBindingId": "built-in-profile-bundle-v2",
   "entries": [
     {
@@ -11,7 +11,7 @@
       "kind": "schema",
       "path": "schemas/composition-profile-v2.schema.json",
       "schemaId": "https://example.invalid/nfc/schemas/composition-profile-v2.schema.json",
-      "contentHash": "97540ff527b8929726949629aa9fff46819be3a413f757c007a44a1025e31100"
+      "contentHash": "2c64c846abfb81e5c3a6fbc837238e25a33ecc0ed32de54f32cb944750734a25"
     },
     {
       "entryId": "firmware-family-v1-schema",
@@ -25,21 +25,21 @@
       "kind": "firmware-family",
       "path": "families/nt51923-nt51926.json",
       "schemaId": "https://example.invalid/nfc/schemas/firmware-family-v1.schema.json",
-      "contentHash": "875a60ee08550d2ee882034a26fd56c1785a1f96024cd677fbfca0beb80aadb8"
+      "contentHash": "737cd9da1f8722b1cf0c75a610714145aefd801509788f7512efb88c76eac1f9"
     },
     {
       "entryId": "nt51923-standard-merge-profile",
       "kind": "composition-profile",
       "path": "profiles/nt51923-standard-merge.json",
       "schemaId": "https://example.invalid/nfc/schemas/composition-profile-v2.schema.json",
-      "contentHash": "12304aa2232ad9e0877f8c567d46589bcb5e34aa63150b05da958c620df3f0cf"
+      "contentHash": "dca3cd1878aac296bee37f119f3336b71b2998a8802489b88afeda7d1e5725c6"
     },
     {
       "entryId": "nt51926-standard-merge-profile",
       "kind": "composition-profile",
       "path": "profiles/nt51926-standard-merge.json",
       "schemaId": "https://example.invalid/nfc/schemas/composition-profile-v2.schema.json",
-      "contentHash": "30cfe510201d48094fb636a4ee1191d2428d389a74ae6001b2091b6bf24762e8"
+      "contentHash": "ad8b8d5ea16146b1bf56a43656b07385a346cab7e63686ef61f50a24a43a5c4c"
     }
   ]
 }

@@ -59,20 +59,20 @@ public sealed partial class RepositoryBoundaryTests
         Assert.DoesNotContain("EnsureReportDoesNotAliasProtectedPaths", ctrlRam, StringComparison.Ordinal);
         Assert.Equal(1, CountOccurrences(general, "EnsureReportDoesNotAliasProtectedPaths("));
 
-        Assert.Contains("DpReplaceAuthoring.PrepareSession", dp, StringComparison.Ordinal);
-        Assert.Contains("host.CompositionExecution.ExecuteAsync", dp, StringComparison.Ordinal);
-        Assert.Contains("host.CtrlRamAuthoring.PrepareSession", ctrlRam, StringComparison.Ordinal);
-        Assert.Contains("host.CompositionExecution", ctrlRam, StringComparison.Ordinal);
+        Assert.Contains("services.DpReplaceAuthoring.PrepareSession", dp, StringComparison.Ordinal);
+        Assert.Contains("services.Execution.ExecuteAsync", dp, StringComparison.Ordinal);
+        Assert.Contains("services.CtrlRamAuthoring.PrepareSession", ctrlRam, StringComparison.Ordinal);
+        Assert.Contains("services.Execution", ctrlRam, StringComparison.Ordinal);
         Assert.Contains(".ExecuteAsync(", ctrlRam, StringComparison.Ordinal);
         Assert.Contains(
-            "host.GeneralAuthoring.PrepareReplaceSessionAsync",
+            "services.GeneralAuthoring.PrepareReplaceSessionAsync",
             general,
             StringComparison.Ordinal);
         Assert.Contains(
-            "host.CompositionExecution.ExecuteAsync",
+            "services.Execution.ExecuteAsync",
             general,
             StringComparison.Ordinal);
-        Assert.Equal(1, CountOccurrences(general, "host.CompositionExecution.ExecuteAsync"));
+        Assert.Equal(1, CountOccurrences(general, "services.Execution.ExecuteAsync"));
         foreach (string workflow in new[] { dp, ctrlRam, general })
         {
             Assert.Contains("ResolveAcceptedOutput", workflow, StringComparison.Ordinal);
@@ -197,6 +197,8 @@ public sealed partial class RepositoryBoundaryTests
         Assert.DoesNotContain("CompositionProfileCompiler", profiles, StringComparison.Ordinal);
         Assert.Contains("private static async Task PrintRunResultAsync", result, StringComparison.Ordinal);
         Assert.Contains("private static async Task<int> RunStandardMergeAsync", standardMerge, StringComparison.Ordinal);
+        Assert.Contains("exception.IsMissing", standardMerge, StringComparison.Ordinal);
+        Assert.DoesNotContain("File.Exists(exception.Path)", standardMerge, StringComparison.Ordinal);
         Assert.Contains("private static async Task WriteUsageAsync", usage, StringComparison.Ordinal);
     }
 
@@ -258,13 +260,13 @@ public sealed partial class RepositoryBoundaryTests
         }
 
         Assert.Equal(0, CountOccurrences(cli, "TryCompileStandardMerge("));
-        Assert.Contains("StandardMergeAuthoring.PrepareSession(", cli, StringComparison.Ordinal);
+        Assert.Contains("services.StandardMergeAuthoring.PrepareSession(", cli, StringComparison.Ordinal);
         Assert.DoesNotContain("TryCompileStandardMerge(", run, StringComparison.Ordinal);
         Assert.Contains("ExecuteAcceptedCompositionAsync(", run, StringComparison.Ordinal);
         Assert.Equal(2, CountOccurrences(sharedRun, "AcceptedSessionExecutionInputs.CreateBindings("));
         Assert.Equal(1, CountOccurrences(generalMergeProfile, "TryCompileStandardMerge("));
         Assert.Contains("out CompiledComposition? composition", resolver, StringComparison.Ordinal);
-        Assert.Contains("StandardMergeAuthoring.GetInputAddressSpaces", cli, StringComparison.Ordinal);
+        Assert.Contains("services.StandardMergeAuthoring.GetInputAddressSpaces", cli, StringComparison.Ordinal);
         Assert.Contains("InputOptionsByAddressSpace", cli, StringComparison.Ordinal);
         Assert.Contains("TryGetBuiltInV2StandardMergeCompilation", resolver, StringComparison.Ordinal);
         Assert.DoesNotContain("CreateDpPerspectiveProfileForInputLength", resolver, StringComparison.Ordinal);

@@ -1,7 +1,10 @@
-# Independently frozen #194 canonical route denominator. Format: IC|workflow|IC Count|map axis.
+# Independently frozen FORMAL-SUPPORT-01 canonical route denominator. Format: IC|workflow|IC Count|map axis.
 NT51917|ctrlram-replace|1-ic|nt51927-ctrlram-fw141-single-full-flash
+NT51917|ctrlram-replace|1-ic|nt51927-ctrlram-fw141-single-tp-work-212k
 NT51917|ctrlram-replace|2-ic|nt51927-ctrlram-fw132-twochip-full-flash
+NT51917|ctrlram-replace|2-ic|nt51927-ctrlram-fw132-twochip-tp-work-212k
 NT51917|ctrlram-replace|3-ic|nt51927-ctrlram-fw140-threechip-full-flash
+NT51917|ctrlram-replace|3-ic|nt51927-ctrlram-fw140-threechip-tp-work-212k
 NT51917|dp-replace|1-ic|nt51917-standard-merge-256k
 NT51917|general-merge|not-applicable|generic
 NT51917|standard-merge|selector-free|nt51927-standard-merge-256k
@@ -12,7 +15,9 @@ NT51919|dp-replace|1-ic|nt51919-nt51929-nt51932-perfect-map-256k
 NT51919|general-merge|not-applicable|generic
 NT51919|standard-merge|selector-free|nt51919-standard-merge-256k
 NT51923|ctrlram-replace|1-ic|nt51923-ctrlram-fw141-single-full-flash
+NT51923|ctrlram-replace|1-ic|nt51923-ctrlram-fw141-single-tp-work-240k
 NT51923|ctrlram-replace|2-plus-ic|nt51923-ctrlram-fw141-cascade3-full-flash
+NT51923|ctrlram-replace|2-plus-ic|nt51923-ctrlram-fw141-cascade3-tp-work-240k
 NT51923|dp-replace|1-ic|nt51923-standard-merge-256k
 NT51923|general-merge|not-applicable|generic
 NT51923|standard-merge|selector-free|nt51923-standard-merge-256k
@@ -29,14 +34,20 @@ NT51926|general-merge|not-applicable|generic
 NT51926|general-replace|1-ic|nt51926-general-replace-full-flash-256k
 NT51926|standard-merge|selector-free|nt51926-standard-merge-256k
 NT51927|ctrlram-replace|1-ic|nt51927-ctrlram-fw141-single-full-flash
+NT51927|ctrlram-replace|1-ic|nt51927-ctrlram-fw141-single-tp-work-212k
 NT51927|ctrlram-replace|2-ic|nt51927-ctrlram-fw132-twochip-full-flash
+NT51927|ctrlram-replace|2-ic|nt51927-ctrlram-fw132-twochip-tp-work-212k
 NT51927|ctrlram-replace|3-ic|nt51927-ctrlram-fw140-threechip-full-flash
+NT51927|ctrlram-replace|3-ic|nt51927-ctrlram-fw140-threechip-tp-work-212k
 NT51927|dp-replace|1-ic|nt51927-standard-merge-256k
 NT51927|general-merge|not-applicable|generic
 NT51927|standard-merge|selector-free|nt51927-standard-merge-256k
 NT51928|ctrlram-replace|1-ic|nt51928-ctrlram-fw141-single-full-flash
+NT51928|ctrlram-replace|1-ic|nt51928-ctrlram-fw141-single-tp-work-212k
 NT51928|ctrlram-replace|2-ic|nt51928-ctrlram-fw132-twochip-full-flash
+NT51928|ctrlram-replace|2-ic|nt51928-ctrlram-fw132-twochip-tp-work-212k
 NT51928|ctrlram-replace|3-ic|nt51928-ctrlram-fw140-threechip-full-flash
+NT51928|ctrlram-replace|3-ic|nt51928-ctrlram-fw140-threechip-tp-work-212k
 NT51928|dp-replace|1-ic|nt51928-dual-capacity-256k-512k
 NT51928|general-merge|not-applicable|generic
 NT51928|standard-merge|selector-free|nt51928-dual-capacity-256k-512k

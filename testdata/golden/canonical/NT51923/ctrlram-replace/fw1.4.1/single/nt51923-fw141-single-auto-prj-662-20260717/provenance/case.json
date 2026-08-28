@@ -6,6 +6,13 @@
   "variantOrVersion": "fw1.4.1",
   "topology": "single",
   "directGolden": true,
+  "testDisposition": {
+    "kind": "allowed-byte-difference",
+    "evidenceRefs": [
+      "tests/NvtFwCombiner.Bootstrap.Tests/Nt51923CtrlRamFw141EvidenceTests.cs#ExactOwnerCasesRunThroughV2WithLockedProcessEvidenceAsync"
+    ],
+    "differenceContractProperty": "phaseBResult"
+  },
   "sourceClassification": "private-owner-approved-golden",
   "ownerApproval": "Repository owner explicitly approved committing all supplied golden sample payloads to public Git on 2026-07-17. Technical project/AUTO_PRJ data is retained; personal data is excluded.",
   "project": "AUTO_PRJ-662",
@@ -52,7 +59,7 @@
     {
       "artifactId": "postbuild-diffdlm",
       "role": "input",
-      "path": "NT51923/ctrlram-replace/fw1.4.1/single/nt51923-fw141-single-auto-prj-662-20260717/inputs/postbuild/DiffDLM.bin",
+      "path": "NT51923/ctrlram-replace/fw1.4.1/single/nt51923-fw141-single-auto-prj-662-20260717/inputs/postbuild/nt51923-postbuild-diffdlm.bin",
       "size": 10240,
       "sha256": "979fa154e056cbbde36edb4e9b99b1357b34abf3cebf3acd709117857f5863a5",
       "legacyPaths": [
@@ -64,7 +71,7 @@
     {
       "artifactId": "postbuild-mp-ctrlram",
       "role": "input",
-      "path": "NT51923/ctrlram-replace/fw1.4.1/single/nt51923-fw141-single-auto-prj-662-20260717/inputs/postbuild/MP_Ctrlram.bin",
+      "path": "NT51923/ctrlram-replace/fw1.4.1/single/nt51923-fw141-single-auto-prj-662-20260717/inputs/postbuild/nt51923-postbuild-mp-ctrlram.bin",
       "size": 655360,
       "sha256": "1e5c60bfbe663938052a6c5c3b3db1fb8f67a80c7d5e32cd130c6306df737db5",
       "legacyPaths": [
@@ -76,7 +83,7 @@
     {
       "artifactId": "postbuild-nf-ctrlram",
       "role": "input",
-      "path": "NT51923/ctrlram-replace/fw1.4.1/single/nt51923-fw141-single-auto-prj-662-20260717/inputs/postbuild/NF_Ctrlram.bin",
+      "path": "NT51923/ctrlram-replace/fw1.4.1/single/nt51923-fw141-single-auto-prj-662-20260717/inputs/postbuild/nt51923-postbuild-nf-ctrlram.bin",
       "size": 17584,
       "sha256": "5ca4457fda2e9ff7ff7c7f6beb8b2309eff50c6d6c08bde78de60c85e45f31fc",
       "legacyPaths": [
@@ -88,7 +95,7 @@
     {
       "artifactId": "postbuild-normal-ctrlram",
       "role": "input",
-      "path": "NT51923/ctrlram-replace/fw1.4.1/single/nt51923-fw141-single-auto-prj-662-20260717/inputs/postbuild/Normal_Ctrlram.bin",
+      "path": "NT51923/ctrlram-replace/fw1.4.1/single/nt51923-fw141-single-auto-prj-662-20260717/inputs/postbuild/nt51923-postbuild-normal-ctrlram.bin",
       "size": 655360,
       "sha256": "1d50b896ec989b49bda3dd0ac8a65e3afefee1f13745e61179683202580bf22a",
       "legacyPaths": [
@@ -100,7 +107,7 @@
     {
       "artifactId": "postbuild-vn-ctrlram",
       "role": "input",
-      "path": "NT51923/ctrlram-replace/fw1.4.1/single/nt51923-fw141-single-auto-prj-662-20260717/inputs/postbuild/VN_Ctrlram.bin",
+      "path": "NT51923/ctrlram-replace/fw1.4.1/single/nt51923-fw141-single-auto-prj-662-20260717/inputs/postbuild/nt51923-postbuild-vn-ctrlram.bin",
       "size": 5728,
       "sha256": "53e794e27a3bc359c5a6a6da05bda004c7733501a577f3a9cd08044022ac2aef",
       "legacyPaths": [
@@ -137,6 +144,7 @@
   },
   "pid": "0x6005",
   "phaseBResult": {
+    "addressSpaceId": "output-image",
     "caseId": "nt51923-fw141-single-auto-prj-662-20260717",
     "ic": "NT51923",
     "workflow": "ctrlram-replace",

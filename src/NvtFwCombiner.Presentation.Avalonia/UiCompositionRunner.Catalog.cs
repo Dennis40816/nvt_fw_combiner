@@ -5,25 +5,34 @@ using NvtFwCombiner.Presentation.Avalonia.ViewModels;
 namespace NvtFwCombiner.Presentation.Avalonia;
 
 /// <inheritdoc/>
-public static partial class UiCompositionRunner
+internal static partial class UiCompositionRunner
 {
     /// <summary>Gets grouped IC-number display choices while preserving planner tokens.</summary>
-    public static IReadOnlyList<IcNumberChoiceViewModel> GetNumberSelectionChoices(
-        PresentationCompositionServices services,
-        string icId)
+    internal static IReadOnlyList<IcNumberChoiceViewModel> GetNumberSelectionChoices(
+        CapabilitySelectorPublication publication,
+        string icId,
+        string? workflowId = null)
     {
-        ArgumentNullException.ThrowIfNull(services);
-        IReadOnlyList<CapabilityNumberChoice> canonicalChoices =
-            services.Capabilities.GetNumberSelectionChoices(icId);
+        ArgumentNullException.ThrowIfNull(publication);
+        if (StringComparer.Ordinal.Equals(workflowId, ExperienceIds.AbMerge))
+        {
+            return
+            [
+                .. publication.GetAbMergeTopologyChoices(icId).Select(static choice =>
+                    new IcNumberChoiceViewModel(choice.Token, choice.DisplayLabel)),
+            ];
+        }
+
+        IReadOnlyList<CapabilityNumberChoice> canonicalChoices = workflowId is null
+            ? publication.GetNumberSelectionChoices(icId)
+            : publication.GetNumberSelectionChoices(icId, workflowId);
         IReadOnlyList<IcNumberChoiceViewModel> choices =
         [
             .. canonicalChoices
                 .Select(choice => new IcNumberChoiceViewModel(choice.Token, choice.DisplayLabel)),
         ];
 
-        return choices.Count > 0
-            ? choices
-            : [new IcNumberChoiceViewModel(IcNumberSelectionTokens.SingleChip, "1 IC")];
+        return choices;
     }
 
 }

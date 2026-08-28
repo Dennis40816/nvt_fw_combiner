@@ -161,8 +161,9 @@ internal sealed partial class CompositionProfileDefinition
             sourceSpace is { InstancePolicy: CompiledInputInstancePolicy.PerBinding },
             "Runtime reference-replace profiles require one exact singleton reference and one typed per-binding source with its closed normalization policy.");
         DomainInvariant.Require(
-            Promotion.Stage < CompiledProfilePromotionStage.Supported,
-            "Runtime reference-replace profiles cannot be marked supported before runtime request routing and owner evidence are complete.");
+            Promotion.Stage != CompiledProfilePromotionStage.Supported ||
+            Output.AllowsRuntimeExecution(CompositionKind),
+            "Supported runtime reference-replace profiles require a closed reject-mode output renderer admitted for Replace.");
     }
 
     private bool HasValidRuntimeReferenceProcessorShape(MutableCompositionProfileSpace output)

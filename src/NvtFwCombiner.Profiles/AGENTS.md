@@ -8,4 +8,3 @@
   authority.
 - Preserve one CompiledComposition execution artifact and deterministic plan
   identity.
-- First tests: `NvtFwCombiner.ProfileContract.Tests`.

@@ -13,6 +13,11 @@ Follow the mandatory verdict and waiver policy in
 2. Inspect for correctness defects, duplicate semantics, placeholders, silent
    fallback, broad suppressions, speculative abstraction, unsafe mutation,
    private/generated payloads, and code/document/schema drift.
+   A diff that adds, changes, moves, wraps, splits, replaces, or refactors
+   production behavior, a semantic branch, or an owner contract without a
+   design-complete fail-closed
+   [capability-reuse record](../../../docs/governance/development-execution-workflow.md#capability-reuse-gate-fail-closed)
+   is a P1 finding even when its tests pass.
    For every added readiness calculation, validator, normalizer, or policy
    branch, trace its canonical producer. Treat re-deriving profile/compiler,
    inspector, session, or processor facts in Application/Bootstrap/UI as

@@ -1,8 +1,9 @@
+using NvtFwCombiner.Domain.Composition;
+
 namespace NvtFwCombiner.Presentation.Avalonia.ViewModels;
 
-public sealed partial class WorkflowSessionPresentationViewModel
+internal sealed partial class WorkflowSessionPresentationViewModel
 {
-    /// <summary>Removes a General mapping row through its owning workflow child.</summary>
     public void RemoveGeneralMappingRow(GeneralMappingRowViewModel mapping)
     {
         ArgumentNullException.ThrowIfNull(mapping);
@@ -35,18 +36,34 @@ public sealed partial class WorkflowSessionPresentationViewModel
                 _replace.ReplaceBaseSlot.HasFile ||
                 _replace.ReplaceSlots.Any(static slot => slot.HasFile) ||
                 _replace.GeneralReplaceMappings.Any(static mapping => mapping.HasFile),
-            ShellPage.Home or ShellPage.Settings or ShellPage.HexEditor => false,
+            ShellPage.Home or ShellPage.HexEditor => false,
             _ => false,
         };
     }
 
     internal void ClearSelectedInputs(ShellPage page)
     {
-        InvalidateFirmwareInspection(clearBaseCache: true, clearFileProjections: true);
-        _replace.InvalidateCtrlRamFirmwareVersionContextState();
+        if (page is not (ShellPage.Merge or ShellPage.Replace))
+        {
+            return;
+        }
+
+        InvalidateFirmwareInspection(
+            page == ShellPage.Merge
+                ? WorkflowInspectionOwner.Merge
+                : WorkflowInspectionOwner.Replace,
+            clearBaseProjection: page == ShellPage.Replace,
+            clearSlotProjections: true);
+        if (page == ShellPage.Replace)
+        {
+            _replace.InvalidateCtrlRamFirmwareVersionContextState();
+        }
         InvalidateFirmwareIcMismatch();
         InvalidateFirmwareNumberMismatch();
 
+        bool clearsActivePage = ActiveWorkflowOwner == (page == ShellPage.Merge
+            ? WorkflowInspectionOwner.Merge
+            : WorkflowInspectionOwner.Replace);
         if (page == ShellPage.Merge)
         {
             _merge.ClearStandardMergeAuthoringSelections();
@@ -58,12 +75,15 @@ public sealed partial class WorkflowSessionPresentationViewModel
                 ClearFirmwareSlot(slot);
             }
 
-            foreach (GeneralMergeMappingViewModel mapping in _merge.GeneralMergeMappings)
+            _merge.ClearGeneralMergeMappingFilesWithoutRefresh();
+            if (clearsActivePage)
             {
-                mapping.FilePath = null;
+                _merge.RefreshMergeMemoryMapState();
             }
-
-            _merge.RefreshMergeMemoryMapState();
+            else
+            {
+                _mergeWorkflowContextNeedsRefresh = true;
+            }
         }
         else if (page == ShellPage.Replace)
         {
@@ -74,41 +94,142 @@ public sealed partial class WorkflowSessionPresentationViewModel
                 ClearFirmwareSlot(slot);
             }
 
-            foreach (GeneralReplaceMappingViewModel mapping in _replace.GeneralReplaceMappings)
-            {
-                mapping.FilePath = null;
-            }
-
+            _replace.ClearGeneralReplaceMappingFilesWithoutRefresh();
             _replace.ClearCtrlRamInspectionDisplay();
-            _replace.RefreshReplaceMemoryMapState();
+            if (clearsActivePage)
+            {
+                _replace.RefreshReplaceMemoryMapState();
+            }
+            else
+            {
+                _replaceWorkflowContextNeedsRefresh = true;
+            }
+        }
+
+        if (clearsActivePage)
+        {
+            NotifySlotFileOutputNames();
+        }
+        _stateBindings.ResetRunResult();
+        _stateBindings.RefreshCommandState();
+    }
+
+    /// <summary>Clears one selected fixed-workflow slot without mutating its source file.</summary>
+    public async Task ClearSlotFileAsync(
+        string slotId,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(slotId);
+        if (!IsWorkflowLoaded || ActiveInspectionContext is not { } context)
+        {
+            return;
+        }
+
+        FirmwareSlotViewModel? slot = FindInspectionSlot(context, slotId);
+        if (slot is null || !slot.HasFile)
+        {
+            return;
+        }
+
+        FirmwareSlotViewModel[] slotsToClear = ResolveSlotsToClear(context, slot);
+        bool clearsBase = slotsToClear.Contains(_replace.ReplaceBaseSlot);
+        if (context.IsReplace)
+        {
+            _replace.InvalidateCtrlRamFirmwareVersionContextState();
+        }
+        InvalidateFirmwareInspection(context.Owner, clearBaseProjection: clearsBase);
+        InvalidateFirmwareIcMismatch();
+        InvalidateFirmwareNumberMismatch();
+        foreach (FirmwareSlotViewModel retained in InspectionSlots(context).Where(static item => item.HasFile))
+        {
+            retained.SetFirmwareFacts([]);
+            retained.ClearInputInspection();
+            retained.ClearCurrentInspectionProjection();
+        }
+        foreach (FirmwareSlotViewModel selected in slotsToClear)
+        {
+            ClearFirmwareSlot(selected);
+        }
+
+        if (context.IsMerge)
+        {
+            _merge.RefreshMergeMemoryMapState();
+        }
+        else
+        {
+            if (clearsBase && context.IsCtrlRamReplace)
+            {
+                _replace.ClearCtrlRamBaseSelectionState();
+            }
+            else
+            {
+                _replace.RefreshReplaceMemoryMapState();
+            }
         }
 
         NotifySlotFileOutputNames();
         _stateBindings.ResetRunResult();
         _stateBindings.RefreshCommandState();
+        Task refresh = context.IsMerge
+            ? RefreshSelectedMergeFirmwareInspectionsAsync(cancellationToken: cancellationToken)
+            : RefreshSelectedReplaceFirmwareInspectionsAsync(null, cancellationToken);
+        await refresh;
     }
 
-    private FirmwareSlotViewModel? SelectSlotFile(string slotId, string path)
+    private Task ClearSlotFileFromCommandAsync(string? slotId)
+    {
+        return string.IsNullOrWhiteSpace(slotId)
+            ? Task.CompletedTask
+            : ClearSlotFileAsync(slotId);
+    }
+
+    private FirmwareSlotViewModel[] ResolveSlotsToClear(
+        WorkflowInspectionContext context,
+        FirmwareSlotViewModel slot)
+    {
+        bool clearsLinkedPair = context.IsAbMerge && _merge.UseSameTpForAbMerge &&
+            (_merge.MirrorsAbTpSelection(slot.SlotId) ||
+                _merge.BlocksIndependentAbTpSelection(slot.SlotId));
+        return clearsLinkedPair
+            ?
+            [
+                .. _merge.AbMergeSlotsByAddressSpace
+                    .Where(static pair => pair.Key is
+                        CompositionAddressSpaceIds.TpAInput or CompositionAddressSpaceIds.TpBInput)
+                    .Select(static pair => pair.Value)
+                    .Distinct(),
+            ]
+            : [slot];
+    }
+
+    private FirmwareSlotViewModel? SelectSlotFile(
+        WorkflowInspectionContext context,
+        string slotId,
+        string path)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(slotId);
         ArgumentException.ThrowIfNullOrWhiteSpace(path);
 
-        FirmwareSlotViewModel? slot = FindSlot(slotId);
+        FirmwareSlotViewModel? slot = FindInspectionSlot(context, slotId);
         if (slot is null)
         {
             return null;
         }
 
-        if (_merge.IsNormalMergeModeSelected &&
+        if (context.IsStandardMerge &&
             _merge.IsStandardMergeSlot(slot) &&
             !slot.CanSelectFile)
         {
             return null;
         }
 
-        _replace.InvalidateCtrlRamFirmwareVersionContextState();
-        InvalidateFirmwareInspection(clearBaseCache: slot.SlotId == _replace.ReplaceBaseSlot.SlotId);
-        InspectionSession.RemoveProjection(slot.SlotId);
+        if (context.IsReplace)
+        {
+            _replace.InvalidateCtrlRamFirmwareVersionContextState();
+        }
+        InvalidateFirmwareInspection(
+            context.Owner,
+            clearBaseProjection: slot.SlotId == _replace.ReplaceBaseSlot.SlotId);
         InvalidateFirmwareIcMismatch();
         InvalidateFirmwareNumberMismatch();
         slot.FilePath = path;
@@ -116,12 +237,12 @@ public sealed partial class WorkflowSessionPresentationViewModel
         slot.ClearInputInspection();
         NotifySlotFileOutputNames();
 
-        if (slot.SlotId == _replace.ReplaceBaseSlot.SlotId && _replace.IsCtrlRamReplaceModeSelected)
+        if (slot.SlotId == _replace.ReplaceBaseSlot.SlotId && context.IsCtrlRamReplace)
         {
             _replace.ClearCtrlRamInspectionDisplay();
         }
-        else if ((_merge.IsNormalMergeModeSelected && _merge.IsStandardMergeSlot(slot)) ||
-            (_merge.IsAbCodeMergeModeSelected && _merge.AbMergeAddressSpaceBySlotId.ContainsKey(slot.SlotId)))
+        else if ((context.IsStandardMerge && _merge.IsStandardMergeSlot(slot)) ||
+            (context.IsAbMerge && _merge.AbMergeAddressSpaceBySlotId.ContainsKey(slot.SlotId)))
         {
             _merge.RefreshMergeMemoryMapState();
         }
@@ -144,18 +265,11 @@ public sealed partial class WorkflowSessionPresentationViewModel
         _replace.NotifyOutputFileNamesChanged();
     }
 
-    private FirmwareSlotViewModel? FindSlot(string slotId)
-    {
-        return _merge.MergeSlots.Concat(_merge.StandardMergeSlots)
-            .Concat(_replace.ReplaceSlots)
-            .Concat([_replace.ReplaceBaseSlot])
-            .FirstOrDefault(slot => string.Equals(slot.SlotId, slotId, StringComparison.Ordinal));
-    }
-
     private static void ClearFirmwareSlot(FirmwareSlotViewModel slot)
     {
         slot.FilePath = null;
         slot.SetFirmwareFacts([]);
         slot.ClearInputInspection();
+        slot.ClearCurrentInspectionProjection();
     }
 }

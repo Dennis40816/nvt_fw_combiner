@@ -20,8 +20,7 @@ public sealed partial class RepositoryBoundaryTests
         [
             "ApplicationCompositionGlobalUsings.cs",
             "CompositionHostServices.cs",
-            "ExternalProcessorFactory.cs",
-            "RuntimeDependencyReadinessLeaseProvider.cs",
+            "UpdateSourceRegistryLocator.cs",
         ];
 
         Assert.Equal(

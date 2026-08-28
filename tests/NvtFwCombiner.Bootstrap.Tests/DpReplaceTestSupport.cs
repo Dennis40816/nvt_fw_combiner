@@ -1,6 +1,7 @@
 using NvtFwCombiner.Application.Authoring;
 using NvtFwCombiner.Application.Capabilities;
 using NvtFwCombiner.Domain.Composition;
+using NvtFwCombiner.TestSupport;
 
 namespace NvtFwCombiner.Bootstrap.Tests;
 
@@ -15,7 +16,8 @@ internal static class DpReplaceTestSupport
         string? outputPath = null,
         CompositionRunProgressFeed? progress = null)
     {
-        var host = CompositionHostServices.Create();
+        CompositionHostServices host = CompositionHostServices.Create(
+            RetainedDpReplaceRegressionPolicy.Load);
         if (!StringComparer.OrdinalIgnoreCase.Equals(replaceMode, ExperienceIds.DpReplace))
         {
             throw new ArgumentException("DP test support accepts only DP Replace.", nameof(replaceMode));

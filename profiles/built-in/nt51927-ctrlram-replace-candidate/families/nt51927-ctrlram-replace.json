@@ -1,7 +1,7 @@
 {
   "schemaVersion": "1.1",
   "familyId": "nt51927-ctrlram-replace",
-  "familyVersion": "0.5.0",
+  "familyVersion": "0.6.0",
   "members": [
     {
       "memberId": "NT51917",
@@ -15,14 +15,14 @@
   "capabilities": [],
   "regionSets": [
     {
-      "regionSetId": "nt51927-ctrlram-fw141-single-full-flash",
+      "regionSetId": "nt51927-ctrlram-fw141-single-tp-work",
       "addressSpaceId": "flash",
       "regions": [
         {
           "regionId": "flash-image",
           "owner": "system",
           "kind": "image",
-          "range": { "start": 0, "length": 262144 },
+          "range": { "start": 0, "length": 217088 },
           "writeConstraint": "explicit-range",
           "alignment": 1
         },
@@ -202,7 +202,7 @@
           "parentRegionId": "flash-image",
           "owner": "unknown",
           "kind": "unmapped",
-          "range": { "start": 215040, "length": 47104 },
+          "range": { "start": 215040, "length": 2048 },
           "writeConstraint": "forbidden",
           "alignment": 1
         }
@@ -212,14 +212,14 @@
       ]
     },
     {
-      "regionSetId": "nt51927-ctrlram-fw132-twochip-full-flash",
+      "regionSetId": "nt51927-ctrlram-fw132-twochip-tp-work",
       "addressSpaceId": "flash",
       "regions": [
         {
           "regionId": "flash-image",
           "owner": "system",
           "kind": "image",
-          "range": { "start": 0, "length": 262144 },
+          "range": { "start": 0, "length": 217088 },
           "writeConstraint": "explicit-range",
           "alignment": 1
         },
@@ -471,7 +471,7 @@
           "parentRegionId": "flash-image",
           "owner": "unknown",
           "kind": "unmapped",
-          "range": { "start": 215040, "length": 47104 },
+          "range": { "start": 215040, "length": 2048 },
           "writeConstraint": "forbidden",
           "alignment": 1
         }
@@ -481,14 +481,14 @@
       ]
     },
     {
-      "regionSetId": "nt51927-ctrlram-fw140-threechip-full-flash",
+      "regionSetId": "nt51927-ctrlram-fw140-threechip-tp-work",
       "addressSpaceId": "flash",
       "regions": [
         {
           "regionId": "flash-image",
           "owner": "system",
           "kind": "image",
-          "range": { "start": 0, "length": 262144 },
+          "range": { "start": 0, "length": 217088 },
           "writeConstraint": "explicit-range",
           "alignment": 1
         },
@@ -857,13 +857,33 @@
           "parentRegionId": "flash-image",
           "owner": "unknown",
           "kind": "unmapped",
-          "range": { "start": 215040, "length": 47104 },
+          "range": { "start": 215040, "length": 2048 },
           "writeConstraint": "forbidden",
           "alignment": 1
         }
       ],
       "evidenceRefs": [
         "nt51927-3chip-self-20260705-expected-derived"
+      ]
+    },
+    {
+      "regionSetId": "nt51927-full-flash-tail",
+      "addressSpaceId": "flash",
+      "regions": [
+        {
+          "regionId": "full-flash-unmapped-tail",
+          "owner": "unknown",
+          "kind": "unmapped",
+          "range": { "start": 217088, "length": 45056 },
+          "writeConstraint": "forbidden",
+          "alignment": 1
+        }
+      ],
+      "evidenceRefs": [
+        "nt51927-fw141-single-auto-prj-529-owner-golden-20260717",
+        "nt51927-2chip-self-20260705-expected-derived",
+        "nt51927-3chip-self-20260705-expected-derived",
+        "ctrlram-replace-perfect-family-51917-to-51927"
       ]
     }
   ],
@@ -877,7 +897,7 @@
           "length": 4096,
           "locator": {
             "kind": "marker-relative",
-            "searchRange": { "addressSpaceId": "flash", "start": 0, "length": 262144 },
+            "searchRange": { "addressSpaceId": "flash", "start": 0, "length": 217088 },
             "markerHex": "004e5654",
             "selection": { "kind": "unique" },
             "resultOffset": -4092,
@@ -932,6 +952,23 @@
   ],
   "imageMaps": [
     {
+      "mapId": "nt51927-ctrlram-fw132-twochip-tp-work-212k",
+      "addressSpaceId": "flash",
+      "applicability": {
+        "memberIds": [ "NT51917", "NT51927" ],
+        "modeIds": [ "ctrlram-replace" ],
+        "topologyRequirement": { "kind": "exact-count", "chipCount": 2 },
+        "capacityBytes": 217088
+      },
+      "coveragePolicy": "complete-with-explicit-gaps",
+      "regionSetIds": [ "nt51927-ctrlram-fw132-twochip-tp-work" ],
+      "metadataSetIds": [ "nt51927-fwconfig-backup-locator" ],
+      "evidenceRefs": [
+        "nt51927-2chip-self-20260705-expected-derived",
+        "ctrlram-replace-perfect-family-51917-to-51927"
+      ]
+    },
+    {
       "mapId": "nt51927-ctrlram-fw132-twochip-full-flash",
       "addressSpaceId": "flash",
       "applicability": {
@@ -941,10 +978,30 @@
         "capacityBytes": 262144
       },
       "coveragePolicy": "complete-with-explicit-gaps",
-      "regionSetIds": [ "nt51927-ctrlram-fw132-twochip-full-flash" ],
+      "regionSetIds": [
+        "nt51927-ctrlram-fw132-twochip-tp-work",
+        "nt51927-full-flash-tail"
+      ],
       "metadataSetIds": [ "nt51927-fwconfig-backup-locator" ],
       "evidenceRefs": [
         "nt51927-2chip-self-20260705-expected-derived",
+        "ctrlram-replace-perfect-family-51917-to-51927"
+      ]
+    },
+    {
+      "mapId": "nt51927-ctrlram-fw140-threechip-tp-work-212k",
+      "addressSpaceId": "flash",
+      "applicability": {
+        "memberIds": [ "NT51917", "NT51927" ],
+        "modeIds": [ "ctrlram-replace" ],
+        "topologyRequirement": { "kind": "exact-count", "chipCount": 3 },
+        "capacityBytes": 217088
+      },
+      "coveragePolicy": "complete-with-explicit-gaps",
+      "regionSetIds": [ "nt51927-ctrlram-fw140-threechip-tp-work" ],
+      "metadataSetIds": [ "nt51927-fwconfig-backup-locator" ],
+      "evidenceRefs": [
+        "nt51927-3chip-self-20260705-expected-derived",
         "ctrlram-replace-perfect-family-51917-to-51927"
       ]
     },
@@ -958,10 +1015,30 @@
         "capacityBytes": 262144
       },
       "coveragePolicy": "complete-with-explicit-gaps",
-      "regionSetIds": [ "nt51927-ctrlram-fw140-threechip-full-flash" ],
+      "regionSetIds": [
+        "nt51927-ctrlram-fw140-threechip-tp-work",
+        "nt51927-full-flash-tail"
+      ],
       "metadataSetIds": [ "nt51927-fwconfig-backup-locator" ],
       "evidenceRefs": [
         "nt51927-3chip-self-20260705-expected-derived",
+        "ctrlram-replace-perfect-family-51917-to-51927"
+      ]
+    },
+    {
+      "mapId": "nt51927-ctrlram-fw141-single-tp-work-212k",
+      "addressSpaceId": "flash",
+      "applicability": {
+        "memberIds": [ "NT51917", "NT51927" ],
+        "modeIds": [ "ctrlram-replace" ],
+        "topologyRequirement": { "kind": "single" },
+        "capacityBytes": 217088
+      },
+      "coveragePolicy": "complete-with-explicit-gaps",
+      "regionSetIds": [ "nt51927-ctrlram-fw141-single-tp-work" ],
+      "metadataSetIds": [ "nt51927-fwconfig-backup-locator" ],
+      "evidenceRefs": [
+        "nt51927-fw141-single-auto-prj-529-owner-golden-20260717",
         "ctrlram-replace-perfect-family-51917-to-51927"
       ]
     },
@@ -975,7 +1052,10 @@
         "capacityBytes": 262144
       },
       "coveragePolicy": "complete-with-explicit-gaps",
-      "regionSetIds": [ "nt51927-ctrlram-fw141-single-full-flash" ],
+      "regionSetIds": [
+        "nt51927-ctrlram-fw141-single-tp-work",
+        "nt51927-full-flash-tail"
+      ],
       "metadataSetIds": [ "nt51927-fwconfig-backup-locator" ],
       "evidenceRefs": [
         "nt51927-fw141-single-auto-prj-529-owner-golden-20260717",
