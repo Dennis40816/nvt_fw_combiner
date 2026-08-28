@@ -58,7 +58,7 @@
     "protectedRun": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["repository", "repositoryId", "headRepositoryId", "workflowPath", "workflowRef", "workflowCommitSha", "workflowBlobSha", "workflowRawSha256", "workflowSemanticContractSha256", "workflowRun", "attestationJob", "deployment", "deploymentStatus", "comparisonArtifact", "attestationArtifact"],
+      "required": ["repository", "repositoryId", "headRepositoryId", "workflowPath", "workflowRef", "workflowCommitSha", "workflowBlobSha", "workflowRawSha256", "workflowSemanticContractSha256", "workflowRun", "attestationJob", "deployment", "deploymentStatus", "comparisonArtifact", "attestationArtifact", "verificationArtifact"],
       "properties": {
         "repository": { "const": "Dennis40816/nvt_fw_combiner" },
         "repositoryId": { "type": "integer", "minimum": 1 },
@@ -68,13 +68,14 @@
         "workflowCommitSha": { "$ref": "#/$defs/gitSha" },
         "workflowBlobSha": { "$ref": "#/$defs/gitSha" },
         "workflowRawSha256": { "$ref": "#/$defs/sha256" },
-        "workflowSemanticContractSha256": { "const": "1bb4a0694664f3eed05c63204892ff90df1f4bfdd9277ba06e07240c165f68bf" },
+        "workflowSemanticContractSha256": { "const": "b4c91eb8b74a0f9b1e26784f4cb98b99e1720208a7128107cc3bcddfbfdbf029" },
         "workflowRun": { "$ref": "#/$defs/protectedWorkflowRun" },
         "attestationJob": { "$ref": "#/$defs/protectedJob" },
         "deployment": { "$ref": "#/$defs/protectedDeployment" },
         "deploymentStatus": { "$ref": "#/$defs/protectedDeploymentStatus" },
         "comparisonArtifact": { "$ref": "#/$defs/remoteArtifact" },
-        "attestationArtifact": { "$ref": "#/$defs/remoteArtifact" }
+        "attestationArtifact": { "$ref": "#/$defs/remoteArtifact" },
+        "verificationArtifact": { "$ref": "#/$defs/remoteArtifact" }
       }
     },
     "protectedWorkflowRun": {
@@ -83,7 +84,7 @@
       "properties": {
         "id": { "type": "integer", "minimum": 1 }, "runAttempt": { "type": "integer", "minimum": 1 },
         "headSha": { "$ref": "#/$defs/gitSha" }, "headBranch": { "const": "main" },
-        "event": { "enum": ["workflow_dispatch", "push"] }, "status": { "const": "completed" }, "conclusion": { "const": "success" },
+        "event": { "enum": ["workflow_dispatch", "push"] }, "status": { "enum": ["in_progress", "completed"] }, "conclusion": { "type": ["string", "null"], "enum": [null, "success"] },
         "repositoryId": { "type": "integer", "minimum": 1 }, "headRepositoryId": { "type": "integer", "minimum": 1 },
         "createdAtUtc": { "$ref": "#/$defs/canonicalUtc" }, "updatedAtUtc": { "$ref": "#/$defs/canonicalUtc" }
       }

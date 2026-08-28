@@ -88,7 +88,11 @@ relocatable Windows application update system.
   Replace and later General workflow expansion are not promoted by this
   release.
 - Compatibility: accepted 0.9.16 parity routes retain their reviewed output
-  behavior. Typed validation rejects mismatched IC count, subtype, unsafe
+  behavior. NT51951 FW2.0 cascade-2 intentionally differs only in the
+  owner-approved Diff NF preservation ranges where 0.9.16 was incorrect; the
+  exact candidate hash, 2,816-byte count, five half-open ranges, and all bytes
+  outside those ranges are locked by the release gate. Typed validation rejects
+  mismatched IC count, subtype, unsafe
   ranges, invalid integrity, and incompatible CtrlRAM inputs before mutation.
 - Verification: canonical and parity regressions, exact write-range review,
   CRC worker tests, architecture gates, and declared firmware-owner evidence
@@ -96,7 +100,7 @@ relocatable Windows application update system.
 - Limitations: support publication, authoring availability, and release
   certification are separate. The canonical matrix declares all 64
   Standard/AB/CtrlRAM routes `Supported + Available`; that declaration is not
-  inferred from a fixture. Twenty-seven routes still lack independent private
+  inferred from a fixture. Twenty-seven routes still lack independent owner-supplied
   v0.9.16 parity fixtures, and the four NT51950/NT51951 TP-only CtrlRAM variants
   remain `Pending Test`. Those evidence debts block final certification without
   silently revoking the declared support state. Future IC and General workflow
@@ -140,7 +144,7 @@ relocatable Windows application update system.
 
 ### Security
 
-The package excludes non-allowlisted private owner-handoff firmware and all
+The package excludes non-allowlisted externally supplied firmware and all
 credentials. It intentionally includes only the release-selected,
 manifest/hash-bound Standard Merge golden fixtures used by packaged self-tests.
 All other update payloads are closed and hashed; external processors remain

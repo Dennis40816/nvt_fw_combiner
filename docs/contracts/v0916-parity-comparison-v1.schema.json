@@ -21,21 +21,14 @@
     "candidateAuthority": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["implementationHead", "implementationTree", "authorityTrees", "policySha256", "sourceExecutorContract", "allowedEvidenceChildPaths"],
+      "required": ["implementationHead", "implementationTree", "authorityTrees", "policySha256", "sourceExecutorContract", "authorityTransfer"],
       "properties": {
         "implementationHead": { "$ref": "v0916-parity-evidence-v1.schema.json#/$defs/gitSha" },
         "implementationTree": { "$ref": "v0916-parity-evidence-v1.schema.json#/$defs/gitSha" },
         "authorityTrees": { "$ref": "v0916-parity-evidence-v1.schema.json#/$defs/authorityTrees" },
         "policySha256": { "$ref": "v0916-parity-evidence-v1.schema.json#/$defs/sha256" },
         "sourceExecutorContract": { "$ref": "v0916-parity-evidence-v1.schema.json#/$defs/artifact" },
-        "allowedEvidenceChildPaths": {
-          "type": "array",
-          "prefixItems": [
-            { "const": "docs/governance/change-records/RELEASE-100-FINAL-01.json" },
-            { "const": "docs/release-evidence/v1.0.0-v0916-parity.json" }
-          ],
-          "items": false
-        }
+        "authorityTransfer": { "$ref": "v0916-parity-evidence-v1.schema.json#/$defs/authorityTransfer" }
       }
     },
     "baselineExecutor": { "$ref": "v0916-parity-evidence-v1.schema.json#/$defs/baselineExecutor" },
@@ -64,7 +57,7 @@
         "workflowCommitSha": { "$ref": "v0916-parity-evidence-v1.schema.json#/$defs/gitSha" },
         "workflowBlobSha": { "$ref": "v0916-parity-evidence-v1.schema.json#/$defs/gitSha" },
         "workflowRawSha256": { "$ref": "v0916-parity-evidence-v1.schema.json#/$defs/sha256" },
-        "workflowSemanticContractSha256": { "const": "1bb4a0694664f3eed05c63204892ff90df1f4bfdd9277ba06e07240c165f68bf" },
+        "workflowSemanticContractSha256": { "const": "b4c91eb8b74a0f9b1e26784f4cb98b99e1720208a7128107cc3bcddfbfdbf029" },
         "runId": { "type": "integer", "minimum": 1 },
         "artifactId": { "type": "integer", "minimum": 1 },
         "artifactName": { "type": "string", "pattern": "^stable-candidate-[1-9][0-9]*-[0-9a-f]{40}$" },

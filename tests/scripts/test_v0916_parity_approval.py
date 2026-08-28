@@ -60,7 +60,10 @@ class V0916ParityApprovalTests(V0916ParityTestBase):
         )
         self.assertEqual(set(schema["required"]), set(contract))
         self.assertEqual(
-            {"v0916-parity-compare", "v0916-parity-attestation"},
+            {
+                "v0916-parity-compare",
+                "v0916-parity-attestation",
+            },
             set(contract["jobs"]),
         )
 
@@ -103,11 +106,15 @@ class V0916ParityApprovalTests(V0916ParityTestBase):
             "checkout-option",
             "continue-on-error",
             "step-order",
+            "promotion-needs",
+            "promotion-condition",
+            "promotion-step-condition",
             "extra-job",
         ):
             invalid = copy.deepcopy(valid)
             compare = invalid["jobs"]["v0916-parity-compare"]
             attestation = invalid["jobs"]["v0916-parity-attestation"]
+            promotion = invalid["jobs"]["promote"]
             if mutation == "job-swap":
                 invalid["jobs"]["v0916-parity-compare"], invalid["jobs"]["v0916-parity-attestation"] = (
                     attestation,
@@ -152,6 +159,12 @@ class V0916ParityApprovalTests(V0916ParityTestBase):
                     compare["steps"][2],
                     compare["steps"][1],
                 )
+            elif mutation == "promotion-needs":
+                promotion["needs"] = ["candidate"]
+            elif mutation == "promotion-condition":
+                promotion["if"] = "${{ always() }}"
+            elif mutation == "promotion-step-condition":
+                promotion["steps"][0]["if"] = "${{ always() }}"
             else:
                 invalid["jobs"]["v0916-parity-bypass"] = copy.deepcopy(compare)
             with self.subTest(workflow_mutation=mutation):
@@ -247,6 +260,24 @@ class V0916ParityApprovalTests(V0916ParityTestBase):
             self.assertEqual(64, len(evidence["routes"]))
             self.assertEqual(1, len(verifier.calls))
             self.assertEqual(fixture["protectedRun"], evidence["protectedRun"])
+
+    def test_finalization_accepts_same_run_while_finalizer_job_is_still_running(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            fixture = self._finalize_fixture(Path(temporary))
+            reader = fixture["githubReader"]
+            reader.run["status"] = "in_progress"
+            reader.run["conclusion"] = None
+            reader.run["updated_at"] = "2026-08-26T00:06:30Z"
+
+            evidence = MODULE.finalize_evidence(
+                fixture["finalizePath"],
+                github_reader=reader,
+                firmware_owner_verifier=RecordingFirmwareOwnerVerifier(
+                    fixture["expectedVerification"]
+                ),
+            )
+
+            self.assertEqual("pass", evidence["verdict"])
 
     def test_finalization_requires_independently_queried_same_run_job_and_artifact_owners(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
@@ -396,8 +427,8 @@ class V0916ParityApprovalTests(V0916ParityTestBase):
                 "comparisonSha256": hashlib.sha256(comparison_path.read_bytes()).hexdigest(),
                 "comparisonArtifactId": 700, "comparisonArtifactDigest": "sha256:" + "8" * 64,
                 "planSha256": "1" * 64, "policySha256": "2" * 64,
-                "implementationHead": "e712842d61c560193ff9f7e2321daa47401a52d0",
-                "implementationTree": "1c2bd7ede4013b000ef4228605c83f07a904de76",
+                "implementationHead": "1d1d1cfcad7f0963dd3ed1e3e920d9a3425d6220",
+                "implementationTree": "1bc350cd3217f826ba841dfe098e919390f23546",
                 "candidatePackageSha256": "5" * 64, "candidateManifestSha256": "9" * 64,
                 "candidateArtifactDigest": "sha256:" + "a" * 64,
                 "routeEvidenceSha256": comparison["routeEvidenceSha256"],
@@ -422,7 +453,7 @@ class V0916ParityApprovalTests(V0916ParityTestBase):
         workflow_blob_sha = hashlib.sha1(
             f"blob {len(workflow_bytes)}\0".encode("ascii") + workflow_bytes
         ).hexdigest()
-        candidate_head = "e712842d61c560193ff9f7e2321daa47401a52d0"
+        candidate_head = "1d1d1cfcad7f0963dd3ed1e3e920d9a3425d6220"
         workflow_head = "b" * 40
         self.assertNotEqual(candidate_head, workflow_head)
         comparison_archive = self._single_file_archive(
@@ -431,12 +462,16 @@ class V0916ParityApprovalTests(V0916ParityTestBase):
         attestation_archive = self._single_file_archive(
             "owner-attestation.json", attestation_path.read_bytes()
         )
+        verification_archive = self._single_file_archive(
+            "external-verification.json", verification_path.read_bytes()
+        )
         artifact_owner = {
             "id": 123, "repository_id": 40816, "head_repository_id": 40816,
             "head_branch": "main", "head_sha": workflow_head,
         }
         comparison_digest = "sha256:" + hashlib.sha256(comparison_archive).hexdigest()
         attestation_digest = "sha256:" + hashlib.sha256(attestation_archive).hexdigest()
+        verification_digest = "sha256:" + hashlib.sha256(verification_archive).hexdigest()
         protected_run = {
             "repository": "Dennis40816/nvt_fw_combiner",
             "repositoryId": 40816, "headRepositoryId": 40816,
@@ -444,7 +479,7 @@ class V0916ParityApprovalTests(V0916ParityTestBase):
             "workflowRef": "refs/heads/main", "workflowCommitSha": workflow_head,
             "workflowBlobSha": workflow_blob_sha,
             "workflowRawSha256": hashlib.sha256(workflow_bytes).hexdigest(),
-            "workflowSemanticContractSha256": "1bb4a0694664f3eed05c63204892ff90df1f4bfdd9277ba06e07240c165f68bf",
+            "workflowSemanticContractSha256": "b4c91eb8b74a0f9b1e26784f4cb98b99e1720208a7128107cc3bcddfbfdbf029",
             "workflowRun": {
                 "id": 123, "runAttempt": 1, "headSha": workflow_head,
                 "headBranch": "main", "event": "workflow_dispatch", "status": "completed",
@@ -488,6 +523,17 @@ class V0916ParityApprovalTests(V0916ParityTestBase):
                 "createdAtUtc": "2026-08-26T00:04:30Z",
                 "workflowRun": {
                     "id": 123, "repositoryId": 40816, "headRepositoryId": 40816,
+                    "headBranch": "main", "headSha": workflow_head,
+                },
+            },
+            "verificationArtifact": {
+                "id": 702, "name": "v0916-parity-verification-123",
+                "digest": verification_digest,
+                "memberName": "external-verification.json",
+                "createdAtUtc": "2026-08-26T00:04:31Z",
+                "workflowRun": {
+                    "id": 123, "repositoryId": 40816,
+                    "headRepositoryId": 40816,
                     "headBranch": "main", "headSha": workflow_head,
                 },
             },
@@ -547,6 +593,12 @@ class V0916ParityApprovalTests(V0916ParityTestBase):
                     "created_at": "2026-08-26T00:04:30Z",
                     "workflow_run": copy.deepcopy(artifact_owner),
                 }, attestation_archive),
+                702: ({
+                    "id": 702, "name": "v0916-parity-verification-123",
+                    "expired": False, "digest": verification_digest,
+                    "created_at": "2026-08-26T00:04:31Z",
+                    "workflow_run": copy.deepcopy(artifact_owner),
+                }, verification_archive),
             },
         )
         finalize = {
@@ -573,8 +625,8 @@ class V0916ParityApprovalTests(V0916ParityTestBase):
                 "comparisonArtifactId": 700,
                 "comparisonArtifactDigest": comparison_digest,
                 "planSha256": "1" * 64, "policySha256": "2" * 64,
-                "implementationHead": "e712842d61c560193ff9f7e2321daa47401a52d0",
-                "implementationTree": "1c2bd7ede4013b000ef4228605c83f07a904de76",
+                "implementationHead": "1d1d1cfcad7f0963dd3ed1e3e920d9a3425d6220",
+                "implementationTree": "1bc350cd3217f826ba841dfe098e919390f23546",
                 "candidatePackageSha256": "5" * 64,
                 "candidateManifestSha256": "9" * 64,
                 "candidateArtifactDigest": "sha256:" + "a" * 64,
@@ -599,7 +651,7 @@ class V0916ParityApprovalTests(V0916ParityTestBase):
             return hashlib.sha256(label.encode("utf-8")).hexdigest()
 
         candidate_executor = (
-            "f9d9c7f998c1a162ecc1a29693e37ebbf1dab9d0392098cab081c754f99e854c"
+            "e3bd602a82281be782bef5140bd3c54c242b1bbf26b15fb83dfb0d81346c4ac2"
         )
         exact_rows: list[dict[str, object]] = []
         for index in range(53):
@@ -618,6 +670,29 @@ class V0916ParityApprovalTests(V0916ParityTestBase):
                 )
             row["receipts"][1]["executorIdentitySha256"] = candidate_executor
             exact_rows.append(row)
+
+        correction = json.loads(self.plan_path.read_text(encoding="utf-8"))[
+            "approvedSemanticCorrections"
+        ][0]
+        correction_row = exact_rows[-1]
+        correction_row["routeId"] = correction["routeId"]
+        correction_row["capabilityFingerprint"] = correction[
+            "capabilityFingerprint"
+        ]
+        correction_row["proofKind"] = correction["requiredProofKind"]
+        correction_row["baselineOutput"] = copy.deepcopy(
+            correction["baselineOutput"]
+        )
+        correction_row["candidateOutput"] = copy.deepcopy(
+            correction["candidateOutput"]
+        )
+        correction_row["differenceValidation"] = {
+            "kind": correction["kind"],
+            "ownerDecision": correction["ownerDecision"],
+            "differentByteCount": correction["differentByteCount"],
+            "differentRanges": copy.deepcopy(correction["differentRanges"]),
+        }
+        correction_row["equal"] = False
 
         transitive_rows: list[dict[str, object]] = []
         for index in range(11):
@@ -663,20 +738,21 @@ class V0916ParityApprovalTests(V0916ParityTestBase):
             "policySha256": "2" * 64,
             "comparator": {"contractVersion": "1.0", "scriptSha256": "0" * 64},
             "candidateAuthority": {
-                "implementationHead": "e712842d61c560193ff9f7e2321daa47401a52d0",
-                "implementationTree": "1c2bd7ede4013b000ef4228605c83f07a904de76",
+                "implementationHead": "1d1d1cfcad7f0963dd3ed1e3e920d9a3425d6220",
+                "implementationTree": "1bc350cd3217f826ba841dfe098e919390f23546",
                 "authorityTrees": {
-                    "src": "2fb1430651eb5d94f3feaafe9f15a970f549e41d",
+                    "src": "e98ac8df13a64a53e34c4c6fc08bcde39a3c35f5",
                     "profiles": "7f8bd06e23ee78954e2e2c222f7b44a315049330",
                     "external-tools": "8d83e508ec3b48e000e1bef39b4b215c81b886ad",
                     "tools/crc-worker": "bba57c51cab02ddf89fefdf449eb585de7b34ae5",
                 },
                 "policySha256": "2" * 64,
                 "sourceExecutorContract": {"size": 4219, "sha256": candidate_executor},
-                "allowedEvidenceChildPaths": [
-                    "docs/governance/change-records/RELEASE-100-FINAL-01.json",
-                    "docs/release-evidence/v1.0.0-v0916-parity.json",
-                ],
+                "authorityTransfer": {
+                    "allowedBindingChildPaths": [
+                        "docs/contracts/v0916-parity-certification-v1.json"
+                    ],
+                },
             },
             "baselineExecutor": {
                 "kind": "exact-tag-source-built-cli",
@@ -704,23 +780,23 @@ class V0916ParityApprovalTests(V0916ParityTestBase):
                 "size": 100,
                 "sha256": "5" * 64,
                 "version": "1.0.0",
-                "sourceCommit": "e712842d61c560193ff9f7e2321daa47401a52d0",
+                "sourceCommit": "1d1d1cfcad7f0963dd3ed1e3e920d9a3425d6220",
             },
             "candidateBuild": {
                 "repository": "Dennis40816/nvt_fw_combiner",
                 "workflowPath": ".github/workflows/release.yml",
                 "workflowRef": "refs/heads/main",
-                "workflowCommitSha": "e712842d61c560193ff9f7e2321daa47401a52d0",
+                "workflowCommitSha": "1d1d1cfcad7f0963dd3ed1e3e920d9a3425d6220",
                 "workflowBlobSha": "e" * 40,
                 "workflowRawSha256": "f" * 64,
-                "workflowSemanticContractSha256": "1bb4a0694664f3eed05c63204892ff90df1f4bfdd9277ba06e07240c165f68bf",
+                "workflowSemanticContractSha256": "b4c91eb8b74a0f9b1e26784f4cb98b99e1720208a7128107cc3bcddfbfdbf029",
                 "runId": 123,
                 "artifactId": 456,
-                "artifactName": "stable-candidate-123-e712842d61c560193ff9f7e2321daa47401a52d0",
+                "artifactName": "stable-candidate-123-1d1d1cfcad7f0963dd3ed1e3e920d9a3425d6220",
                 "artifactDigest": "sha256:" + "a" * 64,
                 "artifactWorkflowRun": {
                     "id": 123,
-                    "headSha": "e712842d61c560193ff9f7e2321daa47401a52d0",
+                    "headSha": "1d1d1cfcad7f0963dd3ed1e3e920d9a3425d6220",
                     "headBranch": "main",
                     "repository": "Dennis40816/nvt_fw_combiner",
                     "repositoryId": 40816,

@@ -42,6 +42,12 @@ def parity_workflow_fixture_from_contract(
         if declared["environment"] is not None:
             job["environment"] = declared["environment"]
         jobs[job_id] = job
+    promotion = contract["promotionGate"]
+    jobs[promotion["jobId"]] = {
+        "needs": copy.deepcopy(promotion["needs"]),
+        "if": promotion["if"],
+        "steps": copy.deepcopy(promotion["steps"]),
+    }
     return {
         "name": "release",
         "on": {contract["trigger"]: {}},
@@ -119,6 +125,12 @@ class RecordingGithubReader:
     def get_artifact(self, repository: str, artifact_id: int) -> dict[str, object]:
         self.calls.append((f"{repository}/artifact", artifact_id))
         return copy.deepcopy(self.artifact)
+
+    def list_run_artifacts(
+        self, repository: str, run_id: int
+    ) -> list[dict[str, object]]:
+        self.calls.append((f"{repository}/artifacts", run_id))
+        return [copy.deepcopy(self.artifact)]
 
     def download_artifact(self, repository: str, artifact_id: int) -> io.BytesIO:
         self.calls.append((f"{repository}/artifact-download", artifact_id))

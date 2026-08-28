@@ -90,7 +90,7 @@ class CodeSizeSnapshot:
 
 
 DEFAULT_LIMITS = CodeSizeLimits(
-    production_nonblank=120_981,
+    production_nonblank=120_996,
     duplicate_json_nonblank=0,
     partial_type_default_max=2_500,
     partial_type_exact_ratchets={},

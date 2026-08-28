@@ -367,6 +367,41 @@ class ReleasePackagePolicyTests(unittest.TestCase):
     @unittest.skipUnless(
         POWERSHELL, "PowerShell is required for Windows release-policy tests"
     )
+    def test_packager_policy_dry_run_is_parallel_safe(self) -> None:
+        command = [
+            str(POWERSHELL),
+            "-NoProfile",
+            "-ExecutionPolicy",
+            "Bypass",
+            "-File",
+            str(PACKAGE_SCRIPT),
+            "-Version",
+            "0.0.0",
+            "-Commit",
+            "0" * 40,
+            "-ExternalToolPolicyDryRun",
+        ]
+        processes = [
+            subprocess.Popen(
+                command,
+                cwd=ROOT,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+                text=True,
+                encoding="utf-8",
+                errors="replace",
+            )
+            for _ in range(2)
+        ]
+
+        results = [process.communicate(timeout=120) for process in processes]
+        for process, (stdout, stderr) in zip(processes, results, strict=True):
+            self.assertEqual(0, process.returncode, stdout + stderr)
+        self.assertEqual([], list((ROOT / "external-tools").glob("release-package-policy-probe-*.txt")))
+
+    @unittest.skipUnless(
+        POWERSHELL, "PowerShell is required for Windows release-policy tests"
+    )
     def test_packager_rejects_version_that_differs_from_repository_identity(
         self,
     ) -> None:
@@ -1083,7 +1118,7 @@ class ReleasePackagePolicyTests(unittest.TestCase):
         self.assertIn("$env:GITHUB_RUN_ID", candidate)
 
         self.assertEqual(2, candidate.count("actions/upload-artifact@"))
-        self.assertEqual(4, release.count("actions/upload-artifact@"))
+        self.assertEqual(6, release.count("actions/upload-artifact@"))
         self.assertIn("path: artifacts/release/*", candidate)
         self.assertIn("path: artifacts/update-source-handoff/*", candidate)
         self.assertNotIn("update-source-handoff", promote)
@@ -1221,7 +1256,7 @@ class ReleasePackagePolicyTests(unittest.TestCase):
         self.assertNotIn("$changedPaths.Count -ne 1", release)
         self.assertNotIn("$changedPaths[0] -ne 'VERSION'", release)
 
-    def test_stable_promotion_waits_for_parity_attestation(self) -> None:
+    def test_stable_promotion_waits_for_terminal_parity_evidence(self) -> None:
         release = (ROOT / ".github/workflows/release.yml").read_text(encoding="utf-8")
         promote = release[
             release.index("  promote:") : release.index(
@@ -1231,6 +1266,21 @@ class ReleasePackagePolicyTests(unittest.TestCase):
 
         self.assertIn("- candidate", promote)
         self.assertIn("- v0916-parity-attestation", promote)
+        self.assertNotIn("- v0916-parity-finalize", promote)
+        self.assertIn("needs.v0916-parity-attestation.result == 'skipped'", promote)
+
+        steps = release[
+            release.index("    steps:", release.index("  promote:")) :
+            release.index("\n  published-smoke:")
+        ]
+        self.assertIn("Download terminal v0.9.16 parity evidence", steps)
+        self.assertIn("validate-terminal --evidence", steps)
+        self.assertEqual(
+            2,
+            steps.count("needs.candidate.outputs.version == '1.0.0'"),
+        )
+        self.assertNotIn("Reuse only committed v1.0.0 firmware evidence", release)
+        self.assertNotIn("--require-committed-transfer", release)
 
     def test_review_ready_event_and_closed_release_candidate_are_explicit(self) -> None:
         ci = (ROOT / ".github/workflows/ci.yml").read_text(encoding="utf-8")

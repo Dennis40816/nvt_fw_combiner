@@ -14,7 +14,7 @@
     "workflowReportBindings",
     "candidateAuthority",
     "inputIdentityAliases",
-    "knownBlockedExactRoutes",
+    "approvedSemanticCorrections",
     "transitiveRoutes"
   ],
   "properties": {
@@ -77,10 +77,11 @@
         "currentlyBoundRouteCount",
         "currentlyMissingRouteCount",
         "missingApplicableFixtureFailureCode",
-        "currentlyMissingRouteIds"
+        "currentlyMissingRouteIds",
+        "ctrlRamExecutionBindings"
       ],
       "properties": {
-        "repositoryCommit": { "const": "e712842d61c560193ff9f7e2321daa47401a52d0" },
+        "repositoryCommit": { "const": "1d1d1cfcad7f0963dd3ed1e3e920d9a3425d6220" },
         "canonicalRootTree": { "const": "0bd5df0fef830fab9c4d2a94098f14d6f0728936" },
         "manifestPath": { "const": "testdata/golden/canonical/manifest.json" },
         "manifestBlob": { "const": "d0dcae9043915429e70daf508002e3d5088b20dd" },
@@ -97,6 +98,12 @@
           "maxItems": 27,
           "uniqueItems": true,
           "items": { "type": "string", "minLength": 1 }
+        },
+        "ctrlRamExecutionBindings": {
+          "type": "array",
+          "minItems": 12,
+          "maxItems": 12,
+          "items": { "$ref": "#/$defs/ctrlRamExecutionBinding" }
         }
       }
     },
@@ -151,7 +158,7 @@
     "candidateAuthority": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["requiredTreePaths", "candidateSourceExecutorSchemaPath", "sourceExecutorContract", "protectedBuild", "allowedEvidenceChildPaths"],
+      "required": ["requiredTreePaths", "candidateSourceExecutorSchemaPath", "sourceExecutorContract", "protectedBuild", "authorityTransfer"],
       "properties": {
         "candidateSourceExecutorSchemaPath": { "const": "docs/contracts/v0916-candidate-source-executor-v1.schema.json" },
         "sourceExecutorContract": {
@@ -161,7 +168,7 @@
           "properties": {
             "path": { "const": "docs/contracts/v100-candidate-source-executor-v1.json" },
             "size": { "const": 4219 },
-            "sha256": { "const": "f9d9c7f998c1a162ecc1a29693e37ebbf1dab9d0392098cab081c754f99e854c" }
+            "sha256": { "const": "e3bd602a82281be782bef5140bd3c54c242b1bbf26b15fb83dfb0d81346c4ac2" }
           }
         },
         "requiredTreePaths": {
@@ -188,8 +195,8 @@
               "required": ["path", "size", "sha256"],
               "properties": {
                 "path": { "const": "docs/contracts/v0916-parity-workflow-v1.json" },
-                "size": { "const": 4559 },
-                "sha256": { "const": "1bb4a0694664f3eed05c63204892ff90df1f4bfdd9277ba06e07240c165f68bf" }
+                "size": { "const": 8561 },
+                "sha256": { "const": "b4c91eb8b74a0f9b1e26784f4cb98b99e1720208a7128107cc3bcddfbfdbf029" }
               }
             },
             "candidateVerifierPath": { "const": "scripts/release_promotion_policy.py" },
@@ -198,13 +205,18 @@
             "firmwareApprovalJobName": { "const": "release / v0.9.16 parity attestation" }
           }
         },
-        "allowedEvidenceChildPaths": {
-          "type": "array",
-          "prefixItems": [
-            { "const": "docs/governance/change-records/RELEASE-100-FINAL-01.json" },
-            { "const": "docs/release-evidence/v1.0.0-v0916-parity.json" }
-          ],
-          "items": false
+        "authorityTransfer": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["allowedBindingChildPaths"],
+          "properties": {
+            "allowedBindingChildPaths": {
+              "type": "array",
+              "minItems": 1,
+              "uniqueItems": true,
+              "items": { "type": "string", "pattern": "^[A-Za-z0-9._/-]+$" }
+            }
+          }
         }
       }
     },
@@ -213,9 +225,9 @@
       "prefixItems": [{ "$ref": "#/$defs/nt51928LdcInputAlias" }],
       "items": false
     },
-    "knownBlockedExactRoutes": {
+    "approvedSemanticCorrections": {
       "type": "array",
-      "prefixItems": [{ "$ref": "#/$defs/nt51951Cascade2Mismatch" }],
+      "prefixItems": [{ "$ref": "#/$defs/nt51951Cascade2Correction" }],
       "items": false
     },
     "transitiveRoutes": {
@@ -229,6 +241,30 @@
     "gitSha": { "type": "string", "pattern": "^[0-9a-f]{40}$" },
     "sha256": { "type": "string", "pattern": "^[0-9a-f]{64}$" },
     "routeId": { "type": "string", "pattern": "^route-[a-z0-9-]+$" },
+    "ctrlRamExecutionBinding": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["caseId", "fullBaseArtifactId", "tpBaseArtifactId", "replacements"],
+      "properties": {
+        "caseId": { "type": "string", "minLength": 1 },
+        "fullBaseArtifactId": { "type": "string", "minLength": 1 },
+        "tpBaseArtifactId": { "type": "string", "minLength": 1 },
+        "replacements": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["artifactId", "slotId"],
+            "properties": {
+              "artifactId": { "type": "string", "minLength": 1 },
+              "slotId": { "type": "string", "pattern": "^replace-ctrlram-[a-z0-9-]+$" }
+            }
+          }
+        }
+      }
+    },
     "mergeReportBinding": {
       "type": "object",
       "additionalProperties": false,
@@ -274,14 +310,15 @@
         "candidateInputSlotId": { "const": "ldc-input" }
       }
     },
-    "nt51951Cascade2Mismatch": {
+    "nt51951Cascade2Correction": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["routeId", "capabilityFingerprint", "kind", "baselineOutput", "candidateOutput", "differentByteCount", "differentRanges", "baselineProvenance", "candidateProvenance", "diagnosticRecord", "requiredFailureCode"],
+      "required": ["routeId", "capabilityFingerprint", "kind", "ownerDecision", "baselineOutput", "candidateOutput", "differentByteCount", "differentRanges", "baselineProvenance", "candidateProvenance", "diagnosticRecord", "requiredProofKind"],
       "properties": {
         "routeId": { "const": "route-7-nt51951-15-ctrlram-replace-4-2-ic-39-nt51951-ctrlram-fw1x-cascade-full-flash" },
         "capabilityFingerprint": { "const": "6a8dfcce871d0aa5586a8bd2a393093776b687055e546d7dce37fb2e9f35909f" },
-        "kind": { "const": "reported-exact-output-mismatch-blocked" },
+        "kind": { "const": "owner-approved-diff-nf-preservation" },
+        "ownerDecision": { "const": "owner-decision:2026-08-28:nt51951-diff-nf-preservation-is-correct" },
         "baselineOutput": {
           "type": "object",
           "additionalProperties": false,
@@ -342,11 +379,11 @@
           "properties": {
             "path": { "const": "docs/contracts/v0916-nt51951-c2-diagnostic-v1.json" },
             "size": { "const": 3952 },
-            "sha256": { "const": "54bc2c8005e18a9b495e4d25e02b8dd3b85551506d0d10aa7b30051ff4988e3c" },
+            "sha256": { "const": "3c53c257201ef2e1014ed1b13e4d4f9eda7b19306d52a3d7e89f373dd68fec8f" },
             "status": { "const": "blocked-incomplete-independent-observation" }
           }
         },
-        "requiredFailureCode": { "const": "PARITY_EXACT_MISMATCH" }
+        "requiredProofKind": { "const": "exact-output-with-approved-semantic-correction" }
       }
     },
     "rangeA11c": { "type": "object", "additionalProperties": false, "required": ["start", "endExclusive"], "properties": { "start": { "const": 41244 }, "endExclusive": { "const": 41248 } } },

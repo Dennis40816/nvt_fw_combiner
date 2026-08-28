@@ -16,6 +16,7 @@ import tempfile
 import unittest
 import zipfile
 from pathlib import Path
+from unittest import mock
 
 import yaml
 
@@ -44,6 +45,22 @@ RELEASE_POLICY_SPEC.loader.exec_module(RELEASE_POLICY)
 
 
 class V0916ParityArtifactTests(V0916ParityTestBase):
+    def test_normative_parity_documents_name_the_exact_candidate_head(self) -> None:
+        plan = json.loads(self.plan_path.read_text(encoding="utf-8"))
+        contract_path = ROOT / plan["candidateAuthority"]["sourceExecutorContract"]["path"]
+        expected = json.loads(contract_path.read_text(encoding="utf-8"))["source"][
+            "implementationHead"
+        ]
+
+        for relative_path in (
+            "docs/adr/0057-v0916-black-box-parity-certification.md",
+            "docs/contracts/v0916-parity-certification-v1.md",
+        ):
+            with self.subTest(path=relative_path):
+                content = (ROOT / relative_path).read_text(encoding="utf-8")
+                self.assertIn(expected, content)
+                self.assertNotIn("e712842d", content)
+
     def test_plan_pins_exact_fresh_candidate_source_executor_raw_contract(self) -> None:
         plan = json.loads(self.plan_path.read_text(encoding="utf-8"))
         declared = plan["candidateAuthority"]["sourceExecutorContract"]
@@ -54,20 +71,20 @@ class V0916ParityArtifactTests(V0916ParityTestBase):
         )
         self.assertEqual(4219, declared["size"])
         self.assertEqual(
-            "f9d9c7f998c1a162ecc1a29693e37ebbf1dab9d0392098cab081c754f99e854c",
+            "e3bd602a82281be782bef5140bd3c54c242b1bbf26b15fb83dfb0d81346c4ac2",
             declared["sha256"],
         )
         self.assertEqual(4219, path.stat().st_size)
         self.assertEqual(
-            "f9d9c7f998c1a162ecc1a29693e37ebbf1dab9d0392098cab081c754f99e854c",
+            "e3bd602a82281be782bef5140bd3c54c242b1bbf26b15fb83dfb0d81346c4ac2",
             hashlib.sha256(path.read_bytes()).hexdigest(),
         )
         contract = json.loads(path.read_text(encoding="utf-8"))
-        self.assertEqual("e712842d61c560193ff9f7e2321daa47401a52d0", contract["source"]["implementationHead"])
-        self.assertEqual("1c2bd7ede4013b000ef4228605c83f07a904de76", contract["source"]["implementationTree"])
+        self.assertEqual("1d1d1cfcad7f0963dd3ed1e3e920d9a3425d6220", contract["source"]["implementationHead"])
+        self.assertEqual("1bc350cd3217f826ba841dfe098e919390f23546", contract["source"]["implementationTree"])
         self.assertEqual(
             {
-                "src": "2fb1430651eb5d94f3feaafe9f15a970f549e41d",
+                "src": "e98ac8df13a64a53e34c4c6fc08bcde39a3c35f5",
                 "profiles": "7f8bd06e23ee78954e2e2c222f7b44a315049330",
                 "external-tools": "8d83e508ec3b48e000e1bef39b4b215c81b886ad",
                 "tools/crc-worker": "bba57c51cab02ddf89fefdf449eb585de7b34ae5",
@@ -76,8 +93,8 @@ class V0916ParityArtifactTests(V0916ParityTestBase):
         )
         self.assertEqual("10.0.303", contract["toolchain"]["resolvedSdkVersion"])
         self.assertEqual("detached-git-worktree", contract["freshBuild"]["sourceMaterialization"])
-        self.assertEqual(171520, contract["cliAssembly"]["size"])
-        self.assertEqual("ac51674851ca9732cd4ecba4e132bac021b77b2e657606516704946b66dd2d7b", contract["cliAssembly"]["sha256"])
+        self.assertEqual(178688, contract["cliAssembly"]["size"])
+        self.assertEqual("81f050116e563800240c95d800f410e2084a5c78ee8089e774fd7536e966fe73", contract["cliAssembly"]["sha256"])
         self.assertTrue(contract["freshBuild"]["emptyDestinationRequired"])
         self.assertTrue(contract["freshBuild"]["rejectIgnoredBuildOutputsBeforeRestore"])
         head = contract["source"]["implementationHead"]
@@ -616,7 +633,7 @@ class V0916ParityArtifactTests(V0916ParityTestBase):
                 "workflowCommitSha": workflow_sha,
                 "workflowBlobSha": workflow_blob_sha,
                 "workflowRawSha256": workflow_raw_sha256,
-                "workflowSemanticContractSha256": "1bb4a0694664f3eed05c63204892ff90df1f4bfdd9277ba06e07240c165f68bf",
+                "workflowSemanticContractSha256": "b4c91eb8b74a0f9b1e26784f4cb98b99e1720208a7128107cc3bcddfbfdbf029",
                 "runId": 123,
                 "artifactId": 456,
                 "artifactName": f"stable-candidate-123-{head}",
@@ -646,12 +663,22 @@ class V0916ParityArtifactTests(V0916ParityTestBase):
                 repository_root=ROOT,
                 local_assets=assets,
                 declared=declared,
-                implementation_head=head,
-                implementation_tree=tree,
+                firmware_executor_head="f" * 40,
+                firmware_executor_tree="e" * 40,
+                package_source_head=head,
+                package_source_tree=tree,
                 process_runner=runner,
                 github_reader=github,
                 artifact_download_root=artifact_download_root,
                 workflow_semantic_contract=workflow_contract,
+            )
+            self.assertEqual(
+                {"head": "f" * 40, "tree": "e" * 40},
+                validated["firmwareExecutorAuthority"],
+            )
+            self.assertEqual(
+                {"head": head, "tree": tree},
+                validated["packageSourceAuthority"],
             )
             self.assertEqual(
                 {
@@ -719,8 +746,10 @@ class V0916ParityArtifactTests(V0916ParityTestBase):
                             repository_root=ROOT,
                             local_assets=assets,
                             declared=declared,
-                            implementation_head=head,
-                            implementation_tree=tree,
+                            firmware_executor_head=head,
+                            firmware_executor_tree=tree,
+                            package_source_head=head,
+                            package_source_tree=tree,
                             process_runner=RecordingProcessRunner([]),
                             github_reader=self._github_reader(
                                 declared,
@@ -848,14 +877,209 @@ class V0916ParityArtifactTests(V0916ParityTestBase):
                             repository_root=ROOT,
                             local_assets=assets,
                             declared=candidate_declared,
-                            implementation_head=head,
-                            implementation_tree=tree,
+                            firmware_executor_head=head,
+                            firmware_executor_tree=tree,
+                            package_source_head=head,
+                            package_source_tree=tree,
                             process_runner=candidate_runner,
                             github_reader=candidate_github,
                             artifact_download_root=root / f"negative-{mutation}",
                             workflow_semantic_contract=workflow_contract,
                         )
                     self.assertEqual(expected_code, captured.exception.code)
+
+    def test_candidate_discovery_binds_exact_surface_to_same_workflow_run(self) -> None:
+        head = "1" * 40
+        tree = "8" * 40
+        workflow_sha = "b" * 40
+        workflow_bytes = b"name: release\n"
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            assets = self._create_canonical_candidate_assets(
+                root, head=head, tree=tree, workflow_sha=workflow_sha
+            )
+            archive = self._archive_assets(assets)
+            declared_seed = {
+                "repository": "Dennis40816/nvt_fw_combiner",
+                "workflowPath": ".github/workflows/release.yml",
+                "workflowBlobSha": hashlib.sha1(
+                    f"blob {len(workflow_bytes)}\0".encode("ascii") + workflow_bytes
+                ).hexdigest(),
+                "artifactName": f"stable-candidate-123-{head}",
+                "artifactDigest": "sha256:" + hashlib.sha256(archive).hexdigest(),
+            }
+            github = self._github_reader(
+                declared_seed,
+                head=workflow_sha,
+                workflow_bytes=workflow_bytes,
+                archive=archive,
+            )
+
+            local_assets, declared, package = MODULE.discover_candidate_build_declaration(
+                repository_root=ROOT,
+                candidate_artifact_dir=assets["package"].parent,
+                candidate_source_identity_sha256="d" * 64,
+                github_reader=github,
+                repository="Dennis40816/nvt_fw_combiner",
+                run_id=123,
+                workflow_sha=workflow_sha,
+            )
+
+            self.assertEqual(set(assets), set(local_assets))
+            self.assertEqual(456, declared["artifactId"])
+            self.assertEqual(head, package["packageSourceHead"])
+            self.assertEqual(tree, package["packageSourceTree"])
+            self.assertIn(
+                ("Dennis40816/nvt_fw_combiner/artifacts", 123), github.calls
+            )
+
+    def test_candidate_discovery_rejects_cross_run_or_ambiguous_artifact(self) -> None:
+        head = "1" * 40
+        tree = "8" * 40
+        workflow_sha = "b" * 40
+        workflow_bytes = b"name: release\n"
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            assets = self._create_canonical_candidate_assets(
+                root, head=head, tree=tree, workflow_sha=workflow_sha
+            )
+            archive = self._archive_assets(assets)
+            seed = {
+                "repository": "Dennis40816/nvt_fw_combiner",
+                "workflowPath": ".github/workflows/release.yml",
+                "workflowBlobSha": hashlib.sha1(
+                    f"blob {len(workflow_bytes)}\0".encode("ascii") + workflow_bytes
+                ).hexdigest(),
+                "artifactName": f"stable-candidate-123-{head}",
+                "artifactDigest": "sha256:" + hashlib.sha256(archive).hexdigest(),
+            }
+            for mutation in (
+                "cross-run",
+                "cross-head",
+                "cross-repository",
+                "expired",
+                "duplicate",
+            ):
+                github = self._github_reader(
+                    seed,
+                    head=workflow_sha,
+                    workflow_bytes=workflow_bytes,
+                    archive=archive,
+                )
+                if mutation == "cross-run":
+                    github.artifact["workflow_run"]["id"] = 999
+                elif mutation == "cross-head":
+                    github.artifact["workflow_run"]["head_sha"] = "0" * 40
+                elif mutation == "cross-repository":
+                    github.run["repository"]["full_name"] = "other/repository"
+                elif mutation == "expired":
+                    github.artifact["expired"] = True
+                else:
+                    github.list_run_artifacts = lambda _repository, _run_id: [
+                        copy.deepcopy(github.artifact),
+                        copy.deepcopy(github.artifact),
+                    ]
+                with self.subTest(mutation=mutation):
+                    with self.assertRaises(MODULE.ParityError) as captured:
+                        MODULE.discover_candidate_build_declaration(
+                            repository_root=ROOT,
+                            candidate_artifact_dir=assets["package"].parent,
+                            candidate_source_identity_sha256="d" * 64,
+                            github_reader=github,
+                            repository="Dennis40816/nvt_fw_combiner",
+                            run_id=123,
+                            workflow_sha=workflow_sha,
+                        )
+                    self.assertEqual(
+                        "PARITY_AUTHORITY_MISMATCH", captured.exception.code
+                    )
+
+            (assets["package"].parent / "unexpected.bin").write_bytes(b"unexpected")
+            github = self._github_reader(
+                seed,
+                head=workflow_sha,
+                workflow_bytes=workflow_bytes,
+                archive=archive,
+            )
+            with self.assertRaises(MODULE.ParityError) as captured:
+                MODULE.discover_candidate_build_declaration(
+                    repository_root=ROOT,
+                    candidate_artifact_dir=assets["package"].parent,
+                    candidate_source_identity_sha256="d" * 64,
+                    github_reader=github,
+                    repository="Dennis40816/nvt_fw_combiner",
+                    run_id=123,
+                    workflow_sha=workflow_sha,
+                )
+            self.assertEqual("PARITY_PACKAGE_MISMATCH", captured.exception.code)
+
+    def test_verify_candidate_cli_handler_dispatches_both_canonical_verifiers(self) -> None:
+        source_contract_path = ROOT / "docs/contracts/v100-candidate-source-executor-v1.json"
+        source_contract = json.loads(source_contract_path.read_text(encoding="utf-8"))
+        source = source_contract["source"]
+        workflow_sha = "b" * 40
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            assets = self._create_canonical_candidate_assets(
+                root,
+                head=source["implementationHead"],
+                tree=source["implementationTree"],
+                workflow_sha=workflow_sha,
+            )
+            output_root = root / "verification-output"
+            candidate_build = {
+                "candidateSourceExecutorIdentitySha256": hashlib.sha256(
+                    source_contract_path.read_bytes()
+                ).hexdigest(),
+                "candidateManifest": self.artifact(assets["manifest"]),
+                "candidateSbom": self.artifact(assets["sbom"]),
+                "candidateProvenance": self.artifact(assets["provenance"]),
+                "releaseNotes": self.artifact(assets["notes"]),
+                "assetChecksums": self.artifact(assets["checksums"]),
+            }
+            run = {
+                "schemaVersion": "1.0",
+                "candidateAuthority": {
+                    "implementationHead": source["implementationHead"],
+                    "implementationTree": source["implementationTree"],
+                    "authorityTrees": source["authorityTrees"],
+                    "sourceExecutorContract": self.artifact(source_contract_path),
+                },
+                "candidateBuild": candidate_build,
+                "candidatePackage": str(assets["package"]),
+                "outputRoot": str(output_root),
+            }
+            run_path = root / "run.json"
+            run_path.write_text(json.dumps(run), encoding="utf-8")
+
+            with (
+                mock.patch.object(
+                    MODULE,
+                    "validate_repository_parity_authority_transfer",
+                    return_value={
+                        "implementationHead": source["implementationHead"],
+                        "bindingHead": source["implementationHead"],
+                    },
+                ),
+                mock.patch.object(
+                    MODULE,
+                    "verify_protected_candidate_build",
+                    return_value={"passed": True},
+                ) as verifier,
+            ):
+                result = MODULE._verify_candidate_command(
+                    __import__("argparse").Namespace(run=str(run_path))
+                )
+
+            self.assertEqual(0, result)
+            call = verifier.call_args.kwargs
+            self.assertEqual(source["implementationHead"], call["firmware_executor_head"])
+            self.assertEqual(source["implementationTree"], call["firmware_executor_tree"])
+            self.assertEqual(assets, call["local_assets"])
+            self.assertEqual(
+                output_root / "candidate-artifact-proof",
+                call["artifact_download_root"],
+            )
 
     def test_github_artifact_extraction_is_closed_bounded_and_path_safe(self) -> None:
         names = [
@@ -1150,6 +1374,7 @@ class V0916ParityArtifactTests(V0916ParityTestBase):
                 "head_branch": "main",
                 "head_sha": head,
                 "id": 123,
+                "status": "completed",
                 "conclusion": "success",
             },
             {

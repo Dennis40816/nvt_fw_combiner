@@ -1,16 +1,37 @@
 """Executable checks for parity production ports."""
 
 import io
+import subprocess
+import sys
 import unittest
+from pathlib import Path
 
 from tests.scripts.v0916_parity_test_support import (
     PRODUCTION_AVAILABLE,
     RecordingGithubReader,
     RecordingProtectedApprovalReader,
+    ROOT,
 )
 
 
 class V0916ParityHarnessTests(unittest.TestCase):
+    def test_exact_workflow_script_entrypoint_imports_from_repository_root(self) -> None:
+        result = subprocess.run(
+            [
+                sys.executable,
+                "./scripts/v0916_parity_certification.py",
+                "--help",
+            ],
+            cwd=ROOT,
+            check=False,
+            capture_output=True,
+            text=True,
+        )
+
+        self.assertEqual(0, result.returncode, result.stdout + result.stderr)
+        self.assertIn("validate-owner-material", result.stdout)
+        self.assertNotIn("record-protected-approval", result.stdout)
+
     def test_package_reader_constructor_and_workflow_content_api_execute(self) -> None:
         reader = RecordingGithubReader(
             {"path": ".github/workflows/release.yml", "sha": "a" * 40},

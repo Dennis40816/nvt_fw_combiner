@@ -47,6 +47,10 @@ from skill_metadata_validation import (
     parse_skill_metadata,
     validate_skill_metadata_fields,
 )
+from v0916_parity_certification import (
+    ParityError,
+    validate_repository_parity_authority_transfer,
+)
 
 ROOT = Path(__file__).resolve().parents[1]
 REQUIRED_FILES = {
@@ -3092,6 +3096,13 @@ def validate() -> list[str]:
     validate_workflows(errors)
     validate_packaging_policy(files, errors)
     validate_agent_files(errors)
+    if (ROOT / "docs/contracts/v0916-parity-certification-v1.json").is_file():
+        try:
+            validate_repository_parity_authority_transfer(ROOT)
+        except ParityError as exc:
+            errors.append(
+                "v0.9.16 parity Git authority transfer failed: " f"{exc.code}"
+            )
     return sorted(set(errors))
 
 

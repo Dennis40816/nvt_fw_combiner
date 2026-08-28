@@ -1,6 +1,7 @@
 """Behavioral red tests for one v0.9.16 parity concern."""
 
 import copy
+import contextlib
 import hashlib
 import io
 import json
@@ -82,14 +83,14 @@ class V0916ParityContractTests(V0916ParityTestBase):
     def test_nt51951_raw_diagnostic_identity_is_checked_without_the_production_loader(self) -> None:
         """Keep the payload-free diagnostic reference valid even while production is red."""
         raw_plan = json.loads(self.plan_path.read_text(encoding="utf-8"))
-        self.assertEqual(1, len(raw_plan["knownBlockedExactRoutes"]))
-        reference = raw_plan["knownBlockedExactRoutes"][0]["diagnosticRecord"]
+        self.assertEqual(1, len(raw_plan["approvedSemanticCorrections"]))
+        reference = raw_plan["approvedSemanticCorrections"][0]["diagnosticRecord"]
         diagnostic_path = ROOT / reference["path"]
         diagnostic_bytes = diagnostic_path.read_bytes()
         self.assertEqual(3952, len(diagnostic_bytes))
         self.assertEqual(reference["size"], len(diagnostic_bytes))
         self.assertEqual(
-            "54bc2c8005e18a9b495e4d25e02b8dd3b85551506d0d10aa7b30051ff4988e3c",
+            "3c53c257201ef2e1014ed1b13e4d4f9eda7b19306d52a3d7e89f373dd68fec8f",
             hashlib.sha256(diagnostic_bytes).hexdigest(),
         )
         self.assertEqual(reference["sha256"], hashlib.sha256(diagnostic_bytes).hexdigest())
@@ -532,6 +533,302 @@ class V0916ParityContractTests(V0916ParityTestBase):
         }
         self.assertEqual(before, after)
 
+    def test_compare_command_has_a_complete_117_execution_success_path(self) -> None:
+        plan = MODULE.load_and_validate_plan(self.plan_path, self.policy_path)
+        candidate_contract = MODULE.load_and_validate_candidate_source_executor_contract(
+            ROOT / "docs/contracts/v100-candidate-source-executor-v1.json",
+            plan.raw["candidateAuthority"]["sourceExecutorContract"],
+        )
+        candidate_identity = candidate_contract.identity_sha256
+        source = candidate_contract.contract["source"]
+
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            cli = root / "cli.dll"
+            cli.write_bytes(b"cli")
+            baseline_executor = MODULE.VerifiedSourceExecutor(
+                "exact-tag-source-built-cli",
+                root,
+                plan.raw["baseline"]["peeledCommit"],
+                plan.raw["baseline"]["sourceTree"],
+                "861fa0fae7bf5904cac88a4bcb6ed6e0aef1a54518e0903914f2121fbc411bfb",
+                cli,
+                3,
+                hashlib.sha256(b"cli").hexdigest(),
+                ("dotnet", str(cli)),
+                True,
+            )
+            candidate_executor = baseline_executor.with_changes(
+                kind="candidate-source-built-cli",
+                source_head=source["implementationHead"],
+                source_tree=source["implementationTree"],
+                contract_identity_sha256=candidate_identity,
+            )
+            workflow_contract = ROOT / "docs/contracts/v0916-parity-workflow-v1.json"
+            workflow_contract_sha = hashlib.sha256(workflow_contract.read_bytes()).hexdigest()
+            package_source_head = "3" * 40
+            package_source_tree = "4" * 40
+            declared = {
+                "repository": "Dennis40816/nvt_fw_combiner",
+                "workflowPath": ".github/workflows/release.yml",
+                "workflowRef": "refs/heads/main",
+                "workflowCommitSha": "5" * 40,
+                "workflowBlobSha": "6" * 40,
+                "workflowRawSha256": "7" * 64,
+                "workflowSemanticContractSha256": workflow_contract_sha,
+                "runId": 123,
+                "artifactId": 456,
+                "artifactName": f"stable-candidate-123-{package_source_head}",
+                "artifactDigest": "sha256:" + "8" * 64,
+                "candidateManifest": {"size": 10, "sha256": "9" * 64},
+                "candidateSbom": {"size": 10, "sha256": "a" * 64},
+                "candidateProvenance": {"size": 10, "sha256": "b" * 64},
+                "releaseNotes": {"size": 10, "sha256": "c" * 64},
+                "assetChecksums": {"size": 10, "sha256": "d" * 64},
+                "candidateSourceExecutorIdentitySha256": candidate_identity,
+                "provenanceSubjectsSha256": "e" * 64,
+                "candidateVerifierSha256": "f" * 64,
+                "packageVerifierSha256": "0" * 64,
+            }
+            package = {
+                "name": "NvtFwCombiner-v1.0.0-win-x64.zip",
+                "size": 100,
+                "sha256": "1" * 64,
+                "version": "1.0.0",
+                "sourceCommit": package_source_head,
+            }
+            artifact_run = {
+                "id": 123,
+                "headSha": "5" * 40,
+                "headBranch": "main",
+                "repository": "Dennis40816/nvt_fw_combiner",
+                "repositoryId": 40816,
+                "headRepositoryId": 40816,
+            }
+            exact_index = 0
+            transitive_index = 0
+
+            def exact_row(**kwargs: object) -> dict[str, object]:
+                nonlocal exact_index
+                route = kwargs["route"]
+                row = copy.deepcopy(self.schema_exact_evidence_row())
+                row["routeId"] = route.route_id
+                row["capabilityFingerprint"] = route.capability_fingerprint
+                row["scenario"].update(
+                    icId=route.ic_id,
+                    workflowId=route.workflow_id,
+                    icCountVariant=route.ic_count_variant,
+                    mapVariant=route.map_variant,
+                    selectionToken="fixture",
+                )
+                correction = next(
+                    (
+                        item
+                        for item in plan.raw["approvedSemanticCorrections"]
+                        if item["routeId"] == route.route_id
+                    ),
+                    None,
+                )
+                if correction is not None:
+                    row["proofKind"] = correction["requiredProofKind"]
+                    row["baselineOutput"] = copy.deepcopy(
+                        correction["baselineOutput"]
+                    )
+                    row["candidateOutput"] = copy.deepcopy(
+                        correction["candidateOutput"]
+                    )
+                    row["equal"] = False
+                    row["differenceValidation"] = {
+                        "kind": correction["kind"],
+                        "ownerDecision": correction["ownerDecision"],
+                        "differentByteCount": correction["differentByteCount"],
+                        "differentRanges": copy.deepcopy(
+                            correction["differentRanges"]
+                        ),
+                    }
+                for receipt_index, receipt in enumerate(row["receipts"]):
+                    receipt["receiptSha256"] = hashlib.sha256(
+                        f"exact-receipt-{exact_index}-{receipt_index}".encode()
+                    ).hexdigest()
+                    receipt["invocationSha256"] = hashlib.sha256(
+                        f"exact-invocation-{exact_index}-{receipt_index}".encode()
+                    ).hexdigest()
+                row["receipts"][1]["executorIdentitySha256"] = candidate_identity
+                exact_index += 1
+                MODULE.validate_exact_evidence_row_schema(row)
+                return row
+
+            def transitive_row(**kwargs: object) -> dict[str, object]:
+                nonlocal transitive_index
+                route = kwargs["route"]
+                full_route = kwargs["full_route"]
+                full_evidence = kwargs["full_evidence"]
+                row = copy.deepcopy(
+                    self.schema_transitive_evidence_row(
+                        MODULE.canonical_route_row_sha256(full_evidence)
+                    )
+                )
+                row["routeId"] = route.route_id
+                row["capabilityFingerprint"] = route.capability_fingerprint
+                row["fullEvidence"].update(
+                    routeId=full_route.route_id,
+                    capabilityFingerprint=full_route.capability_fingerprint,
+                )
+                row["tpLength"] = route.tp_length
+                row["tpScenario"].update(
+                    icId=route.ic_id,
+                    workflowId=route.workflow_id,
+                    icCountVariant=route.ic_count_variant,
+                    mapVariant=route.map_variant,
+                    selectionToken="fixture-tp",
+                    outputCapacity=route.tp_length,
+                )
+                row["candidateCompilationFingerprint"] = route.capability_fingerprint
+                row["receipts"][0]["executorIdentitySha256"] = candidate_identity
+                row["receipts"][0]["receiptSha256"] = hashlib.sha256(
+                    f"tp-receipt-{transitive_index}".encode()
+                ).hexdigest()
+                row["receipts"][0]["invocationSha256"] = hashlib.sha256(
+                    f"tp-invocation-{transitive_index}".encode()
+                ).hexdigest()
+                transitive_index += 1
+                MODULE.validate_transitive_evidence_reference(full_evidence, row)
+                return row
+
+            def resolved_input(
+                _plan: object,
+                _manifest: object,
+                *,
+                admitted_input_root: Path,
+                route_id: str,
+                execution_role: str,
+            ) -> object:
+                route = next(row for row in plan.routes if row.route_id == route_id)
+                return MODULE.VerifiedCanonicalInputs(
+                    route_id,
+                    execution_role,
+                    route.capability_fingerprint,
+                    {
+                        "routeId": route_id,
+                        "executionRole": execution_role,
+                        "capabilityFingerprint": route.capability_fingerprint,
+                    },
+                )
+
+            def projected_receipt(**kwargs: object) -> dict[str, object]:
+                verified = kwargs["verified_inputs"]
+                executor = kwargs["verified_executor"]
+                return {
+                    "role": verified.execution_role,
+                    "routeId": verified.route_id,
+                    "executorIdentitySha256": executor.contract_identity_sha256,
+                }
+
+            output_root = root / "comparison"
+            with (
+                mock.patch.dict(
+                    MODULE.os.environ,
+                    {
+                        "GITHUB_ACTOR": "dennis40816",
+                        "GITHUB_REPOSITORY": "Dennis40816/nvt_fw_combiner",
+                        "GITHUB_WORKFLOW_SHA": "5" * 40,
+                        "GITHUB_RUN_ID": "123",
+                    },
+                ),
+                mock.patch.object(MODULE, "materialize_and_validate_canonical_input_authority"),
+                mock.patch.object(
+                    MODULE,
+                    "resolve_all_canonical_route_inputs",
+                    return_value={row.route_id: {} for row in plan.routes},
+                ),
+                mock.patch.object(
+                    MODULE,
+                    "discover_candidate_build_declaration",
+                    return_value=(
+                        {},
+                        declared,
+                        {
+                            "manifest": {},
+                            "package": package,
+                            "packageSourceHead": package_source_head,
+                            "packageSourceTree": package_source_tree,
+                        },
+                    ),
+                ),
+                mock.patch.object(
+                    MODULE,
+                    "verify_protected_candidate_build",
+                    return_value={"artifactWorkflowRun": artifact_run, "passed": True},
+                ),
+                mock.patch.object(
+                    MODULE,
+                    "validate_repository_parity_authority_transfer",
+                    return_value={
+                        "implementationHead": source["implementationHead"],
+                        "bindingHead": package_source_head,
+                    },
+                ),
+                mock.patch.object(
+                    MODULE,
+                    "detached_git_worktree",
+                    side_effect=lambda *args, **kwargs: contextlib.nullcontext(root),
+                ),
+                mock.patch.object(
+                    MODULE,
+                    "verify_source_baseline_executor",
+                    return_value=baseline_executor,
+                ),
+                mock.patch.object(
+                    MODULE,
+                    "verify_candidate_source_executor",
+                    return_value=candidate_executor,
+                ),
+                mock.patch.object(
+                    MODULE,
+                    "resolve_canonical_route_input",
+                    side_effect=resolved_input,
+                ),
+                mock.patch.object(
+                    MODULE,
+                    "execute_cli_capture",
+                    return_value={"processDriven": True},
+                ) as execute,
+                mock.patch.object(
+                    MODULE,
+                    "build_process_receipt",
+                    side_effect=projected_receipt,
+                ),
+                mock.patch.object(
+                    MODULE, "build_exact_route_evidence", side_effect=exact_row
+                ) as exact,
+                mock.patch.object(
+                    MODULE,
+                    "build_transitive_route_evidence",
+                    side_effect=transitive_row,
+                ) as transitive,
+            ):
+                result = MODULE.main(
+                    [
+                        "compare",
+                        "--plan",
+                        str(self.plan_path),
+                        "--candidate-artifact-dir",
+                        str(root / "candidate"),
+                        "--output-root",
+                        str(output_root),
+                    ]
+                )
+
+            self.assertEqual(0, result)
+            self.assertEqual(117, execute.call_count)
+            self.assertEqual(53, exact.call_count)
+            self.assertEqual(11, transitive.call_count)
+            comparison = json.loads(
+                (output_root / "comparison.json").read_text(encoding="utf-8")
+            )
+            MODULE.validate_comparison_schema(comparison)
+            self.assertEqual("provisional", comparison["verdict"])
+
     def test_policy_byte_drift_fails_with_stable_code(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
             policy = Path(temporary) / "policy.json"
@@ -616,7 +913,7 @@ class V0916ParityContractTests(V0916ParityTestBase):
 
         self.assertEqual("PARITY_EXACT_MISMATCH", captured.exception.code)
 
-    def test_nt51951_cascade2_known_byte_mismatch_has_no_normalization_or_fallback(self) -> None:
+    def test_nt51951_cascade2_diff_nf_preservation_is_exactly_bounded_owner_approved_correction(self) -> None:
         plan = MODULE.load_and_validate_plan(self.plan_path, self.policy_path)
         route_id = (
             "route-7-nt51951-15-ctrlram-replace-4-2-ic-39-"
@@ -625,44 +922,52 @@ class V0916ParityContractTests(V0916ParityTestBase):
         route = next(route for route in plan.routes if route.route_id == route_id)
         self.assertEqual("exact-output", route.proof_kind)
         raw_plan = json.loads(self.plan_path.read_text(encoding="utf-8"))
-        blocked = raw_plan["knownBlockedExactRoutes"]
-        self.assertEqual(1, len(blocked))
-        self.assertEqual(route_id, blocked[0]["routeId"])
+        corrections = raw_plan["approvedSemanticCorrections"]
+        self.assertEqual(1, len(corrections))
+        correction = corrections[0]
+        self.assertEqual(route_id, correction["routeId"])
         self.assertEqual(
-            "reported-exact-output-mismatch-blocked", blocked[0]["kind"]
+            "owner-approved-diff-nf-preservation", correction["kind"]
         )
-        self.assertEqual(route.capability_fingerprint, blocked[0]["capabilityFingerprint"])
-        self.assertEqual(524288, blocked[0]["baselineOutput"]["size"])
-        self.assertEqual(524288, blocked[0]["candidateOutput"]["size"])
+        self.assertEqual(
+            "owner-decision:2026-08-28:nt51951-diff-nf-preservation-is-correct",
+            correction["ownerDecision"],
+        )
+        self.assertEqual(route.capability_fingerprint, correction["capabilityFingerprint"])
+        self.assertEqual(524288, correction["baselineOutput"]["size"])
+        self.assertEqual(524288, correction["candidateOutput"]["size"])
         self.assertEqual(
             "7d657a3d0abc2cc6779e759c17567b40740de95235bf6d1e71c147d815edcca2",
-            blocked[0]["baselineOutput"]["sha256"],
+            correction["baselineOutput"]["sha256"],
         )
         self.assertEqual(
             "1536d344af83aafd29e5884d9d2d904f1efa03c8fdcc4e913832253814644ebd",
-            blocked[0]["candidateOutput"]["sha256"],
+            correction["candidateOutput"]["sha256"],
         )
-        self.assertEqual(2816, blocked[0]["differentByteCount"])
+        self.assertEqual(2816, correction["differentByteCount"])
         self.assertEqual(
             2816,
             sum(
                 item["endExclusive"] - item["start"]
-                for item in blocked[0]["differentRanges"]
+                for item in correction["differentRanges"]
             ),
         )
-        self.assertEqual("PARITY_EXACT_MISMATCH", blocked[0]["requiredFailureCode"])
+        self.assertEqual(
+            "exact-output-with-approved-semantic-correction",
+            correction["requiredProofKind"],
+        )
         self.assertEqual(
             "861fa0fae7bf5904cac88a4bcb6ed6e0aef1a54518e0903914f2121fbc411bfb",
-            blocked[0]["baselineProvenance"]["executorContractSha256"],
+            correction["baselineProvenance"]["executorContractSha256"],
         )
-        case_manifest = blocked[0]["candidateProvenance"]["canonicalCaseManifest"]
+        case_manifest = correction["candidateProvenance"]["canonicalCaseManifest"]
         case_path = ROOT / case_manifest["path"]
         self.assertEqual(case_path.stat().st_size, case_manifest["size"])
         self.assertEqual(
             hashlib.sha256(case_path.read_bytes()).hexdigest(),
             case_manifest["sha256"],
         )
-        MODULE.validate_known_blocked_exact_route(blocked[0], route)
+        MODULE.validate_approved_semantic_correction(correction, route)
         self.assertTrue(
             all(alias["routeId"] != route_id for alias in raw_plan["inputIdentityAliases"])
         )
@@ -675,7 +980,37 @@ class V0916ParityContractTests(V0916ParityTestBase):
                 MODULE.compare_exact_files(baseline, candidate)
         self.assertEqual("PARITY_EXACT_MISMATCH", captured.exception.code)
 
-        diagnostic_ref = blocked[0]["diagnosticRecord"]
+        with tempfile.TemporaryDirectory() as temporary:
+            baseline = Path(temporary) / "baseline.bin"
+            candidate = Path(temporary) / "candidate.bin"
+            baseline.write_bytes(b"ABCD")
+            candidate.write_bytes(b"ABxD")
+            bounded = {
+                "kind": "owner-approved-diff-nf-preservation",
+                "ownerDecision": correction["ownerDecision"],
+                "baselineOutput": {
+                    "size": 4,
+                    "sha256": hashlib.sha256(b"ABCD").hexdigest(),
+                },
+                "candidateOutput": {
+                    "size": 4,
+                    "sha256": hashlib.sha256(b"ABxD").hexdigest(),
+                },
+                "differentByteCount": 1,
+                "differentRanges": [{"start": 2, "endExclusive": 3}],
+            }
+            result = MODULE.compare_approved_semantic_correction(
+                baseline, candidate, bounded
+            )
+            self.assertFalse(result["equal"])
+            candidate.write_bytes(b"AyxD")
+            with self.assertRaises(MODULE.ParityError) as escaped:
+                MODULE.compare_approved_semantic_correction(
+                    baseline, candidate, bounded
+                )
+            self.assertEqual("PARITY_EXACT_MISMATCH", escaped.exception.code)
+
+        diagnostic_ref = correction["diagnosticRecord"]
         diagnostic_path = ROOT / diagnostic_ref["path"]
         self.assertEqual(diagnostic_path.stat().st_size, diagnostic_ref["size"])
         self.assertEqual(
@@ -688,7 +1023,7 @@ class V0916ParityContractTests(V0916ParityTestBase):
         )
 
         for mutation in ("hash", "size", "count", "range", "fingerprint", "provenance", "code"):
-            invalid = copy.deepcopy(blocked[0])
+            invalid = copy.deepcopy(correction)
             if mutation == "hash":
                 invalid["baselineOutput"]["sha256"] = "0" * 64
             elif mutation == "size":
@@ -702,13 +1037,13 @@ class V0916ParityContractTests(V0916ParityTestBase):
             elif mutation == "provenance":
                 invalid["candidateProvenance"]["canonicalCaseManifest"]["sha256"] = "0" * 64
             else:
-                invalid["requiredFailureCode"] = "PARITY_PREFIX_MISMATCH"
-            with self.subTest(blocked_mutation=mutation):
-                with self.assertRaises(MODULE.ParityError) as blocked_error:
-                    MODULE.validate_known_blocked_exact_route(invalid, route)
-                self.assertEqual("PARITY_PLAN_INVALID", blocked_error.exception.code)
+                invalid["requiredProofKind"] = "exact-output"
+            with self.subTest(correction_mutation=mutation):
+                with self.assertRaises(MODULE.ParityError) as correction_error:
+                    MODULE.validate_approved_semantic_correction(invalid, route)
+                self.assertEqual("PARITY_PLAN_INVALID", correction_error.exception.code)
 
-    def test_nt51951_diagnostic_is_payload_free_complete_about_known_facts_and_remains_blocked(self) -> None:
+    def test_nt51951_historical_diagnostic_remains_payload_free_and_cannot_replace_same_run_proof(self) -> None:
         diagnostic_path = (
             ROOT / "docs/contracts/v0916-nt51951-c2-diagnostic-v1.json"
         )
@@ -736,8 +1071,22 @@ class V0916ParityContractTests(V0916ParityTestBase):
             diagnostic["executors"]["baseline"]["contractRawSha256"],
         )
         self.assertEqual(
-            "f9d9c7f998c1a162ecc1a29693e37ebbf1dab9d0392098cab081c754f99e854c",
+            "bb78da481040a368890743ea6b35b228ef44675988b9b78086d9350dc42525f6",
             diagnostic["executors"]["candidate"]["contractRawSha256"],
+        )
+        self.assertEqual(
+            "4b0aaec9d7aeb2cc28ae669063f6bf4a6c6e6177",
+            diagnostic["executors"]["candidate"]["head"],
+        )
+        self.assertNotEqual(
+            json.loads(
+                (
+                    ROOT
+                    / "docs/contracts/v100-candidate-source-executor-v1.json"
+                ).read_text(encoding="utf-8")
+            )["source"]["implementationHead"],
+            diagnostic["executors"]["candidate"]["head"],
+            "historical observations must not be rebound to a new executor",
         )
         state = diagnostic["evidenceState"]
         self.assertEqual("diagnostic-only-not-admitted", state["claimQuality"])
@@ -862,6 +1211,7 @@ class V0916ParityContractTests(V0916ParityTestBase):
                         "icCountVariant": "1-ic",
                         "mapVariant": "full-map",
                         "selectionToken": "single",
+                        "expectedProfileId": "profile-route-full",
                         "outputCapacity": output_capacity,
                         "compilationFingerprint": "c" * 64,
                     },
@@ -962,6 +1312,105 @@ class V0916ParityContractTests(V0916ParityTestBase):
                     )
                 self.assertEqual("PARITY_AUTHORITY_MISMATCH", captured.exception.code)
 
+    def test_repository_authority_transfer_enforces_exact_direct_binding_head(self) -> None:
+        plan = json.loads(self.plan_path.read_text(encoding="utf-8"))
+        transfer = plan["candidateAuthority"]["authorityTransfer"]
+        source = json.loads(
+            (
+                ROOT
+                / plan["candidateAuthority"]["sourceExecutorContract"]["path"]
+            ).read_text(encoding="utf-8")
+        )["source"]
+        policy_bytes = (ROOT / plan["policyBinding"]["path"]).read_bytes()
+        implementation = source["implementationHead"]
+        binding = "b" * 40
+
+        class Reader:
+            def __init__(self) -> None:
+                self.parents = {binding: implementation}
+                self.path_changes = {
+                    (implementation, binding): list(
+                        transfer["allowedBindingChildPaths"]
+                    ),
+                }
+                self.last_changes = {
+                    "docs/contracts/v0916-parity-certification-v1.json": binding,
+                }
+                self.trees = dict(source["authorityTrees"])
+                self.drift_commit: str | None = None
+                self.resolved_head = binding
+
+            def resolve_commit(self, commit: str) -> str:
+                del commit
+                return self.resolved_head
+
+            def parent(self, commit: str) -> str:
+                return self.parents[commit]
+
+            def changed_paths(self, parent: str, child: str) -> list[str]:
+                return self.path_changes[(parent, child)]
+
+            def tree_for_path(self, commit: str, path: str) -> str:
+                if commit == self.drift_commit and path == "src":
+                    return "0" * 40
+                return self.trees[path]
+
+            def file_bytes(self, commit: str, path: str) -> bytes:
+                self.assert_path(path)
+                return policy_bytes
+
+            @staticmethod
+            def assert_path(path: str) -> None:
+                if path != "docs/contracts/canonical-capability-policy-v1.json":
+                    raise AssertionError(path)
+
+            def last_change(
+                self, head: str, path: str, *, required: bool = True
+            ) -> str | None:
+                del head
+                value = self.last_changes.get(path)
+                if value is None and required:
+                    raise MODULE.ParityError("PARITY_AUTHORITY_MISMATCH")
+                return value
+
+        valid = Reader()
+        result = MODULE.validate_repository_parity_authority_transfer(
+            ROOT, reader=valid
+        )
+        self.assertEqual(
+            {
+                "implementationHead": implementation,
+                "bindingHead": binding,
+            },
+            result,
+        )
+
+        mutations = {
+            "extra-binding-path": lambda reader: reader.path_changes[
+                (implementation, binding)
+            ].append("docs/contracts/unreviewed.json"),
+            "wrong-binding-parent": lambda reader: reader.parents.__setitem__(
+                binding, "d" * 40
+            ),
+            "later-descendant": lambda reader: setattr(
+                reader, "resolved_head", "c" * 40
+            ),
+            "authority-tree-drift": lambda reader: setattr(
+                reader, "drift_commit", binding
+            ),
+        }
+        for name, mutate in mutations.items():
+            reader = Reader()
+            mutate(reader)
+            with self.subTest(mutation=name):
+                with self.assertRaises(MODULE.ParityError) as captured:
+                    MODULE.validate_repository_parity_authority_transfer(
+                        ROOT, reader=reader
+                    )
+                self.assertEqual(
+                    "PARITY_AUTHORITY_MISMATCH", captured.exception.code
+                )
+
     def test_same_scenario_requires_topology_capacity_and_ordered_inputs(self) -> None:
         receipt = {
             "scenario": {
@@ -970,6 +1419,7 @@ class V0916ParityContractTests(V0916ParityTestBase):
                 "icCountVariant": "1-ic",
                 "mapVariant": "full-map",
                 "selectionToken": "single",
+                "expectedProfileId": "profile-route-full",
                 "outputCapacity": 8,
                 "compilationFingerprint": "a" * 64,
             },
@@ -1307,17 +1757,6 @@ class V0916ParityContractTests(V0916ParityTestBase):
                     MODULE.validate_exact_evidence_row_schema(invalid)
                 self.assertEqual("PARITY_EVIDENCE_INCOMPLETE", captured.exception.code)
 
-    def test_parity_transfer_never_certifies_a_different_release_package(self) -> None:
-        result = MODULE.classify_release_identity(
-            evidence_package_sha256="a" * 64,
-            release_package_sha256="b" * 64,
-            authority_transferred=True,
-        )
-
-        self.assertTrue(result["parityTransferred"])
-        self.assertFalse(result["packageIdentityMatched"])
-        self.assertFalse(result["packageCertifiedByParity"])
-
     def test_receipt_roles_are_closed_and_ordered(self) -> None:
         MODULE.validate_receipt_roles(
             "exact-output", ["baseline-exact", "candidate-exact"]
@@ -1335,11 +1774,18 @@ class V0916ParityContractTests(V0916ParityTestBase):
 
     def test_complete_evidence_requires_every_route_once_and_all_passed(self) -> None:
         plan = MODULE.load_and_validate_plan(self.plan_path, self.policy_path)
+        correction_routes = {
+            row["routeId"] for row in plan.raw["approvedSemanticCorrections"]
+        }
         rows = [
             {
                 "routeId": route.route_id,
                 "capabilityFingerprint": route.capability_fingerprint,
-                "proofKind": route.proof_kind,
+                "proofKind": (
+                    "exact-output-with-approved-semantic-correction"
+                    if route.route_id in correction_routes
+                    else route.proof_kind
+                ),
                 "passed": True,
             }
             for route in plan.routes

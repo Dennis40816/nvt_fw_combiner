@@ -623,11 +623,8 @@ function New-BuiltInProfilePolicyDryRunFixture {
 }
 
 function Invoke-ExternalToolPolicyDryRun {
-    $ProbeRelativePath = 'external-tools/release-package-policy-probe.txt'
+    $ProbeRelativePath = "external-tools/release-package-policy-probe-$([guid]::NewGuid().ToString('N')).txt"
     $ProbeSourcePath = Join-Path $RepoRoot $ProbeRelativePath
-    if (Test-Path -LiteralPath $ProbeSourcePath) {
-        throw "External-tool policy probe already exists: $ProbeSourcePath"
-    }
 
     $DryRunRoot = Join-Path ([IO.Path]::GetTempPath()) "nvt-fw-combiner-package-policy-$([guid]::NewGuid().ToString('N'))"
     $DryRunPackageRoot = Join-Path $DryRunRoot 'package'

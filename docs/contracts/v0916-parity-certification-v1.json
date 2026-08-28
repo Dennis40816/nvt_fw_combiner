@@ -24,7 +24,7 @@
     "sha256": "bf818a4c9aa4d539882e4bc4a0a662ef70ece67a44e78ae83356430365828f50"
   },
   "canonicalInputAuthority": {
-    "repositoryCommit": "e712842d61c560193ff9f7e2321daa47401a52d0",
+    "repositoryCommit": "1d1d1cfcad7f0963dd3ed1e3e920d9a3425d6220",
     "canonicalRootTree": "0bd5df0fef830fab9c4d2a94098f14d6f0728936",
     "manifestPath": "testdata/golden/canonical/manifest.json",
     "manifestBlob": "d0dcae9043915429e70daf508002e3d5088b20dd",
@@ -63,6 +63,138 @@
       "route-7-nt51951-15-ctrlram-replace-4-2-ic-36-nt51951-ctrlram-fw1x-cascade-tp-work",
       "route-7-nt51951-14-standard-merge-13-selector-free-28-nt51951-standard-merge-1024k",
       "route-7-nt51951-14-standard-merge-13-selector-free-27-nt51951-standard-merge-256k"
+    ],
+    "ctrlRamExecutionBindings": [
+      {
+        "caseId": "nt51927-fw141-single-auto-prj-529-20260717",
+        "fullBaseArtifactId": "expected-output",
+        "tpBaseArtifactId": "tp-input",
+        "replacements": [
+          { "artifactId": "postbuild-mp-ctrlram", "slotId": "replace-ctrlram-mp-master" },
+          { "artifactId": "postbuild-nf-ctrlram", "slotId": "replace-ctrlram-nf" },
+          { "artifactId": "postbuild-normal-ctrlram", "slotId": "replace-ctrlram-normal-master" },
+          { "artifactId": "postbuild-vn-ctrlram", "slotId": "replace-ctrlram-vn" }
+        ]
+      },
+      {
+        "caseId": "nt51929-fw200-single-auto-prj-594-20260717",
+        "fullBaseArtifactId": "expected-output",
+        "tpBaseArtifactId": "tp-input",
+        "replacements": [
+          { "artifactId": "postbuild-nf-ctrlram", "slotId": "replace-ctrlram-nf" },
+          { "artifactId": "postbuild-normal-ctrlram", "slotId": "replace-ctrlram-normal" },
+          { "artifactId": "postbuild-vn-ctrlram", "slotId": "replace-ctrlram-vn" }
+        ]
+      },
+      {
+        "caseId": "nt51923-fw141-single-auto-prj-662-20260717",
+        "fullBaseArtifactId": "expected-output",
+        "tpBaseArtifactId": "tp-input",
+        "replacements": [
+          { "artifactId": "postbuild-mp-ctrlram", "slotId": "replace-ctrlram-mp" },
+          { "artifactId": "postbuild-nf-ctrlram", "slotId": "replace-ctrlram-nf" },
+          { "artifactId": "postbuild-normal-ctrlram", "slotId": "replace-ctrlram-normal" },
+          { "artifactId": "postbuild-vn-ctrlram", "slotId": "replace-ctrlram-vn" }
+        ]
+      },
+      {
+        "caseId": "nt51923-fw141-cascade3-auto-prj-734-20260717",
+        "fullBaseArtifactId": "expected-output",
+        "tpBaseArtifactId": "tp-input",
+        "replacements": [
+          { "artifactId": "postbuild-diffdlm", "slotId": "replace-ctrlram-diff" },
+          { "artifactId": "postbuild-mp-ctrlram", "slotId": "replace-ctrlram-mp" },
+          { "artifactId": "postbuild-nf-ctrlram", "slotId": "replace-ctrlram-nf" },
+          { "artifactId": "postbuild-normal-ctrlram", "slotId": "replace-ctrlram-normal" },
+          { "artifactId": "postbuild-vn-ctrlram", "slotId": "replace-ctrlram-vn" }
+        ]
+      },
+      {
+        "caseId": "nt51926-fw141-single-auto-prj-747-20260717",
+        "fullBaseArtifactId": "expected-output",
+        "tpBaseArtifactId": "tp-input",
+        "replacements": [
+          { "artifactId": "postbuild-mp-ctrlram", "slotId": "replace-ctrlram-mp" },
+          { "artifactId": "postbuild-nf-ctrlram", "slotId": "replace-ctrlram-nf" },
+          { "artifactId": "postbuild-normal-ctrlram", "slotId": "replace-ctrlram-normal" },
+          { "artifactId": "postbuild-vn-ctrlram", "slotId": "replace-ctrlram-vn" }
+        ]
+      },
+      {
+        "caseId": "nt51926-fw141-cascade2-auto-prj-597-20260717",
+        "fullBaseArtifactId": "expected-output",
+        "tpBaseArtifactId": "tp-input",
+        "replacements": [
+          { "artifactId": "postbuild-diffdlm", "slotId": "replace-ctrlram-diff" },
+          { "artifactId": "postbuild-mp-ctrlram", "slotId": "replace-ctrlram-mp" },
+          { "artifactId": "postbuild-nf-ctrlram", "slotId": "replace-ctrlram-nf" },
+          { "artifactId": "postbuild-normal-ctrlram", "slotId": "replace-ctrlram-normal" },
+          { "artifactId": "postbuild-vn-ctrlram", "slotId": "replace-ctrlram-vn" }
+        ]
+      },
+      {
+        "caseId": "nt51926-fw200-single-auto-prj-597-20260718",
+        "fullBaseArtifactId": "expected-output",
+        "tpBaseArtifactId": "tp-input",
+        "replacements": [
+          { "artifactId": "mp-ctrlram-input", "slotId": "replace-ctrlram-mp" },
+          { "artifactId": "nf-ctrlram-input", "slotId": "replace-ctrlram-nf" },
+          { "artifactId": "normal-ctrlram-input", "slotId": "replace-ctrlram-normal" },
+          { "artifactId": "vn-ctrlram-input", "slotId": "replace-ctrlram-vn" }
+        ]
+      },
+      {
+        "caseId": "nt51926-fw200-cascade3-auto-prj-597-20260718",
+        "fullBaseArtifactId": "expected-output",
+        "tpBaseArtifactId": "tp-input",
+        "replacements": [
+          { "artifactId": "diffdlm-input", "slotId": "replace-ctrlram-diff" },
+          { "artifactId": "mp-ctrlram-input", "slotId": "replace-ctrlram-mp" },
+          { "artifactId": "nf-ctrlram-input", "slotId": "replace-ctrlram-nf" },
+          { "artifactId": "normal-ctrlram-input", "slotId": "replace-ctrlram-normal" },
+          { "artifactId": "vn-ctrlram-input", "slotId": "replace-ctrlram-vn" }
+        ]
+      },
+      {
+        "caseId": "nt51932-fw200-cascade3-auto-prj-525-20260718",
+        "fullBaseArtifactId": "expected-output",
+        "tpBaseArtifactId": "tp-input",
+        "replacements": [
+          { "artifactId": "diffdlm-input", "slotId": "replace-ctrlram-diff" },
+          { "artifactId": "normal-ctrlram-input", "slotId": "replace-ctrlram-normal" },
+          { "artifactId": "vn-ctrlram-input", "slotId": "replace-ctrlram-vn" }
+        ]
+      },
+      {
+        "caseId": "nt51950-fw200-single-auto-prj-676-20260717",
+        "fullBaseArtifactId": "expected-output",
+        "tpBaseArtifactId": "tp-input",
+        "replacements": [
+          { "artifactId": "postbuild-nf-ctrlram", "slotId": "replace-ctrlram-nf" },
+          { "artifactId": "postbuild-normal-ctrlram", "slotId": "replace-ctrlram-normal" },
+          { "artifactId": "postbuild-vn-ctrlram", "slotId": "replace-ctrlram-vn" }
+        ]
+      },
+      {
+        "caseId": "nt51951-fw200-single-auto-prj-695-20260718",
+        "fullBaseArtifactId": "expected-output",
+        "tpBaseArtifactId": "tp-input",
+        "replacements": [
+          { "artifactId": "nf-ctrlram-input", "slotId": "replace-ctrlram-nf" },
+          { "artifactId": "normal-ctrlram-input", "slotId": "replace-ctrlram-normal" },
+          { "artifactId": "vn-ctrlram-input", "slotId": "replace-ctrlram-vn" }
+        ]
+      },
+      {
+        "caseId": "nt51951-fw200-cascade2-auto-prj-599-20260731",
+        "fullBaseArtifactId": "expected-output",
+        "tpBaseArtifactId": "tp-firmware-input",
+        "replacements": [
+          { "artifactId": "normal-ctrlram-input", "slotId": "replace-ctrlram-normal" },
+          { "artifactId": "vn-ctrlram-input", "slotId": "replace-ctrlram-vn" },
+          { "artifactId": "diffdlm-input", "slotId": "replace-ctrlram-diff" }
+        ]
+      }
     ]
   },
   "selection": {
@@ -102,7 +234,7 @@
     "sourceExecutorContract": {
       "path": "docs/contracts/v100-candidate-source-executor-v1.json",
       "size": 4219,
-      "sha256": "f9d9c7f998c1a162ecc1a29693e37ebbf1dab9d0392098cab081c754f99e854c"
+      "sha256": "e3bd602a82281be782bef5140bd3c54c242b1bbf26b15fb83dfb0d81346c4ac2"
     },
     "requiredTreePaths": ["src", "profiles", "external-tools", "tools/crc-worker"],
     "protectedBuild": {
@@ -111,18 +243,52 @@
       "workflowRef": "refs/heads/main",
       "workflowSemanticContract": {
         "path": "docs/contracts/v0916-parity-workflow-v1.json",
-        "size": 4559,
-        "sha256": "1bb4a0694664f3eed05c63204892ff90df1f4bfdd9277ba06e07240c165f68bf"
+        "size": 8561,
+        "sha256": "b4c91eb8b74a0f9b1e26784f4cb98b99e1720208a7128107cc3bcddfbfdbf029"
       },
       "candidateVerifierPath": "scripts/release_promotion_policy.py",
       "packageVerifierPath": "scripts/smoke-release.ps1",
       "firmwareApprovalEnvironment": "firmware-parity",
       "firmwareApprovalJobName": "release / v0.9.16 parity attestation"
     },
-    "allowedEvidenceChildPaths": [
-      "docs/governance/change-records/RELEASE-100-FINAL-01.json",
-      "docs/release-evidence/v1.0.0-v0916-parity.json"
-    ]
+    "authorityTransfer": {
+      "allowedBindingChildPaths": [
+        ".github/workflows/release.yml",
+        "CHANGELOG.md",
+        "docs/adr/0057-v0916-black-box-parity-certification.md",
+        "docs/contracts/v0916-nt51951-c2-diagnostic-v1.json",
+        "docs/contracts/v0916-nt51951-c2-diagnostic-v1.schema.json",
+        "docs/contracts/v0916-parity-certification-v1.json",
+        "docs/contracts/v0916-parity-certification-v1.md",
+        "docs/contracts/v0916-parity-certification-v1.schema.json",
+        "docs/contracts/v0916-parity-comparison-v1.schema.json",
+        "docs/contracts/v0916-parity-evidence-v1.schema.json",
+        "docs/contracts/v0916-parity-finalize-v1.schema.json",
+        "docs/contracts/v0916-parity-owner-verification-v1.schema.json",
+        "docs/contracts/v0916-parity-receipt-v1.schema.json",
+        "docs/contracts/v0916-parity-run-v1.schema.json",
+        "docs/contracts/v0916-parity-workflow-v1.json",
+        "docs/contracts/v0916-parity-workflow-v1.schema.json",
+        "docs/contracts/v100-candidate-source-executor-v1.json",
+        "docs/governance/change-records/RELEASE-100-FINAL-01.json",
+        "docs/governance/change-records/SELECTOR-TYPED-CHOICE-01.json",
+        "scripts/code_size_policy.py",
+        "scripts/package.ps1",
+        "scripts/v0916_parity_certification.py",
+        "scripts/validate_repository.py",
+        "scripts/verify.py",
+        "tests/scripts/test_code_size_policy.py",
+        "tests/scripts/test_release_package_policy.py",
+        "tests/scripts/test_v0916_parity_approval.py",
+        "tests/scripts/test_v0916_parity_artifacts.py",
+        "tests/scripts/test_v0916_parity_contracts.py",
+        "tests/scripts/test_v0916_parity_harness.py",
+        "tests/scripts/test_v0916_parity_pipeline.py",
+        "tests/scripts/test_v0916_parity_reports.py",
+        "tests/scripts/test_verify_orchestration.py",
+        "tests/scripts/v0916_parity_test_support.py"
+      ]
+    }
   },
   "inputIdentityAliases": [
     {
@@ -136,11 +302,12 @@
       "candidateInputSlotId": "ldc-input"
     }
   ],
-  "knownBlockedExactRoutes": [
+  "approvedSemanticCorrections": [
     {
       "routeId": "route-7-nt51951-15-ctrlram-replace-4-2-ic-39-nt51951-ctrlram-fw1x-cascade-full-flash",
       "capabilityFingerprint": "6a8dfcce871d0aa5586a8bd2a393093776b687055e546d7dce37fb2e9f35909f",
-      "kind": "reported-exact-output-mismatch-blocked",
+      "kind": "owner-approved-diff-nf-preservation",
+      "ownerDecision": "owner-decision:2026-08-28:nt51951-diff-nf-preservation-is-correct",
       "baselineOutput": { "size": 524288, "sha256": "7d657a3d0abc2cc6779e759c17567b40740de95235bf6d1e71c147d815edcca2" },
       "candidateOutput": { "size": 524288, "sha256": "1536d344af83aafd29e5884d9d2d904f1efa03c8fdcc4e913832253814644ebd" },
       "differentByteCount": 2816,
@@ -168,10 +335,10 @@
       "diagnosticRecord": {
         "path": "docs/contracts/v0916-nt51951-c2-diagnostic-v1.json",
         "size": 3952,
-        "sha256": "54bc2c8005e18a9b495e4d25e02b8dd3b85551506d0d10aa7b30051ff4988e3c",
+        "sha256": "3c53c257201ef2e1014ed1b13e4d4f9eda7b19306d52a3d7e89f373dd68fec8f",
         "status": "blocked-incomplete-independent-observation"
       },
-      "requiredFailureCode": "PARITY_EXACT_MISMATCH"
+      "requiredProofKind": "exact-output-with-approved-semantic-correction"
     }
   ],
   "transitiveRoutes": [

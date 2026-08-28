@@ -66,11 +66,11 @@
     },
     "candidate": {
       "contractPath": "docs/contracts/v100-candidate-source-executor-v1.json",
-      "contractRawSha256": "f9d9c7f998c1a162ecc1a29693e37ebbf1dab9d0392098cab081c754f99e854c",
-      "head": "e712842d61c560193ff9f7e2321daa47401a52d0",
-      "tree": "1c2bd7ede4013b000ef4228605c83f07a904de76",
+      "contractRawSha256": "bb78da481040a368890743ea6b35b228ef44675988b9b78086d9350dc42525f6",
+      "head": "4b0aaec9d7aeb2cc28ae669063f6bf4a6c6e6177",
+      "tree": "0b5ac4ae24679af30bf663a87ec1c6cb12d7eadf",
       "cliAssemblySize": 171520,
-      "cliAssemblySha256": "ac51674851ca9732cd4ecba4e132bac021b77b2e657606516704946b66dd2d7b"
+      "cliAssemblySha256": "1db2cd131c9ed6e294834878183bed6c5e7352080a5fee100c85ecdea3a99cf9"
     }
   },
   "reportedObservation": {

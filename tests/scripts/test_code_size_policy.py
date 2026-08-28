@@ -8,10 +8,14 @@ from pathlib import Path
 
 from scripts.code_size_policy import (
     CodeSizeLimits,
+    DEFAULT_LIMITS,
     measure_code_size,
     review_code_size_policy,
     validate_code_size_policy,
 )
+
+
+REPOSITORY_ROOT = Path(__file__).resolve().parents[2]
 
 
 class CodeSizePolicyTests(unittest.TestCase):
@@ -29,6 +33,18 @@ class CodeSizePolicyTests(unittest.TestCase):
         path = self.root / relative_path
         path.parent.mkdir(parents=True, exist_ok=True)
         path.write_text(content, encoding="utf-8")
+
+    def test_frozen_release_baseline_emits_no_full_production_warning(self) -> None:
+        snapshot = measure_code_size(REPOSITORY_ROOT)
+
+        self.assertEqual(120_996, snapshot.production_nonblank)
+        self.assertEqual(snapshot.production_nonblank, DEFAULT_LIMITS.production_nonblank)
+        self.assertFalse(
+            any(
+                "production source nonblank lines exceeded threshold" in finding
+                for finding in review_code_size_policy(REPOSITORY_ROOT)
+            )
+        )
 
     def test_default_policy_reports_ratchets_without_final_targets(self) -> None:
         findings = review_code_size_policy(self.root)

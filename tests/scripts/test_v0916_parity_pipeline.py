@@ -21,10 +21,16 @@ class RecordingCliRunner:
         *,
         expected_cwd: Path,
         sources: list[tuple[str, Path]],
+        profile_id: str = "nt51927-standard-merge-gen-flash",
+        ic_id: str = "NT51927",
+        workflow_id: str = "standard-merge",
         admitted_original_to_mutate_after_preview: Path | None = None,
     ) -> None:
         self.expected_cwd = expected_cwd
         self.sources = sources
+        self.profile_id = profile_id
+        self.ic_id = ic_id
+        self.workflow_id = workflow_id
         self.admitted_original_to_mutate_after_preview = (
             admitted_original_to_mutate_after_preview
         )
@@ -36,21 +42,25 @@ class RecordingCliRunner:
         if cwd != self.expected_cwd:
             raise AssertionError("CLI must run from its verified source root")
         action = argv[3]
+        sources = self._sources_from_argv(argv)
         self.input_observations.append({
-            option: (
-                Path(argv[argv.index(option) + 1]),
-                hashlib.sha256(Path(argv[argv.index(option) + 1]).read_bytes()).hexdigest(),
-                (Path(argv[argv.index(option) + 1]).stat().st_mode & stat.S_IWRITE) == 0,
+            {"dp-input": "--dp", "tp-input": "--tp", "dp-ab-input": "--dp-ab", "tp-a-input": "--tp-a", "tp-b-input": "--tp-b"}.get(slot, slot): (
+                path,
+                hashlib.sha256(path.read_bytes()).hexdigest(),
+                (path.stat().st_mode & stat.S_IWRITE) == 0,
             )
-            for option in ("--dp", "--tp")
+            for slot, path in sources
         })
         report = Path(argv[argv.index("--report") + 1])
         output = Path(argv[argv.index("--output") + 1])
-        payload = self.sources[0][1].read_bytes()
+        payload = sources[0][1].read_bytes()
         output.parent.mkdir(parents=True, exist_ok=True)
         if action == "build":
             output.write_bytes(payload)
-        raw = self._report(output, payload, committed=action == "build")
+        raw = self._report(output, payload, sources, committed=action == "build")
+        if action == "preview":
+            raw["StartedAtUtc"] = "2026-08-25T23:59:58+00:00"
+            raw["CompletedAtUtc"] = "2026-08-25T23:59:59+00:00"
         report.parent.mkdir(parents=True, exist_ok=True)
         report.write_text(json.dumps(raw), encoding="utf-8")
         if self.admitted_original_to_mutate_after_preview is not None and action == "preview":
@@ -58,12 +68,34 @@ class RecordingCliRunner:
             original.write_bytes(original.read_bytes() + b"malicious-original-mutation")
         return subprocess.CompletedProcess(argv, 0, "ok", "")
 
-    def _report(self, output: Path, payload: bytes, *, committed: bool) -> dict[str, object]:
+    def _sources_from_argv(self, argv: list[str]) -> list[tuple[str, Path]]:
+        if self.workflow_id == "ctrlram-replace":
+            sources = [("replace-base", Path(argv[argv.index("--base") + 1]))]
+            for index, value in enumerate(argv):
+                if value == "--ctrlram":
+                    slot, path = argv[index + 1].split("=", 1)
+                    sources.append((slot, Path(path)))
+            return sources
+        options = (
+            (("dp-ab-input", "--dp-ab"), ("tp-a-input", "--tp-a"), ("tp-b-input", "--tp-b"))
+            if self.workflow_id == "ab-merge"
+            else (("dp-input", "--dp"), ("tp-input", "--tp"))
+        )
+        return [(slot, Path(argv[argv.index(option) + 1])) for slot, option in options]
+
+    def _report(
+        self,
+        output: Path,
+        payload: bytes,
+        sources: list[tuple[str, Path]],
+        *,
+        committed: bool,
+    ) -> dict[str, object]:
         digest = hashlib.sha256(payload).hexdigest()
         byte_range = {"Start": 0, "Length": len(payload), "EndExclusive": len(payload)}
         operation = {
             "OperationId": "copy-dp", "Sequence": 0, "Kind": "CopyRange",
-            "Status": "Succeeded", "SourceSpaceId": "dp-input",
+            "Status": "Succeeded", "SourceSpaceId": sources[0][0],
             "SourceRange": byte_range, "TargetSpaceId": "output-image",
             "TargetRange": byte_range, "OverlapPolicy": "Reject",
             "ProcessorId": None, "ToolBindingId": None,
@@ -78,10 +110,10 @@ class RecordingCliRunner:
             "AfterSha256": digest, "Reason": "typed test mutation",
         }]
         return {
-            "RunId": "test-run", "ProfileId": "profile-nt51927",
-            "ProfileVersion": "1.0.0", "IcId": "NT51927",
-            "ModeId": "standard-merge", "ExperienceId": "standard-merge",
-            "CompositionKind": "Merge", "StartedAtUtc": "2026-08-26T00:00:00+00:00",
+            "RunId": "test-run", "ProfileId": self.profile_id,
+            "ProfileVersion": "1.0.0", "IcId": self.ic_id,
+            "ModeId": self.workflow_id, "ExperienceId": self.workflow_id,
+            "CompositionKind": "Replace" if self.workflow_id == "ctrlram-replace" else "Merge", "StartedAtUtc": "2026-08-26T00:00:00+00:00",
             "CompletedAtUtc": "2026-08-26T00:00:01+00:00",
             "Inputs": [
                 {
@@ -90,7 +122,7 @@ class RecordingCliRunner:
                     "Sha256": hashlib.sha256(path.read_bytes()).hexdigest(),
                     "OriginalFileName": None,
                 }
-                for slot, path in self.sources
+                for slot, path in sources
             ],
             "Operations": [operation], "Mutations": mutations, "Issues": [],
             "Output": {"FileName": output.name, "Size": len(payload), "Sha256": digest, "Committed": committed},
@@ -305,6 +337,65 @@ class V0916ParityPipelineTests(V0916ParityTestBase):
                 },
             )
 
+            projected = MODULE.build_process_receipt(
+                capture=receipt,
+                verified_inputs=verified_inputs,
+                verified_executor=verified_executor,
+                operator_login="dennis40816",
+                receipt_root=root / "receipts",
+                comparator_path=ROOT / "scripts/v0916_parity_certification.py",
+            )
+            self.assertEqual("candidate-exact", projected["role"])
+            self.assertEqual("preview", projected["authorityInvocation"]["operation"])
+            self.assertEqual("build", projected["invocation"]["operation"])
+            self.assertTrue(Path(projected["report"]["path"]).is_file())
+            self.assertTrue(Path(projected["__receiptArtifact"]["path"]).is_file())
+
+            baseline_inputs = MODULE.resolve_canonical_route_input(
+                plan,
+                ROOT / "testdata/golden/canonical/manifest.json",
+                admitted_input_root=root / "baseline-admitted-inputs",
+                route_id=verified_inputs.route_id,
+                execution_role="baseline-exact",
+            )
+            baseline_paths = [
+                Path(row["path"]) for row in baseline_inputs.request["orderedInputs"]
+            ]
+            baseline_runner = RecordingCliRunner(
+                expected_cwd=source_root,
+                sources=[("dp-input", baseline_paths[0]), ("tp-input", baseline_paths[1])],
+            )
+            baseline_executor = verified_executor.with_changes(
+                kind="exact-tag-source-built-cli",
+                contract_identity_sha256=(
+                    "861fa0fae7bf5904cac88a4bcb6ed6e0aef1a54518e0903914f2121fbc411bfb"
+                ),
+            )
+            baseline_capture = MODULE.execute_cli_capture(
+                baseline_inputs,
+                verified_executor=baseline_executor,
+                output_root=root / "baseline-outputs",
+                process_runner=baseline_runner,
+            )
+            baseline_projected = MODULE.build_process_receipt(
+                capture=baseline_capture,
+                verified_inputs=baseline_inputs,
+                verified_executor=baseline_executor,
+                operator_login="dennis40816",
+                receipt_root=root / "receipts",
+                comparator_path=ROOT / "scripts/v0916_parity_certification.py",
+            )
+            route = next(row for row in plan.routes if row.route_id == verified_inputs.route_id)
+            evidence = MODULE.build_exact_route_evidence(
+                plan=plan,
+                route=route,
+                baseline_receipt=baseline_projected,
+                candidate_receipt=projected,
+            )
+            self.assertTrue(evidence["equal"])
+            self.assertTrue(evidence["passed"])
+            self.assertNotIn("path", evidence["scenario"]["orderedInputs"][0])
+
             with self.assertRaises((TypeError, MODULE.ParityError)) as unverified:
                 MODULE.execute_cli_capture(
                     verified_inputs,
@@ -357,6 +448,114 @@ class V0916ParityPipelineTests(V0916ParityTestBase):
                 hashlib.sha256(input_path.read_bytes()).hexdigest(),
             )
             self.assertEqual(1, len(malicious_runner.input_observations))
+
+    def test_comparator_invokes_ab_and_ctrlram_with_typed_cli_arguments_and_profile_binding(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            source_root = root / "verified-source"
+            cli = source_root / "src/NvtFwCombiner.Cli/bin/Release/net10.0/NvtFwCombiner.Cli.dll"
+            cli.parent.mkdir(parents=True)
+            cli.write_bytes(b"cli")
+            executor = MODULE.VerifiedSourceExecutor(
+                kind="candidate-source-built-cli",
+                source_root=source_root,
+                source_head="1" * 40,
+                source_tree="2" * 40,
+                contract_identity_sha256="c" * 64,
+                cli_path=cli,
+                cli_size=cli.stat().st_size,
+                cli_sha256=hashlib.sha256(cli.read_bytes()).hexdigest(),
+                argv_prefix=("dotnet", str(cli)),
+                fresh_build=True,
+            )
+            plan = MODULE.load_and_validate_plan(self.plan_path, self.policy_path)
+            cases = [
+                (
+                    "route-7-nt51950-8-ab-merge-4-1-ic-21-nt51950-ab-merge-512k",
+                    "ab-merge",
+                    "NT51950",
+                    "nt51950-ab-merge",
+                    ["--dp-ab", "--tp-a", "--tp-b", "--ab-topology", "single"],
+                ),
+                (
+                    "route-7-nt51917-15-ctrlram-replace-4-1-ic-39-nt51927-ctrlram-fw141-single-full-flash",
+                    "ctrlram-replace",
+                    "NT51917",
+                    "nt51917-ctrlram-replace-fw141-single",
+                    ["--ic-num", "single", "--base", "--ctrlram"],
+                ),
+            ]
+            for index, (route_id, workflow, ic_id, profile_id, required) in enumerate(cases):
+                verified = MODULE.resolve_canonical_route_input(
+                    plan,
+                    ROOT / "testdata/golden/canonical/manifest.json",
+                    admitted_input_root=root / f"admitted-{index}",
+                    route_id=route_id,
+                    execution_role="candidate-exact",
+                )
+                runner = RecordingCliRunner(
+                    expected_cwd=source_root,
+                    sources=[
+                        (row["slotId"], Path(row["path"]))
+                        for row in verified.request["orderedInputs"]
+                    ],
+                    profile_id=profile_id,
+                    ic_id=ic_id,
+                    workflow_id=workflow,
+                )
+                capture = MODULE.execute_cli_capture(
+                    verified,
+                    verified_executor=executor,
+                    output_root=root / f"outputs-{index}",
+                    process_runner=runner,
+                )
+                self.assertEqual(2, len(runner.calls))
+                for argv, _ in runner.calls:
+                    self.assertEqual(workflow, argv[2])
+                    for value in required:
+                        self.assertIn(value, argv)
+                MODULE.build_process_receipt(
+                    capture=capture,
+                    verified_inputs=verified,
+                    verified_executor=executor,
+                    operator_login="dennis40816",
+                    receipt_root=root / f"receipts-{index}",
+                    comparator_path=ROOT / "scripts/v0916_parity_certification.py",
+                )
+
+            verified = MODULE.resolve_canonical_route_input(
+                plan,
+                ROOT / "testdata/golden/canonical/manifest.json",
+                admitted_input_root=root / "admitted-profile-mismatch",
+                route_id=cases[0][0],
+                execution_role="candidate-exact",
+            )
+            mismatch_runner = RecordingCliRunner(
+                expected_cwd=source_root,
+                sources=[
+                    (row["slotId"], Path(row["path"]))
+                    for row in verified.request["orderedInputs"]
+                ],
+                profile_id="wrong-profile",
+                ic_id="NT51950",
+                workflow_id="ab-merge",
+            )
+            mismatch_capture = MODULE.execute_cli_capture(
+                verified,
+                verified_executor=executor,
+                output_root=root / "outputs-profile-mismatch",
+                process_runner=mismatch_runner,
+            )
+            with self.assertRaises(MODULE.ParityError) as mismatch:
+                MODULE.build_process_receipt(
+                    capture=mismatch_capture,
+                    verified_inputs=verified,
+                    verified_executor=executor,
+                    operator_login="dennis40816",
+                    receipt_root=root / "receipts-profile-mismatch",
+                    comparator_path=ROOT / "scripts/v0916_parity_certification.py",
+                )
+            self.assertEqual("PARITY_PROVENANCE_INVALID", mismatch.exception.code)
 
     def test_receipt_without_comparator_process_authority_cannot_certify(self) -> None:
         with self.assertRaises(MODULE.ParityError) as captured:

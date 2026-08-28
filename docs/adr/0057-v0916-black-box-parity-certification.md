@@ -50,13 +50,13 @@ direct AB canonical cases at identical full bytes. The CtrlRAM batch closed
 eleven of twelve full-base cases and showed that report operations legitimately
 differ across versions: narrower processor scopes and explicit NF-preserving
 subranges are safer than predecessor broad writes even when final bytes match.
-The NT51951 FW2.0 cascade-2 case remains a reported v0.9.16/current output mismatch
-over 2816 bytes, including an NF-owned tail. A later predecessor-source hotfix
-was reported to match current, but no independently admitted payload-free proof
-for that observation is part of this change and it is not the selected v0.9.16
-authority. The report is therefore unverified here. That route remains blocked
-exact evidence until the owner separately authorizes and proves a different
-baseline; this ADR does not do so.
+The NT51951 FW2.0 cascade-2 case differs from v0.9.16 over exactly 2816 bytes,
+including an NF-owned tail. On 2026-08-28 the firmware owner confirmed that
+v0.9.16 failed to preserve Diff NF and that the current NF-preserving result is
+the required behavior. This is an approved semantic correction, not a request
+to weaken exact evidence: the candidate must reproduce the declared output
+identity, exact differing-byte count, and all five half-open difference ranges;
+every byte outside those ranges must still match v0.9.16.
 The payload-free
 `docs/contracts/v0916-nt51951-c2-diagnostic-v1.json` records the four ordered
 CtrlRAM CLI input identities, the two sources of the immutable full-base
@@ -187,10 +187,10 @@ as containing a CLI. Candidate receipts use `candidate-source-cli`, built from
 the exact clean `candidateAuthority` head/tree with the repository-pinned SDK
 and locked dependencies. The plan pins
 `docs/contracts/v100-candidate-source-executor-v1.json` at raw SHA-256
-`f9d9c7f998c1a162ecc1a29693e37ebbf1dab9d0392098cab081c754f99e854c`,
-head `e712842d61c560193ff9f7e2321daa47401a52d0`, tree
-`1c2bd7ede4013b000ef4228605c83f07a904de76`, and CLI assembly SHA-256
-`ac51674851ca9732cd4ecba4e132bac021b77b2e657606516704946b66dd2d7b`.
+`e3bd602a82281be782bef5140bd3c54c242b1bbf26b15fb83dfb0d81346c4ac2`,
+head `1d1d1cfcad7f0963dd3ed1e3e920d9a3425d6220`, tree
+`1bc350cd3217f826ba841dfe098e919390f23546`, and CLI assembly SHA-256
+`81f050116e563800240c95d800f410e2084a5c78ee8089e774fd7536e966fe73`.
 The source is materialized into a fresh detached Git worktree at that exact
 head; dirty,
 ignored, or pre-existing `bin`/`obj` output fails before restore. Candidate
@@ -217,7 +217,8 @@ subjects, source commit, and source tree to agree. A forged ZIP with a copied
 `sourceCommit` cannot pass. The artifact's own `workflow_run` owner must also
 match the independently queried run, repository, branch, and head SHA.
 The authenticated protected-main workflow commit is intentionally independent
-of candidate implementation/package head `e712842d`; each retains its own
+of candidate implementation/package head
+`1d1d1cfcad7f0963dd3ed1e3e920d9a3425d6220`; each retains its own
 identity and neither may substitute for the other. The decoded workflow is
 validated against the raw-pinned closed semantic workflow contract, including
 trigger, read-only permissions, exact parity jobs/dependencies/conditions,
@@ -240,12 +241,25 @@ for its declared `fullRouteId`; it cannot provide another baseline/candidate
 full receipt pair. The transitive row binds the canonical digest of that exact
 row and uses its exact receipts and outputs for both prefix comparisons.
 
-The payload-free evidence commit is the direct child of the implementation
-head and may change only the exact paths declared by the certification plan.
-That child transfers the byte-parity conclusion only when all four authority
+Authority transfer has one closed binding commit. It is the direct child of the
+firmware-executor implementation head and may change only
+`allowedBindingChildPaths`. The production verifier requires the package source
+to be that exact binding commit and reads its Git parent, exact path diff, all
+four authority-tree ids, and canonical policy bytes. An extra path, later
+descendant, wrong parent, authority drift, or policy drift is
+`PARITY_AUTHORITY_MISMATCH`. Terminal evidence is produced and retained by the
+protected v1.0.0 workflow; it is not committed through a second source commit.
+This chain transfers the byte-parity conclusion only when all four authority
 tree ids and the canonical policy digest remain identical. It does not
 transfer package certification: the final release ZIP retains its independent
 closed-package, hash, SBOM, provenance, smoke, and release-owner gates.
+
+Firmware executor authority and package source authority are separate facts.
+The v1.0.0 package uses the exact binding commit while its firmware executor is
+the immutable implementation parent. The v1.0.1 upgrade-test package uses the direct
+single-parent child of the immutable v1.0.0 tag and that commit changes only
+`VERSION`; the normal version-only lineage, package, startup, and upgrade gates
+are sufficient. It never reruns or relabels the v1.0.0 parity executor.
 
 The committed result contains only route/scenario identities, ordered input
 sizes and hashes, receipt and report hashes, artifact lengths and hashes,
@@ -265,15 +279,25 @@ and may upload the unique attestation only after the independent verifier emits
 a verification record bound to the attestation bytes and every certification
 digest. Finalization verifies that external record. Through one injected
 GitHub reader it also reconstructs the workflow Contents bytes, run, job,
-deployment, successful deployment status, and both downloaded artifact
+deployment, successful deployment status, and all three downloaded artifact
 archives. It requires one repository id/head-repository id, main ref/head,
-successful run and job, exact run attempt, job-linked status log URL, ordered
+an in-progress finalizer run or completed successful run, a successful
+attestation job, exact run attempt, job-linked status log URL, ordered
 timestamps, and artifact `workflow_run` owner ids/branch/head to agree. GitHub
 run/job, deployment-status, and artifact facts remain auditable sequencing evidence,
 not a substitute owner signature. If the external verifier or record is absent,
 the result is `PARITY_OWNER_APPROVAL_REQUIRED`. Cross-run/head/job artifacts
 and arbitrary local attestations fail closed. The protected `release`
 environment remains independent.
+
+Operationally, the firmware owner downloads the completed same-run comparison
+while the attestation job is waiting on `firmware-parity`, independently
+creates the bound attestation and verification record, installs their base64
+bytes plus the verifier id in that protected environment, and only then
+approves the job. Premature approval is recovered by setting the missing
+values and rerunning the failed jobs; evidence is never edited into an existing
+artifact chain. This is a human approval workflow, not repository automation
+that manufactures an owner signature.
 
 Compare and finalize are separate contracts. Compare produces a deterministic
 provisional 64-route document without requiring prior approval. Finalize

@@ -14,6 +14,7 @@
     "topLevelPermissions",
     "actionPins",
     "jobs",
+    "promotionGate",
     "forbidden"
   ],
   "properties": {
@@ -21,7 +22,7 @@
     "workflowPath": { "const": ".github/workflows/release.yml" },
     "workflowRef": { "const": "refs/heads/main" },
     "workflowHeadRelation": { "const": "authenticated-protected-main-independent-of-candidate-source" },
-    "candidateImplementationHead": { "const": "e712842d61c560193ff9f7e2321daa47401a52d0" },
+    "candidateImplementationHead": { "const": "1d1d1cfcad7f0963dd3ed1e3e920d9a3425d6220" },
     "trigger": { "const": "workflow_dispatch" },
     "topLevelPermissions": { "$ref": "#/$defs/readPermissions" },
     "actionPins": {
@@ -41,6 +42,28 @@
       "properties": {
         "v0916-parity-compare": { "$ref": "#/$defs/job" },
         "v0916-parity-attestation": { "$ref": "#/$defs/job" }
+      }
+    },
+    "promotionGate": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["jobId", "needs", "if", "steps"],
+      "properties": {
+        "jobId": { "const": "promote" },
+        "needs": {
+          "prefixItems": [
+            { "const": "candidate" },
+            { "const": "v0916-parity-attestation" }
+          ],
+          "items": false
+        },
+        "if": { "type": "string", "pattern": "^\\$\\{\\{ .+ \\}\\}$" },
+        "steps": {
+          "type": "array",
+          "minItems": 2,
+          "maxItems": 2,
+          "items": { "$ref": "#/$defs/step" }
+        }
       }
     },
     "forbidden": {
@@ -92,12 +115,26 @@
       "properties": {
         "name": { "type": "string", "minLength": 1 },
         "needs": { "type": "array", "minItems": 1, "uniqueItems": true, "items": { "type": "string", "minLength": 1 } },
-        "if": { "const": "${{ success() }}" },
+        "if": { "type": "string", "pattern": "^\\$\\{\\{ .+ \\}\\}$" },
         "runsOn": { "const": "windows-latest" },
         "timeoutMinutes": { "type": "integer", "minimum": 1, "maximum": 60 },
         "environment": { "type": ["string", "null"] },
-        "permissions": { "$ref": "#/$defs/readPermissions" },
-        "steps": { "type": "array", "minItems": 4, "maxItems": 4, "items": { "$ref": "#/$defs/step" } }
+        "permissions": {
+          "oneOf": [
+            { "$ref": "#/$defs/readPermissions" },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["actions", "contents", "deployments"],
+              "properties": {
+                "actions": { "const": "read" },
+                "contents": { "const": "read" },
+                "deployments": { "const": "read" }
+              }
+            }
+          ]
+        },
+        "steps": { "type": "array", "minItems": 4, "maxItems": 7, "items": { "$ref": "#/$defs/step" } }
       }
     },
     "step": {
@@ -106,8 +143,13 @@
       "required": ["name"],
       "properties": {
         "name": { "type": "string", "minLength": 1 },
+        "if": { "type": "string", "pattern": "^\\$\\{\\{ .+ \\}\\}$" },
         "uses": { "type": "string", "pattern": "^[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+@[0-9a-f]{40}$" },
         "with": { "type": "object" },
+        "env": {
+          "type": "object",
+          "additionalProperties": { "type": "string" }
+        },
         "shell": { "const": "pwsh" },
         "run": { "type": "string", "minLength": 1 }
       },

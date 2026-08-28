@@ -75,7 +75,7 @@ are feasibility evidence, not a substitute for the complete release run.
 
 Execution inputs are not supplied by a caller and are never synthesized from
 route shape. `canonicalInputAuthority` raw-pins the canonical Golden manifest
-at implementation commit `e712842d`, canonical-root tree
+at implementation commit `1d1d1cfcad7f0963dd3ed1e3e920d9a3425d6220`, canonical-root tree
 `0bd5df0f...8936`, manifest blob `d0dcae90...0dd`, size, and SHA-256. For each
 selected route the resolver requires the exact route-evidence row and
 capability fingerprint, follows only its manifest-declared direct case or
@@ -114,14 +114,14 @@ exact `candidateAuthority` implementation head/tree, not the portable release
 ZIP. The plan pins
 `docs/contracts/v100-candidate-source-executor-v1.json` at 4219 raw bytes and
 SHA-256
-`f9d9c7f998c1a162ecc1a29693e37ebbf1dab9d0392098cab081c754f99e854c`.
-That contract pins head `e712842d61c560193ff9f7e2321daa47401a52d0`, tree
-`1c2bd7ede4013b000ef4228605c83f07a904de76`, SDK `10.0.303`, the complete
+`e3bd602a82281be782bef5140bd3c54c242b1bbf26b15fb83dfb0d81346c4ac2`.
+That contract pins head `1d1d1cfcad7f0963dd3ed1e3e920d9a3425d6220`, tree
+`1bc350cd3217f826ba841dfe098e919390f23546`, SDK `10.0.303`, the complete
 lock/tool inventory, and CLI SHA-256
-`ac51674851ca9732cd4ecba4e132bac021b77b2e657606516704946b66dd2d7b`.
+`81f050116e563800240c95d800f410e2084a5c78ee8089e774fd7536e966fe73`.
 The build command pins `ContinuousIntegrationBuild=true` and maps the detached
 worktree root to `/_/src`; two independent detached worktrees produced the same
-171520-byte assembly and SHA above. Omitting either deterministic-build input
+178688-byte assembly and SHA above. Omitting either deterministic-build input
 is authority drift.
 The comparator requires a fresh detached Git worktree at the pinned head, rejects
 dirty or ignored/stale `bin`/`obj` content before restore, uses locked restore
@@ -173,23 +173,28 @@ The CtrlRAM batch produced exact complete output bytes for eleven of twelve
 full-base cases while demonstrating why cross-version operation equality is
 unsafe: NT51923 and NT51927 use different processor scopes, and NT51932 replaces
 one legacy broad DiffDLM operation with two narrower NF-preserving operations.
-The remaining NT51951 FW2.0 cascade-2 route is a reported blocker. Its predecessor
-and current full-output SHA-256 values differ (`7d657a3d...` versus
-`1536d344...`) over 2816 bytes, including an NF-owned tail. It remains an
-ordinary exact-output route and must fail `PARITY_EXACT_MISMATCH`; the reported
-later-source hotfix result has no independently admitted payload-free proof in
-this change, remains unverified here, and is not silently substituted for the
-owner-selected v0.9.16 baseline.
-The closed payload-free diagnostic
+The NT51951 FW2.0 cascade-2 route has an owner-approved semantic correction.
+Its predecessor and current full-output SHA-256 values differ
+(`7d657a3d...` versus `1536d344...`) over exactly 2816 bytes because v0.9.16 did
+not preserve Diff NF. The firmware owner confirmed on 2026-08-28 that the
+current NF-preserving output is correct. Admission therefore requires the
+declared candidate hash, exact differing-byte count, and exact five half-open
+ranges while requiring every byte outside those ranges to equal v0.9.16.
+The closed payload-free diagnostic is a historical observation; it is not
+mechanically rebound when the candidate executor changes. It must retain the
+exact executor that produced the reported bytes until the current candidate is
+rerun. The diagnostic
 `v0916-nt51951-c2-diagnostic-v1.json` pins the four ordered CtrlRAM CLI input
 size/hash facts and both full-base recipe sources, both source-executor
 contracts/head/tree/CLI identities,
 reported 524288-byte output hashes, exact 2816-byte difference count, and the
 five observed half-open ranges. It explicitly lists every missing baseline and
 candidate preview/build receipt/report plus the missing independent comparison
-record. Consequently its only admissible state is
-`blocked-incomplete-independent-observation`, and the route remains
-`PARITY_EXACT_MISMATCH`.
+record. Consequently the historical diagnostic remains
+`blocked-incomplete-independent-observation` and cannot itself prove the
+correction. The same-run comparison is the only admissible proof and fails
+`PARITY_EXACT_MISMATCH` if any output identity, count, or range escapes the
+owner-approved boundary.
 
 The compare run manifest intentionally contains no owner attestation. A
 successful compare writes deterministic JCS bytes conforming to
@@ -332,11 +337,23 @@ verifier and release smoke verifier. It verifies the GitHub-observed
 protected-main workflow run and artifact id/digest, candidate manifest and ZIP
 digests, sidecar provenance subjects, source commit, and source tree. The
 candidate ZIP's inner `RELEASE-MANIFEST.json` is necessary but never sufficient.
-The plan's `allowedEvidenceChildPaths` is a closed
-exact list: a release source may inherit parity only as the direct child that
-changes precisely those paths while retaining the authority trees and policy
-digest. This transfers parity, never package identity or package certification.
+The plan's `authorityTransfer` owns one closed exact list. The binding commit
+must be the direct child of the firmware-executor head and change precisely
+`allowedBindingChildPaths`, and the v1.0.0 package source must be that exact
+commit. The production verifier checks Git parentage, exact path diffs,
+authority trees, and policy bytes; it rejects extra paths, later descendants,
+wrong parents, and authority drift. Protected same-run terminal evidence is a
+workflow artifact, not a second source commit. This transfers parity authority,
+never package certification.
 The final ZIP still passes the normal release package gates independently.
+
+Firmware executor authority and package source authority are separate inputs
+to package admission. v1.0.0 binds the immutable executor parent to the exact
+release-binding child. v1.0.1 is only an upgrade-test package: it must be the direct
+single-parent child of the immutable v1.0.0 tag, its repository diff must be
+exactly `VERSION`, and its package may differ only at the closed
+version-bearing paths. It uses the normal package/startup/upgrade gates and
+does not rerun the v0.9.16 parity executor under a false v1.0.1 source identity.
 
 The output conforms to `v0916-parity-evidence-v1.schema.json`. It contains
 only package, Git authority, policy, comparator, scenario, input, receipt,
@@ -379,7 +396,8 @@ Workflow identity is three distinct facts: the workflow commit SHA used for the
 Contents query, the Git blob SHA returned for that path at that commit, and the
 SHA-256 of decoded raw workflow bytes. None may substitute for another.
 The authenticated protected-main workflow commit is independent of the pinned
-candidate implementation/package head `e712842d`; equality is neither required
+candidate implementation/package head
+`1d1d1cfcad7f0963dd3ed1e3e920d9a3425d6220`; equality is neither required
 nor authority. The blob and raw digests independently prove which workflow
 bytes occupied `.github/workflows/release.yml` at the workflow commit, while
 the candidate manifest/provenance and source-executor contract continue to bind
@@ -394,8 +412,8 @@ environments, timeouts, SHA-pinned actions, action inputs, command/argv text,
 and artifact names/paths/retention/upload-download sequence. Substring
 sentinels, unpinned actions, `continue-on-error`, `always()`, write permissions,
 alternate commands, extra parity jobs, or artifact drift fail
-`PARITY_WORKFLOW_MISMATCH`. Normalization retains the complete two-job parity
-subgraph plus top-level trigger and permissions: compare/attestation identity,
+`PARITY_WORKFLOW_MISMATCH`. Normalization retains the complete three-job parity
+subgraph plus top-level trigger and permissions: compare/attestation/finalize identity,
 order, and action map cannot be swapped, and checkout `ref` or any checkout
 option cannot drift. Unrelated pre-existing release jobs are outside this
 subgraph, but an extra parity job or edge into/out of the subgraph is rejected.
@@ -408,7 +426,7 @@ normalized `protectedRun` in terminal evidence. It requires the queried run's
 id/attempt/head SHA/head branch/event/conclusion and repository/head-repository
 ids, the job's id/run/attempt/head/branch/name/conclusion and interval, the
 deployment's id/SHA/ref/environment/time, the successful status and job log
-URL, and both artifacts' ids/names/digests plus `workflow_run`
+URL, and all three artifacts' ids/names/digests plus `workflow_run`
 run/repository/head-repository/branch/head fields. It streams both archives and
 requires their one declared JSON member to equal the local comparison and
 attestation bytes exactly. Any cross-run, cross-head, cross-branch,
@@ -452,6 +470,27 @@ head/tree, package, route, and receipt digests. The environment payload may be
 job interval, same-run artifacts and the external verification record. Missing
 owner verification fails `PARITY_OWNER_APPROVAL_REQUIRED`; cross-run,
 cross-head, or cross-job substitution fails `PARITY_AUTHORITY_MISMATCH`.
+
+The protected-run operator sequence is deliberately explicit:
+
+1. Let the compare job finish and download that run's
+   `v0916-parity-comparison-<run-id>` artifact for independent firmware-owner
+   review.
+2. Produce the owner attestation and external verification record outside the
+   workflow, bound to that artifact id/digest and every declared certification
+   digest.
+3. Store their base64 bytes and verifier identity in the protected
+   `firmware-parity` environment secrets
+   `NFC_FIRMWARE_OWNER_ATTESTATION_B64`,
+   `NFC_FIRMWARE_OWNER_VERIFICATION_B64`, and
+   `NFC_FIRMWARE_OWNER_VERIFIER_ID`.
+4. Approve the waiting attestation job only after those exact values are
+   present. If the job was approved before the values existed, do not edit or
+   synthesize evidence in-place; set the values and rerun the failed jobs so a
+   new run owns the complete artifact chain.
+5. The finalizer independently downloads and validates the comparison,
+   attestation, and verification artifacts. A successful environment approval
+   by itself is never sufficient evidence.
 
 All contract timestamps use canonical UTC `YYYY-MM-DDTHH:mm:ss[.fffffff]Z`.
 This requirement applies to receipts, capture projections, comparisons,
