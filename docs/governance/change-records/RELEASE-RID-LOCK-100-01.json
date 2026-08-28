@@ -1,0 +1,40 @@
+{
+  "schemaVersion": 2,
+  "taskId": "RELEASE-RID-LOCK-100-01",
+  "capability": "Bind the existing self-contained win-x64 candidate restore contract to committed RID lock targets",
+  "integrationBase": "08c9b4bb20813dfe2660a8bbc504d34d8f9d6d8a",
+  "risk": "R3",
+  "kind": "release",
+  "state": "design-active",
+  "mutablePaths": [
+    "src/NvtFwCombiner.Application/packages.lock.json",
+    "src/NvtFwCombiner.Contracts/packages.lock.json",
+    "src/NvtFwCombiner.Domain/packages.lock.json",
+    "src/NvtFwCombiner.Profiles/packages.lock.json",
+    "src/NvtFwCombiner.VersionManagement.Application/packages.lock.json"
+  ],
+  "implementationOwner": "root-implementer",
+  "searchEvidence": [
+    "Two independent empty detached worktrees at implementation c342e3435d2cda514845dfb9e86cb14589266914 reproduced NU1004 from the exact candidate contract restore command because all nine declared CLI-graph lockfiles lacked the net10.0/win-x64 target.",
+    "A throwaway checkout using repository SDK 10.0.303 and the project-targeted --runtime win-x64 --force-evaluate authority operation changed only the nine declared lockfiles; each diff only added the empty net10.0/win-x64 RID target and did not change a package identity, version, content hash, project reference, or production source file.",
+    "After that throwaway regeneration, the unchanged formal command restore --locked-mode --disable-parallel --runtime win-x64 and exact self-contained Release build passed with zero warnings and zero errors.",
+    "Independent closure comparison found that the previously recorded runtime hash came from first-party managed DLLs whose embedded SourceLink named binding head b13f0e4d rather than the implementation head declared by that contract. Two fresh exact-head builds agreed byte-for-byte and the other 373 runtime files, executable hash, file count, total size, source code, and package identities did not drift.",
+    "The existing RELEASE-100-FINAL-01 record retains its four declared RID lock snapshots and protected parity binding paths. RELEASE-PYYAML-DEPENDENCY-100-01 owns only the two previously unowned governed dependency paths; adjacent CI templates and regression tests are verification evidence rather than governed mutable paths. This record owns only the five previously unowned RID lock snapshots. Together the existing and new owners cover every governed change without mutable-path overlap."
+  ],
+  "semanticOwner": "NuGet packages.lock.json files own the immutable dependency graph for the existing candidate CLI restore contract; RELEASE-100-FINAL-01 retains four declared lock paths while this record owns the other five, and the v100 candidate-source executor consumes all nine exact sizes and SHA-256 identities",
+  "terminalContract": "The formal candidate restore remains locked, project-targeted, and win-x64. Regeneration authority uses repository SDK 10.0.303 with --force-evaluate exactly once and may alter only the nine CLI transitive-graph lockfiles by adding the net10.0/win-x64 RID target without package-version or identity drift. Two fresh detached locked restores and deterministic self-contained builds must produce identical CLI and runtime-closure identities. A prior-closure mismatch stops the release for provenance investigation; a proven wrong-head SourceLink capture may be superseded only by an independent R3 review plus exact-head production-verifier evidence with unchanged CLI executable, source semantics, package identities, runtime file count, and runtime total size.",
+  "disposition": "extend-owner",
+  "designReview": {
+    "reviewer": "final_release_review",
+    "outcome": "findings-incorporated",
+    "evidence": "Independent R3 release/supply-chain review rejected removing --runtime, weakening --locked-mode, or adding a second lock owner. It approved only project-targeted RID lock regeneration after requiring a nine-file-only diff, no dependency identity/version drift, two independent detached locked builds, complete candidate-source/direct-child rebinding, and investigation of any prior closure difference. Its follow-up review proved the old closure was captured from binding-head SourceLink rather than its declared implementation head and approved only the two-build exact-head closure as the replacement authority."
+  },
+  "implementationHead": null,
+  "reviewedHead": null,
+  "pathStateDigest": null,
+  "finalReview": {
+    "reviewer": null,
+    "outcome": "pending",
+    "evidence": ""
+  }
+}

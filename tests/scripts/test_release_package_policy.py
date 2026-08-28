@@ -11,6 +11,7 @@ import subprocess
 import sys
 import tempfile
 import time
+import tomllib
 import unittest
 import zipfile
 from pathlib import Path
@@ -1276,7 +1277,7 @@ class ReleasePackagePolicyTests(unittest.TestCase):
         self.assertIn("Download terminal v0.9.16 parity evidence", steps)
         self.assertIn("validate-terminal --evidence", steps)
         self.assertEqual(
-            2,
+            3,
             steps.count("needs.candidate.outputs.version == '1.0.0'"),
         )
         self.assertNotIn("Reuse only committed v1.0.0 firmware evidence", release)
@@ -1301,6 +1302,68 @@ class ReleasePackagePolicyTests(unittest.TestCase):
         self.assertIn("contents: read", release)
         self.assertEqual(1, release.count("contents: write"))
         self.assertIn("environment: release", release)
+
+    def test_workflows_install_the_pinned_parity_yaml_dependency(self) -> None:
+        ci = (ROOT / ".github/workflows/ci.yml").read_text(encoding="utf-8")
+        release = (ROOT / ".github/workflows/release.yml").read_text(encoding="utf-8")
+        main_package = (ROOT / ".github/workflows/main-package.yml").read_text(
+            encoding="utf-8"
+        )
+        worker_project = tomllib.loads(
+            (ROOT / "tools/crc-worker/pyproject.toml").read_text(encoding="utf-8")
+        )
+        install = (
+            "python -m pip install --disable-pip-version-check "
+            "--only-binary=:all: PyYAML==6.0.3"
+        )
+        structure = ci[ci.index("  structure:") : ci.index("  python-worker:")]
+        python_worker = ci[ci.index("  python-worker:") : ci.index("  dotnet-build:")]
+        dotnet_build = ci[ci.index("  dotnet-build:") : ci.index("  dotnet-test:")]
+        dotnet_test = ci[ci.index("  dotnet-test:") : ci.index("  dotnet:")]
+        dotnet_finalizer = ci[ci.index("  dotnet:") :]
+        candidate = release[release.index("  candidate:") : release.index("  promote:")]
+        promote = release[release.index("  promote:") : release.index("  published-smoke:")]
+        published_smoke = release[
+            release.index("  published-smoke:") : release.index("  v0916-parity-compare:")
+        ]
+        parity_compare = release[
+            release.index("  v0916-parity-compare:") : release.index(
+                "  v0916-parity-attestation:"
+            )
+        ]
+        parity_attestation = release[
+            release.index("  v0916-parity-attestation:") : release.index(
+                "  v0916-parity-finalize:"
+            )
+        ]
+        parity_finalize = release[release.index("  v0916-parity-finalize:") :]
+        dev_dependencies = worker_project["project"]["optional-dependencies"]["dev"]
+        package_dependencies = worker_project["project"]["optional-dependencies"]["package"]
+
+        self.assertEqual([], worker_project["project"]["dependencies"])
+        self.assertIn("PyYAML==6.0.3", dev_dependencies)
+        self.assertNotIn("PyYAML==6.0.3", package_dependencies)
+        self.assertIn("./tools/crc-worker[dev]", python_worker)
+        self.assertIn("./tools/crc-worker[dev,package]", candidate)
+        self.assertIn("./tools/crc-worker[dev,package]", main_package)
+        self.assertIn(install, structure)
+        self.assertIn(install, dotnet_build)
+        self.assertNotIn(install, dotnet_test)
+        self.assertNotIn(install, dotnet_finalizer)
+        self.assertNotIn(install, published_smoke)
+        for parity_job in (parity_compare, parity_attestation, parity_finalize):
+            self.assertIn("Setup pinned Python for parity verification", parity_job)
+            self.assertIn("python-version: '3.13'", parity_job)
+            self.assertIn(install, parity_job)
+        install_step = promote[
+            promote.index("- name: Install parity verification dependency") :
+            promote.index("- name: Download terminal v0.9.16 parity evidence")
+        ]
+        self.assertIn(install, install_step)
+        self.assertIn(
+            "if: ${{ needs.candidate.outputs.version == '1.0.0' }}",
+            install_step,
+        )
 
     def test_release_processor_allowlist_matches_packaged_runtime_scope(self) -> None:
         package_script = PACKAGE_SCRIPT.read_text(encoding="utf-8")

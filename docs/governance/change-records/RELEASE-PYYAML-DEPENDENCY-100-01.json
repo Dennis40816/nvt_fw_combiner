@@ -1,0 +1,36 @@
+{
+  "schemaVersion": 2,
+  "taskId": "RELEASE-PYYAML-DEPENDENCY-100-01",
+  "capability": "Provide one pinned YAML verification dependency to every repository and protected-release consumer without adding it to packaged runtime",
+  "integrationBase": "08c9b4bb20813dfe2660a8bbc504d34d8f9d6d8a",
+  "risk": "R3",
+  "kind": "release",
+  "state": "design-active",
+  "mutablePaths": [
+    ".github/workflows/ci.yml",
+    "tools/crc-worker/pyproject.toml"
+  ],
+  "implementationOwner": "root-implementer",
+  "searchEvidence": [
+    "CodeGraph is absent by owner choice; repository-wide rg located the sole production yaml import in scripts/v0916_parity_certification.py and its module-level consumer in scripts/validate_repository.py.",
+    "CI run 33149046042 at exact head 02239a619720c11d8b8e6f3c78657f74260ed4ed failed policy, Python verification, and Release build only because setup-python environments lacked yaml; the full local tests passed where PyYAML 6.0.3 was installed.",
+    "The existing tools/crc-worker [dev] extra is the repository verification dependency owner used by canonical bootstrap, python-worker, main-package, and release-candidate jobs; PyYAML remains dev-only and packaged worker runtime dependencies remain empty.",
+    "Independent release design review inventoried every consumer: CI structure and dotnet-build install directly, python-worker/candidate/main-package consume [dev], and only 1.0.0 promote plus three protected parity jobs install directly; dotnet-test, finalizer, published-smoke, and 1.0.1 promotion do not."
+  ],
+  "semanticOwner": "tools/crc-worker [dev] owns repository verification dependencies; CI and protected release workflows only install that pinned dependency before invoking the existing validators; v0.9.16 parity workflow contracts bind the exact protected job graph",
+  "terminalContract": "Every job that imports the parity validator has PyYAML 6.0.3 available before import. Direct installs accept binary wheels only; protected parity jobs use pinned Python 3.13. The dependency remains verification-only, is absent from worker runtime dependencies and portable package contents, and cannot change firmware bytes, profiles, ranges, ordering, CRC/header behavior, naming, Registry/Catalog semantics, or VERSION-only 1.0.1 promotion. The changed protected workflow is rebound through the existing deterministic candidate-source and direct-child authority process.",
+  "disposition": "extend-owner",
+  "designReview": {
+    "reviewer": "final_release_review",
+    "outcome": "findings-incorporated",
+    "evidence": "The independent bounded R3 design review found no P0 or firmware/runtime semantic change and approved the exact PyYAML 6.0.3 dev-only dependency after requiring binary-only direct installs, a 1.0.0-only promote condition, both canonical workflow templates, job-scoped regressions, package exclusion evidence, a new immutable R3 record, and complete protected-workflow plus deterministic candidate-source direct-child rebinding."
+  },
+  "implementationHead": null,
+  "reviewedHead": null,
+  "pathStateDigest": null,
+  "finalReview": {
+    "reviewer": null,
+    "outcome": "pending",
+    "evidence": ""
+  }
+}

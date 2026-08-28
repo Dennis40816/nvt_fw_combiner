@@ -22,6 +22,9 @@ from coverage_policy import load_baseline  # noqa: E402
 
 CI_WORKFLOW = ROOT / ".github" / "workflows" / "ci.yml"
 CI_WORKFLOW_TEMPLATE = ROOT / "docs" / "ci" / "workflow-templates" / "ci.yml"
+SCHEDULED_SECURITY_TEMPLATE = (
+    ROOT / "docs" / "ci" / "workflow-templates" / "scheduled-security.yml"
+)
 MAIN_PACKAGE_WORKFLOW = ROOT / ".github" / "workflows" / "main-package.yml"
 VERIFIER = ROOT / "scripts" / "verify.py"
 
@@ -78,6 +81,29 @@ class CoverageCiContractTests(unittest.TestCase):
         self.assertIn("path: artifacts/ci-dotnet-downloads/", workflow)
         self.assertNotIn("merge-multiple: true", workflow)
         self.assertNotIn("# immutable reviewed commit", workflow)
+
+    def test_repository_validation_templates_install_pinned_yaml_dependency(
+        self,
+    ) -> None:
+        install = (
+            "python -m pip install --disable-pip-version-check "
+            "--only-binary=:all: PyYAML==6.0.3"
+        )
+        for workflow_path in (CI_WORKFLOW, CI_WORKFLOW_TEMPLATE):
+            workflow = workflow_path.read_text(encoding="utf-8")
+            structure = workflow[
+                workflow.index("  structure:") : workflow.index("  python-worker:")
+            ]
+            dotnet_build = workflow[
+                workflow.index("  dotnet-build:") : workflow.index("  dotnet-test:")
+            ]
+            self.assertIn(install, structure)
+            self.assertIn(install, dotnet_build)
+
+        scheduled = SCHEDULED_SECURITY_TEMPLATE.read_text(encoding="utf-8")
+        policy = scheduled[scheduled.index("  policy:") :]
+        self.assertIn(install, policy)
+        self.assertIn("python scripts/verify.py --structure-only", policy)
 
     def test_package_job_fetches_the_fixed_coverage_baseline_revision(self) -> None:
         workflow = MAIN_PACKAGE_WORKFLOW.read_text(encoding="utf-8")

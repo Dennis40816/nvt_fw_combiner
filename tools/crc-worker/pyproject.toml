@@ -13,6 +13,7 @@ dependencies = []
 dev = [
   "hypothesis>=6.130,<7",
   "pylint>=3.3,<5",
+  "PyYAML==6.0.3",
   "pyright>=1.1.400,<2",
   "pytest>=8.3,<10",
   "coverage==7.14.3",
