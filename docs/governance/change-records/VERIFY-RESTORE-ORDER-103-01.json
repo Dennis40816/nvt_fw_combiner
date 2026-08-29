@@ -1,0 +1,34 @@
+{
+  "schemaVersion": 2,
+  "taskId": "VERIFY-RESTORE-ORDER-103-01",
+  "capability": "Prevent the canonical dotnet restore lane from racing pristine-worktree structure validation",
+  "integrationBase": "6ffafc0390694345633633d688148c020226126c",
+  "risk": "R2",
+  "kind": "governance",
+  "state": "design-active",
+  "mutablePaths": [
+    "scripts/verify.py"
+  ],
+  "implementationOwner": "primary-agent",
+  "searchEvidence": [
+    "Canonical verify --all started structure, python, and dotnet concurrently; dotnet restore changed the tracked Cli lockfile while structure inspected the worktree.",
+    "The resulting structure failure named only src/NvtFwCombiner.Cli/packages.lock.json, whose restore diff removed the empty win-x64 target.",
+    "selected_lanes already owns the plan while run_selected_lanes already owns isolated lane execution, logging, timeout, cleanup, and aggregate failure reporting."
+  ],
+  "semanticOwner": "scripts/verify.py public verification-lane orchestration",
+  "terminalContract": "A public plan containing structure and dotnet completes isolated structure validation before any restore-capable lane starts, then runs the unchanged remaining lanes with the requested jobs and timeout; structure failure starts no later phase, while plans lacking either lane retain one-phase execution",
+  "disposition": "extend-owner",
+  "designReview": {
+    "reviewer": "final_architecture_review",
+    "outcome": "approved",
+    "evidence": "Independent R2 review at checkpoint 6ffafc0390694345633633d688148c020226126c approved extending the existing canonical verifier orchestration so a public plan containing both structure and dotnet completes the isolated structure lane before any restore-capable lane starts, then runs the unchanged remaining lanes with the original jobs, ordering, isolation, commands, and timeouts; the bounded scripts/verify.py change preserves fail-closed dirty-path validation and changes no validator, restore/test command, production, XAML, firmware, package, update, or I/O semantics."
+  },
+  "implementationHead": null,
+  "reviewedHead": null,
+  "pathStateDigest": null,
+  "finalReview": {
+    "reviewer": null,
+    "outcome": "pending",
+    "evidence": ""
+  }
+}

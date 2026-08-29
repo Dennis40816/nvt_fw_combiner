@@ -2996,8 +2996,18 @@ def execute_verification(args: argparse.Namespace) -> int:
         )
 
     try:
+        lanes = selected_lanes(args)
+        if any(lane.name == "structure" for lane in lanes) and any(
+            lane.name == "dotnet" for lane in lanes
+        ):
+            run_selected_lanes(
+                tuple(lane for lane in lanes if lane.name == "structure"),
+                jobs=args.jobs,
+                lane_timeout_seconds=args.lane_timeout_seconds,
+            )
+            lanes = tuple(lane for lane in lanes if lane.name != "structure")
         run_selected_lanes(
-            selected_lanes(args),
+            lanes,
             jobs=args.jobs,
             lane_timeout_seconds=args.lane_timeout_seconds,
         )
