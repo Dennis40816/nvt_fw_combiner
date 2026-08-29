@@ -5,7 +5,7 @@
   "integrationBase": "aa534b2dc422f8bb889355cd15846f62eaffa48b",
   "risk": "R2",
   "kind": "refactor",
-  "state": "design-active",
+  "state": "final-complete",
   "mutablePaths": [
     "scripts/code_size_policy.py",
     "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/MainWindowViewModel.Construction.cs",
@@ -42,12 +42,12 @@
     "outcome": "approved",
     "evidence": "Independent R2 architecture review approved replacing the v1.0.2 caller-selectable owner/Boolean notification suppression with flag-free full-context and accepted-mode intents on the existing WorkflowSession, Merge, and Replace owners. WorkflowSession remains the sole publisher of shared selector/device/run facts, each page remains the sole publisher of its ModeChoices and page projections, live accepted mode changes cannot republish ItemsSource/IcChoices or wake the hidden page, and full Catalog refresh retains authoritative choice publication. The bounded refactor changes no XAML, navigation, Application, firmware, composition, range, CRC, naming, or execution semantics and introduces no publication framework or second state owner."
   },
-  "implementationHead": null,
-  "reviewedHead": null,
-  "pathStateDigest": null,
+  "implementationHead": "0f4985a609fd2c500d8874abc61f9ba128bad2b9",
+  "reviewedHead": "0f4985a609fd2c500d8874abc61f9ba128bad2b9",
+  "pathStateDigest": "b503f2d994e01c43e5edbe54392a74f5865c473905779f8ff792cd32f1a4bb68",
   "finalReview": {
-    "reviewer": null,
-    "outcome": "pending",
-    "evidence": ""
+    "reviewer": "final_architecture_review",
+    "outcome": "approved",
+    "evidence": "Independent exact-head R2 architecture and Polytail review of 0f4985a609fd2c500d8874abc61f9ba128bad2b9 verified that production and test patch-id 79bc9ce38fe6bb57c83da386935250597ad71263 exactly matches the previously approved owner-scoped page-publication implementation. WorkflowSession alone publishes shared facts, Merge and Replace alone publish their page projections, live mode selection preserves ItemsSource and hidden-page isolation, and catalog refresh retains authoritative exactly-once publication. ModeSelector 5/5, UI Smoke 827/827, Architecture 242/242, and code-size 16/16 passed; full production is 121,059 lines with runtime unchanged at 83,416, and no Application, firmware, XAML, range, CRC, output-byte, or naming semantics changed. No P0, P1, or P2 finding remained."
   }
 }
