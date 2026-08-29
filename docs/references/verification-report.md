@@ -4,13 +4,14 @@ Status: historical seed-preparation report for the 2026-06-25 bootstrap
 baseline, updated through the stable 0.10.4 post-refactor simplification,
 0.10.5 startup-performance work, the 0.10.6 internal managed-version
 implementation, the 0.10.7 final-effect checkpoint, the stable 1.0.0 and
-version-only 1.0.1 releases, and the active 1.0.2 mode-selector hotfix
+version-only 1.0.1 release, the stable 1.0.2 mode-selector hotfix, and the
+active 1.0.3 page-publication hardening
 candidate. Current
 verification evidence is produced by the canonical
 `python scripts/verify.py --structure-only` and `python scripts/verify.py --all`
 commands.
 
-Specification package version: `1.0.2`
+Specification package version: `1.0.3`
 
 ## 2026-08-25 formal-support policy checkpoint
 

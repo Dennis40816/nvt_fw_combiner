@@ -4,11 +4,59 @@ All notable changes to NVT FW Combiner are documented here. The project follows 
 
 ## [Unreleased]
 
-The repository identity is the unpublished `1.0.2` mode-selector hotfix
-candidate. Stable `v1.0.0` and the version-only `v1.0.1` upgrade probe remain
-its immutable predecessors.
+The repository identity is the unpublished `1.0.3` page-publication hardening
+candidate. Stable `v1.0.2` remains its immutable predecessor.
 
-## [1.0.2] - Unreleased
+## [1.0.3] - Unreleased
+
+### Summary
+
+This support-neutral patch makes Merge and Replace page-state publication
+owner-scoped so live mode selectors and hidden pages cannot update each other.
+
+### Product changes
+
+#### Owner-scoped page publication
+
+- Before → After: shared Boolean notification paths could accidentally
+  republish a live mode selector's choices or notify the hidden workflow page.
+  Named publication intents now let WorkflowSession publish shared context
+  while Merge and Replace publish only their own accepted page projection.
+- Affected: Merge and Replace page activation, mode selection, IC/catalog
+  refresh, inspection invalidation, and repeated page transitions.
+- Support status: unchanged/support-neutral; no route, IC, range, processor,
+  integrity, naming, firmware evidence, or output byte is promoted or changed.
+- Compatibility: XAML, saved data, firmware plans, CRC/header processing, output
+  naming, and package contracts do not change.
+- Verification: live TwoWay selector regressions prove accepted Merge/Replace
+  modes keep a stable ItemsSource, hidden pages are not published, and repeated
+  page transitions remain stable; the complete UI and architecture suites
+  remain release gates.
+- Limitations: pages remain retained for fast navigation; this patch does not
+  introduce a page framework, event bus, or unload/reload redesign.
+
+### Security
+
+No network, package, updater, permission, signing, or firmware-custody behavior
+changes. Existing closed manifest, SHA-256, SBOM, provenance, archive-safety,
+and package-smoke gates remain mandatory.
+
+### Known issues
+
+None introduced by this patch.
+
+### Upgrade and rollback
+
+Install the verified 1.0.3 package through the existing 1.0.2 managed Version
+flow. Retain a healthy installed 1.0.2 version for the existing rollback path.
+
+### Downloads and integrity
+
+Use only the immutable versioned Windows x64 ZIP and its matching candidate
+manifest, asset checksum list, SBOM, and provenance. Publication and the
+immutable `v1.0.3` tag remain separate release gates.
+
+## [1.0.2] - 2026-08-28
 
 ### Summary
 
