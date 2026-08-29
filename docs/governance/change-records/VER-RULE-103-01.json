@@ -5,7 +5,7 @@
   "integrationBase": "2823c30ae165f84b3d8145107fd61d2c43546f1c",
   "risk": "R2",
   "kind": "governance",
-  "state": "design-active",
+  "state": "final-complete",
   "mutablePaths": [
     "docs/governance/branch-version-and-release-governance.md"
   ],
@@ -23,12 +23,12 @@
     "outcome": "approved",
     "evidence": "Independent R2 review approved the bounded governance-and-test change: document the existing canonical stable major.minor.patch identity and VERSION-to-tag/package/manifest/catalog mapping in the current branch/version governance owner, and add direct ManagedAppVersion parser and ordering tests. No production parser, prerelease support, version type, schema, workflow, runtime behavior, package policy or firmware authority may change."
   },
-  "implementationHead": null,
-  "reviewedHead": null,
-  "pathStateDigest": null,
+  "implementationHead": "33c0444d0de1104d3838da9bc500a0e6911dc709",
+  "reviewedHead": "33c0444d0de1104d3838da9bc500a0e6911dc709",
+  "pathStateDigest": "0a407f310957f39298a440ac3a3e237d8e281ada99b40ba8f4592e407617d9a3",
   "finalReview": {
-    "reviewer": null,
-    "outcome": "pending",
-    "evidence": ""
+    "reviewer": "final_architecture_review",
+    "outcome": "approved",
+    "evidence": "Exact implementation head 33c0444d0de1104d3838da9bc500a0e6911dc709 was independently reviewed against parent 1fe00aeeae05479878d2dff0eb525cfc99de37fa: it only documents the existing canonical stable major.minor.patch and VERSION-to-v{VERSION}-to-package/manifest/catalog identity in the established governance owner and adds direct ManagedAppVersion acceptance, rejection, and numeric-ordering tests; no production, parser, prerelease, schema, workflow, package, firmware, or runtime semantics changed, and focused Application 57/57 plus release-policy 34/34 passed."
   }
 }
