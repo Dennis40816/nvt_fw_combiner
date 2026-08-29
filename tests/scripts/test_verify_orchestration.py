@@ -51,23 +51,67 @@ class VerifyOrchestrationTests(unittest.TestCase):
         *,
         total: int,
         skipped: int,
+        identities: tuple[str, ...] | None = None,
+        outcomes: tuple[str, ...] | None = None,
     ) -> None:
         path.parent.mkdir(parents=True, exist_ok=True)
-        path.write_text(
-            '<?xml version="1.0" encoding="utf-8"?>\n'
-            '<TestRun xmlns="http://microsoft.com/schemas/VisualStudio/TeamTest/2010">'
-            "<ResultSummary><Counters "
-            f'total="{total}" executed="{total - skipped}" '
-            f'passed="{total - skipped}" failed="0" '
-            'notExecuted="0" /></ResultSummary></TestRun>\n',
-            encoding="utf-8",
+        identities = identities or tuple(
+            f"Probe.Tests.Case{index}" for index in range(total)
         )
+        outcomes = outcomes or (
+            *("Passed" for _ in range(total - skipped)),
+            *("NotExecuted" for _ in range(skipped)),
+        )
+        if len(identities) != total or len(outcomes) != total:
+            raise AssertionError("TRX fixture identities/outcomes must match total")
+        if outcomes.count("NotExecuted") != skipped:
+            raise AssertionError("TRX fixture skipped count must match outcomes")
+        passed = outcomes.count("Passed")
+        failed = outcomes.count("Failed")
+        root = MODULE.ET.Element(
+            "TestRun",
+            xmlns="http://microsoft.com/schemas/VisualStudio/TeamTest/2010",
+        )
+        results = MODULE.ET.SubElement(root, "Results")
+        for identity, outcome in zip(identities, outcomes, strict=True):
+            MODULE.ET.SubElement(
+                results,
+                "UnitTestResult",
+                testName=identity,
+                outcome=outcome,
+            )
+        summary = MODULE.ET.SubElement(root, "ResultSummary")
+        MODULE.ET.SubElement(
+            summary,
+            "Counters",
+            total=str(total),
+            executed=str(passed + failed),
+            passed=str(passed),
+            failed=str(failed),
+            notExecuted=str(skipped),
+        )
+        MODULE.ET.ElementTree(root).write(path, encoding="utf-8", xml_declaration=True)
 
     @staticmethod
     def write_ci_manifest(path: Path, document: dict[str, object]) -> None:
         path.parent.mkdir(parents=True, exist_ok=True)
         path.write_text(
             json.dumps(document, indent=2, sort_keys=True) + "\n",
+            encoding="utf-8",
+        )
+
+    @staticmethod
+    def write_vstest_discovery(path: Path, total: int | tuple[str, ...]) -> None:
+        path.parent.mkdir(parents=True, exist_ok=True)
+        identities = (
+            tuple(f"Probe.Tests.Case{index}" for index in range(total))
+            if isinstance(total, int)
+            else total
+        )
+        path.write_text(
+            "VSTest test discovery\n"
+            + "\n".join(f"    {identity}" for identity in identities)
+            + "\n",
             encoding="utf-8",
         )
 
@@ -117,7 +161,7 @@ class VerifyOrchestrationTests(unittest.TestCase):
         self.write_ci_manifest(
             build_root / "build/manifest.json",
             {
-                "schemaVersion": 1,
+                "schemaVersion": 2,
                 "kind": "dotnet-build",
                 "sourceSha": source_sha,
                 "sdkVersion": sdk_version,
@@ -142,30 +186,47 @@ class VerifyOrchestrationTests(unittest.TestCase):
             }
             rows: list[dict[str, object]] = []
             for project in projects:
+                total = 3
+                if project.name == "NvtFwCombiner.Infrastructure.Tests":
+                    identities = (
+                        "Probe.Tests.Case0",
+                        *MODULE.UNIX_SPECIAL_FILE_INFRASTRUCTURE_SKIPS,
+                    )
+                    skipped = 2
+                else:
+                    identities = tuple(
+                        f"Probe.Tests.Case{index}" for index in range(total)
+                    )
+                    skipped = 0
                 result_root = shard_root / "results" / project.name
+                discovery = result_root / "discovered-tests.txt"
                 trx = result_root / "test-results.trx"
                 coverage_root = result_root / "coverage"
                 coverage_json = coverage_root / "coverage.json"
                 cobertura = coverage_root / "coverage.cobertura.xml"
+                self.write_vstest_discovery(discovery, identities)
                 self.write_ci_trx(
                     trx,
-                    total=project.expected_total,
-                    skipped=project.expected_skipped,
+                    total=total,
+                    skipped=skipped,
+                    identities=identities,
                 )
                 coverage_root.mkdir()
                 coverage_json.write_text("{}\n", encoding="utf-8")
                 cobertura.write_text("<coverage />\n", encoding="utf-8")
-                evidence_paths = (trx, coverage_json, cobertura)
+                evidence_paths = (discovery, trx, coverage_json, cobertura)
                 for evidence in evidence_paths:
                     relative = evidence.relative_to(artifact_root).as_posix()
                     files[relative] = hashlib.sha256(evidence.read_bytes()).hexdigest()
                 rows.append(
                     {
                         "relativePath": project.relative_path,
-                        "total": project.expected_total,
-                        "passed": project.expected_total - project.expected_skipped,
+                        "total": total,
+                        "passed": total - skipped,
                         "failed": 0,
-                        "skipped": project.expected_skipped,
+                        "skipped": skipped,
+                        "testAssemblySha256": "a" * 64,
+                        "discovery": discovery.relative_to(artifact_root).as_posix(),
                         "trx": trx.relative_to(artifact_root).as_posix(),
                         "coverageJson": coverage_json.relative_to(
                             artifact_root
@@ -178,12 +239,13 @@ class VerifyOrchestrationTests(unittest.TestCase):
             self.write_ci_manifest(
                 shard_root / "manifest.json",
                 {
-                    "schemaVersion": 1,
+                    "schemaVersion": 2,
                     "kind": "dotnet-test-shard",
                     "sourceSha": source_sha,
                     "sdkVersion": sdk_version,
                     "success": True,
                     "shard": shard,
+                    "producerPlatform": "windows",
                     "projects": rows,
                     "files": files,
                 },
@@ -1952,8 +2014,8 @@ class VerifyOrchestrationTests(unittest.TestCase):
         self,
     ) -> None:
         projects = (
-            MODULE.CiDotnetProject("tests/First/First.Tests.csproj", 1),
-            MODULE.CiDotnetProject("tests/Second/Second.Tests.csproj", 1),
+            MODULE.CiDotnetProject("tests/First/First.Tests.csproj"),
+            MODULE.CiDotnetProject("tests/Second/Second.Tests.csproj"),
         )
         cancellation = threading.Event()
         cancellation_handoffs: list[str] = []
@@ -1997,6 +2059,7 @@ class VerifyOrchestrationTests(unittest.TestCase):
                             root / project.name / "source",
                             work / project.name / "shadow",
                             work / project.name / f"{project.name}.dll",
+                            work / project.name / "discovered-tests.txt",
                             coverage / project.name,
                             {},
                             (),
@@ -2279,10 +2342,11 @@ class VerifyOrchestrationTests(unittest.TestCase):
                 destination_boundary=root,
             )
             stage = MODULE.LocalDotnetCoverageStage(
-                MODULE.CiDotnetProject("tests/Probe/Probe.Tests.csproj", 1),
+                MODULE.CiDotnetProject("tests/Probe/Probe.Tests.csproj"),
                 source,
                 shadow,
                 shadow / "Probe.Tests.dll",
+                root / "discovered-tests.txt",
                 root / "results",
                 source_hashes,
                 ((canonical, MODULE.sha256_file(canonical)),),
@@ -2295,7 +2359,7 @@ class VerifyOrchestrationTests(unittest.TestCase):
                 MODULE.require_local_dotnet_sources_unchanged((stage,), root)
 
     def test_post_collector_freshness_rejects_shadow_output_mutation(self) -> None:
-        project = MODULE.CiDotnetProject("tests/Probe/Probe.Tests.csproj", 1)
+        project = MODULE.CiDotnetProject("tests/Probe/Probe.Tests.csproj")
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary)
             work = root / "work"
@@ -2324,6 +2388,7 @@ class VerifyOrchestrationTests(unittest.TestCase):
                     source,
                     shadow,
                     shadow / "Probe.Tests.dll",
+                    work / "12345678/discovered-tests.txt",
                     results,
                     hashes,
                     ((canonical, MODULE.sha256_file(canonical)),),
@@ -2415,10 +2480,11 @@ class VerifyOrchestrationTests(unittest.TestCase):
                 )
 
             stage = MODULE.LocalDotnetCoverageStage(
-                MODULE.CiDotnetProject("tests/Probe/Probe.Tests.csproj", 1),
+                MODULE.CiDotnetProject("tests/Probe/Probe.Tests.csproj"),
                 source,
                 shadow,
                 shadow / "Probe.Tests.dll",
+                root / "discovered-tests.txt",
                 root / "results",
                 source_hashes,
                 canonical_hashes,
@@ -2488,7 +2554,6 @@ class VerifyOrchestrationTests(unittest.TestCase):
         project = MODULE.CiDotnetProject(
             "tests/Deep/NvtFwCombiner.DeepFixture.Tests/"
             "NvtFwCombiner.DeepFixture.Tests.csproj",
-            1,
         )
         expected_token = hashlib.sha256(
             project.relative_path.encode("utf-8")
@@ -2538,10 +2603,12 @@ class VerifyOrchestrationTests(unittest.TestCase):
             self.assertNotIn("NvtFwCombiner.DeepFixture.Tests", expected_token)
 
     def test_local_project_evidence_requires_exact_counter_trx_and_pair(self) -> None:
-        project = MODULE.CiDotnetProject("tests/Probe/Probe.Tests.csproj", 3, 1)
+        project = MODULE.CiDotnetProject("tests/Probe/Probe.Tests.csproj")
         with tempfile.TemporaryDirectory() as temporary:
             results = Path(temporary)
-            self.write_ci_trx(results / "test-results.trx", total=3, skipped=1)
+            discovery = results / "discovered-tests.txt"
+            self.write_vstest_discovery(discovery, 3)
+            self.write_ci_trx(results / "test-results.trx", total=3, skipped=0)
             report = results / "coverage"
             report.mkdir()
             (report / "coverage.json").write_text("{}", encoding="utf-8")
@@ -2549,23 +2616,31 @@ class VerifyOrchestrationTests(unittest.TestCase):
                 "<coverage />", encoding="utf-8"
             )
 
-            MODULE.require_local_dotnet_project_evidence(project, results)
+            MODULE.require_local_dotnet_project_evidence(project, results, discovery)
 
-            self.write_ci_trx(results / "extra.trx", total=3, skipped=1)
+            self.write_ci_trx(results / "extra.trx", total=3, skipped=0)
             with self.assertRaisesRegex(RuntimeError, "exactly one TRX"):
-                MODULE.require_local_dotnet_project_evidence(project, results)
+                MODULE.require_local_dotnet_project_evidence(
+                    project, results, discovery
+                )
             (results / "extra.trx").unlink()
 
             (report / "coverage.cobertura.xml").unlink()
             with self.assertRaisesRegex(RuntimeError, "paired coverage"):
-                MODULE.require_local_dotnet_project_evidence(project, results)
+                MODULE.require_local_dotnet_project_evidence(
+                    project, results, discovery
+                )
 
             (report / "coverage.cobertura.xml").write_text(
                 "<coverage />", encoding="utf-8"
             )
-            self.write_ci_trx(results / "test-results.trx", total=4, skipped=1)
-            with self.assertRaisesRegex(RuntimeError, "test counters changed"):
-                MODULE.require_local_dotnet_project_evidence(project, results)
+            self.write_ci_trx(results / "test-results.trx", total=4, skipped=0)
+            with self.assertRaisesRegex(RuntimeError, "discovered/executed"):
+                MODULE.require_local_dotnet_project_evidence(
+                    project,
+                    results,
+                    discovery,
+                )
 
     def test_duplicate_coverage_attachments_must_be_identical_before_collapse(
         self,
@@ -2616,7 +2691,6 @@ class VerifyOrchestrationTests(unittest.TestCase):
         projects = tuple(
             MODULE.CiDotnetProject(
                 f"tests/P{index}/P{index}.Tests.csproj",
-                1,
                 requires_exclusive_local_coverage=index == 0,
             )
             for index in range(8)
@@ -2671,6 +2745,7 @@ class VerifyOrchestrationTests(unittest.TestCase):
                             root / project.name / "source",
                             root / project.name / "shadow",
                             root / project.name / f"{project.name}.dll",
+                            root / project.name / "discovered-tests.txt",
                             root / project.name / "results",
                             {},
                             (),
@@ -2705,7 +2780,7 @@ class VerifyOrchestrationTests(unittest.TestCase):
             self.assertFalse(work.exists())
 
     def test_invalid_collector_blocks_every_project_runner(self) -> None:
-        project = MODULE.CiDotnetProject("tests/Probe/Probe.Tests.csproj", 1)
+        project = MODULE.CiDotnetProject("tests/Probe/Probe.Tests.csproj")
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary)
             work = root / "work"
@@ -2745,9 +2820,9 @@ class VerifyOrchestrationTests(unittest.TestCase):
         self,
     ) -> None:
         projects = (
-            MODULE.CiDotnetProject("tests/First/First.Tests.csproj", 1),
-            MODULE.CiDotnetProject("tests/Second/Second.Tests.csproj", 1),
-            MODULE.CiDotnetProject("tests/Third/Third.Tests.csproj", 1),
+            MODULE.CiDotnetProject("tests/First/First.Tests.csproj"),
+            MODULE.CiDotnetProject("tests/Second/Second.Tests.csproj"),
+            MODULE.CiDotnetProject("tests/Third/Third.Tests.csproj"),
         )
         attempted: list[str] = []
 
@@ -2775,6 +2850,7 @@ class VerifyOrchestrationTests(unittest.TestCase):
                             root / project.name / "source",
                             root / project.name / "shadow",
                             root / project.name / f"{project.name}.dll",
+                            root / project.name / "discovered-tests.txt",
                             root / project.name / "results",
                             {},
                             (),
@@ -2900,70 +2976,29 @@ class VerifyOrchestrationTests(unittest.TestCase):
     def test_ci_dotnet_shards_form_one_closed_exact_project_partition(self) -> None:
         expected = {
             "bootstrap": (
-                (
-                    "tests/NvtFwCombiner.Bootstrap.Tests/"
-                    "NvtFwCombiner.Bootstrap.Tests.csproj",
-                    1147,
-                    0,
-                ),
+                "tests/NvtFwCombiner.Bootstrap.Tests/"
+                "NvtFwCombiner.Bootstrap.Tests.csproj",
             ),
             "ui": (
-                (
-                    "tests/NvtFwCombiner.UiSmoke.Tests/"
-                    "NvtFwCombiner.UiSmoke.Tests.csproj",
-                    827,
-                    0,
-                ),
+                "tests/NvtFwCombiner.UiSmoke.Tests/NvtFwCombiner.UiSmoke.Tests.csproj",
             ),
             "core": (
-                (
-                    "tests/NvtFwCombiner.Domain.Tests/"
-                    "NvtFwCombiner.Domain.Tests.csproj",
-                    412,
-                    0,
-                ),
-                (
-                    "tests/NvtFwCombiner.Application.Tests/"
-                    "NvtFwCombiner.Application.Tests.csproj",
-                    917,
-                    0,
-                ),
-                (
-                    "tests/NvtFwCombiner.Infrastructure.Tests/"
-                    "NvtFwCombiner.Infrastructure.Tests.csproj",
-                    738,
-                    2,
-                ),
-                (
-                    "tests/NvtFwCombiner.ProfileContract.Tests/"
-                    "NvtFwCombiner.ProfileContract.Tests.csproj",
-                    389,
-                    0,
-                ),
-                (
-                    "tests/NvtFwCombiner.GoldenRegression.Tests/"
-                    "NvtFwCombiner.GoldenRegression.Tests.csproj",
-                    18,
-                    0,
-                ),
-                (
-                    "tests/NvtFwCombiner.Architecture.Tests/"
-                    "NvtFwCombiner.Architecture.Tests.csproj",
-                    242,
-                    0,
-                ),
+                "tests/NvtFwCombiner.Domain.Tests/NvtFwCombiner.Domain.Tests.csproj",
+                "tests/NvtFwCombiner.Application.Tests/"
+                "NvtFwCombiner.Application.Tests.csproj",
+                "tests/NvtFwCombiner.Infrastructure.Tests/"
+                "NvtFwCombiner.Infrastructure.Tests.csproj",
+                "tests/NvtFwCombiner.ProfileContract.Tests/"
+                "NvtFwCombiner.ProfileContract.Tests.csproj",
+                "tests/NvtFwCombiner.GoldenRegression.Tests/"
+                "NvtFwCombiner.GoldenRegression.Tests.csproj",
+                "tests/NvtFwCombiner.Architecture.Tests/"
+                "NvtFwCombiner.Architecture.Tests.csproj",
             ),
         }
 
         actual = {
-            shard: tuple(
-                (
-                    project.relative_path,
-                    project.expected_total,
-                    project.expected_skipped,
-                )
-                for project in projects
-            )
+            shard: tuple(project.relative_path for project in projects)
             for shard, projects in MODULE.CI_DOTNET_SHARDS.items()
         }
 
@@ -2977,7 +3012,7 @@ class VerifyOrchestrationTests(unittest.TestCase):
                 if project.requires_exclusive_local_coverage
             ],
         )
-        flattened = [path for projects in actual.values() for path, _, _ in projects]
+        flattened = [path for projects in actual.values() for path in projects]
         solution_test_projects = {
             project.attrib["Path"].replace("\\", "/")
             for project in MODULE.ET.parse(MODULE.SOLUTION).findall(".//Project")
@@ -2989,33 +3024,166 @@ class VerifyOrchestrationTests(unittest.TestCase):
         self.assertEqual(8, len(flattened))
         self.assertEqual(8, len(set(flattened)))
         self.assertEqual(solution_test_projects, set(flattened))
-        self.assertEqual(
-            4690, sum(total for projects in actual.values() for _, total, _ in projects)
-        )
-        self.assertEqual(
-            2,
-            sum(skipped for projects in actual.values() for _, _, skipped in projects),
-        )
+        self.assertFalse(hasattr(MODULE.CiDotnetProject, "expected_total"))
+        self.assertFalse(hasattr(MODULE.CiDotnetProject, "expected_skipped"))
 
-    def test_ci_dotnet_test_command_keeps_full_project_coverage_and_trx(self) -> None:
+    def test_vstest_discovery_drives_expected_inventory_without_manual_totals(
+        self,
+    ) -> None:
+        project = MODULE.CiDotnetProject("tests/Probe/Probe.Tests.csproj")
+        with tempfile.TemporaryDirectory() as temporary:
+            discovery = Path(temporary) / "discovered-tests.txt"
+            trx = Path(temporary) / "test-results.trx"
+            self.write_vstest_discovery(discovery, 3)
+            self.write_ci_trx(trx, total=3, skipped=0)
+            counters = {"total": 3, "passed": 3, "failed": 0, "skipped": 0}
+
+            MODULE.require_discovered_test_results(
+                project, discovery, trx, counters, "windows"
+            )
+
+            counters["total"] = 2
+            with self.assertRaisesRegex(RuntimeError, "discovered/executed"):
+                MODULE.require_discovered_test_results(
+                    project, discovery, trx, counters, "windows"
+                )
+
+            discovery_identities = (
+                'Probe.Tests.Theory(value: "console-truncated…")',
+                'Probe.Tests.Theory(value: "second-console-truncated…")',
+            )
+            trx_identities = (
+                'Probe.Tests.Theory(value: "complete-long-value-a")',
+                'Probe.Tests.Theory(value: "complete-long-value-b")',
+            )
+            self.write_vstest_discovery(discovery, discovery_identities)
+            self.write_ci_trx(
+                trx,
+                total=2,
+                skipped=0,
+                identities=trx_identities,
+            )
+            MODULE.require_discovered_test_results(
+                project,
+                discovery,
+                trx,
+                {"total": 2, "passed": 2, "failed": 0, "skipped": 0},
+                "windows",
+            )
+
+    def test_compiled_inventory_admits_only_exact_producer_platform_skips(self) -> None:
+        project = MODULE.CiDotnetProject(
+            "tests/NvtFwCombiner.Infrastructure.Tests/NvtFwCombiner.Infrastructure.Tests.csproj"
+        )
+        identities = (
+            "Probe.Tests.Pass",
+            *MODULE.UNIX_SPECIAL_FILE_INFRASTRUCTURE_SKIPS,
+        )
+        outcomes = ("Passed", "NotExecuted", "NotExecuted")
+        counters = {"total": 3, "passed": 1, "failed": 0, "skipped": 2}
+        with tempfile.TemporaryDirectory() as temporary:
+            discovery = Path(temporary) / "discovered-tests.txt"
+            trx = Path(temporary) / "test-results.trx"
+            self.write_vstest_discovery(discovery, identities)
+            self.write_ci_trx(
+                trx,
+                total=3,
+                skipped=2,
+                identities=identities,
+                outcomes=outcomes,
+            )
+
+            MODULE.require_discovered_test_results(
+                project, discovery, trx, counters, "windows"
+            )
+            with self.assertRaisesRegex(RuntimeError, "unapproved skipped"):
+                MODULE.require_discovered_test_results(
+                    project, discovery, trx, counters, "non-windows"
+                )
+
+            bootstrap = MODULE.CiDotnetProject(
+                "tests/NvtFwCombiner.Bootstrap.Tests/NvtFwCombiner.Bootstrap.Tests.csproj"
+            )
+            bootstrap_identities = MODULE.WINDOWS_PROCESSOR_BOOTSTRAP_SKIPS
+            self.write_vstest_discovery(discovery, bootstrap_identities)
+            self.write_ci_trx(
+                trx,
+                total=len(bootstrap_identities),
+                skipped=len(bootstrap_identities),
+                identities=bootstrap_identities,
+            )
+            bootstrap_counters = {
+                "total": len(bootstrap_identities),
+                "passed": 0,
+                "failed": 0,
+                "skipped": len(bootstrap_identities),
+            }
+            MODULE.require_discovered_test_results(
+                bootstrap,
+                discovery,
+                trx,
+                bootstrap_counters,
+                "non-windows",
+            )
+            with self.assertRaisesRegex(RuntimeError, "unapproved skipped"):
+                MODULE.require_discovered_test_results(
+                    bootstrap,
+                    discovery,
+                    trx,
+                    bootstrap_counters,
+                    "windows",
+                )
+
+    def test_compiled_inventory_rejects_unapproved_skip_and_identity_substitution(
+        self,
+    ) -> None:
+        project = MODULE.CiDotnetProject("tests/Probe/Probe.Tests.csproj")
+        with tempfile.TemporaryDirectory() as temporary:
+            discovery = Path(temporary) / "discovered-tests.txt"
+            trx = Path(temporary) / "test-results.trx"
+            self.write_vstest_discovery(discovery, ("Probe.A", "Probe.B"))
+            self.write_ci_trx(
+                trx,
+                total=2,
+                skipped=1,
+                identities=("Probe.A", "Probe.B"),
+                outcomes=("Passed", "NotExecuted"),
+            )
+            counters = {"total": 2, "passed": 1, "failed": 0, "skipped": 1}
+            with self.assertRaisesRegex(RuntimeError, "unapproved skipped"):
+                MODULE.require_discovered_test_results(
+                    project, discovery, trx, counters, "windows"
+                )
+
+            self.write_ci_trx(
+                trx,
+                total=2,
+                skipped=0,
+                identities=("Probe.A", "Probe.C"),
+            )
+            counters = {"total": 2, "passed": 2, "failed": 0, "skipped": 0}
+            with self.assertRaisesRegex(RuntimeError, "identities changed"):
+                MODULE.require_discovered_test_results(
+                    project, discovery, trx, counters, "windows"
+                )
+
+    def test_ci_dotnet_build_command_prepares_the_immutable_snapshot(self) -> None:
         project = MODULE.CI_DOTNET_SHARDS["bootstrap"][0]
-        results = Path("artifacts/ci-dotnet-work/shards/bootstrap/results/bootstrap")
+        results = Path("artifacts/ci-dotnet-work/results")
 
-        command = MODULE.ci_dotnet_test_command("dotnet", project, results)
+        command = MODULE.ci_dotnet_build_command("dotnet", project)
+        test_command = MODULE.ci_dotnet_test_command("dotnet", project, results)
 
-        self.assertEqual("test", command[1])
+        self.assertEqual("build", command[1])
         self.assertEqual(str(MODULE.ROOT / project.relative_path), command[2])
         self.assertIn("--no-restore", command)
-        self.assertNotIn("--no-build", command)
         self.assertNotIn("--filter", command)
-        self.assertIn("--collect:XPlat Code Coverage", command)
+        self.assertEqual("test", test_command[1])
+        self.assertIn("--no-build", test_command)
+        self.assertIn("--collect:XPlat Code Coverage", test_command)
         self.assertEqual(
-            str(results), command[command.index("--results-directory") + 1]
-        )
-        self.assertIn("trx;LogFileName=test-results.trx", command)
-        self.assertEqual(
-            "DataCollectionRunSettings.DataCollectors.DataCollector.Configuration.Format=json,cobertura",
-            command[-1],
+            str(results),
+            test_command[test_command.index("--results-directory") + 1],
         )
 
     def test_ci_coverage_normalization_removes_the_windows_producer_root(self) -> None:
@@ -3279,10 +3447,12 @@ class VerifyOrchestrationTests(unittest.TestCase):
                 )
 
     def test_ci_project_evidence_hashes_normalized_coverage_bytes(self) -> None:
-        project = MODULE.CiDotnetProject("tests/Probe/Probe.csproj", 1)
+        project = MODULE.CiDotnetProject("tests/Probe/Probe.csproj")
         with tempfile.TemporaryDirectory() as temporary:
             repository_root = Path(temporary) / "repository"
             results = repository_root / "artifacts/ci-dotnet-work/results"
+            discovery = results / "discovered-tests.txt"
+            self.write_vstest_discovery(discovery, 1)
             self.write_ci_trx(results / "test-results.trx", total=1, skipped=0)
             source = repository_root / "src/Probe/Probe.cs"
             self.write_ci_coverage_pair(
@@ -3297,6 +3467,9 @@ class VerifyOrchestrationTests(unittest.TestCase):
                     project,
                     results,
                     repository_root,
+                    discovery,
+                    "a" * 64,
+                    "windows",
                 )
             hashes = MODULE.ci_file_hashes(paths, repository_root)
             json_path = repository_root / str(row["coverageJson"])
@@ -3318,10 +3491,12 @@ class VerifyOrchestrationTests(unittest.TestCase):
     def test_ci_project_evidence_collapses_only_identical_trx_attachment_copies(
         self,
     ) -> None:
-        project = MODULE.CiDotnetProject("tests/Probe/Probe.csproj", 1)
+        project = MODULE.CiDotnetProject("tests/Probe/Probe.csproj")
         with tempfile.TemporaryDirectory() as temporary:
             evidence_root = Path(temporary)
             results = evidence_root / "results"
+            discovery = results / "discovered-tests.txt"
+            self.write_vstest_discovery(discovery, 1)
             self.write_ci_trx(results / "test-results.trx", total=1, skipped=0)
             for relative in ("collector", "trx/In/machine"):
                 parent = results / relative
@@ -3332,10 +3507,15 @@ class VerifyOrchestrationTests(unittest.TestCase):
                 )
 
             row, paths = MODULE.collect_ci_project_evidence(
-                project, results, evidence_root
+                project,
+                results,
+                evidence_root,
+                discovery,
+                "a" * 64,
+                "windows",
             )
 
-            self.assertEqual(3, len(paths))
+            self.assertEqual(4, len(paths))
             self.assertEqual(1, len(tuple(results.rglob("coverage.json"))))
             self.assertEqual(1, len(tuple(results.rglob("coverage.cobertura.xml"))))
             self.assertIn("collector/coverage.json", row["coverageJson"])
@@ -3346,13 +3526,22 @@ class VerifyOrchestrationTests(unittest.TestCase):
                 "<coverage />\n", encoding="utf-8"
             )
             with self.assertRaisesRegex(RuntimeError, "divergent coverage"):
-                MODULE.collect_ci_project_evidence(project, results, evidence_root)
+                MODULE.collect_ci_project_evidence(
+                    project,
+                    results,
+                    evidence_root,
+                    discovery,
+                    "a" * 64,
+                    "windows",
+                )
 
     def test_ci_project_evidence_rejects_reparse_points_before_reading(self) -> None:
-        project = MODULE.CiDotnetProject("tests/Probe/Probe.csproj", 1)
+        project = MODULE.CiDotnetProject("tests/Probe/Probe.csproj")
         with tempfile.TemporaryDirectory() as temporary:
             evidence_root = Path(temporary)
             results = evidence_root / "results"
+            discovery = results / "discovered-tests.txt"
+            self.write_vstest_discovery(discovery, 1)
             coverage = results / "collector/coverage.json"
             coverage.parent.mkdir(parents=True)
             coverage.write_text("{}\n", encoding="utf-8")
@@ -3365,7 +3554,14 @@ class VerifyOrchestrationTests(unittest.TestCase):
                 ),
                 self.assertRaisesRegex(RuntimeError, "reparse-point"),
             ):
-                MODULE.collect_ci_project_evidence(project, results, evidence_root)
+                MODULE.collect_ci_project_evidence(
+                    project,
+                    results,
+                    evidence_root,
+                    discovery,
+                    "a" * 64,
+                    "windows",
+                )
 
     def test_ci_artifact_publication_copies_only_declared_regular_files(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
@@ -3591,6 +3787,68 @@ class VerifyOrchestrationTests(unittest.TestCase):
                 verify_coverage.assert_not_called()
                 run_command.assert_not_called()
 
+    def test_ci_dotnet_finalizer_rejects_discovery_schema_platform_and_assembly_drift(
+        self,
+    ) -> None:
+        source_sha = "8" * 40
+        mutations = (
+            "missing-discovery",
+            "tampered-discovery",
+            "wrong-discovery-path",
+            "legacy-schema",
+            "wrong-producer",
+            "invalid-assembly-sha",
+        )
+        for mutation in mutations:
+            with (
+                self.subTest(mutation=mutation),
+                tempfile.TemporaryDirectory() as temporary,
+            ):
+                root = Path(temporary)
+                download_root = root / "ci-dotnet-downloads"
+                self.stage_complete_ci_dotnet_evidence(download_root, source_sha)
+                artifact_root = download_root / "dotnet-test-core-evidence"
+                manifest_path = artifact_root / "shards/core/manifest.json"
+                manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+                first = manifest["projects"][0]
+                discovery = artifact_root / first["discovery"]
+                if mutation == "missing-discovery":
+                    discovery.unlink()
+                elif mutation == "tampered-discovery":
+                    discovery.write_text("tampered\n", encoding="utf-8")
+                elif mutation == "wrong-discovery-path":
+                    first["discovery"] = manifest["projects"][1]["discovery"]
+                    self.write_ci_manifest(manifest_path, manifest)
+                elif mutation == "legacy-schema":
+                    manifest["schemaVersion"] = 1
+                    self.write_ci_manifest(manifest_path, manifest)
+                elif mutation == "wrong-producer":
+                    manifest["producerPlatform"] = "non-windows"
+                    self.write_ci_manifest(manifest_path, manifest)
+                else:
+                    first["testAssemblySha256"] = "0" * 63
+                    self.write_ci_manifest(manifest_path, manifest)
+                with (
+                    patch.dict(
+                        os.environ,
+                        {
+                            "GITHUB_SHA": source_sha,
+                            "NFC_CI_DOTNET_BUILD_RESULT": "success",
+                            "NFC_CI_DOTNET_TEST_RESULT": "success",
+                        },
+                        clear=False,
+                    ),
+                    patch.object(MODULE, "ROOT", root),
+                    patch.object(MODULE, "COVERAGE_ROOT", root / "coverage"),
+                    patch.object(
+                        MODULE, "repository_sdk_version", return_value="10.0.301"
+                    ),
+                    patch.object(MODULE, "verify_coverage") as verify_coverage,
+                    self.assertRaises(RuntimeError),
+                ):
+                    MODULE.finalize_ci_dotnet_evidence(download_root)
+                verify_coverage.assert_not_called()
+
     def test_ci_dotnet_finalizer_reaches_coverage_after_closed_evidence_validation(
         self,
     ) -> None:
@@ -3626,15 +3884,15 @@ class VerifyOrchestrationTests(unittest.TestCase):
             self.assertEqual(["coverage"], events)
 
     def test_ci_dotnet_shard_continues_after_ordinary_project_failure(self) -> None:
-        first = MODULE.CiDotnetProject("tests/First/First.csproj", 1)
-        second = MODULE.CiDotnetProject("tests/Second/Second.csproj", 1)
+        first = MODULE.CiDotnetProject("tests/First/First.csproj")
+        second = MODULE.CiDotnetProject("tests/Second/Second.csproj")
         commands: list[list[str]] = []
 
         def fake_run(command: list[str], **_kwargs: object) -> None:
             commands.append(command)
             if (
                 len(command) > 2
-                and command[1] == "test"
+                and command[1] == "build"
                 and "First.csproj" in command[2]
             ):
                 raise subprocess.CalledProcessError(1, command)
@@ -3642,6 +3900,9 @@ class VerifyOrchestrationTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary)
             evidence_root = root / "artifacts/ci-dotnet-work"
+            output = root / "output"
+            output.mkdir()
+            (output / f"{second.name}.dll").write_bytes(b"test assembly")
             with (
                 patch.dict(os.environ, {"GITHUB_SHA": "3" * 40}, clear=False),
                 patch.object(MODULE, "ROOT", root),
@@ -3659,6 +3920,11 @@ class VerifyOrchestrationTests(unittest.TestCase):
                 patch.object(MODULE, "run", side_effect=fake_run),
                 patch.object(
                     MODULE,
+                    "find_project_release_output",
+                    return_value=(output, Path("bin/Release/net10.0")),
+                ),
+                patch.object(
+                    MODULE,
                     "cleanup_dotnet_batch",
                     side_effect=RuntimeError("cleanup probe"),
                 ),
@@ -3672,6 +3938,8 @@ class VerifyOrchestrationTests(unittest.TestCase):
                             "passed": 1,
                             "failed": 0,
                             "skipped": 0,
+                            "testAssemblySha256": "a" * 64,
+                            "discovery": "discovery",
                             "trx": "trx",
                             "coverageJson": "json",
                             "coverageCobertura": "xml",
@@ -3686,19 +3954,69 @@ class VerifyOrchestrationTests(unittest.TestCase):
             ):
                 MODULE.verify_ci_dotnet_test_shard("probe")
 
+        build_commands = [command for command in commands if "build" in command]
+        self.assertEqual(2, len(build_commands))
+        self.assertIn("First.csproj", build_commands[0][2])
+        self.assertIn("Second.csproj", build_commands[1][2])
         test_commands = [command for command in commands if "test" in command]
-        self.assertEqual(2, len(test_commands))
-        self.assertIn("First.csproj", test_commands[0][2])
-        self.assertIn("Second.csproj", test_commands[1][2])
+        self.assertEqual(1, len(test_commands))
+        self.assertIn("Second.csproj", test_commands[0][2])
+
+    def test_ci_dotnet_shard_rejects_snapshot_hash_drift_before_evidence(self) -> None:
+        project = MODULE.CiDotnetProject("tests/Probe/Probe.csproj")
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            collect = MagicMock()
+            output = root / "output"
+            output.mkdir()
+            (output / f"{project.name}.dll").write_bytes(b"test assembly")
+            with (
+                patch.dict(os.environ, {"GITHUB_SHA": "9" * 40}, clear=False),
+                patch.object(MODULE, "ROOT", root),
+                patch.object(MODULE, "SOLUTION", root / "NvtFwCombiner.slnx"),
+                patch.object(
+                    MODULE,
+                    "CI_DOTNET_EVIDENCE_ROOT",
+                    root / "artifacts/ci-dotnet-work",
+                ),
+                patch.object(
+                    MODULE,
+                    "CI_DOTNET_UPLOAD_ROOT",
+                    root / "artifacts/ci-dotnet-upload",
+                ),
+                patch.dict(MODULE.CI_DOTNET_SHARDS, {"probe": (project,)}),
+                patch.object(MODULE, "resolve_dotnet", return_value="dotnet"),
+                patch.object(MODULE, "repository_sdk_version", return_value="10.0.301"),
+                patch.object(MODULE, "require_logged_sdk_version"),
+                patch.object(MODULE, "run"),
+                patch.object(
+                    MODULE,
+                    "find_project_release_output",
+                    return_value=(output, Path("bin/Release/net10.0")),
+                ),
+                patch.object(
+                    MODULE,
+                    "require_regular_tree_hashes",
+                    side_effect=RuntimeError("snapshot hash drift"),
+                ),
+                patch.object(MODULE, "collect_ci_project_evidence", collect),
+                patch.object(MODULE, "cleanup_dotnet_batch"),
+                patch.object(MODULE, "ci_file_hashes", return_value={}),
+                patch.object(MODULE, "publish_ci_dotnet_artifact"),
+                self.assertRaisesRegex(RuntimeError, "snapshot hash drift"),
+            ):
+                MODULE.verify_ci_dotnet_test_shard("probe")
+
+            collect.assert_not_called()
 
     def test_ci_dotnet_shard_timeout_stops_before_the_next_project(self) -> None:
-        first = MODULE.CiDotnetProject("tests/First/First.csproj", 1)
-        second = MODULE.CiDotnetProject("tests/Second/Second.csproj", 1)
+        first = MODULE.CiDotnetProject("tests/First/First.csproj")
+        second = MODULE.CiDotnetProject("tests/Second/Second.csproj")
         commands: list[list[str]] = []
 
         def fake_run(command: list[str], **_kwargs: object) -> None:
             commands.append(command)
-            if len(command) > 1 and command[1] == "test":
+            if len(command) > 1 and command[1] == "build":
                 raise subprocess.TimeoutExpired(command, 30)
 
         with tempfile.TemporaryDirectory() as temporary:
@@ -3721,12 +4039,17 @@ class VerifyOrchestrationTests(unittest.TestCase):
                 patch.object(MODULE, "resolve_dotnet", return_value="dotnet"),
                 patch.object(MODULE, "repository_sdk_version", return_value="10.0.301"),
                 patch.object(MODULE, "run", side_effect=fake_run),
+                patch.object(
+                    MODULE,
+                    "resolve_coverlet_adapter_path",
+                    return_value=root / "adapter",
+                ),
                 patch.object(MODULE, "cleanup_dotnet_batch"),
                 self.assertRaises(subprocess.TimeoutExpired),
             ):
                 MODULE.verify_ci_dotnet_test_shard("probe")
 
-        self.assertEqual(1, sum(command[1] == "test" for command in commands))
+        self.assertEqual(1, sum(command[1] == "build" for command in commands))
 
     def test_parser_defaults_to_bounded_parallelism_and_rejects_excessive_jobs(
         self,
