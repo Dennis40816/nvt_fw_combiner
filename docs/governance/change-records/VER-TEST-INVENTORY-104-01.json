@@ -5,7 +5,7 @@
   "integrationBase": "878a269b8121a40e8312522a1a4f12d78c18729d",
   "risk": "R2",
   "kind": "governance",
-  "state": "design-active",
+  "state": "final-complete",
   "mutablePaths": [
     "scripts/verify.py"
   ],
@@ -25,12 +25,12 @@
     "outcome": "approved",
     "evidence": "Independent R2 review approved canonical method-identity multiset parity for VER-TEST-INVENTORY-104-01: because VSTest truncates long Theory argument displays while TRX preserves them, both sources normalize only the terminal argument list to the fully-qualified method identity and retain exact Counter multiplicity; the same immutable, pre/post-hashed Release output proves both views come from identical compiled Theory data, while any method substitution, case-count drift, malformed identity, failed result, or platform-allowlist multiplicity drift remains fail closed, without reverting to manual totals or count-only comparison."
   },
-  "implementationHead": null,
-  "reviewedHead": null,
-  "pathStateDigest": null,
+  "implementationHead": "722cf93b003edab53b1f2e131b725a8550f61e92",
+  "reviewedHead": "722cf93b003edab53b1f2e131b725a8550f61e92",
+  "pathStateDigest": "09ef9135147de4be1e49d6637ff725cad3d427c535c189e04a1ace31af970e6f",
   "finalReview": {
-    "reviewer": null,
-    "outcome": "pending",
-    "evidence": ""
+    "reviewer": "final_evidence_review",
+    "outcome": "approved",
+    "evidence": "Independent R2 exact-head review at 722cf93b003edab53b1f2e131b725a8550f61e92 approved the compiled .NET inventory owner. The closed eight-project partition remains solution-complete with no checked-in case totals. Local verification binds VSTest discovery and execution to one immutable shadow Release snapshot; protected CI builds each Release project, captures the complete output tree and test-assembly SHA, discovers that assembly, executes the same project with --no-build, and rejects any post-run tree or assembly drift. Discovery and TRX reconcile canonical fully-qualified method identity Counters, preserving Theory multiplicity while tolerating only VSTest's lossy argument display; failed, substituted, missing, duplicate, malformed, and unapproved producer-platform skip identities remain fail closed. Schema-v2 finalization requires the literal Windows producer, closed paths and hashes, exact row/TRX counters, discovery/TRX parity, and the captured SHA shape. Supplied Windows producer evidence reports all eight projects successfully: 4,690 discovered, 4,688 passed, zero failed, and exactly two approved Infrastructure skips. The orchestration suite passed 117 tests with four platform-harness skips; no product, firmware, profile, package, update, or workflow semantics changed."
   }
 }
