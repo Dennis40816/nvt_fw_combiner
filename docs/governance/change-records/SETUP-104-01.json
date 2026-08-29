@@ -5,7 +5,7 @@
   "integrationBase": "807b9cde9bdccbab85a9d94527924c155cc6f09d",
   "risk": "R3",
   "kind": "release",
-  "state": "design-active",
+  "state": "final-complete",
   "mutablePaths": [
     "docs/adr/0056-rollback-safe-launcher-self-update.md",
     "docs/adr/0021-code-size-ratchet-system-activity-amendment.md",
@@ -89,12 +89,12 @@
     "outcome": "findings-incorporated",
     "evidence": "Fixed-head reviews at 807b9cde9bdccbab85a9d94527924c155cc6f09d selected a single public distribution Launcher with an internal Setup branch and preserved the existing small immutable Bootstrap. They required one Application entry owner, genuine-absence-only Setup, no later-process Setup retry, bounded local-only startup, one stable executable hash per launch, no normal-start seed transaction, a non-circular embedded Bootstrap descriptor, and a separate external evidence set. The previous separate Setup.exe draft was rejected and replaced before production implementation continued."
   },
-  "implementationHead": null,
-  "reviewedHead": null,
-  "pathStateDigest": null,
+  "implementationHead": "0127f1fb2ed640e59e0c5b06b1d778bd7c01fae3",
+  "reviewedHead": "0127f1fb2ed640e59e0c5b06b1d778bd7c01fae3",
+  "pathStateDigest": "9b7ac7d97dcffc551a382355fc317509b3b8b5e4126419600b46deb883a46d70",
   "finalReview": {
-    "reviewer": null,
-    "outcome": "pending",
-    "evidence": ""
+    "reviewer": "review_setup104_security_design",
+    "outcome": "approved",
+    "evidence": "Independent exact-head R3 architecture/security review approved implementation 0127f1fb2ed640e59e0c5b06b1d778bd7c01fae3 (tree 50b10fa53615c3d600ad9ecfc292d3403cd8209e; sole base 807b9cde9bdccbab85a9d94527924c155cc6f09d). The complete SETUP-104 diff preserves one Application entry/setup owner, one Registry/Catalog/package admission path, one ManagedPackageVerifier ZIP plan/copy/hash owner, and one WindowsStablePathCustody held-handle no-follow write/promotion/cleanup owner. Ordinary update and Setup share that custody; exact topology/FileId snapshots, same-root non-replacing promotion, post-rename capture, cancellation/collision/substitution handling, and exact cleanup fail closed without recursive fallback. Explicit inherited Bootstrap identity is the only restart authority; manual or malformed context cannot acquire it. No firmware/profile/range/CRC/naming/golden authority changed. Prior P2 duplicate-native-owner and post-promotion-cancellation gaps are closed. Exact code-size gates are 128423 full, 90765 runtime, 40058 Application, and 25994 Infrastructure; policy validation is clean and 16/16 tests pass. No P0/P1/P2 remain."
   }
 }
