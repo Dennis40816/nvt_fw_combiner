@@ -677,6 +677,10 @@ public sealed partial class ManagedActivationCoordinatorTests
         internal static readonly NoOpExecutableLease Instance = new();
         public string ExecutablePath => "NvtFwCombiner.exe";
         public string WorkingDirectory => ".";
+        public bool TryValidateForStart()
+        {
+            return true;
+        }
         public void Dispose() { }
     }
 

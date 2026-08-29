@@ -94,7 +94,11 @@ public interface IVersionManagerStateStore
         TimeSpan waitTimeout,
         CancellationToken cancellationToken);
 
-    /// <summary>Loads state without guessing missing version identities.</summary>
+    /// <summary>
+    /// Loads state without guessing missing version identities. Implementations must return
+    /// their ValueTask promptly and honor cancellation; callers may isolate and abandon a
+    /// read-only load after their own hard deadline.
+    /// </summary>
     /// <param name="cancellationToken">Cancellation token.</param>
     /// <returns>The fail-closed state result.</returns>
     ValueTask<VersionManagerStateLoadResult> LoadAsync(CancellationToken cancellationToken);

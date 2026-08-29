@@ -48,6 +48,10 @@ public sealed partial class LauncherBootstrapCoordinatorTests
         internal static readonly NoOpExecutableLease Instance = new();
         public string ExecutablePath => "NvtFwCombiner.Launcher.exe";
         public string WorkingDirectory => ".";
+        public bool TryValidateForStart()
+        {
+            return true;
+        }
         public void Dispose() { }
     }
 }

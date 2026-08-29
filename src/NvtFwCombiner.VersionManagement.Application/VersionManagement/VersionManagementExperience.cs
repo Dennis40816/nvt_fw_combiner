@@ -134,7 +134,10 @@ public interface IVersionManagementExperience
 }
 
 /// <summary>Single Application owner for discovery, install, retention, delete, and activation preparation.</summary>
-public sealed partial class VersionManagementExperience : IVersionManagementExperience, IDisposable
+public sealed partial class VersionManagementExperience :
+    IVersionManagementExperience,
+    IFreshInstallationCandidateSource,
+    IDisposable
 {
     private readonly ManagedAppVersion _currentAppVersion;
     private readonly IUpdateCatalogSource _catalogSource;

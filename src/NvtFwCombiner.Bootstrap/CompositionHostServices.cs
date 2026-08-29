@@ -263,14 +263,17 @@ public sealed class CompositionHostServices
     /// <summary>Creates the exact stable-launcher shutdown handoff.</summary>
     /// <param name="managedRoot">Optional stable managed root override.</param>
     /// <param name="statePath">Optional exact version-state path override.</param>
+    /// <param name="expectedIdentity">Captured exact Root Bootstrap authority.</param>
     /// <returns>The constrained launcher handoff.</returns>
     public static IStableLauncherHandoff CreateStableLauncherHandoff(
         string? managedRoot = null,
-        string? statePath = null)
+        string? statePath = null,
+        ManagedImmutableBootstrapIdentity? expectedIdentity = null)
     {
         return new StableLauncherHandoff(
             managedRoot ?? ManagedInstallationLayout.ResolveManagedRoot(AppContext.BaseDirectory),
-            statePath);
+            statePath,
+            expectedIdentity);
     }
 
     /// <summary>Captures the inherited managed-process lifetime at desktop entry.</summary>
@@ -282,6 +285,17 @@ public sealed class CompositionHostServices
             statePath,
             ManagedProcessLifetimeKind.Application,
             managedOptionsAdvertised || InheritedManagedProcessLifetime.IsApplicationReadyContextAdvertised());
+    }
+
+    /// <summary>Captures and removes inherited Root Bootstrap authority only for a managed Desktop.</summary>
+    /// <param name="lifetimeOutcome">Current Desktop managed-lifetime classification.</param>
+    /// <returns>Exact inherited identity, or null when unavailable or not managed.</returns>
+    public static ManagedImmutableBootstrapIdentity? CaptureInheritedManagedBootstrapIdentity(
+        InheritedManagedProcessLifetimeOutcome lifetimeOutcome)
+    {
+        return lifetimeOutcome == InheritedManagedProcessLifetimeOutcome.Captured
+            ? InheritedManagedBootstrapIdentityContext.CaptureAndClear()
+            : null;
     }
 
     /// <summary>Creates a focused current-session System Information lifecycle.</summary>

@@ -278,6 +278,37 @@ public sealed partial class VersionManagementSettingsTests
         Assert.True(activationRequested);
     }
 
+    /// <summary>Incomplete exact cleanup is shown as recovery, not generic verification failure.</summary>
+    [Fact]
+    public async Task CleanupIncompleteInstallShowsRecoveryRequired()
+    {
+        VersionManagementSnapshot initial = Snapshot(retentionReviewDue: false);
+        UpdateCatalogVersionSnapshot available = CatalogVersion("0.10.6");
+        initial = initial with
+        {
+            Catalog = new([available]),
+            VerifiedCandidate = new(available.Version, available.Identity, available.ReleaseNotes),
+            SourceStatus = VersionSourceStatus.Connected,
+        };
+        var experience = new RecordingVersionExperience(initial)
+        {
+            InstallIssue = ManagedVersionInstallIssue.CleanupIncomplete,
+        };
+        MainWindowViewModel viewModel = MainWindow.CreateStartupViewModel(
+            PresentationTestHost.CreateServices("0.10.5", experience),
+            ShellPreferenceSnapshot.Default);
+        viewModel.Settings.ApplyVersionSnapshot(initial);
+        SettingsVersionRowViewModel update = Assert.Single(
+            viewModel.Settings.VersionRows,
+            row => row.Version == available.Version);
+
+        viewModel.Settings.RequestVersionPrimaryActionCommand.Execute(update);
+        await viewModel.Settings.ConfirmVersionActionCommand.ExecuteAsync(null);
+
+        Assert.Contains("Recovery required", viewModel.Settings.VersionOperationStatus);
+        Assert.Empty(experience.Activations);
+    }
+
     /// <summary>An active damaged installation is never presented as verified or unmanaged.</summary>
     [Fact]
     public void ActiveDamagedVersionIsReportedAsDamaged()
@@ -439,6 +470,8 @@ public sealed partial class VersionManagementSettingsTests
 
         internal bool FailPendingActivationCancellation { get; init; }
 
+        internal ManagedVersionInstallIssue InstallIssue { get; init; }
+
         internal string? LastCommittedUpdateSource { get; private set; }
 
         internal VersionManagementSnapshot? RetentionAcknowledgementResult { get; init; }
@@ -508,6 +541,12 @@ public sealed partial class VersionManagementSettingsTests
             CancellationToken cancellationToken)
         {
             Installations.Add(version);
+            if (InstallIssue != ManagedVersionInstallIssue.None)
+            {
+                return ValueTask.FromResult(new VersionInstallOperationResult(
+                    new(null, InstallIssue, WasAlreadyInstalled: false),
+                    Current));
+            }
             VersionManagerState state = Current.State!;
             ManagedVersionAdmission admission = Admission(version.ToString());
             state = VersionManagerState.Create(

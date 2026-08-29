@@ -23,6 +23,8 @@ public enum ManagedVersionInstallIssue
     IdentityConflict,
     /// <summary>Staging or atomic promotion could not complete.</summary>
     PromotionFailed,
+    /// <summary>Exact-handle cleanup could not remove a failed staging tree; recovery residue remains.</summary>
+    CleanupIncomplete,
     /// <summary>An activation or recovery transaction blocks the request, writer/durable state is unavailable, or the mutation journal or commit cannot be saved.</summary>
     StateUnavailable,
 }
@@ -44,6 +46,9 @@ public sealed record ManagedPackageVerificationResult(
 {
     /// <summary>Gets whether the complete package and closed payload verified.</summary>
     public bool IsVerified => Candidate is not null && Issue == ManagedVersionInstallIssue.None;
+
+    /// <summary>Gets whether this verified package contains the current managed Launcher contract.</summary>
+    public bool HasSupportedManagedLauncher { get; init; }
 }
 
 /// <summary>Stable whole-inventory read result category.</summary>
@@ -127,6 +132,9 @@ public interface IManagedExecutableLaunchLease : IDisposable
 
     /// <summary>Gets the exact stable working directory.</summary>
     string WorkingDirectory { get; }
+
+    /// <summary>Revalidates the complete admitted tree immediately before process creation.</summary>
+    bool TryValidateForStart();
 }
 
 /// <summary>Typed fail-closed executable launch-lease result.</summary>

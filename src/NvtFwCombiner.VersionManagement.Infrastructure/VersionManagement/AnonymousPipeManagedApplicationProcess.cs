@@ -18,6 +18,7 @@ public sealed class AnonymousPipeManagedApplicationProcess : IManagedApplication
     private const int MaximumReadyLineCharacters = 128;
     private readonly string _statePath;
     private readonly IManagedProcessTermination _termination;
+    private readonly Action? _beforeStartValidation;
 
     /// <summary>Creates a process adapter, optionally propagating an exact custom version-state path.</summary>
     public AnonymousPipeManagedApplicationProcess(string? statePath = null)
@@ -27,10 +28,12 @@ public sealed class AnonymousPipeManagedApplicationProcess : IManagedApplication
 
     internal AnonymousPipeManagedApplicationProcess(
         string? statePath,
-        IManagedProcessTermination termination)
+        IManagedProcessTermination termination,
+        Action? beforeStartValidation = null)
     {
         _statePath = Path.GetFullPath(statePath ?? JsonVersionManagerStateStore.GetDefaultPath());
         _termination = termination ?? throw new ArgumentNullException(nameof(termination));
+        _beforeStartValidation = beforeStartValidation;
     }
 
     /// <inheritdoc />
@@ -86,7 +89,10 @@ public sealed class AnonymousPipeManagedApplicationProcess : IManagedApplication
             lifetime.ApplyInheritedContext(startInfo);
             try
             {
-                process = Process.Start(startInfo);
+                _beforeStartValidation?.Invoke();
+                process = executableLease.TryValidateForStart()
+                    ? Process.Start(startInfo)
+                    : null;
             }
             finally
             {
@@ -99,7 +105,11 @@ public sealed class AnonymousPipeManagedApplicationProcess : IManagedApplication
 
             using var deadline = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
             deadline.CancelAfter(readyDeadline);
-            Task<string?> readyTask = ReadBoundedLineAsync(pipe, deadline.Token);
+            Task<string?> readyTask = BoundedUtf8LineReader.ReadAsync(
+                pipe,
+                MaximumReadyLineCharacters,
+                bufferSize: 256,
+                deadline.Token);
             Task exitTask = process.WaitForExitAsync(deadline.Token);
             Task completed = await Task.WhenAny(readyTask, exitTask).ConfigureAwait(false);
             if (readyTask.IsCompletedSuccessfully)
@@ -162,30 +172,6 @@ public sealed class AnonymousPipeManagedApplicationProcess : IManagedApplication
             DisposeProcess(process);
             lifetime?.Dispose();
         }
-    }
-
-    private static async Task<string?> ReadBoundedLineAsync(
-        Stream stream,
-        CancellationToken cancellationToken)
-    {
-        using var reader = new StreamReader(
-            stream,
-            new UTF8Encoding(false, true),
-            detectEncodingFromByteOrderMarks: false,
-            bufferSize: 256,
-            leaveOpen: true);
-        var result = new StringBuilder();
-        char[] character = new char[1];
-        while (result.Length <= MaximumReadyLineCharacters)
-        {
-            int read = await reader.ReadAsync(character, cancellationToken).ConfigureAwait(false);
-            if (read == 0 || character[0] == '\n')
-            {
-                return result.ToString().TrimEnd('\r');
-            }
-            _ = result.Append(character[0]);
-        }
-        return null;
     }
 
     private ManagedProcessStartResult Terminate(
@@ -370,57 +356,6 @@ public sealed class InheritedPipeApplicationReadySignal : IApplicationReadySigna
         catch (Exception exception) when (exception is IOException or UnauthorizedAccessException)
         {
             return ApplicationReadySignalOutcome.WriteFailed;
-        }
-    }
-}
-
-/// <summary>Starts only the exact stable launcher located at the managed root.</summary>
-public sealed class StableLauncherHandoff : IStableLauncherHandoff
-{
-    private readonly string _managedRoot;
-    private readonly string _statePath;
-
-    /// <summary>Creates a launcher handoff for one exact managed root.</summary>
-    /// <param name="managedRoot">Stable launcher-owned root.</param>
-    /// <param name="statePath">Exact custom version-state path to propagate to Bootstrap.</param>
-    public StableLauncherHandoff(string managedRoot, string? statePath = null)
-    {
-        ArgumentException.ThrowIfNullOrWhiteSpace(managedRoot);
-        _managedRoot = Path.GetFullPath(managedRoot);
-        _statePath = Path.GetFullPath(statePath ?? JsonVersionManagerStateStore.GetDefaultPath());
-    }
-
-    /// <inheritdoc />
-    public ValueTask<bool> TryStartLauncherAsync(CancellationToken cancellationToken)
-    {
-        cancellationToken.ThrowIfCancellationRequested();
-        try
-        {
-            string launcher = Path.Combine(_managedRoot, "NvtFwCombiner.Bootstrap.exe");
-            if (!ManagedPathSafety.IsSafeExistingDirectory(_managedRoot) ||
-                !File.Exists(launcher) ||
-                ManagedPathSafety.IsReparsePoint(launcher))
-            {
-                return ValueTask.FromResult(false);
-            }
-            var startInfo = new ProcessStartInfo
-            {
-                FileName = launcher,
-                WorkingDirectory = _managedRoot,
-                UseShellExecute = false,
-            };
-            startInfo.ArgumentList.Add("--managed-root");
-            startInfo.ArgumentList.Add(_managedRoot);
-            startInfo.ArgumentList.Add("--state-path");
-            startInfo.ArgumentList.Add(_statePath);
-            Process? process = Process.Start(startInfo);
-            process?.Dispose();
-            return ValueTask.FromResult(process is not null);
-        }
-        catch (Exception exception) when (exception is
-            IOException or UnauthorizedAccessException or InvalidOperationException or Win32Exception)
-        {
-            return ValueTask.FromResult(false);
         }
     }
 }

@@ -23,12 +23,15 @@ internal static class Program
             CompositionHostServices.CaptureInheritedManagedProcessLifetime(
                 statePath,
                 managedRoot is not null || statePath is not null);
+        ManagedImmutableBootstrapIdentity? bootstrapIdentity =
+            CompositionHostServices.CaptureInheritedManagedBootstrapIdentity(lifetime.Outcome);
         return lifetime.Outcome == InheritedManagedProcessLifetimeOutcome.InvalidInheritedContext
             ? 22
             : DesktopApplication.Run(
                 () => CreatePresentationHostServices(
                     managedRoot,
                     statePath,
+                    bootstrapIdentity,
                     updateSourceRegistryPaths),
                 CompositionHostServices.CreateLocalFileStore(),
                 remaining);
@@ -37,6 +40,7 @@ internal static class Program
     private static PresentationHostServices CreatePresentationHostServices(
         string? managedRoot,
         string? statePath,
+        ManagedImmutableBootstrapIdentity? bootstrapIdentity,
         IReadOnlyList<string> updateSourceRegistryPaths)
     {
         var host = CompositionHostServices.Create();
@@ -70,7 +74,10 @@ internal static class Program
             CompositionHostServices.CreateManagedApplicationStartupCoordinator(
                 appVersion.ToString(),
                 versionManagement),
-            CompositionHostServices.CreateStableLauncherHandoff(managedRoot, statePath));
+            CompositionHostServices.CreateStableLauncherHandoff(
+                managedRoot,
+                statePath,
+                bootstrapIdentity));
     }
 
     private static (

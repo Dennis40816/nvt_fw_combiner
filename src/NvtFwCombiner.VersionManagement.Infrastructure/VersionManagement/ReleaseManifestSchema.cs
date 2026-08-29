@@ -159,3 +159,33 @@ internal static class LauncherBootstrapStateSchema
         return EmbeddedVersionManagementSchema.IsValid(Schema.Value, document);
     }
 }
+
+/// <summary>Canonical distribution Launcher embedded-payload contract.</summary>
+internal static class ManagedSetupPayloadAdmissionSchema
+{
+    private static readonly Lazy<JsonSchema> Schema = new(() => EmbeddedVersionManagementSchema.Load(
+        typeof(ManagedSetupPayloadAdmissionSchema),
+        "NvtFwCombiner.VersionManagement.Infrastructure.Contracts.managed-setup-payload-admission-v1.schema.json",
+        "https://novatek.example/schema/managed-setup-payload-admission-v1.json",
+        "Canonical managed-Setup payload schema is unavailable."));
+
+    internal static bool IsValid(JsonElement document)
+    {
+        return EmbeddedVersionManagementSchema.IsValid(Schema.Value, document);
+    }
+}
+
+/// <summary>Canonical first-install whole-root transaction contract.</summary>
+internal static class ManagedSetupTransactionSchema
+{
+    private static readonly Lazy<JsonSchema> Schema = new(() => EmbeddedVersionManagementSchema.Load(
+        typeof(ManagedSetupTransactionSchema),
+        "NvtFwCombiner.VersionManagement.Infrastructure.Contracts.managed-setup-transaction-v1.schema.json",
+        "https://novatek.example/schema/managed-setup-transaction-v1.json",
+        "Canonical managed-Setup transaction schema is unavailable."));
+
+    internal static bool IsValid(JsonElement document)
+    {
+        return EmbeddedVersionManagementSchema.IsValid(Schema.Value, document);
+    }
+}

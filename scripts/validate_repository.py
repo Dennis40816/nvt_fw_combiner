@@ -256,6 +256,7 @@ EXPECTED_PROJECT_REFERENCES = {
     "tests/NvtFwCombiner.Infrastructure.Tests/NvtFwCombiner.Infrastructure.Tests.csproj": {
         "src/NvtFwCombiner.Infrastructure/NvtFwCombiner.Infrastructure.csproj",
         "src/NvtFwCombiner.Application/NvtFwCombiner.Application.csproj",
+        "src/NvtFwCombiner.LauncherBootstrap/NvtFwCombiner.LauncherBootstrap.csproj",
         "src/NvtFwCombiner.VersionManagement.Application/NvtFwCombiner.VersionManagement.Application.csproj",
         "src/NvtFwCombiner.VersionManagement.Infrastructure/NvtFwCombiner.VersionManagement.Infrastructure.csproj",
         "src/NvtFwCombiner.Contracts/NvtFwCombiner.Contracts.csproj",

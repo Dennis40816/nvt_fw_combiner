@@ -588,6 +588,9 @@ public sealed partial class VersionManagementExperienceTests
                 ? new ManagedPackageVerificationResult(
                     new(package.Version, package.Identity, package.ReleaseNotes),
                     ManagedVersionInstallIssue.None)
+                {
+                    HasSupportedManagedLauncher = true,
+                }
                 : new ManagedPackageVerificationResult(
                     Candidate: null,
                     ManagedVersionInstallIssue.PackageMismatch)));

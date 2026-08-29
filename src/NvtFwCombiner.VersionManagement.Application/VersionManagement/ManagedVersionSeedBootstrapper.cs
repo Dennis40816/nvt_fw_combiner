@@ -19,12 +19,73 @@ public enum ManagedVersionSeedOutcome
     StateUnavailable,
     /// <summary>The durable destination belongs to another root or lacks its required binding.</summary>
     ManagedRootMismatch,
+    /// <summary>Another process owns the destination writer lease.</summary>
+    Busy,
+}
+
+/// <summary>Single owner for the canonical first-install seed shape.</summary>
+public static class ManagedVersionSeedPolicy
+{
+    /// <summary>Creates one unbound seed containing exactly one Active=LKG admission.</summary>
+    public static VersionManagerState CreateCanonicalFirstRunSeed(
+        ManagedVersionAdmission admission)
+    {
+        ArgumentNullException.ThrowIfNull(admission);
+        return VersionManagerState.Create(
+            updateSource: null,
+            activeVersion: admission.Version,
+            lastKnownGoodVersion: admission.Version,
+            [admission],
+            pendingActivation: null,
+            failedActivationVersion: null,
+            retentionReviewDue: false);
+    }
+
+    /// <summary>Checks the exact immutable shape accepted by runtime seed import.</summary>
+    public static bool IsCanonicalFirstRunSeed(VersionManagerState state)
+    {
+        ArgumentNullException.ThrowIfNull(state);
+        ManagedVersionAdmission? admission = state.Admissions.Count == 1
+            ? state.Admissions[0]
+            : null;
+        return state.UpdateSource is null &&
+               state.ManagedRootIdentity is null &&
+               state.ActiveVersion is { } active &&
+               state.LastKnownGoodVersion == active &&
+               admission?.Version == active &&
+               state.PendingActivation is null &&
+               state.PendingMutation is null &&
+               state.FailedActivationVersion is null &&
+               !state.RetentionReviewDue &&
+               state.SourceRegistryState is null;
+    }
+
+    /// <summary>Checks the exact bound state produced when one canonical seed reaches READY.</summary>
+    public static bool IsCanonicalBoundFirstRunState(
+        VersionManagerState state,
+        string managedRoot,
+        ManagedVersionAdmission admission)
+    {
+        ArgumentNullException.ThrowIfNull(state);
+        ArgumentException.ThrowIfNullOrWhiteSpace(managedRoot);
+        ArgumentNullException.ThrowIfNull(admission);
+        return state.IsBoundToManagedRoot(managedRoot) &&
+               state.UpdateSource is null &&
+               state.ActiveVersion == admission.Version &&
+               state.LastKnownGoodVersion == admission.Version &&
+               state.Admissions is [var only] &&
+               only == admission &&
+               state.PendingActivation is null &&
+               state.PendingMutation is null &&
+               state.FailedActivationVersion is null &&
+               !state.RetentionReviewDue &&
+               state.SourceRegistryState is null;
+    }
 }
 
 /// <summary>Creates first-run launcher state only from one explicit verified packaged seed.</summary>
 public sealed class ManagedVersionSeedBootstrapper
 {
-    private static readonly TimeSpan WriterLeaseTimeout = TimeSpan.FromSeconds(5);
     private readonly IVersionManagerStateStore _destinationStateStore;
     private readonly string _managedRoot;
     private readonly IManagedVersionRepository _repository;
@@ -47,14 +108,31 @@ public sealed class ManagedVersionSeedBootstrapper
 
     /// <summary>Ensures state exists without replacing malformed or unavailable user state.</summary>
     public async ValueTask<ManagedVersionSeedOutcome> EnsureInitializedAsync(
+        TimeSpan writerLeaseTimeout,
         CancellationToken cancellationToken)
     {
+        ArgumentOutOfRangeException.ThrowIfLessThanOrEqual(writerLeaseTimeout, TimeSpan.Zero);
+        VersionManagerStateLoadResult preflight = await _destinationStateStore.LoadAsync(cancellationToken)
+            .ConfigureAwait(false);
+        if (preflight.IsSuccess)
+        {
+            return preflight.State!.IsBoundToManagedRoot(_managedRoot)
+                ? ManagedVersionSeedOutcome.ExistingState
+                : ManagedVersionSeedOutcome.ManagedRootMismatch;
+        }
+        if (preflight.Issue != VersionManagerStateLoadIssue.Missing)
+        {
+            return ManagedVersionSeedOutcome.InvalidExistingState;
+        }
+
         using VersionManagerWriteLeaseResult lease = await _destinationStateStore.TryAcquireWriteLeaseAsync(
-            WriterLeaseTimeout,
+            writerLeaseTimeout,
             cancellationToken).ConfigureAwait(false);
         if (!lease.IsAcquired)
         {
-            return ManagedVersionSeedOutcome.StateUnavailable;
+            return lease.Issue == VersionManagerWriteLeaseIssue.Busy
+                ? ManagedVersionSeedOutcome.Busy
+                : ManagedVersionSeedOutcome.StateUnavailable;
         }
         VersionManagerStateLoadResult existing = await _destinationStateStore.LoadAsync(cancellationToken)
             .ConfigureAwait(false);
@@ -78,7 +156,7 @@ public sealed class ManagedVersionSeedBootstrapper
                 : ManagedVersionSeedOutcome.InvalidSeed;
         }
         VersionManagerState state = seed.State!;
-        if (!IsCanonicalFirstRunSeed(state))
+        if (!ManagedVersionSeedPolicy.IsCanonicalFirstRunSeed(state))
         {
             return ManagedVersionSeedOutcome.InvalidSeed;
         }
@@ -109,21 +187,5 @@ public sealed class ManagedVersionSeedBootstrapper
         return saved.IsSuccess
             ? ManagedVersionSeedOutcome.Seeded
             : ManagedVersionSeedOutcome.StateUnavailable;
-    }
-
-    private static bool IsCanonicalFirstRunSeed(VersionManagerState state)
-    {
-        ManagedVersionAdmission? admission = state.Admissions.Count == 1
-            ? state.Admissions[0]
-            : null;
-        return state.UpdateSource is null &&
-               state.ManagedRootIdentity is null &&
-               state.ActiveVersion is { } active &&
-               state.LastKnownGoodVersion == active &&
-               admission?.Version == active &&
-               state.PendingActivation is null &&
-               state.PendingMutation is null &&
-               state.FailedActivationVersion is null &&
-               !state.RetentionReviewDue;
     }
 }

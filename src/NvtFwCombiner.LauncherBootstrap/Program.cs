@@ -10,7 +10,10 @@ internal static class Program
         try
         {
             LauncherBootstrapLaunchOptions options = LauncherBootstrapLaunchOptions.Parse(args, AppContext.BaseDirectory);
-            return LauncherBootstrapRuntime.RunAsync(options.ManagedRoot, options.StatePath, CancellationToken.None)
+            return LauncherBootstrapRuntime.RunEntryAsync(
+                    options.ManagedRoot,
+                    options.StatePath,
+                    CancellationToken.None)
                 .AsTask()
                 .GetAwaiter()
                 .GetResult();

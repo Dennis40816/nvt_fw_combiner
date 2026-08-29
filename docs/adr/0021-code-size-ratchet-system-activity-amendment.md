@@ -105,3 +105,31 @@ changes no profile, range, output byte, operation order, CRC/header, processor,
 naming, support, Golden, report wire, update, or release authority, and it does
 not close or fund the separate repository-wide single-implementation,
 layering, unused-module, and code-size audit.
+
+## 2026-08-30 SETUP-104 managed installation candidate
+
+The owner approved the minimum backend slice for the future single-entry
+Launcher and Setup flow. The change extends the existing Version Management
+owners: Application classifies healthy launch, genuine first installation, and
+recovery; Infrastructure uses one held-handle, relative, no-follow write tree
+for both ordinary update and Setup. `ManagedPackageVerifier` remains the only
+ZIP plan, copy, and hash owner. The Bootstrap restart path adds one bounded
+inherited filename, length, and SHA-256 identity context; a manual launch stays
+usable but receives no managed-restart authority.
+
+At the pre-freeze candidate, full production is 128,423 nonblank lines and
+runtime production is 90,765. Domain plus Profiles remains 20,632; Application
+is 40,058; Bootstrap plus CLI plus Desktop host is 4,081; and Infrastructure
+plus Contracts plus CRC worker is 25,994. The four runtime slices sum exactly
+to 90,765. The increase from the first SETUP checkpoint is the bounded
+promotion-custody closure and its typed result handling; it does not fund a
+second installer, parser, updater, or firmware path.
+
+The executable allowances therefore become exactly 25,527 full production,
+20,709 runtime, 5 Domain/Profiles, 9,368 Application, 703 Bootstrap/CLI/Desktop,
+and 10,638 Infrastructure/Contracts/worker above the frozen base ratchets.
+This SETUP-104 allowance is named, exact, non-transferable, and provides no
+reusable budget for later work; any reduction must lower the allowance. It
+changes no firmware profile, range, operation, output byte, CRC/header,
+processor, naming, support, Golden, or UI-layout authority. Later code-size
+reduction remains a separate owner-reviewed task.

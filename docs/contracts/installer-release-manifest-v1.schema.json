@@ -1,0 +1,103 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://novatek.example/schema/installer-release-manifest-v1.json",
+  "title": "NVT FW Combiner distribution Launcher release manifest v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "product",
+    "version",
+    "sourceCommit",
+    "runtimeIdentifier",
+    "launcherSetupProtocolVersion",
+    "selectionPolicy",
+    "distributionEntry",
+    "payloadAdmission",
+    "embeddedBootstrap",
+    "sbomAsset",
+    "provenanceAsset",
+    "checksumAsset",
+    "releaseDisposition"
+  ],
+  "properties": {
+    "schemaVersion": { "const": "1.0" },
+    "product": { "const": "NVT FW Combiner" },
+    "version": {
+      "type": "string",
+      "pattern": "^(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)$"
+    },
+    "sourceCommit": { "type": "string", "pattern": "^[0-9a-f]{40}$" },
+    "runtimeIdentifier": { "const": "win-x64" },
+    "launcherSetupProtocolVersion": { "const": 1 },
+    "selectionPolicy": { "const": "latest-compatible-verified-registry-candidate" },
+    "distributionEntry": { "$ref": "#/$defs/assetIdentity" },
+    "payloadAdmission": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["resourceName", "size", "sha256"],
+      "properties": {
+        "resourceName": {
+          "const": "NvtFwCombiner.DistributionLauncher.Payload.managed-setup-payload-admission.v1.json"
+        },
+        "size": { "type": "integer", "minimum": 1, "maximum": 65536 },
+        "sha256": { "type": "string", "pattern": "^[0-9a-f]{64}$" }
+      }
+    },
+    "embeddedBootstrap": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "installedFileName",
+        "size",
+        "sha256",
+        "versionManagementProtocolVersion"
+      ],
+      "properties": {
+        "installedFileName": { "const": "NvtFwCombiner.Bootstrap.exe" },
+        "size": { "type": "integer", "minimum": 1 },
+        "sha256": { "type": "string", "pattern": "^[0-9a-f]{64}$" },
+        "versionManagementProtocolVersion": { "const": 1 }
+      }
+    },
+    "sbomAsset": {
+      "type": "string",
+      "pattern": "^NvtFwCombiner-Launcher-v[0-9]+\\.[0-9]+\\.[0-9]+-win-x64\\.spdx\\.json$"
+    },
+    "provenanceAsset": {
+      "type": "string",
+      "pattern": "^NvtFwCombiner-Launcher-v[0-9]+\\.[0-9]+\\.[0-9]+-win-x64\\.intoto\\.jsonl$"
+    },
+    "checksumAsset": {
+      "type": "string",
+      "pattern": "^NvtFwCombiner-Launcher-v[0-9]+\\.[0-9]+\\.[0-9]+-win-x64\\.sha256$"
+    },
+    "releaseDisposition": { "enum": ["signed", "unsigned-owner-approved"] },
+    "signingIdentity": { "type": "string", "minLength": 1, "maxLength": 512 }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": { "releaseDisposition": { "const": "signed" } },
+        "required": ["releaseDisposition"]
+      },
+      "then": { "required": ["signingIdentity"] },
+      "else": { "not": { "required": ["signingIdentity"] } }
+    }
+  ],
+  "$defs": {
+    "assetIdentity": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["name", "size", "sha256"],
+      "properties": {
+        "name": {
+          "type": "string",
+          "pattern": "^NvtFwCombiner-Launcher-v[0-9]+\\.[0-9]+\\.[0-9]+-win-x64\\.exe$"
+        },
+        "size": { "type": "integer", "minimum": 1 },
+        "sha256": { "type": "string", "pattern": "^[0-9a-f]{64}$" }
+      }
+    }
+  }
+}

@@ -11,7 +11,14 @@ internal sealed record ManagedPackagePlan(
     ReleaseManifestDocument Manifest,
     IReadOnlyDictionary<string, ZipArchiveEntry> Entries,
     byte[] ManifestBytes,
-    byte[] ChecksumBytes);
+    byte[] ChecksumBytes,
+    int FileCount,
+    int ImplicitDirectoryCount,
+    long ExpandedBytes)
+{
+    internal bool HasSupportedManagedLauncher =>
+        string.Equals(Manifest.SchemaVersion, "1.2", StringComparison.Ordinal);
+}
 
 internal sealed record ManagedPackagePlanResult(
     ManagedPackagePlan? Plan,
@@ -44,6 +51,7 @@ internal static class ManagedPackageVerifier
         string packageRoot = $"NvtFwCombiner-v{package.Version}-win-x64";
         string prefix = packageRoot + "/";
         var entries = new Dictionary<string, ZipArchiveEntry>(StringComparer.OrdinalIgnoreCase);
+        var directories = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
         long expandedBytes = 0;
         foreach (ZipArchiveEntry entry in archive.Entries)
         {
@@ -69,6 +77,16 @@ internal static class ManagedPackageVerifier
             if (!ManagedPathSafety.IsSafeRelativePayloadPath(relativePath) || !entries.TryAdd(relativePath, entry))
             {
                 return Failure(ManagedVersionInstallIssue.UnsafeArchive);
+            }
+
+            string[] components = relativePath.Split('/');
+            for (int count = 1; count < components.Length; count++)
+            {
+                _ = directories.Add(string.Join('/', components.AsSpan(0, count).ToArray()));
+                if (directories.Count > FileSystemManagedVersionRepository.MaximumInstalledDirectories)
+                {
+                    return Failure(ManagedVersionInstallIssue.UnsafeArchive);
+                }
             }
 
             if (entry.Length < 0 || entry.Length > maximumExpandedBytes - expandedBytes)
@@ -174,7 +192,14 @@ internal static class ManagedPackageVerifier
         return content switch
         {
             ArchiveContentVerification.Valid =>
-                new(new(manifest, entries, manifestBytes, checksumBytes), ManagedVersionInstallIssue.None),
+                new(new(
+                    manifest,
+                    entries,
+                    manifestBytes,
+                    checksumBytes,
+                    entries.Count,
+                    directories.Count,
+                    expandedBytes), ManagedVersionInstallIssue.None),
             ArchiveContentVerification.Invalid => Failure(ManagedVersionInstallIssue.InvalidPayload),
             ArchiveContentVerification.Unsafe => Failure(ManagedVersionInstallIssue.UnsafeArchive),
             _ => throw new InvalidOperationException("Unknown archive verification result."),
@@ -183,18 +208,17 @@ internal static class ManagedPackageVerifier
 
     internal static async ValueTask ExtractAsync(
         ManagedPackagePlan plan,
-        string stagingDirectory,
+        Func<string, FileStream> createDestination,
         long maximumExpandedBytes,
         CancellationToken cancellationToken)
     {
+        ArgumentNullException.ThrowIfNull(createDestination);
         var extractionBudget = new ExpandedByteBudget(maximumExpandedBytes);
         var expectedFiles =
             plan.Manifest.Files!.ToDictionary(file => file.Path, StringComparer.OrdinalIgnoreCase);
         foreach ((string relativePath, ZipArchiveEntry entry) in plan.Entries)
         {
             cancellationToken.ThrowIfCancellationRequested();
-            string target = ManagedPathSafety.ResolvePayloadPath(stagingDirectory, relativePath);
-            _ = Directory.CreateDirectory(Path.GetDirectoryName(target)!);
             long expectedLength;
             string expectedHash;
             if (relativePath.Equals("RELEASE-MANIFEST.json", StringComparison.OrdinalIgnoreCase))
@@ -222,13 +246,7 @@ internal static class ManagedPackageVerifier
             try
             {
 #pragma warning disable CA2000 // Ownership is transferred to the explicit async-dispose finally below.
-                destination = new FileStream(
-                    target,
-                    FileMode.CreateNew,
-                    FileAccess.Write,
-                    FileShare.None,
-                    bufferSize: 64 * 1024,
-                    FileOptions.Asynchronous | FileOptions.SequentialScan);
+                destination = createDestination(relativePath);
 #pragma warning restore CA2000
                 BoundedArchiveReadResult extracted = await BoundedArchiveReader.CopyAndHashAsync(
                     source,

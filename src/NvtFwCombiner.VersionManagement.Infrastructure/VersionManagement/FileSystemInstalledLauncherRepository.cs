@@ -15,46 +15,79 @@ internal sealed class FileSystemInstalledLauncherRepository : IInstalledLauncher
         UnmappedMemberHandling = JsonUnmappedMemberHandling.Disallow,
     };
     private static readonly VersionManagementJsonContext JsonContext = new(JsonOptions);
+    private readonly Func<string, int, CancellationToken, ValueTask<byte[]?>> _readBoundedFileAsync;
+    private readonly Action<WindowsStableCustodyStage>? _custodyHook;
+    private readonly Action? _beforeLeaseCreation;
+
+    internal FileSystemInstalledLauncherRepository()
+        : this(ManagedPathSafety.ReadBoundedFileAsync)
+    {
+    }
+
+    internal FileSystemInstalledLauncherRepository(
+        Func<string, int, CancellationToken, ValueTask<byte[]?>> readBoundedFileAsync,
+        Action<WindowsStableCustodyStage>? custodyHook = null,
+        Action? beforeLeaseCreation = null)
+    {
+        _readBoundedFileAsync = readBoundedFileAsync ??
+            throw new ArgumentNullException(nameof(readBoundedFileAsync));
+        _custodyHook = custodyHook;
+        _beforeLeaseCreation = beforeLeaseCreation;
+    }
 
     public async ValueTask<InstalledLauncherLaunchResult> AcquireLaunchLeaseAsync(
         string managedRoot,
         ManagedVersionAdmission admission,
         CancellationToken cancellationToken)
     {
-        InstalledLauncherResult verified = await VerifyAsync(
+        WindowsStableCustodyResult acquiredTree = AcquireVersionTree(
             managedRoot,
             admission,
-            cancellationToken).ConfigureAwait(false);
-        if (!verified.IsVerified)
+            cancellationToken);
+        if (!acquiredTree.IsAcquired)
         {
-            return new(null, null, verified.Issue);
+            return new(null, null, MapCustodyIssue(acquiredTree.Issue));
         }
-        ManagedLauncherIdentity identity = verified.Identity!;
-        string versionRoot = ManagedPathSafety.GetExactVersionDirectory(
-            Path.Combine(
-                Path.GetFullPath(managedRoot),
-                FileSystemManagedVersionRepository.VersionsDirectoryName),
-            admission.Version);
-        string executable = ManagedPathSafety.ResolvePayloadPath(
-            versionRoot,
-            identity.ExecutableRelativePath);
-        ManagedExecutableLaunchLeaseResult acquired =
-            await StableManagedExecutableLaunchLease.TryAcquireAsync(
-                executable,
-                identity.Size,
-                identity.Sha256,
-                cancellationToken).ConfigureAwait(false);
-        InstalledLauncherIssue issue = acquired.Issue switch
+        WindowsStablePathCustody? custody = acquiredTree.Custody!;
+        try
         {
-            ManagedExecutableLaunchIssue.None => InstalledLauncherIssue.None,
-            ManagedExecutableLaunchIssue.UnsafePath => InstalledLauncherIssue.UnsafePath,
-            ManagedExecutableLaunchIssue.Tampered => InstalledLauncherIssue.Tampered,
-            ManagedExecutableLaunchIssue.Unavailable => InstalledLauncherIssue.Unavailable,
-            _ => throw new InvalidOperationException("Managed executable lease returned an undefined issue."),
-        };
-        return acquired.IsAcquired
-            ? new(identity, acquired.Lease, issue)
-            : new(null, null, issue);
+            InstalledLauncherResult verified = await ReadIdentityAsync(
+                custody,
+                admission,
+                verifyExecutableBytes: false,
+                cancellationToken).ConfigureAwait(false);
+            if (!verified.IsVerified)
+            {
+                return new(null, null, verified.Issue);
+            }
+            ManagedLauncherIdentity identity = verified.Identity!;
+            _beforeLeaseCreation?.Invoke();
+            WindowsStablePathCustody ownedCustody = custody;
+            custody = null;
+            ManagedExecutableLaunchLeaseResult acquired =
+                await StableManagedExecutableLaunchLease.TryCreateFromVerifiedTreeAsync(
+                    ownedCustody,
+                    identity.ExecutableRelativePath,
+                    identity.Size,
+                    identity.Sha256,
+                    cancellationToken).ConfigureAwait(false);
+            InstalledLauncherIssue issue = acquired.Issue switch
+            {
+                ManagedExecutableLaunchIssue.None => InstalledLauncherIssue.None,
+                ManagedExecutableLaunchIssue.UnsafePath => InstalledLauncherIssue.UnsafePath,
+                ManagedExecutableLaunchIssue.Tampered => InstalledLauncherIssue.Tampered,
+                ManagedExecutableLaunchIssue.Unavailable => InstalledLauncherIssue.Unavailable,
+                _ => throw new InvalidOperationException(
+                    "Managed executable lease returned an undefined issue."),
+            };
+            return acquired.IsAcquired
+                ? new(identity, acquired.Lease, issue)
+                : new(null, null, issue);
+        }
+        finally
+        {
+            custody?.Dispose();
+        }
     }
 
     public async ValueTask<InstalledLauncherResult> VerifyAsync(
@@ -62,21 +95,35 @@ internal sealed class FileSystemInstalledLauncherRepository : IInstalledLauncher
         ManagedVersionAdmission admission,
         CancellationToken cancellationToken)
     {
-        ArgumentException.ThrowIfNullOrWhiteSpace(managedRoot);
+        WindowsStableCustodyResult acquired = AcquireVersionTree(
+            managedRoot,
+            admission,
+            cancellationToken);
+        if (!acquired.IsAcquired)
+        {
+            return Failure(MapCustodyIssue(acquired.Issue));
+        }
+        using WindowsStablePathCustody custody = acquired.Custody!;
+        return await ReadIdentityAsync(
+            custody,
+            admission,
+            verifyExecutableBytes: true,
+            cancellationToken).ConfigureAwait(false);
+    }
+
+    private async ValueTask<InstalledLauncherResult> ReadIdentityAsync(
+        WindowsStablePathCustody custody,
+        ManagedVersionAdmission admission,
+        bool verifyExecutableBytes,
+        CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(custody);
         ArgumentNullException.ThrowIfNull(admission);
         try
         {
-            string versionsRoot = Path.Combine(
-                Path.GetFullPath(managedRoot),
-                FileSystemManagedVersionRepository.VersionsDirectoryName);
-            string versionRoot = ManagedPathSafety.GetExactVersionDirectory(versionsRoot, admission.Version);
-            if (!ManagedPathSafety.IsSafeOwnedTree(versionRoot))
-            {
-                return Failure(InstalledLauncherIssue.UnsafePath);
-            }
-
-            byte[]? manifestBytes = await ManagedPathSafety.ReadBoundedFileAsync(
-                Path.Combine(versionRoot, "RELEASE-MANIFEST.json"),
+            string manifestPath = custody.GetAbsoluteFilePath("RELEASE-MANIFEST.json");
+            byte[]? manifestBytes = await _readBoundedFileAsync(
+                manifestPath,
                 FileSystemManagedVersionRepository.MaximumManifestBytes,
                 cancellationToken).ConfigureAwait(false);
             if (manifestBytes is null ||
@@ -126,31 +173,40 @@ internal sealed class FileSystemInstalledLauncherRepository : IInstalledLauncher
                 return Failure(InstalledLauncherIssue.InvalidManifest);
             }
 
-            string launcherPath = ManagedPathSafety.ResolvePayloadPath(
-                versionRoot,
-                ManagedLauncherIdentity.ExecutablePath);
-            byte[]? launcherBytes = await ManagedPathSafety.ReadBoundedFileAsync(
-                launcherPath,
-                checked((int)ManagedLauncherIdentity.MaximumExecutableBytes),
+            ManagedLauncherIdentity identity = ManagedLauncherIdentity.Create(
+                admission.Version,
+                admission.AdmissionIdentity,
+                admission.ReleaseManifestSha256,
+                launcherVersion,
+                launcher.ProtocolVersion.Value,
+                launcher.ExecutableRelativePath!,
+                launcher.Size.Value,
+                launcher.Sha256!);
+            ManagedVersionDamageReason? packageDamage = await ManagedPackageVerifier.VerifyInstalledAsync(
+                custody.RootPath,
+                admission,
+                FileSystemManagedVersionRepository.MaximumExpandedBytes,
                 cancellationToken).ConfigureAwait(false);
-            return launcherBytes is null ||
-                   launcherBytes.LongLength != launcher.Size ||
-                   !string.Equals(
-                       Convert.ToHexStringLower(SHA256.HashData(launcherBytes)),
-                       launcher.Sha256,
-                       StringComparison.Ordinal)
-                ? Failure(InstalledLauncherIssue.Tampered)
-                : new(
-                ManagedLauncherIdentity.Create(
-                    admission.Version,
-                    admission.AdmissionIdentity,
-                    admission.ReleaseManifestSha256,
-                    launcherVersion,
-                    launcher.ProtocolVersion.Value,
-                    launcher.ExecutableRelativePath!,
-                    launcher.Size.Value,
-                    launcher.Sha256!),
-                InstalledLauncherIssue.None);
+            if (packageDamage is not null)
+            {
+                return Failure(InstalledLauncherIssue.Tampered);
+            }
+            if (!verifyExecutableBytes)
+            {
+                return new(identity, InstalledLauncherIssue.None);
+            }
+
+            using FileStream launcherStream = custody.OpenReadOnlyFile(
+                ManagedLauncherIdentity.ExecutablePath);
+            if (launcherStream.Length != launcher.Size)
+            {
+                return Failure(InstalledLauncherIssue.Tampered);
+            }
+            string launcherSha256 = Convert.ToHexStringLower(
+                await SHA256.HashDataAsync(launcherStream, cancellationToken).ConfigureAwait(false));
+            return string.Equals(launcherSha256, launcher.Sha256, StringComparison.Ordinal)
+                ? new(identity, InstalledLauncherIssue.None)
+                : Failure(InstalledLauncherIssue.Tampered);
         }
         catch (OperationCanceledException)
         {
@@ -166,6 +222,42 @@ internal sealed class FileSystemInstalledLauncherRepository : IInstalledLauncher
     private static InstalledLauncherResult Failure(InstalledLauncherIssue issue)
     {
         return new(null, issue);
+    }
+
+    private WindowsStableCustodyResult AcquireVersionTree(
+        string managedRoot,
+        ManagedVersionAdmission admission,
+        CancellationToken cancellationToken)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(managedRoot);
+        ArgumentNullException.ThrowIfNull(admission);
+        if (!Path.IsPathFullyQualified(managedRoot))
+        {
+            return WindowsStableCustodyResult.Failure(WindowsStableCustodyIssue.InvalidPath);
+        }
+        string versionRoot = ManagedPathSafety.GetExactVersionDirectory(
+            Path.Combine(
+                Path.GetFullPath(managedRoot),
+                FileSystemManagedVersionRepository.VersionsDirectoryName),
+            admission.Version);
+        return WindowsStablePathCustody.TryAcquireImmutableTree(
+            versionRoot,
+            _custodyHook,
+            cancellationToken);
+    }
+
+    private static InstalledLauncherIssue MapCustodyIssue(WindowsStableCustodyIssue issue)
+    {
+        return issue switch
+        {
+            WindowsStableCustodyIssue.InvalidPath or WindowsStableCustodyIssue.ReparsePoint or
+            WindowsStableCustodyIssue.Changed => InstalledLauncherIssue.UnsafePath,
+            WindowsStableCustodyIssue.AccessDenied or WindowsStableCustodyIssue.Contended or
+            WindowsStableCustodyIssue.Unavailable => InstalledLauncherIssue.Unavailable,
+            WindowsStableCustodyIssue.None => throw new InvalidOperationException(
+                "Successful custody did not return its owner."),
+            _ => throw new InvalidOperationException("Stable custody returned an undefined issue."),
+        };
     }
 
     private static bool IsLowerSha256(string? value)

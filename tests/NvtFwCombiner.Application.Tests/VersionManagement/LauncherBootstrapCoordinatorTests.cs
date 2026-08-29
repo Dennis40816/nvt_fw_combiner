@@ -9,6 +9,7 @@ public sealed partial class LauncherBootstrapCoordinatorTests
     private static readonly ManagedAppVersion App101 = ManagedAppVersion.Parse("1.0.1");
     private static readonly ManagedLauncherIdentity Launcher100 = Identity(App100, "1.0.0", 'a');
     private static readonly ManagedLauncherIdentity Launcher101 = Identity(App101, "1.1.0", 'b');
+    private static readonly TimeSpan ExpectedStartupWriterLeaseTimeout = TimeSpan.FromMilliseconds(250);
 
     /// <summary>First launch becomes trusted only after nested readiness and durable reload.</summary>
     [Fact]
@@ -31,6 +32,12 @@ public sealed partial class LauncherBootstrapCoordinatorTests
         Assert.Equal(2, appStore.LoadCount);
         Assert.Equal(2, launcherStore.LoadCount);
         Assert.Equal([Launcher100], process.Started);
+        Assert.Equal(
+            [
+                ExpectedStartupWriterLeaseTimeout,
+                ExpectedStartupWriterLeaseTimeout,
+            ],
+            appStore.WriterLeaseTimeouts);
     }
 
     /// <summary>A failed candidate selects only the exact recorded prior launcher.</summary>
@@ -56,6 +63,144 @@ public sealed partial class LauncherBootstrapCoordinatorTests
         Assert.Equal(Launcher100, launcherStore.Current.LastKnownGood);
         Assert.Equal(Launcher101, launcherStore.Current.Failed);
         Assert.Null(launcherStore.Current.Pending);
+        Assert.Equal(
+            [
+                ExpectedStartupWriterLeaseTimeout,
+                ExpectedStartupWriterLeaseTimeout,
+                ExpectedStartupWriterLeaseTimeout,
+            ],
+            appStore.WriterLeaseTimeouts);
+    }
+
+    /// <summary>Startup contention is reported as Busy after only the dedicated short wait.</summary>
+    [Fact]
+    public async Task InitialWriterContentionReturnsBusyWithinStartupBudget()
+    {
+        var appStore = new RecordingAppStateStore(AppState(App100))
+        {
+            BusyLeaseAt = 1,
+        };
+        var launcherStore = new RecordingLauncherStateStore(load: null);
+        var process = new RecordingLauncherProcess(LauncherProcessStartOutcome.Ready);
+
+        LauncherBootstrapResult result = await Create(
+            appStore,
+            launcherStore,
+            new RecordingLauncherRepository(Launcher100),
+            process).RunAsync(TestContext.Current.CancellationToken);
+
+        Assert.Equal(LauncherBootstrapOutcome.Busy, result.Outcome);
+        Assert.Equal([ExpectedStartupWriterLeaseTimeout], appStore.WriterLeaseTimeouts);
+        Assert.Equal(0, appStore.LoadCount);
+        Assert.Equal(0, launcherStore.LoadCount);
+        Assert.Empty(process.Started);
+    }
+
+    /// <summary>Contention after candidate READY preserves the recorded candidate and stays StateUnavailable.</summary>
+    [Fact]
+    public async Task CandidateReadyCommitContentionPreservesRecordedCandidate()
+    {
+        var appStore = new RecordingAppStateStore(AppState(App101, App100))
+        {
+            BusyLeaseAt = 2,
+        };
+        var launcherStore = new RecordingLauncherStateStore(
+            LauncherBootstrapState.Create(Root, Launcher100, Launcher100, pending: null, failed: null));
+
+        LauncherBootstrapResult result = await Create(
+            appStore,
+            launcherStore,
+            new RecordingLauncherRepository(Launcher101, Launcher100),
+            new RecordingLauncherProcess(LauncherProcessStartOutcome.Ready))
+            .RunAsync(TestContext.Current.CancellationToken);
+
+        Assert.Equal(LauncherBootstrapOutcome.StateUnavailable, result.Outcome);
+        Assert.Equal(2, appStore.WriterLeaseTimeouts.Count);
+        Assert.All(appStore.WriterLeaseTimeouts, AssertStartupWriterLeaseTimeout);
+        Assert.Equal(LauncherActivationPhase.CandidateLaunchRecorded, launcherStore.Current!.Pending?.Phase);
+    }
+
+    /// <summary>Contention while recording rollback preserves the recorded candidate and stays StateUnavailable.</summary>
+    [Fact]
+    public async Task RollbackRecordContentionPreservesRecordedCandidate()
+    {
+        var appStore = new RecordingAppStateStore(AppState(App101, App100))
+        {
+            BusyLeaseAt = 2,
+        };
+        var launcherStore = new RecordingLauncherStateStore(
+            LauncherBootstrapState.Create(Root, Launcher100, Launcher100, pending: null, failed: null));
+
+        LauncherBootstrapResult result = await Create(
+            appStore,
+            launcherStore,
+            new RecordingLauncherRepository(Launcher101, Launcher100),
+            new RecordingLauncherProcess(LauncherProcessStartOutcome.StartFailed))
+            .RunAsync(TestContext.Current.CancellationToken);
+
+        Assert.Equal(LauncherBootstrapOutcome.StateUnavailable, result.Outcome);
+        Assert.Equal(2, appStore.WriterLeaseTimeouts.Count);
+        Assert.All(appStore.WriterLeaseTimeouts, AssertStartupWriterLeaseTimeout);
+        Assert.Equal(LauncherActivationPhase.CandidateLaunchRecorded, launcherStore.Current!.Pending?.Phase);
+    }
+
+    /// <summary>Contention after rollback READY preserves the rollback record and stays StateUnavailable.</summary>
+    [Fact]
+    public async Task RollbackReadyCommitContentionPreservesRecordedRollback()
+    {
+        var appStore = new RecordingAppStateStore(AppState(App101, App100))
+        {
+            BusyLeaseAt = 3,
+        };
+        var launcherStore = new RecordingLauncherStateStore(
+            LauncherBootstrapState.Create(Root, Launcher100, Launcher100, pending: null, failed: null));
+
+        LauncherBootstrapResult result = await Create(
+            appStore,
+            launcherStore,
+            new RecordingLauncherRepository(Launcher101, Launcher100),
+            new RecordingLauncherProcess(
+                LauncherProcessStartOutcome.StartFailed,
+                LauncherProcessStartOutcome.Ready))
+            .RunAsync(TestContext.Current.CancellationToken);
+
+        Assert.Equal(LauncherBootstrapOutcome.StateUnavailable, result.Outcome);
+        Assert.Equal(3, appStore.WriterLeaseTimeouts.Count);
+        Assert.All(appStore.WriterLeaseTimeouts, AssertStartupWriterLeaseTimeout);
+        Assert.Equal(LauncherActivationPhase.RollbackLaunchRecorded, launcherStore.Current!.Pending?.Phase);
+    }
+
+    /// <summary>Existing-launch READY/failure contention preserves its guard and stays StateUnavailable.</summary>
+    [Theory]
+    [InlineData((int)LauncherProcessStartOutcome.Ready)]
+    [InlineData((int)LauncherProcessStartOutcome.StartFailed)]
+    public async Task ExistingLauncherFollowUpContentionPreservesActiveGuard(
+        int processOutcomeValue)
+    {
+        var processOutcome = (LauncherProcessStartOutcome)processOutcomeValue;
+        var appStore = new RecordingAppStateStore(AppState(App100))
+        {
+            BusyLeaseAt = 2,
+        };
+        var launcherStore = new RecordingLauncherStateStore(
+            LauncherBootstrapState.Create(Root, Launcher100, Launcher100, pending: null, failed: null));
+
+        LauncherBootstrapResult result = await Create(
+            appStore,
+            launcherStore,
+            new RecordingLauncherRepository(Launcher100),
+            new RecordingLauncherProcess(processOutcome))
+            .RunAsync(TestContext.Current.CancellationToken);
+
+        Assert.Equal(LauncherBootstrapOutcome.StateUnavailable, result.Outcome);
+        Assert.Equal(2, appStore.WriterLeaseTimeouts.Count);
+        Assert.All(appStore.WriterLeaseTimeouts, AssertStartupWriterLeaseTimeout);
+        Assert.Equal(LauncherActivationPhase.ActiveLaunchRecorded, launcherStore.Current!.Pending?.Phase);
+    }
+
+    private static void AssertStartupWriterLeaseTimeout(TimeSpan timeout)
+    {
+        Assert.Equal(ExpectedStartupWriterLeaseTimeout, timeout);
     }
 
     /// <summary>An uncertain recorded candidate is never started twice.</summary>
@@ -499,89 +644,4 @@ public sealed partial class LauncherBootstrapCoordinatorTests
         Assert.Empty(process.Started);
         Assert.Equal(LauncherActivationPhase.RollbackLaunchRecorded, launcherStore.Current!.Pending!.Phase);
     }
-
-    private static string Root => Path.GetFullPath(Path.Combine(Path.GetTempPath(), "nfc-launcher-root"));
-    private static string StatePath => Path.GetFullPath(Path.Combine(Path.GetTempPath(), "nfc-launcher-state.json"));
-
-    private static LauncherBootstrapCoordinator Create(
-        RecordingAppStateStore appStore,
-        RecordingLauncherStateStore launcherStore,
-        RecordingLauncherRepository repository,
-        RecordingLauncherProcess process)
-    {
-        process.AppStateStore = appStore;
-        return new(Root, StatePath, appStore, launcherStore, repository, process);
-    }
-
-    private static ManagedLauncherIdentity Identity(
-        ManagedAppVersion owner,
-        string launcherVersion,
-        char hash)
-    {
-        return ManagedLauncherIdentity.Create(
-            owner,
-            $"admission-{owner}",
-            new string('c', 64),
-            ManagedAppVersion.Parse(launcherVersion),
-            protocolVersion: 1,
-            "launcher/NvtFwCombiner.Launcher.exe",
-            size: 123,
-            new string(hash, 64));
-    }
-
-    private static VersionManagerState AppState(
-        ManagedAppVersion active,
-        ManagedAppVersion? previous = null,
-        string? managedRoot = null)
-    {
-        ManagedAppVersion[] versions = previous is { } prior ? [active, prior] : [active];
-        return VersionManagerState.Create(
-            updateSource: null,
-            active,
-            previous ?? active,
-            versions.Select(version => new ManagedVersionAdmission(
-                version,
-                $"admission-{version}",
-                new string('c', 64))),
-            pendingActivation: null,
-            failedActivationVersion: null,
-            retentionReviewDue: false,
-            managedRootIdentity: managedRoot ?? Root);
-    }
-
-    private static VersionManagerState AppStateWithPendingActivation()
-    {
-        ManagedVersionAdmission current = new(App100, $"admission-{App100}", new string('c', 64));
-        ManagedVersionAdmission candidate = new(App101, $"admission-{App101}", new string('c', 64));
-        return VersionManagerState.Create(
-            updateSource: null,
-            App100,
-            App100,
-            [current, candidate],
-            new PendingVersionActivation(
-                App101,
-                candidate.AdmissionIdentity,
-                App100,
-                App100),
-            failedActivationVersion: null,
-            retentionReviewDue: false,
-            managedRootIdentity: Root);
-    }
-
-    private static VersionManagerState AppStateWithPendingMutation()
-    {
-        ManagedVersionAdmission current = new(App100, $"admission-{App100}", new string('c', 64));
-        ManagedVersionAdmission candidate = new(App101, $"admission-{App101}", new string('c', 64));
-        return VersionManagerState.Create(
-            updateSource: null,
-            App100,
-            App100,
-            [current],
-            pendingActivation: null,
-            failedActivationVersion: null,
-            retentionReviewDue: false,
-            new PendingManagedVersionMutation(ManagedVersionMutationKind.Install, candidate),
-            managedRootIdentity: Root);
-    }
-
 }

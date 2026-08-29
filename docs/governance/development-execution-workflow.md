@@ -86,14 +86,35 @@ documentation-only change may finish locally with `--structure-only`.
 
 ## Review checkpoints
 
-Commit at stable review checkpoints. Each commit must be coherent, tested, and
-recoverable; documentation, tests, and review corrections that belong to the
-same outcome need not become separate ceremony commits. Stage only explicit
-owned files. Never stage, reset, amend, or revert another agent's changes.
+Use three checkpoints so review runs with development instead of becoming a
+serial tail after implementation:
 
-For governed work, create implementation commits first, review the exact frozen
-implementation head, then populate and commit the `final-complete` records as a
-separate evidence checkpoint. An intermediate commit that still contains a
+1. **Development loop.** After each coherent bounded correction, run its narrow
+   test and analyzer. Independent reviewers may inspect security, semantics,
+   architecture, and evidence in parallel, but each reviewer must audit one
+   recorded snapshot completely and return one severity-ranked findings batch.
+   Mark findings from an older snapshot as stale; do not drip already-visible
+   findings across repeated rounds.
+2. **Pre-freeze.** Freeze the approved scope and acceptance criteria, aggregate
+   all review lanes once, and close every P0/P1. Give each P2 a recorded
+   `fix-now` or owner-approved follow-up disposition. Review findings do not
+   expand the current task: allocate unrelated improvements to a named later
+   ticket.
+3. **Fixed head.** Commit the coherent candidate, review that exact head once,
+   then run the final gate once. A correction invalidates only the affected
+   review lane and evidence: rerun its narrow gates and exact-head review, not
+   unrelated lanes. Completion requires one exact head with no open P0/P1,
+   every P2 disposition recorded, applicable tests green, and required human or
+   external evidence still explicit.
+
+Each checkpoint commit must be coherent, tested, and recoverable;
+documentation, tests, and review corrections that belong to the same outcome
+need not become separate ceremony commits. Stage only explicit owned files.
+Never stage, reset, amend, or revert another agent's changes.
+
+For governed work, create implementation commits first, perform the fixed-head
+review, then populate and commit the `final-complete` records as a separate
+evidence checkpoint. An intermediate commit that still contains a
 `design-active` record intentionally fails the final repository gate; it is not
 mergeable and cannot authorize follow-on development.
 
