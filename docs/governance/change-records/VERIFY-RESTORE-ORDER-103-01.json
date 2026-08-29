@@ -5,7 +5,7 @@
   "integrationBase": "6ffafc0390694345633633d688148c020226126c",
   "risk": "R2",
   "kind": "governance",
-  "state": "design-active",
+  "state": "final-complete",
   "mutablePaths": [
     "scripts/verify.py"
   ],
@@ -23,12 +23,12 @@
     "outcome": "approved",
     "evidence": "Independent R2 review at checkpoint 6ffafc0390694345633633d688148c020226126c approved extending the existing canonical verifier orchestration so a public plan containing both structure and dotnet completes the isolated structure lane before any restore-capable lane starts, then runs the unchanged remaining lanes with the original jobs, ordering, isolation, commands, and timeouts; the bounded scripts/verify.py change preserves fail-closed dirty-path validation and changes no validator, restore/test command, production, XAML, firmware, package, update, or I/O semantics."
   },
-  "implementationHead": null,
-  "reviewedHead": null,
-  "pathStateDigest": null,
+  "implementationHead": "34e44a599c7ce48848953ac3c6a4acd859acc791",
+  "reviewedHead": "34e44a599c7ce48848953ac3c6a4acd859acc791",
+  "pathStateDigest": "6a9ecddba1821537f36de3a57cc80b3d5dab60726d1ce54337989a981835608b",
   "finalReview": {
-    "reviewer": null,
-    "outcome": "pending",
-    "evidence": ""
+    "reviewer": "final_evidence_review",
+    "outcome": "approved",
+    "evidence": "Independent exact-head R2 review at 34e44a599c7ce48848953ac3c6a4acd859acc791 confirmed a direct child of 6ffafc0390694345633633d688148c020226126c whose only governed change sequences the existing public verification owners into a structure-first phase followed by the unchanged Python and .NET phase whenever both structure and restore-capable .NET verification are selected. Structure failure prevents every later phase; plans lacking either structure or .NET retain one-phase execution. The original jobs and per-lane timeout values are passed unchanged to every phase, while lane actions, ordering, isolation, commands, validators, filters, discovery, logging, cancellation, cleanup, coverage, TRX, and CI evidence handling remain unchanged. No production, XAML, firmware, profile, golden, package, Catalog, Registry, Launcher, or update semantics changed. The red regression reproduced the former single [structure, python, dotnet] invocation and showed that failure still included all three; the three corrected sequencing regressions passed, and the complete orchestration suite passed 112 tests with four platform skips. Record integration base, R2 authority, terminal contract, and exact one-path mutable ownership are valid, and staged final-record repository validation passed. No P0, P1, or P2 findings remain."
   }
 }
