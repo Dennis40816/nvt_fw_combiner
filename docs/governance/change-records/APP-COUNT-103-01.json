@@ -1,0 +1,34 @@
+{
+  "schemaVersion": 2,
+  "taskId": "APP-COUNT-103-01",
+  "capability": "Keep the canonical .NET evidence inventory synchronized with the stable-version admission regressions",
+  "integrationBase": "5291d2a4e33ca669a1ffe680be223f247441245d",
+  "risk": "R2",
+  "kind": "governance",
+  "state": "design-active",
+  "mutablePaths": [
+    "scripts/verify.py"
+  ],
+  "implementationOwner": "primary-agent",
+  "searchEvidence": [
+    "The canonical full gate observed 917 Application tests passed while CI_DOTNET_SHARDS still required 896.",
+    "Commit 33c0444d added the only Application test-path delta since v1.0.2: four round-trip Theory cases, fifteen rejection Theory cases, and two Facts.",
+    "tests/scripts/test_verify_orchestration.py is the existing closed inventory regression for the scripts/verify.py CI_DOTNET_SHARDS owner."
+  ],
+  "semanticOwner": "scripts/verify.py CI_DOTNET_SHARDS exact producer evidence inventory",
+  "terminalContract": "The Application producer evidence must contain exactly 917 total tests with zero failures and zero skips, and the closed eight-project aggregate must contain exactly 4690 tests with the existing two Infrastructure skips; all mismatches remain fail-closed",
+  "disposition": "extend-owner",
+  "designReview": {
+    "reviewer": "final_architecture_review",
+    "outcome": "approved",
+    "evidence": "Independent R2 review at checkpoint 997c7a50ef1430f0459b1aec12a2d026f2cb787a confirmed that 33c0444d added the only Application-test delta since v1.0.2: four canonical round-trip Theory cases, fifteen fail-closed rejection Theory cases, and two Facts, for exactly twenty-one new producer cases and an observed total of 917; changing only the existing scripts/verify.py CI_DOTNET_SHARDS Application cardinality, with ungoverned expectations synchronized to 917 and aggregate 4,690, preserves exact fail-closed evidence enforcement and changes no command, filter, discovery, skip, coverage, production, firmware, package, update, or I/O semantics."
+  },
+  "implementationHead": null,
+  "reviewedHead": null,
+  "pathStateDigest": null,
+  "finalReview": {
+    "reviewer": null,
+    "outcome": "pending",
+    "evidence": ""
+  }
+}
