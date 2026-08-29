@@ -207,6 +207,11 @@ class VerifyOrchestrationTests(unittest.TestCase):
             calls.append(([lane.name for lane in lanes], jobs, lane_timeout_seconds))
 
         with (
+            patch.dict(
+                os.environ,
+                {MODULE.INTERNAL_LANE_ENVIRONMENT_VARIABLE: ""},
+                clear=False,
+            ),
             patch.object(MODULE, "run_selected_lanes", side_effect=record_phase),
             contextlib.redirect_stdout(io.StringIO()),
         ):
@@ -238,6 +243,11 @@ class VerifyOrchestrationTests(unittest.TestCase):
             raise RuntimeError("structure failed")
 
         with (
+            patch.dict(
+                os.environ,
+                {MODULE.INTERNAL_LANE_ENVIRONMENT_VARIABLE: ""},
+                clear=False,
+            ),
             patch.object(MODULE, "run_selected_lanes", side_effect=fail_structure),
             contextlib.redirect_stdout(io.StringIO()),
             contextlib.redirect_stderr(io.StringIO()),
@@ -255,6 +265,11 @@ class VerifyOrchestrationTests(unittest.TestCase):
             calls.append([lane.name for lane in lanes])
 
         with (
+            patch.dict(
+                os.environ,
+                {MODULE.INTERNAL_LANE_ENVIRONMENT_VARIABLE: ""},
+                clear=False,
+            ),
             patch.object(MODULE, "run_selected_lanes", side_effect=record_phase),
             contextlib.redirect_stdout(io.StringIO()),
         ):
