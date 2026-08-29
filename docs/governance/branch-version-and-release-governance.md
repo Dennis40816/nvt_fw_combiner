@@ -26,6 +26,30 @@ When the planned outcomes no longer fit one reviewable release story, keep the
 version stable and defer the excess work. Do not inflate the version simply to
 hide uncontrolled scope.
 
+## Keep One Stable Version Identity
+
+The public application version is exactly canonical `major.minor.patch`:
+three non-negative decimal components, no leading-zero aliases, prefix,
+prerelease/build suffix, or fourth component. `ManagedAppVersion` is the one
+runtime admission owner used by Catalog, managed state, installed-version
+layout, and launcher handoff. Four-component Windows file metadata is transport
+metadata and is never an accepted release identity.
+
+The repository `VERSION` file is the source release identity. A stable release
+must preserve this exact mapping:
+
+```text
+VERSION X.Y.Z
+  -> Git tag vX.Y.Z
+  -> package NvtFwCombiner-vX.Y.Z-win-x64.zip
+  -> manifest version X.Y.Z and sourceTag vX.Y.Z
+  -> Catalog row version X.Y.Z bound to that exact package and manifest
+```
+
+The existing release-promotion policy validates this mapping and its hashes.
+Do not add another parser or independently normalize a tag, directory, package,
+manifest, or Catalog version into a different identity.
+
 ## Establish Branch Authority
 
 1. Keep `main` stable and release-capable.
