@@ -146,6 +146,7 @@ public sealed partial class ShellNavigationSystemTests
 
         bool destinationPublished = false;
         var selectorChanges = new List<string?>();
+        var mergeChanges = new List<string?>();
         var timeline = new List<string>();
         int modeChangeCount = 0;
         authoring.Reset(() => destinationPublished, timeline.Add);
@@ -165,6 +166,7 @@ public sealed partial class ShellNavigationSystemTests
         };
         viewModel.Merge.PropertyChanged += (_, args) =>
         {
+            mergeChanges.Add(args.PropertyName);
             if (args.PropertyName == nameof(MergePresentationViewModel.SelectedMergeMode))
             {
                 modeChangeCount++;
@@ -207,6 +209,14 @@ public sealed partial class ShellNavigationSystemTests
             ],
             timeline);
         Assert.Equal(1, modeChangeCount);
+        Assert.Equal(1, mergeChanges.Count(propertyName =>
+            propertyName == nameof(MergePresentationViewModel.MergeModeChoices)));
+        Assert.Equal(1, mergeChanges.Count(propertyName =>
+            propertyName == nameof(MergePresentationViewModel.IsNormalMergeModeSelected)));
+        Assert.Equal(1, mergeChanges.Count(propertyName =>
+            propertyName == nameof(MergePresentationViewModel.MergeOutputFileName)));
+        Assert.Equal(1, mergeChanges.Count(propertyName =>
+            propertyName == nameof(MergePresentationViewModel.MergeMemorySummary)));
     }
 
     /// <summary>An inactive retained AB context is reconciled without borrowing or replacing the active Replace context.</summary>

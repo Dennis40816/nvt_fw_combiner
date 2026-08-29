@@ -245,12 +245,12 @@ internal sealed partial class MergePresentationViewModel
 
         InspectionLifecycles[_selectedMergeMode].Invalidate();
         _selectedMergeMode = mode;
-        PublishMergeModeSelectionChanged();
-        _stateBindings.NotifySharedContextChanged();
+        _stateBindings.PublishAcceptedModeContext();
         _stateBindings.ResetRunResult();
         _stateBindings.RefreshNumberChoices();
         if (!HasSelectedIc)
         {
+            PublishAcceptedModeContext();
             RefreshCommandState();
             return;
         }
@@ -262,7 +262,8 @@ internal sealed partial class MergePresentationViewModel
             _ = _stateBindings.RefreshSelectedFirmwareInspections();
         }
 
-        RefreshMergeMemoryMapState();
+        PrepareMergeMemoryMapState();
+        PublishAcceptedModeContext();
         RefreshCommandState();
     }
 
@@ -322,7 +323,30 @@ internal sealed partial class MergePresentationViewModel
 
     internal void PublishCatalogReconciledMergeMode()
     {
-        if (_catalogReconciliationPreviousMode is { } previousMode)
+        PublishFullContext();
+        _stateBindings.ResetRunResult();
+    }
+
+    internal void RefreshContextState()
+    {
+        RefreshMergeSlotRequirements();
+        PrepareMergeMemoryMapState();
+        PublishFullContext();
+    }
+
+    internal void PublishFullContext()
+    {
+        PublishContextCore(includeModeChoices: true);
+    }
+
+    internal void PublishAcceptedModeContext()
+    {
+        PublishContextCore(includeModeChoices: false);
+    }
+
+    private void PublishContextCore(bool includeModeChoices)
+    {
+        if (includeModeChoices && _catalogReconciliationPreviousMode is { } previousMode)
         {
             if (previousMode.Length > 0)
             {
@@ -330,34 +354,14 @@ internal sealed partial class MergePresentationViewModel
             }
             _catalogReconciliationPreviousMode = null;
         }
-        PublishMergeModeSelectionChanged();
-        _stateBindings.ResetRunResult();
-    }
-
-    private void PublishMergeModeSelectionChanged()
-    {
         OnPropertyChanged(nameof(SelectedMergeMode));
         OnPropertyChanged(nameof(Inspection));
+        OnPropertyChanged(nameof(IsStandardMergeSupported));
+        OnPropertyChanged(nameof(IsAbMergeSupported));
         OnPropertyChanged(nameof(IsNormalMergeModeSelected));
         OnPropertyChanged(nameof(IsGeneralMergeModeSelected));
         OnPropertyChanged(nameof(IsAbCodeMergeModeSelected));
-        OnPropertyChanged(nameof(MergeOutputFileName));
-        OnPropertyChanged(nameof(MergeReadinessStatus));
-        OnPropertyChanged(nameof(MergeMemorySummary));
-    }
-
-    internal void RefreshContextState()
-    {
-        RefreshMergeSlotRequirements();
-        RefreshMergeMemoryMapState();
-        NotifyContextChanged();
-    }
-
-    internal void NotifyContextChanged(bool notifyModeChoices = true)
-    {
-        OnPropertyChanged(nameof(IsStandardMergeSupported));
-        OnPropertyChanged(nameof(IsAbMergeSupported));
-        if (notifyModeChoices)
+        if (includeModeChoices)
         {
             OnPropertyChanged(nameof(MergeModeChoices));
         }
@@ -368,6 +372,7 @@ internal sealed partial class MergePresentationViewModel
         OnPropertyChanged(nameof(MergeOutputFileName));
         OnPropertyChanged(nameof(AbMergeOutputFileName));
         OnPropertyChanged(nameof(MergeReadinessStatus));
+        PublishMergeMemoryContext();
         OnPropertyChanged(nameof(CanBuildMerge));
     }
 
@@ -391,7 +396,10 @@ internal sealed partial class MergePresentationViewModel
         OnPropertyChanged(nameof(MergeOutputFileName));
     }
 
-    internal void ApplyGeneralMergeOutputInitializer(string length, string fillByte)
+    private void ApplyGeneralMergeOutputInitializer(
+        string length,
+        string fillByte,
+        bool publishChanges)
     {
         _isApplyingGeneralMergeInitializer = true;
         try
@@ -404,7 +412,10 @@ internal sealed partial class MergePresentationViewModel
             _isApplyingGeneralMergeInitializer = false;
         }
 
-        GeneralInitializerChanged();
+        if (publishChanges)
+        {
+            GeneralInitializerChanged();
+        }
     }
 
     partial void OnGeneralMergeOutputLengthChanged(string value)

@@ -1,9 +1,12 @@
+using System.ComponentModel;
+using System.Text.Json;
 using Avalonia.Controls;
 using Avalonia.Data;
 using Avalonia.Headless.XUnit;
 using Avalonia.Threading;
 using NvtFwCombiner.Domain.Composition;
 using NvtFwCombiner.Presentation.Avalonia.ViewModels;
+using NvtFwCombiner.TestSupport;
 
 namespace NvtFwCombiner.UiSmoke.Tests;
 
@@ -18,8 +21,17 @@ public sealed class ModeSelectorBindingTests
         viewModel.ShowMergeCommand.Execute(null);
         viewModel.WorkflowSession.SelectedIc = "NT51950";
         ComboBox selector = BindMergeModeSelector(viewModel);
+        viewModel.MessageCenter.ToggleDebugActivityCommand.Execute(null);
+        int modeActivityCount = viewModel.MessageCenter.ActivityItems.Count(static item =>
+            item.Title == "Mode selected");
         object? originalItemsSource = selector.ItemsSource;
         Assert.NotNull(originalItemsSource);
+        var mergeChanges = new List<string>();
+        var replaceChanges = new List<string>();
+        var workflowChanges = new List<string>();
+        Track(viewModel.Merge, mergeChanges);
+        Track(viewModel.Replace, replaceChanges);
+        Track(viewModel.WorkflowSession, workflowChanges);
 
         selector.SelectedItem = ExperienceIds.AbMerge;
         Dispatcher.UIThread.RunJobs();
@@ -27,6 +39,19 @@ public sealed class ModeSelectorBindingTests
         Assert.Same(originalItemsSource, selector.ItemsSource);
         Assert.Equal(ExperienceIds.AbMerge, viewModel.Merge.SelectedMergeMode);
         Assert.Equal(ExperienceIds.AbMerge, selector.SelectedItem);
+        Assert.Equal(modeActivityCount + 1, viewModel.MessageCenter.ActivityItems.Count(static item =>
+            item.Title == "Mode selected"));
+        Assert.DoesNotContain(nameof(MergePresentationViewModel.MergeModeChoices), mergeChanges);
+        AssertPublishedExactlyOnce(
+            mergeChanges,
+            nameof(MergePresentationViewModel.SelectedMergeMode),
+            nameof(MergePresentationViewModel.Inspection),
+            nameof(MergePresentationViewModel.IsAbCodeMergeModeSelected),
+            nameof(MergePresentationViewModel.MergeOutputFileName),
+            nameof(MergePresentationViewModel.MergeMemorySummary),
+            nameof(MergePresentationViewModel.StandardMergeSupportSummary));
+        AssertHiddenReplaceContextWasNotPublished(replaceChanges);
+        Assert.DoesNotContain(nameof(WorkflowSessionPresentationViewModel.IcChoices), workflowChanges);
     }
 
     /// <summary>The first Replace selection remains accepted without replacing its choices mid-event.</summary>
@@ -37,8 +62,17 @@ public sealed class ModeSelectorBindingTests
         viewModel.ShowReplaceCommand.Execute(null);
         viewModel.WorkflowSession.SelectedIc = "NT51926";
         ComboBox selector = BindReplaceModeSelector(viewModel);
+        viewModel.MessageCenter.ToggleDebugActivityCommand.Execute(null);
+        int modeActivityCount = viewModel.MessageCenter.ActivityItems.Count(static item =>
+            item.Title == "Mode selected");
         object? originalItemsSource = selector.ItemsSource;
         Assert.NotNull(originalItemsSource);
+        var mergeChanges = new List<string>();
+        var replaceChanges = new List<string>();
+        var workflowChanges = new List<string>();
+        Track(viewModel.Merge, mergeChanges);
+        Track(viewModel.Replace, replaceChanges);
+        Track(viewModel.WorkflowSession, workflowChanges);
 
         selector.SelectedItem = ExperienceIds.GeneralReplace;
         Dispatcher.UIThread.RunJobs();
@@ -46,6 +80,107 @@ public sealed class ModeSelectorBindingTests
         Assert.Same(originalItemsSource, selector.ItemsSource);
         Assert.Equal(ExperienceIds.GeneralReplace, viewModel.Replace.SelectedReplaceMode);
         Assert.Equal(ExperienceIds.GeneralReplace, selector.SelectedItem);
+        Assert.Equal(modeActivityCount + 1, viewModel.MessageCenter.ActivityItems.Count(static item =>
+            item.Title == "Mode selected"));
+        Assert.DoesNotContain(nameof(ReplacePresentationViewModel.ReplaceModeChoices), replaceChanges);
+        AssertPublishedExactlyOnce(
+            replaceChanges,
+            nameof(ReplacePresentationViewModel.SelectedReplaceMode),
+            nameof(ReplacePresentationViewModel.Inspection),
+            nameof(ReplacePresentationViewModel.IsGeneralReplaceModeSelected),
+            nameof(ReplacePresentationViewModel.ReplaceOutputFileName),
+            nameof(ReplacePresentationViewModel.ReplaceMemorySummary),
+            nameof(ReplacePresentationViewModel.SelectedReplaceWorkflowReadiness),
+            nameof(ReplacePresentationViewModel.SelectedReplaceModeEvidenceLabel));
+        AssertHiddenMergeContextWasNotPublished(mergeChanges);
+        Assert.DoesNotContain(nameof(WorkflowSessionPresentationViewModel.IcChoices), workflowChanges);
+
+        viewModel.WorkflowSession.SelectedIc = string.Empty;
+        Dispatcher.UIThread.RunJobs();
+        originalItemsSource = selector.ItemsSource;
+        mergeChanges.Clear();
+        replaceChanges.Clear();
+        workflowChanges.Clear();
+
+        selector.SelectedItem = ExperienceIds.CtrlRamReplace;
+        Dispatcher.UIThread.RunJobs();
+
+        Assert.Same(originalItemsSource, selector.ItemsSource);
+        Assert.Equal(ExperienceIds.CtrlRamReplace, viewModel.Replace.SelectedReplaceMode);
+        Assert.DoesNotContain(nameof(ReplacePresentationViewModel.ReplaceModeChoices), replaceChanges);
+        AssertPublishedExactlyOnce(
+            replaceChanges,
+            nameof(ReplacePresentationViewModel.SelectedReplaceMode),
+            nameof(ReplacePresentationViewModel.Inspection),
+            nameof(ReplacePresentationViewModel.IsCtrlRamReplaceModeSelected),
+            nameof(ReplacePresentationViewModel.ReplaceOutputFileName),
+            nameof(ReplacePresentationViewModel.ReplaceMemorySummary));
+        AssertHiddenMergeContextWasNotPublished(mergeChanges);
+        Assert.DoesNotContain(nameof(WorkflowSessionPresentationViewModel.IcChoices), workflowChanges);
+    }
+
+    /// <summary>A retained CtrlRAM Base projection is prepared silently before one page publication.</summary>
+    [AvaloniaFact]
+    public async Task CtrlRamModeSelectionWithRetainedBaseInspectionPublishesPageContextOnce()
+    {
+        JsonElement fixtureCase = CanonicalGoldenTestData.LoadDirectCase(
+            "ctrlram-replace",
+            "nt51950-fw200-single-auto-prj-676-20260717");
+        JsonElement baseArtifact = fixtureCase.GetProperty("artifacts").EnumerateArray().Single(
+            artifact => artifact.GetProperty("artifactId").GetString() == "tp-input");
+        MainWindowViewModel viewModel = await CreateViewModelAsync();
+        viewModel.ShowReplaceCommand.Execute(null);
+        viewModel.WorkflowSession.SelectedIc = "NT51950";
+        viewModel.Replace.SelectedReplaceMode = ExperienceIds.CtrlRamReplace;
+        await viewModel.WorkflowSession.SetSlotFileAsync(
+            CompositionSlotIds.ReplaceBase,
+            CanonicalGoldenTestData.ArtifactPath(baseArtifact),
+            TestContext.Current.CancellationToken);
+        await viewModel.Replace.Inspection.ActiveTask.WaitAsync(
+            TimeSpan.FromSeconds(15),
+            TestContext.Current.CancellationToken);
+        Assert.NotNull(viewModel.Replace.ReplaceBaseSlot.CurrentInspectionProjection);
+        string alternateMode = viewModel.Replace.ReplaceModeChoices.First(mode =>
+            mode != ExperienceIds.CtrlRamReplace);
+        viewModel.Replace.SelectedReplaceMode = alternateMode;
+        var replaceChanges = new List<string>();
+        Track(viewModel.Replace, replaceChanges);
+
+        viewModel.Replace.SelectedReplaceMode = ExperienceIds.CtrlRamReplace;
+
+        AssertPublishedExactlyOnce(
+            replaceChanges,
+            nameof(ReplacePresentationViewModel.SelectedReplaceMode),
+            nameof(ReplacePresentationViewModel.Inspection),
+            nameof(ReplacePresentationViewModel.IsCtrlRamReplaceModeSelected),
+            nameof(ReplacePresentationViewModel.ReplaceMemorySummary),
+            nameof(ReplacePresentationViewModel.IsReplaceCoverageGrouped));
+    }
+
+    /// <summary>A selected CtrlRAM Base awaiting inspection does not publish during preparation.</summary>
+    [AvaloniaFact]
+    public async Task CtrlRamModeSelectionWithBaseAwaitingInspectionPublishesPageContextOnce()
+    {
+        MainWindowViewModel viewModel = await CreateViewModelAsync();
+        viewModel.ShowReplaceCommand.Execute(null);
+        viewModel.WorkflowSession.SelectedIc = "NT51950";
+        string alternateMode = viewModel.Replace.ReplaceModeChoices.First(mode =>
+            mode != ExperienceIds.CtrlRamReplace);
+        viewModel.Replace.SelectedReplaceMode = alternateMode;
+        viewModel.Replace.ReplaceBaseSlot.FilePath = "C:\\pending-base.bin";
+        var replaceChanges = new List<string>();
+        Track(viewModel.Replace, replaceChanges);
+
+        viewModel.Replace.SelectedReplaceMode = ExperienceIds.CtrlRamReplace;
+
+        Assert.Null(viewModel.Replace.ReplaceBaseSlot.CurrentInspectionProjection);
+        AssertPublishedExactlyOnce(
+            replaceChanges,
+            nameof(ReplacePresentationViewModel.SelectedReplaceMode),
+            nameof(ReplacePresentationViewModel.Inspection),
+            nameof(ReplacePresentationViewModel.IsCtrlRamReplaceModeSelected),
+            nameof(ReplacePresentationViewModel.ReplaceMemorySummary),
+            nameof(ReplacePresentationViewModel.IsReplaceCoverageGrouped));
     }
 
     /// <summary>Merge and Replace retain independent modes during repeated page activation.</summary>
@@ -119,5 +254,68 @@ public sealed class ModeSelectorBindingTests
             });
         Dispatcher.UIThread.RunJobs();
         return selector;
+    }
+
+    private static void Track(INotifyPropertyChanged source, List<string> changes)
+    {
+        source.PropertyChanged += (_, args) =>
+        {
+            if (args.PropertyName is { } propertyName)
+            {
+                changes.Add(propertyName);
+            }
+        };
+    }
+
+    private static void AssertPublishedExactlyOnce(
+        IReadOnlyCollection<string> changes,
+        params string[] propertyNames)
+    {
+        Assert.All(
+            propertyNames,
+            propertyName => Assert.Equal(1, changes.Count(change => change == propertyName)));
+    }
+
+    private static void AssertHiddenMergeContextWasNotPublished(IReadOnlyCollection<string> changes)
+    {
+        string[] allowedCommandStateChanges =
+        [
+            nameof(MergePresentationViewModel.CanBuildMerge),
+            nameof(MergePresentationViewModel.PrimaryBuildBlocker),
+            nameof(MergePresentationViewModel.MergeReadinessStatus),
+        ];
+
+        Assert.Empty(changes.Except(allowedCommandStateChanges, StringComparer.Ordinal));
+        Assert.DoesNotContain(nameof(MergePresentationViewModel.MergeModeChoices), changes);
+        Assert.DoesNotContain(nameof(MergePresentationViewModel.SelectedMergeMode), changes);
+        Assert.DoesNotContain(nameof(MergePresentationViewModel.Inspection), changes);
+        Assert.DoesNotContain(nameof(MergePresentationViewModel.IsAbCodeMergeModeSelected), changes);
+        Assert.DoesNotContain(nameof(MergePresentationViewModel.MergeOutputFileName), changes);
+        Assert.DoesNotContain(nameof(MergePresentationViewModel.MergeMemorySummary), changes);
+    }
+
+    private static void AssertHiddenReplaceContextWasNotPublished(IReadOnlyCollection<string> changes)
+    {
+        string[] allowedCommandStateChanges =
+        [
+            nameof(ReplacePresentationViewModel.CanBuildReplace),
+            nameof(ReplacePresentationViewModel.PrimaryBuildBlocker),
+            nameof(ReplacePresentationViewModel.ReplaceReadinessStatus),
+            nameof(ReplacePresentationViewModel.ReplaceSelectionCountLabel),
+            nameof(ReplacePresentationViewModel.ReplaceSelectionSubtitle),
+            nameof(ReplacePresentationViewModel.ReplaceSelectionStatusLabel),
+            nameof(ReplacePresentationViewModel.ReplaceSelectionRunHint),
+            nameof(ReplacePresentationViewModel.ReplaceSelectionRows),
+            nameof(ReplacePresentationViewModel.ReplaceSelectionMissingRows),
+            nameof(ReplacePresentationViewModel.HasReplaceSelectionMissingRows),
+        ];
+
+        Assert.Empty(changes.Except(allowedCommandStateChanges, StringComparer.Ordinal));
+        Assert.DoesNotContain(nameof(ReplacePresentationViewModel.ReplaceModeChoices), changes);
+        Assert.DoesNotContain(nameof(ReplacePresentationViewModel.SelectedReplaceMode), changes);
+        Assert.DoesNotContain(nameof(ReplacePresentationViewModel.Inspection), changes);
+        Assert.DoesNotContain(nameof(ReplacePresentationViewModel.IsGeneralReplaceModeSelected), changes);
+        Assert.DoesNotContain(nameof(ReplacePresentationViewModel.ReplaceOutputFileName), changes);
+        Assert.DoesNotContain(nameof(ReplacePresentationViewModel.ReplaceMemorySummary), changes);
     }
 }

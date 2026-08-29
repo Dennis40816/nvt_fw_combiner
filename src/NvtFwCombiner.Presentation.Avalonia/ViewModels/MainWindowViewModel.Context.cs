@@ -48,7 +48,7 @@ internal sealed partial class MainWindowViewModel
             OnPropertyChanged(nameof(IsDeviceContextVisible));
             OnPropertyChanged(nameof(IsCompositionActionRailVisible));
             OnPropertyChanged(nameof(IsLatestOutputActionVisible));
-            WorkflowSession.NotifyContextTextChanged();
+            WorkflowSession.PublishActiveNavigationContext();
         }
 
         Navigation.UpdateState();

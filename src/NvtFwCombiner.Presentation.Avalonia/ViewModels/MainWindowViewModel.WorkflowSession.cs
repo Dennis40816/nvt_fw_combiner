@@ -55,11 +55,6 @@ internal sealed partial class MainWindowViewModel
         PresentationObserver.Invoke(BeginGeneralMergeFromHomeCommand.NotifyCanExecuteChanged);
     }
 
-    private void WorkflowReplaceModeChanged()
-    {
-        WorkflowSession.ReplaceModeChanged();
-    }
-
     private void ApplyWorkflowContext(WorkflowContextSelection selection)
     {
         WorkflowModeNavigationStage stage =

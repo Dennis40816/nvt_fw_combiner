@@ -16,7 +16,7 @@ internal sealed record MergeStateBindings(
     CompositionRunInvoker RunCompositionAsync,
     Action<UiRunResultViewModel> PublishRunResult,
     Action RefreshNumberChoices,
-    Action NotifySharedContextChanged,
+    Action PublishAcceptedModeContext,
     Func<Task> RefreshSelectedFirmwareInspections,
     Func<string, CancellationToken, Task> SetAbSameTpFileAsync,
     Action ResetRunResult,

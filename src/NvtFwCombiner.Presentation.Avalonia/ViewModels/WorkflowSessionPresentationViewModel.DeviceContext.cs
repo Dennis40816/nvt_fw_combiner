@@ -314,55 +314,6 @@ internal sealed partial class WorkflowSessionPresentationViewModel
                 ResolveNumberWorkflowId());
     }
 
-    internal void RefreshContextState(WorkflowInspectionOwner? owner = null, bool resetRunResult = false,
-        bool preserveReplaceSlotFiles = false, bool notifyModeChoices = true,
-        CapabilitySelectorPublication? selectorPublication = null)
-    {
-        EnsureWorkflowLoaded(selectorPublication);
-        if (!HasWorkflowAuthoringChoices || string.IsNullOrWhiteSpace(SelectedIc))
-        {
-            if (owner is null or WorkflowInspectionOwner.Merge)
-            {
-                _merge.RefreshContextState();
-            }
-            if (owner is null or WorkflowInspectionOwner.Replace)
-            {
-                _replace.ClearUnavailableContextState();
-            }
-            _stateBindings.RefreshCommandState();
-            NotifyContextTextChanged(owner, notifyIcChoices: false, notifyModeChoices: notifyModeChoices);
-            if (resetRunResult)
-            {
-                _stateBindings.ResetRunResult();
-            }
-            return;
-        }
-
-        if (owner == WorkflowInspectionOwner.Merge ||
-            (owner is null && ActiveWorkflowOwner == WorkflowInspectionOwner.Merge))
-        {
-            RefreshGeneralMergeDefaults(GetWorkflowPageIc(WorkflowInspectionOwner.Merge));
-        }
-
-        if (owner is null or WorkflowInspectionOwner.Merge)
-        {
-            _merge.RefreshMergeSlotRequirements();
-            _merge.ApplyFirmwareSlotText();
-            _merge.RefreshMergeMemoryMapState();
-        }
-        if (owner is null or WorkflowInspectionOwner.Replace)
-        {
-            _replace.RefreshContextState(preserveSlotFiles: preserveReplaceSlotFiles, notifyModeChoices: notifyModeChoices);
-            _replace.ApplyFirmwareSlotText();
-        }
-        _refreshCommandAvailability();
-        NotifyContextTextChanged(owner, notifyIcChoices: false, notifyModeChoices: notifyModeChoices);
-        if (resetRunResult)
-        {
-            _stateBindings.ResetRunResult();
-        }
-    }
-
     internal void RefreshCanonicalCatalogState()
     {
         CapabilitySelectorPublication publication =
@@ -407,7 +358,18 @@ internal sealed partial class WorkflowSessionPresentationViewModel
         if (!workflowWasLoaded || !HasWorkflowAuthoringChoices)
         {
             _stateBindings.RefreshCommandState();
-            NotifyContextTextChanged(notifyIcChoices: false);
+            if (workflowWasLoaded)
+            {
+                if (ActiveWorkflowOwner == WorkflowInspectionOwner.Merge)
+                {
+                    _merge.PublishFullContext();
+                }
+                else if (ActiveWorkflowOwner == WorkflowInspectionOwner.Replace)
+                {
+                    _replace.PublishFullContext();
+                }
+            }
+            PublishRefreshedSharedContext();
             return;
         }
 
@@ -529,15 +491,17 @@ internal sealed partial class WorkflowSessionPresentationViewModel
         }
     }
 
-    internal void ReplaceModeChanged()
+    internal void ApplyAcceptedReplaceModeContext()
     {
+        RecordAcceptedModeSelection(_replace.SelectedReplaceMode, "replace");
         ActivateReplaceModeNumberContext();
         InvalidateFirmwareNumberMismatch();
         InvalidateFirmwareInspection(WorkflowInspectionOwner.Replace);
         _replace.InvalidateCtrlRamFirmwareVersionContextState();
         RefreshNumberChoicesForSelectedIc();
-        RefreshContextState(WorkflowInspectionOwner.Replace, resetRunResult: true, notifyModeChoices: false);
-        if (!TryRefreshRetainedReplaceFirmwareInspectionsIfStale())
+        RefreshAcceptedReplaceModeContextState();
+        if (!TryRefreshRetainedReplaceFirmwareInspectionsIfStale() &&
+            ReplaceBaseSlot.CurrentInspectionProjection is null)
         {
             RefreshCtrlRamDisplayFromInspection();
         }
@@ -564,20 +528,17 @@ internal sealed partial class WorkflowSessionPresentationViewModel
         {
             _replace.InvalidateCtrlRamFirmwareVersionContextState();
         }
-        bool mergeModeReconciled = owner == WorkflowInspectionOwner.Merge &&
-            _merge.StageAuthorableModeForCatalogReconciliation(
+        if (owner == WorkflowInspectionOwner.Merge)
+        {
+            _ = _merge.StageAuthorableModeForCatalogReconciliation(
                 workflowId => IsPublishedWorkflowAuthorable(value, workflowId));
+        }
         bool replaceModeReconciled = owner == WorkflowInspectionOwner.Replace &&
             _replace.StageAuthorableModeForCatalogReconciliation(
                 workflowId => IsPublishedWorkflowAuthorable(value, workflowId));
-        if (mergeModeReconciled)
-        {
-            _merge.PublishCatalogReconciledMergeMode();
-        }
         if (replaceModeReconciled)
         {
             ActivateReplaceModeNumberContext();
-            _replace.PublishCatalogReconciledReplaceMode();
         }
 
         IsRefreshingFirmwareInspectionContext = true;

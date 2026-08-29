@@ -244,10 +244,8 @@ internal sealed partial class ReplacePresentationViewModel
         }
 
         _selectedReplaceMode = value;
-        OnPropertyChanged(nameof(SelectedReplaceMode));
-        OnPropertyChanged(nameof(Inspection));
-        NotifyModeChanged(notifyModeChoices: false);
-        _stateBindings.ReplaceModeChanged();
+        _stateBindings.ApplyAcceptedModeContext();
+        PublishAcceptedModeContext();
     }
 
     internal void SelectReplaceMode(string mode)
@@ -314,7 +312,23 @@ internal sealed partial class ReplacePresentationViewModel
 
     internal void PublishCatalogReconciledReplaceMode()
     {
-        if (_catalogReconciliationPreviousMode is { } previousMode)
+        PublishFullContext();
+        _stateBindings.ResetRunResult();
+    }
+
+    internal void PublishFullContext()
+    {
+        PublishContextCore(includeModeChoices: true);
+    }
+
+    internal void PublishAcceptedModeContext()
+    {
+        PublishContextCore(includeModeChoices: false);
+    }
+
+    private void PublishContextCore(bool includeModeChoices)
+    {
+        if (includeModeChoices && _catalogReconciliationPreviousMode is { } previousMode)
         {
             if (previousMode.Length > 0)
             {
@@ -324,13 +338,12 @@ internal sealed partial class ReplacePresentationViewModel
         }
         OnPropertyChanged(nameof(SelectedReplaceMode));
         OnPropertyChanged(nameof(Inspection));
-        NotifyModeChanged();
-        _stateBindings.ResetRunResult();
-    }
-
-    internal void NotifyContextChanged(bool notifyModeChoices = true)
-    {
-        if (notifyModeChoices)
+        OnPropertyChanged(nameof(IsCtrlRamReplaceModeSelected));
+        OnPropertyChanged(nameof(ShowsGenericCoverageStateLegend));
+        OnPropertyChanged(nameof(IsGeneralReplaceModeSelected));
+        OnPropertyChanged(nameof(IsStructuredReplaceModeSelected));
+        OnPropertyChanged(nameof(IsNonCtrlRamStructuredReplaceModeSelected));
+        if (includeModeChoices)
         {
             OnPropertyChanged(nameof(ReplaceModeChoices));
         }
@@ -342,10 +355,9 @@ internal sealed partial class ReplacePresentationViewModel
         OnPropertyChanged(nameof(IsSelectedReplaceModeGoldenVerified));
         OnPropertyChanged(nameof(IsSelectedReplaceModeEvidenceGated));
         OnPropertyChanged(nameof(IsSelectedReplaceModeUnavailable));
-        OnPropertyChanged(nameof(ReplaceOutputFileName));
         OnPropertyChanged(nameof(ReplaceReadinessStatus));
         OnPropertyChanged(nameof(CanBuildReplace));
-        OnPropertyChanged(nameof(ReplaceMemorySummary));
+        PublishReplaceMemoryContext();
         OnPropertyChanged(nameof(CtrlRamFirmwareVersionCurrentValue));
         OnPropertyChanged(nameof(CtrlRamFirmwareVersionMetadataDetail));
         OnPropertyChanged(nameof(CtrlRamFirmwareVersionValidationDetail));
@@ -354,17 +366,6 @@ internal sealed partial class ReplacePresentationViewModel
     internal void NotifyOutputFileNamesChanged()
     {
         OnPropertyChanged(nameof(ReplaceOutputFileName));
-    }
-
-    private void NotifyModeChanged(bool notifyModeChoices = true)
-    {
-        OnPropertyChanged(nameof(IsCtrlRamReplaceModeSelected));
-        OnPropertyChanged(nameof(IsGeneralReplaceModeSelected));
-        OnPropertyChanged(nameof(IsStructuredReplaceModeSelected));
-        OnPropertyChanged(nameof(IsNonCtrlRamStructuredReplaceModeSelected));
-        OnPropertyChanged(nameof(IsReplaceCoverageGrouped));
-        OnPropertyChanged(nameof(IsReplaceCoverageFlat));
-        NotifyContextChanged(notifyModeChoices);
     }
 
     internal void RefreshCommandState()

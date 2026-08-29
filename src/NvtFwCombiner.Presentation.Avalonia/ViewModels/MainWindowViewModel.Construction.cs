@@ -82,7 +82,7 @@ internal sealed partial class MainWindowViewModel
                 RunCompositionAsync,
                 PublishLastRunResult,
                 RefreshWorkflowNumberChoices,
-                () => WorkflowSession!.NotifyContextTextChanged(WorkflowInspectionOwner.Merge, notifyIcChoices: false, notifyModeChoices: false),
+                () => WorkflowSession!.PublishAcceptedMergeSharedContext(),
                 () => WorkflowSession!.RefreshRetainedMergeFirmwareInspectionsIfStaleAsync(),
                 (path, cancellationToken) => WorkflowSession!.SetAbSameTpFileAsync(path, cancellationToken),
                 ResetRunResultForContextChange,
@@ -105,7 +105,7 @@ internal sealed partial class MainWindowViewModel
                  RunCompositionAsync,
                  ShowDiagnosticPreviewAsync,
                  ShowActionReadiness,
-                 WorkflowReplaceModeChanged,
+                 () => WorkflowSession!.ApplyAcceptedReplaceModeContext(),
                 ResetRunResultForContextChange,
                 () => RefreshCommandState(refreshReplaceReadiness: false),
                 OutputDelivery));

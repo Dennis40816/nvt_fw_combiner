@@ -215,6 +215,12 @@ public sealed partial class ShellNavigationSystemTests
         viewModel.ShowMergeCommand.Execute(null);
         string activeMergeIc = viewModel.WorkflowSession.SelectedIc;
         string activeMergeNumber = viewModel.WorkflowSession.SelectedNumber;
+        var mergeChanges = new List<string?>();
+        var replaceChanges = new List<string?>();
+        var workflowChanges = new List<string?>();
+        viewModel.Merge.PropertyChanged += (_, args) => mergeChanges.Add(args.PropertyName);
+        viewModel.Replace.PropertyChanged += (_, args) => replaceChanges.Add(args.PropertyName);
+        viewModel.WorkflowSession.PropertyChanged += (_, args) => workflowChanges.Add(args.PropertyName);
 
         policy.DisableWorkflowFor(withdrawnMode, retainedReplaceIc);
         sentinel.Arm();
@@ -228,11 +234,35 @@ public sealed partial class ShellNavigationSystemTests
             viewModel.WorkflowSession.GetWorkflowPageIc(WorkflowInspectionOwner.Replace));
         Assert.Equal(fallbackMode, viewModel.Replace.SelectedReplaceMode);
         Assert.Equal(0, sentinel.ArmedCallCounts[ReplaceAuthoringPortIndex(withdrawnMode)]);
+        Assert.Equal(1, mergeChanges.Count(propertyName =>
+            propertyName == nameof(MergePresentationViewModel.MergeModeChoices)));
+        Assert.Equal(1, mergeChanges.Count(propertyName =>
+            propertyName == nameof(MergePresentationViewModel.SelectedMergeMode)));
+        Assert.Equal(1, mergeChanges.Count(propertyName =>
+            propertyName == nameof(MergePresentationViewModel.IsNormalMergeModeSelected)));
+        Assert.Equal(1, mergeChanges.Count(propertyName =>
+            propertyName == nameof(MergePresentationViewModel.MergeOutputFileName)));
+        Assert.Equal(1, mergeChanges.Count(propertyName =>
+            propertyName == nameof(MergePresentationViewModel.MergeMemorySummary)));
+        Assert.DoesNotContain(nameof(ReplacePresentationViewModel.ReplaceModeChoices), replaceChanges);
+        Assert.DoesNotContain(nameof(ReplacePresentationViewModel.SelectedReplaceMode), replaceChanges);
+        Assert.DoesNotContain(nameof(ReplacePresentationViewModel.Inspection), replaceChanges);
+        Assert.Contains(nameof(WorkflowSessionPresentationViewModel.IcChoices), workflowChanges);
 
         viewModel.ShowReplaceCommand.Execute(null);
 
         Assert.Equal(retainedReplaceIc, viewModel.WorkflowSession.SelectedIc);
         Assert.Contains(fallbackMode, viewModel.Replace.ReplaceModeChoices);
+        Assert.Equal(1, replaceChanges.Count(propertyName =>
+            propertyName == nameof(ReplacePresentationViewModel.ReplaceModeChoices)));
+        Assert.Equal(1, replaceChanges.Count(propertyName =>
+            propertyName == nameof(ReplacePresentationViewModel.SelectedReplaceMode)));
+        Assert.Equal(1, replaceChanges.Count(propertyName =>
+            propertyName == nameof(ReplacePresentationViewModel.IsStructuredReplaceModeSelected)));
+        Assert.Equal(1, replaceChanges.Count(propertyName =>
+            propertyName == nameof(ReplacePresentationViewModel.ReplaceOutputFileName)));
+        Assert.Equal(1, replaceChanges.Count(propertyName =>
+            propertyName == nameof(ReplacePresentationViewModel.ReplaceMemorySummary)));
         Assert.Equal(0, sentinel.ArmedCallCounts[ReplaceAuthoringPortIndex(withdrawnMode)]);
     }
 

@@ -22,6 +22,19 @@ internal sealed partial class MergePresentationViewModel
 
     internal void RefreshGeneralMergeDefaults(string icId, bool isAuthorable)
     {
+        RefreshGeneralMergeDefaultsCore(icId, isAuthorable, publishChanges: true);
+    }
+
+    internal void PrepareGeneralMergeDefaults(string icId, bool isAuthorable)
+    {
+        RefreshGeneralMergeDefaultsCore(icId, isAuthorable, publishChanges: false);
+    }
+
+    private void RefreshGeneralMergeDefaultsCore(
+        string icId,
+        bool isAuthorable,
+        bool publishChanges)
+    {
         if (!isAuthorable ||
             string.Equals(_generalMergeDefaultsIc, icId, StringComparison.Ordinal))
         {
@@ -46,7 +59,7 @@ internal sealed partial class MergePresentationViewModel
         _generalMergeDefaultsIc = icId;
         _generalMergeDefaultLength = length;
         _generalMergeDefaultFillByte = fillByte;
-        ApplyGeneralMergeOutputInitializer(length, fillByte);
+        ApplyGeneralMergeOutputInitializer(length, fillByte, publishChanges);
     }
 
     private (string Length, string FillByte) GetGeneralMergeDefaults(string icId)

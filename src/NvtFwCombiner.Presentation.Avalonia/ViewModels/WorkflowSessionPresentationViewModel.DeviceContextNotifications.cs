@@ -1,24 +1,47 @@
+using NvtFwCombiner.Application.Diagnostics;
+
 namespace NvtFwCombiner.Presentation.Avalonia.ViewModels;
 
 internal sealed partial class WorkflowSessionPresentationViewModel
 {
-    internal void NotifyContextTextChanged(
-        WorkflowInspectionOwner? owner = null,
-        bool notifyIcChoices = true, bool notifyModeChoices = true)
+    internal void PublishFullWorkflowContext()
     {
-        if (owner is null or WorkflowInspectionOwner.Merge)
-        {
-            _merge.NotifyContextChanged(notifyModeChoices);
-        }
-        if (owner is null or WorkflowInspectionOwner.Replace)
-        {
-            _replace.NotifyContextChanged(notifyModeChoices);
-        }
-        if (notifyIcChoices)
-        {
-            OnPropertyChanged(nameof(IcChoices));
-            OnPropertyChanged(nameof(SelectedIc));
-        }
+        _merge.PublishFullContext();
+        _replace.PublishFullContext();
+        PublishActiveNavigationContext();
+    }
+
+    internal void PublishActiveNavigationContext()
+    {
+        OnPropertyChanged(nameof(IcChoices));
+        OnPropertyChanged(nameof(SelectedIc));
+        NotifySharedContextTextChanged();
+    }
+
+    internal void PublishRefreshedSharedContext()
+    {
+        NotifySharedContextTextChanged();
+    }
+
+    internal void PublishAcceptedMergeSharedContext()
+    {
+        RecordAcceptedModeSelection(_merge.SelectedMergeMode, "merge");
+        NotifySharedContextTextChanged();
+    }
+
+    private void RecordAcceptedModeSelection(string mode, string page)
+    {
+        _recordActivity(new SystemActivityDraft(
+            SystemActivityCodes.ModeSelected,
+            SystemActivityImportance.Debug,
+            SystemActivityCategory.Workflow,
+            SystemActivitySeverity.Information,
+            mode,
+            page));
+    }
+
+    private void NotifySharedContextTextChanged()
+    {
         OnPropertyChanged(nameof(SelectedIcFamilySummary));
         OnPropertyChanged(nameof(SelectedIcFamilyLabel));
         OnPropertyChanged(nameof(SelectedIcFamilyTooltip));

@@ -56,7 +56,7 @@ internal sealed partial class ReplacePresentationViewModel : ObservableObject
         }
         RelocalizeReplaceMemoryMapState();
         OnPropertyChanged(nameof(Text));
-        NotifyContextChanged();
+        PublishFullContext();
         RefreshSelectionState();
     }
 }
