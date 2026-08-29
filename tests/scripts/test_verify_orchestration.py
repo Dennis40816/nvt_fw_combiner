@@ -198,6 +198,94 @@ class VerifyOrchestrationTests(unittest.TestCase):
         self.assertEqual(len(lanes), len({lane.name for lane in lanes}))
         self.assertTrue(all(lane.isolate_action for lane in lanes))
 
+    def test_public_full_plan_completes_structure_before_restore_capable_lanes(
+        self,
+    ) -> None:
+        calls: list[tuple[list[str], int, int]] = []
+
+        def record_phase(lanes, *, jobs, lane_timeout_seconds):
+            calls.append(([lane.name for lane in lanes], jobs, lane_timeout_seconds))
+
+        with (
+            patch.dict(
+                os.environ,
+                {MODULE.INTERNAL_LANE_ENVIRONMENT_VARIABLE: ""},
+                clear=False,
+            ),
+            patch.object(MODULE, "run_selected_lanes", side_effect=record_phase),
+            contextlib.redirect_stdout(io.StringIO()),
+        ):
+            result = MODULE.execute_verification(MODULE.parse_args(["--all"]))
+
+        self.assertEqual(0, result)
+        self.assertEqual(
+            [
+                (
+                    ["structure"],
+                    MODULE.DEFAULT_VERIFY_JOBS,
+                    MODULE.DEFAULT_LANE_TIMEOUT_SECONDS,
+                ),
+                (
+                    ["python", "dotnet"],
+                    MODULE.DEFAULT_VERIFY_JOBS,
+                    MODULE.DEFAULT_LANE_TIMEOUT_SECONDS,
+                ),
+            ],
+            calls,
+        )
+
+    def test_public_full_plan_stops_before_restore_when_structure_fails(self) -> None:
+        calls: list[list[str]] = []
+
+        def fail_structure(lanes, *, jobs, lane_timeout_seconds):
+            del jobs, lane_timeout_seconds
+            calls.append([lane.name for lane in lanes])
+            raise RuntimeError("structure failed")
+
+        with (
+            patch.dict(
+                os.environ,
+                {MODULE.INTERNAL_LANE_ENVIRONMENT_VARIABLE: ""},
+                clear=False,
+            ),
+            patch.object(MODULE, "run_selected_lanes", side_effect=fail_structure),
+            contextlib.redirect_stdout(io.StringIO()),
+            contextlib.redirect_stderr(io.StringIO()),
+        ):
+            result = MODULE.execute_verification(MODULE.parse_args(["--all"]))
+
+        self.assertEqual(1, result)
+        self.assertEqual([["structure"]], calls)
+
+    def test_public_single_phase_plans_keep_one_execution_phase(self) -> None:
+        calls: list[list[str]] = []
+
+        def record_phase(lanes, *, jobs, lane_timeout_seconds):
+            del jobs, lane_timeout_seconds
+            calls.append([lane.name for lane in lanes])
+
+        with (
+            patch.dict(
+                os.environ,
+                {MODULE.INTERNAL_LANE_ENVIRONMENT_VARIABLE: ""},
+                clear=False,
+            ),
+            patch.object(MODULE, "run_selected_lanes", side_effect=record_phase),
+            contextlib.redirect_stdout(io.StringIO()),
+        ):
+            self.assertEqual(
+                0,
+                MODULE.execute_verification(MODULE.parse_args(["--structure-only"])),
+            )
+            self.assertEqual(
+                0,
+                MODULE.execute_verification(
+                    MODULE.parse_args(["--skip-structure", "--skip-python"])
+                ),
+            )
+
+        self.assertEqual([["structure"], ["dotnet"]], calls)
+
     def test_package_import_works_without_a_scripts_pythonpath_entry(self) -> None:
         environment = os.environ.copy()
         environment.pop("PYTHONPATH", None)
@@ -2823,7 +2911,7 @@ class VerifyOrchestrationTests(unittest.TestCase):
                 (
                     "tests/NvtFwCombiner.UiSmoke.Tests/"
                     "NvtFwCombiner.UiSmoke.Tests.csproj",
-                    825,
+                    827,
                     0,
                 ),
             ),
@@ -2837,7 +2925,7 @@ class VerifyOrchestrationTests(unittest.TestCase):
                 (
                     "tests/NvtFwCombiner.Application.Tests/"
                     "NvtFwCombiner.Application.Tests.csproj",
-                    896,
+                    917,
                     0,
                 ),
                 (
@@ -2902,7 +2990,7 @@ class VerifyOrchestrationTests(unittest.TestCase):
         self.assertEqual(8, len(set(flattened)))
         self.assertEqual(solution_test_projects, set(flattened))
         self.assertEqual(
-            4667, sum(total for projects in actual.values() for _, total, _ in projects)
+            4690, sum(total for projects in actual.values() for _, total, _ in projects)
         )
         self.assertEqual(
             2,

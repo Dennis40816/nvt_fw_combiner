@@ -20,10 +20,22 @@ public sealed partial class RepositoryBoundaryTests
             "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/WorkflowSessionPresentationViewModel.WorkflowContext.cs");
         string mainContext = ReadText(
             "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/MainWindowViewModel.Context.cs");
+        string mainModeObservers = ReadText(
+            "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/MainWindowViewModel.MergePresentation.cs") +
+            ReadText(
+                "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/MainWindowViewModel.ReplacePresentation.cs");
         string construction = ReadText(
             "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/MainWindowViewModel.Construction.cs");
         string mergeState = ReadText(
             "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/MergePresentationViewModel.State.cs");
+        string notifications = ReadText(
+            "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/WorkflowSessionPresentationViewModel.DeviceContextNotifications.cs");
+        string mergeBindings = ReadText(
+            "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/MergeStateBindings.cs");
+        string replaceState = ReadText(
+            "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/ReplacePresentationViewModel.State.cs");
+        string replaceMemory = ReadText(
+            "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/ReplacePresentationViewModel.Memory.cs");
         static string Slice(string source, string startToken, string endToken)
         {
             int start = source.IndexOf(startToken, StringComparison.Ordinal);
@@ -150,6 +162,8 @@ public sealed partial class RepositoryBoundaryTests
         Assert.Matches(@"RefreshContextState\(\s*owner,", deviceContext);
         Assert.Contains("WorkflowSession.RememberCurrentWorkflowContext()", mainContext, StringComparison.Ordinal);
         Assert.Contains("WorkflowSession.ActivateWorkflowPageContext(page)", mainContext, StringComparison.Ordinal);
+        Assert.Contains("WorkflowSession.PublishActiveNavigationContext()", mainContext, StringComparison.Ordinal);
+        Assert.DoesNotContain("WorkflowSession.PublishFullWorkflowContext()", mainContext, StringComparison.Ordinal);
         Assert.Contains(
             "GetWorkflowPageIc(WorkflowInspectionOwner.Merge)",
             construction,
@@ -159,5 +173,22 @@ public sealed partial class RepositoryBoundaryTests
             construction,
             StringComparison.Ordinal);
         Assert.DoesNotContain("RememberReplaceWorkflowContext", workflowContext + deviceContext, StringComparison.Ordinal);
+        AssertContainsAll(
+            notifications,
+            "PublishAcceptedMergeSharedContext",
+            "PublishRefreshedSharedContext");
+        Assert.Contains("ApplyAcceptedReplaceModeContext", deviceContext, StringComparison.Ordinal);
+        Assert.Contains("RecordAcceptedModeSelection", notifications + deviceContext, StringComparison.Ordinal);
+        Assert.DoesNotContain("SystemActivityCodes.ModeSelected", mainModeObservers, StringComparison.Ordinal);
+        Assert.Contains("PublishAcceptedModeContext", mergeBindings, StringComparison.Ordinal);
+        Assert.Contains("PublishAcceptedMergeSharedContext", construction, StringComparison.Ordinal);
+        Assert.Contains("PublishAcceptedModeContext", mergeState, StringComparison.Ordinal);
+        Assert.Contains("PublishAcceptedModeContext", replaceState, StringComparison.Ordinal);
+        Assert.Contains("PrepareAcceptedModeContextState", replaceMemory, StringComparison.Ordinal);
+        AssertDoesNotContainAny(
+            notifications + deviceContext + construction + mergeState + mergeBindings + replaceState + replaceMemory,
+            "notifyIcChoices",
+            "notifyModeChoices",
+            "NotifySharedContextChanged");
     }
 }

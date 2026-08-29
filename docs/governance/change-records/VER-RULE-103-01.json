@@ -1,0 +1,34 @@
+{
+  "schemaVersion": 2,
+  "taskId": "VER-RULE-103-01",
+  "capability": "Document and directly test the existing stable application-version identity contract",
+  "integrationBase": "2823c30ae165f84b3d8145107fd61d2c43546f1c",
+  "risk": "R2",
+  "kind": "governance",
+  "state": "final-complete",
+  "mutablePaths": [
+    "docs/governance/branch-version-and-release-governance.md"
+  ],
+  "implementationOwner": "primary-agent",
+  "searchEvidence": [
+    "rg -n 'ManagedAppVersion|STABLE_VERSION|sourceTag|v\\$version|VERSION must be stable SemVer' src tests scripts .github docs/governance",
+    "ManagedAppVersion is already the only runtime/catalog/state/managed-installation parser and accepts only canonical stable major.minor.patch",
+    "release_promotion_policy.py and release.yml already prove VERSION, v{VERSION}, package manifest and asset identity agreement"
+  ],
+  "semanticOwner": "ManagedAppVersion for runtime admission and the existing release-promotion policy for source/tag/package identity",
+  "terminalContract": "Public application versions remain canonical stable major.minor.patch with no prefix, prerelease, build metadata, fourth component or leading-zero alias; VERSION is the source identity, the stable tag is v{VERSION}, and the package/manifest/catalog identities must agree with that version",
+  "disposition": "extend-owner",
+  "designReview": {
+    "reviewer": "final_architecture_review",
+    "outcome": "approved",
+    "evidence": "Independent R2 review approved the bounded governance-and-test change: document the existing canonical stable major.minor.patch identity and VERSION-to-tag/package/manifest/catalog mapping in the current branch/version governance owner, and add direct ManagedAppVersion parser and ordering tests. No production parser, prerelease support, version type, schema, workflow, runtime behavior, package policy or firmware authority may change."
+  },
+  "implementationHead": "33c0444d0de1104d3838da9bc500a0e6911dc709",
+  "reviewedHead": "33c0444d0de1104d3838da9bc500a0e6911dc709",
+  "pathStateDigest": "0a407f310957f39298a440ac3a3e237d8e281ada99b40ba8f4592e407617d9a3",
+  "finalReview": {
+    "reviewer": "final_architecture_review",
+    "outcome": "approved",
+    "evidence": "Exact implementation head 33c0444d0de1104d3838da9bc500a0e6911dc709 was independently reviewed against parent 1fe00aeeae05479878d2dff0eb525cfc99de37fa: it only documents the existing canonical stable major.minor.patch and VERSION-to-v{VERSION}-to-package/manifest/catalog identity in the established governance owner and adds direct ManagedAppVersion acceptance, rejection, and numeric-ordering tests; no production, parser, prerelease, schema, workflow, package, firmware, or runtime semantics changed, and focused Application 57/57 plus release-policy 34/34 passed."
+  }
+}

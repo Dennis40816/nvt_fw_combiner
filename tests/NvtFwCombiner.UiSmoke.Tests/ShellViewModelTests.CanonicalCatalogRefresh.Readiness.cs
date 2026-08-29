@@ -566,7 +566,7 @@ public sealed partial class ShellNavigationSystemTests
             accepted.InputSlotCatalog?.ResolutionToken);
         int verifiedBatchCount = reader.BatchCount;
 
-        viewModel.WorkflowSession.ReplaceModeChanged();
+        viewModel.WorkflowSession.ApplyAcceptedReplaceModeContext();
         await AwaitStableInspectionAsync(viewModel.Replace.Inspection);
 
         Assert.Equal(verifiedBatchCount, reader.BatchCount);

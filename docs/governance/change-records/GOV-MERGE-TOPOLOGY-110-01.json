@@ -1,0 +1,37 @@
+{
+  "schemaVersion": 2,
+  "taskId": "GOV-MERGE-TOPOLOGY-110-01",
+  "capability": "Normalize tree-transparent containment merges without weakening capability or authority history",
+  "integrationBase": "298fec58598c963ebb0affe990ad8a02417691b7",
+  "risk": "R3",
+  "kind": "governance",
+  "state": "final-complete",
+  "mutablePaths": [
+    "docs/adr/0061-tree-transparent-merge-history-normalization.md",
+    "docs/governance/capability-reuse-record.md",
+    "docs/governance/development-execution-workflow.md",
+    "scripts/validate_repository.py"
+  ],
+  "implementationOwner": "primary-agent",
+  "searchEvidence": [
+    "The exact reviewed PR 401 head 298fec58598c963ebb0affe990ad8a02417691b7 passes repository validation, while its GitHub merge commit 017d5390c56f7b66870a5df0bb981bd5ec37f7b1 fails only because diff-tree -m repeats the already-audited PR changes against the first parent.",
+    "Commit 017d5390 has exactly two parents; its complete tree 13ad6e9f8b09896ff68df783ce502aa366bde134 equals only second-parent 298fec58, first-parent 0328f550 is an ancestor of that second parent, and the complete 298fec58..017d5390 tree diff is empty.",
+    "scripts/validate_repository.py already owns immutable record and attestation history through _record_changed_in_commits_after; extending that owner is smaller and safer than a second checkpoint, record retirement, history rewrite, or merge-specific release bypass."
+  ],
+  "semanticOwner": "scripts/validate_repository.py remains the only capability and external-authority history validator",
+  "terminalContract": "When auditing whether an immutable record, attestation, or checkpoint path changed after its evidence commit, treat one merge node as a duplicate history edge only when it has exactly two parents, its complete Git tree equals exactly one parent tree, and the other parent is an ancestor of that tree-equivalent parent. Continue auditing every commit in both ancestry paths. Any distinct tree, octopus merge, non-contained parent, later mutation, changed-then-restored content, or Git inspection error remains fail-closed. No checkpoint, record, attestation, risk, owner, firmware, release, or path-coverage semantics change.",
+  "disposition": "extend-owner",
+  "designReview": {
+    "reviewer": "final_architecture_review",
+    "outcome": "approved",
+    "evidence": "Independent R3 design review verified the exact 017d5390 topology and approved a helper limited to _record_changed_in_commits_after. It rejected the broader recovery-manifest design and required continued ancestry traversal plus negative coverage for distinct-tree, non-ancestor, octopus, true mutation, changed-then-restored, final-record, and attestation paths. No P0, P1, or P2 design finding remains."
+  },
+  "implementationHead": "36bec27b6d69fb5f7e0137fc5becbac87b8b2f97",
+  "reviewedHead": "36bec27b6d69fb5f7e0137fc5becbac87b8b2f97",
+  "pathStateDigest": "c84294dd0e1daa180930615ed25f647483977e2e058b44296c6440e5e0604608",
+  "finalReview": {
+    "reviewer": "final_architecture_review",
+    "outcome": "approved",
+    "evidence": "Exact-head R3 architecture and Polytail review of 36bec27b6d69fb5f7e0137fc5becbac87b8b2f97 verified that the sole immutable-history owner normalizes only two-parent tree-transparent containment merges, keeps every ancestry commit audited, and fails closed on all Git inspection errors. All 99 real Git-topology governance tests passed, including final-record, attestation, distinct-tree, non-contained, equal-tree, octopus, mutation-and-restore, and inspection-failure cases, with no firmware, runtime, package, or evidence mutation. No P0, P1, or P2 finding remained."
+  }
+}

@@ -9,6 +9,12 @@ internal sealed partial class MergePresentationViewModel
 
     internal void RefreshMergeMemoryMapState(bool refreshAuthoring = true)
     {
+        PrepareMergeMemoryMapState(refreshAuthoring);
+        PublishMergeMemoryContext();
+    }
+
+    private void PrepareMergeMemoryMapState(bool refreshAuthoring = true)
+    {
         lock (_memoryProjectionGate)
         {
             if (refreshAuthoring && IsGeneralMergeModeSelected)
@@ -45,10 +51,13 @@ internal sealed partial class MergePresentationViewModel
                 MergeCoverageRows,
                 ReplaceRegionGroupBuilder.CreateLogicalItems(coverageSegments, Text)
                     .SelectMany(static item => item.Ranges));
-
-            OnPropertyChanged(nameof(MergeMemoryRangeLabel));
-            OnPropertyChanged(nameof(MergeMemorySummary));
         }
+    }
+
+    private void PublishMergeMemoryContext()
+    {
+        OnPropertyChanged(nameof(MergeMemoryRangeLabel));
+        OnPropertyChanged(nameof(MergeMemorySummary));
     }
 
     private static void ReplaceRows<T>(ObservableCollection<T> target, IEnumerable<T> rows)

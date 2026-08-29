@@ -113,14 +113,6 @@ internal sealed partial class WorkflowSessionPresentationViewModel
             _ => throw new InvalidOperationException("Unknown workflow inspection owner."),
         };
         PublishActiveSelectorState(activeIc, activeNumber);
-        if (mergeReconciliation.ModeChanged)
-        {
-            _merge.PublishCatalogReconciledMergeMode();
-        }
-        if (replaceReconciliation.ModeChanged)
-        {
-            _replace.PublishCatalogReconciledReplaceMode();
-        }
         PublishCurrentCatalogChoices();
     }
 
@@ -150,6 +142,13 @@ internal sealed partial class WorkflowSessionPresentationViewModel
     private void RefreshGeneralMergeDefaults(string icId)
     {
         _merge.RefreshGeneralMergeDefaults(
+            icId,
+            IsPublishedWorkflowAuthorable(icId, ExperienceIds.GeneralMerge));
+    }
+
+    private void PrepareGeneralMergeDefaults(string icId)
+    {
+        _merge.PrepareGeneralMergeDefaults(
             icId,
             IsPublishedWorkflowAuthorable(icId, ExperienceIds.GeneralMerge));
     }

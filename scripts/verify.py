@@ -291,7 +291,7 @@ CI_DOTNET_SHARDS: dict[str, tuple[CiDotnetProject, ...]] = {
     "ui": (
         CiDotnetProject(
             "tests/NvtFwCombiner.UiSmoke.Tests/NvtFwCombiner.UiSmoke.Tests.csproj",
-            825,
+            827,
             requires_exclusive_local_coverage=True,
         ),
     ),
@@ -303,7 +303,7 @@ CI_DOTNET_SHARDS: dict[str, tuple[CiDotnetProject, ...]] = {
         CiDotnetProject(
             "tests/NvtFwCombiner.Application.Tests/"
             "NvtFwCombiner.Application.Tests.csproj",
-            896,
+            917,
         ),
         CiDotnetProject(
             "tests/NvtFwCombiner.Infrastructure.Tests/"
@@ -2996,8 +2996,18 @@ def execute_verification(args: argparse.Namespace) -> int:
         )
 
     try:
+        lanes = selected_lanes(args)
+        if any(lane.name == "structure" for lane in lanes) and any(
+            lane.name == "dotnet" for lane in lanes
+        ):
+            run_selected_lanes(
+                tuple(lane for lane in lanes if lane.name == "structure"),
+                jobs=args.jobs,
+                lane_timeout_seconds=args.lane_timeout_seconds,
+            )
+            lanes = tuple(lane for lane in lanes if lane.name != "structure")
         run_selected_lanes(
-            selected_lanes(args),
+            lanes,
             jobs=args.jobs,
             lane_timeout_seconds=args.lane_timeout_seconds,
         )

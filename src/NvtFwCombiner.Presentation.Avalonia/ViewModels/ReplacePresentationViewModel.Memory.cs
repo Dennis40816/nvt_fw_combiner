@@ -51,11 +51,17 @@ internal sealed partial class ReplacePresentationViewModel
 
     public bool ShowsGenericCoverageStateLegend => !IsCtrlRamReplaceModeSelected;
 
-    internal void RefreshContextState(bool preserveSlotFiles = false, bool notifyModeChoices = true)
+    internal void RefreshContextState(bool preserveSlotFiles = false)
     {
         RefreshReplaceModeState(preserveSlotFiles: preserveSlotFiles);
-        RefreshReplaceMemoryMapState();
-        NotifyContextChanged(notifyModeChoices);
+        PrepareReplaceMemoryMapState();
+        PublishFullContext();
+    }
+
+    internal void PrepareAcceptedModeContextState(bool preserveSlotFiles = false)
+    {
+        RefreshReplaceModeState(preserveSlotFiles: preserveSlotFiles);
+        PrepareReplaceMemoryMapState();
     }
 
     internal void ClearUnavailableContextState()
@@ -76,7 +82,7 @@ internal sealed partial class ReplacePresentationViewModel
                 Text.FirmwareSlotPendingFactDetail);
         }
         InspectionLifecycles[GeneralReplaceMode].Invalidate();
-        NotifyContextChanged();
+        PublishFullContext();
     }
 
     private void RefreshReplaceSlotGroups()
@@ -114,24 +120,34 @@ internal sealed partial class ReplacePresentationViewModel
 
     internal void ClearCtrlRamInspectionDisplay()
     {
+        PrepareClearCtrlRamInspectionDisplay();
+        PublishReplaceMemoryContext();
+    }
+
+    private void PrepareClearCtrlRamInspectionDisplay()
+    {
         CtrlRamRegions.Clear();
         ReplaceMemoryRangeLabel = string.Empty;
         ReplaceMemoryRows.Clear();
         ReplaceCoverageSegments.Clear();
         ReplaceCoverageGroups.Clear();
-        OnPropertyChanged(nameof(ReplaceMemoryRangeLabel));
-        OnPropertyChanged(nameof(HasObservedMemoryChanges));
-        NotifyCoverageGroupingChanged();
     }
 
     /// <summary>Returns dynamic CtrlRAM inputs to discovery state after their Base identity is cleared.</summary>
     internal void ClearCtrlRamBaseSelectionState()
     {
-        ClearCtrlRamInspectionDisplay();
+        PrepareClearCtrlRamInspectionDisplay();
         RefreshReplaceModeState();
+        PublishAcceptedModeContext();
     }
 
     internal void ApplyCtrlRamInspectionDisplay(CtrlRamInspectionDisplay display)
+    {
+        PrepareCtrlRamInspectionDisplay(display);
+        PublishAcceptedModeContext();
+    }
+
+    private void PrepareCtrlRamInspectionDisplay(CtrlRamInspectionDisplay display)
     {
         ArgumentNullException.ThrowIfNull(display);
 
@@ -176,16 +192,22 @@ internal sealed partial class ReplacePresentationViewModel
             return;
         }
 
-        RefreshReplaceMemoryMapState(refreshAuthoring: false);
+        PrepareReplaceMemoryMapState(refreshAuthoring: false);
     }
 
     internal void RefreshReplaceMemoryMapState(bool refreshAuthoring = true)
+    {
+        PrepareReplaceMemoryMapState(refreshAuthoring);
+        PublishReplaceMemoryContext();
+    }
+
+    private void PrepareReplaceMemoryMapState(bool refreshAuthoring = true)
     {
         if (IsCtrlRamReplaceModeSelected && ReplaceBaseSlot.HasFile)
         {
             if (_stateBindings.GetBaseInspection() is { } inspection)
             {
-                ApplyCtrlRamInspectionDisplay(FirmwareInspectionProjection.ResolveCtrlRamDisplay(
+                PrepareCtrlRamInspectionDisplay(FirmwareInspectionProjection.ResolveCtrlRamDisplay(
                     _compositionServices.FirmwareInspection,
                     inspection,
                     SelectedIc,
@@ -193,7 +215,7 @@ internal sealed partial class ReplacePresentationViewModel
             }
             else
             {
-                ClearCtrlRamInspectionDisplay();
+                PrepareClearCtrlRamInspectionDisplay();
             }
 
             return;
@@ -210,8 +232,6 @@ internal sealed partial class ReplacePresentationViewModel
             IReadOnlyList<MemoryCoverageSegmentViewModel> replaceCoverageSegments) =
             GetSelectedReplaceMemoryDisplay();
         ApplyReplaceMemoryDisplay(replaceRangeLabel, replaceRows, replaceCoverageSegments);
-
-        OnPropertyChanged(nameof(ReplaceOutputFileName));
     }
 
     private void ApplyReplaceMemoryDisplay(
@@ -223,10 +243,15 @@ internal sealed partial class ReplacePresentationViewModel
         ReplaceRows(ReplaceMemoryRows, rows);
         ReplaceRows(ReplaceCoverageSegments, coverageSegments);
         RefreshReplaceCoverageGroups();
+    }
+
+    private void PublishReplaceMemoryContext()
+    {
         OnPropertyChanged(nameof(ReplaceMemoryRangeLabel));
         OnPropertyChanged(nameof(ReplaceMemorySummary));
         OnPropertyChanged(nameof(HasObservedMemoryChanges));
         NotifyCoverageGroupingChanged();
+        OnPropertyChanged(nameof(ReplaceOutputFileName));
     }
 
     private void NotifyCoverageGroupingChanged()
@@ -327,19 +352,6 @@ internal sealed partial class ReplacePresentationViewModel
 
         ApplyFirmwareSlotText();
         RefreshReplaceSlotGroups();
-        OnPropertyChanged(nameof(SelectedReplaceModeDescription));
-        OnPropertyChanged(nameof(SelectedReplaceWorkflowReadiness));
-        OnPropertyChanged(nameof(SelectedReplaceModeEvidenceLabel));
-        OnPropertyChanged(nameof(SelectedReplaceModeEvidenceTooltip));
-        OnPropertyChanged(nameof(IsSelectedReplaceModeGoldenVerified));
-        OnPropertyChanged(nameof(IsSelectedReplaceModeEvidenceGated));
-        OnPropertyChanged(nameof(IsSelectedReplaceModeUnavailable));
-        OnPropertyChanged(nameof(IsCtrlRamReplaceModeSelected));
-        OnPropertyChanged(nameof(ShowsGenericCoverageStateLegend));
-        OnPropertyChanged(nameof(IsGeneralReplaceModeSelected));
-        OnPropertyChanged(nameof(IsStructuredReplaceModeSelected));
-        OnPropertyChanged(nameof(IsNonCtrlRamStructuredReplaceModeSelected));
-        OnPropertyChanged(nameof(ReplaceOutputFileName));
         if (usesPreparedDpProjection && dpProjection is not null)
         {
             _preparedDpReplaceIc = SelectedIc;

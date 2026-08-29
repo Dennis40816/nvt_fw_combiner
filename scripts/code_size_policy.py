@@ -90,14 +90,14 @@ class CodeSizeSnapshot:
 
 
 DEFAULT_LIMITS = CodeSizeLimits(
-    production_nonblank=120_998,
+    production_nonblank=121_059,
     duplicate_json_nonblank=0,
     partial_type_default_max=2_500,
     partial_type_exact_ratchets={},
     partial_type_named_maximums={
         "NvtFwCombiner.Presentation.Avalonia.ViewModels.MainWindowViewModel": 985,
         "NvtFwCombiner.Presentation.Avalonia.ViewModels.ShellTextResources": 2_501,
-        "NvtFwCombiner.Presentation.Avalonia.ViewModels.WorkflowSessionPresentationViewModel": 2_578,
+        "NvtFwCombiner.Presentation.Avalonia.ViewModels.WorkflowSessionPresentationViewModel": 2_626,
         "NvtFwCombiner.Profiles.V2.V2CompositionPlanCompiler": 2_798,
     },
     runtime_production_baseline=45_214,
@@ -112,7 +112,7 @@ DEFAULT_LIMITS = CodeSizeLimits(
     application_allowance=7_494,
     bootstrap_cli_allowance=680,
     infrastructure_contracts_worker_allowance=5_186,
-    full_production_allowance=18_102,
+    full_production_allowance=18_163,
 )
 
 

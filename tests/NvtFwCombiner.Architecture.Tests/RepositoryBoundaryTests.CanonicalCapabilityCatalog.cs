@@ -202,13 +202,23 @@ public sealed partial class RepositoryBoundaryTests
         Assert.DoesNotContain("RefreshSelectedFirmwareInspections", stagedFallback, StringComparison.Ordinal);
         Assert.DoesNotContain("_compositionServices", stagedFallback, StringComparison.Ordinal);
         Assert.DoesNotContain("NotifyContextChanged", stagedFallback, StringComparison.Ordinal);
+        Assert.DoesNotContain(
+            "PublishCatalogReconciledMergeMode",
+            selectorProjection,
+            StringComparison.Ordinal);
+        Assert.DoesNotContain(
+            "PublishCatalogReconciledReplaceMode",
+            selectorProjection,
+            StringComparison.Ordinal);
+        int activeSelectorPublication = selectorProjection.IndexOf(
+            "PublishActiveSelectorState(activeIc, activeNumber);",
+            StringComparison.Ordinal);
+        Assert.True(activeSelectorPublication >= 0);
         Assert.True(
             selectorProjection.IndexOf(
-                "PublishActiveSelectorState(activeIc, activeNumber);",
-                StringComparison.Ordinal) <
-            selectorProjection.IndexOf(
-                "_merge.PublishCatalogReconciledMergeMode();",
-                StringComparison.Ordinal));
+                "PublishCurrentCatalogChoices();",
+                activeSelectorPublication,
+                StringComparison.Ordinal) > activeSelectorPublication);
         Assert.Contains(
             "_selectorPublication.ResolutionToken == publication.ResolutionToken",
             deviceContext,

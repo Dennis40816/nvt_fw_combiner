@@ -1,0 +1,34 @@
+{
+  "schemaVersion": 2,
+  "taskId": "TEST-UI-COUNT-103-01",
+  "capability": "Keep the canonical .NET evidence inventory synchronized with the two admitted owner-scoped page publication regressions",
+  "integrationBase": "55879f6f65204d02c5b6345a0385a6d40a5a53f3",
+  "risk": "R2",
+  "kind": "governance",
+  "state": "final-complete",
+  "mutablePaths": [
+    "scripts/verify.py"
+  ],
+  "implementationOwner": "primary-agent",
+  "searchEvidence": [
+    "The canonical full gate observed 827 UiSmoke tests passed while CI_DOTNET_SHARDS still required 825.",
+    "Commit 0f4985a6 added exactly two AvaloniaFact mode-selector regression methods and no later UiSmoke test changes exist through checkpoint 55879f6f.",
+    "tests/scripts/test_verify_orchestration.py is the existing closed inventory regression for the scripts/verify.py CI_DOTNET_SHARDS owner."
+  ],
+  "semanticOwner": "scripts/verify.py CI_DOTNET_SHARDS exact producer evidence inventory",
+  "terminalContract": "The UiSmoke producer evidence must contain exactly 827 total tests with zero failures and zero skips, and the closed eight-project aggregate must contain exactly 4669 tests with the existing two Infrastructure skips; all mismatches remain fail-closed",
+  "disposition": "extend-owner",
+  "designReview": {
+    "reviewer": "final_architecture_review",
+    "outcome": "findings-incorporated",
+    "evidence": "Independent R2 review at checkpoint 55879f6f65204d02c5b6345a0385a6d40a5a53f3 confirmed that 0f4985a6 added exactly two real UiSmoke regressions with no later UiSmoke test changes, raising the closed inventory from 825 to 827; extending the existing scripts/verify.py CI_DOTNET_SHARDS owner by changing only that project cardinality, with ungoverned expectations updated to 827 and aggregate 4,669, preserves exact fail-closed counter enforcement and changes no test discovery/execution, production, XAML, firmware, package, update, or I/O semantics."
+  },
+  "implementationHead": "1105ec9bba10f62ccaccb8c3d5721fd9d1cf6fdb",
+  "reviewedHead": "1105ec9bba10f62ccaccb8c3d5721fd9d1cf6fdb",
+  "pathStateDigest": "2c7e82e242047669de456a861cd899b6b5cc6aca34dc2ea000a9f0baf762c873",
+  "finalReview": {
+    "reviewer": "final_evidence_review",
+    "outcome": "approved",
+    "evidence": "Independent exact-head R2 review at 1105ec9bba10f62ccaccb8c3d5721fd9d1cf6fdb confirmed a direct child of 55879f6f65204d02c5b6345a0385a6d40a5a53f3 whose only governed change synchronizes the canonical UiSmoke producer inventory from 825 to the observed 827 tests. Ancestor 0f4985a6 added exactly two real AvaloniaFact owner-scoped page-publication regressions, and no later UiSmoke test-path changes occurred through the integration checkpoint. The closed eight-project aggregate therefore moves exactly from 4,667 to 4,669 while UiSmoke remains zero-failure/zero-skip and the two existing Infrastructure skips remain unchanged. No test command, filter, discovery, skip, project inventory, coverage, TRX, manifest, or hash-validation behavior changed. No production, XAML, firmware, profile, golden, schema, package, Catalog, Registry, Launcher, or update semantics changed. The red regression first reproduced expected 827 versus stale actual 825; the corrected targeted test passed 1/1, the complete orchestration suite passed 109 tests with four platform skips, the full producer observed 827/827, and staged final-record repository validation passed. Record integration base, risk, semantic owner, terminal contract, and exact mutable-path ownership are valid. No P0, P1, or P2 findings remain."
+  }
+}

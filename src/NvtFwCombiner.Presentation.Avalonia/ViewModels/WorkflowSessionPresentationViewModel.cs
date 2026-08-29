@@ -94,7 +94,7 @@ internal sealed partial class WorkflowSessionPresentationViewModel : ObservableO
         RelocalizeFirmwareFacts();
         RelocalizeInputInspection();
         PresentationObserver.Invoke(() => OnPropertyChanged(nameof(Text)));
-        PresentationObserver.Invoke(() => NotifyContextTextChanged());
+        PresentationObserver.Invoke(PublishFullWorkflowContext);
     }
 
     private void RelocalizeFirmwareFacts()

@@ -1,7 +1,7 @@
 # NVT FW Combiner（NFC）實作規格
 
-> 文件狀態：`1.0.2 mode-selector hotfix candidate; v1.0.1 is the stable predecessor`
-> 文件版本：`1.0.2`
+> 文件狀態：`1.0.3 page-publication hardening candidate; v1.0.2 is the stable predecessor`
+> 文件版本：`1.0.3`
 > 基準日期：`2026-08-13`
 > 產品名稱：`NVT FW Combiner`
 > 短名：`NFC`

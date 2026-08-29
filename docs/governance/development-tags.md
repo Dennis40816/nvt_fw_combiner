@@ -92,6 +92,10 @@ commit.
 - `v1.0.2` — mode-selector hotfix milestone: keep the first user-selected Merge
   or Replace mode active under live TwoWay binding without changing page
   layout, firmware support, composition bytes, output naming, or evidence.
+- `v1.0.3` — page-publication hardening milestone: give the retained Merge and
+  Replace page owners explicit publication intents so an accepted mode change
+  cannot republish either live selector's choices or notify the hidden page.
+  Layout, firmware behavior, output bytes, naming, and support remain unchanged.
 
 ### Recorded `v0.10.2` pre-deletion comparison point
 
