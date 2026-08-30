@@ -5,7 +5,7 @@
   "integrationBase": "e486b0a49120de2c3bae3152e5f155fe141caabb",
   "risk": "R3",
   "kind": "release",
-  "state": "design-active",
+  "state": "final-complete",
   "mutablePaths": [
     "src/NvtFwCombiner.Cli/packages.lock.json",
     "src/NvtFwCombiner.Launcher/packages.lock.json"
@@ -26,12 +26,12 @@
     "outcome": "findings-incorporated",
     "evidence": "Independent architecture admission rejected the initial four-file inventory after finding the same stale transitive graph in Launcher, then rejected a Platform-only Bootstrap.Tests projection after tracing its existing DistributionLauncher reference and the previously authorized Avalonia 12.0.5 closure. A second architecture review and an independent lock audit reproduced both non-RID and RID Launcher NU1004 outcomes, required the release-shaped win-x64 graph, and rejected non-RID project-targeted locked restores as unsatisfiable evidence for base-only test roots whose existing transitive release locks are RID-aware. Repository validation then enforced the canonical governance boundary: only the CLI and Launcher production locks are governed mutable paths, while the three test locks remain adjacent verification projections. The corrected boundary therefore admits the complete existing Bootstrap.Tests graph, one empty Launcher RID target, project-targeted force-evaluate regeneration, unchanged CLI RID target, authoritative package identity/version/hash equality, production-shaped locked restore plus canonical no-restore test evidence, and no new ADR or verifier."
   },
-  "implementationHead": null,
-  "reviewedHead": null,
-  "pathStateDigest": null,
+  "implementationHead": "6d4baf7fb6165607ef0ffb7a84ca5a2ca10ed4ab",
+  "reviewedHead": "6d4baf7fb6165607ef0ffb7a84ca5a2ca10ed4ab",
+  "pathStateDigest": "217f6dff87038851e662d214cc1be32b868677f374ad1b24cb10f80c2c499c20",
   "finalReview": {
-    "reviewer": null,
-    "outcome": "pending",
-    "evidence": ""
+    "reviewer": "lock_exact_semantic_review; lock_exact_evidence_review",
+    "outcome": "approved",
+    "evidence": "Two independent exact-head reviews of 4faef5c89e3a055b4cbf66c177552aeb498f4b1b..6d4baf7fb6165607ef0ffb7a84ca5a2ca10ed4ab found P0=0, P1=0, P2=0, and P3=0. Repository classification and schema validation proved the exact two governed production-lock boundary and three adjacent ungoverned test projections. Semantic JSON comparison proved no removed nodes or existing package identity, requested or resolved version, contentHash, or dependency drift, unchanged empty CLI RID target, one empty Launcher RID target, net10.0-only test roots, and exact Bootstrap equality with the existing DistributionLauncher Avalonia authority. Release-shaped CLI and Launcher RID locked restores passed with zero lock-byte drift; Release no-restore builds passed with zero warnings and errors; canonical solution restore followed by no-build and no-restore Application 1331/1331, Bootstrap 1168/1168, Golden 18/18, and Architecture 249/249 tests passed, and a fresh canonical restore changed zero lock bytes. Code-size policy passed 19/19, git diff --check passed, the worktree remained clean, and scoped Polytail passed with only the separate final release, GUI, clean-machine, publication, and owner gates outstanding."
   }
 }
