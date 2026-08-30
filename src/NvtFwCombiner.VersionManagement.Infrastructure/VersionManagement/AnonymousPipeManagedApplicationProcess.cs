@@ -1,8 +1,11 @@
 using System.ComponentModel;
 using System.Diagnostics;
+using System.Globalization;
 using System.IO.Pipes;
 using System.Text;
+using Microsoft.Win32.SafeHandles;
 using NvtFwCombiner.Application.VersionManagement;
+using NvtFwCombiner.Platform.Processes;
 
 namespace NvtFwCombiner.Infrastructure.VersionManagement;
 
@@ -72,7 +75,7 @@ public sealed class AnonymousPipeManagedApplicationProcess : IManagedApplication
             }
             using var pipe = new AnonymousPipeServerStream(
                 PipeDirection.In,
-                HandleInheritability.Inheritable);
+                HandleInheritability.None);
             var startInfo = new ProcessStartInfo
             {
                 FileName = executableLease.ExecutablePath,
@@ -89,10 +92,21 @@ public sealed class AnonymousPipeManagedApplicationProcess : IManagedApplication
             lifetime.ApplyInheritedContext(startInfo);
             try
             {
-                _beforeStartValidation?.Invoke();
-                process = executableLease.TryValidateForStart()
-                    ? Process.Start(startInfo)
-                    : null;
+                process = ProcessLaunchGate.StartContained(
+                    startInfo,
+                    [
+                        ProcessInheritedHandle.Parse(
+                            ReadyPipeHandleEnvironment,
+                            pipe.GetClientHandleAsString()),
+                        new ProcessInheritedHandle(
+                            ManagedProcessLifetimeLease.HandleEnvironment,
+                            lifetime.InheritedHandleValue),
+                    ],
+                    () =>
+                    {
+                        _beforeStartValidation?.Invoke();
+                        return executableLease.TryValidateForStart();
+                    });
             }
             finally
             {
@@ -314,12 +328,14 @@ internal sealed class ManagedProcessTermination : IManagedProcessTermination
 }
 
 /// <summary>Consumes and clears the inherited one-use anonymous ready-pipe handle.</summary>
-public sealed class InheritedPipeApplicationReadySignal : IApplicationReadySignal
+public sealed class InheritedPipeApplicationReadySignal : IApplicationReadySignal, IDisposable
 {
-    /// <inheritdoc />
-    public async ValueTask<ApplicationReadySignalOutcome> ReportReadyAsync(
-        ManagedAppVersion version,
-        CancellationToken cancellationToken)
+    private readonly ApplicationReadySignalOutcome _captureOutcome;
+    private readonly string? _expected;
+    private SafePipeHandle? _handle;
+
+    /// <summary>Captures and clears one inherited READY context immediately at process entry.</summary>
+    public InheritedPipeApplicationReadySignal()
     {
         string? handle = Environment.GetEnvironmentVariable(
             AnonymousPipeManagedApplicationProcess.ReadyPipeHandleEnvironment);
@@ -333,11 +349,53 @@ public sealed class InheritedPipeApplicationReadySignal : IApplicationReadySigna
             null);
         if (handle is null && expected is null)
         {
-            return ApplicationReadySignalOutcome.NotInherited;
+            _captureOutcome = ApplicationReadySignalOutcome.NotInherited;
+            return;
         }
         if (string.IsNullOrWhiteSpace(handle) ||
-            !string.Equals(expected, version.ToString(), StringComparison.Ordinal))
+            !long.TryParse(handle, NumberStyles.None, CultureInfo.InvariantCulture, out long rawHandle) ||
+            rawHandle <= 0)
         {
+            _captureOutcome = ApplicationReadySignalOutcome.InvalidInheritedContext;
+            return;
+        }
+#pragma warning disable CA2000 // Ownership transfers into this typed signal.
+        var ownedHandle = new SafePipeHandle(new IntPtr(rawHandle), ownsHandle: true);
+#pragma warning restore CA2000
+        if (!ProcessLaunchGate.TryClearInheritance(ownedHandle.DangerousGetHandle()))
+        {
+            ownedHandle.Dispose();
+            _captureOutcome = ApplicationReadySignalOutcome.InvalidInheritedContext;
+            return;
+        }
+        if (string.IsNullOrWhiteSpace(expected))
+        {
+            ownedHandle.Dispose();
+            _captureOutcome = ApplicationReadySignalOutcome.InvalidInheritedContext;
+            return;
+        }
+        _handle = ownedHandle;
+        _expected = expected;
+        _captureOutcome = ApplicationReadySignalOutcome.Reported;
+    }
+
+    /// <inheritdoc />
+    public async ValueTask<ApplicationReadySignalOutcome> ReportReadyAsync(
+        ManagedAppVersion version,
+        CancellationToken cancellationToken)
+    {
+        if (_captureOutcome != ApplicationReadySignalOutcome.Reported)
+        {
+            return _captureOutcome;
+        }
+        SafePipeHandle? handle = Interlocked.Exchange(ref _handle, null);
+        if (handle is null)
+        {
+            return ApplicationReadySignalOutcome.NotInherited;
+        }
+        if (!string.Equals(_expected, version.ToString(), StringComparison.Ordinal))
+        {
+            handle.Dispose();
             return ApplicationReadySignalOutcome.InvalidInheritedContext;
         }
 
@@ -357,5 +415,11 @@ public sealed class InheritedPipeApplicationReadySignal : IApplicationReadySigna
         {
             return ApplicationReadySignalOutcome.WriteFailed;
         }
+    }
+
+    /// <inheritdoc />
+    public void Dispose()
+    {
+        Interlocked.Exchange(ref _handle, null)?.Dispose();
     }
 }

@@ -484,7 +484,8 @@ public sealed partial class AnonymousPipeManagedLauncherProcessTests
     {
         WithOuterReadyEnvironment(handle, expected, () =>
         {
-            LauncherReadyInheritance context = LauncherBootstrapRuntime.CaptureNestedReadyContext();
+            using LauncherReadyInheritance context =
+                LauncherBootstrapRuntime.CaptureNestedReadyContext();
 
             Assert.Equal(outcome, context.Outcome);
             Assert.Null(Environment.GetEnvironmentVariable(
@@ -498,6 +499,10 @@ public sealed partial class AnonymousPipeManagedLauncherProcessTests
     [Fact]
     public void OuterReadyInheritanceRequiresBothValidValues()
     {
+        if (!OperatingSystem.IsWindows())
+        {
+            return;
+        }
         using var workspace = TempWorkspace.Create();
         using var pipe = new AnonymousPipeServerStream(PipeDirection.In, HandleInheritability.Inheritable);
         ManagedLauncherIdentity identity = PrepareProbe(workspace.Root);
@@ -505,15 +510,24 @@ public sealed partial class AnonymousPipeManagedLauncherProcessTests
         WithOuterReadyEnvironment(
             handle: null,
             expected,
-            () => Assert.Equal(
-                LauncherReadyInheritanceOutcome.InvalidInheritedContext,
-                LauncherBootstrapRuntime.CaptureNestedReadyContext().Outcome));
+            () =>
+            {
+                using LauncherReadyInheritance partial =
+                    LauncherBootstrapRuntime.CaptureNestedReadyContext();
+                Assert.Equal(
+                    LauncherReadyInheritanceOutcome.InvalidInheritedContext,
+                    partial.Outcome);
+            });
+        string inheritedDuplicate = DuplicateInheritableClientHandle(pipe);
         WithOuterReadyEnvironment(
-            pipe.GetClientHandleAsString(),
+            inheritedDuplicate,
             expected,
-            () => Assert.Equal(
-                LauncherReadyInheritanceOutcome.Inherited,
-                LauncherBootstrapRuntime.CaptureNestedReadyContext().Outcome));
+            () =>
+            {
+                using LauncherReadyInheritance inherited =
+                    LauncherBootstrapRuntime.CaptureNestedReadyContext();
+                Assert.Equal(LauncherReadyInheritanceOutcome.Inherited, inherited.Outcome);
+            });
     }
 
     /// <summary>Invalid PE bytes fail as a typed start outcome so Application can select exact rollback.</summary>

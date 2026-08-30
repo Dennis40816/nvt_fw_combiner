@@ -15,6 +15,7 @@
   <Project Path="src/NvtFwCombiner.Application/NvtFwCombiner.Application.csproj" />
   <Project Path="src/NvtFwCombiner.VersionManagement.Application/NvtFwCombiner.VersionManagement.Application.csproj" />
   <Project Path="src/NvtFwCombiner.Profiles/NvtFwCombiner.Profiles.csproj" />
+  <Project Path="src/NvtFwCombiner.Platform/NvtFwCombiner.Platform.csproj" />
   <Project Path="src/NvtFwCombiner.Infrastructure/NvtFwCombiner.Infrastructure.csproj" />
   <Project Path="src/NvtFwCombiner.VersionManagement.Infrastructure/NvtFwCombiner.VersionManagement.Infrastructure.csproj" />
   <Project Path="src/NvtFwCombiner.Bootstrap/NvtFwCombiner.Bootstrap.csproj" />

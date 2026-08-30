@@ -1,13 +1,19 @@
+using System.ComponentModel;
 using System.Diagnostics;
+using System.Globalization;
+using System.IO.Pipes;
+using System.Runtime.InteropServices;
+using Microsoft.Win32.SafeHandles;
 using NvtFwCombiner.Application.VersionManagement;
 using NvtFwCombiner.Infrastructure.VersionManagement;
+using NvtFwCombiner.Platform.Processes;
 using NvtFwCombiner.TestSupport;
 
 namespace NvtFwCombiner.Infrastructure.Tests.VersionManagement;
 
 /// <summary>Locks the inherited managed-tree lifetime authority and recovery boundary.</summary>
 [Collection(nameof(ReadyProbeProcessSerialGroup))]
-public sealed class ManagedProcessLifetimeLeaseTests
+public sealed partial class ManagedProcessLifetimeLeaseTests
 {
     private const string BehaviorEnvironment = "NVT_READY_PROBE_BEHAVIOR";
 
@@ -97,6 +103,64 @@ public sealed class ManagedProcessLifetimeLeaseTests
         Assert.Equal(InheritedManagedProcessLifetimeOutcome.InvalidInheritedContext, capture.Outcome);
     }
 
+    /// <summary>A real lifetime handle is owned and closed before companion metadata is rejected.</summary>
+    [Theory]
+    [InlineData(null)]
+    [InlineData("invalid")]
+    public async Task InheritedLifetimeClosesHandleWhenContextMetadataIsMissingOrInvalid(
+        string? context)
+    {
+        if (!OperatingSystem.IsWindows())
+        {
+            return;
+        }
+        using var pipe = new AnonymousPipeServerStream(
+            PipeDirection.In,
+            HandleInheritability.Inheritable);
+        string inheritedDuplicate = DuplicateLifetimeClientHandle(pipe);
+        string? priorContext = Environment.GetEnvironmentVariable(ManagedProcessLifetimeLease.ContextEnvironment);
+        string? priorHandle = Environment.GetEnvironmentVariable(ManagedProcessLifetimeLease.HandleEnvironment);
+        string? priorJob = Environment.GetEnvironmentVariable(ManagedProcessLifetimeLease.JobEnvironment);
+        string? priorStatePath = Environment.GetEnvironmentVariable(ManagedProcessLifetimeLease.StatePathEnvironment);
+        string? priorKind = Environment.GetEnvironmentVariable(ManagedProcessLifetimeLease.KindEnvironment);
+        try
+        {
+            Environment.SetEnvironmentVariable(ManagedProcessLifetimeLease.ContextEnvironment, context);
+            Environment.SetEnvironmentVariable(ManagedProcessLifetimeLease.HandleEnvironment, inheritedDuplicate);
+            Environment.SetEnvironmentVariable(ManagedProcessLifetimeLease.JobEnvironment, null);
+            Environment.SetEnvironmentVariable(ManagedProcessLifetimeLease.StatePathEnvironment, null);
+            Environment.SetEnvironmentVariable(ManagedProcessLifetimeLease.KindEnvironment, null);
+
+            using IInheritedManagedProcessLifetimeCapture capture = InheritedManagedProcessLifetime.Capture(
+                Path.GetFullPath("managed-state.json"),
+                ManagedProcessLifetimeKind.Application,
+                managedContextAdvertised: false);
+            pipe.DisposeLocalCopyOfClientHandle();
+            using var timeout = CancellationTokenSource.CreateLinkedTokenSource(
+                TestContext.Current.CancellationToken);
+            timeout.CancelAfter(TimeSpan.FromSeconds(2));
+            using var reader = new StreamReader(pipe);
+
+            Assert.Equal(
+                InheritedManagedProcessLifetimeOutcome.InvalidInheritedContext,
+                capture.Outcome);
+            Assert.Empty(await reader.ReadToEndAsync(timeout.Token));
+            Assert.Null(Environment.GetEnvironmentVariable(ManagedProcessLifetimeLease.ContextEnvironment));
+            Assert.Null(Environment.GetEnvironmentVariable(ManagedProcessLifetimeLease.HandleEnvironment));
+            Assert.Null(Environment.GetEnvironmentVariable(ManagedProcessLifetimeLease.JobEnvironment));
+            Assert.Null(Environment.GetEnvironmentVariable(ManagedProcessLifetimeLease.StatePathEnvironment));
+            Assert.Null(Environment.GetEnvironmentVariable(ManagedProcessLifetimeLease.KindEnvironment));
+        }
+        finally
+        {
+            Environment.SetEnvironmentVariable(ManagedProcessLifetimeLease.ContextEnvironment, priorContext);
+            Environment.SetEnvironmentVariable(ManagedProcessLifetimeLease.HandleEnvironment, priorHandle);
+            Environment.SetEnvironmentVariable(ManagedProcessLifetimeLease.JobEnvironment, priorJob);
+            Environment.SetEnvironmentVariable(ManagedProcessLifetimeLease.StatePathEnvironment, priorStatePath);
+            Environment.SetEnvironmentVariable(ManagedProcessLifetimeLease.KindEnvironment, priorKind);
+        }
+    }
+
     /// <summary>A real READY-advertised process with no lifetime authority exits before opening the channel.</summary>
     [Fact]
     public async Task ReadyAdvertisedProcessWithoutLifetimeExitsFailClosed()
@@ -148,7 +212,12 @@ public sealed class ManagedProcessLifetimeLeaseTests
         startInfo.ArgumentList.Add(wrongPath ? workspace.PathFor("state/other.json") : statePath);
         startInfo.Environment[AnonymousPipeManagedApplicationProcess.ExpectedVersionEnvironment] = "0.10.6";
         lease.ApplyInheritedContext(startInfo);
-        using Process process = Process.Start(startInfo) ?? throw new InvalidOperationException("Probe did not start.");
+        using Process process = ProcessLaunchGate.StartContained(
+            startInfo,
+            [new ProcessInheritedHandle(
+                ManagedProcessLifetimeLease.HandleEnvironment,
+                lease.InheritedHandleValue)]) ??
+            throw new InvalidOperationException("Probe did not start.");
 
         await process.WaitForExitAsync(TestContext.Current.CancellationToken);
 
@@ -185,7 +254,12 @@ public sealed class ManagedProcessLifetimeLeaseTests
         startInfo.Environment[AnonymousPipeManagedApplicationProcess.ExpectedVersionEnvironment] = "0.10.6";
         lease.ApplyInheritedContext(startInfo);
 
-        using Process root = Process.Start(startInfo) ?? throw new InvalidOperationException("Tree probe did not start.");
+        using Process root = ProcessLaunchGate.StartContained(
+            startInfo,
+            [new ProcessInheritedHandle(
+                ManagedProcessLifetimeLease.HandleEnvironment,
+                lease.InheritedHandleValue)]) ??
+            throw new InvalidOperationException("Tree probe did not start.");
         long startDeadline = Environment.TickCount64 + 5_000;
         while (!File.Exists(marker) && Environment.TickCount64 < startDeadline)
         {
@@ -216,4 +290,44 @@ public sealed class ManagedProcessLifetimeLeaseTests
             ManagedProcessLifetimeLease.ApplicationSuffix);
         Assert.NotNull(restarted);
     }
+
+    private static string DuplicateLifetimeClientHandle(AnonymousPipeServerStream pipe)
+    {
+        IntPtr process = GetLifetimeCurrentProcess();
+        IntPtr source = new(long.Parse(
+            pipe.GetClientHandleAsString(),
+            NumberStyles.None,
+            CultureInfo.InvariantCulture));
+        if (!DuplicateLifetimeHandle(
+                process,
+                source,
+                process,
+                out SafeFileHandle duplicate,
+                desiredAccess: 0,
+                inheritHandle: true,
+                options: 2))
+        {
+            throw new Win32Exception(Marshal.GetLastPInvokeError());
+        }
+#pragma warning disable CA2000 // Ownership transfers to the lifetime capture through the raw handle.
+        string value = duplicate.DangerousGetHandle().ToInt64().ToString(CultureInfo.InvariantCulture);
+        duplicate.SetHandleAsInvalid();
+        duplicate.Dispose();
+#pragma warning restore CA2000
+        return value;
+    }
+
+    [LibraryImport("kernel32.dll", EntryPoint = "DuplicateHandle", SetLastError = true)]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    private static partial bool DuplicateLifetimeHandle(
+        IntPtr sourceProcess,
+        IntPtr sourceHandle,
+        IntPtr targetProcess,
+        out SafeFileHandle targetHandle,
+        uint desiredAccess,
+        [MarshalAs(UnmanagedType.Bool)] bool inheritHandle,
+        uint options);
+
+    [LibraryImport("kernel32.dll", EntryPoint = "GetCurrentProcess")]
+    private static partial IntPtr GetLifetimeCurrentProcess();
 }

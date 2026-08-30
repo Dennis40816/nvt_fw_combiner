@@ -3,6 +3,7 @@ using System.Diagnostics;
 using System.IO.Pipes;
 using System.Text;
 using NvtFwCombiner.Application.VersionManagement;
+using NvtFwCombiner.Platform.Processes;
 
 namespace NvtFwCombiner.Infrastructure.VersionManagement;
 
@@ -114,7 +115,7 @@ internal sealed class AnonymousPipeManagedLauncherProcess : IManagedLauncherProc
             {
                 return Failure(LauncherProcessStartOutcome.TerminationUnconfirmed);
             }
-            using var pipe = new AnonymousPipeServerStream(PipeDirection.In, HandleInheritability.Inheritable);
+            using var pipe = new AnonymousPipeServerStream(PipeDirection.In, HandleInheritability.None);
             var startInfo = new ProcessStartInfo
             {
                 FileName = executableLease.ExecutablePath,
@@ -140,10 +141,21 @@ internal sealed class AnonymousPipeManagedLauncherProcess : IManagedLauncherProc
             }
             try
             {
-                _beforeStartValidation?.Invoke();
-                process = executableLease.TryValidateForStart()
-                    ? Process.Start(startInfo)
-                    : null;
+                process = ProcessLaunchGate.StartContained(
+                    startInfo,
+                    [
+                        ProcessInheritedHandle.Parse(
+                            ReadyPipeHandleEnvironment,
+                            pipe.GetClientHandleAsString()),
+                        new ProcessInheritedHandle(
+                            ManagedProcessLifetimeLease.HandleEnvironment,
+                            lifetime.InheritedHandleValue),
+                    ],
+                    () =>
+                    {
+                        _beforeStartValidation?.Invoke();
+                        return executableLease.TryValidateForStart();
+                    });
             }
             finally
             {

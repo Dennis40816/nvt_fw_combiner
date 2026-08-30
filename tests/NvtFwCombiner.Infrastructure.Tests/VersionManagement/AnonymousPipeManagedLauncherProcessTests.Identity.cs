@@ -3,6 +3,7 @@ using System.IO.Pipes;
 using System.Security.Cryptography;
 using NvtFwCombiner.Application.VersionManagement;
 using NvtFwCombiner.Infrastructure.VersionManagement;
+using NvtFwCombiner.Platform.Processes;
 using NvtFwCombiner.TestSupport;
 
 namespace NvtFwCombiner.Infrastructure.Tests.VersionManagement;
@@ -180,7 +181,7 @@ public sealed partial class AnonymousPipeManagedLauncherProcessTests
         using var gate = new BootstrapStartAuthorization();
         using var admissionPipe = new AnonymousPipeServerStream(
             PipeDirection.In,
-            HandleInheritability.Inheritable);
+            HandleInheritability.None);
         var startInfo = new ProcessStartInfo
         {
             FileName = Path.Combine(
@@ -202,7 +203,17 @@ public sealed partial class AnonymousPipeManagedLauncherProcessTests
             admissionPipe.GetClientHandleAsString();
         startInfo.Environment[BootstrapIdentityEnvironment] = inheritedIdentity;
 
-        using Process process = Process.Start(startInfo) ??
+        using Process process = ProcessLaunchGate.StartContained(
+            startInfo,
+            [
+                ProcessInheritedHandle.Parse(
+                    AnonymousPipeManagedLauncherProcess.BootstrapAdmissionPipeHandleEnvironment,
+                    admissionPipe.GetClientHandleAsString()),
+                gate.InheritedHandle,
+                new ProcessInheritedHandle(
+                    ManagedProcessLifetimeLease.HandleEnvironment,
+                    lifetime.InheritedHandleValue),
+            ]) ??
             throw new InvalidOperationException("Root Bootstrap process did not start.");
         gate.DisposeLocalClientHandle();
         admissionPipe.DisposeLocalCopyOfClientHandle();

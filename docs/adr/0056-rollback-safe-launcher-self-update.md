@@ -7,6 +7,7 @@
 - Risk: R2 process/state/contract architecture; R3 first `v1.0.0` package and
   release evidence
 - Builds on: ADR 0051 managed application activation
+- Amended by: ADR 0064 explicit Windows child-handle containment
 
 ## Context
 

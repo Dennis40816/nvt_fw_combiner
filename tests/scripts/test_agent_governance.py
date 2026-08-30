@@ -462,7 +462,11 @@ class AgentGovernanceTests(unittest.TestCase):
         self._write_record(record)
         self._write_record(record, "docs/governance/change-records/TEST-02.json")
 
-        self.assertTrue(any("taskId must be unique" in error for error in self.validate()))
+        with mock.patch.object(repository_validator, "_historical_final_records") as history_audit:
+            errors = self.validate()
+
+        history_audit.assert_not_called()
+        self.assertTrue(any("taskId must be unique" in error for error in errors))
 
     def test_r2_design_reviewer_must_be_independent(self) -> None:
         self._change()
@@ -1208,6 +1212,16 @@ class AgentGovernanceTests(unittest.TestCase):
 
         history_audit.assert_not_called()
         self.assertTrue(any("index/worktree content differs" in error for error in errors))
+
+    def test_non_governed_active_path_fails_before_history_audit(self) -> None:
+        self._change()
+        self._write_record(self._record(paths=["NvtFwCombiner.slnx"]))
+
+        with mock.patch.object(repository_validator, "_historical_final_records") as history_audit:
+            errors = self.validate()
+
+        history_audit.assert_not_called()
+        self.assertTrue(any("mutable path is not governed" in error for error in errors))
 
     def test_intent_to_add_record_cannot_open_gate(self) -> None:
         self._change()

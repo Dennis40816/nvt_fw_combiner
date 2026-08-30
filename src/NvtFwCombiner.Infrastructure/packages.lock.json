@@ -43,6 +43,9 @@
       "nvtfwcombiner.domain": {
         "type": "Project"
       },
+      "nvtfwcombiner.platform": {
+        "type": "Project"
+      },
       "nvtfwcombiner.profiles": {
         "type": "Project",
         "dependencies": {
@@ -50,7 +53,6 @@
           "NvtFwCombiner.Domain": "[1.0.0, )"
         }
       }
-    },
-    "net10.0/win-x64": {}
+    }
   }
 }

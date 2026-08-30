@@ -195,6 +195,24 @@ class CoveragePolicyTests(unittest.TestCase):
         self.assertEqual(summary(1, 1, 0, 0), inventory.overall)
         self.assertEqual(summary(1, 1, 0, 0), inventory.modules["Bootstrap"])
 
+    def test_classifies_platform_as_infrastructure_adapter(self) -> None:
+        self.write(
+            "src/NvtFwCombiner.Platform/ProcessLaunchGate.cs",
+            "internal static class ProcessLaunchGate;\n",
+        )
+        report = """<coverage branches-covered="0" branches-valid="0"><packages><package><classes>
+<class name="ProcessLaunchGate" filename="src/NvtFwCombiner.Platform/ProcessLaunchGate.cs"><lines>
+<line number="1" hits="1" />
+</lines></class>
+</classes></package></packages></coverage>"""
+        self.write("reports/coverage.cobertura.xml", report)
+        self.write("reports/coverage.json", "{}")
+
+        inventory = parse_dotnet_cobertura_reports(self.root / "reports", self.root)
+
+        self.assertEqual(summary(1, 1, 0, 0), inventory.overall)
+        self.assertEqual(summary(1, 1, 0, 0), inventory.modules["Infrastructure"])
+
     def test_every_production_csharp_project_root_has_one_module_owner(self) -> None:
         project_roots = {
             project.parent.relative_to(ROOT)

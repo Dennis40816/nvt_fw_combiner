@@ -26,6 +26,7 @@ public sealed class ProjectDependencyTests
     [Fact]
     public void CoreCompositionProjectsKeepVersionBoundedContextSeparate()
     {
+        Assert.Empty(ProjectReferences("NvtFwCombiner.Platform"));
         Assert.Equal(
             ["NvtFwCombiner.Contracts", "NvtFwCombiner.Domain"],
             ProjectReferences("NvtFwCombiner.Application"));
@@ -34,9 +35,17 @@ public sealed class ProjectDependencyTests
                 "NvtFwCombiner.Application",
                 "NvtFwCombiner.Contracts",
                 "NvtFwCombiner.Domain",
+                "NvtFwCombiner.Platform",
                 "NvtFwCombiner.Profiles",
             ],
             ProjectReferences("NvtFwCombiner.Infrastructure"));
+        Assert.Equal(
+            [
+                "NvtFwCombiner.Contracts",
+                "NvtFwCombiner.Platform",
+                "NvtFwCombiner.VersionManagement.Application",
+            ],
+            ProjectReferences("NvtFwCombiner.VersionManagement.Infrastructure"));
         Assert.Equal(
             [
                 "NvtFwCombiner.Application",

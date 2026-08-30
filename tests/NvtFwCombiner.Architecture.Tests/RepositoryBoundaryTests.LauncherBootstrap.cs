@@ -1,9 +1,97 @@
 using System.Text.Json;
+using System.Text.RegularExpressions;
 
 namespace NvtFwCombiner.Architecture.Tests;
 
 public sealed partial class RepositoryBoundaryTests
 {
+    /// <summary>Every production child start crosses the one Platform containment gate.</summary>
+    [Fact]
+    public void ProductionProcessStartsAreOwnedOnlyByPlatformGate()
+    {
+        const string processGatePath =
+            "src/NvtFwCombiner.Platform/Processes/ProcessLaunchGate.cs";
+        const string containedStarterPath =
+            "src/NvtFwCombiner.Platform/Processes/WindowsContainedProcessStarter.cs";
+        string processGate = ReadText(processGatePath);
+        string containedStarter = ReadText(containedStarterPath);
+        string app = ReadText(
+            "src/NvtFwCombiner.VersionManagement.Infrastructure/VersionManagement/AnonymousPipeManagedApplicationProcess.cs");
+        string launcher = ReadText(
+            "src/NvtFwCombiner.VersionManagement.Infrastructure/VersionManagement/AnonymousPipeManagedLauncherProcess.cs");
+        string bootstrap = ReadText(
+            "src/NvtFwCombiner.VersionManagement.Infrastructure/VersionManagement/StableLauncherHandoff.cs");
+        string external = ReadText(
+            "src/NvtFwCombiner.Infrastructure/ExternalTools/SystemExternalProcessRunner.cs");
+        string explorer = ReadText(
+            "src/NvtFwCombiner.Infrastructure/Shell/WindowsExplorerFileRevealService.cs");
+
+        AssertContainsAll(
+            processGate,
+            "private static readonly Lock StartLock",
+            "WindowsContainedProcessStarter.Start");
+        AssertContainsAll(
+            containedStarter,
+            "ProcThreadAttributeHandleList",
+            "DuplicateHandle(",
+            "CreateProcessW");
+        Assert.Equal(1, CountOccurrences(app, "ProcessLaunchGate.StartContained("));
+        Assert.Equal(1, CountOccurrences(launcher, "ProcessLaunchGate.StartContained("));
+        Assert.Equal(2, CountOccurrences(bootstrap, "ProcessLaunchGate.StartContained("));
+        Assert.Equal(1, CountOccurrences(external, "ProcessLaunchGate.Start("));
+        Assert.Equal(1, CountOccurrences(explorer, "ProcessLaunchGate.Start("));
+
+        string sourceRoot = Path.Combine(Root.FullName, "src");
+        var rawOwners = new List<string>();
+        foreach (string path in Directory.EnumerateFiles(
+                     sourceRoot,
+                     "*.cs",
+                     SearchOption.AllDirectories))
+        {
+            string relative = Path.GetRelativePath(Root.FullName, path).Replace('\\', '/');
+            string source = File.ReadAllText(path);
+            if (RawProcessStartPattern().IsMatch(source) &&
+                !StringComparer.Ordinal.Equals(relative, processGatePath))
+            {
+                rawOwners.Add($"{relative}: Process.Start");
+            }
+            if (source.Contains("WindowsContainedProcessStarter.Start", StringComparison.Ordinal) &&
+                !StringComparer.Ordinal.Equals(relative, processGatePath))
+            {
+                rawOwners.Add($"{relative}: WindowsContainedProcessStarter.Start");
+            }
+            if (RawProcessConstructionPattern().IsMatch(source))
+            {
+                rawOwners.Add($"{relative}: new Process");
+            }
+            if ((RawCreateProcessPattern().IsMatch(source) ||
+                 RawCreateProcessEntryPointPattern().IsMatch(source)) &&
+                !StringComparer.Ordinal.Equals(relative, containedStarterPath))
+            {
+                rawOwners.Add($"{relative}: CreateProcess");
+            }
+        }
+        Assert.Empty(rawOwners);
+    }
+
+    [GeneratedRegex(
+        @"\b(?:(?:global::)?System\.Diagnostics\.)?Process\s*\.\s*Start\s*\(",
+        RegexOptions.CultureInvariant)]
+    private static partial Regex RawProcessStartPattern();
+
+    [GeneratedRegex(
+        @"\bnew\s+(?:(?:global::)?System\.Diagnostics\.)?Process\s*(?:\(|\{)",
+        RegexOptions.CultureInvariant)]
+    private static partial Regex RawProcessConstructionPattern();
+
+    [GeneratedRegex(@"\bCreateProcess(?:W|A)?\b", RegexOptions.CultureInvariant)]
+    private static partial Regex RawCreateProcessPattern();
+
+    [GeneratedRegex(
+        "\\bEntryPoint\\s*=\\s*\"CreateProcess(?:W|A)?\"",
+        RegexOptions.CultureInvariant)]
+    private static partial Regex RawCreateProcessEntryPointPattern();
+
     /// <summary>The public Launcher remains a thin host over the single Bootstrap graph.</summary>
     [Fact]
     public void DistributionLauncherUsesOneBootstrapOwnedCompositionGraph()

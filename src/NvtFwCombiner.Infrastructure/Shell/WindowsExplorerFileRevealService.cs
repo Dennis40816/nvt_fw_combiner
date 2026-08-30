@@ -2,6 +2,7 @@ using System.ComponentModel;
 using System.Diagnostics;
 using System.Security;
 using NvtFwCombiner.Application.Ports;
+using NvtFwCombiner.Platform.Processes;
 
 namespace NvtFwCombiner.Infrastructure.Shell;
 
@@ -18,7 +19,7 @@ internal sealed class WindowsExplorerFileRevealService : IFileRevealService
 
         try
         {
-            using var process = Process.Start(startInfo);
+            using Process? process = ProcessLaunchGate.Start(startInfo);
             return process is not null;
         }
         catch (Win32Exception)

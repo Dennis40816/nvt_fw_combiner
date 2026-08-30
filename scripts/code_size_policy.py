@@ -90,7 +90,7 @@ class CodeSizeSnapshot:
 
 
 DEFAULT_LIMITS = CodeSizeLimits(
-    production_nonblank=129_509,
+    production_nonblank=130_153,
     duplicate_json_nonblank=0,
     partial_type_default_max=2_500,
     partial_type_exact_ratchets={},
@@ -107,12 +107,12 @@ DEFAULT_LIMITS = CodeSizeLimits(
     bootstrap_cli_ratchet=3_378,
     infrastructure_contracts_worker_ratchet=15_356,
     full_production_ratchet=102_896,
-    runtime_production_allowance=21_795,
+    runtime_production_allowance=22_439,
     domain_profiles_allowance=5,
     application_allowance=9_735,
-    bootstrap_cli_allowance=945,
-    infrastructure_contracts_worker_allowance=11_115,
-    full_production_allowance=26_613,
+    bootstrap_cli_allowance=969,
+    infrastructure_contracts_worker_allowance=11_735,
+    full_production_allowance=27_257,
 )
 
 
@@ -242,6 +242,7 @@ def _infrastructure_contracts_worker_files(root: Path) -> list[Path]:
             "src/NvtFwCombiner.Infrastructure",
             frozenset({".cs"}),
         ),
+        *_matching_files(root, "src/NvtFwCombiner.Platform", frozenset({".cs"})),
         *_matching_files(root, "src/NvtFwCombiner.Contracts", frozenset({".cs"})),
         *_matching_files(
             root,

@@ -1,6 +1,7 @@
 using NvtFwCombiner.Bootstrap;
 using NvtFwCombiner.Presentation.Avalonia;
 using NvtFwCombiner.Application.VersionManagement;
+using NvtFwCombiner.Infrastructure.VersionManagement;
 
 namespace NvtFwCombiner.Desktop;
 
@@ -23,6 +24,8 @@ internal static class Program
             CompositionHostServices.CaptureInheritedManagedProcessLifetime(
                 statePath,
                 managedRoot is not null || statePath is not null);
+        using InheritedPipeApplicationReadySignal applicationReady =
+            CompositionHostServices.CaptureInheritedApplicationReadySignal();
         ManagedImmutableBootstrapIdentity? bootstrapIdentity =
             CompositionHostServices.CaptureInheritedManagedBootstrapIdentity(lifetime.Outcome);
         return lifetime.Outcome == InheritedManagedProcessLifetimeOutcome.InvalidInheritedContext
@@ -32,7 +35,8 @@ internal static class Program
                     managedRoot,
                     statePath,
                     bootstrapIdentity,
-                    updateSourceRegistryPaths),
+                    updateSourceRegistryPaths,
+                    applicationReady),
                 CompositionHostServices.CreateLocalFileStore(),
                 remaining);
     }
@@ -41,7 +45,8 @@ internal static class Program
         string? managedRoot,
         string? statePath,
         ManagedImmutableBootstrapIdentity? bootstrapIdentity,
-        IReadOnlyList<string> updateSourceRegistryPaths)
+        IReadOnlyList<string> updateSourceRegistryPaths,
+        IApplicationReadySignal applicationReadySignal)
     {
         var host = CompositionHostServices.Create();
         ManagedAppVersion appVersion = ManagedAppVersion.Parse(DesktopApplication.InformationalVersion);
@@ -73,7 +78,8 @@ internal static class Program
             versionManagement,
             CompositionHostServices.CreateManagedApplicationStartupCoordinator(
                 appVersion.ToString(),
-                versionManagement),
+                versionManagement,
+                applicationReadySignal),
             CompositionHostServices.CreateStableLauncherHandoff(
                 managedRoot,
                 statePath,

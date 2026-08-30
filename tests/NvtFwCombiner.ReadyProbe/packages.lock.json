@@ -24,6 +24,9 @@
       "nvtfwcombiner.contracts": {
         "type": "Project"
       },
+      "nvtfwcombiner.platform": {
+        "type": "Project"
+      },
       "nvtfwcombiner.versionmanagement.application": {
         "type": "Project",
         "dependencies": {
@@ -35,6 +38,7 @@
         "dependencies": {
           "JsonSchema.Net": "[8.0.5, )",
           "NvtFwCombiner.Contracts": "[1.0.0, )",
+          "NvtFwCombiner.Platform": "[1.0.0, )",
           "NvtFwCombiner.VersionManagement.Application": "[1.0.0, )"
         }
       },

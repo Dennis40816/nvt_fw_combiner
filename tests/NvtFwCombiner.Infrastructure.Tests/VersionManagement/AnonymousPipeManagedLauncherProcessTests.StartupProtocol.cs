@@ -118,6 +118,37 @@ public sealed partial class AnonymousPipeManagedLauncherProcessTests
         });
     }
 
+    /// <summary>A real START handle is owned and closed before invalid companion metadata is rejected.</summary>
+    [Theory]
+    [InlineData(null)]
+    [InlineData("")]
+    public void BootstrapStartGateClosesHandleWhenContextIsMissingOrBlank(string? context)
+    {
+        if (!OperatingSystem.IsWindows())
+        {
+            return;
+        }
+        using var pipe = new AnonymousPipeServerStream(
+            PipeDirection.Out,
+            HandleInheritability.Inheritable);
+        string inheritedDuplicate = DuplicateInheritableClientHandle(pipe);
+
+        WithBootstrapStartEnvironment(context, inheritedDuplicate, () =>
+        {
+            using BootstrapStartGate gate = BootstrapStartGate.Capture();
+            Assert.Equal(BootstrapStartGateInheritanceOutcome.Invalid, gate.Outcome);
+            Assert.Null(Environment.GetEnvironmentVariable(BootstrapStartGate.ContextEnvironment));
+            Assert.Null(Environment.GetEnvironmentVariable(BootstrapStartGate.HandleEnvironment));
+        });
+
+        pipe.DisposeLocalCopyOfClientHandle();
+        _ = Assert.Throws<IOException>(() =>
+        {
+            pipe.WriteByte(1);
+            pipe.Flush();
+        });
+    }
+
     /// <summary>Once timeout aborts Pending, a late start worker can never write START.</summary>
     [Fact]
     public void BootstrapStartAuthorizationCannotAuthorizeAfterAbort()
@@ -145,6 +176,10 @@ public sealed partial class AnonymousPipeManagedLauncherProcessTests
     [Fact]
     public async Task CompetingWriterPreventsMixedNestedReadySnapshot()
     {
+        if (!OperatingSystem.IsWindows())
+        {
+            return;
+        }
         using var workspace = TempWorkspace.Create();
         string statePath = Path.Combine(workspace.Root, "state", "version-manager.v1.json");
         ManagedAppVersion version = ManagedAppVersion.Parse("0.10.6");
@@ -177,6 +212,7 @@ public sealed partial class AnonymousPipeManagedLauncherProcessTests
         Assert.True(launcherSaved.IsSuccess);
 
         using var pipe = new AnonymousPipeServerStream(PipeDirection.In, HandleInheritability.Inheritable);
+        string inheritedDuplicate = DuplicateInheritableClientHandle(pipe);
         string? previousHandle = Environment.GetEnvironmentVariable(
             AnonymousPipeManagedLauncherProcess.ReadyPipeHandleEnvironment);
         string? previousExpected = Environment.GetEnvironmentVariable(
@@ -185,7 +221,7 @@ public sealed partial class AnonymousPipeManagedLauncherProcessTests
         {
             Environment.SetEnvironmentVariable(
                 AnonymousPipeManagedLauncherProcess.ReadyPipeHandleEnvironment,
-                pipe.GetClientHandleAsString());
+                inheritedDuplicate);
             Environment.SetEnvironmentVariable(
                 AnonymousPipeManagedLauncherProcess.ExpectedReadyEnvironment,
                 LauncherReadyProtocol.CreateExpectedPrefix(identity));
@@ -196,13 +232,15 @@ public sealed partial class AnonymousPipeManagedLauncherProcessTests
             using var cancellation = new CancellationTokenSource(TimeSpan.FromSeconds(2));
             var stopwatch = Stopwatch.StartNew();
 
-            LauncherReadyInheritance context = LauncherBootstrapRuntime.CaptureNestedReadyContext();
+            using LauncherReadyInheritance context =
+                LauncherBootstrapRuntime.CaptureNestedReadyContext();
             bool reported = await LauncherBootstrapRuntime.ReportNestedReadyAsync(
                 context,
                 workspace.Root,
                 statePath,
                 cancellation.Token);
             stopwatch.Stop();
+            context.Dispose();
             pipe.DisposeLocalCopyOfClientHandle();
             using var reader = new StreamReader(pipe);
             string? message = await reader.ReadLineAsync(TestContext.Current.CancellationToken);

@@ -4,6 +4,7 @@ using System.Diagnostics.CodeAnalysis;
 using System.IO.Pipes;
 using System.Text;
 using NvtFwCombiner.Application.VersionManagement;
+using NvtFwCombiner.Platform.Processes;
 
 namespace NvtFwCombiner.Infrastructure.VersionManagement;
 
@@ -88,18 +89,17 @@ public sealed class StableLauncherHandoff : IStableLauncherHandoff, IImmutableBo
                 return false;
             }
             using IManagedExecutableLaunchLease lease = acquired.Lease!;
-            _beforeProcessStart?.Invoke(lease.ExecutablePath);
-            if (!lease.TryValidateForStart())
-            {
-                return false;
-            }
-            Process? process = Process.Start(CreateBootstrapStartInfo(
+            Process? process = ProcessLaunchGate.StartContained(CreateBootstrapStartInfo(
                 lease.ExecutablePath,
                 _managedRoot,
                 admissionPipeHandle: null,
                 startGate: null,
                 lifetime: null,
-                identity: _expectedIdentity));
+                identity: _expectedIdentity), [], () =>
+                {
+                    _beforeProcessStart?.Invoke(lease.ExecutablePath);
+                    return lease.TryValidateForStart();
+                });
             process?.Dispose();
             return process is not null;
         }
@@ -200,7 +200,7 @@ public sealed class StableLauncherHandoff : IStableLauncherHandoff, IImmutableBo
                 "Acquired Bootstrap lifetime did not return custody.");
             admissionPipe = new AnonymousPipeServerStream(
                 PipeDirection.In,
-                HandleInheritability.Inheritable);
+                HandleInheritability.None);
             startGate = new BootstrapStartAuthorization();
             ProcessStartInfo startInfo = CreateBootstrapStartInfo(
                     lease.ExecutablePath,
@@ -209,15 +209,28 @@ public sealed class StableLauncherHandoff : IStableLauncherHandoff, IImmutableBo
                     startGate,
                     lifetime,
                     expectedIdentity);
-            Task<Process?> startTask = Task.Run(() =>
+            Task<Process?> startTask = Task.Run<Process?>(() =>
             {
                 try
                 {
-                    _beforeProcessStart?.Invoke(lease.ExecutablePath);
-                    return !lease.TryValidateForStart()
-                        ? throw new InvalidDataException(
-                            "Bootstrap tree changed after executable verification.")
-                        : Process.Start(startInfo);
+                    Process? process = ProcessLaunchGate.StartContained(
+                        startInfo,
+                        [
+                            ProcessInheritedHandle.Parse(
+                                AnonymousPipeManagedLauncherProcess.BootstrapAdmissionPipeHandleEnvironment,
+                                admissionPipe.GetClientHandleAsString()),
+                            startGate.InheritedHandle,
+                            new ProcessInheritedHandle(
+                                ManagedProcessLifetimeLease.HandleEnvironment,
+                                lifetime.InheritedHandleValue),
+                        ],
+                        () =>
+                        {
+                            _beforeProcessStart?.Invoke(lease.ExecutablePath);
+                            return lease.TryValidateForStart();
+                        });
+                    return process ?? throw new InvalidDataException(
+                        "Bootstrap tree changed after executable verification.");
                 }
                 finally
                 {

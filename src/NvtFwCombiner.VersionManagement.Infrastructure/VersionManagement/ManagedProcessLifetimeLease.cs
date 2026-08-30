@@ -46,6 +46,7 @@ internal sealed partial class ManagedProcessLifetimeLease : IDisposable
     internal string InheritedHandle => _stream.SafeFileHandle.DangerousGetHandle()
         .ToInt64()
         .ToString(CultureInfo.InvariantCulture);
+    internal IntPtr InheritedHandleValue => _stream.SafeFileHandle.DangerousGetHandle();
     internal string JobName { get; }
 
     internal void ApplyInheritedContext(ProcessStartInfo startInfo)
@@ -106,7 +107,7 @@ internal sealed partial class ManagedProcessLifetimeLease : IDisposable
             _ = SetHandleInformation(
                     stream.SafeFileHandle.DangerousGetHandle(),
                     HandleFlagInherit,
-                    HandleFlagInherit)
+                    flags: 0)
                 ? true
                 : throw new Win32Exception(Marshal.GetLastPInvokeError());
             ManagedProcessLifetimeKind kind = GetKind(suffix);
@@ -221,14 +222,7 @@ internal sealed partial class ManagedProcessLifetimeLease : IDisposable
                 ? InheritedManagedProcessLifetimeCapture.Invalid
                 : InheritedManagedProcessLifetimeCapture.NotInherited;
         }
-        string? normalizedStatePath = TryNormalizePath(statePath);
-        if (!string.Equals(context, ContextVersion, StringComparison.Ordinal) ||
-            normalizedStatePath is null ||
-            !string.Equals(TryNormalizePath(advertisedStatePath), normalizedStatePath, PathComparison) ||
-            !string.Equals(advertisedKind, kind.ToString(), StringComparison.Ordinal) ||
-            string.IsNullOrWhiteSpace(jobName) ||
-            !IsExpectedJobName(normalizedStatePath, kind, jobName) ||
-            !long.TryParse(value, NumberStyles.None, CultureInfo.InvariantCulture, out long rawHandle) ||
+        if (!long.TryParse(value, NumberStyles.None, CultureInfo.InvariantCulture, out long rawHandle) ||
             rawHandle is 0 or -1 ||
             !OperatingSystem.IsWindows())
         {
@@ -245,6 +239,16 @@ internal sealed partial class ManagedProcessLifetimeLease : IDisposable
             _ = SetHandleInformation(handle.DangerousGetHandle(), HandleFlagInherit, flags: 0)
                 ? true
                 : throw new Win32Exception(Marshal.GetLastPInvokeError());
+            string? normalizedStatePath = TryNormalizePath(statePath);
+            if (!string.Equals(context, ContextVersion, StringComparison.Ordinal) ||
+                normalizedStatePath is null ||
+                !string.Equals(TryNormalizePath(advertisedStatePath), normalizedStatePath, PathComparison) ||
+                !string.Equals(advertisedKind, kind.ToString(), StringComparison.Ordinal) ||
+                string.IsNullOrWhiteSpace(jobName) ||
+                !IsExpectedJobName(normalizedStatePath, kind, jobName))
+            {
+                throw new InvalidOperationException("Inherited lifetime metadata is invalid.");
+            }
             if (!IsExactLeaseHandle(handle, normalizedStatePath + GetSuffix(kind)))
             {
                 throw new InvalidOperationException("Inherited lifetime lease does not match the managed state path.");

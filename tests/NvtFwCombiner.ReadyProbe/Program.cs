@@ -1,6 +1,8 @@
 using System.Diagnostics;
 using System.IO.Pipes;
 using System.Text;
+using System.Globalization;
+using Microsoft.Win32.SafeHandles;
 using NvtFwCombiner.Application.VersionManagement;
 using NvtFwCombiner.Infrastructure.VersionManagement;
 
@@ -14,6 +16,50 @@ const string bootstrapIdentityKey = "NVT_FW_COMBINER_ROOT_BOOTSTRAP_IDENTITY";
 const string identityMarkerKey = "NVT_READY_PROBE_IDENTITY_MARKER";
 const string bootstrapAdmissionKey = "NVT_FW_COMBINER_BOOTSTRAP_ADMISSION_PIPE_HANDLE";
 string behavior = Environment.GetEnvironmentVariable(behaviorKey) ?? "ready";
+if (string.Equals(behavior, "probe-ambient-pipe", StringComparison.Ordinal))
+{
+    string marker = Environment.GetEnvironmentVariable("NVT_READY_PROBE_HANDLE_MARKER") ??
+        throw new InvalidOperationException("Missing handle marker.");
+    string value = Environment.GetEnvironmentVariable("NVT_READY_PROBE_AMBIENT_HANDLE") ??
+        throw new InvalidOperationException("Missing ambient handle value.");
+    await File.WriteAllTextAsync(marker, "started");
+    if (long.TryParse(value, NumberStyles.None, CultureInfo.InvariantCulture, out long raw))
+    {
+        try
+        {
+            using var probeHandle = new SafePipeHandle(new IntPtr(raw), ownsHandle: false);
+            await using var probePipe = new AnonymousPipeClientStream(PipeDirection.Out, probeHandle);
+            await probePipe.WriteAsync("leaked"u8.ToArray());
+            await probePipe.FlushAsync();
+        }
+        catch (Exception error) when (error is ArgumentException or IOException or UnauthorizedAccessException)
+        {
+            // Exact physical-pipe observation: an excluded or reused non-pipe handle cannot write.
+        }
+    }
+    return 0;
+}
+if (string.Equals(behavior, "probe-contained-isolation", StringComparison.Ordinal))
+{
+    string payload = Environment.GetEnvironmentVariable("NVT_READY_PROBE_ISOLATION_PAYLOAD") ??
+        throw new InvalidOperationException("Missing isolation payload.");
+    await TryWriteInheritedPipeAsync(
+        Environment.GetEnvironmentVariable("NVT_READY_PROBE_ALLOWED_HANDLE"),
+        Encoding.UTF8.GetBytes(payload));
+    await TryWriteInheritedPipeAsync(
+        Environment.GetEnvironmentVariable("NVT_READY_PROBE_CROSS_HANDLE"),
+        Encoding.UTF8.GetBytes($"cross:{payload}"));
+    return 0;
+}
+if (string.Equals(behavior, "probe-arguments-environment", StringComparison.Ordinal))
+{
+    string marker = Environment.GetEnvironmentVariable("NVT_READY_PROBE_ARGUMENT_MARKER") ??
+        throw new InvalidOperationException("Missing argument marker.");
+    string value = Environment.GetEnvironmentVariable("NVT_READY_PROBE_UNICODE_ENVIRONMENT") ??
+        throw new InvalidOperationException("Missing Unicode environment value.");
+    await File.WriteAllLinesAsync(marker, [value, Environment.CurrentDirectory, .. args]);
+    return 0;
+}
 if (behavior is "tree-grandchild" or "ready-tree-grandchild")
 {
     string marker = Environment.GetEnvironmentVariable("NVT_READY_PROBE_TREE_MARKER") ??
@@ -261,3 +307,22 @@ await Task.Delay(string.Equals(behavior, "ready-tree-root", StringComparison.Ord
     ? TimeSpan.Zero
     : TimeSpan.FromMilliseconds(200));
 return 0;
+
+static async Task TryWriteInheritedPipeAsync(string? value, byte[] payload)
+{
+    if (!long.TryParse(value, NumberStyles.None, CultureInfo.InvariantCulture, out long raw))
+    {
+        return;
+    }
+    try
+    {
+        using var probeHandle = new SafePipeHandle(new IntPtr(raw), ownsHandle: false);
+        await using var probePipe = new AnonymousPipeClientStream(PipeDirection.Out, probeHandle);
+        await probePipe.WriteAsync(payload);
+        await probePipe.FlushAsync();
+    }
+    catch (Exception error) when (error is ArgumentException or IOException or UnauthorizedAccessException)
+    {
+        // Exact physical-pipe assertions are made by the parent test.
+    }
+}

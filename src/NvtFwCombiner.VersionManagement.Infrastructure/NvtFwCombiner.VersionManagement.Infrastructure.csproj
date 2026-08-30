@@ -6,6 +6,7 @@
   <ItemGroup>
     <ProjectReference Include="..\NvtFwCombiner.Contracts\NvtFwCombiner.Contracts.csproj" />
     <ProjectReference Include="..\NvtFwCombiner.VersionManagement.Application\NvtFwCombiner.VersionManagement.Application.csproj" />
+    <ProjectReference Include="..\NvtFwCombiner.Platform\NvtFwCombiner.Platform.csproj" />
   </ItemGroup>
   <ItemGroup>
     <PackageReference Include="JsonSchema.Net" />

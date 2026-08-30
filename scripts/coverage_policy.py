@@ -38,6 +38,7 @@ PRODUCTION_MODULES = {
     "Profiles": (Path("src/NvtFwCombiner.Profiles"),),
     "Infrastructure": (
         Path("src/NvtFwCombiner.Infrastructure"),
+        Path("src/NvtFwCombiner.Platform"),
         Path("src/NvtFwCombiner.VersionManagement.Infrastructure"),
     ),
     "Bootstrap": (

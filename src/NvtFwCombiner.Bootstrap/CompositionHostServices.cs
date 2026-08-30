@@ -246,6 +246,12 @@ public sealed class CompositionHostServices
         return new InheritedPipeApplicationReadySignal();
     }
 
+    /// <summary>Captures the inherited application READY pipe at Desktop process entry.</summary>
+    public static InheritedPipeApplicationReadySignal CaptureInheritedApplicationReadySignal()
+    {
+        return new InheritedPipeApplicationReadySignal();
+    }
+
     /// <summary>Creates the Application-owned managed-child startup seam.</summary>
     /// <param name="applicationVersion">Running canonical stable version.</param>
     /// <param name="versionManagement">Session-scoped version-management owner.</param>
@@ -254,9 +260,22 @@ public sealed class CompositionHostServices
         string applicationVersion,
         IVersionManagementExperience versionManagement)
     {
+        return CreateManagedApplicationStartupCoordinator(
+            applicationVersion,
+            versionManagement,
+            CreateApplicationReadySignal());
+    }
+
+    /// <summary>Creates startup coordination over an already captured process-entry READY signal.</summary>
+    public static IManagedApplicationStartupCoordinator CreateManagedApplicationStartupCoordinator(
+        string applicationVersion,
+        IVersionManagementExperience versionManagement,
+        IApplicationReadySignal applicationReadySignal)
+    {
+        ArgumentNullException.ThrowIfNull(applicationReadySignal);
         return new ManagedApplicationStartupCoordinator(
             ManagedAppVersion.Parse(applicationVersion),
-            CreateApplicationReadySignal(),
+            applicationReadySignal,
             versionManagement);
     }
 

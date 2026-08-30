@@ -189,3 +189,26 @@ is exact and non-transferable; the approved 1.0.8 reduction work must remeasure
 and lower any reduced ceiling. No firmware, profile, range, operation, output
 byte, CRC/header, processor, naming, support, Golden, or UI-layout authority
 changes.
+
+## 2026-08-30 Windows child-handle containment correction
+
+The reviewed containment correction adds one dependency-free Platform process
+owner, moves READY/START/ADMITTED/lifetime transport onto explicit Windows
+handle allowlists, and captures inherited READY handles before descendants can
+start. Infrastructure retains typed protocol binding; no second process policy,
+updater, installer, state writer, or firmware execution path is introduced.
+
+Full production is 130,153 nonblank lines and runtime production is 92,495.
+Domain plus Profiles remains 20,632; Application remains 40,425; Bootstrap plus
+CLI plus Desktop and Distribution Launcher host is 4,347; and Infrastructure
+plus Contracts plus CRC worker and Platform is 27,091. The four runtime slices
+sum exactly to 92,495. Relative to the preceding checkpoint this is +644
+total/runtime, +24 host, and +620 Infrastructure/Platform.
+
+The executable allowances therefore become exactly 27,257 full production,
+22,439 runtime, 5 Domain/Profiles, 9,735 Application, 969
+Bootstrap/CLI/Desktop/Launcher, and 11,735
+Infrastructure/Contracts/worker/Platform above the frozen base ratchets. This
+R2 allowance is exact and non-transferable. It changes no firmware profile,
+range, operation, output byte, CRC/header, processor, naming, support, Golden,
+or Presentation-layout authority.

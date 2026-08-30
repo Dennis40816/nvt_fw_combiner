@@ -36,7 +36,7 @@ Rules:
   prior child-owned lifetime lease remains active or cannot be inspected.
 - Each managed Launcher and Desktop child inherits an exclusive OS-owned
   lifetime context derived injectively from the exact version-state path and
-  process role. The context marker, inheritable file handle, normalized state
+  process role. The context marker, explicitly transported file handle, normalized state
   path, role, and named Windows Job identity must all be absent for an
   unmanaged start or all be present and valid for the exact parsed managed
   invocation; any managed READY/options advertisement with missing, partial,
@@ -51,6 +51,20 @@ Rules:
   authority on tree exit or reboot. A recorded ordinary attempt may be cleared
   and retried only after the lease adapter authoritatively observes the Job
   empty; unreadable or indeterminate state remains fail-closed.
+- Every Windows child is created through the single Platform process-start
+  gate. Original authority handles remain non-inheritable; the exact child
+  receives only short-lived duplicates named by its closed allowlist through
+  `PROC_THREAD_ATTRIBUTE_HANDLE_LIST`. Root Bootstrap receives START,
+  ADMITTED, and Bootstrap lifetime; version Launcher receives Launcher READY
+  and Launcher lifetime; Desktop receives Application READY and Application
+  lifetime; legacy/direct Bootstrap receives none. Job, Setup marker,
+  root/tree custody, writer lease, and ambient handles are never inherited.
+  Each child captures its typed pipe and clears inheritance at process entry.
+  Any duplicate, environment, attribute-list, or process-create failure closes
+  the temporary handles and fails closed. A failure after native child creation
+  but before a successful return terminates the suspended child and confirms
+  its exit before releasing temporary inherited handles; inability to
+  terminate or confirm exit is surfaced explicitly.
 - When the distribution Launcher invokes Root Bootstrap, the complete Root
   Bootstrap/Launcher/Desktop tree additionally joins one outer Bootstrap Job.
   Its name uses the deterministic state-path prefix plus a fresh per-invocation
@@ -91,7 +105,7 @@ Rules:
   the complete admitted version tree, then verifies the manifest, executable,
   DLLs, and other package members through that custody. It holds the same
   handles through a final synchronous identity/topology check immediately
-  before `Process.Start`. Process adapters consume the token and do not repeat
+  before the contained native process-create call. Process adapters consume the token and do not repeat
   manifest/hash policy. Any added, removed, replaced, reparse, contended, or
   changed member fails closed before process creation.
   Tree capture is Windows-only, cancellation-aware, and bounded by independent
@@ -104,7 +118,7 @@ Rules:
   transfers immutable custody from the still-held promoted root handle only
   after proving the same root file identity; release-then-reopen by path is not
   permitted. Standard
-  Windows `Process.Start` has no atomic validate-and-create primitive, so the
+  Windows process creation has no atomic validate-and-create primitive, so the
   synchronous topology check is the declared final observation boundary. An
   addition scheduled after that observation is a residual OS boundary, not an
   atomic verification-and-creation claim.

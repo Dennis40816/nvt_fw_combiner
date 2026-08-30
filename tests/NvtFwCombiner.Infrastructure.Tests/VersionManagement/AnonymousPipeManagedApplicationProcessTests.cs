@@ -339,8 +339,13 @@ public sealed partial class AnonymousPipeManagedApplicationProcessTests
     [Fact]
     public async Task ApplicationReadySignalIsVersionBoundAndOneUse()
     {
+        if (!OperatingSystem.IsWindows())
+        {
+            return;
+        }
         ManagedAppVersion version = ManagedAppVersion.Parse("0.10.6");
         using var pipe = new AnonymousPipeServerStream(PipeDirection.In, HandleInheritability.Inheritable);
+        string inheritedDuplicate = DuplicateApplicationReadyClientHandle(pipe);
         string? priorHandle = Environment.GetEnvironmentVariable(
             AnonymousPipeManagedApplicationProcess.ReadyPipeHandleEnvironment);
         string? priorVersion = Environment.GetEnvironmentVariable(
@@ -349,16 +354,15 @@ public sealed partial class AnonymousPipeManagedApplicationProcessTests
         {
             Environment.SetEnvironmentVariable(
                 AnonymousPipeManagedApplicationProcess.ReadyPipeHandleEnvironment,
-                pipe.GetClientHandleAsString());
+                inheritedDuplicate);
             Environment.SetEnvironmentVariable(
                 AnonymousPipeManagedApplicationProcess.ExpectedVersionEnvironment,
                 version.ToString());
-            var signal = new InheritedPipeApplicationReadySignal();
+            using var signal = new InheritedPipeApplicationReadySignal();
 
             ApplicationReadySignalOutcome first = await signal.ReportReadyAsync(
                 version,
                 TestContext.Current.CancellationToken);
-            pipe.DisposeLocalCopyOfClientHandle();
             using var reader = new StreamReader(pipe);
             string? message = await reader.ReadLineAsync(TestContext.Current.CancellationToken);
             ApplicationReadySignalOutcome second = await signal.ReportReadyAsync(
@@ -388,6 +392,14 @@ public sealed partial class AnonymousPipeManagedApplicationProcessTests
     [Fact]
     public async Task ApplicationReadySignalRejectsWrongExpectedVersion()
     {
+        if (!OperatingSystem.IsWindows())
+        {
+            return;
+        }
+        using var pipe = new AnonymousPipeServerStream(
+            PipeDirection.In,
+            HandleInheritability.Inheritable);
+        string inheritedDuplicate = DuplicateApplicationReadyClientHandle(pipe);
         string? priorHandle = Environment.GetEnvironmentVariable(
             AnonymousPipeManagedApplicationProcess.ReadyPipeHandleEnvironment);
         string? priorVersion = Environment.GetEnvironmentVariable(
@@ -396,16 +408,24 @@ public sealed partial class AnonymousPipeManagedApplicationProcessTests
         {
             Environment.SetEnvironmentVariable(
                 AnonymousPipeManagedApplicationProcess.ReadyPipeHandleEnvironment,
-                "not-opened");
+                inheritedDuplicate);
             Environment.SetEnvironmentVariable(
                 AnonymousPipeManagedApplicationProcess.ExpectedVersionEnvironment,
                 "0.10.5");
 
-            ApplicationReadySignalOutcome result = await new InheritedPipeApplicationReadySignal().ReportReadyAsync(
+            using var signal = new InheritedPipeApplicationReadySignal();
+            ApplicationReadySignalOutcome result = await signal.ReportReadyAsync(
                 ManagedAppVersion.Parse("0.10.6"),
                 TestContext.Current.CancellationToken);
+            pipe.DisposeLocalCopyOfClientHandle();
+            using var timeout = CancellationTokenSource.CreateLinkedTokenSource(
+                TestContext.Current.CancellationToken);
+            timeout.CancelAfter(TimeSpan.FromSeconds(2));
+            using var reader = new StreamReader(pipe);
+            string discardedReady = await reader.ReadToEndAsync(timeout.Token);
 
             Assert.Equal(ApplicationReadySignalOutcome.InvalidInheritedContext, result);
+            Assert.Empty(discardedReady);
             Assert.Null(Environment.GetEnvironmentVariable(
                 AnonymousPipeManagedApplicationProcess.ReadyPipeHandleEnvironment));
             Assert.Null(Environment.GetEnvironmentVariable(
@@ -440,7 +460,8 @@ public sealed partial class AnonymousPipeManagedApplicationProcessTests
                 AnonymousPipeManagedApplicationProcess.ExpectedVersionEnvironment,
                 version.ToString());
 
-            ApplicationReadySignalOutcome result = await new InheritedPipeApplicationReadySignal().ReportReadyAsync(
+            using var signal = new InheritedPipeApplicationReadySignal();
+            ApplicationReadySignalOutcome result = await signal.ReportReadyAsync(
                 version,
                 TestContext.Current.CancellationToken);
 
@@ -478,15 +499,15 @@ public sealed partial class AnonymousPipeManagedApplicationProcessTests
             Environment.SetEnvironmentVariable(
                 AnonymousPipeManagedApplicationProcess.ExpectedVersionEnvironment,
                 null);
-            var signal = new InheritedPipeApplicationReadySignal();
-
-            ApplicationReadySignalOutcome unmanaged = await signal.ReportReadyAsync(
+            using var unmanagedSignal = new InheritedPipeApplicationReadySignal();
+            ApplicationReadySignalOutcome unmanaged = await unmanagedSignal.ReportReadyAsync(
                 ManagedAppVersion.Parse("0.10.6"),
                 TestContext.Current.CancellationToken);
             Environment.SetEnvironmentVariable(
                 AnonymousPipeManagedApplicationProcess.ExpectedVersionEnvironment,
                 "0.10.6");
-            ApplicationReadySignalOutcome partial = await signal.ReportReadyAsync(
+            using var partialSignal = new InheritedPipeApplicationReadySignal();
+            ApplicationReadySignalOutcome partial = await partialSignal.ReportReadyAsync(
                 ManagedAppVersion.Parse("0.10.6"),
                 TestContext.Current.CancellationToken);
 

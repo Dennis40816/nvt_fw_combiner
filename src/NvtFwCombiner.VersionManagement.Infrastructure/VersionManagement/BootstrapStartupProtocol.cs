@@ -4,6 +4,7 @@ using System.IO.Pipes;
 using System.Runtime.InteropServices;
 using System.Text;
 using Microsoft.Win32.SafeHandles;
+using NvtFwCombiner.Platform.Processes;
 
 namespace NvtFwCombiner.Infrastructure.VersionManagement;
 
@@ -48,8 +49,7 @@ internal sealed partial class BootstrapStartGate : IDisposable
         {
             return new(BootstrapStartGateInheritanceOutcome.NotInherited, null);
         }
-        if (!string.Equals(context, ContextVersion, StringComparison.Ordinal) ||
-            !long.TryParse(handle, NumberStyles.None, CultureInfo.InvariantCulture, out long rawHandle) ||
+        if (!long.TryParse(handle, NumberStyles.None, CultureInfo.InvariantCulture, out long rawHandle) ||
             rawHandle is 0 or -1)
         {
             return new(BootstrapStartGateInheritanceOutcome.Invalid, null);
@@ -58,6 +58,11 @@ internal sealed partial class BootstrapStartGate : IDisposable
         var ownedHandle = new SafePipeHandle(new IntPtr(rawHandle), ownsHandle: true);
 #pragma warning restore CA2000
         if (!SetHandleInformation(ownedHandle.DangerousGetHandle(), HandleFlagInherit, flags: 0))
+        {
+            ownedHandle.Dispose();
+            return new(BootstrapStartGateInheritanceOutcome.Invalid, null);
+        }
+        if (!string.Equals(context, ContextVersion, StringComparison.Ordinal))
         {
             ownedHandle.Dispose();
             return new(BootstrapStartGateInheritanceOutcome.Invalid, null);
@@ -119,10 +124,14 @@ internal sealed class BootstrapStartAuthorization : IDisposable
 
     internal BootstrapStartAuthorization()
     {
-        _pipe = new AnonymousPipeServerStream(PipeDirection.Out, HandleInheritability.Inheritable);
+        _pipe = new AnonymousPipeServerStream(PipeDirection.Out, HandleInheritability.None);
     }
 
     internal string ClientHandle => _pipe.GetClientHandleAsString();
+
+    internal ProcessInheritedHandle InheritedHandle => ProcessInheritedHandle.Parse(
+        BootstrapStartGate.HandleEnvironment,
+        ClientHandle);
 
     internal void ApplyInheritedContext(ProcessStartInfo startInfo)
     {

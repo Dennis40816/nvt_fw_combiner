@@ -3,7 +3,9 @@ using System.Globalization;
 using System.IO.Pipes;
 using System.Security.Cryptography;
 using System.Text;
+using Microsoft.Win32.SafeHandles;
 using NvtFwCombiner.Application.VersionManagement;
+using NvtFwCombiner.Platform.Processes;
 
 namespace NvtFwCombiner.Infrastructure.VersionManagement;
 
@@ -106,22 +108,23 @@ public enum LauncherReadyInheritanceOutcome
 }
 
 /// <summary>One consumed outer READY inheritance context with no public handshake material.</summary>
-public sealed class LauncherReadyInheritance
+public sealed class LauncherReadyInheritance : IDisposable
 {
+    private SafePipeHandle? _handle;
+
     private LauncherReadyInheritance(
         LauncherReadyInheritanceOutcome outcome,
-        string? handle,
+        SafePipeHandle? handle,
         string? expected)
     {
         Outcome = outcome;
-        Handle = handle;
+        _handle = handle;
         Expected = expected;
     }
 
     /// <summary>Gets the complete inherited-context classification.</summary>
     public LauncherReadyInheritanceOutcome Outcome { get; }
 
-    internal string? Handle { get; }
     internal string? Expected { get; }
 
     internal static LauncherReadyInheritance NotInherited { get; } =
@@ -130,9 +133,20 @@ public sealed class LauncherReadyInheritance
     internal static LauncherReadyInheritance Invalid { get; } =
         new(LauncherReadyInheritanceOutcome.InvalidInheritedContext, null, null);
 
-    internal static LauncherReadyInheritance CreateInherited(string handle, string expected)
+    internal static LauncherReadyInheritance CreateInherited(SafePipeHandle handle, string expected)
     {
         return new(LauncherReadyInheritanceOutcome.Inherited, handle, expected);
+    }
+
+    internal SafePipeHandle? TakeHandle()
+    {
+        return Interlocked.Exchange(ref _handle, null);
+    }
+
+    /// <inheritdoc />
+    public void Dispose()
+    {
+        Interlocked.Exchange(ref _handle, null)?.Dispose();
     }
 }
 
@@ -258,14 +272,30 @@ public static class LauncherBootstrapRuntime
             AnonymousPipeManagedLauncherProcess.ExpectedReadyEnvironment);
         Environment.SetEnvironmentVariable(AnonymousPipeManagedLauncherProcess.ReadyPipeHandleEnvironment, null);
         Environment.SetEnvironmentVariable(AnonymousPipeManagedLauncherProcess.ExpectedReadyEnvironment, null);
-        return handle is null && expected is null
-            ? LauncherReadyInheritance.NotInherited
-            : !string.IsNullOrWhiteSpace(handle) &&
-               long.TryParse(handle, NumberStyles.None, CultureInfo.InvariantCulture, out long pipeHandle) &&
-               pipeHandle > 0 &&
-               LauncherReadyProtocol.IsExpectedPrefix(expected)
-                ? LauncherReadyInheritance.CreateInherited(handle, expected!)
-                : LauncherReadyInheritance.Invalid;
+        if (handle is null && expected is null)
+        {
+            return LauncherReadyInheritance.NotInherited;
+        }
+        if (string.IsNullOrWhiteSpace(handle) ||
+            !long.TryParse(handle, NumberStyles.None, CultureInfo.InvariantCulture, out long pipeHandle) ||
+            pipeHandle <= 0)
+        {
+            return LauncherReadyInheritance.Invalid;
+        }
+#pragma warning disable CA2000 // Ownership transfers to the returned typed context.
+        var ownedHandle = new SafePipeHandle(new IntPtr(pipeHandle), ownsHandle: true);
+#pragma warning restore CA2000
+        if (!ProcessLaunchGate.TryClearInheritance(ownedHandle.DangerousGetHandle()))
+        {
+            ownedHandle.Dispose();
+            return LauncherReadyInheritance.Invalid;
+        }
+        if (!LauncherReadyProtocol.IsExpectedPrefix(expected))
+        {
+            ownedHandle.Dispose();
+            return LauncherReadyInheritance.Invalid;
+        }
+        return LauncherReadyInheritance.CreateInherited(ownedHandle, expected!);
     }
 
     /// <summary>Reports nested app readiness only after reloading exact app and launcher identities.</summary>
@@ -280,7 +310,6 @@ public static class LauncherBootstrapRuntime
         {
             return false;
         }
-        string handle = context.Handle!;
         string expected = context.Expected!;
 
         try
@@ -317,6 +346,11 @@ public static class LauncherBootstrapRuntime
                 return false;
             }
 
+            SafePipeHandle? handle = context.TakeHandle();
+            if (handle is null)
+            {
+                return false;
+            }
             await using var pipe = new AnonymousPipeClientStream(PipeDirection.Out, handle);
             byte[] message = Encoding.UTF8.GetBytes(LauncherReadyProtocol.Create(running, admission) + "\n");
             await pipe.WriteAsync(message, cancellationToken).ConfigureAwait(false);

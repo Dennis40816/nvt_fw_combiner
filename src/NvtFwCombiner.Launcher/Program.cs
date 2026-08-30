@@ -11,7 +11,8 @@ internal static class Program
         try
         {
             (string managedRoot, string statePath) = Parse(args);
-            LauncherReadyInheritance outerReady = LauncherBootstrapRuntime.CaptureNestedReadyContext();
+            using LauncherReadyInheritance outerReady =
+                LauncherBootstrapRuntime.CaptureNestedReadyContext();
             if (outerReady.Outcome == LauncherReadyInheritanceOutcome.InvalidInheritedContext)
             {
                 return 16;

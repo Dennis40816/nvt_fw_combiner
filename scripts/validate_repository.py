@@ -173,6 +173,7 @@ EXPECTED_PROJECTS = {
     "src/NvtFwCombiner.VersionManagement.Application/NvtFwCombiner.VersionManagement.Application.csproj",
     "src/NvtFwCombiner.Application/NvtFwCombiner.Application.csproj",
     "src/NvtFwCombiner.Profiles/NvtFwCombiner.Profiles.csproj",
+    "src/NvtFwCombiner.Platform/NvtFwCombiner.Platform.csproj",
     "src/NvtFwCombiner.Infrastructure/NvtFwCombiner.Infrastructure.csproj",
     "src/NvtFwCombiner.VersionManagement.Infrastructure/NvtFwCombiner.VersionManagement.Infrastructure.csproj",
     "src/NvtFwCombiner.Bootstrap/NvtFwCombiner.Bootstrap.csproj",
@@ -208,14 +209,17 @@ EXPECTED_PROJECT_REFERENCES = {
         "src/NvtFwCombiner.Domain/NvtFwCombiner.Domain.csproj",
         "src/NvtFwCombiner.Contracts/NvtFwCombiner.Contracts.csproj",
     },
+    "src/NvtFwCombiner.Platform/NvtFwCombiner.Platform.csproj": set(),
     "src/NvtFwCombiner.Infrastructure/NvtFwCombiner.Infrastructure.csproj": {
         "src/NvtFwCombiner.Domain/NvtFwCombiner.Domain.csproj",
         "src/NvtFwCombiner.Contracts/NvtFwCombiner.Contracts.csproj",
         "src/NvtFwCombiner.Application/NvtFwCombiner.Application.csproj",
         "src/NvtFwCombiner.Profiles/NvtFwCombiner.Profiles.csproj",
+        "src/NvtFwCombiner.Platform/NvtFwCombiner.Platform.csproj",
     },
     "src/NvtFwCombiner.VersionManagement.Infrastructure/NvtFwCombiner.VersionManagement.Infrastructure.csproj": {
         "src/NvtFwCombiner.Contracts/NvtFwCombiner.Contracts.csproj",
+        "src/NvtFwCombiner.Platform/NvtFwCombiner.Platform.csproj",
         "src/NvtFwCombiner.VersionManagement.Application/NvtFwCombiner.VersionManagement.Application.csproj",
     },
     "src/NvtFwCombiner.Bootstrap/NvtFwCombiner.Bootstrap.csproj": {
@@ -236,6 +240,7 @@ EXPECTED_PROJECT_REFERENCES = {
         "src/NvtFwCombiner.Bootstrap/NvtFwCombiner.Bootstrap.csproj",
         "src/NvtFwCombiner.Presentation.Avalonia/NvtFwCombiner.Presentation.Avalonia.csproj",
         "src/NvtFwCombiner.VersionManagement.Application/NvtFwCombiner.VersionManagement.Application.csproj",
+        "src/NvtFwCombiner.VersionManagement.Infrastructure/NvtFwCombiner.VersionManagement.Infrastructure.csproj",
     },
     "src/NvtFwCombiner.Launcher/NvtFwCombiner.Launcher.csproj": {
         "src/NvtFwCombiner.VersionManagement.Application/NvtFwCombiner.VersionManagement.Application.csproj",
@@ -2576,6 +2581,7 @@ def validate_capability_reuse_governance(
     *,
     trusted_initial_base: str | None = None,
 ) -> None:
+    capability_error_start = len(errors)
     shallow = subprocess.run(
         ["git", "rev-parse", "--is-shallow-repository"],
         cwd=root,
@@ -2689,7 +2695,25 @@ def validate_capability_reuse_governance(
         if validated is not None:
             records_by_relative[relative] = validated
 
-    if current_snapshot_failed:
+    task_ids = [record.get("taskId") for record in records_by_relative.values()]
+    duplicate_task_ids = {
+        value for value in task_ids if isinstance(value, str) and task_ids.count(value) > 1
+    }
+    for task_id in sorted(duplicate_task_ids):
+        errors.append(f"capability-reuse taskId must be unique: {task_id}")
+
+    for record in records_by_relative.values():
+        if record.get("state") != "design-active":
+            continue
+        task_id = str(record.get("taskId", "<invalid>"))
+        for relative in record.get("mutablePaths", []):
+            if not _is_capability_reuse_governed_path(relative):
+                errors.append(
+                    f"current capability-reuse mutable path is not governed: "
+                    f"{task_id}: {relative}"
+                )
+
+    if current_snapshot_failed or len(errors) != capability_error_start:
         return
 
     history, historical_nested_paths, history_error = _historical_final_records(root)
@@ -2757,12 +2781,6 @@ def validate_capability_reuse_governance(
                     f"capability-reuse record changed immutable admitted fields: {relative}"
                 )
 
-    task_ids = [record.get("taskId") for record in records_by_relative.values()]
-    duplicate_task_ids = {
-        value for value in task_ids if isinstance(value, str) and task_ids.count(value) > 1
-    }
-    for task_id in sorted(duplicate_task_ids):
-        errors.append(f"capability-reuse taskId must be unique: {task_id}")
     for task_id in sorted(
         value
         for value in task_ids

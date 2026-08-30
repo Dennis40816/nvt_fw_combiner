@@ -10,5 +10,6 @@
     <ProjectReference Include="..\NvtFwCombiner.Bootstrap\NvtFwCombiner.Bootstrap.csproj" />
     <ProjectReference Include="..\NvtFwCombiner.Presentation.Avalonia\NvtFwCombiner.Presentation.Avalonia.csproj" />
     <ProjectReference Include="..\NvtFwCombiner.VersionManagement.Application\NvtFwCombiner.VersionManagement.Application.csproj" />
+    <ProjectReference Include="..\NvtFwCombiner.VersionManagement.Infrastructure\NvtFwCombiner.VersionManagement.Infrastructure.csproj" />
   </ItemGroup>
 </Project>

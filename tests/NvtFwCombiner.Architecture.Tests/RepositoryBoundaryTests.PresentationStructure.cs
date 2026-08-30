@@ -215,7 +215,7 @@ public sealed partial class RepositoryBoundaryTests
         Assert.Contains("Environment.SpecialFolder.Windows", adapter, StringComparison.Ordinal);
         Assert.Contains("Path.IsPathFullyQualified", adapter, StringComparison.Ordinal);
         Assert.Contains("UseShellExecute = false", adapter, StringComparison.Ordinal);
-        Assert.Contains("Process.Start(startInfo)", adapter, StringComparison.Ordinal);
+        Assert.Contains("ProcessLaunchGate.Start(startInfo)", adapter, StringComparison.Ordinal);
         Assert.Contains("IFileRevealService", presentation, StringComparison.Ordinal);
         Assert.Contains("RevealFileCommand", presentation, StringComparison.Ordinal);
         Assert.DoesNotContain("Process.Start", presentation, StringComparison.Ordinal);

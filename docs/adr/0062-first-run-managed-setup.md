@@ -7,6 +7,8 @@ routing, plus ADR 0060 only for the managed Launcher/Bootstrap executable
 safety ceiling. Their version-package, activation, rollback, and immutable
 Bootstrap decisions otherwise remain authoritative.
 
+Amended by: ADR 0064 explicit Windows child-handle containment.
+
 ## Context
 
 The managed-version implementation already owns Registry replica selection,

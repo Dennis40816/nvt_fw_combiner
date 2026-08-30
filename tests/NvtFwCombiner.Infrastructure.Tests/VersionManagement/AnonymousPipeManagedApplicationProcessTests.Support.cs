@@ -4,6 +4,7 @@ using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using NvtFwCombiner.Application.VersionManagement;
 using NvtFwCombiner.Infrastructure.VersionManagement;
+using NvtFwCombiner.Platform.Processes;
 
 namespace NvtFwCombiner.Infrastructure.Tests.VersionManagement;
 
@@ -103,7 +104,11 @@ public sealed partial class AnonymousPipeManagedApplicationProcessTests
         startInfo.Environment[BehaviorEnvironment] = behavior;
         startInfo.Environment["NVT_READY_PROBE_TREE_MARKER"] = marker;
         lifetime.ApplyInheritedContext(startInfo);
-        Process process = Process.Start(startInfo) ??
+        Process process = ProcessLaunchGate.StartContained(
+            startInfo,
+            [new ProcessInheritedHandle(
+                ManagedProcessLifetimeLease.HandleEnvironment,
+                lifetime.InheritedHandleValue)]) ??
             throw new InvalidOperationException("Bootstrap tree probe did not start.");
         if (!provideAdmissionWriter)
         {

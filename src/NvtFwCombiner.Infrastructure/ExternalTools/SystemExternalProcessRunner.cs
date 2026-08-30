@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using NvtFwCombiner.Platform.Processes;
 
 namespace NvtFwCombiner.Infrastructure.ExternalTools;
 
@@ -13,9 +14,8 @@ public sealed class SystemExternalProcessRunner : IExternalProcessRunner
         ArgumentNullException.ThrowIfNull(startInfo);
         cancellationToken.ThrowIfCancellationRequested();
 
-        using var process = new Process { StartInfo = CreateProcessStartInfo(startInfo) };
-
-        _ = process.Start();
+        using Process process = ProcessLaunchGate.Start(CreateProcessStartInfo(startInfo)) ??
+            throw new InvalidOperationException("External process did not start.");
         Task<string> stdout = BoundedProcessOutputReader.ReadAsync(process.StandardOutput);
         Task<string> stderr = BoundedProcessOutputReader.ReadAsync(process.StandardError);
         Task wait = process.WaitForExitAsync(CancellationToken.None);
