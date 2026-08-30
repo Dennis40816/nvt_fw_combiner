@@ -5,7 +5,7 @@
   "integrationBase": "b1101c8736c8538a9056c314e843c266f0670c62",
   "risk": "R2",
   "kind": "behavior",
-  "state": "design-active",
+  "state": "final-complete",
   "mutablePaths": [
     "docs/adr/0021-code-size-ratchet-system-activity-amendment.md",
     "docs/adr/0056-rollback-safe-launcher-self-update.md",
@@ -55,12 +55,12 @@
     "outcome": "approved",
     "evidence": "Independent architecture review found the durable negative invariant missing from ADR 0056 and ADR 0062 and approved one Platform native owner using STARTUPINFOEX plus PROC_THREAD_ATTRIBUTE_HANDLE_LIST, exact per-edge allowlists, process-local start serialization, immediate child-side capture, and a new amending ADR. Application policy, protocol wire shapes, Job/lifetime state machines, executable custody, recovery mutation, and firmware semantics remain unchanged."
   },
-  "implementationHead": null,
-  "reviewedHead": null,
-  "pathStateDigest": null,
+  "implementationHead": "635ed8c9db6dff388f7c02b5073116e7a0a85951",
+  "reviewedHead": "635ed8c9db6dff388f7c02b5073116e7a0a85951",
+  "pathStateDigest": "57f868b254efb2fa1469486adff8f63ac69581cc7a0778ed4640942952f17d74",
   "finalReview": {
-    "reviewer": null,
-    "outcome": "pending",
-    "evidence": ""
+    "reviewer": "containment_final_semantic_review + containment_final_evidence_review",
+    "outcome": "approved",
+    "evidence": "Independent exact-head semantic and evidence reviews approved implementation 635ed8c9db6dff388f7c02b5073116e7a0a85951, sole parent b1101c8736c8538a9056c314e843c266f0670c62, tree 4c4a2cbc56afcd68fadf42c0b3b1665adedf9198, and binary diff digest 401555cb091594e4f2970dec5919862c054e2623 with no P0-P3 findings. Final custody validation executes under the global launch lock after native preparation and immediately before process creation; deterministic evidence rejects post-preparation custody drift, starts no child, and proves temporary-handle cleanup by EOF. The frozen candidate passed containment 127/127, Architecture 248/248, governance 101/101, code-size and coverage policy 54/54, structure validation, and Polytail; the reviewed worktree was clean."
   }
 }
