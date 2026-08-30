@@ -4,14 +4,38 @@ Status: historical seed-preparation report for the 2026-06-25 bootstrap
 baseline, updated through the stable 0.10.4 post-refactor simplification,
 0.10.5 startup-performance work, the 0.10.6 internal managed-version
 implementation, the 0.10.7 final-effect checkpoint, the stable 1.0.0 and
-version-only 1.0.1 release, the stable 1.0.2 mode-selector hotfix, and the
-active 1.0.3 page-publication hardening
+version-only 1.0.1 release, the stable 1.0.2 mode-selector hotfix, the 1.0.3
+page-publication hardening milestone, and the active 1.0.4 managed Setup and
+Launcher source
 candidate. Current
 verification evidence is produced by the canonical
 `python scripts/verify.py --structure-only` and `python scripts/verify.py --all`
 commands.
 
-Specification package version: `1.0.3`
+Specification package version: `1.0.4`
+
+## 1.0.4 managed Setup and Launcher source milestone
+
+The committed candidate completes the secure managed first-install backend and
+the bounded distribution Launcher source path. It reuses the existing typed
+Application policy, Infrastructure adapters, immutable Bootstrap trust anchor,
+strict payload descriptor, exact-root recovery probes, and shared repository
+verifier; it does not add a second updater, parser, state writer, or firmware
+execution path.
+
+Focused evidence includes 182 affected real-process and repository tests, 943
+passing Infrastructure tests with two declared platform skips on the isolated
+candidate, complete Application and coverage-owner checks, structure validation,
+and two independent exact-diff reviews with no P0/P1/P2 findings. A Windows
+test-host race was closed by placing every inheritable-handle test owner in the
+existing nonparallel process collection and by using test-local state identities
+plus the canonical bounded temporary-workspace cleanup.
+
+This is an unpublished tag-only source milestone. It creates no GitHub Release,
+package, Catalog/Registry row, support promotion, firmware-byte change, or
+delivery claim. Production inherited-handle containment, package/SBOM/
+provenance/signing, clean-machine smoke, and integrated Setup recovery remain
+open gates before Launcher delivery in 1.0.6.
 
 ## 2026-08-25 formal-support policy checkpoint
 

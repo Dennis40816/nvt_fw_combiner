@@ -96,6 +96,12 @@ commit.
   Replace page owners explicit publication intents so an accepted mode change
   cannot republish either live selector's choices or notify the hidden page.
   Layout, firmware behavior, output bytes, naming, and support remain unchanged.
+- `v1.0.4` — managed Setup and Launcher source milestone: complete the secure
+  first-install backend and bounded distribution entry candidate while keeping
+  all user delivery disabled until the integrated `v1.0.6` gate. The source tag
+  publishes no package, Catalog/Registry row, support change, or firmware-byte
+  behavior; production inherited-handle containment remains required before
+  Launcher delivery.
 
 ### Recorded `v0.10.2` pre-deletion comparison point
 
