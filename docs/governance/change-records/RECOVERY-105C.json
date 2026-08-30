@@ -5,7 +5,7 @@
   "integrationBase": "a5aafa8127aabb9c3e98c64fb9f64fab7c864c23",
   "risk": "R3",
   "kind": "behavior",
-  "state": "design-active",
+  "state": "final-complete",
   "mutablePaths": [
     "docs/adr/0021-code-size-ratchet-system-activity-amendment.md",
     "scripts/code_size_policy.py",
@@ -27,12 +27,12 @@
     "outcome": "approved",
     "evidence": "The independent recovery architecture review kept production composition as a separate least-authority slice and approved reusing the existing state store, root probe, repository, installed-launcher state, lifetime probe, diagnosis experience and execution coordinator. It rejected automatic recovery, inferred paths, Infrastructure-owned action policy, a second writer lease, and any additional process-start owner."
   },
-  "implementationHead": null,
-  "reviewedHead": null,
-  "pathStateDigest": null,
+  "implementationHead": "9eb8365d0a9beb3a8d024e9a9f0b6d21fc6f5309",
+  "reviewedHead": "9eb8365d0a9beb3a8d024e9a9f0b6d21fc6f5309",
+  "pathStateDigest": "6faf49a25453439877195c85f00ea4384a3cab6cf7133e526f43187281bb182c",
   "finalReview": {
-    "reviewer": null,
-    "outcome": "pending",
-    "evidence": ""
+    "reviewer": "recovery105b_architecture with release-owner-approved composition boundary",
+    "outcome": "approved",
+    "evidence": "Exact implementation head 9eb8365d0a9beb3a8d024e9a9f0b6d21fc6f5309 extends only the admitted host composition and exact code-size owners. Focused host tests passed 18/18, Bootstrap passed 1165/1165, Architecture passed 249/249, and code-size policy passed 19/19. Scoped Polytail found no P0/P1/P2. The host reuses the existing state store, root probe, repository, marker/lifetime probes, one shared recovery evidence/execution adapter, and sole Application diagnosis/coordinator. RunAsync remains read-only; no process start, parser, policy, writer lease, or path inference was added."
   }
 }
