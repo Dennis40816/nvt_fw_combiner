@@ -1,0 +1,35 @@
+{
+  "schemaVersion": 2,
+  "taskId": "COVERAGE-AXAML-106-01",
+  "capability": "Canonicalize direct and project-linked Avalonia AXAML coverage sources to one physical production owner",
+  "integrationBase": "cba40a6d59461a518bac5bd31a0049eeffc95b0f",
+  "risk": "R2",
+  "kind": "governance",
+  "state": "design-active",
+  "mutablePaths": [
+    "scripts/coverage_policy.py"
+  ],
+  "implementationOwner": "coverage-axaml-implementer",
+  "searchEvidence": [
+    "The fresh frozen-head UI Smoke and Bootstrap Coverlet reports include direct physical src/NvtFwCombiner.DistributionLauncher/App.axaml and LauncherWindow.axaml sources, but coverage_policy.py admits AXAML only for the PresentationAvalonia module.",
+    "The same reports include logical src/NvtFwCombiner.DistributionLauncher/Styles/ThemeTokens.axaml produced by the existing AvaloniaResource Include plus Link declaration; its physical owner is src/NvtFwCombiner.Presentation.Avalonia/Styles/ThemeTokens.axaml.",
+    "All 721 repository-script tests, Python quality and CRC coverage gates, all eight .NET project test lanes, Golden 18/18, and the Release build pass sequentially; the final .NET coverage inventory alone fails before policy evaluation on the first valid DistributionLauncher AXAML source.",
+    "docs/contracts/coverage-baseline-v1.md already admits C# and Avalonia source-mapped AXAML, and scripts/code_size_policy.py already treats tracked src/**/*.axaml as production source."
+  ],
+  "semanticOwner": "scripts/coverage_policy.py owns canonical physical source identity, production module attribution, deduplication, and fail-closed validation for paired Coverlet JSON and Cobertura evidence",
+  "terminalContract": "Resolve direct physical AXAML and statically declared production AvaloniaResource Include plus Link aliases through one coverage-source identity owner. Derive aliases from the current production project files rather than a duplicated hardcoded path map; require project, logical alias, and physical Include to remain inside declared production roots; require one logical alias to resolve to exactly one regular physical .axaml source; and reject missing, escaping, ambiguous, non-AXAML, or undeclared aliases. Canonicalize both Cobertura and paired Coverlet JSON paths before line and branch merging. Direct DistributionLauncher AXAML remains in the existing Bootstrap module; linked ThemeTokens evidence is attributed to its physical PresentationAvalonia owner; one physical source line is counted once across assemblies while module-qualified branch identities remain distinct. No coverage baseline, threshold, allowance, project/resource declaration, package, UI/runtime, firmware, profile, range, CRC/header, Golden, or output-naming behavior changes. Focused coverage-policy tests, exact fresh .NET coverage verification, scoped Polytail, independent exact-head review, and final repository gates must pass.",
+  "disposition": "extend-owner",
+  "designReview": {
+    "reviewer": "lock_exact_semantic_review",
+    "outcome": "approved",
+    "evidence": "Independent coverage-architecture review traced the fresh failure to the stale Presentation-only AXAML exception and the existing DistributionLauncher AvaloniaResource Include plus Link projection. It rejected both excluding AXAML and hardcoding one path, and approved one fail-closed resolver derived from production project declarations, canonicalization in both paired report formats, physical-line deduplication, retained assembly-qualified branch identity, unchanged baselines, and focused direct, linked, duplicate, branch, and invalid-alias tests."
+  },
+  "implementationHead": null,
+  "reviewedHead": null,
+  "pathStateDigest": null,
+  "finalReview": {
+    "reviewer": null,
+    "outcome": "pending",
+    "evidence": ""
+  }
+}
