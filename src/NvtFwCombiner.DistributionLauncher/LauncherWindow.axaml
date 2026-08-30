@@ -1,0 +1,117 @@
+<Window
+    x:Class="NvtFwCombiner.DistributionLauncher.LauncherWindow"
+    xmlns="https://github.com/avaloniaui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    Width="960"
+    Height="640"
+    MinWidth="760"
+    MinHeight="560"
+    CanResize="True"
+    WindowDecorations="None"
+    WindowStartupLocation="CenterScreen"
+    Background="{DynamicResource NfcSurfaceBrush}"
+    FontFamily="{DynamicResource NfcUiFontFamily}"
+    Foreground="{DynamicResource NfcTextStrongBrush}"
+    Icon="avares://NvtFwCombiner.DistributionLauncher/Assets/AppIcon.ico"
+    Title="NVT FW Combiner Setup">
+  <Border BorderBrush="{DynamicResource NfcBorderBrush}" BorderThickness="1" CornerRadius="10">
+    <Grid RowDefinitions="70,*">
+      <Border Grid.Row="0" BorderBrush="{DynamicResource NfcBorderMutedBrush}" BorderThickness="0,0,0,1"
+              PointerPressed="TitleBar_PointerPressed">
+        <Grid Margin="22,0,12,0" ColumnDefinitions="Auto,*,Auto">
+          <Image Width="32" Height="32" Source="avares://NvtFwCombiner.DistributionLauncher/Assets/AppIcon.ico"
+                 VerticalAlignment="Center" />
+          <TextBlock Grid.Column="1" Margin="14,0,0,0" VerticalAlignment="Center"
+                     FontSize="19" FontWeight="Medium" Text="NVT FW Combiner Setup" />
+          <Button Grid.Column="2" Classes="launcher-close" Click="Close_Click"
+                  ToolTip.Tip="Close" AutomationProperties.Name="Close setup">
+            <Path Data="{DynamicResource NfcCloseIconGeometry}" Stroke="{DynamicResource NfcTextStrongBrush}"
+                  StrokeThickness="1.6" Stretch="Uniform" />
+          </Button>
+        </Grid>
+      </Border>
+
+      <Grid Grid.Row="1" Margin="72,42,72,32" RowDefinitions="*,Auto">
+        <Grid x:Name="SetupPanel" MaxWidth="610" HorizontalAlignment="Center" VerticalAlignment="Top"
+              RowDefinitions="Auto,Auto,32,Auto,30,Auto,12,Auto,28,Auto,16,Auto">
+          <TextBlock Grid.Row="0" HorizontalAlignment="Center" FontSize="34" FontWeight="Bold"
+                     Text="Install NVT FW Combiner" />
+          <TextBlock Grid.Row="1" Margin="0,10,0,0" HorizontalAlignment="Center" FontSize="15"
+                     Foreground="{DynamicResource NfcTextSecondaryBrush}"
+                     Text="Install the latest verified version and keep future updates managed automatically." />
+
+          <Border Grid.Row="3" Width="330" Height="54" HorizontalAlignment="Center"
+                  BorderBrush="{DynamicResource NfcBorderBrush}" BorderThickness="1" CornerRadius="8">
+            <Grid Margin="16,0" ColumnDefinitions="Auto,*,Auto">
+              <TextBlock VerticalAlignment="Center" FontSize="15" Text="Version" />
+              <TextBlock x:Name="VersionText" Grid.Column="1" HorizontalAlignment="Center" VerticalAlignment="Center"
+                         FontSize="16" FontWeight="SemiBold" Text="Checking…" />
+              <Border Grid.Column="2" Padding="10,5" VerticalAlignment="Center"
+                      Background="{DynamicResource NfcSuccessSurfaceBrush}"
+                      BorderBrush="{DynamicResource NfcSuccessBorderBrush}" BorderThickness="1" CornerRadius="7">
+                <TextBlock FontSize="14" Foreground="{DynamicResource NfcSuccessTextBrush}" Text="✓  Verified" />
+              </Border>
+            </Grid>
+          </Border>
+
+          <TextBlock Grid.Row="5" Margin="0,0,0,8" FontSize="15" FontWeight="SemiBold" Text="Install location" />
+          <Grid Grid.Row="6" RowSpan="2" ColumnDefinitions="*,46">
+            <Border x:Name="InstallLocationField" Height="48" VerticalAlignment="Top"
+                    BorderBrush="{DynamicResource NfcBorderBrush}" BorderThickness="1" CornerRadius="8">
+              <Grid Margin="14,0" ColumnDefinitions="Auto,*">
+                <TextBlock VerticalAlignment="Center" FontSize="18" Foreground="{DynamicResource NfcTextMutedBrush}" Text="▱" />
+                <TextBlock x:Name="InstallLocationText" Grid.Column="1" Margin="12,0,8,0" VerticalAlignment="Center"
+                           FontSize="14" TextTrimming="CharacterEllipsis" />
+              </Grid>
+            </Border>
+            <Button x:Name="EditLocationButton" Grid.Column="1" Classes="launcher-icon" HorizontalAlignment="Right"
+                    VerticalAlignment="Top" Margin="12,7,0,0" Click="EditLocation_Click"
+                    ToolTip.Tip="Choose install location" AutomationProperties.Name="Choose install location">
+              <Path Data="{DynamicResource NfcEditIconGeometry}" Stroke="{DynamicResource NfcTextStrongBrush}"
+                    StrokeThickness="1.4" Stretch="Uniform" />
+            </Button>
+          </Grid>
+
+          <TextBlock x:Name="SourceStatusText" Grid.Row="9" FontSize="14"
+                     Foreground="{DynamicResource NfcSuccessTextBrush}" Text="●  Checking verified update source…" />
+
+          <Border Grid.Row="11" Padding="18,13" Background="{DynamicResource NfcAccentSurfaceSubtleBrush}"
+                  BorderBrush="{DynamicResource NfcAccentBorderLightBrush}" BorderThickness="1" CornerRadius="8">
+            <StackPanel Spacing="11">
+              <TextBlock FontSize="14" Text="ⓘ   One managed installation" />
+              <TextBlock FontSize="14" Text="ⓘ   Automatic verified updates" />
+              <TextBlock FontSize="14" Text="ⓘ   Offline launch with last known good version" />
+            </StackPanel>
+          </Border>
+        </Grid>
+
+        <Grid x:Name="RecoveryPanel" IsVisible="False" MaxWidth="610" HorizontalAlignment="Center"
+              VerticalAlignment="Top" RowDefinitions="Auto,Auto,32,Auto,18,Auto">
+          <TextBlock HorizontalAlignment="Center" FontSize="34" FontWeight="Bold" Text="Repair NVT FW Combiner" />
+          <TextBlock Grid.Row="1" Margin="0,10,0,0" HorizontalAlignment="Center" FontSize="15"
+                     Foreground="{DynamicResource NfcTextSecondaryBrush}"
+                     Text="A previous setup did not finish. Review the safe recovery action below." />
+          <Border Grid.Row="3" Padding="18" Background="{DynamicResource NfcAccentSurfaceSubtleBrush}"
+                  BorderBrush="{DynamicResource NfcAccentBorderLightBrush}" BorderThickness="1" CornerRadius="8">
+            <StackPanel Spacing="8">
+              <TextBlock FontSize="15" FontWeight="SemiBold" Text="Installation recovery" />
+              <TextBlock x:Name="RecoveryRootText" FontSize="13" Foreground="{DynamicResource NfcTextSecondaryBrush}"
+                         TextTrimming="CharacterEllipsis" />
+              <TextBlock x:Name="RecoveryStatusText" FontSize="14" Text="Checking installation health…" />
+            </StackPanel>
+          </Border>
+          <TextBlock Grid.Row="5" FontSize="13" Foreground="{DynamicResource NfcTextMutedBrush}"
+                     Text="Only the exact Application-approved recovery action can run." />
+        </Grid>
+
+        <Grid Grid.Row="1" Margin="0,24,0,0" ColumnDefinitions="*,Auto,12,Auto">
+          <TextBlock x:Name="OutcomeText" VerticalAlignment="Center" FontSize="13"
+                     Foreground="{DynamicResource NfcWarningTextBrush}" TextWrapping="Wrap" />
+          <Button Grid.Column="1" Classes="launcher-action" Click="Close_Click" Content="Cancel" />
+          <Button x:Name="PrimaryButton" Grid.Column="3" Classes="launcher-action launcher-primary"
+                  Click="Primary_Click" Content="Install" IsEnabled="False" />
+        </Grid>
+      </Grid>
+    </Grid>
+  </Border>
+</Window>

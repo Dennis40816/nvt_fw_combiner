@@ -1,6 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <ItemGroup>
     <InternalsVisibleTo Include="NvtFwCombiner.Bootstrap.Tests" />
+    <InternalsVisibleTo Include="NvtFwCombiner.UiSmoke.Tests" />
   </ItemGroup>
   <PropertyGroup>
     <OutputType>WinExe</OutputType>
@@ -12,6 +13,18 @@
   <ItemGroup>
     <ProjectReference Include="..\NvtFwCombiner.Bootstrap\NvtFwCombiner.Bootstrap.csproj" />
     <ProjectReference Include="..\NvtFwCombiner.VersionManagement.Application\NvtFwCombiner.VersionManagement.Application.csproj" />
+  </ItemGroup>
+  <ItemGroup>
+    <PackageReference Include="Avalonia" />
+    <PackageReference Include="Avalonia.Desktop" />
+    <PackageReference Include="Avalonia.Fonts.Inter" />
+    <PackageReference Include="Avalonia.Themes.Fluent" />
+  </ItemGroup>
+  <ItemGroup>
+    <AvaloniaResource Include="..\NvtFwCombiner.Presentation.Avalonia\Styles\ThemeTokens.axaml"
+                       Link="Styles\ThemeTokens.axaml" />
+    <AvaloniaResource Include="..\NvtFwCombiner.Presentation.Avalonia\Assets\AppIcon.ico"
+                       Link="Assets\AppIcon.ico" />
   </ItemGroup>
   <ItemGroup Condition="Exists('$(ManagedSetupPayloadAdmissionPath)')">
     <EmbeddedResource

@@ -274,3 +274,35 @@ Infrastructure/Contracts/worker/Platform above the frozen base ratchets. This
 R3 allowance is exact and non-transferable. It changes no firmware, profile,
 range, operation, output byte, CRC/header, processor, naming, support, Golden,
 package, Registry, Catalog, or Presentation authority.
+
+## 2026-08-31 owner-approved Distribution Launcher UI
+
+LAUNCHER-106-UI-01 adds one standalone Avalonia Application and Window to the
+existing Distribution Launcher. It renders the owner-approved Setup reference
+and the same-window typed Recovery state without referencing the full firmware
+Presentation project. Setup forwards the selected root to the sole prepare
+owner and installs exactly the displayed immutable plan. Recovery renders and
+submits only the Application-provided action. Healthy and noninteractive
+terminal outcomes retain their exit-code path.
+
+The canonical Light English reference is
+`C:/Users/liusx/.codex/generated_images/01a01764-d2b2-7a72-a402-a80fb60c775e/exec-69698ee9-674f-4c7e-9c50-bf043c89ddf5.png`, with the later owner-approved
+external 34-pixel pencil icon, bundled Inter/product font, and existing App
+icon. The project directly admits only the four centrally pinned Avalonia
+packages and linked product tokens/icon; it adds no DI, navigation framework,
+ViewModel package, firmware semantic dependency, or second Setup/Recovery
+policy.
+
+Full production is 134,087 nonblank lines and runtime production is 96,275.
+Domain plus Profiles remains 20,632; Application remains 41,047; Bootstrap,
+CLI, Desktop and Launcher is 4,792; Infrastructure, Contracts, worker and
+Platform remains 29,804. Relative to RECOVERY-105C this is +477 full
+production, +323 runtime/host, with the remaining +154 in XAML.
+
+The executable allowances become exactly 31,191 full production, 26,219
+runtime, 5 Domain/Profiles, 10,357 Application, 1,414
+Bootstrap/CLI/Desktop/Launcher, and 14,448
+Infrastructure/Contracts/worker/Platform above the frozen base ratchets. This
+R3 allowance is exact and non-transferable. It changes no firmware, profile,
+range, operation, output byte, CRC/header, processor, naming, support, Golden,
+package, Registry, Catalog, installation, or recovery semantics.

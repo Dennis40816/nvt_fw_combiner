@@ -1,0 +1,43 @@
+{
+  "schemaVersion": 2,
+  "taskId": "LAUNCHER-106-UI-01",
+  "capability": "Render the owner-approved NVT FW Combiner Setup and typed Recovery surfaces from the existing Distribution Launcher without adding installation, source-selection, destination-admission, or recovery policy to Presentation",
+  "integrationBase": "4e6d15540520447b6cb16f177b1f4a1e083ff0f5",
+  "risk": "R3",
+  "kind": "ui",
+  "state": "design-active",
+  "mutablePaths": [
+    "docs/adr/0021-code-size-ratchet-system-activity-amendment.md",
+    "scripts/code_size_policy.py",
+    "src/NvtFwCombiner.DistributionLauncher/App.axaml",
+    "src/NvtFwCombiner.DistributionLauncher/App.axaml.cs",
+    "src/NvtFwCombiner.DistributionLauncher/LauncherWindow.axaml",
+    "src/NvtFwCombiner.DistributionLauncher/LauncherWindow.axaml.cs",
+    "src/NvtFwCombiner.DistributionLauncher/NvtFwCombiner.DistributionLauncher.csproj",
+    "src/NvtFwCombiner.DistributionLauncher/Program.cs",
+    "src/NvtFwCombiner.DistributionLauncher/packages.lock.json"
+  ],
+  "implementationOwner": "launcher-ui-single-writer",
+  "searchEvidence": [
+    "ManagedDistributionLauncherHostResult already exposes typed Setup and exact-root Recovery sessions; Program currently only maps those outcomes to exit codes and has no UI.",
+    "ManagedFirstInstallationExperience is the sole prepare/install owner and ManagedDistributionLauncherRecoverySession delegates the sole diagnosis/execute owners; UI needs only immutable plans and typed outcomes.",
+    "The existing Presentation ThemeTokens and Inter package provide the approved product typography, colors, corner radii, edit geometry, and app icon without referencing the full firmware Presentation project.",
+    "The existing Distribution Launcher project has no Presentation, Desktop, Infrastructure, DI, navigation, or ViewModel dependency; the smallest UI is one Avalonia Application and one Window with Setup/Recovery states."
+  ],
+  "semanticOwner": "VersionManagement Application and Bootstrap own every Setup/Recovery decision; Distribution Launcher Presentation renders typed plans, forwards explicit user actions, and never derives eligibility, source, destination validity, recovery action, or terminal meaning",
+  "terminalContract": "The canonical visual reference is C:/Users/liusx/.codex/generated_images/01a01764-d2b2-7a72-a402-a80fb60c775e/exec-69698ee9-674f-4c7e-9c50-bf043c89ddf5.png at its 1536x1014 Light English state, amended by the owner's later accepted deltas: product App icon, bundled Inter/product font, install-location field with a separate compact 34px pencil icon outside the field, and no oversized Choose folder button. Setup displays the typed latest verified version/source/destination, prepares again after folder selection, and installs exactly the displayed immutable plan. Recovery displays only the typed diagnosis/action and never executes on Cancel. Healthy and noninteractive terminal outcomes retain the existing exit-code path. No second UI project, navigation framework, DI container, firmware dependency, or policy inference is introduced.",
+  "disposition": "extend-owner",
+  "designReview": {
+    "reviewer": "launcher_ui_min_design plus product owner",
+    "outcome": "approved",
+    "evidence": "The independent UI inventory selected one standalone Avalonia window over importing the full firmware Presentation project, reusing exactly four centrally pinned Avalonia packages and existing product tokens/icon. The owner explicitly required implementation against the previously approved image and accepted the compact external pencil-icon delta. The design rejects a second Setup executable, ViewModel framework, duplicated policy, and generic redesign."
+  },
+  "implementationHead": null,
+  "reviewedHead": null,
+  "pathStateDigest": null,
+  "finalReview": {
+    "reviewer": null,
+    "outcome": "pending",
+    "evidence": ""
+  }
+}

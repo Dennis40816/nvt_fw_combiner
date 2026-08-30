@@ -1,3 +1,4 @@
+using Avalonia;
 using NvtFwCombiner.Application.VersionManagement;
 using NvtFwCombiner.Bootstrap;
 
@@ -31,10 +32,13 @@ internal static class Program
                 .AsTask()
                 .GetAwaiter()
                 .GetResult();
-            return (int)MapExitCode(
+            DistributionLauncherExitCode exitCode = MapExitCode(
                 result.PayloadIssue,
                 result.Entry?.Outcome,
                 result.Setup is not null);
+            return result.Setup is not null || result.Recovery is not null
+                ? App.ConfigureAndRun(result, result.Entry!.ManagedRoot ?? host.ManagedRoot)
+                : (int)exitCode;
         }
         catch (Exception exception) when (exception is
             ArgumentException or FormatException or InvalidOperationException or IOException or
@@ -42,6 +46,13 @@ internal static class Program
         {
             return (int)DistributionLauncherExitCode.HostUnavailable;
         }
+    }
+
+    internal static Avalonia.AppBuilder BuildAvaloniaApp()
+    {
+        return Avalonia.AppBuilder.Configure<App>()
+            .UsePlatformDetect()
+            .WithInterFont();
     }
 
     internal static DistributionLauncherExitCode MapExitCode(

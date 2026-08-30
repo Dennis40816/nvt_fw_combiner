@@ -1,0 +1,44 @@
+<Application
+    x:Class="NvtFwCombiner.DistributionLauncher.App"
+    xmlns="https://github.com/avaloniaui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+  <Application.Styles>
+    <FluentTheme />
+    <Style Selector="Button.launcher-action">
+      <Setter Property="MinWidth" Value="112" />
+      <Setter Property="Height" Value="46" />
+      <Setter Property="Padding" Value="24,0" />
+      <Setter Property="CornerRadius" Value="8" />
+      <Setter Property="FontSize" Value="15" />
+      <Setter Property="FontWeight" Value="SemiBold" />
+    </Style>
+    <Style Selector="Button.launcher-primary">
+      <Setter Property="Background" Value="{DynamicResource NfcAccentBrush}" />
+      <Setter Property="BorderBrush" Value="{DynamicResource NfcAccentBrush}" />
+      <Setter Property="Foreground" Value="White" />
+    </Style>
+    <Style Selector="Button.launcher-icon">
+      <Setter Property="Width" Value="34" />
+      <Setter Property="Height" Value="34" />
+      <Setter Property="Padding" Value="8" />
+      <Setter Property="CornerRadius" Value="6" />
+      <Setter Property="Background" Value="Transparent" />
+      <Setter Property="BorderBrush" Value="{DynamicResource NfcBorderBrush}" />
+      <Setter Property="BorderThickness" Value="1" />
+    </Style>
+    <Style Selector="Button.launcher-close">
+      <Setter Property="Width" Value="40" />
+      <Setter Property="Height" Value="40" />
+      <Setter Property="Padding" Value="11" />
+      <Setter Property="Background" Value="Transparent" />
+      <Setter Property="BorderThickness" Value="0" />
+    </Style>
+  </Application.Styles>
+  <Application.Resources>
+    <ResourceDictionary>
+      <ResourceDictionary.MergedDictionaries>
+        <ResourceInclude Source="avares://NvtFwCombiner.DistributionLauncher/Styles/ThemeTokens.axaml" />
+      </ResourceDictionary.MergedDictionaries>
+    </ResourceDictionary>
+  </Application.Resources>
+</Application>

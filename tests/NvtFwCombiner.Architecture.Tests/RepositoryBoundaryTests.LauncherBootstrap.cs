@@ -114,17 +114,25 @@ public sealed partial class RepositoryBoundaryTests
             project,
             "<OutputType>WinExe</OutputType>",
             "NvtFwCombiner.Bootstrap",
+            "<PackageReference Include=\"Avalonia\" />",
+            "<PackageReference Include=\"Avalonia.Desktop\" />",
+            "<PackageReference Include=\"Avalonia.Fonts.Inter\" />",
+            "<PackageReference Include=\"Avalonia.Themes.Fluent\" />",
+            "Link=\"Styles\\ThemeTokens.axaml\"",
+            "Link=\"Assets\\AppIcon.ico\"",
             "NvtFwCombiner.DistributionLauncher.Payload.managed-setup-payload-admission.v1.json",
             "NvtFwCombiner.DistributionLauncher.Payload.NvtFwCombiner.Bootstrap.exe");
         AssertDoesNotContainAny(
             project,
             "NvtFwCombiner.VersionManagement.Infrastructure\\",
-            "NvtFwCombiner.Desktop",
-            "PackageReference");
+            "NvtFwCombiner.Presentation.Avalonia.csproj",
+            "NvtFwCombiner.Desktop");
+        Assert.Equal(4, CountOccurrences(project, "<PackageReference Include="));
         AssertContainsAll(
             program,
             "ManagedDistributionLauncherHostServices.Create()",
             ".RunAsync(CancellationToken.None)",
+            "App.ConfigureAndRun(result",
             "DistributionLauncherExitCode");
         AssertDoesNotContainAny(
             program,
@@ -132,6 +140,29 @@ public sealed partial class RepositoryBoundaryTests
             "FileSystemUpdateCatalogSource",
             "FileSystemManagedVersionRepository",
             "JsonVersionManagerStateStore");
+        string window = ReadText(
+            "src/NvtFwCombiner.DistributionLauncher/LauncherWindow.axaml.cs");
+        string windowXaml = ReadText(
+            "src/NvtFwCombiner.DistributionLauncher/LauncherWindow.axaml");
+        AssertContainsAll(
+            window,
+            ".PrepareAsync(_candidateRoot, _lifetime.Token)",
+            ".InstallAndLaunchAsync(installation, _lifetime.Token)",
+            ".DiagnoseAsync(_lifetime.Token)",
+            ".ExecuteAsync(",
+            "result.RefreshedHost?.Setup is { } refreshedSetup");
+        AssertDoesNotContainAny(
+            window,
+            "UpdateSourceRegistryLocator",
+            "FileSystemUpdateCatalogSource",
+            "FileSystemManagedVersionRepository",
+            "JsonVersionManagerStateStore",
+            "Process.Start");
+        AssertContainsAll(
+            windowXaml,
+            "x:Name=\"InstallLocationField\"",
+            "x:Name=\"EditLocationButton\"",
+            "Classes=\"launcher-icon\"");
         AssertContainsAll(
             host,
             "Environment.ProcessPath",
