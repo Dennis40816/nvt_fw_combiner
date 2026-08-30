@@ -5,7 +5,7 @@
   "integrationBase": "62c989739a38bc1316d9b79abaf2221ce26b1294",
   "risk": "R3",
   "kind": "release",
-  "state": "design-active",
+  "state": "final-complete",
   "mutablePaths": [
     "docs/adr/0060-temporary-release-package-size-ceiling.md",
     "docs/contracts/managed-setup-payload-admission-v1.schema.json",
@@ -34,12 +34,12 @@
     "outcome": "findings-incorporated",
     "evidence": "Three independent read-only reviews of cf30c75a found the eager unbounded Bootstrap read and pre-budget admission to be a P1. They converged on pure host wiring, stream factories owned by the existing payload source, one Application entry budget, bounded descriptor and Bootstrap admission, lazy Setup hashing/capture, and tracking-stream plus monotonic-time regression evidence. The owner subsequently set the unified Launcher/Bootstrap executable safety ceiling to 200 MB without adding a package-size release gate."
   },
-  "implementationHead": null,
-  "reviewedHead": null,
-  "pathStateDigest": null,
+  "implementationHead": "317acb740cf74718e269ce687d3e469c8cfa7f39",
+  "reviewedHead": "317acb740cf74718e269ce687d3e469c8cfa7f39",
+  "pathStateDigest": "929de49d655d4340b0ba6e73fa00e77ba1e75a0b9e21e93f216d14cf0b72d309",
   "finalReview": {
-    "reviewer": null,
-    "outcome": "pending",
-    "evidence": ""
+    "reviewer": "p1_semantic_review + p1_governance_review",
+    "outcome": "approved",
+    "evidence": "Independent exact-head reviews approved implementation 317acb740cf74718e269ce687d3e469c8cfa7f39 with no P0, P1 or P2. They verified one Application-owned 250 ms absolute entry deadline, a 65537-byte descriptor rejection probe, metadata-only Bootstrap admission up to the owner-approved 200000000-byte allocation-safety ceiling, zero healthy-entry Bootstrap content reads, and Setup-only streaming hash/capture with post-review drift rejection. Focused payload/deadline regressions, full Application and Infrastructure suites, Architecture 247/247, code-size policy 18/18 and a zero-warning solution build passed. The 200 MB value is an allocation-safety ceiling and does not claim package-size optimization or protected delivery evidence."
   }
 }

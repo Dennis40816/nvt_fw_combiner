@@ -5,7 +5,7 @@
   "integrationBase": "62c989739a38bc1316d9b79abaf2221ce26b1294",
   "risk": "R3",
   "kind": "release",
-  "state": "design-active",
+  "state": "final-complete",
   "mutablePaths": [
     "docs/adr/0062-first-run-managed-setup.md",
     "src/NvtFwCombiner.Bootstrap/ManagedDistributionLauncherHostServices.cs",
@@ -31,12 +31,12 @@
     "outcome": "findings-incorporated",
     "evidence": "The independent SETUP-104 architecture/release reviews selected one thin public distribution Launcher plus the existing immutable Bootstrap and rejected a second Setup/updater. The current read-only composition audit pinned the exact constructor graph, reused Registry defaults and embedded resource names, and identified the custom-root handoff gap that this slice closes without changing the legacy pinned-root path."
   },
-  "implementationHead": null,
-  "reviewedHead": null,
-  "pathStateDigest": null,
+  "implementationHead": "317acb740cf74718e269ce687d3e469c8cfa7f39",
+  "reviewedHead": "317acb740cf74718e269ce687d3e469c8cfa7f39",
+  "pathStateDigest": "ead93bcdb8b3bfd94b7c1a683f3c9ee50c4bf0de00ed5fba12b3fd41d418e606",
   "finalReview": {
-    "reviewer": null,
-    "outcome": "pending",
-    "evidence": ""
+    "reviewer": "p1_semantic_review + p1_governance_review",
+    "outcome": "approved",
+    "evidence": "Independent exact-head reviews approved implementation 317acb740cf74718e269ce687d3e469c8cfa7f39 with no P0, P1 or P2. They verified the sole public Distribution Launcher host reuses the existing Bootstrap composition graph, Application entry/Setup owners, Registry locator, exact custom-root handoff and typed process outcomes; worktree and diff-check were clean. The reviewed tree passed a zero-warning solution build, Application 1253/1253, Infrastructure 943 passed with two declared platform skips, Architecture 247/247, and the bounded Launcher tests. No firmware, profile, byte, CRC, naming, support or private-evidence authority changed. Protected embedded-resource publication, package, clean-machine and v1.0.6 delivery evidence remain separate open gates."
   }
 }

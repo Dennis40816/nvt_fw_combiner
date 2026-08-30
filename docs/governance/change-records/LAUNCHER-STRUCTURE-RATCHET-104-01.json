@@ -5,7 +5,7 @@
   "integrationBase": "62c989739a38bc1316d9b79abaf2221ce26b1294",
   "risk": "R2",
   "kind": "governance",
-  "state": "design-active",
+  "state": "final-complete",
   "mutablePaths": [
     "docs/adr/0021-code-size-ratchet-system-activity-amendment.md",
     "scripts/code_size_policy.py",
@@ -26,12 +26,12 @@
     "outcome": "approved",
     "evidence": "Independent architecture and structure reviews selected one existing host slice, retained the necessary adapter-contract test reference, required exact solution and ProjectReference admission, and reproduced the final 857-file/129,509-line full ledger, 596-file/91,851-line runtime ledger, 157-file/20,632-line Domain plus Profiles slice, 239-file/40,425-line Application slice, 40-file/4,323-line host slice, and 160-file/26,471-line Infrastructure slice. They rejected a fifth slice, a new test project, moving process exit semantics into Bootstrap, and unmeasured threshold inflation."
   },
-  "implementationHead": null,
-  "reviewedHead": null,
-  "pathStateDigest": null,
+  "implementationHead": "317acb740cf74718e269ce687d3e469c8cfa7f39",
+  "reviewedHead": "317acb740cf74718e269ce687d3e469c8cfa7f39",
+  "pathStateDigest": "a05ea235d643a943f2d890e7cfc9bcfb18b3a8ce50f5b68c872d06bc9b0a5c65",
   "finalReview": {
-    "reviewer": null,
-    "outcome": "pending",
-    "evidence": ""
+    "reviewer": "p1_semantic_review + p1_governance_review",
+    "outcome": "approved",
+    "evidence": "Independent exact-head reviews approved implementation 317acb740cf74718e269ce687d3e469c8cfa7f39 with no P0, P1 or P2. They reproduced the exact 857-file/129509-line full ledger, 596-file/91851-line runtime ledger, and 20632/40425/4323/26471 runtime slices. The executable policy test passed 18/18, measured values exactly equal non-transferable allowances, repository coverage had no uncovered, duplicate or declared-unchanged path, and the Distribution Launcher remains in the existing host slice with the closed solution/reference inventory. No fifth slice, threshold slack or runtime semantic change was admitted."
   }
 }

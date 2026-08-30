@@ -5,7 +5,7 @@
   "integrationBase": "62c989739a38bc1316d9b79abaf2221ce26b1294",
   "risk": "R2",
   "kind": "behavior",
-  "state": "design-active",
+  "state": "final-complete",
   "mutablePaths": [
     "docs/adr/0063-managed-setup-recovery-diagnosis.md",
     "src/NvtFwCombiner.VersionManagement.Application/VersionManagement/ManagedSetupRecoveryDiagnosis.cs",
@@ -37,12 +37,12 @@
     "outcome": "approved",
     "evidence": "Independent architecture admission fixed the dependency direction, reused the existing marker/schema/custody owners, required fail-closed typed facts and zero mutation, and rejected a second parser, updater, verifier, state writer, scanner or Setup retry path."
   },
-  "implementationHead": null,
-  "reviewedHead": null,
-  "pathStateDigest": null,
+  "implementationHead": "317acb740cf74718e269ce687d3e469c8cfa7f39",
+  "reviewedHead": "317acb740cf74718e269ce687d3e469c8cfa7f39",
+  "pathStateDigest": "db5f8f57014c438f0662afa0e18a8ff740c7f8d05f6cd15b6b9a0e4121c54127",
   "finalReview": {
-    "reviewer": null,
-    "outcome": "pending",
-    "evidence": ""
+    "reviewer": "p1_semantic_review + p1_governance_review",
+    "outcome": "approved",
+    "evidence": "Independent exact-head reviews approved implementation 317acb740cf74718e269ce687d3e469c8cfa7f39 with no P0, P1 or P2. They verified one Application-owned read-only recovery diagnosis, one strict marker codec, stable no-follow marker observation, three read-only lifetime roles and zero mutation or process start. The recovery-specific state reader exposes the canonical Json store's existing normalized path; Application captures it once and uses it for every lifetime and marker observation, so path-A state cannot combine with path-B evidence. Recovery Application 193/193, relevant Infrastructure 51/51, full Infrastructure 943 passed with two declared platform skips, and Architecture 247/247 passed. Exact residue convergence, repair, rebind and migration remain deferred to RECOVERY-105B and later approved slices."
   }
 }
