@@ -195,6 +195,202 @@ class CoveragePolicyTests(unittest.TestCase):
         self.assertEqual(summary(1, 1, 0, 0), inventory.overall)
         self.assertEqual(summary(1, 1, 0, 0), inventory.modules["Bootstrap"])
 
+    def test_classifies_distribution_launcher_physical_axaml_as_bootstrap(self) -> None:
+        self.write(
+            "src/NvtFwCombiner.DistributionLauncher/App.axaml",
+            "<Application />\n",
+        )
+        report = """<coverage branches-covered="0" branches-valid="0"><packages><package><classes>
+<class name="App" filename="src/NvtFwCombiner.DistributionLauncher/App.axaml"><lines>
+<line number="1" hits="1" />
+</lines></class>
+</classes></package></packages></coverage>"""
+        self.write("reports/coverage.cobertura.xml", report)
+        self.write("reports/coverage.json", "{}")
+
+        inventory = parse_dotnet_cobertura_reports(self.root / "reports", self.root)
+
+        self.assertEqual(summary(1, 1, 0, 0), inventory.overall)
+        self.assertEqual(summary(1, 1, 0, 0), inventory.modules["Bootstrap"])
+
+    def test_canonicalizes_linked_axaml_and_preserves_assembly_branch_identity(
+        self,
+    ) -> None:
+        physical = "src/NvtFwCombiner.Presentation.Avalonia/Styles/ThemeTokens.axaml"
+        logical = "src/NvtFwCombiner.DistributionLauncher/Styles/ThemeTokens.axaml"
+        self.write(physical, "<ResourceDictionary />\n")
+        self.write(
+            "src/NvtFwCombiner.DistributionLauncher/NvtFwCombiner.DistributionLauncher.csproj",
+            """<Project Sdk="Microsoft.NET.Sdk"><ItemGroup>
+<AvaloniaResource Include="..\\NvtFwCombiner.Presentation.Avalonia\\Styles\\ThemeTokens.axaml" Link="Styles\\ThemeTokens.axaml" />
+</ItemGroup></Project>""",
+        )
+        report = f"""<coverage branches-covered="3" branches-valid="6"><packages>
+<package name="NvtFwCombiner.DistributionLauncher"><classes>
+<class name="ThemeTokens" filename="{logical}"><lines>
+<line number="1" hits="1" branch="True" condition-coverage="50% (1/2)" />
+</lines></class>
+</classes></package>
+<package name="NvtFwCombiner.Presentation.Avalonia"><classes>
+<class name="ThemeTokens" filename="{physical}"><lines>
+<line number="1" hits="0" branch="True" condition-coverage="50% (2/4)" />
+</lines></class>
+</classes></package>
+</packages></coverage>"""
+        distribution_branches = [
+            self.branch(0, 1, line=1),
+            self.branch(1, 0, line=1),
+        ]
+        presentation_branches = [
+            self.branch(0, 1, line=1),
+            self.branch(1, 1, line=1),
+            self.branch(2, 0, line=1),
+            self.branch(3, 0, line=1),
+        ]
+        self.write("reports/coverage.cobertura.xml", report)
+        self.write(
+            "reports/coverage.json",
+            json.dumps(
+                {
+                    "NvtFwCombiner.DistributionLauncher.dll": {
+                        logical: {
+                            "ThemeTokens": {
+                                "System.Void ThemeTokens::Load()": {
+                                    "Lines": {"1": 1},
+                                    "Branches": distribution_branches,
+                                }
+                            }
+                        }
+                    },
+                    "NvtFwCombiner.Presentation.Avalonia.dll": {
+                        physical: {
+                            "ThemeTokens": {
+                                "System.Void ThemeTokens::Load()": {
+                                    "Lines": {"1": 0},
+                                    "Branches": presentation_branches,
+                                }
+                            }
+                        }
+                    },
+                }
+            ),
+        )
+
+        inventory = parse_dotnet_cobertura_reports(self.root / "reports", self.root)
+
+        self.assertEqual(summary(1, 1, 3, 6), inventory.overall)
+        self.assertEqual(
+            summary(1, 1, 3, 6),
+            inventory.modules["PresentationAvalonia"],
+        )
+        self.assertNotIn("Bootstrap", inventory.modules)
+
+    def test_rejects_invalid_linked_axaml_aliases(self) -> None:
+        project = (
+            "src/NvtFwCombiner.DistributionLauncher/"
+            "NvtFwCombiner.DistributionLauncher.csproj"
+        )
+        logical = "src/NvtFwCombiner.DistributionLauncher/Styles/Linked.axaml"
+        report = f"""<coverage branches-covered="0" branches-valid="0"><packages><package><classes>
+<class name="Linked" filename="{logical}"><lines><line number="1" hits="1" /></lines></class>
+</classes></package></packages></coverage>"""
+        cases = {
+            "missing": (
+                '<AvaloniaResource Include="Missing.axaml" Link="Styles\\Linked.axaml" />',
+                "not a current physical AXAML file",
+                "",
+            ),
+            "escaping": (
+                '<AvaloniaResource Include="..\\..\\outside.axaml" Link="Styles\\Linked.axaml" />',
+                "outside declared production roots",
+                "",
+            ),
+            "escaping_link": (
+                '<AvaloniaResource Include="Source.axaml" Link="..\\Linked.axaml" />',
+                "Link escapes its declared production project",
+                "",
+            ),
+            "non_axaml": (
+                '<AvaloniaResource Include="Linked.txt" Link="Styles\\Linked.axaml" />',
+                "must map AXAML to AXAML",
+                "",
+            ),
+            "dynamic_metadata": (
+                '<AvaloniaResource Include="%(Filename).axaml" Link="Styles\\Linked.axaml" />',
+                "must be static",
+                "",
+            ),
+            "conditioned_resource": (
+                '<AvaloniaResource Include="Source.axaml" Link="Styles\\Linked.axaml" Condition="true" />',
+                "must be static",
+                "",
+            ),
+            "conditioned_item_group": (
+                '<AvaloniaResource Include="Source.axaml" Link="Styles\\Linked.axaml" />',
+                "must be static",
+                ' Condition="true"',
+            ),
+        }
+        for name, (resource, message, item_group_attributes) in cases.items():
+            with self.subTest(name=name):
+                case_root = self.root / name
+                case_project = case_root / project
+                case_project.parent.mkdir(parents=True, exist_ok=True)
+                case_project.write_text(
+                    f'<Project Sdk="Microsoft.NET.Sdk"><ItemGroup{item_group_attributes}>'
+                    f"{resource}</ItemGroup></Project>",
+                    encoding="utf-8",
+                )
+                if name == "escaping_link":
+                    (case_project.parent / "Source.axaml").write_text(
+                        "<ResourceDictionary />\n", encoding="utf-8"
+                    )
+                elif name == "non_axaml":
+                    (case_project.parent / "Linked.txt").write_text(
+                        "not axaml\n", encoding="utf-8"
+                    )
+                report_path = case_root / "reports/coverage.cobertura.xml"
+                report_path.parent.mkdir(parents=True, exist_ok=True)
+                report_path.write_text(report, encoding="utf-8")
+                (report_path.parent / "coverage.json").write_text(
+                    "{}", encoding="utf-8"
+                )
+                with self.assertRaisesRegex(ValueError, message):
+                    parse_dotnet_cobertura_reports(
+                        case_root / "reports",
+                        case_root,
+                    )
+
+    def test_rejects_ambiguous_or_undeclared_axaml_alias(self) -> None:
+        logical = "src/NvtFwCombiner.DistributionLauncher/Styles/Linked.axaml"
+        for name in ("First.axaml", "Second.axaml"):
+            self.write(
+                f"src/NvtFwCombiner.Presentation.Avalonia/Styles/{name}",
+                "<ResourceDictionary />\n",
+            )
+        self.write(
+            "src/NvtFwCombiner.DistributionLauncher/NvtFwCombiner.DistributionLauncher.csproj",
+            """<Project Sdk="Microsoft.NET.Sdk"><ItemGroup>
+<AvaloniaResource Include="..\\NvtFwCombiner.Presentation.Avalonia\\Styles\\First.axaml" Link="Styles\\Linked.axaml" />
+<AvaloniaResource Include="..\\NvtFwCombiner.Presentation.Avalonia\\Styles\\Second.axaml" Link="Styles\\Linked.axaml" />
+</ItemGroup></Project>""",
+        )
+        report = f"""<coverage branches-covered="0" branches-valid="0"><packages><package><classes>
+<class name="Linked" filename="{logical}"><lines><line number="1" hits="1" /></lines></class>
+</classes></package></packages></coverage>"""
+        self.write("reports/coverage.cobertura.xml", report)
+        self.write("reports/coverage.json", "{}")
+
+        with self.assertRaisesRegex(ValueError, "ambiguous AvaloniaResource alias"):
+            parse_dotnet_cobertura_reports(self.root / "reports", self.root)
+
+        self.write(
+            "src/NvtFwCombiner.DistributionLauncher/NvtFwCombiner.DistributionLauncher.csproj",
+            '<Project Sdk="Microsoft.NET.Sdk" />',
+        )
+        with self.assertRaisesRegex(ValueError, "undeclared AXAML coverage alias"):
+            parse_dotnet_cobertura_reports(self.root / "reports", self.root)
+
     def test_classifies_platform_as_infrastructure_adapter(self) -> None:
         self.write(
             "src/NvtFwCombiner.Platform/ProcessLaunchGate.cs",

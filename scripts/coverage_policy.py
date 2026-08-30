@@ -140,6 +140,17 @@ class _CoberturaClassStructure:
     branch_measures: dict[int, CoverageMeasure]
 
 
+def _coverage_assembly_identity(value: str, report: Path) -> str:
+    """Normalize the matching assembly identity emitted by both collectors."""
+
+    identity = value.strip()
+    if identity.casefold().endswith(".dll"):
+        identity = identity[:-4]
+    if not identity:
+        raise ValueError(f"{report} has an invalid coverage assembly identity")
+    return identity
+
+
 def _document_measure(document: Any, label: str) -> CoverageMeasure:
     if not isinstance(document, dict):
         raise ValueError(f"{label} must be an object")
@@ -435,11 +446,7 @@ def _dotnet_source_line_count(
         return existing
     module = _module_name(relative_path, DOTNET_LANGUAGE)
     suffix = Path(relative_path).suffix.casefold()
-    if (
-        module is None
-        or suffix != ".cs"
-        and not (module == "PresentationAvalonia" and suffix == ".axaml")
-    ):
+    if module is None or suffix not in {".cs", ".axaml"}:
         raise ValueError(
             f"coverage report source is not an owned production file: {relative_path}"
         )
@@ -457,13 +464,133 @@ def _dotnet_source_line_count(
     return line_count
 
 
+def _static_axaml_resource_aliases(root: Path) -> dict[str, str]:
+    """Derive logical AXAML aliases from current production project files."""
+
+    aliases: dict[str, set[str]] = {}
+    project_directories = {
+        directory
+        for directories in PRODUCTION_MODULES.values()
+        for directory in directories
+    }
+    for directory in sorted(project_directories, key=lambda item: item.as_posix()):
+        project_root = root / directory
+        for project in sorted(project_root.glob("*.csproj")):
+            document = element_tree.parse(project).getroot()
+            parents = {child: parent for parent in document.iter() for child in parent}
+            for resource in document.iter():
+                if resource.tag.rsplit("}", 1)[-1] != "AvaloniaResource":
+                    continue
+                include = resource.get("Include")
+                link = resource.get("Link")
+                if not include or not link:
+                    continue
+                normalized_include = include.replace("\\", "/")
+                normalized_link = link.replace("\\", "/")
+                include_is_axaml = (
+                    PurePosixPath(normalized_include).suffix.casefold() == ".axaml"
+                )
+                link_is_axaml = (
+                    PurePosixPath(normalized_link).suffix.casefold() == ".axaml"
+                )
+                if not include_is_axaml and not link_is_axaml:
+                    continue
+                if include_is_axaml != link_is_axaml:
+                    raise ValueError(
+                        f"{project} AvaloniaResource must map AXAML to AXAML: "
+                        f"Include={include!r}, Link={link!r}"
+                    )
+                declaration = resource
+                while declaration is not None:
+                    if declaration.get("Condition") is not None:
+                        raise ValueError(
+                            f"{project} AXAML AvaloniaResource alias must be static: "
+                            f"Include={include!r}, Link={link!r}"
+                        )
+                    declaration = parents.get(declaration)
+                if any(
+                    marker in value
+                    for value in (normalized_include, normalized_link)
+                    for marker in ("$(", "@(", "%(", "*", "?", ";")
+                ):
+                    raise ValueError(
+                        f"{project} AXAML AvaloniaResource alias must be static: "
+                        f"Include={include!r}, Link={link!r}"
+                    )
+
+                try:
+                    alias = _path_under_root(
+                        project_root / normalized_link,
+                        project_root,
+                        link,
+                    )
+                except ValueError as error:
+                    raise ValueError(
+                        f"{project} AXAML AvaloniaResource Link escapes its "
+                        f"declared production project: {link!r}"
+                    ) from error
+                alias = f"{directory.as_posix()}/{alias}"
+
+                physical = _path_under_root(
+                    project_root / normalized_include,
+                    root,
+                    include,
+                )
+                if _module_name(physical, DOTNET_LANGUAGE) is None:
+                    raise ValueError(
+                        f"{project} AXAML AvaloniaResource Include is outside "
+                        f"declared production roots: {include!r}"
+                    )
+                physical_path = root / physical
+                if not physical_path.is_file():
+                    raise ValueError(
+                        f"{project} AvaloniaResource Include is not a current "
+                        f"physical AXAML file: {physical}"
+                    )
+                aliases.setdefault(alias, set()).add(physical)
+
+    resolved: dict[str, str] = {}
+    for alias, physical_sources in sorted(aliases.items()):
+        physical_alias = root / alias
+        if physical_alias.is_file() and alias not in physical_sources:
+            physical_sources.add(alias)
+        if len(physical_sources) != 1:
+            raise ValueError(
+                f"ambiguous AvaloniaResource alias {alias}: {sorted(physical_sources)}"
+            )
+        resolved[alias] = next(iter(physical_sources))
+    return resolved
+
+
+def _canonical_dotnet_source_path(
+    relative_path: str,
+    root: Path,
+    axaml_aliases: dict[str, str],
+) -> str:
+    """Return one current physical owner for C# or AXAML report evidence."""
+
+    if Path(relative_path).suffix.casefold() != ".axaml":
+        return relative_path
+    if _module_name(relative_path, DOTNET_LANGUAGE) is None:
+        raise ValueError(
+            f"coverage report source is not an owned production file: {relative_path}"
+        )
+    if (root / relative_path).is_file():
+        return relative_path
+    physical = axaml_aliases.get(relative_path)
+    if physical is None:
+        raise ValueError(f"undeclared AXAML coverage alias: {relative_path}")
+    return physical
+
+
 def _merge_cobertura_report(
     report: Path,
     records_by_path: dict[str, dict[int, _CoverageLine]],
     source_line_counts: dict[str, int],
+    axaml_aliases: dict[str, str],
     root: Path,
 ) -> tuple[
-    dict[tuple[str, str], _CoberturaClassStructure],
+    dict[tuple[str, str, str], _CoberturaClassStructure],
     CoverageMeasure,
 ]:
     """Merge physical lines and retain the paired report's branch structure."""
@@ -474,14 +601,33 @@ def _merge_cobertura_report(
         for source in document.findall("./sources/source")
         if source.text and source.text.strip()
     )
-    structures: dict[tuple[str, str], _CoberturaClassStructure] = {}
+    package_names_by_class = {
+        class_node: package_node.get("name")
+        for package_node in document.findall(".//package")
+        for class_node in package_node.findall("./classes/class")
+    }
+    structures: dict[tuple[str, str, str], _CoberturaClassStructure] = {}
     for class_node in document.findall(".//class"):
         filename = class_node.get("filename")
         if not filename:
             continue
-        relative_path = _relative_source_path(filename, root, source_roots)
+        reported_path = _relative_source_path(filename, root, source_roots)
+        relative_path = _canonical_dotnet_source_path(
+            reported_path,
+            root,
+            axaml_aliases,
+        )
         if not relative_path.startswith("src/") or _is_generated_path(relative_path):
             continue
+        reported_parts = PurePosixPath(reported_path).parts
+        if len(reported_parts) < 2 or reported_parts[0] != "src":
+            raise ValueError(
+                f"{report} cannot derive a coverage assembly for {reported_path}"
+            )
+        assembly_identity = _coverage_assembly_identity(
+            package_names_by_class.get(class_node) or reported_parts[1],
+            report,
+        )
         source_line_count = _dotnet_source_line_count(
             relative_path,
             root,
@@ -491,7 +637,7 @@ def _merge_cobertura_report(
         if not class_name:
             raise ValueError(f"{report} has a production class without a name")
         structure = structures.setdefault(
-            (relative_path, class_name),
+            (assembly_identity, relative_path, class_name),
             _CoberturaClassStructure(set(), {}),
         )
         file_records = records_by_path.setdefault(relative_path, {})
@@ -516,7 +662,8 @@ def _merge_cobertura_report(
                 if existing_measure is not None and existing_measure != branch_measure:
                     raise ValueError(
                         f"{report} has conflicting Cobertura branch evidence "
-                        f"for {relative_path}:{class_name}:{line_number}"
+                        f"for {assembly_identity}:{relative_path}:"
+                        f"{class_name}:{line_number}"
                     )
                 structure.branch_measures[line_number] = branch_measure
             existing = file_records.get(line_number)
@@ -531,10 +678,13 @@ def _merge_cobertura_report(
 
 def _merge_coverlet_json_branches(
     reports: Iterable[Path],
-    structures_by_report: dict[Path, dict[tuple[str, str], _CoberturaClassStructure]],
+    structures_by_report: dict[
+        Path, dict[tuple[str, str, str], _CoberturaClassStructure]
+    ],
     report_branch_measures: dict[Path, CoverageMeasure],
     branch_records_by_path: dict[str, dict[str, CoverageMeasure]],
     source_line_counts: dict[str, int],
+    axaml_aliases: dict[str, str],
     root: Path,
 ) -> None:
     """Merge exact branch outcomes across paired Coverlet JSON reports."""
@@ -543,7 +693,7 @@ def _merge_coverlet_json_branches(
         structures = structures_by_report[report.parent.resolve()]
         expected_report_measure = report_branch_measures[report.parent.resolve()]
         observed_report_measure = CoverageMeasure(0, 0)
-        observed_measures: dict[tuple[str, str, int], CoverageMeasure] = {}
+        observed_measures: dict[tuple[str, str, str, int], CoverageMeasure] = {}
         report_identities: set[tuple[str, str]] = set()
         with report.open(encoding="utf-8") as handle:
             document = json.load(handle)
@@ -552,10 +702,15 @@ def _merge_coverlet_json_branches(
         for module_name, sources in document.items():
             if not isinstance(module_name, str) or not isinstance(sources, dict):
                 raise ValueError(f"{report} has an invalid Coverlet JSON module")
+            assembly_identity = _coverage_assembly_identity(module_name, report)
             for filename, classes in sources.items():
                 if not isinstance(filename, str) or not isinstance(classes, dict):
                     raise ValueError(f"{report} has an invalid Coverlet JSON source")
-                relative_path = _relative_source_path(filename, root)
+                relative_path = _canonical_dotnet_source_path(
+                    _relative_source_path(filename, root),
+                    root,
+                    axaml_aliases,
+                )
                 retain_source = relative_path.startswith(
                     "src/"
                 ) and not _is_generated_path(relative_path)
@@ -567,7 +722,9 @@ def _merge_coverlet_json_branches(
                 for class_name, methods in classes.items():
                     if not isinstance(class_name, str) or not isinstance(methods, dict):
                         raise ValueError(f"{report} has an invalid Coverlet JSON class")
-                    structure = structures.get((relative_path, class_name))
+                    structure = structures.get(
+                        (assembly_identity, relative_path, class_name)
+                    )
                     for method_name, method in methods.items():
                         branches = (
                             method.get("Branches") if isinstance(method, dict) else None
@@ -584,7 +741,7 @@ def _merge_coverlet_json_branches(
                                     f"{report} has an invalid Coverlet JSON branch record"
                                 )
                             line, identity, hit = _coverlet_branch_identity(
-                                module_name,
+                                assembly_identity,
                                 class_name,
                                 method_name,
                                 branch,
@@ -620,7 +777,12 @@ def _merge_coverlet_json_branches(
                                     f"{report} repeats a Coverlet JSON branch identity"
                                 )
                             report_identities.add(report_identity)
-                            measure_key = (relative_path, class_name, line)
+                            measure_key = (
+                                assembly_identity,
+                                relative_path,
+                                class_name,
+                                line,
+                            )
                             observed_measure = observed_measures.get(
                                 measure_key, CoverageMeasure(0, 0)
                             )
@@ -640,16 +802,21 @@ def _merge_coverlet_json_branches(
                 f"{expected_report_measure.total}, observed "
                 f"{observed_report_measure.covered}/{observed_report_measure.total}"
             )
-        for (relative_path, class_name), structure in structures.items():
+        for (
+            assembly_identity,
+            relative_path,
+            class_name,
+        ), structure in structures.items():
             for line, expected_measure in structure.branch_measures.items():
                 observed_measure = observed_measures.get(
-                    (relative_path, class_name, line),
+                    (assembly_identity, relative_path, class_name, line),
                     CoverageMeasure(0, 0),
                 )
                 if observed_measure != expected_measure:
                     raise ValueError(
                         f"{report} Coverlet JSON branch evidence does not match "
-                        f"paired Cobertura for {relative_path}:{class_name}:{line}: "
+                        f"paired Cobertura for {assembly_identity}:{relative_path}:"
+                        f"{class_name}:{line}: "
                         f"expected {expected_measure.covered}/"
                         f"{expected_measure.total}, observed "
                         f"{observed_measure.covered}/{observed_measure.total}"
@@ -679,8 +846,9 @@ def parse_dotnet_cobertura_reports(
         )
     records_by_path: dict[str, dict[int, _CoverageLine]] = {}
     source_line_counts: dict[str, int] = {}
+    axaml_aliases = _static_axaml_resource_aliases(root)
     structures_by_report: dict[
-        Path, dict[tuple[str, str], _CoberturaClassStructure]
+        Path, dict[tuple[str, str, str], _CoberturaClassStructure]
     ] = {}
     report_branch_measures: dict[Path, CoverageMeasure] = {}
     for report in reports:
@@ -688,6 +856,7 @@ def parse_dotnet_cobertura_reports(
             report,
             records_by_path,
             source_line_counts,
+            axaml_aliases,
             root,
         )
         report_parent = report.parent.resolve()
@@ -701,6 +870,7 @@ def parse_dotnet_cobertura_reports(
         report_branch_measures,
         branch_records_by_path,
         source_line_counts,
+        axaml_aliases,
         root,
     )
     all_records: list[_CoverageLine] = []
