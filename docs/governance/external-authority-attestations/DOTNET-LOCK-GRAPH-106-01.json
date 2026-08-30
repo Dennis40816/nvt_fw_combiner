@@ -1,0 +1,9 @@
+{
+  "schemaVersion": 1,
+  "taskId": "DOTNET-LOCK-GRAPH-106-01",
+  "authorityType": "release-owner",
+  "reviewedHead": "0798909fde2b8dd17ab47f6a49cc7a1a4537022e",
+  "decision": "approved",
+  "reviewer": "Dennis Liu (release owner)",
+  "evidence": "The release owner instructed continued completion and formal delivery of v1.0.6, required strict release review, and approved proceeding after verified corrections. This attestation approves the bounded NuGet graph correction represented by final evidence head 0798909fde2b8dd17ab47f6a49cc7a1a4537022e: two independent exact-head reviews found P0 through P3 equal to zero; the two governed production locks and three adjacent test projections contain no removed node or package identity, version, content-hash, firmware, profile, CRC, naming, or Golden drift; CLI retains its empty RID target; Launcher adds one empty release RID target; Bootstrap matches the existing Avalonia authority; release-shaped locked restores are byte-immutable; Release builds and 1331 Application, 1168 Bootstrap, 18 Golden, and 249 Architecture tests pass. It does not waive final full verification, exact asset, SBOM, provenance, package or GUI smoke, clean-machine, protected publication, or immutable tag gates."
+}
