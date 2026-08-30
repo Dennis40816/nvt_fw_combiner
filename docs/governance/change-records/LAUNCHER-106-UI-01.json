@@ -5,7 +5,7 @@
   "integrationBase": "4e6d15540520447b6cb16f177b1f4a1e083ff0f5",
   "risk": "R3",
   "kind": "ui",
-  "state": "design-active",
+  "state": "final-complete",
   "mutablePaths": [
     "docs/adr/0021-code-size-ratchet-system-activity-amendment.md",
     "scripts/code_size_policy.py",
@@ -32,12 +32,12 @@
     "outcome": "approved",
     "evidence": "The independent UI inventory selected one standalone Avalonia window over importing the full firmware Presentation project, reusing exactly four centrally pinned Avalonia packages and existing product tokens/icon. The owner explicitly required implementation against the previously approved image and accepted the compact external pencil-icon delta. The design rejects a second Setup executable, ViewModel framework, duplicated policy, and generic redesign."
   },
-  "implementationHead": null,
-  "reviewedHead": null,
-  "pathStateDigest": null,
+  "implementationHead": "10bd523ded76d10f37488bfe94a17cfd352d3400",
+  "reviewedHead": "10bd523ded76d10f37488bfe94a17cfd352d3400",
+  "pathStateDigest": "38b98b9422a2fb1bf081f2ff225aaa0e0e42035474a51ed40f3e77fcc61082a7",
   "finalReview": {
-    "reviewer": null,
-    "outcome": "pending",
-    "evidence": ""
+    "reviewer": "launcher_ui_min_design and product-owner reference review",
+    "outcome": "approved",
+    "evidence": "Exact implementation head 10bd523ded76d10f37488bfe94a17cfd352d3400 implements the owner-approved Setup reference with linked product tokens/icon, bundled Inter, and an external measured 34x34 pencil control. The same Window renders typed Recovery and returns to Setup in place after a completed rollback. Distribution Launcher build passed with zero warnings; architecture ownership passed 1/1, measured bounds passed 1/1, host behavior passed 18/18, code-size policy passed 19/19, diff-check passed, and scoped Polytail found no P0-P3. UI adds no firmware/profile/range behavior, source/destination/recovery policy, process start, parser, state writer, DI, navigation framework, full Presentation reference, or hidden dependency."
   }
 }
