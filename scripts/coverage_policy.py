@@ -42,7 +42,10 @@ PRODUCTION_MODULES = {
     ),
     "Bootstrap": (
         Path("src/NvtFwCombiner.Bootstrap"),
+        Path("src/NvtFwCombiner.Desktop"),
+        Path("src/NvtFwCombiner.DistributionLauncher"),
         Path("src/NvtFwCombiner.Launcher"),
+        Path("src/NvtFwCombiner.LauncherBootstrap"),
     ),
     "Cli": (Path("src/NvtFwCombiner.Cli"),),
     "PresentationAvalonia": (Path("src/NvtFwCombiner.Presentation.Avalonia"),),

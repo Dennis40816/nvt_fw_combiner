@@ -1,0 +1,34 @@
+{
+  "schemaVersion": 2,
+  "taskId": "COVERAGE-OWNER-104-01",
+  "capability": "Extend the existing .NET coverage owner inventory so every production C# project root has exactly one module owner, including every public Launcher and Desktop composition host, without changing the frozen coverage baseline",
+  "integrationBase": "6f48f9eb75e1026f94becb602687195e5ad8aa25",
+  "risk": "R2",
+  "kind": "governance",
+  "state": "design-active",
+  "mutablePaths": [
+    "scripts/coverage_policy.py"
+  ],
+  "implementationOwner": "primary-agent",
+  "searchEvidence": [
+    "scripts/coverage_policy.py is the sole parser and owner map used by scripts/verify.py for .NET coverage inventory and ratchet enforcement.",
+    "The src tree contains fourteen production C# project roots. Desktop, DistributionLauncher, Launcher and LauncherBootstrap are thin executable composition hosts and belong to the existing Bootstrap coverage module rather than a new semantic module.",
+    "The frozen baseline already owns the Bootstrap module key; adding missing project roots changes ownership classification only and neither changes baseline values nor creates coverage allowance."
+  ],
+  "semanticOwner": "scripts/coverage_policy.py owns the closed production-source-to-coverage-module classification consumed by the sole repository verifier",
+  "terminalContract": "Every src/*/*.csproj production root is classified by exactly one existing PRODUCTION_MODULES entry. Desktop, DistributionLauncher, Launcher and LauncherBootstrap remain in the existing Bootstrap host module. Unknown production sources continue to fail closed, and no line or branch baseline, changed-module threshold, firmware behavior, package content, release artifact or runtime behavior changes.",
+  "disposition": "extend-owner",
+  "designReview": {
+    "reviewer": "coverage_owner_review",
+    "outcome": "findings-incorporated",
+    "evidence": "Independent review identified DistributionLauncher as a valid Bootstrap host but found Desktop and LauncherBootstrap missing from the same production ownership inventory. The corrected design assigns all fourteen current production project roots exactly once and adds an executable closed-inventory regression test without creating a new module or weakening the frozen baseline."
+  },
+  "implementationHead": null,
+  "reviewedHead": null,
+  "pathStateDigest": null,
+  "finalReview": {
+    "reviewer": null,
+    "outcome": "pending",
+    "evidence": ""
+  }
+}

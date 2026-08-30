@@ -4,6 +4,112 @@ namespace NvtFwCombiner.Application.Tests.VersionManagement;
 
 public sealed partial class VersionManagementExperienceTests
 {
+    /// <summary>Every declared Registry read failure maps to one typed fresh-install result before downstream access.</summary>
+    [Theory]
+    [InlineData(UpdateSourceRegistryLoadIssue.None, FreshInstallationCandidateIssue.SourceRejected)]
+    [InlineData(UpdateSourceRegistryLoadIssue.NotConfigured, FreshInstallationCandidateIssue.RegistryNotConfigured)]
+    [InlineData(UpdateSourceRegistryLoadIssue.InvalidManifest, FreshInstallationCandidateIssue.SourceRejected)]
+    [InlineData(UpdateSourceRegistryLoadIssue.UnsafeLocator, FreshInstallationCandidateIssue.SourceRejected)]
+    [InlineData(UpdateSourceRegistryLoadIssue.RegistryTooLarge, FreshInstallationCandidateIssue.SourceRejected)]
+    [InlineData(UpdateSourceRegistryLoadIssue.UnstableRead, FreshInstallationCandidateIssue.SourceRejected)]
+    [InlineData(UpdateSourceRegistryLoadIssue.ReplicaConflict, FreshInstallationCandidateIssue.SourceRejected)]
+    [InlineData(UpdateSourceRegistryLoadIssue.RegistryMissing, FreshInstallationCandidateIssue.SourceUnavailable)]
+    [InlineData(UpdateSourceRegistryLoadIssue.RegistryUnavailable, FreshInstallationCandidateIssue.SourceUnavailable)]
+    [InlineData(UpdateSourceRegistryLoadIssue.PermissionDenied, FreshInstallationCandidateIssue.SourceUnavailable)]
+    [InlineData(UpdateSourceRegistryLoadIssue.AuthenticationRequired, FreshInstallationCandidateIssue.SourceUnavailable)]
+    [InlineData(UpdateSourceRegistryLoadIssue.RegistryTimedOut, FreshInstallationCandidateIssue.SourceUnavailable)]
+    public async Task FreshAdmissionMapsEveryDefinedRegistryLoadFailureBeforeDownstreamAccess(
+        UpdateSourceRegistryLoadIssue registryIssue,
+        FreshInstallationCandidateIssue expectedIssue)
+    {
+        var registry = new SequenceRegistrySource(
+            new UpdateSourceRegistryLoadResult(null, registryIssue));
+        var catalog = new PathCatalogSource();
+        var repository = new CountingRepository();
+        using VersionManagementExperience experience = VersionManagementExperienceTestFactory.Create(
+            ManagedAppVersion.Parse("0.10.6"),
+            "managed-root",
+            new ForbiddenStateStore(),
+            catalog,
+            repository,
+            registry);
+
+        FreshInstallationCandidateResult result = await experience.InspectFreshInstallationAsync(
+            TestContext.Current.CancellationToken);
+
+        Assert.False(result.IsSuccess);
+        Assert.Equal(expectedIssue, result.Issue);
+        Assert.Equal(1, registry.LoadCount);
+        Assert.Empty(catalog.LoadedRoots);
+        Assert.Empty(repository.VerifiedRoots);
+    }
+
+    /// <summary>An undefined Registry issue fails closed instead of reaching Catalog or package verification.</summary>
+    [Fact]
+    public async Task FreshAdmissionRejectsUndefinedRegistryLoadIssueBeforeDownstreamAccess()
+    {
+        var registry = new SequenceRegistrySource(new UpdateSourceRegistryLoadResult(
+            null,
+            (UpdateSourceRegistryLoadIssue)int.MaxValue));
+        var catalog = new PathCatalogSource();
+        var repository = new CountingRepository();
+        using VersionManagementExperience experience = VersionManagementExperienceTestFactory.Create(
+            ManagedAppVersion.Parse("0.10.6"),
+            "managed-root",
+            new ForbiddenStateStore(),
+            catalog,
+            repository,
+            registry);
+
+        _ = await Assert.ThrowsAsync<InvalidOperationException>(async () =>
+            await experience.InspectFreshInstallationAsync(
+                TestContext.Current.CancellationToken));
+
+        Assert.Equal(1, registry.LoadCount);
+        Assert.Empty(catalog.LoadedRoots);
+        Assert.Empty(repository.VerifiedRoots);
+    }
+
+    /// <summary>Fresh inspect and exact reverify both stop before downstream access when no Registry is configured.</summary>
+    [Fact]
+    public async Task FreshOperationsWithoutRegistryReturnNotConfiguredBeforeDownstreamAccess()
+    {
+        string source = SourcePath("fresh-no-registry");
+        using VersionManagementExperience authority = VersionManagementExperienceTestFactory.Create(
+            ManagedAppVersion.Parse("0.10.6"),
+            "managed-root",
+            new ForbiddenStateStore(),
+            new PathCatalogSource((source, new(Catalog("0.10.6"), UpdateCatalogLoadIssue.None))),
+            new CountingRepository(),
+            new SequenceRegistrySource(Registry(
+                16,
+                FirstRegistryDigest,
+                (source, UpdateSourceRegistryEntryStatus.Latest))));
+        FreshInstallationCandidateResult captured = await authority.InspectFreshInstallationAsync(
+            TestContext.Current.CancellationToken);
+        FreshInstallationCandidate expected = Assert.IsType<FreshInstallationCandidate>(
+            captured.Candidate);
+        var catalog = new PathCatalogSource();
+        var repository = new CountingRepository();
+        using VersionManagementExperience unconfigured = VersionManagementExperienceTestFactory.Create(
+            ManagedAppVersion.Parse("0.10.6"),
+            "managed-root",
+            new ForbiddenStateStore(),
+            catalog,
+            repository,
+            sourceRegistry: null);
+
+        FreshInstallationCandidateResult inspected = await unconfigured
+            .InspectFreshInstallationAsync(TestContext.Current.CancellationToken);
+        FreshInstallationCandidateResult reverified = await unconfigured
+            .ReverifyFreshInstallationAsync(expected, TestContext.Current.CancellationToken);
+
+        Assert.Equal(FreshInstallationCandidateIssue.RegistryNotConfigured, inspected.Issue);
+        Assert.Equal(FreshInstallationCandidateIssue.RegistryNotConfigured, reverified.Issue);
+        Assert.Empty(catalog.LoadedRoots);
+        Assert.Empty(repository.VerifiedRoots);
+    }
+
     /// <summary>Fresh admission accepts a current-version package without touching durable state.</summary>
     [Fact]
     public async Task FreshAdmissionAcceptsEqualVersionAndIsStateFree()
