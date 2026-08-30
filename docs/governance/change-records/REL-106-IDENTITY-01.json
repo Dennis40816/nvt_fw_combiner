@@ -1,0 +1,34 @@
+{
+  "schemaVersion": 2,
+  "taskId": "REL-106-IDENTITY-01",
+  "capability": "Represent the integrated manual-only managed Setup/Recovery and separate five-asset Distribution Launcher delivery candidate with the stable-format 1.0.6 repository identity",
+  "integrationBase": "da62db2619366109f47bcc4c43a762f45d73d9a5",
+  "risk": "R2",
+  "kind": "release",
+  "state": "design-active",
+  "mutablePaths": [
+    "docs/governance/development-tags.md"
+  ],
+  "implementationOwner": "primary-agent",
+  "searchEvidence": [
+    "REL-104 and REL-105 establish the synchronized stable identity projection across VERSION, SPEC, CHANGELOG, verification report, and development tags.",
+    "The final reviewed Launcher packaging source/evidence head da62db2619366109f47bcc4c43a762f45d73d9a5 contains the integrated managed Setup/Recovery owners and the separate closed five-asset Distribution Launcher packaging path.",
+    "The code-size ledger is 134149 production lines and 96337 runtime lines, split into 20632 Domain/Profiles, 41047 Application, 4854 Bootstrap/CLI/Desktop host, and 29804 Infrastructure/Contracts/CRC worker lines."
+  ],
+  "semanticOwner": "Branch, version, and release governance",
+  "terminalContract": "VERSION, SPEC status, verification report, changelog, and the development milestone agree on an unpublished 1.0.6 manual-only integrated Setup/Recovery and separate five-asset Distribution Launcher delivery candidate with immutable tagged v1.0.5 as predecessor. This support-neutral identity slice changes no firmware semantics and claims no final package, smoke, signing, publication, or v1.0.6 tag; those remain mandatory release gates.",
+  "disposition": "extend-owner",
+  "designReview": {
+    "reviewer": "owner-approved identity plan",
+    "outcome": "approved",
+    "evidence": "The owner-approved bounded identity instruction selects final reviewed Launcher packaging source/evidence head da62db2619366109f47bcc4c43a762f45d73d9a5, the established REL-103/104/105 projection pattern, unpublished candidate wording, v1.0.5 predecessor identity, support-neutral scope, and explicit final package/smoke gates."
+  },
+  "implementationHead": null,
+  "reviewedHead": null,
+  "pathStateDigest": null,
+  "finalReview": {
+    "reviewer": null,
+    "outcome": "pending",
+    "evidence": ""
+  }
+}

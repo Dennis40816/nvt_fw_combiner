@@ -4,9 +4,75 @@ All notable changes to NVT FW Combiner are documented here. The project follows 
 
 ## [Unreleased]
 
-The repository identity is the unpublished, tag-only `1.0.5` read-only managed
-Setup recovery-diagnosis milestone. Stable `v1.0.4` remains its immutable
-predecessor.
+The repository identity is the unpublished `1.0.6` manual-only integrated
+Setup/Recovery and separate Launcher delivery candidate. Tagged `v1.0.5`
+remains its immutable predecessor.
+
+## [1.0.6] - Unreleased
+
+### Summary
+
+This candidate integrates the reviewed managed Setup, v1.0.5 read-only recovery
+diagnosis, and v1.0.6 explicit confirmed recovery execution/composition into
+the first manual-only delivery path. It also adds the Distribution Launcher as
+a separate closed five-asset release set. It is not yet tagged or published.
+
+### Product changes
+
+#### Manual Setup/Recovery and separate Launcher delivery candidate
+
+- Before → After: v1.0.4 and v1.0.5 recorded the managed Setup, Launcher, and
+  recovery source milestones without user delivery. v1.0.6 aligns those owners
+  behind the canonical package entrypoint and prepares the separate five-asset
+  Distribution Launcher candidate for explicit manual use.
+- Affected: managed Setup/Recovery delivery, the canonical release package
+  entrypoint, Distribution Launcher release evidence, and release identity.
+- Support status: unchanged/support-neutral; no IC, route, profile, range,
+  processor, integrity, naming, evidence rank, or firmware output changes.
+- Compatibility: the existing application ZIP and its Catalog admission remain
+  unchanged. Launcher assets are additive, separately verified, and excluded
+  from the update Catalog. v1.0.5 is the source predecessor.
+- Verification: the frozen source ledger is 134,149 production lines and 96,337
+  runtime lines, split into Domain/Profiles 20,632, Application 41,047,
+  Bootstrap/CLI/Desktop host 4,854, and Infrastructure/Contracts/CRC worker
+  29,804. Final package construction and release smoke remain mandatory gates.
+- Limitations: this is an unpublished candidate. It does not claim a final
+  package, clean-machine smoke, signing, protected publication, or stable tag.
+- Recovery remains explicit and confirmed; it does not add arbitrary automatic
+  repair, rebind, migration, or deletion behavior.
+
+### Security
+
+The candidate retains the existing exact package identity, bounded Setup/
+Recovery authority, closed Launcher asset set, and fail-closed payload
+verification. Final release-owner review and package evidence remain required.
+
+### Known issues
+
+Delivery is manual-only. Final package generation, downloaded-asset
+verification, Windows clean-machine Setup/Recovery smoke, and publication
+approval remain open before release.
+
+### Upgrade and rollback
+
+No upgrade is offered by this unpublished candidate. Do not install it as a
+stable release; v1.0.5 remains the immediate tagged source predecessor.
+
+### Downloads and integrity
+
+No GitHub Release or stable asset is published yet. The final gate must preserve
+the five existing application publication assets and produce these five
+additional Launcher assets, for a closed ten-asset publication set:
+
+- `NvtFwCombiner-Launcher-v1.0.6-win-x64.exe`
+- `NvtFwCombiner-Launcher-v1.0.6-win-x64.manifest.json`
+- `NvtFwCombiner-Launcher-v1.0.6-win-x64.spdx.json`
+- `NvtFwCombiner-Launcher-v1.0.6-win-x64.intoto.jsonl`
+- `NvtFwCombiner-Launcher-v1.0.6-win-x64.sha256`
+
+The Launcher set is additive, remains outside the update Catalog, and must pass
+exact hash verification plus install-to-READY/source-offline relaunch smoke
+before tagging or publication.
 
 ## [1.0.5] - Unreleased
 

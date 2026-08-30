@@ -6,13 +6,33 @@ baseline, updated through the stable 0.10.4 post-refactor simplification,
 implementation, the 0.10.7 final-effect checkpoint, the stable 1.0.0 and
 version-only 1.0.1 release, the stable 1.0.2 mode-selector hotfix, the 1.0.3
 page-publication hardening milestone, the 1.0.4 managed Setup and Launcher
-source milestone, and the active 1.0.5 read-only recovery-diagnosis
-candidate. Current
+source milestone, the 1.0.5 read-only recovery-diagnosis milestone, and the
+active unpublished 1.0.6 manual-only integrated Setup/Recovery and separate
+Launcher delivery candidate. Current
 verification evidence is produced by the canonical
 `python scripts/verify.py --structure-only` and `python scripts/verify.py --all`
 commands.
 
-Specification package version: `1.0.5`
+Specification package version: `1.0.6`
+
+## 1.0.6 manual-only integrated Setup/Recovery and Launcher delivery candidate
+
+This unpublished candidate integrates the reviewed managed Setup, v1.0.5
+read-only recovery diagnosis, and v1.0.6 explicit confirmed recovery
+execution/composition with the canonical package entrypoint and a separate
+closed five-asset Distribution Launcher delivery set. It is support-neutral
+and changes no firmware route, profile, range, processor, integrity behavior,
+output naming, evidence rank, or output byte.
+
+The frozen code-size ledger is 134,149 production lines and 96,337 runtime
+lines: Domain/Profiles 20,632, Application 41,047, Bootstrap/CLI/Desktop host
+4,854, and Infrastructure/Contracts/CRC worker 29,804. These measurements are
+source evidence, not release authorization. Final application and Launcher
+package construction, exact asset/hash verification, clean-machine Windows
+Setup/Recovery and Launcher smoke, signing/legal review where applicable,
+protected publication, release-owner approval, and the stable tag remain
+mandatory gates. No package, Catalog/Registry publication, release asset, or
+stable v1.0.6 tag is claimed by this candidate section.
 
 ## 1.0.5 read-only managed Setup recovery-diagnosis milestone
 
