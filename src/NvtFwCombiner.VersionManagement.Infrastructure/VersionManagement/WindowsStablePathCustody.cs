@@ -87,16 +87,16 @@ internal sealed partial class WindowsStablePathCustody : IDisposable
 {
     private readonly Dictionary<string, HeldEntry> _files;
     private readonly List<SafeFileHandle> _handles;
-    private readonly IReadOnlyList<(string Path, SafeFileHandle Handle)> _identities;
-    private readonly IReadOnlyDictionary<string, string[]> _topology;
+    private readonly List<(string Path, SafeFileHandle Handle)> _identities;
+    private readonly Dictionary<string, string[]> _topology;
     private bool _disposed;
     private WindowsStablePathCustody(
         string rootPath,
         SafeFileHandle? rootDirectoryHandle,
         List<SafeFileHandle> handles,
         Dictionary<string, HeldEntry> files,
-        IReadOnlyList<(string Path, SafeFileHandle Handle)> identities,
-        IReadOnlyDictionary<string, string[]> topology)
+        List<(string Path, SafeFileHandle Handle)> identities,
+        Dictionary<string, string[]> topology)
     {
         RootPath = rootPath;
         RootDirectoryHandle = rootDirectoryHandle;
@@ -334,6 +334,31 @@ internal sealed partial class WindowsStablePathCustody : IDisposable
         bool deleteCapable,
         CancellationToken cancellationToken)
     {
+        return CaptureTree(
+            rootPath,
+            rootHandle,
+            handles,
+            files,
+            identities,
+            topology,
+            limits,
+            allowDeleteShare: deleteCapable,
+            requestDeleteAccess: deleteCapable,
+            cancellationToken);
+    }
+
+    private static WindowsStableCustodyIssue CaptureTree(
+        string rootPath,
+        SafeFileHandle rootHandle,
+        List<SafeFileHandle> handles,
+        Dictionary<string, HeldEntry> files,
+        List<(string Path, SafeFileHandle Handle)> identities,
+        Dictionary<string, string[]> topology,
+        WindowsStableTreeLimits limits,
+        bool allowDeleteShare,
+        bool requestDeleteAccess,
+        CancellationToken cancellationToken)
+    {
         int fileCount = 0;
         int directoryCount = 0;
         long totalBytes = 0;
@@ -369,8 +394,8 @@ internal sealed partial class WindowsStablePathCustody : IDisposable
                     isDirectory,
                     writableParent: false,
                     allowWriteShare: false,
-                    allowDeleteShare: deleteCapable,
-                    requestDeleteAccess: deleteCapable,
+                    allowDeleteShare,
+                    requestDeleteAccess,
                     out SafeFileHandle child);
                 if (status != NativeMethods.StatusSuccess)
                 {

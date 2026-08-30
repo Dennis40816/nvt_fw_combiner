@@ -41,8 +41,10 @@ internal static class FileSystemVersionManagerWriteLease
                     FileShare.None,
                     bufferSize: 1,
                     FileOptions.WriteThrough);
+                return new(
+                    VersionManagerWriteLeaseIssue.None,
+                    new FileSystemVersionManagerWriteLeaseCustody(statePath, stream));
 #pragma warning restore CA2000
-                return new(VersionManagerWriteLeaseIssue.None, stream);
             }
             catch (UnauthorizedAccessException)
             {
@@ -78,10 +80,32 @@ internal static class FileSystemVersionManagerWriteLease
             $".{Path.GetFileName(statePath)}.{hash[..24]}.writer.lock");
     }
 
-    private static string NormalizeIdentityPath(string path)
+    internal static string NormalizeIdentityPath(string path)
     {
         string full = Path.TrimEndingDirectorySeparator(Path.GetFullPath(path));
         return OperatingSystem.IsWindows() ? full.ToUpperInvariant() : full;
+    }
+
+    private sealed class FileSystemVersionManagerWriteLeaseCustody(
+        string statePath,
+        FileStream stream) : IVersionManagerWriteLeaseCustody
+    {
+        private readonly string _statePath = NormalizeIdentityPath(statePath);
+        private FileStream? _stream = stream ?? throw new ArgumentNullException(nameof(stream));
+
+        public bool HoldsStatePath(string statePath)
+        {
+            FileStream? current = Volatile.Read(ref _stream);
+            return current is not null &&
+                !current.SafeFileHandle.IsClosed &&
+                !current.SafeFileHandle.IsInvalid &&
+                string.Equals(_statePath, NormalizeIdentityPath(statePath), StringComparison.Ordinal);
+        }
+
+        public void Dispose()
+        {
+            Interlocked.Exchange(ref _stream, null)?.Dispose();
+        }
     }
 
     private static bool IsSharingViolation(IOException exception)

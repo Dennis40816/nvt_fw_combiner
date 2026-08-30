@@ -38,12 +38,12 @@ class CodeSizePolicyTests(unittest.TestCase):
     def test_frozen_release_baseline_emits_no_full_production_warning(self) -> None:
         snapshot = measure_code_size(REPOSITORY_ROOT)
 
-        self.assertEqual(130_153, snapshot.production_nonblank)
-        self.assertEqual(92_495, snapshot.runtime_production_nonblank)
+        self.assertEqual(133_488, snapshot.production_nonblank)
+        self.assertEqual(95_830, snapshot.runtime_production_nonblank)
         self.assertEqual(20_632, snapshot.domain_profiles_nonblank)
-        self.assertEqual(40_425, snapshot.application_nonblank)
+        self.assertEqual(41_047, snapshot.application_nonblank)
         self.assertEqual(4_347, snapshot.bootstrap_cli_nonblank)
-        self.assertEqual(27_091, snapshot.infrastructure_contracts_worker_nonblank)
+        self.assertEqual(29_804, snapshot.infrastructure_contracts_worker_nonblank)
         self.assertEqual(snapshot.production_nonblank, DEFAULT_LIMITS.production_nonblank)
         self.assertEqual([], validate_code_size_policy(REPOSITORY_ROOT))
         self.assertFalse(

@@ -5,6 +5,10 @@ ADR 0062. The distribution Launcher is an adapter over existing
 VersionManagement use cases; it does not own package, state, launcher, update,
 or firmware semantics.
 
+Interrupted-transaction convergence and rollback are extended only by
+[`managed-recovery-v1.md`](managed-recovery-v1.md). Setup itself never gains a
+resume or cleanup branch.
+
 ## Roles
 
 | Role | Runtime responsibility |
@@ -253,16 +257,19 @@ external changes are detected again at each consumption and terminal gate.
   exact held-handle cleanup cannot be proved. Setup maps that residue to
   `RecoveryRequired`; cleanup failure is never silently discarded.
 - A failure before promotion retains its exact staging tree and matching marker
-  as durable recovery evidence. Setup does not recursively delete by path; only
-  `RECOVERY-105-01` may later classify and clean the retained transaction.
+  as durable recovery evidence. Setup itself does not recursively delete by
+  path. Read-only classification belongs to `RECOVERY-105A`; an explicitly
+  invoked later mutation is authorized only by `managed-recovery-v1`.
 - Successful completion validates and marks the same exclusively held marker
   object for deletion. It never closes the handle and then deletes whatever
   object happens to occupy the path.
 
-A later process treats every surviving marker or residue as
-`RecoveryRequired`; it never resumes or cleans it. An already-bound
-installation belongs to normal entry routing. Resume, cleanup, repair, rebind,
-and adoption belong to `RECOVERY-105-01`.
+A later ordinary entry or Setup process treats every surviving marker or
+residue as `RecoveryRequired`; it never resumes or cleans it. Only the separate
+`managed-recovery-v1` action may converge or roll back the exact admitted
+transaction. An already-bound installation belongs to normal entry routing.
+Repair, rebind, adoption, migration, and general uninstall remain outside both
+Setup and recovery v1.
 
 ## Typed Setup outcomes
 

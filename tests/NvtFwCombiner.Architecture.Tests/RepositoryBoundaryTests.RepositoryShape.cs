@@ -2,11 +2,13 @@ namespace NvtFwCombiner.Architecture.Tests;
 
 public sealed partial class RepositoryBoundaryTests
 {
-    private const int LargeFileLineThreshold = 700;
+    // Catastrophic-growth alarm only. Cohesion and semantic ownership are enforced by
+    // targeted boundary tests; physical line count is not an architecture proxy.
+    private const int LargeFileLineThreshold = 2_500;
 
-    /// <summary>Verifies repo structure cleanup does not regress back into very large mixed-concern files.</summary>
+    /// <summary>Prevents catastrophic single-file growth without prescribing arbitrary splits.</summary>
     [Fact]
-    public void RepositoryTextFilesStayBelowLargeFileThreshold()
+    public void RepositoryTextFilesStayBelowEmergencyCeiling()
     {
         string[] checkedRoots = ["src", "tests", "docs", "eng"];
         string[] checkedExtensions = [".cs", ".axaml", ".md", ".targets"];

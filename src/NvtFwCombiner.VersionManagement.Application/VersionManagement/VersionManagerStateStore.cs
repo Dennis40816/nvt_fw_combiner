@@ -55,6 +55,7 @@ public enum VersionManagerWriteLeaseIssue
 public sealed class VersionManagerWriteLeaseResult : IDisposable
 {
     private readonly IDisposable? _lease;
+    private int _disposed;
 
     /// <summary>Creates one typed lease result.</summary>
     public VersionManagerWriteLeaseResult(
@@ -76,11 +77,33 @@ public sealed class VersionManagerWriteLeaseResult : IDisposable
     /// <summary>Gets whether this result owns the exclusive writer lease.</summary>
     public bool IsAcquired => Issue == VersionManagerWriteLeaseIssue.None;
 
+    /// <summary>
+    /// Verifies the live, non-serializable production custody for one exact state path.
+    /// Recovery execution uses this instead of trusting a replayable bool or path token.
+    /// </summary>
+    internal bool HoldsStatePath(string statePath)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(statePath);
+        return Volatile.Read(ref _disposed) == 0 &&
+            _lease is IVersionManagerWriteLeaseCustody custody &&
+            custody.HoldsStatePath(statePath);
+    }
+
     /// <inheritdoc />
     public void Dispose()
     {
-        _lease?.Dispose();
+        if (Interlocked.Exchange(ref _disposed, 1) == 0)
+        {
+            _lease?.Dispose();
+        }
     }
+}
+
+/// <summary>Live adapter-owned writer custody that cannot be serialized or forged from a bool.</summary>
+internal interface IVersionManagerWriteLeaseCustody : IDisposable
+{
+    /// <summary>Gets whether this still owns the writer for the exact canonical state path.</summary>
+    bool HoldsStatePath(string statePath);
 }
 
 /// <summary>Read-only persistence port for one validated managed-version state snapshot.</summary>

@@ -212,3 +212,40 @@ Infrastructure/Contracts/worker/Platform above the frozen base ratchets. This
 R2 allowance is exact and non-transferable. It changes no firmware profile,
 range, operation, output byte, CRC/header, processor, naming, support, Golden,
 or Presentation-layout authority.
+
+## 2026-08-30 managed Setup recovery backend
+
+The owner-approved RECOVERY-105B slice adds only the non-composed backend for
+an explicitly confirmed managed Setup rollback or READY convergence. One pure
+Application policy owns the closed state-pair table and canonical writer lease;
+one Infrastructure adapter owns held no-follow evidence and deterministic
+mutation. The adapter reuses the existing marker codec, state stores, package
+manifest/checksum validator, root verifier, and Windows custody primitives. It
+adds no production caller, UI, journal, updater, parser, state writer, recursive
+delete, process launch, or firmware execution path.
+
+Full production is 133,488 nonblank lines and runtime production is 95,830.
+Domain plus Profiles remains 20,632; Application is 41,047; Bootstrap plus CLI
+plus Desktop and Distribution Launcher host remains 4,347; and Infrastructure
+plus Contracts plus CRC worker and Platform is 29,804. The four runtime slices
+sum exactly to 95,830. Relative to the preceding checkpoint this is +3,335
+total/runtime, +622 Application, and +2,713 Infrastructure/Platform. The
+Infrastructure delta contains the held identity/length/SHA proof, every-boundary
+prefix revalidation, action-specific final postcondition, marker-last custody,
+and restart-prefix handling required for the destructive R3 boundary.
+
+The executable allowances therefore become exactly 30,592 full production,
+25,774 runtime, 5 Domain/Profiles, 10,357 Application, 969
+Bootstrap/CLI/Desktop/Launcher, and 14,448
+Infrastructure/Contracts/worker/Platform above the frozen base ratchets. This
+R3 allowance is exact and non-transferable; any simplification must lower the
+corresponding value. It changes no firmware profile, range, operation, output
+byte, CRC/header, processor, naming, support, Golden, package, or Presentation
+authority. Production composition remains a separate reviewed 1.0.6 slice.
+
+The owner also rejected the former 700-physical-line repository gate as an
+architecture proxy. The global file check is now only a 2,500-line
+catastrophic-growth alarm. Cohesion is instead enforced through the existing
+unique semantic-owner, dependency-boundary, duplicate parser/policy/writer,
+and process-launch tests. Files are split when those boundaries warrant it,
+not solely to satisfy a line count.

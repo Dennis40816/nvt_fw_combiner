@@ -8,6 +8,39 @@ namespace NvtFwCombiner.Infrastructure.Tests.VersionManagement;
 /// <summary>Exercises the OS-backed, exact-identity version-manager writer lease.</summary>
 public sealed class FileSystemVersionManagerWriteLeaseTests
 {
+    /// <summary>The recovery executor can prove only the live exact-path production lease.</summary>
+    [Fact]
+    public async Task RecoveryCapabilityIsLiveExactAndNotForgeable()
+    {
+        using var workspace = TempWorkspace.Create("nfc-version-lease");
+        string statePath = Path.Combine(workspace.Root, "state", "version-manager.v1.json");
+        string otherPath = Path.Combine(workspace.Root, "state", "other.v1.json");
+        var store = new JsonVersionManagerStateStore(statePath);
+
+        VersionManagerWriteLeaseResult lease = await store.TryAcquireWriteLeaseAsync(
+            TimeSpan.Zero,
+            TestContext.Current.CancellationToken);
+
+        Assert.True(lease.HoldsStatePath(statePath));
+        Assert.True(lease.HoldsStatePath(Path.Combine(
+            Path.GetDirectoryName(statePath)!,
+            "unused",
+            "..",
+            Path.GetFileName(statePath))));
+        Assert.False(lease.HoldsStatePath(otherPath));
+        using (var disposable = new DisposableStub())
+        using (var forged = new VersionManagerWriteLeaseResult(
+                   VersionManagerWriteLeaseIssue.None,
+                   disposable))
+        {
+            Assert.False(forged.HoldsStatePath(statePath));
+        }
+
+        lease.Dispose();
+
+        Assert.False(lease.HoldsStatePath(statePath));
+    }
+
     /// <summary>One canonical state file has one writer across store instances.</summary>
     [Fact]
     public async Task SameStateHasOneCrossInstanceWriter()
@@ -161,6 +194,13 @@ public sealed class FileSystemVersionManagerWriteLeaseTests
         {
             Assert.False(process.HasExited, "Lease-holder process exited before acquiring the file lease.");
             await Task.Delay(TimeSpan.FromMilliseconds(25), timeout.Token);
+        }
+    }
+
+    private sealed class DisposableStub : IDisposable
+    {
+        public void Dispose()
+        {
         }
     }
 }

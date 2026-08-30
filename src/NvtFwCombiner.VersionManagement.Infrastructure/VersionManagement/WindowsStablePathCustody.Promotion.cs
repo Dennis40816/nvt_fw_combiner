@@ -6,6 +6,206 @@ namespace NvtFwCombiner.Infrastructure.VersionManagement;
 internal sealed partial class WindowsStablePathCustody
 {
     [SuppressMessage("Reliability", "CA2000:Dispose objects before losing scope", Justification =
+        "Successful exact file custody transfers every held handle into the returned owner.")]
+    internal static WindowsStableCustodyResult TryAcquireDeleteCapableFile(
+        string absoluteFilePath,
+        CancellationToken cancellationToken = default)
+    {
+        if (!OperatingSystem.IsWindows() ||
+            !TryNormalizeAbsoluteLocalPath(absoluteFilePath, out string filePath) ||
+            Path.GetDirectoryName(filePath) is not { } parent ||
+            Path.GetPathRoot(filePath) is not { } volumeRoot)
+        {
+            return WindowsStableCustodyResult.Failure(WindowsStableCustodyIssue.InvalidPath);
+        }
+        var handles = new List<SafeFileHandle>();
+        var files = new Dictionary<string, HeldEntry>(ManagedPathSafety.PathComparer);
+        var topology = new Dictionary<string, string[]>(ManagedPathSafety.PathComparer);
+        try
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            var identities = new List<(string Path, SafeFileHandle Handle)>();
+            WindowsStableCustodyIssue ancestorIssue = OpenAncestorChain(
+                volumeRoot,
+                parent,
+                handles,
+                identities,
+                out SafeFileHandle? parentHandle);
+            if (ancestorIssue != WindowsStableCustodyIssue.None || parentHandle is null)
+            {
+                DisposeHandles(handles);
+                return WindowsStableCustodyResult.Failure(ancestorIssue);
+            }
+            string name = Path.GetFileName(filePath);
+            int status = OpenRelative(
+                parentHandle,
+                name,
+                directory: false,
+                writableParent: false,
+                allowWriteShare: false,
+                allowDeleteShare: true,
+                requestDeleteAccess: false,
+                out SafeFileHandle fileHandle);
+            if (IsExactChildMissingStatus(status))
+            {
+                fileHandle.Dispose();
+                DisposeHandles(handles);
+                return WindowsStableCustodyResult.MissingExactChild();
+            }
+            if (status != NativeMethods.StatusSuccess || !HasExpectedType(fileHandle, directory: false))
+            {
+                fileHandle.Dispose();
+                DisposeHandles(handles);
+                return WindowsStableCustodyResult.Failure(
+                    status == NativeMethods.StatusSuccess
+                        ? WindowsStableCustodyIssue.ReparsePoint
+                        : MapStatus(status));
+            }
+            handles.Add(fileHandle);
+            identities.Add((filePath, fileHandle));
+            files.Add(name, new(filePath, fileHandle));
+            topology.Add(parent, [name]);
+            return RevalidateIdentities(identities)
+                ? new(
+                    new WindowsStablePathCustody(
+                        parent,
+                        parentHandle,
+                        handles,
+                        files,
+                        identities,
+                        topology),
+                    WindowsStableCustodyIssue.None)
+                : FailAndDispose(handles, WindowsStableCustodyIssue.Changed);
+        }
+        catch (OperationCanceledException)
+        {
+            DisposeHandles(handles);
+            throw;
+        }
+        catch (UnauthorizedAccessException)
+        {
+            DisposeHandles(handles);
+            return WindowsStableCustodyResult.Failure(WindowsStableCustodyIssue.AccessDenied);
+        }
+        catch (Exception exception) when (exception is IOException or NotSupportedException)
+        {
+            DisposeHandles(handles);
+            return WindowsStableCustodyResult.Failure(WindowsStableCustodyIssue.Unavailable);
+        }
+    }
+
+    [SuppressMessage("Reliability", "CA2000:Dispose objects before losing scope", Justification =
+        "Successful exact tree custody transfers every held handle into the returned owner.")]
+    internal static WindowsStableCustodyResult TryAcquireDeleteCapableTree(
+        string absoluteRoot,
+        WindowsStableTreeLimits limits,
+        CancellationToken cancellationToken = default)
+    {
+        if (!OperatingSystem.IsWindows() ||
+            !TryNormalizeAbsoluteLocalPath(absoluteRoot, out string root) ||
+            Path.GetDirectoryName(root) is not { } parent ||
+            Path.GetPathRoot(root) is not { } volumeRoot)
+        {
+            return WindowsStableCustodyResult.Failure(WindowsStableCustodyIssue.InvalidPath);
+        }
+        var handles = new List<SafeFileHandle>();
+        var files = new Dictionary<string, HeldEntry>(ManagedPathSafety.PathComparer);
+        var topology = new Dictionary<string, string[]>(ManagedPathSafety.PathComparer);
+        try
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            var identities = new List<(string Path, SafeFileHandle Handle)>();
+            WindowsStableCustodyIssue ancestorIssue = OpenAncestorChain(
+                volumeRoot,
+                parent,
+                handles,
+                identities,
+                out SafeFileHandle? parentHandle);
+            if (ancestorIssue != WindowsStableCustodyIssue.None || parentHandle is null)
+            {
+                DisposeHandles(handles);
+                return WindowsStableCustodyResult.Failure(ancestorIssue);
+            }
+            int status = OpenRelative(
+                parentHandle,
+                Path.GetFileName(root),
+                directory: true,
+                writableParent: false,
+                allowWriteShare: false,
+                allowDeleteShare: true,
+                requestDeleteAccess: false,
+                out SafeFileHandle rootHandle);
+            if (status != NativeMethods.StatusSuccess || !HasExpectedType(rootHandle, directory: true))
+            {
+                rootHandle.Dispose();
+                DisposeHandles(handles);
+                return WindowsStableCustodyResult.Failure(
+                    status == NativeMethods.StatusSuccess
+                        ? WindowsStableCustodyIssue.ReparsePoint
+                        : MapStatus(status));
+            }
+            handles.Add(rootHandle);
+            identities.Add((root, rootHandle));
+            WindowsStableCustodyIssue captured = CaptureTree(
+                root,
+                rootHandle,
+                handles,
+                files,
+                identities,
+                topology,
+                limits,
+                allowDeleteShare: true,
+                requestDeleteAccess: false,
+                cancellationToken);
+            return captured == WindowsStableCustodyIssue.None && RevalidateIdentities(identities)
+                ? new(
+                    new WindowsStablePathCustody(
+                        root,
+                        rootHandle,
+                        handles,
+                        files,
+                        identities,
+                        topology),
+                    WindowsStableCustodyIssue.None)
+                : FailAndDispose(
+                    handles,
+                    captured == WindowsStableCustodyIssue.None
+                        ? WindowsStableCustodyIssue.Changed
+                        : captured);
+        }
+        catch (OperationCanceledException)
+        {
+            DisposeHandles(handles);
+            throw;
+        }
+        catch (UnauthorizedAccessException)
+        {
+            DisposeHandles(handles);
+            return WindowsStableCustodyResult.Failure(WindowsStableCustodyIssue.AccessDenied);
+        }
+        catch (Exception exception) when (exception is IOException or NotSupportedException)
+        {
+            DisposeHandles(handles);
+            return WindowsStableCustodyResult.Failure(WindowsStableCustodyIssue.Unavailable);
+        }
+    }
+
+    internal static WindowsStableCustodyResult TryAcquireImmutableTreeOrExactMissing(
+        string absoluteRoot,
+        WindowsStableTreeLimits limits,
+        CancellationToken cancellationToken = default)
+    {
+        WindowsStableCustodyResult acquired = TryAcquireImmutableTree(
+            absoluteRoot,
+            treeLimits: limits,
+            cancellationToken: cancellationToken);
+        return acquired.Issue == WindowsStableCustodyIssue.Unavailable &&
+            TryObserveExactMissingDirectory(absoluteRoot, cancellationToken)
+                ? WindowsStableCustodyResult.MissingExactChild()
+                : acquired;
+    }
+
+    [SuppressMessage("Reliability", "CA2000:Dispose objects before losing scope", Justification =
         "The duplicate of the exact held root transfers into the returned custody; every failure disposes it.")]
     internal static WindowsStableCustodyResult TryCaptureImmutableTreeFromHeldDirectory(
         string absoluteRoot,
@@ -116,7 +316,8 @@ internal sealed partial class WindowsStablePathCustody
                 identities,
                 topology,
                 limits,
-                deleteCapable,
+                allowDeleteShare: deleteCapable,
+                requestDeleteAccess: deleteCapable,
                 cancellationToken);
             if (captured != WindowsStableCustodyIssue.None ||
                 !RevalidateIdentities(identities))
@@ -152,18 +353,32 @@ internal sealed partial class WindowsStablePathCustody
 
     internal bool MatchesOwnedSnapshot(WindowsStableOwnedTreeSnapshot expected)
     {
-        if (_files.Count != expected.Files.Count || _topology.Count != expected.Directories.Count)
-        {
-            return false;
-        }
+        return TryCreateOwnedSnapshot(out WindowsStableOwnedTreeSnapshot? actual) &&
+            actual!.Files.Count == expected.Files.Count &&
+            actual.Directories.Count == expected.Directories.Count &&
+            actual.Files.All(pair =>
+                expected.Files.TryGetValue(pair.Key, out WindowsStablePathIdentity identity) &&
+                identity == pair.Value) &&
+            actual.Directories.All(pair =>
+                expected.Directories.TryGetValue(pair.Key, out WindowsStablePathIdentity identity) &&
+                identity == pair.Value);
+    }
+
+    internal bool TryCreateOwnedSnapshot(out WindowsStableOwnedTreeSnapshot? snapshot)
+    {
+        ThrowIfDisposed();
+        var files = new Dictionary<string, WindowsStablePathIdentity>(
+            ManagedPathSafety.PathComparer);
+        var directories = new Dictionary<string, WindowsStablePathIdentity>(
+            ManagedPathSafety.PathComparer);
         foreach ((string relative, HeldEntry entry) in _files)
         {
-            if (!expected.Files.TryGetValue(relative, out WindowsStablePathIdentity identity) ||
-                !TryGetIdentity(entry.Handle, out WindowsStablePathIdentity actual) ||
-                actual != identity)
+            if (!TryGetIdentity(entry.Handle, out WindowsStablePathIdentity identity))
             {
+                snapshot = null;
                 return false;
             }
+            files.Add(relative, identity);
         }
         foreach ((string absolute, SafeFileHandle handle) in _identities)
         {
@@ -173,14 +388,197 @@ internal sealed partial class WindowsStablePathCustody
             }
             string relative = Path.GetRelativePath(RootPath, absolute);
             relative = relative == "." ? string.Empty : relative.Replace('\\', '/');
-            if (!expected.Directories.TryGetValue(relative, out WindowsStablePathIdentity identity) ||
-                !TryGetIdentity(handle, out WindowsStablePathIdentity actual) ||
-                actual != identity)
+            if (relative == ".." || relative.StartsWith("../", StringComparison.Ordinal))
             {
+                continue;
+            }
+            if (!TryGetIdentity(handle, out WindowsStablePathIdentity identity))
+            {
+                snapshot = null;
                 return false;
             }
+            directories.Add(relative, identity);
         }
+        snapshot = new(files, directories);
         return true;
+    }
+
+    internal WindowsStableCustodyIssue TryDeleteHeldEntry(
+        string relativePath,
+        bool directory,
+        Action? afterExclusiveOpen = null,
+        bool revalidateTopology = true)
+    {
+        ThrowIfDisposed();
+        string normalized = string.IsNullOrEmpty(relativePath)
+            ? string.Empty
+            : relativePath.Replace('/', Path.DirectorySeparatorChar);
+        string absolute = string.IsNullOrEmpty(normalized)
+            ? RootPath
+            : Path.GetFullPath(Path.Combine(RootPath, normalized));
+        if (!TryFindHeldEntry(absolute, directory, out SafeFileHandle? expectedHandle) ||
+            (directory && _topology.TryGetValue(absolute, out string[]? children) && children.Length != 0))
+        {
+            return WindowsStableCustodyIssue.Changed;
+        }
+        var exclusiveHandles = new List<SafeFileHandle>();
+        try
+        {
+            WindowsStableCustodyIssue opened = TryOpenExclusivePathChain(
+                absolute,
+                directory,
+                expectedHandle!,
+                exclusiveHandles,
+                out SafeFileHandle? deleteHandle);
+            if (opened != WindowsStableCustodyIssue.None || deleteHandle is null)
+            {
+                return opened;
+            }
+            afterExclusiveOpen?.Invoke();
+            if (!IsSameIdentity(expectedHandle!, deleteHandle) ||
+                (revalidateTopology && directory &&
+                 (!TryEnumerateChildNames(absolute, 1, out string[] actual) || actual.Length != 0)) ||
+                !MarkDeleteOnClose(deleteHandle))
+            {
+                return WindowsStableCustodyIssue.Changed;
+            }
+            ForgetHeldEntry(absolute, expectedHandle!, directory);
+            return WindowsStableCustodyIssue.None;
+        }
+        finally
+        {
+            DisposeHandles(exclusiveHandles);
+        }
+    }
+
+    private WindowsStableCustodyIssue TryOpenExclusivePathChain(
+        string absolute,
+        bool targetIsDirectory,
+        SafeFileHandle expectedTarget,
+        List<SafeFileHandle> exclusiveHandles,
+        out SafeFileHandle? deleteHandle)
+    {
+        deleteHandle = null;
+        var paths = new Stack<string>();
+        string current = absolute;
+        while (true)
+        {
+            paths.Push(current);
+            if (ManagedPathSafety.PathComparer.Equals(current, RootPath))
+            {
+                break;
+            }
+            current = Path.GetDirectoryName(current) ?? string.Empty;
+            if (string.IsNullOrEmpty(current) ||
+                !current.StartsWith(RootPath, StringComparison.OrdinalIgnoreCase))
+            {
+                return WindowsStableCustodyIssue.Changed;
+            }
+        }
+
+        while (paths.TryPop(out string? path))
+        {
+            bool isTarget = ManagedPathSafety.PathComparer.Equals(path, absolute);
+            bool isDirectory = !isTarget || targetIsDirectory;
+            string? parent = Path.GetDirectoryName(path);
+            if (parent is null ||
+                !TryFindHeldDirectory(parent, out SafeFileHandle? parentHandle) ||
+                !TryFindHeldEntry(
+                    path,
+                    isDirectory,
+                    out SafeFileHandle? expectedHandle))
+            {
+                return WindowsStableCustodyIssue.Changed;
+            }
+            int status = OpenRelative(
+                parentHandle!,
+                Path.GetFileName(path),
+                isDirectory,
+                writableParent: false,
+                allowWriteShare: !isTarget,
+                allowDeleteShare: false,
+                requestDeleteAccess: isTarget,
+                out SafeFileHandle opened);
+            if (status != NativeMethods.StatusSuccess)
+            {
+                opened.Dispose();
+                return MapStatus(status);
+            }
+            if (!IsSameIdentity(expectedHandle!, opened))
+            {
+                opened.Dispose();
+                return WindowsStableCustodyIssue.Changed;
+            }
+            exclusiveHandles.Add(opened);
+            if (isTarget)
+            {
+                deleteHandle = opened;
+            }
+        }
+        return deleteHandle is not null && IsSameIdentity(expectedTarget, deleteHandle)
+            ? WindowsStableCustodyIssue.None
+            : WindowsStableCustodyIssue.Changed;
+    }
+
+    private void ForgetHeldEntry(
+        string absolute,
+        SafeFileHandle expectedHandle,
+        bool directory)
+    {
+        _ = _handles.Remove(expectedHandle);
+        _ = _identities.RemoveAll(pair => ReferenceEquals(pair.Handle, expectedHandle));
+        if (directory)
+        {
+            _ = _topology.Remove(absolute);
+        }
+        else
+        {
+            string relative = NormalizeRelativeFile(Path.GetRelativePath(RootPath, absolute));
+            _ = _files.Remove(relative);
+        }
+        string? parent = Path.GetDirectoryName(absolute);
+        if (parent is not null && _topology.TryGetValue(parent, out string[]? children))
+        {
+            _topology[parent] = [.. children.Where(name => !string.Equals(
+                name,
+                Path.GetFileName(absolute),
+                StringComparison.Ordinal))];
+        }
+        expectedHandle.Dispose();
+    }
+
+    private static WindowsStableCustodyResult FailAndDispose(
+        List<SafeFileHandle> handles,
+        WindowsStableCustodyIssue issue)
+    {
+        DisposeHandles(handles);
+        return WindowsStableCustodyResult.Failure(issue);
+    }
+
+    private bool TryFindHeldDirectory(string absolute, out SafeFileHandle? handle)
+    {
+        handle = _identities
+            .Where(static pair => IsDirectory(pair.Handle))
+            .Where(pair => ManagedPathSafety.PathComparer.Equals(pair.Path, absolute))
+            .Select(static pair => pair.Handle)
+            .SingleOrDefault();
+        return handle is not null && !handle.IsInvalid && !handle.IsClosed;
+    }
+
+    private bool TryFindHeldEntry(
+        string absolute,
+        bool directory,
+        out SafeFileHandle? handle)
+    {
+        if (!directory)
+        {
+            handle = _files.Values
+                .Where(entry => ManagedPathSafety.PathComparer.Equals(entry.AbsolutePath, absolute))
+                .Select(static entry => entry.Handle)
+                .SingleOrDefault();
+            return handle is not null && !handle.IsInvalid && !handle.IsClosed;
+        }
+        return TryFindHeldDirectory(absolute, out handle);
     }
 
     private WindowsStableCustodyIssue DeleteHeldTree()
@@ -210,5 +608,125 @@ internal sealed partial class WindowsStablePathCustody
             directory.Dispose();
         }
         return issue;
+    }
+
+    private static bool TryObserveExactMissingDirectory(
+        string absoluteRoot,
+        CancellationToken cancellationToken)
+    {
+        if (!OperatingSystem.IsWindows() ||
+            !TryNormalizeAbsoluteLocalPath(absoluteRoot, out string root) ||
+            Path.GetDirectoryName(root) is not { } parent ||
+            Path.GetPathRoot(root) is not { } volumeRoot)
+        {
+            return false;
+        }
+
+        var handles = new List<SafeFileHandle>();
+        try
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            var identities = new List<(string Path, SafeFileHandle Handle)>();
+            WindowsStableCustodyIssue issue = OpenAncestorChain(
+                volumeRoot,
+                parent,
+                handles,
+                identities,
+                out SafeFileHandle? parentHandle);
+            if (issue != WindowsStableCustodyIssue.None || parentHandle is null)
+            {
+                return false;
+            }
+            string name = Path.GetFileName(root);
+            int first = OpenRelative(
+                parentHandle,
+                name,
+                directory: true,
+                writableParent: false,
+                allowWriteShare: false,
+                allowDeleteShare: false,
+                requestDeleteAccess: false,
+                out SafeFileHandle firstHandle);
+            firstHandle.Dispose();
+            if (!IsExactChildMissingStatus(first))
+            {
+                return false;
+            }
+            int second = OpenRelative(
+                parentHandle,
+                name,
+                directory: true,
+                writableParent: false,
+                allowWriteShare: false,
+                allowDeleteShare: false,
+                requestDeleteAccess: false,
+                out SafeFileHandle secondHandle);
+            secondHandle.Dispose();
+            return IsExactChildMissingStatus(second) && RevalidateIdentities(identities);
+        }
+        finally
+        {
+            DisposeHandles(handles);
+        }
+    }
+
+    internal static bool TryObserveExactMissingFile(
+        string absoluteFile,
+        CancellationToken cancellationToken = default)
+    {
+        if (!OperatingSystem.IsWindows() ||
+            !TryNormalizeAbsoluteLocalPath(absoluteFile, out string file) ||
+            Path.GetDirectoryName(file) is not { } parent ||
+            Path.GetPathRoot(file) is not { } volumeRoot)
+        {
+            return false;
+        }
+
+        var handles = new List<SafeFileHandle>();
+        try
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            var identities = new List<(string Path, SafeFileHandle Handle)>();
+            WindowsStableCustodyIssue issue = OpenAncestorChain(
+                volumeRoot,
+                parent,
+                handles,
+                identities,
+                out SafeFileHandle? parentHandle);
+            if (issue != WindowsStableCustodyIssue.None || parentHandle is null)
+            {
+                return false;
+            }
+            string name = Path.GetFileName(file);
+            int first = OpenRelative(
+                parentHandle,
+                name,
+                directory: false,
+                writableParent: false,
+                allowWriteShare: false,
+                allowDeleteShare: false,
+                requestDeleteAccess: false,
+                out SafeFileHandle firstHandle);
+            firstHandle.Dispose();
+            if (!IsExactChildMissingStatus(first))
+            {
+                return false;
+            }
+            int second = OpenRelative(
+                parentHandle,
+                name,
+                directory: false,
+                writableParent: false,
+                allowWriteShare: false,
+                allowDeleteShare: false,
+                requestDeleteAccess: false,
+                out SafeFileHandle secondHandle);
+            secondHandle.Dispose();
+            return IsExactChildMissingStatus(second) && RevalidateIdentities(identities);
+        }
+        finally
+        {
+            DisposeHandles(handles);
+        }
     }
 }

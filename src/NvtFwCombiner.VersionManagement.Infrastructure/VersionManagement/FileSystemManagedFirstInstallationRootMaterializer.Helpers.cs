@@ -1,5 +1,4 @@
 using System.Diagnostics.CodeAnalysis;
-using System.Security.Cryptography;
 using System.Text.Json;
 using Microsoft.Win32.SafeHandles;
 using NvtFwCombiner.Application.VersionManagement;
@@ -12,125 +11,77 @@ public sealed partial class FileSystemManagedFirstInstallationRootMaterializer
         string root,
         ManagedDistributionPayloadIdentity payload)
     {
+        ArgumentNullException.ThrowIfNull(payload);
+        return CreateSetupTreeLimits(
+            root,
+            payload.LauncherSize,
+            payload.Bootstrap.Length);
+    }
+
+    internal static WindowsStableTreeLimits CreateSetupTreeLimits(
+        string root,
+        ManagedSetupRecoveryPayloadIdentity payload)
+    {
+        ArgumentNullException.ThrowIfNull(payload);
+        return CreateSetupTreeLimits(
+            root,
+            payload.LauncherSize,
+            payload.BootstrapSize);
+    }
+
+    private static WindowsStableTreeLimits CreateSetupTreeLimits(
+        string root,
+        long launcherSize,
+        long bootstrapSize)
+    {
         long seedBytes = new FileInfo(Path.Combine(root, SeedFileName)).Length;
         return new WindowsStableTreeLimits(
             checked(FileSystemManagedVersionRepository.MaximumInstalledFiles + 3),
             checked(FileSystemManagedVersionRepository.MaximumInstalledDirectories + 2),
             checked(
                 FileSystemManagedVersionRepository.MaximumInstalledBytes +
-                payload.LauncherSize +
-                payload.Bootstrap.Length +
+                launcherSize +
+                bootstrapSize +
                 seedBytes));
     }
 
-    private static bool HasClosedTopLevelInventory(string stagingRoot)
-    {
-        string[] expected =
-        [
-            BootstrapFileName,
-            DistributionLauncherFileName,
-            SeedFileName,
-            FileSystemManagedVersionRepository.VersionsDirectoryName,
-        ];
-        try
-        {
-            string[] actual =
-            [.. Directory.EnumerateFileSystemEntries(stagingRoot).Select(
-                static path => Path.GetFileName(path) ?? string.Empty)];
-            return actual.Order(StringComparer.Ordinal).SequenceEqual(
-                    expected.Order(StringComparer.Ordinal),
-                    StringComparer.Ordinal) &&
-                expected.All(name => !ManagedPathSafety.IsReparsePoint(Path.Combine(stagingRoot, name))) &&
-                File.Exists(Path.Combine(stagingRoot, BootstrapFileName)) &&
-                File.Exists(Path.Combine(stagingRoot, DistributionLauncherFileName)) &&
-                File.Exists(Path.Combine(stagingRoot, SeedFileName)) &&
-                Directory.Exists(Path.Combine(
-                    stagingRoot,
-                    FileSystemManagedVersionRepository.VersionsDirectoryName));
-        }
-        catch (Exception exception) when (exception is IOException or UnauthorizedAccessException)
-        {
-            return false;
-        }
-    }
-
-    private async ValueTask<bool> VerifyClosedRootAsync(
+    private ValueTask<bool> VerifyClosedRootAsync(
         string root,
         ManagedDistributionPayloadIdentity payload,
         ManagedVersionAdmission admission,
         CancellationToken cancellationToken)
     {
-        if (!await VerifyStagedRootAsync(root, payload, admission, cancellationToken)
-                .ConfigureAwait(false))
-        {
-            return false;
-        }
-        ManagedVersionInventoryReadResult inventory = await _repository.InventoryAsync(
+        return new ManagedSetupClosedRootVerifier(_repository).VerifyAsync(
             root,
-            [admission],
-            admission.Version,
-            admission.Version,
-            failedActivationVersion: null,
-            cancellationToken).ConfigureAwait(false);
-        ManagedVersionInventory? installed = inventory.Inventory;
-        return inventory.IsSuccess && installed is not null &&
-            installed.Versions.Count == 1 &&
-            installed.HealthyCount == 1 &&
-            installed.DamagedCount == 0;
+            payload,
+            admission,
+            cancellationToken);
     }
 
-    private static async ValueTask<bool> VerifyStagedRootAsync(
+    private static ValueTask<bool> VerifyStagedRootAsync(
         string root,
         ManagedDistributionPayloadIdentity payload,
         ManagedVersionAdmission admission,
         CancellationToken cancellationToken)
     {
-        var seedStore = new JsonVersionManagerStateStore(
-            Path.Combine(root, SeedFileName),
-            allowUnboundSeedTemplate: true);
-        VersionManagerStateLoadResult seed = await seedStore.LoadAsync(cancellationToken)
-            .ConfigureAwait(false);
-        VersionManagerState? seedState = seed.State;
-        return seed.IsSuccess && seedState is not null &&
-            ManagedVersionSeedPolicy.IsCanonicalFirstRunSeed(seedState) &&
-            seedState.Admissions is [var only] &&
-            only == admission &&
-            HasClosedTopLevelInventory(root) &&
-            await MatchesAsync(
-                Path.Combine(root, DistributionLauncherFileName),
-                payload.LauncherSize,
-                payload.LauncherSha256,
-                cancellationToken).ConfigureAwait(false) &&
-            await MatchesAsync(
-                Path.Combine(root, BootstrapFileName),
-                payload.Bootstrap.Length,
-                payload.Bootstrap.Sha256,
-                cancellationToken).ConfigureAwait(false);
+        return ManagedSetupClosedRootVerifier.VerifyPayloadAndSeedAsync(
+            root,
+            payload,
+            admission,
+            cancellationToken);
     }
 
-    private static async ValueTask<bool> MatchesAsync(
+    private static ValueTask<bool> MatchesAsync(
         string path,
         long expectedSize,
         string expectedSha256,
         CancellationToken cancellationToken)
     {
-        if (!File.Exists(path) || ManagedPathSafety.IsReparsePoint(path))
-        {
-            return false;
-        }
-        await using var stream = new FileStream(
+        return ManagedSetupClosedRootVerifier.MatchesAsync(
             path,
-            FileMode.Open,
-            FileAccess.Read,
-            FileShare.Read,
-            bufferSize: 64 * 1024,
-            FileOptions.Asynchronous | FileOptions.SequentialScan);
-        if (stream.Length != expectedSize)
-        {
-            return false;
-        }
-        byte[] hash = await SHA256.HashDataAsync(stream, cancellationToken).ConfigureAwait(false);
-        return string.Equals(Convert.ToHexStringLower(hash), expectedSha256, StringComparison.Ordinal);
+            expectedSize,
+            expectedSha256,
+            cancellationToken);
     }
 
     private static ManagedFirstInstallationMaterializationIssue MapInstallIssue(

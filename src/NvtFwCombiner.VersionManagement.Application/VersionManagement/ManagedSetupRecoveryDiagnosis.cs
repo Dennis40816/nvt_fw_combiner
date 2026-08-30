@@ -167,26 +167,42 @@ public enum ManagedSetupRecoveryOutcome
 }
 
 /// <summary>One terminal read-only diagnosis.</summary>
-public sealed record ManagedSetupRecoveryDiagnosis(
-    ManagedSetupRecoveryOutcome Outcome,
-    ManagedSetupRecoveryTransaction? Transaction);
+public sealed class ManagedSetupRecoveryDiagnosis
+{
+    internal ManagedSetupRecoveryDiagnosis(
+        ManagedSetupRecoveryOutcome outcome,
+        ManagedSetupRecoveryTransaction? transaction,
+        ManagedSetupRecoveryPlan? plan)
+    {
+        bool actionable = outcome == ManagedSetupRecoveryOutcome.ActionAvailable;
+        if (actionable != (transaction is not null && plan is not null))
+        {
+            throw new ArgumentException(
+                "Only an actionable recovery diagnosis carries a transaction and immutable plan.");
+        }
+        Outcome = outcome;
+        Transaction = transaction;
+        Plan = plan;
+    }
+
+    /// <summary>Gets the terminal read-only diagnosis outcome.</summary>
+    public ManagedSetupRecoveryOutcome Outcome { get; }
+    /// <summary>Gets the exact transaction only when an action is available.</summary>
+    public ManagedSetupRecoveryTransaction? Transaction { get; }
+    /// <summary>Gets the immutable execution plan only when an action is available.</summary>
+    public ManagedSetupRecoveryPlan? Plan { get; }
+}
 
 /// <summary>
 /// Owns the complete read-only Setup recovery decision without filesystem or process-start access.
 /// </summary>
 public sealed class ManagedInstallationRecoveryExperience
 {
-    private static readonly ManagedProcessLifetimeKind[] LifetimeKinds =
-    [
-        ManagedProcessLifetimeKind.Bootstrap,
-        ManagedProcessLifetimeKind.Application,
-        ManagedProcessLifetimeKind.Launcher,
-    ];
-
     private readonly IManagedProcessLifetimeProbe _lifetimeProbe;
     private readonly IManagedSetupRecoveryProbe _markerProbe;
     private readonly IManagedInstallationRootProbe _rootProbe;
     private readonly IManagedSetupRecoveryStateReader _stateReader;
+    private readonly IManagedSetupRecoveryEvidenceProbe _evidenceProbe;
     private readonly string _statePathIdentity;
 
     /// <summary>Creates the sole Application recovery diagnosis owner.</summary>
@@ -194,7 +210,8 @@ public sealed class ManagedInstallationRecoveryExperience
         IManagedSetupRecoveryStateReader stateReader,
         IManagedInstallationRootProbe rootProbe,
         IManagedSetupRecoveryProbe markerProbe,
-        IManagedProcessLifetimeProbe lifetimeProbe)
+        IManagedProcessLifetimeProbe lifetimeProbe,
+        IManagedSetupRecoveryEvidenceProbe evidenceProbe)
     {
         _stateReader = stateReader ?? throw new ArgumentNullException(nameof(stateReader));
         string statePathIdentity = stateReader.StatePathIdentity;
@@ -209,6 +226,7 @@ public sealed class ManagedInstallationRecoveryExperience
         _rootProbe = rootProbe ?? throw new ArgumentNullException(nameof(rootProbe));
         _markerProbe = markerProbe ?? throw new ArgumentNullException(nameof(markerProbe));
         _lifetimeProbe = lifetimeProbe ?? throw new ArgumentNullException(nameof(lifetimeProbe));
+        _evidenceProbe = evidenceProbe ?? throw new ArgumentNullException(nameof(evidenceProbe));
     }
 
     /// <summary>Returns one terminal read-only diagnosis for the exact managed-root identity.</summary>
@@ -216,12 +234,12 @@ public sealed class ManagedInstallationRecoveryExperience
         string managedRoot,
         CancellationToken cancellationToken)
     {
-        var lifetimes = new ManagedProcessLifetimeStatus[LifetimeKinds.Length];
-        for (int index = 0; index < LifetimeKinds.Length; index++)
+        var lifetimes = new ManagedProcessLifetimeStatus[ManagedSetupRecoveryPolicy.LifetimeKinds.Length];
+        for (int index = 0; index < ManagedSetupRecoveryPolicy.LifetimeKinds.Length; index++)
         {
             lifetimes[index] = await _lifetimeProbe.ObserveAsync(
                 _statePathIdentity,
-                LifetimeKinds[index],
+                ManagedSetupRecoveryPolicy.LifetimeKinds[index],
                 cancellationToken).ConfigureAwait(false);
         }
         if (lifetimes.Contains(ManagedProcessLifetimeStatus.Active))
@@ -269,7 +287,12 @@ public sealed class ManagedInstallationRecoveryExperience
                 ManagedSetupRecoveryFactKind.Absent =>
                     DiagnoseAbsent(stateMissing, stateExact, root.Status),
                 ManagedSetupRecoveryFactKind.Exact when marker.Transaction is { } transaction =>
-                    DiagnoseExact(stateMissing, stateExact, root.Status, transaction),
+                    await DiagnoseExactAsync(
+                        managedRoot,
+                        state,
+                        root.Status,
+                        transaction,
+                        cancellationToken).ConfigureAwait(false),
                 ManagedSetupRecoveryFactKind.Exact => throw new InvalidOperationException(
                     "An exact recovery fact omitted its transaction."),
                 ManagedSetupRecoveryFactKind.Malformed or
@@ -294,24 +317,53 @@ public sealed class ManagedInstallationRecoveryExperience
                 : Terminal(ManagedSetupRecoveryOutcome.ManualInterventionRequired);
     }
 
-    private static ManagedSetupRecoveryDiagnosis DiagnoseExact(
-        bool stateMissing,
-        bool stateExact,
+    private async ValueTask<ManagedSetupRecoveryDiagnosis> DiagnoseExactAsync(
+        string managedRoot,
+        VersionManagerStateLoadResult state,
         ManagedInstallationRootStatus root,
-        ManagedSetupRecoveryTransaction transaction)
+        ManagedSetupRecoveryTransaction transaction,
+        CancellationToken cancellationToken)
     {
-        bool actionAvailable = root == ManagedInstallationRootStatus.Residue &&
-            (stateMissing ||
-                (stateExact &&
-                    transaction.Phase == ManagedSetupRecoveryPhase.BootstrapLaunchRecorded));
-        return actionAvailable
-            ? new(ManagedSetupRecoveryOutcome.ActionAvailable, transaction)
+        if (root != ManagedInstallationRootStatus.Residue)
+        {
+            return Terminal(ManagedSetupRecoveryOutcome.ManualInterventionRequired);
+        }
+        ManagedSetupRecoveryEvidenceObservation evidence = await _evidenceProbe.ObserveAsync(
+            transaction,
+            cancellationToken).ConfigureAwait(false);
+        if (evidence.Issue != ManagedSetupRecoveryEvidenceIssue.None)
+        {
+            return Terminal(evidence.Issue is
+                ManagedSetupRecoveryEvidenceIssue.StateUnavailable or
+                ManagedSetupRecoveryEvidenceIssue.PermissionDenied
+                    ? ManagedSetupRecoveryOutcome.HealthUnavailable
+                    : ManagedSetupRecoveryOutcome.ManualInterventionRequired);
+        }
+        if (evidence.LauncherState?.Issue == LauncherBootstrapStateLoadIssue.Unavailable)
+        {
+            return Terminal(ManagedSetupRecoveryOutcome.HealthUnavailable);
+        }
+        ManagedSetupRecoveryAction? action = ManagedSetupRecoveryPolicy.SelectAction(
+            state,
+            transaction,
+            evidence,
+            managedRoot);
+        return action is { } selected
+            ? new ManagedSetupRecoveryDiagnosis(
+                ManagedSetupRecoveryOutcome.ActionAvailable,
+                transaction,
+                new ManagedSetupRecoveryPlan(
+                    ManagedRootPathIdentity.Normalize(managedRoot),
+                    transaction,
+                    selected,
+                    state,
+                    evidence))
             : Terminal(ManagedSetupRecoveryOutcome.ManualInterventionRequired);
     }
 
     private static ManagedSetupRecoveryDiagnosis Terminal(ManagedSetupRecoveryOutcome outcome)
     {
-        return new(outcome, Transaction: null);
+        return new(outcome, transaction: null, plan: null);
     }
 
     private static bool IsExactRoot(string boundRoot, string requestedRoot)

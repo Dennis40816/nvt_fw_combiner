@@ -2,6 +2,9 @@
 
 Status: Accepted for `RECOVERY-105A`
 
+Extended by: ADR 0065 for the separately owner-approved, explicitly invoked
+`RECOVERY-105B` mutation path. This ADR remains the read-only diagnosis owner.
+
 Extends: ADR 0062 only with a reusable read-only diagnosis seam. It does not
 authorize recovery mutation, retry, rebind, repair, migration, cleanup, source
 access, or process launch.
@@ -26,7 +29,9 @@ ports are intentionally incapable of starting a process or writing state:
 - `IManagedSetupRecoveryStateReader` extends the canonical read-only state port
   with the exact immutable state-file identity that it reads;
 - `IManagedInstallationRootProbe` supplies the existing complete root fact;
-- `IManagedSetupRecoveryProbe` supplies the exact marker fact; and
+- `IManagedSetupRecoveryProbe` supplies the exact marker fact;
+- `IManagedSetupRecoveryEvidenceProbe` supplies the closed state-pair and
+  deterministic inventory/restart-prefix proof required by ADR 0065; and
 - `IManagedProcessLifetimeProbe` observes the Bootstrap, Application, and
   Launcher lifetime roles.
 
@@ -38,8 +43,13 @@ select an update, or infer whether deletion is safe.
 
 All three lifetime roles are observed first. Any `Active` role yields `Busy`
 even when another role is unavailable. With no active role, any unavailable
-role yields `HealthUnavailable`. The remaining decision table applies only
-after all three roles are exactly `Exited`:
+role yields `HealthUnavailable`. The base-observation table below applies only
+after all three roles are exactly `Exited`. Its exact-marker rows are necessary
+inputs, not independent authorization for `ActionAvailable`: ADR 0065 and
+`managed-recovery-v1.md` own the additional closed Application/Launcher
+state-pair, evidence, inventory, and immutable-plan requirements. The terminal
+is `ActionAvailable` only when that sole policy returns an action and plan;
+otherwise the same base observation remains non-actionable and fails closed.
 
 The recovery experience captures the state reader's absolute identity once at
 construction and uses only that identity for every lifetime and marker
@@ -52,15 +62,18 @@ than being projected as a user-remediable recovery outcome.
 | --- | --- | --- | --- |
 | absent | missing | absent | `NoRecoveryNeeded` |
 | absent | exact state bound to requested root | present | `NoRecoveryNeeded` |
-| exact `staging` or `root-promoted` | missing | residue | `ActionAvailable` |
-| exact `bootstrap-launch-recorded` | missing or exact bound state | residue | `ActionAvailable` |
+| exact `staging` or `root-promoted` | missing | residue | evaluate ADR 0065 closed policy; never sufficient by itself |
+| exact `bootstrap-launch-recorded` | missing or exact bound state | residue | evaluate ADR 0065 closed policy; never sufficient by itself |
 | malformed, foreign, reparse, replaced, identity/path mismatch | any complete fact | any complete fact | `ManualInterventionRequired` |
 | state invalid, unbound, wrong-bound or root invalid | any | any | `ManualInterventionRequired` |
 | state/root/marker access, change, permission, or observation unavailable | any | any | `HealthUnavailable` |
 | any other combination | any | any | `ManualInterventionRequired` |
 
-The complete state/root/phase matrix is executable in Application tests; no
-missing combination defaults to an actionable result.
+The complete state/root/phase base matrix and ADR 0065 closed state-pair matrix
+are executable in Application tests; no missing combination defaults to an
+actionable result. An immutable plan is created only after the evidence port
+proves the exact deterministic inventory or restart prefix and the one pure
+policy selects its action.
 
 Infrastructure owns one canonical `ManagedSetupTransactionCodec`. The existing
 Setup materializer uses it for every marker write, phase read, and replacement.

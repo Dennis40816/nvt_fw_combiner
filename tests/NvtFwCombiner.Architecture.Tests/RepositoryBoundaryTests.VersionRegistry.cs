@@ -122,8 +122,11 @@ public sealed partial class RepositoryBoundaryTests
     [Fact]
     public void ManagedSetupRecoveryDiagnosisKeepsObservationAndDecisionInOwningLayers()
     {
-        string application = ReadText(
-            "src/NvtFwCombiner.VersionManagement.Application/VersionManagement/ManagedSetupRecoveryDiagnosis.cs");
+        string application = string.Concat(
+            ReadText(
+                "src/NvtFwCombiner.VersionManagement.Application/VersionManagement/ManagedSetupRecoveryDiagnosis.cs"),
+            ReadText(
+                "src/NvtFwCombiner.VersionManagement.Application/VersionManagement/ManagedSetupRecoveryExecution.cs"));
         string stateStore = ReadText(
             "src/NvtFwCombiner.VersionManagement.Infrastructure/VersionManagement/JsonVersionManagerStateStore.cs");
         string codec = ReadText(
@@ -188,7 +191,7 @@ public sealed partial class RepositoryBoundaryTests
         Assert.EndsWith("ManagedSetupTransactionCodec.cs", parserOwners[0], StringComparison.Ordinal);
         Assert.Contains("ManagedInstallationRecoveryExperience", application, StringComparison.Ordinal);
         Assert.Contains("IManagedSetupRecoveryStateReader", application, StringComparison.Ordinal);
-        Assert.Contains("IManagedSetupRecoveryStateReader", stateStore, StringComparison.Ordinal);
+        Assert.Contains("IManagedSetupRecoveryStateStore", stateStore, StringComparison.Ordinal);
         Assert.Contains("StatePathIdentity => _path", stateStore, StringComparison.Ordinal);
         Assert.Contains(
             "DiagnoseAsync(\n        string managedRoot,\n        CancellationToken cancellationToken)",
@@ -247,5 +250,41 @@ public sealed partial class RepositoryBoundaryTests
         Assert.Contains("ManagedSetupTransactionCodec.ReadAsync", materializer, StringComparison.Ordinal);
         Assert.DoesNotContain("ParseMarker", materializer, StringComparison.Ordinal);
         Assert.Contains("MaximumDocumentBytes = 64 * 1024", codec, StringComparison.Ordinal);
+    }
+
+    /// <summary>Recovery mutation accepts one live writer but owns no policy or second lease.</summary>
+    [Fact]
+    public void ManagedSetupRecoveryExecutionRemainsAMechanicsOnlyAdapter()
+    {
+        string execution = ReadText(
+            "src/NvtFwCombiner.VersionManagement.Infrastructure/VersionManagement/FileSystemManagedSetupRecoveryExecution.cs");
+        string applicationExecution = ReadText(
+            "src/NvtFwCombiner.VersionManagement.Application/VersionManagement/ManagedSetupRecoveryExecution.cs");
+
+        Assert.Contains("IManagedSetupRecoveryEvidenceProbe", execution, StringComparison.Ordinal);
+        Assert.Contains("IManagedSetupRecoveryExecutionPort", execution, StringComparison.Ordinal);
+        Assert.Contains("writerLease.HoldsStatePath(_statePath)", execution, StringComparison.Ordinal);
+        Assert.Contains(
+            "ManagedPackageVerifier.TryReadCanonicalManifest",
+            execution,
+            StringComparison.Ordinal);
+        Assert.DoesNotContain("EmbeddedVersionManagementSchema.ParseStrict", execution,
+            StringComparison.Ordinal);
+        Assert.DoesNotContain("ReleaseManifestSchema.IsValid", execution, StringComparison.Ordinal);
+        Assert.DoesNotContain("JsonSerializer.Deserialize", execution, StringComparison.Ordinal);
+        Assert.DoesNotContain("TryAcquireWriteLeaseAsync", execution, StringComparison.Ordinal);
+        Assert.DoesNotContain("ManagedSetupRecoveryPolicy", execution, StringComparison.Ordinal);
+        Assert.DoesNotContain("Directory.Delete", execution, StringComparison.Ordinal);
+        Assert.DoesNotContain("Process.Start", execution, StringComparison.Ordinal);
+        Assert.Contains(
+            "internal ManagedSetupRecoveryExecutionRequest(",
+            applicationExecution,
+            StringComparison.Ordinal);
+        int productionConstructions = Directory
+            .EnumerateFiles(Path.Combine(Root.FullName, "src"), "*.cs", SearchOption.AllDirectories)
+            .Sum(path => File.ReadAllText(path).Split(
+                "new ManagedSetupRecoveryExecutionRequest(",
+                StringSplitOptions.None).Length - 1);
+        Assert.Equal(1, productionConstructions);
     }
 }

@@ -1,3 +1,4 @@
+using System.Diagnostics.CodeAnalysis;
 using System.IO.Compression;
 using System.Security.Cryptography;
 using System.Text;
@@ -36,6 +37,47 @@ internal static class ManagedPackageVerifier
         UnmappedMemberHandling = JsonUnmappedMemberHandling.Disallow,
     };
     private static readonly VersionManagementJsonContext ManifestJsonContext = new(ManifestJsonOptions);
+
+    internal static bool TryReadCanonicalManifest(
+        byte[] manifestBytes,
+        ManagedAppVersion version,
+        IEnumerable<string>? archivePaths,
+        [NotNullWhen(true)] out ReleaseManifestDocument? manifest)
+    {
+        manifest = null;
+        ReleaseManifestDocument? parsed;
+        try
+        {
+            using JsonDocument manifestJson = EmbeddedVersionManagementSchema.ParseStrict(
+                manifestBytes,
+                maximumDepth: 32);
+            if (!ReleaseManifestSchema.IsValid(manifestJson.RootElement))
+            {
+                return false;
+            }
+            parsed = JsonSerializer.Deserialize(
+                manifestBytes,
+                ManifestJsonContext.ReleaseManifestDocument);
+        }
+        catch (JsonException)
+        {
+            return false;
+        }
+        if (parsed?.Files is null)
+        {
+            return false;
+        }
+        IEnumerable<string> expectedPaths = archivePaths ?? parsed.Files
+            .Select(static file => file.Path)
+            .Append("RELEASE-MANIFEST.json")
+            .Append("SHA256SUMS.txt");
+        if (!ValidateManifest(parsed, version, expectedPaths))
+        {
+            return false;
+        }
+        manifest = parsed;
+        return true;
+    }
 
     internal static async ValueTask<ManagedPackagePlanResult> CreatePlanAsync(
         ZipArchive archive,
@@ -132,25 +174,11 @@ internal static class ManagedPackageVerifier
             return Failure(ManagedVersionInstallIssue.InvalidPayload);
         }
 
-        ReleaseManifestDocument? manifest;
-        try
-        {
-            using JsonDocument manifestJson = EmbeddedVersionManagementSchema.ParseStrict(
+        if (!TryReadCanonicalManifest(
                 manifestBytes,
-                maximumDepth: 32);
-            if (!ReleaseManifestSchema.IsValid(manifestJson.RootElement))
-            {
-                return Failure(ManagedVersionInstallIssue.InvalidPayload);
-            }
-            manifest = JsonSerializer.Deserialize(
-                manifestBytes,
-                ManifestJsonContext.ReleaseManifestDocument);
-        }
-        catch (JsonException)
-        {
-            return Failure(ManagedVersionInstallIssue.InvalidPayload);
-        }
-        if (manifest is null || !ValidateManifest(manifest, package.Version, entries.Keys))
+                package.Version,
+                entries.Keys,
+                out ReleaseManifestDocument? manifest))
         {
             return Failure(ManagedVersionInstallIssue.InvalidPayload);
         }
@@ -313,23 +341,11 @@ internal static class ManagedPackageVerifier
                 return ManagedVersionDamageReason.ManifestMismatch;
             }
 
-            using JsonDocument manifestJson = EmbeddedVersionManagementSchema.ParseStrict(
-                manifestBytes,
-                maximumDepth: 32);
-            if (!ReleaseManifestSchema.IsValid(manifestJson.RootElement))
-            {
-                return ManagedVersionDamageReason.ManifestMismatch;
-            }
-            ReleaseManifestDocument? manifest = JsonSerializer.Deserialize(
-                manifestBytes,
-                ManifestJsonContext.ReleaseManifestDocument);
-            if (manifest?.Files is null ||
-                !ValidateManifest(
-                    manifest,
+            if (!TryReadCanonicalManifest(
+                    manifestBytes,
                     admission.Version,
-                    manifest.Files.Select(file => file.Path)
-                        .Append("RELEASE-MANIFEST.json")
-                        .Append("SHA256SUMS.txt")))
+                    archivePaths: null,
+                    out ReleaseManifestDocument? manifest))
             {
                 return ManagedVersionDamageReason.ManifestMismatch;
             }
@@ -338,7 +354,8 @@ internal static class ManagedPackageVerifier
                 checksumPath,
                 FileSystemManagedVersionRepository.MaximumManifestBytes,
                 cancellationToken).ConfigureAwait(false);
-            if (checksumBytes is null || !VerifyChecksumDocument(checksumBytes, manifestBytes, manifest.Files))
+            if (checksumBytes is null ||
+                !VerifyChecksumDocument(checksumBytes, manifestBytes, manifest.Files!))
             {
                 return ManagedVersionDamageReason.ManifestMismatch;
             }
@@ -356,7 +373,7 @@ internal static class ManagedPackageVerifier
                 "SHA256SUMS.txt",
                 FileSystemManagedVersionRepository.AdmissionFileName,
             };
-            foreach (ReleaseManifestFileDocument file in manifest.Files)
+            foreach (ReleaseManifestFileDocument file in manifest.Files!)
             {
                 _ = expected.Add(file.Path);
                 string path = ManagedPathSafety.ResolvePayloadPath(versionRoot, file.Path);
@@ -508,7 +525,7 @@ internal static class ManagedPackageVerifier
         return ArchiveContentVerification.Valid;
     }
 
-    private static bool VerifyChecksumDocument(
+    internal static bool VerifyChecksumDocument(
         byte[] checksumBytes,
         byte[] manifestBytes,
         IReadOnlyList<ReleaseManifestFileDocument> files)
