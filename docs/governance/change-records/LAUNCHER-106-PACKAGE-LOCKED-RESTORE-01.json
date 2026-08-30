@@ -5,7 +5,7 @@
   "integrationBase": "0798909fde2b8dd17ab47f6a49cc7a1a4537022e",
   "risk": "R3",
   "kind": "release",
-  "state": "design-active",
+  "state": "final-complete",
   "mutablePaths": [
     "scripts/package.ps1"
   ],
@@ -24,12 +24,12 @@
     "outcome": "approved",
     "evidence": "Independent R3 architecture and release review found that the managed Launcher lock correction alone does not make the production package command deterministic because package.ps1 still restores it unlocked and then restores source lock snapshots. It approved a separate one-governed-path correction that adds only --locked-mode --disable-parallel to the existing win-x64 Launcher restore, retains publish --no-restore, leaves the Desktop restore as an explicit non-goal, and uses the existing release-package policy test owner rather than a second verifier."
   },
-  "implementationHead": null,
-  "reviewedHead": null,
-  "pathStateDigest": null,
+  "implementationHead": "0ba6f5ef58b5885a98e3a405dd9df0a63d71a9a8",
+  "reviewedHead": "0ba6f5ef58b5885a98e3a405dd9df0a63d71a9a8",
+  "pathStateDigest": "f941886d77e0d182fa6b8864d1d0da275cdff89a82e5d93086bfb94991210eaf",
   "finalReview": {
-    "reviewer": null,
-    "outcome": "pending",
-    "evidence": ""
+    "reviewer": "lock_exact_semantic_review; lock_exact_evidence_review",
+    "outcome": "approved",
+    "evidence": "Two independent exact-head reviews of 69bc94f04a17f6b02102764a64aa70df9263e277..0ba6f5ef58b5885a98e3a405dd9df0a63d71a9a8 found P0=0, P1=0, P2=0, and P3=0. The production diff changes only the stable ZIP managed Launcher restore by adding --locked-mode --disable-parallel and retains project targeting, win-x64, publish --no-restore, error handling, source-lock snapshot custody, prerelease exclusion, package contents, and the intentionally unlocked Desktop restore. The focused regression failed on the former unlocked command and passed 1/1 on the exact head; its final form requires exactly one managed Launcher restore equal to the approved command and rejects an unlocked or duplicate invocation. The full release-package policy suite passed 51/51, the repository SDK 10.0.301 Launcher RID locked restore exited zero, all committed packages.lock.json bytes remained unchanged, git diff --check passed, and the worktree count remained one. No package declaration, lockfile, dependency identity, version, content hash, firmware, profile, range, CRC/header, Golden, or output-naming behavior changed. The separate frozen-candidate verifier, formal package and smoke, visible Launcher Install-to-READY and offline relaunch, clean-machine, protected publication, and immutable tag gates remain outstanding."
   }
 }
