@@ -5,6 +5,7 @@ using System.Text.Json;
 using NvtFwCombiner.Application.VersionManagement;
 using NvtFwCombiner.Contracts.VersionManagement;
 using NvtFwCombiner.Infrastructure.VersionManagement;
+using NvtFwCombiner.TestSupport;
 
 namespace NvtFwCombiner.Infrastructure.Tests.VersionManagement;
 
@@ -370,22 +371,19 @@ public sealed partial class ManagedSetupRecoveryProbeTests
 
     private sealed class TemporaryDirectory : IDisposable
     {
+        private readonly TempWorkspace _workspace;
+
         internal TemporaryDirectory()
         {
-            Path = System.IO.Path.Combine(
-                System.IO.Path.GetTempPath(),
-                $"nfc-recovery-{Guid.NewGuid():N}");
-            _ = Directory.CreateDirectory(Path);
+            _workspace = TempWorkspace.Create("nfc-recovery");
+            Path = _workspace.Root;
         }
 
         internal string Path { get; }
 
         public void Dispose()
         {
-            if (Directory.Exists(Path))
-            {
-                Directory.Delete(Path, recursive: true);
-            }
+            _workspace.Dispose();
         }
     }
 }

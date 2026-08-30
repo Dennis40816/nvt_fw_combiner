@@ -438,7 +438,7 @@ public sealed partial class FileSystemManagedVersionRepositoryTests
                 managedRoot,
                 new JsonVersionManagerStateStore(statePath),
                 new FileSystemManagedVersionRepository(),
-                new AnonymousPipeManagedApplicationProcess(),
+                new AnonymousPipeManagedApplicationProcess(statePath),
                 TimeSpan.FromSeconds(5));
             ManagedLauncherResult result = await coordinator.RunAsync(TestContext.Current.CancellationToken);
             await Task.Delay(500, TestContext.Current.CancellationToken);

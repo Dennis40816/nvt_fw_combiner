@@ -7,6 +7,7 @@ using NvtFwCombiner.Infrastructure.VersionManagement;
 namespace NvtFwCombiner.Infrastructure.Tests.VersionManagement;
 
 /// <summary>Verifies installed launcher release identity and content admission.</summary>
+[Collection(nameof(ReadyProbeProcessSerialGroup))]
 public sealed class FileSystemInstalledLauncherRepositoryTests
 {
     /// <summary>Exact release-coupled content is projected into an owner-bound identity.</summary>

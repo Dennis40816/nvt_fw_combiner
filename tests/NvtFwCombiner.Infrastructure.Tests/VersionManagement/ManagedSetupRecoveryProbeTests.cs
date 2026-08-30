@@ -7,6 +7,7 @@ using NvtFwCombiner.Infrastructure.VersionManagement;
 namespace NvtFwCombiner.Infrastructure.Tests.VersionManagement;
 
 /// <summary>Locks strict bounded marker decoding and stable read-only observation.</summary>
+[Collection(nameof(ReadyProbeProcessSerialGroup))]
 public sealed partial class ManagedSetupRecoveryProbeTests
 {
     private const uint JobObjectAssignProcess = 0x0001;

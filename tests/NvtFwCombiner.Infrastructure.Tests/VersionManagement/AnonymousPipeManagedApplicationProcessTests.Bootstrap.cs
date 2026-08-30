@@ -88,7 +88,7 @@ public sealed partial class AnonymousPipeManagedApplicationProcessTests
         int blocked = 0;
         var handoff = new StableLauncherHandoff(
             managedRoot,
-            statePath: null,
+            workspace.PathFor("state/version-manager.v1.json"),
             termination: ManagedProcessTermination.Instance,
             beforeProcessStart: _ =>
             {

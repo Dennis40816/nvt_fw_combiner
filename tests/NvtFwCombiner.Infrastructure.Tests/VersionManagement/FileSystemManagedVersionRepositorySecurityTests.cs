@@ -616,7 +616,7 @@ public sealed partial class FileSystemManagedVersionRepositoryTests
                 managedRoot,
                 store,
                 repository,
-                new AnonymousPipeManagedApplicationProcess(),
+                new AnonymousPipeManagedApplicationProcess(statePath),
                 TimeSpan.FromMilliseconds(300)));
         await Task.Delay(500, TestContext.Current.CancellationToken);
         VersionManagerStateLoadResult state = await store.LoadAsync(TestContext.Current.CancellationToken);
@@ -668,7 +668,7 @@ public sealed partial class FileSystemManagedVersionRepositoryTests
                 managedRoot,
                 store,
                 repository,
-                new AnonymousPipeManagedApplicationProcess(),
+                new AnonymousPipeManagedApplicationProcess(statePath),
                 TimeSpan.FromSeconds(5)));
         await Task.Delay(500, TestContext.Current.CancellationToken);
         VersionManagerStateLoadResult state = await store.LoadAsync(TestContext.Current.CancellationToken);

@@ -108,7 +108,7 @@ public sealed partial class AnonymousPipeManagedApplicationProcessTests
             using TestExecutableLaunchLease executableLease = ExecutableLease(workspace.Root, version);
 
             ManagedProcessStartResult result = await new AnonymousPipeManagedApplicationProcess(
-                statePath: null,
+                Path.Combine(workspace.Root, "state", "version-manager.v1.json"),
                 termination).StartUntilReadyAsync(
                     workspace.Root,
                     version,
@@ -251,7 +251,9 @@ public sealed partial class AnonymousPipeManagedApplicationProcessTests
         ManagedAppVersion version = ManagedAppVersion.Parse("0.10.6");
         using TestExecutableLaunchLease executableLease = ExecutableLease(workspace.Root, version);
 
-        ManagedProcessStartResult result = await new AnonymousPipeManagedApplicationProcess().StartUntilReadyAsync(
+        ManagedProcessStartResult result = await new AnonymousPipeManagedApplicationProcess(
+                Path.Combine(workspace.Root, "state", "version-manager.v1.json"))
+            .StartUntilReadyAsync(
             workspace.Root,
             version,
             executableLease,
@@ -275,7 +277,8 @@ public sealed partial class AnonymousPipeManagedApplicationProcessTests
             versionRoot,
             IsValidForStart: false);
 
-        ManagedProcessStartResult result = await new AnonymousPipeManagedApplicationProcess()
+        ManagedProcessStartResult result = await new AnonymousPipeManagedApplicationProcess(
+                Path.Combine(workspace.Root, "state", "version-manager.v1.json"))
             .StartUntilReadyAsync(
                 workspace.Root,
                 version,
@@ -301,7 +304,9 @@ public sealed partial class AnonymousPipeManagedApplicationProcessTests
             TestContext.Current.CancellationToken);
         using TestExecutableLaunchLease executableLease = ExecutableLease(workspace.Root, version);
 
-        ManagedProcessStartResult result = await new AnonymousPipeManagedApplicationProcess().StartUntilReadyAsync(
+        ManagedProcessStartResult result = await new AnonymousPipeManagedApplicationProcess(
+                Path.Combine(workspace.Root, "state", "version-manager.v1.json"))
+            .StartUntilReadyAsync(
             workspace.Root,
             version,
             executableLease,
