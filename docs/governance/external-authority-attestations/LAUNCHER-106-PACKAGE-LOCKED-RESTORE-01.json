@@ -1,0 +1,9 @@
+{
+  "schemaVersion": 1,
+  "taskId": "LAUNCHER-106-PACKAGE-LOCKED-RESTORE-01",
+  "authorityType": "release-owner",
+  "reviewedHead": "cba40a6d59461a518bac5bd31a0049eeffc95b0f",
+  "decision": "approved",
+  "reviewer": "Dennis Liu (release owner)",
+  "evidence": "The release owner instructed continued completion and formal delivery of v1.0.6, required strict release review, and approved proceeding after verified corrections. This attestation approves the bounded fail-closed managed Launcher restore represented by final evidence head cba40a6d59461a518bac5bd31a0049eeffc95b0f: the stable ZIP package path now consumes its committed win-x64 lock graph with --locked-mode --disable-parallel; two independent exact-head reviews found P0 through P3 equal to zero; the focused exact-command regression and full 51-test release-package policy passed; the actual repository SDK locked restore exited zero with no committed lock-byte drift; and no dependency declaration, lockfile, package identity, firmware, profile, CRC, naming, Golden, or package-content behavior changed. It does not waive the remaining frozen-candidate verifier, formal package and smoke, visible Launcher Install-to-READY and offline relaunch, clean-machine, protected publication, or immutable tag gates."
+}
