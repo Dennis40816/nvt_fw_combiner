@@ -5,7 +5,7 @@
   "integrationBase": "cba40a6d59461a518bac5bd31a0049eeffc95b0f",
   "risk": "R2",
   "kind": "governance",
-  "state": "design-active",
+  "state": "final-complete",
   "mutablePaths": [
     "scripts/coverage_policy.py"
   ],
@@ -24,12 +24,12 @@
     "outcome": "approved",
     "evidence": "Independent coverage-architecture review traced the fresh failure to the stale Presentation-only AXAML exception and the existing DistributionLauncher AvaloniaResource Include plus Link projection. It rejected both excluding AXAML and hardcoding one path, and approved one fail-closed resolver derived from production project declarations, canonicalization in both paired report formats, physical-line deduplication, retained assembly-qualified branch identity, unchanged baselines, and focused direct, linked, duplicate, branch, and invalid-alias tests."
   },
-  "implementationHead": null,
-  "reviewedHead": null,
-  "pathStateDigest": null,
+  "implementationHead": "ae792d37595173612b0d15a04e6ec50ee8492999",
+  "reviewedHead": "ae792d37595173612b0d15a04e6ec50ee8492999",
+  "pathStateDigest": "c1f2ea4af914c11aa5a27a96a5af66500a60ad090d4446f8f0aee31a1c178040",
   "finalReview": {
-    "reviewer": null,
-    "outcome": "pending",
-    "evidence": ""
+    "reviewer": "lock_exact_semantic_review; lock_exact_evidence_review",
+    "outcome": "approved",
+    "evidence": "Two independent exact-head reviews of baeddaad39e64b287888b706b905da33df66d383..ae792d37595173612b0d15a04e6ec50ee8492999 reported P0=0, P1=0, P2=0, and P3=0. They confirmed direct and statically linked AXAML resolve to one physical production owner, physical lines deduplicate across assemblies while branch identities remain assembly-qualified, and missing, escaping, non-AXAML, ambiguous, undeclared, dynamic, or conditioned aliases fail closed. Independent reruns passed coverage-policy 39/39, Ruff format and check, code-size policy 19/19, diff-check, and paired eight Cobertura plus eight JSON reports at 74531/83296 lines and 24240/31086 branches. The coverage baseline blob remained unchanged; no runtime, release-content, firmware, profile, range, CRC/header, Golden, naming, or package semantics changed. Scoped Polytail passed with only pre-existing oversized-file warnings."
   }
 }
