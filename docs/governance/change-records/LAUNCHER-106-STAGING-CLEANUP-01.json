@@ -5,7 +5,7 @@
   "integrationBase": "9702fe3e43030e96454010d7b3ba46379ce22fcc",
   "risk": "R3",
   "kind": "release",
-  "state": "design-active",
+  "state": "final-complete",
   "mutablePaths": [
     "docs/adr/0021-code-size-ratchet-system-activity-amendment.md",
     "src/NvtFwCombiner.VersionManagement.Infrastructure/VersionManagement/FileSystemManagedFirstInstallationRootMaterializer.cs",
@@ -34,12 +34,12 @@
     "outcome": "findings-incorporated",
     "evidence": "The independent R3 admission's mandatory corrections are incorporated into the admitted design: a 20-attempt/19-delay/250 ms Setup-only retry uses an identity-bound typed result. Only native sharing contention may retry before Setup owns deletion. Initial absence remains admissible, while content, unowned disappearance after observation, replacement, reparse/type change, access denial, pre-existing delete-pending, unclassified native failure, and an unproved delete remain immediately terminal. After Setup has proved same-identity plain-empty custody and successfully marked that exact handle for deletion, only the resulting owned delete-pending state may wait for absence within the same budget. Every delay is cancellable; no recursive or path-based cleanup is admitted. The measured 225-line Infrastructure/runtime/full-production increase is an exact non-transferable safety allowance owned by the existing code-size policy and ADR 0021. Independent long-path review approved a single internal \\\\?\\ prefix at the stable-path CreateFileW boundary because admission already rejects every non-local or caller-supplied namespace; it explicitly rejected a new validator, timeout, retry, global manifest workaround, path renaming, or ADR. Windows failure-matrix and authority-rejection tests, Infrastructure and Architecture gates, scoped Polytail, exact production-package install smoke, and release-owner evidence remain required."
   },
-  "implementationHead": null,
-  "reviewedHead": null,
-  "pathStateDigest": null,
+  "implementationHead": "197afb7ba5270d29834418b110b7899b1e9574c2",
+  "reviewedHead": "197afb7ba5270d29834418b110b7899b1e9574c2",
+  "pathStateDigest": "8cf3748e4ea653cdb35a802ae57b121eb1bc2ee03d45dbcf99edbc24d28384ce",
   "finalReview": {
-    "reviewer": null,
-    "outcome": "pending",
-    "evidence": ""
+    "reviewer": "rid_semantic_review_2 and rid_evidence_review_2",
+    "outcome": "approved",
+    "evidence": "Two independent fixed-head reviews of 197afb7ba5270d29834418b110b7899b1e9574c2 found P0=0, P1=0, P2=0, and P3=0. Cleanup now proves exact owned deletion through parent-relative native identity observation, maps every retained transaction residue to RecoveryRequired, retries only bounded native sharing contention, and preserves markers and unrelated siblings without recursive or path-based fallback. Deterministic tests cover both post-owned native not-found statuses, delete-pending, contention, content, replacement, reparse/type change, access denial, unclassified failure, cancellation, and long-path revalidation while retaining caller namespace rejection. The focused Windows suite passed 107/107, Architecture passed 249/249, code-size policy passed 19/19 with the exact 134,374/96,562/20,632/41,047/4,854/30,029 ledger, git diff --check passed, and the worktree was clean. No firmware, profile, range, mutation-order, CRC/header, naming, Golden, Catalog, or package-content authority changed. Exact final-head package construction and application/Launcher smoke remain separate release gates."
   }
 }
