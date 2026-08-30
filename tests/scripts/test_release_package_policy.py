@@ -10,6 +10,7 @@ import shutil
 import subprocess
 import sys
 import tempfile
+import threading
 import time
 import tomllib
 import unittest
@@ -53,6 +54,12 @@ APPROVED_EXTERNAL_TOOL_PATHS = (
 )
 RETIRED_PRODUCTION_IC_IDS = ("NT51920", "NT51925", "NT51930", "NT51931")
 POWERSHELL = shutil.which("pwsh") or shutil.which("powershell")
+PWSH = shutil.which("pwsh")
+DOTNET = (
+    str(ROOT / ".dotnet" / "dotnet.exe")
+    if (ROOT / ".dotnet" / "dotnet.exe").is_file()
+    else shutil.which("dotnet")
+)
 PERSONAL_OWNER_IDENTIFIER = "Dennis40816"
 DISTRIBUTION_OWNER = "MSP/FW3"
 SOURCE_IDENTITY = "urn:msp-fw3:nvt-fw-combiner:source"
@@ -80,6 +87,46 @@ def initialize_minimal_package_repository(repository_root: Path) -> str:
         ("init", "-q"),
         ("config", "user.name", "Package Identity Test"),
         ("config", "user.email", "package-identity@example.invalid"),
+        ("config", "commit.gpgsign", "false"),
+        ("add", "."),
+        ("commit", "-q", "-m", "baseline"),
+    ):
+        subprocess.run(
+            ["git", *arguments],
+            cwd=repository_root,
+            check=True,
+            capture_output=True,
+            text=True,
+        )
+    return subprocess.run(
+        ["git", "rev-parse", "HEAD"],
+        cwd=repository_root,
+        check=True,
+        capture_output=True,
+        text=True,
+    ).stdout.strip()
+
+
+def initialize_minimal_launcher_package_repository(
+    repository_root: Path,
+    *,
+    stopper_fails: bool = False,
+) -> str:
+    """Create source that reaches Launcher restore and snapshot cleanup."""
+
+    script_path = repository_root / "scripts" / "package-distribution-launcher.ps1"
+    script_path.parent.mkdir(parents=True)
+    shutil.copy2(LAUNCHER_PACKAGE_SCRIPT, script_path)
+    if stopper_fails:
+        (repository_root / "scripts" / "stop-idle-build-workers.ps1").write_text(
+            "throw 'Injected stopper failure.'\n",
+            encoding="utf-8",
+        )
+    (repository_root / "VERSION").write_text("1.0.6\n", encoding="utf-8")
+    for arguments in (
+        ("init", "-q"),
+        ("config", "user.name", "Launcher Cleanup Test"),
+        ("config", "user.email", "launcher-cleanup@example.invalid"),
         ("config", "commit.gpgsign", "false"),
         ("add", "."),
         ("commit", "-q", "-m", "baseline"),
@@ -997,6 +1044,453 @@ class ReleasePackagePolicyTests(unittest.TestCase):
             "Remove-Item -LiteralPath $ReleaseRoot -Recurse",
             script,
         )
+
+    def test_distribution_launcher_restore_uses_committed_rid_lock_graph(self) -> None:
+        script = LAUNCHER_PACKAGE_SCRIPT.read_text(encoding="utf-8")
+
+        self.assertEqual(2, script.count("& $DotNet restore"))
+        self.assertIn(
+            "& $DotNet restore $BootstrapProject -r win-x64 --locked-mode --disable-parallel",
+            script,
+        )
+        self.assertIn(
+            "& $DotNet restore $LauncherProject -r win-x64 --locked-mode --disable-parallel",
+            script,
+        )
+        self.assertIn("[IO.Directory]::Delete($CanonicalSnapshotRoot, $true)", script)
+        self.assertIn("^\\.nfcl-[0-9a-f]{12}$", script)
+        self.assertIn("-c core.quotePath=false", script)
+        self.assertIn("stop-idle-build-workers.ps1", script)
+        self.assertIn("$CleanupAttempt -le 5", script)
+        self.assertIn("$ExtractionProcess = Start-Process", script)
+        self.assertIn("-Wait `", script)
+        self.assertIn("-WindowStyle Hidden", script)
+        self.assertNotIn("& $LauncherPath '--extract-release-payload'", script)
+
+    def test_distribution_launcher_committed_rid_locks_preserve_package_identities(
+        self,
+    ) -> None:
+        lock_paths = (
+            "src/NvtFwCombiner.Bootstrap/packages.lock.json",
+            "src/NvtFwCombiner.DistributionLauncher/packages.lock.json",
+            "src/NvtFwCombiner.Infrastructure/packages.lock.json",
+            "src/NvtFwCombiner.LauncherBootstrap/packages.lock.json",
+            "src/NvtFwCombiner.Platform/packages.lock.json",
+            "src/NvtFwCombiner.VersionManagement.Infrastructure/packages.lock.json",
+        )
+        for relative_path in lock_paths:
+            with self.subTest(path=relative_path):
+                lock = json.loads((ROOT / relative_path).read_text(encoding="utf-8"))
+                targets = lock["dependencies"]
+                base = targets["net10.0"]
+                rid = targets["net10.0/win-x64"]
+                for package_name, rid_identity in rid.items():
+                    self.assertIn(package_name, base)
+                    self.assertEqual(
+                        rid_identity.get("resolved"),
+                        base[package_name].get("resolved"),
+                    )
+                    self.assertEqual(
+                        rid_identity.get("contentHash"),
+                        base[package_name].get("contentHash"),
+                    )
+
+    @unittest.skipUnless(DOTNET, ".NET SDK is required for RID restore evidence")
+    def test_distribution_launcher_rid_restore_keeps_invocation_locks_immutable(
+        self,
+    ) -> None:
+        lock_bytes = {
+            path.relative_to(ROOT): path.read_bytes()
+            for path in ROOT.glob("src/**/packages.lock.json")
+        }
+        self.assertTrue(lock_bytes)
+
+        with tempfile.TemporaryDirectory(
+            prefix=".nfcl-rid-restore-", dir=ROOT.parent
+        ) as temporary_directory:
+            snapshot_root = Path(temporary_directory) / "snapshot"
+            subprocess.run(
+                [
+                    "git",
+                    "-C",
+                    str(ROOT),
+                    "worktree",
+                    "add",
+                    "--detach",
+                    str(snapshot_root),
+                    "HEAD",
+                ],
+                check=True,
+                capture_output=True,
+                text=True,
+            )
+            try:
+                snapshot_lock_bytes = {
+                    path.relative_to(snapshot_root): path.read_bytes()
+                    for path in snapshot_root.glob("src/**/packages.lock.json")
+                }
+                snapshot_lock_graph = {
+                    path.relative_to(snapshot_root): json.loads(
+                        path.read_text(encoding="utf-8")
+                    )
+                    for path in snapshot_root.glob("src/**/packages.lock.json")
+                }
+                self.assertEqual(
+                    {
+                        path: json.loads((ROOT / path).read_text(encoding="utf-8"))
+                        for path in lock_bytes
+                    },
+                    snapshot_lock_graph,
+                )
+                for project in (
+                    "src/NvtFwCombiner.LauncherBootstrap/NvtFwCombiner.LauncherBootstrap.csproj",
+                    "src/NvtFwCombiner.DistributionLauncher/NvtFwCombiner.DistributionLauncher.csproj",
+                ):
+                    result = subprocess.run(
+                        [
+                            str(DOTNET),
+                            "restore",
+                            str(snapshot_root / project),
+                            "-r",
+                            "win-x64",
+                            "--locked-mode",
+                            "--disable-parallel",
+                        ],
+                        check=False,
+                        capture_output=True,
+                        text=True,
+                        encoding="utf-8",
+                        errors="replace",
+                    )
+                    self.assertEqual(0, result.returncode, result.stdout + result.stderr)
+                    self.assertEqual(
+                        lock_bytes,
+                        {
+                            path: (ROOT / path).read_bytes()
+                            for path in lock_bytes
+                        },
+                    )
+
+                self.assertEqual(
+                    snapshot_lock_bytes,
+                    {
+                        path.relative_to(snapshot_root): path.read_bytes()
+                        for path in snapshot_root.glob("src/**/packages.lock.json")
+                    },
+                )
+                self.assertEqual(
+                    snapshot_lock_graph,
+                    {
+                        path.relative_to(snapshot_root): json.loads(
+                            path.read_text(encoding="utf-8")
+                        )
+                        for path in snapshot_root.glob("src/**/packages.lock.json")
+                    },
+                )
+            finally:
+                subprocess.run(
+                    [
+                        "git",
+                        "-C",
+                        str(ROOT),
+                        "worktree",
+                        "remove",
+                        "--force",
+                        str(snapshot_root),
+                    ],
+                    check=True,
+                    capture_output=True,
+                    text=True,
+                )
+                subprocess.run(
+                    ["git", "-C", str(ROOT), "worktree", "prune"],
+                    check=True,
+                    capture_output=True,
+                    text=True,
+                )
+
+            self.assertFalse(snapshot_root.exists())
+            self.assertEqual(
+                lock_bytes,
+                {path: (ROOT / path).read_bytes() for path in lock_bytes},
+            )
+            worktrees = subprocess.run(
+                ["git", "-C", str(ROOT), "worktree", "list", "--porcelain"],
+                check=True,
+                capture_output=True,
+                text=True,
+            ).stdout
+            self.assertNotIn(str(snapshot_root), worktrees)
+
+    @unittest.skipUnless(
+        PWSH and os.name == "nt",
+        "PowerShell 7 and Windows command wrappers are required",
+    )
+    def test_distribution_launcher_cleanup_preserves_registered_snapshot_only(
+        self,
+    ) -> None:
+        actual_git = shutil.which("git")
+        self.assertIsNotNone(actual_git)
+
+        for cleanup_mode in (
+            "still-registered",
+            "stopper-and-registered",
+            "detached-residue",
+            "transient-lock",
+            "permanent-lock",
+            "stopper-failure",
+            "unicode-path",
+        ):
+            with (
+                self.subTest(cleanup_mode=cleanup_mode),
+                tempfile.TemporaryDirectory(
+                    prefix=(
+                        ".nfcl-路徑-policy-"
+                        if cleanup_mode == "unicode-path"
+                        else ".nfcl-cleanup-policy-"
+                    ),
+                    dir=ROOT.parent,
+                ) as temporary_directory,
+            ):
+                temporary_root = Path(temporary_directory)
+                invocation_root = temporary_root / "invocation"
+                invocation_root.mkdir()
+                repository_head = initialize_minimal_launcher_package_repository(
+                    invocation_root,
+                    stopper_fails=cleanup_mode
+                    in ("stopper-failure", "stopper-and-registered"),
+                )
+                wrapper_root = temporary_root / "wrapper"
+                wrapper_root.mkdir()
+                unrelated_root = temporary_root / "unrelated"
+                unrelated_root.mkdir()
+                (unrelated_root / "sentinel.txt").write_text(
+                    "preserve",
+                    encoding="ascii",
+                )
+                (wrapper_root / "dotnet.cmd").write_text(
+                    "@echo off\r\n"
+                    'if /I "%~1"=="build-server" exit /b 0\r\n'
+                    "exit /b 42\r\n",
+                    encoding="ascii",
+                )
+                lock_release = threading.Event()
+                lock_thread: threading.Thread | None = None
+                lock_errors: list[BaseException] = []
+                if cleanup_mode in ("transient-lock", "permanent-lock"):
+                    lock_target = wrapper_root / f"{cleanup_mode}.target"
+                    lock_ready = wrapper_root / f"{cleanup_mode}.ready"
+                    lock_done = wrapper_root / f"{cleanup_mode}.done"
+
+                    def hold_residual_without_delete_share() -> None:
+                        import ctypes
+                        from ctypes import wintypes
+
+                        try:
+                            deadline = time.monotonic() + 10
+                            while not lock_target.exists():
+                                if time.monotonic() >= deadline:
+                                    raise TimeoutError("Lock target was not published.")
+                                time.sleep(0.01)
+                            target = lock_target.read_text(encoding="utf-8").strip()
+                            kernel32 = ctypes.WinDLL("kernel32", use_last_error=True)
+                            kernel32.CreateFileW.argtypes = (
+                                wintypes.LPCWSTR,
+                                wintypes.DWORD,
+                                wintypes.DWORD,
+                                wintypes.LPVOID,
+                                wintypes.DWORD,
+                                wintypes.DWORD,
+                                wintypes.HANDLE,
+                            )
+                            kernel32.CreateFileW.restype = wintypes.HANDLE
+                            kernel32.CloseHandle.argtypes = (wintypes.HANDLE,)
+                            kernel32.CloseHandle.restype = wintypes.BOOL
+                            handle = kernel32.CreateFileW(
+                                target,
+                                0x80000000 | 0x40000000,
+                                0x1 | 0x2,
+                                None,
+                                3,
+                                0x80,
+                                None,
+                            )
+                            if handle == ctypes.c_void_p(-1).value:
+                                raise ctypes.WinError(ctypes.get_last_error())
+                            try:
+                                lock_ready.write_text("ready", encoding="ascii")
+                                lock_release.wait(
+                                    0.45
+                                    if cleanup_mode == "transient-lock"
+                                    else 10
+                                )
+                            finally:
+                                kernel32.CloseHandle(handle)
+                                lock_done.write_text("done", encoding="ascii")
+                        except BaseException as error:  # noqa: BLE001
+                            lock_errors.append(error)
+                            lock_ready.write_text("error", encoding="ascii")
+
+                    lock_thread = threading.Thread(
+                        target=hold_residual_without_delete_share,
+                        daemon=True,
+                    )
+                    lock_thread.start()
+                git_wrapper = wrapper_root / "git.cmd"
+                if cleanup_mode in ("still-registered", "stopper-and-registered"):
+                    remove_body = "exit /b 42\r\n"
+                elif cleanup_mode == "detached-residue":
+                    remove_body = (
+                        f'"{actual_git}" %*\r\n'
+                        "if errorlevel 1 exit /b 43\r\n"
+                        'mkdir "%~6"\r\n'
+                        '>"%~6\\residual.txt" echo residual\r\n'
+                        "exit /b 42\r\n"
+                    )
+                elif cleanup_mode in ("transient-lock", "permanent-lock"):
+                    remove_body = (
+                        f'"{actual_git}" %*\r\n'
+                        "if errorlevel 1 exit /b 43\r\n"
+                        'mkdir "%~6"\r\n'
+                        '>"%~6\\residual.txt" echo residual\r\n'
+                        f'>"{lock_target}" echo %~6\\residual.txt\r\n'
+                        f'"{PWSH}" -NoProfile -Command '
+                        f"\"while (-not (Test-Path -LiteralPath '{lock_ready}')) "
+                        '{ Start-Sleep -Milliseconds 10 }"\r\n'
+                        "exit /b 42\r\n"
+                    )
+                else:
+                    remove_body = (
+                        f'"{actual_git}" %*\r\n'
+                        "exit /b %ERRORLEVEL%\r\n"
+                    )
+                git_wrapper.write_text(
+                    "@echo off\r\n"
+                    'if /I "%~3"=="worktree" if /I "%~4"=="remove" (\r\n'
+                    f"{remove_body}"
+                    ")\r\n"
+                    f'"{actual_git}" %*\r\n'
+                    "exit /b %ERRORLEVEL%\r\n",
+                    encoding="ascii",
+                )
+                environment = os.environ.copy()
+                environment["PATH"] = (
+                    str(wrapper_root) + os.pathsep + environment["PATH"]
+                )
+                snapshot_roots: list[Path] = []
+                try:
+                    result = subprocess.run(
+                        [
+                            str(PWSH),
+                            "-NoProfile",
+                            "-File",
+                            str(
+                                invocation_root
+                                / "scripts"
+                                / "package-distribution-launcher.ps1"
+                            ),
+                            "-Version",
+                            "1.0.6",
+                            "-Commit",
+                            repository_head,
+                            "-ReleaseDisposition",
+                            "unsigned-owner-approved",
+                        ],
+                        cwd=invocation_root,
+                        check=False,
+                        capture_output=True,
+                        text=True,
+                        encoding="utf-8",
+                        errors="replace",
+                        env=environment,
+                    )
+                    output = normalize_console_output(result.stdout + result.stderr)
+                    self.assertNotEqual(0, result.returncode, output)
+                    snapshot_roots = list(temporary_root.glob(".nfcl-*"))
+                    worktrees = subprocess.run(
+                        [str(actual_git), "worktree", "list", "--porcelain"],
+                        cwd=invocation_root,
+                        check=True,
+                        capture_output=True,
+                        text=True,
+                        encoding="utf-8",
+                        errors="replace",
+                    ).stdout
+                    if lock_thread is not None:
+                        self.assertEqual("ready", lock_ready.read_text(encoding="ascii"))
+                        self.assertEqual([], lock_errors)
+
+                    if cleanup_mode in ("still-registered", "stopper-and-registered"):
+                        self.assertIn("remains registered", output)
+                        if cleanup_mode == "stopper-and-registered":
+                            self.assertIn("Injected stopper failure", output)
+                            self.assertIn("Distribution Bootstrap restore failed", output)
+                        self.assertEqual(1, len(snapshot_roots))
+                        self.assertIn(
+                            str(snapshot_roots[0]).replace("\\", "/"), worktrees
+                        )
+                    elif cleanup_mode in ("detached-residue", "transient-lock"):
+                        self.assertIn("Distribution Bootstrap restore failed", output)
+                        self.assertNotIn("remains registered", output)
+                        self.assertEqual([], snapshot_roots)
+                        self.assertEqual(1, worktrees.count("worktree "))
+                        self.assertIn(
+                            str(invocation_root).replace("\\", "/"), worktrees
+                        )
+                    elif cleanup_mode == "permanent-lock":
+                        self.assertTrue(lock_ready.exists())
+                        self.assertFalse(lock_done.exists())
+                        self.assertIn("Distribution Bootstrap restore failed", output)
+                        self.assertIn("multiple failures", output)
+                        self.assertEqual(1, len(snapshot_roots))
+                        self.assertNotIn(
+                            str(snapshot_roots[0]).replace("\\", "/"), worktrees
+                        )
+                        self.assertEqual(1, worktrees.count("worktree "))
+                    else:
+                        if cleanup_mode == "stopper-failure":
+                            self.assertIn("Injected stopper failure", output)
+                            self.assertIn("Distribution Bootstrap restore failed", output)
+                        else:
+                            self.assertIn("Distribution Bootstrap restore failed", output)
+                        self.assertEqual([], snapshot_roots)
+                        self.assertEqual(1, worktrees.count("worktree "))
+                        self.assertIn(
+                            str(invocation_root).replace("\\", "/"), worktrees
+                        )
+                    self.assertEqual(
+                        "preserve",
+                        (unrelated_root / "sentinel.txt").read_text(encoding="ascii"),
+                    )
+                finally:
+                    if lock_thread is not None:
+                        lock_release.set()
+                        lock_thread.join(timeout=5)
+                        self.assertFalse(lock_thread.is_alive())
+                        self.assertEqual([], lock_errors)
+                    for snapshot_root in snapshot_roots:
+                        subprocess.run(
+                            [
+                                str(actual_git),
+                                "worktree",
+                                "remove",
+                                "--force",
+                                str(snapshot_root),
+                            ],
+                            cwd=invocation_root,
+                            check=False,
+                            capture_output=True,
+                            text=True,
+                        )
+                        if snapshot_root.exists():
+                            shutil.rmtree(snapshot_root)
+                    subprocess.run(
+                        [str(actual_git), "worktree", "prune"],
+                        cwd=invocation_root,
+                        check=False,
+                        capture_output=True,
+                        text=True,
+                    )
 
     def test_stable_release_is_ci_owned_and_main_preview_is_manual(self) -> None:
         release_workflow = (ROOT / ".github/workflows/release.yml").read_text(

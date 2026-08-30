@@ -1,0 +1,46 @@
+{
+  "schemaVersion": 2,
+  "taskId": "LAUNCHER-106-RID-RESTORE-01",
+  "capability": "Restore the Distribution Launcher Bootstrap and UI for win-x64 from committed exact dependency locks inside the disposable exact-source snapshot",
+  "integrationBase": "c15861a73a533e12897c0d28d55cb68f8a468721",
+  "risk": "R3",
+  "kind": "release",
+  "state": "design-active",
+  "mutablePaths": [
+    "scripts/package-distribution-launcher.ps1",
+    "src/NvtFwCombiner.Bootstrap/packages.lock.json",
+    "src/NvtFwCombiner.DistributionLauncher/packages.lock.json",
+    "src/NvtFwCombiner.Infrastructure/packages.lock.json",
+    "src/NvtFwCombiner.LauncherBootstrap/packages.lock.json",
+    "src/NvtFwCombiner.Platform/packages.lock.json",
+    "src/NvtFwCombiner.VersionManagement.Infrastructure/packages.lock.json"
+  ],
+  "implementationOwner": "primary-agent",
+  "searchEvidence": [
+    "The exact release-candidate package run failed deterministically with NU1004 because six projects in the Launcher graph lacked the complete committed win-x64 or current first-party project-reference lock projection.",
+    "The 2.15-second minimized restore command reproduced the same Platform, VersionManagement.Infrastructure, and LauncherBootstrap lock mismatch outside the full package run.",
+    "Existing R3 record RELEASE-RID-LOCK-100-01 explicitly requires project-targeted committed RID locks and rejects weakening --locked-mode; the Launcher graph therefore extends that owner instead of introducing an unlocked disposable-snapshot exception.",
+    "Repository SDK 10.0.303 project-targeted --force-evaluate regeneration changed only the six declared lockfiles: empty RID targets or first-party project references were added, and every RID package version/content hash matches the existing net10.0 dependency identity.",
+    "The first exact-head Launcher build restored and published successfully, then exposed a Windows Git cleanup edge where worktree metadata was removed but generated files remained and git returned Invalid argument; the generated .nfcl path was verified and the orphan was removed before continuing.",
+    "The next exact-head run confirmed the residual files can remain briefly locked by Avalonia build services after dotnet build-server shutdown; the existing repository-scoped idle-worker stopper and a bounded one-second cleanup retry are reused rather than adding another process-management mechanism.",
+    "A later exact-head run proved that invoking the GUI-subsystem Launcher with PowerShell's call operator can return before extraction finishes: the files appeared after the premature hash failure. The packager now uses a hidden Start-Process with Wait and PassThru before checking exit status and payload bytes.",
+    "Failure-injection coverage distinguishes a still-registered worktree, which remains preserved and fails terminal, from detached metadata plus a recreated residual directory, which the bounded validated fallback removes before the original restore failure propagates.",
+    "Independent review found that an idle-worker stopper exception could bypass authoritative Git cleanup and that quoted porcelain paths rejected valid CJK roots; the cleanup now records the helper failure, always executes Git cleanup, and reads unquoted porcelain paths without expanding path authority."
+  ],
+  "semanticOwner": "The canonical package entrypoint owns exact source identity and the disposable restore environment; the existing NuGet lock owners extended by this record own the exact dependency and first-party project-reference graph consumed by both locked win-x64 Launcher restores",
+  "terminalContract": "The Distribution Launcher packager restores LauncherBootstrap and DistributionLauncher for win-x64 with --locked-mode inside its clean detached exact-source snapshot, publishes with --no-restore, starts payload extraction as a hidden process and waits for its explicit exit code, then removes the snapshot. The six declared lock updates may add only the required win-x64 target or current first-party project references without package identity, version, or content-hash drift. Cleanup records any repository-scoped idle-worker stopper failure but still delegates to Git; it consumes unquoted porcelain paths and, if Git has detached metadata but leaves generated files, retries for at most one second before deleting only the validated sibling path named .nfcl-<12 lowercase hex>. Worktree registration and path absence are both verified, and helper plus authoritative cleanup failures are reported together. The invocation repository remains clean and its package lock bytes remain unchanged. Any locked restore, publish, extraction process, embedded-payload, schema, size, hash, unsafe cleanup path, or residual snapshot failure remains terminal; no dependency version, firmware behavior, package content, Catalog admission, or release identity is inferred or weakened.",
+  "disposition": "extend-owner",
+  "designReview": {
+    "reviewer": "diagnosing-bugs minimized restore loop plus independent semantic and evidence review",
+    "outcome": "findings-incorporated",
+    "evidence": "The minimized red loop isolated missing RID lock projections. Independent R3 review rejected the initial unlocked workaround and identified cleanup-preemption and quoted-path defects. The corrected design follows RELEASE-RID-LOCK-100-01, commits only the project-targeted lock projection, preserves locked restore, makes helper shutdown subordinate to authoritative Git cleanup, and retains the existing closed path authority."
+  },
+  "implementationHead": null,
+  "reviewedHead": null,
+  "pathStateDigest": null,
+  "finalReview": {
+    "reviewer": null,
+    "outcome": "pending",
+    "evidence": ""
+  }
+}

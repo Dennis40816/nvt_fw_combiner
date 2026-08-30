@@ -20,6 +20,8 @@ $RepoRoot = $InvocationRepoRoot
 $SourceSnapshotRoot = $null
 $SourceSnapshotAttached = $false
 $DotNet = $null
+$PrimaryFailure = $null
+$IdleBuildWorkerStopper = Join-Path $InvocationRepoRoot 'scripts/stop-idle-build-workers.ps1'
 $SemanticVersion = if ($Version.StartsWith('v', [StringComparison]::Ordinal)) {
     $Version.Substring(1)
 }
@@ -101,6 +103,7 @@ try {
     }
     $SourceSnapshotAttached = $true
     $RepoRoot = $SourceSnapshotRoot
+    $IdleBuildWorkerStopper = Join-Path $RepoRoot 'scripts/stop-idle-build-workers.ps1'
 
     $SnapshotVersion = (Get-Content -LiteralPath (Join-Path $RepoRoot 'VERSION') -Raw).Trim()
     if ($SnapshotVersion -cne $SemanticVersion) {
@@ -134,7 +137,7 @@ try {
     $BootstrapProject = Join-Path $RepoRoot 'src/NvtFwCombiner.LauncherBootstrap/NvtFwCombiner.LauncherBootstrap.csproj'
     $LauncherProject = Join-Path $RepoRoot 'src/NvtFwCombiner.DistributionLauncher/NvtFwCombiner.DistributionLauncher.csproj'
 
-    & $DotNet restore $BootstrapProject -r win-x64 --locked-mode
+    & $DotNet restore $BootstrapProject -r win-x64 --locked-mode --disable-parallel
     if ($LASTEXITCODE -ne 0) { throw 'Distribution Bootstrap restore failed.' }
     & $DotNet publish $BootstrapProject -c Release -r win-x64 --self-contained true --no-restore `
         -p:Version=$SemanticVersion `
@@ -174,7 +177,7 @@ try {
     $PayloadSchemaPath = Join-Path $RepoRoot 'docs/contracts/managed-setup-payload-admission-v1.schema.json'
     Assert-JsonSchema -JsonPath $DescriptorPath -SchemaPath $PayloadSchemaPath
 
-    & $DotNet restore $LauncherProject -r win-x64 --locked-mode
+    & $DotNet restore $LauncherProject -r win-x64 --locked-mode --disable-parallel
     if ($LASTEXITCODE -ne 0) { throw 'Distribution Launcher restore failed.' }
     & $DotNet publish $LauncherProject -c Release -r win-x64 --self-contained true --no-restore `
         -p:Version=$SemanticVersion `
@@ -195,8 +198,16 @@ try {
     $LauncherPath = Join-Path $ReleaseRoot $LauncherName
     Copy-Item -LiteralPath $PublishedLauncher -Destination $LauncherPath
 
-    & $LauncherPath '--extract-release-payload' $ExtractionRoot
-    if ($LASTEXITCODE -ne 0) { throw 'Final Distribution Launcher payload extraction failed.' }
+    $QuotedExtractionRoot = '"' + $ExtractionRoot.Replace('"', '\"') + '"'
+    $ExtractionProcess = Start-Process `
+        -FilePath $LauncherPath `
+        -ArgumentList '--extract-release-payload', $QuotedExtractionRoot `
+        -Wait `
+        -PassThru `
+        -WindowStyle Hidden
+    if ($ExtractionProcess.ExitCode -ne 0) {
+        throw 'Final Distribution Launcher payload extraction failed.'
+    }
     $ExtractedDescriptor = Join-Path $ExtractionRoot 'managed-setup-payload-admission.v1.json'
     $ExtractedBootstrap = Join-Path $ExtractionRoot 'NvtFwCombiner.Bootstrap.exe'
     if ((Get-LowerSha256 -Path $ExtractedDescriptor) -cne (Get-LowerSha256 -Path $DescriptorPath) -or
@@ -341,21 +352,102 @@ try {
     Write-Host "Distribution Launcher: $LauncherPath"
     Write-Host "Distribution Launcher SHA-256: $LauncherHash"
 }
+catch {
+    $PrimaryFailure = $_
+    throw
+}
 finally {
+    $IdleWorkerStopFailure = $null
     if ($null -ne $DotNet) {
         & $DotNet build-server shutdown
         if ($LASTEXITCODE -ne 0) {
             Write-Warning "dotnet build-server shutdown returned exit code $LASTEXITCODE."
         }
+        if (Test-Path -LiteralPath $IdleBuildWorkerStopper -PathType Leaf) {
+            try {
+                & $IdleBuildWorkerStopper -RepositoryRoot $RepoRoot
+            }
+            catch {
+                $IdleWorkerStopFailure = $_
+            }
+        }
     }
     if ($SourceSnapshotAttached) {
+        try {
         $RemoveOutput = & git -C $InvocationRepoRoot worktree remove --force $SourceSnapshotRoot 2>&1
+        $RemoveExitCode = $LASTEXITCODE
+        $CanonicalSnapshotRoot = [IO.Path]::GetFullPath($SourceSnapshotRoot)
+        $CanonicalSnapshotParent = [IO.Path]::GetFullPath($SnapshotParent)
+        $SnapshotLeaf = [IO.Path]::GetFileName($CanonicalSnapshotRoot)
+        if ([IO.Path]::GetDirectoryName($CanonicalSnapshotRoot) -cne $CanonicalSnapshotParent -or
+            $SnapshotLeaf -cnotmatch '^\.nfcl-[0-9a-f]{12}$') {
+            throw "Refusing unsafe Launcher snapshot cleanup path '$CanonicalSnapshotRoot'."
+        }
+        $PostRemoveWorktrees = @(& git -c core.quotePath=false -C $InvocationRepoRoot worktree list --porcelain 2>&1)
         if ($LASTEXITCODE -ne 0) {
-            throw "Exact Launcher source snapshot cleanup failed at '$SourceSnapshotRoot': $($RemoveOutput -join ' ')"
+            throw "Exact Launcher source snapshot registration could not be inspected after cleanup: $($PostRemoveWorktrees -join ' ')"
+        }
+        $SnapshotStillRegistered = $false
+        foreach ($WorktreeLine in $PostRemoveWorktrees) {
+            if ($WorktreeLine.StartsWith('worktree ', [StringComparison]::Ordinal)) {
+                $RegisteredPath = [IO.Path]::GetFullPath($WorktreeLine.Substring(9))
+                if ($RegisteredPath -ieq $CanonicalSnapshotRoot) {
+                    $SnapshotStillRegistered = $true
+                    break
+                }
+            }
+        }
+        if ($SnapshotStillRegistered) {
+            throw "Exact Launcher source snapshot cleanup failed and remains registered at '$SourceSnapshotRoot' (git exit $RemoveExitCode): $($RemoveOutput -join ' ')"
+        }
+        if (Test-Path -LiteralPath $SourceSnapshotRoot -PathType Container) {
+            for ($CleanupAttempt = 1; $CleanupAttempt -le 5; $CleanupAttempt++) {
+                try {
+                    [IO.Directory]::Delete($CanonicalSnapshotRoot, $true)
+                    break
+                }
+                catch {
+                    if ($CleanupAttempt -ge 5) {
+                        throw
+                    }
+                    Start-Sleep -Milliseconds 200
+                }
+            }
         }
         & git -C $InvocationRepoRoot worktree prune
         if ($LASTEXITCODE -ne 0) {
             Write-Warning 'Git worktree prune failed after Launcher packaging.'
         }
+        $RemainingWorktrees = (& git -c core.quotePath=false -C $InvocationRepoRoot worktree list --porcelain 2>&1) -join "`n"
+        if ($LASTEXITCODE -ne 0 -or
+            (Test-Path -LiteralPath $SourceSnapshotRoot) -or
+            $RemainingWorktrees.IndexOf($SourceSnapshotRoot.Replace('\', '/'), [StringComparison]::OrdinalIgnoreCase) -ge 0) {
+            throw "Exact Launcher source snapshot cleanup failed at '$SourceSnapshotRoot' (git exit $RemoveExitCode): $($RemoveOutput -join ' ')"
+        }
+        }
+        catch {
+            $CleanupFailures = [Collections.Generic.List[Exception]]::new()
+            if ($null -ne $PrimaryFailure) {
+                $CleanupFailures.Add($PrimaryFailure.Exception)
+            }
+            if ($null -ne $IdleWorkerStopFailure) {
+                $CleanupFailures.Add($IdleWorkerStopFailure.Exception)
+            }
+            $CleanupFailures.Add($_.Exception)
+            if ($CleanupFailures.Count -gt 1) {
+                throw [AggregateException]::new(
+                    'Distribution Launcher packaging and cleanup reported multiple failures.',
+                    $CleanupFailures.ToArray())
+            }
+            throw
+        }
+    }
+    if ($null -ne $IdleWorkerStopFailure) {
+        if ($null -ne $PrimaryFailure) {
+            throw [AggregateException]::new(
+                'Distribution Launcher packaging and cleanup reported multiple failures.',
+                [Exception[]]@($PrimaryFailure.Exception, $IdleWorkerStopFailure.Exception))
+        }
+        throw $IdleWorkerStopFailure
     }
 }
