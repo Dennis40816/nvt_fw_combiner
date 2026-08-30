@@ -5,7 +5,7 @@
   "integrationBase": "31ddc83968996d7fa5311cf1a9f871f553f53f5e",
   "risk": "R3",
   "kind": "behavior",
-  "state": "design-active",
+  "state": "final-complete",
   "mutablePaths": [
     "docs/adr/0021-code-size-ratchet-system-activity-amendment.md",
     "docs/adr/0063-managed-setup-recovery-diagnosis.md",
@@ -43,12 +43,12 @@
     "outcome": "findings-incorporated",
     "evidence": "Independent R3 architecture review approved one pure Application recovery policy with least-authority read-only diagnosis and separate writer/execution coordinators, plus one Infrastructure exact executor. Findings incorporated a closed first-run state-pair table, proof-gated staging eligibility, live exact-path canonical writer custody, a fixed reachable-prefix deletion order with release-manifest proof retained and marker last, and removal of contradictory Setup authority. Owner Option A supplies explicit exact state-pair deletion authority. The review rejected a second writer, generic pending-state acceptance, arbitrary missing subsets, ordinary recursive delete, a new journal/schema, and Infrastructure-owned READY/rollback policy."
   },
-  "implementationHead": null,
-  "reviewedHead": null,
-  "pathStateDigest": null,
+  "implementationHead": "f837c961fb4f3557e590d55cf5f69c508259ad25",
+  "reviewedHead": "f837c961fb4f3557e590d55cf5f69c508259ad25",
+  "pathStateDigest": "76c7d2861f73478692d6f9e9532c2a90a6762023752eaa79bcb324146ea33dce",
   "finalReview": {
-    "reviewer": null,
-    "outcome": "pending",
-    "evidence": ""
+    "reviewer": "release owner confirming the completed architecture and evidence review",
+    "outcome": "approved",
+    "evidence": "The owner confirmed the completed review for exact staged snapshot 2213703a5acbe97a668886d3c72c40e7e4385f63, committed unchanged as f837c961fb4f3557e590d55cf5f69c508259ad25. Recovery Infrastructure passed 47/47, Application recovery passed 257/257, Architecture passed 249/249, and code-size policy passed 19/19. The reviewed implementation retains one Application policy and canonical writer lease, one Infrastructure exact no-follow mutation adapter, canonical manifest validation, marker-last deterministic rollback/restart prefixes, and zero process starts. The owner explicitly replaced the former 700-line proxy with a 2,500-line catastrophic alarm while retaining semantic ownership, dependency, duplicate parser/policy/writer, and process-launch gates."
   }
 }
