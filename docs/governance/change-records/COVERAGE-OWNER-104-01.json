@@ -5,7 +5,7 @@
   "integrationBase": "6f48f9eb75e1026f94becb602687195e5ad8aa25",
   "risk": "R2",
   "kind": "governance",
-  "state": "design-active",
+  "state": "final-complete",
   "mutablePaths": [
     "scripts/coverage_policy.py"
   ],
@@ -23,12 +23,12 @@
     "outcome": "findings-incorporated",
     "evidence": "Independent review identified DistributionLauncher as a valid Bootstrap host but found Desktop and LauncherBootstrap missing from the same production ownership inventory. The corrected design assigns all fourteen current production project roots exactly once and adds an executable closed-inventory regression test without creating a new module or weakening the frozen baseline."
   },
-  "implementationHead": null,
-  "reviewedHead": null,
-  "pathStateDigest": null,
+  "implementationHead": "6f928a556e76a522e04d6a5c8be8ed4dc1427222",
+  "reviewedHead": "6f928a556e76a522e04d6a5c8be8ed4dc1427222",
+  "pathStateDigest": "ec6cac7658cce2e3d078bb53efdf38dcfb5ea46fd0669c99c42f7b61c64acc8d",
   "finalReview": {
-    "reviewer": null,
-    "outcome": "pending",
-    "evidence": ""
+    "reviewer": "coverage_patch_review + coverage_patch_evidence",
+    "outcome": "approved",
+    "evidence": "Independent exact-head R2 reviews approved 6f928a556e76a522e04d6a5c8be8ed4dc1427222 (tree 727d46278c62889aa799aacced566552a818fadd; sole parent 8666a60e5b4888ac2c2cf38c16290f2bae6c459b) with no P0, P1 or P2. The closed inventory maps all fourteen production C# project roots exactly once, keeps Desktop and Launcher composition hosts in the existing Bootstrap module, rejects unknown production sources, and leaves the frozen baseline unchanged. Coverage-policy tests passed 34/34; Application tests passed 1267/1267; exact coverage verification passed with Application branches 7633/9260 above the frozen 1571/1906 rate and overall 71919/80203 lines plus 23310/29717 branches. The added public-flow tests cover every Registry issue mapping, malformed and undefined fail-closed behavior, and both unconfigured fresh-install paths without downstream Catalog or package access. No firmware, package, runtime or release-artifact behavior changed."
   }
 }
