@@ -1,0 +1,9 @@
+{
+  "schemaVersion": 1,
+  "taskId": "LAUNCHER-106-PACKAGE-01",
+  "authorityType": "release-owner",
+  "reviewedHead": "da62db2619366109f47bcc4c43a762f45d73d9a5",
+  "decision": "approved",
+  "reviewer": "Dennis Liu (release owner)",
+  "evidence": "The release owner approved the separate Launcher and Setup design, required the Launcher work to be complete for 1.0.6, and instructed continuation after review. This attestation approves the exact additive five-asset packaging implementation while preserving the existing application ZIP and update-Catalog owners. It does not replace final exact-asset construction, visible GUI install-to-READY/source-offline smoke, protected publication, or immutable tag evidence."
+}
