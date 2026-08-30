@@ -1,0 +1,9 @@
+{
+  "schemaVersion": 1,
+  "taskId": "LAUNCHER-106-RID-RESTORE-01",
+  "authorityType": "release-owner",
+  "reviewedHead": "9702fe3e43030e96454010d7b3ba46379ce22fcc",
+  "decision": "approved",
+  "reviewer": "Dennis Liu (release owner)",
+  "evidence": "The release owner instructed completion of the 1.0.6 Launcher, continuation after review, and merge to main once the 1.0.6 content is verified. This attestation approves the bounded locked-RID restore and snapshot-cleanup correction represented by final evidence head 9702fe3e43030e96454010d7b3ba46379ce22fcc: two independent zero-finding implementation reviews, 50 release-package-policy tests, byte-identical invocation and snapshot locks, no package identity/version/hash drift, CJK path coverage, and native transient/permanent lock cleanup evidence. It does not waive final exact-head asset construction, visible GUI install/offline relaunch smoke, clean-machine validation, protected publication, or immutable tag gates."
+}
