@@ -1,5 +1,4 @@
 using System.Text.Json;
-using System.Text.Json.Serialization;
 using System.Diagnostics.CodeAnalysis;
 using NvtFwCombiner.Application.VersionManagement;
 
@@ -16,18 +15,10 @@ public sealed partial class FileSystemManagedFirstInstallationRootMaterializer
     /// <summary>The unbound canonical seed imported only by Root Bootstrap.</summary>
     public const string SeedFileName = "version-manager.seed.v1.json";
 
-    private const int MaximumMarkerBytes = 64 * 1024;
-    private const string MaterializingPhase = "staging";
-    private const string RootPromotedPhase = "root-promoted";
-    private const string BootstrapLaunchRecordedPhase = "bootstrap-launch-recorded";
-    private static readonly JsonSerializerOptions MarkerJsonOptions = new(JsonSerializerDefaults.Web)
-    {
-        MaxDepth = 16,
-        PropertyNameCaseInsensitive = false,
-        UnmappedMemberHandling = JsonUnmappedMemberHandling.Disallow,
-        WriteIndented = true,
-    };
-    private static readonly VersionManagementJsonContext MarkerJsonContext = new(MarkerJsonOptions);
+    private const string RootPromotedPhase = ManagedSetupTransactionCodec.RootPromotedPhase;
+    private const string BootstrapLaunchRecordedPhase =
+        ManagedSetupTransactionCodec.BootstrapLaunchRecordedPhase;
+
     private readonly Func<string, CancellationToken, ValueTask>? _stagingCustodyAcquired;
     private readonly Func<string, CancellationToken, ValueTask>? _destinationCustodyAcquired;
     private readonly Func<string, CancellationToken, ValueTask>? _closedRootVerified;
@@ -159,7 +150,7 @@ public sealed partial class FileSystemManagedFirstInstallationRootMaterializer
             stagingRoot,
             payload.Identity,
             candidate,
-            MaterializingPhase);
+            ManagedSetupTransactionCodec.StagingPhase);
         FileStream? markerStream = null;
         bool promotionCommitted = false;
         try
@@ -167,7 +158,7 @@ public sealed partial class FileSystemManagedFirstInstallationRootMaterializer
             MarkerCreateResult createdMarker = await CreateNewMarkerAsync(
                 custody,
                 Path.GetFileName(markerPath),
-                SerializeMarker(marker),
+                ManagedSetupTransactionCodec.Serialize(marker),
                 cancellationToken).ConfigureAwait(false);
             if (!createdMarker.IsSuccess)
             {
@@ -278,7 +269,10 @@ public sealed partial class FileSystemManagedFirstInstallationRootMaterializer
                 }
             }
 
-            ManagedSetupTransactionDocument promotedMarker = marker with { Phase = RootPromotedPhase };
+            ManagedSetupTransactionDocument promotedMarker = marker with
+            {
+                Phase = ManagedSetupTransactionCodec.RootPromotedPhase,
+            };
             await ReplaceExactMarkerAsync(
                     markerStream,
                     marker,

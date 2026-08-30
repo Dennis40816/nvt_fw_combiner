@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import json
 import tempfile
 import unittest
 from pathlib import Path
@@ -37,9 +38,12 @@ class CodeSizePolicyTests(unittest.TestCase):
     def test_frozen_release_baseline_emits_no_full_production_warning(self) -> None:
         snapshot = measure_code_size(REPOSITORY_ROOT)
 
-        self.assertEqual(128_423, snapshot.production_nonblank)
-        self.assertEqual(90_765, snapshot.runtime_production_nonblank)
-        self.assertEqual(40_058, snapshot.application_nonblank)
+        self.assertEqual(129_509, snapshot.production_nonblank)
+        self.assertEqual(91_851, snapshot.runtime_production_nonblank)
+        self.assertEqual(20_632, snapshot.domain_profiles_nonblank)
+        self.assertEqual(40_425, snapshot.application_nonblank)
+        self.assertEqual(4_323, snapshot.bootstrap_cli_nonblank)
+        self.assertEqual(26_471, snapshot.infrastructure_contracts_worker_nonblank)
         self.assertEqual(snapshot.production_nonblank, DEFAULT_LIMITS.production_nonblank)
         self.assertEqual([], validate_code_size_policy(REPOSITORY_ROOT))
         self.assertFalse(
@@ -48,6 +52,30 @@ class CodeSizePolicyTests(unittest.TestCase):
                 for finding in review_code_size_policy(REPOSITORY_ROOT)
             )
         )
+
+    def test_launcher_structure_record_matches_the_canonical_exact_ledger(self) -> None:
+        snapshot = measure_code_size(REPOSITORY_ROOT)
+        record = json.loads(
+            (REPOSITORY_ROOT / "docs/governance/change-records/LAUNCHER-STRUCTURE-RATCHET-104-01.json")
+            .read_text(encoding="utf-8")
+        )
+        evidence = " ".join(
+            [
+                *record["searchEvidence"],
+                record["terminalContract"],
+                record["designReview"]["evidence"],
+            ]
+        )
+
+        for value in (
+            snapshot.production_nonblank,
+            snapshot.runtime_production_nonblank,
+            snapshot.domain_profiles_nonblank,
+            snapshot.application_nonblank,
+            snapshot.bootstrap_cli_nonblank,
+            snapshot.infrastructure_contracts_worker_nonblank,
+        ):
+            self.assertIn(f"{value:,}", evidence)
 
     def test_default_policy_reports_ratchets_without_final_targets(self) -> None:
         findings = review_code_size_policy(self.root)
@@ -450,6 +478,27 @@ class CodeSizePolicyTests(unittest.TestCase):
 
     def test_launcher_bootstrap_is_allocated_to_existing_host_slice(self) -> None:
         self.write("src/NvtFwCombiner.LauncherBootstrap/Program.cs", "bootstrap-anchor\n")
+        snapshot = measure_code_size(self.root)
+
+        self.assertEqual(1, snapshot.bootstrap_cli_files)
+        self.assertEqual(1, snapshot.bootstrap_cli_nonblank)
+        self.assertEqual(
+            [],
+            validate_code_size_policy(
+                self.root,
+                self.limits(
+                    production=1,
+                    runtime_ratchet=1,
+                    domain_profiles_ratchet=0,
+                    application_ratchet=0,
+                    bootstrap_cli_ratchet=1,
+                    infrastructure_contracts_worker_ratchet=0,
+                ),
+            ),
+        )
+
+    def test_distribution_launcher_is_allocated_to_existing_host_slice(self) -> None:
+        self.write("src/NvtFwCombiner.DistributionLauncher/Program.cs", "launcher-anchor\n")
         snapshot = measure_code_size(self.root)
 
         self.assertEqual(1, snapshot.bootstrap_cli_files)

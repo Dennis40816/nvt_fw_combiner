@@ -418,21 +418,29 @@ public sealed partial class ManagedDistributionLauncherRuntimeTests
 
     /// <summary>The healthy entry projects Bootstrap identity without touching either payload binary.</summary>
     [Fact]
-    public void BootstrapIdentityProjectionUsesDescriptorOnly()
+    public async Task BootstrapIdentityProjectionUsesDescriptorOnly()
     {
         byte[] declaredBootstrap = "descriptor-only-bootstrap"u8.ToArray();
+        var descriptor = new TrackingResource(PayloadDescriptor(declaredBootstrap));
+        var bootstrap = new TrackingResource(declaredBootstrap);
         var source = new EmbeddedManagedDistributionPayloadSource(
             Path.Combine(Path.GetTempPath(), "missing-distribution-launcher.exe"),
-            PayloadDescriptor(declaredBootstrap),
-            bootstrapBytes: null);
+            descriptor.Open,
+            bootstrap.Open);
 
-        bool projected = source.TryProjectBootstrapIdentity(out ManagedImmutableBootstrapIdentity? identity);
+        ManagedDistributionPayloadEntryAdmissionResult projected = await source.AdmitEntryAsync(
+            TestContext.Current.CancellationToken);
 
-        Assert.True(projected);
-        ManagedImmutableBootstrapIdentity exact = Assert.IsType<ManagedImmutableBootstrapIdentity>(identity);
+        Assert.True(projected.IsSuccess);
+        ManagedImmutableBootstrapIdentity exact = Assert.IsType<ManagedImmutableBootstrapIdentity>(
+            projected.Bootstrap);
         Assert.Equal("NvtFwCombiner.Bootstrap.exe", exact.FileName);
         Assert.Equal(declaredBootstrap.LongLength, exact.Length);
         Assert.Equal(Hash(declaredBootstrap), exact.Sha256);
+        Assert.Equal(1, descriptor.OpenCount);
+        Assert.Equal(1, bootstrap.OpenCount);
+        Assert.Equal(1, bootstrap.LengthReadCount);
+        Assert.Equal(0, bootstrap.BytesRead);
     }
 
     /// <summary>Launcher mutation after review is a typed source change, never a mixed capture.</summary>

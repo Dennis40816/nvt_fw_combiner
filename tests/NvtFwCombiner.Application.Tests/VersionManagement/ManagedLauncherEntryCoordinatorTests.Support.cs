@@ -14,18 +14,60 @@ public sealed partial class ManagedLauncherEntryCoordinatorTests
         TimeSpan? admissionDeadline = null,
         TimeSpan? completionDeadline = null,
         TimeSpan? healthObservationDeadline = null,
-        TimeProvider? timeProvider = null)
+        TimeProvider? timeProvider = null,
+        IManagedDistributionPayloadSource? payloadSource = null,
+        ManagedAppVersion? runningLauncherVersion = null)
     {
         return new(
             root,
             stateStore,
             rootProbe,
+            payloadSource ?? new EntryPayloadSource(),
+            runningLauncherVersion ?? ManagedAppVersion.Parse("1.0.4"),
             handoff,
-            Bootstrap,
             admissionDeadline,
             completionDeadline,
             timeProvider,
             healthObservationDeadline);
+    }
+
+    private sealed class EntryPayloadSource : IManagedDistributionPayloadSource
+    {
+        internal Action? AdmissionAction { get; set; }
+        internal int AdmissionCount { get; private set; }
+        internal ManagedDistributionPayloadIssue AdmissionIssue { get; set; }
+        internal ManagedAppVersion LauncherVersion { get; set; } = ManagedAppVersion.Parse("1.0.4");
+
+        public ValueTask<ManagedDistributionPayloadEntryAdmissionResult> AdmitEntryAsync(
+            CancellationToken cancellationToken)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            AdmissionCount++;
+            AdmissionAction?.Invoke();
+            cancellationToken.ThrowIfCancellationRequested();
+            return ValueTask.FromResult(AdmissionIssue == ManagedDistributionPayloadIssue.None
+                ? new ManagedDistributionPayloadEntryAdmissionResult(
+                    LauncherVersion,
+                    Bootstrap,
+                    ManagedDistributionPayloadIssue.None)
+                : new ManagedDistributionPayloadEntryAdmissionResult(
+                    default,
+                    null,
+                    AdmissionIssue));
+        }
+
+        public ValueTask<ManagedDistributionPayloadInspectionResult> InspectAsync(
+            CancellationToken cancellationToken)
+        {
+            throw new InvalidOperationException("Entry routing must not inspect payload content.");
+        }
+
+        public ValueTask<ManagedDistributionPayloadCaptureResult> CaptureExactAsync(
+            ManagedDistributionPayloadIdentity expected,
+            CancellationToken cancellationToken)
+        {
+            throw new InvalidOperationException("Entry routing must not capture payload content.");
+        }
     }
 
     private static VersionManagerState BoundState(string root)

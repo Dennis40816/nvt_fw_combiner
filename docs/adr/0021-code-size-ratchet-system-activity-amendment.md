@@ -133,3 +133,59 @@ reusable budget for later work; any reduction must lower the allowance. It
 changes no firmware profile, range, operation, output byte, CRC/header,
 processor, naming, support, Golden, or UI-layout authority. Later code-size
 reduction remains a separate owner-reviewed task.
+
+## 2026-08-30 Distribution Launcher and recovery-diagnosis candidate
+
+The reviewed single-entry continuation adds one thin Distribution Launcher
+composition host and the read-only RECOVERY-105A diagnosis. The Launcher reuses
+the existing Bootstrap composition, Registry/Catalog/package experience, Setup
+materializer, state store, and exact process handoff owners. Recovery reuses the
+existing state/root probes, process lifetimes, stable no-follow custody, and one
+strict Setup marker codec. Neither slice adds a second updater, parser,
+repository, state writer, scanner, firmware executor, or mutation path.
+
+Relative to the SETUP-104 checkpoint, full production changes from 128,423 to
+129,271 (+848) nonblank lines and runtime changes from 90,765 to 91,613 (+848).
+Domain plus Profiles remains 20,632; Application changes from 40,058 to 40,348
+(+290); Bootstrap plus CLI plus Desktop and the new Distribution Launcher host
+changes from 4,081 to 4,359 (+278); and Infrastructure plus Contracts plus CRC
+worker changes from 25,994 to 26,274 (+280). The four runtime slices sum exactly
+to 91,613. Distribution Launcher contributes 71 lines to the existing host
+slice; it does not create a fifth runtime slice.
+
+The executable allowances therefore become exactly 26,375 full production,
+21,557 runtime, 5 Domain/Profiles, 9,658 Application, 981
+Bootstrap/CLI/Desktop/Launcher, and 10,918
+Infrastructure/Contracts/worker above the frozen base ratchets. This named R2
+amendment is exact, non-transferable, and provides no reusable budget. The
+approved 1.0.8 package/source-size task must remeasure the accepted product and
+lower every reduced allowance rather than spend unused capacity. This amendment
+changes no firmware profile, range, operation, output byte, CRC/header,
+processor, naming, support, Golden, or Presentation-layout authority.
+
+## 2026-08-30 bounded Launcher payload-admission correction
+
+The fixed-head Launcher review found that the distribution host copied the
+complete embedded Bootstrap before Application began its 250 ms entry budget.
+The correction keeps the host as pure stream-factory wiring, moves bounded
+descriptor and Bootstrap-metadata admission into the existing entry
+coordinator, and reserves full streaming hash/capture for explicit Setup.
+The owner set one 200,000,000-byte Launcher/Bootstrap executable safety ceiling;
+this is not a package-size or optimization release gate.
+
+After the correction and exact recovery-state identity binding, full production
+is 129,509 nonblank lines and runtime production is 91,851. Domain plus Profiles
+remains 20,632; Application is 40,425; Bootstrap plus CLI plus Desktop and
+Distribution Launcher host is 4,323; and Infrastructure plus Contracts plus CRC
+worker is 26,471. The four runtime slices sum exactly to 91,851. Relative to the
+preceding candidate this is +238 total/runtime, +77 Application, -36 host, and
++197 Infrastructure.
+
+The executable allowances therefore become exactly 26,613 full production,
+21,795 runtime, 5 Domain/Profiles, 9,735 Application, 945
+Bootstrap/CLI/Desktop/Launcher, and 11,115
+Infrastructure/Contracts/worker above the frozen base ratchets. The allowance
+is exact and non-transferable; the approved 1.0.8 reduction work must remeasure
+and lower any reduced ceiling. No firmware, profile, range, operation, output
+byte, CRC/header, processor, naming, support, Golden, or UI-layout authority
+changes.

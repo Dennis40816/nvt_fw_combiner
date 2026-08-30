@@ -144,30 +144,56 @@ public sealed partial class AnonymousPipeManagedApplicationProcessTests
             new StableLauncherHandoff(workspace.Root, "relative-state.json"));
     }
 
-    /// <summary>The typed setup handoff cannot launch a different root under its bound state authority.</summary>
+    /// <summary>The typed Setup seam accepts its exact admitted root while legacy restart stays pinned.</summary>
     [Fact]
-    public async Task StableLauncherHandoffRejectsCallerRootDifferentFromBoundRoot()
+    public async Task ImmutableBootstrapHandoffAcceptsAdmittedCustomRootAndLegacyStaysPinned()
     {
         using var workspace = TempWorkspace.Create();
         string boundRoot = workspace.PathFor("bound");
         string otherRoot = workspace.PathFor("other");
         _ = Directory.CreateDirectory(boundRoot);
         _ = Directory.CreateDirectory(otherRoot);
-        var identity = new ManagedImmutableBootstrapIdentity(
-            "NvtFwCombiner.Bootstrap.exe",
-            68,
-            new string('a', 64));
+        string probe = Path.Combine(
+            AppContext.BaseDirectory,
+            "ready-probe",
+            "NvtFwCombiner.ReadyProbe.exe");
+        File.Copy(probe, Path.Combine(boundRoot, "NvtFwCombiner.Bootstrap.exe"));
+        File.Copy(probe, Path.Combine(otherRoot, "NvtFwCombiner.Bootstrap.exe"));
+        ManagedImmutableBootstrapIdentity identity = CreateBootstrapIdentity(otherRoot);
+        string? startedPath = null;
         var handoff = new StableLauncherHandoff(
             boundRoot,
-            workspace.PathFor("state/version-manager.v1.json"));
+            workspace.PathFor("state/version-manager.v1.json"),
+            ManagedProcessTermination.Instance,
+            beforeProcessStart: path => startedPath = path,
+            expectedIdentity: identity);
 
         ImmutableBootstrapStartResult result = await handoff.StartAsync(
             otherRoot,
             identity,
             TestContext.Current.CancellationToken);
+        Assert.True(result.IsStarted);
+        using (IImmutableBootstrapLaunch launch = Assert.IsType<IImmutableBootstrapLaunch>(
+                   result.Launch,
+                   exactMatch: false))
+        {
+            ImmutableBootstrapAdmissionResult admission = await launch.WaitForAdmissionAsync(
+                AdmissionBudget,
+                TestContext.Current.CancellationToken);
+            Assert.Equal(ImmutableBootstrapAdmissionOutcome.HealthUnavailable, admission.Outcome);
+        }
+        Assert.Equal(
+            Path.Combine(otherRoot, "NvtFwCombiner.Bootstrap.exe"),
+            startedPath);
 
-        Assert.Null(result.Launch);
-        Assert.Equal(ImmutableBootstrapStartIssue.Damaged, result.Issue);
+        startedPath = null;
+        bool legacyStarted = await handoff.TryStartLauncherAsync(
+            TestContext.Current.CancellationToken);
+
+        Assert.True(legacyStarted);
+        Assert.Equal(
+            Path.Combine(boundRoot, "NvtFwCombiner.Bootstrap.exe"),
+            startedPath);
     }
 
     /// <summary>Cancellation after executable acquisition releases every held path before propagating.</summary>

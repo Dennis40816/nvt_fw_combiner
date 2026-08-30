@@ -256,6 +256,18 @@ public sealed record ManagedDistributionPayloadInspectionResult(
     public bool IsSuccess => Identity is not null && Issue == ManagedDistributionPayloadIssue.None;
 }
 
+/// <summary>
+/// Lightweight entry admission projected without reading or hashing Bootstrap content.
+/// </summary>
+public sealed record ManagedDistributionPayloadEntryAdmissionResult(
+    ManagedAppVersion LauncherVersion,
+    ManagedImmutableBootstrapIdentity? Bootstrap,
+    ManagedDistributionPayloadIssue Issue)
+{
+    /// <summary>Gets whether the descriptor and Bootstrap resource metadata were admitted.</summary>
+    public bool IsSuccess => Bootstrap is not null && Issue == ManagedDistributionPayloadIssue.None;
+}
+
 /// <summary>Opaque stable custody over the exact bytes copied into a fresh installation.</summary>
 public interface IManagedDistributionPayloadCapture : IDisposable
 {
@@ -275,6 +287,12 @@ public sealed record ManagedDistributionPayloadCaptureResult(
 /// <summary>Infrastructure seam for inspecting and stably capturing the running payload.</summary>
 public interface IManagedDistributionPayloadSource
 {
+    /// <summary>
+    /// Admits bounded descriptor and Bootstrap metadata for local entry without reading content.
+    /// </summary>
+    ValueTask<ManagedDistributionPayloadEntryAdmissionResult> AdmitEntryAsync(
+        CancellationToken cancellationToken);
+
     /// <summary>Inspects the closed payload without retaining installation bytes.</summary>
     ValueTask<ManagedDistributionPayloadInspectionResult> InspectAsync(
         CancellationToken cancellationToken);

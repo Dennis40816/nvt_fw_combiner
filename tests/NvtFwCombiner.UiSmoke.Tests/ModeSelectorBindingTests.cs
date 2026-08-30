@@ -1,10 +1,16 @@
 using System.ComponentModel;
 using System.Text.Json;
+using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Data;
+using Avalonia.Headless;
 using Avalonia.Headless.XUnit;
+using Avalonia.Input;
+using Avalonia.LogicalTree;
 using Avalonia.Threading;
+using Avalonia.VisualTree;
 using NvtFwCombiner.Domain.Composition;
+using NvtFwCombiner.Presentation.Avalonia;
 using NvtFwCombiner.Presentation.Avalonia.ViewModels;
 using NvtFwCombiner.TestSupport;
 
@@ -13,6 +19,65 @@ namespace NvtFwCombiner.UiSmoke.Tests;
 /// <summary>Exercises the live TwoWay binding used by the workflow mode selectors.</summary>
 public sealed class ModeSelectorBindingTests
 {
+    /// <summary>A real user interaction on the production Merge selector publishes AB Code once.</summary>
+    [AvaloniaFact]
+    public async Task ProductionMergeModeSelectorPointerSelectionPublishesAbCodeOnce()
+    {
+        MainWindowViewModel viewModel = await CreateViewModelAsync();
+        viewModel.ShowMergeCommand.Execute(null);
+        viewModel.WorkflowSession.SelectedIc = "NT51950";
+        viewModel.MessageCenter.ToggleDebugActivityCommand.Execute(null);
+        PresentationHostServices services = PresentationTestHost.CreateServices("ui-smoke");
+        using var window = new MainWindow(
+            UiLaunchOptions.Empty,
+            StartupTraceSession.Disabled,
+            services,
+            ShellPreferenceSnapshot.Default)
+        {
+            DataContext = viewModel,
+        };
+
+        try
+        {
+            window.Show();
+            Dispatcher.UIThread.RunJobs();
+            AvaloniaHeadlessPlatform.ForceRenderTimerTick();
+
+            ComboBox selector = Assert.Single(
+                window.GetVisualDescendants().OfType<ComboBox>(),
+                candidate => candidate.IsVisible && ReferenceEquals(candidate.DataContext, viewModel.Merge));
+            Assert.Equal(ExperienceIds.StandardMerge, selector.SelectedItem);
+            object? originalItemsSource = selector.ItemsSource;
+            Assert.NotNull(originalItemsSource);
+            int modeActivityCount = viewModel.MessageCenter.ActivityItems.Count(static item =>
+                item.Title == "Mode selected");
+
+            SelectAbCodeThroughUserInput(window, selector);
+            Dispatcher.UIThread.RunJobs();
+            AvaloniaHeadlessPlatform.ForceRenderTimerTick();
+
+            Assert.Same(originalItemsSource, selector.ItemsSource);
+            Assert.Equal(ExperienceIds.AbMerge, selector.SelectedItem);
+            Assert.Equal(ExperienceIds.AbMerge, viewModel.Merge.SelectedMergeMode);
+            Assert.Equal(ShellPage.Merge, viewModel.SelectedPage);
+            Assert.True(Assert.IsType<ContentControl>(
+                window.FindControl<ContentControl>("MergePageHost"),
+                exactMatch: false).IsVisible);
+            Assert.True(viewModel.Merge.IsAbCodeMergeModeSelected);
+            Assert.Equal(3, viewModel.Merge.MergeSlots.Count);
+            Assert.All(viewModel.Merge.MergeSlots, static slot => Assert.NotEmpty(slot.SlotId));
+            Assert.Contains(
+                window.GetVisualDescendants().OfType<TextBlock>(),
+                candidate => candidate.IsVisible && candidate.Text == viewModel.Text.AbCodeMergeTitle);
+            Assert.Equal(modeActivityCount + 1, viewModel.MessageCenter.ActivityItems.Count(static item =>
+                item.Title == "Mode selected"));
+        }
+        finally
+        {
+            window.Close();
+        }
+    }
+
     /// <summary>The first Merge selection remains accepted without replacing its choices mid-event.</summary>
     [AvaloniaFact]
     public async Task FirstMergeModeSelectionAfterPageEntryRemainsSelected()
@@ -254,6 +319,32 @@ public sealed class ModeSelectorBindingTests
             });
         Dispatcher.UIThread.RunJobs();
         return selector;
+    }
+
+    private static void SelectAbCodeThroughUserInput(Window window, ComboBox selector)
+    {
+        Point selectorPoint = Assert.IsType<Point>(selector.TranslatePoint(
+            new Point(selector.Bounds.Width / 2, selector.Bounds.Height / 2),
+            window));
+        window.MouseMove(selectorPoint, RawInputModifiers.None);
+        window.MouseDown(selectorPoint, MouseButton.Left, RawInputModifiers.None);
+        window.MouseUp(selectorPoint, MouseButton.Left, RawInputModifiers.None);
+        Dispatcher.UIThread.RunJobs();
+        AvaloniaHeadlessPlatform.ForceRenderTimerTick();
+
+        ComboBoxItem abItem = Assert.Single(
+            selector.GetLogicalDescendants().OfType<ComboBoxItem>(),
+            static item => string.Equals(
+                item.Content as string,
+                ExperienceIds.AbMerge,
+                StringComparison.Ordinal));
+        TopLevel popupRoot = Assert.IsType<TopLevel>(TopLevel.GetTopLevel(abItem), exactMatch: false);
+        Point itemPoint = Assert.IsType<Point>(abItem.TranslatePoint(
+            new Point(abItem.Bounds.Width / 2, abItem.Bounds.Height / 2),
+            popupRoot));
+        popupRoot.MouseMove(itemPoint, RawInputModifiers.None);
+        popupRoot.MouseDown(itemPoint, MouseButton.Left, RawInputModifiers.None);
+        popupRoot.MouseUp(itemPoint, MouseButton.Left, RawInputModifiers.None);
     }
 
     private static void Track(INotifyPropertyChanged source, List<string> changes)

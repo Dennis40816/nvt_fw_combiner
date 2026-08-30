@@ -131,6 +131,103 @@ public sealed class WindowsStablePathCustodyTests
         Assert.Equal(3, stream.Length);
     }
 
+    /// <summary>A missing exact child is proven only beneath its already held parent.</summary>
+    [Fact]
+    public void FileCustodyDistinguishesHeldParentChildAbsenceFromUnavailableParent()
+    {
+        if (!OperatingSystem.IsWindows())
+        {
+            return;
+        }
+        using var workspace = TempWorkspace.Create();
+        string parent = workspace.PathFor("parent");
+        _ = Directory.CreateDirectory(parent);
+
+        WindowsStableCustodyResult missingChild = WindowsStablePathCustody.TryAcquireFile(
+            Path.Combine(parent, "missing.json"),
+            cancellationToken: TestContext.Current.CancellationToken);
+        WindowsStableCustodyResult missingParent = WindowsStablePathCustody.TryAcquireFile(
+            Path.Combine(workspace.PathFor("missing-parent"), "missing.json"),
+            cancellationToken: TestContext.Current.CancellationToken);
+        WindowsStableCustodyResult missingTree = WindowsStablePathCustody.TryAcquireImmutableTree(
+            Path.Combine(parent, "missing-tree"),
+            cancellationToken: TestContext.Current.CancellationToken);
+
+        Assert.Null(missingChild.Custody);
+        Assert.Equal(WindowsStableCustodyIssue.Unavailable, missingChild.Issue);
+        Assert.True(missingChild.IsExactChildMissing);
+        Assert.Null(missingParent.Custody);
+        Assert.Equal(WindowsStableCustodyIssue.Unavailable, missingParent.Issue);
+        Assert.False(missingParent.IsExactChildMissing);
+        Assert.Null(missingTree.Custody);
+        Assert.Equal(WindowsStableCustodyIssue.Unavailable, missingTree.Issue);
+        Assert.False(missingTree.IsExactChildMissing);
+    }
+
+    /// <summary>A child appearing between two held-parent observations is Changed.</summary>
+    [Fact]
+    public void FileCustodyDoesNotCollapseLeafCreationRaceIntoMissing()
+    {
+        if (!OperatingSystem.IsWindows())
+        {
+            return;
+        }
+        using var workspace = TempWorkspace.Create();
+        string parent = workspace.PathFor("parent");
+        _ = Directory.CreateDirectory(parent);
+        string marker = Path.Combine(parent, "marker.json");
+        bool created = false;
+
+        WindowsStableCustodyResult acquired = WindowsStablePathCustody.TryAcquireFile(
+            marker,
+            stage =>
+            {
+                if (stage == WindowsStableCustodyStage.AfterMissingRootObservation)
+                {
+                    File.WriteAllText(marker, "{}");
+                    created = true;
+                }
+            },
+            TestContext.Current.CancellationToken);
+
+        Assert.True(created);
+        Assert.Null(acquired.Custody);
+        Assert.Equal(WindowsStableCustodyIssue.Changed, acquired.Issue);
+        Assert.False(acquired.IsExactChildMissing);
+    }
+
+    /// <summary>A reparse leaf is unsafe rather than a missing exact child.</summary>
+    [Fact]
+    public void FileCustodyNeverClassifiesReparseLeafAsMissing()
+    {
+        if (!OperatingSystem.IsWindows())
+        {
+            return;
+        }
+        using var workspace = TempWorkspace.Create();
+        string parent = workspace.PathFor("parent");
+        _ = Directory.CreateDirectory(parent);
+        string target = workspace.PathFor("target.json");
+        File.WriteAllText(target, "{}");
+        string marker = Path.Combine(parent, "marker.json");
+        try
+        {
+            _ = File.CreateSymbolicLink(marker, target);
+        }
+        catch (UnauthorizedAccessException exception)
+        {
+            Assert.Skip($"Symbolic-link privilege is unavailable: {exception.Message}");
+        }
+
+        WindowsStableCustodyResult acquired = WindowsStablePathCustody.TryAcquireFile(
+            marker,
+            cancellationToken: TestContext.Current.CancellationToken);
+
+        Assert.Null(acquired.Custody);
+        Assert.Equal(WindowsStableCustodyIssue.ReparsePoint, acquired.Issue);
+        Assert.False(acquired.IsExactChildMissing);
+    }
+
     /// <summary>A reparse child never enters immutable-tree custody.</summary>
     [Fact]
     public void ImmutableTreeRejectsReparseChild()

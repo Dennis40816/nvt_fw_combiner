@@ -1,0 +1,37 @@
+{
+  "schemaVersion": 2,
+  "taskId": "LAUNCHER-STRUCTURE-RATCHET-104-01",
+  "capability": "Admit the public Distribution Launcher into the existing closed solution and dependency inventory, allocate its source to the existing Bootstrap/Launcher/CLI/Desktop host slice, and bind the exact non-transferable Launcher plus recovery-diagnosis code-size ledger",
+  "integrationBase": "62c989739a38bc1316d9b79abaf2221ce26b1294",
+  "risk": "R2",
+  "kind": "governance",
+  "state": "design-active",
+  "mutablePaths": [
+    "docs/adr/0021-code-size-ratchet-system-activity-amendment.md",
+    "scripts/code_size_policy.py",
+    "scripts/validate_repository.py"
+  ],
+  "implementationOwner": "primary-agent",
+  "searchEvidence": [
+    "NvtFwCombiner.slnx contains the new DistributionLauncher project and its project file has exactly two references: Bootstrap and VersionManagement.Application.",
+    "ManagedDistributionLauncherHostServicesTests directly verifies the DistributionLauncher process exit-code mapping, undefined enum fail-closed behavior, and numeric uniqueness, so Bootstrap.Tests must retain its exact DistributionLauncher reference rather than moving adapter semantics into Bootstrap or adding another test project.",
+    "DistributionLauncher remains in the existing Bootstrap/Launcher/CLI/Desktop host slice; bounded payload admission and exact recovery-state identity binding produce the final 91,851-line runtime ledger without a fifth slice.",
+    "The committed exact ledger is 129,509 full production, 91,851 runtime, 20,632 Domain plus Profiles, 40,425 Application, 4,323 Bootstrap/CLI/Desktop/Launcher, and 26,471 Infrastructure/Contracts/worker."
+  ],
+  "semanticOwner": "The canonical repository validator owns the closed solution and ProjectReference inventory; the canonical code-size policy and ADR 0021 normative appendix own exact runtime-slice allocation and non-transferable ratchets",
+  "terminalContract": "The solution inventory admits exactly one DistributionLauncher project whose references remain Bootstrap and VersionManagement.Application; Bootstrap.Tests retains the only direct test reference needed for the process exit-code adapter contract. DistributionLauncher source is counted in the existing Bootstrap/Launcher/CLI/Desktop host slice. The exact committed ledger is 129,509 full production, 91,851 runtime, 20,632 Domain plus Profiles, 40,425 Application, 4,323 Bootstrap/CLI/Desktop/Launcher, and 26,471 Infrastructure/Contracts/worker; the four runtime slices sum exactly to 91,851 and every measured allowance equals committed source with no reusable capacity. This governance owner does not change firmware profiles, ranges, output bytes, CRC, support, package, Setup, Recovery, UI, or runtime semantics.",
+  "disposition": "extend-owner",
+  "designReview": {
+    "reviewer": "governance_rebuild_review + launcher_test_reference_need + launcher_structure_debt",
+    "outcome": "approved",
+    "evidence": "Independent architecture and structure reviews selected one existing host slice, retained the necessary adapter-contract test reference, required exact solution and ProjectReference admission, and reproduced the final 857-file/129,509-line full ledger, 596-file/91,851-line runtime ledger, 157-file/20,632-line Domain plus Profiles slice, 239-file/40,425-line Application slice, 40-file/4,323-line host slice, and 160-file/26,471-line Infrastructure slice. They rejected a fifth slice, a new test project, moving process exit semantics into Bootstrap, and unmeasured threshold inflation."
+  },
+  "implementationHead": null,
+  "reviewedHead": null,
+  "pathStateDigest": null,
+  "finalReview": {
+    "reviewer": null,
+    "outcome": "pending",
+    "evidence": ""
+  }
+}

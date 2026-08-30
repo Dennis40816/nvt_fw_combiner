@@ -130,7 +130,6 @@ public sealed class StableLauncherHandoff : IStableLauncherHandoff, IImmutableBo
                 expectedIdentity.FileName,
                 "NvtFwCombiner.Bootstrap.exe",
                 StringComparison.Ordinal) ||
-            !ManagedPathSafety.PathComparer.Equals(requestedRoot, _managedRoot) ||
             FileSystemManagedInstallationRootProbe.AdmitRoot(requestedRoot, out string root) !=
                 ManagedInstallationRootStatus.Absent ||
             !ManagedPathSafety.IsSafeExistingDirectory(root))

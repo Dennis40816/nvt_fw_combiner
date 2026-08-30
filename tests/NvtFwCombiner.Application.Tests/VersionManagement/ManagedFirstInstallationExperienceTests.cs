@@ -360,6 +360,18 @@ public sealed partial class ManagedFirstInstallationExperienceTests
         internal bool ReturnMismatchedCapture { get; set; }
         internal bool ReturnNullCaptureOnSuccess { get; set; }
 
+        public ValueTask<ManagedDistributionPayloadEntryAdmissionResult> AdmitEntryAsync(
+            CancellationToken cancellationToken)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            return ValueTask.FromResult(InspectIssue == ManagedDistributionPayloadIssue.None
+                ? new ManagedDistributionPayloadEntryAdmissionResult(
+                    identity.LauncherVersion,
+                    identity.Bootstrap,
+                    ManagedDistributionPayloadIssue.None)
+                : new ManagedDistributionPayloadEntryAdmissionResult(default, null, InspectIssue));
+        }
+
         public ValueTask<ManagedDistributionPayloadInspectionResult> InspectAsync(
             CancellationToken cancellationToken)
         {

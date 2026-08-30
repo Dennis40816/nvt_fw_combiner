@@ -1,0 +1,26 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <ItemGroup>
+    <InternalsVisibleTo Include="NvtFwCombiner.Bootstrap.Tests" />
+  </ItemGroup>
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <AssemblyName>NvtFwCombiner.DistributionLauncher</AssemblyName>
+    <RootNamespace>NvtFwCombiner.DistributionLauncher</RootNamespace>
+    <ApplicationManifest>..\NvtFwCombiner.Presentation.Avalonia\app.manifest</ApplicationManifest>
+    <ApplicationIcon>..\NvtFwCombiner.Presentation.Avalonia\Assets\AppIcon.ico</ApplicationIcon>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\NvtFwCombiner.Bootstrap\NvtFwCombiner.Bootstrap.csproj" />
+    <ProjectReference Include="..\NvtFwCombiner.VersionManagement.Application\NvtFwCombiner.VersionManagement.Application.csproj" />
+  </ItemGroup>
+  <ItemGroup Condition="Exists('$(ManagedSetupPayloadAdmissionPath)')">
+    <EmbeddedResource
+      Include="$(ManagedSetupPayloadAdmissionPath)"
+      LogicalName="NvtFwCombiner.DistributionLauncher.Payload.managed-setup-payload-admission.v1.json" />
+  </ItemGroup>
+  <ItemGroup Condition="Exists('$(ManagedSetupBootstrapPath)')">
+    <EmbeddedResource
+      Include="$(ManagedSetupBootstrapPath)"
+      LogicalName="NvtFwCombiner.DistributionLauncher.Payload.NvtFwCombiner.Bootstrap.exe" />
+  </ItemGroup>
+</Project>

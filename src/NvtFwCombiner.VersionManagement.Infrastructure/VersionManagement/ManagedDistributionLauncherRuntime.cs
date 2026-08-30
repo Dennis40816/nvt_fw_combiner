@@ -29,42 +29,46 @@ public sealed class EmbeddedManagedDistributionPayloadSource : IManagedDistribut
         UnmappedMemberHandling = JsonUnmappedMemberHandling.Disallow,
     };
     private static readonly VersionManagementJsonContext PayloadJsonContext = new(PayloadJsonOptions);
-    private readonly byte[]? _bootstrapBytes;
-    private readonly byte[]? _descriptorBytes;
+    private readonly Func<Stream?> _openBootstrap;
+    private readonly Func<Stream?> _openDescriptor;
     private readonly string _launcherPath;
 
-    /// <summary>Creates a source over exact host-provided embedded resources.</summary>
+    /// <summary>Creates a source over exact, independently reopenable embedded resources.</summary>
     public EmbeddedManagedDistributionPayloadSource(
         string launcherPath,
-        ReadOnlyMemory<byte>? descriptorBytes,
-        ReadOnlyMemory<byte>? bootstrapBytes)
+        Func<Stream?> openDescriptor,
+        Func<Stream?> openBootstrap)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(launcherPath);
         _launcherPath = Path.GetFullPath(launcherPath);
-        _descriptorBytes = descriptorBytes.HasValue ? descriptorBytes.Value.ToArray() : null;
-        _bootstrapBytes = bootstrapBytes.HasValue ? bootstrapBytes.Value.ToArray() : null;
+        _openDescriptor = openDescriptor ?? throw new ArgumentNullException(nameof(openDescriptor));
+        _openBootstrap = openBootstrap ?? throw new ArgumentNullException(nameof(openBootstrap));
     }
 
-    /// <summary>
-    /// Projects only the descriptor-pinned Bootstrap identity for the healthy
-    /// local entry path. This does not inspect or hash either payload binary.
-    /// </summary>
-    public bool TryProjectBootstrapIdentity(
-        [NotNullWhen(true)] out ManagedImmutableBootstrapIdentity? identity)
+    /// <summary>Creates a compatibility source over already captured test resources.</summary>
+    internal EmbeddedManagedDistributionPayloadSource(
+        string launcherPath,
+        ReadOnlyMemory<byte>? descriptorBytes,
+        ReadOnlyMemory<byte>? bootstrapBytes)
+        : this(
+            launcherPath,
+            CreateMemoryFactory(descriptorBytes),
+            CreateMemoryFactory(bootstrapBytes))
     {
-        DescriptorProjectionResult projection = ProjectDescriptor();
-        if (!projection.IsSuccess)
-        {
-            identity = null;
-            return false;
-        }
+    }
 
-        ManagedSetupEmbeddedBootstrapDocument bootstrap = projection.Descriptor!.Bootstrap;
-        identity = new(
-            bootstrap.InstalledFileName,
-            bootstrap.Size,
-            bootstrap.Sha256);
-        return true;
+    /// <inheritdoc />
+    public async ValueTask<ManagedDistributionPayloadEntryAdmissionResult> AdmitEntryAsync(
+        CancellationToken cancellationToken)
+    {
+        EntryProjectionResult admitted = await AdmitEntryCoreAsync(cancellationToken)
+            .ConfigureAwait(false);
+        return admitted.IsSuccess
+            ? new(
+                admitted.Descriptor!.LauncherVersion,
+                admitted.Bootstrap,
+                ManagedDistributionPayloadIssue.None)
+            : new(default, null, admitted.Issue);
     }
 
     /// <inheritdoc />
@@ -72,17 +76,26 @@ public sealed class EmbeddedManagedDistributionPayloadSource : IManagedDistribut
         CancellationToken cancellationToken)
     {
         cancellationToken.ThrowIfCancellationRequested();
-        DescriptorProjectionResult descriptor = ProjectEmbeddedPayload();
-        if (!descriptor.IsSuccess)
+        EntryProjectionResult admitted = await AdmitEntryCoreAsync(cancellationToken)
+            .ConfigureAwait(false);
+        if (!admitted.IsSuccess)
         {
-            return new(null, descriptor.Issue);
+            return new(null, admitted.Issue);
+        }
+        BootstrapReadResult bootstrap = await ReadBootstrapExactAsync(
+            admitted.Bootstrap!,
+            captureBytes: false,
+            cancellationToken).ConfigureAwait(false);
+        if (!bootstrap.IsSuccess)
+        {
+            return new(null, bootstrap.Issue);
         }
 
         StableManagedExecutableMeasurementResult launcher = await StableManagedExecutableLaunchLease
             .TryMeasureAsync(_launcherPath, cancellationToken).ConfigureAwait(false);
         return launcher.IsMeasured
             ? new(
-                CreateIdentity(descriptor, launcher.Length, launcher.Sha256),
+                CreateIdentity(admitted.Descriptor!, launcher.Length, launcher.Sha256),
                 ManagedDistributionPayloadIssue.None)
             : new(null, MapMeasurementIssue(launcher.Issue));
     }
@@ -96,18 +109,36 @@ public sealed class EmbeddedManagedDistributionPayloadSource : IManagedDistribut
     {
         ArgumentNullException.ThrowIfNull(expected);
         cancellationToken.ThrowIfCancellationRequested();
-        DescriptorProjectionResult descriptor = ProjectEmbeddedPayload();
-        if (!descriptor.IsSuccess)
+        EntryProjectionResult admitted = await AdmitEntryCoreAsync(cancellationToken)
+            .ConfigureAwait(false);
+        if (!admitted.IsSuccess)
         {
-            return new(null, descriptor.Issue);
+            return new(
+                null,
+                admitted.Issue == ManagedDistributionPayloadIssue.Invalid
+                    ? ManagedDistributionPayloadIssue.Changed
+                    : admitted.Issue);
         }
         ManagedDistributionPayloadIdentity embedded = CreateIdentity(
-            descriptor,
+            admitted.Descriptor!,
             expected.LauncherSize,
             expected.LauncherSha256);
         if (embedded != expected)
         {
             return new(null, ManagedDistributionPayloadIssue.Changed);
+        }
+
+        BootstrapReadResult bootstrap = await ReadBootstrapExactAsync(
+            admitted.Bootstrap!,
+            captureBytes: true,
+            cancellationToken).ConfigureAwait(false);
+        if (!bootstrap.IsSuccess)
+        {
+            return new(
+                null,
+                bootstrap.Issue == ManagedDistributionPayloadIssue.Invalid
+                    ? ManagedDistributionPayloadIssue.Changed
+                    : bootstrap.Issue);
         }
 
         ManagedExecutableLaunchLeaseResult acquired = await StableManagedExecutableLaunchLease
@@ -135,76 +166,123 @@ public sealed class EmbeddedManagedDistributionPayloadSource : IManagedDistribut
             return new(null, ManagedDistributionPayloadIssue.Invalid);
         }
         return new(
-            new EmbeddedPayloadCapture(expected, stable, _bootstrapBytes!),
+            new EmbeddedPayloadCapture(expected, stable, bootstrap.Bytes!),
             ManagedDistributionPayloadIssue.None);
     }
 
-    private DescriptorProjectionResult ProjectEmbeddedPayload()
+    private async ValueTask<EntryProjectionResult> AdmitEntryCoreAsync(
+        CancellationToken cancellationToken)
     {
-        DescriptorProjectionResult projection = ProjectDescriptor();
+        DescriptorProjectionResult projection = await ProjectDescriptorAsync(cancellationToken)
+            .ConfigureAwait(false);
         if (!projection.IsSuccess)
         {
-            return projection;
+            return EntryProjectionResult.Failure(projection.Issue);
         }
-        if (_bootstrapBytes is not { Length: > 0 } bootstrapBytes)
-        {
-            return DescriptorProjectionResult.Failure(
-                _bootstrapBytes is null
-                    ? ManagedDistributionPayloadIssue.Unavailable
-                    : ManagedDistributionPayloadIssue.Invalid);
-        }
-        ManagedSetupPayloadAdmissionDescriptorDocument descriptor = projection.Descriptor!;
-        return bootstrapBytes.LongLength == descriptor.Bootstrap.Size &&
-            string.Equals(
-                Convert.ToHexStringLower(SHA256.HashData(bootstrapBytes)),
-                descriptor.Bootstrap.Sha256,
-                StringComparison.Ordinal)
-                ? projection
-                : DescriptorProjectionResult.Failure(ManagedDistributionPayloadIssue.Invalid);
-    }
-
-    private DescriptorProjectionResult ProjectDescriptor()
-    {
-        if (_descriptorBytes is not { Length: > 0 and <= MaximumDescriptorBytes } descriptorBytes)
-        {
-            return DescriptorProjectionResult.Failure(
-                _descriptorBytes is null
-                    ? ManagedDistributionPayloadIssue.Unavailable
-                    : ManagedDistributionPayloadIssue.Invalid);
-        }
+        ManagedSetupEmbeddedBootstrapDocument bootstrap = projection.Descriptor!.Bootstrap;
+        ManagedImmutableBootstrapIdentity identity;
         try
         {
-            using JsonDocument json = EmbeddedVersionManagementSchema.ParseStrict(
-                descriptorBytes,
-                maximumDepth: 12);
-            if (!ManagedSetupPayloadAdmissionSchema.IsValid(json.RootElement))
+            identity = new(
+                bootstrap.InstalledFileName,
+                bootstrap.Size,
+                bootstrap.Sha256);
+        }
+        catch (ArgumentException)
+        {
+            return EntryProjectionResult.Failure(ManagedDistributionPayloadIssue.Invalid);
+        }
+
+        ResourceLengthResult resource = ObserveBootstrapLength();
+        return resource.Issue == ManagedDistributionPayloadIssue.None &&
+            resource.Length == identity.Length
+                ? new(projection, identity, ManagedDistributionPayloadIssue.None)
+                : EntryProjectionResult.Failure(
+                    resource.Issue == ManagedDistributionPayloadIssue.None
+                        ? ManagedDistributionPayloadIssue.Invalid
+                        : resource.Issue);
+    }
+
+    private async ValueTask<DescriptorProjectionResult> ProjectDescriptorAsync(
+        CancellationToken cancellationToken)
+    {
+        Stream? descriptorStream;
+        try
+        {
+            descriptorStream = _openDescriptor();
+        }
+        catch (Exception exception) when (IsResourceUnavailable(exception))
+        {
+            return DescriptorProjectionResult.Failure(ManagedDistributionPayloadIssue.Unavailable);
+        }
+        if (descriptorStream is null)
+        {
+            return DescriptorProjectionResult.Failure(ManagedDistributionPayloadIssue.Unavailable);
+        }
+
+        await using (descriptorStream)
+        {
+            try
+            {
+                if (!descriptorStream.CanRead)
+                {
+                    return DescriptorProjectionResult.Failure(ManagedDistributionPayloadIssue.Invalid);
+                }
+                var buffer = new byte[MaximumDescriptorBytes + 1];
+                int count = 0;
+                while (count < buffer.Length)
+                {
+                    cancellationToken.ThrowIfCancellationRequested();
+                    int read = await descriptorStream.ReadAsync(
+                        buffer.AsMemory(count, buffer.Length - count),
+                        cancellationToken).ConfigureAwait(false);
+                    if (read == 0)
+                    {
+                        break;
+                    }
+                    count += read;
+                }
+                if (count is 0 or > MaximumDescriptorBytes)
+                {
+                    return DescriptorProjectionResult.Failure(ManagedDistributionPayloadIssue.Invalid);
+                }
+                byte[] descriptorBytes = buffer.AsSpan(0, count).ToArray();
+                using JsonDocument json = EmbeddedVersionManagementSchema.ParseStrict(
+                    descriptorBytes,
+                    maximumDepth: 12);
+                if (!ManagedSetupPayloadAdmissionSchema.IsValid(json.RootElement))
+                {
+                    return DescriptorProjectionResult.Failure(ManagedDistributionPayloadIssue.Invalid);
+                }
+                ManagedSetupPayloadAdmissionDescriptorDocument? document = JsonSerializer.Deserialize(
+                    json.RootElement,
+                    PayloadJsonContext.ManagedSetupPayloadAdmissionDescriptorDocument);
+                return document is not null &&
+                    ManagedAppVersion.TryParse(
+                        document.LauncherVersion,
+                        out ManagedAppVersion version) &&
+                    string.Equals(
+                        document.SourceCommit,
+                        document.Bootstrap.SourceCommit,
+                        StringComparison.Ordinal)
+                        ? new(
+                            document,
+                            version,
+                            descriptorBytes.LongLength,
+                            Convert.ToHexStringLower(SHA256.HashData(descriptorBytes)),
+                            ManagedDistributionPayloadIssue.None)
+                        : DescriptorProjectionResult.Failure(
+                            ManagedDistributionPayloadIssue.Invalid);
+            }
+            catch (Exception exception) when (IsResourceUnavailable(exception))
+            {
+                return DescriptorProjectionResult.Failure(ManagedDistributionPayloadIssue.Unavailable);
+            }
+            catch (Exception exception) when (exception is
+                JsonException or ArgumentException or InvalidOperationException)
             {
                 return DescriptorProjectionResult.Failure(ManagedDistributionPayloadIssue.Invalid);
             }
-            ManagedSetupPayloadAdmissionDescriptorDocument? descriptor = JsonSerializer.Deserialize(
-                json.RootElement,
-                PayloadJsonContext.ManagedSetupPayloadAdmissionDescriptorDocument);
-            return descriptor is not null &&
-                ManagedAppVersion.TryParse(
-                    descriptor.LauncherVersion,
-                    out ManagedAppVersion version) &&
-                string.Equals(
-                    descriptor.SourceCommit,
-                    descriptor.Bootstrap.SourceCommit,
-                    StringComparison.Ordinal)
-                    ? new(
-                        descriptor,
-                        version,
-                        descriptorBytes.LongLength,
-                        Convert.ToHexStringLower(SHA256.HashData(descriptorBytes)),
-                        ManagedDistributionPayloadIssue.None)
-                    : DescriptorProjectionResult.Failure(
-                        ManagedDistributionPayloadIssue.Invalid);
-        }
-        catch (Exception exception) when (exception is
-            JsonException or ArgumentException or InvalidOperationException)
-        {
-            return DescriptorProjectionResult.Failure(ManagedDistributionPayloadIssue.Invalid);
         }
     }
 
@@ -225,6 +303,117 @@ public sealed class EmbeddedManagedDistributionPayloadSource : IManagedDistribut
                 descriptor.Bootstrap.InstalledFileName,
                 descriptor.Bootstrap.Size,
                 descriptor.Bootstrap.Sha256));
+    }
+
+    private ResourceLengthResult ObserveBootstrapLength()
+    {
+        Stream? bootstrap;
+        try
+        {
+            bootstrap = _openBootstrap();
+        }
+        catch (Exception exception) when (IsResourceUnavailable(exception))
+        {
+            return new(0, ManagedDistributionPayloadIssue.Unavailable);
+        }
+        if (bootstrap is null)
+        {
+            return new(0, ManagedDistributionPayloadIssue.Unavailable);
+        }
+
+        using (bootstrap)
+        {
+            try
+            {
+                return bootstrap.CanRead
+                    ? new(bootstrap.Length, ManagedDistributionPayloadIssue.None)
+                    : new(0, ManagedDistributionPayloadIssue.Invalid);
+            }
+            catch (Exception exception) when (IsResourceUnavailable(exception))
+            {
+                return new(0, ManagedDistributionPayloadIssue.Unavailable);
+            }
+        }
+    }
+
+    private async ValueTask<BootstrapReadResult> ReadBootstrapExactAsync(
+        ManagedImmutableBootstrapIdentity expected,
+        bool captureBytes,
+        CancellationToken cancellationToken)
+    {
+        Stream? bootstrap;
+        try
+        {
+            bootstrap = _openBootstrap();
+        }
+        catch (Exception exception) when (IsResourceUnavailable(exception))
+        {
+            return BootstrapReadResult.Failure(ManagedDistributionPayloadIssue.Unavailable);
+        }
+        if (bootstrap is null)
+        {
+            return BootstrapReadResult.Failure(ManagedDistributionPayloadIssue.Unavailable);
+        }
+
+        await using (bootstrap)
+        {
+            try
+            {
+                if (!bootstrap.CanRead || bootstrap.Length != expected.Length)
+                {
+                    return BootstrapReadResult.Failure(ManagedDistributionPayloadIssue.Invalid);
+                }
+
+                byte[]? captured = captureBytes ? new byte[checked((int)expected.Length)] : null;
+                byte[] readBuffer = captureBytes ? captured! : new byte[64 * 1024];
+                using IncrementalHash hash = IncrementalHash.CreateHash(HashAlgorithmName.SHA256);
+                long remaining = expected.Length;
+                int capturedOffset = 0;
+                while (remaining > 0)
+                {
+                    cancellationToken.ThrowIfCancellationRequested();
+                    int requested = (int)Math.Min(remaining, readBuffer.Length);
+                    Memory<byte> destination = captureBytes
+                        ? readBuffer.AsMemory(capturedOffset, requested)
+                        : readBuffer.AsMemory(0, requested);
+                    int read = await bootstrap.ReadAsync(destination, cancellationToken)
+                        .ConfigureAwait(false);
+                    if (read == 0)
+                    {
+                        return BootstrapReadResult.Failure(ManagedDistributionPayloadIssue.Invalid);
+                    }
+                    hash.AppendData(destination.Span[..read]);
+                    remaining -= read;
+                    capturedOffset += read;
+                }
+
+                var probe = new byte[1];
+                if (await bootstrap.ReadAsync(probe, cancellationToken).ConfigureAwait(false) != 0)
+                {
+                    return BootstrapReadResult.Failure(ManagedDistributionPayloadIssue.Invalid);
+                }
+                string sha256 = Convert.ToHexStringLower(hash.GetHashAndReset());
+                return string.Equals(sha256, expected.Sha256, StringComparison.Ordinal)
+                    ? new(captured, ManagedDistributionPayloadIssue.None)
+                    : BootstrapReadResult.Failure(ManagedDistributionPayloadIssue.Invalid);
+            }
+            catch (Exception exception) when (IsResourceUnavailable(exception))
+            {
+                return BootstrapReadResult.Failure(ManagedDistributionPayloadIssue.Unavailable);
+            }
+        }
+    }
+
+    private static Func<Stream?> CreateMemoryFactory(ReadOnlyMemory<byte>? bytes)
+    {
+        byte[]? captured = bytes?.ToArray();
+        return () => captured is null ? null : new MemoryStream(captured, writable: false);
+    }
+
+    private static bool IsResourceUnavailable(Exception exception)
+    {
+        return exception is IOException or UnauthorizedAccessException or NotSupportedException or
+            ObjectDisposedException;
     }
 
     private static ManagedDistributionPayloadIssue MapMeasurementIssue(
@@ -254,6 +443,37 @@ public sealed class EmbeddedManagedDistributionPayloadSource : IManagedDistribut
         internal static DescriptorProjectionResult Failure(ManagedDistributionPayloadIssue issue)
         {
             return new(null, default, 0, string.Empty, issue);
+        }
+    }
+
+    private sealed record EntryProjectionResult(
+        DescriptorProjectionResult? Descriptor,
+        ManagedImmutableBootstrapIdentity? Bootstrap,
+        ManagedDistributionPayloadIssue Issue)
+    {
+        internal bool IsSuccess =>
+            Descriptor?.IsSuccess == true && Bootstrap is not null &&
+            Issue == ManagedDistributionPayloadIssue.None;
+
+        internal static EntryProjectionResult Failure(ManagedDistributionPayloadIssue issue)
+        {
+            return new(null, null, issue);
+        }
+    }
+
+    private readonly record struct ResourceLengthResult(
+        long Length,
+        ManagedDistributionPayloadIssue Issue);
+
+    private sealed record BootstrapReadResult(
+        byte[]? Bytes,
+        ManagedDistributionPayloadIssue Issue)
+    {
+        internal bool IsSuccess => Issue == ManagedDistributionPayloadIssue.None;
+
+        internal static BootstrapReadResult Failure(ManagedDistributionPayloadIssue issue)
+        {
+            return new(null, issue);
         }
     }
 

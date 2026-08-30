@@ -55,7 +55,7 @@
       ],
       "properties": {
         "installedFileName": { "const": "NvtFwCombiner.Bootstrap.exe" },
-        "size": { "type": "integer", "minimum": 1 },
+        "size": { "type": "integer", "minimum": 1, "maximum": 200000000 },
         "sha256": { "type": "string", "pattern": "^[0-9a-f]{64}$" },
         "versionManagementProtocolVersion": { "const": 1 }
       }

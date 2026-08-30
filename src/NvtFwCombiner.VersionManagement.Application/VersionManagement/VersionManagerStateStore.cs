@@ -83,17 +83,9 @@ public sealed class VersionManagerWriteLeaseResult : IDisposable
     }
 }
 
-/// <summary>Atomic persistence port for launcher-owned managed-version state.</summary>
-public interface IVersionManagerStateStore
+/// <summary>Read-only persistence port for one validated managed-version state snapshot.</summary>
+public interface IVersionManagerStateReader
 {
-    /// <summary>Tries to own the store's canonical state path across one complete transaction.</summary>
-    /// <param name="waitTimeout">Maximum bounded contention wait.</param>
-    /// <param name="cancellationToken">Cancellation token.</param>
-    /// <returns>An exclusive lease or a typed busy/unavailable outcome.</returns>
-    ValueTask<VersionManagerWriteLeaseResult> TryAcquireWriteLeaseAsync(
-        TimeSpan waitTimeout,
-        CancellationToken cancellationToken);
-
     /// <summary>
     /// Loads state without guessing missing version identities. Implementations must return
     /// their ValueTask promptly and honor cancellation; callers may isolate and abandon a
@@ -102,6 +94,18 @@ public interface IVersionManagerStateStore
     /// <param name="cancellationToken">Cancellation token.</param>
     /// <returns>The fail-closed state result.</returns>
     ValueTask<VersionManagerStateLoadResult> LoadAsync(CancellationToken cancellationToken);
+}
+
+/// <summary>Atomic persistence port for launcher-owned managed-version state.</summary>
+public interface IVersionManagerStateStore : IVersionManagerStateReader
+{
+    /// <summary>Tries to own the store's canonical state path across one complete transaction.</summary>
+    /// <param name="waitTimeout">Maximum bounded contention wait.</param>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    /// <returns>An exclusive lease or a typed busy/unavailable outcome.</returns>
+    ValueTask<VersionManagerWriteLeaseResult> TryAcquireWriteLeaseAsync(
+        TimeSpan waitTimeout,
+        CancellationToken cancellationToken);
 
     /// <summary>Atomically saves one validated state snapshot.</summary>
     /// <param name="state">Validated immutable state.</param>

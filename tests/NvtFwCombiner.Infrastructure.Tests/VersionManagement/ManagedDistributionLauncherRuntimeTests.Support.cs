@@ -46,6 +46,15 @@ public sealed partial class ManagedDistributionLauncherRuntimeTests
 
     private static byte[] PayloadDescriptor(byte[] bootstrap)
     {
+        return PayloadDescriptor(bootstrap.LongLength, Hash(bootstrap));
+    }
+
+    private static byte[] PayloadDescriptor(
+        long bootstrapSize,
+        string bootstrapSha256,
+        string? sourceCommit = null)
+    {
+        sourceCommit ??= new string('c', 40);
         return JsonSerializer.SerializeToUtf8Bytes(new
         {
             schemaVersion = "1.0",
@@ -54,15 +63,15 @@ public sealed partial class ManagedDistributionLauncherRuntimeTests
             launcherSetupProtocolVersion = 1,
             launcherVersion = "1.0.4",
             runtimeIdentifier = "win-x64",
-            sourceCommit = new string('c', 40),
+            sourceCommit,
             bootstrap = new
             {
                 resourceName = "NvtFwCombiner.DistributionLauncher.Payload.NvtFwCombiner.Bootstrap.exe",
                 installedFileName = "NvtFwCombiner.Bootstrap.exe",
-                size = bootstrap.LongLength,
-                sha256 = Hash(bootstrap),
+                size = bootstrapSize,
+                sha256 = bootstrapSha256,
                 versionManagementProtocolVersion = 1,
-                sourceCommit = new string('c', 40),
+                sourceCommit,
             },
         });
     }
@@ -180,6 +189,129 @@ public sealed partial class ManagedDistributionLauncherRuntimeTests
 
         public void Dispose()
         {
+        }
+    }
+
+    private sealed class TrackingResource(byte[]? bytes)
+    {
+        internal bool CanRead { get; init; } = true;
+        internal bool CanSeek { get; init; } = true;
+        internal int BytesRead { get; private set; }
+        internal int LengthReadCount { get; private set; }
+        internal int MaximumReadChunk { get; init; } = int.MaxValue;
+        internal int OpenCount { get; private set; }
+        internal Func<Exception>? OpenException { get; init; }
+        internal Func<Exception>? LengthException { get; init; }
+        internal Func<Exception>? ReadException { get; init; }
+        internal long? ReportedLength { get; init; }
+
+        internal TrackingResourceStream? Open()
+        {
+            OpenCount++;
+            return OpenException is not null
+                ? throw OpenException()
+                : bytes is null
+                    ? null
+                    : new TrackingResourceStream(this, bytes);
+        }
+
+        internal long ObserveLength(long actual)
+        {
+            LengthReadCount++;
+            return LengthException is not null
+                ? throw LengthException()
+                : ReportedLength ?? actual;
+        }
+
+        internal int Read(Memory<byte> destination, MemoryStream source)
+        {
+            if (ReadException is not null)
+            {
+                throw ReadException();
+            }
+            int requested = Math.Min(destination.Length, MaximumReadChunk);
+            int read = source.Read(destination.Span[..requested]);
+            BytesRead += read;
+            return read;
+        }
+    }
+
+    private sealed class TrackingResourceStream : Stream
+    {
+        private readonly TrackingResource _owner;
+        private readonly MemoryStream _source;
+
+        internal TrackingResourceStream(TrackingResource owner, byte[] bytes)
+        {
+            _owner = owner;
+            _source = new MemoryStream(bytes, writable: false);
+        }
+
+        public override bool CanRead => _owner.CanRead;
+        public override bool CanSeek => _owner.CanSeek;
+        public override bool CanWrite => false;
+        public override long Length => _owner.ObserveLength(_source.Length);
+        public override long Position
+        {
+            get => _source.Position;
+            set => _source.Position = value;
+        }
+
+        public override void Flush()
+        {
+        }
+
+        public override int Read(byte[] buffer, int offset, int count)
+        {
+            return _owner.Read(buffer.AsMemory(offset, count), _source);
+        }
+
+        public override int Read(Span<byte> buffer)
+        {
+            var temporary = new byte[buffer.Length];
+            int read = _owner.Read(temporary, _source);
+            temporary.AsSpan(0, read).CopyTo(buffer);
+            return read;
+        }
+
+        public override ValueTask<int> ReadAsync(
+            Memory<byte> buffer,
+            CancellationToken cancellationToken = default)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            return ValueTask.FromResult(_owner.Read(buffer, _source));
+        }
+
+        public override long Seek(long offset, SeekOrigin origin)
+        {
+            return _owner.CanSeek
+                ? _source.Seek(offset, origin)
+                : throw new NotSupportedException();
+        }
+
+        public override void SetLength(long value)
+        {
+            throw new NotSupportedException();
+        }
+
+        public override void Write(byte[] buffer, int offset, int count)
+        {
+            throw new NotSupportedException();
+        }
+
+        protected override void Dispose(bool disposing)
+        {
+            if (disposing)
+            {
+                _source.Dispose();
+            }
+            base.Dispose(disposing);
+        }
+
+        public override async ValueTask DisposeAsync()
+        {
+            await _source.DisposeAsync();
+            await base.DisposeAsync();
         }
     }
 

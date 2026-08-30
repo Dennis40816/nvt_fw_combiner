@@ -17,16 +17,26 @@ internal enum WindowsStableCustodyIssue
 internal enum WindowsStableCustodyStage
 {
     BeforeRootOpen,
+    AfterMissingRootObservation,
     AfterTreeCaptured,
 }
 internal sealed record WindowsStableCustodyResult(
     WindowsStablePathCustody? Custody,
-    WindowsStableCustodyIssue Issue)
+    WindowsStableCustodyIssue Issue,
+    bool IsExactChildMissing = false)
 {
     internal bool IsAcquired => Custody is not null && Issue == WindowsStableCustodyIssue.None;
     internal static WindowsStableCustodyResult Failure(WindowsStableCustodyIssue issue)
     {
         return new(null, issue);
+    }
+
+    internal static WindowsStableCustodyResult MissingExactChild()
+    {
+        return new(
+            Custody: null,
+            Issue: WindowsStableCustodyIssue.Unavailable,
+            IsExactChildMissing: true);
     }
 }
 internal readonly record struct WindowsStableTreeLimits
@@ -508,6 +518,12 @@ internal sealed partial class WindowsStablePathCustody : IDisposable
                 WindowsStableCustodyIssue.Unavailable,
             _ => WindowsStableCustodyIssue.Unavailable,
         };
+    }
+
+    internal static bool IsExactChildMissingStatus(int status)
+    {
+        return status is NativeMethods.StatusObjectNameNotFound or
+            NativeMethods.StatusObjectPathNotFound;
     }
 
     private static WindowsStableCustodyIssue MapWin32Error(int error)

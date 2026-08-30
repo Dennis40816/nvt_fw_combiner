@@ -10,6 +10,65 @@ public sealed partial class ManagedLauncherEntryCoordinatorTests
         1024,
         new string('b', 64));
 
+    /// <summary>Typed payload failures stop before state, root, or process access.</summary>
+    [Theory]
+    [InlineData(ManagedDistributionPayloadIssue.Unavailable, ManagedLauncherEntryOutcome.PayloadUnavailable)]
+    [InlineData(ManagedDistributionPayloadIssue.Invalid, ManagedLauncherEntryOutcome.PayloadInvalid)]
+    [InlineData(ManagedDistributionPayloadIssue.Changed, ManagedLauncherEntryOutcome.PayloadInvalid)]
+    public async Task PayloadFailureStopsBeforeLocalHealthAndHandoff(
+        ManagedDistributionPayloadIssue issue,
+        ManagedLauncherEntryOutcome expected)
+    {
+        string root = Root($"payload-{issue}");
+        var payload = new EntryPayloadSource { AdmissionIssue = issue };
+        var state = new EntryStateStore(BoundState(root));
+        var roots = new RecordingRootProbe(ManagedInstallationRootStatus.Present);
+        var handoff = new RecordingBootstrapHandoff(ImmutableBootstrapCompletionOutcome.Ready);
+        ManagedLauncherEntryCoordinator coordinator = Create(
+            root,
+            state,
+            roots,
+            handoff,
+            payloadSource: payload);
+
+        ManagedLauncherEntryResult result = await coordinator.RunAsync(
+            TestContext.Current.CancellationToken);
+
+        Assert.Equal(expected, result.Outcome);
+        Assert.Equal(1, payload.AdmissionCount);
+        Assert.Equal(0, state.LoadCount);
+        Assert.Equal(0, roots.ObserveCount);
+        Assert.Equal(0, handoff.StartCount);
+    }
+
+    /// <summary>The embedded descriptor version is bound to the running Launcher before health I/O.</summary>
+    [Fact]
+    public async Task PayloadLauncherVersionMismatchStopsBeforeLocalHealth()
+    {
+        string root = Root("payload-version-mismatch");
+        var payload = new EntryPayloadSource
+        {
+            LauncherVersion = ManagedAppVersion.Parse("1.0.5"),
+        };
+        var state = new EntryStateStore(BoundState(root));
+        var roots = new RecordingRootProbe(ManagedInstallationRootStatus.Present);
+        var handoff = new RecordingBootstrapHandoff(ImmutableBootstrapCompletionOutcome.Ready);
+        ManagedLauncherEntryCoordinator coordinator = Create(
+            root,
+            state,
+            roots,
+            handoff,
+            payloadSource: payload);
+
+        ManagedLauncherEntryResult result = await coordinator.RunAsync(
+            TestContext.Current.CancellationToken);
+
+        Assert.Equal(ManagedLauncherEntryOutcome.PayloadInvalid, result.Outcome);
+        Assert.Equal(0, state.LoadCount);
+        Assert.Equal(0, roots.ObserveCount);
+        Assert.Equal(0, handoff.StartCount);
+    }
+
     /// <summary>A bound installation immediately delegates to immutable Bootstrap.</summary>
     [Fact]
     public async Task HealthyBoundStateUsesOnlyBoundedRootProbeAndNoWriterLease()

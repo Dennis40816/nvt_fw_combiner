@@ -8,7 +8,7 @@ internal sealed record ManagedLauncherIdentity
     /// <summary>Only admitted launcher executable path.</summary>
     public const string ExecutablePath = "launcher/NvtFwCombiner.Launcher.exe";
     /// <summary>Maximum admitted launcher executable length.</summary>
-    public const long MaximumExecutableBytes = 80_000_000;
+    public const long MaximumExecutableBytes = ManagedImmutableBootstrapIdentity.MaximumExecutableBytes;
 
     private ManagedLauncherIdentity(
         ManagedAppVersion ownerAppVersion,

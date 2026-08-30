@@ -6,6 +6,123 @@ namespace NvtFwCombiner.Application.Tests.VersionManagement;
 
 public sealed partial class ManagedLauncherEntryCoordinatorTests
 {
+    /// <summary>An uncooperative payload read cannot run before or beyond the health deadline.</summary>
+    [Fact]
+    public async Task UncooperativePayloadAdmissionIsAbandonedAtHealthDeadline()
+    {
+        string root = Root("uncooperative-payload");
+        var time = new ManualTimeProvider();
+        var payload = new PendingPayloadSource();
+        var state = new EntryStateStore(BoundState(root));
+        var roots = new RecordingRootProbe(ManagedInstallationRootStatus.Present);
+        var handoff = new RecordingBootstrapHandoff(ImmutableBootstrapCompletionOutcome.Ready);
+        ManagedLauncherEntryCoordinator coordinator = Create(
+            root,
+            state,
+            roots,
+            handoff,
+            admissionDeadline: TimeSpan.FromSeconds(1),
+            healthObservationDeadline: TimeSpan.FromMilliseconds(250),
+            timeProvider: time,
+            payloadSource: payload);
+
+        Task<ManagedLauncherEntryResult> running = coordinator.RunAsync(
+            TestContext.Current.CancellationToken).AsTask();
+        await payload.Entered.WaitAsync(TestContext.Current.CancellationToken);
+        time.Advance(TimeSpan.FromMilliseconds(250));
+
+        ManagedLauncherEntryResult result = await running.WaitAsync(
+            TestContext.Current.CancellationToken);
+        Assert.Equal(ManagedLauncherEntryOutcome.HealthUnavailable, result.Outcome);
+        Assert.Equal(0, state.LoadCount);
+        Assert.Equal(0, roots.ObserveCount);
+        Assert.Equal(0, handoff.StartCount);
+
+        payload.Complete();
+        await payload.Returned.WaitAsync(TestContext.Current.CancellationToken);
+        Assert.Equal(0, state.LoadCount);
+    }
+
+    /// <summary>Payload, state, and root share one absolute 250 ms health budget.</summary>
+    [Fact]
+    public async Task PayloadAndStateShareOneAbsoluteHealthDeadline()
+    {
+        string root = Root("shared-payload-state-deadline");
+        var time = new ManualTimeProvider();
+        var payload = new EntryPayloadSource
+        {
+            AdmissionAction = () => time.Advance(TimeSpan.FromMilliseconds(200)),
+        };
+        var state = new PendingStateStore();
+        var roots = new RecordingRootProbe(ManagedInstallationRootStatus.Present);
+        var handoff = new RecordingBootstrapHandoff(ImmutableBootstrapCompletionOutcome.Ready);
+        ManagedLauncherEntryCoordinator coordinator = Create(
+            root,
+            state,
+            roots,
+            handoff,
+            admissionDeadline: TimeSpan.FromSeconds(1),
+            healthObservationDeadline: TimeSpan.FromMilliseconds(250),
+            timeProvider: time,
+            payloadSource: payload);
+
+        Task<ManagedLauncherEntryResult> running = coordinator.RunAsync(
+            TestContext.Current.CancellationToken).AsTask();
+        await state.Entered.WaitAsync(TestContext.Current.CancellationToken);
+        time.Advance(TimeSpan.FromMilliseconds(49));
+        Assert.False(running.IsCompleted);
+        time.Advance(TimeSpan.FromMilliseconds(1));
+
+        ManagedLauncherEntryResult result = await running.WaitAsync(
+            TestContext.Current.CancellationToken);
+        Assert.Equal(ManagedLauncherEntryOutcome.HealthUnavailable, result.Outcome);
+        Assert.Equal(0, roots.ObserveCount);
+        Assert.Equal(0, handoff.StartCount);
+
+        state.Complete(BoundState(root));
+        await state.Returned.WaitAsync(TestContext.Current.CancellationToken);
+        Assert.Equal(0, roots.ObserveCount);
+    }
+
+    /// <summary>Payload, state, and root consume one deadline without a root-stage reset.</summary>
+    [Fact]
+    public async Task PayloadStateAndRootShareOneAbsoluteHealthDeadline()
+    {
+        string root = Root("shared-payload-state-root-deadline");
+        var time = new ManualTimeProvider();
+        var payload = new EntryPayloadSource
+        {
+            AdmissionAction = () => time.Advance(TimeSpan.FromMilliseconds(200)),
+        };
+        var roots = new PendingRootProbe();
+        var handoff = new RecordingBootstrapHandoff(ImmutableBootstrapCompletionOutcome.Ready);
+        ManagedLauncherEntryCoordinator coordinator = Create(
+            root,
+            new EntryStateStore(BoundState(root)),
+            roots,
+            handoff,
+            admissionDeadline: TimeSpan.FromSeconds(1),
+            healthObservationDeadline: TimeSpan.FromMilliseconds(250),
+            timeProvider: time,
+            payloadSource: payload);
+
+        Task<ManagedLauncherEntryResult> running = coordinator.RunAsync(
+            TestContext.Current.CancellationToken).AsTask();
+        await roots.Entered.WaitAsync(TestContext.Current.CancellationToken);
+        time.Advance(TimeSpan.FromMilliseconds(49));
+        Assert.False(running.IsCompleted);
+        time.Advance(TimeSpan.FromMilliseconds(1));
+
+        ManagedLauncherEntryResult result = await running.WaitAsync(
+            TestContext.Current.CancellationToken);
+        Assert.Equal(ManagedLauncherEntryOutcome.HealthUnavailable, result.Outcome);
+        Assert.Equal(0, handoff.StartCount);
+
+        roots.Complete(ManagedInstallationRootStatus.Present);
+        await roots.Returned.WaitAsync(TestContext.Current.CancellationToken);
+        Assert.Equal(0, handoff.StartCount);
+    }
+
     /// <summary>An uncooperative state read cannot hold the entry path past 250 ms.</summary>
     [Fact]
     public async Task UncooperativeStateLoadIsAbandonedAtHealthDeadline()
@@ -26,6 +143,7 @@ public sealed partial class ManagedLauncherEntryCoordinatorTests
 
         Task<ManagedLauncherEntryResult> running = coordinator.RunAsync(
             TestContext.Current.CancellationToken).AsTask();
+        await state.Entered.WaitAsync(TestContext.Current.CancellationToken);
         Assert.False(running.IsCompleted);
 
         time.Advance(TimeSpan.FromMilliseconds(249));
@@ -124,6 +242,7 @@ public sealed partial class ManagedLauncherEntryCoordinatorTests
             handoff);
 
         Task<ManagedLauncherEntryResult> running = coordinator.RunAsync(cancellation.Token).AsTask();
+        await state.Entered.WaitAsync(TestContext.Current.CancellationToken);
         cancellation.Cancel();
 
         _ = await Assert.ThrowsAnyAsync<OperationCanceledException>(async () => await running);
@@ -169,9 +288,12 @@ public sealed partial class ManagedLauncherEntryCoordinatorTests
             new(TaskCreationOptions.RunContinuationsAsynchronously);
         private readonly TaskCompletionSource _returned =
             new(TaskCreationOptions.RunContinuationsAsynchronously);
+        private readonly TaskCompletionSource _entered =
+            new(TaskCreationOptions.RunContinuationsAsynchronously);
 
         internal Task Pending => _pending.Task;
         internal Task Returned => _returned.Task;
+        internal Task Entered => _entered.Task;
 
         internal void Complete(VersionManagerState state)
         {
@@ -181,6 +303,7 @@ public sealed partial class ManagedLauncherEntryCoordinatorTests
         public async ValueTask<VersionManagerStateLoadResult> LoadAsync(
             CancellationToken cancellationToken)
         {
+            _ = _entered.TrySetResult();
             try
             {
                 return await _pending.Task.ConfigureAwait(false);
@@ -203,6 +326,54 @@ public sealed partial class ManagedLauncherEntryCoordinatorTests
             CancellationToken cancellationToken)
         {
             throw new InvalidOperationException();
+        }
+    }
+
+    private sealed class PendingPayloadSource : IManagedDistributionPayloadSource
+    {
+        private readonly TaskCompletionSource<ManagedDistributionPayloadEntryAdmissionResult> _pending =
+            new(TaskCreationOptions.RunContinuationsAsynchronously);
+        private readonly TaskCompletionSource _entered =
+            new(TaskCreationOptions.RunContinuationsAsynchronously);
+        private readonly TaskCompletionSource _returned =
+            new(TaskCreationOptions.RunContinuationsAsynchronously);
+
+        internal Task Entered => _entered.Task;
+        internal Task Returned => _returned.Task;
+
+        internal void Complete()
+        {
+            _ = _pending.TrySetResult(new(
+                ManagedAppVersion.Parse("1.0.4"),
+                Bootstrap,
+                ManagedDistributionPayloadIssue.None));
+        }
+
+        public async ValueTask<ManagedDistributionPayloadEntryAdmissionResult> AdmitEntryAsync(
+            CancellationToken cancellationToken)
+        {
+            _ = _entered.TrySetResult();
+            try
+            {
+                return await _pending.Task.ConfigureAwait(false);
+            }
+            finally
+            {
+                _ = _returned.TrySetResult();
+            }
+        }
+
+        public ValueTask<ManagedDistributionPayloadInspectionResult> InspectAsync(
+            CancellationToken cancellationToken)
+        {
+            throw new InvalidOperationException("Entry routing must not inspect payload content.");
+        }
+
+        public ValueTask<ManagedDistributionPayloadCaptureResult> CaptureExactAsync(
+            ManagedDistributionPayloadIdentity expected,
+            CancellationToken cancellationToken)
+        {
+            throw new InvalidOperationException("Entry routing must not capture payload content.");
         }
     }
 

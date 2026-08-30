@@ -87,7 +87,14 @@ binding, stable Bootstrap launch, and READY before the Launcher is publishable.
 
 The user-facing Launcher first performs bounded local-only entry admission. A
 healthy run must make zero Registry, Catalog, package, network, and full
-inventory calls. Local state/exact-root classification must meet 100 ms P95 and
+inventory calls. It reads no more than 64 KiB plus one rejection byte from the
+embedded descriptor, accepts an embedded Bootstrap declaration only from 1
+through 200,000,000 bytes, checks only exact resource existence/length, and reads
+zero Bootstrap content bytes. Descriptor projection, state load, and exact-root
+observation share the same absolute 250 ms cutoff. Full Bootstrap streaming
+hash/capture begins only after Setup preparation. The executable ceiling is a
+memory-safety admission bound, not a Launcher ZIP-size optimization gate.
+Local state/exact-root classification must meet 100 ms P95 and
 stop at its 250 ms hard cutoff; progress appears only after 250 ms. Executables
 are hashed once through stable custody, and the path returns a typed non-Setup
 failure at the two-second local deadline. Admission reserves its final 0.5

@@ -44,9 +44,9 @@ internal sealed partial class WindowsStablePathCustody
                 DisposeHandles(handles);
                 return WindowsStableCustodyResult.Failure(ancestorIssue);
             }
-            testHook?.Invoke(WindowsStableCustodyStage.BeforeRootOpen);
             bool rootIsDirectory = relativeFileName is null;
             string rootName = Path.GetFileName(rootPath);
+            testHook?.Invoke(WindowsStableCustodyStage.BeforeRootOpen);
             int rootStatus = OpenRelative(
                 parentHandle,
                 rootName,
@@ -56,6 +56,36 @@ internal sealed partial class WindowsStablePathCustody
                 allowDeleteShare: kind == AcquisitionKind.PromotableTree,
                 requestDeleteAccess: false,
                 out SafeFileHandle rootHandle);
+            if (IsExactChildMissingStatus(rootStatus))
+            {
+                rootHandle.Dispose();
+                testHook?.Invoke(WindowsStableCustodyStage.AfterMissingRootObservation);
+                int confirmedStatus = OpenRelative(
+                    parentHandle,
+                    rootName,
+                    rootIsDirectory,
+                    writableParent: kind == AcquisitionKind.WritableParent,
+                    allowWriteShare: kind == AcquisitionKind.WritableParent,
+                    allowDeleteShare: kind == AcquisitionKind.PromotableTree,
+                    requestDeleteAccess: false,
+                    out rootHandle);
+                if (confirmedStatus == NativeMethods.StatusSuccess)
+                {
+                    rootHandle.Dispose();
+                    DisposeHandles(handles);
+                    return WindowsStableCustodyResult.Failure(WindowsStableCustodyIssue.Changed);
+                }
+                if (IsExactChildMissingStatus(confirmedStatus))
+                {
+                    rootHandle.Dispose();
+                    DisposeHandles(handles);
+                    return kind == AcquisitionKind.SingleFile
+                        ? WindowsStableCustodyResult.MissingExactChild()
+                        : WindowsStableCustodyResult.Failure(
+                            WindowsStableCustodyIssue.Unavailable);
+                }
+                rootStatus = confirmedStatus;
+            }
             if (rootStatus != NativeMethods.StatusSuccess)
             {
                 rootHandle.Dispose();

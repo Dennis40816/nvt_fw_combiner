@@ -251,40 +251,6 @@ public sealed partial class FileSystemManagedFirstInstallationRootMaterializer
             Issue == ManagedFirstInstallationMaterializationIssue.None;
     }
 
-    private static ManagedSetupTransactionDocument? ParseMarker(ReadOnlyMemory<byte> bytes)
-    {
-        using JsonDocument document = EmbeddedVersionManagementSchema.ParseStrict(bytes, maximumDepth: 16);
-        return ManagedSetupTransactionSchema.IsValid(document.RootElement)
-            ? JsonSerializer.Deserialize(
-                document.RootElement,
-                MarkerJsonContext.ManagedSetupTransactionDocument)
-            : null;
-    }
-
-    private static byte[] SerializeMarker(ManagedSetupTransactionDocument marker)
-    {
-        byte[] bytes = JsonSerializer.SerializeToUtf8Bytes(
-            marker,
-            MarkerJsonContext.ManagedSetupTransactionDocument);
-        return bytes.Length <= MaximumMarkerBytes && ParseMarker(bytes) is not null
-            ? bytes
-            : throw new InvalidDataException("Setup marker violated its canonical schema.");
-    }
-
-    private static async ValueTask<ManagedSetupTransactionDocument?> ReadMarkerAsync(
-        FileStream stream,
-        CancellationToken cancellationToken)
-    {
-        if (stream.Length is < 1 or > MaximumMarkerBytes)
-        {
-            return null;
-        }
-        byte[] bytes = new byte[checked((int)stream.Length)];
-        stream.Position = 0;
-        await stream.ReadExactlyAsync(bytes, cancellationToken).ConfigureAwait(false);
-        return stream.Position == stream.Length ? ParseMarker(bytes) : null;
-    }
-
     private static async ValueTask<ExactMarkerDeleteResult> DeleteExactMarkerAsync(
         FileStream stream,
         ManagedSetupTransactionDocument expected,
@@ -302,7 +268,8 @@ public sealed partial class FileSystemManagedFirstInstallationRootMaterializer
         ManagedSetupTransactionDocument? actual;
         try
         {
-            actual = await ReadMarkerAsync(stream, cancellationToken).ConfigureAwait(false);
+            actual = await ManagedSetupTransactionCodec.ReadAsync(stream, cancellationToken)
+                .ConfigureAwait(false);
         }
         catch (Exception exception) when (exception is
             JsonException or InvalidDataException or InvalidOperationException)
@@ -341,9 +308,10 @@ public sealed partial class FileSystemManagedFirstInstallationRootMaterializer
         Action? afterTopologyProof,
         CancellationToken cancellationToken)
     {
-        byte[] bytes = SerializeMarker(replacement);
-        ManagedSetupTransactionDocument? actual = await ReadMarkerAsync(stream, cancellationToken)
-            .ConfigureAwait(false);
+        byte[] bytes = ManagedSetupTransactionCodec.Serialize(replacement);
+        ManagedSetupTransactionDocument? actual = await ManagedSetupTransactionCodec.ReadAsync(
+            stream,
+            cancellationToken).ConfigureAwait(false);
         if (actual is null || !ManagedSetupTransactionDocument.Equivalent(actual, expected))
         {
             throw new InvalidDataException("Setup marker identity or phase changed.");

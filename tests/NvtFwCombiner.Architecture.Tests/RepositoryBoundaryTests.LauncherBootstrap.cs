@@ -1,7 +1,89 @@
+using System.Text.Json;
+
 namespace NvtFwCombiner.Architecture.Tests;
 
 public sealed partial class RepositoryBoundaryTests
 {
+    /// <summary>The public Launcher remains a thin host over the single Bootstrap graph.</summary>
+    [Fact]
+    public void DistributionLauncherUsesOneBootstrapOwnedCompositionGraph()
+    {
+        string solution = ReadText("NvtFwCombiner.slnx");
+        string project = ReadText(
+            "src/NvtFwCombiner.DistributionLauncher/NvtFwCombiner.DistributionLauncher.csproj");
+        string program = ReadText("src/NvtFwCombiner.DistributionLauncher/Program.cs");
+        string host = ReadText(
+            "src/NvtFwCombiner.Bootstrap/ManagedDistributionLauncherHostServices.cs");
+        string payloadSource = ReadText(
+            "src/NvtFwCombiner.VersionManagement.Infrastructure/VersionManagement/ManagedDistributionLauncherRuntime.cs");
+        string handoff = ReadText(
+            "src/NvtFwCombiner.VersionManagement.Infrastructure/VersionManagement/StableLauncherHandoff.cs");
+
+        AssertContainsAll(
+            solution,
+            "src/NvtFwCombiner.DistributionLauncher/NvtFwCombiner.DistributionLauncher.csproj");
+        AssertContainsAll(
+            project,
+            "<OutputType>WinExe</OutputType>",
+            "NvtFwCombiner.Bootstrap",
+            "NvtFwCombiner.DistributionLauncher.Payload.managed-setup-payload-admission.v1.json",
+            "NvtFwCombiner.DistributionLauncher.Payload.NvtFwCombiner.Bootstrap.exe");
+        AssertDoesNotContainAny(
+            project,
+            "NvtFwCombiner.VersionManagement.Infrastructure\\",
+            "NvtFwCombiner.Desktop",
+            "PackageReference");
+        AssertContainsAll(
+            program,
+            "ManagedDistributionLauncherHostServices.Create()",
+            ".RunAsync(CancellationToken.None)",
+            "DistributionLauncherExitCode");
+        AssertDoesNotContainAny(
+            program,
+            "UpdateSourceRegistryLocator",
+            "FileSystemUpdateCatalogSource",
+            "FileSystemManagedVersionRepository",
+            "JsonVersionManagerStateStore");
+        AssertContainsAll(
+            host,
+            "Environment.ProcessPath",
+            "Assembly.GetEntryAssembly()",
+            "UpdateSourceRegistryLocator.ResolveAll(",
+            "new JsonVersionManagerStateStore(",
+            "new FileSystemManagedInstallationRootProbe()",
+            "new EmbeddedManagedDistributionPayloadSource(",
+            "new VersionManagementExperience(",
+            "new FileSystemManagedFirstInstallationRootMaterializer(repository)",
+            "new StableLauncherHandoff(",
+            "ManagedLauncherEntryOutcome.SetupRequired ? SetupExperience : null");
+        AssertDoesNotContainAny(
+            host,
+            "JsonDocument",
+            "JsonSerializer",
+            "SHA256",
+            "MemoryStream",
+            ".CopyTo(",
+            "Task.Run",
+            "CancellationTokenSource",
+            "File.ReadAllBytes",
+            "File.ReadAllText");
+        Assert.Equal(
+            1,
+            CountOccurrences(payloadSource, "public EmbeddedManagedDistributionPayloadSource("));
+        Assert.Contains(
+            "internal EmbeddedManagedDistributionPayloadSource(",
+            payloadSource,
+            StringComparison.Ordinal);
+        Assert.Contains(
+            "string launcher = Path.Combine(_managedRoot, \"NvtFwCombiner.Bootstrap.exe\")",
+            handoff,
+            StringComparison.Ordinal);
+        Assert.DoesNotContain(
+            "PathComparer.Equals(requestedRoot, _managedRoot)",
+            handoff,
+            StringComparison.Ordinal);
+    }
+
     /// <summary>The immutable trust anchor is separate from every version-scoped launcher payload.</summary>
     [Fact]
     public void LauncherBootstrapUsesOneWayVersionManagementDependencies()
@@ -321,5 +403,41 @@ public sealed partial class RepositoryBoundaryTests
             "\"versionManagementProtocolVersion\": { \"const\": 1 }",
             "\"path\": { \"const\": \"launcher/NvtFwCombiner.Launcher.exe\" }",
             "\"maxContains\": 1");
+    }
+
+    /// <summary>Every Launcher/Bootstrap schema projects the one canonical 200 MB ceiling.</summary>
+    [Fact]
+    public void LauncherAndBootstrapSchemasShareCanonicalExecutableCeiling()
+    {
+        const long expected = 200_000_000;
+        string identity = ReadText(
+            "src/NvtFwCombiner.VersionManagement.Application/VersionManagement/ManagedLauncherEntry.cs");
+        Assert.Contains(
+            "public const long MaximumExecutableBytes = 200_000_000;",
+            identity,
+            StringComparison.Ordinal);
+        Assert.Equal(expected, SchemaMaximum(
+            "docs/contracts/managed-setup-payload-admission-v1.schema.json",
+            "properties", "bootstrap", "properties", "size", "maximum"));
+        Assert.Equal(expected, SchemaMaximum(
+            "docs/contracts/installer-release-manifest-v1.schema.json",
+            "properties", "embeddedBootstrap", "properties", "size", "maximum"));
+        Assert.Equal(expected, SchemaMaximum(
+            "docs/contracts/launcher-bootstrap-v1.schema.json",
+            "$defs", "identity", "properties", "size", "maximum"));
+        Assert.Equal(expected, SchemaMaximum(
+            "docs/contracts/release-manifest-v1.schema.json",
+            "$defs", "launcher", "properties", "size", "maximum"));
+    }
+
+    private static long SchemaMaximum(string path, params string[] segments)
+    {
+        using JsonDocument schema = JsonDocument.Parse(ReadText(path));
+        JsonElement value = schema.RootElement;
+        foreach (string segment in segments)
+        {
+            value = value.GetProperty(segment);
+        }
+        return value.GetInt64();
     }
 }

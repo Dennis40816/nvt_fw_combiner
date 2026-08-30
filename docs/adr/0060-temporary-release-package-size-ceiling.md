@@ -5,7 +5,8 @@
 - Date: 2026-08-28
 - Owners: Product owner, architecture owner, release owner
 - Risk: R3 release package admission and publication
-- Amends: ADR 0058 package-size decision only
+- Amends: ADR 0058 package-size decision; the 2026-08-30 amendment below
+  changes only managed Launcher/Bootstrap executable safety ceilings
 
 ## Context
 
@@ -35,10 +36,13 @@ not claim that 1.0.0 or 1.0.1 can update to 1.0.2 through Version management.
 After 1.0.2 is running, later packages can use the ordinary verified Catalog
 update path under this temporary ceiling.
 
-The independent 80,000,000-byte ceilings for `NvtFwCombiner.exe`, the managed
-Launcher, and Bootstrap remain unchanged. Closed inventory, package and inner
-manifest hashes, SBOM, provenance, archive bounds, stable-handle rechecks, and
-all firmware/profile/composition semantics remain unchanged.
+The independent 80,000,000-byte ceiling for `NvtFwCombiner.exe` remains
+unchanged. On 2026-08-30 the owner raised the managed Launcher and Bootstrap
+executable safety ceilings to 200,000,000 bytes so modest future growth cannot
+invalidate Setup media. This does not preallocate memory and is not a package-
+size or optimization release gate. Closed inventory, package and inner manifest
+hashes, SBOM, provenance, archive bounds, stable-handle rechecks, and all
+firmware/profile/composition semantics remain unchanged.
 
 The temporary ceiling has an explicit deletion gate. `PKG-SIZE-108-01` must
 produce a reproducible size/startup matrix, and `ZIP-SIZE-108-02` must implement
@@ -52,7 +56,7 @@ the temporary ceiling be replaced by that approved measured limit.
 - 1.0.0 and 1.0.1 remain valid releases, but automatic managed upgrade from
   either version to 1.0.2 is intentionally not supported.
 - The larger ZIP envelope does not authorize new files, weaker hashing, weaker
-  archive validation, or a larger executable.
+  archive validation, or an `NvtFwCombiner.exe` above its existing ceiling.
 - Package-size reduction remains required work rather than becoming an
   unbounded permanent allowance.
 
@@ -62,7 +66,7 @@ the temporary ceiling be replaced by that approved measured limit.
   smoke admit representative stable versions through exactly 134,217,728 bytes
   and reject zero, negative, and 134,217,729-byte declarations.
 - Release smoke continues to reject an application executable above
-  80,000,000 bytes and retains Launcher/Bootstrap executable limits.
+  80,000,000 bytes and retains the 200,000,000-byte Launcher/Bootstrap limits.
 - Closed inventory, archive safety, package/manifest hashes, SBOM, provenance,
   stable-handle/tamper tests, package smoke, and the complete repository verifier
   remain mandatory.

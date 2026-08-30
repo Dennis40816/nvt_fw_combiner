@@ -3,8 +3,9 @@
 Status: Accepted for `SETUP-104-01`
 
 Amends: ADR 0051 and ADR 0056 only for first-install distribution and entry
-routing. Their version-package, activation, rollback, and immutable Bootstrap
-decisions remain authoritative.
+routing, plus ADR 0060 only for the managed Launcher/Bootstrap executable
+safety ceiling. Their version-package, activation, rollback, and immutable
+Bootstrap decisions otherwise remain authoritative.
 
 ## Context
 
@@ -46,6 +47,28 @@ custody, package/root materialization, and process handoff. Presentation only
 renders typed results. The three hosts never reparse Registry, Catalog,
 package, state, or launcher semantics.
 
+The public `NvtFwCombiner.DistributionLauncher.exe` is only a thin process and
+composition root. Bootstrap constructs one shared state store, exact-root
+probe, embedded-payload source, Registry/Catalog/package experience, root
+materializer, and immutable Bootstrap handoff from `Environment.ProcessPath`
+and the two release-owned Registry defaults. Downloaded delivery media uses the
+deterministic `NvtFwCombiner` child of the executable directory while durable
+bound state remains the authority for an installed or user-selected root. A
+development build without both exact embedded resource logical names returns a
+typed payload-unavailable terminal result; it never invents adjacent payload
+inputs. The existing embedded-payload source is the sole descriptor parser and
+projects both the descriptor-owned Launcher version and immutable Bootstrap
+identity. The Application entry coordinator admits that projection inside its
+one local-health budget and requires the declared version to equal the running
+Launcher's informational version. The public host only wires resource stream
+openers; it does not read, parse, hash, cache, or separately time payloads. The
+initial public-host slice intentionally has no Setup UI, shortcut, or release
+packager.
+The conditional MSBuild resource inputs keep ordinary development builds
+possible and fail closed at runtime; the later release-packager slice must add
+the protected publish gate that proves both exact logical resources are present
+before any delivery artifact is accepted.
+
 ### Entry classification
 
 Every invocation first validates the embedded payload-admission descriptor,
@@ -84,13 +107,25 @@ ordinary startup side effect.
 
 Normal startup performs only the local checks required to launch exact code:
 
-1. read bounded strict per-user app and launcher state;
-2. compare the canonical root binding and non-reparse path facts;
-3. parse only the admitted Active version's bounded release manifest;
-4. acquire the exact root Bootstrap and version Launcher through stable
+1. read at most 64 KiB plus one rejection probe from the strict embedded
+   descriptor, admit a declared Bootstrap from 1 through 200,000,000 bytes, and
+   compare only the exact embedded resource's existence and length;
+2. read bounded strict per-user app and launcher state;
+3. compare the canonical root binding and non-reparse path facts;
+4. parse only the admitted Active version's bounded release manifest;
+5. acquire the exact root Bootstrap and version Launcher through stable
    deny-write/delete handles; and
-5. calculate each executable SHA-256 once, hold its handle through
+6. calculate each executable SHA-256 once, hold its handle through
    `Process.Start`, and reuse the existing READY protocol.
+
+The descriptor projection, state load, and exact-root observation consume one
+absolute 250 ms local-health budget. Healthy entry and the decision to show
+Setup read zero bytes of embedded Bootstrap content and do not hash it. Only an
+explicit Setup payload inspection or exact capture reopens that resource,
+streams an exact-length SHA-256 check, probes for truncation/extra bytes, and
+retains at most the declared executable ceiling for materialization. This is a
+safety ceiling shared with existing executable admission, not a package-size or
+download-size optimization gate.
 
 The stable Root Bootstrap handoff also carries the exact descriptor-bound
 filename, positive length, and lowercase SHA-256 in one bounded inherited

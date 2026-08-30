@@ -279,23 +279,19 @@ internal sealed partial class ManagedProcessLifetimeLease : IDisposable
 
     private static ManagedProcessLifetimeStatus GetLeaseStatus(string statePath, string suffix)
     {
-        try
-        {
-            using var stream = new FileStream(
-                Path.GetFullPath(statePath) + suffix,
-                FileMode.OpenOrCreate,
-                FileAccess.ReadWrite,
-                FileShare.None);
-            return ManagedProcessLifetimeStatus.Exited;
-        }
-        catch (IOException exception) when ((exception.HResult & 0xffff) is 32 or 33)
-        {
-            return ManagedProcessLifetimeStatus.Active;
-        }
-        catch (Exception exception) when (exception is IOException or UnauthorizedAccessException)
+        if (!ManagedPathSafety.TryNormalizeExactAbsolutePath(statePath, out string normalizedStatePath))
         {
             return ManagedProcessLifetimeStatus.Unavailable;
         }
+        WindowsStableCustodyResult observation = WindowsStablePathCustody.TryAcquireFile(
+            normalizedStatePath + suffix);
+        using WindowsStablePathCustody? custody = observation.Custody;
+        return observation.IsExactChildMissing ||
+            (observation.IsAcquired && custody!.RevalidateClosedTree())
+            ? ManagedProcessLifetimeStatus.Exited
+            : observation.Issue == WindowsStableCustodyIssue.Contended
+                ? ManagedProcessLifetimeStatus.Active
+                : ManagedProcessLifetimeStatus.Unavailable;
     }
 
     private static ManagedProcessLifetimeStatus GetTreeStatus(string jobName)

@@ -36,15 +36,20 @@ public interface IManagedInstallationRootProbe
 /// <summary>Exact immutable Root Bootstrap identity embedded by the distribution Launcher.</summary>
 public sealed record ManagedImmutableBootstrapIdentity
 {
+    /// <summary>Maximum admitted executable payload length shared by Launcher and Bootstrap.</summary>
+    public const long MaximumExecutableBytes = 200_000_000;
     /// <summary>Creates one closed Bootstrap identity.</summary>
     public ManagedImmutableBootstrapIdentity(string fileName, long length, string sha256)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(fileName);
         if (!string.Equals(fileName, Path.GetFileName(fileName), StringComparison.Ordinal) ||
-            length <= 0 ||
             !IsLowerSha256(sha256))
         {
             throw new ArgumentException("Immutable Bootstrap identity is invalid.", nameof(fileName));
+        }
+        if (length is <= 0 or > MaximumExecutableBytes)
+        {
+            throw new ArgumentOutOfRangeException(nameof(length));
         }
         FileName = fileName;
         Length = length;
@@ -183,6 +188,10 @@ public interface IImmutableBootstrapHandoff
 /// <summary>Terminal single-entry decision rendered by the distribution Launcher.</summary>
 public enum ManagedLauncherEntryOutcome
 {
+    /// <summary>The exact distribution payload could not be observed completely.</summary>
+    PayloadUnavailable,
+    /// <summary>The distribution descriptor or embedded Bootstrap metadata is invalid.</summary>
+    PayloadInvalid,
     /// <summary>A healthy installed version was started, directly or through LKG rollback.</summary>
     LaunchInstalled,
     /// <summary>Root and durable state are genuinely absent, so Setup may be shown.</summary>
@@ -239,19 +248,20 @@ public sealed class ManagedLauncherEntryCoordinator
     private readonly TimeSpan _completionOperationCutoff;
     private readonly TimeSpan _healthObservationDeadline;
     private readonly string _defaultManagedRoot;
-    private readonly ManagedImmutableBootstrapIdentity _expectedBootstrap;
     private readonly IImmutableBootstrapHandoff _handoff;
+    private readonly IManagedDistributionPayloadSource _payloadSource;
     private readonly IManagedInstallationRootProbe _rootProbe;
+    private readonly ManagedAppVersion _runningLauncherVersion;
     private readonly IVersionManagerStateStore _stateStore;
     private readonly TimeProvider _timeProvider;
-
     /// <summary>Creates the one bounded local entry coordinator.</summary>
     public ManagedLauncherEntryCoordinator(
         string defaultManagedRoot,
         IVersionManagerStateStore stateStore,
         IManagedInstallationRootProbe rootProbe,
+        IManagedDistributionPayloadSource payloadSource,
+        ManagedAppVersion runningLauncherVersion,
         IImmutableBootstrapHandoff handoff,
-        ManagedImmutableBootstrapIdentity expectedBootstrap,
         TimeSpan? admissionOperationCutoff = null,
         TimeSpan? completionOperationCutoff = null,
         TimeProvider? timeProvider = null,
@@ -261,8 +271,9 @@ public sealed class ManagedLauncherEntryCoordinator
         _defaultManagedRoot = ManagedRootPathIdentity.Normalize(defaultManagedRoot);
         _stateStore = stateStore ?? throw new ArgumentNullException(nameof(stateStore));
         _rootProbe = rootProbe ?? throw new ArgumentNullException(nameof(rootProbe));
+        _payloadSource = payloadSource ?? throw new ArgumentNullException(nameof(payloadSource));
+        _runningLauncherVersion = runningLauncherVersion;
         _handoff = handoff ?? throw new ArgumentNullException(nameof(handoff));
-        _expectedBootstrap = expectedBootstrap ?? throw new ArgumentNullException(nameof(expectedBootstrap));
         _admissionOperationCutoff = admissionOperationCutoff ?? DefaultAdmissionOperationCutoff;
         _completionOperationCutoff = completionOperationCutoff ?? DefaultCompletionOperationCutoff;
         _healthObservationDeadline = healthObservationDeadline ?? DefaultHealthObservationDeadline;
@@ -271,7 +282,6 @@ public sealed class ManagedLauncherEntryCoordinator
         ArgumentOutOfRangeException.ThrowIfLessThanOrEqual(_healthObservationDeadline, TimeSpan.Zero);
         _timeProvider = timeProvider ?? TimeProvider.System;
     }
-
     /// <summary>Routes one invocation without Registry, Catalog, package, or full inventory access.</summary>
     public async ValueTask<ManagedLauncherEntryResult> RunAsync(
         CancellationToken cancellationToken)
@@ -322,7 +332,7 @@ public sealed class ManagedLauncherEntryCoordinator
 
             ImmutableBootstrapStartResult handoff = await _handoff.StartAsync(
                 rootIdentity,
-                _expectedBootstrap,
+                localHealth.Bootstrap!,
                 linked.Token).ConfigureAwait(false);
             using IImmutableBootstrapLaunch? launch = handoff.Launch;
             bootstrapReceiptAcquired = launch is not null;
@@ -537,6 +547,32 @@ public sealed class ManagedLauncherEntryCoordinator
     private async ValueTask<LocalHealthObservation> ObserveLocalHealthAsync(
         CancellationToken cancellationToken)
     {
+        ManagedDistributionPayloadEntryAdmissionResult payload = await _payloadSource
+            .AdmitEntryAsync(cancellationToken).ConfigureAwait(false);
+        cancellationToken.ThrowIfCancellationRequested();
+        if (!payload.IsSuccess)
+        {
+            return new(
+                payload.Issue switch
+                {
+                    ManagedDistributionPayloadIssue.Unavailable =>
+                        ManagedLauncherEntryOutcome.PayloadUnavailable,
+                    ManagedDistributionPayloadIssue.Invalid or ManagedDistributionPayloadIssue.Changed =>
+                        ManagedLauncherEntryOutcome.PayloadInvalid,
+                    ManagedDistributionPayloadIssue.None => throw new InvalidOperationException(
+                        "Successful payload admission returned no Bootstrap identity."),
+                    _ => throw new InvalidOperationException(
+                        "Payload admission returned an undefined issue."),
+                },
+                ManagedRoot: null,
+                Bootstrap: null);
+        }
+        if (payload.LauncherVersion != _runningLauncherVersion)
+        {
+            return new(ManagedLauncherEntryOutcome.PayloadInvalid, ManagedRoot: null, Bootstrap: null);
+        }
+        ManagedImmutableBootstrapIdentity bootstrap = payload.Bootstrap!;
+
         VersionManagerStateLoadResult loaded = await _stateStore.LoadAsync(cancellationToken)
             .ConfigureAwait(false);
         cancellationToken.ThrowIfCancellationRequested();
@@ -561,7 +597,8 @@ public sealed class ManagedLauncherEntryCoordinator
                     _ => throw new InvalidOperationException(
                         "Root probe returned an undefined status."),
                 },
-                _defaultManagedRoot);
+                _defaultManagedRoot,
+                bootstrap);
         }
         if (!loaded.IsSuccess)
         {
@@ -570,13 +607,17 @@ public sealed class ManagedLauncherEntryCoordinator
                     VersionManagerStateLoadIssue.ManagedRootMismatch
                     ? ManagedLauncherEntryOutcome.RecoveryRequired
                     : ManagedLauncherEntryOutcome.HealthUnavailable,
-                ManagedRoot: null);
+                ManagedRoot: null,
+                Bootstrap: bootstrap);
         }
 
         VersionManagerState state = loaded.State!;
         if (state.ManagedRootIdentity is null)
         {
-            return new(ManagedLauncherEntryOutcome.RecoveryRequired, ManagedRoot: null);
+            return new(
+                ManagedLauncherEntryOutcome.RecoveryRequired,
+                ManagedRoot: null,
+                Bootstrap: bootstrap);
         }
         string rootIdentity = ManagedRootPathIdentity.Normalize(state.ManagedRootIdentity);
         ManagedInstallationRootObservation installedRoot = await _rootProbe.ObserveAsync(
@@ -584,14 +625,15 @@ public sealed class ManagedLauncherEntryCoordinator
             cancellationToken).ConfigureAwait(false);
         cancellationToken.ThrowIfCancellationRequested();
         return installedRoot.Status == ManagedInstallationRootStatus.Present
-            ? new(Outcome: null, rootIdentity)
+            ? new(Outcome: null, rootIdentity, bootstrap)
             : new(
                 installedRoot.Status is ManagedInstallationRootStatus.Absent or
                     ManagedInstallationRootStatus.Residue or
                     ManagedInstallationRootStatus.InvalidDestination
                     ? ManagedLauncherEntryOutcome.RecoveryRequired
                     : ManagedLauncherEntryOutcome.HealthUnavailable,
-                rootIdentity);
+                rootIdentity,
+                bootstrap);
     }
 
     private static async ValueTask<T> AwaitIsolatedReadOnlyObservationAsync<T>(
@@ -626,7 +668,8 @@ public sealed class ManagedLauncherEntryCoordinator
 
     private sealed record LocalHealthObservation(
         ManagedLauncherEntryOutcome? Outcome,
-        string? ManagedRoot);
+        string? ManagedRoot,
+        ManagedImmutableBootstrapIdentity? Bootstrap);
 
     private ManagedLauncherEntryResult Result(
         ManagedLauncherEntryOutcome outcome,
