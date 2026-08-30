@@ -1,0 +1,9 @@
+{
+  "schemaVersion": 1,
+  "taskId": "SETUP-104-01",
+  "authorityType": "release-owner",
+  "reviewedHead": "62c989739a38bc1316d9b79abaf2221ce26b1294",
+  "decision": "approved",
+  "reviewer": "Dennis Liu (release owner)",
+  "evidence": "Approved the exact SETUP-104-01 final-evidence head 62c989739a38bc1316d9b79abaf2221ce26b1294 for the managed first-installation backend only. This approval does not claim that Recovery, the Distribution Launcher UI, packaging, clean-machine delivery, or v1.0.6 integration is complete; those remain separate governed gates."
+}
