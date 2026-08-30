@@ -21,10 +21,15 @@ internal enum DistributionLauncherExitCode
 internal static class Program
 {
     [STAThread]
-    public static int Main()
+    public static int Main(string[] args)
     {
         try
         {
+            if (args.Length > 0)
+            {
+                return ReleasePayloadExtraction.Execute(args);
+            }
+
             using ManagedDistributionLauncherHostServices host =
                 ManagedDistributionLauncherHostServices.Create();
             ManagedDistributionLauncherHostResult result = host

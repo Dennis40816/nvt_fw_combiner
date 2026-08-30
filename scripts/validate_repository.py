@@ -80,6 +80,7 @@ REQUIRED_FILES = {
     "scripts/install-dotnet.ps1",
     "scripts/install-dotnet.sh",
     "scripts/package.ps1",
+    "scripts/package-distribution-launcher.ps1",
     "scripts/polytail_check.py",
     "scripts/publish-github.ps1",
     "scripts/publish-github.sh",
@@ -299,6 +300,7 @@ EXPECTED_PROJECT_REFERENCES = {
     },
     "tests/NvtFwCombiner.UiSmoke.Tests/NvtFwCombiner.UiSmoke.Tests.csproj": {
         "src/NvtFwCombiner.Bootstrap/NvtFwCombiner.Bootstrap.csproj",
+        "src/NvtFwCombiner.DistributionLauncher/NvtFwCombiner.DistributionLauncher.csproj",
         "src/NvtFwCombiner.Presentation.Avalonia/NvtFwCombiner.Presentation.Avalonia.csproj",
         "src/NvtFwCombiner.VersionManagement.Application/NvtFwCombiner.VersionManagement.Application.csproj",
         "tests/NvtFwCombiner.TestSupport/NvtFwCombiner.TestSupport.csproj",
@@ -1542,6 +1544,7 @@ CAPABILITY_REUSE_R3_SCRIPTS = {
     "scripts/external_tool_policy.py",
     "scripts/intake_ic_reference.py",
     "scripts/package.ps1",
+    "scripts/package-distribution-launcher.ps1",
     "scripts/publish-github.ps1",
     "scripts/publish-github.sh",
     "scripts/release_promotion_policy.py",

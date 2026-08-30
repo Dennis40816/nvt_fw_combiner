@@ -271,6 +271,30 @@ def _asset_names(version: str) -> tuple[str, str, str]:
     return (f"{prefix}.zip", f"{prefix}.spdx.json", f"{prefix}.provenance.json")
 
 
+def _installer_asset_names(version: str) -> tuple[str, str, str, str, str]:
+    prefix = f"NvtFwCombiner-Launcher-v{version}-win-x64"
+    return (
+        f"{prefix}.exe",
+        f"{prefix}.manifest.json",
+        f"{prefix}.spdx.json",
+        f"{prefix}.intoto.jsonl",
+        f"{prefix}.sha256",
+    )
+
+
+def _publishes_installer_assets(version: str) -> bool:
+    parts = tuple(int(part) for part in version.split("."))
+    return parts >= (1, 0, 6)
+
+
+def _candidate_asset_names(version: str) -> tuple[str, ...]:
+    return (
+        (*_asset_names(version), *_installer_asset_names(version))
+        if _publishes_installer_assets(version)
+        else _asset_names(version)
+    )
+
+
 def create_candidate_manifest(
     asset_dir: Path,
     *,
@@ -308,7 +332,7 @@ def create_candidate_manifest(
     review_snapshot = json.loads(review_snapshot_path.read_text(encoding="utf-8"))
     _require(isinstance(review_snapshot, dict), "review snapshot must be an object")
 
-    expected_names = _asset_names(version)
+    expected_names = _candidate_asset_names(version)
     assets: list[dict[str, Any]] = []
     for name in expected_names:
         path = asset_dir / name
@@ -932,11 +956,11 @@ def verify_candidate_manifest(
     notes = manifest.get("releaseNotes")
     _require(isinstance(notes, dict), "candidate releaseNotes is invalid")
     entries = manifest.get("assets")
+    expected_names = set(_candidate_asset_names(version))
     _require(
-        isinstance(entries, list) and len(entries) == 3,
-        "candidate manifest must declare three payload assets",
+        isinstance(entries, list) and len(entries) == len(expected_names),
+        "candidate manifest payload asset count is invalid for its version",
     )
-    expected_names = set(_asset_names(version))
     actual_names = {entry.get("name") for entry in entries if isinstance(entry, dict)}
     _require(
         actual_names == expected_names, "candidate payload asset names are invalid"

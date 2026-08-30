@@ -59,6 +59,43 @@ class ReleasePromotionPolicyTests(unittest.TestCase):
         )
         return result.stdout.strip()
 
+    def test_version_and_launcher_asset_name_sets_remain_separate_and_closed(self) -> None:
+        version = "1.0.6"
+        self.assertEqual(
+            (
+                "NvtFwCombiner-v1.0.6-win-x64.zip",
+                "NvtFwCombiner-v1.0.6-win-x64.spdx.json",
+                "NvtFwCombiner-v1.0.6-win-x64.provenance.json",
+            ),
+            MODULE._asset_names(version),
+        )
+        self.assertEqual(
+            (
+                "NvtFwCombiner-Launcher-v1.0.6-win-x64.exe",
+                "NvtFwCombiner-Launcher-v1.0.6-win-x64.manifest.json",
+                "NvtFwCombiner-Launcher-v1.0.6-win-x64.spdx.json",
+                "NvtFwCombiner-Launcher-v1.0.6-win-x64.intoto.jsonl",
+                "NvtFwCombiner-Launcher-v1.0.6-win-x64.sha256",
+            ),
+            MODULE._installer_asset_names(version),
+        )
+        self.assertEqual(
+            (*MODULE._asset_names(version), *MODULE._installer_asset_names(version)),
+            MODULE._candidate_asset_names(version),
+        )
+        for maintenance_version in (
+            "0.9.17",
+            "0.9.18",
+            "0.9.19",
+            "1.0.0",
+            "1.0.5",
+        ):
+            with self.subTest(maintenance_version=maintenance_version):
+                self.assertEqual(
+                    MODULE._asset_names(maintenance_version),
+                    MODULE._candidate_asset_names(maintenance_version),
+                )
+
     def create_version_only_repository(
         self,
         root: Path,
@@ -1035,8 +1072,8 @@ class ReleasePromotionPolicyTests(unittest.TestCase):
             temporary_root = Path(temporary)
             root = temporary_root / "assets"
             root.mkdir()
-            version = "0.9.14"
-            for name in MODULE._asset_names(version):
+            version = "1.0.5"
+            for name in MODULE._candidate_asset_names(version):
                 (root / name).write_bytes(name.encode("utf-8"))
             notes = root / "RELEASE-NOTES.md"
             notes.write_text("release notes\n", encoding="utf-8")
@@ -1053,7 +1090,7 @@ class ReleasePromotionPolicyTests(unittest.TestCase):
                 notes_path=notes,
                 review_snapshot_path=review,
             )
-            MODULE.verify_candidate_manifest(
+            manifest = MODULE.verify_candidate_manifest(
                 manifest_path,
                 source_sha=SHA,
                 source_tree=TREE,
@@ -1061,6 +1098,7 @@ class ReleasePromotionPolicyTests(unittest.TestCase):
                 workflow_sha=SHA,
                 workflow_ref="refs/heads/main",
             )
+            self.assertEqual(3, len(manifest["assets"]))
 
             (root / MODULE._asset_names(version)[0]).write_bytes(b"tampered")
             with self.assertRaisesRegex(ValueError, "size mismatch|digest mismatch"):
@@ -1073,6 +1111,48 @@ class ReleasePromotionPolicyTests(unittest.TestCase):
                     workflow_ref="refs/heads/main",
                 )
 
+    def test_launcher_era_manifest_requires_all_eight_payload_assets(self) -> None:
+        with tempfile.TemporaryDirectory(
+            prefix="release-launcher-candidate-policy-"
+        ) as temporary:
+            temporary_root = Path(temporary)
+            root = temporary_root / "assets"
+            root.mkdir()
+            version = "1.0.6"
+            expected = MODULE._candidate_asset_names(version)
+            for name in expected:
+                (root / name).write_bytes(name.encode("utf-8"))
+            notes = root / "RELEASE-NOTES.md"
+            notes.write_text("release notes\n", encoding="utf-8")
+            review = temporary_root / "review.json"
+            review.write_text(json.dumps(valid_snapshot()), encoding="utf-8")
+
+            manifest_path = MODULE.create_candidate_manifest(
+                root,
+                version=version,
+                source_sha=SHA,
+                source_tree=TREE,
+                run_id="99",
+                workflow_sha=SHA,
+                workflow_ref="refs/heads/main",
+                notes_path=notes,
+                review_snapshot_path=review,
+            )
+            manifest = MODULE.verify_candidate_manifest(
+                manifest_path,
+                source_sha=SHA,
+                source_tree=TREE,
+                run_id="99",
+                workflow_sha=SHA,
+                workflow_ref="refs/heads/main",
+            )
+
+            self.assertEqual(8, len(manifest["assets"]))
+            self.assertEqual(
+                set(expected),
+                {entry["name"] for entry in manifest["assets"]},
+            )
+
     def test_manifest_rejects_wrong_run_and_unexpected_file(self) -> None:
         with tempfile.TemporaryDirectory(
             prefix="release-candidate-policy-"
@@ -1081,7 +1161,7 @@ class ReleasePromotionPolicyTests(unittest.TestCase):
             root = temporary_root / "assets"
             root.mkdir()
             version = "0.9.14"
-            for name in MODULE._asset_names(version):
+            for name in MODULE._candidate_asset_names(version):
                 (root / name).write_bytes(b"asset")
             notes = root / "RELEASE-NOTES.md"
             notes.write_bytes(b"notes")
@@ -1128,7 +1208,7 @@ class ReleasePromotionPolicyTests(unittest.TestCase):
             candidate.mkdir()
             published.mkdir()
             version = "0.9.14"
-            for name in MODULE._asset_names(version):
+            for name in MODULE._candidate_asset_names(version):
                 (candidate / name).write_bytes(name.encode("utf-8"))
             notes = candidate / "RELEASE-NOTES.md"
             notes.write_bytes(b"notes")

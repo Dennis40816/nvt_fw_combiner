@@ -7,13 +7,28 @@ import argparse
 import hashlib
 import importlib.util
 import json
+import re
+import shutil
 import zipfile
+from dataclasses import dataclass
 from pathlib import Path
+
+import create_update_catalog
+from update_source_registry_policy import validate_registry_document
 
 
 PRODUCT = "NVT FW Combiner"
 VERSIONS = ("0.10.5", "0.10.6")
 ZIP_TIMESTAMP = (2026, 8, 26, 0, 0, 0)
+SMOKE_PUBLISHED_AT = "2026-08-31T00:00:00Z"
+
+
+@dataclass(frozen=True)
+class SingleSourceResult:
+    """Exact local Registry and Catalog paths created around one published ZIP."""
+
+    catalog_path: str
+    registry_path: str
 
 
 def _sha256(data: bytes) -> str:
@@ -143,6 +158,49 @@ def build_source(output: Path, app: Path, stable_launcher: Path, failing_launche
     )
 
 
+def build_single_source(output: Path, package: Path, version: str) -> SingleSourceResult:
+    """Create one deterministic local source while preserving the exact published ZIP bytes."""
+
+    if re.fullmatch(r"(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)", version) is None:
+        raise ValueError("version must be a stable three-component numeric version")
+    package = package.resolve(strict=True)
+    if not package.is_file():
+        raise ValueError("published package must be an ordinary file")
+    relative_package = f"packages/NvtFwCombiner-v{version}-win-x64.zip"
+    output.mkdir(parents=True)
+    try:
+        packages = output / "packages"
+        packages.mkdir()
+        destination = output / relative_package
+        with package.open("rb") as source, destination.open("xb") as target:
+            shutil.copyfileobj(source, target)
+        catalog_path = create_update_catalog.build_catalog(
+            output,
+            {version: SMOKE_PUBLISHED_AT},
+            {version: f"Local Distribution Launcher E2E smoke {version}"},
+        )
+        catalog_bytes = catalog_path.read_bytes()
+        registry_path = (output / "update-source-registry.json").resolve()
+        registry_document = {
+            "schemaVersion": 1,
+            "registryId": "nvt-fw-combiner-production",
+            "registryRevision": 1,
+            "publishedAtUtc": SMOKE_PUBLISHED_AT,
+            "catalogPublication": {
+                "latestVersion": version,
+                "catalogSchemaVersion": 1,
+                "catalogSha256": _sha256(catalog_bytes),
+            },
+            "entries": [{"status": "latest", "catalogPath": str(catalog_path)}],
+        }
+        validate_registry_document(registry_document, "local smoke")
+        registry_path.write_bytes(_json_bytes(registry_document))
+        return SingleSourceResult(str(catalog_path), str(registry_path))
+    except BaseException:
+        shutil.rmtree(output)
+        raise
+
+
 def install_candidate(repository: Path, source: Path, managed_root: Path, state_path: Path) -> None:
     module_path = repository / "scripts" / "create_managed_installation_lab.py"
     spec = importlib.util.spec_from_file_location("create_managed_installation_lab", module_path)
@@ -173,6 +231,10 @@ def main() -> int:
     create.add_argument("--app", type=Path, required=True)
     create.add_argument("--stable-launcher", type=Path, required=True)
     create.add_argument("--failing-launcher", type=Path, required=True)
+    create_single = subparsers.add_parser("create-single")
+    create_single.add_argument("--output", type=Path, required=True)
+    create_single.add_argument("--package", type=Path, required=True)
+    create_single.add_argument("--version", required=True)
     install = subparsers.add_parser("install-candidate")
     install.add_argument("--repository", type=Path, required=True)
     install.add_argument("--source", type=Path, required=True)
@@ -181,6 +243,8 @@ def main() -> int:
     args = parser.parse_args()
     if args.command == "create":
         build_source(args.output, args.app, args.stable_launcher, args.failing_launcher)
+    elif args.command == "create-single":
+        build_single_source(args.output, args.package, args.version)
     else:
         install_candidate(args.repository, args.source, args.managed_root, args.state_path)
     return 0

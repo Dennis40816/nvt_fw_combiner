@@ -24,6 +24,7 @@ sys.path.insert(0, str(SCRIPTS))
 import validate_repository as repository_validation  # noqa: E402
 
 PACKAGE_SCRIPT = ROOT / "scripts" / "package.ps1"
+LAUNCHER_PACKAGE_SCRIPT = ROOT / "scripts" / "package-distribution-launcher.ps1"
 SMOKE_SCRIPT = ROOT / "scripts" / "smoke-release.ps1"
 UPDATE_SOURCE_REGISTRY_TEMPLATE = (
     ROOT / "docs" / "ci" / "update-source-registry.json.in"
@@ -932,6 +933,70 @@ class ReleasePackagePolicyTests(unittest.TestCase):
             )
             self.assertLess(package_index, smoke_index, workflow_path)
             self.assertLess(smoke_index, distribution_index, workflow_path)
+
+    def test_distribution_launcher_packager_uses_canonical_package_entrypoint(
+        self,
+    ) -> None:
+        release_workflow_path = ROOT / ".github/workflows/release.yml"
+        self.assertEqual(
+            "6c36f140c5282878ec3cc1a7b3de78ddf5bf86e29d951d57662c5fed19df0492",
+            hashlib.sha256(release_workflow_path.read_bytes()).hexdigest(),
+            "the historical release workflow must remain byte-exact",
+        )
+        for workflow_path in (ROOT / ".github/workflows").glob("*.yml"):
+            self.assertNotIn(
+                "package-distribution-launcher.ps1",
+                workflow_path.read_text(encoding="utf-8"),
+                workflow_path,
+            )
+
+        package_script = PACKAGE_SCRIPT.read_text(encoding="utf-8")
+        launcher_index = package_script.index(
+            "$DistributionLauncherPackager = Join-Path"
+        )
+        cleanup_index = package_script.index(
+            "worktree remove --force $SourceSnapshotRoot"
+        )
+        dry_run_index = package_script.index("if ($ExternalToolPolicyDryRun)")
+        dry_run_return_index = package_script.index("    return", dry_run_index)
+        self.assertLess(dry_run_index, dry_run_return_index)
+        self.assertLess(dry_run_return_index, cleanup_index)
+        self.assertLess(cleanup_index, launcher_index)
+        self.assertEqual(
+            1,
+            package_script.count("scripts/package-distribution-launcher.ps1"),
+        )
+        launcher_block = package_script[cleanup_index:]
+        self.assertIn(
+            "if (-not $AllowPrerelease -and "
+            "[version]$SemanticVersion -ge [version]'1.0.6')",
+            launcher_block,
+        )
+        self.assertIn("$InvocationRepoRoot", launcher_block)
+        self.assertIn("-Version $Version", launcher_block)
+        self.assertIn("-Commit $Commit", launcher_block)
+        self.assertIn("-ReleaseDisposition unsigned-owner-approved", launcher_block)
+        self.assertLess(
+            launcher_block.index("-ge [version]'1.0.6'"),
+            launcher_block.index("& $DistributionLauncherPackager"),
+        )
+
+        script = LAUNCHER_PACKAGE_SCRIPT.read_text(encoding="utf-8")
+        self.assertIn("artifacts/installer-work", script)
+        self.assertIn("--extract-release-payload", script)
+        self.assertIn("installer-release-manifest-v1.schema.json", script)
+        self.assertIn("managed-setup-payload-admission-v1.schema.json", script)
+        self.assertIn("$AssetNames = @(", script)
+        self.assertIn("$LauncherName", script)
+        self.assertIn("$ManifestName", script)
+        self.assertIn("$SbomName", script)
+        self.assertIn("$ProvenanceName", script)
+        self.assertIn("$ChecksumName", script)
+        self.assertNotIn("update-catalog", script.lower())
+        self.assertNotIn(
+            "Remove-Item -LiteralPath $ReleaseRoot -Recurse",
+            script,
+        )
 
     def test_stable_release_is_ci_owned_and_main_preview_is_manual(self) -> None:
         release_workflow = (ROOT / ".github/workflows/release.yml").read_text(

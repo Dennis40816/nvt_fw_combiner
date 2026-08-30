@@ -1,0 +1,45 @@
+{
+  "schemaVersion": 2,
+  "taskId": "LAUNCHER-106-PACKAGE-01",
+  "capability": "Publish the approved Distribution Launcher as five independently verifiable release assets without changing or admitting it into the existing application package or update catalog",
+  "integrationBase": "23282e9396dc5651ed518cf0c5ac6108c4b740f8",
+  "risk": "R3",
+  "kind": "release",
+  "state": "design-active",
+  "mutablePaths": [
+    "docs/adr/0021-code-size-ratchet-system-activity-amendment.md",
+    "docs/ci/release-package.md",
+    "scripts/code_size_policy.py",
+    "scripts/package.ps1",
+    "scripts/package-distribution-launcher.ps1",
+    "scripts/create_launcher_process_smoke_source.py",
+    "scripts/release_promotion_policy.py",
+    "scripts/smoke-distribution-launcher.ps1",
+    "scripts/validate_repository.py",
+    "src/NvtFwCombiner.DistributionLauncher/Program.cs",
+    "src/NvtFwCombiner.DistributionLauncher/ReleasePayloadExtraction.cs"
+  ],
+  "implementationOwner": "launcher-packaging-single-writer",
+  "searchEvidence": [
+    "scripts/package.ps1 already owns the existing versioned application ZIP and its sidecars; the Launcher must be packaged additively after it and must not rewrite those assets.",
+    "NvtFwCombiner.DistributionLauncher.csproj already embeds the managed setup descriptor and Bootstrap executable supplied through ManagedSetupPayloadAdmissionPath and ManagedSetupBootstrapPath.",
+    "scripts/release_promotion_policy.py closes publication over the existing application assets; a separate launcher asset-name set is required so existing catalog semantics remain unchanged.",
+    "The final single-file Launcher must prove that its embedded descriptor and Bootstrap bytes match the admitted inputs before any manifest, SBOM, provenance, or checksum is emitted."
+  ],
+  "semanticOwner": "The existing package script continues to own application package contents and catalog admission; the additive Distribution Launcher packager owns only the five versioned Launcher release assets and their exact embedded-payload evidence",
+  "terminalContract": "Starting at v1.0.6, the canonical package.ps1 entrypoint invokes one additive launcher packager only after the existing package has completed and its exact source snapshot cleanup has succeeded. It creates exactly NvtFwCombiner-Launcher-vX.Y.Z-win-x64.exe plus .manifest.json, .spdx.json, .intoto.jsonl, and .sha256; verifies the descriptor and Bootstrap by extracting them from the final executable; keeps existing release assets byte-identical; never adds Launcher assets to the update catalog; and fails closed on any schema, name, size, hash, version, source-commit, or closed-set mismatch. Prereleases, policy dry-runs, and pre-Launcher releases v0.9.17 through v0.9.19 and v1.0.0 through v1.0.5 do not invoke the Launcher packager and retain their historical three candidate payloads and five published assets.",
+  "disposition": "extend-owner",
+  "designReview": {
+    "reviewer": "launcher_packaging_min_design",
+    "outcome": "approved",
+    "evidence": "The independent packaging audit selected one additive script and a minimal read-only extraction mode over modifying the existing package owner or implementing a custom PE parser. It requires isolated staging, final-executable embedded-resource re-verification, the exact five closed release assets, and explicit exclusion from the update catalog."
+  },
+  "implementationHead": null,
+  "reviewedHead": null,
+  "pathStateDigest": null,
+  "finalReview": {
+    "reviewer": null,
+    "outcome": "pending",
+    "evidence": ""
+  }
+}

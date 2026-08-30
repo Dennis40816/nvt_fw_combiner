@@ -1494,3 +1494,15 @@ finally {
         }
     }
 }
+
+if (-not $AllowPrerelease -and [version]$SemanticVersion -ge [version]'1.0.6') {
+    $DistributionLauncherPackager = Join-Path `
+        $InvocationRepoRoot 'scripts/package-distribution-launcher.ps1'
+    & $DistributionLauncherPackager `
+        -Version $Version `
+        -Commit $Commit `
+        -ReleaseDisposition unsigned-owner-approved
+    if ($LASTEXITCODE -ne 0) {
+        throw 'Distribution Launcher packaging failed.'
+    }
+}

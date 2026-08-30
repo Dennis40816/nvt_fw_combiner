@@ -70,10 +70,20 @@ NvtFwCombiner-Launcher-vX.Y.Z-win-x64.intoto.jsonl
 NvtFwCombiner-Launcher-vX.Y.Z-win-x64.sha256
 ```
 
-Those assets are additive; they do not alter the existing version ZIP or its
-five published assets and never enter the update Catalog. The protected Launcher
-packager first freezes the exact Bootstrap, generates the canonical embedded
-payload-admission descriptor, publishes final Launcher, then reopens it
+Those assets are introduced at `v1.0.6` and are additive; they do not alter the
+existing version ZIP or its three version payload assets and never enter the
+update Catalog. The approved pre-Launcher maintenance releases `v0.9.17`,
+`v0.9.18`, and `v0.9.19`, plus `v1.0.0` through `v1.0.5`, retain the historical
+three-payload candidate and five-published-asset surface. From `v1.0.6` onward
+the candidate contains eight payload assets and promotion publishes ten assets
+after adding its candidate manifest and outer checksum. The historical release
+workflow continues to invoke only `scripts/package.ps1`; that canonical
+entrypoint invokes the protected Launcher packager only after the application
+package is complete and exact source-snapshot cleanup succeeds. Policy
+dry-runs, prereleases, failed application packaging, and failed cleanup never
+invoke it. The protected Launcher packager first freezes the exact Bootstrap,
+generates the canonical embedded payload-admission descriptor, publishes final
+Launcher, then reopens it
 to independently extract and verify both embedded resources. Only after that
 does it generate the external installer manifest, SBOM, provenance, and
 checksum. The external manifest is release evidence and is never runtime input.
@@ -234,8 +244,12 @@ candidate. A first tag creation requires the candidate to remain the exact
 current selected release-branch head while the workflow definition remains the
 exact current protected `main`; recovery of an already exact-matching tag
 permits the selected branch to advance only when the candidate remains its
-ancestor. The job then publishes exactly five assets: Windows ZIP, SPDX SBOM,
-provenance, candidate manifest, and outer SHA-256 list. The validated release
+ancestor. For the approved pre-Launcher maintenance versions `v0.9.17`,
+`v0.9.18`, and `v0.9.19`, plus `v1.0.0` through `v1.0.5`, the job publishes
+exactly five assets: Windows ZIP, SPDX SBOM, provenance, candidate manifest,
+and outer SHA-256 list. Starting at `v1.0.6`, it publishes exactly ten: those
+five plus the closed five-asset
+Distribution Launcher evidence set. The validated release
 notes become the Release body. It revalidates the annotated tag object and
 peeled commit plus Release state/body, verifies GitHub-generated source
 archives, downloads every published asset into a fresh directory, compares the

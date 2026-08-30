@@ -306,3 +306,28 @@ Infrastructure/Contracts/worker/Platform above the frozen base ratchets. This
 R3 allowance is exact and non-transferable. It changes no firmware, profile,
 range, operation, output byte, CRC/header, processor, naming, support, Golden,
 package, Registry, Catalog, installation, or recovery semantics.
+
+## 2026-08-31 Distribution Launcher release extraction
+
+LAUNCHER-106-PACKAGE-01 adds one bounded, read-only command that extracts the
+two known embedded Setup resources from the final single-file Distribution
+Launcher into an empty packaging-owned directory. The additive release
+packager uses that command only to prove the final executable contains the
+exact admitted descriptor and Bootstrap bytes before emitting its five closed
+Launcher assets. It adds no installation action, network access, process
+launch, state writer, policy, parser, catalog admission, or firmware behavior.
+
+Full production is 134,149 nonblank lines and runtime production is 96,337.
+Domain plus Profiles remains 20,632; Application remains 41,047; Bootstrap,
+CLI, Desktop and Launcher is 4,854; Infrastructure, Contracts, worker and
+Platform remains 29,804. Relative to LAUNCHER-106-UI-01 this is +62 full
+production and +62 runtime/host.
+
+The executable allowances become exactly 31,253 full production, 26,281
+runtime, 5 Domain/Profiles, 10,357 Application, 1,476
+Bootstrap/CLI/Desktop/Launcher, and 14,448
+Infrastructure/Contracts/worker/Platform above the frozen base ratchets. This
+R3 allowance is exact and non-transferable. It changes no firmware, profile,
+range, operation, output byte, CRC/header, processor, naming, support, Golden,
+Registry, Catalog, installation, recovery, or existing application-package
+identity.
