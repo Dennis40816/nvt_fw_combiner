@@ -5,7 +5,7 @@
   "integrationBase": "eb6225274f9379c7d71ec5f6f55e3ca0ee5baaaa",
   "risk": "R2",
   "kind": "release",
-  "state": "design-active",
+  "state": "final-complete",
   "mutablePaths": [
     "docs/governance/development-tags.md"
   ],
@@ -23,12 +23,12 @@
     "outcome": "approved",
     "evidence": "Independent R2 design review approved the latest immutable evidence checkpoint eb6225274f9379c7d71ec5f6f55e3ca0ee5baaaa and the existing REL-103 identity pattern: VERSION plus synchronized SPEC, changelog, verification-report, and development-tag projections for an unpublished tag-only 1.0.4 source milestone. The intervening test-only commit changes no governed path. Only docs/governance/development-tags.md is governed mutable authority. The scope explicitly excludes GitHub Release/assets, package, Catalog/Registry, support, firmware semantics, and runtime expansion; delivery gates remain open."
   },
-  "implementationHead": null,
-  "reviewedHead": null,
-  "pathStateDigest": null,
+  "implementationHead": "6a8a7e9cb03fe9efbead82bdec10b1aacb91af48",
+  "reviewedHead": "6a8a7e9cb03fe9efbead82bdec10b1aacb91af48",
+  "pathStateDigest": "93dad95da13b7f1b7edbfabcde6360dbe150ba69757a1e5a0b0fccf73bd4e590",
   "finalReview": {
-    "reviewer": null,
-    "outcome": "pending",
-    "evidence": ""
+    "reviewer": "rel_104_identity_review + rel_104_identity_evidence",
+    "outcome": "approved",
+    "evidence": "Two independent exact-head R2 reviews approved implementation 6a8a7e9cb03fe9efbead82bdec10b1aacb91af48 with no P0, P1 or P2. The record correctly binds immutable evidence checkpoint eb6225274f9379c7d71ec5f6f55e3ca0ee5baaaa; the sole intervening commit 4741daae427c1d838edcc24cf5d88c7a680dd2d3 changes only seven Infrastructure test files and no governed identity, production, firmware, package or release-workflow path. The exact identity diff is limited to VERSION plus synchronized SPEC, changelog, verification-report and development-tag projections and this design-active record. All projections truthfully describe an unpublished tag-only 1.0.4 managed Setup and bounded Launcher source milestone with v1.0.3 as predecessor, and explicitly claim no GitHub Release, package/assets, Catalog/Registry row, support promotion, firmware/profile/range/CRC/output-byte behavior, or runtime expansion. Render-release-note tests passed 7/7; the preceding test-isolation correction passed 182 affected tests and two scoped reviews. Package, SBOM, provenance, signing, clean-machine and production inherited-handle containment gates remain open for later Launcher delivery."
   }
 }
