@@ -1,0 +1,37 @@
+{
+  "schemaVersion": 2,
+  "taskId": "DOTNET-LOCK-GRAPH-106-01",
+  "capability": "Synchronize the two governed production NuGet lock owners and three adjacent test projections with their complete existing project-reference and release RID graphs, including NvtFwCombiner.Platform, the already-declared DistributionLauncher Avalonia closure, and the existing win-x64 Launcher package contract",
+  "integrationBase": "e486b0a49120de2c3bae3152e5f155fe141caabb",
+  "risk": "R3",
+  "kind": "release",
+  "state": "design-active",
+  "mutablePaths": [
+    "src/NvtFwCombiner.Cli/packages.lock.json",
+    "src/NvtFwCombiner.Launcher/packages.lock.json"
+  ],
+  "implementationOwner": "primary-agent",
+  "searchEvidence": [
+    "A locked Application.Tests run fails NU1004 because its committed Infrastructure project node predates the existing NvtFwCombiner.Platform ProjectReference added by 635ed8c9.",
+    "A repository-wide first-party lock-graph audit found the same missing Platform projection in exactly five lockfiles: CLI, Launcher, Application.Tests, Bootstrap.Tests, and GoldenRegression.Tests.",
+    "The remaining committed lockfiles already contain the applicable Platform project node and dependency edge; no project, package, SDK, runtime, or source change is required.",
+    "Bootstrap.Tests has referenced DistributionLauncher since 317acb74. Commit 10bd523d added the four centrally pinned Avalonia 12.0.5 references to DistributionLauncher and refreshed DistributionLauncher and UI locks, but did not refresh the transitive Bootstrap.Tests lock; pinned-SDK force-evaluate therefore materializes that already-authorized current graph together with Platform.",
+    "The production package path restores and publishes NvtFwCombiner.Launcher as self-contained win-x64. A non-RID locked restore cannot certify that shipped graph, while the release-shaped RID locked restore deterministically fails NU1004 until the Launcher lock projects its existing empty net10.0/win-x64 target."
+  ],
+  "semanticOwner": "Existing project files own dependency direction, Directory.Packages.props owns third-party package versions, the committed CLI and Launcher lockfiles own the governed reproducible release projections, and the three tests packages.lock.json files are adjacent verification projections outside the capability-reuse governed path set",
+  "terminalContract": "Regenerate only the two governed production locks and the three adjacent test lock projections identified by search evidence with the repository-selected .NET SDK. CLI, Launcher, Application.Tests, and GoldenRegression.Tests may add only the current nvtfwcombiner.platform Project node and corresponding NvtFwCombiner.Platform [1.0.0, ) edges required by existing ProjectReferences. Bootstrap.Tests must project its complete already-committed NvtFwCombiner.DistributionLauncher graph: in addition to the same Platform node and edges, it may add only the four existing centrally pinned Avalonia 12.0.5 dependencies and their exact current transitive closure. Every added Avalonia or package identity, requested or resolved version, dependency edge, and contentHash must equal the authoritative values already committed in Directory.Packages.props and src/NvtFwCombiner.DistributionLauncher/packages.lock.json; every pre-existing Bootstrap.Tests package entry remains unchanged. The Launcher lock may additionally add exactly one empty net10.0/win-x64 target required by the existing stable self-contained Launcher package contract. CLI retains its existing empty net10.0/win-x64 target unchanged; Application.Tests, Bootstrap.Tests, and GoldenRegression.Tests gain no RID target. No project, source, package declaration, runtime package, package identity, version, or content hash change is admitted. Any unrelated drift, removed node, non-empty or undeclared RID graph, project or source change, or undeclared path is terminal. Release-shaped CLI and Launcher restores use -r win-x64 --locked-mode --disable-parallel, leave every committed lock byte unchanged, and are followed by builds or publishes with --no-restore. Base-only Application, Bootstrap, GoldenRegression, and Architecture test roots follow the canonical unlocked solution-restore order and then run with --no-restore; a non-RID project-targeted locked restore is explicitly not evidence because their existing transitive release locks are RID-aware. CLI and Launcher builds, Application, Bootstrap, Golden, and Architecture tests, scoped Polytail, and the final repository gate must pass. Firmware, profile, range, CRC/header, naming, Golden expected bytes, Catalog, and package-content rules remain unchanged.",
+  "disposition": "extend-owner",
+  "designReview": {
+    "reviewer": "cleanup_issue_mapping; launcher_lock_rid_arch",
+    "outcome": "findings-incorporated",
+    "evidence": "Independent architecture admission rejected the initial four-file inventory after finding the same stale transitive graph in Launcher, then rejected a Platform-only Bootstrap.Tests projection after tracing its existing DistributionLauncher reference and the previously authorized Avalonia 12.0.5 closure. A second architecture review and an independent lock audit reproduced both non-RID and RID Launcher NU1004 outcomes, required the release-shaped win-x64 graph, and rejected non-RID project-targeted locked restores as unsatisfiable evidence for base-only test roots whose existing transitive release locks are RID-aware. Repository validation then enforced the canonical governance boundary: only the CLI and Launcher production locks are governed mutable paths, while the three test locks remain adjacent verification projections. The corrected boundary therefore admits the complete existing Bootstrap.Tests graph, one empty Launcher RID target, project-targeted force-evaluate regeneration, unchanged CLI RID target, authoritative package identity/version/hash equality, production-shaped locked restore plus canonical no-restore test evidence, and no new ADR or verifier."
+  },
+  "implementationHead": null,
+  "reviewedHead": null,
+  "pathStateDigest": null,
+  "finalReview": {
+    "reviewer": null,
+    "outcome": "pending",
+    "evidence": ""
+  }
+}
