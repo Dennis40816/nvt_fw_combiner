@@ -5,7 +5,7 @@
   "integrationBase": "da62db2619366109f47bcc4c43a762f45d73d9a5",
   "risk": "R2",
   "kind": "release",
-  "state": "design-active",
+  "state": "final-complete",
   "mutablePaths": [
     "docs/governance/development-tags.md"
   ],
@@ -23,12 +23,12 @@
     "outcome": "approved",
     "evidence": "The owner-approved bounded identity instruction selects final reviewed Launcher packaging source/evidence head da62db2619366109f47bcc4c43a762f45d73d9a5, the established REL-103/104/105 projection pattern, unpublished candidate wording, v1.0.5 predecessor identity, support-neutral scope, and explicit final package/smoke gates."
   },
-  "implementationHead": null,
-  "reviewedHead": null,
-  "pathStateDigest": null,
+  "implementationHead": "f7f92fe3e9de0656179c61e02c643c5d7e7ec366",
+  "reviewedHead": "f7f92fe3e9de0656179c61e02c643c5d7e7ec366",
+  "pathStateDigest": "cc9ecd596db037d69e05c754ecc74e81dd0b9d0de7dfa95674e672ad79a42f49",
   "finalReview": {
-    "reviewer": null,
-    "outcome": "pending",
-    "evidence": ""
+    "reviewer": "launcher_packaging_review and launcher_packaging_evidence_review",
+    "outcome": "approved",
+    "evidence": "Two independent exact-head reviews of the corrected identity tree represented by f7f92fe3e9de0656179c61e02c643c5d7e7ec366 found P0=0, P1=0, P2=0, and P3=0. VERSION, SPEC, CHANGELOG, verification report, development milestone, annotated v1.0.5 predecessor, exact five Launcher names, and support-neutral firmware boundary agree on an unpublished 1.0.6 candidate. The documents distinguish v1.0.5 read-only diagnosis from v1.0.6 explicit confirmed recovery execution/composition and make no final package, smoke, signing, publication, or v1.0.6-tag claim. Code-size tests passed 19/19 with the independently measured 134149/96337/20632/41047/4854/29804 ledger; release-note tests passed 7/7; agent-governance tests passed 101/101; rendering and diff checks passed. Final closed-asset construction/hash verification, visible install-to-READY/source-offline Launcher smoke, release-owner approval, and the annotated tag remain separate release gates."
   }
 }
