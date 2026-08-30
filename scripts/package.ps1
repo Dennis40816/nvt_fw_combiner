@@ -1133,7 +1133,7 @@ try {
         -o $AppPublish
     $PublishExitCode = $LASTEXITCODE
     if ($PublishExitCode -eq 0 -and $IncludeManagedLauncher) {
-        & $DotNet restore $LauncherProject -r win-x64
+        & $DotNet restore $LauncherProject -r win-x64 --locked-mode --disable-parallel
         if ($LASTEXITCODE -ne 0) { throw 'dotnet restore failed before launcher publish.' }
         & $DotNet publish $LauncherProject -c Release -r win-x64 --self-contained true --no-restore `
             -p:Version=$SemanticVersion `

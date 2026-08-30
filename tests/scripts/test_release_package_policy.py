@@ -1045,6 +1045,22 @@ class ReleasePackagePolicyTests(unittest.TestCase):
             script,
         )
 
+    def test_managed_launcher_restore_uses_committed_rid_lock_graph(self) -> None:
+        script = PACKAGE_SCRIPT.read_text(encoding="utf-8")
+
+        restore_lines = [
+            line.strip()
+            for line in script.splitlines()
+            if line.strip().startswith("& $DotNet restore $LauncherProject")
+        ]
+        self.assertEqual(
+            [
+                "& $DotNet restore $LauncherProject -r win-x64 "
+                "--locked-mode --disable-parallel"
+            ],
+            restore_lines,
+        )
+
     def test_distribution_launcher_restore_uses_committed_rid_lock_graph(self) -> None:
         script = LAUNCHER_PACKAGE_SCRIPT.read_text(encoding="utf-8")
 

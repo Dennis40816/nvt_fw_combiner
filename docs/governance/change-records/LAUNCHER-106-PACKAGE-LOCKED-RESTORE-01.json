@@ -1,0 +1,35 @@
+{
+  "schemaVersion": 2,
+  "taskId": "LAUNCHER-106-PACKAGE-LOCKED-RESTORE-01",
+  "capability": "Make the stable ZIP managed Launcher restore consume its committed win-x64 lock graph fail closed",
+  "integrationBase": "0798909fde2b8dd17ab47f6a49cc7a1a4537022e",
+  "risk": "R3",
+  "kind": "release",
+  "state": "design-active",
+  "mutablePaths": [
+    "scripts/package.ps1"
+  ],
+  "implementationOwner": "primary-agent",
+  "searchEvidence": [
+    "scripts/package.ps1 restores and publishes the stable ZIP managed NvtFwCombiner.Launcher for win-x64, but its restore omits --locked-mode and --disable-parallel while publish already uses --no-restore.",
+    "Save-SourcePackageLocks and Restore-SourcePackageLocks preserve worktree bytes but can conceal dependency-graph drift accepted by the unlocked Launcher restore.",
+    "scripts/package-distribution-launcher.ps1 already owns the accepted release pattern: project-targeted win-x64 --locked-mode --disable-parallel restore followed by --no-restore publish.",
+    "DOTNET-LOCK-GRAPH-106-01 commits the exact empty Launcher win-x64 target and proves the corresponding locked restore passes with zero lock-byte drift."
+  ],
+  "semanticOwner": "scripts/package.ps1 stable package orchestration owns the ZIP managed Launcher restore and publish command boundary; NuGet packages.lock.json remains the dependency identity owner",
+  "terminalContract": "Only the stable ZIP managed Launcher restore changes: it retains project targeting and -r win-x64 and adds --locked-mode --disable-parallel before the existing --no-restore publish. The Desktop application restore, prerelease behavior, source-lock snapshot custody, package contents, dependency declarations, package versions, hashes, Launcher runtime behavior, firmware behavior, and distribution Launcher packager remain unchanged. A focused release-package policy regression must fail on the former unlocked command and pass only for the exact locked command. The actual Launcher locked restore must pass without changing any committed lock byte; release package policy, scoped Polytail, independent exact-head review, and final repository gates remain mandatory.",
+  "disposition": "extend-owner",
+  "designReview": {
+    "reviewer": "launcher_lock_rid_arch",
+    "outcome": "approved",
+    "evidence": "Independent R3 architecture and release review found that the managed Launcher lock correction alone does not make the production package command deterministic because package.ps1 still restores it unlocked and then restores source lock snapshots. It approved a separate one-governed-path correction that adds only --locked-mode --disable-parallel to the existing win-x64 Launcher restore, retains publish --no-restore, leaves the Desktop restore as an explicit non-goal, and uses the existing release-package policy test owner rather than a second verifier."
+  },
+  "implementationHead": null,
+  "reviewedHead": null,
+  "pathStateDigest": null,
+  "finalReview": {
+    "reviewer": null,
+    "outcome": "pending",
+    "evidence": ""
+  }
+}
