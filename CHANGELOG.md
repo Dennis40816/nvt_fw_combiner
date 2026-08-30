@@ -4,8 +4,55 @@ All notable changes to NVT FW Combiner are documented here. The project follows 
 
 ## [Unreleased]
 
-The repository identity is the unpublished, tag-only `1.0.4` managed Setup and
-Launcher source milestone. Stable `v1.0.3` remains its immutable predecessor.
+The repository identity is the unpublished, tag-only `1.0.5` read-only managed
+Setup recovery-diagnosis milestone. Stable `v1.0.4` remains its immutable
+predecessor.
+
+## [1.0.5] - Unreleased
+
+### Summary
+
+This tag-only identity records the already reviewed typed, read-only diagnosis
+for interrupted managed Setup transactions. That source was already present in
+the v1.0.4 tree; v1.0.5 adds no runtime behavior.
+
+### Product changes
+
+#### Fail-closed Setup recovery diagnosis
+
+- Before → After: the v1.0.4 source tree already contained the reviewed
+  RECOVERY-105A diagnosis without a dedicated stable sub-version identity.
+  v1.0.5 now records that existing source milestone explicitly.
+- Affected: repository identity and technical documentation only; the existing
+  recovery diagnosis implementation is unchanged.
+- Support status: unchanged/support-neutral; firmware behavior is unchanged.
+- Compatibility: the existing Setup marker schema and canonical state remain
+  unchanged and have one strict parser/codec owner.
+- Verification: RECOVERY-105A passed exact-head architecture review plus 193
+  Application recovery tests, 51 focused Infrastructure tests, complete
+  Infrastructure, and Architecture suites.
+- Limitations: this milestone never deletes, repairs, rebinds, migrates,
+  downloads, launches, or retries Setup.
+
+### Security
+
+All observations are bounded, no-follow, exact-identity, and fail closed on
+contention, replacement, malformed data, or incomplete health.
+
+### Known issues
+
+Action execution and user delivery remain deferred to the integrated 1.0.6
+Setup/Recovery gate.
+
+### Upgrade and rollback
+
+No user upgrade is offered for this tag-only source milestone. Stable v1.0.4
+remains its predecessor.
+
+### Downloads and integrity
+
+No GitHub Release, package, Catalog/Registry row, or release asset is published
+for v1.0.5.
 
 ## [1.0.4] - Unreleased
 
