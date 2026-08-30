@@ -5,7 +5,7 @@
   "integrationBase": "23282e9396dc5651ed518cf0c5ac6108c4b740f8",
   "risk": "R3",
   "kind": "release",
-  "state": "design-active",
+  "state": "final-complete",
   "mutablePaths": [
     "docs/adr/0021-code-size-ratchet-system-activity-amendment.md",
     "docs/ci/release-package.md",
@@ -34,12 +34,12 @@
     "outcome": "approved",
     "evidence": "The independent packaging audit selected one additive script and a minimal read-only extraction mode over modifying the existing package owner or implementing a custom PE parser. It requires isolated staging, final-executable embedded-resource re-verification, the exact five closed release assets, and explicit exclusion from the update catalog."
   },
-  "implementationHead": null,
-  "reviewedHead": null,
-  "pathStateDigest": null,
+  "implementationHead": "4256783cb7dbe6c3299b1d18412cd11933ae4ac7",
+  "reviewedHead": "4256783cb7dbe6c3299b1d18412cd11933ae4ac7",
+  "pathStateDigest": "2e522a65720f2799d1f6f58d979b6cc4c1ebe81a5c642497b1d823da6be15516",
   "finalReview": {
-    "reviewer": null,
-    "outcome": "pending",
-    "evidence": ""
+    "reviewer": "launcher_packaging_review and launcher_packaging_evidence_review",
+    "outcome": "approved",
+    "evidence": "Two independent fixed-scope reviews of exact implementation head 4256783cb7dbe6c3299b1d18412cd11933ae4ac7 found no remaining P0-P3 after correcting both release-history findings. The canonical package.ps1 entrypoint preserves the byte-exact protected release workflow and historical v1.0.0 parity authority, emits the existing application assets first, and invokes the additive five-asset Launcher packager only for stable v1.0.6 and later after exact source-snapshot cleanup. Pre-1.0.6 candidates remain at three payload and five published assets; v1.0.6 and later close over eight and ten. Promotion/package tests passed 37/37, historical parity tests passed 32 with one environment skip, final executable extraction passed 3/3, code-size and diff checks passed, and the historical workflow/parity surfaces are byte-identical to the prior authority. No firmware/profile/range/CRC/header/naming/output-byte or update-Catalog semantics changed. Building the exact versioned assets and running the visible install-to-READY/source-offline relaunch smoke remain mandatory release-candidate gates and are not claimed by this implementation record."
   }
 }
