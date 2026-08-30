@@ -26,6 +26,7 @@ public sealed class ManagedDistributionLauncherHostServicesTests
 
         Assert.Null(result.Entry);
         Assert.Null(result.Setup);
+        Assert.Null(result.Recovery);
         Assert.Equal(ManagedDistributionPayloadIssue.Unavailable, result.PayloadIssue);
     }
 
@@ -62,7 +63,161 @@ public sealed class ManagedDistributionLauncherHostServicesTests
             host.ManagedRoot);
         Assert.Equal(ManagedLauncherEntryOutcome.SetupRequired, result.Entry?.Outcome);
         Assert.NotNull(result.Setup);
+        Assert.Null(result.Recovery);
         Assert.False(bootstrapReads.ReadAttempted);
+    }
+
+    /// <summary>Only a typed recovery entry with its exact root exposes recovery.</summary>
+    [Fact]
+    public async Task RecoveryEntryExposesSessionBoundToTheExactEntryRoot()
+    {
+        using var workspace = TempWorkspace.Create();
+        byte[] bootstrap = "immutable-bootstrap"u8.ToArray();
+        Dictionary<string, byte[]> resources = new(StringComparer.Ordinal)
+        {
+            [ManagedDistributionLauncherHostServices.PayloadAdmissionResourceName] =
+                PayloadDescriptor(bootstrap),
+            [ManagedDistributionLauncherHostServices.BootstrapResourceName] = bootstrap,
+        };
+        string launcher = workspace.PathFor("delivery/NvtFwCombiner.DistributionLauncher.exe");
+        string statePath = workspace.PathFor("state/version-manager.v1.json");
+        _ = Directory.CreateDirectory(Path.GetDirectoryName(launcher)!);
+        _ = Directory.CreateDirectory(Path.GetDirectoryName(statePath)!);
+        using ManagedDistributionLauncherHostServices host =
+            ManagedDistributionLauncherHostServices.Create(
+                launcher,
+                "1.0.3",
+                name => OpenResource(resources, name),
+                _ => null,
+                statePath);
+        _ = Directory.CreateDirectory(host.ManagedRoot);
+
+        ManagedDistributionLauncherHostResult result = await host.RunAsync(
+            TestContext.Current.CancellationToken);
+
+        ManagedLauncherEntryResult entry = Assert.IsType<ManagedLauncherEntryResult>(result.Entry);
+        Assert.Equal(ManagedLauncherEntryOutcome.RecoveryRequired, entry.Outcome);
+        Assert.Null(result.Setup);
+        ManagedDistributionLauncherRecoverySession recovery = Assert.IsType<
+            ManagedDistributionLauncherRecoverySession>(result.Recovery);
+        Assert.Equal(entry.ManagedRoot, recovery.ManagedRoot);
+        Assert.Equal(host.ManagedRoot, recovery.ManagedRoot);
+        ManagedSetupRecoveryDiagnosis diagnosis = await recovery.DiagnoseAsync(
+            TestContext.Current.CancellationToken);
+        Assert.Equal(ManagedSetupRecoveryOutcome.ManualInterventionRequired, diagnosis.Outcome);
+    }
+
+    /// <summary>A RecoveryRequired entry without an exact root never gains a recovery session.</summary>
+    [Fact]
+    public async Task RecoveryEntryWithoutRootDoesNotExposeRecoverySession()
+    {
+        using var workspace = TempWorkspace.Create();
+        byte[] bootstrap = "immutable-bootstrap"u8.ToArray();
+        Dictionary<string, byte[]> resources = new(StringComparer.Ordinal)
+        {
+            [ManagedDistributionLauncherHostServices.PayloadAdmissionResourceName] =
+                PayloadDescriptor(bootstrap),
+            [ManagedDistributionLauncherHostServices.BootstrapResourceName] = bootstrap,
+        };
+        string launcher = workspace.PathFor("delivery/NvtFwCombiner.DistributionLauncher.exe");
+        string statePath = workspace.PathFor("state/version-manager.v1.json");
+        _ = Directory.CreateDirectory(Path.GetDirectoryName(launcher)!);
+        _ = Directory.CreateDirectory(Path.GetDirectoryName(statePath)!);
+        File.WriteAllText(statePath, "{}");
+        using ManagedDistributionLauncherHostServices host =
+            ManagedDistributionLauncherHostServices.Create(
+                launcher,
+                "1.0.3",
+                name => OpenResource(resources, name),
+                _ => null,
+                statePath);
+
+        ManagedDistributionLauncherHostResult result = await host.RunAsync(
+            TestContext.Current.CancellationToken);
+
+        Assert.Equal(ManagedLauncherEntryOutcome.RecoveryRequired, result.Entry?.Outcome);
+        Assert.Null(result.Entry?.ManagedRoot);
+        Assert.Null(result.Setup);
+        Assert.Null(result.Recovery);
+        Assert.Equal("{}", File.ReadAllText(statePath));
+    }
+
+    /// <summary>Recovery delegates once and reruns canonical entry only after completion.</summary>
+    [Theory]
+    [InlineData(ManagedSetupRecoveryExecutionOutcome.Completed, 1)]
+    [InlineData(ManagedSetupRecoveryExecutionOutcome.RecoveryRequired, 0)]
+    public async Task RecoverySessionRerunsEntryOnlyAfterCompletedExecution(
+        ManagedSetupRecoveryExecutionOutcome outcome,
+        int expectedReruns)
+    {
+        using var workspace = TempWorkspace.Create();
+        string root = workspace.PathFor("managed");
+        int executionCalls = 0;
+        int reruns = 0;
+        var expectedHost = new ManagedDistributionLauncherHostResult(
+            new ManagedLauncherEntryResult(
+                ManagedLauncherEntryOutcome.SetupRequired,
+                root,
+                TimeSpan.Zero,
+                TimeSpan.Zero),
+            Setup: null,
+            Recovery: null,
+            PayloadIssue: ManagedDistributionPayloadIssue.None);
+        var session = new ManagedDistributionLauncherRecoverySession(
+            root,
+            (_, _) => throw new InvalidOperationException("Diagnosis was not requested."),
+            (plan, action, timeout, cancellationToken) =>
+            {
+                cancellationToken.ThrowIfCancellationRequested();
+                Assert.Equal(TimeSpan.FromSeconds(2), timeout);
+                executionCalls++;
+                return ValueTask.FromResult(new ManagedSetupRecoveryExecutionResult(outcome));
+            },
+            cancellationToken =>
+            {
+                cancellationToken.ThrowIfCancellationRequested();
+                reruns++;
+                return ValueTask.FromResult(expectedHost);
+            });
+
+        ManagedDistributionLauncherRecoveryExecutionResult result = await session.ExecuteAsync(
+            plan: null!,
+            confirmedAction: null,
+            TimeSpan.FromSeconds(2),
+            TestContext.Current.CancellationToken);
+
+        Assert.Equal(1, executionCalls);
+        Assert.Equal(expectedReruns, reruns);
+        Assert.Equal(outcome, result.Execution.Outcome);
+        Assert.Equal(expectedReruns == 1 ? expectedHost : null, result.RefreshedHost);
+    }
+
+    /// <summary>A pre-cancelled explicit request never reaches the execution owner.</summary>
+    [Fact]
+    public async Task RecoverySessionCancellationDoesNotInvokeExecution()
+    {
+        using var workspace = TempWorkspace.Create();
+        using var cancellation = new CancellationTokenSource();
+        cancellation.Cancel();
+        int executions = 0;
+        var session = new ManagedDistributionLauncherRecoverySession(
+            workspace.PathFor("managed"),
+            (_, _) => throw new InvalidOperationException("Diagnosis was not requested."),
+            (_, _, _, _) =>
+            {
+                executions++;
+                throw new InvalidOperationException("Execution must not start after cancellation.");
+            },
+            _ => throw new InvalidOperationException("Entry must not rerun after cancellation."));
+
+        _ = await Assert.ThrowsAnyAsync<OperationCanceledException>(async () =>
+            await session.ExecuteAsync(
+                plan: null!,
+                confirmedAction: null,
+                TimeSpan.FromSeconds(2),
+                cancellation.Token));
+
+        Assert.Equal(0, executions);
     }
 
     /// <summary>The host consumes the canonical locator resolver rather than adding defaults.</summary>
@@ -150,6 +305,7 @@ public sealed class ManagedDistributionLauncherHostServicesTests
         Assert.Equal(expectedResources, requestedResources);
         Assert.Null(result.Entry);
         Assert.Null(result.Setup);
+        Assert.Null(result.Recovery);
         Assert.Equal(expectedIssue, result.PayloadIssue);
     }
 

@@ -8,10 +8,100 @@ namespace NvtFwCombiner.Bootstrap;
 public sealed record ManagedDistributionLauncherHostResult(
     ManagedLauncherEntryResult? Entry,
     ManagedFirstInstallationExperience? Setup,
+    ManagedDistributionLauncherRecoverySession? Recovery,
     ManagedDistributionPayloadIssue PayloadIssue)
 {
     /// <summary>Gets whether one exact embedded payload was available to route this invocation.</summary>
     public bool IsPayloadAvailable => PayloadIssue == ManagedDistributionPayloadIssue.None;
+}
+
+/// <summary>One explicit recovery result and the canonical entry rerun after completion.</summary>
+public sealed record ManagedDistributionLauncherRecoveryExecutionResult(
+    ManagedSetupRecoveryExecutionResult Execution,
+    ManagedDistributionLauncherHostResult? RefreshedHost);
+
+/// <summary>Root-bound access to the existing recovery diagnosis and execution owners.</summary>
+public sealed class ManagedDistributionLauncherRecoverySession
+{
+    private readonly Func<
+        string,
+        CancellationToken,
+        ValueTask<ManagedSetupRecoveryDiagnosis>> _diagnose;
+    private readonly Func<
+        ManagedSetupRecoveryPlan,
+        ManagedSetupRecoveryAction?,
+        TimeSpan,
+        CancellationToken,
+        ValueTask<ManagedSetupRecoveryExecutionResult>> _execute;
+    private readonly Func<
+        CancellationToken,
+        ValueTask<ManagedDistributionLauncherHostResult>> _rerunEntry;
+
+    internal ManagedDistributionLauncherRecoverySession(
+        string managedRoot,
+        ManagedInstallationRecoveryExperience diagnosis,
+        ManagedSetupRecoveryExecutionCoordinator execution,
+        Func<CancellationToken, ValueTask<ManagedDistributionLauncherHostResult>> rerunEntry)
+        : this(
+            managedRoot,
+            diagnosis.DiagnoseAsync,
+            execution.ExecuteAsync,
+            rerunEntry)
+    {
+    }
+
+    internal ManagedDistributionLauncherRecoverySession(
+        string managedRoot,
+        Func<string, CancellationToken, ValueTask<ManagedSetupRecoveryDiagnosis>> diagnose,
+        Func<
+            ManagedSetupRecoveryPlan,
+            ManagedSetupRecoveryAction?,
+            TimeSpan,
+            CancellationToken,
+            ValueTask<ManagedSetupRecoveryExecutionResult>> execute,
+        Func<CancellationToken, ValueTask<ManagedDistributionLauncherHostResult>> rerunEntry)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(managedRoot);
+        if (!Path.IsPathFullyQualified(managedRoot))
+        {
+            throw new ArgumentException("Recovery root must be absolute.", nameof(managedRoot));
+        }
+        ManagedRoot = managedRoot;
+        _diagnose = diagnose ?? throw new ArgumentNullException(nameof(diagnose));
+        _execute = execute ?? throw new ArgumentNullException(nameof(execute));
+        _rerunEntry = rerunEntry ?? throw new ArgumentNullException(nameof(rerunEntry));
+    }
+
+    /// <summary>Gets the exact root carried by the typed RecoveryRequired entry.</summary>
+    public string ManagedRoot { get; }
+
+    /// <summary>Runs the sole read-only Application recovery diagnosis.</summary>
+    public ValueTask<ManagedSetupRecoveryDiagnosis> DiagnoseAsync(
+        CancellationToken cancellationToken)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+        return _diagnose(ManagedRoot, cancellationToken);
+    }
+
+    /// <summary>Executes an explicit plan and reruns canonical entry only after completion.</summary>
+    public async ValueTask<ManagedDistributionLauncherRecoveryExecutionResult> ExecuteAsync(
+        ManagedSetupRecoveryPlan plan,
+        ManagedSetupRecoveryAction? confirmedAction,
+        TimeSpan writerLeaseTimeout,
+        CancellationToken cancellationToken)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+        ManagedSetupRecoveryExecutionResult execution = await _execute(
+            plan,
+            confirmedAction,
+            writerLeaseTimeout,
+            cancellationToken).ConfigureAwait(false);
+        ManagedDistributionLauncherHostResult? refreshed =
+            execution.Outcome == ManagedSetupRecoveryExecutionOutcome.Completed
+                ? await _rerunEntry(cancellationToken).ConfigureAwait(false)
+                : null;
+        return new(execution, refreshed);
+    }
 }
 
 /// <summary>
@@ -41,6 +131,8 @@ public sealed class ManagedDistributionLauncherHostServices : IDisposable
         VersionManagementExperience versionManagement,
         FileSystemManagedFirstInstallationRootMaterializer rootMaterializer,
         StableLauncherHandoff handoff,
+        ManagedInstallationRecoveryExperience recoveryExperience,
+        ManagedSetupRecoveryExecutionCoordinator recoveryExecution,
         ManagedAppVersion runningLauncherVersion)
     {
         ManagedRoot = managedRoot;
@@ -61,6 +153,8 @@ public sealed class ManagedDistributionLauncherHostServices : IDisposable
             versionManagement,
             rootMaterializer,
             handoff);
+        RecoveryExperience = recoveryExperience;
+        RecoveryExecution = recoveryExecution;
     }
 
     /// <summary>Gets the deterministic delivery-media child used only while durable state is missing.</summary>
@@ -74,6 +168,10 @@ public sealed class ManagedDistributionLauncherHostServices : IDisposable
     private ManagedLauncherEntryCoordinator EntryCoordinator { get; }
 
     private ManagedFirstInstallationExperience SetupExperience { get; }
+
+    private ManagedInstallationRecoveryExperience RecoveryExperience { get; }
+
+    private ManagedSetupRecoveryExecutionCoordinator RecoveryExecution { get; }
 
     /// <summary>Creates the production graph from the exact running executable and entry assembly.</summary>
     public static ManagedDistributionLauncherHostServices Create()
@@ -142,6 +240,26 @@ public sealed class ManagedDistributionLauncherHostServices : IDisposable
         var handoff = new StableLauncherHandoff(
             managedRoot,
             exactStatePath);
+        var markerProbe = new FileSystemManagedSetupRecoveryProbe();
+        var lifetimeProbe = new FileSystemManagedProcessLifetimeProbe();
+        var recoveryAdapter = new FileSystemManagedSetupRecoveryExecution(
+            exactStatePath,
+            repository,
+            new FileSystemInstalledLauncherRepository(),
+            new JsonLauncherBootstrapStateStore(exactStatePath));
+        var recoveryExperience = new ManagedInstallationRecoveryExperience(
+            stateStore,
+            rootProbe,
+            markerProbe,
+            lifetimeProbe,
+            recoveryAdapter);
+        var recoveryExecution = new ManagedSetupRecoveryExecutionCoordinator(
+            stateStore,
+            rootProbe,
+            markerProbe,
+            lifetimeProbe,
+            recoveryAdapter,
+            recoveryAdapter);
         return new(
             managedRoot,
             exactStatePath,
@@ -151,6 +269,8 @@ public sealed class ManagedDistributionLauncherHostServices : IDisposable
             versionManagement,
             rootMaterializer,
             handoff,
+            recoveryExperience,
+            recoveryExecution,
             runningLauncherVersion);
     }
 
@@ -173,8 +293,19 @@ public sealed class ManagedDistributionLauncherHostServices : IDisposable
             ? new(
                 entry,
                 entry.Outcome == ManagedLauncherEntryOutcome.SetupRequired ? SetupExperience : null,
+                entry is
+                {
+                    Outcome: ManagedLauncherEntryOutcome.RecoveryRequired,
+                    ManagedRoot: not null,
+                }
+                    ? new(
+                        entry.ManagedRoot,
+                        RecoveryExperience,
+                        RecoveryExecution,
+                        RunAsync)
+                    : null,
                 ManagedDistributionPayloadIssue.None)
-            : new(null, null, issue);
+            : new(null, null, null, issue);
     }
 
     /// <inheritdoc />

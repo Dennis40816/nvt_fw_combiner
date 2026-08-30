@@ -1,0 +1,38 @@
+{
+  "schemaVersion": 2,
+  "taskId": "RECOVERY-105C",
+  "capability": "Compose the already reviewed managed Setup recovery diagnosis and execution owners into the thin Distribution Launcher host for an exact RecoveryRequired managed root, without automatic mutation, path inference, a second policy, writer, parser, or process-launch path",
+  "integrationBase": "a5aafa8127aabb9c3e98c64fb9f64fab7c864c23",
+  "risk": "R3",
+  "kind": "behavior",
+  "state": "design-active",
+  "mutablePaths": [
+    "docs/adr/0021-code-size-ratchet-system-activity-amendment.md",
+    "scripts/code_size_policy.py",
+    "src/NvtFwCombiner.Bootstrap/ManagedDistributionLauncherHostServices.cs"
+  ],
+  "implementationOwner": "primary-agent-single-writer",
+  "searchEvidence": [
+    "ManagedDistributionLauncherHostServices already constructs the single state store, root probe, version repository, installed-launcher repository path, lifetime handoff, entry coordinator, and Setup experience.",
+    "ManagedInstallationRecoveryExperience and ManagedSetupRecoveryExecutionCoordinator are the only Application recovery diagnosis/action owners; FileSystemManagedSetupRecoveryExecution is the only exact Infrastructure mutation adapter.",
+    "ManagedLauncherEntryResult already carries the exact ManagedRoot for RecoveryRequired, so the host can bind that typed path without deriving it from state or filenames.",
+    "Distribution Launcher currently returns RecoveryRequired with no recovery session; no other production recovery composition or caller exists.",
+    "scripts/code_size_policy.py and ADR 0021 are the existing exact descending source-size ratchet owners and must bind the measured composition delta rather than hiding it through mechanical file splitting."
+  ],
+  "semanticOwner": "VersionManagement Application retains recovery policy and explicit-action coordination; Bootstrap only wires the existing ports and exposes a root-bound session for the typed RecoveryRequired entry result",
+  "terminalContract": "RunAsync remains read-only. SetupRequired exposes only Setup; RecoveryRequired with a non-null exact entry ManagedRoot exposes one recovery session using the existing diagnosis and execution coordinators; healthy and every other outcome expose neither. Recovery never starts automatically and cancellation performs no Execute call. Completing an explicit action reruns the canonical host entry path.",
+  "disposition": "extend-owner",
+  "designReview": {
+    "reviewer": "recovery105b_architecture",
+    "outcome": "approved",
+    "evidence": "The independent recovery architecture review kept production composition as a separate least-authority slice and approved reusing the existing state store, root probe, repository, installed-launcher state, lifetime probe, diagnosis experience and execution coordinator. It rejected automatic recovery, inferred paths, Infrastructure-owned action policy, a second writer lease, and any additional process-start owner."
+  },
+  "implementationHead": null,
+  "reviewedHead": null,
+  "pathStateDigest": null,
+  "finalReview": {
+    "reviewer": null,
+    "outcome": "pending",
+    "evidence": ""
+  }
+}

@@ -249,3 +249,28 @@ catastrophic-growth alarm. Cohesion is instead enforced through the existing
 unique semantic-owner, dependency-boundary, duplicate parser/policy/writer,
 and process-launch tests. Files are split when those boundaries warrant it,
 not solely to satisfy a line count.
+
+## 2026-08-30 Distribution Launcher recovery composition
+
+RECOVERY-105C wires the already reviewed recovery diagnosis and execution
+owners into the existing thin Distribution Launcher host. The host exposes one
+exact-root session only for the typed `RecoveryRequired` result; diagnosis
+remains read-only and only an explicitly confirmed action may invoke the
+existing coordinator. The same state store, root probe, repository, marker and
+lifetime probes, evidence/execution adapter, and canonical entry rerun are
+reused. No process start, parser, policy, writer lease, or path inference is
+added.
+
+Full production is 133,610 nonblank lines and runtime production is 95,952.
+Domain plus Profiles remains 20,632; Application remains 41,047; Bootstrap,
+CLI, Desktop and Launcher is 4,469; Infrastructure, Contracts, worker and
+Platform remains 29,804. Relative to RECOVERY-105B this is +122 total/runtime,
+all in the host slice.
+
+The executable allowances become exactly 30,714 full production, 25,896
+runtime, 5 Domain/Profiles, 10,357 Application, 1,091
+Bootstrap/CLI/Desktop/Launcher, and 14,448
+Infrastructure/Contracts/worker/Platform above the frozen base ratchets. This
+R3 allowance is exact and non-transferable. It changes no firmware, profile,
+range, operation, output byte, CRC/header, processor, naming, support, Golden,
+package, Registry, Catalog, or Presentation authority.
