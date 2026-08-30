@@ -70,7 +70,7 @@ public sealed partial class FileSystemManagedVersionRepositoryTests
     {
         using var workspace = TempWorkspace.Create();
         string sourceRoot = workspace.PathFor("source");
-        string managedRoot = workspace.PathFor("managed");
+        string managedRoot = CreateManagedRoot(workspace, "managed");
         var installer = new FileSystemManagedVersionRepository();
         ManagedVersionInstallResult installed = await installer.InstallAsync(
             managedRoot,

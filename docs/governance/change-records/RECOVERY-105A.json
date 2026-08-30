@@ -1,0 +1,48 @@
+{
+  "schemaVersion": 2,
+  "taskId": "RECOVERY-105A",
+  "capability": "Add the complete read-only managed Setup recovery diagnosis across canonical state, root, transaction marker, and Bootstrap/Application/Launcher lifetime facts, and extract the existing private transaction-marker parser into the single canonical codec; this slice performs no filesystem mutation, process launch, source access, rebind, repair, migration, or cleanup",
+  "integrationBase": "62c989739a38bc1316d9b79abaf2221ce26b1294",
+  "risk": "R2",
+  "kind": "behavior",
+  "state": "final-complete",
+  "mutablePaths": [
+    "docs/adr/0063-managed-setup-recovery-diagnosis.md",
+    "src/NvtFwCombiner.VersionManagement.Application/VersionManagement/ManagedSetupRecoveryDiagnosis.cs",
+    "src/NvtFwCombiner.VersionManagement.Application/VersionManagement/VersionManagerStateStore.cs",
+    "src/NvtFwCombiner.VersionManagement.Infrastructure/VersionManagement/ManagedSetupTransactionCodec.cs",
+    "src/NvtFwCombiner.VersionManagement.Infrastructure/VersionManagement/FileSystemManagedSetupRecoveryProbe.cs",
+    "src/NvtFwCombiner.VersionManagement.Infrastructure/VersionManagement/FileSystemManagedProcessLifetimeProbe.cs",
+    "src/NvtFwCombiner.VersionManagement.Infrastructure/VersionManagement/ManagedProcessLifetimeLease.cs",
+    "src/NvtFwCombiner.VersionManagement.Infrastructure/VersionManagement/JsonVersionManagerStateStore.cs",
+    "src/NvtFwCombiner.VersionManagement.Infrastructure/VersionManagement/WindowsStablePathCustody.cs",
+    "src/NvtFwCombiner.VersionManagement.Infrastructure/VersionManagement/WindowsStablePathCustody.Native.cs",
+    "src/NvtFwCombiner.VersionManagement.Infrastructure/VersionManagement/FileSystemManagedFirstInstallationRootMaterializer.cs",
+    "src/NvtFwCombiner.VersionManagement.Infrastructure/VersionManagement/FileSystemManagedFirstInstallationRootMaterializer.Helpers.cs"
+  ],
+  "implementationOwner": "recovery105a-implementer",
+  "searchEvidence": [
+    "FileSystemManagedFirstInstallationRootMaterializer.Helpers.cs contains the only current ParseMarker, SerializeMarker and ReadMarkerAsync implementation; ManagedSetupTransactionDocument and ManagedSetupTransactionSchema are the existing marker document and strict schema owners.",
+    "WindowsStablePathCustody already owns no-follow file acquisition, held identity, read-only stream duplication and closed-tree revalidation; recovery diagnosis must reuse it instead of adding path-following reads.",
+    "Stable marker absence is proved only when WindowsStablePathCustody holds the exact no-follow parent chain and the relative child open returns object-name/path-not-found; a missing parent, generic I/O failure, race, or reparse point is not absence.",
+    "ManagedLauncherEntryCoordinator already classifies healthy launch versus Setup versus RecoveryRequired; this slice only gives the later recovery experience a typed read-only transaction diagnosis and does not create another launcher classifier, updater, verifier, state writer or scanner.",
+    "JsonVersionManagerStateStore already owns canonical state loading and its normalized exact path; the recovery-specific state-reader port exposes that existing immutable identity so every lifetime and marker observation is bound to the file actually read. IManagedInstallationRootProbe already owns the complete exact-root fact, and ManagedProcessLifetimeLease already owns Bootstrap/Application/Launcher lease and job identities; recovery uses segregated read-only projections rather than injecting any existing start-capable process port.",
+    "No production managed-Setup recovery experience or reusable marker codec exists outside the materializer-private helpers; tests currently cover materialization residue but not a complete read-only state/root/marker/lifetime recovery diagnosis contract."
+  ],
+  "semanticOwner": "VersionManagement Application owns the terminal managed recovery diagnosis; VersionManagement Infrastructure owns strict bounded transaction-marker decoding and stable no-follow observation; the existing Setup materializer remains the sole marker writer",
+  "terminalContract": "A caller supplies only the exact managed-root identity; the recovery-specific state reader supplies the immutable absolute state-path identity of the canonical file it reads. Application captures that identity once and uses it for all Bootstrap/Application/Launcher lifetime and marker observations, so path A state cannot combine with path B evidence. Any Active role yields Busy, otherwise any unavailable role yields HealthUnavailable. It then loads canonical state, reuses the existing typed root observation, and observes the marker. Infrastructure reads at most 64 KiB through stable no-follow custody, accepts only the existing strict marker schema, binds the marker to the exact root, state identity and closed owned-path set, revalidates identity/topology, and returns one typed fact: Absent, Exact, Malformed, IdentityMismatch, AccessDenied, Changed or Unavailable. Absent requires the exact no-follow parent chain to remain held across two relative marker child opens proving object-name/path-not-found; generic unavailable, transient custody contention, missing ancestry, race, reparse, and replacement never become Absent. Custody contention projects to Unavailable and therefore HealthUnavailable with no transaction; only a confirmed replacement or held identity/topology inconsistency projects to Changed and ManualInterventionRequired. Exact facts expose only the declared staging, root-promoted or bootstrap-launch-recorded phase and immutable transaction/candidate/payload identities. With all lifetimes Exited, marker Absent plus state Missing/root Absent or exact bound state/root Present yields NoRecoveryNeeded; an Exact marker requires root Residue and yields ActionAvailable for staging/root-promoted only with state Missing, and for bootstrap-launch-recorded with state Missing or exact bound state. Invalid, unbound, wrong-bound, mismatched, or inconsistent facts yield ManualInterventionRequired; incomplete health yields HealthUnavailable. Only ActionAvailable carries the immutable transaction. This slice never mutates, deletes, moves, launches, downloads, scans a source, repairs, rebinds or migrates anything, and starts Bootstrap exactly zero times.",
+  "disposition": "extend-owner",
+  "designReview": {
+    "reviewer": "recovery_admission2",
+    "outcome": "approved",
+    "evidence": "Independent architecture admission fixed the dependency direction, reused the existing marker/schema/custody owners, required fail-closed typed facts and zero mutation, and rejected a second parser, updater, verifier, state writer, scanner or Setup retry path."
+  },
+  "implementationHead": "317acb740cf74718e269ce687d3e469c8cfa7f39",
+  "reviewedHead": "317acb740cf74718e269ce687d3e469c8cfa7f39",
+  "pathStateDigest": "db5f8f57014c438f0662afa0e18a8ff740c7f8d05f6cd15b6b9a0e4121c54127",
+  "finalReview": {
+    "reviewer": "p1_semantic_review + p1_governance_review",
+    "outcome": "approved",
+    "evidence": "Independent exact-head reviews approved implementation 317acb740cf74718e269ce687d3e469c8cfa7f39 with no P0, P1 or P2. They verified one Application-owned read-only recovery diagnosis, one strict marker codec, stable no-follow marker observation, three read-only lifetime roles and zero mutation or process start. The recovery-specific state reader exposes the canonical Json store's existing normalized path; Application captures it once and uses it for every lifetime and marker observation, so path-A state cannot combine with path-B evidence. Recovery Application 193/193, relevant Infrastructure 51/51, full Infrastructure 943 passed with two declared platform skips, and Architecture 247/247 passed. Exact residue convergence, repair, rebind and migration remain deferred to RECOVERY-105B and later approved slices."
+  }
+}

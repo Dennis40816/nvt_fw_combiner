@@ -1,0 +1,51 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://novatek.example/schema/managed-setup-payload-admission-v1.json",
+  "title": "NVT FW Combiner distribution Launcher payload admission v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "product",
+    "payloadKind",
+    "launcherSetupProtocolVersion",
+    "launcherVersion",
+    "runtimeIdentifier",
+    "sourceCommit",
+    "bootstrap"
+  ],
+  "properties": {
+    "schemaVersion": { "const": "1.0" },
+    "product": { "const": "NVT FW Combiner" },
+    "payloadKind": { "const": "distribution-launcher-bootstrap" },
+    "launcherSetupProtocolVersion": { "const": 1 },
+    "launcherVersion": {
+      "type": "string",
+      "pattern": "^(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)$"
+    },
+    "runtimeIdentifier": { "const": "win-x64" },
+    "sourceCommit": { "type": "string", "pattern": "^[0-9a-f]{40}$" },
+    "bootstrap": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "resourceName",
+        "installedFileName",
+        "size",
+        "sha256",
+        "versionManagementProtocolVersion",
+        "sourceCommit"
+      ],
+      "properties": {
+        "resourceName": {
+          "const": "NvtFwCombiner.DistributionLauncher.Payload.NvtFwCombiner.Bootstrap.exe"
+        },
+        "installedFileName": { "const": "NvtFwCombiner.Bootstrap.exe" },
+        "size": { "type": "integer", "minimum": 1, "maximum": 200000000 },
+        "sha256": { "type": "string", "pattern": "^[0-9a-f]{64}$" },
+        "versionManagementProtocolVersion": { "const": 1 },
+        "sourceCommit": { "type": "string", "pattern": "^[0-9a-f]{40}$" }
+      }
+    }
+  }
+}

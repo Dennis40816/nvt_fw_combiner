@@ -1,5 +1,4 @@
 using System.IO.Pipes;
-using System.ComponentModel;
 using System.Diagnostics;
 using NvtFwCombiner.Application.VersionManagement;
 using NvtFwCombiner.Infrastructure.VersionManagement;
@@ -9,9 +8,15 @@ namespace NvtFwCombiner.Infrastructure.Tests.VersionManagement;
 
 /// <summary>Runs real child processes through the inherited one-use ready channel.</summary>
 [Collection(nameof(ReadyProbeProcessSerialGroup))]
-public sealed class AnonymousPipeManagedApplicationProcessTests
+public sealed partial class AnonymousPipeManagedApplicationProcessTests
 {
     private const string BehaviorEnvironment = "NVT_READY_PROBE_BEHAVIOR";
+    private static readonly ImmutableBootstrapWaitBudget AdmissionBudget = new(
+        ManagedLauncherEntryCoordinator.DefaultAdmissionOperationCutoff,
+        ManagedLauncherEntryCoordinator.DefaultAdmissionDeadline);
+    private static readonly ImmutableBootstrapWaitBudget CompletionBudget = new(
+        ManagedLauncherEntryCoordinator.DefaultCompletionOperationCutoff,
+        ManagedLauncherEntryCoordinator.DefaultCompletionDeadline);
 
     /// <summary>An exact ready message succeeds without exposing handshake material in arguments.</summary>
     [Fact]
@@ -103,7 +108,7 @@ public sealed class AnonymousPipeManagedApplicationProcessTests
             using TestExecutableLaunchLease executableLease = ExecutableLease(workspace.Root, version);
 
             ManagedProcessStartResult result = await new AnonymousPipeManagedApplicationProcess(
-                statePath: null,
+                Path.Combine(workspace.Root, "state", "version-manager.v1.json"),
                 termination).StartUntilReadyAsync(
                     workspace.Root,
                     version,
@@ -246,12 +251,40 @@ public sealed class AnonymousPipeManagedApplicationProcessTests
         ManagedAppVersion version = ManagedAppVersion.Parse("0.10.6");
         using TestExecutableLaunchLease executableLease = ExecutableLease(workspace.Root, version);
 
-        ManagedProcessStartResult result = await new AnonymousPipeManagedApplicationProcess().StartUntilReadyAsync(
+        ManagedProcessStartResult result = await new AnonymousPipeManagedApplicationProcess(
+                Path.Combine(workspace.Root, "state", "version-manager.v1.json"))
+            .StartUntilReadyAsync(
             workspace.Root,
             version,
             executableLease,
             TimeSpan.FromSeconds(1),
             TestContext.Current.CancellationToken);
+
+        Assert.Equal(ManagedProcessStartOutcome.StartFailed, result.Outcome);
+        Assert.Null(result.ExitCode);
+    }
+
+    /// <summary>A changed admitted tree is rejected by the final synchronous Process.Start gate.</summary>
+    [Fact]
+    public async Task InvalidatedTreeLeaseFailsBeforeApplicationProcessStart()
+    {
+        using var workspace = TempWorkspace.Create();
+        ManagedAppVersion version = ManagedAppVersion.Parse("0.10.6");
+        string versionRoot = Path.Combine(workspace.Root, "versions", version.ToString());
+        _ = Directory.CreateDirectory(versionRoot);
+        using var executableLease = new TestExecutableLaunchLease(
+            Path.Combine(versionRoot, "NvtFwCombiner.exe"),
+            versionRoot,
+            IsValidForStart: false);
+
+        ManagedProcessStartResult result = await new AnonymousPipeManagedApplicationProcess(
+                Path.Combine(workspace.Root, "state", "version-manager.v1.json"))
+            .StartUntilReadyAsync(
+                workspace.Root,
+                version,
+                executableLease,
+                TimeSpan.FromSeconds(1),
+                TestContext.Current.CancellationToken);
 
         Assert.Equal(ManagedProcessStartOutcome.StartFailed, result.Outcome);
         Assert.Null(result.ExitCode);
@@ -271,7 +304,9 @@ public sealed class AnonymousPipeManagedApplicationProcessTests
             TestContext.Current.CancellationToken);
         using TestExecutableLaunchLease executableLease = ExecutableLease(workspace.Root, version);
 
-        ManagedProcessStartResult result = await new AnonymousPipeManagedApplicationProcess().StartUntilReadyAsync(
+        ManagedProcessStartResult result = await new AnonymousPipeManagedApplicationProcess(
+                Path.Combine(workspace.Root, "state", "version-manager.v1.json"))
+            .StartUntilReadyAsync(
             workspace.Root,
             version,
             executableLease,
@@ -469,189 +504,4 @@ public sealed class AnonymousPipeManagedApplicationProcessTests
         }
     }
 
-    /// <summary>The desktop handoff starts only the exact stable launcher under its configured managed root.</summary>
-    [Fact]
-    public async Task StableLauncherHandoffRejectsMissingAndStartsExactLauncher()
-    {
-        using var workspace = TempWorkspace.Create();
-        var handoff = new StableLauncherHandoff(workspace.Root);
-
-        bool missing = await handoff.TryStartLauncherAsync(TestContext.Current.CancellationToken);
-        string probe = Path.Combine(AppContext.BaseDirectory, "ready-probe", "NvtFwCombiner.ReadyProbe.exe");
-        File.Copy(probe, Path.Combine(workspace.Root, "NvtFwCombiner.Bootstrap.exe"));
-        bool started = await handoff.TryStartLauncherAsync(TestContext.Current.CancellationToken);
-        await Task.Delay(500, TestContext.Current.CancellationToken);
-
-        Assert.False(missing);
-        Assert.True(started);
-    }
-
-    /// <summary>Launcher handoff honors caller cancellation before touching the process boundary.</summary>
-    [Fact]
-    public async Task StableLauncherHandoffHonorsCancellation()
-    {
-        using var workspace = TempWorkspace.Create();
-        using var cancellation = new CancellationTokenSource();
-        cancellation.Cancel();
-
-        _ = await Assert.ThrowsAnyAsync<OperationCanceledException>(async () =>
-            await new StableLauncherHandoff(workspace.Root).TryStartLauncherAsync(cancellation.Token));
-    }
-
-    /// <summary>A residual Win32 start failure is converted to the handoff's fail-closed result.</summary>
-    [Fact]
-    public async Task StableLauncherHandoffConvertsWin32StartFailureToFalse()
-    {
-        using var workspace = TempWorkspace.Create();
-        await File.WriteAllTextAsync(
-            Path.Combine(workspace.Root, "NvtFwCombiner.Bootstrap.exe"),
-            "not-a-windows-executable",
-            TestContext.Current.CancellationToken);
-
-        bool started = await new StableLauncherHandoff(workspace.Root)
-            .TryStartLauncherAsync(TestContext.Current.CancellationToken);
-
-        Assert.False(started);
-    }
-
-    private static async ValueTask<ManagedProcessStartResult> RunAsync(
-        string managedRoot,
-        ManagedAppVersion version,
-        string behavior,
-        TimeSpan deadline,
-        CancellationToken cancellationToken)
-    {
-        string? previous = Environment.GetEnvironmentVariable(BehaviorEnvironment);
-        try
-        {
-            Environment.SetEnvironmentVariable(BehaviorEnvironment, behavior);
-            using TestExecutableLaunchLease executableLease = ExecutableLease(managedRoot, version);
-            return await new AnonymousPipeManagedApplicationProcess().StartUntilReadyAsync(
-                managedRoot,
-                version,
-                executableLease,
-                deadline,
-                cancellationToken);
-        }
-        finally
-        {
-            Environment.SetEnvironmentVariable(BehaviorEnvironment, previous);
-        }
-    }
-
-    private static void PrepareProbe(string managedRoot, ManagedAppVersion version)
-    {
-        string probeRoot = Path.Combine(AppContext.BaseDirectory, "ready-probe");
-        string versionRoot = Path.Combine(managedRoot, "versions", version.ToString());
-        _ = Directory.CreateDirectory(versionRoot);
-        foreach (string source in Directory.EnumerateFiles(probeRoot))
-        {
-            string fileName = Path.GetFileName(source);
-            string targetName = string.Equals(fileName, "NvtFwCombiner.ReadyProbe.exe", StringComparison.OrdinalIgnoreCase)
-                ? "NvtFwCombiner.exe"
-                : fileName;
-            File.Copy(source, Path.Combine(versionRoot, targetName));
-        }
-    }
-
-    private static TestExecutableLaunchLease ExecutableLease(
-        string managedRoot,
-        ManagedAppVersion version)
-    {
-        string workingDirectory = Path.Combine(managedRoot, "versions", version.ToString());
-        return new TestExecutableLaunchLease(
-            Path.Combine(workingDirectory, "NvtFwCombiner.exe"),
-            workingDirectory);
-    }
-
-    private sealed record TestExecutableLaunchLease(
-        string ExecutablePath,
-        string WorkingDirectory) : IManagedExecutableLaunchLease
-    {
-        public void Dispose() { }
-    }
-
-    private sealed class FailingTerminationOperations(bool failKill, bool failWait)
-        : IManagedProcessTerminationOperations
-    {
-        public bool HasExited(Process process)
-        {
-            return false;
-        }
-
-        public void Kill(Process process)
-        {
-            process.Kill(entireProcessTree: true);
-            if (failKill)
-            {
-                throw new Win32Exception("Injected kill failure.");
-            }
-        }
-
-        public bool WaitForExit(Process process, TimeSpan timeout)
-        {
-            return !failWait
-                ? process.WaitForExit(checked((int)Math.Ceiling(timeout.TotalMilliseconds)))
-                : throw new InvalidOperationException("Injected wait failure.");
-        }
-
-        public int GetExitCode(Process process)
-        {
-            return process.ExitCode;
-        }
-    }
-
-    private sealed class AggregateKillFailureOperations(bool rootExitsDuringKill)
-        : IManagedProcessTerminationOperations
-    {
-        private bool _rootExited;
-        public int HasExitedCalls { get; private set; }
-
-        public bool HasExited(Process process)
-        {
-            HasExitedCalls++;
-            return _rootExited;
-        }
-
-        public void Kill(Process process)
-        {
-            _rootExited = rootExitsDuringKill;
-            throw new AggregateException("Injected partial tree-kill failure.");
-        }
-
-        public bool WaitForExit(Process process, TimeSpan timeout)
-        {
-            throw new InvalidOperationException("Wait must not follow a failed tree kill.");
-        }
-
-        public int GetExitCode(Process process)
-        {
-            return 0;
-        }
-    }
-
-    private sealed class ExpiringWaitOperations : IManagedProcessTerminationOperations
-    {
-        public TimeSpan? ObservedTimeout { get; private set; }
-
-        public bool HasExited(Process process)
-        {
-            return false;
-        }
-
-        public void Kill(Process process)
-        {
-        }
-
-        public bool WaitForExit(Process process, TimeSpan timeout)
-        {
-            ObservedTimeout = timeout;
-            return false;
-        }
-
-        public int GetExitCode(Process process)
-        {
-            return 0;
-        }
-    }
 }

@@ -6,6 +6,27 @@ namespace NvtFwCombiner.Application.Tests.VersionManagement;
 /// <summary>Tests explicit first-run seeding without filesystem or launcher policy duplication.</summary>
 public sealed class ManagedVersionSeedBootstrapperTests
 {
+    private static readonly TimeSpan SeedWriterLeaseTimeout = TimeSpan.FromMilliseconds(250);
+
+    /// <summary>The shared factory emits exactly the shape accepted by runtime seed import.</summary>
+    [Fact]
+    public void CanonicalFirstRunSeedPolicyIsTheSingleSetupAndRuntimeOwner()
+    {
+        ManagedVersionAdmission admission = new(
+            ManagedAppVersion.Parse("1.0.0"),
+            "seed|1.0.0",
+            new string('a', 64));
+
+        VersionManagerState seed = ManagedVersionSeedPolicy.CreateCanonicalFirstRunSeed(admission);
+
+        Assert.True(ManagedVersionSeedPolicy.IsCanonicalFirstRunSeed(seed));
+        Assert.Equal(admission, Assert.Single(seed.Admissions));
+        Assert.Equal(admission.Version, seed.ActiveVersion);
+        Assert.Equal(admission.Version, seed.LastKnownGoodVersion);
+        Assert.Null(seed.ManagedRootIdentity);
+        Assert.Null(seed.UpdateSource);
+    }
+
     /// <summary>A missing destination accepts exactly one healthy canonical seed.</summary>
     [Fact]
     public async Task MissingStateImportsOneHealthyCanonicalSeed()
@@ -19,6 +40,7 @@ public sealed class ManagedVersionSeedBootstrapperTests
             new SeedRepository(ManagedVersionIntegrity.Healthy));
 
         ManagedVersionSeedOutcome outcome = await bootstrapper.EnsureInitializedAsync(
+            SeedWriterLeaseTimeout,
             TestContext.Current.CancellationToken);
 
         Assert.Equal(ManagedVersionSeedOutcome.Seeded, outcome);
@@ -40,6 +62,7 @@ public sealed class ManagedVersionSeedBootstrapperTests
             new SeedRepository(ManagedVersionIntegrity.Healthy));
 
         ManagedVersionSeedOutcome outcome = await bootstrapper.EnsureInitializedAsync(
+            SeedWriterLeaseTimeout,
             TestContext.Current.CancellationToken);
 
         Assert.Equal(ManagedVersionSeedOutcome.InvalidExistingState, outcome);
@@ -60,9 +83,12 @@ public sealed class ManagedVersionSeedBootstrapperTests
             new SeedRepository(ManagedVersionIntegrity.Healthy));
 
         ManagedVersionSeedOutcome outcome = await bootstrapper.EnsureInitializedAsync(
+            SeedWriterLeaseTimeout,
             TestContext.Current.CancellationToken);
 
         Assert.Equal(ManagedVersionSeedOutcome.ExistingState, outcome);
+        Assert.Equal(0, destination.LeaseCount);
+        Assert.Equal(1, destination.LoadCount);
         Assert.Equal(0, destination.SaveCount);
     }
 
@@ -91,6 +117,7 @@ public sealed class ManagedVersionSeedBootstrapperTests
             repository);
 
         ManagedVersionSeedOutcome outcome = await bootstrapper.EnsureInitializedAsync(
+            SeedWriterLeaseTimeout,
             TestContext.Current.CancellationToken);
 
         Assert.Equal(ManagedVersionSeedOutcome.ManagedRootMismatch, outcome);
@@ -116,6 +143,7 @@ public sealed class ManagedVersionSeedBootstrapperTests
             new SeedRepository(ManagedVersionIntegrity.Healthy));
 
         ManagedVersionSeedOutcome outcome = await bootstrapper.EnsureInitializedAsync(
+            SeedWriterLeaseTimeout,
             TestContext.Current.CancellationToken);
 
         Assert.Equal(expected, outcome);
@@ -136,6 +164,7 @@ public sealed class ManagedVersionSeedBootstrapperTests
                 new SeedRepository(ManagedVersionIntegrity.Healthy));
 
             ManagedVersionSeedOutcome outcome = await bootstrapper.EnsureInitializedAsync(
+                SeedWriterLeaseTimeout,
                 TestContext.Current.CancellationToken);
 
             Assert.Equal(ManagedVersionSeedOutcome.InvalidSeed, outcome);
@@ -155,6 +184,7 @@ public sealed class ManagedVersionSeedBootstrapperTests
             new SeedRepository(ManagedVersionIntegrity.Damaged));
 
         ManagedVersionSeedOutcome outcome = await bootstrapper.EnsureInitializedAsync(
+            SeedWriterLeaseTimeout,
             TestContext.Current.CancellationToken);
 
         Assert.Equal(ManagedVersionSeedOutcome.DamagedSeedPayload, outcome);
@@ -176,6 +206,7 @@ public sealed class ManagedVersionSeedBootstrapperTests
             repository);
 
         ManagedVersionSeedOutcome outcome = await bootstrapper.EnsureInitializedAsync(
+            SeedWriterLeaseTimeout,
             TestContext.Current.CancellationToken);
 
         Assert.Equal(ManagedVersionSeedOutcome.StateUnavailable, outcome);
@@ -184,7 +215,7 @@ public sealed class ManagedVersionSeedBootstrapperTests
         Assert.Equal(0, destination.SaveCount);
     }
 
-    /// <summary>A contended writer lease prevents every seed read and durable mutation.</summary>
+    /// <summary>A contended writer lease stops mutation after one read-only missing-state preflight.</summary>
     [Fact]
     public async Task BusyWriterLeaseStopsSeedImportBeforeStateLoad()
     {
@@ -201,11 +232,13 @@ public sealed class ManagedVersionSeedBootstrapperTests
             repository);
 
         ManagedVersionSeedOutcome outcome = await bootstrapper.EnsureInitializedAsync(
+            SeedWriterLeaseTimeout,
             TestContext.Current.CancellationToken);
 
-        Assert.Equal(ManagedVersionSeedOutcome.StateUnavailable, outcome);
+        Assert.Equal(ManagedVersionSeedOutcome.Busy, outcome);
+        Assert.Equal(SeedWriterLeaseTimeout, destination.LastLeaseWaitTimeout);
         Assert.Equal(1, destination.LeaseCount);
-        Assert.Equal(0, destination.LoadCount);
+        Assert.Equal(1, destination.LoadCount);
         Assert.Equal(0, destination.SaveCount);
         Assert.Equal(0, seed.LoadCount);
         Assert.Equal(0, repository.InventoryCount);
@@ -227,11 +260,12 @@ public sealed class ManagedVersionSeedBootstrapperTests
             repository);
 
         ManagedVersionSeedOutcome outcome = await bootstrapper.EnsureInitializedAsync(
+            SeedWriterLeaseTimeout,
             TestContext.Current.CancellationToken);
 
         Assert.Equal(ManagedVersionSeedOutcome.ExistingState, outcome);
         Assert.Equal(1, destination.LeaseCount);
-        Assert.Equal(1, destination.LoadCount);
+        Assert.Equal(2, destination.LoadCount);
         Assert.Equal(authoritative, destination.LastLoaded);
         Assert.Equal(0, destination.SaveCount);
         Assert.Equal(0, seed.LoadCount);
@@ -240,7 +274,9 @@ public sealed class ManagedVersionSeedBootstrapperTests
 
     private static VersionManagerState SeedState()
     {
-        return CanonicalState("1.0.0", 'a');
+        ManagedAppVersion version = ManagedAppVersion.Parse("1.0.0");
+        return ManagedVersionSeedPolicy.CreateCanonicalFirstRunSeed(
+            new(version, "seed|1.0.0", new string('a', 64)));
     }
 
     private static VersionManagerState CanonicalState(
@@ -304,6 +340,8 @@ public sealed class ManagedVersionSeedBootstrapperTests
 
         internal int LeaseCount { get; private set; }
 
+        internal TimeSpan? LastLeaseWaitTimeout { get; private set; }
+
         internal int LoadCount { get; private set; }
 
         internal int SaveCount { get; private set; }
@@ -325,6 +363,7 @@ public sealed class ManagedVersionSeedBootstrapperTests
             CancellationToken cancellationToken)
         {
             LeaseCount++;
+            LastLeaseWaitTimeout = waitTimeout;
             if (_leaseBusy)
             {
                 return ValueTask.FromResult(VersionManagerWriteLeaseTestSupport.Busy());

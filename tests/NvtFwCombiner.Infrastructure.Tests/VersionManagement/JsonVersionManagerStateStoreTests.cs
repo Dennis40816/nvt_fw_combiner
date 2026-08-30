@@ -7,6 +7,26 @@ namespace NvtFwCombiner.Infrastructure.Tests.VersionManagement;
 /// <summary>Tests strict separate atomic persistence of launcher state.</summary>
 public sealed class JsonVersionManagerStateStoreTests
 {
+    /// <summary>Recovery reports the exact state file observed by the inherited reader.</summary>
+    [Fact]
+    public async Task RecoveryReaderIdentityMatchesTheExactLoadedFile()
+    {
+        using var workspace = TempWorkspace.Create();
+        string path = workspace.PathFor("state/version-manager.v1.json");
+        var store = new JsonVersionManagerStateStore(path);
+        IManagedSetupRecoveryStateReader recoveryReader = store;
+
+        VersionManagerStateLoadResult missing = await recoveryReader.LoadAsync(
+            TestContext.Current.CancellationToken);
+        _ = workspace.Write("state/version-manager.v1.json", "{}"u8.ToArray());
+        VersionManagerStateLoadResult present = await recoveryReader.LoadAsync(
+            TestContext.Current.CancellationToken);
+
+        Assert.Equal(Path.GetFullPath(path), recoveryReader.StatePathIdentity);
+        Assert.Equal(VersionManagerStateLoadIssue.Missing, missing.Issue);
+        Assert.Equal(VersionManagerStateLoadIssue.Invalid, present.Issue);
+    }
+
     /// <summary>All managed identities survive an atomic round trip.</summary>
     [Fact]
     public async Task SaveAndLoadRoundTrip()

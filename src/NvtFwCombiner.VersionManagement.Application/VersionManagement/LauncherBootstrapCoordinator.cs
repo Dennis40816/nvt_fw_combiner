@@ -4,6 +4,7 @@ namespace NvtFwCombiner.Application.VersionManagement;
 internal sealed partial class LauncherBootstrapCoordinator
 {
     public static readonly TimeSpan DefaultReadyDeadline = TimeSpan.FromSeconds(20);
+    public static readonly TimeSpan StartupWriterLeaseTimeout = TimeSpan.FromMilliseconds(250);
     private readonly IVersionManagerStateStore _appStateStore;
     private readonly ILauncherBootstrapStateStore _launcherStateStore;
     private readonly string _managedRoot;
@@ -35,7 +36,7 @@ internal sealed partial class LauncherBootstrapCoordinator
     public async ValueTask<LauncherBootstrapResult> RunAsync(CancellationToken cancellationToken)
     {
         VersionManagerWriteLeaseResult lease = await _appStateStore.TryAcquireWriteLeaseAsync(
-            ManagedActivationCoordinator.DefaultWriterLeaseTimeout,
+            StartupWriterLeaseTimeout,
             cancellationToken).ConfigureAwait(false);
         if (!lease.IsAcquired)
         {
@@ -273,7 +274,7 @@ internal sealed partial class LauncherBootstrapCoordinator
         CancellationToken cancellationToken)
     {
         using VersionManagerWriteLeaseResult lease = await _appStateStore.TryAcquireWriteLeaseAsync(
-            ManagedActivationCoordinator.DefaultWriterLeaseTimeout,
+            StartupWriterLeaseTimeout,
             cancellationToken).ConfigureAwait(false);
         if (!lease.IsAcquired)
         {
@@ -306,7 +307,7 @@ internal sealed partial class LauncherBootstrapCoordinator
         CancellationToken cancellationToken)
     {
         using VersionManagerWriteLeaseResult lease = await _appStateStore.TryAcquireWriteLeaseAsync(
-            ManagedActivationCoordinator.DefaultWriterLeaseTimeout,
+            StartupWriterLeaseTimeout,
             cancellationToken).ConfigureAwait(false);
         if (!lease.IsAcquired)
         {
@@ -384,7 +385,7 @@ internal sealed partial class LauncherBootstrapCoordinator
                 failed: pending.Candidate);
         }
         using VersionManagerWriteLeaseResult lease = await _appStateStore.TryAcquireWriteLeaseAsync(
-            ManagedActivationCoordinator.DefaultWriterLeaseTimeout,
+            StartupWriterLeaseTimeout,
             cancellationToken).ConfigureAwait(false);
         if (!lease.IsAcquired)
         {
@@ -413,7 +414,7 @@ internal sealed partial class LauncherBootstrapCoordinator
         CancellationToken cancellationToken)
     {
         using VersionManagerWriteLeaseResult lease = await _appStateStore.TryAcquireWriteLeaseAsync(
-            ManagedActivationCoordinator.DefaultWriterLeaseTimeout,
+            StartupWriterLeaseTimeout,
             cancellationToken).ConfigureAwait(false);
         if (!lease.IsAcquired)
         {
@@ -442,7 +443,7 @@ internal sealed partial class LauncherBootstrapCoordinator
         CancellationToken cancellationToken)
     {
         using VersionManagerWriteLeaseResult lease = await _appStateStore.TryAcquireWriteLeaseAsync(
-            ManagedActivationCoordinator.DefaultWriterLeaseTimeout,
+            StartupWriterLeaseTimeout,
             cancellationToken).ConfigureAwait(false);
         if (!lease.IsAcquired)
         {

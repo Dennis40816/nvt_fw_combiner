@@ -1,0 +1,42 @@
+{
+  "schemaVersion": 2,
+  "taskId": "LAUNCHER-106A",
+  "capability": "Add the thin public Distribution Launcher executable composition root over the existing single entry, Registry/Catalog/package, Setup materialization and Bootstrap handoff owners; this slice exposes typed process outcomes but does not yet add the approved Avalonia Setup UI, shortcut, release packaging or clean-machine evidence",
+  "integrationBase": "62c989739a38bc1316d9b79abaf2221ce26b1294",
+  "risk": "R3",
+  "kind": "release",
+  "state": "final-complete",
+  "mutablePaths": [
+    "docs/adr/0062-first-run-managed-setup.md",
+    "src/NvtFwCombiner.Bootstrap/ManagedDistributionLauncherHostServices.cs",
+    "src/NvtFwCombiner.VersionManagement.Infrastructure/VersionManagement/ManagedDistributionLauncherRuntime.cs",
+    "src/NvtFwCombiner.VersionManagement.Infrastructure/VersionManagement/StableLauncherHandoff.cs",
+    "src/NvtFwCombiner.DistributionLauncher/NvtFwCombiner.DistributionLauncher.csproj",
+    "src/NvtFwCombiner.DistributionLauncher/Program.cs",
+    "src/NvtFwCombiner.DistributionLauncher/packages.lock.json"
+  ],
+  "implementationOwner": "launcher106a-implementer",
+  "searchEvidence": [
+    "ManagedLauncherEntryCoordinator is the sole local-only LaunchInstalled/SetupRequired/RecoveryRequired/Busy/HealthUnavailable/LaunchFailed/TerminationUnconfirmed owner and already enforces the 250 ms local-health cutoff.",
+    "ManagedFirstInstallationExperience is the sole first-install plan/reverify/materialize/Bootstrap-READY owner; VersionManagementExperience is the sole Registry to Catalog to exact package candidate owner.",
+    "CompositionHostServices and UpdateSourceRegistryLocator already own host graph assembly and the ordered G-drive Registry replica defaults. Desktop contains no duplicate Registry literals; the new host must reuse this Bootstrap composition owner.",
+    "EmbeddedManagedDistributionPayloadSource already owns descriptor parsing, declared Launcher version, and embedded Bootstrap identity/custody; the host compares its projection with the running informational version instead of reparsing JSON. FileSystemManagedFirstInstallationRootMaterializer and StableLauncherHandoff already own root materialization and exact Bootstrap process custody.",
+    "No NvtFwCombiner.DistributionLauncher project or production host exists. StableLauncherHandoff currently rejects the exact custom root passed by IImmutableBootstrapHandoff after Setup, even though the legacy IStableLauncherHandoff path must remain pinned to its constructor root."
+  ],
+  "semanticOwner": "The public Distribution Launcher is a thin composition host only. VersionManagement Application retains entry and Setup decisions; VersionManagement Infrastructure retains filesystem, package and process adapters; Bootstrap retains the one executable composition graph and external Registry locator defaults",
+  "terminalContract": "The host resolves one deterministic default managed-root child for downloaded delivery media, loads the two exact embedded resource logical names, constructs one shared state store, root probe, payload source, VersionManagementExperience, root materializer and Bootstrap handoff, then runs ManagedLauncherEntryCoordinator before any Setup source access. Healthy installed entry performs no Registry/Catalog/package access. SetupRequired is the only outcome that may expose the existing first-install experience. All other outcomes remain typed terminal process results and never fall through to Setup. The IImmutableBootstrapHandoff path accepts the exact root already supplied and admitted by Application so a user-selected local parent can complete; the legacy pinned-root IStableLauncherHandoff path remains unchanged. No second Registry literal, parser, updater, verifier, repository, state writer, scanner or Setup executable is added. Missing development embedded resources fail closed as payload unavailable. This slice does not claim publish-resource evidence: the later protected packager slice must prove both exact embedded logical names before accepting a delivery artifact.",
+  "disposition": "extend-owner",
+  "designReview": {
+    "reviewer": "final_architecture_review + final_release_review + single_entry_tiebreak + launcher_composition_map",
+    "outcome": "findings-incorporated",
+    "evidence": "The independent SETUP-104 architecture/release reviews selected one thin public distribution Launcher plus the existing immutable Bootstrap and rejected a second Setup/updater. The current read-only composition audit pinned the exact constructor graph, reused Registry defaults and embedded resource names, and identified the custom-root handoff gap that this slice closes without changing the legacy pinned-root path."
+  },
+  "implementationHead": "317acb740cf74718e269ce687d3e469c8cfa7f39",
+  "reviewedHead": "317acb740cf74718e269ce687d3e469c8cfa7f39",
+  "pathStateDigest": "ead93bcdb8b3bfd94b7c1a683f3c9ee50c4bf0de00ed5fba12b3fd41d418e606",
+  "finalReview": {
+    "reviewer": "p1_semantic_review + p1_governance_review",
+    "outcome": "approved",
+    "evidence": "Independent exact-head reviews approved implementation 317acb740cf74718e269ce687d3e469c8cfa7f39 with no P0, P1 or P2. They verified the sole public Distribution Launcher host reuses the existing Bootstrap composition graph, Application entry/Setup owners, Registry locator, exact custom-root handoff and typed process outcomes; worktree and diff-check were clean. The reviewed tree passed a zero-warning solution build, Application 1253/1253, Infrastructure 943 passed with two declared platform skips, Architecture 247/247, and the bounded Launcher tests. No firmware, profile, byte, CRC, naming, support or private-evidence authority changed. Protected embedded-resource publication, package, clean-machine and v1.0.6 delivery evidence remain separate open gates."
+  }
+}

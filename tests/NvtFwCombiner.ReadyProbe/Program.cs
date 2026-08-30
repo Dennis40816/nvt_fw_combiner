@@ -8,7 +8,11 @@ const string handleKey = "NVT_FW_COMBINER_READY_PIPE_HANDLE";
 const string versionKey = "NVT_FW_COMBINER_EXPECTED_VERSION";
 const string launcherHandleKey = "NVT_FW_COMBINER_LAUNCHER_READY_PIPE_HANDLE";
 const string launcherExpectedKey = "NVT_FW_COMBINER_EXPECTED_LAUNCHER_READY";
+const string lifetimeKindKey = "NVT_FW_COMBINER_PROCESS_LIFETIME_KIND";
 const string behaviorKey = "NVT_READY_PROBE_BEHAVIOR";
+const string bootstrapIdentityKey = "NVT_FW_COMBINER_ROOT_BOOTSTRAP_IDENTITY";
+const string identityMarkerKey = "NVT_READY_PROBE_IDENTITY_MARKER";
+const string bootstrapAdmissionKey = "NVT_FW_COMBINER_BOOTSTRAP_ADMISSION_PIPE_HANDLE";
 string behavior = Environment.GetEnvironmentVariable(behaviorKey) ?? "ready";
 if (behavior is "tree-grandchild" or "ready-tree-grandchild")
 {
@@ -26,6 +30,10 @@ if (behavior is "tree-grandchild" or "ready-tree-grandchild")
 string? launcherExpected = Environment.GetEnvironmentVariable(launcherExpectedKey);
 string? version = Environment.GetEnvironmentVariable(versionKey);
 bool isManagedApplication = version is not null;
+bool isBootstrap = string.Equals(
+    Environment.GetEnvironmentVariable(lifetimeKindKey),
+    ManagedProcessLifetimeKind.Bootstrap.ToString(),
+    StringComparison.Ordinal);
 string? statePath = null;
 for (int index = 0; index < args.Length; index++)
 {
@@ -34,13 +42,108 @@ for (int index = 0; index < args.Length; index++)
         statePath = Path.GetFullPath(args[++index]);
     }
 }
+if (string.Equals(behavior, "bootstrap-identity-chain-root", StringComparison.Ordinal))
+{
+    string? startContext = Environment.GetEnvironmentVariable(
+        "NVT_FW_COMBINER_BOOTSTRAP_START_CONTEXT");
+    string startHandle = Environment.GetEnvironmentVariable(
+        "NVT_FW_COMBINER_BOOTSTRAP_START_PIPE_HANDLE") ??
+        throw new InvalidOperationException("Missing Bootstrap START pipe.");
+    Environment.SetEnvironmentVariable("NVT_FW_COMBINER_BOOTSTRAP_START_CONTEXT", null);
+    Environment.SetEnvironmentVariable("NVT_FW_COMBINER_BOOTSTRAP_START_PIPE_HANDLE", null);
+    if (!string.Equals(startContext, "v1", StringComparison.Ordinal))
+    {
+        return 26;
+    }
+    await using (var startPipe = new AnonymousPipeClientStream(PipeDirection.In, startHandle))
+    {
+        byte[] start = new byte[6];
+        await startPipe.ReadExactlyAsync(start);
+        if (!start.AsSpan().SequenceEqual("START\n"u8))
+        {
+            return 26;
+        }
+    }
+    string marker = Environment.GetEnvironmentVariable(identityMarkerKey) ??
+        throw new InvalidOperationException("Missing identity marker.");
+    var childInfo = new ProcessStartInfo
+    {
+        FileName = Environment.ProcessPath ?? throw new InvalidOperationException("Missing process path."),
+        UseShellExecute = false,
+    };
+    childInfo.ArgumentList.Add("--state-path");
+    childInfo.ArgumentList.Add(statePath ?? throw new InvalidOperationException("Missing state path."));
+    childInfo.Environment[behaviorKey] = "identity-context-child";
+    childInfo.Environment[identityMarkerKey] = marker;
+    using Process child = Process.Start(childInfo) ??
+        throw new InvalidOperationException("Identity child did not start.");
+    await child.WaitForExitAsync();
+    if (child.ExitCode != 0)
+    {
+        return child.ExitCode;
+    }
+}
 using IInheritedManagedProcessLifetimeCapture lifetime = InheritedManagedProcessLifetime.Capture(
     statePath,
-    isManagedApplication ? ManagedProcessLifetimeKind.Application : ManagedProcessLifetimeKind.Launcher,
+    isManagedApplication
+        ? ManagedProcessLifetimeKind.Application
+        : isBootstrap
+            ? ManagedProcessLifetimeKind.Bootstrap
+            : ManagedProcessLifetimeKind.Launcher,
     statePath is not null || version is not null || launcherExpected is not null);
+if (string.Equals(behavior, "identity-context-child", StringComparison.Ordinal))
+{
+    string marker = Environment.GetEnvironmentVariable(identityMarkerKey) ??
+        throw new InvalidOperationException("Missing identity marker.");
+    string? before = Environment.GetEnvironmentVariable(bootstrapIdentityKey);
+    ManagedImmutableBootstrapIdentity? authority =
+        lifetime.Outcome == InheritedManagedProcessLifetimeOutcome.Captured
+            ? InheritedManagedBootstrapIdentityContext.CaptureAndClear()
+            : null;
+    string? after = Environment.GetEnvironmentVariable(bootstrapIdentityKey);
+    await File.WriteAllLinesAsync(
+        marker,
+        [
+            lifetime.Outcome.ToString(),
+            before ?? "<null>",
+            after ?? "<null>",
+            authority?.FileName ?? "<null>",
+            authority?.Length.ToString(System.Globalization.CultureInfo.InvariantCulture) ?? "<null>",
+            authority?.Sha256 ?? "<null>",
+        ]);
+    return 0;
+}
 if (lifetime.Outcome != InheritedManagedProcessLifetimeOutcome.Captured)
 {
     return 24;
+}
+if (string.Equals(behavior, "launcher-identity-observation", StringComparison.Ordinal))
+{
+    string marker = Environment.GetEnvironmentVariable(identityMarkerKey) ??
+        throw new InvalidOperationException("Missing identity marker.");
+    string? before = Environment.GetEnvironmentVariable(bootstrapIdentityKey);
+    ManagedImmutableBootstrapIdentity? authority =
+        InheritedManagedBootstrapIdentityContext.CaptureAndClear();
+    string? after = Environment.GetEnvironmentVariable(bootstrapIdentityKey);
+    await File.WriteAllLinesAsync(
+        marker,
+        [
+            lifetime.Outcome.ToString(),
+            before ?? "<null>",
+            after ?? "<null>",
+            authority?.FileName ?? "<null>",
+            authority?.Length.ToString(System.Globalization.CultureInfo.InvariantCulture) ?? "<null>",
+            authority?.Sha256 ?? "<null>",
+        ]);
+}
+if (string.Equals(behavior, "bootstrap-identity-chain-root", StringComparison.Ordinal))
+{
+    string admissionHandle = Environment.GetEnvironmentVariable(bootstrapAdmissionKey) ??
+        throw new InvalidOperationException("Missing Bootstrap admission pipe.");
+    await using var admissionPipe = new AnonymousPipeClientStream(PipeDirection.Out, admissionHandle);
+    await admissionPipe.WriteAsync("ADMITTED\n"u8.ToArray());
+    await admissionPipe.FlushAsync();
+    return 0;
 }
 string? argumentsPath = Environment.GetEnvironmentVariable("NVT_READY_PROBE_ARGS_PATH");
 if (!string.IsNullOrWhiteSpace(argumentsPath))
@@ -72,7 +175,9 @@ if (string.Equals(behavior, "ready-tree-root", StringComparison.Ordinal))
         return 25;
     }
 }
-if (string.Equals(behavior, "tree-root-exit", StringComparison.Ordinal))
+if (string.Equals(behavior, "tree-root-exit", StringComparison.Ordinal) ||
+    string.Equals(behavior, "tree-root-wait", StringComparison.Ordinal) ||
+    string.Equals(behavior, "tree-root-rollback", StringComparison.Ordinal))
 {
     string marker = Environment.GetEnvironmentVariable("NVT_READY_PROBE_TREE_MARKER") ??
         throw new InvalidOperationException("Missing tree marker.");
@@ -89,7 +194,15 @@ if (string.Equals(behavior, "tree-root-exit", StringComparison.Ordinal))
     {
         await Task.Delay(10);
     }
-    return File.Exists(marker) ? 0 : 25;
+    if (!File.Exists(marker))
+    {
+        return 25;
+    }
+    if (string.Equals(behavior, "tree-root-wait", StringComparison.Ordinal))
+    {
+        await Task.Delay(TimeSpan.FromSeconds(30));
+    }
+    return string.Equals(behavior, "tree-root-rollback", StringComparison.Ordinal) ? 1 : 0;
 }
 string expected = isManagedApplication
     ? $"READY:{version}"

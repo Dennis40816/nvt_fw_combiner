@@ -1,5 +1,6 @@
 using System.ComponentModel;
 using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
 using System.Runtime.InteropServices;
 using System.Security.Cryptography;
@@ -19,6 +20,7 @@ internal sealed partial class ManagedProcessLifetimeLease : IDisposable
     internal const string KindEnvironment = "NVT_FW_COMBINER_PROCESS_LIFETIME_KIND";
     internal const string ApplicationSuffix = ".application-lifetime.v1.lock";
     internal const string LauncherSuffix = ".launcher-lifetime.v1.lock";
+    internal const string BootstrapSuffix = ".bootstrap-lifetime.v1.lock";
     private const string ContextVersion = "v1";
     private const uint HandleFlagInherit = 1;
 
@@ -60,16 +62,37 @@ internal sealed partial class ManagedProcessLifetimeLease : IDisposable
         string statePath,
         ManagedProcessLifetimeKind kind)
     {
-        return TryAcquire(statePath, GetSuffix(kind));
+        _ = Acquire(statePath, kind, out ManagedProcessLifetimeLease? lease);
+        return lease;
     }
 
     internal static ManagedProcessLifetimeLease? TryAcquire(string statePath, string suffix)
     {
+        _ = Acquire(statePath, suffix, out ManagedProcessLifetimeLease? lease);
+        return lease;
+    }
+
+    internal static ManagedProcessLifetimeLeaseAcquisitionOutcome Acquire(
+        string statePath,
+        ManagedProcessLifetimeKind kind,
+        out ManagedProcessLifetimeLease? lease)
+    {
+        return Acquire(statePath, GetSuffix(kind), out lease);
+    }
+
+    [SuppressMessage("Reliability", "CA2000:Dispose objects before losing scope", Justification =
+        "Successful lifetime ownership transfers through the acquisition out parameter.")]
+    private static ManagedProcessLifetimeLeaseAcquisitionOutcome Acquire(
+        string statePath,
+        string suffix,
+        out ManagedProcessLifetimeLease? lease)
+    {
         ArgumentException.ThrowIfNullOrWhiteSpace(statePath);
         ArgumentException.ThrowIfNullOrWhiteSpace(suffix);
+        lease = null;
         if (!OperatingSystem.IsWindows())
         {
-            return null;
+            return ManagedProcessLifetimeLeaseAcquisitionOutcome.Unavailable;
         }
         FileStream? stream = null;
         SafeFileHandle? job = null;
@@ -86,26 +109,33 @@ internal sealed partial class ManagedProcessLifetimeLease : IDisposable
                     HandleFlagInherit)
                 ? true
                 : throw new Win32Exception(Marshal.GetLastPInvokeError());
-            string jobName = GetJobName(statePath, suffix);
+            ManagedProcessLifetimeKind kind = GetKind(suffix);
+            string jobName = kind == ManagedProcessLifetimeKind.Bootstrap
+                ? GetBootstrapInvocationJobName(statePath, suffix)
+                : GetJobName(statePath, suffix);
             job = OpenOrCreateJob(jobName);
             if (job is null)
             {
-                return null;
+                return ManagedProcessLifetimeLeaseAcquisitionOutcome.Unavailable;
             }
-            var result = new ManagedProcessLifetimeLease(
+            lease = new ManagedProcessLifetimeLease(
                 stream,
                 job,
                 jobName,
                 normalizedStatePath,
-                GetKind(suffix));
+                kind);
             stream = null;
             job = null;
-            return result;
+            return ManagedProcessLifetimeLeaseAcquisitionOutcome.Acquired;
+        }
+        catch (IOException exception) when ((exception.HResult & 0xffff) is 32 or 33)
+        {
+            return ManagedProcessLifetimeLeaseAcquisitionOutcome.Busy;
         }
         catch (Exception exception) when (exception is
             IOException or UnauthorizedAccessException or Win32Exception)
         {
-            return null;
+            return ManagedProcessLifetimeLeaseAcquisitionOutcome.Unavailable;
         }
         finally
         {
@@ -121,6 +151,10 @@ internal sealed partial class ManagedProcessLifetimeLease : IDisposable
             return ManagedProcessLifetimeStatus.Unavailable;
         }
         ManagedProcessLifetimeStatus lease = GetLeaseStatus(statePath, suffix);
+        if (GetKind(suffix) == ManagedProcessLifetimeKind.Bootstrap)
+        {
+            return lease;
+        }
         ManagedProcessLifetimeStatus tree = GetTreeStatus(GetJobName(statePath, suffix));
         return lease == ManagedProcessLifetimeStatus.Active || tree == ManagedProcessLifetimeStatus.Active
             ? ManagedProcessLifetimeStatus.Active
@@ -193,7 +227,7 @@ internal sealed partial class ManagedProcessLifetimeLease : IDisposable
             !string.Equals(TryNormalizePath(advertisedStatePath), normalizedStatePath, PathComparison) ||
             !string.Equals(advertisedKind, kind.ToString(), StringComparison.Ordinal) ||
             string.IsNullOrWhiteSpace(jobName) ||
-            !string.Equals(jobName, GetJobName(normalizedStatePath, GetSuffix(kind)), StringComparison.Ordinal) ||
+            !IsExpectedJobName(normalizedStatePath, kind, jobName) ||
             !long.TryParse(value, NumberStyles.None, CultureInfo.InvariantCulture, out long rawHandle) ||
             rawHandle is 0 or -1 ||
             !OperatingSystem.IsWindows())
@@ -245,23 +279,19 @@ internal sealed partial class ManagedProcessLifetimeLease : IDisposable
 
     private static ManagedProcessLifetimeStatus GetLeaseStatus(string statePath, string suffix)
     {
-        try
-        {
-            using var stream = new FileStream(
-                Path.GetFullPath(statePath) + suffix,
-                FileMode.OpenOrCreate,
-                FileAccess.ReadWrite,
-                FileShare.None);
-            return ManagedProcessLifetimeStatus.Exited;
-        }
-        catch (IOException exception) when ((exception.HResult & 0xffff) is 32 or 33)
-        {
-            return ManagedProcessLifetimeStatus.Active;
-        }
-        catch (Exception exception) when (exception is IOException or UnauthorizedAccessException)
+        if (!ManagedPathSafety.TryNormalizeExactAbsolutePath(statePath, out string normalizedStatePath))
         {
             return ManagedProcessLifetimeStatus.Unavailable;
         }
+        WindowsStableCustodyResult observation = WindowsStablePathCustody.TryAcquireFile(
+            normalizedStatePath + suffix);
+        using WindowsStablePathCustody? custody = observation.Custody;
+        return observation.IsExactChildMissing ||
+            (observation.IsAcquired && custody!.RevalidateClosedTree())
+            ? ManagedProcessLifetimeStatus.Exited
+            : observation.Issue == WindowsStableCustodyIssue.Contended
+                ? ManagedProcessLifetimeStatus.Active
+                : ManagedProcessLifetimeStatus.Unavailable;
     }
 
     private static ManagedProcessLifetimeStatus GetTreeStatus(string jobName)
@@ -332,10 +362,34 @@ internal sealed partial class ManagedProcessLifetimeLease : IDisposable
         return $"Local\\NvtFwCombiner.ManagedTree.{hash[..32]}";
     }
 
+    private static string GetBootstrapInvocationJobName(string statePath, string suffix)
+    {
+        return $"{GetJobName(statePath, suffix)}.Invocation.{Guid.NewGuid():N}";
+    }
+
+    private static bool IsExpectedJobName(
+        string statePath,
+        ManagedProcessLifetimeKind kind,
+        string? jobName)
+    {
+        string expected = GetJobName(statePath, GetSuffix(kind));
+        if (kind != ManagedProcessLifetimeKind.Bootstrap)
+        {
+            return string.Equals(jobName, expected, StringComparison.Ordinal);
+        }
+        const string invocationMarker = ".Invocation.";
+        return jobName is not null &&
+            jobName.StartsWith(expected + invocationMarker, StringComparison.Ordinal) &&
+            jobName.Length == expected.Length + invocationMarker.Length + 32 &&
+            jobName[(expected.Length + invocationMarker.Length)..].All(
+                static character => character is (>= '0' and <= '9') or (>= 'a' and <= 'f'));
+    }
+
     private static ManagedProcessLifetimeKind GetKind(string suffix)
     {
         return suffix switch
         {
+            BootstrapSuffix => ManagedProcessLifetimeKind.Bootstrap,
             ApplicationSuffix => ManagedProcessLifetimeKind.Application,
             LauncherSuffix => ManagedProcessLifetimeKind.Launcher,
             _ => throw new ArgumentOutOfRangeException(nameof(suffix)),
@@ -346,6 +400,7 @@ internal sealed partial class ManagedProcessLifetimeLease : IDisposable
     {
         return kind switch
         {
+            ManagedProcessLifetimeKind.Bootstrap => BootstrapSuffix,
             ManagedProcessLifetimeKind.Application => ApplicationSuffix,
             ManagedProcessLifetimeKind.Launcher => LauncherSuffix,
             _ => throw new ArgumentOutOfRangeException(nameof(kind)),
@@ -500,6 +555,13 @@ internal sealed partial class ManagedProcessLifetimeLease : IDisposable
         uint flags);
 }
 
+internal enum ManagedProcessLifetimeLeaseAcquisitionOutcome
+{
+    Acquired,
+    Busy,
+    Unavailable,
+}
+
 /// <summary>Typed inherited lifetime capture held until the managed process exits.</summary>
 internal sealed class InheritedManagedProcessLifetimeCapture : IInheritedManagedProcessLifetimeCapture
 {
@@ -540,6 +602,16 @@ internal sealed class InheritedManagedProcessLifetimeCapture : IInheritedManaged
 /// <summary>Consumes inherited managed-tree lifetime context at process entry.</summary>
 public static class InheritedManagedProcessLifetime
 {
+    /// <summary>Reports whether any lifetime field advertises a managed parent context.</summary>
+    public static bool IsContextAdvertised()
+    {
+        return Environment.GetEnvironmentVariable(ManagedProcessLifetimeLease.ContextEnvironment) is not null ||
+               Environment.GetEnvironmentVariable(ManagedProcessLifetimeLease.HandleEnvironment) is not null ||
+               Environment.GetEnvironmentVariable(ManagedProcessLifetimeLease.JobEnvironment) is not null ||
+               Environment.GetEnvironmentVariable(ManagedProcessLifetimeLease.StatePathEnvironment) is not null ||
+               Environment.GetEnvironmentVariable(ManagedProcessLifetimeLease.KindEnvironment) is not null;
+    }
+
     /// <summary>Reports whether the Desktop READY channel advertises managed startup.</summary>
     public static bool IsApplicationReadyContextAdvertised()
     {

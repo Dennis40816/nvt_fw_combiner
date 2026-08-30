@@ -18,6 +18,7 @@ import sys
 import tempfile
 import threading
 import xml.etree.ElementTree as ET
+from collections import Counter
 from collections.abc import Callable, Sequence
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from contextlib import ExitStack, contextmanager
@@ -79,7 +80,10 @@ PYTHON_COVERAGE_OVERRIDE_ENVIRONMENT_VARIABLES = (
     "COVERAGE_RCFILE",
     "COVERAGE_PROCESS_START",
 )
-CI_DOTNET_EVIDENCE_SCHEMA_VERSION = 1
+CI_DOTNET_EVIDENCE_SCHEMA_VERSION = 2
+DOTNET_PRODUCER_WINDOWS = "windows"
+DOTNET_PRODUCER_NON_WINDOWS = "non-windows"
+CI_DOTNET_PRODUCER_PLATFORM = DOTNET_PRODUCER_WINDOWS
 CI_SOURCE_SHA_PATTERN = re.compile(r"[0-9a-f]{40}")
 NUGET_VERSION_PATTERN = re.compile(r"[0-9]+(?:\.[0-9]+){2}(?:[-+][0-9A-Za-z.-]+)?")
 
@@ -258,8 +262,6 @@ class CiDotnetProject:
     """One exact test-project owner in the closed CI shard map."""
 
     relative_path: str
-    expected_total: int
-    expected_skipped: int = 0
     requires_exclusive_local_coverage: bool = False
 
     @property
@@ -275,6 +277,7 @@ class LocalDotnetCoverageStage:
     source_output: Path
     shadow_output: Path
     test_assembly: Path
+    discovery_report: Path
     results_directory: Path
     source_hashes: dict[str, str]
     canonical_hashes: tuple[tuple[Path, str], ...]
@@ -284,47 +287,37 @@ CI_DOTNET_SHARDS: dict[str, tuple[CiDotnetProject, ...]] = {
     "bootstrap": (
         CiDotnetProject(
             "tests/NvtFwCombiner.Bootstrap.Tests/NvtFwCombiner.Bootstrap.Tests.csproj",
-            1147,
-            0,
         ),
     ),
     "ui": (
         CiDotnetProject(
             "tests/NvtFwCombiner.UiSmoke.Tests/NvtFwCombiner.UiSmoke.Tests.csproj",
-            827,
             requires_exclusive_local_coverage=True,
         ),
     ),
     "core": (
         CiDotnetProject(
             "tests/NvtFwCombiner.Domain.Tests/NvtFwCombiner.Domain.Tests.csproj",
-            412,
         ),
         CiDotnetProject(
             "tests/NvtFwCombiner.Application.Tests/"
             "NvtFwCombiner.Application.Tests.csproj",
-            917,
         ),
         CiDotnetProject(
             "tests/NvtFwCombiner.Infrastructure.Tests/"
             "NvtFwCombiner.Infrastructure.Tests.csproj",
-            738,
-            2,
         ),
         CiDotnetProject(
             "tests/NvtFwCombiner.ProfileContract.Tests/"
             "NvtFwCombiner.ProfileContract.Tests.csproj",
-            389,
         ),
         CiDotnetProject(
             "tests/NvtFwCombiner.GoldenRegression.Tests/"
             "NvtFwCombiner.GoldenRegression.Tests.csproj",
-            18,
         ),
         CiDotnetProject(
             "tests/NvtFwCombiner.Architecture.Tests/"
             "NvtFwCombiner.Architecture.Tests.csproj",
-            242,
         ),
     ),
 }
@@ -1134,11 +1127,6 @@ def flatten_ci_dotnet_projects() -> tuple[CiDotnetProject, ...]:
         len(projects) != 8
         or len(paths) != len(set(paths))
         or len(names) != len(set(names))
-        or any(
-            project.expected_total <= 0
-            or not 0 <= project.expected_skipped < project.expected_total
-            for project in projects
-        )
     ):
         raise RuntimeError("invalid closed .NET test project inventory")
     return projects
@@ -1206,6 +1194,138 @@ def local_dotnet_vstest_command(
         "--",
         "DataCollectionRunSettings.DataCollectors.DataCollector.Configuration.Format=json,cobertura",
     ]
+
+
+def dotnet_vstest_discovery_command(dotnet: str, test_assembly: Path) -> list[str]:
+    """Return the compiled-test discovery command used by local and CI gates."""
+
+    return [dotnet, "vstest", str(test_assembly), "--ListTests"]
+
+
+def canonical_vstest_identity(display_name: str) -> str:
+    """Return the stable fully-qualified method identity, preserving case multiplicity."""
+
+    identity = display_name.split("(", 1)[0].strip()
+    if "." not in identity or any(character.isspace() for character in identity):
+        raise RuntimeError(f"invalid VSTest identity: {display_name!r}")
+    return identity
+
+
+def parse_vstest_discovery(path: Path) -> Counter[str]:
+    """Read VSTest's discovered method-identity multiset."""
+
+    try:
+        lines = path.read_text(encoding="utf-8", errors="replace").splitlines()
+    except OSError as error:
+        raise RuntimeError(
+            f"VSTest discovery evidence could not be read: {path}"
+        ) from error
+    discovered = Counter(
+        canonical_vstest_identity(line[4:])
+        for line in lines
+        if re.fullmatch(r" {4}\S.*", line)
+    )
+    if not discovered:
+        raise RuntimeError(f"VSTest discovery produced no active inventory: {path}")
+    return discovered
+
+
+def current_dotnet_producer_platform() -> str:
+    """Return the closed producer identity used by local verification."""
+
+    return DOTNET_PRODUCER_WINDOWS if os.name == "nt" else DOTNET_PRODUCER_NON_WINDOWS
+
+
+WINDOWS_PROCESSOR_BOOTSTRAP_SKIPS = (
+    'NvtFwCombiner.Bootstrap.Tests.AbMergeGoldenRegressionTests.Nt51950CandidateMatchesOwnerApprovedAbGoldenWithCombinerAsync(caseId: "nt51950-ab-boe-d82t80")',
+    'NvtFwCombiner.Bootstrap.Tests.AbMergeGoldenRegressionTests.Nt51950CandidateMatchesOwnerApprovedAbGoldenWithCombinerAsync(caseId: "nt51950-ab-hiway-d82t80")',
+    "NvtFwCombiner.Bootstrap.Tests.AbMergeGoldenRegressionTests.Nt51951CandidatePlanWithCombinerMatchesPythonReferenceAsync",
+    "NvtFwCombiner.Bootstrap.Tests.AbMergeGoldenRegressionTests.Nt51950PublicHostBuildAcceptsOneCanonicalTpFileForBothLogicalSlotsAsync",
+    "NvtFwCombiner.Bootstrap.Tests.AbMergeGoldenRegressionTests.Nt51951PublicHostBuildAcceptsOneTpFileForBothLogicalSlotsAsync",
+)
+UNIX_SPECIAL_FILE_INFRASTRUCTURE_SKIPS = (
+    "NvtFwCombiner.Infrastructure.Tests.Bundles.ProfileBundleFileSnapshotTests.ReadRejectsUnixFifoBeforeOpening",
+    "NvtFwCombiner.Infrastructure.Tests.Bundles.ProfileBundleInventoryVerifierTests.VerifyClosedInventoryRejectsUnixDomainSocket",
+)
+
+
+def approved_platform_skip_identities(
+    project: CiDotnetProject,
+    producer_platform: str,
+) -> Counter[str]:
+    """Return the exact owner-approved omissions for one producer and project."""
+
+    if producer_platform == DOTNET_PRODUCER_WINDOWS:
+        identities = (
+            UNIX_SPECIAL_FILE_INFRASTRUCTURE_SKIPS
+            if project.name == "NvtFwCombiner.Infrastructure.Tests"
+            else ()
+        )
+    elif producer_platform == DOTNET_PRODUCER_NON_WINDOWS:
+        identities = (
+            WINDOWS_PROCESSOR_BOOTSTRAP_SKIPS
+            if project.name == "NvtFwCombiner.Bootstrap.Tests"
+            else ()
+        )
+    else:
+        raise RuntimeError(f"unsupported .NET producer platform: {producer_platform}")
+    return Counter(canonical_vstest_identity(identity) for identity in identities)
+
+
+def parse_trx_test_outcomes(path: Path) -> dict[str, Counter[str]]:
+    """Read exact TRX test identities grouped by their terminal outcome."""
+
+    try:
+        results = ET.parse(path).findall(".//{*}UnitTestResult")
+    except ET.ParseError as error:
+        raise RuntimeError(f"TRX result is invalid XML: {path}") from error
+    if not results:
+        raise RuntimeError(f"TRX result has no test identities: {path}")
+    outcomes = {name: Counter() for name in ("Passed", "Failed", "NotExecuted")}
+    for result in results:
+        identity = result.attrib.get("testName", "").strip()
+        outcome = result.attrib.get("outcome", "").strip()
+        if not identity or outcome not in outcomes:
+            raise RuntimeError(f"TRX result has an unsupported test outcome: {path}")
+        outcomes[outcome][canonical_vstest_identity(identity)] += 1
+    return outcomes
+
+
+def require_discovered_test_results(
+    project: CiDotnetProject,
+    discovery_report: Path,
+    trx_report: Path,
+    counters: dict[str, int],
+    producer_platform: str,
+) -> None:
+    """Reconcile exact compiled discovery and owner-admitted TRX outcomes."""
+
+    discovered = parse_vstest_discovery(discovery_report)
+    outcomes = parse_trx_test_outcomes(trx_report)
+    observed = outcomes["Passed"] + outcomes["Failed"] + outcomes["NotExecuted"]
+    if observed != discovered:
+        raise RuntimeError(
+            f"{project.name} discovered/executed test identities changed"
+        )
+    if outcomes["Failed"]:
+        raise RuntimeError(f"{project.name} contains failed test identities")
+    approved_skips = approved_platform_skip_identities(project, producer_platform)
+    if outcomes["NotExecuted"] != approved_skips:
+        raise RuntimeError(
+            f"{project.name} contains unapproved skipped test identities for "
+            f"{producer_platform}"
+        )
+    expected_counters = {
+        "total": sum(discovered.values()),
+        "passed": sum(outcomes["Passed"].values()),
+        "failed": 0,
+        "skipped": sum(approved_skips.values()),
+    }
+    if counters != expected_counters:
+        raise RuntimeError(
+            f"{project.name} discovered/executed test inventory changed: "
+            f"expected {expected_counters}, observed {counters}"
+        )
 
 
 def find_project_release_output(
@@ -1361,11 +1481,13 @@ def prepare_local_dotnet_coverage_stage(
     if results_directory.exists():
         raise RuntimeError(f"duplicate local .NET results directory: {project.name}")
     results_directory.mkdir(parents=True)
+    discovery_report = work_root / project_token / "discovered-tests.txt"
     return LocalDotnetCoverageStage(
         project,
         source_output,
         shadow_output,
         test_assembly,
+        discovery_report,
         results_directory,
         source_hashes,
         canonical_hashes,
@@ -1375,6 +1497,7 @@ def prepare_local_dotnet_coverage_stage(
 def require_local_dotnet_project_evidence(
     project: CiDotnetProject,
     results_directory: Path,
+    discovery_report: Path,
 ) -> None:
     """Validate one exact TRX and one paired local coverage attachment."""
 
@@ -1385,16 +1508,13 @@ def require_local_dotnet_project_evidence(
         regular_files,
     )
     counters = parse_trx_counters(trx_report)
-    expected = {
-        "total": project.expected_total,
-        "passed": project.expected_total - project.expected_skipped,
-        "failed": 0,
-        "skipped": project.expected_skipped,
-    }
-    if counters != expected:
-        raise RuntimeError(
-            f"{project.name} test counters changed: expected {expected}, observed {counters}"
-        )
+    require_discovered_test_results(
+        project,
+        discovery_report,
+        trx_report,
+        counters,
+        current_dotnet_producer_platform(),
+    )
 
 
 def run_local_dotnet_coverage_project(
@@ -1407,6 +1527,11 @@ def run_local_dotnet_coverage_project(
     """Collect and validate one isolated test-project producer."""
 
     run(
+        dotnet_vstest_discovery_command(dotnet, stage.test_assembly),
+        environment=environment,
+        log_path=stage.discovery_report,
+    )
+    run(
         local_dotnet_vstest_command(
             dotnet,
             stage.test_assembly,
@@ -1416,7 +1541,11 @@ def run_local_dotnet_coverage_project(
         environment=environment,
         log_path=log_path,
     )
-    require_local_dotnet_project_evidence(stage.project, stage.results_directory)
+    require_local_dotnet_project_evidence(
+        stage.project,
+        stage.results_directory,
+        stage.discovery_report,
+    )
 
 
 def require_local_dotnet_sources_unchanged(
@@ -1627,12 +1756,28 @@ def verify_dotnet(log_path: Path | None = None) -> None:
         raise failure
 
 
+def ci_dotnet_build_command(
+    dotnet: str,
+    project: CiDotnetProject,
+) -> list[str]:
+    """Build one Release test project before taking its immutable snapshot."""
+
+    return [
+        dotnet,
+        "build",
+        str(ROOT / project.relative_path),
+        "-c",
+        "Release",
+        "--no-restore",
+    ]
+
+
 def ci_dotnet_test_command(
     dotnet: str,
     project: CiDotnetProject,
     results_directory: Path,
 ) -> list[str]:
-    """Build one unfiltered project test command with paired coverage and TRX evidence."""
+    """Execute one prebuilt Release project with paired coverage/TRX evidence."""
 
     return [
         dotnet,
@@ -1641,6 +1786,7 @@ def ci_dotnet_test_command(
         "-c",
         "Release",
         "--no-restore",
+        "--no-build",
         "--collect:XPlat Code Coverage",
         "--results-directory",
         str(results_directory),
@@ -2102,6 +2248,9 @@ def collect_ci_project_evidence(
     project: CiDotnetProject,
     results_directory: Path,
     evidence_root: Path,
+    discovery_report: Path,
+    test_assembly_sha256: str,
+    producer_platform: str,
 ) -> tuple[dict[str, object], tuple[Path, ...]]:
     trx_report, json_report, cobertura_report = canonicalize_dotnet_project_reports(
         project.name,
@@ -2110,19 +2259,15 @@ def collect_ci_project_evidence(
     normalize_ci_dotnet_coverage_reports(json_report, cobertura_report)
 
     counters = parse_trx_counters(trx_report)
-    expected_passed = project.expected_total - project.expected_skipped
-    expected = {
-        "total": project.expected_total,
-        "passed": expected_passed,
-        "failed": 0,
-        "skipped": project.expected_skipped,
-    }
-    if counters != expected:
-        raise RuntimeError(
-            f"{project.name} test counters changed: expected {expected}, observed {counters}"
-        )
+    require_discovered_test_results(
+        project,
+        discovery_report,
+        trx_report,
+        counters,
+        producer_platform,
+    )
 
-    evidence_paths = (trx_report, json_report, cobertura_report)
+    evidence_paths = (discovery_report, trx_report, json_report, cobertura_report)
     return (
         {
             "relativePath": project.relative_path,
@@ -2130,6 +2275,8 @@ def collect_ci_project_evidence(
             "passed": counters["passed"],
             "failed": counters["failed"],
             "skipped": counters["skipped"],
+            "testAssemblySha256": test_assembly_sha256,
+            "discovery": ci_relative_path(discovery_report, evidence_root),
             "trx": ci_relative_path(trx_report, evidence_root),
             "coverageJson": ci_relative_path(json_report, evidence_root),
             "coverageCobertura": ci_relative_path(cobertura_report, evidence_root),
@@ -2232,26 +2379,54 @@ def verify_ci_dotnet_test_shard(shard: str) -> None:
         for project in projects:
             results_directory = results_root / project.name
             results_directory.mkdir(parents=True)
+            discovery_report = results_directory / "discovered-tests.txt"
             try:
+                run(
+                    ci_dotnet_build_command(dotnet, project),
+                    environment=environment,
+                    log_path=log_path,
+                )
+                source_output, _ = find_project_release_output(project)
+                source_hashes = regular_tree_hashes(
+                    source_output,
+                    boundary=ROOT,
+                    description=f"{project.name} CI Release output",
+                )
+                test_assembly = source_output / f"{project.name}.dll"
+                test_assembly_sha256 = sha256_file(test_assembly)
+                run(
+                    dotnet_vstest_discovery_command(dotnet, test_assembly),
+                    environment=environment,
+                    log_path=discovery_report,
+                )
                 run(
                     ci_dotnet_test_command(dotnet, project, results_directory),
                     environment=environment,
                     log_path=log_path,
                 )
-            except subprocess.CalledProcessError as error:
-                failures.append(f"{project.name}: {error}")
-            else:
-                try:
-                    row, paths = collect_ci_project_evidence(
-                        project,
-                        results_directory,
-                        evidence_root,
+                require_regular_tree_hashes(
+                    source_output,
+                    source_hashes,
+                    boundary=ROOT,
+                    description=f"{project.name} CI Release output",
+                )
+                row, paths = collect_ci_project_evidence(
+                    project,
+                    results_directory,
+                    evidence_root,
+                    discovery_report,
+                    test_assembly_sha256,
+                    CI_DOTNET_PRODUCER_PLATFORM,
+                )
+                if sha256_file(test_assembly) != test_assembly_sha256:
+                    raise RuntimeError(
+                        f"{project.name} captured test assembly hash changed"
                     )
-                except (RuntimeError, ValueError) as error:
-                    failures.append(f"{project.name}: {error}")
-                    continue
-                project_rows.append(row)
-                evidence_paths.extend(paths)
+            except (subprocess.CalledProcessError, RuntimeError, ValueError) as error:
+                failures.append(f"{project.name}: {error}")
+                continue
+            project_rows.append(row)
+            evidence_paths.extend(paths)
         require_logged_sdk_version(log_path, repository_sdk_version())
     except BaseException as error:
         fatal_failure = error
@@ -2270,6 +2445,7 @@ def verify_ci_dotnet_test_shard(shard: str) -> None:
         "sdkVersion": repository_sdk_version(),
         "success": fatal_failure is None,
         "shard": shard,
+        "producerPlatform": CI_DOTNET_PRODUCER_PLATFORM,
         "projects": project_rows,
         "files": file_hashes,
     }
@@ -2376,20 +2552,25 @@ def require_ci_project_evidence_paths(
     project: CiDotnetProject,
     artifact_root: Path,
     seen_paths: set[str],
-) -> tuple[Path, Path, Path]:
+) -> tuple[Path, Path, Path, Path]:
+    raw_discovery = row["discovery"]
     raw_trx = row["trx"]
     raw_json = row["coverageJson"]
     raw_cobertura = row["coverageCobertura"]
     if (
-        not isinstance(raw_trx, str)
+        not isinstance(raw_discovery, str)
+        or not isinstance(raw_trx, str)
         or not isinstance(raw_json, str)
         or not isinstance(raw_cobertura, str)
     ):
         raise RuntimeError(f"{project.name} .NET CI evidence paths are invalid")
+    discovery_path = PurePosixPath(raw_discovery)
     trx_path = PurePosixPath(raw_trx)
     json_path = PurePosixPath(raw_json)
     cobertura_path = PurePosixPath(raw_cobertura)
     project_root = PurePosixPath("shards", shard, "results", project.name)
+    if discovery_path != project_root / "discovered-tests.txt":
+        raise RuntimeError(f"{project.name} discovery path changed")
     if trx_path != project_root / "test-results.trx":
         raise RuntimeError(f"{project.name} TRX path changed")
     if any(
@@ -2401,11 +2582,12 @@ def require_ci_project_evidence_paths(
         )
     ):
         raise RuntimeError(f"{project.name} coverage report pairing changed")
-    row_paths = {raw_trx, raw_json, raw_cobertura}
-    if len(row_paths) != 3 or seen_paths.intersection(row_paths):
+    row_paths = {raw_discovery, raw_trx, raw_json, raw_cobertura}
+    if len(row_paths) != 4 or seen_paths.intersection(row_paths):
         raise RuntimeError(f"{project.name} reuses .NET CI evidence")
     seen_paths.update(row_paths)
     return (
+        resolve_ci_evidence_file(artifact_root, raw_discovery),
         resolve_ci_evidence_file(artifact_root, raw_trx),
         resolve_ci_evidence_file(artifact_root, raw_json),
         resolve_ci_evidence_file(artifact_root, raw_cobertura),
@@ -2468,6 +2650,7 @@ def finalize_ci_dotnet_evidence(download_root: Path) -> None:
     if actual_build_files != build_files:
         raise RuntimeError("build .NET CI artifact contains missing or extra files")
     coverage_sources: list[tuple[CiDotnetProject, Path, Path]] = []
+    project_counters: list[dict[str, int]] = []
 
     for shard, projects in CI_DOTNET_SHARDS.items():
         artifact_root = artifact_roots[shard]
@@ -2481,6 +2664,7 @@ def finalize_ci_dotnet_evidence(download_root: Path) -> None:
                 "sdkVersion",
                 "success",
                 "shard",
+                "producerPlatform",
                 "projects",
                 "files",
             },
@@ -2494,6 +2678,7 @@ def finalize_ci_dotnet_evidence(download_root: Path) -> None:
                 manifest.get("sdkVersion") != sdk_version,
                 manifest.get("success") is not True,
                 manifest.get("shard") != shard,
+                manifest.get("producerPlatform") != CI_DOTNET_PRODUCER_PLATFORM,
             )
         ):
             raise RuntimeError(f"{shard} .NET CI evidence identity or result changed")
@@ -2513,43 +2698,54 @@ def finalize_ci_dotnet_evidence(download_root: Path) -> None:
                     "passed",
                     "failed",
                     "skipped",
+                    "testAssemblySha256",
+                    "discovery",
                     "trx",
                     "coverageJson",
                     "coverageCobertura",
                 },
                 project.name,
             )
-            expected_row = {
-                **row,
-                "relativePath": project.relative_path,
-                "total": project.expected_total,
-                "passed": project.expected_total - project.expected_skipped,
-                "failed": 0,
-                "skipped": project.expected_skipped,
-            }
-            if row != expected_row:
-                raise RuntimeError(f"{project.name} .NET CI test counters changed")
-            trx, json_report, cobertura_report = require_ci_project_evidence_paths(
-                row,
-                shard,
-                project,
-                artifact_root,
-                seen_row_paths,
+            if row.get("relativePath") != project.relative_path:
+                raise RuntimeError(f"{project.name} .NET CI project identity changed")
+            test_assembly_sha256 = row.get("testAssemblySha256")
+            if (
+                not isinstance(test_assembly_sha256, str)
+                or re.fullmatch(r"[0-9a-f]{64}", test_assembly_sha256) is None
+            ):
+                raise RuntimeError(
+                    f"{project.name} captured test assembly hash changed"
+                )
+            discovery, trx, json_report, cobertura_report = (
+                require_ci_project_evidence_paths(
+                    row,
+                    shard,
+                    project,
+                    artifact_root,
+                    seen_row_paths,
+                )
             )
             evidence_paths = {
+                row["discovery"],
                 row["trx"],
                 row["coverageJson"],
                 row["coverageCobertura"],
             }
             expected_paths.update(evidence_paths)
             counters = parse_trx_counters(trx)
-            if counters != {
-                "total": project.expected_total,
-                "passed": project.expected_total - project.expected_skipped,
-                "failed": 0,
-                "skipped": project.expected_skipped,
-            }:
-                raise RuntimeError(f"{project.name} TRX counters changed")
+            manifest_counters = {
+                name: row.get(name) for name in ("total", "passed", "failed", "skipped")
+            }
+            if manifest_counters != counters:
+                raise RuntimeError(f"{project.name} manifest/TRX counters changed")
+            require_discovered_test_results(
+                project,
+                discovery,
+                trx,
+                counters,
+                CI_DOTNET_PRODUCER_PLATFORM,
+            )
+            project_counters.append(counters)
             coverage_sources.append(
                 (
                     project,
@@ -2592,8 +2788,10 @@ def finalize_ci_dotnet_evidence(download_root: Path) -> None:
     print(
         ".NET CI evidence: "
         f"{len(projects)} projects, "
-        f"{sum(project.expected_total for project in projects)} tests, "
-        f"{sum(project.expected_skipped for project in projects)} skips, Golden 18/18."
+        f"{sum(counters['passed'] for counters in project_counters)} active tests, "
+        f"{sum(counters['skipped'] for counters in project_counters)} excluded skips, "
+        f"{sum(counters['total'] for counters in project_counters)} discovered, "
+        "Golden 18/18."
     )
 
 

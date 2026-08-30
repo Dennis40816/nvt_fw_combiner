@@ -7,7 +7,9 @@ using NvtFwCombiner.Application.VersionManagement;
 namespace NvtFwCombiner.Infrastructure.VersionManagement;
 
 /// <summary>Stages, inventories, and deletes exact launcher-owned managed payloads.</summary>
-public sealed class FileSystemManagedVersionRepository : IManagedVersionRepository
+public sealed partial class FileSystemManagedVersionRepository :
+    IManagedVersionRepository,
+    IWindowsCustodiedManagedVersionRepository
 {
     internal const string VersionsDirectoryName = "versions";
     internal const string StagingDirectoryName = ".staging";
@@ -16,6 +18,9 @@ public sealed class FileSystemManagedVersionRepository : IManagedVersionReposito
     internal const long MaximumExpandedBytes = 512L * 1024 * 1024;
     internal const int MaximumManifestBytes = 1024 * 1024;
     internal const int MaximumAdmissionBytes = 4096;
+    internal const int MaximumInstalledFiles = MaximumArchiveEntries + 1;
+    internal const int MaximumInstalledDirectories = MaximumArchiveEntries;
+    internal const long MaximumInstalledBytes = MaximumExpandedBytes + MaximumAdmissionBytes;
 
     private static readonly JsonSerializerOptions AdmissionJsonOptions = new(JsonSerializerDefaults.Web)
     {
@@ -26,6 +31,10 @@ public sealed class FileSystemManagedVersionRepository : IManagedVersionReposito
     private static readonly VersionManagementJsonContext AdmissionJsonContext = new(AdmissionJsonOptions);
     private readonly Func<string, bool> _directoryExists;
     private readonly Func<string, IEnumerable<string>> _enumerateDirectories;
+    private readonly Action<WindowsStableCustodyStage>? _custodyHook;
+    private readonly Action? _beforeLeaseCreation;
+    private readonly Action<string>? _beforePackagePromotion;
+    private readonly Action<string>? _afterPackageDirectoryCreated;
     private readonly long _maximumExpandedBytes;
 
     /// <inheritdoc />
@@ -36,14 +45,25 @@ public sealed class FileSystemManagedVersionRepository : IManagedVersionReposito
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(managedRoot);
         ArgumentNullException.ThrowIfNull(admission);
+        WindowsStablePathCustody? custody = null;
         try
         {
-            string versionsRoot = Path.Combine(Path.GetFullPath(managedRoot), VersionsDirectoryName);
-            string versionRoot = ManagedPathSafety.GetExactVersionDirectory(versionsRoot, admission.Version);
-            if (!ManagedPathSafety.IsSafeOwnedTree(versionRoot))
+            if (!Path.IsPathFullyQualified(managedRoot))
             {
                 return new(null, ManagedExecutableLaunchIssue.UnsafePath);
             }
+            string versionsRoot = Path.Combine(Path.GetFullPath(managedRoot), VersionsDirectoryName);
+            string versionRoot = ManagedPathSafety.GetExactVersionDirectory(versionsRoot, admission.Version);
+            WindowsStableCustodyResult acquired = WindowsStablePathCustody.TryAcquireImmutableTree(
+                versionRoot,
+                _custodyHook,
+                WindowsStableTreeLimits.ForInstalledVersion(_maximumExpandedBytes),
+                cancellationToken);
+            if (!acquired.IsAcquired)
+            {
+                return new(null, MapCustodyIssue(acquired.Issue));
+            }
+            custody = acquired.Custody!;
             ManagedVersionDamageReason? damage = await ManagedPackageVerifier.VerifyInstalledAsync(
                 versionRoot,
                 admission,
@@ -53,8 +73,9 @@ public sealed class FileSystemManagedVersionRepository : IManagedVersionReposito
             {
                 return new(null, ManagedExecutableLaunchIssue.Tampered);
             }
-            byte[]? manifestBytes = await ManagedPathSafety.ReadBoundedFileAsync(
-                Path.Combine(versionRoot, "RELEASE-MANIFEST.json"),
+            byte[]? manifestBytes = await ReadBoundedFileAsync(
+                custody,
+                "RELEASE-MANIFEST.json",
                 MaximumManifestBytes,
                 cancellationToken).ConfigureAwait(false);
             if (manifestBytes is null ||
@@ -76,9 +97,12 @@ public sealed class FileSystemManagedVersionRepository : IManagedVersionReposito
             {
                 return new(null, ManagedExecutableLaunchIssue.Tampered);
             }
-            string executable = ManagedPathSafety.ResolvePayloadPath(versionRoot, application.Path);
-            return await StableManagedExecutableLaunchLease.TryAcquireAsync(
-                executable,
+            _beforeLeaseCreation?.Invoke();
+            WindowsStablePathCustody ownedCustody = custody;
+            custody = null;
+            return await StableManagedExecutableLaunchLease.TryCreateFromVerifiedTreeAsync(
+                ownedCustody,
+                application.Path,
                 application.Size,
                 application.Sha256,
                 cancellationToken).ConfigureAwait(false);
@@ -91,6 +115,10 @@ public sealed class FileSystemManagedVersionRepository : IManagedVersionReposito
             IOException or UnauthorizedAccessException or JsonException or InvalidDataException)
         {
             return new(null, ManagedExecutableLaunchIssue.Unavailable);
+        }
+        finally
+        {
+            custody?.Dispose();
         }
     }
 
@@ -108,12 +136,20 @@ public sealed class FileSystemManagedVersionRepository : IManagedVersionReposito
     internal FileSystemManagedVersionRepository(
         long maximumExpandedBytes,
         Func<string, IEnumerable<string>> enumerateDirectories,
-        Func<string, bool>? directoryExists = null)
+        Func<string, bool>? directoryExists = null,
+        Action<WindowsStableCustodyStage>? custodyHook = null,
+        Action? beforeLeaseCreation = null,
+        Action<string>? beforePackagePromotion = null,
+        Action<string>? afterPackageDirectoryCreated = null)
     {
         ArgumentOutOfRangeException.ThrowIfNegativeOrZero(maximumExpandedBytes);
         _enumerateDirectories = enumerateDirectories ??
             throw new ArgumentNullException(nameof(enumerateDirectories));
         _directoryExists = directoryExists ?? Directory.Exists;
+        _custodyHook = custodyHook;
+        _beforeLeaseCreation = beforeLeaseCreation;
+        _beforePackagePromotion = beforePackagePromotion;
+        _afterPackageDirectoryCreated = afterPackageDirectoryCreated;
         _maximumExpandedBytes = maximumExpandedBytes;
     }
 
@@ -149,6 +185,9 @@ public sealed class FileSystemManagedVersionRepository : IManagedVersionReposito
                 cancellationToken).ConfigureAwait(false);
             return plan.IsSuccess
                 ? new(new(package.Version, package.Identity, package.ReleaseNotes), ManagedVersionInstallIssue.None)
+                {
+                    HasSupportedManagedLauncher = plan.Plan!.HasSupportedManagedLauncher,
+                }
                 : new(null, plan.Issue);
         }
         catch (OperationCanceledException)
@@ -158,140 +197,6 @@ public sealed class FileSystemManagedVersionRepository : IManagedVersionReposito
         catch (Exception exception) when (exception is IOException or UnauthorizedAccessException or InvalidDataException)
         {
             return new(null, ManagedVersionInstallIssue.PackageUnavailable);
-        }
-    }
-
-    /// <inheritdoc />
-    public async ValueTask<ManagedVersionInstallResult> InstallAsync(
-        string managedRoot,
-        string sourceRoot,
-        UpdateCatalogVersionSnapshot package,
-        CancellationToken cancellationToken)
-    {
-        ArgumentException.ThrowIfNullOrWhiteSpace(managedRoot);
-        ArgumentException.ThrowIfNullOrWhiteSpace(sourceRoot);
-        ArgumentNullException.ThrowIfNull(package);
-        cancellationToken.ThrowIfCancellationRequested();
-
-        string? stagingDirectory = null;
-        try
-        {
-            string root = Path.GetFullPath(managedRoot);
-            string source = Path.GetFullPath(sourceRoot);
-            if (!ManagedPathSafety.IsSafeExistingDirectory(source) ||
-                !ManagedPathSafety.TryResolveRelativeFile(source, package.PackagePath.Value, out string packagePath))
-            {
-                return Failure(ManagedVersionInstallIssue.PackageUnavailable);
-            }
-
-            await using FileStream packageStream = OpenStablePackage(packagePath, package.PackageSize);
-            string actualPackageHash = await HashAsync(packageStream, cancellationToken).ConfigureAwait(false);
-            if (!string.Equals(actualPackageHash, package.PackageSha256, StringComparison.Ordinal))
-            {
-                return Failure(ManagedVersionInstallIssue.PackageMismatch);
-            }
-            packageStream.Position = 0;
-
-            using var archive = new ZipArchive(packageStream, ZipArchiveMode.Read, leaveOpen: true);
-            ManagedPackagePlanResult planResult = await ManagedPackageVerifier.CreatePlanAsync(
-                archive,
-                package,
-                _maximumExpandedBytes,
-                cancellationToken).ConfigureAwait(false);
-            if (!planResult.IsSuccess)
-            {
-                return Failure(planResult.Issue);
-            }
-
-            ManagedPackagePlan plan = planResult.Plan!;
-            var admission = new ManagedVersionAdmission(
-                package.Version,
-                package.Identity,
-                package.ReleaseManifestSha256);
-            string versionsRoot = Path.Combine(root, VersionsDirectoryName);
-            string stagingRoot = Path.Combine(root, StagingDirectoryName);
-            string target = ManagedPathSafety.GetExactVersionDirectory(versionsRoot, package.Version);
-            _ = Directory.CreateDirectory(root);
-            if (!ManagedPathSafety.IsSafeExistingDirectory(root))
-            {
-                return Failure(ManagedVersionInstallIssue.PromotionFailed);
-            }
-            _ = Directory.CreateDirectory(versionsRoot);
-            _ = Directory.CreateDirectory(stagingRoot);
-            if (!ManagedPathSafety.IsSafeExistingDirectory(versionsRoot) ||
-                !ManagedPathSafety.IsSafeExistingDirectory(stagingRoot))
-            {
-                return Failure(ManagedVersionInstallIssue.PromotionFailed);
-            }
-
-            if (Directory.Exists(target))
-            {
-                ManagedVersionAdmission? installedAdmission = await ReadAdmissionAsync(
-                    target,
-                    cancellationToken).ConfigureAwait(false);
-                if (installedAdmission != admission)
-                {
-                    return Failure(ManagedVersionInstallIssue.IdentityConflict);
-                }
-
-                ManagedVersionDamageReason? damage = await ManagedPackageVerifier.VerifyInstalledAsync(
-                    target,
-                    admission,
-                    _maximumExpandedBytes,
-                    cancellationToken).ConfigureAwait(false);
-                return damage is null
-                    ? new(admission, ManagedVersionInstallIssue.None, WasAlreadyInstalled: true)
-                    : Failure(ManagedVersionInstallIssue.IdentityConflict);
-            }
-
-            stagingDirectory = Path.Combine(stagingRoot, Guid.NewGuid().ToString("N"));
-            _ = Directory.CreateDirectory(stagingDirectory);
-            await ManagedPackageVerifier.ExtractAsync(
-                plan,
-                stagingDirectory,
-                _maximumExpandedBytes,
-                cancellationToken).ConfigureAwait(false);
-            await WriteAdmissionAsync(stagingDirectory, admission, cancellationToken).ConfigureAwait(false);
-            ManagedVersionDamageReason? stagedDamage = await ManagedPackageVerifier.VerifyInstalledAsync(
-                stagingDirectory,
-                admission,
-                _maximumExpandedBytes,
-                cancellationToken).ConfigureAwait(false);
-            if (stagedDamage is not null)
-            {
-                return Failure(ManagedVersionInstallIssue.InvalidPayload);
-            }
-
-            Directory.Move(stagingDirectory, target);
-            stagingDirectory = null;
-            return new(admission, ManagedVersionInstallIssue.None, WasAlreadyInstalled: false);
-        }
-        catch (OperationCanceledException)
-        {
-            throw;
-        }
-        catch (FileNotFoundException)
-        {
-            return Failure(ManagedVersionInstallIssue.PackageUnavailable);
-        }
-        catch (UnauthorizedAccessException)
-        {
-            return Failure(ManagedVersionInstallIssue.PromotionFailed);
-        }
-        catch (InvalidDataException)
-        {
-            return Failure(ManagedVersionInstallIssue.InvalidPayload);
-        }
-        catch (IOException)
-        {
-            return Failure(ManagedVersionInstallIssue.PromotionFailed);
-        }
-        finally
-        {
-            if (stagingDirectory is not null && Directory.Exists(stagingDirectory))
-            {
-                TryDeleteOwnedDirectory(stagingDirectory);
-            }
         }
     }
 
@@ -486,22 +391,34 @@ public sealed class FileSystemManagedVersionRepository : IManagedVersionReposito
         }
     }
 
-    private static async ValueTask WriteAdmissionAsync(
-        string versionRoot,
-        ManagedVersionAdmission admission,
+    private static async ValueTask<byte[]?> ReadBoundedFileAsync(
+        WindowsStablePathCustody custody,
+        string relativePath,
+        int maximumBytes,
         CancellationToken cancellationToken)
     {
-        var document = new ManagedVersionAdmissionFileDocument(
-            admission.Version.ToString(),
-            admission.AdmissionIdentity,
-            admission.ReleaseManifestSha256);
-        byte[] bytes = JsonSerializer.SerializeToUtf8Bytes(
-            document,
-            AdmissionJsonContext.ManagedVersionAdmissionFileDocument);
-        await File.WriteAllBytesAsync(
-            Path.Combine(versionRoot, AdmissionFileName),
-            bytes,
-            cancellationToken).ConfigureAwait(false);
+        using FileStream stream = custody.OpenReadOnlyFile(relativePath);
+        if (stream.Length < 0 || stream.Length > maximumBytes)
+        {
+            return null;
+        }
+        byte[] bytes = new byte[checked((int)stream.Length)];
+        await stream.ReadExactlyAsync(bytes, cancellationToken).ConfigureAwait(false);
+        return bytes;
+    }
+
+    private static ManagedExecutableLaunchIssue MapCustodyIssue(WindowsStableCustodyIssue issue)
+    {
+        return issue switch
+        {
+            WindowsStableCustodyIssue.InvalidPath or WindowsStableCustodyIssue.ReparsePoint or
+            WindowsStableCustodyIssue.Changed => ManagedExecutableLaunchIssue.UnsafePath,
+            WindowsStableCustodyIssue.AccessDenied or WindowsStableCustodyIssue.Contended or
+            WindowsStableCustodyIssue.Unavailable => ManagedExecutableLaunchIssue.Unavailable,
+            WindowsStableCustodyIssue.None => throw new InvalidOperationException(
+                "Successful custody did not return its owner."),
+            _ => throw new InvalidOperationException("Stable custody returned an undefined issue."),
+        };
     }
 
     private static FileStream OpenStablePackage(string path, long admittedLength)
@@ -542,20 +459,6 @@ public sealed class FileSystemManagedVersionRepository : IManagedVersionReposito
     {
         return value is { Length: 64 } &&
                value.All(static character => character is (>= '0' and <= '9') or (>= 'a' and <= 'f'));
-    }
-
-    private static void TryDeleteOwnedDirectory(string path)
-    {
-        try
-        {
-            Directory.Delete(path, recursive: true);
-        }
-        catch (IOException)
-        {
-        }
-        catch (UnauthorizedAccessException)
-        {
-        }
     }
 
 }

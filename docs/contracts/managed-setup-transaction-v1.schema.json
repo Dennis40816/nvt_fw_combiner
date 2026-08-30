@@ -1,0 +1,118 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://novatek.example/schema/managed-setup-transaction-v1.json",
+  "title": "NVT FW Combiner distribution Launcher Setup transaction v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "product",
+    "launcherSetupProtocolVersion",
+    "transactionId",
+    "managedRootIdentity",
+    "statePathIdentity",
+    "distributionLauncherExecutable",
+    "payloadAdmission",
+    "candidate",
+    "ownedPaths",
+    "phase"
+  ],
+  "properties": {
+    "schemaVersion": { "const": "1.0" },
+    "product": { "const": "NVT FW Combiner" },
+    "launcherSetupProtocolVersion": { "const": 1 },
+    "transactionId": { "type": "string", "pattern": "^[0-9a-f]{32}$" },
+    "managedRootIdentity": { "type": "string", "minLength": 3, "maxLength": 32767 },
+    "statePathIdentity": { "type": "string", "minLength": 3, "maxLength": 32767 },
+    "distributionLauncherExecutable": { "$ref": "#/$defs/contentIdentity" },
+    "payloadAdmission": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "descriptorSize",
+        "descriptorSha256",
+        "bootstrapInstalledFileName",
+        "bootstrapSize",
+        "bootstrapSha256"
+      ],
+      "properties": {
+        "descriptorSize": { "type": "integer", "minimum": 1, "maximum": 65536 },
+        "descriptorSha256": { "type": "string", "pattern": "^[0-9a-f]{64}$" },
+        "bootstrapInstalledFileName": { "const": "NvtFwCombiner.Bootstrap.exe" },
+        "bootstrapSize": { "type": "integer", "minimum": 1 },
+        "bootstrapSha256": { "type": "string", "pattern": "^[0-9a-f]{64}$" }
+      }
+    },
+    "candidate": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "registryRevision",
+        "registryDigest",
+        "catalogSchemaVersion",
+        "catalogLatestVersion",
+        "catalogDigest",
+        "catalogPath",
+        "registryId",
+        "sourceRoot",
+        "sourceStatus",
+        "version",
+        "packagePath",
+        "packageSize",
+        "packageSha256",
+        "releaseManifestSha256",
+        "entryIdentity"
+      ],
+      "properties": {
+        "registryId": { "type": "string", "minLength": 1, "maxLength": 512 },
+        "registryRevision": { "type": "integer", "minimum": 1 },
+        "registryDigest": { "type": "string", "pattern": "^[0-9a-f]{64}$" },
+        "catalogSchemaVersion": { "type": "integer", "minimum": 1 },
+        "catalogLatestVersion": {
+          "type": "string",
+          "pattern": "^(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)$"
+        },
+        "catalogDigest": { "type": "string", "pattern": "^[0-9a-f]{64}$" },
+        "catalogPath": { "type": "string", "minLength": 3, "maxLength": 32767 },
+        "sourceRoot": { "type": "string", "minLength": 3, "maxLength": 32767 },
+        "sourceStatus": { "enum": ["latest", "available", "deprecated"] },
+        "version": {
+          "type": "string",
+          "pattern": "^(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)$"
+        },
+        "packagePath": { "$ref": "#/$defs/safeRelativePath" },
+        "packageSize": { "type": "integer", "minimum": 1 },
+        "packageSha256": { "type": "string", "pattern": "^[0-9a-f]{64}$" },
+        "releaseManifestSha256": { "type": "string", "pattern": "^[0-9a-f]{64}$" },
+        "entryIdentity": { "type": "string", "minLength": 1, "maxLength": 4096 }
+      }
+    },
+    "ownedPaths": {
+      "type": "array",
+      "minItems": 2,
+      "maxItems": 16,
+      "uniqueItems": true,
+      "items": { "$ref": "#/$defs/safeRelativePath" }
+    },
+    "phase": {
+      "enum": ["staging", "root-promoted", "bootstrap-launch-recorded"]
+    }
+  },
+  "$defs": {
+    "contentIdentity": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["size", "sha256"],
+      "properties": {
+        "size": { "type": "integer", "minimum": 1 },
+        "sha256": { "type": "string", "pattern": "^[0-9a-f]{64}$" }
+      }
+    },
+    "safeRelativePath": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 1024,
+      "pattern": "^(?!/)(?!.*(?:^|/)\\.\\.(?:/|$))(?!.*\\\\)(?!.*:)[^\\u0000]+$"
+    }
+  }
+}

@@ -18,6 +18,7 @@
   <Project Path="src/NvtFwCombiner.Infrastructure/NvtFwCombiner.Infrastructure.csproj" />
   <Project Path="src/NvtFwCombiner.VersionManagement.Infrastructure/NvtFwCombiner.VersionManagement.Infrastructure.csproj" />
   <Project Path="src/NvtFwCombiner.Bootstrap/NvtFwCombiner.Bootstrap.csproj" />
+  <Project Path="src/NvtFwCombiner.DistributionLauncher/NvtFwCombiner.DistributionLauncher.csproj" />
   <Project Path="src/NvtFwCombiner.Cli/NvtFwCombiner.Cli.csproj" />
   <Project Path="src/NvtFwCombiner.Desktop/NvtFwCombiner.Desktop.csproj" />
   <Project Path="src/NvtFwCombiner.Launcher/NvtFwCombiner.Launcher.csproj" />

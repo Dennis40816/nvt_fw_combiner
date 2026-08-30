@@ -1,4 +1,5 @@
 using NvtFwCombiner.Application.VersionManagement;
+using NvtFwCombiner.TestSupport;
 
 namespace NvtFwCombiner.Application.Tests.VersionManagement;
 
@@ -6,11 +7,13 @@ public sealed partial class LauncherBootstrapCoordinatorTests
 {
     private sealed class RecordingAppStateStore(VersionManagerState state) : IVersionManagerStateStore
     {
+        public int BusyLeaseAt { get; init; } = int.MaxValue;
         public int FailLoadAfter { get; init; } = int.MaxValue;
         public int FailSaveAt { get; init; } = int.MaxValue;
         public VersionManagerState? StateAfterFirstLoad { get; init; }
         public int LoadCount { get; private set; }
         public int SaveCount { get; private set; }
+        public List<TimeSpan> WriterLeaseTimeouts { get; } = [];
         public VersionManagerState ReadyState => StateAfterFirstLoad ?? state;
 
         public ValueTask<VersionManagerWriteLeaseResult> TryAcquireWriteLeaseAsync(
@@ -18,6 +21,11 @@ public sealed partial class LauncherBootstrapCoordinatorTests
             CancellationToken cancellationToken)
         {
             cancellationToken.ThrowIfCancellationRequested();
+            WriterLeaseTimeouts.Add(waitTimeout);
+            if (WriterLeaseTimeouts.Count == BusyLeaseAt)
+            {
+                return ValueTask.FromResult(VersionManagerWriteLeaseTestSupport.Busy());
+            }
 #pragma warning disable CA2000 // Ownership transfers to VersionManagerWriteLeaseResult.
             var result = new VersionManagerWriteLeaseResult(
                 VersionManagerWriteLeaseIssue.None,

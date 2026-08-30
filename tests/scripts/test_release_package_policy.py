@@ -666,10 +666,10 @@ class ReleasePackagePolicyTests(unittest.TestCase):
         actual_git = shutil.which("git")
         self.assertIsNotNone(actual_git)
         with tempfile.TemporaryDirectory(
-            prefix=".nfc-package-remove-", dir=ROOT.parent
+            prefix=".npr-", dir=ROOT.parent
         ) as temporary_directory:
             temporary_root = Path(temporary_directory)
-            invocation_root = temporary_root / "invocation"
+            invocation_root = temporary_root / "i"
             subprocess.run(
                 [
                     str(actual_git),

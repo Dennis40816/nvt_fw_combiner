@@ -4,8 +4,61 @@ All notable changes to NVT FW Combiner are documented here. The project follows 
 
 ## [Unreleased]
 
-The repository identity is the unpublished `1.0.3` page-publication hardening
-candidate. Stable `v1.0.2` remains its immutable predecessor.
+The repository identity is the unpublished, tag-only `1.0.4` managed Setup and
+Launcher source milestone. Stable `v1.0.3` remains its immutable predecessor.
+
+## [1.0.4] - Unreleased
+
+### Summary
+
+This source milestone completes the secure managed first-install backend and a
+bounded distribution Launcher candidate without publishing either component to
+users before the integrated 1.0.6 delivery gate.
+
+### Product changes
+
+#### Managed Setup and Launcher source candidate
+
+- Before → After: version management had no complete first-install transaction
+  owner or bounded distribution entry host. The existing Application and
+  Infrastructure owners now provide strict payload admission, recoverable
+  installation state, exact-root health inspection, and bounded Launcher entry.
+- Affected: managed Setup inspection/install/recovery, embedded Launcher payload
+  admission, local health routing, source coverage ownership, and Windows
+  real-process regression isolation.
+- Support status: unchanged/support-neutral; no route, IC, range, processor,
+  integrity, naming, firmware evidence, or output byte is promoted or changed.
+- Compatibility: the source tree remains compatible with the existing managed
+  version contracts. No package, Catalog row, Registry row, or release asset is
+  produced by this tag-only milestone.
+- Verification: focused Setup/Launcher suites, complete Application and
+  Infrastructure suites, exact coverage ownership, structure validation, and
+  two independent scoped reviews cover the committed source candidate.
+- Limitations: distribution remains disabled until the integrated 1.0.6 gate.
+  Production inherited-handle containment remains an explicit R2 hardening item
+  before Launcher delivery.
+
+### Security
+
+Embedded descriptor reads, declared payload sizes, hashes, root identity,
+transaction recovery, and entry deadlines fail closed. Package publication,
+SBOM, provenance, signing, clean-machine smoke, and inherited-handle containment
+remain later delivery gates and are not claimed by this source tag.
+
+### Known issues
+
+The Launcher is not yet distributed. Its inherited process handles must be
+contained to the exact child-start boundary before the integrated 1.0.6 release.
+
+### Upgrade and rollback
+
+No user upgrade is offered for this tag-only source milestone. Stable v1.0.3
+remains the rollback and user-facing predecessor.
+
+### Downloads and integrity
+
+No GitHub Release, portable ZIP, Catalog entry, Registry entry, or other release
+asset is published for v1.0.4.
 
 ## [1.0.3] - Unreleased
 

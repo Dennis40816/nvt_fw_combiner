@@ -252,7 +252,7 @@ public sealed partial class FileSystemManagedVersionRepositoryTests
     {
         using var workspace = TempWorkspace.Create();
         string sourceRoot = workspace.PathFor("source");
-        string managedRoot = workspace.PathFor("managed");
+        string managedRoot = CreateManagedRoot(workspace, "managed");
         UpdateCatalogVersionSnapshot package = CreatePackage(sourceRoot, "0.10.6");
         string packagePath = Path.Combine(sourceRoot, package.PackagePath.Value.Replace('/', Path.DirectorySeparatorChar));
         if (mutation == "length")
@@ -291,7 +291,7 @@ public sealed partial class FileSystemManagedVersionRepositoryTests
     {
         using var workspace = TempWorkspace.Create();
         string sourceRoot = workspace.PathFor("source");
-        string managedRoot = workspace.PathFor("managed");
+        string managedRoot = CreateManagedRoot(workspace, "managed");
         UpdateCatalogVersionSnapshot package = CreatePackage(
             sourceRoot,
             "0.10.6",
@@ -365,7 +365,7 @@ public sealed partial class FileSystemManagedVersionRepositoryTests
     {
         using var workspace = TempWorkspace.Create();
         string sourceRoot = workspace.PathFor("source");
-        string managedRoot = workspace.PathFor("managed");
+        string managedRoot = CreateManagedRoot(workspace, "managed");
         var repository = new FileSystemManagedVersionRepository();
         UpdateCatalogVersionSnapshot firstPackage = CreatePackage(sourceRoot, "0.10.6");
         ManagedVersionInstallResult first = await repository.InstallAsync(
@@ -402,7 +402,7 @@ public sealed partial class FileSystemManagedVersionRepositoryTests
     {
         using var workspace = TempWorkspace.Create();
         string sourceRoot = workspace.PathFor("source");
-        string managedRoot = workspace.PathFor("managed");
+        string managedRoot = CreateManagedRoot(workspace, "managed");
         UpdateCatalogVersionSnapshot package = CreatePackage(sourceRoot, "0.10.6");
         using var cancellation = new CancellationTokenSource();
         cancellation.Cancel();
@@ -425,7 +425,7 @@ public sealed partial class FileSystemManagedVersionRepositoryTests
     {
         using var workspace = TempWorkspace.Create();
         string sourceRoot = workspace.PathFor("source");
-        string managedRoot = workspace.PathFor("managed");
+        string managedRoot = CreateManagedRoot(workspace, "managed");
         _ = Directory.CreateDirectory(managedRoot);
         await File.WriteAllTextAsync(
             Path.Combine(managedRoot, ".staging"),
@@ -457,7 +457,7 @@ public sealed partial class FileSystemManagedVersionRepositoryTests
     {
         using var workspace = TempWorkspace.Create();
         string sourceRoot = workspace.PathFor("source");
-        string managedRoot = workspace.PathFor("managed");
+        string managedRoot = CreateManagedRoot(workspace, "managed");
         var repository = new FileSystemManagedVersionRepository();
         ManagedVersionInstallResult installed = await repository.InstallAsync(
             managedRoot,
@@ -507,7 +507,7 @@ public sealed partial class FileSystemManagedVersionRepositoryTests
     public async Task UnadmittedDirectoryIsDamagedAndForgedDeleteIsBlocked()
     {
         using var workspace = TempWorkspace.Create();
-        string managedRoot = workspace.PathFor("managed");
+        string managedRoot = CreateManagedRoot(workspace, "managed");
         string unknownRoot = Path.Combine(managedRoot, "versions", "0.10.6");
         _ = Directory.CreateDirectory(unknownRoot);
         await File.WriteAllTextAsync(
@@ -541,7 +541,7 @@ public sealed partial class FileSystemManagedVersionRepositoryTests
     {
         using var workspace = TempWorkspace.Create();
         string sourceRoot = workspace.PathFor("source");
-        string managedRoot = workspace.PathFor("managed");
+        string managedRoot = CreateManagedRoot(workspace, "managed");
         string outsideRoot = workspace.PathFor("outside");
         _ = Directory.CreateDirectory(outsideRoot);
         string outsideFile = Path.Combine(outsideRoot, "preserve.txt");
@@ -583,7 +583,7 @@ public sealed partial class FileSystemManagedVersionRepositoryTests
         ArgumentNullException.ThrowIfNull(behavior);
         using var workspace = TempWorkspace.Create();
         string sourceRoot = workspace.PathFor("source");
-        string managedRoot = workspace.PathFor("managed");
+        string managedRoot = CreateManagedRoot(workspace, "managed");
         string statePath = workspace.PathFor("version-manager.v1.json");
         var repository = new FileSystemManagedVersionRepository();
         ManagedVersionAdmission v105 = Assert.IsType<ManagedVersionAdmission>((await repository.InstallAsync(
@@ -616,7 +616,7 @@ public sealed partial class FileSystemManagedVersionRepositoryTests
                 managedRoot,
                 store,
                 repository,
-                new AnonymousPipeManagedApplicationProcess(),
+                new AnonymousPipeManagedApplicationProcess(statePath),
                 TimeSpan.FromMilliseconds(300)));
         await Task.Delay(500, TestContext.Current.CancellationToken);
         VersionManagerStateLoadResult state = await store.LoadAsync(TestContext.Current.CancellationToken);
@@ -635,7 +635,7 @@ public sealed partial class FileSystemManagedVersionRepositoryTests
     {
         using var workspace = TempWorkspace.Create();
         string sourceRoot = workspace.PathFor("source");
-        string managedRoot = workspace.PathFor("managed");
+        string managedRoot = CreateManagedRoot(workspace, "managed");
         string statePath = workspace.PathFor("version-manager.v1.json");
         var repository = new FileSystemManagedVersionRepository();
         ManagedVersionAdmission v105 = Assert.IsType<ManagedVersionAdmission>((await repository.InstallAsync(
@@ -668,7 +668,7 @@ public sealed partial class FileSystemManagedVersionRepositoryTests
                 managedRoot,
                 store,
                 repository,
-                new AnonymousPipeManagedApplicationProcess(),
+                new AnonymousPipeManagedApplicationProcess(statePath),
                 TimeSpan.FromSeconds(5)));
         await Task.Delay(500, TestContext.Current.CancellationToken);
         VersionManagerStateLoadResult state = await store.LoadAsync(TestContext.Current.CancellationToken);

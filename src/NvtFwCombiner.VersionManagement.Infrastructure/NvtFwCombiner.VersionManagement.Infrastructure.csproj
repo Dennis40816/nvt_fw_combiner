@@ -23,10 +23,17 @@
     <EmbeddedResource
       Include="..\..\docs\contracts\launcher-bootstrap-v1.schema.json"
       LogicalName="NvtFwCombiner.VersionManagement.Infrastructure.Contracts.launcher-bootstrap-v1.schema.json" />
+    <EmbeddedResource
+      Include="..\..\docs\contracts\managed-setup-payload-admission-v1.schema.json"
+      LogicalName="NvtFwCombiner.VersionManagement.Infrastructure.Contracts.managed-setup-payload-admission-v1.schema.json" />
+    <EmbeddedResource
+      Include="..\..\docs\contracts\managed-setup-transaction-v1.schema.json"
+      LogicalName="NvtFwCombiner.VersionManagement.Infrastructure.Contracts.managed-setup-transaction-v1.schema.json" />
   </ItemGroup>
   <ItemGroup>
     <InternalsVisibleTo Include="NvtFwCombiner.Bootstrap" />
     <InternalsVisibleTo Include="NvtFwCombiner.Infrastructure.Tests" />
+    <InternalsVisibleTo Include="NvtFwCombiner.ReadyProbe" />
     <InternalsVisibleTo Include="NvtFwCombiner.UiSmoke.Tests" />
   </ItemGroup>
 </Project>

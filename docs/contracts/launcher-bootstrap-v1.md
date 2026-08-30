@@ -51,6 +51,29 @@ Rules:
   authority on tree exit or reboot. A recorded ordinary attempt may be cleared
   and retried only after the lease adapter authoritatively observes the Job
   empty; unreadable or indeterminate state remains fail-closed.
+- When the distribution Launcher invokes Root Bootstrap, the complete Root
+  Bootstrap/Launcher/Desktop tree additionally joins one outer Bootstrap Job.
+  Its name uses the deterministic state-path prefix plus a fresh per-invocation
+  identity; the exact state-path writer lease, not a reused Job name, serializes
+  state mutation. Therefore a later failed invocation cannot terminate an
+  already accepted Desktop tree from an earlier invocation.
+  Root Bootstrap captures that lifetime before waiting on a separate one-use
+  parent-to-child `START` gate and must not read or write managed state, seed an
+  installation, or start a process until START is authorized. START and the
+  existing child-to-parent `ADMITTED` receipt are independent authorities.
+  Admission timeout permanently aborts START. An ordinary timeout is permitted
+  only after the process-start worker is terminal and the outer Job is proved
+  empty; otherwise the typed outcome is `TerminationUnconfirmed`. Only an
+  accepted terminal READY or rollback result may release the outer Job.
+- The same handoff propagates one bounded inherited identity containing the
+  exact descriptor-bound Root Bootstrap filename, positive length, and
+  lowercase SHA-256. Root Bootstrap captures and clears the ambient value on
+  every invocation and retains it only for a complete inherited distribution-
+  Launcher startup. Version Launcher clears any ambient copy and passes only
+  that explicit trusted identity. Desktop consumes it only when the independent
+  managed application lifetime result is `Captured`. Missing, malformed,
+  legacy/direct, or manually injected context yields no stable-restart authority
+  but does not turn an otherwise usable Desktop into a startup failure.
 - Both journals are loaded as one raw observed pair before recovery. An
   application `activeLaunchRecorded` phase is recoverable only with no launcher
   pending phase. A launcher `activeLaunchRecorded` phase is recoverable with no
@@ -64,11 +87,27 @@ Rules:
   termination returns a distinct fail-closed outcome and preserves the current
   recoverable journal phase without starting another process.
 - Installed-file verification and process creation share one repository-owned
-  executable launch lease. The repository opens and hashes the exact
-  manifest-admitted executable while denying write/delete sharing, and holds
-  that token through `Process.Start`. Process adapters consume the token's
-  stable path and do not repeat manifest/hash policy. Lease acquisition failure
-  occurs before a new launch phase is recorded and starts no process.
+  composite launch lease. The repository first acquires no-follow custody of
+  the complete admitted version tree, then verifies the manifest, executable,
+  DLLs, and other package members through that custody. It holds the same
+  handles through a final synchronous identity/topology check immediately
+  before `Process.Start`. Process adapters consume the token and do not repeat
+  manifest/hash policy. Any added, removed, replaced, reparse, contended, or
+  changed member fails closed before process creation.
+  Tree capture is Windows-only, cancellation-aware, and bounded by independent
+  package ceilings: 4,097 installed files, 4,096 installed directories, and
+  512 MiB plus the 4 KiB admission document. Other platforms fail closed. The
+  ordinary update path and Setup reuse this same repository owner for package
+  planning, extraction, admission, and verification. Ordinary update captures
+  its promoted version directory directly. Setup supplies its held relative
+  destination owner, verifies package content before whole-root promotion, and
+  transfers immutable custody from the still-held promoted root handle only
+  after proving the same root file identity; release-then-reopen by path is not
+  permitted. Standard
+  Windows `Process.Start` has no atomic validate-and-create primitive, so the
+  synchronous topology check is the declared final observation boundary. An
+  addition scheduled after that observation is a residual OS boundary, not an
+  atomic verification-and-creation claim.
 - `failed` is diagnostic history and never a fallback selector.
 - Launcher activation is forbidden while application `pendingActivation` or
   `pendingMutation` exists, except that the active-attempt phase is first

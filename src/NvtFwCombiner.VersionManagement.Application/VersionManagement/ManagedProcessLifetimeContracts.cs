@@ -14,6 +14,8 @@ public enum InheritedManagedProcessLifetimeOutcome
 /// <summary>Exact managed-process role bound to inherited lifetime authority.</summary>
 public enum ManagedProcessLifetimeKind
 {
+    /// <summary>The immutable Root Bootstrap tree.</summary>
+    Bootstrap,
     /// <summary>The version-scoped Desktop application tree.</summary>
     Application,
     /// <summary>The version-scoped inner Launcher tree.</summary>

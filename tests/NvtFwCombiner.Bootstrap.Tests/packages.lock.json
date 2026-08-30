@@ -214,6 +214,13 @@
       "nvtfwcombiner.contracts": {
         "type": "Project"
       },
+      "nvtfwcombiner.distributionlauncher": {
+        "type": "Project",
+        "dependencies": {
+          "NvtFwCombiner.Bootstrap": "[1.0.0, )",
+          "NvtFwCombiner.VersionManagement.Application": "[1.0.0, )"
+        }
+      },
       "nvtfwcombiner.domain": {
         "type": "Project"
       },

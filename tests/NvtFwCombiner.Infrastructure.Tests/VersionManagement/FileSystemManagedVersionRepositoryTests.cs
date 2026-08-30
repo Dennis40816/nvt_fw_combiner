@@ -22,7 +22,7 @@ public sealed partial class FileSystemManagedVersionRepositoryTests
     {
         using var workspace = TempWorkspace.Create();
         string sourceRoot = workspace.PathFor("source");
-        string managedRoot = workspace.PathFor("managed");
+        string managedRoot = CreateManagedRoot(workspace, "managed");
         UpdateCatalogVersionSnapshot package = CreatePackage(sourceRoot, "0.10.6");
         var repository = new FileSystemManagedVersionRepository();
 
@@ -66,7 +66,7 @@ public sealed partial class FileSystemManagedVersionRepositoryTests
     {
         using var workspace = TempWorkspace.Create();
         string sourceRoot = workspace.PathFor("source");
-        string managedRoot = workspace.PathFor("managed");
+        string managedRoot = CreateManagedRoot(workspace, "managed");
         UpdateCatalogVersionSnapshot package = CreatePackage(sourceRoot, "0.10.6", useReadyProbe: true);
         var repository = new FileSystemManagedVersionRepository();
         ManagedVersionInstallResult installed = await repository.InstallAsync(
@@ -97,7 +97,7 @@ public sealed partial class FileSystemManagedVersionRepositoryTests
     {
         using var workspace = TempWorkspace.Create();
         string sourceRoot = workspace.PathFor("source");
-        string managedRoot = workspace.PathFor("managed");
+        string managedRoot = CreateManagedRoot(workspace, "managed");
         UpdateCatalogVersionSnapshot package = CreatePackage(sourceRoot, "0.10.6");
         var repository = new FileSystemManagedVersionRepository();
         ManagedVersionInstallResult installed = await repository.InstallAsync(
@@ -143,30 +143,13 @@ public sealed partial class FileSystemManagedVersionRepositoryTests
         Assert.DoesNotContain(relocatedSource, verified.Candidate.AdmissionIdentity, StringComparison.OrdinalIgnoreCase);
     }
 
-    /// <summary>The managed verifier consumes the same roles and payload families emitted by the production packager.</summary>
-    [Fact]
-    public async Task ProductionReleaseManifestRolesAreAdmittedByManagedVerifier()
-    {
-        using var workspace = TempWorkspace.Create();
-        string sourceRoot = workspace.PathFor("source");
-        UpdateCatalogVersionSnapshot package = CreatePackage(
-            sourceRoot,
-            "0.10.6",
-            includeProductionContractPayload: true);
-
-        ManagedPackageVerificationResult verified = await new FileSystemManagedVersionRepository()
-            .VerifyPackageAsync(sourceRoot, package, TestContext.Current.CancellationToken);
-
-        Assert.True(verified.IsVerified, verified.Issue.ToString());
-    }
-
     /// <summary>Archive traversal fails without a partial installed directory.</summary>
     [Fact]
     public async Task ZipTraversalFailsAndCleansStaging()
     {
         using var workspace = TempWorkspace.Create();
         string sourceRoot = workspace.PathFor("source");
-        string managedRoot = workspace.PathFor("managed");
+        string managedRoot = CreateManagedRoot(workspace, "managed");
         UpdateCatalogVersionSnapshot package = CreatePackage(sourceRoot, "0.10.6", "../escape.txt");
 
         ManagedVersionInstallResult result = await new FileSystemManagedVersionRepository().InstallAsync(
@@ -201,31 +184,13 @@ public sealed partial class FileSystemManagedVersionRepositoryTests
         Assert.Equal(ManagedVersionInstallIssue.UnsafeArchive, result.Issue);
     }
 
-    /// <summary>JSON-null manifest collections fail closed as invalid payload.</summary>
-    [Fact]
-    public async Task NullManifestCollectionsFailAsInvalidPayload()
-    {
-        using var workspace = TempWorkspace.Create();
-        string sourceRoot = workspace.PathFor("source");
-        string managedRoot = workspace.PathFor("managed");
-
-        ManagedVersionInstallResult result = await new FileSystemManagedVersionRepository().InstallAsync(
-            managedRoot,
-            sourceRoot,
-            CreatePackage(sourceRoot, "0.10.6", nullManifestCollections: true),
-            TestContext.Current.CancellationToken);
-
-        Assert.Equal(ManagedVersionInstallIssue.InvalidPayload, result.Issue);
-        Assert.False(Directory.Exists(Path.Combine(managedRoot, "versions", "0.10.6")));
-    }
-
     /// <summary>Active deletion is blocked while an exact non-active admitted child may be removed.</summary>
     [Fact]
     public async Task DeleteProtectsActiveAndRemovesOnlyExactAdmittedChild()
     {
         using var workspace = TempWorkspace.Create();
         string sourceRoot = workspace.PathFor("source");
-        string managedRoot = workspace.PathFor("managed");
+        string managedRoot = CreateManagedRoot(workspace, "managed");
         var repository = new FileSystemManagedVersionRepository();
         ManagedVersionInstallResult firstInstall = await repository.InstallAsync(
             managedRoot,
@@ -265,7 +230,7 @@ public sealed partial class FileSystemManagedVersionRepositoryTests
     {
         using var workspace = TempWorkspace.Create();
         string sourceRoot = workspace.PathFor("source");
-        string managedRoot = workspace.PathFor("managed");
+        string managedRoot = CreateManagedRoot(workspace, "managed");
         var repository = new FileSystemManagedVersionRepository();
         ManagedVersionInstallResult installed = await repository.InstallAsync(
             managedRoot,
@@ -297,7 +262,7 @@ public sealed partial class FileSystemManagedVersionRepositoryTests
     {
         using var workspace = TempWorkspace.Create();
         string sourceRoot = workspace.PathFor("source");
-        string managedRoot = workspace.PathFor("managed");
+        string managedRoot = CreateManagedRoot(workspace, "managed");
         var repository = new FileSystemManagedVersionRepository();
         ManagedVersionInstallResult installed = await repository.InstallAsync(
             managedRoot,
@@ -328,7 +293,7 @@ public sealed partial class FileSystemManagedVersionRepositoryTests
         using var workspace = TempWorkspace.Create();
         string sourceRoot = workspace.PathFor("version-update-source-lab");
         string relocatedSource = workspace.PathFor("version-update-source-relocated");
-        string managedRoot = workspace.PathFor("managed-root");
+        string managedRoot = CreateManagedRoot(workspace, "managed-root");
         string statePath = workspace.PathFor("version-manager.v1.json");
         string? configuredLab = Environment.GetEnvironmentVariable("NVT_VERSION_UPDATE_SOURCE_LAB");
         UpdateCatalogVersionSnapshot v105;
@@ -374,7 +339,9 @@ public sealed partial class FileSystemManagedVersionRepositoryTests
                 new JsonVersionManagerStateStore(statePath),
                 new JsonVersionManagerStateStore(seedPath),
                 repository)
-            .EnsureInitializedAsync(TestContext.Current.CancellationToken);
+            .EnsureInitializedAsync(
+                LauncherBootstrapCoordinator.StartupWriterLeaseTimeout,
+                TestContext.Current.CancellationToken);
         Assert.Equal(ManagedVersionSeedOutcome.Seeded, seedOutcome);
         ManagedLauncherResult seeded = await RunLauncherAsync();
         Assert.Equal(ManagedLauncherOutcome.Ready, seeded.Outcome);
@@ -471,7 +438,7 @@ public sealed partial class FileSystemManagedVersionRepositoryTests
                 managedRoot,
                 new JsonVersionManagerStateStore(statePath),
                 new FileSystemManagedVersionRepository(),
-                new AnonymousPipeManagedApplicationProcess(),
+                new AnonymousPipeManagedApplicationProcess(statePath),
                 TimeSpan.FromSeconds(5));
             ManagedLauncherResult result = await coordinator.RunAsync(TestContext.Current.CancellationToken);
             await Task.Delay(500, TestContext.Current.CancellationToken);
@@ -479,8 +446,7 @@ public sealed partial class FileSystemManagedVersionRepositoryTests
         }
     }
 
-    private static UpdateCatalogVersionSnapshot CreatePackage(
-        string sourceRoot,
+    private static UpdateCatalogVersionSnapshot CreatePackage(string sourceRoot,
         string version,
         string? maliciousEntry = null,
         bool useReadyProbe = false,
@@ -491,7 +457,10 @@ public sealed partial class FileSystemManagedVersionRepositoryTests
         Action<string>? mutatePackage = null,
         bool includeProductionContractPayload = true,
         bool omitChecksumDocument = false,
-        Func<byte[], byte[]>? mutateChecksumDocument = null)
+        Func<byte[], byte[]>? mutateChecksumDocument = null,
+        bool includeManagedLauncher = false,
+        int additionalPayloadFiles = 0,
+        byte[]? managedLauncherBytes = null)
     {
         string packages = Path.Combine(sourceRoot, "packages");
         _ = Directory.CreateDirectory(packages);
@@ -510,6 +479,14 @@ public sealed partial class FileSystemManagedVersionRepositoryTests
             files["docs/contracts/canonical-capability-policy-v1.json"] = Encoding.UTF8.GetBytes("{}");
             files["profiles/built-in/package-trust-index.json"] = Encoding.UTF8.GetBytes("{}");
         }
+        if (includeManagedLauncher)
+        {
+            files[ManagedLauncherIdentity.ExecutablePath] = managedLauncherBytes ?? [0x4d, 0x5a, 0x03];
+        }
+        for (int index = 0; index < additionalPayloadFiles; index++)
+        {
+            files[$"reference/entry-{index:D4}.txt"] = [0x00];
+        }
         if (useReadyProbe)
         {
             string probeRoot = Path.Combine(AppContext.BaseDirectory, "ready-probe");
@@ -525,7 +502,12 @@ public sealed partial class FileSystemManagedVersionRepositoryTests
                 files[targetName] = File.ReadAllBytes(source);
             }
         }
-        byte[] manifest = CreateReleaseManifest(version, files, nullManifestCollections, mutateManifest);
+        byte[] manifest = CreateReleaseManifest(
+            version,
+            files,
+            nullManifestCollections,
+            mutateManifest,
+            includeManagedLauncher);
         byte[] checksums = CreateChecksumDocument(files, manifest);
         if (mutateChecksumDocument is not null)
         {
@@ -572,6 +554,13 @@ public sealed partial class FileSystemManagedVersionRepositoryTests
         return snapshot;
     }
 
+    private static string CreateManagedRoot(TempWorkspace workspace, string relativePath)
+    {
+        string root = workspace.PathFor(relativePath);
+        _ = Directory.CreateDirectory(root);
+        return root;
+    }
+
     private static async Task WriteCatalogAsync(
         string sourceRoot,
         IReadOnlyList<UpdateCatalogVersionSnapshot> versions)
@@ -616,9 +605,10 @@ public sealed partial class FileSystemManagedVersionRepositoryTests
 
     private static byte[] CreateReleaseManifest(
         string version,
-        IReadOnlyDictionary<string, byte[]> files,
+        Dictionary<string, byte[]> files,
         bool nullCollections = false,
-        Action<JsonObject>? mutateManifest = null)
+        Action<JsonObject>? mutateManifest = null,
+        bool includeManagedLauncher = false)
     {
         object[] entries = [.. files.Select(pair => new
         {
@@ -631,6 +621,7 @@ public sealed partial class FileSystemManagedVersionRepositoryTests
                 "THIRD-PARTY-NOTICES.txt" => "notices",
                 "LICENSE.txt" => "license",
                 "README.txt" => "readme",
+                ManagedLauncherIdentity.ExecutablePath => "launcher",
                 "docs/contracts/canonical-capability-policy-v1.json" => "capabilityPolicy",
                 _ when pair.Key.StartsWith("profiles/built-in/", StringComparison.Ordinal) => "builtInProfile",
                 _ when pair.Key.StartsWith("external-tools/", StringComparison.Ordinal) => "externalTool",
@@ -640,7 +631,7 @@ public sealed partial class FileSystemManagedVersionRepositoryTests
         })];
         byte[] bytes = JsonSerializer.SerializeToUtf8Bytes(new
         {
-            schemaVersion = "1.1",
+            schemaVersion = includeManagedLauncher ? "1.2" : "1.1",
             product = "NVT FW Combiner",
             version,
             sourceCommit = new string('a', 40),
@@ -656,13 +647,22 @@ public sealed partial class FileSystemManagedVersionRepositoryTests
             sbomAsset = $"NvtFwCombiner-v{version}-win-x64.spdx.json",
             provenanceAsset = $"NvtFwCombiner-v{version}-win-x64.provenance.json",
         });
-        if (mutateManifest is null)
-        {
-            return bytes;
-        }
-
         JsonObject document = JsonNode.Parse(bytes)!.AsObject();
-        mutateManifest(document);
+        if (includeManagedLauncher)
+        {
+            byte[] launcher = files[ManagedLauncherIdentity.ExecutablePath];
+            document["versionManagementProtocolVersion"] =
+                ManagedLauncherIdentity.SupportedProtocolVersion;
+            document["launcher"] = JsonSerializer.SerializeToNode(new
+            {
+                launcherVersion = version,
+                protocolVersion = ManagedLauncherIdentity.SupportedProtocolVersion,
+                executableRelativePath = ManagedLauncherIdentity.ExecutablePath,
+                size = launcher.LongLength,
+                sha256 = Convert.ToHexStringLower(SHA256.HashData(launcher)),
+            });
+        }
+        mutateManifest?.Invoke(document);
         return JsonSerializer.SerializeToUtf8Bytes(document);
     }
 

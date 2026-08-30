@@ -1,0 +1,36 @@
+{
+  "schemaVersion": 2,
+  "taskId": "VER-TEST-INVENTORY-104-01",
+  "capability": "Derive the canonical active .NET test inventory from compiled discovery instead of manually edited case totals",
+  "integrationBase": "878a269b8121a40e8312522a1a4f12d78c18729d",
+  "risk": "R2",
+  "kind": "governance",
+  "state": "final-complete",
+  "mutablePaths": [
+    "scripts/verify.py"
+  ],
+  "implementationOwner": "primary-agent",
+  "searchEvidence": [
+    "CI_DOTNET_SHARDS was the sole canonical project inventory but embedded eight manually maintained total/skip counters.",
+    "Local and CI execution already produce compiled test assemblies and exact TRX outcomes through the same scripts/verify.py owner.",
+    "VSTest --ListTests expands xUnit Fact and Theory cases from the compiled assembly, while TRX independently records exact test identities and outcomes.",
+    "VSTest console discovery truncates long Theory argument displays while TRX retains the full argument text, so parity uses the fully-qualified method identity with multiset multiplicity rather than lossy parameter display text.",
+    "Only seven existing platform-conditional cases are owner-approved exclusions: five Windows-processor Bootstrap cases on non-Windows local producers and two Unix-special-file Infrastructure cases on Windows producers; the protected CI workflow is fixed to windows-latest, so its Ubuntu finalizer must require the literal Windows producer identity instead of trusting an arbitrary artifact value or its own host OS."
+  ],
+  "semanticOwner": "scripts/verify.py compiled .NET discovery, execution and CI evidence finalization",
+  "terminalContract": "Each of the eight closed test projects is discovered without a checked-in case total; local verification discovers and executes one immutable shadow snapshot, protected CI builds one Release output then binds discovery and dotnet test --no-build execution to exact pre/post full-tree hashes, discovery and TRX reconcile the fully-qualified method identity multiset so every Theory case retains multiplicity despite VSTest console truncation, and the passed multiset may differ only by the closed producer-platform-specific skip multiset; no deprecated or unapproved NotExecuted outcome is admitted, local verification selects policy from its actual producer OS, protected CI producers must emit and finalization must require the literal Windows identity regardless of the Ubuntu finalizer host, CI evidence carries that identity and the captured test-assembly SHA under schema v2, any missing/duplicate/failing identity, wrong-platform policy, output-tree drift, legacy manifest, or evidence-path/hash drift fails closed, and the aggregate reports active, excluded-skip and discovered counts",
+  "disposition": "extend-owner",
+  "designReview": {
+    "reviewer": "final_architecture_review",
+    "outcome": "approved",
+    "evidence": "Independent R2 review approved canonical method-identity multiset parity for VER-TEST-INVENTORY-104-01: because VSTest truncates long Theory argument displays while TRX preserves them, both sources normalize only the terminal argument list to the fully-qualified method identity and retain exact Counter multiplicity; the same immutable, pre/post-hashed Release output proves both views come from identical compiled Theory data, while any method substitution, case-count drift, malformed identity, failed result, or platform-allowlist multiplicity drift remains fail closed, without reverting to manual totals or count-only comparison."
+  },
+  "implementationHead": "722cf93b003edab53b1f2e131b725a8550f61e92",
+  "reviewedHead": "722cf93b003edab53b1f2e131b725a8550f61e92",
+  "pathStateDigest": "09ef9135147de4be1e49d6637ff725cad3d427c535c189e04a1ace31af970e6f",
+  "finalReview": {
+    "reviewer": "final_evidence_review",
+    "outcome": "approved",
+    "evidence": "Independent R2 exact-head review at 722cf93b003edab53b1f2e131b725a8550f61e92 approved the compiled .NET inventory owner. The closed eight-project partition remains solution-complete with no checked-in case totals. Local verification binds VSTest discovery and execution to one immutable shadow Release snapshot; protected CI builds each Release project, captures the complete output tree and test-assembly SHA, discovers that assembly, executes the same project with --no-build, and rejects any post-run tree or assembly drift. Discovery and TRX reconcile canonical fully-qualified method identity Counters, preserving Theory multiplicity while tolerating only VSTest's lossy argument display; failed, substituted, missing, duplicate, malformed, and unapproved producer-platform skip identities remain fail closed. Schema-v2 finalization requires the literal Windows producer, closed paths and hashes, exact row/TRX counters, discovery/TRX parity, and the captured SHA shape. Supplied Windows producer evidence reports all eight projects successfully: 4,690 discovered, 4,688 passed, zero failed, and exactly two approved Infrastructure skips. The orchestration suite passed 117 tests with four platform-harness skips; no product, firmware, profile, package, update, or workflow semantics changed."
+  }
+}

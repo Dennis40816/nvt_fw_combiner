@@ -1,0 +1,45 @@
+{
+  "schemaVersion": 2,
+  "taskId": "LAUNCHER-PAYLOAD-104-01",
+  "capability": "Put embedded Launcher payload admission inside the existing Application entry budget, bound descriptor and Bootstrap sizes, and defer Bootstrap content hashing and custody until Setup",
+  "integrationBase": "62c989739a38bc1316d9b79abaf2221ce26b1294",
+  "risk": "R3",
+  "kind": "release",
+  "state": "final-complete",
+  "mutablePaths": [
+    "docs/adr/0060-temporary-release-package-size-ceiling.md",
+    "docs/contracts/managed-setup-payload-admission-v1.schema.json",
+    "docs/contracts/installer-release-manifest-v1.schema.json",
+    "docs/contracts/launcher-bootstrap-v1.schema.json",
+    "docs/contracts/release-manifest-v1.schema.json",
+    "docs/ci/release-package.md",
+    "docs/specs/v0.10.6-version-management.md",
+    "src/NvtFwCombiner.VersionManagement.Application/VersionManagement/LauncherBootstrapContracts.cs",
+    "src/NvtFwCombiner.VersionManagement.Application/VersionManagement/ManagedFirstInstallationContracts.cs",
+    "src/NvtFwCombiner.VersionManagement.Application/VersionManagement/ManagedLauncherEntry.cs",
+    "src/NvtFwCombiner.VersionManagement.Infrastructure/VersionManagement/FileSystemLauncherInstallationSelfTest.cs"
+  ],
+  "implementationOwner": "primary-agent",
+  "searchEvidence": [
+    "ManagedLauncherEntryCoordinator is the existing single owner of the monotonic local-entry budget, but the distribution host currently reads both embedded resources before RunAsync starts that budget.",
+    "EmbeddedManagedDistributionPayloadSource is the existing sole descriptor parser, Bootstrap payload inspector, exact capture owner and materializer byte-custody adapter; no second parser, updater or timer is required.",
+    "The prior executable ceiling was 80000000 bytes while the embedded Bootstrap identity and managed-setup payload schema accepted any positive size; the owner approved one explicit 200000000-byte Launcher/Bootstrap safety ceiling without making package size a release gate.",
+    "Existing host and infrastructure tests use preallocated byte arrays and therefore cannot prove bounded descriptor reads, zero healthy-path Bootstrap content reads, or a shared absolute 250 ms payload/state/root budget."
+  ],
+  "semanticOwner": "VersionManagement Application owns one absolute entry deadline and typed payload admission result; VersionManagement Infrastructure remains the sole embedded descriptor parser, bounded resource reader, hash and exact byte-custody owner; Bootstrap remains composition wiring only",
+  "terminalContract": "Every Launcher invocation begins one monotonic entry budget before payload admission. Healthy routing reads at most 65537 descriptor bytes, admits a Bootstrap no larger than 200000000 bytes by exact resource existence and declared length, and reads zero Bootstrap content bytes. Payload admission, state load and exact-root observation share the same 250 ms local-health cutoff. Only Setup inspection and capture stream, hash or retain Bootstrap content. The 200000000-byte Launcher/Bootstrap ceiling is allocation safety, not a package-size or optimization release gate. Missing or inaccessible resources return typed unavailable; malformed, oversized, length-mismatched or hash-invalid payloads fail closed; post-review identity drift returns changed. No Registry, Catalog, package, firmware parser, firmware executor, second timeout, second payload parser or payload cache is added.",
+  "disposition": "extend-owner",
+  "designReview": {
+    "reviewer": "launcher_p1_architecture + launcher_p1_test_review + launcher_payload_owner",
+    "outcome": "findings-incorporated",
+    "evidence": "Three independent read-only reviews of cf30c75a found the eager unbounded Bootstrap read and pre-budget admission to be a P1. They converged on pure host wiring, stream factories owned by the existing payload source, one Application entry budget, bounded descriptor and Bootstrap admission, lazy Setup hashing/capture, and tracking-stream plus monotonic-time regression evidence. The owner subsequently set the unified Launcher/Bootstrap executable safety ceiling to 200 MB without adding a package-size release gate."
+  },
+  "implementationHead": "317acb740cf74718e269ce687d3e469c8cfa7f39",
+  "reviewedHead": "317acb740cf74718e269ce687d3e469c8cfa7f39",
+  "pathStateDigest": "929de49d655d4340b0ba6e73fa00e77ba1e75a0b9e21e93f216d14cf0b72d309",
+  "finalReview": {
+    "reviewer": "p1_semantic_review + p1_governance_review",
+    "outcome": "approved",
+    "evidence": "Independent exact-head reviews approved implementation 317acb740cf74718e269ce687d3e469c8cfa7f39 with no P0, P1 or P2. They verified one Application-owned 250 ms absolute entry deadline, a 65537-byte descriptor rejection probe, metadata-only Bootstrap admission up to the owner-approved 200000000-byte allocation-safety ceiling, zero healthy-entry Bootstrap content reads, and Setup-only streaming hash/capture with post-review drift rejection. Focused payload/deadline regressions, full Application and Infrastructure suites, Architecture 247/247, code-size policy 18/18 and a zero-warning solution build passed. The 200 MB value is an allocation-safety ceiling and does not claim package-size optimization or protected delivery evidence."
+  }
+}

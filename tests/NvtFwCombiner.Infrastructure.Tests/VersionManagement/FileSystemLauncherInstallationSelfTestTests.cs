@@ -395,6 +395,24 @@ public sealed class FileSystemLauncherInstallationSelfTestTests
                 ManagedAppVersion.Parse("1.0.0"),
                 "catalog-admission-v1",
                 Hash(manifest));
+            IEnumerable<(string Path, string Hash)> checksumEntries = files
+                .Select(pair => (Path: pair.Key, Hash: Hash(pair.Value)))
+                .Append((Path: "RELEASE-MANIFEST.json", Hash: Hash(manifest)))
+                .OrderBy(entry => entry.Path, StringComparer.Ordinal);
+            await File.WriteAllTextAsync(
+                Path.Combine(versionRoot, "SHA256SUMS.txt"),
+                string.Join("\n", checksumEntries.Select(entry =>
+                    $"{entry.Hash}  {entry.Path}")) + "\n",
+                TestContext.Current.CancellationToken);
+            await File.WriteAllBytesAsync(
+                Path.Combine(versionRoot, FileSystemManagedVersionRepository.AdmissionFileName),
+                JsonSerializer.SerializeToUtf8Bytes(new
+                {
+                    version = admission.Version.ToString(),
+                    admissionIdentity = admission.AdmissionIdentity,
+                    releaseManifestSha256 = admission.ReleaseManifestSha256,
+                }),
+                TestContext.Current.CancellationToken);
             VersionManagerState appState = VersionManagerState.Create(
                 updateSource: null,
                 activeVersion: admission.Version,

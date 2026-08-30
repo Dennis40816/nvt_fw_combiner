@@ -1,0 +1,9 @@
+{
+  "schemaVersion": 1,
+  "taskId": "LAUNCHER-106A",
+  "authorityType": "release-owner",
+  "reviewedHead": "6f48f9eb75e1026f94becb602687195e5ad8aa25",
+  "decision": "approved",
+  "reviewer": "Dennis Liu (release owner)",
+  "evidence": "Approved the exact final-evidence head for the thin Distribution Launcher host and bounded local entry behavior. The host reuses the existing Bootstrap, Application entry and Setup, Registry locator, package verification and exact handoff owners; it does not add a second updater or firmware execution path. This approval covers source behavior and typed host outcomes only. Protected embedded-resource publication, complete package identity, clean-machine Windows evidence, approved Setup/Recovery presentation, shortcut delivery and the integrated v1.0.6 delivery gate remain explicitly open."
+}

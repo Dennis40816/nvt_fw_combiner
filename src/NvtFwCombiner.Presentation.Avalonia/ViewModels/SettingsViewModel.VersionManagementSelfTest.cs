@@ -240,6 +240,7 @@ internal sealed partial class SettingsViewModel
             ManagedVersionInstallIssue.InvalidPayload => Localize("a package payload is invalid", "套件內容無效"),
             ManagedVersionInstallIssue.IdentityConflict => Localize("a package identity conflicts with the catalog", "套件識別與 Catalog 衝突"),
             ManagedVersionInstallIssue.PromotionFailed => Localize("package verification could not complete", "套件驗證無法完成"),
+            ManagedVersionInstallIssue.CleanupIncomplete => Localize("package cleanup is incomplete; recovery is required", "套件清理未完成，需要復原"),
             ManagedVersionInstallIssue.StateUnavailable => Localize("managed version state is unavailable", "受管版本狀態無法使用"),
             _ => throw new ArgumentOutOfRangeException(nameof(issue)),
         };

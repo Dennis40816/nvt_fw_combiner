@@ -63,6 +63,29 @@ public sealed class LauncherBootstrapContractTests
         _ = Assert.Throws<ArgumentOutOfRangeException>(() => CreateIdentity(size: value));
     }
 
+    /// <summary>The embedded Bootstrap shares the canonical executable-size ceiling.</summary>
+    [Fact]
+    public void ImmutableBootstrapIdentityAdmitsCanonicalMaximum()
+    {
+        var identity = new ManagedImmutableBootstrapIdentity(
+            "NvtFwCombiner.Bootstrap.exe",
+            200_000_000,
+            LauncherSha);
+
+        Assert.Equal(200_000_000, identity.Length);
+    }
+
+    /// <summary>An oversized embedded Bootstrap is rejected before any resource content is read.</summary>
+    [Fact]
+    public void ImmutableBootstrapIdentityRejectsAboveCanonicalMaximum()
+    {
+        _ = Assert.Throws<ArgumentOutOfRangeException>(() =>
+            new ManagedImmutableBootstrapIdentity(
+                "NvtFwCombiner.Bootstrap.exe",
+                ManagedImmutableBootstrapIdentity.MaximumExecutableBytes + 1,
+                LauncherSha));
+    }
+
     /// <summary>The executable content identity must be one lowercase SHA-256.</summary>
     [Theory]
     [InlineData(null)]

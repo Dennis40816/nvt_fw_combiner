@@ -83,8 +83,21 @@ public sealed class VersionManagerWriteLeaseResult : IDisposable
     }
 }
 
+/// <summary>Read-only persistence port for one validated managed-version state snapshot.</summary>
+public interface IVersionManagerStateReader
+{
+    /// <summary>
+    /// Loads state without guessing missing version identities. Implementations must return
+    /// their ValueTask promptly and honor cancellation; callers may isolate and abandon a
+    /// read-only load after their own hard deadline.
+    /// </summary>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    /// <returns>The fail-closed state result.</returns>
+    ValueTask<VersionManagerStateLoadResult> LoadAsync(CancellationToken cancellationToken);
+}
+
 /// <summary>Atomic persistence port for launcher-owned managed-version state.</summary>
-public interface IVersionManagerStateStore
+public interface IVersionManagerStateStore : IVersionManagerStateReader
 {
     /// <summary>Tries to own the store's canonical state path across one complete transaction.</summary>
     /// <param name="waitTimeout">Maximum bounded contention wait.</param>
@@ -93,11 +106,6 @@ public interface IVersionManagerStateStore
     ValueTask<VersionManagerWriteLeaseResult> TryAcquireWriteLeaseAsync(
         TimeSpan waitTimeout,
         CancellationToken cancellationToken);
-
-    /// <summary>Loads state without guessing missing version identities.</summary>
-    /// <param name="cancellationToken">Cancellation token.</param>
-    /// <returns>The fail-closed state result.</returns>
-    ValueTask<VersionManagerStateLoadResult> LoadAsync(CancellationToken cancellationToken);
 
     /// <summary>Atomically saves one validated state snapshot.</summary>
     /// <param name="state">Validated immutable state.</param>

@@ -90,7 +90,7 @@ class CodeSizeSnapshot:
 
 
 DEFAULT_LIMITS = CodeSizeLimits(
-    production_nonblank=121_059,
+    production_nonblank=129_509,
     duplicate_json_nonblank=0,
     partial_type_default_max=2_500,
     partial_type_exact_ratchets={},
@@ -107,12 +107,12 @@ DEFAULT_LIMITS = CodeSizeLimits(
     bootstrap_cli_ratchet=3_378,
     infrastructure_contracts_worker_ratchet=15_356,
     full_production_ratchet=102_896,
-    runtime_production_allowance=13_360,
+    runtime_production_allowance=21_795,
     domain_profiles_allowance=5,
-    application_allowance=7_494,
-    bootstrap_cli_allowance=680,
-    infrastructure_contracts_worker_allowance=5_186,
-    full_production_allowance=18_163,
+    application_allowance=9_735,
+    bootstrap_cli_allowance=945,
+    infrastructure_contracts_worker_allowance=11_115,
+    full_production_allowance=26_613,
 )
 
 
@@ -213,12 +213,17 @@ def _application_files(root: Path) -> list[Path]:
 
 
 def _bootstrap_cli_files(root: Path) -> list[Path]:
-    """Return the fixed Bootstrap, Launcher, CLI, and desktop host slice."""
+    """Return the fixed Bootstrap, launcher, CLI, and desktop host slice."""
 
     return [
         *_matching_files(root, "src/NvtFwCombiner.Bootstrap", frozenset({".cs"})),
         *_matching_files(root, "src/NvtFwCombiner.Cli", frozenset({".cs"})),
         *_matching_files(root, "src/NvtFwCombiner.Desktop", frozenset({".cs"})),
+        *_matching_files(
+            root,
+            "src/NvtFwCombiner.DistributionLauncher",
+            frozenset({".cs"}),
+        ),
         *_matching_files(root, "src/NvtFwCombiner.Launcher", frozenset({".cs"})),
         *_matching_files(
             root,

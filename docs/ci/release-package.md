@@ -17,14 +17,15 @@ contains one immutable `NvtFwCombiner.Bootstrap.exe` plus an admitted
 `versions/1.0.0` payload. The version payload's closed release manifest pins
 `versionManagementProtocolVersion: 1` and the exact coupled
 `launcher/NvtFwCombiner.Launcher.exe` identity. Bootstrap belongs only to the
-separately assembled managed-distribution root and its outer installation
-evidence; this repository provides a deterministic assembly lab, not an
-installer. Bootstrap is never inside a version ZIP, release manifest, or update
-catalog payload. The
-production packager, smoke scripts, closed allowlist, size policy, and
+managed-distribution root and its outer installation evidence. ADR 0062 adds a
+thin single-entry distribution Launcher. Its Setup branch embeds one exact
+release-built Bootstrap and reuses the existing
+Registry/Catalog/package/seed/READY owners; the deterministic
+Python assembly lab remains evidence-only. Bootstrap is never inside a version
+ZIP, version release manifest, version SBOM, or update-catalog payload. The
+installer packager, smoke scripts, closed allowlist, size policy, and
 clean-machine evidence change together under release-owner review. Existing
-portable-package dry-run and smoke stay mandatory through the internal proving
-line as regression gates.
+portable-package dry-run and smoke remain mandatory regression gates.
 
 The live Registry JSON and runtime option/environment overrides are deployment
 configuration, not packaged files. The owner-approved production locator is a
@@ -54,6 +55,57 @@ failure. The generated root, packages, executables, state, and evidence JSON
 remain ignored artifacts. This deterministic lab does not replace the pending
 clean-machine, UNC, signing/legal, or release-owner acceptance of the exact
 frozen release candidate.
+
+### Separate distribution Launcher assets
+
+The distribution Launcher is published as a separate closed five-asset
+evidence set defined by
+`docs/contracts/installer-release-manifest-v1.md`:
+
+```text
+NvtFwCombiner-Launcher-vX.Y.Z-win-x64.exe
+NvtFwCombiner-Launcher-vX.Y.Z-win-x64.manifest.json
+NvtFwCombiner-Launcher-vX.Y.Z-win-x64.spdx.json
+NvtFwCombiner-Launcher-vX.Y.Z-win-x64.intoto.jsonl
+NvtFwCombiner-Launcher-vX.Y.Z-win-x64.sha256
+```
+
+Those assets are additive; they do not alter the existing version ZIP or its
+five published assets and never enter the update Catalog. The protected Launcher
+packager first freezes the exact Bootstrap, generates the canonical embedded
+payload-admission descriptor, publishes final Launcher, then reopens it
+to independently extract and verify both embedded resources. Only after that
+does it generate the external installer manifest, SBOM, provenance, and
+checksum. The external manifest is release evidence and is never runtime input.
+
+Ordinary developer builds contain no admitted Bootstrap payload and must expose
+a typed `PayloadUnavailable` state with install disabled. Release smoke proves
+that downloading only the Launcher is sufficient. A clean Windows machine without a
+preinstalled .NET runtime must prove destination admission, Registry/Catalog/
+package verification, atomic root creation, canonical seed import, durable root
+binding, stable Bootstrap launch, and READY before the Launcher is publishable.
+
+The user-facing Launcher first performs bounded local-only entry admission. A
+healthy run must make zero Registry, Catalog, package, network, and full
+inventory calls. It reads no more than 64 KiB plus one rejection byte from the
+embedded descriptor, accepts an embedded Bootstrap declaration only from 1
+through 200,000,000 bytes, checks only exact resource existence/length, and reads
+zero Bootstrap content bytes. Descriptor projection, state load, and exact-root
+observation share the same absolute 250 ms cutoff. Full Bootstrap streaming
+hash/capture begins only after Setup preparation. The executable ceiling is a
+memory-safety admission bound, not a Launcher ZIP-size optimization gate.
+Local state/exact-root classification must meet 100 ms P95 and
+stop at its 250 ms hard cutoff; progress appears only after 250 ms. Executables
+are hashed once through stable custody, and the path returns a typed non-Setup
+failure at the two-second local deadline. Admission reserves its final 0.5
+seconds for whole-Bootstrap-Job
+cleanup; the 45-second post-`ADMITTED` completion cap likewise limits operation
+to 44.5 seconds and reserves 0.5 seconds for cleanup. Cleanup never extends
+either absolute deadline. If the process-start worker and complete Job cannot
+be proved terminal, smoke must observe typed `TerminationUnconfirmed`, not an
+ordinary timeout. The completion cap must preserve the two existing 20-second
+candidate/LKG READY attempts without adding delay to an early READY result.
+Exact packaged cold/warm P50/P95/P99 timing evidence is required.
 
 ## Closed allowlist
 

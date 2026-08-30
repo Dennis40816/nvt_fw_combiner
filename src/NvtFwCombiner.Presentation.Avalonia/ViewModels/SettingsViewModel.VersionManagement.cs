@@ -504,11 +504,25 @@ internal sealed partial class SettingsViewModel
                 ApplyVersionSnapshot(installed.Snapshot);
                 if (!installed.Install.IsSuccess)
                 {
-                    VersionOperationStatus = installed.Install.Issue == ManagedVersionInstallIssue.StateUnavailable
-                        ? Localize(
+                    VersionOperationStatus = installed.Install.Issue switch
+                    {
+                        ManagedVersionInstallIssue.StateUnavailable => Localize(
                             "Version state is unavailable. Restart Settings to reconcile the installation.",
-                            "版本狀態目前無法使用。請重新開啟設定以收斂安裝狀態。")
-                        : Localize("Installation failed verification.", "安裝驗證失敗。");
+                            "版本狀態目前無法使用。請重新開啟設定以收斂安裝狀態。"),
+                        ManagedVersionInstallIssue.CleanupIncomplete => Localize(
+                            "Recovery required. Installation cleanup could not complete; restart the launcher before trying again.",
+                            "需要復原。安裝清理未能完成；請重新啟動啟動器後再試。"),
+                        ManagedVersionInstallIssue.None or
+                        ManagedVersionInstallIssue.PackageUnavailable or
+                        ManagedVersionInstallIssue.PackageMismatch or
+                        ManagedVersionInstallIssue.UnsafeArchive or
+                        ManagedVersionInstallIssue.InvalidPayload or
+                        ManagedVersionInstallIssue.IdentityConflict or
+                        ManagedVersionInstallIssue.PromotionFailed =>
+                            Localize("Installation failed verification.", "安裝驗證失敗。"),
+                        _ => throw new InvalidOperationException(
+                            "Unknown version installation outcome."),
+                    };
                     return;
                 }
             }

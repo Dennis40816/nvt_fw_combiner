@@ -1,0 +1,9 @@
+{
+  "schemaVersion": 1,
+  "taskId": "LAUNCHER-PAYLOAD-104-01",
+  "authorityType": "release-owner",
+  "reviewedHead": "6f48f9eb75e1026f94becb602687195e5ad8aa25",
+  "decision": "approved",
+  "reviewer": "Dennis Liu (release owner)",
+  "evidence": "Approved the exact final-evidence head for bounded embedded payload admission: one 250 ms Application entry deadline, bounded descriptor parsing, metadata-only healthy Bootstrap admission, and Setup-only streaming hash and byte capture. The unified 200000000-byte Launcher/Bootstrap value is an allocation-safety ceiling and does not preallocate memory. This approval does not claim package-size optimization, protected resource publication, package delivery, clean-machine smoke, or completion of the integrated v1.0.6 release gate."
+}

@@ -144,7 +144,7 @@
         },
         "protocolVersion": { "const": 1 },
         "executableRelativePath": { "const": "launcher/NvtFwCombiner.Launcher.exe" },
-        "size": { "type": "integer", "minimum": 1, "maximum": 80000000 },
+        "size": { "type": "integer", "minimum": 1, "maximum": 200000000 },
         "sha256": { "$ref": "#/$defs/sha256" }
       }
     },

@@ -10,6 +10,8 @@ from pathlib import Path
 
 from scripts.coverage_policy import (
     BASELINE_PATH,
+    PRODUCTION_MODULES,
+    ROOT,
     CoverageInventory,
     CoverageMeasure,
     CoverageSummary,
@@ -174,6 +176,38 @@ class CoveragePolicyTests(unittest.TestCase):
 
         self.assertEqual(summary(1, 1, 0, 0), inventory.overall)
         self.assertEqual(summary(1, 1, 0, 0), inventory.modules["Domain"])
+
+    def test_classifies_distribution_launcher_as_bootstrap_host(self) -> None:
+        self.write(
+            "src/NvtFwCombiner.DistributionLauncher/Program.cs",
+            "internal static class Program;\n",
+        )
+        report = """<coverage branches-covered="0" branches-valid="0"><packages><package><classes>
+<class name="Program" filename="src/NvtFwCombiner.DistributionLauncher/Program.cs"><lines>
+<line number="1" hits="1" />
+</lines></class>
+</classes></package></packages></coverage>"""
+        self.write("reports/coverage.cobertura.xml", report)
+        self.write("reports/coverage.json", "{}")
+
+        inventory = parse_dotnet_cobertura_reports(self.root / "reports", self.root)
+
+        self.assertEqual(summary(1, 1, 0, 0), inventory.overall)
+        self.assertEqual(summary(1, 1, 0, 0), inventory.modules["Bootstrap"])
+
+    def test_every_production_csharp_project_root_has_one_module_owner(self) -> None:
+        project_roots = {
+            project.parent.relative_to(ROOT)
+            for project in (ROOT / "src").glob("*/*.csproj")
+        }
+        owned_roots = [
+            directory
+            for directories in PRODUCTION_MODULES.values()
+            for directory in directories
+        ]
+
+        self.assertEqual(project_roots, set(owned_roots))
+        self.assertEqual(len(owned_roots), len(set(owned_roots)))
 
     def test_requires_paired_cobertura_and_coverlet_json_reports(self) -> None:
         report = """<coverage branches-covered="0" branches-valid="0"><packages><package><classes>

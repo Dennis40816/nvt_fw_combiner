@@ -405,7 +405,12 @@ public sealed partial class VersionManagementExperience
                 : verification.Issue;
         RegistryCandidateAdmission? admission = !verified
             ? null
-            : new(entry, admittedCatalog, newest, verification.Candidate!);
+            : new(
+                entry,
+                admittedCatalog,
+                newest,
+                verification.Candidate!,
+                verification.HasSupportedManagedLauncher);
         return new(
             new(
                 entry.SourceRoot,
@@ -620,7 +625,8 @@ public sealed partial class VersionManagementExperience
         UpdateSourceRegistryEntry Entry,
         UpdateCatalogSnapshot Catalog,
         UpdateCatalogVersionSnapshot NewestPackage,
-        VerifiedUpdateCandidate VerifiedCandidate);
+        VerifiedUpdateCandidate VerifiedCandidate,
+        bool HasSupportedManagedLauncher);
 
     private sealed record RegistryCandidateInspection(
         VersionEnvironmentSelfTestAttempt Attempt,

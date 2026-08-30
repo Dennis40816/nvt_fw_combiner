@@ -7,7 +7,8 @@ namespace NvtFwCombiner.Infrastructure.VersionManagement;
 public sealed class FileSystemLauncherInstallationSelfTest : ILauncherInstallationSelfTest
 {
     private const string BootstrapFileName = "NvtFwCombiner.Bootstrap.exe";
-    private const int MaximumBootstrapBytes = 80_000_000;
+    private const int MaximumBootstrapBytes =
+        (int)ManagedImmutableBootstrapIdentity.MaximumExecutableBytes;
     private readonly string _managedRoot;
     private readonly IVersionManagerStateStore _appStateStore;
     private readonly ILauncherBootstrapStateStore _launcherStateStore;

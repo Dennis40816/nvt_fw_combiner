@@ -20,6 +20,7 @@ public sealed partial class RepositoryBoundaryTests
         [
             "ApplicationCompositionGlobalUsings.cs",
             "CompositionHostServices.cs",
+            "ManagedDistributionLauncherHostServices.cs",
             "UpdateSourceRegistryLocator.cs",
         ];
 

@@ -10,13 +10,86 @@ namespace NvtFwCombiner.Infrastructure.Tests.VersionManagement;
 
 public sealed partial class FileSystemManagedVersionRepositoryTests
 {
+    /// <summary>The exact maximum archive-entry count remains a valid closed package.</summary>
+    [Fact]
+    public async Task ExactArchiveEntryCeilingVerifiesSuccessfully()
+    {
+        using var workspace = TempWorkspace.Create();
+        string sourceRoot = workspace.PathFor("entry-ceiling-source");
+        const int fixedArchiveEntries = 9;
+        UpdateCatalogVersionSnapshot package = CreatePackage(
+            sourceRoot,
+            "0.10.6",
+            additionalPayloadFiles:
+                FileSystemManagedVersionRepository.MaximumArchiveEntries - fixedArchiveEntries);
+        string packagePath = Path.Combine(
+            sourceRoot,
+            package.PackagePath.Value.Replace('/', Path.DirectorySeparatorChar));
+        using (ZipArchive archive = ZipFile.OpenRead(packagePath))
+        {
+            Assert.Equal(FileSystemManagedVersionRepository.MaximumArchiveEntries, archive.Entries.Count);
+        }
+
+        ManagedPackageVerificationResult result = await new FileSystemManagedVersionRepository()
+            .VerifyPackageAsync(sourceRoot, package, TestContext.Current.CancellationToken);
+
+        Assert.True(result.IsVerified, result.Issue.ToString());
+    }
+
+    /// <summary>The real plan, extraction, promotion, and inventory accept exact expanded bytes only.</summary>
+    [Fact]
+    public async Task ExactExpandedByteBudgetInstallsWhileOneByteLessFailsBeforeMaterialization()
+    {
+        using var workspace = TempWorkspace.Create();
+        string sourceRoot = workspace.PathFor("source");
+        string exactRoot = CreateManagedRoot(workspace, "exact-managed");
+        string rejectedRoot = CreateManagedRoot(workspace, "rejected-managed");
+        UpdateCatalogVersionSnapshot package = CreatePackage(sourceRoot, "0.10.6");
+        string packagePath = Path.Combine(
+            sourceRoot,
+            package.PackagePath.Value.Replace('/', Path.DirectorySeparatorChar));
+        long expandedBytes;
+        using (ZipArchive archive = ZipFile.OpenRead(packagePath))
+        {
+            expandedBytes = archive.Entries.Sum(entry => entry.Length);
+        }
+        var exactRepository = new FileSystemManagedVersionRepository(expandedBytes);
+        var rejectedRepository = new FileSystemManagedVersionRepository(expandedBytes - 1);
+
+        ManagedPackageVerificationResult exactVerification = await exactRepository.VerifyPackageAsync(
+            sourceRoot,
+            package,
+            TestContext.Current.CancellationToken);
+        ManagedVersionInstallResult exactInstall = await exactRepository.InstallAsync(
+            exactRoot,
+            sourceRoot,
+            package,
+            TestContext.Current.CancellationToken);
+        ManagedPackageVerificationResult rejectedVerification =
+            await rejectedRepository.VerifyPackageAsync(
+                sourceRoot,
+                package,
+                TestContext.Current.CancellationToken);
+        ManagedVersionInstallResult rejectedInstall = await rejectedRepository.InstallAsync(
+            rejectedRoot,
+            sourceRoot,
+            package,
+            TestContext.Current.CancellationToken);
+
+        Assert.True(exactVerification.IsVerified, exactVerification.Issue.ToString());
+        Assert.True(exactInstall.IsSuccess, exactInstall.Issue.ToString());
+        Assert.Equal(ManagedVersionInstallIssue.UnsafeArchive, rejectedVerification.Issue);
+        Assert.Equal(ManagedVersionInstallIssue.UnsafeArchive, rejectedInstall.Issue);
+        Assert.False(Directory.Exists(Path.Combine(rejectedRoot, "versions", "0.10.6")));
+    }
+
     /// <summary>Forged ZIP length hints cannot pass real verification or leave install residue.</summary>
     [Fact]
     public async Task UnderreportedZipEntryFailsVerifyAndInstallWithoutMaterialization()
     {
         using var workspace = TempWorkspace.Create();
         string sourceRoot = workspace.PathFor("source");
-        string managedRoot = workspace.PathFor("managed");
+        string managedRoot = CreateManagedRoot(workspace, "managed");
         const string version = "0.10.6";
         UpdateCatalogVersionSnapshot package = CreatePackage(
             sourceRoot,
@@ -59,7 +132,7 @@ public sealed partial class FileSystemManagedVersionRepositoryTests
         Assert.Equal(512L * 1024 * 1024, FileSystemManagedVersionRepository.MaximumExpandedBytes);
         using var workspace = TempWorkspace.Create();
         string sourceRoot = workspace.PathFor("source");
-        string managedRoot = workspace.PathFor("managed");
+        string managedRoot = CreateManagedRoot(workspace, "managed");
         UpdateCatalogVersionSnapshot package = CreatePackage(sourceRoot, "0.10.6");
         var productionRepository = new FileSystemManagedVersionRepository();
         ManagedVersionInstallResult installed = await productionRepository.InstallAsync(
@@ -102,7 +175,7 @@ public sealed partial class FileSystemManagedVersionRepositoryTests
     {
         using var workspace = TempWorkspace.Create();
         string sourceRoot = workspace.PathFor("source");
-        string managedRoot = workspace.PathFor("managed");
+        string managedRoot = CreateManagedRoot(workspace, "managed");
         UpdateCatalogVersionSnapshot package = CreatePackage(
             sourceRoot,
             "0.10.6",

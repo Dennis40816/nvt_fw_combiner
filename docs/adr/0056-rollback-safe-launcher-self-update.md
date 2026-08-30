@@ -29,6 +29,13 @@ anchor. It is distributed only as part of the initial managed installation and
 is never a Version-page update target. A bootstrap change requires a new
 distribution/migration decision; ordinary release packages cannot replace it.
 
+The distribution Launcher and Setup start that root only with the exact
+descriptor-bound Bootstrap filename, positive byte length, and lowercase
+SHA-256. That bounded identity is inherited unchanged by Root Bootstrap,
+Version Launcher, and Desktop. Desktop captures and clears it only after its
+managed lifetime context is `Captured`; missing or malformed identity, or a
+manual/unmanaged Desktop, remains usable but has no stable-restart authority.
+
 Every admitted application version contains one coupled launcher under
 `versions/<appVersion>/launcher/`. There is no launcher-only package. The
 release manifest declares an independent launcher identity: owning application
@@ -142,13 +149,34 @@ combinations, including dual active guards, remain unchanged and fail closed;
 a failed durable clear leaves the prior phase authoritative.
 
 Executable integrity is also held across the verification-to-start boundary.
-The installed repository opens the exact manifest-admitted application or
-launcher executable with write/delete sharing denied, verifies length, PE
-shape, and SHA-256 through that stable handle, and returns an Application-typed
-launch lease. Coordinators acquire it before recording a new launch phase and
-hold it through `Process.Start`; process adapters consume the lease path and do
-not duplicate package hash policy. Failure to acquire the lease records
-nothing and starts nothing.
+The installed repository acquires no-follow custody of the complete admitted
+version tree before manifest/package verification, including the executable,
+DLLs, configuration, and manifest. The returned Application-typed composite
+lease retains those identities and deny-write/delete handles through a final
+synchronous topology revalidation immediately before `Process.Start`.
+Coordinators acquire it before recording a new launch phase; process adapters
+consume the lease and do not duplicate package hash policy. Any custody or
+revalidation failure records no new launch and starts no process. This boundary
+does not claim custody over files first loaded after the child has started.
+Capture reuses the independent package file, directory, and byte ceilings
+defined below, observes cancellation while acquiring handles, and fails closed
+off Windows. Standard
+Windows `Process.Start` does not atomically combine topology validation and
+process creation, so the synchronous adapter check is the declared final
+observation boundary; the residual scheduling interval remains a platform
+release gate.
+
+The package owner counts independent limits rather than one combined entry
+counter: at most 4,097 installed files (4,096 archive entries plus the admission
+document), 4,096 installed directories, and 512 MiB plus the 4 KiB admission
+allowance. The ordinary update path and Setup both reuse this one repository
+owner for package planning, extraction, admission, and verification; Setup
+additionally supplies its held relative destination custody instead of creating
+a second package writer. Ordinary update captures immutable custody after its
+version-directory promotion. Setup keeps the exact whole-root handle open
+across promotion and transfers it handle-to-handle to the same immutable-tree
+owner after proving identical root file identity; it never releases custody and
+reopens by path.
 
 Application deletion policy protects every exact owner admission named by an
 active or pending launcher identity. Invalid or unavailable launcher state

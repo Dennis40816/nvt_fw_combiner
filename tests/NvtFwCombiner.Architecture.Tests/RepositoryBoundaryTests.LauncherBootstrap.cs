@@ -1,7 +1,89 @@
+using System.Text.Json;
+
 namespace NvtFwCombiner.Architecture.Tests;
 
 public sealed partial class RepositoryBoundaryTests
 {
+    /// <summary>The public Launcher remains a thin host over the single Bootstrap graph.</summary>
+    [Fact]
+    public void DistributionLauncherUsesOneBootstrapOwnedCompositionGraph()
+    {
+        string solution = ReadText("NvtFwCombiner.slnx");
+        string project = ReadText(
+            "src/NvtFwCombiner.DistributionLauncher/NvtFwCombiner.DistributionLauncher.csproj");
+        string program = ReadText("src/NvtFwCombiner.DistributionLauncher/Program.cs");
+        string host = ReadText(
+            "src/NvtFwCombiner.Bootstrap/ManagedDistributionLauncherHostServices.cs");
+        string payloadSource = ReadText(
+            "src/NvtFwCombiner.VersionManagement.Infrastructure/VersionManagement/ManagedDistributionLauncherRuntime.cs");
+        string handoff = ReadText(
+            "src/NvtFwCombiner.VersionManagement.Infrastructure/VersionManagement/StableLauncherHandoff.cs");
+
+        AssertContainsAll(
+            solution,
+            "src/NvtFwCombiner.DistributionLauncher/NvtFwCombiner.DistributionLauncher.csproj");
+        AssertContainsAll(
+            project,
+            "<OutputType>WinExe</OutputType>",
+            "NvtFwCombiner.Bootstrap",
+            "NvtFwCombiner.DistributionLauncher.Payload.managed-setup-payload-admission.v1.json",
+            "NvtFwCombiner.DistributionLauncher.Payload.NvtFwCombiner.Bootstrap.exe");
+        AssertDoesNotContainAny(
+            project,
+            "NvtFwCombiner.VersionManagement.Infrastructure\\",
+            "NvtFwCombiner.Desktop",
+            "PackageReference");
+        AssertContainsAll(
+            program,
+            "ManagedDistributionLauncherHostServices.Create()",
+            ".RunAsync(CancellationToken.None)",
+            "DistributionLauncherExitCode");
+        AssertDoesNotContainAny(
+            program,
+            "UpdateSourceRegistryLocator",
+            "FileSystemUpdateCatalogSource",
+            "FileSystemManagedVersionRepository",
+            "JsonVersionManagerStateStore");
+        AssertContainsAll(
+            host,
+            "Environment.ProcessPath",
+            "Assembly.GetEntryAssembly()",
+            "UpdateSourceRegistryLocator.ResolveAll(",
+            "new JsonVersionManagerStateStore(",
+            "new FileSystemManagedInstallationRootProbe()",
+            "new EmbeddedManagedDistributionPayloadSource(",
+            "new VersionManagementExperience(",
+            "new FileSystemManagedFirstInstallationRootMaterializer(repository)",
+            "new StableLauncherHandoff(",
+            "ManagedLauncherEntryOutcome.SetupRequired ? SetupExperience : null");
+        AssertDoesNotContainAny(
+            host,
+            "JsonDocument",
+            "JsonSerializer",
+            "SHA256",
+            "MemoryStream",
+            ".CopyTo(",
+            "Task.Run",
+            "CancellationTokenSource",
+            "File.ReadAllBytes",
+            "File.ReadAllText");
+        Assert.Equal(
+            1,
+            CountOccurrences(payloadSource, "public EmbeddedManagedDistributionPayloadSource("));
+        Assert.Contains(
+            "internal EmbeddedManagedDistributionPayloadSource(",
+            payloadSource,
+            StringComparison.Ordinal);
+        Assert.Contains(
+            "string launcher = Path.Combine(_managedRoot, \"NvtFwCombiner.Bootstrap.exe\")",
+            handoff,
+            StringComparison.Ordinal);
+        Assert.DoesNotContain(
+            "PathComparer.Equals(requestedRoot, _managedRoot)",
+            handoff,
+            StringComparison.Ordinal);
+    }
+
     /// <summary>The immutable trust anchor is separate from every version-scoped launcher payload.</summary>
     [Fact]
     public void LauncherBootstrapUsesOneWayVersionManagementDependencies()
@@ -12,10 +94,15 @@ public sealed partial class RepositoryBoundaryTests
         string bootstrapProgram = ReadText("src/NvtFwCombiner.LauncherBootstrap/Program.cs");
         string launcherProgram = ReadText("src/NvtFwCombiner.Launcher/Program.cs");
         string desktopProgram = ReadText("src/NvtFwCombiner.Desktop/Program.cs");
+        string composition = ReadText("src/NvtFwCombiner.Bootstrap/CompositionHostServices.cs");
         string contracts = ReadText(
             "src/NvtFwCombiner.VersionManagement.Application/VersionManagement/LauncherBootstrapContracts.cs");
         string bootstrapRuntime = ReadText(
-            "src/NvtFwCombiner.VersionManagement.Infrastructure/VersionManagement/AnonymousPipeManagedLauncherProcess.cs");
+            "src/NvtFwCombiner.VersionManagement.Infrastructure/VersionManagement/AnonymousPipeManagedLauncherProcess.cs") +
+            ReadText(
+                "src/NvtFwCombiner.VersionManagement.Infrastructure/VersionManagement/BootstrapStartupProtocol.cs") +
+            ReadText(
+                "src/NvtFwCombiner.VersionManagement.Infrastructure/VersionManagement/LauncherBootstrapRuntime.cs");
 
         AssertContainsAll(
             solution,
@@ -32,13 +119,38 @@ public sealed partial class RepositoryBoundaryTests
         AssertContainsAll(
             bootstrapProgram,
             "LauncherBootstrapLaunchOptions.Parse(args, AppContext.BaseDirectory)",
-            "LauncherBootstrapRuntime.RunAsync");
+            "LauncherBootstrapRuntime.RunEntryAsync");
+        AssertDoesNotContainAny(
+            bootstrapProgram,
+            "LauncherBootstrapStartupContext",
+            "CaptureStartup",
+            "WaitForStartAsync");
+        AssertContainsAll(
+            bootstrapRuntime,
+            "using LauncherBootstrapStartupContext startup = CaptureStartup(statePath)",
+            "startup.WaitForStartAsync(cancellationToken)",
+            "RunCoreAsync(managedRoot, statePath, startup, cancellationToken)");
+        Assert.True(
+            bootstrapRuntime.IndexOf("CaptureStartup(statePath)", StringComparison.Ordinal) <
+            bootstrapRuntime.IndexOf("startup.WaitForStartAsync(cancellationToken)", StringComparison.Ordinal));
+        Assert.True(
+            bootstrapRuntime.IndexOf("startup.WaitForStartAsync(cancellationToken)", StringComparison.Ordinal) <
+            bootstrapRuntime.IndexOf("RunCoreAsync(managedRoot, statePath, startup, cancellationToken)", StringComparison.Ordinal));
         AssertContainsAll(
             bootstrapRuntime,
             "JsonVersionManagerStateStore.GetDefaultPath()",
             "--state-path",
+            "ManagedProcessLifetimeKind.Bootstrap",
+            "BootstrapStartGate.Capture()",
+            "BootstrapAdmissionSignal.Capture()",
             "TryAcquireWriteLeaseAsync",
-            "ManagedActivationCoordinator.DefaultWriterLeaseTimeout");
+            "LauncherBootstrapCoordinator.StartupWriterLeaseTimeout");
+        Assert.True(
+            bootstrapRuntime.IndexOf("ManagedProcessLifetimeKind.Bootstrap", StringComparison.Ordinal) <
+            bootstrapRuntime.IndexOf("BootstrapStartGate.Capture()", StringComparison.Ordinal));
+        Assert.True(
+            bootstrapRuntime.IndexOf("BootstrapStartGate.Capture()", StringComparison.Ordinal) <
+            bootstrapRuntime.IndexOf("new ManagedVersionSeedBootstrapper(", StringComparison.Ordinal));
         AssertContainsAll(
             launcherProgram,
             "InheritedManagedProcessLifetime.Capture(",
@@ -66,6 +178,7 @@ public sealed partial class RepositoryBoundaryTests
         AssertContainsAll(
             desktopProgram,
             "CaptureInheritedManagedProcessLifetime(",
+            "CaptureInheritedManagedBootstrapIdentity(lifetime.Outcome)",
             "ParseManagedHostOptions(args)",
             "--update-source-registry-path",
             "UpdateSourceRegistryLocator.ResolveAll(",
@@ -78,6 +191,18 @@ public sealed partial class RepositoryBoundaryTests
         Assert.True(
             desktopProgram.IndexOf("ParseManagedHostOptions(args)", StringComparison.Ordinal) <
             desktopProgram.IndexOf("CaptureInheritedManagedProcessLifetime(", StringComparison.Ordinal));
+        Assert.True(
+            desktopProgram.IndexOf("CaptureInheritedManagedProcessLifetime(", StringComparison.Ordinal) <
+            desktopProgram.IndexOf("CaptureInheritedManagedBootstrapIdentity(lifetime.Outcome)", StringComparison.Ordinal));
+        Assert.True(
+            desktopProgram.IndexOf("CaptureInheritedManagedBootstrapIdentity(lifetime.Outcome)", StringComparison.Ordinal) <
+            desktopProgram.IndexOf("CreateStableLauncherHandoff(", StringComparison.Ordinal));
+        Assert.Contains("bootstrapIdentity", desktopProgram, StringComparison.Ordinal);
+        AssertContainsAll(
+            composition,
+            "lifetimeOutcome == InheritedManagedProcessLifetimeOutcome.Captured",
+            "InheritedManagedBootstrapIdentityContext.CaptureAndClear()",
+            "ManagedImmutableBootstrapIdentity? expectedIdentity = null");
         AssertContainsAll(contracts, "launcher/NvtFwCombiner.Launcher.exe", "SupportedProtocolVersion = 1");
     }
 
@@ -104,7 +229,9 @@ public sealed partial class RepositoryBoundaryTests
     public void ManagedProcessCleanupAndLifetimeRecoveryStayFailClosed()
     {
         string process = ReadText(
-            "src/NvtFwCombiner.VersionManagement.Infrastructure/VersionManagement/AnonymousPipeManagedApplicationProcess.cs");
+            "src/NvtFwCombiner.VersionManagement.Infrastructure/VersionManagement/AnonymousPipeManagedApplicationProcess.cs") +
+            ReadText(
+                "src/NvtFwCombiner.VersionManagement.Infrastructure/VersionManagement/StableLauncherHandoff.cs");
         string lifetime = ReadText(
             "src/NvtFwCombiner.VersionManagement.Infrastructure/VersionManagement/ManagedProcessLifetimeLease.cs");
         string appCoordinator = ReadText(
@@ -149,10 +276,18 @@ public sealed partial class RepositoryBoundaryTests
             "src/NvtFwCombiner.VersionManagement.Application/VersionManagement/ManagedVersionRepository.cs");
         string stableLease = ReadText(
             "src/NvtFwCombiner.VersionManagement.Infrastructure/VersionManagement/StableManagedExecutableLaunchLease.cs");
+        string stableCustody = ReadText(
+            "src/NvtFwCombiner.VersionManagement.Infrastructure/VersionManagement/WindowsStablePathCustody.cs") +
+            ReadText(
+                "src/NvtFwCombiner.VersionManagement.Infrastructure/VersionManagement/WindowsStablePathCustody.Native.cs");
         string appProcess = ReadText(
             "src/NvtFwCombiner.VersionManagement.Infrastructure/VersionManagement/AnonymousPipeManagedApplicationProcess.cs");
         string launcherProcess = ReadText(
-            "src/NvtFwCombiner.VersionManagement.Infrastructure/VersionManagement/AnonymousPipeManagedLauncherProcess.cs");
+            "src/NvtFwCombiner.VersionManagement.Infrastructure/VersionManagement/AnonymousPipeManagedLauncherProcess.cs") +
+            ReadText(
+                "src/NvtFwCombiner.VersionManagement.Infrastructure/VersionManagement/BootstrapStartupProtocol.cs") +
+            ReadText(
+                "src/NvtFwCombiner.VersionManagement.Infrastructure/VersionManagement/LauncherBootstrapRuntime.cs");
         string stableLeaseTest = ReadText(
             "tests/NvtFwCombiner.Infrastructure.Tests/VersionManagement/FileSystemManagedVersionRepositoryLaunchLeaseTests.cs");
 
@@ -166,8 +301,40 @@ public sealed partial class RepositoryBoundaryTests
         AssertContainsAll(
             contracts,
             "IManagedExecutableLaunchLease",
-            "AcquireApplicationLaunchLeaseAsync");
-        AssertContainsAll(stableLease, "FileShare.Read", "SHA256.HashDataAsync", "HasPortableExecutableHeader");
+            "AcquireApplicationLaunchLeaseAsync",
+            "TryValidateForStart");
+        AssertContainsAll(
+            stableLease,
+            "WindowsStablePathCustody.TryAcquireFile",
+            "SHA256.HashDataAsync",
+            "HasPortableExecutableHeader");
+        string stableHandoff = ReadText(
+            "src/NvtFwCombiner.VersionManagement.Infrastructure/VersionManagement/StableLauncherHandoff.cs");
+        string inheritedIdentity = ReadText(
+            "src/NvtFwCombiner.VersionManagement.Infrastructure/VersionManagement/InheritedManagedBootstrapIdentityContext.cs");
+        AssertContainsAll(
+            stableHandoff,
+            "StableManagedExecutableLaunchLease.TryAcquireAsync(",
+            "_expectedIdentity.Length",
+            "_expectedIdentity.Sha256",
+            "InheritedManagedBootstrapIdentityContext.Apply(startInfo, identity)");
+        Assert.DoesNotContain("TryAcquireMeasuredAsync", stableHandoff, StringComparison.Ordinal);
+        AssertContainsAll(
+            inheritedIdentity,
+            "MaximumSerializedCharacters = 128",
+            "Environment.SetEnvironmentVariable",
+            "ManagedImmutableBootstrapIdentity");
+        AssertContainsAll(
+            stableCustody,
+            "allowWriteShare: false",
+            "uint share = NativeMethods.ShareRead",
+            "share |= NativeMethods.ShareWrite");
+        AssertDoesNotContainAny(
+            stableLease,
+            "FileShare.Read",
+            "FileShare.Write",
+            "NativeMethods.ShareRead",
+            "NativeMethods.ShareWrite");
         AssertContainsAll(
             stableLeaseTest,
             "AcquireApplicationLaunchLeaseAsync",
@@ -175,6 +342,8 @@ public sealed partial class RepositoryBoundaryTests
             "Assert.Throws<IOException>(() => File.Move(executable, displaced))");
         AssertDoesNotContainAny(appProcess, "SHA256", "HasPortableExecutableHeader");
         AssertDoesNotContainAny(launcherProcess, "HasPortableExecutableHeader");
+        Assert.Contains("TryValidateForStart", appProcess, StringComparison.Ordinal);
+        Assert.Contains("TryValidateForStart", launcherProcess, StringComparison.Ordinal);
     }
 
     /// <summary>Launcher activation shares the existing exact app-state lease and declares no second writer.</summary>
@@ -186,7 +355,11 @@ public sealed partial class RepositoryBoundaryTests
         string store = ReadText(
             "src/NvtFwCombiner.VersionManagement.Infrastructure/VersionManagement/JsonLauncherBootstrapStateStore.cs");
         string process = ReadText(
-            "src/NvtFwCombiner.VersionManagement.Infrastructure/VersionManagement/AnonymousPipeManagedLauncherProcess.cs");
+            "src/NvtFwCombiner.VersionManagement.Infrastructure/VersionManagement/AnonymousPipeManagedLauncherProcess.cs") +
+            ReadText(
+                "src/NvtFwCombiner.VersionManagement.Infrastructure/VersionManagement/BootstrapStartupProtocol.cs") +
+            ReadText(
+                "src/NvtFwCombiner.VersionManagement.Infrastructure/VersionManagement/LauncherBootstrapRuntime.cs");
 
         AssertContainsAll(
             application,
@@ -230,5 +403,41 @@ public sealed partial class RepositoryBoundaryTests
             "\"versionManagementProtocolVersion\": { \"const\": 1 }",
             "\"path\": { \"const\": \"launcher/NvtFwCombiner.Launcher.exe\" }",
             "\"maxContains\": 1");
+    }
+
+    /// <summary>Every Launcher/Bootstrap schema projects the one canonical 200 MB ceiling.</summary>
+    [Fact]
+    public void LauncherAndBootstrapSchemasShareCanonicalExecutableCeiling()
+    {
+        const long expected = 200_000_000;
+        string identity = ReadText(
+            "src/NvtFwCombiner.VersionManagement.Application/VersionManagement/ManagedLauncherEntry.cs");
+        Assert.Contains(
+            "public const long MaximumExecutableBytes = 200_000_000;",
+            identity,
+            StringComparison.Ordinal);
+        Assert.Equal(expected, SchemaMaximum(
+            "docs/contracts/managed-setup-payload-admission-v1.schema.json",
+            "properties", "bootstrap", "properties", "size", "maximum"));
+        Assert.Equal(expected, SchemaMaximum(
+            "docs/contracts/installer-release-manifest-v1.schema.json",
+            "properties", "embeddedBootstrap", "properties", "size", "maximum"));
+        Assert.Equal(expected, SchemaMaximum(
+            "docs/contracts/launcher-bootstrap-v1.schema.json",
+            "$defs", "identity", "properties", "size", "maximum"));
+        Assert.Equal(expected, SchemaMaximum(
+            "docs/contracts/release-manifest-v1.schema.json",
+            "$defs", "launcher", "properties", "size", "maximum"));
+    }
+
+    private static long SchemaMaximum(string path, params string[] segments)
+    {
+        using JsonDocument schema = JsonDocument.Parse(ReadText(path));
+        JsonElement value = schema.RootElement;
+        foreach (string segment in segments)
+        {
+            value = value.GetProperty(segment);
+        }
+        return value.GetInt64();
     }
 }

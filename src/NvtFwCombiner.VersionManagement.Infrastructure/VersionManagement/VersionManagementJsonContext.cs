@@ -12,4 +12,6 @@ namespace NvtFwCombiner.Infrastructure.VersionManagement;
 [JsonSerializable(typeof(ManagedVersionAdmissionFileDocument))]
 [JsonSerializable(typeof(ReleaseManifestDocument))]
 [JsonSerializable(typeof(LauncherBootstrapStateDocument))]
+[JsonSerializable(typeof(ManagedSetupTransactionDocument))]
+[JsonSerializable(typeof(ManagedSetupPayloadAdmissionDescriptorDocument))]
 internal sealed partial class VersionManagementJsonContext : JsonSerializerContext;

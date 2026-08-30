@@ -6,7 +6,9 @@ using NvtFwCombiner.Contracts.VersionManagement;
 namespace NvtFwCombiner.Infrastructure.VersionManagement;
 
 /// <summary>Strict atomic JSON adapter for separate launcher state v1.</summary>
-public sealed class JsonVersionManagerStateStore : IVersionManagerStateStore
+public sealed class JsonVersionManagerStateStore :
+    IVersionManagerStateStore,
+    IManagedSetupRecoveryStateReader
 {
     /// <summary>The launcher-state file name under per-user local application data.</summary>
     public const string StateFileName = "version-manager.v1.json";
@@ -47,6 +49,9 @@ public sealed class JsonVersionManagerStateStore : IVersionManagerStateStore
             "NvtFwCombiner",
             StateFileName);
     }
+
+    /// <inheritdoc />
+    string IManagedSetupRecoveryStateReader.StatePathIdentity => _path;
 
     /// <inheritdoc />
     public ValueTask<VersionManagerWriteLeaseResult> TryAcquireWriteLeaseAsync(
