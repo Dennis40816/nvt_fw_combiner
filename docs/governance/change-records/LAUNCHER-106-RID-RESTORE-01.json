@@ -5,7 +5,7 @@
   "integrationBase": "c15861a73a533e12897c0d28d55cb68f8a468721",
   "risk": "R3",
   "kind": "release",
-  "state": "design-active",
+  "state": "final-complete",
   "mutablePaths": [
     "scripts/package-distribution-launcher.ps1",
     "src/NvtFwCombiner.Bootstrap/packages.lock.json",
@@ -35,12 +35,12 @@
     "outcome": "findings-incorporated",
     "evidence": "The minimized red loop isolated missing RID lock projections. Independent R3 review rejected the initial unlocked workaround and identified cleanup-preemption and quoted-path defects. The corrected design follows RELEASE-RID-LOCK-100-01, commits only the project-targeted lock projection, preserves locked restore, makes helper shutdown subordinate to authoritative Git cleanup, and retains the existing closed path authority."
   },
-  "implementationHead": null,
-  "reviewedHead": null,
-  "pathStateDigest": null,
+  "implementationHead": "ee17410d080e22f911db6a1706cc50e070c74934",
+  "reviewedHead": "ee17410d080e22f911db6a1706cc50e070c74934",
+  "pathStateDigest": "b6f2695c931be65ecaa8291ba719b8758014fc8277b5d84aca2c9be713432409",
   "finalReview": {
-    "reviewer": null,
-    "outcome": "pending",
-    "evidence": ""
+    "reviewer": "rid_semantic_review_2 and rid_evidence_review_2",
+    "outcome": "approved",
+    "evidence": "Two independent fixed-head reviews of ee17410d080e22f911db6a1706cc50e070c74934 found P0=0, P1=0, P2=0, and P3=0 in the implementation diff. Both real win-x64 restores pass with --locked-mode and leave all invocation and detached-snapshot lockfile bytes unchanged; the six regenerated locks add only the required RID/native entries, empty RID targets, or current first-party project references with no existing package identity, version, or content-hash drift. Windows behavior tests prove stopper failure cannot bypass Git cleanup, primary/stopper/cleanup failures are aggregated, a registered snapshot is never fallback-deleted, real CJK worktree roots parse correctly, a native transient no-delete-share lock recovers within the bounded retry, a persistent lock fails terminal while preserving residue, and every mode preserves an unrelated sibling. Focused RID/cleanup tests passed 4/4, the complete release-package policy passed 50/50, git diff --check passed, and scoped Polytail passed. Exact final-head asset construction, actual GUI extraction wait, application/Launcher smoke, clean-machine validation, protected publication, and stable tagging remain separate release gates and are not claimed here."
   }
 }
