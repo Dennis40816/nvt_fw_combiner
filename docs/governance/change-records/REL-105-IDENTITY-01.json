@@ -1,0 +1,34 @@
+{
+  "schemaVersion": 2,
+  "taskId": "REL-105-IDENTITY-01",
+  "capability": "Represent the reviewed read-only managed Setup recovery diagnosis with the stable-format 1.0.5 repository identity",
+  "integrationBase": "be9d09ca3ad699c59b92148a9c76f58107528583",
+  "risk": "R2",
+  "kind": "release",
+  "state": "final-complete",
+  "mutablePaths": [
+    "docs/governance/development-tags.md"
+  ],
+  "implementationOwner": "primary-agent",
+  "searchEvidence": [
+    "RECOVERY-105A is the final reviewed owner for read-only Setup recovery diagnosis and the sole strict transaction-marker codec.",
+    "REL-104 and branch/version/release governance own the existing synchronized stable identity projections.",
+    "The intervening main merge is tree-equivalent to the reviewed 1.0.4 source milestone and changes no governed path."
+  ],
+  "semanticOwner": "Branch, version, and release governance",
+  "terminalContract": "VERSION, SPEC status, verification report, changelog, and the development milestone agree on an unpublished tag-only 1.0.5 read-only managed Setup recovery-diagnosis milestone with v1.0.4 as predecessor. The slice performs no recovery mutation, repair, cleanup, rebind or migration and creates no GitHub Release, package/assets, Catalog/Registry publication, support promotion, firmware/profile/range/CRC/output-byte change, or runtime expansion.",
+  "disposition": "extend-owner",
+  "designReview": {
+    "reviewer": "rel_105_identity_design_review",
+    "outcome": "approved",
+    "evidence": "Independent R2 design review approved latest immutable evidence checkpoint be9d09ca3ad699c59b92148a9c76f58107528583 and the existing synchronized identity pattern. The intervening main merge is tree-equivalent. The identity describes only the already reviewed RECOVERY-105A read-only diagnosis, limits governed authority to development-tags.md, and explicitly excludes mutation, delivery assets, support, firmware semantics, and runtime expansion."
+  },
+  "implementationHead": "97bf8603ced06d1732f2d4edb66a91fb3e6ee49c",
+  "reviewedHead": "97bf8603ced06d1732f2d4edb66a91fb3e6ee49c",
+  "pathStateDigest": "bc9467092e81235fbda8168c814d46c6e06fad802d538c156106b07af7892109",
+  "finalReview": {
+    "reviewer": "lifetime_lock_review; lock_fix_review",
+    "outcome": "approved",
+    "evidence": "Two independent exact-head reviews of be9d09ca3ad699c59b92148a9c76f58107528583..97bf8603ced06d1732f2d4edb66a91fb3e6ee49c reported P0=0, P1=0, and P2=0. The corrected projections explicitly state that RECOVERY-105A was already present in the v1.0.4 tree and that v1.0.5 adds no runtime behavior. VERSION, SPEC, CHANGELOG, verification report, development tag, predecessor, and identity-only authority agree. Seven focused release-note tests passed."
+  }
+}

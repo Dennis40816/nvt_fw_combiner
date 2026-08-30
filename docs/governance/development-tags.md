@@ -102,6 +102,10 @@ commit.
   publishes no package, Catalog/Registry row, support change, or firmware-byte
   behavior; production inherited-handle containment remains required before
   Launcher delivery.
+- `v1.0.5` — read-only managed Setup recovery-diagnosis identity milestone:
+  record the already-reviewed RECOVERY-105A source present in the v1.0.4 tree.
+  The tag adds no runtime behavior and performs no repair, cleanup, rebind,
+  migration, process start, source access, user delivery, or firmware change.
 
 ### Recorded `v0.10.2` pre-deletion comparison point
 

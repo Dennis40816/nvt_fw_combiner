@@ -5,14 +5,30 @@ baseline, updated through the stable 0.10.4 post-refactor simplification,
 0.10.5 startup-performance work, the 0.10.6 internal managed-version
 implementation, the 0.10.7 final-effect checkpoint, the stable 1.0.0 and
 version-only 1.0.1 release, the stable 1.0.2 mode-selector hotfix, the 1.0.3
-page-publication hardening milestone, and the active 1.0.4 managed Setup and
-Launcher source
+page-publication hardening milestone, the 1.0.4 managed Setup and Launcher
+source milestone, and the active 1.0.5 read-only recovery-diagnosis
 candidate. Current
 verification evidence is produced by the canonical
 `python scripts/verify.py --structure-only` and `python scripts/verify.py --all`
 commands.
 
-Specification package version: `1.0.4`
+Specification package version: `1.0.5`
+
+## 1.0.5 read-only managed Setup recovery-diagnosis milestone
+
+This identity milestone records RECOVERY-105A, which was already present in the
+v1.0.4 source tree. That reviewed owner provides one Application terminal
+diagnosis across exact state, root, transaction marker, and Bootstrap/
+Application/Launcher lifetime facts. Infrastructure reuses the sole strict
+marker codec and stable no-follow custody; observation performs no mutation,
+process start, source access, repair, cleanup, rebind, or migration. The v1.0.5
+identity itself adds no runtime behavior.
+
+Exact-head evidence passed 193 Application recovery tests, 51 focused
+Infrastructure tests, the complete Infrastructure suite, Architecture 247/247,
+and independent R2 semantic/governance review with no P0/P1/P2. This remains an
+unpublished tag-only source milestone and creates no package, Catalog/Registry
+row, release asset, support promotion, or firmware-byte claim.
 
 ## 1.0.4 managed Setup and Launcher source milestone
 
