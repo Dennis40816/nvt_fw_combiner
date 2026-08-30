@@ -1,0 +1,9 @@
+{
+  "schemaVersion": 1,
+  "taskId": "LAUNCHER-106-STAGING-CLEANUP-01",
+  "authorityType": "release-owner",
+  "reviewedHead": "e486b0a49120de2c3bae3152e5f155fe141caabb",
+  "decision": "approved",
+  "reviewer": "Dennis Liu (release owner)",
+  "evidence": "The release owner explicitly approved continued completion of the 1.0.6 Launcher, required robust upgrade tests, and instructed merge and tagging after verification. This attestation approves the bounded staging-cleanup and internal long-path revalidation correction represented by final evidence head e486b0a49120de2c3bae3152e5f155fe141caabb: two independent exact-head reviews found no P0-P3, the focused Windows suite passed 107/107, Architecture passed 249/249, and code-size policy passed 19/19. Cleanup is limited to the exact identity-bound plain-empty repository staging child, retained residue reports RecoveryRequired, and caller path authority is unchanged. It does not waive exact final-head asset construction, application and Launcher smoke, clean-machine validation, protected publication, legal review, or immutable tag gates."
+}
