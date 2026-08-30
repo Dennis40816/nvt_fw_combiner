@@ -1,0 +1,54 @@
+{
+  "schemaVersion": 2,
+  "taskId": "RECOVERY-105B",
+  "capability": "Implement the non-composed backend primitive for one explicitly confirmed, restart-safe managed Setup residue convergence or rollback from an immutable diagnosis plan without launching Bootstrap, adding a recovery journal, or broadening deletion authority; production composition remains a later 1.0.6 slice",
+  "integrationBase": "31ddc83968996d7fa5311cf1a9f871f553f53f5e",
+  "risk": "R3",
+  "kind": "behavior",
+  "state": "design-active",
+  "mutablePaths": [
+    "docs/adr/0021-code-size-ratchet-system-activity-amendment.md",
+    "docs/adr/0063-managed-setup-recovery-diagnosis.md",
+    "docs/adr/0065-managed-setup-recovery-execution.md",
+    "docs/contracts/managed-recovery-v1.md",
+    "docs/contracts/managed-setup-v1.md",
+    "src/NvtFwCombiner.VersionManagement.Application/VersionManagement/ManagedSetupRecoveryDiagnosis.cs",
+    "src/NvtFwCombiner.VersionManagement.Application/VersionManagement/ManagedSetupRecoveryExecution.cs",
+    "src/NvtFwCombiner.VersionManagement.Application/VersionManagement/VersionManagerStateStore.cs",
+    "src/NvtFwCombiner.VersionManagement.Infrastructure/VersionManagement/FileSystemManagedFirstInstallationRootMaterializer.Helpers.cs",
+    "src/NvtFwCombiner.VersionManagement.Infrastructure/VersionManagement/FileSystemManagedSetupRecoveryExecution.cs",
+    "src/NvtFwCombiner.VersionManagement.Infrastructure/VersionManagement/FileSystemVersionManagerWriteLease.cs",
+    "src/NvtFwCombiner.VersionManagement.Infrastructure/VersionManagement/JsonVersionManagerStateStore.cs",
+    "src/NvtFwCombiner.VersionManagement.Infrastructure/VersionManagement/ManagedPackageVerifier.cs",
+    "src/NvtFwCombiner.VersionManagement.Infrastructure/VersionManagement/ManagedSetupClosedRootVerifier.cs",
+    "src/NvtFwCombiner.VersionManagement.Infrastructure/VersionManagement/WindowsStablePathCustody.cs",
+    "src/NvtFwCombiner.VersionManagement.Infrastructure/VersionManagement/WindowsStablePathCustody.Promotion.cs",
+    "scripts/code_size_policy.py"
+  ],
+  "implementationOwner": "primary-agent-single-writer",
+  "searchEvidence": [
+    "ManagedInstallationRecoveryExperience and its 105A tests are the only current Setup-recovery policy owner; production currently routes residue to RecoveryRequired and has no recovery action composition.",
+    "ManagedSetupTransactionCodec and FileSystemManagedSetupRecoveryProbe are the sole strict marker schema/observation owners; the marker records root, state identity, candidate, payload, phase and the exact root/marker/staging owned paths but not state-file deletion authority.",
+    "JsonVersionManagerStateStore plus FileSystemVersionManagerWriteLease own the canonical cross-process writer; JsonLauncherBootstrapStateStore intentionally shares that lease and exposes no second writer lease.",
+    "ManagedVersionSeedPolicy.IsCanonicalBoundFirstRunState owns the exact candidate-bound Application first-run shape; LauncherBootstrapState transitions are finite Requested, CandidateLaunchRecorded, first-candidate failed, and committed Active/LKG states.",
+    "FileSystemManagedFirstInstallationRootMaterializer.VerifyClosedRootAsync, Windows stable no-follow custody, exact marker deletion, and held-tree deletion are the existing verification/mutation primitives; no crash-rehydrated Setup recovery executor or exact state-pair delete/reset port exists.",
+    "The ordinary managed-version repository recursive delete is not admissible for Setup rollback and VersionManagementExperience.Recovery owns a different ordinary update journal, not Setup recovery.",
+    "Owner accepted Option A on 2026-08-30: the explicit Remove incomplete installation action may delete only the exact transaction-generated Application/Launcher state pair under the canonical writer lease and complete revalidation, with marker last."
+  ],
+  "semanticOwner": "VersionManagement Application owns one pure first-run recovery policy; read-only ManagedInstallationRecoveryExperience produces immutable plans, and separate ManagedSetupRecoveryExecutionCoordinator owns explicit action, writer lease, revalidation and terminal outcomes. VersionManagement Infrastructure owns exact held-handle comparison and only the authorized deterministic deletes.",
+  "terminalContract": "docs/contracts/managed-recovery-v1.md is the sole executable owner of the closed state-pair table, evidence requirements, live exact-path writer-custody check, deterministic deletion order, restart-prefix rule, marker-last invariant, and terminal-outcome mapping. The explicit Remove incomplete installation action is the sole confirmation. Every unlisted or incompletely proved state is non-mutating. This slice deliberately stops at reviewed Application and Infrastructure backend primitives: it has no production composition or caller and therefore exposes no user-reachable recovery action until a later 1.0.6 composition slice binds the same coordinator and port. It starts Bootstrap zero times and adds no marker phase/schema, recovery journal, source selection, rebind, move, repair, migration, uninstall or UI policy.",
+  "disposition": "extend-owner",
+  "designReview": {
+    "reviewer": "recovery105b_architecture",
+    "outcome": "findings-incorporated",
+    "evidence": "Independent R3 architecture review approved one pure Application recovery policy with least-authority read-only diagnosis and separate writer/execution coordinators, plus one Infrastructure exact executor. Findings incorporated a closed first-run state-pair table, proof-gated staging eligibility, live exact-path canonical writer custody, a fixed reachable-prefix deletion order with release-manifest proof retained and marker last, and removal of contradictory Setup authority. Owner Option A supplies explicit exact state-pair deletion authority. The review rejected a second writer, generic pending-state acceptance, arbitrary missing subsets, ordinary recursive delete, a new journal/schema, and Infrastructure-owned READY/rollback policy."
+  },
+  "implementationHead": null,
+  "reviewedHead": null,
+  "pathStateDigest": null,
+  "finalReview": {
+    "reviewer": null,
+    "outcome": "pending",
+    "evidence": ""
+  }
+}
