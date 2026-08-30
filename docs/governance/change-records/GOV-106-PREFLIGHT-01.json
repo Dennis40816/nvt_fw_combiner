@@ -5,7 +5,7 @@
   "integrationBase": "ac177d2c71039da31734029236eea7797dbbc9e2",
   "risk": "R2",
   "kind": "governance",
-  "state": "design-active",
+  "state": "final-complete",
   "mutablePaths": [
     "scripts/validate_repository.py"
   ],
@@ -23,12 +23,12 @@
     "outcome": "approved",
     "evidence": "Independent read-only inspection confirmed that _historical_final_records precedes exact index/worktree comparison. The approved minimum change is an early exact-byte snapshot preflight with an immediate return only for snapshot inconsistency, while preserving all later history and evidence checks for matching staged content."
   },
-  "implementationHead": null,
-  "reviewedHead": null,
-  "pathStateDigest": null,
+  "implementationHead": "0c534be37e8769fae174546bdedafb65c1657226",
+  "reviewedHead": "0c534be37e8769fae174546bdedafb65c1657226",
+  "pathStateDigest": "deb17931f0e96eeb0f1c9b39e2716dde9f071cc85f8f10a5f2a98c2669d5ef5b",
   "finalReview": {
-    "reviewer": null,
-    "outcome": "pending",
-    "evidence": ""
+    "reviewer": "lock_fix_review; lifetime_lock_review",
+    "outcome": "approved",
+    "evidence": "Two independent scoped reviews of the staged candidate reported P0=0, P1=0, and P2=0. They confirmed that only untrustworthy current snapshots return before history, while matching staged content still executes every existing history, checkpoint, authority, digest, and evidence gate. Three focused tests passed. A real unstaged-record mismatch returned in about 6.7 seconds instead of waiting for the roughly four-minute history audit, and the exact staged candidate passed the canonical capability-governance validator."
   }
 }
