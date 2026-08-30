@@ -1,0 +1,9 @@
+{
+  "schemaVersion": 1,
+  "taskId": "LAUNCHER-106-UI-01",
+  "authorityType": "release-owner",
+  "reviewedHead": "23282e9396dc5651ed518cf0c5ac6108c4b740f8",
+  "decision": "approved",
+  "reviewer": "Dennis Liu (release owner)",
+  "evidence": "The release owner required implementation against the previously approved Setup image and its accepted compact external pencil-icon revision. This exact final-evidence head preserves that contract and passed measured geometry plus typed behavior gates. Final packaged-artifact visual observation remains part of the integrated 1.0.6 smoke and is not replaced by this source/UI authority approval."
+}
