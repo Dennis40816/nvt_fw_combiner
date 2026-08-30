@@ -1,0 +1,34 @@
+{
+  "schemaVersion": 2,
+  "taskId": "GOV-106-PREFLIGHT-01",
+  "capability": "Fail fast on capability-record index/worktree byte drift before the expensive Git-history audit",
+  "integrationBase": "ac177d2c71039da31734029236eea7797dbbc9e2",
+  "risk": "R2",
+  "kind": "governance",
+  "state": "design-active",
+  "mutablePaths": [
+    "scripts/validate_repository.py"
+  ],
+  "implementationOwner": "primary-agent",
+  "searchEvidence": [
+    "validate_capability_reuse_governance currently calls _historical_final_records before comparing indexed record bytes with worktree bytes.",
+    "test_record_must_match_its_exact_index_blob already owns the fail-closed index/worktree mismatch contract.",
+    "A sentinel probe confirmed that the history audit starts before the current-snapshot mismatch is reported."
+  ],
+  "semanticOwner": "Canonical repository capability-reuse validator",
+  "terminalContract": "The canonical validator performs one exact-byte current-snapshot preflight before any capability-record history audit. An indexed capability record that differs from its worktree file fails immediately with the existing fail-closed diagnostic; matching staged final records continue through every existing history, checkpoint, digest, and evidence gate. No second verifier, automatic staging, or weakened authority is introduced.",
+  "disposition": "extend-owner",
+  "designReview": {
+    "reviewer": "python_gate_second_half",
+    "outcome": "approved",
+    "evidence": "Independent read-only inspection confirmed that _historical_final_records precedes exact index/worktree comparison. The approved minimum change is an early exact-byte snapshot preflight with an immediate return only for snapshot inconsistency, while preserving all later history and evidence checks for matching staged content."
+  },
+  "implementationHead": null,
+  "reviewedHead": null,
+  "pathStateDigest": null,
+  "finalReview": {
+    "reviewer": null,
+    "outcome": "pending",
+    "evidence": ""
+  }
+}

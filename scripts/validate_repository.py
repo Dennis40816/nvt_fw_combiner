@@ -2595,21 +2595,6 @@ def validate_capability_reuse_governance(
         )
         return
 
-    history, historical_nested_paths, history_error = _historical_final_records(root)
-    if history_error is not None:
-        errors.append(f"capability-reuse record history could not be read: {history_error}")
-        return
-    trusted_checkpoint = _load_trusted_capability_checkpoint(root, errors)
-    retired_record_paths = (
-        set(trusted_checkpoint.retired_records)
-        if trusted_checkpoint is not None
-        else set()
-    )
-    reserved_task_ids = (
-        trusted_checkpoint.reserved_task_ids
-        if trusted_checkpoint is not None
-        else frozenset()
-    )
     records_root = root / "docs" / "governance" / "change-records"
     all_index_paths, index_paths_error = _git_paths(
         root,
@@ -2627,7 +2612,7 @@ def validate_capability_reuse_governance(
         path.relative_to(root).as_posix()
         for path in records_root.rglob("*.json")
     } if records_root.is_dir() else set()
-    invalid_nested_paths = historical_nested_paths | {
+    invalid_nested_paths = {
         relative
         for relative in all_index_paths | all_worktree_paths
         if PurePosixPath(relative).suffix == ".json"
@@ -2653,6 +2638,7 @@ def validate_capability_reuse_governance(
 
     indexed_content: dict[str, bytes] = {}
     records_by_relative: dict[str, dict[str, Any]] = {}
+    current_snapshot_failed = False
     for relative in current_relatives:
         path = root / PurePosixPath(relative)
         ignored = subprocess.run(
@@ -2663,6 +2649,7 @@ def validate_capability_reuse_governance(
         )
         if ignored.returncode == 0:
             errors.append(f"capability-reuse record is ignored and cannot open the gate: {relative}")
+            current_snapshot_failed = True
             continue
         if ignored.returncode != 1:
             detail = ignored.stderr.decode("utf-8", errors="replace").strip()
@@ -2670,6 +2657,7 @@ def validate_capability_reuse_governance(
                 f"capability-reuse record tracking state could not be read: {relative}: "
                 f"{detail or f'git exited {ignored.returncode}'}"
             )
+            current_snapshot_failed = True
             continue
         content, content_error = _git_index_blob(root, relative)
         if content_error is not None or content is None:
@@ -2680,15 +2668,18 @@ def validate_capability_reuse_governance(
                     f"capability-reuse record must have one real staged Git blob: "
                     f"{relative}: {content_error or 'missing blob'}"
                 )
+            current_snapshot_failed = True
             continue
         indexed_content[relative] = content
         try:
             worktree_content = path.read_bytes()
         except OSError as exc:
             errors.append(f"capability-reuse index/worktree mismatch: {relative}: {exc}")
+            current_snapshot_failed = True
             continue
         if worktree_content != content:
             errors.append(f"capability-reuse index/worktree content differs: {relative}")
+            current_snapshot_failed = True
         try:
             value = json.loads(content.decode("utf-8"))
         except (UnicodeDecodeError, json.JSONDecodeError) as exc:
@@ -2697,6 +2688,31 @@ def validate_capability_reuse_governance(
         validated = _validate_capability_reuse_record(PurePosixPath(relative), value, errors)
         if validated is not None:
             records_by_relative[relative] = validated
+
+    if current_snapshot_failed:
+        return
+
+    history, historical_nested_paths, history_error = _historical_final_records(root)
+    if history_error is not None:
+        errors.append(f"capability-reuse record history could not be read: {history_error}")
+        return
+    for relative in sorted(historical_nested_paths):
+        if relative not in invalid_nested_paths:
+            errors.append(
+                f"capability-reuse record parent must be exactly "
+                f"{CAPABILITY_REUSE_CHANGE_RECORD_ROOT.as_posix()}: {relative}"
+            )
+    trusted_checkpoint = _load_trusted_capability_checkpoint(root, errors)
+    retired_record_paths = (
+        set(trusted_checkpoint.retired_records)
+        if trusted_checkpoint is not None
+        else set()
+    )
+    reserved_task_ids = (
+        trusted_checkpoint.reserved_task_ids
+        if trusted_checkpoint is not None
+        else frozenset()
+    )
 
     for relative, record_history in history.items():
         if relative in retired_record_paths:

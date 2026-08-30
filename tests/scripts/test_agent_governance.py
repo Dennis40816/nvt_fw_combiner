@@ -776,7 +776,15 @@ class AgentGovernanceTests(unittest.TestCase):
         self._commit_candidate_with_active_record()
         self._write_record(self._final_record(pathStateDigest="0" * 64))
 
-        self.assertTrue(any("pathStateDigest differs" in error for error in self.validate()))
+        with mock.patch.object(
+            repository_validator,
+            "_historical_final_records",
+            wraps=repository_validator._historical_final_records,
+        ) as history_audit:
+            errors = self.validate()
+
+        history_audit.assert_called_once()
+        self.assertTrue(any("pathStateDigest differs" in error for error in errors))
 
     def test_final_record_requires_a_committed_design_active_predecessor(self) -> None:
         self._commit_implementation()
@@ -1185,7 +1193,21 @@ class AgentGovernanceTests(unittest.TestCase):
         record["capability"] = "Worktree-only edit"
         self._write_record(record, stage=False)
 
-        self.assertTrue(any("index/worktree content differs" in error for error in self.validate()))
+        with mock.patch.object(repository_validator, "_historical_final_records") as history_audit:
+            errors = self.validate()
+
+        history_audit.assert_not_called()
+        self.assertTrue(any("index/worktree content differs" in error for error in errors))
+
+    def test_unstaged_final_transition_fails_before_history_audit(self) -> None:
+        self._commit_candidate_with_active_record()
+        self._write_record(self._final_record(), stage=False)
+
+        with mock.patch.object(repository_validator, "_historical_final_records") as history_audit:
+            errors = self.validate()
+
+        history_audit.assert_not_called()
+        self.assertTrue(any("index/worktree content differs" in error for error in errors))
 
     def test_intent_to_add_record_cannot_open_gate(self) -> None:
         self._change()
