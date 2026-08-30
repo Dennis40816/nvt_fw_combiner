@@ -127,25 +127,63 @@ public sealed partial class FileSystemManagedFirstInstallationRootMaterializer
         };
     }
 
-    private static bool RemoveEmptyRepositoryStaging(
+    private static async ValueTask<bool> RemoveEmptyRepositoryStagingAsync(
         WindowsManagedSetupPathCustody custody,
-        string root,
-        Action<string>? beforeDelete)
+        string staging,
+        Action<string>? beforeDelete,
+        Action<int, ManagedSetupStagingCleanupState>? attemptObserved,
+        Func<TimeSpan, CancellationToken, ValueTask>? cleanupDelay,
+        CancellationToken cancellationToken)
     {
-        string staging = Path.Combine(root, FileSystemManagedVersionRepository.StagingDirectoryName);
-        if (!Directory.Exists(staging))
+        ManagedSetupStagingCleanupResult observed = custody.ObserveEmptyStagingChild(staging);
+        if (observed.State == ManagedSetupStagingCleanupState.Absent)
         {
             return true;
         }
-        try
-        {
-            return custody.DeleteEmptyStagingChild(staging, beforeDelete) &&
-                !Directory.Exists(staging);
-        }
-        catch (Exception exception) when (exception is IOException or UnauthorizedAccessException)
+        if (observed.State != ManagedSetupStagingCleanupState.Observed)
         {
             return false;
         }
+
+        const int maximumAttempts = 20;
+        bool ownedDeletionPending = false;
+        for (int attempt = 0; attempt < maximumAttempts; attempt++)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            ManagedSetupStagingCleanupResult result = ownedDeletionPending
+                ? custody.ObserveOwnedStagingDeletion(staging, observed.Identity)
+                : custody.DeleteObservedEmptyStagingChild(
+                    staging,
+                    observed.Identity,
+                    beforeDelete);
+            attemptObserved?.Invoke(attempt + 1, result.State);
+            if (result.State is ManagedSetupStagingCleanupState.Deleted or
+                ManagedSetupStagingCleanupState.Absent)
+            {
+                return true;
+            }
+            if (result.State == ManagedSetupStagingCleanupState.OwnedDeletionPending)
+            {
+                ownedDeletionPending = true;
+            }
+            else if (result.State != ManagedSetupStagingCleanupState.RetryableContention)
+            {
+                return false;
+            }
+            if (attempt + 1 < maximumAttempts)
+            {
+                TimeSpan delay = TimeSpan.FromMilliseconds(250);
+                if (cleanupDelay is null)
+                {
+                    await Task.Delay(delay, cancellationToken).ConfigureAwait(false);
+                }
+                else
+                {
+                    await cleanupDelay(delay, cancellationToken).ConfigureAwait(false);
+                }
+            }
+        }
+        return false;
     }
 
     [SuppressMessage("Reliability", "CA2000:Dispose objects before losing scope", Justification =

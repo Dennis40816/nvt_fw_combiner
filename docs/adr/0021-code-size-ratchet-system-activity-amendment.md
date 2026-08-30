@@ -331,3 +331,27 @@ R3 allowance is exact and non-transferable. It changes no firmware, profile,
 range, operation, output byte, CRC/header, processor, naming, support, Golden,
 Registry, Catalog, installation, recovery, or existing application-package
 identity.
+
+## 2026-08-31 bounded Setup staging-cleanup contention handling
+
+LAUNCHER-106-STAGING-CLEANUP-01 extends only the existing first-installation
+materializer and Windows held-custody owner. It binds the exact plain, empty
+repository `.staging` identity, retries only native sharing contention, and
+distinguishes a deletion explicitly owned by Setup from a pre-existing
+delete-pending object. Its bounded, cancellable polling neither adds a second
+installer nor permits recursive or path-based cleanup.
+
+Full production is 134,374 nonblank lines and runtime production is 96,562.
+Domain plus Profiles remains 20,632; Application remains 41,047; Bootstrap,
+CLI, Desktop and Launcher remains 4,854; Infrastructure, Contracts, worker and
+Platform is 30,029. Relative to LAUNCHER-106-PACKAGE-01 this is +225
+full-production/runtime lines, all in the Infrastructure slice.
+
+The executable allowances become exactly 31,478 full production, 26,506
+runtime, 5 Domain/Profiles, 10,357 Application, 1,476
+Bootstrap/CLI/Desktop/Launcher, and 14,673
+Infrastructure/Contracts/worker/Platform above the frozen base ratchets. This
+R3 allowance is exact and non-transferable. It changes no firmware, profile,
+range, operation, output byte, CRC/header, processor, naming, support, Golden,
+Registry, Catalog, package admission, installation topology, or promotion
+authority.

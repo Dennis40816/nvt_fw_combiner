@@ -6,6 +6,47 @@ namespace NvtFwCombiner.Infrastructure.Tests.VersionManagement;
 /// <summary>Exercises the single Windows no-follow tree-custody owner.</summary>
 public sealed class WindowsStablePathCustodyTests
 {
+    /// <summary>Held-tree identity revalidation supports valid local members beyond MAX_PATH.</summary>
+    [Fact]
+    public void HeldDirectoryCaptureRevalidatesLongDescendantPath()
+    {
+        if (!OperatingSystem.IsWindows())
+        {
+            return;
+        }
+        using var workspace = TempWorkspace.Create();
+        string root = workspace.PathFor("long-promoted-root");
+        string directory = root;
+        int directoryCount = 0;
+        while (Path.Combine(directory, "payload.bin").Length <= 270)
+        {
+            directory = Path.Combine(directory, $"segment-{directoryCount:D2}-abcdefghijklmnop");
+            _ = Directory.CreateDirectory(directory);
+            directoryCount++;
+        }
+        string payload = Path.Combine(directory, "payload.bin");
+        File.WriteAllBytes(payload, [1, 2, 3]);
+        Assert.True(payload.Length > 260, payload);
+        Assert.Equal(
+            WindowsStableCustodyIssue.None,
+            WindowsStableRelativeWriteRoot.TryAcquire(
+                root,
+                out WindowsStableRelativeWriteRoot? heldRoot));
+        using (heldRoot)
+        {
+            WindowsStableCustodyResult captured =
+                WindowsStablePathCustody.TryCaptureImmutableTreeFromHeldDirectory(
+                    root,
+                    heldRoot!.RootHandle,
+                    new WindowsStableTreeLimits(1, directoryCount, 3),
+                    TestContext.Current.CancellationToken);
+            using WindowsStablePathCustody custody = Assert.IsType<WindowsStablePathCustody>(
+                captured.Custody);
+            Assert.Equal(WindowsStableCustodyIssue.None, captured.Issue);
+            Assert.True(custody.RevalidateClosedTree());
+        }
+    }
+
     /// <summary>Closed custody duplicates the exact promoted handle without a path-substitution gap.</summary>
     [Fact]
     public void HeldDirectoryTransfersExactIdentityAndDeleteDenialToClosedCustody()
@@ -264,6 +305,9 @@ public sealed class WindowsStablePathCustodyTests
     [Theory]
     [InlineData("relative\\version")]
     [InlineData("\\\\?\\C:\\managed\\version")]
+    [InlineData(@"\\server\share\managed\version")]
+    [InlineData(@"\\.\C:\managed\version")]
+    [InlineData(@"\??\C:\managed\version")]
     [InlineData("C:\\managed\\version:stream")]
     public void UnsafeAuthorityPathIsRejected(string path)
     {

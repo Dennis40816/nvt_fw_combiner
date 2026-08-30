@@ -256,6 +256,19 @@ external changes are detected again at each consumption and terminal gate.
 - Ordinary package installation returns a typed cleanup-incomplete issue when
   exact held-handle cleanup cannot be proved. Setup maps that residue to
   `RecoveryRequired`; cleanup failure is never silently discarded.
+- Before whole-root promotion, Setup may retry only an explicitly classified
+  Windows sharing conflict for the same observed, plain, empty repository
+  `.staging` child. The observation binds its file identity; every retry occurs
+  through the same held parent custody and revalidates identity, type, and
+  emptiness. There are at most 20 attempts and 19 cancellable 250 ms delays.
+  Before Setup owns deletion, content, disappearance after observation,
+  replacement, reparse/type change, access denial, delete-pending, or any
+  unclassified failure stops immediately.
+  The sole delete-pending exception is one causally owned by Setup after the
+  same identity-matched empty handle was successfully marked for deletion. It
+  may consume the same retry budget while waiting for that object to disappear,
+  and only that state may treat absence as successful deletion; a delete-pending
+  state observed before Setup marks it remains terminal.
 - A failure before promotion retains its exact staging tree and matching marker
   as durable recovery evidence. Setup itself does not recursively delete by
   path. Read-only classification belongs to `RECOVERY-105A`; an explicitly

@@ -260,7 +260,7 @@ internal sealed partial class WindowsStablePathCustody
         {
             bool directory = IsDirectory(held);
             using SafeFileHandle resolved = NativeMethods.CreateFile(
-                path,
+                $@"\\?\{path}",
                 NativeMethods.ReadAttributes | NativeMethods.Synchronize,
                 NativeMethods.ShareRead | NativeMethods.ShareWrite | NativeMethods.ShareDelete,
                 0,

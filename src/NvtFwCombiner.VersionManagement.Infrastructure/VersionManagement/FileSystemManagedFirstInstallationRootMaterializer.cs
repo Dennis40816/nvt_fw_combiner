@@ -23,6 +23,13 @@ public sealed partial class FileSystemManagedFirstInstallationRootMaterializer
     private readonly Func<string, CancellationToken, ValueTask>? _destinationCustodyAcquired;
     private readonly Func<string, CancellationToken, ValueTask>? _closedRootVerified;
     private readonly Action<string>? _beforeRepositoryStagingDelete;
+    private readonly Action<string>? _beforeRepositoryStagingCleanup;
+    private readonly Action<int, ManagedSetupStagingCleanupState>?
+        _repositoryStagingCleanupAttemptObserved;
+    private readonly Func<TimeSpan, CancellationToken, ValueTask>?
+        _repositoryStagingCleanupDelay;
+    private readonly Func<int, int>? _repositoryStagingDeleteOpenStatusOverride;
+    private readonly Func<int, int>? _repositoryOwnedDeletionObservationStatusOverride;
     private readonly Action<string>? _afterPackageDirectoryCreated;
     private readonly Action? _afterMarkerTopologyProof;
     private readonly Action<string>? _afterRootPromotion;
@@ -43,7 +50,12 @@ public sealed partial class FileSystemManagedFirstInstallationRootMaterializer
         Action<string>? beforeRepositoryStagingDelete = null,
         Action<string>? afterPackageDirectoryCreated = null,
         Action? afterMarkerTopologyProof = null,
-        Action<string>? afterRootPromotion = null)
+        Action<string>? afterRootPromotion = null,
+        Action<string>? beforeRepositoryStagingCleanup = null,
+        Action<int, ManagedSetupStagingCleanupState>? repositoryStagingCleanupAttemptObserved = null,
+        Func<TimeSpan, CancellationToken, ValueTask>? repositoryStagingCleanupDelay = null,
+        Func<int, int>? repositoryStagingDeleteOpenStatusOverride = null,
+        Func<int, int>? repositoryOwnedDeletionObservationStatusOverride = null)
     {
         _installer = repository ?? throw new ArgumentNullException(nameof(repository));
         _repository = repository;
@@ -51,6 +63,12 @@ public sealed partial class FileSystemManagedFirstInstallationRootMaterializer
         _destinationCustodyAcquired = destinationCustodyAcquired;
         _closedRootVerified = closedRootVerified;
         _beforeRepositoryStagingDelete = beforeRepositoryStagingDelete;
+        _beforeRepositoryStagingCleanup = beforeRepositoryStagingCleanup;
+        _repositoryStagingCleanupAttemptObserved = repositoryStagingCleanupAttemptObserved;
+        _repositoryStagingCleanupDelay = repositoryStagingCleanupDelay;
+        _repositoryStagingDeleteOpenStatusOverride = repositoryStagingDeleteOpenStatusOverride;
+        _repositoryOwnedDeletionObservationStatusOverride =
+            repositoryOwnedDeletionObservationStatusOverride;
         _afterPackageDirectoryCreated = afterPackageDirectoryCreated;
         _afterMarkerTopologyProof = afterMarkerTopologyProof;
         _afterRootPromotion = afterRootPromotion;
@@ -123,7 +141,11 @@ public sealed partial class FileSystemManagedFirstInstallationRootMaterializer
         }
 
         ManagedFirstInstallationMaterializationIssue custodyIssue =
-            WindowsManagedSetupPathCustody.TryAcquire(root, out WindowsManagedSetupPathCustody? custody);
+            WindowsManagedSetupPathCustody.TryAcquire(
+                root,
+                out WindowsManagedSetupPathCustody? custody,
+                _repositoryStagingDeleteOpenStatusOverride,
+                _repositoryOwnedDeletionObservationStatusOverride);
         if (custodyIssue != ManagedFirstInstallationMaterializationIssue.None)
         {
             return Failure(custodyIssue);
@@ -214,12 +236,19 @@ public sealed partial class FileSystemManagedFirstInstallationRootMaterializer
                 allowUnboundSeedTemplate: true);
             await seedStore.SaveAsync(seed, cancellationToken).ConfigureAwait(false);
 
-            if (!RemoveEmptyRepositoryStaging(
+            string repositoryStaging = Path.Combine(
+                stagingRoot,
+                FileSystemManagedVersionRepository.StagingDirectoryName);
+            _beforeRepositoryStagingCleanup?.Invoke(repositoryStaging);
+            if (!await RemoveEmptyRepositoryStagingAsync(
                     custody,
-                    stagingRoot,
-                    _beforeRepositoryStagingDelete))
+                    repositoryStaging,
+                    _beforeRepositoryStagingDelete,
+                    _repositoryStagingCleanupAttemptObserved,
+                    _repositoryStagingCleanupDelay,
+                    cancellationToken).ConfigureAwait(false))
             {
-                return Failure(ManagedFirstInstallationMaterializationIssue.StateUnavailable);
+                return Failure(ManagedFirstInstallationMaterializationIssue.RecoveryRequired);
             }
             if (!await VerifyStagedRootAsync(
                     stagingRoot,

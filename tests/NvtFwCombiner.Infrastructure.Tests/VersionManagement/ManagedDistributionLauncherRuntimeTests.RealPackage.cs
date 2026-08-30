@@ -35,7 +35,10 @@ public sealed partial class ManagedDistributionLauncherRuntimeTests
             TestContext.Current.CancellationToken);
         Assert.True(ordinary.IsSuccess, ordinary.Issue.ToString());
         Assert.Equal(expectedAdmission, ordinary.Admission);
-        var materializer = new FileSystemManagedFirstInstallationRootMaterializer(repository);
+        int cleanupAttempts = 0;
+        var materializer = new FileSystemManagedFirstInstallationRootMaterializer(
+            repository,
+            repositoryStagingCleanupAttemptObserved: (_, _) => cleanupAttempts++);
         using var payload = new TestPayloadCapture(PayloadIdentity());
 
         ManagedFirstInstallationMaterializationResult result = await materializer.MaterializeAsync(
@@ -47,7 +50,8 @@ public sealed partial class ManagedDistributionLauncherRuntimeTests
             TestContext.Current.CancellationToken);
 
         Assert.True(result.IsSuccess, result.Issue.ToString());
-        using IManagedPromotedFirstInstallation installation = result.Installation!;
+        Assert.Equal(1, cleanupAttempts);
+        IManagedPromotedFirstInstallation installation = result.Installation!;
         Assert.Equal(expectedAdmission, installation.Admission);
         string installedVersion = Path.Combine(root, "versions", candidate.Package.Version.ToString());
         string packagePath = Path.Combine(
@@ -95,6 +99,626 @@ public sealed partial class ManagedDistributionLauncherRuntimeTests
             await installation.CompleteAsync(TestContext.Current.CancellationToken));
         installation.Dispose();
         Assert.False(File.Exists(marker));
+    }
+
+    /// <summary>A transient Windows staging-cleanup conflict is retried without weakening real ZIP admission.</summary>
+    [Fact]
+    public async Task RealPackageFirstInstallRetriesOneTransientRepositoryStagingCleanupAndCompletes()
+    {
+        if (!OperatingSystem.IsWindows())
+        {
+            return;
+        }
+        await using TemporaryRoot temporary = new();
+        string root = Path.Combine(temporary.Path, "NvtFwCombiner");
+        FreshInstallationCandidate candidate = RealPackageCandidate(temporary.Path);
+        ManagedVersionAdmission admission = Admission(candidate);
+        Microsoft.Win32.SafeHandles.SafeFileHandle? contentionHandle = null;
+        int successfulDeleteOpenCount = 0;
+        var attemptStates = new List<ManagedSetupStagingCleanupState>();
+        var materializer = new FileSystemManagedFirstInstallationRootMaterializer(
+            new FileSystemManagedVersionRepository(),
+            beforeRepositoryStagingDelete: _ => successfulDeleteOpenCount++,
+            beforeRepositoryStagingCleanup: repositoryStaging =>
+            {
+                contentionHandle = OpenRepositoryStagingHandle(
+                    repositoryStaging,
+                    deleteOnClose: false);
+            },
+            repositoryStagingCleanupAttemptObserved: (attempt, state) =>
+            {
+                attemptStates.Add(state);
+                if (attempt == 1 && state == ManagedSetupStagingCleanupState.OwnedDeletionPending)
+                {
+                    contentionHandle!.Dispose();
+                }
+            });
+        using var payload = new TestPayloadCapture(PayloadIdentity());
+
+        ManagedFirstInstallationMaterializationResult result = await materializer.MaterializeAsync(
+            root,
+            Path.Combine(temporary.Path, "state", "version-manager.v1.json"),
+            payload,
+            candidate,
+            ManagedVersionSeedPolicy.CreateCanonicalFirstRunSeed(admission),
+            TestContext.Current.CancellationToken);
+        contentionHandle?.Dispose();
+
+        Assert.True(result.IsSuccess, result.Issue.ToString());
+        Assert.NotNull(contentionHandle);
+        Assert.Equal(1, successfulDeleteOpenCount);
+        Assert.Equal(
+            [
+                ManagedSetupStagingCleanupState.OwnedDeletionPending,
+                ManagedSetupStagingCleanupState.Absent,
+            ],
+            attemptStates);
+        Assert.False(Directory.Exists(Path.Combine(
+            root,
+            FileSystemManagedVersionRepository.StagingDirectoryName)));
+        using IManagedPromotedFirstInstallation installation = result.Installation!;
+        Assert.Equal(
+            ManagedFirstInstallationTransactionIssue.None,
+            await installation.RecordBootstrapLaunchAsync(TestContext.Current.CancellationToken));
+        Assert.Equal(
+            ManagedFirstInstallationTransactionIssue.None,
+            await installation.CompleteAsync(TestContext.Current.CancellationToken));
+        installation.Dispose();
+        Assert.False(File.Exists(FileSystemManagedInstallationRootProbe.GetTransactionMarkerPath(root)));
+    }
+
+    /// <summary>Native sharing contention after identity observation is retried once.</summary>
+    [Fact]
+    public async Task TransientRepositoryStagingSharingContentionRetriesAndCompletes()
+    {
+        if (!OperatingSystem.IsWindows())
+        {
+            return;
+        }
+        await using TemporaryRoot temporary = new();
+        string root = Path.Combine(temporary.Path, "NvtFwCombiner");
+        FreshInstallationCandidate candidate = RealPackageCandidate(temporary.Path);
+        ManagedVersionAdmission admission = Admission(candidate);
+        int deleteOpenCount = 0;
+        var attemptStates = new List<ManagedSetupStagingCleanupState>();
+        var materializer = new FileSystemManagedFirstInstallationRootMaterializer(
+            new FileSystemManagedVersionRepository(),
+            repositoryStagingCleanupAttemptObserved: (_, state) => attemptStates.Add(state),
+            repositoryStagingCleanupDelay: (_, token) =>
+            {
+                token.ThrowIfCancellationRequested();
+                return ValueTask.CompletedTask;
+            },
+            repositoryStagingDeleteOpenStatusOverride: actual =>
+                ++deleteOpenCount == 1
+                    ? WindowsStablePathCustody.NativeMethods.StatusSharingViolation
+                    : actual);
+        using var payload = new TestPayloadCapture(PayloadIdentity());
+
+        ManagedFirstInstallationMaterializationResult result = await materializer.MaterializeAsync(
+            root,
+            Path.Combine(temporary.Path, "state", "version-manager.v1.json"),
+            payload,
+            candidate,
+            ManagedVersionSeedPolicy.CreateCanonicalFirstRunSeed(admission),
+            TestContext.Current.CancellationToken);
+
+        Assert.True(result.IsSuccess, result.Issue.ToString());
+        Assert.Equal(
+            [ManagedSetupStagingCleanupState.RetryableContention, ManagedSetupStagingCleanupState.Deleted],
+            attemptStates);
+        using IManagedPromotedFirstInstallation installation = result.Installation!;
+        Assert.Equal(
+            ManagedFirstInstallationTransactionIssue.None,
+            await installation.RecordBootstrapLaunchAsync(TestContext.Current.CancellationToken));
+        Assert.Equal(
+            ManagedFirstInstallationTransactionIssue.None,
+            await installation.CompleteAsync(TestContext.Current.CancellationToken));
+    }
+
+    /// <summary>Persistent native sharing contention exhausts exactly one bounded budget.</summary>
+    [Fact]
+    public async Task PersistentRepositoryStagingSharingContentionExhaustsExactBudget()
+    {
+        if (!OperatingSystem.IsWindows())
+        {
+            return;
+        }
+        await using TemporaryRoot temporary = new();
+        string root = Path.Combine(temporary.Path, "NvtFwCombiner");
+        FreshInstallationCandidate candidate = RealPackageCandidate(temporary.Path);
+        ManagedVersionAdmission admission = Admission(candidate);
+        var attemptStates = new List<ManagedSetupStagingCleanupState>();
+        var delays = new List<TimeSpan>();
+        var materializer = new FileSystemManagedFirstInstallationRootMaterializer(
+            new FileSystemManagedVersionRepository(),
+            repositoryStagingCleanupAttemptObserved: (_, state) => attemptStates.Add(state),
+            repositoryStagingCleanupDelay: (delay, token) =>
+            {
+                token.ThrowIfCancellationRequested();
+                delays.Add(delay);
+                return ValueTask.CompletedTask;
+            },
+            repositoryStagingDeleteOpenStatusOverride: _ =>
+                WindowsStablePathCustody.NativeMethods.StatusSharingViolation);
+        using var payload = new TestPayloadCapture(PayloadIdentity());
+
+        ManagedFirstInstallationMaterializationResult result = await materializer.MaterializeAsync(
+            root,
+            Path.Combine(temporary.Path, "state", "version-manager.v1.json"),
+            payload,
+            candidate,
+            ManagedVersionSeedPolicy.CreateCanonicalFirstRunSeed(admission),
+            TestContext.Current.CancellationToken);
+
+        Assert.Equal(ManagedFirstInstallationMaterializationIssue.RecoveryRequired, result.Issue);
+        Assert.Null(result.Installation);
+        Assert.Equal(20, attemptStates.Count);
+        Assert.All(attemptStates, state =>
+            Assert.Equal(ManagedSetupStagingCleanupState.RetryableContention, state));
+        Assert.Equal(19, delays.Count);
+        Assert.All(delays, delay => Assert.Equal(TimeSpan.FromMilliseconds(250), delay));
+        Assert.False(Directory.Exists(root));
+        Assert.True(File.Exists(FileSystemManagedInstallationRootProbe.GetTransactionMarkerPath(root)));
+    }
+
+    /// <summary>Access denial and unclassified native failures are terminal, never retryable.</summary>
+    [Theory]
+    [InlineData(WindowsStablePathCustody.NativeMethods.StatusAccessDenied)]
+    [InlineData(WindowsStablePathCustody.NativeMethods.StatusObjectNameNotFound)]
+    [InlineData(WindowsStablePathCustody.NativeMethods.StatusObjectPathNotFound)]
+    [InlineData(WindowsStablePathCustody.NativeMethods.StatusDeletePending)]
+    [InlineData(unchecked((int)0xC0000001))]
+    public async Task TerminalRepositoryStagingNativeStatusFailsWithoutRetry(int nativeStatus)
+    {
+        if (!OperatingSystem.IsWindows())
+        {
+            return;
+        }
+        await using TemporaryRoot temporary = new();
+        string root = Path.Combine(temporary.Path, "NvtFwCombiner");
+        FreshInstallationCandidate candidate = RealPackageCandidate(temporary.Path);
+        ManagedVersionAdmission admission = Admission(candidate);
+        var attemptStates = new List<ManagedSetupStagingCleanupState>();
+        var materializer = new FileSystemManagedFirstInstallationRootMaterializer(
+            new FileSystemManagedVersionRepository(),
+            repositoryStagingCleanupAttemptObserved: (_, state) => attemptStates.Add(state),
+            repositoryStagingDeleteOpenStatusOverride: _ => nativeStatus);
+        using var payload = new TestPayloadCapture(PayloadIdentity());
+
+        ManagedFirstInstallationMaterializationResult result = await materializer.MaterializeAsync(
+            root,
+            Path.Combine(temporary.Path, "state", "version-manager.v1.json"),
+            payload,
+            candidate,
+            ManagedVersionSeedPolicy.CreateCanonicalFirstRunSeed(admission),
+            TestContext.Current.CancellationToken);
+
+        Assert.Equal(ManagedFirstInstallationMaterializationIssue.RecoveryRequired, result.Issue);
+        Assert.Null(result.Installation);
+        Assert.Equal([ManagedSetupStagingCleanupState.ChangedOrUnsafe], attemptStates);
+        Assert.False(Directory.Exists(root));
+        Assert.True(File.Exists(FileSystemManagedInstallationRootProbe.GetTransactionMarkerPath(root)));
+    }
+
+    /// <summary>Path absence alone cannot prove owned deletion when the native observer cannot.</summary>
+    [Fact]
+    public async Task RepositoryStagingDeletionRequiresNativeAbsenceProof()
+    {
+        if (!OperatingSystem.IsWindows())
+        {
+            return;
+        }
+        await using TemporaryRoot temporary = new();
+        string root = Path.Combine(temporary.Path, "NvtFwCombiner");
+        FreshInstallationCandidate candidate = RealPackageCandidate(temporary.Path);
+        ManagedVersionAdmission admission = Admission(candidate);
+        var attemptStates = new List<ManagedSetupStagingCleanupState>();
+        var materializer = new FileSystemManagedFirstInstallationRootMaterializer(
+            new FileSystemManagedVersionRepository(),
+            repositoryStagingCleanupAttemptObserved: (_, state) => attemptStates.Add(state),
+            repositoryOwnedDeletionObservationStatusOverride: _ =>
+                WindowsStablePathCustody.NativeMethods.StatusAccessDenied);
+        using var payload = new TestPayloadCapture(PayloadIdentity());
+
+        ManagedFirstInstallationMaterializationResult result = await materializer.MaterializeAsync(
+            root,
+            Path.Combine(temporary.Path, "state", "version-manager.v1.json"),
+            payload,
+            candidate,
+            ManagedVersionSeedPolicy.CreateCanonicalFirstRunSeed(admission),
+            TestContext.Current.CancellationToken);
+
+        Assert.Equal(ManagedFirstInstallationMaterializationIssue.RecoveryRequired, result.Issue);
+        Assert.Null(result.Installation);
+        Assert.Equal([ManagedSetupStagingCleanupState.ChangedOrUnsafe], attemptStates);
+        Assert.False(Directory.Exists(root));
+        Assert.True(File.Exists(FileSystemManagedInstallationRootProbe.GetTransactionMarkerPath(root)));
+    }
+
+    /// <summary>Either native not-found result proves the exact owned deletion completed.</summary>
+    [Theory]
+    [InlineData(WindowsStablePathCustody.NativeMethods.StatusObjectNameNotFound)]
+    [InlineData(WindowsStablePathCustody.NativeMethods.StatusObjectPathNotFound)]
+    public async Task OwnedRepositoryStagingNativeAbsenceCompletesInstallation(int nativeStatus)
+    {
+        if (!OperatingSystem.IsWindows())
+        {
+            return;
+        }
+        await using TemporaryRoot temporary = new();
+        string root = Path.Combine(temporary.Path, "NvtFwCombiner");
+        FreshInstallationCandidate candidate = RealPackageCandidate(temporary.Path);
+        ManagedVersionAdmission admission = Admission(candidate);
+        var attemptStates = new List<ManagedSetupStagingCleanupState>();
+        var materializer = new FileSystemManagedFirstInstallationRootMaterializer(
+            new FileSystemManagedVersionRepository(),
+            repositoryStagingCleanupAttemptObserved: (_, state) => attemptStates.Add(state),
+            repositoryOwnedDeletionObservationStatusOverride: _ => nativeStatus);
+        using var payload = new TestPayloadCapture(PayloadIdentity());
+
+        ManagedFirstInstallationMaterializationResult result = await materializer.MaterializeAsync(
+            root,
+            Path.Combine(temporary.Path, "state", "version-manager.v1.json"),
+            payload,
+            candidate,
+            ManagedVersionSeedPolicy.CreateCanonicalFirstRunSeed(admission),
+            TestContext.Current.CancellationToken);
+
+        Assert.True(result.IsSuccess, result.Issue.ToString());
+        Assert.Equal([ManagedSetupStagingCleanupState.Deleted], attemptStates);
+        using IManagedPromotedFirstInstallation installation = result.Installation!;
+        Assert.Equal(
+            ManagedFirstInstallationTransactionIssue.None,
+            await installation.RecordBootstrapLaunchAsync(TestContext.Current.CancellationToken));
+        Assert.Equal(
+            ManagedFirstInstallationTransactionIssue.None,
+            await installation.CompleteAsync(TestContext.Current.CancellationToken));
+    }
+
+    /// <summary>Owned delete-pending cleanup is bounded and preserves recovery evidence.</summary>
+    [Fact]
+    public async Task PersistentRepositoryStagingHolderExhaustsExactBudgetWithoutPromotion()
+    {
+        if (!OperatingSystem.IsWindows())
+        {
+            return;
+        }
+        await using TemporaryRoot temporary = new();
+        string root = Path.Combine(temporary.Path, "NvtFwCombiner");
+        FreshInstallationCandidate candidate = RealPackageCandidate(temporary.Path);
+        ManagedVersionAdmission admission = Admission(candidate);
+        Microsoft.Win32.SafeHandles.SafeFileHandle? held = null;
+        var attemptStates = new List<ManagedSetupStagingCleanupState>();
+        var delays = new List<TimeSpan>();
+        var materializer = new FileSystemManagedFirstInstallationRootMaterializer(
+            new FileSystemManagedVersionRepository(),
+            beforeRepositoryStagingCleanup: repositoryStaging =>
+                held = OpenRepositoryStagingHandle(repositoryStaging, deleteOnClose: false),
+            repositoryStagingCleanupAttemptObserved: (_, state) => attemptStates.Add(state),
+            repositoryStagingCleanupDelay: (delay, token) =>
+            {
+                token.ThrowIfCancellationRequested();
+                delays.Add(delay);
+                return ValueTask.CompletedTask;
+            });
+        using var payload = new TestPayloadCapture(PayloadIdentity());
+
+        ManagedFirstInstallationMaterializationResult result = await materializer.MaterializeAsync(
+            root,
+            Path.Combine(temporary.Path, "state", "version-manager.v1.json"),
+            payload,
+            candidate,
+            ManagedVersionSeedPolicy.CreateCanonicalFirstRunSeed(admission),
+            TestContext.Current.CancellationToken);
+        held?.Dispose();
+
+        Assert.Equal(ManagedFirstInstallationMaterializationIssue.RecoveryRequired, result.Issue);
+        Assert.Null(result.Installation);
+        Assert.Equal(20, attemptStates.Count);
+        Assert.All(attemptStates, state =>
+            Assert.Equal(ManagedSetupStagingCleanupState.OwnedDeletionPending, state));
+        Assert.Equal(19, delays.Count);
+        Assert.All(delays, delay => Assert.Equal(TimeSpan.FromMilliseconds(250), delay));
+        Assert.False(Directory.Exists(root));
+        Assert.True(File.Exists(FileSystemManagedInstallationRootProbe.GetTransactionMarkerPath(root)));
+    }
+
+    /// <summary>Content in repository staging is terminal and remains untouched.</summary>
+    [Fact]
+    public async Task NonemptyRepositoryStagingFailsBeforeAnyDeleteAttempt()
+    {
+        if (!OperatingSystem.IsWindows())
+        {
+            return;
+        }
+        await using TemporaryRoot temporary = new();
+        string root = Path.Combine(temporary.Path, "NvtFwCombiner");
+        FreshInstallationCandidate candidate = RealPackageCandidate(temporary.Path);
+        ManagedVersionAdmission admission = Admission(candidate);
+        string? sentinel = null;
+        int attempts = 0;
+        var materializer = new FileSystemManagedFirstInstallationRootMaterializer(
+            new FileSystemManagedVersionRepository(),
+            beforeRepositoryStagingCleanup: repositoryStaging =>
+            {
+                sentinel = Path.Combine(repositoryStaging, "unexpected.bin");
+                File.WriteAllText(sentinel, "keep");
+            },
+            repositoryStagingCleanupAttemptObserved: (_, _) => attempts++);
+        using var payload = new TestPayloadCapture(PayloadIdentity());
+
+        ManagedFirstInstallationMaterializationResult result = await materializer.MaterializeAsync(
+            root,
+            Path.Combine(temporary.Path, "state", "version-manager.v1.json"),
+            payload,
+            candidate,
+            ManagedVersionSeedPolicy.CreateCanonicalFirstRunSeed(admission),
+            TestContext.Current.CancellationToken);
+
+        Assert.Equal(ManagedFirstInstallationMaterializationIssue.RecoveryRequired, result.Issue);
+        Assert.Null(result.Installation);
+        Assert.Equal(0, attempts);
+        Assert.NotNull(sentinel);
+        Assert.True(File.Exists(sentinel));
+        Assert.False(Directory.Exists(root));
+        Assert.True(File.Exists(FileSystemManagedInstallationRootProbe.GetTransactionMarkerPath(root)));
+    }
+
+    /// <summary>A file substituted for repository staging is terminal and remains untouched.</summary>
+    [Fact]
+    public async Task RepositoryStagingFileSubstitutionFailsBeforeAnyDeleteAttempt()
+    {
+        if (!OperatingSystem.IsWindows())
+        {
+            return;
+        }
+        await using TemporaryRoot temporary = new();
+        string root = Path.Combine(temporary.Path, "NvtFwCombiner");
+        FreshInstallationCandidate candidate = RealPackageCandidate(temporary.Path);
+        ManagedVersionAdmission admission = Admission(candidate);
+        string? substitutedPath = null;
+        int attempts = 0;
+        var materializer = new FileSystemManagedFirstInstallationRootMaterializer(
+            new FileSystemManagedVersionRepository(),
+            beforeRepositoryStagingCleanup: repositoryStaging =>
+            {
+                Directory.Delete(repositoryStaging);
+                File.WriteAllText(repositoryStaging, "replacement");
+                substitutedPath = repositoryStaging;
+            },
+            repositoryStagingCleanupAttemptObserved: (_, _) => attempts++);
+        using var payload = new TestPayloadCapture(PayloadIdentity());
+
+        ManagedFirstInstallationMaterializationResult result = await materializer.MaterializeAsync(
+            root,
+            Path.Combine(temporary.Path, "state", "version-manager.v1.json"),
+            payload,
+            candidate,
+            ManagedVersionSeedPolicy.CreateCanonicalFirstRunSeed(admission),
+            TestContext.Current.CancellationToken);
+
+        Assert.Equal(ManagedFirstInstallationMaterializationIssue.RecoveryRequired, result.Issue);
+        Assert.Null(result.Installation);
+        Assert.Equal(0, attempts);
+        Assert.NotNull(substitutedPath);
+        Assert.True(File.Exists(substitutedPath));
+        Assert.False(Directory.Exists(root));
+        Assert.True(File.Exists(FileSystemManagedInstallationRootProbe.GetTransactionMarkerPath(root)));
+    }
+
+    /// <summary>A direct-child reparse substitution is terminal and its target remains untouched.</summary>
+    [Fact]
+    public async Task RepositoryStagingReparseSubstitutionFailsBeforeAnyDeleteAttempt()
+    {
+        if (!OperatingSystem.IsWindows())
+        {
+            return;
+        }
+        await using TemporaryRoot temporary = new();
+        string root = Path.Combine(temporary.Path, "NvtFwCombiner");
+        string outside = Path.Combine(temporary.Path, "outside");
+        _ = Directory.CreateDirectory(outside);
+        string outsideSentinel = Path.Combine(outside, "keep.txt");
+        File.WriteAllText(outsideSentinel, "keep");
+        FreshInstallationCandidate candidate = RealPackageCandidate(temporary.Path);
+        ManagedVersionAdmission admission = Admission(candidate);
+        string? link = null;
+        int attempts = 0;
+        var materializer = new FileSystemManagedFirstInstallationRootMaterializer(
+            new FileSystemManagedVersionRepository(),
+            beforeRepositoryStagingCleanup: repositoryStaging =>
+            {
+                Directory.Delete(repositoryStaging);
+                _ = Directory.CreateSymbolicLink(repositoryStaging, outside);
+                link = repositoryStaging;
+            },
+            repositoryStagingCleanupAttemptObserved: (_, _) => attempts++);
+        using var payload = new TestPayloadCapture(PayloadIdentity());
+
+        ManagedFirstInstallationMaterializationResult result = await materializer.MaterializeAsync(
+            root,
+            Path.Combine(temporary.Path, "state", "version-manager.v1.json"),
+            payload,
+            candidate,
+            ManagedVersionSeedPolicy.CreateCanonicalFirstRunSeed(admission),
+            TestContext.Current.CancellationToken);
+
+        Assert.Equal(ManagedFirstInstallationMaterializationIssue.RecoveryRequired, result.Issue);
+        Assert.Null(result.Installation);
+        Assert.Equal(0, attempts);
+        Assert.NotNull(link);
+        Assert.True(Directory.Exists(link));
+        Assert.True(File.Exists(outsideSentinel));
+        Assert.False(Directory.Exists(root));
+        Assert.True(File.Exists(FileSystemManagedInstallationRootProbe.GetTransactionMarkerPath(root)));
+    }
+
+    /// <summary>A replacement created after our owned deletion is never adopted or deleted.</summary>
+    [Fact]
+    public async Task RepositoryStagingReplacementAfterOwnedDeleteFailsAndSurvives()
+    {
+        if (!OperatingSystem.IsWindows())
+        {
+            return;
+        }
+        await using TemporaryRoot temporary = new();
+        string root = Path.Combine(temporary.Path, "NvtFwCombiner");
+        FreshInstallationCandidate candidate = RealPackageCandidate(temporary.Path);
+        ManagedVersionAdmission admission = Admission(candidate);
+        Microsoft.Win32.SafeHandles.SafeFileHandle? held = null;
+        string? staging = null;
+        string? sentinel = null;
+        var materializer = new FileSystemManagedFirstInstallationRootMaterializer(
+            new FileSystemManagedVersionRepository(),
+            beforeRepositoryStagingCleanup: repositoryStaging =>
+            {
+                staging = repositoryStaging;
+                held = OpenRepositoryStagingHandle(repositoryStaging, deleteOnClose: false);
+            },
+            repositoryStagingCleanupAttemptObserved: (attempt, state) =>
+            {
+                if (attempt != 1 || state != ManagedSetupStagingCleanupState.OwnedDeletionPending)
+                {
+                    return;
+                }
+                held!.Dispose();
+                _ = Directory.CreateDirectory(staging!);
+                sentinel = Path.Combine(staging!, "replacement.txt");
+                File.WriteAllText(sentinel, "replacement");
+            });
+        using var payload = new TestPayloadCapture(PayloadIdentity());
+
+        ManagedFirstInstallationMaterializationResult result = await materializer.MaterializeAsync(
+            root,
+            Path.Combine(temporary.Path, "state", "version-manager.v1.json"),
+            payload,
+            candidate,
+            ManagedVersionSeedPolicy.CreateCanonicalFirstRunSeed(admission),
+            TestContext.Current.CancellationToken);
+
+        Assert.Equal(ManagedFirstInstallationMaterializationIssue.RecoveryRequired, result.Issue);
+        Assert.Null(result.Installation);
+        Assert.NotNull(sentinel);
+        Assert.True(File.Exists(sentinel));
+        Assert.False(Directory.Exists(root));
+        Assert.True(File.Exists(FileSystemManagedInstallationRootProbe.GetTransactionMarkerPath(root)));
+    }
+
+    /// <summary>Cancellation during owned delete-pending wait stops before promotion.</summary>
+    [Fact]
+    public async Task RepositoryStagingCleanupCancellationPreservesRecoveryEvidence()
+    {
+        if (!OperatingSystem.IsWindows())
+        {
+            return;
+        }
+        await using TemporaryRoot temporary = new();
+        string root = Path.Combine(temporary.Path, "NvtFwCombiner");
+        FreshInstallationCandidate candidate = RealPackageCandidate(temporary.Path);
+        ManagedVersionAdmission admission = Admission(candidate);
+        using var cancellation = new CancellationTokenSource();
+        Microsoft.Win32.SafeHandles.SafeFileHandle? held = null;
+        int attempts = 0;
+        var materializer = new FileSystemManagedFirstInstallationRootMaterializer(
+            new FileSystemManagedVersionRepository(),
+            beforeRepositoryStagingCleanup: repositoryStaging =>
+                held = OpenRepositoryStagingHandle(repositoryStaging, deleteOnClose: false),
+            repositoryStagingCleanupAttemptObserved: (attempt, state) =>
+            {
+                attempts = attempt;
+            },
+            repositoryStagingCleanupDelay: (_, token) =>
+            {
+                cancellation.Cancel();
+                token.ThrowIfCancellationRequested();
+                return ValueTask.CompletedTask;
+            });
+        using var payload = new TestPayloadCapture(PayloadIdentity());
+
+        _ = await Assert.ThrowsAnyAsync<OperationCanceledException>(async () =>
+            await materializer.MaterializeAsync(
+                root,
+                Path.Combine(temporary.Path, "state", "version-manager.v1.json"),
+                payload,
+                candidate,
+                ManagedVersionSeedPolicy.CreateCanonicalFirstRunSeed(admission),
+                cancellation.Token));
+        held?.Dispose();
+
+        Assert.Equal(1, attempts);
+        Assert.False(Directory.Exists(root));
+        Assert.True(File.Exists(FileSystemManagedInstallationRootProbe.GetTransactionMarkerPath(root)));
+    }
+
+    /// <summary>A pre-existing delete-pending child is never adopted as our cleanup.</summary>
+    [Fact]
+    public async Task PreexistingRepositoryStagingDeletePendingIsTerminal()
+    {
+        if (!OperatingSystem.IsWindows())
+        {
+            return;
+        }
+        await using TemporaryRoot temporary = new();
+        string root = Path.Combine(temporary.Path, "NvtFwCombiner");
+        FreshInstallationCandidate candidate = RealPackageCandidate(temporary.Path);
+        ManagedVersionAdmission admission = Admission(candidate);
+        Microsoft.Win32.SafeHandles.SafeFileHandle? held = null;
+        int attempts = 0;
+        var materializer = new FileSystemManagedFirstInstallationRootMaterializer(
+            new FileSystemManagedVersionRepository(),
+            beforeRepositoryStagingCleanup: repositoryStaging =>
+            {
+                held = OpenRepositoryStagingHandle(repositoryStaging, deleteOnClose: true);
+                Assert.True(WindowsStablePathCustody.MarkDeleteOnClose(held));
+            },
+            repositoryStagingCleanupAttemptObserved: (_, _) => attempts++);
+        using var payload = new TestPayloadCapture(PayloadIdentity());
+
+        ManagedFirstInstallationMaterializationResult result = await materializer.MaterializeAsync(
+            root,
+            Path.Combine(temporary.Path, "state", "version-manager.v1.json"),
+            payload,
+            candidate,
+            ManagedVersionSeedPolicy.CreateCanonicalFirstRunSeed(admission),
+            TestContext.Current.CancellationToken);
+        held?.Dispose();
+
+        Assert.Equal(ManagedFirstInstallationMaterializationIssue.RecoveryRequired, result.Issue);
+        Assert.Null(result.Installation);
+        Assert.Equal(0, attempts);
+        Assert.False(Directory.Exists(root));
+        Assert.True(File.Exists(FileSystemManagedInstallationRootProbe.GetTransactionMarkerPath(root)));
+    }
+
+    private static Microsoft.Win32.SafeHandles.SafeFileHandle OpenRepositoryStagingHandle(
+        string repositoryStaging,
+        bool deleteOnClose)
+    {
+        uint access = WindowsStablePathCustody.NativeMethods.ReadAttributes |
+            WindowsStablePathCustody.NativeMethods.Synchronize |
+            (deleteOnClose ? WindowsStablePathCustody.NativeMethods.Delete : 0);
+        uint share = WindowsStablePathCustody.NativeMethods.ShareRead |
+            WindowsStablePathCustody.NativeMethods.ShareWrite |
+            (deleteOnClose ? WindowsStablePathCustody.NativeMethods.ShareDelete : 0);
+        uint flags = WindowsStablePathCustody.NativeMethods.BackupSemantics |
+            WindowsStablePathCustody.NativeMethods.OpenReparsePoint |
+            (deleteOnClose ? WindowsStablePathCustody.NativeMethods.DeleteOnClose : 0);
+        Microsoft.Win32.SafeHandles.SafeFileHandle handle =
+            WindowsStablePathCustody.NativeMethods.CreateFile(
+                repositoryStaging,
+                access,
+                share,
+                0,
+                WindowsStablePathCustody.NativeMethods.OpenExisting,
+                flags,
+                0);
+        if (handle.IsInvalid)
+        {
+            handle.Dispose();
+            throw new IOException("Could not create the repository staging test handle.");
+        }
+        return handle;
     }
 
     /// <summary>Setup reserves only its three files, two directories, and exact payload bytes.</summary>

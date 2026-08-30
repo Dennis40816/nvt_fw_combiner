@@ -7,6 +7,20 @@ namespace NvtFwCombiner.Infrastructure.VersionManagement;
 
 internal sealed class ManagedSetupPathChangedException(string message) : Exception(message);
 
+internal enum ManagedSetupStagingCleanupState
+{
+    Absent,
+    Observed,
+    Deleted,
+    RetryableContention,
+    OwnedDeletionPending,
+    ChangedOrUnsafe,
+}
+
+internal readonly record struct ManagedSetupStagingCleanupResult(
+    ManagedSetupStagingCleanupState State,
+    WindowsStablePathIdentity Identity = default);
+
 /// <summary>Windows-only stable custody for one fresh-install destination transaction.</summary>
 internal sealed partial class WindowsManagedSetupPathCustody : IDisposable
 {
@@ -15,16 +29,22 @@ internal sealed partial class WindowsManagedSetupPathCustody : IDisposable
     private SafeFileHandle? _stagingRootHandle;
     private string? _stagingRootPath;
     private WindowsStablePathCustody? _treeCustody;
+    private readonly Func<int, int>? _stagingDeleteOpenStatusOverride;
+    private readonly Func<int, int>? _ownedDeletionObservationStatusOverride;
     private bool _disposed;
 
     private WindowsManagedSetupPathCustody(
         string managedRoot,
         string parentPath,
-        WindowsStablePathCustody parentCustody)
+        WindowsStablePathCustody parentCustody,
+        Func<int, int>? stagingDeleteOpenStatusOverride,
+        Func<int, int>? ownedDeletionObservationStatusOverride)
     {
         ManagedRoot = managedRoot;
         ParentPath = parentPath;
         _parentCustody = parentCustody;
+        _stagingDeleteOpenStatusOverride = stagingDeleteOpenStatusOverride;
+        _ownedDeletionObservationStatusOverride = ownedDeletionObservationStatusOverride;
     }
 
     internal string ManagedRoot { get; }
@@ -95,7 +115,9 @@ internal sealed partial class WindowsManagedSetupPathCustody : IDisposable
 
     internal static ManagedFirstInstallationMaterializationIssue TryAcquire(
         string managedRoot,
-        out WindowsManagedSetupPathCustody? custody)
+        out WindowsManagedSetupPathCustody? custody,
+        Func<int, int>? stagingDeleteOpenStatusOverride = null,
+        Func<int, int>? ownedDeletionObservationStatusOverride = null)
     {
         custody = null;
         if (!OperatingSystem.IsWindows())
@@ -137,7 +159,12 @@ internal sealed partial class WindowsManagedSetupPathCustody : IDisposable
             {
                 return MapCustodyIssue(acquired.Issue);
             }
-            custody = new WindowsManagedSetupPathCustody(root, parent, acquired.Custody!);
+            custody = new WindowsManagedSetupPathCustody(
+                root,
+                parent,
+                acquired.Custody!,
+                stagingDeleteOpenStatusOverride,
+                ownedDeletionObservationStatusOverride);
             return ManagedFirstInstallationMaterializationIssue.None;
         }
         catch (UnauthorizedAccessException)
@@ -265,13 +292,63 @@ internal sealed partial class WindowsManagedSetupPathCustody : IDisposable
         };
     }
 
-    internal bool DeleteEmptyStagingChild(string path, Action<string>? beforeDelete)
+    internal ManagedSetupStagingCleanupResult ObserveEmptyStagingChild(string path)
     {
         ThrowIfDisposed();
         if (_stagingRootHandle is null || _stagingRootHandle.IsInvalid ||
             _stagingRootPath is null || !IsDirectChild(path, _stagingRootPath))
         {
-            return false;
+            return new(ManagedSetupStagingCleanupState.ChangedOrUnsafe);
+        }
+
+        int status = CreateRelative(
+            _stagingRootHandle,
+            Path.GetFileName(path),
+            NativeMethods.ReadData | NativeMethods.ReadAttributes |
+                NativeMethods.Synchronize,
+            NativeMethods.ShareRead | NativeMethods.ShareWrite | NativeMethods.ShareDelete,
+            NativeMethods.DirectoryFile |
+                NativeMethods.SynchronousIoNonAlert |
+                NativeMethods.OpenReparsePoint,
+            NativeMethods.FileOpen,
+            out SafeFileHandle handle);
+        using (handle)
+        {
+            if (status is NativeMethods.StatusObjectNameNotFound or
+                NativeMethods.StatusObjectPathNotFound)
+            {
+                return new(ManagedSetupStagingCleanupState.Absent);
+            }
+            if (status != NativeMethods.StatusSuccess || !IsPlainDirectory(handle) ||
+                !WindowsStablePathCustody.TryGetIdentity(
+                    handle,
+                    out WindowsStablePathIdentity identity))
+            {
+                return new(ManagedSetupStagingCleanupState.ChangedOrUnsafe);
+            }
+            try
+            {
+                return Directory.EnumerateFileSystemEntries(path).Any()
+                    ? new(ManagedSetupStagingCleanupState.ChangedOrUnsafe)
+                    : new(ManagedSetupStagingCleanupState.Observed, identity);
+            }
+            catch (Exception exception) when (exception is IOException or UnauthorizedAccessException)
+            {
+                return new(ManagedSetupStagingCleanupState.ChangedOrUnsafe);
+            }
+        }
+    }
+
+    internal ManagedSetupStagingCleanupResult DeleteObservedEmptyStagingChild(
+        string path,
+        WindowsStablePathIdentity expectedIdentity,
+        Action<string>? beforeDelete)
+    {
+        ThrowIfDisposed();
+        if (_stagingRootHandle is null || _stagingRootHandle.IsInvalid ||
+            _stagingRootPath is null || !IsDirectChild(path, _stagingRootPath))
+        {
+            return new(ManagedSetupStagingCleanupState.ChangedOrUnsafe);
         }
 
         int status = CreateRelative(
@@ -287,15 +364,103 @@ internal sealed partial class WindowsManagedSetupPathCustody : IDisposable
                 NativeMethods.OpenReparsePoint,
             NativeMethods.FileOpen,
             out SafeFileHandle handle);
+        status = _stagingDeleteOpenStatusOverride?.Invoke(status) ?? status;
+        bool deleteMarked = false;
         using (handle)
         {
-            if (status != NativeMethods.StatusSuccess || !IsPlainDirectory(handle))
+            if (status == NativeMethods.StatusSharingViolation)
             {
-                return false;
+                return new(ManagedSetupStagingCleanupState.RetryableContention);
             }
-            beforeDelete?.Invoke(path);
-            return !Directory.EnumerateFileSystemEntries(path).Any() &&
-                MarkDeleteOnClose(handle);
+            bool plain = status == NativeMethods.StatusSuccess && IsPlainDirectory(handle);
+            WindowsStablePathIdentity actualIdentity = default;
+            bool hasIdentity = plain && WindowsStablePathCustody.TryGetIdentity(
+                handle,
+                out actualIdentity);
+            if (status != NativeMethods.StatusSuccess || !plain || !hasIdentity ||
+                actualIdentity != expectedIdentity)
+            {
+                return new(ManagedSetupStagingCleanupState.ChangedOrUnsafe);
+            }
+            try
+            {
+                beforeDelete?.Invoke(path);
+                if (Directory.EnumerateFileSystemEntries(path).Any())
+                {
+                    return new(ManagedSetupStagingCleanupState.ChangedOrUnsafe);
+                }
+                deleteMarked = MarkDeleteOnClose(handle);
+            }
+            catch (Exception exception) when (exception is IOException or UnauthorizedAccessException)
+            {
+                return new(ManagedSetupStagingCleanupState.ChangedOrUnsafe);
+            }
+        }
+        if (!deleteMarked)
+        {
+            return new(ManagedSetupStagingCleanupState.ChangedOrUnsafe);
+        }
+        ManagedSetupStagingCleanupResult observed = ObserveOwnedStagingDeletion(
+            path,
+            expectedIdentity);
+        return observed.State == ManagedSetupStagingCleanupState.Absent
+            ? new(ManagedSetupStagingCleanupState.Deleted, expectedIdentity)
+            : observed.State == ManagedSetupStagingCleanupState.OwnedDeletionPending
+                ? observed
+                : new(ManagedSetupStagingCleanupState.ChangedOrUnsafe);
+    }
+
+    internal ManagedSetupStagingCleanupResult ObserveOwnedStagingDeletion(
+        string path,
+        WindowsStablePathIdentity expectedIdentity)
+    {
+        ThrowIfDisposed();
+        if (_stagingRootHandle is null || _stagingRootHandle.IsInvalid ||
+            _stagingRootPath is null || !IsDirectChild(path, _stagingRootPath))
+        {
+            return new(ManagedSetupStagingCleanupState.ChangedOrUnsafe);
+        }
+
+        int status = CreateRelative(
+            _stagingRootHandle,
+            Path.GetFileName(path),
+            NativeMethods.ReadData | NativeMethods.ReadAttributes | NativeMethods.Synchronize,
+            NativeMethods.ShareRead | NativeMethods.ShareWrite | NativeMethods.ShareDelete,
+            NativeMethods.DirectoryFile |
+                NativeMethods.SynchronousIoNonAlert |
+                NativeMethods.OpenReparsePoint,
+            NativeMethods.FileOpen,
+            out SafeFileHandle handle);
+        status = _ownedDeletionObservationStatusOverride?.Invoke(status) ?? status;
+        using (handle)
+        {
+            if (status is NativeMethods.StatusObjectNameNotFound or
+                NativeMethods.StatusObjectPathNotFound)
+            {
+                return new(ManagedSetupStagingCleanupState.Absent, expectedIdentity);
+            }
+            if (status == NativeMethods.StatusDeletePending)
+            {
+                return new(ManagedSetupStagingCleanupState.OwnedDeletionPending, expectedIdentity);
+            }
+            if (status != NativeMethods.StatusSuccess || !IsPlainDirectory(handle) ||
+                !WindowsStablePathCustody.TryGetIdentity(
+                    handle,
+                    out WindowsStablePathIdentity actualIdentity) ||
+                actualIdentity != expectedIdentity)
+            {
+                return new(ManagedSetupStagingCleanupState.ChangedOrUnsafe);
+            }
+            try
+            {
+                return Directory.EnumerateFileSystemEntries(path).Any()
+                    ? new(ManagedSetupStagingCleanupState.ChangedOrUnsafe)
+                    : new(ManagedSetupStagingCleanupState.OwnedDeletionPending, expectedIdentity);
+            }
+            catch (Exception exception) when (exception is IOException or UnauthorizedAccessException)
+            {
+                return new(ManagedSetupStagingCleanupState.ChangedOrUnsafe);
+            }
         }
     }
 

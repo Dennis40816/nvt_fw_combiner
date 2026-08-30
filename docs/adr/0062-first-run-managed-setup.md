@@ -261,6 +261,24 @@ only then releases the original promotable handle. Releasing the handle and
 reopening the final path is forbidden because it would create a substitutable
 path window.
 
+The repository's empty `.staging` child is removed before whole-root promotion.
+Setup first binds that exact plain directory identity through the held staging
+root. Only native sharing contention while opening that same empty identity for
+deletion may receive a bounded retry: 20 attempts with at most 19 cancellable
+250 ms delays. Every later open must match the original identity and remain
+plain and empty. Before Setup has established ownership of deletion, any
+content, disappearance, replacement, reparse/type change, access denial,
+delete-pending, or unclassified failure retains the transaction as recovery
+evidence. This is contention handling within the same in-flight Setup
+transaction, not a later resume or broad cleanup path; the conflicting handle
+may belong to an external scanner or indexer.
+If Setup itself successfully marks that identity-matched empty child for
+deletion but an already-open external handle delays disappearance, the same
+bounded budget may wait for the owned delete-pending object. Only that owned
+state may treat the exact object becoming absent as successful deletion. A
+delete-pending object first observed before Setup's mark remains a
+contradiction and is never adopted.
+
 - The default parent location is the directory containing the running
   distribution Launcher; the managed root is a deterministic child directory.
   The user may select another parent before installation.

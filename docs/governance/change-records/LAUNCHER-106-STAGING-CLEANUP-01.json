@@ -1,0 +1,45 @@
+{
+  "schemaVersion": 2,
+  "taskId": "LAUNCHER-106-STAGING-CLEANUP-01",
+  "capability": "Complete a verified first installation when the exact empty repository staging directory is briefly unavailable, and revalidate valid local fixed-drive promoted-tree descendants beyond MAX_PATH without expanding destination authority",
+  "integrationBase": "9702fe3e43030e96454010d7b3ba46379ce22fcc",
+  "risk": "R3",
+  "kind": "release",
+  "state": "design-active",
+  "mutablePaths": [
+    "docs/adr/0021-code-size-ratchet-system-activity-amendment.md",
+    "src/NvtFwCombiner.VersionManagement.Infrastructure/VersionManagement/FileSystemManagedFirstInstallationRootMaterializer.cs",
+    "src/NvtFwCombiner.VersionManagement.Infrastructure/VersionManagement/FileSystemManagedFirstInstallationRootMaterializer.Helpers.cs",
+    "src/NvtFwCombiner.VersionManagement.Infrastructure/VersionManagement/WindowsManagedSetupPathCustody.cs",
+    "src/NvtFwCombiner.VersionManagement.Infrastructure/VersionManagement/WindowsStablePathCustody.Native.cs",
+    "docs/adr/0062-first-run-managed-setup.md",
+    "docs/contracts/managed-setup-v1.md",
+    "scripts/code_size_policy.py"
+  ],
+  "implementationOwner": "primary-agent",
+  "searchEvidence": [
+    "The exact v1.0.6 Distribution Launcher extracted and verified the 113,429,314-byte application package but returned RecoveryRequired while the transaction remained in staging phase.",
+    "The preserved failed transaction contained the complete promoted version tree and one empty repository .staging directory; the final managed root was never promoted.",
+    "The existing tiny real-package unit test passes because the empty staging child is immediately available, so it does not cover a transient Windows scanner or indexer conflict after a production-size extraction.",
+    "Increasing the Launcher smoke timeout from 120 to 300 seconds did not change the outcome and is not a valid fix.",
+    "After staging cleanup was corrected, the exact 113 MB package reached whole-root promotion but returned IdentityConflict because stable identity revalidation reopened a canonical descendant longer than 260 characters through ordinary Win32 path syntax and received error 3.",
+    "The failing descendant was a valid no-follow-captured local path under the promoted version tree; changing only the internal RevalidateIdentities CreateFileW boundary to extended-length syntax made the exact package install pass in about 9.5 seconds without changing stored canonical paths or admission policy.",
+    "Independent architecture review approved the one-line adapter fix as the minimum implementation of ADR 0062 and required permanent long-descendant plus UNC, device, extended-input, ADS, relative, and NT-namespace rejection regressions."
+  ],
+  "semanticOwner": "The first-installation materializer owns bounded exact staging cleanup and whole-root promotion; WindowsStablePathCustody remains the single owner of local fixed-drive path admission, no-follow custody, and promoted-tree identity revalidation",
+  "terminalContract": "After verified payload materialization, Setup may wait for a short bounded interval and retry deletion of only the exact direct .staging child held beneath the same staging-root custody. Every attempt must revalidate that the child is a plain directory and empty. Persistent contention, any content, path identity change, cancellation, or inability to prove deletion remains terminal and preserves the transaction for recovery. Only an internal canonical local fixed-drive path that already passed the single normalizer may be prefixed with \\\\?\\ at the RevalidateIdentities CreateFileW boundary; the canonical stored/comparison path remains unchanged. Caller-supplied extended paths, UNC, device and NT namespaces, ADS, relative, root-only, mapped-network, and non-fixed paths remain rejected. Open, type, reparse, or file-identity mismatch remains terminal Changed/RecoveryRequired with no retry or fallback. Package bytes, admission identity, Catalog semantics, firmware behavior, and final root promotion rules do not change.",
+  "disposition": "extend-owner",
+  "designReview": {
+    "reviewer": "launcher_packaging_evidence_review and long_path_design_review",
+    "outcome": "findings-incorporated",
+    "evidence": "The independent R3 admission's mandatory corrections are incorporated into the admitted design: a 20-attempt/19-delay/250 ms Setup-only retry uses an identity-bound typed result. Only native sharing contention may retry before Setup owns deletion. Initial absence remains admissible, while content, unowned disappearance after observation, replacement, reparse/type change, access denial, pre-existing delete-pending, unclassified native failure, and an unproved delete remain immediately terminal. After Setup has proved same-identity plain-empty custody and successfully marked that exact handle for deletion, only the resulting owned delete-pending state may wait for absence within the same budget. Every delay is cancellable; no recursive or path-based cleanup is admitted. The measured 225-line Infrastructure/runtime/full-production increase is an exact non-transferable safety allowance owned by the existing code-size policy and ADR 0021. Independent long-path review approved a single internal \\\\?\\ prefix at the stable-path CreateFileW boundary because admission already rejects every non-local or caller-supplied namespace; it explicitly rejected a new validator, timeout, retry, global manifest workaround, path renaming, or ADR. Windows failure-matrix and authority-rejection tests, Infrastructure and Architecture gates, scoped Polytail, exact production-package install smoke, and release-owner evidence remain required."
+  },
+  "implementationHead": null,
+  "reviewedHead": null,
+  "pathStateDigest": null,
+  "finalReview": {
+    "reviewer": null,
+    "outcome": "pending",
+    "evidence": ""
+  }
+}
