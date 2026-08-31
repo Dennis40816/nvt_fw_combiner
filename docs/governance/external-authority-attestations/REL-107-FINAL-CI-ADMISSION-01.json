@@ -1,0 +1,9 @@
+{
+  "schemaVersion": 1,
+  "taskId": "REL-107-FINAL-CI-ADMISSION-01",
+  "authorityType": "release-owner",
+  "reviewedHead": "add334124508658dbcf417b96f83d41c77391dc1",
+  "decision": "approved",
+  "reviewer": "Dennis Liu (release owner)",
+  "evidence": "After exact implementation head f789ff4be908e3f37f409fc7302072193d82ee75 received two independent emergency reviews with P0=0 and P1=0, rebuilt Infrastructure VSTest plus unchanged coverage reconciled 1,057/1,057 identities, affected verifier and CI contracts passed 144 tests with four unchanged skips, and the Windows Distribution Launcher smoke-source set passed 11/11, the release owner explicitly directed acceleration and authorized forced v1.0.7 publication because the delayed release blocks later flow. This attestation approves exact direct-child final-evidence head add334124508658dbcf417b96f83d41c77391dc1 and its bounded CI/verifier correction. It records, rather than hides, that local structure validation exceeded its 600-second operational ceiling after only existing size warnings; under this emergency release-owner exception that timeout and the remaining full/PR/package gate sequence are not represented as passing. No product, firmware, profile, range, CRC, naming, package allowlist, Windows runtime, test-body, filter, skip, expected-total or coverage contract changed."
+}
