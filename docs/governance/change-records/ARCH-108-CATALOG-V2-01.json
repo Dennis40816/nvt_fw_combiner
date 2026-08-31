@@ -5,7 +5,7 @@
   "integrationBase": "add334124508658dbcf417b96f83d41c77391dc1",
   "risk": "R3",
   "kind": "behavior",
-  "state": "design-active",
+  "state": "final-complete",
   "mutablePaths": [
     "docs/adr/0053-fixed-update-source-registry.md",
     "docs/adr/0066-update-catalog-v2-notification-policy.md",
@@ -47,12 +47,12 @@
     "outcome": "approved",
     "evidence": "Third independent semantic-design review confirmed P0-P3 = 0 and scoped Polytail PASS-WITH-HUMAN-GATE. The corrected design preserves released v1.0.7 backward readability through the four existing-state save guards and no-save null/missing/manual-pin/mismatch branches; distinguishes Registry/Catalog authority-publication admission from package/source candidate admission across ADR 0053, ADR 0066, Registry contract, spec, and record; accepts the bounded no-cross-restart high-watermark gap before explicit source admission; and extends/reuses the canonical durable snapshot token for SourceRegistryState rather than retaining Registry's duplicate equality. Seventeen unique mutable paths are complete, VersionManagerStateDocument/JsonVersionManagerStateStore and Presentation remain unchanged, and no new field, schema, migration, store, token, identity, writer, result, selection engine, or Self-test branch is introduced. The record is R3 because scripts/create_update_catalog.py is a release publisher; implementation may proceed on the approved design, while exact-head publisher review, real v1 and staged-v2 canaries, and release-owner authority remain mandatory before live cutover."
   },
-  "implementationHead": null,
-  "reviewedHead": null,
-  "pathStateDigest": null,
+  "implementationHead": "ee42a88884bd99f10447e5e48196ca8d624b2f83",
+  "reviewedHead": "ee42a88884bd99f10447e5e48196ca8d624b2f83",
+  "pathStateDigest": "58d3832ff93892f19044cb78428a955d59eaff1be95fe3498d50e5eccc4c86f5",
   "finalReview": {
-    "reviewer": null,
-    "outcome": "pending",
-    "evidence": ""
+    "reviewer": "review_deploy_script_design",
+    "outcome": "approved",
+    "evidence": "Exact reviewed head ee42a88884bd99f10447e5e48196ca8d624b2f83 and tree e1bc23408c1f85bb17834feee5ced3b7b814d55c contain the reviewed strict v1/v2 DTO, schema, validation, and persistence implementation plus the filename/schema fail-closed fix. No duplicate semantic owner, firmware byte, range, CRC mutation, or P0-P2 finding remains. Full verifier, real v1 and staged-v2 canaries, package/hash evidence, and release-owner live-cutover approval remain release gates."
   }
 }

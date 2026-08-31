@@ -5,7 +5,7 @@
   "integrationBase": "add334124508658dbcf417b96f83d41c77391dc1",
   "risk": "R3",
   "kind": "release",
-  "state": "design-active",
+  "state": "final-complete",
   "mutablePaths": [
     "docs/ci/release-package.md",
     "scripts/package.ps1",
@@ -28,12 +28,12 @@
     "outcome": "approved",
     "evidence": "Independent combined R3 re-review confirmed P0-P3 = 0 and scoped Polytail PASS-WITH-HUMAN-GATE. The prior Golden projection approval remains incorporated. Dry-run confinement now shares this record's existing package.ps1/release-package.md owner and add33412 evidence checkpoint, reuses Copy-PackageFileFromRoot through one optional SourceRoot defaulted to RepoRoot, keeps the normal package caller and exact contents unchanged, and removes all repository probe creation/cleanup in favor of the existing GUID ambient TEMP root. The behavioral regression watches recursive repository external-tools Created/Changed/Deleted/Renamed events and watcher Error fail-closed; its fixed-D red evidence captured the old GUID probe's transient create/change/delete with zero leftover. Approved for the named single writer; exact-head package, smoke, size, sidecar, clean-machine, verifier, and release-owner gates remain pending."
   },
-  "implementationHead": null,
-  "reviewedHead": null,
-  "pathStateDigest": null,
+  "implementationHead": "ee42a88884bd99f10447e5e48196ca8d624b2f83",
+  "reviewedHead": "ee42a88884bd99f10447e5e48196ca8d624b2f83",
+  "pathStateDigest": "aeecacf79fe25d7cddfacb3401d572cf2978977bf8775d25ba5c51650b776bfb",
   "finalReview": {
-    "reviewer": null,
-    "outcome": "pending",
-    "evidence": ""
+    "reviewer": "review_deploy_script_design",
+    "outcome": "approved",
+    "evidence": "Exact reviewed head ee42a88884bd99f10447e5e48196ca8d624b2f83 and tree e1bc23408c1f85bb17834feee5ced3b7b814d55c package the closed allowlist projection; dry-run uses caller-owned fixed-D TEMP and the same copy helper without mutating repository external-tools. No P0-P2 finding remains. Full verifier, actual frozen ZIP package and smoke, size, SBOM, provenance, hash, clean-machine evidence, and release/firmware-owner approvals remain release gates."
   }
 }

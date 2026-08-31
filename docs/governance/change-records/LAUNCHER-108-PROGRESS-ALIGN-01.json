@@ -5,7 +5,7 @@
   "integrationBase": "add334124508658dbcf417b96f83d41c77391dc1",
   "risk": "R1",
   "kind": "ui",
-  "state": "design-active",
+  "state": "final-complete",
   "mutablePaths": [
     "src/NvtFwCombiner.DistributionLauncher/LauncherWindow.axaml"
   ],
@@ -23,12 +23,12 @@
     "outcome": "not-required",
     "evidence": ""
   },
-  "implementationHead": null,
-  "reviewedHead": null,
-  "pathStateDigest": null,
+  "implementationHead": "ee42a88884bd99f10447e5e48196ca8d624b2f83",
+  "reviewedHead": "ee42a88884bd99f10447e5e48196ca8d624b2f83",
+  "pathStateDigest": "45a1e5d5163376d6802c9605b130449d438ee4f1656dc932155df54bb86c0116",
   "finalReview": {
-    "reviewer": null,
-    "outcome": "pending",
-    "evidence": ""
+    "reviewer": "review_v108_identity_design",
+    "outcome": "approved",
+    "evidence": "Exact head ee42a88884bd99f10447e5e48196ca8d624b2f83 and tree e1bc23408c1f85bb17834feee5ced3b7b814d55c change only the OperationProgressText horizontal margin to align text and bar left edges. Focused geometry covers 960x640 and 760x560 while vertical spacing, semantics, accessibility, commands, and runtime behavior remain unchanged. Structure verification passed; packaged visible smoke remains."
   }
 }

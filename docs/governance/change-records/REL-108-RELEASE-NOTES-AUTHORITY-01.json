@@ -5,7 +5,7 @@
   "integrationBase": "add334124508658dbcf417b96f83d41c77391dc1",
   "risk": "R2",
   "kind": "governance",
-  "state": "design-active",
+  "state": "final-complete",
   "mutablePaths": [
     "docs/governance/branch-version-and-release-governance.md"
   ],
@@ -24,12 +24,12 @@
     "outcome": "findings-incorporated",
     "evidence": "Independent final R2 release-note-authority review confirmed P0-P3 = 0 and scoped Polytail PASS after the prior contract-drift findings were incorporated. The design extends only docs/governance/branch-version-and-release-governance.md and reuses scripts/render_release_notes.py as the unchanged executable extractor and structural validator. Canonical prose now names the renderer's exact ordered headings and required non-empty feature fields, states that supplemental prose is permitted, limits automatic claims to stable-section extraction, required heading/field structure, incomplete-token rejection, and bounded secret-like disclosure checks, and explicitly reserves behavior truth, evidence sufficiency, compatibility/support, limitations, and disclosure review to an independent human frozen-head semantic review. Existing renderer tests remain the executable heading/field evidence; no script, test expectation, workflow, schema, release-body/Catalog bytes, tag, package, firmware/profile/range/CRC/output behavior, support state, or runtime path changes."
   },
-  "implementationHead": null,
-  "reviewedHead": null,
-  "pathStateDigest": null,
+  "implementationHead": "ee42a88884bd99f10447e5e48196ca8d624b2f83",
+  "reviewedHead": "ee42a88884bd99f10447e5e48196ca8d624b2f83",
+  "pathStateDigest": "c0de7d87386a8591d2d0ba5b635192d8953c186844e0943905eeb1cb5819b278",
   "finalReview": {
-    "reviewer": null,
-    "outcome": "pending",
-    "evidence": ""
+    "reviewer": "review_v108_identity_design",
+    "outcome": "findings-incorporated",
+    "evidence": "Exact head ee42a88884bd99f10447e5e48196ca8d624b2f83 and tree e1bc23408c1f85bb17834feee5ced3b7b814d55c align governance to the unchanged renderer's six ordered headings and six non-empty per-feature fields, permit supplemental prose, limit automation to structural and bounded lexical checks, and reserve semantic truth and disclosure to independent human frozen-head review. Renderer tests and structure verification passed."
   }
 }

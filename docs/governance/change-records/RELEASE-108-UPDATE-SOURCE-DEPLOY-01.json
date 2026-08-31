@@ -5,7 +5,7 @@
   "integrationBase": "add334124508658dbcf417b96f83d41c77391dc1",
   "risk": "R3",
   "kind": "release",
-  "state": "design-active",
+  "state": "final-complete",
   "mutablePaths": [
     "scripts/deploy-update-source.ps1"
   ],
@@ -27,12 +27,12 @@
     "outcome": "findings-incorporated",
     "evidence": "Independent R3 release/script design review confirmed P0-P3 = 0 and scoped Polytail PASS-WITH-HUMAN-GATE after incorporating the full findings batch. The wrapper is a thin Windows-only orchestrator pinned to Dennis40816/nvt_fw_combiner: it authenticates exact stable Release/tag/body/asset metadata, verifies downloaded size and GitHub SHA-256, requires the protected canonical CatalogPublishedAtUtc instead of substituting GitHub publishedAt, and delegates all aggregate v1/v2 Catalog serialization, stable metadata, releaseNotes, package/manifest verification, locking, and atomic replacement to the existing create_update_catalog.py owner. One ShouldProcess gate covers every SourceRoot mutation; WhatIf is read-only. Full-chain no-reparse validation, two non-delete-sharing DeleteOnClose directory-custody handles, and one stable final-package read handle bind parent and package identity/bytes through helper completion. Admission is no-overwrite, an admitted final ZIP is never automatically deleted after any failure, and automatic cleanup is limited to never-admitted staging plus handle-owned custody files. Catalog v1 remains the default canary, v2 requires complete explicit manual-only|notify assignments, GitHub Release body remains the version-neutral changelog source, and no Registry, GitHub publisher, serializer, lock, rollback owner, package builder, firmware semantic, memory range, mutation order, CRC/checksum behavior, or release payload is duplicated or changed. README becomes the single operator entry while the existing release-package and Registry authorities remain separate. Fixed-D fake-tool evidence is required for WhatIf, Release/digest/byte failures, idempotent exact reuse, mismatch/no-overwrite, ambiguous helper failure/orphan retention, reparse/identity/custody failures, and v1/v2 policy forwarding. Exact-head implementation review, canonical verifier, local/UNC canary, published-package evidence, and release-owner R3 attestation remain mandatory human/external gates."
   },
-  "implementationHead": null,
-  "reviewedHead": null,
-  "pathStateDigest": null,
+  "implementationHead": "ee42a88884bd99f10447e5e48196ca8d624b2f83",
+  "reviewedHead": "ee42a88884bd99f10447e5e48196ca8d624b2f83",
+  "pathStateDigest": "908e1a3484b08cacc4b676337bd4e1c9a5822240b0f55e2adb897bc68b948dd5",
   "finalReview": {
-    "reviewer": null,
-    "outcome": "pending",
-    "evidence": ""
+    "reviewer": "review_deploy_script_design",
+    "outcome": "approved",
+    "evidence": "Exact reviewed head ee42a88884bd99f10447e5e48196ca8d624b2f83 and tree e1bc23408c1f85bb17834feee5ced3b7b814d55c preserve reviewed script, README, and test bytes plus fixed-D focused evidence 17/17. Pinned GitHub Release admission, canonical timestamp and digest, local/UNC custody, one ShouldProcess, no-overwrite stable handles, non-destructive cleanup, Catalog-helper delegation, and no Registry or secret logging remain intact. No P0-P2 finding remains. Full verifier, real local and UNC v1 canary, staged v2 canary, release/package evidence, and release-owner R3 attestation remain release gates."
   }
 }

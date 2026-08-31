@@ -5,7 +5,7 @@
   "integrationBase": "add334124508658dbcf417b96f83d41c77391dc1",
   "risk": "R3",
   "kind": "release",
-  "state": "design-active",
+  "state": "final-complete",
   "mutablePaths": [
     "docs/contracts/canonical-golden-manifest-v1.md",
     "scripts/canonical_golden_validation.py",
@@ -26,12 +26,12 @@
     "outcome": "findings-incorporated",
     "evidence": "Independent R3 evidence review selected the only self-contained closure: 25 direct Golden plus nine aliases, excluded two input-only sources and their three dependent aliases, fixed 159 declarations/156 paths, rejected tree-sweep or runtime-derived release authority, and required an explicit newer redistribution allowlist without changing Golden identity or support semantics."
   },
-  "implementationHead": null,
-  "reviewedHead": null,
-  "pathStateDigest": null,
+  "implementationHead": "ee42a88884bd99f10447e5e48196ca8d624b2f83",
+  "reviewedHead": "ee42a88884bd99f10447e5e48196ca8d624b2f83",
+  "pathStateDigest": "f2aa5f325a6687df3df586c95883a90b01bdc51d7b7afcd6b14add3bfa158033",
   "finalReview": {
-    "reviewer": null,
-    "outcome": "pending",
-    "evidence": ""
+    "reviewer": "review_deploy_script_design",
+    "outcome": "approved",
+    "evidence": "Exact reviewed head ee42a88884bd99f10447e5e48196ca8d624b2f83 and tree e1bc23408c1f85bb17834feee5ced3b7b814d55c preserve the declared 34 release cases, 159 logical declarations, and 156 unique paths; input-only and dependent aliases remain excluded and BAT/CONFIG remain inert hash-pinned references. No P0-P2 finding remains. Full verifier, frozen-package projection evidence, and firmware-owner redistribution attestation remain release gates."
   }
 }

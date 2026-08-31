@@ -5,7 +5,7 @@
   "integrationBase": "add334124508658dbcf417b96f83d41c77391dc1",
   "risk": "R3",
   "kind": "release",
-  "state": "design-active",
+  "state": "final-complete",
   "mutablePaths": [
     ".github/workflows/ci.yml",
     "scripts/validate_repository.py"
@@ -27,12 +27,12 @@
     "outcome": "findings-incorporated",
     "evidence": "Independent R3 re-review confirmed P0-P3 = 0 after the two P1 fail-closed test/design gaps and one P2 stale-document gap were incorporated. The design reuses CI-PR-HEAD-102-01 and its existing parsed ancestry test, requires explicit PowerShell native-command status handling plus case-sensitive exact-head comparison, extends the existing parsed repository workflow validator over the exact five-job and scalar windows-latest domain, adds behavioral negatives for arbitrary runners/topology drift, and includes the canonical trust-boundary wording update. Scoped Polytail design verdict: PASS-WITH-HUMAN-GATE; approved for implementation but not merge or release. Exact-head human workflow review, final verifier, protected Windows CI, and release-owner attestation remain mandatory."
   },
-  "implementationHead": null,
-  "reviewedHead": null,
-  "pathStateDigest": null,
+  "implementationHead": "ee42a88884bd99f10447e5e48196ca8d624b2f83",
+  "reviewedHead": "ee42a88884bd99f10447e5e48196ca8d624b2f83",
+  "pathStateDigest": "fd798cafe4d989a05ccb0e3bfd706314a49e212301a64525a2df0378461a00bd",
   "finalReview": {
-    "reviewer": null,
-    "outcome": "pending",
-    "evidence": ""
+    "reviewer": "review_deploy_script_design",
+    "outcome": "approved",
+    "evidence": "Exact reviewed head ee42a88884bd99f10447e5e48196ca8d624b2f83 and tree e1bc23408c1f85bb17834feee5ced3b7b814d55c contain the exact five governed Windows-only jobs with fail-closed PowerShell ancestry while topology, checks, action pins, permissions, and verifier modes remain unchanged. No P0-P2 finding remains. Full verifier, protected actual-Windows CI, exact-head human workflow review, and release-owner attestation remain release gates."
   }
 }

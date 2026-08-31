@@ -5,7 +5,7 @@
   "integrationBase": "add334124508658dbcf417b96f83d41c77391dc1",
   "risk": "R2",
   "kind": "governance",
-  "state": "design-active",
+  "state": "final-complete",
   "mutablePaths": [
     "docs/governance/development-tags.md"
   ],
@@ -24,12 +24,12 @@
     "outcome": "findings-incorporated",
     "evidence": "Independent final R2 re-review confirmed P0-P3 = 0 and scoped Polytail PASS-WITH-HUMAN-GATE after incorporating the release-note authority, semantic-truth, disclosure, and exact later-gate findings. The design reuses the established REL-103/104/105/106 synchronized projection across VERSION, SPEC.md, CHANGELOG.md, docs/references/verification-report.md, and docs/governance/development-tags.md while limiting governed mutable authority exactly to development-tags.md. Integration base add334124508658dbcf417b96f83d41c77391dc1 remains the current v1.0.8 batch checkpoint; annotated v1.0.7 peels to current HEAD dac8deb0a15de562afa73c96868c9d080b779fee with tree 98ac2b3e84520699adcf96897a1bde3f41270084. The renderer is credited only with exact extraction plus structural and bounded lexical validation, while an independent human frozen-head semantic audit owns claim truth, evidence sufficiency, compatibility/support accuracy, limitations, and disclosure review. The terminal contract now preserves protected-main PR-head/merge-tree equivalence, exact ten-asset size/hash/SBOM/provenance closure, package/visible/clean-machine smoke, real Catalog-v1 and staged Catalog-v2 canaries, protected release-owner approval, immutable tag/Release, fresh-download verification, and legal/redistribution evidence as subsequent gates. No tag, publication, package, support, firmware/profile/range/CRC/output-byte, runtime, or workflow-allowlist change is admitted by this identity slice."
   },
-  "implementationHead": null,
-  "reviewedHead": null,
-  "pathStateDigest": null,
+  "implementationHead": "ee42a88884bd99f10447e5e48196ca8d624b2f83",
+  "reviewedHead": "ee42a88884bd99f10447e5e48196ca8d624b2f83",
+  "pathStateDigest": "4e676dbdb2ecd4994aaaf4fef81102b603ea5e16a051c38a8fcbcbf8d50ceed9",
   "finalReview": {
-    "reviewer": null,
-    "outcome": "pending",
-    "evidence": ""
+    "reviewer": "review_v108_identity_design",
+    "outcome": "findings-incorporated",
+    "evidence": "Exact head ee42a88884bd99f10447e5e48196ca8d624b2f83 and tree e1bc23408c1f85bb17834feee5ced3b7b814d55c contain synchronized v1.0.8 VERSION, SPEC, CHANGELOG, verification-report, and development-tag projections with truthful six-section notes, formal v1.0.7 predecessor, and no completed package, canary, tag, or Release claim. Renderer tests and structure verification passed; independent human frozen-head semantic audit, full verifier, package, and release gates remain."
   }
 }

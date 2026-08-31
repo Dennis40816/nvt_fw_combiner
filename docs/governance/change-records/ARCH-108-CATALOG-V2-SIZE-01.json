@@ -5,7 +5,7 @@
   "integrationBase": "add334124508658dbcf417b96f83d41c77391dc1",
   "risk": "R2",
   "kind": "governance",
-  "state": "design-active",
+  "state": "final-complete",
   "mutablePaths": [
     "docs/adr/0021-code-size-ratchet-system-activity-amendment.md",
     "scripts/code_size_policy.py"
@@ -25,12 +25,12 @@
     "outcome": "findings-incorporated",
     "evidence": "Independent final R2 architecture and code-size design review confirmed P0-P3 = 0 after incorporating the stale production_nonblank threshold and fixed-filename schema findings. Direct measurement of the corrected v1.0.8 worktree is exactly 136381 full-production and 98551 runtime nonblank lines, partitioned as Domain/Profiles 20632, Application 42197, Bootstrap/CLI/Desktop/Launcher 5039, and Infrastructure/Contracts/worker/Platform 30683; the four runtime slices sum exactly to 98551. Relative to the v1.0.7 ceilings this is +325 full/runtime, +246 Application, +79 Infrastructure, and zero in every other slice. The executable arithmetic is exact: production_nonblank becomes 136381; full allowance 33485 over ratchet 102896, runtime 28495 over 70056, Application 11507 over 30690, and Infrastructure 15327 over 15356, while Domain/Profiles 5 and host 1661 remain unchanged. The prior filename/schema defect is closed by one bounded expected-schema parameter for direct fixed-name lookup while exact Registry-selected paths retain schema dispatch, with both cross-named v1/v2 cases specified fail-closed. Distinct strict v1/v2 DTOs, the shared validation core, Application-owned notification selection and existing Registry lease/state path, and the single Infrastructure adapter/source-generated projection are contract-required rather than removable duplication; scoped over-engineering review found no safe deletion or second owner. The amendment extends only the existing ADR 0021 system-activity appendix and scripts/code_size_policy.py owners, creates no reusable budget or new metric/verifier, and requires exact non-governed snapshot tests, structure-only, frozen full verification, Catalog behavior evidence, and descending ratchet updates after any later simplification. No firmware/profile/range/mutation-order/output-byte/CRC/header/processor/naming/support/Golden/package/Registry-routing/UI/release-permission authority changes."
   },
-  "implementationHead": null,
-  "reviewedHead": null,
-  "pathStateDigest": null,
+  "implementationHead": "ee42a88884bd99f10447e5e48196ca8d624b2f83",
+  "reviewedHead": "ee42a88884bd99f10447e5e48196ca8d624b2f83",
+  "pathStateDigest": "4603cc28243c7f93a152c7147ed2ea126a67d222598cf298cbb1bd5793704776",
   "finalReview": {
-    "reviewer": null,
-    "outcome": "pending",
-    "evidence": ""
+    "reviewer": "review_v108_identity_design",
+    "outcome": "findings-incorporated",
+    "evidence": "Exact-head ee42a88884bd99f10447e5e48196ca8d624b2f83 and tree e1bc23408c1f85bb17834feee5ced3b7b814d55c confirm the corrected 136381 full and 98551 runtime ceiling, exact 20632/42197/5039/30683 slice sum, non-transferable allowances, single existing size-policy owner, and fixed-filename schema closure. Structure verification passed in 504.7 seconds; full verifier and Catalog human gates remain."
   }
 }

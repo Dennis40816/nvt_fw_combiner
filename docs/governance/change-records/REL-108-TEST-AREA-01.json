@@ -5,7 +5,7 @@
   "integrationBase": "add334124508658dbcf417b96f83d41c77391dc1",
   "risk": "R2",
   "kind": "governance",
-  "state": "design-active",
+  "state": "final-complete",
   "mutablePaths": [
     "AGENTS.md",
     "docs/adr/0027-evidence-preserving-performance-remediation.md",
@@ -28,12 +28,12 @@
     "outcome": "findings-incorporated",
     "evidence": "Independent R2 review traced canonical verification from execute_verification through isolated internal lanes, Python/pytest and local/CI .NET work owners. The admitted design extends scripts/verify.py as the sole scratch-session owner, requires an explicit absolute local root or exact GitHub RUNNER_TEMP-derived root, normalizes before root and overlap decisions, creates one marker-bound non-reparse session, propagates only that session to children, restores process state, and deletes only revalidated ordinary descendants plus the parent-owned direct child without broad recursive deletion. All known explicit repository-adjacent TemporaryDirectory callers are migrated to the ambient session or an injected external-work seam; repository coverage/upload artifacts retain their existing paths. Canonical command authorities move in the same batch so local verifier and direct narrow-test setup remain executable only within the declared fixed test area. The design adds no workflow executor, arbitrary write path, product behavior, firmware/profile/range/CRC/naming/support change, or composition path. Outcome: findings-incorporated."
   },
-  "implementationHead": null,
-  "reviewedHead": null,
-  "pathStateDigest": null,
+  "implementationHead": "ee42a88884bd99f10447e5e48196ca8d624b2f83",
+  "reviewedHead": "ee42a88884bd99f10447e5e48196ca8d624b2f83",
+  "pathStateDigest": "fd91eec83fdaeac8ce1ad9349f3d4cb0af9936aa9060403d0d0b375eac68a057",
   "finalReview": {
-    "reviewer": null,
-    "outcome": "pending",
-    "evidence": ""
+    "reviewer": "review_v108_identity_design",
+    "outcome": "findings-incorporated",
+    "evidence": "Exact head ee42a88884bd99f10447e5e48196ca8d624b2f83 and tree e1bc23408c1f85bb17834feee5ced3b7b814d55c retain scripts/verify.py as sole session owner, validate one fixed root and session, propagate bounded TEMP, TMP, TMPDIR, cache, and work descendants, restore process state, and preserve repository final-evidence paths with fail-closed identity and reparse cleanup. Focused fixed-D evidence and structure verification passed; the frozen full verifier remains."
   }
 }

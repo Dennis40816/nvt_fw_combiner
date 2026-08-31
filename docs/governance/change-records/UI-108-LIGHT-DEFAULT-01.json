@@ -5,7 +5,7 @@
   "integrationBase": "add334124508658dbcf417b96f83d41c77391dc1",
   "risk": "R1",
   "kind": "ui",
-  "state": "design-active",
+  "state": "final-complete",
   "mutablePaths": [
     "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/ShellPreferenceSnapshot.cs",
     "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/MainWindowViewModel.Settings.cs"
@@ -23,12 +23,12 @@
     "outcome": "not-required",
     "evidence": "R1 owner-approved UI default change reuses the existing ShellPreferenceSnapshot and MainWindowViewModel preference path; no independent design reviewer is required."
   },
-  "implementationHead": null,
-  "reviewedHead": null,
-  "pathStateDigest": null,
+  "implementationHead": "ee42a88884bd99f10447e5e48196ca8d624b2f83",
+  "reviewedHead": "ee42a88884bd99f10447e5e48196ca8d624b2f83",
+  "pathStateDigest": "64a5c0a3883f50a1ca115d55a1e3bbdd065cccf4b858e704252bca5b17996e38",
   "finalReview": {
-    "reviewer": null,
-    "outcome": "pending",
-    "evidence": ""
+    "reviewer": "review_v108_identity_design",
+    "outcome": "approved",
+    "evidence": "Exact head ee42a88884bd99f10447e5e48196ca8d624b2f83 and tree e1bc23408c1f85bb17834feee5ced3b7b814d55c make ShellPreferenceSnapshot.Default the single Light fallback and initialize SelectedTheme from it while valid persisted System, Light, and Dark choices remain authoritative. Focused UI evidence and structure verification passed; packaged visible smoke remains."
   }
 }
