@@ -260,7 +260,7 @@ class VerifyOrchestrationTests(unittest.TestCase):
         self.assertEqual(len(lanes), len({lane.name for lane in lanes}))
         self.assertTrue(all(lane.isolate_action for lane in lanes))
 
-    def test_public_full_plan_completes_structure_before_restore_capable_lanes(
+    def test_public_full_plan_sequences_lock_reader_before_restore_writer(
         self,
     ) -> None:
         calls: list[tuple[list[str], int, int]] = []
@@ -288,7 +288,12 @@ class VerifyOrchestrationTests(unittest.TestCase):
                     MODULE.DEFAULT_LANE_TIMEOUT_SECONDS,
                 ),
                 (
-                    ["python", "dotnet"],
+                    ["python"],
+                    MODULE.DEFAULT_VERIFY_JOBS,
+                    MODULE.DEFAULT_LANE_TIMEOUT_SECONDS,
+                ),
+                (
+                    ["dotnet"],
                     MODULE.DEFAULT_VERIFY_JOBS,
                     MODULE.DEFAULT_LANE_TIMEOUT_SECONDS,
                 ),
@@ -3070,6 +3075,66 @@ class VerifyOrchestrationTests(unittest.TestCase):
                 {"total": 2, "passed": 2, "failed": 0, "skipped": 0},
                 "windows",
             )
+
+    def test_trx_placeholder_result_uses_its_exact_test_definition(self) -> None:
+        test_id = "ddf21aca-0ac4-b253-2683-07db54c563b2"
+        placeholder = (
+            "<unknown test ID "
+            "7319304e40d766aa6b0fbff5fa1c07f149c0b3ee9f65fece7100f329d87d7e20>"
+        )
+        identity = (
+            "NvtFwCombiner.Infrastructure.Tests.Bundles."
+            "ProfileBundleSchemaValidatorTests."
+            "ValidateEntriesRejectsMissingOrNullCompositionProfileShape"
+            '(mutation: "clone-source")'
+        )
+        with tempfile.TemporaryDirectory() as temporary:
+            trx = Path(temporary) / "test-results.trx"
+            root = MODULE.ET.Element(
+                "TestRun",
+                xmlns="http://microsoft.com/schemas/VisualStudio/TeamTest/2010",
+            )
+            results = MODULE.ET.SubElement(root, "Results")
+            MODULE.ET.SubElement(
+                results,
+                "UnitTestResult",
+                testId=test_id,
+                testName=placeholder,
+                outcome="Passed",
+            )
+            definitions = MODULE.ET.SubElement(root, "TestDefinitions")
+            definition = MODULE.ET.SubElement(
+                definitions,
+                "UnitTest",
+                id=test_id,
+                name=identity,
+            )
+            MODULE.ET.ElementTree(root).write(
+                trx,
+                encoding="utf-8",
+                xml_declaration=True,
+            )
+
+            outcomes = MODULE.parse_trx_test_outcomes(trx)
+            definition.set("id", "different-test-id")
+            MODULE.ET.ElementTree(root).write(
+                trx,
+                encoding="utf-8",
+                xml_declaration=True,
+            )
+            with self.assertRaisesRegex(RuntimeError, "no unique test definition"):
+                MODULE.parse_trx_test_outcomes(trx)
+
+        self.assertEqual(
+            MODULE.Counter(
+                {
+                    "NvtFwCombiner.Infrastructure.Tests.Bundles."
+                    "ProfileBundleSchemaValidatorTests."
+                    "ValidateEntriesRejectsMissingOrNullCompositionProfileShape": 1
+                }
+            ),
+            outcomes["Passed"],
+        )
 
     def test_compiled_inventory_admits_only_exact_producer_platform_skips(self) -> None:
         project = MODULE.CiDotnetProject(
