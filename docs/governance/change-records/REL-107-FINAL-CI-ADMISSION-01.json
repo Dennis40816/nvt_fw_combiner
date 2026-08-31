@@ -1,0 +1,36 @@
+{
+  "schemaVersion": 2,
+  "taskId": "REL-107-FINAL-CI-ADMISSION-01",
+  "capability": "Close the final v1.0.7 admission blockers by running the unchanged Windows-only Python verification surface on Windows and by serializing xUnit collection execution through the canonical local and CI VSTest command owners so every discovered terminal result is reported",
+  "integrationBase": "1164c0c982247bffaa91c797eb511237c3d4c230",
+  "risk": "R3",
+  "kind": "release",
+  "state": "design-active",
+  "mutablePaths": [
+    ".github/workflows/ci.yml",
+    "scripts/verify.py"
+  ],
+  "implementationOwner": "primary-agent",
+  "searchEvidence": [
+    "PR #403 run 33386953746 and a frozen-head local full verifier both reconcile VSTest --ListTests at 1,057 Infrastructure method identities against only 1,056 terminal results; the missing ordinary Fact changes between complete runs, while each selected Fact passes alone, so test renaming, skipping or a discovery exception would only move or hide the adapter defect.",
+    "A second complete Infrastructure execution without coverage still produced exactly 1,056 terminal results and omitted a different Fact, excluding coverlet, the original test body and verifier Counter reconciliation as causes.",
+    "A controlled full-assembly VSTest probe with both xUnit.ParallelizeTestCollections=false and xUnit.MaxParallelThreads=1 produced all 1,057 terminal results: 1,055 Passed and the exact two approved Windows NotExecuted identities. The assembly DisableTestParallelization attribute alone, that attribute plus MaxParallelThreads=1, synchronous message reporting, and the stable VSTest adapter 4.0.0 each remained at 1,056, so both exact runner settings are required and neither an assembly-policy substitute, adapter upgrade nor reporting-only switch is admitted.",
+    "The Distribution Launcher Registry and smoke-source contracts are Windows-only: the exact PR-head tests pass 11/11 on Windows and deterministically reject /tmp catalogPath on Ubuntu. The existing python-worker commands, action pins, pip cache and artifacts are PowerShell/Windows compatible without changing the required check name or coverage command."
+  ],
+  "semanticOwner": "the canonical PR CI runner topology and scripts/verify.py local and CI VSTest command policy",
+  "terminalContract": "The required python-worker / verify check retains its exact identity, commands, timeout, action pins and complete policy/test coverage but executes on windows-latest in both the active workflow and reviewed template. The canonical local vstest and CI dotnet test execution commands both pass xUnit.ParallelizeTestCollections=false and xUnit.MaxParallelThreads=1 after the existing runsettings separator while every test identity, body, assembly metadata, adapter version, package lock and coverage collector setting remains unchanged. Compiled VSTest discovery and terminal TRX outcomes must remain exact Counter-equal; no test filter, skip, expected-total exception, identity substitution or coverage reduction is admitted. Production, firmware, profile, range, CRC, naming, package and runtime behavior remain byte-for-byte unchanged.",
+  "disposition": "extend-owner",
+  "designReview": {
+    "reviewer": "release owner continuation handoff (2026-08-31)",
+    "outcome": "approved",
+    "evidence": "The owner confirmed Windows-only product scope, later authorized one final bounded v1.0.7 correction batch after the frozen-head verifier reproduced both required-check failures, and required the next complete finalized-head validation to be the last. After the corrected Infrastructure execution reconciled 1,057/1,057 but repository structure validation exceeded its 600-second operational ceiling without a semantic finding, the owner explicitly authorized an emergency forced release if no major issue remained; the timeout must be recorded as an exception rather than relabeled as a pass. The implementation batch itself preserves exact discovery/result reconciliation and does not weaken a test, coverage, package, firmware or runtime contract."
+  },
+  "implementationHead": null,
+  "reviewedHead": null,
+  "pathStateDigest": null,
+  "finalReview": {
+    "reviewer": null,
+    "outcome": "pending",
+    "evidence": ""
+  }
+}

@@ -2118,6 +2118,38 @@ class VerifyOrchestrationTests(unittest.TestCase):
             command[-1],
         )
 
+    def test_infrastructure_vstest_execution_serializes_xunit_collections(
+        self,
+    ) -> None:
+        assembly = Path(
+            "shadow/NvtFwCombiner.Infrastructure.Tests/bin/Release/net10.0/"
+            "NvtFwCombiner.Infrastructure.Tests.dll"
+        )
+        adapter = Path(".packages/coverlet.collector/6.0.4/build/netstandard2.0")
+        results = Path("artifacts/coverage/dotnet/NvtFwCombiner.Infrastructure.Tests")
+        project = next(
+            project
+            for project in MODULE.CI_DOTNET_SHARDS["core"]
+            if project.name == "NvtFwCombiner.Infrastructure.Tests"
+        )
+        expected_settings = [
+            "DataCollectionRunSettings.DataCollectors.DataCollector."
+            "Configuration.Format=json,cobertura",
+            "xUnit.ParallelizeTestCollections=false",
+            "xUnit.MaxParallelThreads=1",
+        ]
+
+        local_command = MODULE.local_dotnet_vstest_command(
+            "dotnet",
+            assembly,
+            adapter,
+            results,
+        )
+        ci_command = MODULE.ci_dotnet_test_command("dotnet", project, results)
+
+        self.assertEqual(expected_settings, local_command[-3:])
+        self.assertEqual(expected_settings, ci_command[-3:])
+
     def test_coverlet_adapter_comes_only_from_baseline_and_repository_packages(
         self,
     ) -> None:

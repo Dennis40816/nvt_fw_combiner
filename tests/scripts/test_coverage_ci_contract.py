@@ -82,6 +82,25 @@ class CoverageCiContractTests(unittest.TestCase):
         self.assertNotIn("merge-multiple: true", workflow)
         self.assertNotIn("# immutable reviewed commit", workflow)
 
+    def test_python_worker_preserves_the_required_gate_on_windows(self) -> None:
+        for workflow_path in (CI_WORKFLOW, CI_WORKFLOW_TEMPLATE):
+            with self.subTest(workflow=workflow_path):
+                workflow = workflow_path.read_text(encoding="utf-8")
+                python_worker = workflow[
+                    workflow.index("  python-worker:") : workflow.index(
+                        "  dotnet-build:"
+                    )
+                ]
+                header = python_worker[: python_worker.index("    steps:")]
+
+                self.assertIn("name: python-worker / verify", header)
+                self.assertIn("runs-on: windows-latest", header)
+                self.assertNotIn("ubuntu", header)
+                self.assertIn(
+                    "python scripts/verify.py --skip-dotnet --skip-structure",
+                    python_worker,
+                )
+
     def test_repository_validation_templates_install_pinned_yaml_dependency(
         self,
     ) -> None:

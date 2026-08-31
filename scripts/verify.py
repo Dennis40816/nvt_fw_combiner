@@ -321,6 +321,11 @@ CI_DOTNET_SHARDS: dict[str, tuple[CiDotnetProject, ...]] = {
         ),
     ),
 }
+INFRASTRUCTURE_TEST_PROJECT = "NvtFwCombiner.Infrastructure.Tests"
+INFRASTRUCTURE_VSTEST_SETTINGS = (
+    "xUnit.ParallelizeTestCollections=false",
+    "xUnit.MaxParallelThreads=1",
+)
 
 
 def remaining_timeout(timeout_seconds: float | None = None) -> float | None:
@@ -1183,7 +1188,7 @@ def local_dotnet_vstest_command(
 ) -> list[str]:
     """Build one unfiltered shadow-assembly command with paired coverage evidence."""
 
-    return [
+    command = [
         dotnet,
         "vstest",
         str(test_assembly),
@@ -1194,6 +1199,9 @@ def local_dotnet_vstest_command(
         "--",
         "DataCollectionRunSettings.DataCollectors.DataCollector.Configuration.Format=json,cobertura",
     ]
+    if test_assembly.stem == INFRASTRUCTURE_TEST_PROJECT:
+        command.extend(INFRASTRUCTURE_VSTEST_SETTINGS)
+    return command
 
 
 def dotnet_vstest_discovery_command(dotnet: str, test_assembly: Path) -> list[str]:
@@ -1794,7 +1802,7 @@ def ci_dotnet_test_command(
 ) -> list[str]:
     """Execute one prebuilt Release project with paired coverage/TRX evidence."""
 
-    return [
+    command = [
         dotnet,
         "test",
         str(ROOT / project.relative_path),
@@ -1810,6 +1818,9 @@ def ci_dotnet_test_command(
         "--",
         "DataCollectionRunSettings.DataCollectors.DataCollector.Configuration.Format=json,cobertura",
     ]
+    if project.name == INFRASTRUCTURE_TEST_PROJECT:
+        command.extend(INFRASTRUCTURE_VSTEST_SETTINGS)
+    return command
 
 
 def require_ci_source_sha() -> str:
