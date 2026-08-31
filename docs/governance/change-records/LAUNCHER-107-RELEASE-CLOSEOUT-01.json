@@ -5,7 +5,7 @@
   "integrationBase": "1e35fdcd49443112a374a3716067f5217582a3a7",
   "risk": "R3",
   "kind": "release",
-  "state": "design-active",
+  "state": "final-complete",
   "mutablePaths": [
     "docs/adr/0021-code-size-ratchet-system-activity-amendment.md",
     "docs/adr/0056-rollback-safe-launcher-self-update.md",
@@ -55,12 +55,12 @@
     "outcome": "findings-incorporated",
     "evidence": "Independent reviews approved reuse of the existing Application/Infrastructure/Presentation boundaries, rejected retry, early custody release, duplicate hash/progress owners, path-based fallback, and timer-derived progress, and required exact lease disposal, bounded cold admission, stable exact-process quiescence, synchronized release guidance, focused regressions, fixed-head review, two packaged smoke passes, and release-owner evidence."
   },
-  "implementationHead": null,
-  "reviewedHead": null,
-  "pathStateDigest": null,
+  "implementationHead": "230f10a5968151b9229f70655379a5a43ae8a274",
+  "reviewedHead": "230f10a5968151b9229f70655379a5a43ae8a274",
+  "pathStateDigest": "b19483994b6ea419595d54b8e6989e4c2fef7b8f278f608d0cf38daf0b7f7bfb",
   "finalReview": {
-    "reviewer": null,
-    "outcome": "pending",
-    "evidence": ""
+    "reviewer": "review_107_fixed_arch; review_107_fixed_release; trace_start_gate scoped Polytail",
+    "outcome": "findings-incorporated",
+    "evidence": "Three independent fixed-head reviews of 1e35fdcd49443112a374a3716067f5217582a3a7..230f10a5968151b9229f70655379a5a43ae8a274 found P0=0, P1=0, P2=0, and P3=0. Governed coverage is exact at 30/30 paths with no missing, extra, or duplicate owner; production, contracts, tests, and scripts are byte-identical after the final release-identity normalization. Review confirmed exactly-once Bootstrap lease disposal and transfer, stable two-empty-snapshot process quiescence, actual-byte progress ownership, bounded five-second admission plus 0.5-second cleanup, typed-only Presentation projection, no firmware semantic change, and no private or generated payload. Application 1,367/1,367, Architecture 251/251, scoped Infrastructure 179/179, Launcher UI 22/22, Python smoke/code-size 30/30, Registry/Catalog 64/64, release-note 7/7, and git diff --check passed. Exact artifact construction, two packaged smoke passes, final verifier, protected publication, and immutable tag remain separate release gates and are not claimed here."
   }
 }
