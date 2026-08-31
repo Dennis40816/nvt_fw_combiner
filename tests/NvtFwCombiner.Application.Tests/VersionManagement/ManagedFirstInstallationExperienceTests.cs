@@ -83,9 +83,149 @@ public sealed partial class ManagedFirstInstallationExperienceTests
         Assert.Equal(2, materializer.AdmissionCount);
         Assert.Equal(1, materializer.MaterializeCount);
         Assert.Equal(1, materializer.Transaction.RecordLaunchCount);
+        Assert.Equal(1, materializer.Transaction.BootstrapLeaseAcquireCount);
         Assert.Equal(1, materializer.Transaction.CompleteCount);
         Assert.Equal(1, handoff.StartCount);
+        Assert.Same(materializer.Transaction.LastBootstrapLease, handoff.ReceivedLease);
+        Assert.True(materializer.Transaction.LastBootstrapLease!.Disposed);
         Assert.Equal(1, materializer.Transaction.DisposeCount);
+        Assert.Equal(
+            [
+                "writer-acquire:1",
+                "record-bootstrap-launch",
+                "acquire-bootstrap-lease",
+                "writer-release:1",
+                "handoff-owned-lease",
+                "admitted",
+                "ready",
+                "writer-acquire:2",
+                "complete",
+                "writer-release:2",
+            ],
+            state.Events);
+    }
+
+    /// <summary>Determinate progress is stage-local, bounded, and owns the sole percentage.</summary>
+    [Fact]
+    public void FirstInstallationProgressRejectsInvalidCountersAndCalculatesOnePercent()
+    {
+        var progress = new ManagedFirstInstallationProgress(
+            ManagedFirstInstallationProgressStage.ReadingPackage,
+            42,
+            100);
+
+        Assert.Equal(42, progress.Percent);
+        Assert.Null(ManagedFirstInstallationProgress.Indeterminate(
+            ManagedFirstInstallationProgressStage.RevalidatingSource).Percent);
+        _ = Assert.Throws<ArgumentOutOfRangeException>(() => new ManagedFirstInstallationProgress(
+            ManagedFirstInstallationProgressStage.ReadingPackage,
+            -1,
+            100));
+        _ = Assert.Throws<ArgumentOutOfRangeException>(() => new ManagedFirstInstallationProgress(
+            ManagedFirstInstallationProgressStage.ReadingPackage,
+            1,
+            null));
+        _ = Assert.Throws<ArgumentOutOfRangeException>(() => new ManagedFirstInstallationProgress(
+            ManagedFirstInstallationProgressStage.ReadingPackage,
+            101,
+            100));
+        _ = Assert.Throws<ArgumentOutOfRangeException>(() => new ManagedFirstInstallationProgress(
+            ManagedFirstInstallationProgressStage.ReadingPackage,
+            0,
+            0));
+        _ = Assert.Throws<ArgumentOutOfRangeException>(() => new ManagedFirstInstallationProgress(
+            (ManagedFirstInstallationProgressStage)999,
+            0,
+            null));
+    }
+
+    /// <summary>The one install owner preserves measured materializer progress and stage order.</summary>
+    [Fact]
+    public async Task CompletedInstallationProjectsOneTypedProgressSequence()
+    {
+        string root = Root("completed-progress");
+        FreshInstallationCandidate candidate = Candidate();
+        SequencedStateStore state = new(
+            MissingState(),
+            MissingState(),
+            BoundState(root, candidate));
+        RecordingRootMaterializer materializer = new(state)
+        {
+            ProgressUpdates =
+            [
+                new(ManagedFirstInstallationProgressStage.ReadingPackage, 42, 100),
+                new(ManagedFirstInstallationProgressStage.InstallingPackage, 1, 2),
+            ],
+        };
+        ManagedFirstInstallationExperience experience = Create(
+            state,
+            new SequencedRootProbe(
+                ManagedInstallationRootStatus.Absent,
+                ManagedInstallationRootStatus.Absent),
+            new RecordingPayloadSource(PayloadIdentity()),
+            new RecordingCandidateSource(candidate),
+            materializer,
+            new SetupBootstrapHandoff(state));
+        ManagedFirstInstallationPlanResult prepared = await experience.PrepareAsync(
+            root,
+            TestContext.Current.CancellationToken);
+        var updates = new List<ManagedFirstInstallationProgress>();
+
+        ManagedFirstInstallationResult result = await experience.InstallAndLaunchAsync(
+            Assert.IsType<ManagedFirstInstallationPlan>(prepared.Plan),
+            TestContext.Current.CancellationToken,
+            new InlineProgress<ManagedFirstInstallationProgress>(updates.Add));
+
+        Assert.Equal(ManagedFirstInstallationOutcome.Completed, result.Outcome);
+        Assert.Equal(
+            [
+                ManagedFirstInstallationProgressStage.RevalidatingSource,
+                ManagedFirstInstallationProgressStage.ReadingPackage,
+                ManagedFirstInstallationProgressStage.InstallingPackage,
+                ManagedFirstInstallationProgressStage.FinalizingInstallation,
+                ManagedFirstInstallationProgressStage.StartingApplication,
+            ],
+            updates.Select(static update => update.Stage));
+        Assert.Equal([null, 42, 50, null, null], updates.Select(static update => update.Percent));
+    }
+
+    /// <summary>A presentation observer cannot change installation outcome or ordering.</summary>
+    [Fact]
+    public async Task ThrowingProgressObserverCannotFailInstallation()
+    {
+        string root = Root("throwing-progress");
+        FreshInstallationCandidate candidate = Candidate();
+        SequencedStateStore state = new(
+            MissingState(),
+            MissingState(),
+            BoundState(root, candidate));
+        RecordingRootMaterializer materializer = new(state)
+        {
+            ProgressUpdates =
+            [
+                new(ManagedFirstInstallationProgressStage.ReadingPackage, 1, 2),
+            ],
+        };
+        ManagedFirstInstallationExperience experience = Create(
+            state,
+            new SequencedRootProbe(
+                ManagedInstallationRootStatus.Absent,
+                ManagedInstallationRootStatus.Absent),
+            new RecordingPayloadSource(PayloadIdentity()),
+            new RecordingCandidateSource(candidate),
+            materializer,
+            new SetupBootstrapHandoff(state));
+        ManagedFirstInstallationPlanResult prepared = await experience.PrepareAsync(
+            root,
+            TestContext.Current.CancellationToken);
+
+        ManagedFirstInstallationResult result = await experience.InstallAndLaunchAsync(
+            Assert.IsType<ManagedFirstInstallationPlan>(prepared.Plan),
+            TestContext.Current.CancellationToken,
+            new ThrowingProgress<ManagedFirstInstallationProgress>());
+
+        Assert.Equal(ManagedFirstInstallationOutcome.Completed, result.Outcome);
+        Assert.Equal(1, materializer.MaterializeCount);
     }
 
     /// <summary>Authority drift stops before any root materialization or Bootstrap start.</summary>
@@ -157,13 +297,54 @@ public sealed partial class ManagedFirstInstallationExperienceTests
         Assert.Equal(0, materializer.Transaction.CompleteCount);
     }
 
+    /// <summary>
+    /// Cancellation while durably recording Bootstrap launch is retained at the exact
+    /// post-promotion/pre-record boundary and never starts Bootstrap.
+    /// </summary>
+    [Fact]
+    public async Task RecordBootstrapLaunchCancellationReportsPostPromotionBoundary()
+    {
+        using var cancellation = new CancellationTokenSource();
+        string root = Root("record-launch-cancelled");
+        FreshInstallationCandidate candidate = Candidate();
+        SequencedStateStore state = new(MissingState(), MissingState());
+        RecordingRootMaterializer materializer = new(state);
+        materializer.Transaction.RecordLaunchAction = cancellation.Cancel;
+        SetupBootstrapHandoff handoff = new(state);
+        ManagedFirstInstallationExperience experience = Create(
+            state,
+            new SequencedRootProbe(
+                ManagedInstallationRootStatus.Absent,
+                ManagedInstallationRootStatus.Absent),
+            new RecordingPayloadSource(PayloadIdentity()),
+            new RecordingCandidateSource(candidate),
+            materializer,
+            handoff);
+        ManagedFirstInstallationPlanResult prepared = await experience.PrepareAsync(
+            root,
+            TestContext.Current.CancellationToken);
+
+        ManagedFirstInstallationResult result = await experience.InstallAndLaunchAsync(
+            Assert.IsType<ManagedFirstInstallationPlan>(prepared.Plan),
+            cancellation.Token);
+
+        Assert.Equal(
+            new ManagedFirstInstallationLaunchFailure(
+                ManagedFirstInstallationLaunchStage.PostPromotion,
+                ManagedFirstInstallationLaunchIssue.Cancelled),
+            result.LaunchFailure);
+        Assert.Equal(1, materializer.Transaction.RecordLaunchCount);
+        Assert.Equal(0, handoff.StartCount);
+        Assert.Equal(0, materializer.Transaction.CompleteCount);
+    }
+
     private static ManagedFirstInstallationExperience Create(
         IVersionManagerStateStore state,
         IManagedInstallationRootProbe roots,
         IManagedDistributionPayloadSource payload,
         IFreshInstallationCandidateSource source,
         IManagedFirstInstallationRootMaterializer materializer,
-        IImmutableBootstrapHandoff handoff,
+        IImmutableBootstrapLeaseHandoff handoff,
         TimeSpan? admissionOperationCutoff = null,
         TimeSpan? completionOperationCutoff = null,
         TimeProvider? timeProvider = null)
@@ -282,6 +463,7 @@ public sealed partial class ManagedFirstInstallationExperienceTests
         internal int LeaseAttemptCount { get; private set; }
         internal int LoadCount { get; private set; }
         internal int SaveCount { get; private set; }
+        internal List<string> Events { get; } = [];
 
         [SuppressMessage("Reliability", "CA2000:Dispose objects before losing scope", Justification =
             "Ownership transfers into the returned write-lease result and the coordinator disposes it.")]
@@ -302,9 +484,15 @@ public sealed partial class ManagedFirstInstallationExperienceTests
             Assert.False(LeaseActive);
             LeaseActive = true;
             LeaseCount++;
+            int leaseNumber = LeaseCount;
+            Events.Add($"writer-acquire:{leaseNumber}");
             return ValueTask.FromResult(new VersionManagerWriteLeaseResult(
                 VersionManagerWriteLeaseIssue.None,
-                new ActionLease(() => LeaseActive = false)));
+                new ActionLease(() =>
+                {
+                    LeaseActive = false;
+                    Events.Add($"writer-release:{leaseNumber}");
+                })));
         }
 
         public ValueTask<VersionManagerStateLoadResult> LoadAsync(CancellationToken cancellationToken)
@@ -465,6 +653,7 @@ public sealed partial class ManagedFirstInstallationExperienceTests
         internal int AdmissionCount { get; private set; }
         internal ManagedFirstInstallationMaterializationIssue Issue { get; init; }
         internal int MaterializeCount { get; private set; }
+        internal IReadOnlyList<ManagedFirstInstallationProgress> ProgressUpdates { get; init; } = [];
         internal RecordingPromotedInstallation Transaction { get; } = new(state);
         internal bool ReturnInstallationOnFailure { get; set; }
 
@@ -506,6 +695,44 @@ public sealed partial class ManagedFirstInstallationExperienceTests
                 Transaction,
                 ManagedFirstInstallationMaterializationIssue.None));
         }
+
+        public ValueTask<ManagedFirstInstallationMaterializationResult> MaterializeAsync(
+            string managedRoot,
+            string statePathIdentity,
+            IManagedDistributionPayloadCapture payload,
+            FreshInstallationCandidate candidate,
+            VersionManagerState seed,
+            IProgress<ManagedFirstInstallationProgress>? progress,
+            CancellationToken cancellationToken)
+        {
+            foreach (ManagedFirstInstallationProgress update in ProgressUpdates)
+            {
+                progress?.Report(update);
+            }
+            return MaterializeAsync(
+                managedRoot,
+                statePathIdentity,
+                payload,
+                candidate,
+                seed,
+                cancellationToken);
+        }
+    }
+
+    private sealed class InlineProgress<T>(Action<T> report) : IProgress<T>
+    {
+        public void Report(T value)
+        {
+            report(value);
+        }
+    }
+
+    private sealed class ThrowingProgress<T> : IProgress<T>
+    {
+        public void Report(T value)
+        {
+            throw new InvalidOperationException("Presentation observer must not control installation.");
+        }
     }
 
     private sealed class RecordingPromotedInstallation(SequencedStateStore state)
@@ -514,9 +741,16 @@ public sealed partial class ManagedFirstInstallationExperienceTests
         public string ManagedRoot { get; private set; } = string.Empty;
         public ManagedVersionAdmission Admission { get; private set; } = null!;
         internal int CompleteCount { get; private set; }
+        internal int BootstrapLeaseAcquireCount { get; private set; }
+        internal Action? BootstrapLeaseAcquireAction { get; set; }
+        internal Action? BootstrapLeaseAcquiredAction { get; set; }
+        internal ManagedExecutableLaunchIssue BootstrapLeaseIssue { get; set; }
+        internal ManagedExecutableLaunchLeaseResult? BootstrapLeaseResultOverride { get; set; }
         internal int DisposeCount { get; private set; }
+        internal RecordingExecutableLaunchLease? LastBootstrapLease { get; private set; }
         internal ManagedFirstInstallationTransactionIssue CompleteIssue { get; set; }
         internal int RecordLaunchCount { get; private set; }
+        internal Action? RecordLaunchAction { get; set; }
         internal ManagedFirstInstallationTransactionIssue RecordLaunchIssue { get; set; }
 
         public void Dispose()
@@ -533,10 +767,44 @@ public sealed partial class ManagedFirstInstallationExperienceTests
         public ValueTask<ManagedFirstInstallationTransactionIssue> RecordBootstrapLaunchAsync(
             CancellationToken cancellationToken)
         {
+            RecordLaunchCount++;
+            state.Events.Add("record-bootstrap-launch");
+            RecordLaunchAction?.Invoke();
             cancellationToken.ThrowIfCancellationRequested();
             Assert.True(state.LeaseActive);
-            RecordLaunchCount++;
             return ValueTask.FromResult(RecordLaunchIssue);
+        }
+
+        public ValueTask<ManagedExecutableLaunchLeaseResult> AcquireBootstrapLaunchLeaseAsync(
+            ManagedImmutableBootstrapIdentity expectedIdentity,
+            CancellationToken cancellationToken)
+        {
+            Assert.True(state.LeaseActive);
+            Assert.Equal(Bootstrap, expectedIdentity);
+            Assert.Equal(1, RecordLaunchCount);
+            BootstrapLeaseAcquireCount++;
+            state.Events.Add("acquire-bootstrap-lease");
+            BootstrapLeaseAcquireAction?.Invoke();
+            cancellationToken.ThrowIfCancellationRequested();
+            if (BootstrapLeaseResultOverride is not null)
+            {
+                LastBootstrapLease = BootstrapLeaseResultOverride.Lease as
+                    RecordingExecutableLaunchLease;
+                return ValueTask.FromResult(BootstrapLeaseResultOverride);
+            }
+            if (BootstrapLeaseIssue != ManagedExecutableLaunchIssue.None)
+            {
+                return ValueTask.FromResult(new ManagedExecutableLaunchLeaseResult(
+                    null,
+                    BootstrapLeaseIssue));
+            }
+            LastBootstrapLease = new RecordingExecutableLaunchLease(
+                Path.Combine(ManagedRoot, expectedIdentity.FileName),
+                ManagedRoot);
+            BootstrapLeaseAcquiredAction?.Invoke();
+            return ValueTask.FromResult(new ManagedExecutableLaunchLeaseResult(
+                LastBootstrapLease,
+                ManagedExecutableLaunchIssue.None));
         }
 
         public ValueTask<ManagedFirstInstallationTransactionIssue> CompleteAsync(
@@ -545,43 +813,118 @@ public sealed partial class ManagedFirstInstallationExperienceTests
             cancellationToken.ThrowIfCancellationRequested();
             Assert.True(state.LeaseActive);
             CompleteCount++;
+            state.Events.Add("complete");
             return ValueTask.FromResult(CompleteIssue);
         }
     }
 
+    private sealed class RecordingExecutableLaunchLease(
+        string executablePath,
+        string workingDirectory) : IManagedExecutableLaunchLease
+    {
+        internal bool Disposed { get; private set; }
+        public string ExecutablePath => executablePath;
+        public string WorkingDirectory => workingDirectory;
+        public bool TryValidateForStart()
+        {
+            return !Disposed;
+        }
+
+        public void Dispose()
+        {
+            Disposed = true;
+        }
+    }
+
+    [SuppressMessage("Reliability", "CA2000:Dispose objects before losing scope", Justification =
+        "Ownership transfers through the returned Bootstrap start receipt and its launch wrapper.")]
+    private static ImmutableBootstrapStartResult StartResultOwningLease(
+        IImmutableBootstrapLaunch launch,
+        IManagedExecutableLaunchLease ownedLease,
+        ImmutableBootstrapStartIssue issue = ImmutableBootstrapStartIssue.None)
+    {
+        return new(new LeaseOwningBootstrapLaunch(launch, ownedLease), issue);
+    }
+
+    private sealed class LeaseOwningBootstrapLaunch(
+        IImmutableBootstrapLaunch launch,
+        IManagedExecutableLaunchLease ownedLease) : IImmutableBootstrapLaunch
+    {
+        public ValueTask<ImmutableBootstrapAdmissionResult> WaitForAdmissionAsync(
+            ImmutableBootstrapWaitBudget budget,
+            CancellationToken cancellationToken)
+        {
+            return launch.WaitForAdmissionAsync(budget, cancellationToken);
+        }
+
+        public ValueTask<ImmutableBootstrapCompletionResult> WaitForCompletionAsync(
+            ImmutableBootstrapWaitBudget budget,
+            CancellationToken cancellationToken)
+        {
+            return launch.WaitForCompletionAsync(budget, cancellationToken);
+        }
+
+        public void Dispose()
+        {
+            try
+            {
+                launch.Dispose();
+            }
+            finally
+            {
+                ownedLease.Dispose();
+            }
+        }
+    }
+
     private sealed class SetupBootstrapHandoff(SequencedStateStore state)
-        : IImmutableBootstrapHandoff
+        : IImmutableBootstrapLeaseHandoff
     {
         internal Action? AdmissionAction { get; set; }
         internal Action<ImmutableBootstrapWaitBudget>? AdmissionBudgetObserved { get; set; }
         internal ImmutableBootstrapAdmissionOutcome AdmissionOutcome { get; set; } =
             ImmutableBootstrapAdmissionOutcome.Admitted;
+        internal int? AdmissionExitCode { get; set; }
+        internal ImmutableBootstrapExitIssue AdmissionExitIssue { get; set; }
         internal Action? CompletionAction { get; set; }
         internal ImmutableBootstrapCompletionOutcome CompletionOutcome { get; set; } =
             ImmutableBootstrapCompletionOutcome.Ready;
+        internal int? CompletionExitCode { get; set; } = 0;
+        internal ImmutableBootstrapExitIssue CompletionExitIssue { get; set; }
         internal bool IgnoreAdmissionCancellation { get; set; }
         internal SetupBootstrapLaunch? LastLaunch { get; private set; }
         internal Action? StartAction { get; set; }
         internal ImmutableBootstrapStartIssue StartIssue { get; set; }
         internal int StartCount { get; private set; }
+        internal IManagedExecutableLaunchLease? ReceivedLease { get; private set; }
 
         [SuppressMessage("Reliability", "CA2000:Dispose objects before losing scope", Justification =
             "Ownership transfers into the returned launch receipt and the coordinator disposes it.")]
         public ValueTask<ImmutableBootstrapStartResult> StartAsync(
             string managedRoot,
             ManagedImmutableBootstrapIdentity expectedIdentity,
+            IManagedExecutableLaunchLease ownedLease,
             CancellationToken cancellationToken)
         {
             cancellationToken.ThrowIfCancellationRequested();
             Assert.False(state.LeaseActive);
             Assert.Equal(Bootstrap, expectedIdentity);
+            Assert.True(ownedLease.TryValidateForStart());
+            ReceivedLease = ownedLease;
+            state.Events.Add("handoff-owned-lease");
             StartAction?.Invoke();
             StartCount++;
             if (StartIssue == ImmutableBootstrapStartIssue.None)
             {
                 LastLaunch = new SetupBootstrapLaunch(
+                        state,
+                        ownedLease,
                         AdmissionOutcome,
+                        AdmissionExitCode,
+                        AdmissionExitIssue,
                         CompletionOutcome,
+                        CompletionExitCode,
+                        CompletionExitIssue,
                         AdmissionAction,
                         CompletionAction,
                         AdmissionBudgetObserved,
@@ -590,13 +933,20 @@ public sealed partial class ManagedFirstInstallationExperienceTests
                     LastLaunch,
                     ImmutableBootstrapStartIssue.None));
             }
+            ownedLease.Dispose();
             return ValueTask.FromResult(new ImmutableBootstrapStartResult(null, StartIssue));
         }
     }
 
     private sealed class SetupBootstrapLaunch(
+        SequencedStateStore state,
+        IManagedExecutableLaunchLease ownedLease,
         ImmutableBootstrapAdmissionOutcome admissionOutcome,
+        int? admissionExitCode,
+        ImmutableBootstrapExitIssue admissionExitIssue,
         ImmutableBootstrapCompletionOutcome completionOutcome,
+        int? completionExitCode,
+        ImmutableBootstrapExitIssue completionExitIssue,
         Action? admissionAction,
         Action? completionAction,
         Action<ImmutableBootstrapWaitBudget>? admissionBudgetObserved,
@@ -614,8 +964,11 @@ public sealed partial class ManagedFirstInstallationExperienceTests
             }
             admissionBudgetObserved?.Invoke(budget);
             admissionAction?.Invoke();
+            state.Events.Add("admitted");
             return ValueTask.FromResult(new ImmutableBootstrapAdmissionResult(
-                admissionOutcome));
+                admissionOutcome,
+                admissionExitCode,
+                admissionExitIssue));
         }
 
         public ValueTask<ImmutableBootstrapCompletionResult> WaitForCompletionAsync(
@@ -624,13 +977,17 @@ public sealed partial class ManagedFirstInstallationExperienceTests
         {
             cancellationToken.ThrowIfCancellationRequested();
             completionAction?.Invoke();
+            state.Events.Add("ready");
             return ValueTask.FromResult(new ImmutableBootstrapCompletionResult(
-                completionOutcome));
+                completionOutcome,
+                completionExitCode,
+                completionExitIssue));
         }
 
         public void Dispose()
         {
             Disposed = true;
+            ownedLease.Dispose();
         }
     }
 }

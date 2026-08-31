@@ -44,6 +44,25 @@ public sealed partial class ManagedDistributionLauncherRuntimeTests
                 Hash("immutable-bootstrap"u8)));
     }
 
+    private static async Task<ManagedDistributionPayloadIdentity> PayloadIdentityAsync(
+        string bootstrapSource)
+    {
+        byte[] bootstrap = await File.ReadAllBytesAsync(
+            bootstrapSource,
+            TestContext.Current.CancellationToken);
+        return new(
+            ManagedAppVersion.Parse("1.0.4"),
+            new string('c', 40),
+            "distribution-launcher"u8.Length,
+            Hash("distribution-launcher"u8),
+            512,
+            HashA,
+            new ManagedImmutableBootstrapIdentity(
+                "NvtFwCombiner.Bootstrap.exe",
+                bootstrap.LongLength,
+                Hash(bootstrap)));
+    }
+
     private static byte[] PayloadDescriptor(byte[] bootstrap)
     {
         return PayloadDescriptor(bootstrap.LongLength, Hash(bootstrap));
@@ -114,14 +133,17 @@ public sealed partial class ManagedDistributionLauncherRuntimeTests
             new VerifiedUpdateCandidate(package.Version, package.Identity, package.ReleaseNotes));
     }
 
-    private static FreshInstallationCandidate RealPackageCandidate(string parent)
+    private static FreshInstallationCandidate RealPackageCandidate(
+        string parent,
+        bool useStandaloneLauncherProbe = false)
     {
         string sourceRoot = Path.Combine(parent, "source-real");
         _ = Directory.CreateDirectory(sourceRoot);
         UpdateCatalogVersionSnapshot package = FileSystemManagedVersionRepositoryTests.CreatePackageForManagedSetup(
             sourceRoot,
             "1.0.4",
-            includeManagedLauncher: true);
+            includeManagedLauncher: true,
+            useStandaloneLauncherProbe: useStandaloneLauncherProbe);
         var identity = new FreshInstallationCandidateIdentity(
             "nvt-fw-combiner-production",
             1,
@@ -157,7 +179,8 @@ public sealed partial class ManagedDistributionLauncherRuntimeTests
 
     private sealed class TestPayloadCapture(
         ManagedDistributionPayloadIdentity identity,
-        string launcherContent = "distribution-launcher")
+        string launcherContent = "distribution-launcher",
+        string? bootstrapSource = null)
         : IManagedDistributionPayloadCapture, IManagedDistributionPayloadContent
     {
         public ManagedDistributionPayloadIdentity Identity => identity;
@@ -166,7 +189,9 @@ public sealed partial class ManagedDistributionLauncherRuntimeTests
         public ValueTask CopyBootstrapAsync(string destination, CancellationToken cancellationToken)
         {
             CopyCount++;
-            return new(File.WriteAllTextAsync(destination, "immutable-bootstrap", cancellationToken));
+            return bootstrapSource is null
+                ? new(File.WriteAllTextAsync(destination, "immutable-bootstrap", cancellationToken))
+                : CopyFileAsync(bootstrapSource, destination, cancellationToken);
         }
 
         public ValueTask CopyDistributionLauncherAsync(
@@ -179,6 +204,28 @@ public sealed partial class ManagedDistributionLauncherRuntimeTests
 
         public void Dispose()
         {
+        }
+
+        private static async ValueTask CopyFileAsync(
+            string source,
+            string destination,
+            CancellationToken cancellationToken)
+        {
+            await using FileStream input = new(
+                source,
+                FileMode.Open,
+                FileAccess.Read,
+                FileShare.Read,
+                bufferSize: 64 * 1024,
+                FileOptions.Asynchronous | FileOptions.SequentialScan);
+            await using FileStream output = new(
+                destination,
+                FileMode.CreateNew,
+                FileAccess.Write,
+                FileShare.None,
+                bufferSize: 64 * 1024,
+                FileOptions.Asynchronous | FileOptions.SequentialScan);
+            await input.CopyToAsync(output, cancellationToken);
         }
     }
 

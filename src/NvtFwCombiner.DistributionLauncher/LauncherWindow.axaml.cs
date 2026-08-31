@@ -2,6 +2,7 @@ using Avalonia.Controls;
 using Avalonia.Input;
 using Avalonia.Interactivity;
 using Avalonia.Platform.Storage;
+using System.Diagnostics.CodeAnalysis;
 using NvtFwCombiner.Application.VersionManagement;
 using NvtFwCombiner.Bootstrap;
 
@@ -15,6 +16,7 @@ internal sealed partial class LauncherWindow : Window, IDisposable
     private readonly CancellationTokenSource _lifetime = new();
     private string _candidateRoot;
     private bool _disposed;
+    private bool _operationProgressActive;
     private ManagedFirstInstallationPlan? _installationPlan;
     private ManagedSetupRecoveryPlan? _recoveryPlan;
 
@@ -155,21 +157,23 @@ internal sealed partial class LauncherWindow : Window, IDisposable
             if (_installationPlan is { } installation)
             {
                 SetBusy(true, "Installing verified version…");
+                SetOperationProgress(true);
+                var progress = new Progress<ManagedFirstInstallationProgress>(PresentOperationProgressSafely);
                 ManagedFirstInstallationResult result = await _setup!
-                    .InstallAndLaunchAsync(installation, _lifetime.Token);
-                if (result.Outcome == ManagedFirstInstallationOutcome.Completed)
+                    .InstallAndLaunchAsync(installation, _lifetime.Token, progress);
+                if (result.Outcome == ManagedFirstInstallationOutcome.Completed &&
+                    result.LaunchFailure is null)
                 {
                     _complete((int)DistributionLauncherExitCode.LaunchInstalled);
                     return;
                 }
-                OutcomeText.Text = Describe(result.Outcome);
-                PrimaryButton.IsEnabled = true;
-                EditLocationButton.IsEnabled = true;
+                PresentInstallationResult(result);
                 return;
             }
             if (_recoveryPlan is { } recovery)
             {
                 SetBusy(true, "Applying the approved recovery action…");
+                SetOperationProgress(true);
                 ManagedDistributionLauncherRecoveryExecutionResult result = await _recovery!
                     .ExecuteAsync(
                         recovery,
@@ -205,6 +209,10 @@ internal sealed partial class LauncherWindow : Window, IDisposable
         catch (OperationCanceledException) when (_lifetime.IsCancellationRequested)
         {
         }
+        finally
+        {
+            SetOperationProgress(false);
+        }
     }
 
     private void SetBusy(bool busy, string status)
@@ -221,8 +229,53 @@ internal sealed partial class LauncherWindow : Window, IDisposable
         }
     }
 
+    private void SetOperationProgress(bool isRunning)
+    {
+        _operationProgressActive = isRunning;
+        OperationProgressPanel.IsVisible = isRunning;
+        OperationProgressText.IsVisible = isRunning;
+        OperationProgressBar.IsVisible = isRunning;
+        OperationProgressBar.IsIndeterminate = isRunning;
+        OperationProgressBar.Value = 0;
+        OperationProgressText.Text = isRunning
+            ? _recovery is null
+                ? "Preparing installation…"
+                : "Applying recovery…"
+            : string.Empty;
+    }
+
+    private void PresentOperationProgress(ManagedFirstInstallationProgress progress)
+    {
+        if (!_operationProgressActive)
+        {
+            return;
+        }
+        OperationProgressPanel.IsVisible = true;
+        OperationProgressText.IsVisible = true;
+        OperationProgressBar.IsVisible = true;
+        OperationProgressText.Text = Describe(progress);
+        OperationProgressBar.IsIndeterminate = progress.Percent is null;
+        OperationProgressBar.Value = progress.Percent ?? 0;
+    }
+
+    [SuppressMessage(
+        "Design",
+        "CA1031:Do not catch general exception types",
+        Justification = "Queued progress presentation is non-authoritative and cannot change installation.")]
+    private void PresentOperationProgressSafely(ManagedFirstInstallationProgress progress)
+    {
+        try
+        {
+            PresentOperationProgress(progress);
+        }
+        catch (Exception)
+        {
+        }
+    }
+
     private void Close_Click(object? sender, RoutedEventArgs e)
     {
+        SetOperationProgress(false);
         _complete((int)(_recovery is null
             ? DistributionLauncherExitCode.SetupRequired
             : DistributionLauncherExitCode.RecoveryRequired));
@@ -258,6 +311,145 @@ internal sealed partial class LauncherWindow : Window, IDisposable
             ManagedFirstInstallationOutcome.Cancelled => "The operation was cancelled.",
             _ => throw new InvalidOperationException("Setup returned an undefined outcome."),
         };
+    }
+
+    internal static string Describe(ManagedFirstInstallationProgress progress)
+    {
+        string stage = progress.Stage switch
+        {
+            ManagedFirstInstallationProgressStage.RevalidatingSource => "Checking verified source",
+            ManagedFirstInstallationProgressStage.ReadingPackage => "Downloading update package",
+            ManagedFirstInstallationProgressStage.VerifyingPackage => "Verifying package",
+            ManagedFirstInstallationProgressStage.InstallingPackage => "Installing files",
+            ManagedFirstInstallationProgressStage.VerifyingInstallation => "Verifying installation",
+            ManagedFirstInstallationProgressStage.FinalizingInstallation => "Finalizing installation",
+            ManagedFirstInstallationProgressStage.StartingApplication => "Starting NVT FW Combiner",
+            _ => throw new InvalidOperationException("Setup returned an undefined progress stage."),
+        };
+        return progress.Percent is { } percent
+            ? $"{stage} — {percent}%"
+            : stage + "…";
+    }
+
+    internal static string Describe(ManagedFirstInstallationResult result)
+    {
+        ArgumentNullException.ThrowIfNull(result);
+        return HasValidResultShape(result)
+            ? result.LaunchFailure is { } failure
+                ? Describe(failure)
+                : Describe(result.Outcome)
+            : "Setup returned an invalid post-install result. " +
+                "Close Setup, then reopen the Launcher to run recovery.";
+    }
+
+    internal void PresentInstallationResult(ManagedFirstInstallationResult result)
+    {
+        ArgumentNullException.ThrowIfNull(result);
+        OutcomeText.Text = Describe(result);
+        if (!HasValidResultShape(result) || result.IsRecoveryOwned)
+        {
+            _installationPlan = null;
+            SourceStatusText.Text = "●  Recovery required";
+            PrimaryButton.Content = "Recovery required";
+            PrimaryButton.IsEnabled = false;
+            EditLocationButton.IsEnabled = false;
+            return;
+        }
+        PrimaryButton.IsEnabled = true;
+        EditLocationButton.IsEnabled = true;
+    }
+
+    private static bool HasValidResultShape(ManagedFirstInstallationResult result)
+    {
+        return result.HasValidShape;
+    }
+
+    private static string Describe(ManagedFirstInstallationLaunchFailure failure)
+    {
+        string stage = failure.Stage switch
+        {
+            ManagedFirstInstallationLaunchStage.BootstrapStart => "Bootstrap start failed",
+            ManagedFirstInstallationLaunchStage.LauncherAdmission => "Launcher admission failed",
+            ManagedFirstInstallationLaunchStage.ApplicationReady => "Application READY failed",
+            ManagedFirstInstallationLaunchStage.PostPromotion => "Post-install launch stopped",
+            ManagedFirstInstallationLaunchStage.None => throw new InvalidOperationException(
+                "Setup returned a launch failure without a stage."),
+            _ => throw new InvalidOperationException("Setup returned an undefined launch-failure stage."),
+        };
+        string exit = failure.ExitCode is { } exitCode
+            ? $" Bootstrap exit code: {exitCode}."
+            : string.Empty;
+        return $"{stage}: {DescribeReason(failure.Issue)}{exit} {DescribeRecoveryAction(failure.ExitCode)}";
+    }
+
+    private static string DescribeReason(ManagedFirstInstallationLaunchIssue issue)
+    {
+        return issue switch
+        {
+            ManagedFirstInstallationLaunchIssue.TimedOut => "the bounded operation timed out.",
+            ManagedFirstInstallationLaunchIssue.InvalidReceipt =>
+                "the Bootstrap process returned an invalid result receipt.",
+            ManagedFirstInstallationLaunchIssue.Busy =>
+                "another NVT FW Combiner process owns the launch transaction.",
+            ManagedFirstInstallationLaunchIssue.Damaged =>
+                "the immutable Bootstrap failed verification.",
+            ManagedFirstInstallationLaunchIssue.StartFailed =>
+                "the required process could not be started.",
+            ManagedFirstInstallationLaunchIssue.Unavailable =>
+                "the process result could not be observed safely.",
+            ManagedFirstInstallationLaunchIssue.RecoveryRequired =>
+                "the installed state requires recovery.",
+            ManagedFirstInstallationLaunchIssue.LaunchFailed =>
+                "Bootstrap could not start the exact version Launcher.",
+            ManagedFirstInstallationLaunchIssue.HealthUnavailable =>
+                "pre-launch health could not be observed safely.",
+            ManagedFirstInstallationLaunchIssue.InvalidState =>
+                "the managed version state is invalid.",
+            ManagedFirstInstallationLaunchIssue.ManagedRootMismatch =>
+                "the version state belongs to a different managed root.",
+            ManagedFirstInstallationLaunchIssue.MutationPending =>
+                "an application mutation transaction is still pending.",
+            ManagedFirstInstallationLaunchIssue.DamagedLauncher =>
+                "the installed version Launcher failed verification.",
+            ManagedFirstInstallationLaunchIssue.ProtocolMismatch =>
+                "the installed Launcher protocol is incompatible.",
+            ManagedFirstInstallationLaunchIssue.RollbackUnavailable =>
+                "no verified last-known-good rollback is available.",
+            ManagedFirstInstallationLaunchIssue.StateChanged =>
+                "the version state changed during launch.",
+            ManagedFirstInstallationLaunchIssue.StateUnavailable =>
+                "the version state could not be read or persisted.",
+            ManagedFirstInstallationLaunchIssue.InvalidArguments =>
+                "Bootstrap received invalid launch arguments.",
+            ManagedFirstInstallationLaunchIssue.InvariantViolation =>
+                "Bootstrap rejected an internal launch invariant.",
+            ManagedFirstInstallationLaunchIssue.InvalidInheritedContext =>
+                "Bootstrap inherited an incomplete process context.",
+            ManagedFirstInstallationLaunchIssue.StartNotAuthorized =>
+                "the inherited start gate did not authorize Bootstrap.",
+            ManagedFirstInstallationLaunchIssue.UndefinedFailure =>
+                "Bootstrap returned its reserved undefined-failure result.",
+            ManagedFirstInstallationLaunchIssue.UnknownExit =>
+                "Bootstrap returned an unrecognized failure result.",
+            ManagedFirstInstallationLaunchIssue.TerminationUnconfirmed =>
+                "the launched process tree could not be proven terminated.",
+            ManagedFirstInstallationLaunchIssue.RolledBack =>
+                "only the previous last-known-good version reported READY.",
+            ManagedFirstInstallationLaunchIssue.Cancelled =>
+                "the operation was cancelled after the install root was promoted.",
+            ManagedFirstInstallationLaunchIssue.None => throw new InvalidOperationException(
+                "Setup returned a launch failure without a reason."),
+            _ => throw new InvalidOperationException("Setup returned an undefined launch-failure reason."),
+        };
+    }
+
+    private static string DescribeRecoveryAction(int? exitCode)
+    {
+        return exitCode is null
+            ? "Close Setup, then reopen the Launcher to run recovery; " +
+                "if recovery fails, report this stage."
+            : "Close Setup, then reopen the Launcher to run recovery; " +
+                "if recovery fails, report this stage and exit code.";
     }
 
     private static string Describe(ManagedSetupRecoveryOutcome outcome)

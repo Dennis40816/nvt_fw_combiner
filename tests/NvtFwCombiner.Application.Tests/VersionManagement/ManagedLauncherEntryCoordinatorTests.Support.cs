@@ -184,6 +184,7 @@ public sealed partial class ManagedLauncherEntryCoordinatorTests
         }
 
         internal int StartCount { get; private set; }
+        internal Action? StartAction { get; set; }
         internal string? LastRoot { get; private set; }
         internal ManagedImmutableBootstrapIdentity? LastIdentity { get; private set; }
         internal Action? AdmissionAction { get; set; }
@@ -199,6 +200,7 @@ public sealed partial class ManagedLauncherEntryCoordinatorTests
         {
             cancellationToken.ThrowIfCancellationRequested();
             StartCount++;
+            StartAction?.Invoke();
             LastRoot = managedRoot;
             LastIdentity = expectedIdentity;
             return ValueTask.FromResult(_completionOutcome is { } completion
@@ -230,7 +232,7 @@ public sealed partial class ManagedLauncherEntryCoordinatorTests
         {
             cancellationToken.ThrowIfCancellationRequested();
             admissionWaited?.Invoke();
-            return ValueTask.FromResult(new ImmutableBootstrapAdmissionResult(admission));
+            return ValueTask.FromResult(AdmissionResult(admission));
         }
 
         public ValueTask<ImmutableBootstrapCompletionResult> WaitForCompletionAsync(
@@ -239,11 +241,59 @@ public sealed partial class ManagedLauncherEntryCoordinatorTests
         {
             cancellationToken.ThrowIfCancellationRequested();
             completionWaited();
-            return ValueTask.FromResult(new ImmutableBootstrapCompletionResult(outcome));
+            return ValueTask.FromResult(CompletionResult(outcome));
         }
 
         public void Dispose()
         {
+        }
+
+        private static ImmutableBootstrapAdmissionResult AdmissionResult(
+            ImmutableBootstrapAdmissionOutcome outcome)
+        {
+            return outcome switch
+            {
+                ImmutableBootstrapAdmissionOutcome.Admitted or
+                ImmutableBootstrapAdmissionOutcome.HealthUnavailable => new(outcome),
+                ImmutableBootstrapAdmissionOutcome.LaunchFailed => new(
+                    outcome,
+                    ExitIssue: ImmutableBootstrapExitIssue.StartFailed),
+                ImmutableBootstrapAdmissionOutcome.Busy => new(
+                    outcome,
+                    ImmutableBootstrapExitCodeCodec.EncodeFailure(ImmutableBootstrapExitIssue.Busy),
+                    ImmutableBootstrapExitIssue.Busy),
+                ImmutableBootstrapAdmissionOutcome.RecoveryRequired => new(
+                    outcome,
+                    ImmutableBootstrapExitCodeCodec.EncodeFailure(ImmutableBootstrapExitIssue.InvalidState),
+                    ImmutableBootstrapExitIssue.InvalidState),
+                ImmutableBootstrapAdmissionOutcome.TerminationUnconfirmed => new(
+                    outcome,
+                    ExitIssue: ImmutableBootstrapExitIssue.TerminationUnconfirmed),
+                _ => throw new ArgumentOutOfRangeException(nameof(outcome), outcome, null),
+            };
+        }
+
+        private static ImmutableBootstrapCompletionResult CompletionResult(
+            ImmutableBootstrapCompletionOutcome outcome)
+        {
+            return outcome switch
+            {
+                ImmutableBootstrapCompletionOutcome.Ready => new(
+                    outcome,
+                    ImmutableBootstrapExitCodeCodec.Ready),
+                ImmutableBootstrapCompletionOutcome.RolledBack => new(
+                    outcome,
+                    ImmutableBootstrapExitCodeCodec.RolledBack),
+                ImmutableBootstrapCompletionOutcome.Failed => new(
+                    outcome,
+                    ImmutableBootstrapExitCodeCodec.EncodeFailure(ImmutableBootstrapExitIssue.StartFailed),
+                    ImmutableBootstrapExitIssue.StartFailed),
+                ImmutableBootstrapCompletionOutcome.Unavailable => new(outcome),
+                ImmutableBootstrapCompletionOutcome.TerminationUnconfirmed => new(
+                    outcome,
+                    ExitIssue: ImmutableBootstrapExitIssue.TerminationUnconfirmed),
+                _ => throw new ArgumentOutOfRangeException(nameof(outcome), outcome, null),
+            };
         }
     }
 
@@ -325,7 +375,10 @@ public sealed partial class ManagedLauncherEntryCoordinatorTests
 
         internal void Complete(ImmutableBootstrapCompletionOutcome outcome)
         {
-            _ = _completion.TrySetResult(new ImmutableBootstrapCompletionResult(outcome));
+            Assert.Equal(ImmutableBootstrapCompletionOutcome.Ready, outcome);
+            _ = _completion.TrySetResult(new ImmutableBootstrapCompletionResult(
+                outcome,
+                ImmutableBootstrapExitCodeCodec.Ready));
         }
 
         [SuppressMessage("Reliability", "CA2000:Dispose objects before losing scope", Justification =
@@ -421,7 +474,8 @@ public sealed partial class ManagedLauncherEntryCoordinatorTests
             {
                 owner.CompletionWaitCount++;
                 return ValueTask.FromResult(new ImmutableBootstrapCompletionResult(
-                    ImmutableBootstrapCompletionOutcome.Ready));
+                    ImmutableBootstrapCompletionOutcome.Ready,
+                    ImmutableBootstrapExitCodeCodec.Ready));
             }
 
             public void Dispose()
@@ -469,7 +523,9 @@ public sealed partial class ManagedLauncherEntryCoordinatorTests
                 owner.CompletedAttemptCount++;
                 await Task.Delay(duration, cancellationToken);
                 owner.CompletedAttemptCount++;
-                return new(ImmutableBootstrapCompletionOutcome.RolledBack);
+                return new(
+                    ImmutableBootstrapCompletionOutcome.RolledBack,
+                    ImmutableBootstrapExitCodeCodec.RolledBack);
             }
 
             public void Dispose()

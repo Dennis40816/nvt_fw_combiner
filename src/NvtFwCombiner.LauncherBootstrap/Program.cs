@@ -1,3 +1,4 @@
+using NvtFwCombiner.Application.VersionManagement;
 using NvtFwCombiner.Infrastructure.VersionManagement;
 
 namespace NvtFwCombiner.LauncherBootstrap;
@@ -20,11 +21,13 @@ internal static class Program
         }
         catch (ArgumentException)
         {
-            return 20;
+            return ImmutableBootstrapExitCodeCodec.EncodeFailure(
+                ImmutableBootstrapExitIssue.InvalidArguments);
         }
         catch (InvalidOperationException)
         {
-            return 21;
+            return ImmutableBootstrapExitCodeCodec.EncodeFailure(
+                ImmutableBootstrapExitIssue.InvariantViolation);
         }
     }
 

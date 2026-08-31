@@ -163,6 +163,34 @@ if (lifetime.Outcome != InheritedManagedProcessLifetimeOutcome.Captured)
 {
     return 24;
 }
+if (string.Equals(behavior, "bootstrap-exit-22", StringComparison.Ordinal))
+{
+    string marker = Environment.GetEnvironmentVariable("NVT_READY_PROBE_TREE_MARKER") ??
+        throw new InvalidOperationException("Missing exit marker.");
+    await File.WriteAllTextAsync(
+        marker,
+        Environment.ProcessId.ToString(CultureInfo.InvariantCulture));
+    return ImmutableBootstrapExitCodeCodec.EncodeFailure(
+        ImmutableBootstrapExitIssue.InvalidInheritedContext);
+}
+if (string.Equals(behavior, "bootstrap-eof-before-exit-18", StringComparison.Ordinal))
+{
+    string marker = Environment.GetEnvironmentVariable("NVT_READY_PROBE_TREE_MARKER") ??
+        throw new InvalidOperationException("Missing exit marker.");
+    await File.WriteAllTextAsync(
+        marker,
+        Environment.ProcessId.ToString(CultureInfo.InvariantCulture));
+    string release = marker + ".release";
+    long deadline = Environment.TickCount64 + 5_000;
+    while (!File.Exists(release) && Environment.TickCount64 < deadline)
+    {
+        await Task.Delay(10);
+    }
+    return File.Exists(release)
+        ? ImmutableBootstrapExitCodeCodec.EncodeFailure(
+            ImmutableBootstrapExitIssue.StateUnavailable)
+        : 25;
+}
 if (string.Equals(behavior, "launcher-identity-observation", StringComparison.Ordinal))
 {
     string marker = Environment.GetEnvironmentVariable(identityMarkerKey) ??

@@ -321,6 +321,11 @@ CI_DOTNET_SHARDS: dict[str, tuple[CiDotnetProject, ...]] = {
         ),
     ),
 }
+INFRASTRUCTURE_TEST_PROJECT = "NvtFwCombiner.Infrastructure.Tests"
+INFRASTRUCTURE_VSTEST_SETTINGS = (
+    "xUnit.ParallelizeTestCollections=false",
+    "xUnit.MaxParallelThreads=1",
+)
 
 
 def remaining_timeout(timeout_seconds: float | None = None) -> float | None:
@@ -1183,7 +1188,7 @@ def local_dotnet_vstest_command(
 ) -> list[str]:
     """Build one unfiltered shadow-assembly command with paired coverage evidence."""
 
-    return [
+    command = [
         dotnet,
         "vstest",
         str(test_assembly),
@@ -1194,6 +1199,9 @@ def local_dotnet_vstest_command(
         "--",
         "DataCollectionRunSettings.DataCollectors.DataCollector.Configuration.Format=json,cobertura",
     ]
+    if test_assembly.stem == INFRASTRUCTURE_TEST_PROJECT:
+        command.extend(INFRASTRUCTURE_VSTEST_SETTINGS)
+    return command
 
 
 def dotnet_vstest_discovery_command(dotnet: str, test_assembly: Path) -> list[str]:
@@ -1276,17 +1284,32 @@ def parse_trx_test_outcomes(path: Path) -> dict[str, Counter[str]]:
     """Read exact TRX test identities grouped by their terminal outcome."""
 
     try:
-        results = ET.parse(path).findall(".//{*}UnitTestResult")
+        document = ET.parse(path)
     except ET.ParseError as error:
         raise RuntimeError(f"TRX result is invalid XML: {path}") from error
+    results = document.findall(".//{*}UnitTestResult")
     if not results:
         raise RuntimeError(f"TRX result has no test identities: {path}")
+    definitions: dict[str, list[str]] = {}
+    for definition in document.findall(".//{*}UnitTest"):
+        test_id = definition.attrib.get("id", "").strip()
+        identity = definition.attrib.get("name", "").strip()
+        if test_id and identity:
+            definitions.setdefault(test_id, []).append(identity)
     outcomes = {name: Counter() for name in ("Passed", "Failed", "NotExecuted")}
     for result in results:
         identity = result.attrib.get("testName", "").strip()
         outcome = result.attrib.get("outcome", "").strip()
         if not identity or outcome not in outcomes:
             raise RuntimeError(f"TRX result has an unsupported test outcome: {path}")
+        if re.fullmatch(r"<unknown test ID [0-9a-f]{64}>", identity):
+            test_id = result.attrib.get("testId", "").strip()
+            candidates = definitions.get(test_id, [])
+            if len(candidates) != 1:
+                raise RuntimeError(
+                    f"TRX placeholder identity has no unique test definition: {path}"
+                )
+            identity = candidates[0]
         outcomes[outcome][canonical_vstest_identity(identity)] += 1
     return outcomes
 
@@ -1779,7 +1802,7 @@ def ci_dotnet_test_command(
 ) -> list[str]:
     """Execute one prebuilt Release project with paired coverage/TRX evidence."""
 
-    return [
+    command = [
         dotnet,
         "test",
         str(ROOT / project.relative_path),
@@ -1795,6 +1818,9 @@ def ci_dotnet_test_command(
         "--",
         "DataCollectionRunSettings.DataCollectors.DataCollector.Configuration.Format=json,cobertura",
     ]
+    if project.name == INFRASTRUCTURE_TEST_PROJECT:
+        command.extend(INFRASTRUCTURE_VSTEST_SETTINGS)
+    return command
 
 
 def require_ci_source_sha() -> str:
@@ -3204,6 +3230,15 @@ def execute_verification(args: argparse.Namespace) -> int:
                 lane_timeout_seconds=args.lane_timeout_seconds,
             )
             lanes = tuple(lane for lane in lanes if lane.name != "structure")
+        if any(lane.name == "python" for lane in lanes) and any(
+            lane.name == "dotnet" for lane in lanes
+        ):
+            run_selected_lanes(
+                tuple(lane for lane in lanes if lane.name == "python"),
+                jobs=args.jobs,
+                lane_timeout_seconds=args.lane_timeout_seconds,
+            )
+            lanes = tuple(lane for lane in lanes if lane.name != "python")
         run_selected_lanes(
             lanes,
             jobs=args.jobs,

@@ -1,3 +1,5 @@
+using System.Diagnostics.CodeAnalysis;
+
 namespace NvtFwCombiner.Application.VersionManagement;
 
 /// <summary>Single Application owner for genuinely-absent first installation.</summary>
@@ -6,10 +8,15 @@ public sealed class ManagedFirstInstallationExperience
     /// <summary>Bounded wait for the canonical cross-process state writer.</summary>
     public static readonly TimeSpan WriterLeaseTimeout = TimeSpan.FromSeconds(5);
 
+    /// <summary>
+    /// Bounded first-install admission wait, including initial state seeding and package inventory.
+    /// </summary>
+    public static readonly TimeSpan DefaultAdmissionOperationCutoff = TimeSpan.FromSeconds(30);
+
     private readonly IFreshInstallationCandidateSource _candidateSource;
     private readonly TimeSpan _admissionOperationCutoff;
     private readonly TimeSpan _completionOperationCutoff;
-    private readonly IImmutableBootstrapHandoff _handoff;
+    private readonly IImmutableBootstrapLeaseHandoff _handoff;
     private readonly IManagedDistributionPayloadSource _payloadSource;
     private readonly IManagedInstallationRootProbe _rootProbe;
     private readonly IManagedFirstInstallationRootMaterializer _rootMaterializer;
@@ -25,7 +32,7 @@ public sealed class ManagedFirstInstallationExperience
         IManagedDistributionPayloadSource payloadSource,
         IFreshInstallationCandidateSource candidateSource,
         IManagedFirstInstallationRootMaterializer rootMaterializer,
-        IImmutableBootstrapHandoff handoff,
+        IImmutableBootstrapLeaseHandoff handoff,
         TimeSpan? admissionOperationCutoff = null,
         TimeSpan? completionOperationCutoff = null,
         TimeProvider? timeProvider = null)
@@ -42,8 +49,7 @@ public sealed class ManagedFirstInstallationExperience
         _candidateSource = candidateSource ?? throw new ArgumentNullException(nameof(candidateSource));
         _rootMaterializer = rootMaterializer ?? throw new ArgumentNullException(nameof(rootMaterializer));
         _handoff = handoff ?? throw new ArgumentNullException(nameof(handoff));
-        _admissionOperationCutoff = admissionOperationCutoff ??
-            ManagedLauncherEntryCoordinator.DefaultAdmissionOperationCutoff;
+        _admissionOperationCutoff = admissionOperationCutoff ?? DefaultAdmissionOperationCutoff;
         _completionOperationCutoff = completionOperationCutoff ??
             ManagedLauncherEntryCoordinator.DefaultCompletionOperationCutoff;
         ArgumentOutOfRangeException.ThrowIfLessThanOrEqual(_admissionOperationCutoff, TimeSpan.Zero);
@@ -124,7 +130,8 @@ public sealed class ManagedFirstInstallationExperience
     /// <summary>Revalidates and executes one exact user-reviewed first-install plan.</summary>
     public async ValueTask<ManagedFirstInstallationResult> InstallAndLaunchAsync(
         ManagedFirstInstallationPlan plan,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken,
+        IProgress<ManagedFirstInstallationProgress>? progress = null)
     {
         ArgumentNullException.ThrowIfNull(plan);
         if (cancellationToken.IsCancellationRequested)
@@ -133,7 +140,11 @@ public sealed class ManagedFirstInstallationExperience
         }
         try
         {
-            return await InstallAndLaunchCoreAsync(plan, cancellationToken).ConfigureAwait(false);
+            IProgress<ManagedFirstInstallationProgress>? safeProgress = progress is null
+                ? null
+                : new NonThrowingProgress(progress);
+            return await InstallAndLaunchCoreAsync(plan, safeProgress, cancellationToken)
+                .ConfigureAwait(false);
         }
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
         {
@@ -143,6 +154,7 @@ public sealed class ManagedFirstInstallationExperience
 
     private async ValueTask<ManagedFirstInstallationResult> InstallAndLaunchCoreAsync(
         ManagedFirstInstallationPlan plan,
+        IProgress<ManagedFirstInstallationProgress>? progress,
         CancellationToken cancellationToken)
     {
         if (!string.Equals(plan.StatePathIdentity, _statePathIdentity, StringComparison.Ordinal))
@@ -151,6 +163,10 @@ public sealed class ManagedFirstInstallationExperience
         }
 
         IManagedPromotedFirstInstallation? promoted = null;
+        IManagedExecutableLaunchLease? bootstrapLease = null;
+        CancellationTokenSource? admissionDeadline = null;
+        CancellationTokenSource? admissionLinked = null;
+        long admissionStarted = 0;
         try
         {
             using (VersionManagerWriteLeaseResult lease = await _stateStore.TryAcquireWriteLeaseAsync(
@@ -197,6 +213,8 @@ public sealed class ManagedFirstInstallationExperience
                 }
                 using IManagedDistributionPayloadCapture payload = captured.Capture;
 
+                progress?.Report(ManagedFirstInstallationProgress.Indeterminate(
+                    ManagedFirstInstallationProgressStage.RevalidatingSource));
                 FreshInstallationCandidateResult reverified = await _candidateSource
                     .ReverifyFreshInstallationAsync(plan.Candidate, cancellationToken)
                     .ConfigureAwait(false);
@@ -214,6 +232,7 @@ public sealed class ManagedFirstInstallationExperience
                         payload,
                         reverified.Candidate,
                         seed,
+                        progress,
                         cancellationToken)
                     .ConfigureAwait(false);
                 if (!materialized.IsSuccess)
@@ -228,36 +247,102 @@ public sealed class ManagedFirstInstallationExperience
                     return Result(plan, ManagedFirstInstallationOutcome.RecoveryRequired);
                 }
 
+                progress?.Report(ManagedFirstInstallationProgress.Indeterminate(
+                    ManagedFirstInstallationProgressStage.FinalizingInstallation));
                 ManagedFirstInstallationTransactionIssue recorded = await promoted
                     .RecordBootstrapLaunchAsync(cancellationToken).ConfigureAwait(false);
                 if (recorded != ManagedFirstInstallationTransactionIssue.None)
                 {
-                    return Result(plan, MapTransactionIssue(recorded));
+                    return LaunchFailure(
+                        plan,
+                        ManagedFirstInstallationOutcome.RecoveryRequired,
+                        ManagedFirstInstallationLaunchStage.PostPromotion,
+                        MapTransactionFailure(recorded));
+                }
+
+                admissionStarted = _timeProvider.GetTimestamp();
+                admissionDeadline = new CancellationTokenSource(
+                    _admissionOperationCutoff,
+                    _timeProvider);
+                admissionLinked = CancellationTokenSource.CreateLinkedTokenSource(
+                    cancellationToken,
+                    admissionDeadline.Token);
+                ManagedExecutableLaunchLeaseResult acquired;
+                try
+                {
+                    acquired = await promoted.AcquireBootstrapLaunchLeaseAsync(
+                        plan.Payload.Bootstrap,
+                        admissionLinked.Token).ConfigureAwait(false);
+                    // Take ownership before cancellation/deadline checks; the adapter may
+                    // create a valid lease and cancel the caller before this resumes.
+                    bootstrapLease = acquired.Lease;
+                }
+                catch (OperationCanceledException) when (
+                    admissionDeadline.IsCancellationRequested &&
+                    !cancellationToken.IsCancellationRequested)
+                {
+                    return LaunchFailure(
+                        plan,
+                        ManagedFirstInstallationOutcome.InstalledButLaunchFailed,
+                        ManagedFirstInstallationLaunchStage.BootstrapStart,
+                        ManagedFirstInstallationLaunchIssue.TimedOut);
+                }
+                cancellationToken.ThrowIfCancellationRequested();
+                if (_timeProvider.GetElapsedTime(admissionStarted) >= _admissionOperationCutoff)
+                {
+                    return LaunchFailure(
+                        plan,
+                        ManagedFirstInstallationOutcome.InstalledButLaunchFailed,
+                        ManagedFirstInstallationLaunchStage.BootstrapStart,
+                        ManagedFirstInstallationLaunchIssue.TimedOut);
+                }
+                if (!acquired.IsAcquired)
+                {
+                    ImmutableBootstrapStartIssue issue = MapBootstrapLeaseFailure(acquired);
+                    return LaunchFailure(
+                        plan,
+                        MapBootstrapStartIssue(issue),
+                        ManagedFirstInstallationLaunchStage.BootstrapStart,
+                        MapBootstrapStartFailure(issue));
                 }
             }
 
-            long admissionStarted = _timeProvider.GetTimestamp();
-            using var admissionDeadline = new CancellationTokenSource(
-                _admissionOperationCutoff,
-                _timeProvider);
-            using var admissionLinked = CancellationTokenSource.CreateLinkedTokenSource(
-                cancellationToken,
-                admissionDeadline.Token);
+            progress?.Report(ManagedFirstInstallationProgress.Indeterminate(
+                ManagedFirstInstallationProgressStage.StartingApplication));
+            CancellationTokenSource activeAdmissionDeadline = admissionDeadline ??
+                throw new InvalidOperationException("Bootstrap admission deadline was not created.");
+            CancellationTokenSource activeAdmissionLinked = admissionLinked ??
+                throw new InvalidOperationException("Bootstrap admission token was not created.");
             ImmutableBootstrapStartResult started;
             try
             {
+                IManagedExecutableLaunchLease ownedLease = bootstrapLease ??
+                    throw new InvalidOperationException(
+                        "Promoted Bootstrap launch custody was not acquired.");
+                bootstrapLease = null;
                 started = await _handoff.StartAsync(
                     plan.ManagedRoot,
                     plan.Payload.Bootstrap,
-                    admissionLinked.Token).ConfigureAwait(false);
+                    ownedLease,
+                    activeAdmissionLinked.Token).ConfigureAwait(false);
             }
             catch (OperationCanceledException) when (
-                admissionDeadline.IsCancellationRequested &&
+                activeAdmissionDeadline.IsCancellationRequested &&
                 !cancellationToken.IsCancellationRequested)
             {
-                return Result(
+                return LaunchFailure(
                     plan,
-                    ManagedFirstInstallationOutcome.InstalledButLaunchFailed);
+                    ManagedFirstInstallationOutcome.InstalledButLaunchFailed,
+                    ManagedFirstInstallationLaunchStage.BootstrapStart,
+                    ManagedFirstInstallationLaunchIssue.TimedOut);
+            }
+            catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+            {
+                return LaunchFailure(
+                    plan,
+                    ManagedFirstInstallationOutcome.InstalledButLaunchFailed,
+                    ManagedFirstInstallationLaunchStage.BootstrapStart,
+                    ManagedFirstInstallationLaunchIssue.Cancelled);
             }
             ImmutableBootstrapCompletionResult completion;
             IImmutableBootstrapLaunch? launch = started.Launch;
@@ -265,17 +350,23 @@ public sealed class ManagedFirstInstallationExperience
             {
                 if (!started.HasValidShape)
                 {
-                    return Result(
+                    return LaunchFailure(
                         plan,
-                        ManagedFirstInstallationOutcome.InstalledButLaunchFailed);
+                        ManagedFirstInstallationOutcome.InstalledButLaunchFailed,
+                        ManagedFirstInstallationLaunchStage.BootstrapStart,
+                        ManagedFirstInstallationLaunchIssue.InvalidReceipt);
                 }
                 if (!started.IsStarted)
                 {
-                    return Result(
+                    return LaunchFailure(
                         plan,
                         cancellationToken.IsCancellationRequested
                             ? ManagedFirstInstallationOutcome.InstalledButLaunchFailed
-                            : MapBootstrapStartIssue(started.Issue));
+                            : MapBootstrapStartIssue(started.Issue),
+                        ManagedFirstInstallationLaunchStage.BootstrapStart,
+                        cancellationToken.IsCancellationRequested
+                            ? ManagedFirstInstallationLaunchIssue.Cancelled
+                            : MapBootstrapStartFailure(started.Issue));
                 }
                 IImmutableBootstrapLaunch admittedLaunch = launch!;
 
@@ -288,35 +379,65 @@ public sealed class ManagedFirstInstallationExperience
                                 admissionStarted,
                                 _admissionOperationCutoff,
                                 ManagedLauncherEntryCoordinator.DefaultCleanupObservationBudget),
-                            admissionLinked.Token).ConfigureAwait(false);
+                            activeAdmissionLinked.Token).ConfigureAwait(false);
                 }
                 catch (OperationCanceledException) when (
-                    admissionDeadline.IsCancellationRequested &&
+                    activeAdmissionDeadline.IsCancellationRequested &&
                     !cancellationToken.IsCancellationRequested)
                 {
-                    return Result(
+                    return LaunchFailure(
                         plan,
-                        ManagedFirstInstallationOutcome.InstalledButLaunchFailed);
+                        ManagedFirstInstallationOutcome.InstalledButLaunchFailed,
+                        ManagedFirstInstallationLaunchStage.LauncherAdmission,
+                        ManagedFirstInstallationLaunchIssue.TimedOut);
+                }
+                catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+                {
+                    return LaunchFailure(
+                        plan,
+                        ManagedFirstInstallationOutcome.InstalledButLaunchFailed,
+                        ManagedFirstInstallationLaunchStage.LauncherAdmission,
+                        ManagedFirstInstallationLaunchIssue.Cancelled);
+                }
+                if (!admission.HasValidShape)
+                {
+                    return LaunchFailure(
+                        plan,
+                        ManagedFirstInstallationOutcome.InstalledButLaunchFailed,
+                        ManagedFirstInstallationLaunchStage.LauncherAdmission,
+                        ManagedFirstInstallationLaunchIssue.InvalidReceipt,
+                        admission.ExitCode);
                 }
                 if (admission.Outcome == ImmutableBootstrapAdmissionOutcome.TerminationUnconfirmed)
                 {
-                    return Result(
+                    return LaunchFailure(
                         plan,
-                        ManagedFirstInstallationOutcome.InstalledButLaunchFailed);
+                        ManagedFirstInstallationOutcome.InstalledButLaunchFailed,
+                        ManagedFirstInstallationLaunchStage.LauncherAdmission,
+                        ManagedFirstInstallationLaunchIssue.TerminationUnconfirmed,
+                        admission.ExitCode);
                 }
                 if (_timeProvider.GetElapsedTime(admissionStarted) >= _admissionOperationCutoff)
                 {
-                    return Result(
+                    return LaunchFailure(
                         plan,
-                        ManagedFirstInstallationOutcome.InstalledButLaunchFailed);
+                        ManagedFirstInstallationOutcome.InstalledButLaunchFailed,
+                        ManagedFirstInstallationLaunchStage.LauncherAdmission,
+                        ManagedFirstInstallationLaunchIssue.TimedOut,
+                        exitCode: null);
                 }
                 if (admission.Outcome != ImmutableBootstrapAdmissionOutcome.Admitted)
                 {
-                    return Result(
+                    return LaunchFailure(
                         plan,
                         cancellationToken.IsCancellationRequested
                             ? ManagedFirstInstallationOutcome.InstalledButLaunchFailed
-                            : MapBootstrapAdmissionIssue(admission.Outcome));
+                            : MapBootstrapAdmissionIssue(admission.Outcome),
+                        ManagedFirstInstallationLaunchStage.LauncherAdmission,
+                        cancellationToken.IsCancellationRequested
+                            ? ManagedFirstInstallationLaunchIssue.Cancelled
+                            : MapBootstrapAdmissionFailure(admission),
+                        cancellationToken.IsCancellationRequested ? null : admission.ExitCode);
                 }
 
                 long completionStarted = _timeProvider.GetTimestamp();
@@ -339,22 +460,54 @@ public sealed class ManagedFirstInstallationExperience
                     completionDeadline.IsCancellationRequested &&
                     !cancellationToken.IsCancellationRequested)
                 {
-                    return Result(
+                    return LaunchFailure(
                         plan,
-                        ManagedFirstInstallationOutcome.InstalledButLaunchFailed);
+                        ManagedFirstInstallationOutcome.InstalledButLaunchFailed,
+                        ManagedFirstInstallationLaunchStage.ApplicationReady,
+                        ManagedFirstInstallationLaunchIssue.TimedOut);
+                }
+                catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+                {
+                    return LaunchFailure(
+                        plan,
+                        ManagedFirstInstallationOutcome.InstalledButLaunchFailed,
+                        ManagedFirstInstallationLaunchStage.ApplicationReady,
+                        ManagedFirstInstallationLaunchIssue.Cancelled);
+                }
+                if (!completion.HasValidShape)
+                {
+                    return LaunchFailure(
+                        plan,
+                        ManagedFirstInstallationOutcome.InstalledButLaunchFailed,
+                        ManagedFirstInstallationLaunchStage.ApplicationReady,
+                        ManagedFirstInstallationLaunchIssue.InvalidReceipt,
+                        completion.ExitCode);
                 }
                 if (completion.Outcome == ImmutableBootstrapCompletionOutcome.TerminationUnconfirmed)
                 {
-                    return Result(
+                    return LaunchFailure(
                         plan,
-                        ManagedFirstInstallationOutcome.InstalledButLaunchFailed);
+                        ManagedFirstInstallationOutcome.InstalledButLaunchFailed,
+                        ManagedFirstInstallationLaunchStage.ApplicationReady,
+                        ManagedFirstInstallationLaunchIssue.TerminationUnconfirmed,
+                        completion.ExitCode);
                 }
                 if (_timeProvider.GetElapsedTime(completionStarted) >= _completionOperationCutoff ||
                     completion.Outcome != ImmutableBootstrapCompletionOutcome.Ready)
                 {
-                    return Result(
+                    return LaunchFailure(
                         plan,
-                        ManagedFirstInstallationOutcome.InstalledButLaunchFailed);
+                        ManagedFirstInstallationOutcome.InstalledButLaunchFailed,
+                        ManagedFirstInstallationLaunchStage.ApplicationReady,
+                        _timeProvider.GetElapsedTime(completionStarted) >= _completionOperationCutoff
+                            ? ManagedFirstInstallationLaunchIssue.TimedOut
+                            : cancellationToken.IsCancellationRequested
+                                ? ManagedFirstInstallationLaunchIssue.Cancelled
+                                : MapBootstrapCompletionFailure(completion),
+                        _timeProvider.GetElapsedTime(completionStarted) >= _completionOperationCutoff ||
+                            cancellationToken.IsCancellationRequested
+                                ? null
+                                : completion.ExitCode);
                 }
             }
             finally
@@ -372,11 +525,7 @@ public sealed class ManagedFirstInstallationExperience
                         finalizationDeadline.Token).ConfigureAwait(false);
                 if (!finalizeLease.IsAcquired)
                 {
-                    return Result(
-                        plan,
-                        finalizeLease.Issue == VersionManagerWriteLeaseIssue.Busy
-                            ? ManagedFirstInstallationOutcome.RecoveryRequired
-                            : ManagedFirstInstallationOutcome.StateUnavailable);
+                    return Result(plan, ManagedFirstInstallationOutcome.RecoveryRequired);
                 }
 
                 VersionManagerStateLoadResult bound = await _stateStore
@@ -387,22 +536,14 @@ public sealed class ManagedFirstInstallationExperience
                         plan.ManagedRoot,
                         promoted.Admission))
                 {
-                    return Result(
-                        plan,
-                        bound.Issue is VersionManagerStateLoadIssue.Invalid or
-                            VersionManagerStateLoadIssue.Missing or
-                            VersionManagerStateLoadIssue.ManagedRootMismatch
-                                ? ManagedFirstInstallationOutcome.RecoveryRequired
-                                : ManagedFirstInstallationOutcome.StateUnavailable);
+                    return Result(plan, ManagedFirstInstallationOutcome.RecoveryRequired);
                 }
 
                 ManagedFirstInstallationTransactionIssue completed = await promoted
                     .CompleteAsync(finalizationDeadline.Token).ConfigureAwait(false);
-                return Result(
-                    plan,
-                    completed == ManagedFirstInstallationTransactionIssue.None
-                        ? ManagedFirstInstallationOutcome.Completed
-                        : MapTransactionIssue(completed));
+                return completed == ManagedFirstInstallationTransactionIssue.None
+                    ? Result(plan, ManagedFirstInstallationOutcome.Completed)
+                    : Result(plan, ManagedFirstInstallationOutcome.RecoveryRequired);
             }
             catch (OperationCanceledException) when (finalizationDeadline.IsCancellationRequested)
             {
@@ -412,12 +553,17 @@ public sealed class ManagedFirstInstallationExperience
         catch (OperationCanceledException) when (
             promoted is not null && cancellationToken.IsCancellationRequested)
         {
-            return Result(
+            return LaunchFailure(
                 plan,
-                ManagedFirstInstallationOutcome.InstalledButLaunchFailed);
+                ManagedFirstInstallationOutcome.InstalledButLaunchFailed,
+                ManagedFirstInstallationLaunchStage.PostPromotion,
+                ManagedFirstInstallationLaunchIssue.Cancelled);
         }
         finally
         {
+            admissionLinked?.Dispose();
+            admissionDeadline?.Dispose();
+            bootstrapLease?.Dispose();
             promoted?.Dispose();
         }
     }
@@ -491,6 +637,41 @@ public sealed class ManagedFirstInstallationExperience
         };
     }
 
+    private static ImmutableBootstrapStartIssue MapBootstrapLeaseFailure(
+        ManagedExecutableLaunchLeaseResult acquired)
+    {
+        return acquired.Lease is not null || !Enum.IsDefined(acquired.Issue) ||
+            acquired.Issue == ManagedExecutableLaunchIssue.None
+                ? ImmutableBootstrapStartIssue.Damaged
+                : acquired.Issue switch
+                {
+                    ManagedExecutableLaunchIssue.Tampered or
+                    ManagedExecutableLaunchIssue.UnsafePath =>
+                        ImmutableBootstrapStartIssue.Damaged,
+                    ManagedExecutableLaunchIssue.Unavailable =>
+                        ImmutableBootstrapStartIssue.Unavailable,
+                    ManagedExecutableLaunchIssue.None => throw new InvalidOperationException(
+                        "A successful Bootstrap launch lease was mapped as a failure."),
+                    _ => throw new InvalidOperationException(
+                        "Bootstrap launch lease returned an undefined issue."),
+                };
+    }
+
+    private static ManagedFirstInstallationLaunchIssue MapBootstrapStartFailure(
+        ImmutableBootstrapStartIssue issue)
+    {
+        return issue switch
+        {
+            ImmutableBootstrapStartIssue.Busy => ManagedFirstInstallationLaunchIssue.Busy,
+            ImmutableBootstrapStartIssue.Damaged => ManagedFirstInstallationLaunchIssue.Damaged,
+            ImmutableBootstrapStartIssue.StartFailed => ManagedFirstInstallationLaunchIssue.StartFailed,
+            ImmutableBootstrapStartIssue.Unavailable => ManagedFirstInstallationLaunchIssue.Unavailable,
+            ImmutableBootstrapStartIssue.None => throw new InvalidOperationException(
+                "A successful Bootstrap start was mapped as a launch failure."),
+            _ => throw new InvalidOperationException("Bootstrap start returned an undefined issue."),
+        };
+    }
+
     private static ManagedFirstInstallationOutcome MapBootstrapAdmissionIssue(
         ImmutableBootstrapAdmissionOutcome outcome)
     {
@@ -508,6 +689,51 @@ public sealed class ManagedFirstInstallationExperience
             _ => throw new InvalidOperationException(
                 "Bootstrap admission returned an undefined outcome."),
         };
+    }
+
+    private static ManagedFirstInstallationLaunchIssue MapBootstrapAdmissionFailure(
+        ImmutableBootstrapAdmissionResult admission)
+    {
+        return admission.ExitIssue != ImmutableBootstrapExitIssue.None
+            ? ManagedFirstInstallationLaunchFailure.MapBootstrapExitIssue(admission.ExitIssue)
+            : admission.Outcome switch
+            {
+                ImmutableBootstrapAdmissionOutcome.Busy => ManagedFirstInstallationLaunchIssue.Busy,
+                ImmutableBootstrapAdmissionOutcome.RecoveryRequired =>
+                    ManagedFirstInstallationLaunchIssue.RecoveryRequired,
+                ImmutableBootstrapAdmissionOutcome.LaunchFailed =>
+                    ManagedFirstInstallationLaunchIssue.LaunchFailed,
+                ImmutableBootstrapAdmissionOutcome.HealthUnavailable =>
+                    ManagedFirstInstallationLaunchIssue.HealthUnavailable,
+                ImmutableBootstrapAdmissionOutcome.TerminationUnconfirmed =>
+                    ManagedFirstInstallationLaunchIssue.TerminationUnconfirmed,
+                ImmutableBootstrapAdmissionOutcome.Admitted => throw new InvalidOperationException(
+                    "An admitted Bootstrap was mapped as an admission failure."),
+                _ => throw new InvalidOperationException(
+                    "Bootstrap admission returned an undefined outcome."),
+            };
+    }
+
+    private static ManagedFirstInstallationLaunchIssue MapBootstrapCompletionFailure(
+        ImmutableBootstrapCompletionResult completion)
+    {
+        return completion.ExitIssue != ImmutableBootstrapExitIssue.None
+            ? ManagedFirstInstallationLaunchFailure.MapBootstrapExitIssue(completion.ExitIssue)
+            : completion.Outcome switch
+            {
+                ImmutableBootstrapCompletionOutcome.RolledBack =>
+                    ManagedFirstInstallationLaunchIssue.RolledBack,
+                ImmutableBootstrapCompletionOutcome.Failed => throw new InvalidOperationException(
+                    "A valid failed Bootstrap completion requires one typed exit issue."),
+                ImmutableBootstrapCompletionOutcome.Unavailable =>
+                    ManagedFirstInstallationLaunchIssue.Unavailable,
+                ImmutableBootstrapCompletionOutcome.TerminationUnconfirmed =>
+                    ManagedFirstInstallationLaunchIssue.TerminationUnconfirmed,
+                ImmutableBootstrapCompletionOutcome.Ready => throw new InvalidOperationException(
+                    "A READY Bootstrap was mapped as a completion failure."),
+                _ => throw new InvalidOperationException(
+                    "Bootstrap completion returned an undefined outcome."),
+            };
     }
 
     private ImmutableBootstrapWaitBudget RemainingBudget(
@@ -596,25 +822,46 @@ public sealed class ManagedFirstInstallationExperience
         };
     }
 
-    private static ManagedFirstInstallationOutcome MapTransactionIssue(
-        ManagedFirstInstallationTransactionIssue issue)
-    {
-        return issue == ManagedFirstInstallationTransactionIssue.RecoveryRequired
-            ? ManagedFirstInstallationOutcome.RecoveryRequired
-            : ManagedFirstInstallationOutcome.StateUnavailable;
-    }
-
     private static ManagedFirstInstallationPlanResult PlanFailure(
         ManagedFirstInstallationOutcome outcome)
     {
         return new(null, outcome);
     }
 
+    private static ManagedFirstInstallationLaunchIssue MapTransactionFailure(
+        ManagedFirstInstallationTransactionIssue issue)
+    {
+        return issue switch
+        {
+            ManagedFirstInstallationTransactionIssue.RecoveryRequired =>
+                ManagedFirstInstallationLaunchIssue.RecoveryRequired,
+            ManagedFirstInstallationTransactionIssue.StateUnavailable =>
+                ManagedFirstInstallationLaunchIssue.StateUnavailable,
+            ManagedFirstInstallationTransactionIssue.None => throw new InvalidOperationException(
+                "A successful transaction was mapped as a launch-terminal failure."),
+            _ => throw new InvalidOperationException("Transaction returned an undefined issue."),
+        };
+    }
+
     private static ManagedFirstInstallationResult Result(
         ManagedFirstInstallationPlan plan,
-        ManagedFirstInstallationOutcome outcome)
+        ManagedFirstInstallationOutcome outcome,
+        ManagedFirstInstallationLaunchFailure? launchFailure = null)
     {
-        return new(outcome, plan.ManagedRoot, plan.Candidate.Package.Version);
+        return new(outcome, plan.ManagedRoot, plan.Candidate.Package.Version, launchFailure);
+    }
+
+    private static ManagedFirstInstallationResult LaunchFailure(
+        ManagedFirstInstallationPlan plan,
+        ManagedFirstInstallationOutcome outcome,
+        ManagedFirstInstallationLaunchStage stage,
+        ManagedFirstInstallationLaunchIssue issue,
+        int? exitCode = null)
+    {
+        return stage == ManagedFirstInstallationLaunchStage.None ||
+            issue == ManagedFirstInstallationLaunchIssue.None
+                ? throw new InvalidOperationException("A launch failure requires an exact stage and issue.")
+                : Result(plan, outcome, new(stage, issue, exitCode));
     }
 
     private static bool TryNormalizeRoot(string? value, out string normalized)
@@ -633,6 +880,29 @@ public sealed class ManagedFirstInstallationExperience
             ArgumentException or IOException or NotSupportedException)
         {
             return false;
+        }
+    }
+
+    private sealed class NonThrowingProgress(
+        IProgress<ManagedFirstInstallationProgress> inner)
+        : IProgress<ManagedFirstInstallationProgress>
+    {
+        private readonly IProgress<ManagedFirstInstallationProgress> _inner = inner ??
+            throw new ArgumentNullException(nameof(inner));
+
+        [SuppressMessage(
+            "Design",
+            "CA1031:Do not catch general exception types",
+            Justification = "Presentation progress is explicitly non-authoritative and cannot change installation.")]
+        public void Report(ManagedFirstInstallationProgress value)
+        {
+            try
+            {
+                _inner.Report(value);
+            }
+            catch (Exception)
+            {
+            }
         }
     }
 }

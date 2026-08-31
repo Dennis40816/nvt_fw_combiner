@@ -49,7 +49,8 @@ internal static class BoundedArchiveReader
         string path,
         long declaredLength,
         ExpandedByteBudget budget,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken,
+        Action<int>? bytesTransferred = null)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(path);
         await using var source = new FileStream(
@@ -65,17 +66,26 @@ internal static class BoundedArchiveReader
             source,
             declaredLength,
             budget,
-            cancellationToken).ConfigureAwait(false);
+            cancellationToken,
+            bytesTransferred).ConfigureAwait(false);
     }
 
     internal static ValueTask<BoundedArchiveReadResult> ReadAndHashAsync(
         Stream source,
         long declaredLength,
         ExpandedByteBudget budget,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken,
+        Action<int>? bytesTransferred = null)
     {
         ArgumentOutOfRangeException.ThrowIfNegative(declaredLength);
-        return ReadCoreAsync(source, declaredLength, exactLength: true, budget, null, cancellationToken);
+        return ReadCoreAsync(
+            source,
+            declaredLength,
+            exactLength: true,
+            budget,
+            destination: null,
+            bytesTransferred,
+            cancellationToken);
     }
 
     internal static ValueTask<BoundedArchiveReadResult> ReadAtMostAndHashAsync(
@@ -83,10 +93,18 @@ internal static class BoundedArchiveReader
         long maximumLength,
         ExpandedByteBudget budget,
         Stream? destination,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken,
+        Action<int>? bytesTransferred = null)
     {
         ArgumentOutOfRangeException.ThrowIfNegative(maximumLength);
-        return ReadCoreAsync(source, maximumLength, exactLength: false, budget, destination, cancellationToken);
+        return ReadCoreAsync(
+            source,
+            maximumLength,
+            exactLength: false,
+            budget,
+            destination,
+            bytesTransferred,
+            cancellationToken);
     }
 
     internal static ValueTask<BoundedArchiveReadResult> CopyAndHashAsync(
@@ -94,11 +112,19 @@ internal static class BoundedArchiveReader
         long declaredLength,
         ExpandedByteBudget budget,
         Stream destination,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken,
+        Action<int>? bytesTransferred = null)
     {
         ArgumentOutOfRangeException.ThrowIfNegative(declaredLength);
         ArgumentNullException.ThrowIfNull(destination);
-        return ReadCoreAsync(source, declaredLength, exactLength: true, budget, destination, cancellationToken);
+        return ReadCoreAsync(
+            source,
+            declaredLength,
+            exactLength: true,
+            budget,
+            destination,
+            bytesTransferred,
+            cancellationToken);
     }
 
     private static async ValueTask<BoundedArchiveReadResult> ReadCoreAsync(
@@ -107,6 +133,7 @@ internal static class BoundedArchiveReader
         bool exactLength,
         ExpandedByteBudget budget,
         Stream? destination,
+        Action<int>? bytesTransferred,
         CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(source);
@@ -145,6 +172,7 @@ internal static class BoundedArchiveReader
             {
                 await destination.WriteAsync(buffer.AsMemory(0, read), cancellationToken).ConfigureAwait(false);
             }
+            bytesTransferred?.Invoke(read);
         }
 
         return exactLength && length != lengthLimit

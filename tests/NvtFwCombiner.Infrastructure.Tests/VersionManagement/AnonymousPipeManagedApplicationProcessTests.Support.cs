@@ -304,6 +304,27 @@ public sealed partial class AnonymousPipeManagedApplicationProcessTests
         public void Dispose() { }
     }
 
+    private sealed class CountingExecutableLaunchLease(
+        string executablePath,
+        string workingDirectory) : IManagedExecutableLaunchLease
+    {
+        public string ExecutablePath { get; } = executablePath;
+
+        public string WorkingDirectory { get; } = workingDirectory;
+
+        public int DisposeCount { get; private set; }
+
+        public bool TryValidateForStart()
+        {
+            return true;
+        }
+
+        public void Dispose()
+        {
+            DisposeCount++;
+        }
+    }
+
     private sealed class FailingTerminationOperations(bool failKill, bool failWait)
         : IManagedProcessTerminationOperations
     {

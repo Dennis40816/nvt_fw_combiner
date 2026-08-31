@@ -79,11 +79,29 @@ internal static class ManagedPackageVerifier
         return true;
     }
 
+    internal static HashSet<string> BuildExpectedInstalledFilePaths(
+        IReadOnlyList<ReleaseManifestFileDocument> files)
+    {
+        ArgumentNullException.ThrowIfNull(files);
+        var expected = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
+        {
+            "RELEASE-MANIFEST.json",
+            "SHA256SUMS.txt",
+            FileSystemManagedVersionRepository.AdmissionFileName,
+        };
+        foreach (ReleaseManifestFileDocument file in files)
+        {
+            _ = expected.Add(file.Path);
+        }
+        return expected;
+    }
+
     internal static async ValueTask<ManagedPackagePlanResult> CreatePlanAsync(
         ZipArchive archive,
         UpdateCatalogVersionSnapshot package,
         long maximumExpandedBytes,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken,
+        Action<long, long>? progress = null)
     {
         if (archive.Entries.Count is 0 or > FileSystemManagedVersionRepository.MaximumArchiveEntries)
         {
@@ -212,10 +230,25 @@ internal static class ManagedPackageVerifier
             return Failure(ManagedVersionInstallIssue.InvalidPayload);
         }
 
+        long verificationTotal = 0;
+        foreach (ReleaseManifestFileDocument file in manifest.Files!)
+        {
+            verificationTotal = checked(verificationTotal + file.Size);
+        }
+        long verifiedBytes = 0;
+        if (verificationTotal > 0)
+        {
+            progress?.Invoke(0, verificationTotal);
+        }
         ArchiveContentVerification content = await VerifyArchiveContentAsync(
             manifest,
             entries,
             verificationBudget,
+            bytes =>
+            {
+                verifiedBytes = checked(verifiedBytes + bytes);
+                progress?.Invoke(verifiedBytes, verificationTotal);
+            },
             cancellationToken).ConfigureAwait(false);
         return content switch
         {
@@ -238,10 +271,13 @@ internal static class ManagedPackageVerifier
         ManagedPackagePlan plan,
         Func<string, FileStream> createDestination,
         long maximumExpandedBytes,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken,
+        Action<long, long>? progress = null)
     {
         ArgumentNullException.ThrowIfNull(createDestination);
         var extractionBudget = new ExpandedByteBudget(maximumExpandedBytes);
+        long extractedBytes = 0;
+        progress?.Invoke(0, plan.ExpandedBytes);
         var expectedFiles =
             plan.Manifest.Files!.ToDictionary(file => file.Path, StringComparer.OrdinalIgnoreCase);
         foreach ((string relativePath, ZipArchiveEntry entry) in plan.Entries)
@@ -281,7 +317,12 @@ internal static class ManagedPackageVerifier
                     expectedLength,
                     extractionBudget,
                     destination,
-                    cancellationToken).ConfigureAwait(false);
+                    cancellationToken,
+                    bytes =>
+                    {
+                        extractedBytes = checked(extractedBytes + bytes);
+                        progress?.Invoke(extractedBytes, plan.ExpandedBytes);
+                    }).ConfigureAwait(false);
                 if (!extracted.IsSuccess ||
                     !string.Equals(extracted.Sha256, expectedHash, StringComparison.Ordinal))
                 {
@@ -302,7 +343,8 @@ internal static class ManagedPackageVerifier
         string versionRoot,
         ManagedVersionAdmission admission,
         long maximumExpandedBytes,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken,
+        Action<long, long>? progress = null)
     {
         try
         {
@@ -367,15 +409,19 @@ internal static class ManagedPackageVerifier
                 return ManagedVersionDamageReason.ContentMismatch;
             }
 
-            HashSet<string> expected = new(StringComparer.OrdinalIgnoreCase)
-            {
-                "RELEASE-MANIFEST.json",
-                "SHA256SUMS.txt",
-                FileSystemManagedVersionRepository.AdmissionFileName,
-            };
+            HashSet<string> expected = BuildExpectedInstalledFilePaths(manifest.Files!);
+            long verificationTotal = 0;
             foreach (ReleaseManifestFileDocument file in manifest.Files!)
             {
-                _ = expected.Add(file.Path);
+                verificationTotal = checked(verificationTotal + file.Size);
+            }
+            long verifiedBytes = 0;
+            if (verificationTotal > 0)
+            {
+                progress?.Invoke(0, verificationTotal);
+            }
+            foreach (ReleaseManifestFileDocument file in manifest.Files!)
+            {
                 string path = ManagedPathSafety.ResolvePayloadPath(versionRoot, file.Path);
                 if (!File.Exists(path) || ManagedPathSafety.IsReparsePoint(path))
                 {
@@ -390,7 +436,12 @@ internal static class ManagedPackageVerifier
                     path,
                     file.Size,
                     installedBudget,
-                    cancellationToken).ConfigureAwait(false);
+                    cancellationToken,
+                    bytes =>
+                    {
+                        verifiedBytes = checked(verifiedBytes + bytes);
+                        progress?.Invoke(verifiedBytes, verificationTotal);
+                    }).ConfigureAwait(false);
                 if (!read.IsSuccess ||
                     !string.Equals(read.Sha256, file.Sha256, StringComparison.Ordinal))
                 {
@@ -498,6 +549,7 @@ internal static class ManagedPackageVerifier
         ReleaseManifestDocument manifest,
         Dictionary<string, ZipArchiveEntry> entries,
         ExpandedByteBudget verificationBudget,
+        Action<int>? bytesTransferred,
         CancellationToken cancellationToken)
     {
         foreach (ReleaseManifestFileDocument file in manifest.Files!)
@@ -512,7 +564,8 @@ internal static class ManagedPackageVerifier
                 stream,
                 file.Size,
                 verificationBudget,
-                cancellationToken).ConfigureAwait(false);
+                cancellationToken,
+                bytesTransferred).ConfigureAwait(false);
             if (read.Issue == BoundedArchiveReadIssue.AggregateLengthExceeded)
             {
                 return ArchiveContentVerification.Unsafe;

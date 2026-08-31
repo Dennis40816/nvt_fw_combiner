@@ -7,6 +7,65 @@ namespace NvtFwCombiner.Infrastructure.Tests.VersionManagement;
 /// <summary>Verifies real-package Setup admission and root-custody boundaries.</summary>
 public sealed partial class ManagedDistributionLauncherRuntimeTests
 {
+    /// <summary>Promoted Setup custody still permits the immutable installed Launcher read lease.</summary>
+    [Fact]
+    public async Task PromotedRealPackageCustodyAllowsInstalledLauncherLease()
+    {
+        if (!OperatingSystem.IsWindows())
+        {
+            return;
+        }
+
+        await using TemporaryRoot temporary = new();
+        string root = Path.Combine(temporary.Path, "NvtFwCombiner");
+        FreshInstallationCandidate candidate = RealPackageCandidate(
+            temporary.Path,
+            useStandaloneLauncherProbe: true);
+        ManagedVersionAdmission admission = Admission(candidate);
+        var materializer = new FileSystemManagedFirstInstallationRootMaterializer(
+            new FileSystemManagedVersionRepository());
+        using var payload = new TestPayloadCapture(PayloadIdentity());
+        ManagedFirstInstallationMaterializationResult result = await materializer.MaterializeAsync(
+            root,
+            Path.Combine(temporary.Path, "state", "version-manager.v1.json"),
+            payload,
+            candidate,
+            ManagedVersionSeedPolicy.CreateCanonicalFirstRunSeed(admission),
+            TestContext.Current.CancellationToken);
+        Assert.True(result.IsSuccess, result.Issue.ToString());
+        IManagedPromotedFirstInstallation installation = result.Installation!;
+        try
+        {
+            string versionRoot = Path.Combine(
+                root,
+                FileSystemManagedVersionRepository.VersionsDirectoryName,
+                admission.Version.ToString());
+            WindowsStableCustodyResult tree = WindowsStablePathCustody.TryAcquireImmutableTree(
+                versionRoot,
+                cancellationToken: TestContext.Current.CancellationToken);
+            Assert.True(tree.IsAcquired, tree.Issue.ToString());
+            tree.Custody!.Dispose();
+
+            InstalledLauncherLaunchResult acquired = await new FileSystemInstalledLauncherRepository()
+                .AcquireLaunchLeaseAsync(
+                    root,
+                    admission,
+                    TestContext.Current.CancellationToken);
+            Assert.True(acquired.IsAcquired, acquired.Issue.ToString());
+            acquired.Lease!.Dispose();
+
+            _ = Assert.Throws<IOException>(() => Directory.Move(root, root + ".replacement"));
+        }
+        finally
+        {
+            installation.Dispose();
+        }
+
+        string displaced = root + ".replacement";
+        Directory.Move(root, displaced);
+        Directory.Move(displaced, root);
+    }
+
     /// <summary>A real schema-1.2 ZIP is the independent source of every promoted version byte.</summary>
     [Fact]
     public async Task MaterializerPromotesRealPackageAndMatchesEverySourceArchiveMember()

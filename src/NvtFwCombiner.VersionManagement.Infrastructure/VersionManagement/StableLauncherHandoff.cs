@@ -9,7 +9,10 @@ using NvtFwCombiner.Platform.Processes;
 namespace NvtFwCombiner.Infrastructure.VersionManagement;
 
 /// <summary>Starts only the exact stable launcher located at the managed root.</summary>
-public sealed class StableLauncherHandoff : IStableLauncherHandoff, IImmutableBootstrapHandoff
+public sealed class StableLauncherHandoff :
+    IStableLauncherHandoff,
+    IImmutableBootstrapHandoff,
+    IImmutableBootstrapLeaseHandoff
 {
     private readonly string _managedRoot;
     private readonly string _statePath;
@@ -159,7 +162,51 @@ public sealed class StableLauncherHandoff : IStableLauncherHandoff, IImmutableBo
             });
         }
 
-        IManagedExecutableLaunchLease lease = acquired.Lease!;
+        return StartWithOwnedLease(root, expectedIdentity, acquired.Lease!, cancellationToken);
+    }
+
+    /// <inheritdoc />
+    public ValueTask<ImmutableBootstrapStartResult> StartAsync(
+        string managedRoot,
+        ManagedImmutableBootstrapIdentity expectedIdentity,
+        IManagedExecutableLaunchLease ownedLease,
+        CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(ownedLease);
+        IManagedExecutableLaunchLease? pendingLease = ownedLease;
+        try
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            if (!TryValidateOwnedLease(
+                    managedRoot,
+                    expectedIdentity,
+                    pendingLease,
+                    out string root))
+            {
+                return ValueTask.FromResult(StartFailure(ImmutableBootstrapStartIssue.Damaged));
+            }
+            IManagedExecutableLaunchLease transferredLease = pendingLease;
+            pendingLease = null;
+            return ValueTask.FromResult(StartWithOwnedLease(
+                root,
+                expectedIdentity,
+                transferredLease,
+                cancellationToken));
+        }
+        finally
+        {
+            pendingLease?.Dispose();
+        }
+    }
+
+    [SuppressMessage("Reliability", "CA2000:Dispose objects before losing scope", Justification =
+        "The owned launch lease transfers to the process-start task and is disposed on every exit.")]
+    private ImmutableBootstrapStartResult StartWithOwnedLease(
+        string root,
+        ManagedImmutableBootstrapIdentity expectedIdentity,
+        IManagedExecutableLaunchLease lease,
+        CancellationToken cancellationToken)
+    {
         try
         {
             _afterExecutableAcquired?.Invoke();
@@ -256,6 +303,42 @@ public sealed class StableLauncherHandoff : IStableLauncherHandoff, IImmutableBo
             startGate?.Dispose();
             lifetime?.Dispose();
             return StartFailure(ImmutableBootstrapStartIssue.StartFailed);
+        }
+    }
+
+    private bool TryValidateOwnedLease(
+        string managedRoot,
+        ManagedImmutableBootstrapIdentity? expectedIdentity,
+        IManagedExecutableLaunchLease lease,
+        out string root)
+    {
+        root = string.Empty;
+        if (string.IsNullOrWhiteSpace(managedRoot) || expectedIdentity is null ||
+            !Path.IsPathFullyQualified(managedRoot) ||
+            !string.Equals(
+                expectedIdentity.FileName,
+                "NvtFwCombiner.Bootstrap.exe",
+                StringComparison.Ordinal))
+        {
+            return false;
+        }
+        try
+        {
+            root = Path.TrimEndingDirectorySeparator(Path.GetFullPath(managedRoot));
+            string configuredRoot = Path.TrimEndingDirectorySeparator(_managedRoot);
+            string workingDirectory = Path.TrimEndingDirectorySeparator(
+                Path.GetFullPath(lease.WorkingDirectory));
+            string executable = Path.GetFullPath(lease.ExecutablePath);
+            string expectedExecutable = Path.Combine(root, expectedIdentity.FileName);
+            return ManagedPathSafety.PathComparer.Equals(root, configuredRoot) &&
+                ManagedPathSafety.PathComparer.Equals(workingDirectory, root) &&
+                ManagedPathSafety.PathComparer.Equals(executable, expectedExecutable);
+        }
+        catch (Exception exception) when (exception is
+            ArgumentException or IOException or NotSupportedException)
+        {
+            root = string.Empty;
+            return false;
         }
     }
 
@@ -370,7 +453,8 @@ public sealed class StableLauncherHandoff : IStableLauncherHandoff, IImmutableBo
                         ImmutableBootstrapAdmissionOutcome.LaunchFailed,
                         exitCode: null,
                         budgetStarted,
-                        budget.RemainingTotal).ConfigureAwait(false);
+                        budget.RemainingTotal,
+                        ImmutableBootstrapExitIssue.StartFailed).ConfigureAwait(false);
                 }
                 if (_process is null)
                 {
@@ -378,7 +462,8 @@ public sealed class StableLauncherHandoff : IStableLauncherHandoff, IImmutableBo
                         ImmutableBootstrapAdmissionOutcome.LaunchFailed,
                         exitCode: null,
                         budgetStarted,
-                        budget.RemainingTotal).ConfigureAwait(false);
+                        budget.RemainingTotal,
+                        ImmutableBootstrapExitIssue.StartFailed).ConfigureAwait(false);
                 }
                 if (operation.IsCancellationRequested ||
                     Stopwatch.GetElapsedTime(budgetStarted) >= budget.RemainingOperation ||
@@ -413,14 +498,29 @@ public sealed class StableLauncherHandoff : IStableLauncherHandoff, IImmutableBo
                         return AcceptAdmission();
                     }
                     int exitCode = _process.ExitCode;
+                    ImmutableBootstrapAdmissionResult exited = MapExitBeforeAdmission(exitCode);
                     return await FailBeforeAdmissionAsync(
-                        MapExitBeforeAdmission(exitCode).Outcome,
-                        exitCode,
+                        exited.Outcome,
+                        exited.ExitCode,
                         budgetStarted,
-                        budget.RemainingTotal).ConfigureAwait(false);
+                        budget.RemainingTotal,
+                        exited.ExitIssue).ConfigureAwait(false);
                 }
                 if (signalTask.IsCompletedSuccessfully)
                 {
+                    string? signal = signalTask.Result;
+                    if (signal is { Length: 0 })
+                    {
+                        await exitTask.ConfigureAwait(false);
+                        int exitCode = _process.ExitCode;
+                        ImmutableBootstrapAdmissionResult exited = MapExitBeforeAdmission(exitCode);
+                        return await FailBeforeAdmissionAsync(
+                            exited.Outcome,
+                            exited.ExitCode,
+                            budgetStarted,
+                            budget.RemainingTotal,
+                            exited.ExitIssue).ConfigureAwait(false);
+                    }
                     return await FailBeforeAdmissionAsync(
                         ImmutableBootstrapAdmissionOutcome.HealthUnavailable,
                         exitCode: null,
@@ -481,7 +581,9 @@ public sealed class StableLauncherHandoff : IStableLauncherHandoff, IImmutableBo
                         budgetStarted,
                         budget.RemainingTotal).ConfigureAwait(false);
                 }
-                if (exitCode is 0 or 1)
+                if (exitCode is
+                    ImmutableBootstrapExitCodeCodec.Ready or
+                    ImmutableBootstrapExitCodeCodec.RolledBack)
                 {
                     if (!_lifetime.TryReleaseAcceptedTree())
                     {
@@ -492,19 +594,21 @@ public sealed class StableLauncherHandoff : IStableLauncherHandoff, IImmutableBo
                     _ = Interlocked.Exchange(ref _state, 3);
                     DisposeResources();
                     return new(
-                        exitCode == 0
-                            ? ImmutableBootstrapCompletionOutcome.Ready
-                            : ImmutableBootstrapCompletionOutcome.RolledBack,
-                        exitCode);
+                        ImmutableBootstrapExitCodeCodec.ClassifyCompletion(exitCode),
+                        exitCode,
+                        ImmutableBootstrapExitIssue.None);
                 }
                 bool confirmed = await ObserveCleanupAsync(
                     budgetStarted,
                     budget.RemainingTotal).ConfigureAwait(false);
                 return new(
-                    exitCode == 19 || !confirmed
-                        ? ImmutableBootstrapCompletionOutcome.TerminationUnconfirmed
-                        : ImmutableBootstrapCompletionOutcome.Failed,
-                    confirmed ? exitCode : null);
+                    confirmed
+                        ? ImmutableBootstrapExitCodeCodec.ClassifyCompletion(exitCode)
+                        : ImmutableBootstrapCompletionOutcome.TerminationUnconfirmed,
+                    confirmed ? exitCode : null,
+                    confirmed
+                        ? ImmutableBootstrapExitCodeCodec.DecodeFailure(exitCode)
+                        : ImmutableBootstrapExitIssue.TerminationUnconfirmed);
             }
             catch (OperationCanceledException)
             {
@@ -523,16 +627,11 @@ public sealed class StableLauncherHandoff : IStableLauncherHandoff, IImmutableBo
 
         internal static ImmutableBootstrapAdmissionResult MapExitBeforeAdmission(int exitCode)
         {
+            ImmutableBootstrapExitIssue issue = ImmutableBootstrapExitCodeCodec.DecodeFailure(exitCode);
             return new(
-                exitCode switch
-                {
-                    2 => ImmutableBootstrapAdmissionOutcome.Busy,
-                    10 or 11 or 12 or 13 or 14 => ImmutableBootstrapAdmissionOutcome.RecoveryRequired,
-                    15 or 16 or 17 => ImmutableBootstrapAdmissionOutcome.LaunchFailed,
-                    19 => ImmutableBootstrapAdmissionOutcome.TerminationUnconfirmed,
-                    _ => ImmutableBootstrapAdmissionOutcome.HealthUnavailable,
-                },
-                exitCode);
+                ImmutableBootstrapExitCodeCodec.ClassifyAdmission(issue),
+                exitCode,
+                issue);
         }
 
         private ImmutableBootstrapAdmissionResult AcceptAdmission()
@@ -552,14 +651,18 @@ public sealed class StableLauncherHandoff : IStableLauncherHandoff, IImmutableBo
             ImmutableBootstrapAdmissionOutcome confirmedOutcome,
             int? exitCode,
             long budgetStarted,
-            TimeSpan totalBudget)
+            TimeSpan totalBudget,
+            ImmutableBootstrapExitIssue exitIssue = ImmutableBootstrapExitIssue.None)
         {
             bool confirmed = await ObserveCleanupAsync(budgetStarted, totalBudget).ConfigureAwait(false);
             return new(
                 confirmed
                     ? confirmedOutcome
                     : ImmutableBootstrapAdmissionOutcome.TerminationUnconfirmed,
-                confirmed ? exitCode : null);
+                confirmed ? exitCode : null,
+                confirmed
+                    ? exitIssue
+                    : ImmutableBootstrapExitIssue.TerminationUnconfirmed);
         }
 
         private async ValueTask<ImmutableBootstrapCompletionResult> FailBeforeCompletionAsync(
@@ -570,7 +673,10 @@ public sealed class StableLauncherHandoff : IStableLauncherHandoff, IImmutableBo
             return new(
                 confirmed
                     ? ImmutableBootstrapCompletionOutcome.Unavailable
-                    : ImmutableBootstrapCompletionOutcome.TerminationUnconfirmed);
+                    : ImmutableBootstrapCompletionOutcome.TerminationUnconfirmed,
+                ExitIssue: confirmed
+                    ? ImmutableBootstrapExitIssue.None
+                    : ImmutableBootstrapExitIssue.TerminationUnconfirmed);
         }
 
         private async ValueTask<bool> ObserveCleanupAsync(long budgetStarted, TimeSpan totalBudget)

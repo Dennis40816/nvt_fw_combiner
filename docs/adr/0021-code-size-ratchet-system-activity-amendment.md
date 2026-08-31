@@ -355,3 +355,51 @@ R3 allowance is exact and non-transferable. It changes no firmware, profile,
 range, operation, output byte, CRC/header, processor, naming, support, Golden,
 Registry, Catalog, package admission, installation topology, or promotion
 authority.
+
+## 2026-08-31 bounded offline admission and truthful Setup progress
+
+LAUNCHER-107-PROMOTED-CUSTODY-01 removes a repeated complete-package hash from
+the outer pre-ADMITTED Launcher boundary while retaining immutable whole-tree
+custody, exact manifest-declared topology, admission-manifest identity, and an
+exact Launcher hash. The existing inner application-activation boundary still
+performs the complete package-byte verification before Desktop starts.
+LAUNCHER-107-INSTALL-PROGRESS-01 projects actual package read, verification,
+extraction, and installed-content counters into the existing Setup progress
+region. It adds no timer, estimated aggregate, second byte pass, installer, or
+firmware behavior.
+
+Full production is 136,017 nonblank lines and runtime production is 98,191.
+Domain plus Profiles remains 20,632; Application is 41,916; Bootstrap, CLI,
+Desktop and Launcher is 5,039; Infrastructure, Contracts, worker and Platform
+is 30,604. Relative to LAUNCHER-106-STAGING-CLEANUP-01 this is +1,643 full
+production, +1,629 runtime, +869 Application, +185 host, +575 Infrastructure,
+and +14 XAML lines.
+
+The executable allowances become exactly 33,121 full production, 28,135
+runtime, 5 Domain/Profiles, 11,226 Application, 1,661
+Bootstrap/CLI/Desktop/Launcher, and 15,248
+Infrastructure/Contracts/worker/Platform above the frozen base ratchets. This
+R3 allowance is exact and non-transferable; any later deletion lowers it. It
+changes no firmware, profile, address range, mutation order, output byte,
+CRC/header, naming, Golden, Catalog, or package-content authority.
+
+## 2026-08-31 cold-bootstrap admission and terminal smoke diagnostics
+
+LAUNCHER-107-PROMOTED-CUSTODY-01 starts Setup's existing admission clock before
+exact Bootstrap lease acquisition, enlarges only normal entry's impossible
+1.5-second cutoff to a bounded five seconds for two exact executable hashes and
+native starts, and exposes existing terminal Setup text to packaged smoke. It
+does not skip or cache integrity verification, add a second admission owner, or
+change firmware behavior.
+
+Full production is 136,056 nonblank lines and runtime production is 98,226.
+Domain plus Profiles remains 20,632; Application is 41,951; Bootstrap, CLI,
+Desktop and Launcher remains 5,039; Infrastructure, Contracts, worker and Platform
+remains 30,604. Relative to the preceding LAUNCHER-107 checkpoint this is +39
+full-production lines, +35 runtime/Application lines, and +4 XAML lines.
+
+The executable allowances become exactly 33,160 full production, 28,170
+runtime, 5 Domain/Profiles, 11,261 Application, 1,661
+Bootstrap/CLI/Desktop/Launcher, and 15,248
+Infrastructure/Contracts/worker/Platform above the frozen base ratchets. This
+R3 allowance is exact and non-transferable; any later deletion lowers it.

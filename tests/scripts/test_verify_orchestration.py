@@ -260,7 +260,7 @@ class VerifyOrchestrationTests(unittest.TestCase):
         self.assertEqual(len(lanes), len({lane.name for lane in lanes}))
         self.assertTrue(all(lane.isolate_action for lane in lanes))
 
-    def test_public_full_plan_completes_structure_before_restore_capable_lanes(
+    def test_public_full_plan_sequences_lock_reader_before_restore_writer(
         self,
     ) -> None:
         calls: list[tuple[list[str], int, int]] = []
@@ -288,7 +288,12 @@ class VerifyOrchestrationTests(unittest.TestCase):
                     MODULE.DEFAULT_LANE_TIMEOUT_SECONDS,
                 ),
                 (
-                    ["python", "dotnet"],
+                    ["python"],
+                    MODULE.DEFAULT_VERIFY_JOBS,
+                    MODULE.DEFAULT_LANE_TIMEOUT_SECONDS,
+                ),
+                (
+                    ["dotnet"],
                     MODULE.DEFAULT_VERIFY_JOBS,
                     MODULE.DEFAULT_LANE_TIMEOUT_SECONDS,
                 ),
@@ -2113,6 +2118,38 @@ class VerifyOrchestrationTests(unittest.TestCase):
             command[-1],
         )
 
+    def test_infrastructure_vstest_execution_serializes_xunit_collections(
+        self,
+    ) -> None:
+        assembly = Path(
+            "shadow/NvtFwCombiner.Infrastructure.Tests/bin/Release/net10.0/"
+            "NvtFwCombiner.Infrastructure.Tests.dll"
+        )
+        adapter = Path(".packages/coverlet.collector/6.0.4/build/netstandard2.0")
+        results = Path("artifacts/coverage/dotnet/NvtFwCombiner.Infrastructure.Tests")
+        project = next(
+            project
+            for project in MODULE.CI_DOTNET_SHARDS["core"]
+            if project.name == "NvtFwCombiner.Infrastructure.Tests"
+        )
+        expected_settings = [
+            "DataCollectionRunSettings.DataCollectors.DataCollector."
+            "Configuration.Format=json,cobertura",
+            "xUnit.ParallelizeTestCollections=false",
+            "xUnit.MaxParallelThreads=1",
+        ]
+
+        local_command = MODULE.local_dotnet_vstest_command(
+            "dotnet",
+            assembly,
+            adapter,
+            results,
+        )
+        ci_command = MODULE.ci_dotnet_test_command("dotnet", project, results)
+
+        self.assertEqual(expected_settings, local_command[-3:])
+        self.assertEqual(expected_settings, ci_command[-3:])
+
     def test_coverlet_adapter_comes_only_from_baseline_and_repository_packages(
         self,
     ) -> None:
@@ -3070,6 +3107,66 @@ class VerifyOrchestrationTests(unittest.TestCase):
                 {"total": 2, "passed": 2, "failed": 0, "skipped": 0},
                 "windows",
             )
+
+    def test_trx_placeholder_result_uses_its_exact_test_definition(self) -> None:
+        test_id = "ddf21aca-0ac4-b253-2683-07db54c563b2"
+        placeholder = (
+            "<unknown test ID "
+            "7319304e40d766aa6b0fbff5fa1c07f149c0b3ee9f65fece7100f329d87d7e20>"
+        )
+        identity = (
+            "NvtFwCombiner.Infrastructure.Tests.Bundles."
+            "ProfileBundleSchemaValidatorTests."
+            "ValidateEntriesRejectsMissingOrNullCompositionProfileShape"
+            '(mutation: "clone-source")'
+        )
+        with tempfile.TemporaryDirectory() as temporary:
+            trx = Path(temporary) / "test-results.trx"
+            root = MODULE.ET.Element(
+                "TestRun",
+                xmlns="http://microsoft.com/schemas/VisualStudio/TeamTest/2010",
+            )
+            results = MODULE.ET.SubElement(root, "Results")
+            MODULE.ET.SubElement(
+                results,
+                "UnitTestResult",
+                testId=test_id,
+                testName=placeholder,
+                outcome="Passed",
+            )
+            definitions = MODULE.ET.SubElement(root, "TestDefinitions")
+            definition = MODULE.ET.SubElement(
+                definitions,
+                "UnitTest",
+                id=test_id,
+                name=identity,
+            )
+            MODULE.ET.ElementTree(root).write(
+                trx,
+                encoding="utf-8",
+                xml_declaration=True,
+            )
+
+            outcomes = MODULE.parse_trx_test_outcomes(trx)
+            definition.set("id", "different-test-id")
+            MODULE.ET.ElementTree(root).write(
+                trx,
+                encoding="utf-8",
+                xml_declaration=True,
+            )
+            with self.assertRaisesRegex(RuntimeError, "no unique test definition"):
+                MODULE.parse_trx_test_outcomes(trx)
+
+        self.assertEqual(
+            MODULE.Counter(
+                {
+                    "NvtFwCombiner.Infrastructure.Tests.Bundles."
+                    "ProfileBundleSchemaValidatorTests."
+                    "ValidateEntriesRejectsMissingOrNullCompositionProfileShape": 1
+                }
+            ),
+            outcomes["Passed"],
+        )
 
     def test_compiled_inventory_admits_only_exact_producer_platform_skips(self) -> None:
         project = MODULE.CiDotnetProject(

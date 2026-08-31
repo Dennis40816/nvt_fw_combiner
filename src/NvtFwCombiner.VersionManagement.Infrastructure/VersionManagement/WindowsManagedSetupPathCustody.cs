@@ -244,9 +244,10 @@ internal sealed partial class WindowsManagedSetupPathCustody : IDisposable
         }
 
         WindowsStableCustodyResult acquired =
-            WindowsStablePathCustody.TryCaptureImmutableTreeFromHeldDirectory(
+            WindowsStablePathCustody.TryTransitionPromotedTreeToImmutableCustody(
             root,
-            _stagingRootHandle,
+            ParentHandle,
+            ref _stagingRootHandle,
             limits,
             cancellationToken);
         if (!acquired.IsAcquired)
@@ -254,8 +255,6 @@ internal sealed partial class WindowsManagedSetupPathCustody : IDisposable
             return MapCustodyIssue(acquired.Issue);
         }
         _treeCustody = acquired.Custody;
-        _stagingRootHandle.Dispose();
-        _stagingRootHandle = null;
         return ManagedFirstInstallationMaterializationIssue.None;
     }
 
@@ -263,6 +262,15 @@ internal sealed partial class WindowsManagedSetupPathCustody : IDisposable
     {
         ThrowIfDisposed();
         return _treeCustody?.RevalidateClosedTree() == true;
+    }
+
+    internal WindowsStableCustodyResult TryCloneClosedTree(
+        CancellationToken cancellationToken = default)
+    {
+        ThrowIfDisposed();
+        return _treeCustody is null
+            ? WindowsStableCustodyResult.Failure(WindowsStableCustodyIssue.Unavailable)
+            : _treeCustody.TryClone(cancellationToken: cancellationToken);
     }
 
     internal ManagedFirstInstallationMaterializationIssue Promote(string finalDirectoryName)

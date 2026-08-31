@@ -465,7 +465,8 @@ public sealed partial class ManagedLauncherEntryCoordinatorTests
             {
                 cancellationToken.ThrowIfCancellationRequested();
                 return ValueTask.FromResult(new ImmutableBootstrapCompletionResult(
-                    ImmutableBootstrapCompletionOutcome.Ready));
+                    ImmutableBootstrapCompletionOutcome.Ready,
+                    ImmutableBootstrapExitCodeCodec.Ready));
             }
 
             public void Dispose()

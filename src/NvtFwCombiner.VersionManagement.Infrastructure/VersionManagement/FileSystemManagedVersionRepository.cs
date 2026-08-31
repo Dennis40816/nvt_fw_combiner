@@ -438,14 +438,21 @@ public sealed partial class FileSystemManagedVersionRepository :
         return stream;
     }
 
-    private static async ValueTask<string> HashAsync(Stream stream, CancellationToken cancellationToken)
+    private static async ValueTask<string> HashAsync(
+        Stream stream,
+        CancellationToken cancellationToken,
+        Action<long, long>? progress = null)
     {
         using var hash = IncrementalHash.CreateHash(HashAlgorithmName.SHA256);
         byte[] buffer = GC.AllocateUninitializedArray<byte>(64 * 1024);
+        long completed = 0;
+        progress?.Invoke(0, stream.Length);
         int read;
         while ((read = await stream.ReadAsync(buffer, cancellationToken).ConfigureAwait(false)) != 0)
         {
             hash.AppendData(buffer, 0, read);
+            completed = checked(completed + read);
+            progress?.Invoke(completed, stream.Length);
         }
         return Convert.ToHexStringLower(hash.GetHashAndReset());
     }

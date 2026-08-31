@@ -5,6 +5,30 @@ namespace NvtFwCombiner.Architecture.Tests;
 
 public sealed partial class RepositoryBoundaryTests
 {
+    /// <summary>Release guidance must retain the one canonical local-admission budget.</summary>
+    [Fact]
+    public void LauncherReleaseGuidanceMatchesCanonicalAdmissionBudget()
+    {
+        string entry = ReadText(
+            "src/NvtFwCombiner.VersionManagement.Application/VersionManagement/ManagedLauncherEntry.cs");
+        string contract = ReadText("docs/contracts/managed-setup-v1.md");
+        string release = ReadText("docs/ci/release-package.md");
+
+        AssertContainsAll(
+            entry,
+            "DefaultAdmissionOperationCutoff = TimeSpan.FromSeconds(5)",
+            "DefaultAdmissionDeadline =",
+            "DefaultAdmissionOperationCutoff + DefaultCleanupObservationBudget");
+        Assert.Contains("5.5-second end-to-end hard local-admission deadline", contract,
+            StringComparison.Ordinal);
+        AssertContainsAll(
+            release,
+            "five-second operation cutoff",
+            "deadline is 5.5 seconds",
+            "final 0.5 seconds");
+        Assert.DoesNotContain("two-second local deadline", release, StringComparison.Ordinal);
+    }
+
     /// <summary>Every production child start crosses the one Platform containment gate.</summary>
     [Fact]
     public void ProductionProcessStartsAreOwnedOnlyByPlatformGate()
@@ -147,7 +171,7 @@ public sealed partial class RepositoryBoundaryTests
         AssertContainsAll(
             window,
             ".PrepareAsync(_candidateRoot, _lifetime.Token)",
-            ".InstallAndLaunchAsync(installation, _lifetime.Token)",
+            ".InstallAndLaunchAsync(installation, _lifetime.Token, progress)",
             ".DiagnoseAsync(_lifetime.Token)",
             ".ExecuteAsync(",
             "result.RefreshedHost?.Setup is { } refreshedSetup");

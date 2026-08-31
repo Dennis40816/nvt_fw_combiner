@@ -73,6 +73,7 @@ public sealed partial class RepositoryBoundaryTests
             ReadText("src/NvtFwCombiner.VersionManagement.Infrastructure/VersionManagement/FileSystemManagedFirstInstallationRootMaterializer.Transaction.cs"),
             ReadText("src/NvtFwCombiner.VersionManagement.Infrastructure/VersionManagement/WindowsStablePathCustody.cs"),
             ReadText("src/NvtFwCombiner.VersionManagement.Infrastructure/VersionManagement/WindowsStablePathCustody.Native.cs"),
+            ReadText("src/NvtFwCombiner.VersionManagement.Infrastructure/VersionManagement/WindowsStablePathCustody.Promotion.cs"),
             ReadText("src/NvtFwCombiner.VersionManagement.Infrastructure/VersionManagement/WindowsManagedSetupPathCustody.cs"),
             ReadText("src/NvtFwCombiner.VersionManagement.Infrastructure/VersionManagement/WindowsManagedSetupPathCustody.Native.cs"));
 
@@ -85,7 +86,7 @@ public sealed partial class RepositoryBoundaryTests
         string setupCustody = ReadText(
             "src/NvtFwCombiner.VersionManagement.Infrastructure/VersionManagement/WindowsManagedSetupPathCustody.cs");
         Assert.Contains(
-            "TryCaptureImmutableTreeFromHeldDirectory",
+            "TryTransitionPromotedTreeToImmutableCustody",
             setupCustody,
             StringComparison.Ordinal);
         Assert.DoesNotContain(

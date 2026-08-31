@@ -221,6 +221,90 @@ internal sealed partial class WindowsStablePathCustody
             cancellationToken);
     }
 
+    /// <summary>
+    /// Consumes a promoted delete-capable directory handle and returns immutable custody
+    /// over the same directory identity. A read-only bridge is opened relative to the retained
+    /// parent while the original still blocks replacement; the final handle denies later deletes.
+    /// </summary>
+    internal static WindowsStableCustodyResult TryTransitionPromotedTreeToImmutableCustody(
+        string absoluteRoot,
+        SafeFileHandle heldParent,
+        ref SafeFileHandle? heldRoot,
+        WindowsStableTreeLimits limits,
+        CancellationToken cancellationToken = default)
+    {
+        SafeFileHandle? source = heldRoot;
+        if (source is null || source.IsInvalid || source.IsClosed ||
+            heldParent.IsInvalid || heldParent.IsClosed ||
+            !TryGetIdentity(source, out WindowsStablePathIdentity expectedIdentity))
+        {
+            return WindowsStableCustodyResult.Failure(WindowsStableCustodyIssue.InvalidPath);
+        }
+
+        SafeFileHandle? bridge = null;
+        SafeFileHandle? immutable = null;
+        try
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            int bridgeStatus = OpenRelative(
+                heldParent,
+                Path.GetFileName(absoluteRoot),
+                directory: true,
+                writableParent: false,
+                allowWriteShare: true,
+                allowDeleteShare: true,
+                requestDeleteAccess: false,
+                out SafeFileHandle openedBridge);
+            bridge = openedBridge;
+            if (bridgeStatus != NativeMethods.StatusSuccess ||
+                !TryGetIdentity(openedBridge, out WindowsStablePathIdentity bridgeIdentity) ||
+                bridgeIdentity != expectedIdentity)
+            {
+                return WindowsStableCustodyResult.Failure(
+                    bridgeStatus == NativeMethods.StatusSuccess
+                        ? WindowsStableCustodyIssue.Changed
+                        : MapStatus(bridgeStatus));
+            }
+            SafeFileHandle readBridge = openedBridge;
+
+            source.Dispose();
+            heldRoot = null;
+
+            int immutableStatus = OpenRelative(
+                heldParent,
+                Path.GetFileName(absoluteRoot),
+                directory: true,
+                writableParent: false,
+                allowWriteShare: true,
+                allowDeleteShare: false,
+                requestDeleteAccess: false,
+                out SafeFileHandle reopened);
+            immutable = reopened;
+            if (immutableStatus != NativeMethods.StatusSuccess)
+            {
+                return WindowsStableCustodyResult.Failure(MapStatus(immutableStatus));
+            }
+            readBridge.Dispose();
+            bridge = null;
+
+            return
+                TryGetIdentity(immutable, out WindowsStablePathIdentity actualIdentity) &&
+                actualIdentity == expectedIdentity
+                    ? TryCaptureTreeFromHeldDirectory(
+                        absoluteRoot,
+                        immutable,
+                        limits,
+                        deleteCapable: false,
+                        cancellationToken)
+                    : WindowsStableCustodyResult.Failure(WindowsStableCustodyIssue.Changed);
+        }
+        finally
+        {
+            immutable?.Dispose();
+            bridge?.Dispose();
+        }
+    }
+
     internal static WindowsStableCustodyIssue TryDeleteExactTreeFromHeldDirectory(
         string absoluteRoot,
         SafeFileHandle heldRoot,

@@ -279,6 +279,7 @@ public sealed partial class ManagedFirstInstallationExperienceTests
             TestContext.Current.CancellationToken);
 
         Assert.Equal(expected, result.Outcome);
+        Assert.False(result.IsRecoveryOwned);
         Assert.Equal(0, harness.Materializer.MaterializeCount);
         Assert.Equal(0, harness.Handoff.StartCount);
     }
@@ -319,6 +320,38 @@ public sealed partial class ManagedFirstInstallationExperienceTests
         ManagedFirstInstallationOutcome expected)
     {
         InstallHarness harness = await CreateInstallHarnessAsync(admissionOutcome: admission);
+        int? exitCode;
+        ImmutableBootstrapExitIssue exitIssue;
+        switch (admission)
+        {
+            case ImmutableBootstrapAdmissionOutcome.Busy:
+                exitCode = ImmutableBootstrapExitCodeCodec.EncodeFailure(
+                    ImmutableBootstrapExitIssue.Busy);
+                exitIssue = ImmutableBootstrapExitIssue.Busy;
+                break;
+            case ImmutableBootstrapAdmissionOutcome.RecoveryRequired:
+                exitCode = ImmutableBootstrapExitCodeCodec.EncodeFailure(
+                    ImmutableBootstrapExitIssue.InvalidState);
+                exitIssue = ImmutableBootstrapExitIssue.InvalidState;
+                break;
+            case ImmutableBootstrapAdmissionOutcome.TerminationUnconfirmed:
+                exitCode = null;
+                exitIssue = ImmutableBootstrapExitIssue.TerminationUnconfirmed;
+                break;
+            case ImmutableBootstrapAdmissionOutcome.Admitted:
+            case ImmutableBootstrapAdmissionOutcome.HealthUnavailable:
+                exitCode = null;
+                exitIssue = ImmutableBootstrapExitIssue.None;
+                break;
+            case ImmutableBootstrapAdmissionOutcome.LaunchFailed:
+                exitCode = null;
+                exitIssue = ImmutableBootstrapExitIssue.StartFailed;
+                break;
+            default:
+                throw new ArgumentOutOfRangeException(nameof(admission), admission, null);
+        }
+        harness.Handoff.AdmissionExitCode = exitCode;
+        harness.Handoff.AdmissionExitIssue = exitIssue;
 
         ManagedFirstInstallationResult result = await harness.Experience.InstallAndLaunchAsync(
             harness.Plan,
@@ -361,10 +394,44 @@ public sealed partial class ManagedFirstInstallationExperienceTests
             cancellation.Token);
 
         Assert.Equal(ManagedFirstInstallationOutcome.InstalledButLaunchFailed, result.Outcome);
+        Assert.Equal(
+            new ManagedFirstInstallationLaunchFailure(
+                duringAdmission
+                    ? ManagedFirstInstallationLaunchStage.LauncherAdmission
+                    : ManagedFirstInstallationLaunchStage.ApplicationReady,
+                ManagedFirstInstallationLaunchIssue.Cancelled),
+            result.LaunchFailure);
         Assert.True(cancellingHandoff.Launch.CleanupReturned);
         Assert.True(cancellingHandoff.Launch.Disposed);
         Assert.Equal(1, harness.Materializer.Transaction.RecordLaunchCount);
         Assert.Equal(0, harness.Materializer.Transaction.CompleteCount);
+    }
+
+    /// <summary>Caller cancellation thrown by process start retains the Bootstrap-start stage.</summary>
+    [Fact]
+    public async Task InstallBootstrapStartCancellationRetainsExactStage()
+    {
+        using var cancellation = new CancellationTokenSource();
+        InstallHarness harness = await CreateInstallHarnessAsync();
+        var handoff = new CancellingThrowingStartHandoff(harness.State, cancellation);
+        ManagedFirstInstallationExperience experience = Create(
+            harness.State,
+            harness.Roots,
+            harness.Payload,
+            harness.CandidateSource,
+            harness.Materializer,
+            handoff);
+
+        ManagedFirstInstallationResult result = await experience.InstallAndLaunchAsync(
+            harness.Plan,
+            cancellation.Token);
+
+        Assert.Equal(
+            new ManagedFirstInstallationLaunchFailure(
+                ManagedFirstInstallationLaunchStage.BootstrapStart,
+                ManagedFirstInstallationLaunchIssue.Cancelled),
+            result.LaunchFailure);
+        Assert.Equal(1, harness.Materializer.Transaction.DisposeCount);
     }
 
     /// <summary>Caller cancellation cannot hide that root promotion already completed.</summary>
@@ -451,6 +518,7 @@ public sealed partial class ManagedFirstInstallationExperienceTests
         using var cancellation = new CancellationTokenSource();
         InstallHarness harness = await CreateInstallHarnessAsync();
         harness.Handoff.AdmissionOutcome = ImmutableBootstrapAdmissionOutcome.TerminationUnconfirmed;
+        harness.Handoff.AdmissionExitIssue = ImmutableBootstrapExitIssue.TerminationUnconfirmed;
         harness.Handoff.AdmissionAction = cancellation.Cancel;
 
         ManagedFirstInstallationResult result = await harness.Experience.InstallAndLaunchAsync(
@@ -494,8 +562,210 @@ public sealed partial class ManagedFirstInstallationExperienceTests
             TestContext.Current.CancellationToken);
 
         Assert.Equal(ManagedFirstInstallationOutcome.RecoveryRequired, first.Outcome);
+        Assert.True(first.IsRecoveryOwned);
         Assert.Equal(1, startsAfterFailure);
         Assert.Equal(startsAfterFailure, harness.Handoff.StartCount);
         Assert.Equal(0, harness.Materializer.Transaction.CompleteCount);
+    }
+
+    /// <summary>Every durable transaction failure after promotion belongs only to Recovery.</summary>
+    [Theory]
+    [InlineData(ManagedFirstInstallationTransactionIssue.RecoveryRequired)]
+    [InlineData(ManagedFirstInstallationTransactionIssue.StateUnavailable)]
+    public async Task PostPromotionRecordFailureRetainsExactRecoveryReason(
+        ManagedFirstInstallationTransactionIssue issue)
+    {
+        InstallHarness harness = await CreateInstallHarnessAsync();
+        harness.Materializer.Transaction.RecordLaunchIssue = issue;
+
+        ManagedFirstInstallationResult result = await harness.Experience.InstallAndLaunchAsync(
+            harness.Plan,
+            TestContext.Current.CancellationToken);
+
+        Assert.Equal(ManagedFirstInstallationOutcome.RecoveryRequired, result.Outcome);
+        Assert.True(result.IsRecoveryOwned);
+        Assert.Equal(
+            new ManagedFirstInstallationLaunchFailure(
+                ManagedFirstInstallationLaunchStage.PostPromotion,
+                issue == ManagedFirstInstallationTransactionIssue.RecoveryRequired
+                    ? ManagedFirstInstallationLaunchIssue.RecoveryRequired
+                    : ManagedFirstInstallationLaunchIssue.StateUnavailable),
+            result.LaunchFailure);
+        Assert.Equal(0, harness.Handoff.StartCount);
+        Assert.Equal(0, harness.Materializer.Transaction.CompleteCount);
+    }
+
+    /// <summary>Bootstrap lease failures retain their exact typed projection and recovery marker.</summary>
+    [Theory]
+    [InlineData(
+        ManagedExecutableLaunchIssue.Unavailable,
+        ManagedFirstInstallationOutcome.InstalledButLaunchFailed,
+        ManagedFirstInstallationLaunchIssue.Unavailable)]
+    [InlineData(
+        ManagedExecutableLaunchIssue.Tampered,
+        ManagedFirstInstallationOutcome.RecoveryRequired,
+        ManagedFirstInstallationLaunchIssue.Damaged)]
+    [InlineData(
+        ManagedExecutableLaunchIssue.UnsafePath,
+        ManagedFirstInstallationOutcome.RecoveryRequired,
+        ManagedFirstInstallationLaunchIssue.Damaged)]
+    public async Task InstallMapsBootstrapLeaseAcquisitionFailure(
+        ManagedExecutableLaunchIssue leaseIssue,
+        ManagedFirstInstallationOutcome expectedOutcome,
+        ManagedFirstInstallationLaunchIssue expectedLaunchIssue)
+    {
+        InstallHarness harness = await CreateInstallHarnessAsync();
+        harness.Materializer.Transaction.BootstrapLeaseIssue = leaseIssue;
+
+        ManagedFirstInstallationResult result = await harness.Experience.InstallAndLaunchAsync(
+            harness.Plan,
+            TestContext.Current.CancellationToken);
+
+        Assert.Equal(expectedOutcome, result.Outcome);
+        Assert.True(result.IsRecoveryOwned);
+        Assert.Equal(
+            new ManagedFirstInstallationLaunchFailure(
+                ManagedFirstInstallationLaunchStage.BootstrapStart,
+                expectedLaunchIssue),
+            result.LaunchFailure);
+        Assert.Equal(1, harness.Materializer.Transaction.RecordLaunchCount);
+        Assert.Equal(1, harness.Materializer.Transaction.BootstrapLeaseAcquireCount);
+        Assert.Equal(0, harness.Handoff.StartCount);
+        Assert.Equal(0, harness.Materializer.Transaction.CompleteCount);
+        Assert.Equal(1, harness.Materializer.Transaction.DisposeCount);
+    }
+
+    /// <summary>A contradictory Bootstrap lease receipt fails closed and disposes any issued lease.</summary>
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task InstallRejectsMalformedBootstrapLeaseReceipt(bool attachLease)
+    {
+        InstallHarness harness = await CreateInstallHarnessAsync();
+        RecordingExecutableLaunchLease? issuedLease = null;
+        try
+        {
+            issuedLease = attachLease
+                ? new RecordingExecutableLaunchLease(
+                    Path.Combine(harness.Plan.ManagedRoot, Bootstrap.FileName),
+                    harness.Plan.ManagedRoot)
+                : null;
+            harness.Materializer.Transaction.BootstrapLeaseResultOverride = new(
+                issuedLease,
+                attachLease
+                    ? ManagedExecutableLaunchIssue.Unavailable
+                    : ManagedExecutableLaunchIssue.None);
+
+            ManagedFirstInstallationResult result = await harness.Experience.InstallAndLaunchAsync(
+                harness.Plan,
+                TestContext.Current.CancellationToken);
+
+            Assert.Equal(ManagedFirstInstallationOutcome.RecoveryRequired, result.Outcome);
+            Assert.True(result.IsRecoveryOwned);
+            Assert.Equal(
+                new ManagedFirstInstallationLaunchFailure(
+                    ManagedFirstInstallationLaunchStage.BootstrapStart,
+                    ManagedFirstInstallationLaunchIssue.Damaged),
+                result.LaunchFailure);
+            Assert.Equal(attachLease, issuedLease?.Disposed ?? false);
+            Assert.Equal(1, harness.Materializer.Transaction.RecordLaunchCount);
+            Assert.Equal(0, harness.Handoff.StartCount);
+            Assert.Equal(0, harness.Materializer.Transaction.CompleteCount);
+            Assert.Equal(1, harness.Materializer.Transaction.DisposeCount);
+        }
+        finally
+        {
+            issuedLease?.Dispose();
+        }
+    }
+
+    /// <summary>Caller cancellation during Bootstrap lease acquisition preserves the post-promotion boundary.</summary>
+    [Fact]
+    public async Task InstallBootstrapLeaseAcquisitionCancellationRetainsRecoveryMarker()
+    {
+        using var cancellation = new CancellationTokenSource();
+        InstallHarness harness = await CreateInstallHarnessAsync();
+        harness.Materializer.Transaction.BootstrapLeaseAcquireAction = cancellation.Cancel;
+
+        ManagedFirstInstallationResult result = await harness.Experience.InstallAndLaunchAsync(
+            harness.Plan,
+            cancellation.Token);
+
+        Assert.Equal(ManagedFirstInstallationOutcome.InstalledButLaunchFailed, result.Outcome);
+        Assert.True(result.IsRecoveryOwned);
+        Assert.Equal(
+            new ManagedFirstInstallationLaunchFailure(
+                ManagedFirstInstallationLaunchStage.PostPromotion,
+                ManagedFirstInstallationLaunchIssue.Cancelled),
+            result.LaunchFailure);
+        Assert.Equal(1, harness.Materializer.Transaction.RecordLaunchCount);
+        Assert.Equal(1, harness.Materializer.Transaction.BootstrapLeaseAcquireCount);
+        Assert.Equal(0, harness.Handoff.StartCount);
+        Assert.Equal(0, harness.Materializer.Transaction.CompleteCount);
+        Assert.Equal(1, harness.Materializer.Transaction.DisposeCount);
+    }
+
+    /// <summary>A lease returned concurrently with caller cancellation remains owned and disposed.</summary>
+    [Fact]
+    public async Task InstallDisposesBootstrapLeaseWhenCallerCancelsAfterAcquisition()
+    {
+        using var cancellation = new CancellationTokenSource();
+        InstallHarness harness = await CreateInstallHarnessAsync();
+        harness.Materializer.Transaction.BootstrapLeaseAcquiredAction = cancellation.Cancel;
+
+        ManagedFirstInstallationResult result = await harness.Experience.InstallAndLaunchAsync(
+            harness.Plan,
+            cancellation.Token);
+
+        Assert.Equal(ManagedFirstInstallationOutcome.InstalledButLaunchFailed, result.Outcome);
+        Assert.True(result.IsRecoveryOwned);
+        Assert.Equal(
+            new ManagedFirstInstallationLaunchFailure(
+                ManagedFirstInstallationLaunchStage.PostPromotion,
+                ManagedFirstInstallationLaunchIssue.Cancelled),
+            result.LaunchFailure);
+        Assert.Equal(1, harness.Materializer.Transaction.BootstrapLeaseAcquireCount);
+        Assert.NotNull(harness.Materializer.Transaction.LastBootstrapLease);
+        Assert.True(harness.Materializer.Transaction.LastBootstrapLease.Disposed);
+        Assert.Equal(0, harness.Handoff.StartCount);
+        Assert.Equal(0, harness.Materializer.Transaction.CompleteCount);
+        Assert.Equal(1, harness.Materializer.Transaction.DisposeCount);
+    }
+
+    /// <summary>A post-READY marker-finalization failure remains recovery-owned.</summary>
+    [Fact]
+    public async Task PostReadyCompletionFailureIsRecoveryOwned()
+    {
+        InstallHarness harness = await CreateInstallHarnessAsync();
+        harness.Materializer.Transaction.CompleteIssue =
+            ManagedFirstInstallationTransactionIssue.StateUnavailable;
+
+        ManagedFirstInstallationResult result = await harness.Experience.InstallAndLaunchAsync(
+            harness.Plan,
+            TestContext.Current.CancellationToken);
+
+        Assert.Equal(ManagedFirstInstallationOutcome.RecoveryRequired, result.Outcome);
+        Assert.True(result.IsRecoveryOwned);
+        Assert.Null(result.LaunchFailure);
+        Assert.Equal(1, harness.Handoff.StartCount);
+        Assert.Equal(1, harness.Materializer.Transaction.CompleteCount);
+    }
+
+    private sealed class CancellingThrowingStartHandoff(
+        SequencedStateStore state,
+        CancellationTokenSource cancellation) : IImmutableBootstrapLeaseHandoff
+    {
+        public ValueTask<ImmutableBootstrapStartResult> StartAsync(
+            string managedRoot,
+            ManagedImmutableBootstrapIdentity expectedIdentity,
+            IManagedExecutableLaunchLease ownedLease,
+            CancellationToken cancellationToken)
+        {
+            Assert.False(state.LeaseActive);
+            ownedLease.Dispose();
+            cancellation.Cancel();
+            return ValueTask.FromException<ImmutableBootstrapStartResult>(
+                new OperationCanceledException(cancellation.Token));
+        }
     }
 }

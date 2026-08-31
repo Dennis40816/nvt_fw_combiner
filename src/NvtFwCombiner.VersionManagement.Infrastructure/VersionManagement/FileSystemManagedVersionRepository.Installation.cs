@@ -13,6 +13,47 @@ internal interface IWindowsCustodiedManagedVersionRepository : IManagedVersionRe
         UpdateCatalogVersionSnapshot package,
         Action<string>? afterPackageDirectoryCreated,
         CancellationToken cancellationToken);
+
+    ValueTask<ManagedVersionPayloadMaterializationResult> MaterializeVerifiedPayloadWithinHeldRootAsync(
+        WindowsStableRelativeWriteRoot writeRoot,
+        string sourceRoot,
+        UpdateCatalogVersionSnapshot package,
+        Action<string>? afterPackageDirectoryCreated,
+        IProgress<ManagedFirstInstallationProgress>? progress,
+        CancellationToken cancellationToken)
+    {
+        return MaterializeVerifiedPayloadWithinHeldRootAsync(
+            writeRoot,
+            sourceRoot,
+            package,
+            afterPackageDirectoryCreated,
+            cancellationToken);
+    }
+}
+
+/// <summary>
+/// Projects actual counters from one measured stage without flooding Presentation with duplicate
+/// integer percentages. No time or estimated work participates in this projection.
+/// </summary>
+internal sealed class MeasuredFirstInstallationStageProgress(
+    IProgress<ManagedFirstInstallationProgress> progress,
+    ManagedFirstInstallationProgressStage stage)
+{
+    private readonly IProgress<ManagedFirstInstallationProgress> _progress = progress ??
+        throw new ArgumentNullException(nameof(progress));
+    private int _lastPercent = -1;
+
+    internal void Report(long completed, long total)
+    {
+        var current = new ManagedFirstInstallationProgress(stage, completed, total);
+        int percent = current.Percent!.Value;
+        if (percent <= _lastPercent)
+        {
+            return;
+        }
+        _lastPercent = percent;
+        _progress.Report(current);
+    }
 }
 
 internal sealed record ManagedVersionPayloadMaterializationResult(
@@ -58,6 +99,7 @@ public sealed partial class FileSystemManagedVersionRepository
                     package,
                     _afterPackageDirectoryCreated,
                     ManagedPayloadTargetPolicy.AdmitMatchingExisting,
+                    progress: null,
                     cancellationToken).ConfigureAwait(false);
             return payload.IsVerified
                 ? new(
@@ -86,6 +128,26 @@ public sealed partial class FileSystemManagedVersionRepository
             package,
             afterPackageDirectoryCreated,
             ManagedPayloadTargetPolicy.RequireNew,
+            progress: null,
+            cancellationToken);
+    }
+
+    ValueTask<ManagedVersionPayloadMaterializationResult>
+        IWindowsCustodiedManagedVersionRepository.MaterializeVerifiedPayloadWithinHeldRootAsync(
+            WindowsStableRelativeWriteRoot writeRoot,
+            string sourceRoot,
+            UpdateCatalogVersionSnapshot package,
+            Action<string>? afterPackageDirectoryCreated,
+            IProgress<ManagedFirstInstallationProgress>? progress,
+            CancellationToken cancellationToken)
+    {
+        return MaterializeVerifiedPayloadWithinHeldRootAsync(
+            writeRoot,
+            sourceRoot,
+            package,
+            afterPackageDirectoryCreated,
+            ManagedPayloadTargetPolicy.RequireNew,
+            progress,
             cancellationToken);
     }
 
@@ -98,6 +160,7 @@ public sealed partial class FileSystemManagedVersionRepository
         UpdateCatalogVersionSnapshot package,
         Action<string>? afterPackageDirectoryCreated,
         ManagedPayloadTargetPolicy targetPolicy,
+        IProgress<ManagedFirstInstallationProgress>? progress,
         CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(writeRoot);
@@ -118,18 +181,28 @@ public sealed partial class FileSystemManagedVersionRepository
             }
 
             await using FileStream packageStream = OpenStablePackage(packagePath, package.PackageSize);
-            string actualPackageHash = await HashAsync(packageStream, cancellationToken).ConfigureAwait(false);
+            Action<long, long>? packageReadProgress = CreateMeasuredProgress(
+                progress,
+                ManagedFirstInstallationProgressStage.ReadingPackage);
+            string actualPackageHash = await HashAsync(
+                packageStream,
+                cancellationToken,
+                packageReadProgress).ConfigureAwait(false);
             if (!string.Equals(actualPackageHash, package.PackageSha256, StringComparison.Ordinal))
             {
                 return PayloadFailure(ManagedVersionInstallIssue.PackageMismatch);
             }
             packageStream.Position = 0;
             using var archive = new ZipArchive(packageStream, ZipArchiveMode.Read, leaveOpen: true);
+            Action<long, long>? packageVerificationProgress = CreateMeasuredProgress(
+                progress,
+                ManagedFirstInstallationProgressStage.VerifyingPackage);
             ManagedPackagePlanResult planResult = await ManagedPackageVerifier.CreatePlanAsync(
                 archive,
                 package,
                 _maximumExpandedBytes,
-                cancellationToken).ConfigureAwait(false);
+                cancellationToken,
+                packageVerificationProgress).ConfigureAwait(false);
             if (!planResult.IsSuccess)
             {
                 return PayloadFailure(planResult.Issue);
@@ -151,6 +224,7 @@ public sealed partial class FileSystemManagedVersionRepository
                         admission,
                         wasAlreadyMaterialized: true,
                         heldCustody: null,
+                        progress,
                         cancellationToken).ConfigureAwait(false)
                     : PayloadFailure(ManagedVersionInstallIssue.IdentityConflict);
             }
@@ -180,11 +254,15 @@ public sealed partial class FileSystemManagedVersionRepository
                         ? PayloadFailure(issue)
                         : PayloadFailureAfterCleanup(ownedTree, issue);
                 }
+                Action<long, long>? packageInstallationProgress = CreateMeasuredProgress(
+                    progress,
+                    ManagedFirstInstallationProgressStage.InstallingPackage);
                 await ManagedPackageVerifier.ExtractAsync(
                     plan,
                     ownedTree.CreateFile,
                     _maximumExpandedBytes,
-                    cancellationToken).ConfigureAwait(false);
+                    cancellationToken,
+                    packageInstallationProgress).ConfigureAwait(false);
                 await WriteAdmissionAsync(
                     ownedTree.CreateFile,
                     admissionBytes,
@@ -223,6 +301,7 @@ public sealed partial class FileSystemManagedVersionRepository
                         admission,
                         wasAlreadyMaterialized: false,
                         custody,
+                        progress,
                         cancellationToken).ConfigureAwait(false);
                 }
                 if (!verified.IsVerified)
@@ -305,6 +384,7 @@ public sealed partial class FileSystemManagedVersionRepository
         ManagedVersionAdmission admission,
         bool wasAlreadyMaterialized,
         WindowsStablePathCustody? heldCustody,
+        IProgress<ManagedFirstInstallationProgress>? progress,
         CancellationToken cancellationToken)
     {
         WindowsStablePathCustody? acquiredCustody = null;
@@ -330,11 +410,15 @@ public sealed partial class FileSystemManagedVersionRepository
             {
                 return PayloadFailure(ManagedVersionInstallIssue.IdentityConflict);
             }
+            Action<long, long>? installationVerificationProgress = CreateMeasuredProgress(
+                progress,
+                ManagedFirstInstallationProgressStage.VerifyingInstallation);
             ManagedVersionDamageReason? damage = await ManagedPackageVerifier.VerifyInstalledAsync(
                 target,
                 admission,
                 _maximumExpandedBytes,
-                cancellationToken).ConfigureAwait(false);
+                cancellationToken,
+                installationVerificationProgress).ConfigureAwait(false);
             return damage is null && heldCustody.RevalidateClosedTree()
                 ? new(admission, ManagedVersionInstallIssue.None, wasAlreadyMaterialized)
                 : PayloadFailure(ManagedVersionInstallIssue.IdentityConflict);
@@ -343,6 +427,18 @@ public sealed partial class FileSystemManagedVersionRepository
         {
             acquiredCustody?.Dispose();
         }
+    }
+
+    private static Action<long, long>? CreateMeasuredProgress(
+        IProgress<ManagedFirstInstallationProgress>? progress,
+        ManagedFirstInstallationProgressStage stage)
+    {
+        if (progress is null)
+        {
+            return null;
+        }
+        var projection = new MeasuredFirstInstallationStageProgress(progress, stage);
+        return projection.Report;
     }
 
     private static byte[] SerializeAdmission(ManagedVersionAdmission admission)

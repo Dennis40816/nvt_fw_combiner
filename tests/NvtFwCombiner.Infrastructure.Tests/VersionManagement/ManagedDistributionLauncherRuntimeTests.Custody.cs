@@ -381,6 +381,140 @@ public sealed partial class ManagedDistributionLauncherRuntimeTests
         Assert.False(File.Exists(marker));
     }
 
+    /// <summary>
+    /// Promoted custody blocks replacement while its clone-derived executable lease starts Bootstrap.
+    /// </summary>
+    [Fact]
+    public async Task PromotedCustodyCloneStartsWhileRootReplacementBlocked()
+    {
+        if (!OperatingSystem.IsWindows())
+        {
+            return;
+        }
+
+        await using TemporaryRoot temporary = new();
+        string bootstrapSource = Environment.GetEnvironmentVariable("ComSpec") ??
+            Path.Combine(Environment.SystemDirectory, "cmd.exe");
+        ManagedDistributionPayloadIdentity payloadIdentity =
+            await PayloadIdentityAsync(bootstrapSource);
+        FreshInstallationCandidate candidate = Candidate(temporary.Path);
+        ManagedVersionAdmission admission = Admission(candidate);
+        var materializer = new FileSystemManagedFirstInstallationRootMaterializer(
+            new MaterializingRepository(admission));
+        using var payload = new TestPayloadCapture(
+            payloadIdentity,
+            bootstrapSource: bootstrapSource);
+        string statePath = Path.Combine(temporary.Path, "state", "version-manager.v1.json");
+        ManagedFirstInstallationMaterializationResult result = await materializer.MaterializeAsync(
+            Path.Combine(temporary.Path, "NvtFwCombiner"),
+            statePath,
+            payload,
+            candidate,
+            ManagedVersionSeedPolicy.CreateCanonicalFirstRunSeed(admission),
+            TestContext.Current.CancellationToken);
+        Assert.True(result.IsSuccess, result.Issue.ToString());
+        IManagedPromotedFirstInstallation installation = Assert.IsType<
+            IManagedPromotedFirstInstallation>(result.Installation, exactMatch: false);
+        Assert.Equal(
+            ManagedFirstInstallationTransactionIssue.None,
+            await installation.RecordBootstrapLaunchAsync(
+                TestContext.Current.CancellationToken));
+
+        string bootstrap = Path.Combine(
+            installation.ManagedRoot,
+            payloadIdentity.Bootstrap.FileName);
+        _ = Assert.Throws<IOException>(() => Directory.Move(
+            installation.ManagedRoot,
+            installation.ManagedRoot + ".replacement"));
+
+        ManagedExecutableLaunchLeaseResult acquired = await installation
+            .AcquireBootstrapLaunchLeaseAsync(
+                payloadIdentity.Bootstrap,
+                TestContext.Current.CancellationToken);
+        Assert.True(acquired.IsAcquired);
+        Assert.Equal(ManagedExecutableLaunchIssue.None, acquired.Issue);
+        IManagedExecutableLaunchLease? ownedLease = acquired.Lease;
+        try
+        {
+            ManagedExecutableLaunchLeaseResult duplicate = await installation
+                .AcquireBootstrapLaunchLeaseAsync(
+                    payloadIdentity.Bootstrap,
+                    TestContext.Current.CancellationToken);
+            Assert.False(duplicate.IsAcquired);
+            Assert.Null(duplicate.Lease);
+            Assert.Equal(ManagedExecutableLaunchIssue.Unavailable, duplicate.Issue);
+
+            var handoff = new StableLauncherHandoff(installation.ManagedRoot, statePath);
+            ImmutableBootstrapStartResult started = await handoff.StartAsync(
+                    installation.ManagedRoot,
+                    payloadIdentity.Bootstrap,
+                    ownedLease!,
+                    TestContext.Current.CancellationToken);
+            ownedLease = null;
+            using IImmutableBootstrapLaunch launch = Assert.IsType<IImmutableBootstrapLaunch>(
+                started.Launch,
+                exactMatch: false);
+            Assert.True(started.IsStarted);
+            var budget = new ImmutableBootstrapWaitBudget(
+                TimeSpan.FromSeconds(5),
+                TimeSpan.FromSeconds(10));
+            ImmutableBootstrapAdmissionResult observed = await launch.WaitForAdmissionAsync(
+                budget,
+                TestContext.Current.CancellationToken);
+            Assert.Equal(
+                ImmutableBootstrapAdmissionOutcome.HealthUnavailable,
+                observed.Outcome);
+
+            _ = Assert.Throws<IOException>(() => Directory.Move(
+                installation.ManagedRoot,
+                installation.ManagedRoot + ".replacement"));
+        }
+        finally
+        {
+            ownedLease?.Dispose();
+            installation.Dispose();
+        }
+    }
+
+    /// <summary>A cancelled first clone duplicate is closed before control returns.</summary>
+    [Fact]
+    public async Task CloneCancellationClosesFirstPartialDuplicate()
+    {
+        if (!OperatingSystem.IsWindows())
+        {
+            return;
+        }
+
+        await using TemporaryRoot temporary = new();
+        string root = Path.Combine(temporary.Path, "held-root");
+        _ = Directory.CreateDirectory(root);
+        await File.WriteAllTextAsync(
+            Path.Combine(root, "payload.bin"),
+            "verified-payload",
+            TestContext.Current.CancellationToken);
+        WindowsStableCustodyResult acquired = WindowsStablePathCustody.TryAcquirePromotableTree(
+            root,
+            cancellationToken: TestContext.Current.CancellationToken);
+        using WindowsStablePathCustody original = Assert.IsType<WindowsStablePathCustody>(
+            acquired.Custody,
+            exactMatch: true);
+        Assert.True(acquired.IsAcquired);
+
+        using var cancellation = new CancellationTokenSource();
+        _ = Assert.Throws<OperationCanceledException>(() => original.TryClone(
+            _ => cancellation.Cancel(),
+            cancellation.Token));
+
+        original.Dispose();
+        WindowsStableCustodyResult reacquired = WindowsStablePathCustody.TryAcquireWritableParent(
+            root,
+            cancellationToken: TestContext.Current.CancellationToken);
+        using WindowsStablePathCustody replacement = Assert.IsType<WindowsStablePathCustody>(
+            reacquired.Custody,
+            exactMatch: true);
+        Assert.True(reacquired.IsAcquired);
+    }
+
     /// <summary>Exclusive transaction custody blocks a competing marker handle before completion.</summary>
     [Fact]
     public async Task CompletionBlocksCompetingMarkerOpen()

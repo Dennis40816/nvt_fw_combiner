@@ -45,7 +45,7 @@ jobs:
   python-worker:
     name: python-worker / verify
     if: github.event_name == 'push' || github.event.pull_request.draft == false
-    runs-on: ubuntu-latest
+    runs-on: windows-latest
     timeout-minutes: 20
     steps:
       - name: Checkout

@@ -8,11 +8,13 @@ param(
     [Parameter(Mandatory = $true)]
     [string]$EvidencePath,
     [ValidateRange(10, 300)]
-    [int]$TimeoutSeconds = 120
+    [int]$TimeoutSeconds = 120,
+    [switch]$KeepSmokeRootOnFailure
 )
 
 $ErrorActionPreference = 'Stop'
 Set-StrictMode -Version Latest
+$script:UiAutomationInstallInvoked = $false
 
 function Resolve-ExactFile([string]$Path, [string]$Label) {
     $resolved = (Resolve-Path -LiteralPath $Path).Path
@@ -35,6 +37,37 @@ function Assert-SmokeRoot([string]$Root) {
         throw "Refusing to clean an unrecognized smoke root: $exactRoot"
     }
     return $exactRoot
+}
+
+function Remove-SmokeRoot([string]$Root) {
+    $exactRoot = Assert-SmokeRoot $Root
+    for ($attempt = 1; $attempt -le 40; $attempt++) {
+        try {
+            if ([System.IO.Directory]::Exists($exactRoot)) {
+                [System.IO.Directory]::Delete($exactRoot, $true)
+            }
+            if (-not [System.IO.Directory]::Exists($exactRoot)) {
+                return
+            }
+        }
+        catch {
+            $cause = $_.Exception
+            while ($null -ne $cause.InnerException) {
+                $cause = $cause.InnerException
+            }
+            if (
+                $cause -isnot [System.IO.IOException] -and
+                $cause -isnot [System.UnauthorizedAccessException]
+            ) {
+                throw
+            }
+            if ($attempt -eq 40) {
+                throw
+            }
+        }
+        Start-Sleep -Milliseconds 250
+    }
+    throw "Smoke root remained after bounded cleanup: $exactRoot"
 }
 
 function Get-Sha256([string]$Path) {
@@ -86,15 +119,61 @@ function Start-DistributionLauncher(
             $button = Wait-ForInstallButton $process $Timeout
             $pattern = $button.GetCurrentPattern([System.Windows.Automation.InvokePattern]::Pattern)
             ([System.Windows.Automation.InvokePattern]$pattern).Invoke()
+            $script:UiAutomationInstallInvoked = $true
         }
-        if (-not $process.WaitForExit($Timeout * 1000)) {
-            throw "Distribution Launcher did not exit within $Timeout seconds."
+        $deadline = [DateTime]::UtcNow.AddSeconds($Timeout)
+        while (-not $process.HasExited -and [DateTime]::UtcNow -lt $deadline) {
+            Add-Type -AssemblyName UIAutomationClient
+            Add-Type -AssemblyName UIAutomationTypes
+            $processCondition = [System.Windows.Automation.PropertyCondition]::new(
+                [System.Windows.Automation.AutomationElement]::ProcessIdProperty,
+                $process.Id)
+            $window = [System.Windows.Automation.AutomationElement]::RootElement.FindFirst(
+                [System.Windows.Automation.TreeScope]::Children,
+                $processCondition)
+            $diagnostics = @{}
+            if ($null -ne $window) {
+                foreach ($automationId in @(
+                    'OutcomeText',
+                    'OperationProgressText',
+                    'SourceStatusText',
+                    'PrimaryButton')) {
+                    $condition = [System.Windows.Automation.PropertyCondition]::new(
+                        [System.Windows.Automation.AutomationElement]::AutomationIdProperty,
+                        $automationId)
+                    $element = $window.FindFirst(
+                        [System.Windows.Automation.TreeScope]::Descendants,
+                        $condition)
+                    if ($null -ne $element -and -not [string]::IsNullOrWhiteSpace($element.Current.Name)) {
+                        $diagnostics[$automationId] = $element.Current.Name
+                    }
+                }
+            }
+            if ($ClickInstall -and -not [string]::IsNullOrWhiteSpace($diagnostics['OutcomeText'])) {
+                $detail = $diagnostics.GetEnumerator() |
+                    Sort-Object Key |
+                    ForEach-Object { "$($_.Key)=$($_.Value)" }
+                throw "Setup reported a terminal failure. UI: $($detail -join '; ')"
+            }
+            Start-Sleep -Milliseconds 100
+        }
+        if (-not $process.HasExited) {
+            $suffix = if ($diagnostics.Count -eq 0) {
+                ' No visible diagnostic text was exposed.'
+            }
+            else {
+                $detail = $diagnostics.GetEnumerator() |
+                    Sort-Object Key |
+                    ForEach-Object { "$($_.Key)=$($_.Value)" }
+                " UI: $($detail -join '; ')"
+            }
+            throw "Distribution Launcher did not exit within $Timeout seconds.$suffix"
         }
         return $process.ExitCode
     }
     finally {
         if (-not $process.HasExited) {
-            $process.Kill($true)
+            Stop-Process -Id $process.Id -Force -ErrorAction Stop
             $process.WaitForExit()
         }
         $process.Dispose()
@@ -117,7 +196,7 @@ function Stop-ExactManagedApplication([string]$Executable) {
                 $expected,
                 [System.StringComparison]::OrdinalIgnoreCase)) {
                 if (-not $process.CloseMainWindow() -or -not $process.WaitForExit(5000)) {
-                    $process.Kill($true)
+                    Stop-Process -Id $process.Id -Force -ErrorAction Stop
                     $process.WaitForExit()
                 }
             }
@@ -126,6 +205,51 @@ function Stop-ExactManagedApplication([string]$Executable) {
             $process.Dispose()
         }
     }
+}
+
+function Wait-ExactManagedProcessSetExit(
+    [string[]]$Executables,
+    [int]$TimeoutMilliseconds,
+    [scriptblock]$ProcessSnapshot = { Get-Process }) {
+    $expected = @($Executables | ForEach-Object { [System.IO.Path]::GetFullPath($_) })
+    $deadline = [DateTime]::UtcNow.AddMilliseconds($TimeoutMilliseconds)
+    $consecutiveEmptySnapshots = 0
+    while ([DateTime]::UtcNow -lt $deadline) {
+        $found = $false
+        foreach ($process in (& $ProcessSnapshot)) {
+            try {
+                $candidate = $process.Path
+                if ($null -ne $candidate) {
+                    $fullCandidate = [System.IO.Path]::GetFullPath($candidate)
+                    foreach ($path in $expected) {
+                        if ([string]::Equals(
+                            $fullCandidate,
+                            $path,
+                            [System.StringComparison]::OrdinalIgnoreCase)) {
+                            $found = $true
+                            break
+                        }
+                    }
+                }
+            }
+            catch {
+            }
+            finally {
+                $process.Dispose()
+            }
+        }
+        if (-not $found) {
+            $consecutiveEmptySnapshots++
+            if ($consecutiveEmptySnapshots -ge 2) {
+                return
+            }
+        }
+        else {
+            $consecutiveEmptySnapshots = 0
+        }
+        Start-Sleep -Milliseconds 100
+    }
+    throw "Managed process set did not exit within $TimeoutMilliseconds ms: $($expected -join '; ')"
 }
 
 function Assert-InstalledPackage([string]$VersionRoot, [string]$ExpectedVersion) {
@@ -196,8 +320,8 @@ function Assert-ReadyInstallation(
         throw "Launcher bootstrap state is not terminal READY for $ExpectedVersion."
     }
     if (
-        [System.IO.File]::Exists("$ManagedRoot.setup-transaction.v1.json") -or
-        [System.IO.Directory]::Exists("$ManagedRoot.setup-staging")
+        [System.IO.File]::Exists("$ManagedRoot.managed-setup-transaction.v1.json") -or
+        [System.IO.Directory]::Exists("$ManagedRoot.managed-setup-staging")
     ) {
         throw "Setup residue remains after READY."
     }
@@ -227,6 +351,13 @@ $SourceRoot = Join-Path $SmokeRoot 'source'
 $OfflineSourceRoot = Join-Path $SmokeRoot 'source.offline'
 $RegistryPath = Join-Path $SourceRoot 'update-source-registry.json'
 $InstalledApplication = Join-Path $ManagedRoot "versions\$Version\NvtFwCombiner.exe"
+$InstalledVersionLauncher = Join-Path $ManagedRoot (
+    "versions\$Version\launcher\NvtFwCombiner.Launcher.exe")
+$InstalledBootstrap = Join-Path $ManagedRoot 'NvtFwCombiner.Bootstrap.exe'
+$ManagedProcessPaths = @(
+    $InstalledApplication,
+    $InstalledVersionLauncher,
+    $InstalledBootstrap)
 $PreviousLocalAppData = $env:LOCALAPPDATA
 $PreviousRegistry = $env:NFC_UPDATE_SOURCE_REGISTRY_PATH
 $Failure = $null
@@ -240,6 +371,7 @@ $Evidence = [ordered]@{
     uiAutomationInstallInvoked = $false
     sourceRenamedOffline = $false
     ready = $false
+    cleanupSucceeded = $false
 }
 
 try {
@@ -268,7 +400,6 @@ try {
     $env:LOCALAPPDATA = $LocalAppData
     $env:NFC_UPDATE_SOURCE_REGISTRY_PATH = $RegistryPath
     $Evidence.firstInstallExitCode = Start-DistributionLauncher $DeliveryLauncher $true $TimeoutSeconds
-    $Evidence.uiAutomationInstallInvoked = $true
     if ($Evidence.firstInstallExitCode -ne 0) {
         throw "First-install Launcher returned $($Evidence.firstInstallExitCode), expected 0."
     }
@@ -289,6 +420,7 @@ try {
     $Evidence.stableLauncherSha256 = Get-Sha256 $stableCopy
     $Evidence.ready = $true
     Stop-ExactManagedApplication $InstalledApplication
+    Wait-ExactManagedProcessSetExit $ManagedProcessPaths 10000
 
     Move-Item -LiteralPath $SourceRoot -Destination $OfflineSourceRoot
     $Evidence.sourceRenamedOffline = $true
@@ -308,6 +440,7 @@ catch {
 finally {
     try {
         Stop-ExactManagedApplication $InstalledApplication
+        Wait-ExactManagedProcessSetExit $ManagedProcessPaths 10000
     }
     catch {
         if ($null -eq $Failure) {
@@ -318,23 +451,51 @@ finally {
     finally {
         $env:LOCALAPPDATA = $PreviousLocalAppData
         $env:NFC_UPDATE_SOURCE_REGISTRY_PATH = $PreviousRegistry
-        try {
-            $evidenceParent = [System.IO.Path]::GetDirectoryName($ExactEvidence)
-            if (-not [string]::IsNullOrWhiteSpace($evidenceParent)) {
-                New-Item -ItemType Directory -Path $evidenceParent -Force | Out-Null
+        $Evidence.uiAutomationInstallInvoked = $script:UiAutomationInstallInvoked
+        $Evidence.stateExists = [System.IO.File]::Exists($StatePath)
+        $Evidence.launcherStateExists = [System.IO.File]::Exists(
+            "$StatePath.launcher-bootstrap.v1.json")
+        $transactionPath = "$ManagedRoot.managed-setup-transaction.v1.json"
+        $Evidence.transactionExists = [System.IO.File]::Exists($transactionPath)
+        if ($Evidence.transactionExists) {
+            try {
+                $transaction = Get-Content -LiteralPath $transactionPath -Raw | ConvertFrom-Json
+                $Evidence.transactionPhase = [string]$transaction.phase
             }
-            $Evidence.success = $null -eq $Failure
-            [System.IO.File]::WriteAllText(
-                $ExactEvidence,
-                ($Evidence | ConvertTo-Json -Depth 5),
-                [System.Text.UTF8Encoding]::new($false))
-        }
-        finally {
-            $SmokeRoot = Assert-SmokeRoot $SmokeRoot
-            if ([System.IO.Directory]::Exists($SmokeRoot)) {
-                Remove-Item -LiteralPath $SmokeRoot -Recurse -Force
+            catch {
+                $Evidence.transactionPhase = '<unreadable>'
             }
         }
+
+        $SmokeRoot = Assert-SmokeRoot $SmokeRoot
+        if ($KeepSmokeRootOnFailure -and $null -ne $Failure) {
+            $Evidence.cleanupRetainedForDiagnosis = $true
+            $Evidence.diagnosticSmokeRoot = $SmokeRoot
+        }
+        else {
+            try {
+                if ([System.IO.Directory]::Exists($SmokeRoot)) {
+                    Remove-SmokeRoot $SmokeRoot
+                }
+                $Evidence.cleanupSucceeded = -not [System.IO.Directory]::Exists($SmokeRoot)
+            }
+            catch {
+                if ($null -eq $Failure) {
+                    $Failure = $_
+                    $Evidence.error = $_.Exception.Message
+                }
+            }
+        }
+
+        $Evidence.success = $null -eq $Failure -and $Evidence.cleanupSucceeded
+        $evidenceParent = [System.IO.Path]::GetDirectoryName($ExactEvidence)
+        if (-not [string]::IsNullOrWhiteSpace($evidenceParent)) {
+            New-Item -ItemType Directory -Path $evidenceParent -Force | Out-Null
+        }
+        [System.IO.File]::WriteAllText(
+            $ExactEvidence,
+            ($Evidence | ConvertTo-Json -Depth 5),
+            [System.Text.UTF8Encoding]::new($false))
     }
 }
 

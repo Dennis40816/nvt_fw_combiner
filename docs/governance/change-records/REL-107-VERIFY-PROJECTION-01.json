@@ -1,0 +1,35 @@
+{
+  "schemaVersion": 2,
+  "taskId": "REL-107-VERIFY-PROJECTION-01",
+  "capability": "Close the v1.0.7 verifier projection blockers by preventing release-package lock identity reads from overlapping restore mutation and by resolving VSTest placeholder result identities through the exact TRX test definition",
+  "integrationBase": "cf6fa3d526e158111b4cc43a124b19d1b832fbaf",
+  "risk": "R3",
+  "kind": "release",
+  "state": "final-complete",
+  "mutablePaths": [
+    "scripts/verify.py"
+  ],
+  "implementationOwner": "primary-agent",
+  "searchEvidence": [
+    "scripts/verify.py selected_lanes remains the single public verification-plan owner and execute_verification already sequences structure before restore-capable work, but it currently submits the Python release-policy reader and dotnet restore writer in the same run_selected_lanes batch.",
+    "A clean 4abaefba full gate reproduced normal solution restore temporarily removing net10.0/win-x64 from all 13 tracked source lock projections while the Python lane independently reads the six Distribution Launcher lock identities; the committed six lock blobs equal the reviewed RID projection and both standalone lock-policy tests pass.",
+    "scripts/verify.py parse_trx_test_outcomes is the sole TRX outcome identity projection and currently reads UnitTestResult@testName only; the exact failing TRX binds placeholder result hash 7319304e40d766aa6b0fbff5fa1c07f149c0b3ee9f65fece7100f329d87d7e20 by testId to one UnitTest definition naming the discovered clone-source Theory case.",
+    "Compiled VSTest discovery and the same TRX contain 1,057 Infrastructure cases: 1,055 Passed and the unchanged two approved Windows-producer skips; no manual expected total, second test ledger, skip exception, filter, or coverage bypass is needed."
+  ],
+  "semanticOwner": "scripts/verify.py public lane orchestration and exact VSTest discovery/TRX identity reconciliation",
+  "terminalContract": "A public verification plan containing both Python and dotnet completes the isolated Python release-policy lane before any normal solution restore starts, while structure remains first when selected; every phase retains the requested jobs, per-lane deadline, isolated command owner, log, cancellation and aggregate failure behavior. TRX outcomes use an ordinary valid result name directly; an exact VSTest placeholder result is accepted only when its testId resolves to one unique valid UnitTest definition in the same TRX, after which compiled discovery and executed outcome identity Counters must still match exactly. Missing, duplicate, malformed, substituted, failing or unapproved skipped identities remain fail closed. Locked restore, coverage, project inventory, test bodies and all tracked packages.lock.json bytes are unchanged.",
+  "disposition": "extend-owner",
+  "designReview": {
+    "reviewer": "release owner continuation handoff (2026-08-31)",
+    "outcome": "approved",
+    "evidence": "The owner-directed continuation requires the smallest correction in the canonical verifier, explicitly permits only existing snapshot or serialization ownership for the lock race, requires the exact committed active-test identity projection to match discovery/TRX, forbids weakening locked restore, skip policy or coverage, preserves the original Launcher implementation reviews, and requires a fresh fixed-head R3 review for this verifier-only continuation."
+  },
+  "implementationHead": "12535d0d9fb6898df461912793be8c79c47224d0",
+  "reviewedHead": "12535d0d9fb6898df461912793be8c79c47224d0",
+  "pathStateDigest": "d2a89bb49fc6a5df670a0d1851582508960a6e0930d555fd9b08ada509bd99dc",
+  "finalReview": {
+    "reviewer": "rel107_semantic_review; rel107_arch_review; rel107_evidence_review",
+    "outcome": "approved",
+    "evidence": "Three independent read-only reviews inspected exact implementation diff 4abaefba979bc9bf4bd80a98e02435a5e258c719..12535d0d9fb6898df461912793be8c79c47224d0 against capability checkpoint cf6fa3d526e158111b4cc43a124b19d1b832fbaf and each found P0=0, P1=0, P2=0, P3=0. Semantic and architecture review confirmed that full public verification now sequences structure, Python lock-policy reads, then restore-capable dotnet execution through the existing isolated lane executor while retaining jobs, per-lane deadlines, cancellation, containment, logs and fail-closed reporting. Exact VSTest placeholders resolve only through one unique same-TRX testId definition and remain subject to canonical identity plus exact compiled-discovery/outcome Counter parity. Independent evidence reproduced both baseline defects, passed the focused 2/2 and complete orchestration 122 tests with four unchanged harness skips, and reconciled the actual Infrastructure TRX at 1,057/1,057 identities: 1,055 Passed, zero Failed and two approved NotExecuted. All 25 tracked lock files and the src, profiles, testdata, external-tools and CRC-worker trees are unchanged. No second planner, ledger, manual total, skip/filter/coverage bypass, package payload, private/generated asset, product behavior or firmware/profile/range/CRC/naming/support semantic change exists. Exact release-owner attestation, full verifier, package, two packaged smokes, provenance and publication remain separate gates and are not claimed here."
+  }
+}

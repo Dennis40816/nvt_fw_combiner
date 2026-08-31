@@ -92,8 +92,9 @@ leaves the session usable but provides no restart authority.
 Acceptance budgets are 100 ms P95 local state/exact-root classification, a
 250 ms hard local-health cutoff and progress threshold, 300 ms P95 Root
 Bootstrap handoff, 750 ms P95 verified version-Launcher start, 250 ms maximum
-writer-lease wait, and a two-second end-to-end hard local-admission deadline.
-The admission budget is at most 1.5 seconds of operation plus a reserved 0.5
+writer-lease wait, and a 5.5-second end-to-end hard local-admission deadline.
+The admission budget is at most five seconds of operation, including exact
+Bootstrap hashing on cold or antivirus-scanned storage, plus a reserved 0.5
 seconds for process-tree cleanup. P95 targets never weaken the hard cutoffs.
 Cleanup uses the same absolute monotonic deadline; it
 does not add a fresh wait. An ordinary hard timeout is `HealthUnavailable` only
@@ -109,7 +110,7 @@ installation, or start another process. `START` authorizes execution;
 child-to-parent `ADMITTED` separately proves the exact version Launcher
 successfully started. Timeout and cancellation permanently abort START.
 
-The two-second deadline ends only after the version Launcher has started and
+The 5.5-second deadline ends only after the version Launcher has started and
 Root Bootstrap has returned `ADMITTED`. READY is a separate phase: each
 existing candidate/LKG attempt retains its 20-second limit and the enclosing
 completion receipt is bounded to 45 seconds, with no more than 44.5 seconds of
@@ -199,17 +200,26 @@ elevation.
 10. Write the canonical unbound seed through the shared seed policy.
 11. Verify staged payload facts and every known exact identity, then rename the
     exact held staging-root object on the same volume with
-    `ReplaceIfExists == false`. Keep its handle open and transfer custody to the
-    immutable-tree owner by duplicating that handle, capturing descendants, and
-    proving the same root file identity before releasing the promotable handle.
-    Verify the complete closed-root inventory, then advance the same marker
-    handle from `staging` to `root-promoted`. The marker blocks all ordinary
-    entry while either verification is incomplete. Closing the original handle
-    and reopening the final path is forbidden.
+    `ReplaceIfExists == false`. While that delete-capable source handle still
+    blocks replacement, open one read-only bridge by the exact final name
+    relative to the retained parent and prove the same root file identity.
+    Close the delete-capable source, reopen the same relative name without
+    delete access or delete sharing, prove the identity again, then release the
+    bridge. Capture descendants and revalidate the complete closed-root
+    inventory under that final immutable sharing contract. Any missing name,
+    substitution, identity drift, or topology drift fails closed. Advance the
+    same marker handle from `staging` to `root-promoted` only after this
+    transition. Ordinary absolute-path reacquisition is forbidden.
 12. Create one user shortcut to the installed distribution Launcher.
 13. Revalidate the complete promoted root again under the same writer lease,
-    record `bootstrap-launch-recorded`, release the lease, stable-start the
-    exact Bootstrap, and wait for its terminal result.
+    record `bootstrap-launch-recorded`, then consume the one launch opportunity
+    by duplicating the already verified final immutable-tree handles into independent
+    Bootstrap launch custody. Release the state writer, transfer that owned
+    custody to the existing stable process-start seam, and wait for its terminal
+    result. Setup never reacquires promoted-tree or Bootstrap launch custody by
+    path, retries a self-contention, releases final immutable transaction
+    custody early, relaxes its sharing contract, or
+    falls back to a path-based start.
 14. On exit code zero, reacquire the writer lease and prove exact bound healthy
     state. While the exact schema/identity-validated marker handle remains
     exclusively held, revalidate the complete closed root, mark only that same
@@ -224,10 +234,37 @@ captured distribution Launcher length, descriptor-bound Bootstrap length, and
 actual canonical seed length. Marker and sibling staging-container bytes are
 outside, not silently charged to, the promoted root allowance.
 
-Held-tree identity/topology is revalidated synchronously immediately before
-`Process.Start`. Standard Windows process creation still has no atomic
+Held-tree identity/topology is revalidated read-only by path while retained
+identities remain held, synchronously immediately before `Process.Start`.
+This is not a second custody acquisition. Standard Windows process creation still has no atomic
 validate-and-create primitive; the scheduling interval after that observation
 is the unchanged explicit OS residual.
+
+The launch clone has independent handle ownership but retains the final
+immutable share contract and exact root/file identities. That contract blocks
+root deletion or replacement while permitting independent read-only installed
+version and Launcher verification.
+Every clone failure or cancellation closes all duplicated handles; successful
+ownership transfers once to the process-start task, which closes it after the
+start decision. The original promoted custody remains held through READY and
+exact marker finalization or through the terminal recovery handoff.
+
+After root promotion, the handoff retains one presentation-safe failure with
+the exact boundary (`PostPromotion` while durably recording the launch
+transaction, `BootstrapStart`, `LauncherAdmission`, or `ApplicationReady`),
+one authoritative typed reason, and the observed process
+exit code when one exists. One shared exit-protocol codec owns the numeric
+Bootstrap mapping for both producer and consumer. Admission and completion
+receipts are shape-validated at the Application boundary; contradictory or
+unknown receipt shapes fail closed as `InvalidReceipt`. The Setup surface may
+render only that typed stage, reason, and optional numeric code. A
+post-promotion failure is terminal for the current Setup plan: the user must
+close and reopen the Launcher so the existing Recovery owner can diagnose the
+durable marker and root; same-plan retry is not offered. Application exposes
+that continuation authority through `IsRecoveryOwned` on every valid
+`RecoveryRequired` or `InstalledButLaunchFailed` result. Presentation consumes
+that fact directly; it does not reconstruct promotion state from optional
+diagnostics or exception text.
 
 Setup never writes `version-manager.v1.json`, creates `PendingActivation`, or
 records an update source. The existing Bootstrap seed importer performs the

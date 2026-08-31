@@ -8,6 +8,7 @@ public sealed partial class FileSystemManagedFirstInstallationRootMaterializer
     private sealed class PromotedInstallation(
         string managedRoot,
         ManagedVersionAdmission admission,
+        ManagedImmutableBootstrapIdentity bootstrapIdentity,
         ManagedSetupTransactionDocument marker,
         FileStream markerStream,
         WindowsManagedSetupPathCustody custody,
@@ -15,6 +16,10 @@ public sealed partial class FileSystemManagedFirstInstallationRootMaterializer
         Action? afterMarkerTopologyProof)
         : IManagedPromotedFirstInstallation
     {
+        private readonly ManagedImmutableBootstrapIdentity _bootstrapIdentity =
+            bootstrapIdentity ?? throw new ArgumentNullException(nameof(bootstrapIdentity));
+        private int _launchLeaseClaimed;
+
         public string ManagedRoot { get; } = managedRoot;
         public ManagedVersionAdmission Admission { get; } = admission;
 
@@ -71,6 +76,37 @@ public sealed partial class FileSystemManagedFirstInstallationRootMaterializer
             }
         }
 
+        public async ValueTask<ManagedExecutableLaunchLeaseResult> AcquireBootstrapLaunchLeaseAsync(
+            ManagedImmutableBootstrapIdentity expectedIdentity,
+            CancellationToken cancellationToken)
+        {
+            ArgumentNullException.ThrowIfNull(expectedIdentity);
+            cancellationToken.ThrowIfCancellationRequested();
+            if (!string.Equals(marker.Phase, BootstrapLaunchRecordedPhase, StringComparison.Ordinal) ||
+                Interlocked.Exchange(ref _launchLeaseClaimed, 1) != 0)
+            {
+                return new(null, ManagedExecutableLaunchIssue.Unavailable);
+            }
+            if (expectedIdentity != _bootstrapIdentity)
+            {
+                return new(null, ManagedExecutableLaunchIssue.UnsafePath);
+            }
+
+            WindowsStableCustodyResult cloned = custody.TryCloneClosedTree(cancellationToken);
+            if (!cloned.IsAcquired)
+            {
+                cloned.Custody?.Dispose();
+                return new(null, MapLaunchCustodyIssue(cloned.Issue));
+            }
+            return await StableManagedExecutableLaunchLease.TryCreateFromVerifiedTreeAsync(
+                    cloned.Custody!,
+                    expectedIdentity.FileName,
+                    expectedIdentity.Length,
+                    expectedIdentity.Sha256,
+                    cancellationToken)
+                .ConfigureAwait(false);
+        }
+
         public async ValueTask<ManagedFirstInstallationTransactionIssue> CompleteAsync(
             CancellationToken cancellationToken)
         {
@@ -107,6 +143,24 @@ public sealed partial class FileSystemManagedFirstInstallationRootMaterializer
             {
                 return ManagedFirstInstallationTransactionIssue.RecoveryRequired;
             }
+        }
+
+        private static ManagedExecutableLaunchIssue MapLaunchCustodyIssue(
+            WindowsStableCustodyIssue issue)
+        {
+            return issue switch
+            {
+                WindowsStableCustodyIssue.InvalidPath or
+                WindowsStableCustodyIssue.ReparsePoint or
+                WindowsStableCustodyIssue.Changed => ManagedExecutableLaunchIssue.UnsafePath,
+                WindowsStableCustodyIssue.AccessDenied or
+                WindowsStableCustodyIssue.Contended or
+                WindowsStableCustodyIssue.Unavailable => ManagedExecutableLaunchIssue.Unavailable,
+                WindowsStableCustodyIssue.None => throw new InvalidOperationException(
+                    "Successful cloned custody did not return its owner."),
+                _ => throw new InvalidOperationException(
+                    "Cloned Bootstrap custody returned an undefined issue."),
+            };
         }
     }
 

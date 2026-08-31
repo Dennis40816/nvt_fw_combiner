@@ -256,6 +256,23 @@ public sealed partial class ManagedLauncherEntryCoordinatorTests
         Assert.NotEqual(ManagedLauncherEntryOutcome.SetupRequired, result.Outcome);
     }
 
+    /// <summary>An undefined start issue is an invalid receipt, never a switch exception.</summary>
+    [Fact]
+    public async Task UndefinedBootstrapStartIssueFailsClosed()
+    {
+        string root = Root("undefined-start-issue");
+        ManagedLauncherEntryCoordinator coordinator = Create(
+            root,
+            new EntryStateStore(BoundState(root)),
+            new RecordingRootProbe(ManagedInstallationRootStatus.Present),
+            new RecordingBootstrapHandoff((ImmutableBootstrapStartIssue)999));
+
+        ManagedLauncherEntryResult result = await coordinator.RunAsync(
+            TestContext.Current.CancellationToken);
+
+        Assert.Equal(ManagedLauncherEntryOutcome.TerminationUnconfirmed, result.Outcome);
+    }
+
     /// <summary>A receipt attached to a failed start is disposed and classified as uncertain.</summary>
     [Fact]
     public async Task BootstrapStartIssueWithReceiptFailsClosed()
@@ -542,6 +559,31 @@ public sealed partial class ManagedLauncherEntryCoordinatorTests
         Assert.Equal(1, handoff.CompletionWaitCount);
     }
 
+    /// <summary>Cold exact Bootstrap verification is not rejected by the former 1.5-second cutoff.</summary>
+    [Fact]
+    public async Task DefaultAdmissionBudgetAllowsColdExactBootstrapVerification()
+    {
+        string root = Root("cold-bootstrap-verification");
+        var time = new ManualTimeProvider();
+        var handoff = new RecordingBootstrapHandoff(ImmutableBootstrapCompletionOutcome.Ready)
+        {
+            StartAction = () => time.Advance(TimeSpan.FromSeconds(2)),
+        };
+        ManagedLauncherEntryCoordinator coordinator = Create(
+            root,
+            new EntryStateStore(BoundState(root)),
+            new RecordingRootProbe(ManagedInstallationRootStatus.Present),
+            handoff,
+            timeProvider: time);
+
+        ManagedLauncherEntryResult result = await coordinator.RunAsync(
+            TestContext.Current.CancellationToken);
+
+        Assert.Equal(ManagedLauncherEntryOutcome.LaunchInstalled, result.Outcome);
+        Assert.Equal(TimeSpan.FromSeconds(2), result.AdmissionElapsed);
+        Assert.Equal(1, handoff.StartCount);
+    }
+
     /// <summary>A READY returned after the completion cutoff is never accepted.</summary>
     [Fact]
     public async Task ReadyReturnedAfterCompletionCutoffFailsClosed()
@@ -603,7 +645,9 @@ public sealed partial class ManagedLauncherEntryCoordinatorTests
         Assert.Equal(
             ManagedLauncherEntryCoordinator.ProgressDelay,
             ManagedLauncherEntryCoordinator.DefaultHealthObservationDeadline);
-        Assert.Equal(TimeSpan.FromSeconds(2), ManagedLauncherEntryCoordinator.DefaultAdmissionDeadline);
+        Assert.Equal(
+            TimeSpan.FromMilliseconds(5500),
+            ManagedLauncherEntryCoordinator.DefaultAdmissionDeadline);
         Assert.Equal(
             ManagedLauncherEntryCoordinator.DefaultAdmissionDeadline,
             ManagedLauncherEntryCoordinator.DefaultAdmissionOperationCutoff +

@@ -106,13 +106,19 @@ commit.
   record the already-reviewed RECOVERY-105A source present in the v1.0.4 tree.
   The tag adds no runtime behavior and performs no repair, cleanup, rebind,
   migration, process start, source access, user delivery, or firmware change.
-- `v1.0.6` — manual-only integrated Setup/Recovery and separate Launcher
-  delivery candidate: align the reviewed Setup and recovery owners behind the
-  canonical package entrypoint and prepare the Distribution Launcher as a
-  separate closed five-asset release set. This unpublished support-neutral
-  candidate changes no firmware semantics and cannot be tagged or published
-  until final package, exact asset/hash, clean-machine smoke, and release-owner
-  gates pass.
+- `v1.0.6` — tagged manual-only integrated Setup/Recovery source milestone:
+  align the reviewed Setup and recovery owners behind the canonical package
+  entrypoint and prepare the Distribution Launcher as a separate closed
+  five-asset release set. This support-neutral tag changes no firmware
+  semantics and publishes no end-user release assets; formal Launcher delivery
+  remains gated by the v1.0.7 package, exact asset/hash, clean-machine smoke,
+  fixed-head review, and release-owner evidence.
+- `v1.0.7` — formal Distribution Launcher release: close verified
+  first install, terminal READY, source-offline managed relaunch, bounded
+  admission/recovery, truthful setup progress, and exact packaged smoke without
+  changing firmware semantics. The annotated tag and publication are created
+  only from the exact final package after two consecutive complete smoke passes
+  and fixed-head review.
 
 ### Recorded `v0.10.2` pre-deletion comparison point
 
