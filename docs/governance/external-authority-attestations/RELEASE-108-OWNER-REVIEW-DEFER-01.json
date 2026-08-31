@@ -1,0 +1,9 @@
+{
+  "schemaVersion": 1,
+  "taskId": "RELEASE-108-OWNER-REVIEW-DEFER-01",
+  "authorityType": "release-owner",
+  "reviewedHead": "06eaf4638b1acb4d5c8d822f77bf8bae116c7c0a",
+  "decision": "approved",
+  "reviewer": "Dennis Liu (release owner)",
+  "evidence": "The release owner explicitly directed 'codex review 等 1.2.0 之後，現在先走快速發布' and then replied '核准'. This attestation approves exact final-evidence head 06eaf4638b1acb4d5c8d822f77bf8bae116c7c0a for the narrowly reviewed repository-owner self-approval exception on stable versions in the closed-open interval [1.0.8, 1.2.0), implemented at ee42a88884bd99f10447e5e48196ca8d624b2f83 with P0-P2 equal to zero. It does not affect ordinary independently approved PRs, versions before 1.0.8, or v1.2.0 and later; it preserves exact owner actor and PR-author binding, recorded exception, merged PR, protected-main source identity, PR head/tree equality, and required-check validation. It waives only the exact Codex-review evidence for the bounded owner-self-approved interval and does not waive local full verification, Windows CI, merge, package, smoke, Catalog canaries, protected promotion, tag, Release, assets, provenance, hashes, or fresh-download verification."
+}

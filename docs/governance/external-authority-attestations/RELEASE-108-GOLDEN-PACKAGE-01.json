@@ -1,0 +1,9 @@
+{
+  "schemaVersion": 1,
+  "taskId": "RELEASE-108-GOLDEN-PACKAGE-01",
+  "authorityType": "release-owner",
+  "reviewedHead": "06eaf4638b1acb4d5c8d822f77bf8bae116c7c0a",
+  "decision": "approved",
+  "reviewer": "Dennis Liu (release owner)",
+  "evidence": "The release owner approved the accelerated v1.0.8 release and directed that all currently useful Golden evidence be included. This attestation approves exact final-evidence head 06eaf4638b1acb4d5c8d822f77bf8bae116c7c0a for the bounded package projection reviewed at implementation head ee42a88884bd99f10447e5e48196ca8d624b2f83 with P0-P2 equal to zero: the existing package owner consumes the checked-in exact allowlist and admits only the approved 34 manifests and 156 unique paths while retaining 159 logical declarations, with BAT and CONFIG as inert provenance and no repository mutation in the dry run. It approves neither unlisted, private, input-only, dependent-alias, diagnostic, retired, nor generated content and creates no runtime Golden loader, processor, support promotion, or firmware-semantic change. The actual frozen ZIP size, exact projection, SBOM, provenance, hashes, clean-machine and GUI smoke, tag, Release, and fresh-download checks are not represented as complete by this attestation."
+}
