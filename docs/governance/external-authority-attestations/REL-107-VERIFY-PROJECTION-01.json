@@ -1,0 +1,9 @@
+{
+  "schemaVersion": 1,
+  "taskId": "REL-107-VERIFY-PROJECTION-01",
+  "authorityType": "release-owner",
+  "reviewedHead": "1164c0c982247bffaa91c797eb511237c3d4c230",
+  "decision": "approved",
+  "reviewer": "Dennis Liu (release owner)",
+  "evidence": "After the exact verifier-only implementation head 12535d0d9fb6898df461912793be8c79c47224d0, its three independent P0-P3 zero review batches, and its remaining gates were presented, the release owner explicitly replied '核准'. This attestation approves exact direct-child final-evidence head 1164c0c982247bffaa91c797eb511237c3d4c230, which changes only the REL-107-VERIFY-PROJECTION-01 lifecycle/final-review fields and binds path-state digest d2a89bb49fc6a5df670a0d1851582508960a6e0930d555fd9b08ada509bd99dc. It does not waive the canonical full verifier, 25 lock-identity proof, exact main/tree/provenance checks, required PR/CI review, two consecutive packaged install/READY/source-offline/relaunch/no-residue/cleanup smokes, protected publication, immutable tag, asset re-download hashes, or downloaded-ZIP smoke."
+}
