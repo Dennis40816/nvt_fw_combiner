@@ -49,47 +49,103 @@ public sealed class FileSystemInstalledLauncherRepositoryTests
         Assert.Equal(InstalledLauncherIssue.Tampered, result.Issue);
     }
 
-    /// <summary>Every manifest-declared package member is verified before launch authority exists.</summary>
+    /// <summary>A same-length Launcher substitution cannot cross the fast admission boundary.</summary>
+    [Fact]
+    public async Task SameLengthLauncherBytesChangedReturnsTamperedBeforeLeaseAdmission()
+    {
+        await using LauncherFixture fixture = await LauncherFixture.CreateAsync();
+        byte[] changed = await File.ReadAllBytesAsync(
+            fixture.LauncherPath,
+            TestContext.Current.CancellationToken);
+        changed[^1] ^= 0xff;
+        await File.WriteAllBytesAsync(
+            fixture.LauncherPath,
+            changed,
+            TestContext.Current.CancellationToken);
+
+        InstalledLauncherLaunchResult acquired = await new FileSystemInstalledLauncherRepository()
+            .AcquireLaunchLeaseAsync(
+                fixture.ManagedRoot,
+                fixture.Admission,
+                TestContext.Current.CancellationToken);
+
+        Assert.Null(acquired.Identity);
+        Assert.Null(acquired.Lease);
+        Assert.Equal(InstalledLauncherIssue.Tampered, acquired.Issue);
+    }
+
+    /// <summary>Non-Launcher bytes are deferred to full activation while exact Launcher custody remains valid.</summary>
     [Theory]
     [InlineData("NvtFwCombiner.Core.dll")]
     [InlineData("NvtFwCombiner.runtimeconfig.json")]
     [InlineData("external-tools/crc-worker/0.1.0/Nfc.CrcWorker.exe")]
-    public async Task DeclaredNonLauncherMemberChangedReturnsTamperedBeforeProcessStart(
+    public async Task DeclaredNonLauncherMemberChangedIsRejectedByApplicationActivationAfterLeaseAdmission(
         string relativePath)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(relativePath);
         await using LauncherFixture fixture = await LauncherFixture.CreateAsync();
-        await File.AppendAllTextAsync(
-            fixture.VersionPath(relativePath),
-            "changed",
+        string changedPath = fixture.VersionPath(relativePath);
+        byte[] changed = await File.ReadAllBytesAsync(
+            changedPath,
+            TestContext.Current.CancellationToken);
+        changed[^1] ^= 0xff;
+        await File.WriteAllBytesAsync(
+            changedPath,
+            changed,
             TestContext.Current.CancellationToken);
         InstalledLauncherLaunchResult acquired = await new FileSystemInstalledLauncherRepository()
             .AcquireLaunchLeaseAsync(
                 fixture.ManagedRoot,
                 fixture.Admission,
                 TestContext.Current.CancellationToken);
-        bool processStartBoundaryReached = false;
-        if (acquired.Lease is not null)
+        Assert.True(acquired.IsAcquired, acquired.Issue.ToString());
+        acquired.Lease!.Dispose();
+
+        ManagedExecutableLaunchLeaseResult applicationLease =
+            await new FileSystemManagedVersionRepository().AcquireApplicationLaunchLeaseAsync(
+                fixture.ManagedRoot,
+                fixture.Admission,
+                TestContext.Current.CancellationToken);
+
+        Assert.Null(applicationLease.Lease);
+        Assert.Equal(ManagedExecutableLaunchIssue.Tampered, applicationLease.Issue);
+    }
+
+    /// <summary>Pre-existing missing or foreign topology cannot reach the version Launcher.</summary>
+    [Theory]
+    [InlineData("missing-file")]
+    [InlineData("unexpected-file")]
+    [InlineData("unexpected-directory")]
+    public async Task PreExistingTopologyMismatchFailsBeforeLeaseAdmission(string mutation)
+    {
+        await using LauncherFixture fixture = await LauncherFixture.CreateAsync();
+        switch (mutation)
         {
-            using BootstrapAdmissionSignal admission = BootstrapAdmissionSignal.Capture();
-            _ = await new AnonymousPipeManagedLauncherProcess(
-                    ManagedProcessTermination.Instance,
-                    admission,
-                    beforeStartValidation: () => processStartBoundaryReached = true)
-                .StartUntilReadyAsync(
-                    fixture.ManagedRoot,
-                    Path.Combine(fixture.Root, "state", "version-manager.v1.json"),
-                    acquired.Identity!,
-                    acquired.Lease,
-                    TimeSpan.FromSeconds(1),
+            case "missing-file":
+                File.Delete(fixture.LibraryPath);
+                break;
+            case "unexpected-file":
+                await File.WriteAllTextAsync(
+                    fixture.VersionPath("unexpected.dll"),
+                    "foreign",
                     TestContext.Current.CancellationToken);
-            acquired.Lease.Dispose();
+                break;
+            case "unexpected-directory":
+                _ = Directory.CreateDirectory(fixture.VersionPath("unexpected"));
+                break;
+            default:
+                throw new InvalidOperationException("The test mutation is undefined.");
         }
 
-        Assert.Null(acquired.Lease);
+        InstalledLauncherLaunchResult acquired = await new FileSystemInstalledLauncherRepository()
+            .AcquireLaunchLeaseAsync(
+                fixture.ManagedRoot,
+                fixture.Admission,
+                TestContext.Current.CancellationToken);
+
         Assert.Null(acquired.Identity);
+        Assert.Null(acquired.Lease);
         Assert.Equal(InstalledLauncherIssue.Tampered, acquired.Issue);
-        Assert.False(processStartBoundaryReached);
     }
 
     /// <summary>The exact verified launcher cannot be swapped before Process.Start while its lease is held.</summary>

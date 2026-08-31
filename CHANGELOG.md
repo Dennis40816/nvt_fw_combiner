@@ -4,9 +4,69 @@ All notable changes to NVT FW Combiner are documented here. The project follows 
 
 ## [Unreleased]
 
-The repository identity is the unpublished `1.0.6` manual-only integrated
-Setup/Recovery and separate Launcher delivery candidate. Tagged `v1.0.5`
-remains its immutable predecessor.
+No unreleased product changes are recorded after the `v1.0.7` formal
+Distribution Launcher release. Tagged `v1.0.6` remains its tag-only
+predecessor.
+
+## [1.0.7] - 2026-08-31
+
+### Summary
+
+This release closes the first managed Distribution Launcher path: verified
+first installation, terminal READY, offline launch from the managed root,
+truthful byte-based setup progress, bounded recovery, and exact package
+identity. It is support-neutral and changes no firmware composition bytes.
+
+### Product changes
+
+#### Managed Distribution Launcher delivery
+
+- Before → After: v1.0.6 retained a tag-only Setup/Recovery source milestone;
+  v1.0.7 provides the first formal Launcher path for verified installation,
+  terminal READY, and source-offline launch from the managed root.
+- Affected: Distribution Launcher Setup, immutable promoted-root custody,
+  managed-entry admission, typed recovery diagnostics, measured installation
+  progress, and exact packaged release smoke.
+- Support status: unchanged/support-neutral; no IC, route, profile, range,
+  processor, integrity, naming, or firmware-output support is promoted.
+- Compatibility: direct launch of a selected installed application version
+  remains available. Registry and Catalog schema v1 and canonical package
+  identity remain unchanged.
+- Verification: Application 1,367/1,367 and Architecture 251/251 tests pass.
+  Formal publication additionally requires the repository final gate and two
+  consecutive exact packaged install-to-READY, offline-relaunch, no-residue,
+  and cleanup passes.
+- Limitations: v1.0.7 does not add a new firmware capability, Catalog schema,
+  delta updater, installer migration, or notification policy.
+
+### Security
+
+The Launcher retains exact package, release-manifest, executable, and managed-
+root identity checks. Promoted custody is immutable, each Bootstrap lease is
+disposed or transferred exactly once, and cancellation cannot release or leak
+an unowned handle. Healthy local entry performs no Registry, Catalog, package,
+or network access.
+
+### Known issues
+
+Catalog v2 notification policy, delta downloads, and the later unified Setup
+installer remain follow-up work. These do not block direct use of v1.0.7 or its
+managed Launcher path.
+
+### Upgrade and rollback
+
+The Launcher may install v1.0.7 into the selected managed root and keeps
+verified installed versions independently selectable. A user may cancel an
+offered update or directly launch a retained installed version; v1.0.6 remains
+a tag-only predecessor and is not an end-user rollback package.
+
+### Downloads and integrity
+
+Formal publication contains the canonical `NvtFwCombiner-v1.0.7-win-x64.zip`
+application package and the separate
+`NvtFwCombiner-Launcher-v1.0.7-win-x64.exe`, together with the closed manifest,
+SHA-256, SBOM, and provenance sidecars required by release policy. Verify the
+published outer SHA-256 list before use.
 
 ## [1.0.6] - Unreleased
 

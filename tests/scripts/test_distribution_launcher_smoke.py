@@ -143,13 +143,82 @@ class DistributionLauncherSmokeScriptContractTests(unittest.TestCase):
         self.assertIn("Assert-ReadyInstallation", self.script)
         self.assertIn("Assert-InstalledPackage", self.script)
         self.assertIn("expectedReleaseManifestSha256", self.script)
+        self.assertIn("OutcomeText", self.script)
+        self.assertIn("OperationProgressText", self.script)
+        self.assertIn("SourceStatusText", self.script)
+        self.assertIn("Setup reported a terminal failure", self.script)
+        self.assertIn("NvtFwCombiner.Bootstrap.exe", self.script)
+        self.assertIn("NvtFwCombiner.Launcher.exe", self.script)
+        self.assertIn("function Wait-ExactManagedProcessSetExit", self.script)
+        self.assertEqual(
+            2,
+            self.script.count("Wait-ExactManagedProcessSetExit $ManagedProcessPaths"),
+        )
+        first_wait = self.script.index("Wait-ExactManagedProcessSetExit $ManagedProcessPaths")
+        source_offline = self.script.index(
+            "Move-Item -LiteralPath $SourceRoot -Destination $OfflineSourceRoot"
+        )
+        self.assertLess(first_wait, source_offline)
 
     def test_script_cleanup_is_limited_to_validated_guid_temp_root(self) -> None:
         self.assertIn("nvt-distribution-launcher-smoke-", self.script)
         self.assertIn("Assert-SmokeRoot", self.script)
-        self.assertEqual(1, self.script.count("Remove-Item -LiteralPath $SmokeRoot -Recurse -Force"))
+        self.assertIn("function Remove-SmokeRoot", self.script)
+        self.assertEqual(1, self.script.count("[System.IO.Directory]::Delete($exactRoot, $true)"))
+        self.assertIn("$exactRoot = Assert-SmokeRoot $Root", self.script)
+        self.assertIn("$attempt -le 40", self.script)
         self.assertNotIn("Remove-Item -LiteralPath $env:", self.script)
         self.assertNotIn("Stop-Process -Name", self.script)
+        self.assertNotIn(".Kill($true)", self.script)
+
+    def test_managed_process_wait_requires_stable_quiescence(self) -> None:
+        powershell = shutil.which("pwsh") or shutil.which("powershell")
+        if powershell is None:
+            self.skipTest("PowerShell is unavailable")
+        start = self.script.index("function Wait-ExactManagedProcessSetExit")
+        end = self.script.index("function Assert-InstalledPackage", start)
+        function_source = self.script[start:end]
+        expected = str((ROOT / "fake-managed.exe").resolve()).replace("'", "''")
+        command = function_source + rf"""
+$script:calls = 0
+$process = [pscustomobject]@{{ Path = '{expected}' }}
+$process | Add-Member -MemberType ScriptMethod -Name Dispose -Value {{ }}
+$probe = {{
+    $script:calls++
+    if ($script:calls -eq 2) {{ return @($process) }}
+    return @()
+}}
+Wait-ExactManagedProcessSetExit @('{expected}') 2000 $probe
+if ($script:calls -ne 4) {{
+    throw "Expected four snapshots (empty, active, empty, empty); got $script:calls."
+}}
+"""
+
+        completed = subprocess.run(
+            [powershell, "-NoProfile", "-Command", command],
+            check=False,
+            capture_output=True,
+            text=True,
+        )
+
+        self.assertEqual(0, completed.returncode, completed.stderr + completed.stdout)
+
+    def test_script_records_click_and_terminal_failure_stage_before_cleanup(self) -> None:
+        self.assertIn("$script:UiAutomationInstallInvoked = $true", self.script)
+        self.assertIn("$Evidence.stateExists", self.script)
+        self.assertIn("$Evidence.launcherStateExists", self.script)
+        self.assertIn("$Evidence.transactionExists", self.script)
+        self.assertIn("$Evidence.transactionPhase", self.script)
+        self.assertIn(
+            '"$ManagedRoot.managed-setup-transaction.v1.json"',
+            self.script,
+        )
+        self.assertIn(
+            '"$ManagedRoot.managed-setup-staging"',
+            self.script,
+        )
+        self.assertNotIn('"$ManagedRoot.setup-transaction.v1.json"', self.script)
+        self.assertNotIn('"$ManagedRoot.setup-staging"', self.script)
 
     def test_script_parses_with_the_available_powershell(self) -> None:
         powershell = shutil.which("pwsh") or shutil.which("powershell")

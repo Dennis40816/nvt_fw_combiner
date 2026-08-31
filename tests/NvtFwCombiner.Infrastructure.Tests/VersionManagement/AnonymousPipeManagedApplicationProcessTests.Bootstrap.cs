@@ -228,6 +228,96 @@ public sealed partial class AnonymousPipeManagedApplicationProcessTests
         Assert.True(File.Exists(displaced));
     }
 
+    /// <summary>A process-start exception remains one typed start failure without a false exit code.</summary>
+    [Fact]
+    public async Task StableLauncherHandoffPreservesTypedStartFailure()
+    {
+        using var workspace = TempWorkspace.Create();
+        string source = Path.Combine(
+            AppContext.BaseDirectory,
+            "ready-probe",
+            "NvtFwCombiner.ReadyProbe.exe");
+        string target = Path.Combine(workspace.Root, "NvtFwCombiner.Bootstrap.exe");
+        File.Copy(source, target);
+        ManagedImmutableBootstrapIdentity identity = CreateBootstrapIdentity(workspace.Root);
+        var handoff = new StableLauncherHandoff(
+            workspace.Root,
+            workspace.PathFor("state/version-manager.v1.json"),
+            ManagedProcessTermination.Instance,
+            beforeProcessStart: _ => throw new InvalidOperationException("Injected start failure."));
+
+        ImmutableBootstrapStartResult started = await handoff.StartAsync(
+            workspace.Root,
+            identity,
+            TestContext.Current.CancellationToken);
+
+        using IImmutableBootstrapLaunch launch = Assert.IsType<IImmutableBootstrapLaunch>(
+            started.Launch,
+            exactMatch: false);
+        ImmutableBootstrapAdmissionResult admission = await launch.WaitForAdmissionAsync(
+            AdmissionBudget,
+            TestContext.Current.CancellationToken);
+        Assert.Equal(ImmutableBootstrapAdmissionOutcome.LaunchFailed, admission.Outcome);
+        Assert.Null(admission.ExitCode);
+        Assert.Equal(ImmutableBootstrapExitIssue.StartFailed, admission.ExitIssue);
+        Assert.True(admission.HasValidShape);
+    }
+
+    /// <summary>A pre-cancelled owned handoff consumes its launch lease exactly once.</summary>
+    [Fact]
+    [System.Diagnostics.CodeAnalysis.SuppressMessage(
+        "Reliability",
+        "CA2000:Dispose objects before losing scope",
+        Justification = "The owned lease transfers to the handoff, whose exact disposal is asserted.")]
+    public async Task StableLauncherHandoffPreCancellationDisposesOwnedLeaseExactlyOnce()
+    {
+        using var workspace = TempWorkspace.Create();
+        string executable = Path.Combine(workspace.Root, "NvtFwCombiner.Bootstrap.exe");
+        var identity = new ManagedImmutableBootstrapIdentity(
+            "NvtFwCombiner.Bootstrap.exe",
+            1,
+            new string('a', 64));
+        var lease = new CountingExecutableLaunchLease(executable, workspace.Root);
+        using var cancellation = new CancellationTokenSource();
+        cancellation.Cancel();
+
+        _ = await Assert.ThrowsAnyAsync<OperationCanceledException>(async () =>
+            await new StableLauncherHandoff(workspace.Root).StartAsync(
+                workspace.Root,
+                identity,
+                lease,
+                cancellation.Token));
+
+        Assert.Equal(1, lease.DisposeCount);
+    }
+
+    /// <summary>An invalid owned handoff root consumes its launch lease exactly once.</summary>
+    [Fact]
+    [System.Diagnostics.CodeAnalysis.SuppressMessage(
+        "Reliability",
+        "CA2000:Dispose objects before losing scope",
+        Justification = "The owned lease transfers to the handoff, whose exact disposal is asserted.")]
+    public async Task StableLauncherHandoffInvalidRootDisposesOwnedLeaseExactlyOnce()
+    {
+        using var workspace = TempWorkspace.Create();
+        string executable = Path.Combine(workspace.Root, "NvtFwCombiner.Bootstrap.exe");
+        var identity = new ManagedImmutableBootstrapIdentity(
+            "NvtFwCombiner.Bootstrap.exe",
+            1,
+            new string('a', 64));
+        var lease = new CountingExecutableLaunchLease(executable, workspace.Root);
+
+        ImmutableBootstrapStartResult result = await new StableLauncherHandoff(workspace.Root)
+            .StartAsync(
+                "relative-root",
+                identity,
+                lease,
+                TestContext.Current.CancellationToken);
+
+        Assert.Equal(ImmutableBootstrapStartIssue.Damaged, result.Issue);
+        Assert.Equal(1, lease.DisposeCount);
+    }
+
     /// <summary>A residual Win32 start failure is converted to the handoff's fail-closed result.</summary>
     [Fact]
     public async Task StableLauncherHandoffConvertsWin32StartFailureToFalse()
@@ -351,27 +441,170 @@ public sealed partial class AnonymousPipeManagedApplicationProcessTests
 
     /// <summary>Every Root Bootstrap exit before ADMITTED keeps its stable entry classification.</summary>
     [Theory]
-    [InlineData(2, ImmutableBootstrapAdmissionOutcome.Busy)]
-    [InlineData(10, ImmutableBootstrapAdmissionOutcome.RecoveryRequired)]
-    [InlineData(11, ImmutableBootstrapAdmissionOutcome.RecoveryRequired)]
-    [InlineData(12, ImmutableBootstrapAdmissionOutcome.RecoveryRequired)]
-    [InlineData(13, ImmutableBootstrapAdmissionOutcome.RecoveryRequired)]
-    [InlineData(14, ImmutableBootstrapAdmissionOutcome.RecoveryRequired)]
-    [InlineData(15, ImmutableBootstrapAdmissionOutcome.LaunchFailed)]
-    [InlineData(16, ImmutableBootstrapAdmissionOutcome.LaunchFailed)]
-    [InlineData(17, ImmutableBootstrapAdmissionOutcome.LaunchFailed)]
-    [InlineData(18, ImmutableBootstrapAdmissionOutcome.HealthUnavailable)]
-    [InlineData(19, ImmutableBootstrapAdmissionOutcome.TerminationUnconfirmed)]
-    [InlineData(99, ImmutableBootstrapAdmissionOutcome.HealthUnavailable)]
+    [InlineData(2, ImmutableBootstrapAdmissionOutcome.Busy, ImmutableBootstrapExitIssue.Busy)]
+    [InlineData(10, ImmutableBootstrapAdmissionOutcome.RecoveryRequired, ImmutableBootstrapExitIssue.InvalidState)]
+    [InlineData(11, ImmutableBootstrapAdmissionOutcome.RecoveryRequired, ImmutableBootstrapExitIssue.ManagedRootMismatch)]
+    [InlineData(12, ImmutableBootstrapAdmissionOutcome.RecoveryRequired, ImmutableBootstrapExitIssue.MutationPending)]
+    [InlineData(13, ImmutableBootstrapAdmissionOutcome.RecoveryRequired, ImmutableBootstrapExitIssue.DamagedLauncher)]
+    [InlineData(14, ImmutableBootstrapAdmissionOutcome.RecoveryRequired, ImmutableBootstrapExitIssue.ProtocolMismatch)]
+    [InlineData(15, ImmutableBootstrapAdmissionOutcome.LaunchFailed, ImmutableBootstrapExitIssue.StartFailed)]
+    [InlineData(16, ImmutableBootstrapAdmissionOutcome.LaunchFailed, ImmutableBootstrapExitIssue.RollbackUnavailable)]
+    [InlineData(17, ImmutableBootstrapAdmissionOutcome.LaunchFailed, ImmutableBootstrapExitIssue.StateChanged)]
+    [InlineData(18, ImmutableBootstrapAdmissionOutcome.HealthUnavailable, ImmutableBootstrapExitIssue.StateUnavailable)]
+    [InlineData(19, ImmutableBootstrapAdmissionOutcome.TerminationUnconfirmed, ImmutableBootstrapExitIssue.TerminationUnconfirmed)]
+    [InlineData(20, ImmutableBootstrapAdmissionOutcome.HealthUnavailable, ImmutableBootstrapExitIssue.InvalidArguments)]
+    [InlineData(21, ImmutableBootstrapAdmissionOutcome.HealthUnavailable, ImmutableBootstrapExitIssue.InvariantViolation)]
+    [InlineData(22, ImmutableBootstrapAdmissionOutcome.HealthUnavailable, ImmutableBootstrapExitIssue.InvalidInheritedContext)]
+    [InlineData(23, ImmutableBootstrapAdmissionOutcome.HealthUnavailable, ImmutableBootstrapExitIssue.StartNotAuthorized)]
+    [InlineData(99, ImmutableBootstrapAdmissionOutcome.HealthUnavailable, ImmutableBootstrapExitIssue.UndefinedFailure)]
     public void BootstrapExitBeforeAdmissionMapsExactly(
         int exitCode,
-        ImmutableBootstrapAdmissionOutcome expected)
+        ImmutableBootstrapAdmissionOutcome expected,
+        ImmutableBootstrapExitIssue expectedIssue)
     {
         ImmutableBootstrapAdmissionResult result = StableLauncherHandoff
             .ImmutableBootstrapProcessLaunch.MapExitBeforeAdmission(exitCode);
 
         Assert.Equal(expected, result.Outcome);
         Assert.Equal(exitCode, result.ExitCode);
+        Assert.Equal(expectedIssue, result.ExitIssue);
+        Assert.True(result.HasValidShape);
+        Assert.Equal(expectedIssue, ImmutableBootstrapExitCodeCodec.DecodeFailure(exitCode));
+        Assert.Equal(exitCode, ImmutableBootstrapExitCodeCodec.EncodeFailure(expectedIssue));
+    }
+
+    /// <summary>Completion-success codes before ADMITTED are malformed admission receipts.</summary>
+    [Theory]
+    [InlineData(ImmutableBootstrapExitCodeCodec.Ready)]
+    [InlineData(ImmutableBootstrapExitCodeCodec.RolledBack)]
+    public void BootstrapSuccessExitBeforeAdmissionFailsReceiptValidation(int exitCode)
+    {
+        ImmutableBootstrapAdmissionResult result = StableLauncherHandoff
+            .ImmutableBootstrapProcessLaunch.MapExitBeforeAdmission(exitCode);
+
+        Assert.Equal(ImmutableBootstrapAdmissionOutcome.HealthUnavailable, result.Outcome);
+        Assert.Equal(exitCode, result.ExitCode);
+        Assert.Equal(ImmutableBootstrapExitIssue.Unknown, result.ExitIssue);
+        Assert.False(result.HasValidShape);
+    }
+
+    /// <summary>An unrecognized Bootstrap failure remains explicit and round-trippable only as unknown.</summary>
+    [Fact]
+    public void BootstrapExitCodecRejectsUnknownEncodingAndPreservesUnknownDecoding()
+    {
+        const int unknownExitCode = 42;
+
+        ImmutableBootstrapAdmissionResult result = StableLauncherHandoff
+            .ImmutableBootstrapProcessLaunch.MapExitBeforeAdmission(unknownExitCode);
+
+        Assert.Equal(ImmutableBootstrapAdmissionOutcome.HealthUnavailable, result.Outcome);
+        Assert.Equal(unknownExitCode, result.ExitCode);
+        Assert.Equal(ImmutableBootstrapExitIssue.Unknown, result.ExitIssue);
+        Assert.True(result.HasValidShape);
+        Assert.Equal(
+            ImmutableBootstrapExitIssue.Unknown,
+            ImmutableBootstrapExitCodeCodec.DecodeFailure(unknownExitCode));
+        _ = Assert.Throws<ArgumentOutOfRangeException>(
+            () => ImmutableBootstrapExitCodeCodec.EncodeFailure(ImmutableBootstrapExitIssue.Unknown));
+    }
+
+    /// <summary>Admission and completion receipts reject conflicting wire facts.</summary>
+    [Fact]
+    public void BootstrapReceiptsValidateOutcomeExitCodeAndIssueAsOneShape()
+    {
+        Assert.True(new ImmutableBootstrapAdmissionResult(
+            ImmutableBootstrapAdmissionOutcome.HealthUnavailable).HasValidShape);
+        Assert.True(new ImmutableBootstrapCompletionResult(
+            ImmutableBootstrapCompletionOutcome.Unavailable).HasValidShape);
+        Assert.True(new ImmutableBootstrapAdmissionResult(
+            ImmutableBootstrapAdmissionOutcome.TerminationUnconfirmed,
+            ExitIssue: ImmutableBootstrapExitIssue.TerminationUnconfirmed).HasValidShape);
+        Assert.True(new ImmutableBootstrapCompletionResult(
+            ImmutableBootstrapCompletionOutcome.TerminationUnconfirmed,
+            ExitIssue: ImmutableBootstrapExitIssue.TerminationUnconfirmed).HasValidShape);
+        Assert.False(new ImmutableBootstrapAdmissionResult(
+            ImmutableBootstrapAdmissionOutcome.TerminationUnconfirmed).HasValidShape);
+        Assert.False(new ImmutableBootstrapCompletionResult(
+            ImmutableBootstrapCompletionOutcome.TerminationUnconfirmed).HasValidShape);
+        Assert.False(new ImmutableBootstrapAdmissionResult(
+            ImmutableBootstrapAdmissionOutcome.HealthUnavailable,
+            22,
+            ImmutableBootstrapExitIssue.None).HasValidShape);
+        Assert.False(new ImmutableBootstrapAdmissionResult(
+            ImmutableBootstrapAdmissionOutcome.Admitted,
+            22,
+            ImmutableBootstrapExitIssue.InvalidInheritedContext).HasValidShape);
+        Assert.False(new ImmutableBootstrapCompletionResult(
+            ImmutableBootstrapCompletionOutcome.Ready,
+            22,
+            ImmutableBootstrapExitIssue.InvalidInheritedContext).HasValidShape);
+    }
+
+    /// <summary>A real pre-admission process exit preserves code 22 and its typed reason.</summary>
+    [Fact]
+    public async Task BootstrapRealExitTwentyTwoPreservesInvalidInheritedContext()
+    {
+        using var workspace = TempWorkspace.Create();
+        string marker = Path.Combine(workspace.Root, "exit-22-marker");
+        using StableLauncherHandoff.ImmutableBootstrapProcessLaunch launch =
+            StartBootstrapTree(
+                workspace.Root,
+                marker,
+                "bootstrap-exit-22",
+                out AnonymousPipeClientStream client,
+                out int processId);
+        await using (client)
+        {
+            Assert.Equal(processId, await WaitForProcessMarkerAsync(marker));
+            await WaitForProcessExitAsync(processId);
+            await client.DisposeAsync();
+            ImmutableBootstrapAdmissionResult result = await launch.WaitForAdmissionAsync(
+                AdmissionBudget,
+                TestContext.Current.CancellationToken);
+
+            Assert.Equal(ImmutableBootstrapAdmissionOutcome.HealthUnavailable, result.Outcome);
+            Assert.Equal(22, result.ExitCode);
+            Assert.Equal(ImmutableBootstrapExitIssue.InvalidInheritedContext, result.ExitIssue);
+            Assert.True(result.HasValidShape);
+            AssertProcessExited(processId);
+        }
+    }
+
+    /// <summary>Admission-pipe EOF waits for the exact delayed Bootstrap exit reason.</summary>
+    [Fact]
+    public async Task BootstrapPipeEofBeforeDelayedExitPreservesStateUnavailable()
+    {
+        using var workspace = TempWorkspace.Create();
+        string marker = Path.Combine(workspace.Root, "exit-18-marker");
+        using StableLauncherHandoff.ImmutableBootstrapProcessLaunch launch =
+            StartBootstrapTree(
+                workspace.Root,
+                marker,
+                "bootstrap-eof-before-exit-18",
+                out AnonymousPipeClientStream client,
+                out int processId);
+        await using (client)
+        {
+            Assert.Equal(processId, await WaitForProcessMarkerAsync(marker));
+            await client.DisposeAsync();
+            Task<ImmutableBootstrapAdmissionResult> admission = launch.WaitForAdmissionAsync(
+                    AdmissionBudget,
+                    TestContext.Current.CancellationToken)
+                .AsTask();
+            await Task.Delay(100, TestContext.Current.CancellationToken);
+            Assert.False(admission.IsCompleted);
+            await File.WriteAllTextAsync(
+                marker + ".release",
+                "exit",
+                TestContext.Current.CancellationToken);
+            ImmutableBootstrapAdmissionResult result = await admission;
+
+            Assert.Equal(ImmutableBootstrapAdmissionOutcome.HealthUnavailable, result.Outcome);
+            Assert.Equal(18, result.ExitCode);
+            Assert.Equal(ImmutableBootstrapExitIssue.StateUnavailable, result.ExitIssue);
+            Assert.True(result.HasValidShape);
+            AssertProcessExited(processId);
+        }
     }
 
     /// <summary>Admission cancellation kills and confirms the already-started Root Bootstrap.</summary>
@@ -455,7 +688,7 @@ public sealed partial class AnonymousPipeManagedApplicationProcessTests
         AssertProcessExited(processId);
     }
 
-    /// <summary>Slow cleanup cannot extend the complete admission wall clock beyond two seconds.</summary>
+    /// <summary>Slow cleanup cannot extend a supplied admission wall-clock budget.</summary>
     [Fact]
     public async Task BootstrapAdmissionSlowCleanupReturnsTypedUncertaintyWithinTotalDeadline()
     {
@@ -474,14 +707,17 @@ public sealed partial class AnonymousPipeManagedApplicationProcessTests
                 pipe,
                 workspace.Root,
                 new SlowThenRealTermination(TimeSpan.FromSeconds(1)));
-        using var operationCutoff = new CancellationTokenSource(
-            ManagedLauncherEntryCoordinator.DefaultAdmissionOperationCutoff);
+        TimeSpan operationBudget = TimeSpan.FromMilliseconds(1500);
+        var admissionBudget = new ImmutableBootstrapWaitBudget(
+            operationBudget,
+            operationBudget + ManagedLauncherEntryCoordinator.DefaultCleanupObservationBudget);
+        using var operationCutoff = new CancellationTokenSource(operationBudget);
         var stopwatch = Stopwatch.StartNew();
 
         try
         {
             ImmutableBootstrapAdmissionResult result =
-                await launch.WaitForAdmissionAsync(AdmissionBudget, operationCutoff.Token);
+                await launch.WaitForAdmissionAsync(admissionBudget, operationCutoff.Token);
             stopwatch.Stop();
 
             Assert.Equal(ImmutableBootstrapAdmissionOutcome.TerminationUnconfirmed, result.Outcome);

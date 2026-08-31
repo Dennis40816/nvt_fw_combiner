@@ -166,9 +166,11 @@ public static class LauncherBootstrapRuntime
     {
         using LauncherBootstrapStartupContext startup = CaptureStartup(statePath);
         return startup.Outcome == LauncherBootstrapStartupOutcome.InvalidInheritedContext
-            ? 22
+            ? ImmutableBootstrapExitCodeCodec.EncodeFailure(
+                ImmutableBootstrapExitIssue.InvalidInheritedContext)
             : !await startup.WaitForStartAsync(cancellationToken).ConfigureAwait(false)
-                ? 23
+                ? ImmutableBootstrapExitCodeCodec.EncodeFailure(
+                    ImmutableBootstrapExitIssue.StartNotAuthorized)
                 : await RunCoreAsync(managedRoot, statePath, startup, cancellationToken)
                     .ConfigureAwait(false);
     }
@@ -226,12 +228,15 @@ public static class LauncherBootstrapRuntime
             not ManagedVersionSeedOutcome.Seeded)
         {
             return seedOutcome is ManagedVersionSeedOutcome.Busy
-                ? 2
+                ? ImmutableBootstrapExitCodeCodec.EncodeFailure(ImmutableBootstrapExitIssue.Busy)
                 : seedOutcome is ManagedVersionSeedOutcome.StateUnavailable
-                    ? 18
+                    ? ImmutableBootstrapExitCodeCodec.EncodeFailure(
+                        ImmutableBootstrapExitIssue.StateUnavailable)
                     : seedOutcome is ManagedVersionSeedOutcome.ManagedRootMismatch
-                        ? 11
-                        : 10;
+                        ? ImmutableBootstrapExitCodeCodec.EncodeFailure(
+                            ImmutableBootstrapExitIssue.ManagedRootMismatch)
+                        : ImmutableBootstrapExitCodeCodec.EncodeFailure(
+                            ImmutableBootstrapExitIssue.InvalidState);
         }
         var coordinator = new LauncherBootstrapCoordinator(
             root,
@@ -246,21 +251,33 @@ public static class LauncherBootstrapRuntime
         LauncherBootstrapResult result = await coordinator.RunAsync(cancellationToken).ConfigureAwait(false);
         return result.Outcome switch
         {
-            LauncherBootstrapOutcome.Ready => 0,
-            LauncherBootstrapOutcome.RolledBack => 1,
-            LauncherBootstrapOutcome.Busy => 2,
-            LauncherBootstrapOutcome.InvalidState => 10,
-            LauncherBootstrapOutcome.ManagedRootMismatch => 11,
-            LauncherBootstrapOutcome.AppMutationPending => 12,
-            LauncherBootstrapOutcome.DamagedLauncher => 13,
-            LauncherBootstrapOutcome.ProtocolMismatch => 14,
-            LauncherBootstrapOutcome.StartFailed => 15,
-            LauncherBootstrapOutcome.RollbackUnavailable => 16,
-            LauncherBootstrapOutcome.StateChanged => 17,
-            LauncherBootstrapOutcome.StateUnavailable => 18,
-            LauncherBootstrapOutcome.TerminationUnconfirmed => 19,
-            _ => 99,
+            LauncherBootstrapOutcome.Ready => ImmutableBootstrapExitCodeCodec.Ready,
+            LauncherBootstrapOutcome.RolledBack => ImmutableBootstrapExitCodeCodec.RolledBack,
+            LauncherBootstrapOutcome.Busy => Encode(ImmutableBootstrapExitIssue.Busy),
+            LauncherBootstrapOutcome.InvalidState => Encode(ImmutableBootstrapExitIssue.InvalidState),
+            LauncherBootstrapOutcome.ManagedRootMismatch =>
+                Encode(ImmutableBootstrapExitIssue.ManagedRootMismatch),
+            LauncherBootstrapOutcome.AppMutationPending =>
+                Encode(ImmutableBootstrapExitIssue.MutationPending),
+            LauncherBootstrapOutcome.DamagedLauncher =>
+                Encode(ImmutableBootstrapExitIssue.DamagedLauncher),
+            LauncherBootstrapOutcome.ProtocolMismatch =>
+                Encode(ImmutableBootstrapExitIssue.ProtocolMismatch),
+            LauncherBootstrapOutcome.StartFailed => Encode(ImmutableBootstrapExitIssue.StartFailed),
+            LauncherBootstrapOutcome.RollbackUnavailable =>
+                Encode(ImmutableBootstrapExitIssue.RollbackUnavailable),
+            LauncherBootstrapOutcome.StateChanged => Encode(ImmutableBootstrapExitIssue.StateChanged),
+            LauncherBootstrapOutcome.StateUnavailable =>
+                Encode(ImmutableBootstrapExitIssue.StateUnavailable),
+            LauncherBootstrapOutcome.TerminationUnconfirmed =>
+                Encode(ImmutableBootstrapExitIssue.TerminationUnconfirmed),
+            _ => Encode(ImmutableBootstrapExitIssue.UndefinedFailure),
         };
+
+        static int Encode(ImmutableBootstrapExitIssue issue)
+        {
+            return ImmutableBootstrapExitCodeCodec.EncodeFailure(issue);
+        }
     }
 
     /// <summary>Consumes and classifies the outer READY environment before a nested process can inherit it.</summary>

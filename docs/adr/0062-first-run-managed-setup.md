@@ -152,9 +152,10 @@ The release acceptance targets are:
 - healthy handoff to root Bootstrap P95 at or below 300 ms;
 - verified `Process.Start` of the version Launcher P95 at or below 750 ms;
 - writer-lease startup wait no longer than 250 ms; and
-- a two-second end-to-end hard deadline for local installation admission,
-  split into at most 1.5 seconds of operation and at least 0.5 seconds reserved
-  for process-tree cleanup.
+- a 5.5-second end-to-end hard deadline for local installation admission,
+  split into at most five seconds of operation, including exact Bootstrap hashing
+  on cold or antivirus-scanned storage, and at least 0.5 seconds reserved for
+  process-tree cleanup.
 
 P95 targets affect telemetry and release evidence only. The 250 ms local-health
 cutoff and the larger admission/completion limits are hard. A hard timeout,
@@ -255,11 +256,13 @@ Ordinary update captures immutable custody of its promoted version directory
 inside that repository operation. Setup instead verifies the package content
 inside the already held staging root and defers complete immutable-tree custody
 until whole-root promotion. The exact staging-root handle remains open across
-the same-volume rename. The stable-custody owner duplicates that held handle,
-captures descendants, proves the captured root has the same file identity, and
-only then releases the original promotable handle. Releasing the handle and
-reopening the final path is forbidden because it would create a substitutable
-path window.
+the same-volume rename. While it still blocks replacement, the stable-custody
+owner opens a read-only bridge by exact final name relative to the retained
+parent and proves identical root identity. It then closes the delete-capable
+source, reopens the exact relative name under the final immutable no-delete
+sharing contract, proves identity again, releases the bridge, and captures the
+closed tree. Ordinary absolute-path reopen is forbidden; any bounded-transition
+substitution fails the identity or topology proof.
 
 The repository's empty `.staging` child is removed before whole-root promotion.
 Setup first binds that exact plain directory identity through the held staging
@@ -322,9 +325,15 @@ inside that closed-root byte allowance.
 
 Before one same-volume promotion into an absent final root, the adapter
 reverifies the distribution Launcher copy, Bootstrap, seed, installed package
-content, and expected top-level facts. After handle-to-handle custody transfer,
-it verifies the complete closed root inventory. It then creates exactly one
-user shortcut pointing to the installed distribution Launcher.
+content, and expected top-level facts. Promotion retains the parent and the
+delete-capable source handle. While that source still blocks replacement, the
+adapter opens a read-only bridge by the exact final name relative to the held
+parent and proves the same root identity. It then closes the source, reopens the
+same relative name with the final immutable no-delete sharing contract, proves
+identity again, releases the bridge, captures descendants, and verifies the
+complete closed-root inventory. Substitution in this bounded transition fails
+the identity or topology proof rather than gaining custody. It then creates
+exactly one user shortcut pointing to the installed distribution Launcher.
 
 The final held-tree revalidation immediately before `Process.Start` is
 unchanged: standard Windows process creation cannot atomically combine that
@@ -343,9 +352,10 @@ Its only staging owner is the exact sibling container
 `<managedRoot>.managed-setup-staging/<transactionId>`. The initial marker is
 written directly to its final path with `CreateNew` and write-through so a
 crash cannot leave an unobserved temporary marker. Staged payload facts are
-verified immediately before the same-volume rename, the exact root handle
-remains held across it, and immutable custody is transferred handle-to-handle
-before complete closed-root verification. The marker keeps the promoted root
+verified immediately before the same-volume rename, and the exact root handle
+remains held across it. The retained-parent bridge and double identity proof
+transition it to final immutable custody before complete closed-root
+verification. The marker keeps the promoted root
 unavailable to normal launch until that post-promotion proof succeeds. The
 complete root is revalidated once more in the writer-held transition that
 records `bootstrap-launch-recorded`.
@@ -356,9 +366,15 @@ after rechecking exact equality and every owned path. A later Launcher process
 never resumes or cleans it; any surviving marker or residue is
 `RecoveryRequired` and is consumed only by `RECOVERY-105-01`.
 
-Before process creation, Setup records `bootstrap-launch-recorded`, releases
-the writer lease, opens the exact root Bootstrap through the existing stable
-executable custody, and waits for its terminal READY result. Exit code zero
+Before process creation, Setup records `bootstrap-launch-recorded`, duplicates
+the already verified final immutable-tree handles into one independently owned
+Bootstrap launch lease, and releases the writer lease. It transfers that lease
+to the existing stable process-start owner and waits for its terminal READY
+result. Setup never falls back to ordinary path-based Bootstrap handoff,
+releases final immutable transaction custody early, relaxes its sharing,
+retries the self-contention, or falls back to a path-based start. Read-only
+closed-tree topology revalidation remains permitted while the captured
+identities are held. Exit code zero
 proves that the existing seed importer bound durable state and the existing
 launcher chain completed READY. Only then may the exact transaction marker be
 removed through the same exclusively held handle that was schema- and

@@ -175,9 +175,11 @@ owner for package planning, extraction, admission, and verification; Setup
 additionally supplies its held relative destination custody instead of creating
 a second package writer. Ordinary update captures immutable custody after its
 version-directory promotion. Setup keeps the exact whole-root handle open
-across promotion and transfers it handle-to-handle to the same immutable-tree
-owner after proving identical root file identity; it never releases custody and
-reopens by path.
+across promotion, opens a read-only bridge by exact final name relative to the
+retained parent, proves identity, closes the delete-capable source, and reopens
+the same relative name under final immutable no-delete sharing. A second
+identity and topology proof closes the transition; ordinary absolute-path
+reopen is never used.
 
 Application deletion policy protects every exact owner admission named by an
 active or pending launcher identity. Invalid or unavailable launcher state

@@ -7,13 +7,29 @@ implementation, the 0.10.7 final-effect checkpoint, the stable 1.0.0 and
 version-only 1.0.1 release, the stable 1.0.2 mode-selector hotfix, the 1.0.3
 page-publication hardening milestone, the 1.0.4 managed Setup and Launcher
 source milestone, the 1.0.5 read-only recovery-diagnosis milestone, and the
-active unpublished 1.0.6 manual-only integrated Setup/Recovery and separate
-Launcher delivery candidate. Current
+1.0.6 tag-only integration milestone, and the 1.0.7 formal Distribution
+Launcher release. Current
 verification evidence is produced by the canonical
 `python scripts/verify.py --structure-only` and `python scripts/verify.py --all`
 commands.
 
-Specification package version: `1.0.6`
+Specification package version: `1.0.7`
+
+## 1.0.7 formal Distribution Launcher release
+
+The release preserves all firmware behavior while closing the managed
+Launcher delivery path. Normal entry retains a 250 ms local state/root health
+cutoff and uses a bounded five-second operation budget for exact Root Bootstrap
+and version Launcher hashing plus process admission. First installation starts
+its independent 30-second admission budget before promoted Bootstrap custody
+acquisition. Packaged smoke reads terminal typed UI diagnostics and waits for
+the exact managed process paths before offline relaunch and cleanup.
+
+The current source ledger is 136,056 production lines and 98,226 runtime lines:
+Domain/Profiles 20,632, Application 41,951, Bootstrap/CLI/Desktop host 5,039,
+and Infrastructure/Contracts/CRC worker 30,604. Final evidence still requires
+two consecutive exact packaged install-to-READY/source-offline relaunch passes,
+fixed-head review, immutable tag, and protected publication.
 
 ## 1.0.6 manual-only integrated Setup/Recovery and Launcher delivery candidate
 

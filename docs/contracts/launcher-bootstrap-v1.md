@@ -100,24 +100,34 @@ Rules:
   invocation only after the process adapter confirms exit. Unconfirmed
   termination returns a distinct fail-closed outcome and preserves the current
   recoverable journal phase without starting another process.
-- Installed-file verification and process creation share one repository-owned
+- Installed-Launcher verification and process creation share one repository-owned
   composite launch lease. The repository first acquires no-follow custody of
-  the complete admitted version tree, then verifies the manifest, executable,
-  DLLs, and other package members through that custody. It holds the same
+  the complete admitted version tree, then verifies the admission-pinned release
+  manifest and exact version Launcher through that custody. It holds the same
   handles through a final synchronous identity/topology check immediately
-  before the contained native process-create call. Process adapters consume the token and do not repeat
-  manifest/hash policy. Any added, removed, replaced, reparse, contended, or
-  changed member fails closed before process creation.
+  before the contained native process-create call. Process adapters consume the
+  token and do not repeat Launcher manifest/hash policy. The version Launcher
+  then runs the canonical complete installed-package verification before it may
+  start Desktop; a changed non-Launcher member therefore cannot run in Desktop,
+  but it also cannot make the outer pre-`ADMITTED` path hash the whole package.
+  The captured file and directory names must exactly match the manifest plus the
+  three installed sidecars, so added or removed topology, reparse points, and
+  contended members fail before process creation. Exact Launcher or manifest
+  content changes also fail at the outer lease boundary. Content changes to an
+  existing non-Launcher member are intentionally deferred to the version
+  Launcher's complete verification and still fail before Desktop may start.
   Tree capture is Windows-only, cancellation-aware, and bounded by independent
   package ceilings: 4,097 installed files, 4,096 installed directories, and
   512 MiB plus the 4 KiB admission document. Other platforms fail closed. The
   ordinary update path and Setup reuse this same repository owner for package
   planning, extraction, admission, and verification. Ordinary update captures
   its promoted version directory directly. Setup supplies its held relative
-  destination owner, verifies package content before whole-root promotion, and
-  transfers immutable custody from the still-held promoted root handle only
-  after proving the same root file identity; release-then-reopen by path is not
-  permitted. Standard
+  destination owner and verifies package content before whole-root promotion.
+  While the promoted delete-capable source still blocks replacement, Setup
+  opens a read-only bridge by exact final name relative to the retained parent,
+  proves identity, closes the source, reopens that relative name under final
+  immutable no-delete sharing, and proves identity and topology again. Ordinary
+  absolute-path reopen is not permitted. Standard
   Windows process creation has no atomic validate-and-create primitive, so the
   synchronous topology check is the declared final observation boundary. An
   addition scheduled after that observation is a residual OS boundary, not an

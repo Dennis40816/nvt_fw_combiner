@@ -226,6 +226,116 @@ internal sealed partial class WindowsStablePathCustody : IDisposable
         }
     }
 
+    /// <summary>
+    /// Duplicates the already captured handles into independently owned custody without
+    /// reacquiring custody by path or changing the original sharing contract. Closed-tree
+    /// topology is still revalidated read-only under the retained identities.
+    /// </summary>
+    [SuppressMessage("Reliability", "CA2000:Dispose objects before losing scope", Justification =
+        "Every duplicate transfers to the returned custody or is disposed before failure returns.")]
+    internal WindowsStableCustodyResult TryClone(
+        Action<int>? afterHandleDuplicated = null,
+        CancellationToken cancellationToken = default)
+    {
+        if (_disposed)
+        {
+            return WindowsStableCustodyResult.Failure(WindowsStableCustodyIssue.Unavailable);
+        }
+        if (!RevalidateClosedTree())
+        {
+            return WindowsStableCustodyResult.Failure(WindowsStableCustodyIssue.Changed);
+        }
+
+        var duplicates = new List<SafeFileHandle>(_handles.Count);
+        WindowsStablePathCustody? clone = null;
+        bool ownershipTransferred = false;
+        try
+        {
+            var handleMap = new Dictionary<SafeFileHandle, SafeFileHandle>(
+                ReferenceEqualityComparer.Instance);
+            foreach (SafeFileHandle source in _handles)
+            {
+                cancellationToken.ThrowIfCancellationRequested();
+                if (source.IsInvalid || source.IsClosed || handleMap.ContainsKey(source))
+                {
+                    throw new InvalidDataException("Stable custody handle inventory is invalid.");
+                }
+                SafeFileHandle duplicate = Duplicate(source);
+                duplicates.Add(duplicate);
+                handleMap.Add(source, duplicate);
+                afterHandleDuplicated?.Invoke(duplicates.Count);
+                cancellationToken.ThrowIfCancellationRequested();
+            }
+
+            SafeFileHandle? rootDirectoryHandle = RootDirectoryHandle is null
+                ? null
+                : handleMap.TryGetValue(RootDirectoryHandle, out SafeFileHandle? rootDuplicate)
+                    ? rootDuplicate
+                    : throw new InvalidDataException("Stable root custody is not in its inventory.");
+            var files = new Dictionary<string, HeldEntry>(ManagedPathSafety.PathComparer);
+            foreach ((string relative, HeldEntry entry) in _files)
+            {
+                if (!handleMap.TryGetValue(entry.Handle, out SafeFileHandle? duplicate))
+                {
+                    throw new InvalidDataException("Stable file custody is not in its inventory.");
+                }
+                files.Add(relative, new(entry.AbsolutePath, duplicate));
+            }
+            var identities = new List<(string Path, SafeFileHandle Handle)>(_identities.Count);
+            foreach ((string path, SafeFileHandle handle) in _identities)
+            {
+                if (!handleMap.TryGetValue(handle, out SafeFileHandle? duplicate))
+                {
+                    throw new InvalidDataException("Stable identity custody is not in its inventory.");
+                }
+                identities.Add((path, duplicate));
+            }
+            var topology = new Dictionary<string, string[]>(ManagedPathSafety.PathComparer);
+            foreach ((string path, string[] children) in _topology)
+            {
+                topology.Add(path, [.. children]);
+            }
+
+            clone = new WindowsStablePathCustody(
+                RootPath,
+                rootDirectoryHandle,
+                duplicates,
+                files,
+                identities,
+                topology);
+            if (!clone.RevalidateClosedTree())
+            {
+                return WindowsStableCustodyResult.Failure(WindowsStableCustodyIssue.Changed);
+            }
+            ownershipTransferred = true;
+            return new(clone, WindowsStableCustodyIssue.None);
+        }
+        catch (OperationCanceledException)
+        {
+            throw;
+        }
+        catch (Exception exception) when (exception is
+            IOException or InvalidDataException or UnauthorizedAccessException or
+            NotSupportedException)
+        {
+            return WindowsStableCustodyResult.Failure(WindowsStableCustodyIssue.Unavailable);
+        }
+        finally
+        {
+            if (!ownershipTransferred)
+            {
+                if (clone is not null)
+                {
+                    clone.Dispose();
+                }
+                else
+                {
+                    DisposeHandles(duplicates);
+                }
+            }
+        }
+    }
+
     public void Dispose()
     {
         if (_disposed)

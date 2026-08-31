@@ -107,8 +107,9 @@ memory-safety admission bound, not a Launcher ZIP-size optimization gate.
 Local state/exact-root classification must meet 100 ms P95 and
 stop at its 250 ms hard cutoff; progress appears only after 250 ms. Executables
 are hashed once through stable custody, and the path returns a typed non-Setup
-failure at the two-second local deadline. Admission reserves its final 0.5
-seconds for whole-Bootstrap-Job
+failure after a five-second operation cutoff. The end-to-end local-admission
+deadline is 5.5 seconds because admission reserves its final 0.5 seconds for
+whole-Bootstrap-Job
 cleanup; the 45-second post-`ADMITTED` completion cap likewise limits operation
 to 44.5 seconds and reserves 0.5 seconds for cleanup. Cleanup never extends
 either absolute deadline. If the process-start worker and complete Job cannot

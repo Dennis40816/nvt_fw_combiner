@@ -94,6 +94,28 @@ public sealed partial class FileSystemManagedFirstInstallationRootMaterializer
         VersionManagerState seed,
         CancellationToken cancellationToken)
     {
+        return await MaterializeAsync(
+            managedRoot,
+            statePathIdentity,
+            payload,
+            candidate,
+            seed,
+            progress: null,
+            cancellationToken).ConfigureAwait(false);
+    }
+
+    /// <inheritdoc />
+    [SuppressMessage("Reliability", "CA2000:Dispose objects before losing scope", Justification =
+        "Custody is disposed in finally on failures and transfers to the promoted transaction on success.")]
+    public async ValueTask<ManagedFirstInstallationMaterializationResult> MaterializeAsync(
+        string managedRoot,
+        string statePathIdentity,
+        IManagedDistributionPayloadCapture payload,
+        FreshInstallationCandidate candidate,
+        VersionManagerState seed,
+        IProgress<ManagedFirstInstallationProgress>? progress,
+        CancellationToken cancellationToken)
+    {
         ArgumentException.ThrowIfNullOrWhiteSpace(managedRoot);
         ArgumentException.ThrowIfNullOrWhiteSpace(statePathIdentity);
         ArgumentNullException.ThrowIfNull(payload);
@@ -218,18 +240,25 @@ public sealed partial class FileSystemManagedFirstInstallationRootMaterializer
                 return Failure(ManagedFirstInstallationMaterializationIssue.SourceChanged);
             }
 
-            using WindowsStableRelativeWriteRoot writeRoot = custody.OpenPackageWriteRoot();
-            ManagedVersionPayloadMaterializationResult payloadResult = await _installer
-                .MaterializeVerifiedPayloadWithinHeldRootAsync(
-                    writeRoot,
-                    candidate.Identity.SourceRoot,
-                    candidate.Package,
-                    _afterPackageDirectoryCreated,
-                    cancellationToken).ConfigureAwait(false);
+            ManagedVersionPayloadMaterializationResult payloadResult;
+            using (WindowsStableRelativeWriteRoot writeRoot = custody.OpenPackageWriteRoot())
+            {
+                payloadResult = await _installer
+                    .MaterializeVerifiedPayloadWithinHeldRootAsync(
+                        writeRoot,
+                        candidate.Identity.SourceRoot,
+                        candidate.Package,
+                        _afterPackageDirectoryCreated,
+                        progress,
+                        cancellationToken).ConfigureAwait(false);
+            }
             if (!payloadResult.IsVerified || payloadResult.Admission != expectedAdmission)
             {
                 return Failure(MapInstallIssue(payloadResult.Issue));
             }
+
+            progress?.Report(ManagedFirstInstallationProgress.Indeterminate(
+                ManagedFirstInstallationProgressStage.FinalizingInstallation));
 
             var seedStore = new JsonVersionManagerStateStore(
                 Path.Combine(stagingRoot, SeedFileName),
@@ -319,6 +348,7 @@ public sealed partial class FileSystemManagedFirstInstallationRootMaterializer
                 new PromotedInstallation(
                     root,
                     expectedAdmission,
+                    payloadIdentity.Bootstrap,
                     promotedMarker,
                     promotedMarkerStream,
                     promotedCustody,

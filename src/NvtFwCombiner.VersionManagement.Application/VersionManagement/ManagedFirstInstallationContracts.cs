@@ -345,6 +345,13 @@ public interface IManagedPromotedFirstInstallation : IDisposable
     /// <summary>Records the irreversible pre-process phase under the state writer lease.</summary>
     ValueTask<ManagedFirstInstallationTransactionIssue> RecordBootstrapLaunchAsync(
         CancellationToken cancellationToken);
+    /// <summary>
+    /// Consumes the one post-record launch opportunity and returns independently owned custody
+    /// for the exact promoted Bootstrap without reacquiring custody from its managed path.
+    /// </summary>
+    ValueTask<ManagedExecutableLaunchLeaseResult> AcquireBootstrapLaunchLeaseAsync(
+        ManagedImmutableBootstrapIdentity expectedIdentity,
+        CancellationToken cancellationToken);
     /// <summary>Removes only the exact marker after durable bound READY was proved.</summary>
     ValueTask<ManagedFirstInstallationTransactionIssue> CompleteAsync(
         CancellationToken cancellationToken);
@@ -358,6 +365,75 @@ public sealed record ManagedFirstInstallationMaterializationResult(
     /// <summary>Gets whether one complete promoted root and exact marker are available.</summary>
     public bool IsSuccess =>
         Installation is not null && Issue == ManagedFirstInstallationMaterializationIssue.None;
+}
+
+/// <summary>Closed stage projected by the single first-install execution owner.</summary>
+public enum ManagedFirstInstallationProgressStage
+{
+    /// <summary>The exact Registry, Catalog, and package token is being revalidated.</summary>
+    RevalidatingSource,
+    /// <summary>The admitted package bytes are being read and hashed from the update source.</summary>
+    ReadingPackage,
+    /// <summary>The admitted archive members are being verified without mutation.</summary>
+    VerifyingPackage,
+    /// <summary>The verified archive members are being copied into the held staging tree.</summary>
+    InstallingPackage,
+    /// <summary>The staged installed payload bytes are being verified.</summary>
+    VerifyingInstallation,
+    /// <summary>The verified root transaction is being finalized.</summary>
+    FinalizingInstallation,
+    /// <summary>The immutable Bootstrap and installed application are starting.</summary>
+    StartingApplication,
+}
+
+/// <summary>
+/// One immutable current first-install progress fact. Determinate work is stage-local and comes
+/// from the authoritative operation; unrelated stages are never aggregated into an estimate.
+/// </summary>
+public readonly record struct ManagedFirstInstallationProgress
+{
+    /// <summary>Creates one validated determinate or indeterminate progress snapshot.</summary>
+    public ManagedFirstInstallationProgress(
+        ManagedFirstInstallationProgressStage stage,
+        long completedWork,
+        long? totalWork)
+    {
+        if (!Enum.IsDefined(stage) ||
+            completedWork < 0 ||
+            totalWork is <= 0 ||
+            (totalWork is null && completedWork != 0) ||
+            (totalWork is { } total && completedWork > total))
+        {
+            throw new ArgumentOutOfRangeException(
+                nameof(completedWork),
+                "First-install progress requires a defined stage and valid completed/total work.");
+        }
+
+        Stage = stage;
+        CompletedWork = completedWork;
+        TotalWork = totalWork;
+    }
+
+    /// <summary>Gets the current closed stage.</summary>
+    public ManagedFirstInstallationProgressStage Stage { get; }
+
+    /// <summary>Gets completed bytes/items within the current stage.</summary>
+    public long CompletedWork { get; }
+
+    /// <summary>Gets total bytes/items when the authoritative operation knows that total.</summary>
+    public long? TotalWork { get; }
+
+    /// <summary>Gets one stage-local integer percentage, or null when the total is unknown.</summary>
+    public int? Percent => TotalWork is { } total
+        ? decimal.ToInt32(decimal.Floor(CompletedWork * 100m / total))
+        : null;
+
+    /// <summary>Creates one truthful unknown-total stage.</summary>
+    public static ManagedFirstInstallationProgress Indeterminate(
+        ManagedFirstInstallationProgressStage stage)
+    {
+        return new(stage, 0, null);
+    }
 }
 
 /// <summary>Infrastructure-owned whole-root transaction that reuses the package repository.</summary>
@@ -379,6 +455,28 @@ public interface IManagedFirstInstallationRootMaterializer
         FreshInstallationCandidate candidate,
         VersionManagerState seed,
         CancellationToken cancellationToken);
+
+    /// <summary>
+    /// Stages, verifies, and atomically promotes one exact fresh root while projecting only
+    /// authoritative progress from that same operation.
+    /// </summary>
+    ValueTask<ManagedFirstInstallationMaterializationResult> MaterializeAsync(
+        string managedRoot,
+        string statePathIdentity,
+        IManagedDistributionPayloadCapture payload,
+        FreshInstallationCandidate candidate,
+        VersionManagerState seed,
+        IProgress<ManagedFirstInstallationProgress>? progress,
+        CancellationToken cancellationToken)
+    {
+        return MaterializeAsync(
+            managedRoot,
+            statePathIdentity,
+            payload,
+            candidate,
+            seed,
+            cancellationToken);
+    }
 }
 
 /// <summary>Stable presentation outcome for first-install planning and execution.</summary>
@@ -452,8 +550,333 @@ public sealed record ManagedFirstInstallationPlanResult(
     public bool IsReady => Plan is not null && Outcome == ManagedFirstInstallationOutcome.ReadyToInstall;
 }
 
+/// <summary>Exact post-promotion stage that prevented first application READY.</summary>
+public enum ManagedFirstInstallationLaunchStage
+{
+    /// <summary>No post-promotion launch failure was observed.</summary>
+    None,
+    /// <summary>The immutable Root Bootstrap process could not be started safely.</summary>
+    BootstrapStart,
+    /// <summary>Root Bootstrap did not admit the exact version Launcher.</summary>
+    LauncherAdmission,
+    /// <summary>The admitted Launcher did not complete selected-application READY.</summary>
+    ApplicationReady,
+    /// <summary>
+    /// Root promotion completed, but the Bootstrap-launch transaction was not yet durably recorded
+    /// or its durable record operation was still in progress.
+    /// </summary>
+    PostPromotion,
+}
+
+/// <summary>Safe typed reason retained for one post-promotion launch failure.</summary>
+public enum ManagedFirstInstallationLaunchIssue
+{
+    /// <summary>No launch issue was observed.</summary>
+    None,
+    /// <summary>The bounded operation did not complete in time.</summary>
+    TimedOut,
+    /// <summary>A process result violated its typed custody/result contract.</summary>
+    InvalidReceipt,
+    /// <summary>Another process owns the required launch transaction.</summary>
+    Busy,
+    /// <summary>The immutable Bootstrap identity failed verification.</summary>
+    Damaged,
+    /// <summary>The exact process could not be started.</summary>
+    StartFailed,
+    /// <summary>The required process result could not be observed safely.</summary>
+    Unavailable,
+    /// <summary>The installed state requires the recovery owner.</summary>
+    RecoveryRequired,
+    /// <summary>Root Bootstrap could not start the exact version Launcher.</summary>
+    LaunchFailed,
+    /// <summary>The pre-launch health result could not be observed safely.</summary>
+    HealthUnavailable,
+    /// <summary>The Bootstrap state is invalid.</summary>
+    InvalidState,
+    /// <summary>The Bootstrap state is bound to a different managed root.</summary>
+    ManagedRootMismatch,
+    /// <summary>An application mutation transaction is still pending.</summary>
+    MutationPending,
+    /// <summary>The installed version Launcher failed immutable verification.</summary>
+    DamagedLauncher,
+    /// <summary>The version Launcher protocol is incompatible with Bootstrap.</summary>
+    ProtocolMismatch,
+    /// <summary>No admitted last-known-good rollback target is available.</summary>
+    RollbackUnavailable,
+    /// <summary>The version state changed during the launch transaction.</summary>
+    StateChanged,
+    /// <summary>The version state could not be read or persisted.</summary>
+    StateUnavailable,
+    /// <summary>The immutable Bootstrap received invalid launch arguments.</summary>
+    InvalidArguments,
+    /// <summary>The immutable Bootstrap rejected an internal invariant.</summary>
+    InvariantViolation,
+    /// <summary>The immutable Bootstrap inherited an incomplete or invalid process context.</summary>
+    InvalidInheritedContext,
+    /// <summary>The parent did not authorize Bootstrap through the inherited start gate.</summary>
+    StartNotAuthorized,
+    /// <summary>The immutable Bootstrap returned an undefined terminal failure.</summary>
+    UndefinedFailure,
+    /// <summary>The immutable Bootstrap returned an unrecognized exit code.</summary>
+    UnknownExit,
+    /// <summary>The launched process tree could not be proven terminated.</summary>
+    TerminationUnconfirmed,
+    /// <summary>Only the last-known-good rollback, not the selected version, reported READY.</summary>
+    RolledBack,
+    /// <summary>The caller cancelled after the managed root was promoted.</summary>
+    Cancelled,
+}
+
+/// <summary>Safe diagnostic retained from the exact Bootstrap/Launcher process boundary.</summary>
+public sealed record ManagedFirstInstallationLaunchFailure(
+    ManagedFirstInstallationLaunchStage Stage,
+    ManagedFirstInstallationLaunchIssue Issue,
+    int? ExitCode = null)
+{
+    /// <summary>Gets the exact non-empty post-promotion failure stage.</summary>
+    public ManagedFirstInstallationLaunchStage Stage { get; init; } =
+        !Enum.IsDefined(Stage) || Stage == ManagedFirstInstallationLaunchStage.None
+            ? throw new ArgumentOutOfRangeException(nameof(Stage))
+            : Stage;
+
+    /// <summary>Gets the single authoritative path-free failure reason.</summary>
+    public ManagedFirstInstallationLaunchIssue Issue { get; init; } =
+        !Enum.IsDefined(Issue) || Issue == ManagedFirstInstallationLaunchIssue.None
+            ? throw new ArgumentOutOfRangeException(nameof(Issue))
+            : Issue;
+
+    /// <summary>Gets the optional exit code only when it agrees with the typed failure reason.</summary>
+    public int? ExitCode { get; init; } =
+        HasValidFailureShape(Stage, Issue, ExitCode)
+            ? ExitCode
+            : throw new ArgumentException(
+                "Bootstrap boundary, issue, and exit code contradict one another.",
+                nameof(ExitCode));
+
+    /// <summary>Gets whether the current record still contains one non-contradictory failure.</summary>
+    public bool HasValidShape =>
+        Enum.IsDefined(Stage) &&
+        Enum.IsDefined(Issue) &&
+        Stage != ManagedFirstInstallationLaunchStage.None &&
+        Issue != ManagedFirstInstallationLaunchIssue.None &&
+        HasValidFailureShape(Stage, Issue, ExitCode);
+
+    internal bool IsCompatibleWithOutcome(ManagedFirstInstallationOutcome outcome)
+    {
+        if (!HasValidShape)
+        {
+            return false;
+        }
+        bool recoveryRequired =
+            (Stage == ManagedFirstInstallationLaunchStage.PostPromotion && Issue is
+                ManagedFirstInstallationLaunchIssue.RecoveryRequired or
+                ManagedFirstInstallationLaunchIssue.StateUnavailable) ||
+            (Stage == ManagedFirstInstallationLaunchStage.BootstrapStart &&
+                Issue == ManagedFirstInstallationLaunchIssue.Damaged) ||
+            (Stage == ManagedFirstInstallationLaunchStage.LauncherAdmission &&
+                Issue is ManagedFirstInstallationLaunchIssue.RecoveryRequired or
+                    ManagedFirstInstallationLaunchIssue.InvalidState or
+                    ManagedFirstInstallationLaunchIssue.ManagedRootMismatch or
+                    ManagedFirstInstallationLaunchIssue.MutationPending or
+                    ManagedFirstInstallationLaunchIssue.DamagedLauncher or
+                    ManagedFirstInstallationLaunchIssue.ProtocolMismatch);
+        ManagedFirstInstallationOutcome expected = recoveryRequired
+            ? ManagedFirstInstallationOutcome.RecoveryRequired
+            : ManagedFirstInstallationOutcome.InstalledButLaunchFailed;
+        return outcome == expected;
+    }
+
+    internal static ManagedFirstInstallationLaunchIssue MapBootstrapExitIssue(
+        ImmutableBootstrapExitIssue issue)
+    {
+        return issue switch
+        {
+            ImmutableBootstrapExitIssue.Busy => ManagedFirstInstallationLaunchIssue.Busy,
+            ImmutableBootstrapExitIssue.InvalidState => ManagedFirstInstallationLaunchIssue.InvalidState,
+            ImmutableBootstrapExitIssue.ManagedRootMismatch =>
+                ManagedFirstInstallationLaunchIssue.ManagedRootMismatch,
+            ImmutableBootstrapExitIssue.MutationPending =>
+                ManagedFirstInstallationLaunchIssue.MutationPending,
+            ImmutableBootstrapExitIssue.DamagedLauncher =>
+                ManagedFirstInstallationLaunchIssue.DamagedLauncher,
+            ImmutableBootstrapExitIssue.ProtocolMismatch =>
+                ManagedFirstInstallationLaunchIssue.ProtocolMismatch,
+            ImmutableBootstrapExitIssue.StartFailed => ManagedFirstInstallationLaunchIssue.StartFailed,
+            ImmutableBootstrapExitIssue.RollbackUnavailable =>
+                ManagedFirstInstallationLaunchIssue.RollbackUnavailable,
+            ImmutableBootstrapExitIssue.StateChanged => ManagedFirstInstallationLaunchIssue.StateChanged,
+            ImmutableBootstrapExitIssue.StateUnavailable =>
+                ManagedFirstInstallationLaunchIssue.StateUnavailable,
+            ImmutableBootstrapExitIssue.TerminationUnconfirmed =>
+                ManagedFirstInstallationLaunchIssue.TerminationUnconfirmed,
+            ImmutableBootstrapExitIssue.InvalidArguments =>
+                ManagedFirstInstallationLaunchIssue.InvalidArguments,
+            ImmutableBootstrapExitIssue.InvariantViolation =>
+                ManagedFirstInstallationLaunchIssue.InvariantViolation,
+            ImmutableBootstrapExitIssue.InvalidInheritedContext =>
+                ManagedFirstInstallationLaunchIssue.InvalidInheritedContext,
+            ImmutableBootstrapExitIssue.StartNotAuthorized =>
+                ManagedFirstInstallationLaunchIssue.StartNotAuthorized,
+            ImmutableBootstrapExitIssue.UndefinedFailure =>
+                ManagedFirstInstallationLaunchIssue.UndefinedFailure,
+            ImmutableBootstrapExitIssue.Unknown => ManagedFirstInstallationLaunchIssue.UnknownExit,
+            ImmutableBootstrapExitIssue.None => throw new ArgumentOutOfRangeException(
+                nameof(issue), issue, "A successful Bootstrap exit has no launch failure."),
+            _ => throw new ArgumentOutOfRangeException(nameof(issue), issue, "Issue is undefined."),
+        };
+    }
+
+    private static bool HasValidFailureShape(
+        ManagedFirstInstallationLaunchStage stage,
+        ManagedFirstInstallationLaunchIssue issue,
+        int? exitCode)
+    {
+        bool stageAllowsIssue = stage switch
+        {
+            ManagedFirstInstallationLaunchStage.PostPromotion =>
+                exitCode is null && issue is
+                    ManagedFirstInstallationLaunchIssue.RecoveryRequired or
+                    ManagedFirstInstallationLaunchIssue.StateUnavailable or
+                    ManagedFirstInstallationLaunchIssue.Cancelled,
+            ManagedFirstInstallationLaunchStage.BootstrapStart =>
+                exitCode is null && issue is
+                    ManagedFirstInstallationLaunchIssue.TimedOut or
+                    ManagedFirstInstallationLaunchIssue.InvalidReceipt or
+                    ManagedFirstInstallationLaunchIssue.Busy or
+                    ManagedFirstInstallationLaunchIssue.Damaged or
+                    ManagedFirstInstallationLaunchIssue.StartFailed or
+                    ManagedFirstInstallationLaunchIssue.Unavailable or
+                    ManagedFirstInstallationLaunchIssue.Cancelled,
+            ManagedFirstInstallationLaunchStage.LauncherAdmission => issue is
+                ManagedFirstInstallationLaunchIssue.TimedOut or
+                ManagedFirstInstallationLaunchIssue.InvalidReceipt or
+                ManagedFirstInstallationLaunchIssue.Busy or
+                ManagedFirstInstallationLaunchIssue.HealthUnavailable or
+                ManagedFirstInstallationLaunchIssue.InvalidState or
+                ManagedFirstInstallationLaunchIssue.ManagedRootMismatch or
+                ManagedFirstInstallationLaunchIssue.MutationPending or
+                ManagedFirstInstallationLaunchIssue.DamagedLauncher or
+                ManagedFirstInstallationLaunchIssue.ProtocolMismatch or
+                ManagedFirstInstallationLaunchIssue.StartFailed or
+                ManagedFirstInstallationLaunchIssue.RollbackUnavailable or
+                ManagedFirstInstallationLaunchIssue.StateChanged or
+                ManagedFirstInstallationLaunchIssue.StateUnavailable or
+                ManagedFirstInstallationLaunchIssue.InvalidArguments or
+                ManagedFirstInstallationLaunchIssue.InvariantViolation or
+                ManagedFirstInstallationLaunchIssue.InvalidInheritedContext or
+                ManagedFirstInstallationLaunchIssue.StartNotAuthorized or
+                ManagedFirstInstallationLaunchIssue.UndefinedFailure or
+                ManagedFirstInstallationLaunchIssue.UnknownExit or
+                ManagedFirstInstallationLaunchIssue.TerminationUnconfirmed or
+                ManagedFirstInstallationLaunchIssue.Cancelled,
+            ManagedFirstInstallationLaunchStage.ApplicationReady => issue is
+                ManagedFirstInstallationLaunchIssue.TimedOut or
+                ManagedFirstInstallationLaunchIssue.InvalidReceipt or
+                ManagedFirstInstallationLaunchIssue.Busy or
+                ManagedFirstInstallationLaunchIssue.Unavailable or
+                ManagedFirstInstallationLaunchIssue.InvalidState or
+                ManagedFirstInstallationLaunchIssue.ManagedRootMismatch or
+                ManagedFirstInstallationLaunchIssue.MutationPending or
+                ManagedFirstInstallationLaunchIssue.DamagedLauncher or
+                ManagedFirstInstallationLaunchIssue.ProtocolMismatch or
+                ManagedFirstInstallationLaunchIssue.StartFailed or
+                ManagedFirstInstallationLaunchIssue.RollbackUnavailable or
+                ManagedFirstInstallationLaunchIssue.StateChanged or
+                ManagedFirstInstallationLaunchIssue.StateUnavailable or
+                ManagedFirstInstallationLaunchIssue.InvalidArguments or
+                ManagedFirstInstallationLaunchIssue.InvariantViolation or
+                ManagedFirstInstallationLaunchIssue.InvalidInheritedContext or
+                ManagedFirstInstallationLaunchIssue.StartNotAuthorized or
+                ManagedFirstInstallationLaunchIssue.UndefinedFailure or
+                ManagedFirstInstallationLaunchIssue.UnknownExit or
+                ManagedFirstInstallationLaunchIssue.TerminationUnconfirmed or
+                ManagedFirstInstallationLaunchIssue.RolledBack or
+                ManagedFirstInstallationLaunchIssue.Cancelled,
+            ManagedFirstInstallationLaunchStage.None => false,
+            _ => false,
+        };
+        bool hasExpectedExitPresence = stage switch
+        {
+            ManagedFirstInstallationLaunchStage.PostPromotion or
+            ManagedFirstInstallationLaunchStage.BootstrapStart => exitCode is null,
+            ManagedFirstInstallationLaunchStage.LauncherAdmission when issue is
+                ManagedFirstInstallationLaunchIssue.StartFailed or
+                ManagedFirstInstallationLaunchIssue.InvalidReceipt or
+                ManagedFirstInstallationLaunchIssue.TerminationUnconfirmed => true,
+            ManagedFirstInstallationLaunchStage.LauncherAdmission when issue is
+                ManagedFirstInstallationLaunchIssue.TimedOut or
+                ManagedFirstInstallationLaunchIssue.HealthUnavailable or
+                ManagedFirstInstallationLaunchIssue.Cancelled => exitCode is null,
+            ManagedFirstInstallationLaunchStage.LauncherAdmission => exitCode is not null,
+            ManagedFirstInstallationLaunchStage.ApplicationReady when
+                issue is ManagedFirstInstallationLaunchIssue.InvalidReceipt or
+                    ManagedFirstInstallationLaunchIssue.TerminationUnconfirmed => true,
+            ManagedFirstInstallationLaunchStage.ApplicationReady when issue is
+                ManagedFirstInstallationLaunchIssue.TimedOut or
+                ManagedFirstInstallationLaunchIssue.Unavailable or
+                ManagedFirstInstallationLaunchIssue.Cancelled => exitCode is null,
+            ManagedFirstInstallationLaunchStage.ApplicationReady => exitCode is not null,
+            ManagedFirstInstallationLaunchStage.None => false,
+            _ => false,
+        };
+        return stageAllowsIssue &&
+            hasExpectedExitPresence &&
+            (exitCode is null || issue == ManagedFirstInstallationLaunchIssue.InvalidReceipt ||
+                (exitCode == ImmutableBootstrapExitCodeCodec.RolledBack
+                ? issue == ManagedFirstInstallationLaunchIssue.RolledBack
+                : exitCode != ImmutableBootstrapExitCodeCodec.Ready &&
+                    issue == MapBootstrapExitIssue(
+                        ImmutableBootstrapExitCodeCodec.DecodeFailure(exitCode.Value))));
+    }
+}
+
 /// <summary>Typed first-install execution result.</summary>
 public sealed record ManagedFirstInstallationResult(
     ManagedFirstInstallationOutcome Outcome,
     string ManagedRoot,
-    ManagedAppVersion Version);
+    ManagedAppVersion Version,
+    ManagedFirstInstallationLaunchFailure? LaunchFailure = null)
+{
+    /// <summary>Gets the defined execution outcome.</summary>
+    public ManagedFirstInstallationOutcome Outcome { get; init; } =
+        Enum.IsDefined(Outcome)
+            ? Outcome
+            : throw new ArgumentOutOfRangeException(nameof(Outcome));
+
+    /// <summary>Gets the exact post-promotion failure, when this result is launch-terminal.</summary>
+    public ManagedFirstInstallationLaunchFailure? LaunchFailure { get; init; } =
+        IsValidLaunchFailureShape(Outcome, LaunchFailure)
+            ? LaunchFailure
+            : throw new ArgumentException(
+                "First-install result carries an invalid launch-failure shape.",
+                nameof(LaunchFailure));
+
+    /// <summary>Gets whether this is one complete terminal presentation result.</summary>
+    public bool HasValidShape =>
+        Enum.IsDefined(Outcome) &&
+        Outcome is not ManagedFirstInstallationOutcome.ReadyToInstall and
+            not ManagedFirstInstallationOutcome.Installing &&
+        (LaunchFailure is not { } failure
+            ? Outcome != ManagedFirstInstallationOutcome.InstalledButLaunchFailed
+            : (Outcome is ManagedFirstInstallationOutcome.InstalledButLaunchFailed or
+                ManagedFirstInstallationOutcome.RecoveryRequired) &&
+                failure.IsCompatibleWithOutcome(Outcome));
+
+    /// <summary>Gets whether only the separate recovery owner may continue this terminal result.</summary>
+    public bool IsRecoveryOwned =>
+        HasValidShape && Outcome is
+            ManagedFirstInstallationOutcome.RecoveryRequired or
+            ManagedFirstInstallationOutcome.InstalledButLaunchFailed;
+
+    private static bool IsValidLaunchFailureShape(
+        ManagedFirstInstallationOutcome outcome,
+        ManagedFirstInstallationLaunchFailure? failure)
+    {
+        return Enum.IsDefined(outcome) &&
+            (outcome == ManagedFirstInstallationOutcome.InstalledButLaunchFailed
+                ? failure is not null && failure.IsCompatibleWithOutcome(outcome)
+                : failure is null ||
+                    (outcome == ManagedFirstInstallationOutcome.RecoveryRequired &&
+                        failure.IsCompatibleWithOutcome(outcome)));
+    }
+}

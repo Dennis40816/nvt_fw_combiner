@@ -1,6 +1,4 @@
 using System.Security.Cryptography;
-using System.Text.Json;
-using System.Text.Json.Serialization;
 using NvtFwCombiner.Application.VersionManagement;
 
 namespace NvtFwCombiner.Infrastructure.VersionManagement;
@@ -8,13 +6,6 @@ namespace NvtFwCombiner.Infrastructure.VersionManagement;
 /// <summary>Verifies one release-coupled launcher against its exact admitted owner manifest.</summary>
 internal sealed class FileSystemInstalledLauncherRepository : IInstalledLauncherRepository
 {
-    private static readonly JsonSerializerOptions JsonOptions = new(JsonSerializerDefaults.Web)
-    {
-        MaxDepth = 32,
-        PropertyNameCaseInsensitive = false,
-        UnmappedMemberHandling = JsonUnmappedMemberHandling.Disallow,
-    };
-    private static readonly VersionManagementJsonContext JsonContext = new(JsonOptions);
     private readonly Func<string, int, CancellationToken, ValueTask<byte[]?>> _readBoundedFileAsync;
     private readonly Action<WindowsStableCustodyStage>? _custodyHook;
     private readonly Action? _beforeLeaseCreation;
@@ -65,7 +56,7 @@ internal sealed class FileSystemInstalledLauncherRepository : IInstalledLauncher
             WindowsStablePathCustody ownedCustody = custody;
             custody = null;
             ManagedExecutableLaunchLeaseResult acquired =
-                await StableManagedExecutableLaunchLease.TryCreateFromVerifiedTreeAsync(
+                await StableManagedExecutableLaunchLease.TryCreateAsync(
                     ownedCustody,
                     identity.ExecutableRelativePath,
                     identity.Size,
@@ -135,42 +126,29 @@ internal sealed class FileSystemInstalledLauncherRepository : IInstalledLauncher
                 return Failure(InstalledLauncherIssue.InvalidManifest);
             }
 
-            ReleaseManifestDocument? manifest;
-            using (JsonDocument json = EmbeddedVersionManagementSchema.ParseStrict(manifestBytes, maximumDepth: 32))
+            if (!ManagedPackageVerifier.TryReadCanonicalManifest(
+                    manifestBytes,
+                    admission.Version,
+                    archivePaths: null,
+                    out ReleaseManifestDocument? manifest))
             {
-                if (!ReleaseManifestSchema.IsValid(json.RootElement))
-                {
-                    return Failure(InstalledLauncherIssue.InvalidManifest);
-                }
-                manifest = JsonSerializer.Deserialize(manifestBytes, JsonContext.ReleaseManifestDocument);
+                return Failure(InstalledLauncherIssue.InvalidManifest);
             }
-
-            LauncherReleaseIdentityDocument? launcher = manifest?.Launcher;
-            if (manifest?.SchemaVersion != "1.2" ||
-                manifest.VersionManagementProtocolVersion != ManagedLauncherIdentity.SupportedProtocolVersion ||
-                !string.Equals(manifest.Product, "NVT FW Combiner", StringComparison.Ordinal) ||
-                !string.Equals(manifest.Version, admission.Version.ToString(), StringComparison.Ordinal) ||
-                !string.Equals(manifest.RuntimeIdentifier, "win-x64", StringComparison.Ordinal) ||
-                launcher?.ProtocolVersion != ManagedLauncherIdentity.SupportedProtocolVersion ||
-                !ManagedAppVersion.TryParse(launcher.LauncherVersion, out ManagedAppVersion launcherVersion) ||
-                !string.Equals(
-                    launcher.ExecutableRelativePath,
-                    ManagedLauncherIdentity.ExecutablePath,
-                    StringComparison.Ordinal) ||
-                launcher.Size is null or <= 0 or > ManagedLauncherIdentity.MaximumExecutableBytes ||
-                !IsLowerSha256(launcher.Sha256))
+            if (!string.Equals(manifest.SchemaVersion, "1.2", StringComparison.Ordinal) ||
+                manifest.Launcher is not
+                {
+                    ProtocolVersion: { } launcherProtocolVersion,
+                    ExecutableRelativePath: { } launcherPath,
+                    Size: { } launcherSize,
+                    Sha256: { } launcherExpectedSha256,
+                } launcher ||
+                !ManagedAppVersion.TryParse(launcher.LauncherVersion, out ManagedAppVersion launcherVersion))
             {
                 return Failure(InstalledLauncherIssue.ProtocolMismatch);
             }
-
-            ReleaseManifestFileDocument[] launcherFiles =
-            [.. manifest.Files!.Where(file => string.Equals(file.Role, "launcher", StringComparison.Ordinal))];
-            if (launcherFiles is not
-                [{ Path: ManagedLauncherIdentity.ExecutablePath } launcherFile] ||
-                launcherFile.Size != launcher.Size ||
-                !string.Equals(launcherFile.Sha256, launcher.Sha256, StringComparison.Ordinal))
+            if (!HasExactInstalledTopology(custody, manifest.Files!))
             {
-                return Failure(InstalledLauncherIssue.InvalidManifest);
+                return Failure(InstalledLauncherIssue.Tampered);
             }
 
             ManagedLauncherIdentity identity = ManagedLauncherIdentity.Create(
@@ -178,20 +156,23 @@ internal sealed class FileSystemInstalledLauncherRepository : IInstalledLauncher
                 admission.AdmissionIdentity,
                 admission.ReleaseManifestSha256,
                 launcherVersion,
-                launcher.ProtocolVersion.Value,
-                launcher.ExecutableRelativePath!,
-                launcher.Size.Value,
-                launcher.Sha256!);
-            ManagedVersionDamageReason? packageDamage = await ManagedPackageVerifier.VerifyInstalledAsync(
-                custody.RootPath,
-                admission,
-                FileSystemManagedVersionRepository.MaximumExpandedBytes,
-                cancellationToken).ConfigureAwait(false);
-            if (packageDamage is not null)
+                launcherProtocolVersion,
+                launcherPath,
+                launcherSize,
+                launcherExpectedSha256);
+            if (verifyExecutableBytes)
             {
-                return Failure(InstalledLauncherIssue.Tampered);
+                ManagedVersionDamageReason? packageDamage = await ManagedPackageVerifier.VerifyInstalledAsync(
+                    custody.RootPath,
+                    admission,
+                    FileSystemManagedVersionRepository.MaximumExpandedBytes,
+                    cancellationToken).ConfigureAwait(false);
+                if (packageDamage is not null)
+                {
+                    return Failure(InstalledLauncherIssue.Tampered);
+                }
             }
-            if (!verifyExecutableBytes)
+            else
             {
                 return new(identity, InstalledLauncherIssue.None);
             }
@@ -213,7 +194,7 @@ internal sealed class FileSystemInstalledLauncherRepository : IInstalledLauncher
             throw;
         }
         catch (Exception exception) when (exception is
-            IOException or UnauthorizedAccessException or JsonException or InvalidDataException)
+            IOException or UnauthorizedAccessException or InvalidDataException)
         {
             return Failure(InstalledLauncherIssue.Unavailable);
         }
@@ -222,6 +203,39 @@ internal sealed class FileSystemInstalledLauncherRepository : IInstalledLauncher
     private static InstalledLauncherResult Failure(InstalledLauncherIssue issue)
     {
         return new(null, issue);
+    }
+
+    private static bool HasExactInstalledTopology(
+        WindowsStablePathCustody custody,
+        IReadOnlyList<ReleaseManifestFileDocument> declaredFiles)
+    {
+        if (!custody.TryCreateOwnedSnapshot(out WindowsStableOwnedTreeSnapshot? snapshot))
+        {
+            return false;
+        }
+
+        HashSet<string> expectedFiles =
+            ManagedPackageVerifier.BuildExpectedInstalledFilePaths(declaredFiles);
+        if (!expectedFiles.SetEquals(snapshot!.Files.Keys))
+        {
+            return false;
+        }
+
+        var expectedDirectories = new HashSet<string>(ManagedPathSafety.PathComparer)
+        {
+            string.Empty,
+        };
+        foreach (string file in expectedFiles)
+        {
+            int separator = file.LastIndexOf('/');
+            while (separator >= 0)
+            {
+                string directory = file[..separator];
+                _ = expectedDirectories.Add(directory);
+                separator = directory.LastIndexOf('/');
+            }
+        }
+        return expectedDirectories.SetEquals(snapshot.Directories.Keys);
     }
 
     private WindowsStableCustodyResult AcquireVersionTree(
@@ -260,9 +274,4 @@ internal sealed class FileSystemInstalledLauncherRepository : IInstalledLauncher
         };
     }
 
-    private static bool IsLowerSha256(string? value)
-    {
-        return value is { Length: 64 } &&
-               value.All(static character => character is (>= '0' and <= '9') or (>= 'a' and <= 'f'));
-    }
 }
