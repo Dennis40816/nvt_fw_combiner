@@ -4360,7 +4360,7 @@ class VerifyOrchestrationTests(unittest.TestCase):
 
             def fail_first_session_probe(path: Path) -> tuple[int, int]:
                 nonlocal failed
-                if path.name.startswith("session-") and not failed:
+                if path.name.startswith("s-") and not failed:
                     failed = True
                     raise RuntimeError("identity setup probe")
                 return actual_identity(path)
@@ -4378,6 +4378,96 @@ class VerifyOrchestrationTests(unittest.TestCase):
                     self.fail("session setup failure must not enter the workload")
 
             self.assertEqual((), tuple((root / "sessions").iterdir()))
+
+    @unittest.skipUnless(sys.platform == "win32", "Windows custody contract")
+    def test_provisional_session_reacquire_race_retains_marker_and_replacement(
+        self,
+    ) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            base = Path(temporary)
+            root = base / "test-area"
+            root.mkdir()
+            external = base / "external"
+            external.mkdir()
+            (external / "sentinel").write_text("external", encoding="utf-8")
+            actual_identity = MODULE.filesystem_identity
+            identity_failed = False
+            replacement_blocked = False
+            replacement_succeeded = False
+            displaced: Path | None = None
+            session_path: Path | None = None
+
+            def fail_session_probe(path: Path) -> tuple[int, int]:
+                nonlocal identity_failed
+                if (
+                    path.parent.name == "sessions"
+                    and path.name.startswith("s-")
+                    and not identity_failed
+                ):
+                    identity_failed = True
+                    raise RuntimeError("identity setup probe")
+                return actual_identity(path)
+
+            def replace_before_session_reacquire(
+                path: Path,
+                expected_identity: tuple[int, int],
+                *,
+                share_write: bool = True,
+                read_data: bool = False,
+            ) -> tuple[int, int, bool]:
+                nonlocal displaced
+                nonlocal replacement_blocked
+                nonlocal replacement_succeeded
+                nonlocal session_path
+                if (
+                    path.parent.name == "sessions"
+                    and path.name.startswith("s-")
+                    and session_path is None
+                ):
+                    displaced = path.with_name(f"{path.name}-original")
+                    session_path = path
+                    try:
+                        path.rename(displaced)
+                    except OSError:
+                        replacement_blocked = True
+                    else:
+                        replacement_succeeded = True
+                    raise RuntimeError("session reacquire probe")
+                self.fail(
+                    f"unexpected cleanup handle request during transition: {path}"
+                )
+
+            with (
+                self.verifier_environment(NFC_TEST_AREA_ROOT=str(root)),
+                patch.object(
+                    MODULE,
+                    "filesystem_identity",
+                    side_effect=fail_session_probe,
+                ),
+                patch.object(
+                    MODULE,
+                    "_require_windows_cleanup_handle",
+                    side_effect=replace_before_session_reacquire,
+                ),
+                self.assertRaisesRegex(RuntimeError, "diagnostic residue"),
+            ):
+                with MODULE.verification_test_session(internal_lane=False):
+                    self.fail("session setup race must not enter the workload")
+
+            self.assertTrue(replacement_blocked)
+            self.assertFalse(replacement_succeeded)
+            assert displaced is not None
+            assert session_path is not None
+            marker = session_path / MODULE.TEST_SESSION_MARKER_NAME
+            self.assertTrue(marker.is_file())
+            self.assertEqual(
+                session_path.name, json.loads(marker.read_text())["sessionId"]
+            )
+            self.assertFalse(displaced.exists())
+            self.assertEqual(
+                "external",
+                (external / "sentinel").read_text(encoding="utf-8"),
+            )
 
     @unittest.skipUnless(sys.platform == "win32", "Windows custody contract")
     def test_session_setup_retains_parent_custody_through_marker_write(self) -> None:
@@ -4884,6 +4974,8 @@ class VerifyOrchestrationTests(unittest.TestCase):
                     self.assertEqual(
                         derived_root.resolve(), session.parents[1].resolve()
                     )
+                    self.assertRegex(session.name, r"^s-[a-z2-7]{26}$")
+                    self.assertEqual("t", Path(os.environ["TEMP"]).name)
 
             self.assertTrue(derived_root.is_dir())
             self.assertTrue((derived_root / "sessions").is_dir())
@@ -4899,6 +4991,50 @@ class VerifyOrchestrationTests(unittest.TestCase):
                 with self.assertRaisesRegex(RuntimeError, "conflicts"):
                     with MODULE.verification_test_session(internal_lane=False):
                         self.fail("conflicting GitHub test root must fail closed")
+
+    @unittest.skipUnless(sys.platform == "win32", "Windows custody contract")
+    def test_created_session_custody_allows_nested_nondelete_custody(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            runner_temp = Path(temporary)
+            with self.verifier_environment(
+                GITHUB_ACTIONS="true",
+                RUNNER_TEMP=str(runner_temp),
+            ):
+                with MODULE.verification_test_session(internal_lane=False) as session:
+                    handles: list[int] = []
+                    try:
+                        for path in (session.parents[1], session.parent, session):
+                            handles.append(
+                                MODULE._open_windows_path(
+                                    path,
+                                    delete_access=False,
+                                    share_delete=False,
+                                )
+                            )
+                    finally:
+                        for handle in reversed(handles):
+                            MODULE._close_windows_handle(handle)
+
+    @unittest.skipUnless(sys.platform == "win32", "Windows path budget contract")
+    def test_session_path_budget_creates_previous_canonical_projection(self) -> None:
+        root_value = os.environ.get("NFC_TEST_AREA_ROOT")
+        self.assertIsNotNone(root_value)
+        assert root_value is not None
+        relative = Path(
+            "outputs-precursor-map-mismatch",
+            "route-7-nt51917-15-ctrlram-replace-4-1-ic-39-nt51927-ctrlram-fw141-single-full-flash",
+            "workflow",
+            "00-preview",
+            "input-01-02-postbuild-mp-ctrlram.bin",
+        )
+        with self.verifier_environment(NFC_TEST_AREA_ROOT=root_value):
+            with MODULE.verification_test_session(internal_lane=False) as session:
+                target = Path(os.environ["TEMP"]) / "tmpfwezljm6" / relative
+                self.assertRegex(session.name, r"^s-[a-z2-7]{26}$")
+                self.assertLessEqual(len(str(target)), 259)
+                target.parent.mkdir(parents=True)
+                target.write_bytes(b"path-budget")
+                self.assertEqual(b"path-budget", target.read_bytes())
 
     def test_public_session_owns_scratch_environment_and_restores_process_state(
         self,

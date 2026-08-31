@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import argparse
+import base64
 import codecs
 import ctypes
 import hashlib
@@ -81,9 +82,9 @@ TEST_SESSION_ENVIRONMENT_VARIABLE = "NFC_TEST_SESSION_ROOT"
 TEST_SESSION_MARKER_NAME = ".nfc-test-session.json"
 TEST_SESSION_MARKER_SCHEMA_VERSION = 1
 TEST_SESSION_SCRATCH_DIRECTORIES = {
-    "TEMP": "temp",
-    "TMP": "temp",
-    "TMPDIR": "temp",
+    "TEMP": "t",
+    "TMP": "t",
+    "TMPDIR": "t",
     "DOTNET_BUNDLE_EXTRACT_BASE_DIR": "dotnet-bundle",
     "RUFF_CACHE_DIR": "ruff-cache",
     "PYTHONPYCACHEPREFIX": "python-bytecode",
@@ -1219,11 +1220,7 @@ def _create_windows_relative_path(
     )
     io_status = _IoStatusBlock()
     child_handle = wintypes.HANDLE()
-    desired_access = (
-        0x00100180
-        | (0x00010000 if directory else 0)
-        | (0x00000001 if directory else 0x00000003)
-    )
+    desired_access = 0x00100180 | (0x00000001 if directory else 0x00000003)
     create_options = 0x00200020 | (0x00000001 if directory else 0x00000040)
     status = ntdll.NtCreateFile(
         ctypes.byref(child_handle),
@@ -1580,11 +1577,23 @@ def _delete_owned_windows_session(
                 or retained.marker_handle is None
             ):
                 raise RuntimeError("test session custody was released before cleanup")
+            _close_windows_handle(retained.session_handle)
+            retained.session_handle = None
+            session_handle, _attributes, is_directory = _require_windows_cleanup_handle(
+                ownership.session,
+                ownership.session_identity,
+            )
+            if not is_directory:
+                _close_windows_handle(session_handle)
+                raise RuntimeError(
+                    f"test session directory identity changed: {ownership.session}"
+                )
+            retained.session_handle = session_handle
             hierarchy.extend(
                 (
                     retained.root.windows_handle,
                     retained.sessions.windows_handle,
-                    retained.session_handle,
+                    session_handle,
                 )
             )
             if require_marker:
@@ -1868,6 +1877,19 @@ def _create_windows_test_session_child(
         return ownership
     except BaseException as setup_error:
         try:
+            if session_handle is not None and session_identity is not None:
+                _close_windows_handle(session_handle)
+                session_handle = None
+                session_handle, _attributes, is_directory = (
+                    _require_windows_cleanup_handle(
+                        session,
+                        session_identity,
+                    )
+                )
+                if not is_directory:
+                    raise RuntimeError(
+                        "provisional test session became a non-directory"
+                    )
             if marker_handle is not None and marker_identity is not None:
                 _close_windows_handle(marker_handle)
                 marker_handle = None
@@ -1979,7 +2001,13 @@ def create_test_session(root: Path, *, create_root: bool) -> TestSessionOwnershi
         for _attempt in range(16):
             revalidate_directory_custody(root_custody)
             revalidate_directory_custody(sessions_custody)
-            session_name = f"session-{secrets.token_hex(16)}"
+            session_token = (
+                base64.b32encode(secrets.token_bytes(16))
+                .decode("ascii")
+                .rstrip("=")
+                .lower()
+            )
+            session_name = f"s-{session_token}"
             if sys.platform == "win32":
                 try:
                     ownership = _create_windows_test_session_child(

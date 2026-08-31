@@ -148,8 +148,11 @@ public sealed class FileSystemUpdateCatalogSourceTests
     /// <summary>Every non-exact v2 policy shape is invalid and cannot expose stale v1 authority.</summary>
     [Theory]
     [MemberData(nameof(InvalidStrictV2Documents))]
-    public async Task StrictV2PolicyShapeFailsClosedWithoutV1Fallback(string v2Document)
+    public async Task StrictV2PolicyShapeFailsClosedWithoutV1Fallback(
+        string caseId,
+        string v2Document)
     {
+        ArgumentException.ThrowIfNullOrWhiteSpace(caseId);
         ArgumentNullException.ThrowIfNull(v2Document);
         using var workspace = TempWorkspace.Create();
         string root = workspace.PathFor("source");
@@ -488,7 +491,7 @@ public sealed class FileSystemUpdateCatalogSourceTests
     }
 
     /// <summary>Malformed v2 documents exercising required, typed, closed policy shape.</summary>
-    public static TheoryData<string> InvalidStrictV2Documents
+    public static TheoryData<string, string> InvalidStrictV2Documents
     {
         get
         {
@@ -496,14 +499,17 @@ public sealed class FileSystemUpdateCatalogSourceTests
                 """
                 {"schemaVersion":2,"product":"NVT FW Combiner","runtimeIdentifier":"win-x64","versions":[{"version":"1.0.8","publishedAt":"2026-09-01T00:00:00Z","packagePath":"packages/NvtFwCombiner-v1.0.8-win-x64.zip","packageSize":42,"packageSha256":"0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef","releaseManifestSha256":"abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789","releaseNotes":"Release 1.0.8"
                 """;
-            return
-            [
-                prefix + "}]}",
-                prefix + ",\"notificationPolicy\":null}]}",
-                prefix + ",\"notificationPolicy\":2}]}",
-                prefix + ",\"notificationPolicy\":\"notify\",\"unexpected\":true}]}",
-                prefix + ",\"notificationPolicy\":\"manual-only\",\"notificationPolicy\":\"notify\"}]}",
-            ];
+            TheoryData<string, string> data = [];
+            data.Add("missing-policy", prefix + "}]}");
+            data.Add("null-policy", prefix + ",\"notificationPolicy\":null}]}");
+            data.Add("numeric-policy", prefix + ",\"notificationPolicy\":2}]}");
+            data.Add(
+                "unexpected-field",
+                prefix + ",\"notificationPolicy\":\"notify\",\"unexpected\":true}]}");
+            data.Add(
+                "duplicate-policy",
+                prefix + ",\"notificationPolicy\":\"manual-only\",\"notificationPolicy\":\"notify\"}]}");
+            return data;
         }
     }
 }
