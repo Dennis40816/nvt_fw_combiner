@@ -1,0 +1,9 @@
+{
+  "schemaVersion": 1,
+  "taskId": "LAUNCHER-107-RELEASE-CLOSEOUT-01",
+  "authorityType": "release-owner",
+  "reviewedHead": "cf6fa3d526e158111b4cc43a124b19d1b832fbaf",
+  "decision": "approved",
+  "reviewer": "Dennis Liu (release owner)",
+  "evidence": "The release owner explicitly approved formal v1.0.7 delivery, required the completed Launcher and Setup path to be released after independent review, and directed the agent to provide v1.0.7 as quickly as the mandatory gates allow. This attestation approves the bounded final evidence commit cf6fa3d526e158111b4cc43a124b19d1b832fbaf for the exact reviewed implementation 230f10a5968151b9229f70655379a5a43ae8a274: three independent fixed-head reviews found P0 through P3 equal to zero, exact governed coverage is 30/30, and the change remains firmware-support-neutral. It does not waive the repository final verifier, exact artifact construction, two consecutive packaged READY/offline/no-residue/cleanup smoke passes, main/tree/provenance identity, protected publication, or immutable annotated tag gates."
+}
