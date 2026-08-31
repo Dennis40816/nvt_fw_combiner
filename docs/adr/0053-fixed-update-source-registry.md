@@ -1,6 +1,8 @@
 # ADR 0053: Resolve update sources through one fixed registry
 
-- Status: Accepted for the first distributed `v1.0.0` managed baseline
+- Status: Partially superseded by ADR 0066 only for bounded automatic
+  Registry/Catalog authority-publication admission; otherwise accepted for the
+  first distributed `v1.0.0` managed baseline
 - Date: 2026-08-26
 - Owners: Product owner, architecture owner, release owner
 - Risk: R2 for the Registry reader/resolution architecture; R3 release/security
@@ -60,6 +62,13 @@ firmware capabilities remain outside this ADR.
    non-newest package or release note, changes the publication. Only identical
    registry/catalog/package authority may be atomically saved with the
    effective `UpdateSource`.
+   ADR 0066 adds one separate authority-publication admission for an automatic
+   Catalog v2 check with no eligible `notify` row. That branch repeats exact
+   Registry/Catalog admission under the lease with zero package I/O and forms
+   no package/source candidate. It may update only revision/digest when the
+   reloaded state already contains the same normalized effective source, an
+   existing non-manual-pin Registry state, and the selected Registry entry
+   path-equals that source; otherwise it performs no durable save.
 5. Managed root remains inventory authority and does not create a second
    writer identity. No sidecar, second lease, second state writer, or adapter
    state write is permitted.
@@ -92,7 +101,9 @@ firmware capabilities remain outside this ADR.
    is rejected. The same revision/same digest is idempotent; the same revision
    with another digest is rejected. Publishers must increment revision for any
    byte change. A higher revision is persisted only with a successfully
-   admitted candidate. This runtime-derived digest is not a release checksum:
+   admitted package/source candidate, or through ADR 0066's bounded
+   authority-publication admission when its four existing-state guards hold.
+   This runtime-derived digest is not a release checksum:
    the external live Registry and operator seed remain outside the package,
    release manifest, SBOM/provenance payload, outer checksums, immutable GitHub
    Release assets, and catalog package identity. The Registry contains no
@@ -107,7 +118,10 @@ firmware capabilities remain outside this ADR.
    catalog and a fully verified newest catalog package. The exact registry,
    catalog identity, newest package identity, and package verification are
    repeated under the existing writer lease before commit. There is no
-   catalog-only candidate admission.
+   catalog-only package/source candidate admission. ADR 0066's automatic
+   all-manual exception admits only exact Registry/Catalog publication
+   authority, performs no package I/O, and never assigns an effective source;
+   it is not a candidate admission.
 6. **Locator.** The Desktop host injects either one exact diagnostic override or
    the exact production primary/backup pair into the existing Bootstrap
    composition seam. A diagnostic override may be an absolute local/UNC file or HTTPS.
@@ -144,7 +158,9 @@ firmware capabilities remain outside this ADR.
 Registry state is valid only with a non-empty, fully qualified, already
 normalized effective `UpdateSource`. Revision zero/null digest is valid only
 when `IsManualPin` is true; an automatic registry state always has a positive
-revision and lowercase digest.
+revision and lowercase digest. ADR 0066 preserves this invariant: a null source
+never gains Registry state, so every state written by v1.0.8 remains readable
+by the released v1.0.7 client.
 
 ADR 0056's launcher logical mutation fence covers manual source commits,
 registry selection, and Resume because each changes application durable state.

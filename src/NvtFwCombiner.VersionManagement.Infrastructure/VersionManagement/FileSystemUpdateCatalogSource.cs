@@ -6,11 +6,14 @@ using NvtFwCombiner.Contracts.VersionManagement;
 
 namespace NvtFwCombiner.Infrastructure.VersionManagement;
 
-/// <summary>Bounded non-recursive filesystem adapter for update catalog v1.</summary>
+/// <summary>Bounded non-recursive filesystem adapter for strict update catalogs v1 and v2.</summary>
 public sealed class FileSystemUpdateCatalogSource : IUpdateCatalogSource
 {
     /// <summary>The exact configured-root catalog name.</summary>
     public const string CatalogFileName = "update-catalog.v1.json";
+
+    /// <summary>The preferred strict Catalog v2 name for a configured root.</summary>
+    public const string CatalogV2FileName = "update-catalog.v2.json";
 
     /// <summary>The maximum raw catalog length.</summary>
     public const int MaximumCatalogBytes = 1024 * 1024;
@@ -33,10 +36,19 @@ public sealed class FileSystemUpdateCatalogSource : IUpdateCatalogSource
         try
         {
             string fullRoot = Path.GetFullPath(sourceRoot);
-            return ManagedPathSafety.HasReparseComponent(fullRoot)
-                    ? Failure(UpdateCatalogLoadIssue.UnsafeSource)
-                    : await LoadValidatedPathAsync(
+            if (ManagedPathSafety.HasReparseComponent(fullRoot))
+            {
+                return Failure(UpdateCatalogLoadIssue.UnsafeSource);
+            }
+            UpdateCatalogLoadResult v2 = await LoadValidatedPathAsync(
+                Path.Combine(fullRoot, CatalogV2FileName),
+                UpdateCatalogValidator.V2SchemaVersion,
+                cancellationToken).ConfigureAwait(false);
+            return v2.Issue != UpdateCatalogLoadIssue.SourceMissing
+                ? v2
+                : await LoadValidatedPathAsync(
                     Path.Combine(fullRoot, CatalogFileName),
+                    UpdateCatalogValidator.CurrentSchemaVersion,
                     cancellationToken).ConfigureAwait(false);
         }
         catch (UnauthorizedAccessException exception)
@@ -73,7 +85,10 @@ public sealed class FileSystemUpdateCatalogSource : IUpdateCatalogSource
                 ? Failure(UpdateCatalogLoadIssue.SourceMissing)
                 : ManagedPathSafety.HasReparseComponent(parent)
                     ? Failure(UpdateCatalogLoadIssue.UnsafeSource)
-                    : await LoadValidatedPathAsync(fullPath, cancellationToken).ConfigureAwait(false);
+                    : await LoadValidatedPathAsync(
+                        fullPath,
+                        expectedSchemaVersion: null,
+                        cancellationToken).ConfigureAwait(false);
         }
         catch (UnauthorizedAccessException exception)
         {
@@ -91,6 +106,7 @@ public sealed class FileSystemUpdateCatalogSource : IUpdateCatalogSource
 
     private static async ValueTask<UpdateCatalogLoadResult> LoadValidatedPathAsync(
         string catalogPath,
+        int? expectedSchemaVersion,
         CancellationToken cancellationToken)
     {
         try
@@ -123,25 +139,58 @@ public sealed class FileSystemUpdateCatalogSource : IUpdateCatalogSource
             }
 
             using JsonDocument catalogJson = EmbeddedVersionManagementSchema.ParseStrict(bytes, maximumDepth: 16);
-            if (!UpdateCatalogSchema.IsValid(catalogJson.RootElement))
+            if (catalogJson.RootElement.ValueKind != JsonValueKind.Object ||
+                !catalogJson.RootElement.TryGetProperty("schemaVersion", out JsonElement schemaVersion) ||
+                !schemaVersion.TryGetInt32(out int admittedSchemaVersion))
             {
                 return Failure(UpdateCatalogLoadIssue.InvalidManifest);
             }
-            UpdateCatalogDocument? document = JsonSerializer.Deserialize(
-                bytes,
-                JsonContext.UpdateCatalogDocument);
-            if (document is null)
+            if (expectedSchemaVersion is not null &&
+                admittedSchemaVersion != expectedSchemaVersion.Value)
             {
                 return Failure(UpdateCatalogLoadIssue.InvalidManifest);
             }
-
-            UpdateCatalogValidationResult validation = UpdateCatalogValidator.Validate(document);
+            UpdateCatalogValidationResult validation;
+            if (admittedSchemaVersion == UpdateCatalogValidator.CurrentSchemaVersion)
+            {
+                if (!UpdateCatalogSchema.IsValid(catalogJson.RootElement))
+                {
+                    return Failure(UpdateCatalogLoadIssue.InvalidManifest);
+                }
+                UpdateCatalogDocument? document = JsonSerializer.Deserialize(
+                    bytes,
+                    JsonContext.UpdateCatalogDocument);
+                if (document is null)
+                {
+                    return Failure(UpdateCatalogLoadIssue.InvalidManifest);
+                }
+                validation = UpdateCatalogValidator.Validate(document);
+            }
+            else if (admittedSchemaVersion == UpdateCatalogValidator.V2SchemaVersion)
+            {
+                if (!UpdateCatalogV2Schema.IsValid(catalogJson.RootElement))
+                {
+                    return Failure(UpdateCatalogLoadIssue.InvalidManifest);
+                }
+                UpdateCatalogV2Document? document = JsonSerializer.Deserialize(
+                    bytes,
+                    JsonContext.UpdateCatalogV2Document);
+                if (document is null)
+                {
+                    return Failure(UpdateCatalogLoadIssue.InvalidManifest);
+                }
+                validation = UpdateCatalogValidator.Validate(document);
+            }
+            else
+            {
+                return Failure(UpdateCatalogLoadIssue.InvalidManifest);
+            }
             return validation.IsValid
                 ? new(
                     validation.Snapshot,
                     UpdateCatalogLoadIssue.None,
                     new(
-                        document.SchemaVersion,
+                        admittedSchemaVersion,
                         Convert.ToHexString(SHA256.HashData(bytes)).ToLowerInvariant()))
                 : Failure(UpdateCatalogLoadIssue.InvalidManifest);
         }

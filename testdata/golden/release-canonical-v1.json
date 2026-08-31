@@ -1,0 +1,1623 @@
+{
+  "schemaVersion": "1.0",
+  "policyId": "canonical-reference-v1",
+  "authorizedForVersion": "1.0.8",
+  "releaseStatus": "human-gated-allowlist",
+  "redistributionAuthorization": {
+    "authorizedOn": "2026-09-01",
+    "authorizedBy": "repository owner",
+    "scope": "reference-payload-only",
+    "supersedesHistoricalCaseRestrictions": true
+  },
+  "authorityLimits": {
+    "runtimeSupportPromotion": false,
+    "fullByteParityClaim": false
+  },
+  "canonicalReadmeSha256": "0dfed270963130f69a5e044af0d62dc28837190a8ecc0fef07888d6bc5561cb9",
+  "selectionSummary": {
+    "caseCount": 34,
+    "directGoldenCount": 25,
+    "factScopedAliasCount": 9,
+    "artifactDeclarationCount": 159,
+    "uniqueArtifactPathCount": 156
+  },
+  "cases": [
+    {
+      "caseId": "nt51923-gen-flash",
+      "manifestPath": "NT51923/standard-merge/gen-flash/topology-unscoped/nt51923-gen-flash/provenance/case.json",
+      "manifestSha256": "3d5fdb7158168fb100a11ef730ed0eb0634a8c1ec82c08b69494aff8fe45e231",
+      "workflow": "standard-merge",
+      "testDispositionKind": "direct-full-output",
+      "directGolden": true,
+      "directEvidence": false,
+      "artifacts": [
+        {
+          "artifactId": "dp-input",
+          "role": "input",
+          "path": "NT51923/standard-merge/gen-flash/topology-unscoped/nt51923-gen-flash/inputs/nt51923-dp-input.bin",
+          "size": 262144,
+          "sha256": "eb15b2ad0172e325d767a27e32f56cc19df7b9d95e96e4b19cc2cd547656612d"
+        },
+        {
+          "artifactId": "tp-input",
+          "role": "input",
+          "path": "NT51923/standard-merge/gen-flash/topology-unscoped/nt51923-gen-flash/inputs/nt51923-tp-input.bin",
+          "size": 245760,
+          "sha256": "4efbb496096d5851b8ae5fee396a77f6aa85eb0240bc19e0fc3171c25c6b6514"
+        },
+        {
+          "artifactId": "expected-output",
+          "role": "expected",
+          "path": "NT51923/standard-merge/gen-flash/topology-unscoped/nt51923-gen-flash/expected/nt51923-expected-output.bin",
+          "size": 262144,
+          "sha256": "b611bd837991be1ccb8e1dfffa7a9a1e825e71221c27377cf1aca8b37cf5666f"
+        }
+      ]
+    },
+    {
+      "caseId": "nt51926-gen-flash",
+      "manifestPath": "NT51926/standard-merge/gen-flash/topology-unscoped/nt51926-gen-flash/provenance/case.json",
+      "manifestSha256": "5021b20929a882198b6a3a938a2dfa4738f3375e4db6f9aa66bf4681fb4af292",
+      "workflow": "standard-merge",
+      "testDispositionKind": "direct-full-output",
+      "directGolden": true,
+      "directEvidence": false,
+      "artifacts": [
+        {
+          "artifactId": "dp-input",
+          "role": "input",
+          "path": "NT51926/standard-merge/gen-flash/topology-unscoped/nt51926-gen-flash/inputs/nt51926-dp-input.bin",
+          "size": 262144,
+          "sha256": "2853828a2bafaf9b7611ca18008c2a3866b5d566f97ce116ecb15864e652259b"
+        },
+        {
+          "artifactId": "tp-input",
+          "role": "input",
+          "path": "NT51926/standard-merge/gen-flash/topology-unscoped/nt51926-gen-flash/inputs/nt51926-tp-input.bin",
+          "size": 245760,
+          "sha256": "9e5321fb7673736c6c52e61549e33347e3852488bd253088db7239d4d0f371fc"
+        },
+        {
+          "artifactId": "expected-output",
+          "role": "expected",
+          "path": "NT51926/standard-merge/gen-flash/topology-unscoped/nt51926-gen-flash/expected/nt51926-expected-output.bin",
+          "size": 262144,
+          "sha256": "910c302495ef037bad232b6c8e50fca58db643540bf0e5871a34a33ea907c305"
+        }
+      ]
+    },
+    {
+      "caseId": "nt51917-standard-merge-gen-flash-alias",
+      "manifestPath": "NT51917/standard-merge/gen-flash/topology-unscoped/nt51917-standard-merge-gen-flash-alias/provenance/case.json",
+      "manifestSha256": "91cd892238e7ed7353ccbdc70c412b47bfbc2255f3918972e55556b1242fb6ab",
+      "workflow": "standard-merge",
+      "testDispositionKind": "fact-scoped-alias",
+      "directGolden": false,
+      "directEvidence": false,
+      "alias": {
+        "sourceCaseId": "nt51927-gen-flash",
+        "factScope": [
+          "standard-merge family mapping",
+          "dp-input and tp-input composition roles",
+          "full output byte expectation for the referenced direct case only"
+        ],
+        "evidenceRefs": [
+          "docs/governance/v0.9.9-final-owner-golden-gap-matrix-20260718.md",
+          "docs/adr/0017-map-bound-fact-aliases.md"
+        ]
+      },
+      "artifacts": []
+    },
+    {
+      "caseId": "nt51927-gen-flash",
+      "manifestPath": "NT51927/standard-merge/gen-flash/topology-unscoped/nt51927-gen-flash/provenance/case.json",
+      "manifestSha256": "e154dd522b9080aadb94542e79da46d9e3a3af24e6c16c4ed34f68bb32c356ea",
+      "workflow": "standard-merge",
+      "testDispositionKind": "direct-full-output",
+      "directGolden": true,
+      "directEvidence": false,
+      "artifacts": [
+        {
+          "artifactId": "dp-input",
+          "role": "input",
+          "path": "NT51927/standard-merge/gen-flash/topology-unscoped/nt51927-gen-flash/inputs/nt51927-dp-input.bin",
+          "size": 2097152,
+          "sha256": "866bff2ed5759ec45c2343630e77b74c1b906b77d4ed2beba62d955cf13e1d18"
+        },
+        {
+          "artifactId": "tp-input",
+          "role": "input",
+          "path": "NT51927/standard-merge/gen-flash/topology-unscoped/nt51927-gen-flash/inputs/nt51927-tp-input.bin",
+          "size": 217088,
+          "sha256": "ad80a708579cfce8954c9a46e8d82846aff12f2659f0e81ff55a8d5c9f77f265"
+        },
+        {
+          "artifactId": "expected-output",
+          "role": "expected",
+          "path": "NT51927/standard-merge/gen-flash/topology-unscoped/nt51927-gen-flash/expected/nt51927-expected-output.bin",
+          "size": 262144,
+          "sha256": "8e0d362b74ba65dfd8eb2d33a8ae6c1359b99ce2994d64d878bfdb393855cf80"
+        }
+      ]
+    },
+    {
+      "caseId": "nt51928-gen-flash",
+      "manifestPath": "NT51928/standard-merge/gen-flash/topology-unscoped/nt51928-gen-flash/provenance/case.json",
+      "manifestSha256": "371a46017961ed115c75f347dd29697e9435c5bf4cdf32b9c31c6dfc4b7e22af",
+      "workflow": "standard-merge",
+      "testDispositionKind": "direct-full-output",
+      "directGolden": true,
+      "directEvidence": false,
+      "artifacts": [
+        {
+          "artifactId": "dp-input",
+          "role": "input",
+          "path": "NT51928/standard-merge/gen-flash/topology-unscoped/nt51928-gen-flash/inputs/nt51928-dp-input.bin",
+          "size": 524288,
+          "sha256": "a77fe6a40e4feebf100b7ef72addb4308f28579e4d8b291e3b555eb4b98886c3"
+        },
+        {
+          "artifactId": "tp-input",
+          "role": "input",
+          "path": "NT51928/standard-merge/gen-flash/topology-unscoped/nt51928-gen-flash/inputs/nt51928-tp-input.bin",
+          "size": 217088,
+          "sha256": "01e385aa60dcdbeeea343e8755af76cd0b282555494c8796e9ff687cd254ad6a"
+        },
+        {
+          "artifactId": "ldc-input",
+          "role": "input",
+          "path": "NT51928/standard-merge/gen-flash/topology-unscoped/nt51928-gen-flash/inputs/nt51928-ldc-input.bin",
+          "size": 524288,
+          "sha256": "a77fe6a40e4feebf100b7ef72addb4308f28579e4d8b291e3b555eb4b98886c3"
+        },
+        {
+          "artifactId": "expected-output",
+          "role": "expected",
+          "path": "NT51928/standard-merge/gen-flash/topology-unscoped/nt51928-gen-flash/expected/nt51928-expected-output.bin",
+          "size": 524288,
+          "sha256": "5064b3134031adbd7ae292c9038d728da116d5a013a2463ae809694a07f87e0e"
+        }
+      ]
+    },
+    {
+      "caseId": "nt51919-standard-merge-gen-flash-alias",
+      "manifestPath": "NT51919/standard-merge/gen-flash/topology-unscoped/nt51919-standard-merge-gen-flash-alias/provenance/case.json",
+      "manifestSha256": "26700958c2856e8bbdd76596436a399235ecdb52f87537d55b63e5295a808db8",
+      "workflow": "standard-merge",
+      "testDispositionKind": "fact-scoped-alias",
+      "directGolden": false,
+      "directEvidence": false,
+      "alias": {
+        "sourceCaseId": "nt51929-gen-flash",
+        "factScope": [
+          "standard-merge family mapping",
+          "dp-input and tp-input composition roles",
+          "full output byte expectation for the referenced direct case only"
+        ],
+        "evidenceRefs": [
+          "docs/governance/v0.9.9-final-owner-golden-gap-matrix-20260718.md",
+          "docs/adr/0017-map-bound-fact-aliases.md"
+        ]
+      },
+      "artifacts": []
+    },
+    {
+      "caseId": "nt51929-gen-flash",
+      "manifestPath": "NT51929/standard-merge/gen-flash/topology-unscoped/nt51929-gen-flash/provenance/case.json",
+      "manifestSha256": "7d07e4c69e8e04c5e9bd35d3a277c9e3a0813847f35b5e921c402bcfc4af107d",
+      "workflow": "standard-merge",
+      "testDispositionKind": "direct-full-output",
+      "directGolden": true,
+      "directEvidence": false,
+      "artifacts": [
+        {
+          "artifactId": "dp-input",
+          "role": "input",
+          "path": "NT51929/standard-merge/gen-flash/topology-unscoped/nt51929-gen-flash/inputs/nt51929-dp-input.bin",
+          "size": 262144,
+          "sha256": "e9626d1230bb117a91e7cd365b060991b48bf555bda065a84f8a62edd8c95095"
+        },
+        {
+          "artifactId": "tp-input",
+          "role": "input",
+          "path": "NT51929/standard-merge/gen-flash/topology-unscoped/nt51929-gen-flash/inputs/nt51929-tp-input.bin",
+          "size": 262144,
+          "sha256": "a5631c8c05dd1e29b216b3cc00a84ef416db41e04c9d1e7c3d211a44bf7bc458"
+        },
+        {
+          "artifactId": "expected-output",
+          "role": "expected",
+          "path": "NT51929/standard-merge/gen-flash/topology-unscoped/nt51929-gen-flash/expected/nt51929-expected-output.bin",
+          "size": 262144,
+          "sha256": "fdba72984d662c4d652c56d909cf27756193f3766875b42d55207bccfca6867e"
+        }
+      ]
+    },
+    {
+      "caseId": "nt51932-gen-flash",
+      "manifestPath": "NT51932/standard-merge/gen-flash/topology-unscoped/nt51932-gen-flash/provenance/case.json",
+      "manifestSha256": "f157234f297ccea21ccb15f845ceab4088126cc135a815d44ef1fbf565e60672",
+      "workflow": "standard-merge",
+      "testDispositionKind": "direct-full-output",
+      "directGolden": true,
+      "directEvidence": false,
+      "artifacts": [
+        {
+          "artifactId": "dp-input",
+          "role": "input",
+          "path": "NT51932/standard-merge/gen-flash/topology-unscoped/nt51932-gen-flash/inputs/nt51932-dp-input.bin",
+          "size": 262144,
+          "sha256": "c66e361bb04df9dd95aa0e10b38ee70bfbb6fa6fe2a6c8d1a0ab1124dd03542b"
+        },
+        {
+          "artifactId": "tp-input",
+          "role": "input",
+          "path": "NT51932/standard-merge/gen-flash/topology-unscoped/nt51932-gen-flash/inputs/nt51932-tp-input.bin",
+          "size": 262144,
+          "sha256": "3de3406d827b205601e085e163a0fff4c8180353e55535c33fb9f2b0357d9b9b"
+        },
+        {
+          "artifactId": "expected-output",
+          "role": "expected",
+          "path": "NT51932/standard-merge/gen-flash/topology-unscoped/nt51932-gen-flash/expected/nt51932-expected-output.bin",
+          "size": 262144,
+          "sha256": "6a0c90b1c314536119dda9aacd1f3dfcccfc8b90aae6e43cdf713100bb308b14"
+        }
+      ]
+    },
+    {
+      "caseId": "51950-dp-256k",
+      "manifestPath": "NT51950/standard-merge/dp-256k/topology-unscoped/51950-dp-256k/provenance/case.json",
+      "manifestSha256": "fb0b0e8efc0e549a41c412ed9501cefcf4e696e8eb747ca9da632087d6824f48",
+      "workflow": "standard-merge",
+      "testDispositionKind": "direct-full-output",
+      "directGolden": true,
+      "directEvidence": false,
+      "artifacts": [
+        {
+          "artifactId": "dp-input",
+          "role": "input",
+          "path": "NT51950/standard-merge/dp-256k/topology-unscoped/51950-dp-256k/inputs/nt51950-dp-input.bin",
+          "size": 262144,
+          "sha256": "b9ac199003c86bb620d18cf08d9002678ef2e3e9b911020fbecdaa381fd887f1"
+        },
+        {
+          "artifactId": "tp-input",
+          "role": "input",
+          "path": "NT51950/standard-merge/dp-256k/topology-unscoped/51950-dp-256k/inputs/nt51950-tp-input.bin",
+          "size": 225280,
+          "sha256": "e76db49116af9502edd73a02df6eb0c86ed8bf2c74487d1917a1ce279bbaeab4"
+        },
+        {
+          "artifactId": "expected-output",
+          "role": "expected",
+          "path": "NT51950/standard-merge/dp-256k/topology-unscoped/51950-dp-256k/expected/nt51950-expected-output.bin",
+          "size": 262144,
+          "sha256": "11932f352c3268dce75329eb80b57e3a20f31e7d1859d9ecf0700070c026f791"
+        }
+      ]
+    },
+    {
+      "caseId": "51951-dp-512k",
+      "manifestPath": "NT51951/standard-merge/dp-512k/topology-unscoped/51951-dp-512k/provenance/case.json",
+      "manifestSha256": "383a93e22a4cd3432dc3df17c2dc6cdbe1676682b7c5e3e1a179218d954824df",
+      "workflow": "standard-merge",
+      "testDispositionKind": "direct-full-output",
+      "directGolden": true,
+      "directEvidence": false,
+      "artifacts": [
+        {
+          "artifactId": "dp-input",
+          "role": "input",
+          "path": "NT51951/standard-merge/dp-512k/topology-unscoped/51951-dp-512k/inputs/nt51951-dp-input.bin",
+          "size": 524288,
+          "sha256": "ba4a61951b2da74cf7799885df7a0cbfefea4262ba6af56b34adc92691af1668"
+        },
+        {
+          "artifactId": "tp-input",
+          "role": "input",
+          "path": "NT51951/standard-merge/dp-512k/topology-unscoped/51951-dp-512k/inputs/nt51951-tp-input.bin",
+          "size": 225280,
+          "sha256": "7a2ddf9b77558a3e3a32485c21aa62e900249cf473b7f1c67bb2f89dc1ad3f4a"
+        },
+        {
+          "artifactId": "expected-output",
+          "role": "expected",
+          "path": "NT51951/standard-merge/dp-512k/topology-unscoped/51951-dp-512k/expected/nt51951-expected-output.bin",
+          "size": 524288,
+          "sha256": "3266fae2f4873a7f21afdbcfe1b1d234c58204a2b319ff3ed09353ee84ff0e6e"
+        }
+      ]
+    },
+    {
+      "caseId": "nt51919-ab-t05-d06-alias",
+      "manifestPath": "NT51919/ab-merge/t05-d06/topology-unscoped/nt51919-ab-t05-d06-alias/provenance/case.json",
+      "manifestSha256": "83c17585a31f7a1189c7631745ee93e02c3dc68139bc4ce5e7cdfcb696ca0855",
+      "workflow": "ab-merge",
+      "testDispositionKind": "fact-scoped-alias",
+      "directGolden": false,
+      "directEvidence": false,
+      "alias": {
+        "sourceCaseId": "nt51929-ab-t05-d06",
+        "factScope": [
+          "NT51929-family AB composition facts for the referenced direct case",
+          "full-DP initializer and TPA/TPB logical input roles",
+          "referenced direct-case output bytes only; not a direct NT51919 product golden"
+        ],
+        "evidenceRefs": [
+          "docs/governance/v0.9.9.5-canonical-golden-tool-consolidation-plan.md",
+          "docs/architecture/supported-ic-matrix.md"
+        ]
+      },
+      "artifacts": []
+    },
+    {
+      "caseId": "nt51929-ab-t05-d06",
+      "manifestPath": "NT51929/ab-merge/t05-d06/topology-unscoped/nt51929-ab-t05-d06/provenance/case.json",
+      "manifestSha256": "013dda58b443845589db245e6ebe335b79a9d33f1d7c39565e328c0aeaf9ff5e",
+      "workflow": "ab-merge",
+      "testDispositionKind": "direct-full-output",
+      "directGolden": true,
+      "directEvidence": false,
+      "artifacts": [
+        {
+          "artifactId": "dp-ab-input",
+          "role": "input",
+          "path": "NT51929/ab-merge/t05-d06/topology-unscoped/nt51929-ab-t05-d06/inputs/NT51929_initial code_TM149_2344x880_D06_20260610.bin",
+          "size": 524288,
+          "sha256": "ba99f6d117b5d620c1b41024ff001a665b4e1260b5e670c5992a6f5c07e39237"
+        },
+        {
+          "artifactId": "tp-a-input",
+          "role": "input",
+          "path": "NT51929/ab-merge/t05-d06/topology-unscoped/nt51929-ab-t05-d06/inputs/nt51929_TPFW_T05_20260611.bin",
+          "size": 262144,
+          "sha256": "7ae10d3642778fa399696d46291f7d237f9f165de0ab2faaa1369f65c2b9ce12"
+        },
+        {
+          "artifactId": "tp-b-input",
+          "role": "input",
+          "path": "NT51929/ab-merge/t05-d06/topology-unscoped/nt51929-ab-t05-d06/inputs/nt51929_TPFW_T05_20260611.bin",
+          "size": 262144,
+          "sha256": "7ae10d3642778fa399696d46291f7d237f9f165de0ab2faaa1369f65c2b9ce12"
+        },
+        {
+          "artifactId": "expected-output",
+          "role": "expected",
+          "path": "NT51929/ab-merge/t05-d06/topology-unscoped/nt51929-ab-t05-d06/expected/NT51929ZT_Flashcode_TM_TL150UQAS01-00_Stellantis_V28_D06T05_20260611_AB.bin",
+          "size": 524288,
+          "sha256": "c7e1e263ac8ca70f83a6f66fa268da4aa9be37c2c822a39d58fa9c153d66abe2"
+        }
+      ]
+    },
+    {
+      "caseId": "nt51932-ab-t05-d06-alias",
+      "manifestPath": "NT51932/ab-merge/t05-d06/topology-unscoped/nt51932-ab-t05-d06-alias/provenance/case.json",
+      "manifestSha256": "ffe6985234c039ad0bfdde26ce9984795516209dfd82fdbbf473bbec18cdbf7f",
+      "workflow": "ab-merge",
+      "testDispositionKind": "fact-scoped-alias",
+      "directGolden": false,
+      "directEvidence": false,
+      "alias": {
+        "sourceCaseId": "nt51929-ab-t05-d06",
+        "factScope": [
+          "NT51929-family AB composition facts for the referenced direct case",
+          "full-DP initializer and TPA/TPB logical input roles",
+          "referenced direct-case output bytes only; NT51932 named-configuration parity remains separate"
+        ],
+        "evidenceRefs": [
+          "docs/governance/v0.9.9.5-canonical-golden-tool-consolidation-plan.md",
+          "docs/architecture/supported-ic-matrix.md"
+        ]
+      },
+      "artifacts": []
+    },
+    {
+      "caseId": "nt51950-ab-boe-d82t80",
+      "manifestPath": "NT51950/ab-merge/boe-d82t80/topology-unscoped/nt51950-ab-boe-d82t80/provenance/case.json",
+      "manifestSha256": "deb3014af931ebd8746fe9aba1e23b019aa8342da2bbffb9a15caebdbf6d8208",
+      "workflow": "ab-merge",
+      "testDispositionKind": "direct-full-output",
+      "directGolden": true,
+      "directEvidence": false,
+      "artifacts": [
+        {
+          "artifactId": "dp-ab-input",
+          "role": "input",
+          "path": "NT51950/ab-merge/boe-d82t80/topology-unscoped/nt51950-ab-boe-d82t80/inputs/NT51950TT_Initial Code_BOE_AS172QD0-B00 2560x1600_BOE only_PD fixed pixelonoff_D82_20260616.bin",
+          "size": 524288,
+          "sha256": "d544717e647e27868086947b8c401b33cf42823857be81d6bd8c9efd57bee408"
+        },
+        {
+          "artifactId": "tp-a-input",
+          "role": "input",
+          "path": "NT51950/ab-merge/boe-d82t80/topology-unscoped/nt51950-ab-boe-d82t80/inputs/nt51950_fw_T80.bin",
+          "size": 225280,
+          "sha256": "dcdb291abc92ab8ab41453cdb14f80771cf8eed2095a402d81923fb804281102"
+        },
+        {
+          "artifactId": "tp-b-input",
+          "role": "input",
+          "path": "NT51950/ab-merge/boe-d82t80/topology-unscoped/nt51950-ab-boe-d82t80/inputs/nt51950_fw_T80.bin",
+          "size": 225280,
+          "sha256": "dcdb291abc92ab8ab41453cdb14f80771cf8eed2095a402d81923fb804281102"
+        },
+        {
+          "artifactId": "expected-output",
+          "role": "expected",
+          "path": "NT51950/ab-merge/boe-d82t80/topology-unscoped/nt51950-ab-boe-d82t80/expected/NT51950_FlashCode_BOE1720_BOEVX_2560x1660_A_D82T80_B_D82T80_20260616_BOE.bin",
+          "size": 524288,
+          "sha256": "d18db8dc02ab4ff52cb17b4b3b3b90f99047c9d1acd2a5c23627197cf32f8650"
+        }
+      ]
+    },
+    {
+      "caseId": "nt51950-ab-hiway-d82t80",
+      "manifestPath": "NT51950/ab-merge/hiway-d82t80/topology-unscoped/nt51950-ab-hiway-d82t80/provenance/case.json",
+      "manifestSha256": "37fcf6e77ceba89567f6322aecaa90e1e4ecfcfebbbddc69d8afe5e20e5309a0",
+      "workflow": "ab-merge",
+      "testDispositionKind": "direct-full-output",
+      "directGolden": true,
+      "directEvidence": false,
+      "artifacts": [
+        {
+          "artifactId": "dp-ab-input",
+          "role": "input",
+          "path": "NT51950/ab-merge/hiway-d82t80/topology-unscoped/nt51950-ab-hiway-d82t80/inputs/NT51950TT_Initial Code_BOE_AS172QD0-B00 2560x1600_NiOHiway_D82_20260616.bin",
+          "size": 524288,
+          "sha256": "afc4ec1ff4195bf73e664c3dea187dd06a4fef9eeb3151ae5b44916b0a8a2b7b"
+        },
+        {
+          "artifactId": "tp-a-input",
+          "role": "input",
+          "path": "NT51950/ab-merge/hiway-d82t80/topology-unscoped/nt51950-ab-hiway-d82t80/inputs/nt51950_fw_T80.bin",
+          "size": 225280,
+          "sha256": "dcdb291abc92ab8ab41453cdb14f80771cf8eed2095a402d81923fb804281102"
+        },
+        {
+          "artifactId": "tp-b-input",
+          "role": "input",
+          "path": "NT51950/ab-merge/hiway-d82t80/topology-unscoped/nt51950-ab-hiway-d82t80/inputs/nt51950_fw_T80.bin",
+          "size": 225280,
+          "sha256": "dcdb291abc92ab8ab41453cdb14f80771cf8eed2095a402d81923fb804281102"
+        },
+        {
+          "artifactId": "expected-output",
+          "role": "expected",
+          "path": "NT51950/ab-merge/hiway-d82t80/topology-unscoped/nt51950-ab-hiway-d82t80/expected/NT51950_FlashCode_BOE1720_BOEVX_2560x1660_A_D82T80_B_D82T80_20260616_Hiway.bin",
+          "size": 524288,
+          "sha256": "4a292cd9615c58079b8994af8060af92562eaa92a55bc24bacc5ec5234e23b30"
+        }
+      ]
+    },
+    {
+      "caseId": "nt51951-ab-boe-d82t80-workflow-alias",
+      "manifestPath": "NT51951/ab-merge/boe-d82t80/topology-unscoped/nt51951-ab-boe-d82t80-workflow-alias/provenance/case.json",
+      "manifestSha256": "55811dc14c632229606b9eac7b69a451c797faf64ee69c5c436bd6cc8e54b001",
+      "workflow": "ab-merge",
+      "testDispositionKind": "fact-scoped-alias",
+      "directGolden": false,
+      "directEvidence": false,
+      "alias": {
+        "sourceCaseId": "nt51950-ab-boe-d82t80",
+        "factScope": [
+          "full-DP initializer",
+          "NT51950BASED_MERGE_AB_MODE command family and no map.txt requirement",
+          "Combiner-owned AB header CRC behavior",
+          "referenced NT51950 direct-case bytes only; NT51951 0x80000 placement remains synthetic topology evidence"
+        ],
+        "evidenceRefs": [
+          "docs/governance/v0.9.9.5-canonical-golden-tool-consolidation-plan.md",
+          "docs/architecture/supported-ic-matrix.md"
+        ]
+      },
+      "artifacts": []
+    },
+    {
+      "caseId": "nt51951-ab-hiway-d82t80-workflow-alias",
+      "manifestPath": "NT51951/ab-merge/hiway-d82t80/topology-unscoped/nt51951-ab-hiway-d82t80-workflow-alias/provenance/case.json",
+      "manifestSha256": "6bd6d2a18239184f7168b98a56097f13e0d241de4f4aad71abb2b1bed160c009",
+      "workflow": "ab-merge",
+      "testDispositionKind": "fact-scoped-alias",
+      "directGolden": false,
+      "directEvidence": false,
+      "alias": {
+        "sourceCaseId": "nt51950-ab-hiway-d82t80",
+        "factScope": [
+          "full-DP initializer",
+          "NT51950BASED_MERGE_AB_MODE command family and no map.txt requirement",
+          "Combiner-owned AB header CRC behavior",
+          "referenced NT51950 direct-case bytes only; NT51951 0x80000 placement remains synthetic topology evidence"
+        ],
+        "evidenceRefs": [
+          "docs/governance/v0.9.9.5-canonical-golden-tool-consolidation-plan.md",
+          "docs/architecture/supported-ic-matrix.md"
+        ]
+      },
+      "artifacts": []
+    },
+    {
+      "caseId": "nt51926-fw200-single-auto-prj-597-20260718",
+      "manifestPath": "NT51926/ctrlram-replace/fw2.0.0/single/nt51926-fw200-single-auto-prj-597-20260718/provenance/case.json",
+      "manifestSha256": "f6030de62956b1eacc33eeade10923ebcd7098124d0a7c25d19a0aea1439477f",
+      "workflow": "ctrlram-replace",
+      "testDispositionKind": "allowed-byte-difference",
+      "directGolden": true,
+      "directEvidence": false,
+      "artifacts": [
+        {
+          "artifactId": "dp-input",
+          "role": "input",
+          "path": "NT51926/ctrlram-replace/fw2.0.0/single/nt51926-fw200-single-auto-prj-597-20260718/inputs/NT51926TT_Initial Code_CSOT_1920x1080_14.0_D02_20251105.bin",
+          "size": 262144,
+          "sha256": "448ef01056fb82bf4b146967b8faf0160eba62a9f9e7ee01af73cb94e1043a33"
+        },
+        {
+          "artifactId": "tp-input",
+          "role": "input",
+          "path": "NT51926/ctrlram-replace/fw2.0.0/single/nt51926-fw200-single-auto-prj-597-20260718/inputs/NT51926_CommonFW_2.0.0_Single_TPFW.bin",
+          "size": 245760,
+          "sha256": "258c1a51305edf966b8a8fb8fd64f50338385af1178076ea1c0b873db7d6999c"
+        },
+        {
+          "artifactId": "expected-output",
+          "role": "expected",
+          "path": "NT51926/ctrlram-replace/fw2.0.0/single/nt51926-fw200-single-auto-prj-597-20260718/expected/NT51926_FlashCode_D02TFF_20260718.bin",
+          "size": 262144,
+          "sha256": "bf4221635b58a33bff6875aacfb29636aa140354cb5ec5256bf2b0c09e9cc81c"
+        },
+        {
+          "artifactId": "mp-ctrlram-input",
+          "role": "input",
+          "path": "NT51926/ctrlram-replace/fw2.0.0/single/nt51926-fw200-single-auto-prj-597-20260718/inputs/postbuild/nt51926-mp-ctrlram-input.bin",
+          "size": 655360,
+          "sha256": "19b4b394a541dfbd37177cb42c7cb538bdc5910bb93152b4f9e56bbec1c66593"
+        },
+        {
+          "artifactId": "nf-ctrlram-input",
+          "role": "input",
+          "path": "NT51926/ctrlram-replace/fw2.0.0/single/nt51926-fw200-single-auto-prj-597-20260718/inputs/postbuild/nt51926-nf-ctrlram-input.bin",
+          "size": 11728,
+          "sha256": "001795ec55fa6cbb07785c10b62c80db4d2a17bd7227ea224dc787d3c7f4a478"
+        },
+        {
+          "artifactId": "normal-ctrlram-input",
+          "role": "input",
+          "path": "NT51926/ctrlram-replace/fw2.0.0/single/nt51926-fw200-single-auto-prj-597-20260718/inputs/postbuild/nt51926-normal-ctrlram-input.bin",
+          "size": 655360,
+          "sha256": "8caef6c99d9a5eab3a43bd1f377acd8916f9a655a56c4034a1ed3191d6531249"
+        },
+        {
+          "artifactId": "vn-ctrlram-input",
+          "role": "input",
+          "path": "NT51926/ctrlram-replace/fw2.0.0/single/nt51926-fw200-single-auto-prj-597-20260718/inputs/postbuild/nt51926-vn-ctrlram-input.bin",
+          "size": 5728,
+          "sha256": "1a6b4476dd67af21dc276206a7f172f3c1d1ad9ae5340818fffca78568dc62f6"
+        },
+        {
+          "artifactId": "owner-technical-note",
+          "role": "provenance",
+          "path": "NT51926/ctrlram-replace/fw2.0.0/single/nt51926-fw200-single-auto-prj-597-20260718/provenance/Common_FW_2.0.0.txt",
+          "size": 195,
+          "sha256": "54e457f53a72f55bb96bca34c852c8fd9aed0d518c7f26d99addb8ddfa7c708f"
+        }
+      ]
+    },
+    {
+      "caseId": "nt51926-fw200-cascade3-auto-prj-597-20260718",
+      "manifestPath": "NT51926/ctrlram-replace/fw2.0.0/cascade-3/nt51926-fw200-cascade3-auto-prj-597-20260718/provenance/case.json",
+      "manifestSha256": "6a02dc0bd780d25702c7019826701910baadb1157363492ea56529509efecf31",
+      "workflow": "ctrlram-replace",
+      "testDispositionKind": "allowed-byte-difference",
+      "directGolden": true,
+      "directEvidence": false,
+      "artifacts": [
+        {
+          "artifactId": "dp-input",
+          "role": "input",
+          "path": "NT51926/ctrlram-replace/fw2.0.0/cascade-3/nt51926-fw200-cascade3-auto-prj-597-20260718/inputs/NT51926TT_Initial Code_CSOT_1920x1080_14.0_D02_20251105.bin",
+          "size": 262144,
+          "sha256": "448ef01056fb82bf4b146967b8faf0160eba62a9f9e7ee01af73cb94e1043a33"
+        },
+        {
+          "artifactId": "tp-input",
+          "role": "input",
+          "path": "NT51926/ctrlram-replace/fw2.0.0/cascade-3/nt51926-fw200-cascade3-auto-prj-597-20260718/inputs/NT51926_CASCADE_3_TPFW.bin",
+          "size": 245760,
+          "sha256": "5e12cf6484d1d681826192b0c2b8aabead4098285f6a2facdfde732f4d1bc7e2"
+        },
+        {
+          "artifactId": "expected-output",
+          "role": "expected",
+          "path": "NT51926/ctrlram-replace/fw2.0.0/cascade-3/nt51926-fw200-cascade3-auto-prj-597-20260718/expected/NT51926_FlashCode_D02T00_20260718.bin",
+          "size": 262144,
+          "sha256": "2521192e6a846c8beeb49395e98977d243053efd292b094b31272fff70825825"
+        },
+        {
+          "artifactId": "diffdlm-input",
+          "role": "input",
+          "path": "NT51926/ctrlram-replace/fw2.0.0/cascade-3/nt51926-fw200-cascade3-auto-prj-597-20260718/inputs/postbuild/nt51926-diffdlm-input.bin",
+          "size": 10240,
+          "sha256": "869633426bb4dfe26f34c3542630e379eb54482e47c330d6286722a932354817"
+        },
+        {
+          "artifactId": "mp-ctrlram-input",
+          "role": "input",
+          "path": "NT51926/ctrlram-replace/fw2.0.0/cascade-3/nt51926-fw200-cascade3-auto-prj-597-20260718/inputs/postbuild/nt51926-mp-ctrlram-input.bin",
+          "size": 655360,
+          "sha256": "d512606dd69db32e11b616588e4874ecfa615b0660b33cc65a38f8fc29363c19"
+        },
+        {
+          "artifactId": "nf-ctrlram-input",
+          "role": "input",
+          "path": "NT51926/ctrlram-replace/fw2.0.0/cascade-3/nt51926-fw200-cascade3-auto-prj-597-20260718/inputs/postbuild/nt51926-nf-ctrlram-input.bin",
+          "size": 11728,
+          "sha256": "46c8a7eadadab86a4b2f04049619c8e60ca0ded410b89a0037dbf93be4564be1"
+        },
+        {
+          "artifactId": "normal-ctrlram-input",
+          "role": "input",
+          "path": "NT51926/ctrlram-replace/fw2.0.0/cascade-3/nt51926-fw200-cascade3-auto-prj-597-20260718/inputs/postbuild/nt51926-normal-ctrlram-input.bin",
+          "size": 655360,
+          "sha256": "3fb5fd130be8205b44f75a1c49356d00e51a47f884c477a7e17b1c3110d81da5"
+        },
+        {
+          "artifactId": "vn-ctrlram-input",
+          "role": "input",
+          "path": "NT51926/ctrlram-replace/fw2.0.0/cascade-3/nt51926-fw200-cascade3-auto-prj-597-20260718/inputs/postbuild/nt51926-vn-ctrlram-input.bin",
+          "size": 5728,
+          "sha256": "b855cbc3ce8f9b57e83ee16ce4c902a8089689dfc951e9138dc4294acbf6c5c7"
+        }
+      ]
+    },
+    {
+      "caseId": "nt51932-fw200-cascade3-auto-prj-525-20260718",
+      "manifestPath": "NT51932/ctrlram-replace/fw2.0.0/cascade-3/nt51932-fw200-cascade3-auto-prj-525-20260718/provenance/case.json",
+      "manifestSha256": "1d519f19d2f18d232cbd8aada9b6523c24931389c5cb3e29bdb66754d91b29d9",
+      "workflow": "ctrlram-replace",
+      "testDispositionKind": "allowed-byte-difference",
+      "directGolden": true,
+      "directEvidence": false,
+      "artifacts": [
+        {
+          "artifactId": "dp-input",
+          "role": "input",
+          "path": "NT51932/ctrlram-replace/fw2.0.0/cascade-3/nt51932-fw200-cascade3-auto-prj-525-20260718/inputs/NT51932_BOE_36.2_initial code_D02_20251204.bin",
+          "size": 262144,
+          "sha256": "d3105f69411aeca10c63eaa23592fa05a14d4876fbc209a489b86a129de1aac1"
+        },
+        {
+          "artifactId": "tp-input",
+          "role": "input",
+          "path": "NT51932/ctrlram-replace/fw2.0.0/cascade-3/nt51932-fw200-cascade3-auto-prj-525-20260718/inputs/NT51932_TPFW_CASCADE_3.bin",
+          "size": 262144,
+          "sha256": "db844b0fda5eda3c6df42237bbf8857f7d435ae51497b337b0d50f9ac80cb6c6"
+        },
+        {
+          "artifactId": "expected-output",
+          "role": "expected",
+          "path": "NT51932/ctrlram-replace/fw2.0.0/cascade-3/nt51932-fw200-cascade3-auto-prj-525-20260718/expected/NT51932_FlashCode_D02T88_20260718.bin",
+          "size": 262144,
+          "sha256": "3eb556e0a9323dd4fbe4c703be1eb33679df2b1ba839e79ddd7bbffa235008fd"
+        },
+        {
+          "artifactId": "diffdlm-input",
+          "role": "input",
+          "path": "NT51932/ctrlram-replace/fw2.0.0/cascade-3/nt51932-fw200-cascade3-auto-prj-525-20260718/inputs/postbuild/nt51932-diffdlm-input.bin",
+          "size": 97280,
+          "sha256": "673b089947265ae766ff317ff2fc0ec1476171f644e7cea2247daf6d19c34dd4"
+        },
+        {
+          "artifactId": "nf-diff-0-source",
+          "role": "input",
+          "path": "NT51932/ctrlram-replace/fw2.0.0/cascade-3/nt51932-fw200-cascade3-auto-prj-525-20260718/inputs/postbuild/NF/nt51932-nf-diff-0-source.bin",
+          "size": 1758,
+          "sha256": "a76cc832e496b3866fa6fc73c749098b72c1549ce8ccf7bb0d2675b8e519b99b"
+        },
+        {
+          "artifactId": "nf-diff-1-source",
+          "role": "input",
+          "path": "NT51932/ctrlram-replace/fw2.0.0/cascade-3/nt51932-fw200-cascade3-auto-prj-525-20260718/inputs/postbuild/NF/nt51932-nf-diff-1-source.bin",
+          "size": 3072,
+          "sha256": "23e74315e3892f27b5a684d0e8d8f0430396f1c26a272905a2a3b8b562a42da2"
+        },
+        {
+          "artifactId": "nf-diff-10-source",
+          "role": "input",
+          "path": "NT51932/ctrlram-replace/fw2.0.0/cascade-3/nt51932-fw200-cascade3-auto-prj-525-20260718/inputs/postbuild/NF/nt51932-nf-diff-10-source.bin",
+          "size": 2160,
+          "sha256": "687feb4ef613b43ca1a112419a104d250abe687100af0b4141a7ffafa7629c16"
+        },
+        {
+          "artifactId": "nf-diff-11-source",
+          "role": "input",
+          "path": "NT51932/ctrlram-replace/fw2.0.0/cascade-3/nt51932-fw200-cascade3-auto-prj-525-20260718/inputs/postbuild/NF/nt51932-nf-diff-11-source.bin",
+          "size": 2160,
+          "sha256": "687feb4ef613b43ca1a112419a104d250abe687100af0b4141a7ffafa7629c16"
+        },
+        {
+          "artifactId": "nf-diff-12-source",
+          "role": "input",
+          "path": "NT51932/ctrlram-replace/fw2.0.0/cascade-3/nt51932-fw200-cascade3-auto-prj-525-20260718/inputs/postbuild/NF/nt51932-nf-diff-12-source.bin",
+          "size": 2160,
+          "sha256": "687feb4ef613b43ca1a112419a104d250abe687100af0b4141a7ffafa7629c16"
+        },
+        {
+          "artifactId": "nf-diff-13-source",
+          "role": "input",
+          "path": "NT51932/ctrlram-replace/fw2.0.0/cascade-3/nt51932-fw200-cascade3-auto-prj-525-20260718/inputs/postbuild/NF/nt51932-nf-diff-13-source.bin",
+          "size": 2160,
+          "sha256": "687feb4ef613b43ca1a112419a104d250abe687100af0b4141a7ffafa7629c16"
+        },
+        {
+          "artifactId": "nf-diff-14-source",
+          "role": "input",
+          "path": "NT51932/ctrlram-replace/fw2.0.0/cascade-3/nt51932-fw200-cascade3-auto-prj-525-20260718/inputs/postbuild/NF/nt51932-nf-diff-14-source.bin",
+          "size": 2160,
+          "sha256": "687feb4ef613b43ca1a112419a104d250abe687100af0b4141a7ffafa7629c16"
+        },
+        {
+          "artifactId": "nf-diff-15-source",
+          "role": "input",
+          "path": "NT51932/ctrlram-replace/fw2.0.0/cascade-3/nt51932-fw200-cascade3-auto-prj-525-20260718/inputs/postbuild/NF/nt51932-nf-diff-15-source.bin",
+          "size": 2160,
+          "sha256": "687feb4ef613b43ca1a112419a104d250abe687100af0b4141a7ffafa7629c16"
+        },
+        {
+          "artifactId": "nf-diff-2-source",
+          "role": "input",
+          "path": "NT51932/ctrlram-replace/fw2.0.0/cascade-3/nt51932-fw200-cascade3-auto-prj-525-20260718/inputs/postbuild/NF/nt51932-nf-diff-2-source.bin",
+          "size": 3072,
+          "sha256": "3abf1c2c2cefde16d5e8dea2a24260e2b7d1bba39c5c9241dc17435f90da9b5d"
+        },
+        {
+          "artifactId": "nf-diff-3-source",
+          "role": "input",
+          "path": "NT51932/ctrlram-replace/fw2.0.0/cascade-3/nt51932-fw200-cascade3-auto-prj-525-20260718/inputs/postbuild/NF/nt51932-nf-diff-3-source.bin",
+          "size": 2160,
+          "sha256": "687feb4ef613b43ca1a112419a104d250abe687100af0b4141a7ffafa7629c16"
+        },
+        {
+          "artifactId": "nf-diff-4-source",
+          "role": "input",
+          "path": "NT51932/ctrlram-replace/fw2.0.0/cascade-3/nt51932-fw200-cascade3-auto-prj-525-20260718/inputs/postbuild/NF/nt51932-nf-diff-4-source.bin",
+          "size": 2160,
+          "sha256": "687feb4ef613b43ca1a112419a104d250abe687100af0b4141a7ffafa7629c16"
+        },
+        {
+          "artifactId": "nf-diff-5-source",
+          "role": "input",
+          "path": "NT51932/ctrlram-replace/fw2.0.0/cascade-3/nt51932-fw200-cascade3-auto-prj-525-20260718/inputs/postbuild/NF/nt51932-nf-diff-5-source.bin",
+          "size": 2160,
+          "sha256": "687feb4ef613b43ca1a112419a104d250abe687100af0b4141a7ffafa7629c16"
+        },
+        {
+          "artifactId": "nf-diff-6-source",
+          "role": "input",
+          "path": "NT51932/ctrlram-replace/fw2.0.0/cascade-3/nt51932-fw200-cascade3-auto-prj-525-20260718/inputs/postbuild/NF/nt51932-nf-diff-6-source.bin",
+          "size": 2160,
+          "sha256": "687feb4ef613b43ca1a112419a104d250abe687100af0b4141a7ffafa7629c16"
+        },
+        {
+          "artifactId": "nf-diff-7-source",
+          "role": "input",
+          "path": "NT51932/ctrlram-replace/fw2.0.0/cascade-3/nt51932-fw200-cascade3-auto-prj-525-20260718/inputs/postbuild/NF/nt51932-nf-diff-7-source.bin",
+          "size": 2160,
+          "sha256": "687feb4ef613b43ca1a112419a104d250abe687100af0b4141a7ffafa7629c16"
+        },
+        {
+          "artifactId": "nf-diff-8-source",
+          "role": "input",
+          "path": "NT51932/ctrlram-replace/fw2.0.0/cascade-3/nt51932-fw200-cascade3-auto-prj-525-20260718/inputs/postbuild/NF/nt51932-nf-diff-8-source.bin",
+          "size": 2160,
+          "sha256": "687feb4ef613b43ca1a112419a104d250abe687100af0b4141a7ffafa7629c16"
+        },
+        {
+          "artifactId": "nf-diff-9-source",
+          "role": "input",
+          "path": "NT51932/ctrlram-replace/fw2.0.0/cascade-3/nt51932-fw200-cascade3-auto-prj-525-20260718/inputs/postbuild/NF/nt51932-nf-diff-9-source.bin",
+          "size": 2160,
+          "sha256": "687feb4ef613b43ca1a112419a104d250abe687100af0b4141a7ffafa7629c16"
+        },
+        {
+          "artifactId": "nf-ctrlram-input",
+          "role": "input",
+          "path": "NT51932/ctrlram-replace/fw2.0.0/cascade-3/nt51932-fw200-cascade3-auto-prj-525-20260718/inputs/postbuild/nt51932-nf-ctrlram-input.bin",
+          "size": 1758,
+          "sha256": "a76cc832e496b3866fa6fc73c749098b72c1549ce8ccf7bb0d2675b8e519b99b"
+        },
+        {
+          "artifactId": "normal-ctrlram-input",
+          "role": "input",
+          "path": "NT51932/ctrlram-replace/fw2.0.0/cascade-3/nt51932-fw200-cascade3-auto-prj-525-20260718/inputs/postbuild/nt51932-normal-ctrlram-input.bin",
+          "size": 655360,
+          "sha256": "da3613e8a858e408d2122a984554f20028e3621adf1b2a7e33cc753ae2abe89b"
+        },
+        {
+          "artifactId": "vn-ctrlram-input",
+          "role": "input",
+          "path": "NT51932/ctrlram-replace/fw2.0.0/cascade-3/nt51932-fw200-cascade3-auto-prj-525-20260718/inputs/postbuild/nt51932-vn-ctrlram-input.bin",
+          "size": 4120,
+          "sha256": "066815c150f47318ba255cf5d84b7b2116267b5adc6bbcf771a7c50f78bc289b"
+        }
+      ]
+    },
+    {
+      "caseId": "nt51932-diffdlm-nf-mask-cascade4-20260727",
+      "manifestPath": "NT51932/ctrlram-replace/fw2.0.0/cascade-4/nt51932-diffdlm-nf-mask-cascade4-20260727/provenance/case.json",
+      "manifestSha256": "77fb7464188f742d12691d812ebf09edf7fae91dce977fdcb99427e52a621c1a",
+      "workflow": "ctrlram-replace",
+      "testDispositionKind": "allowed-byte-difference",
+      "directGolden": true,
+      "directEvidence": false,
+      "artifacts": [
+        {
+          "artifactId": "reference-base",
+          "role": "input",
+          "path": "NT51932/ctrlram-replace/fw2.0.0/cascade-4/nt51932-diffdlm-nf-mask-cascade4-20260727/inputs/nt51932_fw_0309.bin",
+          "size": 262144,
+          "sha256": "0bdeeda1c553cb53d2df14ae2434505f0509807942239590b984422873940cfa"
+        },
+        {
+          "artifactId": "normal-ctrlram-input",
+          "role": "input",
+          "path": "NT51932/ctrlram-replace/fw2.0.0/cascade-4/nt51932-diffdlm-nf-mask-cascade4-20260727/inputs/postbuild/nt51932-normal-ctrlram-input.bin",
+          "size": 655360,
+          "sha256": "ce28725b4cb1790524702885f323c1174de790fc2f565c912cf23a196aca7068"
+        },
+        {
+          "artifactId": "diffdlm-input",
+          "role": "input",
+          "path": "NT51932/ctrlram-replace/fw2.0.0/cascade-4/nt51932-diffdlm-nf-mask-cascade4-20260727/inputs/postbuild/nt51932-diffdlm-input.bin",
+          "size": 97280,
+          "sha256": "167893f613e26349a09a5821379109a73a671cb9aa62b9f49e2901748ec8c65a"
+        },
+        {
+          "artifactId": "expected-output",
+          "role": "expected",
+          "path": "NT51932/ctrlram-replace/fw2.0.0/cascade-4/nt51932-diffdlm-nf-mask-cascade4-20260727/expected/nt51932_fw_0723.bin",
+          "size": 262144,
+          "sha256": "a75c900c912e2d46ddbbbad199516d75c37adb9deb6ce1a749e1d7ca99e922a8"
+        }
+      ]
+    },
+    {
+      "caseId": "nt51951-fw200-cascade2-auto-prj-599-20260731",
+      "manifestPath": "NT51951/ctrlram-replace/fw2.0.0/cascade-2/nt51951-fw200-cascade2-auto-prj-599-20260731/provenance/case.json",
+      "manifestSha256": "04b38a6bbf20918b98d259e0b6486b7724036c69a0d30017a314406958ce8c24",
+      "workflow": "ctrlram-replace",
+      "testDispositionKind": "allowed-byte-difference",
+      "directGolden": true,
+      "directEvidence": false,
+      "artifacts": [
+        {
+          "artifactId": "initial-code-input",
+          "role": "input",
+          "path": "NT51951/ctrlram-replace/fw2.0.0/cascade-2/nt51951-fw200-cascade2-auto-prj-599-20260731/inputs/initial-code/NT51951TT_Initial Code_TM_TE291XVKS02_Platform _D05_20260508.bin",
+          "size": 524288,
+          "sha256": "3fdcc5d7380d3b3dcbddd47d000e4bdafc1462497c3f49267fa1228590d35c40"
+        },
+        {
+          "artifactId": "tp-firmware-input",
+          "role": "input",
+          "path": "NT51951/ctrlram-replace/fw2.0.0/cascade-2/nt51951-fw200-cascade2-auto-prj-599-20260731/inputs/tp-fw/NT51951_FW_TM2910_6080x1680_V81_20260408.bin",
+          "size": 225280,
+          "sha256": "1397cfed395d937826d6e6378b030c80f7a0d6322102d028b1907e66d5a4a31a"
+        },
+        {
+          "artifactId": "normal-ctrlram-input",
+          "role": "input",
+          "path": "NT51951/ctrlram-replace/fw2.0.0/cascade-2/nt51951-fw200-cascade2-auto-prj-599-20260731/inputs/postbuild/nt51951-normal-ctrlram-input.bin",
+          "size": 655360,
+          "sha256": "e7dbfeb2f34c2dbb4f4e9531f3858b15f673b179b4118ad5f564f28976cf7129"
+        },
+        {
+          "artifactId": "vn-ctrlram-input",
+          "role": "input",
+          "path": "NT51951/ctrlram-replace/fw2.0.0/cascade-2/nt51951-fw200-cascade2-auto-prj-599-20260731/inputs/postbuild/nt51951-vn-ctrlram-input.bin",
+          "size": 4120,
+          "sha256": "066815c150f47318ba255cf5d84b7b2116267b5adc6bbcf771a7c50f78bc289b"
+        },
+        {
+          "artifactId": "diffdlm-input",
+          "role": "input",
+          "path": "NT51951/ctrlram-replace/fw2.0.0/cascade-2/nt51951-fw200-cascade2-auto-prj-599-20260731/inputs/postbuild/nt51951-diffdlm-input.bin",
+          "size": 10240,
+          "sha256": "d5b2a200645dc83c9cdf2988276915dfcfde656d2cfacb8a759ce0c5dd88eb00"
+        },
+        {
+          "artifactId": "independent-nf-excluded-reference",
+          "role": "provenance",
+          "path": "NT51951/ctrlram-replace/fw2.0.0/cascade-2/nt51951-fw200-cascade2-auto-prj-599-20260731/provenance/reference-only/nt51951-independent-nf-excluded-reference.bin",
+          "size": 2816,
+          "sha256": "3531fd2a89195c1418d27673e4b7420cde0067be971ad72f666a01cf21e6a322"
+        },
+        {
+          "artifactId": "nf-diff-zero-reference",
+          "role": "provenance",
+          "path": "NT51951/ctrlram-replace/fw2.0.0/cascade-2/nt51951-fw200-cascade2-auto-prj-599-20260731/provenance/reference-only/nt51951-nf-diff-zero-reference.bin",
+          "size": 2816,
+          "sha256": "3531fd2a89195c1418d27673e4b7420cde0067be971ad72f666a01cf21e6a322"
+        },
+        {
+          "artifactId": "nf-diff-active-reference",
+          "role": "provenance",
+          "path": "NT51951/ctrlram-replace/fw2.0.0/cascade-2/nt51951-fw200-cascade2-auto-prj-599-20260731/provenance/reference-only/nt51951-nf-diff-active-reference.bin",
+          "size": 2800,
+          "sha256": "32f7d47cc53c494e5e1ef3a0eda894cf17ee2f99ea2d8a0e8592e0588e098341"
+        },
+        {
+          "artifactId": "postbuild-script-reference",
+          "role": "provenance",
+          "path": "NT51951/ctrlram-replace/fw2.0.0/cascade-2/nt51951-fw200-cascade2-auto-prj-599-20260731/provenance/51950_PostbuildSetup.bat",
+          "size": 5676,
+          "sha256": "676b2e0d4178731034a0e8b118e9ad514b9beadf7094c5f9a6ee56ea784318a0"
+        },
+        {
+          "artifactId": "diffnfmerge-config-reference",
+          "role": "provenance",
+          "path": "NT51951/ctrlram-replace/fw2.0.0/cascade-2/nt51951-fw200-cascade2-auto-prj-599-20260731/provenance/DiffNFMerge.exe.config",
+          "size": 174,
+          "sha256": "e2f8febf28b49915d142e4b698435d53b7eb3443853bd2892b86fe20e8895620"
+        },
+        {
+          "artifactId": "expected-output",
+          "role": "expected",
+          "path": "NT51951/ctrlram-replace/fw2.0.0/cascade-2/nt51951-fw200-cascade2-auto-prj-599-20260731/expected/NT51951_Flashcode_TM2910_Platform_6080x1680_D05T81_20260511.bin",
+          "size": 524288,
+          "sha256": "ff9ad012454cab3d9d76d7270dfde7b402d23c2d0376ba6776cd1a242144aa32"
+        }
+      ]
+    },
+    {
+      "caseId": "nt51950-cascade2-geometry-nt51951-auto-prj-599-alias",
+      "manifestPath": "NT51950/ctrlram-replace/fw2.0.0/cascade-2/nt51950-cascade2-geometry-nt51951-auto-prj-599-alias/provenance/case.json",
+      "manifestSha256": "b8b6a1ceeb1a6232a144363aab05173cbf9833eccec09a62f8a42190c221b4ca",
+      "workflow": "ctrlram-replace",
+      "testDispositionKind": "fact-scoped-alias",
+      "directGolden": false,
+      "directEvidence": false,
+      "alias": {
+        "sourceCaseId": "nt51951-fw200-cascade2-auto-prj-599-20260731",
+        "factScope": [
+          "exact 2-IC Cascade applicability",
+          "DiffDLM 0x1400 record stride at target 0x33200",
+          "writable Diff CtrlRAM prefix [0x0000,0x0910) and reference-preserved Diff NF tail [0x0910,0x1400)",
+          "primary FWConfig 0x22200 copied for 0x0780 bytes to fixed Backup 0x36000",
+          "NT51950BASED_NORMAL_MODE CRC8 postbuild command family"
+        ],
+        "exclusions": [
+          "NT51951 0x80000 output identity is not an NT51950 direct product golden",
+          "NT51950 retains its separately declared 0x40000 container capacity",
+          "no support promotion, release publication, or wider IC Count range"
+        ],
+        "evidenceRefs": [
+          "owner-confirmed NT51950/NT51951 shared TP geometry for issue #188",
+          "docs/references/ic-flashmap/mmap/51950_2.0.0_mmap.h"
+        ]
+      },
+      "artifacts": []
+    },
+    {
+      "caseId": "nt51951-fw200-single-auto-prj-695-20260718",
+      "manifestPath": "NT51951/ctrlram-replace/fw2.0.0/single/nt51951-fw200-single-auto-prj-695-20260718/provenance/case.json",
+      "manifestSha256": "2759f6ee11245c15d6d1080f0a75769cfec1da136c990b013f5acccda0769dd6",
+      "workflow": "ctrlram-replace",
+      "testDispositionKind": "allowed-byte-difference",
+      "directGolden": true,
+      "directEvidence": false,
+      "artifacts": [
+        {
+          "artifactId": "dp-input",
+          "role": "input",
+          "path": "NT51951/ctrlram-replace/fw2.0.0/single/nt51951-fw200-single-auto-prj-695-20260718/inputs/NT51951TT_Initial Code_CSOT 17.3inch_2880x1620_CCW _D06_20260707.bin",
+          "size": 524288,
+          "sha256": "0082b336161fa463573432dfb275fdb90154f1df6d9c01dba75610addcb1b423"
+        },
+        {
+          "artifactId": "tp-input",
+          "role": "input",
+          "path": "NT51951/ctrlram-replace/fw2.0.0/single/nt51951-fw200-single-auto-prj-695-20260718/inputs/NT51951_TPFW_Single.bin",
+          "size": 225280,
+          "sha256": "7a2ddf9b77558a3e3a32485c21aa62e900249cf473b7f1c67bb2f89dc1ad3f4a"
+        },
+        {
+          "artifactId": "expected-output",
+          "role": "expected",
+          "path": "NT51951/ctrlram-replace/fw2.0.0/single/nt51951-fw200-single-auto-prj-695-20260718/expected/nt51951-expected-output.bin",
+          "size": 524288,
+          "sha256": "c1cd54d93af431727220adc37fec2488765909dc09cb917d1ff69f6087bb6b69"
+        },
+        {
+          "artifactId": "nf-ctrlram-input",
+          "role": "input",
+          "path": "NT51951/ctrlram-replace/fw2.0.0/single/nt51951-fw200-single-auto-prj-695-20260718/inputs/postbuild/nt51951-nf-ctrlram-input.bin",
+          "size": 2284,
+          "sha256": "7cb1a116876a13bb24bebc66ce36800f9c9117eacadb352cdbd5640720117d86"
+        },
+        {
+          "artifactId": "normal-ctrlram-input",
+          "role": "input",
+          "path": "NT51951/ctrlram-replace/fw2.0.0/single/nt51951-fw200-single-auto-prj-695-20260718/inputs/postbuild/nt51951-normal-ctrlram-input.bin",
+          "size": 655360,
+          "sha256": "31669cd9413b7a7bd463eaa5d6b40a72e3c34ff67238f6e72d13e073397621e7"
+        },
+        {
+          "artifactId": "vn-ctrlram-input",
+          "role": "input",
+          "path": "NT51951/ctrlram-replace/fw2.0.0/single/nt51951-fw200-single-auto-prj-695-20260718/inputs/postbuild/nt51951-vn-ctrlram-input.bin",
+          "size": 8444,
+          "sha256": "553fb914d6e38b0aadfd47e68ecdf167958f301e59661e379f484324e9f28946"
+        }
+      ]
+    },
+    {
+      "caseId": "nt51923-fw141-single-auto-prj-662-20260717",
+      "manifestPath": "NT51923/ctrlram-replace/fw1.4.1/single/nt51923-fw141-single-auto-prj-662-20260717/provenance/case.json",
+      "manifestSha256": "ca81b9a4b0384306b46450d3953539e679a3d8b57c5829f60957858f0fedd320",
+      "workflow": "ctrlram-replace",
+      "testDispositionKind": "allowed-byte-difference",
+      "directGolden": true,
+      "directEvidence": false,
+      "artifacts": [
+        {
+          "artifactId": "expected-output",
+          "role": "expected",
+          "path": "NT51923/ctrlram-replace/fw1.4.1/single/nt51923-fw141-single-auto-prj-662-20260717/expected/NT51923TT_Flashcode_TM_TL129VVKS05-00_BYD_V06_D80T81_20260601.bin",
+          "size": 262144,
+          "sha256": "a65ae33c9c11091f69d8935422ffc57db32262eb922590364d4bdd9c3af9916f"
+        },
+        {
+          "artifactId": "tp-input",
+          "role": "input",
+          "path": "NT51923/ctrlram-replace/fw1.4.1/single/nt51923-fw141-single-auto-prj-662-20260717/inputs/NT51923_TPFW_T81_20260430.bin",
+          "size": 245760,
+          "sha256": "d91dd6470fe6084b0d0bbf855e4c443f2911995b028b370ec8dccbef2efc3e78"
+        },
+        {
+          "artifactId": "dp-input",
+          "role": "input",
+          "path": "NT51923/ctrlram-replace/fw1.4.1/single/nt51923-fw141-single-auto-prj-662-20260717/inputs/NT51923TT_Initial Code_TM_12.9VVKS05_1920x1080_V80_DE_MODE_20260529.bin",
+          "size": 262144,
+          "sha256": "97a79100cc0e574ce69d7c7e8c9f15edeaa00d16c90a7583bc462b496fac984b"
+        },
+        {
+          "artifactId": "postbuild-diffdlm",
+          "role": "input",
+          "path": "NT51923/ctrlram-replace/fw1.4.1/single/nt51923-fw141-single-auto-prj-662-20260717/inputs/postbuild/nt51923-postbuild-diffdlm.bin",
+          "size": 10240,
+          "sha256": "979fa154e056cbbde36edb4e9b99b1357b34abf3cebf3acd709117857f5863a5"
+        },
+        {
+          "artifactId": "postbuild-mp-ctrlram",
+          "role": "input",
+          "path": "NT51923/ctrlram-replace/fw1.4.1/single/nt51923-fw141-single-auto-prj-662-20260717/inputs/postbuild/nt51923-postbuild-mp-ctrlram.bin",
+          "size": 655360,
+          "sha256": "1e5c60bfbe663938052a6c5c3b3db1fb8f67a80c7d5e32cd130c6306df737db5"
+        },
+        {
+          "artifactId": "postbuild-nf-ctrlram",
+          "role": "input",
+          "path": "NT51923/ctrlram-replace/fw1.4.1/single/nt51923-fw141-single-auto-prj-662-20260717/inputs/postbuild/nt51923-postbuild-nf-ctrlram.bin",
+          "size": 17584,
+          "sha256": "5ca4457fda2e9ff7ff7c7f6beb8b2309eff50c6d6c08bde78de60c85e45f31fc"
+        },
+        {
+          "artifactId": "postbuild-normal-ctrlram",
+          "role": "input",
+          "path": "NT51923/ctrlram-replace/fw1.4.1/single/nt51923-fw141-single-auto-prj-662-20260717/inputs/postbuild/nt51923-postbuild-normal-ctrlram.bin",
+          "size": 655360,
+          "sha256": "1d50b896ec989b49bda3dd0ac8a65e3afefee1f13745e61179683202580bf22a"
+        },
+        {
+          "artifactId": "postbuild-vn-ctrlram",
+          "role": "input",
+          "path": "NT51923/ctrlram-replace/fw1.4.1/single/nt51923-fw141-single-auto-prj-662-20260717/inputs/postbuild/nt51923-postbuild-vn-ctrlram.bin",
+          "size": 5728,
+          "sha256": "53e794e27a3bc359c5a6a6da05bda004c7733501a577f3a9cd08044022ac2aef"
+        },
+        {
+          "artifactId": "project-marker",
+          "role": "provenance",
+          "path": "NT51923/ctrlram-replace/fw1.4.1/single/nt51923-fw141-single-auto-prj-662-20260717/provenance/AUTO_PRJ-662, PID=0x6005.txt",
+          "size": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        }
+      ]
+    },
+    {
+      "caseId": "nt51923-fw141-cascade3-auto-prj-734-20260717",
+      "manifestPath": "NT51923/ctrlram-replace/fw1.4.1/cascade-3/nt51923-fw141-cascade3-auto-prj-734-20260717/provenance/case.json",
+      "manifestSha256": "582f436db3db5eb7ffc2b4e31d954a279eac963df945f902f98e7388866f689a",
+      "workflow": "ctrlram-replace",
+      "testDispositionKind": "allowed-byte-difference",
+      "directGolden": true,
+      "directEvidence": false,
+      "artifacts": [
+        {
+          "artifactId": "expected-output",
+          "role": "expected",
+          "path": "NT51923/ctrlram-replace/fw1.4.1/cascade-3/nt51923-fw141-cascade3-auto-prj-734-20260717/expected/nt51923-expected-output.bin",
+          "size": 262144,
+          "sha256": "06dda13a592c151a767d47fff60da993f33d7bda37666794dd9ea5cf92094d18"
+        },
+        {
+          "artifactId": "tp-input",
+          "role": "input",
+          "path": "NT51923/ctrlram-replace/fw1.4.1/cascade-3/nt51923-fw141-cascade3-auto-prj-734-20260717/inputs/nt51923_fw_81.bin",
+          "size": 245760,
+          "sha256": "1eb5f8647cf58dacfeea21010abb17c23c62d4adb6b790501236bf4ad1badbc7"
+        },
+        {
+          "artifactId": "dp-input",
+          "role": "input",
+          "path": "NT51923/ctrlram-replace/fw1.4.1/cascade-3/nt51923-fw141-cascade3-auto-prj-734-20260717/inputs/nt51923-dp-input.bin",
+          "size": 262144,
+          "sha256": "0a79f8f7b13b72c02861f34c7f6b73978f06c719a004bfef500d0c30228c345f"
+        },
+        {
+          "artifactId": "postbuild-diffdlm",
+          "role": "input",
+          "path": "NT51923/ctrlram-replace/fw1.4.1/cascade-3/nt51923-fw141-cascade3-auto-prj-734-20260717/inputs/postbuild/nt51923-postbuild-diffdlm.bin",
+          "size": 10240,
+          "sha256": "09ebdf84a16f7f0ece24ccaf9c4c74e73002ffd1a57a7801bfec5c4c78c7f700"
+        },
+        {
+          "artifactId": "postbuild-mp-ctrlram",
+          "role": "input",
+          "path": "NT51923/ctrlram-replace/fw1.4.1/cascade-3/nt51923-fw141-cascade3-auto-prj-734-20260717/inputs/postbuild/nt51923-postbuild-mp-ctrlram.bin",
+          "size": 655360,
+          "sha256": "363c9439b555ab8f2ff9f92a8d1002ea3eaf71a8e2f7da3bd624070f8164bc2e"
+        },
+        {
+          "artifactId": "postbuild-nf-ctrlram",
+          "role": "input",
+          "path": "NT51923/ctrlram-replace/fw1.4.1/cascade-3/nt51923-fw141-cascade3-auto-prj-734-20260717/inputs/postbuild/nt51923-postbuild-nf-ctrlram.bin",
+          "size": 17584,
+          "sha256": "56b1a73b0e9b68ab074819d68cf4571678b82a8d8bff69c1652390d3e35be304"
+        },
+        {
+          "artifactId": "postbuild-normal-ctrlram",
+          "role": "input",
+          "path": "NT51923/ctrlram-replace/fw1.4.1/cascade-3/nt51923-fw141-cascade3-auto-prj-734-20260717/inputs/postbuild/nt51923-postbuild-normal-ctrlram.bin",
+          "size": 655360,
+          "sha256": "08c9dc02ac4d9c3feae9711311d84e9ca1a72928816a56a9acc4f78a98e13613"
+        },
+        {
+          "artifactId": "postbuild-vn-ctrlram",
+          "role": "input",
+          "path": "NT51923/ctrlram-replace/fw1.4.1/cascade-3/nt51923-fw141-cascade3-auto-prj-734-20260717/inputs/postbuild/nt51923-postbuild-vn-ctrlram.bin",
+          "size": 5728,
+          "sha256": "18a26e8e2a0bd06f0d37945f2c3b38d5927bf86513da600463b91b625faed88c"
+        },
+        {
+          "artifactId": "project-marker",
+          "role": "provenance",
+          "path": "NT51923/ctrlram-replace/fw1.4.1/cascade-3/nt51923-fw141-cascade3-auto-prj-734-20260717/provenance/AUTO_PRJ-734, PID=0x4C03.txt",
+          "size": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        }
+      ]
+    },
+    {
+      "caseId": "nt51926-fw141-single-auto-prj-747-20260717",
+      "manifestPath": "NT51926/ctrlram-replace/fw1.4.1/single/nt51926-fw141-single-auto-prj-747-20260717/provenance/case.json",
+      "manifestSha256": "b8c098d3226bb77ee0a127a07854f9d20bf2ccac1c5d1c435282fe5c717d6667",
+      "workflow": "ctrlram-replace",
+      "testDispositionKind": "allowed-byte-difference",
+      "directGolden": true,
+      "directEvidence": false,
+      "artifacts": [
+        {
+          "artifactId": "expected-output",
+          "role": "expected",
+          "path": "NT51926/ctrlram-replace/fw1.4.1/single/nt51926-fw141-single-auto-prj-747-20260717/expected/NT51926_Flashcode_TM_TL080JFKS07-00_SKYWORTH_D80T80_20260522.bin",
+          "size": 262144,
+          "sha256": "3a222cbc838192204e8a94b1677b3564fcabfa1983820eebc89e2ef10ec294cd"
+        },
+        {
+          "artifactId": "tp-input",
+          "role": "input",
+          "path": "NT51926/ctrlram-replace/fw1.4.1/single/nt51926-fw141-single-auto-prj-747-20260717/inputs/nt51926_fw_80.bin",
+          "size": 245760,
+          "sha256": "987274195623ed48d673a733fd4140fbfaadee5fa13168c42a50055e7ab8b1c3"
+        },
+        {
+          "artifactId": "dp-input",
+          "role": "input",
+          "path": "NT51926/ctrlram-replace/fw1.4.1/single/nt51926-fw141-single-auto-prj-747-20260717/inputs/NT51926TT_Initial code_TM_TL080JFKS04-00_V80_20260522_keep RTNA.bin",
+          "size": 262144,
+          "sha256": "57b4630d60c06652a9bbe80dc13ed7a17e4be474ee307ae33ebaef16258604b2"
+        },
+        {
+          "artifactId": "postbuild-mp-ctrlram",
+          "role": "input",
+          "path": "NT51926/ctrlram-replace/fw1.4.1/single/nt51926-fw141-single-auto-prj-747-20260717/inputs/postbuild/nt51926-postbuild-mp-ctrlram.bin",
+          "size": 655360,
+          "sha256": "f2f9b472e93d5dbbfe74b02d37979330bfd0c9899dd6c31b6e8e0f2c531df913"
+        },
+        {
+          "artifactId": "postbuild-nf-ctrlram",
+          "role": "input",
+          "path": "NT51926/ctrlram-replace/fw1.4.1/single/nt51926-fw141-single-auto-prj-747-20260717/inputs/postbuild/nt51926-postbuild-nf-ctrlram.bin",
+          "size": 11728,
+          "sha256": "e9f9105978dafaa90b81f4d969291496035d3b0d91d54a77238f17051febd6db"
+        },
+        {
+          "artifactId": "postbuild-normal-ctrlram",
+          "role": "input",
+          "path": "NT51926/ctrlram-replace/fw1.4.1/single/nt51926-fw141-single-auto-prj-747-20260717/inputs/postbuild/nt51926-postbuild-normal-ctrlram.bin",
+          "size": 655360,
+          "sha256": "4594037e292d31f4fa37aa732174fc7033435a34373cb3e9ff7dbd45e975ad6e"
+        },
+        {
+          "artifactId": "postbuild-vn-ctrlram",
+          "role": "input",
+          "path": "NT51926/ctrlram-replace/fw1.4.1/single/nt51926-fw141-single-auto-prj-747-20260717/inputs/postbuild/nt51926-postbuild-vn-ctrlram.bin",
+          "size": 5728,
+          "sha256": "1a6b4476dd67af21dc276206a7f172f3c1d1ad9ae5340818fffca78568dc62f6"
+        },
+        {
+          "artifactId": "project-marker",
+          "role": "provenance",
+          "path": "NT51926/ctrlram-replace/fw1.4.1/single/nt51926-fw141-single-auto-prj-747-20260717/provenance/AUTO_PRJ-747, PID=0x136E.txt",
+          "size": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        }
+      ]
+    },
+    {
+      "caseId": "nt51926-fw141-cascade2-auto-prj-597-20260717",
+      "manifestPath": "NT51926/ctrlram-replace/fw1.4.1/cascade-2/nt51926-fw141-cascade2-auto-prj-597-20260717/provenance/case.json",
+      "manifestSha256": "07fc8312d4e0bf237a2dabe75c53b99854554b430db7fd7c6ed6256d35c33ed7",
+      "workflow": "ctrlram-replace",
+      "testDispositionKind": "allowed-byte-difference",
+      "directGolden": true,
+      "directEvidence": false,
+      "artifacts": [
+        {
+          "artifactId": "expected-output",
+          "role": "expected",
+          "path": "NT51926/ctrlram-replace/fw1.4.1/cascade-2/nt51926-fw141-cascade2-auto-prj-597-20260717/expected/NT51926TT_FlashCode_CSOT_TOYOTA_D02T06_JIRA0597_20260622.bin",
+          "size": 262144,
+          "sha256": "acdfb0a03c41d6b6e40d1e8f0f6ed72f7b82d5330aa3c13cc6269c930f7d016c"
+        },
+        {
+          "artifactId": "dp-input",
+          "role": "input",
+          "path": "NT51926/ctrlram-replace/fw1.4.1/cascade-2/nt51926-fw141-cascade2-auto-prj-597-20260717/inputs/NT51926TT_Initial Code_CSOT_1920x1080_14.0_D02_20251105.bin",
+          "size": 262144,
+          "sha256": "448ef01056fb82bf4b146967b8faf0160eba62a9f9e7ee01af73cb94e1043a33"
+        },
+        {
+          "artifactId": "tp-input",
+          "role": "input",
+          "path": "NT51926/ctrlram-replace/fw1.4.1/cascade-2/nt51926-fw141-cascade2-auto-prj-597-20260717/inputs/NT51926TT_TPFW_T06.bin",
+          "size": 245760,
+          "sha256": "9c0b7338c2178d5a250960485bea3f9390ab85173f366bae4e2c4a8e29f279ab"
+        },
+        {
+          "artifactId": "postbuild-diffdlm",
+          "role": "input",
+          "path": "NT51926/ctrlram-replace/fw1.4.1/cascade-2/nt51926-fw141-cascade2-auto-prj-597-20260717/inputs/postbuild/nt51926-postbuild-diffdlm.bin",
+          "size": 10240,
+          "sha256": "72851fa78ce61d199b3765c5e1b392400e00b8f8ffaebe732b600238846039e3"
+        },
+        {
+          "artifactId": "postbuild-mp-ctrlram",
+          "role": "input",
+          "path": "NT51926/ctrlram-replace/fw1.4.1/cascade-2/nt51926-fw141-cascade2-auto-prj-597-20260717/inputs/postbuild/nt51926-postbuild-mp-ctrlram.bin",
+          "size": 655360,
+          "sha256": "3a7d407ef8426de2080056e35080cc73cd5b4a27e52f55d3ae89e1d1709153f7"
+        },
+        {
+          "artifactId": "postbuild-nf-ctrlram",
+          "role": "input",
+          "path": "NT51926/ctrlram-replace/fw1.4.1/cascade-2/nt51926-fw141-cascade2-auto-prj-597-20260717/inputs/postbuild/nt51926-postbuild-nf-ctrlram.bin",
+          "size": 11728,
+          "sha256": "65d1f8742422b26a6162639882d29883b3372b3583e7bd4cb1c68d0fa1df7241"
+        },
+        {
+          "artifactId": "postbuild-normal-ctrlram",
+          "role": "input",
+          "path": "NT51926/ctrlram-replace/fw1.4.1/cascade-2/nt51926-fw141-cascade2-auto-prj-597-20260717/inputs/postbuild/nt51926-postbuild-normal-ctrlram.bin",
+          "size": 655360,
+          "sha256": "7e9039509a5c0efe4eaa32ba77b2947e4ab883ebadb94497c0aec797fc25b5b6"
+        },
+        {
+          "artifactId": "postbuild-vn-ctrlram",
+          "role": "input",
+          "path": "NT51926/ctrlram-replace/fw1.4.1/cascade-2/nt51926-fw141-cascade2-auto-prj-597-20260717/inputs/postbuild/nt51926-postbuild-vn-ctrlram.bin",
+          "size": 5728,
+          "sha256": "b855cbc3ce8f9b57e83ee16ce4c902a8089689dfc951e9138dc4294acbf6c5c7"
+        },
+        {
+          "artifactId": "selective-vn-regression-output",
+          "role": "provenance",
+          "path": "NT51926/ctrlram-replace/fw1.4.1/cascade-2/nt51926-fw141-cascade2-auto-prj-597-20260717/provenance/nt51926-selective-vn-regression-output.bin",
+          "size": 245760,
+          "sha256": "f26b6366bc858a751bd0b7bc3be1b6a1ac6edfb4fa25b92b57bea140e193e13a"
+        }
+      ]
+    },
+    {
+      "caseId": "nt51927-fw141-single-auto-prj-529-20260717",
+      "manifestPath": "NT51927/ctrlram-replace/fw1.4.1/single/nt51927-fw141-single-auto-prj-529-20260717/provenance/case.json",
+      "manifestSha256": "98590bcea2ca92621add6b221c183f7b2e41174950341a22aa347854a9e96da8",
+      "workflow": "ctrlram-replace",
+      "testDispositionKind": "allowed-byte-difference",
+      "directGolden": true,
+      "directEvidence": false,
+      "artifacts": [
+        {
+          "artifactId": "tp-input",
+          "role": "input",
+          "path": "NT51927/ctrlram-replace/fw1.4.1/single/nt51927-fw141-single-auto-prj-529-20260717/inputs/51927_TPFW_T01_20251205.bin",
+          "size": 217088,
+          "sha256": "4569893ba45af44ae28e7401374aa549201b9b2edeb2743e9f878d650ac248ee"
+        },
+        {
+          "artifactId": "expected-output",
+          "role": "expected",
+          "path": "NT51927/ctrlram-replace/fw1.4.1/single/nt51927-fw141-single-auto-prj-529-20260717/expected/NT51927_Flashcode_TM_TL113UFKS01_GM_D04T01_20260612.bin",
+          "size": 262144,
+          "sha256": "fc4d2f9701c626b1c7cddd2b448970611d332295c64f86415af2855f1569c55a"
+        },
+        {
+          "artifactId": "dp-input",
+          "role": "input",
+          "path": "NT51927/ctrlram-replace/fw1.4.1/single/nt51927-fw141-single-auto-prj-529-20260717/inputs/NT51927TT_TM_MY28_11.3_Initial Code_D04_20260610.bin",
+          "size": 262144,
+          "sha256": "bd8bd124c91cae29f0aeda8c9a49d48362b4497516d1c549eb1460fc661627bc"
+        },
+        {
+          "artifactId": "postbuild-mp-ctrlram",
+          "role": "input",
+          "path": "NT51927/ctrlram-replace/fw1.4.1/single/nt51927-fw141-single-auto-prj-529-20260717/inputs/postbuild/nt51927-postbuild-mp-ctrlram.bin",
+          "size": 655360,
+          "sha256": "ae8bea2d4fe1c0c3a182febbe8e258eb0908c3f99dcbbaee9ce2af167614aba2"
+        },
+        {
+          "artifactId": "postbuild-nf-ctrlram",
+          "role": "input",
+          "path": "NT51927/ctrlram-replace/fw1.4.1/single/nt51927-fw141-single-auto-prj-529-20260717/inputs/postbuild/nt51927-postbuild-nf-ctrlram.bin",
+          "size": 4048,
+          "sha256": "a26e62e920df297423d478a2a0c2d2ce07053e091e4bada1f6eeb542d0e1d797"
+        },
+        {
+          "artifactId": "postbuild-normal-ctrlram",
+          "role": "input",
+          "path": "NT51927/ctrlram-replace/fw1.4.1/single/nt51927-fw141-single-auto-prj-529-20260717/inputs/postbuild/nt51927-postbuild-normal-ctrlram.bin",
+          "size": 655360,
+          "sha256": "de73cded3235c24f517c815427cea8ec44678fa132fdf30e418381cd4b25e7d5"
+        },
+        {
+          "artifactId": "postbuild-vn-ctrlram",
+          "role": "input",
+          "path": "NT51927/ctrlram-replace/fw1.4.1/single/nt51927-fw141-single-auto-prj-529-20260717/inputs/postbuild/nt51927-postbuild-vn-ctrlram.bin",
+          "size": 5728,
+          "sha256": "4847b6950b49b8dc9ed022924ea64ae43ac3c9dc7f8dbaad108755200522d709"
+        },
+        {
+          "artifactId": "project-marker",
+          "role": "provenance",
+          "path": "NT51927/ctrlram-replace/fw1.4.1/single/nt51927-fw141-single-auto-prj-529-20260717/provenance/AUTO_PRJ-529, PID=0x5709.txt",
+          "size": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        }
+      ]
+    },
+    {
+      "caseId": "nt51929-fw200-single-auto-prj-594-20260717",
+      "manifestPath": "NT51929/ctrlram-replace/fw2.0.0/single/nt51929-fw200-single-auto-prj-594-20260717/provenance/case.json",
+      "manifestSha256": "ed98982fdf568d6f1ee5bbdcb667fb852a97e1569f50ce9fe9f19d4106168ac5",
+      "workflow": "ctrlram-replace",
+      "testDispositionKind": "allowed-byte-difference",
+      "directGolden": true,
+      "directEvidence": false,
+      "artifacts": [
+        {
+          "artifactId": "expected-output",
+          "role": "expected",
+          "path": "NT51929/ctrlram-replace/fw2.0.0/single/nt51929-fw200-single-auto-prj-594-20260717/expected/NT51929ZT_Flashcode_TM_TL150UQAS01-00_Stellantis_V27_D06T05_20260611.bin",
+          "size": 262144,
+          "sha256": "d3c958d2aac1e29bd1f88b8ac62dc74c36810ab11e707770199d4b34f5ce3910"
+        },
+        {
+          "artifactId": "dp-input",
+          "role": "input",
+          "path": "NT51929/ctrlram-replace/fw2.0.0/single/nt51929-fw200-single-auto-prj-594-20260717/inputs/NT51929_initial code_TM149_2344x880_D06_20260610.bin",
+          "size": 524288,
+          "sha256": "ba99f6d117b5d620c1b41024ff001a665b4e1260b5e670c5992a6f5c07e39237"
+        },
+        {
+          "artifactId": "tp-input",
+          "role": "input",
+          "path": "NT51929/ctrlram-replace/fw2.0.0/single/nt51929-fw200-single-auto-prj-594-20260717/inputs/nt51929_TPFW_T05_20260611.bin",
+          "size": 262144,
+          "sha256": "7ae10d3642778fa399696d46291f7d237f9f165de0ab2faaa1369f65c2b9ce12"
+        },
+        {
+          "artifactId": "postbuild-nf-ctrlram",
+          "role": "input",
+          "path": "NT51929/ctrlram-replace/fw2.0.0/single/nt51929-fw200-single-auto-prj-594-20260717/inputs/postbuild/nt51929-postbuild-nf-ctrlram.bin",
+          "size": 1624,
+          "sha256": "d16f150e172df1b92d5db32472b245f39f4481351304dc197da6f1d3194ab9d2"
+        },
+        {
+          "artifactId": "postbuild-normal-ctrlram",
+          "role": "input",
+          "path": "NT51929/ctrlram-replace/fw2.0.0/single/nt51929-fw200-single-auto-prj-594-20260717/inputs/postbuild/nt51929-postbuild-normal-ctrlram.bin",
+          "size": 655360,
+          "sha256": "c0c8058727406b50dce0e209554ed997c09084808babe2f2a537a9a4b75d1d4c"
+        },
+        {
+          "artifactId": "postbuild-vn-ctrlram",
+          "role": "input",
+          "path": "NT51929/ctrlram-replace/fw2.0.0/single/nt51929-fw200-single-auto-prj-594-20260717/inputs/postbuild/nt51929-postbuild-vn-ctrlram.bin",
+          "size": 6496,
+          "sha256": "c90ced38fc2cc8e62cd0275050f7bfcc05e707eaaffd9704533f9a26a49de64d"
+        },
+        {
+          "artifactId": "project-marker",
+          "role": "provenance",
+          "path": "NT51929/ctrlram-replace/fw2.0.0/single/nt51929-fw200-single-auto-prj-594-20260717/provenance/AUTO_PRJ-594, PID0x4703.txt",
+          "size": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        }
+      ]
+    },
+    {
+      "caseId": "nt51929-andes-normal-cross-110us-to-115us-20260724",
+      "manifestPath": "NT51929/ctrlram-replace/andes-d22-t01/single/nt51929-andes-normal-cross-110us-to-115us-20260724/provenance/case.json",
+      "manifestSha256": "731db7c338c902f7982af8cfa46b55169b0e3fec461f8e3de5c43471727005e9",
+      "workflow": "ctrlram-replace",
+      "testDispositionKind": "allowed-byte-difference",
+      "directGolden": true,
+      "directEvidence": false,
+      "artifacts": [
+        {
+          "artifactId": "expected-output",
+          "role": "expected",
+          "path": "NT51929/ctrlram-replace/andes-d22-t01/single/nt51929-andes-normal-cross-110us-to-115us-20260724/expected/Andes_NT51929_FlashCode_D22T01_20260721_Tsen_115us.bin",
+          "size": 262144,
+          "sha256": "9fd3302e867312cf49e85ca44208620928a6fec64a52727dc35950c366e2493c"
+        },
+        {
+          "artifactId": "reference-base",
+          "role": "input",
+          "path": "NT51929/ctrlram-replace/andes-d22-t01/single/nt51929-andes-normal-cross-110us-to-115us-20260724/inputs/Andes_NT51929_FlashCode_D22T01_20260721_Tsen_110us.bin",
+          "size": 262144,
+          "sha256": "cef8589ca247237b2e8993422dd2be4e0460373a3caa936c7f24a3c08f759f18"
+        },
+        {
+          "artifactId": "normal-ctrlram-input",
+          "role": "input",
+          "path": "NT51929/ctrlram-replace/andes-d22-t01/single/nt51929-andes-normal-cross-110us-to-115us-20260724/inputs/nt51929-normal-ctrlram-input.bin",
+          "size": 655360,
+          "sha256": "4272f4db1d40155f3fcc492f1d6fb218c1d4832945fed1000fc8177e947f6adb"
+        },
+        {
+          "artifactId": "normal-ctrlram-control",
+          "role": "input",
+          "path": "NT51929/ctrlram-replace/andes-d22-t01/single/nt51929-andes-normal-cross-110us-to-115us-20260724/inputs/nt51929-normal-ctrlram-control.bin",
+          "size": 655360,
+          "sha256": "edb7fc302cbfbb191c1fd494566cf9d6176d53f9f62bf90119350dd65c2b1c34"
+        },
+        {
+          "artifactId": "owner-readme",
+          "role": "provenance",
+          "path": "NT51929/ctrlram-replace/andes-d22-t01/single/nt51929-andes-normal-cross-110us-to-115us-20260724/provenance/README.txt",
+          "size": 261,
+          "sha256": "69803dc6bef0aa30c0fa6760a9c2634d9c63b2e52e188312fce661dfd09ad475"
+        }
+      ]
+    },
+    {
+      "caseId": "nt51950-fw200-single-auto-prj-676-20260717",
+      "manifestPath": "NT51950/ctrlram-replace/fw2.0.0/single/nt51950-fw200-single-auto-prj-676-20260717/provenance/case.json",
+      "manifestSha256": "80b26b324ef9afbb63d8d65a4ab5f9afc8197e1c3a7f0c9f854b749ea8475c3d",
+      "workflow": "ctrlram-replace",
+      "testDispositionKind": "allowed-byte-difference",
+      "directGolden": true,
+      "directEvidence": false,
+      "artifacts": [
+        {
+          "artifactId": "expected-output",
+          "role": "expected",
+          "path": "NT51950/ctrlram-replace/fw2.0.0/single/nt51950-fw200-single-auto-prj-676-20260717/expected/NT51950_Flashcode_BOE1540_Faurecia_Chery_D86T80_20260709.bin",
+          "size": 262144,
+          "sha256": "ccda75d0aa08540e293f9ab4a8058c43c4e39d2dd0238238848a2f13df68e38e"
+        },
+        {
+          "artifactId": "dp-input",
+          "role": "input",
+          "path": "NT51950/ctrlram-replace/fw2.0.0/single/nt51950-fw200-single-auto-prj-676-20260717/inputs/NT51950TT_Initial Code_BOE_2560x1600_D86_GOP_3MUX_20260708.bin",
+          "size": 262144,
+          "sha256": "36fad781c12e955439054e851d2c6813d3f154d5f206fac9555d1913f987d254"
+        },
+        {
+          "artifactId": "tp-input",
+          "role": "input",
+          "path": "NT51950/ctrlram-replace/fw2.0.0/single/nt51950-fw200-single-auto-prj-676-20260717/inputs/nt51950_fw.bin",
+          "size": 225280,
+          "sha256": "0bd070b3d05939e01346deb1f1d40ffcc3431692524cd18c90171869485d3f22"
+        },
+        {
+          "artifactId": "postbuild-nf-ctrlram",
+          "role": "input",
+          "path": "NT51950/ctrlram-replace/fw2.0.0/single/nt51950-fw200-single-auto-prj-676-20260717/inputs/postbuild/nt51950-postbuild-nf-ctrlram.bin",
+          "size": 2816,
+          "sha256": "3531fd2a89195c1418d27673e4b7420cde0067be971ad72f666a01cf21e6a322"
+        },
+        {
+          "artifactId": "postbuild-normal-ctrlram",
+          "role": "input",
+          "path": "NT51950/ctrlram-replace/fw2.0.0/single/nt51950-fw200-single-auto-prj-676-20260717/inputs/postbuild/nt51950-postbuild-normal-ctrlram.bin",
+          "size": 655360,
+          "sha256": "f2db8a22f7e2ba5d46699e6b405412e9e804d679448b2aa5e61fa14e9b07b478"
+        },
+        {
+          "artifactId": "postbuild-vn-ctrlram",
+          "role": "input",
+          "path": "NT51950/ctrlram-replace/fw2.0.0/single/nt51950-fw200-single-auto-prj-676-20260717/inputs/postbuild/nt51950-postbuild-vn-ctrlram.bin",
+          "size": 8444,
+          "sha256": "3f1bd04de707ba7584dd860caa9069e4b66774b9c3b8a001eea1d69db62cb709"
+        },
+        {
+          "artifactId": "project-marker",
+          "role": "provenance",
+          "path": "NT51950/ctrlram-replace/fw2.0.0/single/nt51950-fw200-single-auto-prj-676-20260717/provenance/AUTO_PRJ-676, PID=0x4A06.txt",
+          "size": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        }
+      ]
+    },
+    {
+      "caseId": "nt51917-fw141-single-nt51927-alias",
+      "manifestPath": "NT51917/ctrlram-replace/fw1.4.1/single/nt51917-fw141-single-nt51927-alias/provenance/case.json",
+      "manifestSha256": "d40cce498c8025091ca337bd8c4702712565658da1fefb4279f71beb04de9172",
+      "workflow": "ctrlram-replace",
+      "testDispositionKind": "fact-scoped-alias",
+      "directGolden": false,
+      "directEvidence": false,
+      "alias": {
+        "sourceCaseId": "nt51927-fw141-single-auto-prj-529-20260717",
+        "factScope": [
+          "exact FW 1.4.1 single PID 0x5709 and reference-SHA admission facts",
+          "NT51927-family physical CtrlRAM roles and seven-command postbuild order",
+          "full-byte V2 output, report identity, and immutable-input evidence for the referenced exact case while NT51917 retains its own profile, processor, and staged filename"
+        ],
+        "evidenceRefs": [
+          "docs/governance/v0.9.9-final-owner-golden-gap-matrix-20260718.md",
+          "docs/governance/v0.9.9-legacy-retirement-evidence.md",
+          "docs/governance/v0.9.9.5-canonical-golden-tool-consolidation-plan.md"
+        ]
+      },
+      "artifacts": []
+    },
+    {
+      "caseId": "nt51919-fw200-single-nt51929-alias",
+      "manifestPath": "NT51919/ctrlram-replace/fw2.0.0/single/nt51919-fw200-single-nt51929-alias/provenance/case.json",
+      "manifestSha256": "5cb5f01554b40a55ff7d73374d38d54913fc601d30531af1800a2e2f65e8f3e8",
+      "workflow": "ctrlram-replace",
+      "testDispositionKind": "fact-scoped-alias",
+      "directGolden": false,
+      "directEvidence": false,
+      "alias": {
+        "sourceCaseId": "nt51929-fw200-single-auto-prj-594-20260717",
+        "factScope": [
+          "exact FW 2.0.0 single PID 0x4703 and reference-SHA admission facts",
+          "NT51929-family NF, Normal, and VN physical roles plus two-command postbuild order",
+          "full-byte V2 output, CRC-only owner deviation, report identity, and immutable-input evidence for the referenced exact case while NT51919 retains its own profile, processor, and staged filename"
+        ],
+        "evidenceRefs": [
+          "docs/governance/v0.9.9-final-owner-golden-gap-matrix-20260718.md",
+          "docs/governance/v0.9.9-legacy-retirement-evidence.md",
+          "docs/governance/v0.9.9.5-canonical-golden-tool-consolidation-plan.md"
+        ]
+      },
+      "artifacts": []
+    }
+  ]
+}

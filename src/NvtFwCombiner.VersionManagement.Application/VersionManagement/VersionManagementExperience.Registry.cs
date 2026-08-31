@@ -108,19 +108,36 @@ public sealed partial class VersionManagementExperience
             }
 
             RegistryCandidateAdmission? selected = null;
+            UpdateSourceRegistryEntry? selectedAuthorityEntry = null;
+            UpdateCatalogSnapshot? selectedAuthorityCatalog = null;
+            ManagedAppVersion currentVersion = initial.State.ActiveVersion ?? _currentAppVersion;
             foreach (UpdateSourceRegistryEntry entry in registrySnapshot.AutomaticCandidates())
             {
-                RegistryCandidateInspection inspection = await InspectCandidateAsync(
-                    entry,
-                    registrySnapshot.CatalogPublication,
-                    ownedToken).ConfigureAwait(false);
+                RegistryCandidateInspection inspection = isAutomatic
+                    ? await InspectAutomaticCandidateAsync(
+                        entry,
+                        registrySnapshot.CatalogPublication,
+                        currentVersion,
+                        ownedToken).ConfigureAwait(false)
+                    : await InspectCandidateAsync(
+                        entry,
+                        registrySnapshot.CatalogPublication,
+                        ownedToken).ConfigureAwait(false);
                 selected = inspection.Admission;
                 if (selected is not null)
                 {
                     break;
                 }
+                if (isAutomatic &&
+                    inspection.Catalog is { } catalog &&
+                    catalog.FindNewestNotifyNewerThan(currentVersion) is null)
+                {
+                    selectedAuthorityEntry = entry;
+                    selectedAuthorityCatalog = catalog;
+                    break;
+                }
             }
-            if (selected is null)
+            if (selected is null && selectedAuthorityCatalog is null)
             {
                 bool deprecated = initial.State.UpdateSource is { } prior &&
                     registrySnapshot.Entries.Any(entry =>
@@ -156,7 +173,8 @@ public sealed partial class VersionManagementExperience
                     .ConfigureAwait(false);
                 if (!HasUsableAuthority(durable) ||
                     durable.State is null ||
-                    !SameDurableState(initial.State, durable.State) ||
+                    !initial.State.CreateDurableSnapshotToken().Matches(
+                        durable.State.CreateDurableSnapshotToken()) ||
                     (durable.State.SourceRegistryState?.IsManualPin == true && !allowManualPin) ||
                     await LoadClearLauncherFenceAsync(ownedToken).ConfigureAwait(false) is null)
                 {
@@ -189,17 +207,84 @@ public sealed partial class VersionManagementExperience
                         reloadedIssue);
                 }
 
+                UpdateSourceRegistryEntry selectedEntry = selected?.Entry ?? selectedAuthorityEntry!;
                 UpdateSourceRegistryEntry? reloadedEntry = reloadedRegistry.Snapshot
                     .AutomaticCandidates()
                     .SingleOrDefault(entry =>
-                        entry.Status == selected.Entry.Status &&
-                        SourcePathEquals(entry.CatalogPath, selected.Entry.CatalogPath));
+                        entry.Status == selectedEntry.Status &&
+                        SourcePathEquals(entry.CatalogPath, selectedEntry.CatalogPath));
+                if (selected is null)
+                {
+                    RegistryCandidateInspection authorityReadmission = reloadedEntry is null
+                        ? new(Attempt: default!, Admission: null, Catalog: null)
+                        : await InspectCatalogPublicationAsync(
+                            reloadedEntry,
+                            reloadedRegistry.Snapshot.CatalogPublication,
+                            ownedToken).ConfigureAwait(false);
+                    if (authorityReadmission.Catalog is not { } readmittedCatalog ||
+                        authorityReadmission.Admission is not null ||
+                        readmittedCatalog.FindNewestNotifyNewerThan(currentVersion) is not null ||
+                        !CatalogPublicationEquals(selectedAuthorityCatalog!, readmittedCatalog))
+                    {
+                        return PublishRegistryFailure(
+                            durable,
+                            generation,
+                            ownedCancellation,
+                            VersionRegistryStatus.Rejected,
+                            UpdateSourceRegistryIssue.RegistryChanged);
+                    }
+                    if (await LoadClearLauncherFenceAsync(ownedToken).ConfigureAwait(false) is null)
+                    {
+                        return PublishRegistryStateUnavailable(durable, ownedCancellation);
+                    }
+
+                    var acceptedAuthority = new VersionSourceRegistryState(
+                        registrySnapshot.RegistryRevision,
+                        registrySnapshot.ContentDigest,
+                        isManualPin: false);
+                    bool maySaveAuthority = CanPersistAllManualRegistryAuthority(
+                        durable.State,
+                        selectedAuthorityEntry!.SourceRoot);
+                    bool authorityChanged = maySaveAuthority &&
+                        durable.State.SourceRegistryState != acceptedAuthority;
+                    VersionManagerState authorityState = authorityChanged
+                        ? durable.State.WithUpdateSource(durable.State.UpdateSource!, acceptedAuthority)
+                        : durable.State;
+                    if (authorityChanged &&
+                        !await TrySaveAsync(authorityState, ownedToken).ConfigureAwait(false))
+                    {
+                        return PublishRegistryStateUnavailable(durable, ownedCancellation);
+                    }
+
+                    _current = durable with
+                    {
+                        State = authorityState,
+                        Catalog = null,
+                        VerifiedCandidate = null,
+                        SourceStatus = VersionSourceStatus.Connected,
+                        CatalogIssue = UpdateCatalogLoadIssue.None,
+                        Generation = generation,
+                        ShouldPromptForUpdate = false,
+                        RegistryStatus = selectedAuthorityEntry.Status == UpdateSourceRegistryEntryStatus.Latest
+                            ? VersionRegistryStatus.LatestSelected
+                            : VersionRegistryStatus.FallbackSelected,
+                        RegistryIssue = UpdateSourceRegistryIssue.None,
+                    };
+                    CompleteOwnedCheck(ownedCancellation);
+                    return _current;
+                }
                 RegistryCandidateAdmission? readmitted = reloadedEntry is null
                     ? null
-                    : (await InspectCandidateAsync(
-                        reloadedEntry,
-                        reloadedRegistry.Snapshot.CatalogPublication,
-                        ownedToken).ConfigureAwait(false)).Admission;
+                    : (isAutomatic
+                        ? await InspectAutomaticCandidateAsync(
+                            reloadedEntry,
+                            reloadedRegistry.Snapshot.CatalogPublication,
+                            currentVersion,
+                            ownedToken).ConfigureAwait(false)
+                        : await InspectCandidateAsync(
+                            reloadedEntry,
+                            reloadedRegistry.Snapshot.CatalogPublication,
+                            ownedToken).ConfigureAwait(false)).Admission;
                 if (readmitted is null ||
                     !CatalogPublicationEquals(selected.Catalog, readmitted.Catalog) ||
                     selected.NewestPackage.Identity != readmitted.NewestPackage.Identity ||
@@ -243,7 +328,9 @@ public sealed partial class VersionManagementExperience
                 _current = durable with
                 {
                     State = stateChanged ? acceptedState : durable.State,
-                    Catalog = selected.Catalog,
+                    Catalog = isAutomatic && visibleCandidate is not null
+                        ? new([selected.NewestPackage])
+                        : selected.Catalog,
                     VerifiedCandidate = visibleCandidate,
                     SourceStatus = VersionSourceStatus.Connected,
                     CatalogIssue = UpdateCatalogLoadIssue.None,
@@ -361,6 +448,49 @@ public sealed partial class VersionManagementExperience
         UpdateCatalogPublicationAssertion expectedPublication,
         CancellationToken cancellationToken)
     {
+        RegistryCandidateInspection catalogInspection = await InspectCatalogPublicationAsync(
+            entry,
+            expectedPublication,
+            cancellationToken).ConfigureAwait(false);
+        return catalogInspection.Catalog is not { } catalog
+            ? catalogInspection
+            : await VerifyRegistryPackageAsync(
+                entry,
+                catalog,
+                catalog.Versions[0],
+                cancellationToken).ConfigureAwait(false);
+    }
+
+    private async ValueTask<RegistryCandidateInspection> InspectAutomaticCandidateAsync(
+        UpdateSourceRegistryEntry entry,
+        UpdateCatalogPublicationAssertion expectedPublication,
+        ManagedAppVersion currentVersion,
+        CancellationToken cancellationToken)
+    {
+        RegistryCandidateInspection catalogInspection = await InspectCatalogPublicationAsync(
+            entry,
+            expectedPublication,
+            cancellationToken).ConfigureAwait(false);
+        if (catalogInspection.Catalog is not { } catalog)
+        {
+            return catalogInspection;
+        }
+        UpdateCatalogVersionSnapshot? selectedPackage =
+            catalog.FindNewestNotifyNewerThan(currentVersion);
+        return selectedPackage is null
+            ? catalogInspection
+            : await VerifyRegistryPackageAsync(
+                entry,
+                catalog,
+                selectedPackage,
+                cancellationToken).ConfigureAwait(false);
+    }
+
+    private async ValueTask<RegistryCandidateInspection> InspectCatalogPublicationAsync(
+        UpdateSourceRegistryEntry entry,
+        UpdateCatalogPublicationAssertion expectedPublication,
+        CancellationToken cancellationToken)
+    {
         UpdateCatalogLoadResult loaded = await _catalogSource.LoadCatalogAsync(
             entry.CatalogPath,
             cancellationToken).ConfigureAwait(false);
@@ -386,18 +516,36 @@ public sealed partial class VersionManagementExperience
                     packageIssue: null,
                     newestVersion: null,
                     isVerified: false),
-                Admission: null);
+                Admission: null,
+                Catalog: null);
         }
         UpdateCatalogSnapshot admittedCatalog = loaded.Snapshot ??
             throw new InvalidOperationException("Matched Catalog publication has no snapshot.");
-        UpdateCatalogVersionSnapshot newest = admittedCatalog.Versions[0];
+        return new(
+            new(
+                entry.SourceRoot,
+                entry.Status,
+                UpdateCatalogLoadIssue.None,
+                packageIssue: ManagedVersionInstallIssue.InvalidPayload,
+                newestVersion: admittedCatalog.Versions[0].Version,
+                isVerified: false),
+            Admission: null,
+            Catalog: admittedCatalog);
+    }
+
+    private async ValueTask<RegistryCandidateInspection> VerifyRegistryPackageAsync(
+        UpdateSourceRegistryEntry entry,
+        UpdateCatalogSnapshot catalog,
+        UpdateCatalogVersionSnapshot selectedPackage,
+        CancellationToken cancellationToken)
+    {
         ManagedPackageVerificationResult verification = await _repository.VerifyPackageAsync(
             entry.SourceRoot,
-            newest,
+            selectedPackage,
             cancellationToken).ConfigureAwait(false);
         bool verified = verification is { IsVerified: true, Candidate: { } candidate } &&
-            candidate.Version == newest.Version &&
-            string.Equals(candidate.AdmissionIdentity, newest.Identity, StringComparison.Ordinal);
+            candidate.Version == selectedPackage.Version &&
+            string.Equals(candidate.AdmissionIdentity, selectedPackage.Identity, StringComparison.Ordinal);
         ManagedVersionInstallIssue packageIssue = verified
             ? ManagedVersionInstallIssue.None
             : verification.Issue == ManagedVersionInstallIssue.None
@@ -407,8 +555,8 @@ public sealed partial class VersionManagementExperience
             ? null
             : new(
                 entry,
-                admittedCatalog,
-                newest,
+                catalog,
+                selectedPackage,
                 verification.Candidate!,
                 verification.HasSupportedManagedLauncher);
         return new(
@@ -417,9 +565,10 @@ public sealed partial class VersionManagementExperience
                 entry.Status,
                 UpdateCatalogLoadIssue.None,
                 packageIssue,
-                newest.Version,
+                selectedPackage.Version,
                 verified),
-            admission);
+            admission,
+            catalog);
     }
 
     private VersionManagementSnapshot PublishRegistryFailure(
@@ -539,18 +688,15 @@ public sealed partial class VersionManagementExperience
                     : null;
     }
 
-    private static bool SameDurableState(VersionManagerState expected, VersionManagerState actual)
+    internal static bool CanPersistAllManualRegistryAuthority(
+        VersionManagerState state,
+        string selectedSourceRoot)
     {
-        return SourcePathEquals(expected.ManagedRootIdentity, actual.ManagedRootIdentity) &&
-            SourcePathEquals(expected.UpdateSource, actual.UpdateSource) &&
-            expected.ActiveVersion == actual.ActiveVersion &&
-            expected.LastKnownGoodVersion == actual.LastKnownGoodVersion &&
-            expected.Admissions.SequenceEqual(actual.Admissions) &&
-            expected.PendingActivation == actual.PendingActivation &&
-            expected.FailedActivationVersion == actual.FailedActivationVersion &&
-            expected.RetentionReviewDue == actual.RetentionReviewDue &&
-            expected.PendingMutation == actual.PendingMutation &&
-            expected.SourceRegistryState == actual.SourceRegistryState;
+        ArgumentNullException.ThrowIfNull(state);
+        ArgumentException.ThrowIfNullOrWhiteSpace(selectedSourceRoot);
+        return state.UpdateSource is { } effectiveSource &&
+            state.SourceRegistryState is { IsManualPin: false } &&
+            SourcePathEquals(selectedSourceRoot, effectiveSource);
     }
 
     private static bool CatalogPublicationEquals(
@@ -574,7 +720,8 @@ public sealed partial class VersionManagementExperience
                     first.ReleaseManifestSha256,
                     second.ReleaseManifestSha256,
                     StringComparison.Ordinal) ||
-                !string.Equals(first.ReleaseNotes, second.ReleaseNotes, StringComparison.Ordinal))
+                !string.Equals(first.ReleaseNotes, second.ReleaseNotes, StringComparison.Ordinal) ||
+                first.NotificationPolicy != second.NotificationPolicy)
             {
                 return false;
             }
@@ -630,5 +777,6 @@ public sealed partial class VersionManagementExperience
 
     private sealed record RegistryCandidateInspection(
         VersionEnvironmentSelfTestAttempt Attempt,
-        RegistryCandidateAdmission? Admission);
+        RegistryCandidateAdmission? Admission,
+        UpdateCatalogSnapshot? Catalog);
 }

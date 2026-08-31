@@ -1,0 +1,34 @@
+{
+  "schemaVersion": 2,
+  "taskId": "UI-108-LIGHT-DEFAULT-01",
+  "capability": "Use Light as the first-launch and fail-closed shell theme default while preserving valid persisted theme choices",
+  "integrationBase": "add334124508658dbcf417b96f83d41c77391dc1",
+  "risk": "R1",
+  "kind": "ui",
+  "state": "design-active",
+  "mutablePaths": [
+    "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/ShellPreferenceSnapshot.cs",
+    "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/MainWindowViewModel.Settings.cs"
+  ],
+  "implementationOwner": "light-default-implementer",
+  "searchEvidence": [
+    "rg -n 'ShellPreferenceSnapshot.Default|SelectedTheme|ThemeChoices|LoadShellPreferences' src/NvtFwCombiner.Presentation.Avalonia tests/NvtFwCombiner.UiSmoke.Tests identifies ShellPreferenceSnapshot.Default as the file-store fallback and MainWindowViewModel.SelectedTheme as the in-memory initialization consumed by the existing Settings theme choices.",
+    "ShellViewModelTests.Preferences.cs already covers missing, invalid, unsupported-schema, persisted Dark, persisted Light, and persisted System snapshots; this slice changes only the missing/invalid default expectation and retains the existing serializer and supported choices."
+  ],
+  "semanticOwner": "ShellPreferenceSnapshot.Default owns the serializable shell preference fallback, and MainWindowViewModel initializes SelectedTheme from that same canonical snapshot",
+  "terminalContract": "Fresh, missing, or invalid shell preferences default to Light. Valid persisted System, Light, and Dark values remain preserved. No preference schema, layout, theme-token, updater, firmware, profile, range, CRC/header, Golden, output-naming, or release behavior changes.",
+  "disposition": "extend-owner",
+  "designReview": {
+    "reviewer": null,
+    "outcome": "not-required",
+    "evidence": "R1 owner-approved UI default change reuses the existing ShellPreferenceSnapshot and MainWindowViewModel preference path; no independent design reviewer is required."
+  },
+  "implementationHead": null,
+  "reviewedHead": null,
+  "pathStateDigest": null,
+  "finalReview": {
+    "reviewer": null,
+    "outcome": "pending",
+    "evidence": ""
+  }
+}

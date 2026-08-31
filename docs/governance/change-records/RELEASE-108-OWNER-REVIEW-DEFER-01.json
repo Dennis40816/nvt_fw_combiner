@@ -1,0 +1,35 @@
+{
+  "schemaVersion": 2,
+  "taskId": "RELEASE-108-OWNER-REVIEW-DEFER-01",
+  "capability": "Honor the owner-approved fast-release interval by deferring only the exact-head Codex review requirement for repository-owner self-approved stable releases from v1.0.8 through v1.1.x while preserving every other promotion gate",
+  "integrationBase": "add334124508658dbcf417b96f83d41c77391dc1",
+  "risk": "R3",
+  "kind": "release",
+  "state": "design-active",
+  "mutablePaths": [
+    "scripts/release_promotion_policy.py"
+  ],
+  "implementationOwner": "primary-agent",
+  "searchEvidence": [
+    "scripts/release_promotion_policy.py is the existing semantic owner for final PR approval, repository-owner self-approval exception identity, exact PR head and tree, required checks, and optional Codex review evidence; the workflow only gathers the snapshot and dispatches that policy.",
+    "The current owner-self-approval branch unconditionally calls _require_exact_head_codex_review even though the owner explicitly deferred Codex PR review from the current v1.0.8 release through v1.1.x and restored it at v1.2.0; historical v0.9.x and v1.0.0-v1.0.7 release policy is not reopened.",
+    "source_version is already admitted as stable SemVer before the owner-self-approval branch, and this policy already compares stable versions as integer triples for release-asset behavior, so a second version parser or workflow branch is unnecessary.",
+    "Existing tests/scripts/test_release_promotion_policy.py already owns focused evidence for owner-bound self-approval, stale or malformed Codex review rejection, exact source identity, PR head/tree equivalence, and required-check closure."
+  ],
+  "semanticOwner": "scripts/release_promotion_policy.py remains the single owner of protected-main release promotion and repository-owner self-approval exception policy; .github/workflows/release.yml remains an evidence collector only",
+  "terminalContract": "Only stable source versions in the closed-open interval [1.0.8, 1.2.0) may use a repository-owner self-approval exception without codexReview evidence, and only when the existing exact repository-owner actor, PR author, recorded exception, current source SHA, current protected-main identity, PR head/tree equivalence, and required-check gates all pass. Historical v0.9.x and v1.0.0-v1.0.7 releases plus stable v1.2.0 and later owner-self-approved releases continue to require the existing exact-head completed Codex review without weakening reviewer, source, state, timestamp, commit, or issue-comment-prefix validation. Ordinary independently approved PRs are unchanged. The workflow may continue collecting optional Codex evidence for all versions, but it does not own or duplicate the version decision. Implementation requires focused boundary and unchanged-gate tests, fixed-head policy review, the frozen-candidate full verifier, and exact-head release-owner attestation before promotion; the planning decision alone is not a final-head attestation. No tag, Release, package, asset, signing, SBOM, provenance, Catalog, firmware, profile, range, CRC/header, output-byte, support, compatibility, runtime, or non-owner approval behavior changes.",
+  "disposition": "extend-owner",
+  "designReview": {
+    "reviewer": "review_v108_owner_review_defer_design",
+    "outcome": "findings-incorporated",
+    "evidence": "Independent R3 release-policy design review confirmed P0-P3 = 0 and scoped Polytail PASS-WITH-HUMAN-GATE after narrowing the owner-approved Codex-review deferral to the exact stable interval [1.0.8, 1.2.0). scripts/release_promotion_policy.py remains the sole semantic owner: repository-owner self-approved v1.0.8 through v1.1.x releases may omit codexReview evidence, while v0.9.x, v1.0.0 through v1.0.7, v1.2.0 and every later stable version retain the existing exact-head Codex reviewer, source, state, timestamp, commit, and issue-comment-prefix checks. The workflow remains an unchanged evidence collector and introduces no duplicate version branch. Existing repository-owner actor/PR-author binding, recorded exception, merged PR/base/source SHA, protected-main workflow identity, PR-head/tree equivalence, required checks, ordinary independent approval, tag, package, asset, SBOM/provenance, firmware, support, and runtime gates remain unchanged. Focused boundary and negative tests, independent fixed-head policy review, the canonical final verifier, protected release approval, and exact-final-head release-owner attestation remain mandatory."
+  },
+  "implementationHead": null,
+  "reviewedHead": null,
+  "pathStateDigest": null,
+  "finalReview": {
+    "reviewer": null,
+    "outcome": "pending",
+    "evidence": ""
+  }
+}

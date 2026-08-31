@@ -4,9 +4,120 @@ All notable changes to NVT FW Combiner are documented here. The project follows 
 
 ## [Unreleased]
 
-No unreleased product changes are recorded after the `v1.0.7` formal
-Distribution Launcher release. Tagged `v1.0.6` remains its tag-only
-predecessor.
+No product changes are recorded after the `v1.0.8` candidate scope freeze.
+Its full verifier, package and canary evidence, tag, and formal publication
+remain release gates rather than unreleased product changes.
+
+## [1.0.8] - 2026-09-01
+
+### Summary
+
+This support-neutral Windows candidate adds explicit Catalog notification
+policy and a bounded update-source deployment command, makes release
+verification deterministic inside the fixed test area, includes the approved
+canonical Golden snapshot, and refines the first-launch visual defaults. It
+does not change firmware composition bytes or promote additional firmware
+support.
+
+### Product changes
+
+#### Catalog v2 notification policy and update-source deployment
+
+- Before → After: Catalog v1 could notify for every newer entry and update-
+  source deployment required several manual steps; Catalog v2 now assigns each
+  retained entry exactly `manual-only` or `notify`, while one bounded Windows
+  command validates and deploys one exact published package through the
+  existing Catalog publisher.
+- Affected: managed update checks, explicit Check/Install actions, Catalog v1
+  and v2 publication, and the Windows update-source deployment workflow.
+- Support status: unchanged/support-neutral; no IC, route, profile, range,
+  processor, integrity, naming, or firmware-output support is promoted.
+- Compatibility: Catalog v1 remains the backward-compatible path for the real
+  installed v1.0.7-to-v1.0.8 canary. Catalog v2 is a separate strict schema;
+  `manual-only` suppresses automatic notification but does not disable an
+  explicit Check or Install action.
+- Verification: strict v1/v2 validation, v2-preferred reading with fail-closed
+  invalid-v2 handling, notification filtering, persistence compatibility, and
+  mutation-order behavior have focused automated and independent review
+  evidence. The deployment wrapper has focused fake-GitHub and filesystem
+  custody coverage without writing to a live update source.
+- Limitations: the real installed Catalog v1 canary, staged Catalog v2 canary,
+  and separately approved live Registry cutover remain release gates.
+
+#### Windows release verification and canonical Golden snapshot
+
+- Before → After: local verification could use incidental temporary locations
+  and CI retained non-Windows lanes; verification now uses the declared fixed
+  test area, CI is Windows-only, and package admission includes the approved
+  canonical snapshot of 25 direct Golden cases plus nine self-contained
+  fact-scoped aliases.
+- Affected: repository verification, direct narrow tests, Windows CI, release-
+  package construction, package policy, and packaged smoke validation.
+- Support status: unchanged/support-neutral; the snapshot records existing
+  evidence and does not infer support, firmware rules, or expected bytes.
+- Compatibility: the fixed-area contract changes only test scratch placement.
+  Package validation preserves the existing application and Launcher asset
+  identities while admitting only the declared canonical evidence paths.
+- Verification: focused verifier-confinement, Windows workflow, canonical-
+  Golden validation, package-policy, dry-run package, and smoke-policy checks
+  cover the accepted 34-case and exact packaged-path projection.
+- Limitations: frozen-head full verification, final package construction,
+  visible and clean-machine smoke, hashes, SBOM, provenance, and fresh-download
+  verification remain mandatory before publication.
+
+#### Light first-launch default and Launcher progress alignment
+
+- Before → After: a fresh preference state followed the System theme and
+  Launcher progress presentation was not consistently aligned; a fresh first
+  launch now opens in Light theme and Setup progress text and bar use the
+  aligned Launcher layout.
+- Affected: Desktop first-launch theme selection and Distribution Launcher
+  Setup progress presentation.
+- Support status: unchanged/support-neutral; no firmware or managed-version
+  execution behavior changes.
+- Compatibility: an existing persisted theme choice remains authoritative;
+  only a fresh preference state receives Light. Setup progress remains a
+  projection of the existing typed installation stages.
+- Verification: focused UI smoke tests cover fresh and persisted theme
+  behavior plus Launcher layout.
+- Limitations: final packaged Desktop and Launcher visible smoke remains a
+  release gate; broader selector and Settings Version proportion refinements
+  remain assigned to v1.0.9.
+
+### Security
+
+Catalog and package input remains strict, immutable, and fail closed. The
+deployment command validates the exact stable GitHub Release and canonical ZIP,
+retains downloaded-byte custody through admission, rejects broad source roots,
+does not overwrite existing packages, and delegates Catalog mutation to the
+existing locked publisher. Verification scratch work remains confined to the
+declared fixed test area.
+
+### Known issues
+
+Three dependent aliases still lack an independent expected output and remain
+input-only evidence until their v1.1.x evidence work. Measured test-runtime
+reduction remains a later v1.0.x item. Selector spacing, CtrlRAM outline and
+anchor consistency, wrapped filename/badge spacing, and Settings Version page
+proportion refinements remain v1.0.9 work and do not block this candidate.
+
+### Upgrade and rollback
+
+Before live publication, a real installed v1.0.7 client must discover and
+install v1.0.8 through Catalog v1; the resulting v1.0.8 installation must then
+pass the staged Catalog v2 canary. This candidate entry does not claim either
+canary has passed. Under Catalog v2, `manual-only` suppresses the automatic
+prompt while explicit Check and Install remain available. Keep the verified
+v1.0.7 installation retained so rollback can select that untouched version.
+
+### Downloads and integrity
+
+Candidate identity alone is not publication evidence. Formal publication must
+provide the canonical `NvtFwCombiner-v1.0.8-win-x64.zip` application package
+and separate `NvtFwCombiner-Launcher-v1.0.8-win-x64.exe`, together with the
+closed manifest, SHA-256, SBOM, and provenance sidecars required by release
+policy. Use only assets from the exact stable v1.0.8 GitHub Release and verify
+the published outer SHA-256 list before deployment.
 
 ## [1.0.7] - 2026-08-31
 

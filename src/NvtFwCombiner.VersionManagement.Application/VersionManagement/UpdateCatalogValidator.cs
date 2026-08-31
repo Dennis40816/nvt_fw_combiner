@@ -7,8 +7,10 @@ namespace NvtFwCombiner.Application.VersionManagement;
 /// <summary>Validates configured-folder catalog facts without filesystem or source-path authority.</summary>
 public static class UpdateCatalogValidator
 {
-    /// <summary>The only catalog schema version currently admitted.</summary>
+    /// <summary>The strict Catalog v1 schema version.</summary>
     public const int CurrentSchemaVersion = 1;
+    /// <summary>The strict Catalog v2 schema version.</summary>
+    public const int V2SchemaVersion = 2;
     /// <summary>The maximum number of catalog entries processed.</summary>
     public const int MaximumVersionCount = 128;
     /// <summary>The maximum UTF-8 release-note length per entry.</summary>
@@ -24,21 +26,68 @@ public static class UpdateCatalogValidator
     public static UpdateCatalogValidationResult Validate(UpdateCatalogDocument document)
     {
         ArgumentNullException.ThrowIfNull(document);
+        return ValidateCore(
+            document.SchemaVersion,
+            CurrentSchemaVersion,
+            document.Product,
+            document.RuntimeIdentifier,
+            document.Versions?.Select(static entry => entry is null
+                ? null
+                : new CatalogEntry(
+                    entry.Version,
+                    entry.PublishedAt,
+                    entry.PackagePath,
+                    entry.PackageSize,
+                    entry.PackageSha256,
+                    entry.ReleaseManifestSha256,
+                    entry.ReleaseNotes,
+                    UpdateNotificationPolicy.Notify)).ToArray());
+    }
+
+    /// <summary>Validates and snapshots an untrusted strict Catalog v2 document.</summary>
+    public static UpdateCatalogValidationResult Validate(UpdateCatalogV2Document document)
+    {
+        ArgumentNullException.ThrowIfNull(document);
+        return ValidateCore(
+            document.SchemaVersion,
+            V2SchemaVersion,
+            document.Product,
+            document.RuntimeIdentifier,
+            document.Versions?.Select(static entry => entry is null
+                ? null
+                : new CatalogEntry(
+                    entry.Version,
+                    entry.PublishedAt,
+                    entry.PackagePath,
+                    entry.PackageSize,
+                    entry.PackageSha256,
+                    entry.ReleaseManifestSha256,
+                    entry.ReleaseNotes,
+                    ParseNotificationPolicy(entry.NotificationPolicy))).ToArray());
+    }
+
+    private static UpdateCatalogValidationResult ValidateCore(
+        int schemaVersion,
+        int expectedSchemaVersion,
+        string? product,
+        string? runtimeIdentifier,
+        IReadOnlyList<CatalogEntry?>? documentVersions)
+    {
         var issues = new List<UpdateCatalogIssue>();
-        if (document.SchemaVersion != CurrentSchemaVersion)
+        if (schemaVersion != expectedSchemaVersion)
         {
             issues.Add(new(UpdateCatalogIssueCode.InvalidSchemaVersion));
         }
-        if (!string.Equals(document.Product, Product, StringComparison.Ordinal))
+        if (!string.Equals(product, Product, StringComparison.Ordinal))
         {
             issues.Add(new(UpdateCatalogIssueCode.InvalidProduct));
         }
-        if (!string.Equals(document.RuntimeIdentifier, RuntimeIdentifier, StringComparison.Ordinal))
+        if (!string.Equals(runtimeIdentifier, RuntimeIdentifier, StringComparison.Ordinal))
         {
             issues.Add(new(UpdateCatalogIssueCode.InvalidRuntimeIdentifier));
         }
 
-        IReadOnlyList<UpdateCatalogVersionDocument?> versions = document.Versions ?? [];
+        IReadOnlyList<CatalogEntry?> versions = documentVersions ?? [];
         if (versions.Count == 0)
         {
             issues.Add(new(UpdateCatalogIssueCode.EmptyVersions));
@@ -50,7 +99,7 @@ public static class UpdateCatalogValidator
 
         var admitted = new List<UpdateCatalogVersionSnapshot>(Math.Min(versions.Count, MaximumVersionCount));
         var seen = new HashSet<ManagedAppVersion>();
-        foreach (UpdateCatalogVersionDocument? entry in versions.Take(MaximumVersionCount))
+        foreach (CatalogEntry? entry in versions.Take(MaximumVersionCount))
         {
             if (entry is null)
             {
@@ -106,8 +155,14 @@ public static class UpdateCatalogValidator
                 issues.Add(new(UpdateCatalogIssueCode.ReleaseNotesTooLarge, versionText));
             }
 
+            bool policyValid = entry.NotificationPolicy is not null;
+            if (!policyValid)
+            {
+                issues.Add(new(UpdateCatalogIssueCode.InvalidNotificationPolicy, versionText));
+            }
+
             if (publishedValid && pathValid && sizeValid && packageHashValid && manifestHashValid &&
-                releaseNotesValid)
+                releaseNotesValid && policyValid)
             {
                 admitted.Add(new(
                     version,
@@ -116,7 +171,8 @@ public static class UpdateCatalogValidator
                     entry.PackageSize,
                     entry.PackageSha256!,
                     entry.ReleaseManifestSha256!,
-                    releaseNotes!));
+                    releaseNotes!,
+                    entry.NotificationPolicy!.Value));
             }
         }
 
@@ -128,6 +184,26 @@ public static class UpdateCatalogValidator
         admitted.Sort(static (left, right) => right.Version.CompareTo(left.Version));
         return UpdateCatalogValidationResult.Success(new UpdateCatalogSnapshot([.. admitted]));
     }
+
+    private static UpdateNotificationPolicy? ParseNotificationPolicy(string? value)
+    {
+        return value switch
+        {
+            "manual-only" => UpdateNotificationPolicy.ManualOnly,
+            "notify" => UpdateNotificationPolicy.Notify,
+            _ => null,
+        };
+    }
+
+    private sealed record CatalogEntry(
+        string? Version,
+        string? PublishedAt,
+        string? PackagePath,
+        long PackageSize,
+        string? PackageSha256,
+        string? ReleaseManifestSha256,
+        string? ReleaseNotes,
+        UpdateNotificationPolicy? NotificationPolicy);
 
     private static bool TryParseUtc(string? value, out DateTimeOffset publishedAt)
     {

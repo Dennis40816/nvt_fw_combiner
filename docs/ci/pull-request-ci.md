@@ -11,7 +11,7 @@ The executable workflow is [`.github/workflows/ci.yml`](../../.github/workflows/
    canonical architecture fields.
 2. **`python-worker / verify`** runs Ruff format/check, Pyright strict, Pylint, pytest, branch coverage, protocol/process tests, plus the structure gate.
 3. **`dotnet / build-test`** is the stable final verdict over one complete
-   Release-build producer and three closed Windows test shards. The canonical
+   Release-build producer and three closed test shards. The canonical
     verifier validates the exact eight-project/TRX/coverage manifest, 3,450 test
    cases with the two declared skips, GoldenRegression 18/18, coverage policy,
    and CtrlRAM fixture evidence before the check passes.
@@ -31,7 +31,7 @@ Private firmware golden regression remains an approved-runner gate once private 
   path-escaping, symlinked, hash-mismatched, counter-drifted, or extra evidence.
   Producers publish from a clean allowlisted staging root, and the finalizer
   preserves each artifact name/root until ownership and collision checks pass.
-  Windows coverage paths are normalized to verified repository-relative
-  identities before hashing so the Ubuntu finalizer never trusts runner roots;
+  Coverage paths are normalized to verified repository-relative identities
+  before hashing so the finalizer never trusts runner roots;
   missing, outside, ambiguous, or normalization-colliding identities fail at
   the producer.

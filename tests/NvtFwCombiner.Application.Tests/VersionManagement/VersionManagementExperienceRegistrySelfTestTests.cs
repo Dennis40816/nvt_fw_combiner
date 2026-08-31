@@ -4,6 +4,36 @@ namespace NvtFwCombiner.Application.Tests.VersionManagement;
 
 public sealed partial class VersionManagementExperienceTests
 {
+    /// <summary>Environment Self-test still verifies the asserted newest package when v2 policy is manual-only.</summary>
+    [Fact]
+    public async Task EnvironmentSelfTestVerifiesManualOnlyV2NewestPackage()
+    {
+        string latest = SourcePath("self-test-v2-manual");
+        VersionManagerState initial = State(
+            [Admission("1.0.7")], active: "1.0.7", lastKnownGood: "1.0.7");
+        var repository = new CountingRepository();
+        var result = new UpdateCatalogLoadResult(
+            CatalogV2(("1.0.8", "manual-only")),
+            UpdateCatalogLoadIssue.None,
+            new(2, CatalogContentDigest));
+        using VersionManagementExperience experience = VersionManagementExperienceTestFactory.Create(
+            ManagedAppVersion.Parse("1.0.7"),
+            "managed-root",
+            new LeaseCountingStateStore(initial),
+            new PathCatalogSource((latest, result)),
+            repository,
+            new SequenceRegistrySource(RegistryWithPublication(
+                "1.0.8", 2, CatalogContentDigest, 2, SecondRegistryDigest,
+                (latest, UpdateSourceRegistryEntryStatus.Latest))));
+
+        VersionEnvironmentSelfTestResult selfTest = await experience.RunEnvironmentSelfTestAsync(
+            TestContext.Current.CancellationToken);
+
+        Assert.True(selfTest.IsSuccess);
+        Assert.True(Assert.Single(selfTest.Attempts).IsVerified);
+        Assert.Equal([ManagedAppVersion.Parse("1.0.8")], repository.VerifiedVersions);
+    }
+
     /// <summary>Self-test inspects every automatic source in order without consuming state or prompt generation.</summary>
     [Fact]
     public async Task EnvironmentSelfTestIsReadOnlyOrderedAndSkipsDeprecated()

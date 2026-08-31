@@ -1,0 +1,35 @@
+{
+  "schemaVersion": 2,
+  "taskId": "REL-108-RELEASE-NOTES-AUTHORITY-01",
+  "capability": "Remove drift between the canonical stable-release-note prose and the existing executable renderer without expanding automatic validation claims",
+  "integrationBase": "add334124508658dbcf417b96f83d41c77391dc1",
+  "risk": "R2",
+  "kind": "governance",
+  "state": "design-active",
+  "mutablePaths": [
+    "docs/governance/branch-version-and-release-governance.md"
+  ],
+  "implementationOwner": "release_notes_authority_implementer",
+  "searchEvidence": [
+    "scripts/render_release_notes.py is the existing executable workflow owner for exact release-note extraction and requires Summary, Product changes, Security, Known issues, Upgrade and rollback, and Downloads and integrity in that order.",
+    "The branch/version/release governance prose still names an older Feature changes, Fixes, and Performance and package layout, creating two conflicting six-section contracts even though the protected workflow always calls the renderer.",
+    "The renderer provides structural and limited lexical validation only: it cannot establish implementation truth, evidence sufficiency, compatibility accuracy, support status, completeness of limitations, or general private-path safety.",
+    "Existing tests already bind the executable headings and per-feature fields. Aligning prose to those established names requires no script, workflow, schema, package, or runtime change."
+  ],
+  "semanticOwner": "Existing branch/version/release governance documents the stable release-note contract executed by scripts/render_release_notes.py",
+  "terminalContract": "The canonical prose uses the renderer's exact ordered headings: Summary, Product changes, Security, Known issues, Upgrade and rollback, and Downloads and integrity. Every Product changes feature uses the renderer's exact six non-empty fields: Before → After, Affected, Support status, Compatibility, Verification, and Limitations. Documentation states precisely that the renderer performs extraction, stable-version/section/field structure checks, incomplete-token rejection, and a bounded secret-like disclosure check; it does not claim semantic truth or comprehensive private-path detection. Before a frozen release is admitted, an independent human semantic review must verify every shipped-behavior claim, verification statement, compatibility/support statement, limitation, and disclosure against exact-head evidence. This convergence changes no renderer, test expectation, workflow, release body, Catalog notes bytes, tag, package, firmware/profile/range/CRC/output behavior, support state, or runtime path.",
+  "disposition": "extend-owner",
+  "designReview": {
+    "reviewer": "review_v108_identity_design",
+    "outcome": "findings-incorporated",
+    "evidence": "Independent final R2 release-note-authority review confirmed P0-P3 = 0 and scoped Polytail PASS after the prior contract-drift findings were incorporated. The design extends only docs/governance/branch-version-and-release-governance.md and reuses scripts/render_release_notes.py as the unchanged executable extractor and structural validator. Canonical prose now names the renderer's exact ordered headings and required non-empty feature fields, states that supplemental prose is permitted, limits automatic claims to stable-section extraction, required heading/field structure, incomplete-token rejection, and bounded secret-like disclosure checks, and explicitly reserves behavior truth, evidence sufficiency, compatibility/support, limitations, and disclosure review to an independent human frozen-head semantic review. Existing renderer tests remain the executable heading/field evidence; no script, test expectation, workflow, schema, release-body/Catalog bytes, tag, package, firmware/profile/range/CRC/output behavior, support state, or runtime path changes."
+  },
+  "implementationHead": null,
+  "reviewedHead": null,
+  "pathStateDigest": null,
+  "finalReview": {
+    "reviewer": null,
+    "outcome": "pending",
+    "evidence": ""
+  }
+}

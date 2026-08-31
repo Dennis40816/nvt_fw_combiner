@@ -119,6 +119,16 @@ commit.
   changing firmware semantics. The annotated tag and publication are created
   only from the exact final package after two consecutive complete smoke passes
   and fixed-head review.
+- `v1.0.8` — unpublished stable-format Windows update-delivery candidate: add
+  strict Catalog v2 `manual-only` / `notify` policy with Catalog v1 fallback,
+  the bounded one-package Windows deployment wrapper, fixed-test-area verifier
+  confinement, Windows-only CI, the approved 25-direct plus nine self-contained
+  alias Golden package snapshot, a Light first-launch default, and aligned
+  Launcher Setup progress without changing firmware semantics or support. The
+  stable tag and publication remain gated by the frozen full verifier, exact
+  package/assets and smoke evidence, real installed v1.0.7 Catalog-v1 and
+  staged Catalog-v2 canaries, protected release-owner approval, and fresh-
+  download verification.
 
 ### Recorded `v0.10.2` pre-deletion comparison point
 

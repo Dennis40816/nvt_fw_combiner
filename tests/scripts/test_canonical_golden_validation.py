@@ -4,7 +4,6 @@ import hashlib
 import importlib.util
 import json
 import os
-import subprocess
 import tempfile
 import unittest
 from pathlib import Path
@@ -155,10 +154,20 @@ class CanonicalGoldenValidationTests(unittest.TestCase):
         release_case = {
             "caseId": self.case_manifest["caseId"],
             "manifestPath": self.root_manifest["cases"][0]["manifestPath"],
+            "manifestSha256": hashlib.sha256(
+                (
+                    self.canonical
+                    / self.root_manifest["cases"][0]["manifestPath"]
+                ).read_bytes()
+            ).hexdigest(),
+            "workflow": self.case_manifest["workflow"],
+            "testDispositionKind": "direct-full-output",
             "directGolden": self.case_manifest["directGolden"],
+            "directEvidence": False,
             "artifacts": [
                 {
                     "artifactId": artifact["artifactId"],
+                    "role": artifact["role"],
                     "path": artifact["path"],
                     "size": artifact["size"],
                     "sha256": artifact["sha256"],
@@ -168,18 +177,97 @@ class CanonicalGoldenValidationTests(unittest.TestCase):
         }
         self.release_allowlist = {
             "schemaVersion": "1.0",
-            "policyId": "standard-merge-reference-v1",
-            "workflow": "standard-merge",
+            "policyId": "canonical-reference-v1",
+            "authorizedForVersion": "1.0.8",
             "releaseStatus": "human-gated-allowlist",
-            "approvalBasis": "test fixture",
+            "redistributionAuthorization": {
+                "authorizedOn": "2026-09-01",
+                "authorizedBy": "repository owner",
+                "scope": "reference-payload-only",
+                "supersedesHistoricalCaseRestrictions": True,
+            },
+            "authorityLimits": {
+                "runtimeSupportPromotion": False,
+                "fullByteParityClaim": False,
+            },
+            "canonicalReadmeSha256": hashlib.sha256(
+                (self.canonical / "README.md").read_bytes()
+            ).hexdigest(),
+            "selectionSummary": {
+                "caseCount": 1,
+                "directGoldenCount": 1,
+                "factScopedAliasCount": 0,
+                "artifactDeclarationCount": 2,
+                "uniqueArtifactPathCount": 2,
+            },
             "cases": [release_case],
         }
-        path = self.root / "testdata/golden/release-standard-merge-v1.json"
+        path = self.root / "testdata/golden/release-canonical-v1.json"
         path.parent.mkdir(parents=True, exist_ok=True)
         self.write_json(path, self.release_allowlist)
         errors: list[str] = []
-        VALIDATOR.validate_standard_merge_release_allowlist(self.root, errors)
+        VALIDATOR.validate_canonical_release_allowlist(
+            self.root,
+            errors,
+            expected_summary=self.release_allowlist["selectionSummary"],
+        )
         return errors
+
+    def add_release_alias(self) -> dict[str, object]:
+        alias_case_id = "nt51917-standard-merge-gen-flash-alias"
+        alias_manifest_path = (
+            "NT51917/standard-merge/gen-flash/topology-unscoped/"
+            f"{alias_case_id}/provenance/case.json"
+        )
+        alias_facts = {
+            "sourceCaseId": self.case_manifest["caseId"],
+            "factScope": ["command-shape"],
+            "evidenceRefs": ["tests/golden_runner.py#direct_full_output"],
+        }
+        alias_manifest = {
+            "schemaVersion": "1.0",
+            "caseId": alias_case_id,
+            "ic": "NT51917",
+            "workflow": "standard-merge",
+            "variantOrVersion": "gen-flash",
+            "topology": "topology-unscoped",
+            "directGolden": False,
+            "testDisposition": {
+                "kind": "fact-scoped-alias",
+                "evidenceRefs": ["tests/golden_runner.py#direct_full_output"],
+            },
+            "sourceClassification": "owner-approved-alias",
+            "ownerApproval": "test fixture",
+            "alias": alias_facts,
+        }
+        self.root_manifest["cases"].append(
+            {"caseId": alias_case_id, "manifestPath": alias_manifest_path}
+        )
+        self.write_json(self.canonical / "manifest.json", self.root_manifest)
+        (self.canonical / alias_manifest_path).parent.mkdir(parents=True)
+        self.write_json(self.canonical / alias_manifest_path, alias_manifest)
+        release_alias = {
+            "caseId": alias_case_id,
+            "manifestPath": alias_manifest_path,
+            "manifestSha256": hashlib.sha256(
+                (self.canonical / alias_manifest_path).read_bytes()
+            ).hexdigest(),
+            "workflow": "standard-merge",
+            "testDispositionKind": "fact-scoped-alias",
+            "directGolden": False,
+            "directEvidence": False,
+            "alias": alias_facts,
+            "artifacts": [],
+        }
+        self.release_allowlist["cases"].append(release_alias)
+        self.release_allowlist["selectionSummary"].update(
+            {"caseCount": 2, "factScopedAliasCount": 1}
+        )
+        self.write_json(
+            self.root / "testdata/golden/release-canonical-v1.json",
+            self.release_allowlist,
+        )
+        return release_alias
 
     def rewrite_case(self) -> None:
         self.write_json(
@@ -743,8 +831,105 @@ class CanonicalGoldenValidationTests(unittest.TestCase):
 
         self.assertTrue(any("path must stay below" in error for error in errors))
 
-    def test_accepts_explicit_standard_merge_release_artifact_facts(self) -> None:
+    def test_accepts_explicit_canonical_release_artifact_facts(self) -> None:
         self.assertEqual([], self.validate_release_allowlist())
+
+    def test_rejects_release_authority_that_claims_support_promotion(self) -> None:
+        self.validate_release_allowlist()
+        self.release_allowlist["authorityLimits"]["runtimeSupportPromotion"] = True
+        self.write_json(
+            self.root / "testdata/golden/release-canonical-v1.json",
+            self.release_allowlist,
+        )
+
+        errors: list[str] = []
+        VALIDATOR.validate_canonical_release_allowlist(
+            self.root,
+            errors,
+            expected_summary=self.release_allowlist["selectionSummary"],
+        )
+
+        self.assertTrue(any("runtime support promotion" in error for error in errors))
+
+    def test_rejects_release_artifact_role_drift(self) -> None:
+        self.validate_release_allowlist()
+        self.release_allowlist["cases"][0]["artifacts"][0]["role"] = "expected"
+        self.write_json(
+            self.root / "testdata/golden/release-canonical-v1.json",
+            self.release_allowlist,
+        )
+
+        errors: list[str] = []
+        VALIDATOR.validate_canonical_release_allowlist(
+            self.root,
+            errors,
+            expected_summary=self.release_allowlist["selectionSummary"],
+        )
+
+        self.assertTrue(any("role differs" in error for error in errors))
+
+    def test_accepts_exact_fact_scoped_alias_facts(self) -> None:
+        self.validate_release_allowlist()
+        self.add_release_alias()
+
+        errors: list[str] = []
+        VALIDATOR.validate_canonical_release_allowlist(
+            self.root,
+            errors,
+            expected_summary=self.release_allowlist["selectionSummary"],
+        )
+
+        self.assertEqual([], errors)
+
+    def test_rejects_fact_scoped_alias_source_drift(self) -> None:
+        self.validate_release_allowlist()
+        release_alias = self.add_release_alias()
+        release_alias["alias"]["sourceCaseId"] = "different-source"
+        self.write_json(
+            self.root / "testdata/golden/release-canonical-v1.json",
+            self.release_allowlist,
+        )
+
+        errors: list[str] = []
+        VALIDATOR.validate_canonical_release_allowlist(
+            self.root,
+            errors,
+            expected_summary=self.release_allowlist["selectionSummary"],
+        )
+
+        self.assertTrue(any("alias differs" in error for error in errors))
+
+    def test_rejects_alias_without_selected_same_workflow_direct_golden(self) -> None:
+        self.validate_release_allowlist()
+        self.add_release_alias()
+        self.release_allowlist["cases"] = [self.release_allowlist["cases"][1]]
+        self.release_allowlist["selectionSummary"].update(
+            {
+                "caseCount": 1,
+                "directGoldenCount": 0,
+                "factScopedAliasCount": 1,
+                "artifactDeclarationCount": 0,
+                "uniqueArtifactPathCount": 0,
+            }
+        )
+        self.write_json(
+            self.root / "testdata/golden/release-canonical-v1.json",
+            self.release_allowlist,
+        )
+
+        errors: list[str] = []
+        VALIDATOR.validate_canonical_release_allowlist(
+            self.root,
+            errors,
+            expected_summary=self.release_allowlist["selectionSummary"],
+        )
+
+        self.assertTrue(
+            any(
+                "must select its exact same-workflow direct Golden source" in error
+                for error in errors
+            )
+        )
 
     def test_rejects_release_selection_of_direct_input_evidence(self) -> None:
         self.convert_direct_golden_to_input_evidence()
@@ -759,12 +944,16 @@ class CanonicalGoldenValidationTests(unittest.TestCase):
         self.validate_release_allowlist()
         self.release_allowlist["cases"][0]["artifacts"][0]["sha256"] = "0" * 64
         self.write_json(
-            self.root / "testdata/golden/release-standard-merge-v1.json",
+            self.root / "testdata/golden/release-canonical-v1.json",
             self.release_allowlist,
         )
 
         errors: list[str] = []
-        VALIDATOR.validate_standard_merge_release_allowlist(self.root, errors)
+        VALIDATOR.validate_canonical_release_allowlist(
+            self.root,
+            errors,
+            expected_summary=self.release_allowlist["selectionSummary"],
+        )
 
         self.assertTrue(any("sha256 differs" in error for error in errors))
 
@@ -772,14 +961,53 @@ class CanonicalGoldenValidationTests(unittest.TestCase):
         self.validate_release_allowlist()
         self.release_allowlist["cases"][0]["manifestPath"] = "wrong/case.json"
         self.write_json(
-            self.root / "testdata/golden/release-standard-merge-v1.json",
+            self.root / "testdata/golden/release-canonical-v1.json",
             self.release_allowlist,
         )
 
         errors: list[str] = []
-        VALIDATOR.validate_standard_merge_release_allowlist(self.root, errors)
+        VALIDATOR.validate_canonical_release_allowlist(
+            self.root,
+            errors,
+            expected_summary=self.release_allowlist["selectionSummary"],
+        )
 
         self.assertTrue(any("does not match" in error for error in errors))
+
+    def test_rejects_release_case_manifest_exact_byte_drift(self) -> None:
+        self.validate_release_allowlist()
+        case_manifest_path = (
+            self.canonical / self.release_allowlist["cases"][0]["manifestPath"]
+        )
+        changed_manifest = json.loads(case_manifest_path.read_text(encoding="utf-8"))
+        changed_manifest["privateMetadata"] = {"classification": "unapproved"}
+        self.write_json(case_manifest_path, changed_manifest)
+
+        errors: list[str] = []
+        VALIDATOR.validate_canonical_release_allowlist(
+            self.root,
+            errors,
+            expected_summary=self.release_allowlist["selectionSummary"],
+        )
+
+        self.assertTrue(any("manifestSha256 differs" in error for error in errors))
+
+    def test_rejects_release_canonical_readme_exact_byte_drift(self) -> None:
+        self.validate_release_allowlist()
+        (self.canonical / "README.md").write_text(
+            "self-consistent replacement\n", encoding="utf-8"
+        )
+
+        errors: list[str] = []
+        VALIDATOR.validate_canonical_release_allowlist(
+            self.root,
+            errors,
+            expected_summary=self.release_allowlist["selectionSummary"],
+        )
+
+        self.assertTrue(
+            any("canonicalReadmeSha256 differs" in error for error in errors)
+        )
 
     def test_rejects_non_boolean_release_direct_golden(self) -> None:
         for invalid_value in (1, "false", None):
@@ -790,12 +1018,16 @@ class CanonicalGoldenValidationTests(unittest.TestCase):
                 else:
                     self.release_allowlist["cases"][0]["directGolden"] = invalid_value
                 self.write_json(
-                    self.root / "testdata/golden/release-standard-merge-v1.json",
+                    self.root / "testdata/golden/release-canonical-v1.json",
                     self.release_allowlist,
                 )
 
                 errors: list[str] = []
-                VALIDATOR.validate_standard_merge_release_allowlist(self.root, errors)
+                VALIDATOR.validate_canonical_release_allowlist(
+                    self.root,
+                    errors,
+                    expected_summary=self.release_allowlist["selectionSummary"],
+                )
 
                 self.assertTrue(
                     any("directGolden must be a boolean" in error for error in errors)

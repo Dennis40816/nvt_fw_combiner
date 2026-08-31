@@ -273,7 +273,8 @@ public sealed class VersionManagerState
                PendingActivation == other.PendingActivation &&
                FailedActivationVersion == other.FailedActivationVersion &&
                RetentionReviewDue == other.RetentionReviewDue &&
-               PendingMutation == other.PendingMutation;
+               PendingMutation == other.PendingMutation &&
+               SourceRegistryState == other.SourceRegistryState;
     }
 
     private static bool IsLowerSha256(string? value)

@@ -19,6 +19,13 @@ under the declared golden policy.
 
 ## Canonical commands
 
+Before any local verifier or direct narrow test, load the user-level
+`NFC_TEST_AREA_ROOT` and explicitly set `TEMP`, `TMP`, and `TMPDIR` to its
+existing `temp` child in that shell/process. The root is one fixed absolute
+directory outside the repository; initialize it once as described in
+[`CONTRIBUTING.md`](CONTRIBUTING.md). GitHub Actions derives its root only from
+`RUNNER_TEMP` and must not declare another root.
+
 ```text
 python scripts/verify.py --structure-only
 python scripts/verify.py --all

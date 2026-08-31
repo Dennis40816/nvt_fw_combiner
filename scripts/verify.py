@@ -10,6 +10,7 @@ import importlib.util
 import json
 import os
 import re
+import secrets
 import shutil
 import signal
 import stat
@@ -75,6 +76,18 @@ CLEANUP_DEADLINE: ContextVar[float | None] = ContextVar(
     "verification_cleanup_deadline", default=None
 )
 INTERNAL_LANE_ENVIRONMENT_VARIABLE = "NFC_VERIFY_INTERNAL_LANE"
+TEST_AREA_ENVIRONMENT_VARIABLE = "NFC_TEST_AREA_ROOT"
+TEST_SESSION_ENVIRONMENT_VARIABLE = "NFC_TEST_SESSION_ROOT"
+TEST_SESSION_MARKER_NAME = ".nfc-test-session.json"
+TEST_SESSION_MARKER_SCHEMA_VERSION = 1
+TEST_SESSION_SCRATCH_DIRECTORIES = {
+    "TEMP": "temp",
+    "TMP": "temp",
+    "TMPDIR": "temp",
+    "DOTNET_BUNDLE_EXTRACT_BASE_DIR": "dotnet-bundle",
+    "RUFF_CACHE_DIR": "ruff-cache",
+    "PYTHONPYCACHEPREFIX": "python-bytecode",
+}
 PYTHON_COVERAGE_OVERRIDE_ENVIRONMENT_VARIABLES = (
     "PYTEST_ADDOPTS",
     "COVERAGE_RCFILE",
@@ -110,6 +123,61 @@ class _IoCounters(ctypes.Structure):
         ("ReadTransferCount", ctypes.c_ulonglong),
         ("WriteTransferCount", ctypes.c_ulonglong),
         ("OtherTransferCount", ctypes.c_ulonglong),
+    ]
+
+
+class _ByHandleFileInformation(ctypes.Structure):
+    _fields_ = [
+        ("FileAttributes", wintypes.DWORD),
+        ("CreationTime", wintypes.FILETIME),
+        ("LastAccessTime", wintypes.FILETIME),
+        ("LastWriteTime", wintypes.FILETIME),
+        ("VolumeSerialNumber", wintypes.DWORD),
+        ("FileSizeHigh", wintypes.DWORD),
+        ("FileSizeLow", wintypes.DWORD),
+        ("NumberOfLinks", wintypes.DWORD),
+        ("FileIndexHigh", wintypes.DWORD),
+        ("FileIndexLow", wintypes.DWORD),
+    ]
+
+
+class _FileBasicInformation(ctypes.Structure):
+    _fields_ = [
+        ("CreationTime", ctypes.c_longlong),
+        ("LastAccessTime", ctypes.c_longlong),
+        ("LastWriteTime", ctypes.c_longlong),
+        ("ChangeTime", ctypes.c_longlong),
+        ("FileAttributes", wintypes.DWORD),
+    ]
+
+
+class _FileDispositionInformation(ctypes.Structure):
+    _fields_ = [("DeleteFile", wintypes.BOOL)]
+
+
+class _UnicodeString(ctypes.Structure):
+    _fields_ = [
+        ("Length", wintypes.USHORT),
+        ("MaximumLength", wintypes.USHORT),
+        ("Buffer", wintypes.LPWSTR),
+    ]
+
+
+class _ObjectAttributes(ctypes.Structure):
+    _fields_ = [
+        ("Length", wintypes.ULONG),
+        ("RootDirectory", wintypes.HANDLE),
+        ("ObjectName", ctypes.POINTER(_UnicodeString)),
+        ("Attributes", wintypes.ULONG),
+        ("SecurityDescriptor", ctypes.c_void_p),
+        ("SecurityQualityOfService", ctypes.c_void_p),
+    ]
+
+
+class _IoStatusBlock(ctypes.Structure):
+    _fields_ = [
+        ("Status", ctypes.c_void_p),
+        ("Information", ctypes.c_size_t),
     ]
 
 
@@ -281,6 +349,33 @@ class LocalDotnetCoverageStage:
     results_directory: Path
     source_hashes: dict[str, str]
     canonical_hashes: tuple[tuple[Path, str], ...]
+
+
+@dataclass(frozen=True)
+class TestSessionOwnership:
+    root: Path
+    session: Path
+    marker_bytes: bytes
+    root_identity: tuple[int, int]
+    sessions_identity: tuple[int, int]
+    session_identity: tuple[int, int]
+    marker_identity: tuple[int, int]
+    custody: TestSessionCustody | None = None
+
+
+@dataclass
+class DirectoryCustody:
+    path: Path
+    identity: tuple[int, int]
+    windows_handle: int | None
+
+
+@dataclass
+class TestSessionCustody:
+    root: DirectoryCustody
+    sessions: DirectoryCustody
+    session_handle: int | None
+    marker_handle: int | None
 
 
 CI_DOTNET_SHARDS: dict[str, tuple[CiDotnetProject, ...]] = {
@@ -559,8 +654,19 @@ def activate_owned_process(
 def handle_external_termination():
     """Translate SIGTERM into the verifier's owned-process cancellation path."""
 
+    cancellation_was_requested = PROCESS_CANCELLATION_REQUESTED.is_set()
+
+    def restore_cancellation_state() -> None:
+        if cancellation_was_requested:
+            PROCESS_CANCELLATION_REQUESTED.set()
+        else:
+            PROCESS_CANCELLATION_REQUESTED.clear()
+
     if threading.current_thread() is not threading.main_thread():
-        yield
+        try:
+            yield
+        finally:
+            restore_cancellation_state()
         return
 
     def request_termination(signal_number: int, _frame: object) -> None:
@@ -572,6 +678,7 @@ def handle_external_termination():
         yield
     finally:
         signal.signal(signal.SIGTERM, previous_handler)
+        restore_cancellation_state()
 
 
 @contextmanager
@@ -850,8 +957,1222 @@ def verify_repository_scripts(log_path: Path | None = None) -> None:
 def is_reparse_point(path: Path) -> bool:
     """Return whether a path is a symbolic link or Windows junction."""
 
-    is_junction = getattr(path, "is_junction", None)
-    return path.is_symlink() or (is_junction is not None and is_junction())
+    try:
+        status = os.lstat(path)
+    except FileNotFoundError:
+        return False
+    attributes = getattr(status, "st_file_attributes", 0)
+    return stat.S_ISLNK(status.st_mode) or bool(
+        attributes & getattr(stat, "FILE_ATTRIBUTE_REPARSE_POINT", 0x400)
+    )
+
+
+def normalized_filesystem_path(path: Path) -> str:
+    """Return one stable host-native identity for an already absolute path."""
+
+    return os.path.normcase(str(path.resolve(strict=False)))
+
+
+def validate_existing_path_components(path: Path, *, description: str) -> Path:
+    """Reject every existing link, junction, or reparse component without writes."""
+
+    absolute = path.absolute()
+    anchor = Path(absolute.anchor)
+    current = anchor
+    try:
+        relative = absolute.relative_to(anchor)
+    except ValueError as error:
+        raise RuntimeError(f"invalid absolute {description}: {path}") from error
+    for part in relative.parts:
+        current = current.parent if part == ".." else current / part
+        if is_reparse_point(current):
+            raise RuntimeError(
+                f"symbolic link or junction/reparse-point {description} is forbidden: "
+                f"{current}"
+            )
+    resolved = path.resolve(strict=False)
+    resolved_anchor = Path(resolved.anchor)
+    current = resolved_anchor
+    for part in resolved.relative_to(resolved_anchor).parts:
+        current /= part
+        if is_reparse_point(current):
+            raise RuntimeError(
+                f"symbolic link or junction/reparse-point {description} is forbidden: "
+                f"{current}"
+            )
+    return resolved
+
+
+def filesystem_paths_overlap(first: Path, second: Path) -> bool:
+    """Return whether either normalized path contains the other."""
+
+    first_identity = normalized_filesystem_path(first)
+    second_identity = normalized_filesystem_path(second)
+    try:
+        common = os.path.commonpath((first_identity, second_identity))
+    except ValueError:
+        return False
+    return common in {first_identity, second_identity}
+
+
+def validate_test_area_root(path: Path, *, may_create: bool) -> Path:
+    """Validate one canonical test area before any verifier-owned write."""
+
+    if not path.is_absolute():
+        raise RuntimeError(f"{TEST_AREA_ENVIRONMENT_VARIABLE} must be absolute")
+    root = validate_existing_path_components(path, description="test-area root")
+    if root == Path(root.anchor).resolve(strict=False):
+        raise RuntimeError("test-area root cannot be a filesystem root")
+    if filesystem_paths_overlap(root, ROOT):
+        raise RuntimeError("test-area root and repository must not overlap")
+    if root.exists():
+        if not root.is_dir():
+            raise RuntimeError("test-area root must be a directory")
+    elif not may_create:
+        raise RuntimeError("local test-area root must be an existing directory")
+    return root
+
+
+def resolve_test_area_root() -> tuple[Path, bool]:
+    """Resolve the local declaration or the exact GitHub runner-derived root."""
+
+    declared = os.environ.get(TEST_AREA_ENVIRONMENT_VARIABLE)
+    if os.environ.get("GITHUB_ACTIONS") != "true":
+        if declared is None or not declared.strip():
+            raise RuntimeError(
+                f"local verification requires explicit {TEST_AREA_ENVIRONMENT_VARIABLE}"
+            )
+        return validate_test_area_root(Path(declared), may_create=False), False
+
+    runner_temp_value = os.environ.get("RUNNER_TEMP")
+    if runner_temp_value is None or not runner_temp_value.strip():
+        raise RuntimeError("GitHub Actions verification requires RUNNER_TEMP")
+    runner_temp = Path(runner_temp_value)
+    if not runner_temp.is_absolute():
+        raise RuntimeError("RUNNER_TEMP must be absolute")
+    runner_temp = validate_existing_path_components(
+        runner_temp, description="GitHub runner temporary root"
+    )
+    if not runner_temp.is_dir():
+        raise RuntimeError("RUNNER_TEMP must be an existing directory")
+    derived = validate_test_area_root(
+        runner_temp / "NvtFwCombiner-TestArea", may_create=True
+    )
+    if declared is not None and declared.strip():
+        declared_root = validate_test_area_root(Path(declared), may_create=True)
+        if normalized_filesystem_path(declared_root) != normalized_filesystem_path(
+            derived
+        ):
+            raise RuntimeError(
+                f"{TEST_AREA_ENVIRONMENT_VARIABLE} conflicts with RUNNER_TEMP-derived root"
+            )
+    return derived, True
+
+
+def test_session_marker_bytes(root: Path, session: Path) -> bytes:
+    """Bind one session marker to its schema, normalized owner, and identity."""
+
+    document = {
+        "normalizedRoot": normalized_filesystem_path(root),
+        "schemaVersion": TEST_SESSION_MARKER_SCHEMA_VERSION,
+        "sessionId": session.name,
+    }
+    return (json.dumps(document, sort_keys=True) + "\n").encode("utf-8")
+
+
+def _windows_file_api():
+    kernel32 = ctypes.WinDLL("kernel32", use_last_error=True)
+    kernel32.CreateFileW.argtypes = [
+        wintypes.LPCWSTR,
+        wintypes.DWORD,
+        wintypes.DWORD,
+        ctypes.c_void_p,
+        wintypes.DWORD,
+        wintypes.DWORD,
+        wintypes.HANDLE,
+    ]
+    kernel32.CreateFileW.restype = wintypes.HANDLE
+    kernel32.GetFileInformationByHandle.argtypes = [
+        wintypes.HANDLE,
+        ctypes.POINTER(_ByHandleFileInformation),
+    ]
+    kernel32.GetFileInformationByHandle.restype = wintypes.BOOL
+    kernel32.GetFileInformationByHandleEx.argtypes = [
+        wintypes.HANDLE,
+        ctypes.c_int,
+        ctypes.c_void_p,
+        wintypes.DWORD,
+    ]
+    kernel32.GetFileInformationByHandleEx.restype = wintypes.BOOL
+    kernel32.SetFileInformationByHandle.argtypes = [
+        wintypes.HANDLE,
+        ctypes.c_int,
+        ctypes.c_void_p,
+        wintypes.DWORD,
+    ]
+    kernel32.SetFileInformationByHandle.restype = wintypes.BOOL
+    kernel32.SetFilePointerEx.argtypes = [
+        wintypes.HANDLE,
+        ctypes.c_longlong,
+        ctypes.POINTER(ctypes.c_longlong),
+        wintypes.DWORD,
+    ]
+    kernel32.SetFilePointerEx.restype = wintypes.BOOL
+    kernel32.ReadFile.argtypes = [
+        wintypes.HANDLE,
+        ctypes.c_void_p,
+        wintypes.DWORD,
+        ctypes.POINTER(wintypes.DWORD),
+        ctypes.c_void_p,
+    ]
+    kernel32.ReadFile.restype = wintypes.BOOL
+    kernel32.WriteFile.argtypes = [
+        wintypes.HANDLE,
+        ctypes.c_void_p,
+        wintypes.DWORD,
+        ctypes.POINTER(wintypes.DWORD),
+        ctypes.c_void_p,
+    ]
+    kernel32.WriteFile.restype = wintypes.BOOL
+    kernel32.FlushFileBuffers.argtypes = [wintypes.HANDLE]
+    kernel32.FlushFileBuffers.restype = wintypes.BOOL
+    kernel32.CloseHandle.argtypes = [wintypes.HANDLE]
+    kernel32.CloseHandle.restype = wintypes.BOOL
+    return kernel32
+
+
+def _open_windows_path(
+    path: Path,
+    *,
+    delete_access: bool,
+    share_delete: bool,
+    share_write: bool = True,
+    read_data: bool = False,
+) -> int:
+    kernel32 = _windows_file_api()
+    desired_access = (
+        0x00000080
+        | (0x00010100 if delete_access else 0)
+        | (0x80000000 if read_data else 0)
+    )
+    share_mode = 0x00000001
+    if share_write:
+        share_mode |= 0x00000002
+    if share_delete:
+        share_mode |= 0x00000004
+    flags = 0x02000000 | 0x00200000
+    handle = kernel32.CreateFileW(
+        str(path),
+        desired_access,
+        share_mode,
+        None,
+        3,
+        flags,
+        None,
+    )
+    invalid_handle = ctypes.c_void_p(-1).value
+    if handle == invalid_handle:
+        raise ctypes.WinError(ctypes.get_last_error())
+    return int(handle)
+
+
+def _create_windows_relative_path(
+    root_handle: int,
+    name: str,
+    *,
+    directory: bool,
+) -> int:
+    """Create one exclusive direct child bound to an already-owned directory."""
+
+    if not name or Path(name).name != name or name in {".", ".."}:
+        raise RuntimeError(f"relative Windows child name is invalid: {name}")
+    ntdll = ctypes.WinDLL("ntdll")
+    ntdll.NtCreateFile.argtypes = [
+        ctypes.POINTER(wintypes.HANDLE),
+        wintypes.DWORD,
+        ctypes.POINTER(_ObjectAttributes),
+        ctypes.POINTER(_IoStatusBlock),
+        ctypes.c_void_p,
+        wintypes.ULONG,
+        wintypes.ULONG,
+        wintypes.ULONG,
+        wintypes.ULONG,
+        ctypes.c_void_p,
+        wintypes.ULONG,
+    ]
+    ntdll.NtCreateFile.restype = ctypes.c_long
+    ntdll.RtlNtStatusToDosError.argtypes = [ctypes.c_long]
+    ntdll.RtlNtStatusToDosError.restype = wintypes.ULONG
+    buffer = ctypes.create_unicode_buffer(name)
+    object_name = _UnicodeString(
+        len(name) * ctypes.sizeof(ctypes.c_wchar),
+        (len(name) + 1) * ctypes.sizeof(ctypes.c_wchar),
+        ctypes.cast(buffer, wintypes.LPWSTR),
+    )
+    attributes = _ObjectAttributes(
+        ctypes.sizeof(_ObjectAttributes),
+        wintypes.HANDLE(root_handle),
+        ctypes.pointer(object_name),
+        0x00000040,
+        None,
+        None,
+    )
+    io_status = _IoStatusBlock()
+    child_handle = wintypes.HANDLE()
+    desired_access = (
+        0x00100180
+        | (0x00010000 if directory else 0)
+        | (0x00000001 if directory else 0x00000003)
+    )
+    create_options = 0x00200020 | (0x00000001 if directory else 0x00000040)
+    status = ntdll.NtCreateFile(
+        ctypes.byref(child_handle),
+        desired_access,
+        ctypes.byref(attributes),
+        ctypes.byref(io_status),
+        None,
+        0,
+        0x00000003,
+        2,
+        create_options,
+        None,
+        0,
+    )
+    if status < 0:
+        raise ctypes.WinError(int(ntdll.RtlNtStatusToDosError(status)))
+    return int(child_handle.value)
+
+
+def _windows_handle_facts(handle: int) -> tuple[tuple[int, int], int]:
+    information = _ByHandleFileInformation()
+    if not _windows_file_api().GetFileInformationByHandle(
+        wintypes.HANDLE(handle), ctypes.byref(information)
+    ):
+        raise ctypes.WinError(ctypes.get_last_error())
+    identity = (
+        int(information.VolumeSerialNumber),
+        (int(information.FileIndexHigh) << 32) | int(information.FileIndexLow),
+    )
+    return identity, int(information.FileAttributes)
+
+
+def _close_windows_handle(handle: int | None) -> None:
+    if handle is not None and not _windows_file_api().CloseHandle(
+        wintypes.HANDLE(handle)
+    ):
+        raise ctypes.WinError(ctypes.get_last_error())
+
+
+def _mark_windows_handle_for_deletion(handle: int) -> None:
+    disposition = _FileDispositionInformation(True)
+    if not _windows_file_api().SetFileInformationByHandle(
+        wintypes.HANDLE(handle),
+        4,
+        ctypes.byref(disposition),
+        ctypes.sizeof(disposition),
+    ):
+        raise ctypes.WinError(ctypes.get_last_error())
+
+
+def _clear_windows_readonly(handle: int) -> None:
+    information = _FileBasicInformation()
+    kernel32 = _windows_file_api()
+    if not kernel32.GetFileInformationByHandleEx(
+        wintypes.HANDLE(handle),
+        0,
+        ctypes.byref(information),
+        ctypes.sizeof(information),
+    ):
+        raise ctypes.WinError(ctypes.get_last_error())
+    readonly = getattr(stat, "FILE_ATTRIBUTE_READONLY", 0x1)
+    if not information.FileAttributes & readonly:
+        return
+    information.FileAttributes &= ~readonly
+    if not kernel32.SetFileInformationByHandle(
+        wintypes.HANDLE(handle),
+        0,
+        ctypes.byref(information),
+        ctypes.sizeof(information),
+    ):
+        raise ctypes.WinError(ctypes.get_last_error())
+
+
+def _read_windows_handle(handle: int) -> bytes:
+    kernel32 = _windows_file_api()
+    position = ctypes.c_longlong()
+    if not kernel32.SetFilePointerEx(
+        wintypes.HANDLE(handle),
+        0,
+        ctypes.byref(position),
+        0,
+    ):
+        raise ctypes.WinError(ctypes.get_last_error())
+    chunks: list[bytes] = []
+    while True:
+        buffer = ctypes.create_string_buffer(4096)
+        read = wintypes.DWORD()
+        if not kernel32.ReadFile(
+            wintypes.HANDLE(handle),
+            buffer,
+            len(buffer),
+            ctypes.byref(read),
+            None,
+        ):
+            raise ctypes.WinError(ctypes.get_last_error())
+        if read.value == 0:
+            return b"".join(chunks)
+        chunks.append(buffer.raw[: read.value])
+
+
+def _write_windows_handle(handle: int, content: bytes) -> None:
+    kernel32 = _windows_file_api()
+    buffer = ctypes.create_string_buffer(content)
+    written = wintypes.DWORD()
+    if not kernel32.WriteFile(
+        wintypes.HANDLE(handle),
+        buffer,
+        len(content),
+        ctypes.byref(written),
+        None,
+    ):
+        raise ctypes.WinError(ctypes.get_last_error())
+    if written.value != len(content):
+        raise OSError(
+            f"short write for test session marker: {written.value}/{len(content)}"
+        )
+    if not kernel32.FlushFileBuffers(wintypes.HANDLE(handle)):
+        raise ctypes.WinError(ctypes.get_last_error())
+
+
+def _prepare_windows_handle_for_deletion(
+    handle: int,
+    expected_identity: tuple[int, int],
+    *,
+    description: str,
+) -> None:
+    reparse = getattr(stat, "FILE_ATTRIBUTE_REPARSE_POINT", 0x400)
+    readonly = getattr(stat, "FILE_ATTRIBUTE_READONLY", 0x1)
+    identity, attributes = _windows_handle_facts(handle)
+    if identity != expected_identity:
+        raise RuntimeError(f"{description} identity changed before deletion")
+    if attributes & reparse:
+        raise RuntimeError(f"reparse-point {description} is forbidden")
+    _clear_windows_readonly(handle)
+    identity, attributes = _windows_handle_facts(handle)
+    if identity != expected_identity:
+        raise RuntimeError(f"{description} identity changed before deletion")
+    if attributes & reparse:
+        raise RuntimeError(f"reparse-point {description} is forbidden")
+    if attributes & readonly:
+        raise RuntimeError(f"readonly {description} could not be cleared")
+
+
+def filesystem_identity(path: Path) -> tuple[int, int]:
+    """Return the stable host identity used to reject path replacement."""
+
+    if sys.platform != "win32":
+        status = os.lstat(path)
+        return int(status.st_dev), int(status.st_ino)
+    handle = _open_windows_path(path, delete_access=False, share_delete=True)
+    try:
+        identity, _attributes = _windows_handle_facts(handle)
+        return identity
+    finally:
+        _close_windows_handle(handle)
+
+
+def directory_custody_from_windows_handle(
+    path: Path,
+    handle: int,
+) -> DirectoryCustody:
+    try:
+        identity, attributes = _windows_handle_facts(handle)
+        if attributes & getattr(stat, "FILE_ATTRIBUTE_REPARSE_POINT", 0x400):
+            raise RuntimeError(f"reparse-point custody directory is forbidden: {path}")
+        if not attributes & getattr(stat, "FILE_ATTRIBUTE_DIRECTORY", 0x10):
+            raise RuntimeError(f"custody path must be a directory: {path}")
+        return DirectoryCustody(path, identity, handle)
+    except BaseException:
+        _close_windows_handle(handle)
+        raise
+
+
+def acquire_directory_custody(path: Path) -> DirectoryCustody:
+    """Retain one verified directory identity across child creation writes."""
+
+    if is_reparse_point(path):
+        raise RuntimeError(f"reparse-point custody directory is forbidden: {path}")
+    identity = filesystem_identity(path)
+    if sys.platform != "win32":
+        if not path.is_dir():
+            raise RuntimeError(f"custody path must be a directory: {path}")
+        return DirectoryCustody(path, identity, None)
+    handle = _open_windows_path(
+        path,
+        delete_access=False,
+        share_delete=False,
+    )
+    custody = directory_custody_from_windows_handle(path, handle)
+    if custody.identity != identity:
+        release_directory_custody(custody)
+        raise RuntimeError(f"custody directory identity changed: {path}")
+    return custody
+
+
+def revalidate_directory_custody(custody: DirectoryCustody) -> None:
+    if is_reparse_point(custody.path):
+        raise RuntimeError(
+            f"reparse-point custody directory is forbidden: {custody.path}"
+        )
+    if filesystem_identity(custody.path) != custody.identity:
+        raise RuntimeError(f"custody directory identity changed: {custody.path}")
+    if custody.windows_handle is None:
+        if not custody.path.is_dir():
+            raise RuntimeError(f"custody path must be a directory: {custody.path}")
+        return
+    identity, attributes = _windows_handle_facts(custody.windows_handle)
+    if identity != custody.identity:
+        raise RuntimeError(f"custody directory identity changed: {custody.path}")
+    if attributes & getattr(stat, "FILE_ATTRIBUTE_REPARSE_POINT", 0x400):
+        raise RuntimeError(
+            f"reparse-point custody directory is forbidden: {custody.path}"
+        )
+    if not attributes & getattr(stat, "FILE_ATTRIBUTE_DIRECTORY", 0x10):
+        raise RuntimeError(f"custody path must be a directory: {custody.path}")
+
+
+def release_directory_custody(custody: DirectoryCustody | None) -> None:
+    if custody is not None and custody.windows_handle is not None:
+        _close_windows_handle(custody.windows_handle)
+        custody.windows_handle = None
+
+
+def release_test_session_custody(ownership: TestSessionOwnership) -> None:
+    custody = ownership.custody
+    if custody is None:
+        return
+    handles = (
+        ("marker", custody.marker_handle),
+        ("session", custody.session_handle),
+        ("sessions root", custody.sessions.windows_handle),
+        ("test-area root", custody.root.windows_handle),
+    )
+    custody.marker_handle = None
+    custody.session_handle = None
+    custody.sessions.windows_handle = None
+    custody.root.windows_handle = None
+    failures: list[tuple[str, int, BaseException]] = []
+    for label, handle in handles:
+        if handle is None:
+            continue
+        try:
+            _close_windows_handle(handle)
+        except BaseException as error:
+            failures.append((label, handle, error))
+    if failures:
+        details = "; ".join(
+            f"{label} handle {handle}: {type(error).__name__}: {error}"
+            for label, handle, error in failures
+        )
+        raise RuntimeError(f"test session custody release failed: {details}") from (
+            failures[0][2]
+        )
+
+
+def revalidate_test_session_custody(ownership: TestSessionOwnership) -> None:
+    custody = ownership.custody
+    if custody is None:
+        return
+    revalidate_directory_custody(custody.root)
+    revalidate_directory_custody(custody.sessions)
+    if custody.session_handle is None or custody.marker_handle is None:
+        raise RuntimeError("test session custody was released before workload exit")
+    session_identity, session_attributes = _windows_handle_facts(custody.session_handle)
+    if session_identity != ownership.session_identity:
+        raise RuntimeError("test session custody identity changed")
+    if session_attributes & getattr(stat, "FILE_ATTRIBUTE_REPARSE_POINT", 0x400):
+        raise RuntimeError("test session custody became a reparse point")
+    marker_identity, marker_attributes = _windows_handle_facts(custody.marker_handle)
+    if marker_identity != ownership.marker_identity:
+        raise RuntimeError("test session marker custody identity changed")
+    if marker_attributes & getattr(stat, "FILE_ATTRIBUTE_REPARSE_POINT", 0x400):
+        raise RuntimeError("test session marker custody became a reparse point")
+    if _read_windows_handle(custody.marker_handle) != ownership.marker_bytes:
+        raise RuntimeError("test session marker custody content changed")
+    if filesystem_identity(ownership.session) != ownership.session_identity:
+        raise RuntimeError("test session path identity changed")
+    marker = ownership.session / TEST_SESSION_MARKER_NAME
+    if filesystem_identity(marker) != ownership.marker_identity:
+        raise RuntimeError("test session marker path identity changed")
+
+
+def _require_windows_cleanup_handle(
+    path: Path,
+    expected_identity: tuple[int, int],
+    *,
+    share_write: bool = True,
+    read_data: bool = False,
+) -> tuple[int, int, bool]:
+    if is_reparse_point(path):
+        raise RuntimeError(f"reparse-point test session entry is forbidden: {path}")
+    handle = _open_windows_path(
+        path,
+        delete_access=True,
+        share_delete=False,
+        share_write=share_write,
+        read_data=read_data,
+    )
+    try:
+        identity, attributes = _windows_handle_facts(handle)
+        if identity != expected_identity:
+            raise RuntimeError(f"test session entry identity changed: {path}")
+        if attributes & getattr(stat, "FILE_ATTRIBUTE_REPARSE_POINT", 0x400):
+            raise RuntimeError(f"reparse-point test session entry is forbidden: {path}")
+        is_directory = bool(
+            attributes & getattr(stat, "FILE_ATTRIBUTE_DIRECTORY", 0x10)
+        )
+        return handle, attributes, is_directory
+    except BaseException:
+        _close_windows_handle(handle)
+        raise
+
+
+def _delete_windows_session_entry(path: Path) -> None:
+    expected_identity = filesystem_identity(path)
+    handle, _attributes, is_directory = _require_windows_cleanup_handle(
+        path, expected_identity
+    )
+    try:
+        if is_directory:
+            for entry in sorted(
+                os.scandir(path), key=lambda item: item.name.casefold()
+            ):
+                _delete_windows_session_entry(Path(entry.path))
+        _prepare_windows_handle_for_deletion(
+            handle,
+            expected_identity,
+            description=f"test session entry: {path}",
+        )
+        _mark_windows_handle_for_deletion(handle)
+    finally:
+        _close_windows_handle(handle)
+
+
+def _delete_owned_windows_session(
+    ownership: TestSessionOwnership,
+    *,
+    require_marker: bool,
+) -> None:
+    root = ownership.root
+    sessions_root = root / "sessions"
+    hierarchy: list[int] = []
+    marker_handle: int | None = None
+    retained = ownership.custody
+    marker_deleted = False
+    session_deleted = False
+    try:
+        if retained is not None:
+            revalidate_test_session_custody(ownership)
+            if (
+                retained.root.windows_handle is None
+                or retained.sessions.windows_handle is None
+                or retained.session_handle is None
+                or retained.marker_handle is None
+            ):
+                raise RuntimeError("test session custody was released before cleanup")
+            hierarchy.extend(
+                (
+                    retained.root.windows_handle,
+                    retained.sessions.windows_handle,
+                    retained.session_handle,
+                )
+            )
+            if require_marker:
+                _close_windows_handle(retained.marker_handle)
+                retained.marker_handle = None
+                marker_handle, _attributes, is_directory = (
+                    _require_windows_cleanup_handle(
+                        ownership.session / TEST_SESSION_MARKER_NAME,
+                        ownership.marker_identity,
+                        share_write=False,
+                        read_data=True,
+                    )
+                )
+                if is_directory:
+                    raise RuntimeError("test session marker became a directory")
+        else:
+            for path, expected in (
+                (root, ownership.root_identity),
+                (sessions_root, ownership.sessions_identity),
+            ):
+                custody = acquire_directory_custody(path)
+                if custody.identity != expected:
+                    release_directory_custody(custody)
+                    raise RuntimeError(
+                        f"test session directory identity changed: {path}"
+                    )
+                assert custody.windows_handle is not None
+                hierarchy.append(custody.windows_handle)
+
+            session_handle, _attributes, is_directory = _require_windows_cleanup_handle(
+                ownership.session, ownership.session_identity
+            )
+            if not is_directory:
+                _close_windows_handle(session_handle)
+                raise RuntimeError(
+                    f"test session directory identity changed: {ownership.session}"
+                )
+            hierarchy.append(session_handle)
+
+        marker = ownership.session / TEST_SESSION_MARKER_NAME
+        if require_marker and retained is None:
+            marker_handle, _attributes, is_directory = _require_windows_cleanup_handle(
+                marker,
+                ownership.marker_identity,
+                share_write=False,
+                read_data=True,
+            )
+            if (
+                is_directory
+                or _read_windows_handle(marker_handle) != ownership.marker_bytes
+            ):
+                raise RuntimeError("test session marker does not match its owner")
+
+        for entry in sorted(
+            os.scandir(ownership.session), key=lambda item: item.name.casefold()
+        ):
+            path = Path(entry.path)
+            if require_marker and os.path.normcase(path.name) == os.path.normcase(
+                TEST_SESSION_MARKER_NAME
+            ):
+                continue
+            _delete_windows_session_entry(path)
+
+        remaining = tuple(os.scandir(ownership.session))
+        expected_remaining = (TEST_SESSION_MARKER_NAME,) if require_marker else ()
+        if tuple(entry.name for entry in remaining) != expected_remaining:
+            raise RuntimeError("test session inventory changed during cleanup")
+
+        if marker_handle is not None:
+            if _read_windows_handle(marker_handle) != ownership.marker_bytes:
+                raise RuntimeError("test session marker does not match its owner")
+            _prepare_windows_handle_for_deletion(
+                marker_handle,
+                ownership.marker_identity,
+                description="test session marker",
+            )
+            _mark_windows_handle_for_deletion(marker_handle)
+            _close_windows_handle(marker_handle)
+            if retained is not None:
+                retained.marker_handle = None
+            marker_handle = None
+            marker_deleted = True
+
+        session_handle = hierarchy[-1]
+        _prepare_windows_handle_for_deletion(
+            session_handle,
+            ownership.session_identity,
+            description="test session",
+        )
+        _mark_windows_handle_for_deletion(session_handle)
+        _close_windows_handle(session_handle)
+        if retained is not None:
+            retained.session_handle = None
+        hierarchy.pop()
+        session_deleted = True
+    except BaseException as cleanup_error:
+        if (
+            marker_deleted
+            and not session_deleted
+            and not (ownership.session / TEST_SESSION_MARKER_NAME).exists()
+        ):
+            try:
+                (ownership.session / TEST_SESSION_MARKER_NAME).write_bytes(
+                    ownership.marker_bytes
+                )
+            except OSError as restore_error:
+                raise RuntimeError(
+                    f"test session cleanup failed; exact unmarked diagnostic "
+                    f"residue retained at {ownership.session}: {restore_error}"
+                ) from cleanup_error
+        raise
+    finally:
+        if retained is not None:
+            if marker_handle is not None:
+                _close_windows_handle(marker_handle)
+            release_test_session_custody(ownership)
+        else:
+            if marker_handle is not None:
+                _close_windows_handle(marker_handle)
+            for handle in reversed(hierarchy):
+                _close_windows_handle(handle)
+
+
+def _delete_owned_session(
+    ownership: TestSessionOwnership,
+    *,
+    require_marker: bool,
+) -> None:
+    if sys.platform == "win32":
+        _delete_owned_windows_session(ownership, require_marker=require_marker)
+        return
+    if not shutil.rmtree.avoids_symlink_attacks:
+        raise RuntimeError("safe test session cleanup is unavailable on this platform")
+    if filesystem_identity(ownership.root) != ownership.root_identity:
+        raise RuntimeError("test-area root identity changed before cleanup")
+    if filesystem_identity(ownership.root / "sessions") != ownership.sessions_identity:
+        raise RuntimeError("test sessions root identity changed before cleanup")
+    if filesystem_identity(ownership.session) != ownership.session_identity:
+        raise RuntimeError("test session identity changed before cleanup")
+    if require_marker:
+        validate_test_session(
+            ownership.root,
+            ownership.session,
+            ownership.marker_bytes,
+            expected_root_identity=ownership.root_identity,
+            expected_sessions_identity=ownership.sessions_identity,
+            expected_session_identity=ownership.session_identity,
+            expected_marker_identity=ownership.marker_identity,
+        )
+    for current, directories, files in os.walk(
+        ownership.session, topdown=True, followlinks=False
+    ):
+        for name in (*directories, *files):
+            if is_reparse_point(Path(current) / name):
+                raise RuntimeError("reparse-point test session entry is forbidden")
+    shutil.rmtree(ownership.session)
+
+
+def validate_test_session(
+    root: Path,
+    session: Path,
+    expected_marker: bytes | None = None,
+    *,
+    expected_root_identity: tuple[int, int] | None = None,
+    expected_sessions_identity: tuple[int, int] | None = None,
+    expected_session_identity: tuple[int, int] | None = None,
+    expected_marker_identity: tuple[int, int] | None = None,
+) -> TestSessionOwnership:
+    """Validate the exact direct child and marker without inspecting siblings."""
+
+    root = validate_existing_path_components(root, description="test-area root")
+    sessions_root = validate_existing_path_components(
+        root / "sessions", description="test sessions root"
+    )
+    root_identity = filesystem_identity(root)
+    sessions_identity = filesystem_identity(sessions_root)
+    if expected_root_identity is not None and root_identity != expected_root_identity:
+        raise RuntimeError("test-area root identity changed")
+    if (
+        expected_sessions_identity is not None
+        and sessions_identity != expected_sessions_identity
+    ):
+        raise RuntimeError("test sessions root identity changed")
+    session = validate_existing_path_components(session, description="test session")
+    if session.parent != sessions_root or not session.name:
+        raise RuntimeError("test session must be a direct child of the sessions root")
+    if not session.is_dir():
+        raise RuntimeError("test session must be an existing directory")
+    session_identity = filesystem_identity(session)
+    if (
+        expected_session_identity is not None
+        and session_identity != expected_session_identity
+    ):
+        raise RuntimeError("test session identity changed")
+    marker_bytes = expected_marker or test_session_marker_bytes(root, session)
+    marker = session / TEST_SESSION_MARKER_NAME
+    if is_reparse_point(marker):
+        raise RuntimeError("test session marker cannot be a reparse point")
+    try:
+        mode = marker.stat(follow_symlinks=False).st_mode
+        actual_marker = marker.read_bytes()
+    except OSError as error:
+        raise RuntimeError("test session marker is missing or unreadable") from error
+    if not stat.S_ISREG(mode) or actual_marker != marker_bytes:
+        raise RuntimeError("test session marker does not match its owner")
+    marker_identity = filesystem_identity(marker)
+    if (
+        expected_marker_identity is not None
+        and marker_identity != expected_marker_identity
+    ):
+        raise RuntimeError("test session marker identity changed")
+    return TestSessionOwnership(
+        root,
+        session,
+        marker_bytes,
+        root_identity,
+        sessions_identity,
+        session_identity,
+        marker_identity,
+    )
+
+
+def _create_windows_test_session_child(
+    root: Path,
+    root_custody: DirectoryCustody,
+    sessions_custody: DirectoryCustody,
+    session_name: str,
+) -> TestSessionOwnership:
+    assert sessions_custody.windows_handle is not None
+    session = root / "sessions" / session_name
+    session_handle: int | None = None
+    marker_handle: int | None = None
+    session_identity: tuple[int, int] | None = None
+    marker_identity: tuple[int, int] | None = None
+    marker_bytes = b""
+    try:
+        session_handle = _create_windows_relative_path(
+            sessions_custody.windows_handle,
+            session_name,
+            directory=True,
+        )
+        session_identity, session_attributes = _windows_handle_facts(session_handle)
+        if session_attributes & getattr(stat, "FILE_ATTRIBUTE_REPARSE_POINT", 0x400):
+            raise RuntimeError("created test session cannot be a reparse point")
+        marker_bytes = test_session_marker_bytes(root, session)
+        marker_handle = _create_windows_relative_path(
+            session_handle,
+            TEST_SESSION_MARKER_NAME,
+            directory=False,
+        )
+        marker_identity, marker_attributes = _windows_handle_facts(marker_handle)
+        if marker_attributes & getattr(stat, "FILE_ATTRIBUTE_REPARSE_POINT", 0x400):
+            raise RuntimeError("created test session marker cannot be a reparse point")
+        _write_windows_handle(marker_handle, marker_bytes)
+        revalidate_directory_custody(root_custody)
+        revalidate_directory_custody(sessions_custody)
+        if filesystem_identity(session) != session_identity:
+            raise RuntimeError("test session identity changed during setup")
+        marker = session / TEST_SESSION_MARKER_NAME
+        if filesystem_identity(marker) != marker_identity:
+            raise RuntimeError("test session marker identity changed during setup")
+        if _read_windows_handle(marker_handle) != marker_bytes:
+            raise RuntimeError("test session marker changed during setup")
+        ownership = TestSessionOwnership(
+            root,
+            session,
+            marker_bytes,
+            root_custody.identity,
+            sessions_custody.identity,
+            session_identity,
+            marker_identity,
+            TestSessionCustody(
+                root_custody,
+                sessions_custody,
+                session_handle,
+                marker_handle,
+            ),
+        )
+        session_handle = None
+        marker_handle = None
+        return ownership
+    except BaseException as setup_error:
+        try:
+            if marker_handle is not None and marker_identity is not None:
+                _close_windows_handle(marker_handle)
+                marker_handle = None
+                marker_handle, _attributes, is_directory = (
+                    _require_windows_cleanup_handle(
+                        session / TEST_SESSION_MARKER_NAME,
+                        marker_identity,
+                        share_write=False,
+                        read_data=True,
+                    )
+                )
+                if is_directory:
+                    raise RuntimeError(
+                        "provisional test session marker became a directory"
+                    )
+                _prepare_windows_handle_for_deletion(
+                    marker_handle,
+                    marker_identity,
+                    description="provisional test session marker",
+                )
+                _mark_windows_handle_for_deletion(marker_handle)
+                _close_windows_handle(marker_handle)
+                marker_handle = None
+            if session_handle is not None and session_identity is not None:
+                _prepare_windows_handle_for_deletion(
+                    session_handle,
+                    session_identity,
+                    description="provisional test session",
+                )
+                _mark_windows_handle_for_deletion(session_handle)
+                _close_windows_handle(session_handle)
+                session_handle = None
+        except BaseException as cleanup_error:
+            raise RuntimeError(
+                f"test session setup failed; exact handle-owned diagnostic residue "
+                f"retained for {session}: {cleanup_error}"
+            ) from setup_error
+        raise
+    finally:
+        if marker_handle is not None:
+            _close_windows_handle(marker_handle)
+        if session_handle is not None:
+            _close_windows_handle(session_handle)
+
+
+def create_test_session(root: Path, *, create_root: bool) -> TestSessionOwnership:
+    """Create one exclusive random direct child and write its marker first."""
+
+    parent_custody: DirectoryCustody | None = None
+    root_custody: DirectoryCustody | None = None
+    sessions_custody: DirectoryCustody | None = None
+    try:
+        if create_root:
+            parent_custody = acquire_directory_custody(root.parent)
+            revalidate_directory_custody(parent_custody)
+            if not root.exists():
+                if sys.platform == "win32":
+                    assert parent_custody.windows_handle is not None
+                    try:
+                        handle = _create_windows_relative_path(
+                            parent_custody.windows_handle,
+                            root.name,
+                            directory=True,
+                        )
+                    except FileExistsError:
+                        pass
+                    else:
+                        root_custody = directory_custody_from_windows_handle(
+                            root, handle
+                        )
+                else:
+                    root.mkdir()
+        root = validate_test_area_root(root, may_create=False)
+        if root_custody is None:
+            root_custody = acquire_directory_custody(root)
+        if parent_custody is not None:
+            revalidate_directory_custody(parent_custody)
+        revalidate_directory_custody(root_custody)
+
+        sessions_root = root / "sessions"
+        if sessions_root.exists():
+            if not sessions_root.is_dir() or is_reparse_point(sessions_root):
+                raise RuntimeError("test sessions root must be a non-reparse directory")
+        else:
+            if sys.platform == "win32":
+                assert root_custody.windows_handle is not None
+                try:
+                    handle = _create_windows_relative_path(
+                        root_custody.windows_handle,
+                        "sessions",
+                        directory=True,
+                    )
+                except FileExistsError:
+                    pass
+                else:
+                    sessions_custody = directory_custody_from_windows_handle(
+                        sessions_root, handle
+                    )
+            else:
+                sessions_root.mkdir()
+        sessions_root = validate_existing_path_components(
+            sessions_root, description="test sessions root"
+        )
+        if sessions_custody is None:
+            sessions_custody = acquire_directory_custody(sessions_root)
+        revalidate_directory_custody(root_custody)
+        revalidate_directory_custody(sessions_custody)
+
+        for _attempt in range(16):
+            revalidate_directory_custody(root_custody)
+            revalidate_directory_custody(sessions_custody)
+            session_name = f"session-{secrets.token_hex(16)}"
+            if sys.platform == "win32":
+                try:
+                    ownership = _create_windows_test_session_child(
+                        root,
+                        root_custody,
+                        sessions_custody,
+                        session_name,
+                    )
+                except FileExistsError:
+                    continue
+                root_custody = None
+                sessions_custody = None
+                return ownership
+            session = (sessions_root / session_name).resolve(strict=False)
+            try:
+                session.mkdir()
+            except FileExistsError:
+                continue
+            session_identity: tuple[int, int] | None = None
+            marker_bytes = b""
+            try:
+                session_identity = filesystem_identity(session)
+                marker_bytes = test_session_marker_bytes(root, session)
+                with (session / TEST_SESSION_MARKER_NAME).open("xb") as marker:
+                    marker.write(marker_bytes)
+                marker_identity = filesystem_identity(
+                    session / TEST_SESSION_MARKER_NAME
+                )
+                ownership = validate_test_session(
+                    root,
+                    session,
+                    marker_bytes,
+                    expected_root_identity=root_custody.identity,
+                    expected_sessions_identity=sessions_custody.identity,
+                    expected_session_identity=session_identity,
+                    expected_marker_identity=marker_identity,
+                )
+                revalidate_directory_custody(root_custody)
+                revalidate_directory_custody(sessions_custody)
+                return ownership
+            except BaseException as setup_error:
+                if session_identity is None:
+                    try:
+                        session_identity = filesystem_identity(session)
+                    except BaseException as identity_error:
+                        raise RuntimeError(
+                            f"test session setup failed; exact unmarked diagnostic "
+                            f"residue retained at {session}: {identity_error}"
+                        ) from setup_error
+                provisional = TestSessionOwnership(
+                    root,
+                    session,
+                    marker_bytes,
+                    root_custody.identity,
+                    sessions_custody.identity,
+                    session_identity,
+                    (0, 0),
+                )
+                try:
+                    _delete_owned_session(provisional, require_marker=False)
+                except BaseException as cleanup_error:
+                    raise RuntimeError(
+                        f"test session setup failed; exact diagnostic residue "
+                        f"retained at {session}: {cleanup_error}"
+                    ) from setup_error
+                raise
+        raise RuntimeError("could not allocate an exclusive test session")
+    finally:
+        release_directory_custody(sessions_custody)
+        release_directory_custody(root_custody)
+        release_directory_custody(parent_custody)
+
+
+def cleanup_test_session(ownership: TestSessionOwnership) -> None:
+    """Delete only one exact marker-bound session after immediate revalidation."""
+
+    if ownership.custody is not None:
+        revalidate_test_session_custody(ownership)
+    else:
+        validate_test_session(
+            ownership.root,
+            ownership.session,
+            ownership.marker_bytes,
+            expected_root_identity=ownership.root_identity,
+            expected_sessions_identity=ownership.sessions_identity,
+            expected_session_identity=ownership.session_identity,
+            expected_marker_identity=ownership.marker_identity,
+        )
+    _delete_owned_session(ownership, require_marker=True)
+
+
+@contextmanager
+def verification_test_session(*, internal_lane: bool):
+    """Own one canonical verifier session and restore all process state on exit."""
+
+    global DOTNET_COVERAGE_WORK_ROOT
+    global CI_DOTNET_EVIDENCE_ROOT
+
+    root, create_root = resolve_test_area_root()
+    owns_session = not internal_lane
+    if owns_session:
+        if TEST_SESSION_ENVIRONMENT_VARIABLE in os.environ:
+            raise RuntimeError(
+                f"public verification forbids externally supplied "
+                f"{TEST_SESSION_ENVIRONMENT_VARIABLE}"
+            )
+        ownership = create_test_session(root, create_root=create_root)
+    else:
+        inherited = os.environ.get(TEST_SESSION_ENVIRONMENT_VARIABLE)
+        if inherited is None or not inherited.strip():
+            raise RuntimeError(
+                f"internal verification requires {TEST_SESSION_ENVIRONMENT_VARIABLE}"
+            )
+        ownership = validate_test_session(root, Path(inherited))
+    session = ownership.session
+
+    managed_names = (
+        TEST_AREA_ENVIRONMENT_VARIABLE,
+        TEST_SESSION_ENVIRONMENT_VARIABLE,
+        *TEST_SESSION_SCRATCH_DIRECTORIES,
+    )
+    missing = object()
+    previous_environment: dict[str, str | object] = {
+        name: os.environ.get(name, missing) for name in managed_names
+    }
+    previous_tempdir = tempfile.tempdir
+    previous_dotnet_root = DOTNET_COVERAGE_WORK_ROOT
+    previous_ci_root = CI_DOTNET_EVIDENCE_ROOT
+    primary_error: BaseException | None = None
+    try:
+        revalidate_test_session_custody(ownership)
+        os.environ[TEST_AREA_ENVIRONMENT_VARIABLE] = str(root)
+        os.environ[TEST_SESSION_ENVIRONMENT_VARIABLE] = str(session)
+        for name, relative in TEST_SESSION_SCRATCH_DIRECTORIES.items():
+            scratch = session / relative
+            scratch.mkdir(parents=True, exist_ok=True)
+            os.environ[name] = str(scratch)
+        tempfile.tempdir = os.environ["TEMP"]
+        work_root = session / "work"
+        DOTNET_COVERAGE_WORK_ROOT = work_root / "dotnet-coverage"
+        CI_DOTNET_EVIDENCE_ROOT = work_root / "ci-dotnet"
+        revalidate_test_session_custody(ownership)
+        yield session
+    except BaseException as error:
+        primary_error = error
+        raise
+    finally:
+        cleanup_error: BaseException | None = None
+        release_error: BaseException | None = None
+        try:
+            if owns_session:
+                with defer_termination_signals_during_process_handoff():
+                    cleanup_test_session(ownership)
+        except BaseException as error:
+            cleanup_error = error
+        try:
+            if owns_session:
+                try:
+                    release_test_session_custody(ownership)
+                except BaseException as error:
+                    release_error = error
+        finally:
+            tempfile.tempdir = previous_tempdir
+            DOTNET_COVERAGE_WORK_ROOT = previous_dotnet_root
+            CI_DOTNET_EVIDENCE_ROOT = previous_ci_root
+            for name, value in previous_environment.items():
+                if value is missing:
+                    os.environ.pop(name, None)
+                else:
+                    assert isinstance(value, str)
+                    os.environ[name] = value
+        if primary_error is not None:
+            if cleanup_error is not None:
+                primary_error.add_note(
+                    f"test session cleanup also failed; exact residue may remain at "
+                    f"{session}: {type(cleanup_error).__name__}: {cleanup_error}"
+                )
+            if release_error is not None:
+                primary_error.add_note(
+                    f"test session custody release also failed; exact residue may "
+                    f"remain at {session}: {type(release_error).__name__}: "
+                    f"{release_error}"
+                )
+        elif cleanup_error is not None:
+            if release_error is not None:
+                cleanup_error.add_note(
+                    f"test session custody release also failed; exact residue may "
+                    f"remain at {session}: {type(release_error).__name__}: "
+                    f"{release_error}"
+                )
+            raise cleanup_error
+        elif release_error is not None:
+            raise release_error
 
 
 def validated_path_within_root(
@@ -969,6 +2290,12 @@ def verify_python(log_path: Path | None = None) -> None:
         }
     )
     coverage_report = reset_coverage_directory("python") / "coverage.json"
+    active_session_value = os.environ.get(TEST_SESSION_ENVIRONMENT_VARIABLE)
+    pytest_scratch = (
+        Path(active_session_value) / "pytest"
+        if active_session_value is not None and active_session_value.strip()
+        else None
+    )
     commands = (
         [
             sys.executable,
@@ -991,6 +2318,15 @@ def verify_python(log_path: Path | None = None) -> None:
             "--cov-branch",
             "--cov-report=term-missing",
             f"--cov-report=json:{coverage_report}",
+            *(
+                (
+                    f"--basetemp={pytest_scratch / 'base'}",
+                    "-o",
+                    f"cache_dir={pytest_scratch / 'cache'}",
+                )
+                if pytest_scratch is not None
+                else ()
+            ),
         ],
     )
     for command in commands:
@@ -1610,11 +2946,15 @@ def collect_local_dotnet_coverage(
     _aggregate_log_path: Path | None,
     *,
     repository_root: Path = ROOT,
+    work_owner_root: Path | None = None,
 ) -> None:
     """Run every exact project against a private snapshot, then apply one policy."""
 
     projects = flatten_ci_dotnet_projects()
-    work = validated_disposable_directory(work_root, repository_root)
+    work = validated_disposable_directory(
+        work_root,
+        repository_root if work_owner_root is None else work_owner_root,
+    )
     if work.exists():
         shutil.rmtree(work)
     work.mkdir(parents=True)
@@ -1765,6 +3105,11 @@ def verify_dotnet(log_path: Path | None = None) -> None:
             DOTNET_COVERAGE_WORK_ROOT,
             environment,
             log_path,
+            work_owner_root=(
+                Path(os.environ[TEST_SESSION_ENVIRONMENT_VARIABLE])
+                if os.environ.get(TEST_SESSION_ENVIRONMENT_VARIABLE)
+                else ROOT
+            ),
         )
     except BaseException as error:
         failure = error
@@ -1848,8 +3193,13 @@ def require_logged_sdk_version(log_path: Path, expected: str) -> None:
         )
 
 
-def reset_ci_dotnet_evidence_directory(directory: Path) -> Path:
-    target = validated_disposable_directory(directory, ROOT)
+def reset_ci_dotnet_evidence_directory(
+    directory: Path, *, boundary: Path | None = None
+) -> Path:
+    target = validated_disposable_directory(
+        directory,
+        ROOT if boundary is None else boundary,
+    )
     if target.exists():
         shutil.rmtree(target)
     target.mkdir(parents=True)
@@ -2044,11 +3394,16 @@ def publish_ci_dotnet_artifact(
     upload_root: Path,
     manifest_relative_path: str,
     file_hashes: dict[str, str],
+    *,
+    upload_boundary: Path | None = None,
 ) -> None:
     """Copy only declared regular evidence into a clean upload tree."""
 
     expected_paths = {manifest_relative_path, *file_hashes}
-    target = reset_ci_dotnet_evidence_directory(upload_root)
+    target = reset_ci_dotnet_evidence_directory(
+        upload_root,
+        boundary=ROOT if upload_boundary is None else upload_boundary,
+    )
     source_files: dict[str, Path] = {}
     for relative_path in sorted(expected_paths):
         source = resolve_ci_evidence_file(source_root, relative_path)
@@ -2325,7 +3680,14 @@ def combine_failures(
 def verify_ci_dotnet_build() -> None:
     """Produce the full Release-build evidence independently of test shards."""
 
-    evidence_root = reset_ci_dotnet_evidence_directory(CI_DOTNET_EVIDENCE_ROOT)
+    evidence_root = reset_ci_dotnet_evidence_directory(
+        CI_DOTNET_EVIDENCE_ROOT,
+        boundary=(
+            Path(os.environ[TEST_SESSION_ENVIRONMENT_VARIABLE])
+            if os.environ.get(TEST_SESSION_ENVIRONMENT_VARIABLE)
+            else ROOT
+        ),
+    )
     reset_ci_dotnet_evidence_directory(CI_DOTNET_UPLOAD_ROOT)
     output = evidence_root / "build"
     output.mkdir(parents=True)
@@ -2379,7 +3741,14 @@ def verify_ci_dotnet_test_shard(shard: str) -> None:
     """Run every project in one closed shard and retain all ordinary failures."""
 
     projects = CI_DOTNET_SHARDS[shard]
-    evidence_root = reset_ci_dotnet_evidence_directory(CI_DOTNET_EVIDENCE_ROOT)
+    evidence_root = reset_ci_dotnet_evidence_directory(
+        CI_DOTNET_EVIDENCE_ROOT,
+        boundary=(
+            Path(os.environ[TEST_SESSION_ENVIRONMENT_VARIABLE])
+            if os.environ.get(TEST_SESSION_ENVIRONMENT_VARIABLE)
+            else ROOT
+        ),
+    )
     reset_ci_dotnet_evidence_directory(CI_DOTNET_UPLOAD_ROOT)
     output = evidence_root / "shards" / shard
     output.mkdir(parents=True)
@@ -3254,11 +4623,19 @@ def execute_verification(args: argparse.Namespace) -> int:
 
 def main() -> int:
     args = parse_args()
+    if args.internal_lane is not None:
+        validate_internal_lane_arguments(args)
     try:
         with handle_external_termination():
-            return execute_verification(args)
+            with verification_test_session(
+                internal_lane=args.internal_lane is not None
+            ):
+                return execute_verification(args)
     except VerificationTerminationRequested as error:
         return 128 + error.signal_number
+    except (RuntimeError, ValueError, OSError, subprocess.CalledProcessError) as error:
+        print(f"\nVERIFICATION FAILED: {error}", file=sys.stderr)
+        return 1
 
 
 if __name__ == "__main__":

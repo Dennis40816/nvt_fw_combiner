@@ -1,0 +1,58 @@
+{
+  "schemaVersion": 2,
+  "taskId": "ARCH-108-CATALOG-V2-01",
+  "capability": "Extend the existing Catalog admission and CheckAsync request-mode path with strict per-version manual-only or notify policy while preserving Catalog v1 upgrade admission",
+  "integrationBase": "add334124508658dbcf417b96f83d41c77391dc1",
+  "risk": "R3",
+  "kind": "behavior",
+  "state": "design-active",
+  "mutablePaths": [
+    "docs/adr/0053-fixed-update-source-registry.md",
+    "docs/adr/0066-update-catalog-v2-notification-policy.md",
+    "docs/contracts/update-catalog-v2.md",
+    "docs/contracts/update-catalog-v2.schema.json",
+    "docs/contracts/update-source-registry-v1.md",
+    "docs/specs/v1.0.8-update-catalog-v2.md",
+    "scripts/create_update_catalog.py",
+    "src/NvtFwCombiner.Contracts/VersionManagement/UpdateCatalogDocument.cs",
+    "src/NvtFwCombiner.VersionManagement.Application/VersionManagement/UpdateCatalogModels.cs",
+    "src/NvtFwCombiner.VersionManagement.Application/VersionManagement/UpdateCatalogValidator.cs",
+    "src/NvtFwCombiner.VersionManagement.Application/VersionManagement/VersionActivationPolicy.cs",
+    "src/NvtFwCombiner.VersionManagement.Application/VersionManagement/VersionManagementExperience.Registry.cs",
+    "src/NvtFwCombiner.VersionManagement.Application/VersionManagement/VersionManagementExperience.cs",
+    "src/NvtFwCombiner.VersionManagement.Infrastructure/NvtFwCombiner.VersionManagement.Infrastructure.csproj",
+    "src/NvtFwCombiner.VersionManagement.Infrastructure/VersionManagement/FileSystemUpdateCatalogSource.cs",
+    "src/NvtFwCombiner.VersionManagement.Infrastructure/VersionManagement/ReleaseManifestSchema.cs",
+    "src/NvtFwCombiner.VersionManagement.Infrastructure/VersionManagement/VersionManagementJsonContext.cs"
+  ],
+  "implementationOwner": "catalog_v2_implementer",
+  "searchEvidence": [
+    "Producer and package identity: UpdateCatalogValidator constructs UpdateCatalogVersionSnapshot; UpdateCatalogVersionSnapshot.Identity already owns version, canonical package path, declared size, package SHA-256, and release-manifest SHA-256 and is consumed by package verification, installation, activation, rollback, retention, and Settings projections.",
+    "Caller and request mode: MainWindow and Settings call VersionManagementExperience.CheckAsync(bool isAutomatic); CheckAsync and CheckRegistryAsync already own direct-root and Registry selection, package verification, prompt publication, cancellation, and stale-generation handling.",
+    "Port and adapter: IUpdateCatalogSource returns UpdateCatalogLoadResult with UpdateCatalogContentIdentity(schemaVersion, exact stable Catalog SHA-256); FileSystemUpdateCatalogSource is the sole bounded strict direct/exact-path adapter.",
+    "Readmission and Registry authority: VersionManagementExperience.Registry already owns CatalogPublicationEquals, the Registry writer lease, second Registry/Catalog read, revision/digest anti-rollback, launcher-fence check, and atomic VersionSourceRegistryState save.",
+    "Backward-read invariant: the released v1.0.7 VersionManagerState.Create rejects null UpdateSource with non-null SourceRegistryState. The all-manual automatic branch therefore persists revision/digest only when the reloaded state already has the same normalized effective source, an existing non-manual-pin Registry state, and a selected Registry root that path-equals that source; every other state, especially null source, performs no durable save.",
+    "Durable-generation equality: VersionManagerState.CreateDurableSnapshotToken and DurableSnapshotToken.Matches are the canonical all-field comparison used by Launcher self-test and managed setup recovery, but currently omit SourceRegistryState. The implementation extends that owner for revision-only/digest-only drift and makes Registry readmission reuse it instead of retaining its private duplicate SameDurableState helper.",
+    "Strict DTO dispatch: VersionManagementJsonContext currently registers only UpdateCatalogDocument; distinct strict v1/v2 wire DTOs must extend that existing source-generated serializer owner, while update-catalog-v2.schema.json and its companion update-catalog-v2.md remain the normative contract pair.",
+    "Shared candidate callers: InspectCandidateAsync is also used by RunEnvironmentSelfTestAsync and fresh-install inspect/reverify; the automatic no-eligible branch stays outside that shared helper so those contracts keep verifying the Registry-asserted newest package regardless of notification policy.",
+    "Explicit install behavior: InstallAsync reloads durable state and installs the already published typed Catalog row by package identity but does not reread Catalog; policy equality therefore belongs only to existing first/second Registry readmission, and later policy-only change cannot revoke an explicit selection because both policies permit explicit install.",
+    "Publisher and changelog: scripts/create_update_catalog.py is the existing locked atomic Catalog/Registry renderer and Catalog releaseNotes already carry the canonical published changelog; scripts/edit_update_source_registry.py already accepts a positive catalogSchemaVersion and needs no new editor.",
+    "Existing focused coverage lives in UpdateCatalogValidatorTests, FileSystemUpdateCatalogSourceTests, VersionManagementExperienceTests, VersionManagementExperienceRegistryTests, and test_version_update_lab.py; implementation extends those suites without declaring test paths as governed production surfaces."
+  ],
+  "semanticOwner": "Existing Application UpdateCatalogValidator and VersionManagementExperience CheckAsync/CheckRegistryAsync policy selection, with IUpdateCatalogSource/FileSystemUpdateCatalogSource as the strict transport adapter and the existing Registry state owner as the only writer",
+  "terminalContract": "Catalog v1 remains strict and maps explicitly to effective notify. Distinct source-generated Catalog v2 DTO/schema/prose requires exact manual-only or notify for every entry and rejects the complete document when policy is missing, malformed, case-variant, or unknown. CheckAsync(isAutomatic: true) filters manual-only before package I/O and exposes no manual-only fact. A Registry all-manual result performs Registry/Catalog authority-publication admission under the existing lease with zero package I/O; it is not a package/source candidate admission. It may save only revision/digest when the reloaded state already has a normalized non-null UpdateSource, an existing non-manual-pin SourceRegistryState, and the selected Registry SourceRoot path-equals that source. Null-source, missing-state, manual-pin, and source-mismatch cases perform no durable save, preserving released v1.0.7 backward-read compatibility while accepting the bounded lack of cross-restart high-watermark retention before first explicit source admission. The exact result is Catalog null, VerifiedCandidate null, Connected, CatalogIssue None, no prompt, the selected existing Registry status, and no policy-specific issue; mixed automatic exposes only the selected verified notify row. The existing durable snapshot token gains SourceRegistryState equality and Registry readmission reuses it instead of a private duplicate comparison, so revision-only/digest-only drift invalidates Launcher self-test and managed setup recovery generations. The no-package branch remains outside InspectCandidateAsync so Environment Self-test and fresh-install behavior are unchanged. Explicit Check exposes all rows. CatalogPublicationEquals adds policy only to the existing first/second Registry read; InstallAsync does not reread Catalog, and a later policy-only publication cannot revoke an explicit selection because both policies allow explicit install while package identity/bytes remain reverified. UpdateCatalogVersionSnapshot.Identity remains package identity and UpdateCatalogContentIdentity remains exact Catalog identity. Direct roots prefer present v2 and fail closed when it is invalid, but allow v1 whenever v2 is absent without persistent schema-floor state in v1.0.8; Registry revision/digest monotonicity is not a schema floor. The existing publisher keeps byte-for-byte v1 default output, imports valid v1 stable metadata only for first-v2 publication, uses strict existing v2 for later corrections even with stale v1, requires complete assignments and all checks before any controlled write, preserves releaseNotes, and allows both correction directions. The real v1.0.7-to-v1.0.8 canary uses v1; staged v2 precedes R3 live cutover.",
+  "disposition": "extend-owner",
+  "designReview": {
+    "reviewer": "review_minimal_catalog_v2_design",
+    "outcome": "approved",
+    "evidence": "Third independent semantic-design review confirmed P0-P3 = 0 and scoped Polytail PASS-WITH-HUMAN-GATE. The corrected design preserves released v1.0.7 backward readability through the four existing-state save guards and no-save null/missing/manual-pin/mismatch branches; distinguishes Registry/Catalog authority-publication admission from package/source candidate admission across ADR 0053, ADR 0066, Registry contract, spec, and record; accepts the bounded no-cross-restart high-watermark gap before explicit source admission; and extends/reuses the canonical durable snapshot token for SourceRegistryState rather than retaining Registry's duplicate equality. Seventeen unique mutable paths are complete, VersionManagerStateDocument/JsonVersionManagerStateStore and Presentation remain unchanged, and no new field, schema, migration, store, token, identity, writer, result, selection engine, or Self-test branch is introduced. The record is R3 because scripts/create_update_catalog.py is a release publisher; implementation may proceed on the approved design, while exact-head publisher review, real v1 and staged-v2 canaries, and release-owner authority remain mandatory before live cutover."
+  },
+  "implementationHead": null,
+  "reviewedHead": null,
+  "pathStateDigest": null,
+  "finalReview": {
+    "reviewer": null,
+    "outcome": "pending",
+    "evidence": ""
+  }
+}

@@ -1488,14 +1488,101 @@ class AgentGovernanceTests(unittest.TestCase):
                 self.assertEqual("github.event_name == 'pull_request'", freshness["if"])
                 self.assertEqual(expected_base, freshness["env"]["NFC_PR_BASE_SHA"])
                 self.assertEqual(expected_head, freshness["env"]["NFC_PR_HEAD_SHA"])
+                self.assertEqual("pwsh", freshness["shell"])
+                script = freshness["run"]
                 self.assertIn(
-                    'test "$(git rev-parse HEAD)" = "$NFC_PR_HEAD_SHA"',
-                    freshness["run"],
+                    "$actualHead = & git rev-parse --verify HEAD",
+                    script,
                 )
+                self.assertIn("$revParseStatus = $LASTEXITCODE", script)
+                self.assertLess(
+                    script.index("$revParseStatus = $LASTEXITCODE"),
+                    script.index("if ($revParseStatus -ne 0)"),
+                )
+                self.assertIn("$actualHead = $actualHead.Trim()", script)
+                self.assertIn("$actualHead -cne $env:NFC_PR_HEAD_SHA", script)
                 self.assertIn(
-                    'git merge-base --is-ancestor "$NFC_PR_BASE_SHA" HEAD',
-                    freshness["run"],
+                    "& git merge-base --is-ancestor $env:NFC_PR_BASE_SHA HEAD",
+                    script,
                 )
+                self.assertIn("$ancestryStatus = $LASTEXITCODE", script)
+                self.assertLess(
+                    script.index(
+                        "& git merge-base --is-ancestor $env:NFC_PR_BASE_SHA HEAD"
+                    ),
+                    script.index("$ancestryStatus = $LASTEXITCODE"),
+                )
+                self.assertLess(
+                    script.index("$ancestryStatus = $LASTEXITCODE"),
+                    script.index("if ($ancestryStatus -ne 0)"),
+                )
+
+    def test_ci_workflow_validator_rejects_every_non_windows_topology(self) -> None:
+        expected_jobs = {
+            "structure",
+            "python-worker",
+            "dotnet-build",
+            "dotnet-test",
+            "dotnet",
+        }
+
+        def workflow_text(overrides: dict[str, object] | None = None) -> str:
+            jobs: dict[str, object] = {
+                name: {"runs-on": "windows-latest", "steps": []}
+                for name in expected_jobs
+            }
+            jobs.update(overrides or {})
+            return yaml.safe_dump({"jobs": jobs}, sort_keys=False)
+
+        workflow_path = self.root / "ci.yml"
+        workflow_path.write_text(workflow_text(), encoding="utf-8")
+        errors: list[str] = []
+        repository_validator._validate_windows_only_ci_topology(  # noqa: SLF001
+            workflow_path,
+            errors,
+        )
+        self.assertEqual([], errors)
+
+        invalid_cases: tuple[tuple[str, dict[str, object]], ...] = (
+            ("ubuntu", {"structure": {"runs-on": "ubuntu-latest", "steps": []}}),
+            ("macos", {"structure": {"runs-on": "macos-latest", "steps": []}}),
+            ("self-hosted", {"structure": {"runs-on": "self-hosted", "steps": []}}),
+            ("expression", {"structure": {"runs-on": "${{ matrix.runner }}", "steps": []}}),
+            ("sequence", {"structure": {"runs-on": ["self-hosted", "Windows"], "steps": []}}),
+            ("missing-runner", {"structure": {"steps": []}}),
+            ("extra-job", {"extra": {"runs-on": "windows-latest", "steps": []}}),
+        )
+        for name, override in invalid_cases:
+            with self.subTest(case=name):
+                workflow_path.write_text(workflow_text(override), encoding="utf-8")
+                errors = []
+                repository_validator._validate_windows_only_ci_topology(  # noqa: SLF001
+                    workflow_path,
+                    errors,
+                )
+                self.assertTrue(errors)
+
+        missing_job_text = workflow_text()
+        parsed = yaml.safe_load(missing_job_text)
+        del parsed["jobs"]["structure"]
+        workflow_path.write_text(
+            yaml.safe_dump(parsed, sort_keys=False),
+            encoding="utf-8",
+        )
+        errors = []
+        repository_validator._validate_windows_only_ci_topology(  # noqa: SLF001
+            workflow_path,
+            errors,
+        )
+        self.assertTrue(errors)
+
+        workflow_path.write_text("jobs: [", encoding="utf-8")
+        errors = []
+        repository_validator._validate_windows_only_ci_topology(  # noqa: SLF001
+            workflow_path,
+            errors,
+        )
+        self.assertTrue(errors)
 
 
 if __name__ == "__main__":

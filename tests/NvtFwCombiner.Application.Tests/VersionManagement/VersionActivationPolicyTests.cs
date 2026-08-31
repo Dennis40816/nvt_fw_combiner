@@ -5,6 +5,10 @@ namespace NvtFwCombiner.Application.Tests.VersionManagement;
 /// <summary>Tests pending activation, ready commit, and single rollback decisions.</summary>
 public sealed class VersionActivationPolicyTests
 {
+    private const string FirstDigest =
+        "1111111111111111111111111111111111111111111111111111111111111111";
+    private const string SecondDigest =
+        "2222222222222222222222222222222222222222222222222222222222222222";
     /// <summary>Ready commits the candidate as active and last-known-good.</summary>
     [Fact]
     public void ReadyCommitsPendingCandidate()
@@ -117,6 +121,77 @@ public sealed class VersionActivationPolicyTests
             initial.RetentionReviewDue,
             new(ManagedVersionMutationKind.Delete, mismatched)));
     }
+
+    /// <summary>Revision-only and digest-only Registry drift invalidate the canonical durable token.</summary>
+    [Theory]
+    [InlineData(2, FirstDigest)]
+    [InlineData(1, SecondDigest)]
+    public void RegistryAuthorityDriftInvalidatesDurableSnapshotToken(long revision, string digest)
+    {
+        VersionManagerState initial = RegistryState(1, FirstDigest);
+        VersionManagerState changed = RegistryState(revision, digest);
+
+        Assert.False(initial.CreateDurableSnapshotToken().Matches(
+            changed.CreateDurableSnapshotToken()));
+    }
+
+    /// <summary>Managed Setup recovery plan matching rejects stale Registry authority generations.</summary>
+    [Theory]
+    [InlineData(2, FirstDigest)]
+    [InlineData(1, SecondDigest)]
+    public void ManagedSetupRecoveryPlanRejectsRegistryAuthorityDrift(long revision, string digest)
+    {
+        VersionManagerState initial = RegistryState(1, FirstDigest);
+        VersionManagerState changed = RegistryState(revision, digest);
+        ManagedVersionAdmission admission = initial.Admissions.Single();
+        string root = Path.GetFullPath("managed-root");
+        string statePath = Path.Combine(root, "version-manager.v1.json");
+        var transaction = new ManagedSetupRecoveryTransaction(
+            "transaction",
+            root,
+            statePath,
+            ManagedSetupRecoveryPhase.BootstrapLaunchRecorded,
+            [],
+            new(1, FirstDigest, 1, FirstDigest, "NvtFwCombiner.Bootstrap.exe", 1, FirstDigest),
+            new(1, FirstDigest, 1, "1.0.0", FirstDigest, "catalog.json", "registry", root,
+                "latest", "1.0.0", "package.zip", 1, FirstDigest, FirstDigest,
+                admission.AdmissionIdentity));
+        var evidence = new ManagedSetupRecoveryEvidenceObservation(
+            admission,
+            installedLauncher: null,
+            new LauncherBootstrapStateLoadResult(null, LauncherBootstrapStateLoadIssue.Missing),
+            new TestRecoveryToken());
+        var plan = new ManagedSetupRecoveryPlan(
+            root,
+            transaction,
+            ManagedSetupRecoveryAction.RemoveIncompleteInstallation,
+            new(initial, VersionManagerStateLoadIssue.None),
+            evidence);
+
+        Assert.False(ManagedSetupRecoveryPolicy.PlanMatches(
+            plan,
+            new(changed, VersionManagerStateLoadIssue.None),
+            transaction,
+            evidence));
+    }
+
+    private static VersionManagerState RegistryState(long revision, string digest)
+    {
+        string source = Path.TrimEndingDirectorySeparator(Path.GetFullPath("update-source"));
+        ManagedAppVersion version = ManagedAppVersion.Parse("1.0.0");
+        return VersionManagerState.Create(
+            source,
+            version,
+            version,
+            [new(version, "identity-1.0.0", new string('a', 64))],
+            null,
+            null,
+            false,
+            managedRootIdentity: Path.GetFullPath("managed-root"),
+            sourceRegistryState: new(revision, digest, isManualPin: false));
+    }
+
+    private sealed record TestRecoveryToken : ManagedSetupRecoveryExecutionToken;
 
     private static VersionManagerState State(
         string active,

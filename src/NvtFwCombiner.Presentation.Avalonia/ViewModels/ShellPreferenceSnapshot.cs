@@ -7,5 +7,5 @@ internal sealed record ShellPreferenceSnapshot(
     bool IsReducedMotionEnabled = false)
 {
     /// <summary>Gets the fail-closed default shell preferences.</summary>
-    public static ShellPreferenceSnapshot Default { get; } = new("System", "English", false);
+    public static ShellPreferenceSnapshot Default { get; } = new("Light", "English", false);
 }

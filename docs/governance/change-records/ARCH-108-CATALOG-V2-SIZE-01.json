@@ -1,0 +1,36 @@
+{
+  "schemaVersion": 2,
+  "taskId": "ARCH-108-CATALOG-V2-SIZE-01",
+  "capability": "Bind the exact non-transferable production-size cost of the already approved Catalog v2 delivery contract without creating reusable growth budget or weakening convergence policy",
+  "integrationBase": "add334124508658dbcf417b96f83d41c77391dc1",
+  "risk": "R2",
+  "kind": "governance",
+  "state": "design-active",
+  "mutablePaths": [
+    "docs/adr/0021-code-size-ratchet-system-activity-amendment.md",
+    "scripts/code_size_policy.py"
+  ],
+  "implementationOwner": "primary-agent",
+  "searchEvidence": [
+    "The current executable v1.0.7 ceilings are full production 136056, runtime 98226, Application 41951, and Infrastructure/Contracts/worker/Platform 30604; after closing the reviewed fixed-filename schema fail-closed defect, the v1.0.8 worktree measures 136381, 98551, 42197, and 30683 respectively, an exact +325 runtime/full delta split +246 Application and +79 Infrastructure with every other slice unchanged.",
+    "The counted delta is confined to the approved Catalog v2 managed-version implementation: distinct strict v1/v2 wire DTOs, exact manual-only|notify validation and filtering, durable Registry-state compatibility, v2-preferred fail-closed reading, and the existing adapter/source-generation projection. The PowerShell deployment wrapper, Python tests and documentation are not counted production C#/AXAML.",
+    "Independent Catalog architecture, implementation, mutation-order, and final reviews found no second Catalog serializer, reader, policy, persistence owner, or equality path and no removable duplication that can be deleted without weakening the approved distinct-schema and rollback-compatible contract.",
+    "ADR 0021 and its system-activity appendix already own exact named non-transferable size amendments; scripts/code_size_policy.py is the existing executable owner, so this slice extends those owners rather than adding another metric, tool, ledger, or verifier."
+  ],
+  "semanticOwner": "ADR 0021 system-activity amendments own reviewed non-transferable production-size exceptions and scripts/code_size_policy.py owns their executable exact ceilings",
+  "terminalContract": "The v1.0.8 Catalog v2 amendment records full production 136381 and runtime 98551 nonblank lines, with Domain/Profiles 20632, Application 42197, Bootstrap/CLI/Desktop/Launcher 5039, and Infrastructure/Contracts/worker/Platform 30683; the four runtime slices must continue to sum exactly to 98551. The executable general production_nonblank threshold changes from 136056 to 136381; allowances change from full 33160 to 33485, runtime 28170 to 28495, Application 11261 to 11507, and Infrastructure 15248 to 15327; Domain/Profiles and host allowances remain 5 and 1661. Non-governed focused test expectations bind the same exact snapshot. These are exact descending, named, non-transferable ceilings for the approved Catalog v2 delivery contract, not reusable budget and not authority for unrelated growth, cross-slice relocation, line packing, generated-source exclusion, or documentation deletion. Any later simplification lowers the corresponding ceiling. The existing code-size tests, structure-only gate, frozen full verifier, architecture review, and Catalog behavior/evidence gates remain mandatory. No firmware profile, address range, mutation order, output byte, CRC/header, processor, naming, support, Golden expected bytes, package payload, Registry routing, UI behavior, or release permission changes.",
+  "disposition": "extend-owner",
+  "designReview": {
+    "reviewer": "review_deploy_script_design",
+    "outcome": "findings-incorporated",
+    "evidence": "Independent final R2 architecture and code-size design review confirmed P0-P3 = 0 after incorporating the stale production_nonblank threshold and fixed-filename schema findings. Direct measurement of the corrected v1.0.8 worktree is exactly 136381 full-production and 98551 runtime nonblank lines, partitioned as Domain/Profiles 20632, Application 42197, Bootstrap/CLI/Desktop/Launcher 5039, and Infrastructure/Contracts/worker/Platform 30683; the four runtime slices sum exactly to 98551. Relative to the v1.0.7 ceilings this is +325 full/runtime, +246 Application, +79 Infrastructure, and zero in every other slice. The executable arithmetic is exact: production_nonblank becomes 136381; full allowance 33485 over ratchet 102896, runtime 28495 over 70056, Application 11507 over 30690, and Infrastructure 15327 over 15356, while Domain/Profiles 5 and host 1661 remain unchanged. The prior filename/schema defect is closed by one bounded expected-schema parameter for direct fixed-name lookup while exact Registry-selected paths retain schema dispatch, with both cross-named v1/v2 cases specified fail-closed. Distinct strict v1/v2 DTOs, the shared validation core, Application-owned notification selection and existing Registry lease/state path, and the single Infrastructure adapter/source-generated projection are contract-required rather than removable duplication; scoped over-engineering review found no safe deletion or second owner. The amendment extends only the existing ADR 0021 system-activity appendix and scripts/code_size_policy.py owners, creates no reusable budget or new metric/verifier, and requires exact non-governed snapshot tests, structure-only, frozen full verification, Catalog behavior evidence, and descending ratchet updates after any later simplification. No firmware/profile/range/mutation-order/output-byte/CRC/header/processor/naming/support/Golden/package/Registry-routing/UI/release-permission authority changes."
+  },
+  "implementationHead": null,
+  "reviewedHead": null,
+  "pathStateDigest": null,
+  "finalReview": {
+    "reviewer": null,
+    "outcome": "pending",
+    "evidence": ""
+  }
+}

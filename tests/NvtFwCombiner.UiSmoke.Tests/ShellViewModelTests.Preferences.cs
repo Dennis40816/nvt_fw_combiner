@@ -98,7 +98,9 @@ public sealed partial class ShellNavigationSystemTests
         string preferencesPath = workspace.PathFor(Path.Combine("state", "preferences.v1.json"));
         var preferences = new ShellPreferenceSnapshot("Dark", "Traditional Chinese", true);
 
-        Assert.Equal(ShellPreferenceSnapshot.Default, LoadPreferences(preferencesPath));
+        ShellPreferenceSnapshot missingPreferences = LoadPreferences(preferencesPath);
+        Assert.Equal(ShellPreferenceSnapshot.Default, missingPreferences);
+        Assert.Equal("Light", missingPreferences.Theme);
 
         SavePreferences(preferencesPath, preferences);
 
@@ -153,11 +155,18 @@ public sealed partial class ShellNavigationSystemTests
         Assert.Equal(ShellPreferenceSnapshot.Default, LoadPreferences(preferencesPath));
 
         MainWindowViewModel defaultViewModel = PresentationTestHost.CreateViewModel();
+
+        Assert.Equal("Light", defaultViewModel.SelectedTheme);
+
         defaultViewModel.LoadShellPreferences(new ShellPreferenceSnapshot("Blue", "Klingon"));
 
-        Assert.Equal("System", defaultViewModel.SelectedTheme);
+        Assert.Equal("Light", defaultViewModel.SelectedTheme);
         Assert.Equal("English", defaultViewModel.SelectedLanguage);
         Assert.False(defaultViewModel.IsReducedMotionEnabled);
+
+        defaultViewModel.LoadShellPreferences(new ShellPreferenceSnapshot("System", "English"));
+
+        Assert.Equal("System", defaultViewModel.SelectedTheme);
     }
 
     /// <summary>Bounds the startup preference read before constructing the localized shell.</summary>

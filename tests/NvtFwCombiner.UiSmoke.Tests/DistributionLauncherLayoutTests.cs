@@ -107,7 +107,7 @@ public sealed class DistributionLauncherLayoutTests
 
         Assert.Equal(3, progress.Height);
         Assert.Equal(new Thickness(0, 0, 0, 18), panel.Margin);
-        Assert.Equal(new Thickness(2, 0, 2, 9), text.Margin);
+        Assert.Equal(9, text.Margin.Bottom);
         Assert.False(panel.IsVisible);
         Assert.False(progress.IsVisible);
         Assert.False(progress.IsIndeterminate);
@@ -124,6 +124,7 @@ public sealed class DistributionLauncherLayoutTests
         Point primaryAfter = Assert.IsType<Point>(primary.TranslatePoint(default, window));
         Assert.InRange(Math.Abs(primaryAfter.X - primaryBefore.X), 0, 0.5);
         Assert.InRange(Math.Abs(primaryAfter.Y - primaryBefore.Y), 0, 0.5);
+        AssertProgressLeftEdgesAligned(text, progress, window);
         AssertNoSetupProgressOverlap(setup, panel, window);
 
         _ = presentProgress.Invoke(window,
@@ -157,6 +158,7 @@ public sealed class DistributionLauncherLayoutTests
         window.Height = 560;
         _ = setProgress.Invoke(window, [true]);
         await Dispatcher.UIThread.InvokeAsync(() => { }, DispatcherPriority.Loaded);
+        AssertProgressLeftEdgesAligned(text, progress, window);
         AssertNoSetupProgressOverlap(setup, panel, window);
         _ = setProgress.Invoke(window, [false]);
 
@@ -171,6 +173,18 @@ public sealed class DistributionLauncherLayoutTests
         Assert.False(progress.IsVisible);
         Assert.False(progress.IsIndeterminate);
         Assert.Equal(string.Empty, text.Text);
+    }
+
+    private static void AssertProgressLeftEdgesAligned(
+        Control text,
+        Control progress,
+        Visual window)
+    {
+        Point textOrigin = Assert.IsType<Point>(text.TranslatePoint(default, window));
+        Point progressOrigin = Assert.IsType<Point>(progress.TranslatePoint(default, window));
+        Assert.True(
+            Math.Abs(textOrigin.X - progressOrigin.X) <= 0.5,
+            $"Expected aligned progress left edges, got text {textOrigin.X} and bar {progressOrigin.X}.");
     }
 
     private static void AssertNoSetupProgressOverlap(

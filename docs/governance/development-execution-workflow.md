@@ -67,6 +67,17 @@ fails closed.
 
 ## Narrow test selection
 
+Local verification and every direct narrow test run only after one fixed,
+absolute, existing `NFC_TEST_AREA_ROOT` outside the repository is loaded into
+the current process. That process also explicitly sets `TEMP`, `TMP`, and
+`TMPDIR` to the root's existing `temp` child. The user-level declaration is
+initialized once; every shell repeats the process-level assignments. GitHub
+Actions derives `RUNNER_TEMP/NvtFwCombiner-TestArea` and rejects any conflicting
+declared root. These requirements apply to the bare commands below without
+changing their command text. Windows verifier custody of the validated root,
+sessions root, session, and marker remains live through scratch creation,
+descendant handoff, workload completion, and exact-session cleanup.
+
 | Changed surface | First test |
 | --- | --- |
 | Documentation, agent config, governance | `python scripts/verify.py --structure-only` |

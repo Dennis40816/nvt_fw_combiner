@@ -73,6 +73,30 @@ public sealed class FileSystemLauncherInstallationSelfTestTests
         Assert.Equal(2, launcherStore.LoadCount);
     }
 
+    /// <summary>Revision-only and digest-only Registry drift invalidate Launcher self-test observation.</summary>
+    [Theory]
+    [InlineData(2, "1111111111111111111111111111111111111111111111111111111111111111")]
+    [InlineData(1, "2222222222222222222222222222222222222222222222222222222222222222")]
+    public async Task ConcurrentRegistryAuthorityChangeReturnsNoPartialSuccess(
+        long revision,
+        string digest)
+    {
+        await using SelfTestFixture fixture = await SelfTestFixture.CreateAsync();
+        var appStore = new SequenceAppStateStore(
+            fixture.CreateAppState(sourceRegistryState: new(1, new string('1', 64), false)),
+            fixture.CreateAppState(sourceRegistryState: new(revision, digest, false)));
+        var selfTest = new FileSystemLauncherInstallationSelfTest(
+            fixture.ManagedRoot,
+            appStore,
+            new SequenceLauncherStateStore(fixture.CreateLauncherState(), fixture.CreateLauncherState()),
+            new FixedLauncherRepository(fixture.ActiveLauncher));
+
+        LauncherInstallationSelfTestResult result = await selfTest.QueryAsync(
+            TestContext.Current.CancellationToken);
+
+        AssertFailure(result, LauncherInstallationSelfTestIssue.StateChanged);
+    }
+
     /// <summary>A launcher-journal generation changed during hashing also fails the complete snapshot.</summary>
     [Fact]
     public async Task ConcurrentLauncherStateChangeReturnsNoPartialSuccess()
@@ -290,10 +314,13 @@ public sealed class FileSystemLauncherInstallationSelfTestTests
 
         public VersionManagerState CreateAppState(
             bool retentionReviewDue = false,
-            PendingManagedVersionMutation? pendingMutation = null)
+            PendingManagedVersionMutation? pendingMutation = null,
+            VersionSourceRegistryState? sourceRegistryState = null)
         {
             return VersionManagerState.Create(
-                updateSource: null,
+                updateSource: sourceRegistryState is null
+                    ? null
+                    : Path.TrimEndingDirectorySeparator(Path.GetFullPath(Path.Combine(Root, "source"))),
                 activeVersion: Admission.Version,
                 lastKnownGoodVersion: Admission.Version,
                 admissions: [Admission],
@@ -301,7 +328,8 @@ public sealed class FileSystemLauncherInstallationSelfTestTests
                 failedActivationVersion: null,
                 retentionReviewDue: retentionReviewDue,
                 pendingMutation: pendingMutation,
-                managedRootIdentity: ManagedRoot);
+                managedRootIdentity: ManagedRoot,
+                sourceRegistryState: sourceRegistryState);
         }
 
         public LauncherBootstrapState CreateLauncherState()

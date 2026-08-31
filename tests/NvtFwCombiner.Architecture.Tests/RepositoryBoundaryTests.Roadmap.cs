@@ -45,7 +45,15 @@ public sealed partial class RepositoryBoundaryTests
             nfcRoadmap,
             StringComparison.Ordinal);
         Assert.Contains(
-            "`1.1.0` starts only from the official reviewed `v1.0.0` predecessor. It owns:",
+            "`1.1.0` starts only after the release-bounded `1.0.x` sequence is closed and from its latest official reviewed stable predecessor.",
+            normalizedNfcRoadmap,
+            StringComparison.Ordinal);
+        Assert.Contains(
+            "## `1.0.8` through `1.0.13`: update delivery and release-flow closure",
+            nfcRoadmap,
+            StringComparison.Ordinal);
+        Assert.Contains(
+            "`v1.0.13` applies the existing documentation-convergence rule",
             nfcRoadmap,
             StringComparison.Ordinal);
         Assert.Contains(

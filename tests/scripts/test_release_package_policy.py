@@ -15,7 +15,9 @@ import time
 import tomllib
 import unittest
 import zipfile
+from collections.abc import Callable
 from pathlib import Path
+from unittest import mock
 
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -52,6 +54,10 @@ APPROVED_EXTERNAL_TOOL_PATHS = (
     "external-tools/legacy-combiner/1.13.0/Combiner.exe",
     "external-tools/legacy-combiner/1.13.0/manifest.json",
 )
+APPROVED_RUNTIME_CATALOG_PATHS = (
+    "profiles/built-in/ctrlram-postbuild-v2/catalog.json",
+    "profiles/built-in/ctrlram-postbuild-v2/flash-map.json",
+)
 RETIRED_PRODUCTION_IC_IDS = ("NT51920", "NT51925", "NT51930", "NT51931")
 POWERSHELL = shutil.which("pwsh") or shutil.which("powershell")
 PWSH = shutil.which("pwsh")
@@ -60,6 +66,11 @@ DOTNET = (
     if (ROOT / ".dotnet" / "dotnet.exe").is_file()
     else shutil.which("dotnet")
 )
+GIT_LONG_PATH_ENVIRONMENT = {
+    "GIT_CONFIG_COUNT": "1",
+    "GIT_CONFIG_KEY_0": "core.longpaths",
+    "GIT_CONFIG_VALUE_0": "true",
+}
 PERSONAL_OWNER_IDENTIFIER = "Dennis40816"
 DISTRIBUTION_OWNER = "MSP/FW3"
 SOURCE_IDENTITY = "urn:msp-fw3:nvt-fw-combiner:source"
@@ -336,7 +347,7 @@ class ReleasePackagePolicyTests(unittest.TestCase):
         self, script: Path, *arguments: str
     ) -> subprocess.CompletedProcess[str]:
         with tempfile.TemporaryDirectory(
-            prefix=".release-policy-powershell-", dir=ROOT
+            prefix=".release-policy-powershell-"
         ) as shell_temp:
             environment = os.environ.copy()
             environment["TEMP"] = shell_temp
@@ -360,25 +371,121 @@ class ReleasePackagePolicyTests(unittest.TestCase):
                 env=environment,
             )
 
+    def run_packager_dry_run_with_repository_watcher(
+        self,
+    ) -> subprocess.CompletedProcess[str]:
+        test_area_work = Path(os.environ["NFC_TEST_AREA_ROOT"]) / "work"
+        test_area_work.mkdir(parents=True, exist_ok=True)
+        with tempfile.TemporaryDirectory(
+            prefix="package-dry-run-watcher-",
+            dir=test_area_work,
+        ) as shell_temp:
+            shell_temp_path = Path(shell_temp)
+            wrapper_path = shell_temp_path / "watch-package-dry-run.ps1"
+            wrapper_path.write_text(
+                r"""param([Parameter(Mandatory = $true)][string]$PackageScript)
+$ErrorActionPreference = 'Stop'
+$RepositoryRoot = Split-Path -Parent (Split-Path -Parent $PackageScript)
+$ExternalToolsRoot = Join-Path $RepositoryRoot 'external-tools'
+$MutationEvents = [Collections.Concurrent.ConcurrentQueue[string]]::new()
+$Watcher = [IO.FileSystemWatcher]::new($ExternalToolsRoot)
+$Watcher.IncludeSubdirectories = $true
+$Watcher.NotifyFilter =
+    [IO.NotifyFilters]::FileName -bor
+    [IO.NotifyFilters]::DirectoryName -bor
+    [IO.NotifyFilters]::LastWrite -bor
+    [IO.NotifyFilters]::Size
+$SubscriptionPrefix = "nfc-package-dry-run-$([guid]::NewGuid().ToString('N'))"
+$Subscriptions = @(
+    Register-ObjectEvent -InputObject $Watcher -EventName Created `
+        -SourceIdentifier "$SubscriptionPrefix-created" -MessageData $MutationEvents `
+        -Action { $Event.MessageData.Enqueue("Created:$($Event.SourceEventArgs.FullPath)") }
+    Register-ObjectEvent -InputObject $Watcher -EventName Changed `
+        -SourceIdentifier "$SubscriptionPrefix-changed" -MessageData $MutationEvents `
+        -Action { $Event.MessageData.Enqueue("Changed:$($Event.SourceEventArgs.FullPath)") }
+    Register-ObjectEvent -InputObject $Watcher -EventName Deleted `
+        -SourceIdentifier "$SubscriptionPrefix-deleted" -MessageData $MutationEvents `
+        -Action { $Event.MessageData.Enqueue("Deleted:$($Event.SourceEventArgs.FullPath)") }
+    Register-ObjectEvent -InputObject $Watcher -EventName Renamed `
+        -SourceIdentifier "$SubscriptionPrefix-renamed" -MessageData $MutationEvents `
+        -Action { $Event.MessageData.Enqueue("Renamed:$($Event.SourceEventArgs.FullPath)") }
+    Register-ObjectEvent -InputObject $Watcher -EventName Error `
+        -SourceIdentifier "$SubscriptionPrefix-error" -MessageData $MutationEvents `
+        -Action { $Event.MessageData.Enqueue("WatcherError:$($Event.SourceEventArgs.GetException().Message)") }
+)
+$Watcher.EnableRaisingEvents = $true
+$InvocationFailed = $false
+try {
+    try {
+        & $PackageScript `
+            -Version '0.0.0' `
+            -Commit ('0' * 40) `
+            -ExternalToolPolicyDryRun
+    }
+    catch {
+        [Console]::Error.WriteLine($_.Exception.ToString())
+        $InvocationFailed = $true
+    }
+
+    Start-Sleep -Milliseconds 500
+    $ObservedMutations = [Collections.Generic.List[string]]::new()
+    $ObservedMutation = $null
+    while ($MutationEvents.TryDequeue([ref]$ObservedMutation)) {
+        $ObservedMutations.Add($ObservedMutation)
+        $ObservedMutation = $null
+    }
+
+    if ($InvocationFailed) {
+        exit 1
+    }
+    if ($ObservedMutations.Count -ne 0) {
+        [Console]::Error.WriteLine(
+            "REPOSITORY_EXTERNAL_TOOLS_MUTATION: " +
+            (($ObservedMutations | Sort-Object -Unique) -join ' | '))
+        exit 2
+    }
+}
+finally {
+    $Watcher.EnableRaisingEvents = $false
+    foreach ($Subscription in $Subscriptions) {
+        Unregister-Event -SubscriptionId $Subscription.Id -ErrorAction SilentlyContinue
+        Remove-Job -Id $Subscription.Id -Force -ErrorAction SilentlyContinue
+    }
+    $Watcher.Dispose()
+}
+""",
+                encoding="utf-8",
+            )
+            environment = os.environ.copy()
+            environment["TEMP"] = shell_temp
+            environment["TMP"] = shell_temp
+            return subprocess.run(
+                [
+                    str(POWERSHELL),
+                    "-NoProfile",
+                    "-ExecutionPolicy",
+                    "Bypass",
+                    "-File",
+                    str(wrapper_path),
+                    "-PackageScript",
+                    str(PACKAGE_SCRIPT),
+                ],
+                cwd=ROOT,
+                check=False,
+                capture_output=True,
+                text=True,
+                encoding="utf-8",
+                errors="replace",
+                env=environment,
+            )
+
     @unittest.skipUnless(
         POWERSHELL, "PowerShell is required for Windows release-policy tests"
     )
     def test_packager_dry_run_enforces_external_tool_and_profile_allowlists(
         self,
     ) -> None:
-        probe_path = ROOT / PROBE_RELATIVE_PATH
-        self.assertFalse(
-            probe_path.exists(), f"test probe already exists: {probe_path}"
-        )
-
-        result = self.run_powershell(
-            PACKAGE_SCRIPT,
-            "-Version",
-            "0.0.0",
-            "-Commit",
-            "0" * 40,
-            "-ExternalToolPolicyDryRun",
-        )
+        result = self.run_packager_dry_run_with_repository_watcher()
 
         self.assertEqual(0, result.returncode, result.stdout + result.stderr)
         self.assertIn(
@@ -398,25 +505,24 @@ class ReleasePackagePolicyTests(unittest.TestCase):
             result.stdout,
         )
         self.assertIn(
-            "Canonical golden package policy dry-run passed: 25 direct Standard Merge BIN artifacts and 10 direct/alias cases selected; diagnostics and other workflows excluded",
+            "Canonical golden package policy dry-run passed: 25 direct Goldens, nine self-contained aliases, 159 declarations, and 156 unique artifact paths selected",
             result.stdout,
         )
         self.assertIn(
-            "Canonical golden package policy direct/alias drift and strict-type rejection passed",
+            "Canonical golden package policy identity, direct/alias drift, retired-IC, and strict-type rejection passed",
             result.stdout,
         )
         self.assertIn(
             "Release hash-list policy dry-run passed: Unicode paths round-trip through UTF-8",
             result.stdout,
         )
-        self.assertFalse(
-            probe_path.exists(), "packager did not clean its source policy probe"
-        )
-
     @unittest.skipUnless(
         POWERSHELL, "PowerShell is required for Windows release-policy tests"
     )
     def test_packager_policy_dry_run_is_parallel_safe(self) -> None:
+        test_area_root = Path(os.environ["NFC_TEST_AREA_ROOT"]).resolve()
+        ambient_temp = Path(os.environ["TEMP"]).resolve()
+        self.assertTrue(ambient_temp.is_relative_to(test_area_root))
         command = [
             str(POWERSHELL),
             "-NoProfile",
@@ -447,6 +553,17 @@ class ReleasePackagePolicyTests(unittest.TestCase):
         for process, (stdout, stderr) in zip(processes, results, strict=True):
             self.assertEqual(0, process.returncode, stdout + stderr)
         self.assertEqual([], list((ROOT / "external-tools").glob("release-package-policy-probe-*.txt")))
+
+    def test_external_tool_copy_owner_accepts_an_explicit_source_root(self) -> None:
+        script = PACKAGE_SCRIPT.read_text(encoding="utf-8")
+        copy_owner = script[
+            script.index("function Copy-ApprovedExternalToolPackageFiles") :
+            script.index("function Get-ExternalToolManifestEntries")
+        ]
+
+        self.assertIn("[string]$SourceRoot = $RepoRoot", copy_owner)
+        self.assertIn("Copy-PackageFileFromRoot", copy_owner)
+        self.assertIn("-SourceRoot $SourceRoot", copy_owner)
 
     @unittest.skipUnless(
         POWERSHELL, "PowerShell is required for Windows release-policy tests"
@@ -657,7 +774,7 @@ class ReleasePackagePolicyTests(unittest.TestCase):
         self,
     ) -> None:
         with tempfile.TemporaryDirectory(
-            prefix=".nfc-package-mismatch-", dir=ROOT.parent
+            prefix=".nfc-package-mismatch-"
         ) as temporary_directory:
             temporary_root = Path(temporary_directory)
             invocation_root = temporary_root / "invocation"
@@ -713,9 +830,10 @@ class ReleasePackagePolicyTests(unittest.TestCase):
     def test_snapshot_remove_failure_fails_package_and_preserves_evidence(self) -> None:
         actual_git = shutil.which("git")
         self.assertIsNotNone(actual_git)
-        with tempfile.TemporaryDirectory(
-            prefix=".npr-", dir=ROOT.parent
-        ) as temporary_directory:
+        with (
+            mock.patch.dict(os.environ, GIT_LONG_PATH_ENVIRONMENT, clear=False),
+            tempfile.TemporaryDirectory(prefix=".npr-") as temporary_directory,
+        ):
             temporary_root = Path(temporary_directory)
             invocation_root = temporary_root / "i"
             subprocess.run(
@@ -839,9 +957,12 @@ class ReleasePackagePolicyTests(unittest.TestCase):
     def test_packager_uses_exact_snapshot_when_invocation_tree_changes_after_preflight(
         self,
     ) -> None:
-        with tempfile.TemporaryDirectory(
-            prefix=".nfc-package-race-", dir=ROOT.parent
-        ) as temporary_directory:
+        with (
+            mock.patch.dict(os.environ, GIT_LONG_PATH_ENVIRONMENT, clear=False),
+            tempfile.TemporaryDirectory(
+                prefix=".nfc-package-race-"
+            ) as temporary_directory,
+        ):
             temporary_root = Path(temporary_directory)
             invocation_root = temporary_root / "invocation"
             runtime_temp = temporary_root / "runtime-temp"
@@ -1121,9 +1242,12 @@ class ReleasePackagePolicyTests(unittest.TestCase):
         }
         self.assertTrue(lock_bytes)
 
-        with tempfile.TemporaryDirectory(
-            prefix=".nfcl-rid-restore-", dir=ROOT.parent
-        ) as temporary_directory:
+        with (
+            mock.patch.dict(os.environ, GIT_LONG_PATH_ENVIRONMENT, clear=False),
+            tempfile.TemporaryDirectory(
+                prefix=".nfcl-rid-restore-"
+            ) as temporary_directory,
+        ):
             snapshot_root = Path(temporary_directory) / "snapshot"
             subprocess.run(
                 [
@@ -1265,7 +1389,6 @@ class ReleasePackagePolicyTests(unittest.TestCase):
                         if cleanup_mode == "unicode-path"
                         else ".nfcl-cleanup-policy-"
                     ),
-                    dir=ROOT.parent,
                 ) as temporary_directory,
             ):
                 temporary_root = Path(temporary_directory)
@@ -1968,14 +2091,195 @@ class ReleasePackagePolicyTests(unittest.TestCase):
         self.assertNotIn("nfc.nt51931.ctrlram-postbuild-v1", match.group(1))
         self.assertIn("nfc.nt51926.ctrlram-postbuild-fw1.4.1", match.group(1))
 
-    def test_standard_merge_release_allowlist_excludes_retired_ic_ids(self) -> None:
-        allowlist_path = ROOT / "testdata/golden/release-standard-merge-v1.json"
+    def test_canonical_release_allowlist_is_the_exact_self_contained_scope(self) -> None:
+        allowlist_path = ROOT / "testdata/golden/release-canonical-v1.json"
         allowlist = json.loads(allowlist_path.read_text(encoding="utf-8"))
         publication_text = json.dumps(allowlist, sort_keys=True).upper()
+
+        self.assertEqual(
+            {
+                "caseCount": 34,
+                "directGoldenCount": 25,
+                "factScopedAliasCount": 9,
+                "artifactDeclarationCount": 159,
+                "uniqueArtifactPathCount": 156,
+            },
+            allowlist["selectionSummary"],
+        )
+        selected = {case["caseId"]: case for case in allowlist["cases"]}
+        canonical_readme = ROOT / "testdata/golden/canonical/README.md"
+        self.assertEqual(
+            hashlib.sha256(canonical_readme.read_bytes()).hexdigest(),
+            allowlist["canonicalReadmeSha256"],
+        )
+        excluded = {
+            "nt51927-2chip-self-20260705",
+            "nt51927-3chip-self-20260705",
+            "nt51917-fw132-cascade2-nt51927-alias",
+            "nt51917-fw140-cascade3-nt51927-alias",
+            "nt51928-fw132-non-nb-cascade2-nt51927-alias",
+        }
+        self.assertTrue(excluded.isdisjoint(selected))
+        for case in selected.values():
+            case_manifest_path = (
+                ROOT / "testdata/golden/canonical" / case["manifestPath"]
+            )
+            self.assertEqual(
+                hashlib.sha256(case_manifest_path.read_bytes()).hexdigest(),
+                case["manifestSha256"],
+            )
+            if case["directGolden"]:
+                continue
+            source = selected[case["alias"]["sourceCaseId"]]
+            self.assertTrue(source["directGolden"])
+            self.assertEqual(case["workflow"], source["workflow"])
+
+        provenance = [
+            artifact
+            for case in selected.values()
+            for artifact in case["artifacts"]
+            if artifact["path"].lower().endswith((".bat", ".config"))
+        ]
+        self.assertEqual(2, len(provenance))
+        self.assertTrue(all(artifact["role"] == "provenance" for artifact in provenance))
 
         for retired_ic_id in RETIRED_PRODUCTION_IC_IDS:
             with self.subTest(ic=retired_ic_id):
                 self.assertNotIn(retired_ic_id, publication_text)
+
+    @unittest.skipUnless(
+        POWERSHELL, "PowerShell is required for Windows release-policy tests"
+    )
+    def test_release_smoke_accepts_complete_canonical_fixture_until_sidecar_gate(
+        self,
+    ) -> None:
+        result = self.run_smoke_with_canonical_golden_mutation(lambda _: None)
+
+        self.assertNotEqual(0, result.returncode, result.stdout + result.stderr)
+        self.assertIn(
+            "Release SBOM sidecar is missing:",
+            result.stdout + result.stderr,
+        )
+
+    @unittest.skipUnless(
+        POWERSHELL, "PowerShell is required for Windows release-policy tests"
+    )
+    def test_release_smoke_rejects_self_consistent_private_case_manifest_replacement(
+        self,
+    ) -> None:
+        def substitute(golden_entries: dict[str, bytes]) -> None:
+            allowlist_key = "reference/testdata/golden/release-canonical-v1.json"
+            allowlist = json.loads(golden_entries[allowlist_key].decode("utf-8"))
+            selected_case = allowlist["cases"][0]
+            case_key = (
+                "reference/testdata/golden/canonical/"
+                + selected_case["manifestPath"]
+            )
+            case_manifest = json.loads(golden_entries[case_key].decode("utf-8"))
+            case_manifest["privateMetadata"] = {"classification": "unapproved"}
+            replacement = (json.dumps(case_manifest, indent=2) + "\n").encode()
+            golden_entries[case_key] = replacement
+            selected_case["manifestSha256"] = hashlib.sha256(replacement).hexdigest()
+            golden_entries[allowlist_key] = (
+                json.dumps(allowlist, indent=2) + "\n"
+            ).encode()
+
+        result = self.run_smoke_with_canonical_golden_mutation(substitute)
+
+        self.assertNotEqual(0, result.returncode, result.stdout + result.stderr)
+        self.assertIn(
+            "canonical Golden allowlist identity or reference role differs",
+            result.stdout + result.stderr,
+        )
+
+    @unittest.skipUnless(
+        POWERSHELL, "PowerShell is required for Windows release-policy tests"
+    )
+    def test_release_smoke_rejects_self_consistent_canonical_readme_replacement(
+        self,
+    ) -> None:
+        def substitute(golden_entries: dict[str, bytes]) -> None:
+            allowlist_key = "reference/testdata/golden/release-canonical-v1.json"
+            readme_key = "reference/testdata/golden/canonical/README.md"
+            replacement = golden_entries[readme_key] + b"\nPrivate replacement metadata.\n"
+            golden_entries[readme_key] = replacement
+            allowlist = json.loads(golden_entries[allowlist_key].decode("utf-8"))
+            allowlist["canonicalReadmeSha256"] = hashlib.sha256(
+                replacement
+            ).hexdigest()
+            golden_entries[allowlist_key] = (
+                json.dumps(allowlist, indent=2) + "\n"
+            ).encode()
+
+        result = self.run_smoke_with_canonical_golden_mutation(substitute)
+
+        self.assertNotEqual(0, result.returncode, result.stdout + result.stderr)
+        self.assertIn(
+            "canonical Golden allowlist identity or reference role differs",
+            result.stdout + result.stderr,
+        )
+
+    @unittest.skipUnless(
+        POWERSHELL, "PowerShell is required for Windows release-policy tests"
+    )
+    def test_release_smoke_rejects_omitted_allowlisted_golden_artifacts(self) -> None:
+        removed: list[str] = []
+
+        def omit_artifact(golden_entries: dict[str, bytes]) -> None:
+            allowlist = json.loads(
+                golden_entries[
+                    "reference/testdata/golden/release-canonical-v1.json"
+                ].decode("utf-8")
+            )
+            artifact_path = next(
+                artifact["path"]
+                for case in allowlist["cases"]
+                for artifact in case["artifacts"]
+            )
+            package_path = "reference/testdata/golden/canonical/" + artifact_path
+            del golden_entries[package_path]
+            removed.append(package_path)
+
+        result = self.run_smoke_with_canonical_golden_mutation(omit_artifact)
+
+        self.assertNotEqual(0, result.returncode, result.stdout + result.stderr)
+        self.assertEqual(1, len(removed))
+        self.assertIn(
+            "canonical Golden tree contains omitted or unapproved files",
+            result.stdout + result.stderr,
+        )
+
+    @unittest.skipUnless(
+        POWERSHELL, "PowerShell is required for Windows release-policy tests"
+    )
+    def test_release_smoke_rejects_golden_provenance_registered_as_external_tool(
+        self,
+    ) -> None:
+        allowlist = json.loads(
+            (ROOT / "testdata/golden/release-canonical-v1.json").read_text(
+                encoding="utf-8"
+            )
+        )
+        provenance_paths = [
+            artifact["path"]
+            for case in allowlist["cases"]
+            for artifact in case["artifacts"]
+            if artifact["path"].lower().endswith((".bat", ".config"))
+        ]
+        self.assertEqual(2, len(provenance_paths))
+        for provenance_path in provenance_paths:
+            with self.subTest(path=provenance_path):
+                result = self.run_smoke_with_manifested_external_tool(
+                    Path("reference/testdata/golden/canonical") / provenance_path
+                )
+
+                self.assertNotEqual(
+                    0, result.returncode, result.stdout + result.stderr
+                )
+                self.assertIn(
+                    "external-tool paths and roles are inconsistent",
+                    result.stdout + result.stderr,
+                )
 
     def test_sbom_file_ids_encode_every_package_path_as_valid_spdx_characters(
         self,
@@ -2459,6 +2763,150 @@ class ReleasePackagePolicyTests(unittest.TestCase):
             "Release built-in profile bundle file hash differs",
             result.stdout + result.stderr,
         )
+
+    def run_smoke_with_canonical_golden_mutation(
+        self,
+        mutate: Callable[[dict[str, bytes]], None],
+    ) -> subprocess.CompletedProcess[str]:
+        test_area_root = Path(os.environ["NFC_TEST_AREA_ROOT"])
+        work_root = test_area_root / "work"
+        work_root.mkdir(parents=True, exist_ok=True)
+        with tempfile.TemporaryDirectory(
+            prefix="cg-",
+            dir=work_root,
+        ) as temporary_directory:
+            temporary_root = Path(temporary_directory)
+            package_name = "NvtFwCombiner-v0.0.0-win-x64"
+            package_root = temporary_root / package_name
+            package_root.mkdir()
+            application_path = package_root / "NvtFwCombiner.exe"
+            application_path.write_bytes(b"release-policy fixture\n")
+
+            manifest_entries: list[dict[str, object]] = [
+                self.manifest_entry(application_path, package_root, "application")
+            ]
+            self.add_valid_capability_policy(package_root, manifest_entries)
+            for relative_path in APPROVED_EXTERNAL_TOOL_PATHS:
+                destination = package_root / relative_path
+                destination.parent.mkdir(parents=True, exist_ok=True)
+                destination.write_bytes(b"external-tool policy fixture\n")
+                manifest_entries.append(
+                    self.manifest_entry(destination, package_root, "externalTool")
+                )
+            profile_paths = list(self.stage_profile_bundles(package_root))
+            for relative_path in APPROVED_RUNTIME_CATALOG_PATHS:
+                destination = package_root / relative_path
+                destination.parent.mkdir(parents=True, exist_ok=True)
+                destination.write_bytes((ROOT / relative_path).read_bytes())
+                profile_paths.append(destination)
+            manifest_entries.extend(
+                self.manifest_entry(path, package_root, "builtInProfile")
+                for path in profile_paths
+            )
+
+            allowlist_source = ROOT / "testdata/golden/release-canonical-v1.json"
+            allowlist_payload = allowlist_source.read_bytes()
+            allowlist = json.loads(allowlist_payload.decode("utf-8"))
+            canonical_source = ROOT / "testdata/golden/canonical"
+            projection = {
+                "schemaVersion": "1.0",
+                "payloadClass": "owner-approved-golden",
+                "binaryPayloadsIncluded": True,
+                "diagnosticsRoot": "testdata/diagnostics/golden-evidence",
+                "inventoryScope": "release-canonical-v1",
+                "sourceManifest": "testdata/golden/canonical/manifest.json",
+                "cases": [
+                    {"caseId": case["caseId"], "manifestPath": case["manifestPath"]}
+                    for case in allowlist["cases"]
+                ],
+            }
+            golden_entries: dict[str, bytes] = {
+                "reference/testdata/golden/release-canonical-v1.json": allowlist_payload,
+                "reference/testdata/golden/canonical/README.md": (
+                    canonical_source / "README.md"
+                ).read_bytes(),
+                "reference/testdata/golden/canonical/manifest.json": (
+                    json.dumps(projection, indent=2) + "\n"
+                ).encode(),
+            }
+            for case in allowlist["cases"]:
+                manifest_relative_path = case["manifestPath"]
+                golden_entries[
+                    "reference/testdata/golden/canonical/" + manifest_relative_path
+                ] = (canonical_source / manifest_relative_path).read_bytes()
+                for artifact in case["artifacts"]:
+                    artifact_key = (
+                        "reference/testdata/golden/canonical/" + artifact["path"]
+                    )
+                    golden_entries.setdefault(
+                        artifact_key,
+                        (canonical_source / artifact["path"]).read_bytes(),
+                    )
+
+            self.assertEqual(34, len(allowlist["cases"]))
+            self.assertEqual(
+                156,
+                len(
+                    {
+                        artifact["path"]
+                        for case in allowlist["cases"]
+                        for artifact in case["artifacts"]
+                    }
+                ),
+            )
+            mutate(golden_entries)
+            for relative_path, payload in sorted(golden_entries.items()):
+                manifest_entries.append(
+                    {
+                        "path": relative_path,
+                        "size": len(payload),
+                        "sha256": hashlib.sha256(payload).hexdigest(),
+                        "role": (
+                            "goldenFixture"
+                            if relative_path.lower().endswith(".bin")
+                            else "reference"
+                        ),
+                    }
+                )
+            for required_name in (
+                "README.txt",
+                "LICENSE.txt",
+                "THIRD-PARTY-NOTICES.txt",
+            ):
+                required_path = package_root / required_name
+                required_path.write_bytes(b"release-policy fixture\n")
+                manifest_entries.append(
+                    self.manifest_entry(required_path, package_root, "documentation")
+                )
+            manifest_path = package_root / "RELEASE-MANIFEST.json"
+            manifest_path.write_text(
+                json.dumps(
+                    {
+                        "sourceTag": "v0.0.0",
+                        "sbomAsset": "NvtFwCombiner-v0.0.0-win-x64.spdx.json",
+                        "provenanceAsset": (
+                            "NvtFwCombiner-v0.0.0-win-x64.provenance.json"
+                        ),
+                        "files": manifest_entries,
+                    }
+                ),
+                encoding="utf-8",
+            )
+            (package_root / "SHA256SUMS.txt").write_text("", encoding="utf-8")
+
+            package_path = temporary_root / f"{package_name}.zip"
+            with zipfile.ZipFile(package_path, "w", zipfile.ZIP_DEFLATED) as archive:
+                for path in sorted(package_root.rglob("*")):
+                    if path.is_file():
+                        archive.write(path, path.relative_to(temporary_root))
+                for relative_path, payload in sorted(golden_entries.items()):
+                    archive.writestr(f"{package_name}/{relative_path}", payload)
+            return self.run_powershell(
+                SMOKE_SCRIPT,
+                "-PackagePath",
+                str(package_path),
+                "-SkipUiLaunch",
+            )
 
     def stage_profile_bundles(self, package_root: Path) -> tuple[Path, ...]:
         source_index_path = ROOT / "profiles/built-in/package-trust-index.json"

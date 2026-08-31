@@ -1,0 +1,39 @@
+{
+  "schemaVersion": 2,
+  "taskId": "REL-108-TEST-AREA-01",
+  "capability": "Confine every canonical verifier invocation and its descendant test processes to one validated invocation-owned test session while preserving repository-owned final evidence paths",
+  "integrationBase": "add334124508658dbcf417b96f83d41c77391dc1",
+  "risk": "R2",
+  "kind": "governance",
+  "state": "design-active",
+  "mutablePaths": [
+    "AGENTS.md",
+    "docs/adr/0027-evidence-preserving-performance-remediation.md",
+    "docs/governance/development-execution-workflow.md",
+    "scripts/verify.py"
+  ],
+  "implementationOwner": "implement_test_area",
+  "searchEvidence": [
+    "scripts/verify.py main is the sole public verifier entry, run_selected_lanes allocates verifier logs through tempfile, every Python command inherits the parent environment, dotnet_batch_environment copies that environment for every .NET owner, and isolated lanes receive a parent-owned environment copy.",
+    "The existing verifier leaves ambient TEMP, TMP, TMPDIR, DOTNET_BUNDLE_EXTRACT_BASE_DIR, Ruff cache, Python bytecode cache, and pytest base-temp selection to host defaults, which previously produced hundreds of product-related directories under the user's C-drive temporary directory.",
+    "DOTNET_COVERAGE_WORK_ROOT and CI_DOTNET_EVIDENCE_ROOT are disposable verifier work owners, while COVERAGE_ROOT and CI_DOTNET_UPLOAD_ROOT are intentional repository-owned final evidence paths that must remain unchanged.",
+    "The complete explicit TemporaryDirectory bypass inventory in canonical repository-script tests is five ROOT.parent callers in test_v0916_parity_contracts.py, six ROOT or ROOT.parent callers in test_release_package_policy.py, and one ROOT caller in test_verify_orchestration.py.",
+    "AGENTS.md, README.md, CONTRIBUTING.md, ADR 0027, and the development execution workflow publish canonical verifier or narrow-test commands without declaring NFC_TEST_AREA_ROOT or fixed TEMP/TMP/TMPDIR ownership; changing the executable entry contract therefore requires those authorities to move together."
+  ],
+  "semanticOwner": "scripts/verify.py canonical verification scratch-session environment and disposable-work lifecycle",
+  "terminalContract": "A public canonical verifier invocation accepts no inherited session, derives the exact GitHub Actions test root only from an existing absolute RUNNER_TEMP or otherwise requires an explicit absolute NFC_TEST_AREA_ROOT, rejects filesystem roots, files, bidirectional repository overlap, conflicting declarations, dot-segment escape, and every existing symlink, junction, or reparse component before writing, then creates one exclusive marker-bound direct child below the validated root's sessions directory. TEMP, TMP, TMPDIR, DOTNET_BUNDLE_EXTRACT_BASE_DIR, Ruff cache, Python bytecode cache, pytest base/cache, local .NET coverage shadow work, and CI .NET producer work remain inside that invocation-owned session; internal lanes may inherit only the exact parent-owned session, while repository coverage and CI upload evidence retain their existing canonical artifact paths. All known repository-adjacent TemporaryDirectory test callers use the ambient session or the explicit external-work boundary. On every success, failure, timeout, cancellation, or signal path, process environment and tempfile state are restored and cleanup rejects reparse or identity drift before deleting only exact ordinary descendants and the exact marker-bound session direct child; the test-area root, sessions parent, stale sessions, siblings, external targets, and fixed shared directories are never scanned or deleted. Canonical setup documentation declares the fixed local test root before every public verifier command, and direct narrow commands are permitted only with NFC_TEST_AREA_ROOT plus TEMP/TMP/TMPDIR explicitly bound inside that same declared root.",
+  "disposition": "extend-owner",
+  "designReview": {
+    "reviewer": "test_area_design_review",
+    "outcome": "findings-incorporated",
+    "evidence": "Independent R2 review traced canonical verification from execute_verification through isolated internal lanes, Python/pytest and local/CI .NET work owners. The admitted design extends scripts/verify.py as the sole scratch-session owner, requires an explicit absolute local root or exact GitHub RUNNER_TEMP-derived root, normalizes before root and overlap decisions, creates one marker-bound non-reparse session, propagates only that session to children, restores process state, and deletes only revalidated ordinary descendants plus the parent-owned direct child without broad recursive deletion. All known explicit repository-adjacent TemporaryDirectory callers are migrated to the ambient session or an injected external-work seam; repository coverage/upload artifacts retain their existing paths. Canonical command authorities move in the same batch so local verifier and direct narrow-test setup remain executable only within the declared fixed test area. The design adds no workflow executor, arbitrary write path, product behavior, firmware/profile/range/CRC/naming/support change, or composition path. Outcome: findings-incorporated."
+  },
+  "implementationHead": null,
+  "reviewedHead": null,
+  "pathStateDigest": null,
+  "finalReview": {
+    "reviewer": null,
+    "outcome": "pending",
+    "evidence": ""
+  }
+}

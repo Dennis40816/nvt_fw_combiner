@@ -1,0 +1,39 @@
+{
+  "schemaVersion": 2,
+  "taskId": "RELEASE-108-GOLDEN-PACKAGE-01",
+  "capability": "Project the exact v1.0.8 canonical Golden release scope into the Windows package, reject every unapproved reference payload or role, and confine the existing package-policy dry-run to the caller-owned temporary tree",
+  "integrationBase": "add334124508658dbcf417b96f83d41c77391dc1",
+  "risk": "R3",
+  "kind": "release",
+  "state": "design-active",
+  "mutablePaths": [
+    "docs/ci/release-package.md",
+    "scripts/package.ps1",
+    "scripts/smoke-release.ps1"
+  ],
+  "implementationOwner": "canonical-golden-package-implementer",
+  "searchEvidence": [
+    "package.ps1 currently calls Get-DeclaredStandardMergeGoldenPaths against release-standard-merge-v1.json and therefore packages only ten Standard Merge cases.",
+    "The approved release-canonical projection is exact: 25 direct Golden, nine self-contained aliases, 34 case manifests, 159 logical artifact declarations, 156 unique artifact paths, and zero directEvidence input-only cases.",
+    "One BAT and one CONFIG belong to canonical provenance; package and smoke must bind both only with release-manifest role reference and prove no external-tool, processor, or execution registration.",
+    "Invoke-ExternalToolPolicyDryRun already creates its package, published, invalid-fixture, worker, manifest, profile, runtime-catalog, capability-policy, Golden, and hash-list material under one GUID child of IO.Path.GetTempPath; only its negative external-tool probe currently writes transiently to RepoRoot/external-tools.",
+    "Copy-ApprovedExternalToolPackageFiles is the existing closed external-tool copy owner. Giving it one optional SourceRoot defaulted to RepoRoot preserves the normal packaging caller while allowing the dry-run to populate a GUID-scoped temporary source fixture and exercise the same allowlist/copy path without any repository mutation.",
+    "scripts/verify.py already owns NFC_TEST_AREA_ROOT, NFC_TEST_SESSION_ROOT, and TEMP/TMP/TMPDIR redirection. The package dry-run reuses that ambient temporary root and must not add a session, marker, broad cleanup, or filesystem-custody owner."
+  ],
+  "semanticOwner": "package.ps1 owns closed package projection, manifest roles, and its GUID-scoped policy dry-run; smoke-release.ps1 owns packaged semantic enforcement; the release-canonical allowlist remains the upstream Golden redistribution authority; scripts/verify.py remains the only test-session and fixed-area owner",
+  "terminalContract": "Generalize the existing exact allowlist package projection to consume release-canonical-v1.json without scanning the canonical tree or selecting current eligible cases at runtime. Package all and only the 34 approved case manifests and 156 unique exact artifact paths while retaining 159 logical declarations, and generate a closed package projection manifest. Reject count/key/workflow/disposition drift, canonical README exact-byte SHA-256 drift, case-manifest exact-byte SHA-256 drift, directEvidence/input-only or dependent-alias admission, alias without its exact same-workflow selected direct Golden, artifact omission/addition/path/size/hash drift, self-consistent substitution with an unapproved case, diagnostics/owner-handoff/private/quarantine/retired content, traversal, and future unlisted cases. Bind the BAT and CONFIG only as inert reference-role provenance; never register or execute them as external tools, processors, commands, or Golden runtime. Package documentation and smoke state 25 direct Golden plus nine evidence aliases, distinguish 11 direct-full-output from 14 allowed-byte-difference cases, preserve the five repo-only evidence cases, and make no runtime/support promotion claim. ExternalToolPolicyDryRun creates one GUID-scoped source fixture beneath its existing ambient temporary dry-run root, copies only the approved external-tool inputs into it, adds the negative probe there, and invokes the same Copy-ApprovedExternalToolPackageFiles owner through an optional SourceRoot whose default remains RepoRoot for normal packaging. The dry-run creates, changes, and deletes nothing under repository external-tools; all writes and recursive cleanup remain beneath caller-owned TEMP, which the canonical verifier binds to the fixed D test session. Normal package contents, allowlist, manifest roles, source identity, parallel safety, and fail-closed behavior remain unchanged; no second session, marker, cleanup framework, or package payload is added. Focused behavioral no-repository-mutation evidence, package-policy dry run, release-security review, actual frozen v1.0.8 ZIP size under the existing ceiling, complete package smoke/SBOM/provenance/hash closure, and exact-head release-owner attestation remain mandatory.",
+  "disposition": "extend-owner",
+  "designReview": {
+    "reviewer": "review_package_dryrun_design",
+    "outcome": "approved",
+    "evidence": "Independent combined R3 re-review confirmed P0-P3 = 0 and scoped Polytail PASS-WITH-HUMAN-GATE. The prior Golden projection approval remains incorporated. Dry-run confinement now shares this record's existing package.ps1/release-package.md owner and add33412 evidence checkpoint, reuses Copy-PackageFileFromRoot through one optional SourceRoot defaulted to RepoRoot, keeps the normal package caller and exact contents unchanged, and removes all repository probe creation/cleanup in favor of the existing GUID ambient TEMP root. The behavioral regression watches recursive repository external-tools Created/Changed/Deleted/Renamed events and watcher Error fail-closed; its fixed-D red evidence captured the old GUID probe's transient create/change/delete with zero leftover. Approved for the named single writer; exact-head package, smoke, size, sidecar, clean-machine, verifier, and release-owner gates remain pending."
+  },
+  "implementationHead": null,
+  "reviewedHead": null,
+  "pathStateDigest": null,
+  "finalReview": {
+    "reviewer": null,
+    "outcome": "pending",
+    "evidence": ""
+  }
+}

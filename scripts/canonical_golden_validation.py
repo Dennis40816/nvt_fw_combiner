@@ -18,9 +18,16 @@ DIAGNOSTIC_CTRLRAM_INVENTORY = PurePosixPath(
     "testdata/golden/ctrlram-replace/manifest.20260717.json"
 )
 DIAGNOSTIC_OWNER_HANDOFF_ROOT = PurePosixPath("testdata/golden/owner-handoff")
-STANDARD_MERGE_RELEASE_ALLOWLIST = PurePosixPath(
-    "testdata/golden/release-standard-merge-v1.json"
+CANONICAL_RELEASE_ALLOWLIST = PurePosixPath(
+    "testdata/golden/release-canonical-v1.json"
 )
+CANONICAL_RELEASE_SELECTION_SUMMARY = {
+    "caseCount": 34,
+    "directGoldenCount": 25,
+    "factScopedAliasCount": 9,
+    "artifactDeclarationCount": 159,
+    "uniqueArtifactPathCount": 156,
+}
 CAPABILITY_POLICY = PurePosixPath("docs/contracts/canonical-capability-policy-v1.json")
 ROOT_FILES = {PurePosixPath("README.md"), PurePosixPath("manifest.json")}
 LEGACY_GOLDEN_ROOTS = {
@@ -1262,10 +1269,12 @@ def validate_canonical_golden(repository_root: Path, errors: list[str]) -> None:
             )
 
 
-def validate_standard_merge_release_allowlist(
-    repository_root: Path, errors: list[str]
+def validate_canonical_release_allowlist(
+    repository_root: Path,
+    errors: list[str],
+    expected_summary: dict[str, int] | None = None,
 ) -> None:
-    """Validate the explicit case/artifact facts authorized for release packaging."""
+    """Validate the exact cross-workflow reference payload authorized for release."""
     canonical_root = repository_root / Path(CANONICAL_ROOT)
     inventory = _load_object(
         canonical_root / "manifest.json",
@@ -1273,26 +1282,92 @@ def validate_standard_merge_release_allowlist(
         "canonical manifest",
         errors,
     )
-    allowlist_path = repository_root / Path(STANDARD_MERGE_RELEASE_ALLOWLIST)
+    allowlist_path = repository_root / Path(CANONICAL_RELEASE_ALLOWLIST)
     try:
         allowlist = json.loads(allowlist_path.read_text(encoding="utf-8"))
     except (OSError, UnicodeDecodeError, json.JSONDecodeError) as error:
-        errors.append(f"cannot read Standard Merge release allowlist: {error}")
+        errors.append(f"cannot read canonical release allowlist: {error}")
         return
     if not isinstance(allowlist, dict):
-        errors.append("Standard Merge release allowlist must be a JSON object")
+        errors.append("canonical release allowlist must be a JSON object")
         return
     if inventory is None:
         return
+    expected_keys = {
+        "schemaVersion",
+        "policyId",
+        "authorizedForVersion",
+        "releaseStatus",
+        "redistributionAuthorization",
+        "authorityLimits",
+        "canonicalReadmeSha256",
+        "selectionSummary",
+        "cases",
+    }
+    if set(allowlist) != expected_keys:
+        errors.append("canonical release allowlist fields must match the closed contract")
     if allowlist.get("schemaVersion") != "1.0":
-        errors.append("Standard Merge release allowlist schemaVersion must be 1.0")
-    if allowlist.get("workflow") != "standard-merge":
-        errors.append(
-            "Standard Merge release allowlist workflow must be standard-merge"
-        )
+        errors.append("canonical release allowlist schemaVersion must be 1.0")
+    if allowlist.get("policyId") != "canonical-reference-v1":
+        errors.append("canonical release allowlist policyId must be canonical-reference-v1")
+    if allowlist.get("authorizedForVersion") != "1.0.8":
+        errors.append("canonical release allowlist must be authorized for version 1.0.8")
     if allowlist.get("releaseStatus") != "human-gated-allowlist":
+        errors.append("canonical release allowlist releaseStatus must be human-gated-allowlist")
+    authorization = allowlist.get("redistributionAuthorization")
+    if not isinstance(authorization, dict) or set(authorization) != {
+        "authorizedOn",
+        "authorizedBy",
+        "scope",
+        "supersedesHistoricalCaseRestrictions",
+    }:
+        errors.append("canonical release allowlist redistribution authorization is incomplete")
+    else:
+        if authorization.get("authorizedOn") != "2026-09-01":
+            errors.append("canonical release redistribution authorization date must be 2026-09-01")
+        if authorization.get("authorizedBy") != "repository owner":
+            errors.append(
+                "canonical release redistribution must be authorized by the repository owner"
+            )
+        if authorization.get("scope") != "reference-payload-only":
+            errors.append("canonical release redistribution scope must be reference-payload-only")
+        if authorization.get("supersedesHistoricalCaseRestrictions") is not True:
+            errors.append(
+                "canonical release redistribution must explicitly supersede "
+                "historical case restrictions"
+            )
+    authority_limits = allowlist.get("authorityLimits")
+    if not isinstance(authority_limits, dict) or set(authority_limits) != {
+        "runtimeSupportPromotion",
+        "fullByteParityClaim",
+    }:
+        errors.append("canonical release allowlist authority limits are incomplete")
+    else:
+        if authority_limits.get("runtimeSupportPromotion") is not False:
+            errors.append("canonical release authority must not claim runtime support promotion")
+        if authority_limits.get("fullByteParityClaim") is not False:
+            errors.append("canonical release authority must not claim full-byte parity")
+    readme_sha256 = allowlist.get("canonicalReadmeSha256")
+    if (
+        not isinstance(readme_sha256, str)
+        or SHA256_PATTERN.fullmatch(readme_sha256) is None
+    ):
         errors.append(
-            "Standard Merge release allowlist releaseStatus must be human-gated-allowlist"
+            "canonical release allowlist canonicalReadmeSha256 must be a lowercase SHA-256"
+        )
+    readme_payload = _read_confined_file(
+        canonical_root / "README.md",
+        canonical_root,
+        "release canonical README",
+        errors,
+    )
+    if (
+        readme_payload is not None
+        and isinstance(readme_sha256, str)
+        and hashlib.sha256(readme_payload).hexdigest() != readme_sha256
+    ):
+        errors.append(
+            "canonical release allowlist canonicalReadmeSha256 differs from canonical README"
         )
     inventory_cases = {
         entry.get("caseId"): entry.get("manifestPath")
@@ -1301,14 +1376,32 @@ def validate_standard_merge_release_allowlist(
     }
     release_cases = allowlist.get("cases")
     if not isinstance(release_cases, list) or not release_cases:
-        errors.append("Standard Merge release allowlist must contain cases")
+        errors.append("canonical release allowlist must contain cases")
         return
     seen_case_ids: set[str] = set()
+    direct_count = 0
+    alias_count = 0
+    artifact_declaration_count = 0
+    artifact_paths: set[str] = set()
     for index, release_case in enumerate(release_cases):
-        label = f"Standard Merge release cases[{index}]"
+        label = f"canonical release cases[{index}]"
         if not isinstance(release_case, dict):
             errors.append(f"{label} must be an object")
             continue
+        expected_case_keys = {
+            "caseId",
+            "manifestPath",
+            "manifestSha256",
+            "workflow",
+            "testDispositionKind",
+            "directGolden",
+            "directEvidence",
+            "artifacts",
+        }
+        if release_case.get("testDispositionKind") == "fact-scoped-alias":
+            expected_case_keys.add("alias")
+        if set(release_case) != expected_case_keys:
+            errors.append(f"{label} fields must match its closed case contract")
         case_id = _required_string(release_case, "caseId", label, errors)
         manifest_path = _relative_path(
             release_case.get("manifestPath"), f"{label}.manifestPath", errors
@@ -1316,13 +1409,33 @@ def validate_standard_merge_release_allowlist(
         if case_id is None or manifest_path is None:
             continue
         if case_id in seen_case_ids:
-            errors.append(f"duplicate Standard Merge release caseId: {case_id}")
+            errors.append(f"duplicate canonical release caseId: {case_id}")
         seen_case_ids.add(case_id)
         if inventory_cases.get(case_id) != str(manifest_path):
             errors.append(
                 f"{label} does not match the canonical case manifest path for {case_id}"
             )
             continue
+        manifest_sha256 = release_case.get("manifestSha256")
+        if (
+            not isinstance(manifest_sha256, str)
+            or SHA256_PATTERN.fullmatch(manifest_sha256) is None
+        ):
+            errors.append(f"{label}.manifestSha256 must be a lowercase SHA-256")
+        case_manifest_payload = _read_confined_file(
+            canonical_root / Path(manifest_path),
+            canonical_root,
+            "release-selected canonical case manifest",
+            errors,
+        )
+        if (
+            case_manifest_payload is not None
+            and isinstance(manifest_sha256, str)
+            and hashlib.sha256(case_manifest_payload).hexdigest() != manifest_sha256
+        ):
+            errors.append(
+                f"{label}.manifestSha256 differs from canonical case {case_id}"
+            )
         case = _load_object(
             canonical_root / Path(manifest_path),
             canonical_root,
@@ -1331,8 +1444,12 @@ def validate_standard_merge_release_allowlist(
         )
         if case is None:
             continue
-        if case.get("workflow") != "standard-merge":
-            errors.append(f"{label} selects a non-Standard Merge case")
+        if release_case.get("workflow") != case.get("workflow"):
+            errors.append(f"{label}.workflow differs from canonical case {case_id}")
+        if case.get("workflow") not in {"standard-merge", "ab-merge", "ctrlram-replace"}:
+            errors.append(f"{label} selects a workflow outside the approved reference scope")
+        if release_case.get("directEvidence") is not False:
+            errors.append(f"{label}.directEvidence must be false")
         if case.get("directEvidence") is True:
             errors.append(f"{label} cannot select direct input evidence for release")
         release_direct = release_case.get("directGolden")
@@ -1343,6 +1460,16 @@ def validate_standard_merge_release_allowlist(
             errors.append(f"{label} canonical directGolden must be a boolean")
         elif release_direct != canonical_direct:
             errors.append(f"{label} directGolden differs from the canonical case")
+        canonical_disposition = case.get("testDisposition")
+        canonical_disposition_kind = (
+            canonical_disposition.get("kind")
+            if isinstance(canonical_disposition, dict)
+            else None
+        )
+        if release_case.get("testDispositionKind") != canonical_disposition_kind:
+            errors.append(
+                f"{label}.testDispositionKind differs from canonical case {case_id}"
+            )
         canonical_artifacts = {
             artifact.get("artifactId"): artifact
             for artifact in case.get("artifacts", [])
@@ -1352,12 +1479,21 @@ def validate_standard_merge_release_allowlist(
         if not isinstance(release_artifacts, list):
             errors.append(f"{label}.artifacts must be an array")
             continue
+        if canonical_direct is True:
+            direct_count += 1
+        else:
+            alias_count += 1
+            canonical_alias = case.get("alias")
+            if release_case.get("alias") != canonical_alias:
+                errors.append(f"{label}.alias differs from canonical case {case_id}")
         release_artifact_ids: set[str] = set()
         for artifact_index, release_artifact in enumerate(release_artifacts):
             artifact_label = f"{label}.artifacts[{artifact_index}]"
             if not isinstance(release_artifact, dict):
                 errors.append(f"{artifact_label} must be an object")
                 continue
+            if set(release_artifact) != {"artifactId", "role", "path", "size", "sha256"}:
+                errors.append(f"{artifact_label} fields must match the closed artifact contract")
             artifact_id = _required_string(
                 release_artifact, "artifactId", artifact_label, errors
             )
@@ -1372,12 +1508,71 @@ def validate_standard_merge_release_allowlist(
                     f"{artifact_label} is not declared by canonical case {case_id}"
                 )
                 continue
-            for field in ("path", "size", "sha256"):
+            for field in ("role", "path", "size", "sha256"):
                 if release_artifact.get(field) != canonical_artifact.get(field):
                     errors.append(
                         f"{artifact_label}.{field} differs from canonical case {case_id}"
                     )
+            artifact_declaration_count += 1
+            artifact_path = release_artifact.get("path")
+            if isinstance(artifact_path, str):
+                artifact_paths.add(artifact_path)
         if release_artifact_ids != set(canonical_artifacts):
             errors.append(
                 f"{label} artifact IDs must exactly match canonical case {case_id}"
             )
+
+    selected_cases = {
+        case.get("caseId"): case
+        for case in release_cases
+        if isinstance(case, dict) and isinstance(case.get("caseId"), str)
+    }
+    for release_case in selected_cases.values():
+        alias = release_case.get("alias")
+        if not isinstance(alias, dict):
+            continue
+        source_case_id = alias.get("sourceCaseId")
+        source = selected_cases.get(source_case_id)
+        if (
+            not isinstance(source, dict)
+            or source.get("directGolden") is not True
+            or source.get("directEvidence") is not False
+            or source.get("workflow") != release_case.get("workflow")
+        ):
+            errors.append(
+                f"canonical release alias {release_case.get('caseId')} must select its "
+                f"exact same-workflow direct Golden source {source_case_id}"
+            )
+
+    summary = allowlist.get("selectionSummary")
+    actual_summary = {
+        "caseCount": len(release_cases),
+        "directGoldenCount": direct_count,
+        "factScopedAliasCount": alias_count,
+        "artifactDeclarationCount": artifact_declaration_count,
+        "uniqueArtifactPathCount": len(artifact_paths),
+    }
+    if not isinstance(summary, dict) or set(summary) != set(actual_summary):
+        errors.append("canonical release selectionSummary must match the closed summary contract")
+    else:
+        for field, actual in actual_summary.items():
+            if type(summary.get(field)) is not int or summary.get(field) != actual:
+                errors.append(
+                    f"canonical release selectionSummary.{field} must equal {actual}"
+                )
+        required_summary = (
+            CANONICAL_RELEASE_SELECTION_SUMMARY
+            if expected_summary is None
+            else expected_summary
+        )
+        if summary != required_summary:
+            errors.append(
+                "canonical release selectionSummary differs from the approved release scope"
+            )
+
+
+def validate_standard_merge_release_allowlist(
+    repository_root: Path, errors: list[str]
+) -> None:
+    """Compatibility entry point for the canonical release allowlist validator."""
+    validate_canonical_release_allowlist(repository_root, errors)

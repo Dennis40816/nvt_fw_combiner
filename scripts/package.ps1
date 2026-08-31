@@ -127,7 +127,8 @@ $LauncherPublish = Join-Path $WorkRoot 'launcher-publish'
 $WorkerBuild = Join-Path $WorkRoot 'worker-build'
 $WorkerDist = Join-Path $WorkRoot 'worker-dist'
 $IdleBuildWorkerStopper = Join-Path $PSScriptRoot 'stop-idle-build-workers.ps1'
-$StandardMergeGoldenReleaseAllowlistPath = Join-Path $RepoRoot 'testdata/golden/release-standard-merge-v1.json'
+$CanonicalGoldenReleaseAllowlistPath = Join-Path $RepoRoot 'testdata/golden/release-canonical-v1.json'
+$ApprovedCanonicalGoldenReleaseAllowlistSha256 = '88f3a1261cc82e32437726ec8a2a8043f1e382a15fdc7a9596bf5069f3dcfa06'
 
 try {
 if (-not $PolicyDryRunSentinel) {
@@ -168,7 +169,7 @@ if (-not $PolicyDryRunSentinel) {
     $RepoRoot = $SourceSnapshotRoot
     $ReleaseManifestSchemaPath = Join-Path $RepoRoot 'docs/contracts/release-manifest-v1.schema.json'
     $IdleBuildWorkerStopper = Join-Path $RepoRoot 'scripts/stop-idle-build-workers.ps1'
-    $StandardMergeGoldenReleaseAllowlistPath = Join-Path $RepoRoot 'testdata/golden/release-standard-merge-v1.json'
+    $CanonicalGoldenReleaseAllowlistPath = Join-Path $RepoRoot 'testdata/golden/release-canonical-v1.json'
 }
 
 function Get-LowerSha256 {
@@ -295,10 +296,16 @@ function Copy-PackageFileFromRoot {
 }
 
 function Copy-ApprovedExternalToolPackageFiles {
-    param([Parameter(Mandatory = $true)][string]$DestinationRoot)
+    param(
+        [Parameter(Mandatory = $true)][string]$DestinationRoot,
+        [string]$SourceRoot = $RepoRoot
+    )
 
     foreach ($ApprovedExternalToolPackagePath in $ApprovedRepositoryExternalToolPackagePaths) {
-        Copy-PackageFile -RelativePath $ApprovedExternalToolPackagePath -DestinationRoot $DestinationRoot
+        Copy-PackageFileFromRoot `
+            -SourceRoot $SourceRoot `
+            -RelativePath $ApprovedExternalToolPackagePath `
+            -DestinationRoot $DestinationRoot
     }
 }
 
@@ -624,16 +631,21 @@ function New-BuiltInProfilePolicyDryRunFixture {
 
 function Invoke-ExternalToolPolicyDryRun {
     $ProbeRelativePath = "external-tools/release-package-policy-probe-$([guid]::NewGuid().ToString('N')).txt"
-    $ProbeSourcePath = Join-Path $RepoRoot $ProbeRelativePath
 
     $DryRunRoot = Join-Path ([IO.Path]::GetTempPath()) "nvt-fw-combiner-package-policy-$([guid]::NewGuid().ToString('N'))"
+    $DryRunSourceRoot = Join-Path $DryRunRoot 'source'
     $DryRunPackageRoot = Join-Path $DryRunRoot 'package'
     $DryRunPublishedRoot = Join-Path $DryRunRoot 'published'
     try {
-        New-Item -ItemType Directory -Force -Path $DryRunPackageRoot, $DryRunPublishedRoot | Out-Null
+        New-Item -ItemType Directory -Force -Path $DryRunSourceRoot, $DryRunPackageRoot, $DryRunPublishedRoot | Out-Null
+
+        Copy-ApprovedExternalToolPackageFiles -DestinationRoot $DryRunSourceRoot
+        $ProbeSourcePath = Join-Path $DryRunSourceRoot $ProbeRelativePath
         'negative release-policy probe' | Set-Content -LiteralPath $ProbeSourcePath -Encoding ascii
 
-        Copy-ApprovedExternalToolPackageFiles -DestinationRoot $DryRunPackageRoot
+        Copy-ApprovedExternalToolPackageFiles `
+            -SourceRoot $DryRunSourceRoot `
+            -DestinationRoot $DryRunPackageRoot
         $DryRunWorkerPath = Join-Path $DryRunPackageRoot $CrcWorkerPackagePath.Replace('/', [IO.Path]::DirectorySeparatorChar)
         New-Item -ItemType Directory -Force -Path (Split-Path -Parent $DryRunWorkerPath) | Out-Null
         'generated CRC worker policy fixture' | Set-Content -LiteralPath $DryRunWorkerPath -Encoding ascii
@@ -768,20 +780,20 @@ function Invoke-ExternalToolPolicyDryRun {
             throw 'Unexpected runtime catalog file was not rejected by the package allowlist.'
         }
 
-        $GoldenPaths = @(Get-DeclaredStandardMergeGoldenPaths)
+        $GoldenPaths = @(Get-DeclaredCanonicalGoldenPaths)
         $GoldenBinPaths = @($GoldenPaths | Where-Object { $_.EndsWith('.bin', [StringComparison]::OrdinalIgnoreCase) })
-        if ($GoldenBinPaths.Count -ne 25 -or $script:StandardMergeGoldenPackageManifest.cases.Count -ne 10) {
-            throw 'Standard Merge canonical package selection did not retain 25 direct BIN artifacts and 10 direct/alias cases.'
+        if ($GoldenBinPaths.Count -ne 146 -or $script:CanonicalGoldenPackageManifest.cases.Count -ne 34) {
+            throw 'Canonical package selection did not retain 146 unique BIN paths and 34 direct/alias cases.'
         }
         if (@($GoldenPaths | Where-Object {
             $_ -like 'testdata/diagnostics/*' -or
-            $_ -like 'testdata/golden/canonical/*/ctrlram-replace/*' -or
-            $_ -like 'testdata/golden/canonical/*/ab-merge/*'
+            $_ -like 'testdata/golden/owner-handoff/*' -or
+            $_ -match '/(?:NT51920|NT51925|NT51930|NT51931)/'
         }).Count -ne 0) {
-            throw 'Standard Merge canonical package selection included diagnostics or another workflow.'
+            throw 'Canonical package selection included diagnostics, owner-handoff, or retired-IC content.'
         }
 
-        $SourceGoldenAllowlist = Get-Content -LiteralPath $StandardMergeGoldenReleaseAllowlistPath -Raw |
+        $SourceGoldenAllowlist = Get-Content -LiteralPath $CanonicalGoldenReleaseAllowlistPath -Raw |
             ConvertFrom-Json
         $DirectGoldenPolicyProbes = @(
             [pscustomobject]@{
@@ -801,8 +813,8 @@ function Invoke-ExternalToolPolicyDryRun {
             }
         )
         foreach ($PolicyProbe in $DirectGoldenPolicyProbes) {
-            $InvalidGoldenAllowlistPath = Join-Path $DryRunRoot "invalid-standard-merge-$($PolicyProbe.Name).json"
-            $InvalidGoldenAllowlist = Get-Content -LiteralPath $StandardMergeGoldenReleaseAllowlistPath -Raw |
+            $InvalidGoldenAllowlistPath = Join-Path $DryRunRoot "invalid-canonical-$($PolicyProbe.Name).json"
+            $InvalidGoldenAllowlist = Get-Content -LiteralPath $CanonicalGoldenReleaseAllowlistPath -Raw |
                 ConvertFrom-Json
             $InvalidGoldenAllowlist.cases[0].directGolden = $PolicyProbe.Value
             $InvalidGoldenAllowlist |
@@ -810,7 +822,10 @@ function Invoke-ExternalToolPolicyDryRun {
                 Set-Content -LiteralPath $InvalidGoldenAllowlistPath -Encoding utf8NoBOM
             $InvalidGoldenAllowlistRejected = $false
             try {
-                Get-DeclaredStandardMergeGoldenPaths -ReleaseAllowlistPath $InvalidGoldenAllowlistPath | Out-Null
+                Get-DeclaredCanonicalGoldenPaths `
+                    -ReleaseAllowlistPath $InvalidGoldenAllowlistPath `
+                    -ExpectedAllowlistSha256 (Get-LowerSha256 -Path $InvalidGoldenAllowlistPath) |
+                    Out-Null
             }
             catch {
                 if ($_.Exception.Message -notlike $PolicyProbe.ExpectedMessage) {
@@ -819,12 +834,97 @@ function Invoke-ExternalToolPolicyDryRun {
                 $InvalidGoldenAllowlistRejected = $true
             }
             if (-not $InvalidGoldenAllowlistRejected) {
-                throw "Standard Merge canonical package selection accepted the $($PolicyProbe.Name) directGolden policy probe."
+                throw "Canonical package selection accepted the $($PolicyProbe.Name) directGolden policy probe."
             }
         }
 
-        $RetiredGoldenAllowlistPath = Join-Path $DryRunRoot 'invalid-standard-merge-retired-ic.json'
-        $RetiredGoldenAllowlist = Get-Content -LiteralPath $StandardMergeGoldenReleaseAllowlistPath -Raw |
+        $GoldenSelectorPolicyProbes = @(
+            [pscustomobject]@{
+                Name = 'direct-evidence-mismatch'
+                ExpectedMessage = '*cannot select direct input evidence*'
+                Mutate = { param($Allowlist) $Allowlist.cases[0].directEvidence = $true }
+            },
+            [pscustomobject]@{
+                Name = 'dependent-alias-without-source'
+                ExpectedMessage = '*does not select its exact same-workflow direct Golden source*'
+                Mutate = {
+                    param($Allowlist)
+                    $Alias = @($Allowlist.cases | Where-Object { $_.directGolden -eq $false })[0]
+                    $SourceCaseId = [string]$Alias.alias.sourceCaseId
+                    $Allowlist.cases = @($Allowlist.cases | Where-Object { $_.caseId -cne $SourceCaseId })
+                }
+            },
+            [pscustomobject]@{
+                Name = 'artifact-role-drift'
+                ExpectedMessage = '*differs from the explicit release allowlist*'
+                Mutate = { param($Allowlist) $Allowlist.cases[0].artifacts[0].role = 'expected' }
+            },
+            [pscustomobject]@{
+                Name = 'artifact-hash-drift'
+                ExpectedMessage = '*differs from the explicit release allowlist*'
+                Mutate = { param($Allowlist) $Allowlist.cases[0].artifacts[0].sha256 = '0' * 64 }
+            },
+            [pscustomobject]@{
+                Name = 'artifact-id-omission'
+                ExpectedMessage = '*artifacts differ from the explicit release allowlist*'
+                Mutate = {
+                    param($Allowlist)
+                    $Allowlist.cases[0].artifacts = @($Allowlist.cases[0].artifacts | Select-Object -SkipLast 1)
+                }
+            },
+            [pscustomobject]@{
+                Name = 'artifact-id-extra'
+                ExpectedMessage = '*artifacts differ from the explicit release allowlist*'
+                Mutate = {
+                    param($Allowlist)
+                    $Extra = $Allowlist.cases[0].artifacts[0] | ConvertTo-Json -Depth 8 | ConvertFrom-Json
+                    $Extra.artifactId = 'unapproved-extra-artifact'
+                    $Allowlist.cases[0].artifacts = @($Allowlist.cases[0].artifacts) + @($Extra)
+                }
+            },
+            [pscustomobject]@{
+                Name = 'same-path-conflicting-declaration'
+                ExpectedMessage = '*differs from the explicit release allowlist*'
+                Mutate = {
+                    param($Allowlist)
+                    $Declarations = @($Allowlist.cases | ForEach-Object { @($_.artifacts) })
+                    $DuplicatePath = @(
+                        $Declarations |
+                            Group-Object path |
+                            Where-Object { $_.Count -gt 1 }
+                    )[0]
+                    $DuplicatePath.Group[1].sha256 = '0' * 64
+                }
+            }
+        )
+        foreach ($PolicyProbe in $GoldenSelectorPolicyProbes) {
+            $InvalidGoldenAllowlistPath = Join-Path $DryRunRoot "invalid-canonical-$($PolicyProbe.Name).json"
+            $InvalidGoldenAllowlist = Get-Content -LiteralPath $CanonicalGoldenReleaseAllowlistPath -Raw |
+                ConvertFrom-Json -Depth 100
+            & $PolicyProbe.Mutate $InvalidGoldenAllowlist
+            $InvalidGoldenAllowlist |
+                ConvertTo-Json -Depth 100 |
+                Set-Content -LiteralPath $InvalidGoldenAllowlistPath -Encoding utf8NoBOM
+            $InvalidGoldenAllowlistRejected = $false
+            try {
+                Get-DeclaredCanonicalGoldenPaths `
+                    -ReleaseAllowlistPath $InvalidGoldenAllowlistPath `
+                    -ExpectedAllowlistSha256 (Get-LowerSha256 -Path $InvalidGoldenAllowlistPath) |
+                    Out-Null
+            }
+            catch {
+                if ($_.Exception.Message -notlike $PolicyProbe.ExpectedMessage) {
+                    throw
+                }
+                $InvalidGoldenAllowlistRejected = $true
+            }
+            if (-not $InvalidGoldenAllowlistRejected) {
+                throw "Canonical package selection accepted the $($PolicyProbe.Name) selector policy probe."
+            }
+        }
+
+        $RetiredGoldenAllowlistPath = Join-Path $DryRunRoot 'invalid-canonical-retired-ic.json'
+        $RetiredGoldenAllowlist = Get-Content -LiteralPath $CanonicalGoldenReleaseAllowlistPath -Raw |
             ConvertFrom-Json
         $RetiredGoldenAllowlist.cases[0].caseId = 'nt51920-retired-publication-probe'
         $RetiredGoldenAllowlist |
@@ -832,7 +932,10 @@ function Invoke-ExternalToolPolicyDryRun {
             Set-Content -LiteralPath $RetiredGoldenAllowlistPath -Encoding utf8NoBOM
         $RetiredGoldenAllowlistRejected = $false
         try {
-            Get-DeclaredStandardMergeGoldenPaths -ReleaseAllowlistPath $RetiredGoldenAllowlistPath | Out-Null
+            Get-DeclaredCanonicalGoldenPaths `
+                -ReleaseAllowlistPath $RetiredGoldenAllowlistPath `
+                -ExpectedAllowlistSha256 (Get-LowerSha256 -Path $RetiredGoldenAllowlistPath) |
+                Out-Null
         }
         catch {
             if ($_.Exception.Message -notlike '*cannot publish retired IC NT51920*') {
@@ -841,7 +944,7 @@ function Invoke-ExternalToolPolicyDryRun {
             $RetiredGoldenAllowlistRejected = $true
         }
         if (-not $RetiredGoldenAllowlistRejected) {
-            throw 'Standard Merge canonical package selection accepted a retired IC publication probe.'
+            throw 'Canonical package selection accepted a retired IC publication probe.'
         }
 
         $UnicodeRelativePath = 'reference/多語/請先看.md'
@@ -871,14 +974,11 @@ function Invoke-ExternalToolPolicyDryRun {
         Write-Host 'Built-in profile package policy dry-run passed: manifest-pinned materialized files included, entry hashes closed, and unexpected file rejected.'
         Write-Host 'Runtime catalog package policy dry-run passed: approved files included and unexpected file rejected.'
         Write-Host 'Retired support publication policy package dry-run passed: no parallel publicationPolicy payload entered staging or manifest.'
-        Write-Host 'Canonical golden package policy dry-run passed: 25 direct Standard Merge BIN artifacts and 10 direct/alias cases selected; diagnostics and other workflows excluded.'
-        Write-Host 'Canonical golden package policy direct/alias drift and strict-type rejection passed.'
+        Write-Host 'Canonical golden package policy dry-run passed: 25 direct Goldens, nine self-contained aliases, 159 declarations, and 156 unique artifact paths selected.'
+        Write-Host 'Canonical golden package policy identity, direct/alias drift, retired-IC, and strict-type rejection passed.'
         Write-Host 'Release hash-list policy dry-run passed: Unicode paths round-trip through UTF-8.'
     }
     finally {
-        if (Test-Path -LiteralPath $ProbeSourcePath) {
-            Remove-Item -LiteralPath $ProbeSourcePath -Force
-        }
         if (Test-Path -LiteralPath $DryRunRoot) {
             Remove-Item -LiteralPath $DryRunRoot -Recurse -Force
         }
@@ -940,9 +1040,10 @@ function Add-GoldenManifestEntryPath {
     [void]$Paths.Add("$GoldenRootRelative/$ManifestRelativePath")
 }
 
-function Get-DeclaredStandardMergeGoldenPaths {
+function Get-DeclaredCanonicalGoldenPaths {
     param(
-        [string]$ReleaseAllowlistPath = $StandardMergeGoldenReleaseAllowlistPath
+        [string]$ReleaseAllowlistPath = $CanonicalGoldenReleaseAllowlistPath,
+        [string]$ExpectedAllowlistSha256 = $ApprovedCanonicalGoldenReleaseAllowlistSha256
     )
 
     $GoldenRootRelative = 'testdata/golden/canonical'
@@ -951,38 +1052,60 @@ function Get-DeclaredStandardMergeGoldenPaths {
     if (-not (Test-Path -LiteralPath $ManifestPath -PathType Leaf)) {
         throw "Canonical golden manifest was not found at $ManifestPath"
     }
+    if (-not (Test-Path -LiteralPath $ReleaseAllowlistPath -PathType Leaf)) {
+        throw "Canonical golden release allowlist was not found at $ReleaseAllowlistPath"
+    }
+    if ((Get-LowerSha256 -Path $ReleaseAllowlistPath) -cne $ExpectedAllowlistSha256) {
+        throw 'Canonical golden release allowlist identity differs from the exact approved authority.'
+    }
 
-    $Manifest = Get-Content -LiteralPath $ManifestPath -Raw | ConvertFrom-Json
+    $Manifest = Get-Content -LiteralPath $ManifestPath -Raw | ConvertFrom-Json -Depth 100
     if ($Manifest.schemaVersion -ne '1.1' -or
         $Manifest.payloadClass -ne 'owner-approved-golden' -or
         $Manifest.binaryPayloadsIncluded -ne $true) {
         throw 'Canonical golden inventory must declare schemaVersion=1.1, owner-approved-golden, and binaryPayloadsIncluded=true.'
     }
-    if (-not (Test-Path -LiteralPath $ReleaseAllowlistPath -PathType Leaf)) {
-        throw "Standard Merge golden release allowlist was not found at $ReleaseAllowlistPath"
-    }
-    $ReleaseAllowlist = Get-Content -LiteralPath $ReleaseAllowlistPath -Raw | ConvertFrom-Json
+    $ReleaseAllowlist = Get-Content -LiteralPath $ReleaseAllowlistPath -Raw | ConvertFrom-Json -Depth 100
     if ($ReleaseAllowlist.schemaVersion -ne '1.0' -or
-        $ReleaseAllowlist.workflow -ne 'standard-merge' -or
-        $ReleaseAllowlist.releaseStatus -ne 'human-gated-allowlist') {
-        throw 'Standard Merge golden release allowlist has invalid schema, workflow, or release status.'
+        $ReleaseAllowlist.policyId -ne 'canonical-reference-v1' -or
+        $ReleaseAllowlist.authorizedForVersion -ne '1.0.8' -or
+        $ReleaseAllowlist.releaseStatus -ne 'human-gated-allowlist' -or
+        $ReleaseAllowlist.redistributionAuthorization.authorizedOn -ne '2026-09-01' -or
+        $ReleaseAllowlist.redistributionAuthorization.authorizedBy -ne 'repository owner' -or
+        $ReleaseAllowlist.redistributionAuthorization.scope -ne 'reference-payload-only' -or
+        $ReleaseAllowlist.redistributionAuthorization.supersedesHistoricalCaseRestrictions -ne $true -or
+        $ReleaseAllowlist.authorityLimits.runtimeSupportPromotion -ne $false -or
+        $ReleaseAllowlist.authorityLimits.fullByteParityClaim -ne $false) {
+        throw 'Canonical golden release allowlist has invalid identity, authorization, or authority limits.'
     }
+    if ([int]$ReleaseAllowlist.selectionSummary.caseCount -ne 34 -or
+        [int]$ReleaseAllowlist.selectionSummary.directGoldenCount -ne 25 -or
+        [int]$ReleaseAllowlist.selectionSummary.factScopedAliasCount -ne 9 -or
+        [int]$ReleaseAllowlist.selectionSummary.artifactDeclarationCount -ne 159 -or
+        [int]$ReleaseAllowlist.selectionSummary.uniqueArtifactPathCount -ne 156) {
+        throw 'Canonical golden release allowlist selection summary differs from the exact approved scope.'
+    }
+    $CanonicalReadmePath = Join-Path $GoldenRoot 'README.md'
+    if ([string]$ReleaseAllowlist.canonicalReadmeSha256 -cnotmatch '^[0-9a-f]{64}$' -or
+        -not (Test-Path -LiteralPath $CanonicalReadmePath -PathType Leaf) -or
+        (Get-LowerSha256 -Path $CanonicalReadmePath) -cne [string]$ReleaseAllowlist.canonicalReadmeSha256) {
+        throw 'Canonical golden README exact bytes differ from the explicit release allowlist.'
+    }
+
     $ApprovedCases = @{}
     $RetiredIcTokens = @('51920', '51925', '51930', '51931')
     foreach ($ApprovedCase in $ReleaseAllowlist.cases) {
         $ApprovedCaseId = [string]$ApprovedCase.caseId
         if ([string]::IsNullOrWhiteSpace($ApprovedCaseId) -or $ApprovedCases.ContainsKey($ApprovedCaseId)) {
-            throw "Standard Merge golden release allowlist contains an invalid or duplicate case id: '$ApprovedCaseId'"
+            throw "Canonical golden release allowlist contains an invalid or duplicate case id: '$ApprovedCaseId'"
         }
-        $PublicationFields = @(
-            $ApprovedCaseId,
-            [string]$ApprovedCase.manifestPath
-        ) + @($ApprovedCase.artifacts | ForEach-Object { [string]$_.path })
+        $PublicationFields = @($ApprovedCaseId, [string]$ApprovedCase.manifestPath) +
+            @($ApprovedCase.artifacts | ForEach-Object { [string]$_.path })
         foreach ($RetiredIcToken in $RetiredIcTokens) {
             if (@($PublicationFields | Where-Object {
                 $_.IndexOf($RetiredIcToken, [StringComparison]::OrdinalIgnoreCase) -ge 0
             }).Count -ne 0) {
-                throw "Standard Merge golden release allowlist cannot publish retired IC NT$RetiredIcToken."
+                throw "Canonical golden release allowlist cannot publish retired IC NT$RetiredIcToken."
             }
         }
         $ApprovedCases[$ApprovedCaseId] = $ApprovedCase
@@ -992,20 +1115,17 @@ function Get-DeclaredStandardMergeGoldenPaths {
     [void]$Paths.Add("$GoldenRootRelative/README.md")
     $SelectedCases = [System.Collections.Generic.List[object]]::new()
     $SelectedCaseIds = [System.Collections.Generic.HashSet[string]]::new([StringComparer]::Ordinal)
-
-    if ($Manifest.PSObject.Properties.Name -notcontains 'cases' -or $null -eq $Manifest.cases) {
-        throw 'Canonical golden manifest does not contain cases.'
-    }
+    $SelectedCaseFacts = @{}
+    $ArtifactDeclarationCount = 0
 
     foreach ($CaseEntry in $Manifest.cases) {
         $CaseId = [string]$CaseEntry.caseId
         if (-not $ApprovedCases.ContainsKey($CaseId)) {
             continue
         }
-
         $ApprovedCase = $ApprovedCases[$CaseId]
         $ManifestEntry = [pscustomobject]@{ path = [string]$CaseEntry.manifestPath }
-        if ($ManifestEntry.path -ne [string]$ApprovedCase.manifestPath) {
+        if ($ManifestEntry.path -cne [string]$ApprovedCase.manifestPath) {
             throw "Release-approved canonical case '$CaseId' manifest path differs from the explicit release allowlist."
         }
         Assert-SafeCanonicalGoldenPath -RelativePath $ManifestEntry.path
@@ -1013,18 +1133,27 @@ function Get-DeclaredStandardMergeGoldenPaths {
         if (-not (Test-Path -LiteralPath $CaseManifestPath -PathType Leaf)) {
             throw "Canonical golden case manifest was not found: $($ManifestEntry.path)"
         }
-
-        $Case = Get-Content -LiteralPath $CaseManifestPath -Raw | ConvertFrom-Json
-        if ($Case.caseId -ne $CaseId -or $Case.workflow -ne 'standard-merge') {
-            throw "Release-approved canonical case '$CaseId' does not resolve to the matching Standard Merge case."
+        if ([string]$ApprovedCase.manifestSha256 -cnotmatch '^[0-9a-f]{64}$' -or
+            (Get-LowerSha256 -Path $CaseManifestPath) -cne [string]$ApprovedCase.manifestSha256) {
+            throw "Canonical golden case manifest exact bytes drifted: $($ManifestEntry.path)"
         }
-        if ($ApprovedCase.PSObject.Properties.Name -notcontains 'directGolden' -or
-            $ApprovedCase.directGolden -isnot [bool]) {
+        $Case = Get-Content -LiteralPath $CaseManifestPath -Raw | ConvertFrom-Json -Depth 100
+        if ($Case.caseId -cne $CaseId -or
+            [string]$ApprovedCase.workflow -cne [string]$Case.workflow -or
+            [string]$ApprovedCase.testDispositionKind -cne [string]$Case.testDisposition.kind) {
+            throw "Release-approved canonical case '$CaseId' identity, workflow, or disposition differs from the allowlist."
+        }
+        $CanonicalDirectEvidence = if ($Case.PSObject.Properties.Name -contains 'directEvidence') {
+            $Case.directEvidence
+        }
+        else {
+            $false
+        }
+        if ($ApprovedCase.directEvidence -ne $false -or $CanonicalDirectEvidence -eq $true) {
+            throw "Release-approved canonical case '$CaseId' cannot select direct input evidence."
+        }
+        if ($ApprovedCase.directGolden -isnot [bool] -or $Case.directGolden -isnot [bool]) {
             throw "Release-approved canonical case '$CaseId' directGolden must be a JSON boolean."
-        }
-        if ($Case.PSObject.Properties.Name -notcontains 'directGolden' -or
-            $Case.directGolden -isnot [bool]) {
-            throw "Release-approved canonical case '$CaseId' canonical directGolden must be a JSON boolean."
         }
         if ($ApprovedCase.directGolden -ne $Case.directGolden) {
             throw "Release-approved canonical case '$CaseId' directGolden differs from the explicit release allowlist."
@@ -1033,58 +1162,70 @@ function Get-DeclaredStandardMergeGoldenPaths {
         Add-GoldenManifestEntryPath -Paths $Paths -GoldenRootRelative $GoldenRootRelative -Entry $ManifestEntry
         $SelectedCases.Add($CaseEntry)
         [void]$SelectedCaseIds.Add($CaseId)
+        $SelectedCaseFacts[$CaseId] = $Case
         $ApprovedArtifactIds = @($ApprovedCase.artifacts | ForEach-Object { [string]$_.artifactId } | Sort-Object)
         if ($Case.directGolden -eq $true) {
             $Roles = @($Case.artifacts | ForEach-Object { [string]$_.role })
             if ($Roles -notcontains 'input' -or $Roles -notcontains 'expected') {
-                throw "Direct Standard Merge canonical case '$($Case.caseId)' must declare input and expected artifacts."
+                throw "Direct canonical case '$CaseId' must declare input and expected artifacts."
             }
             $ActualArtifactIds = @($Case.artifacts | ForEach-Object { [string]$_.artifactId } | Sort-Object)
             if (Compare-Object -ReferenceObject $ApprovedArtifactIds -DifferenceObject $ActualArtifactIds) {
-                throw "Standard Merge canonical case '$CaseId' artifacts differ from the explicit release allowlist."
+                throw "Canonical case '$CaseId' artifacts differ from the explicit release allowlist."
             }
-
             foreach ($Artifact in $Case.artifacts) {
-                $ApprovedArtifact = @($ApprovedCase.artifacts | Where-Object { $_.artifactId -eq $Artifact.artifactId })
+                $ApprovedArtifact = @($ApprovedCase.artifacts | Where-Object { $_.artifactId -ceq $Artifact.artifactId })
                 if ($ApprovedArtifact.Count -ne 1 -or
-                    [string]$ApprovedArtifact[0].path -ne [string]$Artifact.path -or
+                    [string]$ApprovedArtifact[0].role -cne [string]$Artifact.role -or
+                    [string]$ApprovedArtifact[0].path -cne [string]$Artifact.path -or
                     [long]$ApprovedArtifact[0].size -ne [long]$Artifact.size -or
-                    [string]$ApprovedArtifact[0].sha256 -ne [string]$Artifact.sha256) {
-                    throw "Standard Merge canonical artifact '$CaseId/$($Artifact.artifactId)' differs from the explicit release allowlist."
+                    [string]$ApprovedArtifact[0].sha256 -cne [string]$Artifact.sha256) {
+                    throw "Canonical artifact '$CaseId/$($Artifact.artifactId)' differs from the explicit release allowlist."
                 }
+                $ArtifactDeclarationCount++
                 Add-GoldenManifestEntryPath -Paths $Paths -GoldenRootRelative $GoldenRootRelative -Entry $Artifact
                 $ArtifactPath = Join-Path $GoldenRoot ([string]$Artifact.path)
-                if (-not (Test-Path -LiteralPath $ArtifactPath -PathType Leaf)) {
-                    throw "Canonical golden artifact was not found: $($Artifact.path)"
-                }
-                if ((Get-Item -LiteralPath $ArtifactPath).Length -ne [long]$Artifact.size) {
-                    throw "Canonical golden artifact size drift: $($Artifact.path)"
-                }
-                if ((Get-LowerSha256 -Path $ArtifactPath) -ne [string]$Artifact.sha256) {
-                    throw "Canonical golden artifact SHA-256 drift: $($Artifact.path)"
+                if (-not (Test-Path -LiteralPath $ArtifactPath -PathType Leaf) -or
+                    (Get-Item -LiteralPath $ArtifactPath).Length -ne [long]$Artifact.size -or
+                    (Get-LowerSha256 -Path $ArtifactPath) -cne [string]$Artifact.sha256) {
+                    throw "Canonical golden artifact bytes drifted: $($Artifact.path)"
                 }
             }
         }
-        elseif ($Case.directGolden -ne $false -or $null -eq $Case.alias -or $ApprovedArtifactIds.Count -ne 0) {
-            throw "Standard Merge canonical case '$($Case.caseId)' has invalid direct/alias facts."
+        else {
+            $CanonicalAlias = $Case.alias | ConvertTo-Json -Compress -Depth 20
+            $ApprovedAlias = $ApprovedCase.alias | ConvertTo-Json -Compress -Depth 20
+            if ($null -eq $Case.alias -or $ApprovedAlias -cne $CanonicalAlias -or $ApprovedArtifactIds.Count -ne 0) {
+                throw "Canonical alias case '$CaseId' differs from the explicit release allowlist."
+            }
         }
     }
 
-    $MissingApprovedCases = @(
-        $ApprovedCases.Keys |
-            Where-Object { -not $SelectedCaseIds.Contains($_) } |
-            Sort-Object
-    )
+    $MissingApprovedCases = @($ApprovedCases.Keys | Where-Object { -not $SelectedCaseIds.Contains($_) } | Sort-Object)
     if ($MissingApprovedCases.Count -ne 0) {
-        throw "Canonical golden inventory is missing release-approved Standard Merge cases: $($MissingApprovedCases -join ', ')"
+        throw "Canonical inventory is missing release-approved cases: $($MissingApprovedCases -join ', ')"
+    }
+    foreach ($ApprovedCase in $ReleaseAllowlist.cases) {
+        if ($ApprovedCase.directGolden -eq $true) {
+            continue
+        }
+        $SourceCaseId = [string]$ApprovedCase.alias.sourceCaseId
+        if (-not $SelectedCaseFacts.ContainsKey($SourceCaseId) -or
+            $SelectedCaseFacts[$SourceCaseId].directGolden -ne $true -or
+            [string]$SelectedCaseFacts[$SourceCaseId].workflow -cne [string]$ApprovedCase.workflow) {
+            throw "Canonical alias '$($ApprovedCase.caseId)' does not select its exact same-workflow direct Golden source '$SourceCaseId'."
+        }
+    }
+    if ($SelectedCases.Count -ne 34 -or $ArtifactDeclarationCount -ne 159 -or $Paths.Count -ne 191) {
+        throw 'Canonical golden package projection differs from 34 cases, 159 declarations, or 156 unique artifacts.'
     }
 
-    $script:StandardMergeGoldenPackageManifest = [ordered]@{
+    $script:CanonicalGoldenPackageManifest = [ordered]@{
         schemaVersion = '1.0'
         payloadClass = 'owner-approved-golden'
         binaryPayloadsIncluded = $true
         diagnosticsRoot = 'testdata/diagnostics/golden-evidence'
-        inventoryScope = 'release-standard-merge'
+        inventoryScope = 'release-canonical-v1'
         sourceManifest = 'testdata/golden/canonical/manifest.json'
         cases = @($SelectedCases)
     }
@@ -1228,7 +1369,7 @@ This directory contains human-review reference evidence and owner-approved golde
 Included:
 - docs/references/: flash-map, postbuild, flash-header, and provenance references.
 - docs/architecture/: CtrlRAM postbuild investigation and IC workflow references.
-- testdata/golden/canonical/: release-selected owner-approved Standard Merge direct payloads and fact-scoped alias manifests.
+- testdata/golden/canonical/: release-selected direct Golden payloads and self-contained fact-scoped alias manifests.
 
 Non-allowlisted private firmware, diagnostics, owner-handoff records, unmanifested BIN files, generated firmware outputs, refcode, source trees, and test projects are not shipped here.
 "@ | Set-Content -LiteralPath (Join-Path $ReferenceDestination 'README.txt') -Encoding utf8NoBOM
@@ -1250,16 +1391,16 @@ foreach ($ReferenceFile in $ReferenceFiles) {
 
 Copy-PackageReferenceTree -RelativeRoot 'docs/references/ic-flashmap' -AllowedExtensions @('.bat', '.h', '.json', '.md', '.xlsx')
 
-$StandardMergeGoldenPaths = Get-DeclaredStandardMergeGoldenPaths
-foreach ($GoldenPath in $StandardMergeGoldenPaths) {
+$CanonicalGoldenPaths = Get-DeclaredCanonicalGoldenPaths
+foreach ($GoldenPath in $CanonicalGoldenPaths) {
     Copy-PackageFile -RelativePath $GoldenPath -DestinationRoot $ReferenceDestination
 }
 Copy-PackageFile `
-    -RelativePath 'testdata/golden/release-standard-merge-v1.json' `
+    -RelativePath 'testdata/golden/release-canonical-v1.json' `
     -DestinationRoot $ReferenceDestination
 $PackagedGoldenManifestPath = Join-Path $ReferenceDestination 'testdata/golden/canonical/manifest.json'
 New-Item -ItemType Directory -Force -Path (Split-Path -Parent $PackagedGoldenManifestPath) | Out-Null
-$script:StandardMergeGoldenPackageManifest |
+$script:CanonicalGoldenPackageManifest |
     ConvertTo-Json -Depth 12 |
     Set-Content -LiteralPath $PackagedGoldenManifestPath -Encoding utf8NoBOM
 
@@ -1287,7 +1428,7 @@ Contents:
 - RELEASE-MANIFEST.json: source and file integrity metadata
 - SHA256SUMS.txt: package file hashes
 
-This package includes release-selected owner-approved Standard Merge golden firmware fixtures under reference/testdata/golden/canonical for future packaged self-tests. Diagnostics, owner handoff records, CtrlRAM private evidence, unmanifested BIN files, generated firmware outputs, refcode, production source tree, test projects, editable source profiles, Python runtime installation, and .NET installation requirements are excluded. Built-in materialized profiles, external tools, and reference files are pinned by manifest and SHA-256; packaging a candidate bundle does not promote its runtime support stage.
+This package includes 25 release-selected direct Golden cases and nine self-contained evidence aliases across Standard Merge, AB Merge, and CtrlRAM Replace under reference/testdata/golden/canonical. Eleven direct cases use full-output comparison; fourteen retain their reviewed allowed-byte-difference scope. Two input-only evidence cases and their three dependent aliases remain repository-only. Diagnostics, owner handoff records, private or quarantine evidence, unmanifested BIN files, generated firmware outputs, refcode, production source tree, test projects, editable source profiles, Python runtime installation, and .NET installation requirements are excluded. The packaged BAT and CONFIG provenance are inert reference bytes only and are never tools, processors, or commands. Packaging reference evidence does not promote runtime support.
 "@ | Set-Content -LiteralPath (Join-Path $PackageRoot 'README.txt') -Encoding utf8NoBOM
 
 $AppHash = Get-LowerSha256 -Path $AppExe

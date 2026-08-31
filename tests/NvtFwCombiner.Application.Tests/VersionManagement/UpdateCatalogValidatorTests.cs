@@ -29,6 +29,55 @@ public sealed class UpdateCatalogValidatorTests
             "1.0.0",
             snapshot.FindNewestNewerThan(ManagedAppVersion.Parse("0.10.5"))?.Version.ToString());
         Assert.Null(snapshot.FindNewestNewerThan(ManagedAppVersion.Parse("1.0.0")));
+        Assert.All(snapshot.Versions, entry =>
+            Assert.Equal(UpdateNotificationPolicy.Notify, entry.NotificationPolicy));
+    }
+
+    /// <summary>Catalog v2 admits only its required closed notification policy and preserves package identity.</summary>
+    [Fact]
+    public void ValidCatalogV2PublishesRequiredPolicyWithoutChangingPackageIdentity()
+    {
+        var document = new UpdateCatalogV2Document(
+            2,
+            "NVT FW Combiner",
+            "win-x64",
+            [
+                VersionV2("1.0.8", "manual-only"),
+                VersionV2("1.0.7", "notify"),
+            ]);
+
+        UpdateCatalogValidationResult result = UpdateCatalogValidator.Validate(document);
+
+        UpdateCatalogSnapshot snapshot = Assert.IsType<UpdateCatalogSnapshot>(result.Snapshot);
+        Assert.Equal(
+            [UpdateNotificationPolicy.ManualOnly, UpdateNotificationPolicy.Notify],
+            snapshot.Versions.Select(entry => entry.NotificationPolicy));
+        Assert.DoesNotContain("manual-only", snapshot.Versions[0].Identity, StringComparison.Ordinal);
+        Assert.Equal(
+            "1.0.7",
+            snapshot.FindNewestNotifyNewerThan(ManagedAppVersion.Parse("1.0.6"))?.Version.ToString());
+    }
+
+    /// <summary>Missing, case-variant, and unknown Catalog v2 policies fail the complete document.</summary>
+    [Theory]
+    [InlineData(null)]
+    [InlineData("Manual-Only")]
+    [InlineData("NOTIFY")]
+    [InlineData("silent")]
+    public void InvalidCatalogV2PolicyFailsClosed(string? policy)
+    {
+        var document = new UpdateCatalogV2Document(
+            2,
+            "NVT FW Combiner",
+            "win-x64",
+            [VersionV2("1.0.8", policy)]);
+
+        UpdateCatalogValidationResult result = UpdateCatalogValidator.Validate(document);
+
+        Assert.False(result.IsValid);
+        Assert.Null(result.Snapshot);
+        Assert.Contains(result.Issues, issue =>
+            issue.Code == UpdateCatalogIssueCode.InvalidNotificationPolicy);
     }
 
     /// <summary>Moving the configured source folder does not change a package identity.</summary>
@@ -250,5 +299,18 @@ public sealed class UpdateCatalogValidatorTests
             PackageHash,
             ManifestHash,
             $"Release {version}");
+    }
+
+    private static UpdateCatalogV2VersionDocument VersionV2(string version, string? policy)
+    {
+        return new(
+            version,
+            "2026-09-01T00:00:00Z",
+            $"packages/NvtFwCombiner-v{version}-win-x64.zip",
+            42,
+            PackageHash,
+            ManifestHash,
+            $"Release {version}",
+            policy);
     }
 }
