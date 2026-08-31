@@ -5,7 +5,7 @@
   "integrationBase": "1164c0c982247bffaa91c797eb511237c3d4c230",
   "risk": "R3",
   "kind": "release",
-  "state": "design-active",
+  "state": "final-complete",
   "mutablePaths": [
     ".github/workflows/ci.yml",
     "scripts/verify.py"
@@ -25,12 +25,12 @@
     "outcome": "approved",
     "evidence": "The owner confirmed Windows-only product scope, later authorized one final bounded v1.0.7 correction batch after the frozen-head verifier reproduced both required-check failures, and required the next complete finalized-head validation to be the last. After the corrected Infrastructure execution reconciled 1,057/1,057 but repository structure validation exceeded its 600-second operational ceiling without a semantic finding, the owner explicitly authorized an emergency forced release if no major issue remained; the timeout must be recorded as an exception rather than relabeled as a pass. The implementation batch itself preserves exact discovery/result reconciliation and does not weaken a test, coverage, package, firmware or runtime contract."
   },
-  "implementationHead": null,
-  "reviewedHead": null,
-  "pathStateDigest": null,
+  "implementationHead": "f789ff4be908e3f37f409fc7302072193d82ee75",
+  "reviewedHead": "f789ff4be908e3f37f409fc7302072193d82ee75",
+  "pathStateDigest": "f77b0f0b87faf39dbe56b35a242c70a3957b2423798973a2fe1a0d1fbec23d42",
   "finalReview": {
-    "reviewer": null,
-    "outcome": "pending",
-    "evidence": ""
+    "reviewer": "rel107_emergency_review; rel107_emergency_arch",
+    "outcome": "approved",
+    "evidence": "Two independent read-only emergency reviews inspected exact immutable implementation diff 97ed574c9dbc4386d035873617f865146a3d2dee..f789ff4be908e3f37f409fc7302072193d82ee75. Both found P0=0 and P1=0; architecture found P2=0 and P3=0, while the semantic/release review identified only this then-pending lifecycle closeout as P2 rather than a product finding. The diff changes no production, firmware, profile, range, mutation-order, CRC, checksum, naming, package allowlist, runtime or test-body semantics. Test-first command-contract evidence passed 144 tests with four unchanged harness/platform skips; Ruff check/format passed; the Windows Distribution Launcher smoke-source set passed 11/11; and rebuilt exact Infrastructure VSTest plus unchanged XPlat coverage reconciled compiled discovery 1,057 to terminal TRX 1,057 with 1,055 Passed, zero Failed and the same two approved Windows NotExecuted identities. No filter, skip, expected-total exception, adapter/package/lock change or coverage reduction exists. Local structure validation exceeded its 600-second operational ceiling after only existing size warnings; under the owner's explicit emergency forced-release decision this remains a recorded release-process exception and is not represented as a passing gate."
   }
 }
