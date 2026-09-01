@@ -5,7 +5,7 @@
   "integrationBase": "18bd859617804a3e0a65177c5282e383b13fd883",
   "risk": "R3",
   "kind": "release",
-  "state": "design-active",
+  "state": "final-complete",
   "mutablePaths": [
     "docs/adr/0057-v0916-black-box-parity-certification.md",
     "docs/contracts/v0916-parity-certification-v1.md",
@@ -26,12 +26,12 @@
     "outcome": "findings-incorporated",
     "evidence": "Independent read-only R3 review rejected cross-root reuse of old detached-build executions because no accepted contract defines that equivalence. It approved reusing every existing owner and expected output identity while requiring two fresh detached builds from the new H1 and the exact 15-path H2 plus two-record H3 and two-attestation H4 topology."
   },
-  "implementationHead": null,
-  "reviewedHead": null,
-  "pathStateDigest": null,
+  "implementationHead": "30d2cbd6273b5fe68812b68faefb003d972d4faa",
+  "reviewedHead": "30d2cbd6273b5fe68812b68faefb003d972d4faa",
+  "pathStateDigest": "3bd71453e70d5827f359bceff61b4e46c76c3c95fd072a1358225c4e5e3d70dc",
   "finalReview": {
-    "reviewer": null,
-    "outcome": "pending",
-    "evidence": ""
+    "reviewer": "admission_batch_architecture + admission_test_reuse_map",
+    "outcome": "approved",
+    "evidence": "Two independent exact-H2 reviews fixed 30d2cbd6273b5fe68812b68faefb003d972d4faa and reported P0=0, P1=0, P2=0, and P3=0. H1 eaab9578b8f562aad8abf3749ad7ff9eb63f24bc is the exact single-parent one-path child of 91c704d277655c04c1fdf351283c98312b386fea with root tree a9fe290a2942636e55ff03df22a4685848c8afe5. Two empty tracked-clean detached H1 worktrees independently completed the locked SDK 10.0.303 restore and deterministic Release build with zero warnings and zero errors. Both produced the same 162304-byte CLI SHA-256 37e51dd40c65e5ba9d0e0f5bdb14a5c4f695fb07219d162bc2b06f768dacf8b9 and the same 384-file, 92147320-byte runtime closure SHA-256 ee68110dbd5fef0b0b7aa8cec32e6c7ac19278708e4c49b820841c8208a882bc; complete inventories matched. Independent inspection found all ten first-party managed DLL portable-PDB SourceLink records bind exact H1, explaining why the apphost is unchanged while the prior closure digest is not an alternate. The four authority subtrees, policy bytes, build inputs, workflow bytes, and existing validator remain frozen. This approves source/build authority only, not terminal 64-route parity, full verification, protected CI, package smoke, publication, Version deployment, or v1.0.8."
   }
 }

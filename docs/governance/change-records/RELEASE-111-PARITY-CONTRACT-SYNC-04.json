@@ -5,7 +5,7 @@
   "integrationBase": "18bd859617804a3e0a65177c5282e383b13fd883",
   "risk": "R3",
   "kind": "release",
-  "state": "design-active",
+  "state": "final-complete",
   "mutablePaths": [
     "docs/contracts/v0916-parity-certification-v1.json",
     "docs/contracts/v0916-parity-certification-v1.schema.json",
@@ -31,12 +31,12 @@
     "outcome": "findings-incorporated",
     "evidence": "Independent read-only R3 review confirmed that the smallest existing-authority solution is one exact 15-path H2: eight owned contract/schema projections, three non-overlapping source/authority narrative paths, two existing tests, and these two staged records. It requires release.yml to remain frozen, exact H1-to-H4 ancestry, two fresh detached H1 builds, two exact-H2 reviews, and no new verifier, ADR, schema owner, executor, or workflow mutator."
   },
-  "implementationHead": null,
-  "reviewedHead": null,
-  "pathStateDigest": null,
+  "implementationHead": "30d2cbd6273b5fe68812b68faefb003d972d4faa",
+  "reviewedHead": "30d2cbd6273b5fe68812b68faefb003d972d4faa",
+  "pathStateDigest": "cf3b574fe5545af95263683369cf3ead9f2df8ce3d199be3155fe028ca53a883",
   "finalReview": {
-    "reviewer": null,
-    "outcome": "pending",
-    "evidence": ""
+    "reviewer": "admission_batch_architecture + admission_test_reuse_map",
+    "outcome": "approved",
+    "evidence": "Two independent exact-H2 reviews fixed 30d2cbd6273b5fe68812b68faefb003d972d4faa and reported P0=0, P1=0, P2=0, and P3=0. They confirmed the exact 15-path H1-to-H2 topology, frozen 64168-byte release.yml SHA-256 8be6640a82efadf23be39b52d940f2e1e4a0520713281c0ee30f55795b5a5768, 14322-byte workflow contract SHA-256 41237d1a4a5c306b7fd930f715764a7cf992db6b4273767a199b0ca4359a7865, exact candidate/promote job identities, closed eleven-step promotion tail, unchanged top-level/parity/published-smoke semantics, and complete propagation through all owned schemas and existing fixtures. The two narrow parity files passed 32 tests with one declared external package-lab integration skip. Production validate_repository_parity_authority_transfer returned exact H1 eaab9578b8f562aad8abf3749ad7ff9eb63f24bc and H2 30d2cbd6273b5fe68812b68faefb003d972d4faa. No optional digest, compatibility bypass, second validator, workflow mutation, firmware change, Version deployment, or v1.0.8 change was introduced."
   }
 }
