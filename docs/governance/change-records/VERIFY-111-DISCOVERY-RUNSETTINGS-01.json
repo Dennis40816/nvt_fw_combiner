@@ -5,7 +5,7 @@
   "integrationBase": "c1ab8c3522f527ad4768e84d6d0c7b0d82897869",
   "risk": "R2",
   "kind": "governance",
-  "state": "design-active",
+  "state": "final-complete",
   "mutablePaths": [
     "scripts/verify.py"
   ],
@@ -26,12 +26,12 @@
     "outcome": "approved",
     "evidence": "Independent bounded R2 design review found P0=0, P1=0, P2=0 and P3=0. It approved direct reuse of INFRASTRUCTURE_VSTEST_SETTINGS in the existing discovery command because only the Infrastructure assembly receives the same two settings already owned by local and CI execution; ordinary discovery and exact fail-closed identity reconciliation remain unchanged. It also approved the Domain test-only upper-bound correction because the remaining ownership, byte-boundary, backing-array identity and public-constructor isolation evidence still rejects a second artifact-sized copy. No ADR is required; this record extends VER-TEST-INVENTORY-104-01 and REL-107-FINAL-CI-ADMISSION-01 rather than creating a second semantic owner."
   },
-  "implementationHead": null,
-  "reviewedHead": null,
-  "pathStateDigest": null,
+  "implementationHead": "1c440eab00b5f797892dd1f6bd3aa8616dc311e9",
+  "reviewedHead": "1c440eab00b5f797892dd1f6bd3aa8616dc311e9",
+  "pathStateDigest": "6df862e1ea23ccd189ffe6a70c927cd81a89378ac9673ffa75ac9ddfb074bd66",
   "finalReview": {
-    "reviewer": null,
-    "outcome": "pending",
-    "evidence": ""
+    "reviewer": "admission_batch_architecture",
+    "outcome": "approved",
+    "evidence": "Independent bounded exact-head R2 review fixed implementation head 1c440eab00b5f797892dd1f6bd3aa8616dc311e9 with parent 17b0ccf1d10aa8adda6d2d8a2818fcd77c07c668 and reported P0=0, P1=0, P2=0 and P3=0; scoped Polytail passed. The four-path diff contains no production, firmware, profile, package, VERSION, SDK, workflow or adapter drift. Infrastructure discovery alone reuses the identical existing xUnit.ParallelizeTestCollections=false and xUnit.MaxParallelThreads=1 settings already used by local and protected-CI execution; ordinary discovery, exact method-identity Counter parity, failed-result rejection, approved producer-platform skips, immutable-output checks and coverage remain fail closed with no filter, retry or tolerance. The Domain test-only 6,291,456-byte upper bound still rejects a second 4,194,304-byte artifact copy while independent byte, array-identity and caller-isolation evidence remains intact. Structure-only passed in 109.6 seconds, the two command regressions passed, the exact Domain regression passed and the manual discovery syntax probe passed. Full-matrix readiness remains explicitly pending one exact-source protected-CI run."
   }
 }
