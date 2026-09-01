@@ -117,19 +117,21 @@ implementation and then pass this unchanged fail-closed evidence contract.
 The candidate execution surface is likewise the CLI source-built from the
 exact `candidateAuthority` implementation head/tree, not the portable release
 ZIP. The plan pins
-`docs/contracts/v100-candidate-source-executor-v1.json` at 4525 raw bytes and
+`docs/contracts/v100-candidate-source-executor-v1.json` at 4680 raw bytes and
 SHA-256
-`09da82aa351d800757bdc612a39fed6aae8ce3929ca1213b556573f9620932f4`.
-That contract pins head `d1f62db542cffe3190f679e2526a5733de9e9011`, tree
-`f1147208d2ddbb5a35bbd1a3bb76698c5113fb07`, SDK `10.0.303`, the complete
+`338e7d6223e36919ccc818537795d7ee827737aa4f30111c5c5029d5cf1d24a1`.
+That contract pins head `e8ae59b751bc2dfce4f5d4c683a6059a50e24567`, tree
+`9effd8783b90d67fb7edb870d3cad98a98a17415`, SDK `10.0.303`, the complete
 lock/tool inventory, and CLI SHA-256
-`be33bf8ad050fa5e9ba24d464910ac09e24944ba97ca56a27c7f57001b8521e9`.
+`37e51dd40c65e5ba9d0e0f5bdb14a5c4f695fb07219d162bc2b06f768dacf8b9`.
 The build command pins `ContinuousIntegrationBuild=true` and maps the detached
 worktree root to `/_/src`; two independent detached worktrees produced the same
-162304-byte executable and SHA above, plus an identical 382-file,
-91412711-byte runtime closure with SHA-256
-`75bf4ddd7f637a6729490724321b083366cbc1fef1355bc86d7b397d9b244fb7`.
-The previously recorded closure `858e21e7...` was superseded because its nine
+162304-byte executable and SHA above, plus an identical 384-file,
+92147320-byte runtime closure with SHA-256
+`31a81718c19b5c166e23c5afecd5b4367eda3c04847c9a10a98c1fdee0ab693c`.
+The renewed lock inventory includes the transitive `NvtFwCombiner.Platform`
+project. The historical 382-file closure is not an accepted alternate for this
+head. The still-earlier closure `858e21e7...` was superseded because its nine
 first-party managed DLLs embedded SourceLink for binding head `b13f0e4d`, not
 the implementation head declared by that contract. It is not an accepted
 alternate. Omitting either deterministic-build input is authority drift.
@@ -441,7 +443,7 @@ Contents query, the Git blob SHA returned for that path at that commit, and the
 SHA-256 of decoded raw workflow bytes. None may substitute for another.
 The authenticated protected-main workflow commit is independent of the pinned
 candidate implementation/package head
-`d1f62db542cffe3190f679e2526a5733de9e9011`; equality is neither required
+`e8ae59b751bc2dfce4f5d4c683a6059a50e24567`; equality is neither required
 nor authority. The blob and raw digests independently prove which workflow
 bytes occupied `.github/workflows/release.yml` at the workflow commit, while
 the candidate manifest/provenance and source-executor contract continue to bind

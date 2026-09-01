@@ -202,10 +202,15 @@ as containing a CLI. Candidate receipts use `candidate-source-cli`, built from
 the exact clean `candidateAuthority` head/tree with the repository-pinned SDK
 and locked dependencies. The plan pins
 `docs/contracts/v100-candidate-source-executor-v1.json` at raw SHA-256
-`09da82aa351d800757bdc612a39fed6aae8ce3929ca1213b556573f9620932f4`,
-head `d1f62db542cffe3190f679e2526a5733de9e9011`, tree
-`f1147208d2ddbb5a35bbd1a3bb76698c5113fb07`, and CLI executable SHA-256
-`be33bf8ad050fa5e9ba24d464910ac09e24944ba97ca56a27c7f57001b8521e9`.
+`338e7d6223e36919ccc818537795d7ee827737aa4f30111c5c5029d5cf1d24a1`,
+head `e8ae59b751bc2dfce4f5d4c683a6059a50e24567`, tree
+`9effd8783b90d67fb7edb870d3cad98a98a17415`, and CLI executable SHA-256
+`37e51dd40c65e5ba9d0e0f5bdb14a5c4f695fb07219d162bc2b06f768dacf8b9`.
+Two clean detached worktrees produced the same 162304-byte executable and the
+same 384-file, 92147320-byte runtime closure SHA-256
+`31a81718c19b5c166e23c5afecd5b4367eda3c04847c9a10a98c1fdee0ab693c`;
+the exact lock inventory includes the transitive `NvtFwCombiner.Platform`
+project.
 The source is materialized into a fresh detached Git worktree at that exact
 head; dirty,
 ignored, or pre-existing `bin`/`obj` output fails before restore. Candidate
@@ -233,7 +238,7 @@ subjects, source commit, and source tree to agree. A forged ZIP with a copied
 match the independently queried run, repository, branch, and head SHA.
 The authenticated protected-main workflow commit is intentionally independent
 of candidate implementation/package head
-`d1f62db542cffe3190f679e2526a5733de9e9011`; each retains its own
+`e8ae59b751bc2dfce4f5d4c683a6059a50e24567`; each retains its own
 identity and neither may substitute for the other. The decoded workflow is
 validated against the raw-pinned closed semantic workflow contract, including
 trigger, read-only permissions, exact parity jobs/dependencies/conditions,
@@ -258,9 +263,11 @@ row and uses its exact receipts and outputs for both prefix comparisons.
 
 Authority transfer is one closed H1→H2→H3→H4 chain. H2 is the direct child of
 the firmware-executor implementation head and may change only
-`allowedBindingChildPaths`. H3 may modify only the predeclared final record;
-H4 may add only the predeclared external release-owner attestation and is the
-exact v1.0.0 package/tag source. The production verifier reads every parent,
+`allowedBindingChildPaths`. H3 may modify only the predeclared final-record
+set; H4 may add only the predeclared external-authority attestation set and is
+the exact parity package-source head. The current renewal closes the existing
+contract-sync record and the new authority-transfer record in the same H3,
+then adds their matching attestations in H4. The production verifier reads every parent,
 exact name-status diff, regular-file mode, all four authority-tree ids, and
 canonical policy bytes. An extra path, later descendant, merge, reorder,
 authority drift, or policy drift is `PARITY_AUTHORITY_MISMATCH`. This chain

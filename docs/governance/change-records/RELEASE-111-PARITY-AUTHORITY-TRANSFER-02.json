@@ -1,0 +1,38 @@
+{
+  "schemaVersion": 2,
+  "taskId": "RELEASE-111-PARITY-AUTHORITY-TRANSFER-02",
+  "capability": "Renew the existing fail-closed v0.9.16 source-built candidate Git authority transfer on the current v1.1.1 history",
+  "integrationBase": "65fb0bb19b83f40943535e2a914b775194ba54ce",
+  "risk": "R3",
+  "kind": "release",
+  "state": "design-active",
+  "mutablePaths": [
+    "docs/adr/0057-v0916-black-box-parity-certification.md",
+    "docs/contracts/v0916-parity-certification-v1.md",
+    "docs/contracts/v100-candidate-source-executor-v1.json"
+  ],
+  "implementationOwner": "parity-authority-transfer-implementer",
+  "searchEvidence": [
+    "Exact-head CI and independent fixed-head review proved that the synchronized parity contract bytes are correct but the certification plan last changed at 9bd14f16acb6677b0f25d8df4d5a81ccd25a18ac, which is not the direct child of the source-executor implementation head still declared as d1f62db542cffe3190f679e2526a5733de9e9011; the existing validator therefore correctly fails PARITY_AUTHORITY_MISMATCH.",
+    "scripts/v0916_parity_certification.py already owns the exact H1 implementation, direct H2 binding child, H3 final-record child, and H4 external-attestation package-source topology. Reuse that owner and its exact changed-path equality instead of adding another verifier, weakening ancestry, changing error precedence, or rewriting history.",
+    "H1 e8ae59b751bc2dfce4f5d4c683a6059a50e24567 predeclares the renewed fourteen-path binding child and a two-record/two-attestation final evidence tail. Its root tree is 9effd8783b90d67fb7edb870d3cad98a98a17415; its authority trees are src 02a6242ef8d46dfceb0b4fbed297bf30919fc945, profiles 7f8bd06e23ee78954e2e2c222f7b44a315049330, external-tools 8d83e508ec3b48e000e1bef39b4b215c81b886ad, and tools/crc-worker 88d21840f7caac0b57b79db0ffb6f1332349b817.",
+    "Two independent clean detached H1 worktrees under D:/NvtFwCombiner-TestArea completed the exact locked restore and deterministic Release build with SDK 10.0.303. Both produced CLI size 162304 and SHA-256 37e51dd40c65e5ba9d0e0f5bdb14a5c4f695fb07219d162bc2b06f768dacf8b9 plus a 384-file, 92147320-byte runtime closure SHA-256 31a81718c19b5c166e23c5afecd5b4367eda3c04847c9a10a98c1fdee0ab693c.",
+    "The current RELEASE-111-PARITY-CONTRACT-SYNC-01 record remains the sole owner of its eight admitted contract/schema projection paths. This record owns only ADR 0057, the parity certification narrative, and the candidate source-executor contract so the final batch has exact non-overlapping governed-path coverage from checkpoint 65fb0bb1."
+  ],
+  "semanticOwner": "The existing v0.9.16 parity certification plan, candidate source-executor contract, and Git authority-transfer validators jointly own the closed source-built candidate and exact H1-to-H4 evidence topology",
+  "terminalContract": "H1 is exact commit e8ae59b751bc2dfce4f5d4c683a6059a50e24567 and root tree 9effd8783b90d67fb7edb870d3cad98a98a17415. H2 is H1's exact single-parent child and changes exactly the fourteen sorted allowedBindingChildPaths predeclared at H1, adding this design-active record while synchronizing the source-executor identity, exact two-build CLI/runtime evidence, workflow semantic identity, schemas, narratives, and tests without changing release.yml bytes. H3 is H2's exact single-parent child and modifies only this record plus RELEASE-111-PARITY-CONTRACT-SYNC-01 to final-complete. H4 is H3's exact single-parent child and adds only the two matching release-owner attestations; H4 is the renewed package-source head. Existing validators and error precedence remain unchanged. No firmware/profile/range/CRC/output bytes, release workflow bytes, package contents, Version deployment, v1.0.8, or admission A/C/D behavior changes in this slice.",
+  "disposition": "extend-owner",
+  "designReview": {
+    "reviewer": "fixed_head_runtime_review",
+    "outcome": "approved",
+    "evidence": "Independent fixed-head review verified the stale direct-child failure against live Git history, rejected mutating the immutable historical parity record or reusing old source-build hashes, enumerated the exact fourteen-path H2 projection, and required two clean detached-H1 builds. It approved reusing the established pattern in which H2 adds the new design record named by H1, H3 finalizes the exact record tail, and H4 adds only matching attestations."
+  },
+  "implementationHead": null,
+  "reviewedHead": null,
+  "pathStateDigest": null,
+  "finalReview": {
+    "reviewer": null,
+    "outcome": "pending",
+    "evidence": ""
+  }
+}

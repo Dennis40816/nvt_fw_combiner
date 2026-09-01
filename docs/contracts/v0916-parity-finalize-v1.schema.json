@@ -68,7 +68,7 @@
         "workflowCommitSha": { "$ref": "#/$defs/gitSha" },
         "workflowBlobSha": { "$ref": "#/$defs/gitSha" },
         "workflowRawSha256": { "$ref": "#/$defs/sha256" },
-        "workflowSemanticContractSha256": { "const": "eed09ee574b9e27588f174fb482fd406cd10e61c9d24dc4ea82301db93c19d4a" },
+        "workflowSemanticContractSha256": { "const": "c53c5fa3562aa5e98f848656e081862b7ec350dbad44b7c65b1f2c096311b0b4" },
         "workflowRun": { "$ref": "#/$defs/protectedWorkflowRun" },
         "attestationJob": { "$ref": "#/$defs/protectedJob" },
         "deployment": { "$ref": "#/$defs/protectedDeployment" },

@@ -92,22 +92,22 @@ class V0916ParityArtifactTests(V0916ParityTestBase):
             "docs/contracts/v100-candidate-source-executor-v1.json",
             declared["path"],
         )
-        self.assertEqual(4525, declared["size"])
+        self.assertEqual(4680, declared["size"])
         self.assertEqual(
-            "09da82aa351d800757bdc612a39fed6aae8ce3929ca1213b556573f9620932f4",
+            "338e7d6223e36919ccc818537795d7ee827737aa4f30111c5c5029d5cf1d24a1",
             declared["sha256"],
         )
-        self.assertEqual(4525, path.stat().st_size)
+        self.assertEqual(4680, path.stat().st_size)
         self.assertEqual(
-            "09da82aa351d800757bdc612a39fed6aae8ce3929ca1213b556573f9620932f4",
+            "338e7d6223e36919ccc818537795d7ee827737aa4f30111c5c5029d5cf1d24a1",
             hashlib.sha256(path.read_bytes()).hexdigest(),
         )
         contract = json.loads(path.read_text(encoding="utf-8"))
-        self.assertEqual("d1f62db542cffe3190f679e2526a5733de9e9011", contract["source"]["implementationHead"])
-        self.assertEqual("f1147208d2ddbb5a35bbd1a3bb76698c5113fb07", contract["source"]["implementationTree"])
+        self.assertEqual("e8ae59b751bc2dfce4f5d4c683a6059a50e24567", contract["source"]["implementationHead"])
+        self.assertEqual("9effd8783b90d67fb7edb870d3cad98a98a17415", contract["source"]["implementationTree"])
         self.assertEqual(
             {
-                "src": "4e3aad813828c147985775f190b5895ed6965886",
+                "src": "02a6242ef8d46dfceb0b4fbed297bf30919fc945",
                 "profiles": "7f8bd06e23ee78954e2e2c222f7b44a315049330",
                 "external-tools": "8d83e508ec3b48e000e1bef39b4b215c81b886ad",
                 "tools/crc-worker": "88d21840f7caac0b57b79db0ffb6f1332349b817",
@@ -115,15 +115,30 @@ class V0916ParityArtifactTests(V0916ParityTestBase):
             contract["source"]["authorityTrees"],
         )
         self.assertEqual("10.0.303", contract["toolchain"]["resolvedSdkVersion"])
+        self.assertEqual(
+            [
+                "src/NvtFwCombiner.Application/packages.lock.json",
+                "src/NvtFwCombiner.Bootstrap/packages.lock.json",
+                "src/NvtFwCombiner.Cli/packages.lock.json",
+                "src/NvtFwCombiner.Contracts/packages.lock.json",
+                "src/NvtFwCombiner.Domain/packages.lock.json",
+                "src/NvtFwCombiner.Infrastructure/packages.lock.json",
+                "src/NvtFwCombiner.Platform/packages.lock.json",
+                "src/NvtFwCombiner.Profiles/packages.lock.json",
+                "src/NvtFwCombiner.VersionManagement.Application/packages.lock.json",
+                "src/NvtFwCombiner.VersionManagement.Infrastructure/packages.lock.json",
+            ],
+            [item["path"] for item in contract["lockFiles"]],
+        )
         self.assertEqual("detached-git-worktree", contract["freshBuild"]["sourceMaterialization"])
         self.assertEqual(162304, contract["cliAssembly"]["size"])
-        self.assertEqual("be33bf8ad050fa5e9ba24d464910ac09e24944ba97ca56a27c7f57001b8521e9", contract["cliAssembly"]["sha256"])
+        self.assertEqual("37e51dd40c65e5ba9d0e0f5bdb14a5c4f695fb07219d162bc2b06f768dacf8b9", contract["cliAssembly"]["sha256"])
         self.assertEqual(
             {
                 "root": "src/NvtFwCombiner.Cli/bin/Release/net10.0/win-x64",
-                "fileCount": 382,
-                "totalSize": 91412711,
-                "sha256": "75bf4ddd7f637a6729490724321b083366cbc1fef1355bc86d7b397d9b244fb7",
+                "fileCount": 384,
+                "totalSize": 92147320,
+                "sha256": "31a81718c19b5c166e23c5afecd5b4367eda3c04847c9a10a98c1fdee0ab693c",
             },
             contract["runtimeClosure"],
         )
