@@ -94,17 +94,17 @@ class V0916ParityArtifactTests(V0916ParityTestBase):
         )
         self.assertEqual(4680, declared["size"])
         self.assertEqual(
-            "338e7d6223e36919ccc818537795d7ee827737aa4f30111c5c5029d5cf1d24a1",
+            "ba5948daec52706b1035745eb106562b2af056cc474c590a1eeb8c5f6e4e4e02",
             declared["sha256"],
         )
         self.assertEqual(4680, path.stat().st_size)
         self.assertEqual(
-            "338e7d6223e36919ccc818537795d7ee827737aa4f30111c5c5029d5cf1d24a1",
+            "ba5948daec52706b1035745eb106562b2af056cc474c590a1eeb8c5f6e4e4e02",
             hashlib.sha256(path.read_bytes()).hexdigest(),
         )
         contract = json.loads(path.read_text(encoding="utf-8"))
-        self.assertEqual("e8ae59b751bc2dfce4f5d4c683a6059a50e24567", contract["source"]["implementationHead"])
-        self.assertEqual("9effd8783b90d67fb7edb870d3cad98a98a17415", contract["source"]["implementationTree"])
+        self.assertEqual("eaab9578b8f562aad8abf3749ad7ff9eb63f24bc", contract["source"]["implementationHead"])
+        self.assertEqual("a9fe290a2942636e55ff03df22a4685848c8afe5", contract["source"]["implementationTree"])
         self.assertEqual(
             {
                 "src": "02a6242ef8d46dfceb0b4fbed297bf30919fc945",
@@ -138,7 +138,7 @@ class V0916ParityArtifactTests(V0916ParityTestBase):
                 "root": "src/NvtFwCombiner.Cli/bin/Release/net10.0/win-x64",
                 "fileCount": 384,
                 "totalSize": 92147320,
-                "sha256": "31a81718c19b5c166e23c5afecd5b4367eda3c04847c9a10a98c1fdee0ab693c",
+                "sha256": "ee68110dbd5fef0b0b7aa8cec32e6c7ac19278708e4c49b820841c8208a882bc",
             },
             contract["runtimeClosure"],
         )

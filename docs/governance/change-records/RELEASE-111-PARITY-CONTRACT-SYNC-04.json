@@ -1,0 +1,42 @@
+{
+  "schemaVersion": 2,
+  "taskId": "RELEASE-111-PARITY-CONTRACT-SYNC-04",
+  "capability": "Synchronize the existing fail-closed v0.9.16 protected-workflow contract with the frozen centralized v1.1.1 repository-admission workflow",
+  "integrationBase": "18bd859617804a3e0a65177c5282e383b13fd883",
+  "risk": "R3",
+  "kind": "release",
+  "state": "design-active",
+  "mutablePaths": [
+    "docs/contracts/v0916-parity-certification-v1.json",
+    "docs/contracts/v0916-parity-certification-v1.schema.json",
+    "docs/contracts/v0916-parity-comparison-v1.schema.json",
+    "docs/contracts/v0916-parity-evidence-v1.schema.json",
+    "docs/contracts/v0916-parity-finalize-v1.schema.json",
+    "docs/contracts/v0916-parity-run-v1.schema.json",
+    "docs/contracts/v0916-parity-workflow-v1.json",
+    "docs/contracts/v0916-parity-workflow-v1.schema.json"
+  ],
+  "implementationOwner": "primary-agent",
+  "searchEvidence": [
+    "scripts/v0916_parity_certification.py already owns the closed protected-workflow semantic validator and exact H1-to-H4 package-source transfer. Reuse that owner and its existing contracts instead of adding a verifier, schema owner, compatibility path, or workflow-specific mutator.",
+    "The frozen .github/workflows/release.yml is 64168 bytes at SHA-256 8be6640a82efadf23be39b52d940f2e1e4a0520713281c0ee30f55795b5a5768. Its top-level identity, published-smoke, all three v0916-parity jobs, permissions, action pins, and first five governed promotion steps remain identical to the previously approved contract.",
+    "Only the candidate and promote job identities changed, to f8fef0dc111b18302b1b8f08661ceb6d21cf1141b9af039b7c1648e61c95b5ea and c899059ac0d034c67a01b0a472033861ab3cdc31d0be435327c44656cd07ae6b. The promotion tail now has eleven ordered steps because fresh pre-tag collection, validation, and tag mutation are intentionally one step; its full step-list digest is 3a4715a72e4d8af8f98b79c9b5a370bcadc5832624235f72e67b8614c35ea03d.",
+    "The certification plan and certification, comparison, evidence, finalize, run, and workflow schemas already own the exact raw workflow-contract digest projection. The two existing parity test files already own fixture and package-source topology evidence; update those owners rather than duplicate their assertions."
+  ],
+  "semanticOwner": "docs/contracts/v0916-parity-workflow-v1.json remains the single closed protected-workflow semantic contract, with the existing certification plan and schemas carrying its exact raw identity",
+  "terminalContract": "The canonical workflow contract validates the exact frozen 64168-byte release.yml at SHA-256 8be6640a82efadf23be39b52d940f2e1e4a0520713281c0ee30f55795b5a5768 without changing release.yml, scripts/v0916_parity_certification.py, closed job inventory, top-level policy, parity jobs, action pins, first-five promotion approval gate, or fail-closed error semantics. Candidate and promote bind the exact new job hashes, the promotion contract names the exact eleven current steps and exact full step-list digest, and the workflow schema closes the list at eleven. The resulting exact workflow-contract size and SHA-256 propagate through all eight existing owned contract/schema paths and the two existing fixture paths. The paired authority-transfer record renews the source head through the existing append-only H1-to-H4 topology. No firmware/profile/range/CRC/output bytes, package content, runtime support, Version deployment, or v1.0.8 changes are permitted.",
+  "disposition": "extend-owner",
+  "designReview": {
+    "reviewer": "admission_batch_architecture",
+    "outcome": "findings-incorporated",
+    "evidence": "Independent read-only R3 review confirmed that the smallest existing-authority solution is one exact 15-path H2: eight owned contract/schema projections, three non-overlapping source/authority narrative paths, two existing tests, and these two staged records. It requires release.yml to remain frozen, exact H1-to-H4 ancestry, two fresh detached H1 builds, two exact-H2 reviews, and no new verifier, ADR, schema owner, executor, or workflow mutator."
+  },
+  "implementationHead": null,
+  "reviewedHead": null,
+  "pathStateDigest": null,
+  "finalReview": {
+    "reviewer": null,
+    "outcome": "pending",
+    "evidence": ""
+  }
+}

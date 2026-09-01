@@ -3,7 +3,7 @@
   "workflowPath": ".github/workflows/release.yml",
   "workflowRef": "refs/heads/main",
   "workflowHeadRelation": "authenticated-protected-main-independent-of-candidate-source",
-  "candidateImplementationHead": "e8ae59b751bc2dfce4f5d4c683a6059a50e24567",
+  "candidateImplementationHead": "eaab9578b8f562aad8abf3749ad7ff9eb63f24bc",
   "trigger": "workflow_dispatch",
   "topLevelPermissions": {
     "actions": "read",
@@ -17,8 +17,8 @@
     "uploadArtifact": "actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a"
   },
   "jobInventorySha256": {
-    "candidate": "92f71bcf974b9689ad4c51a8ecc5530d4dea9a4bb6081a700d73c7e9866033ec",
-    "promote": "26b156d5389f6f7ef58738e1f6418d8afb72ab6e56e392b16822819c6612dc03",
+    "candidate": "f8fef0dc111b18302b1b8f08661ceb6d21cf1141b9af039b7c1648e61c95b5ea",
+    "promote": "c899059ac0d034c67a01b0a472033861ab3cdc31d0be435327c44656cd07ae6b",
     "published-smoke": "60d865fcd4c539dbc1bcbcd4617e645e94f2ce4c00e5ece2dbff08d01b8e9332",
     "v0916-parity-compare": "2c065e009b7a6380dfc6e1be051a30df983618d6bf1e8be7385fb52ff808f663",
     "v0916-parity-attestation": "c50c30b681bfb736e4083baf50ce32cd8897a3f9becf7df4f4f4eb0413fc5bca",
@@ -266,12 +266,11 @@
       "Reconfirm release authority and source identity",
       "Download prepared candidate assets",
       "Verify closed candidate identity and digests",
-      "Revalidate live repository admission before tag mutation",
-      "Create or verify immutable annotated tag",
+      "Create or verify immutable annotated tag with fresh repository admission",
       "Publish or validate GitHub Release",
       "Verify published assets and source downloads"
     ],
-    "stepsSha256": "5cfc16ac95498d2ba89636f6563d2ad76906796f65be15517ade910d3ea22cf1",
+    "stepsSha256": "3a4715a72e4d8af8f98b79c9b5a370bcadc5832624235f72e67b8614c35ea03d",
     "steps": [
       {
         "name": "Checkout protected release authority",

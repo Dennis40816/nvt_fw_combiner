@@ -1,0 +1,37 @@
+{
+  "schemaVersion": 2,
+  "taskId": "RELEASE-111-PARITY-AUTHORITY-TRANSFER-05",
+  "capability": "Renew the existing fail-closed v0.9.16 source-built candidate Git authority after the final v1.1.1 release workflow bytes were frozen",
+  "integrationBase": "18bd859617804a3e0a65177c5282e383b13fd883",
+  "risk": "R3",
+  "kind": "release",
+  "state": "design-active",
+  "mutablePaths": [
+    "docs/adr/0057-v0916-black-box-parity-certification.md",
+    "docs/contracts/v0916-parity-certification-v1.md",
+    "docs/contracts/v100-candidate-source-executor-v1.json"
+  ],
+  "implementationOwner": "primary-agent",
+  "searchEvidence": [
+    "scripts/v0916_parity_certification.py already owns the exact firmware-executor H1, direct binding H2, final-record H3, and external-attestation H4 authority transfer. The prior e8ae59b7-to-9cc6ac4f chain is immutable and no longer describes the final release.yml bytes, so append one new renewal rather than mutate history or weaken ancestry.",
+    "The current and prior authority trees for src, profiles, external-tools, and tools/crc-worker are byte-identical, as are SDK 10.0.303, global build properties, lockfiles, external tool pins, restore command, and deterministic build command. The exact new H1 nevertheless requires new execution because its Git head/root tree is a build identity input and old build executions cannot be represented as new-H1 evidence.",
+    "Two empty clean detached worktrees at exact H1 eaab9578b8f562aad8abf3749ad7ff9eb63f24bc independently completed the locked restore and deterministic Release build with zero warnings and zero errors. Both produced the same 162304-byte CLI executable SHA-256 37e51dd40c65e5ba9d0e0f5bdb14a5c4f695fb07219d162bc2b06f768dacf8b9 and the same 384-file, 92147320-byte runtime closure SHA-256 ee68110dbd5fef0b0b7aa8cec32e6c7ac19278708e4c49b820841c8208a882bc. The unchanged apphost plus newly rebound runtime closure is consistent with the repository's established commit-bound SourceLink/provenance behavior; the prior closure digest is not reused.",
+    "The existing source-executor contract, ADR 0057, parity certification narrative, two parity tests, change-record schema, release-owner attestation schema, and package-source validator already express every required authority and evidence boundary. No new ADR, equivalence rule, validator, or build executor is needed."
+  ],
+  "semanticOwner": "The existing parity certification plan, candidate source-executor contract, ADR 0057, and package-source validator jointly own the closed source-built candidate authority and append-only H1-to-H4 transfer",
+  "terminalContract": "H1 is the exact single-parent child of 91c704d277655c04c1fdf351283c98312b386fea and changes only docs/contracts/v0916-parity-certification-v1.json to predeclare the exact sorted 15-path H2, two-record H3, and two-attestation H4. Two empty clean detached H1 worktrees use SDK 10.0.303 and the contract-declared locked restore and deterministic Release build, with no pre-existing or ignored bin/obj outputs; both CLI and runtime closures must match each other and the source contract. H2 is H1's direct child and changes exactly the fifteen declared paths while release.yml, four authority trees, canonical policy bytes, firmware semantics, and build inputs remain frozen. H3 is H2's direct child and modifies only the two new records to final-complete. H4 is H3's direct child and adds only their matching release-owner attestations; H4 becomes the sole new package-source head and the existing validator must pass. This renews source/build authority only and does not claim terminal 64-route parity, full verification, protected CI, package smoke, publication, Version deployment, or v1.0.8 completion.",
+  "disposition": "extend-owner",
+  "designReview": {
+    "reviewer": "admission_batch_architecture",
+    "outcome": "findings-incorporated",
+    "evidence": "Independent read-only R3 review rejected cross-root reuse of old detached-build executions because no accepted contract defines that equivalence. It approved reusing every existing owner and expected output identity while requiring two fresh detached builds from the new H1 and the exact 15-path H2 plus two-record H3 and two-attestation H4 topology."
+  },
+  "implementationHead": null,
+  "reviewedHead": null,
+  "pathStateDigest": null,
+  "finalReview": {
+    "reviewer": null,
+    "outcome": "pending",
+    "evidence": ""
+  }
+}

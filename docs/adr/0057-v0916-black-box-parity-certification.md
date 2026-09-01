@@ -202,15 +202,18 @@ as containing a CLI. Candidate receipts use `candidate-source-cli`, built from
 the exact clean `candidateAuthority` head/tree with the repository-pinned SDK
 and locked dependencies. The plan pins
 `docs/contracts/v100-candidate-source-executor-v1.json` at raw SHA-256
-`338e7d6223e36919ccc818537795d7ee827737aa4f30111c5c5029d5cf1d24a1`,
-head `e8ae59b751bc2dfce4f5d4c683a6059a50e24567`, tree
-`9effd8783b90d67fb7edb870d3cad98a98a17415`, and CLI executable SHA-256
+`ba5948daec52706b1035745eb106562b2af056cc474c590a1eeb8c5f6e4e4e02`,
+head `eaab9578b8f562aad8abf3749ad7ff9eb63f24bc`, tree
+`a9fe290a2942636e55ff03df22a4685848c8afe5`, and CLI executable SHA-256
 `37e51dd40c65e5ba9d0e0f5bdb14a5c4f695fb07219d162bc2b06f768dacf8b9`.
 Two clean detached worktrees produced the same 162304-byte executable and the
 same 384-file, 92147320-byte runtime closure SHA-256
-`31a81718c19b5c166e23c5afecd5b4367eda3c04847c9a10a98c1fdee0ab693c`;
+`ee68110dbd5fef0b0b7aa8cec32e6c7ac19278708e4c49b820841c8208a882bc`;
 the exact lock inventory includes the transitive `NvtFwCombiner.Platform`
-project.
+project. The apphost executable remains byte-identical to the prior authority,
+while the complete managed runtime closure is rebound to the new Git head;
+commit-bound SourceLink/provenance means the prior closure digest is not an
+accepted alternate even though all four authority subtrees are unchanged.
 The source is materialized into a fresh detached Git worktree at that exact
 head; dirty,
 ignored, or pre-existing `bin`/`obj` output fails before restore. Candidate
@@ -238,7 +241,7 @@ subjects, source commit, and source tree to agree. A forged ZIP with a copied
 match the independently queried run, repository, branch, and head SHA.
 The authenticated protected-main workflow commit is intentionally independent
 of candidate implementation/package head
-`e8ae59b751bc2dfce4f5d4c683a6059a50e24567`; each retains its own
+`eaab9578b8f562aad8abf3749ad7ff9eb63f24bc`; each retains its own
 identity and neither may substitute for the other. The decoded workflow is
 validated against the raw-pinned closed semantic workflow contract, including
 trigger, read-only permissions, exact parity jobs/dependencies/conditions,
