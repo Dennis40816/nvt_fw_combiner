@@ -16,6 +16,12 @@ reference/Golden evidence are absent. The provenance builder identity is
 `scripts/package.ps1 manual-only operator build`; it must not claim GitHub
 Actions constructed a locally built package.
 
+The exception is reciprocal and version-closed: every `v1.1.0` invocation that
+omits `-ManualOnly` fails before repository inspection, staging cleanup,
+restore, or build, including attempted `-AllowPrerelease` and
+`-ExternalToolPolicyDryRun` combinations. `-ManualOnly` remains invalid for
+every other version.
+
 The controlled procedure is fail closed:
 
 1. Obtain an independent exact-head R3 implementation review and record the
@@ -230,6 +236,10 @@ and a removal failure fails packaging while preserving the exact path for
 inspection. This closes the race in which the invocation checkout or a tracked
 file changes after preflight but before a later package read.
 
+Before that source-identity preflight, the parser enforces the one-release
+`v1.1.0`/`-ManualOnly` reciprocal guard. No alternate package mode can consume
+repository, temporary, restore, or build resources for v1.1.0.
+
 The second command above is the sole exception: the raw, exact `0.0.0` plus
 all-zero SHA sentinel runs only the deterministic external-tool/profile allowlist
 dry-run and cannot create a release package. Other dry-run version or commit
@@ -263,16 +273,26 @@ are not admissible update payloads. Bootstrap is rejected from both forms.
 `main-package.yml` is a manually dispatched preview path using `-AllowPrerelease` and the repository `VERSION`; ordinary `main` pushes do not package. It uploads only a short-retention Actions artifact and never creates a fallback tag or prerelease.
 
 `release.yml` is always dispatched from the exact current protected `main`
-workflow definition. It accepts one exact reviewed release-branch head plus the
+workflow definition. From v1.1.1 onward it also queries the live remote-main
+SHA and boolean protected flag, the complete applied-rule inventory, and the
+active stable-tag rulesets rather than treating a local checkout name as proof.
+It accepts one exact reviewed release-branch head plus the
 final merged PR that produced it. The product source is normally `main`; the
 explicitly approved independent maintenance pairs `0.9.17` / `0.9.17`,
 `0.9.18` / `0.9.18`, and `0.9.19` / `0.9.19` may publish without merging their product commits to
 `main`. A read-only candidate
 job proves that the workflow authority, selected branch head, checkout,
 requested SHA, final PR merge commit/base, reviewed PR-head tree, current-head
-approval, and the exact PR-head `github-actions` check runs
+approval, complete check-run pagination, and the exact PR-head `github-actions` check runs
 `policy / polytail`, `python-worker / verify`, and `dotnet / build-test` all
-describe that one candidate. It then runs the canonical full verifier, packages
+describe that one candidate. The same snapshot fully paginates review threads;
+every unresolved thread needs one recognized P0-P3 marker, unresolved P0/P1
+blocks, and independent P2/P3 work may continue in parallel. The applied main
+rules must require exactly those three checks, while one active `refs/tags/v*`
+ruleset must prevent update and deletion. GitHub omits `bypass_actors` from the
+detail response for a token without ruleset write access, so the protected
+environment's release owner separately inspects and attests that the matching
+ruleset has no bypass actors. It then runs the canonical full verifier, packages
 once, smokes the package, and renders a complete matching stable CHANGELOG
 section. A closed candidate manifest binds source SHA/tree, workflow SHA/ref,
 run id, final-review snapshot, release-note digest, and the exact
@@ -281,21 +301,31 @@ file binds those payloads and the candidate manifest; the Actions artifact
 digest is bound into the annotated-tag message.
 
 The protected `release` environment is the final tag confirmation. Only after
-approval does a narrow `contents: write` job revalidate the downloaded
-candidate. A first tag creation requires the candidate to remain the exact
-current selected release-branch head while the workflow definition remains the
-exact current protected `main`; recovery of an already exact-matching tag
-permits the selected branch to advance only when the candidate remains its
-ancestor. For the approved pre-Launcher maintenance versions `v0.9.17`,
+approval does a narrow `contents: write` job check out the exact candidate
+workflow SHA and revalidate the downloaded candidate. Immediately before any
+new-tag or existing-tag Release mutation, every version re-reads exact remote
+main protection and the selected source-branch head through the same Python
+owner. From v1.1.1 onward it additionally gathers fresh ruleset, exact check-run,
+and review-thread evidence through the repository-admission owner; it never
+executes policy from a moving `main`. A new tag requires the candidate to remain
+the exact current selected release-branch head. Existing-tag recovery may
+observe a newer branch head only when fresh GitHub comparison evidence proves
+the candidate remains its ancestor. In both cases the workflow definition must
+remain the exact current protected `main`. For the approved pre-Launcher
+maintenance versions `v0.9.17`,
 `v0.9.18`, and `v0.9.19`, plus `v1.0.0` through `v1.0.5`, the job publishes
 exactly five assets: Windows ZIP, SPDX SBOM, provenance, candidate manifest,
 and outer SHA-256 list. Starting at `v1.0.6`, it publishes exactly ten: those
 five plus the closed five-asset
 Distribution Launcher evidence set. The validated release
 notes become the Release body. It revalidates the annotated tag object and
-peeled commit plus Release state/body, verifies GitHub-generated source
-archives, downloads every published asset into a fresh directory, compares the
-exact name set and digests. The write-token job never checks out or executes the
+peeled commit plus Release state/body. From v1.1.1 onward the REST Release must
+report `immutable=true` and exactly the candidate asset set; every name is
+unique and safe, every state is `uploaded`, and every byte size and
+`sha256:<candidate digest>` is exact. It then verifies GitHub-generated source
+archives, downloads every published asset into a fresh directory, and compares
+the exact name set and bytes again; REST metadata never replaces this independent
+hash gate. The write-token job never checks out or executes the
 selected product source. A separate `contents: read` job downloads the
 published ZIP plus its adjacent SPDX and provenance sidecars, then runs
 protected-main smoke tooling in a second step where neither `GH_TOKEN` nor
@@ -303,8 +333,9 @@ protected-main smoke tooling in a second step where neither `GH_TOKEN` nor
 immediately before creating a new tag object and fails if it advanced. A
 pre-approval failure creates no tag. If promotion fails after tag creation,
 rerun only the failed promotion job in the same workflow run so the original
-run id and artifact digest remain authoritative; zero-, one-, or multi-asset
-partial Releases recover by uploading only missing assets. Any
+run id and artifact digest remain authoritative. Historical releases may retain
+their bounded matching recovery behavior; an immutable v1.1.1-or-later Release
+must already be complete and cannot be repaired in place. Any
 moved/lightweight tag, conflicting body, extra name, or conflicting byte fails
 closed. A new workflow run cannot reuse the old stable version.
 
@@ -431,6 +462,12 @@ Release evidence must include:
 
 ## Release gates still requiring organizational setup
 
+- `main` protection with the exact three release-required checks and an active
+  `refs/tags/v*` update/deletion ruleset with no bypass actors; the workflow
+  reads the visible rule shape, while the protected-environment release owner
+  attests the no-bypass setting GitHub omits from least-privilege API responses;
+- GitHub immutable Releases enabled before v1.1.1 publication; a false result
+  after publication is a new-version decision, not a workflow repair;
 - SBOM/provenance retention policy; generation is implemented by the packager;
 - private golden regression runner and firmware-owner approval;
 - clean Windows smoke without development runtimes;
@@ -438,6 +475,8 @@ Release evidence must include:
 
 The manually dispatched promotion workflow accepts only the exact reviewed
 head of an approved release source while the workflow definition itself remains
-the exact current protected `main`. It creates the immutable stable `vX.Y.Z`
-tag inside protected CI after candidate verification and environment approval.
+the exact current protected `main`. It creates an immutable stable `vX.Y.Z` tag
+inside protected CI after candidate verification and environment approval; the
+repository owner, not the workflow token, owns protection and immutability
+configuration.
 Development tags never publish assets.

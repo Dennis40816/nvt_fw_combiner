@@ -23,12 +23,20 @@ permissions:
 
 # The full executable two-phase workflow is intentionally maintained in
 # .github/workflows/release.yml. This template records its security contract:
-# candidate verifies the current protected-main workflow authority plus the
-# final merged PR/current-head review/required checks for an exact selected
-# release-branch head. Product source is current main or the explicit
+# candidate uses one fresh, fully paginated repository-admission snapshot to
+# verify the exact remote-main SHA, protected flag, applied required-check
+# rules, exact successful check runs, classified review threads, and stable-tag
+# update/deletion ruleset for an exact selected release-branch head. The
+# protected-environment release owner separately attests that the stable-tag
+# ruleset has no bypass actors because GitHub omits that field from
+# least-privilege API responses. Product source is current main or the explicit
 # 0.9.17/0.9.17, 0.9.18/0.9.18, and 0.9.19/0.9.19 maintenance pairs. Release-environment approval unlocks the only
-# contents:write job, which uses protected-main tooling only, creates one
-# annotated tag, and publishes the already verified, manifest-bound closed asset
-# set. A separate read-only, token-free execution step smokes the published
+# contents:write job, which checks out the exact candidate workflow SHA,
+# revalidates fresh main/source authority for every version, reruns strict
+# repository admission for v1.1.1+, creates one annotated tag, and publishes
+# the already verified, manifest-bound closed asset set. v1.1.1+
+# requires REST immutable=true plus exact uploaded asset names/sizes/digests,
+# then independently downloads and hashes every asset. A separate read-only,
+# token-free execution step smokes the published
 # package. A failed promotion is recovered only by rerunning the failed job in
 # that same run.

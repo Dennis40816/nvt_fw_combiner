@@ -18,8 +18,19 @@ from typing import Any
 HEX_SHA = re.compile(r"^[0-9a-f]{40}$")
 HEX_SHA256 = re.compile(r"^[0-9a-f]{64}$")
 STABLE_VERSION = re.compile(r"^(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)$")
+REVIEW_PRIORITY = re.compile(
+    r"(?:!\[\s*P([0-3])(?:\s+Badge)?\s*\]|\[\s*P([0-3])\s*\]|"
+    r"(?<![A-Za-z0-9])P([0-3])\s*:)",
+    re.IGNORECASE,
+)
 CODEX_REVIEWER = "chatgpt-codex-connector"
 CODEX_REVIEW_SOURCES = frozenset({"pull-review", "inline-comment", "issue-comment"})
+REQUIRED_RELEASE_CHECKS = (
+    "policy / polytail",
+    "python-worker / verify",
+    "dotnet / build-test",
+)
+STRICT_RELEASE_POLICY_VERSION = (1, 1, 1)
 MAINTENANCE_RELEASES = {
     "0.9.17": "0.9.17",
     "0.9.18": "0.9.18",
@@ -69,6 +80,296 @@ def _normalize_reviewer(value: object) -> str:
         return ""
     normalized = value.strip().lower()
     return normalized.removesuffix("[bot]").rstrip()
+
+
+def _stable_version_parts(value: str, label: str) -> tuple[int, int, int]:
+    _require(
+        STABLE_VERSION.fullmatch(value) is not None,
+        f"{label} must be stable SemVer",
+    )
+    major, minor, patch = value.split(".")
+    return int(major), int(minor), int(patch)
+
+
+def _requires_strict_release_policy(version: str) -> bool:
+    return (
+        _stable_version_parts(version, "release version")
+        >= STRICT_RELEASE_POLICY_VERSION
+    )
+
+
+def _validate_remote_main(snapshot: dict[str, Any], main_sha: str) -> None:
+    """Require one exact protected remote-main observation."""
+
+    remote_main = snapshot.get("remoteMain")
+    _require(isinstance(remote_main, dict), "remote main evidence is malformed")
+    _require_sha(remote_main.get("sha"), "remote main SHA")
+    _require(
+        remote_main.get("sha") == main_sha, "remote main SHA differs from authority"
+    )
+    _require(
+        remote_main.get("protected") is True,
+        "remote main must be protected before stable release",
+    )
+
+
+def _validate_release_branch_position(
+    *,
+    tag_state: str,
+    source_sha: str,
+    source_branch_sha: str,
+    source_is_branch_ancestor: bool,
+) -> None:
+    """Require exact new-tag source or forward-only existing-tag recovery."""
+
+    _require(
+        isinstance(tag_state, str) and tag_state in {"absent", "present"},
+        "stable tag state is invalid",
+    )
+    _require(
+        isinstance(source_is_branch_ancestor, bool),
+        "release branch ancestry evidence is malformed",
+    )
+    if tag_state == "absent":
+        _require(
+            source_branch_sha == source_sha,
+            "a new stable tag may be created only from the current release branch head",
+        )
+        return
+    _require(
+        source_is_branch_ancestor,
+        "a recovery candidate must remain reachable from its release branch",
+    )
+
+
+def validate_live_branch_authority(
+    snapshot: dict[str, Any], *, main_sha: str, source_sha: str
+) -> None:
+    """Bind every release mutation to fresh main and source-branch evidence."""
+
+    _require(isinstance(snapshot, dict), "live branch authority must be an object")
+    _require_sha(main_sha, "live branch authority main SHA")
+    _require_sha(source_sha, "live branch authority source SHA")
+    _validate_remote_main(snapshot, main_sha)
+    remote_source = snapshot.get("remoteSource")
+    _require(isinstance(remote_source, dict), "remote source evidence is malformed")
+    _require_sha(remote_source.get("sha"), "remote source SHA")
+    remote_source_sha = remote_source["sha"]
+    tag_state = snapshot.get("tagState")
+    source_is_branch_ancestor = remote_source_sha == source_sha
+    if tag_state == "present" and not source_is_branch_ancestor:
+        comparison = snapshot.get("sourceComparison")
+        _require(
+            isinstance(comparison, dict),
+            "fresh recovery source ancestry evidence is missing",
+        )
+        source_is_branch_ancestor = (
+            comparison.get("baseSha") == source_sha
+            and comparison.get("headSha") == remote_source_sha
+            and comparison.get("mergeBaseSha") == source_sha
+            and comparison.get("status") == "ahead"
+        )
+    _validate_release_branch_position(
+        tag_state=tag_state,
+        source_sha=source_sha,
+        source_branch_sha=remote_source_sha,
+        source_is_branch_ancestor=source_is_branch_ancestor,
+    )
+
+
+def validate_repository_admission(
+    snapshot: dict[str, Any],
+    *,
+    main_sha: str,
+    review_head_sha: str,
+    expected_tag: str,
+) -> None:
+    """Validate fresh GitHub repository policy at a stable-release boundary."""
+
+    _require(isinstance(snapshot, dict), "repository admission must be an object")
+    _require_sha(main_sha, "repository admission main SHA")
+    _require_sha(review_head_sha, "repository admission review head SHA")
+    _require(
+        isinstance(expected_tag, str)
+        and expected_tag.startswith("v")
+        and STABLE_VERSION.fullmatch(expected_tag[1:]) is not None,
+        "repository admission stable tag is invalid",
+    )
+
+    _validate_remote_main(snapshot, main_sha)
+
+    _require(
+        snapshot.get("mainRulesPaginationComplete") is True,
+        "main rules pagination is incomplete",
+    )
+    main_rules = snapshot.get("mainRules")
+    _require(isinstance(main_rules, list), "main rules evidence is malformed")
+    required_contexts: list[str] = []
+    for rule in main_rules:
+        _require(isinstance(rule, dict), "main rules entry is malformed")
+        if rule.get("type") != "required_status_checks":
+            continue
+        parameters = rule.get("parameters")
+        _require(
+            isinstance(parameters, dict),
+            "required status checks rule parameters are malformed",
+        )
+        contexts = parameters.get("required_status_checks")
+        _require(
+            isinstance(contexts, list),
+            "required status checks rule inventory is malformed",
+        )
+        for context in contexts:
+            _require(
+                isinstance(context, dict)
+                and isinstance(context.get("context"), str)
+                and bool(context["context"]),
+                "required status checks rule entry is malformed",
+            )
+            required_contexts.append(context["context"])
+    _require(
+        len(required_contexts) == len(set(required_contexts))
+        and set(required_contexts) == set(REQUIRED_RELEASE_CHECKS),
+        "required status checks do not equal the closed release check set",
+    )
+
+    _require(
+        snapshot.get("checkRunsPaginationComplete") is True,
+        "required check runs pagination is incomplete",
+    )
+    check_runs = snapshot.get("checkRuns")
+    _require(isinstance(check_runs, list), "required check runs evidence is malformed")
+    _require(
+        all(isinstance(item, dict) for item in check_runs),
+        "required check runs entry is malformed",
+    )
+    for required_name in REQUIRED_RELEASE_CHECKS:
+        matches = [item for item in check_runs if item.get("name") == required_name]
+        _require(
+            len(matches) == 1,
+            f"required check runs must contain exactly one {required_name}",
+        )
+        match = matches[0]
+        _require(
+            match.get("headSha") == review_head_sha
+            and match.get("appSlug") == "github-actions"
+            and match.get("status") == "completed"
+            and match.get("conclusion") == "success",
+            f"required check runs are not exact and passing: {required_name}",
+        )
+
+    _require(
+        snapshot.get("reviewThreadsPaginationComplete") is True,
+        "review threads pagination is incomplete",
+    )
+    review_threads = snapshot.get("reviewThreads")
+    _require(isinstance(review_threads, list), "review threads evidence is malformed")
+    for thread in review_threads:
+        _require(isinstance(thread, dict), "review thread entry is malformed")
+        _require(
+            isinstance(thread.get("isResolved"), bool)
+            and isinstance(thread.get("isOutdated"), bool)
+            and isinstance(thread.get("body"), str),
+            "review thread entry is malformed",
+        )
+        if thread["isResolved"]:
+            continue
+        priorities = {
+            int(group)
+            for match in REVIEW_PRIORITY.finditer(thread["body"])
+            for group in match.groups()
+            if group is not None
+        }
+        _require(
+            bool(priorities),
+            "every unresolved review thread needs a classifiable priority",
+        )
+        _require(
+            len(priorities) == 1,
+            "every unresolved review thread must have exactly one priority",
+        )
+        priority = next(iter(priorities))
+        _require(priority >= 2, f"unresolved P{priority} review thread blocks release")
+
+    _require(
+        snapshot.get("tagRulesetsPaginationComplete") is True,
+        "stable tag rulesets pagination is incomplete",
+    )
+    tag_rulesets = snapshot.get("tagRulesets")
+    _require(
+        isinstance(tag_rulesets, list), "stable tag rulesets evidence is malformed"
+    )
+    expected_ref = f"refs/tags/{expected_tag}"
+    immutable_ruleset_found = False
+    ruleset_ids: set[int] = set()
+    for ruleset in tag_rulesets:
+        _require(isinstance(ruleset, dict), "stable tag ruleset entry is malformed")
+        ruleset_id = ruleset.get("id")
+        _require(
+            isinstance(ruleset_id, int)
+            and not isinstance(ruleset_id, bool)
+            and ruleset_id > 0,
+            "stable tag ruleset id is malformed",
+        )
+        _require(
+            ruleset_id not in ruleset_ids,
+            "stable tag ruleset inventory repeats an id",
+        )
+        ruleset_ids.add(ruleset_id)
+        _require(
+            ruleset.get("target") == "tag",
+            "stable tag ruleset target is contradictory",
+        )
+        _require(
+            isinstance(ruleset.get("enforcement"), str)
+            and bool(ruleset["enforcement"]),
+            "stable tag ruleset enforcement is malformed",
+        )
+        conditions = ruleset.get("conditions")
+        _require(
+            isinstance(conditions, dict), "stable tag ruleset conditions are malformed"
+        )
+        ref_name = conditions.get("ref_name")
+        _require(
+            isinstance(ref_name, dict), "stable tag ruleset ref condition is malformed"
+        )
+        include = ref_name.get("include")
+        exclude = ref_name.get("exclude")
+        _require(
+            isinstance(include, list)
+            and all(isinstance(item, str) and bool(item) for item in include),
+            "stable tag ruleset include inventory is malformed",
+        )
+        _require(
+            isinstance(exclude, list)
+            and all(isinstance(item, str) and bool(item) for item in exclude),
+            "stable tag ruleset exclude inventory is malformed",
+        )
+        rules = ruleset.get("rules")
+        _require(
+            isinstance(rules, list)
+            and all(
+                isinstance(rule, dict)
+                and isinstance(rule.get("type"), str)
+                and bool(rule["type"])
+                for rule in rules
+            ),
+            "stable tag ruleset rule inventory is malformed",
+        )
+        if (
+            ruleset["enforcement"] == "active"
+            and ("refs/tags/v*" in include or "~ALL" in include)
+            and exclude == []
+        ):
+            rule_types = {rule.get("type") for rule in rules}
+            immutable_ruleset_found = immutable_ruleset_found or {
+                "update",
+                "deletion",
+            }.issubset(rule_types)
+    _require(
+        immutable_ruleset_found,
+        f"stable tag {expected_ref} has no active update/deletion ruleset",
+    )
 
 
 def _validate_release_source(source_branch: str, source_version: str) -> None:
@@ -222,6 +523,18 @@ def validate_candidate_context(
     _require(
         not failed, f"reviewed PR required checks are not passing: {', '.join(failed)}"
     )
+    if _requires_strict_release_policy(source_version):
+        admission = snapshot.get("repositoryAdmission")
+        _require(
+            isinstance(admission, dict),
+            "reviewed PR has no repository admission evidence",
+        )
+        validate_repository_admission(
+            admission,
+            main_sha=main_sha,
+            review_head_sha=head_sha,
+            expected_tag=f"v{source_version}",
+        )
 
 
 def _require_exact_head_codex_review(snapshot: dict[str, Any], head_sha: str) -> None:
@@ -473,16 +786,11 @@ def validate_promotion_source_state(
             source_branch_sha == main_sha,
             "main release branch identity differs from protected main",
         )
-    _require(tag_state in {"absent", "present"}, "stable tag state is invalid")
-    if tag_state == "absent":
-        _require(
-            source_branch_sha == source_sha,
-            "a new stable tag may be created only from the current release branch head",
-        )
-        return
-    _require(
-        source_is_branch_ancestor,
-        "a recovery candidate must remain reachable from its release branch",
+    _validate_release_branch_position(
+        tag_state=tag_state,
+        source_sha=source_sha,
+        source_branch_sha=source_branch_sha,
+        source_is_branch_ancestor=source_is_branch_ancestor,
     )
 
 
@@ -580,11 +888,15 @@ def validate_version_only_lineage(repository: Path) -> None:
 
 
 def _read_closed_zip(path: Path, captured: bytes | None = None) -> dict[str, bytes]:
-    _require(captured is not None or path.is_file(), f"release package is missing: {path}")
+    _require(
+        captured is not None or path.is_file(), f"release package is missing: {path}"
+    )
     entries: dict[str, bytes] = {}
     identities: set[str] = set()
     try:
-        with zipfile.ZipFile(io.BytesIO(captured) if captured is not None else path) as archive:
+        with zipfile.ZipFile(
+            io.BytesIO(captured) if captured is not None else path
+        ) as archive:
             for entry in archive.infolist():
                 if entry.is_dir():
                     continue
@@ -892,15 +1204,44 @@ def validate_existing_release(
     *,
     expected_tag: str,
     expected_body: str,
+    expected_assets: dict[str, dict[str, Any]] | None = None,
 ) -> list[str]:
-    """Validate immutable Release metadata and return an always-array asset inventory."""
+    """Validate Release metadata and return an always-array asset inventory."""
 
+    _require(isinstance(release, dict), "existing Release metadata is malformed")
     _require(
-        release.get("tagName") == expected_tag,
+        expected_tag.startswith("v")
+        and STABLE_VERSION.fullmatch(expected_tag[1:]) is not None,
+        "existing Release expected tag is invalid",
+    )
+    strict = _requires_strict_release_policy(expected_tag[1:])
+    tag_name = release.get("tag_name", release.get("tagName"))
+    is_draft = release.get("draft", release.get("isDraft"))
+    is_prerelease = release.get("prerelease", release.get("isPrerelease"))
+    _require(
+        tag_name == expected_tag,
         "existing Release tag differs from the candidate",
     )
-    _require(release.get("isDraft") is False, "existing Release is still a draft")
-    _require(release.get("isPrerelease") is False, "existing Release is a prerelease")
+    _require(is_draft is False, "existing Release is still a draft")
+    _require(is_prerelease is False, "existing Release is a prerelease")
+    if strict:
+        _require(
+            release.get("immutable") is True,
+            "existing Release must be REST immutable",
+        )
+        _require(
+            isinstance(expected_assets, dict),
+            "immutable Release validation requires candidate asset metadata",
+        )
+        assert expected_assets is not None
+        for expected_name, expected_metadata in expected_assets.items():
+            _require(
+                isinstance(expected_name, str)
+                and bool(expected_name)
+                and Path(expected_name).name == expected_name
+                and isinstance(expected_metadata, dict),
+                "candidate asset metadata is malformed",
+            )
     body = release.get("body")
     _require(isinstance(body, str), "existing Release body is missing")
     _require(
@@ -914,12 +1255,86 @@ def validate_existing_release(
         _require(isinstance(asset, dict), "existing Release asset entry is malformed")
         name = asset.get("name")
         _require(
-            isinstance(name, str) and Path(name).name == name,
+            isinstance(name, str) and bool(name) and Path(name).name == name,
             "existing Release asset name is invalid",
         )
         names.append(name)
     _require(len(names) == len(set(names)), "existing Release repeats an asset name")
+    if strict:
+        assert expected_assets is not None
+        _require(
+            set(names) == set(expected_assets),
+            "existing Release asset set differs from the candidate",
+        )
+        for asset in assets:
+            name = asset["name"]
+            expected = expected_assets[name]
+            expected_size = expected.get("size")
+            expected_sha256 = expected.get("sha256")
+            _require(
+                isinstance(expected_size, int)
+                and not isinstance(expected_size, bool)
+                and expected_size >= 0,
+                f"candidate asset size is invalid: {name}",
+            )
+            _require_sha256(expected_sha256, f"candidate asset digest: {name}")
+            _require(
+                asset.get("state") == "uploaded",
+                f"existing Release asset is not in uploaded state: {name}",
+            )
+            _require(
+                isinstance(asset.get("size"), int)
+                and not isinstance(asset.get("size"), bool)
+                and asset.get("size") == expected_size,
+                f"existing Release asset size differs from the candidate: {name}",
+            )
+            _require(
+                asset.get("digest") == f"sha256:{expected_sha256}",
+                f"existing Release asset digest differs from the candidate: {name}",
+            )
     return names
+
+
+def expected_published_asset_metadata(
+    manifest_path: Path,
+) -> dict[str, dict[str, Any]]:
+    """Read exact candidate metadata for every published GitHub Release asset."""
+
+    manifest_path = manifest_path.resolve(strict=True)
+    _require(manifest_path.is_file(), "candidate manifest path must be a file")
+    manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+    _require(isinstance(manifest, dict), "candidate manifest must be an object")
+    version = manifest.get("version")
+    _require(
+        isinstance(version, str) and STABLE_VERSION.fullmatch(version) is not None,
+        "candidate manifest version is invalid",
+    )
+    entries = manifest.get("assets")
+    _require(isinstance(entries, list), "candidate manifest assets are invalid")
+    result: dict[str, dict[str, Any]] = {}
+    for entry in entries:
+        _require(isinstance(entry, dict), "candidate asset entry is invalid")
+        name = entry.get("name")
+        _require(
+            isinstance(name, str) and bool(name) and Path(name).name == name,
+            "candidate asset name is unsafe",
+        )
+        _require(name not in result, "candidate manifest repeats an asset name")
+        size = entry.get("size")
+        digest = entry.get("sha256")
+        _require(
+            isinstance(size, int) and not isinstance(size, bool) and size >= 0,
+            f"candidate asset size is invalid: {name}",
+        )
+        _require_sha256(digest, f"candidate asset digest: {name}")
+        result[name] = {"size": size, "sha256": digest}
+
+    checksum_path = manifest_path.parent / f"NvtFwCombiner-v{version}-assets.sha256"
+    for path in (manifest_path, checksum_path):
+        _require(path.is_file(), f"candidate published asset is missing: {path.name}")
+        _require(path.name not in result, "candidate repeats a published asset name")
+        result[path.name] = {"size": path.stat().st_size, "sha256": _sha256(path)}
+    return result
 
 
 def verify_candidate_manifest(
@@ -971,7 +1386,8 @@ def verify_candidate_manifest(
     def verify_entry(entry: dict[str, Any], label: str) -> None:
         name = entry.get("name")
         _require(
-            isinstance(name, str) and Path(name).name == name, f"{label} name is unsafe"
+            isinstance(name, str) and bool(name) and Path(name).name == name,
+            f"{label} name is unsafe",
         )
         path = root / name
         _require(path.is_file(), f"{label} is missing: {name}")
@@ -1027,7 +1443,7 @@ def plan_release_asset_recovery(
     )
     _require(
         all(
-            isinstance(name, str) and Path(name).name == name
+            isinstance(name, str) and bool(name) and Path(name).name == name
             for name in published_names
         ),
         "published Release asset names are invalid",
@@ -1087,6 +1503,15 @@ def parse_args() -> argparse.Namespace:
     context.add_argument(
         "--owner-self-approval-exception", choices=("true", "false"), required=True
     )
+    repository_admission = subparsers.add_parser("validate-repository-admission")
+    repository_admission.add_argument("--snapshot", type=Path, required=True)
+    repository_admission.add_argument("--main-sha", required=True)
+    repository_admission.add_argument("--review-head-sha", required=True)
+    repository_admission.add_argument("--expected-tag", required=True)
+    live_authority = subparsers.add_parser("validate-live-branch-authority")
+    live_authority.add_argument("--snapshot", type=Path, required=True)
+    live_authority.add_argument("--main-sha", required=True)
+    live_authority.add_argument("--source-sha", required=True)
 
     for command in ("create-manifest", "verify-manifest"):
         manifest = subparsers.add_parser(command)
@@ -1143,6 +1568,7 @@ def parse_args() -> argparse.Namespace:
     release.add_argument("--release", type=Path, required=True)
     release.add_argument("--expected-tag", required=True)
     release.add_argument("--expected-body", type=Path, required=True)
+    release.add_argument("--manifest", type=Path)
     recovery = subparsers.add_parser("plan-recovery")
     recovery.add_argument("--manifest", type=Path, required=True)
     recovery.add_argument("--published-dir", type=Path, required=True)
@@ -1166,6 +1592,19 @@ def main() -> int:
             repository_owner=args.repository_owner,
             workflow_actor=args.workflow_actor,
             owner_self_approval_exception=args.owner_self_approval_exception == "true",
+        )
+    elif args.command == "validate-repository-admission":
+        validate_repository_admission(
+            json.loads(args.snapshot.read_text(encoding="utf-8")),
+            main_sha=args.main_sha,
+            review_head_sha=args.review_head_sha,
+            expected_tag=args.expected_tag,
+        )
+    elif args.command == "validate-live-branch-authority":
+        validate_live_branch_authority(
+            json.loads(args.snapshot.read_text(encoding="utf-8")),
+            main_sha=args.main_sha,
+            source_sha=args.source_sha,
         )
     elif args.command == "create-manifest":
         manifest_path = create_candidate_manifest(
@@ -1235,6 +1674,11 @@ def main() -> int:
             json.loads(args.release.read_text(encoding="utf-8")),
             expected_tag=args.expected_tag,
             expected_body=args.expected_body.read_text(encoding="utf-8"),
+            expected_assets=(
+                expected_published_asset_metadata(args.manifest)
+                if args.manifest is not None
+                else None
+            ),
         )
         print(json.dumps(names))
     else:

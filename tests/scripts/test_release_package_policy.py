@@ -17,16 +17,18 @@ import unittest
 import zipfile
 from collections.abc import Callable
 from pathlib import Path
+from typing import Any
 from unittest import mock
+
+import yaml
 
 
 ROOT = Path(__file__).resolve().parents[2]
 SCRIPTS = ROOT / "scripts"
 sys.path.insert(0, str(SCRIPTS))
 
-import validate_repository as repository_validation  # noqa: E402
-
 PACKAGE_SCRIPT = ROOT / "scripts" / "package.ps1"
+RELEASE_WORKFLOW = ROOT / ".github" / "workflows" / "release.yml"
 LAUNCHER_PACKAGE_SCRIPT = ROOT / "scripts" / "package-distribution-launcher.ps1"
 SMOKE_SCRIPT = ROOT / "scripts" / "smoke-release.ps1"
 UPDATE_SOURCE_REGISTRY_TEMPLATE = (
@@ -78,6 +80,15 @@ LEGACY_PACKAGE_BYTES = 80_000_000
 MAXIMUM_PACKAGE_BYTES = 134_217_728
 MAXIMUM_APPLICATION_BYTES = 80_000_000
 ANSI_ESCAPE_PATTERN = re.compile(r"\x1b\[[0-?]*[ -/]*[@-~]")
+RELEASE_MAIN_SHA = "a" * 40
+RELEASE_REVIEW_HEAD_SHA = "b" * 40
+RELEASE_SOURCE_TREE = "c" * 40
+RELEASE_ADVANCED_SOURCE_SHA = "d" * 40
+RELEASE_REQUIRED_CHECKS = (
+    "policy / polytail",
+    "python-worker / verify",
+    "dotnet / build-test",
+)
 
 
 def normalize_console_output(output: str) -> str:
@@ -85,6 +96,320 @@ def normalize_console_output(output: str) -> str:
 
     unstyled_output = ANSI_ESCAPE_PATTERN.sub("", output)
     return " ".join(unstyled_output.replace("|", " ").split())
+
+
+def release_test_temp_root() -> Path:
+    """Return the repository-approved test temp root and fail closed otherwise."""
+
+    configured_root = os.environ.get("NFC_TEST_AREA_ROOT")
+    if not configured_root:
+        raise RuntimeError("NFC_TEST_AREA_ROOT is required for release-policy tests")
+    temp_root = Path(configured_root) / "temp"
+    if not temp_root.is_dir():
+        raise RuntimeError(f"NFC test temp directory is missing: {temp_root}")
+    return temp_root
+
+
+def release_workflow_run_block(job_name: str, step_name: str) -> str:
+    """Load one exact PowerShell run body from the canonical release workflow."""
+
+    workflow = yaml.safe_load(RELEASE_WORKFLOW.read_text(encoding="utf-8"))
+    steps = workflow["jobs"][job_name]["steps"]
+    matches = [step for step in steps if step.get("name") == step_name]
+    if len(matches) != 1 or not isinstance(matches[0].get("run"), str):
+        raise AssertionError(f"release workflow step is not unique: {step_name}")
+    return matches[0]["run"]
+
+
+def release_admission_fixture(
+    scenario: str = "success",
+    *,
+    tag_state: str = "absent",
+    remote_source_sha: str = RELEASE_MAIN_SHA,
+) -> dict[str, Any]:
+    """Build deterministic, multi-page GitHub evidence for exact workflow execution."""
+
+    check_runs = [
+        {
+            "name": name,
+            "head_sha": RELEASE_REVIEW_HEAD_SHA,
+            "app": {"slug": "github-actions"},
+            "status": "completed",
+            "conclusion": "success",
+        }
+        for name in RELEASE_REQUIRED_CHECKS
+    ]
+    if scenario == "duplicate_required":
+        check_runs.append(dict(check_runs[0]))
+    elif scenario == "missing_required":
+        check_runs.pop()
+
+    total_count: int | str = len(check_runs)
+    if scenario == "truncated_checks":
+        total_count += 1
+    elif scenario == "wrong_total":
+        total_count = "not-a-count"
+    check_run_pages = [
+        {"total_count": total_count, "check_runs": check_runs[:2]},
+        {"total_count": total_count, "check_runs": check_runs[2:]},
+    ]
+
+    review_thread_pages: list[dict[str, Any]] = [
+        {
+            "data": {
+                "repository": {
+                    "pullRequest": {
+                        "reviewThreads": {
+                            "pageInfo": {
+                                "hasNextPage": True,
+                                "endCursor": "review-cursor-1",
+                            },
+                            "nodes": [
+                                {
+                                    "isResolved": True,
+                                    "isOutdated": False,
+                                    "comments": {"nodes": [{"body": "resolved"}]},
+                                }
+                            ],
+                        }
+                    }
+                }
+            }
+        },
+        {
+            "data": {
+                "repository": {
+                    "pullRequest": {
+                        "reviewThreads": {
+                            "pageInfo": {
+                                "hasNextPage": False,
+                                "endCursor": "review-cursor-2",
+                            },
+                            "nodes": [
+                                {
+                                    "isResolved": False,
+                                    "isOutdated": False,
+                                    "comments": {"nodes": [{"body": "[P2] follow-up"}]},
+                                }
+                            ],
+                        }
+                    }
+                }
+            }
+        },
+    ]
+    first_connection = review_thread_pages[0]["data"]["repository"]["pullRequest"][
+        "reviewThreads"
+    ]
+    second_connection = review_thread_pages[1]["data"]["repository"]["pullRequest"][
+        "reviewThreads"
+    ]
+    if scenario == "blank_cursor":
+        first_connection["pageInfo"]["endCursor"] = " "
+    elif scenario == "repeated_cursor":
+        second_connection["pageInfo"] = {
+            "hasNextPage": True,
+            "endCursor": "review-cursor-1",
+        }
+    elif scenario == "null_page_info":
+        first_connection["pageInfo"] = None
+
+    repository = "owner/repository"
+    required_rule = {
+        "type": "required_status_checks",
+        "parameters": {
+            "required_status_checks": [
+                {"context": name} for name in RELEASE_REQUIRED_CHECKS
+            ]
+        },
+    }
+    tag_rulesets = {
+        f"repos/{repository}/rulesets/17": {
+            "id": 17,
+            "target": "tag",
+            "enforcement": "evaluate",
+            "bypass_actors": [],
+            "conditions": {"ref_name": {"include": ["refs/tags/v*"], "exclude": []}},
+            "rules": [{"type": "creation"}],
+        },
+        f"repos/{repository}/rulesets/29": {
+            "id": 29,
+            "target": "tag",
+            "enforcement": "active",
+            "bypass_actors": [],
+            "conditions": {"ref_name": {"include": ["refs/tags/v*"], "exclude": []}},
+            "rules": [{"type": "update"}, {"type": "deletion"}],
+        },
+    }
+    comparison_status = "ahead"
+    if scenario == "invalid_recovery_ancestry":
+        comparison_status = "diverged"
+    api = {
+        f"repos/{repository}/git/commits/{RELEASE_REVIEW_HEAD_SHA}": {
+            "tree": {"sha": RELEASE_SOURCE_TREE}
+        },
+        f"repos/{repository}/branches/main": {
+            "commit": {"sha": RELEASE_MAIN_SHA},
+            "protected": True,
+        },
+        f"repos/{repository}/git/ref/heads/main": {
+            "object": {"sha": remote_source_sha}
+        },
+        (f"repos/{repository}/compare/{RELEASE_MAIN_SHA}...{remote_source_sha}"): {
+            "baseSha": RELEASE_MAIN_SHA,
+            "mergeBaseSha": RELEASE_MAIN_SHA,
+            "status": comparison_status,
+        },
+        **tag_rulesets,
+    }
+    if scenario == "unprotected_main":
+        api[f"repos/{repository}/branches/main"]["protected"] = False
+    return {
+        "tagState": tag_state,
+        "pr": {
+            "number": 406,
+            "state": "MERGED",
+            "mergedAt": "2026-09-01T00:00:00Z",
+            "baseRefName": "main",
+            "mergeCommit": {"oid": RELEASE_MAIN_SHA},
+            "headRefOid": RELEASE_REVIEW_HEAD_SHA,
+            "reviewDecision": "APPROVED",
+            "author": {"login": "owner"},
+        },
+        "api": api,
+        "paginated": {
+            f"repos/{repository}/rules/branches/main?per_page=100": [
+                [{"type": "creation"}],
+                [required_rule],
+            ],
+            (
+                f"repos/{repository}/rulesets?includes_parents=true&"
+                "targets=tag&per_page=100"
+            ): [[{"id": 17}], [{"id": 29}]],
+            f"repos/{repository}/pulls/406/reviews": [
+                [
+                    {
+                        "state": "APPROVED",
+                        "commit_id": RELEASE_REVIEW_HEAD_SHA,
+                        "submitted_at": "2026-09-01T00:01:00Z",
+                        "user": {"login": "human-reviewer"},
+                    }
+                ],
+                [],
+            ],
+            f"repos/{repository}/pulls/406/comments": [[], []],
+            f"repos/{repository}/issues/406/comments": [[], []],
+            (
+                f"repos/{repository}/commits/{RELEASE_REVIEW_HEAD_SHA}/"
+                "check-runs?filter=latest&per_page=100"
+            ): check_run_pages,
+        },
+        "graphqlPages": review_thread_pages,
+    }
+
+
+FAKE_GITHUB_WORKFLOW_WRAPPER = r"""param(
+    [Parameter(Mandatory = $true)][string]$RunBlock,
+    [Parameter(Mandatory = $true)][string]$FixturePath,
+    [Parameter(Mandatory = $true)][string]$CallLog
+)
+$ErrorActionPreference = 'Stop'
+Set-StrictMode -Version Latest
+$script:FixtureData = Get-Content -LiteralPath $FixturePath -Raw | ConvertFrom-Json
+$script:GraphqlPageIndex = 0
+$script:ActualPython = @(Get-Command python -CommandType Application)[0].Source
+
+function Add-FakeCall([string]$Command, [object[]]$Arguments) {
+    $record = @($Command) + @($Arguments | ForEach-Object { [string]$_ })
+    Add-Content -LiteralPath $CallLog `
+        -Value (ConvertTo-Json -InputObject $record -Compress) -Encoding utf8
+}
+
+function Write-FakeJson([object]$Value) {
+    Write-Output (ConvertTo-Json -InputObject $Value -Compress -Depth 40)
+}
+
+function gh {
+    $arguments = @($args | ForEach-Object { [string]$_ })
+    Add-FakeCall 'gh' $arguments
+    $global:LASTEXITCODE = 0
+    if ($arguments.Count -ge 2 -and
+        $arguments[0] -eq 'pr' -and $arguments[1] -eq 'view') {
+        Write-FakeJson $script:FixtureData.pr
+        return
+    }
+    if ($arguments.Count -ge 2 -and $arguments[0] -eq 'release') {
+        return
+    }
+    if ($arguments.Count -ge 2 -and
+        $arguments[0] -eq 'api' -and $arguments[1] -eq 'graphql') {
+        if ($script:GraphqlPageIndex -ge @($script:FixtureData.graphqlPages).Count) {
+            throw 'Fake GitHub GraphQL pages are exhausted.'
+        }
+        $page = @($script:FixtureData.graphqlPages)[$script:GraphqlPageIndex]
+        $script:GraphqlPageIndex++
+        Write-FakeJson $page
+        return
+    }
+    if ($arguments.Count -ge 4 -and
+        $arguments[0] -eq 'api' -and
+        $arguments[1] -eq '--paginate' -and
+        $arguments[2] -eq '--slurp') {
+        $endpoint = $arguments[3]
+        $property = $script:FixtureData.paginated.PSObject.Properties[$endpoint]
+        if ($null -eq $property) {
+            throw "Unexpected fake paginated GitHub endpoint: $endpoint"
+        }
+        Write-FakeJson $property.Value
+        return
+    }
+    if ($arguments.Count -ge 2 -and $arguments[0] -eq 'api') {
+        $endpoint = $arguments[1]
+        $property = $script:FixtureData.api.PSObject.Properties[$endpoint]
+        if ($null -eq $property) {
+            throw "Unexpected fake GitHub endpoint: $endpoint"
+        }
+        Write-FakeJson $property.Value
+        return
+    }
+    throw "Unexpected fake gh invocation: $($arguments -join ' ')"
+}
+
+function python {
+    $arguments = @($args | ForEach-Object { [string]$_ })
+    Add-FakeCall 'python' $arguments
+    if ($arguments.Count -ge 2 -and $arguments[1] -eq 'probe-resource') {
+        Write-Output ([string]$script:FixtureData.tagState)
+        $global:LASTEXITCODE = 0
+        return
+    }
+    & $script:ActualPython @arguments
+    $pythonExitCode = $global:LASTEXITCODE
+    $global:LASTEXITCODE = $pythonExitCode
+}
+
+. $RunBlock
+"""
+
+
+POISONED_PACKAGE_WRAPPER = r"""param(
+    [Parameter(Mandatory = $true)][string]$PackageScript,
+    [Parameter(Mandatory = $true)][string]$Version,
+    [Parameter(Mandatory = $true)][string]$Commit,
+    [switch]$AllowPrerelease,
+    [switch]$ManualOnly,
+    [switch]$ExternalToolPolicyDryRun
+)
+$ErrorActionPreference = 'Stop'
+function Test-Path {
+    throw 'POISONED_REPOSITORY_ACCESS'
+}
+$invocation = @{ Version = $Version; Commit = $Commit }
+if ($AllowPrerelease) { $invocation.AllowPrerelease = $true }
+if ($ManualOnly) { $invocation.ManualOnly = $true }
+if ($ExternalToolPolicyDryRun) { $invocation.ExternalToolPolicyDryRun = $true }
+. $PackageScript @invocation
+"""
 
 
 def initialize_minimal_package_repository(repository_root: Path) -> str:
@@ -347,11 +672,13 @@ class ReleasePackagePolicyTests(unittest.TestCase):
         self, script: Path, *arguments: str
     ) -> subprocess.CompletedProcess[str]:
         with tempfile.TemporaryDirectory(
-            prefix=".release-policy-powershell-"
+            prefix="release-policy-powershell-",
+            dir=release_test_temp_root(),
         ) as shell_temp:
             environment = os.environ.copy()
             environment["TEMP"] = shell_temp
             environment["TMP"] = shell_temp
+            environment["TMPDIR"] = shell_temp
             return subprocess.run(
                 [
                     str(POWERSHELL),
@@ -370,6 +697,192 @@ class ReleasePackagePolicyTests(unittest.TestCase):
                 errors="replace",
                 env=environment,
             )
+
+    def run_poisoned_package_guard(
+        self, version: str, *arguments: str
+    ) -> subprocess.CompletedProcess[str]:
+        """Execute the real packager with repository access made observable."""
+
+        with tempfile.TemporaryDirectory(
+            prefix="package-early-guard-",
+            dir=release_test_temp_root(),
+        ) as temporary_directory:
+            fixture_root = Path(temporary_directory)
+            package_script = fixture_root / "repo-less" / "scripts" / "package.ps1"
+            package_script.parent.mkdir(parents=True)
+            shutil.copy2(PACKAGE_SCRIPT, package_script)
+            wrapper = fixture_root / "poisoned-package-wrapper.ps1"
+            wrapper.write_text(POISONED_PACKAGE_WRAPPER, encoding="utf-8")
+            environment = os.environ.copy()
+            environment.update(
+                {
+                    "TEMP": str(fixture_root),
+                    "TMP": str(fixture_root),
+                    "TMPDIR": str(fixture_root),
+                }
+            )
+            return subprocess.run(
+                [
+                    str(POWERSHELL),
+                    "-NoProfile",
+                    "-ExecutionPolicy",
+                    "Bypass",
+                    "-File",
+                    str(wrapper),
+                    "-PackageScript",
+                    str(package_script),
+                    "-Version",
+                    version,
+                    "-Commit",
+                    "0" * 40,
+                    *arguments,
+                ],
+                cwd=fixture_root,
+                check=False,
+                capture_output=True,
+                text=True,
+                encoding="utf-8",
+                errors="replace",
+                env=environment,
+            )
+
+    def run_release_workflow_step(
+        self,
+        job_name: str,
+        step_name: str,
+        *,
+        scenario: str = "success",
+        source_version: str = "1.1.1",
+        tag_state: str = "absent",
+        remote_source_sha: str = RELEASE_MAIN_SHA,
+    ) -> tuple[subprocess.CompletedProcess[str], Path, list[list[str]]]:
+        """Execute an exact YAML run block against a deterministic fake GitHub."""
+
+        fixture = release_admission_fixture(
+            scenario,
+            tag_state=tag_state,
+            remote_source_sha=remote_source_sha,
+        )
+        temporary_directory = tempfile.mkdtemp(
+            prefix=f"release-{job_name}-admission-",
+            dir=release_test_temp_root(),
+        )
+        fixture_root = Path(temporary_directory)
+        self.addCleanup(shutil.rmtree, fixture_root, True)
+        workspace = fixture_root / "workspace"
+        runner_temp = fixture_root / "runner-temp"
+        workspace.mkdir()
+        runner_temp.mkdir()
+        manifest_name = f"NvtFwCombiner-v{source_version}-candidate.json"
+        if step_name == "Publish or validate GitHub Release":
+            release_root = workspace / "artifacts" / "release"
+            release_root.mkdir(parents=True)
+            payload = release_root / "payload.bin"
+            payload.write_bytes(b"candidate-payload")
+            notes = release_root / "RELEASE-NOTES.md"
+            notes.write_text("fixture release notes\n", encoding="utf-8")
+            manifest = {
+                "version": source_version,
+                "assets": [
+                    {
+                        "name": payload.name,
+                        "size": payload.stat().st_size,
+                        "sha256": hashlib.sha256(payload.read_bytes()).hexdigest(),
+                    }
+                ],
+            }
+            (release_root / manifest_name).write_text(
+                json.dumps(manifest), encoding="utf-8"
+            )
+            (
+                release_root / f"NvtFwCombiner-v{source_version}-assets.sha256"
+            ).write_text("fixture checksum\n", encoding="utf-8")
+            fixture["api"][
+                f"repos/owner/repository/releases/tags/v{source_version}"
+            ] = {
+                "tag_name": f"v{source_version}",
+                "draft": False,
+                "prerelease": False,
+                "immutable": tuple(int(part) for part in source_version.split("."))
+                >= (1, 1, 1),
+                "body": "fixture release notes\n",
+                "assets": [],
+            }
+        fixture_path = fixture_root / "github-fixture.json"
+        call_log = fixture_root / "calls.jsonl"
+        wrapper = fixture_root / "invoke-workflow-step.ps1"
+        run_block = fixture_root / "workflow-run-block.ps1"
+        fixture_path.write_text(
+            json.dumps(fixture, ensure_ascii=False), encoding="utf-8"
+        )
+        wrapper.write_text(FAKE_GITHUB_WORKFLOW_WRAPPER, encoding="utf-8")
+        canonical_run_block = release_workflow_run_block(job_name, step_name)
+        canonical_run_block = canonical_run_block.replace(
+            "${{ github.workspace }}", str(workspace).replace("'", "''")
+        )
+        run_block.write_text(canonical_run_block, encoding="utf-8")
+        github_output = fixture_root / "github-output.txt"
+        environment = os.environ.copy()
+        environment.update(
+            {
+                "TEMP": str(runner_temp),
+                "TMP": str(runner_temp),
+                "TMPDIR": str(runner_temp),
+                "RUNNER_TEMP": str(runner_temp),
+                "GITHUB_OUTPUT": str(github_output),
+                "NFC_RELEASE_POLICY": str(
+                    ROOT / "scripts" / "release_promotion_policy.py"
+                ),
+                "NFC_REPOSITORY": "owner/repository",
+                "NFC_PULL_REQUEST": "406",
+                "NFC_REQUESTED_SHA": RELEASE_MAIN_SHA,
+                "NFC_WORKFLOW_SHA": RELEASE_MAIN_SHA,
+                "NFC_WORKFLOW_REF": "refs/heads/main",
+                "NFC_SOURCE_SHA": RELEASE_MAIN_SHA,
+                "NFC_SOURCE_TREE": RELEASE_SOURCE_TREE,
+                "NFC_SOURCE_BRANCH": "main",
+                "NFC_SOURCE_VERSION": source_version,
+                "NFC_MAIN_SHA": RELEASE_MAIN_SHA,
+                "NFC_REVIEW_HEAD_SHA": RELEASE_REVIEW_HEAD_SHA,
+                "NFC_TAG": f"v{source_version}",
+                "NFC_MANIFEST_NAME": manifest_name,
+                "NFC_REPOSITORY_OWNER": "owner",
+                "NFC_WORKFLOW_ACTOR": "owner",
+                "NFC_OWNER_SELF_APPROVAL_EXCEPTION": "false",
+            }
+        )
+        result = subprocess.run(
+            [
+                str(POWERSHELL),
+                "-NoProfile",
+                "-ExecutionPolicy",
+                "Bypass",
+                "-File",
+                str(wrapper),
+                "-RunBlock",
+                str(run_block),
+                "-FixturePath",
+                str(fixture_path),
+                "-CallLog",
+                str(call_log),
+            ],
+            cwd=workspace,
+            check=False,
+            capture_output=True,
+            text=True,
+            encoding="utf-8",
+            errors="replace",
+            env=environment,
+        )
+        calls = (
+            [
+                json.loads(line)
+                for line in call_log.read_text(encoding="utf-8").splitlines()
+            ]
+            if call_log.is_file()
+            else []
+        )
+        return result, fixture_root, calls
 
     def run_packager_dry_run_with_repository_watcher(
         self,
@@ -516,6 +1029,7 @@ finally {
             "Release hash-list policy dry-run passed: Unicode paths round-trip through UTF-8",
             result.stdout,
         )
+
     @unittest.skipUnless(
         POWERSHELL, "PowerShell is required for Windows release-policy tests"
     )
@@ -552,13 +1066,17 @@ finally {
         results = [process.communicate(timeout=120) for process in processes]
         for process, (stdout, stderr) in zip(processes, results, strict=True):
             self.assertEqual(0, process.returncode, stdout + stderr)
-        self.assertEqual([], list((ROOT / "external-tools").glob("release-package-policy-probe-*.txt")))
+        self.assertEqual(
+            [],
+            list((ROOT / "external-tools").glob("release-package-policy-probe-*.txt")),
+        )
 
     def test_external_tool_copy_owner_accepts_an_explicit_source_root(self) -> None:
         script = PACKAGE_SCRIPT.read_text(encoding="utf-8")
         copy_owner = script[
-            script.index("function Copy-ApprovedExternalToolPackageFiles") :
-            script.index("function Get-ExternalToolManifestEntries")
+            script.index(
+                "function Copy-ApprovedExternalToolPackageFiles"
+            ) : script.index("function Get-ExternalToolManifestEntries")
         ]
 
         self.assertIn("[string]$SourceRoot = $RepoRoot", copy_owner)
@@ -605,15 +1123,61 @@ finally {
         script = PACKAGE_SCRIPT.read_text(encoding="utf-8")
 
         self.assertIn("[switch]$ManualOnly", script)
-        self.assertIn("$IncludeManagedLauncher = -not ($AllowPrerelease -or $ManualOnly)", script)
+        self.assertIn(
+            "$IncludeManagedLauncher = -not ($AllowPrerelease -or $ManualOnly)", script
+        )
         self.assertIn("ManualOnly cannot be combined with AllowPrerelease", script)
-        self.assertIn("ManualOnly cannot be combined with ExternalToolPolicyDryRun", script)
+        self.assertIn(
+            "ManualOnly cannot be combined with ExternalToolPolicyDryRun", script
+        )
         self.assertIn("ManualOnly is available only for v1.1.0", script)
         self.assertIn("$ReferencePayloadEntries = @()", script)
         self.assertIn("$ReferencePayloadEntries | ForEach-Object { $_.path }", script)
         self.assertIn("if (-not $ManualOnly) {", script)
         self.assertIn("-not $ManualOnly -and", script)
         self.assertEqual(1, script.count("scripts/package-distribution-launcher.ps1"))
+
+    @unittest.skipUnless(
+        POWERSHELL, "PowerShell is required for Windows release-policy tests"
+    )
+    def test_manual_only_boundary_is_executable_before_poisoned_repository_access(
+        self,
+    ) -> None:
+        non_manual_modes = (
+            (),
+            ("-AllowPrerelease",),
+            ("-ExternalToolPolicyDryRun",),
+            ("-AllowPrerelease", "-ExternalToolPolicyDryRun"),
+        )
+        for version in ("1.1.0", "v1.1.0"):
+            for extra_arguments in non_manual_modes:
+                with self.subTest(version=version, extra_arguments=extra_arguments):
+                    result = self.run_poisoned_package_guard(version, *extra_arguments)
+                    output = normalize_console_output(result.stdout + result.stderr)
+                    self.assertNotEqual(0, result.returncode, output)
+                    self.assertIn("v1.1.0 requires the ManualOnly package mode", output)
+                    self.assertNotIn("POISONED_REPOSITORY_ACCESS", output)
+
+        for version in ("1.1.0", "v1.1.0"):
+            with self.subTest(version=version, mode="manual-only-crosses-guard"):
+                result = self.run_poisoned_package_guard(version, "-ManualOnly")
+                output = normalize_console_output(result.stdout + result.stderr)
+                self.assertNotEqual(0, result.returncode, output)
+                self.assertIn(
+                    "POISONED_REPOSITORY_ACCESS",
+                    output,
+                )
+
+        result = self.run_poisoned_package_guard("1.1.1", "-ManualOnly")
+        output = normalize_console_output(result.stdout + result.stderr)
+        self.assertNotEqual(0, result.returncode, output)
+        self.assertIn("ManualOnly is available only for v1.1.0", output)
+        self.assertNotIn("POISONED_REPOSITORY_ACCESS", output)
+
+        result = self.run_poisoned_package_guard("1.1.1")
+        output = normalize_console_output(result.stdout + result.stderr)
+        self.assertNotEqual(0, result.returncode, output)
+        self.assertIn("POISONED_REPOSITORY_ACCESS", output)
 
     @unittest.skipUnless(
         POWERSHELL, "PowerShell is required for Windows release-policy tests"
@@ -646,7 +1210,7 @@ finally {
             repository_version,
             "-Commit",
             "1" * 40,
-            "-ExternalToolPolicyDryRun",
+            "-ManualOnly",
         )
 
         self.assertNotEqual(0, result.returncode, result.stdout + result.stderr)
@@ -1123,9 +1687,9 @@ finally {
     ) -> None:
         release_workflow_path = ROOT / ".github/workflows/release.yml"
         self.assertEqual(
-            "6c36f140c5282878ec3cc1a7b3de78ddf5bf86e29d951d57662c5fed19df0492",
+            "8aa1f8d335600c2332e262f29fef620d59d76ab1993a132cdff543bf214a1d71",
             hashlib.sha256(release_workflow_path.read_bytes()).hexdigest(),
-            "the historical release workflow must remain byte-exact",
+            "the reviewed release workflow must remain byte-exact",
         )
         for workflow_path in (ROOT / ".github/workflows").glob("*.yml"):
             self.assertNotIn(
@@ -1318,13 +1882,12 @@ finally {
                         encoding="utf-8",
                         errors="replace",
                     )
-                    self.assertEqual(0, result.returncode, result.stdout + result.stderr)
+                    self.assertEqual(
+                        0, result.returncode, result.stdout + result.stderr
+                    )
                     self.assertEqual(
                         lock_bytes,
-                        {
-                            path: (ROOT / path).read_bytes()
-                            for path in lock_bytes
-                        },
+                        {path: (ROOT / path).read_bytes() for path in lock_bytes},
                     )
 
                 self.assertEqual(
@@ -1475,9 +2038,7 @@ finally {
                             try:
                                 lock_ready.write_text("ready", encoding="ascii")
                                 lock_release.wait(
-                                    0.45
-                                    if cleanup_mode == "transient-lock"
-                                    else 10
+                                    0.45 if cleanup_mode == "transient-lock" else 10
                                 )
                             finally:
                                 kernel32.CloseHandle(handle)
@@ -1515,10 +2076,7 @@ finally {
                         "exit /b 42\r\n"
                     )
                 else:
-                    remove_body = (
-                        f'"{actual_git}" %*\r\n'
-                        "exit /b %ERRORLEVEL%\r\n"
-                    )
+                    remove_body = f'"{actual_git}" %*\r\nexit /b %ERRORLEVEL%\r\n'
                 git_wrapper.write_text(
                     "@echo off\r\n"
                     'if /I "%~3"=="worktree" if /I "%~4"=="remove" (\r\n'
@@ -1572,14 +2130,18 @@ finally {
                         errors="replace",
                     ).stdout
                     if lock_thread is not None:
-                        self.assertEqual("ready", lock_ready.read_text(encoding="ascii"))
+                        self.assertEqual(
+                            "ready", lock_ready.read_text(encoding="ascii")
+                        )
                         self.assertEqual([], lock_errors)
 
                     if cleanup_mode in ("still-registered", "stopper-and-registered"):
                         self.assertIn("remains registered", output)
                         if cleanup_mode == "stopper-and-registered":
                             self.assertIn("Injected stopper failure", output)
-                            self.assertIn("Distribution Bootstrap restore failed", output)
+                            self.assertIn(
+                                "Distribution Bootstrap restore failed", output
+                            )
                         self.assertEqual(1, len(snapshot_roots))
                         self.assertIn(
                             str(snapshot_roots[0]).replace("\\", "/"), worktrees
@@ -1605,9 +2167,13 @@ finally {
                     else:
                         if cleanup_mode == "stopper-failure":
                             self.assertIn("Injected stopper failure", output)
-                            self.assertIn("Distribution Bootstrap restore failed", output)
+                            self.assertIn(
+                                "Distribution Bootstrap restore failed", output
+                            )
                         else:
-                            self.assertIn("Distribution Bootstrap restore failed", output)
+                            self.assertIn(
+                                "Distribution Bootstrap restore failed", output
+                            )
                         self.assertEqual([], snapshot_roots)
                         self.assertEqual(1, worktrees.count("worktree "))
                         self.assertIn(
@@ -1709,7 +2275,7 @@ finally {
         self.assertIn("foreach ($page in $pages)", release_workflow)
         self.assertIn("foreach ($item in $page)", release_workflow)
         self.assertEqual(
-            1, release_workflow.count("gh api --paginate --slurp $endpoint")
+            2, release_workflow.count("gh api --paginate --slurp $endpoint")
         )
         self.assertNotIn("--jq 'add'", release_workflow)
         self.assertIn("$requiredCheckNames = @(", release_workflow)
@@ -1720,9 +2286,19 @@ finally {
         ):
             self.assertIn(required_check, release_workflow)
         self.assertIn(
-            "commits/$($pr.headRefOid)/check-runs?per_page=100", release_workflow
+            "commits/$($pr.headRefOid)/check-runs?filter=latest&per_page=100",
+            release_workflow,
         )
-        self.assertIn("$_.app.slug -eq 'github-actions'", release_workflow)
+        self.assertIn("$_.appSlug -eq 'github-actions'", release_workflow)
+        self.assertIn("rules/branches/main?per_page=100", release_workflow)
+        self.assertIn("rulesets?includes_parents=true&targets=tag", release_workflow)
+        self.assertIn("reviewThreads(first: 100, after: $cursor)", release_workflow)
+        self.assertIn("reviewThreadsPaginationComplete = $true", release_workflow)
+        self.assertIn("checkRunsPaginationComplete = $true", release_workflow)
+        self.assertNotIn("$checkRunPages = @(", release_workflow)
+        self.assertIn("mainRulesPaginationComplete = $true", release_workflow)
+        self.assertIn("tagRulesetsPaginationComplete = $true", release_workflow)
+        self.assertIn("validate-repository-admission", release_workflow)
         self.assertNotIn("gh pr checks", release_workflow)
         self.assertIn("pulls/$env:NFC_PULL_REQUEST/comments", release_workflow)
         self.assertIn("issues/$env:NFC_PULL_REQUEST/comments", release_workflow)
@@ -1743,6 +2319,11 @@ finally {
         )
         self.assertIn("$env:NFC_RELEASE_POLICY validate-tag", release_workflow)
         self.assertIn("$env:NFC_RELEASE_POLICY validate-release", release_workflow)
+        self.assertIn("Existing Release REST metadata", release_workflow)
+        self.assertIn("Published Release REST metadata", release_workflow)
+        self.assertIn(
+            "--expected-body $notesPath --manifest $manifestPath", release_workflow
+        )
         self.assertIn("$env:NFC_RELEASE_POLICY create-manifest", release_workflow)
         self.assertIn("$env:NFC_RELEASE_POLICY verify-manifest", release_workflow)
         self.assertIn("$env:NFC_RELEASE_POLICY plan-recovery", release_workflow)
@@ -1853,6 +2434,329 @@ finally {
             promote,
         )
 
+    def test_v111_release_rechecks_repository_and_rest_asset_policy(self) -> None:
+        release = (ROOT / ".github/workflows/release.yml").read_text(encoding="utf-8")
+        promote = release[
+            release.index("\n  promote:") : release.index("\n  published-smoke:")
+        ]
+
+        self.assertIn(
+            "review-head-sha: ${{ steps.admission.outputs.review-head-sha }}", release
+        )
+        self.assertIn("repositoryAdmission = [ordered]@{", release)
+        self.assertEqual(2, release.count("reviewThreads(first: 100, after: $cursor)"))
+        self.assertEqual(2, release.count("rules/branches/main?per_page=100"))
+        self.assertEqual(
+            2,
+            release.count("rulesets?includes_parents=true&targets=tag&per_page=100"),
+        )
+        self.assertIn("ref: ${{ needs.candidate.outputs.workflow-sha }}", promote)
+        for permission in (
+            "pull-requests: read",
+            "issues: read",
+            "checks: read",
+            "statuses: read",
+        ):
+            self.assertIn(permission, promote)
+        self.assertIn("validate-repository-admission", promote)
+        self.assertIn("--review-head-sha $env:NFC_REVIEW_HEAD_SHA", promote)
+        self.assertIn("Existing Release REST metadata", promote)
+        self.assertIn("Published Release REST metadata", promote)
+        self.assertNotIn("gh release view", promote)
+        self.assertEqual(
+            2, promote.count("--expected-body $notesPath --manifest $manifestPath")
+        )
+
+    @unittest.skipUnless(
+        PWSH, "PowerShell 7 is required for exact release-workflow execution"
+    )
+    def test_exact_candidate_and_promote_admission_blocks_accept_two_page_evidence(
+        self,
+    ) -> None:
+        steps = (
+            (
+                "candidate",
+                "Collect and validate final PR review/check evidence",
+                Path("workspace/artifacts/release-evidence/review-snapshot.json"),
+                "repositoryAdmission",
+            ),
+            (
+                "promote",
+                "Revalidate live repository admission before tag mutation",
+                Path("runner-temp/pretag-repository-admission.json"),
+                None,
+            ),
+        )
+        for job_name, step_name, snapshot_relative, admission_key in steps:
+            with self.subTest(job_name=job_name):
+                result, fixture_root, calls = self.run_release_workflow_step(
+                    job_name, step_name
+                )
+                output = normalize_console_output(result.stdout + result.stderr)
+                self.assertEqual(0, result.returncode, output)
+                snapshot = json.loads(
+                    (fixture_root / snapshot_relative).read_text(encoding="utf-8-sig")
+                )
+                admission = snapshot[admission_key] if admission_key else snapshot
+                self.assertEqual(2, len(admission["mainRules"]))
+                self.assertEqual(2, len(admission["tagRulesets"]))
+                self.assertEqual(3, len(admission["checkRuns"]))
+                self.assertEqual(2, len(admission["reviewThreads"]))
+                graphql_calls = [
+                    call for call in calls if call[:3] == ["gh", "api", "graphql"]
+                ]
+                self.assertEqual(2, len(graphql_calls))
+                paginated_calls = [
+                    call
+                    for call in calls
+                    if call[:4] == ["gh", "api", "--paginate", "--slurp"]
+                ]
+                self.assertGreaterEqual(len(paginated_calls), 3)
+
+    @unittest.skipUnless(
+        PWSH, "PowerShell 7 is required for exact release-workflow execution"
+    )
+    def test_exact_admission_blocks_fail_closed_on_check_inventory_errors(
+        self,
+    ) -> None:
+        steps = (
+            ("candidate", "Collect and validate final PR review/check evidence"),
+            ("promote", "Revalidate live repository admission before tag mutation"),
+        )
+        scenarios = (
+            "truncated_checks",
+            "wrong_total",
+            "duplicate_required",
+            "missing_required",
+        )
+        for job_name, step_name in steps:
+            for scenario in scenarios:
+                with self.subTest(job_name=job_name, scenario=scenario):
+                    result, _, calls = self.run_release_workflow_step(
+                        job_name, step_name, scenario=scenario
+                    )
+                    output = normalize_console_output(result.stdout + result.stderr)
+                    self.assertNotEqual(0, result.returncode, output)
+                    self.assertTrue(
+                        "check-run pagination" in output
+                        or "required checks are not passing" in output
+                        or "must contain exactly one" in output,
+                        output,
+                    )
+                    self.assertTrue(
+                        any(
+                            "check-runs?filter=latest" in " ".join(call)
+                            for call in calls
+                        )
+                    )
+
+    @unittest.skipUnless(
+        PWSH, "PowerShell 7 is required for exact release-workflow execution"
+    )
+    def test_exact_admission_blocks_fail_closed_on_graphql_pagination_errors(
+        self,
+    ) -> None:
+        steps = (
+            ("candidate", "Collect and validate final PR review/check evidence"),
+            ("promote", "Revalidate live repository admission before tag mutation"),
+        )
+        for job_name, step_name in steps:
+            for scenario in ("blank_cursor", "repeated_cursor", "null_page_info"):
+                with self.subTest(job_name=job_name, scenario=scenario):
+                    result, _, calls = self.run_release_workflow_step(
+                        job_name, step_name, scenario=scenario
+                    )
+                    output = normalize_console_output(result.stdout + result.stderr)
+                    self.assertNotEqual(0, result.returncode, output)
+                    expected = (
+                        "connection is malformed"
+                        if scenario == "null_page_info"
+                        else "pagination did not advance"
+                    )
+                    self.assertIn(expected, output)
+                    self.assertTrue(
+                        any(call[:3] == ["gh", "api", "graphql"] for call in calls)
+                    )
+
+    @unittest.skipUnless(
+        PWSH, "PowerShell 7 is required for exact release-workflow execution"
+    )
+    def test_live_branch_authority_runs_for_every_version_before_tag_mutation(
+        self,
+    ) -> None:
+        step_name = "Revalidate live repository admission before tag mutation"
+        for version in ("1.0.1", "1.1.0", "1.1.1", "2.0.0"):
+            with self.subTest(version=version):
+                result, _, calls = self.run_release_workflow_step(
+                    "promote", step_name, source_version=version
+                )
+                output = normalize_console_output(result.stdout + result.stderr)
+                self.assertEqual(0, result.returncode, output)
+                validators = [
+                    call
+                    for call in calls
+                    if call[0] == "python" and "validate-live-branch-authority" in call
+                ]
+                self.assertEqual(1, len(validators), calls)
+
+        workflow = RELEASE_WORKFLOW.read_text(encoding="utf-8")
+        promote = workflow[
+            workflow.index("\n  promote:") : workflow.index("\n  published-smoke:")
+        ]
+        revalidation = promote[
+            promote.index(f"- name: {step_name}") : promote.index(
+                "- name: Create or verify immutable annotated tag"
+            )
+        ]
+        self.assertLess(
+            revalidation.index("validate-live-branch-authority"),
+            revalidation.index("[version]$env:NFC_SOURCE_VERSION -lt [version]'1.1.1'"),
+        )
+
+    @unittest.skipUnless(
+        PWSH, "PowerShell 7 is required for exact release-workflow execution"
+    )
+    def test_historical_present_tag_recovery_requires_fresh_ancestry(self) -> None:
+        step_name = "Revalidate live repository admission before tag mutation"
+        result, _, calls = self.run_release_workflow_step(
+            "promote",
+            step_name,
+            source_version="1.1.0",
+            tag_state="present",
+            remote_source_sha=RELEASE_ADVANCED_SOURCE_SHA,
+        )
+        output = normalize_console_output(result.stdout + result.stderr)
+        self.assertEqual(0, result.returncode, output)
+        compare_call = next(call for call in calls if "/compare/" in " ".join(call))
+        self.assertIn("--jq", compare_call)
+        self.assertTrue(any("baseSha:" in argument for argument in compare_call))
+        self.assertTrue(any("mergeBaseSha:" in argument for argument in compare_call))
+        self.assertTrue(
+            any(
+                call[0] == "python" and "validate-live-branch-authority" in call
+                for call in calls
+            )
+        )
+
+        result, _, calls = self.run_release_workflow_step(
+            "promote",
+            step_name,
+            scenario="invalid_recovery_ancestry",
+            source_version="1.1.0",
+            tag_state="present",
+            remote_source_sha=RELEASE_ADVANCED_SOURCE_SHA,
+        )
+        output = normalize_console_output(result.stdout + result.stderr)
+        self.assertNotEqual(0, result.returncode, output)
+        self.assertIn("Fresh live branch authority policy failed", output)
+        self.assertTrue(
+            any(
+                call[0] == "python" and "validate-live-branch-authority" in call
+                for call in calls
+            )
+        )
+
+    @unittest.skipUnless(
+        PWSH, "PowerShell 7 is required for exact release-workflow execution"
+    )
+    def test_release_create_and_historical_upload_revalidate_before_mutation(
+        self,
+    ) -> None:
+        step_name = "Publish or validate GitHub Release"
+        cases = (
+            ("1.1.1", "absent", RELEASE_MAIN_SHA, "create"),
+            ("1.1.0", "present", RELEASE_ADVANCED_SOURCE_SHA, "upload"),
+        )
+        for version, state, remote_source_sha, mutation in cases:
+            with self.subTest(version=version, mutation=mutation):
+                result, _, calls = self.run_release_workflow_step(
+                    "promote",
+                    step_name,
+                    source_version=version,
+                    tag_state=state,
+                    remote_source_sha=remote_source_sha,
+                )
+                output = normalize_console_output(result.stdout + result.stderr)
+                self.assertEqual(0, result.returncode, output)
+                authority_index = next(
+                    index
+                    for index, call in enumerate(calls)
+                    if call[0] == "python" and "validate-live-branch-authority" in call
+                )
+                mutation_calls = [
+                    (index, call)
+                    for index, call in enumerate(calls)
+                    if call[:3] == ["gh", "release", mutation]
+                ]
+                self.assertEqual(1, len(mutation_calls), calls)
+                self.assertLess(authority_index, mutation_calls[0][0])
+                if mutation == "upload":
+                    self.assertGreaterEqual(
+                        len(
+                            [
+                                argument
+                                for argument in mutation_calls[0][1]
+                                if argument.endswith(
+                                    ("payload.bin", "candidate.json", "assets.sha256")
+                                )
+                            ]
+                        ),
+                        3,
+                        mutation_calls[0][1],
+                    )
+
+    @unittest.skipUnless(
+        PWSH, "PowerShell 7 is required for exact release-workflow execution"
+    )
+    def test_release_authority_failure_prevents_create_and_upload_mutations(
+        self,
+    ) -> None:
+        step_name = "Publish or validate GitHub Release"
+        cases = (
+            ("1.1.1", "absent", RELEASE_MAIN_SHA, "unprotected_main"),
+            (
+                "1.1.0",
+                "present",
+                RELEASE_ADVANCED_SOURCE_SHA,
+                "invalid_recovery_ancestry",
+            ),
+        )
+        for version, state, remote_source_sha, scenario in cases:
+            with self.subTest(version=version, scenario=scenario):
+                result, _, calls = self.run_release_workflow_step(
+                    "promote",
+                    step_name,
+                    scenario=scenario,
+                    source_version=version,
+                    tag_state=state,
+                    remote_source_sha=remote_source_sha,
+                )
+                output = normalize_console_output(result.stdout + result.stderr)
+                self.assertNotEqual(0, result.returncode, output)
+                self.assertIn("live branch authority failed", output)
+                self.assertTrue(
+                    any(
+                        call[0] == "python" and "validate-live-branch-authority" in call
+                        for call in calls
+                    ),
+                    calls,
+                )
+                self.assertFalse(
+                    any(
+                        call[:3]
+                        in (
+                            ["gh", "release", "create"],
+                            ["gh", "release", "upload"],
+                        )
+                        for call in calls
+                    ),
+                    calls,
+                )
+
+        release_block = release_workflow_run_block("promote", step_name)
+        self.assertNotIn("$comparison.head_commit.sha", release_block)
+        self.assertIn("headSha = $observedSourceSha", release_block)
+
     def test_update_source_registry_seed_is_the_owner_approved_default_root(
         self,
     ) -> None:
@@ -1896,7 +2800,7 @@ finally {
 
         self.assertNotIn("Checkout prepared source", promote)
         self.assertNotIn("smoke-release.ps1", promote)
-        self.assertIn("ref: main", promote)
+        self.assertIn("ref: ${{ needs.candidate.outputs.workflow-sha }}", promote)
         self.assertIn(
             'gh api "repos/$env:NFC_REPOSITORY/git/commits/$env:NFC_SOURCE_SHA"',
             promote,
@@ -1919,6 +2823,12 @@ finally {
             'gh api --method POST "repos/$env:NFC_REPOSITORY/git/tags"',
             absent_index,
         )
+        admission_index = promote.index(
+            "Revalidate live repository admission before tag mutation"
+        )
+        main_recheck_index = promote.index(
+            'gh api "repos/$env:NFC_REPOSITORY/branches/main"', absent_index
+        )
         tag_step = promote[
             promote.index("- name: Create or verify immutable annotated tag") :
         ]
@@ -1927,6 +2837,8 @@ finally {
             tag_step,
         )
         self.assertLess(head_recheck_index, tag_create_index)
+        self.assertLess(admission_index, tag_create_index)
+        self.assertLess(main_recheck_index, tag_create_index)
 
     def test_stable_candidate_permits_only_recoverable_tag_and_release_states(
         self,
@@ -1985,8 +2897,9 @@ finally {
         self.assertIn("needs.v0916-parity-finalize.result == 'skipped'", promote)
 
         steps = release[
-            release.index("    steps:", release.index("  promote:")) :
-            release.index("\n  published-smoke:")
+            release.index("    steps:", release.index("  promote:")) : release.index(
+                "\n  published-smoke:"
+            )
         ]
         self.assertIn("Download terminal v0.9.16 parity evidence", steps)
         self.assertIn("validate-terminal --evidence", steps)
@@ -2013,7 +2926,7 @@ finally {
             "GitHub CLI cannot query `--required` after the final PR's head branch is closed.",
             release,
         )
-        self.assertIn("check-runs?per_page=100", release)
+        self.assertIn("check-runs?filter=latest&per_page=100", release)
         self.assertNotIn("gh pr checks", release)
         self.assertIn("reviewDecision", release)
         self.assertIn("headTree", release)
@@ -2040,9 +2953,13 @@ finally {
         dotnet_test = ci[ci.index("  dotnet-test:") : ci.index("  dotnet:")]
         dotnet_finalizer = ci[ci.index("  dotnet:") :]
         candidate = release[release.index("  candidate:") : release.index("  promote:")]
-        promote = release[release.index("  promote:") : release.index("  published-smoke:")]
+        promote = release[
+            release.index("  promote:") : release.index("  published-smoke:")
+        ]
         published_smoke = release[
-            release.index("  published-smoke:") : release.index("  v0916-parity-compare:")
+            release.index("  published-smoke:") : release.index(
+                "  v0916-parity-compare:"
+            )
         ]
         parity_compare = release[
             release.index("  v0916-parity-compare:") : release.index(
@@ -2056,7 +2973,9 @@ finally {
         ]
         parity_finalize = release[release.index("  v0916-parity-finalize:") :]
         dev_dependencies = worker_project["project"]["optional-dependencies"]["dev"]
-        package_dependencies = worker_project["project"]["optional-dependencies"]["package"]
+        package_dependencies = worker_project["project"]["optional-dependencies"][
+            "package"
+        ]
 
         self.assertEqual([], worker_project["project"]["dependencies"])
         self.assertIn("PyYAML==6.0.3", dev_dependencies)
@@ -2074,16 +2993,19 @@ finally {
             self.assertIn("python-version: '3.13'", parity_job)
             self.assertIn(install, parity_job)
             dependency_step = parity_job[
-                parity_job.index("- name: Install parity verification dependency") :
                 parity_job.index(
+                    "- name: Install parity verification dependency"
+                ) : parity_job.index(
                     "\n      - name:",
-                    parity_job.index("- name: Install parity verification dependency") + 1,
+                    parity_job.index("- name: Install parity verification dependency")
+                    + 1,
                 )
             ]
             self.assertIn("shell: pwsh", dependency_step)
         install_step = promote[
-            promote.index("- name: Install parity verification dependency") :
-            promote.index("- name: Download terminal v0.9.16 parity evidence")
+            promote.index(
+                "- name: Install parity verification dependency"
+            ) : promote.index("- name: Download terminal v0.9.16 parity evidence")
         ]
         self.assertIn(install, install_step)
         self.assertIn("shell: pwsh", install_step)
@@ -2107,7 +3029,9 @@ finally {
         self.assertNotIn("nfc.nt51931.ctrlram-postbuild-v1", match.group(1))
         self.assertIn("nfc.nt51926.ctrlram-postbuild-fw1.4.1", match.group(1))
 
-    def test_canonical_release_allowlist_is_the_exact_self_contained_scope(self) -> None:
+    def test_canonical_release_allowlist_is_the_exact_self_contained_scope(
+        self,
+    ) -> None:
         allowlist_path = ROOT / "testdata/golden/release-canonical-v1.json"
         allowlist = json.loads(allowlist_path.read_text(encoding="utf-8"))
         publication_text = json.dumps(allowlist, sort_keys=True).upper()
@@ -2157,7 +3081,9 @@ finally {
             if artifact["path"].lower().endswith((".bat", ".config"))
         ]
         self.assertEqual(2, len(provenance))
-        self.assertTrue(all(artifact["role"] == "provenance" for artifact in provenance))
+        self.assertTrue(
+            all(artifact["role"] == "provenance" for artifact in provenance)
+        )
 
         for retired_ic_id in RETIRED_PRODUCTION_IC_IDS:
             with self.subTest(ic=retired_ic_id):
@@ -2188,8 +3114,7 @@ finally {
             allowlist = json.loads(golden_entries[allowlist_key].decode("utf-8"))
             selected_case = allowlist["cases"][0]
             case_key = (
-                "reference/testdata/golden/canonical/"
-                + selected_case["manifestPath"]
+                "reference/testdata/golden/canonical/" + selected_case["manifestPath"]
             )
             case_manifest = json.loads(golden_entries[case_key].decode("utf-8"))
             case_manifest["privateMetadata"] = {"classification": "unapproved"}
@@ -2217,12 +3142,12 @@ finally {
         def substitute(golden_entries: dict[str, bytes]) -> None:
             allowlist_key = "reference/testdata/golden/release-canonical-v1.json"
             readme_key = "reference/testdata/golden/canonical/README.md"
-            replacement = golden_entries[readme_key] + b"\nPrivate replacement metadata.\n"
+            replacement = (
+                golden_entries[readme_key] + b"\nPrivate replacement metadata.\n"
+            )
             golden_entries[readme_key] = replacement
             allowlist = json.loads(golden_entries[allowlist_key].decode("utf-8"))
-            allowlist["canonicalReadmeSha256"] = hashlib.sha256(
-                replacement
-            ).hexdigest()
+            allowlist["canonicalReadmeSha256"] = hashlib.sha256(replacement).hexdigest()
             golden_entries[allowlist_key] = (
                 json.dumps(allowlist, indent=2) + "\n"
             ).encode()
@@ -2289,9 +3214,7 @@ finally {
                     Path("reference/testdata/golden/canonical") / provenance_path
                 )
 
-                self.assertNotEqual(
-                    0, result.returncode, result.stdout + result.stderr
-                )
+                self.assertNotEqual(0, result.returncode, result.stdout + result.stderr)
                 self.assertIn(
                     "external-tool paths and roles are inconsistent",
                     result.stdout + result.stderr,
@@ -2312,7 +3235,9 @@ finally {
     @unittest.skipUnless(
         POWERSHELL, "PowerShell is required for Windows release-policy tests"
     )
-    def test_release_smoke_allows_package_above_legacy_budget_until_archive_validation(self) -> None:
+    def test_release_smoke_allows_package_above_legacy_budget_until_archive_validation(
+        self,
+    ) -> None:
         for package_name in (
             "oversized.zip",
             "NvtFwCombiner-v1.0.2-win-x64.zip",

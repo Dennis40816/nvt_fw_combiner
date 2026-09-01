@@ -1,6 +1,6 @@
 # ADR 0033: Promote stable releases through one protected CI workflow
 
-- Status: Accepted; amended 2026-08-08 for independent `v0.9.17` through `v0.9.19` maintenance publication
+- Status: Accepted; amended 2026-09-01 for v1.1.1 repository-admission and immutable-Release closure
 - Date: 2026-07-22
 - Owners: Product owner, release owner, security/repository owner
 
@@ -49,16 +49,33 @@ branch `0.9.19` with `VERSION=0.9.19`.
 Before any tag exists,
 the workflow:
 
-1. confirms the workflow definition is current protected `main`, the selected
-   product SHA is the exact source-branch head, and its tree equals the reviewed
-   final-PR tree;
+1. queries fresh GitHub evidence and confirms the workflow definition is the
+   exact current remote `main`, GitHub reports `main` as protected, its applied
+   rules require exactly `policy / polytail`, `python-worker / verify`, and
+   `dotnet / build-test`, the selected product SHA is the exact source-branch
+   head, and its tree equals the reviewed final-PR tree;
 2. validates version and release-note consistency;
-3. checks required review and CI evidence;
+3. proves check-run and review-thread pagination is complete, requires exactly
+   one completed successful GitHub Actions run for each closed required-check
+   name at the reviewed head, and classifies every unresolved review thread from
+   one recognized P0-P3 marker; unresolved P0/P1 or unclassifiable evidence
+   blocks, while independently scoped P2/P3 may remain visible and proceed in
+   parallel;
 4. runs `python scripts/verify.py --all`;
 5. builds the closed-allowlist Windows package, SBOM, provenance, and hashes;
 6. smokes the package; and
 7. uploads short-lived candidate artifacts bound to the run id, source SHA,
    source tree, version, and digests.
+
+For `v1.1.1` and later, the same admission also requires an active tag ruleset
+covering `refs/tags/v*` that prevents update and deletion. Missing, malformed,
+truncated, duplicated, or contradictory machine-readable GitHub evidence fails
+closed. GitHub omits `bypass_actors` from ruleset detail responses when the
+caller lacks ruleset write access, so the least-privilege workflow does not
+claim that an omitted field proves an empty bypass list. The protected
+environment's release owner must inspect and attest the no-bypass setting.
+These requirements begin at `v1.1.1`; historical Release evidence is not
+relabeled.
 
 An ordinary `main` push does not automatically package. `main-package` becomes a
 reusable/manual preview path or is retired once the promotion workflow provides
@@ -70,18 +87,28 @@ The workflow then waits at the protected `release` environment. This approval
 is the final tag confirmation. After approval, a narrow job receives
 `contents: write` and:
 
-1. rechecks that the prepared SHA/tree, selected release-branch identity, and
-   protected-`main` workflow authority have not changed;
+1. checks out policy bytes from the exact prepared candidate workflow SHA, not
+   a moving `main`, and rechecks through a fresh GitHub snapshot that the
+   prepared SHA/tree, selected release-branch identity, protected-`main`
+   authority, closed checks, review-thread disposition, and tag ruleset have not
+   changed;
 2. rejects any pre-existing stable tag or conflicting Release;
 3. creates one annotated stable tag for the prepared SHA;
 4. checks out and verifies the immutable tag identity;
-5. publishes the already verified immutable candidate assets and complete notes;
+5. publishes the already verified candidate assets and complete notes;
 6. confirms GitHub's tag-derived source ZIP and tar.gz downloads resolve; and
-7. downloads the published Windows assets into a fresh directory, compares all
-   digests/provenance identity.
+7. requires the REST Release record to report `immutable=true` and the exact
+   closed asset set with `state=uploaded`, exact byte size, and
+   `digest=sha256:<candidate SHA-256>`; and
+8. downloads the published Windows assets into a fresh directory and compares
+   every byte digest/provenance identity independently of REST metadata.
 
-The selected branch head is read again immediately before the first tag-object
-mutation; any advancement after candidate preparation fails closed.
+The selected branch head and remote protected-main SHA/flag are read again
+immediately before every tag or Release mutation. A new tag requires the source
+to remain the exact current branch head. Existing-tag recovery may observe an
+advanced branch only when fresh comparison evidence proves the candidate is
+still its ancestor. Any protected-main drift, source divergence, or protection
+loss fails closed.
 
 A separate `contents: read` job then downloads the published package and runs
 the protected-main smoke tool. Download and execution are separate steps; the
@@ -121,28 +148,40 @@ even though CI rather than a local operator creates that tag.
 - Release notes are passed as a validated file, not interpolated as executable
   PowerShell or shell source.
 - A pre-approval failure creates no tag or stable Release.
-- A failure after tag creation never moves or replaces the tag. A recovery run
-  may attach missing assets only when tag SHA, source tree, candidate run id,
-  version, and every digest match exactly; otherwise a new version decision is
-  required.
+- The workflow reads branch/ruleset evidence but never creates, weakens, or
+  repairs repository rules. Release immutability configuration remains an
+  external repository/release-owner prerequisite; the workflow verifies only
+  the published Release record's REST `immutable` value after publication.
+- For `v1.1.1` and later, `immutable` missing, false, or non-boolean, a non-
+  uploaded asset, or any missing, extra, duplicate, size-drifted, or digest-
+  drifted asset is a release failure. REST digests never replace the fresh
+  download-and-hash gate.
+- A failure after tag creation never moves or replaces the tag. A historical
+  pre-v1.1.1 recovery run may attach missing assets only when tag SHA, source
+  tree, candidate run id, version, and every digest match exactly. An incomplete
+  immutable v1.1.1-or-later Release requires a new version decision.
 - Stable assets are never clobbered.
 
-## Migration
+## Operational prerequisites
 
-Until the new workflow, branch rules, environment protection, tests, and human
-review are all active, the existing manual-tag `release.yml` remains the only
-executable release path. The implementation phase updates `.github/AGENTS.md`,
-workflow documentation/templates, branch governance, package documentation, and
-repository validation together; this planning ADR alone grants no workflow
-permission.
+Before `v1.1.1` publication, the repository owner must enable protection for
+`main`, the exact three required checks, an active update/deletion restriction
+for stable `v*` tags with no bypass actors, and GitHub immutable Releases. The
+protected `release` environment and its human release-owner approval provide
+the no-bypass attestation that a least-privilege token cannot read. Workflow
+code cannot configure or waive these controls, and this ADR alone grants no
+workflow permission.
 
 ## Verification
 
 - architecture/policy tests prove PR workflows have read-only permissions and
   never use `pull_request_target`;
 - workflow tests cover invalid version, non-main SHA, tree mismatch, missing
-  notes, failing candidate verification, rejected approval, existing tag,
-  conflicting asset, and idempotent matching recovery;
+  notes, unprotected main, missing/extra/duplicate/stale required checks,
+  truncated pagination, unresolved P0/P1, unclassifiable review threads,
+  inactive tag rules, failing candidate verification, rejected approval,
+  existing tag, immutable=false, asset state/size/digest drift, and historical
+  matching recovery;
 - a dry-run path produces candidate artifacts without tag or Release authority;
 - release evidence records final PR tree, main SHA/tree, tag object and peeled
   SHA, workflow run, asset names/sizes/digests, source downloads, provenance,

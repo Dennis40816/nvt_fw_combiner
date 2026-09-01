@@ -43,6 +43,9 @@ if ($ManualOnly -and $ExternalToolPolicyDryRun) {
 if ($ManualOnly -and $SemanticVersion -cne '1.1.0') {
     throw 'ManualOnly is available only for v1.1.0.'
 }
+if (-not $ManualOnly -and $SemanticVersion -ceq '1.1.0') {
+    throw 'v1.1.0 requires the ManualOnly package mode.'
+}
 
 function Assert-CanonicalJsonSchema {
     param(

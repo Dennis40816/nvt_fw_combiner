@@ -1,0 +1,42 @@
+{
+  "schemaVersion": 2,
+  "taskId": "RELEASE-111-PROMOTION-CLOSURE-01",
+  "capability": "Close stable-release admission and publication metadata gaps for v1.1.1 without adding another verifier, packager, downloader, or release authority",
+  "integrationBase": "c611ec34bb45219346a96b64841d2e2389bfb01c",
+  "risk": "R3",
+  "kind": "release",
+  "state": "design-active",
+  "mutablePaths": [
+    ".github/workflows/release.yml",
+    "docs/adr/0033-ci-owned-stable-release-promotion.md",
+    "docs/ci/release-package.md",
+    "scripts/package.ps1",
+    "scripts/release_promotion_policy.py"
+  ],
+  "implementationOwner": "primary-agent",
+  "searchEvidence": [
+    "scripts/release_promotion_policy.py already owns candidate identity, exact-head review/check admission, promotion source identity, annotated-tag validation, candidate asset closure, existing Release validation, and fresh-download recovery comparison; extend those owners rather than add a second policy, schema, verifier, or downloader.",
+    ".github/workflows/release.yml already gathers the final PR, review, check-run, source, tag, Release, and download snapshots and invokes the Python owner. Its promotion job currently checks out moving main and its candidate snapshot does not prove the live remote-main protected flag, closed exact required-check inventory, or classified unresolved review threads.",
+    "scripts/package.ps1 already owns the v1.1.0 ManualOnly switch and rejects ManualOnly for every other version, but it does not reject a v1.1.0 invocation that omits ManualOnly before repository, staging, restore, or build work begins.",
+    "validate_existing_release currently checks tag, draft/prerelease, notes, duplicate names, and fresh downloaded bytes, but the workflow's GitHub CLI Release projection does not expose or validate the REST immutable flag or each asset's uploaded state, exact size, and sha256 digest.",
+    "The repository audit at integration base observed main protected=false, no applicable branch ruleset or required-status-check protection, no active stable-tag update/deletion ruleset, v1.1.0 immutable=false, and unresolved P1 review threads. Those external facts remain blocking owner prerequisites and must never be rewritten as passing historical evidence.",
+    "GitHub's ruleset-detail REST contract omits bypass_actors unless the caller has ruleset write access; the least-privilege GITHUB_TOKEN therefore cannot prove no-bypass from field absence. The visible active update/deletion rule remains machine-validated, while the protected-environment release owner must inspect and attest no-bypass without granting ruleset mutation authority to the workflow.",
+    "The existing-tag recovery path for historical versions previously relied on checkout-time remote-tracking refs and skipped the immediate API reread used by first tag creation. Every version must rebind current protected main and the current selected source-branch head through the existing Python owner before any tag or Release mutation; new-tag creation requires exact head equality, while existing-tag recovery requires fresh comparison evidence that the candidate remains an ancestor."
+  ],
+  "semanticOwner": "scripts/release_promotion_policy.py is the sole release admission and published-state policy; .github/workflows/release.yml only gathers fresh GitHub evidence and performs the existing protected mutation; scripts/package.ps1 remains the sole package constructor",
+  "terminalContract": "For v1.1.1 and later stable promotion, candidate preparation and the final pre-tag mutation boundary must call one shared repository-admission policy using a fresh GitHub snapshot. The snapshot must bind the exact remote main SHA, require GitHub's protected flag to be boolean true, prove complete pagination, require the applied main rules to name exactly policy / polytail, python-worker / verify, and dotnet / build-test, require exactly one completed successful github-actions check run for each at the exact reviewed head, require one active ruleset covering refs/tags/v* that prevents update and deletion, and classify every unresolved review thread from a recognized P0-P3 marker. Unresolved P0/P1 or an unclassifiable unresolved thread fails closed; independently scoped P2/P3 may remain visible without serializing unrelated review work. Because GitHub omits bypass_actors from least-privilege ruleset responses, the protected-environment release owner must inspect and attest that the matching stable-tag ruleset has no bypass actors; the workflow must not gain ruleset write authority to read that field. The promote job must execute the policy from the exact candidate workflow SHA rather than a moving main checkout. Immediately before any tag or Release mutation, every version must call the existing Python owner with fresh exact protected-main and selected source-branch evidence. A new tag requires exact candidate/head equality; existing-tag recovery requires fresh comparison evidence that the candidate remains an ancestor. v1.1.1 and later additionally rerun strict repository admission. Retain least privilege and the pull_request_target prohibition. Preserve the maintenance-release allowlist and existing exact source/tree, approval, Codex exception, tag, candidate-manifest, release-note, source-download, and fresh-download digest contracts. Before any staging cleanup, repository inspection, restore, or build, package.ps1 must reject every v1.1.0 invocation without -ManualOnly, including prerelease and policy-dry-run combinations, while preserving all other version branches. For v1.1.1 and later, existing and newly published GitHub Releases must be REST immutable=true and expose exactly the candidate asset set with unique safe names, state=uploaded, exact byte size, and digest=sha256:<candidate SHA-256>; missing, false, malformed, duplicate, extra, or conflicting metadata fails closed and the existing fresh-download byte comparison remains mandatory. Historical pre-v1.1.1 recovery remains bounded to exact matching assets, while an incomplete immutable v1.1.1-or-later Release requires a new version. v1.1.0 remains truthful historical evidence and receives no retroactive green claim. Amend ADR 0033 and release-package documentation, synchronize the non-executable workflow template, and add deterministic red/green policy and exact workflow-collector tests. Do not change firmware, profile, byte-range, CRC/header, output naming, runtime support, Version deployment, v1.0.8, release-manifest schema, or package contents.",
+  "disposition": "extend-owner",
+  "designReview": {
+    "reviewer": "v111_release_architecture_review",
+    "outcome": "findings-incorporated",
+    "evidence": "Independent R3 architecture review approved extending only the existing Python policy, executable workflow evidence collector, package owner, ADR 0033, and release documentation, with no second verifier, schema, downloader, or release authority. It required promote to execute exact candidate/workflow policy bytes, an immediate fresh remote-main/protection/check/review admission before tag mutation, exact closed required-check identities, fail-closed review-thread classification, v1.1.0 early ManualOnly enforcement, and post-publication REST immutability plus asset name/state/size/digest equality while retaining fresh-download hashes. The review identified current repository protection, required-check rules, Release immutability, and unresolved P1 threads as external blocking owner gates rather than workflow-mutated settings. P0=0; verdict APPROVE-WITH-BLOCKING-CONDITIONS pending implementation review, protected settings, release-owner attestation, canonical verification, package/smoke evidence, and publication."
+  },
+  "implementationHead": null,
+  "reviewedHead": null,
+  "pathStateDigest": null,
+  "finalReview": {
+    "reviewer": null,
+    "outcome": "pending",
+    "evidence": ""
+  }
+}

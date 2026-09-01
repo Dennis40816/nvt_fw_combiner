@@ -22,7 +22,83 @@ SPEC.loader.exec_module(MODULE)
 SHA = "1" * 40
 TREE = "2" * 40
 TAG_OBJECT_SHA = "3" * 40
+REVIEW_HEAD_SHA = "4" * 40
 TAG_MESSAGE = "NVT FW Combiner v0.9.14\ncandidate-run: 99"
+REQUIRED_RELEASE_CHECKS = (
+    "policy / polytail",
+    "python-worker / verify",
+    "dotnet / build-test",
+)
+
+
+def valid_repository_admission() -> dict[str, object]:
+    return {
+        "remoteMain": {"sha": SHA, "protected": True},
+        "mainRulesPaginationComplete": True,
+        "mainRules": [
+            {
+                "type": "required_status_checks",
+                "parameters": {
+                    "required_status_checks": [
+                        {"context": name, "integration_id": 15368}
+                        for name in REQUIRED_RELEASE_CHECKS
+                    ]
+                },
+            }
+        ],
+        "checkRunsPaginationComplete": True,
+        "checkRuns": [
+            {
+                "name": name,
+                "headSha": REVIEW_HEAD_SHA,
+                "appSlug": "github-actions",
+                "status": "completed",
+                "conclusion": "success",
+            }
+            for name in REQUIRED_RELEASE_CHECKS
+        ],
+        "reviewThreadsPaginationComplete": True,
+        "reviewThreads": [],
+        "tagRulesetsPaginationComplete": True,
+        "tagRulesets": [
+            {
+                "id": 101,
+                "target": "tag",
+                "enforcement": "active",
+                "conditions": {
+                    "ref_name": {"include": ["refs/tags/v*"], "exclude": []}
+                },
+                "rules": [{"type": "update"}, {"type": "deletion"}],
+            }
+        ],
+    }
+
+
+def valid_v111_expected_assets() -> dict[str, dict[str, object]]:
+    return {
+        "one.zip": {"size": 3, "sha256": "a" * 64},
+        "manifest.json": {"size": 4, "sha256": "b" * 64},
+    }
+
+
+def valid_v111_release() -> dict[str, object]:
+    expected_assets = valid_v111_expected_assets()
+    return {
+        "tag_name": "v1.1.1",
+        "draft": False,
+        "prerelease": False,
+        "immutable": True,
+        "body": "complete notes\n",
+        "assets": [
+            {
+                "name": name,
+                "state": "uploaded",
+                "size": metadata["size"],
+                "digest": f"sha256:{metadata['sha256']}",
+            }
+            for name, metadata in expected_assets.items()
+        ],
+    }
 
 
 def valid_snapshot() -> dict[str, object]:
@@ -32,18 +108,19 @@ def valid_snapshot() -> dict[str, object]:
         "mergedAt": "2026-07-22T01:00:00Z",
         "baseRefName": "main",
         "mergeCommitSha": SHA,
-        "headSha": "4" * 40,
+        "headSha": REVIEW_HEAD_SHA,
         "headTree": TREE,
         "reviewDecision": "APPROVED",
         "approvals": [
             {
                 "reviewer": "independent-reviewer",
-                "commitSha": "4" * 40,
+                "commitSha": REVIEW_HEAD_SHA,
                 "submittedAt": "2026-07-22T00:55:00Z",
             }
         ],
         "ownerSelfApprovalException": False,
         "requiredChecks": [{"name": "dotnet / build-test", "bucket": "pass"}],
+        "repositoryAdmission": valid_repository_admission(),
     }
 
 
@@ -59,7 +136,9 @@ class ReleasePromotionPolicyTests(unittest.TestCase):
         )
         return result.stdout.strip()
 
-    def test_version_and_launcher_asset_name_sets_remain_separate_and_closed(self) -> None:
+    def test_version_and_launcher_asset_name_sets_remain_separate_and_closed(
+        self,
+    ) -> None:
         version = "1.0.6"
         self.assertEqual(
             (
@@ -413,7 +492,9 @@ class ReleasePromotionPolicyTests(unittest.TestCase):
             self.assertEqual(destination.read_bytes(), b"stable-payload")
 
     def test_101_package_validation_uses_the_single_captured_base_zip(self) -> None:
-        with tempfile.TemporaryDirectory(prefix="nfc-version-only-capture-") as temporary:
+        with tempfile.TemporaryDirectory(
+            prefix="nfc-version-only-capture-"
+        ) as temporary:
             repository = Path(temporary) / "repository"
             repository.mkdir()
             self.create_version_only_repository(repository)
@@ -421,8 +502,12 @@ class ReleasePromotionPolicyTests(unittest.TestCase):
             candidate_sha = self.git(repository, "rev-parse", "HEAD")
             base_package = Path(temporary) / "base.zip"
             candidate_package = Path(temporary) / "candidate.zip"
-            self.write_version_package(base_package, version="1.0.0", source_sha=base_sha)
-            self.write_version_package(candidate_package, version="1.0.1", source_sha=candidate_sha)
+            self.write_version_package(
+                base_package, version="1.0.0", source_sha=base_sha
+            )
+            self.write_version_package(
+                candidate_package, version="1.0.1", source_sha=candidate_sha
+            )
             expected_sha = MODULE._sha256(base_package)
             original_read_bytes = Path.read_bytes
             swapped = False
@@ -450,14 +535,18 @@ class ReleasePromotionPolicyTests(unittest.TestCase):
             self.assertEqual(b"post-capture-counterfeit", base_package.read_bytes())
 
     def test_101_stable_payload_uses_the_single_captured_base_zip(self) -> None:
-        with tempfile.TemporaryDirectory(prefix="nfc-version-only-reuse-capture-") as temporary:
+        with tempfile.TemporaryDirectory(
+            prefix="nfc-version-only-reuse-capture-"
+        ) as temporary:
             repository = Path(temporary) / "repository"
             repository.mkdir()
             self.create_version_only_repository(repository)
             base_sha = self.git(repository, "rev-parse", "v1.0.0^{commit}")
             base_package = Path(temporary) / "base.zip"
             destination = Path(temporary) / "out/Nfc.CrcWorker.exe"
-            self.write_version_package(base_package, version="1.0.0", source_sha=base_sha)
+            self.write_version_package(
+                base_package, version="1.0.0", source_sha=base_sha
+            )
             expected_sha = MODULE._sha256(base_package)
             original_read_bytes = Path.read_bytes
             swapped = False
@@ -481,7 +570,9 @@ class ReleasePromotionPolicyTests(unittest.TestCase):
             self.assertTrue(swapped)
             self.assertEqual(b"stable-payload", destination.read_bytes())
 
-    def test_101_rejects_self_consistent_base_zip_with_wrong_external_digest(self) -> None:
+    def test_101_rejects_self_consistent_base_zip_with_wrong_external_digest(
+        self,
+    ) -> None:
         with tempfile.TemporaryDirectory(
             prefix="nfc-version-only-worker-digest-reject-"
         ) as temporary:
@@ -583,6 +674,351 @@ class ReleasePromotionPolicyTests(unittest.TestCase):
             valid_snapshot(),
             **self.candidate_arguments(),
         )
+
+    def test_live_branch_authority_requires_protected_main_and_exact_new_tag_source(
+        self,
+    ) -> None:
+        snapshot = {
+            "remoteMain": {"sha": SHA, "protected": True},
+            "remoteSource": {"sha": REVIEW_HEAD_SHA},
+            "tagState": "absent",
+        }
+        MODULE.validate_live_branch_authority(
+            snapshot,
+            main_sha=SHA,
+            source_sha=REVIEW_HEAD_SHA,
+        )
+
+        mutations = (
+            ({"remoteSource": snapshot["remoteSource"]}, "remote main"),
+            (
+                {
+                    **snapshot,
+                    "remoteMain": {"sha": "5" * 40, "protected": True},
+                },
+                "remote main SHA differs",
+            ),
+            (
+                {**snapshot, "remoteMain": {"protected": True}},
+                "remote main SHA",
+            ),
+            (
+                {**snapshot, "remoteMain": {"sha": SHA}},
+                "remote main must be protected",
+            ),
+            (
+                {**snapshot, "remoteMain": {"sha": SHA, "protected": False}},
+                "remote main must be protected",
+            ),
+            (
+                {**snapshot, "remoteMain": {"sha": SHA, "protected": "true"}},
+                "remote main must be protected",
+            ),
+            (
+                {**snapshot, "remoteMain": {"sha": SHA, "protected": 1}},
+                "remote main must be protected",
+            ),
+            (
+                {
+                    "remoteMain": snapshot["remoteMain"],
+                    "tagState": "absent",
+                },
+                "remote source",
+            ),
+            ({**snapshot, "remoteSource": None}, "remote source"),
+            ({**snapshot, "remoteSource": []}, "remote source"),
+            ({**snapshot, "remoteSource": {}}, "remote source SHA"),
+            (
+                {**snapshot, "remoteSource": {"sha": "not-a-sha"}},
+                "remote source SHA",
+            ),
+            (
+                {**snapshot, "remoteSource": {"sha": "5" * 40}},
+                "new stable tag.*current release branch head",
+            ),
+            (
+                {key: value for key, value in snapshot.items() if key != "tagState"},
+                "tag state",
+            ),
+            ({**snapshot, "tagState": None}, "tag state"),
+            ({**snapshot, "tagState": "unknown"}, "tag state"),
+        )
+        for mutated, message in mutations:
+            with self.subTest(message=message, mutated=mutated):
+                with self.assertRaisesRegex(ValueError, message):
+                    MODULE.validate_live_branch_authority(
+                        mutated,
+                        main_sha=SHA,
+                        source_sha=REVIEW_HEAD_SHA,
+                    )
+
+    def test_live_branch_authority_allows_only_proven_forward_recovery(self) -> None:
+        advanced_sha = "5" * 40
+        exact_snapshot = {
+            "remoteMain": {"sha": SHA, "protected": True},
+            "remoteSource": {"sha": REVIEW_HEAD_SHA},
+            "tagState": "present",
+        }
+        MODULE.validate_live_branch_authority(
+            exact_snapshot,
+            main_sha=SHA,
+            source_sha=REVIEW_HEAD_SHA,
+        )
+
+        comparison = {
+            "baseSha": REVIEW_HEAD_SHA,
+            "headSha": advanced_sha,
+            "mergeBaseSha": REVIEW_HEAD_SHA,
+            "status": "ahead",
+        }
+        advanced_snapshot = {
+            **exact_snapshot,
+            "remoteSource": {"sha": advanced_sha},
+            "sourceComparison": comparison,
+        }
+        MODULE.validate_live_branch_authority(
+            advanced_snapshot,
+            main_sha=SHA,
+            source_sha=REVIEW_HEAD_SHA,
+        )
+
+        with self.assertRaises(ValueError):
+            MODULE.validate_live_branch_authority(
+                {
+                    key: value
+                    for key, value in advanced_snapshot.items()
+                    if key != "sourceComparison"
+                },
+                main_sha=SHA,
+                source_sha=REVIEW_HEAD_SHA,
+            )
+
+        malformed_comparisons = (
+            None,
+            [],
+            {},
+            {**comparison, "baseSha": "6" * 40},
+            {**comparison, "headSha": "6" * 40},
+            {**comparison, "mergeBaseSha": "6" * 40},
+            {**comparison, "status": "behind"},
+            {**comparison, "status": "diverged"},
+        )
+        for malformed in malformed_comparisons:
+            with self.subTest(malformed=malformed):
+                with self.assertRaises(ValueError):
+                    MODULE.validate_live_branch_authority(
+                        {**advanced_snapshot, "sourceComparison": malformed},
+                        main_sha=SHA,
+                        source_sha=REVIEW_HEAD_SHA,
+                    )
+
+    def test_v111_repository_admission_accepts_only_exact_protected_policy(
+        self,
+    ) -> None:
+        snapshot = valid_snapshot()
+        MODULE.validate_candidate_context(
+            snapshot,
+            **{**self.candidate_arguments(), "source_version": "1.1.1"},
+        )
+
+        admission = valid_repository_admission()
+        cases = (
+            (
+                {**admission, "remoteMain": {"sha": SHA, "protected": False}},
+                "protected",
+            ),
+            (
+                {**admission, "remoteMain": {"sha": "5" * 40, "protected": True}},
+                "remote main SHA",
+            ),
+            ({**admission, "mainRulesPaginationComplete": False}, "main rules"),
+            ({**admission, "checkRunsPaginationComplete": False}, "check runs"),
+            (
+                {**admission, "reviewThreadsPaginationComplete": False},
+                "review threads",
+            ),
+            ({**admission, "tagRulesetsPaginationComplete": False}, "tag rulesets"),
+            ({**admission, "mainRules": []}, "required status checks"),
+            (
+                {
+                    **admission,
+                    "mainRules": [
+                        {
+                            "type": "required_status_checks",
+                            "parameters": {
+                                "required_status_checks": [
+                                    {"context": REQUIRED_RELEASE_CHECKS[0]}
+                                ]
+                            },
+                        }
+                    ],
+                },
+                "required status checks",
+            ),
+            ({**admission, "checkRuns": admission["checkRuns"][:-1]}, "check runs"),
+            (
+                {
+                    **admission,
+                    "checkRuns": [
+                        *admission["checkRuns"],
+                        admission["checkRuns"][0],
+                    ],
+                },
+                "check runs",
+            ),
+            ({**admission, "tagRulesets": []}, "stable tag"),
+        )
+        for mutated_admission, message in cases:
+            with self.subTest(message=message):
+                with self.assertRaisesRegex(ValueError, message):
+                    MODULE.validate_candidate_context(
+                        {**snapshot, "repositoryAdmission": mutated_admission},
+                        **{**self.candidate_arguments(), "source_version": "1.1.1"},
+                    )
+
+    def test_v111_tag_ruleset_inventory_rejects_malformed_entries_after_match(
+        self,
+    ) -> None:
+        admission = valid_repository_admission()
+        qualifying = admission["tagRulesets"][0]
+        malformed_entries = (
+            None,
+            {**qualifying, "id": 0},
+            {**qualifying, "id": "101"},
+        )
+
+        for malformed in malformed_entries:
+            with self.subTest(malformed=malformed):
+                with self.assertRaisesRegex(ValueError, "stable tag ruleset"):
+                    MODULE.validate_repository_admission(
+                        {
+                            **admission,
+                            "tagRulesets": [qualifying, malformed],
+                        },
+                        main_sha=SHA,
+                        review_head_sha=REVIEW_HEAD_SHA,
+                        expected_tag="v1.1.1",
+                    )
+
+    def test_v111_tag_ruleset_inventory_rejects_duplicate_identity_after_match(
+        self,
+    ) -> None:
+        admission = valid_repository_admission()
+        qualifying = admission["tagRulesets"][0]
+        duplicate = {**qualifying}
+
+        with self.assertRaisesRegex(ValueError, "stable tag ruleset.*(identity|id)"):
+            MODULE.validate_repository_admission(
+                {**admission, "tagRulesets": [qualifying, duplicate]},
+                main_sha=SHA,
+                review_head_sha=REVIEW_HEAD_SHA,
+                expected_tag="v1.1.1",
+            )
+
+    def test_repository_admission_boundary_does_not_rewrite_v110_history(self) -> None:
+        snapshot = valid_snapshot()
+        snapshot.pop("repositoryAdmission")
+        MODULE.validate_candidate_context(
+            snapshot,
+            **{**self.candidate_arguments(), "source_version": "1.1.0"},
+        )
+        with self.assertRaisesRegex(ValueError, "no repository admission evidence"):
+            MODULE.validate_candidate_context(
+                snapshot,
+                **{**self.candidate_arguments(), "source_version": "1.1.1"},
+            )
+
+        self.assertEqual(
+            ["historical.zip"],
+            MODULE.validate_existing_release(
+                {
+                    "tag_name": "v1.1.0",
+                    "draft": False,
+                    "prerelease": False,
+                    "immutable": False,
+                    "body": "historical notes",
+                    "assets": [{"name": "historical.zip"}],
+                },
+                expected_tag="v1.1.0",
+                expected_body="historical notes",
+            ),
+        )
+
+    def test_v111_repository_admission_rejects_bad_required_check_evidence(
+        self,
+    ) -> None:
+        admission = valid_repository_admission()
+        first = admission["checkRuns"][0]
+        for key, value in (
+            ("headSha", "5" * 40),
+            ("appSlug", "external-app"),
+            ("status", "in_progress"),
+            ("conclusion", "failure"),
+        ):
+            with self.subTest(key=key):
+                mutated = {
+                    **admission,
+                    "checkRuns": [{**first, key: value}, *admission["checkRuns"][1:]],
+                }
+                with self.assertRaisesRegex(ValueError, "check runs"):
+                    MODULE.validate_repository_admission(
+                        mutated,
+                        main_sha=SHA,
+                        review_head_sha=REVIEW_HEAD_SHA,
+                        expected_tag="v1.1.1",
+                    )
+
+    def test_v111_review_threads_allow_parallel_p2_p3_but_block_p0_p1(self) -> None:
+        admission = valid_repository_admission()
+        for body in ("[P2] Follow-up", "![P3 Badge](badge-url) Polish later"):
+            with self.subTest(body=body, expected="accepted"):
+                MODULE.validate_repository_admission(
+                    {
+                        **admission,
+                        "reviewThreads": [
+                            {"isResolved": False, "isOutdated": False, "body": body}
+                        ],
+                    },
+                    main_sha=SHA,
+                    review_head_sha=REVIEW_HEAD_SHA,
+                    expected_tag="v1.1.1",
+                )
+
+        MODULE.validate_repository_admission(
+            {
+                **admission,
+                "reviewThreads": [
+                    {"isResolved": True, "isOutdated": False, "body": "no marker"}
+                ],
+            },
+            main_sha=SHA,
+            review_head_sha=REVIEW_HEAD_SHA,
+            expected_tag="v1.1.1",
+        )
+
+        for body, message in (
+            ("[P0] Critical", "unresolved P0"),
+            ("![P1 Badge](badge-url) Must fix", "unresolved P1"),
+            ("Needs classification", "classifiable priority"),
+            ("[P2] Text also says [P3]", "one priority"),
+        ):
+            with self.subTest(body=body, expected="rejected"):
+                with self.assertRaisesRegex(ValueError, message):
+                    MODULE.validate_repository_admission(
+                        {
+                            **admission,
+                            "reviewThreads": [
+                                {
+                                    "isResolved": False,
+                                    "isOutdated": True,
+                                    "body": body,
+                                }
+                            ],
+                        },
+                        main_sha=SHA,
+                        review_head_sha=REVIEW_HEAD_SHA,
+                        expected_tag="v1.1.1",
+                    )
 
     def test_accepts_exact_reviewed_0917_maintenance_identity(self) -> None:
         maintenance_sha = "5" * 40
@@ -1144,6 +1580,306 @@ class ReleasePromotionPolicyTests(unittest.TestCase):
                 Path("unused-published"),
                 "one.zip",
             )
+
+    def test_v111_release_requires_immutable_exact_rest_asset_metadata(self) -> None:
+        expected_assets = valid_v111_expected_assets()
+        release = valid_v111_release()
+
+        self.assertEqual(
+            list(expected_assets),
+            MODULE.validate_existing_release(
+                release,
+                expected_tag="v1.1.1",
+                expected_body="complete notes",
+                expected_assets=expected_assets,
+            ),
+        )
+
+        mutations = (
+            ({**release, "immutable": False}, "immutable"),
+            ({**release, "immutable": "true"}, "immutable"),
+            (
+                {key: value for key, value in release.items() if key != "immutable"},
+                "immutable",
+            ),
+            (
+                {
+                    **release,
+                    "assets": [
+                        {**release["assets"][0], "state": "new"},
+                        release["assets"][1],
+                    ],
+                },
+                "uploaded state",
+            ),
+            (
+                {
+                    **release,
+                    "assets": [
+                        {**release["assets"][0], "size": 4},
+                        release["assets"][1],
+                    ],
+                },
+                "size",
+            ),
+            (
+                {
+                    **release,
+                    "assets": [
+                        {**release["assets"][0], "digest": f"sha256:{'c' * 64}"},
+                        release["assets"][1],
+                    ],
+                },
+                "digest",
+            ),
+            ({**release, "assets": release["assets"][:-1]}, "asset set"),
+            (
+                {
+                    **release,
+                    "assets": [
+                        *release["assets"],
+                        {
+                            "name": "extra.json",
+                            "state": "uploaded",
+                            "size": 1,
+                            "digest": f"sha256:{'d' * 64}",
+                        },
+                    ],
+                },
+                "asset set",
+            ),
+        )
+        for mutated, message in mutations:
+            with self.subTest(message=message):
+                with self.assertRaisesRegex(ValueError, message):
+                    MODULE.validate_existing_release(
+                        mutated,
+                        expected_tag="v1.1.1",
+                        expected_body="complete notes",
+                        expected_assets=expected_assets,
+                    )
+
+    def test_v111_release_rejects_duplicate_or_unsafe_rest_asset_names(self) -> None:
+        release = valid_v111_release()
+        expected_assets = valid_v111_expected_assets()
+        first_asset = release["assets"][0]
+
+        duplicate_assets = [*release["assets"], dict(first_asset)]
+        with self.assertRaisesRegex(ValueError, "repeats an asset name"):
+            MODULE.validate_existing_release(
+                {**release, "assets": duplicate_assets},
+                expected_tag="v1.1.1",
+                expected_body="complete notes",
+                expected_assets=expected_assets,
+            )
+
+        for unsafe_name in (
+            "",
+            ".",
+            "../one.zip",
+            "folder/one.zip",
+            r"folder\one.zip",
+            r"C:\absolute.zip",
+        ):
+            with self.subTest(unsafe_name=unsafe_name):
+                unsafe_assets = [
+                    {**first_asset, "name": unsafe_name},
+                    release["assets"][1],
+                ]
+                with self.assertRaisesRegex(ValueError, "asset name is invalid"):
+                    MODULE.validate_existing_release(
+                        {**release, "assets": unsafe_assets},
+                        expected_tag="v1.1.1",
+                        expected_body="complete notes",
+                        expected_assets=expected_assets,
+                    )
+
+    def test_v111_release_rejects_malformed_rest_size_and_digest_metadata(
+        self,
+    ) -> None:
+        release = valid_v111_release()
+        expected_assets = valid_v111_expected_assets()
+        first_asset = release["assets"][0]
+        missing_digest = {
+            key: value for key, value in first_asset.items() if key != "digest"
+        }
+        mutations = (
+            ("size", True, "size"),
+            ("size", -1, "size"),
+            ("size", "3", "size"),
+            ("digest", None, "digest"),
+            ("digest", f"sha256:{'A' * 64}", "digest"),
+            ("digest", f"SHA256:{'a' * 64}", "digest"),
+            ("digest", "a" * 64, "digest"),
+        )
+
+        for key, value, message in mutations:
+            with self.subTest(key=key, value=value):
+                malformed_assets = [
+                    {**first_asset, key: value},
+                    release["assets"][1],
+                ]
+                with self.assertRaisesRegex(ValueError, message):
+                    MODULE.validate_existing_release(
+                        {**release, "assets": malformed_assets},
+                        expected_tag="v1.1.1",
+                        expected_body="complete notes",
+                        expected_assets=expected_assets,
+                    )
+
+        with self.assertRaisesRegex(ValueError, "digest"):
+            MODULE.validate_existing_release(
+                {**release, "assets": [missing_digest, release["assets"][1]]},
+                expected_tag="v1.1.1",
+                expected_body="complete notes",
+                expected_assets=expected_assets,
+            )
+
+    def test_v111_release_rejects_malformed_expected_asset_metadata(self) -> None:
+        release = valid_v111_release()
+        valid_expected = valid_v111_expected_assets()
+        with self.assertRaisesRegex(ValueError, "Release metadata is malformed"):
+            MODULE.validate_existing_release(
+                [],
+                expected_tag="v1.1.1",
+                expected_body="complete notes",
+                expected_assets=valid_expected,
+            )
+        malformed_expected_assets = (
+            None,
+            [],
+            {**valid_expected, "one.zip": None},
+            {**valid_expected, "one.zip": []},
+            {**valid_expected, "one.zip": {"size": True, "sha256": "a" * 64}},
+            {**valid_expected, "one.zip": {"size": -1, "sha256": "a" * 64}},
+            {**valid_expected, "one.zip": {"size": "3", "sha256": "a" * 64}},
+            {**valid_expected, "one.zip": {"size": 3}},
+            {**valid_expected, "one.zip": {"size": 3, "sha256": "A" * 64}},
+            {
+                **valid_expected,
+                "one.zip": {"size": 3, "sha256": f"sha256:{'a' * 64}"},
+            },
+        )
+
+        for malformed in malformed_expected_assets:
+            with self.subTest(malformed=malformed):
+                with self.assertRaisesRegex(ValueError, "candidate asset"):
+                    MODULE.validate_existing_release(
+                        release,
+                        expected_tag="v1.1.1",
+                        expected_body="complete notes",
+                        expected_assets=malformed,
+                    )
+
+    def test_v110_release_does_not_retroactively_require_strict_rest_fields(
+        self,
+    ) -> None:
+        self.assertEqual(
+            ["historical.zip"],
+            MODULE.validate_existing_release(
+                {
+                    "tag_name": "v1.1.0",
+                    "draft": False,
+                    "prerelease": False,
+                    "immutable": "not-a-boolean",
+                    "body": "historical notes",
+                    "assets": [
+                        {
+                            "name": "historical.zip",
+                            "state": None,
+                            "size": True,
+                            "digest": "not-a-digest",
+                        }
+                    ],
+                },
+                expected_tag="v1.1.0",
+                expected_body="historical notes",
+                expected_assets={"historical.zip": None},
+            ),
+        )
+
+    def test_published_asset_metadata_adds_manifest_and_outer_checksum(self) -> None:
+        with tempfile.TemporaryDirectory(prefix="published-metadata-") as temporary:
+            root = Path(temporary)
+            payload = b"payload"
+            payload_name = "one.zip"
+            manifest = root / "NvtFwCombiner-v1.1.1-candidate.json"
+            manifest.write_text(
+                json.dumps(
+                    {
+                        "version": "1.1.1",
+                        "assets": [
+                            {
+                                "name": payload_name,
+                                "size": len(payload),
+                                "sha256": hashlib.sha256(payload).hexdigest(),
+                            }
+                        ],
+                    }
+                ),
+                encoding="utf-8",
+            )
+            checksum = root / "NvtFwCombiner-v1.1.1-assets.sha256"
+            checksum.write_bytes(b"outer")
+
+            metadata = MODULE.expected_published_asset_metadata(manifest)
+
+            self.assertEqual(
+                {payload_name, manifest.name, checksum.name}, set(metadata)
+            )
+            for path in (manifest, checksum):
+                self.assertEqual(path.stat().st_size, metadata[path.name]["size"])
+                self.assertEqual(MODULE._sha256(path), metadata[path.name]["sha256"])
+
+    def test_published_asset_metadata_rejects_duplicate_manifest_entries(self) -> None:
+        with tempfile.TemporaryDirectory(
+            prefix="published-metadata-duplicate-"
+        ) as temporary:
+            root = Path(temporary)
+            manifest = root / "NvtFwCombiner-v1.1.1-candidate.json"
+            checksum = root / "NvtFwCombiner-v1.1.1-assets.sha256"
+            checksum.write_bytes(b"outer")
+            entry = {"name": "one.zip", "size": 3, "sha256": "a" * 64}
+            manifest.write_text(
+                json.dumps({"version": "1.1.1", "assets": [entry, entry]}),
+                encoding="utf-8",
+            )
+
+            with self.assertRaisesRegex(ValueError, "repeats an asset name"):
+                MODULE.expected_published_asset_metadata(manifest)
+
+    def test_published_asset_metadata_rejects_manifest_or_checksum_name_conflict(
+        self,
+    ) -> None:
+        with tempfile.TemporaryDirectory(
+            prefix="published-metadata-name-conflict-"
+        ) as temporary:
+            root = Path(temporary)
+            manifest = root / "NvtFwCombiner-v1.1.1-candidate.json"
+            checksum = root / "NvtFwCombiner-v1.1.1-assets.sha256"
+            checksum.write_bytes(b"outer")
+
+            for conflicting_name in (manifest.name, checksum.name):
+                with self.subTest(conflicting_name=conflicting_name):
+                    manifest.write_text(
+                        json.dumps(
+                            {
+                                "version": "1.1.1",
+                                "assets": [
+                                    {
+                                        "name": conflicting_name,
+                                        "size": 3,
+                                        "sha256": "a" * 64,
+                                    }
+                                ],
+                            }
+                        ),
+                        encoding="utf-8",
+                    )
+                    with self.assertRaisesRegex(
+                        ValueError, "repeats a published asset name"
+                    ):
+                        MODULE.expected_published_asset_metadata(manifest)
 
     def test_manifest_detects_digest_identity_and_extra_asset_drift(self) -> None:
         with tempfile.TemporaryDirectory(

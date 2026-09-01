@@ -58,6 +58,7 @@ jobs:
       version: ${{ steps.identity.outputs.version }}
       tag: ${{ steps.identity.outputs.tag }}
       pull-request: ${{ steps.request.outputs.pull-request }}
+      review-head-sha: ${{ steps.admission.outputs.review-head-sha }}
       artifact-name: ${{ steps.identity.outputs.artifact-name }}
       artifact-digest: ${{ steps.candidate-upload.outputs.artifact-digest }}
       manifest-name: ${{ steps.manifest.outputs.manifest-name }}
@@ -172,6 +173,7 @@ jobs:
           "tag=$tag" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
           "artifact-name=$artifactName" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
       - name: Collect and validate final PR review/check evidence
+        id: admission
         shell: pwsh
         env:
           GH_TOKEN: ${{ github.token }}
@@ -208,6 +210,80 @@ jobs:
               }
             }
           }
+          $mainBranchText = gh api "repos/$env:NFC_REPOSITORY/branches/main"
+          if ($LASTEXITCODE -ne 0) { throw 'Remote main protection evidence could not be read.' }
+          try { $mainBranch = $mainBranchText | ConvertFrom-Json -ErrorAction Stop }
+          catch { throw "Remote main protection evidence is malformed: $mainBranchText" }
+          $mainRules = @(Get-PaginatedGitHubArray `
+            "repos/$env:NFC_REPOSITORY/rules/branches/main?per_page=100" `
+            'Applied main rules evidence could not be read.')
+          $tagRulesetSummaries = @(Get-PaginatedGitHubArray `
+            "repos/$env:NFC_REPOSITORY/rulesets?includes_parents=true&targets=tag&per_page=100" `
+            'Stable tag ruleset inventory could not be read.')
+          $tagRulesets = @($tagRulesetSummaries | ForEach-Object {
+            if ($_.id -notmatch '^[1-9][0-9]*$') { throw 'Stable tag ruleset id is malformed.' }
+            $rulesetText = gh api "repos/$env:NFC_REPOSITORY/rulesets/$($_.id)"
+            if ($LASTEXITCODE -ne 0) { throw 'Stable tag ruleset detail could not be read.' }
+            try { $rulesetText | ConvertFrom-Json -ErrorAction Stop }
+            catch { throw "Stable tag ruleset detail is malformed: $rulesetText" }
+          })
+          $repositoryParts = $env:NFC_REPOSITORY.Split('/', 2)
+          if ($repositoryParts.Count -ne 2) { throw 'Repository identity is malformed.' }
+          $reviewThreadQuery = @'
+          query($owner: String!, $name: String!, $number: Int!, $cursor: String) {
+            repository(owner: $owner, name: $name) {
+              pullRequest(number: $number) {
+                reviewThreads(first: 100, after: $cursor) {
+                  pageInfo { hasNextPage endCursor }
+                  nodes {
+                    isResolved
+                    isOutdated
+                    comments(first: 1) { nodes { body } }
+                  }
+                }
+              }
+            }
+          }
+          '@
+          $reviewThreads = @()
+          $reviewThreadCursor = $null
+          do {
+            $graphqlArguments = @(
+              'api', 'graphql', '-f', "query=$reviewThreadQuery",
+              '-F', "owner=$($repositoryParts[0])",
+              '-F', "name=$($repositoryParts[1])",
+              '-F', "number=$env:NFC_PULL_REQUEST"
+            )
+            if ($null -ne $reviewThreadCursor) {
+              $graphqlArguments += @('-F', "cursor=$reviewThreadCursor")
+            }
+            $reviewThreadText = & gh @graphqlArguments
+            if ($LASTEXITCODE -ne 0) { throw 'Final PR review-thread evidence could not be read.' }
+            try { $reviewThreadPage = $reviewThreadText | ConvertFrom-Json -ErrorAction Stop }
+            catch { throw "Final PR review-thread evidence is malformed: $reviewThreadText" }
+            $connection = $reviewThreadPage.data.repository.pullRequest.reviewThreads
+            if ($null -eq $connection -or $null -eq $connection.pageInfo) {
+              throw 'Final PR review-thread connection is malformed.'
+            }
+            foreach ($thread in @($connection.nodes)) {
+              $commentNodes = @($thread.comments.nodes)
+              $reviewThreads += [ordered]@{
+                isResolved = $thread.isResolved
+                isOutdated = $thread.isOutdated
+                body = if ($commentNodes.Count -eq 1) { [string]$commentNodes[0].body } else { '' }
+              }
+            }
+            if ($connection.pageInfo.hasNextPage -eq $true) {
+              $nextCursor = [string]$connection.pageInfo.endCursor
+              if ([string]::IsNullOrWhiteSpace($nextCursor) -or $nextCursor -eq $reviewThreadCursor) {
+                throw 'Final PR review-thread pagination did not advance.'
+              }
+              $reviewThreadCursor = $nextCursor
+            }
+            else {
+              $reviewThreadCursor = $null
+            }
+          } while ($connection.pageInfo.hasNextPage -eq $true)
           $reviews = @(Get-PaginatedGitHubArray `
             "repos/$env:NFC_REPOSITORY/pulls/$env:NFC_PULL_REQUEST/reviews" `
             'Final PR approval evidence could not be read.')
@@ -309,15 +385,32 @@ jobs:
             'python-worker / verify'
             'dotnet / build-test'
           )
-          $checkRunsText = gh api `
-            "repos/$env:NFC_REPOSITORY/commits/$($pr.headRefOid)/check-runs?per_page=100"
+          $checkRunsText = gh api --paginate --slurp `
+            "repos/$env:NFC_REPOSITORY/commits/$($pr.headRefOid)/check-runs?filter=latest&per_page=100"
           if ($LASTEXITCODE -ne 0) { throw 'Required check-run evidence could not be read.' }
-          try { $checkRuns = @((($checkRunsText | ConvertFrom-Json -ErrorAction Stop).check_runs)) }
+          try { $checkRunPages = $checkRunsText | ConvertFrom-Json -NoEnumerate -ErrorAction Stop }
           catch { throw "Required check-run evidence is malformed: $checkRunsText" }
+          if ($checkRunPages.Count -eq 0 -or
+              [string]$checkRunPages[0].total_count -notmatch '^[0-9]+$') {
+            throw 'Required check-run pagination metadata is malformed.'
+          }
+          $rawCheckRuns = @($checkRunPages | ForEach-Object { @($_.check_runs) })
+          if ($rawCheckRuns.Count -ne [int]$checkRunPages[0].total_count) {
+            throw 'Required check-run pagination is incomplete.'
+          }
+          $checkRuns = @($rawCheckRuns | ForEach-Object {
+            [ordered]@{
+              name = [string]$_.name
+              headSha = [string]$_.head_sha
+              appSlug = [string]$_.app.slug
+              status = [string]$_.status
+              conclusion = [string]$_.conclusion
+            }
+          })
           $checks = @($requiredCheckNames | ForEach-Object {
             $requiredName = $_
             $matches = @($checkRuns | Where-Object {
-              $_.name -eq $requiredName -and $_.app.slug -eq 'github-actions'
+              $_.name -eq $requiredName -and $_.appSlug -eq 'github-actions'
             })
             [ordered]@{
               name = $requiredName
@@ -342,9 +435,24 @@ jobs:
             approvals = $approvals
             codexReview = if ($codexReview.Count -eq 1) { $codexReview[0] } else { $null }
             requiredChecks = @($checks)
+            repositoryAdmission = [ordered]@{
+              remoteMain = [ordered]@{
+                sha = [string]$mainBranch.commit.sha
+                protected = $mainBranch.protected
+              }
+              mainRulesPaginationComplete = $true
+              mainRules = @($mainRules)
+              checkRunsPaginationComplete = $true
+              checkRuns = @($checkRuns)
+              reviewThreadsPaginationComplete = $true
+              reviewThreads = @($reviewThreads)
+              tagRulesetsPaginationComplete = $true
+              tagRulesets = @($tagRulesets)
+            }
           }
           $snapshotPath = Join-Path $evidenceRoot 'review-snapshot.json'
-          $snapshot | ConvertTo-Json -Depth 8 | Set-Content -LiteralPath $snapshotPath -Encoding utf8NoBOM
+          $snapshot | ConvertTo-Json -Depth 20 | Set-Content -LiteralPath $snapshotPath -Encoding utf8NoBOM
+          "review-head-sha=$($pr.headRefOid)" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
           python $env:NFC_RELEASE_POLICY validate-context `
             --snapshot $snapshotPath `
             --requested-sha $env:NFC_REQUESTED_SHA `
@@ -583,11 +691,15 @@ jobs:
       NFC_RELEASE_POLICY: ./scripts/release_promotion_policy.py
     permissions:
       contents: write
+      pull-requests: read
+      issues: read
+      checks: read
+      statuses: read
     steps:
       - name: Checkout protected release authority
         uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
         with:
-          ref: main
+          ref: ${{ needs.candidate.outputs.workflow-sha }}
           fetch-depth: 0
           persist-credentials: false
       - name: Setup pinned Python for release policy
@@ -675,6 +787,186 @@ jobs:
             --workflow-sha $env:NFC_WORKFLOW_SHA `
             --workflow-ref $env:NFC_WORKFLOW_REF
           if ($LASTEXITCODE -ne 0) { throw 'Downloaded candidate policy verification failed.' }
+      - name: Revalidate live repository admission before tag mutation
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+          NFC_REPOSITORY: ${{ github.repository }}
+          NFC_PULL_REQUEST: ${{ needs.candidate.outputs.pull-request }}
+          NFC_REVIEW_HEAD_SHA: ${{ needs.candidate.outputs.review-head-sha }}
+          NFC_MAIN_SHA: ${{ needs.candidate.outputs.workflow-sha }}
+          NFC_SOURCE_SHA: ${{ needs.candidate.outputs.source-sha }}
+          NFC_SOURCE_BRANCH: ${{ needs.candidate.outputs.source-branch }}
+          NFC_SOURCE_VERSION: ${{ needs.candidate.outputs.version }}
+          NFC_TAG: ${{ needs.candidate.outputs.tag }}
+        run: |
+          function Get-PaginatedGitHubArray([string]$endpoint, [string]$failureMessage) {
+            $pagesText = gh api --paginate --slurp $endpoint
+            if ($LASTEXITCODE -ne 0) { throw $failureMessage }
+            $pages = $pagesText | ConvertFrom-Json -NoEnumerate
+            foreach ($page in $pages) {
+              foreach ($item in $page) { Write-Output $item }
+            }
+          }
+          $mainBranchText = gh api "repos/$env:NFC_REPOSITORY/branches/main"
+          if ($LASTEXITCODE -ne 0) { throw 'Fresh remote main protection evidence could not be read.' }
+          try { $mainBranch = $mainBranchText | ConvertFrom-Json -ErrorAction Stop }
+          catch { throw "Fresh remote main protection evidence is malformed: $mainBranchText" }
+          $sourceBranchText = gh api `
+            "repos/$env:NFC_REPOSITORY/git/ref/heads/$env:NFC_SOURCE_BRANCH"
+          if ($LASTEXITCODE -ne 0) { throw 'Fresh release-source branch evidence could not be read.' }
+          try { $sourceBranch = $sourceBranchText | ConvertFrom-Json -ErrorAction Stop }
+          catch { throw "Fresh release-source branch evidence is malformed: $sourceBranchText" }
+          $observedSourceSha = [string]$sourceBranch.object.sha
+          $tagEndpoint = "repos/$env:NFC_REPOSITORY/git/ref/tags/$env:NFC_TAG"
+          $tagState = python $env:NFC_RELEASE_POLICY probe-resource --endpoint $tagEndpoint
+          if ($LASTEXITCODE -ne 0) { throw 'Fresh stable tag state could not be proved.' }
+          $tagState = $tagState.Trim()
+          $sourceComparison = $null
+          if ($tagState -eq 'present' -and $observedSourceSha -cne $env:NFC_SOURCE_SHA) {
+            $comparisonText = gh api `
+              "repos/$env:NFC_REPOSITORY/compare/$env:NFC_SOURCE_SHA...$observedSourceSha" `
+              --jq '{baseSha: .base_commit.sha, mergeBaseSha: .merge_base_commit.sha, status: .status}'
+            if ($LASTEXITCODE -ne 0) { throw 'Fresh recovery source ancestry could not be read.' }
+            try { $comparison = $comparisonText | ConvertFrom-Json -ErrorAction Stop }
+            catch { throw "Fresh recovery source ancestry is malformed: $comparisonText" }
+            $sourceComparison = [ordered]@{
+              baseSha = [string]$comparison.baseSha
+              headSha = $observedSourceSha
+              mergeBaseSha = [string]$comparison.mergeBaseSha
+              status = [string]$comparison.status
+            }
+          }
+          $liveAuthority = [ordered]@{
+            tagState = $tagState
+            remoteMain = [ordered]@{
+              sha = [string]$mainBranch.commit.sha
+              protected = $mainBranch.protected
+            }
+            remoteSource = [ordered]@{ sha = $observedSourceSha }
+            sourceComparison = $sourceComparison
+          }
+          $liveAuthorityPath = Join-Path $env:RUNNER_TEMP 'pretag-live-branch-authority.json'
+          $liveAuthority | ConvertTo-Json -Depth 5 | Set-Content `
+            -LiteralPath $liveAuthorityPath -Encoding utf8NoBOM
+          python $env:NFC_RELEASE_POLICY validate-live-branch-authority `
+            --snapshot $liveAuthorityPath --main-sha $env:NFC_MAIN_SHA `
+            --source-sha $env:NFC_SOURCE_SHA
+          if ($LASTEXITCODE -ne 0) { throw 'Fresh live branch authority policy failed.' }
+          if ([version]$env:NFC_SOURCE_VERSION -lt [version]'1.1.1') {
+            Write-Host 'Strict repository admission starts at v1.1.1; live branch authority still passed.'
+            return
+          }
+          $mainRules = @(Get-PaginatedGitHubArray `
+            "repos/$env:NFC_REPOSITORY/rules/branches/main?per_page=100" `
+            'Fresh applied main rules evidence could not be read.')
+          $tagRulesetSummaries = @(Get-PaginatedGitHubArray `
+            "repos/$env:NFC_REPOSITORY/rulesets?includes_parents=true&targets=tag&per_page=100" `
+            'Fresh stable tag ruleset inventory could not be read.')
+          $tagRulesets = @($tagRulesetSummaries | ForEach-Object {
+            if ($_.id -notmatch '^[1-9][0-9]*$') { throw 'Fresh stable tag ruleset id is malformed.' }
+            $rulesetText = gh api "repos/$env:NFC_REPOSITORY/rulesets/$($_.id)"
+            if ($LASTEXITCODE -ne 0) { throw 'Fresh stable tag ruleset detail could not be read.' }
+            try { $rulesetText | ConvertFrom-Json -ErrorAction Stop }
+            catch { throw "Fresh stable tag ruleset detail is malformed: $rulesetText" }
+          })
+          $checkRunsText = gh api --paginate --slurp `
+            "repos/$env:NFC_REPOSITORY/commits/$env:NFC_REVIEW_HEAD_SHA/check-runs?filter=latest&per_page=100"
+          if ($LASTEXITCODE -ne 0) { throw 'Fresh required check-run evidence could not be read.' }
+          try { $checkRunPages = $checkRunsText | ConvertFrom-Json -NoEnumerate -ErrorAction Stop }
+          catch { throw "Fresh required check-run evidence is malformed: $checkRunsText" }
+          if ($checkRunPages.Count -eq 0 -or
+              [string]$checkRunPages[0].total_count -notmatch '^[0-9]+$') {
+            throw 'Fresh required check-run pagination metadata is malformed.'
+          }
+          $rawCheckRuns = @($checkRunPages | ForEach-Object { @($_.check_runs) })
+          if ($rawCheckRuns.Count -ne [int]$checkRunPages[0].total_count) {
+            throw 'Fresh required check-run pagination is incomplete.'
+          }
+          $checkRuns = @($rawCheckRuns | ForEach-Object {
+            [ordered]@{
+              name = [string]$_.name
+              headSha = [string]$_.head_sha
+              appSlug = [string]$_.app.slug
+              status = [string]$_.status
+              conclusion = [string]$_.conclusion
+            }
+          })
+          $repositoryParts = $env:NFC_REPOSITORY.Split('/', 2)
+          if ($repositoryParts.Count -ne 2) { throw 'Repository identity is malformed.' }
+          $reviewThreadQuery = @'
+          query($owner: String!, $name: String!, $number: Int!, $cursor: String) {
+            repository(owner: $owner, name: $name) {
+              pullRequest(number: $number) {
+                reviewThreads(first: 100, after: $cursor) {
+                  pageInfo { hasNextPage endCursor }
+                  nodes {
+                    isResolved
+                    isOutdated
+                    comments(first: 1) { nodes { body } }
+                  }
+                }
+              }
+            }
+          }
+          '@
+          $reviewThreads = @()
+          $reviewThreadCursor = $null
+          do {
+            $graphqlArguments = @(
+              'api', 'graphql', '-f', "query=$reviewThreadQuery",
+              '-F', "owner=$($repositoryParts[0])",
+              '-F', "name=$($repositoryParts[1])",
+              '-F', "number=$env:NFC_PULL_REQUEST"
+            )
+            if ($null -ne $reviewThreadCursor) {
+              $graphqlArguments += @('-F', "cursor=$reviewThreadCursor")
+            }
+            $reviewThreadText = & gh @graphqlArguments
+            if ($LASTEXITCODE -ne 0) { throw 'Fresh final PR review-thread evidence could not be read.' }
+            try { $reviewThreadPage = $reviewThreadText | ConvertFrom-Json -ErrorAction Stop }
+            catch { throw "Fresh final PR review-thread evidence is malformed: $reviewThreadText" }
+            $connection = $reviewThreadPage.data.repository.pullRequest.reviewThreads
+            if ($null -eq $connection -or $null -eq $connection.pageInfo) {
+              throw 'Fresh final PR review-thread connection is malformed.'
+            }
+            foreach ($thread in @($connection.nodes)) {
+              $commentNodes = @($thread.comments.nodes)
+              $reviewThreads += [ordered]@{
+                isResolved = $thread.isResolved
+                isOutdated = $thread.isOutdated
+                body = if ($commentNodes.Count -eq 1) { [string]$commentNodes[0].body } else { '' }
+              }
+            }
+            if ($connection.pageInfo.hasNextPage -eq $true) {
+              $nextCursor = [string]$connection.pageInfo.endCursor
+              if ([string]::IsNullOrWhiteSpace($nextCursor) -or $nextCursor -eq $reviewThreadCursor) {
+                throw 'Fresh final PR review-thread pagination did not advance.'
+              }
+              $reviewThreadCursor = $nextCursor
+            }
+            else { $reviewThreadCursor = $null }
+          } while ($connection.pageInfo.hasNextPage -eq $true)
+          $snapshot = [ordered]@{
+            remoteMain = [ordered]@{
+              sha = [string]$mainBranch.commit.sha
+              protected = $mainBranch.protected
+            }
+            mainRulesPaginationComplete = $true
+            mainRules = @($mainRules)
+            checkRunsPaginationComplete = $true
+            checkRuns = @($checkRuns)
+            reviewThreadsPaginationComplete = $true
+            reviewThreads = @($reviewThreads)
+            tagRulesetsPaginationComplete = $true
+            tagRulesets = @($tagRulesets)
+          }
+          $snapshotPath = Join-Path $env:RUNNER_TEMP 'pretag-repository-admission.json'
+          $snapshot | ConvertTo-Json -Depth 20 | Set-Content -LiteralPath $snapshotPath -Encoding utf8NoBOM
+          python $env:NFC_RELEASE_POLICY validate-repository-admission `
+            --snapshot $snapshotPath --main-sha $env:NFC_MAIN_SHA `
+            --review-head-sha $env:NFC_REVIEW_HEAD_SHA --expected-tag $env:NFC_TAG
+          if ($LASTEXITCODE -ne 0) { throw 'Fresh pre-tag repository admission policy failed.' }
       - name: Create or verify immutable annotated tag
         shell: pwsh
         env:
@@ -684,6 +976,7 @@ jobs:
           NFC_SOURCE_SHA: ${{ needs.candidate.outputs.source-sha }}
           NFC_SOURCE_BRANCH: ${{ needs.candidate.outputs.source-branch }}
           NFC_SOURCE_TREE: ${{ needs.candidate.outputs.source-tree }}
+          NFC_WORKFLOW_SHA: ${{ needs.candidate.outputs.workflow-sha }}
           NFC_RUN_ID: ${{ github.run_id }}
           NFC_MANIFEST_SHA256: ${{ needs.candidate.outputs.manifest-sha256 }}
           NFC_ARTIFACT_DIGEST: ${{ needs.candidate.outputs.artifact-digest }}
@@ -702,6 +995,13 @@ jobs:
           $state = python $env:NFC_RELEASE_POLICY probe-resource --endpoint $endpoint
           if ($LASTEXITCODE -ne 0) { throw 'Stable tag state could not be proved.' }
           if ($state.Trim() -eq 'absent') {
+            $mainBranchText = gh api "repos/$env:NFC_REPOSITORY/branches/main"
+            if ($LASTEXITCODE -ne 0) { throw 'Remote main could not be read immediately before tag creation.' }
+            $mainBranch = $mainBranchText | ConvertFrom-Json
+            if ($mainBranch.protected -ne $true -or
+                [string]$mainBranch.commit.sha -cne $env:NFC_WORKFLOW_SHA) {
+              throw 'Remote main authority changed before tag creation.'
+            }
             $currentSourceHead = gh api `
               "repos/$env:NFC_REPOSITORY/git/ref/heads/$env:NFC_SOURCE_BRANCH" --jq .object.sha
             if ($LASTEXITCODE -ne 0 -or $currentSourceHead.Trim() -ne $env:NFC_SOURCE_SHA) {
@@ -738,14 +1038,60 @@ jobs:
             }
           }
           else { throw 'Stable tag probe returned an unknown state.' }
-      - name: Publish or recover immutable GitHub Release
+      - name: Publish or validate GitHub Release
         shell: pwsh
         env:
           GH_TOKEN: ${{ github.token }}
           NFC_REPOSITORY: ${{ github.repository }}
           NFC_TAG: ${{ needs.candidate.outputs.tag }}
           NFC_MANIFEST_NAME: ${{ needs.candidate.outputs.manifest-name }}
+          NFC_SOURCE_SHA: ${{ needs.candidate.outputs.source-sha }}
+          NFC_SOURCE_BRANCH: ${{ needs.candidate.outputs.source-branch }}
+          NFC_WORKFLOW_SHA: ${{ needs.candidate.outputs.workflow-sha }}
         run: |
+          function Assert-LiveReleaseMutationAuthority {
+            $mainBranchText = gh api "repos/$env:NFC_REPOSITORY/branches/main"
+            if ($LASTEXITCODE -ne 0) { throw 'Release-mutation remote main evidence could not be read.' }
+            try { $mainBranch = $mainBranchText | ConvertFrom-Json -ErrorAction Stop }
+            catch { throw "Release-mutation remote main evidence is malformed: $mainBranchText" }
+            $sourceBranchText = gh api `
+              "repos/$env:NFC_REPOSITORY/git/ref/heads/$env:NFC_SOURCE_BRANCH"
+            if ($LASTEXITCODE -ne 0) { throw 'Release-mutation source-branch evidence could not be read.' }
+            try { $sourceBranch = $sourceBranchText | ConvertFrom-Json -ErrorAction Stop }
+            catch { throw "Release-mutation source-branch evidence is malformed: $sourceBranchText" }
+            $observedSourceSha = [string]$sourceBranch.object.sha
+            $sourceComparison = $null
+            if ($observedSourceSha -cne $env:NFC_SOURCE_SHA) {
+              $comparisonText = gh api `
+                "repos/$env:NFC_REPOSITORY/compare/$env:NFC_SOURCE_SHA...$observedSourceSha" `
+                --jq '{baseSha: .base_commit.sha, mergeBaseSha: .merge_base_commit.sha, status: .status}'
+              if ($LASTEXITCODE -ne 0) { throw 'Release-mutation source ancestry could not be read.' }
+              try { $comparison = $comparisonText | ConvertFrom-Json -ErrorAction Stop }
+              catch { throw "Release-mutation source ancestry is malformed: $comparisonText" }
+              $sourceComparison = [ordered]@{
+                baseSha = [string]$comparison.baseSha
+                headSha = $observedSourceSha
+                mergeBaseSha = [string]$comparison.mergeBaseSha
+                status = [string]$comparison.status
+              }
+            }
+            $liveAuthority = [ordered]@{
+              tagState = 'present'
+              remoteMain = [ordered]@{
+                sha = [string]$mainBranch.commit.sha
+                protected = $mainBranch.protected
+              }
+              remoteSource = [ordered]@{ sha = $observedSourceSha }
+              sourceComparison = $sourceComparison
+            }
+            $liveAuthorityPath = Join-Path $env:RUNNER_TEMP 'release-mutation-live-authority.json'
+            $liveAuthority | ConvertTo-Json -Depth 5 | Set-Content `
+              -LiteralPath $liveAuthorityPath -Encoding utf8NoBOM
+            python $env:NFC_RELEASE_POLICY validate-live-branch-authority `
+              --snapshot $liveAuthorityPath --main-sha $env:NFC_WORKFLOW_SHA `
+              --source-sha $env:NFC_SOURCE_SHA
+            if ($LASTEXITCODE -ne 0) { throw 'Release-mutation live branch authority failed.' }
+          }
           $releaseRoot = Resolve-Path -LiteralPath ./artifacts/release
           $notesPath = Join-Path $releaseRoot 'RELEASE-NOTES.md'
           $manifestPath = Join-Path $releaseRoot $env:NFC_MANIFEST_NAME
@@ -757,19 +1103,20 @@ jobs:
           if ($LASTEXITCODE -ne 0) { throw 'Release state could not be proved.' }
           if ($state.Trim() -eq 'absent') {
             $assets = @($expectedNames | ForEach-Object { Join-Path $releaseRoot $_ })
+            Assert-LiveReleaseMutationAuthority
             gh release create $env:NFC_TAG @assets --repo $env:NFC_REPOSITORY `
               --verify-tag --title "NVT FW Combiner $env:NFC_TAG" --notes-file $notesPath
             if ($LASTEXITCODE -ne 0) { throw 'GitHub Release publication failed.' }
           }
           elseif ($state.Trim() -eq 'present') {
-            $releaseText = gh release view $env:NFC_TAG --repo $env:NFC_REPOSITORY `
-              --json tagName,isDraft,isPrerelease,body,assets
-            if ($LASTEXITCODE -ne 0) { throw 'Existing Release metadata could not be read.' }
+            $releaseText = gh api $endpoint
+            if ($LASTEXITCODE -ne 0) { throw 'Existing Release REST metadata could not be read.' }
             $releasePath = Join-Path $env:RUNNER_TEMP 'existing-release.json'
             Set-Content -LiteralPath $releasePath -Value $releaseText -Encoding utf8NoBOM
             $publishedNamesPath = Join-Path $env:RUNNER_TEMP 'published-names.json'
             $publishedNamesText = python $env:NFC_RELEASE_POLICY validate-release `
-              --release $releasePath --expected-tag $env:NFC_TAG --expected-body $notesPath
+              --release $releasePath --expected-tag $env:NFC_TAG `
+              --expected-body $notesPath --manifest $manifestPath
             if ($LASTEXITCODE -ne 0) { throw 'Existing Release metadata conflicts with the prepared candidate.' }
             Set-Content -LiteralPath $publishedNamesPath -Value $publishedNamesText -Encoding utf8NoBOM
             $published = Join-Path $env:RUNNER_TEMP 'existing-release-assets'
@@ -781,9 +1128,12 @@ jobs:
             $missingJson = python $env:NFC_RELEASE_POLICY plan-recovery `
               --manifest $manifestPath --published-dir $published --published-names $publishedNamesPath
             if ($LASTEXITCODE -ne 0) { throw 'Existing Release asset recovery policy failed.' }
-            foreach ($missingName in @($missingJson | ConvertFrom-Json)) {
-              gh release upload $env:NFC_TAG (Join-Path $releaseRoot $missingName) --repo $env:NFC_REPOSITORY
-              if ($LASTEXITCODE -ne 0) { throw "Missing Release asset upload failed: $missingName" }
+            $missingNames = @($missingJson | ConvertFrom-Json)
+            if ($missingNames.Count -gt 0) {
+              $missingAssets = @($missingNames | ForEach-Object { Join-Path $releaseRoot $_ })
+              Assert-LiveReleaseMutationAuthority
+              gh release upload $env:NFC_TAG @missingAssets --repo $env:NFC_REPOSITORY
+              if ($LASTEXITCODE -ne 0) { throw 'Missing Release asset upload failed.' }
             }
           }
           else { throw 'Release probe returned an unknown state.' }
@@ -832,14 +1182,15 @@ jobs:
             --expected-tag $env:NFC_TAG --source-sha $env:NFC_SOURCE_SHA `
             --expected-message $tagMessagePath
           if ($LASTEXITCODE -ne 0) { throw 'Published stable tag identity is invalid.' }
-          $releaseText = gh release view $env:NFC_TAG --repo $env:NFC_REPOSITORY `
-            --json tagName,isDraft,isPrerelease,body,assets
-          if ($LASTEXITCODE -ne 0) { throw 'Published Release metadata could not be read.' }
+          $releaseEndpoint = "repos/$env:NFC_REPOSITORY/releases/tags/$env:NFC_TAG"
+          $releaseText = gh api $releaseEndpoint
+          if ($LASTEXITCODE -ne 0) { throw 'Published Release REST metadata could not be read.' }
           $releasePath = Join-Path $env:RUNNER_TEMP 'final-release.json'
           Set-Content -LiteralPath $releasePath -Value $releaseText -Encoding utf8NoBOM
           $publishedNamesPath = Join-Path $env:RUNNER_TEMP 'final-published-names.json'
           $publishedNamesText = python $env:NFC_RELEASE_POLICY validate-release `
-            --release $releasePath --expected-tag $env:NFC_TAG --expected-body $notesPath
+            --release $releasePath --expected-tag $env:NFC_TAG `
+            --expected-body $notesPath --manifest $manifestPath
           if ($LASTEXITCODE -ne 0) { throw 'Published Release metadata conflicts with the candidate.' }
           Set-Content -LiteralPath $publishedNamesPath -Value $publishedNamesText -Encoding utf8NoBOM
           $missingJson = python $env:NFC_RELEASE_POLICY plan-recovery `
