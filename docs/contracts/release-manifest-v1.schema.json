@@ -122,6 +122,13 @@
                       "role": { "enum": ["reference", "goldenFixture", "launcher"] }
                     },
                     "required": ["role"]
+                  },
+                  {
+                    "properties": {
+                      "path": { "not": { "const": "NvtFwCombiner.exe" } },
+                      "role": { "const": "application" }
+                    },
+                    "required": ["path", "role"]
                   }
                 ]
               }

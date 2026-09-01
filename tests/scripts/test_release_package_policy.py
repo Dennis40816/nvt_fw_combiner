@@ -610,6 +610,7 @@ finally {
         self.assertIn("ManualOnly cannot be combined with ExternalToolPolicyDryRun", script)
         self.assertIn("ManualOnly is available only for v1.1.0", script)
         self.assertIn("$ReferencePayloadEntries = @()", script)
+        self.assertIn("$ReferencePayloadEntries | ForEach-Object { $_.path }", script)
         self.assertIn("if (-not $ManualOnly) {", script)
         self.assertIn("-not $ManualOnly -and", script)
         self.assertEqual(1, script.count("scripts/package-distribution-launcher.ps1"))
