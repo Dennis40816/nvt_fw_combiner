@@ -4,9 +4,88 @@ All notable changes to NVT FW Combiner are documented here. The project follows 
 
 ## [Unreleased]
 
-No product changes are recorded after the `v1.0.8` candidate scope freeze.
-Its full verifier, package and canary evidence, tag, and formal publication
-remain release gates rather than unreleased product changes.
+No product changes are recorded after v1.1.0.
+
+## [1.1.0] - 2026-09-01
+
+### Summary
+
+This release republishes the frozen v1.0.8 Application behavior as a direct
+Windows x64 manual-download package. It intentionally does not enable the
+managed Launcher, Setup, Catalog, Registry, automatic-update, or Version
+deployment path and does not change firmware composition bytes.
+
+### Product changes
+
+#### Manual-only Windows distribution
+
+- Before → After: the stable packager assumed every 1.x package was a managed
+  update payload with a version-scoped Launcher and packaged reference
+  evidence; v1.1.0 now has one explicit `manual-only` mode that produces an
+  Application ZIP for users to extract and run directly.
+- Affected: only release packaging, manifest admission, package smoke, and
+  release documentation. The Desktop Application, profiles, processors,
+  firmware workflows, and output naming remain the frozen v1.0.8 behavior.
+- Support status: unchanged/support-neutral; no IC, route, profile, range,
+  processor, integrity rule, output byte, or output naming is promoted or
+  altered.
+- Compatibility: schema 1.3 marks this package as `manual-only`; the managed
+  Version verifier rejects it fail closed. It is not a Setup, update-Catalog,
+  Registry, Launcher, or automatic-update candidate.
+- Verification: release policy tests, schema 1.1/1.2 compatibility and 1.3
+  admission/rejection probes, PowerShell mode guards, and real Infrastructure
+  and Architecture regressions cover the bounded packaging contract. Exact-
+  head review, package smoke, and fresh-download startup remain release gates.
+- Limitations: this release does not enable managed installation or Version
+  deployment, does not publish reference evidence, and uses the explicit
+  single-release verifier waiver recorded for v1.1.0.
+- Package contents: the ZIP retains the self-contained Windows x64
+  Application, built-in runtime profiles, capability policy, CRC worker,
+  approved legacy Combiner, legal notices, closed manifest, and checksums. It
+  omits Launcher, Bootstrap, Setup, deployment data, and all reference/Golden
+  evidence payloads.
+- Published assets: exactly
+  `NvtFwCombiner-v1.1.0-win-x64.zip`, its SPDX SBOM, and its provenance JSON.
+
+### Security
+
+The canonical packager still binds the exact clean source commit, validates a
+closed manifest twice, hashes every shipped file, self-tests the CRC worker,
+and emits adjacent SBOM and provenance. The tag is immutable and must bind the
+reviewed protected-main SHA/tree and all three published asset digests.
+
+### Known issues
+
+The broad `python scripts/verify.py --all`, the structure-only completion gate,
+and managed release workflow are explicitly waived only for this manual-only
+release because of the known shadow-output repository-root failure recorded in
+release run `33454068996` and the 600-second capability-history timeout. The
+waiver does not claim those gates are green; v1.1.1 is reserved for the test,
+verification, and release architecture review. Version deployment is not
+enabled in v1.1.0. The clean-Windows profile-load, synthetic preview/build,
+and report-generation workflow is also waived for this one release; only the
+current Windows host's closed-package and visible-startup evidence is claimed.
+The candidate uses direct semantic schema 1.3 admission/rejection probes, but
+the durable committed mutation matrix remains part of the v1.1.1 verification-
+architecture work; marker tests are not claimed as equivalent coverage.
+
+### Upgrade and rollback
+
+Extract the ZIP into a new folder and run `NvtFwCombiner.exe` directly; do not
+overlay an existing managed installation or portable folder. The manual
+extraction and rollback procedure itself does not mutate Launcher, Catalog,
+Registry, or Version state; inherited Version-page actions remain unchanged
+and are outside this release deployment. Rollback is to close the Application
+and reopen the previously retained verified folder.
+
+### Downloads and integrity
+
+The GitHub Release uploads exactly three product/evidence assets: the Windows
+x64 ZIP, SPDX SBOM, and provenance JSON. GitHub-generated source archives are
+not product packages. Verify the published SHA-256 digest of all three uploaded
+assets and the ZIP's closed `SHA256SUMS.txt` before use. No Launcher, Setup,
+Catalog, Registry, automatic-update, Version-deployment, or reference asset
+belongs to the v1.1.0 Release.
 
 ## [1.0.8] - 2026-09-01
 
