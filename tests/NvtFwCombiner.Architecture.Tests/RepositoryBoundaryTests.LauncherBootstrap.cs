@@ -545,6 +545,7 @@ public sealed partial class RepositoryBoundaryTests
             "\"schemaVersion\": { \"enum\": [\"1.1\", \"1.2\", \"1.3\"] }",
             "\"versionManagementProtocolVersion\": { \"const\": 1 }",
             "\"distributionMode\": { \"const\": \"manual-only\" }",
+            "\"path\": { \"not\": { \"const\": \"NvtFwCombiner.exe\" } }",
             "\"path\": { \"const\": \"launcher/NvtFwCombiner.Launcher.exe\" }",
             "\"maxContains\": 1");
     }

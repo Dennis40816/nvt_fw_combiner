@@ -26,9 +26,19 @@ deployment path and does not change firmware composition bytes.
 - Affected: only release packaging, manifest admission, package smoke, and
   release documentation. The Desktop Application, profiles, processors,
   firmware workflows, and output naming remain the frozen v1.0.8 behavior.
+- Support status: unchanged/support-neutral; no IC, route, profile, range,
+  processor, integrity rule, output byte, or output naming is promoted or
+  altered.
 - Compatibility: schema 1.3 marks this package as `manual-only`; the managed
   Version verifier rejects it fail closed. It is not a Setup, update-Catalog,
   Registry, Launcher, or automatic-update candidate.
+- Verification: release policy tests, schema 1.1/1.2 compatibility and 1.3
+  admission/rejection probes, PowerShell mode guards, and real Infrastructure
+  and Architecture regressions cover the bounded packaging contract. Exact-
+  head review, package smoke, and fresh-download startup remain release gates.
+- Limitations: this release does not enable managed installation or Version
+  deployment, does not publish reference evidence, and uses the explicit
+  single-release verifier waiver recorded for v1.1.0.
 - Package contents: the ZIP retains the self-contained Windows x64
   Application, built-in runtime profiles, capability policy, CRC worker,
   approved legacy Combiner, legal notices, closed manifest, and checksums. It
@@ -53,6 +63,21 @@ release run `33454068996` and the 600-second capability-history timeout. The
 waiver does not claim those gates are green; v1.1.1 is reserved for the test,
 verification, and release architecture review. Version deployment is not
 enabled in v1.1.0.
+
+### Upgrade and rollback
+
+Extract the ZIP into a new folder and run `NvtFwCombiner.exe` directly; do not
+overlay an existing managed installation or portable folder. Because v1.1.0
+does not mutate Launcher, Catalog, Registry, or Version state, rollback is to
+close the Application and reopen the previously retained verified folder.
+
+### Downloads and integrity
+
+The GitHub Release contains exactly the Windows x64 ZIP, SPDX SBOM, and
+provenance JSON. Verify the published SHA-256 digest of all three assets and
+the ZIP's closed `SHA256SUMS.txt` before use. No Launcher, Setup, Catalog,
+Registry, automatic-update, Version-deployment, or reference asset belongs to
+the v1.1.0 Release.
 
 ## [1.0.8] - 2026-09-01
 

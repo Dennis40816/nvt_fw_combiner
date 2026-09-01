@@ -1628,7 +1628,7 @@ $Expected = (@(
 ) + $(if ($IncludeManagedLauncher) { @('launcher/NvtFwCombiner.Launcher.exe') } else { @() }) +
     @($BuiltInProfileEntries.path) + @($CanonicalCapabilityPolicyEntry.path) +
     @($ExternalToolEntries.path) +
-    @($ReferencePayloadEntries.path)) | Sort-Object
+    @($ReferencePayloadEntries | ForEach-Object { $_.path })) | Sort-Object
 $Actual = @(
     Get-ChildItem -LiteralPath $PackageRoot -File -Recurse |
         ForEach-Object { [System.IO.Path]::GetRelativePath($PackageRoot, $_.FullName).Replace('\', '/') } |
