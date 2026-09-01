@@ -1,9 +1,9 @@
 # REL-110 full-verifier owner waiver
 
-- Rule/tool: Polytail canonical `python scripts/verify.py --all` gate, the `python scripts/verify.py --structure-only` completion gate, and the managed `.github/workflows/release.yml` promotion workflow.
+- Rule/tool: Polytail canonical `python scripts/verify.py --all` gate, the `python scripts/verify.py --structure-only` completion gate, the managed `.github/workflows/release.yml` promotion workflow, and the release-readiness clean-Windows x64 gate covering a host without preinstalled .NET/Python plus profile load, synthetic preview/build, and report generation.
 - Scope: only the exact reviewed v1.1.0 Windows x64 `manual-only` Application package and its ZIP, SPDX SBOM, and provenance assets.
-- Reason: the frozen v1.0.8 release run `33454068996` is blocked by deterministic shadow-output repository-root discovery failures rather than an Application runtime failure. On 2026-09-01 the v1.1.0 structure-only run emitted the normal code-size warnings and no validation error, then its capability-history scan consumed the full 600-second lane limit. The owner excluded Launcher, Setup, Catalog, Registry, automatic update, and Version deployment from v1.1.0 and directed that this direct package not rerun the managed release flow. The verification architecture is the sole v1.1.1 change.
-- Risk: R3. The residual risk is that neither broad source verification nor completion of the governance-history scan is available for this release. It is bounded by exact-head independent review, protected-main CI, direct JSON/PowerShell parsing, narrow contract tests, construction by the canonical packager, closed package smoke, release-owner digest approval, and a fresh-download visible-startup smoke in the fixed test area.
+- Reason: the frozen v1.0.8 release run `33454068996` is blocked by deterministic shadow-output repository-root discovery failures rather than an Application runtime failure. On 2026-09-01 the v1.1.0 structure-only run emitted the normal code-size warnings and no validation error, then its capability-history scan consumed the full 600-second lane limit. The owner excluded Launcher, Setup, Catalog, Registry, automatic update, and Version deployment from v1.1.0, directed that this direct package not rerun the managed release flow, and chose the fast same-host release path instead of provisioning another clean Windows host. The verification architecture is the sole v1.1.1 change.
+- Risk: R3. The residual risk is that neither broad source verification, completion of the governance-history scan, nor independent clean-host proof of runtime independence and the profile/preview/build/report path is available for this release. It is bounded by exact-head independent review, protected-main applicable CI, direct JSON/PowerShell parsing, narrow contract tests, self-contained exact-source construction by the canonical packager, closed package smoke, profile inventory/hash admission, CRC worker self-test, release-owner digest approval, and a fresh-download visible-startup smoke in the fixed test area on the current Windows host.
 - Owner: Dennis Liu, release owner.
 - Issue: v1.1.1 test, verification, and release architecture review; known failing release run `33454068996`.
 - Approver: Dennis Liu, by the explicit 2026-09-01 directions to leave v1.0.8 unchanged, ignore Version deployment, avoid rerunning the release process for v1.1.0, and publish directly when direct-Application risk is low.
@@ -17,6 +17,9 @@ Golden expectations, exact source identity, artifact hashes, or the prohibition
 on moving or replacing a stable tag. It does not authorize a managed install,
 Catalog/Registry mutation, Launcher/Setup asset, automatic update, Version
 deployment, reference payload, or any claim that the waived gates are green.
+It also does not claim clean-Windows profile load, synthetic firmware preview or
+build, or report generation passed; those checks are explicitly waived only
+for this exact v1.1.0 release and remain mandatory again afterward.
 
 ## Structure-only timeout evidence
 
