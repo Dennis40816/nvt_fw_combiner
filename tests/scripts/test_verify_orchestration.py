@@ -28,6 +28,7 @@ assert SPEC is not None and SPEC.loader is not None
 MODULE = importlib.util.module_from_spec(SPEC)
 sys.modules[SPEC.name] = MODULE
 SPEC.loader.exec_module(MODULE)
+import validate_repository as REPOSITORY_VALIDATOR  # noqa: E402
 
 
 class VerifyOrchestrationTests(unittest.TestCase):
@@ -44,6 +45,28 @@ class VerifyOrchestrationTests(unittest.TestCase):
         "RUFF_CACHE_DIR",
         "PYTHONPYCACHEPREFIX",
     )
+
+    def test_ci_dotnet_verifier_contract_rejects_legacy_project_execution(self) -> None:
+        verifier = SCRIPT.read_text(encoding="utf-8")
+        errors: list[str] = []
+        REPOSITORY_VALIDATOR.validate_ci_dotnet_verifier_contract(verifier, errors)
+        self.assertEqual([], errors)
+
+        for marker in (
+            "def ci_dotnet_test_command(",
+            '"--collect:XPlat Code Coverage",',
+            '"--results-directory",',
+        ):
+            with self.subTest(marker=marker):
+                errors = []
+                REPOSITORY_VALIDATOR.validate_ci_dotnet_verifier_contract(
+                    f"{verifier}\n{marker}\n",
+                    errors,
+                )
+                self.assertTrue(
+                    any("obsolete project-level" in error for error in errors),
+                    errors,
+                )
 
     @contextlib.contextmanager
     def verifier_environment(self, **values: str):

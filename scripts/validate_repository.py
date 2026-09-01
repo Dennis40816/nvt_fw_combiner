@@ -1319,6 +1319,40 @@ def _validate_windows_only_ci_topology(path: Path, errors: list[str]) -> None:
             )
 
 
+def validate_ci_dotnet_verifier_contract(verifier: str, errors: list[str]) -> None:
+    """Require the sole exact-assembly CI evidence owner and reject its predecessor."""
+
+    required_dotnet_coverage_markers = (
+        "CI_DOTNET_SHARDS",
+        "def local_dotnet_vstest_command(",
+        '        "--no-restore",',
+        '"--Collect:XPlat Code Coverage",',
+        'f"--ResultsDirectory:{results_directory}",',
+        '"--Logger:trx;LogFileName=test-results.trx",',
+        "adapter_path = resolve_coverlet_adapter_path(ROOT)",
+        "def finalize_ci_dotnet_evidence(",
+    )
+    if any(marker not in verifier for marker in required_dotnet_coverage_markers):
+        errors.append(
+            "canonical verifier must own the closed .NET shard map, unfiltered "
+            "exact-assembly coverage/TRX collection, and evidence finalization"
+        )
+    obsolete_project_execution_markers = (
+        "def ci_dotnet_test_command(",
+        '"--collect:XPlat Code Coverage",',
+        '"--results-directory",',
+    )
+    if any(marker in verifier for marker in obsolete_project_execution_markers):
+        errors.append(
+            "canonical verifier must not restore the obsolete project-level "
+            ".NET test execution owner"
+        )
+    if verifier.count('"--evaluated-source-ownership-only"') != 1:
+        errors.append(
+            "canonical .NET verifier must own exactly one restored source-ownership check"
+        )
+
+
 def validate_workflows(errors: list[str]) -> None:
     for base in (ROOT / ".github/workflows", ROOT / "docs/ci/workflow-templates"):
         if base.is_dir():
@@ -1364,25 +1398,7 @@ def validate_workflows(errors: list[str]) -> None:
     if ".csproj" in ci:
         errors.append("CI workflow must not duplicate the canonical .NET project map")
     verifier = (ROOT / "scripts/verify.py").read_text(encoding="utf-8")
-    required_dotnet_coverage_markers = (
-        "CI_DOTNET_SHARDS",
-        "def local_dotnet_vstest_command(",
-        '        "--no-restore",',
-        '"--Collect:XPlat Code Coverage",',
-        'f"--ResultsDirectory:{results_directory}",',
-        '"--Logger:trx;LogFileName=test-results.trx",',
-        "adapter_path = resolve_coverlet_adapter_path(ROOT)",
-        "def finalize_ci_dotnet_evidence(",
-    )
-    if any(marker not in verifier for marker in required_dotnet_coverage_markers):
-        errors.append(
-            "canonical verifier must own the closed .NET shard map, unfiltered "
-            "exact-assembly coverage/TRX collection, and evidence finalization"
-        )
-    if verifier.count('"--evaluated-source-ownership-only"') != 1:
-        errors.append(
-            "canonical .NET verifier must own exactly one restored source-ownership check"
-        )
+    validate_ci_dotnet_verifier_contract(verifier, errors)
     dotnet_job = ci[ci.index("  dotnet:") :] if "  dotnet:" in ci else ""
     if "fetch-depth: 0" not in dotnet_job:
         errors.append("CI dotnet job must fetch the fixed coverage baseline revision")
