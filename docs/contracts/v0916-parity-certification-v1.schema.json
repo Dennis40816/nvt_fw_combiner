@@ -175,7 +175,7 @@
           "properties": {
             "path": { "const": "docs/contracts/v100-candidate-source-executor-v1.json" },
             "size": { "const": 4680 },
-            "sha256": { "const": "ba5948daec52706b1035745eb106562b2af056cc474c590a1eeb8c5f6e4e4e02" }
+            "sha256": { "const": "ec4d5c90bc55b5d664f620fa993f3ec49586cec6969c7b1afd02e1791c17ad10" }
           }
         },
         "requiredTreePaths": {
@@ -203,7 +203,7 @@
               "properties": {
                 "path": { "const": "docs/contracts/v0916-parity-workflow-v1.json" },
                 "size": { "const": 14322 },
-                  "sha256": { "const": "41237d1a4a5c306b7fd930f715764a7cf992db6b4273767a199b0ca4359a7865" }
+                  "sha256": { "const": "2b0df686a5109ad187a7cff5d1cef667cbf1dc72e78f24fb222d244357c8a05d" }
               }
             },
             "candidateVerifierPath": { "const": "scripts/release_promotion_policy.py" },

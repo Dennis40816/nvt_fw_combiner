@@ -94,17 +94,17 @@ class V0916ParityArtifactTests(V0916ParityTestBase):
         )
         self.assertEqual(4680, declared["size"])
         self.assertEqual(
-            "ba5948daec52706b1035745eb106562b2af056cc474c590a1eeb8c5f6e4e4e02",
+            "ec4d5c90bc55b5d664f620fa993f3ec49586cec6969c7b1afd02e1791c17ad10",
             declared["sha256"],
         )
         self.assertEqual(4680, path.stat().st_size)
         self.assertEqual(
-            "ba5948daec52706b1035745eb106562b2af056cc474c590a1eeb8c5f6e4e4e02",
+            "ec4d5c90bc55b5d664f620fa993f3ec49586cec6969c7b1afd02e1791c17ad10",
             hashlib.sha256(path.read_bytes()).hexdigest(),
         )
         contract = json.loads(path.read_text(encoding="utf-8"))
-        self.assertEqual("eaab9578b8f562aad8abf3749ad7ff9eb63f24bc", contract["source"]["implementationHead"])
-        self.assertEqual("a9fe290a2942636e55ff03df22a4685848c8afe5", contract["source"]["implementationTree"])
+        self.assertEqual("3d31b547008393210e7049d51d246e96ad3db7a0", contract["source"]["implementationHead"])
+        self.assertEqual("03cf75022087c4062d58ed37f9e28be7762cf66a", contract["source"]["implementationTree"])
         self.assertEqual(
             {
                 "src": "02a6242ef8d46dfceb0b4fbed297bf30919fc945",
@@ -132,13 +132,13 @@ class V0916ParityArtifactTests(V0916ParityTestBase):
         )
         self.assertEqual("detached-git-worktree", contract["freshBuild"]["sourceMaterialization"])
         self.assertEqual(162304, contract["cliAssembly"]["size"])
-        self.assertEqual("37e51dd40c65e5ba9d0e0f5bdb14a5c4f695fb07219d162bc2b06f768dacf8b9", contract["cliAssembly"]["sha256"])
+        self.assertEqual("ba84481f06698f89f0831246443af6bf7592937457530ecd1401fe2fbbd1bbc4", contract["cliAssembly"]["sha256"])
         self.assertEqual(
             {
                 "root": "src/NvtFwCombiner.Cli/bin/Release/net10.0/win-x64",
                 "fileCount": 384,
                 "totalSize": 92147320,
-                "sha256": "ee68110dbd5fef0b0b7aa8cec32e6c7ac19278708e4c49b820841c8208a882bc",
+                "sha256": "1c53c472d925385d57b6ce84513a82be93787dcc070389e8ba2d3a4a927f5c77",
             },
             contract["runtimeClosure"],
         )
