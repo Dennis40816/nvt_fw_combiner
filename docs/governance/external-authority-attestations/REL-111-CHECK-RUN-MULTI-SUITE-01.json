@@ -1,0 +1,9 @@
+{
+  "schemaVersion": 1,
+  "taskId": "REL-111-CHECK-RUN-MULTI-SUITE-01",
+  "authorityType": "release-owner",
+  "reviewedHead": "cb87cf9cdd96906998fdb52f6fb0882c98e7fd99",
+  "decision": "approved",
+  "reviewer": "Dennis Liu (release owner)",
+  "evidence": "The release owner approved continuing the fastest safe formal v1.1.1 publication, explicitly authorized release when no major issue remains, and required v1.0.8 and Version deployment to remain unchanged. Exact implementation 4d3c8a12309a7e9e431da01b1439430609d06b42 changes only the existing repository-admission owner, its executable workflow projection, ADR 0033 and deterministic regressions so duplicate PR/push suites at one SHA are admitted only when every same-name run is exact-head GitHub Actions completed/success. Independent exact-head R3 review reported P0=0, P1=0, P2=0 and P3=0; live admission collected the actual PR 408 evidence successfully; and focused release-policy evidence passed. This approval does not waive the required post-freeze parity H1-to-H4 renewal, exact-head protected CI, protected release-environment approval, package construction, publication, published smoke or fresh-download audit, and it authorizes no firmware, profile, byte-range, CRC/header, package-content, Version deployment or v1.0.8 change."
+}
