@@ -65,21 +65,27 @@ verification, and release architecture review. Version deployment is not
 enabled in v1.1.0. The clean-Windows profile-load, synthetic preview/build,
 and report-generation workflow is also waived for this one release; only the
 current Windows host's closed-package and visible-startup evidence is claimed.
+The candidate uses direct semantic schema 1.3 admission/rejection probes, but
+the durable committed mutation matrix remains part of the v1.1.1 verification-
+architecture work; marker tests are not claimed as equivalent coverage.
 
 ### Upgrade and rollback
 
 Extract the ZIP into a new folder and run `NvtFwCombiner.exe` directly; do not
-overlay an existing managed installation or portable folder. Because v1.1.0
-does not mutate Launcher, Catalog, Registry, or Version state, rollback is to
-close the Application and reopen the previously retained verified folder.
+overlay an existing managed installation or portable folder. The manual
+extraction and rollback procedure itself does not mutate Launcher, Catalog,
+Registry, or Version state; inherited Version-page actions remain unchanged
+and are outside this release deployment. Rollback is to close the Application
+and reopen the previously retained verified folder.
 
 ### Downloads and integrity
 
-The GitHub Release contains exactly the Windows x64 ZIP, SPDX SBOM, and
-provenance JSON. Verify the published SHA-256 digest of all three assets and
-the ZIP's closed `SHA256SUMS.txt` before use. No Launcher, Setup, Catalog,
-Registry, automatic-update, Version-deployment, or reference asset belongs to
-the v1.1.0 Release.
+The GitHub Release uploads exactly three product/evidence assets: the Windows
+x64 ZIP, SPDX SBOM, and provenance JSON. GitHub-generated source archives are
+not product packages. Verify the published SHA-256 digest of all three uploaded
+assets and the ZIP's closed `SHA256SUMS.txt` before use. No Launcher, Setup,
+Catalog, Registry, automatic-update, Version-deployment, or reference asset
+belongs to the v1.1.0 Release.
 
 ## [1.0.8] - 2026-09-01
 
