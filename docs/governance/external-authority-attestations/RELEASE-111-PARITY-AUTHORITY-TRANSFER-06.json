@@ -1,0 +1,9 @@
+{
+  "schemaVersion": 1,
+  "taskId": "RELEASE-111-PARITY-AUTHORITY-TRANSFER-06",
+  "authorityType": "release-owner",
+  "reviewedHead": "e1a8a871553c23f3fb30dc3933e87b40be9be306",
+  "decision": "approved",
+  "reviewer": "Dennis Liu (release owner)",
+  "evidence": "The release owner explicitly approved continued completion and requested the fastest safe formal publication of v1.1.1 while keeping v1.0.8 and Version deployment unchanged. Exact H3 e1a8a871553c23f3fb30dc3933e87b40be9be306 closes the independently reviewed H1 3d31b547008393210e7049d51d246e96ad3db7a0 to H2 2d5d9f1b70c03013de6453ebc31c13695794b798 identity-authority chain. The bounded exact-H2 R3 review reported P0=0, P1=0, P2=0, and P3=0; two fresh tracked-clean detached H1 builds independently reproduced the same CLI and complete runtime inventory; all ten first-party SourceLink records bind H1; and the production Git authority-transfer validator returned the exact H1/H2 pair. This approval renews source/build identity only. It does not declare terminal 64-route parity, waive full verification, protected exact-head CI, package/smoke, publication or fresh-download gates, enable Version deployment, or modify v1.0.8."
+}
