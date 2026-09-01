@@ -5,7 +5,7 @@
   "integrationBase": "c24ea50a1e5d59d6aa55250553b0f1f9fbaea7f2",
   "risk": "R2",
   "kind": "behavior",
-  "state": "design-active",
+  "state": "final-complete",
   "mutablePaths": [
     "src/NvtFwCombiner.VersionManagement.Application/VersionManagement/UpdateSourceRegistry.cs"
   ],
@@ -25,12 +25,12 @@
     "outcome": "findings-incorporated",
     "evidence": "Independent R2 review confirmed that ReplicatedUpdateSourceRegistry and ReplicaReadSlot remain the existing scheduling/deadline/single-flight owners, production callers retain the public System-clock 45-second path, and the internal TimeProvider-to-WaitAsync seam changes no selection or late-result semantics. Review found one P2 in the test-reuse inventory: the draft treated the timer-capable launcher ManualTimeProvider as the assembly's only fake and made extraction conditional, despite a separate timestamp-only SetupManualTimeProvider. The incorporated contract inventories both, requires relocating the timer-capable implementation unchanged into shared VersionManagement test support for launcher and registry reuse, preserves SetupManualTimeProvider unchanged, and forbids a third clock, package, public overload, or production abstraction. Deterministic physical-read start barriers plus manual advancement retain eight callers, valid-backup selection, one physical read per replica, typed timeout, cancellation, late-completion, and recovery evidence."
   },
-  "implementationHead": null,
-  "reviewedHead": null,
-  "pathStateDigest": null,
+  "implementationHead": "37057e5f73c74acca7b2a26214d4744ef0fcb8b1",
+  "reviewedHead": "37057e5f73c74acca7b2a26214d4744ef0fcb8b1",
+  "pathStateDigest": "51fb4d4bf0d773c31b3522ad1860417d64d932d83d93ae449671bacf96f49d8a",
   "finalReview": {
-    "reviewer": null,
-    "outcome": "pending",
-    "evidence": ""
+    "reviewer": "v111_fixed_head_semantic_review; v111_fixed_head_evidence_review",
+    "outcome": "approved",
+    "evidence": "Independent exact-head semantic and evidence review of 40cf3be5..37057e5f found P0-P3 = 0 and scoped Polytail PASS for the deterministic Registry deadline seam. The optional internal TimeProvider retains the public System-clock constructor, exact 45-second production deadline, both production callers, ordered Task.Run reads, single-flight locking, caller cancellation, timeout abandonment, late-result retirement, conflict handling, and publication selection. The deterministic regression proves both physical delegates started before advancing time and retains one physical read per replica; no public API, scheduler, retry, durable-state, firmware, UI, package, or release behavior changed."
   }
 }

@@ -5,7 +5,7 @@
   "integrationBase": "c24ea50a1e5d59d6aa55250553b0f1f9fbaea7f2",
   "risk": "R2",
   "kind": "governance",
-  "state": "design-active",
+  "state": "final-complete",
   "mutablePaths": [
     "docs/adr/0021-code-size-ratchet-system-activity-amendment.md",
     "scripts/code_size_policy.py"
@@ -25,12 +25,12 @@
     "outcome": "findings-incorporated",
     "evidence": "Independent R2 architecture and code-size review reproduced the exact 136389 full, 98559 runtime, 42205 Application, 20632 Domain/Profiles, 5039 host, and 30683 Infrastructure snapshot and attributed the entire eight-line delta to the already reviewed Registry TimeProvider seam. Its exact-draft review required all six frozen base ratchets and three unaffected allowances to remain explicit, the auditable +1 +1 +4 +1 +1 = +8 attribution, the exact tests/scripts/test_code_size_policy.py path and method rename, and a narrower statement that inlining deviates from the reviewed normalize-once contract and still cannot close the gate. The incorporated design rejects line packing, mutable clock state, unrelated deletion, and additional abstractions; requires a separate exact named amendment to the existing ADR 0021 and code_size_policy.py owners; and retains focused size tests, Registry/Application evidence, independent final review, structure-only verification, and the full verifier. No additional firmware, runtime, compatibility, security, package, or release-authority finding remained."
   },
-  "implementationHead": null,
-  "reviewedHead": null,
-  "pathStateDigest": null,
+  "implementationHead": "37057e5f73c74acca7b2a26214d4744ef0fcb8b1",
+  "reviewedHead": "37057e5f73c74acca7b2a26214d4744ef0fcb8b1",
+  "pathStateDigest": "4f688e8313948f34fc5f75f11cac088b6056381b82ba6bda979c3c48fdd4e395",
   "finalReview": {
-    "reviewer": null,
-    "outcome": "pending",
-    "evidence": ""
+    "reviewer": "v111_fixed_head_semantic_review; v111_fixed_head_evidence_review",
+    "outcome": "approved",
+    "evidence": "Independent exact-head semantic and evidence review of 40cf3be5..37057e5f found P0-P3 = 0 and scoped Polytail PASS for the exact Registry size amendment. The reviewed delta is confined to eight nonblank production lines required by the approved internal TimeProvider seam; the 136389 full, 98559 runtime, 42205 Application, 20632 Domain/Profiles, 5039 host, and 30683 Infrastructure snapshot and slice sum remain exact. Frozen base ratchets and unaffected allowances remain unchanged, the increment is named and non-transferable, and no formatting compression, reusable budget, production abstraction, firmware, package, or release authority was introduced."
   }
 }

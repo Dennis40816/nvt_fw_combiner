@@ -5,7 +5,7 @@
   "integrationBase": "c24ea50a1e5d59d6aa55250553b0f1f9fbaea7f2",
   "risk": "R2",
   "kind": "governance",
-  "state": "design-active",
+  "state": "final-complete",
   "mutablePaths": [
     "scripts/validate_repository.py"
   ],
@@ -27,12 +27,12 @@
     "outcome": "findings-incorporated",
     "evidence": "Independent R2 review first confirmed that ADR 0054's canonical lifecycle authority remains in validate_repository.py and approved one fixed-argv reverse inventory plus one privately framed read-only cat-file batch stream. After the exact structure gate exposed a second fan-out, review rejected path-limited rev-list because Git history simplification can omit a merge whose tree equals the audited revision while another non-contained parent changes the exact path, violating ADR 0061. The incorporated minimum preserves the existing ancestry, diff-tree -m --find-renames, parser, and containment owners while sharing only invocation-local immutable commit and merge results, with deterministic one-lookup-per-identity regressions and no persistent cache, timeout increase, second validator, working-tree read, or governance-semantic change."
   },
-  "implementationHead": null,
-  "reviewedHead": null,
-  "pathStateDigest": null,
+  "implementationHead": "37057e5f73c74acca7b2a26214d4744ef0fcb8b1",
+  "reviewedHead": "37057e5f73c74acca7b2a26214d4744ef0fcb8b1",
+  "pathStateDigest": "17a7c2bb64d4642d7fc2e4bfca9f1d032896e34bc8ca771d93f2b1f2ed0966e4",
   "finalReview": {
-    "reviewer": null,
-    "outcome": "pending",
-    "evidence": ""
+    "reviewer": "v111_fixed_head_semantic_review; v111_fixed_head_evidence_review",
+    "outcome": "approved",
+    "evidence": "Independent exact-head semantic and evidence review of 40cf3be5..37057e5f found P0-P3 = 0 and scoped Polytail PASS for the capability-history batching. The implementation retains full ancestry, per-parent diff-tree -m rename and ADR 0061 containment semantics, strictly framed fail-closed cat-file reads, lifecycle and missing-object behavior, and invocation-local exact-result/error replay only. Focused lifecycle, merge, failure-cache, and lookup-count regressions passed; no persistent cache, path-history shortcut, second verifier, working-tree semantic read, firmware, package, or release authority was introduced."
   }
 }

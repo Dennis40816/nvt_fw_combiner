@@ -5,7 +5,7 @@
   "integrationBase": "c24ea50a1e5d59d6aa55250553b0f1f9fbaea7f2",
   "risk": "R2",
   "kind": "governance",
-  "state": "design-active",
+  "state": "final-complete",
   "mutablePaths": [
     "scripts/verify.py"
   ],
@@ -27,12 +27,12 @@
     "outcome": "findings-incorporated",
     "evidence": "The original independent R2 review confirmed that scripts/verify.py remains the sole .NET shadow-orchestration owner and corrected the complete Architecture source-link evidence path. A byte-for-byte shadow diagnosis proved that 410 source and shadow files matched but AppContext-only external-tool discovery published zero manifests. Explicit RepositoryPaths injection restored UiSmoke 853/853 and the injectable Bootstrap paths. Independent follow-up architecture review rejected substituting a test host for the five remaining public CliApplication cases because that would weaken their production-default-host evidence; it approved only a Bootstrap-flagged, exact regular-file support snapshot at the project-token ancestor with source and staged pre/post hashes, canonical cleanup, unchanged shadow_output, and no product-discovery change."
   },
-  "implementationHead": null,
-  "reviewedHead": null,
-  "pathStateDigest": null,
+  "implementationHead": "37057e5f73c74acca7b2a26214d4744ef0fcb8b1",
+  "reviewedHead": "37057e5f73c74acca7b2a26214d4744ef0fcb8b1",
+  "pathStateDigest": "2de330eb0f743ac5720d43d538e104c106f9fc26e5db4e722d56ce0e1feeb5ee",
   "finalReview": {
-    "reviewer": null,
-    "outcome": "pending",
-    "evidence": ""
+    "reviewer": "v111_fixed_head_semantic_review; v111_fixed_head_evidence_review",
+    "outcome": "approved",
+    "evidence": "Independent exact-head semantic and evidence review of 40cf3be5..37057e5f found P0-P3 = 0 and scoped Polytail PASS for split-root shadow verification. The verifier overwrites only the child repository-root environment, preserves fail-closed configured-root validation, stages the exact regular external-tools snapshot only for flagged Bootstrap public/default-host evidence, and revalidates repository, shadow, source-support, staged-support, and production DLL inventories and hashes under distinct validated owners. Public CliApplication.RunAsync still reaches the production default CompositionHostServices.Create path; no product locator, discovery contract, second verifier, firmware, package, or release behavior changed."
   }
 }
