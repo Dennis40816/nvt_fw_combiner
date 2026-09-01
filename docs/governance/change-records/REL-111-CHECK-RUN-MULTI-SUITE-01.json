@@ -5,7 +5,7 @@
   "integrationBase": "a1681355b627dc4b1fcbd992116cc32d2631e906",
   "risk": "R3",
   "kind": "release",
-  "state": "design-active",
+  "state": "final-complete",
   "mutablePaths": [
     ".github/workflows/release.yml",
     "docs/adr/0033-ci-owned-stable-release-promotion.md",
@@ -27,12 +27,12 @@
     "outcome": "findings-incorporated",
     "evidence": "Independent bounded R3 design review approved the core >=1 plus all same-name exact-pass predicate and confirmed integrationBase a1681355b627dc4b1fcbd992116cc32d2631e906. Its two P1 findings are incorporated by amending ADR 0033 in the same governed batch and by making a new append-only parity H1-to-H4 renewal an explicit post-freeze release gate. Its P2 evidence finding is incorporated through parameterized wrong-head, wrong-app, pending and failed duplicate regressions, zero-match rejection, unrelated in-progress null collection, completed-null rejection, required-pending rejection and exact PowerShell workflow execution with duplicate suites. No new verifier, executor, suite selector, latest-success picker or ADR is introduced."
   },
-  "implementationHead": null,
-  "reviewedHead": null,
-  "pathStateDigest": null,
+  "implementationHead": "4d3c8a12309a7e9e431da01b1439430609d06b42",
+  "reviewedHead": "4d3c8a12309a7e9e431da01b1439430609d06b42",
+  "pathStateDigest": "e45885b908577da8c2e6d323f075a38b08c06a278c8be7c929c4533c08569587",
   "finalReview": {
-    "reviewer": null,
-    "outcome": "pending",
-    "evidence": ""
+    "reviewer": "admission_batch_architecture",
+    "outcome": "approved",
+    "evidence": "Independent bounded exact-head R3 review approved implementation 4d3c8a12309a7e9e431da01b1439430609d06b42 with P0=0, P1=0, P2=0 and P3=0. It confirmed ADR 0033, the Python collector and admission owner, and the exact PowerShell workflow projection all require one or more same-name records and reject the entire name when any record has a wrong head, wrong app, pending status or non-success conclusion; completed-null remains malformed while unrelated pending-null evidence remains collectable. Regression evidence covers zero matches, wrong head/app, required pending, failure, unrelated pending-null, completed-null, two all-green suites, mixed duplicates and no mutation after rejection. Focused regressions passed 8/8; the two complete release-policy files produced 135 passing cases and one stale test-literal failure, whose test-only correction then passed its exact rerun; git diff checks passed; and the live collector admitted PR 408 at exact H4 from 20 check runs and three classified review threads. The review found no duplicate verifier, executor, semantic owner or mutator, and requires the existing separate post-freeze parity H1-to-H4 renewal before publication because release.yml bytes changed. Protected exact-head CI, release-owner attestation, parity renewal, formal package/publication and fresh-download evidence remain subsequent gates."
   }
 }
