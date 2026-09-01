@@ -5,7 +5,7 @@
   "integrationBase": "65fb0bb19b83f40943535e2a914b775194ba54ce",
   "risk": "R3",
   "kind": "release",
-  "state": "design-active",
+  "state": "final-complete",
   "mutablePaths": [
     "docs/contracts/v0916-parity-certification-v1.json",
     "docs/contracts/v0916-parity-certification-v1.schema.json",
@@ -32,12 +32,12 @@
     "outcome": "approved",
     "evidence": "Independent read-only diagnosis reproduced the failure in 0.91 seconds and traced every 62 failure and seven error cascades to the same stale workflow contract. It confirmed the three parity jobs and published-smoke are byte-semantically unchanged, rejected changing expected errors or weakening the production validator, and verified an in-memory exact synchronization against the current production workflow. The smallest safe R3 correction is a new bounded record updating only the existing canonical contract, exact schema/count/digest references, and non-governed fixture pins; the predicted canonical contract is 14,356 bytes with SHA-256 eed09ee574b9e27588f174fb482fd406cd10e61c9d24dc4ea82301db93c19d4a."
   },
-  "implementationHead": null,
-  "reviewedHead": null,
-  "pathStateDigest": null,
+  "implementationHead": "acb8c641774caf8e0aa5b5fda56a49a31f8166ed",
+  "reviewedHead": "acb8c641774caf8e0aa5b5fda56a49a31f8166ed",
+  "pathStateDigest": "0d8e1bd1c41768f68b45d410841c39c436c1d5817afc852cc5b48d2cfe14b828",
   "finalReview": {
-    "reviewer": null,
-    "outcome": "pending",
-    "evidence": ""
+    "reviewer": "parity_h2_semantic_review + parity_h2_evidence_review",
+    "outcome": "approved",
+    "evidence": "Two independent read-only reviews fixed exact H2 acb8c641774caf8e0aa5b5fda56a49a31f8166ed and reported P0=0, P1=0, P2=0, P3=0 for this bounded slice; scoped Polytail passed with the mandatory H3/H4 human gates retained. They verified release.yml remains exactly 82529 bytes at SHA-256 cdeccf6c6cb9f7cb37fe8dcd8d0108debc80a141f3223a033fb2412e760f4ae0, the 14356-byte workflow semantic contract is exactly c53c5fa3562aa5e98f848656e081862b7ec350dbad44b7c65b1f2c096311b0b4, all eight owned projections and test pins agree, and the paired authority-transfer record supplies the required non-overlapping Git/source authority. This approval does not cover admission A/C/D, full-verifier completion, package smoke, publication, or a terminal parity pass."
   }
 }

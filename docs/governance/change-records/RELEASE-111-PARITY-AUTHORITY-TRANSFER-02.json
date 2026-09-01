@@ -5,7 +5,7 @@
   "integrationBase": "65fb0bb19b83f40943535e2a914b775194ba54ce",
   "risk": "R3",
   "kind": "release",
-  "state": "design-active",
+  "state": "final-complete",
   "mutablePaths": [
     "docs/adr/0057-v0916-black-box-parity-certification.md",
     "docs/contracts/v0916-parity-certification-v1.md",
@@ -27,12 +27,12 @@
     "outcome": "approved",
     "evidence": "Independent fixed-head review verified the stale direct-child failure against live Git history, rejected mutating the immutable historical parity record or reusing old source-build hashes, enumerated the exact fourteen-path H2 projection, and required two clean detached-H1 builds. It approved reusing the established pattern in which H2 adds the new design record named by H1, H3 finalizes the exact record tail, and H4 adds only matching attestations."
   },
-  "implementationHead": null,
-  "reviewedHead": null,
-  "pathStateDigest": null,
+  "implementationHead": "acb8c641774caf8e0aa5b5fda56a49a31f8166ed",
+  "reviewedHead": "acb8c641774caf8e0aa5b5fda56a49a31f8166ed",
+  "pathStateDigest": "132885625340d478cfc468e638f7993a45b63ff0823cefda98ac3de17179a263",
   "finalReview": {
-    "reviewer": null,
-    "outcome": "pending",
-    "evidence": ""
+    "reviewer": "parity_h2_semantic_review + parity_h2_evidence_review",
+    "outcome": "approved",
+    "evidence": "Two independent exact-H2 reviews reported P0=0, P1=0, P2=0 and only one nonblocking process note: preserve the two-build facts before cleanup. Detached H1 worktrees D:/NvtFwCombiner-TestArea/parity-authority-build-a and parity-authority-build-b were tracked-clean before running the contract-declared locked restore and deterministic Release build with SDK 10.0.303; both independently produced the 162304-byte CLI SHA-256 37e51dd40c65e5ba9d0e0f5bdb14a5c4f695fb07219d162bc2b06f768dacf8b9 and the 384-file, 92147320-byte runtime closure SHA-256 31a81718c19b5c166e23c5afecd5b4367eda3c04847c9a10a98c1fdee0ab693c. Review independently recomputed all H1 trees, global/ten-lock/seven-tool pins and closure identity, confirmed exact 14-path H1-to-H2 topology, and observed the production authority-transfer validator return H1 e8ae59b751bc2dfce4f5d4c683a6059a50e24567 and H2 acb8c641774caf8e0aa5b5fda56a49a31f8166ed. This is source/build authority only, not terminal parity evidence or a waiver for admission A/C/D."
   }
 }
