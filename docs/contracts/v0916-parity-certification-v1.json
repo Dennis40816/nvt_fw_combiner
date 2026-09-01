@@ -338,7 +338,7 @@
         "docs/contracts/v0916-parity-workflow-v1.json",
         "docs/contracts/v0916-parity-workflow-v1.schema.json",
         "docs/contracts/v100-candidate-source-executor-v1.json",
-        "docs/governance/change-records/RELEASE-111-PARITY-AUTHORITY-TRANSFER-06.json",
+        "docs/governance/change-records/RELEASE-111-PARITY-AUTHORITY-TRANSFER-07.json",
         "tests/scripts/test_v0916_parity_approval.py",
         "tests/scripts/test_v0916_parity_artifacts.py"
       ]
@@ -346,13 +346,13 @@
     "finalEvidenceTail": {
       "finalRecordChanges": [
         {
-          "path": "docs/governance/change-records/RELEASE-111-PARITY-AUTHORITY-TRANSFER-06.json",
+          "path": "docs/governance/change-records/RELEASE-111-PARITY-AUTHORITY-TRANSFER-07.json",
           "status": "M"
         }
       ],
       "externalAttestationChanges": [
         {
-          "path": "docs/governance/external-authority-attestations/RELEASE-111-PARITY-AUTHORITY-TRANSFER-06.json",
+          "path": "docs/governance/external-authority-attestations/RELEASE-111-PARITY-AUTHORITY-TRANSFER-07.json",
           "status": "A"
         }
       ]
