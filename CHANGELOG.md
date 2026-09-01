@@ -72,8 +72,9 @@ recorded as a local duration residual, not as a fully green local run; the
 formal release workflow remains fail closed and must pass before publication.
 Post-merge main CI run `33536867503` also observed one intermittent
 `WindowsAbandonedProcessReleasesWriterForRestartConvergence` failure when its
-helper marker did not appear within ten seconds; the same exact H4 passed that
-test in PR CI and on the local host, so its root cause is not claimed closed.
+helper marker did not appear within ten seconds; the same exact source commit
+passed that test in PR CI and on the local host, so its root cause is not
+claimed closed.
 Version deployment remains disabled. All approved later v1.1.x product work is
 unchanged and deferred.
 
