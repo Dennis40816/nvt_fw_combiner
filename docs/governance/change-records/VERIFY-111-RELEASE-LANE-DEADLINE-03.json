@@ -1,0 +1,36 @@
+{
+  "schemaVersion": 2,
+  "taskId": "VERIFY-111-RELEASE-LANE-DEADLINE-03",
+  "capability": "Restore the canonical v1.1.1 release full-verifier gate by selecting its existing bounded 900-second lane ceiling as the shared public default",
+  "integrationBase": "ac503bde27d1f12e59a8b0f25d1da4e866d95175",
+  "risk": "R2",
+  "kind": "governance",
+  "state": "design-active",
+  "mutablePaths": [
+    "scripts/verify.py"
+  ],
+  "implementationOwner": "primary-agent",
+  "searchEvidence": [
+    "scripts/verify.py already owns the public --all lane policy, the DEFAULT_LANE_TIMEOUT_SECONDS value, the accepted 60..900 second range, terminable child-process boundary and fixed cleanup ceiling. No second verifier, workflow-only deadline owner or execution path is required.",
+    "Release workflow run 33562940456 attempt 2 used the exact canonical command python scripts/verify.py --all. Its Python lane passed in 422.3 seconds; the .NET lane completed a zero-warning zero-error build in 144.3 seconds and then reached the exact 600-second outer deadline without a product-test assertion failure.",
+    "The same exact source f9424e2d5cc7cc1d1bc0904f9d5b595142f368b0 passed all protected PR and main checks through the canonical build plus bootstrap, ui and core .NET shards. The remaining difference is release's cold-run monolithic lane deadline, not a different test inventory or verdict contract.",
+    "The repository already admits MAXIMUM_LANE_TIMEOUT_SECONDS=900 and explicit --lane-timeout-seconds values through that ceiling. Selecting 900 as the shared default is the smallest owner-preserving correction and retains the existing internal-lane override prohibition, cleanup ceiling, commands, filters, retries, skips, evidence reconciliation and terminal result rules.",
+    "Changing release.yml to pass a workflow-only 900-second override would create a second release-only policy value, diverge local and main-package behavior, and mutate the frozen R3 release-workflow identity. Reusing the canonical default avoids that duplicate owner and disproportionate parity renewal."
+  ],
+  "semanticOwner": "scripts/verify.py::DEFAULT_LANE_TIMEOUT_SECONDS, parse_lane_timeout, run_lanes and execute_verification remain the sole public lane-deadline and terminal-verdict owners for local, main-package and release invocations",
+  "terminalContract": "Every public verification lane receives the shared bounded 900-second default already admitted by the canonical verifier. Explicit values remain restricted to 60..900 seconds; internal lanes still reject public overrides; the fixed cleanup ceiling and process termination boundary remain unchanged. The change adds no filter, retry, skip, expected-count exception, tolerance, workflow-only override or successful result for an incomplete lane. A lane unfinished at 900 seconds still fails closed, while the outer release candidate remains bounded by its existing 60-minute job deadline.",
+  "disposition": "extend-owner",
+  "designReview": {
+    "reviewer": "admission_batch_architecture",
+    "outcome": "approved",
+    "evidence": "Independent bounded R2 design review reported P0=0, P1=0, P2=0 and P3=0 and required no ADR. It confirmed scripts/verify.py is the single public --all lane-policy owner; selecting the existing 900-second ceiling as its shared default changes feedback latency only and does not weaken any verdict. It preferred the canonical default over a release.yml override because the latter would create a release-only policy split and mutate frozen R3 workflow identity. It approved narrow parser/range evidence, structure verification, exact-head PR/main CI and a new exact-source release candidate without a local full rerun."
+  },
+  "implementationHead": null,
+  "reviewedHead": null,
+  "pathStateDigest": null,
+  "finalReview": {
+    "reviewer": null,
+    "outcome": "pending",
+    "evidence": ""
+  }
+}
