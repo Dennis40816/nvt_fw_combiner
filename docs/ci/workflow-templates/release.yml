@@ -23,18 +23,20 @@ permissions:
 
 # The full executable two-phase workflow is intentionally maintained in
 # .github/workflows/release.yml. This template records its security contract:
-# candidate uses one fresh, fully paginated repository-admission snapshot to
-# verify the exact remote-main SHA, protected flag, applied required-check
-# rules, exact successful check runs, classified review threads, and stable-tag
-# update/deletion ruleset for an exact selected release-branch head. The
-# protected-environment release owner separately attests that the stable-tag
-# ruleset has no bypass actors because GitHub omits that field from
-# least-privilege API responses. Product source is current main or the explicit
+# one bounded read-only Python collector obtains fresh repository-admission
+# evidence at the candidate, immediately pre-tag, and immediately pre-Release
+# boundaries. It verifies the exact remote-main SHA, protected flag, applied
+# required-check rules, exact successful check runs, fully paginated review
+# threads and unresolved-thread comments, and the stable-tag update/deletion
+# ruleset for an exact selected release-branch head. A visible bypass_actors
+# value must be exactly empty. When GitHub omits it from least-privilege API
+# responses, the protected-environment release owner separately attests that
+# the matching ruleset has no bypass actors. Product source is current main or the explicit
 # 0.9.17/0.9.17, 0.9.18/0.9.18, and 0.9.19/0.9.19 maintenance pairs. Release-environment approval unlocks the only
 # contents:write job, which checks out the exact candidate workflow SHA,
 # revalidates fresh main/source authority for every CI-eligible version, reruns strict
-# repository admission for v1.1.1+ before tag mutation, and repeats both the
-# live authority and a newly collected complete strict-admission snapshot
+# repository admission for v1.1.1+ in the same run block as tag mutation, and
+# repeats both the live authority and a newly collected complete snapshot
 # immediately before every Release create/upload mutation. Eligible historical
 # versions retain only the live-authority check; v1.1.0 is manual-only evidence,
 # is rejected by CI candidate/promotion policy, and requires a new version if

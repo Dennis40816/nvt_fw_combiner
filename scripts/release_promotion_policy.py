@@ -8,6 +8,7 @@ import io
 import json
 import os
 import re
+import shutil
 import subprocess
 import tempfile
 import zipfile
@@ -31,6 +32,8 @@ REQUIRED_RELEASE_CHECKS = (
     "dotnet / build-test",
 )
 STRICT_RELEASE_POLICY_VERSION = (1, 1, 1)
+MAX_GITHUB_PAGES = 100
+MAX_GITHUB_ITEMS = 10_000
 MAINTENANCE_RELEASES = {
     "0.9.17": "0.9.17",
     "0.9.18": "0.9.18",
@@ -269,6 +272,7 @@ def validate_repository_admission(
         _require(
             isinstance(thread.get("isResolved"), bool)
             and isinstance(thread.get("isOutdated"), bool)
+            and thread.get("commentsPaginationComplete") is True
             and isinstance(thread.get("body"), str),
             "review thread entry is malformed",
         )
@@ -325,6 +329,11 @@ def validate_repository_admission(
             and bool(ruleset["enforcement"]),
             "stable tag ruleset enforcement is malformed",
         )
+        if "bypass_actors" in ruleset:
+            _require(
+                ruleset["bypass_actors"] == [],
+                "visible stable tag ruleset bypass actors must be exactly empty",
+            )
         conditions = ruleset.get("conditions")
         _require(
             isinstance(conditions, dict), "stable tag ruleset conditions are malformed"
@@ -712,6 +721,402 @@ def create_candidate_manifest(
     return manifest_path
 
 
+def _execute_gh(arguments: list[str]) -> subprocess.CompletedProcess[str]:
+    executable = shutil.which("gh")
+    _require(executable is not None, "GitHub CLI executable is unavailable")
+    return subprocess.run(
+        [executable, *arguments],
+        check=False,
+        capture_output=True,
+        text=True,
+        encoding="utf-8",
+        errors="replace",
+    )
+
+
+def _run_read_only_gh(arguments: list[str], label: str) -> str:
+    _require(arguments and arguments[0] == "api", "GitHub collector command is invalid")
+    explicit_method_indexes = [
+        index for index, value in enumerate(arguments) if value in {"--method", "-X"}
+    ]
+    _require(
+        all(index + 1 < len(arguments) for index in explicit_method_indexes),
+        "GitHub collector command is invalid",
+    )
+    method_values = [arguments[index + 1] for index in explicit_method_indexes] + [
+        value.split("=", 1)[1] if value.startswith("--method=") else value[2:]
+        for value in arguments
+        if value.startswith("--method=") or (value.startswith("-X") and value != "-X")
+    ]
+    _require(
+        all(value.upper() == "GET" for value in method_values)
+        and not any(
+            value.startswith("query=") and "mutation" in value.lower()
+            for value in arguments
+        ),
+        "GitHub collector attempted a mutation",
+    )
+    result = _execute_gh(arguments)
+    _require(result.returncode == 0, f"{label} could not be read")
+    return result.stdout
+
+
+def _unique_json_object(pairs: list[tuple[str, Any]]) -> dict[str, Any]:
+    value: dict[str, Any] = {}
+    for key, item in pairs:
+        if key in value:
+            raise ValueError(f"duplicate JSON key: {key}")
+        value[key] = item
+    return value
+
+
+def _decode_github_json(text: str, label: str) -> Any:
+    try:
+        return json.loads(text, object_pairs_hook=_unique_json_object)
+    except (json.JSONDecodeError, ValueError) as exc:
+        raise ValueError(f"{label} is malformed JSON") from exc
+
+
+def _read_github_json(arguments: list[str], label: str) -> Any:
+    return _decode_github_json(_run_read_only_gh(arguments, label), label)
+
+
+def _read_github_paginated_array(
+    endpoint: str,
+    label: str,
+    query_fields: tuple[tuple[str, str], ...] = (),
+) -> list[Any]:
+    items: list[Any] = []
+    for page_number in range(1, MAX_GITHUB_PAGES + 1):
+        arguments = ["api", "--method", "GET", endpoint]
+        for name, value in (*query_fields, ("per_page", "100")):
+            arguments.extend(("-f", f"{name}={value}"))
+        arguments.extend(("-f", f"page={page_number}"))
+        page = _read_github_json(arguments, label)
+        _require(isinstance(page, list), f"{label} page is malformed")
+        if not page:
+            return items
+        items.extend(page)
+        _require(
+            len(items) <= MAX_GITHUB_ITEMS,
+            f"{label} exceeded the item limit",
+        )
+    raise ValueError(f"{label} exceeded the page limit")
+
+
+def _read_graphql_data(arguments: list[str], label: str) -> dict[str, Any]:
+    payload = _read_github_json(arguments, label)
+    _require(isinstance(payload, dict), f"{label} response is malformed")
+    if "errors" in payload:
+        _require(payload["errors"] == [], f"{label} returned GraphQL errors")
+    data = payload.get("data")
+    _require(isinstance(data, dict), f"{label} data is malformed")
+    return data
+
+
+def _connection_at_path(
+    data: dict[str, Any], path: tuple[str, ...], label: str
+) -> dict[str, Any]:
+    current: Any = data
+    for name in path:
+        _require(isinstance(current, dict), f"{label} connection is malformed")
+        current = current.get(name)
+    _require(isinstance(current, dict), f"{label} connection is malformed")
+    return current
+
+
+def _read_graphql_connection(
+    *,
+    query: str,
+    variables: tuple[tuple[str, str], ...],
+    path: tuple[str, ...],
+    label: str,
+) -> list[Any]:
+    items: list[Any] = []
+    cursor: str | None = None
+    seen_cursors: set[str] = set()
+    for _ in range(MAX_GITHUB_PAGES):
+        arguments = ["api", "graphql", "-f", f"query={query}"]
+        for name, value in variables:
+            arguments.extend(("-F", f"{name}={value}"))
+        if cursor is not None:
+            arguments.extend(("-F", f"cursor={cursor}"))
+        data = _read_graphql_data(arguments, label)
+        connection = _connection_at_path(data, path, label)
+        nodes = connection.get("nodes")
+        page_info = connection.get("pageInfo")
+        _require(isinstance(nodes, list), f"{label} nodes are malformed")
+        _require(isinstance(page_info, dict), f"{label} pageInfo is malformed")
+        has_next_page = page_info.get("hasNextPage")
+        end_cursor = page_info.get("endCursor")
+        _require(isinstance(has_next_page, bool), f"{label} pageInfo is malformed")
+        _require(
+            end_cursor is None or isinstance(end_cursor, str),
+            f"{label} cursor is malformed",
+        )
+        items.extend(nodes)
+        _require(
+            len(items) <= MAX_GITHUB_ITEMS,
+            f"{label} exceeded the item limit",
+        )
+        if not has_next_page:
+            return items
+        _require(
+            isinstance(end_cursor, str) and bool(end_cursor.strip()),
+            f"{label} pagination cursor is blank",
+        )
+        _require(
+            end_cursor not in seen_cursors,
+            f"{label} pagination cursor did not advance",
+        )
+        seen_cursors.add(end_cursor)
+        cursor = end_cursor
+    raise ValueError(f"{label} exceeded the page limit")
+
+
+def _collect_check_runs(repository: str, review_head_sha: str) -> list[dict[str, Any]]:
+    endpoint = f"repos/{repository}/commits/{review_head_sha}/check-runs"
+    total_count: int | None = None
+    check_runs: list[dict[str, Any]] = []
+    for page_number in range(1, MAX_GITHUB_PAGES + 1):
+        page = _read_github_json(
+            [
+                "api",
+                "--method",
+                "GET",
+                endpoint,
+                "-f",
+                "filter=latest",
+                "-f",
+                "per_page=100",
+                "-f",
+                f"page={page_number}",
+            ],
+            "required check-run evidence",
+        )
+        _require(isinstance(page, dict), "required check-run page is malformed")
+        page_total = page.get("total_count")
+        _require(
+            isinstance(page_total, int)
+            and not isinstance(page_total, bool)
+            and page_total >= 0,
+            "required check-run pagination metadata is malformed",
+        )
+        if total_count is None:
+            total_count = page_total
+        _require(
+            page_total == total_count,
+            "required check-run pagination totals are contradictory",
+        )
+        page_runs = page.get("check_runs")
+        _require(isinstance(page_runs, list), "required check-run page is malformed")
+        if not page_runs:
+            _require(
+                total_count == len(check_runs),
+                "required check-run pagination is incomplete",
+            )
+            return check_runs
+        for item in page_runs:
+            _require(isinstance(item, dict), "required check-run entry is malformed")
+            app = item.get("app")
+            _require(isinstance(app, dict), "required check-run app is malformed")
+            normalized = {
+                "name": item.get("name"),
+                "headSha": item.get("head_sha"),
+                "appSlug": app.get("slug"),
+                "status": item.get("status"),
+                "conclusion": item.get("conclusion"),
+            }
+            _require(
+                all(isinstance(value, str) for value in normalized.values()),
+                "required check-run entry is malformed",
+            )
+            check_runs.append(normalized)
+            _require(
+                len(check_runs) <= MAX_GITHUB_ITEMS,
+                "required check-run evidence exceeded the item limit",
+            )
+        _require(
+            len(check_runs) <= total_count,
+            "required check-run pagination totals are contradictory",
+        )
+    raise ValueError("required check-run evidence exceeded the page limit")
+
+
+_REVIEW_THREAD_QUERY = (
+    "query($owner: String!, $name: String!, $number: Int!, $cursor: String) { "
+    "repository(owner: $owner, name: $name) { pullRequest(number: $number) { "
+    "reviewThreads(first: 100, after: $cursor) { "
+    "pageInfo { hasNextPage endCursor } nodes { id isResolved isOutdated } } } } }"
+)
+
+_REVIEW_THREAD_COMMENTS_QUERY = (
+    "query($threadId: ID!, $cursor: String) { node(id: $threadId) { "
+    "... on PullRequestReviewThread { comments(first: 100, after: $cursor) { "
+    "pageInfo { hasNextPage endCursor } nodes { body } } } } }"
+)
+
+
+def _collect_review_threads(repository: str, pull_request: int) -> list[dict[str, Any]]:
+    owner, name = repository.split("/", 1)
+    raw_threads = _read_graphql_connection(
+        query=_REVIEW_THREAD_QUERY,
+        variables=(("owner", owner), ("name", name), ("number", str(pull_request))),
+        path=("repository", "pullRequest", "reviewThreads"),
+        label="final PR review-thread evidence",
+    )
+    thread_ids: set[str] = set()
+    threads: list[dict[str, Any]] = []
+    for thread in raw_threads:
+        _require(isinstance(thread, dict), "review thread entry is malformed")
+        thread_id = thread.get("id")
+        is_resolved = thread.get("isResolved")
+        is_outdated = thread.get("isOutdated")
+        _require(
+            isinstance(thread_id, str)
+            and bool(thread_id)
+            and isinstance(is_resolved, bool)
+            and isinstance(is_outdated, bool),
+            "review thread entry is malformed",
+        )
+        _require(thread_id not in thread_ids, "review thread inventory repeats an id")
+        thread_ids.add(thread_id)
+        bodies: list[str] = []
+        if not is_resolved:
+            comments = _read_graphql_connection(
+                query=_REVIEW_THREAD_COMMENTS_QUERY,
+                variables=(("threadId", thread_id),),
+                path=("node", "comments"),
+                label="review-thread comment evidence",
+            )
+            for comment in comments:
+                _require(
+                    isinstance(comment, dict) and isinstance(comment.get("body"), str),
+                    "review-thread comment entry is malformed",
+                )
+                bodies.append(comment["body"])
+        threads.append(
+            {
+                "isResolved": is_resolved,
+                "isOutdated": is_outdated,
+                "commentsPaginationComplete": True,
+                "body": "\n".join(bodies),
+            }
+        )
+    return threads
+
+
+def _collect_tag_rulesets(repository: str) -> list[dict[str, Any]]:
+    summaries = _read_github_paginated_array(
+        f"repos/{repository}/rulesets",
+        "stable tag ruleset inventory",
+        (("includes_parents", "true"), ("targets", "tag")),
+    )
+    rulesets: list[dict[str, Any]] = []
+    ruleset_ids: set[int] = set()
+    for summary in summaries:
+        _require(isinstance(summary, dict), "stable tag ruleset summary is malformed")
+        ruleset_id = summary.get("id")
+        _require(
+            isinstance(ruleset_id, int)
+            and not isinstance(ruleset_id, bool)
+            and ruleset_id > 0,
+            "stable tag ruleset id is malformed",
+        )
+        _require(
+            ruleset_id not in ruleset_ids,
+            "stable tag ruleset inventory repeats an id",
+        )
+        ruleset_ids.add(ruleset_id)
+        detail = _read_github_json(
+            ["api", f"repos/{repository}/rulesets/{ruleset_id}"],
+            "stable tag ruleset detail",
+        )
+        _require(isinstance(detail, dict), "stable tag ruleset detail is malformed")
+        _require(
+            detail.get("id") == ruleset_id,
+            "stable tag ruleset detail id contradicts its inventory",
+        )
+        rulesets.append(detail)
+    return rulesets
+
+
+def collect_repository_admission(
+    *,
+    repository: str,
+    pull_request: int,
+    main_sha: str,
+    review_head_sha: str,
+    expected_tag: str,
+) -> dict[str, Any]:
+    """Collect one fresh, bounded, read-only GitHub admission snapshot."""
+
+    repository_parts = repository.split("/")
+    _require(
+        len(repository_parts) == 2
+        and all(
+            part not in {".", ".."} and re.fullmatch(r"[A-Za-z0-9_.-]+", part)
+            for part in repository_parts
+        ),
+        "repository identity is malformed",
+    )
+    _require(
+        isinstance(pull_request, int)
+        and not isinstance(pull_request, bool)
+        and pull_request > 0,
+        "pull request number is malformed",
+    )
+    _require_sha(main_sha, "repository admission main SHA")
+    _require_sha(review_head_sha, "repository admission review head SHA")
+    _require(
+        isinstance(expected_tag, str)
+        and expected_tag.startswith("v")
+        and STABLE_VERSION.fullmatch(expected_tag[1:]) is not None,
+        "repository admission stable tag is invalid",
+    )
+
+    main_branch = _read_github_json(
+        ["api", f"repos/{repository}/branches/main"],
+        "remote main protection evidence",
+    )
+    _require(
+        isinstance(main_branch, dict), "remote main protection evidence is malformed"
+    )
+    main_commit = main_branch.get("commit")
+    _require(isinstance(main_commit, dict), "remote main commit evidence is malformed")
+    remote_main_sha = main_commit.get("sha")
+    _require_sha(remote_main_sha, "remote main SHA")
+    _require(
+        isinstance(main_branch.get("protected"), bool),
+        "remote main protected flag is malformed",
+    )
+    snapshot = {
+        "remoteMain": {
+            "sha": remote_main_sha,
+            "protected": main_branch["protected"],
+        },
+        "mainRulesPaginationComplete": True,
+        "mainRules": _read_github_paginated_array(
+            f"repos/{repository}/rules/branches/main",
+            "applied main rules evidence",
+        ),
+        "checkRunsPaginationComplete": True,
+        "checkRuns": _collect_check_runs(repository, review_head_sha),
+        "reviewThreadsPaginationComplete": True,
+        "reviewThreads": _collect_review_threads(repository, pull_request),
+        "tagRulesetsPaginationComplete": True,
+        "tagRulesets": _collect_tag_rulesets(repository),
+    }
+    if _requires_strict_release_policy(expected_tag[1:]):
+        validate_repository_admission(
+            snapshot,
+            main_sha=main_sha,
+            review_head_sha=review_head_sha,
+            expected_tag=expected_tag,
+        )
+    return snapshot
+
+
 def classify_github_probe(exit_code: int, output: str) -> str:
     """Classify a gh API probe; only a verified HTTP 404 is absence."""
 
@@ -737,14 +1142,7 @@ def probe_github_resource(endpoint: str) -> str:
         bool(endpoint) and not endpoint.startswith("-"),
         "GitHub API endpoint is invalid",
     )
-    result = subprocess.run(
-        ["gh", "api", endpoint],
-        check=False,
-        capture_output=True,
-        text=True,
-        encoding="utf-8",
-        errors="replace",
-    )
+    result = _execute_gh(["api", endpoint])
     return classify_github_probe(result.returncode, result.stdout + result.stderr)
 
 
@@ -1513,6 +1911,13 @@ def parse_args() -> argparse.Namespace:
     repository_admission.add_argument("--main-sha", required=True)
     repository_admission.add_argument("--review-head-sha", required=True)
     repository_admission.add_argument("--expected-tag", required=True)
+    collect_admission = subparsers.add_parser("collect-repository-admission")
+    collect_admission.add_argument("--repository", required=True)
+    collect_admission.add_argument("--pull-request", type=int, required=True)
+    collect_admission.add_argument("--main-sha", required=True)
+    collect_admission.add_argument("--review-head-sha", required=True)
+    collect_admission.add_argument("--expected-tag", required=True)
+    collect_admission.add_argument("--output", type=Path, required=True)
     live_authority = subparsers.add_parser("validate-live-branch-authority")
     live_authority.add_argument("--snapshot", type=Path, required=True)
     live_authority.add_argument("--main-sha", required=True)
@@ -1605,6 +2010,20 @@ def main() -> int:
             review_head_sha=args.review_head_sha,
             expected_tag=args.expected_tag,
         )
+    elif args.command == "collect-repository-admission":
+        _require(
+            args.output.parent.is_dir(),
+            "repository admission output parent must already exist",
+        )
+        snapshot = collect_repository_admission(
+            repository=args.repository,
+            pull_request=args.pull_request,
+            main_sha=args.main_sha,
+            review_head_sha=args.review_head_sha,
+            expected_tag=args.expected_tag,
+        )
+        with args.output.open("x", encoding="utf-8", newline="\n") as stream:
+            stream.write(json.dumps(snapshot, indent=2, sort_keys=True) + "\n")
     elif args.command == "validate-live-branch-authority":
         validate_live_branch_authority(
             json.loads(args.snapshot.read_text(encoding="utf-8")),

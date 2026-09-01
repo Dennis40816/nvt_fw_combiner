@@ -5,8 +5,11 @@ from __future__ import annotations
 import importlib.util
 import hashlib
 import json
+import os
 import subprocess
+import sys
 import tempfile
+import textwrap
 import unittest
 import zipfile
 from pathlib import Path
@@ -135,6 +138,242 @@ class ReleasePromotionPolicyTests(unittest.TestCase):
             encoding="utf-8",
         )
         return result.stdout.strip()
+
+    @staticmethod
+    def write_fake_admission_gh(root: Path) -> tuple[Path, Path]:
+        tools = root / "tools"
+        tools.mkdir()
+        call_log = root / "gh-calls.jsonl"
+        fake_gh = tools / "fake_gh.py"
+        fake_gh.write_text(
+            textwrap.dedent(
+                f"""
+                import json
+                import os
+                import sys
+                from pathlib import Path
+
+                args = sys.argv[1:]
+                scenario = os.environ.get("FAKE_GH_SCENARIO", "success")
+                with Path(os.environ["FAKE_GH_LOG"]).open("a", encoding="utf-8") as log:
+                    log.write(json.dumps(args) + "\\n")
+
+                def emit(value):
+                    print(json.dumps(value))
+                    raise SystemExit(0)
+
+                if not args or args[0] != "api":
+                    raise SystemExit(91)
+                if args[1] == "graphql":
+                    query = next(value[6:] for value in args if value.startswith("query="))
+                    fields = {{
+                        args[index + 1].split("=", 1)[0]: args[index + 1].split("=", 1)[1]
+                        for index, value in enumerate(args[:-1])
+                        if value == "-F"
+                    }}
+                    cursor = fields.get("cursor")
+                    if "reviewThreads(first" in query:
+                        if cursor is None:
+                            page = {{
+                                "data": {{"repository": {{"pullRequest": {{"reviewThreads": {{
+                                    "pageInfo": {{
+                                        "hasNextPage": True,
+                                        "endCursor": "thread-page-1"
+                                    }},
+                                    "nodes": [{{
+                                        "id": "THREAD_RESOLVED",
+                                        "isResolved": True,
+                                        "isOutdated": False
+                                    }}]
+                                }}}}}}}}
+                            }}
+                            if scenario == "graphql_errors":
+                                page["errors"] = [{{"message": "simulated"}}]
+                            elif scenario == "missing_page_info":
+                                page["data"]["repository"]["pullRequest"][
+                                    "reviewThreads"
+                                ].pop("pageInfo")
+                            elif scenario == "blank_cursor":
+                                page["data"]["repository"]["pullRequest"][
+                                    "reviewThreads"
+                                ]["pageInfo"]["endCursor"] = " "
+                            emit(page)
+                        page = {{
+                            "data": {{"repository": {{"pullRequest": {{"reviewThreads": {{
+                                "pageInfo": {{
+                                    "hasNextPage": False,
+                                    "endCursor": "thread-page-2"
+                                }},
+                                "nodes": [{{
+                                    "id": "THREAD_OPEN",
+                                    "isResolved": False,
+                                    "isOutdated": False
+                                }}]
+                            }}}}}}}}
+                        }}
+                        if scenario == "repeated_cursor":
+                            page["data"]["repository"]["pullRequest"][
+                                "reviewThreads"
+                            ]["pageInfo"] = {{
+                                "hasNextPage": True,
+                                "endCursor": "thread-page-1"
+                            }}
+                        emit(page)
+                    if "node(id:" in query:
+                        if cursor is None:
+                            emit({{
+                                "data": {{"node": {{"comments": {{
+                                    "pageInfo": {{
+                                        "hasNextPage": True,
+                                        "endCursor": "comment-page-1"
+                                    }},
+                                    "nodes": [{{"body": "[P2] root"}}]
+                                }}}}}}
+                            }})
+                        emit({{
+                            "data": {{"node": {{"comments": {{
+                                "pageInfo": {{
+                                    "hasNextPage": False,
+                                    "endCursor": "comment-page-2"
+                                }},
+                                "nodes": [{{
+                                    "body": os.environ.get("FAKE_LATE_PRIORITY", "[P2] later")
+                                }}]
+                            }}}}}}
+                        }})
+                    raise SystemExit(92)
+
+                endpoint = next(value for value in args[1:] if value.startswith("repos/"))
+                form = {{
+                    args[index + 1].split("=", 1)[0]: args[index + 1].split("=", 1)[1]
+                    for index, value in enumerate(args[:-1])
+                    if value == "-f" and "=" in args[index + 1]
+                }}
+                page_number = int(form.get("page", "1"))
+                if endpoint == "repos/owner/repository/branches/main":
+                    if scenario == "gh_failure":
+                        raise SystemExit(17)
+                    if scenario == "malformed_json":
+                        print("{{")
+                        raise SystemExit(0)
+                    if scenario == "duplicate_json_key":
+                        print('{{"commit": {{}}, "protected": true, "protected": false}}')
+                        raise SystemExit(0)
+                    emit({{"commit": {{"sha": "{SHA}"}}, "protected": True}})
+                if endpoint == "repos/owner/repository/rules/branches/main":
+                    pages = {{
+                        1: [{{"type": "creation"}}],
+                        2: [{{
+                            "type": "required_status_checks",
+                            "parameters": {{"required_status_checks": [
+                                {{"context": name}}
+                                for name in {REQUIRED_RELEASE_CHECKS!r}
+                            ]}}
+                        }}]
+                    }}
+                    emit(pages.get(page_number, []))
+                if endpoint == "repos/owner/repository/rulesets":
+                    emit({{1: [{{"id": 17}}], 2: [{{"id": 29}}]}}.get(page_number, []))
+                if endpoint in (
+                    "repos/owner/repository/rulesets/17",
+                    "repos/owner/repository/rulesets/29",
+                ):
+                    identifier = int(endpoint.rsplit("/", 1)[1])
+                    qualifying = identifier == 29
+                    bypass = []
+                    if qualifying and os.environ.get("FAKE_VISIBLE_BYPASS"):
+                        bypass = [{{"actor_id": 1}}]
+                    emit({{
+                        "id": (
+                            17
+                            if scenario == "ruleset_detail_id_mismatch" and qualifying
+                            else identifier
+                        ),
+                        "target": "tag",
+                        "enforcement": "active" if qualifying else "evaluate",
+                        "bypass_actors": bypass,
+                        "conditions": {{
+                            "ref_name": {{"include": ["refs/tags/v*"], "exclude": []}}
+                        }},
+                        "rules": (
+                            [{{"type": "update"}}, {{"type": "deletion"}}]
+                            if qualifying else [{{"type": "creation"}}]
+                        )
+                    }})
+                if endpoint == (
+                    "repos/owner/repository/commits/{REVIEW_HEAD_SHA}/check-runs"
+                ):
+                    runs = [
+                        {{
+                            "name": name,
+                            "head_sha": "{REVIEW_HEAD_SHA}",
+                            "app": {{"slug": "github-actions"}},
+                            "status": "completed",
+                            "conclusion": "success"
+                        }}
+                        for name in {REQUIRED_RELEASE_CHECKS!r}
+                    ]
+                    total_count = 4 if scenario == "truncated_checks" else 3
+                    if scenario == "low_total_late_duplicate":
+                        page_runs = {{1: runs, 2: [runs[0]]}}.get(page_number, [])
+                    else:
+                        page_runs = {{1: runs[:2], 2: runs[2:]}}.get(page_number, [])
+                    emit({{"total_count": total_count, "check_runs": page_runs}})
+                raise SystemExit(93)
+                """
+            ).lstrip(),
+            encoding="utf-8",
+        )
+        interpreter = str(Path(sys.executable).resolve())
+        (tools / "gh.cmd").write_text(
+            f'@"{interpreter}" "%~dp0fake_gh.py" %*\r\n', encoding="utf-8"
+        )
+        return tools, call_log
+
+    def run_admission_collector(
+        self,
+        root: Path,
+        *,
+        late_priority: str = "[P2] later",
+        visible_bypass: bool = False,
+        scenario: str = "success",
+    ) -> subprocess.CompletedProcess[str]:
+        tools, call_log = self.write_fake_admission_gh(root)
+        environment = os.environ.copy()
+        environment.update(
+            {
+                "PATH": str(tools) + os.pathsep + environment["PATH"],
+                "FAKE_GH_LOG": str(call_log),
+                "FAKE_LATE_PRIORITY": late_priority,
+                "FAKE_GH_SCENARIO": scenario,
+            }
+        )
+        if visible_bypass:
+            environment["FAKE_VISIBLE_BYPASS"] = "1"
+        return subprocess.run(
+            [
+                sys.executable,
+                str(SCRIPT),
+                "collect-repository-admission",
+                "--repository",
+                "owner/repository",
+                "--pull-request",
+                "406",
+                "--main-sha",
+                SHA,
+                "--review-head-sha",
+                REVIEW_HEAD_SHA,
+                "--expected-tag",
+                "v1.1.1",
+                "--output",
+                str(root / "admission.json"),
+            ],
+            check=False,
+            capture_output=True,
+            text=True,
+            encoding="utf-8",
+            env=environment,
+        )
 
     def test_version_and_launcher_asset_name_sets_remain_separate_and_closed(
         self,
@@ -915,6 +1154,154 @@ class ReleasePromotionPolicyTests(unittest.TestCase):
                 expected_tag="v1.1.1",
             )
 
+    def test_v111_visible_tag_ruleset_bypass_actors_must_be_exactly_empty(
+        self,
+    ) -> None:
+        admission = valid_repository_admission()
+        qualifying = admission["tagRulesets"][0]
+
+        for accepted in (qualifying, {**qualifying, "bypass_actors": []}):
+            with self.subTest(accepted=accepted):
+                MODULE.validate_repository_admission(
+                    {**admission, "tagRulesets": [accepted]},
+                    main_sha=SHA,
+                    review_head_sha=REVIEW_HEAD_SHA,
+                    expected_tag="v1.1.1",
+                )
+
+        for rejected in (None, {}, "none", 0, [{"actor_id": 1}]):
+            with self.subTest(rejected=rejected):
+                with self.assertRaisesRegex(ValueError, "bypass actors"):
+                    MODULE.validate_repository_admission(
+                        {
+                            **admission,
+                            "tagRulesets": [{**qualifying, "bypass_actors": rejected}],
+                        },
+                        main_sha=SHA,
+                        review_head_sha=REVIEW_HEAD_SHA,
+                        expected_tag="v1.1.1",
+                    )
+
+    def test_repository_admission_collector_uses_complete_read_only_evidence(
+        self,
+    ) -> None:
+        with tempfile.TemporaryDirectory(prefix="release-admission-cli-") as temporary:
+            root = Path(temporary)
+            result = self.run_admission_collector(root)
+            self.assertEqual(0, result.returncode, result.stderr)
+
+            snapshot = json.loads((root / "admission.json").read_text(encoding="utf-8"))
+            self.assertEqual(2, len(snapshot["mainRules"]))
+            self.assertEqual(3, len(snapshot["checkRuns"]))
+            self.assertEqual(2, len(snapshot["reviewThreads"]))
+            self.assertEqual(2, len(snapshot["tagRulesets"]))
+            self.assertEqual(
+                "[P2] root\n[P2] later", snapshot["reviewThreads"][1]["body"]
+            )
+            self.assertTrue(snapshot["reviewThreads"][1]["commentsPaginationComplete"])
+
+            calls = [
+                json.loads(line)
+                for line in (root / "gh-calls.jsonl")
+                .read_text(encoding="utf-8")
+                .splitlines()
+            ]
+            self.assertEqual(4, sum(call[1] == "graphql" for call in calls))
+            self.assertTrue(all(call[0] == "api" for call in calls))
+            self.assertFalse(
+                any(
+                    token.upper() in {"POST", "PATCH", "PUT", "DELETE"}
+                    for call in calls
+                    for token in call
+                ),
+                calls,
+            )
+
+    def test_repository_admission_collector_fails_on_late_p1_or_visible_bypass(
+        self,
+    ) -> None:
+        cases = (
+            ({"late_priority": "[P1] later"}, "one priority"),
+            ({"visible_bypass": True}, "bypass actors"),
+        )
+        for arguments, message in cases:
+            with self.subTest(message=message):
+                with tempfile.TemporaryDirectory(
+                    prefix="release-admission-cli-reject-"
+                ) as temporary:
+                    root = Path(temporary)
+                    result = self.run_admission_collector(root, **arguments)
+                    self.assertNotEqual(0, result.returncode)
+                    self.assertIn(message, result.stderr)
+                    self.assertFalse((root / "admission.json").exists())
+
+    def test_repository_admission_collector_fails_closed_on_transport_and_pagination(
+        self,
+    ) -> None:
+        cases = (
+            ("gh_failure", "could not be read"),
+            ("malformed_json", "malformed JSON"),
+            ("duplicate_json_key", "malformed JSON"),
+            ("truncated_checks", "pagination is incomplete"),
+            ("low_total_late_duplicate", "totals are contradictory"),
+            ("ruleset_detail_id_mismatch", "detail id contradicts"),
+            ("graphql_errors", "GraphQL errors"),
+            ("missing_page_info", "pageInfo"),
+            ("blank_cursor", "cursor is blank"),
+            ("repeated_cursor", "did not advance"),
+        )
+        for scenario, message in cases:
+            with self.subTest(scenario=scenario):
+                with tempfile.TemporaryDirectory(
+                    prefix="release-admission-cli-fail-closed-"
+                ) as temporary:
+                    root = Path(temporary)
+                    result = self.run_admission_collector(root, scenario=scenario)
+                    self.assertNotEqual(0, result.returncode)
+                    self.assertIn(message, result.stderr)
+                    self.assertFalse((root / "admission.json").exists())
+
+    def test_rest_pagination_stops_at_the_hard_page_limit(self) -> None:
+        with mock.patch.object(
+            MODULE,
+            "_read_github_json",
+            return_value=[{"type": "creation"}],
+        ) as read_page:
+            with self.assertRaisesRegex(ValueError, "page limit"):
+                MODULE._read_github_paginated_array(
+                    "repos/owner/repository/rules/branches/main",
+                    "applied main rules evidence",
+                )
+        self.assertEqual(MODULE.MAX_GITHUB_PAGES, read_page.call_count)
+
+    def test_read_only_guard_rejects_compact_mutation_methods(self) -> None:
+        with mock.patch.object(MODULE, "_execute_gh") as execute:
+            for arguments in (
+                ["api", "--method=DELETE", "repos/owner/repository/rulesets"],
+                ["api", "-XPOST", "repos/owner/repository/rulesets"],
+                ["api", "--method"],
+            ):
+                with self.subTest(arguments=arguments):
+                    with self.assertRaisesRegex(
+                        ValueError, "attempted a mutation|command is invalid"
+                    ):
+                        MODULE._run_read_only_gh(arguments, "repository evidence")
+        execute.assert_not_called()
+
+    def test_collector_rejects_dot_repository_segments_before_transport(self) -> None:
+        with mock.patch.object(MODULE, "_read_github_json") as read:
+            for repository in ("./repository", "owner/.."):
+                with self.subTest(repository=repository):
+                    with self.assertRaisesRegex(ValueError, "identity is malformed"):
+                        MODULE.collect_repository_admission(
+                            repository=repository,
+                            pull_request=406,
+                            main_sha=SHA,
+                            review_head_sha=REVIEW_HEAD_SHA,
+                            expected_tag="v1.1.1",
+                        )
+        read.assert_not_called()
+
     def test_v110_ci_promotion_is_rejected_without_rewriting_history(self) -> None:
         snapshot = valid_snapshot()
         snapshot.pop("repositoryAdmission")
@@ -991,7 +1378,12 @@ class ReleasePromotionPolicyTests(unittest.TestCase):
                     {
                         **admission,
                         "reviewThreads": [
-                            {"isResolved": False, "isOutdated": False, "body": body}
+                            {
+                                "isResolved": False,
+                                "isOutdated": False,
+                                "commentsPaginationComplete": True,
+                                "body": body,
+                            }
                         ],
                     },
                     main_sha=SHA,
@@ -1003,7 +1395,12 @@ class ReleasePromotionPolicyTests(unittest.TestCase):
             {
                 **admission,
                 "reviewThreads": [
-                    {"isResolved": True, "isOutdated": False, "body": "no marker"}
+                    {
+                        "isResolved": True,
+                        "isOutdated": False,
+                        "commentsPaginationComplete": True,
+                        "body": "no marker",
+                    }
                 ],
             },
             main_sha=SHA,
@@ -1026,6 +1423,7 @@ class ReleasePromotionPolicyTests(unittest.TestCase):
                                 {
                                     "isResolved": False,
                                     "isOutdated": True,
+                                    "commentsPaginationComplete": True,
                                     "body": body,
                                 }
                             ],

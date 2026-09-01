@@ -284,6 +284,11 @@ are not admissible update payloads. Bootstrap is rejected from both forms.
 workflow definition. From v1.1.1 onward it also queries the live remote-main
 SHA and boolean protected flag, the complete applied-rule inventory, and the
 active stable-tag rulesets rather than treating a local checkout name as proof.
+One bounded read-only collector in `scripts/release_promotion_policy.py` owns
+those GitHub reads and their validation; `release.yml` is still the sole owner
+of tag and Release mutations. The collector accepts only GET/GraphQL reads,
+follows every review-thread page plus every unresolved thread's comment pages,
+and fails on malformed, truncated, blank-cursor, or non-advancing pagination.
 It accepts one exact reviewed release-branch head plus the
 final merged PR that produced it. The product source is normally `main`; the
 explicitly approved independent maintenance pairs `0.9.17` / `0.9.17`,
@@ -297,7 +302,9 @@ describe that one candidate. The same snapshot fully paginates review threads;
 every unresolved thread needs one recognized P0-P3 marker, unresolved P0/P1
 blocks, and independent P2/P3 work may continue in parallel. The applied main
 rules must require exactly those three checks, while one active `refs/tags/v*`
-ruleset must prevent update and deletion. GitHub omits `bypass_actors` from the
+ruleset must prevent update and deletion. A visible `bypass_actors` value must
+be exactly `[]`; null, malformed, or non-empty values fail admission. GitHub
+omits `bypass_actors` from the
 detail response for a token without ruleset write access, so the protected
 environment's release owner separately inspects and attests that the matching
 ruleset has no bypass actors. It then runs the canonical full verifier, packages
@@ -316,7 +323,10 @@ exact remote main protection and the selected source-branch head through the
 same Python owner. v1.1.0 is not CI-eligible and fails during candidate
 admission. From v1.1.1 onward the workflow additionally gathers fresh ruleset,
 exact check-run, and review-thread evidence through the repository-admission
-owner; it never executes policy from a moving `main`. A new tag requires the candidate to remain
+owner at three separate temporal boundaries: candidate, immediately pre-tag,
+and immediately pre-Release. No boundary reuses another boundary's snapshot.
+The pre-tag collection, validation, and tag mutation share one workflow run
+block. The workflow never executes policy from a moving `main`. A new tag requires the candidate to remain
 the exact current selected release-branch head. Existing-tag recovery may
 observe a newer branch head only when fresh GitHub comparison evidence proves
 the candidate remains its ancestor. In both cases the workflow definition must

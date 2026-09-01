@@ -1,0 +1,39 @@
+{
+  "schemaVersion": 2,
+  "taskId": "RELEASE-111-STRICT-ADMISSION-COLLECTOR-03",
+  "capability": "Centralize the existing v1.1.1 read-only GitHub repository-admission collector while preserving fresh candidate, pre-tag, and pre-publication trust boundaries",
+  "integrationBase": "bd50843f02d76e7e21959df696c5f2715db1321d",
+  "risk": "R3",
+  "kind": "release",
+  "state": "design-active",
+  "mutablePaths": [
+    ".github/workflows/release.yml",
+    "docs/adr/0033-ci-owned-stable-release-promotion.md",
+    "docs/ci/release-package.md",
+    "scripts/release_promotion_policy.py"
+  ],
+  "implementationOwner": "primary-agent",
+  "searchEvidence": [
+    "scripts/release_promotion_policy.py already owns validate_live_branch_authority, validate_repository_admission, validate_candidate_context, GitHub resource probing, and the release-policy CLI. Extend that owner with one bounded read-only collector and one subcommand instead of adding a script, verifier, schema, or release authority.",
+    ".github/workflows/release.yml contains three substantially duplicated repository-admission collectors at the candidate, pre-tag, and Release-mutation boundaries. The temporal boundaries are independently necessary, but their GitHub REST/GraphQL transport, pagination, normalization, and error handling are not separate semantics.",
+    "tests/scripts/test_release_promotion_policy.py already owns the pure admission-policy matrix. tests/scripts/test_release_package_policy.py already owns executable parsed-workflow, paginated GitHub evidence, call-order, and zero-mutation coverage. tests/scripts/test_deploy_update_source.py already provides the repository-native fake gh executable and JSONL call-log pattern needed to test child-process CLI behavior without mocks.",
+    "Exact-head review of 9cc6ac4f85534052a7976949ab404a90347ec054 found that visible ruleset bypass_actors is currently ignored, review-thread collection reads only the first comment, and pre-tag strict admission completes in a workflow step before the separate tag-mutation step. These are bounded release-admission defects, not firmware, package-content, Version-deployment, or v1.0.8 changes.",
+    "The preimplementation estimate that consolidation could remove 180 to 320 net production lines was invalidated by the frozen implementation evidence: release.yml removes 336 net lines while release_promotion_policy.py adds 419 net lines, for 83 net production lines added. The retained increase is the bounded reusable owner for explicit REST page limits, full unresolved-thread comment pagination, duplicate/type/total-count/ruleset-id guards, and read-only transport enforcement. Reusing a candidate snapshot across later boundaries, removing a boundary, weakening fail-closed checks to meet a line target, or creating a second verifier was rejected."
+  ],
+  "semanticOwner": "scripts/release_promotion_policy.py is the sole repository-admission policy and bounded read-only GitHub collector; .github/workflows/release.yml supplies immutable expected identities and remains the sole tag and Release mutator",
+  "terminalContract": "Candidate admission, tag mutation, and every Release create or recovery upload each invoke one fresh collector and never share a prior snapshot. The collector constructs only fixed repository, pull-request, main, review-head, and expected-tag reads; runs gh without a shell; accepts no arbitrary endpoint or mutation verb; fully and boundedly paginates rules, checks, review threads, and every unresolved thread's comments; and fails closed on command, JSON, type, total-count, pageInfo, blank/non-advancing cursor, duplicate, or hard-limit errors. A visible bypass_actors field passes only when it is exactly an empty list; omission retains the existing protected-environment release-owner attestation, while null, scalar, object, or a nonempty list fails. Pre-tag fresh collection and validation execute in the same workflow run block immediately before the existing tag POSTs, and any admission failure produces zero tag or Release mutation. Python remains read-only and the workflow remains the only tag/Release mutator. Historical pre-v1.1.1 admission behavior, package contents, Version deployment, CI status-check names, firmware/profile/range/CRC/output bytes, and v1.0.8 remain unchanged. After release.yml is frozen, the existing parity source/workflow authority is renewed once through its established append-only H1-to-H4 topology rather than weakening or duplicating that validator.",
+  "disposition": "extend-owner",
+  "designReview": {
+    "reviewer": "admission_batch_architecture",
+    "outcome": "findings-incorporated",
+    "evidence": "Independent R3 architecture review approved centralizing only read-only collection and pure validation in the existing policy owner. It required three non-cacheable temporal invocations, workflow-only mutation, complete per-thread comment pagination, hard pagination bounds, fail-closed visible bypass actors, pre-tag validation and mutation in one run block, the four exact governed paths in this record, and one final parity renewal only after workflow bytes freeze."
+  },
+  "implementationHead": null,
+  "reviewedHead": null,
+  "pathStateDigest": null,
+  "finalReview": {
+    "reviewer": null,
+    "outcome": "pending",
+    "evidence": ""
+  }
+}

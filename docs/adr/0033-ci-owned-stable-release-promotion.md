@@ -70,10 +70,17 @@ the workflow:
 For `v1.1.1` and later, the same admission also requires an active tag ruleset
 covering `refs/tags/v*` that prevents update and deletion. Missing, malformed,
 truncated, duplicated, or contradictory machine-readable GitHub evidence fails
-closed. GitHub omits `bypass_actors` from ruleset detail responses when the
-caller lacks ruleset write access, so the least-privilege workflow does not
-claim that an omitted field proves an empty bypass list. The protected
-environment's release owner must inspect and attest the no-bypass setting.
+closed. One bounded read-only collector in `release_promotion_policy.py` owns
+main-rule, exact check-run, review-thread/comment, and stable-tag-ruleset
+collection and validation; the workflow remains the only mutation owner. The
+collector follows every review-thread page and every unresolved thread's comment
+pages, rejects incomplete/non-advancing pagination, and permits only GitHub GET
+and GraphQL reads. GitHub omits `bypass_actors` from ruleset detail responses when
+the caller lacks ruleset write access, so the least-privilege workflow does not
+claim that an omitted field proves an empty bypass list. When the field is
+visible it must be exactly `[]`; otherwise admission fails. The protected
+environment's release owner must inspect and attest the omitted no-bypass
+setting.
 These requirements begin at `v1.1.1`; historical Release evidence is not
 relabeled.
 
@@ -112,6 +119,12 @@ to remain the exact current branch head. Existing-tag recovery may observe an
 advanced branch only when fresh comparison evidence proves the candidate is
 still its ancestor. Any protected-main drift, source divergence, or protection
 loss fails closed.
+
+Candidate admission, pre-tag admission, and pre-Release admission are three
+distinct temporal boundaries. Each invokes the same collector for fresh
+evidence; no boundary reuses another boundary's snapshot. Pre-tag collection,
+validation, and tag mutation remain in one workflow run block so no later step
+can mutate from a stale successful result.
 
 A separate `contents: read` job then downloads the published package and runs
 the protected-main smoke tool. Download and execution are separate steps; the
