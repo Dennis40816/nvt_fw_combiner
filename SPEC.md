@@ -1,8 +1,8 @@
 # NVT FW Combiner（NFC）實作規格
 
-> 文件狀態：`1.1.0 published manual-only Windows release; frozen v1.0.8 Application behavior retained`
-> 文件版本：`1.1.0`
-> 基準日期：`2026-09-01`
+> 文件狀態：`1.1.1 verification, test, CI, and release architecture candidate; product behavior unchanged`
+> 文件版本：`1.1.1`
+> 基準日期：`2026-09-02`
 > 產品名稱：`NVT FW Combiner`
 > 短名：`NFC`
 > Repository：`Dennis40816/nvt_fw_combiner`

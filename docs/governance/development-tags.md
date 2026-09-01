@@ -137,6 +137,15 @@ commit.
   Version deployment, and reference/Golden payloads; managed Version
   verification rejects the package fail closed. It changes no firmware
   semantics, profiles, ranges, processors, support, or output naming.
+- `v1.1.1` — verification, test, Windows CI, and stable-release architecture
+  candidate: close fixed-test-area root/history failures, replace flaky timing
+  fixtures with deterministic evidence, reuse exact component manifests behind
+  one aggregate CI verdict, and collect fresh fail-closed repository admission
+  immediately before protected tag and Release mutations. It resumes the
+  ordinary stable Windows package contract after the one-release v1.1.0
+  manual-only exception but does not deploy Catalog/Registry state, enable
+  Version deployment, change product UI or firmware semantics, or promote
+  support.
 
 ### Recorded `v0.10.2` pre-deletion comparison point
 

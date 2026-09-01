@@ -4,10 +4,90 @@ All notable changes to NVT FW Combiner are documented here. The project follows 
 
 ## [Unreleased]
 
-No product changes are recorded after v1.1.0. Published release closure lives
+No product changes are recorded after v1.1.1. Published release closure lives
 in the [verification report](docs/references/verification-report.md), and future
 milestone order lives in the [NFC roadmap](docs/architecture/nfc_roadmap.md).
 This entry is non-normative and does not duplicate either authority.
+
+## [1.1.1] - 2026-09-02
+
+### Summary
+
+This support-neutral release repairs and simplifies the verification, test,
+Windows CI, and stable-release architecture reserved after v1.1.0. It changes
+no firmware composition behavior, UI workflow, supported IC/mode, output byte,
+or output naming, and it does not enable Version deployment.
+
+### Product changes
+
+#### Verification and protected release admission
+
+- Before → After: repository-root discovery, capability-history scanning,
+  timing-sensitive fixtures, and repeated CI orchestration could make a valid
+  candidate slow or fail for environmental reasons, while release admission
+  reused checks across mutation boundaries; the canonical verifier now keeps
+  scratch work in the fixed test area, uses deterministic bounded evidence,
+  accepts exact component manifests through one aggregate verdict, and gathers
+  fresh repository admission immediately before tag and Release mutations.
+- Affected: developer verification, Windows CI producer/finalizer lanes,
+  package-source evidence, protected stable-release promotion, and post-publish
+  audit only. Desktop authoring, firmware profiles, planners/executors,
+  processors, reports, and end-user composition workflows are unchanged.
+- Support status: unchanged/support-neutral; no route, IC, mode, profile,
+  firmware range, integrity rule, Golden result, or support state is promoted,
+  removed, or inferred.
+- Compatibility: the ordinary stable Windows x64 package contract resumes after
+  the one-release v1.1.0 manual-only exception. Existing Launcher, package,
+  manifest, SBOM, provenance, and rollback contracts are reused; publishing
+  this Release does not deploy a Catalog/Registry source or enable Version
+  deployment.
+- Verification: exact-head protected CI covers the canonical structure,
+  Python/worker, .NET build, Bootstrap, UI, Domain, Application,
+  Infrastructure, Profile Contract, Golden Regression, and Architecture lanes.
+  The stable workflow must additionally pass its full verifier, closed package
+  smoke, protected-environment approval, immutable tag/Release checks, exact
+  ten-asset audit, and independent fresh-download verification.
+- Limitations: unrelated diagnostics, selector/Settings UI, Memory Layout,
+  Report, Golden-evidence, Installer/Launcher experience, authoring, and
+  analyzer work remains deferred to later v1.1.x releases. No Catalog or
+  Registry cutover is included.
+
+### Security
+
+The workflow remains the sole remote release mutator. Repository admission is
+collected with bounded read-only GitHub requests at candidate, pre-tag, and
+pre-Release boundaries; unresolved P0/P1 findings, missing required checks,
+unprotected main or tags, ruleset bypass, identity drift, mutable Release state,
+or asset/hash mismatch fails closed. No signing key, firmware authority, or
+runtime permission boundary changes in this release.
+
+### Known issues
+
+On the current local host, the final broad verifier completed structure,
+Python/worker, build, and 5,282 .NET tests with zero failures before the .NET
+coverage lane reached its fixed 600-second ceiling; Golden Regression and
+Architecture were the two not-yet-started projects. The exact same source head
+passed those projects in the protected canonical `core` CI shard. This is
+recorded as a local duration residual, not as a fully green local run; the
+formal release workflow remains fail closed and must pass before publication.
+Version deployment remains disabled. All approved later v1.1.x product work is
+unchanged and deferred.
+
+### Upgrade and rollback
+
+Install or extract v1.1.1 beside the retained v1.1.0 folder; do not overlay a
+verified installation. No saved-data migration, Catalog/Registry deployment,
+firmware-output migration, or automatic activation is introduced. Rollback is
+to close v1.1.1 and reopen the retained verified v1.1.0 package or managed
+installation according to the existing Launcher recovery contract.
+
+### Downloads and integrity
+
+Use only the stable `v1.1.1` GitHub Release. Its ordinary Windows release set is
+the versioned Application ZIP, SPDX SBOM, provenance, candidate manifest, outer
+SHA-256 list, and the existing five-file Distribution Launcher evidence set;
+GitHub-generated source ZIP/tar archives are separate source downloads. Verify
+every published SHA-256 and the ZIP's closed `SHA256SUMS.txt` before use.
 
 ## [1.1.0] - 2026-09-01
 

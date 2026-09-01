@@ -9,13 +9,41 @@ page-publication hardening milestone, the 1.0.4 managed Setup and Launcher
 source milestone, the 1.0.5 read-only recovery-diagnosis milestone, and the
 1.0.6 tag-only integration milestone, and the 1.0.7 formal Distribution
 Launcher release, through the 1.0.8 unpublished Windows release candidate and
-the published 1.1.0 manual-only Windows release.
+the published 1.1.0 manual-only Windows release, plus the v1.1.1 verification,
+test, CI, and release-architecture candidate.
 Current
 verification evidence is produced by the canonical
 `python scripts/verify.py --structure-only` and `python scripts/verify.py --all`
 commands.
 
-Specification package version: `1.1.0`
+Specification package version: `1.1.1`
+
+## 1.1.1 verification and release-architecture candidate
+
+This candidate changes only repository verification, test evidence, Windows CI,
+and stable-release admission. It closes the v1.1.0 shadow-root and long-running
+history failure modes, replaces wall-clock-sensitive test behavior with bounded
+deterministic evidence, preserves one canonical verifier, and centralizes fresh
+read-only GitHub admission collection at the candidate, pre-tag, and
+pre-Release boundaries. Firmware behavior, supported routes, profiles, output
+bytes, UI workflows, and Version deployment are unchanged.
+
+The last local `python scripts/verify.py --all` run passed structure and the
+complete Python/worker lane. Its .NET lane completed build and 5,282 tests with
+zero failures and two expected Windows skips before reaching the fixed
+600-second lane ceiling; Golden Regression and Architecture had not started.
+The exact same source head passed the canonical protected `core` shard that
+contains Domain, Application, Infrastructure, Profile Contract, Golden
+Regression, and Architecture, while the separate Bootstrap and UI shards also
+passed. This is exact-head coverage evidence, not a claim that the timed-out
+local full run was green.
+
+Formal publication remains gated by a new exact-head PR/main CI result, the
+stable workflow's full verifier and package smoke, active main/tag protection
+with no bypass actors, zero unresolved P0/P1 findings, protected release-owner
+approval, an immutable annotated tag and Release, the exact ten-asset set, and
+fresh-download digest/source-archive/package-smoke verification. No tag,
+Release, asset, or deployment is claimed by this candidate section.
 
 ## 1.1.0 published manual-only Windows release
 
