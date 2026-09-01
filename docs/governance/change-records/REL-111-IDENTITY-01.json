@@ -1,0 +1,35 @@
+{
+  "schemaVersion": 2,
+  "taskId": "REL-111-IDENTITY-01",
+  "capability": "Synchronize the completed verification-only v1.1.1 work with the repository's existing stable release identity and release-note projections",
+  "integrationBase": "f7ae7b96d9ff3324c12fedfeb78959e6f16dcb57",
+  "risk": "R2",
+  "kind": "release",
+  "state": "design-active",
+  "mutablePaths": [
+    "docs/governance/development-tags.md"
+  ],
+  "implementationOwner": "primary-agent",
+  "searchEvidence": [
+    "The repository's branch/version/release governance already makes VERSION the sole public release identity and requires exact projection into SPEC.md, CHANGELOG.md, docs/references/verification-report.md, and docs/governance/development-tags.md; scripts/validate_repository.py enforces those five owners.",
+    "REL-108-IDENTITY-01 and REL-HOTFIX-102-BASE-01 establish the existing synchronized identity pattern. Directory.Build.props already derives AssemblyVersion, FileVersion, and InformationalVersion from VERSION, so no project, parser, package, or runtime edit is needed.",
+    "scripts/render_release_notes.py is the existing exact release-note extractor and structural validator. The protected release workflow already derives tag, package, manifest, Catalog projection, SBOM, provenance, and release body from VERSION plus the accepted CHANGELOG section.",
+    "The completed v1.1.1 implementation already owns only verification, test, CI, and release architecture. The release owner repeatedly authorized publishing v1.1.1 quickly, retained Version deployment as disabled, prohibited further v1.0.8 changes, and accepted deferring unrelated product work."
+  ],
+  "semanticOwner": "Existing branch/version/release governance and synchronized stable identity projections",
+  "terminalContract": "VERSION, SPEC.md, CHANGELOG.md, docs/references/verification-report.md, and docs/governance/development-tags.md agree on one v1.1.1 verification/test/CI/release-architecture candidate. Release notes disclose that firmware, UI, support, composition bytes, output naming, and Version deployment are unchanged; that v1.1.1 returns to the ordinary protected Windows release package without performing Catalog or Registry deployment; and that the protected workflow, exact package/assets, smoke, immutable tag/Release, and fresh-download audit remain publication gates. This identity slice reuses the existing version and release-note owners, adds no parser, workflow, package mode, product behavior, firmware rule, support claim, tag, Release, or publication by itself, and does not modify v1.0.8. The exact final identity head must receive structure/render validation, exact-head CI, reviewed-tree equivalence, renewed existing package-source authority, protected release-owner approval, and post-publication evidence before closure.",
+  "disposition": "extend-owner",
+  "designReview": {
+    "reviewer": "Dennis Liu (release owner)",
+    "outcome": "approved",
+    "evidence": "The owner approved the verification-only v1.1.1 scope, instructed that v1.0.8 remain frozen and Version deployment remain disabled, authorized direct publication when residual risk is low, and approved the balanced later-version TODO allocation. The missing synchronized v1.1.1 identity is therefore closed through the established owner rather than by changing product scope or inventing a release path."
+  },
+  "implementationHead": null,
+  "reviewedHead": null,
+  "pathStateDigest": null,
+  "finalReview": {
+    "reviewer": null,
+    "outcome": "pending",
+    "evidence": ""
+  }
+}
