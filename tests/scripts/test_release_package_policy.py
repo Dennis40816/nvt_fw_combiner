@@ -27,6 +27,8 @@ ROOT = Path(__file__).resolve().parents[2]
 SCRIPTS = ROOT / "scripts"
 sys.path.insert(0, str(SCRIPTS))
 
+import verify as verify_script  # noqa: E402
+
 PACKAGE_SCRIPT = ROOT / "scripts" / "package.ps1"
 RELEASE_WORKFLOW = ROOT / ".github" / "workflows" / "release.yml"
 LAUNCHER_PACKAGE_SCRIPT = ROOT / "scripts" / "package-distribution-launcher.ps1"
@@ -2236,7 +2238,9 @@ finally {
                                 if time.monotonic() >= deadline:
                                     raise TimeoutError("Lock target was not published.")
                                 time.sleep(0.01)
-                            target = lock_target.read_text(encoding="utf-8").strip()
+                            target = Path(
+                                lock_target.read_text(encoding="utf-8").strip()
+                            )
                             kernel32 = ctypes.WinDLL("kernel32", use_last_error=True)
                             kernel32.CreateFileW.argtypes = (
                                 wintypes.LPCWSTR,
@@ -2252,7 +2256,7 @@ finally {
                             kernel32.CloseHandle.restype = wintypes.BOOL
                             while True:
                                 handle = kernel32.CreateFileW(
-                                    target,
+                                    verify_script._windows_file_api_path(target),
                                     0x80000000 | 0x40000000,
                                     0x1 | 0x2,
                                     None,
