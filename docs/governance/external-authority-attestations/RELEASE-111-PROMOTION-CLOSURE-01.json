@@ -1,0 +1,9 @@
+{
+  "schemaVersion": 1,
+  "taskId": "RELEASE-111-PROMOTION-CLOSURE-01",
+  "authorityType": "release-owner",
+  "reviewedHead": "65fb0bb19b83f40943535e2a914b775194ba54ce",
+  "decision": "approved",
+  "reviewer": "Dennis Liu (release owner)",
+  "evidence": "The release owner approved the bounded v1.1.1 release-closure policy reviewed at implementation head f36ee725286fd2fbf6aa5ce7c6ea6b88b6acfca0 and finalized at exact evidence head 65fb0bb19b83f40943535e2a914b775194ba54ce. The owner explicitly approved keeping v1.1.0 ManualOnly Release artifacts as read-only historical evidence, rejecting v1.1.0 candidate and promotion CI rebuild or recovery, and requiring a new version for any defect or missing asset. External GitHub authority was inspected and records active main ruleset 22009240 with no bypass actors, exact required checks policy / polytail, python-worker / verify, and dotnet / build-test, plus non-fast-forward and deletion protection; active stable-tag ruleset 22009138 has no bypass actors and prevents v* update and deletion; immutable Releases are enabled; and the release environment requires reviewer Dennis40816. This approval does not authorize an administrator bypass: the formal run must receive the actual protected-environment approval. Protected exact-head CI, canonical full verification, package construction, package and application smoke tests, formal publication, and fresh-download audit remain subsequent mandatory gates and are not represented here as passing."
+}
