@@ -38,6 +38,16 @@ Regression, and Architecture, while the separate Bootstrap and UI shards also
 passed. This is exact-head coverage evidence, not a claim that the timed-out
 local full run was green.
 
+Post-merge main CI run `33536867503` at that same H4 later failed one
+Infrastructure test:
+`FileSystemVersionManagerWriteLeaseTests.WindowsAbandonedProcessReleasesWriterForRestartConvergence`.
+Its helper marker did not appear within the test's ten-second wait and the test
+ended with `TaskCanceledException`. The same H4 passed the test in PR CI run
+`33534650943` and in the local full-verifier Infrastructure project. This is one
+intermittent observation with an unconfirmed root cause, not a correctness fix
+or a green post-merge run; a new exact-head protected CI result and the formal
+release workflow remain mandatory.
+
 Formal publication remains gated by a new exact-head PR/main CI result, the
 stable workflow's full verifier and package smoke, active main/tag protection
 with no bypass actors, zero unresolved P0/P1 findings, protected release-owner
