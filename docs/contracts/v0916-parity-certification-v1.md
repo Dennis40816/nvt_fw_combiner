@@ -119,16 +119,16 @@ exact `candidateAuthority` implementation head/tree, not the portable release
 ZIP. The plan pins
 `docs/contracts/v100-candidate-source-executor-v1.json` at 4680 raw bytes and
 SHA-256
-`641adaa15440bb95d594cd5bf4731b8d8e7a7c7a863862fc7ed7f296578155c9`.
-That contract pins head `39dbf710c0514796f4df8e0d022c578ace19561a`, tree
-`36b0a536d50828a5eddadbd5d325924b6d2f743f`, SDK `10.0.303`, the complete
+`19fdc49a5aaabdf71dcfe2be529b05d25d72c20bb1cafcb0098c0ca6cabbdcdf`.
+That contract pins head `0f6692c2d7af8e49ed9b076a13297ee193956697`, tree
+`b8c3a48d83ca83df89f0c8fed72fbd51c9206e75`, SDK `10.0.303`, the complete
 lock/tool inventory, and CLI SHA-256
 `ba84481f06698f89f0831246443af6bf7592937457530ecd1401fe2fbbd1bbc4`.
 The build command pins `ContinuousIntegrationBuild=true` and maps the detached
 worktree root to `/_/src`; two independent detached worktrees produced the same
 162304-byte executable and SHA above, plus an identical 384-file,
 92147320-byte runtime closure with SHA-256
-`dd778eb5e9d22b1ff90cba702f0c3919ff3ae37ce3d091124cfcd747c32a78f2`.
+`6b173a2dedd42266a39cfa3dd1d8bc4285cc8e4a1b0a7675ea2f680bf67dd796`.
 The renewed lock inventory includes the transitive `NvtFwCombiner.Platform`
 project. The prior 384-file closure `31a81718...` has the same count and size
 but is not an accepted alternate: its managed runtime bytes carry the prior Git
@@ -446,7 +446,7 @@ Contents query, the Git blob SHA returned for that path at that commit, and the
 SHA-256 of decoded raw workflow bytes. None may substitute for another.
 The authenticated protected-main workflow commit is independent of the pinned
 candidate implementation/package head
-`39dbf710c0514796f4df8e0d022c578ace19561a`; equality is neither required
+`0f6692c2d7af8e49ed9b076a13297ee193956697`; equality is neither required
 nor authority. The blob and raw digests independently prove which workflow
 bytes occupied `.github/workflows/release.yml` at the workflow commit, while
 the candidate manifest/provenance and source-executor contract continue to bind
