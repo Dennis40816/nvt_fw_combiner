@@ -5,7 +5,7 @@
   "integrationBase": "4c1cce2f9c96f8558b07abaa8c43d85edb7a0b7a",
   "risk": "R2",
   "kind": "governance",
-  "state": "design-active",
+  "state": "final-complete",
   "mutablePaths": [
     "scripts/validate_repository.py",
     "scripts/verify.py"
@@ -27,12 +27,12 @@
     "outcome": "findings-incorporated",
     "evidence": "Independent bounded R2 design review reported P0=0, P1=0, P2=1 and P3=2. The required P2 is incorporated by passing the explicit current ROOT to the pinned adapter resolver and asserting one isolated resolver call in shard regressions. The P3 single-owner recommendation is incorporated by deleting the redundant CI execution facade, calling local_dotnet_vstest_command directly, updating its exact-assembly contract text and synchronizing the existing structure audit to those exact command markers. The reviewer approved the bounded Win32 2/3 retry under the unchanged shared ten-second test deadline and required no ADR."
   },
-  "implementationHead": null,
-  "reviewedHead": null,
-  "pathStateDigest": null,
+  "implementationHead": "1e07697f8cb5de2dab206d8ff3725f82bfd2e3ae",
+  "reviewedHead": "1e07697f8cb5de2dab206d8ff3725f82bfd2e3ae",
+  "pathStateDigest": "ec95191d5ad946778f5a6ebc3a11008c19a85924a4b79c9df39751eb12bd0829",
   "finalReview": {
-    "reviewer": null,
-    "outcome": "pending",
-    "evidence": ""
+    "reviewer": "admission_batch_architecture",
+    "outcome": "approved",
+    "evidence": "Independent bounded R2 final review approved exact implementation head 1e07697f8cb5de2dab206d8ff3725f82bfd2e3ae. Protected CI discovery and execution reuse the sole existing local_dotnet_vstest_command against the same exact prebuilt assembly with the pinned adapter resolved from the explicit current ROOT; exact Counter reconciliation, failure and approved-skip handling, coverage pairing, immutable source and output hashes, ordinary-failure continuation, hash-drift rejection and timeout termination remain fail closed. The structure owner now requires the exact-assembly markers and rejects the obsolete ci_dotnet_test_command plus lowercase project-level collect and results markers; focused current-source and three legacy-mutation regressions passed. The test-only Windows lock holder retries only Win32 errors 2 and 3 within the unchanged shared ten-second deadline, all other errors fail immediately, and production cleanup is unchanged; the permanent-lock regression passed three consecutive runs. Six command and shard regressions passed. The canonical core shard passed at direct parent 52a4e50312d29a9725c8bce7ada7a99228757fc4; 1e07697f8cb5de2dab206d8ff3725f82bfd2e3ae changed only the structure-policy validator and its Python regression, leaving verifier runtime commands and C# test bytes identical. Exact assembly evidence reconciled 1,070 discovered and executed identities with 1,068 passed, two approved skips, zero failures and no missing or extra identities. P0/P1/P2/P3 = 0/0/0/0; final review approved."
   }
 }
