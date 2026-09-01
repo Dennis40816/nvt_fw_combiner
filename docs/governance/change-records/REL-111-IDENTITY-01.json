@@ -5,7 +5,7 @@
   "integrationBase": "f7ae7b96d9ff3324c12fedfeb78959e6f16dcb57",
   "risk": "R2",
   "kind": "release",
-  "state": "design-active",
+  "state": "final-complete",
   "mutablePaths": [
     "docs/governance/development-tags.md"
   ],
@@ -24,12 +24,12 @@
     "outcome": "approved",
     "evidence": "The owner approved the verification-only v1.1.1 scope, instructed that v1.0.8 remain frozen and Version deployment remain disabled, authorized direct publication when residual risk is low, and approved the balanced later-version TODO allocation. The missing synchronized v1.1.1 identity is therefore closed through the established owner rather than by changing product scope or inventing a release path."
   },
-  "implementationHead": null,
-  "reviewedHead": null,
-  "pathStateDigest": null,
+  "implementationHead": "323f6dca2a218066c44ef9a1e77a1a3ae9e609fb",
+  "reviewedHead": "323f6dca2a218066c44ef9a1e77a1a3ae9e609fb",
+  "pathStateDigest": "c3145a0ada0f4ccef9bfb3cc430437209fffc0390d2a46a179dad5c243ef8f9a",
   "finalReview": {
-    "reviewer": null,
-    "outcome": "pending",
-    "evidence": ""
+    "reviewer": "admission_batch_architecture",
+    "outcome": "findings-incorporated",
+    "evidence": "Independent fixed-head semantic review first approved the complete identity projections at 6c5ba8fedad9ead7b86e2f02db6941c6092a79b2 with P0=0, P1=0, P2=0, and P3=0 after replacing one internal H4 term in the public release notes with 'same exact source commit'. It verified exact 1.1.1 VERSION, SPEC, verification-report, CHANGELOG, and development-tag projection; a complete renderable release section; the ordinary ten-asset package description; no production, workflow, firmware, UI, v1.0.8, support, Catalog/Registry deployment, or Version-deployment change; and accurate disclosure that post-merge main run 33536867503 failed one ten-second helper-marker wait although the same source commit passed PR CI and local Infrastructure. A second bounded lifecycle review approved exact head 323f6dca2a218066c44ef9a1e77a1a3ae9e609fb with P0-P3=0, confirmed it adds only this design-active record, binds latest capability checkpoint f7ae7b96d9ff3324c12fedfeb78959e6f16dcb57, and correctly covers only the governed development-tags.md path. Both reviews preserve exact-head CI, renewed package-source authority, protected release workflow, package/smoke, owner approval, immutable tag/Release, and fresh-download verification as later gates."
   }
 }
