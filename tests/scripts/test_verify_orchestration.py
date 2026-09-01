@@ -4583,12 +4583,18 @@ class VerifyOrchestrationTests(unittest.TestCase):
     ) -> None:
         parsed = MODULE.parse_args([])
         self.assertEqual(3, parsed.jobs)
-        self.assertEqual(600, parsed.lane_timeout_seconds)
+        self.assertEqual(900, parsed.lane_timeout_seconds)
+        self.assertEqual(
+            600,
+            MODULE.parse_args(["--lane-timeout-seconds", "600"]).lane_timeout_seconds,
+        )
         with contextlib.redirect_stderr(io.StringIO()):
             with self.assertRaises(SystemExit):
                 MODULE.parse_args(["--jobs", "4"])
             with self.assertRaises(SystemExit):
                 MODULE.parse_args(["--lane-timeout-seconds", "59"])
+            with self.assertRaises(SystemExit):
+                MODULE.parse_args(["--lane-timeout-seconds", "901"])
 
     def test_local_public_session_requires_an_explicit_absolute_test_area(
         self,
