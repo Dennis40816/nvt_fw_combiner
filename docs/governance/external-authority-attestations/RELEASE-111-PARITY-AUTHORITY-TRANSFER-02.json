@@ -1,0 +1,9 @@
+{
+  "schemaVersion": 1,
+  "taskId": "RELEASE-111-PARITY-AUTHORITY-TRANSFER-02",
+  "authorityType": "release-owner",
+  "reviewedHead": "bd50843f02d76e7e21959df696c5f2715db1321d",
+  "decision": "approved",
+  "reviewer": "Dennis Liu (release owner)",
+  "evidence": "The release owner's approved v1.1.1 completion goal authorizes this bounded renewal of the existing source-built parity authority after exact-head review exposed a fail-closed Git direct-child mismatch. Exact H3 bd50843f02d76e7e21959df696c5f2715db1321d closes the reviewed H1 e8ae59b751bc2dfce4f5d4c683a6059a50e24567 to H2 acb8c641774caf8e0aa5b5fda56a49a31f8166ed chain, whose two independent detached locked builds reproduced the same CLI and runtime closure and whose production authority-transfer validator passed. This approval renews source/build identity only: it does not declare the deferred 64-route parity evidence passed, modify firmware semantics or v1.0.8, enable Version deployment, waive admission A/C/D, or replace full verification, package/smoke, protected CI, formal publication, and fresh-download gates."
+}
