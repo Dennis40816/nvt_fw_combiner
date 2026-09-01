@@ -5,7 +5,7 @@
   "integrationBase": "55bdd92cd171159aeea3f98f552b50f6d1ffb2df",
   "risk": "R2",
   "kind": "governance",
-  "state": "design-active",
+  "state": "final-complete",
   "mutablePaths": [
     "scripts/verify.py"
   ],
@@ -25,12 +25,12 @@
     "outcome": "findings-incorporated",
     "evidence": "Independent R2 design review reproduced the WinError 3 boundary and approved only a textual correction at the existing _open_windows_path adapter. It required path.absolute rather than resolve, ordinary UNC and drive conversion, no device-namespace expansion, and no change to handle identity, OPEN_REPARSE_POINT, share/delete, marker, recursive inventory, retry, fallback, or residue semantics. Review rejected importing the parity-specific helper or extracting a shared module as wrong-owner over-engineering, required a real long ordinary file cleanup regression plus a pure normalization matrix, retained all existing destructive-containment tests, and found no firmware, runtime, package, release, or architectural authority change. Exact-head review then found one P1 because the first implementation preserved every \\\\?\\ namespace, including GLOBALROOT, Volume GUID, and pipe forms. The incorporated design and tests now preserve only syntactically ordinary extended drive and case-insensitive extended UNC forms and reject every other extended namespace before CreateFileW."
   },
-  "implementationHead": null,
-  "reviewedHead": null,
-  "pathStateDigest": null,
+  "implementationHead": "d6e1966bbef6c53f6570f8decbec32773e8d25df",
+  "reviewedHead": "d6e1966bbef6c53f6570f8decbec32773e8d25df",
+  "pathStateDigest": "61c2e5192b0f937ec49c23f81fc2bfd3edff19771609ee688550f76cbe7a6de0",
   "finalReview": {
-    "reviewer": null,
-    "outcome": "pending",
-    "evidence": ""
+    "reviewer": "v111_release_architecture_review; standard_merge_verified_trace",
+    "outcome": "findings-incorporated",
+    "evidence": "Independent exact-head architecture, evidence, and scoped Polytail review of 55bdd92c..d6e1966 found P0-P3 = 0 after incorporation of the namespace and lifecycle findings. The reachable history contains one first-admission design-active record at d6e1966 and no intermediate admitted blob or immutable-field mutation. The implementation uses path.absolute without resolution, permits only ordinary extended ASCII-drive and case-insensitive UNC forms with nonempty server/share, rejects device, GLOBALROOT, Volume GUID, pipe, and other extended namespaces, and changes only the textual CreateFileW argument. Existing access, OPEN_REPARSE_POINT, share/delete, handle identity, marker, inventory, readonly, signal, residue, and exact deletion semantics remain unchanged. Independent focused evidence passed 9/9, including the real full-path-over-260 cleanup, existing parity controlled temporary owner, broad-rmtree prohibition, readonly, real junction, descendant/marker identity, and marker mismatch cases; the long-path test preserved a stale session sibling and external sentinel. The canonical full run before this fix passed structure and 810 of 811 repository-script tests with the sole error at the deterministic Windows legacy-path cleanup boundary. This bounded verdict permits finalization but does not claim the post-fix full verifier or overall v1.1.1 release is complete."
   }
 }
