@@ -5,7 +5,7 @@
   "integrationBase": "71cd4cdcca278cda8d823eee8615e8754b00a8b1",
   "risk": "R3",
   "kind": "release",
-  "state": "design-active",
+  "state": "final-complete",
   "mutablePaths": [
     "scripts/package.ps1",
     "scripts/smoke-release.ps1",
@@ -32,12 +32,12 @@
     "outcome": "findings-incorporated",
     "evidence": "Independent R3 design re-review approved the bounded v1.1.0 manual-only distribution exception. ADR 0062 will retain managed-first authority for Setup/update while documenting the direct-package exception; schema 1.3 is fail-closed from managed Version installation through an Infrastructure regression; package.ps1 remains the single construction owner and ManualOnly guards every reference/Golden and Launcher/deployment path; the controlled operator procedure binds the independently reviewed and merge-tree-equivalent protected-main SHA/tree to one annotated tag and exactly ZIP, SPDX, and provenance assets, uses a truthful manual-operator builder identity, and independently re-downloads, hashes, inventories, worker-checks, and visibly starts the artifact in the fixed test area. No firmware, profile, composition, range, CRC, support, Catalog, Registry, or v1.0.8 authority changes. The supplemental R3 review accepts the one-release expansion of the v1.1.0 waiver to structure-only because the exact 2026-09-01 run reached the pre-existing capability-history scan after reporting only known metric warnings and zero validation errors, then exhausted the bounded 600-second execution window; this result is recorded as timed out and waived, not passed. ManualOnly remains locked to v1.1.0, excludes reference/Golden/Launcher/deployment content, uses a truthful builder identity, and its release-contract suite is 63/63 green. P0=0, P1=0, P2=0, P3=0; verdict PASS-WITH-HUMAN-GATE pending exact-head review, complete exact-tree owner waiver, protected-main applicable CI, managed schema-1.3 rejection, release-owner digest approval, and fresh-download visible-startup evidence."
   },
-  "implementationHead": null,
-  "reviewedHead": null,
-  "pathStateDigest": null,
+  "implementationHead": "ab1629a141b759aaa312b65cf3e36654ca97b7d0",
+  "reviewedHead": "ab1629a141b759aaa312b65cf3e36654ca97b7d0",
+  "pathStateDigest": "2b25b4dae76b580cfc06c7e98375119ba6099e99979c17ae77501f5aff318b36",
   "finalReview": {
-    "reviewer": null,
-    "outcome": "pending",
-    "evidence": ""
+    "reviewer": "final_review_v110_exact_head",
+    "outcome": "findings-incorporated",
+    "evidence": "Independent exact-head R3 review fixed SHA ab1629a141b759aaa312b65cf3e36654ca97b7d0 and tree c4509b7182477847ec701ea278b8b3f924885a68 and reported P0=0, P1=0, P2=0, P3=0 with Polytail PASS-WITH-HUMAN-GATE. The repaired candidate binds the latest final-evidence checkpoint 71cd4cdcca278cda8d823eee8615e8754b00a8b1. Compared with the previously reviewed implementation, the only tree difference is that integrationBase correction; excluding this record, every product, package script, test, release document, and waiver byte is identical, so the prior substantive review and test evidence remains applicable. Release policy tests passed 63/63, targeted release-note and manual-package tests passed 7/7, ReleaseManifestPinsVersionScopedLauncherContract passed 1/1, ManualOnlyReleaseManifestFailsClosedFromManagedVersionVerification passed 1/1, git diff --check passed, a preflight manual-only package completed, and its closed-package smoke passed. The review confirms package.ps1 remains the single packager, schema 1.3 is rejected by managed Version verification, no source/profile/firmware/CRC/Golden authority changed, and no Launcher, Setup, Catalog, Registry, Bootstrap, deployment, or reference payload is admitted. verify.py --structure-only remains locally timed out and waived rather than passed; verify.py --all, the managed release workflow, and clean-Windows profile/preview/build/report validation remain explicitly unexecuted and waived for this exact one-release scope. Protected-main applicable CI must now validate the corrected evidence chain; merge-tree identity, a clean detached exact-main build, CRC worker and visible startup, release-owner approval of the exact three asset digests, immutable annotated tag creation, exact three-asset upload, and fixed-D fresh-download hash and visible-startup smoke remain mandatory publication gates and are not claimed by this implementation record."
   }
 }
