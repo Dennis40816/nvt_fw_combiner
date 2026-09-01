@@ -5,7 +5,7 @@
   "integrationBase": "cb87cf9cdd96906998fdb52f6fb0882c98e7fd99",
   "risk": "R3",
   "kind": "release",
-  "state": "design-active",
+  "state": "final-complete",
   "mutablePaths": [
     "docs/contracts/v0916-parity-certification-v1.json",
     "docs/contracts/v0916-parity-certification-v1.schema.json",
@@ -31,12 +31,12 @@
     "outcome": "approved",
     "evidence": "Independent bounded R3 design re-review reported P0=0, P1=0, P2=0 and P3=0 and approved the corrected two-owner fifteen-path topology. It confirmed this record exclusively owns the eight workflow-contract projection paths, the paired transfer record owns the three source/narrative paths, the two existing tests remain regression evidence, and no record owns itself. It requires exact-H2 execution of the existing workflow semantic validator, full projection tests and exact-H2 final review before the two-record H3 and two-attestation H4."
   },
-  "implementationHead": null,
-  "reviewedHead": null,
-  "pathStateDigest": null,
+  "implementationHead": "0deb3aad4d5898f2e763a1a3c455493e6c28ad94",
+  "reviewedHead": "0deb3aad4d5898f2e763a1a3c455493e6c28ad94",
+  "pathStateDigest": "70ce6ae00f191adb623e91c50192c3565a683f6162a829c5853e2c943a607e7e",
   "finalReview": {
-    "reviewer": null,
-    "outcome": "pending",
-    "evidence": ""
+    "reviewer": "admission_batch_architecture",
+    "outcome": "approved",
+    "evidence": "Independent bounded exact-H2 R3 review fixed H2 0deb3aad4d5898f2e763a1a3c455493e6c28ad94 and reported P0=0, P1=0, P2=0 and P3=0; scoped Polytail passed with mandatory H3/H4 human gates retained. Corrected H1 dfaedec4519fae185e5934b79a225b6c67c7d547 is H2's exact single parent, and H2 changes exactly the fifteen sorted predeclared paths. This record exclusively owns the eight workflow-contract projection paths; the paired authority-transfer record exclusively owns the three source/narrative paths. Frozen .github/workflows/release.yml remains 64329 bytes, Git blob d08966fe9047bf03fa4adca211fe42d93411e02a, SHA-256 12d43d0ffae3931948d7e10a9c174fe73c5da36a423812a7de6be980ba0c3728. The 14322-byte semantic workflow contract is SHA-256 55e2cc5998049aadb2455886496c680c98b53206bec5fbe6d6155875e8b23338; candidate job SHA-256 is 7f3ec7df275b0edfcb98a2c6f89b3c5385186ee9358e88365d288c9dfbee1c10, promote remains c899059ac0d034c67a01b0a472033861ab3cdc31d0be435327c44656cd07ae6b, and the exact eleven-step promotion digest remains 3a4715a72e4d8af8f98b79c9b5a370bcadc5832624235f72e67b8614c35ea03d. The existing production semantic validator passed against the frozen workflow bytes and renewed contract, proving the closed trigger, permissions, job inventory, dependencies, conditions, environments, timeouts, action pins, commands and artifact ordering. Raw contract identity propagated through all eight owned contract/schema paths and both existing parity fixtures. Production authority-transfer validation returned exact H1/H2; parity owner tests passed 32 with one explicit external package-lab skip. No workflow mutation, second verifier, compatibility bypass, firmware/product/package change, Version deployment or v1.0.8 drift was introduced. This approves protected-workflow contract synchronization only, not terminal parity, full verification, protected CI, package smoke, publication or the required H3/H4 release-owner gates."
   }
 }
